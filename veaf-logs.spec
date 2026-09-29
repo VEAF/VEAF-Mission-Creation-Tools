@@ -46,8 +46,12 @@ analysis = Analysis(
     [str(SOURCE / "veaf_logs" / "__main__.py")],
     pathex=[str(SOURCE)],
     binaries=[],
-    # Le catalogue de regles est lu au demarrage, a cote du module.
-    datas=[(str(SOURCE / "veaf_logs" / "rules.json"), "veaf_logs")],
+    # Le catalogue de regles est lu au demarrage, a cote du module ; l'icone
+    # aussi, pour la fenetre (voir `veaf_logs.appearance.APP_ICON_PATH`).
+    datas=[
+        (str(SOURCE / "veaf_logs" / "rules.json"), "veaf_logs"),
+        (str(SOURCE / "veaf_logs" / "veaf-logs.ico"), "veaf_logs"),
+    ],
     # paramiko n'est importe qu'a la premiere connexion SSH (journal distant) :
     # on le nomme pour que l'analyse ne le rate pas.
     hiddenimports=["paramiko"],
@@ -72,4 +76,6 @@ exe = EXE(
     # Pas de console : c'est une application a fenetre.
     console=False,
     disable_windowed_traceback=False,
+    # L'icone du fichier dans l'Explorateur ; ignoree hors Windows.
+    icon=str(SOURCE / "veaf_logs" / "veaf-logs.ico"),
 )

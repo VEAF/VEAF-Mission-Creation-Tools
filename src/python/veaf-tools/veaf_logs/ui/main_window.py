@@ -12,6 +12,7 @@ from PySide6.QtGui import (
     QDesktopServices,
     QFont,
     QFontMetrics,
+    QIcon,
     QKeySequence,
     QWheelEvent,
 )
@@ -42,7 +43,7 @@ from PySide6.QtWidgets import (
 from veaf_libs.user_config import RemoteServer, config_file_path, default_config_path, get_servers
 
 from ..analysis import analyse
-from ..appearance import DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, clamp_font_size
+from ..appearance import APP_ICON_PATH, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, clamp_font_size
 from ..filters import FilterSet, highlight_patterns
 from ..parser import Entry
 from ..profiles import DEFAULT_PROFILE, ProfileStore
@@ -1162,12 +1163,22 @@ def main() -> int:
     return run(sys.argv)
 
 
+def app_icon() -> QIcon:
+    """L'icone de la fenetre et de la barre des taches, la meme que celle de l'executable.
+
+    Returns:
+        L'icone, toutes tailles du fichier `.ico` comprises.
+    """
+    return QIcon(str(APP_ICON_PATH))
+
+
 def run(argv: list[str] | None = None) -> int:
     import sys
 
     argv = sys.argv if argv is None else argv
     app = QApplication(argv)
     app.setApplicationName("veaf_logs")
+    app.setWindowIcon(app_icon())
     app.setStyle("Fusion")
     _apply_dark_palette(app)
 

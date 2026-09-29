@@ -1,6 +1,6 @@
 # 03 — every first-level radio menu in capitals
 
-Status: ⬜ ready
+Status: ✅ done
 
 David, 2026-09-29: put every first-level radio menu in capitals.
 
@@ -18,3 +18,23 @@ David, 2026-09-29: put every first-level radio menu in capitals.
 
 - A test builds the radio menu with the real modules and asserts that every first-level title is in
   capitals, including one registered after the others.
+
+## Closed (2026-09-29)
+
+- **Enumerated from the code:** 15 first-level menus (every `veafRadio.addMenu`, and every
+  `addSubMenu` without a parent — Skynet's per coalition) plus 2 first-level commands (veafAssist's
+  confirm / skip the step). **14 menus were already in capitals** in `veafI18n.lua`; only
+  `Assistance` and the two commands were not.
+- Applied once, in `RadioMenuBuilder:_buildSubtree`, to the display label of every child of the
+  root — menus and commands, on every "Next page" of the root too (the 17 entries overflow the first
+  page). The logical titles stay as written, since modules find their entries again by title.
+- `veafRadio.toUpperCase` also upper-cases UTF-8 accented letters (à..þ, œ), which `string.upper`
+  leaves alone ("Météo" would have become "MéTéO").
+- Tests: `TestVeafRadioFirstLevelCapitals` renders the real first-level keys in French and English
+  plus a lower-case module registered after them, and checks deeper levels are untouched.
+- Docs: the pilot guide and README, the scripts index and the veafAssist page (FR+EN) quote the
+  first-level names in capitals; the veafAssist page now shows the real labels of its two commands
+  ("Valider cette étape" was not what the game shows).
+- **Left as found:** `veafAssets.md` and the French scripts index say `ASSETS` where the French menu
+  reads `MOYENS`, and the pilot guide's diagram lists a first-level `Aide` / `Help` that the code
+  does not create.

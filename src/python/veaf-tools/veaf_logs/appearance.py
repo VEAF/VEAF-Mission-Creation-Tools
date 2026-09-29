@@ -1,4 +1,4 @@
-"""Police d'affichage du journal.
+"""Police d'affichage du journal, et icone de l'application.
 
 Une seule definition de la police et de sa taille, partagee par la table, le
 modele et le panneau de detail. Elle vivait en trois exemplaires — `QFont` etait
@@ -10,6 +10,12 @@ Ce module ne depend pas de Qt : la session le lit pour ses valeurs par defaut, e
 """
 
 from __future__ import annotations
+
+from pathlib import Path
+
+# Dessinee pour le projet : une page de journal sous une loupe. Embarquee a cote
+# du module par `veaf-logs.spec`, comme `rules.json`, et posee aussi sur l'executable.
+APP_ICON_PATH = Path(__file__).with_name("veaf-logs.ico")
 
 DEFAULT_FONT_FAMILY = "Cascadia Mono"
 DEFAULT_FONT_SIZE = 9

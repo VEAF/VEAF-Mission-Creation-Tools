@@ -57,11 +57,10 @@ graph TD
     VEAF --> CZ[COMBAT ZONES]
     VEAF --> Miss[MISSIONS]
     VEAF --> Assist[ASSISTANCE]
-    VEAF --> Help[Help]
     Assist --> AS1["Cold start — F-16C"]
     Res --> A1["Arco 1-1 — tanker"]
     Res --> A2["Overlord — AWACS"]
-    F10 --> Carrier["CARRIER OPS - BLUE / RED"]
+    VEAF --> Carrier["CARRIER OPS"] --> CarrierSide["CARRIER OPS - BLUE / RED"]
 ```
 
 > 📷 *Screenshot coming soon: VEAF submenu in the F10 radio menu.*

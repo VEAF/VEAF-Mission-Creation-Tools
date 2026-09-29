@@ -35,6 +35,9 @@ David, 2026-09-29: put every first-level radio menu in capitals.
 - Docs: the pilot guide and README, the scripts index and the veafAssist page (FR+EN) quote the
   first-level names in capitals; the veafAssist page now shows the real labels of its two commands
   ("Valider cette étape" was not what the game shows).
-- **Left as found:** `veafAssets.md` and the French scripts index say `ASSETS` where the French menu
-  reads `MOYENS`, and the pilot guide's diagram lists a first-level `Aide` / `Help` that the code
-  does not create.
+- **Also fixed, at David's request:** the French pages quoted English labels — `ASSETS` for `MOYENS`,
+  `CARRIER OPS` for `OPS PORTE-AVIONS`, and `veafAssets.md` claimed its commands were in English
+  when they are translated (*Réapparition de*, *Infos sur*, *Retirer*). The pilot guide's diagram
+  showed a first-level `Aide` / `Help` the code does not create (removed), and hung the carrier menu
+  off F10 instead of VEAF. The carrier start command itself is hard-coded in English in
+  `veafCarrierOperations.lua`, so the French index keeps quoting it that way.

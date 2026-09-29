@@ -95,6 +95,11 @@ Dropping the ED noise changes the scale of what is left to read:
 "Severe" means level `ERROR`, `ERROR_ONCE` or `ALERT`. A log grows while the game
 runs, so counts taken on another day differ by a few lines.
 
+To give the log the whole width, the **Panneau des filtres** button, at the start of the
+profile bar (or `Ctrl+B`), hides this panel; pressing it again brings it back at the width
+it had. Hidden, the filters **still apply**: the status bar keeps saying how many lines
+they hide. The panel stays hidden from one session to the next.
+
 ## Profiles
 
 The dropdown at the top holds a complete filter set — category states, search
@@ -284,6 +289,7 @@ button to stop it — whatever is already indexed stays usable.
 | `Ctrl+0` | default font size |
 | `Ctrl`+wheel | grow / shrink the font |
 | `Ctrl+I` | show or hide the detail pane |
+| `Ctrl+B` | show or hide the filter panel |
 | `F5` | reload the rule catalogue |
 
 ## Adding your own rules
@@ -325,7 +331,7 @@ ASCII. The number of noise families is capped at 64.
 
 | | |
 |---|---|
-| Session (open files, filters, geometry, font) | `%APPDATA%\veaf-logs\session.json` |
+| Session (open files, filters, geometry, font, panels shown) | `%APPDATA%\veaf-logs\session.json` |
 | Profiles | `%APPDATA%\veaf-logs\profiles.json` |
 | Remote servers (`servers:`) | `~\veafmct.yaml` |
 | Local mirror of a remote log | `%TEMP%\veaf-logs-*.log`, removed when the tab closes |

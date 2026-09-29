@@ -1,6 +1,6 @@
 # CHORE-SMALL-POLISH — four small things David noted on 2026-09-29
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Noted by David while testing, grouped so they ship together rather than as four lots. None of them
 blocks anything; each is small on its own.
@@ -9,10 +9,10 @@ blocks anything; each is small on its own.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [radio kneeboards mangle non-ASCII names](tickets/01-kneeboard-utf8.md) | ⬜ |
-| 02 | [an icon on `veaf-logs.exe`](tickets/02-veaf-logs-icon.md) | ⬜ |
-| 03 | [every first-level radio menu in capitals](tickets/03-radio-menus-uppercase.md) | ⬜ |
-| 04 | [`veaf-logs`: a button to show or hide the filter panel](tickets/04-veaf-logs-toggle-filters.md) | ⬜ |
+| 01 | [radio kneeboards mangle non-ASCII names](tickets/01-kneeboard-utf8.md) | ✅ |
+| 02 | [an icon on `veaf-logs.exe`](tickets/02-veaf-logs-icon.md) | ✅ |
+| 03 | [every first-level radio menu in capitals](tickets/03-radio-menus-uppercase.md) | ✅ |
+| 04 | [`veaf-logs`: a button to show or hide the filter panel](tickets/04-veaf-logs-toggle-filters.md) | ✅ |
 
 ## Definition of done
 

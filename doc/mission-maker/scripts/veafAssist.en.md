@@ -20,18 +20,18 @@ One aircraft ships with a checklist: the **F-16C** (engine start).
 
 ## For pilots {#for-pilots}
 
-F10 radio menu → `Assistance`. One entry per checklist that applies to your aircraft; if yours has
+F10 radio menu → `ASSISTANCE`. One entry per checklist that applies to your aircraft; if yours has
 none, no entry appears.
 
 Once a checklist is running, two entries appear **at the top level of the VEAF menu** — not inside
-`Assistance` — to spare a menu round-trip on every step:
+`ASSISTANCE` — to spare a menu round-trip on every step:
 
 | Entry | Effect |
 |---|---|
-| Confirm this step | Ticks the current step — **only** for steps that wait on your confirmation |
-| Skip this step | Ticks the step without doing it, and moves on |
+| ASSISTANCE: CONFIRM THE STEP | Ticks the current step — **only** for steps that wait on your confirmation |
+| ASSISTANCE: SKIP THE STEP | Ticks the step without doing it, and moves on |
 
-The `Assistance` submenu keeps the occasional commands:
+The `ASSISTANCE` submenu keeps the occasional commands:
 
 | Entry | Effect |
 |---|---|
@@ -230,7 +230,7 @@ checklist **overrides** it.
 id: f16c-startup              # unique; this is the override key
 title: F-16C engine start     # i18n catalog key, or plain text
 aircraft: [F-16C_50]          # DCS type names; an unknown type is rejected
-menu: cold-start              # slot under "Assistance"
+menu: cold-start              # slot under "ASSISTANCE"
 
 steps:
   # Pilot-validated: the element is boxed to show where to look

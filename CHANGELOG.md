@@ -59,6 +59,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `mapResource`; `edit_route` gains `transmit_message`, which plays it on the unit's radio. The Open
   Training prompt now builds its carrier group and its helicopter beacons with them instead of
   asking the agent to report what it could not do.
+- **`veaf-logs` can hide its filter panel** (CHORE-SMALL-POLISH). The *Panneau des filtres* button, at
+  the start of the profile bar, or `Ctrl+B`, gives the log the whole width and brings the panel back
+  at the width it had. The filters keep applying while it is hidden, and the choice is kept from one
+  session to the next.
+- **`veaf-logs.exe` has an icon** (CHORE-SMALL-POLISH): a log page marked DCS under a magnifier, drawn
+  for the project, on the file and on the running window.
 
 ### Fixed
 
@@ -178,6 +184,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     single group name `"['a', 'b']"`.
   - `logLevel` under a module now sets that module's log level, and outranks `global_log_level` as the
     guide says. It had never been applied. `validate` warns on a level name it does not know.
+- **Kneeboards drawn without Arial keep their layout** (CHORE-SMALL-POLISH). On a machine without the
+  Windows fonts, the channel, radio and page titles all fell back to a 10 px font instead of 18, 30
+  and 40 px.
 
 ### Changed
 
@@ -198,6 +207,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (FIX-RELAY-RENDERS-MARKDOWN). The support bot quoted it in a code block, so the reporter read the
   raw markdown, asterisks included, and anything past 1 200 characters was cut. It is now a Discord
   block quote with bold, lists and code rendered, split across up to five messages when it is long.
+- **Every first-level entry of the VEAF radio menu is shown in capitals** (CHORE-SMALL-POLISH),
+  whichever module adds it, accented letters included. Only the *Assistance* menu and its two
+  top-level commands were not already.
 
 ### Removed
 

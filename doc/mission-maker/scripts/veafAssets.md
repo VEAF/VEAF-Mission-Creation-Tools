@@ -134,7 +134,7 @@ dans l'éditeur de mission, comme d'habitude. Le reste est automatique.
 
 ### Ce que fait une réapparition à une escorte {#respawn-and-escorts}
 
-Faire réapparaître une ressource (**F10 → ASSETS → Respawn**) fait **aussi réapparaître son
+Faire réapparaître une ressource (**F10 → MOYENS → Réapparition de …**) fait **aussi réapparaître son
 escorte**, puis répare la tâche `Escort`. Les deux moitiés sont nécessaires, et aucune ne remplace
 l'autre :
 
@@ -167,11 +167,11 @@ jusqu'au bout puis rentre.
 
 ## Menu radio F10
 
-Les ressources apparaissent sous **F10 → ASSETS** (les libellés sont en anglais). Une ressource sans `information` ni `disposable` est une simple commande **Respawn [description]** ; sinon un sous-menu est créé avec :
+Les ressources apparaissent sous **F10 → MOYENS** (**ASSETS** dans une mission en anglais). Une ressource sans `information` ni `disposable` est une simple commande **Réapparition de [description]** ; sinon un sous-menu est créé avec :
 
-- **Respawn [description]** — fait réapparaître le groupe à sa position d'origine
-- **Get info on [description]** — affiche le texte d'information (si `information` est renseigné)
-- **Dispose of [description]** — désactive la ressource (si `disposable = true`, commande sécurisée)
+- **Réapparition de [description]** — fait réapparaître le groupe à sa position d'origine
+- **Infos sur [description]** — affiche le texte d'information (si `information` est renseigné)
+- **Retirer [description]** — désactive la ressource (si `disposable = true`, commande sécurisée)
 
 ---
 

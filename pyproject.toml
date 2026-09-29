@@ -17,6 +17,7 @@ packages = [
 include = [
     # Le catalogue de regles de veaf-logs est une donnee du package, pas du code.
     { path = "src/python/veaf-tools/veaf_logs/rules.json", format = ["sdist", "wheel"] },
+    { path = "src/python/veaf-tools/veaf_logs/veaf-logs.ico", format = ["sdist", "wheel"] },
 ]
 
 [tool.poetry.dependencies]

@@ -1064,7 +1064,7 @@ function TestVeafRadioCoalitionMenus:test_scoped_node_uses_coalition_api()
   local call = self:_firstOfKind("subMenuForCoalition")
   luaunit.assertNotNil(call)
   luaunit.assertEquals(call.args[1], coalition.side.RED)
-  luaunit.assertEquals(call.args[2], "Red zone")
+  luaunit.assertEquals(call.args[2], "RED ZONE") -- first level: shown in capitals
 end
 
 function TestVeafRadioCoalitionMenus:test_children_inherit_the_scope()
@@ -1420,6 +1420,172 @@ function TestSecrev2SrsPosition:test_no_position_means_no_position_options()
   veafRadio.transmitMessage("inbound", "251", "AM", "SRS", 1, nil, true)
   luaunit.assertEquals(#self.commands, 1)
   luaunit.assertNil(string.find(self.commands[1], "-L", 1, true))
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioFirstLevelCapitals — every entry directly under the VEAF root is
+-- shown in capitals (CHORE-SMALL-POLISH ticket 03), applied once at render time
+-- so a module registered later follows the rule and the logical titles modules
+-- compare against are left as they wrote them.
+-- ---------------------------------------------------------------------------
+
+TestVeafRadioFirstLevelCapitals = {}
+
+-- The catalog keys of every first-level entry, enumerated from the code on 2026-09-29:
+-- each `veafRadio.addMenu(...)`, and each `addSubMenu` / `addCommandToSubmenu` whose
+-- parent is absent or nil.
+local FIRST_LEVEL_KEYS = {
+  "menu.assets.root",
+  "menu.carrier.root",
+  "menu.casmission.root",
+  "menu.combatmission.root",
+  "menu.combatzone.root",
+  "menu.ctld.root",
+  "menu.missileguardian.root",
+  "menu.move.root",
+  "menu.namedpoints.root",
+  "menu.skynet.root",
+  "menu.spawn.root",
+  "menu.transportmission.root",
+  "menu.weather.root",
+  "assist.menu.root",
+}
+local FIRST_LEVEL_COMMAND_KEYS = { "assist.menu.confirm", "assist.menu.skip" }
+
+local function contains(list, value)
+  for _, item in ipairs(list) do
+    if item == value then
+      return true
+    end
+  end
+  return false
+end
+
+function TestVeafRadioFirstLevelCapitals:setUp()
+  self._origAddSubMenu = missionCommands.addSubMenu
+  self._origAddCommand = missionCommands.addCommand
+  self._origCatalog = veaf.i18nCatalog
+  self._origLanguage = veaf.config.language
+  dofile(src .. "/veafI18n.lua")
+  self.subMenus = {}
+  self.commands = {}
+  local this = self
+  missionCommands.addSubMenu = function(title, parent)
+    local m = { title = title, parent = parent }
+    table.insert(this.subMenus, m)
+    return m
+  end
+  missionCommands.addCommand = function(title, parent)
+    local c = { title = title, parent = parent }
+    table.insert(this.commands, c)
+    return c
+  end
+end
+
+function TestVeafRadioFirstLevelCapitals:tearDown()
+  missionCommands.addSubMenu = self._origAddSubMenu
+  missionCommands.addCommand = self._origAddCommand
+  veaf.i18nCatalog = self._origCatalog
+  veaf.config.language = self._origLanguage
+end
+
+-- Render a fresh tree holding the real first-level entries, then one a module
+-- registers afterwards in lower case, and return the root node.
+function TestVeafRadioFirstLevelCapitals:_render()
+  local root = { title = veaf.t("menu.radio.root"), subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  for _, key in ipairs(FIRST_LEVEL_KEYS) do
+    local menu = builder:addMenu(veaf.t(key))
+    builder:addCommand("second level stays as written", menu, function() end)
+  end
+  for _, key in ipairs(FIRST_LEVEL_COMMAND_KEYS) do
+    builder:addCommand(veaf.t(key), nil, function() end)
+  end
+  builder:addMenu("Late module, déjà là")
+  builder:build()
+  return root
+end
+
+-- Labels of the root's children. Past MENU_PAGE_SIZE entries the root spills into
+-- "Next page" submenus (ADR 0013): what sits on those pages is first level too.
+function TestVeafRadioFirstLevelCapitals:_firstLevelLabels(root)
+  local rootPages = { [root.dcsRadioMenu] = true }
+  local nextPage = veaf.t("radio.next_page")
+  local labels = {}
+  for _, m in ipairs(self.subMenus) do
+    if rootPages[m.parent] then
+      if m.title == nextPage then
+        rootPages[m] = true
+      else
+        table.insert(labels, m.title)
+      end
+    end
+  end
+  for _, c in ipairs(self.commands) do
+    if rootPages[c.parent] then
+      table.insert(labels, c.title)
+    end
+  end
+  return labels
+end
+
+function TestVeafRadioFirstLevelCapitals:_assertAllCapitals(language)
+  veaf.config.language = language
+  local root = self:_render()
+  local labels = self:_firstLevelLabels(root)
+  luaunit.assertEquals(#labels, #FIRST_LEVEL_KEYS + #FIRST_LEVEL_COMMAND_KEYS + 1)
+  for _, label in ipairs(labels) do
+    luaunit.assertEquals(label, veafRadio.toUpperCase(label))
+  end
+  return labels, root
+end
+
+function TestVeafRadioFirstLevelCapitals:test_every_first_level_entry_is_in_capitals_in_french()
+  local labels = self:_assertAllCapitals("fr")
+  luaunit.assertTrue(contains(labels, "ASSISTANCE : VALIDER L'ÉTAPE"))
+  luaunit.assertTrue(contains(labels, "LATE MODULE, DÉJÀ LÀ"))
+end
+
+function TestVeafRadioFirstLevelCapitals:test_every_first_level_entry_is_in_capitals_in_english()
+  local labels = self:_assertAllCapitals("en")
+  luaunit.assertTrue(contains(labels, "ASSISTANCE"))
+  luaunit.assertTrue(contains(labels, "ASSISTANCE: SKIP THE STEP"))
+end
+
+function TestVeafRadioFirstLevelCapitals:test_deeper_levels_and_logical_titles_are_untouched()
+  veaf.config.language = "fr"
+  local root = self:_render()
+  local deeper = 0
+  for _, c in ipairs(self.commands) do
+    if c.parent ~= root.dcsRadioMenu then
+      luaunit.assertEquals(c.title, "second level stays as written")
+      deeper = deeper + 1
+    end
+  end
+  luaunit.assertEquals(deeper, #FIRST_LEVEL_KEYS)
+  -- Modules find their menus again by the title they gave (delSubmenu, delCommand).
+  local titles = {}
+  for _, menu in ipairs(root.subMenus) do
+    table.insert(titles, menu.title)
+  end
+  luaunit.assertTrue(contains(titles, "Late module, déjà là"))
+  luaunit.assertTrue(contains(titles, "Assistance"))
+end
+
+function TestVeafRadioFirstLevelCapitals:test_a_first_level_menu_refreshed_alone_keeps_its_capitals()
+  local root = { title = "VEAF", subMenus = {}, commands = {}, dcsRadioMenu = { title = "VEAF" } }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local menu = builder:addMenu("Assistance")
+  builder:_buildSubtree(root, menu)
+  luaunit.assertEquals(self.subMenus[1].title, "ASSISTANCE")
+end
+
+function TestVeafRadioFirstLevelCapitals:test_to_upper_case_handles_accented_letters()
+  luaunit.assertEquals(veafRadio.toUpperCase("météo à l'aérodrome"), "MÉTÉO À L'AÉRODROME")
+  luaunit.assertEquals(veafRadio.toUpperCase("çà où ñ œuvre"), "ÇÀ OÙ Ñ ŒUVRE")
+  -- ÷ shares the byte range of the lower-case letters but has no capital.
+  luaunit.assertEquals(veafRadio.toUpperCase("a÷b"), "A÷B")
+  luaunit.assertEquals(veafRadio.toUpperCase("DÉJÀ"), "DÉJÀ")
 end
 
 os.exit(luaunit.LuaUnit.run())

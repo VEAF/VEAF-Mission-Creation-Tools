@@ -1,6 +1,6 @@
 # 01 — radio kneeboards mangle non-ASCII names
 
-Status: ⬜ ready
+Status: ✅ done
 
 David, 2026-09-29: the radio kneeboards do not handle UTF-8 well; example *Nörvenich* on
 Germany-v6.
@@ -22,3 +22,17 @@ Germany-v6.
 - The kneeboard of Germany-v6 shows `Nörvenich` correctly.
 - A test draws a name with a non-ASCII letter through the real path and asserts the text that
   reaches the drawing call, so a decoding error is caught; the font fallback is covered too.
+
+## Closed (2026-09-29)
+
+- **Where the `ö` comes from: the mission's own `presets.yaml`** (`Base-Norvenich: title: Nörvenich`,
+  bytes `C3 B6`), read by `PresetsManager.read_yaml` with no `encoding=`, so with the locale's code
+  page — `cp1252` on David's machine — which gives `NÃ¶rvenich`. Neither DCS nor the font.
+- **The decoding fix is not in this lot.** Another session was writing it at the same time on
+  `fix/presets-yaml-utf8` (every text `open()` of veaf-tools, with a test that fails on one opened
+  without `encoding=`). David chose to leave it there rather than ship it twice.
+- **The font hypothesis was wrong, measured:** with Pillow 12.3, `ImageFont.load_default()` is a
+  FreeType font (FreeType is in the wheels) and draws the `ö`. Its real defect was the size: the
+  three kneeboard fonts all fell back to 10 px instead of 18/30/40. Fixed with `load_default(size)`.
+- Tests (`test_kneeboard_non_ascii.py`): a non-ASCII channel title reaches Pillow's `text()` call
+  unchanged; without Arial, the fallback keeps the three sizes and draws the umlaut.

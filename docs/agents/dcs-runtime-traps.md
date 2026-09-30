@@ -315,6 +315,22 @@ Against the fitted panel, add zoomed maps after the theatre map, one per area, e
 
 *What it cost:* Found on GermanyCW-v6, whose briefing showed its map twice, too small to read.
 
+### A departing player's last slot change arrives after DCS has forgotten the player {#player-leaves-slot-after-dcs-forgot-the-player}
+
+Measured **2026-09-30**.
+
+When a player disconnects, DCS fires the hook callback `onGameEvent("disconnect", id)` and then
+`onPlayerChangeSlot(id)`, and by that second call `net.get_player_info(id)` returns nil. Measured
+on the six VEAF servers' `dcs.log`, 2026-09-29 18:04 → 2026-09-30 17:45: 21 disconnects, 21 slot
+changes with no player info, each right after the disconnect of the same id, none anywhere else.
+
+**What to do:** A hook reading the player in `onPlayerChangeSlot` must accept nil, and can tell this ordinary case
+from an unexplained one by remembering the ids `onGameEvent` reported disconnecting — which is what
+`VEAF-Server-hook.lua` does.
+
+*What it cost:* The VEAF hook logged it at ERROR, once per departure: on private1 it was the first suspect for an
+unrelated security defect until its context was measured.
+
 <!-- END GENERATED -->
 
 ## For script developers {#script-developers}

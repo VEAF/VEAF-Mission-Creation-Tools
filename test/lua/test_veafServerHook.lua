@@ -42,9 +42,10 @@ net.dostring_in = function(environment, code)
   injected[#injected + 1] = { environment = environment, code = code }
   return true
 end
-net.get_player_info = function(id)
+local function defaultPlayerInfo(id)
   return net._playerInfo or { name = "player" .. tostring(id), ucid = "ucid-" .. tostring(id) }
 end
+net.get_player_info = defaultPlayerInfo
 
 dofile(_base .. "/../../src/scripts/Hooks/VEAF-Server-hook.lua")
 
@@ -162,6 +163,15 @@ function TestVeafServerHook:setUp()
   injected = {}
   net._playerInfo = nil
   veafServerHook.pilots = {}
+  veafServerHook.leavingPlayers = {}
+end
+
+function TestVeafServerHook:tearDown()
+  net.get_player_info = defaultPlayerInfo
+  if self.savedWrite then
+    log.write = self.savedWrite
+    self.savedWrite = nil
+  end
 end
 
 -- ---------------------------------------------------------------------------
@@ -369,6 +379,103 @@ function TestVeafServerHook:test_a_multi_seat_slot_still_reports_its_unit()
   net._playerInfo = { name = "Zip", ucid = "ucid-1", side = 2, slot = "12_2" }
   veafServerHook.onPlayerChangeSlot(1)
   luaunit.assertEquals(lastSlotUnitName(), "TestUnit")
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-SECU-VERB-AND-LOG-NOISE ticket 01 — the slot carries the pilot's level
+--
+-- A mission loaded while a player stays connected gets no `onPlayerConnect` for him, so the slot payload
+-- is the first thing it hears. Without the level, a pilot at 99 in veaf-pilots.txt read as 0 in the menu.
+-- ---------------------------------------------------------------------------
+
+local function lastSlotLevel()
+  local _, payload = detonateLastInjection()
+  local call = firstCall(payload, "registerUserSlot")
+  luaunit.assertNotNil(call, "registerUserSlot was never called")
+  return call.args[4]
+end
+
+function TestVeafServerHook:test_a_listed_pilot_s_slot_carries_his_level()
+  veafServerHook.pilots["ucid-zip"] = { level = 99 }
+  net._playerInfo = { name = "Zip", ucid = "ucid-zip", side = 1, slot = "1" }
+  veafServerHook.onPlayerChangeSlot(3) -- id 1 is the server administrator
+  luaunit.assertEquals(lastSlotLevel(), "99")
+end
+
+function TestVeafServerHook:test_the_administrator_s_slot_carries_the_admin_level()
+  -- id 1 is the server host, read from the fake admin UCID exactly as the chat path does
+  veafServerHook.pilots[veafServerHook.ADMIN_FAKE_UCID] = { level = 90 }
+  net._playerInfo = { name = "Host", ucid = "ucid-host", side = 1, slot = "1" }
+  veafServerHook.onPlayerChangeSlot(1)
+  luaunit.assertEquals(lastSlotLevel(), "90")
+end
+
+function TestVeafServerHook:test_an_unlisted_player_s_slot_carries_no_power()
+  -- the convention of onPlayerConnect: -1, no power at all
+  net._playerInfo = { name = "Rookie", ucid = "ucid-unknown", side = 1, slot = "1" }
+  veafServerHook.onPlayerChangeSlot(3) -- id 1 is the server administrator
+  luaunit.assertEquals(lastSlotLevel(), "-1")
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-SECU-VERB-AND-LOG-NOISE ticket 04 — a normal departure is not an ERROR
+--
+-- private1, 2026-09-29: `onPlayerChangeSlot([5]) - _playerDetails is nil` at ERROR, three times, each
+-- right after the disconnect of the same id. DCS moves a leaving player out of his slot after it has
+-- already forgotten him.
+-- ---------------------------------------------------------------------------
+
+function TestVeafServerHook:_captureLog()
+  self.logged = {}
+  self.savedWrite = log.write
+  log.write = function(source, level, message)
+    table.insert(self.logged, { level = level, message = message })
+  end
+end
+
+function TestVeafServerHook:_restoreLog()
+  log.write = self.savedWrite
+  self.savedWrite = nil
+end
+
+function TestVeafServerHook:_loggedAt(level)
+  local count = 0
+  for _, entry in ipairs(self.logged) do
+    if entry.level == level and entry.message:find("_playerDetails is nil", 1, true) then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+function TestVeafServerHook:test_a_slot_change_after_a_disconnect_logs_no_error()
+  self:_captureLog()
+  net.get_player_info = function()
+    return nil
+  end
+  veafServerHook.onGameEvent("disconnect", 5, "Zip", 1, "F-16C_50")
+  veafServerHook.onPlayerChangeSlot(5)
+  self:_restoreLog()
+  luaunit.assertEquals(self:_loggedAt(log.ERROR), 0)
+  luaunit.assertEquals(self:_loggedAt(log.WARNING), 0)
+  luaunit.assertEquals(#injected, 0, "nobody to register")
+end
+
+function TestVeafServerHook:test_a_missing_player_who_did_not_leave_is_still_reported()
+  -- not a disconnect: nothing explains it, so it keeps a level worth grepping for
+  self:_captureLog()
+  net.get_player_info = function()
+    return nil
+  end
+  veafServerHook.onPlayerChangeSlot(6)
+  self:_restoreLog()
+  luaunit.assertEquals(self:_loggedAt(log.WARNING), 1)
+end
+
+function TestVeafServerHook:test_a_player_who_reconnects_under_the_same_id_is_no_longer_leaving()
+  veafServerHook.onGameEvent("disconnect", 5)
+  veafServerHook.onPlayerConnect(5)
+  luaunit.assertNil(veafServerHook.leavingPlayers[5])
 end
 
 os.exit(luaunit.LuaUnit.run())

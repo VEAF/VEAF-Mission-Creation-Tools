@@ -99,6 +99,37 @@ function TestVeafDiagSwitch:tearDown()
   restoreInfo(self)
 end
 
+-- FIX-SECU-VERB-AND-LOG-NOISE ticket 03. private1, 2026-09-29: 2 506 combat-zone lines in 90 minutes,
+-- read as a verbosity defect. They were `DIAG|` lines, and the mission had left `veaf.Diagnostics: true`
+-- in its mission.yaml since the day its repository was created. The first line now says the switch is on
+-- and where to turn it off, once, so the next reader finds the cause instead of the symptom.
+function TestVeafDiagSwitch:test_the_first_line_says_the_switch_is_on_once()
+  veaf.Diagnostics = true
+  veaf.diagAnnounced = false
+  local warnings = {}
+  local savedWarning = env.warning
+  env.warning = function(text)
+    table.insert(warnings, tostring(text))
+  end
+  veaf.diag(veafCombatZone.Id, "one")
+  veaf.diag(veafCombatZone.Id, "two")
+  env.warning = savedWarning
+  local announced = 0
+  for _, line in ipairs(warnings) do
+    if line:find("veaf.Diagnostics is on", 1, true) then
+      announced = announced + 1
+    end
+  end
+  luaunit.assertEquals(announced, 1)
+end
+
+function TestVeafDiagSwitch:test_the_switch_off_announces_nothing()
+  veaf.Diagnostics = false
+  veaf.diagAnnounced = false
+  veaf.diag(veafCombatZone.Id, "one")
+  luaunit.assertEquals(#self.lines, 0)
+end
+
 function TestVeafDiagSwitch:test_off_by_default()
   luaunit.assertFalse(veaf.Diagnostics)
 end

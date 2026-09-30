@@ -68,7 +68,6 @@ env.info("*** VEAF-DYNAMICLOADER set the environment in debug mode *** ")
 veaf.Development = true
 veaf.loggers.setBaseLevel(veaf.Logger.LEVEL["trace"])
 veaf.SecurityDisabled = true
-veafSecurity.authenticated = true
 
 --[[ load Witchcraft
 if witchcraft then

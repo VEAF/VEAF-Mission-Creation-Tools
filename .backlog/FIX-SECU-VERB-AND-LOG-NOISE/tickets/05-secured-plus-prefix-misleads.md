@@ -1,6 +1,6 @@
 # 05 — the `+` on a secured command never goes away
 
-Status: ⬜ ready
+Status: ✅ done
 
 A secured radio command is titled `"+" .. title` at build time
 (`veafRadio.lua`, `_addDcsCommand`). The prefix says "this one is secured"; it does **not** track
@@ -24,3 +24,11 @@ for this" from "you have been refused".
   - rebuild the menu on elevation so the mark follows the right — the most faithful, and the most
     expensive: a rebuild per elevation, per group, for a mark.
 - Whichever way, `doc/` says what the `+` means, because it is the first thing a pilot sees.
+
+## Resolution
+
+The cheapest option: the `+` stays, and the refusal says what it cannot — *"This '+' command needs
+level 10; your group acts at level 0 (its lowest pilot). A pilot with enough level can type /secu
+elevate."* It was also shown with `trigger.action.outText`, to **every player on the server**; it now
+goes to the group that clicked. `veafSecurity.md` (+ EN) says the `+` means "asks for a level", not
+"you do not have it". Two tests in `test_veafRadio.lua`.

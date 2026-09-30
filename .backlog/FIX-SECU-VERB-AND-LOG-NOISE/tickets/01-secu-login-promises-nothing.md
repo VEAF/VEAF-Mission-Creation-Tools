@@ -1,6 +1,6 @@
 # 01 — a listed pilot's level does not reach the radio menu; `/secu login` promises what it cannot give
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — fixed and tested; the in-game check needs the redeployed hook
 
 David, in flight on private1, 2026-09-29: *"the radio menu for activating combat zones is not
 unlocked although I am in the server's pilot file. And even after `/secu login` — it answers
@@ -75,3 +75,40 @@ explicitly (`executeCommandFromRemote("Ninja 1-1 | Zip", "99", ...)`), so that p
 The server ran at INFO, where `registerUserSlot` and the refusal both log at `debug`. One session
 with `VEAF-REMOTE` and `VEAF-SECURITY` at debug settles which of the two cases happened; without
 it, the reconstruction above stays a reading of the code.
+
+## Resolution
+
+Reading the code further found the **second half**, which is why `/secu login` repaired nothing even
+though the chat path does register a listed pilot: `veafServerHook.parse` injects `REGISTER_PLAYER`
+for any pilot above level 0, but `veafRemote.registerUser` stored a **new** table, and
+`remoteUnitsPilots[unit]` kept pointing at the level-less one `registerUserSlot` had made. Both halves
+are fixed, each tested on its own:
+
+- `registerUser` updates the user it already holds, so every table that points to that user sees the level.
+- `registerUserSlot` keeps the user it creates in `remoteUsers`, takes a 4th argument, the level, and
+  warns (`took [...] with no known level`) when a player takes a unit with none known anywhere.
+- The hook sends that level with every slot change (the administrator's through `ADMIN_FAKE_UCID`, as
+  on the chat path; an unlisted player's as `-1`). A mission meeting an **older hook** still gets the
+  repair from the first chat command, and the warning says what happened meanwhile.
+- `getMarkerSecurityLevel` reads a user with no level as unknown (-1) instead of comparing nil.
+- `/secu login` and `/secu logout` (chat and `_auth` marker) no longer touch the dead global flag:
+  they answer, in the pilot's unit only, that there is no global login any more and point to
+  `/secu elevate`. So the `unusable auth duration []` warning is gone with the call that raised it.
+- Docs: `veafSecurity.md` (+ EN) no longer teaches login/logout as verbs that act, and says what the
+  `+` means; `veafServerHook.md` (+ EN) drops `/secu login|logout` from the level-10 row and says why
+  the hook must be redeployed.
+
+**Not measured**: which of the two ways in actually happened on private1 — the debug session the
+ticket asked for was not run. The fix covers both, so the question no longer decides anything.
+
+**Left**: redeploy `VEAF-Server-hook.lua` on the servers, then a listed pilot, still connected across
+a mission reload, clicks a `+` command without any verb — after the release, David's call
+(2026-09-30).
+
+`veafSecurity.authenticate`, `logout`, `isAuthenticated`, the `authenticated` flag, `authDuration` and
+their four i18n strings had no caller left; removed in this lot on David's go, so nobody wires the
+promise back.
+
+The review also asked whether `remoteUsers`, keyed by **name** where the hook keys pilots by UCID,
+lets a same-name player overwrite a listed pilot's level. Measured on the six servers' logs
+(2026-09-23 → 09-30): 93 connections, 20 names, **no name ever seen with two UCIDs**. Not pursued.

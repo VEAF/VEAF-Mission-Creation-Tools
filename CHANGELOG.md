@@ -233,6 +233,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   panel no longer lists noise families absent from the open log. An entry followed by more than
   65 535 unheaded lines no longer stops the indexing with an `OverflowError` — DCSServerBot's
   `async_errors.log` did.
+- **A pilot listed in `veaf-pilots.txt` gets their level in the radio menu again, without any verb**
+  (FIX-SECU-VERB-AND-LOG-NOISE, from a live private1 session). A mission loaded while a pilot stayed
+  connected registered their unit with no level at all, and a later chat command could not repair it:
+  a pilot at level 99 was refused a level-10 command. The server hook now sends the level with every
+  slot change — **redeploy `VEAF-Server-hook.lua`** — and the mission updates the pilot it already
+  holds instead of replacing it. `/secu login` and `/secu logout` no longer answer "authenticated
+  for 10 minutes" while unlocking nothing: they say there is no global login any more and point to
+  `/secu elevate`. A refused `+` command now shows the group the level it needs and the level it
+  acts at, to that group only rather than to the whole server. A mistyped chat command (`/sec`,
+  `/veaflogin`) answers the pilot with the commands that exist instead of logging a stack trace. A
+  normal disconnect no longer logs an ERROR from the hook. And the first `DIAG|` line says that
+  `veaf.Diagnostics` is on and where to turn it off — the 2 500 combat-zone lines of that session
+  came from a mission that had left it on. `veafSecurity.authenticate`, `logout`,
+  `isAuthenticated`, the `authenticated` flag and the `authDuration` setting are removed: nothing had
+  read them since the per-group security, and a mission still setting `authDuration` is unaffected.
 
 ### Changed
 

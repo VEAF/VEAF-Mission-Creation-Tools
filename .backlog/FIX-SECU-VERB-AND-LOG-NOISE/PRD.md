@@ -1,6 +1,6 @@
 # FIX-SECU-VERB-AND-LOG-NOISE — what a live private1 session showed on 2026-09-29
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Open Training **Caucasus v6** on private1, evening of 2026-09-29, six pilots, mission built that
 day from `develop` (`dd60e7a5`, so with `FIX-SECURED-FORALL-AND-UPDATER-BAT` already in). David
@@ -31,11 +31,11 @@ same file; none blocks anything on its own.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [`/secu login` promises an authentication it no longer grants](tickets/01-secu-login-promises-nothing.md) | ⬜ |
-| 02 | [a mistyped chat command raises a Lua error instead of answering the pilot](tickets/02-unknown-module-raises.md) | ⬜ |
-| 03 | [the combat-zone watchdog logs its whole inventory at INFO](tickets/03-combatzone-diag-verbosity.md) | ⬜ |
-| 04 | [a normal disconnect logs an ERROR from the server hook](tickets/04-playerdetails-nil-on-disconnect.md) | ⬜ |
-| 05 | [the `+` on a secured command never goes away](tickets/05-secured-plus-prefix-misleads.md) | ⬜ |
+| 01 | [`/secu login` promises an authentication it no longer grants](tickets/01-secu-login-promises-nothing.md) | 🧑 |
+| 02 | [a mistyped chat command raises a Lua error instead of answering the pilot](tickets/02-unknown-module-raises.md) | ✅ |
+| 03 | [the combat-zone watchdog logs its whole inventory at INFO](tickets/03-combatzone-diag-verbosity.md) | ✅ |
+| 04 | [a normal disconnect logs an ERROR from the server hook](tickets/04-playerdetails-nil-on-disconnect.md) | ✅ |
+| 05 | [the `+` on a secured command never goes away](tickets/05-secured-plus-prefix-misleads.md) | ✅ |
 
 ## Definition of done
 

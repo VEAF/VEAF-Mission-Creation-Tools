@@ -7,7 +7,6 @@
 ---   - sha1.hmacHex: RFC 2202 test vector
 ---   - markTextAnalysis: login / logout / no keyphrase / edge cases
 ---   - _checkPassword / checkPassword_L0 / checkPassword_L1: correct, wrong, nil
----   - isAuthenticated: initial state, manual flag set, SecurityDisabled
 
 local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
 luaunit = dofile(_base .. "/luaunit.lua")
@@ -19,6 +18,7 @@ dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
+dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafSecurity.lua")
 
 -- ============================================================================
@@ -160,36 +160,6 @@ function TestVeafSecurity:test_checkPassword_L1_wrong_password()
   luaunit.assertFalse(veafSecurity.checkPassword_L1("completely_wrong_xyz"))
 end
 
--- -----------------------------------------------------------------------
--- isAuthenticated
--- -----------------------------------------------------------------------
-function TestVeafSecurity:test_isAuthenticated_initially_falsy()
-  -- isAuthenticated() returns authenticated OR SecurityDisabled;
-  -- both are false/nil initially, so the result is falsy (nil in Lua)
-  luaunit.assertTrue(not veafSecurity.isAuthenticated())
-end
-
-function TestVeafSecurity:test_isAuthenticated_true_when_flag_set()
-  veafSecurity.authenticated = true
-  luaunit.assertTrue(veafSecurity.isAuthenticated())
-end
-
-function TestVeafSecurity:test_isAuthenticated_falsy_after_flag_cleared()
-  veafSecurity.authenticated = true
-  veafSecurity.authenticated = false
-  luaunit.assertTrue(not veafSecurity.isAuthenticated())
-end
-
--- SECREV-009 moved this fallback from `veafSecurity.SecurityDisabled` to `veaf.SecurityDisabled`,
--- calling the old one "never assigned". That was true inside this repository and false outside it:
--- it is a **mission-facing config knob**, and the only places that assign it are mission configs —
--- including our own demo mission. REVIEW-SECURITY-LAYER ticket 03 honours both spellings again.
-function TestVeafSecurity:test_isAuthenticated_true_when_security_disabled()
-  veafSecurity.authenticated = false
-  veaf.SecurityDisabled = true
-  luaunit.assertTrue(veafSecurity.isAuthenticated())
-end
-
 -- ---------------------------------------------------------------------------
 -- REVIEW-SECURITY-LAYER ticket 03 — the retired config field, honoured again
 --
@@ -231,11 +201,6 @@ end
 function TestVeafSecurityDisabledSpellings:test_the_deprecated_spelling_is_honoured()
   veafSecurity.SecurityDisabled = true
   luaunit.assertTrue(veafSecurity.isSecurityDisabled())
-end
-
-function TestVeafSecurityDisabledSpellings:test_the_deprecated_spelling_reaches_isAuthenticated()
-  veafSecurity.SecurityDisabled = true
-  luaunit.assertTrue(veafSecurity.isAuthenticated())
 end
 
 -- It has to say so in the log, or the mission maker migrates only after discovering it in flight.
@@ -562,83 +527,6 @@ function TestVeafSecurityElevationCommand:test_login_still_parses()
   luaunit.assertTrue(options.login)
 end
 
--------------------------------------------------------------------------------------------------
--- SECREV-2 / VMR-095 — the auth duration reaches authenticate() as text a pilot typed
---
--- `-auth login <duration>` goes through `RemoteCommandParser`, so `minutes` is a *string*. The
--- guard was `not actualMinutes:match("%d+")` — unanchored, so any string with a digit anywhere
--- passed it, and `actualMinutes * 60` then raised on "abc5". Measured in Lua 5.1: an arithmetic
--- error, from a pilot's typo. "-5" was worse than an error: it scheduled the logout in the past,
--- so the mission unlocked and immediately relocked without saying why.
--------------------------------------------------------------------------------------------------
-
-TestSecrev2AuthDuration = {}
-
-function TestSecrev2AuthDuration:setUp()
-  self._savedSchedule = veaf.scheduleFunction
-  self._savedRemove = veaf.removeFunction
-  self._savedAuthenticated = veafSecurity.authenticated
-  self._savedWatchdog = veafSecurity.logoutWatchdog
-  self.scheduled = {}
-  veaf.scheduleFunction = function(fn, args, t)
-    table.insert(self.scheduled, { fn = fn, args = args, time = t })
-    return #self.scheduled
-  end
-  veaf.removeFunction = function(_) end
-  veafSecurity.authenticated = false
-  veafSecurity.logoutWatchdog = nil
-end
-
-function TestSecrev2AuthDuration:tearDown()
-  veaf.scheduleFunction = self._savedSchedule
-  veaf.removeFunction = self._savedRemove
-  veafSecurity.authenticated = self._savedAuthenticated
-  veafSecurity.logoutWatchdog = self._savedWatchdog
-end
-
---- Minutes the logout was actually scheduled for, relative to now.
-function TestSecrev2AuthDuration:_scheduledMinutes()
-  luaunit.assertEquals(#self.scheduled, 1)
-  return (self.scheduled[1].time - timer.getTime()) / 60
-end
-
-function TestSecrev2AuthDuration:test_a_numeric_string_is_honoured()
-  veafSecurity.authenticate("30", nil)
-  luaunit.assertEquals(self:_scheduledMinutes(), 30)
-end
-
-function TestSecrev2AuthDuration:test_a_number_is_honoured()
-  veafSecurity.authenticate(30, nil)
-  luaunit.assertEquals(self:_scheduledMinutes(), 30)
-end
-
-function TestSecrev2AuthDuration:test_a_digit_buried_in_text_does_not_raise()
-  local ok = pcall(veafSecurity.authenticate, "abc5", nil)
-  luaunit.assertTrue(ok, "a typo in the auth duration must not raise")
-end
-
-function TestSecrev2AuthDuration:test_a_digit_buried_in_text_falls_back_to_the_default()
-  veafSecurity.authenticate("abc5", nil)
-  luaunit.assertEquals(self:_scheduledMinutes(), veafSecurity.authDuration)
-end
-
-function TestSecrev2AuthDuration:test_a_negative_duration_falls_back_to_the_default()
-  -- Not merely refused: a negative delay schedules the logout in the past, which unlocks the
-  -- mission and relocks it on the next tick.
-  veafSecurity.authenticate("-5", nil)
-  luaunit.assertEquals(self:_scheduledMinutes(), veafSecurity.authDuration)
-end
-
-function TestSecrev2AuthDuration:test_zero_falls_back_to_the_default()
-  veafSecurity.authenticate(0, nil)
-  luaunit.assertEquals(self:_scheduledMinutes(), veafSecurity.authDuration)
-end
-
-function TestSecrev2AuthDuration:test_no_duration_at_all_uses_the_default()
-  veafSecurity.authenticate(nil, nil)
-  luaunit.assertEquals(self:_scheduledMinutes(), veafSecurity.authDuration)
-end
-
 -- ---------------------------------------------------------------------------
 -- REVIEW-SECURITY-LAYER ticket 01 — the global short-circuit is gone
 --
@@ -840,6 +728,132 @@ function TestVeafSecurityIsKnownPilot:test_a_login_elsewhere_does_not_make_a_str
   end
   luaunit.assertFalse(veafSecurity.isKnownPilot("a-stranger"))
   veafSecurity.authenticated = savedAuth
+end
+
+-------------------------------------------------------------------------------------------------
+-- FIX-SECU-VERB-AND-LOG-NOISE ticket 01 — `login` no longer promises what it cannot give
+--
+-- private1, 2026-09-29: `/secu login` answered "authenticated for 10 minutes" and unlocked nothing.
+-- The global flag it sets has had no reader since REVIEW-SECURITY-LAYER, so the verb now says so and
+-- points to what does work: the pilots file, and `/secu elevate`.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSecurityLoginIsRetired = {}
+
+function TestVeafSecurityLoginIsRetired:setUp()
+  self.savedRemote = veafRemote
+  self.answers = {}
+  local answers = self.answers
+  veafRemote = {
+    answerPilot = function(unitName, message)
+      table.insert(answers, { unitName = unitName, message = message })
+      return true
+    end,
+    remoteUnitsPilots = {},
+  }
+  self.savedAuth = veafSecurity.authenticated
+  veafSecurity.authenticated = false
+  self.savedSchedule = veaf.scheduleFunction
+  self.scheduled = 0
+  veaf.scheduleFunction = function()
+    self.scheduled = self.scheduled + 1
+  end
+  local logger = veaf.loggers.get(veafSecurity.Id)
+  self.savedWarn = logger.warn
+  self.warned = {}
+  logger.warn = function(_, text, ...)
+    table.insert(self.warned, text)
+  end
+end
+
+function TestVeafSecurityLoginIsRetired:tearDown()
+  veafRemote = self.savedRemote
+  veafSecurity.authenticated = self.savedAuth
+  veaf.scheduleFunction = self.savedSchedule
+  veaf.loggers.get(veafSecurity.Id).warn = self.savedWarn
+end
+
+function TestVeafSecurityLoginIsRetired:test_chat_login_answers_the_pilot_in_his_unit()
+  local handled = veafSecurity.executeCommandFromRemote({ { level = 99 }, "Zip", "Ninja-1-1", "login" })
+  luaunit.assertTrue(handled)
+  luaunit.assertEquals(#self.answers, 1)
+  luaunit.assertEquals(self.answers[1].unitName, "Ninja-1-1")
+  luaunit.assertEquals(self.answers[1].message, veaf.t("security.login_retired"))
+end
+
+function TestVeafSecurityLoginIsRetired:test_chat_login_no_longer_claims_an_authentication()
+  veafSecurity.executeCommandFromRemote({ { level = 99 }, "Zip", "Ninja-1-1", "login" })
+  luaunit.assertFalse(veafSecurity.authenticated)
+  luaunit.assertEquals(self.scheduled, 0, "no logout to schedule: nothing was opened")
+end
+
+function TestVeafSecurityLoginIsRetired:test_the_empty_duration_warning_is_gone()
+  -- the chat payload always sent an empty duration, hence `unusable auth duration []` on every login
+  veafSecurity.executeCommandFromRemote({ { level = 99 }, "Zip", "Ninja-1-1", "login" })
+  luaunit.assertEquals(#self.warned, 0)
+end
+
+function TestVeafSecurityLoginIsRetired:test_any_level_gets_the_explanation()
+  -- the old gate refused below level 10, which told an unlisted pilot nothing either
+  veafSecurity.executeCommandFromRemote({ { level = -1 }, "Rookie", "Ninja-1-2", "login" })
+  luaunit.assertEquals(#self.answers, 1)
+end
+
+function TestVeafSecurityLoginIsRetired:test_chat_logout_is_answered_the_same_way()
+  local handled = veafSecurity.executeCommandFromRemote({ { level = 99 }, "Zip", "Ninja-1-1", "logout" })
+  luaunit.assertTrue(handled)
+  luaunit.assertEquals(self.answers[1].message, veaf.t("security.login_retired"))
+end
+
+function TestVeafSecurityLoginIsRetired:test_marker_login_is_answered_too()
+  veafRemote.remoteUnitsPilots["Ninja-1-1"] = { name = "Zip" }
+  local handled = veafSecurity.executeCommand(nil, "_auth " .. "anything", false, "Zip")
+  luaunit.assertTrue(handled)
+  luaunit.assertEquals(self.answers[1].unitName, "Ninja-1-1")
+  luaunit.assertFalse(veafSecurity.authenticated)
+end
+
+-- Solo, or a mission with no server hook: nobody is in `remoteUnitsPilots`, so the author's unit cannot be
+-- found. The marker is on the map for everyone anyway, and silence is what this lot removes.
+function TestVeafSecurityLoginIsRetired:test_marker_login_with_no_known_unit_is_answered_to_all()
+  veafRemote.answerPilot = function()
+    return false
+  end
+  dcs_mocks.reset()
+  veafSecurity.executeCommand(nil, "_auth login", false, "Zip")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(veaf.t("security.login_retired")), 1)
+end
+
+function TestVeafSecurityLoginIsRetired:test_chat_login_with_no_unit_is_not_broadcast()
+  -- a spectator's chat line stays between them and the server
+  veafRemote.answerPilot = function()
+    return false
+  end
+  dcs_mocks.reset()
+  veafSecurity.executeCommandFromRemote({ { level = 99 }, "Zip", "nil", "login" })
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(veaf.t("security.login_retired")), 0)
+end
+
+function TestVeafSecurityLoginIsRetired:test_elevate_still_works()
+  -- the verb that does work must keep working: it is the one the answer points to
+  local saved = veafSecurity.handleElevationRequest
+  local called = false
+  veafSecurity.handleElevationRequest = function()
+    called = true
+    return true
+  end
+  veafSecurity.executeCommandFromRemote({ { level = 99 }, "Zip", "Ninja-1-1", "elevate" })
+  veafSecurity.handleElevationRequest = saved
+  luaunit.assertTrue(called)
+end
+
+-- A user the slot registered before the hook sent his level carries none. Comparing nil with a number
+-- raises, and a raise inside a security check is a crashed handler rather than a refusal.
+function TestVeafSecurityLoginIsRetired:test_a_user_with_no_level_reads_as_unknown()
+  veafRemote.getRemoteUser = function()
+    return { name = "Zip" }
+  end
+  luaunit.assertEquals(veafSecurity.getMarkerSecurityLevel("Zip"), -1)
 end
 
 os.exit(luaunit.LuaUnit.run())

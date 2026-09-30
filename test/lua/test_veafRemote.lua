@@ -9,7 +9,10 @@ dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
+dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafRemote.lua")
+
+veaf.config.language = "en"
 
 -- Stub veafSecurity (required by executeRemoteCommand password check)
 veafSecurity = {
@@ -387,6 +390,176 @@ function TestVeafRemoteNoMarkerCommands:test_initialize_registers_no_command_han
 
   veafCommands.registerCommandHandler = originalRegister
   luaunit.assertEquals(registered, 0, "a handler here means marker text is being answered again")
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-SECU-VERB-AND-LOG-NOISE ticket 01 — a listed pilot's level must reach the unit he sits in
+--
+-- private1, 2026-09-29: a pilot at level 99 in `veaf-pilots.txt` was refused a level-10 radio command.
+-- `registerUserSlot` met a player the mission did not know yet (no `onPlayerConnect` reaches a mission
+-- loaded while he stays connected) and registered his unit with a user carrying no level at all. A chat
+-- command then re-registered him with his level, but as a **new** table, so the unit kept pointing at the
+-- level-less one: nothing ever repaired it.
+-- ---------------------------------------------------------------------------
+TestVeafRemoteSlotCarriesTheLevel = {}
+
+function TestVeafRemoteSlotCarriesTheLevel:setUp()
+  veafRemote.remoteUsers = {}
+  veafRemote.remoteUnitsPilots = {}
+end
+
+function TestVeafRemoteSlotCarriesTheLevel:test_the_level_sent_with_the_slot_reaches_the_unit()
+  -- the mission reloaded under a connected pilot: the slot payload is the first thing it hears of him
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1", "99")
+  luaunit.assertEquals(veafRemote.getRemoteUserFromUnit("Ninja-1-1").level, 99)
+end
+
+function TestVeafRemoteSlotCarriesTheLevel:test_the_slot_level_refreshes_a_known_user()
+  veafRemote.registerUser("Zip", 10, "ucid-zip")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1", "99")
+  luaunit.assertEquals(veafRemote.getRemoteUserFromUnit("Ninja-1-1").level, 99)
+end
+
+function TestVeafRemoteSlotCarriesTheLevel:test_a_slot_without_a_level_keeps_the_known_one()
+  -- an older hook sends three values; the level already registered must survive it
+  veafRemote.registerUser("Zip", 99, "ucid-zip")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1")
+  luaunit.assertEquals(veafRemote.getRemoteUserFromUnit("Ninja-1-1").level, 99)
+end
+
+-- The repair that never happened on private1: the chat registration must reach the unit's entry.
+function TestVeafRemoteSlotCarriesTheLevel:test_a_later_registration_repairs_the_unit()
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1") -- old hook, unknown player: no level
+  veafRemote.registerUser("Zip", 99, "ucid-zip") -- any chat command of a listed pilot
+  luaunit.assertEquals(veafRemote.getRemoteUserFromUnit("Ninja-1-1").level, 99)
+end
+
+function TestVeafRemoteSlotCarriesTheLevel:test_registering_again_keeps_the_unit_the_player_sits_in()
+  veafRemote.registerUser("Zip", 10, "ucid-zip")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1")
+  veafRemote.registerUser("Zip", 99, "ucid-zip")
+  luaunit.assertEquals(veafRemote.getRemoteUser("Zip").unitName, "Ninja-1-1")
+  luaunit.assertIs(veafRemote.getRemoteUserFromUnit("Ninja-1-1"), veafRemote.getRemoteUser("Zip"))
+end
+
+function TestVeafRemoteSlotCarriesTheLevel:test_a_slot_with_no_level_known_anywhere_is_reported()
+  local logger = veaf.loggers.get(veafRemote.Id)
+  local saved = logger.warn
+  local warned = {}
+  logger.warn = function(_, text, ...)
+    table.insert(warned, string.format(text, ...))
+  end
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1")
+  logger.warn = saved
+  luaunit.assertEquals(#warned, 1)
+  luaunit.assertStrContains(warned[1], "Zip")
+end
+
+function TestVeafRemoteSlotCarriesTheLevel:test_a_slot_with_a_level_is_not_reported()
+  local logger = veaf.loggers.get(veafRemote.Id)
+  local saved = logger.warn
+  local warned = 0
+  logger.warn = function()
+    warned = warned + 1
+  end
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1", "99")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "") -- and leaving the slot is no reason either
+  logger.warn = saved
+  luaunit.assertEquals(warned, 0)
+end
+
+function TestVeafRemoteSlotCarriesTheLevel:test_an_unusable_slot_level_is_ignored()
+  veafRemote.registerUser("Zip", 99, "ucid-zip")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1", "")
+  luaunit.assertEquals(veafRemote.getRemoteUserFromUnit("Ninja-1-1").level, 99)
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-SECU-VERB-AND-LOG-NOISE ticket 02 — a mistyped chat command is answered, never raised
+--
+-- private1, 2026-09-29: `/sec`, `/se cu login`, `/veaf login`, `/veaflogin` in 90 minutes, three pilots
+-- hunting for `/secu`. Each one logged an ERROR with a stack traceback and told the pilot nothing, so he
+-- tried the next spelling.
+-- ---------------------------------------------------------------------------
+TestVeafRemoteUnknownModule = {}
+
+function TestVeafRemoteUnknownModule:setUp()
+  self.savedRegistry = veafRemote.remoteModuleRegistry
+  veafRemote.remoteModuleRegistry = {}
+  veafRemote.registerRemoteModule("secu", function()
+    return true
+  end)
+  veafRemote.registerRemoteModule("point", function()
+    return true
+  end)
+  self.answers = {}
+  self.savedOut = veaf.outTextForUnit
+  veaf.outTextForUnit = function(unitName, message)
+    table.insert(self.answers, { unitName = unitName, message = message })
+  end
+  local logger = veaf.loggers.get(veafRemote.Id)
+  self.savedError = logger.error
+  self.errors = 0
+  logger.error = function()
+    self.errors = self.errors + 1
+  end
+  -- the unit has to exist for the answer to have somewhere to go
+  dcs_mocks.addUnit("Ninja-1-1")
+end
+
+function TestVeafRemoteUnknownModule:tearDown()
+  veafRemote.remoteModuleRegistry = self.savedRegistry
+  veaf.outTextForUnit = self.savedOut
+  veaf.loggers.get(veafRemote.Id).error = self.savedError
+end
+
+function TestVeafRemoteUnknownModule:test_an_unknown_module_answers_the_pilot()
+  local ok = pcall(veafRemote.executeCommandFromRemote, "Zip", "99", "Ninja-1-1", "veaflogin", "")
+  luaunit.assertTrue(ok)
+  luaunit.assertEquals(#self.answers, 1)
+  luaunit.assertEquals(self.answers[1].unitName, "Ninja-1-1")
+  -- the answer lists what exists, which is what the pilot was looking for
+  luaunit.assertStrContains(self.answers[1].message, "/secu")
+  luaunit.assertStrContains(self.answers[1].message, "/point")
+end
+
+function TestVeafRemoteUnknownModule:test_an_unknown_module_logs_no_error()
+  veafRemote.executeCommandFromRemote("Zip", "99", "Ninja-1-1", "veaf", "login")
+  luaunit.assertEquals(self.errors, 0, "a typing mistake is not a programming fault")
+end
+
+function TestVeafRemoteUnknownModule:test_an_unknown_module_still_returns_false()
+  luaunit.assertFalse(veafRemote.executeCommandFromRemote("Zip", "99", "Ninja-1-1", "sec", "login"))
+end
+
+function TestVeafRemoteUnknownModule:test_a_prefix_of_one_module_names_it()
+  veafRemote.executeCommandFromRemote("Zip", "99", "Ninja-1-1", "sec", "login")
+  luaunit.assertStrContains(self.answers[1].message, "/secu login")
+end
+
+function TestVeafRemoteUnknownModule:test_a_prefix_is_suggested_never_run()
+  local ran = false
+  veafRemote.registerRemoteModule("secu", function()
+    ran = true
+    return true
+  end)
+  veafRemote.executeCommandFromRemote("Zip", "99", "Ninja-1-1", "sec", "login")
+  luaunit.assertFalse(ran, "a secured verb must be typed in full, not guessed")
+end
+
+-- A spectator has no unit, and `veaf.outTextForUnit` falls back to a message for everybody: a typo must
+-- not be broadcast to the whole server. The hook used to send the literal "nil" in that case.
+function TestVeafRemoteUnknownModule:test_a_player_in_no_unit_is_not_answered_in_public()
+  for _, noUnit in ipairs({ "nil", "" }) do
+    self.answers = {}
+    veafRemote.executeCommandFromRemote("Zip", "99", noUnit, "veaf", "login")
+    luaunit.assertEquals(#self.answers, 0, noUnit)
+  end
+end
+
+function TestVeafRemoteUnknownModule:test_a_known_module_still_runs()
+  luaunit.assertTrue(veafRemote.executeCommandFromRemote("Zip", "99", "Ninja-1-1", "SECU", "login"))
+  luaunit.assertEquals(#self.answers, 0)
 end
 
 os.exit(luaunit.LuaUnit.run())

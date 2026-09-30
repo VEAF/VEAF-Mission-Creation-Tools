@@ -1,6 +1,6 @@
 # 06 — Remove the transition fallback once production holds the new index
 
-Status: ⬜ ready — unblocked 2026-09-22 by ticket 04: production holds the new index in fr and en
+Status: ✅ done — 2026-09-30
 
 Type: chore
 
@@ -39,5 +39,5 @@ about 2 MB of a 1 GB allowance.
 ## Definition of done
 
 - [x] Ticket 04 closed: the live assistant answers from the new index, fr and en (2026-09-22)
-- [ ] The shim, its comments and its two tests are gone
-- [ ] `no passages for {lang}` is raised again when `idx:txt:{lang}` is missing
+- [x] The shim, its comments and its transition test are gone (the second one now asserts `no passages for {lang}`)
+- [x] `no passages for {lang}` is raised again when `idx:txt:{lang}` is missing

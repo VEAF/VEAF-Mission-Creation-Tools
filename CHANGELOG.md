@@ -295,6 +295,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   callbacks were declared behind a switch that was always off, so none of this could run. What
   `veafRemote` does — bridging the VEAF server hook for player rights and chat commands — is
   unchanged, and the scripts page now describes it that way.
+- **The documentation chatbot's fallback to the old per-chunk index.** 6.24.0 kept it while
+  production caught up on the two-keys-per-language layout; both languages have been served from
+  that layout since 2026-09-22. A Worker that finds no `idx:txt:{lang}` now fails with
+  `no passages for {lang}` instead of looking for keys no rebuild writes any more.
 
 ### Security
 

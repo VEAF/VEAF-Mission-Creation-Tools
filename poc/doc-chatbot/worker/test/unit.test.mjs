@@ -749,8 +749,7 @@ test("vectors present but no text behind them is an error, not an empty answer",
 });
 
 test("a text value that is not a passage array is refused", async () => {
-  // An absent key means the old per-chunk layout (see the transition tests below). A key that is
-  // present but holds something else is a corrupt index, and must not be read as either.
+  // A key that is present but holds something else is a corrupt index, refused like an absent one.
   const unit = new Array(768).fill(0);
   unit[0] = 1;
   const buf = new Float32Array(unit);
@@ -797,30 +796,7 @@ test("a question unrelated to every passage yields an empty context rather than 
   });
 });
 
-// TRANSITION (remove with the shim in loadIndex): the Worker deploys on a merge and the index is
-// rebuilt by a separate workflow with no ordering between them, so the new code reaches production
-// before `idx:txt:{lang}` exists — and a rebuild that fails on the KV quota leaves it there. Five
-// rebuilds had already failed on quota the day this shipped, so without the fallback the assistant
-// would have answered 502 to every question for hours.
-test("with no text blob yet, the old per-chunk keys still answer", async () => {
-  const unit = new Array(768).fill(0);
-  unit[0] = 1;
-  const buf = new Float32Array(unit);
-  const legacy = new Map([
-    ["idx:vec:xf", buf.buffer],
-    ["idx:txt:xf:0", { title: "Coalitions", text: "body" }],
-  ]);
-  const env = {
-    GEMINI_API_KEY: "test-key",
-    CHAT_KV: { async get(key) { return legacy.get(key) ?? null; } },
-  };
-  await withFakeEmbedding(unit, async () => {
-    const passages = await retrieveContext(env, "xf", "a matching question");
-    assert.match(passages, /Coalitions/, "the pre-2026-09-21 layout is still served");
-  });
-});
-
-test("with neither layout present, a broken index still surfaces", async () => {
+test("a missing text blob is refused rather than answered from nothing", async () => {
   const unit = new Array(768).fill(0);
   unit[0] = 1;
   const buf = new Float32Array(unit);
@@ -831,8 +807,8 @@ test("with neither layout present, a broken index still surfaces", async () => {
   await withFakeEmbedding(unit, async () => {
     await assert.rejects(
       () => retrieveContext(env, "xg", "anything"),
-      /no passages retrieved/,
-      "the fallback must not turn a missing index into a polite 'not documented'",
+      /no passages for xg/,
+      "a missing index must surface, not read as 'not documented'",
     );
   });
 });

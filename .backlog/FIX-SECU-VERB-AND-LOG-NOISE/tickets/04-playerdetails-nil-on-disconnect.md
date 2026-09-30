@@ -13,6 +13,20 @@ three occurrences, three lines of context each. DCS fires `onPlayerChangeSlot` o
 by then `net.get_player_info(id)` has nothing to return. The guard at
 `VEAF-Server-hook.lua:288` is right to return; it is the **level** that is wrong.
 
+**Not private1-specific.** Across the six instances' live `dcs.log` (read over SSH on 2026-09-30,
+covering 2026-09-29 18:04 → 2026-09-30 17:45), the line appears on every instance that saw a
+disconnect, and only there:
+
+| Instance | `onGameEvent(disconnect)` | `_playerDetails is nil` | preceded by the disconnect |
+|---|---|---|---|
+| private1 | 19 | 19 | 19 |
+| private2 | 1 | 1 | 1 |
+| public1 | 1 | 1 | 1 |
+| foothold1, foothold2, public2 | 0 | 0 | — |
+
+The hook is loaded on all six (`VEAFHOOK` lines present everywhere), so the three zeros mean no
+departure, not no hook. 21 disconnects, 21 errors, none outside a disconnect in that window.
+
 An ERROR is what someone greps for when a server misbehaves. Making every normal departure raise
 one costs the signal, and it made this session's reading longer: the line was a suspect for
 ticket 01 until its context was measured.

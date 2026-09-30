@@ -1,6 +1,6 @@
 # Verification mission C — IADS, delayed commands, escorts and carriers (Syria)
 
-Missions C **and** D of [`CHORE-ISSUE-VERIFY-SESSION`](../../../.backlog/CHORE-ISSUE-VERIFY-SESSION/PRD.md),
+Missions C **and** D of [`CHORE-ISSUE-VERIFY-SESSION`](../../../.backlog/archive/CHORE-ISSUE-VERIFY-SESSION.md),
 merged into one load. Mission B already showed that several checks ride on one mission; these five
 are all driven from the F10 menu and a map marker, so none of them needs its own.
 

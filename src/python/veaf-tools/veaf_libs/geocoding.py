@@ -3,7 +3,7 @@
 DCS theatres are the real world projected, so a place name → lat/lon (here) → DCS x/y (via
 :mod:`veaf_libs.coordinates`) lets tooling place things by real geography. Backend-swappable:
 **OpenStreetMap Nominatim** by default (free, no key) and **Google Maps** when an API key is
-configured. See ``.backlog/FEAT-GEO-PLACEMENT/PRD.md``.
+configured. See ``.backlog/archive/FEAT-GEO-PLACEMENT.md``.
 
 Nominatim usage policy: low-volume authoring calls only, a descriptive ``User-Agent``, and
 attribution of © OpenStreetMap contributors in any surfaced result.

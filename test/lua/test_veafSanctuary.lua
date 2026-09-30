@@ -725,4 +725,106 @@ function TestSanctuaryZoneFromMissingTriggerZone:test_a_zone_dcs_knows_is_still_
   luaunit.assertEquals(#self.warned, 0)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestSanctuaryHandleWeapon — FIX-IN-GAME-TEST-FINDINGS 03
+-- ---------------------------------------------------------------------------
+-- On private1 (2026-09-28) the check raised 2 s after a shot: `attempt to index local 'target'` on a
+-- CBU-105 and two AGM-88C with no target object, `Weapon doesn't exist` on an AI 57 mm round already
+-- gone. Each shot is checked by every sanctuary, so each raised once per zone.
+TestSanctuaryHandleWeapon = {}
+
+local function _launcher(side, playerName)
+  return {
+    getCoalition = function()
+      return side
+    end,
+    getPlayerName = function()
+      return playerName
+    end,
+  }
+end
+
+local function _weapon(opts)
+  local gone = function()
+    error("Weapon doesn't exist")
+  end
+  return {
+    isExist = function()
+      return not opts.gone
+    end,
+    getLauncher = opts.gone and gone or function()
+      return opts.launcher
+    end,
+    getTarget = opts.gone and gone or function()
+      return opts.target
+    end,
+  }
+end
+
+function TestSanctuaryHandleWeapon:setUp()
+  self.zone = VeafSanctuaryZone:new():setName("SANCTUARY-TEST"):setCoalition(2):setProtectFromMissiles()
+  self.checked = 0
+  self.zone.isPositionInZone = function()
+    self.checked = self.checked + 1
+    return false
+  end
+  self._getByName = Unit.getByName
+end
+
+function TestSanctuaryHandleWeapon:tearDown()
+  Unit.getByName = self._getByName
+end
+
+function TestSanctuaryHandleWeapon:test_a_weapon_already_gone_is_ignored()
+  local ok, err = pcall(self.zone.handleWeapon, self.zone, _weapon({ gone = true }))
+  luaunit.assertTrue(ok, tostring(err))
+end
+
+function TestSanctuaryHandleWeapon:test_a_weapon_with_no_target_is_ignored()
+  local weapon = _weapon({ launcher = _launcher(1, "Viper 1-1") })
+  local ok, err = pcall(self.zone.handleWeapon, self.zone, weapon)
+  luaunit.assertTrue(ok, tostring(err))
+  luaunit.assertEquals(self.checked, 0)
+end
+
+function TestSanctuaryHandleWeapon:test_a_target_already_destroyed_is_ignored()
+  local target = {
+    isExist = function()
+      return false
+    end,
+    getName = function()
+      error("Unit doesn't exist")
+    end,
+  }
+  local ok, err = pcall(self.zone.handleWeapon, self.zone, _weapon({ launcher = _launcher(1, "Viper 1-1"), target = target }))
+  luaunit.assertTrue(ok, tostring(err))
+  luaunit.assertEquals(self.checked, 0)
+end
+
+function TestSanctuaryHandleWeapon:test_a_guided_weapon_still_reaches_the_zone_check()
+  local target = {
+    isExist = function()
+      return true
+    end,
+    getName = function()
+      return "Hawg 1-1"
+    end,
+  }
+  Unit.getByName = function()
+    return {
+      getCoalition = function()
+        return 2
+      end,
+      getPlayerName = function()
+        return "Hawg 1-1"
+      end,
+      getPosition = function()
+        return { p = { x = 0, y = 0, z = 0 } }
+      end,
+    }
+  end
+  self.zone:handleWeapon(_weapon({ launcher = _launcher(1, "Viper 1-1"), target = target }))
+  luaunit.assertEquals(self.checked, 1)
+end
+
 os.exit(luaunit.LuaUnit.run())

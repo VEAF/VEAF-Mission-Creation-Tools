@@ -128,6 +128,38 @@ def validate_modules_semantics(yaml_data: dict) -> None:
         logger.error("\n".join(errors))
 
 
+#: The level names veaf.Logger knows (veaf.Logger.LEVEL), matched case-insensitively.
+_LOG_LEVELS: frozenset[str] = frozenset({"error", "warning", "info", "debug", "trace"})
+
+
+def _unknown_qra_keys(module: str, cfg: dict) -> list[str]:
+    """Warn on each QRA definition key the generator does not read.
+
+    `respawn_default_offset` was accepted under a QRA and never emitted, and convert-v5's `start`
+    was never read either: a key nobody reads is a setting that silently does nothing
+    (FIX-QRA-COMMANDS-AND-OFFSET).
+
+    Args:
+        module: The module key as written in mission.yaml.
+        cfg: The module's mapping.
+
+    Returns:
+        One warning per unknown key, naming the definition.
+    """
+    from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
+
+    warnings: list[str] = []
+    for definition in cfg.get("definitions") or []:
+        if not isinstance(definition, dict):
+            continue
+        for qra_key in definition:
+            if qra_key not in QRA_DEFINITION_KEYS:
+                warnings.append(
+                    t("yaml.semantic.unknown_qra_key", module=module, qra=definition.get("name"), setting=qra_key)
+                )
+    return warnings
+
+
 def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
     """Collect ``modules:`` semantic issues without aborting (errors, warnings).
 
@@ -166,10 +198,51 @@ def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
                 errors.append(t("yaml.semantic.bad_enabled", module=key, type=type(cfg["enabled"]).__name__))
             if "logLevel" in cfg and not isinstance(cfg["logLevel"], str):
                 errors.append(t("yaml.semantic.bad_loglevel", module=key, type=type(cfg["logLevel"]).__name__))
+            elif isinstance(cfg.get("logLevel"), str) and cfg["logLevel"].lower() not in _LOG_LEVELS:
+                # a warning, not an error: a mission that wrote `warn` built until now, and the runtime
+                # ignores the name either way (Logger:setModuleLevel)
+                warnings.append(t("yaml.semantic.unknown_loglevel", module=key, level=cfg["logLevel"]))
             if "manage_logistics" in cfg and not isinstance(cfg["manage_logistics"], bool):
                 errors.append(
                     t("yaml.semantic.bad_manage_logistics", module=key, type=type(cfg["manage_logistics"]).__name__)
                 )
+            # FEAT-CTLD-AIRBASE-LOGISTICS ticket 05: the airbase-logistics opt-out and its three
+            # numbers live beside manage_logistics in the CTLD block. The opt-out is a boolean for the
+            # same reason manage_logistics is — a string "false" is truthy in Lua and would silently
+            # enable the feature — and the three numbers are metres and seconds, so a bool (which is an
+            # int in Python) must be rejected explicitly rather than passing an isinstance(int) check.
+            if "manage_airbase_logistics" in cfg and not isinstance(cfg["manage_airbase_logistics"], bool):
+                errors.append(
+                    t(
+                        "yaml.semantic.bad_manage_airbase_logistics",
+                        module=key,
+                        type=type(cfg["manage_airbase_logistics"]).__name__,
+                    )
+                )
+            for number_key in ("airbase_logistics_radius", "airbase_occupation_radius", "airbase_logistics_tick"):
+                if number_key in cfg:
+                    number_value = cfg[number_key]
+                    if isinstance(number_value, bool) or not isinstance(number_value, (int, float)):
+                        errors.append(
+                            t(
+                                "yaml.semantic.bad_ctld_number",
+                                module=key,
+                                setting=number_key,
+                                type=type(number_value).__name__,
+                            )
+                        )
+                    elif number_value <= 0:
+                        # A 0 is truthy in Lua, so it would not fall back to the default: a zero radius
+                        # registers zones nobody can stand in, and a zero tick re-arms the scheduler on
+                        # itself. Negative values are meaningless for metres and seconds alike.
+                        errors.append(
+                            t(
+                                "yaml.semantic.ctld_number_not_positive",
+                                module=key,
+                                setting=number_key,
+                                value=number_value,
+                            )
+                        )
             if "settings" in cfg and key.upper() == "CTLD":
                 # CTLD 2 reads a complete YAML snapshot from the mission's
                 # ctld-config.yaml (ADR 0016); nothing here reaches the engine. An
@@ -178,6 +251,8 @@ def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
                 errors.append(t("yaml.semantic.ctld_settings_removed", module=key))
             elif "settings" in cfg and not isinstance(cfg["settings"], dict):
                 errors.append(t("yaml.semantic.bad_settings", module=key, type=type(cfg["settings"]).__name__))
+            if key.upper() == "QRA":
+                warnings.extend(_unknown_qra_keys(key, cfg))
             init = cfg.get("init")
             if isinstance(init, dict):
                 allowed = {param for param, _ in _MODULE_INIT_PARAMS.get(key.upper(), [])}

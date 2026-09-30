@@ -5,7 +5,7 @@ against ``dcs-countries.yaml`` gave USSR; the vendored schema's *other* country 
 cross-check, gave the name belonging to 67. DCS has no country at id 14, and that second table
 (``types["country.name"]``) renumbers its names sequentially instead of carrying the id across — so
 everything after the hole slides down one slot and 78 of the 92 names are attached to the wrong id.
-See ``.backlog/CHORE-SCHEMA-COUNTRY-NAMES-OFF-BY-ONE``.
+See ``.backlog/archive/CHORE-SCHEMA-COUNTRY-NAMES-OFF-BY-ONE.md``.
 
 **What this guards, and what it deliberately does not.** Only ``types["country.id"]`` is asserted:
 it is correct today, it is the table a reader should use, and it is the one worth defending against a

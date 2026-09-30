@@ -92,16 +92,17 @@ modules:
 | `enemy_coalitions` | string[] | *(opposite)* | No | Coalitions that trigger a scramble |
 | `trigger_zone` | string | — | No | DCS trigger zone name |
 | `zone_radius` | integer | — | No | Zone radius in metres (when no trigger zone) |
-| `simple_groups` | string[] | `[]` | No | DCS group names to always scramble |
+| `simple_groups` | string[] | `[]` | No | DCS group names to always scramble, or VEAF commands (`[0,0]-spawn shilka, country russia`, `-sa6`): an entry starting with `[` or `-` is a command, and `validate` does not look for it in the mission |
 | `groups_by_enemy_count` | object[] | `[]` | No | Scaled scramble rules |
 | `groups_by_enemy_count[].enemy_count` | integer | — | Yes | Number of intruders that activates this rule |
-| `groups_by_enemy_count[].groups` | string[] | — | Yes | Group name pool |
+| `groups_by_enemy_count[].groups` | string[] | — | Yes | Pool of group names or VEAF commands, as for `simple_groups` |
 | `groups_by_enemy_count[].random_pick` | integer | `1` | No | How many groups to pick from the pool |
 | `delay_before_rearming` | integer | `0` | No | Seconds before zone resets after intruders leave |
 | `delay_before_activating` | integer | `0` | No | Seconds after start before QRA goes online |
 | `react_on_helicopters` | boolean | `false` | No | Also trigger on enemy helicopters |
 | `active_at_start` | boolean | `true` | No | `false`: the QRA is declared but **not armed** at start — it waits for a `qra.start` (radio menu) or a scripted call |
 | `airport_link` | string | — | No | Linked DCS airbase name — QRA offline when destroyed |
+| `respawn_default_offset` | [number, number] | `[0, 0]` | No | Offset in metres `[north, east]` from the zone centre where an element deployed by a VEAF command with no `[x,y]` of its own appears |
 | `radio_menu` | boolean | `false` | No | Automatically generate an F10 radio submenu to control this QRA (see below) |
 | `radio_menu_restrict_to_group` | string | — | No | Name of a DCS group; the generated submenu only appears for that group |
 | `radio_menu_secured` | boolean | `false` | No | **Secured** commands: only a pilot of that group with the required security level can run them. Requires `radio_menu_restrict_to_group` (the level checked is that of the group the menu is posted for); the build refuses otherwise |

@@ -1,6 +1,6 @@
 # Verification mission A — ground placement (Syria, coast)
 
-Mission A of [`CHORE-ISSUE-VERIFY-SESSION`](../../../.backlog/CHORE-ISSUE-VERIFY-SESSION/PRD.md). It
+Mission A of [`CHORE-ISSUE-VERIFY-SESSION`](../../../.backlog/archive/CHORE-ISSUE-VERIFY-SESSION.md). It
 answers two issues in one load:
 
 | Issue | Question |

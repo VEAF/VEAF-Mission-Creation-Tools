@@ -147,6 +147,24 @@ l'ordre de mission.
 **Ce que ce n'est pas.** Pas une zone de déclenchement manquante — l'objet cherché est une entrée
 YAML, pas un cercle sur la carte.
 
+## Un statique n'a pas de `shape_name` {#validate-static-without-shape}
+
+> Le static 'CZ_Wunsdorf-HQ' (.Command Center) n'a pas de shape_name : DCS peut le refuser au
+> chargement de la mission (« unknown static shape_name ») et l'objet n'existera pas. Écrire
+> shape_name = "ComCenter" sur l'unité, comme le fait l'éditeur de mission.
+
+**Dans l'éditeur.** Le statique est dans la mission, mais DCS ne sait pas quel modèle dessiner. Il
+le devine pour beaucoup de types, pas pour tous : un poste de commandement ou un dépôt de munitions
+sans `shape_name` n'est pas créé du tout. Dans une zone de combat, l'objectif manque — sans un mot
+en jeu, et la zone tire ses éléments parmi ce qui reste.
+
+**D'où ça vient.** L'éditeur écrit toujours ce champ ; il manque sur un statique posé par un outil.
+Les actions MCP l'écrivent depuis FIX-IN-GAME-TEST-FINDINGS ; ce message attrape les missions
+construites avant.
+
+**Les issues.** Ajouter `shape_name` sur l'unité avec la valeur donnée, ou replacer le statique dans
+l'éditeur ou avec `add_group`.
+
 ## Pour aller plus loin {#more}
 
 - [Les messages du build](README.md) — les autres familles

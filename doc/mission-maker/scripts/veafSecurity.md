@@ -82,7 +82,6 @@ veafSecurity.password_L1[sha1.hex("monMotDePasseMembreDeConfiance")] = true
 
 | Constante | Valeur par défaut | Description |
 |-----------|-------------------|-------------|
-| `veafSecurity.authDuration` | `10` | Minutes pendant lesquelles l'authentification reste valide |
 | `veafSecurity.Keyphrase` | `"_auth"` | Commande de marqueur pour l'authentification |
 | `veafSecurity.LEVEL_ADMIN` | `90` | Palier administrateur (alias déprécié : `LEVEL_L0`) |
 | `veafSecurity.LEVEL_SENIOR_PILOT` | `10` | Palier membre de confiance (alias déprécié : `LEVEL_L1`) |
@@ -92,18 +91,20 @@ veafSecurity.password_L1[sha1.hex("monMotDePasseMembreDeConfiance")] = true
 
 ## Authentification du joueur
 
-La commande de marqueur `_auth` porte trois verbes :
+La commande de marqueur `_auth` n'a plus qu'un verbe qui agit :
 
 ```
-_auth [MOT_DE_PASSE]   -- vérifie le mot de passe donné
 _auth elevate          -- élève le groupe de l'auteur à son propre niveau pendant 2 minutes
-_auth logout           -- reverrouille la mission
 ```
 
-Un mot de passe accepté n'ouvre **pas de session** : les commandes sécurisées vérifient le mot de
-passe commande par commande (mot-clé `password`). En tchat, les mêmes verbes existent sous la forme
-`/secu login|elevate|logout` (voir [veafServerHook](veafServerHook.md)) ; l'alias caché `-login`
-équivaut à `_auth`.
+En tchat, c'est `/secu elevate` (voir [veafServerHook](veafServerHook.md)) ; l'alias caché `-login`
+équivaut à `_auth`. Les commandes sécurisées vérifient le mot de passe commande par commande
+(mot-clé `password`).
+
+`_auth [MOT_DE_PASSE]`, `_auth logout`, `/secu login` et `/secu logout` existent encore, mais
+n'ouvrent ni ne ferment plus rien : ils répondent au pilote qu'il n'y a plus de connexion globale et
+lui indiquent `/secu elevate`. Jusqu'à la version 6.25, `/secu login` répondait « le système est
+authentifié pour 10 minutes » sans rien déverrouiller.
 
 !!! danger "Changement de comportement — l'authentification n'est plus globale"
     **Avant** : un seul `_auth` réussi ouvrait toutes les commandes sécurisées à **tous les joueurs
@@ -121,6 +122,13 @@ passe commande par commande (mot-clé `password`). En tchat, les mêmes verbes e
       `_auth elevate` (marqueur) ou `/secu elevate` (tchat) élève le groupe au niveau **du
       demandeur** pendant 2 minutes — un simple `_auth [MOT_DE_PASSE]` n'élève rien. C'est ce qui
       résout le cas de l'instructeur volant avec un élève.
+    - Le `+` au début du libellé d'une commande F10 signifie « cette commande demande un niveau »,
+      **pas** « vous ne l'avez pas » : il reste affiché que le groupe ait le niveau ou non. Un clic
+      refusé affiche au groupe le niveau demandé et celui auquel il agit.
+    - Le groupe étant la seule identité, une commande F10 sécurisée (son libellé commence par `+`)
+      apparaît **dans le menu de chaque groupe de pilotes**. Un game master ou un spectateur, qui
+      n'a pas de groupe, ne la voit pas — sauf quand la sécurité est désactivée : elle est alors
+      montrée à tout le monde.
 
     Prévenez vos pilotes : c'est un changement qui se remarque en pleine mission.
 

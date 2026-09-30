@@ -29,7 +29,7 @@ What will your players experience?
 |---------------|--------|--------------|
 | Places a marker with `_spawn ...` | [veafSpawn](veafSpawn.en.md) | Units appear at marker position |
 | Places a marker with `_cas` | [veafCasMission](veafCasMission.en.md) | Random target zone generated |
-| Opens F10 → Combat Zones → Activate zone | [veafCombatZone](veafCombatZone.en.md) | Pre-built combat area activates |
+| Opens F10 → COMBAT ZONES → Activate zone | [veafCombatZone](veafCombatZone.en.md) | Pre-built combat area activates |
 | Enters an air-waves zone | [veafAirWaves](veafAirWaves.en.md) | Wave-based air combat starts |
 | Opens F10 → ASSETS → [asset] | [veafAssets](veafAssets.en.md) | Info, respawn |
 | Opens F10 → CARRIER OPS → Start carrier air operations for 45 minutes | [veafCarrierOperations](veafCarrierOperations.en.md) | Carrier turns into wind |
@@ -90,7 +90,7 @@ Modules that are not `initialize()`d consume no resources and create no radio me
 |--------|------|--------------|
 | [veafSkynetIadsHelper](veafSkynetIadsHelper.en.md) | `veafSkynetIadsHelper.lua` | Configures Skynet IADS from VEAF group data |
 | `veafSkynetIadsMonitor.lua` | — | Monitors Skynet IADS health and sends radio alerts |
-| `veafRemote.lua` | — | NIOD / SLMOD remote command integration |
+| `veafRemote.lua` | — | Bridge with the VEAF server hook: player rights and chat commands |
 
 ---
 

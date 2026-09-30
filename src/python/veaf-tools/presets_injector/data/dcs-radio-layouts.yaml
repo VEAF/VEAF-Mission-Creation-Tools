@@ -61,11 +61,16 @@
 #         produces 20 slots total (OH-58D UHF/VHF) — and `[1, 20]` — a "C" slot
 #         duplicating the list's first entry (which stays in the tail too),
 #         then an "M" slot fed by its last entry (removed from the tail), so a
-#         20-entry list produces 21 slots total (OH-58D FM1/FM2). Mutually
+#         20-entry list produces 21 slots total (OH-58D FM1/FM2). An index
+#         beyond a shorter list takes the list's last entry: the head slot
+#         exists in the cockpit whatever the list's length. Mutually
 #         exclusive with `rotate_last_to_head` on the
 #         same radio (both express "reserve the head of the channel map" —
 #         declaring both on one radio is rejected by the parser as an authoring
 #         error).
+#       - `head_labels: [<text>, ...]` — what the cockpit shows on each
+#         reserved head slot, in order (`[M]`, `[C, M]`): the kneeboard prints
+#         them on those slots and numbers the presets after them from 01.
 #       - `capacity: <int>` — slot capacity. The maximum number of channel
 #         slots this radio physically holds. When the radio's final composed
 #         channel count (after every other primitive above has run) exceeds
@@ -175,18 +180,22 @@ OH58D:
     1:
       role: primary_1
       reserved_head_slots: [20]
+      head_labels: [M]
     # radio 2: VHF AM. Same "M" pattern as radio 1.
     2:
       role: primary_2
       reserved_head_slots: [20]
+      head_labels: [M]
     # radio 3: VHF FM1. Reserved "C" head slot fed by entry #01, then "M" fed
     # by entry #20; slots [3..21] hold entries #1..#19.
     3:
       role: fm_supplement
       reserved_head_slots: [1, 20]
+      head_labels: [C, M]
     # radio 4: VHF FM2. Same "C"+"M" pattern as radio 3; content defaults to
     # fm_supplement's list when the maker does not declare fm_secondary
     # (see _channel_list_for_role in presets_manager.py).
     4:
       role: fm_secondary
       reserved_head_slots: [1, 20]
+      head_labels: [C, M]

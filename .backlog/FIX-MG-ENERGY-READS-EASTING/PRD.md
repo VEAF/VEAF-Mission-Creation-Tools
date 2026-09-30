@@ -1,6 +1,6 @@
 # FIX-MG-ENERGY-READS-EASTING — a missile's potential energy is computed from its longitude
 
-Status: ⬜ ready
+Status: ✅ done — 2026-09-28, the altitude is read from `y`; the test separates the two readings and was red on the old code (`Actual: 0, expected: 12262500`)
 
 Found 2026-09-01 by the enumeration [`FIX-AIR-SPAWN-ALTITUDE-GUARD`](../FIX-AIR-SPAWN-ALTITUDE-GUARD/PRD.md)
 was asked to do — "enumerate the other height tests rather than sample them". This one is **not** on the
@@ -37,14 +37,14 @@ does.
 
 ## Definition of done
 
-- [ ] The altitude is read from `y`
-- [ ] A test that **separates the two readings**: a weapon high up at easting 0 and one at sea level far
+- [x] The altitude is read from `y`
+- [x] A test that **separates the two readings**: a weapon high up at easting 0 and one at sea level far
       east cannot both give the same answer. A test that passes under either reading is worth nothing —
       that is the trap `FIX-AIR-SPAWN-ALTITUDE-GUARD` documented
-- [ ] Decide, and say which: is the mass really 250 kg for every weapon (`-- let's say the missile
+- [x] Decide, and say which — **kept at 250 kg, stated in the code**: the weapon description carries the warhead's mass, not the missile's, so there is nothing better to read: is the mass really 250 kg for every weapon (`-- let's say the missile
       weights 250kg`), or should it come from the weapon description? Out of scope to *change*, in scope
       to state
-- [ ] `poetry run test-lua`, `stylua --check src/scripts/veaf/ test/lua/` clean
+- [x] `poetry run test-lua`, `stylua --check src/scripts/veaf/ test/lua/` clean
 
 ## Out of scope
 

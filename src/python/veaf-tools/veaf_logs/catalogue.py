@@ -1,7 +1,8 @@
 """What ``rules.json`` already knows, said out loud.
 
-The catalogue is not a filter. It carries **13 recognised sources**, **8 families of native DCS
-subsystems** and **22 known-noise patterns**, and every noise family holds a ``help`` string written
+The catalogue is not a filter. It carries **16 recognised sources** (13 script prefixes, 3 logs of
+their own), **7 families of native DCS subsystems** and **27 known-noise patterns**, and every noise
+family holds a ``help`` string written
 for a user — *"Modules tiers dont le modèle de dégâts n'est pas au format attendu. Cosmétique."*
 Until now that text only drove colouring and hiding; nobody was ever shown it as an answer.
 
@@ -85,7 +86,10 @@ def is_catalogued(rules: Rules, entry: ExcerptEntry) -> bool:
     """Say whether the catalogue has anything to say about a record.
 
     A record is catalogued when a noise family matched it, or when it came from a recognised script
-    source. A bare native DCS line the catalogue never named is not.
+    source. A bare native DCS line the catalogue never named is not, and neither is a line whose
+    source is only the log it was read from (DCSServerBot, Real Weather, LotAtc): knowing the
+    emitter of every line of a file says nothing about any one of them, and counting them as
+    catalogued would leave the proposals blind on exactly those logs.
 
     Args:
         rules: The loaded catalogue.
@@ -96,7 +100,9 @@ def is_catalogued(rules: Rules, entry: ExcerptEntry) -> bool:
     """
     if entry.noise:
         return True
-    return entry.source_id != NATIVE_SOURCE and any(source.id == entry.source_id for source in rules.sources)
+    return entry.source_id != NATIVE_SOURCE and any(
+        source.id == entry.source_id and source.pattern is not None for source in rules.sources
+    )
 
 
 def match_catalogue(rules: Rules, excerpt: Excerpt) -> list[CatalogueMatch]:

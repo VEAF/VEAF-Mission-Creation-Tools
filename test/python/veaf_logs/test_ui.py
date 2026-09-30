@@ -28,7 +28,7 @@ from veaf_logs.filters import State  # noqa: E402
 from veaf_logs.profiles import DEFAULT_PROFILE, ProfileStore  # noqa: E402
 from veaf_logs.rules import Rules  # noqa: E402
 from veaf_logs.session import OpenFile, Session  # noqa: E402
-from veaf_logs.ui.main_window import MainWindow  # noqa: E402
+from veaf_logs.ui.main_window import SIDE_WIDTH, MainWindow  # noqa: E402
 from veaf_logs.ui.model import COL_MESSAGE  # noqa: E402
 from veaf_logs_journal import ENTRIES, journal_bytes  # noqa: E402
 
@@ -60,6 +60,13 @@ class TestChargement:
 
     def test_tout_affiche_par_defaut(self, window):
         assert rows(window) == ENTRIES
+
+    def test_seules_les_familles_de_bruit_rencontrees_sont_listees(self, window):
+        """Une famille masquee par defaut mais absente du journal n'a pas de bouton."""
+        rencontrees = set(window.current_tab().model.counts_by_noise())
+        assert "damage_model" in rencontrees
+        assert set(window.side.noise.keys()) == rencontrees
+        assert "dcssb_mission_events" not in window.side.noise.keys()
 
     def test_colonnes_lues_a_la_demande(self, window):
         entry = window.current_tab().model.entry_at(0)
@@ -380,6 +387,77 @@ class TestPanneauDeDetail:
         chemin = tmp_path / "session.json"
         window._capture().save(chemin)
         assert Session.load(chemin).detail_visible is False
+
+
+class TestPanneauDesFiltres:
+    """Masquer le panneau de gauche donne sa largeur au journal (CHORE-SMALL-POLISH 04)."""
+
+    @pytest.fixture
+    def shown(self, window, app):
+        # Les largeurs d'un QSplitter ne sont reelles qu'une fois la fenetre disposee.
+        window.show()
+        app.processEvents()
+        return window
+
+    def test_le_bouton_porte_l_action(self, window):
+        assert window.filters_button.defaultAction() is window.action_filters
+        assert window.action_filters.isCheckable()
+        assert window.action_filters.isChecked()
+        assert window.action_filters.shortcut().toString() == "Ctrl+B"
+
+    def test_masquer_donne_la_largeur_au_journal(self, shown, app):
+        avant = shown.splitter.sizes()
+        shown.action_filters.trigger()
+        app.processEvents()
+        assert shown.side.isHidden()
+        assert not shown.action_filters.isChecked()
+        assert shown.splitter.sizes()[1] >= sum(avant) - shown.splitter.handleWidth()
+
+    def test_reafficher_rend_la_largeur_d_avant(self, shown, app):
+        shown.splitter.setSizes([410, 1090])
+        app.processEvents()
+        largeur = shown.splitter.sizes()[0]
+        shown.action_filters.trigger()
+        app.processEvents()
+        # Entre-temps la fenetre change de taille : c'est la largeur du panneau qui revient.
+        shown.resize(shown.width() + 200, shown.height())
+        app.processEvents()
+        shown.action_filters.trigger()
+        app.processEvents()
+        assert not shown.side.isHidden()
+        assert shown.splitter.sizes()[0] == largeur
+
+    def test_replie_a_la_poignee_il_revient_visible(self, shown, app):
+        """Sans cela, le bouton semblerait ne rien faire : le panneau reviendrait a zero."""
+        shown.splitter.setSizes([0, 1500])
+        app.processEvents()
+        shown.action_filters.trigger()
+        shown.action_filters.trigger()
+        app.processEvents()
+        assert shown.splitter.sizes()[0] == SIDE_WIDTH
+
+    def test_les_filtres_s_appliquent_panneau_masque(self, window):
+        window.filters.set_state("levels", "INFO", State.OFF)
+        window.apply_filters()
+        affichees = rows(window)
+        window.toggle_filters_panel(False)
+        window.apply_filters()
+        assert rows(window) == affichees
+        assert "masquees par les filtres" in window.status_counts.text()
+
+    def test_etat_retenu_d_une_session_a_l_autre(self, window, tmp_path, rules):
+        window.toggle_filters_panel(False)
+        chemin = tmp_path / "session.json"
+        window._capture().save(chemin)
+        assert Session.load(chemin).filters_visible is False
+
+        rouverte = MainWindow(rules, Session.load(chemin))
+        try:
+            assert rouverte.side.isHidden()
+            assert not rouverte.action_filters.isChecked()
+        finally:
+            rouverte.timer.stop()
+            rouverte.close()
 
 
 class TestCopie:

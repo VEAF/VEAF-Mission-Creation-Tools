@@ -448,7 +448,7 @@ La recherche dégrade en trois paliers bornés :
 > `dcs-world-schema`. L'appel est gardé et protégé par `pcall` : si le singleton est absent de
 > cette version de DCS ou de cette carte, la recherche passe au palier 2 au lieu d'échouer.
 
-##### `veafUnits.settleGroup(units, spawnRadius)`
+##### `veafUnits.settleGroup(units, honourDeclaredPosition)`
 
 Décale **le groupe entier**, d'un seul bloc, jusqu'à une clairière assez grande pour le contenir.
 `veaf.findSpawnPoint` ne place que le **centre** du groupe ; `veafUnits.placeGroup` répartit ensuite
@@ -459,6 +459,13 @@ Tous les véhicules subissent **le même déplacement**, donc les distances entr
 la formation est conservée. Un décalage véhicule par véhicule ne peut pas marcher — l'espacement
 naturel d'une batterie est de 20 à 27 m alors que le point libre le plus proche que DCS sache
 proposer est à 52 m.
+
+**Comment il cherche :** il balaie des anneaux de rayon croissant autour du groupe, le plus proche
+d'abord, et garde le premier décalage où chaque véhicule est sur un terrain praticable **et** passe la
+petite sonde de décor (`Disposition.getSimpleZones` interrogé sur un seul point : 5 m libres dans un
+rayon de 20 m). Il ne demande jamais à `Disposition` de proposer une clairière : cette requête-là
+n'est pas déterministe et ne renvoie rien là où un groupe a le plus besoin de bouger (mesuré le
+2026-09-26).
 
 **Paramètres :**
 
@@ -478,11 +485,13 @@ convoi ; un appelant qui a posé `honourDeclaredPosition` ; une mission ayant mi
 
 **Réglages :**
 
-- `veafUnits.SETTLE_MAX_TRANSLATION` (défaut 1000) — distance de déplacement acceptable, en mètres.
-  Au-delà, le groupe reste où il est. Ce n'est **pas** le rayon demandé à DCS : celui-là n'est pas
-  respecté (50 m demandés, 52 à 171 m obtenus, mesuré le 2026-09-25).
-- `veafUnits.SETTLE_MARGIN` (défaut 50) — marge demandée autour de l'emprise du groupe, et distance
-  en deçà de laquelle on considère que le groupe est déjà dans la clairière trouvée.
+- `veafUnits.SETTLE_MAX_TRANSLATION` (défaut 300) — distance de déplacement acceptable, en mètres,
+  et rayon jusqu'où le balayage cherche. Au-delà, le groupe reste où il est.
+- `veafUnits.SETTLE_SWEEP_STEP` (défaut 20) — écart entre deux anneaux du balayage, et entre deux
+  décalages sur un même anneau, en mètres.
+- `veafUnits.SETTLE_SWEEP_PROBE_BUDGET` (défaut 1000) — nombre maximal de sondes par groupe. Tout se
+  passe dans la frame du spawn : c'est l'à-coup qu'un groupe sans issue coûte à chaque activation
+  (une sonde ≈ 0,38 ms, mesuré le 2026-09-26).
 
 ##### `veaf.getLandHeight(vec3)`
 
@@ -2497,7 +2506,7 @@ Spawne un point d'armement et de ravitaillement avancé (FARP).
 - `freq` (number, optionnel) — Fréquence radio
 - `mod` (string, optionnel) — Modulation
 
-**Retourne :** `table` — Info du FARP
+**Retourne :** `string|nil` — le nom du FARP, ou `nil` quand il est refusé faute de terrain dégagé pour son escorte (rien n'est alors créé)
 
 **Exemple :**
 ```lua

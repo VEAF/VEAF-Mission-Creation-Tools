@@ -27,10 +27,11 @@ class Source:
     id: str
     label: str
     color: str
-    pattern: re.Pattern
+    pattern: re.Pattern | None  # None pour une source liee a un format
     level_group: str | int | None = None
     level_map: dict[str, str] | None = None
     module_pattern: re.Pattern | None = None
+    formats: tuple[str, ...] = ()  # formats d'en-tete dont elle est l'emettrice
 
 
 @dataclass(slots=True)
@@ -41,6 +42,7 @@ class NoiseFamily:
     pattern: re.Pattern
     default_hidden: bool
     on_message: bool  # tester le message seul plutot que la ligne entiere
+    formats: tuple[str, ...] = ()  # formats d'en-tete ou la chercher ; vide = tous
 
 
 @dataclass(slots=True)
@@ -78,10 +80,11 @@ class Rules:
                     id=raw["id"],
                     label=raw["label"],
                     color=raw["color"],
-                    pattern=re.compile(raw["match"]),
+                    pattern=re.compile(raw["match"]) if "match" in raw else None,
                     level_group=raw.get("level_group"),
                     level_map=raw.get("level_map"),
                     module_pattern=re.compile(module) if module else None,
+                    formats=tuple(raw.get("formats", ())),
                 )
             )
 
@@ -95,6 +98,7 @@ class Rules:
                     pattern=re.compile(pattern),
                     default_hidden=bool(raw.get("default_hidden", False)),
                     on_message=bool(raw.get("on_message", False)),
+                    formats=tuple(raw.get("formats", ())),
                 )
             )
 

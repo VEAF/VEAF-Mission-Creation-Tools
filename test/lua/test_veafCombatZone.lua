@@ -835,6 +835,53 @@ function TestVeafCombatZoneRegistry:test_AddZone_registers_zone_in_dict_and_list
   luaunit.assertNotNil(veafCombatZone.zonesDict["regzone"])
 end
 
+-- FIX-IN-GAME-TEST-FINDINGS 02: the generated chain ends with `:initialize()` and AddZone initializes
+-- again; on GermanyCW-v6 every zone logged its startup twice and Torgau held 8 elements for 4.
+function TestVeafCombatZoneRegistry:test_AddZone_after_the_chain_initializes_once()
+  local saved = { getTriggerZone = veaf.getTriggerZone, zoneToVec3 = veaf.zoneToVec3 }
+  veaf.getTriggerZone = function()
+    return { radius = 1000 }
+  end
+  veaf.zoneToVec3 = function()
+    return { x = 0, y = 0, z = 0 }
+  end
+  -- One report per initialization: it is the startup line dcs.log showed twice.
+  local reports = 0
+  local z = VeafCombatZone:new():setMissionEditorZoneName("TWICE")
+  z.findUnitsInCombatZone = function()
+    return { {}, {}, {} }
+  end
+  z.reportGroupsExcludedByName = function()
+    reports = reports + 1
+  end
+  z.desactivate = function(self)
+    return self
+  end
+
+  -- restored whatever happens: the stubs would otherwise leak into every later suite test
+  local ok, err = pcall(function()
+    veafCombatZone.AddZone(z:initialize())
+  end)
+  veaf.getTriggerZone, veaf.zoneToVec3 = saved.getTriggerZone, saved.zoneToVec3
+
+  luaunit.assertTrue(ok, tostring(err))
+  luaunit.assertEquals(reports, 1)
+end
+
+-- ...and an operation, which the generated chain and AddZone initialize the same way
+function TestVeafCombatZoneRegistry:test_AddZone_after_the_chain_initializes_an_operation_once()
+  local deactivations = 0
+  local op = VeafCombatOperation:new():setMissionEditorZoneName("OP-TWICE")
+  op.desactivate = function(self)
+    deactivations = deactivations + 1
+    return self
+  end
+
+  veafCombatZone.AddZone(op:initialize())
+
+  luaunit.assertEquals(deactivations, 1)
+end
+
 function TestVeafCombatZoneRegistry:test_ActivateZone_zone_not_found_returns_nil()
   local result = veafCombatZone.ActivateZone("NonExistentZone999", true)
   luaunit.assertNil(result)
@@ -1084,6 +1131,59 @@ function TestVeafCombatZoneGetInformation:test_getInformation_active_training_wi
   local info = self.z:getInformation(nil)
   luaunit.assertTrue(info:find("FakeVehicle") ~= nil)
   dcs_mocks.removeGroup("trainGrp")
+end
+
+-- A zone element placed as a static comes back as a static, registered under its own name, and
+-- `Group.getByName` does not know it. The panel read groups only, so it said nothing of the five static
+-- targets of combatZone_WahnerHeide_Easy (measured 2026-09-29 on private1: "panel sees … static" five
+-- times, no enemy in the text) while the watchdog, which does read statics, waited for all five.
+local function _withStatic(name, coalitionId, typeName, test)
+  local previous = StaticObject.getByName
+  StaticObject.getByName = function(asked)
+    if asked == name then
+      return {
+        getCoalition = function()
+          return coalitionId
+        end,
+        getTypeName = function()
+          return typeName
+        end,
+      }
+    end
+    return nil
+  end
+  local ok, err = pcall(test)
+  StaticObject.getByName = previous
+  if not ok then
+    error(err, 0)
+  end
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_counts_a_spawned_static_the_watchdog_waits_for()
+  _withStatic("[r]-Swift Hawk#10414 #72", 1, "T-72B", function()
+    self.z:addSpawnedGroup("[r]-Swift Hawk#10414 #72")
+    local info = self.z:getInformation(nil)
+    luaunit.assertStrContains(info, "ENEMIES")
+    luaunit.assertStrContains(info, "1 structure(s)")
+  end)
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_training_names_the_type_of_a_spawned_static()
+  self.z:setTraining(true)
+  self.z:setShowZonePositionInfo(false)
+  _withStatic("[r]-Swift Hawk#10414 #72", 1, "T-72B", function()
+    self.z:addSpawnedGroup("[r]-Swift Hawk#10414 #72")
+    luaunit.assertStrContains(self.z:getInformation(nil), "1 T-72B")
+  end)
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_a_blue_static_is_a_friend()
+  _withStatic("blueBunker", 2, "Bunker", function()
+    self.z:addSpawnedGroup("blueBunker")
+    local info = self.z:getInformation(nil)
+    luaunit.assertStrContains(info, "FRIENDS")
+    luaunit.assertNil(info:find("ENEMIES"))
+  end)
 end
 
 -- ============================================================================

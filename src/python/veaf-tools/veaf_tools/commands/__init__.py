@@ -4,6 +4,7 @@ from . import (  # noqa: F401
     ask,
     build,
     capture_map,
+    clear_ground,
     config,
     convert_other,
     convert_v5,

@@ -75,6 +75,20 @@ class TestParseUnitFile:
     def test_no_type_returns_none(self) -> None:
         assert U.parse_unit_file('\tDisplayName = "x"\n', "Planes") is None
 
+    def test_static_shape_name(self) -> None:
+        # DCS refuses a `.Command Center` placed without its shape (measured 2026-09-28).
+        text = '\tShapeName = "ComCenter",\n\ttype = ".Command Center",\n\tcategory = "Fortification",\n'
+        e = U.parse_unit_file(text, "Fortifications")
+        assert e is not None and e.shape_name == "ComCenter"
+
+    def test_shape_name_kept_for_statics_only(self) -> None:
+        e = U.parse_unit_file('\tShapeName = "a10",\n' + _PLANE, "Planes")
+        assert e is not None and e.shape_name is None
+
+    def test_static_without_shape_name(self) -> None:
+        e = U.parse_unit_file(_FORT, "Fortifications")
+        assert e is not None and e.shape_name is None
+
 
 class TestCarriedUnits:
     def test_containers_carried(self) -> None:
@@ -106,6 +120,15 @@ class TestWriteYaml:
         assert data["units"][0]["type"] == "A-10A"
         assert data["naval_statics"] == ["Oil platform"]
         assert "abc123" in out.read_text(encoding="utf-8")
+        assert "shape_name" not in data["units"][0]
+
+    def test_shape_name_written(self, tmp_path: Path) -> None:
+        out = tmp_path / "u.yaml"
+        entries = [
+            U.UnitEntry(".Command Center", "Command Center", "static", "Fortification", "x", shape_name="ComCenter")
+        ]
+        U.write_units_yaml(entries, (), out, ref="abc123")
+        assert yaml.safe_load(out.read_text(encoding="utf-8"))["units"][0]["shape_name"] == "ComCenter"
 
 
 class TestRenderLua:
@@ -214,3 +237,74 @@ class TestFuelCapacity:
         assert get_unit_fuel_capacity("M-1 Abrams") is None  # a tank has no air-unit fuel load
         assert get_unit_fuel_capacity("NoSuchModType") is None
         assert get_unit_fuel_capacity("") is None
+
+
+# Countermeasures and deck categories (FIX-OPEN-TRAINING-PROMPT-FINDINGS 01 and 03): an aircraft the
+# tooling builds used to carry no chaff and no flare, and a carrier was stocked with every template.
+_FIGHTER_WITH_DISPENSER_AND_DECK = (
+    '\ttype = "F-14B",\n\tDisplayName = "F-14B",\n'
+    '\tLandRWCategories = { {\n\t\t\tName = "AircraftCarrier"\n\t\t} },\n'
+    "\tpassivCounterm = {\n\t\tCMDS_Edit = false,\n\t\tSingleChargeTotal = 200,\n"
+    "\t\tchaff = {\n\t\t\tchargeSz = 1,\n\t\t\tdefault = 140,\n\t\t\tincrement = 10\n\t\t},\n"
+    "\t\tflare = {\n\t\t\tchargeSz = 1,\n\t\t\tdefault = 60,\n\t\t\tincrement = 10\n\t\t}\n\t},\n"
+    '\tTakeOffRWCategories = { {\n\t\t\tName = "AircraftCarrier With Catapult"\n\t\t} },\n'
+    '\tattribute = { "Air", "Planes" },\n'
+)
+_HELI_TWO_DECKS = (
+    '\ttype = "UH-1H",\n\tDisplayName = "UH-1H",\n'
+    '\tLandRWCategories = { {\n\t\t\tName = "AircraftCarrier"\n\t\t}, {\n\t\t\tName = "HelicopterCarrier"\n\t\t} },\n'
+    "\tpassivCounterm = {\n\t\tflare = {\n\t\t\tdefault = 60\n\t\t}\n\t},\n"
+    '\tattribute = { "Air", "Helicopters" },\n'
+)
+
+
+class TestCountermeasuresAndDecks:
+    def test_the_default_chaff_and_flare_are_read(self) -> None:
+        e = U.parse_unit_file(_FIGHTER_WITH_DISPENSER_AND_DECK, "Planes")
+        assert e is not None and (e.chaff, e.flare) == (140, 60)
+
+    def test_takeoff_and_landing_are_read_apart(self) -> None:
+        e = U.parse_unit_file(_FIGHTER_WITH_DISPENSER_AND_DECK, "Planes")
+        assert e is not None
+        assert e.takeoff_categories == ["AircraftCarrier With Catapult"]
+        assert e.landing_categories == ["AircraftCarrier"]
+
+    def test_a_half_dispenser_and_several_decks(self) -> None:
+        e = U.parse_unit_file(_HELI_TWO_DECKS, "Helicopters")
+        assert e is not None
+        assert (e.chaff, e.flare) == (None, 60)
+        assert e.landing_categories == ["AircraftCarrier", "HelicopterCarrier"]
+        assert e.takeoff_categories == []
+
+    def test_a_ground_unit_has_neither(self) -> None:
+        e = U.parse_unit_file(_TANK, "Cars")
+        assert e is not None
+        assert (e.chaff, e.flare, e.takeoff_categories, e.landing_categories) == (None, None, [], [])
+
+    def test_the_keys_are_emitted_only_where_there_is_one(self, tmp_path: Path) -> None:
+        out = tmp_path / "u.yaml"
+        entries = [
+            U.UnitEntry("F-14B", "F-14B", "air", "Plane", "F-14B", ["Air"], 7348, 140, 60, ["C"], ["A"]),
+            U.UnitEntry("M-1 Abrams", "M1A2", "vehicle", "Armor", "M1A2", ["Vehicles"]),
+        ]
+        U.write_units_yaml(entries, (), out, ref="abc123")
+        units = {u["type"]: u for u in yaml.safe_load(out.read_text(encoding="utf-8"))["units"]}
+        assert units["F-14B"]["chaff"] == 140 and units["F-14B"]["flare"] == 60
+        assert units["F-14B"]["takeoff_categories"] == ["C"] and units["F-14B"]["landing_categories"] == ["A"]
+        for key in ("chaff", "flare", "takeoff_categories", "landing_categories"):
+            assert key not in units["M-1 Abrams"]
+
+    def test_the_shipped_database_carries_them(self) -> None:
+        from veaf_libs.dcs_units_data import get_unit_countermeasures, get_unit_deck_categories
+
+        assert get_unit_countermeasures("F-14B") == (140, 60)
+        assert get_unit_countermeasures("FA-18C_hornet") == (60, 60)
+        assert get_unit_countermeasures("UH-1H") == (0, 60)
+        assert get_unit_countermeasures("KC-135") is None  # no dispenser
+        assert get_unit_countermeasures("NoSuchModType") is None
+        assert get_unit_deck_categories("F-14B") == (
+            frozenset({"AircraftCarrier With Catapult"}),
+            frozenset({"AircraftCarrier"}),
+        )
+        assert get_unit_deck_categories("F-16C_50") == (frozenset(), frozenset())
+        assert get_unit_deck_categories("NoSuchModType") is None

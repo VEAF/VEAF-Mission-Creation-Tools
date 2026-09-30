@@ -7,7 +7,7 @@ The first genuinely *VMCT* action family: edit the design-time source the build 
 
 Scope is deliberately generic — a module toggle and a config-mapping setter — not a
 per-module schema validator: the calling LLM owns the shape of the config it passes, the same
-way it owns unit types for ``add_group`` (see ``.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md``).
+way it owns unit types for ``add_group`` (see ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md``).
 """
 
 from pathlib import Path

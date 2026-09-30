@@ -39,6 +39,7 @@
     "ArtilleryUnitHandler",
     "DcsDataExport",
     "dcsUnits",
+    "veafCities",
     "GroundUnitHandler",
     "sha1",
     "veaf",
@@ -114,7 +115,6 @@
     "weathermark",
     "dcsbot",
     "VEAF_DYNAMIC_MISSIONPATH",
-    "niod",
     "logError",
     "inheritsFrom",
     "SkynetIADSAbstractRadarElement"

@@ -360,7 +360,7 @@ class SidePanel(QScrollArea):
 
         self.levels = StateList("Niveaux")
         self.sources = StateList("Sources")
-        self.noise = StateList("Bruit ED")
+        self.noise = StateList("Bruit")
         for widget in (self.levels, self.sources, self.noise):
             widget.changed.connect(self.changed)
             layout.addWidget(widget)
@@ -399,12 +399,15 @@ class SidePanel(QScrollArea):
             ]
         )
 
+        # Comme les sources, une famille n'a de bouton qu'une fois rencontree :
+        # sans cela, un journal DCSServerBot listerait vingt familles DCS a
+        # zero. Son etat vit dans les filtres et lui est rendu a son apparition.
         noise = model.counts_by_noise()
         self.noise.rebuild(
             [
-                (family.id, family.label, noise.get(family.id, 0), None, family.help)
+                (family.id, family.label, noise[family.id], None, family.help)
                 for family in self.rules.noise
-                if noise.get(family.id, 0) or family.default_hidden
+                if noise.get(family.id, 0)
             ]
         )
 

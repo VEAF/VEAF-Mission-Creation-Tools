@@ -49,14 +49,29 @@ def _module_cfg(modules: dict[str, Any], key: str) -> dict[str, Any]:
     return cfg
 
 
+def is_veaf_command(entry: str) -> bool:
+    """Return whether a QRA or AIRWAVES deploy-list entry is a VEAF command rather than a group name.
+
+    The rule both runtimes apply (``veafQraCore`` and ``veafAirWaves``, ``deployWaves``): an entry
+    starting with ``[`` (a command with a relative position, ``[0,0]-spawn shilka``) or ``-`` (a
+    shortcut, ``-sa6``) is run through the interpreter; anything else is a Mission-Editor group.
+
+    Args:
+        entry: One entry of a deploy list.
+
+    Returns:
+        True for a command, which no mission group has to match.
+    """
+    return entry.startswith(("[", "-"))
+
+
 def collect_declared_groups(mission_yaml: dict[str, Any]) -> list[tuple[str, str]]:
     """Collect ``(section, group_name)`` references that must exist as mission groups.
 
     Covers the sections that point at Mission-Editor-placed groups: ASSETS
-    (asset name + linked), QRA (deploy lists), and the top-level ``cap_missions``
-    / ``combat_missions``. Sections that reference *units* (Sanctuary) or
-    *patterns/templates* (AirWaves) are intentionally excluded to avoid false
-    positives.
+    (asset name + linked), QRA and AIRWAVES (deploy lists, VEAF commands left out by
+    :func:`is_veaf_command`), and the top-level ``cap_missions`` / ``combat_missions``.
+    Sanctuary references *units*, and is checked by :func:`find_missing_sanctuary_units`.
     """
     refs: list[tuple[str, str]] = []
     modules = mission_yaml.get("modules") or {}
@@ -77,11 +92,19 @@ def collect_declared_groups(mission_yaml: dict[str, Any]) -> list[tuple[str, str
     for qra_def in qra_cfg.get("definitions") or []:
         if not isinstance(qra_def, dict):
             continue
-        for grp in qra_def.get("simple_groups") or []:
-            refs.append(("QRA", str(grp)))
+        entries = [str(grp) for grp in qra_def.get("simple_groups") or []]
         for gbc in qra_def.get("groups_by_enemy_count") or []:
             if isinstance(gbc, dict):
-                refs.extend(("QRA", str(g)) for g in gbc.get("groups") or [])
+                entries.extend(str(g) for g in gbc.get("groups") or [])
+        refs.extend(("QRA", entry) for entry in entries if not is_veaf_command(entry))
+
+    airwaves_cfg = _module_cfg(modules, "AIRWAVES")
+    for zone in airwaves_cfg.get("airwave_zones") or []:
+        for wave in (zone.get("waves") or []) if isinstance(zone, dict) else []:
+            groups = wave.get("groups") if isinstance(wave, dict) else None
+            # a single name or a list, as AirWaveZone:addWave takes them
+            names = [groups] if isinstance(groups, str) else list(groups or [])
+            refs.extend(("AIRWAVES", str(g)) for g in names if not is_veaf_command(str(g)))
 
     for cap in mission_yaml.get("cap_missions") or []:
         if isinstance(cap, dict) and (g := cap.get("group_name")):

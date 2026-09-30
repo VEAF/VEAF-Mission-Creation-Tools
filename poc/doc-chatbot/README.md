@@ -189,7 +189,7 @@ it buys nothing beyond that mode's own quota. It used to be treated as proof: `X
 short-circuited the allow-list entirely, so any caller at all could use the Worker (and VEAF's
 Gemini key) from anywhere.
 
-`discord` is groundwork for [`FEAT-SUPPORT-DISCORD-QA`](../../.backlog/FEAT-SUPPORT-DISCORD-QA/PRD.md):
+`discord` is groundwork for [`FEAT-SUPPORT-DISCORD-QA`](../../.backlog/archive/FEAT-SUPPORT-DISCORD-QA.md):
 a whole Discord sits behind one IP, so that mode presents a shared Secret and passes its own
 per-user `subject` in the payload to carry the quota. While `DISCORD_CLIENT_SECRET` is unset, the
 mode is refused — an unconfigured Secret is a closed door, not an open one.

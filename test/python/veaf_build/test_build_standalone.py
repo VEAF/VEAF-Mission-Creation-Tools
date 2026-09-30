@@ -162,6 +162,15 @@ def test_veaf_tools_extra_data_bundles_the_checklist_data(tmp_path: Path) -> Non
     assert "F-16C_50" in {p.stem for p in indexes.glob("*.yaml")}
 
 
+def test_veaf_tools_extra_data_bundles_the_clear_ground_catalogues(tmp_path: Path) -> None:
+    """The clear-ground catalogues must ship, or add_group puts groups on clear ground from a
+    checkout and places them as asked from the executable, without anybody noticing."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    bundled = worker._veaf_tools_extra_data(None)
+    catalogues = next(src for src, dest in bundled if dest == "veaf_libs/data/clear-ground")
+    assert "Caucasus.clear-ground" in {p.stem for p in catalogues.glob("*.json")}
+
+
 def test_veaf_tools_extra_data_bundles_third_party_mods(tmp_path: Path) -> None:
     """Regression guard: third_party_mods.json must ship so the build's requiredModules
     stripping works in the packaged executable (FEAT-THIRD-PARTY-MODS)."""

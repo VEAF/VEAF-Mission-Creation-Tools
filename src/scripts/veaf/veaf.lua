@@ -40,6 +40,11 @@ veaf.DEFAULT_GROUND_SPEED_KPH = 30
 
 --- if true, the spawned group names will not contain any information pertaining to their type
 veaf.HideNamesFromSpawnedGroups = true
+
+--- if true, `veaf.diag` writes its `DIAG|` lines at info level, whatever the modules' log levels.
+--- Meant for a watched session: set it with `module_settings: { veaf.Diagnostics: true }` in
+--- mission.yaml, read the log with a filter on `DIAG|`, and switch it back off.
+veaf.Diagnostics = false
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -69,11 +74,22 @@ function veaf.getConfig(moduleId)
 end
 
 --- Set a single configuration key for a module.
+---
+--- A `logLevel` is applied to the module's logger here, not stored for later: the loop that used to
+--- apply it lives in veaf.initialize(), which nothing calls (FIX-PER-MODULE-LOGLEVEL-INERT). A module
+--- whose logger does not exist yet gets it from veaf.loggers.new.
 function veaf.setConfig(moduleId, key, value)
   if not veaf.config[moduleId] then
     veaf.config[moduleId] = {}
   end
   veaf.config[moduleId][key] = value
+  if key == "logLevel" then
+    -- the dict, not veaf.loggers.get: that one falls back to the veaf logger for an unknown id
+    local logger = veaf.loggers and veaf.loggers.dict and veaf.loggers.dict[tostring(moduleId):lower()]
+    if logger then
+      logger:setModuleLevel(value)
+    end
+  end
 end
 
 --- Return true if the module is enabled (default: true when no config exists).
@@ -1156,7 +1172,7 @@ function veaf.silenceAtcOnAllAirbases()
   for _, base in pairs(bases) do
     if base:getDesc() then
       if base:getDesc().category == Airbase.Category.AIRDROME then
-        veaf.loggers.get(veaf.Id):info("silencing ATC at base %s", veaf.p(base:getDesc().displayName))
+        veaf.loggers.get(veaf.Id):debug("silencing ATC at base %s", veaf.p(base:getDesc().displayName))
         base:setRadioSilentMode(true)
       end
     end
@@ -1323,7 +1339,7 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius, surfaces, noRandomFallbac
   -- Tier 1 — every criterion, clearance from buildings and forests included.
   -- Disposition is a native but *undocumented* DCS singleton, found in TUM. Measured in a live
   -- DCS on 2026-08-06: it exists, and the points it returns genuinely avoid buildings and
-  -- forests (.backlog/FEAT-SCENERY-AWARE-SPAWN/tickets/01-probe-disposition.md). The guard and
+  -- forests (.backlog/archive/FEAT-SCENERY-AWARE-SPAWN.md). The guard and
   -- the pcall stay: a singleton absent on another DCS version or map, or whose signature
   -- changes under us, must degrade to tier 2 and never kill a spawn.
   --
@@ -1392,7 +1408,7 @@ function veaf.findSpawnPoint(vec3, radius, safeRadius, surfaces, noRandomFallbac
   -- Tier 3 — nothing acceptable anywhere. The caller reports it and aborts the spawn.
   veaf.loggers
     .get(veaf.Id)
-    :info(string.format("findSpawnPoint: no acceptable spawn point within %sm of %s", tostring(radius), veaf.vecToString(vec3)))
+    :debug(string.format("findSpawnPoint: no acceptable spawn point within %sm of %s", tostring(radius), veaf.vecToString(vec3)))
   return nil
 end
 
@@ -2048,7 +2064,7 @@ function veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)
   if group then
     local controller = group:getController()
     if controller then
-      veaf.loggers.get(veaf.Id):info("Checking if patrol is within " .. maxDist .. "m of it's start point...")
+      veaf.loggers.get(veaf.Id):debug("Checking if patrol is within " .. maxDist .. "m of it's start point...")
 
       local groupUnits = group:getUnits()
 
@@ -2068,7 +2084,7 @@ function veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)
           end
 
           if not firstPass and result then
-            veaf.loggers.get(veaf.Id):info("Lead vehicle in range, setting route !")
+            veaf.loggers.get(veaf.Id):debug("Lead vehicle in range, setting route !")
             veaf.goRoute(group, patrolRoute)
             controller:setSpeed(speed)
             firstPass = "notSeen"
@@ -2489,7 +2505,7 @@ end
 function veaf.getGroupData(groupIdent)
   local groupRecord = veaf.getGroupRecord(groupIdent) or veaf.getGroupRecordById(groupIdent)
   if not groupRecord then
-    veaf.loggers.get(veaf.Id):info("no group data found for %s", veaf.p(groupIdent))
+    veaf.loggers.get(veaf.Id):debug("no group data found for %s", veaf.p(groupIdent))
     return nil
   end
   return groupRecord.missionData
@@ -2553,7 +2569,7 @@ function veaf.getTankerData(tankerGroupName)
                     veaf.loggers.get(veaf.Id):trace("has .params")
                     if task.params.action.params.channel then
                       veaf.loggers.get(veaf.Id):trace("has .channel")
-                      veaf.loggers.get(veaf.Id):info("Found a TACAN task for tanker " .. tankerGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a TACAN task for tanker " .. tankerGroupName)
                       result.tankerTacanTask = task
                       result.tankerTacanChannel = task.params.action.params.channel
                       result.tankerTacanMode = task.params.action.params.modeChannel
@@ -2622,7 +2638,7 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
                     veaf.loggers.get(veaf.Id):trace("programmed task is linked to carrier unit")
 
                     if action.id == "ActivateBeacon" and actionParams.channel then
-                      veaf.loggers.get(veaf.Id):info("Found a programmed TACAN task for carrier group " .. carrierGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a programmed TACAN task for carrier group " .. carrierGroupName)
                       local channel = actionParams.channel
                       local mode = "X"
                       if actionParams.modeChannel and actionParams.modeChannel == "Y" then --should never happen for carriers
@@ -2634,13 +2650,13 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
                       end
                       result.tacan = channel .. mode .. " (" .. callsign .. ")"
                     elseif action.id == "ActivateICLS" and actionParams.channel then
-                      veaf.loggers.get(veaf.Id):info("Found a programmed ICLS task for carrier group " .. carrierGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a programmed ICLS task for carrier group " .. carrierGroupName)
                       result.icls = actionParams.channel
                     elseif action.id == "ActivateLink4" and actionParams.frequency then
-                      veaf.loggers.get(veaf.Id):info("Found a programmed Link4 task for carrier group " .. carrierGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a programmed Link4 task for carrier group " .. carrierGroupName)
                       result.link4 = string.format("%.2f" .. "MHz", actionParams.frequency / 1000000)
                     elseif action.id == "ActivateACLS" then
-                      veaf.loggers.get(veaf.Id):info("Found a programmed ACLS task for carrier group " .. carrierGroupName)
+                      veaf.loggers.get(veaf.Id):debug("Found a programmed ACLS task for carrier group " .. carrierGroupName)
                       result.acls = true
                     end
                   end
@@ -3215,7 +3231,7 @@ function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
     -- show the message
     trigger.action.outText(message1, 30)
     -- schedule this function after "delay1" seconds
-    veaf.loggers.get(veaf.Id):info(string.format("schedule veaf._endMission after %d seconds", delay1))
+    veaf.loggers.get(veaf.Id):debug(string.format("schedule veaf._endMission after %d seconds", delay1))
     veaf.scheduleFunction(veaf._endMission, { delay2, message2, delay3, message3 }, timer.getTime() + delay1)
   end
 end
@@ -4294,7 +4310,23 @@ function veaf.Logger:getLevel()
   return self.level
 end
 
+--- Give this logger a level of its own, the one a mission sets with `logLevel` under a module.
+---
+--- It outranks veaf.ForcedLogLevel (mission.yaml's `global_log_level`) and the base level: the global
+--- level is the default, and the guide promises the per-module one "overrides it for this module
+--- only". An unknown level name is ignored.
+function veaf.Logger:setModuleLevel(value)
+  if type(value) == "string" then
+    value = veaf.Logger.LEVEL[value:lower()]
+  end
+  self.moduleLevel = value
+  return self
+end
+
 function veaf.Logger:getEffectiveLevel()
+  if self.moduleLevel then
+    return self.moduleLevel
+  end
   local level = self.level
   if veaf.ForcedLogLevel then
     local forced = veaf.ForcedLogLevel
@@ -4326,11 +4358,14 @@ function veaf.Logger.formatText(text, ...)
   if type(text) ~= "string" then
     text = veaf.p(text)
   else
-    local args = ...
-    if args and args.n and args.n > 0 then
+    -- the values themselves, counted with select("#", ...) so trailing nils are kept. The methods
+    -- used to pass the implicit `arg` table of Lua 5.0 instead, which only exists when the
+    -- interpreter is built with LUA_COMPAT_VARARG; dcsDataExport.lua moved off it first (VMR-079).
+    local n = select("#", ...)
+    if n > 0 then
       local pArgs = {}
-      for i = 1, args.n do
-        pArgs[i] = veaf.p(args[i])
+      for i = 1, n do
+        pArgs[i] = veaf.p((select(i, ...)))
       end
       -- add a few empty strings for safety
       for i = 1, 20 do
@@ -4398,7 +4433,7 @@ end
 
 function veaf.Logger:error(text, ...)
   if self:getEffectiveLevel() >= 1 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     local mText = text
     if debug and debug.traceback then
       mText = mText .. "\n" .. debug.traceback()
@@ -4409,28 +4444,28 @@ end
 
 function veaf.Logger:warn(text, ...)
   if self:getEffectiveLevel() >= 2 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     self:print(2, text)
   end
 end
 
 function veaf.Logger:info(text, ...)
   if self:getEffectiveLevel() >= 3 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     self:print(3, text)
   end
 end
 
 function veaf.Logger:debug(text, ...)
   if self:getEffectiveLevel() >= 4 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     self:print(4, text)
   end
 end
 
 function veaf.Logger:trace(text, ...)
   if self:getEffectiveLevel() >= 5 then
-    text = veaf.Logger.formatText(text, arg)
+    text = veaf.Logger.formatText(text, ...)
     self:print(5, text)
   end
 end
@@ -4605,6 +4640,11 @@ function veaf.loggers.new(loggerId, level)
   end
   local result = veaf.Logger:new(loggerId:upper(), level)
   veaf.loggers.dict[loggerId:lower()] = result
+  -- a per-module logLevel configured before the module loaded (see veaf.setConfig)
+  local cfg = veaf.config and veaf.config[loggerId]
+  if cfg and cfg.logLevel then
+    result:setModuleLevel(cfg.logLevel)
+  end
   return result
 end
 
@@ -4617,6 +4657,31 @@ function veaf.loggers.get(loggerId)
     result = veaf.loggers.get("veaf")
   end
   return result
+end
+
+--- Write a diagnostic line, when `veaf.Diagnostics` is on.
+--- At info level and past the module's own level on purpose: the lines exist to be read on a server
+--- that runs at info or below, so obeying a module's `warning` would hide them where they were asked
+--- for. Every line carries `DIAG|`, which is the one filter a watched session needs -- and newlines
+--- are folded into ` / `, because dcs.log writes them as they are and only the first line would carry
+--- the marker: a filter would keep a panel's header and drop the list it shows.
+--- @param loggerId string the module whose logger writes the line
+--- @param text string a format string, as for the logger's own methods
+function veaf.diag(loggerId, text, ...)
+  if not veaf.Diagnostics then
+    return
+  end
+  if not veaf.diagAnnounced then
+    -- Once, at warn: on private1 (2026-09-29) a mission had left the switch on since its repository was
+    -- created, and 2 500 of these lines in 90 minutes were read as a verbosity defect of the module.
+    veaf.diagAnnounced = true
+    veaf.loggers.get(loggerId):print(
+      veaf.Logger.LEVEL["warning"],
+      "veaf.Diagnostics is on: DIAG| lines follow at info; set it back to false in mission.yaml (module_settings) once the watched session is over"
+    )
+  end
+  local line = veaf.Logger.formatText("DIAG|" .. text, ...):gsub("\r?\n", " / ")
+  veaf.loggers.get(loggerId):print(veaf.Logger.LEVEL["info"], line)
 end
 
 if veaf.Development then
@@ -5053,6 +5118,11 @@ VeafDrawingOnMap.COLORS = {
   -- is invisible on the sand-coloured DCS map; {0.15, 0.15, 0.15} reads as a black line and {0.7} as
   -- white. Grey here means "inactive", not "faint" -- it still has to be read.
   ["grey"] = { 0.42, 0.42, 0.42, 1 },
+  -- Translucent green, for the CTLD airbase-logistics circles: a logistic airfield is drawn as a green
+  -- disc the pilot can still read the map through. `green` above is fully opaque and would hide what is
+  -- underneath; `pink` is already this family's translucent red, so the matching green sits at the same
+  -- kind of alpha. 0.15 is `veafGeo.drawTriggerZone`'s fill alpha, chosen there for the same reason.
+  ["green_transparent"] = { 0, 1, 0, 0.15 },
 }
 
 function VeafDrawingOnMap:new(objectToCopy)
@@ -5717,6 +5787,16 @@ function veaf.ctld_initialize()
   -- read its configuration there is no state to show. veafRadio initialises at order 30 and this module
   -- at 50, so the menu tree is already there.
   veaf.buildCtldRadioMenu()
+
+  -- Airfields are in none of CTLD's own logistic discovery routes, so VEAF registers them itself
+  -- (FEAT-CTLD-AIRBASE-LOGISTICS). Here, because this is the one call every CTLD mission makes once
+  -- the engine has read its configuration: the generated veaf-config.lua emits it, after the
+  -- `veaf.config.airbase_*` settings it resolves. Not from veafTransportMission.initialize(), which
+  -- a mission disabling the `_transport` marker module would skip along with the airfields. Guarded
+  -- because veaf.lua does not load that module itself: a suite loading veaf.lua alone has no such table.
+  if veafTransportMission and veafTransportMission.initializeAllLogisticInCTLD then
+    veafTransportMission.initializeAllLogisticInCTLD()
+  end
 end
 
 --- Make CTLD speak the mission's language.
@@ -6041,9 +6121,9 @@ function veaf.csar_initialize_replacement(configurationCallback)
 
     if configurationCallback and type(configurationCallback) == "function" then
       -- a configuration callback has been set, call it
-      veaf.loggers.get(csar.Id):info("calling the configuration callback")
+      veaf.loggers.get(csar.Id):debug("calling the configuration callback")
       configurationCallback()
-      veaf.loggers.get(csar.Id):info("done calling the configuration callback")
+      veaf.loggers.get(csar.Id):debug("done calling the configuration callback")
     end
 
     -- Drop the previous event handler before the vanilla initialiser registers a new one.
@@ -6105,7 +6185,7 @@ function veaf.csar_initialize_replacement(configurationCallback)
 end
 
 if csar then
-  veaf.loggers.get(veaf.Id):info(string.format("replacing CSAR.initialize()"))
+  veaf.loggers.get(veaf.Id):debug(string.format("replacing CSAR.initialize()"))
   veaf.csar_initialize = csar.initialize -- used to call the vanilla csar.initialize from the VEAF replacement
   csar.initialize = veaf.csar_initialize_replacement -- replace the csar.initialize with the VEAF wrapper function
 end
@@ -6119,7 +6199,7 @@ if STTS then
   --- configure SRS Text to Speech
   veaf.loggers.get(veaf.Id):trace(string.format("STTS - SERVER_CONFIG=%s", veaf.p(SERVER_CONFIG)))
   if SERVER_CONFIG then
-    veaf.loggers.get(veaf.Id):info(string.format("Setting up STTS"))
+    veaf.loggers.get(veaf.Id):debug(string.format("Setting up STTS"))
     STTS.DIRECTORY = SERVER_CONFIG.SRS_DIRECTORY
     STTS.SRS_PORT = SERVER_CONFIG.SRS_PORT
     STTS.EXECUTABLE = SERVER_CONFIG.SRS_EXECUTABLE
@@ -6194,7 +6274,7 @@ function veaf.initialize()
     if cfg and cfg.logLevel then
       local moduleLogger = veaf.loggers.get(id)
       if moduleLogger then
-        moduleLogger:setLevel(cfg.logLevel, true)
+        moduleLogger:setModuleLevel(cfg.logLevel)
         veaf.loggers.get(veaf.Id):debug(string.format("Module [%s] log level forced to [%s]", id, cfg.logLevel))
       end
     end

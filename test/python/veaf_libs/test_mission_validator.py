@@ -269,5 +269,35 @@ class TestRadioMenuSchema(unittest.TestCase):
         self.assertEqual(_check_radio_menus({}), [])
 
 
+class TestCtldNamesTheMissionDoesNotHold(unittest.TestCase):
+    """FIX-IN-GAME-TEST-FINDINGS 04: missions scaffolded before the fix kept CTLD's sample names."""
+
+    _CTLD = "mm_facing:\n  extractableGroups:\n  - extract1\n  - Uzi\n  logisticUnits:\n  - logistic1\n"
+
+    def _ctld_warnings(self, ctld_config: str) -> list[str]:
+        folder = _make_folder("modules: {}\n", _MISSION_WITH_PLAYER, {"ctld-config.yaml": ctld_config})
+        return [
+            i.message for i in validate_mission_folder(folder) if i.level == WARNING and "ctld-config.yaml" in i.message
+        ]
+
+    def test_each_absent_name_is_reported(self) -> None:
+        messages = self._ctld_warnings(self._CTLD)
+        self.assertEqual(len(messages), 2, messages)
+        self.assertTrue(any("extract1" in m and "extractableGroups" in m for m in messages))
+        self.assertTrue(any("logistic1" in m and "logisticUnits" in m for m in messages))
+
+    def test_a_name_the_mission_holds_is_not_reported(self) -> None:
+        self.assertFalse(any("'Uzi'" in m for m in self._ctld_warnings(self._CTLD)))
+
+    def test_a_mission_that_turns_ctld_off_is_not_checked(self) -> None:
+        for modules in ("modules:\n  CTLD: false\n", "modules:\n  CTLD:\n    enabled: false\n"):
+            folder = _make_folder(modules, _MISSION_WITH_PLAYER, {"ctld-config.yaml": self._CTLD})
+            messages = [i.message for i in validate_mission_folder(folder) if "ctld-config.yaml" in i.message]
+            self.assertEqual(messages, [], modules)
+
+    def test_empty_lists_are_silent(self) -> None:
+        self.assertEqual(self._ctld_warnings("mm_facing:\n  extractableGroups: []\n  logisticUnits: []\n"), [])
+
+
 if __name__ == "__main__":
     unittest.main()

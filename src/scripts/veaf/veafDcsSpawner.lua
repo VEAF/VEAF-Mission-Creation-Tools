@@ -415,7 +415,7 @@ end
 ---  * for aircraft only: `alt_type` = `RADIO`, and the cruise speed and altitude above — plus the
 ---    **payload read from the mission**, which is why the snapshot carries it: `veafSpawnCore` builds
 ---    `AIRPLANE` groups with no payload field at all;
----  * for ground units: `playerCanDrive` = true;
+---  * for ground units: `playerCanDrive` = true, and `coldAtStart` = false (warm on a targeting pod);
 ---  * an empty route for an aircraft that has none, or DCS sends it straight home.
 ---
 --- **Coordinates.** A unit's table is the mission-table shape: `x` northing, `y` easting. See
@@ -516,6 +516,12 @@ function veafDcsSpawner.addGroup(groupData)
     elseif category == "GROUND_UNIT" then
       if unit.playerCanDrive == nil then
         unit.playerCanDrive = true
+      end
+      -- Warm, as the editor writes it: unticked, a unit has an infrared signature from its first
+      -- second (DCS 2.8.4.39731) and shows on a targeting pod. David's ruling, 2026-09-27, for every
+      -- spawn. A unit the mission maker ticked COLD AT START keeps it.
+      if unit.coldAtStart == nil then
+        unit.coldAtStart = false
       end
     end
   end

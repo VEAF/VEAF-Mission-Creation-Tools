@@ -12,6 +12,7 @@ from PySide6.QtGui import (
     QDesktopServices,
     QFont,
     QFontMetrics,
+    QIcon,
     QKeySequence,
     QWheelEvent,
 )
@@ -42,7 +43,7 @@ from PySide6.QtWidgets import (
 from veaf_libs.user_config import RemoteServer, config_file_path, default_config_path, get_servers
 
 from ..analysis import analyse
-from ..appearance import DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, clamp_font_size
+from ..appearance import APP_ICON_PATH, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, clamp_font_size
 from ..filters import FilterSet, highlight_patterns
 from ..parser import Entry
 from ..profiles import DEFAULT_PROFILE, ProfileStore
@@ -69,6 +70,10 @@ MESSAGE_MARGIN_CHARS = 8
 # Intervalle minimal entre deux reconstructions du panneau lateral pendant
 # l'indexation d'un gros journal.
 PANEL_REFRESH_MS = 400
+
+# Largeur du panneau des filtres au lancement, et quand on le reaffiche alors
+# qu'il avait ete replie a la poignee.
+SIDE_WIDTH = 320
 
 
 def _now_ms() -> float:
@@ -413,12 +418,12 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self._build_chips())
         right_layout.addWidget(self.tabs, 1)
 
-        splitter = QSplitter()
-        splitter.addWidget(self.side)
-        splitter.addWidget(right)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([320, 1180])
-        self.setCentralWidget(splitter)
+        self.splitter = QSplitter()
+        self.splitter.addWidget(self.side)
+        self.splitter.addWidget(right)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setSizes([SIDE_WIDTH, 1180])
+        self.setCentralWidget(self.splitter)
 
         self.status = QStatusBar()
         self.setStatusBar(self.status)
@@ -430,6 +435,7 @@ class MainWindow(QMainWindow):
         self.status.addPermanentWidget(self.status_follow)
 
         self._build_menus()
+        self.toggle_filters_panel(bool(session.filters_visible))
         self._refresh_chips()
         self._sync_side()
 
@@ -445,6 +451,10 @@ class MainWindow(QMainWindow):
         bar = QWidget()
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(6, 4, 6, 2)
+
+        # Porte l'action du menu Affichage (`_build_menus`) : meme etat, meme raccourci.
+        self.filters_button = QToolButton()
+        layout.addWidget(self.filters_button)
 
         layout.addWidget(QLabel("Profil :"))
         self.profile_box = QComboBox()
@@ -583,6 +593,11 @@ class MainWindow(QMainWindow):
         self._action(view, "Taille par defaut", "Ctrl+0", self.reset_font)
         self.action_detail = self._action(view, "Panneau de detail", "Ctrl+I", self.toggle_detail, checkable=True)
         self.action_detail.setChecked(self.detail_enabled)
+        self.action_filters = self._action(
+            view, "Panneau des filtres", "Ctrl+B", self.toggle_filters_panel, checkable=True
+        )
+        self.action_filters.setToolTip("Masquer ou afficher les filtres de gauche  (Ctrl+B)")
+        self.filters_button.setDefaultAction(self.action_filters)
         view.addSeparator()
         self._action(view, "Tout afficher (reinitialiser les filtres)", "Ctrl+R", self.reset_filters)
         self._action(view, "Chercher", "Ctrl+F", lambda: self.search.field.setFocus())
@@ -885,6 +900,26 @@ class MainWindow(QMainWindow):
         for tab in self._tabs():
             tab.set_detail_enabled(checked)
 
+    def toggle_filters_panel(self, checked: bool) -> None:
+        """Masque le panneau des filtres, ou le rend a la largeur qu'il avait.
+
+        Masque, il n'est pas desactive : ses filtres s'appliquent toujours, et la
+        barre d'etat dit combien de lignes ils cachent.
+
+        Args:
+            checked: Vrai pour afficher le panneau, faux pour le masquer.
+        """
+        self.action_filters.setChecked(checked)
+        # Le QSplitter retient seul la largeur d'un widget masque et la lui rend
+        # (mesure le 2026-09-29, fenetre redimensionnee entre-temps comprise).
+        self.side.setVisible(checked)
+        # Sans `refresh()`, `sizes()` lit encore zero pour le panneau qu'on vient de montrer.
+        self.splitter.refresh()
+        sizes = self.splitter.sizes()
+        if checked and sizes[0] == 0:
+            # Replie a la poignee avant d'etre masque : il reviendrait invisible.
+            self.splitter.setSizes([SIDE_WIDTH, max(sum(sizes) - SIDE_WIDTH, 0)])
+
     # -- analyse ----------------------------------------------------------
 
     def explain_current_view(self) -> None:
@@ -1105,6 +1140,7 @@ class MainWindow(QMainWindow):
             font_family=self.font_family,
             font_size=self.font_size,
             detail_visible=self.detail_enabled,
+            filters_visible=not self.side.isHidden(),
         )
         session.set_filters(self.filters)
         return session
@@ -1127,12 +1163,22 @@ def main() -> int:
     return run(sys.argv)
 
 
+def app_icon() -> QIcon:
+    """L'icone de la fenetre et de la barre des taches, la meme que celle de l'executable.
+
+    Returns:
+        L'icone, toutes tailles du fichier `.ico` comprises.
+    """
+    return QIcon(str(APP_ICON_PATH))
+
+
 def run(argv: list[str] | None = None) -> int:
     import sys
 
     argv = sys.argv if argv is None else argv
     app = QApplication(argv)
     app.setApplicationName("veaf_logs")
+    app.setWindowIcon(app_icon())
     app.setStyle("Fusion")
     _apply_dark_palette(app)
 

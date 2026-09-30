@@ -484,7 +484,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     return false
   end
 
-  veaf.loggers.get(veafSpawn.Id):info(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned[coalition])))
+  veaf.loggers.get(veafSpawn.Id):debug(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned[coalition])))
 
   -- VMR-098: take the first free callsign, and refuse the spawn when there is none. The old
   -- fallback was `callsigns[coalition][numberSpawned]`, so a counter out of step with the taken
@@ -698,7 +698,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
       frequency,
       string.upper(mod)
     )
-    veaf.loggers.get(veafSpawn.Id):info(text)
+    veaf.loggers.get(veafSpawn.Id):debug(text)
     if not silent then
       trigger.action.outTextForCoalition(coalition, text, 15)
     end
@@ -759,7 +759,7 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
   if afacGroupName and not Group.getByName(afacGroupName) then
     veaf.loggers
       .get(veafSpawn.Id)
-      :info(string.format("AFAC named=%s is KIA, removing mark (if it exists) and allowing it to be spawned again", veaf.p(afacGroupName)))
+      :debug(string.format("AFAC named=%s is KIA, removing mark (if it exists) and allowing it to be spawned again", veaf.p(afacGroupName)))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("markName=%s", veaf.p(markName)))
 
     if veafNamedPoints and markName then
@@ -1200,7 +1200,7 @@ function veafSpawn.spawnCombatAirPatrol(
   veaf.scheduleFunction(veafSpawn.startCapWatchdog, { _spawnedGroup.name, coalition, parameters.targetZone }, timer.getTime() + 1)
 
   local message = string.format("A CAP of %s (%s) has been spawned", name, country)
-  veaf.loggers.get(veafSpawn.Id):info(message)
+  veaf.loggers.get(veafSpawn.Id):debug(message)
   if not silent then
     trigger.action.outText(veaf.t("spawn.cap_spawned", name, country), 15)
   end

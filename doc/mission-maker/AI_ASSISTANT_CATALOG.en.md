@@ -81,6 +81,8 @@ The AI can act in two places, and it changes what "survives":
 | 37 | [List a theatre's airfields](#list-airfields) | 🛫 Bases & airfields | — | ⭐ |
 | 38 | [Place a complete FARP](#add-farp) | 🛫 Bases & airfields | Recipe + built | ⭐ |
 | 39 | [Set the mission's weather](#set-weather) | 🕰️ Mission settings | Recipe + built | ⭐ |
+| 40 | [Place a complete carrier group](#add-carrier) | 🛫 Bases & airfields | Recipe + built | ◽ |
+| 41 | [Embed a sound in the mission](#add-sound) | Zones & triggers | Recipe + built | ◽ |
 
 ---
 
@@ -271,6 +273,23 @@ not enough: nobody can use it.
 
 > 💬 *"Place a blue FARP at Fulda, on 127.5 MHz."*
 
+### Place a complete carrier group {#add-carrier}
+
+*Recipe + built · ◽* — A carrier ready for flight operations: the ship (and its escorts) steaming on a
+heading at a speed, its radio, its **TACAN**, its **ICLS**, and on an arrested-landing deck its
+**Link 4** with **ACLS**; the recovery tanker and rescue helicopter the `CARRIER` module looks for under
+the exact names `<carrier> S3B-Tanker` and `<carrier> Pedro`; and the ship's warehouse, which the build
+then stocks. Deck slots are then placed like a [flight on the ramp](#add-a-flight), with a **deck**
+start.
+
+> 💬 *"Place a blue carrier group off Batumi, heading 270, TACAN 74X, ICLS 7."*
+> 💬 *"Put four F/A-18C slots on the Stennis deck, cold start."*
+
+Worth knowing: the build stocks a deck only with the aircraft that can both **take off from and land
+on** that ship, by DCS's own data — an F-14 on the Stennis, not on the Tarawa; a Harrier and the
+helicopters on both. An aircraft list written by hand in `warehouses.yaml` is still obeyed as written.
+Remember to switch the `CARRIER` module on.
+
 ## 🕰️ Mission settings
 
 ### Date the mission and set its start time {#mission-date}
@@ -373,6 +392,10 @@ invented. The AI writes the right start waypoint pair for you and sets the group
 > 💬 *"Add an A-10C slot on parking 43 at Kobuleti, cold start."*
 > 💬 *"Put an F-16 slot airborne at 15,000 ft over the zone."*
 
+As in the editor, the slot gets a **callsign** (Enfield, Springfield… ; a number for an Eastern
+country), an **onboard number** no other aircraft of the mission carries, and the **countermeasures**
+(chaff and flare) the editor gives that type — an airborne slot cannot rearm.
+
 One thing to know: a slot is **Client** skill (playable in single-player too) and is **never** a
 dynamic-spawn template — that setting, left on, is exactly what makes a slot sit in the file but not
 appear in the slot list.
@@ -383,7 +406,10 @@ appear in the slot list.
 airfield you **name** — it picks the free stands itself, so you never need their numbers. It takes the
 stands nearest the runway, skips the ones already taken, and **refuses** if a requested stand is
 occupied (telling you which group holds it) or the airfield has no real aircraft stand. Start cold or
-hot on the ramp, from the runway, or airborne.
+hot on the ramp, from the runway, airborne, or **on the deck** of a carrier ([carrier
+group](#add-carrier)) — an aircraft that cannot use that deck is refused. Each aircraft gets its
+countermeasures, a callsign (Texaco for a tanker, Overlord for an AWACS) and an onboard number unique in
+the mission.
 
 > 💬 *"Put a two-ship of F-16s on the ramp at Kobuleti."*
 > 💬 *"Add four Su-25s at Batumi parking, engines hot."*
@@ -397,7 +423,7 @@ tells you rather than guessing.
 ### Change an existing aircraft or vehicle {#change-a-unit}
 
 *Built mission · ⭐* — Change what is **already** in the mission, unit by unit: its **loadout**
-(pylon by pylon), its **AI level**, its **livery**, its **heading**, its **callsign** and its
+(pylon by pylon), its **countermeasures** (chaff and flare), its **AI level**, its **livery**, its **heading**, its **callsign** and its
 **onboard number**, its **name**, its **position**. You give the heading in degrees, the AI converts it. Only the settings you ask
 for change, and the AI tells you what was there before.
 
@@ -451,7 +477,9 @@ save the mission.
 or type — and above all give it a **task**: orbit, attack a group, bomb a point, engage the targets in
 a zone, land, set a frequency, or loop the route back on itself. For a **support flight**: refuel others
 (`tanker`), act as AWACS, turn on a **TACAN** (channel, X/Y mode, callsign), enable the datalink (EPLRS),
-carry unlimited fuel, or **escort** another group named by its name.
+carry unlimited fuel, or **escort** another group named by its name. For a **radio beacon**: a unit
+that **plays a sound** in a loop on its frequency, which a helicopter homes on with its direction
+finder ([embed the sound](#add-sound) first, and set the frequency just before).
 
 > 💬 *"Add a waypoint after the third, at 20,000 feet."*
 > 💬 *"Have this tanker orbit a race-track at 20,000 feet, 300 knots."*
@@ -459,6 +487,7 @@ carry unlimited fuel, or **escort** another group named by its name.
 > 💬 *"Loop the patrol from the last waypoint back to the second."*
 > 💬 *"Make Texaco a tanker, TACAN 30Y callsign TXO, unlimited fuel."*
 > 💬 *"Have the two F-15s escort Texaco."*
+> 💬 *"Make this truck a beacon on 31 MHz FM playing beacon.ogg in a loop."*
 
 Three things worth knowing:
 
@@ -569,6 +598,14 @@ a `.lua` file embedded / loaded from disk).
 
 > 💬 *"Run this bit of Lua at mission start."*
 > 💬 *"Embed and load this .lua script at launch."*
+
+### Embed a sound in the mission {#add-sound}
+
+*Recipe + built · ◽* — Copies a sound (`.ogg` or `.wav`) into the mission and declares it, as the editor
+does when you pick a file. It is what a unit needs before it can [play it](#change-a-route) — the radio
+beacon of a helicopter zone, a distress signal. Embedding the same file twice reuses the first.
+
+> 💬 *"Embed beacon.ogg and sos.ogg in the mission."*
 
 ---
 

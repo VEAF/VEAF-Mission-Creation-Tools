@@ -43,6 +43,7 @@ __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafGrass.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafInterpreter.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafMarkers.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafMove.lua")
+__Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafCities.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafNamedPoints.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafRadio.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafSecurity.lua")
@@ -67,7 +68,6 @@ env.info("*** VEAF-DYNAMICLOADER set the environment in debug mode *** ")
 veaf.Development = true
 veaf.loggers.setBaseLevel(veaf.Logger.LEVEL["trace"])
 veaf.SecurityDisabled = true
-veafSecurity.authenticated = true
 
 --[[ load Witchcraft
 if witchcraft then

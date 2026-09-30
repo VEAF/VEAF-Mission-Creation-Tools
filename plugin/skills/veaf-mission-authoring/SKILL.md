@@ -59,7 +59,9 @@ The dangerous ones:
 
 - **Combat-zone membership** — a group whose name *starts with a combat-zone trigger-zone name*
   and sits inside that zone is captured and despawned at start. This is how you *attach* groups to
-  a zone — and how you accidentally destroy an unrelated group.
+  a zone — and how you accidentally destroy an unrelated group. The prefix is compared **ignoring
+  case** (`veafCombatZone.findUnitsInCombatZone`): `CombatZone_Alpha-sam` belongs to
+  `combatZone_Alpha`, so a case difference neither protects a group nor detaches it.
 - `veafSpawn-<name>` → auto-registered as a spawnable-aircraft template.
 - `OnDemand-<name>` → CAP-mission template (late activation).
 - `#veafInterpreter["<cmd>"]` in a name → the unit is destroyed and the command runs at start.

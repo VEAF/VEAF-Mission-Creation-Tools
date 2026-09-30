@@ -51,9 +51,15 @@ veaf.i18nCatalog = {
   },
 
   -- veafRadio
-  ["radio.auth_required"] = {
-    fr = "Votre radio doit être authentifiée pour les commandes « + »",
-    en = "Your radio has to be authenticated for '+' commands",
+  ["radio.no_group"] = {
+    fr = "Commande « + » refusée : elle a été posée sans groupe, et la mission ne peut pas savoir qui la demande. C'est une erreur de la mission.",
+    en = "'+' command refused: it was posted without a group, so the mission cannot tell who is asking. This is a mission error.",
+  },
+  -- The `+` marks a command that asks for a level; it does not say whether the group has it, and cannot:
+  -- the title is fixed when the menu is built. So the refusal says both numbers.
+  ["radio.level_required"] = {
+    fr = "Cette commande « + » demande le niveau %d ; votre groupe agit au niveau %d (le plus bas de ses pilotes). Un pilote de niveau suffisant peut taper /secu elevate.",
+    en = "This '+' command needs level %d; your group acts at level %d (its lowest pilot). A pilot with enough level can type /secu elevate.",
   },
   ["radio.playing_format"] = {
     fr = "%s (%s) : diffusion de %s",
@@ -69,6 +75,14 @@ veaf.i18nCatalog = {
     fr = "Mot de passe incorrect ou manquant",
     en = "Bad or missing password",
   },
+  ["remote.unknown_module"] = {
+    fr = "Commande inconnue : %s. Commandes disponibles : %s",
+    en = "Unknown command: %s. Available commands: %s",
+  },
+  ["remote.unknown_module_suggest"] = {
+    fr = "Commande inconnue : %s. Vouliez-vous dire « %s » ? Commandes disponibles : %s",
+    en = "Unknown command: %s. Did you mean '%s'? Available commands: %s",
+  },
 
   -- veafSkynetIadsHelper
   ["skynet.no_sam_in_range"] = {
@@ -77,29 +91,17 @@ veaf.i18nCatalog = {
   },
 
   -- veafSecurity
-  ["security.password_invalid"] = {
-    fr = "le mot de passe est absent ou incorrect",
-    en = "password was not set or was not correct",
-  },
   ["security.use_password"] = {
     fr = "Veuillez utiliser l'option « , password <mot de passe %s> »",
     en = "Please use the ', password <%s password>' option",
-  },
-  ["security.already_locked"] = {
-    fr = "Le système était déjà verrouillé",
-    en = "The system was already locked down",
   },
   ["security.group_elevated"] = {
     fr = "Votre groupe dispose de vos droits pendant %d secondes",
     en = "Your group has your privileges for %d seconds",
   },
-  ["security.locked"] = {
-    fr = "Le système a été verrouillé",
-    en = "The system has been locked down",
-  },
-  ["security.authenticated_minutes"] = {
-    fr = "Le système est authentifié pour %d minutes",
-    en = "The system is authenticated for %d minutes",
+  ["security.login_retired"] = {
+    fr = "Il n'y a plus de connexion globale : votre niveau du fichier des pilotes s'applique directement au menu radio. Si votre groupe compte un pilote de niveau inférieur, tapez /secu elevate.",
+    en = "There is no global login any more: your level from the pilots file applies to the radio menu directly. If your group holds a pilot with a lower level, type /secu elevate.",
   },
 
   -- veafShortcuts
@@ -206,6 +208,10 @@ veaf.i18nCatalog = {
   ["spawn.no_position_group"] = {
     fr = "impossible de trouver une position adéquate pour faire apparaître le groupe",
     en = "cannot find a suitable position for spawning the group",
+  },
+  ["spawn.farp_escort_unplaceable"] = {
+    fr = "FARP %s refusé : aucun terrain dégagé pour son escorte autour de ce point. Placez le marqueur ailleurs.",
+    en = "FARP %s refused: no clear ground for its escort around this spot. Place the marker somewhere else.",
   },
   ["spawn.no_position_cargo"] = {
     fr = "impossible de trouver une position adéquate pour faire apparaître la cargaison %s",
@@ -1156,6 +1162,14 @@ veaf.i18nCatalog = {
   ["transport.point_not_found"] = {
     fr = "Le point nommé %s est introuvable !",
     en = "A point named %s cannot be found !",
+  },
+  ["transport.airbase_logistics_gained"] = {
+    fr = "Logistique disponible à %s : vous pouvez désormais vous y réapprovisionner.",
+    en = "Logistics available at %s: you can now resupply there.",
+  },
+  ["transport.airbase_logistics_lost"] = {
+    fr = "Logistique perdue à %s : vous ne pouvez plus vous y réapprovisionner.",
+    en = "Logistics lost at %s: you can no longer resupply there.",
   },
   ["transport.failure"] = {
     fr = "Le groupe ami a été détruit ! La mission est un échec !",

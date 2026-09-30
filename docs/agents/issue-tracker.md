@@ -27,7 +27,7 @@ Never mirror a lot as an issue: two places to update is one place that goes stal
 
 Old reports carry triage labels — `v5-era`, `probably-done`, `still-valid`, `verify` —
 defined in [`CONTRIBUTING.md`](../../CONTRIBUTING.md#issue-intake). The 2026-08-17 re-read of
-the 63 open issues is recorded in `.backlog/CHORE-GITHUB-ISSUE-TRIAGE/`, with the evidence
+the 63 open issues is recorded in `.backlog/archive/CHORE-GITHUB-ISSUE-TRIAGE.md`, with the evidence
 behind each verdict.
 
 ## When a skill says "fetch the relevant ticket"

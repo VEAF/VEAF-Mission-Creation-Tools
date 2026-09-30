@@ -537,6 +537,8 @@ Le build vous dit combien il en a ajouté.
 | `about` | Affiche les informations sur VEAF Mission Creation Tools. |
 | `ask` | Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive. |
 | `capture-map` | Capture les aérodromes d'un théâtre depuis une mission-pont en cours (via dcs-serve) dans <théâtre>.json ; `--parking` ajoute les places de parking dans `parking/<théâtre>.json`. |
+| `clear-ground-check` | Vérifie dans DCS, sans les faire apparaître, si les véhicules au sol d'une mission construite sont dans le décor, et compare au catalogue de terrain dégagé. |
+| `clear-ground-sweep` | Sonde, pas à pas, le terrain dégagé autour des aérodromes et des combat zones d'un théâtre : écrit la mission d'arpentage, explique quoi faire dans DCS, balaie, puis écrit le catalogue ; reprend un balayage interrompu. |
 | `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
 | `doctor` | Rassemble les versions, chemins et erreurs récentes qu'un rapport de bug exige, et produit un bloc caviardé à coller dans un signalement — voir [Obtenir de l'aide](../SUPPORT.md). |
 | `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
@@ -793,6 +795,34 @@ vous avertit en clair : la mission démarrera sans aucun point de chargement iss
     CTLD 2 ne fusionne rien. Un réglage simple absent retombe sur la valeur par défaut du moteur (et il vous le dit au démarrage de la mission), mais une **liste** absente — une section de caisses, un groupe de troupes, une zone — est réellement supprimée. C'est ainsi qu'on retire un élément. Partez toujours du fichier existant plutôt que d'en écrire un de zéro.
 
 Si vous montez CTLD de version et que votre fichier a été écrit pour la précédente, `ctld-tools` vous liste ce qui est apparu, ce qui a disparu et ce qui diffère du défaut avant que vous ne réenregistriez.
+
+#### Les aérodromes deviennent des zones logistiques {#ctld-airbase-logistics}
+
+Jusqu'ici, un avion de transport posé sur un aérodrome capturé lisait *« Aucune logistique à portée »* : CTLD 2 ne reconnaît comme points de chargement que les types d'unité déclarés dans `logisticUnitTypes` (les FARP et porte-avions de la section précédente) et les zones `LGZ_` posées dans l'éditeur. Un aérodrome — un `Airbase` de la carte, pas une unité — n'est ni l'un ni l'autre. VEAF comble l'écart : au démarrage, il enregistre **chaque aérodrome de la carte** comme zone logistique CTLD, puis la tient à jour au fil de la partie.
+
+C'est un réglage, pas une fatalité :
+
+```yaml
+modules:
+  CTLD:
+    enabled: true
+    manage_airbase_logistics: true   # défaut
+    # airbase_logistics_radius: 250    # rayon de la zone, en mètres
+    # airbase_occupation_radius: 2000  # rayon sondé pour l'occupation au sol, en mètres
+    # airbase_logistics_tick: 30       # période de réévaluation, en secondes
+```
+
+Passez `manage_airbase_logistics` à `false` pour qu'aucun aérodrome ne soit enregistré : rien ne se déclare, aucun tick n'est planifié, aucun cercle n'est dessiné, et le journal dit que la fonctionnalité a été **explicitement désactivée** — pas qu'aucun aérodrome n'a été trouvé. Les trois nombres sont les vôtres, sans toucher au Lua ; leurs valeurs par défaut sont commentées ci-dessus.
+
+**Deux classes d'aérodrome.** Un aérodrome détenu par une coalition dès la première évaluation (**classe A**) ouvre sa zone tout de suite et la garde tant que la coalition ne change pas. Un aérodrome **neutre** au départ, ou qui bascule d'une coalition à l'autre en cours de partie (**classe B**), n'ouvre sa logistique qu'après **deux minutes** d'occupation au sol continue et incontestée. La réévaluation court toutes les **30 secondes** (le tick). Les deux minutes se mesurent à l'horloge de la mission, à partir du premier tick qui voit vos troupes sur place, quelle que soit la période choisie. Un tick qui ne trouve personne, ou trouve les deux camps, remet le chronomètre à zéro.
+
+!!! warning "L'occupation se compte en unités **au sol**"
+    La sonde d'occupation ne regarde que les unités terrestres dans un rayon de `airbase_occupation_radius` (2 000 m par défaut) autour de l'aérodrome. Un transport qui se pose sur un champ capturé **ne l'ouvre pas** : un avion au sol n'est pas une unité terrestre. Il faut des troupes ou des véhicules au sol, à vous, sans ennemi en face, pendant deux minutes.
+
+Les transitions sont annoncées en jeu dans la langue de la mission (`transport.airbase_logistics_gained` / `transport.airbase_logistics_lost`), mais pas symétriquement. Quand un champ tenu est capturé, **le camp qui le perd est prévenu sur-le-champ** ; le preneur, lui, n'entend rien à cet instant — la zone reste **éteinte** pour lui jusqu'à ce que les deux minutes d'occupation au sol l'ouvrent réellement, et ce n'est qu'à ce moment qu'il reçoit le message « gagnée ». Annoncer « vous pouvez charger » à la capture serait un mensonge que l'activation suivante contredirait. Un cercle **vert translucide** est dessiné sur la carte F10 autour de chaque aérodrome dont la logistique est active, visible pour la coalition qui le tient.
+
+!!! note "L'écart accepté des 250 m"
+    Il n'y a qu'**une** zone de `airbase_logistics_radius` (250 m par défaut) par aérodrome, centrée sur le parking le plus proche du centroïde du terrain. Sur un aérodrome très étalé, un avion garé à plus de 250 m de ce point lit *« Aucune logistique à portée »* alors même que le champ est actif. C'est un compromis assumé (2026-09-27) : le rayon est le réglage à monter si votre théâtre a de grands parkings dispersés.
 
 #### La langue de CTLD
 

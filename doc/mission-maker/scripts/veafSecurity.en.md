@@ -83,7 +83,6 @@ veafSecurity.password_L1[sha1.hex("myTrustedMemberPassword")] = true
 
 | Constant | Default | Description |
 |----------|---------|-------------|
-| `veafSecurity.authDuration` | `10` | Minutes that authentication remains valid |
 | `veafSecurity.Keyphrase` | `"_auth"` | Marker command for authentication |
 | `veafSecurity.LEVEL_ADMIN` | `90` | Administrator tier (deprecated alias: `LEVEL_L0`) |
 | `veafSecurity.LEVEL_SENIOR_PILOT` | `10` | Trusted-member tier (deprecated alias: `LEVEL_L1`) |
@@ -93,17 +92,20 @@ veafSecurity.password_L1[sha1.hex("myTrustedMemberPassword")] = true
 
 ## Player Authentication
 
-The `_auth` marker command carries three verbs:
+The `_auth` marker command has only one verb left that acts:
 
 ```
-_auth [PASSWORD]   -- checks the given password
 _auth elevate      -- raises the author's group to their own level for 2 minutes
-_auth logout       -- locks the mission again
 ```
 
-An accepted password opens **no session**: secured commands check the password command by command
-(`password` keyword). In chat, the same verbs exist as `/secu login|elevate|logout` (see
-[veafServerHook](veafServerHook.en.md)); the hidden `-login` alias is equivalent to `_auth`.
+In chat it is `/secu elevate` (see [veafServerHook](veafServerHook.en.md)); the hidden `-login` alias
+is equivalent to `_auth`. Secured commands check the password command by command (`password`
+keyword).
+
+`_auth [PASSWORD]`, `_auth logout`, `/secu login` and `/secu logout` still exist, but no longer open
+or close anything: they answer the pilot that there is no global login any more and point them to
+`/secu elevate`. Up to version 6.25, `/secu login` answered "the system is authenticated for 10
+minutes" and unlocked nothing.
 
 !!! danger "Behaviour change — authentication is no longer global"
     **Before**: one successful `_auth` opened every secured command to **every player on the server**
@@ -121,6 +123,12 @@ An accepted password opens **no session**: secured commands check the password c
       `_auth elevate` (marker) or `/secu elevate` (chat) raises the group to the **requester's**
       level for 2 minutes — a plain `_auth [PASSWORD]` elevates nothing. That is what solves the
       instructor-flying-with-a-student case.
+    - The `+` at the start of an F10 command's label means "this command asks for a level", **not**
+      "you do not have it": it stays there whether the group holds the level or not. A refused click
+      shows the group the level asked for and the level it acts at.
+    - Since the group is the only identity, a secured F10 command (its label starts with `+`) is
+      shown **in each pilot group's own menu**. A game master or a spectator, who has no group,
+      does not see it — except when security is disabled, where it is shown to everyone.
 
     Tell your pilots: this is a change they will notice mid-mission.
 

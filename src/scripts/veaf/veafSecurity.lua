@@ -26,8 +26,6 @@ veaf.loggers.new(veafSecurity.Id, veafSecurity.LogLevel)
 --- Key phrase to look for in the mark text which triggers the command.
 veafSecurity.Keyphrase = "_auth"
 
-veafSecurity.authDuration = 10
-
 veafSecurity.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?(.*)"
 
 -- Security tiers, from the loosest to the tightest. A check passes when the pilot's level is
@@ -156,10 +154,6 @@ veafSecurity.PASSWORD_L0 = "47c7808d1079fd20add322bbd5cf23b93ad1841e"
 veafSecurity.PASSWORD_L1 = "bdc82f5ef92369919a3a53515023ce19f68656cc"
 veafSecurity.password_L0[veafSecurity.PASSWORD_L0] = true
 veafSecurity.password_L1[veafSecurity.PASSWORD_L1] = true
-
--- Runs at module load, i.e. before any mission config is read, so this can only ever see nil.
--- Harmless, and kept because `initialize()` sets it again once the config has been applied.
-veafSecurity.authenticated = veafSecurity.isSecurityDisabled()
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- SHA-1 pure LUA implementation
@@ -527,29 +521,14 @@ function veafSecurity.executeCommandFromRemote(parameters)
     local _action, _parameters = _command:match(veafSecurity.RemoteCommandParser)
     veaf.loggers.get(veafSecurity.Id):trace(string.format("_action=%s", veaf.p(_action)))
     veaf.loggers.get(veafSecurity.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
-    if _action and _action:lower() == "login" then
-      if _pilot.level >= veafSecurity.LEVEL_L1 then
-        veaf.loggers.get(veafSecurity.Id):info(string.format("[%s] is unlocking the mission", veaf.p(_pilotName)))
-        veafSecurity.authenticate(_parameters, _unitName)
-        return true
-      else
-        veaf.loggers.get(veafSecurity.Id):warn(string.format("[%s] has not the required level to unlock the mission", veaf.p(_pilotName)))
-        return false
-      end
+    if _action and (_action:lower() == "login" or _action:lower() == "logout") then
+      veaf.loggers.get(veafSecurity.Id):info(string.format("[%s] typed the retired verb [%s]", veaf.p(_pilotName), veaf.p(_action)))
+      veafSecurity.explainLoginRetired(_unitName)
+      return true
     elseif _action and _action:lower() == "elevate" then
       -- No level gate here beyond having one at all: the elevation is capped at the requester's
       -- own level, so it can never grant more than they already hold.
       return veafSecurity.handleElevationRequest(_pilot, _pilotName, _unitName)
-    elseif _action and _action:lower() == "logout" then
-      if _pilot.level >= veafSecurity.LEVEL_L1 then
-        local _silent = _parameters and _parameters:lower() == "silent"
-        veaf.loggers.get(veafSecurity.Id):info(string.format("[%s] is locking the mission", veaf.p(_pilotName)))
-        veafSecurity.logout(not _silent, _unitName)
-        return true
-      else
-        veaf.loggers.get(veafSecurity.Id):warn(string.format("[%s] has not the required level to lock the mission", veaf.p(_pilotName)))
-        return false
-      end
     end
   end
   return false
@@ -567,16 +546,10 @@ function veafSecurity.executeCommand(eventPos, eventText, bypassSecurity, marker
 
     if options then
       -- Check options commands
-      if options.login then
-        -- check password
-        if not (bypassSecurity or veafSecurity.checkPassword_L1(options.password)) then
-          trigger.action.outText(veaf.t("security.password_invalid"), 5)
-          return false
-        end
-        veafSecurity.authenticate()
-        return true
-      elseif options.logout then
-        veafSecurity.logout(true)
+      if options.login or options.logout then
+        -- `true`: a marker is on the map for everyone already, and with no hook (solo, a local test)
+        -- nobody is registered in a unit, so answering only the author's unit would answer nobody
+        veafSecurity.explainLoginRetired(veafSecurity.getUnitNameForPlayer(markerAuthor), true)
         return true
       elseif options.elevate then
         -- The marker carries an author, so this channel can identify who is asking — unlike the
@@ -632,6 +605,24 @@ function veafSecurity.markTextAnalysis(text)
   end
 
   return switch
+end
+
+--- Answer a `login` or `logout`, on either channel, with what replaced them.
+---
+--- Both verbs toggled `veafSecurity.authenticated`, a mission-wide flag nothing had read since
+--- REVIEW-SECURITY-LAYER made the level per group, and that went with them in
+--- FIX-SECU-VERB-AND-LOG-NOISE together with `authenticate`, `logout` and `isAuthenticated`. So `/secu login` kept answering "authenticated for
+--- 10 minutes" and unlocked nothing; on private1, 2026-09-29, a pilot at level 99 took that answer for
+--- the truth and the refusals that followed for a bug (FIX-SECU-VERB-AND-LOG-NOISE ticket 01). The verbs
+--- are kept so that a pilot who still types them learns what to do instead of meeting silence.
+--- @param unitName string|nil the unit the pilot sits in; the answer goes there
+--- @param toAllWhenNoUnit boolean|nil when the unit cannot be found, answer everybody rather than nobody
+function veafSecurity.explainLoginRetired(unitName, toAllWhenNoUnit)
+  local _message = veaf.t("security.login_retired")
+  local _shown = veafRemote and veafRemote.answerPilot and veafRemote.answerPilot(unitName, _message)
+  if not _shown and toAllWhenNoUnit then
+    trigger.action.outText(_message, 15)
+  end
 end
 
 --- Return the group id of the unit named `unitName`, or nil.
@@ -696,45 +687,6 @@ function veafSecurity.handleElevationRequest(pilot, pilotName, unitName)
   return true
 end
 
-function veafSecurity.logout(withMessage, unitName)
-  if not veafSecurity.authenticated and withMessage then
-    veaf.outTextForUnit(unitName, veaf.t("security.already_locked"), 5)
-    return
-  end
-  veafSecurity.authenticated = false
-  if withMessage then
-    veaf.outTextForUnit(unitName, veaf.t("security.locked"), 5)
-  end
-  veafRadio.refreshRadioMenu()
-  if veafSecurity.logoutWatchdog then
-    veaf.removeFunction(veafSecurity.logoutWatchdog)
-  end
-end
-
---- authenticate all radios for a short time
-function veafSecurity.authenticate(minutes, unitName)
-  -- VMR-095: `minutes` arrives as text a pilot typed after `-auth login`, so it is converted
-  -- rather than pattern-matched. The old guard was `not actualMinutes:match("%d+")`, unanchored:
-  -- "abc5" passed it and `actualMinutes * 60` then raised. A negative or zero value passed too,
-  -- and scheduled the logout in the past — the mission unlocked and relocked without a word.
-  local actualMinutes = tonumber(minutes)
-  if not actualMinutes or actualMinutes <= 0 then
-    if minutes ~= nil then
-      veaf.loggers.get(veafSecurity.Id):warn(string.format("unusable auth duration [%s], using the default", veaf.p(minutes)))
-    end
-    actualMinutes = veafSecurity.authDuration
-  end
-  if not veafSecurity.authenticated then
-    veaf.outTextForUnit(unitName, veaf.t("security.authenticated_minutes", actualMinutes), 15)
-    veafSecurity.authenticated = true
-    veafRadio.refreshRadioMenu()
-    if veafSecurity.logoutWatchdog then
-      veaf.removeFunction(veafSecurity.logoutWatchdog)
-    end
-    veafSecurity.logoutWatchdog = veaf.scheduleFunction(veafSecurity.logout, { true }, timer.getTime() + actualMinutes * 60)
-  end
-end
-
 function veafSecurity._checkPassword(password, level)
   if password == nil then
     return false
@@ -792,7 +744,9 @@ function veafSecurity.getMarkerSecurityLevel(markId)
   -- mode is a refusal rather than a crashed handler.
   local _user = veafRemote and veafRemote.getRemoteUser and veafRemote.getRemoteUser(_author)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("_user = [%s]", veaf.p(_user)))
-  if _user then
+  -- A user the slot registered before any level reached the mission carries none: read as unknown, since
+  -- comparing nil with a tier would raise inside the check.
+  if _user and _user.level then
     return _user.level
   end
   return -1
@@ -845,10 +799,6 @@ function veafSecurity.checkSecurity_MM(password)
     return false
   end
   return true
-end
-
-function veafSecurity.isAuthenticated()
-  return veafSecurity.authenticated or veafSecurity.isSecurityDisabled()
 end
 
 --- Is the author of `markId` a pilot this server knows at all?
@@ -1001,7 +951,7 @@ function veafSecurity.initialize()
   veafRemote.registerRemoteModule("secu", veafSecurity.executeCommandFromRemote)
   -- Read here rather than at module load: the mission config has been applied by now, so this is
   -- where the deprecated spelling can actually be seen (and warned about).
-  veafSecurity.authenticated = veafSecurity.isSecurityDisabled()
+  veafSecurity.isSecurityDisabled()
 end
 
 veaf.loggers.get(veafSecurity.Id):info(veaf.loggers.get(veafSecurity.Id):getVersionInfo())

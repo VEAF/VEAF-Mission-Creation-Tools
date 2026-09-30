@@ -84,3 +84,11 @@ class TestGenerateBlankMission:
         mission = read_mission_folder(folder)
 
         assert list(mission.iter_groups()) == []
+
+
+def test_a_theatre_typed_in_any_case_gets_its_dcs_spelling() -> None:
+    from veaf_libs.blank_mission import canonical_theatre_name
+
+    assert canonical_theatre_name("caucasus") == "Caucasus"
+    assert canonical_theatre_name("GERMANYCW") == "GermanyCW"
+    assert canonical_theatre_name("Nowhere") == "Nowhere"

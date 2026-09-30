@@ -63,6 +63,8 @@ def set_unit_properties(
     heading_deg: float | None = None,
     callsign: dict[str, int | str] | int | str | None = None,
     onboard_num: str | None = None,
+    chaff: int | None = None,
+    flare: int | None = None,
     pylons: dict[int | str, str] | None = None,
     pylons_mode: str = "replace",
     new_name: str | None = None,
@@ -83,6 +85,8 @@ def set_unit_properties(
             any subset, except that ``family`` requires ``name`` since the family→word table is not
             available. For a ground unit, the bare number DCS stores.
         onboard_num: The tail number, kept as text so a leading zero survives.
+        chaff: The aircraft's chaff count, 0 or more.
+        flare: The aircraft's flare count, 0 or more.
         pylons: ``{station number: CLSID}``. Keyed **by station**, never positional: DCS numbers
             stations non-contiguously (a real FA-18C carries 1, 4, 5, 6, 9). ``None`` means "leave
             the loadout alone"; ``{}`` in replace mode means "carry nothing".
@@ -101,21 +105,31 @@ def set_unit_properties(
     Raises:
         ValueError: If the archive is not a valid mission, the group or unit does not exist, no
             property was given, or a value is refused (unknown skill, human-slot crossing, bad
-            station number, callsign index out of range, family without its name).
+            station number, callsign index out of range, family without its name, negative
+            chaff or flare count).
     """
     if pylons_mode not in ("replace", "merge"):
         raise ValueError(f"pylons_mode must be 'replace' or 'merge', got {pylons_mode!r}")
-    if all(value is None for value in (skill, livery, heading_deg, callsign, onboard_num, pylons, new_name, position)):
+    countermeasures = {"chaff": chaff, "flare": flare}
+    if all(
+        value is None
+        for value in (skill, livery, heading_deg, callsign, onboard_num, chaff, flare, pylons, new_name, position)
+    ):
         raise ValueError(
-            "no property given — pass at least one of skill, livery, heading_deg, callsign, onboard_num, pylons, "
-            "new_name, position"
+            "no property given — pass at least one of skill, livery, heading_deg, callsign, onboard_num, chaff, "
+            "flare, pylons, new_name, position"
         )
+    for label, count in countermeasures.items():
+        if count is not None and int(count) < 0:
+            raise ValueError(f"{label} must be >= 0, got {count}")
     if position is not None and (position.get("x") is None or position.get("y") is None):
         raise ValueError(f"position must be a complete {{x, y}}; got keys: {', '.join(sorted(position)) or 'none'}")
 
     mission, content = open_mission(miz_path)
 
     group = find_group(content, group_name)
+    if (chaff is not None or flare is not None) and _group_category(content, group_name) not in _AIRCRAFT_CATEGORIES:
+        raise ValueError("chaff and flare are an aircraft's; this group is not a plane or helicopter group")
     unit = _find_unit(group, group_name, unit_name)
 
     # Everything is validated before anything is stored, so a refusal cannot half-write a mission.
@@ -143,6 +157,14 @@ def set_unit_properties(
     if onboard_num is not None:
         changed["onboard_num"] = {"from": unit.get("onboard_num"), "to": str(onboard_num)}
         unit["onboard_num"] = str(onboard_num)
+    for label, count in countermeasures.items():
+        if count is not None:
+            payload = unit.get("payload")
+            if not isinstance(payload, dict):
+                payload = {}
+                unit["payload"] = payload
+            changed[label] = {"from": payload.get(label), "to": int(count)}
+            payload[label] = int(count)
     if pylons is not None:
         _apply_pylons(unit, pylons, pylons_mode, changed)
         warnings.append(

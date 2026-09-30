@@ -44,8 +44,11 @@ For each task or fix, rigorously apply these steps in order:
 ## PULL REQUEST PROCESS
 
 After pushing a branch and creating a PR:
-- **Do NOT request a Copilot review.** Sourcery reviews PRs automatically.
-- Request a Copilot review **only if** Sourcery posts a comment stating it cannot review the PR.
+- **Review each PR with the `pr-code-review` skill** before merging; that review and a green CI are
+  what a merge waits for.
+- **Sourcery constrains nothing** (2026-09-28): one lot stays one PR however large; never split it
+  for Sourcery's size limit or weekly budget, and never wait for it.
+- **Do NOT request a Copilot review** — there is no subscription any more.
 
 ## PIPELINE COMMANDS
 

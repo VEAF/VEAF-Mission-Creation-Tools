@@ -342,6 +342,10 @@ Un groupe entièrement détruit n'apparaît pas là : il est simplement absent d
 
 Pour les sites dont les attributs DCS ne suffisent pas à décrire la composition, une table de motifs (`veaf.ImportantUnitsByGroupPattern`, dans `veaf.lua`) déclare les ensembles d'unités indispensables et la vie minimale, en pourcentage, qu'il leur faut. Le S-300 y figure déjà.
 
+### Cibles statiques {#static-targets}
+
+Un objet statique de la zone compte comme une cible : la zone l'attend pour se terminer, et le panneau d'infos le compte parmi les ennemis restants, en « structure(s) » — en mode entraînement, avec son type. Mais un statique n'a pas de moteur et reste froid au pod de désignation ; les véhicules, eux, apparaissent moteur chaud (voir [veafSpawn](veafSpawn.md#warm-start)).
+
 ## Tags de nom d'unité et de groupe
 
 Les noms d'unités et de groupes dans l'éditeur de mission DCS peuvent porter des tags spéciaux qui contrôlent la façon dont VEAF les traite à l'activation de la zone. Les tags sont intégrés dans le nom et n'affectent pas DCS lui-même.
@@ -748,6 +752,24 @@ VeafCombatZone:new()
 Le mode entraînement est idéal pour des scénarios d'entraînement BFM / CAS où les pilotes ont besoin de connaître les positions des unités.
 
 ---
+
+## Suivre une zone en direct dans le journal {#diagnostics}
+
+Quand une zone ne se comporte pas comme prévu (le panneau d'infos ne montre pas ce qui est sur le
+terrain, la zone ne se termine pas), activez les diagnostics dans `mission.yaml` :
+
+```yaml
+module_settings:
+  veaf.Diagnostics: true
+```
+
+Chaque zone écrit alors dans `dcs.log`, au niveau `info` et quel que soit le niveau de log des
+modules, des lignes marquées `DIAG|` : la demande d'activation et qui l'a faite, chaque élément
+apparu (son groupe, ses unités vivantes et leurs types) ou raté, le contenu exact du panneau d'infos
+groupe par groupe, chaque passage de la surveillance de fin de zone avec sa décision, et la
+désactivation. Filtrez le journal sur `DIAG|` pour ne lire que cela.
+
+C'est bavard : réservez-le à une session que vous surveillez, puis remettez `false`.
 
 ## Voir aussi
 

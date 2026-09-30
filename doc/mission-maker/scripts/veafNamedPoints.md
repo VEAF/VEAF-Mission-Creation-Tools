@@ -94,7 +94,7 @@ veafNamedPoints.addDataToPoint(point, {
 })
 ```
 
-`addAirbases()` ajoute en bloc toutes les bases aériennes de la carte (appelée automatiquement par `initialize()`) ; il n'existe pas de fonction d'ajout par base aérienne. `addCities()` ajoute de la même façon les villes du théâtre.
+`addAirbases()` ajoute en bloc toutes les bases aériennes de la carte (appelée automatiquement par `initialize()`) ; il n'existe pas de fonction d'ajout par base aérienne. `addCities()` ajoute de la même façon les villes du théâtre, en points cachés : un nom de ville sert alors de destination à un convoi, de position à un raccourci ou de départ à une mission de transport, et la météo « au point le plus proche » les connaît. Les listes viennent des fichiers du jeu (voir [Les villes des théâtres](../../developer/dcs-data.md#cities)) ; un théâtre qui n'en a pas encore (Kola, Iraq) le signale dans `dcs.log` au démarrage.
 
 ---
 

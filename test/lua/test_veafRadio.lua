@@ -437,12 +437,6 @@ function TestVeafRadioBuilder:test_build_sorts_commands_alphabetically()
   luaunit.assertEquals(self.builder._root.commands[2].title, "Zulu")
 end
 
--- Ensure veafSecurity.isAuthenticated exists (dcs_mocks.lua defines veafSecurity without it)
-veafSecurity = veafSecurity or {}
-veafSecurity.isAuthenticated = veafSecurity.isAuthenticated or function()
-  return false
-end
-
 -- ---------------------------------------------------------------------------
 -- TestVeafRadioMenuOps — wrapper functions, delCommand, clearSubmenu, delSubmenu
 -- ---------------------------------------------------------------------------
@@ -1064,7 +1058,7 @@ function TestVeafRadioCoalitionMenus:test_scoped_node_uses_coalition_api()
   local call = self:_firstOfKind("subMenuForCoalition")
   luaunit.assertNotNil(call)
   luaunit.assertEquals(call.args[1], coalition.side.RED)
-  luaunit.assertEquals(call.args[2], "Red zone")
+  luaunit.assertEquals(call.args[2], "RED ZONE") -- first level: shown in capitals
 end
 
 function TestVeafRadioCoalitionMenus:test_children_inherit_the_scope()
@@ -1207,6 +1201,157 @@ function TestVeafRadioCoalitionMenus:test_addSubMenu_passes_the_side_through()
   local menu = veafRadio.addSubMenu("Scoped", nil, coalition.side.BLUE)
   luaunit.assertEquals(menu.coalition, coalition.side.BLUE)
   veafRadio.delSubmenu("Scoped", nil)
+end
+
+-------------------------------------------------------------------------------------------------
+-- FIX-SECURED-FORALL-AND-UPDATER-BAT ticket 01 — a secured "for all" command is posted per group
+--
+-- DCS hands a menu callback the argument fixed at registration and nothing about who clicked, so
+-- the group id is the only identity `_proxyMethod` ever gets. A secured command posted for all
+-- carried none, and every click was refused while security was on (private1, 2026-09-29: a
+-- non-training combat zone could not be activated). It is now posted once per human group.
+-------------------------------------------------------------------------------------------------
+
+TestVeafRadioSecuredForAll = {}
+
+function TestVeafRadioSecuredForAll:setUp()
+  TestVeafRadioCoalitionMenus.setUp(self)
+  self.savedSecurityDisabled = veaf.SecurityDisabled
+  self.savedEffective = veafSecurity.getEffectiveGroupLevel
+  self.groupLevels = {}
+  veafSecurity.getEffectiveGroupLevel = function(groupId)
+    return self.groupLevels[groupId] or 0
+  end
+  veaf.SecurityDisabled = false
+end
+
+function TestVeafRadioSecuredForAll:tearDown()
+  veaf.SecurityDisabled = self.savedSecurityDisabled
+  veafSecurity.getEffectiveGroupLevel = self.savedEffective
+  TestVeafRadioCoalitionMenus.tearDown(self)
+end
+
+TestVeafRadioSecuredForAll._addHumanGroup = TestVeafRadioCoalitionMenus._addHumanGroup
+TestVeafRadioSecuredForAll._firstOfKind = TestVeafRadioCoalitionMenus._firstOfKind
+
+function TestVeafRadioSecuredForAll:_callsOfKind(kind)
+  local found = {}
+  for _, call in ipairs(self.calls) do
+    if call.kind == kind then
+      table.insert(found, call)
+    end
+  end
+  return found
+end
+
+--- Build a menu holding one secured ForAll command whose method records what it receives.
+function TestVeafRadioSecuredForAll:_buildSecuredForAll(side)
+  self.received = {}
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local menu = builder:addMenu("Zone", nil, side)
+  builder:addCommand("Activate", menu, function(parameters)
+    table.insert(self.received, parameters)
+  end, "combatZone_Letzlingen", veafRadio.USAGE_ForAll, true)
+  builder:build()
+end
+
+--- Click the entry DCS was given, the way DCS does: the callback with its registered argument.
+--- `addCommandForGroup` takes the group id first, `addCommand` does not.
+local function click(call)
+  local offset = call.kind == "commandForGroup" and 1 or 0
+  local method, parameters = call.args[3 + offset], call.args[4 + offset]
+  method(parameters)
+end
+
+function TestVeafRadioSecuredForAll:test_posted_once_per_human_group()
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  self:_addHumanGroup(2, coalition.side.BLUE, "Pilot2")
+  self:_buildSecuredForAll()
+  local groupIds = {}
+  for _, call in ipairs(self:_callsOfKind("commandForGroup")) do
+    groupIds[call.args[1]] = true
+  end
+  luaunit.assertEquals(groupIds, { [1] = true, [2] = true })
+  luaunit.assertNil(self:_firstOfKind("command"))
+  luaunit.assertNil(self:_firstOfKind("commandForCoalition"))
+end
+
+function TestVeafRadioSecuredForAll:test_authorised_group_runs_it_with_its_parameters_unchanged()
+  -- ForGroup appends the unit name to the parameters; a ForAll method does not expect it.
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  self.groupLevels[1] = veafSecurity.LEVEL_SENIOR_PILOT
+  self:_buildSecuredForAll()
+  local call = self:_firstOfKind("commandForGroup")
+  luaunit.assertEquals(call.args[2], "+Activate")
+  click(call)
+  luaunit.assertEquals(self.received, { "combatZone_Letzlingen" })
+end
+
+function TestVeafRadioSecuredForAll:test_group_below_the_level_is_refused()
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  self.groupLevels[1] = veafSecurity.LEVEL_KNOWN_PILOT
+  self:_buildSecuredForAll()
+  click(self:_firstOfKind("commandForGroup"))
+  luaunit.assertEquals(self.received, {})
+end
+
+function TestVeafRadioSecuredForAll:test_scoped_menu_skips_the_other_coalition()
+  self:_addHumanGroup(1, coalition.side.RED, "RedPilot")
+  self:_addHumanGroup(2, coalition.side.BLUE, "BluePilot")
+  self:_buildSecuredForAll(coalition.side.RED)
+  local groupIds = {}
+  for _, call in ipairs(self:_callsOfKind("commandForGroup")) do
+    table.insert(groupIds, call.args[1])
+  end
+  luaunit.assertEquals(groupIds, { 1 })
+end
+
+function TestVeafRadioSecuredForAll:test_unspawned_group_gets_nothing()
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  veafRadio.humanUnits["Pilot1"].spawned = false
+  self:_buildSecuredForAll()
+  luaunit.assertEquals(#self:_callsOfKind("commandForGroup"), 0)
+end
+
+function TestVeafRadioSecuredForAll:test_security_disabled_keeps_it_for_all()
+  -- A game master or a spectator has no group: with security off they keep the entry.
+  veaf.SecurityDisabled = true
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  self:_buildSecuredForAll()
+  luaunit.assertEquals(#self:_callsOfKind("commandForGroup"), 0)
+  local call = self:_firstOfKind("command")
+  luaunit.assertNotNil(call)
+  click(call)
+  luaunit.assertEquals(self.received, { "combatZone_Letzlingen" })
+end
+
+function TestVeafRadioSecuredForAll:test_a_secured_command_reaching_dcs_without_a_group_is_warned()
+  local logger = veaf.loggers.get(veafRadio.Id)
+  local savedWarn = logger.warn
+  local warnings = {}
+  logger.warn = function(_, fmt, ...)
+    table.insert(warnings, string.format(fmt, ...))
+  end
+  local builder = veafRadio.RadioMenuBuilder:new({ title = "Root", subMenus = {}, commands = {} })
+  local command = { title = "Activate", method = function() end, isSecured = true }
+  builder:_addDcsCommand(nil, "Activate", nil, command, nil, nil)
+  veaf.SecurityDisabled = true
+  builder:_addDcsCommand(nil, "Activate", nil, command, nil, nil)
+  logger.warn = savedWarn
+  luaunit.assertEquals(#warnings, 1)
+  luaunit.assertStrContains(warnings[1], "posted without a group")
+end
+
+function TestVeafRadioSecuredForAll:test_unsecured_forall_is_unchanged()
+  self:_addHumanGroup(1, coalition.side.BLUE, "Pilot1")
+  local root = { title = "Root", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local menu = builder:addMenu("Zone", nil)
+  builder:addCommand("Smoke", menu, function() end, nil, veafRadio.USAGE_ForAll)
+  builder:build()
+  luaunit.assertEquals(#self:_callsOfKind("commandForGroup"), 0)
+  luaunit.assertEquals(#self:_callsOfKind("command"), 1)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1364,6 +1509,50 @@ function TestVeafRadioSecuredCommands:test_exact_level_passes()
   luaunit.assertTrue(self.called)
 end
 
+-- FIX-SECU-VERB-AND-LOG-NOISE ticket 05. The `+` says a command asks for a level, never whether the group
+-- has it, and on private1 it was read as "still locked". The refusal is where the pilot can learn which:
+-- it names both levels, and it goes to the group that clicked rather than to the whole server.
+function TestVeafRadioSecuredCommands:test_a_refusal_names_the_level_needed_and_the_level_held()
+  dcs_mocks.reset()
+  self.groupLevels[7] = veafSecurity.LEVEL_KNOWN_PILOT
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+  luaunit.assertEquals(
+    dcs_mocks.messages[1].text,
+    veaf.t("radio.level_required", veafSecurity.LEVEL_SENIOR_PILOT, veafSecurity.LEVEL_KNOWN_PILOT)
+  )
+end
+
+function TestVeafRadioSecuredCommands:test_an_unlisted_pilot_reads_as_level_zero_not_minus_one()
+  -- the hook sends -1 for a player absent from veaf-pilots.txt; -1 is a convention, not a level to show
+  local savedT = veaf.t
+  local shown
+  veaf.t = function(key, ...)
+    if key == "radio.level_required" then
+      shown = { ... }
+    end
+    return key
+  end
+  self.groupLevels[7] = -1
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  veaf.t = savedT
+  luaunit.assertEquals(shown, { veafSecurity.LEVEL_SENIOR_PILOT, 0 })
+end
+
+function TestVeafRadioSecuredCommands:test_a_command_posted_without_a_group_no_longer_talks_of_authentication()
+  dcs_mocks.reset()
+  self:_run(nil, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertEquals(dcs_mocks.messages[1].text, veaf.t("radio.no_group"))
+end
+
+function TestVeafRadioSecuredCommands:test_a_refusal_is_shown_to_the_group_that_clicked_only()
+  dcs_mocks.reset()
+  self.groupLevels[7] = 0
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertEquals(dcs_mocks.messages[1].fn, "outTextForGroup")
+  luaunit.assertEquals(dcs_mocks.messages[1].target, 7)
+end
+
 -------------------------------------------------------------------------------------------------
 -- SECREV-2 / VMR-093 — the SRS position was truncated to whole degrees
 --
@@ -1420,6 +1609,172 @@ function TestSecrev2SrsPosition:test_no_position_means_no_position_options()
   veafRadio.transmitMessage("inbound", "251", "AM", "SRS", 1, nil, true)
   luaunit.assertEquals(#self.commands, 1)
   luaunit.assertNil(string.find(self.commands[1], "-L", 1, true))
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioFirstLevelCapitals — every entry directly under the VEAF root is
+-- shown in capitals (CHORE-SMALL-POLISH ticket 03), applied once at render time
+-- so a module registered later follows the rule and the logical titles modules
+-- compare against are left as they wrote them.
+-- ---------------------------------------------------------------------------
+
+TestVeafRadioFirstLevelCapitals = {}
+
+-- The catalog keys of every first-level entry, enumerated from the code on 2026-09-29:
+-- each `veafRadio.addMenu(...)`, and each `addSubMenu` / `addCommandToSubmenu` whose
+-- parent is absent or nil.
+local FIRST_LEVEL_KEYS = {
+  "menu.assets.root",
+  "menu.carrier.root",
+  "menu.casmission.root",
+  "menu.combatmission.root",
+  "menu.combatzone.root",
+  "menu.ctld.root",
+  "menu.missileguardian.root",
+  "menu.move.root",
+  "menu.namedpoints.root",
+  "menu.skynet.root",
+  "menu.spawn.root",
+  "menu.transportmission.root",
+  "menu.weather.root",
+  "assist.menu.root",
+}
+local FIRST_LEVEL_COMMAND_KEYS = { "assist.menu.confirm", "assist.menu.skip" }
+
+local function contains(list, value)
+  for _, item in ipairs(list) do
+    if item == value then
+      return true
+    end
+  end
+  return false
+end
+
+function TestVeafRadioFirstLevelCapitals:setUp()
+  self._origAddSubMenu = missionCommands.addSubMenu
+  self._origAddCommand = missionCommands.addCommand
+  self._origCatalog = veaf.i18nCatalog
+  self._origLanguage = veaf.config.language
+  dofile(src .. "/veafI18n.lua")
+  self.subMenus = {}
+  self.commands = {}
+  local this = self
+  missionCommands.addSubMenu = function(title, parent)
+    local m = { title = title, parent = parent }
+    table.insert(this.subMenus, m)
+    return m
+  end
+  missionCommands.addCommand = function(title, parent)
+    local c = { title = title, parent = parent }
+    table.insert(this.commands, c)
+    return c
+  end
+end
+
+function TestVeafRadioFirstLevelCapitals:tearDown()
+  missionCommands.addSubMenu = self._origAddSubMenu
+  missionCommands.addCommand = self._origAddCommand
+  veaf.i18nCatalog = self._origCatalog
+  veaf.config.language = self._origLanguage
+end
+
+-- Render a fresh tree holding the real first-level entries, then one a module
+-- registers afterwards in lower case, and return the root node.
+function TestVeafRadioFirstLevelCapitals:_render()
+  local root = { title = veaf.t("menu.radio.root"), subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  for _, key in ipairs(FIRST_LEVEL_KEYS) do
+    local menu = builder:addMenu(veaf.t(key))
+    builder:addCommand("second level stays as written", menu, function() end)
+  end
+  for _, key in ipairs(FIRST_LEVEL_COMMAND_KEYS) do
+    builder:addCommand(veaf.t(key), nil, function() end)
+  end
+  builder:addMenu("Late module, déjà là")
+  builder:build()
+  return root
+end
+
+-- Labels of the root's children. Past MENU_PAGE_SIZE entries the root spills into
+-- "Next page" submenus (ADR 0013): what sits on those pages is first level too.
+function TestVeafRadioFirstLevelCapitals:_firstLevelLabels(root)
+  local rootPages = { [root.dcsRadioMenu] = true }
+  local nextPage = veaf.t("radio.next_page")
+  local labels = {}
+  for _, m in ipairs(self.subMenus) do
+    if rootPages[m.parent] then
+      if m.title == nextPage then
+        rootPages[m] = true
+      else
+        table.insert(labels, m.title)
+      end
+    end
+  end
+  for _, c in ipairs(self.commands) do
+    if rootPages[c.parent] then
+      table.insert(labels, c.title)
+    end
+  end
+  return labels
+end
+
+function TestVeafRadioFirstLevelCapitals:_assertAllCapitals(language)
+  veaf.config.language = language
+  local root = self:_render()
+  local labels = self:_firstLevelLabels(root)
+  luaunit.assertEquals(#labels, #FIRST_LEVEL_KEYS + #FIRST_LEVEL_COMMAND_KEYS + 1)
+  for _, label in ipairs(labels) do
+    luaunit.assertEquals(label, veafRadio.toUpperCase(label))
+  end
+  return labels, root
+end
+
+function TestVeafRadioFirstLevelCapitals:test_every_first_level_entry_is_in_capitals_in_french()
+  local labels = self:_assertAllCapitals("fr")
+  luaunit.assertTrue(contains(labels, "ASSISTANCE : VALIDER L'ÉTAPE"))
+  luaunit.assertTrue(contains(labels, "LATE MODULE, DÉJÀ LÀ"))
+end
+
+function TestVeafRadioFirstLevelCapitals:test_every_first_level_entry_is_in_capitals_in_english()
+  local labels = self:_assertAllCapitals("en")
+  luaunit.assertTrue(contains(labels, "ASSISTANCE"))
+  luaunit.assertTrue(contains(labels, "ASSISTANCE: SKIP THE STEP"))
+end
+
+function TestVeafRadioFirstLevelCapitals:test_deeper_levels_and_logical_titles_are_untouched()
+  veaf.config.language = "fr"
+  local root = self:_render()
+  local deeper = 0
+  for _, c in ipairs(self.commands) do
+    if c.parent ~= root.dcsRadioMenu then
+      luaunit.assertEquals(c.title, "second level stays as written")
+      deeper = deeper + 1
+    end
+  end
+  luaunit.assertEquals(deeper, #FIRST_LEVEL_KEYS)
+  -- Modules find their menus again by the title they gave (delSubmenu, delCommand).
+  local titles = {}
+  for _, menu in ipairs(root.subMenus) do
+    table.insert(titles, menu.title)
+  end
+  luaunit.assertTrue(contains(titles, "Late module, déjà là"))
+  luaunit.assertTrue(contains(titles, "Assistance"))
+end
+
+function TestVeafRadioFirstLevelCapitals:test_a_first_level_menu_refreshed_alone_keeps_its_capitals()
+  local root = { title = "VEAF", subMenus = {}, commands = {}, dcsRadioMenu = { title = "VEAF" } }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local menu = builder:addMenu("Assistance")
+  builder:_buildSubtree(root, menu)
+  luaunit.assertEquals(self.subMenus[1].title, "ASSISTANCE")
+end
+
+function TestVeafRadioFirstLevelCapitals:test_to_upper_case_handles_accented_letters()
+  luaunit.assertEquals(veafRadio.toUpperCase("météo à l'aérodrome"), "MÉTÉO À L'AÉRODROME")
+  luaunit.assertEquals(veafRadio.toUpperCase("çà où ñ œuvre"), "ÇÀ OÙ Ñ ŒUVRE")
+  -- ÷ shares the byte range of the lower-case letters but has no capital.
+  luaunit.assertEquals(veafRadio.toUpperCase("a÷b"), "A÷B")
+  luaunit.assertEquals(veafRadio.toUpperCase("DÉJÀ"), "DÉJÀ")
 end
 
 os.exit(luaunit.LuaUnit.run())

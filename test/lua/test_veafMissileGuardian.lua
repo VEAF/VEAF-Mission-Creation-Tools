@@ -165,6 +165,30 @@ function TestVeafMGWeaponExtra:test_getCurrentEnergy_nil_dcsWeapon()
   luaunit.assertNil(w:getCurrentEnergy())
 end
 
+-- FIX-MG-ENERGY-READS-EASTING: in a runtime vec3 the altitude is `y`, `z` is the easting. The two
+-- weapons below are built so that the two readings disagree: read from `z`, the sea-level one far east
+-- would carry the larger potential energy; read from `y`, only the high one carries any.
+local function fakeWeaponAt(point)
+  return {
+    getLauncher = function()
+      return nil
+    end,
+    getVelocity = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+    getPoint = function()
+      return point
+    end,
+  }
+end
+
+function TestVeafMGWeaponExtra:test_getCurrentEnergy_reads_the_altitude_from_y_not_the_easting()
+  local high = VeafMG_Weapon:new():setDcsWeapon(fakeWeaponAt({ x = 0, y = 5000, z = 0 }))
+  local farEast = VeafMG_Weapon:new():setDcsWeapon(fakeWeaponAt({ x = 0, y = 0, z = 300000 }))
+  luaunit.assertAlmostEquals(high:getCurrentEnergy(), 250 * 9.81 * 5000, 1e-6)
+  luaunit.assertAlmostEquals(farEast:getCurrentEnergy(), 0, 1e-6)
+end
+
 -- ============================================================================
 -- TestVeafMGGuardianSetters
 -- ============================================================================

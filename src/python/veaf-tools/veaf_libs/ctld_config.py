@@ -59,6 +59,13 @@ VEAF_CONFIG_OVERRIDES: dict[str, list[str]] = {
     ],
 }
 
+#: CTLD's sample lists, emptied when scaffolding. The engine's catalogue names `extract1` …
+#: `extract25` and `logistic1` … `logistic10`, which no VEAF mission holds: GermanyCW-v6 logged 35
+#: « not found » warnings at start (2026-09-28). Kept apart from :data:`VEAF_CONFIG_OVERRIDES`,
+#: which the build **merges** into a mission's lists — these are only a starting value, and a
+#: mission maker who fills them in ctld-tools keeps what they wrote.
+VEAF_EMPTIED_LISTS: tuple[str, ...] = ("extractableGroups", "logisticUnits")
+
 
 def extract_default_config(ctld_lua: str) -> str | None:
     """Extract the default configuration YAML from a CTLD 2 deliverable.
@@ -197,6 +204,9 @@ def apply_veaf_overrides(catalogue: str) -> str:
     setting the engine will not read helps nobody. The mismatch surfaces as the missing
     behaviour, not as a broken config.
 
+    CTLD's sample ``extractableGroups`` / ``logisticUnits`` lists are emptied too
+    (:data:`VEAF_EMPTIED_LISTS`).
+
     Args:
         catalogue: The default configuration YAML, as read from the engine.
 
@@ -209,7 +219,8 @@ def apply_veaf_overrides(catalogue: str) -> str:
     yaml.preserve_quotes = True
     document = yaml.load(catalogue)
 
-    for key, value in VEAF_CONFIG_OVERRIDES.items():
+    starting_values: dict[str, list[str]] = {**VEAF_CONFIG_OVERRIDES, **{key: [] for key in VEAF_EMPTIED_LISTS}}
+    for key, value in starting_values.items():
         for section_name in ("mm_facing", "advanced"):
             section = document.get(section_name)
             if section is not None and key in section:

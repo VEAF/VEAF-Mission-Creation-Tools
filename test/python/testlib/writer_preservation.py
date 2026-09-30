@@ -19,7 +19,7 @@ That is :func:`assert_round_trip_identical`. :func:`assert_preserved` is its com
 where the writer **must** change one section: it still has to leave everything else alone.
 
 Sweeping every writer in the repository with the identity check is deliberately not done here — see
-``.backlog/FIX-BUILD-YAML-TRUNCATION/tickets/02-writer-preservation-helper.md``. The helper existing is
+``.backlog/archive/FIX-BUILD-YAML-TRUNCATION.md``. The helper existing is
 what makes that a cheap lot later rather than an open-ended audit now.
 """
 

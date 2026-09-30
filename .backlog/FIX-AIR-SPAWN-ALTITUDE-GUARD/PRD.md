@@ -3,7 +3,7 @@
 Status: 🧑 waiting-human — the read is fixed and shipped (ticket 01); the **clearance** rule needs DCS
 to answer whether the game lifts a too-low aircraft by itself (ticket 02, `DCS-SESSION-TODO.md` R9).
 
-Found 2026-09-01 while delivering [`CHORE-ONE-TERRAIN-CHECK`](../CHORE-ONE-TERRAIN-CHECK/PRD.md), and
+Found 2026-09-01 while delivering [`CHORE-ONE-TERRAIN-CHECK`](../archive/CHORE-ONE-TERRAIN-CHECK.md), and
 **deliberately left out of it**: that lot is forbidden from moving any spawn answer, and fixing this
 moves some. Its finding 5 carries the analysis; this lot carries the repair.
 

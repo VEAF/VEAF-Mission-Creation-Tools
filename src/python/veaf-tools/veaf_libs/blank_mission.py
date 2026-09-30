@@ -3,7 +3,7 @@
 Starting a VEAF mission otherwise requires a `.miz` created in the DCS Mission Editor for the
 target theatre. This module builds one in Python instead: a generic, theatre-agnostic ``mission``
 skeleton composed with per-theatre constants (theatre name, map centre/zoom, default per-coalition
-bullseye) from ``data/theatre-defaults.yaml``. See ``.backlog/FEAT-BLANK-MISSION-THEATRE/PRD.md``.
+bullseye) from ``data/theatre-defaults.yaml``. See ``.backlog/archive/FEAT-BLANK-MISSION-THEATRE.md``.
 
 The output is the exploded ``src/mission/`` file set a VEAF mission folder expects, ready for
 ``veaf-tools build`` and the MCP composites. Coalitions ship empty (no groups/countries): the maker
@@ -52,6 +52,19 @@ def _resolve_key(theatre: str) -> str:
 def supported_theatres() -> list[str]:
     """Return the theatre names for which a blank can be synthesized (as declared, sorted)."""
     return sorted(entry["name"] for entry in _theatre_table().values())
+
+
+def canonical_theatre_name(theatre: str) -> str:
+    """Return the exact DCS spelling of a theatre name typed any other way (``caucasus`` → ``Caucasus``).
+
+    Args:
+        theatre: A theatre name, any case, or an alias.
+
+    Returns:
+        The name as DCS writes it in a mission's ``theatre`` member; *theatre* unchanged when unknown.
+    """
+    entry = _theatre_table().get(_resolve_key(theatre))
+    return str(entry["name"]) if entry else theatre
 
 
 def is_theatre_supported(theatre: str) -> bool:

@@ -31,8 +31,8 @@ Que vivront vos joueurs ?
 | Place un marqueur avec `_cas` | [veafCasMission](veafCasMission.md) | Zone de cibles aléatoire générée |
 | Ouvre F10 → ZONES DE COMBAT → Activer la zone | [veafCombatZone](veafCombatZone.md) | Zone de combat pré-construite activée |
 | Entre dans une zone de vagues aériennes | [veafAirWaves](veafAirWaves.md) | Combat aérien par vagues lancé |
-| Ouvre F10 → ASSETS → [ressource] | [veafAssets](veafAssets.md) | Info, respawn |
-| Ouvre F10 → CARRIER OPS → Start carrier air operations for 45 minutes | [veafCarrierOperations](veafCarrierOperations.md) | Le porte-avions se met face au vent |
+| Ouvre F10 → MOYENS → [ressource] | [veafAssets](veafAssets.md) | Info, respawn |
+| Ouvre F10 → OPS PORTE-AVIONS → Start carrier air operations for 45 minutes | [veafCarrierOperations](veafCarrierOperations.md) | Le porte-avions se met face au vent |
 | Entre dans une zone protégée | [veafQraManager](veafQraManager.md) | Intercepteurs IA décollent |
 | Tape `_auth elevate` | [veafSecurity](veafSecurity.md) | Le groupe monte au niveau du demandeur pendant 2 minutes |
 | Vole dans une zone sanctuaire | [veafSanctuary](veafSanctuary.md) | Missiles hostiles neutralisés |
@@ -90,7 +90,7 @@ Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune r
 |--------|---------|------|
 | [veafSkynetIadsHelper](veafSkynetIadsHelper.md) | `veafSkynetIadsHelper.lua` | Configure Skynet IADS depuis les données de groupes VEAF |
 | `veafSkynetIadsMonitor.lua` | — | Surveille la santé de Skynet IADS et envoie des alertes radio |
-| `veafRemote.lua` | — | Intégration des commandes distantes NIOD / SLMOD |
+| `veafRemote.lua` | — | Pont avec le hook serveur VEAF : droits des joueurs et commandes du chat |
 
 ---
 

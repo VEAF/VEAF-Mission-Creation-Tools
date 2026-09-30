@@ -160,6 +160,55 @@ class TestValidateModulesSemantics(unittest.TestCase):
         with self.assertRaises(typer.Abort):
             fn({"modules": {"CTLD": {"enabled": True, "manage_logistics": "yes"}}})
 
+    def test_airbase_logistics_keys_are_accepted(self) -> None:
+        """The opt-out and its three numbers, beside manage_logistics (FEAT-CTLD-AIRBASE-LOGISTICS)."""
+        mock_log, fn = self._patched()
+        fn(
+            {
+                "modules": {
+                    "CTLD": {
+                        "enabled": True,
+                        "manage_airbase_logistics": False,
+                        "airbase_logistics_radius": 300,
+                        "airbase_occupation_radius": 2500,
+                        "airbase_logistics_tick": 60,
+                    }
+                }
+            }
+        )
+        mock_log.error.assert_not_called()
+
+    def test_manage_airbase_logistics_must_be_a_boolean(self) -> None:
+        """A string "false" is truthy in Lua and would silently enable the feature — reject it."""
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "manage_airbase_logistics": "false"}}})
+
+    def test_airbase_logistics_number_must_be_a_number(self) -> None:
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "airbase_logistics_radius": "250"}}})
+
+    def test_airbase_logistics_number_rejects_a_boolean(self) -> None:
+        """A bool is an int in Python, so `true` must not slip through an isinstance(int) check."""
+        mock_log, fn = self._patched()
+        with self.assertRaises(typer.Abort):
+            fn({"modules": {"CTLD": {"enabled": True, "airbase_logistics_tick": True}}})
+
+    def test_airbase_logistics_number_must_be_positive(self) -> None:
+        """A 0 is truthy in Lua, so it would not fall back to the default; negatives mean nothing."""
+        for number_key in ("airbase_logistics_radius", "airbase_occupation_radius", "airbase_logistics_tick"):
+            for bad in (0, -30, -0.5):
+                with self.subTest(key=number_key, value=bad):
+                    mock_log, fn = self._patched()
+                    with self.assertRaises(typer.Abort):
+                        fn({"modules": {"CTLD": {"enabled": True, number_key: bad}}})
+
+    def test_airbase_logistics_number_accepts_a_positive_float(self) -> None:
+        mock_log, fn = self._patched()
+        fn({"modules": {"CTLD": {"enabled": True, "airbase_logistics_tick": 0.5}}})
+        mock_log.error.assert_not_called()
+
     def test_unknown_init_param_is_warning_not_error(self) -> None:
         mock_log, fn = self._patched()
         fn({"modules": {"RADIO": {"init": {"bogus": True}}}})
@@ -170,6 +219,45 @@ class TestValidateModulesSemantics(unittest.TestCase):
         mock_log, fn = self._patched()
         fn({"modules": {"RADIO": {"init": {"help_menus": True}}}})
         mock_log.warning.assert_not_called()
+
+
+class TestUnknownLogLevel(unittest.TestCase):
+    """A misspelled logLevel is ignored by the runtime: say so at build time."""
+
+    def _warnings(self, level: str) -> list[str]:
+        from veaf_libs.yaml_validator import collect_module_issues
+
+        return collect_module_issues({"modules": {"SPAWN": {"logLevel": level}}})[1]
+
+    def test_a_misspelled_level_is_reported(self) -> None:
+        warnings = self._warnings("tarce")
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("tarce", warnings[0])
+
+    def test_known_levels_in_any_case_are_silent(self) -> None:
+        for level in ("trace", "DEBUG", "Info", "warning", "error"):
+            self.assertEqual(self._warnings(level), [], level)
+
+
+class TestUnknownQraKey(unittest.TestCase):
+    """FIX-QRA-COMMANDS-AND-OFFSET: a QRA key the generator does not read did nothing, silently."""
+
+    def _warnings(self, definition: dict) -> list[str]:
+        from veaf_libs.yaml_validator import collect_module_issues
+
+        _, warnings = collect_module_issues({"modules": {"QRA": {"definitions": [definition]}}})
+        return warnings
+
+    def test_a_key_the_generator_does_not_read_is_reported(self) -> None:
+        warnings = self._warnings({"name": "QRA-Nord", "coalition": "RED", "respawn_radius": 5000})
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("respawn_radius", warnings[0])
+        self.assertIn("QRA-Nord", warnings[0])
+
+    def test_every_known_key_is_silent(self) -> None:
+        from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
+
+        self.assertEqual(self._warnings(dict.fromkeys(QRA_DEFINITION_KEYS, None)), [])
 
 
 if __name__ == "__main__":

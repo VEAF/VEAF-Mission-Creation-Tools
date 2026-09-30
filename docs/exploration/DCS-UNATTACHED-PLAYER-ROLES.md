@@ -3,7 +3,7 @@
 **Measured 2026-08-20, DCS 2.9.28.26385 (x86_64, MT, Windows), single-player session.**
 Probe: `test/veaf-tools/verify-mission-c/src/scripts/probeRoleMenus.lua` (deleted after the run — this
 page is its output). Ticket 01 of
-[`FEAT-ROLE-AWARE-RADIO-MENU`](../../.backlog/FEAT-ROLE-AWARE-RADIO-MENU/PRD.md).
+[`FEAT-ROLE-AWARE-RADIO-MENU`](../../.backlog/archive/FEAT-ROLE-AWARE-RADIO-MENU.md).
 
 ## Why this page exists
 
@@ -146,7 +146,7 @@ Two further caveats before anyone builds on this:
 - **None of this was measured in multiplayer.** Everything on this page is a single-player session.
 
 A defect found while instructing this, unrelated to the lot and outliving it:
-[`FIX-REMOTE-SLOT-NIL-UNIT`](../../.backlog/FIX-REMOTE-SLOT-NIL-UNIT/PRD.md) — the hook sends the literal
+[`FIX-REMOTE-SLOT-NIL-UNIT`](../../.backlog/archive/FIX-REMOTE-SLOT-NIL-UNIT.md) — the hook sends the literal
 string `"nil"` for "no unit", which is truthy, so a player between slots is filed under a unit named
 `nil` and `veafSecurity.getUnitNameForPlayer` hands that string back to its callers.
 

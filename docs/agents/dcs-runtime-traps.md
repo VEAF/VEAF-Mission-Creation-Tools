@@ -30,6 +30,121 @@ at the end of this page.
 
 ## Spawning and timing {#spawning}
 
+### `Disposition.getSimpleZones` counts vehicles as obstacles, honours neither its radius nor its clearance, and is not deterministic {#disposition-getsimplezones-is-a-lottery}
+
+Measured **2026-09-26**.
+
+The undocumented `Disposition` singleton is the only DCS API that knows where the forests are,
+so it is what every scenery-aware placement in this codebase rests on. **It proposes points; it
+does not answer questions**, and three of its four parameters mean less than they look.
+
+Measured on GermanyCW-v6, `getSimpleZones(point, searchRadius, posRadius, attempts)`:
+
+| Asked | What comes back |
+|---|---|
+| `searchRadius = 1000` | candidates at up to **2769 m** |
+| `posRadius = 183` (clearance) | a candidate **blocked in 12 directions out of 12 at 10 m** |
+| the same call, five times in a row | nearest candidate at **1335, 1476, 1404, 1355, 1293 m** — and a sixth found one at **153 m** |
+
+The last line is the one that hurts: the scatter is not noise around a value, it is the
+difference between "there is a clearing 150 m away" and "there is nothing within a kilometre".
+
+The *small* query — "is there a patch of 5 m free within 20 m of this point?" — **is** reliable
+and repeatable: 12 repetitions on the same points gave 0/12 against 12/12, with identical
+candidate counts. So the singleton is dependable as a probe and unreliable as an oracle.
+
+**But it counts VEHICLES, not just scenery — and that has invalidated more measurements here
+than anything else on this page.** It answers "is there room free here", and a tank occupies
+room. Measured in game on 2026-09-26 (GermanyCW-v6), the same points probed twice, seconds
+apart, the only difference being whether the group was standing on them:
+
+| group | with its vehicles | group destroyed |
+|---|---|---|
+| `combatZone_Brocken` EWR, 3 vehicles | **3 / 3 blocked** | **0 / 3** |
+| `combatZone_Borkenberge_Hard` S-300, 14 vehicles | **12 / 14 blocked** | **0 / 14** |
+
+Fifteen of seventeen vehicles reported as "standing in trees" were standing in nothing but each
+other. A tight SAM battery cannot pass this test wherever you put it, so **any count of "units
+in scenery" taken after a spawn is largely a count of groups blocking themselves**. Three such
+figures — 81, then 76, then 69 — were published before this was found.
+
+It also explains, and disposes of, a "blindness" reported earlier the same day: probed from
+inside `veafUnits.settleGroup` witness points answered "clear" and answered "blocked" one second
+later. `settleGroup` runs **before the units exist**; the control ran after they had spawned.
+Two different questions, not a singleton that lies.
+
+**So probe where no vehicle of the group exists yet** — which is where `settleGroup` probes
+anyway. Measured there, vehicles genuinely under trees on arrival were **22**, not 76, and
+**4** after `settleGroup` had done its work.
+**The clearance you ask for decides whether it answers at all.** Same point, varying nothing but
+`posRadius`:
+
+| asked | 5 | 10 | 20 | 40 | 80 | 120 | 200 | 300 |
+|---|---|---|---|---|---|---|---|---|
+| candidates over 3 draws | 30 | 30 | 30 | 30 | 30 | 30 | 21 | **0** |
+
+Ask for a group's own footprint — 58 to 486 m on real groups — and it returns nothing, every
+time. This is what made `veafUnits.settleGroup` inert: 31 calls in one activation of 25 combat
+zones, **one** group translated, 30 giving up with no candidate to examine.
+
+Some places are out of reach entirely: for them it returns **zero at every clearance, down to
+5 m**, and no parameter will help.
+
+A blindness inside the spawn's own call stack was reported on 2026-09-26 and **did not survive
+remeasurement** the same evening: the same witness points answer the truth from inside
+`settleGroup`, before and after its large draws, with 25 zones firing at once. Over 20 groups,
+17 get candidates in flight, and replaying the identical queries from a quiet frame recovers
+none.
+
+**What to do:** **Use the small query as a probe, and never use the large one to find a clearing.** To find
+open ground, sweep the neighbourhood yourself — offsets on rings of growing radius, closest
+first — and ask the small query about each point you would use. It is 0.38 ms a call against
+12 ms for the large one, and it gives the same answer every time. This is what
+`veafUnits.settleGroup` does since FIX-PLACEMENT-IGNORES-SCENERY ticket 12, and what
+`veafGrass.findClearBearing` asks about a FARP escort's wanted spot since
+FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND ticket 03 — reading that spot off the nearest large-query
+candidate never worked: the nearest one measured in game was 43.9 m away.
+
+If you do use the large query, treat what it returns as *suggestions*: verify every point with
+the small query, draw several times and merge, ask for little clearance (21 candidates at 200 m,
+none at 300 m), and never let the radius or the clearance you asked for stand in for a
+measurement.
+
+Moving the query out of the spawn flow is **not** required, and was measured to buy nothing.
+Deferring the spawn itself is a trap in its own right — the group name a spawn returns feeds
+`veafSkynet.declareSpawn`, convoy routing and `veaf.readyForCombat`, so delaying creation
+silently empties all three.
+
+*What it cost:* Three rounds on the same defect, two of them shipped green and inert. Ticket 08 of
+FIX-PLACEMENT-IGNORES-SCENERY assumed the **radius** was honoured, so its acceptance test could
+never pass and it displaced nothing, ever. Ticket 10 assumed the **clearance** was honoured and
+wrote it into a comment — "a candidate is scenery-free by construction" — and translated groups
+into the middle of woods; released in 6.25.0, measured inert the same day.
+
+### A grid of scenery probes 50 m apart steps over a copse; 25 m apart it does not {#scenery-probe-grid-steps-over-copses}
+
+Measured **2026-09-28**.
+
+The small `Disposition.getSimpleZones` probe answers "blocked" only where its whole 20 m disc is
+covered, so a wood smaller than the gap between two probes can sit between them unseen. Measured
+on Caucasus, on an empty mission, 12 points compared with rings probed every 20 m:
+
+| probe spacing | worst error on the clear radius |
+|---|---|
+| 25 m | −20 / +10 m |
+| 50 m | **+130 m** — 170 m promised where a copse stood 60 m away |
+| 200 m | **+200 m**, several points |
+
+Costs, same session: **0.15 to 0.17 ms** a probe on an empty Caucasus mission, **190 ms** a call
+across `dcs-serve` whatever it carries. On GermanyCW the same sweep ran at about **0.3 ms** a
+probe (1.45 M cells in 8 min), in line with the 0.38 ms measured there on 2026-09-26.
+
+**What to do:** Sweep at 25 m where groups are placed, and never read a clear radius off a coarser grid. Batch
+thousands of probes per call: the call, not the probe, is what costs.
+
+*What it cost:* The whole-map 200 m pass FEAT-CLEAR-GROUND-AT-AUTHORING first planned would have promised
+clearings in woods; ticket 01 measured it before it was built.
+
 ### A late-activated group is fully visible to the scripting API before it is activated {#late-activated-group-is-visible}
 
 Measured **2026-09-21**.
@@ -79,6 +194,22 @@ saving time. GermanyCW was measured in June only; whether DCS keeps +2 in winter
 variants already do (since FIX-SCRATCH-MISSION-FINDINGS 02).
 
 *What it cost:* Every solar-time weather variant of every v6 mission started 2 to 4 hours early until 02 fixed it.
+
+### Some static types placed without a `shape_name` are refused at mission load, and the object never exists {#static-without-shape-name-is-refused}
+
+Measured **2026-09-28**.
+
+`dcs.log` at load: `ERROR APP (Main): unknown static shape_name, category Fortification, type:
+.Command Center` (and `category Warehouse, type: .Ammunition depot`). DCS does not create the
+object, and nothing in the mission file, the build or a scripting call says so afterwards.
+Many other types spawn without the field (Warehouse, Bunker, Barracks 2, Fuel tank, Tank, aircraft
+statics): DCS resolves the shape itself for most types, not all.
+
+**What to do:** Write the `shape_name` the Mission Editor writes — the unit database carries it for every static
+(`dcsUnits.yaml`, from the datamine's `ShapeName`). `add_group` writes it, and `validate` reports a
+static that lacks it.
+
+*What it cost:* 4 objectives of GermanyCW-v6, placed by the MCP before it wrote the field, missing in game; a combat zone drew 4 elements from 3.
 
 ## Air defence {#air-defence}
 
@@ -158,6 +289,50 @@ sees the `markToAll` marker only, a **red** one sees both. A game master has no 
 **What to do:** Watch a red network from a red game-master slot.
 
 *What it cost:* A false bug report against working code, and very nearly a "fix" to a correct drawing path.
+
+### A player whose side the briefing does not know sees the red pictures, then the blue ones {#briefing-pictures-red-then-blue}
+
+Measured **2026-09-29**.
+
+The mission's briefing pictures are three lists, `pictureFileNameR`, `pictureFileNameB` and
+`pictureFileNameN`. DCS's briefing (`MissionEditor/modules/me_autobriefing.lua`) picks the list of
+the player's side, and it knows that side only from a unit whose skill is `Player`. With none —
+a `Client` slot (a test mission flown from one included), a dynamic slot, a spectator — it shows
+**the red list followed by the blue one**. A picture put in both lists, the natural way to "show
+it to everyone", is shown twice: seen on GermanyCW-v6, in a case not written down.
+
+Read in DCS's Lua on 2026-09-29, not observed slot by slot. The in-flight and multiplayer
+briefing takes its pictures from the engine (`DCS.getPlayerBriefing()`,
+`Scripts/UI/BriefingDialog.lua`), whose rule cannot be read: whether a multiplayer pilot in a
+red slot gets the red list is **to be confirmed**.
+
+The panel also fits each picture to its own size: a theatre map 1600 px wide is shrunk until its
+labels cannot be read. The mouse wheel zooms, which few players know.
+
+**What to do:** Put every picture in `pictureFileNameB` and `pictureFileNameN`, and leave `pictureFileNameR`
+empty: whoever DCS cannot place sees each picture once. The cost falls on a red player DCS does
+identify: they may get no picture. Keep that for missions whose red classic slots do not need the map
+(an arena), and say so in the briefing text.
+
+Against the fitted panel, add zoomed maps after the theatre map, one per area, each with a title.
+
+*What it cost:* Found on GermanyCW-v6, whose briefing showed its map twice, too small to read.
+
+### A departing player's last slot change arrives after DCS has forgotten the player {#player-leaves-slot-after-dcs-forgot-the-player}
+
+Measured **2026-09-30**.
+
+When a player disconnects, DCS fires the hook callback `onGameEvent("disconnect", id)` and then
+`onPlayerChangeSlot(id)`, and by that second call `net.get_player_info(id)` returns nil. Measured
+on the six VEAF servers' `dcs.log`, 2026-09-29 18:04 → 2026-09-30 17:45: 21 disconnects, 21 slot
+changes with no player info, each right after the disconnect of the same id, none anywhere else.
+
+**What to do:** A hook reading the player in `onPlayerChangeSlot` must accept nil, and can tell this ordinary case
+from an unexplained one by remembering the ids `onGameEvent` reported disconnecting — which is what
+`VEAF-Server-hook.lua` does.
+
+*What it cost:* The VEAF hook logged it at ERROR, once per departure: on private1 it was the first suspect for an
+unrelated security defect until its context was measured.
 
 <!-- END GENERATED -->
 

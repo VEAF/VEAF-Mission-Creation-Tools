@@ -1,8 +1,6 @@
 """Generate ``veaf-config.lua`` from a parsed ``mission.yaml`` content dict.
 
 This module is the authoritative source for the YAML-to-Lua config generation.
-``lua_module_scanner.generate_modules_config_lua`` delegates here for backward
-compatibility.
 
 Sections handled
 ----------------
@@ -1195,7 +1193,9 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     for wave in zone.get("waves") or []:
         parts = []
         if g := wave.get("groups"):
-            parts.append(f"groups = {_lua_text(g)}")
+            # a list is a Lua table: through _lua_text it became the one group "['a', 'b']"
+            groups_lua = "{" + ", ".join(_lua_text(x) for x in g) + "}" if isinstance(g, list) else _lua_text(g)
+            parts.append(f"groups = {groups_lua}")
         if "delay" in wave:
             parts.append(f"delay = {wave['delay']}")
         if n := wave.get("number"):
@@ -1213,6 +1213,33 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     else:
         lines.append(f"{indent}    :start()")
     return lines
+
+
+#: Every key a QRA definition of ``modules.QRA.definitions`` may carry, each one read below or by the
+#: radio-menu shortcut. `validate` warns on any other key: a key the generator does not read is a
+#: setting that silently does nothing (FIX-QRA-COMMANDS-AND-OFFSET). ``start`` is what convert-v5 wrote
+#: before ``active_at_start`` existed, and is still read for the missions it converted.
+QRA_DEFINITION_KEYS: frozenset[str] = frozenset(
+    {
+        "name",
+        "coalition",
+        "enemy_coalitions",
+        "trigger_zone",
+        "zone_radius",
+        "simple_groups",
+        "groups_by_enemy_count",
+        "delay_before_rearming",
+        "delay_before_activating",
+        "react_on_helicopters",
+        "airport_link",
+        "respawn_default_offset",
+        "active_at_start",
+        "start",
+        "radio_menu",
+        "radio_menu_restrict_to_group",
+        "radio_menu_secured",
+    }
+)
 
 
 def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
@@ -1253,11 +1280,15 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
         lines.append(f"{indent}    :setReactOnHelicopters()")
     if al := qra_def.get("airport_link"):
         lines.append(f"{indent}    :setAirportLink({_lua_text(al)})")
+    # Where a command-driven element spawns, relative to the zone: the same setter as a wave zone's.
+    if ro := qra_def.get("respawn_default_offset"):
+        x, y = _number_pair(ro, "respawn_default_offset")
+        lines.append(f"{indent}    :setRespawnDefaultOffset({x}, {y})")
 
     # `active_at_start: false` declares the QRA without arming it: the builder chain stops
     # before :start(). The QRA is still registered under its name by :setName(), so a
     # `qra.start` radio command (or a script) can arm it later.
-    if qra_def.get("active_at_start", True):
+    if qra_def.get("active_at_start", qra_def.get("start", True)):
         lines.append(f"{indent}    :start()")
     return lines
 
@@ -1948,20 +1979,38 @@ def generate_config_lua(
         lines.append("")
 
     # ── CTLD 2 start-up (FIX-CTLD-NEVER-INITIALIZED) ──────────────────────
-    # CTLD 2 takes no settings here — its configuration is the mission's ctld-config.yaml,
-    # injected as CTLD_userConfig.lua right before CTLD.lua (ADR 0016). What it does need is
-    # the start-up call: CTLD_userConfig.lua sets ctld.dontInitialize, and veaf.lua only
-    # *registers* CTLD as a module (order 50), a registration consumed solely by
-    # veaf.initialize() — which this generated file never calls, initializing each module
-    # one by one instead. Without the line below the engine never starts: no radio menu, and
+    # CTLD 2's own configuration is the mission's ctld-config.yaml, injected as CTLD_userConfig.lua
+    # right before CTLD.lua (ADR 0016) — except for the airbase-logistics settings, which VEAF Lua
+    # reads at runtime from veaf.config and which are therefore emitted here (FEAT-CTLD-AIRBASE-
+    # LOGISTICS ticket 05). What CTLD itself needs is the start-up call: CTLD_userConfig.lua sets
+    # ctld.dontInitialize, and veaf.lua only *registers* CTLD as a module (order 50), a registration
+    # consumed solely by veaf.initialize() — which this generated file never calls, initializing each
+    # module one by one instead. Without the line below the engine never starts: no radio menu, and
     # the first spawnFob dies inside CTLD on a configuration that was never loaded.
     #
     # Emitted BEFORE the module block on purpose. Order 50 puts CTLD ahead of veafGrass (150)
     # and veafAssets (160), the two modules that call into it; a generated file has no
-    # ordering but its own, so the call has to come first here too.
+    # ordering but its own, so the call has to come first here too. The veaf.config settings are
+    # written before it so veafTransportMission, initialized later in the module block, resolves them.
     if _community_enabled(mission_yaml, "ctld"):
         lines.append("-- ── CTLD 2 ───────────────────────────────────────────────────────────────────")
         lines.append("-- Configuration lives in ctld-config.yaml (edit it with ctld-tools); this only starts it.")
+        # Only the keys the maker actually set are written; an absent one falls back to its default in
+        # veafTransportMission. `_to_lua_scalar` renders a boolean as a real Lua true/false, never a
+        # string — `"false"` is truthy in Lua and would silently enable the feature for a maker who
+        # typed the word instead of the value, which is exactly what the validator also rejects.
+        ctld_cfg = mission_yaml.get("community_scripts", {}).get("ctld")
+        if isinstance(ctld_cfg, dict):
+            for setting_key in (
+                "manage_airbase_logistics",
+                "airbase_logistics_radius",
+                "airbase_occupation_radius",
+                "airbase_logistics_tick",
+            ):
+                if setting_key in ctld_cfg:
+                    lines.append(
+                        f"veaf.config.{setting_key} = {_to_lua_scalar(ctld_cfg[setting_key], f'veaf.config.{setting_key}')}"
+                    )
         lines.append("if ctld then")
         lines.append("    veaf.ctld_initialize()")
         lines.append("end")
@@ -2334,15 +2383,20 @@ def generate_mission_yaml_template(
                 "  #   coverage_refresh_interval_s: 10          # how often the radar coverage graph is swept (0 = never)",
             ]
         elif upper == "CTLD":
-            # CTLD 2 takes no settings here: its configuration is the mission's
-            # ctld-config.yaml (ADR 0016). Advertising a settings: block would invite
-            # writing values the build silently drops. `manage_logistics` is the one
-            # exception and is shown expanded, disabled or not: a flag nobody can see is
-            # a flag nobody knows about, which is the defect this option was added for.
+            # CTLD 2's own configuration is the mission's ctld-config.yaml (ADR 0016), so it takes no
+            # settings: block here — advertising one would invite writing values the build silently
+            # drops. The flags VEAF itself reads are the exception and are shown expanded, disabled or
+            # not: a flag nobody can see is a flag nobody knows about, which is the defect this option
+            # was added for. `manage_logistics` is consumed by the builder; the four airbase-logistics
+            # keys are emitted into veaf-config.lua for VEAF Lua (FEAT-CTLD-AIRBASE-LOGISTICS ticket 05).
             lines += [
                 f"  # {sid}:                  # configured in ctld-config.yaml (edit it with ctld-tools)",
                 "  #   enabled: false",
                 "  #   manage_logistics: true   # register every carrier and FARP ammo dump as a CTLD loading point",
+                "  #   manage_airbase_logistics: true   # register every airdrome as a CTLD logistic zone; false to opt out",
+                "  #   airbase_logistics_radius: 250    # metres of logistic zone around each airfield's stand",
+                "  #   airbase_occupation_radius: 2000  # metres a captured or neutral field probes for ground units",
+                "  #   airbase_logistics_tick: 30       # seconds between two evaluations of every airfield",
             ]
         elif upper == "CSAR":
             lines += [

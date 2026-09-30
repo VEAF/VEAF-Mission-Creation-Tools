@@ -92,7 +92,9 @@ veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART = 1
 -- This is only half of it -- %q does not escape `]`, so it cannot stop a value from
 -- closing the long bracket that injectCode used to wrap the payload in. See injectCode.
 REGISTER_PLAYER = [[ if veafRemote and veafRemote.registerUser then veafRemote.registerUser(%q, %q, %q) end ]]
-REGISTER_PLAYER_SLOT = [[ if veafRemote and veafRemote.registerUserSlot then veafRemote.registerUserSlot(%q, %q, %q) end ]]
+-- The slot carries the pilot's level too: a mission loaded while a player stays connected never hears
+-- their onPlayerConnect, so this is the first thing it learns of them (FIX-SECU-VERB-AND-LOG-NOISE).
+REGISTER_PLAYER_SLOT = [[ if veafRemote and veafRemote.registerUserSlot then veafRemote.registerUserSlot(%q, %q, %q, %q) end ]]
 RUN_COMMAND = [[ if veafRemote and veafRemote.executeCommandFromRemote then veafRemote.executeCommandFromRemote(%q, %q, %q, %q, %q) end ]]
 SEND_MESSAGE = [[ if trigger and trigger.action and trigger.action.outText then trigger.action.outText(%q, %s) end ]]
 
@@ -104,6 +106,11 @@ veafServerHook.EOT_MARKER = ">>EOT"
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veafServerHook.pilots = {}
+
+-- Player ids DCS reported disconnecting, until their last slot change arrives. DCS moves a leaving
+-- player out of their slot after it has already forgotten them, so that callback finds no player info;
+-- this is what tells that ordinary case from one worth reporting.
+veafServerHook.leavingPlayers = {}
 
 veafServerHook.closeServerAtMissionStop = false
 veafServerHook.closeServerAtLastDisconnect = true
@@ -261,6 +268,7 @@ end
 
 function veafServerHook.onPlayerConnect(id)
   veafServerHook.logDebug(string.format("veafServerHook.onPlayerConnect([%s])", veafServerHook.p(id)))
+  veafServerHook.leavingPlayers[id] = nil -- an id DCS hands out again is a new player
   local _playerDetails = net.get_player_info(id)
   local playerName = _playerDetails.name
   local ucid = _playerDetails.ucid
@@ -286,7 +294,14 @@ function veafServerHook.onPlayerChangeSlot(id)
   veafServerHook.logDebug(string.format("veafServerHook.onPlayerChangeSlot([%s])", veafServerHook.p(id)))
   local _playerDetails = net.get_player_info(id)
   if not _playerDetails then
-    veafServerHook.logError(string.format("veafServerHook.onPlayerChangeSlot([%s]) - _playerDetails is nil", veafServerHook.p(id)))
+    -- A departing player, three times in 90 minutes on private1 (2026-09-29): an ERROR on every normal
+    -- disconnect buried the ones that mattered. Anything else keeps a level worth grepping for.
+    if veafServerHook.leavingPlayers[id] then
+      veafServerHook.leavingPlayers[id] = nil
+      veafServerHook.logDebug(string.format("veafServerHook.onPlayerChangeSlot([%s]) - player has left", veafServerHook.p(id)))
+    else
+      veafServerHook.logWarning(string.format("veafServerHook.onPlayerChangeSlot([%s]) - _playerDetails is nil", veafServerHook.p(id)))
+    end
     return
   end
   local playerName = _playerDetails.name
@@ -310,9 +325,23 @@ function veafServerHook.onPlayerChangeSlot(id)
   -- An empty string, not the literal "nil": that string is truthy on the mission side, so it used to be
   -- registered as a unit actually called `nil` (FIX-REMOTE-SLOT-NIL-UNIT). Empty rather than a real nil
   -- because the three values go through %q in the template, and the mission normalises either way.
-  local payload = string.format(REGISTER_PLAYER_SLOT, tostring(playerName), tostring(ucid), unitName or "") -- unitName is nil when the player is in no unit
+  local pilot = veafServerHook.pilots[ucid]
+  if id == 1 then
+    -- the server administrator, as on the chat path
+    pilot = veafServerHook.pilots[veafServerHook.ADMIN_FAKE_UCID]
+  end
+  local level = pilot and pilot.level or -1 -- -1: no power at all, the convention of onPlayerConnect
+  local payload = string.format(REGISTER_PLAYER_SLOT, tostring(playerName), tostring(ucid), unitName or "", tostring(level)) -- unitName is nil when the player is in no unit
   veafServerHook.logTrace(string.format("payload=%s", veafServerHook.p(payload)))
   veafServerHook.injectCode(payload)
+end
+
+--- DCS GameGUI callback. Only the disconnect matters here: it arrives before the slot change of the
+--- departing player, which then finds no player info (see onPlayerChangeSlot).
+function veafServerHook.onGameEvent(eventName, arg1)
+  if eventName == "disconnect" and arg1 ~= nil then
+    veafServerHook.leavingPlayers[arg1] = true
+  end
 end
 
 function veafServerHook.onPlayerDisconnect(id, err_code)

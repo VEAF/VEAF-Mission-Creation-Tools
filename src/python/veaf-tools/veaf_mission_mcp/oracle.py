@@ -4,7 +4,7 @@ The "brain" the LLM queries before authoring a mission: DCS unit types, VEAF spa
 reserved group/unit naming conventions, and VEAF module lookup. Every fact is read from the SAME
 canonical sources the build uses — the generated `dcsUnits.yaml`, `veaf-units.yaml`, and the Lua
 module scanner — so the oracle cannot drift from what the tooling actually ships (see
-`.backlog/FEAT-MCP-MISSION-EDITOR/PRD.md`, wave 5).
+`.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`, wave 5).
 """
 
 from pathlib import Path

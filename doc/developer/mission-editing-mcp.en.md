@@ -40,6 +40,16 @@ Claude plugin declares in its `.mcp.json`.
 
 ## Action catalog (v1)
 
+!!! note "The mission is `mission_path`, everywhere (FIX-OPEN-TRAINING-PROMPT-FINDINGS, ticket 05)"
+
+    42 of the 47 actions took the mission under five names: `miz_path` (17), `target` (9),
+    `folder_path` (6), `mission_path` (4) and `mission_yaml_path` (6). The catalog now publishes
+    **`mission_path`** (a mission folder or a `.miz`) for all of them and translates it back to the
+    key the handler reads: the three former names are still accepted as aliases, and the examples
+    below that use them stay valid. `mission_yaml_path` is kept, since it names another file; a
+    `mission_path` given in its place (a folder) is read as `<folder>/mission.yaml`. A catalog test
+    fails when a new action introduces a sixth name.
+
 !!! note "`miz_path` also takes a mission **folder** (FIX-MCP-AUTHORING-GAPS lot, ticket 03)"
 
     Every editing action — `edit_route`, `set_group_properties`, `set_unit_properties`, `edit_zone`,
@@ -416,6 +426,21 @@ convention-correct name itself (`veaf_mission_mcp.group_naming.resolve_group_nam
 `add_group` also returns a `warnings` field (see `validate_group_name`): it **still writes**, but
 flags any convention collision for the caller to relay.
 
+**Clear ground (FEAT-CLEAR-GROUND-AT-AUTHORING lot).** When the tool chooses the position, a
+**stationary** vehicle group (no `route`) is put on ground measured clear of trees and buildings, at
+most 1 km from the asked position, translating the group as one body. The measurement comes from the
+theatre's **clear-ground catalogue**, swept once in DCS with `veaf-tools dcs clear-ground-sweep`
+(Caucasus ships; otherwise the one swept on this workstation). The room needed is the extent of the
+units written; for a `#command` **marker**, it is the worst case of the group the runtime will draw
+(computed from `veaf-units.yaml`, spawn radius included: about 214 m for `-sa10`). A `warnings` entry
+always says what happened: moved by N m, nothing large enough within reach, a place the catalogue
+does not cover (with the command that sweeps it), or a group whose size is only known when it spawns
+(`-armor`, `-infantry`…), left to the runtime. The group is **never refused**: failing better, it stays
+where it was asked to go.
+
+- `keep_position: true` — the position is the one **the user** gave: the group is never moved. Same
+  parameter on the groups of `create_combat_zone`.
+
 ### `add_player_slot` (FIX-SCRATCH-MISSION-PLAYABLE lot)
 
 Write. Creates a **player slot** — a flyable aircraft group — which `add_group` (ground) cannot, and
@@ -656,6 +681,27 @@ initialise):
   placed the object alone (ticket 19). Shape measured on the 372 heliports of the missions under
   `D:\dev\_VEAF`. `warehouses.yaml`'s `farps:` then stocks it at build, like a base.
 
+### Carrier group, deck slots, sounds (FIX-OPEN-TRAINING-PROMPT-FINDINGS)
+
+- `add_carrier_group(mission_path, coalition, country_id, country_name, name, position, heading_deg,
+  speed_kt, carrier_type="Stennis", carrier_name, escorts, tower_mhz, tacan_channel, tacan_callsign,
+  icls_channel, link4_mhz, recovery_tanker, tanker_*, rescue_helicopter)` — the carrier (and its
+  escorts) under way, its radio on the unit (hertz), `ActivateBeacon` (TACAN, `system` 3),
+  `ActivateICLS`, and on an arrested-landing deck `ActivateLink4` + `ActivateACLS`; the
+  `<unit> S3B-Tanker` (`Tanker` task + TACAN Y) and `<unit> Pedro` groups `veafCarrierOperations` looks
+  for by name; the `warehouses.warehouses[<unitId>]` entry. The ATC tasks are written **on the first
+  route point and in the group's `tasks`**: of 218 groups measured, 120 keep them on the group, 55 on
+  the route, 43 in both, and `veafCarrierOperations` reads only the group; which of the two DCS runs
+  has not been measured.
+- `add_air_group(..., start="deck-cold"|"deck-hot", carrier=<ship unit>)` — first point linked to the
+  ship (`linkUnit` = `helipadId` = its `unitId`), deck spots numbered on; refused when the aircraft
+  cannot both take off from and land on that deck (`TakeOffRWCategories` / `LandRWCategories`, captured
+  into `dcsUnits.yaml`).
+- `add_sound(mission_path, sound_path, resource_name)` — copies a `.ogg`/`.wav` into `l10n/DEFAULT` and
+  declares it in `mapResource` as `MCP_Sound_<name>`; `edit_route` `transmit_message` plays it (a
+  wrapped `TransmitMessage`, `file` = the key, `loop`, `duration`, `subtitle` written to the
+  dictionary).
+
 ### Mission settings (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
 What the editor sets outside any group, and GermanyCW-v6 had to patch through a Lua serializer. Each
@@ -772,6 +818,19 @@ always returned, with the date they were measured). Each entry: `id`, `kind`, `a
 
 ```json
 {"kind": "dcs"}
+```
+
+### `offer_clear_ground_check` (FEAT-CLEAR-GROUND-AT-AUTHORING lot)
+
+Read-only, and it **launches nothing**. On a built `.miz`, returns what it takes to **offer** the user
+an in-game check: the `veaf-tools dcs clear-ground-check` command to run (it needs DCS), what it will
+do, the number of vehicles and markers, and the counting criterion. The check probes each vehicle's
+position on the **empty** survey mission: no vehicle exists there, so none is counted as blocked by its
+neighbours — the trap that made three published figures wrong. It then compares each answer with what
+the catalogue predicted.
+
+```json
+{"miz_path": "path/to/mission.miz"}
 ```
 
 ### `describe_naming_conventions`

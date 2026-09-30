@@ -188,6 +188,19 @@ jobs:
       - name: Build the veaf-logs executable
         run: poetry run pyinstaller veaf-logs.spec --noconfirm
 
+      # PyInstaller follows every import it can see, delayed ones included, so one
+      # stray import in a shared library is enough to ship the whole CLI. It has
+      # happened: through `veaf_libs.diagnostics` this binary carried the MCP server
+      # stack and mypy, 20 MB it never ran (CHORE-LOGS-EXE-TRIM). Only the archive
+      # itself shows it; paramiko must stay, the remote log needs it.
+      - name: The executable carries neither the CLI nor the MCP server
+        run: |
+          poetry run pyi-archive_viewer -l -r dist/veaf-logs > archive.txt
+          if grep -E "'(mypy|mcp|uvicorn|starlette|veaf_mission_mcp|PIL|pydantic)[./\\\\']|'veaf_tools\.(app|commands)" archive.txt; then
+            echo "veaf-logs bundles a package it never runs (listed above)"; exit 1
+          fi
+          grep -q "'paramiko'" archive.txt || { echo "paramiko is missing from veaf-logs"; exit 1; }
+
       # A window has no --help to walk, so we hand it a real log and check that it
       # is still alive a few seconds later. A bundle whose imports are broken dies
       # at once, which is exactly what this catches.

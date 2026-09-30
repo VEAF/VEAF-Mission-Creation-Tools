@@ -35,6 +35,14 @@ else. For an airfield that comes from the bundled parking dumps (Caucasus, Persi
 on a theatre with no dump nothing is filtered; for a ship or a FARP it comes from the unit type —
 ``AircraftCarrier`` takes planes and helicopters, ``HelicopterCarrier`` or a ``Heliport`` takes
 helicopters, and a ship that is neither is left untouched.
+
+A ship stocked **by default** (no ``aircrafts:`` list) gets only the templates whose aircraft can
+both take off from and land on its deck: DCS declares it on the aircraft (``TakeOffRWCategories`` /
+``LandRWCategories``, captured into ``dcsUnits.yaml``) as ship attributes to match — an F-14B takes
+off from an ``AircraftCarrier With Catapult`` and lands on any ``AircraftCarrier``, so it goes on the
+Stennis and not on the Tarawa. Before that filter, the Stennis of the GermanyCW-v6 mission was
+offered 51 types, B-52H and CH-47 included (FIX-OPEN-TRAINING-PROMPT-FINDINGS ticket 03). An
+explicit ``aircrafts:`` list is still obeyed as written.
 """
 
 from __future__ import annotations
@@ -50,6 +58,7 @@ from mission_tools.miz_tools import DcsMission
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.dcs_parking import parkable_kinds
+from veaf_libs.dcs_units_data import get_unit_deck_categories
 from veaf_libs.dcs_units_parser import parse_dcs_units
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
@@ -143,16 +152,17 @@ def _warehouse_category(aircraft_type: str, mission_categories: dict[str, str]) 
 
 
 @functools.lru_cache(maxsize=1)
-def _object_capabilities() -> dict[str, tuple[str, frozenset[str]]]:
-    """Map a DCS unit type (lowercase) -> (units-DB category, the parking kinds it can host).
+def _object_capabilities() -> dict[str, tuple[str, frozenset[str], frozenset[str]]]:
+    """Map a DCS unit type (lowercase) -> (units-DB category, parking kinds, unit attributes).
 
     Only the types that can host something are worth an entry; everything else is left alone by
     the caller. See :data:`_CARRIER_ATTRIBUTE` for what was measured.
 
     Returns:
-        Type id (lowercase) -> (units-DB category, parking kinds), empty if the DB cannot be read.
+        Type id (lowercase) -> (units-DB category, parking kinds, the unit's attributes — what an
+        aircraft's deck categories are matched against), empty if the DB cannot be read.
     """
-    result: dict[str, tuple[str, frozenset[str]]] = {}
+    result: dict[str, tuple[str, frozenset[str], frozenset[str]]] = {}
     try:
         units = list(parse_dcs_units(_DCS_UNITS_YAML))
     except (OSError, ValueError):  # never break the build on a units-DB read issue
@@ -165,8 +175,27 @@ def _object_capabilities() -> dict[str, tuple[str, frozenset[str]]]:
             kinds = frozenset({"helicopter"})
         else:
             continue
-        result[unit.type_id.lower()] = (category, kinds)
+        result[unit.type_id.lower()] = (category, kinds, frozenset(unit.attributes))
     return result
+
+
+def _can_use_deck(aircraft_type: str, ship_attributes: frozenset[str]) -> bool:
+    """Whether an aircraft can both take off from and land on a ship, by DCS's own declaration.
+
+    Args:
+        aircraft_type: The DCS aircraft type.
+        ship_attributes: The ship's unit attributes.
+
+    Returns:
+        True when one of the aircraft's take-off categories and one of its landing categories are
+        attributes of the ship. A type the units database does not know (a mod) is refused: a
+        carrier deck offering an aircraft nobody vouched for is the defect this filter removes.
+    """
+    categories = get_unit_deck_categories(aircraft_type)
+    if categories is None:
+        return False
+    takeoff, landing = categories
+    return bool(takeoff & ship_attributes) and bool(landing & ship_attributes)
 
 
 @dataclass
@@ -177,6 +206,7 @@ class _WarehouseObject:
     name: str
     unit_category: str
     parkable: frozenset[str]
+    attributes: frozenset[str] = frozenset()
 
 
 def _resolve_warehouse_objects(mission: DcsMission) -> dict[int, _WarehouseObject]:
@@ -208,12 +238,13 @@ def _resolve_warehouse_objects(mission: DcsMission) -> dict[int, _WarehouseObjec
                         capability = capabilities.get(str(unit_type).lower())
                         if capability is None or not isinstance(unit_id, int):
                             continue
-                        unit_category, parkable = capability
+                        unit_category, parkable, attributes = capability
                         objects[unit_id] = _WarehouseObject(
                             unit_id=unit_id,
                             name=str(unit.get("name") or group.get("name") or ""),
                             unit_category=unit_category,
                             parkable=parkable,
+                            attributes=attributes,
                         )
     return objects
 
@@ -384,6 +415,7 @@ def _apply_to_warehouse(
     auto_fill_types: list[str],
     parkable: frozenset[str] | None,
     template_group_ids: frozenset[int],
+    deck: frozenset[str] | None = None,
 ) -> int:
     """Apply one warehouse's settings in place; return the number of templates linked.
 
@@ -403,6 +435,9 @@ def _apply_to_warehouse(
         template_group_ids: Every dynamic-spawn template the mission holds. Required rather than
             defaulted: it is what :func:`_drop_dead_links` keeps, so an empty value erases every
             link in the warehouse. A caller must not be able to do that by forgetting an argument.
+        deck: A ship's unit attributes, or ``None`` for an airfield or a FARP. When given, the
+            default stock (no ``aircrafts:`` list) keeps only the types that can use this deck, and
+            any other type an earlier build stocked here is removed.
     """
     warehouse["dynamicSpawn"] = True
     # A dynamic slot is worth little if the pilot cannot take it with the engines running: the DCS
@@ -423,6 +458,9 @@ def _apply_to_warehouse(
         # (unlimited), so a base just assigned to a side is playable out of the box. An explicit
         # `aircrafts:` in the config overrides this. Types keep their original case (the index is
         # lower-cased, which would mis-key the DCS warehouse), hence `auto_fill_types`.
+        if deck is not None:
+            auto_fill_types = [atype for atype in auto_fill_types if _can_use_deck(atype, deck)]
+            _prune_off_deck_stock(warehouse, deck)
         aircrafts_cfg = {atype: {"amount": "unlimited"} for atype in auto_fill_types}
     if aircrafts_cfg:
         stock = warehouse.setdefault("aircrafts", {})
@@ -463,6 +501,25 @@ def _apply_to_warehouse(
 
     _drop_dead_links(warehouse, template_group_ids)
     return linked
+
+
+def _prune_off_deck_stock(warehouse: dict, deck: frozenset[str]) -> None:
+    """Drop, in place, every stocked type that cannot use this ship's deck.
+
+    A source ``.miz`` keeps what an earlier build wrote — the 51 types of the Stennis — so filtering
+    what is added is not enough, as for :func:`_prune_unparkable_stock`.
+
+    Args:
+        warehouse: The ship's warehouse entry, mutated in place.
+        deck: The ship's unit attributes.
+    """
+    stock = warehouse.get("aircrafts")
+    if not isinstance(stock, dict):
+        return
+    for sub_table in stock.values():
+        if isinstance(sub_table, dict):
+            for aircraft_type in [t for t in sub_table if not _can_use_deck(str(t), deck)]:
+                del sub_table[aircraft_type]
 
 
 def _drop_dead_links(warehouse: dict, template_group_ids: frozenset[int]) -> None:
@@ -600,6 +657,7 @@ def apply_warehouses(mission: DcsMission, config: dict) -> WarehousesResult:
                     template_types.get(coalition_key, []),
                     objects[unit_id].parkable,
                     template_group_ids,
+                    deck=objects[unit_id].attributes if unit_category == "ship" else None,
                 )
                 objects_configured += 1
 

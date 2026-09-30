@@ -49,113 +49,6 @@ function veafRemote.registerRemoteModule(name, fn)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- NIOD callbacks
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafRemote.addNiodCallback(name, parameters, code)
-  if niod then
-    veaf.loggers.get(veafRemote.Id):info("Adding NIOD function " .. name)
-    niod.functions[name] = function(payload)
-      -- start of inline function
-
-      veaf.loggers.get(veafRemote.Id):debug(string.format("niod callback [%s] was called with payload %s", veaf.p(name), veaf.p(payload)))
-
-      local errors = {}
-
-      -- check mandatory parameters presence
-      for parameterName, parameterData in pairs(parameters) do
-        veaf.loggers.get(veafRemote.Id):trace(string.format("checking if parameter [%s] is mandatory", veaf.p(parameterName)))
-        if parameterData and parameterData.mandatory then
-          if not (payload and payload[parameterName]) then
-            local text = "missing mandatory parameter " .. parameterName
-            veaf.loggers.get(veafRemote.Id):trace(text)
-            table.insert(errors, text)
-          end
-        end
-      end
-
-      -- check parameters type
-      if payload then
-        for parameterName, value in pairs(payload) do
-          local parameter = parameters[parameterName]
-          if not parameter then
-            table.insert(errors, "unknown parameter " .. parameterName)
-          elseif value and not (type(value) == parameter.type) then
-            local text = string.format("parameter %s should have type %s, has %s ", parameterName, parameter.type, type(value))
-            veaf.loggers.get(veafRemote.Id):trace(text)
-            table.insert(errors, text)
-          end
-        end
-      end
-
-      -- stop on error
-      if #errors > 0 then
-        local errorMessage = ""
-        for _, error in pairs(errors) do
-          errorMessage = errorMessage .. "\n" .. error
-        end
-        veaf.loggers
-          .get(veafRemote.Id)
-          :error(string.format("niod callback [%s] was called with incorrect parameters :", veaf.p(name), errorMessage))
-        return errorMessage
-      else
-        veaf.loggers.get(veafRemote.Id):trace(string.format("payload = %s", veaf.p(payload)))
-        veaf.loggers.get(veafRemote.Id):trace(string.format("unpacked payload = %s", veaf.p(veaf.safeUnpack(payload))))
-        local status, retval = pcall(code, veaf.safeUnpack(payload))
-        if status then
-          return retval
-        else
-          return "an error occured : " .. veaf.p(status)
-        end
-      end
-    end -- of inline function
-  else
-    veaf.loggers.get(veafRemote.Id):error("NIOD is not loaded !")
-  end
-end
-
--- `veafRemote.addNiodCommand` stood here. It exposed a marker-style command string to NIOD by handing
--- it to `veafRemote.executeCommand`, removed with that mechanism on 2026-08-11 (9a20c50c). It had **no
--- caller** anywhere in the scripts, the tests or the documentation, so unlike the handler below it never
--- raised: it was the second half of a removal left unfinished. Adding a NIOD command today means
--- `addNiodCallback` with a real function, which is what every entry in `buildDefaultList` does.
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- default endpoints list
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafRemote.buildDefaultList()
-  local TEST = false
-  if TEST then
-    -- test
-    veafRemote.addNiodCallback("test", {
-      param1S_M = { mandatory = true, type = "string" },
-      param2S = { mandatory = false, type = "string" },
-      param3N = { mandatory = false, type = "number" },
-      param4B = { mandatory = false, type = "boolean" },
-    }, function(param1S_M, param2S, param3N, param4B)
-      local text = string.format("niod.test(%s, %s, %s, %s)", veaf.p(param1S_M), veaf.p(param2S), veaf.p(param3N), veaf.p(param4B))
-      veaf.loggers.get(veafRemote.Id):debug(text)
-      trigger.action.outText(text, 15)
-    end)
-    -- login
-    veafRemote.addNiodCallback("login", {
-      password = { mandatory = true, type = "string" },
-      timeout = { mandatory = false, type = "number" },
-      silent = { mandatory = false, type = "boolean" },
-    }, function(password, timeout, silent)
-      veaf.loggers.get(veafRemote.Id):debug(string.format("niod.login(%s, %s, %s)", veaf.p(password), veaf.p(timeout), veaf.p(silent))) -- TODO remove password from log
-      if veafSecurity.checkPassword_L1(password) then
-        veafSecurity.authenticate(timeout)
-        return "Mission is unlocked"
-      else
-        return "wrong password"
-      end
-    end)
-  end
-end
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Remote command execution
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -194,7 +87,11 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
   local _module = veafModule:lower()
   local handler = veafRemote.remoteModuleRegistry[_module]
   if not handler then
-    veaf.loggers.get(veafRemote.Id):error(string.format("Module not found : [%s]", veaf.p(veafModule)))
+    -- A typing mistake over chat, not a programming fault: `warn` without a traceback, and an answer
+    -- to the pilot. Silence made three pilots try four spellings in 90 minutes on private1
+    -- (FIX-SECU-VERB-AND-LOG-NOISE ticket 02).
+    veaf.loggers.get(veafRemote.Id):warn("[%s] typed an unknown command: [%s]", veaf.p(username), veaf.p(veafModule))
+    veafRemote.answerPilot(unitName, veafRemote.describeUnknownModule(_module, command))
     return false
   end
   veaf.loggers.get(veafRemote.Id):debug(string.format("running remote module [%s]", _module))
@@ -225,6 +122,52 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
   return _status
 end
 
+--- The answer to an unknown chat module: what exists, and the full command when what was typed is the
+--- beginning of exactly one module name (`/sec login` → `/secu login`).
+---
+--- The prefix is suggested, never run: a secured verb reached by a guess would be a verb nobody typed.
+--- @param module string the lowercase module the pilot typed
+--- @param command string|nil the rest of the pilot's line
+--- @return string the message for the pilot
+function veafRemote.describeUnknownModule(module, command)
+  local names = {}
+  local matches = {}
+  for name, _ in pairs(veafRemote.remoteModuleRegistry) do
+    table.insert(names, name)
+    if module ~= "" and name:sub(1, #module) == module then
+      table.insert(matches, name)
+    end
+  end
+  table.sort(names)
+  local known = "/" .. table.concat(names, ", /")
+  if #matches == 1 then
+    local suggestion = "/" .. matches[1]
+    if command and command ~= "" then
+      suggestion = suggestion .. " " .. command
+    end
+    return veaf.t("remote.unknown_module_suggest", "/" .. module, suggestion, known)
+  end
+  return veaf.t("remote.unknown_module", "/" .. module, known)
+end
+
+--- Show `message` to the pilot in `unitName`, and to nobody else.
+---
+--- `veaf.outTextForUnit` falls back to a message for **everybody** when the unit does not resolve, which
+--- is right for its other callers and wrong for an answer to one pilot's chat line: a spectator's typo
+--- would be broadcast to the whole server. A player in no unit is therefore not answered on screen.
+--- @param unitName string|nil the unit the hook reported, in any of the shapes `normalizeUnitName` reads
+--- @param message string
+--- @return boolean true when the message was shown
+function veafRemote.answerPilot(unitName, message)
+  local unit = veafRemote.normalizeUnitName(unitName)
+  if not unit or not Unit.getByName(unit) then
+    veaf.loggers.get(veafRemote.Id):debug("no unit to answer [%s] in; not shown", veaf.p(unitName))
+    return false
+  end
+  veaf.outTextForUnit(unit, message, 15)
+  return true
+end
+
 -- register a user from the server
 function veafRemote.registerUser(username, userpower, ucid)
   veaf.loggers
@@ -233,7 +176,18 @@ function veafRemote.registerUser(username, userpower, ucid)
   if not username or not ucid then
     return false
   end
-  veafRemote.remoteUsers[username:lower()] = { name = username, level = tonumber(userpower or "-1"), ucid = ucid }
+  local level = tonumber(userpower or "-1")
+  local remoteUser = veafRemote.remoteUsers[username:lower()]
+  if remoteUser then
+    -- Updated in place, never replaced: `remoteUnitsPilots` holds this same table for the unit the player
+    -- sits in, and a new one left that entry with the old level — which is how a listed pilot stayed at
+    -- level 0 on private1 whatever they typed (FIX-SECU-VERB-AND-LOG-NOISE ticket 01).
+    remoteUser.name = username
+    remoteUser.level = level
+    remoteUser.ucid = ucid
+  else
+    veafRemote.remoteUsers[username:lower()] = { name = username, level = level, ucid = ucid }
+  end
 end
 
 --- The unit a slot payload actually names, or nil when it names none.
@@ -269,24 +223,48 @@ function veafRemote.normalizeUnitName(unitName)
   return trimmed
 end
 
--- register a user slot from the server; called when the player changes slot
-function veafRemote.registerUserSlot(username, ucid, unitName)
-  veaf.loggers
-    .get(veafRemote.Id)
-    :debug(string.format("veafRemote.registerUserSlot([%s], [%s], [%s])", veaf.p(username), veaf.p(ucid), veaf.p(unitName)))
+--- Register a user slot from the server; called when the player changes slot.
+---
+--- `level` is the pilot's level from `veaf-pilots.txt`, sent by the hook with the slot since
+--- FIX-SECU-VERB-AND-LOG-NOISE: a mission loaded while a player stays connected never hears their
+--- `onPlayerConnect`, so the slot is the first thing it learns of them. An older hook sends three values,
+--- and then the level already registered, if any, is kept.
+--- @param username string the player name
+--- @param ucid string|nil the player's UCID
+--- @param unitName string|nil the unit the player now occupies, in any shape `normalizeUnitName` reads
+--- @param level string|number|nil the player's level, when the hook sends it
+function veafRemote.registerUserSlot(username, ucid, unitName, level)
+  veaf.loggers.get(veafRemote.Id):debug(
+    string.format("veafRemote.registerUserSlot([%s], [%s], [%s], [%s])", veaf.p(username), veaf.p(ucid), veaf.p(unitName), veaf.p(level))
+  )
   if not username then
     return false
   end
   local remoteUser = veafRemote.remoteUsers[username:lower()]
   if not remoteUser then
+    -- Kept in `remoteUsers`, so that a later `registerUser` updates this very table — the one the unit
+    -- entry below points to. It used to be a throwaway, and nothing could repair the unit afterwards.
     remoteUser = { name = username, ucid = ucid }
+    veafRemote.remoteUsers[username:lower()] = remoteUser
+  end
+  local slotLevel = tonumber(level)
+  if slotLevel then
+    remoteUser.level = slotLevel
   end
   -- "occupies nothing" is represented by **absence**, which is what the code always claimed to do
   local occupiedUnit = veafRemote.normalizeUnitName(unitName)
+  if occupiedUnit and remoteUser.level == nil then
+    veaf.loggers.get(veafRemote.Id):warn(
+      "[%s] took [%s] with no known level; secured commands are refused until the server hook sends one",
+      veaf.p(username),
+      veaf.p(occupiedUnit)
+    )
+  end
   local previousUnit = remoteUser.unitName
   remoteUser.unitName = occupiedUnit -- nil when the player got out of his unit
-  -- unregister the previous unit, if any
-  if previousUnit then
+  -- unregister the previous unit, if it is still this player's: `registerUser` keeps `unitName` across a
+  -- reconnection, and the unit may have been taken by someone else since
+  if previousUnit and veafRemote.remoteUnitsPilots[previousUnit] == remoteUser then
     veafRemote.remoteUnitsPilots[previousUnit] = nil
   end
   -- register the current unit, if any
@@ -321,7 +299,6 @@ end
 
 function veafRemote.initialize()
   veaf.loggers.get(veafRemote.Id):info("Initializing module")
-  veafRemote.buildDefaultList()
   -- No marker command handler is registered any more, and that is deliberate.
   --
   -- This module used to answer marker text carrying a shared password, through

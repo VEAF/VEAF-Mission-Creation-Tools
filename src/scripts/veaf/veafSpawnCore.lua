@@ -928,7 +928,7 @@ function veafSpawn.missionMasterGetFlag(name)
   end
   local value = trigger.misc.getUserFlag(name)
   local message = string.format("Mission Master, flag [%s] has value [%s]", name, veaf.p(value))
-  veaf.loggers.get(veafSpawn.Id):info(message)
+  veaf.loggers.get(veafSpawn.Id):debug(message)
   veafSpawn.missionMasterOutText(message)
 end
 

@@ -113,3 +113,26 @@ silence. Replacing the type lists would do the same to anyone who adds a modded 
 build time, while ctld-tools keeps showing their value, since their file is untouched. The union
 adds and never removes; `manage_logistics: false` is how a mission takes those lists back, and the
 build warns loudly if that leaves it with none at all.
+
+## Amendment (FEAT-CTLD-AIRBASE-LOGISTICS) — VEAF registers zones CTLD never discovered
+
+`manage_logistics` was the first step off "the sidecar is carried verbatim": the build merges types
+into the document on the way in. This lot takes a second, larger step. A map `Airbase` is not a unit,
+so it is in neither `logisticUnitTypes` nor an `LGZ_` zone, and CTLD 2 will never discover it on its
+own — a transport landed on a captured field reads *"No logistics in range"* (issue #1007). VEAF now
+registers **every airfield** as a logistic zone itself, at runtime, through
+`CTLDZoneManager:registerFOBAsLogistic`, and holds it over time with `activate`/`deactivateLogisticZone`
+as the field changes hands. This is not a configuration channel and does not touch `ctld-config.yaml`:
+it is VEAF calling a public CTLD API to declare zones the engine could not infer, gated by
+`modules.CTLD.manage_airbase_logistics` (default true) beside its `manage_logistics` sibling. The
+sidecar remains the source for what CTLD reads from the file; what VEAF registers at runtime is a
+separate, additive act.
+
+Which parking stand a zone centres on leans on `Airbase:getParking()`, whose **per-theatre contents
+are not documented** — the method is, the stands it returns for a given map are not. Per ADR 0018 that
+is acceptable because it is a quality choice, never a correctness one: the stand nearest the terrain
+centroid is picked to place the 250 m zone sensibly, and if a theatre returns no usable parking the
+field is simply left alone rather than mis-registered. The accepted consequence is written down rather
+than discovered in flight — one 250 m zone per airfield, so on a widely spread apron an aircraft parked
+beyond the radius reads *"No logistics in range"* at an active field, and `airbase_logistics_radius` is
+the setting to raise.

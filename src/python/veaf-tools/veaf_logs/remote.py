@@ -247,6 +247,10 @@ def _connect(server: RemoteServer, prompt: HostKeyPrompt | None) -> tuple[Any, S
         timeout=_CONNECT_TIMEOUT_S,
         banner_timeout=_CONNECT_TIMEOUT_S,
         auth_timeout=_CONNECT_TIMEOUT_S,
+        # paramiko <= 4.0.0 accepts `ssh-rsa` (SHA-1) signatures (CVE-2026-44405); 5.0.0 removed
+        # them, but the `logs` extra still allows >=3.4, so the call site refuses them too. RSA
+        # keys keep working through rsa-sha2-256/512.
+        disabled_algorithms={"pubkeys": ["ssh-rsa"], "keys": ["ssh-rsa"]},
     )
     try:
         return client, client.open_sftp()

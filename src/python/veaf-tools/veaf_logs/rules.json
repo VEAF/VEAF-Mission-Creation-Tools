@@ -7,10 +7,16 @@
     "",
     "sources[]  : identification de l'emetteur d'une ligne (script Lua ou",
     "             sous-systeme DCS natif). La premiere source dont un motif",
-    "             correspond gagne, dans l'ordre du fichier.",
-    "noise[]    : familles de bruit ED. Chaque famille est activable/desactivable",
+    "             correspond gagne, dans l'ordre du fichier. Une source sans",
+    "             'match' mais avec 'formats' est l'emettrice des lignes de ces",
+    "             formats d'en-tete (voir parser.FORMATS) : DCSServerBot, Real",
+    "             Weather, LotAtc. Les motifs 'match' ne s'appliquent qu'aux",
+    "             lignes de dcs.log.",
+    "noise[]    : familles de bruit. Chaque famille est activable/desactivable",
     "             independamment dans l'interface. 'default_hidden' dit si elle",
-    "             est masquee au demarrage.",
+    "             est masquee par les profils Lecture et Diagnostic. 'formats'",
+    "             restreint la recherche aux lignes de ces formats d'en-tete ;",
+    "             sans lui, elle porte sur toutes les lignes.",
     "levels{}   : couleurs par niveau, appliquees par-dessus la teinte de source."
   ],
 
@@ -100,6 +106,24 @@
       "label": "Lua",
       "color": "#ffb347",
       "match": "^(Mission script error|stack traceback)"
+    },
+    {
+      "id": "dcssb",
+      "label": "DCSSB",
+      "color": "#5865f2",
+      "formats": ["dcssb", "dcssb-async"]
+    },
+    {
+      "id": "realweather",
+      "label": "Real Weather",
+      "color": "#56b6c2",
+      "formats": ["realweather"]
+    },
+    {
+      "id": "lotatc",
+      "label": "LotAtc",
+      "color": "#98c379",
+      "formats": ["lotatc"]
     }
   ],
 
@@ -293,6 +317,51 @@
       "match": "^VEAF(-[A-Z0-9]+)?\\|[DT]\\|",
       "regex": true,
       "on_message": true
+    },
+    {
+      "id": "dcssb_mission_events",
+      "label": "DCSSB : evenements de mission",
+      "help": "Chaque evenement de mission relaye par le serveur DCS au bot, en JSON. 70 % d'un journal DCSServerBot.",
+      "default_hidden": true,
+      "match": "->HOST: \\{.*\"command\": \"onMissionEvent\"",
+      "regex": true,
+      "formats": ["dcssb"]
+    },
+    {
+      "id": "dcssb_polling",
+      "label": "DCSSB : interrogations periodiques",
+      "help": "Etat, charge et images par seconde demandes a chaque serveur toutes les minutes, et l'enregistrement aupres du cloud qui les accompagne.",
+      "default_hidden": true,
+      "match": "(->HOST: \\{.*\"command\": \"(getMissionUpdate|serverLoad|perfmon)\"|HOST->.*: \\{\"command\": \"getMissionUpdate\"\\}$| registered with the cloud\\.$)",
+      "regex": true,
+      "formats": ["dcssb"]
+    },
+    {
+      "id": "lotatc_config_dump",
+      "label": "LotAtc : options au demarrage",
+      "help": "LotAtc recopie chacune de ses options a chaque demarrage du serveur.",
+      "default_hidden": true,
+      "match": "\\[clientserver\\] +- \"[^\"]*\" : ",
+      "regex": true,
+      "formats": ["lotatc"]
+    },
+    {
+      "id": "lotatc_airports",
+      "label": "LotAtc : camp des aerodromes",
+      "help": "Camp de chaque aerodrome, renvoye aux clients a chaque demarrage de mission.",
+      "default_hidden": true,
+      "match": "\\[clientserver\\] Airport: \\d+ \".*\" MapObject::COALITION_",
+      "regex": true,
+      "formats": ["lotatc"]
+    },
+    {
+      "id": "lotatc_client_cycle",
+      "label": "LotAtc : connexions des clients",
+      "help": "Connexion et deconnexion d'un client LotAtc. Les avertissements Init, Finish et 'The remote host closed the connection' sont une deconnexion normale.",
+      "default_hidden": true,
+      "match": "(\\[NetServer\\] +(Incoming connection|remove handler|close server\\?|clientDestroyed)|\\[clienthandler\\] (Init|Finish|Client deleted)$|SOCKET ERROR \"The remote host closed the connection\")",
+      "regex": true,
+      "formats": ["lotatc"]
     }
   ],
 

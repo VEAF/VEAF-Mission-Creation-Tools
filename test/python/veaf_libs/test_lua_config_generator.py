@@ -190,6 +190,54 @@ def test_ctld_disabled_emits_no_start_up_call():
     assert "if ctld then" not in lua
 
 
+def test_ctld_airbase_logistics_settings_are_emitted_into_veaf_config():
+    """The four airbase-logistics keys reach veaf.config, which VEAF Lua reads at runtime
+    (FEAT-CTLD-AIRBASE-LOGISTICS ticket 05). They are the exception to "CTLD takes no settings
+    here": ctld-config.yaml configures CTLD, while these configure veafTransportMission.
+    """
+    lua = generate_config_lua(
+        {
+            "community_scripts": {
+                "ctld": {
+                    "enabled": True,
+                    "manage_airbase_logistics": False,
+                    "airbase_logistics_radius": 300,
+                    "airbase_occupation_radius": 2500,
+                    "airbase_logistics_tick": 60,
+                }
+            }
+        }
+    )
+    assert "veaf.config.manage_airbase_logistics = false" in lua
+    assert "veaf.config.airbase_logistics_radius = 300" in lua
+    assert "veaf.config.airbase_occupation_radius = 2500" in lua
+    assert "veaf.config.airbase_logistics_tick = 60" in lua
+
+
+def test_ctld_airbase_logistics_flag_is_a_lua_boolean_not_a_string():
+    """`"false"` is truthy in Lua and would silently enable the feature for a maker who typed the
+    word instead of the value — the generated literal must be a bare false, never a quoted one.
+    """
+    lua = generate_config_lua({"community_scripts": {"ctld": {"enabled": True, "manage_airbase_logistics": False}}})
+    assert "veaf.config.manage_airbase_logistics = false" in lua
+    assert 'veaf.config.manage_airbase_logistics = "false"' not in lua
+
+
+def test_ctld_airbase_logistics_settings_absent_emit_nothing():
+    """An unset key is not emitted: veafTransportMission falls back to its own default, so the
+    generated file stays clean and a maker who never touches the feature sees no trace of it.
+    """
+    lua = generate_config_lua({"community_scripts": {"ctld": {"enabled": True}}})
+    assert "veaf.config.manage_airbase_logistics" not in lua
+    assert "veaf.config.airbase_logistics_radius" not in lua
+
+
+def test_ctld_disabled_emits_no_airbase_logistics_settings():
+    """With CTLD off there is no logistic zone to manage, so the settings must not be emitted."""
+    lua = generate_config_lua({"community_scripts": {"ctld": {"enabled": False, "manage_airbase_logistics": True}}})
+    assert "veaf.config.manage_airbase_logistics" not in lua
+
+
 # ---------------------------------------------------------------------------
 # External modules — SKYNET
 # ---------------------------------------------------------------------------

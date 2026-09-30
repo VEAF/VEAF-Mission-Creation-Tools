@@ -4,7 +4,7 @@ Status: 🧑 waiting-human
 
 Code shipped; the in-game look is ticket 02 and needs DCS started.
 
-Found while porting `mist.getRandPointInCircle` in [`DROP-MIST`](../DROP-MIST/PRD.md) ticket 06, on
+Found while porting `mist.getRandPointInCircle` in [`DROP-MIST`](../archive/DROP-MIST.md) ticket 06, on
 2026-08-28. Not fixed there: that ticket removes a dependency and must not also move where things
 spawn, or a regression would be indistinguishable from the port going wrong.
 

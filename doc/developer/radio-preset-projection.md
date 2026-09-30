@@ -77,10 +77,10 @@ Déclarées par radio physique (index 1-based, ordre des specs / du `.miz`) dans
 
 | Primitive | Effet |
 |---|---|
-| `rotate_last_to_head: true` | **Rotation « canal 0 »** : la dernière entrée de la liste passe en tête (slot 1), le reste suit en 2..N. |
+| `rotate_last_to_head: true` | **Rotation « canal 0 »** : la dernière entrée de la liste passe en tête (slot 1), le reste suit en 2..N. Le kneeboard numérote les slots à partir de **00**, comme le sélecteur (slot 13 = canal 12). |
 | `keyed_groups: {block_size, bases}` | **Mapping par clé** (ADR 0012) : plusieurs rôles partagent une radio, chaque canal placé par sa **clé** (Group = `base + clé`, slot = `((Group − min_base) mod block_size) + 1`). Trous préservés, débordement rebouclé sur le slot 1 (le Group 100 du Viggen recycle le 20ᵉ canal de `primary_2`). Une clé au-delà de la part du rôle (`block_size / nb_rôles`) est droppée + `WARNING`. |
 | `trailing_specials: [{…}, …]` | **Canaux spéciaux en fin de radio.** Chaque entrée est soit une **constante d'airframe** `{freq, mod}` (ex. E/F/G du Viggen), soit **issue du plan** `{priority: N}` — la fréquence vient du canal marqué `priority: N` (toujours AM ; slot vide si absent). `label` optionnel = nom pilote (Sp1, H…). Surchargeable via `presets_assignments`. |
-| `reserved_head_slots: [idx, …]` | **Slot(s) de tête réservé(s)** alimentés par un index de la liste (slot « M » / « C »). `[20]` = dernière entrée déplacée en tête ; `[1, 20]` = 1re dupliquée en tête puis dernière déplacée. Exclusif avec `rotate_last_to_head`. |
+| `reserved_head_slots: [idx, …]` | **Slot(s) de tête réservé(s)** alimentés par un index de la liste (slot « M » / « C »). `[20]` = dernière entrée déplacée en tête ; `[1, 20]` = 1re dupliquée en tête puis dernière déplacée. Un index au-delà d'une liste plus courte prend la **dernière** entrée de la liste : le slot existe dans le cockpit quelle que soit la longueur de la liste. `head_labels: [C, M]` nomme les slots de tête sur le kneeboard ; les presets qui suivent sont numérotés à partir de 01. Exclusif avec `rotate_last_to_head`. |
 | `capacity: <int>` | **Capacité physique** de la radio : l'excédent est tronqué en fin de liste (silencieux, log debug). |
 
 **Ordre de composition** quand plusieurs primitives coexistent sur une radio :

@@ -163,7 +163,7 @@ re-reading when the budget resets.
 **Two follow-ups came out of the lot rather than out of the reports**, and are recorded where they
 belong instead of here:
 
-- [`FEAT-COMBATZONE-ZONE-SPAWN-RADIUS`](../FEAT-COMBATZONE-ZONE-SPAWN-RADIUS/PRD.md) — Tripack's
+- [`FEAT-COMBATZONE-ZONE-SPAWN-RADIUS`](../archive/FEAT-COMBATZONE-ZONE-SPAWN-RADIUS.md) — Tripack's
   revetments: a zone-level default, since the group tag and the mission-wide global already exist.
 - The harness cannot see dispersion at all: `dcs_mocks` answers `math.random()` with a constant 0, so
   every draw lands on the centre and a dispersion assertion passes both ways. Written up in ticket

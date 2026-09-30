@@ -17,6 +17,315 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.26.0] — 2026-09-30
+
+### Added
+
+- **Airfields are CTLD logistic points.** A C-130 landed at Ramstein read *"No logistics in range"*
+  (VEAF-Open-Training-Mission-GermanyCW-v6#1007): a map airfield is in none of CTLD 2's logistic
+  discovery routes. VEAF now registers every airdrome itself when CTLD starts, one zone of 250 m on
+  the parking stand nearest the field's centroid, under the airfield's own coalition. A field held
+  at mission start keeps its zone while it holds it; a neutral or captured one opens only after two
+  continuous minutes of unopposed **ground** occupation, measured on the mission clock, and closes
+  as soon as the last of those troops leaves — so a transport landing on a captured field does not
+  open it. Each active field is drawn as a translucent green circle on the F10 map for the side
+  holding it, and every change is announced to the side that gains or loses it. Opt out with
+  `modules.CTLD.manage_airbase_logistics: false`; `airbase_logistics_radius`,
+  `airbase_occupation_radius` and `airbase_logistics_tick` tune it. CTLD itself is unchanged.
+- **Groups the MCP places land on clear ground, not in a wood.** `add_group` and `create_combat_zone`
+  now put a stationary vehicle group on ground measured clear of trees and buildings, up to 1 km from
+  the asked position, moving it as one body, and say so in `warnings`. A combat-zone marker is sized
+  from the group the runtime will draw (`-sa10`: 214 m, read from `veaf-units.yaml`). The measurement
+  is a **clear-ground catalogue** per theatre, swept once in DCS: Caucasus (its 21 airfields) and
+  GermanyCW (the 25 combat zones of GermanyCW-v6) ship. `keep_position: true` keeps a position the
+  user gave; a place the catalogue does not cover, or holds nothing large enough, keeps the asked
+  position and says why. Two guided commands go with it: `veaf-tools dcs clear-ground-sweep <theatre>`
+  sweeps a theatre or a mission's zones — it writes an empty survey mission, starts `dcs-serve` with a
+  generated key, tells you what to do in DCS and resumes an interrupted sweep — and
+  `veaf-tools dcs clear-ground-check <mission.miz>` checks a built mission in DCS without spawning it,
+  so vehicles never count each other as obstacles. The MCP offers that check
+  (`offer_clear_ground_check`) and never launches it. The Saved Games folder is now found where
+  Windows keeps it, even moved or redirected to OneDrive (also used by `veaf-tools doctor`).
+
+- **Follow a combat zone live in `dcs.log`.** `module_settings: { veaf.Diagnostics: true }` in
+  `mission.yaml` makes every zone write `DIAG|` lines at `info`, whatever the modules' log levels:
+  the activation request, each element spawned (its group, live units and types) or failed, the info
+  panel's exact content group by group, each pass of the completion watchdog with its decision, and
+  the deactivation. Off by default; meant for a session someone is watching.
+- **The mission-editing MCP places a working carrier group, deck slots and radio beacons**
+  (FIX-OPEN-TRAINING-PROMPT-FINDINGS 02, 04). `add_carrier_group` writes the carrier and its escorts
+  under way, the tower frequency, TACAN, ICLS and — on an arrested-landing deck — Link 4 and ACLS, the
+  `<carrier> S3B-Tanker` and `<carrier> Pedro` groups the `CARRIER` module looks for, and the ship's
+  warehouse. `add_air_group` takes `start: deck-cold | deck-hot` with `carrier`, and refuses an
+  aircraft that cannot use that deck. `add_sound` embeds an `.ogg`/`.wav` and declares it in
+  `mapResource`; `edit_route` gains `transmit_message`, which plays it on the unit's radio. The Open
+  Training prompt now builds its carrier group and its helicopter beacons with them instead of
+  asking the agent to report what it could not do.
+- **`veaf-logs` can hide its filter panel** (CHORE-SMALL-POLISH). The *Panneau des filtres* button, at
+  the start of the profile bar, or `Ctrl+B`, gives the log the whole width and brings the panel back
+  at the width it had. The filters keep applying while it is hidden, and the choice is kept from one
+  session to the next.
+- **`veaf-logs.exe` has an icon** (CHORE-SMALL-POLISH): a log page marked DCS under a magnifier, drawn
+  for the project, on the file and on the running window.
+
+### Fixed
+
+- **`veafUnits.settleGroup` no longer takes `Disposition`'s word for a clearing.**
+  `veafUnits.settleGroup`, released in 6.25.0, translated groups correctly and to the metre — and
+  the number of vehicles standing in trees did not move. (The figures first published here — 19
+  group alerts and 66 blocked units against 16-18 and ~81 — were counted **after** the spawn, and
+  a later measurement showed that mostly counts groups blocking their own probe; see below.) The
+  translation was never the problem; what it aimed at was. `Disposition.getSimpleZones` returns
+  points it has not vouched for — one group was moved 217 m onto a spot blocked in 12 directions
+  out of 12 at 10 m — and it is **not deterministic**: five identical calls returned nearest
+  candidates at 1335, 1476, 1404, 1355 and 1293 m, while another found one at 153 m. So the
+  singleton now only proposes: each candidate is verified, unit by unit, against the same scenery
+  criterion the acceptance probe uses, and several draws are merged so one unlucky draw no longer
+  decides that a group stays under trees. Whether a group is already in the open is measured too,
+  replacing a geometric shortcut whose premise was that a candidate has the clearance it was asked
+  for. Formations are untouched: the translation stays rigid, to the metre.
+
+  **And it now asks `Disposition` for something `Disposition` will answer.** The verification alone
+  moved nothing, measured twice in game, because the function asked for a clearing as wide as the
+  group itself — 58 to 486 m on real groups — and the singleton returns **nothing at all** past
+  roughly 150 m, where it returns thirty candidates at 80 m. Over one activation of 25 combat zones
+  that meant 31 calls, one group translated and 30 giving up with no candidate to examine: nothing
+  was being rejected, there was nothing to reject. So the clearance asked for is now a small
+  constant — a coarse filter, never a guarantee, since the guarantee is the per-unit check above —
+  and the number of candidates examined before giving up rises from 10 to 30, because the ones that
+  work were measured coming back at ranks 15 and 22.
+
+  **The figures this entry first carried were wrong, and the reason is worth more than they were.**
+  `Disposition.getSimpleZones` answers "is there room here", so it counts **vehicles** as well as
+  trees: the same points read 12 of 14 blocked with a group standing on them and **0 of 14** once
+  it was destroyed. Every count of "units in scenery" taken after a spawn — 81, then 76, then 69 —
+  was largely a tally of tight batteries failing their own test, which a SAM battery does wherever
+  you put it.
+
+  Measured where no vehicle of the group exists yet, which is where this code probes anyway:
+  vehicles genuinely under trees on arrival fall from **22 to 10**, and after `settleGroup` from
+  **17 to 4**. Formations are preserved to **0.0000 m** over 209 pairwise distances. What remains
+  is real but small, and part of it belongs to groups this code is never given — editor content
+  kept at its declared position.
+
+  A blindness of `Disposition` inside the spawn's own call stack was reported while this was being
+  diagnosed. It has an explanation rather than a fix: `settleGroup` probes **before** the units
+  exist and the control probed after they had spawned, so the two were asking different questions.
+  The pre-computation phase it called for is dropped — the spawn flow was measured not to affect
+  the singleton at all.
+
+  **And it no longer asks `Disposition` for a clearing at all.** Even asked for 80 m, the large
+  query returns **zero candidates at every clearance, down to 5 m**, for the places a group most
+  needs moving out of — while the small per-point probe answers those same places, in 0.38 ms
+  rather than 12, and gives the same answer every time. So `settleGroup` now sweeps rings of
+  growing radius around the group, 20 m apart and closest first, and keeps the first offset where
+  every vehicle stands on drivable terrain and passes the probe; the outermost vehicles are tried
+  first, so a bad offset costs one probe. The several draws, the clearance constant and the
+  candidate bound are gone. `SETTLE_MAX_TRANSLATION` now also bounds the sweep and drops from 1000
+  to **300 m**, above the 266 and 278 m translations measured on the previous code, and a new
+  `SETTLE_SWEEP_PROBE_BUDGET` (1000 probes, about 0.4 s) caps what a group with no way out costs in
+  the spawn's frame. How many more groups this clears has not been measured in game yet.
+
+- **The Skynet contacts monitor reports every contact lost in the same beat.** It walked its list
+  of tracked contacts while removing from it, so of three contacts leaving IADS cover together the
+  second was never reported lost — and stayed tracked for the rest of the mission, so it was never
+  detected again either. An `OnDetectedAction` or `OnLostAction` that raises is now logged with
+  its message instead of being swallowed.
+
+- **A teleported tanker's escort takes up its task on the waypoint that carries it.** The
+  teleport rewrote the last two waypoints of the escort's route, which is right only when the
+  `Escort` task sits on the last one; with the task on waypoint 2 of 3, as in the demo mission, the
+  escort was sent to a waypoint carrying nothing. It now rewrites the task's waypoint and the one
+  before it, drops the editor waypoints ahead of them — the escort used to fly back to those before
+  reaching its charge — and no longer refuses a one-point route.
+
+- **Moving a tanker, its escort or an AFAC no longer rewrites the mission's own record.** These paths edited
+  the waypoints the mission database holds instead of a copy, so an asset respawned after a move or
+  a teleport came back on the moved route rather than the one drawn in the editor.
+
+- **The missile guardian's energy estimate reads the missile's altitude, not its easting.**
+  `VeafMG_Weapon:getCurrentEnergy` took `z` of a runtime position as a height, so its potential
+  term grew with how far east the missile flew. Nothing calls it yet, so no mission behaved
+  differently.
+- **Aircraft built by the MCP carry their countermeasures, a callsign and a unique tail number**
+  (FIX-OPEN-TRAINING-PROMPT-FINDINGS 01). `add_air_group`, `add_player_slot` and the composites wrote
+  `chaff = 0, flare = 0` — an air-start player went into a fight with an empty dispenser — no
+  callsign, and tail numbers restarting at 10 in every group. The chaff and flare now default to what
+  the Mission Editor gives the type (captured from the datamine into `dcsUnits.yaml`), and
+  `add_air_group`, `add_player_slot` and `set_unit_properties` take `chaff` / `flare`. Western
+  aircraft get the next free family for their task (Enfield…, Texaco… for a tanker, Overlord… for an
+  AWACS), Eastern ones a number, as measured on 377 missions.
+- **The build no longer opens a carrier's deck to every dynamic template of its side**
+  (FIX-OPEN-TRAINING-PROMPT-FINDINGS 03). A ship stocked by default now receives only the aircraft
+  that can both take off from and land on its deck, by DCS's own `TakeOffRWCategories` /
+  `LandRWCategories`, now in `dcsUnits.yaml`: 51 types on the GermanyCW-v6 Stennis, B-52H included,
+  become its carrier aircraft and helicopters. An explicit `aircrafts:` list is still obeyed.
+- **What the first in-game test of an MCP-built mission found** (FIX-IN-GAME-TEST-FINDINGS, on
+  GermanyCW-v6). A static placed by `add_group` / `create_combat_zone` now carries the `shape_name`
+  the editor writes: DCS refused a `.Command Center` and three `.Ammunition depot` without it, and
+  four objectives never existed. `dcsUnits.yaml` carries the shape of 278 statics, and `validate`
+  reports a static built before that lacks it. A combat zone is initialized once (it was twice, and
+  Torgau held 8 elements for 4). The sanctuary's weapon check no longer raises on a weapon with no
+  target, or already gone. A scaffolded mission's `ctld-config.yaml` starts with CTLD's sample
+  `extractableGroups` / `logisticUnits` emptied (35 « not found » warnings at start), and `validate`
+  reports a name there that the mission does not hold. The city lists `veafNamedPoints` uses are now
+  generated from the game's `towns.lua` (`veaf-build update-dcs-data --cities`, into
+  `veafCities.lua`) and cover GermanyCW, Sinai, Normandy, Afghanistan and Marianas WWII too; Syria
+  goes from 213 to 1 151 towns.
+- **QRA and AIRWAVES settings that were accepted and then ignored** (FIX-QRA-COMMANDS-AND-OFFSET,
+  FIX-PER-MODULE-LOGLEVEL-INERT).
+  - `validate` no longer refuses a VEAF command (`[0,0]-spawn …`, `-sa6`) in a QRA deploy list, which
+    the runtime has always run. AIRWAVES wave groups are now checked too, by the same rule.
+  - `respawn_default_offset` under a QRA reaches the generated Lua.
+  - A QRA that convert-v5 marked `start: false` (its v5 `:start()` was commented out) is no longer
+    armed at mission start. The converter now writes `active_at_start: false`, and the old key is
+    still read.
+  - `validate` warns on a QRA key the build does not read, and so does the MCP's `create_qra` on
+    an extra key it is handed.
+  - An AIRWAVES wave whose `groups` is a YAML list is emitted as a Lua table; it used to become the
+    single group name `"['a', 'b']"`.
+  - `logLevel` under a module now sets that module's log level, and outranks `global_log_level` as the
+    guide says. It had never been applied. `validate` warns on a level name it does not know.
+- **Kneeboards drawn without Arial keep their layout** (CHORE-SMALL-POLISH). On a machine without the
+  Windows fonts, the channel, radio and page titles all fell back to a 10 px font instead of 18, 30
+  and 40 px.
+- **Accented channel names reach the cockpit intact.** `presets.yaml` was read with the locale's
+  code page, cp1252 on a French or English Windows, so "Nörvenich" became "NÃ¶rvenich" in every
+  injected radio and on every kneeboard page (127 channels of the GermanyCW Open Training). The
+  frequencies were right; the names were not. `versions.yaml`, the weather Lua converter and the
+  updater's reads had the same defect and are fixed with it, and a test now fails on any text file
+  veaf-tools opens without naming its encoding.
+- **The kneeboard numbers presets the way the cockpit does** on the Mi-24P and the OH-58D. It printed
+  the DCS slot: "13 Nörvenich" where the Mi-24P's R-863 selector reads channel 12 (checked in the
+  cockpit). The Mi-24P's page now counts from 00; the OH-58D's shows its "M" (and "C" on FM) head
+  slots by name, then presets from 01.
+- **An OH-58D radio whose list is shorter than 20 entries keeps its preset numbers.** Its "M" slot is
+  fed by entry 20; with a shorter list that entry did not exist, the slot was dropped, and every
+  preset moved down by one (a 16-entry VHF list put entry 5 on preset 4). The slot now takes the
+  list's last entry. Found in the code; not yet checked in the cockpit.
+- **Secured radio commands work again when security is on.** Since 6.14.0 a secured F10 command
+  meant for everyone — activating or deactivating a non-training combat zone or combat mission, the
+  fog commands, skipping a CAS or transport mission, cleaning up convoys, disposing of an asset, the
+  CTLD sling-load switch — was posted without a group, and every click answered "Your radio has to
+  be authenticated for '+' commands", whoever clicked
+  (GermanyCW Open Training, 2026-09-29). Such a command is now posted in each pilot group's menu,
+  where the group's level is checked. A game master, who has no group, no longer sees it while
+  security is on; with security disabled it is still shown to everyone.
+- **The updater can replace itself from an accented mission folder.** The script that swaps its
+  executable after it exits wrote the folder's path in the Windows ANSI code page, which `cmd` does
+  not read it in: entering "Mission élève" failed and the update was abandoned, and a folder such as
+  "Misja Łódź" stopped the script being written at all. The script no longer contains the path, and
+  the UTF-8 guard now also catches `Path.read_text()` / `write_text()` calls that name no encoding.
+- **A combat zone's info panel counts its static targets** (FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP).
+  It read groups only, so `combatZone_WahnerHeide_Easy` — five static targets — listed no enemy at
+  all while the zone, which does count statics, waited for all five (GermanyCW, 2026-09-29). They
+  now show as structures, with their type in training mode.
+- **Spawned ground vehicles start warm** (FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP 02): every ground
+  unit the scripts create is submitted with `coldAtStart = false`, as the Mission Editor writes it,
+  so it has an infrared signature from its first second. A unit ticked COLD AT START in the editor
+  keeps it on respawn. Static objects have no engine and stay cold.
+- **`veaf-logs` reads the other logs of a server** (FIX-LOGS-NON-DCS-FORMATS): it knew only
+  `dcs.log`'s line shape and took every other line for the continuation of the one before, so the
+  production DCSServerBot log — 4 104 lines — showed as a single entry. DCSServerBot (main, chat,
+  performance, `async_errors`), Real Weather and LotAtc lines are now recognised one by one, with
+  their time, level (`WARN`, `FATAL`, `[W]`… mapped) and a source of their own; Real Weather's
+  output copied inside the bot's log is told apart line by line. Five noise families hide the bus
+  traffic and polling of DCSServerBot (74 % of its log) and LotAtc's startup dump, airfield sides
+  and client connections (69 %). A file in no known shape now reads line by line, and the filter
+  panel no longer lists noise families absent from the open log. An entry followed by more than
+  65 535 unheaded lines no longer stops the indexing with an `OverflowError` — DCSServerBot's
+  `async_errors.log` did.
+- **A pilot listed in `veaf-pilots.txt` gets their level in the radio menu again, without any verb**
+  (FIX-SECU-VERB-AND-LOG-NOISE, from a live private1 session). A mission loaded while a pilot stayed
+  connected registered their unit with no level at all, and a later chat command could not repair it:
+  a pilot at level 99 was refused a level-10 command. The server hook now sends the level with every
+  slot change — **redeploy `VEAF-Server-hook.lua`** — and the mission updates the pilot it already
+  holds instead of replacing it. `/secu login` and `/secu logout` no longer answer "authenticated
+  for 10 minutes" while unlocking nothing: they say there is no global login any more and point to
+  `/secu elevate`. A refused `+` command now shows the group the level it needs and the level it
+  acts at, to that group only rather than to the whole server. A mistyped chat command (`/sec`,
+  `/veaflogin`) answers the pilot with the commands that exist instead of logging a stack trace. A
+  normal disconnect no longer logs an ERROR from the hook. And the first `DIAG|` line says that
+  `veaf.Diagnostics` is on and where to turn it off — the 2 500 combat-zone lines of that session
+  came from a mission that had left it on. `veafSecurity.authenticate`, `logout`,
+  `isAuthenticated`, the `authenticated` flag and the `authDuration` setting are removed: nothing had
+  read them since the per-group security, and a mission still setting `authDuration` is unaffected.
+- **A FARP escort on clear ground stays where it was planned, and a `-farp` whose escort fits nowhere
+  is refused.** The escort was moved a few dozen metres even in open country: the tools read the spot
+  off the nearest tree-free point DCS proposed, and the nearest one ever measured in game was 43.9 m
+  away, so the spot was never kept. DCS is now asked about the planned spot itself, vehicle by
+  vehicle, with the same probe `settleGroup` uses. **Behaviour change:** when the escort finds no
+  clear ground at any bearing or distance, the `-farp` command now creates nothing and says so
+  (*"FARP … refused: no clear ground for its escort"*) instead of parking the escort on whatever is
+  there. Measured in game, that happened in none of four tries, dense woods included. A FARP placed
+  in the Mission Editor is never refused and keeps its layout as before.
+
+### Changed
+
+- **The `veaf.lua` logger forwards its values explicitly.** Its five methods relied on the implicit
+  `arg` table of Lua 5.0, which only exists when the interpreter keeps a compatibility option. DCS
+  does — the production `dcs.log` files show every value formatted — so nothing changes in game;
+  the logger simply stops depending on it, as `dcsDataExport.lua` already had.
+- **The MCP names the mission `mission_path` in every action** (FIX-OPEN-TRAINING-PROMPT-FINDINGS 05).
+  42 actions used five names for it; `miz_path`, `target` and `folder_path` are still accepted as
+  aliases, and a `mission_path` given where an action takes `mission_yaml_path` is read as the
+  folder's `mission.yaml`.
+- **A default `dcs.log` no longer narrates every action** (CHORE-ACTION-DETAIL-AT-DEBUG). 56 of the
+  217 `info` lines of the VEAF scripts are now `debug`: placement detail, the tasks found on a
+  tanker or a carrier, per-airfield CTLD registration, a spawn's own report, and the lines a module
+  wrote when a pilot ran one of its commands — `veafRemote` already records those. Module loading,
+  settings, refusals and diagnostics stay at `info`; the rule is in the developer guide.
+- **A maintainer's reply relayed to Discord keeps its formatting, and arrives whole**
+  (FIX-RELAY-RENDERS-MARKDOWN). The support bot quoted it in a code block, so the reporter read the
+  raw markdown, asterisks included, and anything past 1 200 characters was cut. It is now a Discord
+  block quote with bold, lists and code rendered, split across up to five messages when it is long.
+- **Every first-level entry of the VEAF radio menu is shown in capitals** (CHORE-SMALL-POLISH),
+  whichever module adds it, accented letters included. Only the *Assistance* menu and its two
+  top-level commands were not already.
+- **The Open Training prompt asks for zoomed briefing maps, listed on the blue side only.** DCS's
+  briefing panel fits a picture to its size, so the theatre map could not be read: the prompt now
+  asks for fewer than ten titled zooms after it, each framed from the objects it must show. And a
+  player whose side DCS does not know (a client or dynamic slot, a spectator) saw the red pictures
+  then the blue ones, so a map in both lists showed twice: the pictures now go in `pictureFileNameB` and
+  `pictureFileNameN`, `pictureFileNameR` empty — a new known DCS trap,
+  `briefing-pictures-red-then-blue`.
+- **`veaf-logs.exe` is 30 % smaller: 48.0 MB instead of 68.7 MB.** It no longer carries the MCP
+  server stack, `mypy` and Pillow, which it never ran. Two imports brought them in. The diagnostic
+  report read the tool version from `veaf_tools.app`, which loads every command; it now reads it
+  from `veaf_libs.tool_version`. And `lua_module_scanner.generate_modules_config_lua`, a wrapper with
+  no caller since May, led to the config generator, then to `pydantic` and its mypy plugin, and to
+  `rich`, `pygments` and Pillow; it is removed — call `lua_config_generator.generate_config_lua`
+  directly. A CI step fails the build if any of these packages comes back.
+
+### Removed
+
+- **NIOD support.** `veafRemote.addNiodCallback` wrapped callbacks for NIOD, a community bridge
+  driven from Node. The NIOD script itself left the repository in September 2025, and the only
+  callbacks were declared behind a switch that was always off, so none of this could run. What
+  `veafRemote` does — bridging the VEAF server hook for player rights and chat commands — is
+  unchanged, and the scripts page now describes it that way.
+- **The documentation chatbot's fallback to the old per-chunk index.** 6.24.0 kept it while
+  production caught up on the two-keys-per-language layout; both languages have been served from
+  that layout since 2026-09-22. A Worker that finds no `idx:txt:{lang}` now fails with
+  `no passages for {lang}` instead of looking for keys no rebuild writes any more.
+
+### Security
+
+- **`sharp` 0.35.5 in the documentation chatbot Worker**, past two libheif advisories. It is only
+  used by the local `wrangler dev` server, never in the deployed Worker. Dependabot now also
+  watches that directory and the support bot's, which it did not before.
+- **`veaf-logs` refuses SHA-1 `ssh-rsa` signatures** when it tails a remote `dcs.log`
+  (CVE-2026-44405: `paramiko` 4.0.0 and earlier accept them). RSA keys still work through
+  `rsa-sha2-256` / `rsa-sha2-512`.
+- **`paramiko` 5.0.0 for `veaf-logs`**, the first release to fix CVE-2026-44405: it drops SHA-1
+  `ssh-rsa` signatures and SHA-1 key exchange. The `logs` extra now allows `paramiko` up to 5.x;
+  the refusal at the call site stays, since the extra still accepts `>=3.4`. Checked against
+  `dcs.veaf.org` with an Ed25519 key.
+- **`pyjwt` 2.15.0 and `urllib3` 2.8.0** (#1037, #1036), past 16 advisories published on
+  2026-09-30, one of them critical. `pyjwt` comes with the `mcp` package, which uses it only to
+  authenticate an HTTP server; the VEAF MCP server runs over stdio and no VEAF code imports it, but
+  `veaf-tools.exe` ships it.
+
 ## [6.25.0] — 2026-09-26
 
 ### Fixed

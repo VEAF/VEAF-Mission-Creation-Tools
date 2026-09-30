@@ -31,6 +31,7 @@ from mission_tools.group_insertion import air_category_for_type_verbose
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
 
+from veaf_mission_mcp.aircraft_identity import assign_identities
 from veaf_mission_mcp.aircraft_payload import build_aircraft_payload
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
@@ -68,10 +69,12 @@ def add_player_slot(
     parking_id: str | None = None,
     airdrome_id: int | None = None,
     frequency_mhz: float = 251.0,
-    onboard_num: str = "010",
+    onboard_num: str | None = None,
     task: str = _DEFAULT_TASK,
     fuel: float | None = None,
     fuel_fraction: float | None = None,
+    chaff: int | None = None,
+    flare: int | None = None,
 ) -> dict[str, Any]:
     """Create a flyable player slot in a mission, in place, backed up first.
 
@@ -92,12 +95,16 @@ def add_player_slot(
         airdrome_id: The airfield id the parking belongs to (ground start only).
         frequency_mhz: The group's radio frequency in MHz — written rather than inherited, since an
             inherited ``communication = false`` was the second defect of the 2026-08-14 slot.
-        onboard_num: The tail number, as text so a leading zero survives.
+        onboard_num: The tail number, as text so a leading zero survives. Defaults to one no other
+            aircraft of the mission carries; the slot also gets a callsign
+            (:mod:`veaf_mission_mcp.aircraft_identity`).
         task: The aircraft-group task (default ``"Nothing"``).
         fuel: Explicit fuel load in KILOGRAMS. Defaults to the type's full internal fuel, read
             from the shipped units database — an air-start slot written with none falls out of
             the sky, and a ground start only hides it because the airfield fuels the aircraft.
         fuel_fraction: Fraction of internal capacity, in ]0, 1] — an alternative to ``fuel``.
+        chaff: Chaff count; defaults to the type's Mission Editor default.
+        flare: Flare count; defaults to the type's Mission Editor default.
 
     Returns:
         ``{"group_id": <int>, "name": <str>, "durable": <bool>, "start": <str>}``.
@@ -120,7 +127,9 @@ def add_player_slot(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission (missing 'mission' content): {target}")
 
-    payload, fuel_warning = build_aircraft_payload(unit_type, fuel=fuel, fuel_fraction=fuel_fraction)
+    payload, fuel_warning = build_aircraft_payload(
+        unit_type, fuel=fuel, fuel_fraction=fuel_fraction, chaff=chaff, flare=flare
+    )
 
     group = _build_slot_group(
         name=name,
@@ -138,6 +147,7 @@ def add_player_slot(
         task=task,
         payload=payload,
     )
+    assign_identities(mission.mission_content, group, country_id=country_id, task=task)
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
     # sign of it (FIX-MCP-AIRCRAFT-CATEGORY).
@@ -183,7 +193,7 @@ def _build_slot_group(
     parking_id: str | None,
     airdrome_id: int | None,
     frequency_mhz: float,
-    onboard_num: str,
+    onboard_num: str | None,
     task: str,
     payload: dict[str, Any],
 ) -> dict[str, Any]:

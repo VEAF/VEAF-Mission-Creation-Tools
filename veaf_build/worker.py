@@ -136,6 +136,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafGrass.lua",
     "veafMissileGuardian.lua",
     "veafMove.lua",
+    "veafCities.lua",
     "veafNamedPoints.lua",
     "veafQraLogistics.lua",
     "veafQraCore.lua",
@@ -545,6 +546,11 @@ class BuildAndReleaseWorker:
         cockpit_controls_dir = veaf_tools_dir / "veaf_libs" / "data" / "cockpit-controls"
         if cockpit_controls_dir.is_dir():
             extra.append((cockpit_controls_dir, "veaf_libs/data/cockpit-controls"))
+        # Clear-ground catalogues — one per theatre, read by add_group to put a group on ground
+        # measured clear. A whole directory: sweeping a new theatre must not need a build change.
+        clear_ground_dir = veaf_tools_dir / "veaf_libs" / "data" / "clear-ground"
+        if clear_ground_dir.is_dir():
+            extra.append((clear_ground_dir, "veaf_libs/data/clear-ground"))
         bundled_data = [
             # DCS country name->id table, read by the aircraft injector at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),

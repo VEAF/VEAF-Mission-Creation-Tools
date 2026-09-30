@@ -78,8 +78,8 @@ Permission levels (ascending):
 | Level | May… |
 |------:|------|
 | 0 | send messages (`/send`) |
-| 1 | relay VEAF commands to the mission (`/alias`, `/atis`, `/secu elevate`… — each module then applies its own check) |
-| 10 | `/secu login`, `/secu logout`, `/pause`, and `/restart`, `/halt` (if `enableAutoRestart`) |
+| 1 | relay VEAF commands to the mission (`/alias`, `/atis`, `/secu elevate`… — each module then applies its own check; `/secu login` and `/secu logout` now only answer that there is no global login any more) |
+| 10 | `/pause`, and `/restart`, `/halt` (if `enableAutoRestart`) |
 | 30 | `/restartnow` |
 | 50 | `/haltnow` |
 | 90 | `/code` (arbitrary code execution) |
@@ -91,3 +91,8 @@ Permission levels (ascending):
 
 Replace `VEAF-Server-hook.lua` with the new version, keep the existing
 `VEAF-specific-server-hook.lua` and `veaf-pilots.txt`, then **restart the server**.
+
+After 6.25, the hook sends the pilot's level to the mission **on every slot change**. With an older
+hook, a mission reloaded while a pilot stays connected does not know their level until they type a
+chat command: the radio menu treats them as a level-0 pilot, and the mission log says so
+(`took [...] with no known level`).

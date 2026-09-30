@@ -1,4 +1,4 @@
-# DCS units database (type, kind, category, attributes, fuel capacity).
+# DCS units database (type, kind, category, attributes, fuel, countermeasures, decks, shapes).
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
 # Source ref: fe1d8008e6e8dc4c1c4e85558cd1b0b29a02da3f
 # Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).
@@ -12,12 +12,14 @@ units:
   category: Warehouse
   description: Ammunition depot
   attributes: []
+  shape_name: SkladC
 - type: .Command Center
   name: Command Center
   kind: static
   category: Fortification
   description: Command Center
   attributes: []
+  shape_name: ComCenter
 - type: 1L13 EWR
   name: EWR 1L13
   kind: vehicle
@@ -81,6 +83,7 @@ units:
   category: Fortification
   description: Excavator
   attributes: []
+  shape_name: cat_345L
 - type: 463_Pallet
   name: 463 Pallet
   kind: static
@@ -88,6 +91,7 @@ units:
   description: 463 Pallet
   attributes:
   - Cargos
+  shape_name: 463_Pallet
 - type: 55G6 EWR
   name: EWR 55G6
   kind: vehicle
@@ -137,6 +141,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5029
+  chaff: 240
+  flare: 120
 - type: A-10C
   name: A-10C
   kind: air
@@ -154,6 +160,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5029
+  chaff: 240
+  flare: 120
 - type: A-10C_2
   name: A-10C II
   kind: air
@@ -171,6 +179,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5029
+  chaff: 240
+  flare: 240
 - type: A-20G
   name: A-20G
   kind: air
@@ -200,6 +210,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 70000
+  chaff: 192
+  flare: 192
 - type: A6E
   name: A-6E
   kind: air
@@ -216,6 +228,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7229.8
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: AA8
   name: Firefighter Vehicle AA-7.2/60
   kind: vehicle
@@ -256,6 +274,7 @@ units:
   category: Fortification
   description: HQ Building
   attributes: []
+  shape_name: syr_af_hq
 - type: AH-1W
   name: AH-1W
   kind: air
@@ -269,6 +288,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1250
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: AH-64A
   name: AH-64A
   kind: air
@@ -282,6 +309,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1157
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: AH-64D
   name: AH-64D
   kind: air
@@ -295,6 +330,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1157
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: AH-64D_BLK_II
   name: AH-64D BLK.II
   kind: air
@@ -311,18 +354,28 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1140
+  chaff: 30
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Airshow_Cone
   name: Airshow cone
   kind: static
   category: Fortification
   description: Airshow cone
   attributes: []
+  shape_name: Comp_cone
 - type: Airshow_Crowd
   name: Airshow Crowd
   kind: static
   category: Fortification
   description: Airshow Crowd
   attributes: []
+  shape_name: Crowd1
 - type: AJS37
   name: AJS37
   kind: air
@@ -337,6 +390,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4476
+  chaff: 1080
+  flare: 72
 - type: ALBATROS
   name: Corvette 1124M Grisha [CH]
   kind: naval
@@ -377,12 +432,14 @@ units:
   category: Fortification
   description: M92 AM32a-60-01
   attributes: []
+  shape_name: M92_AM32a-60_01
 - type: AM32a-60_02
   name: M92 AM32a-60-02
   kind: static
   category: Fortification
   description: M92 AM32a-60-02
   attributes: []
+  shape_name: M92_AM32a-60_02
 - type: ammo_cargo
   name: Ammo
   kind: static
@@ -390,6 +447,7 @@ units:
   description: Ammo
   attributes:
   - Cargos
+  shape_name: ammo_box_cargo
 - type: An-26B
   name: An-26B
   kind: air
@@ -403,6 +461,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 5500
+  chaff: 384
+  flare: 384
 - type: An-30M
   name: An-30M
   kind: air
@@ -416,12 +476,15 @@ units:
   - Air
   - Planes
   fuel_capacity: 5500
+  chaff: 192
+  flare: 192
 - type: APFC fuel
   name: M92 APFC fuel
   kind: static
   category: Fortification
   description: M92 APFC fuel
   attributes: []
+  shape_name: M92_APFCfuel
 - type: ara_vdm
   name: ARA Veinticinco de Mayo
   kind: naval
@@ -575,6 +638,18 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3519.423
+  chaff: 60
+  flare: 120
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
 - type: B-17G
   name: B-17G
   kind: air
@@ -608,6 +683,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 88450
+  chaff: 480
+  flare: 48
 - type: B-52H
   name: B-52H
   kind: air
@@ -626,12 +703,15 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 141135
+  chaff: 1125
+  flare: 192
 - type: B600
   name: M92 B600
   kind: static
   category: Fortification
   description: M92 B600
   attributes: []
+  shape_name: M92_B600
 - type: B600_drivable
   name: M92 B600 drivable
   kind: vehicle
@@ -654,6 +734,7 @@ units:
   category: Fortification
   description: Barracks 2
   attributes: []
+  shape_name: kazarma2
 - type: barrels_cargo
   name: Barrels
   kind: static
@@ -661,30 +742,35 @@ units:
   description: Barrels
   attributes:
   - Cargos
+  shape_name: barrels_cargo
 - type: Barrier A
   name: M92 Barrier A
   kind: static
   category: Fortification
   description: M92 Barrier A
   attributes: []
+  shape_name: M92_BarrierA
 - type: Barrier B
   name: M92 Barrier B
   kind: static
   category: Fortification
   description: M92 Barrier B
   attributes: []
+  shape_name: M92_BarrierB
 - type: Barrier C
   name: M92 Barrier C
   kind: static
   category: Fortification
   description: M92 Barrier C
   attributes: []
+  shape_name: M92_BarrierC
 - type: Barrier D
   name: M92 Barrier D
   kind: static
   category: Fortification
   description: M92 Barrier D
   attributes: []
+  shape_name: M92_BarrierD
 - type: BDK-775
   name: LS Ropucha
   kind: naval
@@ -722,12 +808,14 @@ units:
   category: Fortification
   description: Barrel
   attributes: []
+  shape_name: barrelofbeer_support
 - type: Belgian gate
   name: Belgian gate
   kind: static
   category: Fortification
   description: Belgian gate
   attributes: []
+  shape_name: Belgian_gate
 - type: Bf-109K-4
   name: Bf 109 K-4
   kind: air
@@ -754,24 +842,28 @@ units:
   category: Fortification
   description: Billboard Motorized
   attributes: []
+  shape_name: billboard_motorized
 - type: Black_Tyre
   name: Mark Tyre Black
   kind: static
   category: Fortification
   description: Mark Tyre Black
   attributes: []
+  shape_name: H-tyre_B
 - type: Black_Tyre_RF
   name: Mark Tyre with Red Flag
   kind: static
   category: Fortification
   description: Mark Tyre with Red Flag
   attributes: []
+  shape_name: H-tyre_B_RF
 - type: Black_Tyre_WF
   name: Mark Tyre with White Flag
   kind: static
   category: Fortification
   description: Mark Tyre with White Flag
   attributes: []
+  shape_name: H-tyre_B_WF
 - type: Blitz_36-6700A
   name: Truck Opel Blitz
   kind: vehicle
@@ -891,18 +983,21 @@ units:
   category: Fortification
   description: Boiler-house A
   attributes: []
+  shape_name: kotelnaya_a
 - type: BoomBarrier_closed
   name: M92 Boom Barrier closed
   kind: static
   category: Fortification
   description: M92 Boom Barrier closed
   attributes: []
+  shape_name: M92_BoomBarrier_closed
 - type: BoomBarrier_open
   name: M92 Boom Barrier open
   kind: static
   category: Fortification
   description: M92 Boom Barrier open
   attributes: []
+  shape_name: M92_BoomBarrier_open
 - type: Boxcartrinity
   name: Rwy. Flat Car
   kind: vehicle
@@ -1070,48 +1165,56 @@ units:
   category: Fortification
   description: M92 Building01 PBR
   attributes: []
+  shape_name: M92_Building01_PBR
 - type: Building02_PBR
   name: M92 Building02 PBR
   kind: static
   category: Fortification
   description: M92 Building02 PBR
   attributes: []
+  shape_name: M92_Building02_PBR
 - type: Building03_PBR
   name: M92 Building03 PBR
   kind: static
   category: Fortification
   description: M92 Building03 PBR
   attributes: []
+  shape_name: M92_Building03_PBR
 - type: Building04_PBR
   name: M92 Building04 PBR
   kind: static
   category: Fortification
   description: M92 Building04 PBR
   attributes: []
+  shape_name: M92_Building04_PBR
 - type: Building05_PBR
   name: M92 Building05 PBR
   kind: static
   category: Fortification
   description: M92 Building05 PBR
   attributes: []
+  shape_name: M92_Building05_PBR
 - type: Building06_PBR
   name: M92 Building06 PBR
   kind: static
   category: Fortification
   description: M92 Building06 PBR
   attributes: []
+  shape_name: M92_Building06_PBR
 - type: Building07_PBR
   name: M92 Building07 PBR
   kind: static
   category: Fortification
   description: M92 Building07 PBR
   attributes: []
+  shape_name: M92_Building07_PBR
 - type: Building08_PBR
   name: M92 Building08 PBR
   kind: static
   category: Fortification
   description: M92 Building08 PBR
   attributes: []
+  shape_name: M92_Building08_PBR
 - type: Bunker
   name: Bunker 2
   kind: static
@@ -1166,6 +1269,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 20830
+  chaff: 120
+  flare: 60
 - type: C-130J-30
   name: C-130J-30
   kind: air
@@ -1182,6 +1287,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 19692
+  chaff: 220
+  flare: 200
 - type: C-17A
   name: C-17A
   kind: air
@@ -1196,6 +1303,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 132405
+  chaff: 120
+  flare: 60
 - type: C-47
   name: C-47
   kind: air
@@ -1215,132 +1324,154 @@ units:
   category: Fortification
   description: Cafe
   attributes: []
+  shape_name: stolovaya
 - type: Camouflage01
   name: M92 Camouflage 01
   kind: static
   category: Fortification
   description: M92 Camouflage 01
   attributes: []
+  shape_name: M92_Camouflage01
 - type: Camouflage02
   name: M92 Camouflage 02
   kind: static
   category: Fortification
   description: M92 Camouflage 02
   attributes: []
+  shape_name: M92_Camouflage02
 - type: Camouflage03
   name: M92 Camouflage 03
   kind: static
   category: Fortification
   description: M92 Camouflage 03
   attributes: []
+  shape_name: M92_Camouflage03
 - type: Camouflage04
   name: M92 Camouflage 04
   kind: static
   category: Fortification
   description: M92 Camouflage 04
   attributes: []
+  shape_name: M92_Camouflage04
 - type: Camouflage05
   name: M92 Camouflage 05
   kind: static
   category: Fortification
   description: M92 Camouflage 05
   attributes: []
+  shape_name: M92_Camouflage05
 - type: Camouflage06
   name: M92 Camouflage 06
   kind: static
   category: Fortification
   description: M92 Camouflage 06
   attributes: []
+  shape_name: M92_Camouflage06
 - type: Camouflage07
   name: M92 Camouflage 07
   kind: static
   category: Fortification
   description: M92 Camouflage 07
   attributes: []
+  shape_name: M92_Camouflage07
 - type: Cargo01
   name: M92 Cargo 01
   kind: static
   category: Fortification
   description: M92 Cargo 01
   attributes: []
+  shape_name: M92_Cargo01
 - type: Cargo02
   name: M92 Cargo 02
   kind: static
   category: Fortification
   description: M92 Cargo 02
   attributes: []
+  shape_name: M92_Cargo02
 - type: Cargo03
   name: M92 Cargo 03
   kind: static
   category: Fortification
   description: M92 Cargo 03
   attributes: []
+  shape_name: M92_Cargo03
 - type: Cargo04
   name: M92 Cargo 04
   kind: static
   category: Fortification
   description: M92 Cargo 04
   attributes: []
+  shape_name: M92_Cargo04
 - type: Cargo05
   name: M92 Cargo 05
   kind: static
   category: Fortification
   description: M92 Cargo 05
   attributes: []
+  shape_name: M92_Cargo05
 - type: Cargo06
   name: M92 Cargo 06
   kind: static
   category: Fortification
   description: M92 Cargo 06
   attributes: []
+  shape_name: M92_Cargo06
 - type: Carrier Airboss
   name: Carrier Airboss
   kind: static
   category: Personnel
   description: Carrier Airboss
   attributes: []
+  shape_name: carrier_airboss_USA
 - type: Carrier LSO Personell
   name: Carrier LSO 1
   kind: static
   category: Personnel
   description: Carrier LSO 1
   attributes: []
+  shape_name: carrier_lso_usa
 - type: Carrier LSO Personell 1
   name: Carrier LSO 2
   kind: static
   category: Personnel
   description: Carrier LSO 2
   attributes: []
+  shape_name: carrier_lso1_usa
 - type: Carrier LSO Personell 2
   name: Carrier LSO 3
   kind: static
   category: Personnel
   description: Carrier LSO 3
   attributes: []
+  shape_name: carrier_lso2_usa
 - type: Carrier LSO Personell 3
   name: Carrier LSO 4
   kind: static
   category: Personnel
   description: Carrier LSO 4
   attributes: []
+  shape_name: carrier_lso3_usa
 - type: Carrier LSO Personell 4
   name: Carrier LSO 5
   kind: static
   category: Personnel
   description: Carrier LSO 5
   attributes: []
+  shape_name: carrier_lso4_usa
 - type: Carrier LSO Personell 5
   name: Carrier LSO 6
   kind: static
   category: Personnel
   description: Carrier LSO 6
   attributes: []
+  shape_name: carrier_lso5_usa
 - type: Carrier Seaman
   name: Carrier Seaman
   kind: static
   category: Personnel
   description: Carrier Seaman
   attributes: []
+  shape_name: carrier_seaman_USA
 - type: CastleClass_01
   name: Castle Class
   kind: naval
@@ -1380,6 +1511,7 @@ units:
   description: CDS Barrels
   attributes:
   - Cargos
+  shape_name: cds_barrels
 - type: cds_crate
   name: CDS Crate
   kind: static
@@ -1387,6 +1519,7 @@ units:
   description: CDS Crate
   attributes:
   - Cargos
+  shape_name: cds_crate
 - type: Centaur_IV
   name: Tk Centaur IV CS
   kind: vehicle
@@ -1418,6 +1551,12 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 3600
+  chaff: 120
+  flare: 120
+  takeoff_categories:
+  - AircraftCarrier
+  landing_categories:
+  - AircraftCarrier
 - type: CH-47Fbl1
   name: CH-47F
   kind: air
@@ -1431,6 +1570,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 3054.592
+  chaff: 120
+  flare: 120
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: CH-53E
   name: CH-53E
   kind: air
@@ -1444,6 +1591,12 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 2880
+  chaff: 60
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier
+  landing_categories:
+  - AircraftCarrier
 - type: Challenger2
   name: MBT Challenger II
   kind: vehicle
@@ -1984,6 +2137,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1420
+  chaff: 16
+  flare: 48
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: CHAP_Titan
   name: MRAP ZA-SpN Titan [CH]
   kind: vehicle
@@ -2050,6 +2211,7 @@ units:
   category: Fortification
   description: Chemical tank A
   attributes: []
+  shape_name: him_bak_a
 - type: Chieftain_mk3
   name: MBT Chieftain Mk.3
   kind: vehicle
@@ -2209,66 +2371,77 @@ units:
   category: Fortification
   description: Comms tower M
   attributes: []
+  shape_name: tele_bash_m
 - type: Concertina wire
   name: Concertina wire
   kind: static
   category: Fortification
   description: Concertina wire
   attributes: []
+  shape_name: Concertina_wire
 - type: Cone01
   name: M92 Cone 01
   kind: static
   category: Fortification
   description: M92 Cone 01
   attributes: []
+  shape_name: M92_Cone01
 - type: Cone02
   name: M92 Cone 02
   kind: static
   category: Fortification
   description: M92 Cone 02
   attributes: []
+  shape_name: M92_Cone02
 - type: Container brown
   name: Container brown
   kind: static
   category: Fortification
   description: Container brown
   attributes: []
+  shape_name: konteiner_brown
 - type: Container red 1
   name: Container red 1
   kind: static
   category: Fortification
   description: Container red 1
   attributes: []
+  shape_name: konteiner_red1
 - type: Container red 2
   name: Container red 2
   kind: static
   category: Fortification
   description: Container red 2
   attributes: []
+  shape_name: konteiner_red2
 - type: Container red 3
   name: Container red 3
   kind: static
   category: Fortification
   description: Container red 3
   attributes: []
+  shape_name: konteiner_red3
 - type: Container white
   name: Container white
   kind: static
   category: Fortification
   description: Container white
   attributes: []
+  shape_name: konteiner_white
 - type: Container_10ft
   name: M92 Container 10ft
   kind: static
   category: Fortification
   description: M92 Container 10ft
   attributes: []
+  shape_name: M92_Container_10ft
 - type: container_20ft
   name: Container 20ft
   kind: static
   category: Fortification
   description: Container 20ft
   attributes: []
+  shape_name: container_20ft
 - type: Container_20ft
   name: M92 Container 20ft
   kind: static
@@ -2281,6 +2454,7 @@ units:
   category: Fortification
   description: Container 40ft
   attributes: []
+  shape_name: container_40ft
 - type: Container_40ft
   name: M92 Container 40ft
   kind: static
@@ -2294,36 +2468,42 @@ units:
   description: Container
   attributes:
   - Cargos
+  shape_name: bw_container_cargo
 - type: Container_generator
   name: M92 Container generator
   kind: static
   category: Fortification
   description: M92 Container generator
   attributes: []
+  shape_name: M92_Container_generator
 - type: Container_office
   name: M92 Container office
   kind: static
   category: Fortification
   description: M92 Container office
   attributes: []
+  shape_name: M92_Container_office
 - type: Container_watchtower
   name: M92 Container watchtower
   kind: static
   category: Fortification
   description: M92 Container watchtower
   attributes: []
+  shape_name: M92_Container_watchtower
 - type: Container_watchtower_lights
   name: M92 Container watchtower lights
   kind: static
   category: Fortification
   description: M92 Container watchtower lights
   attributes: []
+  shape_name: M92_Container_watchtower_lights
 - type: Cow
   name: Cow
   kind: static
   category: Animal
   description: Cow
   attributes: []
+  shape_name: Cow
 - type: Cromwell_IV
   name: Tk Cromwell IV
   kind: vehicle
@@ -2495,12 +2675,14 @@ units:
   category: Fortification
   description: Czech hedgehogs 1
   attributes: []
+  shape_name: Czech_hedgehogs_01
 - type: Czech hedgehogs 2
   name: Czech hedgehogs 2
   kind: static
   category: Fortification
   description: Czech hedgehogs 2
   attributes: []
+  shape_name: Czech_hedgehogs_02
 - type: Daimler_AC
   name: Car Daimler Armored
   kind: vehicle
@@ -2558,30 +2740,35 @@ units:
   category: Fortification
   description: Dragonteeth 1
   attributes: []
+  shape_name: Dragonsteeth
 - type: Dragonteeth 2
   name: Dragonteeth 2
   kind: static
   category: Fortification
   description: Dragonteeth 2
   attributes: []
+  shape_name: Dragonsteeth_01
 - type: Dragonteeth 3
   name: Dragonteeth 3
   kind: static
   category: Fortification
   description: Dragonteeth 3
   attributes: []
+  shape_name: Dragonsteeth_02
 - type: Dragonteeth 4
   name: Dragonteeth 4
   kind: static
   category: Fortification
   description: Dragonteeth 4
   attributes: []
+  shape_name: Dragonsteeth_03
 - type: Dragonteeth 5
   name: Dragonteeth 5
   kind: static
   category: Fortification
   description: Dragonteeth 5
   attributes: []
+  shape_name: Dragonsteeth_04
 - type: DRG_Class_86
   name: Rwy. Loco DRG Class 86 (Germany, WWII)
   kind: vehicle
@@ -2602,30 +2789,35 @@ units:
   category: Fortification
   description: Drop Zone Marker A
   attributes: []
+  shape_name: asc_drop_marker_tent
 - type: Drop Zone Marker B
   name: Drop Zone Marker B
   kind: static
   category: Fortification
   description: Drop Zone Marker B
   attributes: []
+  shape_name: asc_drop_marker_cylinder
 - type: Drop Zone Marker C
   name: Drop Zone Marker C
   kind: static
   category: Fortification
   description: Drop Zone Marker C
   attributes: []
+  shape_name: asc_drop_marker_triangle
 - type: Drop Zone Marker D
   name: Drop Zone Marker D
   kind: static
   category: Fortification
   description: Drop Zone Marker D
   attributes: []
+  shape_name: asc_drop_marker_vertical_tall
 - type: Drop Zone Marker E
   name: Drop Zone Marker E
   kind: static
   category: Fortification
   description: Drop Zone Marker E
   attributes: []
+  shape_name: asc_drop_marker_vertical_short
 - type: Dry-cargo ship-1
   name: Bulker Yakushev
   kind: naval
@@ -2663,6 +2855,12 @@ units:
   - Air
   - Planes
   fuel_capacity: 5624
+  chaff: 120
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: E-3A
   name: E-3A
   kind: air
@@ -2679,6 +2877,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 65000
+  chaff: 120
+  flare: 60
 - type: Electric locomotive
   name: Rwy. Loco VL80 Electric
   kind: vehicle
@@ -2699,6 +2899,7 @@ units:
   category: Fortification
   description: Electric power box
   attributes: []
+  shape_name: tr_budka
 - type: Elefant_SdKfz_184
   name: SPG Elefant TD
   kind: vehicle
@@ -2723,12 +2924,14 @@ units:
   category: Fortification
   description: M92 Elevated Platform down
   attributes: []
+  shape_name: M92_ElevatedPlatform_down
 - type: ElevatedPlatform_up
   name: M92 Elevated Platform up
   kind: static
   category: Fortification
   description: M92 Elevated Platform up
   attributes: []
+  shape_name: M92_ElevatedPlatform_up
 - type: ELNYA
   name: Tanker Elnya 160
   kind: naval
@@ -2820,6 +3023,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 30
+  flare: 15
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: F-14A-135-GR
   name: F-14A Late
   kind: air
@@ -2836,6 +3045,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-14A-135-GR-Early
   name: F-14A
   kind: air
@@ -2852,6 +3067,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-14A-95-GR
   name: F-14A Export
   kind: air
@@ -2868,6 +3089,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-14B
   name: F-14B
   kind: air
@@ -2884,6 +3111,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-14BU
   name: F-14B(U)
   kind: air
@@ -2900,6 +3133,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 7348
+  chaff: 140
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier
 - type: F-15C
   name: F-15C
   kind: air
@@ -2917,6 +3156,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 6103
+  chaff: 120
+  flare: 60
 - type: F-15E
   name: F-15E
   kind: air
@@ -2934,6 +3175,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 10246
+  chaff: 120
+  flare: 60
 - type: F-15ESE
   name: F-15E S4+
   kind: air
@@ -2951,6 +3194,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 10245.529841878
+  chaff: 120
+  flare: 60
 - type: F-16A
   name: F-16A
   kind: air
@@ -2966,6 +3211,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3104
+  chaff: 60
+  flare: 30
 - type: F-16A MLU
   name: F-16A MLU
   kind: air
@@ -2981,6 +3228,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3104
+  chaff: 60
+  flare: 30
 - type: F-16C bl.50
   name: F-16C bl.50
   kind: air
@@ -2998,6 +3247,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3104
+  chaff: 90
+  flare: 45
 - type: F-16C bl.52d
   name: F-16C bl.52d
   kind: air
@@ -3015,6 +3266,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3104
+  chaff: 90
+  flare: 45
 - type: F-16C_50
   name: F-16CM bl.50
   kind: air
@@ -3032,6 +3285,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3249
+  chaff: 60
+  flare: 60
 - type: F-4E
   name: F-4E
   kind: air
@@ -3046,6 +3301,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4864
+  chaff: 60
+  flare: 30
 - type: F-4E-45MC
   name: F-4E-45MC
   kind: air
@@ -3061,6 +3318,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5510.5
+  chaff: 120
+  flare: 30
 - type: F-5E
   name: F-5E
   kind: air
@@ -3075,6 +3334,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 1996
+  chaff: 0
+  flare: 0
 - type: F-5E-3
   name: F-5E-3
   kind: air
@@ -3089,6 +3350,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2046
+  chaff: 30
+  flare: 15
 - type: F-5E-3_FC
   name: F-5E FC
   kind: air
@@ -3103,6 +3366,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2046
+  chaff: 30
+  flare: 15
 - type: F-86F Sabre
   name: F-86F
   kind: air
@@ -3146,6 +3411,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4930
+  chaff: 30
+  flare: 15
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: F/A-18C
   name: F/A-18C
   kind: air
@@ -3163,6 +3434,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4900
+  chaff: 30
+  flare: 15
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: F4U-1D
   name: F4U-1D
   kind: air
@@ -3177,6 +3454,15 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 662
+  chaff: 0
+  flare: 0
+  takeoff_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Arresting Gear
 - type: F4U-1D_CW
   name: F4U-1D Mk.IV
   kind: air
@@ -3191,6 +3477,15 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 662
+  chaff: 0
+  flare: 0
+  takeoff_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Arresting Gear
 - type: f_bar_cargo
   name: F-shape barrier
   kind: static
@@ -3198,6 +3493,7 @@ units:
   description: F-shape barrier
   attributes:
   - Cargos
+  shape_name: f_bar_cargo
 - type: FA-18C_hornet
   name: F/A-18C Lot 20
   kind: air
@@ -3217,6 +3513,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4900
+  chaff: 60
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: Falcon_Gyrocopter
   name: Falcon Assault Gyrocopter
   kind: air
@@ -3232,84 +3534,105 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 54
+  takeoff_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - AircraftCarrier
+  - AircraftCarrier With Catapult
+  - AircraftCarrier With Tramplin
 - type: Farm A
   name: Farm A
   kind: static
   category: Fortification
   description: Farm A
   attributes: []
+  shape_name: ferma_a
 - type: Farm B
   name: Farm B
   kind: static
   category: Fortification
   description: Farm B
   attributes: []
+  shape_name: ferma_b
 - type: FARP
   name: FARP
   kind: static
   category: Heliport
   description: FARP
   attributes: []
+  shape_name: FARPS
 - type: FARP Ammo Dump Coating
   name: FARP Ammo Storage
   kind: static
   category: Fortification
   description: FARP Ammo Storage
   attributes: []
+  shape_name: SetkaKP
 - type: FARP CP Blindage
   name: FARP Command Post
   kind: static
   category: Fortification
   description: FARP Command Post
   attributes: []
+  shape_name: kp_ug
 - type: FARP Fuel Depot
   name: FARP Fuel Depot
   kind: static
   category: Fortification
   description: FARP Fuel Depot
   attributes: []
+  shape_name: GSM Rus
 - type: FARP Tent
   name: FARP Tent
   kind: static
   category: Fortification
   description: FARP Tent
   attributes: []
+  shape_name: PalatkaB
 - type: FARP_SINGLE_01
   name: PAD Single
   kind: static
   category: Heliport
   description: PAD Single
   attributes: []
+  shape_name: FARP_SINGLE_01
 - type: FarpHide_Dmed
   name: FARP Hide Double Med
   kind: static
   category: Fortification
   description: FARP Hide Double Med
   attributes: []
+  shape_name: FarpHide_Dmed
 - type: FarpHide_Dsmall
   name: FARP Hide Double Small
   kind: static
   category: Fortification
   description: FARP Hide Double Small
   attributes: []
+  shape_name: FarpHide_Dsmall
 - type: FarpHide_Med
   name: FARP Hide Single Med
   kind: static
   category: Fortification
   description: FARP Hide Single Med
   attributes: []
+  shape_name: FarpHide_Med
 - type: FarpHide_small
   name: FARP Hide Single Small
   kind: static
   category: Fortification
   description: FARP Hide Single Small
   attributes: []
+  shape_name: FarpHide_small
 - type: Fire Control Bunker
   name: Fire control bunker
   kind: static
   category: Fortification
   description: Fire control bunker
   attributes: []
+  shape_name: fire_control
 - type: fire_control
   name: Bunker with Fire Control Center
   kind: static
@@ -3329,24 +3652,28 @@ units:
   category: Fortification
   description: M92 Fire Extinguisher 01
   attributes: []
+  shape_name: M92_FireExtinguisher01
 - type: FireExtinguisher02
   name: M92 Fire Extinguisher 02
   kind: static
   category: Fortification
   description: M92 Fire Extinguisher 02
   attributes: []
+  shape_name: M92_FireExtinguisher02
 - type: FireExtinguisher03
   name: M92 Fire Extinguisher 03
   kind: static
   category: Fortification
   description: M92 Fire Extinguisher 03
   attributes: []
+  shape_name: M92_FireExtinguisher03
 - type: FlagPole
   name: Flag Pole
   kind: static
   category: Fortification
   description: Flag Pole
   attributes: []
+  shape_name: FlagPoleStatic
 - type: flak18
   name: AAA 8,8cm Flak 18
   kind: vehicle
@@ -3549,18 +3876,21 @@ units:
   category: Fortification
   description: Freya Shelter Brick
   attributes: []
+  shape_name: Freya_Shelter_Brick
 - type: Freya_Shelter_Concrete
   name: Freya Shelter Concrete
   kind: static
   category: Fortification
   description: Freya Shelter Concrete
   attributes: []
+  shape_name: Freya_Shelter_Concrete
 - type: Fuel tank
   name: Fuel tank
   kind: static
   category: Fortification
   description: Fuel tank
   attributes: []
+  shape_name: toplivo-bak
 - type: fueltank_cargo
   name: Fueltank
   kind: static
@@ -3568,6 +3898,7 @@ units:
   description: Fueltank
   attributes:
   - Cargos
+  shape_name: fueltank_cargo
 - type: FuMG-401
   name: EWR FuMG-401 Freya LZ
   kind: vehicle
@@ -3632,30 +3963,35 @@ units:
   category: Fortification
   description: Garage A
   attributes: []
+  shape_name: garage_a
 - type: Garage B
   name: Garage B
   kind: static
   category: Fortification
   description: Garage B
   attributes: []
+  shape_name: garage_b
 - type: Garage small A
   name: Garage small A
   kind: static
   category: Fortification
   description: Garage small A
   attributes: []
+  shape_name: garagh-small-a
 - type: Garage small B
   name: Garage small B
   kind: static
   category: Fortification
   description: Garage small B
   attributes: []
+  shape_name: garagh-small-b
 - type: Gas platform
   name: Gas platform
   kind: static
   category: Heliport
   description: Gas platform
   attributes: []
+  shape_name: gas_platform
 - type: GAZ-3307
   name: Truck GAZ-3307
   kind: vehicle
@@ -3723,6 +4059,7 @@ units:
   description: GBU-43 MOAB
   attributes:
   - Cargos
+  shape_name: gbu_43_full
 - type: GCI_station_MiG29
   name: GCI station (KRU)
   kind: vehicle
@@ -3777,6 +4114,7 @@ units:
   category: Fortification
   description: GeneratorF
   attributes: []
+  shape_name: GeneratorF
 - type: Gepard
   name: SPAAA Gepard
   kind: vehicle
@@ -3919,6 +4257,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 25000
+  chaff: 120
+  flare: 120
 - type: HandyWind
   name: Bulker Handy Wind
   kind: naval
@@ -3938,12 +4278,14 @@ units:
   category: Fortification
   description: Hangar A
   attributes: []
+  shape_name: angar_a
 - type: Hangar B
   name: Hangar B
   kind: static
   category: Fortification
   description: Hangar B
   attributes: []
+  shape_name: angar_b
 - type: HarborTug
   name: Harbor Tug
   kind: naval
@@ -4069,30 +4411,35 @@ units:
   category: Fortification
   description: Haystack 1
   attributes: []
+  shape_name: Haystack_1
 - type: Haystack 2
   name: Haystack 2
   kind: static
   category: Fortification
   description: Haystack 2
   attributes: []
+  shape_name: Haystack_2
 - type: Haystack 3
   name: Haystack 3
   kind: static
   category: Fortification
   description: Haystack 3
   attributes: []
+  shape_name: Haystack_3
 - type: Haystack 4
   name: Haystack 4
   kind: static
   category: Fortification
   description: Haystack 4
   attributes: []
+  shape_name: Haystack_4
 - type: Hemmkurvenhindernis
   name: Hemmkurvenhindernis
   kind: static
   category: Fortification
   description: Hemmkurvenhindernis
   attributes: []
+  shape_name: Curved_rail
 - type: HEMTT TFFT
   name: Firefighter HEMMT TFFT
   kind: vehicle
@@ -4137,60 +4484,70 @@ units:
   category: Fortification
   description: M92 HESCO generator
   attributes: []
+  shape_name: M92_HESCO_generator
 - type: HESCO_post_1
   name: M92 HESCO post 1
   kind: static
   category: Fortification
   description: M92 HESCO post 1
   attributes: []
+  shape_name: M92_HESCO_post_1
 - type: HESCO_wallperimeter_1
   name: M92 HESCO wallperimeter 1
   kind: static
   category: Fortification
   description: M92 HESCO wallperimeter 1
   attributes: []
+  shape_name: M92_HESCO_wallperimeter_1
 - type: HESCO_wallperimeter_2
   name: M92 HESCO wallperimeter 2
   kind: static
   category: Fortification
   description: M92 HESCO wallperimeter 2
   attributes: []
+  shape_name: M92_HESCO_wallperimeter_2
 - type: HESCO_wallperimeter_3
   name: M92 HESCO wallperimeter 3
   kind: static
   category: Fortification
   description: M92 HESCO wallperimeter 3
   attributes: []
+  shape_name: M92_HESCO_wallperimeter_3
 - type: HESCO_wallperimeter_4
   name: M92 HESCO wallperimeter 4
   kind: static
   category: Fortification
   description: M92 HESCO wallperimeter 4
   attributes: []
+  shape_name: M92_HESCO_wallperimeter_4
 - type: HESCO_wallperimeter_5
   name: M92 HESCO wallperimeter 5
   kind: static
   category: Fortification
   description: M92 HESCO wallperimeter 5
   attributes: []
+  shape_name: M92_HESCO_wallperimeter_5
 - type: HESCO_watchtower_1
   name: M92 HESCO watchtower 1
   kind: static
   category: Fortification
   description: M92 HESCO watchtower 1
   attributes: []
+  shape_name: M92_HESCO_watchtower_1
 - type: HESCO_watchtower_2
   name: M92 HESCO watchtower 2
   kind: static
   category: Fortification
   description: M92 HESCO watchtower 2
   attributes: []
+  shape_name: M92_HESCO_watchtower_2
 - type: HESCO_watchtower_3
   name: M92 HESCO watchtower 3
   kind: static
   category: Fortification
   description: M92 HESCO watchtower 3
   attributes: []
+  shape_name: M92_HESCO_watchtower_3
 - type: Higgins_boat
   name: Boat LCVP Higgins
   kind: naval
@@ -4526,6 +4883,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 87584
+  chaff: 96
+  flare: 96
 - type: IL-78M
   name: IL-78M
   kind: air
@@ -4539,6 +4898,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 112000
+  chaff: 96
+  flare: 96
 - type: IMPROVED_KILO
   name: SSK 636 Improved Kilo
   kind: naval
@@ -4620,12 +4981,14 @@ units:
   category: Heliport
   description: Invisible FARP
   attributes: []
+  shape_name: invisiblefarp
 - type: ip_tower
   name: IP Tower
   kind: static
   category: Fortification
   description: IP Tower
   attributes: []
+  shape_name: ip_tower
 - type: iso_container
   name: ISO container
   kind: static
@@ -4633,6 +4996,7 @@ units:
   description: ISO container
   attributes:
   - Cargos
+  shape_name: iso_container_cargo
 - type: iso_container_small
   name: ISO container small
   kind: static
@@ -4640,6 +5004,7 @@ units:
   description: ISO container small
   attributes:
   - Cargos
+  shape_name: iso_container_small_cargo
 - type: J-11A
   name: J-11A
   kind: air
@@ -4654,6 +5019,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9400
+  chaff: 96
+  flare: 96
 - type: Jagdpanther_G1
   name: SPG Jagdpanther TD
   kind: vehicle
@@ -4696,6 +5063,7 @@ units:
   category: Fortification
   description: M92 Jerrycan
   attributes: []
+  shape_name: M92_Jerrycan
 - type: JF-17
   name: JF-17
   kind: air
@@ -4713,6 +5081,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2325
+  chaff: 36
+  flare: 32
 - type: JTAC
   name: JTAC
   kind: infantry
@@ -4754,6 +5124,12 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 2616
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Ka-50
   name: Ka-50
   kind: air
@@ -4767,6 +5143,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1450
+  chaff: 0
+  flare: 128
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Ka-50_3
   name: Ka-50 III
   kind: air
@@ -4780,6 +5164,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1450
+  chaff: 0
+  flare: 128
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: KAMAZ Truck
   name: Truck KAMAZ 43101
   kind: vehicle
@@ -4840,6 +5232,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 30000
+  chaff: 120
+  flare: 60
 - type: KC135MPRS
   name: KC-135MPRS
   kind: air
@@ -4856,6 +5250,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 90700
+  chaff: 120
+  flare: 60
 - type: KDO_Mod40
   name: AAA Kdo.G.40
   kind: vehicle
@@ -5028,6 +5424,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 980
+  chaff: 0
+  flare: 0
 - type: L-39ZA
   name: L-39ZA
   kind: air
@@ -5042,6 +5440,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 980
+  chaff: 0
+  flare: 0
 - type: l118
   name: L118 Light Artillery
   kind: static
@@ -5049,6 +5449,7 @@ units:
   description: L118 Light Artillery
   attributes:
   - Cargos
+  shape_name: l118_cargo
 - type: L118_Unit
   name: L118 Light Artillery Gun
   kind: vehicle
@@ -5103,6 +5504,7 @@ units:
   category: Fortification
   description: M92 Ladder
   attributes: []
+  shape_name: M92_Ladder
 - type: Land_Rover_101_FC
   name: Truck Land Rover 101 FC
   kind: vehicle
@@ -5139,6 +5541,7 @@ units:
   category: Fortification
   description: Landmine
   attributes: []
+  shape_name: landmine
 - type: LARC-V
   name: Truck LARC-V
   kind: vehicle
@@ -5434,6 +5837,7 @@ units:
   category: Fortification
   description: M92 LHD LHA
   attributes: []
+  shape_name: M92_LHD_LHA
 - type: LiAZ Bus
   name: Bus LiAZ-677
   kind: vehicle
@@ -5469,36 +5873,42 @@ units:
   category: Fortification
   description: Log posts 1
   attributes: []
+  shape_name: Log_posts
 - type: Log posts 2
   name: Log posts 2
   kind: static
   category: Fortification
   description: Log posts 2
   attributes: []
+  shape_name: Log_posts_01
 - type: Log posts 3
   name: Log posts 3
   kind: static
   category: Fortification
   description: Log posts 3
   attributes: []
+  shape_name: Log_posts_02
 - type: Log ramps 1
   name: Log ramps 1
   kind: static
   category: Fortification
   description: Log ramps 1
   attributes: []
+  shape_name: Log_ramps
 - type: Log ramps 2
   name: Log ramps 2
   kind: static
   category: Fortification
   description: Log ramps 2
   attributes: []
+  shape_name: Log_ramps_01
 - type: Log ramps 3
   name: Log ramps 3
   kind: static
   category: Fortification
   description: Log ramps 3
   attributes: []
+  shape_name: Log_ramps_02
 - type: LST_Mk2
   name: LST Mk.II
   kind: naval
@@ -5624,6 +6034,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3165
+  chaff: 234
+  flare: 64
 - type: M-60
   name: MBT M60A3 Patton
   kind: vehicle
@@ -5793,6 +6205,7 @@ units:
   description: M117 bombs
   attributes:
   - Cargos
+  shape_name: m117_cargo
 - type: M12_GMC
   name: SPH M12 GMC 155mm
   kind: vehicle
@@ -5835,6 +6248,7 @@ units:
   description: M1 barrage balloon
   attributes:
   - LTAvehicles
+  shape_name: m1_vla
 - type: M1A2C_SEP_V3
   name: MBT M1A2C SEP v3 Abrams
   kind: vehicle
@@ -5915,24 +6329,28 @@ units:
   category: Fortification
   description: M92 M32-10C 01
   attributes: []
+  shape_name: M92_M32-10C_01
 - type: M32-10C_02
   name: M92 M32-10C 02
   kind: static
   category: Fortification
   description: M92 M32-10C 02
   attributes: []
+  shape_name: M92_M32-10C_02
 - type: M32-10C_03
   name: M92 M32-10C 03
   kind: static
   category: Fortification
   description: M92 M32-10C 03
   attributes: []
+  shape_name: M92_M32-10C_03
 - type: M32-10C_04
   name: M92 M32-10C 04
   kind: static
   category: Fortification
   description: M92 M32-10C 04
   attributes: []
+  shape_name: M92_M32-10C_04
 - type: M45_Quadmount
   name: AAA M45 Quadmount HB 12.7mm
   kind: vehicle
@@ -6073,6 +6491,7 @@ units:
   description: 10ft Container
   attributes:
   - Cargos
+  shape_name: M92_Container_10ft
 - type: M92_Ammo_Pallet
   name: Ammo Pallet
   kind: static
@@ -6080,6 +6499,7 @@ units:
   description: Ammo Pallet
   attributes:
   - Cargos
+  shape_name: M92_Cargo03
 - type: M92_Concrete_Barrier_Cargo
   name: Concrete Barrier
   kind: static
@@ -6087,6 +6507,7 @@ units:
   description: Concrete Barrier
   attributes:
   - Cargos
+  shape_name: M92_barrierb
 - type: M92_MRE_Pallet
   name: MRE Pallet
   kind: static
@@ -6094,6 +6515,7 @@ units:
   description: MRE Pallet
   attributes:
   - Cargos
+  shape_name: M92_Cargo01
 - type: M978 HEMTT Tanker
   name: Refueler M978 HEMTT
   kind: vehicle
@@ -6259,6 +6681,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1701
+  chaff: 0
+  flare: 192
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Mi-24V
   name: Mi-24V
   kind: air
@@ -6272,6 +6702,8 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1704
+  chaff: 0
+  flare: 192
 - type: Mi-26
   name: Mi-26
   kind: air
@@ -6285,6 +6717,8 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 9600
+  chaff: 0
+  flare: 192
 - type: Mi-28N
   name: Mi-28N [CH]
   kind: air
@@ -6298,6 +6732,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1500
+  chaff: 64
+  flare: 128
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: Mi-8MT
   name: Mi-8MTV2
   kind: air
@@ -6312,6 +6754,12 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1929
+  chaff: 0
+  flare: 128
+  takeoff_categories:
+  - AircraftCarrier
+  landing_categories:
+  - AircraftCarrier
 - type: MiG-15bis
   name: MiG-15bis
   kind: air
@@ -6368,6 +6816,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2280
+  chaff: 18
+  flare: 40
 - type: MiG-23MLD
   name: MiG-23MLD
   kind: air
@@ -6382,6 +6832,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3800
+  chaff: 60
+  flare: 60
 - type: MiG-25PD
   name: MiG-25PD
   kind: air
@@ -6396,6 +6848,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 15245
+  chaff: 0
+  flare: 0
 - type: MiG-25RBT
   name: MiG-25RBT
   kind: air
@@ -6423,6 +6877,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4500
+  chaff: 60
+  flare: 60
 - type: MiG-29 Fulcrum
   name: MiG-29A  Fulcrum
   kind: air
@@ -6437,6 +6893,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3376
+  chaff: 30
+  flare: 30
 - type: MiG-29A
   name: MiG-29A
   kind: air
@@ -6451,6 +6909,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3376
+  chaff: 30
+  flare: 30
 - type: MiG-29G
   name: MiG-29G
   kind: air
@@ -6465,6 +6925,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3376
+  chaff: 30
+  flare: 30
 - type: MiG-29S
   name: MiG-29S
   kind: air
@@ -6479,6 +6941,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3493
+  chaff: 30
+  flare: 30
 - type: MiG-31
   name: MiG-31
   kind: air
@@ -6500,6 +6964,7 @@ units:
   category: Fortification
   description: Military staff
   attributes: []
+  shape_name: aviashtab
 - type: Mirage 2000-5
   name: Mirage 2000-5
   kind: air
@@ -6517,6 +6982,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3160
+  chaff: 112
+  flare: 16
 - type: Mirage-F1AD
   name: Mirage F1AD
   kind: air
@@ -6532,6 +6999,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1AZ
   name: Mirage F1AZ
   kind: air
@@ -6547,6 +7016,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1B
   name: Mirage F1B
   kind: air
@@ -6561,6 +7032,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 0
+  flare: 0
 - type: Mirage-F1BD
   name: Mirage F1BD
   kind: air
@@ -6575,6 +7048,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 0
+  flare: 0
 - type: Mirage-F1BE
   name: Mirage F1BE
   kind: air
@@ -6589,6 +7064,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 30
+  flare: 15
 - type: Mirage-F1BQ
   name: Mirage F1BQ
   kind: air
@@ -6603,6 +7080,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 0
+  flare: 0
 - type: Mirage-F1C
   name: Mirage F1C
   kind: air
@@ -6617,6 +7096,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1C-200
   name: Mirage F1C-200
   kind: air
@@ -6632,6 +7113,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CE
   name: Mirage F1CE
   kind: air
@@ -6646,6 +7129,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1CG
   name: Mirage F1CG
   kind: air
@@ -6660,6 +7145,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CH
   name: Mirage F1CH
   kind: air
@@ -6674,6 +7161,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1CJ
   name: Mirage F1CJ
   kind: air
@@ -6688,6 +7177,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CK
   name: Mirage F1CK
   kind: air
@@ -6702,6 +7193,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CR
   name: Mirage F1CR
   kind: air
@@ -6717,6 +7210,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CT
   name: Mirage F1CT
   kind: air
@@ -6732,6 +7227,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1CZ
   name: Mirage F1CZ
   kind: air
@@ -6746,6 +7243,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1DDA
   name: Mirage F1DDA
   kind: air
@@ -6760,6 +7259,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3045
+  chaff: 0
+  flare: 0
 - type: Mirage-F1ED
   name: Mirage F1ED
   kind: air
@@ -6774,6 +7275,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1EDA
   name: Mirage F1EDA
   kind: air
@@ -6788,6 +7291,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1EE
   name: Mirage F1EE
   kind: air
@@ -6803,6 +7308,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3246
+  chaff: 30
+  flare: 15
 - type: Mirage-F1EH
   name: Mirage F1EH
   kind: air
@@ -6818,6 +7325,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1EQ
   name: Mirage F1EQ
   kind: air
@@ -6833,6 +7342,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 0
+  flare: 0
 - type: Mirage-F1JA
   name: Mirage F1JA
   kind: air
@@ -6847,6 +7358,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1M-CE
   name: Mirage F1M (C.14 1-25/32-51)
   kind: air
@@ -6861,6 +7374,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3356
+  chaff: 30
+  flare: 15
 - type: Mirage-F1M-EE
   name: Mirage F1M (C.14 52-73)
   kind: air
@@ -6876,18 +7391,22 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3246
+  chaff: 30
+  flare: 15
 - type: MJ-1_01
   name: M92 MJ-1 01
   kind: static
   category: Fortification
   description: M92 MJ-1 01
   attributes: []
+  shape_name: M92_MJ-1_01
 - type: MJ-1_02
   name: M92 MJ-1 02
   kind: static
   category: Fortification
   description: M92 MJ-1 02
   attributes: []
+  shape_name: M92_MJ-1_02
 - type: MJ-1_drivable
   name: M92 MJ-1 drivable
   kind: vehicle
@@ -7126,36 +7645,42 @@ units:
   category: Fortification
   description: M92 NF-2 LightOff 01
   attributes: []
+  shape_name: M92_NF-2_LightOff01
 - type: NF-2_LightOff02
   name: M92 NF-2 LightOff 02
   kind: static
   category: Fortification
   description: M92 NF-2 LightOff 02
   attributes: []
+  shape_name: M92_NF-2_LightOff02
 - type: NF-2_LightOn
   name: M92 NF-2 LightOn
   kind: static
   category: Fortification
   description: M92 NF-2 LightOn
   attributes: []
+  shape_name: M92_NF-2_LightOn
 - type: Nodding_Donkey_Pump
   name: Nodding Donkey Pump
   kind: static
   category: Fortification
   description: Nodding Donkey Pump
   attributes: []
+  shape_name: Nodding_Donkey
 - type: offshore WindTurbine
   name: Offshore Wind Turbine
   kind: static
   category: Fortification
   description: Offshore Wind Turbine
   attributes: []
+  shape_name: offshore_windturbine
 - type: offshore WindTurbine2
   name: Offshore Wind Turbine 2
   kind: static
   category: Fortification
   description: Offshore Wind Turbine 2
   attributes: []
+  shape_name: offshore_windturbine2
 - type: OH-58D
   name: OH-58D
   kind: air
@@ -7169,6 +7694,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 454
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: OH58D
   name: OH-58D(R)
   kind: air
@@ -7182,30 +7715,42 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 333.69
+  chaff: 0
+  flare: 30
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: Oil Barrel
   name: M92 Oil barrel
   kind: static
   category: Fortification
   description: M92 Oil barrel
   attributes: []
+  shape_name: M92_Oilbarrel
 - type: Oil derrick
   name: Oil derrick
   kind: static
   category: Fortification
   description: Oil derrick
   attributes: []
+  shape_name: neftevyshka
 - type: Oil platform
   name: Oil platform
   kind: static
   category: Fortification
   description: Oil platform
   attributes: []
+  shape_name: plavbaza
 - type: Oil rig
   name: Oil rig
   kind: static
   category: Heliport
   description: Oil rig
   attributes: []
+  shape_name: oil_platform
 - type: oiltank_cargo
   name: Oiltank
   kind: static
@@ -7213,12 +7758,14 @@ units:
   description: Oiltank
   attributes:
   - Cargos
+  shape_name: oiltank_cargo
 - type: Orca
   name: Orca Whale
   kind: static
   category: Fortification
   description: Orca Whale
   attributes: []
+  shape_name: Orca
 - type: Osa 9A33 ln
   name: Osa 9A33 ln
   kind: vehicle
@@ -7405,6 +7952,7 @@ units:
   category: Fortification
   description: M92 P20 01
   attributes: []
+  shape_name: M92_P20_01
 - type: P20_drivable
   name: M92 P20 drivable
   kind: vehicle
@@ -7603,6 +8151,7 @@ units:
   category: Fortification
   description: M92 Pile of woods
   attributes: []
+  shape_name: M92_Pileofwoods
 - type: PIOTR
   name: Battlecruiser 1144.2 Pyotr Velikiy
   kind: naval
@@ -7628,6 +8177,7 @@ units:
   description: Pipes big
   attributes:
   - Cargos
+  shape_name: pipes_big_cargo
 - type: pipes_small_cargo
   name: Pipes small
   kind: static
@@ -7635,6 +8185,7 @@ units:
   description: Pipes small
   attributes:
   - Cargos
+  shape_name: pipes_small_cargo
 - type: PL5EII Loadout
   name: Payload PL-5EII
   kind: static
@@ -7737,6 +8288,7 @@ units:
   category: Fortification
   description: Pump station
   attributes: []
+  shape_name: nasos
 - type: Pz_IV_H
   name: Tk PzIV H
   kind: vehicle
@@ -7788,6 +8340,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 5510.5
+  chaff: 120
+  flare: 30
 - type: QF_37_AA
   name: QF_37_AA
   kind: vehicle
@@ -7812,6 +8366,7 @@ units:
   category: Fortification
   description: M92 R11 Volvo
   attributes: []
+  shape_name: M92_r11_volvo
 - type: r11_volvo_drivable
   name: M92 R11 Volvo drivable
   kind: vehicle
@@ -7833,18 +8388,21 @@ units:
   category: Fortification
   description: Railway crossing A
   attributes: []
+  shape_name: pereezd_big
 - type: Railway crossing B
   name: Railway crossing B
   kind: static
   category: Fortification
   description: Railway crossing B
   attributes: []
+  shape_name: pereezd_small
 - type: Railway station
   name: Railway station
   kind: static
   category: Fortification
   description: Railway station
   attributes: []
+  shape_name: r_vok_sd
 - type: rapier_fsa_blindfire_radar
   name: SAM Rapier Blindfire TR
   kind: vehicle
@@ -7929,30 +8487,35 @@ units:
   category: Fortification
   description: Mark Flag Red
   attributes: []
+  shape_name: H-flag_R
 - type: Repair workshop
   name: Repair workshop
   kind: static
   category: Fortification
   description: Repair workshop
   attributes: []
+  shape_name: tech
 - type: Restaurant 1
   name: Restaurant 1
   kind: static
   category: Fortification
   description: Restaurant 1
   attributes: []
+  shape_name: restoran1
 - type: Revetment_x4
   name: M92 Revetment x4
   kind: static
   category: Fortification
   description: M92 Revetment x4
   attributes: []
+  shape_name: M92_Revetment_x4
 - type: Revetment_x8
   name: M92 Revetment x8
   kind: static
   category: Fortification
   description: M92 Revetment x8
   attributes: []
+  shape_name: M92_Revetment_x8
 - type: REZKY
   name: Frigate 1135M Rezky
   kind: naval
@@ -8245,6 +8808,12 @@ units:
   - Air
   - Planes
   fuel_capacity: 5962
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: S-3B Tanker
   name: S-3B Tanker
   kind: air
@@ -8262,6 +8831,12 @@ units:
   - Air
   - Planes
   fuel_capacity: 6887
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier With Catapult
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: S-60_Type59_Artillery
   name: AAA S-60 57mm
   kind: vehicle
@@ -8331,6 +8906,7 @@ units:
   category: ADEquipment
   description: Skiramp02
   attributes: []
+  shape_name: SkiRamp_02
 - type: SA-11 Buk CC 9S470M1
   name: SA-11 Buk CC 9S470M1
   kind: vehicle
@@ -8488,6 +9064,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 416.33
+  chaff: 0
+  flare: 32
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: SA342M
   name: SA342M
   kind: air
@@ -8501,6 +9085,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 416.33
+  chaff: 0
+  flare: 32
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: SA342Minigun
   name: SA342Minigun
   kind: air
@@ -8514,6 +9106,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 416.33
+  chaff: 0
+  flare: 32
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: SA342Mistral
   name: SA342Mistral
   kind: air
@@ -8527,102 +9127,126 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 416.33
+  chaff: 0
+  flare: 32
+  takeoff_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
+  landing_categories:
+  - HelicopterCarrier
+  - AircraftCarrier
 - type: Sandbag_01
   name: M92 Sandbag 01
   kind: static
   category: Fortification
   description: M92 Sandbag 01
   attributes: []
+  shape_name: M92_Sandbag_01
 - type: Sandbag_02
   name: M92 Sandbag 02
   kind: static
   category: Fortification
   description: M92 Sandbag 02
   attributes: []
+  shape_name: M92_Sandbag_02
 - type: Sandbag_03
   name: M92 Sandbag 03
   kind: static
   category: Fortification
   description: M92 Sandbag 03
   attributes: []
+  shape_name: M92_Sandbag_03
 - type: Sandbag_04
   name: M92 Sandbag 04
   kind: static
   category: Fortification
   description: M92 Sandbag 04
   attributes: []
+  shape_name: M92_Sandbag_04
 - type: Sandbag_05
   name: M92 Sandbag 05
   kind: static
   category: Fortification
   description: M92 Sandbag 05
   attributes: []
+  shape_name: M92_Sandbag_05
 - type: Sandbag_06
   name: M92 Sandbag 06
   kind: static
   category: Fortification
   description: M92 Sandbag 06
   attributes: []
+  shape_name: M92_Sandbag_06
 - type: Sandbag_07
   name: M92 Sandbag 07
   kind: static
   category: Fortification
   description: M92 Sandbag 07
   attributes: []
+  shape_name: M92_Sandbag_07
 - type: Sandbag_08
   name: M92 Sandbag 08
   kind: static
   category: Fortification
   description: M92 Sandbag 08
   attributes: []
+  shape_name: M92_Sandbag_08
 - type: Sandbag_09
   name: M92 Sandbag 09
   kind: static
   category: Fortification
   description: M92 Sandbag 09
   attributes: []
+  shape_name: M92_Sandbag_09
 - type: Sandbag_10
   name: M92 Sandbag 10
   kind: static
   category: Fortification
   description: M92 Sandbag 10
   attributes: []
+  shape_name: M92_Sandbag_10
 - type: Sandbag_11
   name: M92 Sandbag 11
   kind: static
   category: Fortification
   description: M92 Sandbag 11
   attributes: []
+  shape_name: M92_Sandbag_11
 - type: Sandbag_12
   name: M92 Sandbag 12
   kind: static
   category: Fortification
   description: M92 Sandbag 12
   attributes: []
+  shape_name: M92_Sandbag_12
 - type: Sandbag_13
   name: M92 Sandbag 13
   kind: static
   category: Fortification
   description: M92 Sandbag 13
   attributes: []
+  shape_name: M92_Sandbag_13
 - type: Sandbag_15
   name: M92 Sandbag 15
   kind: static
   category: Fortification
   description: M92 Sandbag 15
   attributes: []
+  shape_name: M92_Sandbag_15
 - type: Sandbag_16
   name: M92 Sandbag 16
   kind: static
   category: Fortification
   description: M92 Sandbag 16
   attributes: []
+  shape_name: M92_Sandbag_16
 - type: Sandbag_17
   name: M92 Sandbag 17
   kind: static
   category: Fortification
   description: M92 Sandbag 17
   attributes: []
+  shape_name: M92_Sandbag_17
 - type: Sandbox
   name: Bunker 1
   kind: static
@@ -8865,6 +9489,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 2132
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: SH-60B
   name: SH-60B
   kind: air
@@ -8878,30 +9510,42 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1100
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: Shelter
   name: Shelter
   kind: static
   category: Fortification
   description: Shelter
   attributes: []
+  shape_name: ukrytie
 - type: Shelter B
   name: Shelter B
   kind: static
   category: Fortification
   description: Shelter B
   attributes: []
+  shape_name: ukrytie_b
 - type: Shelter01
   name: M92 Shelter 01
   kind: static
   category: Fortification
   description: M92 Shelter 01
   attributes: []
+  shape_name: M92_Shelter01
 - type: Shelter02
   name: M92 Shelter 02
   kind: static
   category: Fortification
   description: M92 Shelter 02
   attributes: []
+  shape_name: M92_Shelter02
 - type: Ship_Tilde_Supply
   name: Supply Ship MV Tilde
   kind: naval
@@ -8921,12 +9565,14 @@ units:
   category: Fortification
   description: Shop
   attributes: []
+  shape_name: magazin
 - type: Siegfried Line
   name: Siegfried line
   kind: static
   category: Fortification
   description: Siegfried line
   attributes: []
+  shape_name: Siegfried_Line
 - type: Silkworm_SR
   name: AShM Silkworm SR
   kind: vehicle
@@ -8951,6 +9597,7 @@ units:
   category: Heliport
   description: Helipad Single
   attributes: []
+  shape_name: FARP
 - type: SK_C_28_naval_gun
   name: Gun 15cm SK C/28 Naval in Bunker
   kind: vehicle
@@ -8977,6 +9624,7 @@ units:
   category: ADEquipment
   description: Skiramp
   attributes: []
+  shape_name: SkiRamp_01
 - type: SKP-11
   name: Truck SKP-11 Mobile ATC
   kind: vehicle
@@ -8998,66 +9646,77 @@ units:
   category: Fortification
   description: Small house 1A
   attributes: []
+  shape_name: domik1a
 - type: Small house 1A area
   name: Small house 1A area
   kind: static
   category: Fortification
   description: Small house 1A area
   attributes: []
+  shape_name: domik1a-all
 - type: Small house 1B
   name: Small house 1B
   kind: static
   category: Fortification
   description: Small house 1B
   attributes: []
+  shape_name: domik1b
 - type: Small house 1B area
   name: Small house 1B area
   kind: static
   category: Fortification
   description: Small house 1B area
   attributes: []
+  shape_name: domik1b-all
 - type: Small house 1C area
   name: Small house 1C area
   kind: static
   category: Fortification
   description: Small house 1C area
   attributes: []
+  shape_name: dom2c-all
 - type: Small house 2C
   name: Small house 2C
   kind: static
   category: Fortification
   description: Small house 2C
   attributes: []
+  shape_name: dom2c
 - type: Small werehouse 1
   name: Small warehouse 1
   kind: static
   category: Fortification
   description: Small warehouse 1
   attributes: []
+  shape_name: s1
 - type: Small werehouse 2
   name: Small warehouse 2
   kind: static
   category: Fortification
   description: Small warehouse 2
   attributes: []
+  shape_name: s2
 - type: Small werehouse 3
   name: Small warehouse 3
   kind: static
   category: Fortification
   description: Small warehouse 3
   attributes: []
+  shape_name: s3
 - type: Small werehouse 4
   name: Small warehouse 4
   kind: static
   category: Fortification
   description: Small warehouse 4
   attributes: []
+  shape_name: s4
 - type: Small_LightHouse
   name: Small_LightHouse
   kind: static
   category: Fortification
   description: Small_LightHouse
   attributes: []
+  shape_name: Small_LightHouse
 - type: Smerch
   name: MLRS 9A52 Smerch CM 300mm
   kind: vehicle
@@ -9371,6 +10030,7 @@ units:
   category: Fortification
   description: Stanley LightHouse
   attributes: []
+  shape_name: ST_LightHouse
 - type: Stennis
   name: CVN-74 John C. Stennis
   kind: naval
@@ -9545,6 +10205,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3770
+  chaff: 64
+  flare: 64
 - type: Su-24M
   name: Su-24M
   kind: air
@@ -9560,6 +10222,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 11700
+  chaff: 96
+  flare: 96
 - type: Su-24MR
   name: Su-24MR
   kind: air
@@ -9574,6 +10238,8 @@ units:
   - Air
   - Planes
   fuel_capacity: 11700
+  chaff: 96
+  flare: 96
 - type: Su-25
   name: Su-25
   kind: air
@@ -9588,6 +10254,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 2835
+  chaff: 128
+  flare: 128
 - type: Su-25T
   name: Su-25T
   kind: air
@@ -9602,6 +10270,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3790
+  chaff: 128
+  flare: 128
 - type: Su-25TM
   name: Su-25TM
   kind: air
@@ -9616,6 +10286,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 3790
+  chaff: 128
+  flare: 128
 - type: Su-27
   name: Su-27
   kind: air
@@ -9630,6 +10302,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9400
+  chaff: 96
+  flare: 96
 - type: Su-30
   name: Su-30
   kind: air
@@ -9644,6 +10318,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9400
+  chaff: 96
+  flare: 96
 - type: Su-33
   name: Su-33
   kind: air
@@ -9659,6 +10335,12 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9500
+  chaff: 48
+  flare: 48
+  takeoff_categories:
+  - AircraftCarrier With Tramplin
+  landing_categories:
+  - AircraftCarrier With Arresting Gear
 - type: Su-34
   name: Su-34
   kind: air
@@ -9674,66 +10356,78 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 9800
+  chaff: 64
+  flare: 64
 - type: Subsidiary structure 1
   name: Subsidiary structure 1
   kind: static
   category: Fortification
   description: Subsidiary structure 1
   attributes: []
+  shape_name: hozdomik1
 - type: Subsidiary structure 2
   name: Subsidiary structure 2
   kind: static
   category: Fortification
   description: Subsidiary structure 2
   attributes: []
+  shape_name: hozdomik2
 - type: Subsidiary structure 3
   name: Subsidiary structure 3
   kind: static
   category: Fortification
   description: Subsidiary structure 3
   attributes: []
+  shape_name: hozdomik3
 - type: Subsidiary structure A
   name: Subsidiary structure A
   kind: static
   category: Fortification
   description: Subsidiary structure A
   attributes: []
+  shape_name: saray-a
 - type: Subsidiary structure B
   name: Subsidiary structure B
   kind: static
   category: Fortification
   description: Subsidiary structure B
   attributes: []
+  shape_name: saray-b
 - type: Subsidiary structure C
   name: Subsidiary structure C
   kind: static
   category: Fortification
   description: Subsidiary structure C
   attributes: []
+  shape_name: saray-c
 - type: Subsidiary structure D
   name: Subsidiary structure D
   kind: static
   category: Fortification
   description: Subsidiary structure D
   attributes: []
+  shape_name: saray-d
 - type: Subsidiary structure E
   name: Subsidiary structure E
   kind: static
   category: Fortification
   description: Subsidiary structure E
   attributes: []
+  shape_name: saray-e
 - type: Subsidiary structure F
   name: Subsidiary structure F
   kind: static
   category: Fortification
   description: Subsidiary structure F
   attributes: []
+  shape_name: saray-f
 - type: Subsidiary structure G
   name: Subsidiary structure G
   kind: static
   category: Fortification
   description: Subsidiary structure G
   attributes: []
+  shape_name: saray-g
 - type: Suidae
   name: Suidae
   kind: vehicle
@@ -9755,6 +10449,7 @@ units:
   category: Fortification
   description: Supermarket A
   attributes: []
+  shape_name: uniwersam_a
 - type: T-34-85
   name: Tk T-34-85
   kind: vehicle
@@ -9956,18 +10651,21 @@ units:
   category: Warehouse
   description: Tank 1
   attributes: []
+  shape_name: bak
 - type: Tank 2
   name: Tank 2
   kind: static
   category: Warehouse
   description: Tank 2
   attributes: []
+  shape_name: airbase_tbilisi_tank_01
 - type: Tank 3
   name: Tank 3
   kind: static
   category: Warehouse
   description: Tank 3
   attributes: []
+  shape_name: airbase_tbilisi_tank_02
 - type: Tankcartrinity
   name: Rwy. Tank Cartrinity
   kind: vehicle
@@ -9988,48 +10686,56 @@ units:
   category: Fortification
   description: Tech combine
   attributes: []
+  shape_name: kombinat
 - type: Tech hangar A
   name: Tech hangar A
   kind: static
   category: Fortification
   description: Tech hangar A
   attributes: []
+  shape_name: ceh_ang_a
 - type: Tent01
   name: M92 Tent 01
   kind: static
   category: Fortification
   description: M92 Tent 01
   attributes: []
+  shape_name: M92_Tent01
 - type: Tent02
   name: M92 Tent 02
   kind: static
   category: Fortification
   description: M92 Tent 02
   attributes: []
+  shape_name: M92_Tent02
 - type: Tent03
   name: M92 Tent 03
   kind: static
   category: Fortification
   description: M92 Tent 03
   attributes: []
+  shape_name: M92_Tent03
 - type: Tent04
   name: M92 Tent 04
   kind: static
   category: Fortification
   description: M92 Tent 04
   attributes: []
+  shape_name: M92_Tent04
 - type: Tent05
   name: M92 Tent 05
   kind: static
   category: Fortification
   description: M92 Tent 05
   attributes: []
+  shape_name: M92_Tent05
 - type: Tetrahydra
   name: Tetrahydra
   kind: static
   category: Fortification
   description: Tetrahydra
   attributes: []
+  shape_name: Concrete_tetra
 - type: tetrapod_cargo
   name: Tetrapod
   kind: static
@@ -10037,6 +10743,7 @@ units:
   description: Tetrapod
   attributes:
   - Cargos
+  shape_name: tetrapod_cargo
 - type: Tetrarch
   name: Tk Tetrach
   kind: vehicle
@@ -10150,12 +10857,14 @@ units:
   category: Fortification
   description: M92 Toolbox 01
   attributes: []
+  shape_name: M92_Toolbox01
 - type: Toolbox02
   name: M92 Toolbox 02
   kind: static
   category: Fortification
   description: M92 Toolbox 02
   attributes: []
+  shape_name: M92_Toolbox02
 - type: Tor 9A331
   name: Tor 9A331
   kind: vehicle
@@ -10193,6 +10902,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4663
+  chaff: 90
+  flare: 45
 - type: Tornado IDS
   name: Tornado IDS
   kind: air
@@ -10210,12 +10921,15 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 4663
+  chaff: 90
+  flare: 45
 - type: Tower Crane
   name: TowerCrane
   kind: static
   category: Fortification
   description: TowerCrane
   attributes: []
+  shape_name: TowerCrane_01
 - type: TPZ
   name: 'APC TPz Fuchs '
   kind: vehicle
@@ -10269,6 +10983,7 @@ units:
   description: Trunks long
   attributes:
   - Cargos
+  shape_name: trunks_long_cargo
 - type: trunks_small_cargo
   name: Trunks short
   kind: static
@@ -10276,6 +10991,7 @@ units:
   description: Trunks short
   attributes:
   - Cargos
+  shape_name: trunks_small_cargo
 - type: tt_B8M1
   name: MLRS LC with B8M1 80mm
   kind: vehicle
@@ -10367,6 +11083,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 87000
+  chaff: 48
+  flare: 48
 - type: Tu-160
   name: Tu-160
   kind: air
@@ -10383,6 +11101,8 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 171000
+  chaff: 72
+  flare: 72
 - type: Tu-22M3
   name: Tu-22M3
   kind: air
@@ -10397,6 +11117,8 @@ units:
   - Planes
   - Battle airplanes
   fuel_capacity: 50000
+  chaff: 48
+  flare: 48
 - type: Tu-95MS
   name: Tu-95MS [CH]
   kind: air
@@ -10414,12 +11136,15 @@ units:
   - Battle airplanes
   - Bombers
   fuel_capacity: 87000
+  chaff: 48
+  flare: 48
 - type: TugHarlan
   name: M92 Tug Harlan
   kind: static
   category: Fortification
   description: M92 Tug Harlan
   attributes: []
+  shape_name: M92_TugHarlan
 - type: TugHarlan_drivable
   name: M92 Tug Harlan drivable
   kind: vehicle
@@ -10442,24 +11167,28 @@ units:
   category: Fortification
   description: TV tower
   attributes: []
+  shape_name: tele_bash
 - type: Twall_x1
   name: M92 Twall x1
   kind: static
   category: Fortification
   description: M92 Twall x1
   attributes: []
+  shape_name: M92_Twall_x1
 - type: Twall_x6
   name: M92 Twall x6
   kind: static
   category: Fortification
   description: M92 Twall x6
   attributes: []
+  shape_name: M92_Twall_x6
 - type: Twall_x6_3mts
   name: M92 Twall x6 3mts
   kind: static
   category: Fortification
   description: M92 Twall x6 3mts
   attributes: []
+  shape_name: M92_Twall_x6_3mts
 - type: TYPE-59
   name: MT Type 59
   kind: vehicle
@@ -10814,6 +11543,14 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 631
+  chaff: 0
+  flare: 60
+  takeoff_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
+  landing_categories:
+  - AircraftCarrier
+  - HelicopterCarrier
 - type: UH-60A
   name: UH-60A
   kind: air
@@ -10827,6 +11564,10 @@ units:
   - Air
   - Helicopters
   fuel_capacity: 1100
+  chaff: 30
+  flare: 30
+  takeoff_categories:
+  - AircraftCarrier
 - type: uh1h_cargo
   name: UH-1H cargo
   kind: static
@@ -10834,6 +11575,7 @@ units:
   description: UH-1H cargo
   attributes:
   - Cargos
+  shape_name: ab-212_cargo
 - type: Uragan_BM-27
   name: MLRS 9K57 Uragan BM-27 220mm
   kind: vehicle
@@ -11029,12 +11771,14 @@ units:
   category: Personnel
   description: Carrier Shooter
   attributes: []
+  shape_name: carrier_shooter
 - type: us carrier tech
   name: Carrier Technician
   kind: static
   category: Personnel
   description: Carrier Technician
   attributes: []
+  shape_name: carrier_tech_USA
 - type: USS_Arleigh_Burke_IIa
   name: DDG Arleigh Burke IIa
   kind: naval
@@ -11173,30 +11917,35 @@ units:
   category: Warehouse
   description: Warehouse
   attributes: []
+  shape_name: sklad
 - type: warning_board_a
   name: 'Warning Board: Spy Cannot Escape!'
   kind: static
   category: Fortification
   description: 'Warning Board: Spy Cannot Escape!'
   attributes: []
+  shape_name: biaoyu
 - type: warning_board_b
   name: 'Warning Board: Catch Spy!'
   kind: static
   category: Fortification
   description: 'Warning Board: Catch Spy!'
   attributes: []
+  shape_name: biaoyu-2
 - type: Water tower A
   name: Water tower A
   kind: static
   category: Fortification
   description: Water tower A
   attributes: []
+  shape_name: wodokachka_a
 - type: WC
   name: WC
   kind: static
   category: Fortification
   description: WC
   attributes: []
+  shape_name: WC
 - type: Wellcarnsc
   name: Rwy. Well Car
   kind: vehicle
@@ -11234,12 +11983,14 @@ units:
   category: Fortification
   description: Mark Flag White
   attributes: []
+  shape_name: H-Flag_W
 - type: White_Tyre
   name: Mark Tyre White
   kind: static
   category: Fortification
   description: Mark Tyre White
   attributes: []
+  shape_name: H-tyre_W
 - type: Willys_MB
   name: Car Willys Jeep
   kind: vehicle
@@ -11261,18 +12012,21 @@ units:
   category: Fortification
   description: Windsock
   attributes: []
+  shape_name: H-Windsock_RW
 - type: WindTurbine
   name: Wind Turbine
   kind: static
   category: Fortification
   description: Wind Turbine
   attributes: []
+  shape_name: WindTurbine_10
 - type: WindTurbine_11
   name: Wind Turbine 2
   kind: static
   category: Fortification
   description: Wind Turbine 2
   attributes: []
+  shape_name: WindTurbine_11
 - type: WingLoong-I
   name: WingLoong-I
   kind: air
@@ -11294,6 +12048,7 @@ units:
   category: Fortification
   description: Workshop A
   attributes: []
+  shape_name: tec_a
 - type: wp_marker
   name: WP Marker
   kind: static
@@ -11353,6 +12108,7 @@ units:
   category: Heliport
   description: F-100D ZELL
   attributes: []
+  shape_name: ZELL
 - type: ZiL-131 APA-80
   name: GPU APA-80 on ZIL-131
   kind: vehicle

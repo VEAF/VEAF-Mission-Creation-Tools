@@ -237,7 +237,7 @@ guard holds.
 ### R15. Does DCS still hide a group it did not place itself?
 
 Settles the open half of [#953](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/953),
-which [`FIX-STATIC-RESPAWN-BY-UNIT-NAME`](.backlog/FIX-STATIC-RESPAWN-BY-UNIT-NAME/PRD.md) states and
+which [`FIX-STATIC-RESPAWN-BY-UNIT-NAME`](.backlog/archive/FIX-STATIC-RESPAWN-BY-UNIT-NAME.md) states and
 deliberately does not answer. Tripack reports QRA aircraft and neutral statics, all `hidden` in the
 Mission Editor, showing on the F10 map of a **remote** server. Everything measurable from a keyboard
 says the framework is not losing the flag: his `.miz` carries `hidden = true` on all of them, the
@@ -287,6 +287,96 @@ What the run must therefore still answer, and it now needs a **red** group to be
 does an object **recreated** by `coalition.addGroup` / `addStaticObject` keep the flag? Testing it on
 a neutral one proves nothing, since those show anyway. He was asked to try the neutral → red switch
 on one sandbag, which would confirm the coalition reading on its own.
+
+### R16. Does `settleGroup`'s sweep get more vehicles out of the trees than ticket 11 did?
+
+[`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 12.
+`veafUnits.settleGroup` no longer asks `Disposition` to propose a clearing; it sweeps rings of
+growing radius (20 m apart, up to 300 m) with the small per-point probe. The reference is ticket
+11's run on GermanyCW-v6, 2026-09-26 evening: **17 vehicles under trees before `settleGroup`, 4
+after**, 4 of 31 groups translated, formations to 0.0000 m.
+
+**Run**: GermanyCW-v6 rebuilt with this branch, with the DCS bridge injected (see the memory note
+on the bridge). David only launches the mission; the measurement goes through the bridge, the same
+way as ticket 11's: wrap `settleGroup` to probe every unit **before** the spawn (never after — the
+probe counts the group's own vehicles), activate the 25 combat zones once, and record per call the
+translation, the probe count and the elapsed time.
+
+- **Fewer than 4 vehicles under trees after `settleGroup`**, formations unchanged: the sweep does
+  what the large query could not. Record the figures in ticket 12 and close it.
+- **Still about 4**: the vehicles left are in places the sweep cannot reach within 300 m either.
+  Read their `no offset within 300m` lines before touching the bound: raising it only helps if the
+  probe finds ground a little beyond 300 m.
+- **More than 4**, or a formation distance that moves: a regression. Look first at the groups the
+  log says gave up with `no offset within`: ticket 11 accepted translations up to 1000 m and was
+  measured moving one group **266 m**, so a group whose nearest clear ground lies beyond the sweep's
+  radius is the expected shape of a regression here.
+- **Whatever the count**: note the worst per-group time. Above about 0.4 s for one group, the probe
+  cost is not the 0.38 ms measured, and `SETTLE_SWEEP_PROBE_BUDGET` has to be sized again.
+
+### R19. A `-farp` on open ground keeps its escort where it was planned; one with nowhere to go is refused
+
+[`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md) ticket 03
+and [`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 04, one
+branch. The escort's wanted spot is now asked of the small probe (5 m free within 20 m), vehicle by
+vehicle, instead of being read off the nearest candidate of the large query — which was never nearer
+than 43.9 m on 2026-09-01, so the escort always moved.
+
+**Run**: the Caucasus session mission, security off, rebuilt with this branch, with
+`veafGrass.LogLevel = "debug"` (the placement lines are at debug since #898 and #1025). Four `-farp` markers:
+
+1. **open ground**, nothing within a kilometre;
+2. **in or beside a wood**, the planned spot genuinely in the trees;
+3. **beside a static FARP**, the planned spot on its apron;
+4. **somewhere nothing fits** — the middle of a dense town, or ringed by static FARPs — to see the refusal.
+
+Grep `dcs.log` for `FARP escort:`, `wanted spot at bearing` and `refused`:
+
+| Case | Expected | Otherwise |
+|---|---|---|
+| Open ground | `scenery probe=true, occupancy probe=true`, then `bearing N requested, N used at 1x` — **equal** | `scenery probe=false` on open ground: the probe sees something the eye does not, note the point |
+| Wood | `scenery probe=false`, the bearings **differ**, escort visibly out of the trees | `scenery probe=true` in the trees: the probe's 20 m radius finds a gap — the check cannot fail, say so |
+| Static FARP | `occupancy probe=false`, bearings differ or scale > 1, escort off the apron | on the apron: the occupancy half broke |
+| Nowhere | the message *"FARP … refusé"* on screen, **nothing** on the F10 map, a `refused` WARN line | a FARP built anyway: the refusal is unreachable in the field; if no spot can be found that refuses, record that too — the refusal is then only theoretical |
+
+The first three rows together are what make this a check: a run where nothing moves anywhere means
+the fix went too far.
+
+### R17. A GermanyCW-v6 start with no shape refused, one initialization per zone, no sanctuary error
+
+[`FIX-IN-GAME-TEST-FINDINGS`](.backlog/FIX-IN-GAME-TEST-FINDINGS/PRD.md). Every one of its five
+findings was read in `dcs.log`, so the check is `dcs.log` too. **Run**: in GermanyCW-v6, delete the
+four hand-written `shape_name` (Wünsdorf's `.Command Center`, Torgau's two and Wittenberg's one
+`.Ammunition depot`) and place those four statics again with `add_group`. Build with this branch, start the mission, activate Torgau, fire one
+unguided weapon at nothing near a sanctuary. Then grep `dcs.log`:
+
+| `grep` | Expected | Otherwise |
+|---|---|---|
+| `unknown static shape_name` | no line | the shape written is not the one DCS wants: compare with the editor's |
+| `DIAG\|zone combatZone_Torgau: deactivated` | **one** line | a second caller of `initialize()` — read who |
+| `combatZone_Torgau: activating` | `4 element(s)` | elements still doubled |
+| `attempt to index local 'target'` / `Weapon doesn't exist` | no line | another path in `handleWeapon` |
+| `no cities in veafNamedPoints` | no line | `veafCities.lua` missing from the bundle |
+| `extract` / `logistic` `not found` | no line (GermanyCW-v6's lists were emptied by hand, and `validate` would name any left) | a name `validate` did not report: its check reads the wrong section |
+
+### R20. Does a departing player's slot change still arrive after DCS forgot the player, in 2.9.30?
+
+Re-measures the known limitation `player-leaves-slot-after-dcs-forgot-the-player`
+(`known-limitations.yaml`, measured 2026-09-30 on **2.9.29**). DCS 2.9.30.28536, released the same day,
+says only *"Coalition change and aircraft Slot change events are corrected"* — which may or may not
+be this ordering. Nothing breaks either way: `VEAF-Server-hook.lua` accepts a nil player info.
+
+**Run**: no game needed, only the six VEAF servers running **2.9.30** for a day of ordinary play. Over
+SSH, grep each instance's `dcs.log` for the disconnects and the slot changes that follow them, the same
+count as the 2026-09-30 measurement (21 disconnects → 21 slot changes with no player info). Check the
+version line at the top of each log first: a log still on 2.9.29 answers nothing.
+
+- **Unchanged**: every disconnect is still followed by a slot change with no player info. Update
+  `measured` to the date and add the DCS version to the symptom, then regenerate
+  `docs/agents/dcs-runtime-traps.md` (`poetry run python -m veaf_libs.known_limitations`).
+- **Changed**: the slot change arrives before the disconnect, or with the player info still readable.
+  Record the new order in the entry, mark it fixed by DCS 2.9.30, and decide whether the hook's
+  remembered-disconnect list is still needed.
 
 ---
 
@@ -452,6 +542,19 @@ to the command carried no easting, which reads as zero — the theatre's central
 kilometres from the zone. Never measured. Also worth knowing: `FIX-WAVE-OFFSET-AXES` shipped the same
 day and **moves any mission using a non-zero `[latDelta,lonDelta]` offset**, so a zone with an offset
 is the interesting one to trigger.
+
+**Since `FIX-QRA-COMMANDS-AND-OFFSET` the QRA half can be built as intended**: `validate` no longer
+refuses a command in a QRA deploy list, and `respawn_default_offset` under a QRA reaches the Lua
+(`:setRespawnDefaultOffset` on the QRA chain). Give the QRA a command and a non-zero offset, and read
+where its element spawns.
+
+### R18. `logLevel: trace` under one module traces that module and no other
+
+[`FIX-PER-MODULE-LOGLEVEL-INERT`](.backlog/FIX-PER-MODULE-LOGLEVEL-INERT/PRD.md). Tested through the
+logger with the DCS mocks; never seen in `dcs.log`. **Run**: any mission with `global_log_level: info`
+and `modules.SPAWN.logLevel: trace`; spawn one group with a marker. `grep "VEAF-SPAWN|T|"` must find
+lines, `grep "|T|"` must find nothing from any other module. None from SPAWN: the logger id differs
+from the config key — compare `veafSpawn.Id` with the `veaf.setConfig` line in `veaf-config.lua`.
 
 ### ✅ R8. Does a teleported escort hold formation — and does it engage? — **both yes, 2026-09-01**
 
@@ -720,7 +823,7 @@ was **not** a valid check — see the withdrawal of item 17 below, which is the 
 
 ## 17. ~~A tag on one unit of a group~~ — withdrawn 2026-08-22, the criterion was wrong
 
-[`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY/PRD.md), 6.15.14.
+[`FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY`](.backlog/archive/FIX-COMBATZONE-TAGS-FIRST-UNIT-ONLY.md), 6.15.14.
 Closed on unit coverage instead. **Nothing to do in game.**
 
 This check told the tester to activate the zone and watch two M-1 Abrams: *"they stay put"* meant the tag
@@ -745,7 +848,7 @@ The lesson worth keeping is not about alarm states. An in-game check is only wor
 **come out both ways**; this one was written from an assumption about DCS behaviour that was never tested,
 and the assumption was wrong. Two waypoints were even added to the group on 2026-08-21 to make the check
 possible — and that hand-copied waypoint is what later broke the mission for the DCS editor
-([`FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS`](.backlog/FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS/PRD.md)).
+([`FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS`](.backlog/archive/FIX-VALIDATE-CONTRADICTORY-WAYPOINT-LOCKS.md)).
 The whole cost came from a check that could never conclude.
 
 ## ✅ 18. The dispersion — verified in game 2026-08-22
@@ -877,7 +980,7 @@ direction « 2 heures » recoupée par un calcul indépendant, et ramassage effe
 Deux défauts trouvés au passage, qu'aucun des 3950 tests ne voyait : l'assertion de dépendance
 s'exécutait au chargement, là où `veaf` ne peut pas encore exister ; et un groupe créé en vol
 n'avait pas de pays, ce qui cassait **tout** téléport de groupe dynamique. Détail complet dans
-`.backlog/REFACTOR-CSAR-WITHOUT-MIST/PRD.md`.
+`.backlog/archive/REFACTOR-CSAR-WITHOUT-MIST.md`.
 
 ## ✅ 24. Skynet sans MiST — vérifié en jeu le 2026-08-31, sans un seul décollage
 
@@ -891,7 +994,7 @@ vol vu immédiatement. Le piège MiST a mordu 31 fois, **31 fois depuis `dcs-bri
 d'observation lui-même) et **zéro depuis Skynet**.
 
 Détail complet, y compris mes deux fausses alertes de méthode, dans
-`.backlog/REFACTOR-SKYNET-WITHOUT-MIST/PRD.md`.
+`.backlog/archive/REFACTOR-SKYNET-WITHOUT-MIST.md`.
 
 
 ---

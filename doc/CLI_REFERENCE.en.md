@@ -570,6 +570,86 @@ veaf-tools dcs inject-bridge MaMission.miz
 
 **See also** : [developer/dcs-data.md](developer/dcs-data.en.md)
 
+### `veaf-tools dcs clear-ground-sweep` {#clear-ground-sweep}
+
+Sweep a theatre for clear ground, step by step, and write its catalogue. The command:
+
+1. writes an **empty** survey mission into your DCS `Missions` folder. It must stay empty: the DCS
+   probe counts vehicles as obstacles, so a unit standing on the map would be taken for forest;
+2. makes sure `dcs-serve` runs: the small local server the mission's dcs-bridge script connects to, and the
+   sweep goes through. When none answers, the command starts one itself (found next to `veaf-tools.exe`,
+   on `PATH`, or through `--dcs-serve`), in a folder of its own, with a generated access key and listening
+   on this computer only, and stops it at the end;
+3. tells you what to do: allow mission scripts to talk to the outside once (`MissionScripting.lua`), open
+   and start the mission, take the spectator slot;
+4. waits for you to press Enter, then for the mission to answer;
+5. probes the ground around the airfields (and, on request, the combat zones of a mission or given
+   points), showing progress. An interrupted sweep resumes where it stopped;
+6. writes the catalogue and says DCS can be closed.
+
+The 21 Caucasus airfields take about 4 minutes, one combat zone about ten seconds. DCS freezes for
+about 1.5 s at each batch, which does not matter on a mission nobody is flying.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | yes | DCS theatre name, as a mission spells it. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--zones-from` | `str` | *(none)* | Also sweep around the `combatZone...` trigger zones of this .miz. |
+| `--around` | `str` | *(none)* | Also sweep around this point, as `x,y` mission coordinates (repeatable). |
+| `--airfields` | `boolean` | `true` | Sweep around every airfield of the theatre. |
+| `--out` | `str` | `<VEAF home>/clear-ground/<theatre>.clear-ground.json` | The catalogue to write. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<theatre>.miz` | Where to write the survey mission. |
+| `--bridge-lua` | `str` | *(none)* | Local dcs-bridge.lua to embed (default: download). |
+| `--state-dir` | `str` | `<VEAF home>/clear-ground/sweep-<theatre>` | Where the sweep keeps its progress. |
+| `--restart` | `boolean` | `false` | Throw away the progress of a different plan instead of refusing. |
+| `--batch` | `int` | `10000` | Cells probed per call to DCS. |
+| `--wait` | `int` | `900` | How many seconds to wait for the survey mission to answer. |
+| `--api-key` | `str` | *(none)* | dcs-serve superuser Bearer token (default: read from dcs-serve.yaml). (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | Path to a dcs-serve.yaml / dcs-client.yaml to read the key from. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | dcs-serve base URL. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none is running (default: next to veaf-tools, or on PATH). |
+| `--verbose` | `boolean` | `false` | If enabled, displays detailed debugging information. |
+
+```bash
+.\veaf-tools.exe dcs clear-ground-sweep Caucasus --zones-from MyMission.miz
+```
+
+*Flat alias : `veaf-tools clear-ground-sweep`*
+
+### `veaf-tools dcs clear-ground-check` {#clear-ground-check}
+
+Check in DCS whether the ground vehicles of a built mission stand in trees or buildings, **without
+spawning them**. Their positions are read from the `.miz`, then probed on the empty survey mission: no
+vehicle exists there, so none is counted as blocked by its neighbours — which is what happens as soon as
+a battery that has already spawned is probed. Each answer is compared with what the clear-ground
+catalogue predicted, and a disagreement is reported as a question about the catalogue. Combat-zone
+markers (`#command`) are not checked: their group is drawn at runtime, which moves it off scenery
+itself. Same flow as `clear-ground-sweep`: `dcs-serve`, survey mission, instructions, waiting.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `MISSION` | `str` | yes | The .miz to check. It is read, never loaded in DCS. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<theatre>.miz` | Where to write the survey mission. |
+| `--bridge-lua` | `str` | *(none)* | Local dcs-bridge.lua to embed (default: download). |
+| `--wait` | `int` | `900` | How many seconds to wait for the survey mission to answer. |
+| `--report` | `str` | *(none)* | Also write the report as JSON to this file. |
+| `--api-key` | `str` | *(none)* | dcs-serve superuser Bearer token (default: read from dcs-serve.yaml). (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | Path to a dcs-serve.yaml / dcs-client.yaml to read the key from. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | dcs-serve base URL. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none is running. |
+| `--verbose` | `boolean` | `false` | If enabled, displays detailed debugging information. |
+
+```bash
+.\veaf-tools.exe dcs clear-ground-check build\MyMission.miz
+```
+
+*Flat alias : `veaf-tools clear-ground-check`*
+
 ### `veaf-tools dcs smoke-test` {#smoke-test}
 
 Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook.

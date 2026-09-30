@@ -324,7 +324,7 @@ function veafUnits.findUnit(unitAlias)
     unit = veafUnits.findDcsUnit(unitAlias)
   end
   if not unit then
-    veaf.loggers.get(veafUnits.Id):info("cannot find unit [" .. unitAlias .. "]")
+    veaf.loggers.get(veafUnits.Id):debug("cannot find unit [" .. unitAlias .. "]")
   else
     unit = veafUnits.makeUnitFromDcsStructure(unit, 1)
   end
@@ -435,28 +435,84 @@ end
 
 --- Distance, in metres, beyond which `settleGroup` leaves a group where it is rather than moving it.
 ---
---- This is the acceptance bound, and it deliberately has **nothing to do with the radius asked of
---- `Disposition`**: that radius means nothing. Measured in DCS on 2026-09-25 (GermanyCW-v6), asked
---- 50 m it answered between 52 and 171 m, median 130 m. The previous per-unit version of this code
---- kept a candidate only when `dist <= r` and therefore displaced **nothing at all**, on any unit,
---- ever — 25 candidates offered over 20 stuck vehicles, 25 valid on terrain, 0 accepted.
+--- Since ticket 12 this is also how far the sweep looks: it tries offsets ring by ring, closest
+--- first, and stops at this radius.
 ---
---- 1000 m, because the translations actually needed on that mission ran from 100 to 800 m, and
---- because a kilometre still keeps a group inside the scale of the combat zone it belongs to.
-veafUnits.SETTLE_MAX_TRANSLATION = 1000
+--- 300 m. Measured on GermanyCW-v6: the sweep's own trial run (2026-09-26) solved thirteen groups
+--- at 40 to 200 m, the Wittstock S-300 among them at **200 m**; but ticket 10 translated groups by
+--- 118 to 278 m (2026-09-26) and ticket 11 moved one by **266 m**, so a bound under 280 m would
+--- give up on groups the previous code did move. The sweep's figures were taken with a criterion later found to count
+--- vehicles as obstacles (see `isPointClearOfScenery`), so this bound is the first thing to
+--- revisit when the sweep is measured in game. It used to be 1000 m, when it bounded a list of
+--- candidates the large query returned rather than a search this code pays for probe by probe.
+veafUnits.SETTLE_MAX_TRANSLATION = 300
 
---- Breathing room, in metres, asked around the group's own footprint — and the radius within which
---- a candidate proves the group is **already** standing in that clearing, so nothing needs moving.
+--- Spacing, in metres, between two rings of the sweep and between two offsets along a ring.
 ---
---- The proof is geometric: a candidate at distance `d` from the group's centre has
---- `footprint + SETTLE_MARGIN` metres clear around it, and every unit is within `footprint` of the
---- centre, hence within `footprint + d` of the candidate. So `d <= SETTLE_MARGIN` means the whole
---- group is inside the clearing already.
+--- 20 m, the natural spacing of a SAM battery (20 to 27 m, measured 2026-09-25): a finer step
+--- mostly re-tests the same ground, and a coarser one can step over a clearing a battery fits in.
+veafUnits.SETTLE_SWEEP_STEP = 20
+
+--- How many scenery probes one sweep may spend before it gives up on the group.
 ---
---- 50 m, because the closest candidate DCS was ever measured to return is 52 m: a tighter margin
---- could never fire that proof, and a group standing in a perfectly good clearing would be
---- translated for nothing.
-veafUnits.SETTLE_MARGIN = 50
+--- Everything runs in the spawn's own frame — deferring the spawn empties `veafSkynet.declareSpawn`,
+--- convoy routing and `veaf.readyForCombat` (FIX-PLACEMENT-IGNORES-SCENERY ticket 11) — so this is
+--- the hitch a group with no way out costs on every activation. A probe was measured at **0.38 ms**
+--- on 2026-09-26, so 1000 probes is about 0.38 s. With the shipped step and radius a whole sweep
+--- takes 761 offsets, and a refused offset usually costs one probe since the outermost units
+--- are tried first, so the budget only bites when those bounds are tuned upwards. The Wittstock
+--- S-300 sweep measured on 2026-09-26 took 836 probes to reach its 200 m clearing.
+veafUnits.SETTLE_SWEEP_PROBE_BUDGET = 1000
+
+--- The probe `settleGroup` uses to ask whether one unit's spot is clear of scenery: is there a patch
+--- of `SETTLE_UNIT_CLEARANCE` metres free within `SETTLE_UNIT_PROBE` metres of it?
+---
+--- Deliberately the same question the mission's acceptance probe asks, because the two criteria
+--- disagreeing is precisely how ticket 10 came out green in CI and inert in game: it accepted a
+--- candidate on a terrain test that says nothing about vegetation, while the metric it was written
+--- to move was measuring the scenery.
+---
+--- These values suit **vehicles**. They are not meaningful for a large static, whose own footprint
+--- can exceed the probe radius and so blocks its own test — a 47×52 m building always fails it.
+--- `settleGroup` only ever moves settleable ground units, so the caveat does not bite here.
+veafUnits.SETTLE_UNIT_PROBE = 20
+veafUnits.SETTLE_UNIT_CLEARANCE = 5
+
+--- Does a unit standing here have a patch of open ground around it?
+--
+-- **This is the test ticket 10 did not do.** Its code asserted that "a candidate is scenery-free by
+-- construction", so nothing had to look at a forest. Measured in DCS on 2026-09-26 (GermanyCW-v6):
+-- the Wittstock S-300 was translated 217 m onto a candidate asked for 183 m of clearance, and that
+-- arrival point is blocked in **12 directions out of 12 at 10 m** — it only opens up at 183 m. The
+-- group had been moved into the middle of a wood that has a clearing well outside it. Six of its
+-- fourteen vehicles ended up under trees, and the whole lot measured inert.
+--
+-- It is the one question `settleGroup` asks the singleton since ticket 12: this small query is
+-- deterministic, where the large one that proposes clearings is a lottery.
+--
+-- **It answers "is there room here", and a vehicle occupies room.** Measured on 2026-09-26: the
+-- same points, probed with a group standing on them and again once it was destroyed, went from
+-- 12 blocked out of 14 to 0 out of 14. That is harmless *here* — this runs before the group's
+-- units exist, so it sees vegetation and nothing else — and it is ruinous anywhere a spawned
+-- mission is measured, where a tight SAM battery fails the test wherever you put it. Three
+-- published counts of "units in scenery" were mostly groups blocking themselves
+-- (`known-limitations.yaml`, `disposition-getsimplezones-is-a-lottery`).
+--
+-- ADR 0018 — when the singleton is missing or raises, this answers **true** and lets the caller
+-- proceed. An undocumented dependency may improve quality; it must never be what refuses a spawn.
+-- @param point table vec3 where the unit would stand
+-- @return boolean true when the spot is clear, or when the scenery criterion cannot be evaluated
+local function isPointClearOfScenery(point)
+  if veaf.doNotAvoidScenery or not Disposition or not Disposition.getSimpleZones then
+    return true
+  end
+  local ok, candidates =
+    pcall(Disposition.getSimpleZones, point, veafUnits.SETTLE_UNIT_PROBE, veafUnits.SETTLE_UNIT_CLEARANCE, veaf.SPAWN_SEARCH_ATTEMPTS)
+  if not ok or type(candidates) ~= "table" then
+    return true
+  end
+  return #candidates > 0
+end
 
 --- May this unit be moved to get clear of the scenery?
 -- Air units live in the air, and naval units (naval statics included, identified exactly as in
@@ -472,32 +528,39 @@ local function isSettleableUnit(unit)
   return true
 end
 
---- Moves a whole ground group, as one rigid body, into a clearing that fits all of it.
+--- Moves a whole ground group, as one rigid body, onto ground where every unit stands clear.
 --
 -- `veaf.findSpawnPoint` places the **group centre** clear of scenery; `placeGroup` then spreads the
 -- units around that centre without consulting the scenery, so a battery whose centre stands in the
 -- open can still have half its vehicles inside a treeline. This function runs after `placeGroup`,
 -- which is the only moment the real disposition is known: `veafUnits` draws it at random on every
--- spawn, so no amount of editing the positions declared in a mission can pre-empt it.
+-- spawn, so no amount of editing the positions declared in a mission can pre-empt it — and since
+-- it runs on the disposition actually drawn, what it validates is exactly what spawns.
 --
 -- **Rigidly, and that is the whole point.** Measured on GermanyCW-v6 (2026-09-25): a group's natural
 -- spacing is 20 to 27 m for a SAM battery, while the closest point DCS can propose is 52 m, so any
 -- per-unit displacement breaks the formation by a factor of 2 to 5 — there is no threshold that is
--- both effective and safe. Translating the group instead resolved 30 of 31 offending groups and took
--- units standing in trees from 132 down to 2, with the formation preserved to the metre.
+-- both effective and safe. One offset is applied to every unit, so no inter-unit distance changes.
 --
--- The criterion is inverted compared to a probe, because `Disposition` can only ever *propose*
--- points and never test one (the same inversion `veafGrass.findClearBearing` makes): ask once for a
--- cloud of clearing centres wide enough to hold the entire footprint, then keep the closest one
--- whose translation also puts every unit on drivable terrain. A candidate is scenery-free by
--- construction, so nothing here has to test a forest.
+-- **It sweeps with the probe; it never asks `Disposition` for a clearing.** Rings of growing
+-- radius around the group, `SETTLE_SWEEP_STEP` apart, closest first; each offset is kept only when
+-- every translated unit stands on drivable terrain and passes `isPointClearOfScenery`. Ticket 11
+-- asked the singleton's large query to *propose* clearings and verified each one, and measured on
+-- 2026-09-26 that query is a lottery — 12 ms a call, not deterministic, and **zero candidates at
+-- every clearance, down to 5 m**, for the places a group most needs moving out of. The small probe
+-- is 0.38 ms and gives the same answer every time. So the singleton is only ever asked about one
+-- point at a time, the one way it is dependable (`known-limitations.yaml`,
+-- `disposition-getsimplezones-is-a-lottery`).
+--
+-- The outermost units are probed first: they carry the footprint, so they are the ones a bad
+-- offset puts in the trees, and a refused offset then costs one probe rather than one per unit.
 --
 -- No-op, and the group is left strictly untouched, when: `Disposition` is unavailable or raises
 -- (ADR 0018 — this undocumented singleton may improve quality, never decide correctness), any unit
 -- of the group is exempt (a rigid translation is a property of the whole group; moving half of it
--- would break the very invariant this exists to protect), no candidate clears every unit, the best
--- candidate is farther than `SETTLE_MAX_TRANSLATION`, or the best candidate is within
--- `SETTLE_MARGIN` and therefore proves the group is already in the clear.
+-- would break the very invariant this exists to protect), every unit already stands clear, no
+-- offset within `SETTLE_MAX_TRANSLATION` clears every unit, or the sweep has spent
+-- `SETTLE_SWEEP_PROBE_BUDGET` probes.
 --
 -- Editor content is **not** concerned: zone elements are respawned through `VeafGroupSpawn`, whose
 -- `honouringDeclaredPosition` keeps the position the mission maker drew (ruling 3 of David's
@@ -536,84 +599,96 @@ function veafUnits.settleGroup(units, honourDeclaredPosition)
     return 0
   end
 
-  -- The group's barycentre, and the radius of the disc that holds it.
+  -- The group already stands in the open: measured unit by unit. This is the common case, and it
+  -- costs one probe per unit.
+  local alreadyClear = true
+  for _, unit in ipairs(units) do
+    if not isPointClearOfScenery(unit.spawnPoint) then
+      alreadyClear = false
+      break
+    end
+  end
+  if alreadyClear then
+    veaf.loggers.get(veafUnits.Id):trace("settleGroup: every unit already stands clear, keeping the group")
+    return 0
+  end
+
+  -- Outermost first, measured from the barycentre; ties keep the list order so a sweep is
+  -- reproducible.
   local centreX, centreZ = 0, 0
   for _, unit in ipairs(units) do
     centreX = centreX + unit.spawnPoint.x
     centreZ = centreZ + (unit.spawnPoint.z or 0)
   end
   centreX, centreZ = centreX / #units, centreZ / #units
-  local footprint = 0
-  for _, unit in ipairs(units) do
+  local order = {}
+  for i, unit in ipairs(units) do
     local dx, dz = unit.spawnPoint.x - centreX, (unit.spawnPoint.z or 0) - centreZ
-    footprint = math.max(footprint, math.sqrt(dx * dx + dz * dz))
+    order[i] = { index = i, reach = dx * dx + dz * dz }
   end
-
-  local ok, candidates = pcall(
-    Disposition.getSimpleZones,
-    { x = centreX, y = 0, z = centreZ },
-    veafUnits.SETTLE_MAX_TRANSLATION,
-    footprint + veafUnits.SETTLE_MARGIN,
-    veaf.SPAWN_SEARCH_ATTEMPTS
-  )
-  if not ok or type(candidates) ~= "table" then
-    veaf.loggers.get(veafUnits.Id):debug("settleGroup: Disposition.getSimpleZones unusable, leaving the group alone")
-    return 0
-  end
-
-  -- Closest first, and only those near enough to still be the same place. `Disposition` answers
-  -- vec2s, whose `y` is the map easting (docs/agents/dcs-coordinates.md).
-  local reachable = {}
-  for _, candidate in ipairs(candidates) do
-    if type(candidate) == "table" and type(candidate.x) == "number" then
-      local x = candidate.x
-      local z = candidate.z or candidate.y
-      if type(z) == "number" then
-        local dx, dz = x - centreX, z - centreZ
-        local distance = math.sqrt(dx * dx + dz * dz)
-        if distance <= veafUnits.SETTLE_MAX_TRANSLATION then
-          table.insert(reachable, { x = x, z = z, distance = distance })
-        end
-      end
+  table.sort(order, function(a, b)
+    if a.reach ~= b.reach then
+      return a.reach > b.reach
     end
-  end
-  if #reachable == 0 then
-    veaf.loggers.get(veafUnits.Id):debug("settleGroup: no clearing wide enough within %dm", veafUnits.SETTLE_MAX_TRANSLATION)
-    return 0
-  end
-  table.sort(reachable, function(a, b)
-    return a.distance < b.distance
+    return a.index < b.index
   end)
-  if reachable[1].distance <= veafUnits.SETTLE_MARGIN then
-    veaf.loggers.get(veafUnits.Id):trace("settleGroup: the group already stands in that clearing, keeping it")
+
+  local step, probes = veafUnits.SETTLE_SWEEP_STEP, 0
+  -- A mission can tune the step; zero or less would make the loop below run forever in the spawn's
+  -- frame, so it reads as "do not sweep".
+  if type(step) ~= "number" or step <= 0 then
+    veaf.loggers.get(veafUnits.Id):debug("settleGroup: SETTLE_SWEEP_STEP is %s, not sweeping", tostring(step))
     return 0
   end
-
-  for _, candidate in ipairs(reachable) do
-    local offsetX, offsetZ = candidate.x - centreX, candidate.z - centreZ
-    local placed, everyUnitClear = {}, true
-    for i, unit in ipairs(units) do
-      local point = veaf.placePointOnLand({ x = unit.spawnPoint.x + offsetX, y = 0, z = (unit.spawnPoint.z or 0) + offsetZ })
-      if not veaf.isTerrainValid(point, veaf.DRIVABLE_TERRAIN) then
-        everyUnitClear = false
-        break
+  for radius = step, veafUnits.SETTLE_MAX_TRANSLATION, step do
+    local offsets = math.ceil(2 * math.pi * radius / step)
+    for k = 0, offsets - 1 do
+      local angle = 2 * math.pi * k / offsets
+      local offsetX, offsetZ = radius * math.cos(angle), radius * math.sin(angle)
+      local placed, everyUnitClear = {}, true
+      for _, entry in ipairs(order) do
+        local unit = units[entry.index]
+        local point = veaf.placePointOnLand({ x = unit.spawnPoint.x + offsetX, y = 0, z = (unit.spawnPoint.z or 0) + offsetZ })
+        if not veaf.isTerrainValid(point, veaf.DRIVABLE_TERRAIN) then
+          everyUnitClear = false
+          break
+        end
+        -- Say which of the two it was. "We stopped looking" and "there is nothing to find" call
+        -- for different answers when this shows up in a log.
+        if probes >= veafUnits.SETTLE_SWEEP_PROBE_BUDGET then
+          veaf.loggers.get(veafUnits.Id):debug(
+            "settleGroup: probe budget of %d spent before %dm, keeping the group where it is",
+            veafUnits.SETTLE_SWEEP_PROBE_BUDGET,
+            radius
+          )
+          return 0
+        end
+        probes = probes + 1
+        if not isPointClearOfScenery(point) then
+          everyUnitClear = false
+          break
+        end
+        placed[entry.index] = point
       end
-      placed[i] = point
-    end
-    if everyUnitClear then
-      for i, unit in ipairs(units) do
-        -- Copy the original to keep every caller-set field (hdg, cell, …); only the coordinates
-        -- move, and `y` is the ground height where the unit now stands.
-        local settled = veaf.deepCopy(unit.spawnPoint)
-        settled.x, settled.y, settled.z = placed[i].x, placed[i].y, placed[i].z
-        unit.spawnPoint = settled
+      if everyUnitClear then
+        for i, unit in ipairs(units) do
+          -- Copy the original to keep every caller-set field (hdg, cell, …); only the coordinates
+          -- move, and `y` is the ground height where the unit now stands.
+          local settled = veaf.deepCopy(unit.spawnPoint)
+          settled.x, settled.y, settled.z = placed[i].x, placed[i].y, placed[i].z
+          unit.spawnPoint = settled
+        end
+        veaf.loggers.get(veafUnits.Id):debug("settleGroup: translated the group by %.0fm onto clear ground, %d probes", radius, probes)
+        return radius
       end
-      veaf.loggers.get(veafUnits.Id):debug("settleGroup: translated the group by %.0fm to a clearing that fits it", candidate.distance)
-      return candidate.distance
     end
   end
 
-  veaf.loggers.get(veafUnits.Id):debug("settleGroup: no candidate clears every unit, keeping the group where it is")
+  veaf.loggers.get(veafUnits.Id):debug(
+    "settleGroup: no offset within %dm clears every unit (%d probes), keeping the group where it is",
+    veafUnits.SETTLE_MAX_TRANSLATION,
+    probes
+  )
   return 0
 end
 

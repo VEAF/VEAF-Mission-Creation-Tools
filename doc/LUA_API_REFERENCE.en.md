@@ -448,7 +448,7 @@ The search degrades in three bounded tiers:
 > `dcs-world-schema`. The call is guarded and `pcall`-wrapped: if the singleton is missing on
 > this DCS version or map, the search falls through to tier 2 instead of failing.
 
-##### `veafUnits.settleGroup(units, spawnRadius)`
+##### `veafUnits.settleGroup(units, honourDeclaredPosition)`
 
 Moves **the whole group**, as one rigid body, into a clearing wide enough to hold it.
 `veaf.findSpawnPoint` only places the group's **centre**; `veafUnits.placeGroup` then spreads the
@@ -458,6 +458,12 @@ still have half its pieces in the trees.
 Every vehicle gets **the same offset**, so the distances between them do not change: the formation is
 preserved. A vehicle-by-vehicle nudge cannot work — a battery's natural spacing is 20 to 27 m, while
 the closest free point DCS can propose is 52 m away.
+
+**How it searches:** it sweeps rings of growing radius around the group, closest first, and keeps the
+first offset where every vehicle stands on drivable terrain **and** passes the small scenery probe
+(`Disposition.getSimpleZones` asked about one point: 5 m free within 20 m). It never asks
+`Disposition` to propose a clearing: that query is not deterministic and returns nothing where a
+group most needs moving (measured 2026-09-26).
 
 **Parameters:**
 
@@ -477,11 +483,13 @@ here.
 
 **Settings:**
 
-- `veafUnits.SETTLE_MAX_TRANSLATION` (default 1000) - acceptable translation distance, in metres.
-  Beyond it the group stays where it is. This is **not** the radius asked of DCS: that one is not
-  honoured (50 m asked, 52 to 171 m answered, measured 2026-09-25).
-- `veafUnits.SETTLE_MARGIN` (default 50) - breathing room asked around the group's footprint, and the
-  distance under which the group is taken to be standing in the clearing already.
+- `veafUnits.SETTLE_MAX_TRANSLATION` (default 300) - acceptable translation distance, in metres, and
+  how far the sweep looks. Beyond it the group stays where it is.
+- `veafUnits.SETTLE_SWEEP_STEP` (default 20) - spacing between two rings of the sweep, and between two
+  offsets on one ring, in metres.
+- `veafUnits.SETTLE_SWEEP_PROBE_BUDGET` (default 1000) - most probes spent on one group. It all runs in
+  the spawn's frame, so this is the hitch a group with no way out costs on every activation (one
+  probe ≈ 0.38 ms, measured 2026-09-26).
 
 ##### `veaf.getLandHeight(vec3)`
 
@@ -2496,7 +2504,7 @@ Spawn Forward Arming and Refueling Point (FARP).
 - `freq` (number, optional) - Radio frequency
 - `mod` (string, optional) - Modulation
 
-**Returns:** `table` - FARP info
+**Returns:** `string|nil` - the FARP name, or `nil` when it is refused for want of clear ground for its escort (nothing is created then)
 
 **Example:**
 ```lua

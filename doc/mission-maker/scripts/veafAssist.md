@@ -20,18 +20,18 @@ Un seul appareil est livré avec une checklist : le **F-16C** (démarrage moteur
 
 ## Pour le pilote {#for-pilots}
 
-Menu radio F10 → `Assistance`. Une entrée par checklist applicable à l'appareil : si votre appareil
+Menu radio F10 → `ASSISTANCE`. Une entrée par checklist applicable à l'appareil : si votre appareil
 n'en a aucune, aucune entrée n'apparaît.
 
 Une fois la checklist lancée, deux entrées apparaissent **à la racine du menu VEAF** — pas dans
-`Assistance` — pour épargner un aller-retour de menu à chaque étape :
+`ASSISTANCE` — pour épargner un aller-retour de menu à chaque étape :
 
 | Entrée | Effet |
 |---|---|
-| Valider cette étape | Coche l'étape courante — **seulement** pour les étapes qui attendent votre confirmation |
-| Passer cette étape | Coche l'étape sans la faire, et passe à la suivante |
+| ASSISTANCE : VALIDER L'ÉTAPE | Coche l'étape courante — **seulement** pour les étapes qui attendent votre confirmation |
+| ASSISTANCE : PASSER L'ÉTAPE | Coche l'étape sans la faire, et passe à la suivante |
 
-Le sous-menu `Assistance` garde les commandes occasionnelles :
+Le sous-menu `ASSISTANCE` garde les commandes occasionnelles :
 
 | Entrée | Effet |
 |---|---|
@@ -233,7 +233,7 @@ celui d'une checklist livrée **remplace** cette dernière.
 id: f16c-demarrage            # unique ; c'est la clé de remplacement
 title: Démarrage F-16C        # clé du catalogue i18n, ou texte brut
 aircraft: [F-16C_50]          # types DCS concernés ; un type inconnu est refusé
-menu: cold-start              # emplacement sous « Assistance »
+menu: cold-start              # emplacement sous « ASSISTANCE »
 
 steps:
   # Étape validée par le pilote : l'élément est encadré pour montrer où regarder

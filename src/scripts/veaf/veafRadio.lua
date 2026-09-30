@@ -298,7 +298,9 @@ function veafRadio._proxyMethod(parameters)
   local _required = requiredLevel or veafSecurity.LEVEL_SENIOR_PILOT
   if not groupId then
     veaf.loggers.get(veafRadio.Id):warn("refusing a secured command posted without a group")
-    trigger.action.outText(veaf.t("radio.auth_required"), 5)
+    -- No group, so nobody to address it to: everybody. It used to say the radio "has to be authenticated",
+    -- which sent pilots to `/secu login` for what is a mission error.
+    trigger.action.outText(veaf.t("radio.no_group"), 5)
     return
   end
 
@@ -313,8 +315,28 @@ function veafRadio._proxyMethod(parameters)
     veaf.loggers
       .get(veafRadio.Id)
       :debug(string.format("group %s is level %s, %s required", veaf.p(groupId), veaf.p(_level), veaf.p(_required)))
-    trigger.action.outText(veaf.t("radio.auth_required"), 5)
+    -- Both numbers, and to this group only: the `+` in the title cannot tell a pilot whether their group
+    -- holds the level, so this is the one place they can learn it (FIX-SECU-VERB-AND-LOG-NOISE ticket 05).
+    -- -1 is the hook's "not in veaf-pilots.txt", a convention rather than a level worth showing
+    trigger.action.outTextForGroup(groupId, veaf.t("radio.level_required", _required, math.max(_level, 0)), 10)
   end
+end
+
+--- Upper-cases a UTF-8 menu label, accented letters included.
+--- string.upper only knows ASCII, so "Météo" would come out "MéTéO". The Latin-1 letters à..þ
+--- are encoded C3 A0..C3 BE, 0x20 above their capitals (÷, C3 B7, has none); œ is C5 93.
+--- @param text string
+--- @treturn string
+function veafRadio.toUpperCase(text)
+  local upper = string.upper(text)
+  upper = upper:gsub("\195([\160-\190])", function(byte)
+    if byte == "\183" then
+      return nil
+    end
+    return "\195" .. string.char(byte:byte() - 32)
+  end)
+  upper = upper:gsub("\197\147", "\197\146")
+  return upper
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -375,7 +397,7 @@ function veafRadio.RadioMenuBuilder:rebuild()
     self:_removeCoalitionMenus(self._root)
     missionCommands.removeItem(self._root.dcsRadioMenu)
   else
-    veaf.loggers.get(veafRadio.Id):info("RadioMenuBuilder:rebuild() first time — no DCS radio menu yet")
+    veaf.loggers.get(veafRadio.Id):debug("RadioMenuBuilder:rebuild() first time — no DCS radio menu yet")
   end
   self:build()
 end
@@ -424,12 +446,21 @@ end
 --- checklist, a pilot with a session running — instead of showing everyone an item that
 --- answers "nothing for you" (veafAssist). Only per-group / per-unit commands are
 --- filtered: a ForAll command has no unit to decide on.
-function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide)
+---
+--- `label`, when given, is shown instead of `command.title` (the first level's capitals).
+function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide, label)
+  label = label or command.title
   veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
   if not command.usage then
     command.usage = veafRadio.USAGE_ForAll
   end
-  if command.usage ~= veafRadio.USAGE_ForAll then
+  -- A secured command needs a group: it is the only identity `_proxyMethod` will ever receive
+  -- (see _addDcsCommand). Posted for all, it refused every click while security was on — no
+  -- non-training combat zone could be activated on private1, 2026-09-29. So a secured ForAll
+  -- command goes out once per group, like ForGroup. With security disabled `_proxyMethod` runs
+  -- anything, and posting for all keeps it within reach of a game master, who has no group.
+  local securedForAll = command.usage == veafRadio.USAGE_ForAll and command.isSecured and not veaf.SecurityDisabled
+  if command.usage ~= veafRadio.USAGE_ForAll or securedForAll then
     local alreadyDoneGroups = {}
     for groupId, groupData in pairs(veafRadio.humanGroups) do
       veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
@@ -459,15 +490,18 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
           if humanUnit and humanUnit.spawned and passesFilter then
             veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
             local parameters = command.parameters
-            if parameters == nil then
+            if securedForAll then
+              -- A ForAll method takes its parameters as registered: no unit name appended.
+              parameters = command.parameters
+            elseif parameters == nil then
               parameters = unitName
             else
               parameters = { command.parameters }
               table.insert(parameters, unitName)
             end
-            local _title = command.title
+            local _title = label
             if command.usage == veafRadio.USAGE_ForUnit then
-              _title = callsign .. " - " .. command.title
+              _title = callsign .. " - " .. label
             end
             if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
               self:_addDcsCommand(groupId, _title, dcsMenu, command, parameters, coalitionSide)
@@ -478,7 +512,7 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
       end
     end
   else
-    self:_addDcsCommand(nil, command.title, dcsMenu, command, command.parameters, coalitionSide)
+    self:_addDcsCommand(nil, label, dcsMenu, command, command.parameters, coalitionSide)
   end
 end
 
@@ -502,10 +536,15 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   node.renderedForCoalition = coalitionSide
 
   local parentDcsMenu = parentNode and parentNode.dcsRadioMenu
+  local label = node.title
+  -- `isRoot` marks the page tables built below; the root itself comes in through refreshRadioSubmenu.
+  if parentNode and (parentNode.isRoot or parentNode == self._root) then
+    label = veafRadio.toUpperCase(label)
+  end
   if coalitionSide then
-    node.dcsRadioMenu = missionCommands.addSubMenuForCoalition(coalitionSide, node.title, parentDcsMenu)
+    node.dcsRadioMenu = missionCommands.addSubMenuForCoalition(coalitionSide, label, parentDcsMenu)
   else
-    node.dcsRadioMenu = missionCommands.addSubMenu(node.title, parentDcsMenu)
+    node.dcsRadioMenu = missionCommands.addSubMenu(label, parentDcsMenu)
   end
 
   -- Entries render in alphabetical order, which is the right default when a menu is a
@@ -553,15 +592,19 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
     end
   end
 
+  -- Every entry directly under the VEAF root is shown in capitals, whichever module added it
+  -- and on whichever page it lands; the logical titles are left as written, since modules
+  -- find their entries again by title (delCommand, delSubmenu).
+  local isRoot = node == self._root
   for _, command in ipairs(node.commands) do
     advancePageIfFull()
-    self:_placeCommandOnMenu(command, currentDcsMenu, coalitionSide)
+    self:_placeCommandOnMenu(command, currentDcsMenu, coalitionSide, isRoot and veafRadio.toUpperCase(command.title) or nil)
     placedOnPage = placedOnPage + 1
   end
 
   for _, subMenu in ipairs(node.subMenus) do
     advancePageIfFull()
-    self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide }, subMenu)
+    self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide, isRoot = isRoot }, subMenu)
     placedOnPage = placedOnPage + 1
   end
 end
@@ -581,6 +624,11 @@ function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, co
     -- and nothing about who clicked. A secured command therefore only makes sense per group —
     -- posting one for a whole coalition would leave `_proxyMethod` unable to say who is asking,
     -- and it refuses in that case (REVIEW-SECURITY-LAYER ticket 01).
+    -- _placeCommandOnMenu posts a secured ForAll command per group for that reason; reaching here
+    -- without one while security is on is a bug, said when the menu is built rather than per click.
+    if groupId == nil and not veaf.SecurityDisabled then
+      veaf.loggers.get(veafRadio.Id):warn("secured command %s posted without a group: it will refuse every click", veaf.p(title))
+    end
     _method = veafRadio._proxyMethod
     _parameters = {
       method = command.method,

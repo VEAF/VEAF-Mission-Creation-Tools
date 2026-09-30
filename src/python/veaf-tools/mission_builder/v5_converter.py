@@ -735,8 +735,10 @@ def _emit_qra_definitions(silence_all: bool | None, definitions: list[dict], ind
             lines.append(f"{field}react_on_helicopters: true")
         if al := qra.get("airport_link"):
             lines.append(f"{field}airport_link: {_yaml_str(al)}")
+        # `active_at_start`, the key the generator reads: `start`, written here until
+        # FIX-QRA-COMMANDS-AND-OFFSET, was ignored and armed the QRA anyway
         if not qra.get("start", True):
-            lines.append(f"{field}start: false  {t('converter.yaml.qra.start_comment')}")
+            lines.append(f"{field}active_at_start: false  {t('converter.yaml.qra.start_comment')}")
     return lines
 
 

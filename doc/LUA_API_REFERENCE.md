@@ -2506,7 +2506,7 @@ Spawne un point d'armement et de ravitaillement avancé (FARP).
 - `freq` (number, optionnel) — Fréquence radio
 - `mod` (string, optionnel) — Modulation
 
-**Retourne :** `table` — Info du FARP
+**Retourne :** `string|nil` — le nom du FARP, ou `nil` quand il est refusé faute de terrain dégagé pour son escorte (rien n'est alors créé)
 
 **Exemple :**
 ```lua

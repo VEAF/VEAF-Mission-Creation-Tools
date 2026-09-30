@@ -2504,7 +2504,7 @@ Spawn Forward Arming and Refueling Point (FARP).
 - `freq` (number, optional) - Radio frequency
 - `mod` (string, optional) - Modulation
 
-**Returns:** `table` - FARP info
+**Returns:** `string|nil` - the FARP name, or `nil` when it is refused for want of clear ground for its escort (nothing is created then)
 
 **Example:**
 ```lua

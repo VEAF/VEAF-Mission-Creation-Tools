@@ -304,14 +304,6 @@ function veafGrass.isSpotOccupied(position, clearance, platforms)
   return false
 end
 
---- Find a bearing at `distance` from `center` where every position a group would occupy is clear.
---- Keeps the radius and moves the bearing, per David's arbitration on #232: growing the radius would
---- push the escort away from the FARP it serves, and in a campaign the crew wants it close.
---- `positionsFor(angle)` returns the list of mission-table positions the objects would take at that
---- bearing — the whole list, because a five-vehicle group at 6 m spacing needs a clear *arc*, and
---- testing its origin alone would move it so its tail still overlapped.
---- Returns the original angle when nothing is clear: a FARP that refuses to exist because it is
---- crowded would be worse than one whose escort is tight.
 --- Distance multipliers tried, in order, when no bearing is clear at the requested distance.
 ---
 --- `1` is the distance the caller asked for and stays first, so a FARP with nothing in its way does not
@@ -342,6 +334,46 @@ local function planarDistance(a, b)
   return math.sqrt(dNorth * dNorth + dEast * dEast)
 end
 
+--- The scenery probe: is there a patch of `SCENERY_PROBE_CLEARANCE` metres free within
+--- `SCENERY_PROBE_RADIUS` metres of a spot?
+---
+--- The same question, with the same values, as `veafUnits.SETTLE_UNIT_PROBE` / `SETTLE_UNIT_CLEARANCE`
+--- — the probe `settleGroup` sweeps with. veafGrass loads before veafUnits, so it cannot read them;
+--- they are restated here, and a test pins them. The two disagreeing would mean an escort this code
+--- keeps is one `settleGroup` would move, which is how ticket 10 of FIX-PLACEMENT-IGNORES-SCENERY came
+--- out green in CI and inert in game. The escort is vehicles, so the vehicle values fit.
+veafGrass.SCENERY_PROBE_RADIUS = 20
+veafGrass.SCENERY_PROBE_CLEARANCE = 5
+
+--- Does every position of a group stand out of the trees? Asked of the small probe, one point at a
+--- time — the one way `Disposition` is dependable: measured on 2026-09-26 it is deterministic (0/12
+--- against 12/12 on the same points) and costs 0.38 ms, where the large query that proposes clearings
+--- is a lottery (`known-limitations.yaml`, `disposition-getsimplezones-is-a-lottery`).
+---
+--- The probe counts vehicles as occupying room. Harmless here: the group has not been spawned yet.
+---
+--- ADR 0018 — the singleton missing or raising answers **true**: it may improve quality, never be
+--- what refuses a spot. The occupancy probe still decides on top.
+--- @param positions table mission-table positions (x northing, y easting)
+--- @return boolean
+local function isClearOfScenery(positions)
+  for _, position in ipairs(positions) do
+    -- A fresh table: placePointOnLand rewrites a vec2 it is handed into a vec3 in place.
+    local point = veaf.placePointOnLand({ x = position.x, y = position.y })
+    local ok, candidates = pcall(
+      Disposition.getSimpleZones,
+      point,
+      veafGrass.SCENERY_PROBE_RADIUS,
+      veafGrass.SCENERY_PROBE_CLEARANCE,
+      veaf.SPAWN_SEARCH_ATTEMPTS
+    )
+    if ok and type(candidates) == "table" and #candidates == 0 then
+      return false
+    end
+  end
+  return true
+end
+
 --- Tier 1 of `findClearBearing`: pick a bearing out of Disposition's scenery-clear cloud.
 ---
 --- The one thing `isSpotOccupied` cannot see is a **forest** — trees are not scenery objects, and
@@ -358,9 +390,9 @@ end
 --- rather than approximated by a bearing step.
 ---
 --- The cloud never contains the spot the caller asked for, so selecting from it unconditionally moved
---- every group it could answer for. The nearest candidate's `gap` is read as a statement about the
---- wanted spot instead: within `PLACEMENT_CLEARANCE` of it, the wanted spot shares that candidate's
---- clearing and is returned unchanged (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND).
+--- every group it could answer for. So the wanted spot is asked about first, with the small probe, and
+--- kept unchanged when every position is out of the trees and unoccupied — without asking for a cloud
+--- at all (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND).
 ---
 --- Disposition stays quality-only, never correctness (ADR 0018): absent, raising, or answering nonsense,
 --- this returns nil and the bearing walk takes over.
@@ -377,6 +409,31 @@ local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
   local requestedDistance = planarDistance(wanted[1], own)
   if requestedDistance <= 0 then
     return nil
+  end
+
+  -- The wanted spot first, asked about directly. Ticket 01 of FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND read
+  -- it off the nearest cloud candidate instead — within PLACEMENT_CLEARANCE (12 m) of it, the spot shared
+  -- its clearing — and measured in game on 2026-09-01 that guard never fired: twelve decisions, the
+  -- nearest gap ever seen was 43.9 m. The large query samples at random and nothing makes a sample land
+  -- near the spot, so no threshold could have worked, and widening it would accept a spot nothing had
+  -- shown to be clear.
+  --
+  -- Both probes, because they see different things: this one forests, `allClear` units, statics,
+  -- buildings and the aprons. Both are logged before the decision, as #898 did for the guard it replaces:
+  -- that is what turned "it does not work" into a number in one run.
+  local sceneryClear = isClearOfScenery(wanted)
+  local occupancyClear = allClear(baseAngle, 1)
+  veaf.loggers.get(veafGrass.Id):debug(
+    "findClearBearing: wanted spot at bearing %s: scenery probe=%s, occupancy probe=%s",
+    veaf.p(math.floor(baseAngle)),
+    veaf.p(sceneryClear),
+    veaf.p(occupancyClear)
+  )
+  if sceneryClear and occupancyClear then
+    veaf.loggers
+      .get(veafGrass.Id)
+      :debug("findClearBearing: bearing %s is clear of scenery and unoccupied, keeping it", veaf.p(math.floor(baseAngle)))
+    return baseAngle, 1
   end
 
   -- The clearing has to hold the whole group, so what is asked of Disposition comes from the group's own
@@ -429,41 +486,11 @@ local function bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
   table.sort(options, function(left, right)
     return left.gap < right.gap
   end)
-
-  -- The spot the caller asked for is never one of Disposition's candidates, so without this the cloud
-  -- moved every group it could answer for — measured in game on 2026-08-28, a FARP with nothing within
-  -- a kilometre still had its escort swung 25 degrees out (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND).
-  --
-  -- Probing the wanted spot first is not the answer: `allClear` cannot see forests, which is the whole
-  -- reason this tier exists. The `gap` can. Every candidate was asked of Disposition with a safe radius
-  -- of `extent + PLACEMENT_CLEARANCE`, and the group's footprint reaches `extent` from `wanted[1]`, so a
-  -- candidate whose gap is at most PLACEMENT_CLEARANCE puts every position the group would occupy inside
-  -- the clearing that candidate proves. The wanted spot is out of the trees, and only the occupancy probe
-  -- is left to consult — Disposition never knew about units, statics or the apron anyway.
-  local nearest = options[1]
-  -- Measured in game 2026-09-01: this guard never fired. Three `-farp` markers, one of them on ground
-  -- with nothing within a kilometre, and the escort was moved every time — the "keeping it" line below
-  -- never appeared once. Two candidate reasons, and the log could not tell them apart: the nearest gap
-  -- may simply exceed the clearance in the field, or the occupancy probe may be refusing the wanted
-  -- spot because the FARP itself has just been placed there.
-  --
-  -- So both operands are logged before the decision, not after it. The unit test that covers this
-  -- guard builds its `gap` at half the clearance — a value chosen to make the branch run, never
-  -- confronted with real terrain — which is exactly why nothing said the guard was inert.
-  local probeClear = allClear(baseAngle, 1)
-  veaf.loggers.get(veafGrass.Id):debug(
-    "findClearBearing: nearest gap=%s vs clearance=%s, occupancy probe on the wanted spot=%s, candidates=%s",
-    veaf.p(nearest and nearest.gap),
-    veaf.p(veafGrass.PLACEMENT_CLEARANCE),
-    veaf.p(probeClear),
-    veaf.p(#options)
-  )
-  if nearest and nearest.gap <= veafGrass.PLACEMENT_CLEARANCE and probeClear then
-    veaf.loggers
-      .get(veafGrass.Id)
-      :debug("findClearBearing: bearing %s is inside a scenery-clear area, keeping it", veaf.p(math.floor(baseAngle)))
-    return baseAngle, 1
-  end
+  -- Kept from #898's instrumentation: "the cloud answered nothing" and "everything it answered was
+  -- occupied" fall through to the same place, and only this count tells them apart.
+  veaf.loggers
+    .get(veafGrass.Id)
+    :debug("findClearBearing: %s cloud candidate(s) in the band out of %s", veaf.p(#options), veaf.p(#candidates))
 
   for _, option in ipairs(options) do
     -- Disposition knows nothing about other groups or the FARP's own pads, so the occupancy probe still
@@ -491,9 +518,13 @@ end
 --- at 6 m spacing needs a clear *arc*: testing its origin alone would move it so its tail still
 --- overlapped.
 ---
---- Returns `angle, scale`. Falls back to the requested angle at scale 1 when nothing is clear anywhere —
---- a FARP that refuses to exist because it is crowded would be worse than one placed imperfectly — but
---- says so at info, because that fallback is exactly how a group ends up on an apron.
+--- Returns `angle, scale, found`. When nothing is clear anywhere it falls back to the requested angle at
+--- scale 1 with `found` false, and refuses nothing itself: what an exhausted search means is the
+--- caller's call. Tents, props, windsock and the editor's static FARPs keep the fallback; only a
+--- `-farp` escort turns it into a refusal (FIX-PLACEMENT-IGNORES-SCENERY ticket 04, David 2026-08-27,
+--- reversing the earlier "a FARP that refuses to exist because it is crowded would be worse than one
+--- placed imperfectly" — a decorative escort standing on an apron was the wrong trade). Measured in
+--- game on 2026-08-28, the search exhausted 0 times out of 4, dense woods included.
 function veafGrass.findClearBearing(baseAngle, positionsFor, own)
   -- Read once, here: a full turn tries 24 bearings at each distance, and each bearing tests every
   -- position the group would occupy, so asking DCS for its airbase list inside the probe would mean
@@ -516,13 +547,13 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
   -- wanted. Selecting from a cloud is also what makes its measured radius overshoot harmless (asked
   -- 800 m in game on 2026-08-06, answered 2035-2258 m), since the distance filter is ours.
   --
-  -- It can also answer "keep what you asked for": when the nearest candidate is close enough to the
-  -- wanted spot to prove it shares the same clearing, it returns `baseAngle, 1`. Tier 2's intent below —
-  -- the original bearing first, so the group stays where it was aimed — was unreachable while this tier
-  -- returned a candidate whenever the cloud answered at all.
+  -- It first answers "keep what you asked for": when the small probe finds the wanted spot out of the
+  -- trees and the occupancy probe finds it free, it returns `baseAngle, 1` without asking for a cloud.
+  -- Tier 2's intent below — the original bearing first, so the group stays where it was aimed — was
+  -- unreachable while this tier returned a candidate whenever the cloud answered at all.
   local cloudAngle, cloudScale = bearingFromSceneryCloud(baseAngle, positionsFor, own, allClear)
   if cloudAngle then
-    return cloudAngle, cloudScale
+    return cloudAngle, cloudScale, true
   end
 
   -- Tier 2 — walk the bearings, then the distances. Sees units, statics, aprons and buildings.
@@ -533,7 +564,7 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
       if scale ~= 1 then
         veaf.loggers.get(veafGrass.Id):debug("findClearBearing: kept bearing %s, pushed out to %sx", veaf.p(baseAngle), veaf.p(scale))
       end
-      return baseAngle, scale
+      return baseAngle, scale, true
     end
     for i = 1, steps do
       -- Alternate sides, so the group ends up as close as possible to where the mission maker aimed it.
@@ -546,13 +577,13 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own)
         veaf.loggers
           .get(veafGrass.Id)
           :debug("findClearBearing: moved from %s to %s at %sx to find clear ground", veaf.p(baseAngle), veaf.p(candidate), veaf.p(scale))
-        return candidate, scale
+        return candidate, scale, true
       end
     end
   end
 
   veaf.loggers.get(veafGrass.Id):debug("findClearBearing: nothing clear at any bearing or distance, keeping %s", veaf.p(baseAngle))
-  return baseAngle, 1
+  return baseAngle, 1, false
 end
 
 --- Is this DCS type a FARP platform?
@@ -1574,10 +1605,97 @@ function veafGrass._normalizeFarpCoalition(coalition)
 end
 
 ------------------------------------------------------------------------------
+-- The FARP escort's layout: which vehicles, and where they stand for a bearing and a scale.
+--
+-- #232: the escort's position used to be this formula and nothing else — a fixed distance on a fixed
+-- bearing, with no test of whether that spot was free. Beside a static FARP, which is the *nominal*
+-- use (the static FARP is what unlocks spawning on it once the zone is captured), the trucks came
+-- down on its pads. Keeping the radius and walking the bearing instead, per David's arbitration:
+-- growing the radius would push the escort away from the FARP it serves.
+-- The whole group is tested, not its origin: these vehicles sit on a ~30 m line perpendicular to the
+-- bearing, so a clear origin with an overlapping tail would still block a helipad.
+--
+-- A function of its own so `canPlaceFarpEscort` asks about exactly the group `buildFarpUnits` builds
+-- (FIX-PLACEMENT-IGNORES-SCENERY ticket 04).
+-- @param farp table the FARP, mission-table shape (x northing, y easting, type, coalition)
+-- @return table the escort's vehicle types, function positionsAt(bearing, scale)
+------------------------------------------------------------------------------
+function veafGrass.farpEscortLayout(farp)
+  local farpEscortUnitsNames = {
+    blue = {
+      "Hummer",
+      "M978 HEMTT Tanker",
+      "M 818",
+      "M 818",
+      "Hummer",
+    },
+    red = {
+      "ATZ-10",
+      "ATZ-10",
+      "Ural-4320 APA-5D",
+      "Ural-375",
+      "Ural-375",
+      "Ural-375 PBU",
+    },
+  }
+  local farpCoalition = veafGrass._normalizeFarpCoalition(farp.coalition)
+  local unitsDistance = 75
+  if veafGrass.isFarpPlatformType(farp.type) then
+    unitsDistance = 150
+  end
+  local unitsSpacing = 6
+
+  local escortUnitTypes = farpEscortUnitsNames[farpCoalition]
+  local function escortPositionsAt(bearing, scale)
+    scale = scale or 1
+    local origin = {
+      x = farp.x + unitsDistance * scale * math.cos(math.rad(bearing)),
+      y = farp.y + unitsDistance * scale * math.sin(math.rad(bearing)),
+    }
+    local positions = {}
+    for j = 1, #escortUnitTypes do
+      table.insert(positions, {
+        x = origin.x - (j - 1) * unitsSpacing * math.sin(math.rad(bearing)),
+        y = origin.y + (j - 1) * unitsSpacing * math.cos(math.rad(bearing)),
+      })
+    end
+    return positions
+  end
+  return escortUnitTypes, escortPositionsAt
+end
+
+------------------------------------------------------------------------------
+-- Can this FARP's escort be placed anywhere at all?
+--
+-- Asked by `veafSpawn.spawnFarp` **before** the FARP static exists, so a refused `-farp` creates
+-- nothing (FIX-PLACEMENT-IGNORES-SCENERY ticket 04). Nothing here refuses: this only reports what the
+-- search found, and the refusal is the command's — the editor's static FARPs never ask, and keep
+-- today's fallback (David's ruling 3, 2026-08-27). Only the escort is asked about: the windsock's
+-- bearing is free, and the tents and props keep their fallback.
+--
+-- `buildFarpUnits` searches again once the tents and props stand, so the escort avoids them too. The
+-- placement found here is handed to it for the case where that second search exhausts — the tents
+-- having taken the only clear bearing — so a `-farp` that was accepted never falls back to the
+-- requested bearing in silence.
+-- @param farp table the FARP, mission-table shape, heading in radians
+-- @return boolean true when the search found a bearing for the escort, table|nil `{ angle, scale }`
+------------------------------------------------------------------------------
+function veafGrass.canPlaceFarpEscort(farp)
+  local _, escortPositionsAt = veafGrass.farpEscortLayout(farp)
+  local angle, scale, found = veafGrass.findClearBearing(math.deg(farp.heading or 0), escortPositionsAt, farp)
+  if not found then
+    return false, nil
+  end
+  return true, { angle = angle, scale = scale }
+end
+
+------------------------------------------------------------------------------
 -- build nice FARP units arround the FARP
 -- @param unit farp : the FARP unit
+-- @param escortPlacement table|nil `{ angle, scale }` from `canPlaceFarpEscort`, passed by `-farp` only:
+--        used when the escort's own search exhausts once the tents and props stand
 ------------------------------------------------------------------------------
-function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD, noFarpMarkers, code, freq, mod)
+function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD, noFarpMarkers, code, freq, mod, escortPlacement)
   veaf.loggers.get(veafGrass.Id):debug("buildFarpUnits()")
   veaf.loggers.get(veafGrass.Id):trace("farp=%s", farp)
   veaf.loggers.get(veafGrass.Id):trace("grassRunwayUnits=%s", grassRunwayUnits)
@@ -1616,12 +1734,10 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   local tentSpacing = 30
   local otherDistance = 85
   local otherSpacing = 15
-  local unitsDistance = 75
 
   -- fix distances on FARPs
   if veafGrass.isFarpPlatformType(farp.type) then
     tentDistance = 200
-    unitsDistance = 150
     otherDistance = 130
   end
 
@@ -1852,51 +1968,15 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   end
 
   -- spawn a FARP escort group
-  local farpEscortUnitsNames = {
-    blue = {
-      "Hummer",
-      "M978 HEMTT Tanker",
-      "M 818",
-      "M 818",
-      "Hummer",
-    },
-    red = {
-      "ATZ-10",
-      "ATZ-10",
-      "Ural-4320 APA-5D",
-      "Ural-375",
-      "Ural-375",
-      "Ural-375 PBU",
-    },
-  }
+  local escortUnitTypes, escortPositionsAt = veafGrass.farpEscortLayout(farp)
 
-  local unitsSpacing = 6
-
-  -- #232: the escort's position used to be this formula and nothing else — a fixed distance on a fixed
-  -- bearing, with no test of whether that spot was free. Beside a static FARP, which is the *nominal*
-  -- use (the static FARP is what unlocks spawning on it once the zone is captured), the trucks came
-  -- down on its pads. Keeping the radius and walking the bearing instead, per David's arbitration:
-  -- growing the radius would push the escort away from the FARP it serves.
-  -- The whole group is tested, not its origin: these vehicles sit on a ~30 m line perpendicular to the
-  -- bearing, so a clear origin with an overlapping tail would still block a helipad.
-  local escortUnitTypes = farpEscortUnitsNames[farpCoalition]
-  local function escortPositionsAt(bearing, scale)
-    scale = scale or 1
-    local origin = {
-      x = farp.x + unitsDistance * scale * math.cos(math.rad(bearing)),
-      y = farp.y + unitsDistance * scale * math.sin(math.rad(bearing)),
-    }
-    local positions = {}
-    for j = 1, #escortUnitTypes do
-      table.insert(positions, {
-        x = origin.x - (j - 1) * unitsSpacing * math.sin(math.rad(bearing)),
-        y = origin.y + (j - 1) * unitsSpacing * math.cos(math.rad(bearing)),
-      })
-    end
-    return positions
+  local escortAngle, escortScale, escortFound = veafGrass.findClearBearing(angle, escortPositionsAt, farp)
+  if not escortFound and escortPlacement then
+    -- `-farp` accepted this FARP on a placement found before the tents and props stood. Keeping it beats
+    -- the requested bearing, which the search has just found taken.
+    veaf.loggers.get(veafGrass.Id):debug("FARP escort: no clear bearing once the layout stands, keeping the one found before")
+    escortAngle, escortScale = escortPlacement.angle, escortPlacement.scale
   end
-
-  local escortAngle, escortScale = veafGrass.findClearBearing(angle, escortPositionsAt, farp)
   local escortPositions = escortPositionsAt(escortAngle, escortScale)
   -- Says whether the bearing search actually did anything. A FARP dropped *on* an existing platform is a
   -- different problem from an escort placed on one: this fix moves the **bearing**, never the distance, so

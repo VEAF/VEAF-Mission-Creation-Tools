@@ -382,19 +382,42 @@ local function _cloudPoint(bearing, distance)
   }
 end
 
-function TestVeafGrassSceneryCloud:_cloud(points)
+--- Is this call the small probe rather than the large query? The two are the same function, told
+--- apart by what they ask for: the probe asks for the vehicle probe's radius and clearance.
+local function _isProbe(radius, safeRadius)
+  return radius == veafGrass.SCENERY_PROBE_RADIUS and safeRadius == veafGrass.SCENERY_PROBE_CLEARANCE
+end
+
+--- Disposition as the game answers it: the large query returns `points`, and the probe finds a free
+--- patch around a spot when `wantedSpotClear(centre)` says so. Measured on 2026-09-26, the probe gives
+--- the same answer every time for the same point (0/12 against 12/12), so a function of the point is
+--- a faithful stand-in for it.
+function TestVeafGrassSceneryCloud:_terrain(points, wantedSpotClear)
   Disposition = {
-    getSimpleZones = function()
+    getSimpleZones = function(centre, radius, safeRadius)
+      if _isProbe(radius, safeRadius) then
+        if wantedSpotClear and wantedSpotClear(centre) then
+          return { centre }
+        end
+        return {}
+      end
       return points
     end,
   }
 end
 
+--- The wanted spot is in the trees — the probe finds no room there — so the cloud decides. This is
+--- the premise of every test that expects tier 1 to move the group.
+function TestVeafGrassSceneryCloud:_cloud(points)
+  self:_terrain(points, nil)
+end
+
 function TestVeafGrassSceneryCloud:test_a_clear_cloud_point_sets_the_bearing_and_the_scale()
   self:_cloud({ _cloudPoint(180, 225) })
-  local angle, scale = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  local angle, scale, found = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
   luaunit.assertAlmostEquals(angle, 180, 0.01)
   luaunit.assertAlmostEquals(scale, 1.5, 0.01)
+  luaunit.assertTrue(found, "a bearing the cloud found is a found bearing")
 end
 
 function TestVeafGrassSceneryCloud:test_the_candidate_nearest_the_requested_spot_wins()
@@ -460,21 +483,21 @@ function TestVeafGrassSceneryCloud:test_the_second_candidate_is_tried_when_the_f
 end
 
 -- ---------------------------------------------------------------------------
--- FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — the wanted spot is never one of Disposition's candidates
+-- FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — ask about the wanted spot itself
 --
 -- Measured in game 2026-08-28: a `-farp` on open ground, nothing within a kilometre, still logged
--- `FARP escort: bearing 0 requested, 25 used at 1.054x distance`. Tier 1 ran before the requested
--- bearing was ever tested, and the cloud only *proposes* points — so as long as it answered at all,
--- the escort moved.
+-- `FARP escort: bearing 0 requested, 25 used at 1.054x distance`. The cloud only *proposes* points and
+-- never the wanted spot, so as long as it answered at all, the escort moved.
 --
--- Testing `allClear(baseAngle, 1)` up front would be the wrong fix: the occupancy probe does not see
--- forests, so it would put escorts back in the trees. The `gap` settles it instead. Each candidate is
--- asked of Disposition with a safe radius of `extent + PLACEMENT_CLEARANCE`, so a candidate lying
--- within `PLACEMENT_CLEARANCE` of the wanted spot puts the group's whole footprint inside that same
--- proven clearing: the wanted spot is in a clearing too, and there is nothing to move away from.
+-- Ticket 01 read the nearest candidate's `gap` as a statement about the wanted spot, with a 12 m
+-- threshold. Measured in game 2026-09-01, twelve decisions: the nearest gap ever seen was **43.9 m**,
+-- and the guard never fired. The large query samples at random; nothing makes a sample land near the
+-- spot, so no threshold could have worked. Its tests built their gap at half the threshold — a value the
+-- game does not produce — and stayed green over an inert guard.
 --
--- These tests drive the boundary off the `gap` — the candidate's distance to the wanted spot — rather
--- than off the shape of the code, so they still mean something if the tier is rewritten.
+-- Ticket 03 asks the small probe instead, the one `veafUnits.settleGroup` uses since ticket 12 of
+-- FIX-PLACEMENT-IGNORES-SCENERY: deterministic, 0.38 ms, and asked about one point at a time. These tests
+-- drive what the probe answers, which is the question the game is actually asked.
 -- ---------------------------------------------------------------------------
 
 --- A runtime vec3 at an absolute northing/easting: the easting lives in `z`, `y` is the altitude.
@@ -484,27 +507,83 @@ local function _cloudPointNorthEast(north, east)
   return { x = north, y = 0, z = east }
 end
 
-function TestVeafGrassSceneryCloud:test_a_candidate_proving_the_wanted_spot_keeps_the_bearing_and_the_distance()
-  -- Gap of half the clearance: the wanted spot is inside the clearing this candidate proves.
-  self:_cloud({ _cloudPointNorthEast(veafGrass.PLACEMENT_CLEARANCE * 0.5, 150) })
-  local angle, scale = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
-  luaunit.assertEquals(angle, 90, "a spot proven clear of scenery must keep its bearing")
+local function _everywhere()
+  return true
+end
+
+function TestVeafGrassSceneryCloud:test_a_wanted_spot_the_probe_finds_clear_keeps_the_bearing_and_the_distance()
+  -- The nearest candidate sits 43.9 m away, the nearest gap measured in game on 2026-09-01: under
+  -- ticket 01 this escort moved. The probe answers about the spot itself, so the gap no longer matters.
+  self:_terrain({ _cloudPointNorthEast(43.9, 150) }, _everywhere)
+  local angle, scale, found = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(angle, 90, "a spot the probe finds clear must keep its bearing")
   luaunit.assertEquals(scale, 1, "and its distance")
+  luaunit.assertTrue(found)
 end
 
-function TestVeafGrassSceneryCloud:test_a_candidate_too_far_to_prove_the_wanted_spot_still_moves_the_group()
-  -- Gap of twice the clearance: nothing says the wanted spot is out of the trees, so tier 1 keeps
-  -- doing what it was added for. This is the half that turns the fix into a silent regression if it
-  -- is left untested.
-  self:_cloud({ _cloudPointNorthEast(veafGrass.PLACEMENT_CLEARANCE * 2, 150) })
+function TestVeafGrassSceneryCloud:test_a_clear_wanted_spot_never_asks_for_a_clearing()
+  -- The large query is the lottery (12 ms, not deterministic); when the probe has already answered
+  -- there is nothing left for it to decide.
+  local largeQueries = 0
+  Disposition = {
+    getSimpleZones = function(centre, radius, safeRadius)
+      if _isProbe(radius, safeRadius) then
+        return { centre }
+      end
+      largeQueries = largeQueries + 1
+      return { _cloudPoint(180, 150) }
+    end,
+  }
+  veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertEquals(largeQueries, 0)
+end
+
+function TestVeafGrassSceneryCloud:test_the_probe_is_asked_at_every_position_of_the_group()
+  -- A five-truck line needs every truck out of the trees, not its origin: same reasoning as the
+  -- occupancy probe testing the whole group rather than its first position.
+  local asked = {}
+  Disposition = {
+    getSimpleZones = function(centre, radius, safeRadius)
+      if _isProbe(radius, safeRadius) then
+        table.insert(asked, centre)
+        return { centre }
+      end
+      return {}
+    end,
+  }
+  veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  local wanted = _scaledGroupAt(90, 1)
+  luaunit.assertEquals(#asked, #wanted)
+  for i, position in ipairs(wanted) do
+    -- Mission-table in, runtime vec3 out: the easting moves from `y` to `z`.
+    luaunit.assertAlmostEquals(asked[i].x, position.x, 0.001)
+    luaunit.assertAlmostEquals(asked[i].z, position.y, 0.001, "the easting must reach the probe in z")
+  end
+end
+
+function TestVeafGrassSceneryCloud:test_the_probe_asks_the_vehicle_question()
+  -- The same question `veafUnits.settleGroup` asks, so a group this code keeps is one settleGroup
+  -- would not move. The two disagreeing is how ticket 10 of FIX-PLACEMENT-IGNORES-SCENERY came out
+  -- green in CI and inert in game.
+  luaunit.assertEquals(veafGrass.SCENERY_PROBE_RADIUS, 20)
+  luaunit.assertEquals(veafGrass.SCENERY_PROBE_CLEARANCE, 5)
+end
+
+function TestVeafGrassSceneryCloud:test_one_truck_in_the_trees_moves_the_group()
+  -- The tail is in the wood, the origin is not. A group that keeps its bearing here parks a truck
+  -- under the trees — the defect this tier was added for.
+  local tail = _scaledGroupAt(90, 1)[3]
+  self:_terrain({ _cloudPoint(180, 150) }, function(centre)
+    return not (math.abs(centre.x - tail.x) < 0.001 and math.abs(centre.z - tail.y) < 0.001)
+  end)
   local angle = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
-  luaunit.assertNotEquals(math.floor(angle + 0.5), 90, "an unproven spot must still be left for a scenery-clear one")
+  luaunit.assertAlmostEquals(angle, 180, 0.01, "a group with a truck in the trees must go where the cloud says")
 end
 
-function TestVeafGrassSceneryCloud:test_a_proven_wanted_spot_that_is_occupied_is_still_left()
-  -- Disposition knows forests; it knows nothing about units, statics or the FARP's own apron. The two
-  -- criteria compose, so proving the clearing never overrides the occupancy probe.
-  self:_cloud({ _cloudPointNorthEast(veafGrass.PLACEMENT_CLEARANCE * 0.5, 150) })
+function TestVeafGrassSceneryCloud:test_a_clear_wanted_spot_that_is_occupied_still_moves()
+  -- The probe knows forests; the occupancy probe knows units, statics, buildings and the aprons. The
+  -- two compose, so a clear wood never overrides a static FARP's pad.
+  self:_terrain({ _cloudPoint(180, 150) }, _everywhere)
   veafGrass.isSpotOccupied = function(position)
     return math.abs((position.bearing or 0) - 90) < 0.01
   end
@@ -512,10 +591,17 @@ function TestVeafGrassSceneryCloud:test_a_proven_wanted_spot_that_is_occupied_is
   luaunit.assertNotEquals(math.floor(angle + 0.5), 90, "an occupied spot must move even when the scenery is clear")
 end
 
-function TestVeafGrassSceneryCloud:test_the_nearest_candidate_decides_whatever_order_the_cloud_arrives_in()
-  -- The far candidate comes first in the cloud. Ordering by gap is what makes "does anything prove the
-  -- wanted spot?" a question about the *nearest* point rather than about the first one DCS listed.
-  self:_cloud({ _cloudPoint(180, 150), _cloudPointNorthEast(veafGrass.PLACEMENT_CLEARANCE * 0.5, 150) })
+function TestVeafGrassSceneryCloud:test_a_raising_probe_reads_as_clear()
+  -- ADR 0018: the singleton may improve quality, never refuse. A probe that raises must not be what
+  -- moves an escort, so the spot stands on the occupancy probe alone.
+  Disposition = {
+    getSimpleZones = function(_centre, radius, safeRadius)
+      if _isProbe(radius, safeRadius) then
+        error("probe unavailable")
+      end
+      return { _cloudPoint(180, 150) }
+    end,
+  }
   luaunit.assertEquals(veafGrass.findClearBearing(90, _scaledGroupAt, _own), 90)
 end
 
@@ -558,13 +644,16 @@ function TestVeafGrassSceneryCloud:test_the_opt_out_never_asks()
   luaunit.assertEquals(angle, 90)
 end
 
--- One call per group, not one per candidate position. That is the whole cost argument for this design:
--- 75 probes in the exhausted case become a single call to the undocumented API.
-function TestVeafGrassSceneryCloud:test_the_singleton_is_asked_exactly_once()
+-- One large query per group, not one per candidate position. That is the whole cost argument for this
+-- design: 75 probes in the exhausted case become a single call to the undocumented API. The small probe
+-- is asked once per position of the wanted spot, and not counted here.
+function TestVeafGrassSceneryCloud:test_the_large_query_is_asked_exactly_once()
   local calls = 0
   Disposition = {
-    getSimpleZones = function()
-      calls = calls + 1
+    getSimpleZones = function(_centre, radius, safeRadius)
+      if not _isProbe(radius, safeRadius) then
+        calls = calls + 1
+      end
       return {}
     end,
   }
@@ -578,7 +667,9 @@ function TestVeafGrassSceneryCloud:test_the_requested_clearance_covers_the_group
   local askedRadius, askedSafeRadius
   Disposition = {
     getSimpleZones = function(_centre, radius, safeRadius)
-      askedRadius, askedSafeRadius = radius, safeRadius
+      if not _isProbe(radius, safeRadius) then
+        askedRadius, askedSafeRadius = radius, safeRadius
+      end
       return {}
     end,
   }
@@ -641,7 +732,10 @@ function TestVeafGrassFindClearBearing:test_clear_ground_keeps_the_original_bear
   veafGrass.isSpotOccupied = function()
     return false
   end
-  luaunit.assertEquals(veafGrass.findClearBearing(90, _groupAt), 90)
+  local angle, scale, found = veafGrass.findClearBearing(90, _groupAt)
+  luaunit.assertEquals(angle, 90)
+  luaunit.assertEquals(scale, 1)
+  luaunit.assertTrue(found)
 end
 
 function TestVeafGrassFindClearBearing:test_an_occupied_bearing_is_left_behind()
@@ -671,12 +765,18 @@ function TestVeafGrassFindClearBearing:test_a_clear_origin_with_a_blocked_tail_i
   luaunit.assertNotEquals(veafGrass.findClearBearing(90, _groupAt), 90)
 end
 
--- A FARP that refuses to exist because it is crowded would be worse than one whose escort is tight.
-function TestVeafGrassFindClearBearing:test_nowhere_clear_falls_back_to_the_original_bearing()
+-- The search still answers with the original bearing when nothing is clear, so the callers that keep
+-- today's fallback — tents, props, windsock, the editor's static FARPs — need no change. It also says
+-- it found nothing, and deciding what that means is the caller's business (FIX-PLACEMENT-IGNORES-SCENERY
+-- ticket 04: only a `-farp` escort turns it into a refusal).
+function TestVeafGrassFindClearBearing:test_nowhere_clear_falls_back_to_the_original_bearing_and_says_so()
   veafGrass.isSpotOccupied = function()
     return true
   end
-  luaunit.assertEquals(veafGrass.findClearBearing(45, _groupAt), 45)
+  local angle, scale, found = veafGrass.findClearBearing(45, _groupAt)
+  luaunit.assertEquals(angle, 45)
+  luaunit.assertEquals(scale, 1)
+  luaunit.assertFalse(found, "an exhausted search must be told apart from a found bearing")
 end
 
 function TestVeafGrassFindClearBearing:test_it_gives_up_after_a_full_turn()
@@ -1140,6 +1240,170 @@ function TestVeafGrassOwnPlatform:test_the_match_is_on_position_not_on_being_clo
     return { _platformAt("StaticFarpAlpha", 1400, 2000) }
   end
   luaunit.assertEquals(#veafGrass.getLandingPlatforms({ x = 1000, y = 2000 }), 1)
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-PLACEMENT-IGNORES-SCENERY ticket 04 — can the escort be placed at all?
+--
+-- David, 2026-08-27: the escort is placed intelligently, or the `-farp` is refused with a message. The
+-- question has to be answerable **before** the FARP exists, so a refused FARP creates nothing, and it
+-- has to lay the escort out exactly as `buildFarpUnits` does, or the answer is about another group.
+-- ---------------------------------------------------------------------------
+TestVeafGrassFarpEscort = {}
+
+function TestVeafGrassFarpEscort:setUp()
+  self._occupied = veafGrass.isSpotOccupied
+  self._disposition = Disposition
+  Disposition = nil
+end
+
+function TestVeafGrassFarpEscort:tearDown()
+  veafGrass.isSpotOccupied = self._occupied
+  Disposition = self._disposition
+end
+
+--- A FARP as `spawnFarp` hands it over: mission-table position, heading in radians.
+local function _farp(farpType, side, headingDegrees)
+  return { x = 1000, y = 2000, type = farpType, coalition = side, heading = math.rad(headingDegrees or 0) }
+end
+
+function TestVeafGrassFarpEscort:test_a_platform_farp_escort_stands_150_m_out_on_its_heading()
+  local types, positionsAt = veafGrass.farpEscortLayout(_farp("FARP", 2))
+  luaunit.assertEquals(#types, 5, "the blue escort is five vehicles")
+  local positions = positionsAt(90, 1)
+  luaunit.assertEquals(#positions, #types, "one position per vehicle")
+  -- Bearing 90: the origin steps east, 150 m from the FARP.
+  luaunit.assertAlmostEquals(positions[1].x, 1000, 0.001)
+  luaunit.assertAlmostEquals(positions[1].y, 2150, 0.001)
+end
+
+function TestVeafGrassFarpEscort:test_the_scale_multiplies_the_distance()
+  -- The `-farp` default is an invisible FARP, which is a platform too: 150 m.
+  local _, positionsAt = veafGrass.farpEscortLayout(_farp("Invisible FARP", 2))
+  luaunit.assertAlmostEquals(positionsAt(0, 1)[1].x, 1150, 0.001)
+  luaunit.assertAlmostEquals(positionsAt(0, 2)[1].x, 1300, 0.001)
+end
+
+function TestVeafGrassFarpEscort:test_a_unit_that_is_not_a_platform_keeps_its_escort_closer()
+  -- `buildFarpsUnits` walks any unit named `FARP …`, not only platforms.
+  local _, positionsAt = veafGrass.farpEscortLayout(_farp("Hummer", 2))
+  luaunit.assertAlmostEquals(positionsAt(0, 1)[1].x, 1075, 0.001)
+end
+
+function TestVeafGrassFarpEscort:test_the_red_escort_is_the_red_vehicles()
+  local types = veafGrass.farpEscortLayout(_farp("FARP", 1))
+  luaunit.assertEquals(#types, 6)
+  luaunit.assertEquals(types[1], "ATZ-10")
+end
+
+function TestVeafGrassFarpEscort:test_an_escort_on_open_ground_can_be_placed()
+  veafGrass.isSpotOccupied = function()
+    return false
+  end
+  luaunit.assertTrue(veafGrass.canPlaceFarpEscort(_farp("Invisible FARP", 2)))
+end
+
+function TestVeafGrassFarpEscort:test_an_escort_moved_off_its_bearing_can_still_be_placed()
+  -- Narrow refusal: a crowded bearing is what the search is for, and must never refuse the FARP.
+  veafGrass.isSpotOccupied = function(position)
+    return position.y > 2000 -- everything east of the FARP is taken
+  end
+  luaunit.assertTrue(veafGrass.canPlaceFarpEscort(_farp("Invisible FARP", 2, 90)))
+end
+
+function TestVeafGrassFarpEscort:test_an_escort_with_nowhere_to_go_cannot_be_placed()
+  veafGrass.isSpotOccupied = function()
+    return true
+  end
+  luaunit.assertFalse(veafGrass.canPlaceFarpEscort(_farp("Invisible FARP", 2)))
+end
+
+function TestVeafGrassFarpEscort:test_only_the_escort_is_asked_about()
+  -- The windsock sits 120 m out and the props 130 m out on a FARP; the escort 150 m out. Everything
+  -- closer than 140 m is taken, so the windsock and the props have nowhere to go — and that must not
+  -- refuse the FARP: their bearing is free, and they keep today's fallback.
+  veafGrass.isSpotOccupied = function(position)
+    local dx, dy = position.x - 1000, position.y - 2000
+    return math.sqrt(dx * dx + dy * dy) < 140
+  end
+  luaunit.assertTrue(veafGrass.canPlaceFarpEscort(_farp("FARP", 2)))
+end
+
+function TestVeafGrassFarpEscort:test_a_found_placement_comes_back_with_the_answer()
+  veafGrass.isSpotOccupied = function()
+    return false
+  end
+  local found, placement = veafGrass.canPlaceFarpEscort(_farp("Invisible FARP", 2, 90))
+  luaunit.assertTrue(found)
+  luaunit.assertAlmostEquals(placement.angle, 90, 0.001)
+  luaunit.assertEquals(placement.scale, 1)
+end
+
+-- ---------------------------------------------------------------------------
+-- buildFarpUnits — what it does with an escort that has nowhere to go
+-- ---------------------------------------------------------------------------
+TestVeafGrassBuildFarpEscort = {}
+
+function TestVeafGrassBuildFarpEscort:setUp()
+  self._occupied = veafGrass.isSpotOccupied
+  self._canPlace = veafGrass.canPlaceFarpEscort
+  self._addGroup = veaf.addGroup
+  self._addStatic = veaf.addStatic
+  self._disposition = Disposition
+  Disposition = nil
+  self.groups = {}
+  veaf.addGroup = function(group)
+    table.insert(self.groups, group)
+  end
+  veaf.addStatic = function() end
+  veafGrass.isSpotOccupied = function()
+    return true
+  end
+end
+
+function TestVeafGrassBuildFarpEscort:tearDown()
+  veafGrass.isSpotOccupied = self._occupied
+  veafGrass.canPlaceFarpEscort = self._canPlace
+  veaf.addGroup = self._addGroup
+  veaf.addStatic = self._addStatic
+  Disposition = self._disposition
+end
+
+local function _editorFarp()
+  return { x = 1000, y = 2000, type = "FARP", coalition = 2, heading = 0, name = "FARP Alpha", groupName = "FARP Alpha", country = 2 }
+end
+
+--- The escort group the layout spawned, and the bearing its first vehicle stands on, read back from its
+--- position so the test does not depend on how the search reached it.
+function TestVeafGrassBuildFarpEscort:_escortBearing()
+  -- The layout spawns other groups too; the escort is the one made of the blue escort vehicles.
+  local escorts = {}
+  for _, group in ipairs(self.groups) do
+    if group.units and group.units[1] and group.units[1].type == "Hummer" then
+      table.insert(escorts, group)
+    end
+  end
+  luaunit.assertEquals(#escorts, 1, "exactly one escort group")
+  local first = escorts[1].units[1]
+  return (math.deg(math.atan2(first.y - 2000, first.x - 1000)) + 360) % 360
+end
+
+-- Ruling 3: the editor's static FARPs have nobody to read a refusal, so they are never refused — they
+-- do not even ask. Pinned, because adding the question inside buildFarpUnits is the natural refactor,
+-- and it would refuse editor FARPs at mission load.
+function TestVeafGrassBuildFarpEscort:test_an_editor_farp_with_nowhere_to_go_is_built_anyway()
+  veafGrass.canPlaceFarpEscort = function()
+    error("the editor's path must never ask whether the escort can be placed")
+  end
+  veafGrass.buildFarpUnits(_editorFarp(), nil, nil, true)
+  luaunit.assertAlmostEquals(self:_escortBearing(), 0, 0.001, "today's fallback: the requested bearing")
+end
+
+-- `-farp` accepted the FARP on a placement found before the tents and props stood; if they then take
+-- it, the escort keeps that placement rather than falling back to the requested bearing in silence.
+function TestVeafGrassBuildFarpEscort:test_an_accepted_farp_keeps_the_placement_it_was_accepted_on()
+  veafGrass.buildFarpUnits(_editorFarp(), nil, "FARP Alpha", true, true, nil, nil, nil, { angle = 120, scale = 1.5 })
+  luaunit.assertAlmostEquals(self:_escortBearing(), 120, 0.001)
 end
 
 os.exit(luaunit.LuaUnit.run())

@@ -67,15 +67,17 @@ Four things worth knowing:
 
 - **A FARP with clear ground does not move.** The original bearing is tried first, so a mission that
   works keeps its layout exactly.
-- **Forests are avoided too**, on top of units, statics and pads: DCS cannot answer *"is this spot
-  clear?"* for trees, so the module asks it for a list of tree-free spots and picks from that list. The
-  promise above still holds: when the spot you asked for lies in the same clearing as the nearest
-  tree-free spot, it is kept as is — until this fix the escort was moved a few dozen metres even in open
-  countryside.
+- **Forests are avoided too**, on top of units, statics and pads. The module first asks DCS whether
+  the planned spot is out of the trees, vehicle by vehicle; when it is and nothing occupies it, the
+  escort stays exactly where it was planned. Otherwise it asks DCS for a list of tree-free spots and
+  picks the nearest. Before this fix the escort was moved a few dozen metres even in open countryside.
 - The whole group is checked, not just its first vehicle: the escort occupies a line some thirty metres
   long, and a clear spot whose tail overhangs would still block a pad.
-- If no bearing is clear, the FARP is built anyway, at its original position. A FARP refusing to exist
-  because the area is crowded would be worse.
+- **If the escort fits nowhere, the `-farp` command is refused**: nothing is created, and the message
+  "FARP … refused: no clear ground for its escort" is shown. Place the marker a little further away.
+  This is rare: measured in game, it happened in none of four tries, dense woods included. A FARP
+  **placed in the Mission Editor** is never refused: nobody is there to read the message, so its layout
+  is built anyway, at its original position.
 
 > The markers of an `Invisible FARP` sit close to the centre on purpose, to show where the FARP is:
 > they do not move.

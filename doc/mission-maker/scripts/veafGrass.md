@@ -60,9 +60,9 @@ C'est le cas courant plus qu'un cas limite : on pose un FARP statique dans la mi
 Quatre précisions :
 
 - **Un FARP dégagé ne bouge pas.** La direction d'origine est essayée en premier, donc une mission qui fonctionne garde exactement son décor.
-- **Les forêts sont évitées aussi**, en plus des unités, des objets statiques et des plateformes : DCS ne sait pas répondre « cet endroit est-il dégagé ? » pour des arbres, donc le module lui demande une liste d'emplacements sans arbres et choisit dans cette liste. La promesse ci-dessus tient malgré tout : si l'emplacement demandé se trouve dans la même clairière que le point sans arbres le plus proche, il est conservé tel quel — jusqu'à ce correctif, l'escorte était déplacée de quelques dizaines de mètres même en pleine campagne.
+- **Les forêts sont évitées aussi**, en plus des unités, des objets statiques et des plateformes. Le module demande d'abord à DCS si l'emplacement prévu est hors des arbres, véhicule par véhicule ; s'il l'est et que rien ne l'occupe, l'escorte reste exactement où elle était prévue. Sinon, il demande à DCS une liste d'emplacements sans arbres et choisit le plus proche. Avant ce correctif, l'escorte était déplacée de quelques dizaines de mètres même en pleine campagne.
 - Le groupe entier est vérifié, pas seulement son premier véhicule : l'escorte occupe une ligne d'une trentaine de mètres, et un emplacement libre dont la queue dépasse bloquerait quand même une plateforme.
-- Si aucune direction n'est libre, le FARP est construit quand même, à sa position d'origine. Un FARP qui refuserait d'exister parce que l'endroit est encombré serait pire.
+- **Si l'escorte ne trouve de place nulle part, la commande `-farp` est refusée** : rien n'est créé, et le message « FARP … refusé : aucun terrain dégagé pour son escorte » s'affiche. Replacez le marqueur un peu plus loin. Ce cas est rare : mesuré en jeu, il ne s'est produit dans aucun des quatre essais, y compris en pleine forêt. Un FARP **placé dans l'éditeur de mission** n'est jamais refusé : personne n'est là pour lire le message, donc son décor est construit quand même, à sa position d'origine.
 
 > Les marqueurs des `Invisible FARP` sont volontairement collés au centre pour matérialiser le FARP : ils ne se déplacent pas.
 

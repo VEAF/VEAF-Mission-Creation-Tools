@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-IGNORES-SCENERY — ground units are placed without looking at the scenery, and a crowded FARP gives up silently
 
-Status: 🔄 in-progress — tickets 01, 02, 03 and 05 delivered 2026-08-27; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**, which merged 2026-09-26 (PR #1005) and shipped in 6.25.0. **10 was then measured in game the same day and is inert too** — the groups are translated, the formations hold, and the metric does not move; the cause is under the lot, in `Disposition.getSimpleZones`. **Ticket 11** merged in #1008 (17 → 4 vehicles under trees); **ticket 12**, the sweep with the probe, is implemented 2026-09-28 and waits on its in-game measurement (R16 of `DCS-SESSION-TODO.md`). Ticket 04 is still open and no longer blocked: the number DCS alone could give is in — 0 exhaustions out of 4 cases
+Status: 🧑 waiting-human — tickets 01, 02, 03 and 05 delivered 2026-08-27; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**, which merged 2026-09-26 (PR #1005) and shipped in 6.25.0. **10 was then measured in game the same day and is inert too** — the groups are translated, the formations hold, and the metric does not move; the cause is under the lot, in `Disposition.getSimpleZones`. **Ticket 11** merged in #1008 (17 → 4 vehicles under trees); **ticket 12**, the sweep with the probe, is implemented 2026-09-28 and waits on its in-game measurement (R16 of `DCS-SESSION-TODO.md`). **Ticket 04** is implemented 2026-09-30 with `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` ticket 03 and waits on its in-game check, R19 of `DCS-SESSION-TODO.md`
 
 Origin: found on 2026-08-27 while studying the 20 `mist.getRandPointInCircle` call sites for
 [`DROP-MIST`](../archive/DROP-MIST.md) ticket 06. Kept out of that campaign
@@ -121,7 +121,7 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 01 | Wire the Full Combat Group spawn through `findSpawnPoint` | low | ✅ |
 | 02 | Wire the combat zone element spawn through `findSpawnPoint` | medium — touches every zone with a radius | ✅ |
 | 03 | The FARP escort avoids the scenery too | medium | ✅ |
-| 04 | Refuse the FARP when the escort cannot be placed | **high** — reverses a tuned decision | ⬜ |
+| 04 | Refuse the FARP when the escort cannot be placed | **high** — reverses a tuned decision | 🧑 |
 | 05 | Lock in the exact placement of the FARP, FOB and beacon | low, tests and docs | ✅ |
 | 06 | `findSpawnPoint` descending clearance steps + `noRandomFallback` | medium | ✅ |
 | 07 | Editor content keeps declared position when tier 1 finds nothing | medium | ✅ |

@@ -1,7 +1,6 @@
 # FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — the escort is moved even when the requested spot is free
 
-Status: ⬜ ready — **reopened 2026-09-01: ticket 01's guard is inert in the field.** Measured in game, it never fires; the approach needs replacing, not tuning. Ticket 01 stays ✅ (it shipped and is honestly described); a new ticket carries the replacement.
-remains** (ticket 02)
+Status: 🧑 waiting-human — ticket 01's guard was measured inert in game on 2026-09-01; **ticket 03 replaces it** with the small scenery probe asked about the wanted spot itself, implemented 2026-09-30 together with `FIX-PLACEMENT-IGNORES-SCENERY` ticket 04. What is left is the in-game check, R19 of `DCS-SESSION-TODO.md`.
 
 Origin: measured in game 2026-08-28 while running
 [`DCS-SESSION-TODO`](../../DCS-SESSION-TODO.md) item 21, the exhaustion count for
@@ -78,7 +77,7 @@ a few dozen metres is exactly the outcome that history was guarding against.
 |---|---|---|---|
 | 01 | Keep the requested bearing when the cloud proves it clear | medium — changes where every FARP escort lands | ✅ |
 | 02 | Verify in game that a FARP on open ground does not move | needs DCS | ✅ |
-| 03 | [Ask about the wanted spot itself, not its nearest neighbour](tickets/03-ask-about-the-wanted-spot-itself.md) | medium — replaces ticket 01's method | ⬜ |
+| 03 | [Ask about the wanted spot itself, not its nearest neighbour](tickets/03-ask-about-the-wanted-spot-itself.md) | medium — replaces ticket 01's method | 🧑 |
 
 ## What ticket 01 delivered (2026-09-01)
 

@@ -102,6 +102,22 @@ function veafSpawn.spawnFarp(
     ["unlimitedFuel"] = true,
     ["unlimitedMunitions"] = true,
   }
+
+  -- The escort is placed on clear ground, or the FARP is refused with a message (David, 2026-08-27).
+  -- Asked before the platform exists, so a refused FARP leaves nothing behind. Only this command
+  -- refuses: somebody standing at the marker can read the message and move it, whereas the editor's
+  -- static FARPs have nobody, so `veafGrass.buildFarpsUnits` never asks and keeps today's fallback.
+  -- Measured in game on 2026-08-28, the search exhausted 0 times out of 4, dense woods included: the
+  -- refusal is narrow by construction (FIX-PLACEMENT-IGNORES-SCENERY ticket 04).
+  local escortPlaceable, escortPlacement = veafGrass.canPlaceFarpEscort(_farpStatic)
+  if not escortPlaceable then
+    veaf.loggers.get(veafSpawn.Id):warn("FARP %s refused: no clear ground for its escort", veaf.p(name))
+    if not silent then
+      trigger.action.outText(veaf.t("spawn.farp_escort_unplaceable", name), 15)
+    end
+    return nil
+  end
+
   veaf.addStatic(_farpStatic)
   local _spawnedFARP = StaticObject.getByName(name)
   veaf.loggers.get(veafSpawn.Id):trace("_spawnedFARP=%s", veaf.lp(_spawnedFARP))
@@ -110,7 +126,7 @@ function veafSpawn.spawnFarp(
     veaf.loggers.get(veafSpawn.Id):debug("Spawned the FARP static %s", veaf.lp(name))
 
     -- populate the FARP but make the units invisible to MFDs as they are redundant (FARP already shows if wanted)
-    veafGrass.buildFarpUnits(_farpStatic, nil, name, hiddenOnMFD, noFarpMarkers, code, freq, mod)
+    veafGrass.buildFarpUnits(_farpStatic, nil, name, hiddenOnMFD, noFarpMarkers, code, freq, mod, escortPlacement)
   end
 
   return name

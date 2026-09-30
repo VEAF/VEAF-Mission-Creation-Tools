@@ -13,6 +13,9 @@ dofile(src .. "/veafDcsSpawner.lua")
 -- The catalog, not just the runtime: FEAT-CONVOY-WAYPOINTS asserts on the *messages* a convoy command
 -- gives the player, and `veaf.t` hands back the bare key when the catalog was never loaded.
 dofile(src .. "/veafI18n.lua")
+-- `spawnFarp` asks veafGrass whether the escort can be placed before it creates anything
+-- (FIX-PLACEMENT-IGNORES-SCENERY ticket 04).
+dofile(src .. "/veafGrass.lua")
 dofile(src .. "/veafSpawn.lua")
 
 -- ---------------------------------------------------------------------------
@@ -1272,6 +1275,66 @@ function TestVeafSpawnGroundExactPlacement:test_a_farp_with_a_radius_still_jitte
   luaunit.assertEquals(self.statics[1].x, 999)
   luaunit.assertEquals(self.statics[1].y, 888)
   luaunit.assertEquals(self.searched, 0, "even with a radius, the point is the user's — not a search result")
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-PLACEMENT-IGNORES-SCENERY ticket 04 — a `-farp` whose escort cannot be placed is refused
+--
+-- David, 2026-08-27: "les escortes (farp) doivent être placées intelligemment, ou le farp est refusé si
+-- c'est pas possible (avec un message)". Only the command refuses: a marker has somebody standing there
+-- to move it, the editor's static FARPs have nobody (ruling 3). The question is asked before the FARP
+-- static exists, so a refused FARP leaves nothing behind.
+-- ---------------------------------------------------------------------------
+TestVeafSpawnFarpRefusal = {}
+
+function TestVeafSpawnFarpRefusal:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._savedAddStatic = veaf.addStatic
+  self._savedOccupied = veafGrass.isSpotOccupied
+  self.statics = {}
+  veaf.addStatic = function(template)
+    table.insert(self.statics, template)
+    return self._savedAddStatic(template)
+  end
+end
+
+function TestVeafSpawnFarpRefusal:tearDown()
+  veaf.addStatic = self._savedAddStatic
+  veafGrass.isSpotOccupied = self._savedOccupied
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnFarpRefusal:_occupied(everywhere)
+  veafGrass.isSpotOccupied = function()
+    return everywhere
+  end
+end
+
+function TestVeafSpawnFarpRefusal:test_a_farp_whose_escort_has_nowhere_to_go_is_refused_and_creates_nothing()
+  self:_occupied(true)
+  local result = veafSpawn.spawnFarp({ x = 0, y = 0, z = 0 }, 0, "FARP-Crowded", "usa", "invisible", 2, 0, 10, false, false, true)
+  luaunit.assertNil(result, "a refused FARP returns no name")
+  luaunit.assertEquals(#self.statics, 0, "a refused FARP creates nothing, not even its platform")
+  local messages = dcs_mocks.messagesContaining("FARP-Crowded")
+  luaunit.assertEquals(#messages, 1, "the player is told, once, and the FARP is named")
+  luaunit.assertEquals(messages[1].text, veaf.t("spawn.farp_escort_unplaceable", "FARP-Crowded"))
+end
+
+function TestVeafSpawnFarpRefusal:test_a_silent_refusal_says_nothing_to_the_players()
+  self:_occupied(true)
+  local result = veafSpawn.spawnFarp({ x = 0, y = 0, z = 0 }, 0, "FARP-Quiet", "usa", "invisible", 2, 0, 10, true, false, true)
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("FARP-Quiet"), 0)
+end
+
+function TestVeafSpawnFarpRefusal:test_a_farp_on_open_ground_is_not_refused()
+  -- The non-regression half, as 6.15.33 proved it: a FARP with nothing around it is built as before.
+  self:_occupied(false)
+  local result = veafSpawn.spawnFarp({ x = 0, y = 0, z = 0 }, 0, "FARP-Open", "usa", "invisible", 2, 0, 10, false, false, true)
+  luaunit.assertEquals(result, "FARP-Open")
+  luaunit.assertEquals(#self.statics, 1)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("FARP-Open"), 0, "nothing to report when nothing was refused")
 end
 
 function TestVeafSpawnGround:test_stopClosestConvoy_nil_unit()

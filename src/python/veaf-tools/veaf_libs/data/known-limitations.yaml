@@ -92,7 +92,10 @@ limitations:
     open ground, sweep the neighbourhood yourself — offsets on rings of growing radius, closest
     first — and ask the small query about each point you would use. It is 0.38 ms a call against
     12 ms for the large one, and it gives the same answer every time. This is what
-    `veafUnits.settleGroup` does since FIX-PLACEMENT-IGNORES-SCENERY ticket 12.
+    `veafUnits.settleGroup` does since FIX-PLACEMENT-IGNORES-SCENERY ticket 12, and what
+    `veafGrass.findClearBearing` asks about a FARP escort's wanted spot since
+    FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND ticket 03 — reading that spot off the nearest large-query
+    candidate never worked: the nearest one measured in game was 43.9 m away.
 
     If you do use the large query, treat what it returns as *suggestions*: verify every point with
     the small query, draw several times and merge, ask for little clearance (21 candidates at 200 m,

@@ -1,6 +1,7 @@
 # 03 — Ask about the wanted spot itself, not about its nearest neighbour
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — implemented 2026-09-30 (branch `fix/placement-escort-probe-and-refusal`, with
+`FIX-PLACEMENT-IGNORES-SCENERY` ticket 04); what is left is the in-game check, item R19 of `DCS-SESSION-TODO.md`
 
 Type: fix · Files: `src/scripts/veaf/veafGrass.lua`, `test/lua/test_veafGrass.lua`
 
@@ -39,18 +40,30 @@ Ask DCS about the wanted spot directly. Candidates, in the order worth trying:
 Whichever is chosen, the reasoning goes in the code: the next reader needs to know why the neighbour
 approach was dropped.
 
+## What was built, 2026-09-30
+
+Candidate 1, in its dependable form: the small probe `veafUnits.settleGroup` sweeps with since
+`FIX-PLACEMENT-IGNORES-SCENERY` ticket 12 — 5 m free within 20 m, deterministic, 0.38 ms — asked at
+**every** position of the escort, not at a single centre. The values are restated in veafGrass
+(`SCENERY_PROBE_RADIUS` / `SCENERY_PROBE_CLEARANCE`), since it loads before veafUnits, and a test pins
+them. `getPointHeight` / `getPointWater` were not pursued: the probe is already measured to answer the
+question. When both probes clear the spot, the large query is **not asked at all** (12 ms saved).
+
+Three sabotages, each caught: probe always blocked → 4 tests red; probe always clear → 3 red, among
+them *one truck in the trees moves the group*; exhaustion reported as found → 2 + 2 red.
+
 ## Definition of done
 
-- [ ] The requested bearing is kept when the wanted spot is itself clear of scenery, with the occupancy
+- [x] The requested bearing is kept when the wanted spot is itself clear of scenery, with the occupancy
       probe still deciding on top — that composition is ticket 01's and is correct
 - [ ] Verified against a **real** `-farp` on open ground, not a fabricated gap: the guard's log line
-      appears, and bearings come out equal at `1x`
+      appears, and bearings come out equal at `1x` — R19
 - [ ] Still moves the escort in or beside a wood, and off a static FARP's apron — the two halves that
-      make the check able to fail
-- [ ] The instrumentation from #898 kept or replaced by something that says as much: it is what turned
-      "it does not work" into "the gap is 43.9 m against a 12 m threshold" in one run
-- [ ] No test builds its own `gap` to make a branch run. If a value has to be constructed, the test
-      says which real measurement it stands for
+      make the check able to fail — R19
+- [x] The instrumentation from #898 replaced by a line logging both probes' answers before the decision
+      (`wanted spot at bearing N: scenery probe=…, occupancy probe=…`)
+- [x] No test builds its own `gap` to make a branch run: the tests drive what the probe answers, and the
+      one constructed distance (43.9 m) is the nearest gap measured in game on 2026-09-01
 
 ## The lesson this ticket exists to record
 

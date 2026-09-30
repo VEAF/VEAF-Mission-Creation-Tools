@@ -321,6 +321,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ssh-rsa` signatures and SHA-1 key exchange. The `logs` extra now allows `paramiko` up to 5.x;
   the refusal at the call site stays, since the extra still accepts `>=3.4`. Checked against
   `dcs.veaf.org` with an Ed25519 key.
+- **`pyjwt` 2.15.0 and `urllib3` 2.8.0** (#1037, #1036), past 16 advisories published on
+  2026-09-30, one of them critical. `pyjwt` comes with the `mcp` package, which uses it only to
+  authenticate an HTTP server; the VEAF MCP server runs over stdio and no VEAF code imports it, but
+  `veaf-tools.exe` ships it.
 
 ## [6.25.0] — 2026-09-26
 

@@ -173,6 +173,9 @@ l'avertissement n° 5).
 - **Le programme de mise à jour** se remplace correctement dans un dossier de mission accentué
   (« Mission élève »).
 - **Le menu radio VEAF** affiche toutes ses entrées de premier niveau en majuscules.
+- **Deux dépendances embarquées dans `veaf-tools.exe` sont mises à jour** (`pyjwt` et `urllib3`),
+  après 16 alertes de sécurité publiées le 30 septembre, dont une critique — celle-là visait `pyjwt`, que
+  les outils VEAF n'utilisent pas eux-mêmes.
 - **Les invites de l'assistant** demandent des cartes de briefing zoomées, visibles côté bleu
   seulement : DCS montrait les images rouges puis bleues aux joueurs de camp inconnu, soit chaque carte
   deux fois.

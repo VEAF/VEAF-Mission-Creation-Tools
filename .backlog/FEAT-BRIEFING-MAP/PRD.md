@@ -1,6 +1,6 @@
 # FEAT-BRIEFING-MAP — the briefing map, drawn by the tools rather than by every mission
 
-Status: ⬜ ready — opened 2026-09-29.
+Status: ⏸ paused — opened 2026-09-29, paused 2026-09-30 (David): it serves only missions built from the Open Training prompt, so it waits.
 
 ## Origin
 

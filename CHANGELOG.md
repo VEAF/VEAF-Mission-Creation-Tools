@@ -287,6 +287,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   then the blue ones, so a map in both lists showed twice: the pictures now go in `pictureFileNameB` and
   `pictureFileNameN`, `pictureFileNameR` empty — a new known DCS trap,
   `briefing-pictures-red-then-blue`.
+- **`veaf-logs.exe` is 30 % smaller: 48.0 MB instead of 68.7 MB.** It no longer carries the MCP
+  server stack, `mypy` and Pillow, which it never ran. Two imports brought them in. The diagnostic
+  report read the tool version from `veaf_tools.app`, which loads every command; it now reads it
+  from `veaf_libs.tool_version`. And `lua_module_scanner.generate_modules_config_lua`, a wrapper with
+  no caller since May, led to the config generator, then to `pydantic` and its mypy plugin, and to
+  `rich`, `pygments` and Pillow; it is removed — call `lua_config_generator.generate_config_lua`
+  directly. A CI step fails the build if any of these packages comes back.
 
 ### Removed
 

@@ -9,6 +9,9 @@ is exercised with its subject missing (no DCS, no log, no `VEAF_HOME`).
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -31,6 +34,7 @@ from veaf_libs.diagnostics import (
     read_dcs_version,
     tool_log_path,
 )
+from veaf_tools.app import VERSION
 
 #: The banner DCS writes on the sixth line of its log — copied from a real one, 2026-09-05.
 _DCS_HEADER = (
@@ -314,6 +318,32 @@ class TestBuildReportSurvivesAnything(unittest.TestCase):
             _make_dcs(home, "DCS")
             report = build_report(error_count=0, home=home, log_path=Path(tmp) / "absent.log")
             self.assertNotIn("Jean Dupont", report.to_block())
+
+
+class TestTheReportDoesNotLoadTheCli(unittest.TestCase):
+    """``veaf-logs`` builds this report too, and it does not ship the command line (CHORE-LOGS-EXE-TRIM).
+
+    Reading the version used to import ``veaf_tools.app``, which imports every command and, through
+    them, the MCP server stack. A fresh interpreter is needed: the test process has long since
+    imported the CLI for other tests, so ``sys.modules`` here would prove nothing.
+    """
+
+    def test_building_the_report_imports_neither_the_cli_nor_the_mcp_server(self) -> None:
+        probe = (
+            "import sys\n"
+            "from veaf_libs.diagnostics import build_report\n"
+            "report = build_report(error_count=0)\n"
+            "loaded = [m for m in ('veaf_tools.app', 'veaf_mission_mcp', 'mcp') if m in sys.modules]\n"
+            "print(report.fields['tool.version'])\n"
+            "print(','.join(loaded))\n"
+        )
+        env = {**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)}
+        result = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, env=env, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # The probe's own two lines come last, whatever an import may have printed before them.
+        version, loaded = result.stdout.splitlines()[-2:]
+        self.assertEqual(loaded, "")
+        self.assertEqual(version, VERSION)
 
 
 if __name__ == "__main__":

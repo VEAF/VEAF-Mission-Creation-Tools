@@ -260,7 +260,7 @@ def _guarded(keys: tuple[str, ...], collector: Callable[[], dict[str, str]]) -> 
 
 def _collect_tool() -> dict[str, str]:
     """Read what the tool knows about itself: version, packaging, interpreter."""
-    from veaf_tools.app import VERSION
+    from veaf_libs.tool_version import VERSION
 
     return {
         "tool.version": VERSION,

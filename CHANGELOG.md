@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.26.0] — 2026-09-30
+
 ### Added
 
 - **Airfields are CTLD logistic points.** A C-130 landed at Ramstein read *"No logistics in range"*

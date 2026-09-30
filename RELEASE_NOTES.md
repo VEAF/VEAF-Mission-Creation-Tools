@@ -1,293 +1,198 @@
-# VEAF Mission Creation Tools — 6.25.0
+# VEAF Mission Creation Tools — 6.26.0
 
-**Cette version a été écrite en construisant une mission.** Nous avons repris *Open Training Germany
-Cold War* à partir d'un dossier vide, avec les outils, comme le ferait n'importe quel créateur de
-mission — et nous avons noté chaque chose qui ne marchait pas. Presque tout ce qui suit vient de là :
-des fonctions qui écrivaient dans un fichier que DCS ne lit pas, des avions posés dans l'herbe, des
-batteries entières qui disparaissaient à l'apparition.
+**Cette version vient du premier vol dans une mission construite par l'assistant.** *Open Training
+Germany Cold War*, rebâtie avec les outils dans la version précédente, a été jouée sur le serveur le
+29 septembre. Ce qui a cassé en vol se retrouve ici : des objectifs qui n'apparaissaient jamais, des
+commandes radio sécurisées refusées à tout le monde, un C-130 posé à Ramstein sans rien à charger, des
+réglages acceptés puis ignorés.
 
-L'autre moitié vient de DCS lui-même, mesurée en vol le 25 septembre : là où nos véhicules se garent
-réellement quand on leur demande d'éviter les arbres.
-
-> ### ⚠️ Ce qui change dans vos missions existantes
+> ### ⚠️ Ce qui change dans vos missions et sur vos serveurs
 >
-> **1. Le vent de vos variantes météo souffle peut-être à l'envers.** La météo des variantes n'a
-> jamais atteint DCS (voir plus bas) : elle était écrite dans une table que le jeu ignore. Maintenant
-> qu'elle arrive vraiment, une erreur d'orientation restée invisible devient visible. Si votre
-> `versions.yaml` a été converti depuis la v5 par une version précédente, ses `weather.wind_direction`
-> écrits à la main désignent la direction **vers laquelle** le vent souffle, au lieu de celle d'où il
-> vient.
+> **1. Serveurs : redéployez `VEAF-Server-hook.lua`.** Le hook envoie maintenant le niveau du pilote à
+> chaque changement de slot. Sans le nouveau hook, un pilote resté connecté pendant un rechargement de
+> mission garde un niveau vide et se voit refuser les commandes `+`.
 >
-> Deux façons de corriger, au choix : relancer la conversion, ou **ajouter 180° à chaque valeur**.
-> Les variantes qui lisent un `airport_icao` ne sont pas concernées.
+> **2. Les aérodromes deviennent des points logistiques CTLD.** C'est actif par défaut sur toute
+> mission qui utilise CTLD. Pour garder l'ancien comportement :
+> `modules.CTLD.manage_airbase_logistics: false`.
 >
-> **2. Une mapping dans un bloc `settings:` arrête maintenant le build.** Jusqu'ici, écrire un bloc
-> à clés sous `settings:` produisait une chaîne de caractères inerte côté Lua : ça ne faisait rien,
-> et ça ne le disait pas. Le build refuse désormais, en nommant le réglage. C'est le but — mais une
-> `mission.yaml` qui en contient une devra la déplacer dans `mission-script.lua`.
+> **3. Une QRA marquée `start: false` par la conversion v5 n'est plus armée au démarrage.** Elle
+> l'était jusqu'ici malgré ce réglage. Si vous comptiez sur elle au démarrage, passez-la à
+> `active_at_start: true`.
 >
-> **3. `-samLR` n'est plus ce que son nom laissait croire.** Décrit comme « longue portée » depuis
-> 2020, il a toujours tiré un Roland, un Hawk, un Osa ou un Tor. Il continue exactement pareil —
-> seule sa description change, en *moyenne portée*. Si vous vouliez vraiment du longue portée, c'est
-> le nouveau **`-samVLR`** qu'il vous faut.
+> **4. `logLevel` sous un module prend enfin effet.** Il n'avait jamais été appliqué. Un module réglé
+> sur `trace` ou `debug` dans votre `mission.yaml` va maintenant remplir le `dcs.log`.
+>
+> **5. Un `-farp` sans place pour son escorte est refusé** au lieu de poser l'escorte n'importe où. En
+> jeu, ce refus n'est arrivé dans aucun des quatre essais, forêt dense comprise. Une FARP placée dans
+> l'éditeur de mission n'est jamais refusée.
+>
+> **6. `/secu login` et `/secu logout` ne déverrouillent plus rien** (ils ne le faisaient déjà plus,
+> tout en répondant le contraire). Ils renvoient vers `/secu elevate`. Le réglage `authDuration` est
+> retiré ; une mission qui le pose encore n'est pas affectée.
 
 ---
 
-## 🌲 Vos véhicules ne se garent plus dans les arbres
+## 🔐 Les commandes radio sécurisées fonctionnent à nouveau
 
-Jusqu'ici, une batterie SAM posée en forêt y restait. Pire : ce que nous croyions être un correctif
-n'avait jamais rien déplacé du tout. Mesuré sur 20 véhicules réellement coincés sous les arbres :
-**25 emplacements proposés, 25 valides, 0 retenu, 0,0 m de déplacement.**
+Depuis 6.14.0, une commande sécurisée destinée à tous (activer ou désactiver une zone de combat
+hors entraînement, le brouillard, sauter une mission CAS ou de transport, nettoyer les convois,
+l'élingage CTLD…) répondait *« Your radio has to be authenticated for '+' commands »* à chaque clic,
+quel que soit le pilote. Elle est désormais proposée dans le menu de chaque groupe de pilotes, là où
+le niveau du groupe est vérifié. Un maître du jeu, qui n'a pas de groupe, ne la voit plus quand la
+sécurité est active ; sans sécurité, tout le monde la voit comme avant.
 
-La cause est une particularité de DCS qu'il fallait mesurer pour la voir. Quand on lui demande un
-emplacement dégagé dans un rayon de 50 m, il répond entre 52 et 171 m — médiane 130. Le rayon demandé
-ne veut rien dire. Le filtre qui vérifiait « la proposition est-elle bien dans le rayon ? » rejetait
-donc tout, systématiquement.
-
-Et le corriger en desserrant ce filtre n'aurait pas marché non plus : **l'espacement naturel d'une
-batterie SAM est de 20 à 27 m**, et le point le plus proche que DCS sache proposer est à 52 m. Déplacer
-chaque véhicule séparément aurait éclaté la formation d'un facteur 2 à 5 — une batterie en fleur.
-
-Le groupe est donc déplacé **d'un bloc** : on demande une clairière assez large pour l'empreinte
-entière, puis on applique le même décalage à tous les véhicules. Les distances entre eux sont
-inchangées par construction.
-
-Sur 31 groupes en faute, **30 sont entièrement résolus** et les véhicules sous les arbres passent de
-**132 à 2**. Les six pires — les S-300 de Wittstock et Borkenberge, trois autres S-300 et un SA-11 —
-passent de 8 à 13 véhicules sous les arbres à zéro.
-
-Le déplacement est borné à 1 000 m (les besoins mesurés vont de 100 à 800 m). **Ce que vous avez placé
-dans l'éditeur de mission n'est jamais déplacé**, et les convois sont exempts pour qu'ils ne quittent
-pas leur premier point de passage.
-
-### Une zone de combat sur un pont
-
-Sur 25 zones de combat, une seule ne faisait rien apparaître : son convoi est sur un pont, et DCS
-rapporte la nature du sol **sous** le pont, c'est-à-dire de l'eau. La zone se comportait correctement
-— aucun point acceptable à proximité, donc elle gardait la position déclarée — mais un second contrôle
-en aval jugeait cette position invalide et supprimait le groupe entier.
-
-Le principe qui tranche est celui posé en août : **on refuse ce qu'une commande fait apparaître**, parce
-qu'il y a quelqu'un pour lire le message ; on ne refuse jamais ce que le créateur a placé dans
-l'éditeur, parce qu'il n'y a personne. Un `-teleport` sur un lac refuse toujours.
-
-### Une régression corrigée dans la foulée
-
-Entre-temps, un correctif intermédiaire faisait disparaître des groupes entiers : quand un véhicule
-était effectivement déplacé, son cap était perdu en route, ce qui plantait l'apparition en silence.
-**11 erreurs, 6 zones vides** sur une seule partie. C'est réparé, et une protection empêche qu'un cap
-manquant puisse à nouveau tout emporter.
+Et un pilote inscrit dans `veaf-pilots.txt` retrouve son niveau **sans taper aucune commande**, même
+si la mission a été rechargée pendant qu'il restait connecté (voir l'avertissement n° 1). Un refus
+indique maintenant au groupe le niveau requis et le niveau dont il dispose, à ce groupe seulement. Une
+commande de chat mal tapée (`/sec`, `/veaflogin`) répond par la liste des commandes existantes au lieu
+d'écrire une erreur dans le journal.
 
 ---
 
-## 🌦️ La météo et l'heure de vos variantes fonctionnent enfin
+## 🚁 CTLD : on charge et on décharge sur les aérodromes
 
-Trouvé en construisant la mission depuis zéro : **toutes les variantes volaient sous le ciel de la
-mission de base.** Sur Caucasus v6, `dawn-broken` et `dawn-overcast-rain` étaient identiques — même
-preset, 20 °C, vent nul. La météo était écrite dans une table que DCS ne lit pas.
+Un C-130 posé à Ramstein lisait *« No logistics in range »* : aucun aérodrome de la carte n'était un
+point logistique pour CTLD. VEAF enregistre maintenant chaque aérodrome au démarrage, par une zone de
+250 m autour de son parking.
 
-Elle écrit maintenant ce que le jeu lit réellement : un preset de nuages choisi d'après la couverture
-et la base (dans la plage d'altitude que DCS accepte pour ce preset), la pluie, la température, le vent
-au sol et en altitude, la visibilité, le brouillard, et le QNH tel qu'un METAR le donne. Le bloc
-`weather:` accepte une nouvelle clé `precipitation`.
+- Un aérodrome tenu au début de la mission reste ouvert tant que son camp le tient.
+- Un aérodrome neutre ou capturé ne s'ouvre qu'après **deux minutes d'occupation au sol sans
+  opposition**, et se referme dès que les dernières troupes partent. Un avion de transport qui se pose
+  sur un terrain capturé ne suffit donc pas à l'ouvrir.
+- Chaque aérodrome actif est dessiné en cercle vert sur la carte F10 du camp qui le tient, et chaque
+  changement est annoncé au camp qui le gagne ou le perd.
 
-**Les heures solaires étaient calculées en UTC** alors que DCS lit l'heure de départ sur l'horloge du
-théâtre. Toutes les variantes `sunrise…` démarraient donc 2 à 4 heures trop tôt — 01h28 pour une aube
-sur le Caucase. Elles utilisent désormais le décalage propre à chaque théâtre, la même table que les
-scripts en jeu, qui gagne au passage GermanyCW à UTC+2 (mesuré dans DCS).
-
-**La météo réelle n'avait jamais fonctionné** : la récupération lisait des informations qui n'existaient
-pas et retombait silencieusement sur les valeurs par défaut à chaque fois — et l'exécutable ne
-contenait même pas la table des stations. Chaque variante qui retombe sur les défauts est maintenant
-nommée, et le build dit combien il y en a eu.
+Réglages : `airbase_logistics_radius`, `airbase_occupation_radius`, `airbase_logistics_tick`.
+CTLD lui-même n'est pas modifié.
 
 ---
 
-## 🛬 Les slots dynamiques : navires, FARP, et des identifiants qui se marchaient dessus
+## 🎯 Les objectifs d'une mission construite par l'assistant existent vraiment
 
-**Les slots dynamiques ne fonctionnaient pas sur les navires ni les FARP.** DCS tient deux tables
-distinctes — les aérodromes d'un côté, les navires et FARP de l'autre — et l'outil n'a jamais parcouru
-que la première. Mesuré sur une mission complète : les aérodromes finissaient avec 832 liens tous
-valides, pendant que les **41 navires et FARP gardaient 69 liens dont pas un seul** ne désignait un
-groupe encore présent. DCS affiche ça *Group template: None*. Pour un appareil embarqué, c'était toute
-l'histoire.
+Premier test en jeu d'une mission bâtie par l'assistant IA, et ce qu'il a trouvé :
 
-Chaque objet reçoit maintenant ce qu'il peut réellement accueillir, lu dans la base d'unités plutôt que
-deviné : un porte-avions prend avions et hélicoptères, un porte-hélicoptères ou un héliport prend les
-hélicoptères, et un navire sans pont d'envol est laissé tranquille. Deux clés facultatives, `ships:` et
-`farps:`, permettent de les viser nommément. Même mission après correction : **40 objets configurés,
-705 liens valides, 0 lien mort.**
+- **Quatre objectifs n'apparaissaient jamais.** DCS refusait sans rien dire un poste de commandement
+  et trois dépôts de munitions, faute de la forme (`shape_name`) que l'éditeur écrit. Les objets
+  statiques la portent maintenant, et `validate` signale ceux construits avant.
+- **Une zone faite uniquement d'objets statiques s'affichait vide.** Le panneau d'information d'une
+  zone ne comptait que les groupes : une zone à cinq cibles fixes n'y listait aucun ennemi alors
+  qu'elle attendait leur destruction. Les statiques y apparaissent désormais comme des structures.
+- **Une zone de combat était initialisée deux fois** (Torgau portait 8 éléments au lieu de 4).
+- **Les avions partaient sans leurres**, sans indicatif, et avec des numéros de queue qui
+  recommençaient à 10 dans chaque groupe. Ils reçoivent maintenant la dotation de leurres que l'éditeur
+  donne à leur type, une famille d'indicatifs selon leur tâche (Enfield…, Texaco… pour un
+  ravitailleur, Overlord… pour un AWACS) et des numéros uniques.
+- **Un porte-avions était ouvert à tous les appareils du camp**, B-52H compris. Seuls ceux qui peuvent
+  décoller **et** apponter sur son pont y sont désormais proposés ; une liste `aircrafts:` explicite
+  reste respectée.
+- Au démarrage, `ctld-config.yaml` ne produit plus 35 avertissements *« not found »* hérités de
+  l'exemple de CTLD, et `validate` signale un nom qui n'existe pas dans la mission.
+- Les listes de villes utilisées pour nommer les points couvrent maintenant GermanyCW, Sinaï,
+  Normandie, Afghanistan et Marianas WWII ; la Syrie passe de 213 à 1 151 villes.
 
-**Et les identifiants se télescopaient.** Les catalogues livrés vivent dans les petits numéros pendant
-qu'une vraie mission dépasse 3 800 : les deux se chevauchaient par construction. Mesuré : 6 identifiants
-de groupe et 11 d'unité en double après injection. La conséquence n'est pas une erreur — c'est **un
-type d'avion qui cesse silencieusement d'être proposé** en slot dynamique. Les identifiants sont
-désormais vérifiés contre la mission d'accueil et réattribués **uniquement en cas de collision**, pour
-qu'une reconstruction ne déplace pas ce qu'elle avait déjà attribué. Une mission vierge ne reproduit
-rien de tout ça — ce qui explique que ce soit passé inaperçu.
+L'assistant sait aussi placer **un groupe aéronaval complet** — porte-avions et escorte en route,
+fréquences, TACAN, ICLS, Link 4 et ACLS, ravitailleur S-3B et hélicoptère de sauvetage — ainsi que des
+**slots sur le pont**, à froid ou à chaud, et des **balises radio** qui diffusent un son.
 
-### Un nouveau gabarit vous parvient enfin
+---
 
-`prepare` recopiait les catalogues dans chaque dossier de mission, et le build ne lisait que cette
-copie — gelée au jour de la création du dossier. **Un dossier préparé en juin garde ses 104 gabarits
-pour toujours**, et le `F-14BU Template` ajouté le 21 septembre ne lui parvient jamais, quelle que soit
-la fréquence des mises à jour.
+## 🌲 Le placement hors des arbres, repris depuis le début
 
-`prepare` écrit maintenant un catalogue vide, et le build résout le fichier de la mission s'il contient
-au moins un groupe, sinon le catalogue livré — en disant lequel il a pris. Un dossier qui possède déjà
-son catalogue n'est pas touché : **rien n'est jamais fusionné dans votre fichier à votre insu.** Pour
-récupérer les nouveautés, une commande explicite :
+**Les chiffres annoncés en 6.25.0 étaient faux.** Ils avaient été comptés après l'apparition des
+véhicules, alors que la sonde de DCS qui dit « y a-t-il de la place ici » compte aussi les
+**véhicules** comme des obstacles. Une batterie serrée échouait donc à son propre test, où qu'on la
+pose.
+
+Mesuré là où il faut, c'est-à-dire avant que les véhicules existent, le bilan était beaucoup plus
+modeste. La méthode a donc été changée : chaque proposition de DCS est vérifiée véhicule par véhicule,
+et comme DCS ne propose rien du tout aux endroits qui en ont le plus besoin, les outils cherchent
+maintenant eux-mêmes, par cercles de plus en plus larges autour du groupe, le premier décalage où tous
+les véhicules sont sur un sol praticable et dégagé. La formation reste intacte, au centimètre près.
+
+Sur une version intermédiaire, les véhicules encore sous les arbres étaient passés de 17 à 4. **La
+version livrée n'a pas encore été mesurée en jeu.** Le déplacement est maintenant borné à 300 m au lieu
+de 1 000.
+
+**L'assistant place aussi ses groupes sur un terrain dégagé**, jusqu'à 1 km de la position demandée, et
+le dit. Il s'appuie sur un catalogue du terrain dégagé, relevé une fois dans DCS : Caucase (ses 21
+aérodromes) et GermanyCW (les 25 zones de combat de GermanyCW-v6) sont livrés. `keep_position: true`
+garde la position que vous avez donnée. Deux commandes guidées vont avec :
 
 ```powershell
-.\veaf-tools.exe content pull-aircraft-groups
+.\veaf-tools.exe dcs clear-ground-sweep Caucasus
+.\veaf-tools.exe dcs clear-ground-check .\build\ma-mission.miz
 ```
 
-Elle liste ce que le catalogue livré a et que le vôtre n'a pas ; `--add "<nom>"` ou `--add-new` copie ce
-que vous choisissez, sans jamais remplacer une entrée que vous possédez déjà.
+La première relève un théâtre ou les zones d'une mission ; elle prépare la mission de relevé, lance le
+pont avec DCS, vous dit quoi faire dans le jeu, et reprend là où un relevé interrompu s'était arrêté.
+La seconde vérifie une mission construite, sans rien faire apparaître.
 
-### Le build dit ce qu'il a obtenu, pas seulement ce qu'il a écrit
-
-Deux situations qui ne cassent rien et laissent les slots inutilisables sont maintenant signalées :
-un lien de gabarit qui ne pointe sur rien (65 cas distincts sur une mission de test), et des gabarits
-qui n'ont **nulle part où être proposés** — une mission sortie tout droit de `prepare` injecte 128
-gabarits et configure 0 aérodrome, puisque tous les aérodromes d'une mission vierge sont neutres. Aucun
-slot dynamique n'était jouable, et le build passait dessus en silence.
+Les escortes de FARP posées en terrain dégagé restent désormais à l'endroit prévu (voir
+l'avertissement n° 5).
 
 ---
 
-## 🎚️ Les défenses aériennes suivent l'époque
+## ⚙️ Des réglages QRA et AIRWAVES qui étaient acceptés puis ignorés
 
-Une mission `COLD_WAR` ne reçoit plus les matériels entrés en service après 1980 — l'armement terrestre
-suivait déjà cette règle, les défenses aériennes non. Les groupes de `-sam`, `-samSR`, `-samLR` et
-`-aaa` ont maintenant des variantes par époque, et les escortes de `_cas`, `-armor`, `-convoy`…
-échangent Avenger, Linebacker, Tor, Tunguska, HQ-7 et Igla-S contre leurs prédécesseurs.
-
-Une mission **WW2** reçoit de la flak, et rien d'autre : plus aucune escorte. Auparavant, les escortes
-testaient un réglage que les missions v6 ne posent jamais, si bien qu'**une section WW2 arrivait avec
-des SAM modernes**.
-
-### `-samVLR`, la vraie longue portée
-
-Nouveau raccourci. Selon l'époque de la mission, il place un SA-10 ou un SA-5 (rouge moderne), un
-Patriot (bleu moderne), un SA-2 ou un SA-5 (rouge Guerre froide), un Hawk (bleu Guerre froide — rien de
-plus long n'existait avant 1984), ou la flak la plus lourde en WW2.
-
-Le tirage à ±1 d'un niveau de défense est documenté : 60 % le niveau demandé, 20 % de chaque côté.
+- Une commande VEAF (`[0,0]-spawn …`, `-sa6`) dans la liste de déploiement d'une QRA n'est plus
+  refusée par `validate` ; le jeu l'a toujours exécutée.
+- `respawn_default_offset` sous une QRA arrive enfin dans le Lua généré.
+- Une vague AIRWAVES dont `groups` est une liste YAML donne bien une liste de groupes, et non plus un
+  seul groupe nommé `"['a', 'b']"`.
+- `validate` signale une clé de QRA que le build ne lit pas, et un niveau de journal inconnu.
 
 ---
 
-## 🧩 Trois niveaux de difficulté sur les mêmes objectifs, en une clé
+## 🛩️ Planchettes et radios
 
-Une zone de combat peut emprunter les éléments d'autres zones :
-
-```yaml
-includes: [zone-facile, zone-moyenne]
-```
-
-L'emprunt est transitif et l'ordre n'a pas d'importance : activer le niveau « difficile » d'un champ de
-tir fait apparaître aussi le moyen et le facile, le désactiver les enlève, et son achèvement les
-compte. Une zone inconnue arrête le build plutôt que de laisser un niveau discrètement incomplet.
-
-Cela demandait auparavant du Lua dans `mission-script.lua` — et l'imbrication par préfixe de nom, que la
-règle des préfixes semble pourtant suggérer, **ne peut pas marcher**, puisqu'une zone détruit au
-démarrage les groupes qu'elle ramasse.
+- **Les noms accentués arrivent intacts dans le cockpit.** « Nörvenich » devenait « NÃ¶rvenich » dans
+  chaque radio et sur chaque planchette (127 canaux sur l'Open Training GermanyCW) ; les fréquences,
+  elles, étaient justes.
+- **La planchette numérote les canaux comme le cockpit** sur le Mi-24P (à partir de 00) et l'OH-58D
+  (emplacements « M » et « C » nommés, puis canaux à partir de 01).
+- Sur l'OH-58D, une liste de moins de 20 canaux ne décale plus tous les numéros d'un cran. Trouvé dans
+  le code, pas encore vérifié dans le cockpit.
+- Sur une machine sans les polices Windows, les planchettes gardent leur mise en page.
 
 ---
 
-## 🤖 L'assistant IA construit des missions qui tiennent debout
+## 🧭 Et encore
 
-C'est ici que la construction depuis zéro a fait le plus de dégâts — et le plus de progrès.
-
-**Les avions étaient fabriqués avec le constructeur de véhicules terrestres** : au niveau du sol,
-à 20 km/h, sans carburant ni armement, sur un point « hors route ». Une QRA au décollage apparaissait
-donc dans l'herbe. Les QRA et les patrouilles sont maintenant construites en vol, ravitaillées, avec un
-emport d'armes (`pylons`, ou `loadout_from` en copiant celui d'un autre groupe), et une patrouille à qui
-l'on donne un second point vole un hippodrome au lieu de tourner dans le vide.
-
-Un **objet statique** porte enfin la catégorie que DCS lit pour savoir de quoi il s'agit — il n'en avait
-aucune — et un **navire** ne reçoit plus la tâche et la route d'un véhicule.
-
-**Les vols de soutien, la date, le bullseye et le briefing** ne demandent plus de Lua écrit à la main.
-Un ravitailleur fabriqué par l'assistant ravitaille réellement quelqu'un : les tâches ont été relevées
-dans 401 missions réelles pour être écrites dans la forme que DCS attend — ravitailleur, AWACS, carburant
-illimité, EPLRS, balise TACAN (canal, X/Y, indicatif, fréquence calculée comme les missions la stockent)
-et escorte.
-
-Le reste, en vrac : les FARP, la météo et la liste des aérodromes sont accessibles à l'assistant ; les
-navires sont espacés de 600 m au lieu de 20 ; les sauvegardes automatiques vont dans un dossier dédié
-(20 par fichier) au lieu de s'empiler à côté de la mission — jusqu'à 51 copies en une seule session ; et
-quand une action échoue, l'assistant reçoit enfin le message d'erreur au lieu d'un laconique *Error
-executing tool*.
-
-### L'assistant connaît les pièges de DCS
-
-Nouvelle capacité en lecture seule : l'assistant peut demander **les limitations connues des outils** et
-**les comportements de DCS qui ne lèvent aucune erreur et sont faux quand même** — un groupe à activation
-retardée que les scripts voient déjà, une heure de départ qui ne retarde pas une apparition en vol, un
-site SAM sans radar de veille qui reste allumé en permanence… Chacun avec son symptôme, ce qu'il faut
-faire, et ce qu'il a coûté. La liste correspond à **la version que vous avez installée** : une limitation
-corrigée cesse d'être signalée à partir de la version qui la corrige.
-
-### Une invite pour construire une mission Open Training complète
-
-Collez `.prompts/new-open-training-mission.fr.md` (ou `.en.md`) au début d'une session d'assistant dans un
-dossier vide. Elle donne les règles de conception — quelles bases, combien de soutien et de défense
-aérienne pour la taille du front, trois familles de niveaux imbriqués, de vraies zones de combat, QRA et
-patrouilles, la sécurité activée — et demande à l'assistant de signaler chaque manque qu'il rencontre.
+- **Suivre une zone de combat en direct dans `dcs.log`** : `module_settings: { veaf.Diagnostics:
+  true }` fait écrire à chaque zone son activation, chaque élément apparu ou manqué, le contenu de son
+  panneau et sa désactivation. Désactivé par défaut, à réserver à une session que quelqu'un surveille.
+- **Un `dcs.log` par défaut est plus calme** : 56 lignes d'information sur 217 passent en débogage.
+- **Les véhicules terrestres apparus par script démarrent chauds**, avec une signature infrarouge dès
+  la première seconde. Un véhicule coché *COLD AT START* dans l'éditeur le reste à sa réapparition.
+- **L'escorte d'un ravitailleur téléporté** reprend sa mission sur le bon point de route, et un
+  ravitailleur, son escorte ou un AFAC déplacés réapparaissent sur la route dessinée dans l'éditeur, et
+  non plus sur la route modifiée.
+- **Le suivi des contacts de Skynet** ne perd plus un contact sur deux quand plusieurs sortent de la
+  couverture en même temps.
+- **Le programme de mise à jour** se remplace correctement dans un dossier de mission accentué
+  (« Mission élève »).
+- **Le menu radio VEAF** affiche toutes ses entrées de premier niveau en majuscules.
+- **Les invites de l'assistant** demandent des cartes de briefing zoomées, visibles côté bleu
+  seulement : DCS montrait les images rouges puis bleues aux joueurs de camp inconnu, soit chaque carte
+  deux fois.
 
 ---
 
-## ⚙️ Configuration : ce qui était écrit et ne servait à rien
+## 📜 `veaf-logs`
 
-**Une liste écrite dans `settings:` arrive enfin en Lua sous forme de liste.** Écrire
-`csarPrefix: ["helicargo", "MEDEVAC"]` produisait `csar.csarPrefix = "['helicargo', 'MEDEVAC']"` — du Lua
-valide, une chaîne de caractères là où le script attend une liste, et pas le moindre avertissement.
-
-**L'exemple de la documentation cassait CSAR.** Le guide montrait `csarPrefix: "MEDEVAC"` tout en activant
-l'option qui parcourt cette valeur élément par élément — ce qui plante. Copier le bloc documenté suffisait
-à casser le sauvetage en mission. L'exemple est corrigé, et un test compare désormais chaque exemple de la
-documentation aux valeurs par défaut du script.
-
-**Les 38 réglages de CSAR sont listés**, groupés par intention. Le guide en nommait 3, à titre d'exemple —
-d'où la conclusion d'un créateur de mission que `csarOncrash`, `enableForAI` et `enableForRED` exigeaient
-un bloc Lua. Il dit aussi clairement que `aircraftType` est **le seul** réglage que le YAML ne peut pas
-atteindre.
-
-**Les liens `# Doc:` de votre `mission.yaml` fonctionnent à nouveau.** Les neuf pointaient vers une vue qui
-ne sait pas interpréter nos ancres, et sept visaient des titres qui avaient changé de nom depuis. Un
-contrôle automatique vérifie maintenant chaque lien écrit dans un message.
-
----
-
-## 📜 `veaf-logs` suit le journal d'un serveur à distance
-
-*Fichier › Ouvrir un journal distant…* liste les couples `serveur › instance` déclarés dans un nouveau bloc
-`servers:` de votre `~/veafmct.yaml` — une machine, plusieurs instances DCS, un `dcs.log` chacune. Le
-journal est recopié localement en continu (seuls les octets nouveaux circulent), si bien que les filtres,
-les règles, les profils et la restauration de session fonctionnent comme sur un fichier local. Un
-redémarrage de DCS côté serveur relance l'onglet avec le nouveau journal.
-
-**Authentification par clé uniquement** : l'outil ne demande ni ne conserve jamais de mot de passe. Une
-empreinte d'hôte inconnue vous est montrée et mémorisée sur demande, comme le fait `ssh`.
-
-`veaf-tools.exe` est inchangé.
-
----
-
-## 💬 L'assistant de documentation répond au besoin, pas seulement à la question
-
-Une question arrive emballée dans la solution que son auteur a déjà choisie, et l'assistant restait dans
-cet emballage : interrogé sur la façon de simplifier un bloc Lua réglant trois booléens, il répondait
-correctement sur le bloc Lua et ne disait jamais que **quatre lignes de `mission.yaml` remplacent le bloc
-entier** — alors que l'extrait le disant était cité dans ses propres sources.
-
-Il propose désormais la route la plus simple en premier, la montre, dit ce qu'elle remplace, et répond
-quand même à la question posée. Uniquement quand un extrait l'affirme, jamais de sa propre initiative.
-Vaut pour le widget du site, `veaf-tools ask` et Discord.
+- Il lit maintenant **les autres journaux d'un serveur** : DCSServerBot, Real Weather et LotAtc, ligne
+  par ligne, avec leur heure et leur niveau. Le journal de DCSServerBot, 4 104 lignes, s'affichait
+  jusqu'ici en une seule entrée. Le bruit de fond de ces outils est masquable.
+- Le **panneau des filtres se masque** (`Ctrl+B`), et l'exécutable a enfin une icône.
+- Il pèse **48 Mo au lieu de 69**.
+- Il refuse les signatures SSH `ssh-rsa` en SHA-1 (CVE-2026-44405) ; les clés RSA restent acceptées
+  via `rsa-sha2-256` / `rsa-sha2-512`.
 
 ---
 
 ## 🙏 Contributions
 
-Cette version est le travail de **Zip**. Les mesures en jeu qui l'ont guidée ont été faites sur
-GermanyCW-v6 et Caucasus v6 les 21 et 25 septembre 2026.
+Merci à tous les copains de la VEAF qui ont passé des heures en vol à tester — copains d'abord,
+cobayes ensuite, et rarement l'inverse. Presque tout ce qui est corrigé ici, c'est vous qui l'avez
+trouvé, en vol, sur la session Open Training GermanyCW du 29 septembre 2026.

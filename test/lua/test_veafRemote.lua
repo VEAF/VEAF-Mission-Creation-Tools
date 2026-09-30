@@ -442,6 +442,22 @@ function TestVeafRemoteSlotCarriesTheLevel:test_registering_again_keeps_the_unit
   luaunit.assertIs(veafRemote.getRemoteUserFromUnit("Ninja-1-1"), veafRemote.getRemoteUser("Zip"))
 end
 
+-- Updating in place keeps `unitName` across a reconnection, and DCS sends no usable slot change when a
+-- player leaves: the unit they left may belong to someone else by the time they take a new one. Releasing
+-- it then would drop that other pilot to level 0 (found by the PR review of #1032).
+function TestVeafRemoteSlotCarriesTheLevel:test_a_returning_player_does_not_release_a_unit_someone_else_took()
+  veafRemote.registerUser("Zip", 99, "ucid-zip")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-1-1")
+  -- Zip disconnects: no slot change reaches the mission; Bob takes the same unit
+  veafRemote.registerUser("Bob", 50, "ucid-bob")
+  veafRemote.registerUserSlot("Bob", "ucid-bob", "Ninja-1-1")
+  -- Zip reconnects and takes another unit
+  veafRemote.registerUser("Zip", 99, "ucid-zip")
+  veafRemote.registerUserSlot("Zip", "ucid-zip", "Ninja-2-1")
+  luaunit.assertEquals(veafRemote.getRemoteUserFromUnit("Ninja-1-1").name, "Bob")
+  luaunit.assertEquals(veafRemote.getRemoteUserFromUnit("Ninja-2-1").name, "Zip")
+end
+
 function TestVeafRemoteSlotCarriesTheLevel:test_a_slot_with_no_level_known_anywhere_is_reported()
   local logger = veaf.loggers.get(veafRemote.Id)
   local saved = logger.warn

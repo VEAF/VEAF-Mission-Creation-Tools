@@ -262,8 +262,9 @@ function veafRemote.registerUserSlot(username, ucid, unitName, level)
   end
   local previousUnit = remoteUser.unitName
   remoteUser.unitName = occupiedUnit -- nil when the player got out of his unit
-  -- unregister the previous unit, if any
-  if previousUnit then
+  -- unregister the previous unit, if it is still this player's: `registerUser` keeps `unitName` across a
+  -- reconnection, and the unit may have been taken by someone else since
+  if previousUnit and veafRemote.remoteUnitsPilots[previousUnit] == remoteUser then
     veafRemote.remoteUnitsPilots[previousUnit] = nil
   end
   -- register the current unit, if any

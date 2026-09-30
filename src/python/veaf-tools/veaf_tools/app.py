@@ -1,21 +1,10 @@
 import sys
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as _pkg_version
 
 import typer
 from veaf_libs.i18n import set_language, set_language_from_argv, t, tn  # noqa: F401  (tn re-exported for commands)
 from veaf_libs.logger import configure_stdio_encoding, console, install_excepthook, logger  # noqa: F401
+from veaf_libs.tool_version import VERSION  # noqa: F401  (re-exported for commands and the MCP server)
 from veaf_libs.update_checker import check_for_updates
-
-try:
-    VERSION: str = _pkg_version("veaf-tools")
-except PackageNotFoundError:
-    try:
-        from veaf_tools._version import __version__ as _fallback
-
-        VERSION = _fallback
-    except ImportError:
-        VERSION = "unknown"
 
 README_HELP: str = t("help.readme")
 PAUSE_HELP: str = t("help.pause")

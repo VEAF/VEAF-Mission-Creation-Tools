@@ -1,8 +1,8 @@
 # 01 — cut the import chain, or exclude the packages
 
-Status: ⬜ ready
+Status: ✅ done
 Type: chore
-Files: `veaf-logs.spec`, possibly `src/python/veaf-tools/veaf_libs/diagnostics.py`,
+Files: possibly `veaf-logs.spec`, `src/python/veaf-tools/veaf_libs/diagnostics.py`,
 `src/python/veaf-tools/veaf_logs/report.py`
 
 ## What

@@ -1,8 +1,6 @@
 """Generate ``veaf-config.lua`` from a parsed ``mission.yaml`` content dict.
 
 This module is the authoritative source for the YAML-to-Lua config generation.
-``lua_module_scanner.generate_modules_config_lua`` delegates here for backward
-compatibility.
 
 Sections handled
 ----------------

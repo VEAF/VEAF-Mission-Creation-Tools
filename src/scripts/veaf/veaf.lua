@@ -4671,6 +4671,15 @@ function veaf.diag(loggerId, text, ...)
   if not veaf.Diagnostics then
     return
   end
+  if not veaf.diagAnnounced then
+    -- Once, at warn: on private1 (2026-09-29) a mission had left the switch on since its repository was
+    -- created, and 2 500 of these lines in 90 minutes were read as a verbosity defect of the module.
+    veaf.diagAnnounced = true
+    veaf.loggers.get(loggerId):print(
+      veaf.Logger.LEVEL["warning"],
+      "veaf.Diagnostics is on: DIAG| lines follow at info; set it back to false in mission.yaml (module_settings) once the watched session is over"
+    )
+  end
   local line = veaf.Logger.formatText("DIAG|" .. text, ...):gsub("\r?\n", " / ")
   veaf.loggers.get(loggerId):print(veaf.Logger.LEVEL["info"], line)
 end

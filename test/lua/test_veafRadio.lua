@@ -437,12 +437,6 @@ function TestVeafRadioBuilder:test_build_sorts_commands_alphabetically()
   luaunit.assertEquals(self.builder._root.commands[2].title, "Zulu")
 end
 
--- Ensure veafSecurity.isAuthenticated exists (dcs_mocks.lua defines veafSecurity without it)
-veafSecurity = veafSecurity or {}
-veafSecurity.isAuthenticated = veafSecurity.isAuthenticated or function()
-  return false
-end
-
 -- ---------------------------------------------------------------------------
 -- TestVeafRadioMenuOps — wrapper functions, delCommand, clearSubmenu, delSubmenu
 -- ---------------------------------------------------------------------------
@@ -1513,6 +1507,50 @@ function TestVeafRadioSecuredCommands:test_exact_level_passes()
   self.groupLevels[7] = veafSecurity.LEVEL_SENIOR_PILOT
   self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
   luaunit.assertTrue(self.called)
+end
+
+-- FIX-SECU-VERB-AND-LOG-NOISE ticket 05. The `+` says a command asks for a level, never whether the group
+-- has it, and on private1 it was read as "still locked". The refusal is where the pilot can learn which:
+-- it names both levels, and it goes to the group that clicked rather than to the whole server.
+function TestVeafRadioSecuredCommands:test_a_refusal_names_the_level_needed_and_the_level_held()
+  dcs_mocks.reset()
+  self.groupLevels[7] = veafSecurity.LEVEL_KNOWN_PILOT
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+  luaunit.assertEquals(
+    dcs_mocks.messages[1].text,
+    veaf.t("radio.level_required", veafSecurity.LEVEL_SENIOR_PILOT, veafSecurity.LEVEL_KNOWN_PILOT)
+  )
+end
+
+function TestVeafRadioSecuredCommands:test_an_unlisted_pilot_reads_as_level_zero_not_minus_one()
+  -- the hook sends -1 for a player absent from veaf-pilots.txt; -1 is a convention, not a level to show
+  local savedT = veaf.t
+  local shown
+  veaf.t = function(key, ...)
+    if key == "radio.level_required" then
+      shown = { ... }
+    end
+    return key
+  end
+  self.groupLevels[7] = -1
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  veaf.t = savedT
+  luaunit.assertEquals(shown, { veafSecurity.LEVEL_SENIOR_PILOT, 0 })
+end
+
+function TestVeafRadioSecuredCommands:test_a_command_posted_without_a_group_no_longer_talks_of_authentication()
+  dcs_mocks.reset()
+  self:_run(nil, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertEquals(dcs_mocks.messages[1].text, veaf.t("radio.no_group"))
+end
+
+function TestVeafRadioSecuredCommands:test_a_refusal_is_shown_to_the_group_that_clicked_only()
+  dcs_mocks.reset()
+  self.groupLevels[7] = 0
+  self:_run(7, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertEquals(dcs_mocks.messages[1].fn, "outTextForGroup")
+  luaunit.assertEquals(dcs_mocks.messages[1].target, 7)
 end
 
 -------------------------------------------------------------------------------------------------

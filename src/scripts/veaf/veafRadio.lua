@@ -298,7 +298,9 @@ function veafRadio._proxyMethod(parameters)
   local _required = requiredLevel or veafSecurity.LEVEL_SENIOR_PILOT
   if not groupId then
     veaf.loggers.get(veafRadio.Id):warn("refusing a secured command posted without a group")
-    trigger.action.outText(veaf.t("radio.auth_required"), 5)
+    -- No group, so nobody to address it to: everybody. It used to say the radio "has to be authenticated",
+    -- which sent pilots to `/secu login` for what is a mission error.
+    trigger.action.outText(veaf.t("radio.no_group"), 5)
     return
   end
 
@@ -313,7 +315,10 @@ function veafRadio._proxyMethod(parameters)
     veaf.loggers
       .get(veafRadio.Id)
       :debug(string.format("group %s is level %s, %s required", veaf.p(groupId), veaf.p(_level), veaf.p(_required)))
-    trigger.action.outText(veaf.t("radio.auth_required"), 5)
+    -- Both numbers, and to this group only: the `+` in the title cannot tell a pilot whether their group
+    -- holds the level, so this is the one place they can learn it (FIX-SECU-VERB-AND-LOG-NOISE ticket 05).
+    -- -1 is the hook's "not in veaf-pilots.txt", a convention rather than a level worth showing
+    trigger.action.outTextForGroup(groupId, veaf.t("radio.level_required", _required, math.max(_level, 0)), 10)
   end
 end
 

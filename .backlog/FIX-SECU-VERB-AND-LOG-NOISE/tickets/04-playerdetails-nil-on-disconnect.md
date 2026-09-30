@@ -1,6 +1,6 @@
 # 04 — a normal disconnect logs an ERROR from the server hook
 
-Status: ⬜ ready
+Status: ✅ done
 
 private1, 2026-09-29, three times in 90 minutes, once per pilot who left:
 
@@ -37,3 +37,12 @@ ticket 01 until its context was measured.
   done about it.
 - If a nil `_playerDetails` can also happen **outside** a disconnect, that case keeps a level worth
   grepping for; say which, rather than lowering both blind.
+
+## Resolution
+
+The hook now implements `onGameEvent` and remembers the ids DCS reported disconnecting. A slot change
+with no player info for such an id logs at debug and forgets the id; one for any other id logs a
+**warning** — nothing is broken on our side, so no longer an ERROR, but unexplained, so still worth
+grepping for. `onPlayerConnect` clears a reused id. Three tests in `test_veafServerHook.lua`; the DCS
+behaviour itself, with the six-instance measurement above, is recorded in `known-limitations.yaml`
+(`player-leaves-slot-after-dcs-forgot-the-player`).

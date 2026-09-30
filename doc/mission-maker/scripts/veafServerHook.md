@@ -79,8 +79,8 @@ Grille des niveaux (croissant) :
 | Niveau | Peut… |
 |-------:|-------|
 | 0 | envoyer des messages (`/send`) |
-| 1 | relayer des commandes VEAF vers la mission (`/alias`, `/atis`, `/secu elevate`… — chaque module applique ensuite son propre contrôle) |
-| 10 | `/secu login`, `/secu logout`, `/pause`, et `/restart`, `/halt` (si `enableAutoRestart`) |
+| 1 | relayer des commandes VEAF vers la mission (`/alias`, `/atis`, `/secu elevate`… — chaque module applique ensuite son propre contrôle ; `/secu login` et `/secu logout` ne font plus que répondre qu'il n'y a plus de connexion globale) |
+| 10 | `/pause`, et `/restart`, `/halt` (si `enableAutoRestart`) |
 | 30 | `/restartnow` |
 | 50 | `/haltnow` |
 | 90 | `/code` (exécution de code arbitraire) |
@@ -93,3 +93,8 @@ Grille des niveaux (croissant) :
 Remplacer `VEAF-Server-hook.lua` par la nouvelle version, conserver le
 `VEAF-specific-server-hook.lua` et le `veaf-pilots.txt` existants, puis **redémarrer le
 serveur**.
+
+Après 6.25, le hook envoie le niveau du pilote à la mission **à chaque changement de slot**. Avec
+un hook plus ancien, une mission rechargée pendant qu'un pilote reste connecté ne connaît pas son
+niveau tant qu'il n'a tapé aucune commande de tchat : le menu radio le traite comme un pilote de
+niveau 0, et le journal de la mission l'écrit (`took [...] with no known level`).

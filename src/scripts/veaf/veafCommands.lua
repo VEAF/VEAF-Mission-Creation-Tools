@@ -77,7 +77,7 @@ veafCommands.SECURITY_HANDLED = "handled-by-handler"
 --- identity alone — the pilot level the server hook published for whoever placed the mark
 --- (`veaf-pilots.txt` via `veafRemote.registerUser`). There is no global `/login` any more:
 --- REVIEW-SECURITY-LAYER removed it, because one player's login opened every secured command
---- to everybody on the server for `authDuration` minutes.
+--- to everybody on the server for ten minutes.
 ---
 --- The names are the ones REVIEW-SECURITY-LAYER decision b settled on (2026-08-08). The old
 --- L0/L1/L9 spellings read backwards — L0 was the *tightest* tier — and are kept as aliases for

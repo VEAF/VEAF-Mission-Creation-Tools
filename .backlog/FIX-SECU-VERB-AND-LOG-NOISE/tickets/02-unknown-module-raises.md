@@ -1,6 +1,6 @@
 # 02 — a mistyped chat command raises a Lua error instead of answering the pilot
 
-Status: ⬜ ready
+Status: ✅ done
 
 Three pilots, four wrong spellings, 90 minutes, private1, 2026-09-29 — all of them looking for the
 command that unlocks a mission (see ticket 01):
@@ -38,3 +38,13 @@ Two things are wrong at once:
 - While in there: `/sec` and `/veaf` were both tried as prefixes of `/secu`. Worth deciding whether
   an unambiguous prefix should be accepted, or explicitly refused with the full name — either is
   better than silence.
+
+## Resolution
+
+`executeCommandFromRemote` logs a `warn` line without a traceback and answers the pilot with the
+modules that exist. A prefix that names exactly one module is **suggested with the rest of the line**
+(`/sec login` → *did you mean `/secu login`?*), never run: a secured verb reached by a guess would be
+one nobody typed. `/veaf login` and `/veaflogin` match no module and get the list. A player in no unit
+is not answered on screen — `veaf.outTextForUnit` would have broadcast the typo to the whole server —
+which also covers the literal `"nil"` the hook's `RUN_COMMAND` still sends for a spectator. Seven
+tests in `test_veafRemote.lua`.

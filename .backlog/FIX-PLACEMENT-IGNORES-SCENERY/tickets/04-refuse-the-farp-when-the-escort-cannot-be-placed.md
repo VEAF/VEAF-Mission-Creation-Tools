@@ -1,6 +1,6 @@
 # 04 — Refuse the FARP when the escort cannot be placed
 
-Status: ⬜ ready — ticket 03 landed, and **the measurement is in** (see below): 0 exhaustions out of 4 cases
+Status: 🧑 waiting-human — implemented 2026-09-30 (branch `fix/placement-escort-probe-and-refusal`, with `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` ticket 03); the in-game check is R19 of `DCS-SESSION-TODO.md`
 Type: fix
 
 David, 2026-08-27: *"les escortes (farp) doivent être placées intelligemment, ou le farp est refusé si
@@ -133,23 +133,42 @@ search.
 If 03's measurement shows the search exhausts often, this ticket is a mission-breaker rather than a fix,
 and it goes back to David with the number rather than shipping.
 
+## What was built, 2026-09-30 — and the one departure from the design above
+
+**The refusal is not a parameter of `buildFarpUnits`.** The second design point settled it: `spawnFarp`
+creates the FARP **static** before it calls `buildFarpUnits`, so a refusal decided inside would leave
+the platform standing — a half-built refused FARP, the outcome the point warned against. So the
+question moved in front of everything: `veafGrass.canPlaceFarpEscort(farp)` lays the escort out exactly
+as `buildFarpUnits` does (`veafGrass.farpEscortLayout`, extracted for that) and reports whether the
+search found a bearing; `spawnFarp` asks it before `veaf.addStatic` and returns `nil` with the message.
+Ruling 3 holds by the same construction the design relied on: `buildFarpsUnits`, the editor's path,
+never asks.
+
+`findClearBearing` now returns `angle, scale, found`; the fallback angle is unchanged, so tents, props
+and windsock need no change. `buildFarpUnits` searches again once the tents and props stand, so the
+escort avoids them too. If that second search exhausts — the tents having taken the only clear
+bearing — the escort keeps the placement the `-farp` was accepted on, which `canPlaceFarpEscort` hands
+over, rather than falling back to the requested bearing in silence (found by the pre-PR review).
+
 ## Definition of done
 
-- [ ] `findClearBearing` can report *"nothing clear"* distinguishably from a bearing, and refuses nothing
+- [x] `findClearBearing` can report *"nothing clear"* distinguishably from a bearing, and refuses nothing
       itself
-- [ ] Only the escort caller turns that into a refusal; tents, props and the windsock keep today's
+- [x] Only the escort caller turns that into a refusal; tents, props and the windsock keep today's
       fallback
-- [ ] **Only the `-farp` path refuses.** `veafGrass.buildFarpUnits` takes the refusal as a parameter;
-      `veafSpawnGround.lua:105` passes it, `veafGrass.lua:586` does not
-- [ ] A refused FARP creates **nothing** — verified, not assumed
-- [ ] The message is translated in both locales, names the FARP and gives the reason
+- [x] **Only the `-farp` path refuses** — asked in `spawnFarp` before anything exists rather than as a
+      `buildFarpUnits` parameter (see above); the editor's static FARPs never ask
+- [x] A refused FARP creates **nothing** — the test counts the statics: 0, platform included
+- [x] The message is translated in both locales, names the FARP and gives the reason
 - [x] 03's exhaustion measurement is recorded here and the threshold justified by it — 0/4, so the
       refusal fires on the first exhaustion
-- [ ] Lua tests: a placeable escort still places, an unplaceable one on the **`-farp` path** refuses with
-      the message and creates nothing, an unplaceable one on the **startup path** builds anyway with
-      today's fallback, and an unplaceable **windsock** never refuses anything
-- [ ] Non-regression proven as in 6.15.33: a FARP far from anything is never refused and nothing moves.
-      ⚠️ **The "nothing moves" half is already false on `develop`** — see the tier-1 finding above; settle
-      that before trying to prove this
-- [ ] `CHANGELOG.md` entry under `[Unreleased]` calling this out as a behaviour change
-- [ ] `stylua --check` and `luacheck` clean
+- [x] Lua tests: a placeable escort still places, an unplaceable one on the **`-farp` path** refuses with
+      the message and creates nothing, a silent one refuses without a message, and an unplaceable
+      **windsock** or set of props never refuses anything. The startup path is pinned by a test calling
+      `buildFarpUnits` with nowhere to go: it never asks `canPlaceFarpEscort`, and builds the escort on
+      the requested bearing
+- [ ] Non-regression proven as in 6.15.33: a FARP far from anything is never refused and nothing moves —
+      in the unit tests yes; **in game, R19**. The "nothing moves" half is what
+      `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` ticket 03 settles, on the same branch
+- [x] `CHANGELOG.md` entry under `[Unreleased]` calling this out as a behaviour change
+- [x] `stylua --check` clean; `luacheck` runs in the CI Lua gate

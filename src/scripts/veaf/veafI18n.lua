@@ -209,6 +209,10 @@ veaf.i18nCatalog = {
     fr = "impossible de trouver une position adéquate pour faire apparaître le groupe",
     en = "cannot find a suitable position for spawning the group",
   },
+  ["spawn.farp_escort_unplaceable"] = {
+    fr = "FARP %s refusé : aucun terrain dégagé pour son escorte autour de ce point. Placez le marqueur ailleurs.",
+    en = "FARP %s refused: no clear ground for its escort around this spot. Place the marker somewhere else.",
+  },
   ["spawn.no_position_cargo"] = {
     fr = "impossible de trouver une position adéquate pour faire apparaître la cargaison %s",
     en = "cannot find a suitable position for spawning cargo %s",

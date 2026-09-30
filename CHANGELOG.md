@@ -248,6 +248,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   came from a mission that had left it on. `veafSecurity.authenticate`, `logout`,
   `isAuthenticated`, the `authenticated` flag and the `authDuration` setting are removed: nothing had
   read them since the per-group security, and a mission still setting `authDuration` is unaffected.
+- **A FARP escort on clear ground stays where it was planned, and a `-farp` whose escort fits nowhere
+  is refused.** The escort was moved a few dozen metres even in open country: the tools read the spot
+  off the nearest tree-free point DCS proposed, and the nearest one ever measured in game was 43.9 m
+  away, so the spot was never kept. DCS is now asked about the planned spot itself, vehicle by
+  vehicle, with the same probe `settleGroup` uses. **Behaviour change:** when the escort finds no
+  clear ground at any bearing or distance, the `-farp` command now creates nothing and says so
+  (*"FARP … refused: no clear ground for its escort"*) instead of parking the escort on whatever is
+  there. Measured in game, that happened in none of four tries, dense woods included. A FARP placed
+  in the Mission Editor is never refused and keeps its layout as before.
 
 ### Changed
 

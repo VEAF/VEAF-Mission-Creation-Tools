@@ -314,6 +314,34 @@ translation, the probe count and the elapsed time.
 - **Whatever the count**: note the worst per-group time. Above about 0.4 s for one group, the probe
   cost is not the 0.38 ms measured, and `SETTLE_SWEEP_PROBE_BUDGET` has to be sized again.
 
+### R19. A `-farp` on open ground keeps its escort where it was planned; one with nowhere to go is refused
+
+[`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md) ticket 03
+and [`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 04, one
+branch. The escort's wanted spot is now asked of the small probe (5 m free within 20 m), vehicle by
+vehicle, instead of being read off the nearest candidate of the large query — which was never nearer
+than 43.9 m on 2026-09-01, so the escort always moved.
+
+**Run**: the Caucasus session mission, security off, rebuilt with this branch, with
+`veafGrass.LogLevel = "debug"` (the placement lines are at debug since #898 and #1025). Four `-farp` markers:
+
+1. **open ground**, nothing within a kilometre;
+2. **in or beside a wood**, the planned spot genuinely in the trees;
+3. **beside a static FARP**, the planned spot on its apron;
+4. **somewhere nothing fits** — the middle of a dense town, or ringed by static FARPs — to see the refusal.
+
+Grep `dcs.log` for `FARP escort:`, `wanted spot at bearing` and `refused`:
+
+| Case | Expected | Otherwise |
+|---|---|---|
+| Open ground | `scenery probe=true, occupancy probe=true`, then `bearing N requested, N used at 1x` — **equal** | `scenery probe=false` on open ground: the probe sees something the eye does not, note the point |
+| Wood | `scenery probe=false`, the bearings **differ**, escort visibly out of the trees | `scenery probe=true` in the trees: the probe's 20 m radius finds a gap — the check cannot fail, say so |
+| Static FARP | `occupancy probe=false`, bearings differ or scale > 1, escort off the apron | on the apron: the occupancy half broke |
+| Nowhere | the message *"FARP … refusé"* on screen, **nothing** on the F10 map, a `refused` WARN line | a FARP built anyway: the refusal is unreachable in the field; if no spot can be found that refuses, record that too — the refusal is then only theoretical |
+
+The first three rows together are what make this a check: a run where nothing moves anywhere means
+the fix went too far.
+
 ### R17. A GermanyCW-v6 start with no shape refused, one initialization per zone, no sanctuary error
 
 [`FIX-IN-GAME-TEST-FINDINGS`](.backlog/FIX-IN-GAME-TEST-FINDINGS/PRD.md). Every one of its five

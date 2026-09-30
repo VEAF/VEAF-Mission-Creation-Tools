@@ -331,6 +331,25 @@ unguided weapon at nothing near a sanctuary. Then grep `dcs.log`:
 | `no cities in veafNamedPoints` | no line | `veafCities.lua` missing from the bundle |
 | `extract` / `logistic` `not found` | no line (GermanyCW-v6's lists were emptied by hand, and `validate` would name any left) | a name `validate` did not report: its check reads the wrong section |
 
+### R20. Does a departing player's slot change still arrive after DCS forgot the player, in 2.9.30?
+
+Re-measures the known limitation `player-leaves-slot-after-dcs-forgot-the-player`
+(`known-limitations.yaml`, measured 2026-09-30 on **2.9.29**). DCS 2.9.30.28536, released the same day,
+says only *"Coalition change and aircraft Slot change events are corrected"* — which may or may not
+be this ordering. Nothing breaks either way: `VEAF-Server-hook.lua` accepts a nil player info.
+
+**Run**: no game needed, only the six VEAF servers running **2.9.30** for a day of ordinary play. Over
+SSH, grep each instance's `dcs.log` for the disconnects and the slot changes that follow them, the same
+count as the 2026-09-30 measurement (21 disconnects → 21 slot changes with no player info). Check the
+version line at the top of each log first: a log still on 2.9.29 answers nothing.
+
+- **Unchanged**: every disconnect is still followed by a slot change with no player info. Update
+  `measured` to the date and add the DCS version to the symptom, then regenerate
+  `docs/agents/dcs-runtime-traps.md` (`poetry run python -m veaf_libs.known_limitations`).
+- **Changed**: the slot change arrives before the disconnect, or with the player info still readable.
+  Record the new order in the entry, mark it fixed by DCS 2.9.30, and decide whether the hook's
+  remembered-disconnect list is still needed.
+
 ---
 
 ---

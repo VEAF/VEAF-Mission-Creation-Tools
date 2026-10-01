@@ -975,6 +975,33 @@ mission, `theatre`.
 {"theatre": "GermanyCW"}
 ```
 
+### `describe_airfield_channels`
+
+Lecture seule. Liste, pour un **dossier** de mission, les aérodromes qu'elle utilise — camp (depuis
+`warehouses`), slots dynamiques une fois `src/warehouses.yaml` appliqué, slots posés au parking — avec
+les fréquences ATC et le TACAN que DCS leur donne (`veaf_libs/data/airfield-frequencies.yaml`), et
+l'alias que chacun a déjà dans la collection `bases`. Classés : tenus avec slots, tenus sans, puis
+(`include_neutral`) neutres. C'est la proposition à soumettre à l'auteur de la mission avant
+`set_airfield_channels` : une radio DCS tient une vingtaine de canaux. Même code que
+`veaf-tools content airfield-channels`.
+
+```json
+{"folder_path": "…", "include_neutral": false}
+```
+
+### `set_airfield_channels`
+
+Écrit les aérodromes choisis dans la collection de canaux `bases` du `src/presets.yaml` du dossier,
+avec les fréquences de DCS ; refuse un aérodrome que DCS ne déclare pas. Un aérodrome déjà dans
+`bases` garde son alias, un nouveau prend l'alias `Base-<nom DCS>`, et une entrée qui ne correspond à aucun
+aérodrome choisi (un FARP, un navire) est laissée telle quelle et signalée dans `untouched`. Seule
+`bases` change ; `not_on_a_radio` liste les canaux écrits qu'aucune entrée de `channel_lists`
+n'utilise encore. Idempotent.
+
+```json
+{"folder_path": "…", "airfields": ["Batumi", "Kutaisi", 31]}
+```
+
 ### `resolve_coordinates`
 
 Utilitaire. Convertit une position entre `{x, y}` (local DCS) et `{lat, lon}` (degrés décimaux) pour

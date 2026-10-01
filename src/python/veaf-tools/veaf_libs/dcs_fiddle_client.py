@@ -172,6 +172,10 @@ class FiddleError(RuntimeError):
     """The hook could not be reached, or the Lua it ran raised."""
 
 
+class FiddleAuthError(FiddleError):
+    """The hook answered and refused the credentials — waiting will not change it."""
+
+
 def _encode(code: str) -> str:
     """Base64-encode Lua for the URL path, as the hook decodes it.
 
@@ -220,7 +224,7 @@ def exec_lua(
             body = response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
         if exc.code in (401, 403):
-            raise FiddleError(
+            raise FiddleAuthError(
                 f"the DCS hook rejected the credentials ({exc.code}). It writes a fresh per-session "
                 f"password to {Path.home() / FIDDLE_TOKEN_FILENAME} at each launch — is that the current "
                 f"session's file, or set {ENV_FIDDLE_TOKEN}?"

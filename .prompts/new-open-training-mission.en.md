@@ -289,8 +289,12 @@ Rules:
 ### 4.10 Radio, weather, waypoints
 
 - **`src/presets.yaml` to rewrite for the map** (the template is not made for it): UHF = Guard,
-  bases, AWACS, flights, tankers; VHF = Guard + flights; FM 30-59; a red plan if red flies. ATC being
-  silenced, the base frequencies are the mission's own traffic frequencies.
+  bases, AWACS, flights, tankers; VHF = Guard + flights; FM 30-59; a red plan if red flies. **Base
+  channels carry the frequencies DCS gives the airfield**, even with ATC silenced: they are what the
+  pilot reads on the F10 view, and an invented series misleads them. Never type an airfield frequency:
+  `describe_airfield_channels` lists the mission's bases with their DCS frequencies, propose them to
+  the user (a radio holds about twenty channels), then `set_airfield_channels` writes the chosen ones
+  into the `bases` collection; then place them in the `channel_lists`.
 - **`src/versions.yaml` to rewrite**: position = home base, timezone, era `base_date`; variants night
   / dawn / morning / day / evening × real (`airport_icao`) / clear (`clearsky`) / scattered / rain.
 - **`src/waypoints.yaml`**: remove the template's examples; one plan per category and per playable

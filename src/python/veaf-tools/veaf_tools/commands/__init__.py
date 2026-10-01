@@ -1,6 +1,7 @@
 from . import (  # noqa: F401
     about,
     aircraft_groups,
+    airfield_channels,
     ask,
     build,
     capture_map,

@@ -950,6 +950,31 @@ mission, `theatre`.
 {"theatre": "GermanyCW"}
 ```
 
+### `describe_airfield_channels`
+
+Read-only. Lists, for a mission **folder**, the airfields it uses — side (from `warehouses`), dynamic
+slots once `src/warehouses.yaml` is applied, player slots parked there — with the ATC frequencies and
+TACAN DCS itself gives them (`veaf_libs/data/airfield-frequencies.yaml`), and the alias each already
+has in the `bases` collection. Ranked: held with slots, held without, then (`include_neutral`) neutral.
+It is the proposal to put to the mission author before `set_airfield_channels`: a DCS radio holds
+about twenty channels. Same code as `veaf-tools content airfield-channels`.
+
+```json
+{"folder_path": "…", "include_neutral": false}
+```
+
+### `set_airfield_channels`
+
+Writes the chosen airfields into the `bases` channel collection of the folder's `src/presets.yaml`,
+with DCS's frequencies; refuses an airfield DCS does not declare. An airfield already in `bases` keeps
+its alias, a new one is aliased `Base-<DCS name>`, and an entry matching no chosen airfield (a FARP, a ship) is
+left as it is and reported in `untouched`. Only `bases` changes; `not_on_a_radio` lists the written
+channels no `channel_lists` entry uses yet. Idempotent.
+
+```json
+{"folder_path": "…", "airfields": ["Batumi", "Kutaisi", 31]}
+```
+
 ### `resolve_coordinates`
 
 Utility. Converts a position between `{x, y}` (DCS local) and `{lat, lon}` (decimal degrees) for the

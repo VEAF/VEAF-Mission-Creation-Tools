@@ -33,6 +33,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   half opacity, under text in the side's own dark colour. Both had held until a pilot reported them
   in flight, because an F10 drawing is read **only in game** — it is now in §8's list of what to
   check in DCS, where it fell between the briefing images and the rest.
+- **Airfield channels come from DCS, and a mission picks the ones it needs**
+  (FEAT-AIRFIELD-CHANNELS-FROM-DCS). The default `presets.yaml` carried hand-written airfield
+  collections that had drifted from DCS (Sanliurfa on 251.6 where DCS says 252.7, 13 of the 21
+  Caucasus airfields missing, four theatres with no collection at all), and the reference they should
+  have come from was itself wrong: it parsed the text of `Radio.lua`, and DCS completes bands that
+  text does not hold — on Persian Gulf it gave Al Dhafra one VHF frequency where DCS and the editor
+  show four. It also keyed airfields by radio callsign (`OMAA`), lost those sharing one, and filed
+  GermanyCW and Sinai under folder names no mission uses. The reference is now **captured from a
+  running DCS** with the editor's own logic, by a guided command that writes the mission to load for
+  each map, sees it arrive in DCS and names the next one (`veaf-build update-dcs-data --airfield-freqs
+  --capture`); it is keyed by DCS airdrome id, with the TACAN from `Beacons.lua` — 396 airfields over
+  seven theatres. The `airports-<theatre>` collections of the default plan are **generated** from it,
+  one per theatre, a name found on two maps qualified by its theatre (eight Israeli fields differ
+  between Sinai and Syria),
+  and a test fails if either is edited by hand. A new command, `veaf-tools content
+  airfield-channels`, and two MCP actions, `describe_airfield_channels` / `set_airfield_channels`,
+  list the airfields a mission uses — side, dynamic slots, parked slots — with their DCS frequencies,
+  and write the chosen ones into the mission's `bases` collection, refusing any airfield DCS does not
+  declare. Existing missions keep their own `presets.yaml`: run the command to bring their base
+  channels in line.
 
 ## [6.26.0] — 2026-09-30
 

@@ -84,6 +84,8 @@ Dans tous les cas, `channels_collection` (les fréquences) reste la source commu
 
 > **`convert-v5` nomme les fréquences automatiquement.** À la conversion d'une mission v5, les fréquences en dur sont remplacées par des **noms** dans `presets.yaml` — aérodromes du théâtre (`Gudauta`, `Batumi`…) et indicatifs VEAF (`Guard`, `Archer`, `Texaco-1`…) — et le `channels_collection` correspondant est inséré pour les résoudre. Une fréquence sans nom connu reste en clair. La copie fidèle `presets.v5.yaml` conserve, elle, les fréquences brutes.
 
+> **Une fréquence d'aérodrome ne se tape pas.** Les collections `airports-<théâtre>` du `presets.yaml` par défaut sont générées depuis DCS (les fréquences que montre la vue F10, et le TACAN) : référencez un aérodrome par son nom (`02: Batumi`). Pour choisir les bases qui méritent un canal et écrire la collection `bases` d'une mission avec leurs vraies fréquences : [`content airfield-channels`](CLI_REFERENCE.md#airfield-channels).
+
 ### Schéma — `channel_lists` (modèle recommandé)
 
 ```yaml

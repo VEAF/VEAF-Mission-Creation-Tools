@@ -84,6 +84,8 @@ In both cases, `channels_collection` (the frequencies) stays the shared source f
 
 > **`convert-v5` names frequencies automatically.** When converting a v5 mission, hardcoded frequencies are replaced with **names** in `presets.yaml` — the theatre's airfields (`Gudauta`, `Batumi`…) and VEAF call-signs (`Guard`, `Archer`, `Texaco-1`…) — and the matching `channels_collection` is inserted to resolve them. A frequency with no known name is left as a raw number. The faithful copy `presets.v5.yaml` keeps the raw frequencies.
 
+> **An airfield frequency is never typed.** The `airports-<theatre>` collections of the default `presets.yaml` are generated from DCS (the frequencies the F10 view shows, and the TACAN): refer to an airfield by its name (`02: Batumi`). To choose the bases that deserve a channel and write a mission's `bases` collection with their real frequencies: [`content airfield-channels`](CLI_REFERENCE.en.md#airfield-channels).
+
 ### Schema — `channel_lists` (recommended model)
 
 ```yaml

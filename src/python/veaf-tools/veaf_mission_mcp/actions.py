@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 
+from presets_injector.airfield_channels_manager import apply_airfield_channels, describe_airfield_channels
 from veaf_libs.blank_mission import supported_theatres
 from veaf_libs.clear_ground_check import offer_check
 
@@ -1908,6 +1909,69 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             mission_path=Path(p["mission_path"]) if p.get("mission_path") else None,
             theatre=p.get("theatre"),
         ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_airfield_channels",
+            description=(
+                "List, for a mission FOLDER, the airfields it uses -- side (from warehouses), whether "
+                "they offer dynamic slots once src/warehouses.yaml is applied, how many player slots "
+                "are parked there -- with the ATC frequencies DCS itself gives them and the TACAN. "
+                "Ranked: held with slots first, then held without, then (include_neutral) neutral. "
+                "Read-only. Use it BEFORE set_airfield_channels to propose which bases deserve a "
+                "radio channel: a DCS radio holds about twenty, so ask the mission author which ones "
+                "when the list is longer than the obvious ones. Never type an airfield frequency."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (src/mission/ + src/presets.yaml).",
+                    },
+                    "include_neutral": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Also list the airfields no side holds.",
+                    },
+                },
+                "required": ["folder_path"],
+            },
+        ),
+        handler=lambda p: describe_airfield_channels(
+            Path(p["folder_path"]), include_neutral=p.get("include_neutral", False)
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_airfield_channels",
+            description=(
+                "Write the chosen airfields into the 'bases' channel collection of a mission FOLDER's "
+                "src/presets.yaml, with the frequencies DCS declares for them (refuses an airfield DCS "
+                "does not declare -- never invent one). An airfield already in 'bases' keeps its alias; "
+                "a new one is aliased Base-<DCS name>; entries matching no chosen airfield (a FARP, a "
+                "ship) are left as they are and reported. Only 'bases' changes: tactical and flight "
+                "channels and channel_lists are untouched -- the result lists the written channels on "
+                "no radio yet, to add to channel_lists. Idempotent. Only write what the author chose: "
+                "propose with describe_airfield_channels first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (src/mission/ + src/presets.yaml).",
+                    },
+                    "airfields": {
+                        "type": "array",
+                        "items": {"type": ["string", "integer"]},
+                        "description": "Airfields by DCS name or airdrome id, in the order wanted.",
+                    },
+                },
+                "required": ["folder_path", "airfields"],
+            },
+        ),
+        handler=lambda p: apply_airfield_channels(Path(p["folder_path"]), list(p["airfields"])),
     )
     catalog.register(
         ActionSpec(

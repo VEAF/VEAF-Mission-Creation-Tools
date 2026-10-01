@@ -83,6 +83,7 @@ The AI can act in two places, and it changes what "survives":
 | 39 | [Set the mission's weather](#set-weather) | 🕰️ Mission settings | Recipe + built | ⭐ |
 | 40 | [Place a complete carrier group](#add-carrier) | 🛫 Bases & airfields | Recipe + built | ◽ |
 | 41 | [Embed a sound in the mission](#add-sound) | Zones & triggers | Recipe + built | ◽ |
+| 42 | [Give the bases their real radio frequencies](#airfield-channels) | 🛫 Bases & airfields | Recipe (folder) | ⭐ |
 
 ---
 
@@ -264,6 +265,17 @@ choose which bases to colour, or to place something near one of them, without gu
 Works before a mission exists too, by naming the map.
 
 > 💬 *"Which bases are there in East Germany on GermanyCW?"*
+
+### Give the bases their real radio frequencies {#airfield-channels}
+
+*Recipe (folder) · ⭐* — A radio holds about twenty channels, a map has dozens of airfields: a choice
+has to be made. The AI reads the mission, lists the bases each side holds (those with slots first,
+red ones included), with the frequencies and TACAN **DCS gives them** — the ones the pilot sees on
+the F10 view — and proposes which to put in the radio plan. It only writes the ones you choose, and
+refuses to invent a frequency: a base DCS does not declare gets no channel. The tactical and flight
+channels do not move.
+
+> 💬 *"Which bases deserve a radio channel in my mission?"* · *"Put Batumi, Kutaisi and Vaziani in the radio plan."*
 
 ### Place a complete FARP {#add-farp}
 

@@ -314,7 +314,12 @@ Règles :
 
 - **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle) : UHF = Guard,
   bases, AWACS, patrouilles, ravitailleurs ; VHF = Guard + patrouilles ; FM 30-59 ; plan rouge si le
-  rouge vole. L'ATC étant coupé, les fréquences de base sont des fréquences de trafic de la mission.
+  rouge vole. **Les canaux de base portent les fréquences que DCS donne à l'aérodrome**, même ATC
+  coupé : ce sont celles que le pilote lit sur la vue F10, et une série inventée le trompe. Ne tape
+  jamais une fréquence d'aérodrome : `describe_airfield_channels` liste les bases de la mission avec
+  leurs fréquences DCS, propose-les à l'utilisateur (une radio tient une vingtaine de canaux), puis
+  `set_airfield_channels` écrit celles retenues dans la collection `bases` ; place-les ensuite dans
+  les `channel_lists`.
 - **`src/versions.yaml` à réécrire** : position = base mère, fuseau, `base_date` d'époque ; variantes
   nuit / aube / matin / jour / soir × réel (`airport_icao`) / dégagé (`clearsky`) / épars / pluie.
 - **`src/waypoints.yaml`** : retire les exemples du gabarit ; un plan par catégorie et par camp jouable,

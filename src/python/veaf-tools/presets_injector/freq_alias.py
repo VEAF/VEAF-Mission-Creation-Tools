@@ -75,10 +75,11 @@ def load_airfield_catalog(theatre: str | None) -> dict[str, dict[str, Any]]:
     except (FileNotFoundError, OSError):
         return {}
     data = yaml.safe_load(raw) or {}
+    # Keyed by DCS airdrome id since FEAT-AIRFIELD-CHANNELS-FROM-DCS; the alias is the airfield name.
     airfields = (data.get("theatres") or {}).get(theatre) or {}
     return {
-        name: {"title": name, "freqs": {b: v for b, v in bands.items() if b in _BANDS}}
-        for name, bands in airfields.items()
+        entry["name"]: {"title": entry["name"], "freqs": {b: v for b, v in entry.items() if b in _BANDS}}
+        for entry in airfields.values()
     }
 
 

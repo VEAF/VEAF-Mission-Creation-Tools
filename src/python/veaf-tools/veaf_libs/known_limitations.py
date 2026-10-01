@@ -28,6 +28,7 @@ _DCS_AREAS = {
     "spawning": "## Spawning and timing {#spawning}",
     "air-defence": "## Air defence {#air-defence}",
     "players": "## Players, roles and the map {#players}",
+    "radio": "## Radio and frequencies {#radio}",
 }
 
 GENERATED_BEGIN = "<!-- BEGIN GENERATED from src/python/veaf-tools/veaf_libs/data/known-limitations.yaml -->"

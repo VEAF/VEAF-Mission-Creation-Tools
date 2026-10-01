@@ -334,6 +334,28 @@ from an unexplained one by remembering the ids `onGameEvent` reported disconnect
 *What it cost:* The VEAF hook logged it at ERROR, once per departure: on private1 it was the first suspect for an
 unrelated security defect until its context was measured.
 
+## Radio and frequencies {#radio}
+
+### The text of `Radio.lua` is not the airfield frequencies DCS uses — DCS completes the missing bands {#radio-lua-is-not-what-the-f10-view-shows}
+
+Measured **2026-10-01**.
+
+`Mods/terrains/<T>/Radio.lua` looks like the airfields' ATC frequencies, and holds fewer than DCS
+uses. The Mission Editor (`MissionEditor/modules/Mission/AirdromeData.lua`) asks DCS for them with
+`DCS.getATCradiosData(radioId)`, which returns bands the file does not hold. Measured on Persian
+Gulf: `radio.lua` gives Al Dhafra **one** frequency, 126.5 VHF, and DCS returns **four** — 39.5,
+126.5, 251.1 and 4.3, what the editor's airport panel shows; Bandar-e-Jask has `frequency = {}` in
+the file and four bands in DCS. Every Persian Gulf entry of `radio.lua` carries VHF only. Where
+DCS completes them is not visible in the install.
+
+**What to do:** Take an airfield's frequencies from the reference shipped with the tools
+(`veaf_libs/data/airfield-frequencies.yaml`, captured from a running DCS with the editor's own
+logic) — through `describe_airfield_channels` / `set_airfield_channels`, or
+`veaf-tools content airfield-channels` — never from `Radio.lua`, and never typed by hand.
+
+*What it cost:* The tools' reference was parsed from the text of `Radio.lua`: on Persian Gulf it held no UHF channel
+for any airfield, and made the hand-written channel collection — which was right — look wrong.
+
 <!-- END GENERATED -->
 
 ## For script developers {#script-developers}

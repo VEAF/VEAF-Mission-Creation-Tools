@@ -351,6 +351,30 @@ veaf-tools content pull-aircraft-groups --add-new
 
 **See also** : [Dynamic slots](mission-maker/concepts/dynamic-slots.en.md#shipped-catalogue)
 
+### `veaf-tools content airfield-channels` {#airfield-channels}
+
+Lists the airfields the mission uses, most useful first, with the ATC frequencies and TACAN DCS gives them: the side holding each one (`warehouses`), whether it offers dynamic slots once `src/warehouses.yaml` is applied, how many slots are parked on it, and the channel it already has in the `bases` collection. A DCS radio holds about twenty channels: this is the list to choose from. Without `--apply`, the command writes nothing.
+
+With `--apply`, it writes the chosen airfields into the `bases` collection of `src/presets.yaml`, with DCS's frequencies. An airfield already there keeps its alias (the `channel_lists` name it); a new one is aliased `Base-<DCS name>`. An entry matching no chosen airfield (a FARP, a ship) is left as it is and reported. Nothing else changes: neither the tactical and flight channels nor the `channel_lists`. The command reports the written channels that are on no radio yet. An airfield DCS does not declare is refused: **an airfield frequency is never typed by hand**.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `MISSION_FOLDER` | `str` | no | Mission folder (holds `src/mission/` and `src/presets.yaml`). Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--apply` | `str` | *(none)* | Airfield (DCS name or id) to write into the `bases` collection, in the order wanted. Repeatable. |
+| `--neutral` | `boolean` | `false` | Also list the airfields no side holds. |
+| `--verbose` | `boolean` | `false` | If enabled, displays detailed debug information. |
+| `--pause` | `boolean` | `false` | If enabled, the script waits for a key press before exiting. |
+
+```bash
+.\veaf-tools.exe content airfield-channels
+.\veaf-tools.exe content airfield-channels --apply "Batumi" --apply "Kutaisi" --apply "Vaziani"
+```
+
+*Flat alias : `veaf-tools airfield-channels`*
+
 ### `veaf-tools content inject-presets` {#inject-presets}
 
 Inject radio presets from a YAML file into a .miz mission.

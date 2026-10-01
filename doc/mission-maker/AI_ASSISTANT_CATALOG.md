@@ -84,6 +84,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 39 | [Régler la météo de la mission](#set-weather) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 | 40 | [Poser un groupe aéronaval complet](#add-carrier) | 🛫 Bases & aérodromes | Recette + construite | ◽ |
 | 41 | [Embarquer un son dans la mission](#add-sound) | Zones & déclencheurs | Recette + construite | ◽ |
+| 42 | [Donner aux bases leurs vraies fréquences radio](#airfield-channels) | 🛫 Bases & aérodromes | Recette (dossier) | ⭐ |
 
 ---
 
@@ -268,6 +269,17 @@ choisir les bases à colorer, ou placer quelque chose près de l'une d'elles, sa
 Marche aussi avant qu'une mission existe, en nommant la carte.
 
 > 💬 *« Quelles bases y a-t-il en Allemagne de l'Est sur GermanyCW ? »*
+
+### Donner aux bases leurs vraies fréquences radio {#airfield-channels}
+
+*Recette (dossier) · ⭐* — Une radio tient une vingtaine de canaux, une carte compte des dizaines
+d'aérodromes : il faut choisir. L'IA lit la mission, liste les bases que chaque camp tient (celles
+avec des slots d'abord, rouges comprises), avec les fréquences et le TACAN **que DCS leur donne** —
+celles que le pilote voit sur la vue F10 —, et te propose lesquelles mettre dans le plan radio. Elle
+n'écrit que celles que tu choisis, et refuse d'inventer une fréquence : une base que DCS ne déclare
+pas n'a pas de canal. Les canaux tactiques et de patrouille ne bougent pas.
+
+> 💬 *« Quelles bases méritent un canal radio dans ma mission ? »* · *« Mets Batumi, Kutaisi et Vaziani dans le plan radio. »*
 
 ### Poser un FARP complet {#add-farp}
 

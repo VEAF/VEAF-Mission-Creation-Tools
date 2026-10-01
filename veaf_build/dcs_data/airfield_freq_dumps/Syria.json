@@ -1,0 +1,1764 @@
+{
+  "theatre": "Syria",
+  "airdromes": [
+    {
+      "id": 1,
+      "name": "Abu al-Duhur",
+      "source": "radio",
+      "freqs": [
+        38.95,
+        122.2,
+        250.5,
+        4.025
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Adana Sakirpasa",
+      "source": "radio",
+      "freqs": [
+        39.7,
+        121.1,
+        251.25,
+        4.4
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Al Qusayr",
+      "source": "radio",
+      "freqs": [
+        40.25,
+        119.2,
+        251.8,
+        4.675
+      ]
+    },
+    {
+      "id": 4,
+      "name": "An Nasiriyah",
+      "source": "radio",
+      "freqs": [
+        40.75,
+        122.3,
+        252.3,
+        4.925
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Tha'lah",
+      "source": "radio",
+      "freqs": [
+        41.25,
+        118.0,
+        252.8,
+        3.925
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Beirut-Rafic Hariri",
+      "source": "radio",
+      "freqs": [
+        41.65,
+        118.9,
+        253.2,
+        4.325
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Damascus",
+      "source": "radio",
+      "freqs": [
+        41.7,
+        118.5,
+        253.25,
+        4.9
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Marj as Sultan South",
+      "source": "radio",
+      "freqs": [
+        41.75,
+        122.9,
+        253.3,
+        4.95
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Al-Dumayr",
+      "source": "radio",
+      "freqs": [
+        41.8,
+        120.3,
+        253.35,
+        4.85
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Eyn Shemer",
+      "source": "radio",
+      "freqs": [
+        38.45,
+        123.4,
+        250.05,
+        3.775
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Gaziantep",
+      "source": "radio",
+      "freqs": [
+        38.5,
+        120.1,
+        250.1,
+        3.8
+      ]
+    },
+    {
+      "id": 12,
+      "name": "H4",
+      "source": "radio",
+      "freqs": [
+        38.55,
+        122.6,
+        250.15,
+        3.825
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Haifa",
+      "source": "radio",
+      "freqs": [
+        38.6,
+        127.8,
+        250.2,
+        3.85
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Hama",
+      "source": "radio",
+      "freqs": [
+        38.65,
+        118.05,
+        250.25,
+        3.875
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Hatay",
+      "source": "radio",
+      "freqs": [
+        38.7,
+        128.5,
+        250.3,
+        3.9
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Incirlik",
+      "source": "radio",
+      "freqs": [
+        38.75,
+        122.1,
+        360.1,
+        3.925
+      ],
+      "tacan": "21X"
+    },
+    {
+      "id": 17,
+      "name": "Jirah",
+      "source": "radio",
+      "freqs": [
+        38.8,
+        118.1,
+        250.35,
+        3.95
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Khalkhalah",
+      "source": "radio",
+      "freqs": [
+        38.85,
+        122.5,
+        250.4,
+        3.975
+      ]
+    },
+    {
+      "id": 19,
+      "name": "King Hussein Air College",
+      "source": "radio",
+      "freqs": [
+        38.9,
+        118.3,
+        250.45,
+        4.0
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Kiryat Shmona",
+      "source": "radio",
+      "freqs": [
+        39.0,
+        118.4,
+        250.55,
+        4.05
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Bassel Al-Assad",
+      "source": "radio",
+      "freqs": [
+        39.05,
+        118.1,
+        250.6,
+        4.075
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Marj as Sultan North",
+      "source": "radio",
+      "freqs": [
+        39.3,
+        122.7,
+        250.85,
+        4.2
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Marj Ruhayyil",
+      "source": "radio",
+      "freqs": [
+        39.35,
+        120.8,
+        250.9,
+        4.225
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Megiddo",
+      "source": "radio",
+      "freqs": [
+        39.4,
+        119.9,
+        250.95,
+        4.25
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Mezzeh",
+      "source": "radio",
+      "freqs": [
+        39.45,
+        120.7,
+        251.0,
+        4.275
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Minakh",
+      "source": "radio",
+      "freqs": [
+        39.5,
+        120.6,
+        251.05,
+        4.3
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Aleppo",
+      "source": "radio",
+      "freqs": [
+        39.55,
+        119.1,
+        251.1,
+        4.325
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Palmyra",
+      "source": "radio",
+      "freqs": [
+        39.6,
+        121.9,
+        251.15,
+        4.35
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Qabr as Sitt",
+      "source": "radio",
+      "freqs": [
+        39.65,
+        122.6,
+        251.2,
+        4.375
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Ramat David",
+      "source": "radio",
+      "freqs": [
+        39.75,
+        118.6,
+        251.3,
+        4.425
+      ],
+      "tacan": "84X"
+    },
+    {
+      "id": 31,
+      "name": "Kuweires",
+      "source": "radio",
+      "freqs": [
+        39.8,
+        120.5,
+        251.35,
+        4.45
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Rayak",
+      "source": "radio",
+      "freqs": [
+        39.85,
+        124.4,
+        251.4,
+        4.475
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Rene Mouawad",
+      "source": "radio",
+      "freqs": [
+        39.9,
+        121.0,
+        251.45,
+        4.5
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Rosh Pina",
+      "source": "radio",
+      "freqs": [
+        39.95,
+        118.45,
+        251.5,
+        4.525
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Sayqal",
+      "source": "radio",
+      "freqs": [
+        40.0,
+        120.4,
+        251.55,
+        4.55
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Shayrat",
+      "source": "radio",
+      "freqs": [
+        40.05,
+        120.2,
+        251.6,
+        4.575
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Tabqa",
+      "source": "radio",
+      "freqs": [
+        40.1,
+        118.5,
+        251.65,
+        4.6
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Taftanaz",
+      "source": "radio",
+      "freqs": [
+        40.15,
+        122.8,
+        251.7,
+        4.625
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Tiyas",
+      "source": "radio",
+      "freqs": [
+        40.2,
+        120.5,
+        251.75,
+        4.65
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Wujah Al Hajar",
+      "source": "radio",
+      "freqs": [
+        40.3,
+        120.5,
+        251.85,
+        4.7
+      ]
+    },
+    {
+      "id": 41,
+      "name": "Gazipasa",
+      "source": "radio",
+      "freqs": [
+        40.35,
+        119.25,
+        251.9,
+        4.725
+      ]
+    },
+    {
+      "id": 42,
+      "name": "Deir ez-Zor",
+      "source": "radio",
+      "freqs": [
+        40.4,
+        118.1,
+        251.95,
+        4.75
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Akrotiri",
+      "source": "radio",
+      "freqs": [
+        40.45,
+        128.0,
+        252.0,
+        4.775
+      ],
+      "tacan": "107X"
+    },
+    {
+      "id": 45,
+      "name": "Kingsfield",
+      "source": "radio",
+      "freqs": [
+        40.5,
+        121.0,
+        252.05,
+        4.8
+      ]
+    },
+    {
+      "id": 46,
+      "name": "Paphos",
+      "source": "radio",
+      "freqs": [
+        40.55,
+        119.9,
+        252.1,
+        4.825
+      ],
+      "tacan": "79X"
+    },
+    {
+      "id": 47,
+      "name": "Larnaca",
+      "source": "radio",
+      "freqs": [
+        40.6,
+        121.2,
+        252.15,
+        4.85
+      ]
+    },
+    {
+      "id": 48,
+      "name": "Lakatamia",
+      "source": "radio",
+      "freqs": [
+        40.65,
+        120.2,
+        252.2,
+        4.875
+      ]
+    },
+    {
+      "id": 49,
+      "name": "Ercan",
+      "source": "radio",
+      "freqs": [
+        40.7,
+        120.2,
+        252.25,
+        4.9
+      ]
+    },
+    {
+      "id": 50,
+      "name": "Gecitkale",
+      "source": "radio",
+      "freqs": [
+        40.8,
+        120.0,
+        252.35,
+        4.95
+      ]
+    },
+    {
+      "id": 51,
+      "name": "Pinarbashi",
+      "source": "radio",
+      "freqs": [
+        40.85,
+        121.0,
+        252.4,
+        4.75
+      ]
+    },
+    {
+      "id": 52,
+      "name": "Naqoura",
+      "source": "radio",
+      "freqs": [
+        40.9,
+        122.0,
+        252.45,
+        3.8
+      ]
+    },
+    {
+      "id": 53,
+      "name": "H3",
+      "source": "radio",
+      "freqs": [
+        40.95,
+        122.0,
+        252.5,
+        4.725
+      ]
+    },
+    {
+      "id": 54,
+      "name": "H3 Northwest",
+      "source": "radio",
+      "freqs": [
+        41.0,
+        122.1,
+        252.55,
+        4.825
+      ]
+    },
+    {
+      "id": 55,
+      "name": "H3 Southwest",
+      "source": "radio",
+      "freqs": [
+        41.05,
+        122.4,
+        252.6,
+        4.775
+      ]
+    },
+    {
+      "id": 56,
+      "name": "Zarqa",
+      "source": "radio",
+      "freqs": [
+        40.55,
+        119.9,
+        252.1,
+        4.825
+      ]
+    },
+    {
+      "id": 57,
+      "name": "Ruwayshid",
+      "source": "radio",
+      "freqs": [
+        41.1,
+        122.1,
+        252.65,
+        4.4
+      ]
+    },
+    {
+      "id": 58,
+      "name": "Sanliurfa",
+      "source": "radio",
+      "freqs": [
+        41.15,
+        118.4,
+        252.7,
+        4.15
+      ]
+    },
+    {
+      "id": 59,
+      "name": "Kharab Ishk",
+      "source": "radio",
+      "freqs": [
+        41.2,
+        122.2,
+        252.75,
+        4.175
+      ]
+    },
+    {
+      "id": 60,
+      "name": "Tal Siman",
+      "source": "radio",
+      "freqs": [
+        41.3,
+        121.9,
+        252.85,
+        4.1
+      ]
+    },
+    {
+      "id": 61,
+      "name": "H4 Emergency",
+      "source": "radio",
+      "freqs": [
+        40.0,
+        118.5,
+        250.0,
+        4.5
+      ]
+    },
+    {
+      "id": 62,
+      "name": "Nevatim",
+      "source": "radio",
+      "freqs": [
+        38.9,
+        132.4,
+        225.0,
+        3.8
+      ]
+    },
+    {
+      "id": 63,
+      "name": "At Tanf",
+      "source": "radio",
+      "freqs": [
+        41.35,
+        121.1,
+        252.9,
+        4.875
+      ]
+    },
+    {
+      "id": 64,
+      "name": "Prince Hassan",
+      "source": "radio",
+      "freqs": [
+        41.4,
+        122.6,
+        252.95,
+        4.3
+      ],
+      "tacan": "106X"
+    },
+    {
+      "id": 65,
+      "name": "King Abdullah II",
+      "source": "radio",
+      "freqs": [
+        41.45,
+        118.4,
+        253.0,
+        3.9
+      ]
+    },
+    {
+      "id": 66,
+      "name": "Herzliya",
+      "source": "radio",
+      "freqs": [
+        41.5,
+        122.2,
+        253.05,
+        4.6
+      ]
+    },
+    {
+      "id": 67,
+      "name": "Marka",
+      "source": "radio",
+      "freqs": [
+        41.55,
+        118.1,
+        253.1,
+        3.95
+      ]
+    },
+    {
+      "id": 68,
+      "name": "Muwaffaq Salti",
+      "source": "radio",
+      "freqs": [
+        41.6,
+        120.5,
+        253.15,
+        4.45
+      ]
+    },
+    {
+      "id": 69,
+      "name": "HC01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 70,
+      "name": "HC02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 71,
+      "name": "HC03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 72,
+      "name": "HC04",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 73,
+      "name": "HC05",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 74,
+      "name": "HC06",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 75,
+      "name": "Kahramanmaras",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        118.75,
+        225.0,
+        3.75
+      ]
+    },
+    {
+      "id": 76,
+      "name": "HI08",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 77,
+      "name": "HI09",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 79,
+      "name": "HI01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 80,
+      "name": "HI02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 81,
+      "name": "Hatzerim",
+      "source": "radio",
+      "freqs": [
+        41.95,
+        128.2,
+        259.0,
+        4.975
+      ],
+      "tacan": "96X"
+    },
+    {
+      "id": 82,
+      "name": "HI03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 83,
+      "name": "HI05",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 84,
+      "name": "HI06",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 85,
+      "name": "HI07",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 86,
+      "name": "HI11",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 87,
+      "name": "HI12",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 88,
+      "name": "Kedem",
+      "source": "radio",
+      "freqs": [
+        41.9,
+        119.0,
+        256.0,
+        3.75
+      ]
+    },
+    {
+      "id": 89,
+      "name": "HS02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 90,
+      "name": "Chukurova",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        120.8,
+        245.0,
+        4.25
+      ]
+    },
+    {
+      "id": 91,
+      "name": "Teyman",
+      "source": "radio",
+      "freqs": [
+        42.0,
+        123.5,
+        255.0,
+        3.85
+      ]
+    },
+    {
+      "id": 92,
+      "name": "HS05",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 93,
+      "name": "HS06",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 94,
+      "name": "HS08",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 95,
+      "name": "HS09",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 96,
+      "name": "HS10",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 97,
+      "name": "HS11",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 98,
+      "name": "HS19",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 99,
+      "name": "HS18",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 100,
+      "name": "HS17",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 101,
+      "name": "HS16",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 102,
+      "name": "HS15",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 103,
+      "name": "HS14",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 104,
+      "name": "HS13",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 105,
+      "name": "HS12",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 106,
+      "name": "HS25",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 107,
+      "name": "HS24",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 108,
+      "name": "HS23",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 109,
+      "name": "HS22",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 110,
+      "name": "HS21",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 111,
+      "name": "HS20",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 112,
+      "name": "HI17",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 113,
+      "name": "HI16",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 114,
+      "name": "HI15",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 115,
+      "name": "HI14",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 116,
+      "name": "HI13",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 117,
+      "name": "HT01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 118,
+      "name": "HS33",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 119,
+      "name": "HMed10",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 120,
+      "name": "HMed09",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 121,
+      "name": "HMed08",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 122,
+      "name": "HMed07",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 123,
+      "name": "HMed06",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 124,
+      "name": "HMed05",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 125,
+      "name": "HMed04",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 126,
+      "name": "HMed03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 127,
+      "name": "HMed02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 128,
+      "name": "HMed01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 129,
+      "name": "HMed00",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 130,
+      "name": "HMed11",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 131,
+      "name": "H_med_orig_08",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 132,
+      "name": "H_med_orig_07",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 133,
+      "name": "H_med_orig_06",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 134,
+      "name": "H_med_orig_05",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 135,
+      "name": "H_med_orig_04",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 136,
+      "name": "H_med_orig_03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 137,
+      "name": "H_med_orig_02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 138,
+      "name": "H_med_orig_01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 139,
+      "name": "HStad06",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 140,
+      "name": "HStad05",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 141,
+      "name": "HStad04",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 142,
+      "name": "HStad03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 143,
+      "name": "HStad02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 144,
+      "name": "HStad01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 145,
+      "name": "HS26",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 146,
+      "name": "HS42",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 147,
+      "name": "HL13",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 148,
+      "name": "HL12",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 149,
+      "name": "HS41",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 150,
+      "name": "HS35",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 151,
+      "name": "HL11",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 152,
+      "name": "HL10",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 153,
+      "name": "HL09",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 154,
+      "name": "HL08",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 155,
+      "name": "HL07",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 156,
+      "name": "HS27",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 157,
+      "name": "HL06",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 158,
+      "name": "HMed30",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 159,
+      "name": "HMed29",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 160,
+      "name": "HMed28",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 161,
+      "name": "HMed27",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 162,
+      "name": "HMed26",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 163,
+      "name": "HMed25",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 164,
+      "name": "HMed24",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 165,
+      "name": "HMed23",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 166,
+      "name": "HMed22",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 167,
+      "name": "HMed21",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 168,
+      "name": "HMed20",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 169,
+      "name": "HMed19",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 170,
+      "name": "HMed18",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 171,
+      "name": "HMed17",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 172,
+      "name": "HMed16",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 173,
+      "name": "HMed15",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 174,
+      "name": "HMed14",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 175,
+      "name": "HMed13",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 176,
+      "name": "HMed12",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 177,
+      "name": "HOil05",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 178,
+      "name": "HOil04",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 179,
+      "name": "HOil03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 180,
+      "name": "HOil02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 181,
+      "name": "HOil01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 182,
+      "name": "H_med_orig_09",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 183,
+      "name": "HS34",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 184,
+      "name": "HS04",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 185,
+      "name": "HS07",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 186,
+      "name": "HI18",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 187,
+      "name": "HS03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 188,
+      "name": "HS36",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 189,
+      "name": "HS28",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 190,
+      "name": "HS29",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 191,
+      "name": "HS30",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 192,
+      "name": "HT02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 193,
+      "name": "HI20",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 194,
+      "name": "HI26",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 195,
+      "name": "HI25",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 196,
+      "name": "HI24",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 197,
+      "name": "HI23",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 198,
+      "name": "HI22",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 199,
+      "name": "HI21",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 200,
+      "name": "HJ04",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 201,
+      "name": "HJ03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 202,
+      "name": "HJ02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 203,
+      "name": "HJ01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 204,
+      "name": "HL05",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 205,
+      "name": "HL04",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 206,
+      "name": "HL03",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 207,
+      "name": "HL02",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 208,
+      "name": "HL01",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 209,
+      "name": "HS32",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 210,
+      "name": "HS31",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 211,
+      "name": "HOil06",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 212,
+      "name": "HS40",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 213,
+      "name": "HS39",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 214,
+      "name": "HS38",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 215,
+      "name": "HS37",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 216,
+      "name": "Gulechoba",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 217,
+      "name": "Diyarbakir",
+      "source": "radio",
+      "freqs": [
+        38.9,
+        132.4,
+        225.0,
+        3.8
+      ],
+      "tacan": "37X"
+    },
+    {
+      "id": 218,
+      "name": "Konya",
+      "source": "radio",
+      "freqs": [
+        38.9,
+        132.4,
+        225.0,
+        3.8
+      ],
+      "tacan": "88X"
+    },
+    {
+      "id": 219,
+      "name": "Adiyaman",
+      "source": "radio",
+      "freqs": [
+        41.85,
+        121.5,
+        243.0,
+        5.0
+      ]
+    },
+    {
+      "id": 220,
+      "name": "Tel Nof",
+      "source": "radio",
+      "freqs": [
+        39.1,
+        128.1,
+        250.65,
+        4.1
+      ],
+      "tacan": "87X"
+    },
+    {
+      "id": 221,
+      "name": "Ben Gurion",
+      "source": "radio",
+      "freqs": [
+        39.15,
+        134.6,
+        250.7,
+        4.125
+      ]
+    },
+    {
+      "id": 222,
+      "name": "Hatzor",
+      "source": "radio",
+      "freqs": [
+        39.2,
+        125.75,
+        250.75,
+        4.15
+      ],
+      "tacan": "106X"
+    },
+    {
+      "id": 223,
+      "name": "Palmachim",
+      "source": "radio",
+      "freqs": [
+        39.25,
+        118.25,
+        250.8,
+        4.175
+      ]
+    },
+    {
+      "id": 224,
+      "name": "Sanliurfa Heliport",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 225,
+      "name": "T2",
+      "source": "radio",
+      "freqs": [
+        42.0,
+        123.5,
+        255.0,
+        3.85
+      ]
+    },
+    {
+      "id": 226,
+      "name": "T3",
+      "source": "radio",
+      "freqs": [
+        40.35,
+        119.25,
+        251.9,
+        4.725
+      ]
+    }
+  ]
+}

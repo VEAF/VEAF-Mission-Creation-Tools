@@ -1,6 +1,6 @@
 # FIX-SECU-VERB-AND-LOG-NOISE — what a live private1 session showed on 2026-09-29
 
-Status: 🧑 waiting-human — merged in #1032; the in-game check of ticket 01 waits for the release and the hook redeploy
+Status: 🧑 waiting-human — merged in #1032; 6.26.0 is out and the hook is deployed on the six servers (2026-10-01), so only ticket 01's in-game check is left
 
 Open Training **Caucasus v6** on private1, evening of 2026-09-29, six pilots, mission built that
 day from `develop` (`dd60e7a5`, so with `FIX-SECURED-FORALL-AND-UPDATER-BAT` already in). David

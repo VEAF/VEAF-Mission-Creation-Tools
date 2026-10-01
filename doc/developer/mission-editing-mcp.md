@@ -869,6 +869,32 @@ Rayon par défaut : 150 m.
 {"theatre": "Syria", "points": [{"x": -64230.0, "y": 352140.0, "radius": 100}]}
 ```
 
+### `terrain_elevation` (lot FEAT-TERRAIN-ELEVATION)
+
+Lecture seule, **sans DCS** : répond depuis la grille d'altitudes du théâtre, relevée une fois par
+[`veaf-tools dcs terrain-sweep`](../CLI_REFERENCE.md#terrain-sweep). Quatre questions, combinables
+dans un même appel :
+
+- `points` — l'altitude du sol en chaque point, en mètres et en pieds (l'altitude d'une cible) ;
+- `route` — le sol le plus haut de chaque branche (le plancher d'une route basse altitude) ;
+- `route` + `observers` — combien de mètres de chaque branche chaque radar ou SAM voit au-dessus du
+  relief, dans sa portée, horizon radar de la Terre aux 4/3. Chaque point de la route doit alors
+  porter son `alt` : une branche entre deux points `RADIO` (au-dessus du sol) suit le relief, toute
+  autre va en ligne droite entre les deux altitudes ;
+- `area` — le sol le plus haut par carré MGRS de 10 km (la grille F10) ou par quadrilatère de 30′.
+
+**Relief seul** — ni bâtiments, ni pylônes, ni arbres — et interpolé entre deux échantillons : chaque
+réponse porte le pas de la grille et cette mise en garde. Un point hors de la grille vaut `null`,
+jamais 0. Sans grille pour le théâtre, la réponse est `available: false` avec la commande qui la
+relève.
+
+```json
+{"theatre": "Caucasus",
+ "route": [{"x": -281000, "y": 647000, "alt": 60, "alt_type": "RADIO"},
+           {"x": -262000, "y": 690000, "alt": 60, "alt_type": "RADIO"}],
+ "observers": [{"name": "SA-6 Kutaisi", "x": -284500, "y": 683500, "range": 25000}]}
+```
+
 ### `describe_naming_conventions`
 
 Lecture seule. Les **8 motifs de nommage réservés** (appartenance combat zone, préfixes

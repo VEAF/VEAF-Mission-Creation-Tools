@@ -69,7 +69,8 @@ le scénario.
 - **Lisible en un coup d'œil** : un pitch qui se raconte en deux phrases.
 
 Les actions de lecture (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`,
-`list_unit_types`, `resolve_coordinates`, `describe_known_limitations`) sont permises en phase 1.
+`list_unit_types`, `resolve_coordinates`, `terrain_elevation`, `describe_known_limitations`) sont
+permises en phase 1.
 **Aucune action qui écrit** : ni `scaffold_mission`, ni fichier, ni dossier.
 
 ### 2.2 La fiche de scénario
@@ -229,8 +230,10 @@ validé un scénario, pas un à-peu-près.
   briefing, dans le même ordre et sous les mêmes noms. Dans DCS le point 0 est le départ : `W1` du
   briefing est le point d'index 1. Vérifie-le à la relecture.
 - **Altitude des points TBA** : très basse au-dessus du sol réel, pas au-dessus du niveau de la mer.
-  Aucune action ne donne l'altitude du sol : note-le dans « Retours pour VMCT » et mets en point
-  ouvert ce qui reste à vérifier en jeu.
+  `terrain_elevation` avec la `route` donne le sol le plus haut de chaque branche : l'altitude d'une
+  branche TBA se cale au-dessus de ce maximum, ou la branche passe en `RADIO` (au-dessus du sol). Sol
+  seulement — ni bâtiments, ni pylônes, ni arbres : garde une marge, et dis laquelle. Si le théâtre
+  n'a pas de grille (`available: false`), l'altitude reste un point ouvert à vérifier en jeu.
 
 ### 4.4 Les objectifs
 
@@ -268,7 +271,11 @@ validé un scénario, pas un à-peu-près.
 - **L'itinéraire du scénario doit exister vraiment.** S'il « passe sous la couverture » ou « entre
   deux sites », mesure la distance de chaque segment de la route à chaque batterie et compare-la à la
   portée de l'arme (sourcée, ou mesurée dans DCS ; sinon, le chiffre reste en point ouvert). Le
-  masquage par le relief ne se vérifie qu'en jeu : liste-le dans ce qui reste à vérifier.
+  masquage par le relief : `terrain_elevation` avec la `route` (altitudes et `alt_type` des
+  waypoints) et les batteries en `observers` dit, branche par branche, combien de mètres chaque
+  batterie voit dans sa portée. Mets ce tableau dans le briefing des défenses. Il ne compte que le
+  relief : un bâtiment ou une forêt qui masque dans DCS n'y est pas, et la détection réelle reste à
+  vérifier en jeu.
 - **Opposition aérienne** : celle du scénario. « Ils pourraient faire décoller des chasseurs après la
   frappe » = une **QRA** (`create_qra`) sur la base ennemie, cercle dans le territoire rouge, avec
   `delay_before_activating` et `react_on_helicopters` décidés et écrits au briefing ; intercepteurs
@@ -331,9 +338,9 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
   `python-pptx` ; pour le PDF, l'export du PPTX ou une génération directe, avec les mêmes pages.
 - **Les chiffres viennent de la mission, pas du scénario** : coordonnées des cibles relues sur les
   objets posés (DMS au centième de seconde), plan de fréquences relu dans `presets.yaml`, plan de vol
-  relu sur la route du groupe, indicatifs relus sur les groupes. L'altitude d'une cible ne s'écrit que
-  si elle est mesurée (en jeu, `land.getHeight`) ; sinon la colonne reste vide et c'est un point
-  ouvert.
+  relu sur la route du groupe, indicatifs relus sur les groupes. L'altitude d'une cible est celle du
+  sol sous l'objet posé, lue par `terrain_elevation` (`points`), en pieds ; sans grille pour le
+  théâtre, la colonne reste vide et c'est un point ouvert.
 - **Relis chaque page rendue** (convertis-la en image et regarde-la) : rien ne déborde, aucune
   étiquette de carte n'en chevauche une autre, chaque numéro de waypoint correspond à la route.
 
@@ -369,6 +376,6 @@ Ce qui revient à l'utilisateur : commit, push, publication, lancer DCS.
 - **Relis le briefing, le fichier et la mission l'un contre l'autre** : chaque coordonnée,
   fréquence, indicatif, cap, distance et heure doit être le même partout.
 - Liste ce qui reste à vérifier dans DCS : placement des statiques sur le terrain, masquage de la
-  route par le relief, réaction des défenses, déclenchement de la QRA, fin de chaque objectif (les cibles
+  route par ce que le relief ne compte pas (bâtiments, forêts), réaction des défenses, déclenchement de la QRA, fin de chaque objectif (les cibles
   du décor comprises) et message de fin de l'opération, et
   les dessins de la carte F10 (ils ne se voient **qu'en jeu**).

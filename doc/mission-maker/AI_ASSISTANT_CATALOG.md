@@ -85,6 +85,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 40 | [Poser un groupe aéronaval complet](#add-carrier) | 🛫 Bases & aérodromes | Recette + construite | ◽ |
 | 41 | [Embarquer un son dans la mission](#add-sound) | Zones & déclencheurs | Recette + construite | ◽ |
 | 42 | [Donner aux bases leurs vraies fréquences radio](#airfield-channels) | 🛫 Bases & aérodromes | Recette (dossier) | ⭐ |
+| 43 | [Connaître l'altitude du sol et le masquage par le relief](#terrain-elevation) | 🗺️ Carte & coordonnées | — | ⭐ |
 
 ---
 
@@ -196,6 +197,18 @@ approximatif** (le terrain DCS approxime le réel) : l'IA te montre toujours le 
 tu le valides. Les lieux **nommés** marchent ; le terrain vague (« les bois ») non.
 
 > 💬 *« Mets un SAM à 15 km au sud-est de l'aéroport de Batumi. »* (l'IA géocode, décale, puis place)
+
+### Connaître l'altitude du sol et le masquage par le relief {#terrain-elevation}
+
+*Altitude du sol · ⭐* — Sans lancer DCS, l'IA donne l'**altitude du sol** sous une cible (pour le
+briefing), le **sol le plus haut** le long de chaque branche d'une route (le plancher d'une
+pénétration basse altitude), **combien de chaque branche un SAM voit** au-dessus du relief, et le
+point culminant de chaque carré de 10 km de la grille F10. **Relief seul** : ni bâtiments, ni
+pylônes, ni arbres, et une marge mesurée à ajouter, que l'IA te rappelle. Il faut d'abord relever le
+théâtre **une fois** dans DCS (`.\veaf-tools.exe dcs terrain-sweep Syria`, moins de trois minutes) ;
+sans ce relevé, l'IA te propose la commande.
+
+> 💬 *« Ma route basse altitude passe-t-elle sous la couverture du SA-6 de Damas ? »*
 
 ## 🏁 Valider & construire
 

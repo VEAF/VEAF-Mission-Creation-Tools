@@ -84,6 +84,7 @@ The AI can act in two places, and it changes what "survives":
 | 40 | [Place a complete carrier group](#add-carrier) | 🛫 Bases & airfields | Recipe + built | ◽ |
 | 41 | [Embed a sound in the mission](#add-sound) | Zones & triggers | Recipe + built | ◽ |
 | 42 | [Give the bases their real radio frequencies](#airfield-channels) | 🛫 Bases & airfields | Recipe (folder) | ⭐ |
+| 43 | [Know the ground elevation and terrain masking](#terrain-elevation) | 🗺️ Map & coordinates | — | ⭐ |
 
 ---
 
@@ -194,6 +195,18 @@ approximates reality): the AI always shows the resolved point for you to confirm
 work; vague terrain ("the woods") does not.
 
 > 💬 *"Put a SAM 15 km south-east of Batumi airport."* (the AI geocodes, offsets, then places)
+
+### Know the ground elevation and terrain masking {#terrain-elevation}
+
+*Ground elevation · ⭐* — With no DCS running, the AI gives the **ground height** under a target (for
+the briefing), the **highest ground** along each leg of a route (the floor of a low-level ingress),
+**how much of each leg a SAM sees** over the terrain, and the top of each 10 km square of the F10
+grid. **Terrain only**: no buildings, pylons or trees, and a measured margin to add, which the AI
+reminds you of. The theatre must first be swept **once** in DCS
+(`.\veaf-tools.exe dcs terrain-sweep Syria`, under three minutes); without it, the AI offers you the
+command.
+
+> 💬 *"Does my low-level route stay under the Damascus SA-6's coverage?"*
 
 ## 🏁 Validate & build
 

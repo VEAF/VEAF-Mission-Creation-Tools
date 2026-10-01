@@ -706,6 +706,44 @@ instructions, waiting. Points are in mission coordinates (`x` north, `y` east, m
 
 *Flat alias : `veaf-tools scenery-objects`*
 
+### `veaf-tools dcs terrain-sweep` {#terrain-sweep}
+
+Sweeps the **ground elevation** of a whole theatre (`land.getHeight`, every 250 m by default) and writes
+it to `<VEAF home>/terrain/<theatre>.terrain`. The MCP action `terrain_elevation` then reads that
+grid with no DCS: a target's altitude, the highest ground along a route, terrain masking between a
+route and a SAM site. Same flow as `clear-ground-sweep`: `dcs-serve`, empty survey mission,
+instructions, waiting; an interrupted sweep resumes where it stopped. The extent swept is the map's,
+asked to DCS; when it does not give it, the airfields' plus 50 km, and the command says so. **Terrain
+only**: no buildings, pylons or trees.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | yes | The theatre, as DCS spells it (Caucasus, Syria…). |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--spacing` | `float` | `250` | Distance between two samples, in metres. |
+| `--bounds` | `str` | *(the map's)* | The extent to sweep, as `min_x,min_y,max_x,max_y` (mission coordinates). |
+| `--measure-at` | `str` | *(none)* | Instead of sweeping the map, sweep a fine (50 m) 20 km patch around this point `x,y` and report, for each candidate spacing (100, 250, 500, 1000 m), the error at a point and how far a 10 km square's maximum falls short. Repeatable. |
+| `--out` | `str` | `<VEAF home>/terrain/` | The grid (or, with `--measure-at`, the report) to write. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<theatre>.miz` | Where to write the survey mission. |
+| `--bridge-lua` | `str` | *(none)* | Local dcs-bridge.lua to embed (default: download). |
+| `--state-dir` | `str` | `<VEAF home>/terrain/sweep-<theatre>` | Where the sweep keeps its progress. |
+| `--restart` | `boolean` | `false` | Throw away the progress of a different plan instead of refusing. |
+| `--batch` | `int` | `20000` | Heights read per call to DCS. |
+| `--wait` | `int` | `900` | How many seconds to wait for the survey mission to answer. |
+| `--api-key` | `str` | *(none)* | dcs-serve superuser Bearer token (default: read from dcs-serve.yaml). (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | Path to a dcs-serve.yaml / dcs-client.yaml to read the key from. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | dcs-serve base URL. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none runs. |
+| `--verbose` | `boolean` | `false` | If enabled, shows detailed debug information. |
+
+```bash
+.\veaf-tools.exe dcs terrain-sweep Caucasus
+```
+
+*Flat alias : `veaf-tools terrain-sweep`*
+
 ### `veaf-tools dcs smoke-test` {#smoke-test}
 
 Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook.

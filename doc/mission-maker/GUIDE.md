@@ -540,6 +540,7 @@ Le build vous dit combien il en a ajouté.
 | `capture-map` | Capture les aérodromes d'un théâtre depuis une mission-pont en cours (via dcs-serve) dans <théâtre>.json ; `--parking` ajoute les places de parking dans `parking/<théâtre>.json`. |
 | `clear-ground-check` | Vérifie dans DCS, sans les faire apparaître, si les véhicules au sol d'une mission construite sont dans le décor, et compare au catalogue de terrain dégagé. |
 | `scenery-objects` | Liste dans DCS les objets de la carte (ponts, bâtiments) autour de points, avec l'identifiant que prend le [`scenery_targets`](scripts/veafCombatZone.md#scenery-targets) d'une zone de combat. |
+| `terrain-sweep` | Relève dans DCS l'altitude du sol de tout un théâtre, que l'action MCP `terrain_elevation` lit ensuite sans DCS (altitude d'une cible, plancher d'une route, masquage par le relief). |
 | `clear-ground-sweep` | Sonde, pas à pas, le terrain dégagé autour des aérodromes et des combat zones d'un théâtre : écrit la mission d'arpentage, explique quoi faire dans DCS, balaie, puis écrit le catalogue ; reprend un balayage interrompu. |
 | `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
 | `doctor` | Rassemble les versions, chemins et erreurs récentes qu'un rapport de bug exige, et produit un bloc caviardé à coller dans un signalement — voir [Obtenir de l'aide](../SUPPORT.md). |

@@ -25,6 +25,7 @@ MACHINE_ONLY_COMMANDS: set[str] = {
     "clear-ground-sweep",
     "clear-ground-check",
     "scenery-objects",
+    "terrain-sweep",
 }
 
 

@@ -845,6 +845,30 @@ their id, type and distance. Default radius: 150 m.
 {"theatre": "Syria", "points": [{"x": -64230.0, "y": 352140.0, "radius": 100}]}
 ```
 
+### `terrain_elevation` (lot FEAT-TERRAIN-ELEVATION)
+
+Read-only, **no DCS**: answers from the theatre's elevation grid, swept once by
+[`veaf-tools dcs terrain-sweep`](../CLI_REFERENCE.en.md#terrain-sweep). Four questions, combinable in
+one call:
+
+- `points` — the ground height at each point, in metres and feet (a target's altitude);
+- `route` — the highest ground of each leg (the floor of a low-level route);
+- `route` + `observers` — how many metres of each leg each radar or SAM sees over the terrain, within
+  its range, 4/3-Earth radar horizon. Every route point then needs its `alt`: a leg between two `RADIO`
+  points (above the ground) follows the ground, any other is straight between the two altitudes;
+- `area` — the highest ground per 10 km MGRS square (the F10 grid) or 30′ quadrangle.
+
+**Terrain only** — no buildings, pylons or trees — and interpolated between two samples: every answer
+carries the grid spacing and that caveat. A point off the grid is `null`, never 0. With no grid for the
+theatre, the answer is `available: false` with the command that sweeps one.
+
+```json
+{"theatre": "Caucasus",
+ "route": [{"x": -281000, "y": 647000, "alt": 60, "alt_type": "RADIO"},
+           {"x": -262000, "y": 690000, "alt": 60, "alt_type": "RADIO"}],
+ "observers": [{"name": "SA-6 Kutaisi", "x": -284500, "y": 683500, "range": 25000}]}
+```
+
 ### `describe_naming_conventions`
 
 Read-only. The **8 reserved naming patterns** (combat-zone membership, `veafSpawn-`/`OnDemand-`

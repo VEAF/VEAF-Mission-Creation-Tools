@@ -712,6 +712,44 @@ en mètres).
 
 *Alias plat : `veaf-tools scenery-objects`*
 
+### `veaf-tools dcs terrain-sweep` {#terrain-sweep}
+
+Relève l'**altitude du sol** de tout un théâtre (`land.getHeight`, tous les 250 m par défaut) et l'écrit
+dans `<VEAF home>/terrain/<théâtre>.terrain`. L'action MCP `terrain_elevation` lit ensuite cette
+grille sans DCS : altitude d'une cible, sol le plus haut le long d'une route, masquage par le relief
+entre une route et un site SAM. Même déroulé que `clear-ground-sweep` : `dcs-serve`, mission
+d'arpentage vide, consignes, attente ; un relevé interrompu reprend où il s'est arrêté. L'étendue
+relevée est celle de la carte, demandée à DCS ; s'il ne la donne pas, celle des aérodromes plus 50 km,
+et la commande le dit. **Relief seul** : ni bâtiments, ni pylônes, ni arbres.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | oui | Le théâtre, tel que DCS l'écrit (Caucasus, Syria…). |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--spacing` | `float` | `250` | Distance entre deux échantillons, en mètres. |
+| `--bounds` | `str` | *(celle de la carte)* | L'étendue à relever, en `min_x,min_y,max_x,max_y` (coordonnées de mission). |
+| `--measure-at` | `str` | *(aucun)* | Au lieu de relever la carte, relève finement (50 m) un carré de 20 km autour de ce point `x,y` et dit, pour chaque pas candidat (100, 250, 500, 1000 m), l'erreur en un point et l'écart du maximum d'un carré de 10 km. Répétable. |
+| `--out` | `str` | `<VEAF home>/terrain/` | La grille (ou, avec `--measure-at`, le rapport) à écrire. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<théâtre>.miz` | Où écrire la mission d'arpentage. |
+| `--bridge-lua` | `str` | *(aucun)* | dcs-bridge.lua local à embarquer (défaut : téléchargement). |
+| `--state-dir` | `str` | `<VEAF home>/terrain/sweep-<théâtre>` | Où le relevé garde sa progression. |
+| `--restart` | `boolean` | `false` | Jeter la progression d'un autre plan au lieu de refuser. |
+| `--batch` | `int` | `20000` | Altitudes lues par appel à DCS. |
+| `--wait` | `int` | `900` | Combien de secondes attendre que la mission d'arpentage réponde. |
+| `--api-key` | `str` | *(aucun)* | Jeton Bearer superuser de dcs-serve (par défaut : lu dans dcs-serve.yaml). (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Chemin d'un dcs-serve.yaml / dcs-client.yaml où lire la clé. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à lancer quand aucun ne tourne. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```bash
+.\veaf-tools.exe dcs terrain-sweep Caucasus
+```
+
+*Alias plat : `veaf-tools terrain-sweep`*
+
 ### `veaf-tools dcs smoke-test` {#smoke-test}
 
 Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle.

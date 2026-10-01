@@ -536,6 +536,7 @@ The build tells you how many it added.
 | `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json; `--parking` also writes the parking spots to `parking/<theatre>.json`. |
 | `clear-ground-check` | Check in DCS, without spawning them, whether a built mission's ground vehicles stand in scenery, and compare with the clear-ground catalogue. |
 | `scenery-objects` | List in DCS the map objects (bridges, buildings) around points, with the id a combat zone's [`scenery_targets`](scripts/veafCombatZone.en.md#scenery-targets) takes. |
+| `terrain-sweep` | Sweep in DCS the ground elevation of a whole theatre, which the MCP action `terrain_elevation` then reads with no DCS (a target's altitude, a route's floor, terrain masking). |
 | `clear-ground-sweep` | Probe, step by step, the clear ground around a theatre's airfields and combat zones: writes the survey mission, tells you what to do in DCS, sweeps, then writes the catalogue; resumes an interrupted sweep. |
 | `convert-other` | Adopt a third-party (non-VEAF) .miz mission onto the v6 toolchain. |
 | `doctor` | Collect the versions, paths and recent errors a bug report needs, and produce a redacted block to paste into a report — see [Getting help](../SUPPORT.en.md). |

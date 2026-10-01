@@ -1,6 +1,6 @@
 # FEAT-TERRAIN-ELEVATION — a ground-elevation table per theatre, read with no DCS running
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Found writing the objective-mission prompt (FEAT-OBJECTIVE-MISSION-PROMPT, 2026-10-01): no action gives
 the ground elevation, so a briefing's target altitudes, the floor of a low-level route and terrain
@@ -36,8 +36,10 @@ derives clear radii. A table of maxima per cell answers only one of the needs:
 - DCS terrain is not a real-world DEM (SRTM): DCS's own must be swept. Reading its terrain files
   directly is believed impossible — to confirm.
 
-## Tickets (to write when the lot starts)
+## Tickets
 
-1. Sweep + storage format, measured on one theatre.
-2. MCP actions and CLI: elevation at a point, maximum per cell, profile between two points.
-3. The objective-mission prompt uses them (target altitudes, route floor, masking table).
+| # | ticket | status |
+|---|---|---|
+| 01 | [Sweep + storage, measured on one theatre](tickets/01-sweep-and-storage.md) | ✅ |
+| 02 | [Point, maximum per cell, profile, line of sight](tickets/02-queries.md) | ✅ |
+| 03 | [The objective-mission prompt uses them](tickets/03-objective-prompt.md) | ✅ |

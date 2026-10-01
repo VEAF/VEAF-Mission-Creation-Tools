@@ -55,6 +55,7 @@ from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
 from veaf_mission_mcp.set_group_properties import set_group_properties
 from veaf_mission_mcp.set_unit_properties import set_unit_properties
+from veaf_mission_mcp.terrain import describe_terrain
 
 
 def register_default_actions(catalog: ActionCatalog) -> None:
@@ -2172,6 +2173,94 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         handler=lambda p: offer_lookup(
             p["theatre"],
             [(float(q["x"]), float(q["y"]), float(q.get("radius", DEFAULT_RADIUS_METERS))) for q in p["points"]],
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="terrain_elevation",
+            description=(
+                "Ground heights from the theatre's swept elevation grid, with no DCS running. Read-only. "
+                "Ask any of: `points` — the ground height at each (target altitudes for a briefing); "
+                "`route` — the highest ground along each leg (the floor of a low-level route); `route` + "
+                "`observers` — how many metres of each leg each radar or SAM sees over the terrain, within "
+                "its range (4/3 Earth radar horizon); `area` — the highest sample per 10 km MGRS square "
+                "(F10 grid) or 30' quadrangle. Terrain only (no buildings, pylons, trees) — say so on every "
+                "figure; a point off the grid is null, never 0. With no grid for the theatre, returns "
+                "`available: false` and the command that sweeps one."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "theatre": {"type": "string", "description": "The theatre, e.g. 'Caucasus'."},
+                    "points": {
+                        "type": "array",
+                        "description": "Points, mission coordinates (x north, y east), metres.",
+                        "items": {
+                            "type": "object",
+                            "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                            "required": ["x", "y"],
+                        },
+                    },
+                    "route": {
+                        "type": "array",
+                        "description": (
+                            "Route points in order, mission coordinates. `alt` (metres) and `alt_type` "
+                            "('BARO' above sea level, default; 'RADIO' above the ground, as a waypoint "
+                            "carries them) are required with `observers`: a leg between two RADIO points "
+                            "follows the ground, any other is straight between the two altitudes."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "alt": {"type": "number"},
+                                "alt_type": {"type": "string", "enum": ["BARO", "RADIO"]},
+                            },
+                            "required": ["x", "y"],
+                        },
+                        "minItems": 2,
+                    },
+                    "observers": {
+                        "type": "array",
+                        "description": "Radars or SAMs looking at the route.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "range": {"type": "number", "description": "Metres; beyond, a leg is not counted."},
+                                "height_agl": {
+                                    "type": "number",
+                                    "description": "Antenna height above the ground, metres (default 5).",
+                                },
+                            },
+                            "required": ["x", "y", "range"],
+                        },
+                    },
+                    "area": {
+                        "type": "object",
+                        "description": "An area to give the highest ground of, per cell.",
+                        "properties": {
+                            "min_x": {"type": "number"},
+                            "min_y": {"type": "number"},
+                            "max_x": {"type": "number"},
+                            "max_y": {"type": "number"},
+                            "cell": {"type": "string", "enum": ["mgrs10km", "quadrangle30"]},
+                        },
+                        "required": ["min_x", "min_y", "max_x", "max_y"],
+                    },
+                },
+                "required": ["theatre"],
+            },
+        ),
+        handler=lambda p: describe_terrain(
+            p["theatre"],
+            points=p.get("points"),
+            route=p.get("route"),
+            observers=p.get("observers"),
+            area=p.get("area"),
         ),
     )
     catalog.register(

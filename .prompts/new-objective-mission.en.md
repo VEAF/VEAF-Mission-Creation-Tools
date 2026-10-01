@@ -71,8 +71,8 @@ scenario.
 - **Readable at a glance**: a pitch that tells in two sentences.
 
 Read-only actions (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`, `list_unit_types`,
-`resolve_coordinates`, `describe_known_limitations`) are allowed in phase 1. **No action that
-writes**: no `scaffold_mission`, no file, no folder.
+`resolve_coordinates`, `terrain_elevation`, `describe_known_limitations`) are allowed in phase 1.
+**No action that writes**: no `scaffold_mission`, no file, no folder.
 
 ### 2.2 The scenario sheet
 
@@ -231,9 +231,11 @@ approximation of it.
 - **Flight plan in the aircraft**: the group's route (`edit_route`) **is** the briefing's flight plan,
   in the same order and under the same names. In DCS point 0 is the departure: the briefing's `W1` is
   the point with index 1. Check it when re-reading.
-- **Altitude of the low-level points**: very low above the real ground, not above sea level. No action
-  gives the ground elevation: note it in "Feedback for VMCT" and put what remains to be checked in game
-  in the open points.
+- **Altitude of the low-level points**: very low above the real ground, not above sea level.
+  `terrain_elevation` with the `route` gives the highest ground of each leg: set a low-level leg's
+  altitude above that maximum, or fly the leg `RADIO` (above the ground). Terrain only — no buildings,
+  pylons or trees: keep a margin, and say which. If the theatre has no grid (`available: false`), the
+  altitude stays an open point to check in game.
 
 ### 4.4 The objectives
 
@@ -269,8 +271,11 @@ approximation of it.
   scenario puts them.
 - **The scenario's route must really exist.** If it "flies under the coverage" or "between two sites",
   measure the distance from each route segment to each battery and compare it with the weapon's range
-  (sourced, or measured in DCS; otherwise the figure stays an open point). Terrain masking can only be
-  checked in game: list it in what remains to be checked.
+  (sourced, or measured in DCS; otherwise the figure stays an open point). Terrain masking:
+  `terrain_elevation` with the `route` (the waypoints' altitudes and `alt_type`) and the batteries as
+  `observers` tells, leg by leg, how many metres each battery sees within its range. Put that table in
+  the defences' briefing. It counts the relief only: a building or a forest that masks in DCS is not in
+  it, and actual detection stays to be checked in game.
 - **Air opposition**: the scenario's. "They might launch fighters after the strike" = a **QRA**
   (`create_qra`) on the enemy base, circle in red territory, with `delay_before_activating` and
   `react_on_helicopters` decided and written in the briefing; period interceptors with a **loadout**
@@ -331,8 +336,8 @@ Brief status after each step: what is done, not what you are about to do.
 - **Figures come from the mission, not from the scenario**: target coordinates read back from the
   placed objects (DMS to the hundredth of a second), frequency plan read back from `presets.yaml`,
   flight plan read back from the group's route, callsigns read back from the groups. A target's
-  altitude is written only if measured (in game, `land.getHeight`); otherwise the column stays empty
-  and it is an open point.
+  altitude is the ground's under the placed object, read by `terrain_elevation` (`points`), in feet;
+  with no grid for the theatre, the column stays empty and it is an open point.
 - **Re-read every rendered page** (convert it to an image and look at it): nothing overflows, no map
   label overlaps another, every waypoint number matches the route.
 
@@ -368,7 +373,7 @@ What belongs to the user: commit, push, publishing, launching DCS.
     `pictureFileNameR` empty.
 - **Re-read the briefing, the file and the mission against each other**: every coordinate,
   frequency, callsign, bearing, range and time must be the same everywhere.
-- List what remains to be checked in DCS: statics placement on the terrain, terrain masking of the
-  route, the defences' reaction, the QRA trigger, each objective's completion (scenery targets
+- List what remains to be checked in DCS: statics placement on the terrain, masking of the route by
+  what the relief does not count (buildings, forests), the defences' reaction, the QRA trigger, each objective's completion (scenery targets
   included) and the operation's end message, and the F10 map drawings
   (they can **only be seen in game**).

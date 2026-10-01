@@ -228,6 +228,23 @@ report now use.
 completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
 FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
 
+### `land.getHeight` never answers below 0: ground under sea level reads 3 m on Syria {#dcs-ground-is-never-below-sea-level}
+
+Measured **2026-10-01**.
+
+The whole Syria map swept every 250 m (12.1 M points, `veaf-tools dcs terrain-sweep`) holds no
+height below 0: the sea reads 0, and every point measured where the real ground lies under sea
+level reads **exactly 3 m** — Lake Tiberias (real surface about −210 m), the Jordan valley at
+Beit She'an, Jericho (about −250 m), the north of the Dead Sea (about −430 m). The real figures
+are approximate, from general knowledge; the DCS ones are measured.
+
+**What to do:** Take a ground height from DCS's terrain (`terrain_elevation`), never from a real-world source:
+in the Jordan rift the two differ by hundreds of metres, and it is DCS's that the aircraft flies
+over.
+
+*What it cost:* None yet — found while sweeping the elevation grid. A briefing that took a target's altitude from a
+real-world map would have given a negative figure DCS does not have.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

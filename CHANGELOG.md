@@ -91,6 +91,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with their id, type and distance, on the empty survey mission of `clear-ground-check`, and the MCP
   action `offer_scenery_lookup` proposes it. Known limitation recorded: activating an operation spawns
   all its zones at once, `dependencies` ordering the tasks and not the units.
+- **Ground elevation with no DCS running** (FEAT-TERRAIN-ELEVATION). No action gave the height of the
+  ground, so a briefing's target altitudes, the floor of a low-level route and terrain masking all ended
+  as "to check in game". A new command, `veaf-tools dcs terrain-sweep <theatre>`, reads `land.getHeight`
+  over the whole map on the empty survey mission (resumable, like `clear-ground-sweep`) and stores the
+  grid under `<VEAF home>/terrain/`; `--measure-at x,y` compares candidate spacings against a fine
+  reference instead. A new read-only MCP action, `terrain_elevation`, answers from that grid: the ground
+  at points, the highest ground of each route leg, how many metres of each leg each SAM or radar sees
+  over the terrain (4/3-Earth horizon), and the highest ground per 10 km MGRS square or 30′ quadrangle.
+  Terrain only — no buildings, pylons or trees — and every answer says so. The objective-mission prompt
+  now uses it for target altitudes, low-level floors and its masking table.
 
 ### Fixed
 

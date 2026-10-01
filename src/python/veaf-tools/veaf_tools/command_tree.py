@@ -75,7 +75,15 @@ COMMAND_GROUPS: tuple[CommandGroup, ...] = (
     CommandGroup("cockpit", ("resolve-checklist", "verify-checklist", "explore-cockpit")),
     CommandGroup(
         "dcs",
-        ("inject-bridge", "capture-map", "smoke-test", "clear-ground-sweep", "clear-ground-check", "scenery-objects"),
+        (
+            "inject-bridge",
+            "capture-map",
+            "smoke-test",
+            "clear-ground-sweep",
+            "clear-ground-check",
+            "scenery-objects",
+            "terrain-sweep",
+        ),
     ),
 )
 

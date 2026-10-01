@@ -833,6 +833,18 @@ the catalogue predicted.
 {"miz_path": "path/to/mission.miz"}
 ```
 
+### `offer_scenery_lookup` (FEAT-OBJECTIVE-MISSION-PROMPT lot)
+
+Read-only, and **launches nothing**. To use a map object (a bridge, a building that is part of the map)
+as a combat zone objective, you need its DCS id — the zone's `scenery_targets` takes nothing else, and
+those ids exist only inside DCS. The action returns what it takes to **offer** the user the
+`veaf-tools dcs scenery-objects` command (it needs DCS), which lists the objects around each point with
+their id, type and distance. Default radius: 150 m.
+
+```json
+{"theatre": "Syria", "points": [{"x": -64230.0, "y": 352140.0, "radius": 100}]}
+```
+
 ### `describe_naming_conventions`
 
 Read-only. The **8 reserved naming patterns** (combat-zone membership, `veafSpawn-`/`OnDemand-`

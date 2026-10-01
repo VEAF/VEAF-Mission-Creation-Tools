@@ -63,6 +63,35 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   radio**, so a pilot switching to Nalchik landed on the AWACS. Found on the Caucasus mission the
   day the base channels were fixed.
 
+### Added
+
+- **A prompt for an objective mission, played once in one session**
+  (`.prompts/new-objective-mission.fr.md` / `.en.md`, FEAT-OBJECTIVE-MISSION-PROMPT). The Open
+  Training prompt builds a theatre that runs for months; nothing covered the other half of what VEAF
+  flies — a package, one or more objectives, a threat, a way home. The new prompt works in **two
+  phases**: it proposes numbered scenarios, as many as the user wants, each on one screen with its
+  distances measured and its flight time computed against the session length, answers questions,
+  and writes a pre-briefing in the conversation on request — **no file written** until a scenario is
+  explicitly approved. Then it builds the mission (one group per ATO flight, objectives as combat
+  zones active at start, `chained_zones` for a second phase, a QRA for the fighters that "might take
+  off after the strike") and a PPTX and/or PDF briefing following the VEAF template of *Deep Strike
+  Palmyra*, whose coordinates, frequencies and flight plan are read back from the built mission
+  rather than copied from the scenario.
+- **An objective mission's end, and a map object as an objective** (FEAT-OBJECTIVE-MISSION-PROMPT,
+  found writing the prompt above). A combat **operation** already announces "Operation … is over" when
+  its last zone completes, but `active_at_start` was silently skipped on one since the key existed, so
+  it could only be started from the F10 menu: it is now activated at start like a zone. The completion
+  hook given to an operation was stored and **never called** — its completion check replaces the
+  zone's, which is where a zone calls its own; it now runs after the message. A zone only counted what
+  it spawned, so a bridge or a building **of the map** could not be an objective: a new
+  `combat_zones[].scenery_targets: [<id>, …]` makes the zone wait for those objects to be destroyed too,
+  checked by id against the destroyed-scenery register the Combat Missions already use (a value that is
+  not a positive integer stops the build). The ids exist only inside DCS: a new command,
+  `veaf-tools dcs scenery-objects <theatre> --around x,y[,radius]`, lists the map objects around points
+  with their id, type and distance, on the empty survey mission of `clear-ground-check`, and the MCP
+  action `offer_scenery_lookup` proposes it. Known limitation recorded: activating an operation spawns
+  all its zones at once, `dependencies` ordering the tasks and not the units.
+
 ## [6.26.0] — 2026-09-30
 
 ### Added

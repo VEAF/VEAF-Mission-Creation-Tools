@@ -347,6 +347,18 @@ limitations:
   workaround: |
     Set the airfield's coalition in the Mission Editor rather than by script at start, or put ground
     units of that side on the field for two minutes.
+- id: operation-spawns-all-its-zones-at-once
+  kind: tool
+  area: runtime
+  title: Activating a combat operation spawns all its zones at once — `dependencies` orders the tasks, not the units
+  symptom: |
+    `VeafCombatOperation:activate` activates every zone of its `tasking_orders` in the same pass. A
+    task with `dependencies` is only *listed* as the current objective once the zones it depends on
+    are done; its units are already on the map from the start, and can be destroyed early.
+  workaround: |
+    For an objective that must not exist before another is done, make it a `chained_zones` of that
+    zone (with `chained_delay`) instead of a task of the operation — knowing it then does not count
+    towards the operation's "Operation … is over" message.
 - id: briefing-pictures-red-then-blue
   kind: dcs
   area: players

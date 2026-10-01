@@ -41,6 +41,7 @@ from veaf_libs.dcs_bridge_capture import (
 )
 from veaf_libs.dcs_serve_launcher import DcsServe, ensure_config, find_dcs_serve, is_serving
 from veaf_libs.diagnostics import find_dcs_write_dirs
+from veaf_libs.scenery_lookup import lookup_scenery, parse_point
 
 from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
 from veaf_tools.helpers import is_interactive
@@ -182,6 +183,53 @@ def clear_ground_check(
             markers=result.markers_skipped,
         )
     )
+
+
+@app.command(name="scenery-objects", no_args_is_help=True, help=t("cmd.scenery_objects.help"))
+def scenery_objects(
+    theatre: str = typer.Argument(..., help=t("cmd.clear_ground.opt.theatre")),
+    around: list[str] | None = typer.Option(None, "--around", help=t("cmd.scenery_objects.opt.around")),
+    report: str | None = typer.Option(None, "--report", help=t("cmd.scenery_objects.opt.report")),
+    survey_mission: str | None = typer.Option(
+        None, "--survey-mission", help=t("cmd.clear_ground_sweep.opt.survey_mission")
+    ),
+    bridge_lua: str | None = typer.Option(None, "--bridge-lua", help=t("cmd.inject_bridge.opt.bridge_lua")),
+    wait: int = typer.Option(900, "--wait", min=0, help=t("cmd.clear_ground_sweep.opt.wait")),
+    api_key: str | None = typer.Option(
+        None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help=t("cmd.capture_map.opt.api_key")
+    ),
+    config: str | None = typer.Option(None, "--config", help=t("cmd.capture_map.opt.config")),
+    serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help=t("cmd.capture_map.opt.serve_url")),
+    dcs_serve: str | None = typer.Option(None, "--dcs-serve", help=t("cmd.clear_ground_sweep.opt.dcs_serve")),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+) -> None:
+    """List the map objects around points of *theatre*, with the ids ``scenery_targets`` takes."""
+    logger.set_verbose(verbose)
+    console.print(t("cmd.scenery_objects.title", version=VERSION))
+    started: list[DcsServe] = []
+    theatre = canonical_theatre_name(theatre)
+    try:
+        points = [parse_point(spec) for spec in around or []]
+        if not points:
+            raise ValueError(t("cmd.scenery_objects.no_point"))
+        exec_lua = _open_survey_session(
+            theatre, survey_mission, bridge_lua, serve_url, dcs_serve, api_key, config, wait, started
+        )
+        found = lookup_scenery(exec_lua, points)
+        if report:
+            Path(report).write_text(json.dumps([o.to_dict() for o in found], indent=1), encoding="utf-8")
+    except (RuntimeError, OSError, ValueError) as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(code=1) from e
+    finally:
+        for server in started:
+            server.stop()
+    for index, (x, y, radius) in enumerate(points, start=1):
+        here = [o for o in found if o.point == index]
+        console.print(t("cmd.scenery_objects.point", point=index, x=x, y=y, radius=radius, count=len(here)))
+        for o in here:
+            console.print(t("cmd.scenery_objects.object", id=o.id, type=o.type_name, distance=o.distance))
+    console.print(t("cmd.scenery_objects.done", count=len(found)))
 
 
 def _open_survey_session(

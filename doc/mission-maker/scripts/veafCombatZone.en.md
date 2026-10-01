@@ -99,6 +99,7 @@ modules:
 | `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
 | `chained_delay` | integer | `0` | No | Seconds before chained zones fire |
 | `includes` | string[] | `[]` | No | Zones whose elements this one borrows: activated with it, transitively. See [below](#includes) |
+| `scenery_targets` | integer[] | `[]` | No | Ids of **map objects** (bridges, buildings of the map) that must also be destroyed for the zone to complete. See [below](#scenery-targets) |
 
 ### `rename_units_sequentially` — keeping the original unit names {#rename-units}
 
@@ -170,6 +171,36 @@ exists; `includes` generates exactly those calls, transitive closure included.
 | `tasking_orders` | object[] | `[]` | No | Ordered task list |
 | `tasking_orders[].zone_name` | string | — | Yes | Combat zone name for this task |
 | `tasking_orders[].dependencies` | string[] | `[]` | No | Zone names that must complete first |
+| `active_at_start` | boolean | `false` | No | Activates the operation, and so all its zones, at mission start — for a mission nobody launches from the F10 menu |
+
+When its last task is done, the operation tells every player "Operation … is over". Activating it
+activates **all** its zones at once: `dependencies` orders the tasks, not the units' appearance — an
+objective that must only appear after another is a [`chained_zones`](#configuration-missionyaml) of it.
+
+### Map objects as targets — `scenery_targets` {#scenery-targets}
+
+A zone completes when the units and statics **it spawned** are destroyed. A bridge or a building that
+is part of the map is spawned by nobody, so the zone does not see it — unless it is listed by id:
+
+```yaml
+combat_zones:
+  - zone_name: "CZ-Bridge"
+    friendly_name: "Al-Rastan bridge"
+    active_at_start: true
+    scenery_targets: [156696667]   # the bridge's DCS id
+```
+
+The zone then completes only once those objects are destroyed **and** its own red units are gone (a
+zone holding nothing but the bridge completes on the bridge alone). Destruction is recorded from the
+start of the mission, so an object destroyed before the zone is activated counts. That is also why
+such a zone **is not replayable**: reactivated, it finds its bridge destroyed and completes at once.
+The zone's F10 report counts the map objects left to destroy, apart from its units; a zone that
+[includes](#includes) another waits for that one's objects too.
+
+The ids exist only inside DCS: [`veaf-tools dcs scenery-objects`](../../CLI_REFERENCE.en.md#scenery-objects)
+lists the objects around a point with their id, type and distance. A value that is not a positive
+integer stops the build — it would be a target that can never be destroyed, and a zone that never
+completes.
 
 ### Minimal example
 

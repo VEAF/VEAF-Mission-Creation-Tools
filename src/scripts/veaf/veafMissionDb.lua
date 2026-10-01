@@ -665,6 +665,17 @@ function veafMissionDb.getDestroyedSceneryInZones(zoneNames)
   return found
 end
 
+--- Whether the scenery object with this id has been destroyed since the mission started.
+---
+--- What a combat zone asks for each of its scenery targets: the id is the one a mission maker writes,
+--- and the object stands wherever it stands, so no trigger zone is involved.
+---
+--- @param id number the scenery object's id
+--- @return boolean
+function veafMissionDb.isSceneryDestroyed(id)
+  return veafMissionDb.destroyedScenery[id] ~= nil
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -685,6 +696,7 @@ veaf.takeSpawnedName = veafMissionDb.takeSpawnedName
 veaf.releaseSpawnedName = veafMissionDb.releaseSpawnedName
 veaf.isNameTaken = veafMissionDb.isNameTaken
 veaf.getDestroyedSceneryInZones = veafMissionDb.getDestroyedSceneryInZones
+veaf.isSceneryDestroyed = veafMissionDb.isSceneryDestroyed
 
 --- Subscribe the destroyed-scenery register to the event bus, once.
 ---

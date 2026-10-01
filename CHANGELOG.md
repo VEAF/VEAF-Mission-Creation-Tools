@@ -17,6 +17,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Open Training prompt: three lessons from the Caucasus mission's first flights.** A training
+  zone's **transit time is part of its design**, and the SEAD family had none: "loin de tout"
+  combined with a long-range SAM at the hard level put it 24 minutes from the nearest blue base and
+  243 nm from the first tanker, against 1 minute for the helicopter family and 9 for attack — and a
+  pilot who gets shot down flies it again. A SA-10 reaches 65 nm, so forbidding it over a friendly
+  base (4.7) pushes the zone past 65 nm of everything blue, where a narrow map has no usable ground
+  left. The prompt now rules out long range in a *training* zone and says to cut the content rather
+  than suffer the distance; long range lives in the permanent defences (4.5) and the real combat
+  zones (4.7). Two more: every zone — combat, training, QRA — carries **its outline** on the F10 map
+  and not only its name (the Caucasus had 38 drawings, 10 lines and 28 labels, not one outline), and
+  an F10 label needs an opaque light `fill_color`, the action's default being `0x00000080`, black at
+  half opacity, under text in the side's own dark colour. Both had held until a pilot reported them
+  in flight, because an F10 drawing is read **only in game** — it is now in §8's list of what to
+  check in DCS, where it fell between the briefing images and the rest.
+
 ## [6.26.0] — 2026-09-30
 
 ### Added

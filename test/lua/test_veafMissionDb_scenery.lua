@@ -100,6 +100,14 @@ function TestVeafMissionDbSceneryRegister:test_an_object_destroyed_before_the_ob
   luaunit.assertEquals(found[1].id, 42)
 end
 
+-- FEAT-OBJECTIVE-MISSION-PROMPT: a combat zone checks its scenery targets by id, wherever they stand
+function TestVeafMissionDbSceneryRegister:test_isSceneryDestroyed_answers_by_id()
+  veafMissionDb.recordDestroyedScenery(_deathOf(_scenery(42, 100, 100)))
+
+  luaunit.assertTrue(veaf.isSceneryDestroyed(42))
+  luaunit.assertFalse(veaf.isSceneryDestroyed(43), "an object nobody destroyed is still standing")
+end
+
 function TestVeafMissionDbSceneryRegister:test_a_zone_that_does_not_exist_is_skipped_not_fatal()
   veafMissionDb.recordDestroyedScenery(_deathOf(_scenery(42, 100, 100)))
 

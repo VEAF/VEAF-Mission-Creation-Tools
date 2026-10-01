@@ -6,6 +6,7 @@ from typing import Any
 from presets_injector.airfield_channels_manager import apply_airfield_channels, describe_airfield_channels
 from veaf_libs.blank_mission import supported_theatres
 from veaf_libs.clear_ground_check import offer_check
+from veaf_libs.scenery_lookup import DEFAULT_RADIUS_METERS, offer_lookup
 
 from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_farp import add_farp
@@ -2133,6 +2134,45 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: offer_check(Path(p["miz_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="offer_scenery_lookup",
+            description=(
+                "Before using a MAP OBJECT (a bridge, a building that is part of the map) as a combat zone "
+                "objective, OFFER the user to look its DCS id up: `scenery_targets` takes ids, and they exist "
+                "only inside DCS. Launches nothing: returns the command the user runs (it needs DCS), which "
+                "lists the map objects around each point with id, type and distance."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "theatre": {"type": "string", "description": "The theatre, e.g. 'Syria'."},
+                    "points": {
+                        "type": "array",
+                        "description": "Points to search around, in mission coordinates (x north, y east), metres.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "radius": {
+                                    "type": "number",
+                                    "description": f"Search radius in metres (default {DEFAULT_RADIUS_METERS:g}).",
+                                },
+                            },
+                            "required": ["x", "y"],
+                        },
+                        "minItems": 1,
+                    },
+                },
+                "required": ["theatre", "points"],
+            },
+        ),
+        handler=lambda p: offer_lookup(
+            p["theatre"],
+            [(float(q["x"]), float(q["y"]), float(q.get("radius", DEFAULT_RADIUS_METERS))) for q in p["points"]],
+        ),
     )
     catalog.register(
         ActionSpec(

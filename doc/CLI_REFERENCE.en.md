@@ -674,6 +674,38 @@ itself. Same flow as `clear-ground-sweep`: `dcs-serve`, survey mission, instruct
 
 *Flat alias : `veaf-tools clear-ground-check`*
 
+### `veaf-tools dcs scenery-objects` {#scenery-objects}
+
+Lists the **map objects** — bridges, buildings that are part of the map itself — around one or more
+points, with their DCS id, their type and their distance to the point, nearest first. That id is what a
+combat zone's [`scenery_targets`](mission-maker/scripts/veafCombatZone.en.md#scenery-targets) takes: a
+map object is not created by the zone, so the zone can only recognise it by its number, and that number
+exists only inside DCS. Same flow as `clear-ground-check`: `dcs-serve`, empty survey mission,
+instructions, waiting. Points are in mission coordinates (`x` north, `y` east, metres).
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | yes | The theatre, as DCS spells it (Caucasus, Syria…). |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--around` | `str` | *(none)* | A point to search around, as `x,y` or `x,y,radius` (radius 150 m by default). Repeatable. |
+| `--report` | `str` | *(none)* | Also write the objects as JSON to this file. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<theatre>.miz` | Where to write the survey mission. |
+| `--bridge-lua` | `str` | *(none)* | Local dcs-bridge.lua to embed (default: download). |
+| `--wait` | `int` | `900` | How many seconds to wait for the survey mission to answer. |
+| `--api-key` | `str` | *(none)* | dcs-serve superuser Bearer token (default: read from dcs-serve.yaml). (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | Path of a dcs-serve.yaml / dcs-client.yaml to read the key from. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | dcs-serve base URL. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none is running. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debugging information. |
+
+```bash
+.\veaf-tools.exe dcs scenery-objects Syria --around -64230,352140,100
+```
+
+*Flat alias : `veaf-tools scenery-objects`*
+
 ### `veaf-tools dcs smoke-test` {#smoke-test}
 
 Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook.

@@ -73,7 +73,10 @@ COMMAND_GROUPS: tuple[CommandGroup, ...] = (
         ),
     ),
     CommandGroup("cockpit", ("resolve-checklist", "verify-checklist", "explore-cockpit")),
-    CommandGroup("dcs", ("inject-bridge", "capture-map", "smoke-test", "clear-ground-sweep", "clear-ground-check")),
+    CommandGroup(
+        "dcs",
+        ("inject-bridge", "capture-map", "smoke-test", "clear-ground-sweep", "clear-ground-check", "scenery-objects"),
+    ),
 )
 
 #: Commands that stay at the root, because grouping them would be filing for filing's sake: they are

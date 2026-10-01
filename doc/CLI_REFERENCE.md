@@ -678,6 +678,40 @@ consignes, attente.
 
 *Alias plat : `veaf-tools clear-ground-check`*
 
+### `veaf-tools dcs scenery-objects` {#scenery-objects}
+
+Liste les **objets de la carte** — ponts, bâtiments qui font partie de la carte elle-même — autour d'un
+ou plusieurs points, avec leur identifiant DCS, leur type et leur distance au point, du plus proche au
+plus loin. C'est l'identifiant que prend le
+[`scenery_targets`](mission-maker/scripts/veafCombatZone.md#scenery-targets) d'une zone de combat : un
+objet de la carte n'est pas créé par la zone, elle ne peut donc le reconnaître que par son numéro, et ce
+numéro n'existe que dans DCS. Même déroulé que `clear-ground-check` : `dcs-serve`, mission d'arpentage
+vide, consignes, attente. Les points sont en coordonnées de mission (`x` vers le nord, `y` vers l'est,
+en mètres).
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | oui | Le théâtre, tel que DCS l'écrit (Caucasus, Syria…). |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--around` | `str` | *(aucun)* | Un point autour duquel chercher, en `x,y` ou `x,y,rayon` (rayon 150 m par défaut). Répétable. |
+| `--report` | `str` | *(aucun)* | Écrire aussi les objets en JSON dans ce fichier. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<théâtre>.miz` | Où écrire la mission d'arpentage. |
+| `--bridge-lua` | `str` | *(aucun)* | dcs-bridge.lua local à embarquer (défaut : téléchargement). |
+| `--wait` | `int` | `900` | Combien de secondes attendre que la mission d'arpentage réponde. |
+| `--api-key` | `str` | *(aucun)* | Jeton Bearer superuser de dcs-serve (par défaut : lu dans dcs-serve.yaml). (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Chemin d'un dcs-serve.yaml / dcs-client.yaml où lire la clé. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à lancer quand aucun ne tourne. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```bash
+.\veaf-tools.exe dcs scenery-objects Syria --around -64230,352140,100
+```
+
+*Alias plat : `veaf-tools scenery-objects`*
+
 ### `veaf-tools dcs smoke-test` {#smoke-test}
 
 Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle.

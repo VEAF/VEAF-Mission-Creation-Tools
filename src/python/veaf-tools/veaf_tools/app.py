@@ -24,6 +24,7 @@ MACHINE_ONLY_COMMANDS: set[str] = {
     "smoke-test",
     "clear-ground-sweep",
     "clear-ground-check",
+    "scenery-objects",
 }
 
 

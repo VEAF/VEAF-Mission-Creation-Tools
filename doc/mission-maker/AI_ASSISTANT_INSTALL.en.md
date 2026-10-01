@@ -90,6 +90,17 @@ four or five questions: the map, the era, the template, a mission to draw on if 
 assistant answers in English, but writes the mission in French, the VEAF servers' language, unless you
 ask otherwise.
 
+### An objective mission, played in one session
+
+For a mission a group flies once — a package, one or more objectives, a threat, a way home — paste
+the prompt [`.prompts/new-objective-mission.en.md`](../../.prompts/new-objective-mission.en.md) in an
+empty folder (French version:
+[`new-objective-mission.fr.md`](../../.prompts/new-objective-mission.fr.md)). It asks for the map,
+the aircraft and number of pilots, the session length and the kind of mission, then **proposes a
+scenario**: ask for as many others as you want, ask your questions, have the briefing shown in the
+conversation. Nothing is written until you approve a scenario; the assistant then builds the mission
+and its briefing as PPTX and/or PDF, in the VEAF briefing format.
+
 ## Update the plugin
 
 When a new plugin version ships, with Claude Code:

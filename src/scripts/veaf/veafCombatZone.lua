@@ -772,6 +772,8 @@ function VeafCombatZone:new(objectToCopy)
   objectToCreate.flareResetFunctionId = nil
   -- function to call when combat zone is over. The function is passed self combat zone
   objectToCreate.onCompletedHook = nil
+  -- ids of map objects (bridges, buildings of the map itself) that must be destroyed for the zone to complete
+  objectToCreate.sceneryTargets = {}
 
   return objectToCreate
 end
@@ -782,6 +784,50 @@ end
 function VeafCombatZone:setOnCompletedHook(onCompletedFunction)
   self.onCompletedHook = onCompletedFunction
   return self
+end
+
+--- Add a map object the zone must see destroyed before it completes.
+---
+--- The zone does not spawn it, so its unit count never sees it: `completionCheck` asks the
+--- destroyed-scenery register (`veaf.isSceneryDestroyed`) instead, by the object's id.
+---
+--- @param id number the scenery object's id, as DCS gives it
+function VeafCombatZone:addSceneryTarget(id)
+  -- the same rule as the generator: a positive integer, or a target the register can never hold
+  if type(id) ~= "number" or id <= 0 or id ~= math.floor(id) then
+    veaf.loggers
+      .get(veafCombatZone.Id)
+      :error("zone %s: scenery target %s is not an object id, ignored", veaf.p(self.missionEditorZoneName), veaf.p(id))
+    return self
+  end
+  for _, known in ipairs(self.sceneryTargets) do
+    if known == id then
+      return self
+    end
+  end
+  table.insert(self.sceneryTargets, id)
+  return self
+end
+
+function VeafCombatZone:getSceneryTargets()
+  return self.sceneryTargets
+end
+
+--- How many of the zone's scenery targets are still standing.
+---
+--- Read from the destroyed-scenery register, which keeps every destruction since the mission started:
+--- a target destroyed before the zone was activated counts, and so does one destroyed during a previous
+--- activation — a zone with scenery targets is played once.
+---
+--- @return number
+function VeafCombatZone:countSceneryTargetsLeft()
+  local left = 0
+  for _, id in ipairs(self.sceneryTargets) do
+    if not veaf.isSceneryDestroyed(id) then
+      left = left + 1
+    end
+  end
+  return left
 end
 
 function VeafCombatZone:disableRadioMenu()
@@ -1221,6 +1267,10 @@ function VeafCombatZone:addZoneElementsFromZoneNamed(zoneName)
   if not zone then
     return self
   end
+  -- the borrowing level's success counts what it borrows: map objects included
+  for _, id in ipairs(zone:getSceneryTargets()) do
+    self:addSceneryTarget(id)
+  end
   local elements = zone:getZoneElements()
   if not elements then
     return self
@@ -1623,6 +1673,12 @@ function VeafCombatZone:getInformation(unitName)
 
     appendTally(self:getFriendlyCoalition(), "combatzone.friends")
     appendTally(self:getEnemyCoalition(), "combatzone.enemies")
+    -- the map objects the zone waits for are no unit of it: without this line the report reads
+    -- "0 enemies" on a zone that refuses to complete
+    local sceneryLeft = self:countSceneryTargetsLeft()
+    if sceneryLeft > 0 and self:isShowUnitsList() then
+      message = message .. veaf.t("combatzone.scenery_targets_left", sceneryLeft)
+    end
     if #outOfActionGroups > 0 and self:isShowUnitsList() then
       table.sort(outOfActionGroups) -- a stable order: `getSpawnedGroups` is not one a player can predict
       message = message .. veaf.t("combatzone.out_of_action", table.concat(outOfActionGroups, ", "))
@@ -2101,6 +2157,8 @@ function VeafCombatZone:completionCheck()
   if self:getEnemyCoalition() == 2 then
     nbEnemyUnits = nbUnitsB
   end
+  -- a scenery target still standing counts as an enemy, whichever side plays the zone
+  nbEnemyUnits = nbEnemyUnits + self:countSceneryTargetsLeft()
   veaf.diag(
     veafCombatZone.Id,
     "zone %s: watchdog red=%s blue=%s enemies=%s, %s",
@@ -2606,6 +2664,11 @@ function VeafCombatOperation:updatePrimaryTasks()
 
     if veafCombatZone.EventMessages.CombatOperationComplete then
       trigger.action.outText(veaf.t(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
+    end
+    -- the operation replaces the zone's completionCheck, which is where a zone calls its hook: without
+    -- this call, a hook given to an operation was stored and never run
+    if self.onCompletedHook then
+      self.onCompletedHook(self)
     end
     return self
   end

@@ -761,6 +761,69 @@ function TestVeafCombatZoneCompletion:test_completionCheck_static_object_red_coa
   StaticObject.getByName = origStaticGetByName
 end
 
+-- FEAT-OBJECTIVE-MISSION-PROMPT: a map object (bridge, building of the map) is not spawned by the
+-- zone, so the unit count never sees it; the zone asks the destroyed-scenery register instead.
+function TestVeafCombatZoneCompletion:test_completionCheck_waits_for_a_scenery_target_still_standing()
+  veafMissionDb.destroyedScenery = {}
+  self.z:addSceneryTarget(424242)
+  self.z:setActive(true)
+  self.z:completionCheck()
+  luaunit.assertTrue(self.z:isActive())
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_completes_once_its_scenery_targets_are_destroyed()
+  veafMissionDb.destroyedScenery = { [424242] = { id = 424242, position = { x = 0, y = 0, z = 0 } } }
+  self.z:addSceneryTarget(424242)
+  self.z:setActive(true)
+  self.z:completionCheck()
+  luaunit.assertFalse(self.z:isActive())
+  veafMissionDb.destroyedScenery = {}
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_needs_every_scenery_target()
+  veafMissionDb.destroyedScenery = { [1] = { id = 1, position = { x = 0, y = 0, z = 0 } } }
+  self.z:addSceneryTarget(1):addSceneryTarget(2)
+  self.z:setActive(true)
+  self.z:completionCheck()
+  luaunit.assertTrue(self.z:isActive())
+  veafMissionDb.destroyedScenery = {}
+end
+
+function TestVeafCombatZoneCompletion:test_addSceneryTarget_ignores_what_is_not_an_id()
+  self.z:addSceneryTarget("424242"):addSceneryTarget(0):addSceneryTarget(-3):addSceneryTarget(1.5)
+  luaunit.assertEquals(#self.z:getSceneryTargets(), 0)
+end
+
+function TestVeafCombatZoneCompletion:test_addSceneryTarget_keeps_one_copy_of_an_id()
+  self.z:addSceneryTarget(7):addSceneryTarget(7)
+  luaunit.assertEquals(self.z:getSceneryTargets(), { 7 })
+end
+
+-- `includes`: the borrowing level's success counts what it borrows, map objects included
+function TestVeafCombatZoneCompletion:test_a_borrowing_level_waits_for_the_borrowed_scenery_targets()
+  local easy = VeafCombatZone:new():setMissionEditorZoneName("RANGE-EASY"):addSceneryTarget(99)
+  veafCombatZone.zonesDict["range-easy"] = easy
+  self.z:addZoneElementsFromZoneNamed("RANGE-EASY")
+  luaunit.assertEquals(self.z:getSceneryTargets(), { 99 })
+end
+
+-- the hook an operation is given used to be stored and never called: its completion check replaces
+-- the zone's, which is where a zone calls its own
+function TestVeafCombatZoneCompletion:test_operation_calls_its_onCompletedHook_when_no_task_is_left()
+  local op = VeafCombatOperation:new():setMissionEditorZoneName("OP-HOOK")
+  op.updateRadioMenu = function(self)
+    return self
+  end
+  local received = nil
+  op:setOnCompletedHook(function(operation)
+    received = operation
+  end)
+  op:setActive(true)
+  op:updatePrimaryTasks()
+  luaunit.assertFalse(op:isActive())
+  luaunit.assertIs(received, op)
+end
+
 function TestVeafCombatZoneCompletion:test_desactivate_with_spawned_group_destroys_it()
   dcs_mocks.addGroup("spawnedGrp", {})
   self.z:addSpawnedGroup("spawnedGrp")
@@ -1184,6 +1247,14 @@ function TestVeafCombatZoneGetInformation:test_getInformation_a_blue_static_is_a
     luaunit.assertStrContains(info, "FRIENDS")
     luaunit.assertNil(info:find("ENEMIES"))
   end)
+end
+
+-- the F10 report must not read "0 enemies" on a zone that refuses to complete
+function TestVeafCombatZoneGetInformation:test_getInformation_counts_the_scenery_targets_left()
+  veafMissionDb.destroyedScenery = { [6] = { id = 6, position = { x = 0, y = 0, z = 0 } } }
+  self.z:addSceneryTarget(5):addSceneryTarget(6)
+  luaunit.assertStrContains(self.z:getInformation(nil), "MAP OBJECTS TO DESTROY: 1 remaining")
+  veafMissionDb.destroyedScenery = {}
 end
 
 -- ============================================================================

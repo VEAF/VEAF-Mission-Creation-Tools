@@ -856,6 +856,19 @@ publiés. Elle compare ensuite chaque réponse à ce que le catalogue avait pré
 {"miz_path": "chemin/vers/mission.miz"}
 ```
 
+### `offer_scenery_lookup` (lot FEAT-OBJECTIVE-MISSION-PROMPT)
+
+Lecture seule, et **ne lance rien**. Pour prendre un objet de la carte (un pont, un bâtiment de la
+carte elle-même) comme objectif d'une zone de combat, il faut son identifiant DCS — le
+`scenery_targets` de la zone n'accepte que ça, et ces identifiants n'existent que dans DCS. L'action
+renvoie de quoi **proposer** à l'utilisateur la commande `veaf-tools dcs scenery-objects` (elle demande
+DCS), qui liste les objets autour de chaque point avec leur identifiant, leur type et leur distance.
+Rayon par défaut : 150 m.
+
+```json
+{"theatre": "Syria", "points": [{"x": -64230.0, "y": 352140.0, "radius": 100}]}
+```
+
 ### `describe_naming_conventions`
 
 Lecture seule. Les **8 motifs de nommage réservés** (appartenance combat zone, préfixes

@@ -1,6 +1,6 @@
 # FEAT-TERRAIN-ELEVATION — a ground-elevation table per theatre, read with no DCS running
 
-Status: 🔄 in-progress
+Status: ✅ done — merged 2026-10-01 (#1045)
 
 Found writing the objective-mission prompt (FEAT-OBJECTIVE-MISSION-PROMPT, 2026-10-01): no action gives
 the ground elevation, so a briefing's target altitudes, the floor of a low-level route and terrain

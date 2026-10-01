@@ -54,6 +54,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   declare. Existing missions keep their own `presets.yaml`: run the command to bring their base
   channels in line.
 
+- **Open Training prompt: non-airfield channels are chosen clear of the tower band.** The prompt now
+  says to read the theatre's tower band first and put AWACS, tankers, carriers and flights outside
+  it, then to check that no frequency appears twice in a channel list. Caucasus's 21 towers take
+  **250.0 to 270.0 with no gap**, one per MHz; eight VEAF channels lived in there, harmless only as
+  long as the base channels carried an invented series. With the real frequencies in, four turned
+  into duplicates — Magic 1 and Nalchik both on 265.0, **at channels 2 and 16 of the same blue
+  radio**, so a pilot switching to Nalchik landed on the AWACS. Found on the Caucasus mission the
+  day the base channels were fixed.
+
 ## [6.26.0] — 2026-09-30
 
 ### Added

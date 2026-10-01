@@ -206,9 +206,26 @@ ses ajouts**, et chaque niveau inclut celui d'en dessous (clé `includes:` de `c
    Facile = statiques inertes ; moyen = AAA légère ; difficile = défense courte portée réaliste.
 2. **Avions d'attaque** : peut être plus loin, tant qu'elle reste **à plus de 75 nm du front** et
    n'est dans la portée d'aucune défense réelle. Même progression, avec plus de blindés.
-3. **SEAD / DEAD** : **loin de tout** (bases, pistes de ravitailleurs, autres zones), pour que les
-   équipages s'y entraînent tranquilles. Facile = une batterie moyenne portée seule ; moyen =
-   moyenne + courte portée ; difficile = longue portée, moyenne, courte et EWR, en réseau Skynet.
+3. **SEAD / DEAD** : assez à l'écart pour que ses SAM n'atteignent ni une base, ni une piste de
+   ravitailleur, ni une autre zone (4.7) — mais **pas plus loin que ça**. Facile = une batterie
+   moyenne portée seule ; moyen = moyenne + courte portée ; difficile = moyenne, courte et EWR en
+   réseau Skynet.
+
+   **Pas de longue portée dans une zone d'entraînement.** Un SA-10 porte à 65 nm : interdire qu'il
+   atteigne une base amie le repousse au-delà de 65 nm de tout ce qui est bleu, et sur une carte
+   étroite il n'y a plus de terrain praticable à cette distance. Mesuré sur l'Open Training Caucase
+   de septembre 2026 : la zone SEAD avait atterri en péninsule de Taman, à **24 minutes de vol** de
+   la base bleue la plus proche et à 243 nm du premier ravitailleur, contre 1 minute pour la famille
+   hélicoptères et 9 pour la famille attaque. Un pilote qui se fait descendre refait les 24 minutes.
+   La décision de David (01/10/2026) tient en une phrase : *« on peut faire une CZ d'entraînement
+   SEAD moins violente, et si on veut s'entraîner avec un SA-10 c'est pas ce qui manque sur la
+   map »* — la longue portée vit dans les défenses permanentes (4.5) et dans les vraies zones (4.7),
+   où personne ne vient la refaire dix fois.
+
+   **Règle générale, valable pour les trois familles** : le temps de trajet depuis la base la plus
+   proche fait partie de la conception. Vise le même ordre de grandeur pour les trois (quelques
+   minutes), et quand un contenu impose un éloignement impraticable, **c'est le contenu qu'on
+   réduit**, pas la distance qu'on subit.
 
 **Graduer la difficulté avec `defense N`.** Les commandes de spawn de groupes (`_spawn samgroup`,
 `armorgroup`, `combatgroup`, `transportgroup`, `convoy`…) acceptent `defense 0` à `5`, qui choisit
@@ -367,8 +384,16 @@ la mission, la carte générale d'abord.
   `mapResource`**, et retire les images qu'il ne dessine plus : la mission liste toujours ce qui a été
   dessiné. Si le MCP n'a pas d'action pour le faire, note-le dans « Retours pour VMCT ».
 - **Dessins F10** (`add_map_drawing`, pour qu'ils survivent au build) : la ligne de front, les
-  sanctuaires, les hippodromes de soutien et les étiquettes des zones, chacun sur la **couche du camp
-  qui doit le voir** (`Blue`, `Red`, ou `Common` pour ce que les deux partagent).
+  sanctuaires, les hippodromes de soutien, et **chaque zone avec son contour autant qu'avec son
+  nom** — un cercle au rayon réel pour chaque zone de combat, chaque zone d'entraînement et chaque
+  QRA, plus son étiquette. Une zone réduite à un nom posé au centre ne dit pas où elle commence :
+  l'Open Training Caucase de septembre 2026 avait 38 dessins, 10 traits et 28 étiquettes, **pas un
+  seul contour**. Chacun sur la **couche du camp qui doit le voir** (`Blue`, `Red`, ou `Common` pour
+  ce que les deux partagent).
+- **Lisibilité d'une étiquette F10** : donne-lui un `fill_color` **opaque et clair**. Sans lui,
+  l'action applique son fond par défaut — `0x00000080`, noir à moitié transparent — et le texte,
+  qui porte la couleur sombre de son camp, devient illisible sur la carte. Signalé en vol sur le
+  Caucase le 29/09/2026.
 - **Relis chaque image** avant de la livrer, zooms compris : aucune étiquette ne doit en chevaucher
   une autre, chaque numéro de zone doit correspondre à celui du briefing, et un trait en tirets doit
   rester en tirets sur les petits cercles.
@@ -428,4 +453,7 @@ l'époque ou les camps ; lancer DCS.
     `pictureFileNameN`, `pictureFileNameR` vide (4.13).
 - **Relis tes briefings** : chaque distance, cap, altitude et nom de lieu recalculé ou sourcé.
 - Liste ce qui reste à vérifier dans DCS (placement des statiques sur les terrains, suivi des routes
-  par les convois, imbrication des zones, apparence du ciel).
+  par les convois, imbrication des zones, apparence du ciel, **et les dessins de la carte F10**). Les
+  images de briefing se relisent au rendu ; un dessin F10 ne se voit **qu'en jeu**, et il est passé
+  entre ces deux mailles sur le Caucase — contours absents et étiquettes illisibles ont tenu jusqu'à
+  ce qu'un pilote les signale en vol.

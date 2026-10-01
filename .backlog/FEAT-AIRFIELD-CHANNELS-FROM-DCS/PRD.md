@@ -1,6 +1,6 @@
 # FEAT-AIRFIELD-CHANNELS-FROM-DCS — airfield channels come from DCS, and a mission picks the ones it needs
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #1041 (2026-10-01)
 
 Opened 2026-10-01 from the Open Training Caucasus v6, where David found in flight that the radio
 plan does not match what DCS shows on the F10 view. Measured afterwards: the mission's `bases`

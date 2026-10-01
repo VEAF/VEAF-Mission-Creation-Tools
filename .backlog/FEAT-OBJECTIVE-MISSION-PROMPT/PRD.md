@@ -1,6 +1,6 @@
 # FEAT-OBJECTIVE-MISSION-PROMPT — a prompt for an objective mission, played once in one session
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Asked by David on 2026-10-01. The Open Training prompt (`.prompts/new-open-training-mission.*.md`)
 builds a theatre that runs for months; nothing covers a mission a group flies once: a package, one or
@@ -37,5 +37,5 @@ completes when the object is destroyed.
 | 01 | [write the prompt (FR + EN) and point to it from the mission-maker doc](tickets/01-write-the-prompt.md) | ✅ |
 | 02 | [`active_at_start` on a combat operation](tickets/02-operation-active-at-start.md) | ✅ |
 | 03 | [call the completion hook of an operation](tickets/03-operation-completion-hook.md) | ✅ |
-| 04 | [`scenery_targets`: map objects a zone must see destroyed](tickets/04-scenery-targets.md) | 🧑 |
-| 05 | [`dcs scenery-objects` + `offer_scenery_lookup`: find a map object's id](tickets/05-scenery-lookup.md) | 🧑 |
+| 04 | [`scenery_targets`: map objects a zone must see destroyed](tickets/04-scenery-targets.md) | ✅ |
+| 05 | [`dcs scenery-objects` + `offer_scenery_lookup`: find a map object's id](tickets/05-scenery-lookup.md) | ✅ |

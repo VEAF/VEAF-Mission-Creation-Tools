@@ -1,6 +1,6 @@
 # FIX-OBJECTIVE-COMPLETION — a zone holding a static completes, the scenery register records
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Found on 2026-10-01 by the test mission of FEAT-OBJECTIVE-MISSION-PROMPT
 (`D:\dev\_VEAF\tmp\test-objective-mission`), whose script finds a map object, blows up a static and the
@@ -19,4 +19,4 @@ David's go: 2026-10-01 ("go").
 |---|--------|--------|
 | 01 | [the event bus subscribes the destroyed-scenery register](tickets/01-subscribe-the-scenery-register.md) | ✅ |
 | 02 | [a destroyed static no longer counts in a combat zone](tickets/02-destroyed-static-does-not-count.md) | ✅ |
-| 03 | [test mission v3, with no workaround: every line YES](tickets/03-verify-in-game.md) | 🧑 |
+| 03 | [test mission v3, with no workaround: every line YES](tickets/03-verify-in-game.md) | ✅ |

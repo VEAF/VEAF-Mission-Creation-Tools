@@ -761,6 +761,69 @@ function TestVeafCombatZoneCompletion:test_completionCheck_static_object_red_coa
   StaticObject.getByName = origStaticGetByName
 end
 
+-- FIX-OBJECTIVE-COMPLETION, measured in game 2026-10-01: after a static is destroyed,
+-- StaticObject.getByName still returns it, with isExist() false and getLife() 0. Counting whatever it
+-- returns kept every zone holding a static open for good.
+local function _withStaticState(name, state, test)
+  local previous = StaticObject.getByName
+  StaticObject.getByName = function(asked)
+    if asked == name then
+      return {
+        getCoalition = function()
+          return 1
+        end,
+        isExist = function()
+          return state.exists
+        end,
+        getLife = function()
+          return state.life
+        end,
+        getTypeName = function()
+          return "Ural-375"
+        end,
+        -- what the deactivation that follows a completion asks of it
+        getName = function()
+          return name
+        end,
+        destroy = function() end,
+      }
+    end
+    return nil
+  end
+  local ok, err = pcall(test)
+  StaticObject.getByName = previous
+  if not ok then
+    error(err, 0)
+  end
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_does_not_count_a_destroyed_static()
+  _withStaticState("deadDepot", { exists = true, life = 0 }, function()
+    self.z:addSpawnedGroup("deadDepot")
+    self.z:setActive(true)
+    self.z:completionCheck()
+    luaunit.assertFalse(self.z:isActive())
+  end)
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_does_not_count_a_static_with_no_life_left()
+  _withStaticState("wreck", { exists = false, life = 0 }, function()
+    self.z:addSpawnedGroup("wreck")
+    self.z:setActive(true)
+    self.z:completionCheck()
+    luaunit.assertFalse(self.z:isActive())
+  end)
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_still_counts_a_static_standing()
+  _withStaticState("depot", { exists = true, life = 25 }, function()
+    self.z:addSpawnedGroup("depot")
+    self.z:setActive(true)
+    self.z:completionCheck()
+    luaunit.assertTrue(self.z:isActive())
+  end)
+end
+
 -- FEAT-OBJECTIVE-MISSION-PROMPT: a map object (bridge, building of the map) is not spawned by the
 -- zone, so the unit count never sees it; the zone asks the destroyed-scenery register instead.
 function TestVeafCombatZoneCompletion:test_completionCheck_waits_for_a_scenery_target_still_standing()
@@ -1247,6 +1310,31 @@ function TestVeafCombatZoneGetInformation:test_getInformation_a_blue_static_is_a
     luaunit.assertStrContains(info, "FRIENDS")
     luaunit.assertNil(info:find("ENEMIES"))
   end)
+end
+
+-- the panel counts what the watchdog counts: a destroyed static is neither (FIX-OBJECTIVE-COMPLETION)
+function TestVeafCombatZoneGetInformation:test_getInformation_does_not_count_a_destroyed_static()
+  local previous = StaticObject.getByName
+  StaticObject.getByName = function()
+    return {
+      getCoalition = function()
+        return 1
+      end,
+      isExist = function()
+        return false
+      end,
+      getLife = function()
+        return 0
+      end,
+    }
+  end
+  self.z:addSpawnedGroup("wreck")
+  local ok, info = pcall(function()
+    return self.z:getInformation(nil)
+  end)
+  StaticObject.getByName = previous
+  luaunit.assertTrue(ok, tostring(info))
+  luaunit.assertNil(info:find("structure"))
 end
 
 -- the F10 report must not read "0 enemies" on a zone that refuses to complete

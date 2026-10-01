@@ -211,6 +211,23 @@ static that lacks it.
 
 *What it cost:* 4 objectives of GermanyCW-v6, placed by the MCP before it wrote the field, missing in game; a combat zone drew 4 elements from 3.
 
+### `StaticObject.getByName` keeps returning a static after its destruction {#destroyed-static-is-still-returned-by-getbyname}
+
+Measured **2026-10-01**.
+
+A static destroyed in game is still found by name: `StaticObject.getByName` returns an object whose
+`isExist()` is **false** and `getLife()` is **0**, and which still answers `getCoalition()`.
+Measured on Caucasus with a red `Ural-375` static blown up by `trigger.action.explosion` (power 500):
+10 s and 70 s after the explosion, both reads gave `isExist=false life=0`.
+
+**What to do:** Never take "found by name" for "still there": test `isExist()` and `getLife() > 0`.
+`veafCombatZone.getStandingStatic` does both, and is what the combat zone watchdog and its F10
+report now use.
+
+*What it cost:* The combat zone watchdog counted every static it found, so **a zone holding a static never
+completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
+FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

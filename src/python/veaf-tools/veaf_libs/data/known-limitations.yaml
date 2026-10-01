@@ -426,3 +426,21 @@ limitations:
   cost: |
     The tools' reference was parsed from the text of `Radio.lua`: on Persian Gulf it held no UHF channel
     for any airfield, and made the hand-written channel collection — which was right — look wrong.
+- id: destroyed-static-is-still-returned-by-getbyname
+  kind: dcs
+  area: spawning
+  title: "`StaticObject.getByName` keeps returning a static after its destruction"
+  measured: "2026-10-01"
+  symptom: |
+    A static destroyed in game is still found by name: `StaticObject.getByName` returns an object whose
+    `isExist()` is **false** and `getLife()` is **0**, and which still answers `getCoalition()`.
+    Measured on Caucasus with a red `Ural-375` static blown up by `trigger.action.explosion` (power 500):
+    10 s and 70 s after the explosion, both reads gave `isExist=false life=0`.
+  workaround: |
+    Never take "found by name" for "still there": test `isExist()` and `getLife() > 0`.
+    `veafCombatZone.getStandingStatic` does both, and is what the combat zone watchdog and its F10
+    report now use.
+  cost: |
+    The combat zone watchdog counted every static it found, so **a zone holding a static never
+    completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
+    FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.

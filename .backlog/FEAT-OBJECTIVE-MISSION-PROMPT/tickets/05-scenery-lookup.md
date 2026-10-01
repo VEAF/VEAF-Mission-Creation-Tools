@@ -1,6 +1,6 @@
 # 05 — `dcs scenery-objects` + `offer_scenery_lookup`: find a map object's id
 
-Status: 🧑 waiting-human (code done; the in-game check below needs DCS)
+Status: ✅ done — checked in game 2026-10-01: 63 objects around Kutaisi, id 89434905 the same in the register
 
 Files: `veaf_libs/scenery_lookup.py` (new), `veaf_tools/commands/clear_ground.py`,
 `veaf_tools/command_tree.py`, `veaf_tools/app.py`, `veaf_mission_mcp/actions.py`, the locales,

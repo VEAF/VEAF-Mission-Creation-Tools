@@ -1,6 +1,6 @@
 # 04 — `scenery_targets`: map objects a zone must see destroyed
 
-Status: 🧑 waiting-human (code done; the in-game check below needs DCS)
+Status: ✅ done — checked in game 2026-10-01 (after FIX-OBJECTIVE-COMPLETION subscribed the register)
 
 Files: `veaf_libs/lua_config_generator.py`, `src/scripts/veaf/veafCombatZone.lua`,
 `src/scripts/veaf/veafMissionDb.lua`, their tests, `doc/mission-maker/scripts/veafCombatZone*.md`.

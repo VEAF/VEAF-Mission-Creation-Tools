@@ -700,18 +700,25 @@ veaf.isSceneryDestroyed = veafMissionDb.isSceneryDestroyed
 
 --- Subscribe the destroyed-scenery register to the event bus, once.
 ---
---- Not done at load time: `veaf_build/worker.py` loads this module *before* `veafEventHandler`, so
---- there is nothing to subscribe to yet. `initialize` runs a second time on the module init pass,
---- when the bus exists — hence the guard, which is what keeps a second pass from recording every
+--- Not possible at load time: `veaf_build/worker.py` loads this module *before* `veafEventHandler`, so
+--- there is no bus to subscribe to yet. It used to count on `initialize` running a second time on the
+--- module init pass; that pass is only generated for a mission listing MISSIONDB, and none does —
+--- measured in game on 2026-10-01 (FIX-OBJECTIVE-COMPLETION): one "Initializing module" in dcs.log, and
+--- a register that never recorded a destruction. So `veafEventHandler.initialize`, which runs on every
+--- mission, calls this once the bus exists. The guard keeps the two callers from recording every
 --- destruction twice.
-local function registerSceneryCallback()
+--- @return boolean true when this call subscribed it
+function veafMissionDb.registerSceneryCallback()
   if veafMissionDb.sceneryCallbackRegistered then
     return false
   end
   if not (veafEventHandler and veafEventHandler.addCallback) then
     return false
   end
-  veafEventHandler.addCallback("veafMissionDb.destroyedScenery", { "S_EVENT_DEAD" }, veafMissionDb.recordDestroyedScenery)
+  -- flagged only on success: a refused subscription must leave the next caller free to try again
+  if not veafEventHandler.addCallback("veafMissionDb.destroyedScenery", { "S_EVENT_DEAD" }, veafMissionDb.recordDestroyedScenery) then
+    return false
+  end
   veafMissionDb.sceneryCallbackRegistered = true
   return true
 end
@@ -721,7 +728,7 @@ function veafMissionDb.initialize()
   veafMissionDb.buildSnapshot()
   veafMissionDb.humansByName = {}
   indexEditorSlots()
-  registerSceneryCallback()
+  veafMissionDb.registerSceneryCallback()
 end
 
 -- Built at load time, not on the module init pass: other modules read the snapshot from their own

@@ -92,6 +92,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   action `offer_scenery_lookup` proposes it. Known limitation recorded: activating an operation spawns
   all its zones at once, `dependencies` ordering the tasks and not the units.
 
+### Fixed
+
+- **A combat zone holding a static now completes, and the destroyed-scenery register records at last**
+  (FIX-OBJECTIVE-COMPLETION, both measured in game on 2026-10-01 with the objective-mission test
+  mission). `StaticObject.getByName` keeps returning a static after its destruction — `isExist()` false,
+  `getLife()` 0 — and the zone watchdog counted whatever it returned, so **a zone with a static target
+  never completed**, and its F10 report kept listing the destroyed target; both now count only a static
+  still standing (`veafCombatZone.getStandingStatic`). Separately, the register of destroyed map objects
+  (#836) never subscribed to destructions: `veafMissionDb` is loaded before the event bus and counted on
+  a second initialisation that is only generated for a mission listing `MISSIONDB`, which none does. The
+  event bus now subscribes it. This makes `scenery_targets` work, and makes the Combat Missions'
+  *prevent destruction of map objects* objective able to fail — it could not since #836, so a mission
+  using it may now end in failure where it used to succeed.
+
 ## [6.26.0] — 2026-09-30
 
 ### Added

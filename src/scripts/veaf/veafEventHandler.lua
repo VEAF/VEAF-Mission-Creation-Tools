@@ -653,6 +653,12 @@ function veafEventHandler.initialize()
     world.addEventHandler(veafEventHandler.eventHandler)
     veafEventHandler.eventHandlerRegistered = true
   end
+
+  -- veafMissionDb is loaded before this module and cannot subscribe its destroyed-scenery register
+  -- from its own load-time initialize: the bus does it, now that it exists (FIX-OBJECTIVE-COMPLETION).
+  if veafMissionDb and veafMissionDb.registerSceneryCallback then
+    veafMissionDb.registerSceneryCallback()
+  end
 end
 
 veafEventHandler.initialize()

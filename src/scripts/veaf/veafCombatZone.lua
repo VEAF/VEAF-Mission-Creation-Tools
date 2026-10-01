@@ -252,14 +252,45 @@ function veafCombatZone.getGroupNameOfUnit(unit)
   return unit:getGroup():getName(), false
 end
 
+--- The static of that name if it still stands, nil otherwise.
+---
+--- `StaticObject.getByName` keeps returning a static after its destruction — measured in game on
+--- 2026-10-01 (FIX-OBJECTIVE-COMPLETION): `isExist()` false and `getLife()` 0 on a destroyed truck, which
+--- the completion watchdog counted as alive, so a zone holding a static never completed. A method that
+--- is missing or raises is read as "standing": only a positive answer that it is gone removes it.
+--- @param name string the static's name
+--- @return StaticObject|nil
+function veafCombatZone.getStandingStatic(name)
+  local static = StaticObject.getByName(name)
+  if not static then
+    return nil
+  end
+  local okExist, exists = pcall(function()
+    return static:isExist()
+  end)
+  if okExist and exists == false then
+    return nil
+  end
+  local okLife, life = pcall(function()
+    return static:getLife()
+  end)
+  if okLife and type(life) == "number" and life <= 0 then
+    return nil
+  end
+  return static
+end
+
 --- One line saying what DCS knows of a group right now, for the `veaf.diag` lines.
 --- @param groupName string a group, or a static, the zone spawned
---- @return string "name: N alive (types)", "name: static", or "name: not found"
+--- @return string "name: N alive (types)", "name: static", "name: destroyed static", or "name: not found"
 function veafCombatZone.describeForDiag(groupName)
   local group = Group.getByName(groupName)
   if not group then
-    if StaticObject.getByName(groupName) then
+    if veafCombatZone.getStandingStatic(groupName) then
       return string.format("%s: static", tostring(groupName))
+    end
+    if StaticObject.getByName(groupName) then
+      return string.format("%s: destroyed static", tostring(groupName))
     end
     return string.format("%s: not found", tostring(groupName))
   end
@@ -1596,8 +1627,8 @@ function VeafCombatZone:getInformation(unitName)
         -- A static element comes back as a static, registered under its own name, which
         -- `Group.getByName` does not know. The watchdog counts it (completionCheck), so the panel must
         -- too: on 2026-09-29 combatZone_WahnerHeide_Easy listed no enemy at all while the zone waited
-        -- for its five static targets.
-        local static = StaticObject.getByName(groupName)
+        -- for its five static targets. A destroyed static is still returned by getByName: standing only.
+        local static = veafCombatZone.getStandingStatic(groupName)
         if static then
           local coa = static:getCoalition()
           local typeName = static.getTypeName and static:getTypeName()
@@ -2136,7 +2167,8 @@ function VeafCombatZone:completionCheck()
         end
       end
     else
-      local static = StaticObject.getByName(groupName)
+      -- standing only: a destroyed static is still returned by getByName, and kept the zone open
+      local static = veafCombatZone.getStandingStatic(groupName)
       if static then
         local coa = static:getCoalition()
         if coa == 1 then

@@ -320,6 +320,17 @@ Règles :
   leurs fréquences DCS, propose-les à l'utilisateur (une radio tient une vingtaine de canaux), puis
   `set_airfield_channels` écrit celles retenues dans la collection `bases` ; place-les ensuite dans
   les `channel_lists`.
+- **Les canaux qui ne sont pas des aérodromes se choisissent hors de la bande des tours** (AWACS,
+  ravitailleurs, porte-avions, patrouilles). Relève d'abord la bande qu'occupent les tours du
+  théâtre — `describe_airfield_channels` les donne toutes — et place le reste en dehors : sur le
+  Caucase elles prennent **250.0 à 270.0 sans un seul trou**, une par MHz, et y poser un ravitailleur
+  crée un doublon que rien ne signale. Mesuré le 01/10/2026 : huit canaux VEAF vivaient dans cette
+  bande, invisibles tant que les canaux de base portaient une série inventée ; avec les vraies
+  fréquences, quatre se sont retrouvés en doublon, dont Magic 1 et Nalchik sur 265.0 **aux canaux 2
+  et 16 de la même radio** — un pilote qui passait sur Nalchik se retrouvait sur l'AWACS. Garde la
+  mnémonique quand il y en a une (le TACAN 51Y du ravitailleur Arco 1 donne 291.0).
+- **Vérifie ensuite qu'aucune fréquence n'apparaît deux fois** dans une même liste de canaux, et
+  qu'aucun canal non-aérodrome ne tombe sur une tour du théâtre. C'est ce contrôle qui manquait.
 - **`src/versions.yaml` à réécrire** : position = base mère, fuseau, `base_date` d'époque ; variantes
   nuit / aube / matin / jour / soir × réel (`airport_icao`) / dégagé (`clearsky`) / épars / pluie.
 - **`src/waypoints.yaml`** : retire les exemples du gabarit ; un plan par catégorie et par camp jouable,

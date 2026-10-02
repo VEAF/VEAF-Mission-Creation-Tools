@@ -193,7 +193,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   published report: the Syria Open Training's `dawn-real-clear` flew FEW and announced
   `SCT030 BKN090`. `${METAR}` is now recomposed from the capped weather, with the report's station,
   temperature and QNH, at the variant's time — `METAR LTAG 150203Z 35006KT 9999 FEW090 19/// Q1015`.
-  The caps live in one place for the injected table and the briefing. A published METAR still keeps
+  The caps live in one place for the injected table and the briefing, and a composed METAR announces
+  the cloud base DCS flies once it has moved it into its preset's range (`BKN008` capped is flown, and
+  now announced, `FEW028`). A published METAR still keeps
   its own time group, now documented; the single cloud layer a METAR is flown with is a known
   limitation.
 

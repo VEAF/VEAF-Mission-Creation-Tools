@@ -622,7 +622,7 @@ versions:
 | `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo, et affichable dans le briefing via [`${METAR}`](#briefing-variables) |
 | `airport_icao` | string | Non | Code OACI dont la météo réelle est récupérée en ligne (utilisé sans `metar`) |
 | `weather` | objet | Non | Surcharge météo manuelle (utilisée sans `metar` ni `airport_icao`) |
-| `clearsky` | booléen | Non | Plafonne la météo à des conditions de vol à vue : nuages au plus FEW, vent sous 15 kt, visibilité de 10 km ou plus, ni pluie ni brouillard. Garde la vraie météo d'un `airport_icao` tout en restant pilotable à vue. Défaut `false` |
+| `clearsky` | booléen | Non | Plafonne la météo à des conditions de vol à vue : nuages au plus FEW, vent sous 15 kt, visibilité de 10 km ou plus, ni pluie ni brouillard. Garde la vraie météo d'un `airport_icao` tout en restant pilotable à vue ; le [`${METAR}`](#briefing-variables) du briefing décrit le ciel plafonné. Défaut `false` |
 
 ### Afficher la météo dans le briefing : `${METAR}` {#briefing-variables}
 
@@ -646,8 +646,15 @@ Ce que `${METAR}` vaut selon la variante :
 |---|---|
 | `metar: "..."` | la chaîne telle que vous l'avez écrite |
 | `airport_icao: LFRS` | le METAR réel récupéré pour cette station |
-| seulement `weather:` | un METAR **composé à partir d'elle** : vent, visibilité, pluie et brouillard, nébulosité et base, température (sans point de rosée : écrit `///`), QNH de la mission, daté de la date et de l'heure de la variante en UTC, sans station — `METAR 150900Z 27010KT 9999 SKC Q1013` |
+| `metar:` ou `airport_icao:`, avec `clearsky: true` | un METAR **recomposé depuis la météo plafonnée** que vole la mission, construit comme pour `weather:` ci-dessous mais en gardant la station du relevé, sa température et son QNH — `METAR LTAG 150203Z 35006KT 9999 FEW090 19/// Q1015`. Toujours recomposé, même quand les plafonds ne changent rien : un `TEMPO TSRA` laissé dans le texte publié annoncerait un orage que le ciel n'aura jamais |
+| seulement `weather:` | un METAR **composé à partir d'elle** : vent, visibilité, pluie et brouillard, nébulosité et base, température (sans point de rosée : écrit `///`), QNH de la mission, daté de la date et de l'heure de la variante en UTC, sans station — `METAR 150900Z 27010KT 9999 SKC Q1013`. Avec `clearsky: true`, ce sont les valeurs plafonnées |
 | aucune météo | **rien** — il n'existe aucun METAR à afficher, donc le texte `${METAR}` reste tel quel et un avertissement le dit dans le log |
+
+!!! warning "Un METAR publié garde son heure"
+    Un `metar:` écrit dans le fichier ou celui récupéré pour un `airport_icao` est affiché tel que
+    publié, groupe horaire compris : un relevé récupéré le 2 à 18 h 20Z se lit `021820Z` dans une variante
+    qui commence à l'aube d'une autre date. Seul un METAR composé ou recomposé (`weather:`, ou
+    `clearsky: true`) est daté de la date et de l'heure de la variante.
 
 !!! note "Un `${...}` inconnu n'est jamais effacé"
     `${METRA}` reste écrit `${METRA}` dans le briefing. C'est délibéré : un briefing est lu par des

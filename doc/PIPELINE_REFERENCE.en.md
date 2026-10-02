@@ -619,7 +619,7 @@ versions:
 | `metar` | string | No | Full METAR string — parsed for the weather data, and showable in the briefing through [`${METAR}`](#briefing-variables) |
 | `airport_icao` | string | No | ICAO code whose live weather is fetched (used without `metar`) |
 | `weather` | object | No | Manual weather override (used without `metar` or `airport_icao`) |
-| `clearsky` | boolean | No | Caps the weather to visual-flight conditions: clouds at most FEW, wind under 15 kt, visibility 10 km or more, no rain, no fog. Keeps an `airport_icao`'s real weather flyable without instruments. Default `false` |
+| `clearsky` | boolean | No | Caps the weather to visual-flight conditions: clouds at most FEW, wind under 15 kt, visibility 10 km or more, no rain, no fog. Keeps an `airport_icao`'s real weather flyable without instruments; the briefing's [`${METAR}`](#briefing-variables) describes the capped sky. Default `false` |
 
 ### Showing the weather in the briefing: `${METAR}` {#briefing-variables}
 
@@ -643,8 +643,15 @@ What `${METAR}` resolves to, per variant:
 |---|---|
 | `metar: "..."` | the string exactly as you wrote it |
 | `airport_icao: LFRS` | the live METAR fetched for that station |
-| only `weather:` | a METAR **composed from it**: wind, visibility, rain and fog, cover and base, temperature (no dew point: written `///`), the mission's QNH, stamped with the variant's date and time in UTC and no station — `METAR 150900Z 27010KT 9999 SKC Q1013` |
+| `metar:` or `airport_icao:`, with `clearsky: true` | a METAR **recomposed from the capped weather** the mission flies, built the same way as for `weather:` below but keeping the report's station, its temperature and its QNH — `METAR LTAG 150203Z 35006KT 9999 FEW090 19/// Q1015`. Always recomposed, even when the caps change nothing: a `TEMPO TSRA` left in the published text would announce a storm the sky never has |
+| only `weather:` | a METAR **composed from it**: wind, visibility, rain and fog, cover and base, temperature (no dew point: written `///`), the mission's QNH, stamped with the variant's date and time in UTC and no station — `METAR 150900Z 27010KT 9999 SKC Q1013`. With `clearsky: true`, the values are the capped ones |
 | no weather at all | **nothing** — there is no METAR to show, so the text `${METAR}` stays as written and a warning says so in the log |
+
+!!! warning "A published METAR keeps its own time"
+    A `metar:` written in the file or one fetched for an `airport_icao` is shown as published, time
+    group included: a report fetched at 18:20Z on the 2nd reads `021820Z` in a variant that starts at
+    dawn on another date. Only a composed or recomposed METAR (`weather:`, or `clearsky: true`) is stamped
+    with the variant's date and time.
 
 !!! note "An unknown `${...}` is never blanked"
     `${METRA}` stays written as `${METRA}` in the briefing. Deliberately: a briefing is read by players,

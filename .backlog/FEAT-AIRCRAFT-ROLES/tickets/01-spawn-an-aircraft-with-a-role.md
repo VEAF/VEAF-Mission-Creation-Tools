@@ -1,6 +1,6 @@
 # 01 — Spawn an aircraft with a role
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: feat
 
@@ -17,9 +17,9 @@ not rewritten. `spawnCombatAirPatrol` keeps parsing the `-cap` options and choos
 
 ## Definition of done
 
-- [ ] Characterisation test first: what `coalition.addGroup` receives for a `-cap` (three waypoints,
+- [x] Characterisation test first: what `coalition.addGroup` receives for a `-cap` (three waypoints,
       the template's first-waypoint options, `SwitchWaypoint` 3 → 2), `PROHIBIT_AA` set, the watchdog
       scheduled with the zone between waypoints 2 and 3
-- [ ] Same test green after the move
-- [ ] The watchdog reads its zone from a per-group registry, so a role change re-aims it instead of
+- [x] Same test green after the move
+- [x] The watchdog reads its zone from a per-group registry, so a role change re-aims it instead of
       starting a second one

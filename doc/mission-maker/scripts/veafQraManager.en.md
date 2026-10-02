@@ -309,6 +309,28 @@ VeafQRA:new()
 
 That is all — no trigger conditions, no scheduled functions. VEAF handles detection, scramble, and rearm automatically.
 
+### What a scrambled group does {#scrambled-group-task}
+
+A group whose **task** (in the editor) is `CAP` or `Intercept` gets its job from the script when its route
+does not give it one: if it carries no aircraft engagement task (`EngageTargets` or `EngageTargetsInZone`
+with *Air* targets), it is launched on **zone defense**:
+
+- it appears where you placed it, with the options of its first waypoint (ROE, reaction to threat…);
+- it flies to the QRA zone and holds a race-track centred on it, along the axis it arrives from (a 20 NM
+  leg, or the zone's diameter when that is shorter);
+- it engages only the aircraft that enter the zone: fighters first, then bombers, then the rest, the nearest first within each kind.
+
+A group placed **on a parking spot or the runway** keeps its take-off as you set it, then climbs to
+27,000 ft for its patrol.
+
+So this is the normal case: place the interceptor with **a single waypoint** and no task, and the script
+does the rest. If you want a flight plan of your own, write it **with** an aircraft engagement task: it is
+then flown as written. A hand-written route without that engagement is replaced, and the build warns you
+about it. A group with any other task (`CAS`, `Ground Attack`, `Escort`…) always flies its route.
+
+A `-cap` command listed in `simple_groups` also defends the QRA zone, not the 60 NM zone it draws around
+its own leg.
+
 ### Logistics chain
 
 By default a QRA has unlimited aircraft. The logistics system lets you model a finite airfield stock with optional resupply — useful for long persistent missions:

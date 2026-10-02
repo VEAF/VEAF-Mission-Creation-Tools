@@ -101,6 +101,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   over the terrain (4/3-Earth horizon), and the highest ground per 10 km MGRS square or 30′ quadrangle.
   Terrain only — no buildings, pylons or trees — and every answer says so. The objective-mission prompt
   now uses it for target altitudes, low-level floors and its masking table.
+- **A scrambled interceptor has a job, and one way spawns an aircraft with one** (FEAT-AIRCRAFT-ROLES,
+  from the Tacview of *Ligne rouge d'At Tanf*). The Sayqal QRA scrambled three times and intercepted
+  nobody: its group had one waypoint and no task — the shape `create_qra` builds — so the clone reached
+  the end of its route the moment it appeared and landed four and a half minutes later, and the QRA
+  rearmed. A QRA or an air wave now gives a group tasked `CAP` or `Intercept` whose route engages no
+  aircraft the **`zone_defense`** role: a race-track centred on the zone, along the axis it arrives from,
+  and the CAP watchdog engaging what enters the zone. A group parked or on the runway keeps its take-off
+  and climbs to 27 000 ft. A route that engages air, and the route of any other task — a bomber or an
+  assault wave — is flown as written. A `-cap` listed in a QRA or a wave now defends that zone rather
+  than the 60 NM zone around its own leg, with a single watchdog. The roles live in a new runtime
+  module, `veafAircraftSpawn.lua`, which `-cap` now spawns through too. The build and `veaf-tools
+  validate` warn when a `CAP`/`Intercept` route written by hand will be replaced, and the build says
+  when one is flown as written. **A mission picks this up by being rebuilt.**
 
 ### Fixed
 
@@ -115,6 +128,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   event bus now subscribes it. This makes `scenery_targets` work, and makes the Combat Missions'
   *prevent destruction of map objects* objective able to fail — it could not since #836, so a mission
   using it may now end in failure where it used to succeed.
+- **`-cap` and `-afac` spawned with no waypoint at all** (found in FEAT-AIRCRAFT-ROLES). Since #842
+  (2026-08-30, shipped in 6.18.0) `VeafGroupSpawn:withRoute` wrapped the `{ points = … }` table the CAP
+  and AFAC builders hand it, so DCS received `route.points.points`: every CAP flew no patrol and every
+  AFAC no orbit. `withRoute` now takes both shapes, as `veaf.addGroup` does.
+- **A `-cap` kept neither its weapons hold nor its patrol through the command layer** (FEAT-AIRCRAFT-ROLES).
+  `veafSpawn.executeCommand` made every spawned group weapons free, undoing the `PROHIBIT_AA` the CAP
+  watchdog owns, and imposed the caller's route even when the handler had set its own; a combat zone's
+  command hook re-routed the group along the marker's route the same way. An aircraft spawned with a
+  role is now left alone by both.
 
 ## [6.26.0] — 2026-09-30
 

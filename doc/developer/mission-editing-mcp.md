@@ -932,7 +932,9 @@ zone est un groupe de la zone, pas un appel séparé. En catégorie `ship`, les 
 
 Zone + intercepteurs **Late Activation** (coalition significative) + entrée
 `modules.QRA.definitions[]` référençant les groupes **par nom exact** (`simple_groups`). La
-coalition est passée en minuscule pour le placement, majuscule dans la définition YAML.
+coalition est passée en minuscule pour le placement, majuscule dans la définition YAML. Chaque intercepteur a **un seul point, sans tâche**, à dessein : au décollage, le module QRA donne à un groupe
+`CAP`/`Intercept` dont la route n'engage aucun aéronef une patrouille sur la zone
+([ce que fait un groupe décollé](../mission-maker/scripts/veafQraManager.md#scrambled-group-task)).
 
 ### `create_cap_mission`
 

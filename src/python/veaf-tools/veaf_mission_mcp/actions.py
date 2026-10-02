@@ -1724,7 +1724,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "referencing the group names verbatim. Interceptors are built AIRBORNE and fuelled "
                 "(one aircraft type per group); give them a loadout with 'pylons' or copy one with "
                 "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
-                "unarmed interceptor intercepts nothing."
+                "unarmed interceptor intercepts nothing. Each group gets a single waypoint and no task "
+                "on purpose: when it scrambles, the QRA module gives a CAP/Intercept group whose route "
+                "engages no aircraft its job -- a patrol across the zone and engagement of what enters "
+                "it. Do not add waypoints to such a group without an EngageTargets (Air) task, or that "
+                "route is replaced."
             ),
             parameters_schema={
                 "type": "object",

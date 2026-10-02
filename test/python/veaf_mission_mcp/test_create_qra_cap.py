@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 
+import pytest
 from mission_tools.mission_yaml_editor import load_yaml
 from mission_tools.miz_tools import read_mission_folder
 from veaf_mission_mcp.composites import create_cap_mission, create_qra
@@ -143,3 +144,43 @@ def test_create_qra_with_levels_writes_no_simple_groups(tmp_path: Path) -> None:
     definition = load_yaml(folder / "mission.yaml")["modules"]["QRA"]["definitions"][0]
     assert "simple_groups" not in definition
     assert definition["groups_by_enemy_count"][0]["groups"] == ["MiG-29 North"]
+
+
+def test_create_qra_takes_a_dcs_payload_by_name(tmp_path: Path) -> None:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 09."""
+    folder = _folder(tmp_path)
+    result = create_qra(
+        folder,
+        name="QRA-North",
+        coalition="red",
+        trigger_zone="ZONE-QRA",
+        position={"x": 1.0, "y": 2.0},
+        radius=50000,
+        groups=[{"name": "MiG-31 North", "units": [{"type": "MiG-31", "count": 2}], "payload": "R-40T*2,R-33*4"}],
+        country_id=0,
+        country_name="Russia",
+    )
+    assert not any("no weapons" in str(w) for w in result["warnings"])
+    group = _find_group(read_mission_folder(folder).mission_content or {}, "MiG-31 North")
+    assert group is not None
+    units = group["units"]
+    unit = (list(units.values()) if isinstance(units, dict) else units)[0]
+    pylons = unit["payload"]["pylons"]
+    assert (pylons if isinstance(pylons, dict) else dict(enumerate(pylons, start=1)))[2]["CLSID"] == (
+        "{F1243568-8EF0-49D4-9CB5-4DA90D92BC1D}"
+    )
+
+
+def test_a_payload_and_loadout_from_together_are_refused(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="give one loadout"):
+        create_cap_mission(
+            _folder(tmp_path),
+            mission_name="Foxhound",
+            units=[{"type": "MiG-31", "count": 2}],
+            coalition="red",
+            country_id=0,
+            country_name="Russia",
+            position={"x": 0.0, "y": 0.0},
+            payload="R-40T*2,R-33*4",
+            loadout_from="Somewhere",
+        )

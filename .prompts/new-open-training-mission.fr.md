@@ -321,8 +321,9 @@ Règles :
 - **Pas de menu radio de QRA ouvert à tous** : `radio_menu` seulement avec
   `radio_menu_restrict_to_group`. Chaque niveau tire entre des **appareils différents**, jamais entre des
   copies du même.
-- `create_qra`, intercepteurs d'époque avec **emport** (dans chaque groupe : `pylons`, ou
-  `loadout_from` un groupe `veafSpawn-*` du même type), `airport_link` sur la base.
+- `create_qra`, intercepteurs d'époque avec **emport** (dans chaque groupe : `pylons`, `payload` un
+  emport de DCS par son nom — `list_payloads` —, ou `loadout_from` un groupe `veafSpawn-*` du même type),
+  `airport_link` sur la base.
 - Si le rouge a des slots : **QRA bleues** sur quelques bases bleues, mêmes règles.
 
 ### 4.9 CAP à la demande
@@ -330,8 +331,8 @@ Règles :
 - **Rouges : 2 à 4**, de menaces différentes (chasseur IR, Fox 1 moyen, intercepteur haut et rapide,
   éventuellement un bombardier à intercepter), race-track **dans le territoire rouge**, virages compris.
 - **Bleues** si le rouge a des slots, même logique.
-- `create_cap_mission` avec une `route` (le second point donne l'hippodrome) et un emport (`pylons`
-  ou `loadout_from`), et un nom de menu qui dit type, secteur, altitude.
+- `create_cap_mission` avec une `route` (le second point donne l'hippodrome) et un emport (`pylons`,
+  `payload` ou `loadout_from`), et un nom de menu qui dit type, secteur, altitude.
 
 ### 4.10 Radio, météo, waypoints
 

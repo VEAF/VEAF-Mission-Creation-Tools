@@ -22,7 +22,10 @@ Before naming a group, picking a unit type, or configuring a module, call the re
 actions. They read VEAF's canonical, always-current data — your training memory of DCS types or
 VEAF conventions may be stale or wrong.
 
-- `list_unit_types` — real DCS unit type ids (filter by category / name).
+- `list_unit_types` — real DCS unit type ids (filter by category / name), with the weapon and sensor
+  ranges DCS gives them (`threat_range_m`, `detection_range_m`).
+- `list_payloads` — the loadouts DCS offers an AI aircraft type, by name: what `payload` takes in
+  `add_air_group`, `create_qra` and `create_cap_mission`.
 - `list_shortcuts` — VEAF spawn aliases. Three families: `units` (`shilka`, `sa8`), `groups`
   (composite SAM/convoy groups), and `commands` — the `#command` shortcuts (`-samVLR`, `-samLR`,
   `-armor`, random convoys, …), each with its `randomParameters`: the range of every parameter it

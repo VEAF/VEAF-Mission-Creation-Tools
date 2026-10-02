@@ -46,6 +46,7 @@ from veaf_mission_mcp.oracle import (
     describe_known_limitations,
     describe_module,
     describe_naming_conventions,
+    list_payloads,
     list_shortcuts,
     list_unit_types,
 )
@@ -1040,6 +1041,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "object",
                         "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
                     },
+                    "payload": {
+                        "type": "string",
+                        "description": "A DCS loadout by the name the Mission Editor lists (list_payloads gives "
+                        "a type's names), instead of 'pylons'.",
+                    },
                 },
                 "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
             },
@@ -1745,7 +1751,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "a trigger zone + Late-Activation interceptor group(s) on the given coalition in "
                 "src/mission, and an appended modules.QRA.definitions[] entry in mission.yaml "
                 "referencing the group names verbatim. Interceptors are built AIRBORNE and fuelled "
-                "(one aircraft type per group); give them a loadout with 'pylons' or copy one with "
+                "(one aircraft type per group); give them a loadout with 'pylons', a DCS loadout by name "
+                "with 'payload' (list_payloads), or copy one with "
                 "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
                 "unarmed interceptor intercepts nothing. Each group gets a single waypoint and no task "
                 "on purpose: when it scrambles, the QRA module gives a CAP/Intercept group whose route "
@@ -1786,6 +1793,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                 "pylons": {
                                     "type": "object",
                                     "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                                },
+                                "payload": {
+                                    "type": "string",
+                                    "description": "A DCS loadout by the name the Mission Editor lists (list_payloads "
+                                    "gives a type's names). One of pylons / payload / loadout_from.",
                                 },
                                 "loadout_from": {
                                     "type": "string",
@@ -1830,7 +1842,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml. The "
                 "template is built AIRBORNE at 'position' and fuelled; give a 'route' point and it "
                 "flies a race-track between the two (without one it orbits nowhere), and a loadout "
-                "with 'pylons' or 'loadout_from'."
+                "with 'pylons', 'payload' (a DCS loadout by name, list_payloads) or 'loadout_from'."
             ),
             parameters_schema={
                 "type": "object",
@@ -1873,6 +1885,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "pylons": {
                         "type": "object",
                         "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                    },
+                    "payload": {
+                        "type": "string",
+                        "description": "A DCS loadout by the name the Mission Editor lists (list_payloads "
+                        "gives a type's names). One of pylons / payload / loadout_from.",
                     },
                     "loadout_from": {
                         "type": "string",
@@ -2100,6 +2117,25 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: list_unit_types(category=p.get("category"), name_contains=p.get("name_contains")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="list_payloads",
+            description=(
+                "List the DCS default loadouts of an AI aircraft type by the names the Mission Editor "
+                "offers ('R-40T*2,R-33*4' for a MiG-31), with their pylons -- what add_air_group, "
+                "create_qra and create_cap_mission take as 'payload'. Without a type, the types that "
+                "have loadouts (a module aircraft has none here: give it pylons or loadout_from). "
+                "Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "unit_type": {"type": "string", "description": "Exact DCS type, e.g. 'MiG-31', 'Su-27'."},
+                },
+            },
+        ),
+        handler=lambda p: list_payloads(p.get("unit_type")),
     )
     catalog.register(
         ActionSpec(
@@ -2523,6 +2559,7 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         fuel_fraction=params.get("fuel_fraction"),
         late_activation=params.get("late_activation", False),
         pylons=params.get("pylons"),
+        payload=params.get("payload"),
         chaff=params.get("chaff"),
         flare=params.get("flare"),
         carrier=params.get("carrier"),
@@ -2596,6 +2633,7 @@ def _handle_create_cap_mission(params: dict[str, Any]) -> dict[str, Any]:
         speed_kt=params.get("speed_kt", 350.0),
         pylons=params.get("pylons"),
         loadout_from=params.get("loadout_from"),
+        payload=params.get("payload"),
     )
 
 

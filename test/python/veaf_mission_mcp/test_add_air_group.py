@@ -551,3 +551,38 @@ class TestLaserDrone:
                 "params": {"altitude": 4572.0, "pattern": "Circle", "speed": 82.31104, "speedEdited": True},
             },
         ]
+
+
+class TestDcsPayloadByName:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 09: a MiG-31 with the loadout the Mission Editor names."""
+
+    def _add(self, tmp_path: Path, **extra: object) -> Path:
+        miz = _caucasus_miz(tmp_path)
+        add_air_group(
+            miz,
+            coalition="red",
+            country_id=0,
+            country_name="Russia",
+            name="Foxhound",
+            unit_type="MiG-31",
+            start="air",
+            position={"x": 0.0, "y": 0.0},
+            task="Intercept",
+            **extra,  # type: ignore[arg-type]
+        )
+        return miz
+
+    def test_the_named_loadout_is_written(self, tmp_path: Path) -> None:
+        miz = self._add(tmp_path, payload="R-40T*2,R-33*4")
+        unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Foxhound"))[0]
+        pylons = unit["payload"]["pylons"]
+        pylons = pylons if isinstance(pylons, dict) else dict(enumerate(pylons, start=1))
+        assert pylons[1]["CLSID"] == "{5F26DBC2-FB43-4153-92DE-6BBCE26CB0FF}"
+
+    def test_an_unknown_name_is_refused_with_the_types_list(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match=r"R-60M\*4,R-33\*4"):
+            self._add(tmp_path, payload="Everything")
+
+    def test_both_pylons_and_payload_are_refused(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="not both"):
+            self._add(tmp_path, payload="R-40T*2,R-33*4", pylons={1: {"CLSID": "{X}"}})

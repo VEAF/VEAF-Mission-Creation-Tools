@@ -752,6 +752,10 @@ modules) :
 - `list_unit_types` donne `threat_range_m` / `detection_range_m` (mètres, `ThreatRange` / `DetectionRange`
   du datamine, les cercles de l'éditeur) pour chaque unité qui en a ; `dcsUnits.yaml` les porte, régénéré
   par `veaf-build update-dcs-data --units` (ticket 08).
+- **Emports DCS par nom** : `add_air_group`, `create_qra` (par groupe) et `create_cap_mission` prennent
+  `payload`, le nom d'un emport que l'éditeur propose (`list_payloads`), à côté de `pylons` et
+  `loadout_from` — un seul des trois. Source : `MissionEditor/data/scripts/UnitPayloads` d'une
+  installation (613 emports, 45 types), le datamine n'ayant pas ces fichiers (ticket 09).
 
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
@@ -850,6 +854,18 @@ Lecture seule. Types d'unités DCS depuis la base générée, filtrables par `ca
 
 ```json
 {"category": "Plane", "name_contains": "su-27"}
+```
+
+### `list_payloads`
+
+Lecture seule. Les emports par défaut que l'éditeur de mission propose pour un type d'avion d'IA, par
+nom (« R-40T*2,R-33*4 » pour un MiG-31), avec leurs pylônes — ce que prend `payload` dans
+`add_air_group`, `create_qra` et `create_cap_mission`. Sans `unit_type`, la liste des types qui en ont.
+Lus dans `veaf_libs/data/payloads.yaml`, généré depuis une installation DCS
+(`veaf-build update-dcs-data --payloads --dcs-path <DCS>`) : le datamine n'a pas ces fichiers.
+
+```json
+{"unit_type": "MiG-31"}
 ```
 
 ### `list_shortcuts`

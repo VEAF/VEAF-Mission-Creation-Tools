@@ -592,6 +592,9 @@ def update_dcs_data(
     cockpit_controls: bool = typer.Option(
         False, "--cockpit-controls", help="Regenerate the cockpit-control indexes (needs --dcs-path)."
     ),
+    payloads: bool = typer.Option(
+        False, "--payloads", help="Regenerate the DCS default loadouts table from an install (needs --dcs-path)."
+    ),
     aircraft: str | None = typer.Option(
         None, "--aircraft", help="With --cockpit-controls: index only this module folder, e.g. F-16C."
     ),
@@ -602,7 +605,7 @@ def update_dcs_data(
         "(without --dcs-path: re-render only).",
     ),
     dcs_path: str | None = typer.Option(
-        None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls, --cities)."
+        None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls, --cities, --payloads)."
     ),
     inject_bridge: str | None = typer.Option(
         None, "--inject-bridge", help="With --airdromes: embed the dcs-bridge into this .miz (makes a bridge mission)."
@@ -653,7 +656,7 @@ def update_dcs_data(
     from veaf_build.dcs_data.datamine import DATAMINE_REF
 
     run_all = all_data or not (
-        countries or units or radio or airdromes or parking or airfield_freqs or cockpit_controls or cities
+        countries or units or radio or airdromes or parking or airfield_freqs or cockpit_controls or cities or payloads
     )
     ref_short = DATAMINE_REF[:8]
 
@@ -733,6 +736,17 @@ def update_dcs_data(
                 console.print(
                     f"  [yellow]{skipped} element(s) skipped — built in a shape the parser cannot read[/yellow]"
                 )
+
+    if payloads:
+        if not dcs_path:
+            console.print("[red]--payloads requires --dcs-path <DCS World install>[/red]")
+            raise typer.Exit(code=1)
+        from pathlib import Path
+
+        from veaf_build.dcs_data import payloads as payloads_provider
+
+        count = payloads_provider.generate(Path(dcs_path))
+        console.print(f"[green]✓ {count} loadouts → {payloads_provider.DEFAULT_OUTPUT.name}[/green]")
 
     if run_all or countries:
         console.print(f"[cyan]Generating DCS country table (datamine@{ref_short})...[/cyan]")

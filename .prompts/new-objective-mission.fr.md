@@ -366,7 +366,8 @@ validé un scénario, pas un à-peu-près.
 - **Opposition aérienne** : celle du scénario. « Ils pourraient faire décoller des chasseurs après la
   frappe » = une **QRA** (`create_qra`) sur la base ennemie, cercle dans le territoire rouge, avec
   `delay_before_activating` et `react_on_helicopters` décidés et écrits au briefing ; intercepteurs
-  d'époque avec **emport** (`pylons` ou `loadout_from`), `airport_link` sur la base. Une patrouille
+  d'époque avec **emport** (`pylons`, `payload` par son nom via `list_payloads`, ou `loadout_from`),
+  `airport_link` sur la base. Une patrouille
   déjà en vol = un groupe natif en orbite, pas une CAP à la demande. `delay_before_activating` compte
   **depuis le début de la mission**, pas depuis l'intrusion : la QRA décolle dès l'intrusion une fois
   en ligne. Écris-le ainsi au briefing (« en place à H+15 min »).

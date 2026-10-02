@@ -294,8 +294,9 @@ Rules:
   to helicopters closes the area to helicopter missions). Say both in the briefing.
 - **No QRA radio menu open to all**: `radio_menu` only with `radio_menu_restrict_to_group`. Each level
   draws between **different aircraft**, never between copies of the same one.
-- `create_qra`, era interceptors with a **loadout** (in each group: `pylons`, or `loadout_from` a
-  `veafSpawn-*` group of the same type), `airport_link` on the base.
+- `create_qra`, era interceptors with a **loadout** (in each group: `pylons`, `payload` a DCS loadout
+  by name — `list_payloads` —, or `loadout_from` a `veafSpawn-*` group of the same type), `airport_link`
+  on the base.
 - If red has slots: **blue QRAs** on a few blue bases, same rules.
 
 ### 4.9 On-demand CAPs
@@ -303,8 +304,8 @@ Rules:
 - **Red: 2 to 4**, of different threats (IR fighter, medium Fox 1, high and fast interceptor, maybe a
   bomber to intercept), race-track **inside the red territory**, turns included.
 - **Blue** if red has slots, same logic.
-- `create_cap_mission` with a `route` (the second point gives the race-track) and a loadout (`pylons`
-  or `loadout_from`), and a menu name that says type, sector, altitude.
+- `create_cap_mission` with a `route` (the second point gives the race-track) and a loadout (`pylons`,
+  `payload` or `loadout_from`), and a menu name that says type, sector, altitude.
 
 ### 4.10 Radio, weather, waypoints
 

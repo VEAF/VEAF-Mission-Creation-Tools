@@ -39,7 +39,7 @@ from veaf_libs.dcs_units_data import get_unit_attributes, get_unit_deck_categori
 from veaf_libs.mission_table import indexed
 
 from veaf_mission_mcp.aircraft_identity import assign_identities
-from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons
+from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons, resolve_loadout
 from veaf_mission_mcp.edit_route import _build_orbit, _build_set_unlimited_fuel
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
@@ -100,6 +100,7 @@ def add_air_group(
     fuel_fraction: float | None = None,
     late_activation: bool = False,
     pylons: dict[Any, Any] | None = None,
+    payload: str | None = None,
     chaff: int | None = None,
     flare: int | None = None,
     carrier: str | None = None,
@@ -138,6 +139,8 @@ def add_air_group(
         late_activation: Mark the group late-activation (a QRA interceptor, an on-demand template);
             it used to take a second call to ``set_group_properties``.
         pylons: The loadout, ``{station: {"CLSID": ...}}`` as the mission file stores it.
+        payload: A DCS loadout by the name the Mission Editor lists (``list_payloads``) — an
+            alternative to ``pylons``, refused when both are given.
         chaff: Chaff count per aircraft; defaults to the type's Mission Editor default.
         flare: Flare count per aircraft; defaults to the type's Mission Editor default.
         carrier: The ship **unit** name a deck start takes off from.
@@ -189,11 +192,12 @@ def add_air_group(
 
     # Resolved once for the flight -- every aircraft is the same type -- and before the stands are
     # committed, so a bad explicit value fails without having half-written the mission.
-    payload, fuel_warning = build_aircraft_payload(
+    aircraft_payload, fuel_warning = build_aircraft_payload(
         unit_type, fuel=fuel, fuel_fraction=fuel_fraction, chaff=chaff, flare=flare
     )
-    if pylons:
-        payload["pylons"] = normalize_pylons(pylons)
+    loadout = resolve_loadout(unit_type, pylons, payload)
+    if loadout:
+        aircraft_payload["pylons"] = normalize_pylons(loadout)
 
     group = _build_air_group(
         name=name,
@@ -209,7 +213,7 @@ def add_air_group(
         skill=skill,
         frequency_mhz=frequency_mhz,
         task=task,
-        payload=payload,
+        payload=aircraft_payload,
         late_activation=late_activation,
     )
     if deck is not None:
@@ -245,7 +249,7 @@ def add_air_group(
         "airdrome_id": airdrome_id,
         "stands": deck[1] if deck is not None else [s.parking for s in stands],
     }
-    unarmed = unarmed_warning(name, task, skill, payload)
+    unarmed = unarmed_warning(name, task, skill, aircraft_payload)
     warnings = [w for w in (category_warning, fuel_warning, callsign_note, unarmed) if w]
     if warnings:
         result["warnings"] = warnings

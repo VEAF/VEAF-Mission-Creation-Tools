@@ -46,7 +46,7 @@ corrected ticket 06: a laser drone is built with the `AFAC` group task, checked 
 | 08 | [Weapon ranges in the unit database](tickets/08-threat-ranges.md) | ✅ |
 | 09 | [DCS default loadouts by name](tickets/09-dcs-default-loadouts.md) | ✅ |
 | 10 | [${METAR} for a manual-weather variant](tickets/10-metar-for-manual-weather.md) | ✅ |
-| 11 | [The mission-folder .gitignore covers the MCP backups and the presets report](tickets/11-gitignore-template.md) | ⬜ |
+| 11 | [The mission-folder .gitignore covers the MCP backups and the presets report](tickets/11-gitignore-template.md) | ✅ |
 | 12 | [A circular sanctuary from mission.yaml](tickets/12-sanctuary-circle-yaml.md) | ⬜ |
 | 13 | [An ASSETS entry shown to one coalition](tickets/13-assets-per-coalition.md) | ⬜ |
 | 14 | [list_catalog fits in an agent's tool result](tickets/14-compact-catalog.md) | ⬜ |

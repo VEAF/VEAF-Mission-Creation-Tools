@@ -40,7 +40,7 @@ from veaf_libs.mission_table import indexed
 
 from veaf_mission_mcp.aircraft_identity import assign_identities
 from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons
-from veaf_mission_mcp.edit_route import _build_orbit
+from veaf_mission_mcp.edit_route import _build_orbit, _build_set_unlimited_fuel
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 #: Unit conversions (mission file stores metres and m/s; the caller speaks feet and knots).
@@ -214,6 +214,8 @@ def add_air_group(
     )
     if deck is not None:
         _seat_on_deck(group, *deck)
+    if task == "AFAC":
+        _make_laser_drone(group, altitude_ft=altitude_ft, speed_kt=speed_kt)
     callsign_note = assign_identities(content, group, country_id=country_id, task=task)
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
@@ -270,6 +272,31 @@ def unarmed_warning(name: str, task: str, skill: str, payload: dict[str, Any]) -
         return None
     warning = f"group {name!r} has task {task!r} and no weapons: it will not fight without a loadout"
     return warning
+
+
+def _make_laser_drone(group: dict[str, Any], *, altitude_ft: float, speed_kt: float) -> None:
+    """Give an ``AFAC`` flight the first point of GermanyCW-v6's laser drones, in place.
+
+    Measured in that mission's file (Reaper 1 and 2, 2026-10-02): ``SetUnlimitedFuel``, then a
+    ``Circle`` orbit at the group's altitude and speed. The lasing itself is CTLD's, from the drone's
+    ``modules.ASSETS`` entry (``jtac``, ``freq``, ``mod``); checked in game on 2026-09-28
+    (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 06).
+
+    Args:
+        group: The flight.
+        altitude_ft: The orbit altitude, in feet (CTLD moves the drone to its own altitude anyway).
+        speed_kt: The orbit speed, in knots.
+    """
+    tasks = [
+        _build_set_unlimited_fuel({}),
+        _build_orbit({"pattern": "Circle", "altitude_ft": altitude_ft, "speed_kt": speed_kt}),
+    ]
+    entries: dict[int, dict[str, Any]] = {}
+    for number, task in enumerate(tasks, start=1):
+        task.update({"auto": False, "enabled": True, "number": number})
+        entries[number] = task
+    # Integer keys: `luadata` renders a string key as ["1"], a different Lua entry DCS ignores.
+    group["route"]["points"][0]["task"] = {"id": "ComboTask", "params": {"tasks": entries}}
 
 
 def _cap_engage_task() -> dict[str, Any]:

@@ -726,6 +726,26 @@ modules) :
   le déclare dans `mapResource` sous `MCP_Sound_<nom>` ; `edit_route` `transmit_message` le diffuse
   (`TransmitMessage` enveloppé, `file` = la clé, `loop`, `duration`, `subtitle` écrit au dictionnaire).
 
+### Open Training Syrie (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
+
+- **Indicatif tiré du nom** : un vol occidental nommé comme son indicatif (`Texaco 2`, `Magic 1`) reçoit
+  cet indicatif (`Texaco21`) si la famille convient à la tâche et que le vol est libre ; sinon la règle
+  d'avant (première famille libre) et un avertissement qui dit pourquoi. Un vol d'IA à tâche de combat
+  (`Escort`, `CAP`, `CAS`, `SEAD`…) sans `pylons` est signalé (ticket 01).
+- `set_unit_properties` : `callsign.name` sans chiffres est complété (`Texaco` → `Texaco21`) ; `pylons`
+  prend `{station: CLSID}` comme `{station: {CLSID: …}}` et refuse tout autre valeur en nommant la
+  station (ticket 02).
+- `create_qra` n'écrit plus `simple_groups` quand `groups_by_enemy_count` est donné : à côté de paliers,
+  ils ne décollent jamais (ticket 03, mesuré dans `test_veafQraManager.lua`).
+- **Contrôle de surface** : `add_group`, `create_combat_zone`, `add_farp` et le déplacement de
+  `set_group_properties` signalent un véhicule, un statique ou un FARP à 0 m (en mer) et un navire au-dessus
+  de 0 m (à terre), là où le théâtre a une grille d'altitude ; sinon « surface not checked ». 3 m est de la
+  terre : DCS ne descend jamais sous 0 (ticket 04).
+- `add_air_group(task="AFAC")` — un **drone laser** comme ceux de GermanyCW-v6 : premier point avec
+  `SetUnlimitedFuel` puis une orbite `Circle` à l'altitude et la vitesse du groupe. Le marquage est celui de
+  CTLD, par l'entrée `modules.ASSETS` (`jtac`, `freq`, `mod`) ; CTLD le remonte à `JTAC_droneAltitude`, il ne
+  désigne que des véhicules, à 10 km (ticket 06).
+
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
 Ce que l'éditeur règle hors de tout groupe, et que GermanyCW-v6 a dû patcher par un sérialiseur Lua.

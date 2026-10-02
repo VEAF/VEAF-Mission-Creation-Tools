@@ -706,6 +706,25 @@ initialise):
   wrapped `TransmitMessage`, `file` = the key, `loop`, `duration`, `subtitle` written to the
   dictionary).
 
+### Syria Open Training (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
+
+- **Callsign from the name**: a western flight named like its callsign (`Texaco 2`, `Magic 1`) gets that
+  callsign (`Texaco21`) when the family fits the task and the flight is free; otherwise the former rule
+  (first free family) and a warning saying why. An AI flight with a fighting task (`Escort`, `CAP`, `CAS`,
+  `SEAD`…) and no `pylons` is warned about (ticket 01).
+- `set_unit_properties`: a `callsign.name` without digits is completed (`Texaco` → `Texaco21`); `pylons`
+  takes `{station: CLSID}` as well as `{station: {CLSID: …}}` and refuses any other value, naming the
+  station (ticket 02).
+- `create_qra` no longer writes `simple_groups` when `groups_by_enemy_count` is given: beside levels they
+  never take off (ticket 03, measured in `test_veafQraManager.lua`).
+- **Surface check**: `add_group`, `create_combat_zone`, `add_farp` and `set_group_properties`' move warn
+  about a vehicle, static or FARP at 0 m (in the sea) and a ship above 0 m (on land), where the theatre
+  has an elevation grid; otherwise "surface not checked". 3 m is land: DCS never reads below 0 (ticket 04).
+- `add_air_group(task="AFAC")` — a **laser drone** like GermanyCW-v6's: first point with
+  `SetUnlimitedFuel` then a `Circle` orbit at the group's altitude and speed. The lasing is CTLD's, from the
+  `modules.ASSETS` entry (`jtac`, `freq`, `mod`); CTLD moves it to `JTAC_droneAltitude`, it designates
+  vehicles only, within 10 km (ticket 06).
+
 ### Mission settings (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
 What the editor sets outside any group, and GermanyCW-v6 had to patch through a Lua serializer. Each

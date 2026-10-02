@@ -508,3 +508,46 @@ class TestUnarmedFlight:
     def test_a_tanker_does_not_warn(self, tmp_path: Path) -> None:
         result = self._add(tmp_path, unit_type="KC-135", count=1, task="Refueling", name="Texaco 1")
         assert "warnings" not in result
+
+
+class TestLaserDrone:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 06: the AFAC drone of GermanyCW-v6, lasing checked in game."""
+
+    def test_an_afac_flight_gets_unlimited_fuel_and_a_circle_orbit(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        add_air_group(
+            miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            name="Reaper 1",
+            unit_type="MQ-9 Reaper",
+            start="air",
+            position={"x": 0.0, "y": 0.0},
+            altitude_ft=15000,
+            speed_kt=160,
+            task="AFAC",
+        )
+        group = _slot_group(read_miz(miz).mission_content or {}, "Reaper 1")
+        assert group["task"] == "AFAC"
+        first = group["route"]["points"]
+        first = (list(first.values()) if isinstance(first, dict) else first)[0]
+        tasks = first["task"]["params"]["tasks"]
+        tasks = list(tasks.values()) if isinstance(tasks, dict) else tasks
+        # As measured in GermanyCW-v6's src/mission/mission (Reaper 1 and 2), 2026-10-02.
+        assert tasks == [
+            {
+                "id": "WrappedAction",
+                "auto": False,
+                "enabled": True,
+                "number": 1,
+                "params": {"action": {"id": "SetUnlimitedFuel", "params": {"value": True}}},
+            },
+            {
+                "id": "Orbit",
+                "auto": False,
+                "enabled": True,
+                "number": 2,
+                "params": {"altitude": 4572.0, "pattern": "Circle", "speed": 82.31104, "speedEdited": True},
+            },
+        ]

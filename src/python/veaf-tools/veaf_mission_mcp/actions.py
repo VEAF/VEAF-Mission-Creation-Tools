@@ -996,7 +996,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "AI level, or 'Client'/'Player' for human slots.",
                     },
                     "frequency_mhz": {"type": "number", "default": 251, "description": "Group radio frequency in MHz."},
-                    "task": {"type": "string", "default": "CAS", "description": "Aircraft-group task."},
+                    "task": {
+                        "type": "string",
+                        "default": "CAS",
+                        "description": "Aircraft-group task. 'AFAC' makes a LASER DRONE (an MQ-9 with an air "
+                        "start over its zone): its first point gets unlimited fuel and a circle orbit at "
+                        "altitude_ft / speed_kt. The lasing is CTLD's: declare the group in modules.ASSETS "
+                        "with jtac (laser code), freq and mod. Checked in game: CTLD moves it to "
+                        "JTAC_droneAltitude (3000 m AGL) whatever is written, it designates VEHICLES only, "
+                        "and within 10 km.",
+                    },
                     "parking": {
                         "type": "array",
                         "items": {"type": "string"},

@@ -1,6 +1,6 @@
 # 06 — add_air_group: a laser drone through the AFAC group task
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/add_air_group.py`, `veaf_mission_mcp/actions.py` (description), tests.
 

@@ -66,3 +66,47 @@ needs today, and moves `-cap` onto it.
       that engages air → information
 - [ ] Docs FR + EN, `create_qra` description, CHANGELOG, `DCS-SESSION-TODO.md` item for the game
 - [ ] Lua + Python gates green, coverage floors bumped
+
+## Hand-off — 2026-10-02, to the next session
+
+Started from the Syria mission's session and stopped there on purpose: this lot belongs to a VMCT
+session. Branch `feature/FEAT-AIRCRAFT-ROLES`, worktree `.claude/worktrees/feat-aircraft-roles`,
+**not pushed**. Delete this section once read.
+
+Done:
+
+- `92c42351` — **a real defect, found while pinning `-cap`**: since #842 (2026-08-30)
+  `VeafGroupSpawn:withRoute` wrapped the `{ points = … }` table the CAP and AFAC builders hand it, so
+  DCS received `route.points.points` and **every `-cap` and `-afac` spawned with no waypoint**.
+  `mist.teleportToPoint` used to take the route table as given. Fixed in `withRoute` (both shapes
+  accepted, like `veaf.addGroup`), test in `test_veafDcsSpawner.lua`. Worth its own CHANGELOG line.
+- `51aab6d3` — ticket 01: `src/scripts/veaf/veafAircraftSpawn.lua` (bundled after
+  `veafSpawnAircraft.lua`, loaded by the `veafSpawn.lua` proxy). Roles `cap` (moved unchanged out of
+  `spawnCombatAirPatrol`, pinned by `TestAircraftSpawnCapContract`) and `zone_defense` (written, **not
+  yet tested**). `veafSpawn.capWatchdogZones[groupName]`: the watchdog reads its zone there every
+  tick and clears it when it stops, so `veafAircraftSpawn.assignRole` re-aims a running watchdog
+  instead of starting a second. 51 Lua suites green (`python -m veaf_build.lua_tests`; plain `lua`
+  from `test/lua` shows 3 pre-existing cwd errors in `test_veafGroundAI.lua`).
+
+Next, in order:
+
+1. Ticket 02 — tests for `routeEngagesAir`, `firstWaypointOptions`, `needsZoneDefense`,
+   `zoneToDefend`, the `zone_defense` route; then wire `VeafQRACore:deploy` (`veafQraCore.lua`, DCS-group
+   branch) and `AirWaveZone:deployWaves` (`veafAirWaves.lua`): `if zone and
+   veafAircraftSpawn.needsZoneDefense(g) then VeafAircraftSpawn:new():fromGroup(g):at(spot)
+   :withRadius(r):withRole("zone_defense", { zone = zone }):spawn() else <existing clone>`. Zone from
+   `veafAircraftSpawn.zoneToDefend(triggerZone, self.zoneCenter, self.zoneRadius)`. The QRA test
+   harness to copy is `TestVeafQraOffsetAxes` (`test_veafQraManager.lua`); its file must also load
+   `veafSpawn.lua` + `veafAircraftSpawn.lua`. Note the mock `Group.Category` values differ from DCS.
+2. Ticket 03 — after `veafInterpreter.execute` in both command branches: every spawned group whose
+   `veafAircraftSpawn.getRole(name) == "cap"` → `assignRole(name, "zone_defense", { zone = zone })`.
+3. Ticket 04 — `veafSpawn.executeCommand` (`veafSpawnCore.lua`, ~line 408): skip `readyForCombat`
+   and `goRoute` for a group with a role (note `routeDone` does not stop the `elseif route` branch
+   today); same skip in the combat-zone command hook (`veafCombatZone.lua`, `veaf.goRoute(newGroup,
+   route)`).
+4. Ticket 05 — `mission_builder`: classify each QRA/AIRWAVES DCS aircraft group (empty → nothing,
+   present without air engagement → warning, engages air → info), wired beside
+   `find_missing_declared_groups`; a test compares the Python air target types with
+   `veafAircraftSpawn.AIR_TARGET_TYPES`.
+5. Ticket 06 — docs FR/EN, `create_qra` description, CHANGELOG, `DCS-SESSION-TODO.md`.
+6. Quality gates, PR, `pr-code-review`.

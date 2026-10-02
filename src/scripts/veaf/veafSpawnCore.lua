@@ -81,6 +81,11 @@ veafSpawn.spawnedNamesIndex = {}
 -- time delay between the watchdog checks for each CAP
 veafSpawn.CAP_WATCHDOG_DELAY = 10
 
+--- The zone each running CAP watchdog guards, by group name. The watchdog reads it on every tick, so a
+--- group given a new role (`veafAircraftSpawn.assignRole`) is re-aimed instead of handed a second
+--- watchdog; an entry exists exactly while a watchdog runs for that group (FEAT-AIRCRAFT-ROLES).
+veafSpawn.capWatchdogZones = {}
+
 -- range scale of cargo weight biases
 veafSpawn.cargoWeightBiasRange = 6
 

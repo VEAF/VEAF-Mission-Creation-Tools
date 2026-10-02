@@ -2880,19 +2880,26 @@ function TestVeafSpawnCapMissingSpawnedGroup:setUp()
     return 1
   end
 
-  self._logger = veaf.loggers.get(veafSpawn.Id)
-  self._originalWarn = self._logger.warn
+  -- The warning comes from whichever module set the CAP up: `veafAircraftSpawn` since
+  -- FEAT-AIRCRAFT-ROLES moved the spawn there, so both loggers are listened to.
+  self._loggers = { veaf.loggers.get(veafSpawn.Id), veaf.loggers.get(veafAircraftSpawn.Id) }
+  self._originalWarns = {}
   self.warned = {}
   local warned = self.warned
-  self._logger.warn = function(_, text, ...)
-    table.insert(warned, { text = tostring(text), args = { ... } })
+  for index, logger in ipairs(self._loggers) do
+    self._originalWarns[index] = logger.warn
+    logger.warn = function(_, text, ...)
+      table.insert(warned, { text = tostring(text), args = { ... } })
+    end
   end
 end
 
 function TestVeafSpawnCapMissingSpawnedGroup:tearDown()
   veafSpawn.findSpawnableAircraftGroupname = self._originalFind
   veaf.scheduleFunction = self._originalSchedule
-  self._logger.warn = self._originalWarn
+  for index, logger in ipairs(self._loggers) do
+    logger.warn = self._originalWarns[index]
+  end
   veafMissionDb.groupsByName = {}
   dcs_mocks.reset()
 end

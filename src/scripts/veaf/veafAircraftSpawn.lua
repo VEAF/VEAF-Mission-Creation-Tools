@@ -636,6 +636,22 @@ function veafAircraftSpawn.deployEditorGroup(groupName, spot, radius, zone)
   return newGroup and newGroup.name or nil
 end
 
+--- After a QRA or an air wave ran an aircraft command (`-cap mig29`), send the CAPs it spawned to
+--- defend that QRA's or wave's zone instead of the zone their own leg drew.
+---
+--- @param groupNames table the names the command spawned
+--- @param zone table|nil the zone to defend (`zoneToDefend`); nothing happens without one
+function veafAircraftSpawn.defendZoneWithCaps(groupNames, zone)
+  if not zone then
+    return
+  end
+  for _, groupName in pairs(groupNames or {}) do
+    if veafAircraftSpawn.getRole(groupName) == "cap" then
+      veafAircraftSpawn.assignRole(groupName, "zone_defense", { zone = zone })
+    end
+  end
+end
+
 --- Give a role to a group that is already flying: a new route from where it is, and what the role
 --- runs afterwards. A fighter group keeps its one watchdog, re-aimed at the new zone.
 ---

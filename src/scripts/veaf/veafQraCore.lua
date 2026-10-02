@@ -1010,6 +1010,8 @@ function VeafQRACore:deploy(nbUnitsInZone)
         randomPosition.y = position.y
         local spawnedGroupsNames = {}
         veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
+        -- a `-cap` patrols this zone, not the one its own leg drew (FEAT-AIRCRAFT-ROLES)
+        veafAircraftSpawn.defendZoneWithCaps(spawnedGroupsNames, zoneToDefend)
         for _, newGroupName in pairs(spawnedGroupsNames) do
           table.insert(self.spawnedGroupsNames, newGroupName)
         end

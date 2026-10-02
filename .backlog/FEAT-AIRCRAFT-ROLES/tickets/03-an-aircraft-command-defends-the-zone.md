@@ -1,6 +1,6 @@
 # 03 — An aircraft command run by a QRA or a wave defends that zone
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
@@ -10,5 +10,6 @@ own 60 NM zone. After the command, every group it spawned that carries a fighter
 
 ## Definition of done
 
-- [ ] Test: a QRA command spawning a CAP ends with the zone_defense route and the QRA zone in the
+- [x] Test: a QRA command spawning a CAP ends with the zone_defense route and the QRA zone in the
       registry, and one watchdog scheduled
+- [x] Same wiring for an air wave, both tests proven to fail with it removed

@@ -1343,4 +1343,42 @@ function TestAirWavesZoneDefense:test_a_bomber_wave_keeps_its_route()
   luaunit.assertEquals(#self.scheduled, 0, "no watchdog")
 end
 
+--- Ticket 03: a `-cap` a wave runs defends the wave's zone, through the watchdog it already has.
+function TestAirWavesZoneDefense:test_a_cap_command_is_re_tasked_on_the_wave_zone()
+  local capName = "veafSpawn-WAVECAP #0001"
+  dcs_mocks.addGroup(capName, {
+    getUnit = function()
+      return {
+        getPoint = function()
+          return { x = 1000, y = 7000, z = 2000 }
+        end,
+      }
+    end,
+  })
+  local savedInterpreter = veafInterpreter
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(_, _, _, _, spawnedGroups)
+    -- what `-cap` leaves behind: its role, and a running watchdog on its own zone
+    veafAircraftSpawn.groupRoles[capName] = "cap"
+    veafSpawn.capWatchdogZones[capName] = { x = 0, y = 0, radius = 60 * 1852 }
+    table.insert(spawnedGroups, capName)
+  end
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 0
+  z.waves = { {} }
+  z:setZoneCenter(WAVE_ZD_CENTRE)
+  z:setZoneRadius(40000)
+  z:setRespawnRadius(0)
+  z.chooseGroupsToDeploy = function(_)
+    return { "-cap mig29" }, nil
+  end
+
+  z:deployWaves()
+  veafInterpreter = savedInterpreter
+
+  luaunit.assertEquals(veafAircraftSpawn.getRole(capName), "zone_defense")
+  luaunit.assertEquals(veafSpawn.capWatchdogZones[capName], { x = WAVE_ZD_CENTRE.x, y = WAVE_ZD_CENTRE.z, radius = 40000 })
+  luaunit.assertEquals(#self.scheduled, 0, "the running watchdog is re-aimed, no second one")
+end
+
 os.exit(luaunit.LuaUnit.run())

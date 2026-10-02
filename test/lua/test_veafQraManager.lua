@@ -982,4 +982,87 @@ function TestVeafQraZoneDefense:test_a_strike_flight_keeps_its_editor_route()
   luaunit.assertNil(veafAircraftSpawn.getRole(QRA_ZD_CLONE))
 end
 
+-- ============================================================================
+-- FEAT-AIRCRAFT-ROLES ticket 03: a `-cap` run by a QRA defends the QRA zone, not the 60 NM zone
+-- around wherever its leg happened to fall, and keeps a single watchdog.
+-- ============================================================================
+TestVeafQraCommandDefendsTheZone = {}
+
+local QRA_CAP_TEMPLATE = "veafSpawn-QRACAP"
+local QRA_CAP_CLONE = string.format("%s #%04d", QRA_CAP_TEMPLATE, 1)
+local QRA_CAP_CENTRE = { x = 40000, y = 0, z = 30000 }
+
+function TestVeafQraCommandDefendsTheZone:setUp()
+  dcs_mocks.reset()
+  veafMissionDb.groupsByName = {}
+  veafMissionDb.groupsByName[QRA_CAP_TEMPLATE] = {
+    name = QRA_CAP_TEMPLATE,
+    groupName = QRA_CAP_TEMPLATE,
+    category = "plane",
+    country = "USA",
+    countryId = 2,
+    units = { { name = QRA_CAP_TEMPLATE .. "-1", type = "F-15C", x = 0, y = 0, alt = 6000, heading = 0 } },
+  }
+  self._originalFind = veafSpawn.findSpawnableAircraftGroupname
+  veafSpawn.findSpawnableAircraftGroupname = function(_)
+    return QRA_CAP_TEMPLATE, { groupId = 1, units = {}, route = { points = { [1] = {} } } }
+  end
+  self._originalSchedule = veaf.scheduleFunction
+  self.scheduled = {}
+  local scheduled = self.scheduled
+  veaf.scheduleFunction = function(fn, args, time)
+    table.insert(scheduled, { fn = fn, args = args, time = time })
+    return 1
+  end
+  dcs_mocks.addGroup(QRA_CAP_CLONE, {
+    getUnit = function()
+      return {
+        getPoint = function()
+          return { x = 1000, y = 7000, z = 2000 }
+        end,
+      }
+    end,
+  })
+  self._savedInterpreter = veafInterpreter
+end
+
+function TestVeafQraCommandDefendsTheZone:tearDown()
+  veafInterpreter = self._savedInterpreter
+  veafSpawn.findSpawnableAircraftGroupname = self._originalFind
+  veaf.scheduleFunction = self._originalSchedule
+  veafMissionDb.groupsByName = {}
+  dcs_mocks.reset()
+end
+
+function TestVeafQraCommandDefendsTheZone:test_a_cap_command_is_re_tasked_on_the_qra_zone()
+  local q = VeafQRA:new()
+  q.name = "QraCapCommand"
+  q.silent = true
+  q:setZoneCenter(QRA_CAP_CENTRE)
+  q:setZoneRadius(40000)
+  q:setRespawnRadius(0)
+  q.chooseGroupsToDeploy = function(_, _)
+    return { "-cap f15" }
+  end
+  -- the interpreter, as far as this test goes: a `-cap` at the position it is handed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(_, position, _, _, spawnedGroups)
+    local name = veafSpawn.spawnCombatAirPatrol(position, 0, "QRACAP", "usa", 25000, 0, 90, 20, nil, 60, "Excellent", true, false)
+    table.insert(spawnedGroups, name)
+  end
+
+  q:deploy(1)
+
+  luaunit.assertEquals(q.spawnedGroupsNames, { QRA_CAP_CLONE })
+  luaunit.assertEquals(veafAircraftSpawn.getRole(QRA_CAP_CLONE), "zone_defense")
+  luaunit.assertEquals(veafSpawn.capWatchdogZones[QRA_CAP_CLONE], { x = QRA_CAP_CENTRE.x, y = QRA_CAP_CENTRE.z, radius = 40000 })
+  luaunit.assertEquals(#self.scheduled, 1, "the watchdog the CAP started is re-aimed, not doubled")
+  -- the new route, handed to the flying group, patrols across the QRA zone centre
+  local mission = dcs_mocks.tasksSet[#dcs_mocks.tasksSet]
+  luaunit.assertNotNil(mission, "the group must have been given a new route")
+  local points = mission.task.params.route.points
+  luaunit.assertAlmostEquals((points[2].x + points[3].x) / 2, QRA_CAP_CENTRE.x, 0.01)
+  luaunit.assertAlmostEquals((points[2].y + points[3].y) / 2, QRA_CAP_CENTRE.z, 0.01)
+end
+
 os.exit(luaunit.LuaUnit.run())

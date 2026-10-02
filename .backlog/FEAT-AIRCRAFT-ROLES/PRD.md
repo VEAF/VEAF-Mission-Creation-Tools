@@ -38,7 +38,7 @@ needs today, and moves `-cap` onto it.
 |---|--------|------|--------|
 | 01 | [Spawn an aircraft with a role](tickets/01-spawn-an-aircraft-with-a-role.md) | feat | 🔄 |
 | 02 | [A scrambled group with no air engagement defends its zone](tickets/02-a-scrambled-group-defends-its-zone.md) | feat | ✅ |
-| 03 | [An aircraft command run by a QRA or a wave defends that zone](tickets/03-an-aircraft-command-defends-the-zone.md) | feat | ⬜ |
+| 03 | [An aircraft command run by a QRA or a wave defends that zone](tickets/03-an-aircraft-command-defends-the-zone.md) | feat | ✅ |
 | 04 | [The command layer leaves an aircraft with a role alone](tickets/04-the-command-layer-leaves-a-role-alone.md) | fix | ⬜ |
 | 05 | [The build says what a QRA or wave group will do](tickets/05-the-build-says-what-the-group-will-do.md) | feat | ⬜ |
 | 06 | [Documentation, `create_qra`, the in-game check](tickets/06-documentation-and-in-game-check.md) | docs | ⬜ |

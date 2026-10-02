@@ -251,7 +251,7 @@ that the spawn flow was measured not to affect `Disposition` at all.
 `settleGroup` is called 31 times for 102 ground groups, and **not one call is turned away** — no
 declared position honoured, no exempt unit. The other 71 never reach it: they are editor content
 respawned as-is, and `veafCommand` is nil for 170 of the 234 zone elements. Whether the tools should
-place that content on clear ground is [`FEAT-CLEAR-GROUND-AT-AUTHORING`](../../FEAT-CLEAR-GROUND-AT-AUTHORING/PRD.md);
+place that content on clear ground is [`FEAT-CLEAR-GROUND-AT-AUTHORING`](../../archive/FEAT-CLEAR-GROUND-AT-AUTHORING.md);
 whether `settleGroup` should stop asking `getSimpleZones` for candidates at all is ticket 12.
 
 

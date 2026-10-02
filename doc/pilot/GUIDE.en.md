@@ -152,6 +152,16 @@ _spawn group, name RED-SAM-SITE, hdg 180
 
 Groups must have been defined in the mission's configuration by the mission maker.
 
+**Spawn a helicopter with a task:**
+
+```
+_spawn unit, name mi24, task orbit
+_spawn unit, name uh1, task transport, dest FOB-NORTH
+```
+
+With no `task`, it stays on the ground, engine off. The tasks and the aliases are detailed in
+[veafSpawn — helicopters](../mission-maker/scripts/veafSpawn.en.md#helicopters).
+
 **Spawn a combat air patrol (CAP) — `_spawn cap`:**
 
 ```

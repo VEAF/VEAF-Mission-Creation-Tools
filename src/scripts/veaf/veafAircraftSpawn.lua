@@ -435,6 +435,248 @@ veafAircraftSpawn.roles.zone_defense = {
 }
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Helicopters: spawned by the ground path, landed at the marker, then given a job
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The marker's `task` words, in the order the refusal message lists them; no `task` is `parked`.
+--- Each names a role of `veafAircraftSpawn.roles` that carries `helicopter = true`.
+veafAircraftSpawn.HELICOPTER_TASKS = { "parked", "orbit", "transport" }
+
+--- Height above the ground a helicopter flies its job at, when the marker gives no `alt`, in metres.
+veafAircraftSpawn.HELICOPTER_ALTITUDE = 150
+
+--- Speed a helicopter flies its job at, when the marker gives no `speed`, in m/s (about 80 kt).
+veafAircraftSpawn.HELICOPTER_SPEED = 40
+
+--- How far short of a landing point a helicopter ends its cruise, in metres, to descend on the way in.
+--- R24 (2026-10-02): with the cruise point right over the landing point, the Mi-8 overflew it, flew on
+--- 1.9 km and came back round.
+veafAircraftSpawn.HELICOPTER_APPROACH = 500
+
+--- How far from its destination a helicopter may land to find a clearing, in metres, and how much
+--- clear ground that clearing needs around its centre (a Mi-8's rotor is 21 m across). R26
+--- (2026-10-02): sent into a forest, the Mi-8 hovered over its edge for minutes, looking for room.
+veafAircraftSpawn.HELICOPTER_LZ_SEARCH = 300
+veafAircraftSpawn.HELICOPTER_LZ_CLEARANCE = 30
+
+--- A ComboTask holding these tasks, numbered as the Mission Editor numbers them.
+local function comboTask(tasks)
+  local combo = emptyComboTask()
+  for index, task in ipairs(tasks or {}) do
+    task.number = index
+    task.enabled = true
+    task.auto = false
+    combo.params.tasks[index] = task
+  end
+  return combo
+end
+
+--- The rules of engagement, as a first-waypoint option.
+local function roeTask(value)
+  return { id = "WrappedAction", params = { action = { id = "Option", params = { name = AI.Option.Air.id.ROE, value = value } } } }
+end
+
+--- A helicopter's first waypoint: on the ground, where it was put.
+---
+--- @param spot table runtime vec3 (`y` the ground height)
+--- @param pointType string `TakeOffGround` (cold) or `TakeOffGroundHot` (rotors running)
+--- @param tasks table|nil the tasks it carries — the options the job flies with
+local function groundPoint(spot, pointType, tasks)
+  return {
+    ["x"] = spot.x,
+    ["y"] = spot.z,
+    ["alt"] = spot.y,
+    ["alt_type"] = "BARO",
+    ["type"] = pointType,
+    ["action"] = pointType == "TakeOffGroundHot" and "From Ground Area Hot" or "From Ground Area",
+    ["speed"] = 0,
+    ["task"] = comboTask(tasks),
+  }
+end
+
+--- A waypoint in the air, `height` metres above the ground under it.
+---
+--- The altitude is written above sea level (`BARO`) from the ground height at that point, so that the
+--- waypoint and an `Orbit` task on it — whose altitude DCS reads above sea level — say the same thing.
+local function airPoint(point, height, speed, tasks)
+  return {
+    ["x"] = point.x,
+    ["y"] = point.z,
+    ["alt"] = veaf.getLandHeight(point) + height,
+    ["alt_type"] = "BARO",
+    ["type"] = "Turning Point",
+    ["action"] = "Turning Point",
+    ["speed"] = speed,
+    ["task"] = comboTask(tasks),
+  }
+end
+
+--- Where a marker's `dest` points: a named point, or coordinates, as for a convoy.
+--- @return table|nil runtime vec3
+local function resolveDestination(destination)
+  local point = veafNamedPoints.getPoint(destination)
+  if not point then
+    local lat, lon = veaf.computeLLFromString(destination)
+    if lat and lon then
+      point = coord.LLtoLO(lat, lon)
+    end
+  end
+  return point
+end
+
+--- The height and speed a job flies at: the marker's, else the helicopter defaults.
+local function heightAndSpeed(params)
+  return params.altitude or veafAircraftSpawn.HELICOPTER_ALTITUDE, params.speed or veafAircraftSpawn.HELICOPTER_SPEED
+end
+
+--- `parked`: on the ground, engine off, waiting — a target.
+---
+--- `uncontrolled` is what keeps it there. Measured 2026-10-02 (DCS-SESSION-TODO R23): a helicopter
+--- with a `TakeOffGround` point alone started its engine at T+80 s and took off at T+278 s, one with no
+--- route hovered, and only this one stayed down for the five minutes.
+veafAircraftSpawn.roles.parked = {
+  helicopter = true,
+  buildRoute = function(context)
+    return { groundPoint(context.spot, "TakeOffGround") }, { uncontrolled = true }
+  end,
+}
+
+--- `orbit`: take off from the marker and circle it, weapons free when armed, holding fire when not.
+---
+--- `TakeOffGroundHot`, because it is airborne in 11 s where a cold start waits minutes (R23). Not yet
+--- measured: that an `Orbit` task holds a scripted helicopter over its point.
+veafAircraftSpawn.roles.orbit = {
+  helicopter = true,
+  buildRoute = function(context)
+    local height, speed = heightAndSpeed(context.params)
+    local roe = context.armed and AI.Option.Air.val.ROE.WEAPON_FREE or AI.Option.Air.val.ROE.WEAPON_HOLD
+    local over = airPoint(context.spot, height, speed)
+    over.task = comboTask({ { id = "Orbit", params = { pattern = "Circle", altitude = over.alt, speed = speed } } })
+    return { groundPoint(context.spot, "TakeOffGroundHot", { roeTask(roe) }), over }, { task = context.armed and "CAS" or "Transport" }
+  end,
+}
+
+--- `transport`: take off, fly to `dest` and land there, only returning fire.
+---
+--- The cruise ends `HELICOPTER_APPROACH` short of the landing point, on the line in, and that point
+--- hands over a `Land` task. Not a `Land` **waypoint**: measured 2026-10-02 (R24, R25), one sent the
+--- Mi-8 to Kobuleti's parking whether its point was on the field or 2.85 km away. Not yet measured:
+--- that the `Land` task puts it down on its point.
+veafAircraftSpawn.roles.transport = {
+  helicopter = true,
+  buildRoute = function(context)
+    local destination = context.params.destination
+    if not destination then
+      return nil, { refusal = "spawn.helicopter_needs_dest", refusalArgs = { "transport" } }
+    end
+    local point = resolveDestination(destination)
+    if not point then
+      return nil, { refusal = "spawn.point_not_found", refusalArgs = { destination } }
+    end
+    -- the nearest clearing, when the scenery-aware search finds one; else the point asked, around
+    -- which DCS looks for room by itself
+    point = veaf.findSpawnPoint(point, veafAircraftSpawn.HELICOPTER_LZ_SEARCH, veafAircraftSpawn.HELICOPTER_LZ_CLEARANCE, nil, true)
+      or point
+    local height, speed = heightAndSpeed(context.params)
+    -- the cruise ends short of the point, on the line in; a destination closer than that is the
+    -- cruise point itself
+    local cruise = point
+    local dx, dz = point.x - context.spot.x, point.z - context.spot.z
+    local length = math.sqrt(dx * dx + dz * dz)
+    if length > veafAircraftSpawn.HELICOPTER_APPROACH then
+      local back = veafAircraftSpawn.HELICOPTER_APPROACH / length
+      cruise = { x = point.x - dx * back, y = 0, z = point.z - dz * back }
+    end
+    -- the landing is a task the cruise point hands over, not a `Land` waypoint (R25)
+    local land = { id = "Land", params = { point = { x = point.x, y = point.z }, durationFlag = false } }
+    return {
+      groundPoint(context.spot, "TakeOffGroundHot", { roeTask(AI.Option.Air.val.ROE.RETURN_FIRE) }),
+      airPoint(cruise, height, speed, { land }),
+    }, { task = "Transport" }
+  end,
+}
+
+--- Is any unit of this group armed — does its payload carry pylons?
+local function isArmed(units)
+  for _, unit in pairs(units or {}) do
+    local pylons = unit.payload and unit.payload.pylons
+    if type(pylons) == "table" and next(pylons) ~= nil then
+      return true
+    end
+  end
+  return false
+end
+
+--- Spawn a helicopter group the ground path has placed, with the job its marker asked for.
+---
+--- The group is submitted under `HELICOPTER`: DCS refuses a helicopter submitted as an airplane
+--- (`Invalid Unit Module`, R23). Its units sit at the ground height the spawn found for them.
+---
+--- The job is built from where the **first unit** stands, not from where the group was asked to go:
+--- the ground path may move a whole group off scenery after choosing its point (`settleGroup`), and a
+--- route starting elsewhere would send it back there.
+---
+--- @param groupData table `{ country, name, units, hidden, hiddenOnMFD }`, each unit carrying its
+---   position (`x`, `y` the easting, `alt` the ground height), type, name, heading and payload
+--- @param job table|nil `{ task, destination, altitude, speed }` from the marker; no task is `parked`
+--- @param silent boolean|nil true: a refusal is logged, not shown to the players
+--- @return string|nil the group's name; nil when the job was refused or DCS did not take the group
+function veafAircraftSpawn.spawnHelicopterGroup(groupData, job, silent)
+  local logger = veaf.loggers.get(veafAircraftSpawn.Id)
+  job = job or {}
+  local roleName = job.task and string.lower(job.task) or "parked"
+  local role = veafAircraftSpawn.roles[roleName]
+  local function refuse(key, ...)
+    local message = veaf.t(key, ...)
+    logger:info(message)
+    if not silent then
+      trigger.action.outText(message, 10)
+    end
+    return nil
+  end
+  if not role or not role.helicopter then
+    return refuse("spawn.helicopter_unknown_task", tostring(job.task), table.concat(veafAircraftSpawn.HELICOPTER_TASKS, ", "))
+  end
+
+  local leader = groupData.units[1]
+  local spot = { x = leader.x, y = leader.alt, z = leader.y }
+  local context = { spot = spot, params = job, armed = isArmed(groupData.units) }
+  local route, state = role.buildRoute(context)
+  state = state or {}
+  if not route then
+    return refuse(state.refusal or "spawn.helicopter_unknown_task", unpack(state.refusalArgs or { roleName, "" }))
+  end
+
+  local group = veaf.deepCopy(groupData)
+  group.category = "HELICOPTER"
+  group.task = state.task or "Transport"
+  group.route = { points = route }
+  group.uncontrolled = state.uncontrolled or nil
+  for _, unit in pairs(group.units) do
+    unit.alt_type = "BARO"
+    unit.speed = 0
+  end
+
+  local spawned = veaf.addGroup(group)
+  if not spawned then
+    logger:error("cannot spawn helicopter group %s", veaf.p(group.name))
+    return nil
+  end
+  local groupName = spawned.name
+  veafAircraftSpawn.groupRoles[groupName] = roleName
+  local dcsGroup = Group.getByName(groupName)
+  if role.afterSpawn then
+    if dcsGroup then
+      role.afterSpawn(dcsGroup, groupName, dcsGroup:getCoalition(), state)
+    else
+      logger:warn(string.format("group [%s] was spawned but DCS does not know it; its role cannot be set up", veaf.p(groupName)))
+    end
+  end
+  logger:debug("spawned helicopter group %s as %s", veaf.p(groupName), veaf.p(roleName))
+  return groupName
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafAircraftSpawn: one aircraft group, one role
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 

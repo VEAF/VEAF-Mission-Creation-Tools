@@ -54,6 +54,21 @@ def get_unit_category(unit_type: str) -> str | None:
     return _categories().get(unit_type.strip().lower())
 
 
+def get_unit_types_in_category(category: str) -> list[str]:
+    """Return every unit type of one DCS category, spelled as DCS spells it, in database order.
+
+    The spelling matters to a caller that writes the types into Lua: the runtime looks a type up by
+    the exact name a unit reports, and the other lookups here are keyed lower-case.
+
+    Args:
+        category: The category as the database spells it (``"Helicopter"``, ``"Plane"``…).
+
+    Returns:
+        The type names, e.g. ``["AH-1W", "AH-64A", …]``; empty for an unknown category.
+    """
+    return [str(entry["type"]).strip() for entry in _entries().values() if entry.get("category") == category]
+
+
 @functools.lru_cache(maxsize=1)
 def _fuel_capacities() -> dict[str, float]:
     """Load (and cache) the ``{type_lower: fuel_capacity}`` table from ``dcsUnits.yaml``."""

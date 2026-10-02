@@ -315,7 +315,7 @@ function veafSpawn.spawnBeacon(spawnSpot, radius, name, country, side, silent)
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)
+function veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD, job)
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnGroup(name=%s, czName=%s, country=%s, alt=%s, hdg=%s, spacing=%s, groupName=%s, silent=%s, hiddenOnMFD=%s)",
     name,
@@ -330,7 +330,7 @@ function veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg
   )
 
   local spawnedGroupName =
-    veafSpawn.doSpawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)
+    veafSpawn.doSpawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD, nil, job)
 
   return spawnedGroupName
 end
@@ -1263,7 +1263,8 @@ veafSpawn.registerCommandHandler("group", "KNOWN_PILOT", function(eventPos, opti
     options.unitName,
     options.silent,
     hasDest,
-    not options.showMFD
+    not options.showMFD,
+    veafSpawn.helicopterJob(options)
   )
   return g, nil, false
 end)

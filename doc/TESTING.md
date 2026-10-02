@@ -189,6 +189,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMove.lua` | Parsing de commandes de déplacement/téléportation |
 | `test_veafMove_escort.lua` | Récupération de la tâche Escort après recréation du groupe escorté |
 | `test_veafGrass.lua` | Initialisation de pistes en herbe |
+| `test_veafHelicopterSpawn.lua` | Hélicoptère créé par marqueur : posé par le chemin sol, catégorie `HELICOPTER`, armement de l'alias, tâches `orbit` et `transport` |
 | `test_veafSpawn.lua` | Commandes spawn, analyse de texte marqueur, conversion fréquence laser |
 | `test_veafSpawnParser.lua` | Parsing déterministe du texte marqueur de spawn (`markTextAnalysis`) |
 | `test_veafCommands.lua` | Registre de commandes : ordonnancement par priorité et dispatch |

@@ -424,6 +424,165 @@ open the radio menu.
   dynamic-slot path is still broken; absent there too means CSAR never reached `addMedevacMenuItem` —
   read `dcs.log` for `CSAR` and its `Initializing version` line.
 
+### ✅ R23. How does DCS keep a scripted helicopter on the ground? — **run 2026-10-02**
+
+**Result** (DCS session of 2026-10-02 15:49 UTC, `dcs.log` lines `HELITEST`, 5 min after the spawn):
+
+| | Variant | What it did |
+|---|---|---|
+| A | `_spawn group` today | **refused**: `Mi-8MT MISMATCH DESCRIPTOR TYPE`, `Invalid Unit Module: "Mi-8MT"` — no group |
+| B | `HELICOPTER`, no route | appeared 16 m up (ground height read as a height above ground), started its engine at once and **hovered 5–12 m up** for the whole 5 minutes |
+| C | `TakeOffGround` | sat cold, started its engine at T+80 s, **took off at T+278 s**, landed at T+466 s (where, not measured) |
+| D | `TakeOffGroundHot` | took off at T+11 s, flew off at ~50 m/s, landed at T+193 s (where, not measured) |
+| E | `TakeOffGround` + `uncontrolled` | **stayed put** — on the ground, engine off, speed 0, the whole 5 minutes |
+
+Only E keeps a helicopter on the ground. C and D behave alike once started: take off, fly about three
+minutes, land. David, watching: C's rotor was still, then it started; D he never saw turning — which
+the log contradicts (engine start at T+0, 54 m/s at T+90 s) unless D had already come back to its spot
+when he looked. Positions were not logged, and the Tacview file is empty: `dcs.log.old` stops dead at
+15:57:58 with no shutdown lines, so the session ended without Tacview writing it. Not worth a rerun —
+the design takes E — but a rerun should log each helicopter's distance from its spawn point. Each of B–E logged `Error: Unit [Mi-8MT]: Corrupt damage model.`
+on spawn, and all four kept `life=18` throughout — not investigated.
+
+The original protocol follows.
+
+Not a shipped fix but a **measurement**, which decides the design of
+[`FEAT-HELICOPTER-SPAWN`](.backlog/FEAT-HELICOPTER-SPAWN/PRD.md) ticket 02
+([#164](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/164)): a helicopter spawned by
+`_spawn group` should sit where the marker is, and nobody knows which group data DCS keeps on the ground.
+
+**Run**: `D:\dev\_VEAF\tmp\verify-helicopter-spawn\missions\Verify-Helicopter-Spawn_noon.miz` (built
+2026-10-02 with 6.26.0, outside the repository; its script is `src/scripts/mission-script.lua` there).
+Take the A-10C at Kobuleti and do nothing: **60 s after start** five Mi-8MT appear in a line on the
+runway, 120 m apart, and a table is printed on screen every 15 s for 5 minutes — one line per variant,
+`cat=1` meaning DCS sees a helicopter. `F10 Other… > HELITEST: relevé maintenant` prints it on demand.
+Takeoffs, landings and crashes are printed as they happen. Everything also goes into `dcs.log`
+(`grep HELITEST`).
+
+| | Variant | What it stands for |
+|---|---|---|
+| A | `veafSpawn.doSpawnGroup("helotest")` | `_spawn group` as it is today: category `AIRPLANE`, speed 0, no route |
+| B | category `HELICOPTER`, no route, altitude as `doSpawnGroup` writes it | fixing the category alone |
+| C | one waypoint `TakeOffGround` | a cold helicopter on open ground |
+| D | one waypoint `TakeOffGroundHot` | rotors running |
+| E | `TakeOffGround` + `uncontrolled = true` | parked, waits for a start order |
+
+**Read, for each letter, after the 5 minutes** (the last table, or `dcs.log`):
+
+- `AGL=0`, `inAir=false`, `speed=0` all along: **it stays put** — a candidate for ticket 02.
+- a `TAKEOFF` event or `AGL` rising: **it leaves** — it needs a task or the uncontrolled flag.
+- `GONE`, a `CRASH` or `DEAD`: **it falls or is refused** — expected for A, and probably B, the altitude
+  being read as a height above the ground.
+- `not spawned` or a `… ERROR:` line: the group data was refused; the error text says why.
+
+The answer to give is the five letters, each with what it did. Also say whether C and D look the same on
+the ground (rotors stopped or turning).
+
+### ✅ R28. A transport helicopter lands on open ground — **run 2026-10-02**
+
+The destination moved to grass 150 m beside the far end of the Kobuleti runway (182 m from the field's
+reference point), to separate the landing from the forest. **Result** (20:25–20:29 UTC): D flew 1.2 km,
+was down **30 m from its point** 90 s after taking off, and stayed down to the end. The `Land` task
+works, an airfield next to the point does not divert it, and ticket 04 is done.
+
+### ❌ R27. A transport helicopter sent into a forest lands in the nearest clearing — **run 2026-10-02**
+
+**Result**: as R26 — D hovered 8–34 m up, 106–121 m from its point, for minutes. David, watching: it was
+trying to land where it stood, over the open field next to the forest (F10 capture). The clearing search
+does not help here: asked for 30 m, `veaf.findSpawnPoint` steps down to 10 m, and the DCS call under it is
+a lottery (`disposition-getsimplezones-is-a-lottery`). Recorded as
+`helicopter-hovers-at-a-forest-edge`. The protocol was:
+
+
+R26 showed the `Land` task working — D flew to its point, slowed and tried to land — but the point was
+in a forest, and it hovered over the forest's edge 110–130 m from it for minutes (David's F10 capture,
+2026-10-02). The landing point is now moved to the nearest clearing within 300 m, 30 m clear, found by
+`veaf.findSpawnPoint`. Same mission, rebuilt, **same forest destination** on purpose.
+
+- **Fixed**: a `LAND` event, then `GND`, with `from-dest` under ~300 m (the clearing, not the point).
+- **Still hovering**: the search found nothing usable or DCS still finds no room — read `from-dest`.
+
+### ⚠ R26. A transport helicopter lands on its point, with a `Land` task — **run 2026-10-02**
+
+**Result**: the detour to Kobuleti is gone — D flew straight to its point, slowed to 15 m/s at 199 m
+from it and descended — but it did not land: 2 min 30 s hovering 10–28 m up, 110–130 m from the point,
+which was in a forest. Hence R27.
+
+R25 again, the mission rebuilt: the landing is now a `Land` **task** handed over by the cruise point,
+500 m short of the destination — no waypoint of type `Land` any more. Same mission, same outcomes to
+read as R25 below; D is the one that matters.
+
+### ❌ R25. A transport helicopter lands on its point, on open ground — **run 2026-10-02**
+
+**Result** (20:07–20:11 UTC, `HELITASK`): the destination was 2 851 m from Kobuleti, on land. D
+flew to it, passed **193 m** from it at 59 m/s without slowing, turned back and landed on Kobuleti's
+parking again (David, watching). So not the airfield under the point: the `Land` waypoint sends the
+helicopter to the nearest field (`helicopter-land-waypoint-goes-to-the-nearest-airfield`). The role now
+lands with a `Land` task — **R26**.
+
+The original protocol:
+
+R24 again, after two changes: the cruise now ends 500 m short of the landing point, and D's
+destination is searched for by the script — 3 km from the runway, on land, more than 2.5 km from every
+airbase (logged as `HELITASK HELIDEST x=… z=…, … m from <airbase>`). Same mission, rebuilt:
+`D:\dev\_VEAF\tmp\verify-helicopter-tasks\missions\Verify-Helicopter-Tasks_noon.miz`. A, B, C and E are
+there as a regression check.
+
+- **Fixed**: D's `from-dest` falls without a loop, a `LAND` event, then `GND` with `from-dest` under
+  ~100 m. Ticket 04 is done.
+- **Lands, but far from the point**: the `Land` waypoint is not honoured on open ground either — the
+  role needs another way to land (a `Land` task rather than a waypoint type).
+- **Loops again**: the approach point is not enough; read `from-dest` against time in `dcs.log`.
+
+### R24. A helicopter spawned from a marker parks, orbits and transports — **run 2026-10-02**
+
+**Result** (DCS session of 2026-10-02 19:57 UTC, `dcs.log` lines `HELITASK`, read to T+5 min):
+
+| | Command | What it did |
+|---|---|---|
+| A | `mi8` | stayed `GND`, speed 0 — ✅ |
+| B | `mi24, task orbit` | airborne at T+15 s, circled 1.5–1.9 km from its point at ~150 m AGL — ✅, wider than the 1 km guessed below |
+| C | `uh1, task orbit` | the same, 1.5–2 km — ✅ |
+| D | `mi8, task transport, dest HELIDEST` | passed 291 m from the point at 150 m without descending, flew on 1.9 km, came back and landed **1 678 m from it, on Kobuleti's parking** (David, watching) — ❌ |
+| E | `helopair, task orbit, alt 1000` | both Ka-50 airborne by T+36 s, ~300 m AGL, 1–2.3 km — ✅ |
+
+D first read as two things: the cruise point sat right over the landing point (the cruise now ends
+500 m short, `HELICOPTER_APPROACH`), and the destination was on an airfield. R25 showed the second
+reading wrong: it is the `Land` waypoint itself that sends a helicopter to the nearest field.
+
+The original protocol follows.
+
+The checkpoint of [`FEAT-HELICOPTER-SPAWN`](.backlog/FEAT-HELICOPTER-SPAWN/PRD.md) ticket 04, before
+`patrol`, `attack` and `escort` are written: none of the DCS tasks the roles use is measured on a
+scripted helicopter.
+
+**Run**: `D:\dev\_VEAF\tmp\verify-helicopter-tasks\missions\Verify-Helicopter-Tasks_noon.miz` (built
+2026-10-02 from the branch `feature/FEAT-HELICOPTER-SPAWN`, `--dev-mode`; outside the repository, script
+in its `src/scripts/mission-script.lua`). Take the A-10C at Kobuleti and do nothing: **10 s after start** (60 s until R25)
+five real marker commands run on the runway, 120 m apart, and a table is printed every 15 s for
+8 minutes (`AIR`/`GND`, height above the ground, speed, distance from the spawn point). Events —
+takeoff, landing, crash, shots — are printed as they happen; everything also goes into `dcs.log`
+(`grep HELITASK`).
+
+| | Marker command | Expected |
+|---|---|---|
+| A | `_spawn unit, name mi8` | `GND`, speed 0, the whole 8 minutes |
+| B | `_spawn unit, name mi24, task orbit` | `AIR` within ~15 s, then `from-spawn` staying under ~1 km at ~150 m AGL |
+| C | `_spawn unit, name uh1, task orbit` | the same, unarmed |
+| D | `_spawn unit, name mi8, task transport, dest HELIDEST` | takes off, `from-dest` falling, a `LAND` event, then `GND` with `from-dest` under ~100 m |
+| E | `_spawn group, name helopair, task orbit, alt 1000` | two lines, both `AIR`, around 300 m AGL |
+
+**What each outcome means:**
+
+- **As expected**: the role works; ticket 07 records it, and 05–06 can be built on it.
+- **`NOTHING SPAWNED` or an `ERROR` line**: the command was refused — the text after it says why.
+- **`from-spawn` growing without end (B, C, E)**: the `Orbit` task does not hold a scripted helicopter;
+  the route needs another shape.
+- **D never lands, or lands far from `HELIDEST`**: the `Land` waypoint is not honoured on open ground.
+- **A takes off**: `uncontrolled` stopped holding it — R23 said otherwise, so read `dcs.log`.
+
+The answer to give: the five letters, each with what it did.
+
 ---
 
 ---

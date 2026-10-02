@@ -32,9 +32,23 @@ def _extract_table(lua: str, name: str) -> dict:
     raise AssertionError(f"unbalanced braces for {name}")
 
 
+def _expected_pylons(pylons: dict) -> list | dict:
+    """Pylons -> luadata shape: a list when the stations run 1..n, a dict when one is skipped."""
+    stations = sorted(int(k) for k in pylons)
+    if stations == list(range(1, len(stations) + 1)):
+        return [pylons[s] for s in stations]
+    return {s: pylons[s] for s in stations}
+
+
 def _expected_unit_db(units: list[dict]) -> list:
     """YAML unit rows -> luadata shape (pure arrays become Python lists)."""
-    return [{"aliases": list(u["aliases"]), "unitType": u["unitType"]} for u in units]
+    rows = []
+    for u in units:
+        row = {"aliases": list(u["aliases"]), "unitType": u["unitType"]}
+        if u.get("pylons"):
+            row["pylons"] = _expected_pylons(u["pylons"])
+        rows.append(row)
+    return rows
 
 
 def _expected_unit_entry(unit: dict) -> dict:
@@ -71,7 +85,7 @@ def _expected_groups_db(groups: list[dict]) -> list:
 
 def test_load_framework_spawn_data_shape() -> None:
     data = load_framework_spawn_data()
-    assert len(data["units"]) == 13
+    assert len(data["units"]) == 21  # 13 + 8 helicopters (FEAT-HELICOPTER-SPAWN)
     assert len(data["groups"]) == 94  # 78 + 16 air-defense era variants (FIX-SCRATCH-MISSION-FINDINGS 12)
     # hidden groups preserved (the generateAirDefenseGroup-* entries)
     hidden = [g for g in data["groups"] if g.get("hidden")]

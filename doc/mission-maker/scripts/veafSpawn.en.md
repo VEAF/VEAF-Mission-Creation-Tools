@@ -50,15 +50,17 @@ Call after all other modules that veafSpawn depends on.
 
 ```
 _spawn unit, name [DCS_TYPE]
-_spawn unit, name F-16C, hdg 180, alt 20000
 _spawn unit, name T-80, hdg 270, spacing 50
 ```
+
+An **airplane** cannot be spawned this way (the command refuses it): use a CAP patrol. A
+**helicopter** can: see [Spawn a helicopter](#helicopters).
 
 **Options:**
 
 - `name` — unit type
 - `hdg` — heading (degrees)
-- `alt` — altitude (feet)
+- `alt` — altitude (feet); for a helicopter, the height of its task
 - `side` — coalition override
 - `country` — country override
 - `skill` — AI skill level
@@ -74,6 +76,38 @@ _spawn group, name [GROUP_NAME]
 The group alias must exist in the **spawn database**: the built-in one (e.g. `sa2`, `sa3`, …) or your optional `src/spawn-groups.yaml`, which extends/overrides it. The database lives in YAML and is injected into the `.miz` at build time (no Lua to edit). See [Pipeline Reference — spawn data](../../PIPELINE_REFERENCE.en.md).
 
 > **Typos abort the command.** If a parameter is not recognized (e.g. `headng` instead of `heading`), the spawn is **not** performed and the pilot gets a hint (*did you mean 'heading'?*). Fix the marker text and try again.
+
+### Spawn a helicopter {#helicopters}
+
+```
+_spawn unit, name mi8
+_spawn unit, name mi24, task orbit
+_spawn unit, name uh1, task transport, dest FOB-NORTH
+_spawn group, name [HELICOPTER_GROUP], task orbit, alt 800
+```
+
+The helicopter appears **landed** at the marker, then does what `task` says:
+
+| `task` | What it does |
+|---|---|
+| *(none)* | stays on the ground, engine off: a target |
+| `orbit` | takes off and circles the marker; fires at what comes by if armed, holds fire otherwise |
+| `transport` | takes off, flies to `dest` and lands in the nearest clearing (up to 300 m off), only returning fire; refused without a `dest`. Aim at open ground: at a forest's edge it hovers and never lands |
+
+`alt` is the height above the ground (feet, 500 by default), `speed` the speed (knots, 80 by
+default). `dest` is a named point or coordinates, as for a convoy.
+
+**Armed or not is the alias's call**, not the type's: DCS files the Mi-8 as both an attack and a
+transport helicopter.
+
+| Unarmed | Armed (loadout of the shipped dynamic slot) |
+|---|---|
+| `mi8` (Mi-8MTV2), `mi26` (Mi-26), `uh1` (UH-1H), `ch47` (CH-47F) | `mi24` (Mi-24P), `ka50` (Ka-50 III), `ah64` (AH-64D), `gazelle` (SA342M) |
+
+A DCS type written directly (`name Mi-8MT`) flies unarmed. A `src/spawn-groups.yaml` can add its own
+aliases, with `pylons`, and groups of several helicopters.
+
+> Checked in game on 2026-10-02: `orbit` circles 1.5–2 km from its point, `transport` lands 30 m from its own on open ground.
 
 ### Spawn a CAP patrol
 

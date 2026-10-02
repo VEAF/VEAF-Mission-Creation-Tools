@@ -114,6 +114,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   module, `veafAircraftSpawn.lua`, which `-cap` now spawns through too. The build says, for every
   such group a QRA or a wave deploys, what it will do — given its patrol, flown as written, or (a
   warning, which `veaf-tools validate` carries too) a hand-written route that will be replaced. **A mission picks this up by being rebuilt.**
+- **Helicopters spawned from a marker, with a job** (#164, FEAT-HELICOPTER-SPAWN). `_spawn unit` and
+  `_spawn group` now put a helicopter down at the marker, engine off — until now the first refused
+  every aircraft and the second submitted a helicopter as an airplane, which DCS refuses (`Invalid
+  Unit Module`, measured). A `task` gives it a job: `orbit` circles the marker, `transport` flies to a
+  `dest` and lands in the nearest clearing; `alt` (feet above the ground) and `speed` (knots) tune it. Eight aliases ship
+  — `mi8`, `mi26`, `uh1`, `ch47` unarmed, `mi24`, `ka50`, `ah64`, `gazelle` armed with the loadout of
+  their shipped dynamic slot — and every helicopter type gets its fuel from the units database. Both tasks
+  are checked in game; a `dest` inside a forest leaves the helicopter hovering at its edge. Airplanes are still refused (`describe_known_limitations`).
 
 ### Fixed
 

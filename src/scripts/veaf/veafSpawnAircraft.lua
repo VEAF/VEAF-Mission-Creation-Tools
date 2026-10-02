@@ -25,6 +25,8 @@
 -- @param string freq (frequency if JTAC in MHz with . separator)
 -- @param boolean silent (mutes messages to players except errors)
 -- @param boolean hiddenOnMFD
+-- @param table job (helicopter only) what it does once spawned: `{ task, destination, altitude, speed }`,
+--   see veafAircraftSpawn.spawnHelicopterGroup
 function veafSpawn.spawnUnit(
   spawnPosition,
   radius,
@@ -40,7 +42,8 @@ function veafSpawn.spawnUnit(
   freq,
   mod,
   silent,
-  hiddenOnMFD
+  hiddenOnMFD,
+  job
 )
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnUnit(name = %s, czName=%s, country=%s, alt=%d, hdg=%d, unitName=%s, role=%s, static=%s, code=%s, freq=%s, mod=%s, silent=%s, hiddenOnMFD=%s)",
@@ -70,8 +73,9 @@ function veafSpawn.spawnUnit(
     return
   end
 
-  -- cannot spawn planes or helos yet [TODO], however spawning them as a static is fine
-  if unit.air and not static then
+  -- cannot spawn planes yet [TODO], however spawning them as a static is fine; a helicopter goes
+  -- through the ground spawn (FEAT-HELICOPTER-SPAWN)
+  if unit.air and not static and not unit.helicopter then
     veaf.loggers.get(veafSpawn.Id):info("Air units cannot be spawned at the moment (work in progress)")
     trigger.action.outText(veaf.t("spawn.air_wip"), 5)
     return
@@ -116,7 +120,8 @@ function veafSpawn.spawnUnit(
     veaf.loggers
       .get(veafSpawn.Id)
       :trace(string.format("spawnUnit: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
-    if alt > 0 then
+    -- on a helicopter, `alt` is the altitude of its job: it is put down on the ground first
+    if alt > 0 and not unit.helicopter then
       spawnSpot.y = alt
     end
     if not veafUnits.checkPositionForUnit(spawnSpot, unit) then
@@ -174,6 +179,9 @@ function veafSpawn.spawnUnit(
         ["skill"] = "Random",
         ["heading"] = math.rad(hdg),
       }
+      if unit.helicopter then
+        toInsert.payload = veafUnits.aircraftPayload(unit)
+      end
     end
 
     table.insert(units, toInsert)
@@ -186,6 +194,10 @@ function veafSpawn.spawnUnit(
     veaf.loggers.get(veafSpawn.Id):trace("Spawning STATIC")
     veaf.addStatic({ country = country, groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
     --groupName = nil --statics do not have a group name, you must set groupName to nil to avoid other scripts interacting
+  elseif unit.helicopter then
+    veaf.loggers.get(veafSpawn.Id):trace("Spawning HELICOPTER")
+    groupName =
+      veafAircraftSpawn.spawnHelicopterGroup({ country = country, name = groupName, units = units, hiddenOnMFD = hiddenOnMFD }, job, silent)
   elseif unit.air then
     veaf.loggers.get(veafSpawn.Id):trace("Spawning AIRPLANE")
     veaf.addGroup({ country = country, category = "PLANE", groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
@@ -1413,6 +1425,17 @@ end
 -- Aircraft spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- What a marker asks a spawned helicopter to do, read from its options (FEAT-HELICOPTER-SPAWN): the
+--- `task`, the first `dest` point, `alt` (feet above the ground) and `speed` (knots) — the units
+--- `-afac` and `-cap` read them in. Ignored by any other unit.
+--- @param options table the parsed marker options
+--- @return table `{ task, destination, altitude, speed }`, altitude in metres and speed in m/s
+function veafSpawn.helicopterJob(options)
+  local altitude = options.altitude and options.altitude > 0 and options.altitude * 0.3048 or nil
+  local speed = options.speed and options.speed > 0 and options.speed / 1.94384 or nil
+  return { task = options.task, destination = options.destination, altitude = altitude, speed = speed }
+end
+
 veafSpawn.registerCommandHandler("unit", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local code = options.laserCode
   local channel = options.freq
@@ -1437,7 +1460,8 @@ veafSpawn.registerCommandHandler("unit", "KNOWN_PILOT", function(eventPos, optio
     channel,
     band,
     options.silent,
-    not options.showMFD
+    not options.showMFD,
+    veafSpawn.helicopterJob(options)
   )
   return g, nil, false
 end)

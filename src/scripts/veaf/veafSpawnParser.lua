@@ -47,6 +47,16 @@ veafSpawn.ParameterRules = {
       options.radius = 1 -- spawn exactly on the marker (avoid spawning in trees etc.)
     end,
   },
+  {
+    -- FEAT-HELICOPTER-SPAWN: the job of a spawned helicopter (`orbit`, `transport`…), lower-cased
+    -- because it names a role of veafAircraftSpawn.roles. Empty leaves it unset: the helicopter parks.
+    keys = { "task" },
+    apply = function(options, val)
+      if val ~= "" then
+        options.task = val:lower()
+      end
+    end,
+  },
   { keys = { "isconvoy" }, apply = _flag("convoy") },
   { keys = { "patrol" }, apply = _flag("patrol") },
   { keys = { "offroad" }, apply = _flag("offroad") },

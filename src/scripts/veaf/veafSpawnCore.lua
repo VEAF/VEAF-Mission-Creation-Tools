@@ -684,6 +684,8 @@ function veafSpawn._reportNoGroupPosition(silent)
 end
 
 --- Spawn a specific group at a specific spot
+--- `job` (helicopter groups only): what the group does once spawned, `{ task, destination, altitude,
+--- speed }` — see veafAircraftSpawn.spawnHelicopterGroup.
 function veafSpawn.doSpawnGroup(
   spawnSpot,
   radius,
@@ -697,7 +699,8 @@ function veafSpawn.doSpawnGroup(
   silent,
   hasDest,
   hiddenOnMFD,
-  shuffle
+  shuffle,
+  job
 )
   veaf.loggers.get(veafSpawn.Id):debug(
     "doSpawnGroup(czName=%s, country=%s, alt=%s, hdg=%s, spacing=%s, groupName=%s, silent=%s, hasDest=%s, hiddenOnMFD=%s, shuffle=%s)",
@@ -736,6 +739,11 @@ function veafSpawn.doSpawnGroup(
 
   veaf.loggers.get(veafSpawn.Id):trace("doSpawnGroup: groupDefinition.description=" .. groupDefinition.description)
 
+  -- A helicopter's `dest` is where it flies, not a road to line up on (FEAT-HELICOPTER-SPAWN).
+  if groupDefinition.helicopter then
+    hasDest = false
+  end
+
   local units = {}
 
   -- place group units on the map
@@ -768,7 +776,8 @@ function veafSpawn.doSpawnGroup(
     local unitName = groupName .. " / " .. unit.displayName .. " #" .. i
 
     local spawnPoint = unit.spawnPoint
-    if alt > 0 then
+    -- on a helicopter, `alt` is the altitude of its job: it is put down on the ground first
+    if alt > 0 and not groupDefinition.helicopter then
       spawnPoint.y = alt
     end
 
@@ -789,6 +798,9 @@ function veafSpawn.doSpawnGroup(
         ["skill"] = "Random",
         ["heading"] = spawnPoint.hdg,
       }
+      if groupDefinition.helicopter then
+        toInsert.payload = veafUnits.aircraftPayload(unit)
+      end
 
       veaf.loggers.get(veafSpawn.Id):trace(
         string.format(
@@ -818,6 +830,15 @@ function veafSpawn.doSpawnGroup(
   -- actually spawn the group
   if group.naval then
     veaf.addGroup({ country = country, category = "SHIP", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
+  elseif groupDefinition.helicopter then
+    groupName = veafAircraftSpawn.spawnHelicopterGroup(
+      { country = country, name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD },
+      job,
+      silent
+    )
+    if not groupName then
+      return nil
+    end
   elseif group.air then
     veaf.addGroup({ country = country, category = "AIRPLANE", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
   else

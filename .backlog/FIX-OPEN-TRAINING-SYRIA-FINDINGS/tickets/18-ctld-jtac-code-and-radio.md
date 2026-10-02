@@ -1,6 +1,7 @@
 # 18 — CTLD JTAC: an imposed laser code taken twice, the ASSETS frequency ignored
 
-Status: 🧑 waiting-human — the fix belongs in VEAF/CTLD; David decides when to run that lot
+Status: 🧑 waiting-human — filed in VEAF/CTLD as the lot `FIX-JTAC-IMPOSED-CODE-AND-RADIO`
+([VEAF/CTLD#240](https://github.com/VEAF/CTLD/pull/240), 2026-10-02); waits on its release
 
 Files (VEAF/CTLD, `src/CTLD_jtac.lua`): `CTLDJTACManager:spawnJTAC`, `_initLaserPool`, `_assignLaserCode`,
 `_freeLaserCode`, `CTLDJTAC:new`; then the vendored `src/scripts/community/CTLD.lua` here, verbatim.

@@ -19,7 +19,12 @@ from .models import MissionConfig, VersionConfig
 from .utils import SolarCalculator, TimeExpressionParser
 from .utils.theatre_offsets import theatre_utc_offset
 from .weather import DCSWeatherConverter
-from .weather.dcs_weather_converter import _extract_metar_values, cap_clearsky, fetch_metar_string
+from .weather.dcs_weather_converter import (
+    _extract_metar_values,
+    _select_cloud_preset,
+    cap_clearsky,
+    fetch_metar_string,
+)
 from .weather.metar_composer import compose_metar
 
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
@@ -346,6 +351,11 @@ class WeatherInjectorWorker(BaseWorker):
         weather = (self.mission_data.get_weather() if self.mission_data else None) or {}
         qnh_mmhg = weather.get("qnh")
         qnh_hpa = float(qnh_mmhg) / 0.750062 if qnh_mmhg else None  # DCS stores mmHg
+        # The converter moves a cloud base into its preset's range (FEW starts at 840 m): announce that one.
+        cover = DCSWeatherConverter.CLOUD_TYPES.get(str(manual.get("cloud_type") or "").lower())
+        if cover and manual.get("cloud_height") is not None:
+            _, base = _select_cloud_preset(cover, float(manual["cloud_height"]), bool(manual.get("precipitation")))
+            manual = {**manual, "cloud_height": base}
         return compose_metar(manual, local - timedelta(hours=offset), qnh_hpa, station)
 
     def _update_mission_time_and_date(self, version: VersionConfig) -> None:

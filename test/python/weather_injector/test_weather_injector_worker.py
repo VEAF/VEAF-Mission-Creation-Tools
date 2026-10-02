@@ -915,6 +915,30 @@ class TestBriefingMetarPerVariant(unittest.TestCase):
                 "METAR LFRS 121030Z 22005KT 9999 FEW030 15/// Q1020",
             )
 
+    def test_the_composed_cloud_base_is_the_one_dcs_flies(self) -> None:
+        # Review of FIX-CLEARSKY-METAR: a low layer capped to FEW gets Preset1, whose base starts at 840 m,
+        # so DCS flies FEW028 where the report said 800 ft. The briefing must read the flown base.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = DcsMission(
+                file_path=Path("unused.miz"),
+                mission_content={"descriptionText": "${METAR}", "date": {"Year": 2024, "Month": 3, "Day": 12}},
+                theatre_content="Syria",
+            )
+            metar = "LTAG 121030Z 22005KT 9999 BKN008 15/10"
+            worker._substitute_briefing_variables(VersionConfig(name="vfr", metar=metar, clearsky=True))
+            assert worker.mission_data.mission_content is not None
+            self.assertIn(" FEW028 ", worker.mission_data.mission_content["descriptionText"])
+
+    def test_a_manual_cloud_base_outside_its_preset_reads_the_flown_base(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("${METAR}")
+            weather = {"cloud_type": "few", "cloud_height": 300}
+            worker._substitute_briefing_variables(VersionConfig(name="low", weather=weather))
+            assert worker.mission_data.mission_content is not None
+            self.assertTrue(worker.mission_data.mission_content["descriptionText"].endswith(" FEW028"))
+
     def test_a_failed_fetch_with_clearsky_leaves_the_token(self) -> None:
         # Nothing was observed, so there is nothing to recompose: the defaults DCS flies are not a report.
         with tempfile.TemporaryDirectory() as tmp:

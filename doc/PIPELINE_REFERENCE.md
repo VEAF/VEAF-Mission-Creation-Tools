@@ -647,7 +647,7 @@ Ce que `${METAR}` vaut selon la variante :
 | `metar: "..."` | la chaîne telle que vous l'avez écrite |
 | `airport_icao: LFRS` | le METAR réel récupéré pour cette station |
 | `metar:` ou `airport_icao:`, avec `clearsky: true` | un METAR **recomposé depuis la météo plafonnée** que vole la mission, construit comme pour `weather:` ci-dessous mais en gardant la station du relevé, sa température et son QNH — `METAR LTAG 150203Z 35006KT 9999 FEW090 19/// Q1015`. Toujours recomposé, même quand les plafonds ne changent rien : un `TEMPO TSRA` laissé dans le texte publié annoncerait un orage que le ciel n'aura jamais |
-| seulement `weather:` | un METAR **composé à partir d'elle** : vent, visibilité, pluie et brouillard, nébulosité et base, température (sans point de rosée : écrit `///`), QNH de la mission, daté de la date et de l'heure de la variante en UTC, sans station — `METAR 150900Z 27010KT 9999 SKC Q1013`. Avec `clearsky: true`, ce sont les valeurs plafonnées |
+| seulement `weather:` | un METAR **composé à partir d'elle** : vent, visibilité, pluie et brouillard, nébulosité et base (celle que vole DCS, qui ramène la base dans la plage de son preset de nuages), température (sans point de rosée : écrit `///`), QNH de la mission, daté de la date et de l'heure de la variante en UTC, sans station — `METAR 150900Z 27010KT 9999 SKC Q1013`. Avec `clearsky: true`, ce sont les valeurs plafonnées |
 | aucune météo | **rien** — il n'existe aucun METAR à afficher, donc le texte `${METAR}` reste tel quel et un avertissement le dit dans le log |
 
 !!! warning "Un METAR publié garde son heure"

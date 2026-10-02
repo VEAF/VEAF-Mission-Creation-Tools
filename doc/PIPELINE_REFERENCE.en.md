@@ -644,7 +644,7 @@ What `${METAR}` resolves to, per variant:
 | `metar: "..."` | the string exactly as you wrote it |
 | `airport_icao: LFRS` | the live METAR fetched for that station |
 | `metar:` or `airport_icao:`, with `clearsky: true` | a METAR **recomposed from the capped weather** the mission flies, built the same way as for `weather:` below but keeping the report's station, its temperature and its QNH — `METAR LTAG 150203Z 35006KT 9999 FEW090 19/// Q1015`. Always recomposed, even when the caps change nothing: a `TEMPO TSRA` left in the published text would announce a storm the sky never has |
-| only `weather:` | a METAR **composed from it**: wind, visibility, rain and fog, cover and base, temperature (no dew point: written `///`), the mission's QNH, stamped with the variant's date and time in UTC and no station — `METAR 150900Z 27010KT 9999 SKC Q1013`. With `clearsky: true`, the values are the capped ones |
+| only `weather:` | a METAR **composed from it**: wind, visibility, rain and fog, cover and base (the one DCS flies, which moves the base into its cloud preset's range), temperature (no dew point: written `///`), the mission's QNH, stamped with the variant's date and time in UTC and no station — `METAR 150900Z 27010KT 9999 SKC Q1013`. With `clearsky: true`, the values are the capped ones |
 | no weather at all | **nothing** — there is no METAR to show, so the text `${METAR}` stays as written and a warning says so in the log |
 
 !!! warning "A published METAR keeps its own time"

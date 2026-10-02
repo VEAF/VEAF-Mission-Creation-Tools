@@ -197,6 +197,14 @@ veaf.i18nCatalog = {
     fr = "Tâche d'hélicoptère inconnue : %s (possibles : %s)",
     en = "Unknown helicopter task: %s (possible: %s)",
   },
+  ["spawn.helicopter_needs_weapons"] = {
+    fr = "La tâche %s demande un hélicoptère armé (mi24, ka50, ah64, gazelle…)",
+    en = "The task %s needs an armed helicopter (mi24, ka50, ah64, gazelle…)",
+  },
+  ["spawn.helicopter_escort_no_group"] = {
+    fr = "Aucun groupe nommé %s à escorter",
+    en = "No group named %s to escort",
+  },
   ["spawn.helicopter_needs_dest"] = {
     fr = "La tâche %s d'un hélicoptère demande une destination (dest)",
     en = "The helicopter task %s needs a destination (dest)",

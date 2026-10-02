@@ -1,6 +1,6 @@
 # 05 — `patrol`
 
-Status: ⬜ ready — after the checkpoint of ticket 04
+Status: ✅ done — read in game 2026-10-02 (R29–R31): the armed loop holds and engages a ground unit in its zone; the shuttle lands 16 m from `dest`, waits, and lands back home
 
 Lot: [FEAT-HELICOPTER-SPAWN](../PRD.md)
 

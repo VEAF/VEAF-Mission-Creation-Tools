@@ -1,6 +1,6 @@
 # 06 — `attack` and `escort`
 
-Status: ⬜ ready — after the checkpoint of ticket 04
+Status: 🧑 waiting-human — `attack` read in game ✅ (R31); `escort` wanders up to 7 km from a stationary group, R32 reads it on a moving convoy
 
 Lot: [FEAT-HELICOPTER-SPAWN](../PRD.md)
 

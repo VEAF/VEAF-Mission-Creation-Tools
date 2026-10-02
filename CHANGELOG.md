@@ -118,9 +118,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `_spawn group` now put a helicopter down at the marker, engine off — until now the first refused
   every aircraft and the second submitted a helicopter as an airplane, which DCS refuses (`Invalid
   Unit Module`, measured). A `task` gives it a job: `orbit` circles the marker, `transport` flies to a
-  `dest` and lands in the nearest clearing; `alt` (feet above the ground) and `speed` (knots) tune it. Eight aliases ship
+  `dest` and lands in the nearest clearing, `patrol` loops (armed) or shuttles landing at each end
+  (unarmed), `attack` engages at a `dest`, `escort` covers a ground group; `alt` (feet above the ground) and `speed` (knots) tune it. Eight aliases ship
   — `mi8`, `mi26`, `uh1`, `ch47` unarmed, `mi24`, `ka50`, `ah64`, `gazelle` armed with the loadout of
-  their shipped dynamic slot — and every helicopter type gets its fuel from the units database. Both tasks
+  their shipped dynamic slot — and every helicopter type gets its fuel from the units database. All but `escort`
   are checked in game; a `dest` inside a forest leaves the helicopter hovering at its edge. Airplanes are still refused (`describe_known_limitations`).
 
 ### Fixed

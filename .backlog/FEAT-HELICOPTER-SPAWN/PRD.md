@@ -1,6 +1,6 @@
 # FEAT-HELICOPTER-SPAWN — spawn a helicopter group from a marker, without a mission template
 
-Status: 🔄 in-progress — tickets 01–04 done and read in game (R23–R28); 05–06 next
+Status: 🧑 waiting-human — tickets 01–05 done and read in game; `escort` (06) waits on R32
 
 Origin: [#164](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/164) (David, 2023-01). Opened
 2026-10-02 from a sweep of the open issues against the backlog: #164 had been sent to
@@ -130,8 +130,8 @@ on a scripted helicopter yet** — each role needs its own in-game reading, the 
 | 02 | [spawn a helicopter landed](tickets/02-spawn-a-helicopter-group.md) | ✅ |
 | 03 | [catalogue aliases and loadouts](tickets/03-catalogue-aliases-and-loadouts.md) | ✅ |
 | 04 | [`orbit` and `transport`](tickets/04-orbit-and-transport.md) | ✅ |
-| 05 | [`patrol`](tickets/05-patrol.md) | ⬜ |
-| 06 | [`attack` and `escort`](tickets/06-attack-and-escort.md) | ⬜ |
+| 05 | [`patrol`](tickets/05-patrol.md) | ✅ |
+| 06 | [`attack` and `escort`](tickets/06-attack-and-escort.md) | 🧑 |
 | 07 | [the in-game readings](tickets/07-in-game-readings.md) | ⬜ |
 
 ## Definition of done

@@ -93,9 +93,13 @@ The helicopter appears **landed** at the marker, then does what `task` says:
 | *(none)* | stays on the ground, engine off: a target |
 | `orbit` | takes off and circles the marker; fires at what comes by if armed, holds fire otherwise |
 | `transport` | takes off, flies to `dest` and lands in the nearest clearing (up to 300 m off), only returning fire; refused without a `dest`. Aim at open ground: at a forest's edge it hovers and never lands |
+| `patrol` | armed: a 1 km loop around the marker (or to and fro to `dest`), engaging ground units and helicopters in range; unarmed: a shuttle marker ↔ `dest`, 5 min on the ground at each end, for ever (refused without a `dest`) |
+| `attack` | armed only: flies to `dest`, engages ground units and helicopters in range, then circles there |
+| `escort` | armed only: `dest` is the **name of a ground group**, which it joins and covers |
 
 `alt` is the height above the ground (feet, 500 by default), `speed` the speed (knots, 80 by
-default). `dest` is a named point or coordinates, as for a convoy.
+default). `dest` is a named point or coordinates, as for a convoy. `capradius` is an armed helicopter's
+engagement range (metres, 3,000 by default).
 
 **Armed or not is the alias's call**, not the type's: DCS files the Mi-8 as both an attack and a
 transport helicopter.
@@ -107,7 +111,7 @@ transport helicopter.
 A DCS type written directly (`name Mi-8MT`) flies unarmed. A `src/spawn-groups.yaml` can add its own
 aliases, with `pylons`, and groups of several helicopters.
 
-> Checked in game on 2026-10-02: `orbit` circles 1.5–2 km from its point, `transport` lands 30 m from its own on open ground.
+> Checked in game on 2026-10-02: `orbit` circles 1.5–2 km from its point, `transport` lands 30 m from its own on open ground. `patrol` and `attack` too; `escort` is still to be checked on a moving convoy (around a stationary group it wanders up to 7 km off).
 
 ### Spawn a CAP patrol
 

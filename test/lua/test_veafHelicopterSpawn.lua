@@ -426,6 +426,173 @@ function TestHelicopterJobs:test_a_fighter_role_is_not_a_helicopter_task()
 end
 
 -- ============================================================================
+-- Tickets 05 and 06 — `patrol`, `attack`, `escort`
+-- ============================================================================
+TestHelicopterCombatJobs = {}
+
+local CONVOY_AT = { x = 8000, y = 0, z = 9000 }
+
+function TestHelicopterCombatJobs:setUp()
+  TestHelicopterJobs.setUp(self)
+  dcs_mocks.addGroup("CONVOY", {
+    _id = 42,
+    getUnits = function()
+      return { {
+        getPoint = function()
+          return CONVOY_AT
+        end,
+      } }
+    end,
+  })
+end
+
+function TestHelicopterCombatJobs:tearDown()
+  TestHelicopterJobs.tearDown(self)
+end
+
+--- Every task of every point, with the index of the point that carries it.
+local function allTasks(points)
+  local result = {}
+  for index, point in ipairs(points) do
+    for _, task in ipairs(tasksAt(point)) do
+      table.insert(result, { index = index, task = task })
+    end
+  end
+  return result
+end
+
+local function findTask(points, id)
+  for _, entry in ipairs(allTasks(points)) do
+    if entry.task.id == id then
+      return entry.task, entry.index
+    end
+  end
+end
+
+--- The `SwitchWaypoint` a looping route ends on: `{ from, to }`.
+local function loopOf(points)
+  for _, entry in ipairs(allTasks(points)) do
+    local action = entry.task.params and entry.task.params.action
+    if action and action.id == "SwitchWaypoint" then
+      return { action.params.fromWaypointIndex, action.params.goToWaypointIndex }
+    end
+  end
+end
+
+local function distance2d(point, x, z)
+  return math.sqrt((point.x - x) ^ 2 + (point.y - z) ^ 2)
+end
+
+-- ---- patrol, armed ----------------------------------------------------------
+
+function TestHelicopterCombatJobs:test_an_armed_patrol_circuits_around_its_point_for_ever()
+  local name, points = routeOf("mi24", { task = "patrol" })
+  luaunit.assertEquals(veafAircraftSpawn.getRole(name), "patrol")
+  luaunit.assertEquals(points[1].type, "TakeOffGroundHot")
+  luaunit.assertEquals(#points, 5) -- take-off, then four corners
+  for index = 2, 5 do
+    luaunit.assertAlmostEquals(distance2d(points[index], SPOT.x, SPOT.z), veafAircraftSpawn.HELICOPTER_PATROL_LEG, 0.01)
+  end
+  luaunit.assertEquals(loopOf(points), { 5, 2 })
+end
+
+function TestHelicopterCombatJobs:test_an_armed_patrol_engages_ground_units_and_helicopters_around_its_point()
+  local _, points = routeOf("mi24", { task = "patrol" })
+  local engage = findTask(points, "EngageTargetsInZone")
+  luaunit.assertEquals(engage.params.point, { x = SPOT.x, y = SPOT.z })
+  luaunit.assertEquals(engage.params.zoneRadius, veafAircraftSpawn.HELICOPTER_ENGAGE_RADIUS)
+  luaunit.assertEquals(engage.params.targetTypes, { "Ground Units", "Helicopters" })
+  luaunit.assertEquals(roeOf(points), ROE.WEAPON_FREE)
+end
+
+function TestHelicopterCombatJobs:test_the_engagement_radius_comes_from_capradius()
+  local _, points = routeOf("mi24", { task = "patrol", radius = 5000 })
+  luaunit.assertEquals(findTask(points, "EngageTargetsInZone").params.zoneRadius, 5000)
+end
+
+function TestHelicopterCombatJobs:test_an_armed_patrol_with_a_destination_goes_to_and_fro()
+  local _, points = routeOf("mi24", { task = "patrol", destination = "FOB" })
+  luaunit.assertEquals(#points, 3)
+  luaunit.assertEquals({ points[2].x, points[2].y }, { DEST.x, DEST.z })
+  luaunit.assertEquals({ points[3].x, points[3].y }, { SPOT.x, SPOT.z })
+  luaunit.assertEquals(loopOf(points), { 3, 2 })
+  -- the zone covers the leg: centred between the two ends
+  local engage = findTask(points, "EngageTargetsInZone")
+  luaunit.assertEquals(engage.params.point, { x = (SPOT.x + DEST.x) / 2, y = (SPOT.z + DEST.z) / 2 })
+end
+
+-- ---- patrol, unarmed: the resupply run --------------------------------------
+
+function TestHelicopterCombatJobs:test_an_unarmed_patrol_shuttles_landing_at_each_end_for_ever()
+  local _, points = routeOf("mi8", { task = "patrol", destination = "FOB" })
+  local landings = {}
+  for _, entry in ipairs(allTasks(points)) do
+    if entry.task.id == "Land" then
+      table.insert(landings, entry.task.params)
+    end
+  end
+  luaunit.assertEquals(#landings, 2)
+  luaunit.assertEquals(landings[1].point, { x = DEST.x, y = DEST.z })
+  luaunit.assertEquals(landings[2].point, { x = SPOT.x, y = SPOT.z })
+  for _, landing in ipairs(landings) do
+    luaunit.assertTrue(landing.durationFlag)
+    luaunit.assertEquals(landing.duration, veafAircraftSpawn.HELICOPTER_GROUND_TIME)
+  end
+  luaunit.assertNotNil(loopOf(points))
+  luaunit.assertNil(findTask(points, "EngageTargetsInZone"))
+  luaunit.assertEquals(roeOf(points), ROE.RETURN_FIRE)
+end
+
+function TestHelicopterCombatJobs:test_an_unarmed_patrol_without_a_destination_is_refused()
+  luaunit.assertNil(routeOf("mi8", { task = "patrol" }))
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+-- ---- attack -----------------------------------------------------------------
+
+function TestHelicopterCombatJobs:test_attack_flies_to_its_destination_engages_there_and_stays()
+  local name, points = routeOf("mi24", { task = "attack", destination = "FOB" })
+  luaunit.assertEquals(veafAircraftSpawn.getRole(name), "attack")
+  local last = points[#points]
+  luaunit.assertEquals({ last.x, last.y }, { DEST.x, DEST.z })
+  local engage = taskOf(last, "EngageTargetsInZone")
+  luaunit.assertEquals(engage.params.point, { x = DEST.x, y = DEST.z })
+  luaunit.assertEquals(engage.params.targetTypes, { "Ground Units", "Helicopters" })
+  luaunit.assertEquals(taskOf(last, "Orbit").params.pattern, "Circle")
+  luaunit.assertEquals(roeOf(points), ROE.WEAPON_FREE)
+end
+
+function TestHelicopterCombatJobs:test_attack_needs_a_destination_and_weapons()
+  luaunit.assertNil(routeOf("mi24", { task = "attack" }))
+  luaunit.assertNil(routeOf("mi8", { task = "attack", destination = "FOB" }))
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+-- ---- escort -----------------------------------------------------------------
+
+function TestHelicopterCombatJobs:test_escort_joins_the_ground_group_and_covers_it()
+  local name, points = routeOf("mi24", { task = "escort", destination = "CONVOY" })
+  luaunit.assertEquals(veafAircraftSpawn.getRole(name), "escort")
+  local escort, index = findTask(points, "GroundEscort")
+  luaunit.assertEquals(escort.params.groupId, 42)
+  luaunit.assertEquals(escort.params.engagementDistMax, veafAircraftSpawn.HELICOPTER_ENGAGE_RADIUS)
+  luaunit.assertEquals({ points[index].x, points[index].y }, { CONVOY_AT.x, CONVOY_AT.z })
+  luaunit.assertEquals(roeOf(points), ROE.WEAPON_FREE)
+end
+
+function TestHelicopterCombatJobs:test_escort_needs_a_group_that_exists_and_weapons()
+  luaunit.assertNil(routeOf("mi24", { task = "escort", destination = "NO SUCH GROUP" }))
+  luaunit.assertNil(routeOf("mi24", { task = "escort" }))
+  luaunit.assertNil(routeOf("mi8", { task = "escort", destination = "CONVOY" }))
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+function TestHelicopterCombatJobs:test_the_marker_capradius_reaches_the_job()
+  local job = veafSpawn.helicopterJob(veafSpawn.markTextAnalysis("_spawn unit, name mi24, task patrol, capradius 5000"))
+  luaunit.assertEquals(job.radius, 5000)
+end
+
+-- ============================================================================
 -- Ticket 02 — the marker's `task` reaches the spawn
 -- ============================================================================
 TestHelicopterMarker = {}

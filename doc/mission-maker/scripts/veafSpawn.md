@@ -92,9 +92,13 @@ L'hélicoptère apparaît **posé** à l'endroit du marqueur, puis fait ce que d
 | *(rien)* | reste posé, moteur coupé : une cible |
 | `orbit` | décolle et tourne au-dessus du marqueur ; tire sur ce qui passe s'il est armé, ne tire pas sinon |
 | `transport` | décolle, va à `dest` et se pose dans la clairière la plus proche (jusqu'à 300 m), en ne faisant que riposter ; refusé sans `dest`. Visez un terrain dégagé : au bord d'une forêt, il reste en vol stationnaire sans se poser |
+| `patrol` | armé : boucle de 1 km autour du marqueur (ou aller-retour jusqu'à `dest`), engage le sol et les hélicoptères à portée ; non armé : navette marqueur ↔ `dest`, 5 min au sol à chaque bout, sans fin (refusée sans `dest`) |
+| `attack` | armé seulement : va à `dest`, engage le sol et les hélicoptères à portée, puis tourne sur place |
+| `escort` | armé seulement : `dest` est le **nom d'un groupe au sol**, qu'il rejoint et couvre |
 
 `alt` est la hauteur au-dessus du sol (pieds, 500 par défaut), `speed` la vitesse (nœuds, 80 par
-défaut). `dest` est un point nommé ou des coordonnées, comme pour un convoi.
+défaut). `dest` est un point nommé ou des coordonnées, comme pour un convoi. `capradius` est la portée
+d'engagement d'un hélicoptère armé (mètres, 3 000 par défaut).
 
 **Armé ou non, c'est l'alias qui le dit**, pas le type : DCS range le Mi-8 à la fois parmi les
 hélicoptères d'attaque et de transport.
@@ -106,7 +110,7 @@ hélicoptères d'attaque et de transport.
 Un type DCS écrit directement (`name Mi-8MT`) vole non armé. Un `src/spawn-groups.yaml` peut ajouter
 ses propres alias, avec des `pylons`, et des groupes de plusieurs hélicoptères.
 
-> Vérifié en jeu le 2026-10-02 : `orbit` tourne à 1,5–2 km de son point, `transport` se pose à 30 m du sien sur terrain dégagé.
+> Vérifié en jeu le 2026-10-02 : `orbit` tourne à 1,5–2 km de son point, `transport` se pose à 30 m du sien sur terrain dégagé. `patrol` et `attack` aussi ; `escort` reste à vérifier sur un convoi qui roule (autour d'un groupe immobile, il s'éloigne jusqu'à 7 km).
 
 ### Faire apparaître une patrouille CAP
 

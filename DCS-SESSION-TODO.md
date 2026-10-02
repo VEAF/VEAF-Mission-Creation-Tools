@@ -478,6 +478,77 @@ Takeoffs, landings and crashes are printed as they happen. Everything also goes 
 The answer to give is the five letters, each with what it did. Also say whether C and D look the same on
 the ground (rotors stopped or turning).
 
+### ⚠ R31. Helicopters patrol, attack and escort — R30 with a passive target — **run 2026-10-02**
+
+**Result** (21:39–21:49 UTC): **C** fired at T+160 s and T+174 s, hit twice, and the tank was gone at
+T+197 s; it then circled 1.8–2 km from the target — `attack` ✅. **B** landed 16 m from `SHUTTLE`, took off
+after its time on the ground and landed 100 m from home at T+570 s — a full shuttle ✅ (the next round not
+watched). **A** looped as in R29 ✅. **D** came back near G now and then (460–590 m) but wandered up to
+**7.2 km** from it in between — `escort` ❌ on a stationary group; `GroundEscort` is meant for a moving
+convoy, not yet tried. Unexplained: D fell from 20 to 4 life around T+45 s and C from 15 to 13 around
+T+60 s, each with a gun `HIT` of its own and no target logged. Hence R32.
+
+### R31. Helicopters patrol, attack and escort — R30 with a passive target
+
+R30's mission again, three placements corrected: the red tank spawned `alarm 1` (green: it does not
+fire), A's engagement radius cut to 500 m (`capradius 500`) so it cannot reach the tank 1.1 km away, and
+G moved to the other side of the runway, far from the tank. Read with R29's table below.
+
+### ⚠ R30. Helicopters patrol, attack and escort — **run 2026-10-02, spoilt by the test's placements**
+
+**Result** (21:07–21:12 UTC, events matched by group this time): the red tank, 200 m from G, opened
+fire at T+11 s, **destroyed G** and hit D (life 4) and A. **A** fired at T+138 s and destroyed the tank —
+an armed `patrol` engages a ground unit inside its zone ✅. **C** never fired: the tank was gone before it
+was in a position to. **D** had nothing left to escort. **B** took off and landed at `SHUTTLE` as in R29.
+Hence R31.
+
+### R30. Helicopters patrol, attack and escort — the R29 mission corrected
+
+Same mission, rebuilt: the red tank on open grass beside the far end of the runway rather than in a
+village, G a real type (`M1126 Stryker ICV`), events matched by **group** name (R29 logged none), and
+20 minutes of readings so B's shuttle goes round twice. Read it with R29's table below.
+
+### ⚠ R29. Helicopters patrol, attack and escort — **run 2026-10-02, half-readable**
+
+**Result** (20:53–21:08 UTC): **A** looped for 15 minutes 1.3–2.4 km from its point without drifting
+— ✅. **B** landed **17 m** from `SHUTTLE`, stayed ~4 min 30, took off, landed **63 m** from home, and
+was still down when the readings stopped — the `Land` task with a duration hands the route back ✅, the
+second round not seen. **C** made attack passes down to 39 m and 750 m from the tank, which never lost a
+point of life — the tank was hidden in a village (David's F10 capture) — then wandered 4 km off: not
+readable. **G** and **D** were never spawned: `M1128` is not a DCS type, the script's mistake. No event
+was logged: the script matched unit names against group names. Hence R30.
+
+The protocol:
+
+Tickets 05 and 06 of [`FEAT-HELICOPTER-SPAWN`](.backlog/FEAT-HELICOPTER-SPAWN/PRD.md): none of
+`SwitchWaypoint` loops, `Land` with a duration, `EngageTargetsInZone` or `GroundEscort` is measured on a
+scripted helicopter.
+
+**Run**: `D:\dev\_VEAF\tmp\verify-helicopter-combat\missions\Verify-Helicopter-Combat_noon.miz` (built
+2026-10-02 from the branch, `--dev-mode`). Take the A-10C at Kobuleti; **10 s after start** six real
+marker commands run, and a table is printed every 15 s for 15 minutes (`grep HELITASK` in `dcs.log`).
+Takeoffs, landings, shots, hits and deaths are printed as they happen.
+
+| | Marker command | Expected |
+|---|---|---|
+| A | `mi24, task patrol` | `AIR`, `from-spawn` around 1 km for the whole run |
+| B | `mi8, task patrol, dest SHUTTLE` (grass beside the far end of the runway) | `LAND` near `SHUTTLE` (`from-shuttle` < 100 m), `GND` ~5 min, takes off, `LAND` back home, and again |
+| T | `T-72B, side red`, 3 km out on open ground | the target: `GONE` or a `DEAD` event once C has done its job |
+| C | `ka50, task attack, dest TARGET` | flies to `TARGET`, `SHOT` events, T destroyed, then circles (`from-target` stays under ~2 km) |
+| G | `M1126 Stryker ICV` beside the runway | the escorted vehicle, `GND` |
+| D | `ah64, task escort, dest <G>` | `AIR`, `from-escorted` staying under ~2 km |
+
+**What each outcome means:**
+
+- **As expected**: tickets 05 and 06 are done.
+- **B never takes off again after its first landing**: a `Land` task with a duration does not hand the
+  route back; the shuttle needs another shape.
+- **A or B stops after one pass**: the `SwitchWaypoint` loop does not hold.
+- **C reaches the target and never shoots**: `EngageTargetsInZone` is not honoured (or the Ka-50's
+  loadout is not what it uses) — the `SHOT` events say which.
+- **D flies off or circles its spawn point**: `GroundEscort` is not honoured.
+- **`NOTHING SPAWNED` or an `ERROR` line**: the command was refused — the text says why.
+
 ### ✅ R28. A transport helicopter lands on open ground — **run 2026-10-02**
 
 The destination moved to grass 150 m beside the far end of the Kobuleti runway (182 m from the field's

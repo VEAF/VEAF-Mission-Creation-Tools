@@ -1427,13 +1427,14 @@ end
 
 --- What a marker asks a spawned helicopter to do, read from its options (FEAT-HELICOPTER-SPAWN): the
 --- `task`, the first `dest` point, `alt` (feet above the ground) and `speed` (knots) — the units
---- `-afac` and `-cap` read them in. Ignored by any other unit.
+--- `-afac` and `-cap` read them in — and `capradius`, the engagement radius in metres. Ignored by any
+--- other unit.
 --- @param options table the parsed marker options
---- @return table `{ task, destination, altitude, speed }`, altitude in metres and speed in m/s
+--- @return table `{ task, destination, altitude, speed, radius }`, altitude in metres and speed in m/s
 function veafSpawn.helicopterJob(options)
   local altitude = options.altitude and options.altitude > 0 and options.altitude * 0.3048 or nil
   local speed = options.speed and options.speed > 0 and options.speed / 1.94384 or nil
-  return { task = options.task, destination = options.destination, altitude = altitude, speed = speed }
+  return { task = options.task, destination = options.destination, altitude = altitude, speed = speed, radius = options.capradius }
 end
 
 veafSpawn.registerCommandHandler("unit", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)

@@ -17,7 +17,14 @@ _COVER = {"few": "FEW", "scattered": "SCT", "broken": "BKN", "overcast": "OVC"}
 
 
 def _temperature(celsius: float) -> str:
-    """``15`` -> ``15``, ``-5`` -> ``M05``: a METAR writes a negative temperature with ``M``."""
+    """Write a temperature the METAR way: ``15`` -> ``15``, ``-5`` -> ``M05``.
+
+    Args:
+        celsius: The temperature in °C.
+
+    Returns:
+        Two digits, prefixed with ``M`` below zero.
+    """
     value = round(celsius)
     return f"M{abs(value):02d}" if value < 0 else f"{value:02d}"
 

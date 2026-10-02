@@ -847,6 +847,22 @@ class TestBriefingMetarPerVariant(unittest.TestCase):
                 "Weather: METAR 150900Z 27010KT 9999 SKC Q1013",
             )
 
+    def test_a_clearsky_variant_reads_the_capped_sky(self) -> None:
+        # Review of the lot: DCS flies the capped sky, so the briefing must say that one.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = DcsMission(
+                file_path=Path("unused.miz"),
+                mission_content={"descriptionText": "${METAR}", "date": {"Year": 2024, "Month": 3, "Day": 15}},
+                theatre_content="Syria",
+            )
+            weather = {"wind_speed": 15.0, "wind_direction": 270, "cloud_type": "overcast", "precipitation": True}
+            worker._substitute_briefing_variables(VersionConfig(name="vfr", weather=weather, clearsky=True))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(
+                worker.mission_data.mission_content["descriptionText"], "METAR 142100Z 27015KT 9999 FEW///"
+            )
+
     def test_a_variant_with_no_weather_at_all_leaves_the_token_written(self) -> None:
         # Nothing to show: leaving the token beats blanking it, a hole reads as the build having eaten
         # the prose.

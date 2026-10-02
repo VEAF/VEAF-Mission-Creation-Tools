@@ -94,7 +94,9 @@ def create_combat_zone(
         )
         created.append(group_name)
         warnings += validate_group_name(group_name, expected_combat_zone=zone_name)["warnings"]
-        warnings += [{"group": group_name, "warning": w} for w in build_warnings]
+        # A warning about the whole mission ("surface not checked: no elevation grid") once, not per group.
+        said = {entry.get("warning") for entry in warnings if isinstance(entry, dict)}
+        warnings += [{"group": group_name, "warning": w} for w in build_warnings if w not in said]
 
     save_folder_mission(mission, folder_path)
     _append_combat_zone(mission_yaml_path(folder_path), zone_name, combat_zone)

@@ -19,7 +19,7 @@ from .models import MissionConfig, VersionConfig
 from .utils import SolarCalculator, TimeExpressionParser
 from .utils.theatre_offsets import theatre_utc_offset
 from .weather import DCSWeatherConverter
-from .weather.dcs_weather_converter import fetch_metar_string
+from .weather.dcs_weather_converter import _CLEARSKY_MAX_WIND_MPS, fetch_metar_string
 from .weather.metar_composer import compose_metar
 
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
@@ -240,17 +240,19 @@ class WeatherInjectorWorker(BaseWorker):
             if not metar_text and version.airport_icao:
                 metar_text = fetch_metar_string(version.airport_icao)
             elif not metar_text and version.weather:
-                metar_text = self._composed_metar(version.weather)
+                metar_text = self._composed_metar(version.weather, clearsky=version.clearsky)
             if metar_text:
                 variables["METAR"] = metar_text
 
         briefing_variables.apply_and_report(self.mission_data, variables, context=version.name)
 
-    def _composed_metar(self, manual: dict[str, Any]) -> str:
+    def _composed_metar(self, manual: dict[str, Any], *, clearsky: bool = False) -> str:
         """Compose this variant's METAR from its manual weather, at its start time in UTC.
 
         Args:
             manual: The variant's ``weather:`` mapping.
+            clearsky: The variant's ``clearsky``: the METAR shows the capped sky DCS is given, not
+                the one written (``DCSWeatherConverter.to_dcs_lua_table`` applies the same caps).
 
         Returns:
             The METAR, stamped with the mission's date and start time (already set for the variant),
@@ -269,6 +271,17 @@ class WeatherInjectorWorker(BaseWorker):
         weather = (self.mission_data.get_weather() if self.mission_data else None) or {}
         qnh_mmhg = weather.get("qnh")
         qnh_hpa = float(qnh_mmhg) / 0.750062 if qnh_mmhg else None  # DCS stores mmHg
+        if clearsky:
+            manual = dict(manual)
+            covers = list(DCSWeatherConverter.CLOUD_TYPES)
+            cover = str(manual.get("cloud_type") or "clear").lower()
+            if cover in covers and covers.index(cover) > covers.index("few"):
+                manual["cloud_type"] = "few"
+            if manual.get("wind_speed") is not None:
+                manual["wind_speed"] = min(float(manual["wind_speed"]), _CLEARSKY_MAX_WIND_MPS)
+            manual["visibility"] = max(float(manual.get("visibility") or 10000.0), 9999.0)
+            manual["precipitation"] = False
+            manual["fog_enabled"] = False
         return compose_metar(manual, local - timedelta(hours=offset), qnh_hpa)
 
     def _update_mission_time_and_date(self, version: VersionConfig) -> None:

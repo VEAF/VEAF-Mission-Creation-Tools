@@ -418,6 +418,15 @@ class TestSyriaFindings:
         )
         assert _unit(miz, "Colt 1-1", "Colt 1-1-1")["callsign"] == {1: 1, 2: 2, 3: 1, "name": "Texaco21"}
 
+    def test_a_name_with_one_digit_is_completed_too(self, miz: Path) -> None:
+        set_unit_properties(
+            miz,
+            group_name="Colt 1-1",
+            unit_name="Colt 1-1-1",
+            callsign={"family": 1, "name": "Texaco2", "flight": 2, "number": 1},
+        )
+        assert _unit(miz, "Colt 1-1", "Colt 1-1-1")["callsign"]["name"] == "Texaco21"
+
     def test_a_name_that_already_ends_with_its_digits_is_kept(self, miz: Path) -> None:
         set_unit_properties(
             miz,

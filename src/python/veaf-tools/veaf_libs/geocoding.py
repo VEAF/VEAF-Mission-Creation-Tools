@@ -100,7 +100,14 @@ def _pace() -> None:
 
 
 def _retry_after(response: requests.Response) -> float:
-    """Return how long a 429 asks to wait, bounded, or a short back-off when it does not say."""
+    """Return how long a 429 asks to wait, bounded, or a short back-off when it does not say.
+
+    Args:
+        response: The 429 response.
+
+    Returns:
+        Seconds to wait: ``Retry-After`` within 0..:data:`_MAX_BACKOFF_S`, else :data:`_DEFAULT_BACKOFF_S`.
+    """
     try:
         asked = float(response.headers.get("Retry-After", ""))
     except ValueError:
@@ -118,6 +125,13 @@ class NominatimGeocoder:
         « Al-Kiswah » came back as a street of Amman (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 07).
         Nominatim often has a single candidate, so the class and type are returned for the caller to
         judge, and a road or a region is only chosen when nothing else came back.
+
+        Args:
+            query: The place name.
+            bounds: The theatre's box, to which the search is restricted.
+
+        Returns:
+            The chosen candidate, or ``None`` when Nominatim has none.
 
         Raises:
             GeocodingRefusedError: When Nominatim answers 429 twice, the second time after waiting
@@ -156,6 +170,14 @@ class NominatimGeocoder:
 
     @staticmethod
     def _get(params: dict[str, str | int]) -> requests.Response:
+        """Send one search request, paced to one a second.
+
+        Args:
+            params: The query string.
+
+        Returns:
+            The raw response; its status is the caller's to read.
+        """
         _pace()
         return requests.get(_NOMINATIM_URL, params=params, headers={"User-Agent": _USER_AGENT}, timeout=_TIMEOUT)
 

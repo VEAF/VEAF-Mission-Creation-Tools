@@ -218,8 +218,15 @@ def add_air_group(
     )
     if deck is not None:
         _seat_on_deck(group, *deck)
-    if task == "AFAC":
+    afac_note: str | None = None
+    if task == "AFAC" and start == "air":
         _make_laser_drone(group, altitude_ft=altitude_ft, speed_kt=speed_kt)
+    elif task == "AFAC":
+        # The orbit is on the first point: on the ground, that is the airfield the drone leaves.
+        afac_note = (
+            f"group {name!r} has task AFAC on a {start!r} start: no orbit was written, since the first "
+            "point is where it takes off; a laser drone is an air start over its zone"
+        )
     callsign_note = assign_identities(content, group, country_id=country_id, task=task)
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
@@ -250,7 +257,7 @@ def add_air_group(
         "stands": deck[1] if deck is not None else [s.parking for s in stands],
     }
     unarmed = unarmed_warning(name, task, skill, aircraft_payload)
-    warnings = [w for w in (category_warning, fuel_warning, callsign_note, unarmed) if w]
+    warnings = [w for w in (category_warning, fuel_warning, callsign_note, unarmed, afac_note) if w]
     if warnings:
         result["warnings"] = warnings
     return result

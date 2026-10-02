@@ -221,11 +221,7 @@ def insert_group_into_content(
             if placement.message and warnings is not None:
                 warnings.append(placement.message)
     if warnings is not None and category in ("vehicle", "static", "ship"):
-        warnings.extend(
-            surface_warnings(
-                mission_content.get("theatre"), group["units"], afloat=category == "ship", label=f"group {name!r}"
-            )
-        )
+        warnings.extend(surface_warnings(mission_content.get("theatre"), group["units"], afloat=category == "ship"))
     return insert_group(
         mission_content,
         coalition=coalition,

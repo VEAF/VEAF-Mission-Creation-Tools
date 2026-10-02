@@ -29,7 +29,14 @@ DEFAULT_OUTPUT = Path(__file__).parent.parent.parent / "src/python/veaf-tools/ve
 
 
 def _listed(table: Any) -> list[Any]:
-    """Return a Lua array as a list, whichever shape the parser gave it."""
+    """Return a Lua array as a list, whichever shape the parser gave it.
+
+    Args:
+        table: A parsed Lua array: a list, a dict keyed 1..N, or ``None``.
+
+    Returns:
+        Its values in key order; empty for ``None``.
+    """
     if isinstance(table, dict):
         return [table[key] for key in sorted(table, key=lambda k: (not isinstance(k, int), k))]
     return list(table or [])

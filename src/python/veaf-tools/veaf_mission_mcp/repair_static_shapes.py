@@ -17,7 +17,14 @@ from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 
 
 def _statics(content: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return every static unit of the mission, both coalitions."""
+    """Return every static unit of the mission, both coalitions.
+
+    Args:
+        content: The parsed mission table.
+
+    Returns:
+        The static unit tables, mutable in place.
+    """
     units: list[dict[str, Any]] = []
     for coalition in (content.get("coalition") or {}).values():
         if not isinstance(coalition, dict):

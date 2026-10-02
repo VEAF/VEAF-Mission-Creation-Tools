@@ -586,3 +586,23 @@ class TestDcsPayloadByName:
     def test_both_pylons_and_payload_are_refused(self, tmp_path: Path) -> None:
         with pytest.raises(ValueError, match="not both"):
             self._add(tmp_path, payload="R-40T*2,R-33*4", pylons={1: {"CLSID": "{X}"}})
+
+
+def test_an_afac_flight_on_the_ramp_gets_no_orbit_and_a_warning(tmp_path: Path) -> None:
+    """Review of FIX-OPEN-TRAINING-SYRIA-FINDINGS 06: the orbit would circle the departure airfield."""
+    miz = _caucasus_miz(tmp_path)
+    result = add_air_group(
+        miz,
+        coalition="blue",
+        country_id=2,
+        country_name="USA",
+        name="Reaper 1",
+        unit_type="MQ-9 Reaper",
+        start="parking-cold",
+        airfield="Kobuleti",
+        task="AFAC",
+    )
+    assert any("AFAC" in w and "air start" in w for w in result["warnings"])
+    first = _slot_group(read_miz(miz).mission_content or {}, "Reaper 1")["route"]["points"]
+    first = (list(first.values()) if isinstance(first, dict) else first)[0]
+    assert "task" not in first or "Orbit" not in str(first["task"])

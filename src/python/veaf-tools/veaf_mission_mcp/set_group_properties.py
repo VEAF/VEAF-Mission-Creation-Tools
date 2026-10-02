@@ -112,6 +112,8 @@ def set_group_properties(
 
     group = find_group(content, group_name)
     existing_names = group_names(content)
+    # Read before a rename: looked up by name, the group is not found under its old one afterwards.
+    category = group_category(content, group_name)
 
     changed: dict[str, Any] = {}
     warnings: list[str] = []
@@ -121,7 +123,7 @@ def set_group_properties(
         _apply_move(
             group,
             mission.theatre_content,
-            category=group_category(content, group_name),
+            category=category,
             move_to=move_to,
             bearing=move_bearing,
             distance_m=move_distance_m,
@@ -245,11 +247,7 @@ def _apply_move(
         "delta": {"x": delta_x, "y": delta_y},
     }
     if category in ("vehicle", "static", "ship"):
-        warnings.extend(
-            surface_warnings(
-                theatre, group.get("units"), afloat=category == "ship", label=f"group {group.get('name')!r}"
-            )
-        )
+        warnings.extend(surface_warnings(theatre, group.get("units"), afloat=category == "ship"))
 
 
 def _anchor(group: dict[str, Any]) -> tuple[float, float] | None:

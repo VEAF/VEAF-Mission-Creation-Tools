@@ -346,18 +346,20 @@ def _completed_callsign_name(name: str, table: dict[Any, Any]) -> str:
     """Return the name as the editor writes it: the word followed by the flight and number.
 
     ``name="Texaco"`` was written verbatim, where the editor writes ``Texaco21``
-    (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 02); a name already ending with digits is the caller's.
+    (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 02). A name ending with two digits is the caller's full
+    callsign and kept; one with fewer (``Texaco2``) is the word, completed like a bare one.
 
     Args:
         name: The name the caller passed.
         table: The callsign being written, already carrying its indices.
 
     Returns:
-        ``name`` itself when it ends with a digit, else ``name`` + flight + number.
+        ``name`` itself when it ends with two digits, else its word + flight + number.
     """
-    if name[-1:].isdigit():
+    if name[-2:].isdigit():
         return name
-    return f"{name}{table.get(_CALLSIGN_FLIGHT, 1)}{table.get(_CALLSIGN_NUMBER, 1)}"
+    word = name.rstrip("0123456789")
+    return f"{word}{table.get(_CALLSIGN_FLIGHT, 1)}{table.get(_CALLSIGN_NUMBER, 1)}"
 
 
 def _rebuilt_callsign_name(previous: Any, table: dict[Any, Any]) -> str:

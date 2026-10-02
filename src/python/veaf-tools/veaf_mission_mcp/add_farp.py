@@ -137,7 +137,7 @@ def add_farp(
     table[unit_id] = _default_warehouse(coalition.lower())
 
     theatre = content.get("theatre") or mission.theatre_content
-    warnings = surface_warnings(theatre, [unit], afloat=False, label=f"FARP {name!r}")
+    warnings = surface_warnings(theatre, [unit], afloat=False)
     dump_name = f"{name} - Ammo"
     if ammo_dump:
         insert_group_into_content(
@@ -156,7 +156,8 @@ def add_farp(
     if ammo_dump:
         result["ammo_dump"] = dump_name
     if warnings:
-        result["warnings"] = warnings
+        # The pad and its dump share a surface verdict when the theatre has no grid: said once.
+        result["warnings"] = list(dict.fromkeys(warnings))
     return result
 
 

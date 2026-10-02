@@ -37,22 +37,28 @@ def _unit(name: str, where: dict[str, float]) -> dict[str, object]:
 
 class TestSurfaceWarnings:
     def test_a_ground_unit_in_the_sea_is_named(self, coast: None) -> None:
-        warnings = surface_warnings("Caucasus", [_unit("Avenger-1", _SEA)], afloat=False, label="g")
+        warnings = surface_warnings("Caucasus", [_unit("Avenger-1", _SEA)], afloat=False)
         assert warnings == ["'Avenger-1' is in the sea: the ground reads 0 m there"]
 
     def test_three_metres_is_land(self, coast: None) -> None:
-        assert surface_warnings("Caucasus", [_unit("Avenger-1", _LAND)], afloat=False, label="g") == []
+        assert surface_warnings("Caucasus", [_unit("Avenger-1", _LAND)], afloat=False) == []
 
     def test_a_ship_on_land_is_named_with_the_height(self, coast: None) -> None:
-        warnings = surface_warnings("Caucasus", [_unit("Frigate", _LAND)], afloat=True, label="g")
-        assert warnings == ["ship 'Frigate' is on land: the ground reads 3 m there"]
+        warnings = surface_warnings("Caucasus", [_unit("Frigate", _LAND)], afloat=True)
+        assert warnings == ["ship 'Frigate' is on land: the ground reads 3 m or more there"]
+
+    def test_a_cell_across_the_shore_says_nothing_either_way(self, coast: None) -> None:
+        # Review of the lot: the interpolation reads 0-3 m there, for the beach and the sea alike.
+        shore = {"x": _COAST_X + 50, "y": 685000.0}
+        assert surface_warnings("Caucasus", [_unit("Avenger-1", shore)], afloat=False) == []
+        assert surface_warnings("Caucasus", [_unit("Frigate", shore)], afloat=True) == []
 
     def test_a_ship_at_sea_is_silent(self, coast: None) -> None:
-        assert surface_warnings("Caucasus", [_unit("Frigate", _SEA)], afloat=True, label="g") == []
+        assert surface_warnings("Caucasus", [_unit("Frigate", _SEA)], afloat=True) == []
 
     def test_no_grid_says_it_was_not_checked(self) -> None:
-        warnings = surface_warnings("Syria", [_unit("Avenger-1", _SEA)], afloat=False, label="group 'SAM'")
-        assert warnings == ["group 'SAM': surface not checked: no elevation grid for Syria"]
+        warnings = surface_warnings("Syria", [_unit("Avenger-1", _SEA)], afloat=False)
+        assert warnings == ["surface not checked: no elevation grid for Syria"]
 
 
 @pytest.fixture
@@ -107,3 +113,25 @@ class TestThroughTheActions:
         )
         result = set_group_properties(sample_miz, group_name="Navy", move_to=_LAND)
         assert any("ship 'Frigate' is on land" in w for w in result["warnings"])
+
+    def test_renaming_and_moving_at_once_still_checks(self, coast: None, sample_miz: Path) -> None:
+        # Review of the lot: the category was looked up by the old name after the rename.
+        add_group(
+            sample_miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            category="vehicle",
+            name="SAM",
+            position=_LAND,
+            units=[{"type": "M1097 Avenger", "count": 1, "name": "Avenger-1"}],
+            keep_position=True,
+        )
+        result = set_group_properties(sample_miz, group_name="SAM", new_name="SAM Paphos", move_to=_SEA)
+        assert any("'Avenger-1' is in the sea" in w for w in result["warnings"])
+
+
+def test_without_a_grid_a_farp_says_it_once(sample_miz: Path) -> None:
+    """Review of the lot: the pad and its ammunition dump each said 'surface not checked'."""
+    result = add_farp(sample_miz, name="FARP X", position=_LAND, coalition="blue", country_id=2, country_name="USA")
+    assert result["warnings"] == ["surface not checked: no elevation grid for Caucasus"]

@@ -27,6 +27,19 @@ def test_list_catalog_includes_the_default_actions() -> None:
     assert "describe_mission" in names
 
 
+def test_list_catalog_is_compact_by_default() -> None:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 14: 67 388 characters, saved to a file instead of shown."""
+    import json
+
+    compact = server.list_catalog()
+    assert set(compact[0]) == {"name", "summary"}
+    assert all(len(entry["summary"]) <= 200 for entry in compact)
+    assert len(json.dumps(compact)) < 20000
+    full = server.list_catalog(full=True)
+    assert "parameters_schema" in full[0]
+    assert [entry["name"] for entry in compact] == [entry["name"] for entry in full]
+
+
 def test_describe_action_returns_the_describe_mission_spec() -> None:
     spec = server.describe_action("describe_mission")
 

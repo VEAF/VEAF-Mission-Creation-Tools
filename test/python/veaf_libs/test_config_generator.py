@@ -329,6 +329,21 @@ class TestNamedPoints(unittest.TestCase):
 
 
 class TestAssetsModule(unittest.TestCase):
+    @staticmethod
+    def _asset_lua(**extra: object) -> str:
+        asset = {"sort": 1, "name": "Shell 1", "description": "Tanker", **extra}
+        return generate_config_lua({"lua_modules": {"ASSETS": {"enable": True, "assets": [asset]}}})
+
+    def test_an_asset_for_one_coalition(self) -> None:
+        """FIX-OPEN-TRAINING-SYRIA-FINDINGS 13: the red tanker showed in the blue menu too."""
+        self.assertIn("coalition = coalition.side.RED", self._asset_lua(coalition="RED"))
+        self.assertIn("coalition = coalition.side.BLUE", self._asset_lua(coalition="blue"))
+        self.assertNotIn("coalition", self._asset_lua())
+
+    def test_an_unknown_coalition_is_refused(self) -> None:
+        with self.assertRaisesRegex(ValueError, "'Shell 1'.*BLUE or RED"):
+            self._asset_lua(coalition="NEUTRAL")
+
     def test_assets_list_emitted(self) -> None:
         lua = generate_config_lua(
             {
@@ -769,6 +784,33 @@ class TestSummarizeActiveModules(unittest.TestCase):
             mod for mod, _ in summarize_active_modules({"modules": {"SPAWN": True, "COMBATZONE": {}, "RADIO": True}})
         ]
         self.assertEqual(ids, sorted(ids))
+
+
+class TestSanctuaryFromATriggerZone(unittest.TestCase):
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 12: 17 sanctuaries round the Syria bases took 102 vertex units."""
+
+    @staticmethod
+    def _lua(zone: dict) -> str:
+        return generate_config_lua({"lua_modules": {"SANCTUARY": {"sanctuary_zones": [zone]}}})
+
+    def test_a_trigger_zone_makes_a_circle_with_its_settings(self) -> None:
+        lua = self._lua(
+            {"name": "Incirlik", "trigger_zone": "SANCT Incirlik", "coalition": "BLUE", "delay_warning": 10}
+        )
+        self.assertIn('veafSanctuary.addZoneFromTriggerZone("SANCT Incirlik")', lua)
+        self.assertIn('zone:setName("Incirlik")', lua)
+        self.assertIn(":setCoalition(coalition.side.BLUE)", lua)
+        self.assertIn(":setDelayWarning(10)", lua)
+        self.assertNotIn("setPolygonFromUnits", lua)
+
+    def test_polygon_units_still_make_a_polygon(self) -> None:
+        lua = self._lua({"name": "Kutaisi", "polygon_units": ["v1", "v2", "v3"]})
+        self.assertIn(':setPolygonFromUnits({"v1", "v2", "v3"})', lua)
+
+    def test_both_or_neither_is_refused_naming_the_zone(self) -> None:
+        for zone in ({"name": "Z", "trigger_zone": "T", "polygon_units": ["v1"]}, {"name": "Z"}):
+            with self.assertRaisesRegex(ValueError, "'Z'.*exactly one of trigger_zone and polygon_units"):
+                self._lua(zone)
 
 
 if __name__ == "__main__":

@@ -62,6 +62,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   into duplicates — Magic 1 and Nalchik both on 265.0, **at channels 2 and 16 of the same blue
   radio**, so a pilot switching to Nalchik landed on the AWACS. Found on the Caucasus mission the
   day the base channels were fixed.
+- **Open Training prompt: what the Syria and GermanyCW missions taught** (FIX-OPEN-TRAINING-SYRIA-FINDINGS).
+  The README is the pilots' briefing, in French, one file generated from the mission; laser drones are
+  an MQ-9 with the `AFAC` group task, with CTLD's three limits said in the briefing; the inert targets
+  of the easy levels are one-vehicle groups, hot and weapons hold, not statics a pod cannot see;
+  dynamic slots of the mission's era only; a local test mission is handed over; CTLD's example
+  `extract*` / `logistic*` lists are emptied; a convoy starts on firm ground, ships of a group stand
+  150 m apart, the bullseye sits on no zone; no QRA radio menu open to all. The English prompt is
+  resynchronised with the French one, which had moved ahead on 2026-10-01.
 
 ### Added
 
@@ -114,6 +122,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   module, `veafAircraftSpawn.lua`, which `-cap` now spawns through too. The build says, for every
   such group a QRA or a wave deploys, what it will do — given its patrol, flown as written, or (a
   warning, which `veaf-tools validate` carries too) a hand-written route that will be replaced. **A mission picks this up by being rebuilt.**
+- **What building the Syria Open Training through the MCP was missing** (FIX-OPEN-TRAINING-SYRIA-FINDINGS).
+  `add_air_group` with task `AFAC` builds a laser drone the way GermanyCW-v6's was checked in game
+  (unlimited fuel, circle orbit). `add_air_group`, `create_qra` and `create_cap_mission` take a DCS
+  loadout **by name** (`payload`, listed by the new `list_payloads`), from a `payloads.yaml` generated
+  from an install's `UnitPayloads` (613 loadouts, `veaf-build update-dcs-data --payloads`).
+  `list_unit_types` gives each unit's weapon and detection range (`threat_range_m`,
+  `detection_range_m`, DCS's own). `add_farp` places its ammunition dump. A `${METAR}` is composed for
+  a variant with manual weather. A sanctuary takes a circle from a trigger zone
+  (`sanctuary_zones[].trigger_zone`), and an `ASSETS` entry can be shown to one coalition
+  (`assets[].coalition`). Placement warns about a ground unit in the sea or a ship on land where the
+  theatre has an elevation grid. `repair_static_shapes` fills the `shape_name` of statics placed
+  before 6.26. `list_catalog` returns a name and a summary per action (9.6 kB instead of 73 kB;
+  `full: true` for the schemas). The mission-folder `.gitignore` covers `.veaf-backups/` and the
+  presets report.
 
 ### Fixed
 
@@ -150,6 +172,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The mission prompts ask for two carriers** (DOC-PROMPTS-TWO-CARRIERS): the Open Training and
   objective-mission prompts, in French and English, now say that a generated mission with a carrier group
   always gets the Stennis and the Roosevelt, each with its own TACAN, ICLS, Link 4 and frequencies.
+- **Three MCP actions made a wrong mission with no warning** (FIX-OPEN-TRAINING-SYRIA-FINDINGS).
+  `add_air_group` gave the second tanker of a family another family's callsign — built in the order
+  Texaco 1, Arco 1, Texaco 2, Arco 2, the third became `Shell11`: a western flight named like its
+  callsign now gets it, and an AI flight with a fighting task and no weapons is warned about (eight
+  Syria escort pairs had none). `set_unit_properties` wrote `{'CLSID': '…'}` as the CLSID of 16
+  aircraft when given `add_air_group`'s pylon shape, and `name: "Texaco"` without its digits: both
+  shapes are read, anything else refused, and the name is completed. `create_qra` wrote
+  `simple_groups` beside the scramble levels, where they never deploy (a level-1 rule replaces them,
+  a higher lowest level keeps level 1 from firing — measured, where the lot had assumed every
+  interceptor took off at the first intruder): it no longer does, and `validate` warns on both.
+- **Smaller defects found on the way** (FIX-OPEN-TRAINING-SYRIA-FINDINGS). `geocode` sent requests as
+  fast as asked and got banned by Nominatim for half an hour: one a second now, a 429 waited out once
+  then said plainly, and a road or a region (« Al-Kiswah » → a street of Amman) flagged. A file under
+  `src/mission/l10n/DEFAULT/` was backed up beside itself, so `add_sound` left `dictionary` /
+  `mapResource` copies the build packed into the `.miz`; a folder save never wrote `mapResource`, and
+  a key added to it was lost.
 
 ## [6.26.0] — 2026-09-30
 

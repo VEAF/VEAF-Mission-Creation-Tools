@@ -1,6 +1,6 @@
 # 11 — The mission-folder .gitignore covers the MCP backups and the presets report
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `src/defaults/mission-folder/.gitignore`.
 

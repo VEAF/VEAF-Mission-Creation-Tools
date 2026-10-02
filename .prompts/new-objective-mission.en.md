@@ -364,7 +364,7 @@ approximation of it.
 - **Air opposition**: the scenario's. "They might launch fighters after the strike" = a **QRA**
   (`create_qra`) on the enemy base, circle in red territory, with `delay_before_activating` and
   `react_on_helicopters` decided and written in the briefing; period interceptors with a **loadout**
-  (`pylons` or `loadout_from`), `airport_link` on the base. A patrol already airborne = a native group
+  (`pylons`, `payload` by name from `list_payloads`, or `loadout_from`), `airport_link` on the base. A patrol already airborne = a native group
   in orbit, not an on-demand CAP. `delay_before_activating` counts **from the start of the mission**,
   not from the intrusion: once online, the QRA takes off at the intrusion. Write it that way in the
   briefing ("online from H+15 min").

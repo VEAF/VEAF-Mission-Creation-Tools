@@ -1,6 +1,6 @@
 # 08 — Weapon ranges in the unit database
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_build` (`update-dcs-data`), `veaf_libs/data/dcsUnits.yaml`, `veaf_mission_mcp/oracle.py` (`list_unit_types`), tests.
 

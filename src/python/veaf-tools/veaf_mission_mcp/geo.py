@@ -36,8 +36,10 @@ def geocode(
         api_key: Optional Google Maps key (else OSM Nominatim).
 
     Returns:
-        ``{query, found, display_name, theatre, latlon: {lat, lon}, xy: {x, y} | None,
-        in_theatre_bounds, warnings}``. ``found`` is ``False`` when the geocoder returns no hit.
+        ``{query, found, display_name, osm_class, osm_type, theatre, latlon: {lat, lon},
+        xy: {x, y} | None, in_theatre_bounds, warnings}``. ``found`` is ``False`` when the geocoder
+        returns no hit, or refuses the request (said in ``warnings``); a road or a region is warned
+        about (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 07).
 
     Raises:
         ValueError: when the mission has no theatre.
@@ -50,18 +52,24 @@ def geocode(
         raise ValueError("bearing and distance_km must be given together (or neither).")
 
     bounds = geocoding.theatre_bounds(theatre)
-    hit = geocoding.get_geocoder(api_key).geocode(query, bounds=bounds)
+    try:
+        hit = geocoding.get_geocoder(api_key).geocode(query, bounds=bounds)
+        miss_warning = "no geocoding result"
+    except geocoding.GeocodingRefusedError as refused:
+        hit, miss_warning = None, str(refused)
     if hit is None:
         # Stable shape: same keys as a hit, nulled — callers never special-case the fields.
         return {
             "query": query,
             "found": False,
             "display_name": None,
+            "osm_class": None,
+            "osm_type": None,
             "theatre": theatre,
             "latlon": None,
             "xy": None,
             "in_theatre_bounds": None,
-            "warnings": ["no geocoding result"],
+            "warnings": [miss_warning],
         }
 
     lat, lon = hit.lat, hit.lon
@@ -69,6 +77,11 @@ def geocode(
         lat, lon = coordinates.offset_latlon(lat, lon, bearing, distance_km * 1000.0)
 
     warnings: list[str] = []
+    if hit.is_road_or_region:
+        warnings.append(
+            f"the answer is a {hit.osm_class}/{hit.osm_type}, not a named place: a road or an administrative "
+            "area — check it is the place you meant, or search a nearby town or landmark"
+        )
     xy: dict[str, float] | None = None
     if coordinates.is_theatre_supported(theatre):
         x, y = coordinates.latlon_to_xy(theatre, lat, lon)
@@ -84,6 +97,8 @@ def geocode(
         "query": query,
         "found": True,
         "display_name": hit.display_name,
+        "osm_class": hit.osm_class,
+        "osm_type": hit.osm_type,
         "theatre": theatre,
         "latlon": {"lat": lat, "lon": lon},
         "xy": xy,

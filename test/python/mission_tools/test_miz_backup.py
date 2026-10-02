@@ -67,3 +67,18 @@ class TestBackupBeforeWrite:
         assert first != second
         assert first.exists()
         assert second.exists()
+
+
+def test_a_file_under_l10n_default_is_backed_up_into_the_folder(tmp_path: Path) -> None:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 15: Caucasus v6 found `dictionary.<timestamp>` copies in
+    `src/mission/l10n/DEFAULT/`, which the build packs into the `.miz`."""
+    (tmp_path / "mission.yaml").write_text("modules: {}\n", encoding="utf-8")
+    l10n = tmp_path / "src" / "mission" / "l10n" / "DEFAULT"
+    l10n.mkdir(parents=True)
+    dictionary = l10n / "dictionary"
+    dictionary.write_text("dictionary = {}\n", encoding="utf-8")
+
+    backup_path = backup_before_write(dictionary, now=datetime(2026, 9, 28, 21, 16, 47))
+
+    assert backup_path.parent == tmp_path / ".veaf-backups"
+    assert sorted(p.name for p in l10n.iterdir()) == ["dictionary"]

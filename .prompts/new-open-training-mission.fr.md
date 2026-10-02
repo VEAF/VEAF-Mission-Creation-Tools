@@ -111,16 +111,22 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
     missile (Fox 1, Fox 3), avec un AWACS de chaque camp ;
   - une **zone de sanctuaire** (module `SANCTUARY`, `sanctuary_zones`) qui protège les arrières d'un
     camp : un intrus est prévenu puis détruit, et `protect_from_missiles` détruit les missiles tirés
-    sur les défenseurs. Le polygone est tracé par des unités en activation différée
-    (`polygon_units`), jamais activées.
+    sur les défenseurs. Autour d'une base, un cercle tiré d'une zone de déclenchement
+    (`trigger_zone`) ; un polygone tracé par des unités en activation différée (`polygon_units`,
+    jamais activées) seulement pour une forme qu'un cercle ne couvre pas.
 - **FARP** : une bonne pratique à généraliser — un FARP bleu près du front et près de chaque zone
-  destinée aux hélicoptères (réarmement, CTLD, CSAR). Si le MCP ne sait pas en poser, signale-le.
-  Un FARP est complet avec, à côté, un **dépôt de munitions** (statique `FARP Ammo Dump Coating`) :
-  CTLD le reconnaît comme point logistique (`manage_logistics`, actif par défaut), et le chargement
-  de troupes au FARP est ouvert (`troopPickupAtFARP` dans `ctld-config.yaml`).
+  destinée aux hélicoptères (réarmement, CTLD, CSAR). `add_farp` le pose complet, avec son **dépôt de
+  munitions** (statique `FARP Ammo Dump Coating`, `<FARP> - Ammo`) que CTLD reconnaît comme point
+  logistique (`manage_logistics`, actif par défaut) ; le chargement de troupes au FARP est ouvert
+  (`troopPickupAtFARP` dans `ctld-config.yaml`).
+- **`ctld-config.yaml`** : vide les listes d'exemple que CTLD reprend de ses valeurs par défaut
+  (`extract1`…`extract25`, `logistic1`…`logistic10`) — aucun de ces noms n'existe dans la mission, et
+  ils font 35 avertissements au démarrage.
 - `set_airbase_coalition` pour chaque aérodrome, avec `dynamic_spawn: false` sur ceux qui ne doivent
   pas offrir de slots. `src/warehouses.yaml` : carburant et munitions illimités, départ moteur chaud.
-  `src/dynamic-slot-templates.yaml` : modèles des deux coalitions qui ont des slots.
+  `src/dynamic-slot-templates.yaml` : modèles des deux coalitions qui ont des slots, **de l'époque de la
+  mission seulement** — le catalogue livré propose aussi des appareils WW2 et Guerre froide : retire ceux
+  d'une autre époque (ils encombrent la liste et leurs radios ne prennent pas le plan de fréquences).
 
 ### 4.2 Identité et sécurité
 
@@ -145,7 +151,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
     variantes météo (`pipeline.weather: false`), et ce qui rend un test local plus rapide.
 - **Date et heure** de mission : `set_mission_date`.
 - **Bullseye** (`set_bullseye`) : un **repère que les pilotes peuvent nommer**, au centre du front, le
-  même pour les deux camps.
+  même pour les deux camps, **pas sur une zone** (il la masquerait sur la carte).
 - **Briefing** (`set_briefing` : titre, situation, tâches bleue et rouge) : le contexte en deux
   phrases, les bases, le soutien (fréquences, TACAN, altitudes), les zones par menu F10, les QRA, les
   commandes VEAF utiles.
@@ -162,10 +168,16 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Côté rouge**, s'il a des slots : au moins un ravitailleur et un AWACS rouges, mêmes règles.
 - **Un nom partout** : nom de groupe = indicatif (familles tanker Texaco 1 / Arco 2 / Shell 3 ;
   AWACS Overlord 1 / Magic 2 / Wizard 3…) = libellé de preset = texte `ASSETS`. Même fréquence
-  partout. Déclare-les dans `modules.ASSETS`.
-- **Drones de guidage laser** (option) : un drone en orbite avec la tâche FAC, déclaré dans
-  `modules.ASSETS` avec son code laser et sa fréquence (`jtac`, `freq`, `mod`), pour que les pilotes
-  les trouvent dans le menu. Si le MCP ne sait pas donner la tâche FAC, signale-le.
+  partout. Déclare-les dans `modules.ASSETS`, avec `coalition: BLUE` ou `RED` quand le rouge a des slots :
+  chaque camp ne voit que ses moyens.
+- **Drones de guidage laser** (option) : un MQ-9 dont la **tâche de groupe est `AFAC`**, en orbite en
+  cercle au-dessus de sa zone, déclaré dans `modules.ASSETS` avec son code laser et sa fréquence (`jtac`,
+  `freq`, `mod`) : CTLD le prend comme JTAC et les pilotes le trouvent dans le menu (vérifié en jeu sur
+  GermanyCW v6). Trois choses à savoir, à dire au briefing :
+  - CTLD le remonte à `JTAC_droneAltitude` (3 000 m sol par défaut) quelle que soit l'altitude écrite :
+    l'artillerie antiaérienne lourde d'une zone difficile l'abat (le menu `ASSETS` le relance) ;
+  - le JTAC ne désigne que des **véhicules**, pas des statiques ;
+  - il ne marque qu'à **10 km** : pas de drone sur une zone dont les SAM portent plus loin.
 - **Groupe aéronaval ami** (option, si la carte a la mer et que les joueurs ont des appareils
   embarqués) : `add_carrier_group` pose le porte-avions avec son TACAN, son ICLS et son Link 4, le
   ravitailleur embarqué et l'hélicoptère de sauvetage que le module `CARRIER` cherche, et l'entrepôt
@@ -192,8 +204,9 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Aucune défense permanente ne couvre une base adverse qui a des slots.** « Permanente » compte
   les batteries `#veafInterpreter` **et** les zones de combat activées au démarrage
   (`active_at_start`). Mesure la distance de chaque batterie moyenne et longue portée à chaque base
-  adverse avec slots, et compare-la à la portée de l'arme — sourcée ou mesurée dans DCS ; sinon, donne
-  la distance en point ouvert. Un pilote qui décolle sous un SA-10 ne s'entraîne pas.
+  adverse avec slots, et compare-la à la portée de l'arme — `list_unit_types` donne le `threat_range_m`
+  du lanceur, celui de DCS (les cercles de l'éditeur de mission) ; sinon, donne la distance en point
+  ouvert. Un pilote qui décolle sous un SA-10 ne s'entraîne pas.
 - **Des radars d'alerte avancée (EWR) derrière les lignes**, des deux côtés.
 - Posés en permanent via `#veafInterpreter["-<alias>, country <pays>, hdg <cap>"]`.
   **Porteur = une unité de la classe générée** (le lanceur de l'alias), pour que l'éditeur montre le
@@ -206,7 +219,7 @@ se recouvrent pas (`combatZone_<Lieu>_Easy`, `…_Medium`, `…_Hard`), chaque z
 ses ajouts**, et chaque niveau inclut celui d'en dessous (clé `includes:` de `combat_zones[]`).
 
 1. **Hélicoptères** : près d'une base bleue, ou d'un **FARP** posé à côté.
-   Facile = statiques inertes ; moyen = AAA légère ; difficile = défense courte portée réaliste.
+   Facile = cibles inertes (groupes d'un véhicule, plus bas) ; moyen = AAA légère ; difficile = défense courte portée réaliste.
 2. **Avions d'attaque** : peut être plus loin, tant qu'elle reste **à plus de 75 nm du front** et
    n'est dans la portée d'aucune défense réelle. Même progression, avec plus de blindés.
 3. **SEAD / DEAD** : assez à l'écart pour que ses SAM n'atteignent ni une base, ni une piste de
@@ -246,8 +259,12 @@ d'unités : tous les éléments qui portent le même `#spawngroup="<nom>"` forme
 quatre SA-15 posés, `#spawngroup="SA15" #spawncount=2` → deux d'entre eux, jamais les mêmes. Un
 pilote qui revient ne retrouve pas le site qu'il a appris. Vaut aussi pour les vraies zones (4.7).
 
-Les statiques sont la seule façon d'avoir une cible **vraiment inerte** (un blindé réel tire à la
-mitrailleuse sur un hélicoptère ; aucune balise ne met une unité en « feu interdit »).
+**Cibles inertes des niveaux faciles : des groupes d'un véhicule, pas des statiques.** Un statique est
+**froid au pod** (pas de moteur, aucun script ne le réchauffe) et le drone laser ne le désigne pas. Pose
+chaque cible comme un groupe d'un seul véhicule, à sa place exacte, **chaud au départ**
+(`coldAtStart = false`), **tir interdit** (ROE `weapon hold`) et **sans dispersion sous le feu** : il
+reste immobile et muet, et un pod le voit (vérifié en jeu sur GermanyCW v6). Les statiques restent pour
+ce qui ne vit pas : bâtiments, dépôts, avions au parking.
 `training: true`, un menu radio par famille.
 
 **En option, une zone hélicoptère hors combat** : navigation ou recherche d'un équipage abattu,
@@ -278,7 +295,9 @@ Règles :
   générée, noms d'unités uniques.
 - **Cibles** : statiques pour bâtiments, bunkers, avions au sol ; groupes natifs pour ce qui vit ;
   convois = **un groupe natif** avec une route sur route (points 2+ « On Road »), sa défense
-  antiaérienne dans le même groupe.
+  antiaérienne dans le même groupe. Le **point de départ d'un convoi est sur la terre ferme**, pas sur un
+  pont ni dans l'eau : VEAF replace au hasard un groupe dont la position est sur un terrain invalide.
+- **Navires d'un même groupe espacés d'au moins 150 m** : collés, ils s'abordent et se gênent.
 - **Portée des SAM des zones actives** : aucun ne doit atteindre une base amie, une piste de
   ravitailleur ou une zone d'entraînement. Une zone activée au démarrage est une défense permanente :
   la règle de 4.5 s'y applique.
@@ -301,8 +320,12 @@ Règles :
 - **Délai et hélicoptères, décidés et écrits** : `delay_before_activating` (le temps de réaction
   entre l'entrée du premier intrus et le décollage) et `react_on_helicopters` (une QRA qui
   réagit aux hélicoptères ferme la zone aux missions héliportées). Dis les deux dans le briefing.
-- `create_qra`, intercepteurs d'époque avec **emport** (dans chaque groupe : `pylons`, ou
-  `loadout_from` un groupe `veafSpawn-*` du même type), `airport_link` sur la base.
+- **Pas de menu radio de QRA ouvert à tous** : `radio_menu` seulement avec
+  `radio_menu_restrict_to_group`. Chaque niveau tire entre des **appareils différents**, jamais entre des
+  copies du même.
+- `create_qra`, intercepteurs d'époque avec **emport** (dans chaque groupe : `pylons`, `payload` un
+  emport de DCS par son nom — `list_payloads` —, ou `loadout_from` un groupe `veafSpawn-*` du même type),
+  `airport_link` sur la base.
 - Si le rouge a des slots : **QRA bleues** sur quelques bases bleues, mêmes règles.
 
 ### 4.9 CAP à la demande
@@ -310,8 +333,8 @@ Règles :
 - **Rouges : 2 à 4**, de menaces différentes (chasseur IR, Fox 1 moyen, intercepteur haut et rapide,
   éventuellement un bombardier à intercepter), race-track **dans le territoire rouge**, virages compris.
 - **Bleues** si le rouge a des slots, même logique.
-- `create_cap_mission` avec une `route` (le second point donne l'hippodrome) et un emport (`pylons`
-  ou `loadout_from`), et un nom de menu qui dit type, secteur, altitude.
+- `create_cap_mission` avec une `route` (le second point donne l'hippodrome) et un emport (`pylons`,
+  `payload` ou `loadout_from`), et un nom de menu qui dit type, secteur, altitude.
 
 ### 4.10 Radio, météo, waypoints
 
@@ -365,8 +388,8 @@ dans « Retours pour VMCT ».
 
 Un pilote qui découvre la mission doit voir le théâtre d'un coup d'œil, puis pouvoir lire le détail
 de la zone où il va. **Une carte générale et des zooms, deux usages** : `docs/carte.jpg` en tête du
-README et les zooms dans `docs/cartes/`, liés juste en dessous ; les mêmes images dans le briefing de
-la mission, la carte générale d'abord.
+README et les zooms dans `docs/cartes/`, **chacun dans la section du README qu'il illustre** ; les mêmes
+images dans le briefing de la mission, la carte générale d'abord.
 
 - **Générée depuis les données de la mission, jamais dessinée à la main** : un script lit
   `src/mission/`, `mission.yaml` et les fichiers de `src/`, convertit les x/y en lat/lon
@@ -429,7 +452,13 @@ la mission, la carte générale d'abord.
 6. Radio, météo, waypoints (4.10) ; date, bullseye, briefing ; carte du briefing et dessins F10
    (4.13).
 7. `validate_mission`, `build_mission` (et le profil `LOCAL_TEST`), puis la section 8.
-8. `README.md` + `readme.fr.md` : contenu, construction, fichiers, limites connues.
+8. **`README.md` = le briefing des pilotes**, en français, un seul fichier, **généré depuis la mission** par
+   un script (comme la carte), jamais tapé : situation, carte, bases (fréquences, TACAN), défense
+   aérienne permanente, soutien, porte-avions, drones, entraînement par famille, zones de combat par type
+   avec le briefing de chacune, missions scénarisées, QRA, CAP, combat entre joueurs et arène, plan radio
+   bleu et rouge, météo et heures, commandes utiles ; puis « Pour les créateurs de mission » :
+   construire, fichiers, régénérer ce document, limites connues.
+9. **Mission de test locale** (section 8).
 
 Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'apprêtes à faire.
 
@@ -471,6 +500,13 @@ l'époque ou les camps ; lancer DCS.
   - les images de briefing présentes dans le `.miz`, listées dans `pictureFileNameB` et
     `pictureFileNameN`, `pictureFileNameR` vide (4.13).
 - **Relis tes briefings** : chaque distance, cap, altitude et nom de lieu recalculé ou sourcé.
+- **Livre une mission de test locale**, copie du build `LOCAL_TEST` (jamais dans les sources) avec : un
+  **game master** bleu et un rouge ; un **slot `Client` classique d'A-10C II, au sol moteur chaud** à la
+  base mère — les slots dynamiques ne fonctionnent qu'en multijoueur, une mission de test qui n'a qu'eux
+  est inutilisable en solo ; le déclencheur du pont dcs-bridge (`veaf-tools dcs inject-bridge`). C'est
+  toi qui lances `dcs-serve` ; l'utilisateur ne s'occupe que de DCS et du slot. Une sonde par le pont
+  mesure ensuite ce que le `.miz` ne dit pas : imbrication des niveaux (chaque niveau fait apparaître
+  plus que celui qu'il inclut), cibles à leur place, convois qui roulent, CAP qui engagent.
 - Liste ce qui reste à vérifier dans DCS (placement des statiques sur les terrains, suivi des routes
   par les convois, imbrication des zones, apparence du ciel, **et les dessins de la carte F10**). Les
   images de briefing se relisent au rendu ; un dessin F10 ne se voit **qu'en jeu**, et il est passé

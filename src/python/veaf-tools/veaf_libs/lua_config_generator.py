@@ -722,6 +722,15 @@ def _emit_module_body(
                 for opt_key in ("linked", "jtac", "freq", "mod"):
                     if opt_key in asset and asset[opt_key] is not None:
                         parts.append(f"{opt_key} = {_to_lua_scalar(asset[opt_key])}")
+                # One side's menu only; absent, both (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 13).
+                if asset.get("coalition") is not None:
+                    side = str(asset["coalition"]).upper()
+                    if side not in ("BLUE", "RED"):
+                        raise ValueError(
+                            f"asset {asset.get('name')!r}: coalition must be BLUE or RED (absent: both), "
+                            f"got {asset['coalition']!r}"
+                        )
+                    parts.append(f"coalition = coalition.side.{side}")
                 lines.append("        {" + ", ".join(parts) + "},")
             lines.append("    }")
         lines.append(f"    {var_name}.initialize()")
@@ -784,11 +793,28 @@ def _emit_module_body(
         for zone in sanctuary_zones:
             name = zone.get("name", "")
             polygon_units: list = zone.get("polygon_units") or []
-            units_lua = "{" + ", ".join(_lua_text(u) for u in polygon_units) + "}"
-            lines.append(f"    {var_name}.addZone(")
-            lines.append("        VeafSanctuaryZone:new()")
-            lines.append(f"        :setName({_lua_text(name)})")
-            lines.append(f"        :setPolygonFromUnits({units_lua})")
+            trigger_zone = zone.get("trigger_zone")
+            # A circle from a trigger zone, or a polygon from its vertex units: 17 sanctuaries round the
+            # Syria bases took 102 vertex units (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 12).
+            if bool(trigger_zone) == bool(polygon_units):
+                raise ValueError(
+                    f"sanctuary zone {name!r}: give exactly one of trigger_zone and polygon_units (a circle "
+                    "from a trigger zone, or a polygon from its vertex units)"
+                )
+            if trigger_zone:
+                # `addZoneFromTriggerZone` names the zone after the trigger zone and returns nil, with a
+                # warning, when the mission lacks it: the settings go on the zone it returns.
+                lines.append("    do")
+                lines.append(f"        local zone = {var_name}.addZoneFromTriggerZone({_lua_text(trigger_zone)})")
+                lines.append("        if zone then")
+                lines.append(f"            zone:setName({_lua_text(name)})")
+            else:
+                units_lua = "{" + ", ".join(_lua_text(u) for u in polygon_units) + "}"
+                lines.append(f"    {var_name}.addZone(")
+                lines.append("        VeafSanctuaryZone:new()")
+                lines.append(f"        :setName({_lua_text(name)})")
+                lines.append(f"        :setPolygonFromUnits({units_lua})")
+            prefix = "                " if trigger_zone else "        "
             for setter, yaml_key in [
                 ("setCoalition", None),  # special: coalition.side.X
                 ("setDelayWarning", "delay_warning"),
@@ -798,11 +824,15 @@ def _emit_module_body(
             ]:
                 if setter == "setCoalition":
                     if "coalition" in zone:
-                        lines.append(f"        :setCoalition(coalition.side.{zone['coalition']})")
+                        lines.append(f"{prefix}:setCoalition(coalition.side.{zone['coalition']})")
                 elif yaml_key and yaml_key in zone:
                     v = zone[yaml_key]
-                    lines.append(f"        :{setter}({_to_lua_scalar(v)})")
-            lines.append("    )")
+                    lines.append(f"{prefix}:{setter}({_to_lua_scalar(v)})")
+            if trigger_zone:
+                lines.append("        end")
+                lines.append("    end")
+            else:
+                lines.append("    )")
 
     elif mod_id == "COMBATZONE":
         cz_settings: dict = mod_cfg.get("combat_zone_settings") or {}

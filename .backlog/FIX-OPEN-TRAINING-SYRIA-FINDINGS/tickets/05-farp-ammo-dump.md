@@ -1,6 +1,6 @@
 # 05 — add_farp places its ammunition dump
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/add_farp.py`, `veaf_mission_mcp/actions.py`, `.prompts/new-open-training-mission.*.md`, tests.
 

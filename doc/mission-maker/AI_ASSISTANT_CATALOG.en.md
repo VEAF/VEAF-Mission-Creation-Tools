@@ -85,6 +85,8 @@ The AI can act in two places, and it changes what "survives":
 | 41 | [Embed a sound in the mission](#add-sound) | Zones & triggers | Recipe + built | ◽ |
 | 42 | [Give the bases their real radio frequencies](#airfield-channels) | 🛫 Bases & airfields | Recipe (folder) | ⭐ |
 | 43 | [Know the ground elevation and terrain masking](#terrain-elevation) | 🗺️ Map & coordinates | — | ⭐ |
+| 44 | [List an aircraft's default loadouts](#list-payloads) | Domain knowledge | — | ⭐ |
+| 45 | [Complete the statics placed without a shape](#repair-static-shapes) | 🏁 Validate & build | Recipe + built | ◽ |
 
 ---
 
@@ -100,6 +102,17 @@ The AI can act in two places, and it changes what "survives":
 generated database.
 
 > 💬 *"Which Russian fighters are available?"* · *"Show me the DCS SAMs."*
+
+Every weapon and radar carries its range as DCS gives it (the Mission Editor's circles): enough to
+check that a battery does not reach an enemy base.
+
+### List an aircraft's default loadouts {#list-payloads}
+
+*Knowledge · ⭐* — The loadouts the Mission Editor offers an AI aircraft, by name (« R-40T*2,R-33*4 »
+for a MiG-31). The assistant can then arm a flight, a QRA or a CAP by that name, without copying the
+weapons one by one.
+
+> 💬 *"Arm the QRA MiG-31s with their R-33 loadout."*
 
 ### List VEAF aliases / shortcuts {#list-veaf-aliases}
 
@@ -218,6 +231,14 @@ command.
 warnings. Do this before building.
 
 > 💬 *"Check my mission is OK before building it."*
+
+### Complete the statics placed without a shape {#repair-static-shapes}
+
+*Recipe + built · ◽* — A static placed by a tool before 6.26 can lack the shape (`shape_name`) the
+editor writes; DCS refuses some types without it and the object never exists. Validation lists them,
+this action completes them all at once.
+
+> 💬 *"Validation complains about shape_name: fix them."*
 
 ### Build the playable .miz {#build-mission}
 

@@ -1,6 +1,6 @@
 # 12 — A circular sanctuary from mission.yaml
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_libs/lua_config_generator.py` (SANCTUARY), the validator, `doc/mission-maker/scripts/veafSanctuary.md`,
 `.prompts/new-open-training-mission.*.md`, tests.

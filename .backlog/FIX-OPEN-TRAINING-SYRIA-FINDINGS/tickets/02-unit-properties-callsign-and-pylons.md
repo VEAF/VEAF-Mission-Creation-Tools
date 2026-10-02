@@ -1,6 +1,6 @@
 # 02 — set_unit_properties: callsign word plus digits, one pylon shape, a non-string CLSID refused
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/set_unit_properties.py`, `veaf_mission_mcp/actions.py` (schema text), tests.
 

@@ -29,10 +29,8 @@ import math
 from pathlib import Path
 from typing import Any
 
-from veaf_libs.mission_table import CATEGORIES
-
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
-from veaf_mission_mcp.mission_table import find_group, indexed, listed, unit_names
+from veaf_mission_mcp.mission_table import find_group, group_category, indexed, listed, unit_names
 
 #: The AI competence levels. `Random` is one of them: DCS picks a level at mission start.
 _AI_SKILLS: tuple[str, ...] = ("Average", "Good", "High", "Excellent", "Random")
@@ -45,6 +43,9 @@ _CALLSIGN_FAMILY, _CALLSIGN_FLIGHT, _CALLSIGN_NUMBER = 1, 2, 3
 
 #: Both indices a callsign's flight/number accept; `name` concatenates them, so 10 would read as 1.
 _CALLSIGN_INDEX_RANGE = range(1, 10)
+
+#: A loadout as the caller gives it: ``{station: CLSID}`` or ``{station: {"CLSID": CLSID}}``.
+PylonsInput = dict[int | str, str | dict[str, str]]
 
 #: Aircraft categories, and the in-air first-waypoint types. DCS recomputes an **airborne** aircraft's
 #: heading from its route's first leg on save, so a heading set on one has a lifetime of one save; a
@@ -65,7 +66,7 @@ def set_unit_properties(
     onboard_num: str | None = None,
     chaff: int | None = None,
     flare: int | None = None,
-    pylons: dict[int | str, str] | None = None,
+    pylons: PylonsInput | None = None,
     pylons_mode: str = "replace",
     new_name: str | None = None,
     position: dict[str, float] | None = None,
@@ -87,7 +88,8 @@ def set_unit_properties(
         onboard_num: The tail number, kept as text so a leading zero survives.
         chaff: The aircraft's chaff count, 0 or more.
         flare: The aircraft's flare count, 0 or more.
-        pylons: ``{station number: CLSID}``. Keyed **by station**, never positional: DCS numbers
+        pylons: ``{station number: CLSID}`` or ``{station number: {"CLSID": CLSID}}`` (the shape
+            ``add_air_group`` takes and the mission file stores). Keyed **by station**, never positional: DCS numbers
             stations non-contiguously (a real FA-18C carries 1, 4, 5, 6, 9). ``None`` means "leave
             the loadout alone"; ``{}`` in replace mode means "carry nothing".
         pylons_mode: ``replace`` (the default) writes exactly the stations given; ``merge`` updates
@@ -128,7 +130,7 @@ def set_unit_properties(
     mission, content = open_mission(miz_path)
 
     group = find_group(content, group_name)
-    if (chaff is not None or flare is not None) and _group_category(content, group_name) not in _AIRCRAFT_CATEGORIES:
+    if (chaff is not None or flare is not None) and group_category(content, group_name) not in _AIRCRAFT_CATEGORIES:
         raise ValueError("chaff and flare are an aircraft's; this group is not a plane or helicopter group")
     unit = _find_unit(group, group_name, unit_name)
 
@@ -183,7 +185,7 @@ def set_unit_properties(
         target = {"x": float(position["x"]), "y": float(position["y"])}
         changed["position"] = {"from": {"x": unit.get("x"), "y": unit.get("y")}, "to": target}
         unit.update(target)
-        if _group_category(content, group_name) in ("plane", "helicopter"):
+        if group_category(content, group_name) in ("plane", "helicopter"):
             warnings.append(
                 "an aircraft's place is tied to its group's route — its first waypoint, and on the "
                 "ground its parking spot; this moved the unit's x/y only, and what DCS makes of that "
@@ -226,21 +228,6 @@ def _find_unit(group: dict[str, Any], group_name: str, unit_name: str) -> dict[s
     raise ValueError(f"No unit named {unit_name!r} in group {group_name!r}. Units in that group: {listed(names)}")
 
 
-def _group_category(mission_content: dict[str, Any], group_name: str) -> str | None:
-    """Return the category (`plane`, `vehicle`, ...) the group sits under, or None if not found."""
-    for coalition in (mission_content.get("coalition") or {}).values():
-        if not isinstance(coalition, dict):
-            continue
-        for country in indexed(coalition.get("country")):
-            if not isinstance(country, dict):
-                continue
-            for category in CATEGORIES:
-                for group in indexed((country.get(category) or {}).get("group")):
-                    if isinstance(group, dict) and str(group.get("name", "")) == group_name:
-                        return category
-    return None
-
-
 def _heading_will_be_recalculated(mission_content: dict[str, Any], group_name: str, group: dict[str, Any]) -> bool:
     """Whether DCS will overwrite a set heading — an airborne aircraft with a route of 2+ waypoints.
 
@@ -255,7 +242,7 @@ def _heading_will_be_recalculated(mission_content: dict[str, Any], group_name: s
     Returns:
         True when the heading would be recomputed from the route on save.
     """
-    if _group_category(mission_content, group_name) not in _AIRCRAFT_CATEGORIES:
+    if group_category(mission_content, group_name) not in _AIRCRAFT_CATEGORIES:
         return False
     points = indexed((group.get("route") or {}).get("points"))
     if len(points) < 2 or not isinstance(points[0], dict):
@@ -347,9 +334,32 @@ def _apply_callsign(unit: dict[str, Any], callsign: dict[str, int | str] | int |
     ):
         if field in callsign:
             table[index] = int(callsign[field])
-    table["name"] = str(callsign["name"]) if "name" in callsign else _rebuilt_callsign_name(previous, table)
+    if "name" in callsign:
+        table["name"] = _completed_callsign_name(str(callsign["name"]), table)
+    else:
+        table["name"] = _rebuilt_callsign_name(previous, table)
     changed["callsign"] = {"from": previous, "to": table}
     unit["callsign"] = table
+
+
+def _completed_callsign_name(name: str, table: dict[Any, Any]) -> str:
+    """Return the name as the editor writes it: the word followed by the flight and number.
+
+    ``name="Texaco"`` was written verbatim, where the editor writes ``Texaco21``
+    (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 02). A name ending with two digits is the caller's full
+    callsign and kept; one with fewer (``Texaco2``) is the word, completed like a bare one.
+
+    Args:
+        name: The name the caller passed.
+        table: The callsign being written, already carrying its indices.
+
+    Returns:
+        ``name`` itself when it ends with two digits, else its word + flight + number.
+    """
+    if name[-2:].isdigit():
+        return name
+    word = name.rstrip("0123456789")
+    return f"{word}{table.get(_CALLSIGN_FLIGHT, 1)}{table.get(_CALLSIGN_NUMBER, 1)}"
 
 
 def _rebuilt_callsign_name(previous: Any, table: dict[Any, Any]) -> str:
@@ -374,22 +384,26 @@ def _rebuilt_callsign_name(previous: Any, table: dict[Any, Any]) -> str:
     return f"{word}{flight}{number}"
 
 
-def _apply_pylons(unit: dict[str, Any], pylons: dict[int | str, str], mode: str, changed: dict[str, Any]) -> None:
+def _apply_pylons(unit: dict[str, Any], pylons: PylonsInput, mode: str, changed: dict[str, Any]) -> None:
     """Write a loadout, keyed by station number.
 
     Args:
         unit: The unit table to mutate.
-        pylons: ``{station: CLSID}``; in ``merge`` mode an empty CLSID empties that station.
+        pylons: ``{station: CLSID}`` or ``{station: {"CLSID": CLSID}}``; in ``merge`` mode an empty
+            CLSID empties that station.
         mode: ``replace`` or ``merge``.
         changed: The report to record the change in.
 
     Raises:
-        ValueError: If a key is not a station number of 1 or more.
+        ValueError: If `pylons` is not a mapping, a key is not a station number of 1 or more, or a
+            value is neither a CLSID string nor a ``{"CLSID": string}`` table.
     """
+    if not isinstance(pylons, dict):
+        raise ValueError(f"pylons must map a station number to a CLSID, got a {type(pylons).__name__}")
     stations: dict[int, str] = {}
-    for raw_station, clsid in pylons.items():
+    for raw_station, value in pylons.items():
         station = _station_number(raw_station)
-        stations[station] = str(clsid)
+        stations[station] = _pylon_clsid(station, value)
 
     payload = unit.get("payload")
     if not isinstance(payload, dict):
@@ -406,6 +420,29 @@ def _apply_pylons(unit: dict[str, Any], pylons: dict[int | str, str], mode: str,
 
     payload["pylons"] = {station: {"CLSID": clsid} for station, clsid in sorted(after.items())}
     changed["pylons"] = {"from": before, "to": after}
+
+
+def _pylon_clsid(station: int, value: Any) -> str:
+    """Return the CLSID a pylon value carries, in either shape the actions take.
+
+    ``str(value)`` wrote ``"{'CLSID': '{6CEB...}'}"`` as the CLSID of 16 aircraft given
+    ``add_air_group``'s shape (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 02); DCS hangs nothing there.
+
+    Args:
+        station: The station number, for the error.
+        value: ``"CLSID"`` or ``{"CLSID": "CLSID"}``.
+
+    Returns:
+        The CLSID.
+
+    Raises:
+        ValueError: For any other value.
+    """
+    if isinstance(value, dict) and set(value) == {"CLSID"}:
+        value = value["CLSID"]
+    if not isinstance(value, str):
+        raise ValueError(f"pylon station {station}: expected a CLSID string or {{'CLSID': string}}, got {value!r}")
+    return value
 
 
 def _station_number(raw: Any) -> int:

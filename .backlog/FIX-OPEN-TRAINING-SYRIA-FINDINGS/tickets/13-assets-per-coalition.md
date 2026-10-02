@@ -1,6 +1,6 @@
 # 13 — An ASSETS entry shown to one coalition
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `src/scripts/veaf/veafAssets.lua`, `veaf_libs/lua_config_generator.py`, `doc/mission-maker/scripts/veafAssets.md`,
 Lua and Python tests.

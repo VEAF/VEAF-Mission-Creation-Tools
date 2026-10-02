@@ -46,6 +46,7 @@ modules:
         jtac: 1688                      # laser code — the asset is a JTAC lasing with this code (optional)
         freq: null                      # override frequency for info display (optional)
         mod: null                       # radio modulation (AM | FM, optional)
+        coalition: null                 # BLUE | RED: shown to that side only (absent: both)
 ```
 
 | Field | Type | Default | Required | Description |
@@ -61,6 +62,7 @@ modules:
 | `assets[].jtac` | number | `null` | No | Laser code: the asset is a JTAC that automatically lases with this code (requires CTLD) |
 | `assets[].freq` | number | `null` | No | Override frequency for the info display (MHz) |
 | `assets[].mod` | string | `null` | No | Radio modulation override (`AM` or `FM`) |
+| `assets[].coalition` | string | — | No | `BLUE` or `RED`: the entry is shown in that side's Assets menu only; absent, to both. With red playable, a red tanker's frequency no longer shows to blue |
 
 > The DCS group referenced by `name` must exist in the mission editor.
 

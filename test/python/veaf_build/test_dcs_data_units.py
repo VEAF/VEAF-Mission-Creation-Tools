@@ -85,6 +85,15 @@ class TestParseUnitFile:
         e = U.parse_unit_file('\tShapeName = "a10",\n' + _PLANE, "Planes")
         assert e is not None and e.shape_name is None
 
+    def test_weapon_and_detection_ranges(self) -> None:
+        # FIX-OPEN-TRAINING-SYRIA-FINDINGS 08: the Mission Editor's range circles, as the datamine has them.
+        launcher = '\tDetectionRange = 0,\n\ttype = "Patriot ln",\n\tThreatRange = 100000,\n' + _TANK.split("\n", 1)[1]
+        radar = '\tDetectionRange = 160000,\n\ttype = "Patriot str",\n\tThreatRange = 0,\n'
+        e = U.parse_unit_file(launcher, "Cars")
+        assert e is not None and (e.threat_range_m, e.detection_range_m) == (100000, None)
+        e = U.parse_unit_file(radar, "Cars")
+        assert e is not None and (e.threat_range_m, e.detection_range_m) == (None, 160000)
+
     def test_static_without_shape_name(self) -> None:
         e = U.parse_unit_file(_FORT, "Fortifications")
         assert e is not None and e.shape_name is None
@@ -121,6 +130,21 @@ class TestWriteYaml:
         assert data["naval_statics"] == ["Oil platform"]
         assert "abc123" in out.read_text(encoding="utf-8")
         assert "shape_name" not in data["units"][0]
+        assert "threat_range_m" not in data["units"][0]
+
+    def test_ranges_written(self, tmp_path: Path) -> None:
+        out = tmp_path / "u.yaml"
+        entry = U.UnitEntry("Patriot ln", "Patriot ln", "vehicle", "Air Defence", "x", threat_range_m=100000)
+        U.write_units_yaml([entry], (), out)
+        assert yaml.safe_load(out.read_text(encoding="utf-8"))["units"][0]["threat_range_m"] == 100000
+
+    def test_the_shipped_file_carries_the_datamine_ranges(self) -> None:
+        # The values the Syria mission took from DCS's own database by hand (ticket 08).
+        shipped = yaml.safe_load(U.DEFAULT_OUTPUT.read_text(encoding="utf-8"))["units"]
+        by_type = {u["type"]: u for u in shipped}
+        assert by_type["Patriot ln"]["threat_range_m"] == 100000
+        assert by_type["Patriot str"]["detection_range_m"] == 160000
+        assert "threat_range_m" not in by_type["Patriot str"]
 
     def test_shape_name_written(self, tmp_path: Path) -> None:
         out = tmp_path / "u.yaml"

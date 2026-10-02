@@ -26,8 +26,10 @@ BACKUP_DIR_NAME = ".veaf-backups"
 MAX_BACKUPS_PER_FILE = 20
 
 #: How far up from a file to look for the ``mission.yaml`` that marks a mission folder's root
-#: (``src/mission/mission`` is two levels below it).
-_MAX_FOLDER_DEPTH = 4
+#: (``src/mission/mission`` is two levels below it, ``src/mission/l10n/DEFAULT/dictionary`` four). It was 4,
+#: one short for the l10n files: `add_sound` and a folder save left their copies beside them, where the
+#: build packs them into the `.miz` (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 15).
+_MAX_FOLDER_DEPTH = 5
 
 
 def backup_before_write(miz_file_path: Path, *, now: datetime | None = None) -> Path:

@@ -27,6 +27,7 @@ A type with no dispenser (a warbird, a tanker) or unknown to the database keeps 
 
 from typing import Any
 
+from veaf_libs.dcs_payloads import payload_pylons
 from veaf_libs.dcs_units_data import get_unit_countermeasures, get_unit_fuel_capacity
 
 
@@ -70,6 +71,28 @@ def build_aircraft_payload(
         # Written first so the table keeps the field order every other mission file uses.
         payload = {"fuel": resolved, **payload}
     return payload, warning
+
+
+def resolve_loadout(unit_type: str, pylons: dict[Any, Any] | None, payload: str | None) -> dict[Any, Any] | None:
+    """Return the loadout a flight was given: explicit ``pylons``, or a DCS loadout by name.
+
+    Args:
+        unit_type: The aircraft type, to look the named loadout up.
+        pylons: An explicit loadout, ``{station: {"CLSID": ...}}``.
+        payload: A DCS loadout's name, as the Mission Editor lists it (FIX-OPEN-TRAINING-SYRIA-FINDINGS
+            ticket 09).
+
+    Returns:
+        The pylons table, or ``None`` when neither is given.
+
+    Raises:
+        ValueError: When both are given, or the name is not one of the type's loadouts.
+    """
+    if pylons and payload:
+        raise ValueError("give either 'pylons' or 'payload', not both")
+    if payload:
+        return payload_pylons(unit_type, payload)
+    return pylons or None
 
 
 def normalize_pylons(pylons: dict[Any, Any]) -> dict[int, dict[str, Any]]:

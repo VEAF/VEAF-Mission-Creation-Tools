@@ -565,6 +565,8 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "veaf-units.yaml", "veaf_libs/data"),
             # DCS unit-type database, read by the MCP oracle (list_unit_types) at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcsUnits.yaml", "veaf_libs/data"),
+            # DCS default loadouts by name, read by the MCP payload parameter and list_payloads.
+            (veaf_tools_dir / "veaf_libs" / "data" / "payloads.yaml", "veaf_libs/data"),
             # Per-theatre blank-mission constants, read by prepare --theatre / scaffold_mission.
             (veaf_tools_dir / "veaf_libs" / "data" / "theatre-defaults.yaml", "veaf_libs/data"),
             # Per-theatre projection tables, read by the MCP coordinates/map/geo actions.

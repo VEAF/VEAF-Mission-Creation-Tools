@@ -827,4 +827,29 @@ function TestSanctuaryHandleWeapon:test_a_guided_weapon_still_reaches_the_zone_c
   luaunit.assertEquals(self.checked, 1)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafSanctuaryFromTriggerZone — FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 12: mission.yaml's
+-- `trigger_zone` builds a circle through addZoneFromTriggerZone, then sets its own name on it.
+-- ---------------------------------------------------------------------------
+TestVeafSanctuaryFromTriggerZone = {}
+
+function TestVeafSanctuaryFromTriggerZone:setUp()
+  veafSanctuary.zonesList = {}
+  dcs_mocks.addZone("SANCT Incirlik", 1000, 2000, 5000)
+end
+
+function TestVeafSanctuaryFromTriggerZone:test_the_circle_holds_what_is_inside_the_trigger_zone()
+  local zone = veafSanctuary.addZoneFromTriggerZone("SANCT Incirlik")
+  zone:setName("Incirlik"):setCoalition(coalition.side.BLUE)
+  luaunit.assertEquals(#veafSanctuary.zonesList, 1)
+  luaunit.assertEquals(zone:getName(), "Incirlik")
+  luaunit.assertTrue(zone:isPositionInZone({ x = 4000, y = 0, z = 2000 }))
+  luaunit.assertFalse(zone:isPositionInZone({ x = 7000, y = 0, z = 2000 }))
+end
+
+function TestVeafSanctuaryFromTriggerZone:test_a_missing_trigger_zone_adds_nothing()
+  luaunit.assertNil(veafSanctuary.addZoneFromTriggerZone("SANCT Nowhere"))
+  luaunit.assertEquals(#veafSanctuary.zonesList, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

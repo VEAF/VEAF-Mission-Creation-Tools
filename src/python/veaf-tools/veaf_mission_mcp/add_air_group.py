@@ -39,8 +39,8 @@ from veaf_libs.dcs_units_data import get_unit_attributes, get_unit_deck_categori
 from veaf_libs.mission_table import indexed
 
 from veaf_mission_mcp.aircraft_identity import assign_identities
-from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons
-from veaf_mission_mcp.edit_route import _build_orbit
+from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons, resolve_loadout
+from veaf_mission_mcp.edit_route import _build_orbit, _build_set_unlimited_fuel
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 #: Unit conversions (mission file stores metres and m/s; the caller speaks feet and knots).
@@ -58,6 +58,21 @@ _START_WAYPOINT: dict[str, tuple[str, str]] = {
     "deck-cold": ("TakeOffParking", "From Parking Area"),
     "deck-hot": ("TakeOffParkingHot", "From Parking Area Hot"),
 }
+#: The tasks that need weapons to do anything.
+FIGHTING_TASKS: frozenset[str] = frozenset(
+    {
+        "Escort",
+        "CAP",
+        "Intercept",
+        "Fighter Sweep",
+        "CAS",
+        "Ground Attack",
+        "SEAD",
+        "Antiship Strike",
+        "Pinpoint Strike",
+        "Runway Attack",
+    }
+)
 _PARKING_MODES = ("parking-cold", "parking-hot")
 _DECK_MODES = ("deck-cold", "deck-hot")
 
@@ -85,6 +100,7 @@ def add_air_group(
     fuel_fraction: float | None = None,
     late_activation: bool = False,
     pylons: dict[Any, Any] | None = None,
+    payload: str | None = None,
     chaff: int | None = None,
     flare: int | None = None,
     carrier: str | None = None,
@@ -123,6 +139,8 @@ def add_air_group(
         late_activation: Mark the group late-activation (a QRA interceptor, an on-demand template);
             it used to take a second call to ``set_group_properties``.
         pylons: The loadout, ``{station: {"CLSID": ...}}`` as the mission file stores it.
+        payload: A DCS loadout by the name the Mission Editor lists (``list_payloads``) — an
+            alternative to ``pylons``, refused when both are given.
         chaff: Chaff count per aircraft; defaults to the type's Mission Editor default.
         flare: Flare count per aircraft; defaults to the type's Mission Editor default.
         carrier: The ship **unit** name a deck start takes off from.
@@ -174,11 +192,12 @@ def add_air_group(
 
     # Resolved once for the flight -- every aircraft is the same type -- and before the stands are
     # committed, so a bad explicit value fails without having half-written the mission.
-    payload, fuel_warning = build_aircraft_payload(
+    aircraft_payload, fuel_warning = build_aircraft_payload(
         unit_type, fuel=fuel, fuel_fraction=fuel_fraction, chaff=chaff, flare=flare
     )
-    if pylons:
-        payload["pylons"] = normalize_pylons(pylons)
+    loadout = resolve_loadout(unit_type, pylons, payload)
+    if loadout:
+        aircraft_payload["pylons"] = normalize_pylons(loadout)
 
     group = _build_air_group(
         name=name,
@@ -194,12 +213,21 @@ def add_air_group(
         skill=skill,
         frequency_mhz=frequency_mhz,
         task=task,
-        payload=payload,
+        payload=aircraft_payload,
         late_activation=late_activation,
     )
     if deck is not None:
         _seat_on_deck(group, *deck)
-    assign_identities(content, group, country_id=country_id, task=task)
+    afac_note: str | None = None
+    if task == "AFAC" and start == "air":
+        _make_laser_drone(group, altitude_ft=altitude_ft, speed_kt=speed_kt)
+    elif task == "AFAC":
+        # The orbit is on the first point: on the ground, that is the airfield the drone leaves.
+        afac_note = (
+            f"group {name!r} has task AFAC on a {start!r} start: no orbit was written, since the first "
+            "point is where it takes off; a laser drone is an air start over its zone"
+        )
+    callsign_note = assign_identities(content, group, country_id=country_id, task=task)
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
     # sign of it (FIX-MCP-AIRCRAFT-CATEGORY).
@@ -228,10 +256,58 @@ def add_air_group(
         "airdrome_id": airdrome_id,
         "stands": deck[1] if deck is not None else [s.parking for s in stands],
     }
-    warnings = [w for w in (category_warning, fuel_warning) if w]
+    unarmed = unarmed_warning(name, task, skill, aircraft_payload)
+    warnings = [w for w in (category_warning, fuel_warning, callsign_note, unarmed, afac_note) if w]
     if warnings:
         result["warnings"] = warnings
     return result
+
+
+def unarmed_warning(name: str, task: str, skill: str, payload: dict[str, Any]) -> str | None:
+    """Warn about an AI flight given a fighting task and no weapons.
+
+    Eight Syria escort pairs were created with an empty ``pylons`` table and escorted nothing
+    (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 01). Not a refusal, and silent for a ``Client`` or
+    ``Player`` slot: a player arms the aircraft on the ramp.
+
+    Args:
+        name: The group's name.
+        task: The group's task.
+        skill: The group's skill.
+        payload: The payload the units carry.
+
+    Returns:
+        The warning, or ``None``.
+    """
+    if task not in FIGHTING_TASKS or skill in ("Client", "Player") or payload.get("pylons"):
+        return None
+    warning = f"group {name!r} has task {task!r} and no weapons: it will not fight without a loadout"
+    return warning
+
+
+def _make_laser_drone(group: dict[str, Any], *, altitude_ft: float, speed_kt: float) -> None:
+    """Give an ``AFAC`` flight the first point of GermanyCW-v6's laser drones, in place.
+
+    Measured in that mission's file (Reaper 1 and 2, 2026-10-02): ``SetUnlimitedFuel``, then a
+    ``Circle`` orbit at the group's altitude and speed. The lasing itself is CTLD's, from the drone's
+    ``modules.ASSETS`` entry (``jtac``, ``freq``, ``mod``); checked in game on 2026-09-28
+    (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 06).
+
+    Args:
+        group: The flight.
+        altitude_ft: The orbit altitude, in feet (CTLD moves the drone to its own altitude anyway).
+        speed_kt: The orbit speed, in knots.
+    """
+    tasks = [
+        _build_set_unlimited_fuel({}),
+        _build_orbit({"pattern": "Circle", "altitude_ft": altitude_ft, "speed_kt": speed_kt}),
+    ]
+    entries: dict[int, dict[str, Any]] = {}
+    for number, task in enumerate(tasks, start=1):
+        task.update({"auto": False, "enabled": True, "number": number})
+        entries[number] = task
+    # Integer keys: `luadata` renders a string key as ["1"], a different Lua entry DCS ignores.
+    group["route"]["points"][0]["task"] = {"id": "ComboTask", "params": {"tasks": entries}}
 
 
 def _cap_engage_task() -> dict[str, Any]:
@@ -345,7 +421,7 @@ def insert_air_group_into_content(
             "id": "ComboTask",
             "params": {"tasks": {number: entry for number, entry in enumerate(first_tasks, start=1)}},
         }
-    assign_identities(content, group, country_id=country_id, task=task)
+    callsign_note = assign_identities(content, group, country_id=country_id, task=task)
     category, category_warning = air_category_for_type_verbose(unit_type)
     group_id = insert_group(
         content,
@@ -355,7 +431,8 @@ def insert_air_group_into_content(
         category=category,
         group=group,
     )
-    return group_id, [w for w in (category_warning, fuel_warning) if w]
+    unarmed = unarmed_warning(name, task, skill, payload)
+    return group_id, [w for w in (category_warning, fuel_warning, callsign_note, unarmed) if w]
 
 
 def _mission_groups(content: dict[str, Any], category: str) -> list[dict[str, Any]]:

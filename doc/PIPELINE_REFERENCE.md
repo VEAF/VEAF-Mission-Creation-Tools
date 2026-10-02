@@ -646,7 +646,8 @@ Ce que `${METAR}` vaut selon la variante :
 |---|---|
 | `metar: "..."` | la chaîne telle que vous l'avez écrite |
 | `airport_icao: LFRS` | le METAR réel récupéré pour cette station |
-| seulement `weather:` | **rien** — il n'existe aucun METAR à afficher, donc le texte `${METAR}` reste tel quel et un avertissement le dit dans le log |
+| seulement `weather:` | un METAR **composé à partir d'elle** : vent, visibilité, pluie et brouillard, nébulosité et base, température (sans point de rosée : écrit `///`), QNH de la mission, daté de la date et de l'heure de la variante en UTC, sans station — `METAR 150900Z 27010KT 9999 SKC Q1013` |
+| aucune météo | **rien** — il n'existe aucun METAR à afficher, donc le texte `${METAR}` reste tel quel et un avertissement le dit dans le log |
 
 !!! note "Un `${...}` inconnu n'est jamais effacé"
     `${METRA}` reste écrit `${METRA}` dans le briefing. C'est délibéré : un briefing est lu par des

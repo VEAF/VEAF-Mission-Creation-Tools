@@ -114,10 +114,10 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
     sur les défenseurs. Le polygone est tracé par des unités en activation différée
     (`polygon_units`), jamais activées.
 - **FARP** : une bonne pratique à généraliser — un FARP bleu près du front et près de chaque zone
-  destinée aux hélicoptères (réarmement, CTLD, CSAR). Si le MCP ne sait pas en poser, signale-le.
-  Un FARP est complet avec, à côté, un **dépôt de munitions** (statique `FARP Ammo Dump Coating`) :
-  CTLD le reconnaît comme point logistique (`manage_logistics`, actif par défaut), et le chargement
-  de troupes au FARP est ouvert (`troopPickupAtFARP` dans `ctld-config.yaml`).
+  destinée aux hélicoptères (réarmement, CTLD, CSAR). `add_farp` le pose complet, avec son **dépôt de
+  munitions** (statique `FARP Ammo Dump Coating`, `<FARP> - Ammo`) que CTLD reconnaît comme point
+  logistique (`manage_logistics`, actif par défaut) ; le chargement de troupes au FARP est ouvert
+  (`troopPickupAtFARP` dans `ctld-config.yaml`).
 - **`ctld-config.yaml`** : vide les listes d'exemple que CTLD reprend de ses valeurs par défaut
   (`extract1`…`extract25`, `logistic1`…`logistic10`) — aucun de ces noms n'existe dans la mission, et
   ils font 35 avertissements au démarrage.

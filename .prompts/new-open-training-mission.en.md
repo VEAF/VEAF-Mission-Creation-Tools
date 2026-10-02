@@ -112,10 +112,10 @@ why.
     intruder is warned then destroyed, and `protect_from_missiles` destroys the missiles fired at
     the defenders. The polygon is drawn by late-activation units (`polygon_units`), never activated.
 - **FARPs**: a good practice to generalise — a blue FARP near the front and near every zone meant
-  for helicopters (rearming, CTLD, CSAR). If the MCP cannot place one, report it. A FARP is complete
-  with an **ammo dump** next to it (`FARP Ammo Dump Coating` static): CTLD takes it as a logistic
-  point (`manage_logistics`, on by default), and troop pickup at FARPs is open
-  (`troopPickupAtFARP` in `ctld-config.yaml`).
+  for helicopters (rearming, CTLD, CSAR). `add_farp` places it complete, with its **ammo dump**
+  (`FARP Ammo Dump Coating` static, `<FARP> - Ammo`) that CTLD takes as a logistic point
+  (`manage_logistics`, on by default); troop pickup at FARPs is open (`troopPickupAtFARP` in
+  `ctld-config.yaml`).
 - **`ctld-config.yaml`**: empty the example lists CTLD takes from its defaults (`extract1`…`extract25`,
   `logistic1`…`logistic10`) — none of those names exists in the mission, and they make 35 warnings at
   start.

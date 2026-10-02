@@ -696,11 +696,15 @@ modules) :
 ### FARP
 
 - `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
-  frequency_mhz=127.5, modulation="AM", callsign_id=1)` — un FARP **complet** : le statique
+  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True)` — un FARP **complet** : le statique
   d'héliport (`category = "Heliports"`, `shape_name` du type), sa radio et son indicatif, et l'entrée
   d'entrepôt `warehouses.warehouses[<unitId>]` qui permet de s'y ravitailler. `add_group` en `static`
   ne posait que l'objet (ticket 19). Forme mesurée sur les 372 héliports des missions de
   `D:\dev\_VEAF`. Le `farps:` de `warehouses.yaml` l'approvisionne ensuite au build, comme une base.
+  Par défaut, son **dépôt de munitions** (`FARP Ammo Dump Coating`, `<nom> - Ammo`, 120 m à l'est,
+  `Fortifications` / `SetkaKP` comme les 68 des missions OT) que CTLD prend comme point de chargement ;
+  `ammo_dump=False` s'en passe (`FIX-OPEN-TRAINING-SYRIA-FINDINGS` ticket 05). Un héliport en mer
+  (sol à 0 m sur la grille d'altitude) est signalé (ticket 04).
 
 ### Groupe aéronaval, slots sur le pont, sons (FIX-OPEN-TRAINING-PROMPT-FINDINGS)
 

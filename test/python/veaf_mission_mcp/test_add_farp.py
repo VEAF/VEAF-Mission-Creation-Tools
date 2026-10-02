@@ -113,3 +113,30 @@ class TestTheWarehouse:
         (folder / "src" / "mission" / "warehouses").unlink()
         with pytest.raises(ValueError, match="warehouses"):
             _add(folder)
+
+
+def _statics(folder: Path) -> list[dict[str, Any]]:
+    content = read_mission_folder(folder).mission_content or {}
+    return [
+        _values(group["units"])[0]
+        for country in _values(content["coalition"]["blue"]["country"])
+        for group in _values((country.get("static") or {}).get("group"))
+    ]
+
+
+class TestTheAmmoDump:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 05: each Syria FARP needed a separate call for its dump."""
+
+    def test_the_dump_is_placed_beside_the_pad_in_the_editor_shape(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        result = _add(folder)
+        dump = next(u for u in _statics(folder) if u["type"] == "FARP Ammo Dump Coating")
+        assert (dump["name"], dump["category"], dump["shape_name"]) == ("FARP Fulda - Ammo", "Fortifications", "SetkaKP")
+        assert ((dump["x"] - 1000.0) ** 2 + (dump["y"] - 2000.0) ** 2) ** 0.5 == pytest.approx(120.0)
+        assert result["ammo_dump"] == "FARP Fulda - Ammo"
+
+    def test_it_can_be_left_out(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        result = _add(folder, ammo_dump=False)
+        assert [u["type"] for u in _statics(folder)] == ["FARP"]
+        assert "ammo_dump" not in result

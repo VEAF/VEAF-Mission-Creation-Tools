@@ -1481,8 +1481,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "Place a COMPLETE FARP: the heliport static (FARP, Invisible FARP, SINGLE_HELIPAD...), its "
                 "radio frequency and callsign, and the warehouse entry that lets helicopters refuel and "
-                "rearm there. add_group with category 'static' places the object ALONE, which serves "
-                "nobody. The build's warehouses.yaml ('farps:') then stocks it like any base. Target a "
+                "rearm there, and by default its ammunition dump ('<name> - Ammo', a FARP Ammo Dump "
+                "Coating 120 m east) that CTLD takes as a loading point. add_group with category 'static' "
+                "places the object ALONE, which serves nobody. The build's warehouses.yaml ('farps:') then "
+                "stocks it like any base. Warns when the pad is in the sea (elevation grid). Target a "
                 "FOLDER (durable) or a .miz; backed up."
             ),
             parameters_schema={
@@ -1506,6 +1508,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "frequency_mhz": {"type": "number", "default": 127.5},
                     "modulation": {"type": "string", "enum": ["AM", "FM"], "default": "AM"},
                     "callsign_id": {"type": "integer", "default": 1, "description": "1-based heliport callsign."},
+                    "ammo_dump": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Place the FARP's ammunition dump (CTLD loading point); false skips it.",
+                    },
                 },
                 "required": ["target", "name", "position", "coalition", "country_id", "country_name"],
             },

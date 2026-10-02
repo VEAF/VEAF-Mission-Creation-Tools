@@ -40,7 +40,7 @@ corrected ticket 06: a laser drone is built with the `AFAC` group task, checked 
 | 02 | [set_unit_properties: callsign word plus digits, one pylon shape, a non-string CLSID refused](tickets/02-unit-properties-callsign-and-pylons.md) | ✅ |
 | 03 | [create_qra: no simple_groups next to the scramble levels](tickets/03-qra-no-simple-groups.md) | ✅ |
 | 04 | [Placement checks the surface where the elevation grid exists](tickets/04-surface-check-at-authoring.md) | ✅ |
-| 05 | [add_farp places its ammunition dump](tickets/05-farp-ammo-dump.md) | ⬜ |
+| 05 | [add_farp places its ammunition dump](tickets/05-farp-ammo-dump.md) | ✅ |
 | 06 | [add_air_group: a laser drone through the AFAC group task](tickets/06-fac-task.md) | ⬜ |
 | 07 | [geocode: one request a second, and a place rather than a street](tickets/07-geocode-pace-and-place.md) | ⬜ |
 | 08 | [Weapon ranges in the unit database](tickets/08-threat-ranges.md) | ⬜ |

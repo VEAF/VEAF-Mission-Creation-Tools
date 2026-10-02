@@ -675,11 +675,15 @@ initialise):
 ### FARP
 
 - `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
-  frequency_mhz=127.5, modulation="AM", callsign_id=1)` — a **complete** FARP: the heliport static
+  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True)` — a **complete** FARP: the heliport static
   (`category = "Heliports"`, the type's `shape_name`), its radio and callsign, and the
   `warehouses.warehouses[<unitId>]` entry that lets helicopters refuel there. `add_group` in `static`
   placed the object alone (ticket 19). Shape measured on the 372 heliports of the missions under
-  `D:\dev\_VEAF`. `warehouses.yaml`'s `farps:` then stocks it at build, like a base.
+  `D:\dev\_VEAF`. `warehouses.yaml`'s `farps:` then stocks it at build, like a base. By default,
+  its **ammunition dump** (`FARP Ammo Dump Coating`, `<name> - Ammo`, 120 m east, `Fortifications` /
+  `SetkaKP` like the 68 of the OT missions) that CTLD takes as a loading point; `ammo_dump=False` skips
+  it (`FIX-OPEN-TRAINING-SYRIA-FINDINGS` ticket 05). A pad in the sea (ground 0 m on the elevation grid)
+  is warned about (ticket 04).
 
 ### Carrier group, deck slots, sounds (FIX-OPEN-TRAINING-PROMPT-FINDINGS)
 

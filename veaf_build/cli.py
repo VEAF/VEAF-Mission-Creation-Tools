@@ -605,7 +605,9 @@ def update_dcs_data(
         "(without --dcs-path: re-render only).",
     ),
     dcs_path: str | None = typer.Option(
-        None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls, --cities, --payloads)."
+        None,
+        "--dcs-path",
+        help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls, --cities, --payloads).",
     ),
     inject_bridge: str | None = typer.Option(
         None, "--inject-bridge", help="With --airdromes: embed the dcs-bridge into this .miz (makes a bridge mission)."

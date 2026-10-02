@@ -786,7 +786,6 @@ class TestSummarizeActiveModules(unittest.TestCase):
         self.assertEqual(ids, sorted(ids))
 
 
-
 class TestSanctuaryFromATriggerZone(unittest.TestCase):
     """FIX-OPEN-TRAINING-SYRIA-FINDINGS 12: 17 sanctuaries round the Syria bases took 102 vertex units."""
 
@@ -795,7 +794,9 @@ class TestSanctuaryFromATriggerZone(unittest.TestCase):
         return generate_config_lua({"lua_modules": {"SANCTUARY": {"sanctuary_zones": [zone]}}})
 
     def test_a_trigger_zone_makes_a_circle_with_its_settings(self) -> None:
-        lua = self._lua({"name": "Incirlik", "trigger_zone": "SANCT Incirlik", "coalition": "BLUE", "delay_warning": 10})
+        lua = self._lua(
+            {"name": "Incirlik", "trigger_zone": "SANCT Incirlik", "coalition": "BLUE", "delay_warning": 10}
+        )
         self.assertIn('veafSanctuary.addZoneFromTriggerZone("SANCT Incirlik")', lua)
         self.assertIn('zone:setName("Incirlik")', lua)
         self.assertIn(":setCoalition(coalition.side.BLUE)", lua)

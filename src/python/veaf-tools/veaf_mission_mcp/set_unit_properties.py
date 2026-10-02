@@ -29,8 +29,6 @@ import math
 from pathlib import Path
 from typing import Any
 
-from veaf_libs.mission_table import CATEGORIES
-
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.mission_table import find_group, group_category, indexed, listed, unit_names
 
@@ -441,9 +439,7 @@ def _pylon_clsid(station: int, value: Any) -> str:
     if isinstance(value, dict) and set(value) == {"CLSID"}:
         value = value["CLSID"]
     if not isinstance(value, str):
-        raise ValueError(
-            f"pylon station {station}: expected a CLSID string or {{'CLSID': string}}, got {value!r}"
-        )
+        raise ValueError(f"pylon station {station}: expected a CLSID string or {{'CLSID': string}}, got {value!r}")
     return value
 
 

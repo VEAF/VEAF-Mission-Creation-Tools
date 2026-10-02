@@ -17,9 +17,9 @@ from mission_tools.miz_tools import read_miz, write_miz
 from veaf_libs.clear_ground_placement import occupied_by, place_on_clear_ground, translate_group
 from veaf_libs.dcs_units_data import get_unit_category, get_unit_shape_name
 
-from veaf_mission_mcp.surface import surface_warnings
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
+from veaf_mission_mcp.surface import surface_warnings
 
 _UNIT_SPACING_METERS = 20
 # Ships at vehicle spacing collide as they spawn (ticket 16). Over 89 ship groups of the missions under

@@ -19,7 +19,16 @@ from typing import Any
 # Re-exported here so every existing import keeps working.
 from veaf_libs.mission_table import CATEGORIES, indexed, numeric_first  # noqa: E402
 
-__all__ = ["CATEGORIES", "find_group", "group_category", "group_names", "indexed", "listed", "numeric_first", "unit_names"]
+__all__ = [
+    "CATEGORIES",
+    "find_group",
+    "group_category",
+    "group_names",
+    "indexed",
+    "listed",
+    "numeric_first",
+    "unit_names",
+]
 
 
 def listed(names: list[str], limit: int = 20) -> str:

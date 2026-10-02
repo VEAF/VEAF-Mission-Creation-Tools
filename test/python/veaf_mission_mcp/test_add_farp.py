@@ -131,7 +131,11 @@ class TestTheAmmoDump:
         folder = _folder(tmp_path)
         result = _add(folder)
         dump = next(u for u in _statics(folder) if u["type"] == "FARP Ammo Dump Coating")
-        assert (dump["name"], dump["category"], dump["shape_name"]) == ("FARP Fulda - Ammo", "Fortifications", "SetkaKP")
+        assert (dump["name"], dump["category"], dump["shape_name"]) == (
+            "FARP Fulda - Ammo",
+            "Fortifications",
+            "SetkaKP",
+        )
         assert ((dump["x"] - 1000.0) ** 2 + (dump["y"] - 2000.0) ** 2) ** 0.5 == pytest.approx(120.0)
         assert result["ammo_dump"] == "FARP Fulda - Ammo"
 

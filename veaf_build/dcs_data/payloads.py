@@ -99,7 +99,9 @@ def write_payloads_yaml(payloads: dict[str, dict[str, dict[int, str]]], output: 
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     with open(output, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# DCS default loadouts: unit type -> loadout name (as the Mission Editor lists it) -> station -> CLSID.\n")
+        f.write(
+            "# DCS default loadouts: unit type -> loadout name (as the Mission Editor lists it) -> station -> CLSID.\n"
+        )
         f.write("# Read from a DCS World install, MissionEditor/data/scripts/UnitPayloads/*.lua.\n")
         f.write("# Regenerate with `veaf-build update-dcs-data --payloads --dcs-path <DCS World install>`.\n")
         f.write("# DO NOT EDIT BY HAND.\n\n")

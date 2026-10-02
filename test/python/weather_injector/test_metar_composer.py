@@ -20,7 +20,13 @@ def test_every_group_given_is_written_in_metar_order() -> None:
 
 
 def test_rain_fog_and_a_negative_temperature() -> None:
-    manual = {"visibility": 800, "precipitation": True, "fog_enabled": True, "cloud_type": "overcast", "temperature": -4.6}
+    manual = {
+        "visibility": 800,
+        "precipitation": True,
+        "fog_enabled": True,
+        "cloud_type": "overcast",
+        "temperature": -4.6,
+    }
     assert compose_metar(manual, _WHEN) == "METAR 150930Z 0800 RA FG OVC/// M05///"
 
 

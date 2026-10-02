@@ -17,9 +17,9 @@ from veaf_libs.mission_table import indexed
 from veaf_libs.shipped_defaults import shipped_default_file
 
 from veaf_mission_mcp.add_air_group import insert_air_group_into_content
-from veaf_mission_mcp.aircraft_payload import resolve_loadout
 from veaf_mission_mcp.add_group import insert_group_into_content
 from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
+from veaf_mission_mcp.aircraft_payload import resolve_loadout
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, mission_yaml_path, save_folder_mission
 
@@ -328,7 +328,9 @@ def create_cap_mission(
         speed_kt=speed_kt,
         task="CAP",
         late_activation=True,
-        pylons=_loadout(folder_path, content, {"pylons": pylons, "payload": payload, "loadout_from": loadout_from}, unit_type),
+        pylons=_loadout(
+            folder_path, content, {"pylons": pylons, "payload": payload, "loadout_from": loadout_from}, unit_type
+        ),
         route=route,
     )
     save_folder_mission(mission, folder_path)
@@ -375,9 +377,7 @@ def _single_type(units: list[dict[str, Any]]) -> tuple[str, int]:
     return types.pop(), count
 
 
-def _loadout(
-    folder_path: Path, content: dict[str, Any], spec: dict[str, Any], unit_type: str
-) -> dict[Any, Any] | None:
+def _loadout(folder_path: Path, content: dict[str, Any], spec: dict[str, Any], unit_type: str) -> dict[Any, Any] | None:
     """Resolve a flight's loadout: explicit `pylons`, a DCS `payload` by name, or `loadout_from` a group.
 
     An interceptor created without weapons is the next silent failure after one created without

@@ -246,7 +246,9 @@ def _apply_move(
     }
     if category in ("vehicle", "static", "ship"):
         warnings.extend(
-            surface_warnings(theatre, group.get("units"), afloat=category == "ship", label=f"group {group.get('name')!r}")
+            surface_warnings(
+                theatre, group.get("units"), afloat=category == "ship", label=f"group {group.get('name')!r}"
+            )
         )
 
 

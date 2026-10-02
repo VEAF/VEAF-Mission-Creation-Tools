@@ -90,7 +90,10 @@ def list_payloads(unit_type: str | None = None) -> dict[str, Any]:
     return {
         "unit_type": unit_type,
         "payloads": [
-            {"name": name, "pylons": {station: entry["CLSID"] for station, entry in payload_pylons(unit_type, name).items()}}
+            {
+                "name": name,
+                "pylons": {station: entry["CLSID"] for station, entry in payload_pylons(unit_type, name).items()},
+            }
             for name in names
         ],
     }

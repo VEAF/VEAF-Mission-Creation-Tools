@@ -69,9 +69,7 @@ def _aircraft_units(content: dict[str, Any]) -> list[dict[str, Any]]:
     return units
 
 
-def assign_identities(
-    content: dict[str, Any], group: dict[str, Any], *, country_id: int, task: str
-) -> str | None:
+def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country_id: int, task: str) -> str | None:
     """Give each unit of a flight not yet in the mission a callsign and a free tail number.
 
     Tail numbers continue after the highest numeric one already in the mission, so they never

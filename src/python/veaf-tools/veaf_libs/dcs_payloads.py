@@ -17,7 +17,9 @@ def _payloads() -> dict[str, dict[str, dict[int, str]]]:
     """Load (and cache) unit type -> loadout name -> station -> CLSID."""
     raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "payloads.yaml")) or {}
     return {
-        str(unit_type): {str(name): {int(k): str(v) for k, v in (pylons or {}).items()} for name, pylons in names.items()}
+        str(unit_type): {
+            str(name): {int(k): str(v) for k, v in (pylons or {}).items()} for name, pylons in names.items()
+        }
         for unit_type, names in raw.items()
     }
 
@@ -61,5 +63,7 @@ def payload_pylons(unit_type: str, name: str) -> dict[int, dict[str, Any]]:
         )
     pylons = by_name.get(name)
     if pylons is None:
-        raise ValueError(f"payload: {unit_type!r} has no loadout named {name!r}; its loadouts: {payload_names(unit_type)}")
+        raise ValueError(
+            f"payload: {unit_type!r} has no loadout named {name!r}; its loadouts: {payload_names(unit_type)}"
+        )
     return {station: {"CLSID": clsid} for station, clsid in pylons.items()}

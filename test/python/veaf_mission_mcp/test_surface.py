@@ -89,7 +89,9 @@ class TestThroughTheActions:
         assert any("'Avenger-1' is in the sea" in w["warning"] for w in result["warnings"])
 
     def test_add_farp_warns_for_a_pad_in_the_sea(self, coast: None, sample_miz: Path) -> None:
-        result = add_farp(sample_miz, name="FARP Sea", position=_SEA, coalition="blue", country_id=2, country_name="USA")
+        result = add_farp(
+            sample_miz, name="FARP Sea", position=_SEA, coalition="blue", country_id=2, country_name="USA"
+        )
         assert any("'FARP Sea' is in the sea" in w for w in result["warnings"])
 
     def test_moving_a_ship_onto_land_warns(self, coast: None, sample_miz: Path) -> None:

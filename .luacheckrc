@@ -68,7 +68,7 @@ globals = {
   "GroundUnitHandler", "sha1", "STTS", "AIEN", "weathermark", "dcsbot",
   "SkynetIADSAbstractRadarElement",
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})
-  "veaf", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
+  "veaf", "veafAircraftSpawn", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
   "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCarrierOperations",
   "veafCasMission", "veafCombatMission", "veafCombatZone", "veafCommands",
   "veafEventHandler", "veafGeo", "veafGrass", "veafGroundAI",
@@ -82,7 +82,7 @@ globals = {
   "veafWeather", "veafWeatherAtis", "veafWeatherData", "veafWeatherUnitSystem",
   "veafHoundElint", "veafServerHook",
   -- VEAF class names (PascalCase — OOP constructors)
-  "VeafAirUnitTemplate",
+  "VeafAircraftSpawn", "VeafAirUnitTemplate",
   "VeafAlias", "VeafAliasForCombatMission", "VeafAliasForCombatZone",
   "VeafCache", "VeafCircleOnMap",
   "VeafCombatMission", "VeafCombatMissionElement", "VeafCombatMissionObjective",

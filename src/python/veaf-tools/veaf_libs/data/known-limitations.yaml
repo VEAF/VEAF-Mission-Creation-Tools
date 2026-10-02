@@ -444,6 +444,25 @@ limitations:
     The combat zone watchdog counted every static it found, so **a zone holding a static never
     completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
     FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
+- id: aircraft-at-the-end-of-its-route-lands
+  kind: dcs
+  area: spawning
+  title: "An aircraft spawned with a single waypoint and no task lands at the nearest airfield"
+  measured: "2026-10-01"
+  symptom: |
+    A group whose route is one waypoint at its own position has reached the end of its route the
+    moment it exists, and DCS does what it does then: it lands. Measured in the Tacview of *Ligne
+    rouge d'At Tanf*: the Sayqal QRA pair of MiG-29S appeared at **5 262 m**, descended in turns,
+    flared on runway 090 at 695 m and was gone **four and a half minutes** after appearing — three
+    scrambles (2 700 s, 3 990 s, 5 160 s), no interception. Nothing raises; the group simply never
+    does what it was placed for.
+  workaround: |
+    Give a flight a route that keeps it busy (an orbit, a `SwitchWaypoint` loop) and a task. A QRA or
+    an air wave does it for a group tasked `CAP` or `Intercept` whose route engages no aircraft: it is
+    cloned with the `zone_defense` role (FEAT-AIRCRAFT-ROLES), and the build says so. Any other group
+    placed this way still lands.
+  cost: |
+    Three scrambles of a QRA that defended nothing, on a mission built by the MCP's `create_qra`.
 - id: dcs-ground-is-never-below-sea-level
   kind: dcs
   area: spawning

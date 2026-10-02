@@ -1981,6 +1981,12 @@ function VeafCombatZone:spawnElement(zoneElement, now)
           )
         end
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("newGroup = [%s]", newGroup))
+        -- An aircraft spawned with a role (`-cap`) flies the route the role gave it; the marker's
+        -- route would replace its patrol (FEAT-AIRCRAFT-ROLES).
+        if veafAircraftSpawn.getRole(newGroup) then
+          veaf.loggers.get(veafCombatZone.Id):trace(string.format("[%s] flies a role, its route is kept", newGroup))
+          return
+        end
         local route = zoneElement:getRoute()
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("got route"))
         veaf.goRoute(newGroup, route)

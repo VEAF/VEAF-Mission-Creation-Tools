@@ -2720,6 +2720,79 @@ function TestSpawnSilenceIsNotSecurity:test_silence_is_a_boolean_even_when_not_a
   luaunit.assertEquals(self:_run(false, nil).silent, false)
 end
 
+-- ===========================================================================
+-- FEAT-AIRCRAFT-ROLES ticket 04 — the command layer leaves an aircraft with a role alone
+--
+-- `readyForCombat` sets weapons free on every group a handler returns, which undoes the `PROHIBIT_AA` a
+-- CAP's watchdog owns; and a route the caller passed was imposed even when the handler said
+-- `routeDone`, so a `-cap` in a combat zone lost its patrol.
+-- ===========================================================================
+TestSpawnCommandLeavesARoleAlone = {}
+
+function TestSpawnCommandLeavesARoleAlone:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._savedCommandHandlers = veafSpawn.commandHandlers
+  veafSpawn.commandHandlers = {}
+  self._readyForCombat = veaf.readyForCombat
+  self._goRoute = veaf.goRoute
+  self.readied, self.routed = {}, {}
+  local test = self
+  veaf.readyForCombat = function(group)
+    table.insert(test.readied, group:getName())
+  end
+  veaf.goRoute = function(group, route)
+    table.insert(test.routed, { group = group:getName(), route = route })
+    return true
+  end
+  dcs_mocks.addGroup("CAP-with-role", {})
+  dcs_mocks.addGroup("Tanks-no-role", {})
+  veafAircraftSpawn.groupRoles["CAP-with-role"] = "cap"
+end
+
+function TestSpawnCommandLeavesARoleAlone:tearDown()
+  veafSpawn.commandHandlers = self._savedCommandHandlers
+  veaf.readyForCombat = self._readyForCombat
+  veaf.goRoute = self._goRoute
+  dcs_mocks.reset()
+end
+
+function TestSpawnCommandLeavesARoleAlone:_run(groupName, routeDone)
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
+    return groupName, routeDone
+  end)
+  veafSpawn.executeCommand(
+    { x = 0, y = 0, z = 0 },
+    "_spawn unit, name f15",
+    1,
+    0,
+    true,
+    nil,
+    nil,
+    nil,
+    { { x = 1, y = 2 } },
+    nil,
+    nil,
+    true
+  )
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_an_aircraft_with_a_role_is_not_made_weapons_free()
+  self:_run("CAP-with-role", true)
+  luaunit.assertEquals(self.readied, {})
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_an_aircraft_with_a_role_keeps_its_route()
+  self:_run("CAP-with-role", true)
+  luaunit.assertEquals(self.routed, {})
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_a_group_without_a_role_is_still_made_ready_and_routed()
+  self:_run("Tanks-no-role", false)
+  luaunit.assertEquals(self.readied, { "Tanks-no-role" })
+  luaunit.assertEquals(#self.routed, 1)
+end
+
 -- A spawn can be put off or repeated, and both re-enter executeCommand through mist. The silence has to
 -- travel with them: a combat zone asking for a delayed spawn would otherwise come back chatty on the
 -- second pass, which is the same defect one indirection further out.
@@ -2880,19 +2953,26 @@ function TestVeafSpawnCapMissingSpawnedGroup:setUp()
     return 1
   end
 
-  self._logger = veaf.loggers.get(veafSpawn.Id)
-  self._originalWarn = self._logger.warn
+  -- The warning comes from whichever module set the CAP up: `veafAircraftSpawn` since
+  -- FEAT-AIRCRAFT-ROLES moved the spawn there, so both loggers are listened to.
+  self._loggers = { veaf.loggers.get(veafSpawn.Id), veaf.loggers.get(veafAircraftSpawn.Id) }
+  self._originalWarns = {}
   self.warned = {}
   local warned = self.warned
-  self._logger.warn = function(_, text, ...)
-    table.insert(warned, { text = tostring(text), args = { ... } })
+  for index, logger in ipairs(self._loggers) do
+    self._originalWarns[index] = logger.warn
+    logger.warn = function(_, text, ...)
+      table.insert(warned, { text = tostring(text), args = { ... } })
+    end
   end
 end
 
 function TestVeafSpawnCapMissingSpawnedGroup:tearDown()
   veafSpawn.findSpawnableAircraftGroupname = self._originalFind
   veaf.scheduleFunction = self._originalSchedule
-  self._logger.warn = self._originalWarn
+  for index, logger in ipairs(self._loggers) do
+    logger.warn = self._originalWarns[index]
+  end
   veafMissionDb.groupsByName = {}
   dcs_mocks.reset()
 end
@@ -3396,6 +3476,76 @@ local function lastOptionValue(optionId)
     end
   end
   return value
+end
+
+--- FEAT-AIRCRAFT-ROLES: an interceptor that starts on the ground is not "landed" before it has flown.
+---
+--- The watchdog destroys a CAP whose units are all on the ground, which is how a patrol that lands
+--- is removed. Its first tick runs one second after the spawn, and a flight placed on a parking spot
+--- is still there: it was destroyed before it had started its engines.
+TestVeafSpawnCapWatchdogGroundStart = {}
+
+function TestVeafSpawnCapWatchdogGroundStart:setUp()
+  dcs_mocks.reset()
+  self.airborne = false
+  self.destroyed = false
+  self._schedule = veaf.scheduleFunction
+  self.rescheduled = 0
+  local test = self
+  veaf.scheduleFunction = function()
+    test.rescheduled = test.rescheduled + 1
+  end
+  dcs_mocks.addUnit("parked-1", {
+    inAir = function()
+      return test.airborne
+    end,
+    isActive = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = 0, y = 20, z = 0 }
+    end,
+    getController = function()
+      return {
+        getDetectedTargets = function()
+          return {}
+        end,
+      }
+    end,
+  })
+  local unit = Unit.getByName("parked-1")
+  dcs_mocks.addGroup("parked", {
+    getUnits = function()
+      return { unit }
+    end,
+    destroy = function()
+      test.destroyed = true
+    end,
+  })
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:tearDown()
+  veaf.scheduleFunction = self._schedule
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_still_parked_is_waited_for()
+  veafSpawn.capWatchdogZones["parked"] = { x = 0, y = 0, radius = 100000 }
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, { x = 0, y = 0, radius = 100000 })
+  luaunit.assertFalse(self.destroyed, "a flight that has not taken off yet is not a flight that landed")
+  luaunit.assertEquals(self.rescheduled, 1, "the watchdog keeps watching it")
+  luaunit.assertNotNil(veafSpawn.capWatchdogZones["parked"], "and keeps its zone")
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_that_flew_and_landed_is_removed()
+  local zone = { x = 0, y = 0, radius = 100000 }
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = true
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = false
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  luaunit.assertTrue(self.destroyed)
+  luaunit.assertNil(veafSpawn.capWatchdogFlown["parked"], "the registry forgets it")
 end
 
 function TestVeafSpawnCapTargetFilter:setUp()

@@ -1680,6 +1680,20 @@ function TestVeafGroupSpawnChain:test_a_route_that_was_given_is_used()
   luaunit.assertEquals(#spawned().route.points, 1)
 end
 
+function TestVeafGroupSpawnChain:test_a_whole_route_table_is_not_wrapped_twice()
+  -- FEAT-AIRCRAFT-ROLES: the CAP and AFAC builders hand over `{ points = … }`, and DCS received
+  -- `route.points.points` — no waypoint at all — for every `-cap` and `-afac` since #842.
+  VeafGroupSpawn:new()
+    :forGroup("Convoy")
+    :at({ x = 1, y = 0, z = 2 })
+    :withRoute({ points = { { x = 9, y = 9 }, { x = 8, y = 8 } } })
+    :respawn()
+
+  luaunit.assertEquals(#spawned().route.points, 2)
+  luaunit.assertEquals(spawned().route.points[1].x, 9)
+  luaunit.assertNil(spawned().route.points.points)
+end
+
 function TestVeafGroupSpawnChain:test_the_first_waypoint_follows_the_group_when_asked()
   -- FIX-COMBATZONE-SPAWN-ROUTE-OFFSET: without this a displaced group drove back to a waypoint 1
   -- still at its editor position.

@@ -295,6 +295,29 @@ Lorsque `delay` est **négatif**, la vague suivante apparaît immédiatement apr
 :addWave({ groups = { "Strike Package" } })              -- ...cette vague
 ```
 
+### Ce que fait un groupe de chasse {#fighter-group-task}
+
+Un groupe dont la **tâche** (dans l'éditeur) est `CAP` ou `Intercept` reçoit son travail du script quand sa
+route n'en prévoit pas : s'il ne porte aucune tâche d'engagement des aéronefs (`EngageTargets` ou
+`EngageTargetsInZone` avec des cibles *Air*), il est lancé en **défense de zone** :
+
+- il apparaît là où vous l'avez placé, avec les options de son premier point (ROE, réaction à la menace…) ;
+- il rejoint la zone des vagues et y tient un hippodrome centré sur la zone, dans l'axe de son arrivée
+  (branche de 20 NM, ou le diamètre de la zone s'il est plus court) ;
+- il n'engage que les aéronefs qui entrent dans la zone, qu'il classe selon leur type et leur distance.
+
+Un groupe placé **au parking ou sur la piste** garde son décollage tel que vous l'avez réglé, puis monte à
+27 000 ft pour sa patrouille.
+
+C'est donc le cas normal : placez le chasseur avec **un seul point**, sans tâche, et le script fait le
+reste ; le build l'annonce pour chaque groupe concerné. Si vous voulez votre propre plan de vol, écrivez-le **avec** une tâche d'engagement des aéronefs : il
+est alors suivi tel quel. Une route écrite à la main sans cet engagement est remplacée, et le build vous le
+signale par un avertissement. Un groupe d'une autre tâche (`CAS`, `Ground Attack`, `Escort`…) suit toujours
+sa route.
+
+Une commande `-cap` listée dans une vague défend elle aussi la zone des vagues, et non la zone de
+60 NM qu'elle dessine autour de sa propre branche.
+
 ### Commandes VEAF comme groupes {#spawn-offset}
 
 Au lieu d'un nom de groupe DCS, vous pouvez utiliser n'importe quelle commande de spawn VEAF (la même syntaxe qu'un marqueur de la carte F10). La commande est exécutée à la position d'apparition, ajustable avec un préfixe `[latDelta,lonDelta]` (en mètres, relatif au centre de la zone).

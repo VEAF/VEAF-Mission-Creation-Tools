@@ -22,8 +22,12 @@ _DOFILE_RE = re.compile(r'dofile\(_dir \.\. "([^"]+)"\)')
 
 
 def _spawn_submodules_on_disk() -> set[str]:
-    """Every `veafSpawn*.lua` sub-module, i.e. all of them but the `veafSpawn.lua` proxy."""
-    return {p.name for p in _VEAF_SCRIPTS_DIR.glob("veafSpawn*.lua")} - {_SPAWN_PROXY.name}
+    """Every `veafSpawn*.lua` sub-module, i.e. all of them but the `veafSpawn.lua` proxy.
+
+    Plus `veafAircraftSpawn.lua`, which the proxy loads too: the CAP spawns through its roles
+    (FEAT-AIRCRAFT-ROLES), and its name says what it is rather than whose sub-module it is.
+    """
+    return {p.name for p in _VEAF_SCRIPTS_DIR.glob("veafSpawn*.lua")} - {_SPAWN_PROXY.name} | {"veafAircraftSpawn.lua"}
 
 
 def _spawn_proxy_dofiles() -> list[str]:

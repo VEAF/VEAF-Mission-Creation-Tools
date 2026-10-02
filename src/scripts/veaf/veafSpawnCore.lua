@@ -81,6 +81,16 @@ veafSpawn.spawnedNamesIndex = {}
 -- time delay between the watchdog checks for each CAP
 veafSpawn.CAP_WATCHDOG_DELAY = 10
 
+--- The zone each running CAP watchdog guards, by group name. The watchdog reads it on every tick, so a
+--- group given a new role (`veafAircraftSpawn.assignRole`) is re-aimed instead of handed a second
+--- watchdog; an entry exists exactly while a watchdog runs for that group (FEAT-AIRCRAFT-ROLES).
+veafSpawn.capWatchdogZones = {}
+
+--- The CAP groups their watchdog has seen in the air at least once, by group name. Only those can have
+--- *landed*: a flight placed on a parking spot is on the ground at the first tick, one second after its
+--- spawn, and was destroyed before it had started its engines (FEAT-AIRCRAFT-ROLES).
+veafSpawn.capWatchdogFlown = {}
+
 -- range scale of cargo weight biases
 veafSpawn.cargoWeightBiasRange = 6
 
@@ -405,8 +415,16 @@ function veafSpawn.executeCommand(
               --stuff below does not support statics
               -- make the group combat ready ! well except if the user said otherwise, tweak the AlarmState for some scenarios
               --veaf.loggers.get(veafSpawn.Id):trace("options.disperse=%s", veaf.p(options.disperse))
-              veaf.readyForCombat(groupObject, options.AlarmState, options.disperse)
-              if not route and not routeDone and options.destination then
+              -- An aircraft spawned with a role already has its route and its options, and its CAP
+              -- watchdog owns `PROHIBIT_AA`: making it weapons free or re-routing it here undid both
+              -- (FEAT-AIRCRAFT-ROLES).
+              local hasRole = veafAircraftSpawn.getRole(spawnedGroup) ~= nil
+              if not hasRole then
+                veaf.readyForCombat(groupObject, options.AlarmState, options.disperse)
+              end
+              if hasRole then
+                veaf.loggers.get(veafSpawn.Id):trace("%s flies a role, its route and options are kept", veaf.p(spawnedGroup))
+              elseif not route and not routeDone and options.destination then
                 --  make the group go to destination
                 local actualPosition = groupObject:getUnit(1):getPosition().p
                 local route = veaf.generateVehiclesRoute(

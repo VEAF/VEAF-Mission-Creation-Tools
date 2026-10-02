@@ -378,6 +378,27 @@ version line at the top of each log first: a log still on 2.9.29 answers nothing
   Record the new order in the entry, mark it fixed by DCS 2.9.30, and decide whether the hook's
   remembered-disconnect list is still needed.
 
+### R21. A QRA built by `create_qra` intercepts instead of landing, and a `-cap` patrols
+
+FEAT-AIRCRAFT-ROLES, from the Tacview of *Ligne rouge d'At Tanf* (2026-10-01): the Sayqal QRA scrambled
+three times, each time appeared at 5 262 m, descended and landed on runway 090 four and a half minutes
+later, and intercepted nobody. Its group has one waypoint and no task; the QRA module now gives such a
+`CAP`/`Intercept` group the `zone_defense` role. The same lot found that every `-cap` and `-afac` had
+spawned with **no waypoint** since 6.18.0 (#842).
+
+**Run**: rebuild *Ligne rouge d'At Tanf* with this version (no edit to the mission), fly into the Sayqal
+QRA zone, and watch the scramble on the F10 map or in Tacview for ten minutes. Then drop a `-cap mig29`
+marker anywhere and watch it for five.
+
+- **Fixed**: the MiG-29S pair turns towards the zone centre and flies a race-track across it (two turns
+  20 NM apart), and turns on you when you enter the zone; it does **not** land. The `-cap` flies a
+  race-track along its heading. Close the lot's in-game item.
+- **Not fixed**: the pair still descends and lands, or orbits over Sayqal. Read `dcs.log` for `AIRSPAWN`
+  — `engages no aircraft by itself: it defends the zone` says the role was chosen, and its absence says
+  `needsZoneDefense` answered no (check the group's task in the editor: it must be `CAP` or
+  `Intercept`). A `-cap` that holds still with no route means `withRoute` is still handed the wrong
+  shape.
+
 ---
 
 ---

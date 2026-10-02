@@ -309,6 +309,29 @@ VeafQRA:new()
 
 C'est tout — aucune condition de trigger, aucune fonction planifiée. VEAF gère la détection, le décollage et le réarmement automatiquement.
 
+### Ce que fait un groupe décollé {#scrambled-group-task}
+
+Un groupe dont la **tâche** (dans l'éditeur) est `CAP` ou `Intercept` reçoit son travail du script quand sa
+route n'en prévoit pas : s'il ne porte aucune tâche d'engagement des aéronefs (`EngageTargets` ou
+`EngageTargetsInZone` avec des cibles *Air*), il est lancé en **défense de zone** :
+
+- il apparaît là où vous l'avez placé, avec les options de son premier point (ROE, réaction à la menace…) ;
+- il rejoint la zone de la QRA et y tient un hippodrome centré sur la zone, dans l'axe de son arrivée
+  (branche de 20 NM, ou le diamètre de la zone s'il est plus court) ;
+- il n'engage que les aéronefs qui entrent dans la zone, qu'il classe selon leur type et leur distance.
+
+Un groupe placé **au parking ou sur la piste** garde son décollage tel que vous l'avez réglé, puis monte à
+27 000 ft pour sa patrouille.
+
+C'est donc le cas normal : placez l'intercepteur avec **un seul point**, sans tâche, et le script fait le
+reste ; le build l'annonce pour chaque groupe concerné. Si vous voulez votre propre plan de vol, écrivez-le **avec** une tâche d'engagement des aéronefs : il
+est alors suivi tel quel. Une route écrite à la main sans cet engagement est remplacée, et le build vous le
+signale par un avertissement. Un groupe d'une autre tâche (`CAS`, `Ground Attack`, `Escort`…) suit toujours
+sa route.
+
+Une commande `-cap` listée dans `simple_groups` défend elle aussi la zone de la QRA, et non la zone de
+60 NM qu'elle dessine autour de sa propre branche.
+
 ### Chaîne logistique
 
 Par défaut, une QRA dispose d'aéronefs en nombre illimité. Le système de logistique permet de modéliser un stock d'aérodrome fini avec ravitaillement optionnel — utile pour les missions persistantes de longue durée :

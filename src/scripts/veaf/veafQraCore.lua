@@ -962,14 +962,17 @@ function VeafQRACore:deploy(nbUnitsInZone)
   self.spawnedGroupsNames = {}
   if groupsToDeploy then
     local zoneCenter = {}
+    local triggerZone
     if self.triggerZoneName then
-      local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+      triggerZone = veaf.getTriggerZone(self.triggerZoneName)
       zoneCenter.x = triggerZone.x
       zoneCenter.z = triggerZone.y
       zoneCenter.y = 0
     elseif self.zoneCenter then
       zoneCenter = self.zoneCenter
     end
+    -- what a scrambled interceptor with no job of its own defends (FEAT-AIRCRAFT-ROLES)
+    local zoneToDefend = veafAircraftSpawn.zoneToDefend(triggerZone, self.zoneCenter, self.zoneRadius)
     for _, groupNameOrCommand in pairs(groupsToDeploy) do
       -- check if this is a DCS group or a VEAF command
       if veaf.startsWith(groupNameOrCommand, "[") or veaf.startsWith(groupNameOrCommand, "-") then
@@ -1007,6 +1010,8 @@ function VeafQRACore:deploy(nbUnitsInZone)
         randomPosition.y = position.y
         local spawnedGroupsNames = {}
         veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
+        -- a `-cap` patrols this zone, not the one its own leg drew (FEAT-AIRCRAFT-ROLES)
+        veafAircraftSpawn.defendZoneWithCaps(spawnedGroupsNames, zoneToDefend)
         for _, newGroupName in pairs(spawnedGroupsNames) do
           table.insert(self.spawnedGroupsNames, newGroupName)
         end
@@ -1035,14 +1040,12 @@ function VeafQRACore:deploy(nbUnitsInZone)
           else
             spawnSpot = group:getUnit(1):getPoint()
           end
-          local newGroup = VeafGroupSpawn:new()
-            :forGroup(groupName)
-            :at(spawnSpot)
-            :withRadius(self.respawnRadius)
-            :withRoute(veaf.getGroupRoute(groupName))
-            :clone()
-          if newGroup then
-            table.insert(self.spawnedGroupsNames, newGroup.name)
+          -- A group placed with one waypoint and no task reached the end of its route the moment it
+          -- appeared, and landed: the Sayqal QRA of *Ligne rouge d'At Tanf*, three scrambles, no
+          -- interception. One tasked CAP or Intercept with no air engagement now defends the zone.
+          local newGroupName = veafAircraftSpawn.deployEditorGroup(groupName, spawnSpot, self.respawnRadius, zoneToDefend)
+          if newGroupName then
+            table.insert(self.spawnedGroupsNames, newGroupName)
           end
         end
       end

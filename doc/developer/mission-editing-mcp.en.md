@@ -905,7 +905,9 @@ collide as they spawned).
 
 Trigger zone + **Late-Activation** interceptors (coalition-significant) + a
 `modules.QRA.definitions[]` entry referencing the groups **by exact name** (`simple_groups`).
-Coalition is lower-cased for placement, upper-cased in the YAML definition.
+Coalition is lower-cased for placement, upper-cased in the YAML definition. Each interceptor has **a single waypoint and no task**, on purpose: when it scrambles, the QRA module
+gives a `CAP`/`Intercept` group whose route engages no aircraft a patrol across the zone
+([what a scrambled group does](../mission-maker/scripts/veafQraManager.en.md#scrambled-group-task)).
 
 ### `create_cap_mission`
 

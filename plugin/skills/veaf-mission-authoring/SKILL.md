@@ -160,7 +160,10 @@ is not the one playing the zone.
 **QRA** — interceptor groups are referenced **by exact name**, coalition **matters**, and they
 **must be Late Activation** (VEAF scrambles them). So: create the trigger zone, create the
 late-activation interceptor group with a coherent name, set its coalition, and list that exact
-name in the QRA definition.
+name in the QRA definition. Task it `CAP` or `Intercept` and give it **a single waypoint and no
+task** (`create_qra` does): when it scrambles, the QRA module sends it to patrol the zone and engage
+what enters it. A route you write yourself is flown as written only if it carries an
+`EngageTargets` (`Air`) task — without one it is replaced, and the build warns about it.
 
 ## Airbases — coalition & dynamic slots
 

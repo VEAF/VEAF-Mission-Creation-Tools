@@ -110,4 +110,4 @@ jobs:
         # of the city tables left veafNamedPoints.lua for the generated veafCities.lua, which luacov
         # excludes like dcsUnits. They were counted as covered; the logic lost nothing (82.09 % →
         # 78.86 % measured, veafNamedPoints' uncovered lines 144 → 118).
-        run: poetry run test-lua --cov-fail-under 78.9
+        run: poetry run test-lua --cov-fail-under 80.0

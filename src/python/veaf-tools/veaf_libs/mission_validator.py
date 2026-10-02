@@ -17,8 +17,9 @@ Checks:
   6. ``TUM: true`` requires BLUFOR/REDFOR territory zones          (warning)
   7. a static with no ``shape_name`` while its type has one        (warning)
   8. a ``ctld-config.yaml`` ``extractableGroups`` / ``logisticUnits`` name the mission lacks (warning)
+  9. a QRA / AIRWAVES ``CAP`` or ``Intercept`` group whose written route the runtime replaces (warning)
 
-Checks 4-8 read the unpacked source mission table (``src/mission/mission``); when it is
+Checks 4-9 read the unpacked source mission table (``src/mission/mission``); when it is
 absent they are skipped (reported once as a warning).
 """
 
@@ -114,7 +115,31 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_tum_zones(yaml_data, mission)
     issues += _check_static_shapes(mission)
     issues += _check_ctld_names(folder, yaml_data, mission)
+    issues += _check_deployed_aircraft_routes(yaml_data, mission)
     return issues
+
+
+def _check_deployed_aircraft_routes(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
+    """Warn on a QRA or AIRWAVES ``CAP`` / ``Intercept`` group whose written route will be replaced.
+
+    The runtime gives such a group the ``zone_defense`` role when its route engages no aircraft
+    (FEAT-AIRCRAFT-ROLES). Kept out of :func:`validate_mission_content`, like :func:`_check_static_shapes`:
+    the build reports it itself, outside its "missing mission.yaml references" summary.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml``.
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per group whose route the runtime replaces.
+    """
+    from mission_builder.aircraft_roles import ROUTE_REPLACED, find_deployed_aircraft_routes
+
+    return [
+        ValidationIssue(WARNING, t("builder.aircraft_route_replaced", group=group, section=section))
+        for section, group, verdict in find_deployed_aircraft_routes(yaml_data, mission)
+        if verdict == ROUTE_REPLACED
+    ]
 
 
 def _check_ctld_names(folder: Path, yaml_data: dict, mission: dict) -> list[ValidationIssue]:

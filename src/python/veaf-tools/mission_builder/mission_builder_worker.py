@@ -1498,6 +1498,28 @@ class MissionBuilderWorker(BaseWorker):
             logger.warning(f"  • {issue.message}")
         logger.warning(bar)
 
+    def report_deployed_aircraft_routes(self) -> None:
+        """Say what a QRA or an air wave will do with each editor aircraft group it deploys.
+
+        A ``CAP`` or ``Intercept`` group whose route engages no aircraft is given the ``zone_defense``
+        role at runtime (FEAT-AIRCRAFT-ROLES): its written route is replaced, which is a non-blocking
+        warning; an empty route is given that role as intended, and a route that engages air is flown as
+        written, both information. See :mod:`mission_builder.aircraft_roles`.
+        """
+        if not self.mission_yaml or not self.dcs_mission or not self.dcs_mission.mission_content:
+            return
+        from mission_builder.aircraft_roles import ROUTE_REPLACED, ROUTE_ZONE_DEFENSE, find_deployed_aircraft_routes
+
+        for section, group, verdict in find_deployed_aircraft_routes(
+            self.mission_yaml, self.dcs_mission.mission_content
+        ):
+            if verdict == ROUTE_REPLACED:
+                logger.warning(t("builder.aircraft_route_replaced", group=group, section=section))
+            elif verdict == ROUTE_ZONE_DEFENSE:
+                logger.info(t("builder.aircraft_route_zone_defense", group=group, section=section))
+            else:
+                logger.info(t("builder.aircraft_route_engages_air", group=group, section=section))
+
     def ensure_coalitions_populated(self) -> None:
         """Inject a hidden placeholder ground unit into any empty side coalition.
 
@@ -2688,6 +2710,9 @@ class MissionBuilderWorker(BaseWorker):
 
         if not silent:
             logger.detail(t("builder.built", output=self.output_mission, folder=self.mission_folder))
+
+        # What a QRA or an air wave will do with each aircraft group it deploys (non-blocking).
+        self.report_deployed_aircraft_routes()
 
         # End-of-build summary of missing Mission-Editor references (non-blocking).
         self.report_reference_issues()

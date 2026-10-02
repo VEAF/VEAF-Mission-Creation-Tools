@@ -120,6 +120,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafSpawnParser.lua",
     "veafSpawnGround.lua",
     "veafSpawnAircraft.lua",
+    "veafAircraftSpawn.lua",
     "veafSpawnObjects.lua",
     "veafSpawnEffects.lua",
     "veafSpawn.lua",

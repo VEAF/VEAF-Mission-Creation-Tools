@@ -932,110 +932,6 @@ function veafSpawn.spawnCombatAirPatrol(
   veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.lp(silent))
   veaf.loggers.get(veafSpawn.Id):trace("hiddenOnMFD=%s", veaf.lp(hiddenOnMFD))
 
-  local getRoute = function(parameters)
-    local newRoute = {
-      ["points"] = {
-        [1] = {
-          ["alt"] = parameters.altitude,
-          ["action"] = "Turning Point",
-          ["alt_type"] = "BARO",
-          ["speed"] = parameters.speed1,
-          ["properties"] = {
-            ["addopt"] = {}, -- end of ["addopt"]
-          }, -- end of ["properties"]
-          ["task"] = parameters.wp1Options,
-          ["type"] = "Turning Point",
-          ["ETA"] = 10000,
-          ["ETA_locked"] = false,
-          ["y"] = parameters.wp1.y,
-          ["x"] = parameters.wp1.x,
-          ["formation_template"] = "",
-          ["speed_locked"] = true,
-        }, -- end of [1]
-        [2] = {
-          ["alt"] = parameters.altitude,
-          ["action"] = "Turning Point",
-          ["alt_type"] = "BARO",
-          ["speed"] = parameters.speed2,
-          ["properties"] = {
-            ["addopt"] = {}, -- end of ["addopt"]
-          }, -- end of ["properties"]
-          -- The patrol waypoint carries no task of its own, and that is a decision, not an omission.
-          --
-          -- An `EngageTargetsInZone` task used to sit here, commented out, saying nothing about
-          -- whether the watchdog was meant to replace it or to complement it. It cannot complement it:
-          -- the two mechanisms are incompatible by construction.
-          --
-          -- * The group is spawned with `PROHIBIT_AA = true` and the watchdog owns that option from
-          --   then on. A route task telling the group to engage air targets is inert for exactly as
-          --   long as the watchdog is silent, and redundant the moment it speaks.
-          -- * `startCapWatchdog` undoes its own tasking through the controller's task queue — the
-          --   queue this route task would live in. ED's own description of `resetTask` is "clears
-          --   **all** tasks from this controller's task queue"; even the narrower `popTask` used now
-          --   pops whatever is on top. A route-level engage task in that queue is something the
-          --   watchdog would eventually remove without ever knowing it was there.
-          --
-          -- So the watchdog is the single mechanism, deliberately: it is the one that can weigh
-          -- targets by priority (`FIX-CAP-ENGAGES-PARACHUTES`) and hand the group back its patrol when
-          -- there is nothing worth engaging.
-          ["task"] = {
-            ["id"] = "ComboTask",
-            ["params"] = {
-              ["tasks"] = {}, -- end of ["tasks"]
-            }, -- end of ["params"]
-          }, -- end of ["task"]
-          ["type"] = "Turning Point",
-          ["ETA"] = 20000,
-          ["ETA_locked"] = false,
-          ["y"] = parameters.wp2.y,
-          ["x"] = parameters.wp2.x,
-          ["formation_template"] = "",
-          ["speed_locked"] = true,
-        }, -- end of [2]
-        [3] = {
-          ["alt"] = parameters.altitude,
-          ["action"] = "Turning Point",
-          ["alt_type"] = "BARO",
-          ["speed"] = parameters.speed3,
-          ["properties"] = {
-            ["addopt"] = {}, -- end of ["addopt"]
-          }, -- end of ["properties"]
-          ["task"] = {
-            ["id"] = "ComboTask",
-            ["params"] = {
-              ["tasks"] = {
-                [1] = {
-                  ["enabled"] = true,
-                  ["auto"] = false,
-                  ["id"] = "WrappedAction",
-                  ["number"] = 1,
-                  ["params"] = {
-                    ["action"] = {
-                      ["id"] = "SwitchWaypoint",
-                      ["params"] = {
-                        ["goToWaypointIndex"] = 2,
-                        ["fromWaypointIndex"] = 3,
-                      }, -- end of ["params"]
-                    }, -- end of ["action"]
-                  }, -- end of ["params"]
-                }, -- end of [1]
-              }, -- end of ["tasks"]
-            }, -- end of ["params"]
-          }, -- end of ["task"]
-          ["type"] = "Turning Point",
-          ["ETA"] = 30000,
-          ["ETA_locked"] = false,
-          ["y"] = parameters.wp3.y,
-          ["x"] = parameters.wp3.x,
-          ["formation_template"] = "",
-          ["speed_locked"] = true,
-        }, -- end of [3]
-      },
-    }
-
-    return newRoute
-  end
-
   -- find spawn spot
   if altitudeDelta then
     altitude = altitude + math.random(0, altitudeDelta * 2) - altitudeDelta
@@ -1045,42 +941,9 @@ function veafSpawn.spawnCombatAirPatrol(
   position.y = altitude
   veaf.loggers.get(veafSpawn.Id):debug("final spawn, position=%s", position)
 
-  -- get the template first waypoint's options
-  veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateData=%s", veaf.lp(chosenTemplateData))
-  local chosenTemplateWp1Task = nil
-  if chosenTemplateData then
-    local _route = chosenTemplateData.route
-    --veaf.loggers.get(veafSpawn.Id):trace("_route=%s", veaf.p(_route))
-    if _route then
-      local _points = _route.points
-      --veaf.loggers.get(veafSpawn.Id):trace("_points=%s", veaf.p(_points))
-      if _points then
-        local _point1 = _points[1]
-        --veaf.loggers.get(veafSpawn.Id):trace("_point1=%s", veaf.p(_point1))
-        if _point1 then
-          local _task = _point1.task
-          --veaf.loggers.get(veafSpawn.Id):trace("_task=%s", veaf.p(_task))
-          if _task and "ComboTask" == _task.id then
-            local _params = _task.params
-            --veaf.loggers.get(veafSpawn.Id):trace("_params=%s", veaf.p(_params))
-            if _params then
-              local _tasks = _params.tasks
-              --veaf.loggers.get(veafSpawn.Id):trace("_tasks=%s", veaf.p(_tasks))
-              if _tasks then
-                for _, _taskData in pairs(_tasks) do
-                  if "WrappedAction" == _taskData.id then
-                    chosenTemplateWp1Task = veaf.deepCopy(_task) -- if we found a WrappedAction task then we're on the right way, clone the whole task package
-                    break
-                  end
-                end
-              end
-            end
-          end
-        end
-      end
-    end
-  end
-  --veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateWp1Task=%s", veaf.p(chosenTemplateWp1Task))
+  -- The template's first-waypoint options: the same rule as ever, now shared with every aircraft role.
+  local chosenTemplateWp1Task =
+    veafAircraftSpawn.firstWaypointOptions(chosenTemplateData and chosenTemplateData.route and chosenTemplateData.route.points)
 
   -- A template with nothing usable on its first waypoint spawns a CAP with none of the options its
   -- author meant it to fly with — no ROE, no reaction to threat, no radar or ECM setting. 12 of the
@@ -1098,32 +961,6 @@ function veafSpawn.spawnCombatAirPatrol(
     )
   end
 
-  -- compute route
-  local headingRad = math.rad(hdg)
-  local parameters = {
-    altitude = altitude,
-    speed0 = speed0,
-    speed1 = speed1,
-    speed2 = speed2,
-    speed3 = speed3,
-    wp1 = { x = position.x, y = position.z },
-    wp1Options = chosenTemplateWp1Task,
-  }
-  parameters.wp2 = { x = parameters.wp1.x + 2500 * math.cos(headingRad), y = parameters.wp1.y + 2500 * math.sin(headingRad) } -- second wp at 2500m in the right direction
-  parameters.wp3 = { x = parameters.wp2.x + distance * math.cos(headingRad), y = parameters.wp2.y + distance * math.sin(headingRad) } -- last wp at the right distance in the right direction
-  parameters.targetZone =
-    { x = (parameters.wp2.x + parameters.wp3.x) / 2, y = (parameters.wp2.y + parameters.wp3.y) / 2, radius = capRadius } -- target zone at the middle point between wp2 and wp3
-
-  veaf.loggers.get(veafSpawn.Id):trace("to create route, parameters=%s", parameters)
-  local newRoute = getRoute(parameters)
-
-  veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp1", parameters.wp1)
-  veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp2", parameters.wp2)
-  veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp3", parameters.wp3)
-  veafSpawn.traceMarkerId = veaf.loggers
-    .get(veafSpawn.Id)
-    :marker(veafSpawn.traceMarkerId, "CAP", "targetZone", parameters.targetZone, nil, capRadius, { 1, 0, 0, 0.15 })
-
   if not veafSpawn.spawnedNamesIndex[chosenTemplateName] then
     veafSpawn.spawnedNamesIndex[chosenTemplateName] = 1
   else
@@ -1132,72 +969,31 @@ function veafSpawn.spawnCombatAirPatrol(
   local newGroupName = string.format("%s #%04d", chosenTemplateName, veafSpawn.spawnedNamesIndex[chosenTemplateName])
   veaf.loggers.get(veafSpawn.Id):debug("indexed newGroupName=%s", newGroupName)
 
-  -- (re)spawn group
-  local newGroup = VeafGroupSpawn:new():forGroup(chosenTemplateName):named(newGroupName):at(position):withRoute(newRoute):buildCloneData()
-  if not newGroup then
-    veaf.loggers.get(veafSpawn.Id):error("cannot respawn group %s", veaf.p(chosenTemplateName))
-    return nil
-  end
+  -- The route, the options and the watchdog are the `cap` role's (FEAT-AIRCRAFT-ROLES). What stays
+  -- here is what makes it the `-cap` command: its options, its template choice, its message.
+  local spawn = VeafAircraftSpawn:new()
+    :fromGroup(chosenTemplateName)
+    :named(newGroupName)
+    :at(position)
+    :withSkill(skill)
+    :shownOnMap(hiddenOnMFD)
+    :withFirstWaypointTask(chosenTemplateWp1Task)
+    :withRole("cap", {
+      heading = hdg,
+      distance = distance,
+      capRadius = capRadius,
+      altitude = altitude,
+      speed1 = speed1,
+      speed2 = speed2,
+      speed3 = speed3,
+    })
   if country and #country > 0 then
-    newGroup.countryId = veaf.getCountryId(country)
+    spawn:inCountry(veaf.getCountryId(country))
   end
-  --newGroup.task = "CAP" --needs to be set in the editor
-  veaf.loggers.get(veafSpawn.Id):trace("after preparation by MIST, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
-
-  newGroup.hidden = false
-  newGroup.name = newGroupName
-  newGroup.hiddenOnMFD = hiddenOnMFD
-
-  -- FIX-CLONE-KEEPS-UNIT-NAMES: the units are renamed by the clone itself, not here. This loop used
-  -- to build a `<unit> #0001` name and assign it to `unit.name`, which `addGroup` then overwrote from
-  -- `unit.unitName` — the template's name, untouched. So every CAP off one template submitted the
-  -- units of the previous one, and DCS removed the previous one: the teleport that was reported in
-  -- game. Renaming is the spawner's job, and only the fields it fills reach DCS.
-  for _, unit in pairs(newGroup.units) do
-    unit.skill = skill
-    unit.alt = position.y
-  end
-
-  veaf.loggers.get(veafSpawn.Id):trace("before addGroup, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
-  local _spawnedGroup = veaf.addGroup(newGroup)
-  if not _spawnedGroup then
-    veaf.loggers.get(veafSpawn.Id):error("cannot spawn group %s", veaf.p(newGroup.name))
+  local spawnedGroupName = spawn:spawn()
+  if not spawnedGroupName then
     return nil
   end
-  veaf.loggers.get(veafSpawn.Id):debug("after addGroup, _spawnedGroup.name=%s", _spawnedGroup.name)
-  veaf.loggers.get(veafSpawn.Id):trace("after addGroup, _spawnedGroup=%s", veaf.lp(_spawnedGroup, nil, { "route", "payload" }))
-
-  local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
-  veaf.loggers
-    .get(veafSpawn.Id)
-    :trace("result of dcs side getByName, _dcsSpawnedGroup=%s", veaf.lp(_dcsSpawnedGroup, nil, { "route", "payload" }))
-  -- The `if not _spawnedGroup` above vouches for the object VEAF built, not for what DCS answers a
-  -- moment later, and the five dereferences that follow all assumed it did. Unlike the same defect
-  -- in `veafCombatMission` (FIX-COMBATMISSION-UNGUARDED-GROUP), this is not a logging fix:
-  -- `getController()` below is functional code, so dropping the traces would not have dropped the
-  -- crash.
-  --
-  -- The spawn itself still happened — the group was submitted, and the aircraft may well be flying.
-  -- But there is no half-CAP to carry on with: without a controller PROHIBIT_AA is never applied,
-  -- and the watchdog that makes this a *patrol* rather than a group flying a straight line would
-  -- repeat this very lookup on its first tick and stop. So this reports the failure the way the two
-  -- branches above already do, and hands nothing back rather than a name that stands for nothing.
-  if not _dcsSpawnedGroup then
-    veaf.loggers
-      .get(veafSpawn.Id)
-      :warn(string.format("group [%s] was spawned but DCS does not know it; no CAP will be set up", veaf.p(_spawnedGroup.name)))
-    return nil
-  end
-  veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.name=%s", _dcsSpawnedGroup:getName())
-  for index, unit in pairs(_dcsSpawnedGroup:getUnits()) do
-    veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.unit[%s].name=%s", index, unit:getName())
-  end
-
-  local controller = _dcsSpawnedGroup:getController()
-  controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
-
-  veaf.loggers.get(veafSpawn.Id):debug("starting CAP target watchdog...")
-  veaf.scheduleFunction(veafSpawn.startCapWatchdog, { _spawnedGroup.name, coalition, parameters.targetZone }, timer.getTime() + 1)
 
   local message = string.format("A CAP of %s (%s) has been spawned", name, country)
   veaf.loggers.get(veafSpawn.Id):debug(message)
@@ -1205,7 +1001,7 @@ function veafSpawn.spawnCombatAirPatrol(
     trigger.action.outText(veaf.t("spawn.cap_spawned", name, country), 15)
   end
 
-  return _spawnedGroup.name
+  return spawnedGroupName
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1324,6 +1120,12 @@ function veafSpawn.isCapEngageableTarget(target, capCoalition)
   return true, nil
 end
 
+--- Forget what the CAP watchdog keeps about a group, when it stops watching it.
+local function forgetCapWatchdog(capGroupName)
+  veafSpawn.capWatchdogZones[capGroupName] = nil
+  veafSpawn.capWatchdogFlown[capGroupName] = nil
+end
+
 function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)
   veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.startCapWatchdog(capGroupName=%s)", veaf.lp(capGroupName))
   veaf.loggers.get(veafSpawn.Id):trace("capZone=%s", veaf.lp(capZone))
@@ -1338,14 +1140,20 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     return
   end
 
+  -- The zone may have changed since this watchdog was scheduled: a role given to the group in flight
+  -- re-aims it here rather than starting a second watchdog (FEAT-AIRCRAFT-ROLES).
+  capZone = veafSpawn.capWatchdogZones[capGroupName] or capZone
+
   local capGroup = Group.getByName(capGroupName)
   if not capGroup then
     veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is nowhere to be found, stopping watchdog", veaf.lp(capGroupName))
+    forgetCapWatchdog(capGroupName)
     return
   end
   local capGroupPosition = veaf.getAveragePosition(capGroup)
   if not capGroupPosition then
     veaf.loggers.get(veafSpawn.Id):error("CAP group %s has no position!", veaf.p(capGroupName))
+    forgetCapWatchdog(capGroupName)
     return
   end
 
@@ -1487,7 +1295,21 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     end
   end
 
+  if not capLanded then
+    veafSpawn.capWatchdogFlown[capGroupName] = true
+  elseif not veafSpawn.capWatchdogFlown[capGroupName] then
+    -- still on its parking spot or its runway: it has not taken off yet, it has not landed
+    veaf.loggers.get(veafSpawn.Id):debug("CAP group %s has not taken off yet, waiting for it", veaf.lp(capGroupName))
+    veaf.scheduleFunction(
+      veafSpawn.startCapWatchdog,
+      { capGroupName, capCoalition, capZone, targetsList, numberOfTasksAddedByWatchdog },
+      timer.getTime() + veafSpawn.CAP_WATCHDOG_DELAY
+    )
+    return
+  end
+
   if capLanded then
+    forgetCapWatchdog(capGroupName)
     capGroup:destroy()
     veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is landed, destroying it and stopping watchdog", veaf.lp(capGroupName))
     return
@@ -1498,6 +1320,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     veaf.loggers.get(veafSpawn.Id):debug("CAP group is still in the CAP zone...")
     if not controller then
       veaf.loggers.get(veafSpawn.Id):error("cannot find controller for CAP group!")
+      forgetCapWatchdog(capGroupName)
       return
     end
 

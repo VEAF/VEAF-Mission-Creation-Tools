@@ -10,6 +10,8 @@ dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafI18n.lua")
+-- the command hook leaves an aircraft with a role alone (FEAT-AIRCRAFT-ROLES)
+dofile(src .. "/veafAircraftSpawn.lua")
 dofile(src .. "/veafCombatZone.lua")
 
 -- The assertions below pin the English wording; messages are now localized
@@ -1670,6 +1672,18 @@ function TestVeafCombatZoneDelayedCommand:test_a_delayed_group_is_sent_on_its_ro
   self.z:spawnElement(self.el, true)
   veaf.collectSpawnedGroup(self._captured, "DelayedSAM")
   luaunit.assertEquals(self.routed, { "DelayedSAM" })
+end
+
+--- FEAT-AIRCRAFT-ROLES ticket 04: a `-cap` in a combat zone keeps the patrol its role gave it; the
+--- marker's route would replace it.
+function TestVeafCombatZoneDelayedCommand:test_an_aircraft_with_a_role_keeps_its_own_route()
+  self.el:setRoute({ wp1 = { x = 1, z = 2 } })
+  veafAircraftSpawn.groupRoles["ZoneCAP"] = "cap"
+  self.z:spawnElement(self.el, true)
+  veaf.collectSpawnedGroup(self._captured, "ZoneCAP")
+  veafAircraftSpawn.groupRoles["ZoneCAP"] = nil
+  luaunit.assertEquals(self.routed, {})
+  luaunit.assertEquals(self.z:getSpawnedGroups(), { "ZoneCAP" }, "it still belongs to the zone")
 end
 
 -- Nominal path must not regress: a command with no delay spawns synchronously, and the hook is what

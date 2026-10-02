@@ -1,6 +1,6 @@
 # FIX-MG-ENERGY-READS-EASTING — a missile's potential energy is computed from its longitude
 
-Status: ✅ done — 2026-09-28, the altitude is read from `y`; the test separates the two readings and was red on the old code (`Actual: 0, expected: 12262500`)
+Status: ✅ done — 2026-09-28, the altitude is read from `y`; the test separates the two readings and was red on the old code (`Actual: 0, expected: 12262500`) · archived 2026-10-02
 
 Found 2026-09-01 by the enumeration [`FIX-AIR-SPAWN-ALTITUDE-GUARD`](../FIX-AIR-SPAWN-ALTITUDE-GUARD/PRD.md)
 was asked to do — "enumerate the other height tests rather than sample them". This one is **not** on the

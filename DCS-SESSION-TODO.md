@@ -288,6 +288,14 @@ does an object **recreated** by `coalition.addGroup` / `addStaticObject` keep th
 a neutral one proves nothing, since those show anyway. He was asked to try the neutral → red switch
 on one sandbag, which would confirm the coalition reading on its own.
 
+**Settled for statics by Tripack, 2026-09-19** (v6 mission, blue Hornet slot and Tactical Commander):
+the neutral sandbags no script touched stay **hidden**, the ones a combat zone recreates are
+**visible** — the zone deactivated, they vanish; reactivated, they come back on the map. That
+contradicts the 09-18 "neutral shows anyway" reading and lands on the **Ignored** branch, for
+`addStaticObject`: recorded as `dcs-scripted-static-ignores-hidden` in `known-limitations.yaml`. What
+the run still has to answer is the **group** half — a red group recreated by `coalition.addGroup`,
+which is the QRA side of #953.
+
 ### R16. Does `settleGroup`'s sweep get more vehicles out of the trees than ticket 11 did?
 
 [`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 12.
@@ -398,6 +406,23 @@ marker anywhere and watch it for five.
   `needsZoneDefense` answered no (check the group's task in the editor: it must be `CAP` or
   `Intercept`). A `-cap` that holds still with no route means `withRoute` is still handed the wrong
   shape.
+
+### R22. A UH-1 in a dynamic slot has its CSAR menu
+
+Unblocks [`FIX-USER-REPORTS-985-989`](.backlog/FIX-USER-REPORTS-985-989/PRD.md) ticket 02, from
+[#989](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/989) (Tripack, 2026-09-22): no CSAR
+menu in a UH-1 although the MAYDAY and the downed pilot showed that CSAR was running.
+
+**Run**: a mission with `CSAR` enabled and a **dynamic slot** offering the UH-1H — none of the repository's
+test missions has one, so use Tripack's `Snowfox_20260922.miz` from the #989 Discord thread, or add a
+dynamic UH-1 slot to `verify-mission-c` first. Take the UH-1 from the dynamic slot, wait ten seconds,
+open the radio menu.
+
+- **Fixed**: `F10 Other… > CSAR` is there with its four commands (*List Active CSAR*, *Check Onboard*,
+  *Request Signal Flare*, *Request Smoke*). Close ticket 02, and #989.
+- **Not fixed**: no `CSAR` entry. Check the same in a UH-1 placed in the editor: present there means the
+  dynamic-slot path is still broken; absent there too means CSAR never reached `addMedevacMenuItem` —
+  read `dcs.log` for `CSAR` and its `Initializing version` line.
 
 ---
 
@@ -579,7 +604,7 @@ from the config key — compare `veafSpawn.Id` with the `veaf.setConfig` line in
 
 ### ✅ R8. Does a teleported escort hold formation — and does it engage? — **both yes, 2026-09-01**
 
-Gates [`FIX-TELEPORT-ESCORT-WAYPOINT`](.backlog/FIX-TELEPORT-ESCORT-WAYPOINT/PRD.md), which cannot be
+Gates [`FIX-TELEPORT-ESCORT-WAYPOINT`](.backlog/archive/FIX-TELEPORT-ESCORT-WAYPOINT.md), which cannot be
 started without this. Nothing shipped depends on it: this morning's escort fix
 (`FIX-ESCORT-RESPAWN-DISTANCE`, #882) respawns the escort and repairs the task, and never touches the
 teleport path's waypoint arithmetic.

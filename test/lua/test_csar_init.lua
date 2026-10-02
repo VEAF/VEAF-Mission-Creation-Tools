@@ -139,6 +139,54 @@ function TestCsarInitialisation:test_forcing_reinitialisation_does_not_stack_han
   luaunit.assertEquals(#dcs_mocks.eventHandlers, 1, "forcing replaces the handler, it does not add one")
 end
 
+--- A helicopter DCS created outside the Mission Editor — a dynamic slot — gets its CSAR menu (#989).
+---
+--- `csar.getGroupId` used to read the editor snapshot (`veaf.getUnitRecordById`) since CSAR left MiST,
+--- whose database grew with every birth; the snapshot never does, so a dynamic-slot UH-1 got no menu
+--- and none of the messages CSAR sends to its group, while CSAR itself ran fine.
+function TestCsarInitialisation:test_a_dynamic_slot_helicopter_gets_its_csar_menu()
+  local heli
+  dcs_mocks.addGroup("Dynamic UH-1", {
+    _id = 4242,
+    getUnit = function()
+      return heli
+    end,
+  })
+  local group = Group.getByName("Dynamic UH-1")
+  dcs_mocks.addUnit("Dynamic UH-1 #01", {
+    _id = 999001,
+    getTypeName = function()
+      return "UH-1H"
+    end,
+    getLife = function()
+      return 1
+    end,
+    getGroup = function()
+      return group
+    end,
+  })
+  heli = Unit.getByName("Dynamic UH-1 #01")
+  luaunit.assertNil(veaf.getUnitRecordById(999001), "the premise: the editor never placed this unit")
+
+  local menus = {}
+  local original = missionCommands.addSubMenuForGroup
+  missionCommands.addSubMenuForGroup = function(groupId, name)
+    table.insert(menus, { groupId = groupId, name = name })
+    return {}
+  end
+  local ok, err = pcall(function()
+    csar.initialize()
+    csar.addedTo = {}
+    csar.addMedevacMenuItem()
+  end)
+  missionCommands.addSubMenuForGroup = original
+  -- The registries outlive dcs_mocks.reset(): left there, this helicopter would be in every later test.
+  dcs_mocks.clearUnitsAndGroups()
+
+  luaunit.assertTrue(ok, tostring(err))
+  luaunit.assertEquals(menus, { { groupId = 4242, name = "CSAR" } })
+end
+
 -- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------

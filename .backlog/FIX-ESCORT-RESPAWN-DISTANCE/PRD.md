@@ -188,5 +188,5 @@ reasons are specific, not "it is a different function":
    verified from a workstation either way. Doing it here would also break RULE N°1: it is not
    adjacent to this change, it is a different change in the same file.
 
-Filed as [`FIX-TELEPORT-ESCORT-WAYPOINT`](../FIX-TELEPORT-ESCORT-WAYPOINT/PRD.md), which carries both
+Filed as [`FIX-TELEPORT-ESCORT-WAYPOINT`](../archive/FIX-TELEPORT-ESCORT-WAYPOINT.md), which carries both
 in the order they have to be taken: measure first, then fix the arithmetic.

@@ -84,7 +84,7 @@ also reads `y`, through `veaf.makeVec3`. Nothing else on the path compares a hei
 sites *assign* one, always into `y`.
 
 **2. A fourth site exists, off the spawn path, and has its own lot.**
-[`FIX-MG-ENERGY-READS-EASTING`](../FIX-MG-ENERGY-READS-EASTING/PRD.md) —
+[`FIX-MG-ENERGY-READS-EASTING`](../archive/FIX-MG-ENERGY-READS-EASTING.md) —
 `VeafMG_Weapon:getCurrentEnergy` computes a missile's potential energy as `mass × 9.81 ×
 getPoint().z`, the easting. Not widened into this lot, per the instruction to open one instead.
 

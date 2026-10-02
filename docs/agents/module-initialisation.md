@@ -42,6 +42,7 @@ a VEAF module — the generator starts it from its own block, before the module 
 | Module ID | Lua table | Registry order | Generator position | Self-init | `initialize()` |
 | --- | --- | --- | --- | --- | --- |
 | `AIRBASES` | `veafAirbases` | 200 | 18 | -- | `initialize(bReset)` |
+| `AIRSPAWN` | `veafAircraftSpawn` | -- | -- | -- | -- |
 | `AIRWAVES` | `veafAirWaves` | -- | 13 (data only) | -- | -- |
 | `ASSETS` | `veafAssets` | 160 | 12 | -- | `initialize()` |
 | `ASSIST` | `veafAssist` | 145 | 21 | -- | `initialize()` |
@@ -93,9 +94,10 @@ the same values positionally, from `_MODULE_INIT_PARAMS` and its per-module bran
   a mission declares `VeafAirWaveZone:new()…:start()` chains and there is nothing global to start.
   Its slot in `_MODULE_INIT_ORDER` places the emitted *data*; `_NO_INIT_MODULES` suppresses the
   init call.
-- **`GEO`, `I18N`, `MATH`, `SCHEDULER`, `SPAWNER` are in neither list.** They are libraries: they
-  publish their functions onto `veaf.*` when their file loads. `veafI18n` has no `initialize()`;
-  the other four have one that logs a line and does nothing else.
+- **`AIRSPAWN`, `GEO`, `I18N`, `MATH`, `SCHEDULER`, `SPAWNER` are in neither list.** They are libraries: they
+  publish their functions when their file loads — onto `veaf.*`, or on their own table for
+  `veafAircraftSpawn`. `veafI18n` and `veafAircraftSpawn` have no `initialize()`; the other four have
+  one that logs a line and does nothing else.
 - **`EVENTS` and `MISSIONDB` initialise themselves at load.** Both are read from the top level of
   other modules' files, so waiting for an init pass would be too late. Both are then initialised a
   second time by the generated config, which is why `veafEventHandler` guards its DCS event-handler

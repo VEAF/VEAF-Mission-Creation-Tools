@@ -3,7 +3,7 @@
 import re
 import zipfile
 from datetime import date as dt_date
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +20,7 @@ from .utils import SolarCalculator, TimeExpressionParser
 from .utils.theatre_offsets import theatre_utc_offset
 from .weather import DCSWeatherConverter
 from .weather.dcs_weather_converter import fetch_metar_string
+from .weather.metar_composer import compose_metar
 
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 
@@ -220,10 +221,11 @@ class WeatherInjectorWorker(BaseWorker):
         Args:
             version: The variant being built, which decides what ``${METAR}`` resolves to.
 
-        ``METAR`` is offered only when a METAR string genuinely exists for this variant: written in the
-        configuration, or fetched for an ICAO. A variant built from individual weather parameters has no
-        METAR to show, so the token is **not** supplied and survives as written — with a warning saying
-        why, rather than a blank a mission maker would read as the build eating his prose.
+        ``METAR`` is the one written in the configuration, else the one fetched for an ICAO, else one
+        composed from the variant's ``weather:`` (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 10: it was left
+        printed raw in six of the fifteen Syria briefings). A variant with none of the three — or a fetch
+        that failed — leaves the token as written, with a warning saying why, rather than a blank a
+        mission maker would read as the build eating his prose.
 
         The ICAO fetch happens only if the briefing asks. A build that never writes ``${METAR}`` makes no
         network call at all.
@@ -237,10 +239,37 @@ class WeatherInjectorWorker(BaseWorker):
             metar_text = version.metar or ""
             if not metar_text and version.airport_icao:
                 metar_text = fetch_metar_string(version.airport_icao)
+            elif not metar_text and version.weather:
+                metar_text = self._composed_metar(version.weather)
             if metar_text:
                 variables["METAR"] = metar_text
 
         briefing_variables.apply_and_report(self.mission_data, variables, context=version.name)
+
+    def _composed_metar(self, manual: dict[str, Any]) -> str:
+        """Compose this variant's METAR from its manual weather, at its start time in UTC.
+
+        Args:
+            manual: The variant's ``weather:`` mapping.
+
+        Returns:
+            The METAR, stamped with the mission's date and start time (already set for the variant),
+            moved from the theatre's clock to UTC, with the QNH the mission's weather table carries.
+        """
+        content = (self.mission_data.mission_content if self.mission_data else None) or {}
+        date_table = content.get("date") or {}
+        try:
+            day = dt_date(int(date_table["Year"]), int(date_table["Month"]), int(date_table["Day"]))
+        except (KeyError, TypeError, ValueError):
+            day = dt_date.today()
+        theatre = (self.mission_data.theatre_content if self.mission_data else None) or self._read_theatre()
+        timezone = self.config.position.timezone if self.config and self.config.position else "UTC"
+        offset = theatre_utc_offset(theatre, timezone, day)
+        local = datetime(day.year, day.month, day.day) + timedelta(seconds=int(content.get("start_time") or 0))
+        weather = (self.mission_data.get_weather() if self.mission_data else None) or {}
+        qnh_mmhg = weather.get("qnh")
+        qnh_hpa = float(qnh_mmhg) / 0.750062 if qnh_mmhg else None  # DCS stores mmHg
+        return compose_metar(manual, local - timedelta(hours=offset), qnh_hpa)
 
     def _update_mission_time_and_date(self, version: VersionConfig) -> None:
         """Update mission start time and date."""

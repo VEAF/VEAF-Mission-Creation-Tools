@@ -824,14 +824,36 @@ class TestBriefingMetarPerVariant(unittest.TestCase):
                 results.append(worker.mission_data.mission_content["descriptionText"])
             self.assertEqual(results, ["METAR: LFRS 121030Z 22015KT", "METAR: LFRS 122130Z 00000KT"])
 
-    def test_a_variant_without_a_metar_leaves_the_token_written(self) -> None:
-        # A variant built from individual weather parameters has no METAR string to show. Leaving the
-        # token beats blanking it: the briefing is player-facing text, and a hole reads as the build
-        # having eaten the prose.
+    def test_a_manual_weather_variant_gets_a_composed_metar(self) -> None:
+        # FIX-OPEN-TRAINING-SYRIA-FINDINGS 10: ${METAR} stayed printed raw in six of the fifteen Syria
+        # briefings. Syria's clock is UTC+3, so 12:00 on the theatre is 09:00Z.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = DcsMission(
+                file_path=Path("unused.miz"),
+                mission_content={
+                    "descriptionText": "Weather: ${METAR}",
+                    "date": {"Year": 2024, "Month": 3, "Day": 15},
+                    "start_time": 12 * 3600,
+                    "weather": {"qnh": 760},
+                },
+                theatre_content="Syria",
+            )
+            weather = {"wind_speed": 5.0, "wind_direction": 270, "visibility": 9999, "cloud_type": "clear"}
+            worker._substitute_briefing_variables(VersionConfig(name="clear", weather=weather))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(
+                worker.mission_data.mission_content["descriptionText"],
+                "Weather: METAR 150900Z 27010KT 9999 SKC Q1013",
+            )
+
+    def test_a_variant_with_no_weather_at_all_leaves_the_token_written(self) -> None:
+        # Nothing to show: leaving the token beats blanking it, a hole reads as the build having eaten
+        # the prose.
         with tempfile.TemporaryDirectory() as tmp:
             worker = _make_worker(Path(tmp))
             worker.mission_data = _mission_with_briefing("Weather: ${METAR}")
-            worker._substitute_briefing_variables(VersionConfig(name="params", weather={"temperature": 20}))
+            worker._substitute_briefing_variables(VersionConfig(name="time-only", time="12:00"))
             assert worker.mission_data.mission_content is not None
             self.assertEqual(worker.mission_data.mission_content["descriptionText"], "Weather: ${METAR}")
 

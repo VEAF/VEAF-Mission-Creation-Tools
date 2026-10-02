@@ -643,7 +643,8 @@ What `${METAR}` resolves to, per variant:
 |---|---|
 | `metar: "..."` | the string exactly as you wrote it |
 | `airport_icao: LFRS` | the live METAR fetched for that station |
-| only `weather:` | **nothing** — there is no METAR to show, so the text `${METAR}` stays as written and a warning says so in the log |
+| only `weather:` | a METAR **composed from it**: wind, visibility, rain and fog, cover and base, temperature (no dew point: written `///`), the mission's QNH, stamped with the variant's date and time in UTC and no station — `METAR 150900Z 27010KT 9999 SKC Q1013` |
+| no weather at all | **nothing** — there is no METAR to show, so the text `${METAR}` stays as written and a warning says so in the log |
 
 !!! note "An unknown `${...}` is never blanked"
     `${METRA}` stays written as `${METRA}` in the briefing. Deliberately: a briefing is read by players,

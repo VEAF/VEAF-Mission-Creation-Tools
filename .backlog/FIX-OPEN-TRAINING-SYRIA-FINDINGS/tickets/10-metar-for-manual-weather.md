@@ -1,6 +1,6 @@
 # 10 — ${METAR} for a manual-weather variant
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: the weather injector, `doc/PIPELINE_REFERENCE.md`, tests.
 

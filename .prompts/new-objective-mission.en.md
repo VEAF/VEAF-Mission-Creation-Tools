@@ -380,7 +380,9 @@ approximation of it.
   DCS radio callsign: `add_air_group` takes it from the name for a tanker, but gave "Overlord" to an
   AWACS named Magic (`set_unit_properties`, family 2 = Magic).
 - **Carrier** if the departure is at sea: `add_carrier_group` (TACAN, ICLS, Link 4, recovery tanker,
-  rescue helicopter, warehouse), `CARRIER` module.
+  rescue helicopter, warehouse), `CARRIER` module. **Always two carriers, the Stennis and the
+  Roosevelt** (one `add_carrier_group` each, with distinct TACAN, ICLS, Link 4 and frequencies):
+  David's decision of 2026-10-02, for every generated mission that has a carrier group.
 - **`src/presets.yaml` = the briefing's frequency plan**, channel by channel: Guard, bases, carrier,
   AWACS, tankers, package frequency. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.

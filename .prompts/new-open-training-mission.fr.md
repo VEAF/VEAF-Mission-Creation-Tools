@@ -172,6 +172,9 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   du navire ; les slots sur le pont sont des `add_air_group` en `start: deck-cold` ou `deck-hot`, avec
   `carrier` = l'unité porte-avions qu'il a rendue. TACAN, ICLS et Link 4 dans le texte `ASSETS`,
   module `CARRIER` activé.
+  **Toujours deux porte-avions, le Stennis et le Roosevelt** (un `add_carrier_group` chacun, TACAN,
+  ICLS, Link 4 et fréquences distincts) : décision de David du 02/10/2026, valable pour toute mission
+  générée qui a un groupe aéronaval.
 
 ### 4.4 Escortes
 

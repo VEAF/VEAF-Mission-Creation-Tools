@@ -170,6 +170,9 @@ why.
   rescue helicopter the `CARRIER` module looks for, and the ship's warehouse; deck slots are
   `add_air_group` with `start: deck-cold` or `deck-hot` and `carrier` = the carrier unit it returned.
   Put TACAN, ICLS and Link 4 in the `ASSETS` text and switch the `CARRIER` module on.
+  **Always two carriers, the Stennis and the Roosevelt** (one `add_carrier_group` each, with distinct
+  TACAN, ICLS, Link 4 and frequencies): David's decision of 2026-10-02, for every generated mission
+  that has a carrier group.
 
 ### 4.4 Escorts
 

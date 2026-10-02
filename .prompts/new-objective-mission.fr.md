@@ -383,7 +383,10 @@ validé un scénario, pas un à-peu-près.
   ravitailleur, mais a donné « Overlord » à un AWACS nommé Magic (`set_unit_properties`, famille 2 =
   Magic).
 - **Porte-avions** si le départ est en mer : `add_carrier_group` (TACAN, ICLS, Link 4, ravitailleur
-  embarqué, hélicoptère de sauvetage, entrepôt), module `CARRIER`.
+  embarqué, hélicoptère de sauvetage, entrepôt), module `CARRIER`. **Toujours deux porte-avions, le
+  Stennis et le Roosevelt** (un `add_carrier_group` chacun, TACAN, ICLS, Link 4 et fréquences
+  distincts) : décision de David du 02/10/2026, valable pour toute mission générée qui a un groupe
+  aéronaval.
 - **`src/presets.yaml` = le plan de fréquences du briefing**, canal pour canal : Garde, bases, porte-
   avions, AWACS, ravitailleurs, fréquence de package. Les **canaux de base portent les fréquences que
   DCS donne à l'aérodrome** : `describe_airfield_channels` puis `set_airfield_channels`, jamais une

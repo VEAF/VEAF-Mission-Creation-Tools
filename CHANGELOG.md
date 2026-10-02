@@ -147,6 +147,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with France on both. They now sit under `CJTF Blue` / `CJTF Red` like the others, the six USSR MiG
   templates with a western-shaped callsign, and a test pins it as it already did for the dynamic-slot
   catalogue.
+- **The mission prompts ask for two carriers** (DOC-PROMPTS-TWO-CARRIERS): the Open Training and
+  objective-mission prompts, in French and English, now say that a generated mission with a carrier group
+  always gets the Stennis and the Roosevelt, each with its own TACAN, ICLS, Link 4 and frequencies.
 
 ## [6.26.0] — 2026-09-30
 

@@ -278,7 +278,8 @@ class WeatherInjectorWorker(BaseWorker):
 
         ``METAR`` is the one written in the configuration, else the one fetched for an ICAO, else one
         composed from the variant's ``weather:`` (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 10: it was left
-        printed raw in six of the fifteen Syria briefings). A variant with none of the three — or a fetch
+        printed raw in six of the fifteen Syria briefings); under ``clearsky``, recomposed from the capped
+        values (see :meth:`_briefing_metar`). A variant with none of the three — or a fetch
         that failed — leaves the token as written, with a warning saying why, rather than a blank a
         mission maker would read as the build eating his prose.
 

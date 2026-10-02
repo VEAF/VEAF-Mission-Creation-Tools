@@ -194,8 +194,9 @@ def find_missing_trigger_zone_refs(
     """Return ``(section, zone_name, level)`` for trigger-zone refs absent from the mission.
 
     AIRWAVES ``trigger_zone_name`` is optional when the zone also carries an explicit
-    ``zone_center_coordinates`` + ``zone_radius`` (level "warning"); QRA ``trigger_zone``
-    and a COMBATZONE *zone*'s ``zone_name`` are mandatory (level "error"). A COMBATZONE
+    ``zone_center_coordinates`` + ``zone_radius`` (level "warning"); QRA ``trigger_zone``, a
+    SANCTUARY zone's ``trigger_zone`` and a COMBATZONE *zone*'s ``zone_name`` are mandatory (level
+    "error"). A COMBATZONE
     *operation*'s ``zone_name`` is **not** checked: at runtime ``VeafCombatOperation:initialize()``
     never resolves it as a trigger zone (it is only a label/radio-menu name), unlike a plain
     ``VeafCombatZone`` whose ``initialize()`` errors without its trigger zone.

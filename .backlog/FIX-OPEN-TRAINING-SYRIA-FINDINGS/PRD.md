@@ -53,6 +53,7 @@ corrected ticket 06: a laser drone is built with the `AFAC` group task, checked 
 | 15 | [A file under l10n/DEFAULT is backed up into .veaf-backups, not beside itself](tickets/15-l10n-backups-in-veaf-backups.md) | ✅ |
 | 16 | [save_folder_mission writes mapResource](tickets/16-save-folder-writes-map-resource.md) | ✅ |
 | 17 | [An action fills the shape_name of statics placed before #1023](tickets/17-repair-static-shapes.md) | ✅ |
+| 18 | [CTLD JTAC: an imposed laser code taken twice, the ASSETS frequency ignored](tickets/18-ctld-jtac-code-and-radio.md) | 🧑 |
 
 Riskier than the rest, said in advance: 09 (a
 new data set from the datamine) and 13 (Lua, radio menus per coalition).

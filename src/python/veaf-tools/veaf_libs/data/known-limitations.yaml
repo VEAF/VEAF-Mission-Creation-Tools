@@ -320,6 +320,25 @@ limitations:
     Use an air start there, or place the flight in the DCS Mission Editor. The capture itself is a
     session in DCS: `veaf-tools dcs capture-map --parking`.
 
+- id: ctld-jtac-imposed-code-and-radio
+  kind: tool
+  area: runtime
+  title: "A JTAC's imposed laser code can be handed to another JTAC, and its ASSETS frequency is not the one CTLD announces"
+  symptom: |
+    Measured on the Syria Open Training v6, 2026-10-02: `modules.ASSETS` declares Reaper 1 with
+    `jtac: 1688`, `freq: 36.0`, `mod: FM`; CTLD registered **two** JTACs on 1688 — the Reaper and the
+    shipped catalogue's `veafSpawn-MQ9 - AFAC - JTAC - DRONE`, which CTLD picks up at its start by its
+    name, before `veafAssets` sets its codes. CTLD (2.0.0-rc11, still so on `VEAF/CTLD` develop) never
+    removes an imposed code from the pool its automatic codes come from, and hands out the highest
+    first. Its JTAC also always derives its radio from the laser code (Reaper 1 announced on about
+    40.4 FM, not 36.0), and none at all for a code above `jtacLaserCodeMax`.
+  workaround: |
+    Keep the ASSETS codes below `jtacLaserCodeMax` and lower that maximum so the automatic codes stay
+    under it (the Syria mission: `jtacLaserCodeMax` 1686, Reapers on 1511 / 1512); announce the
+    frequency CTLD computes for the code (35.55 / 35.6 FM there), not another.
+  cost: |
+    Two JTACs lasing on one code, and a briefing announcing a frequency on which no JTAC answers.
+
 - id: airfield-logistics-is-one-250m-zone
   kind: tool
   area: runtime

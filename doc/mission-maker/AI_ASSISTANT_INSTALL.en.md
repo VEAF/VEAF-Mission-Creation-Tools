@@ -96,10 +96,10 @@ For a mission a group flies once — a package, one or more objectives, a threat
 the prompt [`.prompts/new-objective-mission.en.md`](../../.prompts/new-objective-mission.en.md) in an
 empty folder (French version:
 [`new-objective-mission.fr.md`](../../.prompts/new-objective-mission.fr.md)). It asks for the map,
-the aircraft and number of pilots, the session length and the kind of mission, then **proposes a
+the aircraft and number of pilots (named or dynamic slots), the session length and the kind of mission, then **proposes a
 scenario**: ask for as many others as you want, ask your questions, have the briefing shown in the
 conversation. Nothing is written until you approve a scenario; the assistant then builds the mission
-and its briefing as PPTX and/or PDF, in the VEAF briefing format.
+and its briefing as PPTX (to import as Google Slides) and/or PDF, in the VEAF briefing format.
 
 ## Update the plugin
 

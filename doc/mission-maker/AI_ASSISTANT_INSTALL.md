@@ -98,10 +98,10 @@ retour —, collez le prompt
 [`.prompts/new-objective-mission.fr.md`](../../.prompts/new-objective-mission.fr.md) dans un dossier
 vide (version anglaise :
 [`new-objective-mission.en.md`](../../.prompts/new-objective-mission.en.md)). Il demande la carte,
-les appareils et le nombre de pilotes, la durée de la séance et le genre de mission, puis **propose
+les appareils et le nombre de pilotes (slots nommés ou dynamiques), la durée de la séance et le genre de mission, puis **propose
 un scénario** : vous en demandez d'autres autant que vous voulez, vous posez vos questions, vous
 pouvez faire afficher le briefing dans la conversation. Rien n'est écrit tant que vous n'avez pas
-validé un scénario ; ensuite, l'assistant construit la mission et son briefing en PPTX et/ou PDF,
+validé un scénario ; ensuite, l'assistant construit la mission et son briefing en PPTX (à importer en Google Slides) et/ou PDF,
 au format des briefings VEAF.
 
 ## Mettre à jour le plugin

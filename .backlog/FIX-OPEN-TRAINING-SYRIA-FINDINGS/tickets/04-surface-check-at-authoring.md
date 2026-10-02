@@ -1,6 +1,6 @@
 # 04 — Placement checks the surface where the elevation grid exists
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/add_group.py`, `veaf_mission_mcp/set_group_properties.py`, `veaf_mission_mcp/add_farp.py`,
 `veaf_mission_mcp/composites.py` (`create_combat_zone`), `veaf_libs/terrain_elevation.py` (read side), tests.

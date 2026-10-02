@@ -255,7 +255,7 @@ class TestMoveUsesTheGeodesicOffset:
             )
 
     def test_the_move_warns_it_could_not_check_the_surface(self, miz: Path) -> None:
-        """No terrain data exists design-time, so the limit is said rather than implied."""
+        """With no elevation grid for the theatre, the limit is said rather than implied."""
         result = set_group_properties(miz, group_name="Ground Convoy", move_bearing=90, move_distance_m=40000)
         assert any("surface" in warning for warning in result["warnings"])
 

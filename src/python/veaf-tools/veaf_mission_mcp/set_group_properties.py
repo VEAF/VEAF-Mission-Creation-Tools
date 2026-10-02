@@ -35,7 +35,8 @@ from veaf_libs import coordinates
 
 from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
-from veaf_mission_mcp.mission_table import find_group, group_names, indexed
+from veaf_mission_mcp.mission_table import find_group, group_category, group_names, indexed
+from veaf_mission_mcp.surface import surface_warnings
 
 #: DCS stores a group's modulation as an integer; a mission maker says AM or FM.
 _MODULATIONS: dict[str, int] = {"AM": 0, "FM": 1}
@@ -120,6 +121,7 @@ def set_group_properties(
         _apply_move(
             group,
             mission.theatre_content,
+            category=group_category(content, group_name),
             move_to=move_to,
             bearing=move_bearing,
             distance_m=move_distance_m,
@@ -191,6 +193,7 @@ def _apply_move(
     group: dict[str, Any],
     theatre: str | None,
     *,
+    category: str | None,
     move_to: dict[str, float] | None,
     bearing: float | None,
     distance_m: float | None,
@@ -201,12 +204,15 @@ def _apply_move(
 
     Args:
         group: The group table to mutate.
-        theatre: The mission's theatre, needed for the geodesic offset.
+        theatre: The mission's theatre, needed for the geodesic offset and the surface check.
+        category: The group's category: a ship is checked for land, a ground group or a static for
+            sea, an aircraft not at all.
         move_to: Absolute destination for the anchor.
         bearing: Bearing in degrees, with `distance_m`.
         distance_m: Distance in metres along `bearing`.
         changed: The report to record the move in.
-        warnings: The warning list, told that the surface could not be checked.
+        warnings: The warning list, told when the destination is the wrong surface or could not
+            be checked.
 
     Raises:
         ValueError: If the group has no position, or the theatre has no projection for a
@@ -238,11 +244,10 @@ def _apply_move(
         "to": {"x": target_x, "y": target_y},
         "delta": {"x": delta_x, "y": delta_y},
     }
-    warnings.append(
-        "the destination's surface was not checked: DCS terrain is not available design-time "
-        "(land.getSurfaceType is a runtime API), so a ground group can land in water or on a slope "
-        "without this action noticing — verify it in the editor"
-    )
+    if category in ("vehicle", "static", "ship"):
+        warnings.extend(
+            surface_warnings(theatre, group.get("units"), afloat=category == "ship", label=f"group {group.get('name')!r}")
+        )
 
 
 def _anchor(group: dict[str, Any]) -> tuple[float, float] | None:

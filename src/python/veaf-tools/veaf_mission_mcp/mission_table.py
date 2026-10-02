@@ -19,7 +19,7 @@ from typing import Any
 # Re-exported here so every existing import keeps working.
 from veaf_libs.mission_table import CATEGORIES, indexed, numeric_first  # noqa: E402
 
-__all__ = ["CATEGORIES", "find_group", "group_names", "indexed", "listed", "numeric_first", "unit_names"]
+__all__ = ["CATEGORIES", "find_group", "group_category", "group_names", "indexed", "listed", "numeric_first", "unit_names"]
 
 
 def listed(names: list[str], limit: int = 20) -> str:
@@ -114,3 +114,18 @@ def find_group(mission_content: dict[str, Any], group_name: str) -> dict[str, An
     raise ValueError(
         f"No group named {group_name!r} in this mission. Groups present: {listed(group_names(mission_content))}"
     )
+
+
+def group_category(mission_content: dict[str, Any], group_name: str) -> str | None:
+    """Return the category (`plane`, `vehicle`, ...) the group sits under, or None if not found."""
+    for coalition in (mission_content.get("coalition") or {}).values():
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            if not isinstance(country, dict):
+                continue
+            for category in CATEGORIES:
+                for group in indexed((country.get(category) or {}).get("group")):
+                    if isinstance(group, dict) and str(group.get("name", "")) == group_name:
+                        return category
+    return None

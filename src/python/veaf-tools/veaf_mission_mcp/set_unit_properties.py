@@ -32,7 +32,7 @@ from typing import Any
 from veaf_libs.mission_table import CATEGORIES
 
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
-from veaf_mission_mcp.mission_table import find_group, indexed, listed, unit_names
+from veaf_mission_mcp.mission_table import find_group, group_category, indexed, listed, unit_names
 
 #: The AI competence levels. `Random` is one of them: DCS picks a level at mission start.
 _AI_SKILLS: tuple[str, ...] = ("Average", "Good", "High", "Excellent", "Random")
@@ -132,7 +132,7 @@ def set_unit_properties(
     mission, content = open_mission(miz_path)
 
     group = find_group(content, group_name)
-    if (chaff is not None or flare is not None) and _group_category(content, group_name) not in _AIRCRAFT_CATEGORIES:
+    if (chaff is not None or flare is not None) and group_category(content, group_name) not in _AIRCRAFT_CATEGORIES:
         raise ValueError("chaff and flare are an aircraft's; this group is not a plane or helicopter group")
     unit = _find_unit(group, group_name, unit_name)
 
@@ -187,7 +187,7 @@ def set_unit_properties(
         target = {"x": float(position["x"]), "y": float(position["y"])}
         changed["position"] = {"from": {"x": unit.get("x"), "y": unit.get("y")}, "to": target}
         unit.update(target)
-        if _group_category(content, group_name) in ("plane", "helicopter"):
+        if group_category(content, group_name) in ("plane", "helicopter"):
             warnings.append(
                 "an aircraft's place is tied to its group's route — its first waypoint, and on the "
                 "ground its parking spot; this moved the unit's x/y only, and what DCS makes of that "
@@ -230,21 +230,6 @@ def _find_unit(group: dict[str, Any], group_name: str, unit_name: str) -> dict[s
     raise ValueError(f"No unit named {unit_name!r} in group {group_name!r}. Units in that group: {listed(names)}")
 
 
-def _group_category(mission_content: dict[str, Any], group_name: str) -> str | None:
-    """Return the category (`plane`, `vehicle`, ...) the group sits under, or None if not found."""
-    for coalition in (mission_content.get("coalition") or {}).values():
-        if not isinstance(coalition, dict):
-            continue
-        for country in indexed(coalition.get("country")):
-            if not isinstance(country, dict):
-                continue
-            for category in CATEGORIES:
-                for group in indexed((country.get(category) or {}).get("group")):
-                    if isinstance(group, dict) and str(group.get("name", "")) == group_name:
-                        return category
-    return None
-
-
 def _heading_will_be_recalculated(mission_content: dict[str, Any], group_name: str, group: dict[str, Any]) -> bool:
     """Whether DCS will overwrite a set heading — an airborne aircraft with a route of 2+ waypoints.
 
@@ -259,7 +244,7 @@ def _heading_will_be_recalculated(mission_content: dict[str, Any], group_name: s
     Returns:
         True when the heading would be recomputed from the route on save.
     """
-    if _group_category(mission_content, group_name) not in _AIRCRAFT_CATEGORIES:
+    if group_category(mission_content, group_name) not in _AIRCRAFT_CATEGORIES:
         return False
     points = indexed((group.get("route") or {}).get("points"))
     if len(points) < 2 or not isinstance(points[0], dict):

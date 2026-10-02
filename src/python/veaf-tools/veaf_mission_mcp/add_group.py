@@ -17,6 +17,7 @@ from mission_tools.miz_tools import read_miz, write_miz
 from veaf_libs.clear_ground_placement import occupied_by, place_on_clear_ground, translate_group
 from veaf_libs.dcs_units_data import get_unit_category, get_unit_shape_name
 
+from veaf_mission_mcp.surface import surface_warnings
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
@@ -219,6 +220,12 @@ def insert_group_into_content(
             translate_group(group, placement.dx, placement.dy)
             if placement.message and warnings is not None:
                 warnings.append(placement.message)
+    if warnings is not None and category in ("vehicle", "static", "ship"):
+        warnings.extend(
+            surface_warnings(
+                mission_content.get("theatre"), group["units"], afloat=category == "ship", label=f"group {name!r}"
+            )
+        )
     return insert_group(
         mission_content,
         coalition=coalition,

@@ -1,6 +1,6 @@
 # 01 — add_air_group: callsign from the group name, no armed task without a loadout
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/aircraft_identity.py`, `veaf_mission_mcp/add_air_group.py`, `veaf_mission_mcp/actions.py`
 (description), tests.

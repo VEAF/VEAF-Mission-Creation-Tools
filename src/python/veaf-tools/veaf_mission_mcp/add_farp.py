@@ -15,6 +15,7 @@ from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.group_insertion import max_ids
 
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
+from veaf_mission_mcp.surface import surface_warnings
 
 #: Heliport type -> the `shape_name` the editor writes with it (135, 128, 52, 8 and 2 occurrences).
 _SHAPES: dict[str, str] = {
@@ -61,7 +62,8 @@ def add_farp(
         callsign_id: The heliport's callsign index, 1-based as the editor lists them.
 
     Returns:
-        ``{farp, group_id, unit_id, durable}``.
+        ``{farp, group_id, unit_id, durable, warnings?}`` — ``warnings`` when the pad is in the sea
+        or the theatre has no elevation grid to tell.
 
     Raises:
         ValueError: On an unknown type or modulation, an incomplete position, or a mission with no
@@ -124,8 +126,12 @@ def add_farp(
         warehouses["warehouses"] = table
     table[unit_id] = _default_warehouse(coalition.lower())
 
+    warnings = surface_warnings(content.get("theatre") or mission.theatre_content, [unit], afloat=False, label=f"FARP {name!r}")
     durable = commit_mission(mission, target)["durable"]
-    return {"farp": name, "group_id": group_id, "unit_id": unit_id, "durable": durable}
+    result: dict[str, Any] = {"farp": name, "group_id": group_id, "unit_id": unit_id, "durable": durable}
+    if warnings:
+        result["warnings"] = warnings
+    return result
 
 
 def _default_warehouse(coalition: str) -> dict[str, Any]:

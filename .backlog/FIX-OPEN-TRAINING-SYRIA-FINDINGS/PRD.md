@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-SYRIA-FINDINGS — what building the Syria Open Training v6 through the MCP found
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Asked by David on 2026-10-02. The Syria Open Training v6 was built from scratch with the Open Training
 prompt (`.prompts/new-open-training-mission.fr.md`), the `veaf-mission-mcp` actions and the tools of
@@ -32,10 +32,10 @@ Sources: the session that built the mission, its build logs, `tools/verify.py` o
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [add_air_group: callsign from the group name, no armed task without a loadout](tickets/01-air-group-callsign-and-loadout.md) | ⬜ |
-| 02 | [set_unit_properties: callsign word plus digits, one pylon shape, a non-string CLSID refused](tickets/02-unit-properties-callsign-and-pylons.md) | ⬜ |
-| 03 | [create_qra: no simple_groups next to the scramble levels](tickets/03-qra-no-simple-groups.md) | ⬜ |
-| 04 | [Placement checks the surface where the elevation grid exists](tickets/04-surface-check-at-authoring.md) | ⬜ |
+| 01 | [add_air_group: callsign from the group name, no armed task without a loadout](tickets/01-air-group-callsign-and-loadout.md) | ✅ |
+| 02 | [set_unit_properties: callsign word plus digits, one pylon shape, a non-string CLSID refused](tickets/02-unit-properties-callsign-and-pylons.md) | ✅ |
+| 03 | [create_qra: no simple_groups next to the scramble levels](tickets/03-qra-no-simple-groups.md) | ✅ |
+| 04 | [Placement checks the surface where the elevation grid exists](tickets/04-surface-check-at-authoring.md) | ✅ |
 | 05 | [add_farp places its ammunition dump](tickets/05-farp-ammo-dump.md) | ⬜ |
 | 06 | [edit_route: the FAC task](tickets/06-fac-task.md) | ⬜ |
 | 07 | [geocode: one request a second, and a place rather than a street](tickets/07-geocode-pace-and-place.md) | ⬜ |

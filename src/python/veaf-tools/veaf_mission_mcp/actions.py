@@ -363,8 +363,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "mission that breaks it. A rename that would trigger a reserved VEAF convention is "
                 "refused unless you acknowledge it -- naming a group after a combat zone's trigger "
                 "zone makes the runtime despawn it at start. Unit names are never renamed with the "
-                "group. WARNING: the destination's surface cannot be checked design-time, so a "
-                "ground group can end up in water. Mutates in place, backed up first."
+                "group. A moved ground group or static that lands in the sea (ground 0 m), or a ship "
+                "that lands on land, is warned about where the theatre has a swept elevation grid "
+                "(terrain_elevation); without one the warning says the surface was not checked. "
+                "Mutates in place, backed up first."
             ),
             parameters_schema={
                 "type": "object",

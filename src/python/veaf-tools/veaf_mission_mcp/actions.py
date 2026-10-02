@@ -304,7 +304,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "callsign": {
                         "description": "Aircraft: an object with any of family/flight/number/name "
                         "(1..9 each); 'family' requires 'name' since the family->word table is not "
-                        "shipped. Ground unit: the bare number.",
+                        "shipped. 'name' is the word ('Texaco', completed to Texaco21 from flight and "
+                        "number) or the full callsign ('Texaco21', kept). Ground unit: the bare number.",
                     },
                     "onboard_num": {
                         "type": "string",
@@ -320,9 +321,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "pylons": {
                         "type": "object",
-                        "description": "Loadout as {station number: weapon CLSID}. BY STATION, not by "
-                        "position: a real FA-18C carries 1, 4, 5, 6, 9. Omit to leave the loadout "
-                        "alone; pass {} with mode 'replace' for a clean airframe.",
+                        "description": "Loadout as {station number: weapon CLSID} or {station number: "
+                        "{CLSID: weapon CLSID}} (add_air_group's shape). BY STATION, not by position: a "
+                        "real FA-18C carries 1, 4, 5, 6, 9. Any other value is refused. Omit to leave the "
+                        "loadout alone; pass {} with mode 'replace' for a clean airframe.",
                     },
                     "pylons_mode": {
                         "type": "string",

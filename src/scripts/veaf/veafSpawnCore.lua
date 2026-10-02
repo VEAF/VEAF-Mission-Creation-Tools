@@ -410,8 +410,16 @@ function veafSpawn.executeCommand(
               --stuff below does not support statics
               -- make the group combat ready ! well except if the user said otherwise, tweak the AlarmState for some scenarios
               --veaf.loggers.get(veafSpawn.Id):trace("options.disperse=%s", veaf.p(options.disperse))
-              veaf.readyForCombat(groupObject, options.AlarmState, options.disperse)
-              if not route and not routeDone and options.destination then
+              -- An aircraft spawned with a role already has its route and its options, and its CAP
+              -- watchdog owns `PROHIBIT_AA`: making it weapons free or re-routing it here undid both
+              -- (FEAT-AIRCRAFT-ROLES).
+              local hasRole = veafAircraftSpawn.getRole(spawnedGroup) ~= nil
+              if not hasRole then
+                veaf.readyForCombat(groupObject, options.AlarmState, options.disperse)
+              end
+              if hasRole then
+                veaf.loggers.get(veafSpawn.Id):trace("%s flies a role, its route and options are kept", veaf.p(spawnedGroup))
+              elseif not route and not routeDone and options.destination then
                 --  make the group go to destination
                 local actualPosition = groupObject:getUnit(1):getPosition().p
                 local route = veaf.generateVehiclesRoute(

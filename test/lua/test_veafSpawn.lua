@@ -2720,6 +2720,79 @@ function TestSpawnSilenceIsNotSecurity:test_silence_is_a_boolean_even_when_not_a
   luaunit.assertEquals(self:_run(false, nil).silent, false)
 end
 
+-- ===========================================================================
+-- FEAT-AIRCRAFT-ROLES ticket 04 — the command layer leaves an aircraft with a role alone
+--
+-- `readyForCombat` sets weapons free on every group a handler returns, which undoes the `PROHIBIT_AA` a
+-- CAP's watchdog owns; and a route the caller passed was imposed even when the handler said
+-- `routeDone`, so a `-cap` in a combat zone lost its patrol.
+-- ===========================================================================
+TestSpawnCommandLeavesARoleAlone = {}
+
+function TestSpawnCommandLeavesARoleAlone:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._savedCommandHandlers = veafSpawn.commandHandlers
+  veafSpawn.commandHandlers = {}
+  self._readyForCombat = veaf.readyForCombat
+  self._goRoute = veaf.goRoute
+  self.readied, self.routed = {}, {}
+  local test = self
+  veaf.readyForCombat = function(group)
+    table.insert(test.readied, group:getName())
+  end
+  veaf.goRoute = function(group, route)
+    table.insert(test.routed, { group = group:getName(), route = route })
+    return true
+  end
+  dcs_mocks.addGroup("CAP-with-role", {})
+  dcs_mocks.addGroup("Tanks-no-role", {})
+  veafAircraftSpawn.groupRoles["CAP-with-role"] = "cap"
+end
+
+function TestSpawnCommandLeavesARoleAlone:tearDown()
+  veafSpawn.commandHandlers = self._savedCommandHandlers
+  veaf.readyForCombat = self._readyForCombat
+  veaf.goRoute = self._goRoute
+  dcs_mocks.reset()
+end
+
+function TestSpawnCommandLeavesARoleAlone:_run(groupName, routeDone)
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
+    return groupName, routeDone
+  end)
+  veafSpawn.executeCommand(
+    { x = 0, y = 0, z = 0 },
+    "_spawn unit, name f15",
+    1,
+    0,
+    true,
+    nil,
+    nil,
+    nil,
+    { { x = 1, y = 2 } },
+    nil,
+    nil,
+    true
+  )
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_an_aircraft_with_a_role_is_not_made_weapons_free()
+  self:_run("CAP-with-role", true)
+  luaunit.assertEquals(self.readied, {})
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_an_aircraft_with_a_role_keeps_its_route()
+  self:_run("CAP-with-role", true)
+  luaunit.assertEquals(self.routed, {})
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_a_group_without_a_role_is_still_made_ready_and_routed()
+  self:_run("Tanks-no-role", false)
+  luaunit.assertEquals(self.readied, { "Tanks-no-role" })
+  luaunit.assertEquals(#self.routed, 1)
+end
+
 -- A spawn can be put off or repeated, and both re-enter executeCommand through mist. The silence has to
 -- travel with them: a combat zone asking for a delayed spawn would otherwise come back chatty on the
 -- second pass, which is the same defect one indirection further out.

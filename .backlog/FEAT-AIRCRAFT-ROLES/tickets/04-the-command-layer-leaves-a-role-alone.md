@@ -1,6 +1,6 @@
 # 04 — The command layer leaves an aircraft with a role alone
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: fix
 
@@ -16,4 +16,4 @@ An aircraft known to `veafAircraftSpawn.getRole` is skipped by both.
 
 ## Definition of done
 
-- [ ] Tests on `executeCommand` and on the combat-zone hook
+- [x] Tests on `executeCommand` and on the combat-zone hook

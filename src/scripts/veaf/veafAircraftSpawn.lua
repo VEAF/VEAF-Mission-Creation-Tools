@@ -32,6 +32,15 @@ veafAircraftSpawn.DEFAULT_LEG_LENGTH = 20 * NM
 --- Mach number a `zone_defense` patrol flies at when its template says nothing. The CAP's patrol speed.
 veafAircraftSpawn.DEFAULT_PATROL_MACH = 0.63
 
+--- Altitude a `zone_defense` patrol climbs to after taking off, in metres: the CAP's default 27 000 ft.
+--- A take-off point says nothing about where the flight should patrol.
+veafAircraftSpawn.DEFAULT_PATROL_ALTITUDE = 27000 * 0.3048
+
+--- Editor group tasks a QRA or an air wave may give the `zone_defense` role to. Anything else — a
+--- bomber wave, an assault helicopter, an escort — flies the route its mission maker wrote, even one
+--- that engages no aircraft (David, 2026-10-02).
+veafAircraftSpawn.ZONE_DEFENSE_TASKS = { CAP = true, Intercept = true }
+
 --- Target types that make an engagement task an **air** engagement.
 ---
 --- The DCS attribute names an `EngageTargets` or `EngageTargetsInZone` task can carry in
@@ -143,6 +152,21 @@ function veafAircraftSpawn.firstWaypointOptions(points)
   return nil
 end
 
+--- The take-off point a route starts from, when it starts on the ground.
+---
+--- A first waypoint whose type is one of the `TakeOff…` ones — parking, cold or hot, runway, ground
+--- — is where DCS puts the flight; a role keeps it as it is and builds its patrol after it.
+---
+--- @param points table|nil route points
+--- @return table|nil a copy of the first waypoint, or nil for an airborne start
+function veafAircraftSpawn.takeoffPoint(points)
+  local first = type(points) == "table" and points[1]
+  if type(first) == "table" and type(first.type) == "string" and veaf.startsWith(first.type, "TakeOff") then
+    return veaf.deepCopy(first)
+  end
+  return nil
+end
+
 --- Is this editor group an aircraft group?
 --- @param groupName string
 --- @return boolean
@@ -153,13 +177,20 @@ end
 
 --- Should a QRA or an air wave give this group the `zone_defense` role when it clones it?
 ---
---- Yes for an aircraft group whose route engages no aircraft: the mission maker left its job to the
---- framework. No for one whose route does — he chose his own setup — and no for anything else.
+--- Yes for an aircraft group tasked `CAP` or `Intercept` in the editor whose route engages no
+--- aircraft: the mission maker left its job to the framework. No for one whose route does — he
+--- chose his own setup — and no for any other task, whose route is the mission.
 ---
 --- @param groupName string
 --- @return boolean
 function veafAircraftSpawn.needsZoneDefense(groupName)
-  return veafAircraftSpawn.isAircraftGroup(groupName) and not veafAircraftSpawn.routeEngagesAir(veaf.getGroupRoute(groupName))
+  if not veafAircraftSpawn.isAircraftGroup(groupName) then
+    return false
+  end
+  if not veafAircraftSpawn.ZONE_DEFENSE_TASKS[veaf.getGroupRecord(groupName).task] then
+    return false
+  end
+  return not veafAircraftSpawn.routeEngagesAir(veaf.getGroupRoute(groupName))
 end
 
 --- The zone a QRA or an air wave defends, in the shape the roles take: `{ x, y, radius }`, with the
@@ -359,12 +390,17 @@ veafAircraftSpawn.roles.cap = {
 --- diameter, whichever is shorter. Altitude is the spawn point's, speed the one asked for, else the
 --- template's first waypoint's, else the CAP's patrol Mach.
 ---
+--- A template that starts on the ground keeps its take-off point as the first waypoint, untouched,
+--- and climbs to `DEFAULT_PATROL_ALTITUDE` for the leg; its take-off speed is not a patrol speed.
+---
 --- `params`: `zone` (`{ x, y, radius }`, easting in `y`, mandatory), `speed` (m/s, optional).
 veafAircraftSpawn.roles.zone_defense = {
   buildRoute = function(context)
     local zone = context.params.zone
-    local wp1 = { x = context.spot.x, y = context.spot.z }
-    local altitude = context.spot.y
+    local takeoff = context.takeoffPoint
+    local wp1 = takeoff and { x = takeoff.x, y = takeoff.y } or { x = context.spot.x, y = context.spot.z }
+    local altitude = takeoff and veafAircraftSpawn.DEFAULT_PATROL_ALTITUDE or context.spot.y
+    local templateSpeed = not takeoff and context.templateSpeed or nil
     local dx, dy = zone.x - wp1.x, zone.y - wp1.y
     local distance = math.sqrt(dx * dx + dy * dy)
     local ux, uy = 1, 0 -- a spawn on the centre itself patrols north-south
@@ -372,9 +408,7 @@ veafAircraftSpawn.roles.zone_defense = {
       ux, uy = dx / distance, dy / distance
     end
     local halfLeg = math.min(veafAircraftSpawn.DEFAULT_LEG_LENGTH, 2 * zone.radius) / 2
-    local speed = context.params.speed
-      or context.templateSpeed
-      or veaf.convertMachSpeed(veafAircraftSpawn.DEFAULT_PATROL_MACH, altitude).TAS_ms
+    local speed = context.params.speed or templateSpeed or veaf.convertMachSpeed(veafAircraftSpawn.DEFAULT_PATROL_MACH, altitude).TAS_ms
     local parameters = {
       altitude = altitude,
       speed1 = speed,
@@ -385,7 +419,11 @@ veafAircraftSpawn.roles.zone_defense = {
       wp3 = { x = zone.x + ux * halfLeg, y = zone.y + uy * halfLeg },
       wp1Options = context.firstWaypointTask,
     }
-    return raceTrackRoute(parameters), { zone = { x = zone.x, y = zone.y, radius = zone.radius } }
+    local route = raceTrackRoute(parameters)
+    if takeoff then
+      route[1] = takeoff
+    end
+    return route, { zone = { x = zone.x, y = zone.y, radius = zone.radius }, keepsTakeoff = takeoff ~= nil }
   end,
   afterSpawn = function(dcsGroup, groupName, groupCoalition, state)
     guardTheZone(dcsGroup, groupName, groupCoalition, state.zone)
@@ -518,17 +556,23 @@ function VeafAircraftSpawn:spawn()
       params = self.roleParams,
       firstWaypointTask = self.firstWaypointTask or veafAircraftSpawn.firstWaypointOptions(templateRoute),
       templateSpeed = templateSpeedOf(templateRoute),
+      takeoffPoint = veafAircraftSpawn.takeoffPoint(templateRoute),
     }
     route, state = role.buildRoute(context)
   end
+  -- a flight the role leaves on its take-off point starts where the editor put it, at ground level
+  local airborneRole = role and not (state and state.keepsTakeoff)
 
   local spawner = VeafGroupSpawn:new():forGroup(self.templateName):at(spot)
   if self.newGroupName then
     spawner:named(self.newGroupName)
   end
   if self.radius and self.radius > 0 then
-    -- the route starts where the group appears, not where it was asked to
-    spawner:withRadius(self.radius):offsettingFirstWaypoint()
+    spawner:withRadius(self.radius)
+    if airborneRole or not role then
+      -- the route starts where the group appears, not where it was asked to
+      spawner:offsettingFirstWaypoint()
+    end
   end
   spawner:withRoute(route or templateRoute)
   local newGroup = spawner:buildCloneData()
@@ -547,7 +591,7 @@ function VeafAircraftSpawn:spawn()
     if self.skill then
       unit.skill = self.skill
     end
-    if role then
+    if airborneRole then
       unit.alt = spot.y
     end
   end
@@ -573,6 +617,23 @@ function VeafAircraftSpawn:spawn()
   role.afterSpawn(dcsGroup, groupName, dcsGroup:getCoalition(), state)
   logger:debug("spawned %s as %s", veaf.p(groupName), veaf.p(self.roleName))
   return groupName
+end
+
+--- Clone an editor group for a QRA or an air wave: with the `zone_defense` role when it needs one
+--- (`needsZoneDefense`), with its editor route otherwise.
+---
+--- @param groupName string the editor group
+--- @param spot table runtime vec3 where it appears
+--- @param radius number|nil scatter, metres
+--- @param zone table|nil the zone to defend (`zoneToDefend`); without one, the editor route is kept
+--- @return string|nil the new group's name
+function veafAircraftSpawn.deployEditorGroup(groupName, spot, radius, zone)
+  if zone and veafAircraftSpawn.needsZoneDefense(groupName) then
+    veaf.loggers.get(veafAircraftSpawn.Id):debug("%s engages no aircraft by itself: it defends the zone", veaf.p(groupName))
+    return VeafAircraftSpawn:new():fromGroup(groupName):at(spot):withRadius(radius):withRole("zone_defense", { zone = zone }):spawn()
+  end
+  local newGroup = VeafGroupSpawn:new():forGroup(groupName):at(spot):withRadius(radius):withRoute(veaf.getGroupRoute(groupName)):clone()
+  return newGroup and newGroup.name or nil
 end
 
 --- Give a role to a group that is already flying: a new route from where it is, and what the role

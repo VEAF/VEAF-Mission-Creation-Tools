@@ -9,6 +9,11 @@ dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
+-- a CAP or Intercept group with no air engagement is cloned with a role (FEAT-AIRCRAFT-ROLES)
+dofile(src .. "/dcsUnits.lua")
+dofile(src .. "/veafI18n.lua")
+dofile(src .. "/veafGrass.lua")
+dofile(src .. "/veafSpawn.lua")
 dofile(src .. "/veafQraManager.lua")
 
 -- ---------------------------------------------------------------------------
@@ -879,6 +884,102 @@ function TestVeafQraOffsetAxes:test_both_axes_at_once_do_not_cross()
 
   luaunit.assertEquals(position.x - QRA_OFFSET_CENTRE.x, 4000, "the first number is the northing")
   luaunit.assertEquals(position.z - QRA_OFFSET_CENTRE.z, -7000, "the second number is the easting")
+end
+
+-- ============================================================================
+-- FEAT-AIRCRAFT-ROLES ticket 02: a scrambled interceptor with no job of its own defends the zone.
+-- The Sayqal QRA of *Ligne rouge d'At Tanf* had one waypoint and no task, and landed every time.
+-- ============================================================================
+TestVeafQraZoneDefense = {}
+
+local QRA_ZD_TEMPLATE = "QRA-Sayqal-MiG29"
+local QRA_ZD_CLONE = QRA_ZD_TEMPLATE .. " #2"
+local QRA_ZD_CENTRE = { x = 40000, y = 0, z = 30000 }
+
+local function qraEngageAir()
+  return {
+    id = "ComboTask",
+    params = { tasks = { { id = "EngageTargets", enabled = true, auto = true, params = { targetTypes = { "Air" }, priority = 0 } } } },
+  }
+end
+
+function TestVeafQraZoneDefense:setUp()
+  dcs_mocks.reset()
+  veafMissionDb.groupsByName = {}
+  self._originalSchedule = veaf.scheduleFunction
+  self.scheduled = {}
+  local scheduled = self.scheduled
+  veaf.scheduleFunction = function(fn, args, time)
+    table.insert(scheduled, { fn = fn, args = args, time = time })
+    return 1
+  end
+  dcs_mocks.addGroup(QRA_ZD_CLONE, {})
+end
+
+function TestVeafQraZoneDefense:tearDown()
+  veaf.scheduleFunction = self._originalSchedule
+  veafMissionDb.groupsByName = {}
+  dcs_mocks.reset()
+end
+
+--- The editor group, airborne at 5 262 m over the airfield, and the QRA that deploys it.
+function TestVeafQraZoneDefense:_deploy(task, firstPointTask)
+  veafMissionDb.groupsByName[QRA_ZD_TEMPLATE] = {
+    groupName = QRA_ZD_TEMPLATE,
+    category = "plane",
+    country = "Russia",
+    countryId = 0,
+    task = task,
+    units = { { name = QRA_ZD_TEMPLATE .. "-1", type = "MiG-29S", x = 0, y = 0, alt = 5262 } },
+    route = { points = { { type = "Turning Point", x = 0, y = 0, alt = 5262, speed = 200, task = firstPointTask } } },
+  }
+  dcs_mocks.addGroup(QRA_ZD_TEMPLATE, {
+    getUnit = function()
+      return {
+        getPoint = function()
+          return { x = 0, y = 5262, z = 0 }
+        end,
+      }
+    end,
+  })
+  local q = VeafQRA:new()
+  q.name = "QraZoneDefense"
+  q.silent = true
+  q:setZoneCenter(QRA_ZD_CENTRE)
+  q:setZoneRadius(40000)
+  q:setRespawnRadius(0)
+  q.chooseGroupsToDeploy = function(_, _)
+    return { QRA_ZD_TEMPLATE }
+  end
+  q:deploy(1)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "exactly one group must reach DCS")
+  luaunit.assertEquals(q.spawnedGroupsNames, { QRA_ZD_CLONE }, "the QRA must track the clone")
+  return dcs_mocks.groupsAdded[1].group.route.points
+end
+
+function TestVeafQraZoneDefense:test_an_interceptor_with_nothing_to_do_is_sent_to_patrol_the_zone()
+  local points = self:_deploy("Intercept", { id = "ComboTask", params = { tasks = {} } })
+  luaunit.assertEquals(#points, 3)
+  -- the leg is centred on the zone, between the airfield and its centre
+  luaunit.assertAlmostEquals((points[2].x + points[3].x) / 2, QRA_ZD_CENTRE.x, 0.01)
+  luaunit.assertAlmostEquals((points[2].y + points[3].y) / 2, QRA_ZD_CENTRE.z, 0.01)
+  luaunit.assertEquals(veafAircraftSpawn.getRole(QRA_ZD_CLONE), "zone_defense")
+  luaunit.assertEquals(veafSpawn.capWatchdogZones[QRA_ZD_CLONE], { x = QRA_ZD_CENTRE.x, y = QRA_ZD_CENTRE.z, radius = 40000 })
+  luaunit.assertEquals(#self.scheduled, 1, "one watchdog")
+end
+
+function TestVeafQraZoneDefense:test_an_interceptor_that_engages_air_keeps_its_editor_route()
+  local points = self:_deploy("Intercept", qraEngageAir())
+  luaunit.assertEquals(#points, 1)
+  luaunit.assertEquals(points[1].task, qraEngageAir())
+  luaunit.assertNil(veafAircraftSpawn.getRole(QRA_ZD_CLONE))
+  luaunit.assertEquals(#self.scheduled, 0, "no watchdog")
+end
+
+function TestVeafQraZoneDefense:test_a_strike_flight_keeps_its_editor_route()
+  local points = self:_deploy("Ground Attack", { id = "ComboTask", params = { tasks = {} } })
+  luaunit.assertEquals(#points, 1)
+  luaunit.assertNil(veafAircraftSpawn.getRole(QRA_ZD_CLONE))
 end
 
 os.exit(luaunit.LuaUnit.run())

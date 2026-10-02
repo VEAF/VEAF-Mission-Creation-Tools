@@ -200,8 +200,8 @@ why.
 - **No permanent defense covers an enemy base that has slots.** "Permanent" counts the
   `#veafInterpreter` batteries **and** the combat zones activated at start (`active_at_start`).
   Measure the distance from every medium- and long-range battery to every enemy base with slots, and
-  compare it with the weapon's range — sourced or measured in DCS; otherwise, give the distance as an
-  open point. A pilot taking off under an SA-10 is not training.
+  compare it with the weapon's range — `list_unit_types` gives the launcher's `threat_range_m`, DCS's
+  own (what the Mission Editor draws its circles from); otherwise, give the distance as an open point. A pilot taking off under an SA-10 is not training.
 - **Early-warning radars (EWR) behind the lines**, on both sides.
 - Placed permanently through `#veafInterpreter["-<alias>, country <country>, hdg <heading>"]`.
   **Carrier = a unit of the class spawned** (the alias's launcher), so the editor shows the range

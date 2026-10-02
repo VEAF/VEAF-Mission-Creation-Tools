@@ -151,3 +151,11 @@ def test_list_shortcuts_commands_carry_a_category() -> None:
     commands = list_shortcuts()["commands"]
     assert commands, "expected a non-empty command alias list"
     assert all("category" in c for c in commands)
+
+
+def test_list_unit_types_gives_the_ranges_where_dcs_has_one() -> None:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 08: the Syria mission read them from a DCS dump by hand."""
+    units = {u["type"]: u for u in list_unit_types(name_contains="Patriot")["units"]}
+    assert units["Patriot ln"]["threat_range_m"] == 100000
+    assert units["Patriot str"]["detection_range_m"] == 160000
+    assert "threat_range_m" not in units["Patriot str"]

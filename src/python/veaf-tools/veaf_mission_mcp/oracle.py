@@ -40,7 +40,9 @@ def list_unit_types(
         name_contains: Optional case-insensitive substring matched against type id + name.
 
     Returns:
-        `{"units": [{"type", "name", "category", "kind", "description", "attributes"}, ...]}`.
+        `{"units": [{"type", "name", "category", "kind", "description", "attributes",
+        "threat_range_m"?, "detection_range_m"?}, ...]}` — the ranges in metres where DCS gives one
+        (``ThreatRange`` / ``DetectionRange``, what the Mission Editor draws its circles from).
     """
     raw = _load_bundled_data_yaml("dcsUnits.yaml").get("units") or []
     units: list[dict[str, Any]] = []
@@ -54,6 +56,10 @@ def list_unit_types(
             "description": entry.get("description", ""),
             "attributes": list(entry.get("attributes") or []),
         }
+        # Only where DCS has one: the Mission Editor's range circles (FIX-OPEN-TRAINING-SYRIA-FINDINGS 08).
+        for key in ("threat_range_m", "detection_range_m"):
+            if entry.get(key):
+                unit[key] = entry[key]
         if category is not None and unit["category"] != category:
             continue
         if needle is not None and needle not in f"{unit['type']}{unit['name']}".lower():

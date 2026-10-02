@@ -749,6 +749,9 @@ modules) :
   (30 s au plus) une fois, puis le refus revient en `found: false` dit en clair. Cinq candidats demandés, un
   lieu nommé préféré à une route ou une région ; `osm_class` / `osm_type` dans la réponse, et un
   avertissement quand c'est une route ou une région (« Al-Kiswah » → une rue d'Amman) (ticket 07).
+- `list_unit_types` donne `threat_range_m` / `detection_range_m` (mètres, `ThreatRange` / `DetectionRange`
+  du datamine, les cercles de l'éditeur) pour chaque unité qui en a ; `dcsUnits.yaml` les porte, régénéré
+  par `veaf-build update-dcs-data --units` (ticket 08).
 
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 

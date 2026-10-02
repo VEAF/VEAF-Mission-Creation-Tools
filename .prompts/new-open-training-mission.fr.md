@@ -202,8 +202,9 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Aucune défense permanente ne couvre une base adverse qui a des slots.** « Permanente » compte
   les batteries `#veafInterpreter` **et** les zones de combat activées au démarrage
   (`active_at_start`). Mesure la distance de chaque batterie moyenne et longue portée à chaque base
-  adverse avec slots, et compare-la à la portée de l'arme — sourcée ou mesurée dans DCS ; sinon, donne
-  la distance en point ouvert. Un pilote qui décolle sous un SA-10 ne s'entraîne pas.
+  adverse avec slots, et compare-la à la portée de l'arme — `list_unit_types` donne le `threat_range_m`
+  du lanceur, celui de DCS (les cercles de l'éditeur de mission) ; sinon, donne la distance en point
+  ouvert. Un pilote qui décolle sous un SA-10 ne s'entraîne pas.
 - **Des radars d'alerte avancée (EWR) derrière les lignes**, des deux côtés.
 - Posés en permanent via `#veafInterpreter["-<alias>, country <pays>, hdg <cap>"]`.
   **Porteur = une unité de la classe générée** (le lanceur de l'alias), pour que l'éditeur montre le

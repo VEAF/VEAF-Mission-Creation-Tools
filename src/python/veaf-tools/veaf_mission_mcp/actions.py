@@ -2087,7 +2087,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "List DCS unit types from the canonical generated database (the same the build "
                 "ships). Filter by category and/or a name substring. Read-only knowledge for the "
-                "LLM to pick concrete unit types."
+                "LLM to pick concrete unit types. A unit with weapons or sensors carries "
+                "threat_range_m / detection_range_m (metres, DCS's ThreatRange / DetectionRange, the "
+                "Mission Editor's range circles): measure an air defence against the bases with those."
             ),
             parameters_schema={
                 "type": "object",

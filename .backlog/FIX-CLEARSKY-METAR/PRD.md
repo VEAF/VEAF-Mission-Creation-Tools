@@ -1,6 +1,6 @@
 # FIX-CLEARSKY-METAR — `${METAR}` describes the capped sky of a `clearsky` variant
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Found by David on 2026-10-02 on the Syria Open Training v6 (`develop` at cba707a0). The `*-real-clear`
 variants declare `airport_icao: LTAG` and `clearsky: true`. The built `dawn-real-clear.miz` flies
@@ -24,4 +24,4 @@ Decisions (David, 2026-10-02):
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Compose `${METAR}` from the capped weather of a METAR or ICAO `clearsky` variant](tickets/01-clearsky-metar.md) | 🔄 |
+| 01 | [Compose `${METAR}` from the capped weather of a METAR or ICAO `clearsky` variant](tickets/01-clearsky-metar.md) | ✅ |

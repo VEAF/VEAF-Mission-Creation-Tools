@@ -1,6 +1,6 @@
 # 01 — Compose `${METAR}` from the capped weather of a METAR or ICAO `clearsky` variant
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Files: the weather injector (`weather_injector_worker.py`, `weather/dcs_weather_converter.py`,
 `weather/metar_composer.py`), `doc/PIPELINE_REFERENCE.md` (FR + EN), `known-limitations.yaml`, tests.

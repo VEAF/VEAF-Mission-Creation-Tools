@@ -86,6 +86,8 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 41 | [Embarquer un son dans la mission](#add-sound) | Zones & déclencheurs | Recette + construite | ◽ |
 | 42 | [Donner aux bases leurs vraies fréquences radio](#airfield-channels) | 🛫 Bases & aérodromes | Recette (dossier) | ⭐ |
 | 43 | [Connaître l'altitude du sol et le masquage par le relief](#terrain-elevation) | 🗺️ Carte & coordonnées | — | ⭐ |
+| 44 | [Lister les emports par défaut d'un avion](#list-payloads) | Connaissance métier | — | ⭐ |
+| 45 | [Compléter les statiques posés sans forme](#repair-static-shapes) | 🏁 Valider & construire | Recette + construite | ◽ |
 
 ---
 
@@ -102,6 +104,17 @@ peux aussi les interroger directement.*
 générée par `update-dcs-data`.
 
 > 💬 *« Quels chasseurs russes sont dispo ? »* · *« Montre-moi les SAM DCS. »*
+
+Chaque arme et chaque radar porte sa portée telle que DCS la donne (les cercles de l'éditeur de
+mission) : de quoi vérifier qu'une batterie n'atteint pas une base adverse.
+
+### Lister les emports par défaut d'un avion {#list-payloads}
+
+*Connaissance · ⭐* — Les emports que l'éditeur de mission propose pour un avion piloté par l'IA,
+par leur nom (« R-40T*2,R-33*4 » pour un MiG-31). L'IA peut ensuite armer un vol, une QRA ou une CAP
+par ce nom, sans recopier les armes une à une.
+
+> 💬 *« Arme les MiG-31 de la QRA avec leur emport R-33. »*
 
 ### Lister les alias / raccourcis VEAF {#list-veaf-aliases}
 
@@ -220,6 +233,14 @@ sans ce relevé, l'IA te propose la commande.
 avertissements. À faire avant de construire.
 
 > 💬 *« Vérifie que ma mission est bonne avant de la construire. »*
+
+### Compléter les statiques posés sans forme {#repair-static-shapes}
+
+*Recette + construite · ◽* — Un statique posé par un outil avant la 6.26 peut manquer de la forme
+(`shape_name`) que l'éditeur écrit ; DCS refuse certains types sans elle et l'objet n'existe jamais.
+La validation les liste, cette action les complète toutes d'un coup.
+
+> 💬 *« La validation se plaint des shape_name : répare-les. »*
 
 ### Construire le .miz jouable {#build-mission}
 

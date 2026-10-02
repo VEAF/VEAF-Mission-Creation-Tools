@@ -52,6 +52,7 @@ from veaf_mission_mcp.oracle import (
 )
 from veaf_mission_mcp.player_slot import add_player_slot
 from veaf_mission_mcp.remove_group import remove_group
+from veaf_mission_mcp.repair_static_shapes import repair_static_shapes
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
 from veaf_mission_mcp.set_group_properties import set_group_properties
@@ -1626,6 +1627,27 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         handler=lambda p: add_sound(
             Path(p["mission_path"]), source_path=p["sound_path"], resource_name=p.get("resource_name")
         ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="repair_static_shapes",
+            description=(
+                "FILL the shape_name of every static placed without one (by a tool before 6.26, or a "
+                "script), from the units database -- what the Mission Editor writes. DCS refuses some "
+                "static types without it at mission load ('unknown static shape_name') and the object "
+                "never exists; validate_mission lists them. Reports what it filled and the statics whose "
+                "type has no known shape. Writes nothing when there is nothing to fill. Target a FOLDER "
+                "(durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                },
+                "required": ["target"],
+            },
+        ),
+        handler=lambda p: repair_static_shapes(Path(p["target"])),
     )
     catalog.register(
         ActionSpec(

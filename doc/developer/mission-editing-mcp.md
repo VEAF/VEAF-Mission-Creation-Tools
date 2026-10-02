@@ -756,6 +756,11 @@ modules) :
   `payload`, le nom d'un emport que l'éditeur propose (`list_payloads`), à côté de `pylons` et
   `loadout_from` — un seul des trois. Source : `MissionEditor/data/scripts/UnitPayloads` d'une
   installation (613 emports, 45 types), le datamine n'ayant pas ces fichiers (ticket 09).
+- `repair_static_shapes(target)` — complète le `shape_name` de chaque statique posé sans (avant 6.26)
+  depuis la base d'unités, dit ce qu'il a complété et les statiques dont le type n'a pas de forme connue ;
+  n'écrit rien s'il n'y a rien à compléter. Le message de `validate` le nomme (ticket 17).
+- Les sauvegardes d'un fichier de `src/mission/l10n/DEFAULT/` vont dans `.veaf-backups/` (elles restaient
+  à côté et partaient dans le `.miz`), et une sauvegarde de dossier réécrit `mapResource` (tickets 15, 16).
 
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 

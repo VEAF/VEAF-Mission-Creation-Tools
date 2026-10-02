@@ -735,6 +735,11 @@ initialise):
   `payload`, the name of a loadout the editor offers (`list_payloads`), beside `pylons` and
   `loadout_from` — one of the three. Source: an install's `MissionEditor/data/scripts/UnitPayloads`
   (613 loadouts, 45 types), the datamine not carrying those files (ticket 09).
+- `repair_static_shapes(target)` — fills the `shape_name` of every static placed without one (before
+  6.26) from the units database, says what it filled and the statics whose type has no known shape;
+  writes nothing when there is nothing to fill. `validate`'s message names it (ticket 17).
+- The backups of a file under `src/mission/l10n/DEFAULT/` go into `.veaf-backups/` (they stayed beside it
+  and went into the `.miz`), and a folder save rewrites `mapResource` (tickets 15, 16).
 
 ### Mission settings (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 

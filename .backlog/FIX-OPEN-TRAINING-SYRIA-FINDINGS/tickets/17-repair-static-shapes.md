@@ -1,6 +1,6 @@
 # 17 — An action fills the shape_name of statics placed before #1023
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: a new `veaf_mission_mcp/repair_static_shapes.py`, `veaf_mission_mcp/actions.py`, tests, the
 mission-maker action catalogue.

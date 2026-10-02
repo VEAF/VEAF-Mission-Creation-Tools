@@ -1105,7 +1105,7 @@
   "validate.no_mission_yaml": "No mission.yaml found in '{folder}'.",
   "validate.no_player_slot": "No player slot in the mission (no unit with skill Client or Player, and no base the build opens to dynamic slots): nobody can enter it. That is legitimate for a server-side scenario or a template library.",
   "validate.ctld_name_not_in_mission": "'{name}' in {setting} of {file} is not in the mission: CTLD will skip it with a « not found » warning at start. Remove it (in ctld-tools), or place it in the Mission Editor.",
-  "validate.static_without_shape": "Static '{unit}' ({type}) has no shape_name: DCS may refuse it at mission load (\"unknown static shape_name\") and the object will not exist. Write shape_name = \"{shape}\" on the unit, as the Mission Editor does.",
+  "validate.static_without_shape": "Static '{unit}' ({type}) has no shape_name: DCS may refuse it at mission load (\"unknown static shape_name\") and the object will not exist. Write shape_name = \"{shape}\" on the unit, as the Mission Editor does. The MCP action repair_static_shapes fills every one.",
   "mcp.run_action_failed": "run_action {name} failed: {error}",
   "validate.no_source_mission": "Source mission table (src/mission/mission) not found — skipping the group / preset / waypoint / TUM checks.",
   "validate.presets_no_aircraft": "presets.yaml is configured but the mission has no player aircraft to apply radio presets to.",

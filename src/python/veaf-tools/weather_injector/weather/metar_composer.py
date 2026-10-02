@@ -4,7 +4,8 @@ A variant declaring ``weather:`` only had no METAR, so the build left ``${METAR}
 the fifteen Syria briefings (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 10). The values are the ones the
 build injects, so the pilot reads the sky they fly in.
 
-There is no station: a manual sky belongs to no airfield, so the report starts with its time group.
+A manual sky belongs to no airfield, so its report starts with the time group; one recomposed from a real
+report under ``clearsky`` keeps that report's station (FIX-CLEARSKY-METAR).
 """
 
 from datetime import datetime
@@ -29,7 +30,9 @@ def _temperature(celsius: float) -> str:
     return f"M{abs(value):02d}" if value < 0 else f"{value:02d}"
 
 
-def compose_metar(manual: dict[str, Any], when_utc: datetime, qnh_hpa: float | None = None) -> str:
+def compose_metar(
+    manual: dict[str, Any], when_utc: datetime, qnh_hpa: float | None = None, station: str | None = None
+) -> str:
     """Write a variant's manual weather as a METAR.
 
     Args:
@@ -38,11 +41,12 @@ def compose_metar(manual: dict[str, Any], when_utc: datetime, qnh_hpa: float | N
             ``fog_enabled``, ``temperature`` (°C); each optional.
         when_utc: The variant's start, in UTC.
         qnh_hpa: The pressure the mission carries, in hPa, when there is one.
+        station: The ICAO station the values were observed at, for a report recomposed from a real one.
 
     Returns:
-        ``METAR DDHHMMZ dddssKT vvvv [cover] TT/// Qpppp``, the groups present in ``manual`` only.
+        ``METAR [CCCC] DDHHMMZ dddssKT vvvv [cover] TT/// Qpppp``, the groups present in ``manual`` only.
     """
-    groups = ["METAR", when_utc.strftime("%d%H%MZ")]
+    groups = ["METAR", *([station] if station else []), when_utc.strftime("%d%H%MZ")]
     speed = manual.get("wind_speed")
     if speed is not None:
         knots = round(float(speed) * _MPS_TO_KT)

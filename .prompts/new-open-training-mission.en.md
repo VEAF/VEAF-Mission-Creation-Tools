@@ -167,7 +167,8 @@ why.
 - **Red side**, if it has slots: at least one red tanker and one red AWACS, same rules.
 - **One name everywhere**: group name = callsign (tanker families Texaco 1 / Arco 2 / Shell 3; AWACS
   Overlord 1 / Magic 2 / Wizard 3…) = preset label = `ASSETS` text. Same frequency everywhere. Declare
-  them in `modules.ASSETS`.
+  them in `modules.ASSETS`, with `coalition: BLUE` or `RED` when red has slots: each side sees its own
+  assets only.
 - **Laser-designating drones** (option): an MQ-9 whose **group task is `AFAC`**, orbiting in a circle over
   its zone, declared in `modules.ASSETS` with its laser code and frequency (`jtac`, `freq`, `mod`): CTLD
   takes it as a JTAC and the pilots find it in the menu (checked in game on GermanyCW v6). Three things to

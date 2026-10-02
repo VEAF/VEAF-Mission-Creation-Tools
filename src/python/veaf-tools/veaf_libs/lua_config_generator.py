@@ -722,6 +722,15 @@ def _emit_module_body(
                 for opt_key in ("linked", "jtac", "freq", "mod"):
                     if opt_key in asset and asset[opt_key] is not None:
                         parts.append(f"{opt_key} = {_to_lua_scalar(asset[opt_key])}")
+                # One side's menu only; absent, both (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 13).
+                if asset.get("coalition") is not None:
+                    side = str(asset["coalition"]).upper()
+                    if side not in ("BLUE", "RED"):
+                        raise ValueError(
+                            f"asset {asset.get('name')!r}: coalition must be BLUE or RED (absent: both), "
+                            f"got {asset['coalition']!r}"
+                        )
+                    parts.append(f"coalition = coalition.side.{side}")
                 lines.append("        {" + ", ".join(parts) + "},")
             lines.append("    }")
         lines.append(f"    {var_name}.initialize()")

@@ -329,6 +329,21 @@ class TestNamedPoints(unittest.TestCase):
 
 
 class TestAssetsModule(unittest.TestCase):
+    @staticmethod
+    def _asset_lua(**extra: object) -> str:
+        asset = {"sort": 1, "name": "Shell 1", "description": "Tanker", **extra}
+        return generate_config_lua({"lua_modules": {"ASSETS": {"enable": True, "assets": [asset]}}})
+
+    def test_an_asset_for_one_coalition(self) -> None:
+        """FIX-OPEN-TRAINING-SYRIA-FINDINGS 13: the red tanker showed in the blue menu too."""
+        self.assertIn("coalition = coalition.side.RED", self._asset_lua(coalition="RED"))
+        self.assertIn("coalition = coalition.side.BLUE", self._asset_lua(coalition="blue"))
+        self.assertNotIn("coalition", self._asset_lua())
+
+    def test_an_unknown_coalition_is_refused(self) -> None:
+        with self.assertRaisesRegex(ValueError, "'Shell 1'.*BLUE or RED"):
+            self._asset_lua(coalition="NEUTRAL")
+
     def test_assets_list_emitted(self) -> None:
         lua = generate_config_lua(
             {

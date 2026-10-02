@@ -168,7 +168,8 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Côté rouge**, s'il a des slots : au moins un ravitailleur et un AWACS rouges, mêmes règles.
 - **Un nom partout** : nom de groupe = indicatif (familles tanker Texaco 1 / Arco 2 / Shell 3 ;
   AWACS Overlord 1 / Magic 2 / Wizard 3…) = libellé de preset = texte `ASSETS`. Même fréquence
-  partout. Déclare-les dans `modules.ASSETS`.
+  partout. Déclare-les dans `modules.ASSETS`, avec `coalition: BLUE` ou `RED` quand le rouge a des slots :
+  chaque camp ne voit que ses moyens.
 - **Drones de guidage laser** (option) : un MQ-9 dont la **tâche de groupe est `AFAC`**, en orbite en
   cercle au-dessus de sa zone, déclaré dans `modules.ASSETS` avec son code laser et sa fréquence (`jtac`,
   `freq`, `mod`) : CTLD le prend comme JTAC et les pilotes le trouvent dans le menu (vérifié en jeu sur

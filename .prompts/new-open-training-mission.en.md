@@ -116,9 +116,14 @@ why.
   with an **ammo dump** next to it (`FARP Ammo Dump Coating` static): CTLD takes it as a logistic
   point (`manage_logistics`, on by default), and troop pickup at FARPs is open
   (`troopPickupAtFARP` in `ctld-config.yaml`).
+- **`ctld-config.yaml`**: empty the example lists CTLD takes from its defaults (`extract1`…`extract25`,
+  `logistic1`…`logistic10`) — none of those names exists in the mission, and they make 35 warnings at
+  start.
 - `set_airbase_coalition` for every airfield, with `dynamic_spawn: false` on those that must offer no
   slots. `src/warehouses.yaml`: unlimited fuel and weapons, hot start allowed.
-  `src/dynamic-slot-templates.yaml`: templates for the coalitions that have slots.
+  `src/dynamic-slot-templates.yaml`: templates for the coalitions that have slots, **of the mission's
+  era only** — the shipped catalogue also offers WW2 and Cold War aircraft: remove those of another era
+  (they clutter the list and their radios do not take the frequency plan).
 
 ### 4.2 Identity and security
 
@@ -144,7 +149,7 @@ why.
     (`pipeline.weather: false`), and whatever makes a local test faster.
 - **Mission date and time**: `set_mission_date`.
 - **Bullseye** (`set_bullseye`): a **landmark the pilots can name**, at the centre of the front, the
-  same for both sides.
+  same for both sides, **not on a zone** (it would hide it on the map).
 - **Briefing** (`set_briefing`: title, situation, blue and red tasks): the context in two sentences,
   the bases, the support (frequencies, TACAN, altitudes), the zones by F10 menu, the QRAs, the useful
   VEAF commands.
@@ -162,9 +167,14 @@ why.
 - **One name everywhere**: group name = callsign (tanker families Texaco 1 / Arco 2 / Shell 3; AWACS
   Overlord 1 / Magic 2 / Wizard 3…) = preset label = `ASSETS` text. Same frequency everywhere. Declare
   them in `modules.ASSETS`.
-- **Laser-designating drones** (option): a drone in orbit with the FAC task, declared in
-  `modules.ASSETS` with its laser code and frequency (`jtac`, `freq`, `mod`), so the pilots find them
-  in the menu. If the MCP cannot give the FAC task, report it.
+- **Laser-designating drones** (option): an MQ-9 whose **group task is `AFAC`**, orbiting in a circle over
+  its zone, declared in `modules.ASSETS` with its laser code and frequency (`jtac`, `freq`, `mod`): CTLD
+  takes it as a JTAC and the pilots find it in the menu (checked in game on GermanyCW v6). Three things to
+  know, and to say in the briefing:
+  - CTLD moves it to `JTAC_droneAltitude` (3,000 m AGL by default) whatever altitude is written: the
+    heavy AAA of a hard zone shoots it down (the `ASSETS` menu respawns it);
+  - the JTAC designates **vehicles** only, not statics;
+  - it lases within **10 km** only: no drone over a zone whose SAMs reach farther.
 - **Friendly carrier group** (option, if the map has sea and the players fly carrier aircraft):
   `add_carrier_group` places the carrier with its TACAN, ICLS and Link 4, the recovery tanker and the
   rescue helicopter the `CARRIER` module looks for, and the ship's warehouse; deck slots are
@@ -227,8 +237,11 @@ come up, `#spawnchance=` the chance of each. Example: four SA-15s placed,
 `#spawngroup="SA15" #spawncount=2` → two of them, never the same ones. A returning pilot does not
 find the site they learnt. Applies to the real zones too (4.7).
 
-Statics are the only way to have a **truly inert** target (a live armoured vehicle fires its machine
-gun at helicopters; no tag sets a unit to weapons hold). `training: true`, one radio menu per family.
+**Inert targets of the easy levels: one-vehicle groups, not statics.** A static is **cold in the pod**
+(no engine, no script warms it) and the laser drone does not designate it. Place each target as a
+one-vehicle group at its exact spot, **hot at start** (`coldAtStart = false`), **weapons hold** and **no
+dispersal under fire**: it stays still and silent, and a pod sees it (checked in game on GermanyCW v6).
+Statics remain for what does not live: buildings, depots, parked aircraft. `training: true`, one radio menu per family.
 
 **As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
 beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a
@@ -257,7 +270,9 @@ Rules:
   unique unit names.
 - **Targets**: statics for buildings, bunkers, aircraft on the ground; native groups for what lives;
   convoys = **one native group** with a road route (points 2+ "On Road"), its air defense in the same
-  group.
+  group. A **convoy starts on firm ground**, not on a bridge nor in water: VEAF moves a group whose
+  position is on invalid terrain to a random spot.
+- **Ships of one group at least 150 m apart**: packed together they collide and get in each other's way.
 - **Range of the active zones' SAMs**: none may reach a friendly base, a tanker track or a training
   zone. A zone activated at start is a permanent defense: the rule of 4.5 applies to it.
 - Radio menus by kind, `training: false`.
@@ -277,6 +292,8 @@ Rules:
 - **Delay and helicopters, decided and written**: `delay_before_activating` (the reaction time
   between the first intruder's entry and the take-off) and `react_on_helicopters` (a QRA that reacts
   to helicopters closes the area to helicopter missions). Say both in the briefing.
+- **No QRA radio menu open to all**: `radio_menu` only with `radio_menu_restrict_to_group`. Each level
+  draws between **different aircraft**, never between copies of the same one.
 - `create_qra`, era interceptors with a **loadout** (in each group: `pylons`, or `loadout_from` a
   `veafSpawn-*` group of the same type), `airport_link` on the base.
 - If red has slots: **blue QRAs** on a few blue bases, same rules.
@@ -329,7 +346,7 @@ written in Lua (`VeafCombatMission`) in `src/scripts/mission-script.lua`, and yo
 
 A pilot discovering the mission must see the theatre at a glance, then be able to read the detail of
 the area they fly to. **A theatre map and zoomed maps, two uses**: `docs/carte.jpg` at the top of the
-README and the zooms in `docs/cartes/`, linked right below it; the same pictures in the mission's
+README and the zooms in `docs/cartes/`, **each in the README section it illustrates**; the same pictures in the mission's
 briefing, the theatre map first.
 
 - **Generated from the mission's data, never drawn by hand**: a script reads `src/mission/`,
@@ -380,7 +397,12 @@ briefing, the theatre map first.
 5. Training zones (4.6), real zones (4.7), QRA (4.8), CAP (4.9), scripted missions (4.12).
 6. Radio, weather, waypoints (4.10); date, bullseye, briefing; briefing map and F10 drawings (4.13).
 7. `validate_mission`, `build_mission` (and the `LOCAL_TEST` profile), then section 8.
-8. `README.md` + `readme.fr.md`: content, building, files, known limitations.
+8. **`README.md` = the pilots' briefing**, in French, one file, **generated from the mission** by a script
+   (like the map), never typed: situation, map, bases (frequencies, TACAN), permanent air defense,
+   support, carriers, drones, training by family, combat zones by kind with each one's briefing, scripted
+   missions, QRA, CAP, player-versus-player and arena, blue and red radio plan, weather and times, useful
+   commands; then "For mission makers": building, files, regenerating this document, known limitations.
+9. **Local test mission** (section 8).
 
 A short progress note after each step: what is done, not what you are about to do.
 
@@ -420,5 +442,12 @@ the sides; running DCS.
   - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
     `pictureFileNameN`, `pictureFileNameR` empty (4.13).
 - **Reread your briefings**: every range, bearing, altitude and place name recomputed or sourced.
+- **Hand over a local test mission**, a copy of the `LOCAL_TEST` build (never in the sources) with: a blue
+  and a red **game master**; a **classic `Client` slot of an A-10C II, on the ground with engines
+  running** at the home base — dynamic slots only work in multiplayer, a test mission with only those is
+  unusable solo; the dcs-bridge trigger (`veaf-tools dcs inject-bridge`). You start `dcs-serve`; the user
+  only handles DCS and the slot. A probe through the bridge then measures what the `.miz` cannot tell:
+  zone nesting (each level spawns more than the one it includes), targets in place, convoys moving,
+  CAPs engaging.
 - List what remains to check in DCS (statics placed on the airfields, convoys following their roads,
   zone nesting, the look of the sky).

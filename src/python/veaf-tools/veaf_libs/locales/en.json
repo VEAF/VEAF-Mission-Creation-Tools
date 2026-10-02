@@ -123,6 +123,8 @@
   "builder.unexpected_lua_file": "Unexpected Lua file 'src/scripts/{file}' found in your mission folder. This file will be included in the build. You can declare it under 'custom_scripts' in mission.yaml to suppress this warning.",
   "builder.unknown_community_script": "Unknown community script id {id} in 'community_scripts:'; ignoring.",
   "builder.active_modules": "Active VEAF modules ({count}): {modules}",
+  "builder.aircraft_route_engages_air": "{section} group '{group}' engages aircraft by its own route: it is flown as written.",
+  "builder.aircraft_route_replaced": "{section} group '{group}' is tasked CAP/Intercept and its route engages no aircraft: at runtime it is replaced by a patrol across the zone (zone_defense). Add an EngageTargets (Air) task to keep your route, or leave a single waypoint.",
   "builder.unknown_module_ids": "--log-modules: unknown module ID(s): {ids} - check spelling",
   "builder.update_hint": "Try updating the veaf-tools package using veaf-tools-updater.exe!",
   "builder.updating_triggers": "Updating mission triggers...",

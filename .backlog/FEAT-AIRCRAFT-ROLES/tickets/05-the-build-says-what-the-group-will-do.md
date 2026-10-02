@@ -1,10 +1,10 @@
 # 05 — The build says what a QRA or wave group will do
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: feat
 
-For each DCS aircraft group a QRA or an air wave deploys:
+For each DCS aircraft group tasked `CAP` or `Intercept` that a QRA or an air wave deploys:
 
 | Route | Message |
 |---|---|
@@ -12,9 +12,13 @@ For each DCS aircraft group a QRA or an air wave deploys:
 | present, without air engagement | non-blocking warning: it will be replaced by `zone_defense` |
 | engages air | information: used as written |
 
-The rule mirrors `veafAircraftSpawn.routeEngagesAir`; a test reads the Lua table of aircraft target
-types and compares it with the Python one, so the two cannot drift.
+Any other task flies its route and is not reported. The rule mirrors `veafAircraftSpawn.routeEngagesAir`
+and `needsZoneDefense`; a test reads the Lua tables (air target types, engagement task ids, zone-defense
+tasks) and compares them with the Python ones, so the two cannot drift.
+
+The build reports it on its own (`report_deployed_aircraft_routes`), not under the "missing mission.yaml
+references" summary; `veaf-tools validate` carries the warning too.
 
 ## Definition of done
 
-- [ ] `mission_builder` function + tests, wired where the build reports declared-group problems
+- [x] `mission_builder/aircraft_roles.py` + tests, wired into the build and `validate`

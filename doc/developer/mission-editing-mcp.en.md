@@ -724,6 +724,10 @@ initialise):
   `SetUnlimitedFuel` then a `Circle` orbit at the group's altitude and speed. The lasing is CTLD's, from the
   `modules.ASSETS` entry (`jtac`, `freq`, `mod`); CTLD moves it to `JTAC_droneAltitude`, it designates
   vehicles only, within 10 km (ticket 06).
+- `geocode`: one request a second at most (Nominatim); a 429 waits what `Retry-After` asks (30 s at most)
+  once, then the refusal comes back as `found: false`, said plainly. Five candidates asked for, a named
+  place preferred to a road or a region; `osm_class` / `osm_type` in the answer, and a warning when it is
+  a road or a region (« Al-Kiswah » → a street of Amman) (ticket 07).
 
 ### Mission settings (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 

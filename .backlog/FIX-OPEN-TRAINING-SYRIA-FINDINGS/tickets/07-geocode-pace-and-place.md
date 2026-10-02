@@ -1,6 +1,6 @@
 # 07 — geocode: one request a second, and a place rather than a street
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_libs/geocoding.py`, the `geocode` action, tests.
 
@@ -21,3 +21,11 @@ Files: `veaf_libs/geocoding.py`, the `geocode` action, tests.
   the result carries the OSM class and type, and a `warnings` entry when the chosen one is a road or a
   region.
 - Tests with recorded Nominatim answers (no network).
+
+## Measured while doing it (2026-10-02)
+
+Nominatim, Syria bounds, `limit: 5`: « Al-Kiswah » and « Latakia » each still came back with **one**
+candidate — the street of Amman and the governorate; `featureType=settlement` returned nothing for the
+first and the governorate again for the second. Preferring among candidates helps only when there are
+several, so the class and type are returned and a road or a region is warned about. Both answers are the
+recorded fixtures of `test_geocoding.py`.

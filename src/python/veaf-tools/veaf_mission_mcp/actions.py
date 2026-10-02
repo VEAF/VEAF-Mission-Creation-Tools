@@ -2048,7 +2048,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Resolve a real-world place name (optionally offset by a bearing + distance) to DCS "
                 "coordinates for the mission's theatre — DCS maps are the real world projected. "
                 "Returns lat/lon + x/y; results are approximate (confirm visually). Read-only. "
-                "Uses OSM Nominatim by default (or Google if a key is configured)."
+                "Uses OSM Nominatim by default (or Google if a key is configured). Nominatim takes one "
+                "request a second (paced for you; a refusal comes back as found=false saying so), and "
+                "often has a single candidate for a transliterated name: osm_class/osm_type say what came "
+                "back, and a road or an administrative area (a street of another country, a governorate's "
+                "centre) is warned about -- check it, or search a nearby town or landmark."
             ),
             parameters_schema={
                 "type": "object",

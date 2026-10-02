@@ -745,6 +745,10 @@ modules) :
   `SetUnlimitedFuel` puis une orbite `Circle` à l'altitude et la vitesse du groupe. Le marquage est celui de
   CTLD, par l'entrée `modules.ASSETS` (`jtac`, `freq`, `mod`) ; CTLD le remonte à `JTAC_droneAltitude`, il ne
   désigne que des véhicules, à 10 km (ticket 06).
+- `geocode` : une requête par seconde au plus (Nominatim) ; un 429 attend ce que demande `Retry-After`
+  (30 s au plus) une fois, puis le refus revient en `found: false` dit en clair. Cinq candidats demandés, un
+  lieu nommé préféré à une route ou une région ; `osm_class` / `osm_type` dans la réponse, et un
+  avertissement quand c'est une route ou une région (« Al-Kiswah » → une rue d'Amman) (ticket 07).
 
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 

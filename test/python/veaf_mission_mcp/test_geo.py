@@ -61,6 +61,8 @@ class TestGeocode:
             "query",
             "found",
             "display_name",
+            "osm_class",
+            "osm_type",
             "theatre",
             "latlon",
             "xy",
@@ -85,3 +87,26 @@ class TestGeocode:
         assert result["found"] is True
         assert result["in_theatre_bounds"] is False
         assert any("bounds" in w for w in result["warnings"])
+
+
+class TestRoadsRegionsAndRefusals:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 07."""
+
+    def test_a_road_is_returned_with_its_class_and_a_warning(
+        self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        road = GeocodeResult(41.6, 41.6, "Some street", "highway", "residential")
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(road))
+        result = geo.geocode(sample_miz, "Al-Kiswah")
+        assert (result["osm_class"], result["osm_type"]) == ("highway", "residential")
+        assert any("not a named place" in w for w in result["warnings"])
+
+    def test_a_refusal_is_a_miss_that_says_why(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        class _Refusing:
+            def geocode(self, query: str, *, bounds: Bounds | None = None) -> GeocodeResult | None:
+                raise geocoding.GeocodingRefusedError("Nominatim refused the request (HTTP 429)")
+
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _Refusing())
+        result = geo.geocode(sample_miz, "Al-Kiswah")
+        assert result["found"] is False
+        assert result["warnings"] == ["Nominatim refused the request (HTTP 429)"]

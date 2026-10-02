@@ -60,8 +60,8 @@ modules:
         enemy_coalitions: [BLUE]          # coalitions qui déclenchent le scramble
         trigger_zone: "ZONE-QRA-NORD"    # zone de trigger DCS définissant l'espace aérien
         zone_radius: 30000               # rayon en mètres (alternative à trigger_zone)
-        simple_groups:                   # noms de groupes DCS à scrambler (inconditionnels)
-          - "Vol QRA MiG-29"
+        # simple_groups: ["Vol QRA MiG-29"]  # OU une liste simple, toujours scramblée — jamais avec
+        #                                    # groups_by_enemy_count, à côté duquel elle ne décolle pas
         groups_by_enemy_count:           # réponse proportionnelle au nombre d'intrus
           - enemy_count: 1               # scramble quand 1 intrus détecté
             groups: ["Duo-1", "Duo-2"]   # pool de groupes
@@ -91,7 +91,7 @@ modules:
 | `enemy_coalitions` | string[] | *(opposée)* | Non | Coalitions qui déclenchent un scramble |
 | `trigger_zone` | string | — | Non | Nom de la zone de trigger DCS |
 | `zone_radius` | entier | — | Non | Rayon de zone en mètres (sans zone de trigger) |
-| `simple_groups` | string[] | `[]` | Non | Noms de groupes DCS à toujours scrambler, ou commandes VEAF (`[0,0]-spawn shilka, country russia`, `-sa6`) : une entrée qui commence par `[` ou `-` est une commande, `validate` ne la cherche pas dans la mission |
+| `simple_groups` | string[] | `[]` | Non | Noms de groupes DCS à toujours scrambler, ou commandes VEAF (`[0,0]-spawn shilka, country russia`, `-sa6`) : une entrée qui commence par `[` ou `-` est une commande, `validate` ne la cherche pas dans la mission. **Sans** `groups_by_enemy_count` : à côté, ces groupes ne décollent jamais (une règle de niveau 1 les remplace, un niveau le plus bas supérieur à 1 empêche le niveau 1 de se déclencher), et `validate` le signale |
 | `groups_by_enemy_count` | objet[] | `[]` | Non | Règles de scramble proportionnel |
 | `groups_by_enemy_count[].enemy_count` | entier | — | Oui | Nombre d'intrus activant cette règle |
 | `groups_by_enemy_count[].groups` | string[] | — | Oui | Pool de noms de groupes ou de commandes VEAF, comme `simple_groups` |

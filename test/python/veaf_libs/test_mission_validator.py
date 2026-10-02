@@ -299,5 +299,37 @@ class TestCtldNamesTheMissionDoesNotHold(unittest.TestCase):
         self.assertEqual(self._ctld_warnings("mm_facing:\n  extractableGroups: []\n  logisticUnits: []\n"), [])
 
 
+class TestQraSimpleGroupsBesideLevels(unittest.TestCase):
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 03: simple_groups next to scramble levels never deploy."""
+
+    def _messages(self, definition: str) -> list[str]:
+        folder = _make_folder(
+            "modules:\n  QRA:\n    definitions:\n" + definition,
+            mission_table=_MISSION_WITH_PLAYER,
+        )
+        return [i.message for i in validate_mission_folder(folder) if i.level == WARNING]
+
+    def test_both_warn_naming_the_definition(self) -> None:
+        messages = self._messages(
+            "      - name: QRA-North\n        simple_groups: [Uzi]\n"
+            "        groups_by_enemy_count:\n          - enemy_count: 2\n            groups: [Uzi]\n"
+        )
+        self.assertTrue(any("QRA-North" in m and "simple_groups" in m for m in messages), messages)
+
+    def test_a_level_one_rule_warns_too(self) -> None:
+        messages = self._messages(
+            "      - name: QRA-North\n        simple_groups: [Uzi]\n"
+            "        groups_by_enemy_count:\n          - enemy_count: 1\n            groups: [Uzi]\n"
+        )
+        self.assertTrue(any("QRA-North" in m and "simple_groups" in m for m in messages), messages)
+
+    def test_levels_alone_do_not_warn(self) -> None:
+        messages = self._messages(
+            "      - name: QRA-North\n"
+            "        groups_by_enemy_count:\n          - enemy_count: 2\n            groups: [Uzi]\n"
+        )
+        self.assertFalse(any("simple_groups" in m for m in messages), messages)
+
+
 if __name__ == "__main__":
     unittest.main()

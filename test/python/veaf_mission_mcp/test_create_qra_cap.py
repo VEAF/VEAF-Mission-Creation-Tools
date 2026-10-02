@@ -123,3 +123,23 @@ def test_create_cap_mission_lays_down_both_worlds(tmp_path: Path) -> None:
 
     caps = load_yaml(folder / "mission.yaml")["cap_missions"]
     assert any(c["group_name"] == "Escort" for c in caps)  # yaml references the un-prefixed name
+
+
+def test_create_qra_with_levels_writes_no_simple_groups(tmp_path: Path) -> None:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 03: simple_groups beside scramble levels never deploy."""
+    folder = _folder(tmp_path)
+    create_qra(
+        folder,
+        name="QRA-North",
+        coalition="red",
+        trigger_zone="ZONE-QRA",
+        position={"x": 1.0, "y": 2.0},
+        radius=50000,
+        groups=[{"name": "MiG-29 North", "units": [{"type": "MiG-29S", "count": 2}]}],
+        country_id=0,
+        country_name="Russia",
+        qra={"groups_by_enemy_count": [{"enemy_count": 2, "groups": ["MiG-29 North"]}]},
+    )
+    definition = load_yaml(folder / "mission.yaml")["modules"]["QRA"]["definitions"][0]
+    assert "simple_groups" not in definition
+    assert definition["groups_by_enemy_count"][0]["groups"] == ["MiG-29 North"]

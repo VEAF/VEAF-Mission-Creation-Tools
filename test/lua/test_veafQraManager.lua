@@ -1076,4 +1076,22 @@ function TestVeafQraCommandDefendsTheZone:test_a_cap_command_is_re_tasked_on_the
   luaunit.assertEquals(points[1].task, QRA_CAP_OPTIONS, "the new route keeps the template's first-waypoint options")
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafQraSimpleGroupsBesideLevels — FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 03: simple_groups
+-- (`:addGroup`, level 1) written next to scramble levels never deploy, whatever the lowest level.
+-- ---------------------------------------------------------------------------
+TestVeafQraSimpleGroupsBesideLevels = {}
+
+function TestVeafQraSimpleGroupsBesideLevels:test_a_level_one_rule_replaces_them()
+  local q = VeafQRA:new():addGroup("ALL"):setRandomGroupsToDeployByEnemyQuantity(1, { "PAIR" }, 1)
+  luaunit.assertEquals(q:chooseGroupsToDeploy(1), { "PAIR" })
+end
+
+function TestVeafQraSimpleGroupsBesideLevels:test_levels_from_two_up_keep_them_from_ever_firing()
+  local q = VeafQRA:new():addGroup("ALL"):setRandomGroupsToDeployByEnemyQuantity(2, { "PAIR" }, 1)
+  -- deploy() returns before choosing anything below the lowest level the rules set
+  luaunit.assertEquals(q.minimumNbEnemyPlanes, 2)
+  luaunit.assertEquals(q:chooseGroupsToDeploy(2), { "PAIR" })
+end
+
 os.exit(luaunit.LuaUnit.run())

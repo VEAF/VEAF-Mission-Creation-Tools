@@ -19,7 +19,8 @@ Three findings made a **wrong mission with no warning**, and are first in line:
   wrote the callsign word without its digits (ticket 02);
 - `create_qra` writes every group into `simple_groups` on top of the scramble levels: harmless when a
   level-1 rule overwrites it (the runtime replaces level 1), but every group scrambles at the first
-  intruder as soon as the lowest level is above 1 (ticket 03).
+  intruder as soon as the lowest level is above 1 (ticket 03). *Measured while fixing it: wrong — level 1
+  never fires either way, so `simple_groups` beside levels are dead weight in a YAML that misleads.*
 
 Then what made the work slower or forced a workaround: a battery placed in the sea with no warning
 although the elevation grid exists (04), a FARP without its ammunition dump (05), no FAC task (06), a

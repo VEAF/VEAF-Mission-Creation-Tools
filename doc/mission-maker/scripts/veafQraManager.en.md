@@ -61,8 +61,8 @@ modules:
         enemy_coalitions: [BLUE]          # coalitions that trigger a scramble
         trigger_zone: "ZONE-QRA-NORTH"   # DCS trigger zone defining the airspace
         zone_radius: 30000               # radius in metres (alternative to trigger_zone)
-        simple_groups:                   # DCS group names to scramble (unconditional)
-          - "MiG-29 QRA Flight"
+        # simple_groups: ["MiG-29 QRA Flight"]  # OR a plain list, always scrambled — never with
+        #                                       # groups_by_enemy_count, beside which it never takes off
         groups_by_enemy_count:           # scale response to intruder count
           - enemy_count: 1               # scramble when 1 intruder detected
             groups: ["Pair-1", "Pair-2"] # group pool
@@ -92,7 +92,7 @@ modules:
 | `enemy_coalitions` | string[] | *(opposite)* | No | Coalitions that trigger a scramble |
 | `trigger_zone` | string | — | No | DCS trigger zone name |
 | `zone_radius` | integer | — | No | Zone radius in metres (when no trigger zone) |
-| `simple_groups` | string[] | `[]` | No | DCS group names to always scramble, or VEAF commands (`[0,0]-spawn shilka, country russia`, `-sa6`): an entry starting with `[` or `-` is a command, and `validate` does not look for it in the mission |
+| `simple_groups` | string[] | `[]` | No | DCS group names to always scramble, or VEAF commands (`[0,0]-spawn shilka, country russia`, `-sa6`): an entry starting with `[` or `-` is a command, and `validate` does not look for it in the mission. **Without** `groups_by_enemy_count`: beside it, these groups never take off (a level-1 rule replaces them, a lowest level above 1 keeps level 1 from firing), and `validate` says so |
 | `groups_by_enemy_count` | object[] | `[]` | No | Scaled scramble rules |
 | `groups_by_enemy_count[].enemy_count` | integer | — | Yes | Number of intruders that activates this rule |
 | `groups_by_enemy_count[].groups` | string[] | — | Yes | Pool of group names or VEAF commands, as for `simple_groups` |

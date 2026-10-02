@@ -209,8 +209,11 @@ def create_qra(
         "name": name,
         "coalition": coalition.upper(),
         "trigger_zone": trigger_zone,
-        "simple_groups": group_names,
     }
+    # Beside scramble levels, simple_groups never deploy: the caller's levels say who scrambles
+    # (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 03).
+    if not (qra or {}).get("groups_by_enemy_count"):
+        definition["simple_groups"] = group_names
     if enemy_coalitions:
         definition["enemy_coalitions"] = [c.upper() for c in enemy_coalitions]
     if qra:

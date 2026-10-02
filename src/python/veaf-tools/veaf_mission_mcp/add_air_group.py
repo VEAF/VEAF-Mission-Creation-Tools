@@ -268,7 +268,8 @@ def unarmed_warning(name: str, task: str, skill: str, payload: dict[str, Any]) -
     """
     if task not in FIGHTING_TASKS or skill in ("Client", "Player") or payload.get("pylons"):
         return None
-    return f"group {name!r} has task {task!r} and no weapons: it will not fight without a loadout"
+    warning = f"group {name!r} has task {task!r} and no weapons: it will not fight without a loadout"
+    return warning
 
 
 def _cap_engage_task() -> dict[str, Any]:

@@ -1096,6 +1096,7 @@
   "validate.config_override_unknown_segment": "config_override: '{segment}' (in key '{override_key}') is found nowhere in the injected mission scripts — a typo or an upstream rename. Fix the key or update config_override.",
   "validate.custom_script_missing": "custom_scripts: declared script '{path}' does not exist.",
   "validate.holed_sequence": "Mission table '{path}' is numbered {keys} instead of 1..{count} — a hand edit or a third-party tool left a hole in it. The build closes it up, but it is worth checking that is what you meant.",
+  "validate.qra_simple_groups_beside_levels": "QRA '{name}': simple_groups are never deployed beside groups_by_enemy_count (a level-1 rule replaces them; a lowest level of {lowest} keeps level 1 from firing). Move them into a level, or drop them.",
   "validate.incompatible_module": "modules: '{module}' is incompatible with the '{profile}' conversion profile and must stay disabled.",
   "validate.missing_group": "Group '{group}' declared in {section} is absent from the mission — place it in the Mission Editor, or the feature fails at runtime.",
   "validate.missing_trigger_zone": "Trigger zone '{zone}' referenced by {section} does not exist in the mission — create it in the Mission Editor.",

@@ -318,7 +318,7 @@ with *Air* targets), it is launched on **zone defense**:
 - it appears where you placed it, with the options of its first waypoint (ROE, reaction to threat…);
 - it flies to the QRA zone and holds a race-track centred on it, along the axis it arrives from (a 20 NM
   leg, or the zone's diameter when that is shorter);
-- it engages only the aircraft that enter the zone: fighters first, then bombers, then the rest, the nearest first within each kind.
+- it engages only the aircraft that enter the zone, which it ranks by type and distance.
 
 A group placed **on a parking spot or the runway** keeps its take-off as you set it, then climbs to
 27,000 ft for its patrol.

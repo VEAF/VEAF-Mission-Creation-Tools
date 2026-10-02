@@ -304,7 +304,7 @@ route n'en prévoit pas : s'il ne porte aucune tâche d'engagement des aéronefs
 - il apparaît là où vous l'avez placé, avec les options de son premier point (ROE, réaction à la menace…) ;
 - il rejoint la zone des vagues et y tient un hippodrome centré sur la zone, dans l'axe de son arrivée
   (branche de 20 NM, ou le diamètre de la zone s'il est plus court) ;
-- il n'engage que les aéronefs qui entrent dans la zone : les chasseurs d'abord, puis les bombardiers, puis le reste, le plus proche en premier dans chaque catégorie.
+- il n'engage que les aéronefs qui entrent dans la zone, qu'il classe selon leur type et leur distance.
 
 Un groupe placé **au parking ou sur la piste** garde son décollage tel que vous l'avez réglé, puis monte à
 27 000 ft pour sa patrouille.

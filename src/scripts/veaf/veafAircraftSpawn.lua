@@ -45,7 +45,7 @@ veafAircraftSpawn.ZONE_DEFENSE_TASKS = { CAP = true, Intercept = true }
 ---
 --- The DCS attribute names an `EngageTargets` or `EngageTargetsInZone` task can carry in
 --- `targetTypes` for aircraft — the generic `Air`, `Planes` and `Helicopters`, and the finer ones the
---- CAP watchdog already ranks targets by. `veaf_libs` mirrors this list for the build
+--- CAP watchdog already ranks targets by. The build mirrors this list
 --- (`mission_builder/aircraft_roles.py`), and a test compares the two.
 veafAircraftSpawn.AIR_TARGET_TYPES = {
   "Air",

@@ -50,7 +50,7 @@ corrected ticket 06: a laser drone is built with the `AFAC` group task, checked 
 | 12 | [A circular sanctuary from mission.yaml](tickets/12-sanctuary-circle-yaml.md) | ✅ |
 | 13 | [An ASSETS entry shown to one coalition](tickets/13-assets-per-coalition.md) | ✅ |
 | 14 | [list_catalog fits in an agent's tool result](tickets/14-compact-catalog.md) | ✅ |
-| 15 | [A file under l10n/DEFAULT is backed up into .veaf-backups, not beside itself](tickets/15-l10n-backups-in-veaf-backups.md) | ⬜ |
+| 15 | [A file under l10n/DEFAULT is backed up into .veaf-backups, not beside itself](tickets/15-l10n-backups-in-veaf-backups.md) | ✅ |
 | 16 | [save_folder_mission writes mapResource](tickets/16-save-folder-writes-map-resource.md) | ⬜ |
 | 17 | [An action fills the shape_name of statics placed before #1023](tickets/17-repair-static-shapes.md) | ⬜ |
 

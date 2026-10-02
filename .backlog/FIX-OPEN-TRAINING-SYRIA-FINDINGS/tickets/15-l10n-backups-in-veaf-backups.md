@@ -1,6 +1,6 @@
 # 15 — A file under l10n/DEFAULT is backed up into .veaf-backups, not beside itself
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `mission_tools/miz_backup.py`, tests.
 

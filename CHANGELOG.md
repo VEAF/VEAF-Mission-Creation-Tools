@@ -137,6 +137,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   watchdog owns, and imposed the caller's route even when the handler had set its own; a combat zone's
   command hook re-routed the group along the marker's route the same way. An aircraft spawned with a
   role is now left alone by both.
+- **A helicopter in a dynamic slot had no CSAR radio menu** (#989, FIX-USER-REPORTS-985-989). Since CSAR
+  left MiST (#845, shipped in 6.18.0) `csar.getGroupId` looked the helicopter up in the Mission Editor
+  snapshot, which knows no dynamic slot, so such a helicopter got neither the CSAR menu nor the messages
+  CSAR sends to its group, while the rescue itself ran. It now reads the live group.
+- **14 of the shipped spawnable templates were filed under real countries** (#985,
+  FIX-USER-REPORTS-985-989): `USA` and `France` on the blue side, `USSR` on the red one. The injector
+  adds such a country to its side without looking at the other, so a mission where France is red ended
+  with France on both. They now sit under `CJTF Blue` / `CJTF Red` like the others, the six USSR MiG
+  templates with a western-shaped callsign, and a test pins it as it already did for the dynamic-slot
+  catalogue.
 
 ## [6.26.0] — 2026-09-30
 

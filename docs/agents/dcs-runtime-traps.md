@@ -263,6 +263,21 @@ over.
 *What it cost:* None yet — found while sweeping the elevation grid. A briefing that took a target's altitude from a
 real-world map would have given a negative figure DCS does not have.
 
+### A static created by script shows on the F10 map even when it is submitted `hidden = true` {#dcs-scripted-static-ignores-hidden}
+
+Measured **2026-09-19**.
+
+Measured by Tripack on a v6 Cyprus mission, from a blue Hornet slot and as Tactical Commander
+(#953): the neutral sandbags placed **hidden** in the Mission Editor and touched by no script stay
+off the map, while the identical ones a combat zone puts back — removed by deactivating the zone,
+recreated by activating it again — are on the map. VEAF submits `hidden = true` to
+`coalition.addStaticObject` for them (`test_the_static_the_zone_puts_back_is_still_hidden`), so it
+is DCS that does not apply it to an object a script created. Only a static was measured: whether a
+**group** recreated by `coalition.addGroup` keeps its hiding is not established.
+
+**What to do:** Keep a decoration that must stay hidden out of every combat zone, or name it so that no zone takes
+it over: the editor's own copy is the only one DCS hides.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

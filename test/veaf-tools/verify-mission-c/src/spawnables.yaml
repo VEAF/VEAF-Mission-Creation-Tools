@@ -1270,7 +1270,6 @@ airplanes:
             y: -360000
           x: -250000
           y: -360000
-      France:
         veafSpawn-m2000-fox1:
           communication: true
           frequency: 251
@@ -1547,7 +1546,6 @@ airplanes:
               y: 0
           x: 0
           y: 0
-      USA:
         veafSpawn-f14a-fox1:
           communication: true
           frequency: 124
@@ -8261,7 +8259,6 @@ airplanes:
               y: 0
           x: 0
           y: 0
-      USSR:
         veafSpawn-Mig21-FoX1:
           communication: false
           frequency: 124
@@ -8300,7 +8297,11 @@ airplanes:
             1:
               alt: 6096
               alt_type: BARO
-              callsign: 174
+              callsign:
+                1: 2
+                2: 1
+                name: Springfield11
+                3: 1
               hardpoint_racks: true
               heading: 2.7233683240106
               livery_id: Bare Metal
@@ -8333,7 +8334,11 @@ airplanes:
             2:
               alt: 6096
               alt_type: BARO
-              callsign: 175
+              callsign:
+                1: 2
+                2: 1
+                name: Springfield12
+                3: 2
               hardpoint_racks: true
               heading: 2.7233683240106
               livery_id: Bare Metal
@@ -8403,7 +8408,11 @@ airplanes:
             1:
               alt: 6096
               alt_type: BARO
-              callsign: 174
+              callsign:
+                1: 2
+                2: 2
+                name: Springfield21
+                3: 1
               hardpoint_racks: true
               heading: 2.7233683240106
               livery_id: Bare Metal
@@ -8434,7 +8443,11 @@ airplanes:
             2:
               alt: 6096
               alt_type: BARO
-              callsign: 112
+              callsign:
+                1: 2
+                2: 2
+                name: Springfield22
+                3: 2
               heading: 0
               livery_id: Bare Metal
               name: 'veafSpawn-Mig21-Fox2 #02'
@@ -8511,7 +8524,11 @@ airplanes:
             1:
               alt: 6096
               alt_type: BARO
-              callsign: 187
+              callsign:
+                1: 2
+                2: 3
+                name: Springfield31
+                3: 1
               hardpoint_racks: true
               heading: 2.7233683240106
               livery_id: af standard
@@ -8543,7 +8560,11 @@ airplanes:
             2:
               alt: 6096
               alt_type: BARO
-              callsign: 188
+              callsign:
+                1: 2
+                2: 3
+                name: Springfield32
+                3: 2
               heading: 0
               livery_id: af standard
               name: 'veafSpawn-Mig23S-FoX1 #02'
@@ -8621,7 +8642,11 @@ airplanes:
             1:
               alt: 6096
               alt_type: BARO
-              callsign: 187
+              callsign:
+                1: 2
+                2: 4
+                name: Springfield41
+                3: 1
               hardpoint_racks: true
               heading: 2.7233683240106
               livery_id: af standard
@@ -8653,7 +8678,11 @@ airplanes:
             2:
               alt: 6096
               alt_type: BARO
-              callsign: 189
+              callsign:
+                1: 2
+                2: 4
+                name: Springfield42
+                3: 2
               heading: 0
               livery_id: af standard
               name: 'veafSpawn-Mig23S-Fox2 #02'
@@ -8731,7 +8760,11 @@ airplanes:
             1:
               alt: 6096
               alt_type: BARO
-              callsign: 190
+              callsign:
+                1: 2
+                2: 5
+                name: Springfield51
+                3: 1
               hardpoint_racks: true
               heading: 2.7233683240106
               livery_id: af standard
@@ -8761,7 +8794,11 @@ airplanes:
             2:
               alt: 6096
               alt_type: BARO
-              callsign: 191
+              callsign:
+                1: 2
+                2: 5
+                name: Springfield52
+                3: 2
               heading: 0
               livery_id: af standard
               name: 'veafSpawn-Mig25-FoX1 #02'
@@ -8837,7 +8874,11 @@ airplanes:
             1:
               alt: 6096
               alt_type: BARO
-              callsign: 190
+              callsign:
+                1: 2
+                2: 6
+                name: Springfield61
+                3: 1
               hardpoint_racks: true
               heading: 2.7233683240106
               livery_id: af standard
@@ -8867,7 +8908,11 @@ airplanes:
             2:
               alt: 6096
               alt_type: BARO
-              callsign: 192
+              callsign:
+                1: 2
+                2: 6
+                name: Springfield62
+                3: 2
               heading: 0
               livery_id: af standard
               name: 'veafSpawn-Mig25-Fox2 #02'

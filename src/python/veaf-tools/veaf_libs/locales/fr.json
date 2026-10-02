@@ -125,6 +125,7 @@
   "builder.active_modules": "Modules VEAF actifs ({count}) : {modules}",
   "builder.aircraft_route_engages_air": "Le groupe {section} '{group}' engage les aéronefs par sa propre route : elle est suivie telle quelle.",
   "builder.aircraft_route_replaced": "Le groupe {section} '{group}' a la tâche CAP/Intercept et sa route n'engage aucun aéronef : en jeu, elle est remplacée par une patrouille sur la zone (zone_defense). Ajoutez une tâche EngageTargets (Air) pour garder votre route, ou ne laissez qu'un seul point.",
+  "builder.aircraft_route_zone_defense": "Le groupe {section} '{group}' n'a qu'un point et aucun engagement des aéronefs : en jeu, il reçoit une patrouille sur la zone et engage ce qui y entre (zone_defense).",
   "builder.unknown_module_ids": "--log-modules : ID(s) de module inconnu(s) : {ids} — vérifiez l'orthographe",
   "builder.update_hint": "Essayez de mettre à jour le paquet veaf-tools avec veaf-tools-updater.exe !",
   "builder.updating_triggers": "Mise à jour des triggers de mission...",

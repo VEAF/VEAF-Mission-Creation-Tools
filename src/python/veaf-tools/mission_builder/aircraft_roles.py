@@ -6,7 +6,9 @@ At runtime (`veafAircraftSpawn.needsZoneDefense`, FEAT-AIRCRAFT-ROLES), a group 
 wants when he placed an interceptor with one waypoint and nothing else — and a surprise when he wrote a
 route of his own and forgot the engagement task. The build says which is which:
 
-* an empty route (at most one waypoint, carrying nothing but options) → nothing, the normal case;
+* an empty route (at most one waypoint, carrying nothing but options) → :data:`ROUTE_ZONE_DEFENSE`,
+  information: the script gives the group its job — the case this lot was opened for, which the mission
+  maker has to be told about since nothing in the editor shows it;
 * a route written without air engagement → :data:`ROUTE_REPLACED`, a non-blocking warning;
 * a route that engages air → :data:`ROUTE_ENGAGES_AIR`, information: it is flown as written.
 
@@ -46,6 +48,9 @@ ENGAGE_TASK_IDS: frozenset[str] = frozenset({"EngageTargets", "EngageTargetsInZo
 
 #: Editor group tasks the runtime may give the ``zone_defense`` role (`veafAircraftSpawn.ZONE_DEFENSE_TASKS`).
 ZONE_DEFENSE_TASKS: frozenset[str] = frozenset({"CAP", "Intercept"})
+
+#: The route is empty: the runtime gives the group the ``zone_defense`` role, as intended.
+ROUTE_ZONE_DEFENSE = "zone_defense"
 
 #: The route was written without air engagement: the runtime replaces it with ``zone_defense``.
 ROUTE_REPLACED = "replaced"
@@ -128,8 +133,8 @@ def classify_deployed_group(group: dict[str, Any]) -> str | None:
         group: The group, as parsed from the mission table.
 
     Returns:
-        :data:`ROUTE_REPLACED`, :data:`ROUTE_ENGAGES_AIR`, or None when there is nothing to say: a task
-        other than ``CAP`` / ``Intercept``, or an empty route.
+        :data:`ROUTE_ZONE_DEFENSE`, :data:`ROUTE_REPLACED`, :data:`ROUTE_ENGAGES_AIR`, or None for a task
+        other than ``CAP`` / ``Intercept``, whose route is the mission.
     """
     if group.get("task") not in ZONE_DEFENSE_TASKS:
         return None
@@ -138,7 +143,7 @@ def classify_deployed_group(group: dict[str, Any]) -> str | None:
     if route_engages_air(points):
         return ROUTE_ENGAGES_AIR
     if is_empty_route(points):
-        return None
+        return ROUTE_ZONE_DEFENSE
     return ROUTE_REPLACED
 
 

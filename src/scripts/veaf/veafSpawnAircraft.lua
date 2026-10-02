@@ -1120,6 +1120,12 @@ function veafSpawn.isCapEngageableTarget(target, capCoalition)
   return true, nil
 end
 
+--- Forget what the CAP watchdog keeps about a group, when it stops watching it.
+local function forgetCapWatchdog(capGroupName)
+  veafSpawn.capWatchdogZones[capGroupName] = nil
+  veafSpawn.capWatchdogFlown[capGroupName] = nil
+end
+
 function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)
   veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.startCapWatchdog(capGroupName=%s)", veaf.lp(capGroupName))
   veaf.loggers.get(veafSpawn.Id):trace("capZone=%s", veaf.lp(capZone))
@@ -1141,13 +1147,13 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
   local capGroup = Group.getByName(capGroupName)
   if not capGroup then
     veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is nowhere to be found, stopping watchdog", veaf.lp(capGroupName))
-    veafSpawn.capWatchdogZones[capGroupName] = nil
+    forgetCapWatchdog(capGroupName)
     return
   end
   local capGroupPosition = veaf.getAveragePosition(capGroup)
   if not capGroupPosition then
     veaf.loggers.get(veafSpawn.Id):error("CAP group %s has no position!", veaf.p(capGroupName))
-    veafSpawn.capWatchdogZones[capGroupName] = nil
+    forgetCapWatchdog(capGroupName)
     return
   end
 
@@ -1289,8 +1295,21 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     end
   end
 
+  if not capLanded then
+    veafSpawn.capWatchdogFlown[capGroupName] = true
+  elseif not veafSpawn.capWatchdogFlown[capGroupName] then
+    -- still on its parking spot or its runway: it has not taken off yet, it has not landed
+    veaf.loggers.get(veafSpawn.Id):debug("CAP group %s has not taken off yet, waiting for it", veaf.lp(capGroupName))
+    veaf.scheduleFunction(
+      veafSpawn.startCapWatchdog,
+      { capGroupName, capCoalition, capZone, targetsList, numberOfTasksAddedByWatchdog },
+      timer.getTime() + veafSpawn.CAP_WATCHDOG_DELAY
+    )
+    return
+  end
+
   if capLanded then
-    veafSpawn.capWatchdogZones[capGroupName] = nil
+    forgetCapWatchdog(capGroupName)
     capGroup:destroy()
     veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is landed, destroying it and stopping watchdog", veaf.lp(capGroupName))
     return
@@ -1301,7 +1320,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     veaf.loggers.get(veafSpawn.Id):debug("CAP group is still in the CAP zone...")
     if not controller then
       veaf.loggers.get(veafSpawn.Id):error("cannot find controller for CAP group!")
-      veafSpawn.capWatchdogZones[capGroupName] = nil
+      forgetCapWatchdog(capGroupName)
       return
     end
 

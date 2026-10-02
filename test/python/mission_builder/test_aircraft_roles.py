@@ -17,6 +17,7 @@ from mission_builder.aircraft_roles import (
     ENGAGE_TASK_IDS,
     ROUTE_ENGAGES_AIR,
     ROUTE_REPLACED,
+    ROUTE_ZONE_DEFENSE,
     ZONE_DEFENSE_TASKS,
     classify_deployed_group,
     find_deployed_aircraft_routes,
@@ -95,8 +96,10 @@ class TestIsEmptyRoute:
 
 
 class TestClassifyDeployedGroup:
-    def test_an_empty_interceptor_says_nothing(self) -> None:
-        assert classify_deployed_group(_group("QRA", "Intercept", [_point()])) is None
+    def test_an_empty_interceptor_is_given_zone_defense(self) -> None:
+        # the Sayqal QRA of *Ligne rouge d'At Tanf*: the group this lot was opened for, and the build
+        # has to say what the script will make of it
+        assert classify_deployed_group(_group("QRA", "Intercept", [_point()])) == ROUTE_ZONE_DEFENSE
 
     def test_a_written_cap_route_without_engagement_is_replaced(self) -> None:
         assert classify_deployed_group(_group("Wave", "CAP", [_point(), _point()])) == ROUTE_REPLACED
@@ -132,6 +135,7 @@ class TestFindDeployedAircraftRoutes:
         }
         assert find_deployed_aircraft_routes(yaml_data, mission) == [
             ("QRA", "QRA-written", ROUTE_REPLACED),
+            ("QRA", "QRA-empty", ROUTE_ZONE_DEFENSE),
             ("AIRWAVES", "Wave-engages", ROUTE_ENGAGES_AIR),
         ]
 
@@ -156,9 +160,10 @@ _WIRED_MISSION = _mission(
     [
         _group("QRA-written", "Intercept", [_point(), _point()]),
         _group("QRA-engages", "Intercept", [_point(_combo(_engage(["Air"])))]),
+        _group("QRA-empty", "Intercept", [_point()]),
     ]
 )
-_WIRED_YAML = {"modules": {"QRA": {"definitions": [{"simple_groups": ["QRA-written", "QRA-engages"]}]}}}
+_WIRED_YAML = {"modules": {"QRA": {"definitions": [{"simple_groups": ["QRA-written", "QRA-engages", "QRA-empty"]}]}}}
 
 
 class TestTheBuildAndValidateSayIt:
@@ -171,7 +176,8 @@ class TestTheBuildAndValidateSayIt:
         warnings = [str(c.args[0]) for c in logger.warning.call_args_list]
         infos = [str(c.args[0]) for c in logger.info.call_args_list]
         assert len(warnings) == 1 and "QRA-written" in warnings[0]
-        assert len(infos) == 1 and "QRA-engages" in infos[0]
+        assert len(infos) == 2 and "QRA-engages" in infos[0] and "QRA-empty" in infos[1]
+        assert "zone_defense" in infos[1]
 
     def test_validate_warns_on_a_replaced_route_only(self) -> None:
         from veaf_libs.mission_validator import WARNING, _check_deployed_aircraft_routes

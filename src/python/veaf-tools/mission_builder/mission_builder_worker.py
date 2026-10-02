@@ -1503,18 +1503,20 @@ class MissionBuilderWorker(BaseWorker):
 
         A ``CAP`` or ``Intercept`` group whose route engages no aircraft is given the ``zone_defense``
         role at runtime (FEAT-AIRCRAFT-ROLES): its written route is replaced, which is a non-blocking
-        warning; a route that engages air is flown as written, which is information. An empty route —
-        the normal case — says nothing. See :mod:`mission_builder.aircraft_roles`.
+        warning; an empty route is given that role as intended, and a route that engages air is flown as
+        written, both information. See :mod:`mission_builder.aircraft_roles`.
         """
         if not self.mission_yaml or not self.dcs_mission or not self.dcs_mission.mission_content:
             return
-        from mission_builder.aircraft_roles import ROUTE_REPLACED, find_deployed_aircraft_routes
+        from mission_builder.aircraft_roles import ROUTE_REPLACED, ROUTE_ZONE_DEFENSE, find_deployed_aircraft_routes
 
         for section, group, verdict in find_deployed_aircraft_routes(
             self.mission_yaml, self.dcs_mission.mission_content
         ):
             if verdict == ROUTE_REPLACED:
                 logger.warning(t("builder.aircraft_route_replaced", group=group, section=section))
+            elif verdict == ROUTE_ZONE_DEFENSE:
+                logger.info(t("builder.aircraft_route_zone_defense", group=group, section=section))
             else:
                 logger.info(t("builder.aircraft_route_engages_air", group=group, section=section))
 

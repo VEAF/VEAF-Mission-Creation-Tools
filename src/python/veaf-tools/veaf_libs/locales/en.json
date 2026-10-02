@@ -125,6 +125,7 @@
   "builder.active_modules": "Active VEAF modules ({count}): {modules}",
   "builder.aircraft_route_engages_air": "{section} group '{group}' engages aircraft by its own route: it is flown as written.",
   "builder.aircraft_route_replaced": "{section} group '{group}' is tasked CAP/Intercept and its route engages no aircraft: at runtime it is replaced by a patrol across the zone (zone_defense). Add an EngageTargets (Air) task to keep your route, or leave a single waypoint.",
+  "builder.aircraft_route_zone_defense": "{section} group '{group}' has a single waypoint and no air engagement: at runtime it is given a patrol across the zone and engages what enters it (zone_defense).",
   "builder.unknown_module_ids": "--log-modules: unknown module ID(s): {ids} - check spelling",
   "builder.update_hint": "Try updating the veaf-tools package using veaf-tools-updater.exe!",
   "builder.updating_triggers": "Updating mission triggers...",

@@ -80,6 +80,10 @@ veafAircraftSpawn.roles = {}
 --- The role each group spawned or re-tasked here flies, by group name.
 veafAircraftSpawn.groupRoles = {}
 
+--- The first-waypoint options each group was spawned with, by group name: a role given in flight
+--- replaces the route, and its first waypoint carries them again.
+veafAircraftSpawn.groupOptions = {}
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Reading a route
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -549,12 +553,13 @@ function VeafAircraftSpawn:spawn()
   end
 
   local templateRoute = veaf.getGroupRoute(self.templateName)
-  local route, state = nil, nil
+  local route, state, firstWaypointTask = nil, nil, nil
   if role then
+    firstWaypointTask = self.firstWaypointTask or veafAircraftSpawn.firstWaypointOptions(templateRoute)
     local context = {
       spot = spot,
       params = self.roleParams,
-      firstWaypointTask = self.firstWaypointTask or veafAircraftSpawn.firstWaypointOptions(templateRoute),
+      firstWaypointTask = firstWaypointTask,
       templateSpeed = templateSpeedOf(templateRoute),
       takeoffPoint = veafAircraftSpawn.takeoffPoint(templateRoute),
     }
@@ -614,6 +619,7 @@ function VeafAircraftSpawn:spawn()
     return nil
   end
   veafAircraftSpawn.groupRoles[groupName] = self.roleName
+  veafAircraftSpawn.groupOptions[groupName] = firstWaypointTask
   role.afterSpawn(dcsGroup, groupName, dcsGroup:getCoalition(), state)
   logger:debug("spawned %s as %s", veaf.p(groupName), veaf.p(self.roleName))
   return groupName
@@ -673,7 +679,11 @@ function veafAircraftSpawn.assignRole(groupName, roleName, params)
     return false
   end
   local spot = leader:getPoint()
-  local route, state = role.buildRoute({ spot = spot, params = params or {}, firstWaypointTask = params and params.firstWaypointTask })
+  -- the options it was spawned with, unless the caller gives others: the new route replaces the one
+  -- that carried them, possibly before DCS ever ran its first waypoint
+  local firstWaypointTask = (params and params.firstWaypointTask) or veafAircraftSpawn.groupOptions[groupName]
+  local route, state =
+    role.buildRoute({ spot = spot, params = params or {}, firstWaypointTask = firstWaypointTask and veaf.deepCopy(firstWaypointTask) })
   veaf.goRoute(dcsGroup, route)
   veafAircraftSpawn.groupRoles[groupName] = roleName
   role.afterSpawn(dcsGroup, groupName, dcsGroup:getCoalition(), state)

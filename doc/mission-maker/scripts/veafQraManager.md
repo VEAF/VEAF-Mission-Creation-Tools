@@ -324,7 +324,7 @@ Un groupe placé **au parking ou sur la piste** garde son décollage tel que vou
 27 000 ft pour sa patrouille.
 
 C'est donc le cas normal : placez l'intercepteur avec **un seul point**, sans tâche, et le script fait le
-reste. Si vous voulez votre propre plan de vol, écrivez-le **avec** une tâche d'engagement des aéronefs : il
+reste ; le build l'annonce pour chaque groupe concerné. Si vous voulez votre propre plan de vol, écrivez-le **avec** une tâche d'engagement des aéronefs : il
 est alors suivi tel quel. Une route écrite à la main sans cet engagement est remplacée, et le build vous le
 signale par un avertissement. Un groupe d'une autre tâche (`CAS`, `Ground Attack`, `Escort`…) suit toujours
 sa route.

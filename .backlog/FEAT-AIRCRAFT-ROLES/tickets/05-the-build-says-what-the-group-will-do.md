@@ -8,7 +8,7 @@ For each DCS aircraft group tasked `CAP` or `Intercept` that a QRA or an air wav
 
 | Route | Message |
 |---|---|
-| empty: at most one waypoint, carrying nothing but options | none — the normal case, the script completes it |
+| empty: at most one waypoint, carrying nothing but options | information: it is given `zone_defense` — the Sayqal case, which nothing in the editor shows (David, 2026-10-02: "c'est justement l'origine de ce lot") |
 | present, without air engagement | non-blocking warning: it will be replaced by `zone_defense` |
 | engages air | information: used as written |
 

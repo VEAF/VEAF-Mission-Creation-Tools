@@ -111,9 +111,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and climbs to 27 000 ft. A route that engages air, and the route of any other task — a bomber or an
   assault wave — is flown as written. A `-cap` listed in a QRA or a wave now defends that zone rather
   than the 60 NM zone around its own leg, with a single watchdog. The roles live in a new runtime
-  module, `veafAircraftSpawn.lua`, which `-cap` now spawns through too. The build and `veaf-tools
-  validate` warn when a `CAP`/`Intercept` route written by hand will be replaced, and the build says
-  when one is flown as written. **A mission picks this up by being rebuilt.**
+  module, `veafAircraftSpawn.lua`, which `-cap` now spawns through too. The build says, for every
+  such group a QRA or a wave deploys, what it will do — given its patrol, flown as written, or (a
+  warning, which `veaf-tools validate` carries too) a hand-written route that will be replaced. **A mission picks this up by being rebuilt.**
 
 ### Fixed
 

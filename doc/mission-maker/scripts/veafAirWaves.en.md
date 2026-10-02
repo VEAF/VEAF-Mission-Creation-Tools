@@ -308,7 +308,7 @@ A group placed **on a parking spot or the runway** keeps its take-off as you set
 27,000 ft for its patrol.
 
 So this is the normal case: place the fighter with **a single waypoint** and no task, and the script
-does the rest. If you want a flight plan of your own, write it **with** an aircraft engagement task: it is
+does the rest; the build says so for every such group. If you want a flight plan of your own, write it **with** an aircraft engagement task: it is
 then flown as written. A hand-written route without that engagement is replaced, and the build warns you
 about it. A group with any other task (`CAS`, `Ground Attack`, `Escort`…) always flies its route.
 

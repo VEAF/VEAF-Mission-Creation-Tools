@@ -3478,6 +3478,76 @@ local function lastOptionValue(optionId)
   return value
 end
 
+--- FEAT-AIRCRAFT-ROLES: an interceptor that starts on the ground is not "landed" before it has flown.
+---
+--- The watchdog destroys a CAP whose units are all on the ground, which is how a patrol that lands
+--- is removed. Its first tick runs one second after the spawn, and a flight placed on a parking spot
+--- is still there: it was destroyed before it had started its engines.
+TestVeafSpawnCapWatchdogGroundStart = {}
+
+function TestVeafSpawnCapWatchdogGroundStart:setUp()
+  dcs_mocks.reset()
+  self.airborne = false
+  self.destroyed = false
+  self._schedule = veaf.scheduleFunction
+  self.rescheduled = 0
+  local test = self
+  veaf.scheduleFunction = function()
+    test.rescheduled = test.rescheduled + 1
+  end
+  dcs_mocks.addUnit("parked-1", {
+    inAir = function()
+      return test.airborne
+    end,
+    isActive = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = 0, y = 20, z = 0 }
+    end,
+    getController = function()
+      return {
+        getDetectedTargets = function()
+          return {}
+        end,
+      }
+    end,
+  })
+  local unit = Unit.getByName("parked-1")
+  dcs_mocks.addGroup("parked", {
+    getUnits = function()
+      return { unit }
+    end,
+    destroy = function()
+      test.destroyed = true
+    end,
+  })
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:tearDown()
+  veaf.scheduleFunction = self._schedule
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_still_parked_is_waited_for()
+  veafSpawn.capWatchdogZones["parked"] = { x = 0, y = 0, radius = 100000 }
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, { x = 0, y = 0, radius = 100000 })
+  luaunit.assertFalse(self.destroyed, "a flight that has not taken off yet is not a flight that landed")
+  luaunit.assertEquals(self.rescheduled, 1, "the watchdog keeps watching it")
+  luaunit.assertNotNil(veafSpawn.capWatchdogZones["parked"], "and keeps its zone")
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_that_flew_and_landed_is_removed()
+  local zone = { x = 0, y = 0, radius = 100000 }
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = true
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = false
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  luaunit.assertTrue(self.destroyed)
+  luaunit.assertNil(veafSpawn.capWatchdogFlown["parked"], "the registry forgets it")
+end
+
 function TestVeafSpawnCapTargetFilter:setUp()
   dcs_mocks.reset()
 end

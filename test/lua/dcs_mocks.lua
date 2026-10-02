@@ -812,6 +812,7 @@ function dcs_mocks.resetVeafRuntimeState()
   if veafAircraftSpawn then
     -- The role each spawned group flies, by name: the command layer reads it to leave those alone.
     veafAircraftSpawn.groupRoles = {}
+    veafAircraftSpawn.groupOptions = {}
   end
   if veafMissionDb then
     -- The spawned-name registry outlives a snapshot rebuild, which is right in a mission and wrong
@@ -835,6 +836,7 @@ function dcs_mocks.resetVeafRuntimeState()
     -- One entry per running CAP watchdog. A leftover one makes the next spawn of the same name believe
     -- a watchdog already guards it, and schedule none.
     veafSpawn.capWatchdogZones = {}
+    veafSpawn.capWatchdogFlown = {}
   end
 end
 

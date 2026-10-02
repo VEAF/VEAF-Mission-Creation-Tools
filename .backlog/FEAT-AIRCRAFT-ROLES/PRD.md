@@ -66,7 +66,7 @@ needs today, and moves `-cap` onto it.
       one that engages air keeps its editor route — both asserted on what `coalition.addGroup` receives
 - [x] A `-cap` run by a QRA or a wave defends that zone, with a single watchdog
 - [x] An aircraft with a role keeps its route and its ROE through the command layer and a combat zone
-- [x] The build: empty route → nothing; route without air engagement → non-blocking warning; route
-      that engages air → information
+- [x] The build: empty route → information (given `zone_defense`); route without air engagement →
+      non-blocking warning; route that engages air → information
 - [x] Docs FR + EN, `create_qra` description, CHANGELOG, `DCS-SESSION-TODO.md` item for the game
 - [x] Lua + Python gates green, coverage floors bumped

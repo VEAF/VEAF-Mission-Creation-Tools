@@ -991,6 +991,16 @@ TestVeafQraCommandDefendsTheZone = {}
 local QRA_CAP_TEMPLATE = "veafSpawn-QRACAP"
 local QRA_CAP_CLONE = string.format("%s #%04d", QRA_CAP_TEMPLATE, 1)
 local QRA_CAP_CENTRE = { x = 40000, y = 0, z = 30000 }
+-- the template's first-waypoint options: ROE weapons hold, reaction to threat evade
+local QRA_CAP_OPTIONS = {
+  id = "ComboTask",
+  params = {
+    tasks = {
+      { id = "WrappedAction", enabled = true, number = 1, params = { action = { id = "Option", params = { name = 0, value = 4 } } } },
+      { id = "WrappedAction", enabled = true, number = 2, params = { action = { id = "Option", params = { name = 1, value = 3 } } } },
+    },
+  },
+}
 
 function TestVeafQraCommandDefendsTheZone:setUp()
   dcs_mocks.reset()
@@ -1005,7 +1015,7 @@ function TestVeafQraCommandDefendsTheZone:setUp()
   }
   self._originalFind = veafSpawn.findSpawnableAircraftGroupname
   veafSpawn.findSpawnableAircraftGroupname = function(_)
-    return QRA_CAP_TEMPLATE, { groupId = 1, units = {}, route = { points = { [1] = {} } } }
+    return QRA_CAP_TEMPLATE, { groupId = 1, units = {}, route = { points = { [1] = { task = QRA_CAP_OPTIONS } } } }
   end
   self._originalSchedule = veaf.scheduleFunction
   self.scheduled = {}
@@ -1063,6 +1073,7 @@ function TestVeafQraCommandDefendsTheZone:test_a_cap_command_is_re_tasked_on_the
   local points = mission.task.params.route.points
   luaunit.assertAlmostEquals((points[2].x + points[3].x) / 2, QRA_CAP_CENTRE.x, 0.01)
   luaunit.assertAlmostEquals((points[2].y + points[3].y) / 2, QRA_CAP_CENTRE.z, 0.01)
+  luaunit.assertEquals(points[1].task, QRA_CAP_OPTIONS, "the new route keeps the template's first-waypoint options")
 end
 
 os.exit(luaunit.LuaUnit.run())

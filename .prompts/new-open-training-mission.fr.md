@@ -111,8 +111,9 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
     missile (Fox 1, Fox 3), avec un AWACS de chaque camp ;
   - une **zone de sanctuaire** (module `SANCTUARY`, `sanctuary_zones`) qui protège les arrières d'un
     camp : un intrus est prévenu puis détruit, et `protect_from_missiles` détruit les missiles tirés
-    sur les défenseurs. Le polygone est tracé par des unités en activation différée
-    (`polygon_units`), jamais activées.
+    sur les défenseurs. Autour d'une base, un cercle tiré d'une zone de déclenchement
+    (`trigger_zone`) ; un polygone tracé par des unités en activation différée (`polygon_units`,
+    jamais activées) seulement pour une forme qu'un cercle ne couvre pas.
 - **FARP** : une bonne pratique à généraliser — un FARP bleu près du front et près de chaque zone
   destinée aux hélicoptères (réarmement, CTLD, CSAR). `add_farp` le pose complet, avec son **dépôt de
   munitions** (statique `FARP Ammo Dump Coating`, `<FARP> - Ammo`) que CTLD reconnaît comme point

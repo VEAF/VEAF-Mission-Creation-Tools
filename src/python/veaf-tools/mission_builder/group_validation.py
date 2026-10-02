@@ -217,6 +217,11 @@ def find_missing_trigger_zone_refs(
         if isinstance(qra_def, dict) and (tz := qra_def.get("trigger_zone")) and str(tz) not in present:
             issues.append(("QRA", str(tz), LEVEL_ERROR))
 
+    # The runtime only warns for a missing one and adds no sanctuary (FIX-OPEN-TRAINING-SYRIA-FINDINGS 12).
+    for zone in _module_cfg(modules, "SANCTUARY").get("sanctuary_zones") or []:
+        if isinstance(zone, dict) and (tz := zone.get("trigger_zone")) and str(tz) not in present:
+            issues.append(("SANCTUARY", str(tz), LEVEL_ERROR))
+
     for zone_def in _module_cfg(modules, "COMBATZONE").get("combat_zones") or []:
         if not isinstance(zone_def, dict) or zone_def.get("type") == "operation":
             continue  # an operation's zone_name is a label, not a required trigger zone

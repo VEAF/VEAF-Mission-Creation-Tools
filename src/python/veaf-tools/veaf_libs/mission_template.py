@@ -68,7 +68,7 @@ _SANCTUARY_BLOCK = """\
   #     enabled: true
   #     sanctuary_zones:
   #       - name: Base Alpha
-  #         polygon_units:
+  #         polygon_units:          # or a circle: trigger_zone: SANCT Alpha
   #           - Sanctuary-Unit-1
   #         coalition: BLUE
   #         delay_warning: 30

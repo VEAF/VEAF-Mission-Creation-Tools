@@ -110,7 +110,8 @@ why.
     (Fox 1, Fox 3), with an AWACS for each side;
   - a **sanctuary zone** (`SANCTUARY` module, `sanctuary_zones`) protecting one side's rear: an
     intruder is warned then destroyed, and `protect_from_missiles` destroys the missiles fired at
-    the defenders. The polygon is drawn by late-activation units (`polygon_units`), never activated.
+    the defenders. Round a base, a circle from a trigger zone (`trigger_zone`); a polygon drawn by
+  late-activation units (`polygon_units`, never activated) only for a shape a circle does not fit.
 - **FARPs**: a good practice to generalise — a blue FARP near the front and near every zone meant
   for helicopters (rearming, CTLD, CSAR). `add_farp` places it complete, with its **ammo dump**
   (`FARP Ammo Dump Coating` static, `<FARP> - Ammo`) that CTLD takes as a logistic point

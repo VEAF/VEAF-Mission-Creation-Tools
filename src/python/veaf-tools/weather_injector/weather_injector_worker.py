@@ -19,10 +19,65 @@ from .models import MissionConfig, VersionConfig
 from .utils import SolarCalculator, TimeExpressionParser
 from .utils.theatre_offsets import theatre_utc_offset
 from .weather import DCSWeatherConverter
-from .weather.dcs_weather_converter import _CLEARSKY_MAX_WIND_MPS, fetch_metar_string
+from .weather.dcs_weather_converter import (
+    _extract_metar_values,
+    _select_cloud_preset,
+    cap_clearsky,
+    fetch_metar_string,
+)
 from .weather.metar_composer import compose_metar
 
 _INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
+#: The station of a METAR: the first four-letter word, ``METAR`` / ``SPECI`` aside.
+_STATION = re.compile(r"(?:(?:METAR|SPECI)\s+)?([A-Z]{4})\b")
+
+
+def _station(metar: str) -> str | None:
+    """Read the ICAO station a METAR starts with.
+
+    Args:
+        metar: The report, with or without its ``METAR`` / ``SPECI`` prefix.
+
+    Returns:
+        The station, or None when the report does not start with one.
+    """
+    match = _STATION.match(metar.strip())
+    return match.group(1) if match else None
+
+
+def _as_values(manual: dict[str, Any]) -> dict[str, Any]:
+    """Move a ``weather:`` mapping to the converter's form, for :func:`cap_clearsky`.
+
+    Args:
+        manual: A variant's ``weather:`` mapping (``cloud_type`` named, ``fog_enabled``).
+
+    Returns:
+        The same values with ``cloud_type`` as 0-4 (dropped if unknown, as the composer ignores it) and
+        ``fog``.
+    """
+    values = {key: value for key, value in manual.items() if key not in ("cloud_type", "fog_enabled")}
+    cover = DCSWeatherConverter.CLOUD_TYPES.get(str(manual.get("cloud_type") or "").lower())
+    if cover is not None:
+        values["cloud_type"] = cover
+    values["fog"] = bool(manual.get("fog_enabled"))
+    return values
+
+
+def _as_manual(values: dict[str, Any]) -> dict[str, Any]:
+    """Move converter-form values back to the ``weather:`` form :func:`compose_metar` reads.
+
+    Args:
+        values: Values in the converter's form (``cloud_type`` 0-4, ``fog``).
+
+    Returns:
+        The same values with ``cloud_type`` named and ``fog_enabled``.
+    """
+    names = {code: name for name, code in DCSWeatherConverter.CLOUD_TYPES.items()}
+    manual = {key: value for key, value in values.items() if key not in ("cloud_type", "fog")}
+    if values.get("cloud_type") in names:
+        manual["cloud_type"] = names[values["cloud_type"]]
+    manual["fog_enabled"] = bool(values.get("fog"))
+    return manual
 
 
 class WeatherInjectorWorker(BaseWorker):
@@ -223,7 +278,8 @@ class WeatherInjectorWorker(BaseWorker):
 
         ``METAR`` is the one written in the configuration, else the one fetched for an ICAO, else one
         composed from the variant's ``weather:`` (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 10: it was left
-        printed raw in six of the fifteen Syria briefings). A variant with none of the three — or a fetch
+        printed raw in six of the fifteen Syria briefings); under ``clearsky``, recomposed from the capped
+        values (see :meth:`_briefing_metar`). A variant with none of the three — or a fetch
         that failed — leaves the token as written, with a warning saying why, rather than a blank a
         mission maker would read as the build eating his prose.
 
@@ -236,23 +292,48 @@ class WeatherInjectorWorker(BaseWorker):
         requested = set(briefing_variables.unknown_tokens(self.mission_data, {}))
         variables: dict[str, str] = {}
         if "METAR" in requested:
-            metar_text = version.metar or ""
-            if not metar_text and version.airport_icao:
-                metar_text = fetch_metar_string(version.airport_icao)
-            elif not metar_text and version.weather:
-                metar_text = self._composed_metar(version.weather, clearsky=version.clearsky)
+            metar_text = self._briefing_metar(version)
             if metar_text:
                 variables["METAR"] = metar_text
 
         briefing_variables.apply_and_report(self.mission_data, variables, context=version.name)
 
-    def _composed_metar(self, manual: dict[str, Any], *, clearsky: bool = False) -> str:
-        """Compose this variant's METAR from its manual weather, at its start time in UTC.
+    def _briefing_metar(self, version: VersionConfig) -> str:
+        """What ``${METAR}`` resolves to for this variant.
 
         Args:
-            manual: The variant's ``weather:`` mapping.
-            clearsky: The variant's ``clearsky``: the METAR shows the capped sky DCS is given, not
-                the one written (``DCSWeatherConverter.to_dcs_lua_table`` applies the same caps).
+            version: The variant being built.
+
+        Returns:
+            The written or fetched report as published; under ``clearsky``, one recomposed from the capped
+            values DCS is given, with the report's station, temperature and QNH (FIX-CLEARSKY-METAR: the
+            published report announced a broken layer the capped sky never flew). Always recomposed under
+            ``clearsky``, even when the caps change nothing: a ``TEMPO TSRA`` left in the text would still
+            contradict the sky. ``""`` when there is nothing to show.
+        """
+        published = version.metar or ""
+        if not published and version.airport_icao:
+            published = fetch_metar_string(version.airport_icao)
+        if published:
+            if not version.clearsky:
+                return published
+            # The same parser the injection read the report with, so the values are the ones injected.
+            capped = cap_clearsky(_extract_metar_values(published))
+            return self._composed_metar(_as_manual(capped), station=_station(published) or version.airport_icao)
+        if version.metar or version.airport_icao or not version.weather:
+            return ""
+        manual = version.weather
+        if version.clearsky:
+            manual = _as_manual(cap_clearsky(_as_values(manual)))
+        return self._composed_metar(manual)
+
+    def _composed_metar(self, manual: dict[str, Any], *, station: str | None = None) -> str:
+        """Compose this variant's METAR from weather values in the ``weather:`` form, at its start time in UTC.
+
+        Args:
+            manual: The values, in the form of a variant's ``weather:`` mapping, already capped if the
+                variant asks for ``clearsky``.
+            station: The ICAO station, for a report recomposed from a real one.
 
         Returns:
             The METAR, stamped with the mission's date and start time (already set for the variant),
@@ -271,18 +352,12 @@ class WeatherInjectorWorker(BaseWorker):
         weather = (self.mission_data.get_weather() if self.mission_data else None) or {}
         qnh_mmhg = weather.get("qnh")
         qnh_hpa = float(qnh_mmhg) / 0.750062 if qnh_mmhg else None  # DCS stores mmHg
-        if clearsky:
-            manual = dict(manual)
-            covers = list(DCSWeatherConverter.CLOUD_TYPES)
-            cover = str(manual.get("cloud_type") or "clear").lower()
-            if cover in covers and covers.index(cover) > covers.index("few"):
-                manual["cloud_type"] = "few"
-            if manual.get("wind_speed") is not None:
-                manual["wind_speed"] = min(float(manual["wind_speed"]), _CLEARSKY_MAX_WIND_MPS)
-            manual["visibility"] = max(float(manual.get("visibility") or 10000.0), 9999.0)
-            manual["precipitation"] = False
-            manual["fog_enabled"] = False
-        return compose_metar(manual, local - timedelta(hours=offset), qnh_hpa)
+        # The converter moves a cloud base into its preset's range (FEW starts at 840 m): announce that one.
+        cover = DCSWeatherConverter.CLOUD_TYPES.get(str(manual.get("cloud_type") or "").lower())
+        if cover and manual.get("cloud_height") is not None:
+            _, base = _select_cloud_preset(cover, float(manual["cloud_height"]), bool(manual.get("precipitation")))
+            manual = {**manual, "cloud_height": base}
+        return compose_metar(manual, local - timedelta(hours=offset), qnh_hpa, station)
 
     def _update_mission_time_and_date(self, version: VersionConfig) -> None:
         """Update mission start time and date."""

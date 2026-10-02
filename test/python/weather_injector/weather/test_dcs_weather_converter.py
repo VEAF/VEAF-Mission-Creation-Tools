@@ -9,6 +9,7 @@ from weather_injector.weather.dcs_weather_converter import (
     _extract_metar_values,
     _fallback_metar_parsing,
     _fetch_live_metar,
+    cap_clearsky,
 )
 
 
@@ -209,6 +210,31 @@ class TestClearsky(unittest.TestCase):
     def test_removes_fog(self) -> None:
         result = DCSWeatherConverter.to_dcs_lua_table(fog_enabled=True, clearsky=True)
         self.assertFalse(result["enable_fog"])
+
+
+class TestCapClearsky(unittest.TestCase):
+    """``cap_clearsky``: the one place the caps live, for the injected table and the briefing's METAR."""
+
+    def test_caps_every_value_and_leaves_the_rest(self) -> None:
+        observed = _extract_metar_values("LTAG 021820Z 35030KT 3000 +TSRA BR BKN090 19/16 Q1015")
+        observed["fog"] = True
+        capped = cap_clearsky(observed)
+        self.assertEqual(capped["cloud_type"], 1)
+        self.assertAlmostEqual(capped["wind_speed"], 7.72)
+        self.assertEqual(capped["visibility"], 9999.0)
+        self.assertFalse(capped["precipitation"])
+        self.assertFalse(capped["fog"])
+        for kept in ("temperature", "wind_direction", "cloud_height", "qnh_hpa"):
+            self.assertEqual(capped[kept], observed[kept], kept)
+
+    def test_does_not_touch_its_input(self) -> None:
+        # The live fetch is memoised and its dict shared: capping it in place would cap the real variant too.
+        observed = _extract_metar_values("LTAG 021820Z 35030KT 3000 BKN090 19/16 Q1015")
+        cap_clearsky(observed)
+        self.assertEqual(observed["cloud_type"], 3)
+
+    def test_adds_no_wind_or_cloud_that_was_not_given(self) -> None:
+        self.assertEqual(cap_clearsky({}), {"visibility": 10000.0, "precipitation": False, "fog": False})
 
 
 class TestFetchLiveMetar(unittest.TestCase):

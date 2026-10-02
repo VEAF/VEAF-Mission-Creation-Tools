@@ -36,3 +36,8 @@ def test_calm_wind_and_a_clear_sky() -> None:
 
 def test_a_north_wind_reads_360() -> None:
     assert compose_metar({"wind_speed": 5, "wind_direction": 2}, _WHEN) == "METAR 150930Z 36010KT"
+
+
+def test_a_station_is_written_before_the_time_group() -> None:
+    # FIX-CLEARSKY-METAR: a METAR recomposed from a real report keeps the report's station.
+    assert compose_metar({"cloud_type": "few"}, _WHEN, station="LTAG") == "METAR LTAG 150930Z FEW///"

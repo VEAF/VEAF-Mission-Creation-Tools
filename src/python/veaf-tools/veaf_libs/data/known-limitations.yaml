@@ -366,6 +366,19 @@ limitations:
   workaround: |
     Set the airfield's coalition in the Mission Editor rather than by script at start, or put ground
     units of that side on the field for two minutes.
+- id: metar-weather-keeps-one-cloud-layer
+  kind: tool
+  area: pipeline
+  title: A METAR's weather is flown with its last cloud layer only
+  symptom: |
+    The weather injector reads every cloud group of a `metar:` or an `airport_icao:` report into the
+    same single layer, so the last one wins. Measured on 2026-10-02 on the Syria Open Training v6:
+    `LTAG ... SCT030 BKN090 ...` flies BKN at 2743 m (9000 ft), and the scattered layer at 900 m is
+    not in the sky. A `clearsky: true` variant's `${METAR}` is recomposed from that one layer too
+    (`FEW090`).
+  workaround: |
+    Write a `metar:` with the one layer that matters, or a `weather:` mapping with its `cloud_type`
+    and `cloud_height`.
 - id: operation-spawns-all-its-zones-at-once
   kind: tool
   area: runtime

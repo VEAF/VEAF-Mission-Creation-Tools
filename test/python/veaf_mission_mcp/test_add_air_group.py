@@ -473,3 +473,38 @@ class TestFuelLoad:
         with pytest.raises(ValueError, match="not both"):
             self._air_start(miz, fuel=1000, fuel_fraction=0.5)
         assert miz.read_bytes() == before
+
+
+class TestUnarmedFlight:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 01: an escort with no pylons escorts nothing."""
+
+    def _add(self, tmp_path: Path, **overrides: object) -> dict:
+        params: dict = {
+            "coalition": "blue",
+            "country_id": 2,
+            "country_name": "USA",
+            "name": "Escort Texaco 1",
+            "unit_type": "F-15C",
+            "count": 2,
+            "start": "air",
+            "position": {"x": 0.0, "y": 0.0},
+            "task": "Escort",
+        }
+        params.update(overrides)
+        return add_air_group(_caucasus_miz(tmp_path), **params)
+
+    def test_an_unarmed_escort_warns_naming_the_group(self, tmp_path: Path) -> None:
+        warnings = self._add(tmp_path).get("warnings", [])
+        assert any("Escort Texaco 1" in w and "no weapons" in w for w in warnings)
+
+    def test_an_armed_escort_does_not_warn(self, tmp_path: Path) -> None:
+        result = self._add(tmp_path, pylons={1: {"CLSID": "{AIM-9M}"}})
+        assert not any("no weapons" in w for w in result.get("warnings", []))
+
+    def test_a_client_slot_does_not_warn(self, tmp_path: Path) -> None:
+        result = self._add(tmp_path, skill="Client")
+        assert not any("no weapons" in w for w in result.get("warnings", []))
+
+    def test_a_tanker_does_not_warn(self, tmp_path: Path) -> None:
+        result = self._add(tmp_path, unit_type="KC-135", count=1, task="Refueling", name="Texaco 1")
+        assert "warnings" not in result

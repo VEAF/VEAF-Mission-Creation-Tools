@@ -58,6 +58,21 @@ _START_WAYPOINT: dict[str, tuple[str, str]] = {
     "deck-cold": ("TakeOffParking", "From Parking Area"),
     "deck-hot": ("TakeOffParkingHot", "From Parking Area Hot"),
 }
+#: The tasks that need weapons to do anything.
+FIGHTING_TASKS: frozenset[str] = frozenset(
+    {
+        "Escort",
+        "CAP",
+        "Intercept",
+        "Fighter Sweep",
+        "CAS",
+        "Ground Attack",
+        "SEAD",
+        "Antiship Strike",
+        "Pinpoint Strike",
+        "Runway Attack",
+    }
+)
 _PARKING_MODES = ("parking-cold", "parking-hot")
 _DECK_MODES = ("deck-cold", "deck-hot")
 
@@ -199,7 +214,7 @@ def add_air_group(
     )
     if deck is not None:
         _seat_on_deck(group, *deck)
-    assign_identities(content, group, country_id=country_id, task=task)
+    callsign_note = assign_identities(content, group, country_id=country_id, task=task)
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
     # sign of it (FIX-MCP-AIRCRAFT-CATEGORY).
@@ -228,10 +243,32 @@ def add_air_group(
         "airdrome_id": airdrome_id,
         "stands": deck[1] if deck is not None else [s.parking for s in stands],
     }
-    warnings = [w for w in (category_warning, fuel_warning) if w]
+    unarmed = unarmed_warning(name, task, skill, payload)
+    warnings = [w for w in (category_warning, fuel_warning, callsign_note, unarmed) if w]
     if warnings:
         result["warnings"] = warnings
     return result
+
+
+def unarmed_warning(name: str, task: str, skill: str, payload: dict[str, Any]) -> str | None:
+    """Warn about an AI flight given a fighting task and no weapons.
+
+    Eight Syria escort pairs were created with an empty ``pylons`` table and escorted nothing
+    (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 01). Not a refusal, and silent for a ``Client`` or
+    ``Player`` slot: a player arms the aircraft on the ramp.
+
+    Args:
+        name: The group's name.
+        task: The group's task.
+        skill: The group's skill.
+        payload: The payload the units carry.
+
+    Returns:
+        The warning, or ``None``.
+    """
+    if task not in FIGHTING_TASKS or skill in ("Client", "Player") or payload.get("pylons"):
+        return None
+    return f"group {name!r} has task {task!r} and no weapons: it will not fight without a loadout"
 
 
 def _cap_engage_task() -> dict[str, Any]:
@@ -345,7 +382,7 @@ def insert_air_group_into_content(
             "id": "ComboTask",
             "params": {"tasks": {number: entry for number, entry in enumerate(first_tasks, start=1)}},
         }
-    assign_identities(content, group, country_id=country_id, task=task)
+    callsign_note = assign_identities(content, group, country_id=country_id, task=task)
     category, category_warning = air_category_for_type_verbose(unit_type)
     group_id = insert_group(
         content,
@@ -355,7 +392,8 @@ def insert_air_group_into_content(
         category=category,
         group=group,
     )
-    return group_id, [w for w in (category_warning, fuel_warning) if w]
+    unarmed = unarmed_warning(name, task, skill, payload)
+    return group_id, [w for w in (category_warning, fuel_warning, callsign_note, unarmed) if w]
 
 
 def _mission_groups(content: dict[str, Any], category: str) -> list[dict[str, Any]]:

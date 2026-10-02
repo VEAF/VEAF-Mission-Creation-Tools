@@ -939,7 +939,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "'Client'). Starts: parking-cold / parking-hot (need 'airfield'), runway (needs "
                 "'airfield'), air (needs 'position'), deck-cold / deck-hot (need 'carrier'). Each aircraft "
                 "gets its type's default chaff and flare, a callsign and a tail number no other aircraft of "
-                "the mission carries. Target a FOLDER (durable) or .miz (transient); backed up first."
+                "the mission carries; a western flight NAMED like its callsign ('Texaco 2', 'Magic 1') gets "
+                "that callsign (Texaco21...) when its family fits the task and the flight is free, else the "
+                "next free one and a warning. A fighting task (Escort, CAP, CAS, SEAD...) with no pylons "
+                "warns for an AI flight. Target a FOLDER (durable) or .miz (transient); backed up first."
             ),
             parameters_schema={
                 "type": "object",

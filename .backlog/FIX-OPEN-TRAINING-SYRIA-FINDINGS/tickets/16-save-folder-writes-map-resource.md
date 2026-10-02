@@ -1,6 +1,6 @@
 # 16 — save_folder_mission writes mapResource
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `mission_tools/miz_tools.py` (`write_mission_folder`), tests.
 

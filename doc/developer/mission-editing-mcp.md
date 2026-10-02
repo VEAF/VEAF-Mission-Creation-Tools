@@ -72,7 +72,7 @@ fixe, à l'image du serveur MCP `dcs-bridge` (pont vers une mission qui tourne) 
 | Outil MCP | Rôle |
 |-----------|------|
 | `capabilities()` | Identité du serveur (nom, version). |
-| `list_catalog()` | Liste les actions enregistrées (`name`, `description`, `parameters_schema`). |
+| `list_catalog(full=False)` | Liste les actions enregistrées en `{name, summary}` — la première phrase de la description, une dizaine de ko pour toutes ; `full=true` rend chaque `description` et `parameters_schema` (quelque 70 ko, qu'un client range dans un fichier au lieu de les montrer). `describe_action` en donne une en entier. |
 | `describe_action(name)` | Détaille le schéma JSON des paramètres d'une action. |
 | `run_action(name, params)` | Exécute une action enregistrée. |
 

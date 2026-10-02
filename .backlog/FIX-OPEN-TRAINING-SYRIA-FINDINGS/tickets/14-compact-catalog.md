@@ -1,6 +1,6 @@
 # 14 — list_catalog fits in an agent's tool result
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/server.py`, `veaf_mission_mcp/catalog.py`, tests.
 

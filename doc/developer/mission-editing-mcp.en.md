@@ -70,7 +70,7 @@ surface, mirroring the `dcs-bridge` MCP tool (a bridge to a running mission):
 | MCP tool | Role |
 |----------|------|
 | `capabilities()` | Server identity (name, version). |
-| `list_catalog()` | List registered actions (`name`, `description`, `parameters_schema`). |
+| `list_catalog(full=False)` | List registered actions as `{name, summary}` — the description's first sentence, about 10 kB for all of them; `full=true` gives every `description` and `parameters_schema` (some 70 kB, which a client saves to a file rather than shows). `describe_action` gives one in full. |
 | `describe_action(name)` | Detail one action's parameter JSON Schema. |
 | `run_action(name, params)` | Run a registered action. |
 

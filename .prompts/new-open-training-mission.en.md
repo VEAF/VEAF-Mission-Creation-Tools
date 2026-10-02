@@ -215,13 +215,28 @@ Each family = **3 zones nested on the same circle** (easy ⊂ medium ⊂ hard): 
 overlap (`combatZone_<Place>_Easy`, `…_Medium`, `…_Hard`), each zone holds **only its own additions**,
 and each level includes the one below (the `includes:` key of `combat_zones[]`).
 
-1. **Helicopters**: near a blue base, or near a **FARP** placed next to it. Easy = inert statics;
+1. **Helicopters**: near a blue base, or near a **FARP** placed next to it. Easy = inert targets (one-vehicle groups, below);
    medium = light AAA; hard = realistic short-range defense.
 2. **Attack aircraft**: may be farther, as long as it stays **more than 75 nm from the front** and
    within reach of no real defense. Same progression, with more armor.
-3. **SEAD / DEAD**: **far from everything** (bases, tanker tracks, other zones), so the crews train
-   in peace. Easy = one medium-range battery alone; medium = medium + short range; hard = long,
-   medium, short range and EWR, networked by Skynet.
+3. **SEAD / DEAD**: far enough aside that its SAMs reach no base, no tanker track and no other zone
+   (4.7) — but **no farther than that**. Easy = one medium-range battery alone; medium = medium +
+   short range; hard = medium, short range and EWR, networked by Skynet.
+
+   **No long range in a training zone.** An SA-10 reaches 65 nm: forbidding it to reach a friendly
+   base pushes it beyond 65 nm of everything blue, and on a narrow map there is no practicable
+   ground left at that distance. Measured on the September 2026 Caucasus Open Training: the SEAD zone
+   had landed on the Taman peninsula, **24 minutes of flight** from the nearest blue base and 243 nm
+   from the first tanker, against 1 minute for the helicopter family and 9 for the attack family. A
+   pilot who is shot down flies the 24 minutes again. David's decision (2026-10-01) fits in one
+   sentence: *"a less violent SEAD training zone will do, and if you want to train against an SA-10
+   the map has plenty"* — long range lives in the permanent defenses (4.5) and the real zones (4.7),
+   where nobody comes back ten times.
+
+   **General rule, for all three families**: the transit time from the nearest base is part of the
+   design. Aim for the same order of magnitude for the three (a few minutes), and when a content
+   forces an impractical distance, **it is the content that is cut**, not the distance that is
+   suffered.
 
 **Grade the difficulty with `defense N`.** The group spawn commands (`_spawn samgroup`, `armorgroup`,
 `combatgroup`, `transportgroup`, `convoy`…) accept `defense 0` to `5`, which picks an increasingly
@@ -318,6 +333,17 @@ Rules:
   `describe_airfield_channels` lists the mission's bases with their DCS frequencies, propose them to
   the user (a radio holds about twenty channels), then `set_airfield_channels` writes the chosen ones
   into the `bases` collection; then place them in the `channel_lists`.
+- **The channels that are not airfields are chosen outside the tower band** (AWACS, tankers,
+  carriers, flights). First read the band the theatre's towers occupy — `describe_airfield_channels`
+  gives them all — and place the rest outside it: on the Caucasus they take **250.0 to 270.0 without a
+  single gap**, one per MHz, and putting a tanker there makes a duplicate nothing reports. Measured
+  on 2026-10-01: eight VEAF channels lived in that band, invisible while the base channels carried an
+  invented series; with the real frequencies, four turned into duplicates, among them Magic 1 and
+  Nalchik on 265.0 **at channels 2 and 16 of the same radio** — a pilot switching to Nalchik found
+  himself on the AWACS. Keep the mnemonic when there is one (the tanker Arco 1's TACAN 51Y gives
+  291.0).
+- **Then check that no frequency appears twice** in one channel list, and that no non-airfield
+  channel falls on a tower of the theatre. That check was the one missing.
 - **`src/versions.yaml` to rewrite**: position = home base, timezone, era `base_date`; variants night
   / dawn / morning / day / evening × real (`airport_icao`) / clear (`clearsky`) / scattered / rain.
 - **`src/waypoints.yaml`**: remove the template's examples; one plan per category and per playable
@@ -385,8 +411,15 @@ briefing, the theatre map first.
   itself**, and removes the pictures it no longer draws: the mission always lists what was drawn. If
   the MCP has no action for it, note it in "Feedback for VMCT".
 - **F10 drawings** (`add_map_drawing`, so they survive the build): the front line, the sanctuaries,
-  the support race-tracks and the zone labels, each on the **layer of the side that must see it**
-  (`Blue`, `Red`, or `Common` for what both share).
+  the support race-tracks, and **every zone with its outline as well as its name** — a circle at the
+  real radius for every combat zone, every training zone and every QRA, plus its label. A zone
+  reduced to a name set at its centre does not say where it begins: the September 2026 Caucasus Open
+  Training had 38 drawings, 10 lines and 28 labels, **not a single outline**. Each on the **layer of
+  the side that must see it** (`Blue`, `Red`, or `Common` for what both share).
+- **An F10 label's readability**: give it an **opaque, light** `fill_color`. Without one, the action
+  applies its default background — `0x00000080`, half-transparent black — and the text, which carries
+  its side's dark colour, becomes unreadable on the map. Reported in flight on the Caucasus on
+  2026-09-29.
 - **Look at every picture** before handing it over, zooms included: no label may overlap another,
   every zone number must match the briefing's, and a dashed line must stay dashed on small circles.
 
@@ -453,4 +486,6 @@ the sides; running DCS.
   zone nesting (each level spawns more than the one it includes), targets in place, convoys moving,
   CAPs engaging.
 - List what remains to check in DCS (statics placed on the airfields, convoys following their roads,
-  zone nesting, the look of the sky).
+  zone nesting, the look of the sky, **and the F10 map drawings**). The briefing pictures are read at
+  render time; an F10 drawing is seen **only in game**, and it slipped between those two nets on the
+  Caucasus — missing outlines and unreadable labels held until a pilot reported them in flight.

@@ -219,7 +219,7 @@ se recouvrent pas (`combatZone_<Lieu>_Easy`, `…_Medium`, `…_Hard`), chaque z
 ses ajouts**, et chaque niveau inclut celui d'en dessous (clé `includes:` de `combat_zones[]`).
 
 1. **Hélicoptères** : près d'une base bleue, ou d'un **FARP** posé à côté.
-   Facile = statiques inertes ; moyen = AAA légère ; difficile = défense courte portée réaliste.
+   Facile = cibles inertes (groupes d'un véhicule, plus bas) ; moyen = AAA légère ; difficile = défense courte portée réaliste.
 2. **Avions d'attaque** : peut être plus loin, tant qu'elle reste **à plus de 75 nm du front** et
    n'est dans la portée d'aucune défense réelle. Même progression, avec plus de blindés.
 3. **SEAD / DEAD** : assez à l'écart pour que ses SAM n'atteignent ni une base, ni une piste de

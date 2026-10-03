@@ -112,7 +112,7 @@ naming convention — end up doing the same thing at respawn time. The page has 
       and what both outcomes mean, so the wait has somewhere to end
 - [x] The ASSETS page says what a respawn does to an escort — new section *What a respawn does to an
       escort* in both languages, including the cost: the escort that comes back is a fresh one
-- [ ] [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) closed, citing the
+- [x] [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) closed, citing the
       in-game measurement. Inherited from `FIX-ESCORT-RESPAWN-TASK` when that lot was archived on
       2026-09-26: it shipped the task repair, but #107's symptom — *the respawned escort does not
       follow* — is the distance this lot fixes, so the issue closes on **R5**, not on that lot

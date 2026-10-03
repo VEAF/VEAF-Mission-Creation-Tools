@@ -295,6 +295,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   something else still takes the DCS name. The name matching also folds accents, so a channel known
   only by its accented title is recognised instead of being added a second time. Same for the MCP
   action `set_airfield_channels`.
+- **`describe_known_limitations` says what DCS does with a heavy aircraft on a small fighter stand.**
+  Measured in game on 2026-10-03: three C-130s asked for a type-100 (`SmallSizeFighter`) stand on
+  GermanyCW were moved 339 m and 1 473 m away to another stand, or seated inside a hangar, and no
+  error was raised. The tools already leave that stand type out; the reason is now measured rather
+  than inferred.
 
 ## [6.26.0] — 2026-09-30
 

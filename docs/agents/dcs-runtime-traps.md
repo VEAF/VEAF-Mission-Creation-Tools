@@ -387,6 +387,26 @@ name, or compare the name it answers with the one you stored — which is what t
 *What it cost:* The vanished-sites sweep, written to drop a deactivated zone's SAM site from the IADS, kept every
 such site for the rest of the mission: one more site per deactivation and reactivation.
 
+### A heavy aircraft spawned on a `SmallSizeFighter` stand (`Term_Type` 100) is moved elsewhere without a word, or seated inside a hangar {#heavy-aircraft-on-a-small-fighter-stand-is-moved-or-clips}
+
+Measured **2026-10-03**.
+
+`coalition.addGroup` accepts the request and raises nothing either way. Three C-130s on GermanyCW,
+each asked for the free type-100 stand of one airfield (`parking` = its `Term_Index`), read 10 s later:
+
+| Airfield, stand | Where the C-130 ended up |
+|---|---|
+| Wittstock #97 | on the stand, 1.8 m off it — **2 m from a `HANGAR_COVERED_02_GREEN`**, i.e. inside it |
+| Altes Lager #93 | **1 473 m away**, on stand #67 (type 104) |
+| Bremen #13 | **339 m away**, on stand #1 (type 104) |
+
+Type 100 is not Syrian only, as the parking captures of Caucasus, Persian Gulf and Syria
+suggested: GermanyCW has some too (Ramstein, Wittstock, Altes Lager, Bremen at least).
+
+**What to do:** Seat an aircraft only on the stand types its airframe fits: the tools offer 68, 72 and 104
+(`AIRCRAFT_STAND_TYPES`) and leave 100 out. After spawning on a named stand, read the unit's
+position back rather than trusting the stand you asked for.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

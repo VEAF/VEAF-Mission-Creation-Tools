@@ -22,14 +22,6 @@ The Open Training and objective-mission prompts ask for both the Stennis and the
 
 What `FEAT-ASSIST-CHECKLISTS` left open: content-hashed resource names (DCS caches images by name), two pilots at once, and a pilot's review of the F-16C slice. Kept for after a release.
 
-### [FEAT-CTLD-AIRBASE-LOGISTICS](FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md) · 🧑
-
-Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, captured ones after two minutes of ground presence, marked by a green circle. Ramstein measured in game 2026-10-03: the C-130 parks 997 m from the 250 m circle; GermanyCW-v6 raises its radius, one re-read left.
-
-### [FIX-COMBATMISSION-UNKNOWN-NAME](FIX-COMBATMISSION-UNKNOWN-NAME/PRD.md) · 🧑
-
-Activating or deactivating a combat mission by a name the registry does not know — the bare name of an on-demand CAP — raised a Lua error instead of reporting it on screen. Fixed; the in-game look (R39) is left.
-
 ### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · 🧑
 
 A combat zone's info panel and its completion disagreed: the panel was blind to static targets (fixed) and spawned vehicles now start warm — the scripts were seen asking for it in game on 2026-10-03. Ticket 02's thermal look is left.

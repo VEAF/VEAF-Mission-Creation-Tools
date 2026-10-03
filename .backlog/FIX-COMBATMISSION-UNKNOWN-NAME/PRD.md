@@ -1,6 +1,6 @@
 # FIX-COMBATMISSION-UNKNOWN-NAME — an unknown combat mission name raises a Lua error
 
-Status: 🧑 waiting-human — fixed and tested off DCS; the in-game look is
+Status: ✅ done — merged in #1060, seen in game 2026-10-03 (R39, session d)
 [`DCS-SESSION-TODO.md` item **R39**](../../DCS-SESSION-TODO.md)
 
 Measured in DCS on 2026-10-03 (session `dcs-session-2026-10-03c`, GermanyCW):
@@ -24,7 +24,7 @@ on every call, whatever the number.
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| 01 | [Guard the callers of GetMission](tickets/01-guard-the-callers-of-getmission.md) | fix | 🧑 |
+| 01 | [Guard the callers of GetMission](tickets/01-guard-the-callers-of-getmission.md) | fix | ✅ |
 
 ## Definition of done
 
@@ -32,4 +32,4 @@ on every call, whatever the number.
       `DesactivateMissionNumber` — all five raised exactly the DCS error before the fix
 - [x] The callers return without raising; the unknown name is still reported by `GetMission`
 - [x] `DesactivateMissionNumber` uses `GetMissionNumber`
-- [ ] Seen in game — R39
+- [x] Seen in game — R39 (2026-10-03)

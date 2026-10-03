@@ -26,6 +26,10 @@ One way to spawn an aircraft with a job: `veafAircraftSpawn` roles, given to QRA
 
 Airfield radio channels generated from DCS's own reference instead of typed by hand, plus a CLI/MCP tool writing the channels a mission's fields deserve (#1041).
 
+### [FEAT-CTLD-AIRBASE-LOGISTICS](FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md) · ✅
+
+Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, captured ones after two minutes of ground presence, marked by a green circle. Seen in game 2026-10-03: at Ramstein a C-130 parks 997 m out, so a mission raises `airbase_logistics_radius` (1 100 m there).
+
 ### [FEAT-HELICOPTER-SPAWN](FEAT-HELICOPTER-SPAWN/PRD.md) · ✅
 
 Helicopters spawned from a marker, landed as targets or given a job (orbit, transport, patrol, attack, escort) (#1050, #164).
@@ -65,6 +69,10 @@ A red `-cap` drew from every side's templates, 7 in 10 of them western; `-cap` a
 ### [FIX-CLEARSKY-METAR](FIX-CLEARSKY-METAR/PRD.md) · ✅
 
 A `clearsky` variant's `${METAR}` announced the uncapped published sky; it is now composed from the capped weather.
+
+### [FIX-COMBATMISSION-UNKNOWN-NAME](FIX-COMBATMISSION-UNKNOWN-NAME/PRD.md) · ✅
+
+An unknown combat mission name — the bare name of an on-demand CAP — raised a Lua error; it is now reported on screen (#1060), seen in game 2026-10-03.
 
 ### [FIX-CONVERT-V5-SILENT-LOSSES](FIX-CONVERT-V5-SILENT-LOSSES/PRD.md) · ✅
 

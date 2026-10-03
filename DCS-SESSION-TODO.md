@@ -49,6 +49,10 @@ R38 needs a server, not the local game.
 `SESSION-DCS-2026-10-03d.md`, probes `probes\d_*.lua`: every item left that needs no pilot. M1 is
 GermanyCW rebuilt from `develop` (`ed94463b`) with `airbase_logistics_radius: 1100` — R39 and R36;
 M2 is the Syria Open Training of 2026-08-30, unchanged — R4, measured by a probe instead of the editor.
+**Run the same night, M1 only**: R39 (each call by the unknown name shows *introuvable*, no Lua error),
+R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)`) and R4 passed and are
+removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
+`100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
 ### R35. Combat-zone ground units start warm — the thermal look
 
@@ -64,19 +68,6 @@ handed DCS all carried `coldAtStart = false`. What DCS makes of it cannot be rea
 - **Nothing concluded**: the three controls alike (the pod cannot tell at that range or hour).
 - **Re-opened**: controls distinct but the zone's vehicles dark. A second look 15 min later says
   whether a warm vehicle cools standing still.
-
-### R36. A C-130 at Ramstein reads CTLD logistics — re-read after the radius change
-
-[`FEAT-CTLD-AIRBASE-LOGISTICS`](.backlog/FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md). **Measured 2026-10-03**:
-the zone works (it answers at its own point), but the C-130 DCS parks itself sits on stand #111,
-997 m from the logistic point, and reads *« Aucune logistique à portée »* at 250 m. GermanyCW-v6 sets
-its own `airbase_logistics_radius` to 1 100 m (David's choice: the mission, not the default).
-
-**Run**: rebuild GermanyCW-v6 with that setting, then `c_ramstein.lua` twice 10 s apart.
-
-- **Verified**: the C-130's position returns `AB_Ramstein` — close the lot.
-- **Re-opened**: still nothing at the C-130 (the setting did not reach the build: read
-  `veaf-config.lua` in the `.miz`), or the control at the zone's own point returns nothing.
 
 ### R38. `/secu login` and a listed pilot on a live server — **needs a server, not the local game**
 
@@ -97,10 +88,6 @@ is reloaded and he clicks it again; then `/secu login` in chat. With `VEAF-REMOT
   the hook's level did not arrive), or `/secu login` still announces "authenticated for 10 minutes",
   or the `unusable auth duration []` warning is back (an old mission or an old hook is loaded:
   check the version lines before concluding).
-
-### R4. The `100` (`SmallSizeFighter`) parking type
-
-Already written up at the end of this file — left there, it is a measurement rather than a gate.
 
 ### R20. Does a departing player's slot change still arrive after DCS forgot the player, in 2.9.30?
 
@@ -395,18 +382,6 @@ takeoff, landing, crash, shots — are printed as they happen; everything also g
 - **A takes off**: `uncontrolled` stopped holding it — R23 said otherwise, so read `dcs.log`.
 
 The answer to give: the five letters, each with what it did.
-
-### R39. An unknown combat mission name is reported, not raised
-
-Added 2026-10-03 by [`FIX-COMBATMISSION-UNKNOWN-NAME`](.backlog/FIX-COMBATMISSION-UNKNOWN-NAME/PRD.md).
-**Run**, in any mission with a `cap_missions:` entry (session `dcs-session-2026-10-03c` has
-`TEST-T17 CAP`), through the fiddle: `veafCombatMission.ActivateMission("TEST-T17 CAP", true)` — the
-bare name, which is unknown because the CAP is registered per `<name>/<skill>/<size>` variant.
-
-- **On screen, `VeafCombatMission [TEST-T17 CAP] introuvable !` (or `was not found !` in English),
-  and the fiddle returns without error**: fixed — close the lot.
-- **`attempt to index local 'mission' (a nil value)`**: the build in the mission is older than the
-  fix; check `veaf-scripts.lua` in the `.miz`.
 
 ---
 
@@ -971,33 +946,6 @@ d'observation lui-même) et **zéro depuis Skynet**.
 Détail complet, y compris mes deux fausses alertes de méthode, dans
 `.backlog/archive/REFACTOR-SKYNET-WITHOUT-MIST.md`.
 
-
----
-
-## Le type d'emplacement `100` (`SmallSizeFighter`) — à regarder en jeu
-
-Ouvert par `CHORE-AIRCRAFT-STAND-TYPES` (PR #865), qui a élargi `AIRCRAFT_STAND_TYPES` à
-`{68, 72, 104}` sur des mesures et a **laissé `100` dehors**, faute de pouvoir trancher sans DCS.
-
-Ce qui est établi, et qui n'appelle pas de vérification :
-
-- `100` n'existe que sur **11 aérodromes syriens**, qui ont **tous** déjà du `68`/`104` — l'inclure
-  ne débloquerait donc **aucun** aérodrome ;
-- **aucune** des missions mesurées (Foothold ×3 théâtres, Open Training Syria) n'y gare quoi que ce
-  soit — 105 avions garés, aucun sur du `100` ;
-- DCS le documente comme une place étroite pour petit appareil, et le masque officiel
-  `FighterAircraftSmall` le contient bien.
-
-**La seule question ouverte est physique** : un appareil lourd tient-il sur un `100` ? Un C-130 ou
-un B-52 posé là passe-t-il, ou clippe-t-il dans le décor ?
-
-Comment vérifier, si l'occasion se présente : sur un des 11 aérodromes syriens concernés, poser
-dans l'éditeur un gros porteur sur un stand de type `100` et charger la mission. S'il apparaît
-proprement, `100` peut rejoindre l'ensemble ; s'il clippe ou refuse, la constante reste comme elle
-est et **la raison est enfin sourcée** plutôt que déduite de l'absence de contre-exemple.
-
-Sans enjeu : personne n'attend ce changement, il n'ouvrirait aucun terrain. C'est une vérification
-de confort, à faire si une session DCS a du temps de reste.
 
 ---
 

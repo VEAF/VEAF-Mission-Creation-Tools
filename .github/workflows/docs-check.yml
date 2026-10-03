@@ -11,30 +11,53 @@ on:
     branches:
       - develop
       - master
+  # Every pull request, with no `paths:` filter: this check is *required* on `develop`, and a required
+  # check whose workflow never starts stays "Expected" for ever and blocks the merge. The filter lives
+  # in the `changes` job below instead, and a job it skips reports "Skipped", which a required check
+  # accepts.
   pull_request:
-    paths:
-      - "doc/**"
-      - "mkdocs.yml"
-      - "veaf_build/docs_check.py"
-      - "veaf_build/docs_version_stamp.py"
-      - ".github/workflows/docs-check.yml"
-      # The gate also walks the markdown outside doc/ (TOOLING-REPO-LINK-GATE), so those paths have
-      # to trigger it. Without them a PR breaking a backlog link never runs the job — which is
-      # exactly how PR #655 shipped 68 dangling links unnoticed, and how
-      # FIX-WORKFLOWS-MAIN-TO-MASTER managed to leave every workflow dead on `master`.
-      - ".backlog/**"
-      - "docs/**"
-      - "*.md"
-      # The gate also checks that every capability the code defines is named by its reference page
-      # (TOOLING-DOC-AUTOGEN). The whole point is catching "an action shipped and the doc did not
-      # follow", and that commit touches only the sources below — so without them the gate would be
-      # blind to the exact case it exists for.
-      - "src/python/veaf-tools/veaf_mission_mcp/**"
-      - "src/scripts/veaf/veafShortcuts.lua"
 
 jobs:
+  changes:
+    name: Docs Check — changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # The gate also walks the markdown outside doc/ (TOOLING-REPO-LINK-GATE), so `.backlog/**`,
+      # `docs/**` and `*.md` have to trigger it. Without them a PR breaking a backlog link never runs
+      # the job — which is exactly how PR #655 shipped 68 dangling links unnoticed, and how
+      # FIX-WORKFLOWS-MAIN-TO-MASTER managed to leave every workflow dead on `master`.
+      # The gate also checks that every capability the code defines is named by its reference page
+      # (TOOLING-DOC-AUTOGEN). The whole point is catching "an action shipped and the doc did not
+      # follow", and that commit touches only `veaf_mission_mcp/**` and `veafShortcuts.lua` — so
+      # without them the gate would be blind to the exact case it exists for.
+      - id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GATE_PATHS: |
+            doc/**
+            mkdocs.yml
+            veaf_build/docs_check.py
+            veaf_build/docs_version_stamp.py
+            .github/workflows/docs-check.yml
+            .backlog/**
+            docs/**
+            *.md
+            src/python/veaf-tools/veaf_mission_mcp/**
+            src/scripts/veaf/veafShortcuts.lua
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git fetch --no-tags --depth=1 origin "$BASE"
+          python3 veaf_build/ci_path_gate.py "$BASE" "$GITHUB_SHA"
+
   docs-check:
     name: Links, anchors, translations, nav (+ repo-wide links)
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

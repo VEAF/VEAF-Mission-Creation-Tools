@@ -81,6 +81,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   checks the Lua mocks against and the LuaLS annotations `.luarc.json` loads. The audit reports
   exactly what it did on `v0.3.5`. Upstream fixed the off-by-one in its `country.name` table, which
   the test on the vendored schema now asserts.
+- **CI: `Python Quality`, `Docs Check` and `Support Bot` start on every pull request**, so their
+  checks can be *required* on `develop` and auto-merge can wait for them. A required check whose
+  workflow never starts stays "Expected" for ever; the path filter therefore moved from the
+  pull-request trigger into a `changes` job (`veaf_build/ci_path_gate.py`), and a job it leaves out
+  reports "Skipped", which a required check accepts. Pushes are filtered as before.
 
 ### Added
 

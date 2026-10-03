@@ -6,8 +6,12 @@ each merged that way, and #877 carried a stale backlog scope table that turned `
 very test written to catch it.
 
 The filter is therefore part of the gate, and it is checked here like any other assertion — for the
-Python gate, and for `Support Bot`, whose suite reaches out of its own folder for the same kind of
-repository-wide guard.
+Python gate, for `Support Bot`, whose suite reaches out of its own folder for the same kind of
+repository-wide guard, and for `Docs Check`.
+
+Their checks are *required* on `develop` (2026-10-03), which moved the pull-request filter out of
+the trigger and into a `changes` job (`veaf_build/ci_path_gate.py`): a required check whose workflow
+never starts waits as "Expected" for ever, while a job skipped by its `if:` reports "Skipped".
 """
 
 from __future__ import annotations
@@ -49,15 +53,27 @@ PATHS_THE_SUPPORT_BOT_SUITE_READS = (
     "doc/**",
 )
 
+# `veaf_build/docs_check.py` walks every markdown file, and checks that the MCP actions and the
+# shortcuts are named by their reference pages (TOOLING-REPO-LINK-GATE, TOOLING-DOC-AUTOGEN).
+PATHS_THE_DOCS_CHECK_READS = (
+    "doc/**",
+    "mkdocs.yml",
+    ".backlog/**",
+    "docs/**",
+    "*.md",
+    "src/python/veaf-tools/veaf_mission_mcp/**",
+    "src/scripts/veaf/veafShortcuts.lua",
+)
 
-def _triggers(workflow: str) -> dict:
-    """Return the ``on:`` section of a workflow, read as a string key.
+
+def _workflow(workflow: str) -> dict:
+    """Return a parsed workflow, with its ``on:`` section under a string key.
 
     Args:
         workflow: File name of the workflow under ``.github/workflows/``.
 
     Returns:
-        The parsed ``on:`` mapping.
+        The parsed workflow.
 
     Raises:
         AssertionError: when the workflow file is missing.
@@ -67,11 +83,46 @@ def _triggers(workflow: str) -> dict:
     # PyYAML resolves a bare `on:` to the boolean True (YAML 1.1), which is exactly the key this
     # test needs to read, so quote it before parsing rather than fighting the resolver.
     text = re.sub(r"^on:", '"on":', path.read_text(encoding="utf-8"), count=1, flags=re.MULTILINE)
-    return yaml.safe_load(text)["on"]
+    return yaml.safe_load(text)
+
+
+def _gate_paths(workflow: dict) -> list[str]:
+    """Return the patterns the ``changes`` job filters pull requests on.
+
+    Args:
+        workflow: A parsed workflow.
+
+    Returns:
+        The ``GATE_PATHS`` lines of the job's ``gate`` step.
+    """
+    steps = workflow["jobs"]["changes"]["steps"]
+    gate = next(step for step in steps if step.get("id") == "gate")
+    return [line.strip() for line in gate["env"]["GATE_PATHS"].splitlines() if line.strip()]
+
+
+def _depends_on(jobs: dict, name: str, target: str) -> bool:
+    """Tell whether job *name* waits for *target*, directly or through another job.
+
+    Args:
+        jobs: The workflow's ``jobs`` mapping.
+        name: The job to check.
+        target: The job it must wait for.
+
+    Returns:
+        True when *target* is reachable through ``needs``.
+    """
+    needs = jobs[name].get("needs", [])
+    needs = [needs] if isinstance(needs, str) else needs
+    return target in needs or any(_depends_on(jobs, need, target) for need in needs)
 
 
 class _GateFilterAssertions:
     """Shared assertions: a path the suite asserts on but does not trigger on is decorative.
+
+    The checks these workflows own are *required* on `develop`. A required check whose workflow
+    never starts stays "Expected" for ever, so pull requests are not filtered at the trigger: a
+    `changes` job filters them, and a job it skips reports "Skipped", which a required check
+    accepts.
 
     A plain mixin rather than a ``TestCase``: pytest collects every ``TestCase`` subclass in a
     module, name or no name, so a shared base would run its own assertions against nothing.
@@ -81,23 +132,38 @@ class _GateFilterAssertions:
     expected: tuple[str, ...] = ()
 
     def setUp(self) -> None:
-        self.triggers = _triggers(self.workflow)
+        self.parsed = _workflow(self.workflow)
+        self.triggers = self.parsed["on"]
 
-    def test_the_push_filter_covers_what_the_suite_reads(self) -> None:
-        declared = self.triggers["push"]["paths"]
+    def test_the_gate_covers_what_the_suite_reads(self) -> None:
+        declared = _gate_paths(self.parsed)
 
         for path in self.expected:
-            self.assertIn(path, declared, f"a change under {path} would not run {self.workflow}")
+            self.assertIn(path, declared, f"a pull request under {path} would not run {self.workflow}")
 
-    def test_push_and_pull_request_filters_are_identical(self) -> None:
+    def test_push_and_gate_filters_are_identical(self) -> None:
         # GitHub Actions does not resolve YAML anchors, so the list is duplicated in the file. A
         # path added to one side only means the gate runs on `develop` but not on the PR that
         # introduced the change — the wrong way round.
+        push_paths = (self.triggers["push"] or {}).get("paths")
+        if push_paths is None:
+            self.skipTest(f"{self.workflow} runs on every push")
         self.assertEqual(
-            self.triggers["push"]["paths"],
-            self.triggers["pull_request"]["paths"],
-            f"the two path filters of {self.workflow} have drifted apart",
+            push_paths, _gate_paths(self.parsed), f"the two path filters of {self.workflow} have drifted apart"
         )
+
+    def test_every_pull_request_starts_the_workflow(self) -> None:
+        self.assertIn("pull_request", self.triggers)
+        self.assertFalse(
+            (self.triggers["pull_request"] or {}).get("paths"),
+            f"{self.workflow} filters pull requests at the trigger: a required check would wait for ever",
+        )
+
+    def test_every_job_waits_for_the_gate(self) -> None:
+        jobs = self.parsed["jobs"]
+        for name in jobs:
+            if name != "changes":
+                self.assertTrue(_depends_on(jobs, name, "changes"), f"{self.workflow}: {name} ignores the gate")
 
 
 class TestTheGateRunsForWhatItChecks(_GateFilterAssertions, unittest.TestCase):
@@ -112,6 +178,13 @@ class TestTheSupportBotGateRunsForWhatItChecks(_GateFilterAssertions, unittest.T
 
     workflow = "support-bot-ci.yml"
     expected = PATHS_THE_SUPPORT_BOT_SUITE_READS
+
+
+class TestTheDocsGateRunsForWhatItChecks(_GateFilterAssertions, unittest.TestCase):
+    """`Docs Check` — runs on every push, so only its pull-request gate carries a list."""
+
+    workflow = "docs-check.yml"
+    expected = PATHS_THE_DOCS_CHECK_READS
 
 
 if __name__ == "__main__":

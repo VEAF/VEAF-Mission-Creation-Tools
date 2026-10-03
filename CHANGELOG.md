@@ -247,6 +247,28 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   it now reads `capradius 20`. `distance` is the length of the race-track leg (20 NM by default), not a
   distance from the marker. A helicopter's `capradius` stays in metres.
 
+- **A CAP no longer piles up attack orders, nor loses its patrol after a fight.** The CAP watchdog gave
+  the aircraft a new attack order for every target on every check (every ten seconds), and when the
+  fight was over it removed as many orders as it had counted — although DCS drops the order of a dead
+  target by itself — so it removed the patrol route too. It now gives one order per target, rebuilds
+  them only when the targets change, hands the patrol back from where the CAP is, and stops chasing
+  once the CAP has left its zone. Found in game on 2026-10-03.
+- **An aircraft given a role no longer appears in the trees.** A `-cap`, a QRA or a wave defending its
+  zone is now placed, and patrols, at least 150 m above the ground under its spawn point. DCS does not
+  lift an aircraft spawned too low: on 2026-10-03, a `-cap` asked at `alt 2` appeared 15 m above the
+  ground and crashed within a second.
+- **`_spawn signal, color …` fires the colour asked.** It was handed the smoke colour: orange came out
+  yellow and blue fired nothing. A signal flare is `red` (the default), `green`, `white` or `yellow`;
+  `orange` and `blue` are refused with a message.
+- **A FARP escort on open ground stays where it is laid out, and never in the trees.** Its search for
+  clear ground counted the tents and props of its own FARP as obstacles, so it moved every time; it now
+  stands beside them, and still avoids anything else. When it has to look elsewhere it now also checks
+  for forest: in a dense wood, where it used to park the escort under the trees, a `-farp` is refused
+  with "no clear ground for its escort".
+- **A combat zone's air defence leaves the Skynet network when the zone is deactivated.** Its respawn
+  reuses the group's DCS id, and the old site's object then answered for the new one, so the network
+  kept one more site after each deactivation. Found in game on 2026-10-03.
+
 ## [6.26.0] — 2026-09-30
 
 ### Added

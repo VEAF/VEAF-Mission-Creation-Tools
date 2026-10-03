@@ -122,7 +122,7 @@ _spawn cap, name Su-27, alt 25000, capradius 20
 **Options:**
 
 - `name` — aircraft type
-- `alt` — patrol altitude (feet)
+- `alt` — patrol altitude (feet); never less than 150 m above the ground under the spawn point, raised otherwise (DCS does not lift a too-low aircraft: it flies into the trees)
 - `hdg` — initial heading
 - `speed` — patrol speed (knots)
 - `capradius` — radius of the zone the patrol defends, centred on the middle of its race-track
@@ -219,6 +219,14 @@ _spawn smoke, color green, shells 5
 ```
 _spawn flare, power 1000000, shells 5, heading 90, distance 500
 ```
+
+### Fire a signal flare
+
+```
+_spawn signal, color green
+```
+
+**Colors:** `red` (the default), `green`, `white`, `yellow`. A flare does not come in the smoke's colours: DCS has no `orange` or `blue` one, and the command says so and fires nothing.
 
 ### Spawn explosions
 

@@ -143,6 +143,8 @@ veafSpawn.ParameterRules = {
     keys = { "color" },
     apply = function(options, val)
       options.drawColor = val
+      -- the name as asked, for `signal`: a flare has its own colours, not the smoke's
+      options.colorName = val:lower()
       if val:lower() == "red" then
         options.smokeColor = trigger.smokeColor.Red
       elseif val:lower() == "green" then

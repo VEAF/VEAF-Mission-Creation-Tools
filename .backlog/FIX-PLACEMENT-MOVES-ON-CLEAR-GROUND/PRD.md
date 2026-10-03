@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — the escort is moved even when the requested spot is free
 
-Status: ⬜ ready — R19 run in game 2026-10-03: on open ground the escort still moves, for a new reason
+Status: 🔄 in-progress — every ticket done and verified in game 2026-10-03; closes with the merge
 
 Origin: measured in game 2026-08-28 while running
 [`DCS-SESSION-TODO`](../../DCS-SESSION-TODO.md) item 21, the exhaustion count for
@@ -77,7 +77,8 @@ a few dozen metres is exactly the outcome that history was guarding against.
 |---|---|---|---|
 | 01 | Keep the requested bearing when the cloud proves it clear | medium — changes where every FARP escort lands | ✅ |
 | 02 | Verify in game that a FARP on open ground does not move | needs DCS | ✅ |
-| 03 | [Ask about the wanted spot itself, not its nearest neighbour](tickets/03-ask-about-the-wanted-spot-itself.md) | medium — replaces ticket 01's method | 🧑 |
+| 03 | [Ask about the wanted spot itself, not its nearest neighbour](tickets/03-ask-about-the-wanted-spot-itself.md) | medium — replaces ticket 01's method | ✅ |
+| 04 | The escort stands beside its own FARP's props, and the bearing walk stays out of the trees | low — the escort only; a `-farp` in a dense wood is now refused | ✅ |
 
 ## What ticket 01 delivered (2026-09-01)
 
@@ -169,3 +170,14 @@ R19, Caucasus, four `-farp`: in a wood the escort left the trees (`scenery probe
 On open ground, and beside a static FARP, the first elements kept their bearing and the fourth and
 fifth read `occupancy probe=false`, so the escort moved (333° at 1.14×, 38° at 1.16×): **the FARP's
 own vehicles, placed first, occupy the escort's wanted spot**. The refusal case was not reached.
+
+## Ticket 04 — the escort beside its own FARP (2026-10-03)
+
+The tents, the props and the windsock are laid out before the escort and on the same bearing, so the
+occupancy probe found the FARP's own statics on the escort's wanted spot. David's call: the escort's
+search ignores statics named `FARP <group> unit #` — its own layout — and everything else still
+occupies. The tents, props and windsock keep avoiding what stands before them.
+
+`isSpotOccupied` now also returns the name of what it found, and `findClearBearing` logs it for the
+wanted spot at debug: the 2026-10-03 run read `occupancy probe=false` and nothing said by what, so the
+cause above is deduced from the layout's geometry, to be confirmed by that line in the next run.

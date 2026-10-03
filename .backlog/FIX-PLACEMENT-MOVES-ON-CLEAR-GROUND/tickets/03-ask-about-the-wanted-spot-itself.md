@@ -1,6 +1,6 @@
 # 03 — Ask about the wanted spot itself, not about its nearest neighbour
 
-Status: 🧑 waiting-human — implemented 2026-09-30 (branch `fix/placement-escort-probe-and-refusal`, with
+Status: ✅ done — in game 2026-10-03 the wanted spot in a wood was refused by the scenery probe and the escort left the trees; the open-ground half failed for another reason, carried by ticket 04
 `FIX-PLACEMENT-IGNORES-SCENERY` ticket 04); what is left is the in-game check, item R19 of `DCS-SESSION-TODO.md`
 
 Type: fix · Files: `src/scripts/veaf/veafGrass.lua`, `test/lua/test_veafGrass.lua`

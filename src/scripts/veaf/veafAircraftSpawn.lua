@@ -36,6 +36,28 @@ veafAircraftSpawn.DEFAULT_PATROL_MACH = 0.63
 --- A take-off point says nothing about where the flight should patrol.
 veafAircraftSpawn.DEFAULT_PATROL_ALTITUDE = 27000 * 0.3048
 
+--- The lowest an aircraft given a role appears and patrols, in metres above the ground under its spawn
+--- point: about 500 ft. DCS does not lift a too-low aircraft by itself — measured 2026-10-03, a MiG-21
+--- spawned 15 m above the ground hit the trees within a second (FIX-AIR-SPAWN-ALTITUDE-GUARD).
+veafAircraftSpawn.MINIMUM_CLEARANCE_METRES = 150
+
+--- The altitude an aircraft may appear or patrol at above this point: the one asked, or the clearance
+--- floor when the one asked is under it.
+---
+--- @param point table a runtime vec3 (easting in `z`) or a mission-table point (easting in `y`)
+--- @param altitude number metres, sea level
+--- @return number
+function veafAircraftSpawn.flooredAltitude(point, altitude)
+  local floor = land.getHeight({ x = point.x, y = point.z or point.y }) + veafAircraftSpawn.MINIMUM_CLEARANCE_METRES
+  if altitude < floor then
+    veaf.loggers
+      .get(veafAircraftSpawn.Id)
+      :info("altitude %s m is too close to the ground, raised to %s m", veaf.p(math.floor(altitude)), veaf.p(math.floor(floor)))
+    return floor
+  end
+  return altitude
+end
+
 --- Editor group tasks a QRA or an air wave may give the `zone_defense` role to. Anything else — a
 --- bomber wave, an assault helicopter, an escort — flies the route its mission maker wrote, even one
 --- that engages no aircraft (David, 2026-10-02).
@@ -83,6 +105,10 @@ veafAircraftSpawn.groupRoles = {}
 --- The first-waypoint options each group was spawned with, by group name: a role given in flight
 --- replaces the route, and its first waypoint carries them again.
 veafAircraftSpawn.groupOptions = {}
+
+--- The route each group's role gave it, by group name: what the CAP watchdog hands back once it has
+--- nothing left to engage (`resumePatrol`).
+veafAircraftSpawn.groupRoutes = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Reading a route
@@ -971,12 +997,18 @@ function VeafAircraftSpawn:spawn()
   local route, state, firstWaypointTask = nil, nil, nil
   if role then
     firstWaypointTask = self.firstWaypointTask or veafAircraftSpawn.firstWaypointOptions(templateRoute)
+    local takeoffPoint = veafAircraftSpawn.takeoffPoint(templateRoute)
+    if not takeoffPoint then
+      -- An airborne role appears at `spot.y` and a `zone_defense` patrols there too. A QRA whose editor
+      -- group answers no unit falls back to a spot at `y = 0`, sea level.
+      spot = { x = spot.x, y = veafAircraftSpawn.flooredAltitude(spot, spot.y or 0), z = spot.z }
+    end
     local context = {
       spot = spot,
       params = self.roleParams,
       firstWaypointTask = firstWaypointTask,
       templateSpeed = templateSpeedOf(templateRoute),
-      takeoffPoint = veafAircraftSpawn.takeoffPoint(templateRoute),
+      takeoffPoint = takeoffPoint,
     }
     route, state = role.buildRoute(context)
   end
@@ -1035,6 +1067,7 @@ function VeafAircraftSpawn:spawn()
   end
   veafAircraftSpawn.groupRoles[groupName] = self.roleName
   veafAircraftSpawn.groupOptions[groupName] = firstWaypointTask
+  veafAircraftSpawn.groupRoutes[groupName] = route
   role.afterSpawn(dcsGroup, groupName, dcsGroup:getCoalition(), state)
   logger:debug("spawned %s as %s", veaf.p(groupName), veaf.p(self.roleName))
   return groupName
@@ -1101,9 +1134,49 @@ function veafAircraftSpawn.assignRole(groupName, roleName, params)
     role.buildRoute({ spot = spot, params = params or {}, firstWaypointTask = firstWaypointTask and veaf.deepCopy(firstWaypointTask) })
   veaf.goRoute(dcsGroup, route)
   veafAircraftSpawn.groupRoles[groupName] = roleName
+  veafAircraftSpawn.groupRoutes[groupName] = route
   role.afterSpawn(dcsGroup, groupName, dcsGroup:getCoalition(), state)
   logger:debug("%s now flies as %s", veaf.p(groupName), veaf.p(roleName))
   return true
+end
+
+--- Hand a group back the patrol its role gave it, from where it is now.
+---
+--- Setting the route replaces the controller's whole queue, so every task pushed on top of the patrol
+--- goes with it. That is the point: the CAP watchdog cannot know which of its `EngageUnit` tasks DCS has
+--- already removed (a dead target's task removes itself), so popping a counted number of them took the
+--- patrol route out from under the CAP (FIX-IN-GAME-SESSION-2026-10-03 ticket 04).
+---
+--- The first point becomes the leader's position, a turning point at the leg's altitude and speed: the
+--- stored one is the spawn point, a take-off for a QRA, and flying back to it is not patrolling. The
+--- other points stay as they are, so the race-track's `SwitchWaypoint` (3 -> 2) still loops.
+---
+--- @param groupName string
+--- @return boolean true when a route was set
+function veafAircraftSpawn.resumePatrol(groupName)
+  local logger = veaf.loggers.get(veafAircraftSpawn.Id)
+  local route = veafAircraftSpawn.groupRoutes[groupName]
+  local dcsGroup = Group.getByName(groupName)
+  local leader = dcsGroup and dcsGroup:getUnit(1)
+  if not (route and route[2] and leader) then
+    logger:warn("cannot hand %s back its patrol: no stored route or no leader", veaf.p(groupName))
+    return false
+  end
+  local position = leader:getPoint()
+  local points = veaf.deepCopy(route)
+  local options = veafAircraftSpawn.groupOptions[groupName]
+  points[1] = {
+    x = position.x,
+    y = position.z,
+    alt = route[2].alt,
+    alt_type = "BARO",
+    speed = route[2].speed,
+    type = "Turning Point",
+    action = "Turning Point",
+    task = options and veaf.deepCopy(options) or emptyComboTask(),
+  }
+  logger:debug("%s resumes its patrol", veaf.p(groupName))
+  return veaf.goRoute(dcsGroup, points)
 end
 
 veaf.loggers.get(veafAircraftSpawn.Id):info(veaf.loggers.get(veafAircraftSpawn.Id):getVersionInfo())

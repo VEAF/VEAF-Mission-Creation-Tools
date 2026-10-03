@@ -177,6 +177,21 @@ function TestHelicopterSpawnGroup:test_the_route_starts_where_the_settled_group_
   luaunit.assertEquals({ group.route.points[1].x, group.route.points[1].y }, { group.units[1].x, group.units[1].y })
 end
 
+--- Every unit refused by the position check leaves no helicopter to build a job from: nothing is
+--- spawned, and the command says so rather than failing on a missing first unit.
+function TestHelicopterSpawnGroup:test_a_group_with_no_placeable_unit_spawns_nothing()
+  -- the group's centre is accepted; every unit position is then refused
+  local check = veafUnits.checkPositionForUnit
+  veafUnits.checkPositionForUnit = function()
+    return false
+  end
+  local ok, result = pcall(spawnHelicopterGroup, false)
+  veafUnits.checkPositionForUnit = check
+  luaunit.assertTrue(ok, tostring(result))
+  luaunit.assertNil(result)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
 --- A `dest` is where a helicopter flies, not a road: the convoy's pathfinding fix has no unit to remove.
 function TestHelicopterSpawnGroup:test_a_destination_does_not_make_it_a_convoy()
   spawnHelicopterGroup(true)

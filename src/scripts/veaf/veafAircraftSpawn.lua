@@ -611,8 +611,8 @@ veafAircraftSpawn.roles.parked = {
 
 --- `orbit`: take off from the marker and circle it, weapons free when armed, holding fire when not.
 ---
---- `TakeOffGroundHot`, because it is airborne in 11 s where a cold start waits minutes (R23). Not yet
---- measured: that an `Orbit` task holds a scripted helicopter over its point.
+--- `TakeOffGroundHot`, because it is airborne in 11 s where a cold start waits minutes (R23). Read in
+--- game (R24): it circles 1.5–2 km from its point.
 veafAircraftSpawn.roles.orbit = {
   helicopter = true,
   buildRoute = function(context)
@@ -628,8 +628,8 @@ veafAircraftSpawn.roles.orbit = {
 ---
 --- The cruise ends `HELICOPTER_APPROACH` short of the landing point, on the line in, and that point
 --- hands over a `Land` task. Not a `Land` **waypoint**: measured 2026-10-02 (R24, R25), one sent the
---- Mi-8 to Kobuleti's parking whether its point was on the field or 2.85 km away. Not yet measured:
---- that the `Land` task puts it down on its point.
+--- Mi-8 to Kobuleti's parking whether its point was on the field or 2.85 km away. With the task it
+--- landed 30 m from an open-ground point (R28); inside a forest it hovers at the edge (R26, R27).
 veafAircraftSpawn.roles.transport = {
   helicopter = true,
   buildRoute = function(context)
@@ -654,8 +654,8 @@ veafAircraftSpawn.roles.transport = {
 --- marker and `dest` — for ever, engaging ground units and helicopters within `radius` of its centre.
 --- Unarmed: the resupply run, a shuttle marker ↔ `dest` landing `HELICOPTER_GROUND_TIME` at each end.
 ---
---- Not yet measured: that a `SwitchWaypoint` loop and a `Land` task with a duration both hold on a
---- scripted helicopter.
+--- Read in game (R29–R31): the armed loop holds and engages a ground unit in its zone; the shuttle
+--- lands 16 m from `dest`, waits, and goes home.
 veafAircraftSpawn.roles.patrol = {
   helicopter = true,
   buildRoute = function(context)
@@ -705,7 +705,7 @@ veafAircraftSpawn.roles.patrol = {
 }
 
 --- `attack` (armed only): fly to `dest`, engage ground units and helicopters within `radius` of it,
---- and circle there. Not yet measured in game.
+--- and circle there. Read in game (R31, R32): the tank destroyed both times.
 veafAircraftSpawn.roles.attack = {
   helicopter = true,
   buildRoute = function(context)
@@ -731,7 +731,8 @@ veafAircraftSpawn.roles.attack = {
 }
 
 --- `escort` (armed only): join the ground group `dest` names and cover it (`GroundEscort`), engaging
---- within `radius`. Not yet measured in game.
+--- within `radius`. Read in game (R33): it circled a driving group within its 3 km radius. R31 and R32
+--- read it kilometres off only because it hit a map object taking off from the runway and went home.
 veafAircraftSpawn.roles.escort = {
   helicopter = true,
   buildRoute = function(context)
@@ -785,7 +786,7 @@ end
 ---
 --- @param groupData table `{ country, name, units, hidden, hiddenOnMFD }`, each unit carrying its
 ---   position (`x`, `y` the easting, `alt` the ground height), type, name, heading and payload
---- @param job table|nil `{ task, destination, altitude, speed }` from the marker; no task is `parked`
+--- @param job table|nil `{ task, destination, altitude, speed, radius }` from the marker; no task is `parked`
 --- @param silent boolean|nil true: a refusal is logged, not shown to the players
 --- @return string|nil the group's name; nil when the job was refused or DCS did not take the group
 function veafAircraftSpawn.spawnHelicopterGroup(groupData, job, silent)
@@ -805,7 +806,12 @@ function veafAircraftSpawn.spawnHelicopterGroup(groupData, job, silent)
     return refuse("spawn.helicopter_unknown_task", tostring(job.task), table.concat(veafAircraftSpawn.HELICOPTER_TASKS, ", "))
   end
 
-  local leader = groupData.units[1]
+  local leader = groupData.units and groupData.units[1]
+  if not leader then
+    -- every unit was refused by the position check: there is no helicopter to give a job to
+    logger:info("no helicopter of %s could be placed", veaf.p(groupData.name))
+    return nil
+  end
   local spot = { x = leader.x, y = leader.alt, z = leader.y }
   local context = { spot = spot, params = job, armed = isArmed(groupData.units) }
   local route, state = role.buildRoute(context)

@@ -1,6 +1,6 @@
 # CHORE-LOGS-EXE-TRIM — `veaf-logs.exe` carries the MCP server and mypy it never runs
 
-Status: ✅ done — filed 2026-09-25, done 2026-09-30
+Status: ✅ done — filed 2026-09-25, done 2026-09-30 · archived 2026-10-03
 
 ## Origin
 
@@ -30,7 +30,7 @@ imports `veaf_libs.diagnostics`; from there the graph reaches `veaf_libs.i18n`, 
 
 | # | Ticket | Status |
 |---|--------|--------|
-| [01](tickets/01-cut-the-import-chain.md) | Cut the chain or exclude the packages, measure before/after | ✅ |
+| 01 | Cut the chain or exclude the packages, measure before/after | ✅ |
 
 ## Definition of done
 
@@ -90,3 +90,27 @@ of `requests`), not to `mypy`.
   before the release workflow runs `pyinstaller veaf-logs.spec`. Read from the code, not measured in
   a running exe. Filed as
   [FIX-LOGS-EXE-STARTUP-AND-VERSION](../FIX-LOGS-EXE-STARTUP-AND-VERSION/PRD.md) ticket 02.
+
+## Tickets, in full
+
+## 01 — cut the import chain, or exclude the packages
+
+Status: ✅ done
+Type: chore
+Files: possibly `veaf-logs.spec`, `src/python/veaf-tools/veaf_libs/diagnostics.py`,
+`src/python/veaf-tools/veaf_logs/report.py`
+
+### What
+
+1. Confirm the chain with `build/veaf-logs/xref-veaf-logs.html` (who imports `mcp`, `mypy`,
+   `uvicorn`) or `python -X importtime -c "import veaf_logs.ui.main_window"` for the runtime side.
+2. Prefer cutting the edge if it is a delayed or optional import in `veaf_libs.diagnostics`
+   (the viewer only needs `BLOCK_START`, `BLOCK_END` and `DiagnosticReport`); otherwise add the
+   top-level packages to the `excludes` list of `veaf-logs.spec`, next to the unused Qt modules,
+   each with the one-line reason the recipe already gives for the others.
+3. Rebuild, measure size and cold start, run `pyi-archive_viewer -l` to prove the packages are gone,
+   and open a local and a remote log with the built exe.
+
+### Done when
+
+The PRD's definition of done holds and the numbers are written in the PRD.

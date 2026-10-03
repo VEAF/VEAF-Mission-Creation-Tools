@@ -4,7 +4,7 @@ Status: ⏸ paused — filed 2026-09-30; David: **pick it up after the 6.26.0 re
 
 ## Origin
 
-Found while closing [CHORE-LOGS-EXE-TRIM](../CHORE-LOGS-EXE-TRIM/PRD.md) on 2026-09-30.
+Found while closing [CHORE-LOGS-EXE-TRIM](../archive/CHORE-LOGS-EXE-TRIM.md) on 2026-09-30.
 
 ## Measured / read
 

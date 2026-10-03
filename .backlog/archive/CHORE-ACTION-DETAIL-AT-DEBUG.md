@@ -1,6 +1,6 @@
 # CHORE-ACTION-DETAIL-AT-DEBUG — the running commentary of an action belongs at debug
 
-Status: ✅ done — 2026-09-29: 217 `:info(` call sites re-read one by one, 56 moved to `debug`
+Status: ✅ done — 2026-09-29: 217 `:info(` call sites re-read one by one, 56 moved to `debug` · archived 2026-10-03
 
 David, 2026-09-01, reading a `dcs.log` from the release-gate session: *"les messages du type
 `findClearBearing` ou `FARP escort` doivent être en debug pas en info. C'est valable pour tous les
@@ -100,4 +100,3 @@ lists, JSON dump).
 at `debug` in `veafGrass.lua`.
 
 The rule is in `doc/developer/GUIDE.md` (*Journalisation*) and its English twin.
-

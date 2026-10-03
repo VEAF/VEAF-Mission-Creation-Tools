@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.27.0] — 2026-10-03
+
 ### Changed
 
 - **Open Training prompt: three lessons from the Caucasus mission's first flights.** A training

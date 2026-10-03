@@ -349,9 +349,18 @@ limitations:
     of all its stands. On a widely spread airfield, an aircraft parked farther than that from the
     chosen stand reads *"No logistics in range"* although the field is active and its green circle is
     on the F10 map. An airfield whose `Airbase:getParking()` returns nothing gets no zone at all.
+    Measured on 2026-10-03 at **Ramstein** (GermanyCW): a C-130 left to DCS's own choice of stand
+    parked **997 m** from the zone's centre, and only **one** of the field's 90 large-aircraft stands
+    lies within 250 m (the next ones at 446, 601, 665, 709 and 820 m). 250 m fits a small field or a
+    FARP-sized apron; it does not fit a major air base.
   workaround: |
-    Raise `modules.CTLD.airbase_logistics_radius` in `mission.yaml`, or taxi into the green circle.
-    For a field with no parking data, place an `LGZ_` trigger zone in the Mission Editor.
+    Size `modules.CTLD.airbase_logistics_radius` in `mission.yaml` to the **largest** airfield your
+    transports start from. It is one value for every airfield of the mission — it cannot be set per
+    field — so a mission whose C-130s or helicopters start from a major air base needs it raised.
+    Only Ramstein is measured: **1 100 m** covers the stand DCS gave a C-130 at Ramstein
+    and the six nearest large-aircraft stands. A larger circle costs nothing but its size on the F10
+    map. Otherwise, taxi into the green circle. For a field with no parking data, place an `LGZ_`
+    trigger zone in the Mission Editor.
 
 - id: no-airplane-spawn-from-a-marker
   kind: tool

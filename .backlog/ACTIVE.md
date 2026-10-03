@@ -24,15 +24,11 @@ What `FEAT-ASSIST-CHECKLISTS` left open: content-hashed resource names (DCS cach
 
 ### [FEAT-CTLD-AIRBASE-LOGISTICS](FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md) · 🧑
 
-Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, captured ones after two minutes of ground presence, marked by a green circle. Left: the loading check at Ramstein, in game.
-
-### [FIX-AIRWAVES-COMMAND-EASTING](FIX-AIRWAVES-COMMAND-EASTING/PRD.md) · 🧑
-
-A command-driven air wave (and the same branch in QRA) spawned with a nil easting, being handed a vec2 where a vec3 was expected. Fixed; the in-game look (ticket 02) is left.
+Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, captured ones after two minutes of ground presence, marked by a green circle. Ramstein measured in game 2026-10-03: the C-130 parks 997 m from the 250 m circle; GermanyCW-v6 raises its radius, one re-read left.
 
 ### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · 🧑
 
-A combat zone's info panel and its completion disagreed: the panel was blind to static targets (fixed) and spawned vehicles now start warm. Ticket 02's in-game check is left.
+A combat zone's info panel and its completion disagreed: the panel was blind to static targets (fixed) and spawned vehicles now start warm — the scripts were seen asking for it in game on 2026-10-03. Ticket 02's thermal look is left.
 
 ### [FIX-COMBATZONE-RENAME-OPTION](FIX-COMBATZONE-RENAME-OPTION/PRD.md) · 🧑
 
@@ -52,7 +48,7 @@ Closing a support issue cut its Discord relay for good, so a reopened issue went
 
 ### [FIX-SCRATCH-MISSION-FINDINGS](FIX-SCRATCH-MISSION-FINDINGS/PRD.md) · 🧑
 
-What building Open Training Germany CW from an empty folder found (weather, solar times, presets, MCP actions, defense levels…). Tickets 01–22 merged; left: the rebuild with the fixed tools and ticket 17 in DCS.
+What building Open Training Germany CW from an empty folder found (weather, solar times, presets, MCP actions, defense levels…). Tickets 01–22 merged, 17 seen engaging in DCS; left: the rebuild with the fixed tools.
 
 ### [FIX-SECU-VERB-AND-LOG-NOISE](FIX-SECU-VERB-AND-LOG-NOISE/PRD.md) · 🧑
 

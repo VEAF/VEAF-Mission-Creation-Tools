@@ -36,104 +36,42 @@ from branch `fix/in-game-session-2026-10-03-followups`, plan in `SESSION-DCS-202
 line), R19 (the escort beside its own props), and tickets 03, 04 and 06 of
 `FIX-IN-GAME-SESSION-2026-10-03`. **Run the same afternoon**: R7 (QRA half), R17 (last line) and R19 passed and are removed below; the results are in those lots and in `FIX-IN-GAME-SESSION-2026-10-03`.
 
-**Third pass prepared 2026-10-03 evening — the 6.27.0 release gate** —
-`D:\dev\_VEAF\tmp\dcs-session-2026-10-03c\`, three missions built from `develop` as it stands
-(`d3823f7e`, CTLD `2.0.0-rc12`), plan in `SESSION-DCS-2026-10-03c.md`, probes in `probes\c_*.lua`
-run through `fiddle.sh`. Covers R7 (wave half), R34 to R37 below, and a first measurement for
-`FIX-TRIPACK-FIELD-REPORTS` ticket 04 (end of this file). R38 needs a server, not the local game.
+**Third pass, 2026-10-03 evening — the 6.27.0 release gate** —
+`D:\dev\_VEAF\tmp\dcs-session-2026-10-03c\`, three missions built from `develop` (`d3823f7e`,
+CTLD `2.0.0-rc12`), plan in `SESSION-DCS-2026-10-03c.md`, probes `probes\c_*.lua` run through
+`fiddle.sh`. **Run the same evening**: R7 (wave half — each wave within 250 m of its offset), R34
+(CTLD rc12 builds its menu and keeps a seated player) and R37 (the fixed CAP engages; without the task,
+or with it after the orbit, it does not) passed and are removed; the results are in their lots.
+R35 and R36 are rewritten to what is left, and the ticket 04 reconstruction is at the end of this file.
+R38 needs a server, not the local game.
 
-
-### R7. A wave launched by a VEAF command lands at its offset — **re-opened 2026-10-03**
-
-The wave half was recorded as verified on the morning of 2026-10-03 (`[5000,0]` 5.2 km north, the
-default offset 4 km N / 7 km W). The waves of that zone were written `-spawn shilka, country russia`,
-and `-spawn` is **no alias**: the afternoon run of the same zone logged `VeafAlias [-spawn] was not
-found` and spawned nothing. Whatever was measured that morning did not come from those waves. The QRA
-half was verified the same afternoon (a bracketed command and a bare one, both where they should land).
-
-**Run**: an AIRWAVES zone with `respawn_default_offset: [4000, -7000]`, `respawn_radius: 0`, and two
-waves using a **valid** alias — `"-shilka"` (no bracket: expect the default offset, 4 km N / 7 km W)
-and `"[5000,0]-shilka"` (expect 5 km N, 0 E). Trigger it with an AI stand-in, read the Shilkas'
-positions against the zone centre. Unblocks the wave half of
-[`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md).
-
-The tolerance is **250 m**, not zero: `respawn_radius: 0` is falsy, so the generator does not emit
-it, and `AirWaveZone:setRespawnRadius` floors any value at 250 m anyway — a wave can never be asked to
-land exactly on its spot. Prepared in the third pass (M1, `c_r7_*.lua`):
-
-- **Verified**: wave 1 within 250 m of N +4000 / E −7000, wave 2 within 250 m of N +5000 / E 0.
-- **Re-opened**: wave 1 at the centre (default offset not applied to a bare command), wave 2 at
-  N +9000 / E −7000 (the bracket adds to the default instead of replacing it), swapped axes
-  (FIX-WAVE-OFFSET-AXES back), a wave hundreds of km out (the missing easting back), or no Shilka
-  (the alias does not run — read `VeafAlias` in `dcs.log`).
-
-### R34. CTLD 2.0.0-rc12 builds its radio menu in game
-
-[`CHORE-VENDOR-CTLD-RC12`](.backlog/CHORE-VENDOR-CTLD-RC12/PRD.md) (#1051) closed on "it loads and
-initialises under the mocks". rc8 passed a parse and killed every radio menu (#957); rc12 passes the
-stronger gate that executes it, but its menus were never looked at.
-
-**Run**: take a CTLD transport slot (M1: the Mi-8MT of group `CTLD test 2`), open F10 → Other. In
-parallel, `c_ctld_menu.lua` reads what CTLD believes it rendered (`ctld.MenuManager` memory model).
-
-- **Verified**: a CTLD entry **and** the VEAF menu, the CTLD entry opening on its sub-menus, and the
-  probe listing the same top-level items.
-- **Failed**: no CTLD entry (rc12 loads without a menu for this slot), or no menu at all (a load
-  error took every script down, the rc8 failure — this blocks the release), or a CTLD entry that
-  opens on nothing (built then broken on rebuild: compare with the probe's model).
-
-### R35. Combat-zone ground units start warm
+### R35. Combat-zone ground units start warm — the thermal look
 
 [`FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP`](.backlog/FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/tickets/02-zone-defences-start-warm.md)
-ticket 02: `veafDcsSpawner.addGroup` writes `coldAtStart = false` on a ground unit that has none.
-DCS exposes no temperature to a script, so the check has two halves.
+ticket 02. **The script half passed on 2026-10-03**: the five vehicles `combatZone_WahnerHeide_Easy`
+handed DCS all carried `coldAtStart = false`. What DCS makes of it cannot be read by a script.
 
-**Run** (M3, `c_warm.lua`): wrap `coalition.addGroup`, activate `combatZone_WahnerHeide_Easy`, and
-put three BMP-2 controls 600 m north of its centre — `coldAtStart = true`, `false`, and no key.
+**Run** (session c, M3, `c_warm.lua`, slot `TEST-WARM A-10 TGP`): the zone plus three BMP-2 controls
+600 m north of its centre, west to east `coldAtStart = true`, `false`, no key. Pod in white-hot:
 
-- **Script half, no pilot**: every ground group the zone hands to DCS reads `false=N missing=0`.
-  Any `missing` means a spawn path that bypasses the fix.
-- **Thermal half, a TGP** (air-start slot `TEST-WARM A-10 TGP`): the `true` control dark, the
-  `false` control bright, the zone's vehicles bright → verified, and the `no key` control finally
-  says what DCS does with a missing key. All three controls alike → the pod cannot tell at that
-  range or hour, nothing concluded. Controls distinct but zone vehicles dark → DCS ignores the key
-  on this path, re-open. A second look 15 min later says whether a warm vehicle cools standing still.
+- **Verified**: the `true` control dark, the `false` control bright, the zone's vehicles bright — and
+  the `no key` control says what DCS does with a missing key.
+- **Nothing concluded**: the three controls alike (the pod cannot tell at that range or hour).
+- **Re-opened**: controls distinct but the zone's vehicles dark. A second look 15 min later says
+  whether a warm vehicle cools standing still.
 
-### R36. A C-130 parked at Ramstein reads CTLD logistics
+### R36. A C-130 at Ramstein reads CTLD logistics — re-read after the radius change
 
-[`FEAT-CTLD-AIRBASE-LOGISTICS`](.backlog/FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md), the check #1007 asked
-for. The capture message was seen on 2026-10-03; the loading never was.
+[`FEAT-CTLD-AIRBASE-LOGISTICS`](.backlog/FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md). **Measured 2026-10-03**:
+the zone works (it answers at its own point), but the C-130 DCS parks itself sits on stand #111,
+997 m from the logistic point, and reads *« Aucune logistique à portée »* at 250 m. GermanyCW-v6 sets
+its own `airbase_logistics_radius` to 1 100 m (David's choice: the mission, not the default).
 
-**Run** (M3, `c_ramstein.lua`, twice 10 s apart): an AI C-130 spawned at Ramstein with no stand
-imposed, so DCS parks it where it parks a C-130; then the exact call CTLD's *Request Equipment* menu
-makes — `getLogisticZonesAtPoint(transport:getPoint(), coalition, "cratesPickup")`. The same call at
-the zone's own point is the control, and the probe also counts the stands inside 250 m by DCS
-terminal type.
+**Run**: rebuild GermanyCW-v6 with that setting, then `c_ramstein.lua` twice 10 s apart.
 
-- **Verified**: Ramstein class A, active, held by blue, and the C-130's point returns the airfield
-  zone. Close the lot.
-- **The accepted gap, measured**: the C-130 reads nothing, N metres from the point — N is the radius
-  setting a spread field needs (a number to raise, per the PRD, not a design to reopen).
-- **Re-opened**: Ramstein not registered, inactive, or not held by blue. **Nothing concluded** if the
-  control returns no zone.
-
-### R37. A CAP built by `create_cap_mission` engages an intruder
-
-[`FIX-SCRATCH-MISSION-FINDINGS`](.backlog/FIX-SCRATCH-MISSION-FINDINGS/tickets/17-cap-without-engage-task.md)
-ticket 17. Neither half of the premise was ever measured: that a CAP without `EngageTargets` does not
-engage, and that a task after an endless orbit is never read.
-
-**Run** (M3, `c_t17.lua`, read after 3–4 min with `c_t17_read.lua`): a template made by the fixed
-`create_cap_mission` (`OnDemand-TEST-T17 CAP`), and three red MiG-29S pairs far apart, each with an
-immortal blue C-130 orbiting 12 km off: **A** the template through `veafCombatMission.ActivateMission`,
-**B** a copy with `EngageTargets` removed, **C** a copy with the orbit numbered first.
-
-- A fires, B does not → the task was missing and the fix supplies it; close the ticket.
-- A and B both fire → a CAP engages without the task; the fix is harmless; record it in
-  `known-limitations.yaml`.
-- A detects its intruder and does not fire → the fixed template does not engage; re-open.
-- No CAP detects its intruder → the set-up failed, nothing concluded.
-- C says whether task **order** matters, i.e. whether `edit_route`'s `task_position` was needed.
+- **Verified**: the C-130's position returns `AB_Ramstein` — close the lot.
+- **Re-opened**: still nothing at the C-130 (the setting did not reach the build: read
+  `veaf-config.lua` in the `.miz`), or the control at the zone's own point returns nothing.
 
 ### R38. `/secu login` and a listed pilot on a live server — **needs a server, not the local game**
 
@@ -1124,5 +1062,10 @@ cinq cycles d'activation, trois écarts : **remise à DCS − éditeur** (une tr
 l'ancrage), **position réelle − remise** (> 5 m = DCS déplace l'unité après le spawn), et la **nature
 du sol** sous la position éditeur. Tout propre sur les cinq cycles ne clôt rien : cela dit seulement
 que les données éditeur ne suffisent pas à reproduire, et qu'il faut le `.miz` de Tripack.
+
+**Mesuré le soir même : non reproduit.** Sur les cinq cycles, les cinq ZU-23 reçoivent à chaque fois
+un même vecteur de 4 à 43 m (la dispersion de 50 m), DCS ne les déplace pas après le spawn, et toutes
+les positions — éditeur comprise — sont sur `LAND`. Il reste à rejouer la mesure sur `Snowfox_20260903.miz`
+quand il sera disponible ; la question n'est pas reposée d'ici là.
 
 ---

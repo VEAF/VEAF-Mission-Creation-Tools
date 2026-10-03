@@ -1,5 +1,5 @@
 ---
-Status: 🧑 waiting-human — a capture seen in game 2026-10-03; the loading check at Ramstein remains
+Status: 🧑 waiting-human — the Ramstein loading measured 2026-10-03: out of the 250 m circle at 997 m; GermanyCW-v6 raises its own radius, then one re-read
 ---
 
 # FEAT-CTLD-AIRBASE-LOGISTICS — airfields are outside CTLD's logistic system, and VEAF can put them in without touching CTLD
@@ -343,6 +343,26 @@ From `FIX-IN-GAME-SESSION-2026-10-03`.
 On the Caucasus session mission David received the capture message for Kobuleti (logistic zone
 activated). The C-130 loading at Ramstein, the check #1007 asked for, was not flown. #1007 closed on
 that evidence.
+
+## The Ramstein loading, measured — 2026-10-03 (session c)
+
+GermanyCW, `develop` `d3823f7e`, read through the fiddle hook:
+
+- `AB_Ramstein`: class A, registered, active, held by blue. The call CTLD's *Request Equipment* menu
+  makes, `getLogisticZonesAtPoint(point, BLUE, "cratesPickup")`, returns the zone at the zone's own
+  point — so the registration and the read both work.
+- An AI C-130 spawned with **no stand imposed**, so DCS parked it where it parks a C-130: stand #111
+  (terminal type 104), **997 m** from the logistic point. The same call at its position returns
+  nothing — the menu reads *« Aucune logistique à portée »*.
+- Ramstein's 90 large-aircraft stands (terminal types 72 and 104): **one** within 250 m (#108, 249 m),
+  then 446, 601, 665, 709, 820 m … and 2 001 m for the farthest.
+
+This is the gap the PRD accepted — "a number to raise, not a design to reopen" — now with its number.
+**David chose on 2026-10-03 to raise it for GermanyCW only** (`airbase_logistics_radius` in that
+mission's `mission.yaml`), not the default: one field is measured, and a default for every theatre
+would be set on that one field. The mission is set to **1 100 m**, which covers stand #111 with a
+margin and the six nearest large-aircraft stands. Left: rebuild GermanyCW-v6 and re-run
+`c_ramstein.lua` once (`DCS-SESSION-TODO.md`, R36).
 
 ## Former index entry
 

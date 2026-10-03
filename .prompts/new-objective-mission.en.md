@@ -239,7 +239,10 @@ approximation of it.
 
 - **Template** for `scaffold_mission`: `minimal` for a mission with no helicopter or logistics;
   `standard` if the scenario uses CTLD, CSAR or transport missions. You choose and you say so. Turn
-  off the template's modules the scenario does not use.
+  off the template's modules the scenario does not use. With CTLD, size
+  `modules.CTLD.airbase_logistics_radius` (250 m by default, one value for every field) for the largest
+  airfield the transports start from — 1,100 m for a major air base such as Ramstein, where a C-130
+  parks 997 m from the loading point.
 - **Name**: `VEAF_<Map>_<Title>` (title in PascalCase without accents, e.g.
   `VEAF_Syria_DeepStrikePalmyra`).
 - `mission.era`, **date** and **time** (`set_mission_date`) consistent with the scenario. If the

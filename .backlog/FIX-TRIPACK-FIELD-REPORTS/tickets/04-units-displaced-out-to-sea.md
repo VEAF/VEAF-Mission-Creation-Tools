@@ -126,6 +126,29 @@ kilometre-scale anchor error, which does not depend on the draw, but they do **n
 dispersion. Any future test that means to assert something about dispersion has to drive the
 sequence.
 
+## Measured in game on a reconstruction — 2026-10-03
+
+`Snowfox_20260903.miz` is not on DAVID-BUREAU, so the zone was rebuilt in an empty Persian Gulf
+mission from this ticket's numbers: `CMBT_ABU_MUSA_AIRPORT`, same centre and radius, no
+`#spawnradius`, the five ZU-23 at their exact editor coordinates, nothing else on the map. Built from
+`develop` `d3823f7e`; `coalition.addGroup` wrapped so each unit's position as handed to DCS is kept.
+Five activation cycles:
+
+| Cycle | Common vector handed − editor | Live − handed | Surface (editor, handed, live) |
+|---|---|---|---|
+| 1 | N +21.8 / E −1.2 | 0.0 m | LAND ×15 |
+| 2 | N +3.8 / E +20.9 | 0.0 m | LAND ×15 |
+| 3 | N +22.0 / E −2.9 | 0.0 m | LAND ×15 |
+| 4 | N −18.9 / E +5.5 | 0.0 m | LAND ×15 |
+| 5 | N +42.6 / E +4.3 | 0.0 m | LAND ×15 |
+
+The same vector on all five units every time, within the 50 m default dispersion; DCS moves nothing
+after the spawn; every position, the editor's included, is on land; no drift across cycles. **Not
+reproduced from the editor data on the fixed code.** That neither proves the anchor fix was the
+answer nor rules it out: whatever pushed Tripack's ZU-23s into the sea is in something his mission
+has and this one does not. David's call, 2026-10-03: the question waits for his `.miz`, and is not
+asked again meanwhile.
+
 ## Definition of done
 
 - [x] The displacement is reproduced, with the numbers that show it

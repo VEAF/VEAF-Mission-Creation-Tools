@@ -397,7 +397,8 @@ function veafSpawn.initializeAirUnitTemplates()
   for _, group in pairs(_templateGroups) do
     local _groupName = group:getName()
     veaf.loggers.get(veafSpawn.Id):trace("_groupName=%s", _groupName)
-    local _template = VeafAirUnitTemplate:new():setName(_groupName)
+    -- The side is what lets a red `-cap` draw red templates only (#240).
+    local _template = VeafAirUnitTemplate:new():setName(_groupName):setCoalition(group:getCoalition())
     veafSpawn.airUnitTemplates[_groupName:upper()] = _template
   end
 
@@ -477,7 +478,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
   end
 
   -- find template amongst the existing templates (name can be a regex)
-  local groupName = veafSpawn.findSpawnableAircraftGroupname(name)
+  local groupName = veafSpawn.findSpawnableAircraftGroupname(name, coalition)
   if not groupName then
     local message = string.format('The AFAC aircraft template could not be found for "%s"', veaf.p(name))
     veaf.loggers.get(veafSpawn.Id):info(message)
@@ -815,7 +816,18 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
   end
 end
 
-function veafSpawn.findSpawnableAircraftGroupname(name)
+--- Draw a `veafSpawn-` template matching `name` (a pattern; nil matches every template).
+---
+--- With `side`, only that side's templates and the neutral ones are candidates: the mission's templates
+--- of every side used to go into one pool, so a red `-cap` came out as an F-15C (#240 — 7 NATO
+--- airframes out of 10 on 2026-08-17). Neutral templates belong to nobody and serve whoever asks;
+--- mission makers park templates there (61 of a reference mission's 117). When nothing matches on
+--- those, the draw falls back to every match, so a mission that placed its templates on one side only
+--- keeps spawning them for both.
+--- @param name string|nil
+--- @param side number|nil coalition.side of the requester
+--- @return string|nil, table|nil the template's group name and its mission data
+function veafSpawn.findSpawnableAircraftGroupname(name, side)
   -- find template amongst the existing templates (name can be a regex)
   local nameUpper = (name or ""):upper()
   local regexNameUpper = ".*" .. (nameUpper or ".*") .. ".*"
@@ -825,6 +837,7 @@ function veafSpawn.findSpawnableAircraftGroupname(name)
   local escapedNameUpper = veaf.escapeRegex(nameUpper)
   veaf.loggers.get(veafSpawn.Id):trace("nameUpper=%s", veaf.lp(nameUpper))
   local templatesNamesToChooseFrom = {}
+  local ownSideTemplatesNames = {}
   local chosenTemplateName = nil
   for templateNameUpper, templateData in pairs(veafSpawn.airUnitTemplates) do
     veaf.loggers.get(veafSpawn.Id):trace("templateNameUpper=%s", veaf.lp(templateNameUpper))
@@ -832,7 +845,18 @@ function veafSpawn.findSpawnableAircraftGroupname(name)
       local templateName = templateData.name
       veaf.loggers.get(veafSpawn.Id):trace("templateName=%s", veaf.lp(templateName))
       table.insert(templatesNamesToChooseFrom, templateName)
+      local templateSide = templateData:getCoalition()
+      if side and (templateSide == side or templateSide == coalition.side.NEUTRAL) then
+        table.insert(ownSideTemplatesNames, templateName)
+      end
     end
+  end
+  if #ownSideTemplatesNames > 0 then
+    templatesNamesToChooseFrom = ownSideTemplatesNames
+  elseif side and #templatesNamesToChooseFrom > 0 then
+    veaf.loggers
+      .get(veafSpawn.Id)
+      :warn("no template of side %s matches %s; drawing from the other sides' templates", veaf.p(side), veaf.p(name))
   end
   if templatesNamesToChooseFrom and #templatesNamesToChooseFrom > 0 then
     chosenTemplateName = veaf.randomlyChooseFrom(templatesNamesToChooseFrom)
@@ -880,7 +904,7 @@ function veafSpawn.spawnCombatAirPatrol(
   end
 
   -- find template amongst the existing templates (name can be a regex)
-  local chosenTemplateName, chosenTemplateData = veafSpawn.findSpawnableAircraftGroupname(name)
+  local chosenTemplateName, chosenTemplateData = veafSpawn.findSpawnableAircraftGroupname(name, coalition)
   -- Two different failures, and the old message described both as the first one. "could not find a
   -- template for mig29" reads as *that aircraft does not exist*, so it sent every investigation to the
   -- template table and the search pattern -- while the name had in fact been matched and it was the

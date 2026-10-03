@@ -108,14 +108,14 @@ These commands must pass without errors before committing. CI also runs them aut
 
 ### Vendored DCS schema
 
-A frozen copy (release `v0.3.5`) is vendored under `src/python/veaf-tools/veaf_libs/data/dcs-schema/` (upstream MIT `LICENSE` + a `NOTICE` recording the tag, URL and fetch date). It serves two purposes:
+A frozen copy (release `v0.4.0`) is vendored under `src/python/veaf-tools/veaf_libs/data/dcs-schema/` (upstream MIT `LICENSE` + a `NOTICE` recording the tag, URL and fetch date). It serves two purposes:
 
 - **Mock-coverage audit** — `poetry run audit-dcs-mocks` cross-references the schema's DCS functions, the calls actually made by `src/scripts/veaf/*.lua` and the stubs in `test/lua/dcs_mocks.lua`, then lists the DCS calls used by VEAF but not mocked (the gap we find too late today, when a test fails). Use `--format json`/`markdown` for machine-readable output. A non-blocking CI job publishes the report to the run summary.
 - **IDE help (optional)** — `.luarc.json` wires LuaLS to the vendored `dcs-world-api.lua` EmmyLua annotations, for autocomplete and signature diagnostics in VSCode while writing VEAF Lua.
 
 Updating this copy is an explicit bump commit (re-download the artifacts from a newer release). Drift-watch is handled by the VENDORED-DRIFT-WATCH lot.
 
-> **⚠️ Do not read country names from the schema.** The source of truth for country ids is `src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml` — it is what every tool uses, through `veaf_libs.dcs_countries`. In the vendored schema, the `types["country.name"]` table is wrong: DCS has no country at id 14, and that table renumbers its names across the hole, so **78 of the 92 countries carry the name of the one below them** and New Zealand (92) has vanished from it entirely. Measured against release `v0.3.5` on 2026-09-19 and reported upstream. The `types["country.id"]` table *is* correct, and `test/python/test_vendored_schema_country_ids.py` locks it against our own table so a future bump cannot break it in silence.
+> **Country ids come from our own table.** The source of truth for country ids is `src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml` — it is what every tool uses, through `veaf_libs.dcs_countries`. Up to release `v0.3.5`, the schema's `types["country.name"]` table was wrong: DCS has no country at id 14, and that table renumbered its names across the hole, so 78 of the 92 countries carried the name of the one below them and New Zealand (92) was missing. Reported upstream and fixed in `v0.4.0` (measured 2026-10-03). `test/python/test_vendored_schema_country_ids.py` locks both schema tables against our own, so a future bump cannot break them in silence.
 
 ## Vendored third-party artifacts — drift watch
 

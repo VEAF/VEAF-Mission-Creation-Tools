@@ -77,6 +77,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rating. These are engine defaults: a mission with no `ctld-config.yaml`, or one scaffolded from
   now on, gets them; an existing `ctld-config.yaml` is never overwritten and keeps the values it
   holds.
+- **Vendored DCS scripting-API schema `v0.4.0`** (was `v0.3.5`), the reference `audit-dcs-mocks`
+  checks the Lua mocks against and the LuaLS annotations `.luarc.json` loads. The audit reports
+  exactly what it did on `v0.3.5`. Upstream fixed the off-by-one in its `country.name` table, which
+  the test on the vendored schema now asserts.
 
 ### Added
 
@@ -214,13 +218,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   now announced, `FEW028`). A published METAR still keeps
   its own time group, now documented; the single cloud layer a METAR is flown with is a known
   limitation.
+- **A red `-cap` no longer comes out as an F-15C** (#240). The `veafSpawn-` templates of every side
+  went into one pool, and the drawn one was spawned in the requester's country: on the shipped
+  catalogue a red `-cap` drew from 51 templates, 29 of them western airframes — 7 out of 10 measured
+  in game. `-cap` and `-afac` now draw from the requesting side's templates and the neutral ones —
+  which belong to nobody and serve both sides — and fall back to every template (with a line in
+  `dcs.log`) when none of those matches. The shipped red
+  templates still include Mirage F1 and Mirage 2000 adversaries, on purpose; `-cap mig` keeps to
+  MiGs.
 
 ## [6.26.0] — 2026-09-30
 
 ### Added
 
 - **Airfields are CTLD logistic points.** A C-130 landed at Ramstein read *"No logistics in range"*
-  (VEAF-Open-Training-Mission-GermanyCW-v6#1007): a map airfield is in none of CTLD 2's logistic
+  (#1007): a map airfield is in none of CTLD 2's logistic
   discovery routes. VEAF now registers every airdrome itself when CTLD starts, one zone of 250 m on
   the parking stand nearest the field's centroid, under the airfield's own coalition. A field held
   at mission start keeps its zone while it holds it; a neutral or captured one opens only after two

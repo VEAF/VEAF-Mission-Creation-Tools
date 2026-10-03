@@ -520,6 +520,21 @@ watched). **A** looped as in R29 ✅. **D** came back near G now and then (460�
 convoy, not yet tried. Unexplained: D fell from 20 to 4 life around T+45 s and C from 15 to 13 around
 T+60 s, each with a gun `HIT` of its own and no target logged. Hence R32.
 
+### R32. A red `-cap` spawns red templates only
+
+Unblocks [`FIX-CAP-SIDE-TEMPLATES`](.backlog/FIX-CAP-SIDE-TEMPLATES/PRD.md), from
+[#240](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/240): on 2026-08-17 a red `-cap`
+gave 7 NATO airframes out of 10, two of them F-15Cs that only the blue templates hold.
+
+**Run**: any mission built with this branch and the shipped `spawnables.yaml`. Place a marker reading `_spawn cap, side red`
+on the F10 map ten times and note the types.
+
+- **Fixed**: only MiG-21, MiG-23, MiG-25, Mirage F1 and Mirage 2000 — the red templates. Mirages are
+  expected (14 of the 36 red templates). Close #240.
+- **Not fixed**: any F-15C, F-14, F-4, F-5 or MQ-9. Look in `dcs.log` for *"no template of side"*:
+  present means the side was not recorded on the templates; absent means the side never reached the
+  draw.
+
 ### R31. Helicopters patrol, attack and escort — R30 with a passive target
 
 R30's mission again, three placements corrected: the red tank spawned `alarm 1` (green: it does not

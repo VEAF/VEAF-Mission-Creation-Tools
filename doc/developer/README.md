@@ -108,14 +108,14 @@ Ces commandes doivent passer sans erreur avant de committer. La CI les exécute 
 
 ### Schéma DCS vendoré
 
-Une copie figée (release `v0.3.5`) est vendorée sous `src/python/veaf-tools/veaf_libs/data/dcs-schema/` (`LICENSE` MIT + `NOTICE` rappelant le tag, l'URL et la date de récupération). Elle sert à deux choses :
+Une copie figée (release `v0.4.0`) est vendorée sous `src/python/veaf-tools/veaf_libs/data/dcs-schema/` (`LICENSE` MIT + `NOTICE` rappelant le tag, l'URL et la date de récupération). Elle sert à deux choses :
 
 - **Audit de couverture des mocks** — `poetry run audit-dcs-mocks` croise les fonctions DCS du schéma, les appels réellement faits par `src/scripts/veaf/*.lua` et les stubs de `test/lua/dcs_mocks.lua`, puis liste les appels DCS utilisés par VEAF mais non mockés (le trou qu'on découvre aujourd'hui trop tard, quand un test échoue). `--format json`/`markdown` pour la sortie machine. Un job CI non bloquant publie le rapport dans le résumé du run.
 - **Aide IDE (optionnel)** — `.luarc.json` câble LuaLS sur l'annotation EmmyLua `dcs-world-api.lua` vendorée, pour l'autocomplétion et le diagnostic de signatures dans VSCode lors de l'écriture du Lua VEAF.
 
 Mettre à jour cette copie = un commit de bump explicite (re-télécharger les artefacts d'une release plus récente). La veille de dérive est gérée par le lot VENDORED-DRIFT-WATCH.
 
-> **⚠️ Ne pas lire les noms de pays dans le schéma.** La source de vérité des identifiants de pays est `src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml` (c'est elle qu'utilisent tous les outils, via `veaf_libs.dcs_countries`). Dans le schéma vendoré, la table `types["country.name"]` est fausse : DCS n'a aucun pays à l'identifiant 14, et cette table renumérote ses noms sans tenir compte du trou — **78 des 92 pays y portent le nom de leur voisin du dessous**, et la Nouvelle-Zélande (92) en a purement disparu. Mesuré sur la release `v0.3.5` le 2026-09-19, signalé en amont. La table `types["country.id"]`, elle, est correcte, et `test/python/test_vendored_schema_country_ids.py` la verrouille contre notre propre table pour qu'un futur bump ne puisse pas la casser en silence.
+> **Les identifiants de pays viennent de notre propre table.** La source de vérité des identifiants de pays est `src/python/veaf-tools/veaf_libs/data/dcs-countries.yaml` (c'est elle qu'utilisent tous les outils, via `veaf_libs.dcs_countries`). Jusqu'à la release `v0.3.5`, la table `types["country.name"]` du schéma était fausse : DCS n'a aucun pays à l'identifiant 14, et cette table renumérotait ses noms sans tenir compte du trou — 78 des 92 pays y portaient le nom de leur voisin du dessous, et la Nouvelle-Zélande (92) en avait disparu. Signalé en amont et corrigé dans `v0.4.0` (mesuré le 2026-10-03). `test/python/test_vendored_schema_country_ids.py` verrouille les deux tables du schéma contre la nôtre, pour qu'une montée de version ne les casse pas en silence.
 
 ## Artefacts tiers vendorés — veille de dérive
 

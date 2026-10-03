@@ -71,7 +71,12 @@ exactement pareil.
 `dynamic-slot-templates.yaml` — et le marqueur `dynSpawnTemplate` gagne contre le préfixe si un
 groupe porte les deux.
 
-Deuxième piège : une entrée de `spawn-groups.yaml` qui reprend un alias déjà connu du framework le
+**Le camp du groupe compte aussi.** Un `-cap` ou un `-afac` ne tire que parmi les groupes
+`veafSpawn-` du camp qui le demande et parmi les groupes neutres, qui servent tout le monde : posez
+vos adversaires rouges dans une coalition rouge. Si aucun de ces groupes ne correspond au nom
+demandé, le tirage se fait parmi ceux de l'autre camp, et `dcs.log` le signale.
+
+Autre piège : une entrée de `spawn-groups.yaml` qui reprend un alias déjà connu du framework le
 **remplace**. C'est utile pour redéfinir un groupe standard, et surprenant si c'était involontaire.
 
 ## Pour aller plus loin {#more}

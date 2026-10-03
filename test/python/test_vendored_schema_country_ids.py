@@ -7,10 +7,10 @@ cross-check, gave the name belonging to 67. DCS has no country at id 14, and tha
 everything after the hole slides down one slot and 78 of the 92 names are attached to the wrong id.
 See ``.backlog/archive/CHORE-SCHEMA-COUNTRY-NAMES-OFF-BY-ONE.md``.
 
-**What this guards, and what it deliberately does not.** Only ``types["country.id"]`` is asserted:
-it is correct today, it is the table a reader should use, and it is the one worth defending against a
-future pin bump. ``types["country.name"]`` is left alone on purpose — asserting a known-wrong table
-would encode the defect as intent and turn the day upstream repairs it into a red build.
+**What this guards.** ``types["country.id"]`` is asserted against our own table: it is the one a
+reader should use, and the one worth defending against a future pin bump. ``types["country.name"]``
+was left alone while it was wrong; upstream fixed it in v0.4.0 (YoloWingPixie/dcs-world-schema#22),
+so it is now asserted to be the exact inverse of the id table.
 
 The table is asserted **exhaustively**, every entry it carries rather than however many happen to
 resolve. A test that silently resolved fewer and fewer names as spellings drift would keep passing
@@ -96,6 +96,16 @@ class TestVendoredSchemaCountryIds(unittest.TestCase):
         nothing to fix, on the side that is right. Both sets hold the same 92 ids today.
         """
         self.assertEqual(set(self.schema_ids.values()) - set(all_country_ids()), set())
+
+    def test_the_name_table_is_keyed_by_the_same_ids(self) -> None:
+        """The off-by-one, fixed upstream in v0.4.0: `country.name` must be the inverse of `country.id`.
+
+        It fails on v0.3.5, whose name table slid every entry after the hole at id 14 down one slot.
+        """
+        data = json.loads(SCHEMA.read_text(encoding="utf-8"))
+        names_by_id = {int(key): name for key, name in data["types"]["country.name"]["values"].items()}
+        ids_by_name = {name: country_id for country_id, name in names_by_id.items()}
+        self.assertEqual(ids_by_name, self.schema_ids)
 
 
 if __name__ == "__main__":

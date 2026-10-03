@@ -1500,6 +1500,88 @@ function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_nil_name()
   luaunit.assertNil(result)
 end
 
+--- #240: a red `-cap` drew F-15Cs, because the templates of both sides went into one pool. These
+--- register one template per side the way the mission does. `math.random` is deterministic under the
+--- mocks, so the draw is driven explicitly: with the first and the second candidate drawn in turn, a
+--- side-blind pick hands both sides the same template and fails.
+local function addAirTemplate(name, side)
+  dcs_mocks.addGroup(name, {
+    _coalition = side,
+    getCoalition = function()
+      return side
+    end,
+  })
+end
+
+function TestVeafSpawnAircraft:test_initializeAirUnitTemplates_records_each_template_side()
+  addAirTemplate("veafSpawn-MiG-29", coalition.side.RED)
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  luaunit.assertEquals(veafSpawn.airUnitTemplates["VEAFSPAWN-MIG-29"]:getCoalition(), coalition.side.RED)
+  luaunit.assertEquals(veafSpawn.airUnitTemplates["VEAFSPAWN-F-15C"]:getCoalition(), coalition.side.BLUE)
+end
+
+function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_draws_only_from_the_requested_side()
+  addAirTemplate("veafSpawn-MiG-29", coalition.side.RED)
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  for _, draw in ipairs({ 0, 0.6 }) do
+    dcs_mocks.setRandomSequence({ draw })
+    luaunit.assertEquals(veafSpawn.findSpawnableAircraftGroupname(nil, coalition.side.RED), "veafSpawn-MiG-29")
+    luaunit.assertEquals(veafSpawn.findSpawnableAircraftGroupname("", coalition.side.BLUE), "veafSpawn-F-15C")
+  end
+  dcs_mocks.setRandomSequence(nil)
+end
+
+function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_offers_neutral_templates_to_every_side()
+  -- Mission makers park templates on the neutral side: 61 of a reference mission's 117 (2026-09-01).
+  -- Belonging to nobody, they serve whoever asks — and never let the other side's templates back in.
+  addAirTemplate("veafSpawn-MiG-29", coalition.side.NEUTRAL)
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  local seenByBlue = {}
+  for _, draw in ipairs({ 0, 0.6 }) do
+    dcs_mocks.setRandomSequence({ draw })
+    luaunit.assertEquals(veafSpawn.findSpawnableAircraftGroupname(nil, coalition.side.RED), "veafSpawn-MiG-29")
+    seenByBlue[veafSpawn.findSpawnableAircraftGroupname(nil, coalition.side.BLUE)] = true
+  end
+  dcs_mocks.setRandomSequence(nil)
+  luaunit.assertTrue(seenByBlue["veafSpawn-MiG-29"] and seenByBlue["veafSpawn-F-15C"])
+end
+
+function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_falls_back_when_the_side_has_none()
+  -- A mission that placed its templates on one side only keeps spawning them for both.
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  luaunit.assertEquals(veafSpawn.findSpawnableAircraftGroupname(nil, coalition.side.RED), "veafSpawn-F-15C")
+end
+
+function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_without_side_keeps_every_template()
+  addAirTemplate("veafSpawn-MiG-29", coalition.side.RED)
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  local seen = {}
+  for _, draw in ipairs({ 0, 0.6 }) do
+    dcs_mocks.setRandomSequence({ draw })
+    seen[veafSpawn.findSpawnableAircraftGroupname(nil)] = true
+  end
+  dcs_mocks.setRandomSequence(nil)
+  luaunit.assertTrue(seen["veafSpawn-MiG-29"] and seen["veafSpawn-F-15C"])
+end
+
+function TestVeafSpawnAircraft:test_cap_and_afac_ask_for_their_own_side()
+  local sides = {}
+  local original = veafSpawn.findSpawnableAircraftGroupname
+  veafSpawn.findSpawnableAircraftGroupname = function(_, side)
+    table.insert(sides, side)
+    return nil
+  end
+  veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, nil, "russia", 0, 0, 0, 20, nil, 60, "random", true, false)
+  veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, nil, "usa", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)
+  veafSpawn.findSpawnableAircraftGroupname = original
+  luaunit.assertEquals(sides, { coalition.side.RED, coalition.side.BLUE })
+end
+
 function TestVeafSpawnAircraft:test_spawnAFAC_invalid_country()
   local result =
     veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, "AFAC1", "invalid_country", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)

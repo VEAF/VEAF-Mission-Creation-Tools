@@ -677,3 +677,23 @@ limitations:
   cost: |
     The vanished-sites sweep, written to drop a deactivated zone's SAM site from the IADS, kept every
     such site for the rest of the mission: one more site per deactivation and reactivation.
+
+- id: cap-engages-only-through-an-engage-task-before-its-orbit
+  kind: dcs
+  area: air-defence
+  title: "A CAP flight engages nothing without an `EngageTargets` task, and a task numbered after its endless orbit is never read"
+  measured: "2026-10-03"
+  symptom: |
+    The group's main task `CAP` does not make it fight. Three MiG-29S pairs on GermanyCW, identical
+    but for the task list of their first waypoint, each with an immortal C-130 orbiting 12 km away
+    and detected by its lead (`getDetectedTargets`): with `EngageTargets` (`key = "CAP"`, `Air`)
+    numbered **before** the race-track `Orbit`, the pair fired its first R-77 74 s after it was
+    activated and four missiles within 3.5 minutes; with no `EngageTargets`, and with the same task numbered **after** the
+    `Orbit`, both pairs held fire for four minutes at 8.5 km from a target they had detected.
+  workaround: |
+    Give every CAP an `EngageTargets` (or `EngageTargetsInZone`) task numbered before its `Orbit`, as
+    the Mission Editor does when the CAP task is chosen. `create_cap_mission` writes it that way, and
+    `edit_route add_task` takes `task_position` to insert a task before an orbit instead of appending.
+  cost: |
+    The on-demand CAPs `create_cap_mission` built before FIX-SCRATCH-MISSION-FINDINGS ticket 17 carried
+    an `Orbit` alone: they patrolled and never fought.

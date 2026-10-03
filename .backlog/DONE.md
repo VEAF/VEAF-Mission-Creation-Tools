@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [CHORE-BACKLOG-INDEX-SPLIT](CHORE-BACKLOG-INDEX-SPLIT/PRD.md) · ✅
+
+The backlog index split into active, ready and done indexes, one short paragraph per lot; the archived lots got their own index (#1058).
+
 ### [CHORE-REQUIRED-CHECKS-GATE](CHORE-REQUIRED-CHECKS-GATE/PRD.md) · ✅
 
 Path-filtered workflows made usable as required checks; the 11 checks are now required on `develop`, so auto-merge waits for them.

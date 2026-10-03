@@ -1,6 +1,6 @@
 # CHORE-BACKLOG-INDEX-SPLIT — one index per kind of lot, each lot a short paragraph
 
-Status: 🔄 in-progress — every ticket done; closes with the merge
+Status: ✅ done — merged in #1058 (2026-10-03)
 
 Origin: David, 2026-10-03. `.backlog/README.md` had grown to 296 KB and 501 lines: one table holding
 the 58 lots on disk and the 418 archived ones, and the rows of the active lots had turned into

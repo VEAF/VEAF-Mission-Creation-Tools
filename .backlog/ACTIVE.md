@@ -6,9 +6,7 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [CHORE-BACKLOG-INDEX-SPLIT](CHORE-BACKLOG-INDEX-SPLIT/PRD.md) · 🔄
-
-The backlog index split into active, ready and done indexes, one short paragraph per lot; the archived lots get their own index.
+*None.*
 
 ## 🧑 Waiting for a human
 

@@ -1,6 +1,6 @@
 # 01 — Guard the callers of GetMission
 
-Status: 🧑 waiting-human — the code is merged-ready; R39 is the in-game look
+Status: ✅ done — R39 run 2026-10-03: activate, deactivate, describe and completion check on `TEST-T17 CAP` each show "introuvable !" with no Lua error; deactivating number 9999 is silent
 
 Type: fix · Files: `src/scripts/veaf/veafCombatMission.lua`, `test/lua/test_veafCombatMission.lua`
 

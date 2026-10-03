@@ -1,5 +1,5 @@
 ---
-Status: 🧑 waiting-human — the Ramstein loading measured 2026-10-03: out of the 250 m circle at 997 m; GermanyCW-v6 raises its own radius, then one re-read
+Status: ✅ done — R36 read in game 2026-10-03 (session d): with `airbase_logistics_radius: 1100`, the C-130 DCS parks on Ramstein stand #111, 997 m from the point, gets `EQUIPMENT (AB_Ramstein)`
 ---
 
 # FEAT-CTLD-AIRBASE-LOGISTICS — airfields are outside CTLD's logistic system, and VEAF can put them in without touching CTLD

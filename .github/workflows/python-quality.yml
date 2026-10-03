@@ -215,7 +215,7 @@ jobs:
         run: poetry install --with build --all-extras
 
       - name: Build the veaf-logs executable
-        run: poetry run pyinstaller veaf-logs.spec --noconfirm
+        run: poetry run veaf-build build-logs --version 0.0.0-smoke
 
       # PyInstaller follows every import it can see, delayed ones included, so one
       # stray import in a shared library is enough to ship the whole CLI. It has
@@ -229,6 +229,18 @@ jobs:
             echo "veaf-logs bundles a package it never runs (listed above)"; exit 1
           fi
           grep -q "'paramiko'" archive.txt || { echo "paramiko is missing from veaf-logs"; exit 1; }
+
+      # The report of every shipped veaf-logs said `tool.version: unknown`: the release ran
+      # pyinstaller after veaf-build had put the version stub back. Read the module the
+      # executable actually carries (FIX-LOGS-EXE-STARTUP-AND-VERSION).
+      - name: The executable carries the version it was built for
+        run: |
+          poetry run python - <<'PY'
+          from PyInstaller.archive.readers import CArchiveReader
+
+          code = CArchiveReader("dist/veaf-logs").open_embedded_archive("PYZ.pyz").extract("veaf_tools._version")
+          assert "0.0.0-smoke" in code.co_consts, f"veaf_tools._version carries {code.co_consts}"
+          PY
 
       # A window has no --help to walk, so we hand it a real log and check that it
       # is still alive a few seconds later. A bundle whose imports are broken dies

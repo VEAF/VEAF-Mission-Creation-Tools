@@ -61,8 +61,11 @@ jobs:
       # veaf-logs has its own recipe: it bundles Qt and nothing of the mission
       # build chain, and keeping it out of veaf-tools.exe spares that binary
       # some forty megabytes for a window most of its users never open.
+      # Through veaf-build rather than a bare pyinstaller call: the log viewer's report
+      # reads veaf_tools._version, which only holds the release version while veaf-build
+      # has it stamped (FIX-LOGS-EXE-STARTUP-AND-VERSION).
       - name: Build the veaf-logs executable
-        run: poetry run pyinstaller veaf-logs.spec --noconfirm
+        run: poetry run veaf-build build-logs --version ${{ steps.version.outputs.version }}
 
       - name: Publish to GitHub
         shell: bash

@@ -6,8 +6,8 @@ import json
 
 import pytest
 from veaf_logs.filters import FilterSet, Mode, State, TextFilter
-from veaf_logs.profiles import PROFILES_VERSION, ProfileStore
-from veaf_logs.session import SESSION_VERSION, OpenFile, Session
+from veaf_logs.profiles import PROFILES_VERSION, ProfileStore, default_profiles_path
+from veaf_logs.session import SESSION_VERSION, OpenFile, Session, default_session_path
 
 
 @pytest.fixture
@@ -131,6 +131,11 @@ class TestSession:
         assert filtres.levels == {"INFO": State.CONTEXT}
         assert filtres.context_lines == 4
         assert filtres.text_filters[0].invert
+
+    def test_les_tests_n_ecrivent_pas_dans_la_session_de_l_utilisateur(self, tmp_path):
+        """Fermer une fenetre sauve la session : en test, jamais dans le vrai `%APPDATA%`."""
+        assert default_session_path().is_relative_to(tmp_path)
+        assert default_profiles_path().is_relative_to(tmp_path)
 
     def test_session_absente(self, tmp_path):
         assert Session.load(tmp_path / "rien.json").files == []

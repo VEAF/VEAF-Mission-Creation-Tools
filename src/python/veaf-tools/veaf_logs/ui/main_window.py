@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import bisect
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -377,10 +378,12 @@ class LogTab(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, rules: Rules, session: Session) -> None:
+    def __init__(self, rules: Rules, session: Session, fallback: Path | None = None) -> None:
         super().__init__()
         self.rules = rules
         self.session = session
+        # Journal ouvert si la restauration de session n'a rouvert aucun onglet.
+        self.fallback = fallback
         self.profiles = ProfileStore(rules)
         self.filters: FilterSet = session.get_filters()
         # Vrai pendant qu'on reflete un etat dans les widgets : sans ce verrou,
@@ -675,10 +678,14 @@ class MainWindow(QMainWindow):
         self.open_remote(server, instance)
 
     def open_remote(
-        self, server: RemoteServer, instance: str, on_error: Callable[[Exception], None] | None = None
+        self,
+        server: RemoteServer,
+        instance: str,
+        on_error: Callable[[Exception], None] | None = None,
+        index: int | None = None,
     ) -> LogTab | None:
         source = RemoteLogSource(server, instance, host_key_prompt=self._ask_host_key)
-        return self._open_source(source, source.location, on_error)
+        return self._open_source(source, source.location, on_error, index)
 
     def _ask_host_key(self, hostname: str, fingerprint: str) -> bool:
         """Premiere connexion a un hote : la cle n'est pas dans `known_hosts`."""
@@ -696,8 +703,9 @@ class MainWindow(QMainWindow):
         source: LogSource | RemoteLogSource,
         tooltip: str,
         on_error: Callable[[Exception], None] | None = None,
+        index: int | None = None,
     ) -> LogTab | None:
-        """Ouvre un onglet sur `source`. `on_error` remplace la boite de dialogue."""
+        """Ouvre un onglet sur `source`, a la fin ou a `index`. `on_error` remplace la boite de dialogue."""
         try:
             source.open()
         except (LogUnavailable, OSError) as exc:
@@ -714,7 +722,11 @@ class MainWindow(QMainWindow):
         tab.counts_changed.connect(self._refresh_side)
         tab.zoom_requested.connect(self.zoom)
         self.apply_appearance(tab)
-        index = self.tabs.addTab(tab, source.display_name)
+        index = (
+            self.tabs.addTab(tab, source.display_name)
+            if index is None
+            else self.tabs.insertTab(index, tab, source.display_name)
+        )
         self.tabs.setTabToolTip(index, tooltip)
         self.tabs.setCurrentIndex(index)
 
@@ -1083,21 +1095,88 @@ class MainWindow(QMainWindow):
 
     # -- session ----------------------------------------------------------
 
+    @property
+    def restoring(self) -> bool:
+        """Vrai tant que des onglets distants de la session restent a rouvrir."""
+        return bool(self._pending_remotes)
+
     def _restore(self, session: Session) -> None:
+        """Rouvre les onglets de la session : les locaux tout de suite, les distants apres l'affichage.
+
+        Un onglet distant coute une connexion SSH et la copie du journal, plusieurs
+        secondes chacun : rouverts avant `show()`, trois onglets retardaient
+        l'apparition de la fenetre de 8 s (FIX-LOGS-EXE-STARTUP-AND-VERSION). Ils
+        sont donc rouverts un par un depuis la boucle d'evenements, chacun a sa
+        place dans l'ordre de la session.
+        """
         if session.geometry:
             self.restoreGeometry(QByteArray.fromBase64(session.geometry.encode()))
-        unreachable: set[str] = set()
-        for item in session.existing_files():
+        self._unreachable: set[str] = set()
+        self._closed = False
+        # Positions dans la session des onglets deja ouverts, dans l'ordre des onglets.
+        self._restored_positions: list[int] = []
+        # Les onglets que la restauration a ouverts : un autre au premier plan est un choix a respecter.
+        self._restored_tabs: list[QWidget] = []
+        self._pending_remotes: list[tuple[int, OpenFile]] = []
+        for position, item in enumerate(session.existing_files()):
             if item.remote:
-                self._reopen_remote(item.remote, unreachable)
-            else:
-                self.open_path(Path(item.path), item.archive_member)
-        if session.files and 0 <= session.active < self.tabs.count():
-            self.tabs.setCurrentIndex(session.active)
+                self._pending_remotes.append((position, item))
+            elif (tab := self.open_path(Path(item.path), item.archive_member)) is not None:
+                self._restored_positions.append(position)
+                self._restored_tabs.append(tab)
         self._refresh_chips()
         self.apply_filters()
+        if self._pending_remotes:
+            QTimer.singleShot(0, self._reopen_next_remote)
+        else:
+            self._finish_restore()
 
-    def _reopen_remote(self, remote: str, unreachable: set[str]) -> None:
+    def _reopen_next_remote(self) -> None:
+        """Rouvre le prochain onglet distant, puis rend la main a la boucle d'evenements."""
+        if not self._pending_remotes:
+            return  # restauration abandonnee : la fenetre a ete fermee entre-temps
+        position, item = self._pending_remotes.pop(0)
+        index = bisect.bisect(self._restored_positions, position)
+        current = self.tabs.currentWidget()
+        tab = self._reopen_remote(item.remote or "", self._unreachable, min(index, self.tabs.count()))
+        if self._closed:
+            # Fermee pendant la connexion (la question de cle d'hote a sa propre boucle) :
+            # plus rien ne refermerait cette source.
+            if tab is not None:
+                tab.close_source()
+                self.tabs.removeTab(self.tabs.indexOf(tab))
+            return
+        if tab is not None:
+            self._restored_positions.insert(index, position)
+            self._restored_tabs.append(tab)
+            if current is not None:
+                # Un onglet rouvert ne vole pas le premier plan a celui qu'on regarde.
+                self.tabs.setCurrentWidget(current)
+        if self._pending_remotes:
+            QTimer.singleShot(0, self._reopen_next_remote)
+        else:
+            self._finish_restore()
+
+    def _finish_restore(self) -> None:
+        """Remet au premier plan l'onglet actif de la session, ou ouvre le journal de repli.
+
+        L'onglet actif n'est repris que si celui au premier plan vient de la
+        restauration : un fichier passe en ligne de commande, ou choisi pendant la
+        reouverture des onglets distants, garde la main.
+        """
+        session = self.session
+        current = self.tabs.currentWidget()
+        chosen_elsewhere = current is not None and current not in self._restored_tabs
+        if session.files and 0 <= session.active < self.tabs.count() and not chosen_elsewhere:
+            self.tabs.setCurrentIndex(session.active)
+        if not self.tabs.count() and self.fallback is not None and self.fallback.exists():
+            self.open_path(self.fallback)
+
+    def _abandon_restore(self) -> None:
+        """Renonce aux onglets distants pas encore rouverts : la fenetre se ferme."""
+        self._pending_remotes.clear()
+
+    def _reopen_remote(self, remote: str, unreachable: set[str], index: int | None = None) -> LogTab | None:
         """Rouvre un `serveur/instance` de la session, s'il est toujours configure.
 
         Au lancement, un echec se signale dans la barre d'etat, pas dans une
@@ -1105,15 +1184,18 @@ class MainWindow(QMainWindow):
         boites. Et un serveur qui vient de ne pas repondre n'est pas retente
         pour ses autres instances — chaque tentative coute le delai de
         connexion, fenetre figee.
+
+        Returns:
+            L'onglet rouvert, ou `None` s'il ne l'a pas ete.
         """
         server_name, _, instance = remote.partition("/")
         if server_name in unreachable:
             self.status.showMessage(f"{remote} : serveur injoignable, onglet non rouvert", 10000)
-            return
+            return None
         try:
             servers = get_servers()
         except ValueError:
-            return
+            return None
 
         def report(exc: Exception) -> None:
             self.status.showMessage(f"{remote} non rouvert : {exc}", 10000)
@@ -1122,19 +1204,26 @@ class MainWindow(QMainWindow):
 
         for server in servers:
             if server.name == server_name and instance in server.logs:
-                self.open_remote(server, instance, report)
-                return
+                return self.open_remote(server, instance, report, index)
         self.status.showMessage(f"{remote} n'est plus dans la configuration, onglet non rouvert", 8000)
+        return None
 
     def _capture(self) -> Session:
         files = [
             OpenFile(str(tab.source.path), tab.source.archive_member, getattr(tab.source, "remote", None))
             for tab in self._tabs()
         ]
+        active = max(0, self.tabs.currentIndex())
+        # Pas encore rouverts : ils reprennent leur place dans l'ordre de la session.
+        for inserted, (position, item) in enumerate(self._pending_remotes):
+            index = min(bisect.bisect(self._restored_positions, position) + inserted, len(files))
+            files.insert(index, item)
+            if self.tabs.count() and index <= active:
+                active += 1
         self.side.collect(self.filters)
         session = Session(
             files=files,
-            active=max(0, self.tabs.currentIndex()),
+            active=active,
             profile=self.profile_box.currentText(),
             geometry=bytes(self.saveGeometry().toBase64().data()).decode("ascii"),
             font_family=self.font_family,
@@ -1151,6 +1240,8 @@ class MainWindow(QMainWindow):
         except OSError:
             # Une session non sauvegardee ne doit pas empecher de fermer.
             pass
+        self._closed = True
+        self._abandon_restore()
         for tab in self._tabs():
             tab.close_source()
         super().closeEvent(event)
@@ -1184,15 +1275,13 @@ def run(argv: list[str] | None = None) -> int:
 
     rules = Rules.load()
     session = Session.load()
-    window = MainWindow(rules, session)
-
     extra = [Path(arg) for arg in argv[1:] if not arg.startswith("-")]
+    # Le journal local par defaut, si ni la ligne de commande ni la session n'ouvrent rien.
+    fallback = None if extra else Path.home() / "Saved Games" / "DCS" / "Logs" / "dcs.log"
+    window = MainWindow(rules, session, fallback=fallback)
+
     for path in extra:
         window.open_path(path)
-    if not window.tabs.count() and not extra:
-        default = Path.home() / "Saved Games" / "DCS" / "Logs" / "dcs.log"
-        if default.exists():
-            window.open_path(default)
 
     window.show()
     return app.exec()

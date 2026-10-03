@@ -164,6 +164,25 @@ def build_standalone(
         input(PAUSE_MESSAGE)
 
 
+@app.command(name="build-logs")
+def build_logs(
+    version: str | None = typer.Option(
+        None,
+        help="Semantic version stamped into the executable (e.g., '6.0.2'). If not specified, auto-computed as for build-standalone",
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+) -> None:
+    """Build the `veaf-logs` executable from `veaf-logs.spec`, with the version stamped in.
+
+    Produces `dist/veaf-logs` (`veaf-logs.exe` on Windows). Leaves the rest of `dist/` alone.
+    """
+    logger.set_verbose(verbose)
+    console.print("[bold green]VEAF Logs Build[/bold green]")
+    worker = BuildAndReleaseWorker(version=version, verbose=verbose, config=load_config())
+    exe_path = worker.build_veaf_logs()
+    console.print(f"[bold green]✓[/bold green] Built veaf-logs executable: {exe_path}")
+
+
 @app.command(name="build-kit")
 def build_kit(
     version: str | None = typer.Option(None, help="Version stamped in the kit's zip name."),

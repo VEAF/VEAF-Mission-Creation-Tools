@@ -645,6 +645,14 @@ Luacheck est imposé par le job CI `Luacheck`.
 Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée. Exception :
 `dcs-mock-coverage` est en `continue-on-error` — informatif, il ne bloque pas le merge.
 
+Sur `develop`, ces checks sont **requis** par une règle de protection de branche : c'est ce qui
+permet l'auto-merge, qui attend alors vraiment le vert. Un check requis dont le workflow ne démarre
+pas reste « Expected » indéfiniment et bloque la PR. C'est pourquoi `Python Quality`, `Docs Check`
+et `Support Bot` démarrent sur **toutes** les PR : leur filtre de chemins est dans un job `changes`
+(`veaf_build/ci_path_gate.py`), et un job qu'il écarte apparaît « Skipped », ce qu'un check requis
+accepte. Pour modifier la liste de chemins d'un de ces workflows, modifiez à la fois `on.push.paths`
+et le `GATE_PATHS` du job `changes` — `test_ci_trigger_paths.py` vérifie qu'ils restent identiques.
+
 ### Avant un commit qui touche à la documentation {#docs-check}
 
 ```bash

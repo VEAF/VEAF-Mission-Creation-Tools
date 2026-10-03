@@ -26,22 +26,50 @@ on:
       - ".gitignore"
       - "pyproject.toml"
       - "doc/**"
-  # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose; the two are
-  # kept identical by `test/python/test_ci_trigger_paths.py`.
+  # Every pull request, with no `paths:` filter: these checks are *required* on `develop`, and a
+  # required check whose workflow never starts stays "Expected" for ever and blocks the merge. The
+  # filter lives in the `changes` job below instead, and a job it skips reports "Skipped", which a
+  # required check accepts.
   pull_request:
-    paths:
-      - "services/support-bot/**"
-      - ".github/workflows/support-bot-ci.yml"
-      - ".gitignore"
-      - "pyproject.toml"
-      - "doc/**"
 
 defaults:
   run:
     working-directory: services/support-bot
 
 jobs:
+  # Its dependents skip only on an explicit `run=false`: a gate that fails runs the checks instead of
+  # skipping them, since a skipped job reads as a pass to a required check.
+  changes:
+    name: Support Bot — changed paths
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # GitHub Actions does not resolve YAML anchors, so this list duplicates `on.push.paths` on
+      # purpose; the two are kept identical by `test/python/test_ci_trigger_paths.py`.
+      - id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GATE_PATHS: |
+            services/support-bot/**
+            .github/workflows/support-bot-ci.yml
+            .gitignore
+            pyproject.toml
+            doc/**
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git fetch --no-tags --depth=1 origin "$BASE"
+          python3 veaf_build/ci_path_gate.py "$BASE" "$GITHUB_SHA"
+
   quality:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -80,6 +108,8 @@ jobs:
   # actually runs on `docker stop` instead of the container being killed ten seconds later.
   # ---------------------------------------------------------------------------
   container:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

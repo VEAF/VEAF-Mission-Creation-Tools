@@ -218,6 +218,14 @@ _spawn smoke, color green, shells 5
 _spawn flare, power 1000000, shells 5, heading 90, distance 500
 ```
 
+### Tirer une fusée de signal
+
+```
+_spawn signal, color green
+```
+
+**Couleurs :** `red` (par défaut), `green`, `white`, `yellow`. Une fusée n'a pas les couleurs de la fumée : `orange` et `blue` n'existent pas dans DCS, la commande le dit et ne tire rien.
+
 ### Faire apparaître des explosions
 
 ```

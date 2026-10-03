@@ -219,6 +219,14 @@ _spawn smoke, color green, shells 5
 _spawn flare, power 1000000, shells 5, heading 90, distance 500
 ```
 
+### Fire a signal flare
+
+```
+_spawn signal, color green
+```
+
+**Colors:** `red` (the default), `green`, `white`, `yellow`. A flare does not come in the smoke's colours: DCS has no `orange` or `blue` one, and the command says so and fires nothing.
+
 ### Spawn explosions
 
 ```

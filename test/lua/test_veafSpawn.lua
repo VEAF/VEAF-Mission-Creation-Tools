@@ -408,6 +408,44 @@ function TestVeafSpawnEffects:test_spawnSignalFlare()
   luaunit.assertEquals(dcs_mocks.effects[1].color, trigger.flareColor.Red)
 end
 
+--- `_spawn signal` fires the flare colour it was asked, read from the flare table.
+---
+--- It used to be handed the **smoke** colour: red, green and white share a number in both tables,
+--- orange (smoke 3) came out yellow (flare 3), and blue (smoke 4) is no flare colour at all
+--- (FIX-IN-GAME-SESSION-2026-10-03 ticket 01, "not done, noted").
+local function signalColoursFired(text)
+  timer.setTime(500)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, text, coalition.side.BLUE, 0, true)
+  dcs_mocks.runScheduled(600)
+  local colours = {}
+  for _, effect in ipairs(dcs_mocks.effects) do
+    if effect.kind == "signalFlare" then
+      table.insert(colours, effect.color)
+    end
+  end
+  return colours
+end
+
+function TestVeafSpawnEffects:test_a_signal_fires_the_flare_colour_asked()
+  for name, colour in pairs({ red = "Red", green = "Green", white = "White", yellow = "Yellow" }) do
+    dcs_mocks.reset()
+    luaunit.assertEquals(signalColoursFired("_spawn signal, color " .. name), { trigger.flareColor[colour] }, name)
+  end
+end
+
+function TestVeafSpawnEffects:test_a_signal_with_no_colour_is_red()
+  luaunit.assertEquals(signalColoursFired("_spawn signal"), { trigger.flareColor.Red })
+end
+
+--- Orange and blue exist as smoke and not as flares: refused aloud, never fired in another colour.
+function TestVeafSpawnEffects:test_a_signal_in_a_colour_flares_do_not_have_is_refused_aloud()
+  for _, name in ipairs({ "orange", "blue" }) do
+    dcs_mocks.reset()
+    luaunit.assertEquals(signalColoursFired("_spawn signal, color " .. name), {}, name .. " must fire nothing")
+    luaunit.assertEquals(#dcs_mocks.messagesContaining(name), 1, name .. " must be named in a message")
+  end
+end
+
 function TestVeafSpawnEffects:test_spawnIlluminationFlare_simple()
   veafSpawn.spawnIlluminationFlare({ x = 0, y = 0, z = 0 }, 0, 2, 10, 500)
   luaunit.assertTrue(true)

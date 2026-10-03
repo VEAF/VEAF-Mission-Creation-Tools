@@ -70,6 +70,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `extract*` / `logistic*` lists are emptied; a convoy starts on firm ground, ships of a group stand
   150 m apart, the bullseye sits on no zone; no QRA radio menu open to all. The English prompt is
   resynchronised with the French one, which had moved ahead on 2026-10-01.
+- **CTLD `2.0.0-rc12`** (was rc11), vendored verbatim from the VEAF/CTLD release (#618). A pilot
+  taking over a slot no longer inherits the previous occupant's flight state, and extraction zones
+  can be declared by naming a trigger zone `EXZ_<name>_<flag>_<smoke>`. **The UH-1H no longer
+  carries a whole vehicle** (troops raised from 8 to 10); the Mi-8MT now does, with a 3 000 kg
+  rating. These are engine defaults: a mission with no `ctld-config.yaml`, or one scaffolded from
+  now on, gets them; an existing `ctld-config.yaml` is never overwritten and keeps the values it
+  holds.
 
 ### Added
 

@@ -1,6 +1,6 @@
 # FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS — `content airfield-channels --apply` rewrites the author's title with the DCS name
 
-Status: ⬜ ready
+Status: ✅ done — fixed on branch `fix/airfield-channel-title-accents`
 
 Found on 2026-10-01 applying the twelve GermanyCW v6 Open Training bases with the develop tool (after
 FEAT-AIRFIELD-CHANNELS-FROM-DCS): `Büchel` became `Buchel / 118X`, `Nörvenich` became `Norvenich / 77X`.
@@ -12,7 +12,7 @@ and the next `--apply` will undo it again.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [keep the author's spelling of the airfield name, and match it accent-insensitively](tickets/01-keep-author-spelling.md) | ⬜ |
+| 01 | [keep the author's spelling of the airfield name, and match it accent-insensitively](tickets/01-keep-author-spelling.md) | ✅ |
 
 ## Former index entry
 

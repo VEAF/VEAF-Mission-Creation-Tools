@@ -1056,7 +1056,7 @@ about twenty channels. Same code as `veaf-tools content airfield-channels`.
 
 Writes the chosen airfields into the `bases` channel collection of the folder's `src/presets.yaml`,
 with DCS's frequencies; refuses an airfield DCS does not declare. An airfield already in `bases` keeps
-its alias, a new one is aliased `Base-<DCS name>`, and an entry matching no chosen airfield (a FARP, a ship) is
+its alias and the spelling of its title (`Büchel` for DCS's `Buchel`), a new one is aliased `Base-<DCS name>`, and an entry matching no chosen airfield (a FARP, a ship) is
 left as it is and reported in `untouched`. Only `bases` changes; `not_on_a_radio` lists the written
 channels no `channel_lists` entry uses yet. Idempotent.
 

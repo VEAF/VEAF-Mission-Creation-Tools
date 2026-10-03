@@ -42,6 +42,10 @@ A ground-elevation grid per theatre, read without DCS running: point elevation, 
 
 The aircraft height check read the easting; it now reads the altitude, and every aircraft given a role is floored 150 m above the ground (#1055).
 
+### [FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS](FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS/PRD.md) · ✅
+
+`content airfield-channels --apply` kept the DCS spelling (`Büchel` → `Buchel`) and its matching ignored accents; titles now keep the author's spelling, and accents fold.
+
 ### [FIX-AIRWAVES-COMMAND-EASTING](FIX-AIRWAVES-COMMAND-EASTING/PRD.md) · ✅
 
 A command-driven air wave (and the same branch in QRA) spawned with a nil easting, being handed a vec2 where a vec3 was expected. Fixed, and both halves seen in game on 2026-10-03: each wave within 250 m of its offset.

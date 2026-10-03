@@ -287,6 +287,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   skill and size (`TEST-T17 CAP/good/2`): on 2026-10-03, `ActivateMission("TEST-T17 CAP")` raised
   `attempt to index local 'mission' (a nil value)`. Deactivating, describing and checking a mission
   had the same defect, and deactivating one by its number raised on every call.
+- **`content airfield-channels --apply` keeps the author's spelling of an airfield**
+  (FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS). DCS names its airfields in ASCII, and the command rewrote every
+  title with that name: on the GermanyCW Open Training, `Büchel` became `Buchel / 118X` and
+  `Nörvenich` `Norvenich / 77X` — the name the pilot reads in the cockpit and on the kneeboard. A title
+  that names the same airfield now keeps its spelling and only gets its TACAN refreshed; one naming
+  something else still takes the DCS name. The name matching also folds accents, so a channel known
+  only by its accented title is recognised instead of being added a second time. Same for the MCP
+  action `set_airfield_channels`.
 
 ## [6.26.0] — 2026-09-30
 

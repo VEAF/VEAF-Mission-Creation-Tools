@@ -1086,7 +1086,7 @@ l'alias que chacun a déjà dans la collection `bases`. Classés : tenus avec sl
 
 Écrit les aérodromes choisis dans la collection de canaux `bases` du `src/presets.yaml` du dossier,
 avec les fréquences de DCS ; refuse un aérodrome que DCS ne déclare pas. Un aérodrome déjà dans
-`bases` garde son alias, un nouveau prend l'alias `Base-<nom DCS>`, et une entrée qui ne correspond à aucun
+`bases` garde son alias et l'orthographe de son titre (`Büchel` pour le `Buchel` de DCS), un nouveau prend l'alias `Base-<nom DCS>`, et une entrée qui ne correspond à aucun
 aérodrome choisi (un FARP, un navire) est laissée telle quelle et signalée dans `untouched`. Seule
 `bases` change ; `not_on_a_radio` liste les canaux écrits qu'aucune entrée de `channel_lists`
 n'utilise encore. Idempotent.

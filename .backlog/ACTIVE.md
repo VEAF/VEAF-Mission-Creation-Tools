@@ -28,7 +28,7 @@ Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, 
 
 ### [FIX-COMBATMISSION-UNKNOWN-NAME](FIX-COMBATMISSION-UNKNOWN-NAME/PRD.md) · 🧑
 
-Activating or deactivating a combat mission by a name the registry does not know — the bare name of an on-demand CAP — raised a Lua error instead of reporting it on screen. Fixed; the in-game look (R34) is left.
+Activating or deactivating a combat mission by a name the registry does not know — the bare name of an on-demand CAP — raised a Lua error instead of reporting it on screen. Fixed; the in-game look (R39) is left.
 
 ### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · 🧑
 

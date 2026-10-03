@@ -1,6 +1,6 @@
 # 01 — Guard the callers of GetMission
 
-Status: 🧑 waiting-human — the code is merged-ready; R34 is the in-game look
+Status: 🧑 waiting-human — the code is merged-ready; R39 is the in-game look
 
 Type: fix · Files: `src/scripts/veaf/veafCombatMission.lua`, `test/lua/test_veafCombatMission.lua`
 

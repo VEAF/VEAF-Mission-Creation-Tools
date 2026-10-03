@@ -44,10 +44,6 @@ A mission that proves a spotter report reaches a battery that never saw the airc
 
 Turn an answered `/ask` thread into a pre-filled `/bug` or `/suggest`, filed only on explicit confirmation.
 
-### [FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS](FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS/PRD.md) · ⬜
-
-`content airfield-channels --apply` rewrites the author's channel titles with the DCS name (`Büchel` → `Buchel`), and its name matching ignores accents. One ticket.
-
 ### [FIX-CHATBOT-DAILY-QUOTA](FIX-CHATBOT-DAILY-QUOTA/PRD.md) · ⬜
 
 The website chatbot runs on a free tier of ~20 requests a day and stops silently. First measure the real peak, then make the limit visible.

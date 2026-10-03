@@ -1,6 +1,6 @@
 # 01 — keep the author's spelling of the airfield name, and match it accent-insensitively
 
-Status: ⬜ ready
+Status: ✅ done — fixed on branch `fix/airfield-channel-title-accents`
 
 ## Measured (2026-10-01, GermanyCW v6 Open Training, VMCT develop `a41477d7`)
 

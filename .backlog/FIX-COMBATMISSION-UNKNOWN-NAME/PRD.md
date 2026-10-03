@@ -1,7 +1,7 @@
 # FIX-COMBATMISSION-UNKNOWN-NAME — an unknown combat mission name raises a Lua error
 
 Status: 🧑 waiting-human — fixed and tested off DCS; the in-game look is
-[`DCS-SESSION-TODO.md` item **R34**](../../DCS-SESSION-TODO.md)
+[`DCS-SESSION-TODO.md` item **R39**](../../DCS-SESSION-TODO.md)
 
 Measured in DCS on 2026-10-03 (session `dcs-session-2026-10-03c`, GermanyCW):
 `veafCombatMission.ActivateMission("TEST-T17 CAP", true)` raised
@@ -32,4 +32,4 @@ on every call, whatever the number.
       `DesactivateMissionNumber` — all five raised exactly the DCS error before the fix
 - [x] The callers return without raising; the unknown name is still reported by `GetMission`
 - [x] `DesactivateMissionNumber` uses `GetMissionNumber`
-- [ ] Seen in game — R34
+- [ ] Seen in game — R39

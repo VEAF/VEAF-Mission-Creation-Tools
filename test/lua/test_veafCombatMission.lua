@@ -373,6 +373,53 @@ function TestVeafCombatMissionRegistry:test_initialize_sets_friendlyName_from_na
 end
 
 -- ============================================================================
+-- TestVeafCombatMissionUnknownName
+-- ============================================================================
+-- An on-demand CAP is registered per variant (`<name>/<skill>/<size>`), so its bare name is unknown
+-- to the registry. Measured in DCS on 2026-10-03: `ActivateMission("TEST-T17 CAP", true)` raised
+-- `attempt to index local 'mission' (a nil value)` instead of reporting the unknown mission.
+TestVeafCombatMissionUnknownName = {}
+
+function TestVeafCombatMissionUnknownName:setUp()
+  veafCombatMission.missionsList = {}
+  veafCombatMission.missionsDict = {}
+  self.savedBuildRadioMenu = veafCombatMission.buildRadioMenu
+  veafCombatMission.buildRadioMenu = function() end
+end
+
+function TestVeafCombatMissionUnknownName:tearDown()
+  veafCombatMission.buildRadioMenu = self.savedBuildRadioMenu
+end
+
+function TestVeafCombatMissionUnknownName:test_ActivateMission_unknown_name_does_not_raise()
+  veafCombatMission.AddMission(VeafCombatMission:new():setName("TEST-T17 CAP/good/2"))
+  luaunit.assertNil(veafCombatMission.ActivateMission("TEST-T17 CAP", true))
+end
+
+function TestVeafCombatMissionUnknownName:test_DesactivateMission_unknown_name_does_not_raise()
+  luaunit.assertNil(veafCombatMission.DesactivateMission("TEST-T17 CAP", true))
+end
+
+function TestVeafCombatMissionUnknownName:test_GetInformationOnMission_unknown_name_does_not_raise()
+  luaunit.assertNil(veafCombatMission.GetInformationOnMission({ "TEST-T17 CAP" }))
+end
+
+function TestVeafCombatMissionUnknownName:test_CompletionCheck_unknown_name_does_not_raise()
+  luaunit.assertNil(veafCombatMission.CompletionCheck("TEST-T17 CAP"))
+end
+
+function TestVeafCombatMissionUnknownName:test_DesactivateMissionNumber_desactivates_the_numbered_mission()
+  local m = VeafCombatMission:new():setName("hotel")
+  veafCombatMission.AddMission(m)
+  local desactivated = false
+  m.desactivate = function()
+    desactivated = true
+  end
+  veafCombatMission.DesactivateMissionNumber(1, true)
+  luaunit.assertTrue(desactivated)
+end
+
+-- ============================================================================
 -- TestVeafCombatMissionObjectiveCopy
 -- ============================================================================
 TestVeafCombatMissionObjectiveCopy = {}

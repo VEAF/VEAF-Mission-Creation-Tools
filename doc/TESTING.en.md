@@ -189,6 +189,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMove.lua` | Move/teleport command parsing |
 | `test_veafMove_escort.lua` | Escort-task recovery after the escorted group is recreated |
 | `test_veafGrass.lua` | Grass runway initialization |
+| `test_veafHelicopterSpawn.lua` | Helicopter spawned from a marker: landed by the ground path, `HELICOPTER` category, the alias's loadout, `orbit` and `transport` tasks |
 | `test_veafSpawn.lua` | Spawn commands, mark text analysis, laser freq conversion |
 | `test_veafSpawnParser.lua` | Deterministic spawn mark-text parsing (`markTextAnalysis`) |
 | `test_veafCommands.lua` | Command registry: priority ordering and dispatch |

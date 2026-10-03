@@ -152,6 +152,16 @@ _spawn group, name RED-SAM-SITE, hdg 180
 
 Les groupes doivent avoir été définis dans la configuration de la mission par son créateur.
 
+**Faire apparaître un hélicoptère avec une tâche :**
+
+```
+_spawn unit, name mi24, task orbit
+_spawn unit, name uh1, task transport, dest FOB-NORD
+```
+
+Sans `task`, il reste posé, moteur coupé. Les tâches et les alias sont détaillés dans
+[veafSpawn — hélicoptères](../mission-maker/scripts/veafSpawn.md#helicopters).
+
 **Faire apparaître une patrouille de chasse (CAP) — `_spawn cap` :**
 
 ```

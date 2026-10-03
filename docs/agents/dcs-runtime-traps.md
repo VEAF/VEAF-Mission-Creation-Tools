@@ -211,6 +211,61 @@ static that lacks it.
 
 *What it cost:* 4 objectives of GermanyCW-v6, placed by the MCP before it wrote the field, missing in game; a combat zone drew 4 elements from 3.
 
+### A helicopter added by script on open ground takes off on its own unless it is `uncontrolled` {#scripted-helicopter-leaves-the-ground}
+
+Measured **2026-10-02**.
+
+Five Mi-8MT added with `coalition.addGroup` on the Kobuleti runway, side by side, watched for
+five minutes:
+
+| Group data | What DCS did |
+|---|---|
+| no route | engine started at once, **hovered 5–12 m up** for five minutes |
+| one `TakeOffGround` point | sat cold, engine started at T+80 s, **took off at T+278 s**, landed at T+466 s |
+| one `TakeOffGroundHot` point | took off at T+11 s, landed at T+193 s |
+| `TakeOffGround` + `uncontrolled = true` | stayed on the ground, engine off |
+| category `AIRPLANE` | refused: `Invalid Unit Module: "Mi-8MT"`, no group |
+
+None of this raises an error: the group exists, `isExist()` is true, and a helicopter meant to
+sit as a target is gone a few minutes later.
+
+**What to do:** To keep a scripted helicopter where it was put, give it one `TakeOffGround` waypoint **and**
+`uncontrolled = true`. Whether the controller's `Start` command then wakes it up is not measured.
+
+*What it cost:* Measured for FEAT-HELICOPTER-SPAWN (DCS-SESSION-TODO R23): the obvious fix — submitting the
+group under `HELICOPTER` — would have produced a hovering helicopter.
+
+### A scripted helicopter given a `Land` waypoint lands on the nearest airfield's parking, not on the point {#helicopter-land-waypoint-goes-to-the-nearest-airfield}
+
+Measured **2026-10-02**.
+
+A Mi-8MT added by script on the Kobuleti runway with a waypoint of type `Land`:
+
+| `Land` point | What it did |
+|---|---|
+| 1.2 km away, at the other end of the runway | passed 291 m from it, came back round, landed **1 678 m from it** on Kobuleti's parking |
+| 3 km away on open ground, 2.85 km from the field | passed 193 m from it at 59 m/s, turned back, landed on Kobuleti's parking again |
+
+(DCS-SESSION-TODO R24, R25.) No error: the group exists, it is on the ground, not where it was sent.
+
+**What to do:** Give the helicopter a `Land` **task** (`{ id = "Land", params = { point, durationFlag } }`) on a
+turning point instead of a `Land` waypoint.
+
+*What it cost:* The first two readings of `task transport` (FEAT-HELICOPTER-SPAWN).
+
+### A scripted helicopter given a `Land` task in a forest hovers at its edge and never lands {#helicopter-hovers-at-a-forest-edge}
+
+Measured **2026-10-02**.
+
+A Mi-8MT given a `Land` task on a point inside a forest, near Kobuleti, flew to it, slowed, and
+then hovered **8 to 34 m above the open field at the forest's edge, 106–121 m from the point**,
+for minutes, without touching down (DCS-SESSION-TODO R26, R27; David watching). The same task on
+open grass put it down 30 m from its point in 90 s (R28).
+
+**What to do:** Send a helicopter to open ground. `task transport` moves the landing point to a clearing within
+300 m when the scenery search finds one, but that search accepts gaps of 10 m, and the DCS call
+under it is a lottery (`disposition-getsimplezones-is-a-lottery`).
+
 ### `StaticObject.getByName` keeps returning a static after its destruction {#destroyed-static-is-still-returned-by-getbyname}
 
 Measured **2026-10-01**.

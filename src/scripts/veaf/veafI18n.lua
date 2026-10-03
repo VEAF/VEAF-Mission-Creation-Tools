@@ -190,8 +190,24 @@ veaf.i18nCatalog = {
     en = "cannot find group %s",
   },
   ["spawn.air_wip"] = {
-    fr = "Les unités aériennes ne peuvent pas être créées pour le moment (en cours de développement)",
-    en = "Air units cannot be spawned at the moment (work in progress)",
+    fr = "Les avions ne peuvent pas être créés par un marqueur pour le moment (les hélicoptères, si)",
+    en = "Airplanes cannot be spawned from a marker at the moment (helicopters can)",
+  },
+  ["spawn.helicopter_unknown_task"] = {
+    fr = "Tâche d'hélicoptère inconnue : %s (possibles : %s)",
+    en = "Unknown helicopter task: %s (possible: %s)",
+  },
+  ["spawn.helicopter_needs_weapons"] = {
+    fr = "La tâche %s demande un hélicoptère armé (mi24, ka50, ah64, gazelle…)",
+    en = "The task %s needs an armed helicopter (mi24, ka50, ah64, gazelle…)",
+  },
+  ["spawn.helicopter_escort_no_group"] = {
+    fr = "Aucun groupe nommé %s à escorter",
+    en = "No group named %s to escort",
+  },
+  ["spawn.helicopter_needs_dest"] = {
+    fr = "La tâche %s d'un hélicoptère demande une destination (dest)",
+    en = "The helicopter task %s needs a destination (dest)",
   },
   ["spawn.no_cap"] = {
     fr = "Aucune CAP disponible au spawn",

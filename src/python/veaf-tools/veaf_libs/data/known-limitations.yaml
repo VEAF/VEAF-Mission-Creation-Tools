@@ -353,6 +353,81 @@ limitations:
     Raise `modules.CTLD.airbase_logistics_radius` in `mission.yaml`, or taxi into the green circle.
     For a field with no parking data, place an `LGZ_` trigger zone in the Mission Editor.
 
+- id: no-airplane-spawn-from-a-marker
+  kind: tool
+  area: runtime
+  title: No airplane can be spawned from a map marker, except as a static
+  symptom: |
+    `_spawn unit, name F-16C_50` (or any airplane type) answers *"Airplanes cannot be spawned from a
+    marker at the moment (helicopters can)"* and spawns nothing; `static` places it as a static
+    object, which does not fly. Helicopters are spawned from a marker since FEAT-HELICOPTER-SPAWN
+    (#164), landed or with a `task`.
+  workaround: |
+    `-cap` (or `_spawn cap`) clones a `veafSpawn-` airplane template with a patrol. Otherwise place the
+    group in the Mission Editor: inside a combat zone, which spawns it with the zone, or
+    late-activated and activated by a trigger or a script.
+
+- id: scripted-helicopter-leaves-the-ground
+  kind: dcs
+  area: spawning
+  title: "A helicopter added by script on open ground takes off on its own unless it is `uncontrolled`"
+  measured: "2026-10-02"
+  symptom: |
+    Five Mi-8MT added with `coalition.addGroup` on the Kobuleti runway, side by side, watched for
+    five minutes:
+
+    | Group data | What DCS did |
+    |---|---|
+    | no route | engine started at once, **hovered 5–12 m up** for five minutes |
+    | one `TakeOffGround` point | sat cold, engine started at T+80 s, **took off at T+278 s**, landed at T+466 s |
+    | one `TakeOffGroundHot` point | took off at T+11 s, landed at T+193 s |
+    | `TakeOffGround` + `uncontrolled = true` | stayed on the ground, engine off |
+    | category `AIRPLANE` | refused: `Invalid Unit Module: "Mi-8MT"`, no group |
+
+    None of this raises an error: the group exists, `isExist()` is true, and a helicopter meant to
+    sit as a target is gone a few minutes later.
+  workaround: |
+    To keep a scripted helicopter where it was put, give it one `TakeOffGround` waypoint **and**
+    `uncontrolled = true`. Whether the controller's `Start` command then wakes it up is not measured.
+  cost: |
+    Measured for FEAT-HELICOPTER-SPAWN (DCS-SESSION-TODO R23): the obvious fix — submitting the
+    group under `HELICOPTER` — would have produced a hovering helicopter.
+
+- id: helicopter-land-waypoint-goes-to-the-nearest-airfield
+  kind: dcs
+  area: spawning
+  title: "A scripted helicopter given a `Land` waypoint lands on the nearest airfield's parking, not on the point"
+  measured: "2026-10-02"
+  symptom: |
+    A Mi-8MT added by script on the Kobuleti runway with a waypoint of type `Land`:
+
+    | `Land` point | What it did |
+    |---|---|
+    | 1.2 km away, at the other end of the runway | passed 291 m from it, came back round, landed **1 678 m from it** on Kobuleti's parking |
+    | 3 km away on open ground, 2.85 km from the field | passed 193 m from it at 59 m/s, turned back, landed on Kobuleti's parking again |
+
+    (DCS-SESSION-TODO R24, R25.) No error: the group exists, it is on the ground, not where it was sent.
+  workaround: |
+    Give the helicopter a `Land` **task** (`{ id = "Land", params = { point, durationFlag } }`) on a
+    turning point instead of a `Land` waypoint.
+  cost: |
+    The first two readings of `task transport` (FEAT-HELICOPTER-SPAWN).
+
+- id: helicopter-hovers-at-a-forest-edge
+  kind: dcs
+  area: spawning
+  title: "A scripted helicopter given a `Land` task in a forest hovers at its edge and never lands"
+  measured: "2026-10-02"
+  symptom: |
+    A Mi-8MT given a `Land` task on a point inside a forest, near Kobuleti, flew to it, slowed, and
+    then hovered **8 to 34 m above the open field at the forest's edge, 106–121 m from the point**,
+    for minutes, without touching down (DCS-SESSION-TODO R26, R27; David watching). The same task on
+    open grass put it down 30 m from its point in 90 s (R28).
+  workaround: |
+    Send a helicopter to open ground. `task transport` moves the landing point to a clearing within
+    300 m when the scenery search finds one, but that search accepts gaps of 10 m, and the DCS call
+    under it is a lottery (`disposition-getsimplezones-is-a-lottery`).
+
 - id: airfield-logistics-class-is-decided-when-ctld-starts
   kind: tool
   area: runtime

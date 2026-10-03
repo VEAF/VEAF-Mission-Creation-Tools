@@ -9,6 +9,10 @@
 #   hdg: heading; size: fixed cell size (m); random: randomize within cell;
 #   fitToUnit: shrink the cell to the unit's exact footprint.
 #   hidden: keep out of generated documentation listings.
+# units[].pylons (helicopters): station -> {CLSID}. An alias with pylons is ARMED, one without is
+#   not — the type does not decide, DCS files a Mi-8 as both attack and transport. Copied from the
+#   shipped dynamic-slot template of the type (FEAT-HELICOPTER-SPAWN). Fuel and countermeasures are
+#   not written here: the build takes them from dcsUnits.yaml for every helicopter type.
 
 units:
 - {aliases: [hq7], unitType: HQ-7_LN_SP}
@@ -24,6 +28,43 @@ units:
 - {aliases: [blue-ewr], unitType: FPS-117}
 - {aliases: [red-ewr], unitType: 1L13 EWR}
 - {aliases: [avenger], unitType: M1097 Avenger}
+# helicopters: unarmed
+- {aliases: [mi8], unitType: Mi-8MT}
+- {aliases: [mi26], unitType: Mi-26}
+- {aliases: [uh1], unitType: UH-1H}
+- {aliases: [ch47], unitType: CH-47Fbl1}
+# helicopters: armed, with the pylons of their shipped dynamic-slot template
+- aliases: [mi24]
+  unitType: Mi-24P
+  pylons:
+    1: {CLSID: '{2x9M120_Ataka_V}'}
+    2: {CLSID: '{2x9M120_Ataka_V_with_adapter}'}
+    3: {CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'}
+    4: {CLSID: '{6A4B9E69-64FE-439a-9163-3A87FB6A4D81}'}
+    5: {CLSID: '{2x9M120_Ataka_V_with_adapter}'}
+    6: {CLSID: '{2x9M120_Ataka_V}'}
+- aliases: [ka50]
+  unitType: Ka-50_3
+  pylons:
+    1: {CLSID: '{A6FD14D3-6D30-4C85-88A7-8D17BEE120E2}'}
+    2: {CLSID: 'B_8V20A_OFP2'}
+    3: {CLSID: 'B_8V20A_OFP2'}
+    4: {CLSID: '{A6FD14D3-6D30-4C85-88A7-8D17BEE120E2}'}
+    5: {CLSID: '<CLEAN>'}
+    6: {CLSID: '<CLEAN>'}
+- aliases: [ah64]
+  unitType: AH-64D_BLK_II
+  pylons:
+    1: {CLSID: 'M261_MK151'}
+    2: {CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'}
+    3: {CLSID: '{88D18A5E-99C8-4B04-B40B-1C02F2018B6E}'}
+    4: {CLSID: 'M261_MK151'}
+- aliases: [gazelle]
+  unitType: SA342M
+  pylons:
+    1: {CLSID: '{HOT3_R2_M}'}
+    2: {CLSID: '{HOT3_L2_M}'}
+    4: {CLSID: '{IR_Deflector}'}
 groups:
 - aliases: [hq7]
   disposition: {h: 5, w: 5}

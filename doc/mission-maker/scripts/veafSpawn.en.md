@@ -122,7 +122,7 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 **Options:**
 
 - `name` — aircraft type
-- `alt` — patrol altitude (feet)
+- `alt` — patrol altitude (feet); never less than 150 m above the ground under the spawn point, raised otherwise (DCS does not lift a too-low aircraft: it flies into the trees)
 - `hdg` — initial heading
 - `speed` — patrol speed (knots)
 - `capradius` — CAP orbit radius (meters)

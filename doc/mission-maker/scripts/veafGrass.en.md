@@ -75,7 +75,8 @@ Four things worth knowing:
   long, and a clear spot whose tail overhangs would still block a pad.
 - **If the escort fits nowhere, the `-farp` command is refused**: nothing is created, and the message
   "FARP … refused: no clear ground for its escort" is shown. Place the marker a little further away.
-  This is rare: measured in game, it happened in none of four tries, dense woods included. A FARP
+  This is what happens **in a dense wood**, when no bearing at 150, 225 or 300 m is out of the trees
+  (measured in game 2026-10-03); on open ground nothing moves. A FARP
   **placed in the Mission Editor** is never refused: nobody is there to read the message, so its layout
   is built anyway, at its original position.
 

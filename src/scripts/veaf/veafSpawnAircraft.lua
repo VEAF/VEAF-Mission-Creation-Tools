@@ -943,10 +943,6 @@ function veafSpawn.spawnCombatAirPatrol(
   local altitude = (altitude or 27000) --[[ ft ]] * 0.3048 --[[ meters ]]
   local altitudeDelta = (altitudeDelta or 2000) --[[ ft ]] * 0.3048 --[[ meters ]]
   local hdg = hdg or 0
-  local speed0 = convertSpeeds(speed, 0.3, altitude)
-  local speed1 = convertSpeeds(speed, 0.5, altitude)
-  local speed2 = convertSpeeds(speed, 0.63, altitude)
-  local speed3 = convertSpeeds(speed, 0.63, altitude)
   local distance = (distance or 20) --[[ nm ]] * 1852 --[[ meters ]]
   local capRadius = (capRadius or 60) * 1852 --[[ meters ]]
   local skill = skill or "random"
@@ -959,10 +955,6 @@ function veafSpawn.spawnCombatAirPatrol(
   veaf.loggers.get(veafSpawn.Id):trace("altdelta=%s", veaf.lp(altitudeDelta))
   veaf.loggers.get(veafSpawn.Id):trace("hdg=%s", veaf.lp(hdg))
   veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.lp(distance))
-  veaf.loggers.get(veafSpawn.Id):trace("speed0=%s", veaf.lp(speed0))
-  veaf.loggers.get(veafSpawn.Id):trace("speed1=%s", veaf.lp(speed1))
-  veaf.loggers.get(veafSpawn.Id):trace("speed2=%s", veaf.lp(speed2))
-  veaf.loggers.get(veafSpawn.Id):trace("speed3=%s", veaf.lp(speed3))
   veaf.loggers.get(veafSpawn.Id):trace("capRadius=%s", veaf.lp(capRadius))
   veaf.loggers.get(veafSpawn.Id):trace("skill=%s", veaf.lp(skill))
   veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.lp(silent))
@@ -978,6 +970,15 @@ function veafSpawn.spawnCombatAirPatrol(
   -- off the trees would otherwise dive straight back to the altitude it was asked.
   altitude = veafAircraftSpawn.flooredAltitude(position, altitude)
   position.y = altitude
+  -- from the altitude actually flown, the floor applied
+  local speed0 = convertSpeeds(speed, 0.3, altitude)
+  local speed1 = convertSpeeds(speed, 0.5, altitude)
+  local speed2 = convertSpeeds(speed, 0.63, altitude)
+  local speed3 = convertSpeeds(speed, 0.63, altitude)
+  veaf.loggers.get(veafSpawn.Id):trace("speed0=%s", veaf.lp(speed0))
+  veaf.loggers.get(veafSpawn.Id):trace("speed1=%s", veaf.lp(speed1))
+  veaf.loggers.get(veafSpawn.Id):trace("speed2=%s", veaf.lp(speed2))
+  veaf.loggers.get(veafSpawn.Id):trace("speed3=%s", veaf.lp(speed3))
   veaf.loggers.get(veafSpawn.Id):debug("final spawn, position=%s", position)
 
   -- The template's first-waypoint options: the same rule as ever, now shared with every aircraft role.
@@ -1406,25 +1407,20 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     -- The controller is touched only when the set of targets changed. An `EngageUnit` used to be pushed
     -- for every target on every tick, so a CAP tracking five aircraft stacked five more tasks each ten
     -- seconds — the counter read 38, 43, 49 in game on 2026-10-03 — and no task could ever be taken
-    -- back individually: `popTask` only removes the top of the queue. So a change rebuilds the queue
-    -- instead of patching it: the patrol, handed back whole, then one task per target still there.
-    local changed = false
+    -- back individually: `popTask` only removes the top of the queue. So a target **leaving** rebuilds
+    -- the queue instead of patching it — the patrol handed back whole, then one task per target still
+    -- there — and a target **arriving** only gets its own task, so the ones in progress are not cut.
+    local someLeft = false
     for targetId in pairs(engagedTargetIds) do
       if not toEngageIds[targetId] then
-        changed = true
+        someLeft = true
       end
     end
-    for targetId in pairs(toEngageIds) do
-      if not engagedTargetIds[targetId] then
-        changed = true
-      end
-    end
-
-    if changed then
-      if next(engagedTargetIds) then
-        veafAircraftSpawn.resumePatrol(capGroupName)
-      end
-      for _, targetData in ipairs(toEngage) do
+    local rebuilt = someLeft and veafAircraftSpawn.resumePatrol(capGroupName)
+    for _, targetData in ipairs(toEngage) do
+      -- Without a rebuild (nothing left, or no patrol to hand back) only the newcomers are pushed: pushing
+      -- the others again is the accumulation this replaces.
+      if rebuilt or not engagedTargetIds[targetData.targetId] then
         veaf.loggers.get(veafSpawn.Id):trace("Engaging target!")
         controller:pushTask({
           id = "EngageUnit",
@@ -1435,8 +1431,8 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
           },
         })
       end
-      engagedTargetIds = toEngageIds
     end
+    engagedTargetIds = toEngageIds
 
     if #toEngage > 0 then
       veaf.loggers.get(veafSpawn.Id):debug("Watchdog has %s target(s) ! Allowing AA for CAP", veaf.lp(#toEngage))

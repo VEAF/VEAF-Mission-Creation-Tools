@@ -3915,6 +3915,31 @@ function TestVeafSpawnCapTargetFilter:test_a_target_leaving_rebuilds_the_queue_a
   luaunit.assertEquals(ids[3], 33)
 end
 
+--- A target arriving gets its own task, and the fight in progress is not cut by a route reset.
+function TestVeafSpawnCapTargetFilter:test_a_target_arriving_is_added_without_resetting_the_queue()
+  local sky = { { object = aFighter(33) } }
+  aCapSeeing(sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  sky[2] = { object = aFighter(34) }
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+
+  luaunit.assertEquals(engagedUnitIds(), { 33, 34 }, "only the newcomer is pushed")
+  luaunit.assertEquals(#patrolsResumed(), 0, "and the patrol is not set again")
+end
+
+--- With no patrol to hand back, a target leaving must not bring back the accumulation: the ones still
+--- there are not pushed again.
+function TestVeafSpawnCapTargetFilter:test_without_a_stored_patrol_nothing_is_pushed_twice()
+  local sky = { { object = aFighter(33) }, { object = aFighter(34) } }
+  aCapSeeing(sky)
+  veafAircraftSpawn.groupRoutes["cap"] = nil
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  sky[2] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+
+  luaunit.assertEquals(#engagedUnitIds(), 2, "the target still there keeps the task it has")
+end
+
 --- A CAP that has left its zone stops chasing.
 ---
 --- The branch used to forbid air-to-air and leave every `EngageUnit` on the queue: the CAP held fire and

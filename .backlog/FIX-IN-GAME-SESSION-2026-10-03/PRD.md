@@ -1,7 +1,7 @@
 # FIX-IN-GAME-SESSION-2026-10-03 — what a DCS session flown without a pilot found
 
 Status: 🔄 in-progress — tickets 01 and 02 fixed in this lot's pull request; 03 to 06 are ready and
-need a plan first
+need a plan first; 07 came out of the PR review
 
 Origin: the DCS session of 2026-10-03, run without anyone at the controls. Five missions were built
 from `develop` (`d333d58a`, dev mode) in `D:\dev\_VEAF\tmp\dcs-session-2026-10-03\`; David loaded
@@ -48,6 +48,7 @@ Each line closes or advances the lot named; the lots carry the measurement.
 | 04 | [The CAP watchdog keeps adding tasks](tickets/04-cap-watchdog-task-count.md) | ⬜ |
 | 05 | [A `-cap` zone drawing outlives its group](tickets/05-cap-drawing-outlives-its-group.md) | ⬜ |
 | 06 | [The QRA race-track sits beside its zone](tickets/06-qra-race-track-beside-its-zone.md) | ⬜ |
+| 07 | [The editor's DCS stubs teach the wrong colour names](tickets/07-editor-stubs-teach-the-wrong-colour-names.md) | ⬜ |
 
 R9 and R19 are not tickets here: their lots exist, and the measurement goes there.
 

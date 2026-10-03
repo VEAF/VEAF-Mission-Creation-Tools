@@ -165,7 +165,7 @@ With no `task`, it stays on the ground, engine off. The tasks and the aliases ar
 **Spawn a combat air patrol (CAP) — `_spawn cap`:**
 
 ```
-_spawn cap, name Su-27, alt 25000, capradius 20000
+_spawn cap, name Su-27, alt 25000, capradius 20
 ```
 
 **Smoke, flares, explosions:**

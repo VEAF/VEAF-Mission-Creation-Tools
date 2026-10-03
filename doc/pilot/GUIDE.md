@@ -165,7 +165,7 @@ Sans `task`, il reste posé, moteur coupé. Les tâches et les alias sont détai
 **Faire apparaître une patrouille de chasse (CAP) — `_spawn cap` :**
 
 ```
-_spawn cap, name Su-27, alt 25000, capradius 20000
+_spawn cap, name Su-27, alt 25000, capradius 20
 ```
 
 **Fumée, fusées éclairantes, explosions :**

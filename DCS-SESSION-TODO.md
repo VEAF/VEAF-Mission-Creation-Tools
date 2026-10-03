@@ -36,20 +36,62 @@ from branch `fix/in-game-session-2026-10-03-followups`, plan in `SESSION-DCS-202
 line), R19 (the escort beside its own props), and tickets 03, 04 and 06 of
 `FIX-IN-GAME-SESSION-2026-10-03`. **Run the same afternoon**: R7 (QRA half), R17 (last line) and R19 passed and are removed below; the results are in those lots and in `FIX-IN-GAME-SESSION-2026-10-03`.
 
+**Third pass, 2026-10-03 evening — the 6.27.0 release gate** —
+`D:\dev\_VEAF\tmp\dcs-session-2026-10-03c\`, three missions built from `develop` (`d3823f7e`,
+CTLD `2.0.0-rc12`), plan in `SESSION-DCS-2026-10-03c.md`, probes `probes\c_*.lua` run through
+`fiddle.sh`. **Run the same evening**: R7 (wave half — each wave within 250 m of its offset), R34
+(CTLD rc12 builds its menu and keeps a seated player) and R37 (the fixed CAP engages; without the task,
+or with it after the orbit, it does not) passed and are removed; the results are in their lots.
+R35 and R36 are rewritten to what is left, and the ticket 04 reconstruction is at the end of this file.
+R38 needs a server, not the local game.
 
-### R7. A wave launched by a VEAF command lands at its offset — **re-opened 2026-10-03**
+### R35. Combat-zone ground units start warm — the thermal look
 
-The wave half was recorded as verified on the morning of 2026-10-03 (`[5000,0]` 5.2 km north, the
-default offset 4 km N / 7 km W). The waves of that zone were written `-spawn shilka, country russia`,
-and `-spawn` is **no alias**: the afternoon run of the same zone logged `VeafAlias [-spawn] was not
-found` and spawned nothing. Whatever was measured that morning did not come from those waves. The QRA
-half was verified the same afternoon (a bracketed command and a bare one, both where they should land).
+[`FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP`](.backlog/FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/tickets/02-zone-defences-start-warm.md)
+ticket 02. **The script half passed on 2026-10-03**: the five vehicles `combatZone_WahnerHeide_Easy`
+handed DCS all carried `coldAtStart = false`. What DCS makes of it cannot be read by a script.
 
-**Run**: an AIRWAVES zone with `respawn_default_offset: [4000, -7000]`, `respawn_radius: 0`, and two
-waves using a **valid** alias — `"-shilka"` (no bracket: expect the default offset, 4 km N / 7 km W)
-and `"[5000,0]-shilka"` (expect 5 km N, 0 E). Trigger it with an AI stand-in, read the Shilkas'
-positions against the zone centre. Unblocks the wave half of
-[`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md).
+**Run** (session c, M3, `c_warm.lua`, slot `TEST-WARM A-10 TGP`): the zone plus three BMP-2 controls
+600 m north of its centre, west to east `coldAtStart = true`, `false`, no key. Pod in white-hot:
+
+- **Verified**: the `true` control dark, the `false` control bright, the zone's vehicles bright — and
+  the `no key` control says what DCS does with a missing key.
+- **Nothing concluded**: the three controls alike (the pod cannot tell at that range or hour).
+- **Re-opened**: controls distinct but the zone's vehicles dark. A second look 15 min later says
+  whether a warm vehicle cools standing still.
+
+### R36. A C-130 at Ramstein reads CTLD logistics — re-read after the radius change
+
+[`FEAT-CTLD-AIRBASE-LOGISTICS`](.backlog/FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md). **Measured 2026-10-03**:
+the zone works (it answers at its own point), but the C-130 DCS parks itself sits on stand #111,
+997 m from the logistic point, and reads *« Aucune logistique à portée »* at 250 m. GermanyCW-v6 sets
+its own `airbase_logistics_radius` to 1 100 m (David's choice: the mission, not the default).
+
+**Run**: rebuild GermanyCW-v6 with that setting, then `c_ramstein.lua` twice 10 s apart.
+
+- **Verified**: the C-130's position returns `AB_Ramstein` — close the lot.
+- **Re-opened**: still nothing at the C-130 (the setting did not reach the build: read
+  `veaf-config.lua` in the `.miz`), or the control at the zone's own point returns nothing.
+
+### R38. `/secu login` and a listed pilot on a live server — **needs a server, not the local game**
+
+[`FIX-SECU-VERB-AND-LOG-NOISE`](.backlog/FIX-SECU-VERB-AND-LOG-NOISE/tickets/01-secu-login-promises-nothing.md)
+ticket 01. The mission half shipped in 6.26.0; the hook half (`VEAF-Server-hook.lua` v2.7.1, sending
+the pilot's level with every slot change) was copied by hand to all six servers on 2026-10-01. The
+reported scenario needs a multiplayer server and a pilot listed in `veaf-pilots.txt`, which a local
+single-player session cannot give.
+
+**Run**, on any VEAF server running a 6.26.0+ mission: a pilot listed at level ≥ 10 takes a slot and
+clicks a secured `+` combat-zone command **without any verb**; then, **still connected**, the mission
+is reloaded and he clicks it again; then `/secu login` in chat. With `VEAF-REMOTE` and
+`VEAF-SECURITY` at `debug`, the log shows which way in each click took.
+
+- **Verified**: both clicks pass with no verb, no `took [...] with no known level` warning, and
+  `/secu login` answers that there is no global login any more, pointing to `/secu elevate`.
+- **Re-opened**: the click after the reload is refused (the slot was registered with no level —
+  the hook's level did not arrive), or `/secu login` still announces "authenticated for 10 minutes",
+  or the `unusable auth duration []` warning is back (an old mission or an old hook is loaded:
+  check the version lines before concluding).
 
 ### R4. The `100` (`SmallSizeFighter`) parking type
 
@@ -1010,5 +1052,20 @@ Comparer `position` aux coordonnées éditeur de `AAA-1` — attention à la con
   (`veaf.findSpawnPoint` dans `spawnElement`) ne teste que le point d'ancrage, jamais les quatre
   autres unités du groupe — une unité déjà au bord de l'eau dans l'éditeur peut donc passer dedans
   sans que rien ne le remarque.
+
+**Première piste préparée le 2026-10-03 au soir** (M4 de `D:\dev\_VEAF\tmp\dcs-session-2026-10-03c\`).
+`Snowfox_20260903.miz` **n'est pas sur DAVID-BUREAU** (cherché sur `D:\` et le profil) : la zone a été
+reconstruite dans une mission Persian Gulf vierge à partir des chiffres de ce ticket — même centre,
+même rayon, pas de `#spawnradius`, les cinq ZU-23 aux coordonnées éditeur exactes, rien d'autre sur la
+carte. Les sondes `c_t04_*.lua` enveloppent `coalition.addGroup` et donnent, unité par unité et sur
+cinq cycles d'activation, trois écarts : **remise à DCS − éditeur** (une translation commune > 50 m =
+l'ancrage), **position réelle − remise** (> 5 m = DCS déplace l'unité après le spawn), et la **nature
+du sol** sous la position éditeur. Tout propre sur les cinq cycles ne clôt rien : cela dit seulement
+que les données éditeur ne suffisent pas à reproduire, et qu'il faut le `.miz` de Tripack.
+
+**Mesuré le soir même : non reproduit.** Sur les cinq cycles, les cinq ZU-23 reçoivent à chaque fois
+un même vecteur de 4 à 43 m (la dispersion de 50 m), DCS ne les déplace pas après le spawn, et toutes
+les positions — éditeur comprise — sont sur `LAND`. Il reste à rejouer la mesure sur `Snowfox_20260903.miz`
+quand il sera disponible ; la question n'est pas reposée d'ici là.
 
 ---

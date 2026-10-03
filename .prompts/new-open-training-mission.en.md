@@ -120,6 +120,12 @@ why.
 - **`ctld-config.yaml`**: empty the example lists CTLD takes from its defaults (`extract1`…`extract25`,
   `logistic1`…`logistic10`) — none of those names exists in the mission, and they make 35 warnings at
   start.
+- **Airfield logistics**: every airfield held becomes a CTLD loading point of
+  `modules.CTLD.airbase_logistics_radius` metres (250 by default), one value for every field. Size it
+  for the **largest** airfield the helicopters and transport aircraft start from: on a major air base,
+  250 m covers almost no large-aircraft stand (measured at Ramstein: a C-130 parked 997 m away,
+  **1,100 m** to cover it). Say the value you chose and why (`describe_known_limitations`,
+  `airfield-logistics-is-one-250m-zone`).
 - `set_airbase_coalition` for every airfield, with `dynamic_spawn: false` on those that must offer no
   slots. `src/warehouses.yaml`: unlimited fuel and weapons, hot start allowed.
   `src/dynamic-slot-templates.yaml`: templates for the coalitions that have slots, **of the mission's

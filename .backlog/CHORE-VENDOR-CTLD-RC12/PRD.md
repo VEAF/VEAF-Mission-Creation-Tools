@@ -58,6 +58,15 @@ not apply. The effect on a mission depends on its `ctld-config.yaml`:
 The file has not been flown in DCS from this repository. The evidence stops at "it loads and
 initialises under the mocks".
 
+## Seen in game — 2026-10-03 (session c)
+
+On the Caucasus session mission built from `develop`, in the Mi-8MT slot of group `CTLD test 2`:
+the F10 menu showed the CTLD entry and the VEAF menu, and CTLD's own menu model listed the CTLD entry
+with its eleven sub-menus (troops, vehicles, request equipment, crates, beacons, FOBs, recon,
+minefield, smoke, JTAC, cargo check). The player stayed tracked across a 30 s player scan. A first
+reading that seemed to show CTLD forgetting a seated player came from a Mi-8 destroyed on spawn: the
+slot drops the helicopter 10 m (`TakeOffGround` at `alt = 5`), a property of that test mission.
+
 ## Out of scope
 
 - The dcs-schema drift: a documentation/stub reference, not a shipped script; it gets its own sync.

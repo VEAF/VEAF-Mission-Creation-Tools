@@ -827,6 +827,8 @@ Les transitions sont annoncées en jeu dans la langue de la mission (`transport.
 !!! note "L'écart accepté des 250 m"
     Il n'y a qu'**une** zone de `airbase_logistics_radius` (250 m par défaut) par aérodrome, centrée sur le parking le plus proche du centroïde du terrain. Sur un aérodrome très étalé, un avion garé à plus de 250 m de ce point lit *« Aucune logistique à portée »* alors même que le champ est actif. C'est un compromis assumé (2026-09-27) : le rayon est le réglage à monter si votre théâtre a de grands parkings dispersés.
 
+    Mesuré le 2026-10-03 à **Ramstein** : un C-130 garé par DCS lui-même s'est retrouvé à **997 m** du centre de la zone, et un seul des 90 parkings gros porteurs du terrain est à moins de 250 m. Le rayon vaut pour **tous** les aérodromes de la mission, on ne peut pas le régler terrain par terrain : réglez-le sur le **plus grand** terrain d'où partent vos transports. Pour une grande base comme Ramstein, **1 100 m** couvre la place du C-130 et les six parkings gros porteurs les plus proches. Un cercle plus grand ne coûte que sa taille sur la carte F10.
+
 #### La langue de CTLD
 
 CTLD parle la langue de votre mission : VEAF aligne sa langue sur `mission.language` au démarrage, donc une mission en français a un menu CTLD en français, sans rien avoir à régler.

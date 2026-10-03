@@ -452,6 +452,24 @@ Measured **2026-09-21**.
 
 **What to do:** Use manpads or ordinary vehicles as spotters, not air-defence vehicles.
 
+### A CAP flight engages nothing without an `EngageTargets` task, and a task numbered after its endless orbit is never read {#cap-engages-only-through-an-engage-task-before-its-orbit}
+
+Measured **2026-10-03**.
+
+The group's main task `CAP` does not make it fight. Three MiG-29S pairs on GermanyCW, identical
+but for the task list of their first waypoint, each with an immortal C-130 orbiting 12 km away
+and detected by its lead (`getDetectedTargets`): with `EngageTargets` (`key = "CAP"`, `Air`)
+numbered **before** the race-track `Orbit`, the pair fired its first R-77 74 s after it was
+activated and four missiles within 3.5 minutes; with no `EngageTargets`, and with the same task numbered **after** the
+`Orbit`, both pairs held fire for four minutes at 8.5 km from a target they had detected.
+
+**What to do:** Give every CAP an `EngageTargets` (or `EngageTargetsInZone`) task numbered before its `Orbit`, as
+the Mission Editor does when the CAP task is chosen. `create_cap_mission` writes it that way, and
+`edit_route add_task` takes `task_position` to insert a task before an orbit instead of appending.
+
+*What it cost:* The on-demand CAPs `create_cap_mission` built before FIX-SCRATCH-MISSION-FINDINGS ticket 17 carried
+an `Orbit` alone: they patrolled and never fought.
+
 ## Players, roles and the map {#players}
 
 ### A game master **is** coalition-scoped for map marks {#game-master-marks-are-coalition-scoped}

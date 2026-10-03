@@ -823,6 +823,8 @@ Transitions are announced in game in the mission's language (`transport.airbase_
 !!! note "The accepted 250 m gap"
     There is only **one** zone of `airbase_logistics_radius` (250 m by default) per airfield, centred on the parking stand nearest the terrain's centroid. On a widely spread airfield, an aircraft parked more than 250 m from that point reads *"No logistics in range"* even though the field is active. This is an accepted compromise (2026-09-27): the radius is the setting to raise if your theatre has large dispersed aprons.
 
+    Measured on 2026-10-03 at **Ramstein**: a C-130 parked by DCS itself ended up **997 m** from the zone's centre, and only one of the field's 90 large-aircraft stands is within 250 m. The radius applies to **every** airfield of the mission and cannot be set per field: size it for the **largest** airfield your transports start from. For a major air base such as Ramstein, **1,100 m** covers the C-130's stand and the six nearest large-aircraft stands. A larger circle costs nothing but its size on the F10 map.
+
 #### CTLD's language
 
 CTLD speaks your mission's language: VEAF aligns it on `mission.language` at start-up, so a French mission gets a French CTLD menu with nothing to configure.

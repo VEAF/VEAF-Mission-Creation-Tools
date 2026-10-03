@@ -182,7 +182,23 @@ veafSpawn.registerCommandHandler("flare", "OPEN", function(eventPos, options, co
   return nil, nil, false
 end)
 
+--- The colours a signal flare comes in, by the name a marker asks. Not the smoke's: red, green and white
+--- share a number in both tables, but smoke orange (3) is flare yellow, and smoke blue (4) is no flare
+--- at all (DCS enums read in game 2026-10-03).
+veafSpawn.SIGNAL_FLARE_COLORS = {
+  red = trigger.flareColor.Red,
+  green = trigger.flareColor.Green,
+  white = trigger.flareColor.White,
+  yellow = trigger.flareColor.Yellow,
+}
+
 veafSpawn.registerCommandHandler("signal", "OPEN", function(eventPos, options, coalition, markId, bypassSecurity)
-  veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
+  local colorName = options.colorName or "red"
+  local color = veafSpawn.SIGNAL_FLARE_COLORS[colorName]
+  if not color then
+    trigger.action.outTextForCoalition(coalition, veaf.t("spawn.signal_no_such_colour", colorName), 10)
+    return nil, nil, false
+  end
+  veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, color)
   return nil, nil, false
 end)

@@ -121,7 +121,7 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 **Options :**
 
 - `name` — type d'avion
-- `alt` — altitude de patrouille (pieds)
+- `alt` — altitude de patrouille (pieds) ; jamais moins de 150 m au-dessus du sol sous le point d'apparition, l'altitude est relevée sinon (DCS ne remonte pas un avion trop bas : il s'écrase dans les arbres)
 - `hdg` — cap initial
 - `speed` — vitesse de patrouille (nœuds)
 - `capradius` — rayon d'orbite CAP (mètres)
@@ -217,6 +217,14 @@ _spawn smoke, color green, shells 5
 ```
 _spawn flare, power 1000000, shells 5, heading 90, distance 500
 ```
+
+### Tirer une fusée de signal
+
+```
+_spawn signal, color green
+```
+
+**Couleurs :** `red` (par défaut), `green`, `white`, `yellow`. Une fusée n'a pas les couleurs de la fumée : `orange` et `blue` n'existent pas dans DCS, la commande le dit et ne tire rien.
 
 ### Faire apparaître des explosions
 

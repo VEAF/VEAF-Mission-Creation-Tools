@@ -151,6 +151,24 @@ function TestAircraftSpawnCapContract:test_three_waypoints_at_the_patrol_altitud
   end
 end
 
+--- R9 of `DCS-SESSION-TODO.md`, measured 2026-10-03: `_spawn cap, side red, alt 2` put a MiG-21 15 m
+--- above the trees, and it crashed within a second — DCS does not lift a too-low aircraft. `alt 2` is
+--- 2 ft ± 2 000 ft, so with the ground at 700 m every draw is under it: the spawn and the whole patrol
+--- are floored, or the CAP would dive straight back to the altitude it was asked.
+function TestAircraftSpawnCapContract:test_a_cap_asked_under_the_ground_flies_at_the_clearance()
+  local originalHeight = land.getHeight
+  land.getHeight = function()
+    return 700
+  end
+  veafSpawn.spawnCombatAirPatrol({ x = 10000, y = 0, z = 20000 }, 0, "CAPCONTRACT", "usa", 2, 0, 90, 20, nil, 60, "Excellent", true, false)
+  land.getHeight = originalHeight
+  local floor = 700 + veafAircraftSpawn.MINIMUM_CLEARANCE_METRES
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.units[1].alt, floor, "the unit")
+  for index, point in ipairs(submittedRoute()) do
+    luaunit.assertEquals(point.alt, floor, "waypoint " .. index)
+  end
+end
+
 function TestAircraftSpawnCapContract:test_the_first_waypoint_carries_the_template_options()
   spawnTheCap()
   luaunit.assertEquals(submittedRoute()[1].task, templateOptions())
@@ -456,6 +474,43 @@ function TestAircraftSpawnZoneDefense:test_the_patrol_flies_at_the_spawn_altitud
   for _, unit in pairs(dcs_mocks.groupsAdded[1].group.units) do
     luaunit.assertEquals(unit.alt, 5000)
   end
+end
+
+--- FIX-AIR-SPAWN-ALTITUDE-GUARD: a QRA whose editor group has no unit falls back to a spawn spot at
+--- `y = 0` — sea level, under the ground of most of Syria. Measured on 2026-10-03, DCS lifts nothing: a
+--- MiG-21 put 15 m above the trees crashed within a second. The flight is floored at the clearance.
+function TestAircraftSpawnZoneDefense:test_a_spot_under_the_clearance_is_floored_for_the_unit_and_the_patrol()
+  local originalHeight = land.getHeight
+  land.getHeight = function()
+    return 700
+  end
+  spawnZoneDefense({ x = 0, y = 0, z = 0 })
+  land.getHeight = originalHeight
+  local floor = 700 + veafAircraftSpawn.MINIMUM_CLEARANCE_METRES
+  for _, unit in pairs(dcs_mocks.groupsAdded[1].group.units) do
+    luaunit.assertEquals(unit.alt, floor, "the unit")
+  end
+  for index, point in ipairs(submittedRoute()) do
+    luaunit.assertEquals(point.alt, floor, "waypoint " .. index)
+  end
+end
+
+--- The other side: an altitude that clears the ground is left exactly as asked.
+function TestAircraftSpawnZoneDefense:test_a_spot_above_the_clearance_is_left_alone()
+  local originalHeight = land.getHeight
+  land.getHeight = function()
+    return 5000 - veafAircraftSpawn.MINIMUM_CLEARANCE_METRES - 1
+  end
+  spawnZoneDefense()
+  land.getHeight = originalHeight
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.units[1].alt, 5000)
+end
+
+--- What the CAP watchdog hands back once it has nothing left to engage (FIX-IN-GAME-SESSION-2026-10-03
+--- ticket 04): the route the role built, kept per group.
+function TestAircraftSpawnZoneDefense:test_the_route_is_kept_for_the_watchdog()
+  spawnZoneDefense()
+  luaunit.assertEquals(veafAircraftSpawn.groupRoutes[ZD_CLONE], submittedRoute())
 end
 
 function TestAircraftSpawnZoneDefense:test_the_last_waypoint_loops_back_to_the_second()

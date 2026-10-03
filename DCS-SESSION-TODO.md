@@ -30,26 +30,30 @@ were run and are removed below; the results are in the lots and in
 are rewritten to what is left. The missions are in `D:\dev\_VEAF\tmp\dcs-session-2026-10-03\`, with
 the plan and a `fiddle.sh` that runs a Lua file in the live mission.
 
+**Second pass prepared 2026-10-03 afternoon** — `D:\dev\_VEAF\tmp\dcs-session-2026-10-03b\`, built
+from branch `fix/in-game-session-2026-10-03-followups`, plan in `SESSION-DCS-2026-10-03b.md`: the
+#1054 colours and AirWaves fixes never seen in game, R7 (QRA half), R9 (the new floor), R17 (last
+line), R19 (the escort beside its own props), and tickets 03, 04 and 06 of
+`FIX-IN-GAME-SESSION-2026-10-03`. **Run the same afternoon**: R7 (QRA half), R17 (last line) and R19 passed and are removed below; the results are in those lots and in `FIX-IN-GAME-SESSION-2026-10-03`.
+
+
+### R7. A wave launched by a VEAF command lands at its offset — **re-opened 2026-10-03**
+
+The wave half was recorded as verified on the morning of 2026-10-03 (`[5000,0]` 5.2 km north, the
+default offset 4 km N / 7 km W). The waves of that zone were written `-spawn shilka, country russia`,
+and `-spawn` is **no alias**: the afternoon run of the same zone logged `VeafAlias [-spawn] was not
+found` and spawned nothing. Whatever was measured that morning did not come from those waves. The QRA
+half was verified the same afternoon (a bracketed command and a bare one, both where they should land).
+
+**Run**: an AIRWAVES zone with `respawn_default_offset: [4000, -7000]`, `respawn_radius: 0`, and two
+waves using a **valid** alias — `"-shilka"` (no bracket: expect the default offset, 4 km N / 7 km W)
+and `"[5000,0]-shilka"` (expect 5 km N, 0 E). Trigger it with an AI stand-in, read the Shilkas'
+positions against the zone centre. Unblocks the wave half of
+[`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md).
 
 ### R4. The `100` (`SmallSizeFighter`) parking type
 
 Already written up at the end of this file — left there, it is a measurement rather than a gate.
-
-### R19. A `-farp` on open ground keeps its escort where it was planned — **run 2026-10-03, negative**
-
-Run on the Caucasus session mission with four `-farp`: in a wood the escort left the trees; on open
-ground it still moved, because the FARP's **own vehicles**, placed first, make the occupancy probe
-answer false for the escort's spot. Recorded in
-[`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md); re-run
-this item once that lot changes the probe. The refusal case ("somewhere nothing fits") was not reached.
-
-### R17. A GermanyCW-v6 start — **run 2026-10-03, one line left**
-
-[`FIX-IN-GAME-TEST-FINDINGS`](.backlog/FIX-IN-GAME-TEST-FINDINGS/PRD.md). The start-up was read on
-2026-10-03 and is clean (no shape refused, one initialisation per zone, no script error). One line was
-not run: **fire one unguided air-to-ground weapon near a sanctuary** and grep `dcs.log` for
-`attempt to index local 'target'` and `Weapon doesn't exist` — no line expected. Needs a pilot, or an
-AI aircraft given a rocket loadout.
 
 ### R20. Does a departing player's slot change still arrive after DCS forgot the player, in 2.9.30?
 
@@ -76,6 +80,12 @@ Four disconnects overnight (private1 ×2, private2, public1): DCSServerBot logs 
 `change_slot` in the same second every time — the order is unchanged. Whether the player info is nil
 at the second call no longer shows in these logs (the hook writes it at `debug`). Four cases on a
 quiet night: count again after an ordinary evening before touching `known-limitations.yaml`.
+
+**Second reading, 2026-10-03 14:15**: five real departures since 2.9.30 (private1 ×3, private2,
+public1), each `onGameEvent(disconnect)` then `onGameEvent(change_slot)` in the same millisecond, and
+no `_playerDetails is nil` warning from the VEAF hook. Still unchanged, still few: an ordinary
+evening is what is missing. The hundreds of `ASYNCNET … Client connect timeout` lines are aborted
+connections, not players — do not count them.
 
 ### ✅ R23. How does DCS keep a scripted helicopter on the ground? — **run 2026-10-02**
 
@@ -494,15 +504,6 @@ Unblocks [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON
 (shipped 2026-09-01) and item 04 of `FIX-PLACEMENT-IGNORES-SCENERY`. **Written up as item 25 at the
 end of this file** — three markers, and the point worth repeating here: *a run where nothing moves in
 any of the three is a failure, not a pass*. It would mean the fix turned tier 1 off.
-
-### R7. A QRA launched by a VEAF command lands in its zone — **wave half verified 2026-10-03**
-
-The wave half is settled (`[5000,0]` 5.2 km north, the default offset on the right axes). Left: a QRA
-whose deploy list holds a **command** (`[0,3000]-shilka`, say) and a non-zero `respawn_default_offset`.
-An editor group, as the session mission has, keeps its editor position and proves nothing about the
-offset. Unblocks the QRA half of
-[`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md) and
-[`FIX-QRA-COMMANDS-AND-OFFSET`](.backlog/FIX-QRA-COMMANDS-AND-OFFSET/PRD.md).
 
 ### ✅ R8. Does a teleported escort hold formation — and does it engage? — **both yes, 2026-09-01**
 

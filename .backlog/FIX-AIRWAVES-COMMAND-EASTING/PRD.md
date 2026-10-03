@@ -142,3 +142,10 @@ From `FIX-IN-GAME-SESSION-2026-10-03`.
 Ticket 02, wave half (R7): a wave element `[0,0]-shilka` spawned 150 m from its zone centre,
 `[5000,0]-shilka` 5.2 km north, a bare `-shilka` at the default offset (4 km N, 7 km W). The QRA
 half was not run: the session mission's QRA deploys an editor group, which keeps its editor position.
+
+## The wave half is re-opened (2026-10-03, afternoon)
+
+The morning's in-game check of the wave half used waves written `-spawn shilka`, and `-spawn` is no
+alias: re-run in the afternoon, the zone logged `VeafAlias [-spawn] was not found` and spawned nothing.
+The morning's numbers cannot have come from those waves, so the wave half goes back to
+`DCS-SESSION-TODO.md` R7 with a valid alias. The QRA half was verified that afternoon.

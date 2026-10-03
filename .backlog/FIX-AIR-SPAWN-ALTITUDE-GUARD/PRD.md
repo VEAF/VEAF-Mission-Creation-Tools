@@ -1,6 +1,6 @@
 # FIX-AIR-SPAWN-ALTITUDE-GUARD — the aircraft height check reads the easting, not the altitude
 
-Status: ⬜ ready — R9 answered in game 2026-10-03: DCS does not lift a too-low aircraft
+Status: 🔄 in-progress — every ticket done and verified in game 2026-10-03; closes with the merge
 to answer whether the game lifts a too-low aircraft by itself (ticket 02, `DCS-SESSION-TODO.md` R9).
 
 Found 2026-09-01 while delivering [`CHORE-ONE-TERRAIN-CHECK`](../archive/CHORE-ONE-TERRAIN-CHECK.md), and
@@ -45,6 +45,7 @@ than a live defect. That changes what the repair should do, not whether the line
 |---|---|---|---|
 | 01 | The height test reads the altitude, and two cases prove which field it read | medium — it makes a dead guard live, so a spawn can now be refused that used to be accepted | ✅ |
 | 02 | Does DCS lift a too-low aircraft on its own? The clearance rule depends on the answer | none — a question, no code | ✅ |
+| 03 | Floor every aircraft given a role at a clearance above the ground | low — moves only a flight asked under 150 m above the ground | ✅ |
 
 ## Definition of done
 
@@ -106,3 +107,21 @@ R9: `_spawn cap, side red, alt 2` over flat ground spawned a MiG-21 15 m above t
 shrubs and trees within a second and crashed (`PILOT_DEAD`, `CRASH`). DCS does not clamp: refusing
 only a point under the terrain is not enough, a clearance margin is needed — or the lift
 `veafDcsSpawner` already applies. An aircraft static on a beach (1.8 m) spawns fine.
+
+## Ticket 03 — the floor (2026-10-03)
+
+David's call on the two forms of ticket 02: a floor, not a random band. The `-cap` that crashed never
+reached `VeafGroupSpawn:_altitudeFor`: `VeafAircraftSpawn:spawn` writes `unit.alt = spot.y` for an
+airborne role after the clone is built, so the 10 m clearance there never applied. The floor lives where
+the altitude is decided:
+
+- `veafAircraftSpawn.MINIMUM_CLEARANCE_METRES = 150` (about 500 ft) and
+  `veafAircraftSpawn.flooredAltitude(point, altitude)`, which logs at info when it raises one;
+- `VeafAircraftSpawn:spawn` floors the spot of any role that does not start on a take-off point — the
+  unit, and the `zone_defense` patrol that flies at the spot's altitude. A QRA whose editor group
+  answers no unit fell back to a spot at `y = 0`, sea level;
+- `-cap` floors its altitude before building the race-track, so the patrol does not dive back to it.
+
+`VeafGroupSpawn`'s own band (MiST's numbers, for clones without a role) is left alone: it serves combat
+zone respawns that this measurement did not touch. Tests on both sides of the floor, proven red with
+the floor disabled.

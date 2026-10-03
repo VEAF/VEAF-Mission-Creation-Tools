@@ -345,8 +345,10 @@ farmland in Caucasus (`_spawn cap, side red, alt 2`) was in the air, hit shrubs 
 second (`HIT` on `SHRUB`, `GREEN_ASH`, `EUROPEAN_BEECH`) and crashed (`PILOT_DEAD`, `CRASH`).
 Nothing raises: the spawn succeeds and the aircraft dies.
 
-**What to do:** Spawn an aircraft well above what stands on the ground — the MiST-derived spawner in VEAF lifts a
-requested altitude into a band for exactly this reason. Not being under the terrain is not enough.
+**What to do:** Spawn an aircraft well above what stands on the ground. Not being under the terrain is not enough.
+VEAF floors every aircraft it gives a role (`-cap`, a QRA or a wave defending its zone) at
+`veafAircraftSpawn.MINIMUM_CLEARANCE_METRES` (150 m) above the ground under its spawn point, spawn
+and patrol alike; the MiST-derived spawner lifts a requested altitude into a band for the same reason.
 
 *What it cost:* `FIX-AIR-SPAWN-ALTITUDE-GUARD` had to choose between refusing and lifting; this measurement is what
 settles that refusing only a point under the terrain leaves the crash in place.
@@ -366,6 +368,24 @@ red, green and white.
 
 *What it cost:* Every coloured smoke and flare asked from a VEAF map marker, and the smokes and flares of `-farp`,
 failed this way until `FIX-IN-GAME-SESSION-2026-10-03`; the unit tests compared `nil` with `nil`.
+
+### A Group or Unit object kept in a script follows its id: a group created later with the same id answers for it {#a-dcs-object-is-its-id}
+
+Measured **2026-10-03**.
+
+A DCS object handed to a script is `{ id_ = n }` and nothing more. A combat zone deactivated
+(`Group:destroy()`) and activated again respawned its SA-6 under a new name, `#10211` → `#10212`,
+with the template's group id, 44, both times. The `Group` object Skynet had kept for `#10211`
+then answered `isExist() == true`, `getSize() == 5` and `getName() == "…#10212"`, while
+`Group.getByName("…#10211")` returned nil. Nothing raises: the old object simply speaks for the
+new group.
+
+**What to do:** Never take "the object I kept still exists" for "the thing I kept still exists". Look it up by
+name, or compare the name it answers with the one you stored — which is what the Skynet sweep of
+`veafSkynetIadsHelper.lua` does since FIX-IN-GAME-SESSION-2026-10-03.
+
+*What it cost:* The vanished-sites sweep, written to drop a deactivated zone's SAM site from the IADS, kept every
+such site for the rest of the mission: one more site per deactivation and reactivation.
 
 ## Air defence {#air-defence}
 

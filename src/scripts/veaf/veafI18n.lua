@@ -662,6 +662,10 @@ veaf.i18nCatalog = {
     fr = "La balise n'a pas pu être créée — voir le journal DCS.",
     en = "The beacon could not be created — see the DCS log.",
   },
+  ["spawn.signal_no_such_colour"] = {
+    fr = "Pas de fusée %s dans DCS : red, green, white ou yellow.",
+    en = "DCS has no %s signal flare: red, green, white or yellow.",
+  },
   ["spawn.fob_built"] = {
     fr = "FOB %s terminée ! Caisses et troupes peuvent maintenant être récupérées.",
     en = "Finished building FOB %s! Crates and Troops can now be picked up.",

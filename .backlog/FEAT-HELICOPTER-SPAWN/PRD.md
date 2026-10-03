@@ -137,5 +137,5 @@ on a scripted helicopter yet** — each role needs its own in-game reading, the 
 ## Definition of done
 
 - [x] The limitation in `known-limitations.yaml` (airplanes only, now).
-- [ ] #164 answered — reply drafted, waits on David.
+- [x] #164 answered (2026-10-03), closed by the merge of #1050.
 - [ ] A helicopter spawned from a marker in game for each task — R24 for `parked`, `orbit`, `transport`; 05–06 for the rest.

@@ -1,6 +1,6 @@
 # 07 — the editor's DCS stubs teach the wrong colour names
 
-Status: 🧑 waiting-human — not reproduced, one question for David (see the end)
+Status: 🚫 wontfix — not reproduced (David, 2026-10-03: the editor does not flag the colours)
 Type: chore
 
 ## Found
@@ -43,3 +43,8 @@ hooks, stricter signatures in the schema). Not a gain, so `.luarc.json` is left 
 
 The question: does David's editor underline `trigger.smokeColor.Green` in `veafSpawnParser.lua`? If
 not, close as not reproduced.
+
+## Closed
+
+David's answer, 2026-10-03: `trigger.smokeColor.Green` is not underlined in his editor. Not
+reproduced, so nothing to fix; `.luarc.json` stays as it is.

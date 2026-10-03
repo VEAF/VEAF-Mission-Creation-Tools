@@ -37,6 +37,20 @@ line), R19 (the escort beside its own props), and tickets 03, 04 and 06 of
 `FIX-IN-GAME-SESSION-2026-10-03`. **Run the same afternoon**: R7 (QRA half), R17 (last line) and R19 passed and are removed below; the results are in those lots and in `FIX-IN-GAME-SESSION-2026-10-03`.
 
 
+### R7. A wave launched by a VEAF command lands at its offset — **re-opened 2026-10-03**
+
+The wave half was recorded as verified on the morning of 2026-10-03 (`[5000,0]` 5.2 km north, the
+default offset 4 km N / 7 km W). The waves of that zone were written `-spawn shilka, country russia`,
+and `-spawn` is **no alias**: the afternoon run of the same zone logged `VeafAlias [-spawn] was not
+found` and spawned nothing. Whatever was measured that morning did not come from those waves. The QRA
+half was verified the same afternoon (a bracketed command and a bare one, both where they should land).
+
+**Run**: an AIRWAVES zone with `respawn_default_offset: [4000, -7000]`, `respawn_radius: 0`, and two
+waves using a **valid** alias — `"-shilka"` (no bracket: expect the default offset, 4 km N / 7 km W)
+and `"[5000,0]-shilka"` (expect 5 km N, 0 E). Trigger it with an AI stand-in, read the Shilkas'
+positions against the zone centre. Unblocks the wave half of
+[`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md).
+
 ### R4. The `100` (`SmallSizeFighter`) parking type
 
 Already written up at the end of this file — left there, it is a measurement rather than a gate.

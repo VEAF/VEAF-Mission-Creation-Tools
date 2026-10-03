@@ -1,6 +1,6 @@
 # FIX-IN-GAME-SESSION-2026-10-03 — what a DCS session flown without a pilot found
 
-Status: 🔄 in-progress — 03, 04, 06 and 08 fixed and verified in game in a second pass the same afternoon; 05 wontfix; 07 waits for one answer
+Status: 🔄 in-progress — every ticket done or closed (05, 07 wontfix); closes with the merge of the second PR
 03 and 06 wait for the second session's measurement
 
 Origin: the DCS session of 2026-10-03, run without anyone at the controls. Five missions were built
@@ -48,7 +48,7 @@ Each line closes or advances the lot named; the lots carry the measurement.
 | 04 | [The CAP watchdog keeps adding tasks](tickets/04-cap-watchdog-task-count.md) | ✅ |
 | 05 | [A `-cap` zone drawing outlives its group](tickets/05-cap-drawing-outlives-its-group.md) | 🚫 |
 | 06 | [The QRA race-track sits beside its zone](tickets/06-qra-race-track-beside-its-zone.md) | ✅ |
-| 07 | [The editor's DCS stubs teach the wrong colour names](tickets/07-editor-stubs-teach-the-wrong-colour-names.md) | 🧑 |
+| 07 | [The editor's DCS stubs teach the wrong colour names](tickets/07-editor-stubs-teach-the-wrong-colour-names.md) | 🚫 |
 | 08 | [`_spawn signal` fires the smoke colour](tickets/08-signal-takes-the-smoke-colour.md) | ✅ |
 
 R9 and R19 are not tickets here: their lots exist, and the measurement goes there.

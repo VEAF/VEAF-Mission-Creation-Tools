@@ -129,7 +129,7 @@ modules:
   #     enabled: true
   #     sanctuary_zones:
   #       - name: Base Alpha
-  #         polygon_units:
+  #         polygon_units:          # or a circle: trigger_zone: SANCT Alpha
   #           - Sanctuary-Unit-1
   #           - Sanctuary-Unit-2
   #         coalition: BLUE

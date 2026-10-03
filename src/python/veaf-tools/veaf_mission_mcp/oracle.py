@@ -14,6 +14,7 @@ import yaml
 from mission_tools.mission_yaml_editor import load_yaml
 from veaf_libs.build_stamp import _package_version
 from veaf_libs.bundled_data import read_bundled_text
+from veaf_libs.dcs_payloads import payload_names, payload_pylons, payload_types
 from veaf_libs.known_limitations import active_limitations, load_known_limitations
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.veaf_shortcuts_scanner import get_shortcuts
@@ -40,7 +41,9 @@ def list_unit_types(
         name_contains: Optional case-insensitive substring matched against type id + name.
 
     Returns:
-        `{"units": [{"type", "name", "category", "kind", "description", "attributes"}, ...]}`.
+        `{"units": [{"type", "name", "category", "kind", "description", "attributes",
+        "threat_range_m"?, "detection_range_m"?}, ...]}` — the ranges in metres where DCS gives one
+        (``ThreatRange`` / ``DetectionRange``, what the Mission Editor draws its circles from).
     """
     raw = _load_bundled_data_yaml("dcsUnits.yaml").get("units") or []
     units: list[dict[str, Any]] = []
@@ -54,12 +57,46 @@ def list_unit_types(
             "description": entry.get("description", ""),
             "attributes": list(entry.get("attributes") or []),
         }
+        # Only where DCS has one: the Mission Editor's range circles (FIX-OPEN-TRAINING-SYRIA-FINDINGS 08).
+        for key in ("threat_range_m", "detection_range_m"):
+            if entry.get(key):
+                unit[key] = entry[key]
         if category is not None and unit["category"] != category:
             continue
         if needle is not None and needle not in f"{unit['type']}{unit['name']}".lower():
             continue
         units.append(unit)
     return {"units": units}
+
+
+def list_payloads(unit_type: str | None = None) -> dict[str, Any]:
+    """List DCS's default loadouts for an aircraft type, by the names the Mission Editor offers.
+
+    Args:
+        unit_type: The exact DCS type; ``None`` lists the types that have loadouts.
+
+    Returns:
+        ``{"unit_type", "payloads": [{"name", "pylons": {station: CLSID}}, ...]}`` for a type, or
+        ``{"types": [...]}`` without one (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 09).
+
+    Raises:
+        ValueError: For a type with no DCS loadout, naming the types that have some.
+    """
+    if unit_type is None:
+        return {"types": payload_types()}
+    names = payload_names(unit_type)
+    if not names:
+        raise ValueError(f"DCS has no named loadout for {unit_type!r}; types that have some: {payload_types()}")
+    return {
+        "unit_type": unit_type,
+        "payloads": [
+            {
+                "name": name,
+                "pylons": {station: entry["CLSID"] for station, entry in payload_pylons(unit_type, name).items()},
+            }
+            for name in names
+        ],
+    }
 
 
 #: Ordered (category, keywords) rules to classify a `#command` alias — first match wins, so more

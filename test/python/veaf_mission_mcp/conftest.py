@@ -67,3 +67,13 @@ def sample_miz(tmp_path: Path) -> Path:
         zf.writestr("l10n/DEFAULT/dictionary", b"dictionary = {\n}\n")
         zf.writestr("l10n/DEFAULT/mapResource", b"mapResource = {\n}\n")
     return miz_path
+
+
+@pytest.fixture(autouse=True)
+def _isolated_veaf_home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Keep the workstation's swept elevation grids out of the tests (FIX-OPEN-TRAINING-SYRIA-FINDINGS 04).
+
+    Placement checks the surface where a grid exists, and one swept under the real VEAF home would make
+    a test's warnings depend on the machine that runs it. A test that needs a grid sets its own home.
+    """
+    monkeypatch.setenv("VEAF_HOME", str(tmp_path / "veaf-home"))

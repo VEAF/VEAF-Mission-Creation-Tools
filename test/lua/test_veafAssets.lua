@@ -360,4 +360,58 @@ function TestVeafAssetsRespawnBringsBackTheEscort:test_an_asset_with_no_escort_i
   luaunit.assertEquals(self.repairedFor, { "Arco" }, "the repair is still asked for, and answers that there is nothing to do")
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafAssetsCoalitionMenu — FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 13: with red playable, the Syria
+-- mission listed its red tanker in the blue Assets menu. An entry with a `coalition` gets a submenu scoped
+-- to that side; veafRadio renders a scoped submenu for that side only (test_veafRadio, in game 2026-08-22).
+-- ---------------------------------------------------------------------------
+TestVeafAssetsCoalitionMenu = {}
+
+function TestVeafAssetsCoalitionMenu:setUp()
+  self._radio = veafRadio
+  local submenus = {}
+  self.submenus = submenus
+  veafRadio = {
+    USAGE_ForAll = 0,
+    USAGE_ForGroup = 1,
+    skipHelpMenus = true,
+    addSubMenu = function(title, parent, side)
+      local menu = { title = title, parent = parent, side = side }
+      submenus[title] = menu
+      return menu
+    end,
+    addCommandToSubmenu = function() end,
+    addSecuredCommandToSubmenu = function() end,
+    refreshRadioMenu = function() end,
+    addPaginatedRadioElements = function(menu, build, elements)
+      for _, element in pairs(elements) do
+        build(menu, element.description, element)
+      end
+    end,
+  }
+  veafAssets.Assets = {
+    { name = "Texaco 1", description = "Texaco 1 (KC-135)" },
+    { name = "Shell 1", description = "Shell 1 (IL-78M)", coalition = coalition.side.RED },
+    { name = "Magic 1", description = "Magic 1 (E-3A)", coalition = coalition.side.BLUE, information = "" },
+  }
+  veafAssets.buildAssetsDatabase()
+  veafAssets.buildRadioMenu()
+end
+
+function TestVeafAssetsCoalitionMenu:tearDown()
+  veafRadio = self._radio
+  veafAssets.Assets = {}
+  veafAssets.buildAssetsDatabase()
+end
+
+function TestVeafAssetsCoalitionMenu:test_an_entry_with_a_coalition_is_scoped_to_it()
+  luaunit.assertEquals(self.submenus["Shell 1 (IL-78M)"].side, coalition.side.RED)
+  luaunit.assertEquals(self.submenus["Magic 1 (E-3A)"].side, coalition.side.BLUE)
+end
+
+function TestVeafAssetsCoalitionMenu:test_an_entry_without_one_is_for_everybody()
+  -- No submenu at all for an entry with neither information nor disposal: a command in the shared menu.
+  luaunit.assertNil(self.submenus["Texaco 1 (KC-135)"])
+end
+
 os.exit(luaunit.LuaUnit.run())

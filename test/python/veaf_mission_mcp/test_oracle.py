@@ -2,11 +2,13 @@
 
 from pathlib import Path
 
+import pytest
 from veaf_mission_mcp.oracle import (
     _command_category,
     describe_known_limitations,
     describe_module,
     describe_naming_conventions,
+    list_payloads,
     list_shortcuts,
     list_unit_types,
 )
@@ -151,3 +153,28 @@ def test_list_shortcuts_commands_carry_a_category() -> None:
     commands = list_shortcuts()["commands"]
     assert commands, "expected a non-empty command alias list"
     assert all("category" in c for c in commands)
+
+
+def test_list_unit_types_gives_the_ranges_where_dcs_has_one() -> None:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 08: the Syria mission read them from a DCS dump by hand."""
+    units = {u["type"]: u for u in list_unit_types(name_contains="Patriot")["units"]}
+    assert units["Patriot ln"]["threat_range_m"] == 100000
+    assert units["Patriot str"]["detection_range_m"] == 160000
+    assert "threat_range_m" not in units["Patriot str"]
+
+
+class TestListPayloads:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 09: the loadouts the Mission Editor offers, by name."""
+
+    def test_a_type_lists_its_loadouts_with_their_pylons(self) -> None:
+        answer = list_payloads("MiG-31")
+        by_name = {p["name"]: p["pylons"] for p in answer["payloads"]}
+        assert by_name["R-40T*2,R-33*4"][1] == "{5F26DBC2-FB43-4153-92DE-6BBCE26CB0FF}"
+
+    def test_without_a_type_it_lists_the_types(self) -> None:
+        types = list_payloads()["types"]
+        assert {"MiG-29S", "Su-27", "Su-30", "MiG-31", "Su-24M", "Tu-22M3", "F-15E"} <= set(types)
+
+    def test_a_type_without_loadouts_is_refused_naming_those_that_have_some(self) -> None:
+        with pytest.raises(ValueError, match="MiG-31"):
+            list_payloads("FA-18C_hornet")

@@ -18,6 +18,7 @@ Checks:
   7. a static with no ``shape_name`` while its type has one        (warning)
   8. a ``ctld-config.yaml`` ``extractableGroups`` / ``logisticUnits`` name the mission lacks (warning)
   9. a QRA / AIRWAVES ``CAP`` or ``Intercept`` group whose written route the runtime replaces (warning)
+  10. a QRA definition with both ``simple_groups`` and ``groups_by_enemy_count`` (warning)
 
 Checks 4-9 read the unpacked source mission table (``src/mission/mission``); when it is
 absent they are skipped (reported once as a warning).
@@ -89,6 +90,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     # 2c. radio user-menu schema (FEAT-RADIO-YAML-MENUS): closed action vocabulary
     issues += _check_radio_menus(yaml_data)
 
+    # 2d. QRA simple_groups written beside scramble levels never deploy
+    issues += _check_qra_simple_groups_beside_levels(yaml_data)
+
     # 3. custom_scripts files exist
     issues += _check_custom_scripts(folder, yaml_data)
 
@@ -116,6 +120,38 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_static_shapes(mission)
     issues += _check_ctld_names(folder, yaml_data, mission)
     issues += _check_deployed_aircraft_routes(yaml_data, mission)
+    return issues
+
+
+def _check_qra_simple_groups_beside_levels(yaml_data: dict) -> list[ValidationIssue]:
+    """Warn on a QRA definition that has both ``simple_groups`` and ``groups_by_enemy_count``.
+
+    At runtime ``simple_groups`` fill level 1 (``:addGroup``); a level-1 rule replaces them, and a
+    lowest level above 1 sets the minimum intruder count below which nothing deploys, so level 1
+    never fires. Either way they never deploy, while the YAML reads as if both lists applied
+    (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 03, measured in ``test_veafQraManager.lua``).
+
+    Args:
+        yaml_data: The parsed ``mission.yaml``.
+
+    Returns:
+        One warning per such definition.
+    """
+    qra = (yaml_data.get("modules") or {}).get("QRA")
+    if not isinstance(qra, dict):
+        return []
+    issues: list[ValidationIssue] = []
+    for definition in qra.get("definitions") or []:
+        if not isinstance(definition, dict):
+            continue
+        levels = [g for g in definition.get("groups_by_enemy_count") or [] if isinstance(g, dict)]
+        if definition.get("simple_groups") and levels:
+            lowest = min(int(g.get("enemy_count", 1)) for g in levels)
+            issues.append(
+                ValidationIssue(
+                    WARNING, t("validate.qra_simple_groups_beside_levels", name=definition.get("name"), lowest=lowest)
+                )
+            )
     return issues
 
 

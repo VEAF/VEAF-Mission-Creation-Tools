@@ -364,7 +364,7 @@ approximation of it.
 - **Air opposition**: the scenario's. "They might launch fighters after the strike" = a **QRA**
   (`create_qra`) on the enemy base, circle in red territory, with `delay_before_activating` and
   `react_on_helicopters` decided and written in the briefing; period interceptors with a **loadout**
-  (`pylons` or `loadout_from`), `airport_link` on the base. A patrol already airborne = a native group
+  (`pylons`, `payload` by name from `list_payloads`, or `loadout_from`), `airport_link` on the base. A patrol already airborne = a native group
   in orbit, not an on-demand CAP. `delay_before_activating` counts **from the start of the mission**,
   not from the intrusion: once online, the QRA takes off at the intrusion. Write it that way in the
   briefing ("online from H+15 min").
@@ -380,7 +380,9 @@ approximation of it.
   DCS radio callsign: `add_air_group` takes it from the name for a tanker, but gave "Overlord" to an
   AWACS named Magic (`set_unit_properties`, family 2 = Magic).
 - **Carrier** if the departure is at sea: `add_carrier_group` (TACAN, ICLS, Link 4, recovery tanker,
-  rescue helicopter, warehouse), `CARRIER` module.
+  rescue helicopter, warehouse), `CARRIER` module. **Always two carriers, the Stennis and the
+  Roosevelt** (one `add_carrier_group` each, with distinct TACAN, ICLS, Link 4 and frequencies):
+  David's decision of 2026-10-02, for every generated mission that has a carrier group.
 - **`src/presets.yaml` = the briefing's frequency plan**, channel by channel: Guard, bases, carrier,
   AWACS, tankers, package frequency. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.

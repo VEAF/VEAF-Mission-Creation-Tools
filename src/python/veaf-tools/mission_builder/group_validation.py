@@ -194,8 +194,9 @@ def find_missing_trigger_zone_refs(
     """Return ``(section, zone_name, level)`` for trigger-zone refs absent from the mission.
 
     AIRWAVES ``trigger_zone_name`` is optional when the zone also carries an explicit
-    ``zone_center_coordinates`` + ``zone_radius`` (level "warning"); QRA ``trigger_zone``
-    and a COMBATZONE *zone*'s ``zone_name`` are mandatory (level "error"). A COMBATZONE
+    ``zone_center_coordinates`` + ``zone_radius`` (level "warning"); QRA ``trigger_zone``, a
+    SANCTUARY zone's ``trigger_zone`` and a COMBATZONE *zone*'s ``zone_name`` are mandatory (level
+    "error"). A COMBATZONE
     *operation*'s ``zone_name`` is **not** checked: at runtime ``VeafCombatOperation:initialize()``
     never resolves it as a trigger zone (it is only a label/radio-menu name), unlike a plain
     ``VeafCombatZone`` whose ``initialize()`` errors without its trigger zone.
@@ -216,6 +217,11 @@ def find_missing_trigger_zone_refs(
     for qra_def in _module_cfg(modules, "QRA").get("definitions") or []:
         if isinstance(qra_def, dict) and (tz := qra_def.get("trigger_zone")) and str(tz) not in present:
             issues.append(("QRA", str(tz), LEVEL_ERROR))
+
+    # The runtime only warns for a missing one and adds no sanctuary (FIX-OPEN-TRAINING-SYRIA-FINDINGS 12).
+    for zone in _module_cfg(modules, "SANCTUARY").get("sanctuary_zones") or []:
+        if isinstance(zone, dict) and (tz := zone.get("trigger_zone")) and str(tz) not in present:
+            issues.append(("SANCTUARY", str(tz), LEVEL_ERROR))
 
     for zone_def in _module_cfg(modules, "COMBATZONE").get("combat_zones") or []:
         if not isinstance(zone_def, dict) or zone_def.get("type") == "operation":

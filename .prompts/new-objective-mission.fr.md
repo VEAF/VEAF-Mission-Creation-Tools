@@ -366,7 +366,8 @@ validé un scénario, pas un à-peu-près.
 - **Opposition aérienne** : celle du scénario. « Ils pourraient faire décoller des chasseurs après la
   frappe » = une **QRA** (`create_qra`) sur la base ennemie, cercle dans le territoire rouge, avec
   `delay_before_activating` et `react_on_helicopters` décidés et écrits au briefing ; intercepteurs
-  d'époque avec **emport** (`pylons` ou `loadout_from`), `airport_link` sur la base. Une patrouille
+  d'époque avec **emport** (`pylons`, `payload` par son nom via `list_payloads`, ou `loadout_from`),
+  `airport_link` sur la base. Une patrouille
   déjà en vol = un groupe natif en orbite, pas une CAP à la demande. `delay_before_activating` compte
   **depuis le début de la mission**, pas depuis l'intrusion : la QRA décolle dès l'intrusion une fois
   en ligne. Écris-le ainsi au briefing (« en place à H+15 min »).
@@ -383,7 +384,10 @@ validé un scénario, pas un à-peu-près.
   ravitailleur, mais a donné « Overlord » à un AWACS nommé Magic (`set_unit_properties`, famille 2 =
   Magic).
 - **Porte-avions** si le départ est en mer : `add_carrier_group` (TACAN, ICLS, Link 4, ravitailleur
-  embarqué, hélicoptère de sauvetage, entrepôt), module `CARRIER`.
+  embarqué, hélicoptère de sauvetage, entrepôt), module `CARRIER`. **Toujours deux porte-avions, le
+  Stennis et le Roosevelt** (un `add_carrier_group` chacun, TACAN, ICLS, Link 4 et fréquences
+  distincts) : décision de David du 02/10/2026, valable pour toute mission générée qui a un groupe
+  aéronaval.
 - **`src/presets.yaml` = le plan de fréquences du briefing**, canal pour canal : Garde, bases, porte-
   avions, AWACS, ravitailleurs, fréquence de package. Les **canaux de base portent les fréquences que
   DCS donne à l'aérodrome** : `describe_airfield_channels` puis `set_airfield_channels`, jamais une

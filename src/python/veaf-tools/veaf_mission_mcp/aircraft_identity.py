@@ -19,6 +19,7 @@ Countries absent from those missions (Belarus, Kazakhstan, South Ossetia...) get
 what a mission maker can see and correct, where a guessed number would pass unnoticed.
 """
 
+import re
 from typing import Any
 
 from veaf_libs.dcs_countries import country_name_for_id
@@ -34,8 +35,16 @@ _TASK_FAMILIES: dict[str, tuple[str, ...]] = {
 }
 _COMMON_FAMILIES: tuple[str, ...] = ("Enfield", "Springfield", "Uzi", "Colt", "Dodge", "Ford", "Chevy", "Pontiac")
 
+#: Every family word of every task, lower case.
+_ALL_FAMILY_WORDS: frozenset[str] = frozenset(
+    word.lower() for words in (*_TASK_FAMILIES.values(), _COMMON_FAMILIES) for word in words
+)
+
 #: A callsign's flight and number are single digits: ``name`` concatenates them.
 _MAX_DIGIT = 9
+
+#: A group name that reads as a callsign: a word, then a flight digit (``Texaco 2``, ``Magic1``).
+_NAME_CALLSIGN = re.compile(r"^([A-Za-z]+)[ _-]*([1-9])")
 
 #: First numeric callsign handed out when the mission has none yet.
 _FIRST_NUMERIC_CALLSIGN = 101
@@ -60,13 +69,15 @@ def _aircraft_units(content: dict[str, Any]) -> list[dict[str, Any]]:
     return units
 
 
-def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country_id: int, task: str) -> None:
+def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country_id: int, task: str) -> str | None:
     """Give each unit of a flight not yet in the mission a callsign and a free tail number.
 
     Tail numbers continue after the highest numeric one already in the mission, so they never
-    repeat. A western callsign takes the first family (for the task) that no aircraft of the mission
-    uses yet, flight 1, numbered 1, 2, ... within the flight; once every family is taken, the least
-    used family's next free flight. A numeric callsign continues after the highest in the mission.
+    repeat. A western callsign follows the group's name when it reads as one — a family word of the
+    task and a flight digit, ``Texaco 2`` — provided that flight is free; otherwise it takes the
+    first family (for the task) that no aircraft of the mission uses yet, flight 1; once every family
+    is taken, the least used family's next free flight. Either way it is numbered 1, 2, ... within
+    the flight. A numeric callsign continues after the highest in the mission.
 
     Args:
         content: The parsed ``mission`` table, read to avoid what is already taken.
@@ -74,6 +85,11 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
             ``callsign`` or an ``onboard_num`` keeps it.
         country_id: The DCS country id the flight is filed under.
         task: The group's task, which selects the family words.
+
+    Returns:
+        A note when the group's name reads as a callsign that could not be given — a word that is
+        not a family of the task, or a flight already held — naming the callsign given instead;
+        ``None`` otherwise.
     """
     existing = _aircraft_units(content)
     units = [u for u in indexed(group.get("units")) if isinstance(u, dict)]
@@ -92,7 +108,7 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
             if unit.get("callsign") is None:
                 unit["callsign"] = next_number
                 next_number += 1
-        return
+        return None
 
     families = _TASK_FAMILIES.get(task, _COMMON_FAMILIES)
     taken: dict[str, set[int]] = {word: set() for word in families}
@@ -104,14 +120,53 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
         word = name.rstrip("0123456789")
         if word in taken and isinstance(callsign.get(2), int):
             taken[word].add(callsign[2])
-    family_index, flight = _free_family_and_flight(families, taken)
+    asked = _callsign_in_name(str(group.get("name", "")), families)
+    note: str | None = None
+    if asked is not None and asked[1] not in taken[families[asked[0] - 1]]:
+        family_index, flight = asked
+    else:
+        family_index, flight = _free_family_and_flight(families, taken)
     word = families[family_index - 1]
+    if asked is None:
+        spoken = _NAME_CALLSIGN.match(str(group.get("name", "")))
+        # Only a word that is some task's family reads as a callsign asked for: "MiG29" or "SA-6" do not.
+        if spoken is not None and spoken.group(1).lower() in _ALL_FAMILY_WORDS:
+            note = (
+                f"group {group.get('name')!r}: {spoken.group(1)!r} is not a callsign family of task {task!r} "
+                f"({', '.join(families)}); given {word}{flight}1"
+            )
+    elif (family_index, flight) != asked:
+        note = (
+            f"group {group.get('name')!r}: flight {families[asked[0] - 1]}{asked[1]} is already held; "
+            f"given {word}{flight}1"
+        )
     for position, unit in enumerate(units):
         if unit.get("callsign") is None:
             # The number is one digit: a tenth aircraft continues on the next flight (Enfield21).
             unit_flight = min(flight + position // _MAX_DIGIT, _MAX_DIGIT)
             digit = position % _MAX_DIGIT + 1
             unit["callsign"] = {1: family_index, 2: unit_flight, 3: digit, "name": f"{word}{unit_flight}{digit}"}
+    return note
+
+
+def _callsign_in_name(name: str, families: tuple[str, ...]) -> tuple[int, int] | None:
+    """Read the callsign a group's name asks for, ``Texaco 2`` or ``Texaco21``.
+
+    Args:
+        name: The group's name.
+        families: The family words of the group's task, index 1 first.
+
+    Returns:
+        ``(family index, flight)`` when the name starts with one of ``families`` (any case) followed
+        by a flight digit, else ``None``.
+    """
+    match = _NAME_CALLSIGN.match(name)
+    if match is None:
+        return None
+    lowered = [word.lower() for word in families]
+    if match.group(1).lower() not in lowered:
+        return None
+    return lowered.index(match.group(1).lower()) + 1, int(match.group(2))
 
 
 def _free_family_and_flight(families: tuple[str, ...], taken: dict[str, set[int]]) -> tuple[int, int]:

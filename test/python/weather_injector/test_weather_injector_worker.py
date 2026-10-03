@@ -824,14 +824,138 @@ class TestBriefingMetarPerVariant(unittest.TestCase):
                 results.append(worker.mission_data.mission_content["descriptionText"])
             self.assertEqual(results, ["METAR: LFRS 121030Z 22015KT", "METAR: LFRS 122130Z 00000KT"])
 
-    def test_a_variant_without_a_metar_leaves_the_token_written(self) -> None:
-        # A variant built from individual weather parameters has no METAR string to show. Leaving the
-        # token beats blanking it: the briefing is player-facing text, and a hole reads as the build
-        # having eaten the prose.
+    def test_a_manual_weather_variant_gets_a_composed_metar(self) -> None:
+        # FIX-OPEN-TRAINING-SYRIA-FINDINGS 10: ${METAR} stayed printed raw in six of the fifteen Syria
+        # briefings. Syria's clock is UTC+3, so 12:00 on the theatre is 09:00Z.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = DcsMission(
+                file_path=Path("unused.miz"),
+                mission_content={
+                    "descriptionText": "Weather: ${METAR}",
+                    "date": {"Year": 2024, "Month": 3, "Day": 15},
+                    "start_time": 12 * 3600,
+                    "weather": {"qnh": 760},
+                },
+                theatre_content="Syria",
+            )
+            weather = {"wind_speed": 5.0, "wind_direction": 270, "visibility": 9999, "cloud_type": "clear"}
+            worker._substitute_briefing_variables(VersionConfig(name="clear", weather=weather))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(
+                worker.mission_data.mission_content["descriptionText"],
+                "Weather: METAR 150900Z 27010KT 9999 SKC Q1013",
+            )
+
+    def test_a_clearsky_variant_reads_the_capped_sky(self) -> None:
+        # Review of the lot: DCS flies the capped sky, so the briefing must say that one.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = DcsMission(
+                file_path=Path("unused.miz"),
+                mission_content={"descriptionText": "${METAR}", "date": {"Year": 2024, "Month": 3, "Day": 15}},
+                theatre_content="Syria",
+            )
+            weather = {"wind_speed": 15.0, "wind_direction": 270, "cloud_type": "overcast", "precipitation": True}
+            worker._substitute_briefing_variables(VersionConfig(name="vfr", weather=weather, clearsky=True))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(
+                worker.mission_data.mission_content["descriptionText"], "METAR 142100Z 27015KT 9999 FEW///"
+            )
+
+    def test_an_icao_clearsky_variant_reads_the_capped_sky_of_the_real_report(self) -> None:
+        # FIX-CLEARSKY-METAR: Syria Open Training v6, `dawn-real-clear`. The build flew FEW while the
+        # briefing read the published BKN report. Station, temperature and QNH stay the real ones; the
+        # time is the variant's: 05:03:28 on the theatre's clock (UTC+3) is 02:03Z.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = DcsMission(
+                file_path=Path("unused.miz"),
+                mission_content={
+                    "descriptionText": "${METAR}",
+                    "date": {"Year": 2017, "Month": 6, "Day": 15},
+                    "start_time": 18208,
+                    "weather": {"qnh": 761.3},
+                },
+                theatre_content="Syria",
+            )
+            with unittest.mock.patch(
+                "weather_injector.weather_injector_worker.fetch_metar_string",
+                return_value="LTAG 021820Z 35006KT 9999 SCT030 BKN090 19/16 Q1015 NOSIG",
+            ):
+                worker._substitute_briefing_variables(
+                    VersionConfig(name="dawn-real-clear", airport_icao="LTAG", clearsky=True)
+                )
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(
+                worker.mission_data.mission_content["descriptionText"],
+                "METAR LTAG 150203Z 35006KT 9999 FEW090 19/// Q1015",
+            )
+
+    def test_a_written_metar_with_clearsky_is_recomposed_even_when_already_clear(self) -> None:
+        # Decision a1: one rule. The report's sky is already VFR, but its TEMPO TSRA would still
+        # announce a thunderstorm the capped sky never flies.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = DcsMission(
+                file_path=Path("unused.miz"),
+                mission_content={
+                    "descriptionText": "${METAR}",
+                    "date": {"Year": 2024, "Month": 3, "Day": 12},
+                    "start_time": 13 * 3600 + 30 * 60,
+                    "weather": {"qnh": 765.1},
+                },
+                theatre_content="Syria",
+            )
+            metar = "METAR LFRS 121030Z 22005KT 9999 FEW030 15/10 Q1020 TEMPO TSRA"
+            worker._substitute_briefing_variables(VersionConfig(name="vfr", metar=metar, clearsky=True))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(
+                worker.mission_data.mission_content["descriptionText"],
+                "METAR LFRS 121030Z 22005KT 9999 FEW030 15/// Q1020",
+            )
+
+    def test_the_composed_cloud_base_is_the_one_dcs_flies(self) -> None:
+        # Review of FIX-CLEARSKY-METAR: a low layer capped to FEW gets Preset1, whose base starts at 840 m,
+        # so DCS flies FEW028 where the report said 800 ft. The briefing must read the flown base.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = DcsMission(
+                file_path=Path("unused.miz"),
+                mission_content={"descriptionText": "${METAR}", "date": {"Year": 2024, "Month": 3, "Day": 12}},
+                theatre_content="Syria",
+            )
+            metar = "LTAG 121030Z 22005KT 9999 BKN008 15/10"
+            worker._substitute_briefing_variables(VersionConfig(name="vfr", metar=metar, clearsky=True))
+            assert worker.mission_data.mission_content is not None
+            self.assertIn(" FEW028 ", worker.mission_data.mission_content["descriptionText"])
+
+    def test_a_manual_cloud_base_outside_its_preset_reads_the_flown_base(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("${METAR}")
+            weather = {"cloud_type": "few", "cloud_height": 300}
+            worker._substitute_briefing_variables(VersionConfig(name="low", weather=weather))
+            assert worker.mission_data.mission_content is not None
+            self.assertTrue(worker.mission_data.mission_content["descriptionText"].endswith(" FEW028"))
+
+    def test_a_failed_fetch_with_clearsky_leaves_the_token(self) -> None:
+        # Nothing was observed, so there is nothing to recompose: the defaults DCS flies are not a report.
         with tempfile.TemporaryDirectory() as tmp:
             worker = _make_worker(Path(tmp))
             worker.mission_data = _mission_with_briefing("Weather: ${METAR}")
-            worker._substitute_briefing_variables(VersionConfig(name="params", weather={"temperature": 20}))
+            with unittest.mock.patch("weather_injector.weather_injector_worker.fetch_metar_string", return_value=""):
+                worker._substitute_briefing_variables(VersionConfig(name="live", airport_icao="LTAG", clearsky=True))
+            assert worker.mission_data.mission_content is not None
+            self.assertEqual(worker.mission_data.mission_content["descriptionText"], "Weather: ${METAR}")
+
+    def test_a_variant_with_no_weather_at_all_leaves_the_token_written(self) -> None:
+        # Nothing to show: leaving the token beats blanking it, a hole reads as the build having eaten
+        # the prose.
+        with tempfile.TemporaryDirectory() as tmp:
+            worker = _make_worker(Path(tmp))
+            worker.mission_data = _mission_with_briefing("Weather: ${METAR}")
+            worker._substitute_briefing_variables(VersionConfig(name="time-only", time="12:00"))
             assert worker.mission_data.mission_content is not None
             self.assertEqual(worker.mission_data.mission_content["descriptionText"], "Weather: ${METAR}")
 

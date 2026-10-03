@@ -29,6 +29,12 @@ class TestDefaultGitignore:
         assert "/published/" in content
         assert "/veaf*.exe" in content
 
+    def test_excludes_the_mcp_backups_and_the_presets_report(self) -> None:
+        # FIX-OPEN-TRAINING-SYRIA-FINDINGS 11: both showed up as new files in the Syria mission's repository.
+        content = self._content()
+        assert "/.veaf-backups/" in content
+        assert "/presets-validation-report.md" in content
+
 
 class TestNoReadmeShipped:
     """No README is shipped in the default scaffold (IMC2-002)."""

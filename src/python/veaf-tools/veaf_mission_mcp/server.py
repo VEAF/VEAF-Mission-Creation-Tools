@@ -16,7 +16,7 @@ from veaf_libs.logger import logger
 from veaf_tools.app import VERSION
 
 from veaf_mission_mcp.actions import register_default_actions
-from veaf_mission_mcp.catalog import ActionCatalog
+from veaf_mission_mcp.catalog import ActionCatalog, summary
 
 SERVER_NAME = "veaf-mission-mcp"
 
@@ -37,13 +37,22 @@ def capabilities() -> dict[str, str]:
 
 
 @mcp.tool()
-def list_catalog() -> list[dict[str, Any]]:
+def list_catalog(full: bool = False) -> list[dict[str, Any]]:
     """List every action currently registered in the catalog.
 
+    Every full schema at once was 67 388 characters: the client saved it to a file and the agent read
+    it back in pieces (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 14). ``describe_action`` gives one.
+
+    Args:
+        full: Return every action's full spec, as before.
+
     Returns:
-        One dict per registered action (``name``, ``description``, ``parameters_schema``).
+        One dict per registered action: ``{name, summary}`` — the description's first sentence — or,
+        with ``full``, ``{name, description, parameters_schema}``.
     """
-    return [spec.model_dump() for spec in CATALOG.list_catalog()]
+    if full:
+        return [spec.model_dump() for spec in CATALOG.list_catalog()]
+    return [{"name": spec.name, "summary": summary(spec.description)} for spec in CATALOG.list_catalog()]
 
 
 @mcp.tool()

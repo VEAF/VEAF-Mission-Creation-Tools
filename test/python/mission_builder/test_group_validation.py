@@ -221,6 +221,12 @@ class TestTriggerZoneRefs:
         my = {"modules": {"QRA": {"definitions": [{"trigger_zone": "QRA zone"}]}}}
         assert find_missing_trigger_zone_refs(my, _zones()) == [("QRA", "QRA zone", LEVEL_ERROR)]
 
+    def test_sanctuary_trigger_zone_missing_is_error(self) -> None:
+        # FIX-OPEN-TRAINING-SYRIA-FINDINGS 12: the runtime only warns and adds no sanctuary.
+        my = {"modules": {"SANCTUARY": {"sanctuary_zones": [{"name": "Incirlik", "trigger_zone": "SANCT Incirlik"}]}}}
+        assert find_missing_trigger_zone_refs(my, _zones()) == [("SANCTUARY", "SANCT Incirlik", LEVEL_ERROR)]
+        assert find_missing_trigger_zone_refs(my, _zones("SANCT Incirlik")) == []
+
     def test_combatzone_missing_is_error_but_operation_is_not_checked(self) -> None:
         # A plain combat zone needs its trigger zone (VeafCombatZone:initialize errors
         # without it); an operation's zone_name is just a label — never validated.

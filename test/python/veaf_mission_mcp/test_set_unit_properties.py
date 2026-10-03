@@ -406,6 +406,54 @@ class TestCallsign:
             set_unit_properties(miz, group_name="Colt 1-1", unit_name="Colt 1-1-1", callsign={field: value})
 
 
+class TestSyriaFindings:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 02: the callsign word alone, and add_air_group's pylon shape."""
+
+    def test_a_name_without_digits_is_completed_with_flight_and_number(self, miz: Path) -> None:
+        set_unit_properties(
+            miz,
+            group_name="Colt 1-1",
+            unit_name="Colt 1-1-1",
+            callsign={"family": 1, "name": "Texaco", "flight": 2, "number": 1},
+        )
+        assert _unit(miz, "Colt 1-1", "Colt 1-1-1")["callsign"] == {1: 1, 2: 2, 3: 1, "name": "Texaco21"}
+
+    def test_a_name_with_one_digit_is_completed_too(self, miz: Path) -> None:
+        set_unit_properties(
+            miz,
+            group_name="Colt 1-1",
+            unit_name="Colt 1-1-1",
+            callsign={"family": 1, "name": "Texaco2", "flight": 2, "number": 1},
+        )
+        assert _unit(miz, "Colt 1-1", "Colt 1-1-1")["callsign"]["name"] == "Texaco21"
+
+    def test_a_name_that_already_ends_with_its_digits_is_kept(self, miz: Path) -> None:
+        set_unit_properties(
+            miz,
+            group_name="Colt 1-1",
+            unit_name="Colt 1-1-1",
+            callsign={"family": 1, "name": "Texaco21", "flight": 2, "number": 1},
+        )
+        assert _unit(miz, "Colt 1-1", "Colt 1-1-1")["callsign"]["name"] == "Texaco21"
+
+    def test_the_mission_file_pylon_shape_is_accepted(self, miz: Path) -> None:
+        set_unit_properties(
+            miz, group_name="Colt 1-1", unit_name="Colt 1-1-1", pylons={2: {"CLSID": "{Mk-84}"}, "3": "{Mk-82}"}
+        )
+        assert _written_pylons(miz, "Colt 1-1", "Colt 1-1-1") == {2: "{Mk-84}", 3: "{Mk-82}"}
+
+    @pytest.mark.parametrize("value", [{"clsid": "{Mk-84}"}, ["{Mk-84}"], 42, {"CLSID": 42}])
+    def test_anything_else_is_refused_naming_the_station(self, miz: Path, value: object) -> None:
+        before = miz.read_bytes()
+        with pytest.raises(ValueError, match="station 2"):
+            set_unit_properties(miz, group_name="Colt 1-1", unit_name="Colt 1-1-1", pylons={2: value})
+        assert miz.read_bytes() == before
+
+    def test_a_list_of_pylons_is_refused(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="station"):
+            set_unit_properties(miz, group_name="Colt 1-1", unit_name="Colt 1-1-1", pylons=["{Mk-84}"])  # type: ignore[arg-type]
+
+
 class TestPlainFields:
     """Livery and onboard number, plus the warning the livery cannot be checked."""
 

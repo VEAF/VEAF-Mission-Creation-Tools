@@ -110,15 +110,21 @@ why.
     (Fox 1, Fox 3), with an AWACS for each side;
   - a **sanctuary zone** (`SANCTUARY` module, `sanctuary_zones`) protecting one side's rear: an
     intruder is warned then destroyed, and `protect_from_missiles` destroys the missiles fired at
-    the defenders. The polygon is drawn by late-activation units (`polygon_units`), never activated.
+    the defenders. Round a base, a circle from a trigger zone (`trigger_zone`); a polygon drawn by
+  late-activation units (`polygon_units`, never activated) only for a shape a circle does not fit.
 - **FARPs**: a good practice to generalise — a blue FARP near the front and near every zone meant
-  for helicopters (rearming, CTLD, CSAR). If the MCP cannot place one, report it. A FARP is complete
-  with an **ammo dump** next to it (`FARP Ammo Dump Coating` static): CTLD takes it as a logistic
-  point (`manage_logistics`, on by default), and troop pickup at FARPs is open
-  (`troopPickupAtFARP` in `ctld-config.yaml`).
+  for helicopters (rearming, CTLD, CSAR). `add_farp` places it complete, with its **ammo dump**
+  (`FARP Ammo Dump Coating` static, `<FARP> - Ammo`) that CTLD takes as a logistic point
+  (`manage_logistics`, on by default); troop pickup at FARPs is open (`troopPickupAtFARP` in
+  `ctld-config.yaml`).
+- **`ctld-config.yaml`**: empty the example lists CTLD takes from its defaults (`extract1`…`extract25`,
+  `logistic1`…`logistic10`) — none of those names exists in the mission, and they make 35 warnings at
+  start.
 - `set_airbase_coalition` for every airfield, with `dynamic_spawn: false` on those that must offer no
   slots. `src/warehouses.yaml`: unlimited fuel and weapons, hot start allowed.
-  `src/dynamic-slot-templates.yaml`: templates for the coalitions that have slots.
+  `src/dynamic-slot-templates.yaml`: templates for the coalitions that have slots, **of the mission's
+  era only** — the shipped catalogue also offers WW2 and Cold War aircraft: remove those of another era
+  (they clutter the list and their radios do not take the frequency plan).
 
 ### 4.2 Identity and security
 
@@ -144,7 +150,7 @@ why.
     (`pipeline.weather: false`), and whatever makes a local test faster.
 - **Mission date and time**: `set_mission_date`.
 - **Bullseye** (`set_bullseye`): a **landmark the pilots can name**, at the centre of the front, the
-  same for both sides.
+  same for both sides, **not on a zone** (it would hide it on the map).
 - **Briefing** (`set_briefing`: title, situation, blue and red tasks): the context in two sentences,
   the bases, the support (frequencies, TACAN, altitudes), the zones by F10 menu, the QRAs, the useful
   VEAF commands.
@@ -161,15 +167,24 @@ why.
 - **Red side**, if it has slots: at least one red tanker and one red AWACS, same rules.
 - **One name everywhere**: group name = callsign (tanker families Texaco 1 / Arco 2 / Shell 3; AWACS
   Overlord 1 / Magic 2 / Wizard 3…) = preset label = `ASSETS` text. Same frequency everywhere. Declare
-  them in `modules.ASSETS`.
-- **Laser-designating drones** (option): a drone in orbit with the FAC task, declared in
-  `modules.ASSETS` with its laser code and frequency (`jtac`, `freq`, `mod`), so the pilots find them
-  in the menu. If the MCP cannot give the FAC task, report it.
+  them in `modules.ASSETS`, with `coalition: BLUE` or `RED` when red has slots: each side sees its own
+  assets only.
+- **Laser-designating drones** (option): an MQ-9 whose **group task is `AFAC`**, orbiting in a circle over
+  its zone, declared in `modules.ASSETS` with its laser code and frequency (`jtac`, `freq`, `mod`): CTLD
+  takes it as a JTAC and the pilots find it in the menu (checked in game on GermanyCW v6). Three things to
+  know, and to say in the briefing:
+  - CTLD moves it to `JTAC_droneAltitude` (3,000 m AGL by default) whatever altitude is written: the
+    heavy AAA of a hard zone shoots it down (the `ASSETS` menu respawns it);
+  - the JTAC designates **vehicles** only, not statics;
+  - it lases within **10 km** only: no drone over a zone whose SAMs reach farther.
 - **Friendly carrier group** (option, if the map has sea and the players fly carrier aircraft):
   `add_carrier_group` places the carrier with its TACAN, ICLS and Link 4, the recovery tanker and the
   rescue helicopter the `CARRIER` module looks for, and the ship's warehouse; deck slots are
   `add_air_group` with `start: deck-cold` or `deck-hot` and `carrier` = the carrier unit it returned.
   Put TACAN, ICLS and Link 4 in the `ASSETS` text and switch the `CARRIER` module on.
+  **Always two carriers, the Stennis and the Roosevelt** (one `add_carrier_group` each, with distinct
+  TACAN, ICLS, Link 4 and frequencies): David's decision of 2026-10-02, for every generated mission
+  that has a carrier group.
 
 ### 4.4 Escorts
 
@@ -187,8 +202,8 @@ why.
 - **No permanent defense covers an enemy base that has slots.** "Permanent" counts the
   `#veafInterpreter` batteries **and** the combat zones activated at start (`active_at_start`).
   Measure the distance from every medium- and long-range battery to every enemy base with slots, and
-  compare it with the weapon's range — sourced or measured in DCS; otherwise, give the distance as an
-  open point. A pilot taking off under an SA-10 is not training.
+  compare it with the weapon's range — `list_unit_types` gives the launcher's `threat_range_m`, DCS's
+  own (what the Mission Editor draws its circles from); otherwise, give the distance as an open point. A pilot taking off under an SA-10 is not training.
 - **Early-warning radars (EWR) behind the lines**, on both sides.
 - Placed permanently through `#veafInterpreter["-<alias>, country <country>, hdg <heading>"]`.
   **Carrier = a unit of the class spawned** (the alias's launcher), so the editor shows the range
@@ -200,13 +215,28 @@ Each family = **3 zones nested on the same circle** (easy ⊂ medium ⊂ hard): 
 overlap (`combatZone_<Place>_Easy`, `…_Medium`, `…_Hard`), each zone holds **only its own additions**,
 and each level includes the one below (the `includes:` key of `combat_zones[]`).
 
-1. **Helicopters**: near a blue base, or near a **FARP** placed next to it. Easy = inert statics;
+1. **Helicopters**: near a blue base, or near a **FARP** placed next to it. Easy = inert targets (one-vehicle groups, below);
    medium = light AAA; hard = realistic short-range defense.
 2. **Attack aircraft**: may be farther, as long as it stays **more than 75 nm from the front** and
    within reach of no real defense. Same progression, with more armor.
-3. **SEAD / DEAD**: **far from everything** (bases, tanker tracks, other zones), so the crews train
-   in peace. Easy = one medium-range battery alone; medium = medium + short range; hard = long,
-   medium, short range and EWR, networked by Skynet.
+3. **SEAD / DEAD**: far enough aside that its SAMs reach no base, no tanker track and no other zone
+   (4.7) — but **no farther than that**. Easy = one medium-range battery alone; medium = medium +
+   short range; hard = medium, short range and EWR, networked by Skynet.
+
+   **No long range in a training zone.** An SA-10 reaches 65 nm: forbidding it to reach a friendly
+   base pushes it beyond 65 nm of everything blue, and on a narrow map there is no practicable
+   ground left at that distance. Measured on the September 2026 Caucasus Open Training: the SEAD zone
+   had landed on the Taman peninsula, **24 minutes of flight** from the nearest blue base and 243 nm
+   from the first tanker, against 1 minute for the helicopter family and 9 for the attack family. A
+   pilot who is shot down flies the 24 minutes again. David's decision (2026-10-01) fits in one
+   sentence: *"a less violent SEAD training zone will do, and if you want to train against an SA-10
+   the map has plenty"* — long range lives in the permanent defenses (4.5) and the real zones (4.7),
+   where nobody comes back ten times.
+
+   **General rule, for all three families**: the transit time from the nearest base is part of the
+   design. Aim for the same order of magnitude for the three (a few minutes), and when a content
+   forces an impractical distance, **it is the content that is cut**, not the distance that is
+   suffered.
 
 **Grade the difficulty with `defense N`.** The group spawn commands (`_spawn samgroup`, `armorgroup`,
 `combatgroup`, `transportgroup`, `convoy`…) accept `defense 0` to `5`, which picks an increasingly
@@ -224,8 +254,11 @@ come up, `#spawnchance=` the chance of each. Example: four SA-15s placed,
 `#spawngroup="SA15" #spawncount=2` → two of them, never the same ones. A returning pilot does not
 find the site they learnt. Applies to the real zones too (4.7).
 
-Statics are the only way to have a **truly inert** target (a live armoured vehicle fires its machine
-gun at helicopters; no tag sets a unit to weapons hold). `training: true`, one radio menu per family.
+**Inert targets of the easy levels: one-vehicle groups, not statics.** A static is **cold in the pod**
+(no engine, no script warms it) and the laser drone does not designate it. Place each target as a
+one-vehicle group at its exact spot, **hot at start** (`coldAtStart = false`), **weapons hold** and **no
+dispersal under fire**: it stays still and silent, and a pod sees it (checked in game on GermanyCW v6).
+Statics remain for what does not live: buildings, depots, parked aircraft. `training: true`, one radio menu per family.
 
 **As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
 beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a
@@ -254,7 +287,9 @@ Rules:
   unique unit names.
 - **Targets**: statics for buildings, bunkers, aircraft on the ground; native groups for what lives;
   convoys = **one native group** with a road route (points 2+ "On Road"), its air defense in the same
-  group.
+  group. A **convoy starts on firm ground**, not on a bridge nor in water: VEAF moves a group whose
+  position is on invalid terrain to a random spot.
+- **Ships of one group at least 150 m apart**: packed together they collide and get in each other's way.
 - **Range of the active zones' SAMs**: none may reach a friendly base, a tanker track or a training
   zone. A zone activated at start is a permanent defense: the rule of 4.5 applies to it.
 - Radio menus by kind, `training: false`.
@@ -274,8 +309,11 @@ Rules:
 - **Delay and helicopters, decided and written**: `delay_before_activating` (the reaction time
   between the first intruder's entry and the take-off) and `react_on_helicopters` (a QRA that reacts
   to helicopters closes the area to helicopter missions). Say both in the briefing.
-- `create_qra`, era interceptors with a **loadout** (in each group: `pylons`, or `loadout_from` a
-  `veafSpawn-*` group of the same type), `airport_link` on the base.
+- **No QRA radio menu open to all**: `radio_menu` only with `radio_menu_restrict_to_group`. Each level
+  draws between **different aircraft**, never between copies of the same one.
+- `create_qra`, era interceptors with a **loadout** (in each group: `pylons`, `payload` a DCS loadout
+  by name — `list_payloads` —, or `loadout_from` a `veafSpawn-*` group of the same type), `airport_link`
+  on the base.
 - If red has slots: **blue QRAs** on a few blue bases, same rules.
 
 ### 4.9 On-demand CAPs
@@ -283,8 +321,8 @@ Rules:
 - **Red: 2 to 4**, of different threats (IR fighter, medium Fox 1, high and fast interceptor, maybe a
   bomber to intercept), race-track **inside the red territory**, turns included.
 - **Blue** if red has slots, same logic.
-- `create_cap_mission` with a `route` (the second point gives the race-track) and a loadout (`pylons`
-  or `loadout_from`), and a menu name that says type, sector, altitude.
+- `create_cap_mission` with a `route` (the second point gives the race-track) and a loadout (`pylons`,
+  `payload` or `loadout_from`), and a menu name that says type, sector, altitude.
 
 ### 4.10 Radio, weather, waypoints
 
@@ -295,6 +333,17 @@ Rules:
   `describe_airfield_channels` lists the mission's bases with their DCS frequencies, propose them to
   the user (a radio holds about twenty channels), then `set_airfield_channels` writes the chosen ones
   into the `bases` collection; then place them in the `channel_lists`.
+- **The channels that are not airfields are chosen outside the tower band** (AWACS, tankers,
+  carriers, flights). First read the band the theatre's towers occupy — `describe_airfield_channels`
+  gives them all — and place the rest outside it: on the Caucasus they take **250.0 to 270.0 without a
+  single gap**, one per MHz, and putting a tanker there makes a duplicate nothing reports. Measured
+  on 2026-10-01: eight VEAF channels lived in that band, invisible while the base channels carried an
+  invented series; with the real frequencies, four turned into duplicates, among them Magic 1 and
+  Nalchik on 265.0 **at channels 2 and 16 of the same radio** — a pilot switching to Nalchik found
+  himself on the AWACS. Keep the mnemonic when there is one (the tanker Arco 1's TACAN 51Y gives
+  291.0).
+- **Then check that no frequency appears twice** in one channel list, and that no non-airfield
+  channel falls on a tower of the theatre. That check was the one missing.
 - **`src/versions.yaml` to rewrite**: position = home base, timezone, era `base_date`; variants night
   / dawn / morning / day / evening × real (`airport_icao`) / clear (`clearsky`) / scattered / rain.
 - **`src/waypoints.yaml`**: remove the template's examples; one plan per category and per playable
@@ -326,7 +375,7 @@ written in Lua (`VeafCombatMission`) in `src/scripts/mission-script.lua`, and yo
 
 A pilot discovering the mission must see the theatre at a glance, then be able to read the detail of
 the area they fly to. **A theatre map and zoomed maps, two uses**: `docs/carte.jpg` at the top of the
-README and the zooms in `docs/cartes/`, linked right below it; the same pictures in the mission's
+README and the zooms in `docs/cartes/`, **each in the README section it illustrates**; the same pictures in the mission's
 briefing, the theatre map first.
 
 - **Generated from the mission's data, never drawn by hand**: a script reads `src/mission/`,
@@ -362,8 +411,15 @@ briefing, the theatre map first.
   itself**, and removes the pictures it no longer draws: the mission always lists what was drawn. If
   the MCP has no action for it, note it in "Feedback for VMCT".
 - **F10 drawings** (`add_map_drawing`, so they survive the build): the front line, the sanctuaries,
-  the support race-tracks and the zone labels, each on the **layer of the side that must see it**
-  (`Blue`, `Red`, or `Common` for what both share).
+  the support race-tracks, and **every zone with its outline as well as its name** — a circle at the
+  real radius for every combat zone, every training zone and every QRA, plus its label. A zone
+  reduced to a name set at its centre does not say where it begins: the September 2026 Caucasus Open
+  Training had 38 drawings, 10 lines and 28 labels, **not a single outline**. Each on the **layer of
+  the side that must see it** (`Blue`, `Red`, or `Common` for what both share).
+- **An F10 label's readability**: give it an **opaque, light** `fill_color`. Without one, the action
+  applies its default background — `0x00000080`, half-transparent black — and the text, which carries
+  its side's dark colour, becomes unreadable on the map. Reported in flight on the Caucasus on
+  2026-09-29.
 - **Look at every picture** before handing it over, zooms included: no label may overlap another,
   every zone number must match the briefing's, and a dashed line must stay dashed on small circles.
 
@@ -377,7 +433,12 @@ briefing, the theatre map first.
 5. Training zones (4.6), real zones (4.7), QRA (4.8), CAP (4.9), scripted missions (4.12).
 6. Radio, weather, waypoints (4.10); date, bullseye, briefing; briefing map and F10 drawings (4.13).
 7. `validate_mission`, `build_mission` (and the `LOCAL_TEST` profile), then section 8.
-8. `README.md` + `readme.fr.md`: content, building, files, known limitations.
+8. **`README.md` = the pilots' briefing**, in French, one file, **generated from the mission** by a script
+   (like the map), never typed: situation, map, bases (frequencies, TACAN), permanent air defense,
+   support, carriers, drones, training by family, combat zones by kind with each one's briefing, scripted
+   missions, QRA, CAP, player-versus-player and arena, blue and red radio plan, weather and times, useful
+   commands; then "For mission makers": building, files, regenerating this document, known limitations.
+9. **Local test mission** (section 8).
 
 A short progress note after each step: what is done, not what you are about to do.
 
@@ -417,5 +478,14 @@ the sides; running DCS.
   - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
     `pictureFileNameN`, `pictureFileNameR` empty (4.13).
 - **Reread your briefings**: every range, bearing, altitude and place name recomputed or sourced.
+- **Hand over a local test mission**, a copy of the `LOCAL_TEST` build (never in the sources) with: a blue
+  and a red **game master**; a **classic `Client` slot of an A-10C II, on the ground with engines
+  running** at the home base — dynamic slots only work in multiplayer, a test mission with only those is
+  unusable solo; the dcs-bridge trigger (`veaf-tools dcs inject-bridge`). You start `dcs-serve`; the user
+  only handles DCS and the slot. A probe through the bridge then measures what the `.miz` cannot tell:
+  zone nesting (each level spawns more than the one it includes), targets in place, convoys moving,
+  CAPs engaging.
 - List what remains to check in DCS (statics placed on the airfields, convoys following their roads,
-  zone nesting, the look of the sky).
+  zone nesting, the look of the sky, **and the F10 map drawings**). The briefing pictures are read at
+  render time; an F10 drawing is seen **only in game**, and it slipped between those two nets on the
+  Caucasus — missing outlines and unreadable labels held until a pilot reported them in flight.

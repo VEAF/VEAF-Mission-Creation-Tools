@@ -25,6 +25,25 @@ MISSION_PARAMETER_ALIASES: tuple[str, ...] = ("miz_path", "target", "folder_path
 MISSION_YAML_PARAMETER = "mission_yaml_path"
 
 
+#: The longest summary ``list_catalog`` gives an action, in characters.
+_SUMMARY_MAX = 200
+
+
+def summary(description: str) -> str:
+    """Return a description's first sentence, cut at :data:`_SUMMARY_MAX` characters.
+
+    Args:
+        description: The action's full description.
+
+    Returns:
+        Its first sentence; the start of it, ended by an ellipsis, when the sentence is longer.
+    """
+    text = " ".join(description.split())
+    end = text.find(". ")
+    first = text if end < 0 else text[: end + 1]
+    return first if len(first) <= _SUMMARY_MAX else first[: _SUMMARY_MAX - 1].rstrip() + "…"
+
+
 class ActionNotFoundError(Exception):
     """Raised by ``describe_action``/``run_action`` for an unregistered action name."""
 

@@ -78,6 +78,10 @@ _DECK_CATEGORIES_RE = {
     for key in ("TakeOffRWCategories", "LandRWCategories")
 }
 _DECK_NAME_RE = re.compile(r'Name\s*=\s*"([^"]+)"')
+# How far a unit's weapons reach and its sensors see, in metres: the values the Mission Editor draws
+# its range circles from (Patriot launcher 100 km, its radar 160 km). Zero on a unit that has none.
+_THREAT_RANGE_RE = re.compile(r"^\tThreatRange\s*=\s*([0-9.]+)", re.MULTILINE)
+_DETECTION_RANGE_RE = re.compile(r"^\tDetectionRange\s*=\s*([0-9.]+)", re.MULTILINE)
 
 # Attribute flags that map a unit to its VEAF "kind", in priority order.
 _AIR_ATTR = "Air"
@@ -122,6 +126,10 @@ class UnitEntry:
     """Ship attributes the type can land on (``LandRWCategories``); empty for none."""
     shape_name: str | None = None
     """The model a static is drawn with (``ShapeName``), statics only; ``None`` when DCS has none."""
+    threat_range_m: int | None = None
+    """How far the unit's weapons reach (``ThreatRange``), metres; ``None`` when it has none."""
+    detection_range_m: int | None = None
+    """How far the unit's sensors see (``DetectionRange``), metres; ``None`` when it has none."""
 
 
 # Units present in the old in-DCS export but absent from the datamine (map
@@ -191,6 +199,21 @@ def _parse_countermeasures(text: str) -> tuple[int | None, int | None]:
     return (int(chaff.group(1)) if chaff else None, int(flare.group(1)) if flare else None)
 
 
+def _parse_range(text: str, pattern: re.Pattern[str]) -> int | None:
+    """Read a ``ThreatRange`` / ``DetectionRange`` in metres, ``None`` when absent or zero.
+
+    Args:
+        text: Raw contents of a ``_G/db/Units/.../<unit>.lua`` file.
+        pattern: The field's regular expression.
+
+    Returns:
+        The range, rounded to the metre, or ``None``.
+    """
+    match = pattern.search(text)
+    value = round(float(match.group(1))) if match else 0
+    return value or None
+
+
 def _parse_deck_categories(text: str, key: str) -> list[str]:
     """Read one of a unit's ``TakeOffRWCategories`` / ``LandRWCategories`` lists.
 
@@ -247,6 +270,8 @@ def parse_unit_file(text: str, folder: str) -> UnitEntry | None:
         takeoff_categories=_parse_deck_categories(text, "TakeOffRWCategories"),
         landing_categories=_parse_deck_categories(text, "LandRWCategories"),
         shape_name=shape_match.group(1) if shape_match else None,
+        threat_range_m=_parse_range(text, _THREAT_RANGE_RE),
+        detection_range_m=_parse_range(text, _DETECTION_RANGE_RE),
     )
 
 
@@ -308,13 +333,16 @@ def write_units_yaml(
                 **({"takeoff_categories": e.takeoff_categories} if e.takeoff_categories else {}),
                 **({"landing_categories": e.landing_categories} if e.landing_categories else {}),
                 **({"shape_name": e.shape_name} if e.shape_name else {}),
+                **({"threat_range_m": e.threat_range_m} if e.threat_range_m else {}),
+                **({"detection_range_m": e.detection_range_m} if e.detection_range_m else {}),
             }
             for e in entries
         ],
         "naval_statics": sorted(naval_statics),
     }
     with open(output, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# DCS units database (type, kind, category, attributes, fuel, countermeasures, decks, shapes).\n")
+        f.write("# DCS units database (type, kind, category, attributes, fuel, countermeasures, decks, shapes,\n")
+        f.write("# weapon and detection ranges).\n")
         f.write("# Generated from https://github.com/Quaggles/dcs-lua-datamine\n")
         f.write(f"# Source ref: {ref}\n")
         f.write("# Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).\n")

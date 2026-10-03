@@ -147,7 +147,7 @@ def add_player_slot(
         task=task,
         payload=payload,
     )
-    assign_identities(mission.mission_content, group, country_id=country_id, task=task)
+    callsign_note = assign_identities(mission.mission_content, group, country_id=country_id, task=task)
     # The category comes from the type, never from a default: a helicopter filed under `plane`
     # is a slot DCS shows with its type in red and refuses to fly, and the mission file gives no
     # sign of it (FIX-MCP-AIRCRAFT-CATEGORY).
@@ -174,7 +174,7 @@ def add_player_slot(
         "start": start,
         "category": category,
     }
-    warnings = [w for w in (category_warning, fuel_warning) if w]
+    warnings = [w for w in (category_warning, fuel_warning, callsign_note) if w]
     if warnings:
         result["warnings"] = warnings
     return result

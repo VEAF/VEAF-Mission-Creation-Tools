@@ -296,6 +296,40 @@ function TestVeafGrassSpotOccupied:test_a_building_occupies_the_spot()
   luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 0, y = 0 }), "an escort must not be placed through a building")
 end
 
+--- R19, 2026-10-03: on open ground the escort moved because its own FARP's layout occupied its spot.
+--- What the caller names as its own does not occupy; anything else still does, and says what it is.
+local function anObjectNamed(name)
+  return function(category, volume, handler)
+    if category == Object.Category.STATIC then
+      handler({
+        isExist = function()
+          return true
+        end,
+        getName = function()
+          return name
+        end,
+      })
+    end
+  end
+end
+
+function TestVeafGrassSpotOccupied:test_a_prop_of_its_own_farp_does_not_occupy_the_spot()
+  world.searchObjects = anObjectNamed("FARP Alpha unit #7")
+  luaunit.assertFalse(veafGrass.isSpotOccupied({ x = 0, y = 0 }, nil, nil, "FARP Alpha unit #"))
+end
+
+function TestVeafGrassSpotOccupied:test_a_prop_of_another_farp_still_occupies_it_and_is_named()
+  world.searchObjects = anObjectNamed("FARP Bravo unit #7")
+  local occupied, occupant = veafGrass.isSpotOccupied({ x = 0, y = 0 }, nil, nil, "FARP Alpha unit #")
+  luaunit.assertTrue(occupied)
+  luaunit.assertEquals(occupant, "FARP Bravo unit #7")
+end
+
+function TestVeafGrassSpotOccupied:test_without_a_prefix_its_own_prop_occupies_as_before()
+  world.searchObjects = anObjectNamed("FARP Alpha unit #7")
+  luaunit.assertTrue(veafGrass.isSpotOccupied({ x = 0, y = 0 }))
+end
+
 -- ---------------------------------------------------------------------------
 -- Ticket 01 — walking the circle
 -- ---------------------------------------------------------------------------
@@ -1404,6 +1438,57 @@ end
 function TestVeafGrassBuildFarpEscort:test_an_accepted_farp_keeps_the_placement_it_was_accepted_on()
   veafGrass.buildFarpUnits(_editorFarp(), nil, "FARP Alpha", true, true, nil, nil, nil, { angle = 120, scale = 1.5 })
   luaunit.assertAlmostEquals(self:_escortBearing(), 120, 0.001)
+end
+
+--- R19 (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND), measured 2026-10-03: on open ground, the escort moved
+--- because the props of its own FARP, laid out first on the same bearing, occupied its spot. Only the
+--- escort may stand beside them: the tents, props and windsock still avoid what stands before them.
+function TestVeafGrassBuildFarpEscort:test_only_the_escort_ignores_the_props_of_its_own_farp()
+  local prefixes = {}
+  veafGrass.isSpotOccupied = function(_, _, _, prefix)
+    table.insert(prefixes, prefix or "none")
+    return false
+  end
+  veafGrass.buildFarpUnits(_editorFarp(), nil, nil, true)
+  local seen = {}
+  for _, prefix in ipairs(prefixes) do
+    seen[prefix] = true
+  end
+  luaunit.assertTrue(seen["FARP FARP Alpha unit #"], "the escort's search names the FARP's own props")
+  luaunit.assertTrue(seen["none"], "the other searches name nothing")
+  luaunit.assertAlmostEquals(self:_escortBearing(), 0, 0.001, "nothing occupied: the escort keeps its bearing")
+end
+
+--- The same, through the real probe: a static standing on the escort's wanted spot (bearing 0, 150 m
+--- north of the FARP) keeps the escort there when it is one of this FARP's props, and moves it when it is
+--- anything else. Both sides, so the test cannot pass by never moving anything.
+function TestVeafGrassBuildFarpEscort:_escortBearingBeside(staticName)
+  veafGrass.isSpotOccupied = self._occupied
+  local search = world.searchObjects
+  world.searchObjects = function(category, volume, handler)
+    local p = volume.params.point
+    if category == Object.Category.STATIC and math.abs(p.x - 1150) < 20 and p.z >= 1990 and p.z <= 2040 then
+      handler({
+        isExist = function()
+          return true
+        end,
+        getName = function()
+          return staticName
+        end,
+      })
+    end
+  end
+  veafGrass.buildFarpUnits(_editorFarp(), nil, nil, true)
+  world.searchObjects = search
+  return self:_escortBearing()
+end
+
+function TestVeafGrassBuildFarpEscort:test_a_prop_of_its_own_farp_on_the_escort_spot_does_not_move_it()
+  luaunit.assertAlmostEquals(self:_escortBearingBeside("FARP FARP Alpha unit #4"), 0, 0.001)
+end
+
+function TestVeafGrassBuildFarpEscort:test_anything_else_on_the_escort_spot_still_moves_it()
+  luaunit.assertNotAlmostEquals(self:_escortBearingBeside("Ural parked here"), 0, 0.001)
 end
 
 os.exit(luaunit.LuaUnit.run())

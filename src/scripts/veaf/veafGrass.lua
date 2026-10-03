@@ -264,15 +264,22 @@ end
 ---
 --- `platforms` is optional so every existing caller keeps working; pass `veafGrass.getLandingPlatforms()`
 --- to get the platform half.
-function veafGrass.isSpotOccupied(position, clearance, platforms)
+---
+--- `ignoredNamePrefix`, optional: objects whose name starts with it do not occupy anything. It is how the
+--- escort ignores the props of its own FARP (FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND, measured 2026-10-03:
+--- on open ground the escort moved because the FARP's own layout occupied its spot).
+---
+--- @return boolean occupied, string|nil the name of what occupies it, for the log
+function veafGrass.isSpotOccupied(position, clearance, platforms, ignoredNamePrefix)
   clearance = clearance or veafGrass.PLACEMENT_CLEARANCE
   if not position then
     return false
   end
   if veafGrass.isOnLandingPlatform(position, platforms) then
-    return true
+    return true, "a landing platform"
   end
   local occupied = false
+  local occupant = nil
   local volume = {
     id = world.VolumeType.SPHERE,
     params = { point = veaf.placePointOnLand(position), radius = clearance },
@@ -283,7 +290,17 @@ function veafGrass.isSpotOccupied(position, clearance, platforms)
     -- this module had before it probed at all.
     pcall(function()
       if object and object:isExist() then
+        -- Asked apart: an object that cannot say its name still occupies the spot.
+        local named, name = pcall(object.getName, object)
+        if not named then
+          name = nil
+        end
+        if ignoredNamePrefix and type(name) == "string" and name:sub(1, #ignoredNamePrefix) == ignoredNamePrefix then
+          veaf.loggers.get(veafGrass.Id):debug("isSpotOccupied: ignoring %s, part of this FARP", veaf.p(name))
+          return
+        end
         occupied = true
+        occupant = name
       end
     end)
   end
@@ -298,7 +315,7 @@ function veafGrass.isSpotOccupied(position, clearance, platforms)
       return false
     end
     if occupied then
-      return true
+      return true, tostring(occupant)
     end
   end
   return false
@@ -525,15 +542,25 @@ end
 --- reversing the earlier "a FARP that refuses to exist because it is crowded would be worse than one
 --- placed imperfectly" — a decorative escort standing on an apron was the wrong trade). Measured in
 --- game on 2026-08-28, the search exhausted 0 times out of 4, dense woods included.
-function veafGrass.findClearBearing(baseAngle, positionsFor, own)
+---
+--- `ignoredNamePrefix`, optional, is handed to `isSpotOccupied`: what the group may stand beside.
+function veafGrass.findClearBearing(baseAngle, positionsFor, own, ignoredNamePrefix)
   -- Read once, here: a full turn tries 24 bearings at each distance, and each bearing tests every
   -- position the group would occupy, so asking DCS for its airbase list inside the probe would mean
   -- thousands of calls per FARP.
   local platforms = veafGrass.getLandingPlatforms(own)
 
   local function allClear(angle, scale)
-    for _, position in ipairs(positionsFor(angle, scale) or {}) do
-      if veafGrass.isSpotOccupied(position, nil, platforms) then
+    for index, position in ipairs(positionsFor(angle, scale) or {}) do
+      local occupied, occupant = veafGrass.isSpotOccupied(position, nil, platforms, ignoredNamePrefix)
+      if occupied then
+        -- Named for the wanted spot only: the bearing walk asks hundreds of times. The 2026-10-03 run
+        -- read `occupancy probe=false` and nothing said by what, which is a guess left to the reader.
+        if angle == baseAngle and scale == 1 then
+          veaf.loggers
+            .get(veafGrass.Id)
+            :debug("findClearBearing: position %s of the wanted spot is occupied by %s", veaf.p(index), veaf.p(occupant))
+        end
         return false
       end
     end
@@ -1970,7 +1997,11 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   -- spawn a FARP escort group
   local escortUnitTypes, escortPositionsAt = veafGrass.farpEscortLayout(farp)
 
-  local escortAngle, escortScale, escortFound = veafGrass.findClearBearing(angle, escortPositionsAt, farp)
+  -- The escort may stand beside this FARP's own tents, props and windsock: they are laid out from the
+  -- same bearing, so counting them as obstacles moved the escort on open ground every time (R19,
+  -- 2026-10-03). Everything else — another group, another FARP's props, a building — still occupies.
+  local ownPropsPrefix = string.format("FARP %s unit #", farp.groupName)
+  local escortAngle, escortScale, escortFound = veafGrass.findClearBearing(angle, escortPositionsAt, farp, ownPropsPrefix)
   if not escortFound and escortPlacement then
     -- `-farp` accepted this FARP on a placement found before the tents and props stood. Keeping it beats
     -- the requested bearing, which the search has just found taken.

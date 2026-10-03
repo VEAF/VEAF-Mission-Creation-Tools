@@ -1,6 +1,6 @@
 # 12 — `settleGroup` sweeps with the probe instead of asking for a clearing
 
-Status: 🧑 waiting-human — implemented 2026-09-28 (branch `fix/placement-sweep-probe`), 49 Lua
+Status: ✅ done — verified in game 2026-10-03
 suites green; what is left is the in-game measurement, item R16 of `DCS-SESSION-TODO.md`. David's
 call, 2026-09-26 evening: *"si la sonde marche mais pas getSimpleZone, pourquoi on n'utilise pas le même
 concept que la sonde en jeu avant de spawner des trucs ?"*

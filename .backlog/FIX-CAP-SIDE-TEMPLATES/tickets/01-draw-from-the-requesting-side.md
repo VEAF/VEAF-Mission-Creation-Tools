@@ -1,6 +1,6 @@
 # 01 — a `-cap` or `-afac` draws from its own side
 
-Status: 🧑 waiting-human — merged in #1052, in-game check R32
+Status: ✅ done — verified in game 2026-10-03
 
 `veafSpawn.initializeAirUnitTemplates` records each template's side;
 `veafSpawn.findSpawnableAircraftGroupname(name, side)` draws from that side's matches and the neutral

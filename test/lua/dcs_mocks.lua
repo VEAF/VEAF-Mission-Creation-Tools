@@ -234,10 +234,14 @@ trigger = {
     radioTransmission = function(...) end,
     setMarkupColor = function(...) end,
     setUserFlag = function(flag, val) end,
+    -- DCS refuses a nil colour with "Parameter #2 (color) missed" (measured 2026-10-03); accepting it
+    -- here is how eleven nil colours passed the suite.
     smoke = function(position, color)
+      assert(color ~= nil, "Parameter #2 (color) missed")
       table.insert(dcs_mocks.effects, { kind = "smoke", position = position, color = color })
     end,
     signalFlare = function(position, color, azimuth)
+      assert(color ~= nil, "Parameter #2 (color) missed")
       table.insert(dcs_mocks.effects, { kind = "signalFlare", position = position, color = color, azimuth = azimuth })
     end,
     illuminationBomb = function(position, power)
@@ -1006,8 +1010,11 @@ end
 
 -- ---------------------------------------------------------------------------
 -- trigger.flareColor (used by veafSpawnEffects.spawnSignalFlare)
+-- Keys and values as DCS returns them, measured in game on 2026-10-03: capitalised, not upper case.
+-- This mock used to say `RED = 0, GREEN = 1`, so code writing `trigger.flareColor.RED` passed here
+-- and handed DCS a nil.
 -- ---------------------------------------------------------------------------
-trigger.flareColor = { RED = 0, GREEN = 1, WHITE = 2, YELLOW = 3 }
+trigger.flareColor = { Green = 0, Red = 1, White = 2, Yellow = 3 }
 
 -- ---------------------------------------------------------------------------
 -- Controller  (DCS unit/group controller)

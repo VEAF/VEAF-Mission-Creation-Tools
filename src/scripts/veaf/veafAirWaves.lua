@@ -1373,11 +1373,13 @@ function AirWaveZone._onEnterActive(self)
     -- deploy failed (missing groups, spawn error): spawnedGroupsNames is already empty,
     -- so _canExitActive returns true on the very next check() cycle and the zone moves
     -- on to NEXTWAVE rather than getting stuck here.
-    veaf.loggers.get(veafAirWaves.Id):warning(
-      "AirWaveZone[%s]: deployWaves() returned no groups — wave %s will be skipped",
-      veaf.p(self.name),
-      veaf.p(self.currentWaveIndex)
-    )
+    veaf.loggers
+      .get(veafAirWaves.Id)
+      :warn(
+        "AirWaveZone[%s]: deployWaves() returned no groups — wave %s will be skipped",
+        veaf.p(self.name),
+        veaf.p(self.currentWaveIndex)
+      )
   end
 end
 

@@ -87,7 +87,7 @@ end
 function TestParserCommands:test_smoke_default_color_red()
   local r = analyse("_spawn smoke")
   luaunit.assertTrue(r.smoke)
-  luaunit.assertEquals(r.smokeColor, trigger.smokeColor.RED)
+  luaunit.assertEquals(r.smokeColor, trigger.smokeColor.Red)
 end
 
 function TestParserCommands:test_flare()
@@ -252,7 +252,7 @@ end
 
 function TestParserParams:test_color_green_sets_smoke_color()
   local r = analyse("_spawn smoke, color green")
-  luaunit.assertEquals(r.smokeColor, trigger.smokeColor.GREEN)
+  luaunit.assertEquals(r.smokeColor, trigger.smokeColor.Green)
   luaunit.assertEquals(r.drawColor, "green")
 end
 

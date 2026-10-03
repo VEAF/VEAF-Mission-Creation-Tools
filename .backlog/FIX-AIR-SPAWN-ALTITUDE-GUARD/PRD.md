@@ -1,6 +1,6 @@
 # FIX-AIR-SPAWN-ALTITUDE-GUARD — the aircraft height check reads the easting, not the altitude
 
-Status: 🧑 waiting-human — the read is fixed and shipped (ticket 01); the **clearance** rule needs DCS
+Status: ⬜ ready — R9 answered in game 2026-10-03: DCS does not lift a too-low aircraft
 to answer whether the game lifts a too-low aircraft by itself (ticket 02, `DCS-SESSION-TODO.md` R9).
 
 Found 2026-09-01 while delivering [`CHORE-ONE-TERRAIN-CHECK`](../archive/CHORE-ONE-TERRAIN-CHECK.md), and
@@ -44,7 +44,7 @@ than a live defect. That changes what the repair should do, not whether the line
 | # | Ticket | Risk | Status |
 |---|---|---|---|
 | 01 | The height test reads the altitude, and two cases prove which field it read | medium — it makes a dead guard live, so a spawn can now be refused that used to be accepted | ✅ |
-| 02 | Does DCS lift a too-low aircraft on its own? The clearance rule depends on the answer | none — a question, no code | 🧑 |
+| 02 | Does DCS lift a too-low aircraft on its own? The clearance rule depends on the answer | none — a question, no code | ✅ |
 
 ## Definition of done
 
@@ -97,3 +97,12 @@ to spawn as a static"* is the **only** air case `veafSpawn.spawnUnit` can reach,
 **4. The guard was refusing something after all — the wrong thing.** *"The guard has never rejected
 anything"* holds for the map, not for the axis: `z <= 10` did fire within ten metres of the theatre's
 central meridian. It is also why the aircraft case of the pinning test looked correct.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+R9: `_spawn cap, side red, alt 2` over flat ground spawned a MiG-21 15 m above the ground; it hit
+shrubs and trees within a second and crashed (`PILOT_DEAD`, `CRASH`). DCS does not clamp: refusing
+only a point under the terrain is not enough, a clearance margin is needed — or the lift
+`veafDcsSpawner` already applies. An aircraft static on a beach (1.8 m) spawns fine.

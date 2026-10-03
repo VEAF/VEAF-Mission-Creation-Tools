@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — the escort is moved even when the requested spot is free
 
-Status: 🧑 waiting-human — ticket 01's guard was measured inert in game on 2026-09-01; **ticket 03 replaces it** with the small scenery probe asked about the wanted spot itself, implemented 2026-09-30 together with `FIX-PLACEMENT-IGNORES-SCENERY` ticket 04. What is left is the in-game check, R19 of `DCS-SESSION-TODO.md`.
+Status: ⬜ ready — R19 run in game 2026-10-03: on open ground the escort still moves, for a new reason
 
 Origin: measured in game 2026-08-28 while running
 [`DCS-SESSION-TODO`](../../DCS-SESSION-TODO.md) item 21, the exhaustion count for
@@ -160,3 +160,12 @@ log level~~ — **settled 2026-09-01: that line now logs at info**, so the defau
 group fell through to tier 2. The rest of the protocol is in
 [ticket 02](tickets/02-verify-in-game-that-nothing-moves.md), including the two cases that must **still**
 move: a run where nothing moves anywhere means the fix went too far.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+R19, Caucasus, four `-farp`: in a wood the escort left the trees (`scenery probe=false`, 0° → −15°).
+On open ground, and beside a static FARP, the first elements kept their bearing and the fourth and
+fifth read `occupancy probe=false`, so the escort moved (333° at 1.14×, 38° at 1.16×): **the FARP's
+own vehicles, placed first, occupy the escort's wanted spot**. The refusal case was not reached.

@@ -327,11 +327,45 @@ Measured by Tripack on a v6 Cyprus mission, from a blue Hornet slot and as Tacti
 off the map, while the identical ones a combat zone puts back — removed by deactivating the zone,
 recreated by activating it again — are on the map. VEAF submits `hidden = true` to
 `coalition.addStaticObject` for them (`test_the_static_the_zone_puts_back_is_still_hidden`), so it
-is DCS that does not apply it to an object a script created. Only a static was measured: whether a
-**group** recreated by `coalition.addGroup` keeps its hiding is not established.
+is DCS that does not apply it to an object a script created. A **group** behaves the other way,
+measured on 2026-10-03: a Su-27 pair `hidden = true` in the editor, recreated twice by
+`coalition.addGroup` as a QRA, never showed on a blue F10 map (`optview_all`) that did show a
+non-hidden red Shilka and red MiG-29S. DCS keeps `hidden` on a recreated group, drops it on a
+recreated static.
 
 **What to do:** Keep a decoration that must stay hidden out of every combat zone, or name it so that no zone takes
 it over: the editor's own copy is the only one DCS hides.
+
+### An aircraft spawned a few metres above the ground is not lifted: it flies into what stands there {#aircraft-spawned-too-low-is-not-lifted}
+
+Measured **2026-10-03**.
+
+`coalition.addGroup` takes an aircraft's altitude as given. A MiG-21 spawned 15 m above flat
+farmland in Caucasus (`_spawn cap, side red, alt 2`) was in the air, hit shrubs and trees within a
+second (`HIT` on `SHRUB`, `GREEN_ASH`, `EUROPEAN_BEECH`) and crashed (`PILOT_DEAD`, `CRASH`).
+Nothing raises: the spawn succeeds and the aircraft dies.
+
+**What to do:** Spawn an aircraft well above what stands on the ground — the MiST-derived spawner in VEAF lifts a
+requested altitude into a band for exactly this reason. Not being under the terrain is not enough.
+
+*What it cost:* `FIX-AIR-SPAWN-ALTITUDE-GUARD` had to choose between refusing and lifting; this measurement is what
+settles that refusing only a point under the terrain leaves the crash in place.
+
+### `trigger.smokeColor` and `trigger.flareColor` keys are `Red`, `Green`… — `RED` is nil, and DCS then refuses the call {#colour-enums-are-capitalised}
+
+Measured **2026-10-03**.
+
+Read in game: `trigger.smokeColor` is `Blue=4 Green=0 Orange=3 Red=1 White=2` and
+`trigger.flareColor` is `Green=0 Red=1 White=2 Yellow=3`. `trigger.smokeColor.RED` is `nil`, and
+`trigger.action.smoke(point, nil)` raises "Parameter #2 (color) missed" — inside a scheduled
+function that is a line in `dcs.log` and no smoke. The two tables also disagree from 3 up: smoke 3
+is orange, flare 3 is yellow; smoke 4 is blue, and there is no flare 4.
+
+**What to do:** Write the keys as DCS does, and never pass a smoke colour where a flare colour is expected beyond
+red, green and white.
+
+*What it cost:* Every coloured smoke and flare asked from a VEAF map marker, and the smokes and flares of `-farp`,
+failed this way until `FIX-IN-GAME-SESSION-2026-10-03`; the unit tests compared `nil` with `nil`.
 
 ## Air defence {#air-defence}
 

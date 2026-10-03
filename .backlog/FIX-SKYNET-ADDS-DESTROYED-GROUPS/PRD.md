@@ -1,6 +1,6 @@
 # FIX-SKYNET-ADDS-DESTROYED-GROUPS — the IADS enrols groups DCS has already destroyed
 
-Status: 🧑 waiting-human — **fix shipped**, awaiting one in-game observation
+Status: 🧑 waiting-human — the start-up half verified in game 2026-10-03 (R14); a deactivated zone's site still stays, see `FIX-IN-GAME-SESSION-2026-10-03` ticket 03
 
 Origin: [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946), filed by the support
 bot from Tripack's Discord report of 2026-09-08 on `Snowfox_20260908.miz` (Persian Gulf): *"au
@@ -176,3 +176,15 @@ Tripack's to send, and they would settle one question only: whether 16 is the st
 this lot fixes, or a coincidence — `Snowfox_20260903.miz` happens to hold exactly 16
 `ZSU-23-4 Shilka` groups. Not blocking: the defect is in the code either way, the reproduction above
 exercises the mechanism, and the fix does not wait for it.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+`Skynet-test` (#946) rebuilt from `develop`: `TESTCZ - SA6`, destroyed by its zone at start, was not
+enrolled; the network listed the three outside sites and the zone's **respawned** SA-6, which
+`FIX-SKYNET-CZ-RESPAWN-AND-RANGE` makes join on purpose. No `ADD GROUP REFUSED` line: the guard had
+nothing to refuse, so it is not exercised by this run.
+
+Ticket 03 did not hold: after a deactivate/reactivate cycle the old SA-6 stayed listed for more than
+four minutes (five sweeps) although DCS no longer held it. Followed in `FIX-IN-GAME-SESSION-2026-10-03` ticket 03.

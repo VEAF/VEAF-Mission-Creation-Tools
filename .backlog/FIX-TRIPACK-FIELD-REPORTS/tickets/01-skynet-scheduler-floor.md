@@ -1,6 +1,6 @@
 # 01 — Skynet's scheduler keeps the promise its docstring makes
 
-Status: 🧑 waiting-human
+Status: ✅ done — verified in game 2026-10-03
 
 Type: fix
 

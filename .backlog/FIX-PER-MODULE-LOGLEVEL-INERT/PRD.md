@@ -1,6 +1,6 @@
 # FIX-PER-MODULE-LOGLEVEL-INERT — a documented setting that has never done anything
 
-Status: 🧑 waiting-human — fixed 2026-09-29 by route b; R18 of `DCS-SESSION-TODO.md` is the in-game reading.
+Status: ✅ done — verified in game 2026-10-03 (R18)
 
 Found 2026-09-01 while trying to trace one module during the release-gate session. Setting
 `logLevel: trace` under a module changed nothing, and the reason is not the module.
@@ -100,3 +100,10 @@ loop now uses the same `setModuleLevel`. Tests (`TestPerModuleLogLevel`, `test_v
 config to a line printed through the mocked `env`: the module traces, another does not, a level set
 before the module loads applies, an unknown id leaves `veaf` alone, and the global level still reaches
 the other modules.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+`global_log_level: info`, `SPAWN.logLevel: trace`: 422 `VEAF-SPAWN|T|` lines and no `|T|` line from
+any other module.

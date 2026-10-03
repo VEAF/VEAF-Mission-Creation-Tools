@@ -399,13 +399,13 @@ end
 --- lost without a word.
 function TestVeafSpawnEffects:test_spawnSignalFlare()
   timer.setTime(500)
-  veafSpawn.spawnSignalFlare({ x = 0, y = 0, z = 0 }, 0, 1, trigger.flareColor.RED)
+  veafSpawn.spawnSignalFlare({ x = 0, y = 0, z = 0 }, 0, 1, trigger.flareColor.Red)
 
   dcs_mocks.runScheduled(505)
 
   luaunit.assertEquals(#dcs_mocks.effects, 1)
   luaunit.assertEquals(dcs_mocks.effects[1].kind, "signalFlare")
-  luaunit.assertEquals(dcs_mocks.effects[1].color, trigger.flareColor.RED)
+  luaunit.assertEquals(dcs_mocks.effects[1].color, trigger.flareColor.Red)
 end
 
 function TestVeafSpawnEffects:test_spawnIlluminationFlare_simple()

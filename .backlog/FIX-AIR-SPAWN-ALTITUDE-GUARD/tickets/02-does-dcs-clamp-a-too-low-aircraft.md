@@ -1,6 +1,6 @@
 # 02 — Does DCS lift a too-low aircraft on its own? The clearance rule depends on the answer
 
-Status: 🧑 waiting-human — needs DCS running; written up in `DCS-SESSION-TODO.md` (item R9).
+Status: ✅ done — verified in game 2026-10-03
 Type: question
 
 [Ticket 01](01-read-the-altitude-not-the-easting.md) fixed the field the height test reads, which is

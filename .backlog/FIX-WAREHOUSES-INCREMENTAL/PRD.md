@@ -1,6 +1,6 @@
 # FIX-WAREHOUSES-INCREMENTAL — assigning one airfield disabled all the others
 
-Status: 🧑 waiting-human — implemented 2026-08-16, needs one in-game confirmation
+Status: ✅ done — verified in game 2026-10-03 (R2)
 
 Origin: David's answer to the open question left by `FIX-EMPTY-WAREHOUSES` — *"yes, dynamic slots
 by default, on every airfield of the coalition; there is no rule for which airfield is blue or red:
@@ -55,3 +55,11 @@ Measured on a mission with Deir ez-Zor blue and Palmyra red:
 The log said *"added to an empty table"* while the table held the two airfields the MCP had just
 written. Reworded to *"added (the mission declared none)"* — a message stating a condition that is
 not the one it fired on is exactly the kind of thing that sends the next investigation the wrong way.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+A blank Syria mission, Deir ez-Zor set blue and Palmyra red through `set_airbase_coalition`, built:
+the game reports 225 airdromes (223 neutral, 1 red, 1 blue) and an untouched field, Nicosia, still
+has its warehouse (four liquids). A dynamic-slot UH-1H was taken at Deir ez-Zor.

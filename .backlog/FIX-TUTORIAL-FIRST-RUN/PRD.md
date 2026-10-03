@@ -84,3 +84,11 @@ Two things worth keeping from the measurements:
   [`concepts/build.md`](../../doc/mission-maker/concepts/build.md), which already documents the
   dated-filename rule correctly.
 - Asking Paluche for his `dcs.log`. Raised and not taken up; ticket 05 ships the fix without it.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ticket 05 verified (R12): `spawnSmoke` with a valid colour makes smoke, and the combat-zone smoke
+rises at the zone (David). A marker's `_spawn smoke` failed for another reason — the colour names,
+fixed in `FIX-IN-GAME-SESSION-2026-10-03` ticket 01. STTS left on without SRS logs two info lines and nothing else.

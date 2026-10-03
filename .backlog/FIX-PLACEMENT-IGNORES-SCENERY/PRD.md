@@ -129,7 +129,7 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 09 | `silent` propagated to `_createDcsUnits`, refused units no longer dropped silently | low | ✅ |
 | 10 | Settle the group by rigid translation, not unit by unit — shipped, and measured inert in game on 2026-09-26; the translation works, the selection does not | medium | ✅ |
 | 11 | `settleGroup` verifies the candidate it trusts, and draws more than once | medium | ✅ |
-| 12 | `settleGroup` sweeps with the probe instead of asking for a clearing | medium | 🧑 |
+| 12 | `settleGroup` sweeps with the probe instead of asking for a clearing | medium | ✅ |
 
 ### Why this lot needed three rounds on the same defect
 
@@ -186,3 +186,12 @@ before choosing 04's threshold.
 - [ ] The non-regression is proven the way 6.15.33 proved it: a FARP far from anything does not move
 - [ ] `mypy` exclusions and the coverage ratchet respected per the repository's quality policy
 - [ ] `CHANGELOG.md` entry under `[Unreleased]`, appended at the end of the section
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ticket 12 verified (R16), GermanyCW-v6 from `develop`, 26 zones activated: 8 vehicles under trees
+before `settleGroup`, 2 after; 4 groups translated (20, 20, 60, 140 m); the worst group 0.317 s; one
+group of two gave up after 761 probes. Ticket 04 is held by the R19 result in
+`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`.

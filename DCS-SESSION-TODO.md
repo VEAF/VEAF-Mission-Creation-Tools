@@ -391,6 +391,18 @@ takeoff, landing, crash, shots — are printed as they happen; everything also g
 
 The answer to give: the five letters, each with what it did.
 
+### R34. An unknown combat mission name is reported, not raised
+
+Added 2026-10-03 by [`FIX-COMBATMISSION-UNKNOWN-NAME`](.backlog/FIX-COMBATMISSION-UNKNOWN-NAME/PRD.md).
+**Run**, in any mission with a `cap_missions:` entry (session `dcs-session-2026-10-03c` has
+`TEST-T17 CAP`), through the fiddle: `veafCombatMission.ActivateMission("TEST-T17 CAP", true)` — the
+bare name, which is unknown because the CAP is registered per `<name>/<skill>/<size>` variant.
+
+- **On screen, `VeafCombatMission [TEST-T17 CAP] introuvable !` (or `was not found !` in English),
+  and the fiddle returns without error**: fixed — close the lot.
+- **`attempt to index local 'mission' (a nil value)`**: the build in the mission is older than the
+  fix; check `veaf-scripts.lua` in the `.miz`.
+
 ---
 
 ---

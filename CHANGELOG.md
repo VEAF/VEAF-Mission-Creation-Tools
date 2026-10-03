@@ -282,6 +282,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the largest field transports start from (1 100 m for Ramstein). Also served by
   `describe_known_limitations`: a CAP engages nothing without an `EngageTargets` task numbered before
   its orbit, measured the same evening.
+- **Activating a combat mission by a name it does not know reports it on screen instead
+  of raising a Lua error.** The bare name of an on-demand CAP is such a name, since each CAP is registered per
+  skill and size (`TEST-T17 CAP/good/2`): on 2026-10-03, `ActivateMission("TEST-T17 CAP")` raised
+  `attempt to index local 'mission' (a nil value)`. Deactivating, describing and checking a mission
+  had the same defect, and deactivating one by its number raised on every call.
 
 ## [6.26.0] — 2026-09-30
 

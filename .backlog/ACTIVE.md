@@ -46,10 +46,6 @@ What building the Syria Open Training v6 through the MCP found: callsigns, loado
 
 Comments relayed from GitHub to Discord showed their markup in a code block. Now a block quote with formatting applied, long comments split; one reading left in a real thread.
 
-### [FIX-RELAY-STOPS-AT-CLOSE](FIX-RELAY-STOPS-AT-CLOSE/PRD.md) · 🧑
-
-Closing a support issue cut its Discord relay for good, so a reopened issue went silent; deleted issues were retried for ever. Fixed; the live repair on the Docker host (ticket 03) is left.
-
 ### [FIX-SCRATCH-MISSION-FINDINGS](FIX-SCRATCH-MISSION-FINDINGS/PRD.md) · 🧑
 
 What building Open Training Germany CW from an empty folder found (weather, solar times, presets, MCP actions, defense levels…). Tickets 01–22 merged, 17 seen engaging in DCS; left: the rebuild with the fixed tools.

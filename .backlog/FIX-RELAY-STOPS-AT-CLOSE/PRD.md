@@ -1,6 +1,6 @@
 # FIX-RELAY-STOPS-AT-CLOSE — closing an issue unsubscribes its reporter for good
 
-Status: 🧑 waiting-human
+Status: ✅ done — tickets 01–02 merged; 03 🚫 (the repair was no longer worth running, see the ticket)
 
 Origin: David, 2026-09-09. The bot had relayed nothing to Discord for a day and its log showed only
 a heartbeat and three `relay.poll_failed` warnings. Both halves of that are bugs, and neither is the
@@ -51,7 +51,8 @@ relaying looked, at a glance, like a relay that was working.
 * A reopening is announced in the thread, the `✅` and the archive are undone, and the comments
   written while nobody was listening are relayed.
 * A deleted issue is dropped once, with one log line, and never polled again.
-* #946 is followed again and its ten missing comments have reached Tripack's thread.
+* ~~#946 is followed again and its ten missing comments have reached Tripack's thread.~~ Dropped
+  2026-10-03: by then the issue was closed again and Tripack had followed it on GitHub (ticket 03).
 * The README says how to repair a link by hand, because the state file is the only place that
   knowledge lives.
 

@@ -1,6 +1,6 @@
 # FIX-LOGS-EXE-STARTUP-AND-VERSION — `veaf-logs.exe` takes 14 s to open and reports no version
 
-Status: 🔄 in-progress — every ticket done and measured in the built exe 2026-10-03; closes with the merge
+Status: ✅ done — merged in #1057 (2026-10-03); measured in the built exe
 
 ## Origin
 

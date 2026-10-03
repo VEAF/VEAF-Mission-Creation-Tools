@@ -275,6 +275,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   said `tool.version: unknown`, the release having built it after the version was reset; the release
   now builds it with `veaf-build build-logs`. And running the tests no longer overwrites the
   `veaf-logs` session of whoever runs them.
+- **The airfield logistics radius is sized for the largest airfield, and the guides say so.** Measured
+  in game on 2026-10-03: at Ramstein a C-130 parks 997 m from the 250 m logistic zone, and only one of
+  the field's 90 large-aircraft stands is inside it. The guide, the `mission.yaml` reference, both
+  mission prompts and `describe_known_limitations` now tell to raise `airbase_logistics_radius` for
+  the largest field transports start from (1 100 m for Ramstein). Also served by
+  `describe_known_limitations`: a CAP engages nothing without an `EngageTargets` task numbered before
+  its orbit, measured the same evening.
 - **Activating a combat mission by a name it does not know reports it on screen instead
   of raising a Lua error.** The bare name of an on-demand CAP is such a name, since each CAP is registered per
   skill and size (`TEST-T17 CAP/good/2`): on 2026-10-03, `ActivateMission("TEST-T17 CAP")` raised

@@ -1,6 +1,6 @@
 # 02 — spawned ground vehicles start with their engines running
 
-Status: 🧑 waiting-human — built 2026-09-29; only the in-game check is left.
+Status: 🧑 waiting-human — built 2026-09-29; the script half seen in game 2026-10-03, the thermal look is left.
 Type: fix
 
 ## 2026-09-29 — what was found and built
@@ -22,6 +22,18 @@ Type: fix
    the scripts do; only turning them into groups in the mission would change that. And if DCS already
    read a missing key as warm, the vehicles David found cold went cold by **standing still**, which
    no mission option is known to prevent — the in-game check tells which.
+
+## 2026-10-03 — the script half, seen in game
+
+Session `dcs-session-2026-10-03c` (GermanyCW, `develop` `d3823f7e`), `coalition.addGroup` wrapped
+before `combatZone_WahnerHeide_Easy` was activated. The zone handed DCS five vehicles (`-cible-1, 2, 5,
+6, 7`), each `coldAtStart = false`, none without the key. So every vehicle of the zone reaches DCS
+asking to be warm.
+
+What that does **not** say is what DCS makes of it: no script can read a temperature. Three BMP-2
+controls stood 600 m north of the zone centre for the thermal look — `coldAtStart = true`, `false`,
+and no key — and the look was not done (no pod flown). It is the one item left, in
+`DCS-SESSION-TODO.md` (R35), with the controls' probe `c_warm.lua` in the session folder.
 
 ## What was asked
 

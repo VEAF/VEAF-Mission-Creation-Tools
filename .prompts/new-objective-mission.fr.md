@@ -238,7 +238,10 @@ validé un scénario, pas un à-peu-près.
 
 - **Gabarit** de `scaffold_mission` : `minimal` pour une mission sans hélicoptère ni logistique ;
   `standard` si le scénario utilise CTLD, CSAR ou des missions de transport. Tu choisis et tu
-  l'annonces. Désactive les modules du gabarit dont le scénario ne se sert pas.
+  l'annonces. Désactive les modules du gabarit dont le scénario ne se sert pas. Avec CTLD, règle
+  `modules.CTLD.airbase_logistics_radius` (250 m par défaut, une valeur pour tous les terrains) sur le
+  plus grand terrain d'où partent les transports — 1 100 m pour une grande base comme Ramstein, où un
+  C-130 se gare à 997 m du point de chargement.
 - **Nom** : `VEAF_<Carte>_<Titre>` (titre en PascalCase sans accents, ex.
   `VEAF_Syria_DeepStrikePalmyra`).
 - `mission.era`, **date** et **heure** (`set_mission_date`) cohérentes avec le scénario. Si le

@@ -1,6 +1,6 @@
 # FIX-AIRWAVES-COMMAND-EASTING — a command-driven air wave spawns with no easting
 
-Status: 🧑 waiting-human
+Status: ✅ done — 2026-10-03, both halves seen in game
 
 Code shipped; the in-game look is ticket 02 and needs DCS started.
 
@@ -99,7 +99,7 @@ should fail — that is ticket 02.
 | # | Ticket | Risk | Status |
 |---|---|---|---|
 | 01 | A command element is handed a vec3, in both modules that run one | low — two lines per site, covered by tests that fail two ways | ✅ |
-| 02 | See a command-driven wave arrive where it should | needs DCS | 🧑 |
+| 02 | See a command-driven wave arrive where it should | needs DCS | ✅ |
 
 ## What implementation found that this document did not say
 
@@ -149,6 +149,21 @@ The morning's in-game check of the wave half used waves written `-spawn shilka`,
 alias: re-run in the afternoon, the zone logged `VeafAlias [-spawn] was not found` and spawned nothing.
 The morning's numbers cannot have come from those waves, so the wave half goes back to
 `DCS-SESSION-TODO.md` R7 with a valid alias. The QRA half was verified that afternoon.
+
+## The wave half verified (2026-10-03, evening)
+
+Session `dcs-session-2026-10-03c`, mission built from `develop` `d3823f7e`. Zone `AW-CommandTest`,
+`respawn_default_offset: [4000, -7000]`, waves `"-shilka"` then `"[5000,0]-shilka"`, triggered by an
+AI C-130 declared as the zone's human. Positions read from the zone centre:
+
+| Wave | Expected | Measured | Miss |
+|---|---|---|---|
+| `-shilka` | N +4000 / E −7000 (the default offset) | N +3853 / E −6954 | 154 m |
+| `[5000,0]-shilka` | N +5000 / E 0 (the bracket replaces the default) | N +4989 / E −181 | 181 m |
+
+Both inside 250 m, which is the floor `AirWaveZone:setRespawnRadius` puts on any scatter
+(`respawn_radius: 0` is not even emitted by the generator). Northing first, easting second, no
+easting lost: the lot closes.
 
 ## Former index entry
 

@@ -122,6 +122,12 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **`ctld-config.yaml`** : vide les listes d'exemple que CTLD reprend de ses valeurs par défaut
   (`extract1`…`extract25`, `logistic1`…`logistic10`) — aucun de ces noms n'existe dans la mission, et
   ils font 35 avertissements au démarrage.
+- **Logistique des aérodromes** : chaque aérodrome tenu devient un point de chargement CTLD de
+  `modules.CTLD.airbase_logistics_radius` mètres (250 par défaut), une seule valeur pour tous les
+  terrains. Règle-la sur le **plus grand** terrain d'où partent les hélicoptères et les avions de
+  transport : sur une grande base, 250 m ne couvrent presque aucun parking gros porteur (mesuré à
+  Ramstein : un C-130 garé à 997 m, **1 100 m** pour le couvrir). Dis la valeur choisie et pourquoi
+  (`describe_known_limitations`, `airfield-logistics-is-one-250m-zone`).
 - `set_airbase_coalition` pour chaque aérodrome, avec `dynamic_spawn: false` sur ceux qui ne doivent
   pas offrir de slots. `src/warehouses.yaml` : carburant et munitions illimités, départ moteur chaud.
   `src/dynamic-slot-templates.yaml` : modèles des deux coalitions qui ont des slots, **de l'époque de la

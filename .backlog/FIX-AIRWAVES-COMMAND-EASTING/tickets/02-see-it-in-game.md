@@ -1,6 +1,6 @@
 # 02 — See a command-driven wave arrive where it should
 
-Status: 🧑 waiting-human
+Status: ✅ done — 2026-10-03 (QRA half in the afternoon, wave half in the evening)
 Type: chore
 
 Needs DCS started, so it is David's to run. Listed in
@@ -29,6 +29,6 @@ differently — say the fix and the reading, and reopen.
 
 ## Definition of done
 
-- [ ] An air wave with a command element spawns inside its zone
-- [ ] A QRA with a command element spawns inside its zone
-- [ ] The line removed from `DCS-SESSION-TODO.md` and the lot closed
+- [x] An air wave with a command element spawns inside its zone — 154 m and 181 m from their spots
+- [x] A QRA with a command element spawns inside its zone
+- [x] The line removed from `DCS-SESSION-TODO.md` and the lot closed

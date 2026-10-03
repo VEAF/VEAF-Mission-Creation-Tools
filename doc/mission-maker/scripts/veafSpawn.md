@@ -110,7 +110,7 @@ hélicoptères d'attaque et de transport.
 Un type DCS écrit directement (`name Mi-8MT`) vole non armé. Un `src/spawn-groups.yaml` peut ajouter
 ses propres alias, avec des `pylons`, et des groupes de plusieurs hélicoptères.
 
-> Vérifié en jeu le 2026-10-02 : `orbit` tourne à 1,5–2 km de son point, `transport` se pose à 30 m du sien sur terrain dégagé. `patrol` et `attack` aussi ; `escort` reste à vérifier sur un convoi qui roule (autour d'un groupe immobile, il s'éloigne jusqu'à 7 km).
+> Vérifié en jeu le 2026-10-02 : `orbit` tourne à 1,5–2 km de son point, `transport` se pose à 30 m du sien sur terrain dégagé. `patrol`, `attack` et `escort` aussi (l'escorte tourne à moins de 3 km de son groupe).
 
 ### Faire apparaître une patrouille CAP
 

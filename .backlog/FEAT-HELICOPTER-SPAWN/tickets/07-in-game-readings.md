@@ -1,6 +1,6 @@
 # 07 — The in-game readings
 
-Status: ⬜ ready
+Status: ✅ done — R23 to R33 in `DCS-SESSION-TODO.md`, 2026-10-02; three DCS behaviours recorded in `known-limitations.yaml` (`scripted-helicopter-leaves-the-ground`, `helicopter-land-waypoint-goes-to-the-nearest-airfield`, `helicopter-hovers-at-a-forest-edge`)
 
 Lot: [FEAT-HELICOPTER-SPAWN](../PRD.md)
 

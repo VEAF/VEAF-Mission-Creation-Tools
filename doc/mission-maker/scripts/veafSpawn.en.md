@@ -111,7 +111,7 @@ transport helicopter.
 A DCS type written directly (`name Mi-8MT`) flies unarmed. A `src/spawn-groups.yaml` can add its own
 aliases, with `pylons`, and groups of several helicopters.
 
-> Checked in game on 2026-10-02: `orbit` circles 1.5–2 km from its point, `transport` lands 30 m from its own on open ground. `patrol` and `attack` too; `escort` is still to be checked on a moving convoy (around a stationary group it wanders up to 7 km off).
+> Checked in game on 2026-10-02: `orbit` circles 1.5–2 km from its point, `transport` lands 30 m from its own on open ground. `patrol`, `attack` and `escort` too (the escort circles within 3 km of its group).
 
 ### Spawn a CAP patrol
 

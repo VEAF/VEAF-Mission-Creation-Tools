@@ -1,6 +1,6 @@
 # 06 — `attack` and `escort`
 
-Status: 🧑 waiting-human — `attack` read in game ✅ (R31); `escort` wanders up to 7 km from a stationary group, R32 reads it on a moving convoy
+Status: ✅ done — read in game 2026-10-02: `attack` destroyed its tank (R31, R32), `escort` stayed within 3 km of a driving group, undamaged (R33)
 
 Lot: [FEAT-HELICOPTER-SPAWN](../PRD.md)
 

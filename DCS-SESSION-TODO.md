@@ -478,6 +478,38 @@ Takeoffs, landings and crashes are printed as they happen. Everything also goes 
 The answer to give is the five letters, each with what it did. Also say whether C and D look the same on
 the ground (rotors stopped or turning).
 
+### ✅ R33. An undamaged helicopter escorts a moving ground group — **run 2026-10-02**
+
+**Result**: D took off from grass, kept its **20 life** to the end, and stayed **74 m to 2.9 km** from G
+the whole drive, coming back close again and again (74, 136, 346 m) — circling the group within its 3 km
+engagement radius. David, watching: "ça a l'air de bien fonctionner". `escort` ✅; R31 and R32 had been
+spoilt by D hitting a map object as it took off from the runway.
+
+
+R32's question again, without what spoilt it: D now takes off from grass away from the runway, where it
+hit a map object in R31 and R32, and only G and D are in the mission. Expected: D's `from-escorted`
+under ~2 km the whole way, and D's life staying at 20.
+
+### ⚠ R32. A helicopter escorts a moving ground group — **run 2026-10-02, spoilt by damage**
+
+**Result**: G drove ~2.9 km at 8 m/s; D was 262 m from it once and up to **6.4 km** in between — but D
+was damaged from T+39 s (life 20 → 4), hitting a **map object** (a numeric scenery id) just after taking
+off from the runway, as in R31, and David saw it **land at Senaki**: a damaged AI going home, not an escort
+measured. C hit a map object too (T+49 s), and the tank again at T+217 s — `attack` ✅ twice. Hence R33.
+
+The protocol was:
+
+
+R31's mission with G driving to `ROUTE`, 3 km out on land (`_spawn unit, name M1126 Stryker ICV, dest
+ROUTE`), so that D escorts a group that moves; HIT events now name what they hit; 20 minutes of
+readings.
+
+- **Fixed**: G's `from-spawn` grows as it drives, and D's `from-escorted` stays under ~2 km the whole
+  way. `escort` is done.
+- **D still wanders kilometres off**: `GroundEscort` does not hold a scripted helicopter on its group;
+  `escort` leaves this lot for a known limitation.
+- The HIT lines say what hit D and C around T+45 s in R31, if it happens again.
+
 ### ⚠ R31. Helicopters patrol, attack and escort — R30 with a passive target — **run 2026-10-02**
 
 **Result** (21:39–21:49 UTC): **C** fired at T+160 s and T+174 s, hit twice, and the tank was gone at

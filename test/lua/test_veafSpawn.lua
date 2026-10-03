@@ -3535,7 +3535,27 @@ local function aCapSeeing(detectedObjects)
     getUnits = function()
       return { capUnit }
     end,
+    getUnit = function()
+      return capUnit
+    end,
   })
+  -- The patrol the role gave it: what the watchdog hands back once it has nothing left to engage.
+  veafAircraftSpawn.groupRoutes["cap"] = {
+    { x = -50000, y = -50000, alt = 8000, speed = 200, type = "TakeOff", action = "From Parking Area" },
+    { x = -10000, y = 0, alt = 8000, speed = 220, type = "Turning Point", action = "Turning Point" },
+    { x = 10000, y = 0, alt = 8000, speed = 220, type = "Turning Point", action = "Turning Point" },
+  }
+end
+
+--- The Mission tasks the watchdog set on the CAP's controller: each one is a patrol handed back.
+local function patrolsResumed()
+  local missions = {}
+  for _, set in ipairs(dcs_mocks.tasksSet) do
+    if set.group == "cap" and set.task and set.task.id == "Mission" then
+      table.insert(missions, set.task)
+    end
+  end
+  return missions
 end
 
 --- The `EngageUnit` tasks the watchdog pushed onto the CAP's controller, in order.
@@ -3776,25 +3796,28 @@ end
 --- registered again as brand new on the next tick. The log of 2026-09-01 is a wall of "new detection
 --- of targetName=Pilot #009" for that reason. On the tick that throws it out the CAP engages nothing,
 --- goes back to `PROHIBIT_AA` and gives back its tasks — with the enemy fighter still on its nose.
+---
+--- It used to be dropped, then it was engaged again on **every** tick: one `EngageUnit` pushed per
+--- target per pass, which is the counter measured at 38, 43, 49 in game on 2026-10-03
+--- (FIX-IN-GAME-SESSION-2026-10-03 ticket 04). A target still tracked keeps the one task it has.
 function TestVeafSpawnCapTargetFilter:test_a_target_still_on_radar_does_not_expire()
   aCapSeeing({ { object = aFighter(33) } })
   veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE) -- the first tick
   local moreTicks = dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
   luaunit.assertEquals(moreTicks, 3, "the watchdog must have run past CAP_WATCHDOG_DELAY * 2, or this proves nothing")
-  luaunit.assertEquals(
-    #engagedUnitIds(),
-    1 + moreTicks,
-    "a target still on radar must be engaged on every tick, not dropped after twice the watchdog delay"
-  )
+  luaunit.assertEquals(#engagedUnitIds(), 1, "a target still on radar is engaged once, not once per tick")
+  luaunit.assertEquals(#patrolsResumed(), 0, "and nothing changed, so the patrol is left alone")
   luaunit.assertFalse(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA), "and air-to-air must stay allowed")
 end
 
---- The tasks the watchdog took back must be the tasks the watchdog pushed.
+--- With nothing left to engage, the patrol is handed back whole, and nothing is popped.
 ---
---- The cleanup counted the tasks it had pushed precisely so as not to disturb the route underneath
---- them, then called `resetTask`, which ED describes as clearing **all** tasks from the queue. Undoing
---- a `pushTask` is `popTask`.
-function TestVeafSpawnCapTargetFilter:test_the_cleanup_pops_its_own_tasks_and_never_resets_the_queue()
+--- The cleanup used to pop as many tasks as it had counted. DCS removes an `EngageUnit` itself once
+--- its target is dead, so the count was always ahead of the queue, and the extra pops took the patrol
+--- route out from under the CAP. `resetTask` was worse still: ED describes it as clearing **all**
+--- tasks. Setting the route again is the one operation whose result does not depend on what DCS has
+--- already removed.
+function TestVeafSpawnCapTargetFilter:test_the_cleanup_hands_back_the_patrol_and_pops_nothing()
   local fighter = aFighter(33)
   local alive = true
   fighter.isActive = function()
@@ -3810,10 +3833,66 @@ function TestVeafSpawnCapTargetFilter:test_the_cleanup_pops_its_own_tasks_and_ne
   sky[1] = nil
   dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
 
-  luaunit.assertTrue(#dcs_mocks.tasksPopped > 0, "the pushed task must be taken back")
-  for _, popped in ipairs(dcs_mocks.tasksPopped) do
-    luaunit.assertNil(popped.reset, "resetTask clears the patrol route too and must never be used here")
-  end
+  luaunit.assertEquals(#dcs_mocks.tasksPopped, 0, "neither popTask nor resetTask: the count of what DCS kept is unknowable")
+  luaunit.assertEquals(#patrolsResumed(), 1, "the patrol must be handed back")
+  luaunit.assertTrue(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA))
+end
+
+--- The patrol handed back starts where the CAP is, and goes on with the race-track it was given.
+---
+--- The stored route's first point is the spawn point — on the ground, for a QRA that took off. Flying
+--- back to it in the middle of a patrol is not handing the patrol back.
+function TestVeafSpawnCapTargetFilter:test_the_patrol_handed_back_starts_where_the_cap_is()
+  local sky = { { object = aFighter(33) } }
+  aCapSeeing(sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  sky[1] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1) -- past the target's expiry
+
+  local points = patrolsResumed()[1].params.route.points
+  luaunit.assertEquals(#points, 3, "the race-track keeps its three points, so its SwitchWaypoint still loops 3 -> 2")
+  luaunit.assertEquals({ points[1].x, points[1].y }, { 0, 0 }, "from the leader's position (runtime x, z)")
+  luaunit.assertEquals(points[1].type, "Turning Point", "an aircraft in flight does not take off again")
+  luaunit.assertEquals(points[1].alt, 8000)
+  luaunit.assertEquals({ points[2].x, points[3].x }, { -10000, 10000 }, "then the leg it was patrolling")
+end
+
+--- A change in what is worth engaging rebuilds the queue: the patrol, then one task per target.
+---
+--- Two fighters engaged, one of them leaves: its task cannot be taken out of the middle of the queue —
+--- `popTask` only ever removes the top — so the queue is rebuilt rather than patched, and the one
+--- still there is engaged again on top of a clean patrol.
+function TestVeafSpawnCapTargetFilter:test_a_target_leaving_rebuilds_the_queue_around_the_one_left()
+  local sky = { { object = aFighter(33) }, { object = aFighter(34) } }
+  aCapSeeing(sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#engagedUnitIds(), 2)
+
+  sky[2] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+
+  luaunit.assertEquals(#patrolsResumed(), 1, "the queue is rebuilt once, when the set changed")
+  local ids = engagedUnitIds()
+  luaunit.assertEquals(#ids, 3, "two at first, then the one still there, alone")
+  luaunit.assertEquals(ids[3], 33)
+end
+
+--- A CAP that has left its zone stops chasing.
+---
+--- The branch used to forbid air-to-air and leave every `EngageUnit` on the queue: the CAP held fire and
+--- kept flying after its targets, which is what a race-track 30 to 64 km from its zone's centre looks
+--- like (FIX-IN-GAME-SESSION-2026-10-03 ticket 06).
+function TestVeafSpawnCapTargetFilter:test_a_cap_outside_its_zone_gives_up_the_chase()
+  aCapSeeing({ { object = aFighter(33) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#engagedUnitIds(), 1)
+
+  veafSpawn.capWatchdogZones["cap"] = { x = 500000, y = 500000, radius = 1000 }
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+
+  luaunit.assertEquals(#patrolsResumed(), 1, "the chase is dropped by handing the patrol back")
+  luaunit.assertTrue(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA))
+  veafSpawn.capWatchdogZones["cap"] = nil
 end
 
 --- A target that is gone is removed — because the list now holds the target.

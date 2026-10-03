@@ -974,6 +974,9 @@ function veafSpawn.spawnCombatAirPatrol(
   end
   local position = veaf.getRandomPointInCircle(spawnSpot, radius)
   position.z = position.y
+  -- The patrol flies at this altitude too, so it is floored here and not only at the spawn: a CAP lifted
+  -- off the trees would otherwise dive straight back to the altitude it was asked.
+  altitude = veafAircraftSpawn.flooredAltitude(position, altitude)
   position.y = altitude
   veaf.loggers.get(veafSpawn.Id):debug("final spawn, position=%s", position)
 
@@ -1162,7 +1165,11 @@ local function forgetCapWatchdog(capGroupName)
   veafSpawn.capWatchdogFlown[capGroupName] = nil
 end
 
-function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)
+--- One tick of the CAP watchdog, which re-arms itself.
+---
+--- @param pEngagedTargetIds table|nil the set of target ids that have an `EngageUnit` on the controller,
+---   from the previous tick
+function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pEngagedTargetIds)
   veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.startCapWatchdog(capGroupName=%s)", veaf.lp(capGroupName))
   veaf.loggers.get(veafSpawn.Id):trace("capZone=%s", veaf.lp(capZone))
 
@@ -1196,9 +1203,9 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
   veaf.loggers.get(veafSpawn.Id):trace("Looking in CAP zone for targets...")
   local timestamp = timer.getTime()
   local targetsList = pTargetsList or {}
-  local numberOfTasksAddedByWatchdog = pNumberOfTasksAddedByWatchdog or 0
+  local engagedTargetIds = pEngagedTargetIds or {}
   veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.lp(targetsList))
-  veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.lp(numberOfTasksAddedByWatchdog))
+  veaf.loggers.get(veafSpawn.Id):trace("engagedTargetIds=%s", veaf.lp(engagedTargetIds))
 
   -- check CAP group for state and position
   local capLanded = true
@@ -1338,7 +1345,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     veaf.loggers.get(veafSpawn.Id):debug("CAP group %s has not taken off yet, waiting for it", veaf.lp(capGroupName))
     veaf.scheduleFunction(
       veafSpawn.startCapWatchdog,
-      { capGroupName, capCoalition, capZone, targetsList, numberOfTasksAddedByWatchdog },
+      { capGroupName, capCoalition, capZone, targetsList, engagedTargetIds },
       timer.getTime() + veafSpawn.CAP_WATCHDOG_DELAY
     )
     return
@@ -1376,12 +1383,12 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     end)
     veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.lp(targetsList))
 
-    -- `engagedTargets` counts targets actually **engaged**, not targets listed. It used to be set on
-    -- the first entry of the list, before that entry had been checked, so a list holding nothing but
-    -- stale contacts still reported "Watchdog has targets", still lifted `PROHIBIT_AA`, pushed no task
-    -- at all, and skipped the branch that hands the CAP back its patrol. That is a CAP flying weapons
-    -- free with nothing to do, which is what "they never returned fire" looked like from the cockpit.
-    local engagedTargets = 0
+    -- What is worth engaging this tick. Counted from targets actually **engaged**, not targets listed:
+    -- the count used to be set on the first entry of the list, before that entry had been checked, so a
+    -- list holding nothing but stale contacts still lifted `PROHIBIT_AA` and skipped the branch that
+    -- hands the CAP back its patrol — "they never returned fire", from the cockpit.
+    local toEngage = {}
+    local toEngageIds = {}
     for _, targetData in ipairs(sortedTargets) do
       local targetId = targetData.targetId
       if
@@ -1391,47 +1398,63 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
         veaf.loggers.get(veafSpawn.Id):trace("Target is outdated, landed or doesn't exist, removing it from the list")
         targetsList[targetId] = nil
       else
-        if engagedTargets == 0 then
-          -- only write that once!
-          veaf.loggers.get(veafSpawn.Id):debug("Watchdog has targets ! Allowing AA for CAP")
-          controller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
-          controller:setOption(0, 0) --weapons free
-        end
-        veaf.loggers.get(veafSpawn.Id):trace("Engaging target!")
-        local engageUnit = {
-          id = "EngageUnit",
-          params = {
-            unitId = targetId,
-            weaponType = "ALL",
-            priority = targetData.priority,
-          },
-        }
-        controller:pushTask(engageUnit)
-        numberOfTasksAddedByWatchdog = numberOfTasksAddedByWatchdog + 1
-        engagedTargets = engagedTargets + 1
+        table.insert(toEngage, targetData)
+        toEngageIds[targetId] = true
       end
     end
 
-    if engagedTargets == 0 then
-      -- nothing worth engaging: take back the tasks we pushed, and let the CAP fly its patrol again
-      veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, removing all tasks and prohibiting AA for CAP")
-      while controller:hasTask() and numberOfTasksAddedByWatchdog > 0 do
-        veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.lp(numberOfTasksAddedByWatchdog))
-        -- `popTask`, not `resetTask`. ED describes them as "removes the highest priority task from
-        -- this controller's task queue" and "clears **all** tasks from this controller's task queue,
-        -- causing controlled units to cease their current activity" respectively. The loop counts the
-        -- tasks it pushed precisely so as not to touch the route underneath them — and then called the
-        -- one that removes the route too. `popTask` is the inverse of the `pushTask` above, so the
-        -- comment and the code finally say the same thing.
-        controller:popTask()
-        veaf.loggers.get(veafSpawn.Id):trace("popTask() called")
-        numberOfTasksAddedByWatchdog = numberOfTasksAddedByWatchdog - 1
+    -- The controller is touched only when the set of targets changed. An `EngageUnit` used to be pushed
+    -- for every target on every tick, so a CAP tracking five aircraft stacked five more tasks each ten
+    -- seconds — the counter read 38, 43, 49 in game on 2026-10-03 — and no task could ever be taken
+    -- back individually: `popTask` only removes the top of the queue. So a change rebuilds the queue
+    -- instead of patching it: the patrol, handed back whole, then one task per target still there.
+    local changed = false
+    for targetId in pairs(engagedTargetIds) do
+      if not toEngageIds[targetId] then
+        changed = true
       end
+    end
+    for targetId in pairs(toEngageIds) do
+      if not engagedTargetIds[targetId] then
+        changed = true
+      end
+    end
+
+    if changed then
+      if next(engagedTargetIds) then
+        veafAircraftSpawn.resumePatrol(capGroupName)
+      end
+      for _, targetData in ipairs(toEngage) do
+        veaf.loggers.get(veafSpawn.Id):trace("Engaging target!")
+        controller:pushTask({
+          id = "EngageUnit",
+          params = {
+            unitId = targetData.targetId,
+            weaponType = "ALL",
+            priority = targetData.priority,
+          },
+        })
+      end
+      engagedTargetIds = toEngageIds
+    end
+
+    if #toEngage > 0 then
+      veaf.loggers.get(veafSpawn.Id):debug("Watchdog has %s target(s) ! Allowing AA for CAP", veaf.lp(#toEngage))
+      controller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
+      controller:setOption(0, 0) --weapons free
+    else
+      veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, the CAP flies its patrol and prohibits AA")
       controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
       controller:setOption(0, 3) --return fire
     end
   else
     veaf.loggers.get(veafSpawn.Id):debug("CAP is outside of its area ! Discarding targets...")
+    -- Holding fire is not enough: every `EngageUnit` left on the queue kept the CAP flying after its
+    -- targets, out of its zone, weapons safe (ticket 06 of FIX-IN-GAME-SESSION-2026-10-03).
+    if next(engagedTargetIds) then
+      veafAircraftSpawn.resumePatrol(capGroupName)
+      engagedTargetIds = {}
+    end
     controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
     controller:setOption(0, 3) --return fire
   end
@@ -1440,7 +1463,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
   veaf.loggers.get(veafSpawn.Id):debug("===============================================================================")
   veaf.scheduleFunction(
     veafSpawn.startCapWatchdog,
-    { capGroupName, capCoalition, capZone, targetsList, numberOfTasksAddedByWatchdog },
+    { capGroupName, capCoalition, capZone, targetsList, engagedTargetIds },
     timer.getTime() + veafSpawn.CAP_WATCHDOG_DELAY
   )
 end

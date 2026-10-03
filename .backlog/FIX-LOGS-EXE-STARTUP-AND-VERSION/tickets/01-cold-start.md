@@ -1,6 +1,6 @@
 # 01 — find where the 14 s go
 
-Status: ⏸ paused
+Status: ✅ done — 2026-10-03: the remote tabs of the session were reopened before the window was shown (7.9 s of 10.0 s); they now reopen after it, one per event-loop turn. 10.45 s → 2.27 s. Numbers in the PRD
 Type: fix
 Files: `veaf-logs.spec`, possibly `src/python/veaf-tools/veaf_logs/ui/main_window.py`
 

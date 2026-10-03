@@ -49,7 +49,9 @@ servers:
 ```
 
 Le menu propose alors `veaf › private1`, `veaf › public1`… Chaque instance ouvre
-un onglet `veaf:private1`, rouvert au prochain lancement comme un fichier local.
+un onglet `veaf:private1`, rouvert au prochain lancement comme un fichier local —
+une fois la fenêtre affichée, à sa place parmi les onglets : chaque connexion
+prend une ou deux secondes, et la fenêtre ne les attend pas.
 
 **Authentification par clé uniquement.** L'outil ne demande, ne lit ni ne stocke
 aucun mot de passe. Si la clé de la machine n'est pas encore dans

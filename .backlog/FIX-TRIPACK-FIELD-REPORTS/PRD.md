@@ -121,7 +121,7 @@ drops `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication`
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| 01 | [Skynet's scheduler keeps the promise its docstring makes](tickets/01-skynet-scheduler-floor.md) | fix | 🧑 |
+| 01 | [Skynet's scheduler keeps the promise its docstring makes](tickets/01-skynet-scheduler-floor.md) | fix | ✅ |
 | 02 | [A zone's naval element looks for water, not for dry land](tickets/02-naval-elements-look-for-water.md) | fix | ✅ |
 | 03 | [Why the terrain check refuses a ship already at sea](tickets/03-measure-the-naval-refusal.md) | fix | ✅ |
 | 04 | [ZU-23s of a combat zone come up kilometres out to sea](tickets/04-units-displaced-out-to-sea.md) | fix | 🧑 |
@@ -169,3 +169,17 @@ belong instead of here:
   every draw lands on the centre and a dispersion assertion passes both ways. Written up in ticket
   04, and the reason `dcs_mocks.setRandomSequence` has to be driven by any test that means to
   exercise a radius.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ticket 01 verified (R13): Skynet woke up and every site fired at two unarmed F-16.
+Ticket 05 verified: a QRA clone carrying `task = CAP` and `EngageTargetsInZone` fired an R-27 at an
+intruder in its zone. Ticket 04 (the ZU-23 out at sea) was not run.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**three defects one 6.19.0 flight surfaced**, reported by Tripack on 2026-09-03 with screenshots and a `dcs.log` that happens to hold both a 6.16.0 and a 6.19.0 mission. (1) **Skynet is dead and says nothing**: every SAM inactive, IADS status and contacts blank, and *"même mission relancée en l'ayant coupé, les sam fonctionnent nickel"*. Root cause held — `SkynetIADS:activate` arms its contact cycle with a hardcoded start time of `1`, long past by the time an IADS initialises, and the compatibility module that replaced MiST in the fork (#846) hands it to the native timer while its own docstring promises the floor it does not implement. One lost task explains all three symptoms: no cycle, so no radar ever re-enabled and `printSystemStatus` never called. It is **the same defect as FIX-TUTORIAL-FIRST-RUN ticket 05**, fixed in `veafScheduler` four days earlier and not carried across the repository boundary. (2) On the combat-zone spawn path, the log proves a defect Tripack did not report: **six naval groups of three zones are never created**, refused by the terrain check, and upstream of them `findSpawnPoint` searches dry land for every element of a zone, hulls included — a ship can never satisfy it. Why the check then also refuses them is not established and ticket 03 measures it rather than guessing. (3) His actual report on that path — ZU-23s standing kilometres out to sea while the editor has them on Abu Musa — is **not explained**: the mission's spawn radius is 50 m and no path read produces a kilometre. (4) **QRA scrambles and never engages**, a regression against the week before with nothing touched on his side; the one plausible mechanism (a route pushed without its engagement tasks) was checked and ruled out, and the QRA says nothing at `INFO`. **Updated 2026-09-05 with his mission file**, which settled two of the three: the six naval groups are refused because the search *succeeded* — they lie alongside a quay, `findSpawnPoint` finds land within 50 m and drags them onto it, and the twelve ships whose search failed are precisely the ones that spawn (no refused group appears among the thirteen logged failures, nearest 16 km). And the QRA: `QRA_SOUTH` clones pre-placed groups, `CAP_AL_MINHAD-1` carries `task = 'CAP'`, and `veafMissionDb`'s record does not carry `task` at all — the word appears nowhere in that file — so a CAP flight reaches DCS with no mission task. MiST forwarded it (`mist.lua:264`), which dates the loss to the spawner refactor, and the same gap drops `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication` and `radioSet` from **every** clone in the framework. Only the sea-borne ZU-23s keep no named cause, and even there the mission moved the question: the zone's five ZU-23s are one group spread over 4.3 km, so anchoring on the wrong unit displaces them by kilometres — the earlier reasoning had ruled that out on the 50 m spawn radius, the wrong quantity. All five tickets workable **All five tickets landed** (#917 + fork #5, #918, #921); the lot waits only on DCS — R12+R13 share one unproven wager about the native timer, and ticket 04's trigger is still unidentified even though its mechanism is fixed. Two follow-ups came out of the work rather than the reports: FEAT-COMBATZONE-ZONE-SPAWN-RADIUS, and the finding that the Lua harness cannot see dispersion at all — `dcs_mocks` answers `math.random()` with a constant 0, so every draw lands on the centre and a dispersion assertion passes whichever way it is written

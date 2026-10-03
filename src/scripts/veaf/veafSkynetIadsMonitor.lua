@@ -552,7 +552,7 @@ function VeafSkynetMonitorTaskDescriptor:Output(sInformation)
   if self.OutputLogLevel == "error" then
     veaf.loggers.get(veafSkynetMonitor.Id):error(sInformation)
   elseif self.OutputLogLevel == "warning" then
-    veaf.loggers.get(veafSkynetMonitor.Id):warning(sInformation)
+    veaf.loggers.get(veafSkynetMonitor.Id):warn(sInformation)
   elseif self.OutputLogLevel == "info" then
     veaf.loggers.get(veafSkynetMonitor.Id):info(sInformation)
   elseif self.OutputLogLevel == "debug" then

@@ -1,6 +1,6 @@
 # 17 — `create_cap_mission` makes a CAP with no engage task
 
-Status: 🧑 waiting-human
+Status: ✅ done — checked in DCS 2026-10-03
 Type: fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/add_air_group.py`, `composites.py`, `edit_route.py`,
 tests, `doc/mission-maker/AI_ASSISTANT_CATALOG*.md`
@@ -52,3 +52,24 @@ through `known-limitations.yaml`).
 
 **Waiting on David**: check in DCS that a CAP template built by `create_cap_mission` engages an
 intruder in its zone. The editor's task order says it should; nothing has measured it.
+
+## Checked in DCS (2026-10-03, session c)
+
+A template made by the fixed `create_cap_mission` (`OnDemand-TEST-T17 CAP`, MiG-29S pair, tasks
+`1:EngageTargets, 2:Orbit`) on GermanyCW, beside two copies differing only in their first waypoint's
+task list. Each pair had its own immortal C-130 orbiting 12 km off, which its lead detected
+(`getDetectedTargets`):
+
+| Pair | Tasks | Missiles fired at its intruder |
+|---|---|---|
+| A, spawned by `veafCombatMission.ActivateMission` | `EngageTargets` then `Orbit` | 4 (first R-77 74 s after activation) |
+| B | `Orbit` alone — the shape before the fix | 0 in four minutes, at 8.5 km |
+| C | `Orbit` then `EngageTargets` — what an `add_task` append made | 0 in four minutes, at 8.5 km |
+
+Both premises of this ticket are now measured rather than expected: a CAP without the task does not
+engage, and a task after an endless orbit is never read — so `task_position` was needed too. Recorded
+in `known-limitations.yaml` (`cap-engages-only-through-an-engage-task-before-its-orbit`).
+
+Found on the way: an on-demand CAP is registered per variant, `<name>/<skill>/<size>`
+(`TEST-T17 CAP/good/2`); `ActivateMission` with the bare name raises `attempt to index local
+'mission'` instead of saying the name is unknown.

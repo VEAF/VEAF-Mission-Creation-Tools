@@ -473,3 +473,136 @@ class TestFuelLoad:
         with pytest.raises(ValueError, match="not both"):
             self._air_start(miz, fuel=1000, fuel_fraction=0.5)
         assert miz.read_bytes() == before
+
+
+class TestUnarmedFlight:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 01: an escort with no pylons escorts nothing."""
+
+    def _add(self, tmp_path: Path, **overrides: object) -> dict:
+        params: dict = {
+            "coalition": "blue",
+            "country_id": 2,
+            "country_name": "USA",
+            "name": "Escort Texaco 1",
+            "unit_type": "F-15C",
+            "count": 2,
+            "start": "air",
+            "position": {"x": 0.0, "y": 0.0},
+            "task": "Escort",
+        }
+        params.update(overrides)
+        return add_air_group(_caucasus_miz(tmp_path), **params)
+
+    def test_an_unarmed_escort_warns_naming_the_group(self, tmp_path: Path) -> None:
+        warnings = self._add(tmp_path).get("warnings", [])
+        assert any("Escort Texaco 1" in w and "no weapons" in w for w in warnings)
+
+    def test_an_armed_escort_does_not_warn(self, tmp_path: Path) -> None:
+        result = self._add(tmp_path, pylons={1: {"CLSID": "{AIM-9M}"}})
+        assert not any("no weapons" in w for w in result.get("warnings", []))
+
+    def test_a_client_slot_does_not_warn(self, tmp_path: Path) -> None:
+        result = self._add(tmp_path, skill="Client")
+        assert not any("no weapons" in w for w in result.get("warnings", []))
+
+    def test_a_tanker_does_not_warn(self, tmp_path: Path) -> None:
+        result = self._add(tmp_path, unit_type="KC-135", count=1, task="Refueling", name="Texaco 1")
+        assert "warnings" not in result
+
+
+class TestLaserDrone:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 06: the AFAC drone of GermanyCW-v6, lasing checked in game."""
+
+    def test_an_afac_flight_gets_unlimited_fuel_and_a_circle_orbit(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        add_air_group(
+            miz,
+            coalition="blue",
+            country_id=2,
+            country_name="USA",
+            name="Reaper 1",
+            unit_type="MQ-9 Reaper",
+            start="air",
+            position={"x": 0.0, "y": 0.0},
+            altitude_ft=15000,
+            speed_kt=160,
+            task="AFAC",
+        )
+        group = _slot_group(read_miz(miz).mission_content or {}, "Reaper 1")
+        assert group["task"] == "AFAC"
+        first = group["route"]["points"]
+        first = (list(first.values()) if isinstance(first, dict) else first)[0]
+        tasks = first["task"]["params"]["tasks"]
+        tasks = list(tasks.values()) if isinstance(tasks, dict) else tasks
+        # As measured in GermanyCW-v6's src/mission/mission (Reaper 1 and 2), 2026-10-02.
+        assert tasks == [
+            {
+                "id": "WrappedAction",
+                "auto": False,
+                "enabled": True,
+                "number": 1,
+                "params": {"action": {"id": "SetUnlimitedFuel", "params": {"value": True}}},
+            },
+            {
+                "id": "Orbit",
+                "auto": False,
+                "enabled": True,
+                "number": 2,
+                "params": {"altitude": 4572.0, "pattern": "Circle", "speed": 82.31104, "speedEdited": True},
+            },
+        ]
+
+
+class TestDcsPayloadByName:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 09: a MiG-31 with the loadout the Mission Editor names."""
+
+    def _add(self, tmp_path: Path, **extra: object) -> Path:
+        miz = _caucasus_miz(tmp_path)
+        add_air_group(
+            miz,
+            coalition="red",
+            country_id=0,
+            country_name="Russia",
+            name="Foxhound",
+            unit_type="MiG-31",
+            start="air",
+            position={"x": 0.0, "y": 0.0},
+            task="Intercept",
+            **extra,  # type: ignore[arg-type]
+        )
+        return miz
+
+    def test_the_named_loadout_is_written(self, tmp_path: Path) -> None:
+        miz = self._add(tmp_path, payload="R-40T*2,R-33*4")
+        unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Foxhound"))[0]
+        pylons = unit["payload"]["pylons"]
+        pylons = pylons if isinstance(pylons, dict) else dict(enumerate(pylons, start=1))
+        assert pylons[1]["CLSID"] == "{5F26DBC2-FB43-4153-92DE-6BBCE26CB0FF}"
+
+    def test_an_unknown_name_is_refused_with_the_types_list(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match=r"R-60M\*4,R-33\*4"):
+            self._add(tmp_path, payload="Everything")
+
+    def test_both_pylons_and_payload_are_refused(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="not both"):
+            self._add(tmp_path, payload="R-40T*2,R-33*4", pylons={1: {"CLSID": "{X}"}})
+
+
+def test_an_afac_flight_on_the_ramp_gets_no_orbit_and_a_warning(tmp_path: Path) -> None:
+    """Review of FIX-OPEN-TRAINING-SYRIA-FINDINGS 06: the orbit would circle the departure airfield."""
+    miz = _caucasus_miz(tmp_path)
+    result = add_air_group(
+        miz,
+        coalition="blue",
+        country_id=2,
+        country_name="USA",
+        name="Reaper 1",
+        unit_type="MQ-9 Reaper",
+        start="parking-cold",
+        airfield="Kobuleti",
+        task="AFAC",
+    )
+    assert any("AFAC" in w and "air start" in w for w in result["warnings"])
+    first = _slot_group(read_miz(miz).mission_content or {}, "Reaper 1")["route"]["points"]
+    first = (list(first.values()) if isinstance(first, dict) else first)[0]
+    assert "task" not in first or "Orbit" not in str(first["task"])

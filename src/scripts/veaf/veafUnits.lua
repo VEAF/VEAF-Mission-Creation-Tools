@@ -274,6 +274,7 @@ function veafUnits.processGroup(group)
     end
     if unit.air then
       result.air = true
+      result.helicopter = unit.helicopter
       break
     end
   end
@@ -318,6 +319,9 @@ function veafUnits.findUnit(unitAlias)
     end
   end
 
+  -- an armed helicopter alias carries its pylons (FEAT-HELICOPTER-SPAWN); copied, so that a spawn
+  -- touching its unit cannot touch the catalogue
+  local pylons = unit and unit.pylons and veaf.deepCopy(unit.pylons) or nil
   if unit then
     unit = veafUnits.findDcsUnit(unit.unitType)
   else
@@ -327,6 +331,7 @@ function veafUnits.findUnit(unitAlias)
     veaf.loggers.get(veafUnits.Id):debug("cannot find unit [" .. unitAlias .. "]")
   else
     unit = veafUnits.makeUnitFromDcsStructure(unit, 1)
+    unit.pylons = pylons
   end
 
   return unit
@@ -360,6 +365,9 @@ function veafUnits.makeUnitFromDcsStructure(dcsUnit, cell)
   result.displayName = dcsUnit.description
   result.naval = dcsUnit.kind == "naval"
   result.air = dcsUnit.kind == "air"
+  -- A helicopter goes through the ground spawn (FEAT-HELICOPTER-SPAWN): landed at the marker, then
+  -- given its job by a veafAircraftSpawn role. An airplane is still refused there.
+  result.helicopter = result.air and dcsUnit.category == "Helicopter"
 
   if dcsUnit.kind == "static" and (dcsUnit.attribute == nil or dcsUnit.attribute.Fortifications == nil) then
     result.static = true
@@ -418,6 +426,10 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
       -- sits at ground level on purpose — `placePointOnLand` puts it exactly here — so a clearance
       -- margin above the ground would refuse every static aircraft on low-lying or coastal terrain.
       if spawnPosition.y < veaf.getLandHeight(spawnPosition) then
+        return false
+      end
+      -- a helicopter is put down on the ground, where it waits: on open water it would sink
+      if unit.helicopter and isOverWater then
         return false
       end
     elseif unit.naval or IsNavalStatic then -- if the unit is a naval unit or an offshore static
@@ -1072,6 +1084,28 @@ end
 -- Populated at mission build by the injected spawn-data module (rendered from
 -- veaf-units.yaml). Defaults to empty so the framework loads standalone. See ADR 0005.
 veafUnits.UnitsDatabase = {}
+
+--- Fuel, chaff and flare a helicopter of each type carries, by DCS type: `{ fuel, chaff, flare }`.
+---
+--- Rendered by the spawn-data module from `dcsUnits.yaml` (FEAT-HELICOPTER-SPAWN), because nothing at
+--- runtime knows a type's fuel capacity, and an aircraft created with no fuel falls out of the sky.
+--- Defaults to empty so the framework loads standalone.
+veafUnits.AircraftPayloads = {}
+
+--- The payload a spawned helicopter carries: its type's fuel and countermeasures, and the pylons its
+--- catalogue alias names — none for an unarmed one.
+--- @param unit table a unit from `veafUnits.findUnit`
+--- @return table the `payload` table of a mission unit
+function veafUnits.aircraftPayload(unit)
+  local base = veafUnits.AircraftPayloads[unit.typeName] or {}
+  return {
+    fuel = base.fuel,
+    chaff = base.chaff or 0,
+    flare = base.flare or 0,
+    gun = 100,
+    pylons = unit.pylons or {}, -- findUnit already copied them out of the catalogue
+  }
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Groups databases

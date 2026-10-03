@@ -1,0 +1,611 @@
+{
+  "theatre": "SinaiMap",
+  "airdromes": [
+    {
+      "id": 1,
+      "name": "Difarsuwar Airfield",
+      "source": "radio",
+      "freqs": [
+        38.95,
+        118.45,
+        250.55,
+        4.025
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Abu Suwayr",
+      "source": "radio",
+      "freqs": [
+        39.5,
+        118.85,
+        251.1,
+        4.3
+      ]
+    },
+    {
+      "id": 3,
+      "name": "As Salihiyah",
+      "source": "radio",
+      "freqs": [
+        40.05,
+        119.35,
+        251.65,
+        4.575
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Al Ismailiyah",
+      "source": "radio",
+      "freqs": [
+        40.4,
+        118.1,
+        252.0,
+        4.75
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Melez",
+      "source": "radio",
+      "freqs": [
+        40.45,
+        119.65,
+        252.05,
+        4.775
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Fayed",
+      "source": "radio",
+      "freqs": [
+        40.5,
+        119.7,
+        252.1,
+        4.8
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Hatzerim",
+      "source": "radio",
+      "freqs": [
+        40.55,
+        119.75,
+        252.15,
+        4.825
+      ],
+      "tacan": "96X"
+    },
+    {
+      "id": 8,
+      "name": "Nevatim",
+      "source": "radio",
+      "freqs": [
+        40.6,
+        132.4,
+        252.2,
+        4.85
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Ramon Airbase",
+      "source": "radio",
+      "freqs": [
+        40.65,
+        119.8,
+        252.25,
+        4.875
+      ],
+      "tacan": "105X"
+    },
+    {
+      "id": 10,
+      "name": "Ovda",
+      "source": "radio",
+      "freqs": [
+        38.45,
+        129.9,
+        250.05,
+        3.775
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Kibrit Air Base",
+      "source": "radio",
+      "freqs": [
+        38.5,
+        118.05,
+        250.1,
+        3.8
+      ],
+      "tacan": "55X"
+    },
+    {
+      "id": 12,
+      "name": "Kedem",
+      "source": "radio",
+      "freqs": [
+        38.55,
+        118.15,
+        250.15,
+        3.825
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Wadi al Jandali",
+      "source": "radio",
+      "freqs": [
+        38.6,
+        118.9,
+        250.2,
+        3.85
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Al Mansurah",
+      "source": "radio",
+      "freqs": [
+        38.65,
+        118.25,
+        250.25,
+        3.875
+      ]
+    },
+    {
+      "id": 15,
+      "name": "AzZaqaziq",
+      "source": "radio",
+      "freqs": [
+        38.7,
+        118.3,
+        250.3,
+        3.9
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Bilbeis Air Base",
+      "source": "radio",
+      "freqs": [
+        38.75,
+        118.35,
+        250.35,
+        3.925
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Cairo International Airport",
+      "source": "radio",
+      "freqs": [
+        38.8,
+        118.1,
+        250.4,
+        3.95
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Cairo West",
+      "source": "radio",
+      "freqs": [
+        38.85,
+        131.2,
+        250.45,
+        3.975
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Inshas Airbase",
+      "source": "radio",
+      "freqs": [
+        38.9,
+        118.4,
+        250.5,
+        4.0
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Hatzor",
+      "source": "radio",
+      "freqs": [
+        39.0,
+        118.55,
+        250.6,
+        4.05
+      ],
+      "tacan": "106X"
+    },
+    {
+      "id": 21,
+      "name": "Palmachim",
+      "source": "radio",
+      "freqs": [
+        39.05,
+        118.6,
+        250.65,
+        4.075
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Sde Dov",
+      "source": "radio",
+      "freqs": [
+        39.1,
+        118.65,
+        250.7,
+        4.1
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Tel Nof",
+      "source": "radio",
+      "freqs": [
+        39.15,
+        118.7,
+        250.75,
+        4.125
+      ],
+      "tacan": "87X"
+    },
+    {
+      "id": 24,
+      "name": "Ben-Gurion",
+      "source": "radio",
+      "freqs": [
+        39.2,
+        134.6,
+        250.8,
+        4.15
+      ]
+    },
+    {
+      "id": 25,
+      "name": "St Catherine",
+      "source": "radio",
+      "freqs": [
+        39.25,
+        124.5,
+        250.85,
+        4.175
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Abu Rudeis",
+      "source": "radio",
+      "freqs": [
+        39.3,
+        118.5,
+        250.9,
+        4.2
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Baluza",
+      "source": "radio",
+      "freqs": [
+        39.35,
+        118.75,
+        250.95,
+        4.225
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Bir Hasanah",
+      "source": "radio",
+      "freqs": [
+        39.4,
+        118.8,
+        251.0,
+        4.25
+      ]
+    },
+    {
+      "id": 29,
+      "name": "El Arish",
+      "source": "radio",
+      "freqs": [
+        39.45,
+        121.0,
+        251.05,
+        4.275
+      ]
+    },
+    {
+      "id": 30,
+      "name": "El Gora",
+      "source": "radio",
+      "freqs": [
+        39.55,
+        118.2,
+        251.15,
+        4.325
+      ]
+    },
+    {
+      "id": 31,
+      "name": "Al Khatatbah",
+      "source": "radio",
+      "freqs": [
+        39.6,
+        118.95,
+        251.2,
+        4.35
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Al Rahmaniyah Air Base",
+      "source": "radio",
+      "freqs": [
+        39.65,
+        119.05,
+        251.25,
+        4.375
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Beni Suef",
+      "source": "radio",
+      "freqs": [
+        39.7,
+        127.1,
+        251.3,
+        4.4
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Birma Air Base",
+      "source": "radio",
+      "freqs": [
+        39.75,
+        119.15,
+        251.35,
+        4.425
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Borg El Arab International Airport",
+      "source": "radio",
+      "freqs": [
+        39.8,
+        119.1,
+        251.4,
+        4.45
+      ]
+    },
+    {
+      "id": 36,
+      "name": "El Minya",
+      "source": "radio",
+      "freqs": [
+        39.85,
+        119.2,
+        251.45,
+        4.475
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Gebel El Basur Air Base",
+      "source": "radio",
+      "freqs": [
+        39.9,
+        119.25,
+        251.5,
+        4.5
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Hurghada International Airport",
+      "source": "radio",
+      "freqs": [
+        39.95,
+        119.6,
+        251.55,
+        4.525
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Jiyanklis Air Base",
+      "source": "radio",
+      "freqs": [
+        40.0,
+        119.3,
+        251.6,
+        4.55
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Kom Awshim",
+      "source": "radio",
+      "freqs": [
+        40.1,
+        119.4,
+        251.7,
+        4.6
+      ]
+    },
+    {
+      "id": 41,
+      "name": "Ramon International Airport",
+      "source": "radio",
+      "freqs": [
+        40.15,
+        119.0,
+        251.75,
+        4.625
+      ]
+    },
+    {
+      "id": 42,
+      "name": "Sharm El Sheikh International Airport",
+      "source": "radio",
+      "freqs": [
+        40.2,
+        118.9,
+        251.8,
+        4.65
+      ]
+    },
+    {
+      "id": 43,
+      "name": "Wadi Abu Rish",
+      "source": "radio",
+      "freqs": [
+        40.25,
+        119.45,
+        251.85,
+        4.675
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Al Bahr al Ahmar",
+      "source": "radio",
+      "freqs": [
+        40.3,
+        119.5,
+        251.9,
+        4.7
+      ]
+    },
+    {
+      "id": 45,
+      "name": "Quwaysina",
+      "source": "radio",
+      "freqs": [
+        40.35,
+        119.55,
+        251.95,
+        4.725
+      ]
+    },
+    {
+      "id": 46,
+      "name": "Rafic Hariri Intl",
+      "source": "none",
+      "freqs": []
+    },
+    {
+      "id": 47,
+      "name": "Tabuk",
+      "source": "radio",
+      "freqs": [
+        42.15,
+        125.9,
+        229.4,
+        4.225
+      ]
+    },
+    {
+      "id": 48,
+      "name": "Damascus Intl",
+      "source": "radio",
+      "freqs": [
+        40.95,
+        118.5,
+        226.1,
+        4.025
+      ]
+    },
+    {
+      "id": 49,
+      "name": "Mezzeh Air Base",
+      "source": "radio",
+      "freqs": [
+        41.35,
+        126.0,
+        227.2,
+        4.45
+      ]
+    },
+    {
+      "id": 50,
+      "name": "Ramat David",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        118.0,
+        251.1,
+        3.75
+      ],
+      "tacan": "84X"
+    },
+    {
+      "id": 51,
+      "name": "Megiddo",
+      "source": "radio",
+      "freqs": [
+        41.15,
+        123.0,
+        225.9,
+        4.975
+      ]
+    },
+    {
+      "id": 52,
+      "name": "Ein Shamer",
+      "source": "radio",
+      "freqs": [
+        41.45,
+        124.55,
+        227.85,
+        3.875
+      ]
+    },
+    {
+      "id": 53,
+      "name": "Taba International Airport",
+      "source": "radio",
+      "freqs": [
+        42.2,
+        121.9,
+        227.15,
+        3.925
+      ]
+    },
+    {
+      "id": 54,
+      "name": "King Feisal Air Base",
+      "source": "radio",
+      "freqs": [
+        40.75,
+        129.2,
+        227.95,
+        4.95
+      ]
+    },
+    {
+      "id": 55,
+      "name": "Khalkhalah Air Base",
+      "source": "radio",
+      "freqs": [
+        40.7,
+        128.4,
+        227.9,
+        4.925
+      ]
+    }
+  ]
+}

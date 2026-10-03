@@ -54,6 +54,15 @@ def rows(window) -> int:
     return window.current_tab().model.rowCount()
 
 
+def finish_restore(window) -> None:
+    """Laisse tourner la boucle d'evenements jusqu'a la fin de la restauration de session."""
+    for _ in range(100):
+        QApplication.processEvents()
+        if not window.restoring:
+            return
+    raise AssertionError("la restauration de session ne s'est pas terminee")
+
+
 class TestChargement:
     def test_entrees_indexees(self, window):
         assert window.current_tab().model.total == ENTRIES
@@ -663,16 +672,169 @@ class TestJournalDistant:
         session = Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")])
         window = MainWindow(rules, session)
         try:
+            finish_restore(window)
             assert [window.tabs.tabText(i) for i in range(window.tabs.count())] == ["veaf:private1"]
         finally:
             window.timer.stop()
             window.close()
+
+    def test_distant_rouvert_apres_l_affichage(self, app, rules, tmp_path, monkeypatch):
+        """Une connexion SSH coute des secondes : la fenetre ne les attend pas."""
+        server = self._server()
+        opened: list[str] = []
+
+        def source(srv, instance, host_key_prompt):
+            opened.append(instance)
+            return self._source(tmp_path, srv)
+
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr("veaf_logs.ui.main_window.RemoteLogSource", source)
+        session = Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")])
+        window = MainWindow(rules, session)
+        try:
+            assert opened == [], "aucune connexion avant que la boucle d'evenements ne tourne"
+            assert window.restoring
+            finish_restore(window)
+            assert opened == ["private1"]
+            assert not window.restoring
+        finally:
+            window.timer.stop()
+            window.close()
+
+    def test_ordre_et_onglet_actif_de_la_session(self, app, rules, tmp_path, monkeypatch, journal_file):
+        server = self._server()
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.RemoteLogSource",
+            lambda srv, instance, host_key_prompt: self._source(tmp_path, srv),
+        )
+        session = Session(
+            files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1"), OpenFile(str(journal_file))],
+            active=0,
+        )
+        window = MainWindow(rules, session)
+        try:
+            finish_restore(window)
+            assert [window.tabs.tabToolTip(i) for i in range(window.tabs.count())] == [
+                "u@h:C:/x/Logs/dcs.log",
+                str(journal_file),
+            ]
+            assert window.tabs.currentIndex() == 0
+        finally:
+            window.timer.stop()
+            window.close()
+
+    def test_hors_ligne_le_journal_par_defaut_reste_ouvert(self, app, rules, monkeypatch, journal_file):
+        """Rien n'a pu etre rouvert : le journal local par defaut, comme avant."""
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [])
+        session = Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")])
+        window = MainWindow(rules, session, fallback=journal_file)
+        try:
+            assert window.tabs.count() == 0, "le repli attend la fin de la restauration"
+            finish_restore(window)
+            assert [window.tabs.tabToolTip(i) for i in range(window.tabs.count())] == [str(journal_file)]
+        finally:
+            window.timer.stop()
+            window.close()
+
+    def test_le_journal_par_defaut_ne_s_ajoute_pas_a_une_session_rouverte(
+        self, app, rules, tmp_path, monkeypatch, journal_file
+    ):
+        server = self._server()
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.RemoteLogSource",
+            lambda srv, instance, host_key_prompt: self._source(tmp_path, srv),
+        )
+        session = Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")])
+        window = MainWindow(rules, session, fallback=journal_file)
+        try:
+            finish_restore(window)
+            assert [window.tabs.tabText(i) for i in range(window.tabs.count())] == ["veaf:private1"]
+        finally:
+            window.timer.stop()
+            window.close()
+
+    def test_fermer_pendant_la_restauration_garde_les_distants(self, app, rules, monkeypatch, journal_file):
+        """Fermee avant leur reouverture, la fenetre les garde a leur place dans la session, sans s'y connecter."""
+        opened: list[str] = []
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.RemoteLogSource",
+            lambda srv, instance, host_key_prompt: opened.append(instance),
+        )
+        session = Session(
+            files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1"), OpenFile(str(journal_file))],
+        )
+        window = MainWindow(rules, session)
+        window.timer.stop()
+        window.close()
+        # `closeEvent` a sauve la session au chemin par defaut (detourne par la fixture).
+        captured = Session.load()
+        QApplication.processEvents()
+        assert [(item.path, item.remote) for item in captured.files] == [
+            ("C:/x/Logs/dcs.log", "veaf/private1"),
+            (str(journal_file), None),
+        ]
+        assert captured.active == 1, "l'onglet affiche reste celui qu'on regardait"
+        assert opened == [] and not window.restoring
+
+    def test_un_fichier_ouvert_pendant_la_restauration_garde_la_main(
+        self, app, rules, tmp_path, monkeypatch, journal_file
+    ):
+        """`veaf-logs fichier.log` : les onglets distants rouverts ensuite ne lui volent pas le premier plan."""
+        server = self._server()
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr(
+            "veaf_logs.ui.main_window.RemoteLogSource",
+            lambda srv, instance, host_key_prompt: self._source(tmp_path, srv),
+        )
+        session = Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")], active=0)
+        window = MainWindow(rules, session)
+        try:
+            window.open_path(journal_file)
+            finish_restore(window)
+            assert window.tabs.count() == 2
+            assert window.tabs.tabToolTip(window.tabs.currentIndex()) == str(journal_file)
+        finally:
+            window.timer.stop()
+            window.close()
+
+    def test_fenetre_fermee_pendant_une_connexion(self, app, rules, tmp_path, monkeypatch):
+        """La question de cle d'hote a sa propre boucle : la fenetre peut se fermer pendant qu'elle attend."""
+        server = self._server()
+        closed: list[bool] = []
+        window_ref: list[MainWindow] = []
+
+        def source(srv, instance, host_key_prompt):
+            real = self._source(tmp_path, srv)
+            real_open, real_close = real.open, real.close
+
+            def open_while_closing():
+                window_ref[0].close()
+                return real_open()
+
+            def close():
+                closed.append(True)
+                real_close()
+
+            real.open, real.close = open_while_closing, close
+            return real
+
+        monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [server])
+        monkeypatch.setattr("veaf_logs.ui.main_window.RemoteLogSource", source)
+        window = MainWindow(rules, Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")]))
+        window_ref.append(window)
+        finish_restore(window)
+        window.timer.stop()
+        assert closed, "la source ouverte apres la fermeture est refermee"
+        assert window.tabs.count() == 0
 
     def test_session_ignore_un_distant_disparu(self, app, rules, monkeypatch):
         monkeypatch.setattr("veaf_logs.ui.main_window.get_servers", lambda: [])
         session = Session(files=[OpenFile("C:/x/Logs/dcs.log", remote="veaf/private1")])
         window = MainWindow(rules, session)
         try:
+            finish_restore(window)
             assert window.tabs.count() == 0
         finally:
             window.timer.stop()
@@ -699,6 +861,7 @@ class TestJournalDistant:
         # Une boite modale bloquerait ici : le test ne rendrait jamais la main.
         window = MainWindow(rules, session)
         try:
+            finish_restore(window)
             assert window.tabs.count() == 0
             assert attempts == ["veaf"], "la seconde instance du meme serveur n'est pas retentee"
             assert "injoignable" in window.status.currentMessage()

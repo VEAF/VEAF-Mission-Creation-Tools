@@ -190,8 +190,24 @@ veaf.i18nCatalog = {
     en = "cannot find group %s",
   },
   ["spawn.air_wip"] = {
-    fr = "Les unités aériennes ne peuvent pas être créées pour le moment (en cours de développement)",
-    en = "Air units cannot be spawned at the moment (work in progress)",
+    fr = "Les avions ne peuvent pas être créés par un marqueur pour le moment (les hélicoptères, si)",
+    en = "Airplanes cannot be spawned from a marker at the moment (helicopters can)",
+  },
+  ["spawn.helicopter_unknown_task"] = {
+    fr = "Tâche d'hélicoptère inconnue : %s (possibles : %s)",
+    en = "Unknown helicopter task: %s (possible: %s)",
+  },
+  ["spawn.helicopter_needs_weapons"] = {
+    fr = "La tâche %s demande un hélicoptère armé (mi24, ka50, ah64, gazelle…)",
+    en = "The task %s needs an armed helicopter (mi24, ka50, ah64, gazelle…)",
+  },
+  ["spawn.helicopter_escort_no_group"] = {
+    fr = "Aucun groupe nommé %s à escorter",
+    en = "No group named %s to escort",
+  },
+  ["spawn.helicopter_needs_dest"] = {
+    fr = "La tâche %s d'un hélicoptère demande une destination (dest)",
+    en = "The helicopter task %s needs a destination (dest)",
   },
   ["spawn.no_cap"] = {
     fr = "Aucune CAP disponible au spawn",
@@ -646,6 +662,10 @@ veaf.i18nCatalog = {
     fr = "La balise n'a pas pu être créée — voir le journal DCS.",
     en = "The beacon could not be created — see the DCS log.",
   },
+  ["spawn.signal_no_such_colour"] = {
+    fr = "Pas de fusée %s dans DCS : red, green, white ou yellow.",
+    en = "DCS has no %s signal flare: red, green, white or yellow.",
+  },
   ["spawn.fob_built"] = {
     fr = "FOB %s terminée ! Caisses et troupes peuvent maintenant être récupérées.",
     en = "Finished building FOB %s! Crates and Troops can now be picked up.",
@@ -953,6 +973,10 @@ veaf.i18nCatalog = {
   -- FEAT-GROUP-COMBAT-INEFFECTIVE (#177): a group still standing that can no longer fight — a SAM site
   -- whose tracking radar is gone still has launchers and crew. Worded as "no longer able to fight"
   -- rather than "destroyed", which is a different thing and already covered by the tallies above.
+  ["combatzone.scenery_targets_left"] = {
+    fr = "OBJETS DE LA CARTE À DÉTRUIRE : %d restant(s).\n",
+    en = "MAP OBJECTS TO DESTROY: %d remaining.\n",
+  },
   ["combatzone.out_of_action"] = {
     fr = "HORS DE COMBAT (ne peuvent plus tirer) : %s\n",
     en = "OUT OF ACTION (can no longer fight): %s\n",

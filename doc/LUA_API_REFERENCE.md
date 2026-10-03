@@ -2385,9 +2385,9 @@ Spawne un vol CAP avec orbite de patrouille.
 - `altitude` (number) — Altitude de patrouille (pieds)
 - `altitudeDelta` (number, optionnel) — Randomisation d'altitude
 - `hdg` (number) — Cap de l'orbite
-- `distance` (number) — Distance à l'orbite (mètres)
+- `distance` (number) — Longueur de la branche de l'hippodrome (milles nautiques, 20 par défaut)
 - `speed` (number) — Vitesse (nœuds)
-- `capRadius` (number) — Rayon de l'orbite (mètres)
+- `capRadius` (number) — Rayon de la zone défendue, centrée au milieu de la branche (milles nautiques, 60 par défaut)
 - `skill` (string) — Niveau de compétence
 - `silent` (boolean, optionnel) — Supprimer les messages
 - `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD

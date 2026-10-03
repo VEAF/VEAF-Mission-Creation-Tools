@@ -84,6 +84,10 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 39 | [Régler la météo de la mission](#set-weather) | 🕰️ Réglages de la mission | Recette + construite | ⭐ |
 | 40 | [Poser un groupe aéronaval complet](#add-carrier) | 🛫 Bases & aérodromes | Recette + construite | ◽ |
 | 41 | [Embarquer un son dans la mission](#add-sound) | Zones & déclencheurs | Recette + construite | ◽ |
+| 42 | [Donner aux bases leurs vraies fréquences radio](#airfield-channels) | 🛫 Bases & aérodromes | Recette (dossier) | ⭐ |
+| 43 | [Connaître l'altitude du sol et le masquage par le relief](#terrain-elevation) | 🗺️ Carte & coordonnées | — | ⭐ |
+| 44 | [Lister les emports par défaut d'un avion](#list-payloads) | Connaissance métier | — | ⭐ |
+| 45 | [Compléter les statiques posés sans forme](#repair-static-shapes) | 🏁 Valider & construire | Recette + construite | ◽ |
 
 ---
 
@@ -100,6 +104,17 @@ peux aussi les interroger directement.*
 générée par `update-dcs-data`.
 
 > 💬 *« Quels chasseurs russes sont dispo ? »* · *« Montre-moi les SAM DCS. »*
+
+Chaque arme et chaque radar porte sa portée telle que DCS la donne (les cercles de l'éditeur de
+mission) : de quoi vérifier qu'une batterie n'atteint pas une base adverse.
+
+### Lister les emports par défaut d'un avion {#list-payloads}
+
+*Connaissance · ⭐* — Les emports que l'éditeur de mission propose pour un avion piloté par l'IA,
+par leur nom (« R-40T*2,R-33*4 » pour un MiG-31). L'IA peut ensuite armer un vol, une QRA ou une CAP
+par ce nom, sans recopier les armes une à une.
+
+> 💬 *« Arme les MiG-31 de la QRA avec leur emport R-33. »*
 
 ### Lister les alias / raccourcis VEAF {#list-veaf-aliases}
 
@@ -196,6 +211,18 @@ tu le valides. Les lieux **nommés** marchent ; le terrain vague (« les bois »
 
 > 💬 *« Mets un SAM à 15 km au sud-est de l'aéroport de Batumi. »* (l'IA géocode, décale, puis place)
 
+### Connaître l'altitude du sol et le masquage par le relief {#terrain-elevation}
+
+*Altitude du sol · ⭐* — Sans lancer DCS, l'IA donne l'**altitude du sol** sous une cible (pour le
+briefing), le **sol le plus haut** le long de chaque branche d'une route (le plancher d'une
+pénétration basse altitude), **combien de chaque branche un SAM voit** au-dessus du relief, et le
+point culminant de chaque carré de 10 km de la grille F10. **Relief seul** : ni bâtiments, ni
+pylônes, ni arbres, et une marge mesurée à ajouter, que l'IA te rappelle. Il faut d'abord relever le
+théâtre **une fois** dans DCS (`.\veaf-tools.exe dcs terrain-sweep Syria`, moins de trois minutes) ;
+sans ce relevé, l'IA te propose la commande.
+
+> 💬 *« Ma route basse altitude passe-t-elle sous la couverture du SA-6 de Damas ? »*
+
 ## 🏁 Valider & construire
 
 *La dernière étape : de la recette au `.miz` jouable, sans quitter l'assistant.*
@@ -206,6 +233,14 @@ tu le valides. Les lieux **nommés** marchent ; le terrain vague (« les bois »
 avertissements. À faire avant de construire.
 
 > 💬 *« Vérifie que ma mission est bonne avant de la construire. »*
+
+### Compléter les statiques posés sans forme {#repair-static-shapes}
+
+*Recette + construite · ◽* — Un statique posé par un outil avant la 6.26 peut manquer de la forme
+(`shape_name`) que l'éditeur écrit ; DCS refuse certains types sans elle et l'objet n'existe jamais.
+La validation les liste, cette action les complète toutes d'un coup.
+
+> 💬 *« La validation se plaint des shape_name : répare-les. »*
 
 ### Construire le .miz jouable {#build-mission}
 
@@ -268,6 +303,17 @@ choisir les bases à colorer, ou placer quelque chose près de l'une d'elles, sa
 Marche aussi avant qu'une mission existe, en nommant la carte.
 
 > 💬 *« Quelles bases y a-t-il en Allemagne de l'Est sur GermanyCW ? »*
+
+### Donner aux bases leurs vraies fréquences radio {#airfield-channels}
+
+*Recette (dossier) · ⭐* — Une radio tient une vingtaine de canaux, une carte compte des dizaines
+d'aérodromes : il faut choisir. L'IA lit la mission, liste les bases que chaque camp tient (celles
+avec des slots d'abord, rouges comprises), avec les fréquences et le TACAN **que DCS leur donne** —
+celles que le pilote voit sur la vue F10 —, et te propose lesquelles mettre dans le plan radio. Elle
+n'écrit que celles que tu choisis, et refuse d'inventer une fréquence : une base que DCS ne déclare
+pas n'a pas de canal. Les canaux tactiques et de patrouille ne bougent pas.
+
+> 💬 *« Quelles bases méritent un canal radio dans ma mission ? »* · *« Mets Batumi, Kutaisi et Vaziani dans le plan radio. »*
 
 ### Poser un FARP complet {#add-farp}
 

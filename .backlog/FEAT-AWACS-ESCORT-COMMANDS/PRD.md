@@ -1,6 +1,6 @@
 # FEAT-AWACS-ESCORT-COMMANDS — `-awacs` and `-escortme`
 
-Status: 🧑 waiting-human — blocked on `CHORE-ISSUE-VERIFY-SESSION`, see *Why it waits*.
+Status: ⬜ ready — unblocked 2026-10-03: Mission D of `CHORE-ISSUE-VERIFY-SESSION` answered both escort bugs — #107 confirmed then fixed by `FIX-ESCORT-RESPAWN-DISTANCE` (verified in game, R5), #101 not reproducible; both issues closed
 
 Origin: [#188](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/188) (`-awacs`) and
 [#189](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/189) (`-escortme`). Grouped: both
@@ -41,3 +41,9 @@ fixing it comes first and is the real work.
 - [ ] `-escortme` escorts the caller's own aircraft — **and defends it**, verified in game rather than
       assumed from the spawn succeeding
 - [ ] Both documented, both languages
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**`-awacs` and `-escortme`** (#188 + #189), grouped since both spawn a group with a predefined mission. **Blocked on the DCS session, deliberately**: #101 and #107 say the escort mechanism may be broken — a teleported escort stops defending, a respawned one does not follow — so shipping `-escortme` on top would hand a pilot a **decorative** escort that appears, formates and defends nothing. The command would look delivered and be useless, the same shape as everything else closed this month. The AWACS half does not depend on that bug and can ship first

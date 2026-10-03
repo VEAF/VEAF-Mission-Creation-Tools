@@ -179,3 +179,20 @@ def test_a_combat_zone_group_without_a_route_stays_put(tmp_path: Path) -> None:
 
     points = _points(_group(read_mission_folder(folder).mission_content or {}, "CZ-North-armor"))
     assert [(p["x"], p["y"]) for p in points] == [(1500.0, 2500.0)]
+
+
+def test_a_mission_wide_surface_warning_is_said_once(tmp_path: Path) -> None:
+    """Review of FIX-OPEN-TRAINING-SYRIA-FINDINGS: 'surface not checked' came once per group."""
+    groups = [{"name": f"armor{i}", "units": [{"type": "T-72B", "count": 1}], "keep_position": True} for i in range(3)]
+    result = create_combat_zone(
+        _folder(tmp_path),
+        zone_name="CZ-North",
+        position={"x": 1000.0, "y": 2000.0},
+        radius=3000,
+        groups=groups,
+        coalition="red",
+        country_id=0,
+        country_name="Russia",
+    )
+    texts = [w["warning"] for w in result["warnings"] if "surface not checked" in str(w.get("warning"))]
+    assert len(texts) == 1

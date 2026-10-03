@@ -100,6 +100,14 @@ function TestVeafMissionDbSceneryRegister:test_an_object_destroyed_before_the_ob
   luaunit.assertEquals(found[1].id, 42)
 end
 
+-- FEAT-OBJECTIVE-MISSION-PROMPT: a combat zone checks its scenery targets by id, wherever they stand
+function TestVeafMissionDbSceneryRegister:test_isSceneryDestroyed_answers_by_id()
+  veafMissionDb.recordDestroyedScenery(_deathOf(_scenery(42, 100, 100)))
+
+  luaunit.assertTrue(veaf.isSceneryDestroyed(42))
+  luaunit.assertFalse(veaf.isSceneryDestroyed(43), "an object nobody destroyed is still standing")
+end
+
 function TestVeafMissionDbSceneryRegister:test_a_zone_that_does_not_exist_is_skipped_not_fatal()
   veafMissionDb.recordDestroyedScenery(_deathOf(_scenery(42, 100, 100)))
 
@@ -207,6 +215,38 @@ function TestVeafMissionDbSceneryWiring:test_initializing_twice_subscribes_once(
   veafMissionDb.initialize()
 
   luaunit.assertEquals(#_sceneryCallbacks(), 1, "the callback must not be registered twice")
+end
+
+-- FIX-OBJECTIVE-COMPLETION, measured in game 2026-10-01: the build loads veafMissionDb BEFORE
+-- veafEventHandler, so its load-time initialize finds no bus; the second pass the tests above call by
+-- hand is only generated for a mission listing MISSIONDB, which none does. dcs.log showed one
+-- "VEAF-MISSIONDB … Initializing module" and a register that never recorded a destruction. The event
+-- bus, initialised on every mission, now subscribes it — without veafMissionDb.initialize being called.
+function TestVeafMissionDbSceneryWiring:test_the_event_bus_subscribes_the_register_when_it_initializes()
+  veafEventHandler.initialize()
+
+  luaunit.assertEquals(#_sceneryCallbacks(), 1, "the register must be subscribed by the bus itself")
+end
+
+function TestVeafMissionDbSceneryWiring:test_the_bus_and_the_register_together_subscribe_once()
+  veafEventHandler.initialize()
+  veafMissionDb.initialize()
+  veafEventHandler.initialize()
+
+  luaunit.assertEquals(#_sceneryCallbacks(), 1, "the callback must not be registered twice")
+end
+
+function TestVeafMissionDbSceneryWiring:test_a_refused_subscription_is_retried_by_the_next_caller()
+  local addCallback = veafEventHandler.addCallback
+  veafEventHandler.addCallback = function()
+    return false
+  end
+  luaunit.assertFalse(veafMissionDb.registerSceneryCallback())
+  veafEventHandler.addCallback = addCallback
+
+  veafEventHandler.initialize()
+
+  luaunit.assertEquals(#_sceneryCallbacks(), 1, "a refusal must not mark the register as subscribed")
 end
 
 function TestVeafMissionDbSceneryWiring:test_the_subscribed_callback_is_the_one_that_records()

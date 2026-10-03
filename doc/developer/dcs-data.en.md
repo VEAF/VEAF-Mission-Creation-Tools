@@ -236,19 +236,47 @@ Not guarded by CI, like the other runtime-dependent tables. The operator's proce
 
 ## The airfield-frequency table
 
-`src/python/veaf-tools/veaf_libs/data/airfield-frequencies.yaml` maps, **per theatre**,
-an airfield name to its **ATC frequencies** (`uhf`, `vhf`, `fm`, in MHz). It lets
-`convert-v5` replace hardcoded preset frequencies with readable aliases (e.g. `Gudauta`).
+`src/python/veaf-tools/veaf_libs/data/airfield-frequencies.yaml` gives, **per theatre and DCS
+airdrome id** (the key of a mission's `warehouses`), the airfield's name (`Airbase:getName()`),
+its **ATC frequencies** (`uhf`, `vhf`, `fm`, in MHz) and its TACAN. It feeds the
+`airports-<theatre>` collections of the default `presets.yaml`, the `content airfield-channels`
+command and the `describe_airfield_channels` / `set_airfield_channels` MCP actions, and
+`convert-v5` when it replaces hardcoded frequencies with aliases.
 
-Like the airdrome table it is **install-dependent** (source:
-`Mods/terrains/<Theatre>/Radio.lua`, the `frequency` block — `UHF`→`uhf`,
-`VHF_HI`→`vhf`, `VHF_LOW`→`fm`, HF dropped) and **not CI-guarded**:
+**Where the frequencies come from.** The Mission Editor
+(`MissionEditor/modules/Mission/AirdromeData.lua`) asks DCS for the frequencies of each of the
+airfield's radios (`DCS.getATCradiosData`), and DCS returns **more than the text of**
+`Mods/terrains/<T>/Radio.lua`: on Persian Gulf the file gives Al Dhafra one frequency, 126.5 VHF, and
+DCS returns four, 39.5 / 126.5 / 251.1 / 4.3, the ones the editor's airport panel shows; Bandar-e-Jask
+has no frequency in the file and four in DCS (measured 2026-10-01 on the seven installed theatres).
+Where DCS completes them is not visible in the install: reading the file is therefore wrong, only a
+running DCS is authoritative. The table is built in two steps.
 
-```bash
-veaf-build update-dcs-data --airfield-freqs --dcs-path "C:/Program Files/Eagle Dynamics/DCS World"
-```
+1. **Capture**, guided, one map after the other, through the fiddle hook (GUI environment,
+   `dcs-fiddle-server.lua` installed — the command checks it is there). For each installed map not
+   captured yet (or those named with `--theatre`), the command writes an empty mission in DCS's
+   `Missions\VEAF-capture-frequencies\` folder, says what to do (open it, launch it, take the
+   spectator slot), **sees on its own** the map arrive in DCS, captures, then names the next one; at
+   the end it says DCS can be closed. The TACAN is read at the same time from the install's
+   `Beacons.lua` (TACAN and VORTAC). Each map is committed as
+   `veaf_build/dcs_data/airfield_freq_dumps/<Theatre>.json`; interrupted, the command resumes where
+   it stopped.
 
-It only covers **installed** theatres.
+   ```bash
+   poetry run veaf-build update-dcs-data --airfield-freqs --capture --dcs-path "C:/jeux/DCS World"
+   ```
+
+2. **Generation**, offline and reproducible, from the committed captures: the table, and the
+   `airports-<theatre>` collections of the default `presets.yaml`, rewritten **between their two
+   markers only**. A second run changes nothing.
+
+   ```bash
+   veaf-build update-dcs-data --airfield-freqs
+   ```
+
+A theatre never captured on this machine keeps its committed capture: the machine running the
+command only touches the map it has loaded. A test recomputes the table and the collections offline
+from the captures, and fails if either was edited by hand.
 
 ## The theatres' cities {#cities}
 

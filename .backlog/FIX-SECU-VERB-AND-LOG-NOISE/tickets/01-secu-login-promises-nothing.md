@@ -101,9 +101,23 @@ are fixed, each tested on its own:
 **Not measured**: which of the two ways in actually happened on private1 — the debug session the
 ticket asked for was not run. The fix covers both, so the question no longer decides anything.
 
-**Left**: redeploy `VEAF-Server-hook.lua` on the servers, then a listed pilot, still connected across
-a mission reload, clicks a `+` command without any verb — after the release, David's call
-(2026-09-30).
+**Deployed 2026-10-01.** `VEAF-Server-hook.lua` v2.7.1 (this lot's `cf9958e9`) is installed on all
+six instances — `foothold1/2`, `private1/2`, `public1/2` — each verified after the copy at 33 814 o
+with `onGameEvent` and the four-argument `registerUserSlot`; the previous ones (31 826 o, dated
+2026-08-10) are kept server-side in `Saved Games\_hook-backup-20261001-091118\`. All six restarted
+at 09:14–09:15 local, so the new hook is the one loaded.
+
+Two things that cost time and are worth recording:
+
+- **The hook does not ship in a release.** `published/` carries the mission scripts only
+  (`veaf-scripts.lua` and the community ones), no `Scripts/Hooks/`, so `veaf-tools-updater` cannot
+  bring a hook fix to a server: it has to be copied by hand from `src/scripts/Hooks/`. Everything
+  else in this lot reached the servers through 6.26.0; this half did not, and nothing said so.
+- The directory is `src/scripts/Hooks/`, with a capital H. Git is case-sensitive where Windows is not, so a
+  `git ls-files src/scripts/hooks/` comes back empty and the file looks untracked.
+
+**Left**: the in-game check — a listed pilot, still connected across a mission reload, clicks a `+`
+command without any verb.
 
 `veafSecurity.authenticate`, `logout`, `isAuthenticated`, the `authenticated` flag, `authDuration` and
 their four i18n strings had no caller left; removed in this lot on David's go, so nobody wires the

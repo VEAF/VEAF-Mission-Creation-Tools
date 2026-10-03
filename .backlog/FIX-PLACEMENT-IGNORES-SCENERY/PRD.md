@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-IGNORES-SCENERY — ground units are placed without looking at the scenery, and a crowded FARP gives up silently
 
-Status: 🧑 waiting-human — tickets 01, 02, 03 and 05 delivered 2026-08-27; tickets 06-09 delivered 2026-09-25 (measurements from DCS); **08 measured inert in game and superseded by 10**, which merged 2026-09-26 (PR #1005) and shipped in 6.25.0. **10 was then measured in game the same day and is inert too** — the groups are translated, the formations hold, and the metric does not move; the cause is under the lot, in `Disposition.getSimpleZones`. **Ticket 11** merged in #1008 (17 → 4 vehicles under trees); **ticket 12**, the sweep with the probe, is implemented 2026-09-28 and waits on its in-game measurement (R16 of `DCS-SESSION-TODO.md`). **Ticket 04** is implemented 2026-09-30 with `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` ticket 03 and waits on its in-game check, R19 of `DCS-SESSION-TODO.md`
+Status: ✅ done — ticket 12 verified in game 2026-10-03 (R16); ticket 04 (`-farp` refused when its escort fits nowhere) verified the same afternoon (R19, recorded in `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`)
 
 Origin: found on 2026-08-27 while studying the 20 `mist.getRandPointInCircle` call sites for
 [`DROP-MIST`](../archive/DROP-MIST.md) ticket 06. Kept out of that campaign
@@ -121,7 +121,7 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 01 | Wire the Full Combat Group spawn through `findSpawnPoint` | low | ✅ |
 | 02 | Wire the combat zone element spawn through `findSpawnPoint` | medium — touches every zone with a radius | ✅ |
 | 03 | The FARP escort avoids the scenery too | medium | ✅ |
-| 04 | Refuse the FARP when the escort cannot be placed | **high** — reverses a tuned decision | 🧑 |
+| 04 | Refuse the FARP when the escort cannot be placed | **high** — reverses a tuned decision |✅ |
 | 05 | Lock in the exact placement of the FARP, FOB and beacon | low, tests and docs | ✅ |
 | 06 | `findSpawnPoint` descending clearance steps + `noRandomFallback` | medium | ✅ |
 | 07 | Editor content keeps declared position when tier 1 finds nothing | medium | ✅ |
@@ -129,7 +129,7 @@ ground units — noted, but the wave's command decides, so the fix is not local 
 | 09 | `silent` propagated to `_createDcsUnits`, refused units no longer dropped silently | low | ✅ |
 | 10 | Settle the group by rigid translation, not unit by unit — shipped, and measured inert in game on 2026-09-26; the translation works, the selection does not | medium | ✅ |
 | 11 | `settleGroup` verifies the candidate it trusts, and draws more than once | medium | ✅ |
-| 12 | `settleGroup` sweeps with the probe instead of asking for a clearing | medium | 🧑 |
+| 12 | `settleGroup` sweeps with the probe instead of asking for a clearing | medium | ✅ |
 
 ### Why this lot needed three rounds on the same defect
 
@@ -186,3 +186,18 @@ before choosing 04's threshold.
 - [ ] The non-regression is proven the way 6.15.33 proved it: a FARP far from anything does not move
 - [ ] `mypy` exclusions and the coverage ratchet respected per the repository's quality policy
 - [ ] `CHANGELOG.md` entry under `[Unreleased]`, appended at the end of the section
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ticket 12 verified (R16), GermanyCW-v6 from `develop`, 26 zones activated: 8 vehicles under trees
+before `settleGroup`, 2 after; 4 groups translated (20, 20, 60, 140 m); the worst group 0.317 s; one
+group of two gave up after 761 probes. Ticket 04 is held by the R19 result in
+`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**ground units are placed without looking at the scenery, and a crowded FARP gives up silently.** `FEAT-SCENERY-AWARE-SPAWN` wired `veaf.findSpawnPoint` into the four dynamic ground spawners plus the generic `doSpawnGroup`; **two paths were missed** — `veafSpawnGround.lua:594`, a *"Full Combat Group"* of real ground units, and `veafCombatZone.lua:1466`, which covers every combat zone element with a non-zero spawn radius. Both can drop a group inside a building, silently: `veaf.placePointOnLand`, which looks like a guard, only sets the ground height. Separately, the FARP escort search avoids units, statics and the FARP's own 259 m apron but **not the scenery** — `veafGrass.lua:258` says the criterion is *"deliberately left to `veaf.findSpawnPoint`'s Disposition tier"*, and that tier is never called on this path. David's arbitration (2026-08-27): the FARP, FOB and beacon are placed **exactly** where the user asked (which confirms the current `radius or 0`); the escort must be placed intelligently **or the FARP is refused with a message** — which **reverses** the tuned decision at `veafGrass.lua:332`, so ticket 04 owes a narrow-and-loud refusal and the 6.15.33 non-regression; and **refusing applies to what a command spawns, never to what the Mission Editor placed**, because a marker command has a user standing there to read the message and an editor-placed zone has nobody. That last ruling is the axis the whole lot is organised around and it decides every ticket's failure path: `spawnFullCombatGroup` is a marker command so it aborts, combat zone elements are editor content so they fall back to their declared position, and `veafGrass.buildFarpUnits`' **two** callers split exactly along it — the `-farp` command refuses, the startup sweep over the editor's static FARPs does not. Found while studying `getRandPointInCircle` for [DROP-MIST](../archive/DROP-MIST.md) ticket 06 and kept out of it on purpose. **Tickets 01, 02, 03 and 05 delivered 2026-08-27** — 37 Lua suites green, CI Lua coverage floor 75 → 76. Ticket 03 took David's design: `Disposition` cannot be asked whether a chosen spot is clear, it only *proposes* points, so the search was inverted — one cloud request per group, filtered to the accepted distance band, ordered by nearness to the spot actually wanted. That also neutralises the singleton's measured radius overshoot and costs one call to the undocumented API per group instead of 75 probes. **Only ticket 04 remains, and it is blocked on a number only DCS can give**: how often the search exhausts now that buildings and forests both count, which is what its refusal threshold must be chosen against. **Since then**: tickets 06-11 merged (11 in #1008: 17 → 4 vehicles under trees); **ticket 12**, `settleGroup` sweeping with the probe instead of asking `Disposition` for a clearing, implemented 2026-09-28 and waiting on its in-game measurement (R16); **ticket 04**, the `-farp` refused when its escort fits nowhere, implemented 2026-09-30 with MOVES-ON-CLEAR-GROUND ticket 03 and waiting on R19.

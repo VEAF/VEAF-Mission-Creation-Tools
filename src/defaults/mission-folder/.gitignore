@@ -12,6 +12,10 @@
 /missions/
 *.miz.bak
 
+# Backups the mission-editing tools (MCP) take before every write, and the presets report of each build
+/.veaf-backups/
+/presets-validation-report.md
+
 # OS / editor noise
 .DS_Store
 Thumbs.db

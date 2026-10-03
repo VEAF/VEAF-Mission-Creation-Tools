@@ -10,6 +10,8 @@ dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafI18n.lua")
+-- the command hook leaves an aircraft with a role alone (FEAT-AIRCRAFT-ROLES)
+dofile(src .. "/veafAircraftSpawn.lua")
 dofile(src .. "/veafCombatZone.lua")
 
 -- The assertions below pin the English wording; messages are now localized
@@ -761,6 +763,132 @@ function TestVeafCombatZoneCompletion:test_completionCheck_static_object_red_coa
   StaticObject.getByName = origStaticGetByName
 end
 
+-- FIX-OBJECTIVE-COMPLETION, measured in game 2026-10-01: after a static is destroyed,
+-- StaticObject.getByName still returns it, with isExist() false and getLife() 0. Counting whatever it
+-- returns kept every zone holding a static open for good.
+local function _withStaticState(name, state, test)
+  local previous = StaticObject.getByName
+  StaticObject.getByName = function(asked)
+    if asked == name then
+      return {
+        getCoalition = function()
+          return 1
+        end,
+        isExist = function()
+          return state.exists
+        end,
+        getLife = function()
+          return state.life
+        end,
+        getTypeName = function()
+          return "Ural-375"
+        end,
+        -- what the deactivation that follows a completion asks of it
+        getName = function()
+          return name
+        end,
+        destroy = function() end,
+      }
+    end
+    return nil
+  end
+  local ok, err = pcall(test)
+  StaticObject.getByName = previous
+  if not ok then
+    error(err, 0)
+  end
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_does_not_count_a_destroyed_static()
+  _withStaticState("deadDepot", { exists = true, life = 0 }, function()
+    self.z:addSpawnedGroup("deadDepot")
+    self.z:setActive(true)
+    self.z:completionCheck()
+    luaunit.assertFalse(self.z:isActive())
+  end)
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_does_not_count_a_static_with_no_life_left()
+  _withStaticState("wreck", { exists = false, life = 0 }, function()
+    self.z:addSpawnedGroup("wreck")
+    self.z:setActive(true)
+    self.z:completionCheck()
+    luaunit.assertFalse(self.z:isActive())
+  end)
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_still_counts_a_static_standing()
+  _withStaticState("depot", { exists = true, life = 25 }, function()
+    self.z:addSpawnedGroup("depot")
+    self.z:setActive(true)
+    self.z:completionCheck()
+    luaunit.assertTrue(self.z:isActive())
+  end)
+end
+
+-- FEAT-OBJECTIVE-MISSION-PROMPT: a map object (bridge, building of the map) is not spawned by the
+-- zone, so the unit count never sees it; the zone asks the destroyed-scenery register instead.
+function TestVeafCombatZoneCompletion:test_completionCheck_waits_for_a_scenery_target_still_standing()
+  veafMissionDb.destroyedScenery = {}
+  self.z:addSceneryTarget(424242)
+  self.z:setActive(true)
+  self.z:completionCheck()
+  luaunit.assertTrue(self.z:isActive())
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_completes_once_its_scenery_targets_are_destroyed()
+  veafMissionDb.destroyedScenery = { [424242] = { id = 424242, position = { x = 0, y = 0, z = 0 } } }
+  self.z:addSceneryTarget(424242)
+  self.z:setActive(true)
+  self.z:completionCheck()
+  luaunit.assertFalse(self.z:isActive())
+  veafMissionDb.destroyedScenery = {}
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_needs_every_scenery_target()
+  veafMissionDb.destroyedScenery = { [1] = { id = 1, position = { x = 0, y = 0, z = 0 } } }
+  self.z:addSceneryTarget(1):addSceneryTarget(2)
+  self.z:setActive(true)
+  self.z:completionCheck()
+  luaunit.assertTrue(self.z:isActive())
+  veafMissionDb.destroyedScenery = {}
+end
+
+function TestVeafCombatZoneCompletion:test_addSceneryTarget_ignores_what_is_not_an_id()
+  self.z:addSceneryTarget("424242"):addSceneryTarget(0):addSceneryTarget(-3):addSceneryTarget(1.5)
+  luaunit.assertEquals(#self.z:getSceneryTargets(), 0)
+end
+
+function TestVeafCombatZoneCompletion:test_addSceneryTarget_keeps_one_copy_of_an_id()
+  self.z:addSceneryTarget(7):addSceneryTarget(7)
+  luaunit.assertEquals(self.z:getSceneryTargets(), { 7 })
+end
+
+-- `includes`: the borrowing level's success counts what it borrows, map objects included
+function TestVeafCombatZoneCompletion:test_a_borrowing_level_waits_for_the_borrowed_scenery_targets()
+  local easy = VeafCombatZone:new():setMissionEditorZoneName("RANGE-EASY"):addSceneryTarget(99)
+  veafCombatZone.zonesDict["range-easy"] = easy
+  self.z:addZoneElementsFromZoneNamed("RANGE-EASY")
+  luaunit.assertEquals(self.z:getSceneryTargets(), { 99 })
+end
+
+-- the hook an operation is given used to be stored and never called: its completion check replaces
+-- the zone's, which is where a zone calls its own
+function TestVeafCombatZoneCompletion:test_operation_calls_its_onCompletedHook_when_no_task_is_left()
+  local op = VeafCombatOperation:new():setMissionEditorZoneName("OP-HOOK")
+  op.updateRadioMenu = function(self)
+    return self
+  end
+  local received = nil
+  op:setOnCompletedHook(function(operation)
+    received = operation
+  end)
+  op:setActive(true)
+  op:updatePrimaryTasks()
+  luaunit.assertFalse(op:isActive())
+  luaunit.assertIs(received, op)
+end
+
 function TestVeafCombatZoneCompletion:test_desactivate_with_spawned_group_destroys_it()
   dcs_mocks.addGroup("spawnedGrp", {})
   self.z:addSpawnedGroup("spawnedGrp")
@@ -1186,6 +1314,39 @@ function TestVeafCombatZoneGetInformation:test_getInformation_a_blue_static_is_a
   end)
 end
 
+-- the panel counts what the watchdog counts: a destroyed static is neither (FIX-OBJECTIVE-COMPLETION)
+function TestVeafCombatZoneGetInformation:test_getInformation_does_not_count_a_destroyed_static()
+  local previous = StaticObject.getByName
+  StaticObject.getByName = function()
+    return {
+      getCoalition = function()
+        return 1
+      end,
+      isExist = function()
+        return false
+      end,
+      getLife = function()
+        return 0
+      end,
+    }
+  end
+  self.z:addSpawnedGroup("wreck")
+  local ok, info = pcall(function()
+    return self.z:getInformation(nil)
+  end)
+  StaticObject.getByName = previous
+  luaunit.assertTrue(ok, tostring(info))
+  luaunit.assertNil(info:find("structure"))
+end
+
+-- the F10 report must not read "0 enemies" on a zone that refuses to complete
+function TestVeafCombatZoneGetInformation:test_getInformation_counts_the_scenery_targets_left()
+  veafMissionDb.destroyedScenery = { [6] = { id = 6, position = { x = 0, y = 0, z = 0 } } }
+  self.z:addSceneryTarget(5):addSceneryTarget(6)
+  luaunit.assertStrContains(self.z:getInformation(nil), "MAP OBJECTS TO DESTROY: 1 remaining")
+  veafMissionDb.destroyedScenery = {}
+end
+
 -- ============================================================================
 -- TestVeafCombatZoneEnemyCoalition (FEAT-COMBATZONE-RED-SIDE)
 -- ============================================================================
@@ -1511,6 +1672,18 @@ function TestVeafCombatZoneDelayedCommand:test_a_delayed_group_is_sent_on_its_ro
   self.z:spawnElement(self.el, true)
   veaf.collectSpawnedGroup(self._captured, "DelayedSAM")
   luaunit.assertEquals(self.routed, { "DelayedSAM" })
+end
+
+--- FEAT-AIRCRAFT-ROLES ticket 04: a `-cap` in a combat zone keeps the patrol its role gave it; the
+--- marker's route would replace it.
+function TestVeafCombatZoneDelayedCommand:test_an_aircraft_with_a_role_keeps_its_own_route()
+  self.el:setRoute({ wp1 = { x = 1, z = 2 } })
+  veafAircraftSpawn.groupRoles["ZoneCAP"] = "cap"
+  self.z:spawnElement(self.el, true)
+  veaf.collectSpawnedGroup(self._captured, "ZoneCAP")
+  veafAircraftSpawn.groupRoles["ZoneCAP"] = nil
+  luaunit.assertEquals(self.routed, {})
+  luaunit.assertEquals(self.z:getSpawnedGroups(), { "ZoneCAP" }, "it still belongs to the zone")
 end
 
 -- Nominal path must not regress: a command with no delay spawns synchronously, and the hook is what

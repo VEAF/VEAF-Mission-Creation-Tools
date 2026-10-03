@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — the escort is moved even when the requested spot is free
 
-Status: 🧑 waiting-human — ticket 01's guard was measured inert in game on 2026-09-01; **ticket 03 replaces it** with the small scenery probe asked about the wanted spot itself, implemented 2026-09-30 together with `FIX-PLACEMENT-IGNORES-SCENERY` ticket 04. What is left is the in-game check, R19 of `DCS-SESSION-TODO.md`.
+Status: ✅ done — every ticket verified in game 2026-10-03; merged in #1055
 
 Origin: measured in game 2026-08-28 while running
 [`DCS-SESSION-TODO`](../../DCS-SESSION-TODO.md) item 21, the exhaustion count for
@@ -77,7 +77,8 @@ a few dozen metres is exactly the outcome that history was guarding against.
 |---|---|---|---|
 | 01 | Keep the requested bearing when the cloud proves it clear | medium — changes where every FARP escort lands | ✅ |
 | 02 | Verify in game that a FARP on open ground does not move | needs DCS | ✅ |
-| 03 | [Ask about the wanted spot itself, not its nearest neighbour](tickets/03-ask-about-the-wanted-spot-itself.md) | medium — replaces ticket 01's method | 🧑 |
+| 03 | [Ask about the wanted spot itself, not its nearest neighbour](tickets/03-ask-about-the-wanted-spot-itself.md) | medium — replaces ticket 01's method | ✅ |
+| 04 | The escort stands beside its own FARP's props, and the bearing walk stays out of the trees | low — the escort only; a `-farp` in a dense wood is now refused | ✅ |
 
 ## What ticket 01 delivered (2026-09-01)
 
@@ -160,3 +161,29 @@ log level~~ — **settled 2026-09-01: that line now logs at info**, so the defau
 group fell through to tier 2. The rest of the protocol is in
 [ticket 02](tickets/02-verify-in-game-that-nothing-moves.md), including the two cases that must **still**
 move: a run where nothing moves anywhere means the fix went too far.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+R19, Caucasus, four `-farp`: in a wood the escort left the trees (`scenery probe=false`, 0° → −15°).
+On open ground, and beside a static FARP, the first elements kept their bearing and the fourth and
+fifth read `occupancy probe=false`, so the escort moved (333° at 1.14×, 38° at 1.16×): **the FARP's
+own vehicles, placed first, occupy the escort's wanted spot**. The refusal case was not reached.
+
+## Ticket 04 — the escort beside its own FARP (2026-10-03)
+
+The tents, the props and the windsock are laid out before the escort and on the same bearing, so the
+occupancy probe found the FARP's own statics on the escort's wanted spot. David's call: the escort's
+search ignores statics named `FARP <group> unit #` — its own layout — and everything else still
+occupies. The tents, props and windsock keep avoiding what stands before them.
+
+`isSpotOccupied` now also returns the name of what it found, and `findClearBearing` logs it for the
+wanted spot at debug: the 2026-10-03 run read `occupancy probe=false` and nothing said by what, so the
+cause above is deduced from the layout's geometry, to be confirmed by that line in the next run.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a FARP escort is moved even when the spot asked for is free.** `findClearBearing` consults the scenery cloud before testing the requested bearing at all, and the wanted spot is never one of the cloud's candidates — so the escort moves whenever the cloud answers. Measured 2026-08-28 on open ground with nothing within a kilometre: bearing 0 requested, 25 used at 1.12×. Testing the requested bearing first is *not* the fix (the occupancy probe cannot see forests); the tenable route is the `gap` tier 1 already computes. **Blocks `FIX-PLACEMENT-IGNORES-SCENERY` ticket 04**, whose definition of done requires proving nothing moves. Fixed and tested 2026-09-01 — a candidate within `PLACEMENT_CLEARANCE` of the wanted spot now proves it, and the wanted spot is kept; only the in-game proof remains **Reopened 2026-09-01: the guard is inert.** Measured in game over twelve decisions, the nearest candidate sits between 43.9 m and 127 m of the wanted spot against a 12 m clearance, so the condition never holds. `Disposition.getSimpleZones` samples at random rather than tessellating, so deducing from the nearest neighbour is unsound whatever the constant — ticket 03 asks about the wanted spot itself, with the small scenery probe `settleGroup` uses; implemented 2026-09-30, waiting on R19. **R19 run 2026-10-03:** the forest case held, but on open ground the escort still moved — its own FARP's props, laid out first on the same bearing, occupied its spot; ticket 04 lets the escort stand beside them

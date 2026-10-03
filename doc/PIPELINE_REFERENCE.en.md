@@ -84,6 +84,8 @@ In both cases, `channels_collection` (the frequencies) stays the shared source f
 
 > **`convert-v5` names frequencies automatically.** When converting a v5 mission, hardcoded frequencies are replaced with **names** in `presets.yaml` — the theatre's airfields (`Gudauta`, `Batumi`…) and VEAF call-signs (`Guard`, `Archer`, `Texaco-1`…) — and the matching `channels_collection` is inserted to resolve them. A frequency with no known name is left as a raw number. The faithful copy `presets.v5.yaml` keeps the raw frequencies.
 
+> **An airfield frequency is never typed.** The `airports-<theatre>` collections of the default `presets.yaml` are generated from DCS (the frequencies the F10 view shows, and the TACAN): refer to an airfield by its name (`02: Batumi`). To choose the bases that deserve a channel and write a mission's `bases` collection with their real frequencies: [`content airfield-channels`](CLI_REFERENCE.en.md#airfield-channels).
+
 ### Schema — `channel_lists` (recommended model)
 
 ```yaml
@@ -617,7 +619,7 @@ versions:
 | `metar` | string | No | Full METAR string — parsed for the weather data, and showable in the briefing through [`${METAR}`](#briefing-variables) |
 | `airport_icao` | string | No | ICAO code whose live weather is fetched (used without `metar`) |
 | `weather` | object | No | Manual weather override (used without `metar` or `airport_icao`) |
-| `clearsky` | boolean | No | Caps the weather to visual-flight conditions: clouds at most FEW, wind under 15 kt, visibility 10 km or more, no rain, no fog. Keeps an `airport_icao`'s real weather flyable without instruments. Default `false` |
+| `clearsky` | boolean | No | Caps the weather to visual-flight conditions: clouds at most FEW, wind under 15 kt, visibility 10 km or more, no rain, no fog. Keeps an `airport_icao`'s real weather flyable without instruments; the briefing's [`${METAR}`](#briefing-variables) describes the capped sky. Default `false` |
 
 ### Showing the weather in the briefing: `${METAR}` {#briefing-variables}
 
@@ -641,7 +643,15 @@ What `${METAR}` resolves to, per variant:
 |---|---|
 | `metar: "..."` | the string exactly as you wrote it |
 | `airport_icao: LFRS` | the live METAR fetched for that station |
-| only `weather:` | **nothing** — there is no METAR to show, so the text `${METAR}` stays as written and a warning says so in the log |
+| `metar:` or `airport_icao:`, with `clearsky: true` | a METAR **recomposed from the capped weather** the mission flies, built the same way as for `weather:` below but keeping the report's station, its temperature and its QNH — `METAR LTAG 150203Z 35006KT 9999 FEW090 19/// Q1015`. Always recomposed, even when the caps change nothing: a `TEMPO TSRA` left in the published text would announce a storm the sky never has |
+| only `weather:` | a METAR **composed from it**: wind, visibility, rain and fog, cover and base (the one DCS flies, which moves the base into its cloud preset's range), temperature (no dew point: written `///`), the mission's QNH, stamped with the variant's date and time in UTC and no station — `METAR 150900Z 27010KT 9999 SKC Q1013`. With `clearsky: true`, the values are the capped ones |
+| no weather at all | **nothing** — there is no METAR to show, so the text `${METAR}` stays as written and a warning says so in the log |
+
+!!! warning "A published METAR keeps its own time"
+    A `metar:` written in the file or one fetched for an `airport_icao` is shown as published, time
+    group included: a report fetched at 18:20Z on the 2nd reads `021820Z` in a variant that starts at
+    dawn on another date. Only a composed or recomposed METAR (`weather:`, or `clearsky: true`) is stamped
+    with the variant's date and time.
 
 !!! note "An unknown `${...}` is never blanked"
     `${METRA}` stays written as `${METRA}` in the briefing. Deliberately: a briefing is read by players,

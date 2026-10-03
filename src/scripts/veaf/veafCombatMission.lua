@@ -1166,6 +1166,9 @@ end
 function veafCombatMission.ActivateMission(name, silent, unitName)
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.ActivateMission([%s])", name or ""))
   local mission = veafCombatMission.GetMission(name)
+  if not mission then
+    return
+  end
   local result = mission:activate(silent)
   if not silent and not mission:isSilent() then
     if result then
@@ -1180,7 +1183,7 @@ end
 
 -- desactivate a mission by number
 function veafCombatMission.DesactivateMissionNumber(number, silent)
-  local mission = veafCombatMission.GetMission(number)
+  local mission = veafCombatMission.GetMissionNumber(number)
   if mission then
     veafCombatMission.DesactivateMission(mission:getName(), silent)
   end
@@ -1190,6 +1193,9 @@ end
 function veafCombatMission.DesactivateMission(name, silent, unitName)
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.DesactivateMission([%s])", name or ""))
   local mission = veafCombatMission.GetMission(name)
+  if not mission then
+    return
+  end
   mission:desactivate()
   if not silent and not mission:isSilent() then
     veaf.outTextForUnit(unitName, veaf.t("entity.deactivated", "VeafCombatMission " .. mission:getFriendlyName()), 10)
@@ -1202,6 +1208,9 @@ function veafCombatMission.GetInformationOnMission(parameters)
   local name, unitName = veaf.safeUnpack(parameters)
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.GetInformationOnMission([%s])", name or ""))
   local mission = veafCombatMission.GetMission(name)
+  if not mission then
+    return
+  end
   local text = mission:getInformation()
   if unitName then
     veaf.outTextForGroup(unitName, text, 30)
@@ -1214,6 +1223,9 @@ end
 function veafCombatMission.CompletionCheck(name)
   veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.CompletionCheck([%s])", name or ""))
   local mission = veafCombatMission.GetMission(name)
+  if not mission then
+    return
+  end
   mission:completionCheck()
 end
 

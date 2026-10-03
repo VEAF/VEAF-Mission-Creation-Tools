@@ -57,6 +57,9 @@ from veaf_libs.bundled_data import read_bundled_text
 #: measured mission sits on one. Including it would take an airframe-shaped risk for no capacity gain
 #: — which is also why this set is ``FighterAircraft`` (244) and not ``FighterAircraftSmall`` (344).
 #: Should ``100`` ever be wanted, it needs the airframe test this set deliberately does not have.
+#: That test was run in game on 2026-10-03 and settles it: of three C-130s asked for a type-100 stand
+#: on GermanyCW, DCS moved two to a ``104`` 339 m and 1 473 m away and seated the third inside a
+#: hangar. ("Nowhere else" above is the three captured theatres: GermanyCW, not captured, has 100s.)
 AIRCRAFT_STAND_TYPES: frozenset[str] = frozenset({"68", "72", "104"})
 
 #: DCS ``Term_Type`` values, from the ``Airbase.TerminalType`` enumeration. Sourced 2026-08-31 from

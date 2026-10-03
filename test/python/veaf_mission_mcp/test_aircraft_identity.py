@@ -61,6 +61,56 @@ class TestWesternCallsigns:
         assert group["units"][0]["callsign"] == {1: 1, 2: 2, 3: 1, "name": "Texaco21"}
 
 
+class TestCallsignFromTheGroupName:
+    """FIX-OPEN-TRAINING-SYRIA-FINDINGS 01: a name like ``Texaco 2`` is the callsign asked for."""
+
+    def _build(self, *names: str) -> list[str]:
+        content = _content_with()
+        country = content["coalition"]["blue"]["country"]
+        country.append({"id": 2, "name": "USA", "plane": {"group": []}})
+        callsigns = []
+        for name in names:
+            group = dict(_flight(1), name=name, task="Refueling")
+            assign_identities(content, group, country_id=2, task="Refueling")
+            country[0]["plane"]["group"].append(group)
+            callsigns.append(group["units"][0]["callsign"]["name"])
+        return callsigns
+
+    def test_the_four_syria_tankers_get_the_callsign_of_their_name(self) -> None:
+        assert self._build("Texaco 1", "Arco 1", "Texaco 2", "Arco 2") == [
+            "Texaco11",
+            "Arco11",
+            "Texaco21",
+            "Arco21",
+        ]
+
+    def test_the_family_and_flight_indices_follow_the_name(self) -> None:
+        group = dict(_flight(2), name="Shell 3")
+        assign_identities(_content_with(), group, country_id=2, task="Refueling")
+        assert [u["callsign"] for u in group["units"]] == [
+            {1: 3, 2: 3, 3: 1, "name": "Shell31"},
+            {1: 3, 2: 3, 3: 2, "name": "Shell32"},
+        ]
+
+    def test_a_word_that_is_not_a_family_of_the_task_falls_back_and_says_so(self) -> None:
+        group = dict(_flight(1), name="Enfield 1")
+        note = assign_identities(_content_with(), group, country_id=2, task="Refueling")
+        assert group["units"][0]["callsign"]["name"] == "Texaco11"
+        assert note is not None and "Enfield" in note and "Texaco11" in note
+
+    def test_a_flight_already_held_falls_back_and_says_so(self) -> None:
+        content = _content_with(("USA", "Refueling", _placed({1: 1, 2: 1, 3: 1, "name": "Texaco11"}, "010")))
+        group = dict(_flight(1), name="Texaco 1")
+        note = assign_identities(content, group, country_id=2, task="Refueling")
+        assert group["units"][0]["callsign"]["name"] == "Arco11"
+        assert note is not None and "already" in note
+
+    def test_a_name_that_is_not_a_callsign_says_nothing(self) -> None:
+        group = dict(_flight(1), name="Tanker")
+        assert assign_identities(_content_with(), group, country_id=2, task="Refueling") is None
+        assert group["units"][0]["callsign"]["name"] == "Texaco11"
+
+
 class TestNumericCallsigns:
     def test_a_russian_aircraft_gets_a_number(self) -> None:
         group = _flight(2)

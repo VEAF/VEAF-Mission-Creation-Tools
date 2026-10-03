@@ -61,3 +61,9 @@ Ticket 01 produces an ADR that either names the entry point and unblocks real ti
 that the idea does not survive contact with our constraints. **Both are acceptable outcomes** — the
 second saves the next person from re-reading 36 700 lines of GPL Lua to reach the same conclusion, the
 way [ADR 0017](../../docs/adr/0017-no-live-mission-editor-bridge.md) did for the editor bridge.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a design lot, not a port**. A prefab bundles mission content — groups, statics, zones, drawings, media *and its mod dependencies* — and re-instantiates it elsewhere with an anchor and a country, which is what the MCP composites already do in code-shape rather than data-shape. Blocked structurally: TUM's version is GPL and leans on the live editor ADR 0017 rejected, so how a mission maker *picks* what goes in has to be invented. **A rejection is an acceptable outcome**

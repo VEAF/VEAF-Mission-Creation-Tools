@@ -65,3 +65,9 @@ be the right one.
 No tickets. This is a recorded idea with an analysis attached, so the next person starts from the
 questions rather than from the enthusiasm. Turn it into work when David decides which of the three
 mission kinds is worth the first recipe — the demo, on the reasoning above.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**scripted mission generation, no AI in the loop.** David's idea, recorded with an analysis rather than scoped: describe in a file the sequence of tool operations that builds a kind of mission, run it with `veaf-tools`, and keep a catalogue of them (a demo mission always current, base missions, training missions). The engine already exists — `run_action(name, params)` over the MCP catalogue involves no model, the LLM picks the calls rather than executing them — so what is missing is a file format and a runner. Strongest case is the demo, and not for freshness: regenerated in CI with every feature dropping its own example, it becomes the end-to-end integration test the product does not have. Main risk, stated up front: “a few red and blue airfields” requires deciding *where*, and deriving positions grows variables, conditions and loops — a project of its own. Recommendation is one dumb recipe first, extract a format only at the third

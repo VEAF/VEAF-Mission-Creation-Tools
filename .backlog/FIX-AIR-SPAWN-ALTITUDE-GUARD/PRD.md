@@ -1,6 +1,6 @@
 # FIX-AIR-SPAWN-ALTITUDE-GUARD — the aircraft height check reads the easting, not the altitude
 
-Status: 🧑 waiting-human — the read is fixed and shipped (ticket 01); the **clearance** rule needs DCS
+Status: ✅ done — every ticket verified in game 2026-10-03; merged in #1055
 to answer whether the game lifts a too-low aircraft by itself (ticket 02, `DCS-SESSION-TODO.md` R9).
 
 Found 2026-09-01 while delivering [`CHORE-ONE-TERRAIN-CHECK`](../archive/CHORE-ONE-TERRAIN-CHECK.md), and
@@ -44,7 +44,8 @@ than a live defect. That changes what the repair should do, not whether the line
 | # | Ticket | Risk | Status |
 |---|---|---|---|
 | 01 | The height test reads the altitude, and two cases prove which field it read | medium — it makes a dead guard live, so a spawn can now be refused that used to be accepted | ✅ |
-| 02 | Does DCS lift a too-low aircraft on its own? The clearance rule depends on the answer | none — a question, no code | 🧑 |
+| 02 | Does DCS lift a too-low aircraft on its own? The clearance rule depends on the answer | none — a question, no code | ✅ |
+| 03 | Floor every aircraft given a role at a clearance above the ground | low — moves only a flight asked under 150 m above the ground | ✅ |
 
 ## Definition of done
 
@@ -84,7 +85,7 @@ also reads `y`, through `veaf.makeVec3`. Nothing else on the path compares a hei
 sites *assign* one, always into `y`.
 
 **2. A fourth site exists, off the spawn path, and has its own lot.**
-[`FIX-MG-ENERGY-READS-EASTING`](../FIX-MG-ENERGY-READS-EASTING/PRD.md) —
+[`FIX-MG-ENERGY-READS-EASTING`](../archive/FIX-MG-ENERGY-READS-EASTING.md) —
 `VeafMG_Weapon:getCurrentEnergy` computes a missile's potential energy as `mass × 9.81 ×
 getPoint().z`, the easting. Not widened into this lot, per the instruction to open one instead.
 
@@ -97,3 +98,36 @@ to spawn as a static"* is the **only** air case `veafSpawn.spawnUnit` can reach,
 **4. The guard was refusing something after all — the wrong thing.** *"The guard has never rejected
 anything"* holds for the map, not for the axis: `z <= 10` did fire within ten metres of the theatre's
 central meridian. It is also why the aircraft case of the pinning test looked correct.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+R9: `_spawn cap, side red, alt 2` over flat ground spawned a MiG-21 15 m above the ground; it hit
+shrubs and trees within a second and crashed (`PILOT_DEAD`, `CRASH`). DCS does not clamp: refusing
+only a point under the terrain is not enough, a clearance margin is needed — or the lift
+`veafDcsSpawner` already applies. An aircraft static on a beach (1.8 m) spawns fine.
+
+## Ticket 03 — the floor (2026-10-03)
+
+David's call on the two forms of ticket 02: a floor, not a random band. The `-cap` that crashed never
+reached `VeafGroupSpawn:_altitudeFor`: `VeafAircraftSpawn:spawn` writes `unit.alt = spot.y` for an
+airborne role after the clone is built, so the 10 m clearance there never applied. The floor lives where
+the altitude is decided:
+
+- `veafAircraftSpawn.MINIMUM_CLEARANCE_METRES = 150` (about 500 ft) and
+  `veafAircraftSpawn.flooredAltitude(point, altitude)`, which logs at info when it raises one;
+- `VeafAircraftSpawn:spawn` floors the spot of any role that does not start on a take-off point — the
+  unit, and the `zone_defense` patrol that flies at the spot's altitude. A QRA whose editor group
+  answers no unit fell back to a spot at `y = 0`, sea level;
+- `-cap` floors its altitude before building the race-track, so the patrol does not dive back to it.
+
+`VeafGroupSpawn`'s own band (MiST's numbers, for clones without a role) is left alone: it serves combat
+zone respawns that this measurement did not touch. Tests on both sides of the floor, proven red with
+the floor disabled.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**the aircraft height check reads the easting.** `checkPositionForUnit` converts `spawnPosition.z` to a mission-table easting on line 390, then tests the same field as an altitude on line 412 (`z <= 10`). Every caller hands in a `veaf.placePointOnLand` result whose height is in `y` — `veafSpawnAircraft` writes `spawnSpot.y = alt` just before calling. So "an aircraft will not spawn below 10 m" tests whether the point is more than 10 m **east of the theatre origin**, true almost everywhere: the guard has never rejected anything. Found 2026-09-01 by `CHORE-ONE-TERRAIN-CHECK` and kept out of it, since that lot may not move a spawn answer. Third easting/altitude confusion in three days — enumerate the other height tests rather than sample. **Fixed 2026-09-01**: the test reads `y` and refuses a point *under* the terrain, which is the only form that does not break static aircraft on coastal ground (a literal `y <= 10` refuses them at 1 m). The enumeration found one other height test on the path, correct, and a **fourth** site off it — see FIX-MG-ENERGY-READS-EASTING. Left at 🧑 for the one question the code cannot answer: whether DCS lifts a too-low aircraft, which decides if a clearance margin is needed on top. **Answered in game 2026-10-03: it does not** — every aircraft given a role is now floored 150 m above the ground (ticket 03)

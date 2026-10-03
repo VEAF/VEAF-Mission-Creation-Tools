@@ -1,1531 +1,2045 @@
-# DCS airfield ATC frequencies (MHz), per theatre.
-# Generated from a DCS install's Mods/terrains/<Theatre>/Radio.lua.
-# Bands: uhf (UHF), vhf (VHF_HI), fm (VHF_LOW); HF dropped.
-# Install-dependent (terrain files), so NOT CI-guarded and may grow as
-# maps are installed. Re-run `veaf-build update-dcs-data --airfield-freqs --dcs-path <DCS>`.
-# Used by convert-v5 to alias hardcoded frequencies to airfield names.
+# DCS airfield ATC frequencies (MHz), per theatre and DCS airdrome id.
+# Captured from a running DCS with the Mission Editor's own logic (DCS completes bands the
+# text of Radio.lua does not hold), TACAN from Beacons.lua. Do not edit: regenerate with
+# `veaf-build update-dcs-data --airfield-freqs` from veaf_build/dcs_data/airfield_freq_dumps/.
+# Bands: uhf, vhf (VHF high), fm (VHF low); HF dropped. Names are Airbase:getName().
 
 theatres:
   Caucasus:
-    Anapa:
-      uhf: 250.0
-      vhf: 121.0
+    12:
+      name: Anapa-Vityazevo
       fm: 38.4
-    Batumi:
-      uhf: 260.0
-      vhf: 131.0
-      fm: 40.4
-    Beslan:
-      uhf: 270.0
-      vhf: 141.0
-      fm: 42.4
-    Gelendzhik:
-      uhf: 255.0
-      vhf: 126.0
-      fm: 39.4
-    Gudauta:
-      uhf: 259.0
-      vhf: 130.0
-      fm: 40.2
-    Khanskaya:
-      uhf: 254.0
+      vhf: 121.0
+      uhf: 250.0
+    13:
+      name: Krasnodar-Center
+      fm: 38.6
+      vhf: 122.0
+      uhf: 251.0
+    14:
+      name: Novorossiysk
+      fm: 38.8
+      vhf: 123.0
+      uhf: 252.0
+    15:
+      name: Krymsk
+      fm: 39.0
+      vhf: 124.0
+      uhf: 253.0
+    16:
+      name: Maykop-Khanskaya
+      fm: 39.2
       vhf: 125.0
-      fm: 39.2
-    Kobuleti:
-      uhf: 262.0
-      vhf: 133.0
-      fm: 40.8
-    Kolkhi:
-      uhf: 261.0
-      vhf: 132.0
-      fm: 40.6
-    Krasnodar:
-      uhf: 251.0
-      vhf: 122.0
-      fm: 38.6
-    Krymsk:
-      uhf: 253.0
-      vhf: 124.0
-      fm: 39.0
-    Kutaisi:
-      uhf: 263.0
-      vhf: 134.0
-      fm: 41.0
-    Lochini:
-      uhf: 267.0
-      vhf: 138.0
-      fm: 41.8
-    Minvody:
-      uhf: 264.0
-      vhf: 135.0
-      fm: 41.2
-    Mozdok:
-      uhf: 266.0
-      vhf: 137.0
-      fm: 41.6
-    Nalchik:
-      uhf: 265.0
-      vhf: 136.0
-      fm: 41.4
-    Novorossiysk:
-      uhf: 252.0
-      vhf: 123.0
-      fm: 38.8
-    Pashkovsky:
+      uhf: 254.0
+    17:
+      name: Gelendzhik
+      fm: 39.4
+      vhf: 126.0
+      uhf: 255.0
+    18:
+      name: Sochi-Adler
+      fm: 39.6
+      vhf: 127.0
+      uhf: 256.0
+    19:
+      name: Krasnodar-Pashkovsky
+      fm: 39.8
+      vhf: 128.0
       uhf: 257.0
-      vhf: 128.0
-      fm: 39.8
-    Sochi:
-      uhf: 256.0
-      vhf: 127.0
-      fm: 39.6
-    Soganlug:
-      uhf: 268.0
-      vhf: 139.0
-      fm: 42.0
-    Sukhumi:
+    20:
+      name: Sukhumi-Babushara
+      fm: 40.0
+      vhf: 129.0
       uhf: 258.0
-      vhf: 129.0
-      fm: 40.0
-    Vaziani:
-      uhf: 269.0
-      vhf: 140.0
-      fm: 42.2
-  GermanyColdWar:
-    ANTRAKT:
-      uhf: 225.0
-      vhf: 118.0
-      fm: 38.4
-    Adelsheim:
-      uhf: 256.15
-      vhf: 118.0
-      fm: 42.0
-    AirracingFrankfurt:
-      uhf: 252.65
-      vhf: 118.4
-      fm: 41.05
-    AirracingKoblenz:
-      uhf: 251.05
-      vhf: 118.25
-      fm: 39.45
-    AirracingLubeck:
-      uhf: 252.6
-      vhf: 118.35
-      fm: 41.0
-    BAATH:
-      uhf: 253.85
-      vhf: 125.5
-      fm: 42.25
-    BAIKAL:
-      uhf: 255.3
-      vhf: 118.4
-      fm: 42.35
-    BERGBAU:
-      uhf: 255.65
-      vhf: 120.5
-      fm: 41.85
-    BUCHEL:
-      uhf: 252.9
-      vhf: 122.1
-      fm: 41.3
-    BadDurkheim:
-      uhf: 253.05
-      vhf: 134.5
-      fm: 41.45
-    Barth:
-      uhf: 254.0
-      vhf: 124.1
-      fm: 41.8
-    Bienenfarm:
-      uhf: 250.55
-      vhf: 134.7
-      fm: 38.95
-    Bitburg:
-      uhf: 252.55
-      vhf: 118.7
-      fm: 40.95
-    Braunschweig:
-      uhf: 250.35
-      vhf: 120.05
-      fm: 38.75
-    Bremen:
-      uhf: 254.1
-      vhf: 118.45
-      fm: 41.7
-    Buckeburg:
-      uhf: 254.2
-      vhf: 118.05
-      fm: 39.55
-    Celle:
-      uhf: 254.6
-      vhf: 122.1
-      fm: 41.9
-    Cologne:
-      uhf: 255.2
-      vhf: 119.7
-      fm: 42.3
-    Coral:
-      uhf: 256.1
-      vhf: 121.25
-      fm: 42.0
-    DEFEKT:
-      uhf: 253.0
-      vhf: 124.5
-      fm: 41.4
-    Dedelow:
-      uhf: 250.2
-      vhf: 119.0
-      fm: 38.6
-    Dusseldorf:
-      uhf: 255.25
-      vhf: 118.3
-      fm: 42.4
-    FRANKFURT:
-      uhf: 251.85
-      vhf: 127.3
-      fm: 40.25
-    Fassberg:
-      uhf: 251.0
-      vhf: 122.1
-      fm: 39.4
-    Fritzlar:
-      uhf: 251.35
-      vhf: 126.5
-      fm: 39.75
-    Fulda:
-      uhf: 252.0
-      vhf: 126.0
-      fm: 40.4
-    GAZOVIJ:
-      uhf: 252.5
-      vhf: 118.5
-      fm: 40.9
-    GESETZ:
-      uhf: 251.15
-      vhf: 132.8
-      fm: 39.55
-    GIDROSTAT:
-      uhf: 253.45
-      vhf: 123.5
-      fm: 41.85
-    GREIF:
-      uhf: 254.25
-      vhf: 127.0
-      fm: 40.35
-    GUSAR:
-      uhf: 252.75
-      vhf: 129.9
-      fm: 41.15
-    Gardelegen:
-      uhf: 250.65
-      vhf: 119.0
-      fm: 39.05
-    Gatow:
-      uhf: 251.3
-      vhf: 122.1
-      fm: 39.7
-    Gelnhausen:
-      uhf: 253.1
-      vhf: 119.0
-      fm: 41.5
-    Giebelstadt:
-      uhf: 251.6
-      vhf: 135.9
-      fm: 40.0
-    Glindbruchkippe:
-      uhf: 250.7
-      vhf: 119.0
-      fm: 39.1
-    GrosseWiese:
-      uhf: 251.25
-      vhf: 134.6
-      fm: 39.65
-    Gutersloh:
-      uhf: 252.2
-      vhf: 122.1
-      fm: 40.6
-    HALIFAX:
-      uhf: 250.95
-      vhf: 118.2
-      fm: 39.35
-    Hahn:
-      uhf: 251.4
-      vhf: 119.5
-      fm: 39.8
-    Haina:
-      uhf: 251.75
-      vhf: 119.75
-      fm: 40.15
-    Hamburg:
-      uhf: 252.35
-      vhf: 126.85
-      fm: 40.75
-    HamburgFinkenwerder:
-      uhf: 252.4
-      vhf: 123.2
-      fm: 40.8
-    Hannover:
-      uhf: 252.45
-      vhf: 120.2
-      fm: 40.85
-    Hasselfelde:
-      uhf: 251.2
-      vhf: 119.0
-      fm: 39.6
-    Heidelberg:
-      uhf: 257.8
-      vhf: 142.2
-      fm: 42.0
-    Herrenteich:
-      uhf: 253.15
-      vhf: 127.4
-      fm: 41.55
-    HildesHeim:
-      uhf: 250.8
-      vhf: 118.3
-      fm: 39.2
-    Hockenheim:
-      uhf: 253.2
-      vhf: 134.6
-      fm: 41.6
-    KLEJONKA:
-      uhf: 254.45
-      vhf: 129.0
-      fm: 39.85
-    KUKAN:
-      uhf: 253.65
-      vhf: 122.0
-      fm: 42.05
-    Kammermark:
-      uhf: 250.25
-      vhf: 119.0
-      fm: 38.65
-    Kastrup:
-      uhf: 255.4
-      vhf: 118.1
-      fm: 39.65
-    Kiel:
-      uhf: 255.45
-      vhf: 119.9
-      fm: 41.85
-    LATEX:
-      uhf: 252.3
-      vhf: 129.0
-      fm: 40.7
-    LEKTORSTART:
-      uhf: 252.7
-      vhf: 129.5
-      fm: 41.1
-    LEOPARD:
-      uhf: 251.65
-      vhf: 128.0
-      fm: 40.05
-    LEXIJA:
-      uhf: 253.8
-      vhf: 122.5
-      fm: 42.2
-    Landstuhl:
-      uhf: 266.65
-      vhf: 138.6
-      fm: 38.45
-    Langenselbold:
-      uhf: 253.25
-      vhf: 126.1
-      fm: 41.65
-    Lubeck:
-      uhf: 254.3
-      vhf: 128.7
-      fm: 41.6
-    Luneburg:
-      uhf: 254.55
-      vhf: 136.5
-      fm: 41.45
-    MELODRAMA:
-      uhf: 250.5
-      vhf: 127.1
-      fm: 38.9
-    MOCKAU:
-      uhf: 252.95
-      vhf: 119.75
-      fm: 41.35
-    MUSKAT:
-      uhf: 252.15
-      vhf: 127.2
-      fm: 40.55
-    Mainz Finthen:
-      uhf: 230.0
-      vhf: 124.0
-      fm: 38.8
-    Mendig:
-      uhf: 252.1
-      vhf: 122.1
-      fm: 40.5
-    NARSAN:
-      uhf: 251.1
-      vhf: 125.8
-      fm: 39.5
-    Narcoze:
-      uhf: 253.55
-      vhf: 124.0
-      fm: 41.95
-    Nordholz:
-      uhf: 315.7
-      vhf: 142.9
-      fm: 40.85
-    Northeim:
-      uhf: 254.65
-      vhf: 134.6
-      fm: 41.25
-    Norvenich:
-      uhf: 365.0
-      vhf: 123.0
-      fm: 41.2
-    OSENNIY:
-      uhf: 252.8
-      vhf: 126.1
-      fm: 41.2
-    Ober-Morlen:
-      uhf: 253.35
-      vhf: 134.6
-      fm: 41.75
-    PESTRIJ:
-      uhf: 252.05
-      vhf: 122.9
-      fm: 40.45
-    PROIMA:
-      uhf: 251.9
-      vhf: 122.1
-      fm: 40.3
-    Perwenitz:
-      uhf: 255.85
-      vhf: 118.0
-      fm: 42.0
-    Pferdsfeld:
-      uhf: 252.85
-      vhf: 132.65
-      fm: 41.25
-    Pinnow:
-      uhf: 250.6
-      vhf: 119.0
-      fm: 39.0
-    Pottschutthohe:
-      uhf: 253.4
-      vhf: 134.6
-      fm: 41.8
-    RAMSTEIN:
-      uhf: 251.95
-      vhf: 133.2
-      fm: 40.35
-    Revinge:
-      uhf: 315.7
-      vhf: 142.9
-      fm: 40.25
-    Rinteln:
-      uhf: 250.9
-      vhf: 134.8
-      fm: 39.3
-    Ronne:
-      uhf: 257.8
-      vhf: 118.35
-      fm: 42.15
-    SADOVIJ:
-      uhf: 254.7
-      vhf: 126.0
-      fm: 38.45
-    SEMBACH:
-      uhf: 251.45
-      vhf: 121.5
-      fm: 39.85
-    SEMELNI:
-      uhf: 254.35
-      vhf: 125.9
-      fm: 39.8
-    SOUVENIR:
-      uhf: 250.1
-      vhf: 123.1
-      fm: 38.5
-    Schonefeld:
-      uhf: 253.6
-      vhf: 121.3
-      fm: 42.0
-    Schweinfurt:
-      uhf: 251.7
-      vhf: 119.95
-      fm: 40.1
-    Sittensen:
-      uhf: 255.9
-      vhf: 118.0
-      fm: 42.0
-    Spangdahlem:
-      uhf: 251.8
-      vhf: 122.2
+    21:
+      name: Gudauta
       fm: 40.2
-    Sprendlingen:
-      uhf: 255.95
-      vhf: 118.0
-      fm: 42.0
-    Sturup:
-      uhf: 255.6
-      vhf: 118.8
-      fm: 39.9
-    Tagra:
-      uhf: 255.9
-      vhf: 118.0
-      fm: 42.0
-    Tegel:
-      uhf: 253.7
-      vhf: 124.5
-      fm: 42.1
-    Tempelhof:
-      uhf: 253.75
-      vhf: 119.5
-      fm: 42.15
-    Thurland:
-      uhf: 256.0
-      vhf: 118.0
-      fm: 42.0
-    UNRECHT:
-      uhf: 254.15
-      vhf: 135.55
-      fm: 40.2
-    Uelzen:
-      uhf: 250.15
-      vhf: 119.1
-      fm: 38.55
-    Uetersen:
-      uhf: 254.5
-      vhf: 119.0
-      fm: 41.55
-    Ummern:
-      uhf: 250.75
-      vhf: 134.2
-      fm: 39.15
-    Verden-Scharnhorst:
-      uhf: 250.85
-      vhf: 127.7
-      fm: 39.25
-    WADAJOM:
-      uhf: 251.5
-      vhf: 132.5
-      fm: 39.9
-    Walldorf:
-      uhf: 253.3
-      vhf: 134.6
-      fm: 41.7
-    Waren_Vielist:
-      uhf: 250.45
-      vhf: 134.8
-      fm: 38.85
-    Werneuchen:
-      uhf: 253.9
-      vhf: 122.6
-      fm: 42.3
-    WeserWumme:
-      uhf: 250.3
-      vhf: 119.0
-      fm: 38.7
-    Wiesbaden:
-      uhf: 252.25
-      vhf: 118.1
-      fm: 40.65
-    Wismar:
-      uhf: 250.4
-      vhf: 134.3
-      fm: 38.8
-    Worms:
-      uhf: 253.5
-      vhf: 127.1
-      fm: 41.9
-    Wunstorf:
-      uhf: 253.95
-      vhf: 121.1
-      fm: 39.95
-    Wurzen:
-      uhf: 254.4
-      vhf: 127.5
-      fm: 41.3
-    ZADAR:
-      uhf: 365.5
-      vhf: 124.0
-      fm: 41.2
-    ZAPAIKA:
-      uhf: 255.15
-      vhf: 118.15
-      fm: 42.25
-    ZWEROBOJ:
-      uhf: 255.1
-      vhf: 122.3
-      fm: 42.2
-    Zerbst:
-      uhf: 254.05
-      vhf: 119.8
-      fm: 40.95
-    Zollschen:
-      uhf: 256.05
-      vhf: 118.0
-      fm: 42.0
-    Zweibrucken:
-      uhf: 251.55
-      vhf: 123.0
-      fm: 39.95
-  MarianaIslands:
-    PGRO:
-      uhf: 250.0
-      vhf: 123.6
-      fm: 38.4
-    PGSN:
-      uhf: 256.9
-      vhf: 125.7
-      fm: 38.45
-    PGUA:
-      uhf: 250.1
-      vhf: 126.2
-      fm: 38.6
-    PGUM:
-      uhf: 340.2
-      vhf: 118.1
-      fm: 38.55
-    PGWT:
-      uhf: 250.05
-      vhf: 123.65
-      fm: 38.5
-  Normandy:
-    AbbevilleDrucat:
-      uhf: 253.5
-      vhf: 118.05
-      fm: 41.9
-    Alderney:
-      uhf: 254.2
-      vhf: 122.05
-      fm: 42.4
-    Amiens-Glisy:
-      uhf: 252.6
-      vhf: 120.8
-      fm: 38.4
-    Argentan:
-      uhf: 251.2
-      vhf: 119.4
-      fm: 39.65
-    Avranches:
-      uhf: 252.95
-      vhf: 121.15
-      fm: 41.35
-    Azeville:
-      uhf: 250.25
-      vhf: 118.35
-      fm: 38.7
-    Barville:
-      uhf: 251.3
-      vhf: 119.5
-      fm: 39.75
-    Bazenville:
-      uhf: 250.55
-      vhf: 118.7
-      fm: 39.0
-    Beaumont-le-Roger:
-      uhf: 253.05
-      vhf: 121.25
-      fm: 41.45
-    Beauvais-Tille:
-      uhf: 251.85
-      vhf: 120.05
-      fm: 40.3
-    Bembridg:
-      uhf: 360.0
-      vhf: 123.0
-      fm: 42.35
-    BenysurMer:
-      uhf: 250.65
-      vhf: 118.8
-      fm: 39.1
-    BernayStMartin:
-      uhf: 253.15
-      vhf: 121.35
-      fm: 41.55
-    BigginHill:
-      uhf: 253.3
-      vhf: 134.8
-      fm: 41.7
-    Biniville:
-      uhf: 250.0
-      vhf: 118.0
-      fm: 38.45
-    Broglie:
-      uhf: 253.1
-      vhf: 121.3
-      fm: 41.5
-    Brucheville:
-      uhf: 252.65
-      vhf: 120.85
-      fm: 41.05
-    Cardonville:
-      uhf: 250.05
-      vhf: 118.1
-      fm: 38.5
-    Carpiquet:
-      uhf: 250.45
-      vhf: 118.6
-      fm: 38.9
-    Chailey:
-      uhf: 250.9
-      vhf: 119.05
-      fm: 39.35
-    Chapelle:
-      uhf: 250.15
-      vhf: 118.2
-      fm: 38.6
-    Conches:
-      uhf: 251.65
-      vhf: 119.85
-      fm: 40.1
-    Cormeilles-en-Vexin:
-      uhf: 251.9
-      vhf: 120.1
-      fm: 40.35
-    Creil:
-      uhf: 251.95
-      vhf: 120.15
-      fm: 40.4
-    Cretteville:
-      uhf: 251.6
-      vhf: 119.8
-      fm: 40.05
-    Cricqueville-en-Bessin:
-      uhf: 253.75
-      vhf: 121.7
-      fm: 42.15
-    Deanland:
-      uhf: 252.35
-      vhf: 120.55
-      fm: 40.8
-    Deauville:
-      uhf: 252.8
-      vhf: 121.0
-      fm: 41.2
-    Detling:
-      uhf: 253.4
-      vhf: 118.45
-      fm: 41.8
-    DeuxJumeaux:
-      uhf: 250.1
-      vhf: 118.15
-      fm: 38.55
-    Dinan-Trelivan:
-      uhf: 252.1
-      vhf: 120.3
-      fm: 40.55
-    Dunkirk:
-      uhf: 253.7
-      vhf: 132.45
-      fm: 42.1
-    Eastchurch:
-      uhf: 253.85
-      vhf: 119.25
-      fm: 42.25
-    Essay:
-      uhf: 251.35
-      vhf: 119.55
-      fm: 39.8
-    Evreux:
-      uhf: 250.85
-      vhf: 119.0
-      fm: 39.3
-    Farnborough:
-      uhf: 252.25
-      vhf: 120.45
-      fm: 40.7
-    Fecamp-Benouville:
-      uhf: 252.2
-      vhf: 120.4
-      fm: 40.65
-    Flers:
-      uhf: 252.9
-      vhf: 121.1
-      fm: 41.3
-    Ford:
-      uhf: 251.15
-      vhf: 119.35
-      fm: 39.6
-    Friston:
-      uhf: 252.3
-      vhf: 120.5
-      fm: 40.75
-    Funtington:
-      uhf: 251.0
-      vhf: 119.15
-      fm: 39.45
-    Goulet:
-      uhf: 251.25
-      vhf: 119.45
-      fm: 39.7
-    Gravesend:
-      uhf: 253.0
-      vhf: 121.2
-      fm: 41.4
-    Guernsey:
-      uhf: 254.1
-      vhf: 118.25
-      fm: 42.3
-    Guyancourt:
-      uhf: 252.0
-      vhf: 120.2
-      fm: 40.45
-    Hauterive:
-      uhf: 251.4
-      vhf: 119.6
-      fm: 39.85
-    Hawkinge:
-      uhf: 253.9
-      vhf: 121.8
-      fm: 42.3
-    Headcorn:
-      uhf: 254.25
-      vhf: 122.1
-      fm: 42.4
-    HighHalden:
-      uhf: 253.65
-      vhf: 121.65
-      fm: 42.05
-    HolmsleySouth:
-      uhf: 254.4
-      vhf: 122.6
-      fm: 41.9
-    Jersey:
-      uhf: 254.15
-      vhf: 122.0
-      fm: 42.2
-    Kenley:
-      uhf: 251.8
-      vhf: 120.0
-      fm: 40.25
-    Lantheuil:
-      uhf: 250.8
-      vhf: 118.95
-      fm: 39.25
-    Lashenden:
-      uhf: 253.8
-      vhf: 121.75
-      fm: 42.2
-    LeMolay:
-      uhf: 253.2
-      vhf: 121.4
-      fm: 41.6
-    Lessay:
-      uhf: 253.95
-      vhf: 121.85
-      fm: 42.1
-    Lignerolles:
-      uhf: 251.05
-      vhf: 119.2
-      fm: 39.5
-    LonguesSurMer:
-      uhf: 250.4
-      vhf: 118.55
-      fm: 38.85
-    Lonrai:
-      uhf: 252.05
-      vhf: 120.25
-      fm: 40.5
-    Lymington:
-      uhf: 251.45
-      vhf: 119.65
-      fm: 39.9
-    Lympne:
-      uhf: 253.45
-      vhf: 121.5
-      fm: 41.85
-    Manston:
-      uhf: 253.35
-      vhf: 118.25
-      fm: 41.75
-    Maupertus:
-      uhf: 252.15
-      vhf: 120.35
-      fm: 40.6
-    MervilleCalonne:
-      uhf: 253.6
-      vhf: 121.6
-      fm: 42.0
-    NeedsOarPoint:
-      uhf: 250.95
-      vhf: 119.1
-      fm: 39.4
-    Northolt:
-      uhf: 254.35
-      vhf: 122.5
-      fm: 41.6
-    Odiham:
-      uhf: 251.55
-      vhf: 119.75
-      fm: 40.0
-    Orly:
-      uhf: 252.5
-      vhf: 120.7
-      fm: 40.95
-    Poix:
-      uhf: 252.45
-      vhf: 120.65
-      fm: 40.9
-    Ronai:
-      uhf: 252.7
-      vhf: 120.9
-      fm: 41.1
-    Rouen-Boos:
-      uhf: 252.75
-      vhf: 120.95
-      fm: 41.15
-    Rucqueville:
-      uhf: 250.7
-      vhf: 118.85
-      fm: 39.15
-    Saint-Andre-de-lEure:
-      uhf: 253.25
-      vhf: 121.45
-      fm: 41.65
-    Saint-Pol-Bryas:
-      uhf: 254.3
-      vhf: 122.15
-      fm: 41.4
-    SaintAubin:
-      uhf: 252.85
-      vhf: 121.05
-      fm: 41.25
-    SaintCroixSurMer:
-      uhf: 250.6
-      vhf: 118.75
-      fm: 39.05
-    SaintLaurentSurMer:
-      uhf: 254.0
-      vhf: 121.9
-      fm: 42.0
-    SaintOmerLonguenesseWizernes:
-      uhf: 253.55
-      vhf: 121.55
-      fm: 41.95
-    SaintPierreDuMont:
-      uhf: 250.5
-      vhf: 118.65
-      fm: 38.95
-    Sommervieu:
-      uhf: 250.75
-      vhf: 118.9
-      fm: 39.2
-    StoneyCross:
-      uhf: 252.55
-      vhf: 120.75
-      fm: 41.0
-    Tangmere:
-      uhf: 251.1
-      vhf: 119.3
-      fm: 39.55
-    Triqueville:
-      uhf: 252.4
-      vhf: 120.6
-      fm: 40.85
-    Villacoublay:
-      uhf: 251.75
-      vhf: 119.95
-      fm: 40.2
-    Vrigny:
-      uhf: 251.5
-      vhf: 119.7
-      fm: 39.95
-    WestMalling:
-      uhf: 251.7
-      vhf: 119.9
-      fm: 40.15
-  PersianGulf:
-    Havadarya:
-      vhf: 123.15
-    KERMAN:
-      vhf: 118.25
-    Khasab:
-      vhf: 124.35
-    Kish:
-      vhf: 121.65
-    LVA:
-      vhf: 128.55
-    OIBA:
-      vhf: 122.9
-    OIBL:
-      vhf: 121.7
-    OIBS:
-      vhf: 135.05
-    OIKB:
-      vhf: 118.1
-    OIKJ:
-      vhf: 136.0
-    OISL:
-      vhf: 127.35
-    OMAA:
-      vhf: 119.2
-    OMAD:
-      vhf: 119.9
-    OMAL:
-      vhf: 119.85
-    OMAM:
-      vhf: 126.5
-    OMDB:
-      vhf: 118.75
-    OMDM:
-      vhf: 118.55
-    OMDW:
-      vhf: 118.6
-    OMFJ:
-      vhf: 124.6
-    OMLW:
-      vhf: 119.3
-    OMNK:
-      vhf: 128.9
-    OMRK:
-      vhf: 121.6
-    OMSN:
-      uhf: 250.8
-    Qeshm Island:
-      vhf: 118.05
-    SHIRAZ:
-      vhf: 121.9
-    SharjahIntl:
-      vhf: 118.6
-  Sinai:
-    ABR:
-      uhf: 250.9
-      vhf: 118.5
-      fm: 39.3
-    AbuSultan:
-      uhf: 250.55
-      vhf: 118.45
-      fm: 38.95
-    AbuSuwayr:
-      uhf: 251.1
-      vhf: 118.85
-      fm: 39.5
-    AlMansurah:
-      uhf: 250.25
-      vhf: 118.25
-      fm: 38.65
-    BAR:
-      uhf: 251.35
-      vhf: 119.15
-      fm: 39.75
-    BAZL:
-      uhf: 250.95
-      vhf: 118.75
-      fm: 39.35
-    BBES:
-      uhf: 250.35
-      vhf: 118.35
-      fm: 38.75
-    BEAI:
-      uhf: 251.4
-      vhf: 119.1
-      fm: 39.8
-    BGN:
-      uhf: 250.8
-      vhf: 134.6
-      fm: 39.2
-    BSF:
-      uhf: 251.3
-      vhf: 127.1
-      fm: 39.7
-    CAI:
-      uhf: 250.4
-      vhf: 118.1
-      fm: 38.8
-    CCE:
-      uhf: 250.2
-      vhf: 118.9
-      fm: 38.6
-    DAMSC:
-      uhf: 226.1
-      vhf: 118.5
-      fm: 40.95
-    EIN:
-      uhf: 227.85
-      vhf: 124.55
-      fm: 41.45
-    EKH:
-      uhf: 251.2
-      vhf: 118.95
-      fm: 39.6
-    ELGO:
-      uhf: 251.15
-      vhf: 118.2
-      fm: 39.55
-    EMY:
-      uhf: 251.45
-      vhf: 119.2
-      fm: 39.85
-    ERH:
-      uhf: 251.25
-      vhf: 119.05
-      fm: 39.65
-    Fayed:
-      uhf: 252.1
-      vhf: 119.7
-      fm: 40.5
-    GEL:
-      uhf: 251.5
-      vhf: 119.25
-      fm: 39.9
-    HASH:
-      uhf: 251.0
-      vhf: 118.8
-      fm: 39.4
-    HATZ:
-      uhf: 250.6
-      vhf: 118.55
-      fm: 39.0
-    Hatzerim:
-      uhf: 252.15
-      vhf: 119.75
-      fm: 40.55
-    HatzerimHeliBase:
-      uhf: 250.15
-      vhf: 118.15
-      fm: 38.55
-    Hurghada:
-      uhf: 251.55
-      vhf: 119.6
-      fm: 39.95
-    ISH:
-      uhf: 250.5
-      vhf: 118.4
-      fm: 38.9
-    Ismailia:
-      uhf: 252.0
-      vhf: 118.1
-      fm: 40.4
-    JNAB:
-      uhf: 251.6
-      vhf: 119.3
-      fm: 40.0
-    KAM:
-      uhf: 251.7
-      vhf: 119.4
-      fm: 40.1
-    KBT:
-      uhf: 250.1
-      vhf: 118.05
-      fm: 38.5
-    KHAL:
-      uhf: 227.9
-      vhf: 128.4
-      fm: 40.7
-    KING:
-      uhf: 227.95
-      vhf: 129.2
-      fm: 40.75
-    MED:
-      uhf: 225.9
-      vhf: 123.0
-      fm: 41.15
-    MEZH:
-      uhf: 227.2
-      vhf: 126.0
-      fm: 41.35
-    Melez:
-      uhf: 252.05
-      vhf: 119.65
-      fm: 40.45
-    Nevatim:
-      uhf: 252.2
-      vhf: 132.4
-      fm: 40.6
-    OVD:
-      uhf: 250.05
-      vhf: 129.9
-      fm: 38.45
-    PALM:
-      uhf: 250.65
-      vhf: 118.6
-      fm: 39.05
-    QWN:
-      uhf: 251.95
-      vhf: 119.55
-      fm: 40.35
-    RAM:
-      uhf: 252.25
-      vhf: 119.8
-      fm: 40.65
-    RDAB:
-      uhf: 251.1
-      vhf: 118.0
-      fm: 38.4
-    RIH:
-      uhf: 251.05
-      vhf: 121.0
-      fm: 39.45
-    SDE:
-      uhf: 250.7
-      vhf: 118.65
-      fm: 39.1
-    SHM:
-      uhf: 251.8
-      vhf: 118.9
-      fm: 40.2
-    SPX:
-      uhf: 250.45
-      vhf: 131.2
-      fm: 38.85
-    STC:
-      uhf: 250.85
-      vhf: 124.5
-      fm: 39.25
-    Salihiyah:
-      uhf: 251.65
-      vhf: 119.35
-      fm: 40.05
-    TABA:
-      uhf: 227.15
-      vhf: 121.9
-      fm: 42.2
-    TABH:
-      uhf: 228.0
-      vhf: 129.25
-      fm: 40.8
-    TBK:
-      uhf: 229.4
-      vhf: 125.9
-      fm: 42.15
-    TELN:
-      uhf: 250.75
-      vhf: 118.7
-      fm: 39.15
-    WAR:
-      uhf: 251.85
-      vhf: 119.45
-      fm: 40.25
-    WAS:
-      uhf: 251.9
-      vhf: 119.5
-      fm: 40.3
-    Zaqaziq:
-      uhf: 250.3
-      vhf: 118.3
-      fm: 38.7
-  Syria:
-    Abu_Ad_Duhur:
-      uhf: 250.5
-      vhf: 122.2
-      fm: 38.95
-    Adana:
-      uhf: 251.25
-      vhf: 121.1
-      fm: 39.7
-    Adiyaman:
-      uhf: 243.0
-      vhf: 121.5
-      fm: 41.85
-    Akrotiri:
-      uhf: 252.0
-      vhf: 128.0
-      fm: 40.45
-    Al_Qusayr:
-      uhf: 251.8
-      vhf: 119.2
-      fm: 40.25
-    Aleppo:
-      uhf: 251.1
-      vhf: 119.1
-      fm: 39.55
-    Amman:
-      uhf: 253.1
-      vhf: 118.1
-      fm: 41.55
-    An_Nasiriyah:
-      uhf: 252.3
-      vhf: 122.3
-      fm: 40.75
-    As_Suwayda:
-      uhf: 252.8
-      vhf: 118.0
-      fm: 41.25
-    At-Tanf:
-      uhf: 252.9
-      vhf: 121.1
-      fm: 41.35
-    BenGurion:
-      uhf: 250.7
-      vhf: 134.6
-      fm: 39.15
-    Chukurova:
-      uhf: 245.0
-      vhf: 120.8
-      fm: 38.4
-    Damascus:
-      uhf: 253.25
-      vhf: 118.5
-      fm: 41.7
-    Deirez-Zor:
-      uhf: 251.95
-      vhf: 118.1
-      fm: 40.4
-    Der_Salman:
-      uhf: 253.3
-      vhf: 122.9
-      fm: 41.75
-    Diyarbakir:
-      uhf: 225.0
-      vhf: 132.4
-      fm: 38.9
-    Dumayr:
-      uhf: 253.35
-      vhf: 120.3
-      fm: 41.8
-    Ercan:
-      uhf: 252.25
-      vhf: 120.2
-      fm: 40.7
-    Eyn_Shemer:
-      uhf: 250.05
-      vhf: 123.4
-      fm: 38.45
-    Gaziantep:
-      uhf: 250.1
-      vhf: 120.1
-      fm: 38.5
-    Gazipasa:
-      uhf: 251.9
-      vhf: 119.25
-      fm: 40.35
-    Gecitkale:
-      uhf: 252.35
-      vhf: 120.0
-      fm: 40.8
-    H3:
-      uhf: 252.5
-      vhf: 122.0
-      fm: 40.95
-    H3_Northwest:
-      uhf: 252.55
-      vhf: 122.1
-      fm: 41.0
-    H3_Southwest:
-      uhf: 252.6
-      vhf: 122.4
-      fm: 41.05
-    H4:
-      uhf: 250.15
-      vhf: 122.6
-      fm: 38.55
-    H4 Emergency:
-      uhf: 250.0
-      vhf: 118.5
-      fm: 40.0
-    Haifa:
-      uhf: 250.2
-      vhf: 127.8
-      fm: 38.6
-    Hama:
-      uhf: 250.25
-      vhf: 118.05
-      fm: 38.65
-    Hamat:
-      uhf: 251.85
-      vhf: 120.5
-      fm: 40.3
-    Hariri:
-      uhf: 253.2
-      vhf: 118.9
-      fm: 41.65
-    Hatay:
-      uhf: 250.3
-      vhf: 128.5
-      fm: 38.7
-    Hatzerim:
+      vhf: 130.0
       uhf: 259.0
-      vhf: 128.2
-      fm: 41.95
-    Hatzor:
-      uhf: 250.75
-      vhf: 125.75
-      fm: 39.2
-    Herzliya:
-      uhf: 253.05
-      vhf: 122.2
-      fm: 41.5
-    Incirlik:
-      uhf: 360.1
-      vhf: 122.1
-      fm: 38.75
-    Jirah:
-      uhf: 250.35
-      vhf: 118.1
-      fm: 38.8
-    Kahramanmaras:
-      uhf: 225.0
-      vhf: 118.75
-      fm: 38.4
-    Kedem:
-      uhf: 256.0
-      vhf: 119.0
-      fm: 41.9
-    Khalkhalah:
-      uhf: 250.4
-      vhf: 122.5
-      fm: 38.85
-    Kharab_Ishk:
-      uhf: 252.75
-      vhf: 122.2
-      fm: 41.2
-    King_Abdullah:
-      uhf: 253.0
-      vhf: 118.4
-      fm: 41.45
-    Kingsfield:
-      uhf: 252.05
-      vhf: 121.0
-      fm: 40.5
-    Kiryat:
-      uhf: 250.55
-      vhf: 118.4
-      fm: 39.0
-    Konya:
-      uhf: 225.0
-      vhf: 132.4
-      fm: 38.9
-    Lakatamia:
-      uhf: 252.2
-      vhf: 120.2
-      fm: 40.65
-    Larnaca:
-      uhf: 252.15
-      vhf: 121.2
+    22:
+      name: Batumi
+      fm: 40.4
+      vhf: 131.0
+      uhf: 260.0
+      tacan: 16X
+    23:
+      name: Senaki-Kolkhi
       fm: 40.6
-    Latakia:
-      uhf: 250.6
-      vhf: 118.1
-      fm: 39.05
-    Mafraq:
-      uhf: 250.45
-      vhf: 118.3
-      fm: 38.9
-    Marj_Al_Sultan:
-      uhf: 250.85
-      vhf: 122.7
-      fm: 39.3
-    Marj_Ruhayyil:
-      uhf: 250.9
-      vhf: 120.8
-      fm: 39.35
-    Meggido:
-      uhf: 250.95
-      vhf: 119.9
-      fm: 39.4
-    Mezzeh:
-      uhf: 251.0
-      vhf: 120.7
-      fm: 39.45
-    Minakh:
-      uhf: 251.05
-      vhf: 120.6
-      fm: 39.5
-    Naqoura:
-      uhf: 252.45
-      vhf: 122.0
-      fm: 40.9
-    Nevatim:
-      uhf: 225.0
-      vhf: 132.4
-      fm: 38.9
-    Pafos:
-      uhf: 252.1
-      vhf: 119.9
-      fm: 40.55
-    Palmahim:
-      uhf: 250.8
-      vhf: 118.25
-      fm: 39.25
-    Palmyra:
-      uhf: 251.15
-      vhf: 121.9
-      fm: 39.6
-    Pinarbashi:
-      uhf: 252.4
-      vhf: 121.0
-      fm: 40.85
-    PrinceHassan:
-      uhf: 252.95
-      vhf: 122.6
+      vhf: 132.0
+      uhf: 261.0
+      tacan: 31X
+    24:
+      name: Kobuleti
+      fm: 40.8
+      vhf: 133.0
+      uhf: 262.0
+      tacan: 67X
+    25:
+      name: Kutaisi
+      fm: 41.0
+      vhf: 134.0
+      uhf: 263.0
+      tacan: 44X
+    26:
+      name: Mineralnye Vody
+      fm: 41.2
+      vhf: 135.0
+      uhf: 264.0
+    27:
+      name: Nalchik
       fm: 41.4
-    Qabr_as_Sitt:
-      uhf: 251.2
-      vhf: 122.6
-      fm: 39.65
-    Ramat_David:
-      uhf: 251.3
-      vhf: 118.6
-      fm: 39.75
-    Rasin:
-      uhf: 251.35
-      vhf: 120.5
-      fm: 39.8
-    ReneMouaward:
-      uhf: 251.45
-      vhf: 121.0
-      fm: 39.9
-    Riyaq:
-      uhf: 251.4
-      vhf: 124.4
-      fm: 39.85
-    RoshPina:
-      uhf: 251.5
-      vhf: 118.45
-      fm: 39.95
-    Ruwayshid:
-      uhf: 252.65
-      vhf: 122.1
-      fm: 41.1
-    Salti:
-      uhf: 253.15
-      vhf: 120.5
+      vhf: 136.0
+      uhf: 265.0
+    28:
+      name: Mozdok
       fm: 41.6
-    Sanliurfa:
-      uhf: 252.7
-      vhf: 118.4
-      fm: 41.15
-    Sayqal:
-      uhf: 251.55
-      vhf: 120.4
-      fm: 40.0
-    Shayrat:
-      uhf: 251.6
-      vhf: 120.2
-      fm: 40.05
-    T2:
-      uhf: 255.0
-      vhf: 123.5
+      vhf: 137.0
+      uhf: 266.0
+    29:
+      name: Tbilisi-Lochini
+      fm: 41.8
+      vhf: 138.0
+      uhf: 267.0
+      tacan: 25X
+    30:
+      name: Soganlug
       fm: 42.0
-    T3:
-      uhf: 251.9
-      vhf: 119.25
-      fm: 40.35
-    Tabqa:
-      uhf: 251.65
+      vhf: 139.0
+      uhf: 268.0
+    31:
+      name: Vaziani
+      fm: 42.2
+      vhf: 140.0
+      uhf: 269.0
+      tacan: 22X
+    32:
+      name: Beslan
+      fm: 42.4
+      vhf: 141.0
+      uhf: 270.0
+  GermanyCW:
+    1:
+      name: Wittstock
+      fm: 40.9
       vhf: 118.5
-      fm: 40.1
-    Taftanaz:
-      uhf: 251.7
-      vhf: 122.8
-      fm: 40.15
-    Tal_Siman:
-      uhf: 252.85
-      vhf: 121.9
-      fm: 41.3
-    Tel_Nof:
-      uhf: 250.65
-      vhf: 128.1
-      fm: 39.1
-    Teyman:
-      uhf: 255.0
-      vhf: 123.5
-      fm: 42.0
-    Tiyas:
-      uhf: 251.75
-      vhf: 120.5
+      uhf: 252.5
+    2:
+      name: Altes Lager
+      fm: 42.2
+      vhf: 122.5
+      uhf: 253.8
+    3:
+      name: Barth
+      fm: 41.8
+      vhf: 124.1
+      uhf: 254.0
+    4:
+      name: Zerbst
+      fm: 40.95
+      vhf: 119.8
+      uhf: 254.05
+    5:
+      name: Bremen
+      fm: 41.7
+      vhf: 118.45
+      uhf: 254.1
+    6:
+      name: Briest
       fm: 40.2
-    Zarqa:
-      uhf: 252.1
+      vhf: 135.55
+      uhf: 254.15
+    7:
+      name: Buckeburg
+      fm: 39.55
+      vhf: 118.05
+      uhf: 254.2
+    8:
+      name: Celle
+      fm: 41.9
+      vhf: 122.1
+      uhf: 254.6
+    9:
+      name: Cochstedt
+      fm: 38.45
+      vhf: 126.0
+      uhf: 254.7
+    10:
+      name: Damgarten
+      fm: 38.9
+      vhf: 127.1
+      uhf: 250.5
+    11:
+      name: Fassberg
+      fm: 39.4
+      vhf: 122.1
+      uhf: 251.0
+      tacan: 95X
+    12:
+      name: Finow
+      fm: 39.5
+      vhf: 125.8
+      uhf: 251.1
+    13:
+      name: Garz
+      fm: 39.55
+      vhf: 132.8
+      uhf: 251.15
+    14:
+      name: Gatow
+      fm: 39.7
+      vhf: 122.1
+      uhf: 251.3
+    15:
+      name: Templin
+      fm: 40.05
+      vhf: 128.0
+      uhf: 251.65
+    16:
+      name: Gutersloh
+      fm: 40.6
+      vhf: 122.1
+      uhf: 252.2
+      tacan: 108X
+    17:
+      name: Hamburg
+      fm: 40.75
+      vhf: 126.85
+      uhf: 252.35
+    18:
+      name: Hamburg Finkenwerder
+      fm: 40.8
+      vhf: 123.2
+      uhf: 252.4
+    19:
+      name: Hannover
+      fm: 40.85
+      vhf: 120.2
+      uhf: 252.45
+    20:
+      name: Laage
+      fm: 41.1
+      vhf: 129.5
+      uhf: 252.7
+    21:
+      name: Larz
+      fm: 41.15
+      vhf: 129.9
+      uhf: 252.75
+    22:
+      name: Mahlwinkel
+      fm: 41.2
+      vhf: 126.1
+      uhf: 252.8
+    23:
+      name: Neubrandenburg
+      fm: 41.4
+      vhf: 124.5
+      uhf: 253.0
+    24:
+      name: Neuruppin
+      fm: 41.85
+      vhf: 123.5
+      uhf: 253.45
+    25:
+      name: Peenemunde
+      fm: 41.95
+      vhf: 124.0
+      uhf: 253.55
+    26:
+      name: Schonefeld
+      fm: 42.0
+      vhf: 121.3
+      uhf: 253.6
+    27:
+      name: Stendal
+      fm: 42.05
+      vhf: 122.0
+      uhf: 253.65
+    28:
+      name: Tegel
+      fm: 42.1
+      vhf: 124.5
+      uhf: 253.7
+      tacan: 70X
+    29:
+      name: Tempelhof
+      fm: 42.15
+      vhf: 119.5
+      uhf: 253.75
+      tacan: 88X
+    30:
+      name: Tutow
+      fm: 42.25
+      vhf: 125.5
+      uhf: 253.85
+    31:
+      name: Werneuchen
+      fm: 42.3
+      vhf: 122.6
+      uhf: 253.9
+    32:
+      name: Wunstorf
+      fm: 39.95
+      vhf: 121.1
+      uhf: 253.95
+      tacan: 116X
+    33:
+      name: Bornholm
+      fm: 42.15
+      vhf: 118.35
+      uhf: 257.8
+      tacan: 57X
+    34:
+      name: Brand
+      fm: 42.2
+      vhf: 122.3
+      uhf: 255.1
+    35:
+      name: Brandis
+      fm: 42.25
+      vhf: 118.15
+      uhf: 255.15
+    36:
+      name: Chojna
+      fm: 38.4
+      vhf: 118.0
+      uhf: 225.0
+    37:
+      name: Cologne
+      fm: 42.3
+      vhf: 119.7
+      uhf: 255.2
+    38:
+      name: Dusseldorf
+      fm: 42.4
+      vhf: 118.3
+      uhf: 255.25
+    39:
+      name: Falkenberg
+      fm: 42.35
+      vhf: 118.4
+      uhf: 255.3
+    40:
+      name: Heidelberg
+      fm: 42.0
+      vhf: 142.2
+      uhf: 257.8
+    41:
+      name: Kastrup
+      fm: 39.65
+      vhf: 118.1
+      uhf: 255.4
+      tacan: 72X
+    42:
+      name: Kiel
+      fm: 41.85
       vhf: 119.9
+      uhf: 255.45
+    43:
+      name: Landstuhl
+      fm: 38.45
+      vhf: 138.6
+      uhf: 266.65
+    44:
+      name: Mainz Finthen
+      fm: 38.8
+      vhf: 124.0
+      uhf: 230.0
+    45:
+      name: Sturup
+      fm: 39.9
+      vhf: 118.8
+      uhf: 255.6
+    46:
+      name: Marxwalde
+      fm: 41.85
+      vhf: 120.5
+      uhf: 255.65
+    47:
+      name: Nordholz
+      fm: 40.85
+      vhf: 142.9
+      uhf: 315.7
+    48:
+      name: Norvenich
+      fm: 41.2
+      vhf: 123.0
+      uhf: 365.0
+      tacan: 77X
+    49:
+      name: Oranienburg
+      fm: 41.2
+      vhf: 124.0
+      uhf: 365.5
+    50:
+      name: Szczecin-Goleniow
+      fm: 42.0
+      vhf: 121.25
+      uhf: 256.1
+    51:
+      name: Obermehler Schlotheim
+      fm: 40.45
+      vhf: 122.9
+      uhf: 252.05
+    52:
+      name: Adelsheim
+      fm: 42.0
+      vhf: 118.0
+      uhf: 256.15
+    79:
+      name: Revinge
+      fm: 40.25
+      vhf: 142.9
+      uhf: 315.7
+    80:
+      name: Gross Mohrdorf
+      fm: 40.35
+      vhf: 127.0
+      uhf: 254.25
+    81:
+      name: Lubeck
+      fm: 41.6
+      vhf: 128.7
+      uhf: 254.3
+    82:
+      name: Kothen
+      fm: 39.8
+      vhf: 125.9
+      uhf: 254.35
+    83:
+      name: Dessau
+      fm: 41.3
+      vhf: 127.5
+      uhf: 254.4
+    84:
+      name: Parchim
+      fm: 39.85
+      vhf: 129.0
+      uhf: 254.45
+    86:
+      name: Uetersen
+      fm: 41.55
+      vhf: 119.0
+      uhf: 254.5
+    87:
+      name: Tagra
+      fm: 42.0
+      vhf: 118.0
+      uhf: 255.9
+    89:
+      name: Luneburg
+      fm: 41.45
+      vhf: 136.5
+      uhf: 254.55
+    90:
+      name: Northeim
+      fm: 41.25
+      vhf: 134.6
+      uhf: 254.65
+    101:
+      name: Sperenberg
+      fm: 38.5
+      vhf: 123.1
+      uhf: 250.1
+    102:
+      name: Uelzen
+      fm: 38.55
+      vhf: 119.1
+      uhf: 250.15
+    103:
+      name: Dedelow
+      fm: 38.6
+      vhf: 119.0
+      uhf: 250.2
+    104:
+      name: Kammermark
+      fm: 38.65
+      vhf: 119.0
+      uhf: 250.25
+    106:
+      name: Weser Wumme
+      fm: 38.7
+      vhf: 119.0
+      uhf: 250.3
+    107:
+      name: Braunschweig
+      fm: 38.75
+      vhf: 120.05
+      uhf: 250.35
+    108:
+      name: Wismar
+      fm: 38.8
+      vhf: 134.3
+      uhf: 250.4
+    109:
+      name: Waren Vielist
+      fm: 38.85
+      vhf: 134.8
+      uhf: 250.45
+    110:
+      name: Bienenfarm
+      fm: 38.95
+      vhf: 134.7
+      uhf: 250.55
+    111:
+      name: Pinnow
+      fm: 39.0
+      vhf: 119.0
+      uhf: 250.6
+    112:
+      name: Gardelegen
+      fm: 39.05
+      vhf: 119.0
+      uhf: 250.65
+    113:
+      name: Glindbruchkippe
+      fm: 39.1
+      vhf: 119.0
+      uhf: 250.7
+    114:
+      name: Ummern
+      fm: 39.15
+      vhf: 134.2
+      uhf: 250.75
+    115:
+      name: Hildesheim
+      fm: 39.2
+      vhf: 118.3
+      uhf: 250.8
+    116:
+      name: Verden-Scharnhorst
+      fm: 39.25
+      vhf: 127.7
+      uhf: 250.85
+    117:
+      name: Rinteln
+      fm: 39.3
+      vhf: 134.8
+      uhf: 250.9
+    118:
+      name: Holzdorf
+      fm: 39.35
+      vhf: 118.2
+      uhf: 250.95
+    123:
+      name: Airracing Koblenz
+      fm: 39.45
+      vhf: 118.25
+      uhf: 251.05
+    125:
+      name: Perwenitz
+      fm: 42.0
+      vhf: 118.0
+      uhf: 255.85
+    131:
+      name: Sittensen
+      fm: 42.0
+      vhf: 118.0
+      uhf: 255.9
+    135:
+      name: Sprendlingen
+      fm: 42.0
+      vhf: 118.0
+      uhf: 255.95
+    136:
+      name: Thurland
+      fm: 42.0
+      vhf: 118.0
+      uhf: 256.0
+    137:
+      name: Zollschen
+      fm: 42.0
+      vhf: 118.0
+      uhf: 256.05
+    140:
+      name: Hasselfelde
+      fm: 39.6
+      vhf: 119.0
+      uhf: 251.2
+    141:
+      name: Grosse Wiese
+      fm: 39.65
+      vhf: 134.6
+      uhf: 251.25
+    154:
+      name: Fritzlar
+      fm: 39.75
+      vhf: 126.5
+      uhf: 251.35
+    155:
+      name: Hahn
+      fm: 39.8
+      vhf: 119.5
+      uhf: 251.4
+      tacan: 24X
+    156:
+      name: Sembach
+      fm: 39.85
+      vhf: 121.5
+      uhf: 251.45
+      tacan: 28X
+    157:
+      name: Allstedt
+      fm: 39.9
+      vhf: 132.5
+      uhf: 251.5
+    158:
+      name: Zweibrucken
+      fm: 39.95
+      vhf: 123.0
+      uhf: 251.55
+      tacan: 48X
+    159:
+      name: Giebelstadt
+      fm: 40.0
+      vhf: 135.9
+      uhf: 251.6
+      tacan: 47X
+    160:
+      name: Schweinfurt
+      fm: 40.1
+      vhf: 119.95
+      uhf: 251.7
+    161:
+      name: Haina
+      fm: 40.15
+      vhf: 119.75
+      uhf: 251.75
+    162:
+      name: Spangdahlem
+      fm: 40.2
+      vhf: 122.2
+      uhf: 251.8
+      tacan: 32X
+    163:
+      name: Frankfurt
+      fm: 40.25
+      vhf: 127.3
+      uhf: 251.85
+      tacan: 89X
+    164:
+      name: Bindersleben
+      fm: 40.3
+      vhf: 122.1
+      uhf: 251.9
+    165:
+      name: Ramstein
+      fm: 40.35
+      vhf: 133.2
+      uhf: 251.95
+      tacan: 81X
+    166:
+      name: Fulda
+      fm: 40.4
+      vhf: 126.0
+      uhf: 252.0
+    168:
+      name: Mendig
+      fm: 40.5
+      vhf: 122.1
+      uhf: 252.1
+    169:
+      name: Merseburg
       fm: 40.55
+      vhf: 127.2
+      uhf: 252.15
+    170:
+      name: Wiesbaden
+      fm: 40.65
+      vhf: 118.1
+      uhf: 252.25
+      tacan: 88X
+    171:
+      name: Schkeuditz
+      fm: 40.7
+      vhf: 129.0
+      uhf: 252.3
+    200:
+      name: Bitburg
+      fm: 40.95
+      vhf: 118.7
+      uhf: 252.55
+      tacan: 56X
+    201:
+      name: Airracing Lubeck
+      fm: 41.0
+      vhf: 118.35
+      uhf: 252.6
+    204:
+      name: Airracing Frankfurt
+      fm: 41.05
+      vhf: 118.4
+      uhf: 252.65
+    232:
+      name: Pferdsfeld
+      fm: 41.25
+      vhf: 132.65
+      uhf: 252.85
+      tacan: 77X
+    235:
+      name: Buchel
+      fm: 41.3
+      vhf: 122.1
+      uhf: 252.9
+      tacan: 118X
+    236:
+      name: Leipzig Mockau
+      fm: 41.35
+      vhf: 119.75
+      uhf: 252.95
+    242:
+      name: Bad Durkheim
+      fm: 41.45
+      vhf: 134.5
+      uhf: 253.05
+    243:
+      name: Gelnhausen
+      fm: 41.5
+      vhf: 119.0
+      uhf: 253.1
+    244:
+      name: Herrenteich
+      fm: 41.55
+      vhf: 127.4
+      uhf: 253.15
+    245:
+      name: Hockenheim
+      fm: 41.6
+      vhf: 134.6
+      uhf: 253.2
+    246:
+      name: Langenselbold
+      fm: 41.65
+      vhf: 126.1
+      uhf: 253.25
+    247:
+      name: Walldorf
+      fm: 41.7
+      vhf: 134.6
+      uhf: 253.3
+    248:
+      name: Ober-Morlen
+      fm: 41.75
+      vhf: 134.6
+      uhf: 253.35
+    249:
+      name: Pottschutthohe
+      fm: 41.8
+      vhf: 134.6
+      uhf: 253.4
+    250:
+      name: Worms
+      fm: 41.9
+      vhf: 127.1
+      uhf: 253.5
+  MarianaIslands:
+    1:
+      name: Rota Intl
+      fm: 38.4
+      vhf: 123.6
+      uhf: 250.0
+    2:
+      name: Saipan Intl
+      fm: 38.45
+      vhf: 125.7
+      uhf: 256.9
+    3:
+      name: Tinian Intl
+      fm: 38.5
+      vhf: 123.65
+      uhf: 250.05
+    4:
+      name: Antonio B. Won Pat Intl
+      fm: 38.55
+      vhf: 118.1
+      uhf: 340.2
+    6:
+      name: Andersen AFB
+      fm: 38.6
+      vhf: 126.2
+      uhf: 250.1
+      tacan: 54X
+  Normandy:
+    1:
+      name: Saint Pierre du Mont
+      fm: 38.95
+      vhf: 118.65
+      uhf: 250.5
+    2:
+      name: Lignerolles
+      fm: 39.5
+      vhf: 119.2
+      uhf: 251.05
+    3:
+      name: Cretteville
+      fm: 40.05
+      vhf: 119.8
+      uhf: 251.6
+    4:
+      name: Maupertus
+      fm: 40.6
+      vhf: 120.35
+      uhf: 252.15
+    5:
+      name: Brucheville
+      fm: 41.05
+      vhf: 120.85
+      uhf: 252.65
+    6:
+      name: Meautis
+      fm: 41.6
+      vhf: 121.4
+      uhf: 253.2
+    7:
+      name: Cricqueville-en-Bessin
+      fm: 42.15
+      vhf: 121.7
+      uhf: 253.75
+    8:
+      name: Lessay
+      fm: 42.1
+      vhf: 121.85
+      uhf: 253.95
+    9:
+      name: Sainte-Laurent-sur-Mer
+      fm: 42.0
+      vhf: 121.9
+      uhf: 254.0
+    10:
+      name: Biniville
+      fm: 38.45
+      vhf: 118.0
+      uhf: 250.0
+    11:
+      name: Cardonville
+      fm: 38.5
+      vhf: 118.1
+      uhf: 250.05
+    12:
+      name: Deux Jumeaux
+      fm: 38.55
+      vhf: 118.15
+      uhf: 250.1
+    13:
+      name: Chippelle
+      fm: 38.6
+      vhf: 118.2
+      uhf: 250.15
+    14:
+      name: Beuzeville
+      fm: 38.65
+      vhf: 118.3
+      uhf: 250.2
+    15:
+      name: Azeville
+      fm: 38.7
+      vhf: 118.35
+      uhf: 250.25
+    16:
+      name: Picauville
+      fm: 38.75
+      vhf: 118.4
+      uhf: 250.3
+    17:
+      name: Le Molay
+      fm: 38.8
+      vhf: 118.5
+      uhf: 250.35
+    18:
+      name: Longues-sur-Mer
+      fm: 38.85
+      vhf: 118.55
+      uhf: 250.4
+    19:
+      name: Carpiquet
+      fm: 38.9
+      vhf: 118.6
+      uhf: 250.45
+    20:
+      name: Bazenville
+      fm: 39.0
+      vhf: 118.7
+      uhf: 250.55
+    21:
+      name: Sainte-Croix-sur-Mer
+      fm: 39.05
+      vhf: 118.75
+      uhf: 250.6
+    22:
+      name: Beny-sur-Mer
+      fm: 39.1
+      vhf: 118.8
+      uhf: 250.65
+    23:
+      name: Rucqueville
+      fm: 39.15
+      vhf: 118.85
+      uhf: 250.7
+    24:
+      name: Sommervieu
+      fm: 39.2
+      vhf: 118.9
+      uhf: 250.75
+    25:
+      name: Lantheuil
+      fm: 39.25
+      vhf: 118.95
+      uhf: 250.8
+    26:
+      name: Evreux
+      fm: 39.3
+      vhf: 119.0
+      uhf: 250.85
+    27:
+      name: Chailey
+      fm: 39.35
+      vhf: 119.05
+      uhf: 250.9
+    28:
+      name: Needs Oar Point
+      fm: 39.4
+      vhf: 119.1
+      uhf: 250.95
+    29:
+      name: Funtington
+      fm: 39.45
+      vhf: 119.15
+      uhf: 251.0
+    30:
+      name: Tangmere
+      fm: 39.55
+      vhf: 119.3
+      uhf: 251.1
+    31:
+      name: Ford
+      fm: 39.6
+      vhf: 119.35
+      uhf: 251.15
+    32:
+      name: Argentan
+      fm: 39.65
+      vhf: 119.4
+      uhf: 251.2
+    33:
+      name: Goulet
+      fm: 39.7
+      vhf: 119.45
+      uhf: 251.25
+    34:
+      name: Barville
+      fm: 39.75
+      vhf: 119.5
+      uhf: 251.3
+    35:
+      name: Essay
+      fm: 39.8
+      vhf: 119.55
+      uhf: 251.35
+    36:
+      name: Hauterive
+      fm: 39.85
+      vhf: 119.6
+      uhf: 251.4
+    37:
+      name: Lymington
+      fm: 39.9
+      vhf: 119.65
+      uhf: 251.45
+    38:
+      name: Vrigny
+      fm: 39.95
+      vhf: 119.7
+      uhf: 251.5
+    39:
+      name: Odiham
+      fm: 40.0
+      vhf: 119.75
+      uhf: 251.55
+    40:
+      name: Conches
+      fm: 40.1
+      vhf: 119.85
+      uhf: 251.65
+    41:
+      name: West Malling
+      fm: 40.15
+      vhf: 119.9
+      uhf: 251.7
+    42:
+      name: Villacoublay
+      fm: 40.2
+      vhf: 119.95
+      uhf: 251.75
+    43:
+      name: Kenley
+      fm: 40.25
+      vhf: 120.0
+      uhf: 251.8
+    44:
+      name: Beauvais-Tille
+      fm: 40.3
+      vhf: 120.05
+      uhf: 251.85
+    45:
+      name: Cormeilles-en-Vexin
+      fm: 40.35
+      vhf: 120.1
+      uhf: 251.9
+    46:
+      name: Creil
+      fm: 40.4
+      vhf: 120.15
+      uhf: 251.95
+    47:
+      name: Guyancourt
+      fm: 40.45
+      vhf: 120.2
+      uhf: 252.0
+    48:
+      name: Lonrai
+      fm: 40.5
+      vhf: 120.25
+      uhf: 252.05
+    49:
+      name: Dinan-Trelivan
+      fm: 40.55
+      vhf: 120.3
+      uhf: 252.1
+    51:
+      name: Fecamp-Benouville
+      fm: 40.65
+      vhf: 120.4
+      uhf: 252.2
+    52:
+      name: Farnborough
+      fm: 40.7
+      vhf: 120.45
+      uhf: 252.25
+    53:
+      name: Friston
+      fm: 40.75
+      vhf: 120.5
+      uhf: 252.3
+    54:
+      name: Deanland
+      fm: 40.8
+      vhf: 120.55
+      uhf: 252.35
+    55:
+      name: Triqueville
+      fm: 40.85
+      vhf: 120.6
+      uhf: 252.4
+    56:
+      name: Poix
+      fm: 40.9
+      vhf: 120.65
+      uhf: 252.45
+    57:
+      name: Orly
+      fm: 40.95
+      vhf: 120.7
+      uhf: 252.5
+    58:
+      name: Stoney Cross
+      fm: 41.0
+      vhf: 120.75
+      uhf: 252.55
+    59:
+      name: Amiens-Glisy
+      fm: 38.4
+      vhf: 120.8
+      uhf: 252.6
+    60:
+      name: Ronai
+      fm: 41.1
+      vhf: 120.9
+      uhf: 252.7
+    61:
+      name: Rouen-Boos
+      fm: 41.15
+      vhf: 120.95
+      uhf: 252.75
+    62:
+      name: Deauville
+      fm: 41.2
+      vhf: 121.0
+      uhf: 252.8
+    63:
+      name: Saint-Aubin
+      fm: 41.25
+      vhf: 121.05
+      uhf: 252.85
+    64:
+      name: Flers
+      fm: 41.3
+      vhf: 121.1
+      uhf: 252.9
+    65:
+      name: Avranches Le Val-Saint-Pere
+      fm: 41.35
+      vhf: 121.15
+      uhf: 252.95
+    66:
+      name: Gravesend
+      fm: 41.4
+      vhf: 121.2
+      uhf: 253.0
+    67:
+      name: Beaumont-le-Roger
+      fm: 41.45
+      vhf: 121.25
+      uhf: 253.05
+    68:
+      name: Broglie
+      fm: 41.5
+      vhf: 121.3
+      uhf: 253.1
+    69:
+      name: Bernay Saint Martin
+      fm: 41.55
+      vhf: 121.35
+      uhf: 253.15
+    70:
+      name: Saint-Andre-de-lEure
+      fm: 41.65
+      vhf: 121.45
+      uhf: 253.25
+    71:
+      name: Biggin Hill
+      fm: 41.7
+      vhf: 134.8
+      uhf: 253.3
+    72:
+      name: Manston
+      fm: 41.75
+      vhf: 118.25
+      uhf: 253.35
+    73:
+      name: Detling
+      fm: 41.8
+      vhf: 118.45
+      uhf: 253.4
+    74:
+      name: Lympne
+      fm: 41.85
+      vhf: 121.5
+      uhf: 253.45
+    75:
+      name: Abbeville Drucat
+      fm: 41.9
+      vhf: 118.05
+      uhf: 253.5
+    76:
+      name: Saint-Omer Wizernes
+      fm: 41.95
+      vhf: 121.55
+      uhf: 253.55
+    77:
+      name: Merville Calonne
+      fm: 42.0
+      vhf: 121.6
+      uhf: 253.6
+    78:
+      name: High Halden
+      fm: 42.05
+      vhf: 121.65
+      uhf: 253.65
+    79:
+      name: Dunkirk-Mardyck
+      fm: 42.1
+      vhf: 132.45
+      uhf: 253.7
+    80:
+      name: Lashenden
+      fm: 42.2
+      vhf: 121.75
+      uhf: 253.8
+    81:
+      name: Eastchurch
+      fm: 42.25
+      vhf: 119.25
+      uhf: 253.85
+    82:
+      name: Hawkinge
+      fm: 42.3
+      vhf: 121.8
+      uhf: 253.9
+    83:
+      name: Guernsey
+      fm: 42.3
+      vhf: 118.25
+      uhf: 254.1
+    84:
+      name: Jersey
+      fm: 42.2
+      vhf: 122.0
+      uhf: 254.15
+    85:
+      name: Alderney
+      fm: 42.4
+      vhf: 122.05
+      uhf: 254.2
+    86:
+      name: Headcorn
+      fm: 42.4
+      vhf: 122.1
+      uhf: 254.25
+    87:
+      name: Saint-Pol-Bryas
+      fm: 41.4
+      vhf: 122.15
+      uhf: 254.3
+    88:
+      name: Northolt
+      fm: 41.6
+      vhf: 122.5
+      uhf: 254.35
+    89:
+      name: Holmsley South
+      fm: 41.9
+      vhf: 122.6
+      uhf: 254.4
+    90:
+      name: Bembridg
+      fm: 42.35
+      vhf: 123.0
+      uhf: 360.0
+  PersianGulf:
+    1:
+      name: Abu Musa Island
+      fm: 38.85
+      vhf: 122.9
+      uhf: 250.4
+    2:
+      name: Bandar Abbas Intl
+      fm: 39.4
+      vhf: 118.1
+      uhf: 251.0
+      tacan: 78X
+    3:
+      name: Bandar Lengeh
+      fm: 39.45
+      vhf: 121.7
+      uhf: 251.05
+    4:
+      name: Al Dhafra AFB
+      fm: 39.5
+      vhf: 126.5
+      uhf: 251.1
+      tacan: 96X
+    5:
+      name: Dubai Intl
+      fm: 39.55
+      vhf: 118.75
+      uhf: 251.15
+    6:
+      name: Al Maktoum Intl
+      fm: 39.6
+      vhf: 118.6
+      uhf: 251.2
+    7:
+      name: Fujairah Intl
+      fm: 39.65
+      vhf: 124.6
+      uhf: 251.25
+    9:
+      name: Havadarya
+      fm: 39.7
+      vhf: 123.15
+      uhf: 251.3
+      tacan: 47X
+    10:
+      name: Khasab
+      fm: 38.4
+      vhf: 124.35
+      uhf: 250.0
+    11:
+      name: Lar
+      fm: 38.45
+      vhf: 127.35
+      uhf: 250.05
+    12:
+      name: Al Minhad AFB
+      fm: 38.5
+      vhf: 118.55
+      uhf: 250.1
+      tacan: 99X
+    13:
+      name: Qeshm Island
+      fm: 38.55
+      vhf: 118.05
+      uhf: 250.15
+    14:
+      name: Sharjah Intl
+      fm: 38.6
+      vhf: 118.6
+      uhf: 250.2
+    15:
+      name: Sirri Island
+      fm: 38.65
+      vhf: 135.05
+      uhf: 250.25
+    17:
+      name: Sir Abu Nuayr
+      fm: 38.7
+      vhf: 118.0
+      uhf: 250.8
+    18:
+      name: Kerman
+      fm: 38.75
+      vhf: 118.25
+      uhf: 250.3
+      tacan: 97X
+    19:
+      name: Shiraz Intl
+      fm: 38.8
+      vhf: 121.9
+      uhf: 250.35
+      tacan: 94X
+    20:
+      name: Sas Al Nakheel
+      fm: 38.9
+      vhf: 128.9
+      uhf: 250.45
+    21:
+      name: Bandar-e-Jask
+      fm: 38.95
+      vhf: 118.15
+      uhf: 250.5
+      tacan: 110X
+    22:
+      name: Abu Dhabi Intl
+      fm: 39.0
+      vhf: 119.2
+      uhf: 250.55
+    23:
+      name: Al-Bateen
+      fm: 39.05
+      vhf: 119.9
+      uhf: 250.6
+    24:
+      name: Kish Intl
+      fm: 39.1
+      vhf: 121.65
+      uhf: 250.65
+      tacan: 112X
+    25:
+      name: Al Ain Intl
+      fm: 39.15
+      vhf: 119.85
+      uhf: 250.7
+    26:
+      name: Lavan Island
+      fm: 39.2
+      vhf: 128.55
+      uhf: 250.75
+    27:
+      name: Jiroft
+      fm: 39.25
+      vhf: 136.0
+      uhf: 250.85
+    28:
+      name: Ras Al Khaimah Intl
+      fm: 39.3
+      vhf: 121.6
+      uhf: 250.9
+    29:
+      name: Liwa AFB
+      fm: 39.35
+      vhf: 119.3
+      uhf: 250.95
+      tacan: 121X
+  SinaiMap:
+    1:
+      name: Difarsuwar Airfield
+      fm: 38.95
+      vhf: 118.45
+      uhf: 250.55
+    2:
+      name: Abu Suwayr
+      fm: 39.5
+      vhf: 118.85
+      uhf: 251.1
+    3:
+      name: As Salihiyah
+      fm: 40.05
+      vhf: 119.35
+      uhf: 251.65
+    4:
+      name: Al Ismailiyah
+      fm: 40.4
+      vhf: 118.1
+      uhf: 252.0
+    5:
+      name: Melez
+      fm: 40.45
+      vhf: 119.65
+      uhf: 252.05
+    6:
+      name: Fayed
+      fm: 40.5
+      vhf: 119.7
+      uhf: 252.1
+    7:
+      name: Hatzerim
+      fm: 40.55
+      vhf: 119.75
+      uhf: 252.15
+      tacan: 96X
+    8:
+      name: Nevatim
+      fm: 40.6
+      vhf: 132.4
+      uhf: 252.2
+    9:
+      name: Ramon Airbase
+      fm: 40.65
+      vhf: 119.8
+      uhf: 252.25
+      tacan: 105X
+    10:
+      name: Ovda
+      fm: 38.45
+      vhf: 129.9
+      uhf: 250.05
+    11:
+      name: Kibrit Air Base
+      fm: 38.5
+      vhf: 118.05
+      uhf: 250.1
+      tacan: 55X
+    12:
+      name: Kedem
+      fm: 38.55
+      vhf: 118.15
+      uhf: 250.15
+    13:
+      name: Wadi al Jandali
+      fm: 38.6
+      vhf: 118.9
+      uhf: 250.2
+    14:
+      name: Al Mansurah
+      fm: 38.65
+      vhf: 118.25
+      uhf: 250.25
+    15:
+      name: AzZaqaziq
+      fm: 38.7
+      vhf: 118.3
+      uhf: 250.3
+    16:
+      name: Bilbeis Air Base
+      fm: 38.75
+      vhf: 118.35
+      uhf: 250.35
+    17:
+      name: Cairo International Airport
+      fm: 38.8
+      vhf: 118.1
+      uhf: 250.4
+    18:
+      name: Cairo West
+      fm: 38.85
+      vhf: 131.2
+      uhf: 250.45
+    19:
+      name: Inshas Airbase
+      fm: 38.9
+      vhf: 118.4
+      uhf: 250.5
+    20:
+      name: Hatzor
+      fm: 39.0
+      vhf: 118.55
+      uhf: 250.6
+      tacan: 106X
+    21:
+      name: Palmachim
+      fm: 39.05
+      vhf: 118.6
+      uhf: 250.65
+    22:
+      name: Sde Dov
+      fm: 39.1
+      vhf: 118.65
+      uhf: 250.7
+    23:
+      name: Tel Nof
+      fm: 39.15
+      vhf: 118.7
+      uhf: 250.75
+      tacan: 87X
+    24:
+      name: Ben-Gurion
+      fm: 39.2
+      vhf: 134.6
+      uhf: 250.8
+    25:
+      name: St Catherine
+      fm: 39.25
+      vhf: 124.5
+      uhf: 250.85
+    26:
+      name: Abu Rudeis
+      fm: 39.3
+      vhf: 118.5
+      uhf: 250.9
+    27:
+      name: Baluza
+      fm: 39.35
+      vhf: 118.75
+      uhf: 250.95
+    28:
+      name: Bir Hasanah
+      fm: 39.4
+      vhf: 118.8
+      uhf: 251.0
+    29:
+      name: El Arish
+      fm: 39.45
+      vhf: 121.0
+      uhf: 251.05
+    30:
+      name: El Gora
+      fm: 39.55
+      vhf: 118.2
+      uhf: 251.15
+    31:
+      name: Al Khatatbah
+      fm: 39.6
+      vhf: 118.95
+      uhf: 251.2
+    32:
+      name: Al Rahmaniyah Air Base
+      fm: 39.65
+      vhf: 119.05
+      uhf: 251.25
+    33:
+      name: Beni Suef
+      fm: 39.7
+      vhf: 127.1
+      uhf: 251.3
+    34:
+      name: Birma Air Base
+      fm: 39.75
+      vhf: 119.15
+      uhf: 251.35
+    35:
+      name: Borg El Arab International Airport
+      fm: 39.8
+      vhf: 119.1
+      uhf: 251.4
+    36:
+      name: El Minya
+      fm: 39.85
+      vhf: 119.2
+      uhf: 251.45
+    37:
+      name: Gebel El Basur Air Base
+      fm: 39.9
+      vhf: 119.25
+      uhf: 251.5
+    38:
+      name: Hurghada International Airport
+      fm: 39.95
+      vhf: 119.6
+      uhf: 251.55
+    39:
+      name: Jiyanklis Air Base
+      fm: 40.0
+      vhf: 119.3
+      uhf: 251.6
+    40:
+      name: Kom Awshim
+      fm: 40.1
+      vhf: 119.4
+      uhf: 251.7
+    41:
+      name: Ramon International Airport
+      fm: 40.15
+      vhf: 119.0
+      uhf: 251.75
+    42:
+      name: Sharm El Sheikh International Airport
+      fm: 40.2
+      vhf: 118.9
+      uhf: 251.8
+    43:
+      name: Wadi Abu Rish
+      fm: 40.25
+      vhf: 119.45
+      uhf: 251.85
+    44:
+      name: Al Bahr al Ahmar
+      fm: 40.3
+      vhf: 119.5
+      uhf: 251.9
+    45:
+      name: Quwaysina
+      fm: 40.35
+      vhf: 119.55
+      uhf: 251.95
+    47:
+      name: Tabuk
+      fm: 42.15
+      vhf: 125.9
+      uhf: 229.4
+    48:
+      name: Damascus Intl
+      fm: 40.95
+      vhf: 118.5
+      uhf: 226.1
+    49:
+      name: Mezzeh Air Base
+      fm: 41.35
+      vhf: 126.0
+      uhf: 227.2
+    50:
+      name: Ramat David
+      fm: 38.4
+      vhf: 118.0
+      uhf: 251.1
+      tacan: 84X
+    51:
+      name: Megiddo
+      fm: 41.15
+      vhf: 123.0
+      uhf: 225.9
+    52:
+      name: Ein Shamer
+      fm: 41.45
+      vhf: 124.55
+      uhf: 227.85
+    53:
+      name: Taba International Airport
+      fm: 42.2
+      vhf: 121.9
+      uhf: 227.15
+    54:
+      name: King Feisal Air Base
+      fm: 40.75
+      vhf: 129.2
+      uhf: 227.95
+    55:
+      name: Khalkhalah Air Base
+      fm: 40.7
+      vhf: 128.4
+      uhf: 227.9
+  Syria:
+    1:
+      name: Abu al-Duhur
+      fm: 38.95
+      vhf: 122.2
+      uhf: 250.5
+    2:
+      name: Adana Sakirpasa
+      fm: 39.7
+      vhf: 121.1
+      uhf: 251.25
+    3:
+      name: Al Qusayr
+      fm: 40.25
+      vhf: 119.2
+      uhf: 251.8
+    4:
+      name: An Nasiriyah
+      fm: 40.75
+      vhf: 122.3
+      uhf: 252.3
+    5:
+      name: Tha'lah
+      fm: 41.25
+      vhf: 118.0
+      uhf: 252.8
+    6:
+      name: Beirut-Rafic Hariri
+      fm: 41.65
+      vhf: 118.9
+      uhf: 253.2
+    7:
+      name: Damascus
+      fm: 41.7
+      vhf: 118.5
+      uhf: 253.25
+    8:
+      name: Marj as Sultan South
+      fm: 41.75
+      vhf: 122.9
+      uhf: 253.3
+    9:
+      name: Al-Dumayr
+      fm: 41.8
+      vhf: 120.3
+      uhf: 253.35
+    10:
+      name: Eyn Shemer
+      fm: 38.45
+      vhf: 123.4
+      uhf: 250.05
+    11:
+      name: Gaziantep
+      fm: 38.5
+      vhf: 120.1
+      uhf: 250.1
+    12:
+      name: H4
+      fm: 38.55
+      vhf: 122.6
+      uhf: 250.15
+    13:
+      name: Haifa
+      fm: 38.6
+      vhf: 127.8
+      uhf: 250.2
+    14:
+      name: Hama
+      fm: 38.65
+      vhf: 118.05
+      uhf: 250.25
+    15:
+      name: Hatay
+      fm: 38.7
+      vhf: 128.5
+      uhf: 250.3
+    16:
+      name: Incirlik
+      fm: 38.75
+      vhf: 122.1
+      uhf: 360.1
+      tacan: 21X
+    17:
+      name: Jirah
+      fm: 38.8
+      vhf: 118.1
+      uhf: 250.35
+    18:
+      name: Khalkhalah
+      fm: 38.85
+      vhf: 122.5
+      uhf: 250.4
+    19:
+      name: King Hussein Air College
+      fm: 38.9
+      vhf: 118.3
+      uhf: 250.45
+    20:
+      name: Kiryat Shmona
+      fm: 39.0
+      vhf: 118.4
+      uhf: 250.55
+    21:
+      name: Bassel Al-Assad
+      fm: 39.05
+      vhf: 118.1
+      uhf: 250.6
+    22:
+      name: Marj as Sultan North
+      fm: 39.3
+      vhf: 122.7
+      uhf: 250.85
+    23:
+      name: Marj Ruhayyil
+      fm: 39.35
+      vhf: 120.8
+      uhf: 250.9
+    24:
+      name: Megiddo
+      fm: 39.4
+      vhf: 119.9
+      uhf: 250.95
+    25:
+      name: Mezzeh
+      fm: 39.45
+      vhf: 120.7
+      uhf: 251.0
+    26:
+      name: Minakh
+      fm: 39.5
+      vhf: 120.6
+      uhf: 251.05
+    27:
+      name: Aleppo
+      fm: 39.55
+      vhf: 119.1
+      uhf: 251.1
+    28:
+      name: Palmyra
+      fm: 39.6
+      vhf: 121.9
+      uhf: 251.15
+    29:
+      name: Qabr as Sitt
+      fm: 39.65
+      vhf: 122.6
+      uhf: 251.2
+    30:
+      name: Ramat David
+      fm: 39.75
+      vhf: 118.6
+      uhf: 251.3
+      tacan: 84X
+    31:
+      name: Kuweires
+      fm: 39.8
+      vhf: 120.5
+      uhf: 251.35
+    32:
+      name: Rayak
+      fm: 39.85
+      vhf: 124.4
+      uhf: 251.4
+    33:
+      name: Rene Mouawad
+      fm: 39.9
+      vhf: 121.0
+      uhf: 251.45
+    34:
+      name: Rosh Pina
+      fm: 39.95
+      vhf: 118.45
+      uhf: 251.5
+    35:
+      name: Sayqal
+      fm: 40.0
+      vhf: 120.4
+      uhf: 251.55
+    36:
+      name: Shayrat
+      fm: 40.05
+      vhf: 120.2
+      uhf: 251.6
+    37:
+      name: Tabqa
+      fm: 40.1
+      vhf: 118.5
+      uhf: 251.65
+    38:
+      name: Taftanaz
+      fm: 40.15
+      vhf: 122.8
+      uhf: 251.7
+    39:
+      name: Tiyas
+      fm: 40.2
+      vhf: 120.5
+      uhf: 251.75
+    40:
+      name: Wujah Al Hajar
+      fm: 40.3
+      vhf: 120.5
+      uhf: 251.85
+    41:
+      name: Gazipasa
+      fm: 40.35
+      vhf: 119.25
+      uhf: 251.9
+    42:
+      name: Deir ez-Zor
+      fm: 40.4
+      vhf: 118.1
+      uhf: 251.95
+    44:
+      name: Akrotiri
+      fm: 40.45
+      vhf: 128.0
+      uhf: 252.0
+      tacan: 107X
+    45:
+      name: Kingsfield
+      fm: 40.5
+      vhf: 121.0
+      uhf: 252.05
+    46:
+      name: Paphos
+      fm: 40.55
+      vhf: 119.9
+      uhf: 252.1
+      tacan: 79X
+    47:
+      name: Larnaca
+      fm: 40.6
+      vhf: 121.2
+      uhf: 252.15
+    48:
+      name: Lakatamia
+      fm: 40.65
+      vhf: 120.2
+      uhf: 252.2
+    49:
+      name: Ercan
+      fm: 40.7
+      vhf: 120.2
+      uhf: 252.25
+    50:
+      name: Gecitkale
+      fm: 40.8
+      vhf: 120.0
+      uhf: 252.35
+    51:
+      name: Pinarbashi
+      fm: 40.85
+      vhf: 121.0
+      uhf: 252.4
+    52:
+      name: Naqoura
+      fm: 40.9
+      vhf: 122.0
+      uhf: 252.45
+    53:
+      name: H3
+      fm: 40.95
+      vhf: 122.0
+      uhf: 252.5
+    54:
+      name: H3 Northwest
+      fm: 41.0
+      vhf: 122.1
+      uhf: 252.55
+    55:
+      name: H3 Southwest
+      fm: 41.05
+      vhf: 122.4
+      uhf: 252.6
+    56:
+      name: Zarqa
+      fm: 40.55
+      vhf: 119.9
+      uhf: 252.1
+    57:
+      name: Ruwayshid
+      fm: 41.1
+      vhf: 122.1
+      uhf: 252.65
+    58:
+      name: Sanliurfa
+      fm: 41.15
+      vhf: 118.4
+      uhf: 252.7
+    59:
+      name: Kharab Ishk
+      fm: 41.2
+      vhf: 122.2
+      uhf: 252.75
+    60:
+      name: Tal Siman
+      fm: 41.3
+      vhf: 121.9
+      uhf: 252.85
+    61:
+      name: H4 Emergency
+      fm: 40.0
+      vhf: 118.5
+      uhf: 250.0
+    62:
+      name: Nevatim
+      fm: 38.9
+      vhf: 132.4
+      uhf: 225.0
+    63:
+      name: At Tanf
+      fm: 41.35
+      vhf: 121.1
+      uhf: 252.9
+    64:
+      name: Prince Hassan
+      fm: 41.4
+      vhf: 122.6
+      uhf: 252.95
+      tacan: 106X
+    65:
+      name: King Abdullah II
+      fm: 41.45
+      vhf: 118.4
+      uhf: 253.0
+    66:
+      name: Herzliya
+      fm: 41.5
+      vhf: 122.2
+      uhf: 253.05
+    67:
+      name: Marka
+      fm: 41.55
+      vhf: 118.1
+      uhf: 253.1
+    68:
+      name: Muwaffaq Salti
+      fm: 41.6
+      vhf: 120.5
+      uhf: 253.15
+    75:
+      name: Kahramanmaras
+      fm: 38.4
+      vhf: 118.75
+      uhf: 225.0
+    81:
+      name: Hatzerim
+      fm: 41.95
+      vhf: 128.2
+      uhf: 259.0
+      tacan: 96X
+    88:
+      name: Kedem
+      fm: 41.9
+      vhf: 119.0
+      uhf: 256.0
+    90:
+      name: Chukurova
+      fm: 38.4
+      vhf: 120.8
+      uhf: 245.0
+    91:
+      name: Teyman
+      fm: 42.0
+      vhf: 123.5
+      uhf: 255.0
+    217:
+      name: Diyarbakir
+      fm: 38.9
+      vhf: 132.4
+      uhf: 225.0
+      tacan: 37X
+    218:
+      name: Konya
+      fm: 38.9
+      vhf: 132.4
+      uhf: 225.0
+      tacan: 88X
+    219:
+      name: Adiyaman
+      fm: 41.85
+      vhf: 121.5
+      uhf: 243.0
+    220:
+      name: Tel Nof
+      fm: 39.1
+      vhf: 128.1
+      uhf: 250.65
+      tacan: 87X
+    221:
+      name: Ben Gurion
+      fm: 39.15
+      vhf: 134.6
+      uhf: 250.7
+    222:
+      name: Hatzor
+      fm: 39.2
+      vhf: 125.75
+      uhf: 250.75
+      tacan: 106X
+    223:
+      name: Palmachim
+      fm: 39.25
+      vhf: 118.25
+      uhf: 250.8
+    225:
+      name: T2
+      fm: 42.0
+      vhf: 123.5
+      uhf: 255.0
+    226:
+      name: T3
+      fm: 40.35
+      vhf: 119.25
+      uhf: 251.9

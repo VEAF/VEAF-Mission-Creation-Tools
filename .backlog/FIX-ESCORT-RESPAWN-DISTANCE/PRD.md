@@ -1,6 +1,6 @@
 # FIX-ESCORT-RESPAWN-DISTANCE — a respawned asset reappears 80 km from its escort
 
-Status: 🧑 waiting-human — option (a) **shipped 2026-09-01 (PR #882)** and unit-tested; the one thing left is item R5 of `DCS-SESSION-TODO.md`, which no unit test can answer (the mocked `coalition.addGroup` does not register the group it is handed)
+Status: ✅ done — verified in game 2026-10-03 (R5)
 
 Origin: the in-game verification of [`FIX-ESCORT-RESPAWN-TASK`](../archive/FIX-ESCORT-RESPAWN-TASK.md),
 run 2026-08-28 on `VEAF-session-2026-08-27`. That lot's repair is now proven to work; the escort
@@ -112,7 +112,7 @@ naming convention — end up doing the same thing at respawn time. The page has 
       and what both outcomes mean, so the wait has somewhere to end
 - [x] The ASSETS page says what a respawn does to an escort — new section *What a respawn does to an
       escort* in both languages, including the cost: the escort that comes back is a fresh one
-- [ ] [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) closed, citing the
+- [x] [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) closed, citing the
       in-game measurement. Inherited from `FIX-ESCORT-RESPAWN-TASK` when that lot was archived on
       2026-09-26: it shipped the task repair, but #107's symptom — *the respawned escort does not
       follow* — is the distance this lot fixes, so the issue closes on **R5**, not on that lot
@@ -188,5 +188,19 @@ reasons are specific, not "it is a different function":
    verified from a workstation either way. Doing it here would also break RULE N°1: it is not
    adjacent to this change, it is a different change in the same file.
 
-Filed as [`FIX-TELEPORT-ESCORT-WAYPOINT`](../FIX-TELEPORT-ESCORT-WAYPOINT/PRD.md), which carries both
+Filed as [`FIX-TELEPORT-ESCORT-WAYPOINT`](../archive/FIX-TELEPORT-ESCORT-WAYPOINT.md), which carries both
 in the order they have to be taken: measure first, then fix the arithmetic.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Arco respawned: `Arco escort` came back with it and held 1.0–2.5 km, at its altitude; the control
+`Arco-escort1`, deliberately misnamed, was left behind and drifted to 15 km. `Arco escort` destroyed
+by script, then Arco respawned: a fresh escort came back and held 1.0–1.8 km.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a respawned asset reappears ~80 km from its escort.** `mist.respawnGroup` puts the tanker back at its mission start while its escorts fly on, so repairing the Escort task — which now demonstrably works — hands the escort a charge outside the task's own 60 km `engagementDistMax`. Measured 2026-08-28: 78 km and 82 km, one escort already landed at 14 m altitude. Two remedies tried in game and ruled out (`airborne=true`, pushing the Escort task straight onto the controller). **Design call made 2026-08-28: the escort respawns with its charge** (option a) — the only one of the three whose outcome is certain without a further measurement; the teleport path carries its own author's note that the escort does not defend, and nobody has seen an Escort task rally an aircraft from beyond its 60 km engagement distance. **Implemented 2026-09-01**: `veafMove.respawnEscort` puts `<asset> escort` back with its charge, and `veafAssets.respawn` runs asset → escort → repair — the order matters, since the repair reads the asset's fresh `Group.getID` and looks the escort up as a live group. Both halves are needed: putting the escort back does not restore the task, because what breaks it is the *escorted* group's id changing. The guard is the escort's **mission record**, not a live group, so an escort that was shot down comes back too. 8 tests, each shown red before the fix and red again under a deliberate sabotage of the finished code. The two `teleportEscort` defects the option-(b) sizing turned up are **out of scope** and filed as `FIX-TELEPORT-ESCORT-WAYPOINT` rather than dropped: both need a measurement in DCS, and nothing shipped here depends on them. Only the in-game check is left.

@@ -170,6 +170,14 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="airfield-channels",
+        description=t("tui.cmd.airfield_channels.description"),
+        prompts=[
+            # No `--apply` prompt: it names airfields, which is what the read-only listing is for.
+            ArgPrompt("neutral", t("tui.arg.airfield_channels_neutral"), is_flag=True),
+        ],
+    ),
+    CommandSpec(
         cli_name="extract-waypoints",
         description=t("tui.cmd.extract_waypoints.description"),
         prompts=[

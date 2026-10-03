@@ -34,7 +34,7 @@ UNORDERED_BY_DESIGN: frozenset[str] = frozenset({"COMMANDS", "MISSIONDB"})
 
 #: Modules in neither mechanism: libraries that publish onto ``veaf.*`` when their file loads.
 #: Their ``initialize()``, where they have one, logs a line and does nothing else.
-LIBRARY_MODULES: frozenset[str] = frozenset({"GEO", "I18N", "MATH", "SCHEDULER", "SPAWNER"})
+LIBRARY_MODULES: frozenset[str] = frozenset({"AIRSPAWN", "GEO", "I18N", "MATH", "SCHEDULER", "SPAWNER"})
 
 #: Modules known to initialise themselves at load time, on purpose. Both are read from the top
 #: level of other modules' files, so waiting for an init pass would be too late.

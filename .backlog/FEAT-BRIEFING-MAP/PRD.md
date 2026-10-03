@@ -1,6 +1,6 @@
 # FEAT-BRIEFING-MAP — the briefing map, drawn by the tools rather than by every mission
 
-Status: ⬜ ready — opened 2026-09-29.
+Status: ⏸ paused — opened 2026-09-29, paused 2026-09-30 (David): it serves only missions built from the Open Training prompt, so it waits.
 
 ## Origin
 
@@ -49,3 +49,9 @@ belong together; 02 is the small write that 01's output needs to reach DCS.
 - Every ticket closed.
 - The Caucasus-v6 map is rebuilt with the tool, and its three scripts can be deleted.
 - The prompt's §4.13 names the action and the command instead of describing a script to write.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**the briefing map, drawn by the tools rather than by every mission.** Opened 2026-09-29 after GermanyCW-v6 and Caucasus-v6 each wrote their own map script: no renderer, no action for the briefing picture (and `save_folder_mission` drops a new `mapResource` key), F10 drawings that cannot be regenerated. Also records a personal e-mail sent to the OpenStreetMap tile servers by the GermanyCW script. **Paused 2026-09-30**: only prompt-built missions need it

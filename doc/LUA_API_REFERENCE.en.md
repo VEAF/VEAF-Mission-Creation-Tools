@@ -2383,9 +2383,9 @@ Spawn CAP flight with patrol orbit.
 - `altitude` (number) - Patrol altitude (feet)
 - `altitudeDelta` (number, optional) - Altitude randomization
 - `hdg` (number) - Orbit heading
-- `distance` (number) - Distance to orbit (meters)
+- `distance` (number) - Length of the race-track leg (nautical miles, 20 by default)
 - `speed` (number) - Speed (knots)
-- `capRadius` (number) - Orbit radius (meters)
+- `capRadius` (number) - Radius of the defended zone, centred on the middle of the leg (nautical miles, 60 by default)
 - `skill` (string) - Skill level
 - `silent` (boolean, optional) - Suppress messages
 - `hiddenOnMFD` (boolean, optional) - Hide from MFD

@@ -14,7 +14,9 @@ from typing import Any
 from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.group_insertion import max_ids
 
+from veaf_mission_mcp.add_group import insert_group_into_content
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
+from veaf_mission_mcp.surface import surface_warnings
 
 #: Heliport type -> the `shape_name` the editor writes with it (135, 128, 52, 8 and 2 occurrences).
 _SHAPES: dict[str, str] = {
@@ -24,6 +26,11 @@ _SHAPES: dict[str, str] = {
     "FARP_SINGLE_01": "FARP_SINGLE_01",
     "FARP_T": "FARP_T",
 }
+
+#: The ammunition dump CTLD takes as a logistic point (`manage_logistics`), and how far east of the
+#: pad it goes: 120 m, as GermanyCW-v6 placed it beside each FARP and checked it in game (2026-09-28).
+_AMMO_DUMP_TYPE = "FARP Ammo Dump Coating"
+_AMMO_DUMP_OFFSET_M = 120.0
 
 #: DCS radio modulation codes.
 _MODULATIONS: dict[str, int] = {"AM": 0, "FM": 1}
@@ -41,6 +48,7 @@ def add_farp(
     frequency_mhz: float = 127.5,
     modulation: str = "AM",
     callsign_id: int = 1,
+    ammo_dump: bool = True,
 ) -> dict[str, Any]:
     """Place a heliport with its radio and a warehouse entry, backed up first.
 
@@ -59,9 +67,13 @@ def add_farp(
         frequency_mhz: The heliport's radio, in MHz (127.5, the editor's default, in 288 of 369).
         modulation: ``AM`` or ``FM``.
         callsign_id: The heliport's callsign index, 1-based as the editor lists them.
+        ammo_dump: Place a ``FARP Ammo Dump Coating`` static named ``<name> - Ammo``, 120 m east of
+            the pad, same coalition and country — CTLD's loading point. Each Syria FARP needed a
+            separate call for it (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 05).
 
     Returns:
-        ``{farp, group_id, unit_id, durable}``.
+        ``{farp, group_id, unit_id, durable, ammo_dump?, warnings?}`` — ``warnings`` when the pad is in the sea
+        or the theatre has no elevation grid to tell.
 
     Raises:
         ValueError: On an unknown type or modulation, an incomplete position, or a mission with no
@@ -124,8 +136,29 @@ def add_farp(
         warehouses["warehouses"] = table
     table[unit_id] = _default_warehouse(coalition.lower())
 
+    theatre = content.get("theatre") or mission.theatre_content
+    warnings = surface_warnings(theatre, [unit], afloat=False)
+    dump_name = f"{name} - Ammo"
+    if ammo_dump:
+        insert_group_into_content(
+            content,
+            coalition=coalition.lower(),
+            country_id=country_id,
+            country_name=country_name,
+            category="static",
+            name=dump_name,
+            position={"x": x, "y": y + _AMMO_DUMP_OFFSET_M},
+            units=[{"type": _AMMO_DUMP_TYPE, "count": 1}],
+            warnings=warnings,
+        )
     durable = commit_mission(mission, target)["durable"]
-    return {"farp": name, "group_id": group_id, "unit_id": unit_id, "durable": durable}
+    result: dict[str, Any] = {"farp": name, "group_id": group_id, "unit_id": unit_id, "durable": durable}
+    if ammo_dump:
+        result["ammo_dump"] = dump_name
+    if warnings:
+        # The pad and its dump share a surface verdict when the theatre has no grid: said once.
+        result["warnings"] = list(dict.fromkeys(warnings))
+    return result
 
 
 def _default_warehouse(coalition: str) -> dict[str, Any]:

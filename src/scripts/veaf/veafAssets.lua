@@ -42,8 +42,11 @@ veafAssets.assets = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafAssets._buildAssetRadioMenu(menu, title, element)
-  if element.disposable or element.information then -- in this case we need a submenu
-    local radioMenu = veafRadio.addSubMenu(element.description, menu)
+  -- An entry with a `coalition` (coalition.side.RED / BLUE) is shown to that side only, in a submenu scoped
+  -- to it: with red playable, a red tanker's frequency used to show in the blue menu too
+  -- (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 13).
+  if element.disposable or element.information or element.coalition then -- in this case we need a submenu
+    local radioMenu = veafRadio.addSubMenu(element.description, menu, element.coalition)
     veafRadio.addCommandToSubmenu(
       veaf.t("menu.assets.respawn", element.description),
       radioMenu,

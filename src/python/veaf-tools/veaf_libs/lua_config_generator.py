@@ -722,6 +722,15 @@ def _emit_module_body(
                 for opt_key in ("linked", "jtac", "freq", "mod"):
                     if opt_key in asset and asset[opt_key] is not None:
                         parts.append(f"{opt_key} = {_to_lua_scalar(asset[opt_key])}")
+                # One side's menu only; absent, both (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 13).
+                if asset.get("coalition") is not None:
+                    side = str(asset["coalition"]).upper()
+                    if side not in ("BLUE", "RED"):
+                        raise ValueError(
+                            f"asset {asset.get('name')!r}: coalition must be BLUE or RED (absent: both), "
+                            f"got {asset['coalition']!r}"
+                        )
+                    parts.append(f"coalition = coalition.side.{side}")
                 lines.append("        {" + ", ".join(parts) + "},")
             lines.append("    }")
         lines.append(f"    {var_name}.initialize()")
@@ -784,11 +793,28 @@ def _emit_module_body(
         for zone in sanctuary_zones:
             name = zone.get("name", "")
             polygon_units: list = zone.get("polygon_units") or []
-            units_lua = "{" + ", ".join(_lua_text(u) for u in polygon_units) + "}"
-            lines.append(f"    {var_name}.addZone(")
-            lines.append("        VeafSanctuaryZone:new()")
-            lines.append(f"        :setName({_lua_text(name)})")
-            lines.append(f"        :setPolygonFromUnits({units_lua})")
+            trigger_zone = zone.get("trigger_zone")
+            # A circle from a trigger zone, or a polygon from its vertex units: 17 sanctuaries round the
+            # Syria bases took 102 vertex units (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 12).
+            if bool(trigger_zone) == bool(polygon_units):
+                raise ValueError(
+                    f"sanctuary zone {name!r}: give exactly one of trigger_zone and polygon_units (a circle "
+                    "from a trigger zone, or a polygon from its vertex units)"
+                )
+            if trigger_zone:
+                # `addZoneFromTriggerZone` names the zone after the trigger zone and returns nil, with a
+                # warning, when the mission lacks it: the settings go on the zone it returns.
+                lines.append("    do")
+                lines.append(f"        local zone = {var_name}.addZoneFromTriggerZone({_lua_text(trigger_zone)})")
+                lines.append("        if zone then")
+                lines.append(f"            zone:setName({_lua_text(name)})")
+            else:
+                units_lua = "{" + ", ".join(_lua_text(u) for u in polygon_units) + "}"
+                lines.append(f"    {var_name}.addZone(")
+                lines.append("        VeafSanctuaryZone:new()")
+                lines.append(f"        :setName({_lua_text(name)})")
+                lines.append(f"        :setPolygonFromUnits({units_lua})")
+            prefix = "                " if trigger_zone else "        "
             for setter, yaml_key in [
                 ("setCoalition", None),  # special: coalition.side.X
                 ("setDelayWarning", "delay_warning"),
@@ -798,11 +824,15 @@ def _emit_module_body(
             ]:
                 if setter == "setCoalition":
                     if "coalition" in zone:
-                        lines.append(f"        :setCoalition(coalition.side.{zone['coalition']})")
+                        lines.append(f"{prefix}:setCoalition(coalition.side.{zone['coalition']})")
                 elif yaml_key and yaml_key in zone:
                     v = zone[yaml_key]
-                    lines.append(f"        :{setter}({_to_lua_scalar(v)})")
-            lines.append("    )")
+                    lines.append(f"{prefix}:{setter}({_to_lua_scalar(v)})")
+            if trigger_zone:
+                lines.append("        end")
+                lines.append("    end")
+            else:
+                lines.append("    )")
 
     elif mod_id == "COMBATZONE":
         cz_settings: dict = mod_cfg.get("combat_zone_settings") or {}
@@ -858,9 +888,10 @@ def _emit_module_body(
         lines.append(f"    {var_name}.initialize()")
 
         # Activate zones flagged active_at_start, after initialize() so they are
-        # already registered (FEAT-COMBATZONE-ACTIVATE).
+        # already registered (FEAT-COMBATZONE-ACTIVATE). An operation too: `ActivateZone` finds it
+        # like any zone, and an objective mission has nobody to open the F10 menu before take-off.
         for zone_def in cz_zones:
-            if zone_def.get("type", "zone") != "operation" and zone_def.get("active_at_start"):
+            if zone_def.get("active_at_start"):
                 lines.append(f"    {var_name}.ActivateZone({_lua_text(zone_def.get('zone_name', ''))}, true)")
 
     elif mod_id == "AIRWAVES":
@@ -1025,6 +1056,16 @@ def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -
             lines.append(f"{indent}    :setRadioMenuCoalition(coalition.side.{menu_side})")
     if "training" in zone_def:
         lines.append(f"{indent}    :setTraining({'true' if zone_def['training'] else 'false'})")
+    # Map objects (bridges, buildings of the map itself) the zone must see destroyed to complete. They are
+    # not spawned by the zone, so its unit count never sees them; the runtime checks them by id against
+    # the destroyed-scenery register. A non-id would be a target that can never die and a zone that never
+    # completes, so it stops the build. `bool` is refused explicitly: it is an `int` to Python.
+    for target in zone_def.get("scenery_targets") or []:
+        if isinstance(target, bool) or not isinstance(target, int) or target <= 0:
+            raise ValueError(
+                f"combat zone {zone_name!r}: scenery_targets takes map object ids (positive integers), got {target!r}"
+            )
+        lines.append(f"{indent}    :addSceneryTarget({target})")
     for cz in zone_def.get("chained_zones") or []:
         lines.append(f"{indent}    :addChainedCombatZone({_lua_text(cz)})")
     if cd := zone_def.get("chained_delay"):
@@ -1048,6 +1089,12 @@ def _emit_combat_operation(op_def: dict, var_name: str, indent: str = "    ") ->
     """Emit a VeafCombatOperation:new():...:initialize() builder chain."""
     lines: list[str] = []
     zone_name = op_def.get("zone_name", "")
+    # An operation completes on its tasks, never on map objects: the key would be read by nothing, and
+    # the operation would end with the bridge still standing.
+    if op_def.get("scenery_targets"):
+        raise ValueError(
+            f"combat operation {zone_name!r}: scenery_targets belongs on a zone of the operation, not on the operation"
+        )
     lines.append(f"{indent}{var_name}.AddZone(")
     lines.append(f"{indent}    VeafCombatOperation:new()")
     lines.append(f"{indent}    :setMissionEditorZoneName({_lua_text(zone_name)})")

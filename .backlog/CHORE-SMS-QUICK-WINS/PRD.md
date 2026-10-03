@@ -58,3 +58,9 @@ actually protects a pilot is the on-screen notice, not a flag the forgetful auth
 
 Version 6.13.89, and the lot's own contribution to the quality ratchet: `test_plugin_version.py` grew
 from one test to four and now covers **both** agent manifests.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+three small things from the dcs-sms study, grouped so they ship together: document the DCS coordinate convention (the mission table is `{x=north, y=east}`, a runtime vec3 is `{x=north, y=altitude, z=east}`, and confusing them is silent), ship the authoring skill to agents beyond Claude, and a `dev_condition` hatch so a checklist step can be tested without staging the cockpit. **01 and 03 done** (2026-08-11): the convention lives in `docs/agents/dcs-coordinates.md`, where verifying it turned up that the runtime is not internally consistent either — `land.getHeight` wants a vec2 whose `y` is the easting, three lines from a vec3 whose `y` is altitude; and the hatch short-circuits `stepIsSatisfied` with an explicit `== true`, warns at build time naming each step, and tells the pilot on screen, because the guard that protects a pilot is the one that does not depend on reading a log. **02 delivered, 🧑 on one round trip**: Gemini CLI reads skills from `<root>/skills/<name>/SKILL.md` exactly like Claude Code, so `plugin/` now carries both manifests and the guidance exists once — but Gemini CLI is not installed here, so "tested rather than assumed" is unmet

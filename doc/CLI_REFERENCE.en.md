@@ -351,6 +351,30 @@ veaf-tools content pull-aircraft-groups --add-new
 
 **See also** : [Dynamic slots](mission-maker/concepts/dynamic-slots.en.md#shipped-catalogue)
 
+### `veaf-tools content airfield-channels` {#airfield-channels}
+
+Lists the airfields the mission uses, most useful first, with the ATC frequencies and TACAN DCS gives them: the side holding each one (`warehouses`), whether it offers dynamic slots once `src/warehouses.yaml` is applied, how many slots are parked on it, and the channel it already has in the `bases` collection. A DCS radio holds about twenty channels: this is the list to choose from. Without `--apply`, the command writes nothing.
+
+With `--apply`, it writes the chosen airfields into the `bases` collection of `src/presets.yaml`, with DCS's frequencies. An airfield already there keeps its alias (the `channel_lists` name it) and the spelling of its title (`Büchel` stays `Büchel` though DCS writes `Buchel`; only the TACAN suffix is refreshed); a new one is aliased `Base-<DCS name>`. An entry matching no chosen airfield (a FARP, a ship) is left as it is and reported. Nothing else changes: neither the tactical and flight channels nor the `channel_lists`. The command reports the written channels that are on no radio yet. An airfield DCS does not declare is refused: **an airfield frequency is never typed by hand**.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `MISSION_FOLDER` | `str` | no | Mission folder (holds `src/mission/` and `src/presets.yaml`). Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--apply` | `str` | *(none)* | Airfield (DCS name or id) to write into the `bases` collection, in the order wanted. Repeatable. |
+| `--neutral` | `boolean` | `false` | Also list the airfields no side holds. |
+| `--verbose` | `boolean` | `false` | If enabled, displays detailed debug information. |
+| `--pause` | `boolean` | `false` | If enabled, the script waits for a key press before exiting. |
+
+```bash
+.\veaf-tools.exe content airfield-channels
+.\veaf-tools.exe content airfield-channels --apply "Batumi" --apply "Kutaisi" --apply "Vaziani"
+```
+
+*Flat alias : `veaf-tools airfield-channels`*
+
 ### `veaf-tools content inject-presets` {#inject-presets}
 
 Inject radio presets from a YAML file into a .miz mission.
@@ -649,6 +673,76 @@ itself. Same flow as `clear-ground-sweep`: `dcs-serve`, survey mission, instruct
 ```
 
 *Flat alias : `veaf-tools clear-ground-check`*
+
+### `veaf-tools dcs scenery-objects` {#scenery-objects}
+
+Lists the **map objects** — bridges, buildings that are part of the map itself — around one or more
+points, with their DCS id, their type and their distance to the point, nearest first. That id is what a
+combat zone's [`scenery_targets`](mission-maker/scripts/veafCombatZone.en.md#scenery-targets) takes: a
+map object is not created by the zone, so the zone can only recognise it by its number, and that number
+exists only inside DCS. Same flow as `clear-ground-check`: `dcs-serve`, empty survey mission,
+instructions, waiting. Points are in mission coordinates (`x` north, `y` east, metres).
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | yes | The theatre, as DCS spells it (Caucasus, Syria…). |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--around` | `str` | *(none)* | A point to search around, as `x,y` or `x,y,radius` (radius 150 m by default). Repeatable. |
+| `--report` | `str` | *(none)* | Also write the objects as JSON to this file. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<theatre>.miz` | Where to write the survey mission. |
+| `--bridge-lua` | `str` | *(none)* | Local dcs-bridge.lua to embed (default: download). |
+| `--wait` | `int` | `900` | How many seconds to wait for the survey mission to answer. |
+| `--api-key` | `str` | *(none)* | dcs-serve superuser Bearer token (default: read from dcs-serve.yaml). (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | Path of a dcs-serve.yaml / dcs-client.yaml to read the key from. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | dcs-serve base URL. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none is running. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debugging information. |
+
+```bash
+.\veaf-tools.exe dcs scenery-objects Syria --around -64230,352140,100
+```
+
+*Flat alias : `veaf-tools scenery-objects`*
+
+### `veaf-tools dcs terrain-sweep` {#terrain-sweep}
+
+Sweeps the **ground elevation** of a whole theatre (`land.getHeight`, every 250 m by default) and writes
+it to `<VEAF home>/terrain/<theatre>.terrain`. The MCP action `terrain_elevation` then reads that
+grid with no DCS: a target's altitude, the highest ground along a route, terrain masking between a
+route and a SAM site. Same flow as `clear-ground-sweep`: `dcs-serve`, empty survey mission,
+instructions, waiting; an interrupted sweep resumes where it stopped. The extent swept is the map's,
+asked to DCS; when it does not give it, the airfields' plus 50 km, and the command says so. **Terrain
+only**: no buildings, pylons or trees.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | yes | The theatre, as DCS spells it (Caucasus, Syria…). |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--spacing` | `float` | `250` | Distance between two samples, in metres. |
+| `--bounds` | `str` | *(the map's)* | The extent to sweep, as `min_x,min_y,max_x,max_y` (mission coordinates). |
+| `--measure-at` | `str` | *(none)* | Instead of sweeping the map, sweep a fine (50 m) 20 km patch around this point `x,y` and report, for each candidate spacing (100, 250, 500, 1000 m), the error at a point and how far a 10 km square's maximum falls short. Repeatable. |
+| `--out` | `str` | `<VEAF home>/terrain/` | The grid (or, with `--measure-at`, the report) to write. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<theatre>.miz` | Where to write the survey mission. |
+| `--bridge-lua` | `str` | *(none)* | Local dcs-bridge.lua to embed (default: download). |
+| `--state-dir` | `str` | `<VEAF home>/terrain/sweep-<theatre>` | Where the sweep keeps its progress. |
+| `--restart` | `boolean` | `false` | Throw away the progress of a different plan instead of refusing. |
+| `--batch` | `int` | `20000` | Heights read per call to DCS. |
+| `--wait` | `int` | `900` | How many seconds to wait for the survey mission to answer. |
+| `--api-key` | `str` | *(none)* | dcs-serve superuser Bearer token (default: read from dcs-serve.yaml). (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | Path to a dcs-serve.yaml / dcs-client.yaml to read the key from. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | dcs-serve base URL. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none runs. |
+| `--verbose` | `boolean` | `false` | If enabled, shows detailed debug information. |
+
+```bash
+.\veaf-tools.exe dcs terrain-sweep Caucasus
+```
+
+*Flat alias : `veaf-tools terrain-sweep`*
 
 ### `veaf-tools dcs smoke-test` {#smoke-test}
 

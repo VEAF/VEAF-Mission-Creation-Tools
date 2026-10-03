@@ -1,6 +1,6 @@
 # 02 — the `veaf-logs` report carries the real version
 
-Status: ⏸ paused
+Status: ✅ done — 2026-10-03: confirmed `unknown` in the built exe; `veaf-build build-logs` stamps `_version.py` around `pyinstaller veaf-logs.spec`, used by the release and checked in `veaf-logs-exe-smoke`
 Type: fix
 Files: `veaf-logs.spec`, `.github/workflows/release.yml`, possibly `veaf_build/worker.py`
 

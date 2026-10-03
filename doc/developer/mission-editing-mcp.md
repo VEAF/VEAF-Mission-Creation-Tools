@@ -72,7 +72,7 @@ fixe, à l'image du serveur MCP `dcs-bridge` (pont vers une mission qui tourne) 
 | Outil MCP | Rôle |
 |-----------|------|
 | `capabilities()` | Identité du serveur (nom, version). |
-| `list_catalog()` | Liste les actions enregistrées (`name`, `description`, `parameters_schema`). |
+| `list_catalog(full=False)` | Liste les actions enregistrées en `{name, summary}` — la première phrase de la description, une dizaine de ko pour toutes ; `full=true` rend chaque `description` et `parameters_schema` (quelque 70 ko, qu'un client range dans un fichier au lieu de les montrer). `describe_action` en donne une en entier. |
 | `describe_action(name)` | Détaille le schéma JSON des paramètres d'une action. |
 | `run_action(name, params)` | Exécute une action enregistrée. |
 
@@ -696,11 +696,15 @@ modules) :
 ### FARP
 
 - `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
-  frequency_mhz=127.5, modulation="AM", callsign_id=1)` — un FARP **complet** : le statique
+  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True)` — un FARP **complet** : le statique
   d'héliport (`category = "Heliports"`, `shape_name` du type), sa radio et son indicatif, et l'entrée
   d'entrepôt `warehouses.warehouses[<unitId>]` qui permet de s'y ravitailler. `add_group` en `static`
   ne posait que l'objet (ticket 19). Forme mesurée sur les 372 héliports des missions de
   `D:\dev\_VEAF`. Le `farps:` de `warehouses.yaml` l'approvisionne ensuite au build, comme une base.
+  Par défaut, son **dépôt de munitions** (`FARP Ammo Dump Coating`, `<nom> - Ammo`, 120 m à l'est,
+  `Fortifications` / `SetkaKP` comme les 68 des missions OT) que CTLD prend comme point de chargement ;
+  `ammo_dump=False` s'en passe (`FIX-OPEN-TRAINING-SYRIA-FINDINGS` ticket 05). Un héliport en mer
+  (sol à 0 m sur la grille d'altitude) est signalé (ticket 04).
 
 ### Groupe aéronaval, slots sur le pont, sons (FIX-OPEN-TRAINING-PROMPT-FINDINGS)
 
@@ -721,6 +725,42 @@ modules) :
 - `add_sound(mission_path, sound_path, resource_name)` — copie un `.ogg`/`.wav` dans `l10n/DEFAULT` et
   le déclare dans `mapResource` sous `MCP_Sound_<nom>` ; `edit_route` `transmit_message` le diffuse
   (`TransmitMessage` enveloppé, `file` = la clé, `loop`, `duration`, `subtitle` écrit au dictionnaire).
+
+### Open Training Syrie (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
+
+- **Indicatif tiré du nom** : un vol occidental nommé comme son indicatif (`Texaco 2`, `Magic 1`) reçoit
+  cet indicatif (`Texaco21`) si la famille convient à la tâche et que le vol est libre ; sinon la règle
+  d'avant (première famille libre) et un avertissement qui dit pourquoi. Un vol d'IA à tâche de combat
+  (`Escort`, `CAP`, `CAS`, `SEAD`…) sans `pylons` est signalé (ticket 01).
+- `set_unit_properties` : `callsign.name` sans chiffres est complété (`Texaco` → `Texaco21`) ; `pylons`
+  prend `{station: CLSID}` comme `{station: {CLSID: …}}` et refuse tout autre valeur en nommant la
+  station (ticket 02).
+- `create_qra` n'écrit plus `simple_groups` quand `groups_by_enemy_count` est donné : à côté de paliers,
+  ils ne décollent jamais (ticket 03, mesuré dans `test_veafQraManager.lua`).
+- **Contrôle de surface** : `add_group`, `create_combat_zone`, `add_farp` et le déplacement de
+  `set_group_properties` signalent un véhicule, un statique ou un FARP à 0 m (en mer) et un navire au-dessus
+  de 0 m (à terre), là où le théâtre a une grille d'altitude ; sinon « surface not checked ». 3 m est de la
+  terre : DCS ne descend jamais sous 0 (ticket 04).
+- `add_air_group(task="AFAC")` — un **drone laser** comme ceux de GermanyCW-v6 : premier point avec
+  `SetUnlimitedFuel` puis une orbite `Circle` à l'altitude et la vitesse du groupe. Le marquage est celui de
+  CTLD, par l'entrée `modules.ASSETS` (`jtac`, `freq`, `mod`) ; CTLD le remonte à `JTAC_droneAltitude`, il ne
+  désigne que des véhicules, à 10 km (ticket 06).
+- `geocode` : une requête par seconde au plus (Nominatim) ; un 429 attend ce que demande `Retry-After`
+  (30 s au plus) une fois, puis le refus revient en `found: false` dit en clair. Cinq candidats demandés, un
+  lieu nommé préféré à une route ou une région ; `osm_class` / `osm_type` dans la réponse, et un
+  avertissement quand c'est une route ou une région (« Al-Kiswah » → une rue d'Amman) (ticket 07).
+- `list_unit_types` donne `threat_range_m` / `detection_range_m` (mètres, `ThreatRange` / `DetectionRange`
+  du datamine, les cercles de l'éditeur) pour chaque unité qui en a ; `dcsUnits.yaml` les porte, régénéré
+  par `veaf-build update-dcs-data --units` (ticket 08).
+- **Emports DCS par nom** : `add_air_group`, `create_qra` (par groupe) et `create_cap_mission` prennent
+  `payload`, le nom d'un emport que l'éditeur propose (`list_payloads`), à côté de `pylons` et
+  `loadout_from` — un seul des trois. Source : `MissionEditor/data/scripts/UnitPayloads` d'une
+  installation (613 emports, 45 types), le datamine n'ayant pas ces fichiers (ticket 09).
+- `repair_static_shapes(target)` — complète le `shape_name` de chaque statique posé sans (avant 6.26)
+  depuis la base d'unités, dit ce qu'il a complété et les statiques dont le type n'a pas de forme connue ;
+  n'écrit rien s'il n'y a rien à compléter. Le message de `validate` le nomme (ticket 17).
+- Les sauvegardes d'un fichier de `src/mission/l10n/DEFAULT/` vont dans `.veaf-backups/` (elles restaient
+  à côté et partaient dans le `.miz`), et une sauvegarde de dossier réécrit `mapResource` (tickets 15, 16).
 
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
@@ -821,6 +861,18 @@ Lecture seule. Types d'unités DCS depuis la base générée, filtrables par `ca
 {"category": "Plane", "name_contains": "su-27"}
 ```
 
+### `list_payloads`
+
+Lecture seule. Les emports par défaut que l'éditeur de mission propose pour un type d'avion d'IA, par
+nom (« R-40T*2,R-33*4 » pour un MiG-31), avec leurs pylônes — ce que prend `payload` dans
+`add_air_group`, `create_qra` et `create_cap_mission`. Sans `unit_type`, la liste des types qui en ont.
+Lus dans `veaf_libs/data/payloads.yaml`, généré depuis une installation DCS
+(`veaf-build update-dcs-data --payloads --dcs-path <DCS>`) : le datamine n'a pas ces fichiers.
+
+```json
+{"unit_type": "MiG-31"}
+```
+
 ### `list_shortcuts`
 
 Lecture seule. Le vocabulaire d'alias VEAF (`shilka`, `sa8`…) — alias d'unités
@@ -854,6 +906,45 @@ publiés. Elle compare ensuite chaque réponse à ce que le catalogue avait pré
 
 ```json
 {"miz_path": "chemin/vers/mission.miz"}
+```
+
+### `offer_scenery_lookup` (lot FEAT-OBJECTIVE-MISSION-PROMPT)
+
+Lecture seule, et **ne lance rien**. Pour prendre un objet de la carte (un pont, un bâtiment de la
+carte elle-même) comme objectif d'une zone de combat, il faut son identifiant DCS — le
+`scenery_targets` de la zone n'accepte que ça, et ces identifiants n'existent que dans DCS. L'action
+renvoie de quoi **proposer** à l'utilisateur la commande `veaf-tools dcs scenery-objects` (elle demande
+DCS), qui liste les objets autour de chaque point avec leur identifiant, leur type et leur distance.
+Rayon par défaut : 150 m.
+
+```json
+{"theatre": "Syria", "points": [{"x": -64230.0, "y": 352140.0, "radius": 100}]}
+```
+
+### `terrain_elevation` (lot FEAT-TERRAIN-ELEVATION)
+
+Lecture seule, **sans DCS** : répond depuis la grille d'altitudes du théâtre, relevée une fois par
+[`veaf-tools dcs terrain-sweep`](../CLI_REFERENCE.md#terrain-sweep). Quatre questions, combinables
+dans un même appel :
+
+- `points` — l'altitude du sol en chaque point, en mètres et en pieds (l'altitude d'une cible) ;
+- `route` — le sol le plus haut de chaque branche (le plancher d'une route basse altitude) ;
+- `route` + `observers` — combien de mètres de chaque branche chaque radar ou SAM voit au-dessus du
+  relief, dans sa portée, horizon radar de la Terre aux 4/3. Chaque point de la route doit alors
+  porter son `alt` : une branche entre deux points `RADIO` (au-dessus du sol) suit le relief, toute
+  autre va en ligne droite entre les deux altitudes ;
+- `area` — le sol le plus haut par carré MGRS de 10 km (la grille F10) ou par quadrilatère de 30′.
+
+**Relief seul** — ni bâtiments, ni pylônes, ni arbres — et interpolé entre deux échantillons : chaque
+réponse porte le pas de la grille et cette mise en garde. Un point hors de la grille vaut `null`,
+jamais 0. Sans grille pour le théâtre, la réponse est `available: false` avec la commande qui la
+relève.
+
+```json
+{"theatre": "Caucasus",
+ "route": [{"x": -281000, "y": 647000, "alt": 60, "alt_type": "RADIO"},
+           {"x": -262000, "y": 690000, "alt": 60, "alt_type": "RADIO"}],
+ "observers": [{"name": "SA-6 Kutaisi", "x": -284500, "y": 683500, "range": 25000}]}
 ```
 
 ### `describe_naming_conventions`
@@ -893,7 +984,9 @@ zone est un groupe de la zone, pas un appel séparé. En catégorie `ship`, les 
 
 Zone + intercepteurs **Late Activation** (coalition significative) + entrée
 `modules.QRA.definitions[]` référençant les groupes **par nom exact** (`simple_groups`). La
-coalition est passée en minuscule pour le placement, majuscule dans la définition YAML.
+coalition est passée en minuscule pour le placement, majuscule dans la définition YAML. Chaque intercepteur a **un seul point, sans tâche**, à dessein : au décollage, le module QRA donne à un groupe
+`CAP`/`Intercept` dont la route n'engage aucun aéronef une patrouille sur la zone
+([ce que fait un groupe décollé](../mission-maker/scripts/veafQraManager.md#scrambled-group-task)).
 
 ### `create_cap_mission`
 
@@ -973,6 +1066,33 @@ mission, `theatre`.
 
 ```json
 {"theatre": "GermanyCW"}
+```
+
+### `describe_airfield_channels`
+
+Lecture seule. Liste, pour un **dossier** de mission, les aérodromes qu'elle utilise — camp (depuis
+`warehouses`), slots dynamiques une fois `src/warehouses.yaml` appliqué, slots posés au parking — avec
+les fréquences ATC et le TACAN que DCS leur donne (`veaf_libs/data/airfield-frequencies.yaml`), et
+l'alias que chacun a déjà dans la collection `bases`. Classés : tenus avec slots, tenus sans, puis
+(`include_neutral`) neutres. C'est la proposition à soumettre à l'auteur de la mission avant
+`set_airfield_channels` : une radio DCS tient une vingtaine de canaux. Même code que
+`veaf-tools content airfield-channels`.
+
+```json
+{"folder_path": "…", "include_neutral": false}
+```
+
+### `set_airfield_channels`
+
+Écrit les aérodromes choisis dans la collection de canaux `bases` du `src/presets.yaml` du dossier,
+avec les fréquences de DCS ; refuse un aérodrome que DCS ne déclare pas. Un aérodrome déjà dans
+`bases` garde son alias et l'orthographe de son titre (`Büchel` pour le `Buchel` de DCS), un nouveau prend l'alias `Base-<nom DCS>`, et une entrée qui ne correspond à aucun
+aérodrome choisi (un FARP, un navire) est laissée telle quelle et signalée dans `untouched`. Seule
+`bases` change ; `not_on_a_radio` liste les canaux écrits qu'aucune entrée de `channel_lists`
+n'utilise encore. Idempotent.
+
+```json
+{"folder_path": "…", "airfields": ["Batumi", "Kutaisi", 31]}
 ```
 
 ### `resolve_coordinates`

@@ -119,3 +119,9 @@ automatic everywhere, since altitude, speed and heading come from the `Unit` API
 | 05 | [The five aircraft that ship an autostart](tickets/05-autostart-aircraft.md) | 03 |
 | 06 | [F-14B(U), from Heatblur's official manual](tickets/06-f14b-manual.md) | 03 |
 | 07 | [Document it for instructors](tickets/07-documentation.md) | 05, 06 |
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+make a guided checklist writable by an **instructor** rather than a developer: `control: bouton power sur main pwr` instead of an element id read out of `clickabledata.lua`. Resolvable because that file is regular, but hint order is **not** value order, so the build never depends on a language model — a deterministic matcher, an explicit refusal, and in-game verification. **Paused by David 2026-08-03**

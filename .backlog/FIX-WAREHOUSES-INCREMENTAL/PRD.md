@@ -1,6 +1,6 @@
 # FIX-WAREHOUSES-INCREMENTAL — assigning one airfield disabled all the others
 
-Status: 🧑 waiting-human — implemented 2026-08-16, needs one in-game confirmation
+Status: ✅ done — verified in game 2026-10-03 (R2)
 
 Origin: David's answer to the open question left by `FIX-EMPTY-WAREHOUSES` — *"yes, dynamic slots
 by default, on every airfield of the coalition; there is no rule for which airfield is blue or red:
@@ -55,3 +55,17 @@ Measured on a mission with Deir ez-Zor blue and Palmyra red:
 The log said *"added to an empty table"* while the table held the two airfields the MCP had just
 written. Reworded to *"added (the mission declared none)"* — a message stating a condition that is
 not the one it fired on is exactly the kind of thing that sends the next investigation the wrong way.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+A blank Syria mission, Deir ez-Zor set blue and Palmyra red through `set_airbase_coalition`, built:
+the game reports 225 airdromes (223 neutral, 1 red, 1 blue) and an untouched field, Nicosia, still
+has its warehouse (four liquids). A dynamic-slot UH-1H was taken at Deir ez-Zor.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**assigning one airfield to a coalition disabled all the others.** `FIX-EMPTY-WAREHOUSES` filled the airfield table only when it was *empty*, and the documented workflow breaks that instantly: one `set_airbase_coalition` call leaves a single entry, the build then adds nothing, and the mission ships with **1 airfield out of 225** — the same defect, reintroduced by using the MCP as intended. Found while instrumenting David's arbitration (*dynamic slots by default on every airfield of the coalition; no rule decides who owns what — the mission maker says, or I pick one of each for a test*). The table is **completed** now, an existing entry never touched. That arbitration needed no other code: the `warehouses.yaml` step already reads "no airfield list" as "every airfield of that coalition" and switches `dynamicSpawn` on — measured at 52 aircraft types each on a blue Deir ez-Zor and a red Palmyra, neutrals inert. A build message claiming "added to an empty table" while the table held two entries was reworded on the way

@@ -98,6 +98,7 @@ modules:
 | `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
 | `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |
 | `includes` | string[] | `[]` | Non | Zones dont celle-ci emprunte les éléments : les activer avec elle, transitivement. Voir [ci-dessous](#includes) |
+| `scenery_targets` | entier[] | `[]` | Non | Identifiants d'**objets de la carte** (ponts, bâtiments de la carte) qu'il faut aussi détruire pour terminer la zone. Voir [ci-dessous](#scenery-targets) |
 
 ### `rename_units_sequentially` — garder les noms d'unités d'origine {#rename-units}
 
@@ -172,6 +173,38 @@ zones créées ; `includes` génère exactement ces appels, clôture transitive 
 | `tasking_orders` | objet[] | `[]` | Non | Liste de tâches ordonnées |
 | `tasking_orders[].zone_name` | string | — | Oui | Nom de la zone de combat pour cette tâche |
 | `tasking_orders[].dependencies` | string[] | `[]` | Non | Noms des zones devant se terminer en premier |
+| `active_at_start` | booléen | `false` | Non | Active l'opération, donc toutes ses zones, au démarrage de la mission — pour une mission que personne ne lance depuis le menu F10 |
+
+Quand sa dernière tâche est terminée, l'opération annonce à tous les joueurs « L'opération … est
+terminée ». L'activer active **toutes** ses zones d'un coup : `dependencies` ordonne les tâches, pas
+l'apparition des unités — un objectif qui ne doit apparaître qu'après un autre en est une
+[`chained_zones`](#configuration-missionyaml).
+
+### Des objets de la carte comme cibles — `scenery_targets` {#scenery-targets}
+
+Une zone se termine quand les unités et les statiques **qu'elle a fait apparaître** sont détruites. Un
+pont ou un bâtiment qui fait partie de la carte n'a été créé par personne : la zone ne le voit pas — sauf
+si on le lui donne par son identifiant :
+
+```yaml
+combat_zones:
+  - zone_name: "CZ-Pont"
+    friendly_name: "Pont d'Al-Rastan"
+    active_at_start: true
+    scenery_targets: [156696667]   # l'identifiant DCS du pont
+```
+
+La zone ne se termine alors qu'une fois ces objets détruits **et** ses propres unités rouges éliminées
+(une zone qui ne contient que le pont se termine sur le pont seul). Les destructions sont enregistrées
+depuis le début de la mission : un objet détruit avant l'activation de la zone compte. C'est aussi
+pourquoi une telle zone **ne se rejoue pas** : réactivée, elle retrouve son pont détruit et se termine
+aussitôt. Le rapport F10 de la zone compte les objets de la carte qui restent à détruire, à part de ses
+unités ; une zone qui en [inclut](#includes) une autre attend aussi ses objets.
+
+Les identifiants n'existent que dans DCS : [`veaf-tools dcs scenery-objects`](../../CLI_REFERENCE.md#scenery-objects)
+liste les objets autour d'un point avec leur identifiant, leur type et leur distance. Une valeur qui
+n'est pas un entier positif arrête la construction — ce serait une cible indestructible, et une zone qui
+ne se termine jamais.
 
 ### Exemple minimal
 

@@ -1,12 +1,12 @@
 ---
-Status: 🧑 waiting-human — tickets 01 to 05 merged in #1009; the in-flight check on GermanyCW v6 is David's (a C-130 loads at Ramstein, a captured field opens 2 min after blue ground troops arrive, the green circle follows the holder)
+Status: ✅ done — R36 read in game 2026-10-03 (session d): with `airbase_logistics_radius: 1100`, the C-130 DCS parks on Ramstein stand #111, 997 m from the point, gets `EQUIPMENT (AB_Ramstein)`
 ---
 
 # FEAT-CTLD-AIRBASE-LOGISTICS — airfields are outside CTLD's logistic system, and VEAF can put them in without touching CTLD
 
 ## The report, and what measuring it found
 
-[Issue #1007](https://github.com/VEAF/VEAF-Open-Training-Mission-GermanyCW-v6/issues/1007): a C-130
+[Issue #1007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1007): a C-130
 landed at Ramstein on Open Training GermanyCW v6 and its *Request Equipment* menu read **"Aucune
 logistique à portée"**. Filed as a regression — *airfields used to be logistic zones*. It is not one,
 and the distinction is what makes this a feature lot rather than a repair.
@@ -335,3 +335,37 @@ on its own. The verification happens in flight, on the mission that reported the
   not a constant in the loop.
 - The log says how many airfields VEAF registered and which class each one is in.
 - A mission that wants none of it can say so, and says so in `mission.yaml`.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+On the Caucasus session mission David received the capture message for Kobuleti (logistic zone
+activated). The C-130 loading at Ramstein, the check #1007 asked for, was not flown. #1007 closed on
+that evidence.
+
+## The Ramstein loading, measured — 2026-10-03 (session c)
+
+GermanyCW, `develop` `d3823f7e`, read through the fiddle hook:
+
+- `AB_Ramstein`: class A, registered, active, held by blue. The call CTLD's *Request Equipment* menu
+  makes, `getLogisticZonesAtPoint(point, BLUE, "cratesPickup")`, returns the zone at the zone's own
+  point — so the registration and the read both work.
+- An AI C-130 spawned with **no stand imposed**, so DCS parked it where it parks a C-130: stand #111
+  (terminal type 104), **997 m** from the logistic point. The same call at its position returns
+  nothing — the menu reads *« Aucune logistique à portée »*.
+- Ramstein's 90 large-aircraft stands (terminal types 72 and 104): **one** within 250 m (#108, 249 m),
+  then 446, 601, 665, 709, 820 m … and 2 001 m for the farthest.
+
+This is the gap the PRD accepted — "a number to raise, not a design to reopen" — now with its number.
+**David chose on 2026-10-03 to raise it for GermanyCW only** (`airbase_logistics_radius` in that
+mission's `mission.yaml`), not the default: one field is measured, and a default for every theatre
+would be set on that one field. The mission is set to **1 100 m**, which covers stand #111 with a
+margin and the six nearest large-aircraft stands. Left: rebuild GermanyCW-v6 and re-run
+`c_ramstein.lua` once (`DCS-SESSION-TODO.md`, R36).
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**airfields are outside CTLD's logistic system, and no configuration knob can put them in.** Filed from #1007, a C-130 at Ramstein reading *"Aucune logistique à portée"*, and reported as a regression — but measured not to be one: CTLD v1 resolves `logisticUnits` through `StaticObject`/`Unit` only, and VEAF v5's wrapper matched six DCS types, four carriers and two FARP kinds, *"all the carriers and FARPs"* by its own comment. What the memory is made of is that **a FARP is itself a DCS `Airbase`**, so FARPs were registered and airfields never were. CTLD 2's four discovery routes are all closed to an airbase — the two configuration ones resolve by name or type and take their radius from `maximumDistanceLogistic`, **200 m** on this mission, against a reference point at the middle of a 3 km field — and CTLD resolves airbases on the **troop** path only, in `_resolveTroopZoneObject`. Decision: register from VEAF through the public `registerFOBAsLogistic`, off `veafAirbases.Airbases` (already built from `world.getAirbases()`) filtered on `Category.AIRDROME`, reviving the `initializeAllLogisticInCTLD()` stub, and hold it with the `deactivateLogisticZone`/`activateLogisticZone` pair CTLD already ships for *"capture or temporary loss"*. One repo and one PR, no CTLD release and no vendoring bump, since `src/scripts/veaf/` is authored here and absent from `vendored.yaml`. **Qualification rule decided 2026-09-27**, in two classes snapshot from the coalition held on the first evaluation: an airfield **blue from the start** is a logistic zone for as long as it does not turn red or neutral — no unit presence required, so a field every blue aircraft has departed keeps its logistics, which is precisely what the naive "allied units within 2000 m" first proposed would have broken, and intermittently; an airfield **captured later** owes **two continuous minutes** of blue occupation, and loses the zone as soon as the last blue unit withdraws or dies — the two minutes doubling as the hysteresis the boundary needs, since every flip republishes `OnLogisticZoneUpdated` and rebuilds the player's menu. Class A costs only `getCoalition()`, so the sphere probe runs for class B alone. **Red is mirrored**, and both coalitions are registered explicitly — never `0`, which `getLogisticZonesAtPoint` would hand to either side. Zone geometry decided: **one placed point per airfield with 250 m around it**, the point taken from `Airbase:getParking()` — a runtime API `veafGrass.lua:135` already iterates — which puts it on the apron and therefore off the runway **and off the taxiways by construction**, DCS exposing no taxiway geometry to check against; this also drops any dependency on `data/parking/*.json`, which covers only Caucasus, Persian Gulf and Syria. Marking is **one green transparent circle per airfield on the F10 map**, drawn with `VeafCircleOnMap` — the fluent wrapper over `trigger.action.circleToAll` + `removeMark` (`veaf.lua:5208`, whose `draw()` is `:5248`) that `veafSkynetIadsHelper.lua:4362` already uses — visible to the owning coalition only. **Hatching is not on offer**: `lineType` styles the circle *outline* per the DCS schema, never the interior, so the distinction a hatch was meant to carry comes from colour and transparency instead. Nothing is spawned into the simulation to mark it, and it must stay that way, because a spawned crate or flag is a **static**, and a probe counting statics would let the marker be the blue presence that keeps its own zone alive. Occupation is therefore `Object.Category.UNIT`, ground only, which is also why a transport landing on a captured field does not start the clock on the zone it landed to use. Trap recorded on the way: `zone.coalition == 0` serves **both** sides. Placement is settled **without measuring**: the point is the **real stand nearest the centroid of all the stands**, since an average of parking positions is not itself a parking position and can land on a taxiway, and the accepted gap is that a C-130 parked beyond 250 m on a spread apron still reads nothing — the radius sits in the module settings next to the 2000 m, so a field that turns out too spread is a number to raise, not a design to reopen. The state is evaluated **every 30 s** on `veafScheduler`, and **every status change is announced** with `outTextForCoalition` + `veaf.t()` to the side that gains the point and to the one that loses it, never on a tick where nothing changed. **Five tickets cut, 01 is the frontier**: register every airdrome (which is #1007's answer on its own), the 30 s tick and class-A flips, class B's two minutes and its ground-unit probe, the green circle, then the opt-out, the three settings and the docs. One choice is still David's and it is costed both ways in ticket 05: `modules.CTLD.manage_airbase_logistics` beside its sibling, or `settings:` keys with no new plumbing

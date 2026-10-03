@@ -1,6 +1,7 @@
 from . import (  # noqa: F401
     about,
     aircraft_groups,
+    airfield_channels,
     ask,
     build,
     capture_map,
@@ -17,6 +18,7 @@ from . import (  # noqa: F401
     prepare,
     resolve_checklist,
     smoke_test,
+    terrain,
     user_config,
     validate,
     verify_checklist,

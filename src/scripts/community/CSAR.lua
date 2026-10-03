@@ -2210,9 +2210,11 @@ function csar.getClockDirection(_heli, _crate)
 end
 
 function csar.getGroupId(_unit)
-  local _unitDB = veaf.getUnitRecordById(tonumber(_unit:getID()))
-  if _unitDB ~= nil and _unitDB.groupId then
-    return _unitDB.groupId
+  -- VEAF: the live group, not the editor snapshot -- a dynamic-slot helicopter has no editor
+  -- record, so the snapshot left it without a menu (#989). MiST's database grew at each birth.
+  local _group = _unit:getGroup()
+  if _group ~= nil then
+    return _group:getID()
   end
 
   return nil

@@ -315,7 +315,7 @@ function veafSpawn.spawnBeacon(spawnSpot, radius, name, country, side, silent)
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)
+function veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD, job)
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnGroup(name=%s, czName=%s, country=%s, alt=%s, hdg=%s, spacing=%s, groupName=%s, silent=%s, hiddenOnMFD=%s)",
     name,
@@ -330,7 +330,7 @@ function veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg
   )
 
   local spawnedGroupName =
-    veafSpawn.doSpawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)
+    veafSpawn.doSpawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD, nil, job)
 
   return spawnedGroupName
 end
@@ -1129,13 +1129,13 @@ function veafSpawn._markClosestConvoyWithSmoke(unitName, markRoute)
       local route = veafSpawn.spawnedConvoys[closestConvoyName].route
       local startPoint = veaf.placePointOnLand({ x = route[1].x, y = 0, z = route[1].y })
       local endPoint = veaf.placePointOnLand({ x = route[2].x, y = 0, z = route[2].y })
-      trigger.action.smoke(startPoint, trigger.smokeColor.GREEN)
-      trigger.action.smoke(endPoint, trigger.smokeColor.RED)
+      trigger.action.smoke(startPoint, trigger.smokeColor.Green)
+      trigger.action.smoke(endPoint, trigger.smokeColor.Red)
       veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_smoke_switch", closestConvoyName), 10)
     else
       local averageGroupPosition = veaf.getAveragePosition(closestConvoyName)
       ---@diagnostic disable-next-line: param-type-mismatch
-      trigger.action.smoke(averageGroupPosition, trigger.smokeColor.WHITE)
+      trigger.action.smoke(averageGroupPosition, trigger.smokeColor.White)
       veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_white_smoke", closestConvoyName), 10)
     end
   end
@@ -1263,7 +1263,8 @@ veafSpawn.registerCommandHandler("group", "KNOWN_PILOT", function(eventPos, opti
     options.unitName,
     options.silent,
     hasDest,
-    not options.showMFD
+    not options.showMFD,
+    veafSpawn.helicopterJob(options)
   )
   return g, nil, false
 end)

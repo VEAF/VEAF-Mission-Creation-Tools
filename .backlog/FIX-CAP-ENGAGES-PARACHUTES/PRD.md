@@ -1,6 +1,6 @@
 # FIX-CAP-ENGAGES-PARACHUTES — a spawned CAP hunts ejected pilots and ignores fighters
 
-Status: 🧑 waiting-human
+Status: ✅ done — verified in game 2026-10-03 (R11)
 
 Found in game 2026-09-01: *"les `-cap` fonctionnent, mais les appareils spawnés n'engagent pas le
 combat ; j'en ai spawné 14 et les 3 escortes d'Arco les ont tous détruits."*
@@ -124,3 +124,18 @@ Two things the same log shows, neither of them this lot's subject:
 - **The 2026-09-01 session ran under time acceleration**, so the watchdog's ten model seconds land
   2.5 s apart on the wall clock in the middle of the log and 1.43 s apart later. Worth knowing before
   anyone reads a cadence out of that file as a defect.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Part one: a `-cap` MiG-29S turned on an unarmed F-15C inside its zone and fired an R-27 (t=800 s).
+Part two: an F-15C damaged into ejecting inside the zone; on the three watchdog passes that followed,
+the parachute never appeared in the target list. Two side findings went to
+`FIX-IN-GAME-SESSION-2026-10-03` ticket 04.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a spawned CAP flew weapons free with nothing tasked, and was shot down without returning fire.** Found in game 2026-09-01: fourteen CAPs spawned, all destroyed by Arco's escorts. The report read the watchdog's targets as **parachutes**; re-reading the same log during implementation, they were not — `Pilot #006` … `Pilot #009` are DCS's own default *aircraft* unit names in the Mission Editor, and the log gives their types: a KC-135 and three F-14Bs, at 6 000 m and climbing. The PRD's second recorded correction has the detail. What actually happened is that every one of those four fresh contacts was thrown out in the tick that registered it — the freshness check interrogated the CAP's **own** aeroplane, because the list stored the detecting unit instead of the target — while `foundTargets`, set before the check, still lifted `PROHIBIT_AA` and skipped the branch that hands the patrol back its route. DCS's log deduplication (`3 duplicate message(s) skipped`) is what hid three of the four removals and made the branch look untaken. Also repaired on the way: `seenAt` never refreshed, so a target tracked without interruption expired under the CAP's nose; `table.sort` on a map, so the whole priority ladder ordered nothing; `resetTask` where `popTask` was meant, which ED documents as clearing the patrol route too; and a detected **static** that raised *"Static doesn't exist"* and stopped two watchdogs for the rest of the mission. The filter the PRD asked for is in and is the right one anyway — routed on the `Air` attribute, checked against all 883 entries of the shipped unit database, and on nothing that reads a name. The commented `EngageTargetsInZone` block is **deleted** with the reason in the source: it cannot coexist with a watchdog that pops the queue it would live in. 12 templates with no first-waypoint task are now named in the log. **Left at 🧑** for `DCS-SESSION-TODO.md` item R11 — nothing off DCS can say what descriptor the game really hands back for a man under a parachute

@@ -127,7 +127,7 @@ class TestWorkerEndToEnd:
     def test_embeds_resource_and_populates_tables(self, tmp_path: Path) -> None:
         miz = _make_miz(tmp_path)
         result = SpawnDataInjectorWorker(input_mission=miz, output_mission=miz).work()
-        assert result.units == 13
+        assert result.units == 21
         assert result.groups == 94
 
         with zipfile.ZipFile(miz) as zf:

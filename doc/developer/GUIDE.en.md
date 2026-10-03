@@ -642,6 +642,14 @@ Luacheck is enforced by the `Luacheck` CI job.
 All CI jobs must be green before a PR can be merged. Exception: `dcs-mock-coverage` is
 `continue-on-error` — informative, it does not block the merge.
 
+On `develop` these checks are **required** by a branch protection rule: that is what makes
+auto-merge possible, since it then really waits for green. A required check whose workflow never
+starts stays "Expected" for ever and blocks the PR. That is why `Python Quality`, `Docs Check` and
+`Support Bot` start on **every** PR: their path filter lives in a `changes` job
+(`veaf_build/ci_path_gate.py`), and a job it leaves out shows as "Skipped", which a required check
+accepts. To change one of these workflows' path list, edit both `on.push.paths` and the `changes`
+job's `GATE_PATHS` — `test_ci_trigger_paths.py` checks they stay identical.
+
 ### Before a commit touching the documentation {#docs-check}
 
 ```bash

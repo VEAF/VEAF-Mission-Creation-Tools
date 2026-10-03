@@ -530,6 +530,7 @@ Le build vous dit combien il en a ajouté.
 | `inject-aircraft-groups` | Injecte des templates de groupes d'aéronefs |
 | `extract-aircraft-groups` | Extrait les groupes d'aéronefs d'une mission |
 | `pull-aircraft-groups` | Liste ce que le catalogue livré a et que votre dossier n'a pas, et recopie les entrées choisies (vos entrées ne sont jamais remplacées) |
+| `airfield-channels` | Liste les aérodromes de la mission avec les fréquences que DCS leur donne, et écrit ceux choisis dans la collection `bases` du plan radio (`--apply`) |
 | `inject-waypoints` | Injecte des waypoints (bullseye, points de navigation) pour les groupes humains |
 | `extract-waypoints` | Extrait les waypoints d'une mission |
 | `convert-v5` | Migre un dossier mission v5 vers le format v6 |
@@ -538,6 +539,8 @@ Le build vous dit combien il en a ajouté.
 | `ask` | Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive. |
 | `capture-map` | Capture les aérodromes d'un théâtre depuis une mission-pont en cours (via dcs-serve) dans <théâtre>.json ; `--parking` ajoute les places de parking dans `parking/<théâtre>.json`. |
 | `clear-ground-check` | Vérifie dans DCS, sans les faire apparaître, si les véhicules au sol d'une mission construite sont dans le décor, et compare au catalogue de terrain dégagé. |
+| `scenery-objects` | Liste dans DCS les objets de la carte (ponts, bâtiments) autour de points, avec l'identifiant que prend le [`scenery_targets`](scripts/veafCombatZone.md#scenery-targets) d'une zone de combat. |
+| `terrain-sweep` | Relève dans DCS l'altitude du sol de tout un théâtre, que l'action MCP `terrain_elevation` lit ensuite sans DCS (altitude d'une cible, plancher d'une route, masquage par le relief). |
 | `clear-ground-sweep` | Sonde, pas à pas, le terrain dégagé autour des aérodromes et des combat zones d'un théâtre : écrit la mission d'arpentage, explique quoi faire dans DCS, balaie, puis écrit le catalogue ; reprend un balayage interrompu. |
 | `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
 | `doctor` | Rassemble les versions, chemins et erreurs récentes qu'un rapport de bug exige, et produit un bloc caviardé à coller dans un signalement — voir [Obtenir de l'aide](../SUPPORT.md). |
@@ -823,6 +826,8 @@ Les transitions sont annoncées en jeu dans la langue de la mission (`transport.
 
 !!! note "L'écart accepté des 250 m"
     Il n'y a qu'**une** zone de `airbase_logistics_radius` (250 m par défaut) par aérodrome, centrée sur le parking le plus proche du centroïde du terrain. Sur un aérodrome très étalé, un avion garé à plus de 250 m de ce point lit *« Aucune logistique à portée »* alors même que le champ est actif. C'est un compromis assumé (2026-09-27) : le rayon est le réglage à monter si votre théâtre a de grands parkings dispersés.
+
+    Mesuré le 2026-10-03 à **Ramstein** : un C-130 garé par DCS lui-même s'est retrouvé à **997 m** du centre de la zone, et un seul des 90 parkings gros porteurs du terrain est à moins de 250 m. Le rayon vaut pour **tous** les aérodromes de la mission, on ne peut pas le régler terrain par terrain : réglez-le sur le **plus grand** terrain d'où partent vos transports. Pour une grande base comme Ramstein, **1 100 m** couvre la place du C-130 et les six parkings gros porteurs les plus proches. Un cercle plus grand ne coûte que sa taille sur la carte F10.
 
 #### La langue de CTLD
 

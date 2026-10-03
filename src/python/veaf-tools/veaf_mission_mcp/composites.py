@@ -19,6 +19,7 @@ from veaf_libs.shipped_defaults import shipped_default_file
 from veaf_mission_mcp.add_air_group import insert_air_group_into_content
 from veaf_mission_mcp.add_group import insert_group_into_content
 from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
+from veaf_mission_mcp.aircraft_payload import resolve_loadout
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, mission_yaml_path, save_folder_mission
 
@@ -93,7 +94,9 @@ def create_combat_zone(
         )
         created.append(group_name)
         warnings += validate_group_name(group_name, expected_combat_zone=zone_name)["warnings"]
-        warnings += [{"group": group_name, "warning": w} for w in build_warnings]
+        # A warning about the whole mission ("surface not checked: no elevation grid") once, not per group.
+        said = {entry.get("warning") for entry in warnings if isinstance(entry, dict)}
+        warnings += [{"group": group_name, "warning": w} for w in build_warnings if w not in said]
 
     save_folder_mission(mission, folder_path)
     _append_combat_zone(mission_yaml_path(folder_path), zone_name, combat_zone)
@@ -156,9 +159,10 @@ def create_qra(
         position: The zone centre.
         radius: The zone radius, in metres.
         groups: `[{"name", "units", "position"?, "altitude_ft"?, "speed_kt"?, "pylons"?,
-            "loadout_from"?}, ...]` — the interceptor group(s), one aircraft type each, built
-            airborne and fuelled. `pylons` sets the loadout; `loadout_from` copies it from a group
-            of the mission or of the spawnable/dynamic-slot catalogues (a `veafSpawn-*` template).
+            "payload"?, "loadout_from"?}, ...]` — the interceptor group(s), one aircraft type each,
+            built airborne and fuelled. `pylons` sets the loadout; `payload` takes a DCS loadout by
+            name (`list_payloads`); `loadout_from` copies it from a group of the mission or of the
+            spawnable/dynamic-slot catalogues (a `veafSpawn-*` template). One of them at most.
         country_id: DCS numeric country id for the interceptors.
         country_name: DCS country name for the interceptors.
         category: Kept for compatibility and ignored: the category comes from the aircraft type.
@@ -197,7 +201,7 @@ def create_qra(
             speed_kt=spec.get("speed_kt", 350.0),
             task=spec.get("task", "Intercept"),
             late_activation=True,
-            pylons=_loadout(folder_path, content, spec),
+            pylons=_loadout(folder_path, content, spec, unit_type),
         )
         group_names.append(group_name)
         warnings += validate_group_name(group_name)["warnings"]
@@ -209,8 +213,11 @@ def create_qra(
         "name": name,
         "coalition": coalition.upper(),
         "trigger_zone": trigger_zone,
-        "simple_groups": group_names,
     }
+    # Beside scramble levels, simple_groups never deploy: the caller's levels say who scrambles
+    # (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 03).
+    if not (qra or {}).get("groups_by_enemy_count"):
+        definition["simple_groups"] = group_names
     if enemy_coalitions:
         definition["enemy_coalitions"] = [c.upper() for c in enemy_coalitions]
     if qra:
@@ -268,6 +275,7 @@ def create_cap_mission(
     speed_kt: float = 350.0,
     pylons: dict[Any, Any] | None = None,
     loadout_from: str | None = None,
+    payload: str | None = None,
 ) -> dict[str, Any]:
     """Create an on-demand CAP mission in a mission folder, in one pass, both worlds.
 
@@ -292,6 +300,8 @@ def create_cap_mission(
         speed_kt: Speed in knots.
         pylons: The loadout, `{station: {"CLSID": ...}}`.
         loadout_from: A group to copy the loadout from (in the mission or the aircraft catalogues).
+        payload: A DCS loadout by the name the Mission Editor lists (`list_payloads`). One of
+            `pylons`, `payload` and `loadout_from` at most.
 
     Returns:
         `{"cap_mission", "group": <OnDemand- name>, "warnings": [...]}`.
@@ -320,7 +330,9 @@ def create_cap_mission(
         speed_kt=speed_kt,
         task="CAP",
         late_activation=True,
-        pylons=_loadout(folder_path, content, {"pylons": pylons, "loadout_from": loadout_from}),
+        pylons=_loadout(
+            folder_path, content, {"pylons": pylons, "payload": payload, "loadout_from": loadout_from}, unit_type
+        ),
         route=route,
     )
     save_folder_mission(mission, folder_path)
@@ -367,8 +379,8 @@ def _single_type(units: list[dict[str, Any]]) -> tuple[str, int]:
     return types.pop(), count
 
 
-def _loadout(folder_path: Path, content: dict[str, Any], spec: dict[str, Any]) -> dict[Any, Any] | None:
-    """Resolve a flight's loadout: explicit `pylons`, or copied from the group `loadout_from` names.
+def _loadout(folder_path: Path, content: dict[str, Any], spec: dict[str, Any], unit_type: str) -> dict[Any, Any] | None:
+    """Resolve a flight's loadout: explicit `pylons`, a DCS `payload` by name, or `loadout_from` a group.
 
     An interceptor created without weapons is the next silent failure after one created without
     fuel. The `veafSpawn-*` groups of the aircraft catalogues are a sourced place to take a loadout
@@ -378,17 +390,21 @@ def _loadout(folder_path: Path, content: dict[str, Any], spec: dict[str, Any]) -
     Args:
         folder_path: The mission folder.
         content: The parsed mission table.
-        spec: A mapping that may carry `pylons` and `loadout_from`.
+        spec: A mapping that may carry `pylons`, `payload` and `loadout_from` — one of them at most.
+        unit_type: The flight's aircraft type, to look a named `payload` up.
 
     Returns:
-        The pylons table, or None when neither is given.
+        The pylons table, or None when none is given.
 
     Raises:
-        ValueError: If `loadout_from` names a group found nowhere, or one whose aircraft carry no
-            pylons.
+        ValueError: If more than one is given, `payload` is not one of the type's DCS loadouts, or
+            `loadout_from` names a group found nowhere, or one whose aircraft carry no pylons.
     """
-    if spec.get("pylons"):
-        return spec["pylons"]
+    given = [key for key in ("pylons", "payload", "loadout_from") if spec.get(key)]
+    if len(given) > 1:
+        raise ValueError(f"give one loadout, not {' and '.join(given)}")
+    if spec.get("pylons") or spec.get("payload"):
+        return resolve_loadout(unit_type, spec.get("pylons"), spec.get("payload"))
     source = spec.get("loadout_from")
     if not source:
         return None

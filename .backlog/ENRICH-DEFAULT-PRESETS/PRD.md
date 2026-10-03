@@ -40,3 +40,9 @@ post-current-batch.
 ## Further Notes
 
 Lockstep: doc (`veafRadioPresets`/GUIDE) if the structure or coverage is documented.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+broaden the shipped default radio presets (fold into / sequence after FEAT-RADIO-PRESET-PROJECTION phase 1)

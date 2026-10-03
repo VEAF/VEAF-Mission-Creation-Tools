@@ -211,6 +211,202 @@ static that lacks it.
 
 *What it cost:* 4 objectives of GermanyCW-v6, placed by the MCP before it wrote the field, missing in game; a combat zone drew 4 elements from 3.
 
+### A helicopter added by script on open ground takes off on its own unless it is `uncontrolled` {#scripted-helicopter-leaves-the-ground}
+
+Measured **2026-10-02**.
+
+Five Mi-8MT added with `coalition.addGroup` on the Kobuleti runway, side by side, watched for
+five minutes:
+
+| Group data | What DCS did |
+|---|---|
+| no route | engine started at once, **hovered 5–12 m up** for five minutes |
+| one `TakeOffGround` point | sat cold, engine started at T+80 s, **took off at T+278 s**, landed at T+466 s |
+| one `TakeOffGroundHot` point | took off at T+11 s, landed at T+193 s |
+| `TakeOffGround` + `uncontrolled = true` | stayed on the ground, engine off |
+| category `AIRPLANE` | refused: `Invalid Unit Module: "Mi-8MT"`, no group |
+
+None of this raises an error: the group exists, `isExist()` is true, and a helicopter meant to
+sit as a target is gone a few minutes later.
+
+**What to do:** To keep a scripted helicopter where it was put, give it one `TakeOffGround` waypoint **and**
+`uncontrolled = true`. Whether the controller's `Start` command then wakes it up is not measured.
+
+*What it cost:* Measured for FEAT-HELICOPTER-SPAWN (DCS-SESSION-TODO R23): the obvious fix — submitting the
+group under `HELICOPTER` — would have produced a hovering helicopter.
+
+### A scripted helicopter given a `Land` waypoint lands on the nearest airfield's parking, not on the point {#helicopter-land-waypoint-goes-to-the-nearest-airfield}
+
+Measured **2026-10-02**.
+
+A Mi-8MT added by script on the Kobuleti runway with a waypoint of type `Land`:
+
+| `Land` point | What it did |
+|---|---|
+| 1.2 km away, at the other end of the runway | passed 291 m from it, came back round, landed **1 678 m from it** on Kobuleti's parking |
+| 3 km away on open ground, 2.85 km from the field | passed 193 m from it at 59 m/s, turned back, landed on Kobuleti's parking again |
+
+(DCS-SESSION-TODO R24, R25.) No error: the group exists, it is on the ground, not where it was sent.
+
+**What to do:** Give the helicopter a `Land` **task** (`{ id = "Land", params = { point, durationFlag } }`) on a
+turning point instead of a `Land` waypoint.
+
+*What it cost:* The first two readings of `task transport` (FEAT-HELICOPTER-SPAWN).
+
+### A scripted helicopter given a `Land` task in a forest hovers at its edge and never lands {#helicopter-hovers-at-a-forest-edge}
+
+Measured **2026-10-02**.
+
+A Mi-8MT given a `Land` task on a point inside a forest, near Kobuleti, flew to it, slowed, and
+then hovered **8 to 34 m above the open field at the forest's edge, 106–121 m from the point**,
+for minutes, without touching down (DCS-SESSION-TODO R26, R27; David watching). The same task on
+open grass put it down 30 m from its point in 90 s (R28).
+
+**What to do:** Send a helicopter to open ground. `task transport` moves the landing point to a clearing within
+300 m when the scenery search finds one, but that search accepts gaps of 10 m, and the DCS call
+under it is a lottery (`disposition-getsimplezones-is-a-lottery`).
+
+### `StaticObject.getByName` keeps returning a static after its destruction {#destroyed-static-is-still-returned-by-getbyname}
+
+Measured **2026-10-01**.
+
+A static destroyed in game is still found by name: `StaticObject.getByName` returns an object whose
+`isExist()` is **false** and `getLife()` is **0**, and which still answers `getCoalition()`.
+Measured on Caucasus with a red `Ural-375` static blown up by `trigger.action.explosion` (power 500):
+10 s and 70 s after the explosion, both reads gave `isExist=false life=0`.
+
+**What to do:** Never take "found by name" for "still there": test `isExist()` and `getLife() > 0`.
+`veafCombatZone.getStandingStatic` does both, and is what the combat zone watchdog and its F10
+report now use.
+
+*What it cost:* The combat zone watchdog counted every static it found, so **a zone holding a static never
+completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
+FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
+
+### An aircraft spawned with a single waypoint and no task lands at the nearest airfield {#aircraft-at-the-end-of-its-route-lands}
+
+Measured **2026-10-01**.
+
+A group whose route is one waypoint at its own position has reached the end of its route the
+moment it exists, and DCS does what it does then: it lands. Measured in the Tacview of *Ligne
+rouge d'At Tanf*: the Sayqal QRA pair of MiG-29S appeared at **5 262 m**, descended in turns,
+flared on runway 090 at 695 m and was gone **four and a half minutes** after appearing — three
+scrambles (2 700 s, 3 990 s, 5 160 s), no interception. Nothing raises; the group simply never
+does what it was placed for.
+
+**What to do:** Give a flight a route that keeps it busy (an orbit, a `SwitchWaypoint` loop) and a task. A QRA or
+an air wave does it for a group tasked `CAP` or `Intercept` whose route engages no aircraft: it is
+cloned with the `zone_defense` role (FEAT-AIRCRAFT-ROLES), and the build says so. Any other group
+placed this way still lands.
+
+*What it cost:* Three scrambles of a QRA that defended nothing, on a mission built by the MCP's `create_qra`.
+
+### `land.getHeight` never answers below 0: ground under sea level reads 3 m on Syria {#dcs-ground-is-never-below-sea-level}
+
+Measured **2026-10-01**.
+
+The whole Syria map swept every 250 m (12.1 M points, `veaf-tools dcs terrain-sweep`) holds no
+height below 0: the sea reads 0, and every point measured where the real ground lies under sea
+level reads **exactly 3 m** — Lake Tiberias (real surface about −210 m), the Jordan valley at
+Beit She'an, Jericho (about −250 m), the north of the Dead Sea (about −430 m). The real figures
+are approximate, from general knowledge; the DCS ones are measured.
+
+**What to do:** Take a ground height from DCS's terrain (`terrain_elevation`), never from a real-world source:
+in the Jordan rift the two differ by hundreds of metres, and it is DCS's that the aircraft flies
+over.
+
+*What it cost:* None yet — found while sweeping the elevation grid. A briefing that took a target's altitude from a
+real-world map would have given a negative figure DCS does not have.
+
+### A static created by script shows on the F10 map even when it is submitted `hidden = true` {#dcs-scripted-static-ignores-hidden}
+
+Measured **2026-09-19**.
+
+Measured by Tripack on a v6 Cyprus mission, from a blue Hornet slot and as Tactical Commander
+(#953): the neutral sandbags placed **hidden** in the Mission Editor and touched by no script stay
+off the map, while the identical ones a combat zone puts back — removed by deactivating the zone,
+recreated by activating it again — are on the map. VEAF submits `hidden = true` to
+`coalition.addStaticObject` for them (`test_the_static_the_zone_puts_back_is_still_hidden`), so it
+is DCS that does not apply it to an object a script created. A **group** behaves the other way,
+measured on 2026-10-03: a Su-27 pair `hidden = true` in the editor, recreated twice by
+`coalition.addGroup` as a QRA, never showed on a blue F10 map (`optview_all`) that did show a
+non-hidden red Shilka and red MiG-29S. DCS keeps `hidden` on a recreated group, drops it on a
+recreated static.
+
+**What to do:** Keep a decoration that must stay hidden out of every combat zone, or name it so that no zone takes
+it over: the editor's own copy is the only one DCS hides.
+
+### An aircraft spawned a few metres above the ground is not lifted: it flies into what stands there {#aircraft-spawned-too-low-is-not-lifted}
+
+Measured **2026-10-03**.
+
+`coalition.addGroup` takes an aircraft's altitude as given. A MiG-21 spawned 15 m above flat
+farmland in Caucasus (`_spawn cap, side red, alt 2`) was in the air, hit shrubs and trees within a
+second (`HIT` on `SHRUB`, `GREEN_ASH`, `EUROPEAN_BEECH`) and crashed (`PILOT_DEAD`, `CRASH`).
+Nothing raises: the spawn succeeds and the aircraft dies.
+
+**What to do:** Spawn an aircraft well above what stands on the ground. Not being under the terrain is not enough.
+VEAF floors every aircraft it gives a role (`-cap`, a QRA or a wave defending its zone) at
+`veafAircraftSpawn.MINIMUM_CLEARANCE_METRES` (150 m) above the ground under its spawn point, spawn
+and patrol alike; the MiST-derived spawner lifts a requested altitude into a band for the same reason.
+
+*What it cost:* `FIX-AIR-SPAWN-ALTITUDE-GUARD` had to choose between refusing and lifting; this measurement is what
+settles that refusing only a point under the terrain leaves the crash in place.
+
+### `trigger.smokeColor` and `trigger.flareColor` keys are `Red`, `Green`… — `RED` is nil, and DCS then refuses the call {#colour-enums-are-capitalised}
+
+Measured **2026-10-03**.
+
+Read in game: `trigger.smokeColor` is `Blue=4 Green=0 Orange=3 Red=1 White=2` and
+`trigger.flareColor` is `Green=0 Red=1 White=2 Yellow=3`. `trigger.smokeColor.RED` is `nil`, and
+`trigger.action.smoke(point, nil)` raises "Parameter #2 (color) missed" — inside a scheduled
+function that is a line in `dcs.log` and no smoke. The two tables also disagree from 3 up: smoke 3
+is orange, flare 3 is yellow; smoke 4 is blue, and there is no flare 4.
+
+**What to do:** Write the keys as DCS does, and never pass a smoke colour where a flare colour is expected beyond
+red, green and white.
+
+*What it cost:* Every coloured smoke and flare asked from a VEAF map marker, and the smokes and flares of `-farp`,
+failed this way until `FIX-IN-GAME-SESSION-2026-10-03`; the unit tests compared `nil` with `nil`.
+
+### A Group or Unit object kept in a script follows its id: a group created later with the same id answers for it {#a-dcs-object-is-its-id}
+
+Measured **2026-10-03**.
+
+A DCS object handed to a script is `{ id_ = n }` and nothing more. A combat zone deactivated
+(`Group:destroy()`) and activated again respawned its SA-6 under a new name, `#10211` → `#10212`,
+with the template's group id, 44, both times. The `Group` object Skynet had kept for `#10211`
+then answered `isExist() == true`, `getSize() == 5` and `getName() == "…#10212"`, while
+`Group.getByName("…#10211")` returned nil. Nothing raises: the old object simply speaks for the
+new group.
+
+**What to do:** Never take "the object I kept still exists" for "the thing I kept still exists". Look it up by
+name, or compare the name it answers with the one you stored — which is what the Skynet sweep of
+`veafSkynetIadsHelper.lua` does since FIX-IN-GAME-SESSION-2026-10-03.
+
+*What it cost:* The vanished-sites sweep, written to drop a deactivated zone's SAM site from the IADS, kept every
+such site for the rest of the mission: one more site per deactivation and reactivation.
+
+### A heavy aircraft spawned on a `SmallSizeFighter` stand (`Term_Type` 100) is moved elsewhere without a word, or seated inside a hangar {#heavy-aircraft-on-a-small-fighter-stand-is-moved-or-clips}
+
+Measured **2026-10-03**.
+
+`coalition.addGroup` accepts the request and raises nothing either way. Three C-130s on GermanyCW,
+each asked for the free type-100 stand of one airfield (`parking` = its `Term_Index`), read 10 s later:
+
+| Airfield, stand | Where the C-130 ended up |
+|---|---|
+| Wittstock #97 | on the stand, 1.8 m off it — **2 m from a `HANGAR_COVERED_02_GREEN`**, i.e. inside it |
+| Altes Lager #93 | **1 473 m away**, on stand #67 (type 104) |
+| Bremen #13 | **339 m away**, on stand #1 (type 104) |
+
+Type 100 is not Syrian only, as the parking captures of Caucasus, Persian Gulf and Syria
+suggested: GermanyCW has some too (Ramstein, Wittstock, Altes Lager, Bremen at least).
+
+**What to do:** Seat an aircraft only on the stand types its airframe fits: the tools offer 68, 72 and 104
+(`AIRCRAFT_STAND_TYPES`) and leave 100 out. After spawning on a named stand, read the unit's
+position back rather than trusting the stand you asked for.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}
@@ -276,6 +472,24 @@ Measured **2026-09-21**.
 
 **What to do:** Use manpads or ordinary vehicles as spotters, not air-defence vehicles.
 
+### A CAP flight engages nothing without an `EngageTargets` task, and a task numbered after its endless orbit is never read {#cap-engages-only-through-an-engage-task-before-its-orbit}
+
+Measured **2026-10-03**.
+
+The group's main task `CAP` does not make it fight. Three MiG-29S pairs on GermanyCW, identical
+but for the task list of their first waypoint, each with an immortal C-130 orbiting 12 km away
+and detected by its lead (`getDetectedTargets`): with `EngageTargets` (`key = "CAP"`, `Air`)
+numbered **before** the race-track `Orbit`, the pair fired its first R-77 74 s after it was
+activated and four missiles within 3.5 minutes; with no `EngageTargets`, and with the same task numbered **after** the
+`Orbit`, both pairs held fire for four minutes at 8.5 km from a target they had detected.
+
+**What to do:** Give every CAP an `EngageTargets` (or `EngageTargetsInZone`) task numbered before its `Orbit`, as
+the Mission Editor does when the CAP task is chosen. `create_cap_mission` writes it that way, and
+`edit_route add_task` takes `task_position` to insert a task before an orbit instead of appending.
+
+*What it cost:* The on-demand CAPs `create_cap_mission` built before FIX-SCRATCH-MISSION-FINDINGS ticket 17 carried
+an `Orbit` alone: they patrolled and never fought.
+
 ## Players, roles and the map {#players}
 
 ### A game master **is** coalition-scoped for map marks {#game-master-marks-are-coalition-scoped}
@@ -333,6 +547,28 @@ from an unexplained one by remembering the ids `onGameEvent` reported disconnect
 
 *What it cost:* The VEAF hook logged it at ERROR, once per departure: on private1 it was the first suspect for an
 unrelated security defect until its context was measured.
+
+## Radio and frequencies {#radio}
+
+### The text of `Radio.lua` is not the airfield frequencies DCS uses — DCS completes the missing bands {#radio-lua-is-not-what-the-f10-view-shows}
+
+Measured **2026-10-01**.
+
+`Mods/terrains/<T>/Radio.lua` looks like the airfields' ATC frequencies, and holds fewer than DCS
+uses. The Mission Editor (`MissionEditor/modules/Mission/AirdromeData.lua`) asks DCS for them with
+`DCS.getATCradiosData(radioId)`, which returns bands the file does not hold. Measured on Persian
+Gulf: `radio.lua` gives Al Dhafra **one** frequency, 126.5 VHF, and DCS returns **four** — 39.5,
+126.5, 251.1 and 4.3, what the editor's airport panel shows; Bandar-e-Jask has `frequency = {}` in
+the file and four bands in DCS. Every Persian Gulf entry of `radio.lua` carries VHF only. Where
+DCS completes them is not visible in the install.
+
+**What to do:** Take an airfield's frequencies from the reference shipped with the tools
+(`veaf_libs/data/airfield-frequencies.yaml`, captured from a running DCS with the editor's own
+logic) — through `describe_airfield_channels` / `set_airfield_channels`, or
+`veaf-tools content airfield-channels` — never from `Radio.lua`, and never typed by hand.
+
+*What it cost:* The tools' reference was parsed from the text of `Radio.lua`: on Persian Gulf it held no UHF channel
+for any airfield, and made the hand-written channel collection — which was right — look wrong.
 
 <!-- END GENERATED -->
 

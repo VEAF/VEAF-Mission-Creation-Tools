@@ -1,0 +1,984 @@
+{
+  "theatre": "Normandy",
+  "airdromes": [
+    {
+      "id": 1,
+      "name": "Saint Pierre du Mont",
+      "source": "radio",
+      "freqs": [
+        38.95,
+        118.65,
+        250.5,
+        4.0
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Lignerolles",
+      "source": "radio",
+      "freqs": [
+        39.5,
+        119.2,
+        251.05,
+        4.275
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Cretteville",
+      "source": "radio",
+      "freqs": [
+        40.05,
+        119.8,
+        251.6,
+        4.55
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Maupertus",
+      "source": "radio",
+      "freqs": [
+        40.6,
+        120.35,
+        252.15,
+        4.825
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Brucheville",
+      "source": "radio",
+      "freqs": [
+        41.05,
+        120.85,
+        252.65,
+        4.725
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Meautis",
+      "source": "radio",
+      "freqs": [
+        41.6,
+        121.4,
+        253.2,
+        4.75
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Cricqueville-en-Bessin",
+      "source": "radio",
+      "freqs": [
+        42.15,
+        121.7,
+        253.75,
+        4.675
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Lessay",
+      "source": "radio",
+      "freqs": [
+        42.1,
+        121.85,
+        253.95,
+        4.7
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Sainte-Laurent-sur-Mer",
+      "source": "radio",
+      "freqs": [
+        42.0,
+        121.9,
+        254.0,
+        4.9
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Biniville",
+      "source": "radio",
+      "freqs": [
+        38.45,
+        118.0,
+        250.0,
+        3.75
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Cardonville",
+      "source": "radio",
+      "freqs": [
+        38.5,
+        118.1,
+        250.05,
+        3.775
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Deux Jumeaux",
+      "source": "radio",
+      "freqs": [
+        38.55,
+        118.15,
+        250.1,
+        3.8
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Chippelle",
+      "source": "radio",
+      "freqs": [
+        38.6,
+        118.2,
+        250.15,
+        3.825
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Beuzeville",
+      "source": "radio",
+      "freqs": [
+        38.65,
+        118.3,
+        250.2,
+        3.85
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Azeville",
+      "source": "radio",
+      "freqs": [
+        38.7,
+        118.35,
+        250.25,
+        3.875
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Picauville",
+      "source": "radio",
+      "freqs": [
+        38.75,
+        118.4,
+        250.3,
+        3.9
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Le Molay",
+      "source": "radio",
+      "freqs": [
+        38.8,
+        118.5,
+        250.35,
+        3.925
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Longues-sur-Mer",
+      "source": "radio",
+      "freqs": [
+        38.85,
+        118.55,
+        250.4,
+        3.95
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Carpiquet",
+      "source": "radio",
+      "freqs": [
+        38.9,
+        118.6,
+        250.45,
+        3.975
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Bazenville",
+      "source": "radio",
+      "freqs": [
+        39.0,
+        118.7,
+        250.55,
+        4.025
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Sainte-Croix-sur-Mer",
+      "source": "radio",
+      "freqs": [
+        39.05,
+        118.75,
+        250.6,
+        4.05
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Beny-sur-Mer",
+      "source": "radio",
+      "freqs": [
+        39.1,
+        118.8,
+        250.65,
+        4.075
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Rucqueville",
+      "source": "radio",
+      "freqs": [
+        39.15,
+        118.85,
+        250.7,
+        4.1
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Sommervieu",
+      "source": "radio",
+      "freqs": [
+        39.2,
+        118.9,
+        250.75,
+        4.125
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Lantheuil",
+      "source": "radio",
+      "freqs": [
+        39.25,
+        118.95,
+        250.8,
+        4.15
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Evreux",
+      "source": "radio",
+      "freqs": [
+        39.3,
+        119.0,
+        250.85,
+        4.175
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Chailey",
+      "source": "radio",
+      "freqs": [
+        39.35,
+        119.05,
+        250.9,
+        4.2
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Needs Oar Point",
+      "source": "radio",
+      "freqs": [
+        39.4,
+        119.1,
+        250.95,
+        4.225
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Funtington",
+      "source": "radio",
+      "freqs": [
+        39.45,
+        119.15,
+        251.0,
+        4.25
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Tangmere",
+      "source": "radio",
+      "freqs": [
+        39.55,
+        119.3,
+        251.1,
+        4.3
+      ]
+    },
+    {
+      "id": 31,
+      "name": "Ford",
+      "source": "radio",
+      "freqs": [
+        39.6,
+        119.35,
+        251.15,
+        4.325
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Argentan",
+      "source": "radio",
+      "freqs": [
+        39.65,
+        119.4,
+        251.2,
+        4.35
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Goulet",
+      "source": "radio",
+      "freqs": [
+        39.7,
+        119.45,
+        251.25,
+        4.375
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Barville",
+      "source": "radio",
+      "freqs": [
+        39.75,
+        119.5,
+        251.3,
+        4.4
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Essay",
+      "source": "radio",
+      "freqs": [
+        39.8,
+        119.55,
+        251.35,
+        4.425
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Hauterive",
+      "source": "radio",
+      "freqs": [
+        39.85,
+        119.6,
+        251.4,
+        4.45
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Lymington",
+      "source": "radio",
+      "freqs": [
+        39.9,
+        119.65,
+        251.45,
+        4.475
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Vrigny",
+      "source": "radio",
+      "freqs": [
+        39.95,
+        119.7,
+        251.5,
+        4.5
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Odiham",
+      "source": "radio",
+      "freqs": [
+        40.0,
+        119.75,
+        251.55,
+        4.525
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Conches",
+      "source": "radio",
+      "freqs": [
+        40.1,
+        119.85,
+        251.65,
+        4.575
+      ]
+    },
+    {
+      "id": 41,
+      "name": "West Malling",
+      "source": "radio",
+      "freqs": [
+        40.15,
+        119.9,
+        251.7,
+        4.6
+      ]
+    },
+    {
+      "id": 42,
+      "name": "Villacoublay",
+      "source": "radio",
+      "freqs": [
+        40.2,
+        119.95,
+        251.75,
+        4.625
+      ]
+    },
+    {
+      "id": 43,
+      "name": "Kenley",
+      "source": "radio",
+      "freqs": [
+        40.25,
+        120.0,
+        251.8,
+        4.65
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Beauvais-Tille",
+      "source": "radio",
+      "freqs": [
+        40.3,
+        120.05,
+        251.85,
+        4.675
+      ]
+    },
+    {
+      "id": 45,
+      "name": "Cormeilles-en-Vexin",
+      "source": "radio",
+      "freqs": [
+        40.35,
+        120.1,
+        251.9,
+        4.7
+      ]
+    },
+    {
+      "id": 46,
+      "name": "Creil",
+      "source": "radio",
+      "freqs": [
+        40.4,
+        120.15,
+        251.95,
+        4.725
+      ]
+    },
+    {
+      "id": 47,
+      "name": "Guyancourt",
+      "source": "radio",
+      "freqs": [
+        40.45,
+        120.2,
+        252.0,
+        4.75
+      ]
+    },
+    {
+      "id": 48,
+      "name": "Lonrai",
+      "source": "radio",
+      "freqs": [
+        40.5,
+        120.25,
+        252.05,
+        4.775
+      ]
+    },
+    {
+      "id": 49,
+      "name": "Dinan-Trelivan",
+      "source": "radio",
+      "freqs": [
+        40.55,
+        120.3,
+        252.1,
+        4.8
+      ]
+    },
+    {
+      "id": 51,
+      "name": "Fecamp-Benouville",
+      "source": "radio",
+      "freqs": [
+        40.65,
+        120.4,
+        252.2,
+        4.85
+      ]
+    },
+    {
+      "id": 52,
+      "name": "Farnborough",
+      "source": "radio",
+      "freqs": [
+        40.7,
+        120.45,
+        252.25,
+        4.875
+      ]
+    },
+    {
+      "id": 53,
+      "name": "Friston",
+      "source": "radio",
+      "freqs": [
+        40.75,
+        120.5,
+        252.3,
+        4.9
+      ]
+    },
+    {
+      "id": 54,
+      "name": "Deanland",
+      "source": "radio",
+      "freqs": [
+        40.8,
+        120.55,
+        252.35,
+        4.925
+      ]
+    },
+    {
+      "id": 55,
+      "name": "Triqueville",
+      "source": "radio",
+      "freqs": [
+        40.85,
+        120.6,
+        252.4,
+        4.95
+      ]
+    },
+    {
+      "id": 56,
+      "name": "Poix",
+      "source": "radio",
+      "freqs": [
+        40.9,
+        120.65,
+        252.45,
+        4.8
+      ]
+    },
+    {
+      "id": 57,
+      "name": "Orly",
+      "source": "radio",
+      "freqs": [
+        40.95,
+        120.7,
+        252.5,
+        4.525
+      ]
+    },
+    {
+      "id": 58,
+      "name": "Stoney Cross",
+      "source": "radio",
+      "freqs": [
+        41.0,
+        120.75,
+        252.55,
+        4.625
+      ]
+    },
+    {
+      "id": 59,
+      "name": "Amiens-Glisy",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        120.8,
+        252.6,
+        4.475
+      ]
+    },
+    {
+      "id": 60,
+      "name": "Ronai",
+      "source": "radio",
+      "freqs": [
+        41.1,
+        120.9,
+        252.7,
+        4.875
+      ]
+    },
+    {
+      "id": 61,
+      "name": "Rouen-Boos",
+      "source": "radio",
+      "freqs": [
+        41.15,
+        120.95,
+        252.75,
+        4.225
+      ]
+    },
+    {
+      "id": 62,
+      "name": "Deauville",
+      "source": "radio",
+      "freqs": [
+        41.2,
+        121.0,
+        252.8,
+        4.65
+      ]
+    },
+    {
+      "id": 63,
+      "name": "Saint-Aubin",
+      "source": "radio",
+      "freqs": [
+        41.25,
+        121.05,
+        252.85,
+        3.75
+      ]
+    },
+    {
+      "id": 64,
+      "name": "Flers",
+      "source": "radio",
+      "freqs": [
+        41.3,
+        121.1,
+        252.9,
+        4.6
+      ]
+    },
+    {
+      "id": 65,
+      "name": "Avranches Le Val-Saint-Pere",
+      "source": "radio",
+      "freqs": [
+        41.35,
+        121.15,
+        252.95,
+        4.2
+      ]
+    },
+    {
+      "id": 66,
+      "name": "Gravesend",
+      "source": "radio",
+      "freqs": [
+        41.4,
+        121.2,
+        253.0,
+        4.775
+      ]
+    },
+    {
+      "id": 67,
+      "name": "Beaumont-le-Roger",
+      "source": "radio",
+      "freqs": [
+        41.45,
+        121.25,
+        253.05,
+        4.25
+      ]
+    },
+    {
+      "id": 68,
+      "name": "Broglie",
+      "source": "radio",
+      "freqs": [
+        41.5,
+        121.3,
+        253.1,
+        4.3
+      ]
+    },
+    {
+      "id": 69,
+      "name": "Bernay Saint Martin",
+      "source": "radio",
+      "freqs": [
+        41.55,
+        121.35,
+        253.15,
+        4.325
+      ]
+    },
+    {
+      "id": 70,
+      "name": "Saint-Andre-de-lEure",
+      "source": "radio",
+      "freqs": [
+        41.65,
+        121.45,
+        253.25,
+        4.925
+      ]
+    },
+    {
+      "id": 71,
+      "name": "Biggin Hill",
+      "source": "radio",
+      "freqs": [
+        41.7,
+        134.8,
+        253.3,
+        4.4
+      ]
+    },
+    {
+      "id": 72,
+      "name": "Manston",
+      "source": "radio",
+      "freqs": [
+        41.75,
+        118.25,
+        253.35,
+        4.45
+      ]
+    },
+    {
+      "id": 73,
+      "name": "Detling",
+      "source": "radio",
+      "freqs": [
+        41.8,
+        118.45,
+        253.4,
+        4.425
+      ]
+    },
+    {
+      "id": 74,
+      "name": "Lympne",
+      "source": "radio",
+      "freqs": [
+        41.85,
+        121.5,
+        253.45,
+        4.5
+      ]
+    },
+    {
+      "id": 75,
+      "name": "Abbeville Drucat",
+      "source": "radio",
+      "freqs": [
+        41.9,
+        118.05,
+        253.5,
+        4.55
+      ]
+    },
+    {
+      "id": 76,
+      "name": "Saint-Omer Wizernes",
+      "source": "radio",
+      "freqs": [
+        41.95,
+        121.55,
+        253.55,
+        3.9
+      ]
+    },
+    {
+      "id": 77,
+      "name": "Merville Calonne",
+      "source": "radio",
+      "freqs": [
+        42.0,
+        121.6,
+        253.6,
+        4.825
+      ]
+    },
+    {
+      "id": 78,
+      "name": "High Halden",
+      "source": "radio",
+      "freqs": [
+        42.05,
+        121.65,
+        253.65,
+        4.375
+      ]
+    },
+    {
+      "id": 79,
+      "name": "Dunkirk-Mardyck",
+      "source": "radio",
+      "freqs": [
+        42.1,
+        132.45,
+        253.7,
+        3.85
+      ]
+    },
+    {
+      "id": 80,
+      "name": "Lashenden",
+      "source": "radio",
+      "freqs": [
+        42.2,
+        121.75,
+        253.8,
+        4.35
+      ]
+    },
+    {
+      "id": 81,
+      "name": "Eastchurch",
+      "source": "radio",
+      "freqs": [
+        42.25,
+        119.25,
+        253.85,
+        4.575
+      ]
+    },
+    {
+      "id": 82,
+      "name": "Hawkinge",
+      "source": "radio",
+      "freqs": [
+        42.3,
+        121.8,
+        253.9,
+        3.825
+      ]
+    },
+    {
+      "id": 83,
+      "name": "Guernsey",
+      "source": "radio",
+      "freqs": [
+        42.3,
+        118.25,
+        254.1,
+        5.0
+      ]
+    },
+    {
+      "id": 84,
+      "name": "Jersey",
+      "source": "radio",
+      "freqs": [
+        42.2,
+        122.0,
+        254.15,
+        3.8
+      ]
+    },
+    {
+      "id": 85,
+      "name": "Alderney",
+      "source": "radio",
+      "freqs": [
+        42.4,
+        122.05,
+        254.2,
+        3.775
+      ]
+    },
+    {
+      "id": 86,
+      "name": "Headcorn",
+      "source": "radio",
+      "freqs": [
+        42.4,
+        122.1,
+        254.25,
+        4.15
+      ]
+    },
+    {
+      "id": 87,
+      "name": "Saint-Pol-Bryas",
+      "source": "radio",
+      "freqs": [
+        41.4,
+        122.15,
+        254.3,
+        4.025
+      ]
+    },
+    {
+      "id": 88,
+      "name": "Northolt",
+      "source": "radio",
+      "freqs": [
+        41.6,
+        122.5,
+        254.35,
+        4.1
+      ]
+    },
+    {
+      "id": 89,
+      "name": "Holmsley South",
+      "source": "radio",
+      "freqs": [
+        41.9,
+        122.6,
+        254.4,
+        4.85
+      ]
+    },
+    {
+      "id": 90,
+      "name": "Bembridg",
+      "source": "radio",
+      "freqs": [
+        42.35,
+        123.0,
+        360.0,
+        4.35
+      ]
+    }
+  ]
+}

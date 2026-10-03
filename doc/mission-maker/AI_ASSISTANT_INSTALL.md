@@ -91,6 +91,19 @@ un dossier vide (version anglaise :
 selon la taille du front) et ne pose que quatre ou cinq questions : la carte, l'époque, le gabarit,
 une éventuelle mission dont s'inspirer, les escortes.
 
+### Une mission à objectifs, jouée en une séance
+
+Pour une mission qu'un groupe joue une fois — un package, un ou plusieurs objectifs, une menace, un
+retour —, collez le prompt
+[`.prompts/new-objective-mission.fr.md`](../../.prompts/new-objective-mission.fr.md) dans un dossier
+vide (version anglaise :
+[`new-objective-mission.en.md`](../../.prompts/new-objective-mission.en.md)). Il demande la carte,
+les appareils et le nombre de pilotes (slots nommés ou dynamiques), la durée de la séance et le genre de mission, puis **propose
+un scénario** : vous en demandez d'autres autant que vous voulez, vous posez vos questions, vous
+pouvez faire afficher le briefing dans la conversation. Rien n'est écrit tant que vous n'avez pas
+validé un scénario ; ensuite, l'assistant construit la mission et son briefing en PPTX (à importer en Google Slides) et/ou PDF,
+au format des briefings VEAF.
+
 ## Mettre à jour le plugin
 
 Quand une nouvelle version du plugin sort, avec Claude Code :

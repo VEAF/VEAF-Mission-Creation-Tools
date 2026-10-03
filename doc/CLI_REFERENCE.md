@@ -353,6 +353,30 @@ veaf-tools content pull-aircraft-groups --add-new
 
 **Voir aussi** : [Slots dynamiques](mission-maker/concepts/dynamic-slots.md#shipped-catalogue)
 
+### `veaf-tools content airfield-channels` {#airfield-channels}
+
+Liste les aérodromes qu'utilise la mission, du plus utile au moins utile, avec les fréquences ATC et le TACAN que DCS leur donne : le camp qui les tient (`warehouses`), s'ils offrent des slots dynamiques une fois `src/warehouses.yaml` appliqué, combien de slots sont posés au parking, et le canal qu'ils ont déjà dans la collection `bases`. Une radio DCS tient une vingtaine de canaux : c'est la liste dans laquelle choisir. Sans `--apply`, la commande n'écrit rien.
+
+Avec `--apply`, elle écrit les aérodromes choisis dans la collection `bases` de `src/presets.yaml`, avec les fréquences de DCS. Un aérodrome qui y est déjà garde son alias (les `channel_lists` le nomment) et l'orthographe de son titre (`Büchel` reste `Büchel` même si DCS écrit `Buchel` ; seul l'indicatif TACAN est mis à jour) ; un nouveau prend l'alias `Base-<nom DCS>`. Une entrée qui ne correspond à aucun aérodrome choisi (un FARP, un navire) est laissée telle quelle et signalée. Rien d'autre ne change : ni les canaux tactiques et de patrouille, ni les `channel_lists`. La commande signale les canaux écrits qui ne sont encore sur aucune radio. Un aérodrome que DCS ne déclare pas est refusé : **une fréquence d'aérodrome ne se tape jamais à la main**.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `MISSION_FOLDER` | `str` | non | Dossier de mission (contient `src/mission/` et `src/presets.yaml`). Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--apply` | `str` | *(aucun)* | Aérodrome (nom DCS ou id) à écrire dans la collection `bases`, dans l'ordre voulu. Répétable. |
+| `--neutral` | `boolean` | `false` | Liste aussi les aérodromes qu'aucun camp ne tient. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+```bash
+.\veaf-tools.exe content airfield-channels
+.\veaf-tools.exe content airfield-channels --apply "Batumi" --apply "Kutaisi" --apply "Vaziani"
+```
+
+*Alias plat : `veaf-tools airfield-channels`*
+
 ### `veaf-tools content inject-presets` {#inject-presets}
 
 Injecte des préréglages radio depuis un fichier YAML dans une mission .miz.
@@ -653,6 +677,78 @@ consignes, attente.
 ```
 
 *Alias plat : `veaf-tools clear-ground-check`*
+
+### `veaf-tools dcs scenery-objects` {#scenery-objects}
+
+Liste les **objets de la carte** — ponts, bâtiments qui font partie de la carte elle-même — autour d'un
+ou plusieurs points, avec leur identifiant DCS, leur type et leur distance au point, du plus proche au
+plus loin. C'est l'identifiant que prend le
+[`scenery_targets`](mission-maker/scripts/veafCombatZone.md#scenery-targets) d'une zone de combat : un
+objet de la carte n'est pas créé par la zone, elle ne peut donc le reconnaître que par son numéro, et ce
+numéro n'existe que dans DCS. Même déroulé que `clear-ground-check` : `dcs-serve`, mission d'arpentage
+vide, consignes, attente. Les points sont en coordonnées de mission (`x` vers le nord, `y` vers l'est,
+en mètres).
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | oui | Le théâtre, tel que DCS l'écrit (Caucasus, Syria…). |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--around` | `str` | *(aucun)* | Un point autour duquel chercher, en `x,y` ou `x,y,rayon` (rayon 150 m par défaut). Répétable. |
+| `--report` | `str` | *(aucun)* | Écrire aussi les objets en JSON dans ce fichier. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<théâtre>.miz` | Où écrire la mission d'arpentage. |
+| `--bridge-lua` | `str` | *(aucun)* | dcs-bridge.lua local à embarquer (défaut : téléchargement). |
+| `--wait` | `int` | `900` | Combien de secondes attendre que la mission d'arpentage réponde. |
+| `--api-key` | `str` | *(aucun)* | Jeton Bearer superuser de dcs-serve (par défaut : lu dans dcs-serve.yaml). (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Chemin d'un dcs-serve.yaml / dcs-client.yaml où lire la clé. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à lancer quand aucun ne tourne. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```bash
+.\veaf-tools.exe dcs scenery-objects Syria --around -64230,352140,100
+```
+
+*Alias plat : `veaf-tools scenery-objects`*
+
+### `veaf-tools dcs terrain-sweep` {#terrain-sweep}
+
+Relève l'**altitude du sol** de tout un théâtre (`land.getHeight`, tous les 250 m par défaut) et l'écrit
+dans `<VEAF home>/terrain/<théâtre>.terrain`. L'action MCP `terrain_elevation` lit ensuite cette
+grille sans DCS : altitude d'une cible, sol le plus haut le long d'une route, masquage par le relief
+entre une route et un site SAM. Même déroulé que `clear-ground-sweep` : `dcs-serve`, mission
+d'arpentage vide, consignes, attente ; un relevé interrompu reprend où il s'est arrêté. L'étendue
+relevée est celle de la carte, demandée à DCS ; s'il ne la donne pas, celle des aérodromes plus 50 km,
+et la commande le dit. **Relief seul** : ni bâtiments, ni pylônes, ni arbres.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | oui | Le théâtre, tel que DCS l'écrit (Caucasus, Syria…). |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--spacing` | `float` | `250` | Distance entre deux échantillons, en mètres. |
+| `--bounds` | `str` | *(celle de la carte)* | L'étendue à relever, en `min_x,min_y,max_x,max_y` (coordonnées de mission). |
+| `--measure-at` | `str` | *(aucun)* | Au lieu de relever la carte, relève finement (50 m) un carré de 20 km autour de ce point `x,y` et dit, pour chaque pas candidat (100, 250, 500, 1000 m), l'erreur en un point et l'écart du maximum d'un carré de 10 km. Répétable. |
+| `--out` | `str` | `<VEAF home>/terrain/` | La grille (ou, avec `--measure-at`, le rapport) à écrire. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<théâtre>.miz` | Où écrire la mission d'arpentage. |
+| `--bridge-lua` | `str` | *(aucun)* | dcs-bridge.lua local à embarquer (défaut : téléchargement). |
+| `--state-dir` | `str` | `<VEAF home>/terrain/sweep-<théâtre>` | Où le relevé garde sa progression. |
+| `--restart` | `boolean` | `false` | Jeter la progression d'un autre plan au lieu de refuser. |
+| `--batch` | `int` | `20000` | Altitudes lues par appel à DCS. |
+| `--wait` | `int` | `900` | Combien de secondes attendre que la mission d'arpentage réponde. |
+| `--api-key` | `str` | *(aucun)* | Jeton Bearer superuser de dcs-serve (par défaut : lu dans dcs-serve.yaml). (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Chemin d'un dcs-serve.yaml / dcs-client.yaml où lire la clé. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à lancer quand aucun ne tourne. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```bash
+.\veaf-tools.exe dcs terrain-sweep Caucasus
+```
+
+*Alias plat : `veaf-tools terrain-sweep`*
 
 ### `veaf-tools dcs smoke-test` {#smoke-test}
 

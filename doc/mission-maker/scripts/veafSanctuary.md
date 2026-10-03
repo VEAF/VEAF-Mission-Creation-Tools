@@ -53,6 +53,7 @@ modules:
         polygon_units:                  # noms d'unités DCS définissant le périmètre du polygone
           - "Sanctuary-Unit-1"
           - "Sanctuary-Unit-2"
+        # trigger_zone: "SANCT Carrier"  # OU un cercle : une zone de déclenchement de la mission
         coalition: BLUE                 # BLUE | RED — coalition protégée ; les unités des autres coalitions sont traitées
         delay_warning: 30              # secondes de présence dans la zone avant le message d'avertissement (défaut : 0)
         delay_spawn: 60                # secondes de présence dans la zone avant le déploiement des défenses (-1 = désactivé, défaut)
@@ -66,7 +67,8 @@ modules:
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `sanctuary_zones` | objet[] | `[]` | Non | Liste des zones sanctuary |
 | `sanctuary_zones[].name` | string | — | Oui | Identifiant interne |
-| `sanctuary_zones[].polygon_units` | string[] | — | Non | Noms d'unités DCS définissant le périmètre du polygone |
+| `sanctuary_zones[].polygon_units` | string[] | — | Un des deux | Noms d'unités DCS définissant le périmètre du polygone |
+| `sanctuary_zones[].trigger_zone` | string | — | Un des deux | Nom d'une zone de déclenchement de la mission : le sanctuaire est son cercle (centre et rayon). Exactement un de `trigger_zone` et `polygon_units` : les deux, ou aucun, sont refusés au build ; une zone absente de la mission est une erreur de `validate` |
 | `sanctuary_zones[].coalition` | string | — | Non | `BLUE` ou `RED` — coalition protégée ; les unités des autres coalitions sont traitées à l'entrée |
 | `sanctuary_zones[].delay_warning` | entier | `0` | Non | Secondes de présence dans la zone avant l'envoi du message d'avertissement |
 | `sanctuary_zones[].delay_spawn` | entier | `-1` | Non | Secondes de présence dans la zone avant le déploiement des défenses (-1 = désactivé) |

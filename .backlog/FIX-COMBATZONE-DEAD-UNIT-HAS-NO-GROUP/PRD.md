@@ -1,6 +1,6 @@
 # FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP — a combat zone loses track of what it has lost
 
-Status: 🧑 waiting-human — ticket 01 closed as no defect (2026-09-28); ticket 03 measured on the server (2026-09-29) and found the panel blind to static targets, fixed here; ticket 02 built, only its in-game check left.
+Status: 🧑 waiting-human — ticket 01 closed as no defect (2026-09-28); ticket 03 measured on the server (2026-09-29) and found the panel blind to static targets, fixed here; ticket 02 built, its script half seen in game 2026-10-03 (every zone vehicle reaches DCS with `coldAtStart = false`), the thermal look left.
 
 > **The lot's name is now misleading, and is kept only so links do not break.** "A dead unit has no
 > group" was the symptom that started it, and it turned out to be CTLD announcing a perfectly normal
@@ -154,3 +154,9 @@ and Arco orbit well behind the line. Ask David what he expects before building a
 - The `onUnitDead` handler that emits the message for 1 — the log line quoted above is the exact
   string to grep for.
 - Reproduce on `combatZone_WahnerHeide` specifically, since that is where it was seen.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+a combat zone's panel and its completion disagree. Ownership turned out fine (ticket 01); the watched session found the **info panel blind to static targets**, fixed, and spawned vehicles now start warm — in-game check left. The dead-unit symptom that named the lot was CTLD logging at the wrong level (VEAF/CTLD#212)

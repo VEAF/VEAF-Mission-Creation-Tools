@@ -836,7 +836,16 @@ function VeafGroupSpawn:withRadius(radius)
 end
 
 --- The route the spawned group flies or drives. Without one, the group's own is used.
+---
+--- Takes either shape, as `veaf.addGroup` does: the bare list of points `veaf.getGroupRoute` answers,
+--- or a whole route table `{ points = { … } }`. The CAP and AFAC builders hand over the second, and
+--- until 2026-10-02 it was wrapped once more, so DCS received `route.points.points` — a route with no
+--- waypoint at all — for every `-cap` and `-afac` since #842 replaced `mist.teleportToPoint`, which
+--- took the route table as it was (FEAT-AIRCRAFT-ROLES).
 function VeafGroupSpawn:withRoute(route)
+  if type(route) == "table" and route.points then
+    route = route.points
+  end
   self.route = route
   return self
 end

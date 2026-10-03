@@ -293,6 +293,28 @@ When `delay` is **negative**, the next wave spawns immediately after this one �
 :addWave({ groups = { "Strike Package" } })              -- ...this wave
 ```
 
+### What a fighter group does {#fighter-group-task}
+
+A group whose **task** (in the editor) is `CAP` or `Intercept` gets its job from the script when its route
+does not give it one: if it carries no aircraft engagement task (`EngageTargets` or `EngageTargetsInZone`
+with *Air* targets), it is launched on **zone defense**:
+
+- it appears where you placed it, with the options of its first waypoint (ROE, reaction to threat…);
+- it flies to the wave zone and holds a race-track centred on it, along the axis it arrives from (a 20 NM
+  leg, or the zone's diameter when that is shorter);
+- it engages only the aircraft that enter the zone, which it ranks by type and distance.
+
+A group placed **on a parking spot or the runway** keeps its take-off as you set it, then climbs to
+27,000 ft for its patrol.
+
+So this is the normal case: place the fighter with **a single waypoint** and no task, and the script
+does the rest; the build says so for every such group. If you want a flight plan of your own, write it **with** an aircraft engagement task: it is
+then flown as written. A hand-written route without that engagement is replaced, and the build warns you
+about it. A group with any other task (`CAS`, `Ground Attack`, `Escort`…) always flies its route.
+
+A `-cap` command listed in a wave also defends the wave zone, not the 60 NM zone it draws around
+its own leg.
+
 ### VEAF commands as groups {#spawn-offset}
 
 Instead of a DCS group name, you can use any VEAF spawn command (the same syntax as an F10 map marker). The command is executed at the spawn position, which can be adjusted with a `[latDelta,lonDelta]` prefix (in metres, relative to the zone centre).

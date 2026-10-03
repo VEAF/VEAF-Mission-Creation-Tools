@@ -1,6 +1,6 @@
 # FIX-AIRWAVES-COMMAND-EASTING — a command-driven air wave spawns with no easting
 
-Status: 🧑 waiting-human
+Status: ✅ done — 2026-10-03, both halves seen in game
 
 Code shipped; the in-game look is ticket 02 and needs DCS started.
 
@@ -99,7 +99,7 @@ should fail — that is ticket 02.
 | # | Ticket | Risk | Status |
 |---|---|---|---|
 | 01 | A command element is handed a vec3, in both modules that run one | low — two lines per site, covered by tests that fail two ways | ✅ |
-| 02 | See a command-driven wave arrive where it should | needs DCS | 🧑 |
+| 02 | See a command-driven wave arrive where it should | needs DCS | ✅ |
 
 ## What implementation found that this document did not say
 
@@ -134,3 +134,39 @@ days old:
 - [ ] Checked in game on an air wave with a command element — ticket 02
 - [x] `stylua --check` clean locally; `luacheck` is not installed on this workstation and **passed on
       the CI Lua gate** (PR #884), so the gate is met rather than merely deferred
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ticket 02, wave half (R7): a wave element `[0,0]-shilka` spawned 150 m from its zone centre,
+`[5000,0]-shilka` 5.2 km north, a bare `-shilka` at the default offset (4 km N, 7 km W). The QRA
+half was not run: the session mission's QRA deploys an editor group, which keeps its editor position.
+
+## The wave half is re-opened (2026-10-03, afternoon)
+
+The morning's in-game check of the wave half used waves written `-spawn shilka`, and `-spawn` is no
+alias: re-run in the afternoon, the zone logged `VeafAlias [-spawn] was not found` and spawned nothing.
+The morning's numbers cannot have come from those waves, so the wave half goes back to
+`DCS-SESSION-TODO.md` R7 with a valid alias. The QRA half was verified that afternoon.
+
+## The wave half verified (2026-10-03, evening)
+
+Session `dcs-session-2026-10-03c`, mission built from `develop` `d3823f7e`. Zone `AW-CommandTest`,
+`respawn_default_offset: [4000, -7000]`, waves `"-shilka"` then `"[5000,0]-shilka"`, triggered by an
+AI C-130 declared as the zone's human. Positions read from the zone centre:
+
+| Wave | Expected | Measured | Miss |
+|---|---|---|---|
+| `-shilka` | N +4000 / E −7000 (the default offset) | N +3853 / E −6954 | 154 m |
+| `[5000,0]-shilka` | N +5000 / E 0 (the bracket replaces the default) | N +4989 / E −181 | 181 m |
+
+Both inside 250 m, which is the floor `AirWaveZone:setRespawnRadius` puts on any scatter
+(`respawn_radius: 0` is not even emitted by the generator). Northing first, easting second, no
+easting lost: the lot closes.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a command-driven air wave spawns with a nil easting.** `veafAirWaves.lua:1012` hands `veafInterpreter.execute` the vec2 that `getRandomPointInCircle` answers, while a command expects a vec3 whose `z` is the easting — `veafSpawnGround` reads `spawnPosition.z`. Hidden because the MiST stub in `dcs_mocks` answered a vec3 where MiST answers a vec2, so the test was asserting the mock. Found while porting ticket 06 of DROP-MIST, 2026-08-28. **Fixed 2026-09-01, in two places rather than one:** enumerating the three callers of `veafInterpreter.execute` instead of trusting the PRD found `veafQraCore.lua:994` carrying the identical branch — `veafCombatZone` builds its vec3 by hand and was fine. The PRD's own supporting argument had gone stale meanwhile: the converting "sibling twenty lines down" no longer exists, the `VeafGroupSpawn` chain having absorbed it. Tests tell *correct*, *zero* and *absent* apart and are proven to fail two different ways. Remaining: the in-game look, ticket 02.

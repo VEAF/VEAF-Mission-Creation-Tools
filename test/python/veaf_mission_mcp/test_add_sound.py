@@ -63,6 +63,18 @@ class TestAddSound:
         written = luadata.unserialize((l10n / "mapResource").read_text(encoding="utf-8"))
         assert written == {"ResKey_1": "other.ogg", "MCP_Sound_beacon": "beacon.ogg"}
 
+    def test_a_mission_folder_keeps_its_backups_out_of_the_l10n_folder(self, tmp_path: Path, sound: Path) -> None:
+        """FIX-OPEN-TRAINING-SYRIA-FINDINGS 15: the copies went beside the files, into the build."""
+        folder = tmp_path / "folder"
+        l10n = folder / "src" / "mission" / "l10n" / "DEFAULT"
+        l10n.mkdir(parents=True)
+        (folder / "mission.yaml").write_text("modules: {}\n", encoding="utf-8")
+        (folder / "src" / "mission" / "mission").write_bytes(_MISSION_LUA)
+        (l10n / "mapResource").write_text('mapResource = {\n  ["ResKey_1"] = "other.ogg",\n}\n', encoding="utf-8")
+        add_sound(folder, source_path=str(sound))
+        assert sorted(p.name for p in l10n.iterdir()) == ["beacon.ogg", "mapResource"]
+        assert any(p.name.startswith("mapResource.") for p in (folder / ".veaf-backups").iterdir())
+
     def test_anything_but_a_sound_is_refused(self, miz: Path, tmp_path: Path) -> None:
         script = tmp_path / "x.lua"
         script.write_text("--", encoding="utf-8")

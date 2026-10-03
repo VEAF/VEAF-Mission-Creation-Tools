@@ -17,12 +17,298 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.27.0] — 2026-10-03
+
+### Changed
+
+- **Open Training prompt: three lessons from the Caucasus mission's first flights.** A training
+  zone's **transit time is part of its design**, and the SEAD family had none: "loin de tout"
+  combined with a long-range SAM at the hard level put it 24 minutes from the nearest blue base and
+  243 nm from the first tanker, against 1 minute for the helicopter family and 9 for attack — and a
+  pilot who gets shot down flies it again. A SA-10 reaches 65 nm, so forbidding it over a friendly
+  base (4.7) pushes the zone past 65 nm of everything blue, where a narrow map has no usable ground
+  left. The prompt now rules out long range in a *training* zone and says to cut the content rather
+  than suffer the distance; long range lives in the permanent defences (4.5) and the real combat
+  zones (4.7). Two more: every zone — combat, training, QRA — carries **its outline** on the F10 map
+  and not only its name (the Caucasus had 38 drawings, 10 lines and 28 labels, not one outline), and
+  an F10 label needs an opaque light `fill_color`, the action's default being `0x00000080`, black at
+  half opacity, under text in the side's own dark colour. Both had held until a pilot reported them
+  in flight, because an F10 drawing is read **only in game** — it is now in §8's list of what to
+  check in DCS, where it fell between the briefing images and the rest.
+- **Airfield channels come from DCS, and a mission picks the ones it needs**
+  (FEAT-AIRFIELD-CHANNELS-FROM-DCS). The default `presets.yaml` carried hand-written airfield
+  collections that had drifted from DCS (Sanliurfa on 251.6 where DCS says 252.7, 13 of the 21
+  Caucasus airfields missing, four theatres with no collection at all), and the reference they should
+  have come from was itself wrong: it parsed the text of `Radio.lua`, and DCS completes bands that
+  text does not hold — on Persian Gulf it gave Al Dhafra one VHF frequency where DCS and the editor
+  show four. It also keyed airfields by radio callsign (`OMAA`), lost those sharing one, and filed
+  GermanyCW and Sinai under folder names no mission uses. The reference is now **captured from a
+  running DCS** with the editor's own logic, by a guided command that writes the mission to load for
+  each map, sees it arrive in DCS and names the next one (`veaf-build update-dcs-data --airfield-freqs
+  --capture`); it is keyed by DCS airdrome id, with the TACAN from `Beacons.lua` — 396 airfields over
+  seven theatres. The `airports-<theatre>` collections of the default plan are **generated** from it,
+  one per theatre, a name found on two maps qualified by its theatre (eight Israeli fields differ
+  between Sinai and Syria),
+  and a test fails if either is edited by hand. A new command, `veaf-tools content
+  airfield-channels`, and two MCP actions, `describe_airfield_channels` / `set_airfield_channels`,
+  list the airfields a mission uses — side, dynamic slots, parked slots — with their DCS frequencies,
+  and write the chosen ones into the mission's `bases` collection, refusing any airfield DCS does not
+  declare. Existing missions keep their own `presets.yaml`: run the command to bring their base
+  channels in line.
+
+- **Open Training prompt: non-airfield channels are chosen clear of the tower band.** The prompt now
+  says to read the theatre's tower band first and put AWACS, tankers, carriers and flights outside
+  it, then to check that no frequency appears twice in a channel list. Caucasus's 21 towers take
+  **250.0 to 270.0 with no gap**, one per MHz; eight VEAF channels lived in there, harmless only as
+  long as the base channels carried an invented series. With the real frequencies in, four turned
+  into duplicates — Magic 1 and Nalchik both on 265.0, **at channels 2 and 16 of the same blue
+  radio**, so a pilot switching to Nalchik landed on the AWACS. Found on the Caucasus mission the
+  day the base channels were fixed.
+- **Open Training prompt: what the Syria and GermanyCW missions taught** (FIX-OPEN-TRAINING-SYRIA-FINDINGS).
+  The README is the pilots' briefing, in French, one file generated from the mission; laser drones are
+  an MQ-9 with the `AFAC` group task, with CTLD's three limits said in the briefing; the inert targets
+  of the easy levels are one-vehicle groups, hot and weapons hold, not statics a pod cannot see;
+  dynamic slots of the mission's era only; a local test mission is handed over; CTLD's example
+  `extract*` / `logistic*` lists are emptied; a convoy starts on firm ground, ships of a group stand
+  150 m apart, the bullseye sits on no zone; no QRA radio menu open to all. The English prompt is
+  resynchronised with the French one, which had moved ahead on 2026-10-01.
+- **CTLD `2.0.0-rc12`** (was rc11), vendored verbatim from the VEAF/CTLD release (#618). A pilot
+  taking over a slot no longer inherits the previous occupant's flight state, and extraction zones
+  can be declared by naming a trigger zone `EXZ_<name>_<flag>_<smoke>`. **The UH-1H no longer
+  carries a whole vehicle** (troops raised from 8 to 10); the Mi-8MT now does, with a 3 000 kg
+  rating. These are engine defaults: a mission with no `ctld-config.yaml`, or one scaffolded from
+  now on, gets them; an existing `ctld-config.yaml` is never overwritten and keeps the values it
+  holds.
+- **Vendored DCS scripting-API schema `v0.4.0`** (was `v0.3.5`), the reference `audit-dcs-mocks`
+  checks the Lua mocks against and the LuaLS annotations `.luarc.json` loads. The audit reports
+  exactly what it did on `v0.3.5`. Upstream fixed the off-by-one in its `country.name` table, which
+  the test on the vendored schema now asserts.
+- **CI: `Python Quality`, `Docs Check` and `Support Bot` start on every pull request**, so their
+  checks can be *required* on `develop` and auto-merge can wait for them. A required check whose
+  workflow never starts stays "Expected" for ever; the path filter therefore moved from the
+  pull-request trigger into a `changes` job (`veaf_build/ci_path_gate.py`), and a job it leaves out
+  reports "Skipped", which a required check accepts. Pushes are filtered as before.
+
+### Added
+
+- **A prompt for an objective mission, played once in one session**
+  (`.prompts/new-objective-mission.fr.md` / `.en.md`, FEAT-OBJECTIVE-MISSION-PROMPT). The Open
+  Training prompt builds a theatre that runs for months; nothing covered the other half of what VEAF
+  flies — a package, one or more objectives, a threat, a way home. The new prompt works in **two
+  phases**: it proposes numbered scenarios, as many as the user wants, each on one screen with its
+  distances measured and its flight time computed against the session length, answers questions,
+  and writes a pre-briefing in the conversation on request — **no file written** until a scenario is
+  explicitly approved. Then it builds the mission (one group per ATO flight, objectives as combat
+  zones active at start, `chained_zones` for a second phase, a QRA for the fighters that "might take
+  off after the strike") and a PPTX and/or PDF briefing following the VEAF template of *Deep Strike
+  Palmyra*, whose coordinates, frequencies and flight plan are read back from the built mission
+  rather than copied from the scenario.
+- **An objective mission's end, and a map object as an objective** (FEAT-OBJECTIVE-MISSION-PROMPT,
+  found writing the prompt above). A combat **operation** already announces "Operation … is over" when
+  its last zone completes, but `active_at_start` was silently skipped on one since the key existed, so
+  it could only be started from the F10 menu: it is now activated at start like a zone. The completion
+  hook given to an operation was stored and **never called** — its completion check replaces the
+  zone's, which is where a zone calls its own; it now runs after the message. A zone only counted what
+  it spawned, so a bridge or a building **of the map** could not be an objective: a new
+  `combat_zones[].scenery_targets: [<id>, …]` makes the zone wait for those objects to be destroyed too,
+  checked by id against the destroyed-scenery register the Combat Missions already use (a value that is
+  not a positive integer stops the build). The ids exist only inside DCS: a new command,
+  `veaf-tools dcs scenery-objects <theatre> --around x,y[,radius]`, lists the map objects around points
+  with their id, type and distance, on the empty survey mission of `clear-ground-check`, and the MCP
+  action `offer_scenery_lookup` proposes it. Known limitation recorded: activating an operation spawns
+  all its zones at once, `dependencies` ordering the tasks and not the units.
+- **Ground elevation with no DCS running** (FEAT-TERRAIN-ELEVATION). No action gave the height of the
+  ground, so a briefing's target altitudes, the floor of a low-level route and terrain masking all ended
+  as "to check in game". A new command, `veaf-tools dcs terrain-sweep <theatre>`, reads `land.getHeight`
+  over the whole map on the empty survey mission (resumable, like `clear-ground-sweep`) and stores the
+  grid under `<VEAF home>/terrain/`; `--measure-at x,y` compares candidate spacings against a fine
+  reference instead. A new read-only MCP action, `terrain_elevation`, answers from that grid: the ground
+  at points, the highest ground of each route leg, how many metres of each leg each SAM or radar sees
+  over the terrain (4/3-Earth horizon), and the highest ground per 10 km MGRS square or 30′ quadrangle.
+  Terrain only — no buildings, pylons or trees — and every answer says so. The objective-mission prompt
+  now uses it for target altitudes, low-level floors and its masking table.
+- **A scrambled interceptor has a job, and one way spawns an aircraft with one** (FEAT-AIRCRAFT-ROLES,
+  from the Tacview of *Ligne rouge d'At Tanf*). The Sayqal QRA scrambled three times and intercepted
+  nobody: its group had one waypoint and no task — the shape `create_qra` builds — so the clone reached
+  the end of its route the moment it appeared and landed four and a half minutes later, and the QRA
+  rearmed. A QRA or an air wave now gives a group tasked `CAP` or `Intercept` whose route engages no
+  aircraft the **`zone_defense`** role: a race-track centred on the zone, along the axis it arrives from,
+  and the CAP watchdog engaging what enters the zone. A group parked or on the runway keeps its take-off
+  and climbs to 27 000 ft. A route that engages air, and the route of any other task — a bomber or an
+  assault wave — is flown as written. A `-cap` listed in a QRA or a wave now defends that zone rather
+  than the 60 NM zone around its own leg, with a single watchdog. The roles live in a new runtime
+  module, `veafAircraftSpawn.lua`, which `-cap` now spawns through too. The build says, for every
+  such group a QRA or a wave deploys, what it will do — given its patrol, flown as written, or (a
+  warning, which `veaf-tools validate` carries too) a hand-written route that will be replaced. **A mission picks this up by being rebuilt.**
+- **What building the Syria Open Training through the MCP was missing** (FIX-OPEN-TRAINING-SYRIA-FINDINGS).
+  `add_air_group` with task `AFAC` builds a laser drone the way GermanyCW-v6's was checked in game
+  (unlimited fuel, circle orbit). `add_air_group`, `create_qra` and `create_cap_mission` take a DCS
+  loadout **by name** (`payload`, listed by the new `list_payloads`), from a `payloads.yaml` generated
+  from an install's `UnitPayloads` (613 loadouts, `veaf-build update-dcs-data --payloads`).
+  `list_unit_types` gives each unit's weapon and detection range (`threat_range_m`,
+  `detection_range_m`, DCS's own). `add_farp` places its ammunition dump. A `${METAR}` is composed for
+  a variant with manual weather. A sanctuary takes a circle from a trigger zone
+  (`sanctuary_zones[].trigger_zone`), and an `ASSETS` entry can be shown to one coalition
+  (`assets[].coalition`). Placement warns about a ground unit in the sea or a ship on land where the
+  theatre has an elevation grid. `repair_static_shapes` fills the `shape_name` of statics placed
+  before 6.26. `list_catalog` returns a name and a summary per action (9.6 kB instead of 73 kB;
+  `full: true` for the schemas). The mission-folder `.gitignore` covers `.veaf-backups/` and the
+  presets report.
+- **Helicopters spawned from a marker, with a job** (#164, FEAT-HELICOPTER-SPAWN). `_spawn unit` and
+  `_spawn group` now put a helicopter down at the marker, engine off — until now the first refused
+  every aircraft and the second submitted a helicopter as an airplane, which DCS refuses (`Invalid
+  Unit Module`, measured). A `task` gives it a job: `orbit` circles the marker, `transport` flies to a
+  `dest` and lands in the nearest clearing, `patrol` loops (armed) or shuttles landing at each end
+  (unarmed), `attack` engages at a `dest`, `escort` covers a ground group; `alt` (feet above the ground) and `speed` (knots) tune it. Eight aliases ship
+  — `mi8`, `mi26`, `uh1`, `ch47` unarmed, `mi24`, `ka50`, `ah64`, `gazelle` armed with the loadout of
+  their shipped dynamic slot — and every helicopter type gets its fuel from the units database. All six are
+  checked in game; a `dest` inside a forest leaves the helicopter hovering at its edge. Airplanes are still refused (`describe_known_limitations`).
+
+### Fixed
+
+- **A combat zone holding a static now completes, and the destroyed-scenery register records at last**
+  (FIX-OBJECTIVE-COMPLETION, both measured in game on 2026-10-01 with the objective-mission test
+  mission). `StaticObject.getByName` keeps returning a static after its destruction — `isExist()` false,
+  `getLife()` 0 — and the zone watchdog counted whatever it returned, so **a zone with a static target
+  never completed**, and its F10 report kept listing the destroyed target; both now count only a static
+  still standing (`veafCombatZone.getStandingStatic`). Separately, the register of destroyed map objects
+  (#836) never subscribed to destructions: `veafMissionDb` is loaded before the event bus and counted on
+  a second initialisation that is only generated for a mission listing `MISSIONDB`, which none does. The
+  event bus now subscribes it. This makes `scenery_targets` work, and makes the Combat Missions'
+  *prevent destruction of map objects* objective able to fail — it could not since #836, so a mission
+  using it may now end in failure where it used to succeed.
+- **`-cap` and `-afac` spawned with no waypoint at all** (found in FEAT-AIRCRAFT-ROLES). Since #842
+  (2026-08-30, shipped in 6.18.0) `VeafGroupSpawn:withRoute` wrapped the `{ points = … }` table the CAP
+  and AFAC builders hand it, so DCS received `route.points.points`: every CAP flew no patrol and every
+  AFAC no orbit. `withRoute` now takes both shapes, as `veaf.addGroup` does.
+- **A `-cap` kept neither its weapons hold nor its patrol through the command layer** (FEAT-AIRCRAFT-ROLES).
+  `veafSpawn.executeCommand` made every spawned group weapons free, undoing the `PROHIBIT_AA` the CAP
+  watchdog owns, and imposed the caller's route even when the handler had set its own; a combat zone's
+  command hook re-routed the group along the marker's route the same way. An aircraft spawned with a
+  role is now left alone by both.
+- **A helicopter in a dynamic slot had no CSAR radio menu** (#989, FIX-USER-REPORTS-985-989). Since CSAR
+  left MiST (#845, shipped in 6.18.0) `csar.getGroupId` looked the helicopter up in the Mission Editor
+  snapshot, which knows no dynamic slot, so such a helicopter got neither the CSAR menu nor the messages
+  CSAR sends to its group, while the rescue itself ran. It now reads the live group.
+- **14 of the shipped spawnable templates were filed under real countries** (#985,
+  FIX-USER-REPORTS-985-989): `USA` and `France` on the blue side, `USSR` on the red one. The injector
+  adds such a country to its side without looking at the other, so a mission where France is red ended
+  with France on both. They now sit under `CJTF Blue` / `CJTF Red` like the others, the six USSR MiG
+  templates with a western-shaped callsign, and a test pins it as it already did for the dynamic-slot
+  catalogue.
+- **The mission prompts ask for two carriers** (DOC-PROMPTS-TWO-CARRIERS): the Open Training and
+  objective-mission prompts, in French and English, now say that a generated mission with a carrier group
+  always gets the Stennis and the Roosevelt, each with its own TACAN, ICLS, Link 4 and frequencies.
+- **Three MCP actions made a wrong mission with no warning** (FIX-OPEN-TRAINING-SYRIA-FINDINGS).
+  `add_air_group` gave the second tanker of a family another family's callsign — built in the order
+  Texaco 1, Arco 1, Texaco 2, Arco 2, the third became `Shell11`: a western flight named like its
+  callsign now gets it, and an AI flight with a fighting task and no weapons is warned about (eight
+  Syria escort pairs had none). `set_unit_properties` wrote `{'CLSID': '…'}` as the CLSID of 16
+  aircraft when given `add_air_group`'s pylon shape, and `name: "Texaco"` without its digits: both
+  shapes are read, anything else refused, and the name is completed. `create_qra` wrote
+  `simple_groups` beside the scramble levels, where they never deploy (a level-1 rule replaces them,
+  a higher lowest level keeps level 1 from firing — measured, where the lot had assumed every
+  interceptor took off at the first intruder): it no longer does, and `validate` warns on both.
+- **Smaller defects found on the way** (FIX-OPEN-TRAINING-SYRIA-FINDINGS). `geocode` sent requests as
+  fast as asked and got banned by Nominatim for half an hour: one a second now, a 429 waited out once
+  then said plainly, and a road or a region (« Al-Kiswah » → a street of Amman) flagged. A file under
+  `src/mission/l10n/DEFAULT/` was backed up beside itself, so `add_sound` left `dictionary` /
+  `mapResource` copies the build packed into the `.miz`; a folder save never wrote `mapResource`, and
+  a key added to it was lost.
+- **A `clearsky` variant's briefing now describes the sky it flies** (FIX-CLEARSKY-METAR). With
+  `metar:` or `airport_icao:`, `clearsky: true` capped the injected weather but `${METAR}` kept the
+  published report: the Syria Open Training's `dawn-real-clear` flew FEW and announced
+  `SCT030 BKN090`. `${METAR}` is now recomposed from the capped weather, with the report's station,
+  temperature and QNH, at the variant's time — `METAR LTAG 150203Z 35006KT 9999 FEW090 19/// Q1015`.
+  The caps live in one place for the injected table and the briefing, and a composed METAR announces
+  the cloud base DCS flies once it has moved it into its preset's range (`BKN008` capped is flown, and
+  now announced, `FEW028`). A published METAR still keeps
+  its own time group, now documented; the single cloud layer a METAR is flown with is a known
+  limitation.
+- **A red `-cap` no longer comes out as an F-15C** (#240). The `veafSpawn-` templates of every side
+  went into one pool, and the drawn one was spawned in the requester's country: on the shipped
+  catalogue a red `-cap` drew from 51 templates, 29 of them western airframes — 7 out of 10 measured
+  in game. `-cap` and `-afac` now draw from the requesting side's templates and the neutral ones —
+  which belong to nobody and serve both sides — and fall back to every template (with a line in
+  `dcs.log`) when none of those matches. The shipped red
+  templates still include Mirage F1 and Mirage 2000 adversaries, on purpose; `-cap mig` keeps to
+  MiGs.
+- **Support bot: a function name read from a trace is checked whole.** `find_callers` validated only
+  the last dotted segment, so `x(); import os; os.system` passed as `system` and listed every
+  `system (` in the checkout as a caller. Harmless — the name only ever reaches an escaped regex —
+  but its test was green by luck, and turned red the day a file held that text.
+- **Coloured smoke and flares asked from a map marker work again**, and so do the smoke and flares of
+  `-farp` and of a convoy. DCS names its colours `Red`, `Green`, `White`…; eleven sites wrote `RED`,
+  `GREEN`, `WHITE`, which is nil, and DCS refused every such call ("Parameter #2 (color) missed" in
+  `dcs.log`, no smoke). The combat-zone smoke was not affected. Found in game on 2026-10-03.
+- **A wave that fails to deploy no longer freezes its AirWaves zone.** The branch reporting the
+  failure called a logger method that does not exist, raised, and the zone's checks stopped for the
+  rest of the mission. Same call fixed in the Skynet monitor.
+- **Docs: a `-cap`'s `capradius` is in nautical miles**, not metres. The code reads it in nautical miles
+  (60 by default), and the pages' example `capradius 20000` asked for a 20 000 NM zone;
+  it now reads `capradius 20`. `distance` is the length of the race-track leg (20 NM by default), not a
+  distance from the marker. A helicopter's `capradius` stays in metres.
+
+- **A CAP no longer piles up attack orders, nor loses its patrol after a fight.** The CAP watchdog gave
+  the aircraft a new attack order for every target on every check (every ten seconds), and when the
+  fight was over it removed as many orders as it had counted — although DCS drops the order of a dead
+  target by itself — so it removed the patrol route too. It now gives one order per target, rebuilds
+  them only when the targets change, hands the patrol back from where the CAP is, and stops chasing
+  once the CAP has left its zone. Found in game on 2026-10-03.
+- **An aircraft given a role no longer appears in the trees.** A `-cap`, a QRA or a wave defending its
+  zone is now placed, and patrols, at least 150 m above the ground under its spawn point. DCS does not
+  lift an aircraft spawned too low: on 2026-10-03, a `-cap` asked at `alt 2` appeared 15 m above the
+  ground and crashed within a second.
+- **`_spawn signal, color …` fires the colour asked.** It was handed the smoke colour: orange came out
+  yellow and blue fired nothing. A signal flare is `red` (the default), `green`, `white` or `yellow`;
+  `orange` and `blue` are refused with a message.
+- **A FARP escort on open ground stays where it is laid out, and never in the trees.** Its search for
+  clear ground counted the tents and props of its own FARP as obstacles, so it moved every time; it now
+  stands beside them, and still avoids anything else. When it has to look elsewhere it now also checks
+  for forest: in a dense wood, where it used to park the escort under the trees, a `-farp` is refused
+  with "no clear ground for its escort".
+- **A combat zone's air defence leaves the Skynet network when the zone is deactivated.** Its respawn
+  reuses the group's DCS id, and the old site's object then answered for the new one, so the network
+  kept one more site after each deactivation. Found in game on 2026-10-03.
+- **`veaf-logs` opens its window in about 2 s instead of 10.** It reconnected to every remote log of
+  the last session — an SSH connection and a copy of the log each — before showing anything: three
+  remote tabs cost 8 s. The window now comes up first, and the remote tabs reopen one after the other,
+  each in its place. Its diagnostic report also gives the real version: every shipped `veaf-logs`
+  said `tool.version: unknown`, the release having built it after the version was reset; the release
+  now builds it with `veaf-build build-logs`. And running the tests no longer overwrites the
+  `veaf-logs` session of whoever runs them.
+- **The airfield logistics radius is sized for the largest airfield, and the guides say so.** Measured
+  in game on 2026-10-03: at Ramstein a C-130 parks 997 m from the 250 m logistic zone, and only one of
+  the field's 90 large-aircraft stands is inside it. The guide, the `mission.yaml` reference, both
+  mission prompts and `describe_known_limitations` now tell to raise `airbase_logistics_radius` for
+  the largest field transports start from (1 100 m for Ramstein). Also served by
+  `describe_known_limitations`: a CAP engages nothing without an `EngageTargets` task numbered before
+  its orbit, measured the same evening.
+- **Activating a combat mission by a name it does not know reports it on screen instead
+  of raising a Lua error.** The bare name of an on-demand CAP is such a name, since each CAP is registered per
+  skill and size (`TEST-T17 CAP/good/2`): on 2026-10-03, `ActivateMission("TEST-T17 CAP")` raised
+  `attempt to index local 'mission' (a nil value)`. Deactivating, describing and checking a mission
+  had the same defect, and deactivating one by its number raised on every call.
+- **`content airfield-channels --apply` keeps the author's spelling of an airfield**
+  (FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS). DCS names its airfields in ASCII, and the command rewrote every
+  title with that name: on the GermanyCW Open Training, `Büchel` became `Buchel / 118X` and
+  `Nörvenich` `Norvenich / 77X` — the name the pilot reads in the cockpit and on the kneeboard. A title
+  that names the same airfield now keeps its spelling and only gets its TACAN refreshed; one naming
+  something else still takes the DCS name. The name matching also folds accents, so a channel known
+  only by its accented title is recognised instead of being added a second time. Same for the MCP
+  action `set_airfield_channels`.
+- **`describe_known_limitations` says what DCS does with a heavy aircraft on a small fighter stand.**
+  Measured in game on 2026-10-03: three C-130s asked for a type-100 (`SmallSizeFighter`) stand on
+  GermanyCW were moved 339 m and 1 473 m away to another stand, or seated inside a hangar, and no
+  error was raised. The tools already leave that stand type out; the reason is now measured rather
+  than inferred.
+
 ## [6.26.0] — 2026-09-30
 
 ### Added
 
 - **Airfields are CTLD logistic points.** A C-130 landed at Ramstein read *"No logistics in range"*
-  (VEAF-Open-Training-Mission-GermanyCW-v6#1007): a map airfield is in none of CTLD 2's logistic
+  (#1007): a map airfield is in none of CTLD 2's logistic
   discovery routes. VEAF now registers every airdrome itself when CTLD starts, one zone of 250 m on
   the parking stand nearest the field's centroid, under the airfield's own coalition. A field held
   at mission start keeps its zone while it holds it; a neutral or captured one opens only after two

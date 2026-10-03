@@ -164,6 +164,25 @@ def build_standalone(
         input(PAUSE_MESSAGE)
 
 
+@app.command(name="build-logs")
+def build_logs(
+    version: str | None = typer.Option(
+        None,
+        help="Semantic version stamped into the executable (e.g., '6.0.2'). If not specified, auto-computed as for build-standalone",
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+) -> None:
+    """Build the `veaf-logs` executable from `veaf-logs.spec`, with the version stamped in.
+
+    Produces `dist/veaf-logs` (`veaf-logs.exe` on Windows). Leaves the rest of `dist/` alone.
+    """
+    logger.set_verbose(verbose)
+    console.print("[bold green]VEAF Logs Build[/bold green]")
+    worker = BuildAndReleaseWorker(version=version, verbose=verbose, config=load_config())
+    exe_path = worker.build_veaf_logs()
+    console.print(f"[bold green]✓[/bold green] Built veaf-logs executable: {exe_path}")
+
+
 @app.command(name="build-kit")
 def build_kit(
     version: str | None = typer.Option(None, help="Version stamped in the kit's zip name."),
@@ -475,6 +494,103 @@ def build_and_publish(
         sys.exit(1)
 
 
+def _capture_airfield_freqs(
+    dcs_path: str | None, fiddle_url: str, requested: list[str], wait: int, missions_dir: str | None
+) -> None:
+    """Guide the user through DCS, one theatre after the other, and capture each one's frequencies.
+
+    The journey of ``veaf-tools dcs clear-ground-sweep``: write the mission to load, say what to do in
+    DCS, wait until that map is loaded (nothing to press), capture, then the next map — and at the end,
+    that DCS can be closed.
+
+    Args:
+        dcs_path: The DCS install (its terrains, and ``Beacons.lua`` for the TACAN).
+        fiddle_url: Base URL of the fiddle hook's GUI environment.
+        requested: Theatres to capture; empty means every installed one not captured yet.
+        wait: Seconds to wait for each map.
+        missions_dir: Where to write the missions; defaults to the Missions folder of the last-played DCS.
+
+    Raises:
+        typer.Exit: On a missing ``--dcs-path``, a missing hook, a map never loaded, or a failed capture.
+    """
+    from veaf_libs import dcs_fiddle_client as fiddle  # type: ignore[import-not-found]
+    from veaf_libs.diagnostics import find_dcs_write_dirs  # type: ignore[import-not-found]
+
+    from veaf_build.dcs_data import airfield_freqs_session as session
+
+    if not dcs_path:
+        console.print("[red]--airfield-freqs --capture requires --dcs-path <DCS World install>[/red]")
+        raise typer.Exit(code=1)
+    install = Path(dcs_path)
+    installed, set_aside = session.installed_theatres(install)
+    if set_aside:
+        console.print(
+            f"[yellow]⚠ no blank mission can be made for {', '.join(set_aside)} (not in theatre-defaults.yaml): "
+            "not captured.[/yellow]"
+        )
+    try:
+        theatres = session.theatres_to_capture(installed, requested)
+    except ValueError as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(code=1) from exc
+    if not theatres:
+        console.print(
+            "[green]Every installed theatre is already captured. Name one with --theatre to recapture it.[/green]"
+        )
+        return
+    write_dirs = find_dcs_write_dirs()
+    hook = write_dirs[0] / "Scripts" / "Hooks" / "dcs-fiddle-server.lua" if write_dirs else None
+    if hook is None or not hook.is_file():
+        console.print(
+            f"[red]✗ the fiddle hook is not installed ({hook or 'no Saved Games/DCS folder found'}). The capture reads "
+            "DCS's own airfield data from its GUI environment, which only that hook reaches: copy "
+            "dcs-fiddle-server.lua into Saved Games/DCS/Scripts/Hooks/, then restart DCS.[/red]"
+        )
+        raise typer.Exit(code=1)
+    target_dir = Path(missions_dir) if missions_dir else write_dirs[0] / "Missions" / "VEAF-capture-frequencies"
+
+    def exec_lua(code: str) -> object:
+        # The hook writes a fresh password at each DCS launch: read it on every call, not once.
+        return fiddle.exec_lua(
+            code, env=fiddle.ENV_HOOK, url=fiddle_url, timeout=30.0, token=fiddle.resolve_fiddle_token()
+        )
+
+    console.print(
+        f"\n[bold]{len(theatres)} map(s) to capture:[/bold] {', '.join(theatres)}\n"
+        "For each one, the empty mission to load is written in DCS's Missions folder. Nothing to press here:\n"
+        "this command sees the map arrive in DCS on its own, captures it in a second, and names the next one.\n"
+    )
+    for index, theatre in enumerate(theatres, start=1):
+        mission = session.write_capture_mission(theatre, target_dir)
+        console.print(
+            f"[bold]({index}/{len(theatres)}) {theatre}[/bold] — in DCS:\n"
+            f"  1. Mission > Open (or the Mission Editor), and open [bold]{mission}[/bold];\n"
+            "  2. launch it, and take the [bold]spectator[/bold] slot (the mission holds no unit).\n"
+            "  If DCS still has the previous map running, leave that mission first."
+        )
+        try:
+            with console.status(f"Waiting for {theatre} to be loaded in DCS…"):
+                session.wait_for_theatre(
+                    exec_lua,
+                    theatre,
+                    wait,
+                    on_other=lambda other: console.print(
+                        f"  [yellow]DCS has {other} loaded — waiting for {theatre}.[/yellow]"
+                    ),
+                )
+            path, records, tacans = session.capture_theatre(exec_lua, theatre, install)
+        except (TimeoutError, ValueError, RuntimeError) as exc:
+            console.print(f"[red]✗ {exc}[/red]")
+            console.print("[yellow]The maps captured so far are kept; run the same command again to resume.[/yellow]")
+            raise typer.Exit(code=1) from exc
+        sources = {s: sum(1 for r in records if r["source"] == s) for s in ("terrain", "radio", "none")}
+        console.print(
+            f"[green]✓ {theatre}: {len(records)} airfields (terrain config {sources['terrain']}, "
+            f"Radio.lua {sources['radio']}, none {sources['none']}), {len(tacans)} TACAN → {path.name}[/green]\n"
+        )
+    console.print("[bold green]All maps captured — you can leave the mission and close DCS.[/bold green]")
+
+
 @app.command(name="update-dcs-data")
 def update_dcs_data(
     countries: bool = typer.Option(False, "--countries", help="Regenerate the DCS country name->id table."),
@@ -487,10 +603,16 @@ def update_dcs_data(
         False, "--parking", help="Regenerate the bundled parking-stand table from committed parking dumps."
     ),
     airfield_freqs: bool = typer.Option(
-        False, "--airfield-freqs", help="Regenerate the airfield ATC-frequency table (needs --dcs-path)."
+        False,
+        "--airfield-freqs",
+        help="Regenerate the airfield ATC-frequency table and the default airports-* channel collections "
+        "from the committed captures (with --capture: capture the running theatre first, needs --dcs-path).",
     ),
     cockpit_controls: bool = typer.Option(
         False, "--cockpit-controls", help="Regenerate the cockpit-control indexes (needs --dcs-path)."
+    ),
+    payloads: bool = typer.Option(
+        False, "--payloads", help="Regenerate the DCS default loadouts table from an install (needs --dcs-path)."
     ),
     aircraft: str | None = typer.Option(
         None, "--aircraft", help="With --cockpit-controls: index only this module folder, e.g. F-16C."
@@ -502,13 +624,34 @@ def update_dcs_data(
         "(without --dcs-path: re-render only).",
     ),
     dcs_path: str | None = typer.Option(
-        None, "--dcs-path", help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls, --cities)."
+        None,
+        "--dcs-path",
+        help="Path to a DCS World install (for --airfield-freqs, --cockpit-controls, --cities, --payloads).",
     ),
     inject_bridge: str | None = typer.Option(
         None, "--inject-bridge", help="With --airdromes: embed the dcs-bridge into this .miz (makes a bridge mission)."
     ),
     capture: bool = typer.Option(
-        False, "--capture", help="With --airdromes: capture airdromes from the running bridge mission, then merge."
+        False,
+        "--capture",
+        help="With --airdromes: capture airdromes from the running bridge mission, then merge. "
+        "With --airfield-freqs: capture the loaded theatre's ATC frequencies through the fiddle hook.",
+    ),
+    fiddle_url: str = typer.Option(
+        "http://127.0.0.1:12081", "--fiddle-url", help="Fiddle hook (GUI environment) for --airfield-freqs --capture."
+    ),
+    theatre: list[str] | None = typer.Option(
+        None,
+        "--theatre",
+        help="With --airfield-freqs --capture: a map to capture (repeatable; default every installed one not captured yet).",
+    ),
+    wait: int = typer.Option(
+        900, "--wait", min=0, help="With --airfield-freqs --capture: seconds to wait for each map."
+    ),
+    missions_dir: str | None = typer.Option(
+        None,
+        "--missions-dir",
+        help="With --airfield-freqs --capture: where to write the missions to load (default: DCS's Missions folder).",
     ),
     serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help="dcs-serve base URL for --capture."),
     api_key: str | None = typer.Option(
@@ -534,7 +677,7 @@ def update_dcs_data(
     from veaf_build.dcs_data.datamine import DATAMINE_REF
 
     run_all = all_data or not (
-        countries or units or radio or airdromes or parking or airfield_freqs or cockpit_controls or cities
+        countries or units or radio or airdromes or parking or airfield_freqs or cockpit_controls or cities or payloads
     )
     ref_short = DATAMINE_REF[:8]
 
@@ -574,16 +717,17 @@ def update_dcs_data(
         console.print(f"[green]✓ parking data written for {written} theatre(s)[/green]")
 
     if airfield_freqs:
-        if not dcs_path:
-            console.print("[red]--airfield-freqs requires --dcs-path <DCS World install>[/red]")
-            raise typer.Exit(code=1)
-        from pathlib import Path
-
         from veaf_build.dcs_data import airfield_freqs as airfield_freqs_provider
 
-        console.print(f"[cyan]Generating airfield ATC-frequency table from {dcs_path}...[/cyan]")
-        count = airfield_freqs_provider.generate(Path(dcs_path))
-        console.print(f"[green]✓ {count} airfields written across all installed theatres[/green]")
+        if capture:
+            _capture_airfield_freqs(dcs_path, fiddle_url, theatre or [], wait, missions_dir)
+
+        console.print("[cyan]Generating airfield ATC-frequency table and channel collections from dumps...[/cyan]")
+        count = airfield_freqs_provider.generate()
+        console.print(
+            f"[green]✓ {count} airfields → {airfield_freqs_provider.DEFAULT_OUTPUT.name} "
+            f"and the airports-* collections of the default presets.yaml[/green]"
+        )
 
     if cities:
         from pathlib import Path
@@ -613,6 +757,17 @@ def update_dcs_data(
                 console.print(
                     f"  [yellow]{skipped} element(s) skipped — built in a shape the parser cannot read[/yellow]"
                 )
+
+    if payloads:
+        if not dcs_path:
+            console.print("[red]--payloads requires --dcs-path <DCS World install>[/red]")
+            raise typer.Exit(code=1)
+        from pathlib import Path
+
+        from veaf_build.dcs_data import payloads as payloads_provider
+
+        count = payloads_provider.generate(Path(dcs_path))
+        console.print(f"[green]✓ {count} loadouts → {payloads_provider.DEFAULT_OUTPUT.name}[/green]")
 
     if run_all or countries:
         console.print(f"[cyan]Generating DCS country table (datamine@{ref_short})...[/cyan]")

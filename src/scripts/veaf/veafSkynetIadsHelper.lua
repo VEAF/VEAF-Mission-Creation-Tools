@@ -432,6 +432,26 @@ local function _wasReportedLost(skynetElement)
   return false
 end
 
+--- True when the element's DCS object is gone — or now answers for another object.
+---
+--- A DCS object is an id, and an id can be handed out again. Measured in game on 2026-10-03: a combat
+--- zone respawned its SA-6 under a new name (`#10212`) with its template's group id (44), so the old
+--- site's object answered `isExist() == true` and `getName()` with the **new** name, and the sweep kept
+--- the old site (FIX-IN-GAME-SESSION-2026-10-03 ticket 03). The name is compared only when both sides
+--- have one: Skynet names an element after its id when its object has no name.
+local function _isGone(skynetElement)
+  local dcsObject = skynetElement.dcsRepresentation
+  if not veafSkynet.dcsObjectStillExists(dcsObject) then
+    return true
+  end
+  local expected = skynetElement.dcsName
+  if type(expected) ~= "string" or expected == "" or not dcsObject.getName then
+    return false
+  end
+  local named, name = pcall(dcsObject.getName, dcsObject)
+  return named and type(name) == "string" and name ~= "" and name ~= expected
+end
+
 --- Remove from one list every element whose DCS object is gone and that nothing reported lost.
 --- Walked backwards because `removeSkynetElement` removes from the very list being iterated.
 --- @return number how many were removed
@@ -442,7 +462,7 @@ local function _sweepSkynetElements(network, elements)
   local removed = 0
   for i = #elements, 1, -1 do
     local skynetElement = elements[i]
-    if skynetElement and not veafSkynet.dcsObjectStillExists(skynetElement.dcsRepresentation) then
+    if skynetElement and _isGone(skynetElement) then
       if _wasReportedLost(skynetElement) then
         veaf.loggers.get(veafSkynet.Id):trace("keeping destroyed element [%s], it was shot", veaf.lp(tostring(skynetElement.dcsName)))
       else

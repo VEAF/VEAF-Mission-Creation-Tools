@@ -399,13 +399,51 @@ end
 --- lost without a word.
 function TestVeafSpawnEffects:test_spawnSignalFlare()
   timer.setTime(500)
-  veafSpawn.spawnSignalFlare({ x = 0, y = 0, z = 0 }, 0, 1, trigger.flareColor.RED)
+  veafSpawn.spawnSignalFlare({ x = 0, y = 0, z = 0 }, 0, 1, trigger.flareColor.Red)
 
   dcs_mocks.runScheduled(505)
 
   luaunit.assertEquals(#dcs_mocks.effects, 1)
   luaunit.assertEquals(dcs_mocks.effects[1].kind, "signalFlare")
-  luaunit.assertEquals(dcs_mocks.effects[1].color, trigger.flareColor.RED)
+  luaunit.assertEquals(dcs_mocks.effects[1].color, trigger.flareColor.Red)
+end
+
+--- `_spawn signal` fires the flare colour it was asked, read from the flare table.
+---
+--- It used to be handed the **smoke** colour: red, green and white share a number in both tables,
+--- orange (smoke 3) came out yellow (flare 3), and blue (smoke 4) is no flare colour at all
+--- (FIX-IN-GAME-SESSION-2026-10-03 ticket 01, "not done, noted").
+local function signalColoursFired(text)
+  timer.setTime(500)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, text, coalition.side.BLUE, 0, true)
+  dcs_mocks.runScheduled(600)
+  local colours = {}
+  for _, effect in ipairs(dcs_mocks.effects) do
+    if effect.kind == "signalFlare" then
+      table.insert(colours, effect.color)
+    end
+  end
+  return colours
+end
+
+function TestVeafSpawnEffects:test_a_signal_fires_the_flare_colour_asked()
+  for name, colour in pairs({ red = "Red", green = "Green", white = "White", yellow = "Yellow" }) do
+    dcs_mocks.reset()
+    luaunit.assertEquals(signalColoursFired("_spawn signal, color " .. name), { trigger.flareColor[colour] }, name)
+  end
+end
+
+function TestVeafSpawnEffects:test_a_signal_with_no_colour_is_red()
+  luaunit.assertEquals(signalColoursFired("_spawn signal"), { trigger.flareColor.Red })
+end
+
+--- Orange and blue exist as smoke and not as flares: refused aloud, never fired in another colour.
+function TestVeafSpawnEffects:test_a_signal_in_a_colour_flares_do_not_have_is_refused_aloud()
+  for _, name in ipairs({ "orange", "blue" }) do
+    dcs_mocks.reset()
+    luaunit.assertEquals(signalColoursFired("_spawn signal, color " .. name), {}, name .. " must fire nothing")
+    luaunit.assertEquals(#dcs_mocks.messagesContaining(name), 1, name .. " must be named in a message")
+  end
 end
 
 function TestVeafSpawnEffects:test_spawnIlluminationFlare_simple()
@@ -1498,6 +1536,88 @@ function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_nil_name()
   -- nil name → regex ".*" matches all, but empty templates → no match → returns nil
   local result = veafSpawn.findSpawnableAircraftGroupname(nil)
   luaunit.assertNil(result)
+end
+
+--- #240: a red `-cap` drew F-15Cs, because the templates of both sides went into one pool. These
+--- register one template per side the way the mission does. `math.random` is deterministic under the
+--- mocks, so the draw is driven explicitly: with the first and the second candidate drawn in turn, a
+--- side-blind pick hands both sides the same template and fails.
+local function addAirTemplate(name, side)
+  dcs_mocks.addGroup(name, {
+    _coalition = side,
+    getCoalition = function()
+      return side
+    end,
+  })
+end
+
+function TestVeafSpawnAircraft:test_initializeAirUnitTemplates_records_each_template_side()
+  addAirTemplate("veafSpawn-MiG-29", coalition.side.RED)
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  luaunit.assertEquals(veafSpawn.airUnitTemplates["VEAFSPAWN-MIG-29"]:getCoalition(), coalition.side.RED)
+  luaunit.assertEquals(veafSpawn.airUnitTemplates["VEAFSPAWN-F-15C"]:getCoalition(), coalition.side.BLUE)
+end
+
+function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_draws_only_from_the_requested_side()
+  addAirTemplate("veafSpawn-MiG-29", coalition.side.RED)
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  for _, draw in ipairs({ 0, 0.6 }) do
+    dcs_mocks.setRandomSequence({ draw })
+    luaunit.assertEquals(veafSpawn.findSpawnableAircraftGroupname(nil, coalition.side.RED), "veafSpawn-MiG-29")
+    luaunit.assertEquals(veafSpawn.findSpawnableAircraftGroupname("", coalition.side.BLUE), "veafSpawn-F-15C")
+  end
+  dcs_mocks.setRandomSequence(nil)
+end
+
+function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_offers_neutral_templates_to_every_side()
+  -- Mission makers park templates on the neutral side: 61 of a reference mission's 117 (2026-09-01).
+  -- Belonging to nobody, they serve whoever asks — and never let the other side's templates back in.
+  addAirTemplate("veafSpawn-MiG-29", coalition.side.NEUTRAL)
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  local seenByBlue = {}
+  for _, draw in ipairs({ 0, 0.6 }) do
+    dcs_mocks.setRandomSequence({ draw })
+    luaunit.assertEquals(veafSpawn.findSpawnableAircraftGroupname(nil, coalition.side.RED), "veafSpawn-MiG-29")
+    seenByBlue[veafSpawn.findSpawnableAircraftGroupname(nil, coalition.side.BLUE)] = true
+  end
+  dcs_mocks.setRandomSequence(nil)
+  luaunit.assertTrue(seenByBlue["veafSpawn-MiG-29"] and seenByBlue["veafSpawn-F-15C"])
+end
+
+function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_falls_back_when_the_side_has_none()
+  -- A mission that placed its templates on one side only keeps spawning them for both.
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  luaunit.assertEquals(veafSpawn.findSpawnableAircraftGroupname(nil, coalition.side.RED), "veafSpawn-F-15C")
+end
+
+function TestVeafSpawnAircraft:test_findSpawnableAircraftGroupname_without_side_keeps_every_template()
+  addAirTemplate("veafSpawn-MiG-29", coalition.side.RED)
+  addAirTemplate("veafSpawn-F-15C", coalition.side.BLUE)
+  veafSpawn.initializeAirUnitTemplates()
+  local seen = {}
+  for _, draw in ipairs({ 0, 0.6 }) do
+    dcs_mocks.setRandomSequence({ draw })
+    seen[veafSpawn.findSpawnableAircraftGroupname(nil)] = true
+  end
+  dcs_mocks.setRandomSequence(nil)
+  luaunit.assertTrue(seen["veafSpawn-MiG-29"] and seen["veafSpawn-F-15C"])
+end
+
+function TestVeafSpawnAircraft:test_cap_and_afac_ask_for_their_own_side()
+  local sides = {}
+  local original = veafSpawn.findSpawnableAircraftGroupname
+  veafSpawn.findSpawnableAircraftGroupname = function(_, side)
+    table.insert(sides, side)
+    return nil
+  end
+  veafSpawn.spawnCombatAirPatrol({ x = 0, y = 0, z = 0 }, 0, nil, "russia", 0, 0, 0, 20, nil, 60, "random", true, false)
+  veafSpawn.spawnAFAC({ x = 0, y = 0, z = 0 }, nil, "usa", 15000, 300, 0, 130000000, "AM", 1688, false, true, false)
+  veafSpawn.findSpawnableAircraftGroupname = original
+  luaunit.assertEquals(sides, { coalition.side.RED, coalition.side.BLUE })
 end
 
 function TestVeafSpawnAircraft:test_spawnAFAC_invalid_country()
@@ -2720,6 +2840,79 @@ function TestSpawnSilenceIsNotSecurity:test_silence_is_a_boolean_even_when_not_a
   luaunit.assertEquals(self:_run(false, nil).silent, false)
 end
 
+-- ===========================================================================
+-- FEAT-AIRCRAFT-ROLES ticket 04 — the command layer leaves an aircraft with a role alone
+--
+-- `readyForCombat` sets weapons free on every group a handler returns, which undoes the `PROHIBIT_AA` a
+-- CAP's watchdog owns; and a route the caller passed was imposed even when the handler said
+-- `routeDone`, so a `-cap` in a combat zone lost its patrol.
+-- ===========================================================================
+TestSpawnCommandLeavesARoleAlone = {}
+
+function TestSpawnCommandLeavesARoleAlone:setUp()
+  dcs_mocks.reset()
+  veaf.DO_NOT_EXPORT_JSON_FILES = true
+  self._savedCommandHandlers = veafSpawn.commandHandlers
+  veafSpawn.commandHandlers = {}
+  self._readyForCombat = veaf.readyForCombat
+  self._goRoute = veaf.goRoute
+  self.readied, self.routed = {}, {}
+  local test = self
+  veaf.readyForCombat = function(group)
+    table.insert(test.readied, group:getName())
+  end
+  veaf.goRoute = function(group, route)
+    table.insert(test.routed, { group = group:getName(), route = route })
+    return true
+  end
+  dcs_mocks.addGroup("CAP-with-role", {})
+  dcs_mocks.addGroup("Tanks-no-role", {})
+  veafAircraftSpawn.groupRoles["CAP-with-role"] = "cap"
+end
+
+function TestSpawnCommandLeavesARoleAlone:tearDown()
+  veafSpawn.commandHandlers = self._savedCommandHandlers
+  veaf.readyForCombat = self._readyForCombat
+  veaf.goRoute = self._goRoute
+  dcs_mocks.reset()
+end
+
+function TestSpawnCommandLeavesARoleAlone:_run(groupName, routeDone)
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
+    return groupName, routeDone
+  end)
+  veafSpawn.executeCommand(
+    { x = 0, y = 0, z = 0 },
+    "_spawn unit, name f15",
+    1,
+    0,
+    true,
+    nil,
+    nil,
+    nil,
+    { { x = 1, y = 2 } },
+    nil,
+    nil,
+    true
+  )
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_an_aircraft_with_a_role_is_not_made_weapons_free()
+  self:_run("CAP-with-role", true)
+  luaunit.assertEquals(self.readied, {})
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_an_aircraft_with_a_role_keeps_its_route()
+  self:_run("CAP-with-role", true)
+  luaunit.assertEquals(self.routed, {})
+end
+
+function TestSpawnCommandLeavesARoleAlone:test_a_group_without_a_role_is_still_made_ready_and_routed()
+  self:_run("Tanks-no-role", false)
+  luaunit.assertEquals(self.readied, { "Tanks-no-role" })
+  luaunit.assertEquals(#self.routed, 1)
+end
+
 -- A spawn can be put off or repeated, and both re-enter executeCommand through mist. The silence has to
 -- travel with them: a combat zone asking for a delayed spawn would otherwise come back chatty on the
 -- second pass, which is the same defect one indirection further out.
@@ -2880,19 +3073,26 @@ function TestVeafSpawnCapMissingSpawnedGroup:setUp()
     return 1
   end
 
-  self._logger = veaf.loggers.get(veafSpawn.Id)
-  self._originalWarn = self._logger.warn
+  -- The warning comes from whichever module set the CAP up: `veafAircraftSpawn` since
+  -- FEAT-AIRCRAFT-ROLES moved the spawn there, so both loggers are listened to.
+  self._loggers = { veaf.loggers.get(veafSpawn.Id), veaf.loggers.get(veafAircraftSpawn.Id) }
+  self._originalWarns = {}
   self.warned = {}
   local warned = self.warned
-  self._logger.warn = function(_, text, ...)
-    table.insert(warned, { text = tostring(text), args = { ... } })
+  for index, logger in ipairs(self._loggers) do
+    self._originalWarns[index] = logger.warn
+    logger.warn = function(_, text, ...)
+      table.insert(warned, { text = tostring(text), args = { ... } })
+    end
   end
 end
 
 function TestVeafSpawnCapMissingSpawnedGroup:tearDown()
   veafSpawn.findSpawnableAircraftGroupname = self._originalFind
   veaf.scheduleFunction = self._originalSchedule
-  self._logger.warn = self._originalWarn
+  for index, logger in ipairs(self._loggers) do
+    logger.warn = self._originalWarns[index]
+  end
   veafMissionDb.groupsByName = {}
   dcs_mocks.reset()
 end
@@ -3373,7 +3573,27 @@ local function aCapSeeing(detectedObjects)
     getUnits = function()
       return { capUnit }
     end,
+    getUnit = function()
+      return capUnit
+    end,
   })
+  -- The patrol the role gave it: what the watchdog hands back once it has nothing left to engage.
+  veafAircraftSpawn.groupRoutes["cap"] = {
+    { x = -50000, y = -50000, alt = 8000, speed = 200, type = "TakeOff", action = "From Parking Area" },
+    { x = -10000, y = 0, alt = 8000, speed = 220, type = "Turning Point", action = "Turning Point" },
+    { x = 10000, y = 0, alt = 8000, speed = 220, type = "Turning Point", action = "Turning Point" },
+  }
+end
+
+--- The Mission tasks the watchdog set on the CAP's controller: each one is a patrol handed back.
+local function patrolsResumed()
+  local missions = {}
+  for _, set in ipairs(dcs_mocks.tasksSet) do
+    if set.group == "cap" and set.task and set.task.id == "Mission" then
+      table.insert(missions, set.task)
+    end
+  end
+  return missions
 end
 
 --- The `EngageUnit` tasks the watchdog pushed onto the CAP's controller, in order.
@@ -3396,6 +3616,76 @@ local function lastOptionValue(optionId)
     end
   end
   return value
+end
+
+--- FEAT-AIRCRAFT-ROLES: an interceptor that starts on the ground is not "landed" before it has flown.
+---
+--- The watchdog destroys a CAP whose units are all on the ground, which is how a patrol that lands
+--- is removed. Its first tick runs one second after the spawn, and a flight placed on a parking spot
+--- is still there: it was destroyed before it had started its engines.
+TestVeafSpawnCapWatchdogGroundStart = {}
+
+function TestVeafSpawnCapWatchdogGroundStart:setUp()
+  dcs_mocks.reset()
+  self.airborne = false
+  self.destroyed = false
+  self._schedule = veaf.scheduleFunction
+  self.rescheduled = 0
+  local test = self
+  veaf.scheduleFunction = function()
+    test.rescheduled = test.rescheduled + 1
+  end
+  dcs_mocks.addUnit("parked-1", {
+    inAir = function()
+      return test.airborne
+    end,
+    isActive = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = 0, y = 20, z = 0 }
+    end,
+    getController = function()
+      return {
+        getDetectedTargets = function()
+          return {}
+        end,
+      }
+    end,
+  })
+  local unit = Unit.getByName("parked-1")
+  dcs_mocks.addGroup("parked", {
+    getUnits = function()
+      return { unit }
+    end,
+    destroy = function()
+      test.destroyed = true
+    end,
+  })
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:tearDown()
+  veaf.scheduleFunction = self._schedule
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_still_parked_is_waited_for()
+  veafSpawn.capWatchdogZones["parked"] = { x = 0, y = 0, radius = 100000 }
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, { x = 0, y = 0, radius = 100000 })
+  luaunit.assertFalse(self.destroyed, "a flight that has not taken off yet is not a flight that landed")
+  luaunit.assertEquals(self.rescheduled, 1, "the watchdog keeps watching it")
+  luaunit.assertNotNil(veafSpawn.capWatchdogZones["parked"], "and keeps its zone")
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_that_flew_and_landed_is_removed()
+  local zone = { x = 0, y = 0, radius = 100000 }
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = true
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = false
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  luaunit.assertTrue(self.destroyed)
+  luaunit.assertNil(veafSpawn.capWatchdogFlown["parked"], "the registry forgets it")
 end
 
 function TestVeafSpawnCapTargetFilter:setUp()
@@ -3544,25 +3834,28 @@ end
 --- registered again as brand new on the next tick. The log of 2026-09-01 is a wall of "new detection
 --- of targetName=Pilot #009" for that reason. On the tick that throws it out the CAP engages nothing,
 --- goes back to `PROHIBIT_AA` and gives back its tasks — with the enemy fighter still on its nose.
+---
+--- It used to be dropped, then it was engaged again on **every** tick: one `EngageUnit` pushed per
+--- target per pass, which is the counter measured at 38, 43, 49 in game on 2026-10-03
+--- (FIX-IN-GAME-SESSION-2026-10-03 ticket 04). A target still tracked keeps the one task it has.
 function TestVeafSpawnCapTargetFilter:test_a_target_still_on_radar_does_not_expire()
   aCapSeeing({ { object = aFighter(33) } })
   veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE) -- the first tick
   local moreTicks = dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
   luaunit.assertEquals(moreTicks, 3, "the watchdog must have run past CAP_WATCHDOG_DELAY * 2, or this proves nothing")
-  luaunit.assertEquals(
-    #engagedUnitIds(),
-    1 + moreTicks,
-    "a target still on radar must be engaged on every tick, not dropped after twice the watchdog delay"
-  )
+  luaunit.assertEquals(#engagedUnitIds(), 1, "a target still on radar is engaged once, not once per tick")
+  luaunit.assertEquals(#patrolsResumed(), 0, "and nothing changed, so the patrol is left alone")
   luaunit.assertFalse(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA), "and air-to-air must stay allowed")
 end
 
---- The tasks the watchdog took back must be the tasks the watchdog pushed.
+--- With nothing left to engage, the patrol is handed back whole, and nothing is popped.
 ---
---- The cleanup counted the tasks it had pushed precisely so as not to disturb the route underneath
---- them, then called `resetTask`, which ED describes as clearing **all** tasks from the queue. Undoing
---- a `pushTask` is `popTask`.
-function TestVeafSpawnCapTargetFilter:test_the_cleanup_pops_its_own_tasks_and_never_resets_the_queue()
+--- The cleanup used to pop as many tasks as it had counted. DCS removes an `EngageUnit` itself once
+--- its target is dead, so the count was always ahead of the queue, and the extra pops took the patrol
+--- route out from under the CAP. `resetTask` was worse still: ED describes it as clearing **all**
+--- tasks. Setting the route again is the one operation whose result does not depend on what DCS has
+--- already removed.
+function TestVeafSpawnCapTargetFilter:test_the_cleanup_hands_back_the_patrol_and_pops_nothing()
   local fighter = aFighter(33)
   local alive = true
   fighter.isActive = function()
@@ -3578,10 +3871,91 @@ function TestVeafSpawnCapTargetFilter:test_the_cleanup_pops_its_own_tasks_and_ne
   sky[1] = nil
   dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
 
-  luaunit.assertTrue(#dcs_mocks.tasksPopped > 0, "the pushed task must be taken back")
-  for _, popped in ipairs(dcs_mocks.tasksPopped) do
-    luaunit.assertNil(popped.reset, "resetTask clears the patrol route too and must never be used here")
-  end
+  luaunit.assertEquals(#dcs_mocks.tasksPopped, 0, "neither popTask nor resetTask: the count of what DCS kept is unknowable")
+  luaunit.assertEquals(#patrolsResumed(), 1, "the patrol must be handed back")
+  luaunit.assertTrue(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA))
+end
+
+--- The patrol handed back starts where the CAP is, and goes on with the race-track it was given.
+---
+--- The stored route's first point is the spawn point — on the ground, for a QRA that took off. Flying
+--- back to it in the middle of a patrol is not handing the patrol back.
+function TestVeafSpawnCapTargetFilter:test_the_patrol_handed_back_starts_where_the_cap_is()
+  local sky = { { object = aFighter(33) } }
+  aCapSeeing(sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  sky[1] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1) -- past the target's expiry
+
+  local points = patrolsResumed()[1].params.route.points
+  luaunit.assertEquals(#points, 3, "the race-track keeps its three points, so its SwitchWaypoint still loops 3 -> 2")
+  luaunit.assertEquals({ points[1].x, points[1].y }, { 0, 0 }, "from the leader's position (runtime x, z)")
+  luaunit.assertEquals(points[1].type, "Turning Point", "an aircraft in flight does not take off again")
+  luaunit.assertEquals(points[1].alt, 8000)
+  luaunit.assertEquals({ points[2].x, points[3].x }, { -10000, 10000 }, "then the leg it was patrolling")
+end
+
+--- A change in what is worth engaging rebuilds the queue: the patrol, then one task per target.
+---
+--- Two fighters engaged, one of them leaves: its task cannot be taken out of the middle of the queue —
+--- `popTask` only ever removes the top — so the queue is rebuilt rather than patched, and the one
+--- still there is engaged again on top of a clean patrol.
+function TestVeafSpawnCapTargetFilter:test_a_target_leaving_rebuilds_the_queue_around_the_one_left()
+  local sky = { { object = aFighter(33) }, { object = aFighter(34) } }
+  aCapSeeing(sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#engagedUnitIds(), 2)
+
+  sky[2] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+
+  luaunit.assertEquals(#patrolsResumed(), 1, "the queue is rebuilt once, when the set changed")
+  local ids = engagedUnitIds()
+  luaunit.assertEquals(#ids, 3, "two at first, then the one still there, alone")
+  luaunit.assertEquals(ids[3], 33)
+end
+
+--- A target arriving gets its own task, and the fight in progress is not cut by a route reset.
+function TestVeafSpawnCapTargetFilter:test_a_target_arriving_is_added_without_resetting_the_queue()
+  local sky = { { object = aFighter(33) } }
+  aCapSeeing(sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  sky[2] = { object = aFighter(34) }
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+
+  luaunit.assertEquals(engagedUnitIds(), { 33, 34 }, "only the newcomer is pushed")
+  luaunit.assertEquals(#patrolsResumed(), 0, "and the patrol is not set again")
+end
+
+--- With no patrol to hand back, a target leaving must not bring back the accumulation: the ones still
+--- there are not pushed again.
+function TestVeafSpawnCapTargetFilter:test_without_a_stored_patrol_nothing_is_pushed_twice()
+  local sky = { { object = aFighter(33) }, { object = aFighter(34) } }
+  aCapSeeing(sky)
+  veafAircraftSpawn.groupRoutes["cap"] = nil
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  sky[2] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+
+  luaunit.assertEquals(#engagedUnitIds(), 2, "the target still there keeps the task it has")
+end
+
+--- A CAP that has left its zone stops chasing.
+---
+--- The branch used to forbid air-to-air and leave every `EngageUnit` on the queue: the CAP held fire and
+--- kept flying after its targets, which is what a race-track 30 to 64 km from its zone's centre looks
+--- like (FIX-IN-GAME-SESSION-2026-10-03 ticket 06).
+function TestVeafSpawnCapTargetFilter:test_a_cap_outside_its_zone_gives_up_the_chase()
+  aCapSeeing({ { object = aFighter(33) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#engagedUnitIds(), 1)
+
+  veafSpawn.capWatchdogZones["cap"] = { x = 500000, y = 500000, radius = 1000 }
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+
+  luaunit.assertEquals(#patrolsResumed(), 1, "the chase is dropped by handing the patrol back")
+  luaunit.assertTrue(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA))
+  veafSpawn.capWatchdogZones["cap"] = nil
 end
 
 --- A target that is gone is removed — because the list now holds the target.

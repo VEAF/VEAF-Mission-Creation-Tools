@@ -10,6 +10,7 @@ attribution of © OpenStreetMap contributors in any surfaced result.
 """
 
 import os
+import time
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Protocol
@@ -27,6 +28,23 @@ _TIMEOUT = 20
 #: Environment variable holding a Google Maps Geocoding API key (opt-in backend).
 _GOOGLE_KEY_ENV = "GOOGLE_MAPS_API_KEY"
 
+#: Nominatim's usage policy: one request a second at most, per process here.
+_MIN_INTERVAL_S = 1.0
+_last_request = float("-inf")
+_TOO_MANY_REQUESTS = 429
+#: How long a 429 is waited out once: what ``Retry-After`` asks, bounded; a short back-off without it.
+_DEFAULT_BACKOFF_S = 5.0
+_MAX_BACKOFF_S = 30.0
+#: How many candidates a query asks for.
+_CANDIDATES = 5
+
+#: OpenStreetMap classes that are a road or an area, not a place one can stand at.
+_ROAD_OR_REGION_CLASSES: frozenset[str] = frozenset({"highway", "boundary"})
+#: ``place`` types that are regions.
+_REGION_PLACES: frozenset[tuple[str, str]] = frozenset(
+    ("place", kind) for kind in ("country", "state", "region", "province", "county", "district", "municipality")
+)
+
 
 @dataclass(frozen=True)
 class Bounds:
@@ -40,11 +58,26 @@ class Bounds:
 
 @dataclass(frozen=True)
 class GeocodeResult:
-    """A resolved place: decimal-degree coordinates plus the backend's display name."""
+    """A resolved place: decimal-degree coordinates plus the backend's display name.
+
+    ``osm_class`` and ``osm_type`` are OpenStreetMap's (``place``/``town``, ``highway``/``residential``,
+    ``boundary``/``administrative``); ``None`` from a backend that does not give them.
+    """
 
     lat: float
     lon: float
     display_name: str
+    osm_class: str | None = None
+    osm_type: str | None = None
+
+    @property
+    def is_road_or_region(self) -> bool:
+        """Whether this is a road or an administrative area rather than a place one can stand at."""
+        return self.osm_class in _ROAD_OR_REGION_CLASSES or (self.osm_class, self.osm_type) in _REGION_PLACES
+
+
+class GeocodingRefusedError(RuntimeError):
+    """The geocoding service refused the request (HTTP 429), even after waiting once."""
 
 
 class Geocoder(Protocol):
@@ -53,22 +86,100 @@ class Geocoder(Protocol):
     def geocode(self, query: str, *, bounds: Bounds | None = None) -> GeocodeResult | None: ...
 
 
+def _pace() -> None:
+    """Wait until a second has passed since the previous Nominatim request of this process.
+
+    Twenty-one calls in a row got the Syria session banned for over half an hour: Nominatim's usage
+    policy asks for one request a second at most (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 07).
+    """
+    global _last_request  # noqa: PLW0603 - one pace per process, which is what the policy counts
+    wait = _last_request + _MIN_INTERVAL_S - time.monotonic()
+    if wait > 0:
+        time.sleep(wait)
+    _last_request = time.monotonic()
+
+
+def _retry_after(response: requests.Response) -> float:
+    """Return how long a 429 asks to wait, bounded, or a short back-off when it does not say.
+
+    Args:
+        response: The 429 response.
+
+    Returns:
+        Seconds to wait: ``Retry-After`` within 0..:data:`_MAX_BACKOFF_S`, else :data:`_DEFAULT_BACKOFF_S`.
+    """
+    try:
+        asked = float(response.headers.get("Retry-After", ""))
+    except ValueError:
+        asked = _DEFAULT_BACKOFF_S
+    return min(max(asked, 0.0), _MAX_BACKOFF_S)
+
+
 class NominatimGeocoder:
     """OpenStreetMap Nominatim backend (default; free, no API key)."""
 
     def geocode(self, query: str, *, bounds: Bounds | None = None) -> GeocodeResult | None:
-        params: dict[str, str | int] = {"q": query, "format": "jsonv2", "limit": 1}
+        """Resolve ``query``, preferring a named place over a road or a region.
+
+        Several candidates are asked for: ``limit: 1`` took the first answer whatever it was, and
+        « Al-Kiswah » came back as a street of Amman (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 07).
+        Nominatim often has a single candidate, so the class and type are returned for the caller to
+        judge, and a road or a region is only chosen when nothing else came back.
+
+        Args:
+            query: The place name.
+            bounds: The theatre's box, to which the search is restricted.
+
+        Returns:
+            The chosen candidate, or ``None`` when Nominatim has none.
+
+        Raises:
+            GeocodingRefusedError: When Nominatim answers 429 twice, the second time after waiting
+                what it asked (bounded).
+        """
+        params: dict[str, str | int] = {"q": query, "format": "jsonv2", "limit": _CANDIDATES}
         if bounds is not None:
             # Nominatim viewbox order is lon,lat,lon,lat (x1,y1,x2,y2); `bounded=1` restricts to it.
             params["viewbox"] = f"{bounds.min_lon},{bounds.max_lat},{bounds.max_lon},{bounds.min_lat}"
             params["bounded"] = 1
-        response = requests.get(_NOMINATIM_URL, params=params, headers={"User-Agent": _USER_AGENT}, timeout=_TIMEOUT)
+        response = self._get(params)
+        if response.status_code == _TOO_MANY_REQUESTS:
+            time.sleep(_retry_after(response))
+            response = self._get(params)
+            if response.status_code == _TOO_MANY_REQUESTS:
+                message = (
+                    "Nominatim refused the request (HTTP 429, too many requests). Its usage policy allows "
+                    "one request a second; a ban can last more than half an hour, so wait before trying again"
+                )
+                raise GeocodingRefusedError(message)
         response.raise_for_status()
-        results = response.json()
-        if not results:
+        candidates = [
+            GeocodeResult(
+                float(hit["lat"]),
+                float(hit["lon"]),
+                hit.get("display_name", query),
+                # jsonv2 names the class `category`; the json format names it `class`.
+                hit.get("category") or hit.get("class"),
+                hit.get("type"),
+            )
+            for hit in response.json()
+        ]
+        if not candidates:
             return None
-        hit = results[0]
-        return GeocodeResult(float(hit["lat"]), float(hit["lon"]), hit.get("display_name", query))
+        return next((c for c in candidates if not c.is_road_or_region), candidates[0])
+
+    @staticmethod
+    def _get(params: dict[str, str | int]) -> requests.Response:
+        """Send one search request, paced to one a second.
+
+        Args:
+            params: The query string.
+
+        Returns:
+            The raw response; its status is the caller's to read.
+        """
+        _pace()
+        return requests.get(_NOMINATIM_URL, params=params, headers={"User-Agent": _USER_AGENT}, timeout=_TIMEOUT)
 
 
 class GoogleGeocoder:

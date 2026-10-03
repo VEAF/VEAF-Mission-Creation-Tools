@@ -1,6 +1,6 @@
 # FIX-WAREHOUSES-LIST-FORM — every base neutral in a 6.14.2 build
 
-Status: 🧑 waiting-human — fixed and tested, and **shipped in 6.15.0** (PR #756, published 2026-08-18). The only thing left is Tripack rebuilding his mission on it and confirming the airfields come back.
+Status: ✅ done — verified in game 2026-10-03 (R3), on a mission rebuilt from the current version
 
 Reported by Tripack on 2026-08-17 with two builds of the same mission: `Snowfox_20260816.miz`
 (6.14.0, correct) and `Snowfox_20260817.miz` (6.14.2, every base neutral).
@@ -88,3 +88,16 @@ so no mission folder was rewritten with the emptied table. A rebuild is enough.
 - [x] `set_airbase_coalition` no longer raises on a real mission
 - [x] Tests build their fixture through a real Lua round-trip, not as a dict literal
 - [ ] 6.14.3 released and Tripack's mission rebuilt with it
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+The airfields of a mission built from `develop` hold the coalition the mission declares, read by
+`Airbase:getCoalition()` in game: Deir ez-Zor 2, Palmyra 1, Tiyas 0.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**every base neutral in a mission built with 6.14.2**, reported by Tripack with two builds of the same source. Measured on his files: the `warehouses` member fell **261 KB → 141.7 KB** and 29 airfields carrying 26 RED, 1 BLUE and three aircraft stocks came out as **30 NEUTRAL** with none. DCS keys that table by airdrome id, so a mission declaring every airfield of its theatre has the ids `1..N` — and `luadata` renders a contiguous integer-keyed table as a **list**. The guard `not isinstance(airports, dict)`, written for an absent or malformed table, caught **the nominal case** and replaced the mission's own airfields with an empty dict before filling it with neutral defaults. Reproduced by feeding his 6.14.0 table to the shipped code, fixed by normalising at load (keyed from **1** — Lua indexes from one, and an off-by-one would shift every airfield's ownership onto its neighbour), and verified on that same file: 29 → 30 entries, 26 RED / 1 BLUE intact, all three stocks kept, exactly **one** entry added. Safe because measured: a dict keyed `1..N` and the list it came from serialise **identically** under the build's settings, so an untouched mission is written back byte-for-byte. **Why nothing caught it**: every test built the table as a dict literal and both in-game checks started from a mission built *from scratch*, where it really is empty — the three shapes exercised were all dicts. Two more call sites indexed the same table and **raised** on a real mission (`set_airbase_coalition`, the injector); they only survived because the bootstrap emptied the list first, so fixing it alone would have surfaced two crashes. Sources are safe (`write_mission_folder` is MCP-only), a rebuild on 6.14.3 suffices

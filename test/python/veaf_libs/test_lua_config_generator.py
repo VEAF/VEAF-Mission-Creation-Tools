@@ -1062,6 +1062,56 @@ def test_combatzone_active_at_start_emits_activatezone_after_initialize():
     assert lua.index("veafCombatZone.initialize()") < lua.index('veafCombatZone.ActivateZone("OUTPOST_1", true)')
 
 
+def test_combatzone_operation_active_at_start_is_activated_too():
+    """An operation flagged ``active_at_start`` is activated like a zone (FEAT-OBJECTIVE-MISSION-PROMPT).
+
+    An objective mission groups its objectives in an operation to get the "operation over" message,
+    and has nobody to open the F10 menu before take-off: the key used to be silently ignored on one.
+    """
+    yaml_data: dict = {
+        "mission": {"name": "Test"},
+        "lua_modules": {
+            "COMBATZONE": {
+                "combat_zones": [
+                    {"zone_name": "OBJ_1"},
+                    {
+                        "type": "operation",
+                        "zone_name": "OP_STRIKE",
+                        "active_at_start": True,
+                        "tasking_orders": [{"zone_name": "OBJ_1"}],
+                    },
+                ]
+            }
+        },
+    }
+    lua = generate_config_lua(yaml_data)
+    activation = 'veafCombatZone.ActivateZone("OP_STRIKE", true)'
+    assert activation in lua
+    assert lua.index("veafCombatZone.initialize()") < lua.index(activation)
+
+
+def test_combatzone_scenery_targets_emit_one_setter_each_before_initialize():
+    """``scenery_targets`` adds each map object id to the zone, before ``:initialize()``."""
+    lua = generate_config_lua(_combatzone_yaml({"zone_name": "CZ-Bridge", "scenery_targets": [123456, 789]}))
+    chain = lua[lua.index('setMissionEditorZoneName("CZ-Bridge")') :]
+    assert ":addSceneryTarget(123456)" in chain
+    assert ":addSceneryTarget(789)" in chain
+    assert chain.index(":addSceneryTarget(789)") < chain.index(":initialize()")
+
+
+@pytest.mark.parametrize("bad", ["123456", 12.5, True, -1, 0])
+def test_combatzone_scenery_targets_refuse_what_is_not_an_object_id(bad: object) -> None:
+    """A scenery id is a positive integer; anything else would be a target that can never die."""
+    with pytest.raises(ValueError, match="scenery_targets"):
+        generate_config_lua(_combatzone_yaml({"zone_name": "CZ-Bridge", "scenery_targets": [bad]}))
+
+
+def test_combatzone_scenery_targets_on_an_operation_are_refused() -> None:
+    """An operation completes on its tasks: map objects listed on it would be read by nothing."""
+    with pytest.raises(ValueError, match="scenery_targets belongs on a zone"):
+        generate_config_lua(_combatzone_yaml({"type": "operation", "zone_name": "OP", "scenery_targets": [1]}))
+
+
 def test_combatzone_radio_group_and_prefix_emitted():
     """``radio_group_name`` / ``radio_menu_prefix`` map to the runtime setters."""
     yaml_data: dict = {

@@ -63,7 +63,7 @@ artifacts:
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc11"
+    pinned: "2.0.0-rc12"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
@@ -71,7 +71,7 @@ artifacts:
       - {
           kind: github-release,
           repo: VEAF/CTLD,
-          pinned: "published-v2.0.0-rc11",
+          pinned: "published-v2.0.0-rc12",
           prereleases: true,
           tag_pattern: "^published-v",
         }
@@ -82,7 +82,7 @@ artifacts:
     pinned: "2024.07.11.01-VEAF"
     vendoring: adapted
     path: src/scripts/community/CSAR.lua
-    manual_steps: "Pull the latest ciribob CSAR.lua, re-apply the VEAF adaptations + the '-VEAF' version suffix, then copy in. The adaptations now include REFACTOR-CSAR-WITHOUT-MIST (2026-08-28): every mist.* call was rewritten onto veaf.* equivalents and the MiST load assertion replaced by a VEAF one. Re-applying them is not optional -- a straight copy from upstream puts MiST back and makes CSAR refuse to start in a mission that no longer injects it."
+    manual_steps: "Pull the latest ciribob CSAR.lua, re-apply the VEAF adaptations + the '-VEAF' version suffix, then copy in. The adaptations now include REFACTOR-CSAR-WITHOUT-MIST (2026-08-28): every mist.* call was rewritten onto veaf.* equivalents and the MiST load assertion replaced by a VEAF one. Re-applying them is not optional -- a straight copy from upstream puts MiST back and makes CSAR refuse to start in a mission that no longer injects it. FIX-USER-REPORTS-985-989 (2026-10-02): csar.getGroupId reads the live group (_unit:getGroup():getID()) rather than the editor snapshot, which knows no dynamic slot (#989)."
     watch:
       - { kind: github-file, repo: VEAF/DCS-CSAR, ref: master, pinned: "dd9eaa3aa245" }
       - { kind: github-release, repo: ciribob/DCS-CSAR, pinned: "1.9.1", role: upstream-ref }
@@ -216,9 +216,9 @@ artifacts:
   - id: dcs-schema
     source: https://github.com/YoloWingPixie/dcs-world-schema
     upstream: https://github.com/YoloWingPixie/dcs-world-schema
-    pinned: "v0.3.5"
+    pinned: "v0.4.0"
     vendoring: verbatim
     path: src/python/veaf-tools/veaf_libs/data/dcs-schema
     manual_steps: "(verbatim) re-download the schema artifacts from the matching upstream release (bump the TOOLING-DCS-MOCK-COVERAGE NOTICE)."
     watch:
-      - { kind: github-release, repo: YoloWingPixie/dcs-world-schema, pinned: "v0.3.5" }
+      - { kind: github-release, repo: YoloWingPixie/dcs-world-schema, pinned: "v0.4.0" }

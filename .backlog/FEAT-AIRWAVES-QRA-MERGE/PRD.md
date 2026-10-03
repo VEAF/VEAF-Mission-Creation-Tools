@@ -66,3 +66,9 @@ schema this month. So:
 - [ ] An existing mission's `modules.QRA` block still works, unchanged, with a test proving it
 - [ ] The six issues each either delivered or closed against the recorded decision
 - [ ] No pilot-facing label changed without its catalogue entry following
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**rebuild QRA on AirWaves instead of beside it.** David's idea, 2026-08-17, and it closes the six open AirWaves issues (#185, #186, #183, #182, #179, #176) into one design rather than six tickets. The numbers that make it worth doing: two modules do neighbouring work — `veafAirWaves.lua` is **59 KB** and the QRA trio **61 KB** — roughly 120 KB to watch a zone, scramble something, and track whether it died. And #185 never started: `veafAirWaves.lua` mentions QRA **not once**, so "replace the QRA module" has been an intention for three years with no code behind it. **A design lot before a refactor**, deliberately: a merge is only an optimisation if the two behaviours are one behaviour with different settings, and that must be established — a QRA is arguably a single-wave AirWave with a re-arm rule, but `veafQraLogistics` has no AirWaves equivalent and this month's `active_at_start` work landed on QRA. **No-go is an acceptable outcome**, reached explicitly rather than by drift. The hard half is migration: every VEAF mission declares QRAs in `mission.yaml`, so the schema must keep working from the outside, `convert-v5`'s extraction must still land somewhere valid, and a merge that reworded a pilot-facing label would move 48 catalogue entries

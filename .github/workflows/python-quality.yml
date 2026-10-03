@@ -32,25 +32,50 @@ on:
       - "plugin/**"
       - "*.md"
       - ".github/workflows/support-bot-ci.yml"
-  # GitHub Actions does not resolve YAML anchors, so this list is duplicated on purpose; the two are
-  # kept identical by `test_ci_trigger_paths.py`.
+  # Every pull request, with no `paths:` filter: these checks are *required* on `develop`, and a
+  # required check whose workflow never starts stays "Expected" for ever and blocks the merge. The
+  # filter lives in the `changes` job below instead, and a job it skips reports "Skipped", which a
+  # required check accepts.
   pull_request:
-    paths:
-      - "src/python/**"
-      - "test/python/**"
-      - "veaf_build/**"
-      - "pyproject.toml"
-      - "poetry.lock"
-      - ".github/workflows/python-quality.yml"
-      - ".backlog/**"
-      - "src/scripts/**"
-      - "doc/**"
-      - "plugin/**"
-      - "*.md"
-      - ".github/workflows/support-bot-ci.yml"
 
 jobs:
+  # Its dependents skip only on an explicit `run=false`: a gate that fails runs the checks instead of
+  # skipping them, since a skipped job reads as a pass to a required check.
+  changes:
+    name: Python Quality — changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # GitHub Actions does not resolve YAML anchors, so this list duplicates `on.push.paths` on
+      # purpose; the two are kept identical by `test_ci_trigger_paths.py`.
+      - id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GATE_PATHS: |
+            src/python/**
+            test/python/**
+            veaf_build/**
+            pyproject.toml
+            poetry.lock
+            .github/workflows/python-quality.yml
+            .backlog/**
+            src/scripts/**
+            doc/**
+            plugin/**
+            *.md
+            .github/workflows/support-bot-ci.yml
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git fetch --no-tags --depth=1 origin "$BASE"
+          python3 veaf_build/ci_path_gate.py "$BASE" "$GITHUB_SHA"
+
   python-quality:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -110,6 +135,8 @@ jobs:
   # dependency group (pyinstaller) the gate above deliberately excludes.
   # ---------------------------------------------------------------------------
   exe-smoke:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -168,6 +195,8 @@ jobs:
   # window is the product here, so "it opens one and reads a log" is the test.
   # ---------------------------------------------------------------------------
   veaf-logs-exe-smoke:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -186,7 +215,7 @@ jobs:
         run: poetry install --with build --all-extras
 
       - name: Build the veaf-logs executable
-        run: poetry run pyinstaller veaf-logs.spec --noconfirm
+        run: poetry run veaf-build build-logs --version 0.0.0-smoke
 
       # PyInstaller follows every import it can see, delayed ones included, so one
       # stray import in a shared library is enough to ship the whole CLI. It has
@@ -200,6 +229,18 @@ jobs:
             echo "veaf-logs bundles a package it never runs (listed above)"; exit 1
           fi
           grep -q "'paramiko'" archive.txt || { echo "paramiko is missing from veaf-logs"; exit 1; }
+
+      # The report of every shipped veaf-logs said `tool.version: unknown`: the release ran
+      # pyinstaller after veaf-build had put the version stub back. Read the module the
+      # executable actually carries (FIX-LOGS-EXE-STARTUP-AND-VERSION).
+      - name: The executable carries the version it was built for
+        run: |
+          poetry run python - <<'PY'
+          from PyInstaller.archive.readers import CArchiveReader
+
+          code = CArchiveReader("dist/veaf-logs").open_embedded_archive("PYZ.pyz").extract("veaf_tools._version")
+          assert "0.0.0-smoke" in code.co_consts, f"veaf_tools._version carries {code.co_consts}"
+          PY
 
       # A window has no --help to walk, so we hand it a real log and check that it
       # is still alive a few seconds later. A bundle whose imports are broken dies

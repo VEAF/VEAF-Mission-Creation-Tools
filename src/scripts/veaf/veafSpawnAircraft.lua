@@ -25,6 +25,8 @@
 -- @param string freq (frequency if JTAC in MHz with . separator)
 -- @param boolean silent (mutes messages to players except errors)
 -- @param boolean hiddenOnMFD
+-- @param table job (helicopter only) what it does once spawned: `{ task, destination, altitude, speed }`,
+--   see veafAircraftSpawn.spawnHelicopterGroup
 function veafSpawn.spawnUnit(
   spawnPosition,
   radius,
@@ -40,7 +42,8 @@ function veafSpawn.spawnUnit(
   freq,
   mod,
   silent,
-  hiddenOnMFD
+  hiddenOnMFD,
+  job
 )
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnUnit(name = %s, czName=%s, country=%s, alt=%d, hdg=%d, unitName=%s, role=%s, static=%s, code=%s, freq=%s, mod=%s, silent=%s, hiddenOnMFD=%s)",
@@ -70,8 +73,9 @@ function veafSpawn.spawnUnit(
     return
   end
 
-  -- cannot spawn planes or helos yet [TODO], however spawning them as a static is fine
-  if unit.air and not static then
+  -- cannot spawn planes yet [TODO], however spawning them as a static is fine; a helicopter goes
+  -- through the ground spawn (FEAT-HELICOPTER-SPAWN)
+  if unit.air and not static and not unit.helicopter then
     veaf.loggers.get(veafSpawn.Id):info("Air units cannot be spawned at the moment (work in progress)")
     trigger.action.outText(veaf.t("spawn.air_wip"), 5)
     return
@@ -116,7 +120,8 @@ function veafSpawn.spawnUnit(
     veaf.loggers
       .get(veafSpawn.Id)
       :trace(string.format("spawnUnit: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
-    if alt > 0 then
+    -- on a helicopter, `alt` is the altitude of its job: it is put down on the ground first
+    if alt > 0 and not unit.helicopter then
       spawnSpot.y = alt
     end
     if not veafUnits.checkPositionForUnit(spawnSpot, unit) then
@@ -174,6 +179,9 @@ function veafSpawn.spawnUnit(
         ["skill"] = "Random",
         ["heading"] = math.rad(hdg),
       }
+      if unit.helicopter then
+        toInsert.payload = veafUnits.aircraftPayload(unit)
+      end
     end
 
     table.insert(units, toInsert)
@@ -186,6 +194,10 @@ function veafSpawn.spawnUnit(
     veaf.loggers.get(veafSpawn.Id):trace("Spawning STATIC")
     veaf.addStatic({ country = country, groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
     --groupName = nil --statics do not have a group name, you must set groupName to nil to avoid other scripts interacting
+  elseif unit.helicopter then
+    veaf.loggers.get(veafSpawn.Id):trace("Spawning HELICOPTER")
+    groupName =
+      veafAircraftSpawn.spawnHelicopterGroup({ country = country, name = groupName, units = units, hiddenOnMFD = hiddenOnMFD }, job, silent)
   elseif unit.air then
     veaf.loggers.get(veafSpawn.Id):trace("Spawning AIRPLANE")
     veaf.addGroup({ country = country, category = "PLANE", groupName = groupName, units = units, hiddenOnMFD = hiddenOnMFD })
@@ -385,7 +397,8 @@ function veafSpawn.initializeAirUnitTemplates()
   for _, group in pairs(_templateGroups) do
     local _groupName = group:getName()
     veaf.loggers.get(veafSpawn.Id):trace("_groupName=%s", _groupName)
-    local _template = VeafAirUnitTemplate:new():setName(_groupName)
+    -- The side is what lets a red `-cap` draw red templates only (#240).
+    local _template = VeafAirUnitTemplate:new():setName(_groupName):setCoalition(group:getCoalition())
     veafSpawn.airUnitTemplates[_groupName:upper()] = _template
   end
 
@@ -465,7 +478,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
   end
 
   -- find template amongst the existing templates (name can be a regex)
-  local groupName = veafSpawn.findSpawnableAircraftGroupname(name)
+  local groupName = veafSpawn.findSpawnableAircraftGroupname(name, coalition)
   if not groupName then
     local message = string.format('The AFAC aircraft template could not be found for "%s"', veaf.p(name))
     veaf.loggers.get(veafSpawn.Id):info(message)
@@ -803,7 +816,18 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
   end
 end
 
-function veafSpawn.findSpawnableAircraftGroupname(name)
+--- Draw a `veafSpawn-` template matching `name` (a pattern; nil matches every template).
+---
+--- With `side`, only that side's templates and the neutral ones are candidates: the mission's templates
+--- of every side used to go into one pool, so a red `-cap` came out as an F-15C (#240 — 7 NATO
+--- airframes out of 10 on 2026-08-17). Neutral templates belong to nobody and serve whoever asks;
+--- mission makers park templates there (61 of a reference mission's 117). When nothing matches on
+--- those, the draw falls back to every match, so a mission that placed its templates on one side only
+--- keeps spawning them for both.
+--- @param name string|nil
+--- @param side number|nil coalition.side of the requester
+--- @return string|nil, table|nil the template's group name and its mission data
+function veafSpawn.findSpawnableAircraftGroupname(name, side)
   -- find template amongst the existing templates (name can be a regex)
   local nameUpper = (name or ""):upper()
   local regexNameUpper = ".*" .. (nameUpper or ".*") .. ".*"
@@ -813,6 +837,7 @@ function veafSpawn.findSpawnableAircraftGroupname(name)
   local escapedNameUpper = veaf.escapeRegex(nameUpper)
   veaf.loggers.get(veafSpawn.Id):trace("nameUpper=%s", veaf.lp(nameUpper))
   local templatesNamesToChooseFrom = {}
+  local ownSideTemplatesNames = {}
   local chosenTemplateName = nil
   for templateNameUpper, templateData in pairs(veafSpawn.airUnitTemplates) do
     veaf.loggers.get(veafSpawn.Id):trace("templateNameUpper=%s", veaf.lp(templateNameUpper))
@@ -820,7 +845,18 @@ function veafSpawn.findSpawnableAircraftGroupname(name)
       local templateName = templateData.name
       veaf.loggers.get(veafSpawn.Id):trace("templateName=%s", veaf.lp(templateName))
       table.insert(templatesNamesToChooseFrom, templateName)
+      local templateSide = templateData:getCoalition()
+      if side and (templateSide == side or templateSide == coalition.side.NEUTRAL) then
+        table.insert(ownSideTemplatesNames, templateName)
+      end
     end
+  end
+  if #ownSideTemplatesNames > 0 then
+    templatesNamesToChooseFrom = ownSideTemplatesNames
+  elseif side and #templatesNamesToChooseFrom > 0 then
+    veaf.loggers
+      .get(veafSpawn.Id)
+      :warn("no template of side %s matches %s; drawing from the other sides' templates", veaf.p(side), veaf.p(name))
   end
   if templatesNamesToChooseFrom and #templatesNamesToChooseFrom > 0 then
     chosenTemplateName = veaf.randomlyChooseFrom(templatesNamesToChooseFrom)
@@ -868,7 +904,7 @@ function veafSpawn.spawnCombatAirPatrol(
   end
 
   -- find template amongst the existing templates (name can be a regex)
-  local chosenTemplateName, chosenTemplateData = veafSpawn.findSpawnableAircraftGroupname(name)
+  local chosenTemplateName, chosenTemplateData = veafSpawn.findSpawnableAircraftGroupname(name, coalition)
   -- Two different failures, and the old message described both as the first one. "could not find a
   -- template for mig29" reads as *that aircraft does not exist*, so it sent every investigation to the
   -- template table and the search pattern -- while the name had in fact been matched and it was the
@@ -907,10 +943,6 @@ function veafSpawn.spawnCombatAirPatrol(
   local altitude = (altitude or 27000) --[[ ft ]] * 0.3048 --[[ meters ]]
   local altitudeDelta = (altitudeDelta or 2000) --[[ ft ]] * 0.3048 --[[ meters ]]
   local hdg = hdg or 0
-  local speed0 = convertSpeeds(speed, 0.3, altitude)
-  local speed1 = convertSpeeds(speed, 0.5, altitude)
-  local speed2 = convertSpeeds(speed, 0.63, altitude)
-  local speed3 = convertSpeeds(speed, 0.63, altitude)
   local distance = (distance or 20) --[[ nm ]] * 1852 --[[ meters ]]
   local capRadius = (capRadius or 60) * 1852 --[[ meters ]]
   local skill = skill or "random"
@@ -923,118 +955,10 @@ function veafSpawn.spawnCombatAirPatrol(
   veaf.loggers.get(veafSpawn.Id):trace("altdelta=%s", veaf.lp(altitudeDelta))
   veaf.loggers.get(veafSpawn.Id):trace("hdg=%s", veaf.lp(hdg))
   veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.lp(distance))
-  veaf.loggers.get(veafSpawn.Id):trace("speed0=%s", veaf.lp(speed0))
-  veaf.loggers.get(veafSpawn.Id):trace("speed1=%s", veaf.lp(speed1))
-  veaf.loggers.get(veafSpawn.Id):trace("speed2=%s", veaf.lp(speed2))
-  veaf.loggers.get(veafSpawn.Id):trace("speed3=%s", veaf.lp(speed3))
   veaf.loggers.get(veafSpawn.Id):trace("capRadius=%s", veaf.lp(capRadius))
   veaf.loggers.get(veafSpawn.Id):trace("skill=%s", veaf.lp(skill))
   veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.lp(silent))
   veaf.loggers.get(veafSpawn.Id):trace("hiddenOnMFD=%s", veaf.lp(hiddenOnMFD))
-
-  local getRoute = function(parameters)
-    local newRoute = {
-      ["points"] = {
-        [1] = {
-          ["alt"] = parameters.altitude,
-          ["action"] = "Turning Point",
-          ["alt_type"] = "BARO",
-          ["speed"] = parameters.speed1,
-          ["properties"] = {
-            ["addopt"] = {}, -- end of ["addopt"]
-          }, -- end of ["properties"]
-          ["task"] = parameters.wp1Options,
-          ["type"] = "Turning Point",
-          ["ETA"] = 10000,
-          ["ETA_locked"] = false,
-          ["y"] = parameters.wp1.y,
-          ["x"] = parameters.wp1.x,
-          ["formation_template"] = "",
-          ["speed_locked"] = true,
-        }, -- end of [1]
-        [2] = {
-          ["alt"] = parameters.altitude,
-          ["action"] = "Turning Point",
-          ["alt_type"] = "BARO",
-          ["speed"] = parameters.speed2,
-          ["properties"] = {
-            ["addopt"] = {}, -- end of ["addopt"]
-          }, -- end of ["properties"]
-          -- The patrol waypoint carries no task of its own, and that is a decision, not an omission.
-          --
-          -- An `EngageTargetsInZone` task used to sit here, commented out, saying nothing about
-          -- whether the watchdog was meant to replace it or to complement it. It cannot complement it:
-          -- the two mechanisms are incompatible by construction.
-          --
-          -- * The group is spawned with `PROHIBIT_AA = true` and the watchdog owns that option from
-          --   then on. A route task telling the group to engage air targets is inert for exactly as
-          --   long as the watchdog is silent, and redundant the moment it speaks.
-          -- * `startCapWatchdog` undoes its own tasking through the controller's task queue — the
-          --   queue this route task would live in. ED's own description of `resetTask` is "clears
-          --   **all** tasks from this controller's task queue"; even the narrower `popTask` used now
-          --   pops whatever is on top. A route-level engage task in that queue is something the
-          --   watchdog would eventually remove without ever knowing it was there.
-          --
-          -- So the watchdog is the single mechanism, deliberately: it is the one that can weigh
-          -- targets by priority (`FIX-CAP-ENGAGES-PARACHUTES`) and hand the group back its patrol when
-          -- there is nothing worth engaging.
-          ["task"] = {
-            ["id"] = "ComboTask",
-            ["params"] = {
-              ["tasks"] = {}, -- end of ["tasks"]
-            }, -- end of ["params"]
-          }, -- end of ["task"]
-          ["type"] = "Turning Point",
-          ["ETA"] = 20000,
-          ["ETA_locked"] = false,
-          ["y"] = parameters.wp2.y,
-          ["x"] = parameters.wp2.x,
-          ["formation_template"] = "",
-          ["speed_locked"] = true,
-        }, -- end of [2]
-        [3] = {
-          ["alt"] = parameters.altitude,
-          ["action"] = "Turning Point",
-          ["alt_type"] = "BARO",
-          ["speed"] = parameters.speed3,
-          ["properties"] = {
-            ["addopt"] = {}, -- end of ["addopt"]
-          }, -- end of ["properties"]
-          ["task"] = {
-            ["id"] = "ComboTask",
-            ["params"] = {
-              ["tasks"] = {
-                [1] = {
-                  ["enabled"] = true,
-                  ["auto"] = false,
-                  ["id"] = "WrappedAction",
-                  ["number"] = 1,
-                  ["params"] = {
-                    ["action"] = {
-                      ["id"] = "SwitchWaypoint",
-                      ["params"] = {
-                        ["goToWaypointIndex"] = 2,
-                        ["fromWaypointIndex"] = 3,
-                      }, -- end of ["params"]
-                    }, -- end of ["action"]
-                  }, -- end of ["params"]
-                }, -- end of [1]
-              }, -- end of ["tasks"]
-            }, -- end of ["params"]
-          }, -- end of ["task"]
-          ["type"] = "Turning Point",
-          ["ETA"] = 30000,
-          ["ETA_locked"] = false,
-          ["y"] = parameters.wp3.y,
-          ["x"] = parameters.wp3.x,
-          ["formation_template"] = "",
-          ["speed_locked"] = true,
-        }, -- end of [3]
-      },
-    }
-
-    return newRoute
-  end
 
   -- find spawn spot
   if altitudeDelta then
@@ -1042,45 +966,24 @@ function veafSpawn.spawnCombatAirPatrol(
   end
   local position = veaf.getRandomPointInCircle(spawnSpot, radius)
   position.z = position.y
+  -- The patrol flies at this altitude too, so it is floored here and not only at the spawn: a CAP lifted
+  -- off the trees would otherwise dive straight back to the altitude it was asked.
+  altitude = veafAircraftSpawn.flooredAltitude(position, altitude)
   position.y = altitude
+  -- from the altitude actually flown, the floor applied
+  local speed0 = convertSpeeds(speed, 0.3, altitude)
+  local speed1 = convertSpeeds(speed, 0.5, altitude)
+  local speed2 = convertSpeeds(speed, 0.63, altitude)
+  local speed3 = convertSpeeds(speed, 0.63, altitude)
+  veaf.loggers.get(veafSpawn.Id):trace("speed0=%s", veaf.lp(speed0))
+  veaf.loggers.get(veafSpawn.Id):trace("speed1=%s", veaf.lp(speed1))
+  veaf.loggers.get(veafSpawn.Id):trace("speed2=%s", veaf.lp(speed2))
+  veaf.loggers.get(veafSpawn.Id):trace("speed3=%s", veaf.lp(speed3))
   veaf.loggers.get(veafSpawn.Id):debug("final spawn, position=%s", position)
 
-  -- get the template first waypoint's options
-  veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateData=%s", veaf.lp(chosenTemplateData))
-  local chosenTemplateWp1Task = nil
-  if chosenTemplateData then
-    local _route = chosenTemplateData.route
-    --veaf.loggers.get(veafSpawn.Id):trace("_route=%s", veaf.p(_route))
-    if _route then
-      local _points = _route.points
-      --veaf.loggers.get(veafSpawn.Id):trace("_points=%s", veaf.p(_points))
-      if _points then
-        local _point1 = _points[1]
-        --veaf.loggers.get(veafSpawn.Id):trace("_point1=%s", veaf.p(_point1))
-        if _point1 then
-          local _task = _point1.task
-          --veaf.loggers.get(veafSpawn.Id):trace("_task=%s", veaf.p(_task))
-          if _task and "ComboTask" == _task.id then
-            local _params = _task.params
-            --veaf.loggers.get(veafSpawn.Id):trace("_params=%s", veaf.p(_params))
-            if _params then
-              local _tasks = _params.tasks
-              --veaf.loggers.get(veafSpawn.Id):trace("_tasks=%s", veaf.p(_tasks))
-              if _tasks then
-                for _, _taskData in pairs(_tasks) do
-                  if "WrappedAction" == _taskData.id then
-                    chosenTemplateWp1Task = veaf.deepCopy(_task) -- if we found a WrappedAction task then we're on the right way, clone the whole task package
-                    break
-                  end
-                end
-              end
-            end
-          end
-        end
-      end
-    end
-  end
-  --veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateWp1Task=%s", veaf.p(chosenTemplateWp1Task))
+  -- The template's first-waypoint options: the same rule as ever, now shared with every aircraft role.
+  local chosenTemplateWp1Task =
+    veafAircraftSpawn.firstWaypointOptions(chosenTemplateData and chosenTemplateData.route and chosenTemplateData.route.points)
 
   -- A template with nothing usable on its first waypoint spawns a CAP with none of the options its
   -- author meant it to fly with — no ROE, no reaction to threat, no radar or ECM setting. 12 of the
@@ -1098,32 +1001,6 @@ function veafSpawn.spawnCombatAirPatrol(
     )
   end
 
-  -- compute route
-  local headingRad = math.rad(hdg)
-  local parameters = {
-    altitude = altitude,
-    speed0 = speed0,
-    speed1 = speed1,
-    speed2 = speed2,
-    speed3 = speed3,
-    wp1 = { x = position.x, y = position.z },
-    wp1Options = chosenTemplateWp1Task,
-  }
-  parameters.wp2 = { x = parameters.wp1.x + 2500 * math.cos(headingRad), y = parameters.wp1.y + 2500 * math.sin(headingRad) } -- second wp at 2500m in the right direction
-  parameters.wp3 = { x = parameters.wp2.x + distance * math.cos(headingRad), y = parameters.wp2.y + distance * math.sin(headingRad) } -- last wp at the right distance in the right direction
-  parameters.targetZone =
-    { x = (parameters.wp2.x + parameters.wp3.x) / 2, y = (parameters.wp2.y + parameters.wp3.y) / 2, radius = capRadius } -- target zone at the middle point between wp2 and wp3
-
-  veaf.loggers.get(veafSpawn.Id):trace("to create route, parameters=%s", parameters)
-  local newRoute = getRoute(parameters)
-
-  veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp1", parameters.wp1)
-  veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp2", parameters.wp2)
-  veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp3", parameters.wp3)
-  veafSpawn.traceMarkerId = veaf.loggers
-    .get(veafSpawn.Id)
-    :marker(veafSpawn.traceMarkerId, "CAP", "targetZone", parameters.targetZone, nil, capRadius, { 1, 0, 0, 0.15 })
-
   if not veafSpawn.spawnedNamesIndex[chosenTemplateName] then
     veafSpawn.spawnedNamesIndex[chosenTemplateName] = 1
   else
@@ -1132,72 +1009,31 @@ function veafSpawn.spawnCombatAirPatrol(
   local newGroupName = string.format("%s #%04d", chosenTemplateName, veafSpawn.spawnedNamesIndex[chosenTemplateName])
   veaf.loggers.get(veafSpawn.Id):debug("indexed newGroupName=%s", newGroupName)
 
-  -- (re)spawn group
-  local newGroup = VeafGroupSpawn:new():forGroup(chosenTemplateName):named(newGroupName):at(position):withRoute(newRoute):buildCloneData()
-  if not newGroup then
-    veaf.loggers.get(veafSpawn.Id):error("cannot respawn group %s", veaf.p(chosenTemplateName))
-    return nil
-  end
+  -- The route, the options and the watchdog are the `cap` role's (FEAT-AIRCRAFT-ROLES). What stays
+  -- here is what makes it the `-cap` command: its options, its template choice, its message.
+  local spawn = VeafAircraftSpawn:new()
+    :fromGroup(chosenTemplateName)
+    :named(newGroupName)
+    :at(position)
+    :withSkill(skill)
+    :shownOnMap(hiddenOnMFD)
+    :withFirstWaypointTask(chosenTemplateWp1Task)
+    :withRole("cap", {
+      heading = hdg,
+      distance = distance,
+      capRadius = capRadius,
+      altitude = altitude,
+      speed1 = speed1,
+      speed2 = speed2,
+      speed3 = speed3,
+    })
   if country and #country > 0 then
-    newGroup.countryId = veaf.getCountryId(country)
+    spawn:inCountry(veaf.getCountryId(country))
   end
-  --newGroup.task = "CAP" --needs to be set in the editor
-  veaf.loggers.get(veafSpawn.Id):trace("after preparation by MIST, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
-
-  newGroup.hidden = false
-  newGroup.name = newGroupName
-  newGroup.hiddenOnMFD = hiddenOnMFD
-
-  -- FIX-CLONE-KEEPS-UNIT-NAMES: the units are renamed by the clone itself, not here. This loop used
-  -- to build a `<unit> #0001` name and assign it to `unit.name`, which `addGroup` then overwrote from
-  -- `unit.unitName` — the template's name, untouched. So every CAP off one template submitted the
-  -- units of the previous one, and DCS removed the previous one: the teleport that was reported in
-  -- game. Renaming is the spawner's job, and only the fields it fills reach DCS.
-  for _, unit in pairs(newGroup.units) do
-    unit.skill = skill
-    unit.alt = position.y
-  end
-
-  veaf.loggers.get(veafSpawn.Id):trace("before addGroup, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
-  local _spawnedGroup = veaf.addGroup(newGroup)
-  if not _spawnedGroup then
-    veaf.loggers.get(veafSpawn.Id):error("cannot spawn group %s", veaf.p(newGroup.name))
+  local spawnedGroupName = spawn:spawn()
+  if not spawnedGroupName then
     return nil
   end
-  veaf.loggers.get(veafSpawn.Id):debug("after addGroup, _spawnedGroup.name=%s", _spawnedGroup.name)
-  veaf.loggers.get(veafSpawn.Id):trace("after addGroup, _spawnedGroup=%s", veaf.lp(_spawnedGroup, nil, { "route", "payload" }))
-
-  local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
-  veaf.loggers
-    .get(veafSpawn.Id)
-    :trace("result of dcs side getByName, _dcsSpawnedGroup=%s", veaf.lp(_dcsSpawnedGroup, nil, { "route", "payload" }))
-  -- The `if not _spawnedGroup` above vouches for the object VEAF built, not for what DCS answers a
-  -- moment later, and the five dereferences that follow all assumed it did. Unlike the same defect
-  -- in `veafCombatMission` (FIX-COMBATMISSION-UNGUARDED-GROUP), this is not a logging fix:
-  -- `getController()` below is functional code, so dropping the traces would not have dropped the
-  -- crash.
-  --
-  -- The spawn itself still happened — the group was submitted, and the aircraft may well be flying.
-  -- But there is no half-CAP to carry on with: without a controller PROHIBIT_AA is never applied,
-  -- and the watchdog that makes this a *patrol* rather than a group flying a straight line would
-  -- repeat this very lookup on its first tick and stop. So this reports the failure the way the two
-  -- branches above already do, and hands nothing back rather than a name that stands for nothing.
-  if not _dcsSpawnedGroup then
-    veaf.loggers
-      .get(veafSpawn.Id)
-      :warn(string.format("group [%s] was spawned but DCS does not know it; no CAP will be set up", veaf.p(_spawnedGroup.name)))
-    return nil
-  end
-  veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.name=%s", _dcsSpawnedGroup:getName())
-  for index, unit in pairs(_dcsSpawnedGroup:getUnits()) do
-    veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.unit[%s].name=%s", index, unit:getName())
-  end
-
-  local controller = _dcsSpawnedGroup:getController()
-  controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
-
-  veaf.loggers.get(veafSpawn.Id):debug("starting CAP target watchdog...")
-  veaf.scheduleFunction(veafSpawn.startCapWatchdog, { _spawnedGroup.name, coalition, parameters.targetZone }, timer.getTime() + 1)
 
   local message = string.format("A CAP of %s (%s) has been spawned", name, country)
   veaf.loggers.get(veafSpawn.Id):debug(message)
@@ -1205,7 +1041,7 @@ function veafSpawn.spawnCombatAirPatrol(
     trigger.action.outText(veaf.t("spawn.cap_spawned", name, country), 15)
   end
 
-  return _spawnedGroup.name
+  return spawnedGroupName
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1324,7 +1160,17 @@ function veafSpawn.isCapEngageableTarget(target, capCoalition)
   return true, nil
 end
 
-function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)
+--- Forget what the CAP watchdog keeps about a group, when it stops watching it.
+local function forgetCapWatchdog(capGroupName)
+  veafSpawn.capWatchdogZones[capGroupName] = nil
+  veafSpawn.capWatchdogFlown[capGroupName] = nil
+end
+
+--- One tick of the CAP watchdog, which re-arms itself.
+---
+--- @param pEngagedTargetIds table|nil the set of target ids that have an `EngageUnit` on the controller,
+---   from the previous tick
+function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pEngagedTargetIds)
   veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.startCapWatchdog(capGroupName=%s)", veaf.lp(capGroupName))
   veaf.loggers.get(veafSpawn.Id):trace("capZone=%s", veaf.lp(capZone))
 
@@ -1338,23 +1184,29 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     return
   end
 
+  -- The zone may have changed since this watchdog was scheduled: a role given to the group in flight
+  -- re-aims it here rather than starting a second watchdog (FEAT-AIRCRAFT-ROLES).
+  capZone = veafSpawn.capWatchdogZones[capGroupName] or capZone
+
   local capGroup = Group.getByName(capGroupName)
   if not capGroup then
     veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is nowhere to be found, stopping watchdog", veaf.lp(capGroupName))
+    forgetCapWatchdog(capGroupName)
     return
   end
   local capGroupPosition = veaf.getAveragePosition(capGroup)
   if not capGroupPosition then
     veaf.loggers.get(veafSpawn.Id):error("CAP group %s has no position!", veaf.p(capGroupName))
+    forgetCapWatchdog(capGroupName)
     return
   end
 
   veaf.loggers.get(veafSpawn.Id):trace("Looking in CAP zone for targets...")
   local timestamp = timer.getTime()
   local targetsList = pTargetsList or {}
-  local numberOfTasksAddedByWatchdog = pNumberOfTasksAddedByWatchdog or 0
+  local engagedTargetIds = pEngagedTargetIds or {}
   veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.lp(targetsList))
-  veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.lp(numberOfTasksAddedByWatchdog))
+  veaf.loggers.get(veafSpawn.Id):trace("engagedTargetIds=%s", veaf.lp(engagedTargetIds))
 
   -- check CAP group for state and position
   local capLanded = true
@@ -1487,7 +1339,21 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     end
   end
 
+  if not capLanded then
+    veafSpawn.capWatchdogFlown[capGroupName] = true
+  elseif not veafSpawn.capWatchdogFlown[capGroupName] then
+    -- still on its parking spot or its runway: it has not taken off yet, it has not landed
+    veaf.loggers.get(veafSpawn.Id):debug("CAP group %s has not taken off yet, waiting for it", veaf.lp(capGroupName))
+    veaf.scheduleFunction(
+      veafSpawn.startCapWatchdog,
+      { capGroupName, capCoalition, capZone, targetsList, engagedTargetIds },
+      timer.getTime() + veafSpawn.CAP_WATCHDOG_DELAY
+    )
+    return
+  end
+
   if capLanded then
+    forgetCapWatchdog(capGroupName)
     capGroup:destroy()
     veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is landed, destroying it and stopping watchdog", veaf.lp(capGroupName))
     return
@@ -1498,6 +1364,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     veaf.loggers.get(veafSpawn.Id):debug("CAP group is still in the CAP zone...")
     if not controller then
       veaf.loggers.get(veafSpawn.Id):error("cannot find controller for CAP group!")
+      forgetCapWatchdog(capGroupName)
       return
     end
 
@@ -1517,12 +1384,12 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     end)
     veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.lp(targetsList))
 
-    -- `engagedTargets` counts targets actually **engaged**, not targets listed. It used to be set on
-    -- the first entry of the list, before that entry had been checked, so a list holding nothing but
-    -- stale contacts still reported "Watchdog has targets", still lifted `PROHIBIT_AA`, pushed no task
-    -- at all, and skipped the branch that hands the CAP back its patrol. That is a CAP flying weapons
-    -- free with nothing to do, which is what "they never returned fire" looked like from the cockpit.
-    local engagedTargets = 0
+    -- What is worth engaging this tick. Counted from targets actually **engaged**, not targets listed:
+    -- the count used to be set on the first entry of the list, before that entry had been checked, so a
+    -- list holding nothing but stale contacts still lifted `PROHIBIT_AA` and skipped the branch that
+    -- hands the CAP back its patrol — "they never returned fire", from the cockpit.
+    local toEngage = {}
+    local toEngageIds = {}
     for _, targetData in ipairs(sortedTargets) do
       local targetId = targetData.targetId
       if
@@ -1532,47 +1399,58 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
         veaf.loggers.get(veafSpawn.Id):trace("Target is outdated, landed or doesn't exist, removing it from the list")
         targetsList[targetId] = nil
       else
-        if engagedTargets == 0 then
-          -- only write that once!
-          veaf.loggers.get(veafSpawn.Id):debug("Watchdog has targets ! Allowing AA for CAP")
-          controller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
-          controller:setOption(0, 0) --weapons free
-        end
-        veaf.loggers.get(veafSpawn.Id):trace("Engaging target!")
-        local engageUnit = {
-          id = "EngageUnit",
-          params = {
-            unitId = targetId,
-            weaponType = "ALL",
-            priority = targetData.priority,
-          },
-        }
-        controller:pushTask(engageUnit)
-        numberOfTasksAddedByWatchdog = numberOfTasksAddedByWatchdog + 1
-        engagedTargets = engagedTargets + 1
+        table.insert(toEngage, targetData)
+        toEngageIds[targetId] = true
       end
     end
 
-    if engagedTargets == 0 then
-      -- nothing worth engaging: take back the tasks we pushed, and let the CAP fly its patrol again
-      veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, removing all tasks and prohibiting AA for CAP")
-      while controller:hasTask() and numberOfTasksAddedByWatchdog > 0 do
-        veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.lp(numberOfTasksAddedByWatchdog))
-        -- `popTask`, not `resetTask`. ED describes them as "removes the highest priority task from
-        -- this controller's task queue" and "clears **all** tasks from this controller's task queue,
-        -- causing controlled units to cease their current activity" respectively. The loop counts the
-        -- tasks it pushed precisely so as not to touch the route underneath them — and then called the
-        -- one that removes the route too. `popTask` is the inverse of the `pushTask` above, so the
-        -- comment and the code finally say the same thing.
-        controller:popTask()
-        veaf.loggers.get(veafSpawn.Id):trace("popTask() called")
-        numberOfTasksAddedByWatchdog = numberOfTasksAddedByWatchdog - 1
+    -- The controller is touched only when the set of targets changed. An `EngageUnit` used to be pushed
+    -- for every target on every tick, so a CAP tracking five aircraft stacked five more tasks each ten
+    -- seconds — the counter read 38, 43, 49 in game on 2026-10-03 — and no task could ever be taken
+    -- back individually: `popTask` only removes the top of the queue. So a target **leaving** rebuilds
+    -- the queue instead of patching it — the patrol handed back whole, then one task per target still
+    -- there — and a target **arriving** only gets its own task, so the ones in progress are not cut.
+    local someLeft = false
+    for targetId in pairs(engagedTargetIds) do
+      if not toEngageIds[targetId] then
+        someLeft = true
       end
+    end
+    local rebuilt = someLeft and veafAircraftSpawn.resumePatrol(capGroupName)
+    for _, targetData in ipairs(toEngage) do
+      -- Without a rebuild (nothing left, or no patrol to hand back) only the newcomers are pushed: pushing
+      -- the others again is the accumulation this replaces.
+      if rebuilt or not engagedTargetIds[targetData.targetId] then
+        veaf.loggers.get(veafSpawn.Id):trace("Engaging target!")
+        controller:pushTask({
+          id = "EngageUnit",
+          params = {
+            unitId = targetData.targetId,
+            weaponType = "ALL",
+            priority = targetData.priority,
+          },
+        })
+      end
+    end
+    engagedTargetIds = toEngageIds
+
+    if #toEngage > 0 then
+      veaf.loggers.get(veafSpawn.Id):debug("Watchdog has %s target(s) ! Allowing AA for CAP", veaf.lp(#toEngage))
+      controller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
+      controller:setOption(0, 0) --weapons free
+    else
+      veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, the CAP flies its patrol and prohibits AA")
       controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
       controller:setOption(0, 3) --return fire
     end
   else
     veaf.loggers.get(veafSpawn.Id):debug("CAP is outside of its area ! Discarding targets...")
+    -- Holding fire is not enough: every `EngageUnit` left on the queue kept the CAP flying after its
+    -- targets, out of its zone, weapons safe (ticket 06 of FIX-IN-GAME-SESSION-2026-10-03).
+    if next(engagedTargetIds) then
+      veafAircraftSpawn.resumePatrol(capGroupName)
+      engagedTargetIds = {}
+    end
     controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
     controller:setOption(0, 3) --return fire
   end
@@ -1581,7 +1459,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
   veaf.loggers.get(veafSpawn.Id):debug("===============================================================================")
   veaf.scheduleFunction(
     veafSpawn.startCapWatchdog,
-    { capGroupName, capCoalition, capZone, targetsList, numberOfTasksAddedByWatchdog },
+    { capGroupName, capCoalition, capZone, targetsList, engagedTargetIds },
     timer.getTime() + veafSpawn.CAP_WATCHDOG_DELAY
   )
 end
@@ -1589,6 +1467,18 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Aircraft spawn command handlers
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- What a marker asks a spawned helicopter to do, read from its options (FEAT-HELICOPTER-SPAWN): the
+--- `task`, the first `dest` point, `alt` (feet above the ground) and `speed` (knots) — the units
+--- `-afac` and `-cap` read them in — and `capradius`, the engagement radius in metres. Ignored by any
+--- other unit.
+--- @param options table the parsed marker options
+--- @return table `{ task, destination, altitude, speed, radius }`, altitude in metres and speed in m/s
+function veafSpawn.helicopterJob(options)
+  local altitude = options.altitude and options.altitude > 0 and options.altitude * 0.3048 or nil
+  local speed = options.speed and options.speed > 0 and options.speed / 1.94384 or nil
+  return { task = options.task, destination = options.destination, altitude = altitude, speed = speed, radius = options.capradius }
+end
 
 veafSpawn.registerCommandHandler("unit", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
   local code = options.laserCode
@@ -1614,7 +1504,8 @@ veafSpawn.registerCommandHandler("unit", "KNOWN_PILOT", function(eventPos, optio
     channel,
     band,
     options.silent,
-    not options.showMFD
+    not options.showMFD,
+    veafSpawn.helicopterJob(options)
   )
   return g, nil, false
 end)

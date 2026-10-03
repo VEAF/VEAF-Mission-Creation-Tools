@@ -60,13 +60,13 @@ def test_cas_fixed_name_warns() -> None:
 
 def test_combat_zone_capture_trap_detected_against_miz(sample_miz: Path) -> None:
     result = validate_group_name("combatZone_Test-tanks", miz_path=sample_miz)
-    caps = [w for w in result["warnings"] if w["convention"] == "combat_zone_capture"]
+    caps = [w for w in result["warnings"] if w.get("convention") == "combat_zone_capture"]
     assert caps and caps[0]["zone"] == "combatZone_Test"
 
 
 def test_capture_trap_suppressed_for_intended_zone(sample_miz: Path) -> None:
     result = validate_group_name("combatZone_Test-tanks", miz_path=sample_miz, expected_combat_zone="combatZone_Test")
-    assert not [w for w in result["warnings"] if w["convention"] == "combat_zone_capture"]
+    assert not [w for w in result["warnings"] if w.get("convention") == "combat_zone_capture"]
 
 
 # --- add_group surfaces warnings -----------------------------------------------
@@ -80,7 +80,7 @@ def test_add_group_returns_warnings_for_colliding_name(sample_miz: Path) -> None
         position={"x": 1.0, "y": 2.0},
         units=[{"type": "T-72B", "count": 1}],
     )
-    assert "cap_template" in {w["convention"] for w in result["warnings"]}
+    assert "cap_template" in {w.get("convention") for w in result["warnings"]}
 
 
 def test_add_group_for_combat_zone_does_not_warn_about_intended_zone(sample_miz: Path) -> None:
@@ -92,7 +92,7 @@ def test_add_group_for_combat_zone_does_not_warn_about_intended_zone(sample_miz:
         units=[{"type": "T-72B", "count": 1}],
         for_combat_zone="combatZone_Test",
     )
-    assert not [w for w in result["warnings"] if w["convention"] == "combat_zone_capture"]
+    assert not [w for w in result["warnings"] if w.get("convention") == "combat_zone_capture"]
 
 
 def test_add_group_clean_name_no_warnings(sample_miz: Path) -> None:
@@ -103,4 +103,5 @@ def test_add_group_clean_name_no_warnings(sample_miz: Path) -> None:
         position={"x": 1.0, "y": 2.0},
         units=[{"type": "T-72B", "count": 1}],
     )
-    assert result["warnings"] == []
+    # the surface check speaks too (no elevation grid here); no naming convention does
+    assert [w for w in result["warnings"] if "convention" in w] == []

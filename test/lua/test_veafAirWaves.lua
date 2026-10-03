@@ -9,6 +9,11 @@ dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
+-- a CAP or Intercept group with no air engagement is cloned with a role (FEAT-AIRCRAFT-ROLES)
+dofile(src .. "/dcsUnits.lua")
+dofile(src .. "/veafI18n.lua")
+dofile(src .. "/veafGrass.lua")
+dofile(src .. "/veafSpawn.lua")
 dofile(src .. "/veafAirWaves.lua")
 
 -- ---------------------------------------------------------------------------
@@ -1246,6 +1251,134 @@ function TestAirWavesOffsetAxes:test_the_default_offset_moves_the_same_way_as_a_
   luaunit.assertEquals(#self.deployed, 1)
   luaunit.assertEquals(self.deployed[1].x - OFFSET_CENTRE.x, 6000, "setRespawnDefaultOffset's first argument is the latitude")
   luaunit.assertEquals(self.deployed[1].z - OFFSET_CENTRE.z, -2000, "and its second is the longitude")
+end
+
+-- ============================================================================
+-- FEAT-AIRCRAFT-ROLES ticket 02: a CAP or Intercept wave with no job of its own defends the zone,
+-- as a QRA does; any other wave flies the route its mission maker wrote.
+-- ============================================================================
+TestAirWavesZoneDefense = {}
+
+local WAVE_ZD_TEMPLATE = "Wave-MiG29"
+local WAVE_ZD_CLONE = WAVE_ZD_TEMPLATE .. " #2"
+local WAVE_ZD_CENTRE = { x = 40000, y = 0, z = 30000 }
+
+function TestAirWavesZoneDefense:setUp()
+  dcs_mocks.reset()
+  veafMissionDb.groupsByName = {}
+  self._originalSchedule = veaf.scheduleFunction
+  self.scheduled = {}
+  local scheduled = self.scheduled
+  veaf.scheduleFunction = function(fn, args, time)
+    table.insert(scheduled, { fn = fn, args = args, time = time })
+    return 1
+  end
+  dcs_mocks.addGroup(WAVE_ZD_CLONE, {})
+end
+
+function TestAirWavesZoneDefense:tearDown()
+  veaf.scheduleFunction = self._originalSchedule
+  veafMissionDb.groupsByName = {}
+  dcs_mocks.reset()
+end
+
+function TestAirWavesZoneDefense:_deploy(task, points)
+  veafMissionDb.groupsByName[WAVE_ZD_TEMPLATE] = {
+    groupName = WAVE_ZD_TEMPLATE,
+    category = "plane",
+    country = "Russia",
+    countryId = 0,
+    task = task,
+    units = { { name = WAVE_ZD_TEMPLATE .. "-1", type = "MiG-29S", x = 0, y = 0, alt = 6000 } },
+    route = { points = points },
+  }
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 0
+  z.waves = { {} }
+  z:setZoneCenter(WAVE_ZD_CENTRE)
+  z:setZoneRadius(40000)
+  z:setRespawnRadius(0)
+  z.chooseGroupsToDeploy = function(_)
+    return { WAVE_ZD_TEMPLATE }, nil
+  end
+  z:deployWaves()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "exactly one group must reach DCS")
+  luaunit.assertEquals(z.spawnedGroupsNames, { WAVE_ZD_CLONE }, "the wave must track the clone")
+  return dcs_mocks.groupsAdded[1].group.route.points
+end
+
+local function waveCombo(tasks)
+  return { id = "ComboTask", params = { tasks = tasks } }
+end
+
+function TestAirWavesZoneDefense:test_a_cap_wave_with_nothing_to_do_patrols_the_zone()
+  local points = self:_deploy("CAP", { { type = "Turning Point", x = 0, y = 0, alt = 6000, task = waveCombo({}) } })
+  luaunit.assertEquals(#points, 3)
+  luaunit.assertAlmostEquals((points[2].x + points[3].x) / 2, WAVE_ZD_CENTRE.x, 0.01)
+  luaunit.assertAlmostEquals((points[2].y + points[3].y) / 2, WAVE_ZD_CENTRE.z, 0.01)
+  luaunit.assertEquals(veafAircraftSpawn.getRole(WAVE_ZD_CLONE), "zone_defense")
+  luaunit.assertEquals(#self.scheduled, 1, "one watchdog")
+end
+
+function TestAirWavesZoneDefense:test_a_cap_wave_that_engages_air_keeps_its_route()
+  local engage = waveCombo({ { id = "EngageTargets", enabled = true, params = { targetTypes = { "Air" } } } })
+  local points = self:_deploy("CAP", {
+    { type = "Turning Point", x = 0, y = 0, alt = 6000, task = engage },
+    { type = "Turning Point", x = 10000, y = 0, alt = 6000, task = waveCombo({}) },
+  })
+  luaunit.assertEquals(#points, 2)
+  luaunit.assertEquals(points[1].task, engage)
+  luaunit.assertNil(veafAircraftSpawn.getRole(WAVE_ZD_CLONE))
+end
+
+function TestAirWavesZoneDefense:test_a_bomber_wave_keeps_its_route()
+  local bombing = waveCombo({ { id = "Bombing", enabled = true, params = { x = 40000, y = 30000 } } })
+  local points = self:_deploy("Ground Attack", {
+    { type = "Turning Point", x = 0, y = 0, alt = 6000, task = waveCombo({}) },
+    { type = "Turning Point", x = 40000, y = 30000, alt = 6000, task = bombing },
+  })
+  luaunit.assertEquals(#points, 2)
+  luaunit.assertEquals(points[2].task, bombing)
+  luaunit.assertNil(veafAircraftSpawn.getRole(WAVE_ZD_CLONE))
+  luaunit.assertEquals(#self.scheduled, 0, "no watchdog")
+end
+
+--- Ticket 03: a `-cap` a wave runs defends the wave's zone, through the watchdog it already has.
+function TestAirWavesZoneDefense:test_a_cap_command_is_re_tasked_on_the_wave_zone()
+  local capName = "veafSpawn-WAVECAP #0001"
+  dcs_mocks.addGroup(capName, {
+    getUnit = function()
+      return {
+        getPoint = function()
+          return { x = 1000, y = 7000, z = 2000 }
+        end,
+      }
+    end,
+  })
+  local savedInterpreter = veafInterpreter
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(_, _, _, _, spawnedGroups)
+    -- what `-cap` leaves behind: its role, and a running watchdog on its own zone
+    veafAircraftSpawn.groupRoles[capName] = "cap"
+    veafSpawn.capWatchdogZones[capName] = { x = 0, y = 0, radius = 60 * 1852 }
+    table.insert(spawnedGroups, capName)
+  end
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 0
+  z.waves = { {} }
+  z:setZoneCenter(WAVE_ZD_CENTRE)
+  z:setZoneRadius(40000)
+  z:setRespawnRadius(0)
+  z.chooseGroupsToDeploy = function(_)
+    return { "-cap mig29" }, nil
+  end
+
+  z:deployWaves()
+  veafInterpreter = savedInterpreter
+
+  luaunit.assertEquals(veafAircraftSpawn.getRole(capName), "zone_defense")
+  luaunit.assertEquals(veafSpawn.capWatchdogZones[capName], { x = WAVE_ZD_CENTRE.x, y = WAVE_ZD_CENTRE.z, radius = 40000 })
+  luaunit.assertEquals(#self.scheduled, 0, "the running watchdog is re-aimed, no second one")
 end
 
 os.exit(luaunit.LuaUnit.run())

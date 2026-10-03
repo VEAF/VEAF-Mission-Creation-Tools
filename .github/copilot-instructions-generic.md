@@ -25,5 +25,5 @@
 - **Commit Messages**: Scrupulously respect the Conventional Commits specification in English (`type(scope): description`).
 
 ## 6. Backlog and Roadmap Maintenance
-- **Real-Time Updates**: the `.backlog/` directory and `ROADMAP.md` must exactly reflect task status. Each active lot is a directory `.backlog/<LOT-ID>/` (PRD.md + tickets); `.backlog/README.md` is the lot index, maintained by hand.
+- **Real-Time Updates**: the `.backlog/` directory and `ROADMAP.md` must exactly reflect task status. Each active lot is a directory `.backlog/<LOT-ID>/` (PRD.md + tickets), listed as a short paragraph in the index of its status — `.backlog/ACTIVE.md` (🔄 🧑 ⏸), `READY.md` (⬜) or `DONE.md` (✅ 🚫) — and `.backlog/README.md` is the front page counting and listing them. All maintained by hand; a lot that changes status **moves** to the matching index, and `test_backlog_status_consistency.py` fails otherwise.
 - **Archiving**: move lots closed for more than 3 days from `.backlog/<LOT-ID>/` to a compact `.backlog/archive/<LOT-ID>.md`.

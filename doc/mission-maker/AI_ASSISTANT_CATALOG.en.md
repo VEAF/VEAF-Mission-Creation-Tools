@@ -83,6 +83,10 @@ The AI can act in two places, and it changes what "survives":
 | 39 | [Set the mission's weather](#set-weather) | 🕰️ Mission settings | Recipe + built | ⭐ |
 | 40 | [Place a complete carrier group](#add-carrier) | 🛫 Bases & airfields | Recipe + built | ◽ |
 | 41 | [Embed a sound in the mission](#add-sound) | Zones & triggers | Recipe + built | ◽ |
+| 42 | [Give the bases their real radio frequencies](#airfield-channels) | 🛫 Bases & airfields | Recipe (folder) | ⭐ |
+| 43 | [Know the ground elevation and terrain masking](#terrain-elevation) | 🗺️ Map & coordinates | — | ⭐ |
+| 44 | [List an aircraft's default loadouts](#list-payloads) | Domain knowledge | — | ⭐ |
+| 45 | [Complete the statics placed without a shape](#repair-static-shapes) | 🏁 Validate & build | Recipe + built | ◽ |
 
 ---
 
@@ -98,6 +102,17 @@ The AI can act in two places, and it changes what "survives":
 generated database.
 
 > 💬 *"Which Russian fighters are available?"* · *"Show me the DCS SAMs."*
+
+Every weapon and radar carries its range as DCS gives it (the Mission Editor's circles): enough to
+check that a battery does not reach an enemy base.
+
+### List an aircraft's default loadouts {#list-payloads}
+
+*Knowledge · ⭐* — The loadouts the Mission Editor offers an AI aircraft, by name (« R-40T*2,R-33*4 »
+for a MiG-31). The assistant can then arm a flight, a QRA or a CAP by that name, without copying the
+weapons one by one.
+
+> 💬 *"Arm the QRA MiG-31s with their R-33 loadout."*
 
 ### List VEAF aliases / shortcuts {#list-veaf-aliases}
 
@@ -194,6 +209,18 @@ work; vague terrain ("the woods") does not.
 
 > 💬 *"Put a SAM 15 km south-east of Batumi airport."* (the AI geocodes, offsets, then places)
 
+### Know the ground elevation and terrain masking {#terrain-elevation}
+
+*Ground elevation · ⭐* — With no DCS running, the AI gives the **ground height** under a target (for
+the briefing), the **highest ground** along each leg of a route (the floor of a low-level ingress),
+**how much of each leg a SAM sees** over the terrain, and the top of each 10 km square of the F10
+grid. **Terrain only**: no buildings, pylons or trees, and a measured margin to add, which the AI
+reminds you of. The theatre must first be swept **once** in DCS
+(`.\veaf-tools.exe dcs terrain-sweep Syria`, under three minutes); without it, the AI offers you the
+command.
+
+> 💬 *"Does my low-level route stay under the Damascus SA-6's coverage?"*
+
 ## 🏁 Validate & build
 
 *The last step: from recipe to a playable `.miz`, without leaving the assistant.*
@@ -204,6 +231,14 @@ work; vague terrain ("the woods") does not.
 warnings. Do this before building.
 
 > 💬 *"Check my mission is OK before building it."*
+
+### Complete the statics placed without a shape {#repair-static-shapes}
+
+*Recipe + built · ◽* — A static placed by a tool before 6.26 can lack the shape (`shape_name`) the
+editor writes; DCS refuses some types without it and the object never exists. Validation lists them,
+this action completes them all at once.
+
+> 💬 *"Validation complains about shape_name: fix them."*
 
 ### Build the playable .miz {#build-mission}
 
@@ -264,6 +299,17 @@ choose which bases to colour, or to place something near one of them, without gu
 Works before a mission exists too, by naming the map.
 
 > 💬 *"Which bases are there in East Germany on GermanyCW?"*
+
+### Give the bases their real radio frequencies {#airfield-channels}
+
+*Recipe (folder) · ⭐* — A radio holds about twenty channels, a map has dozens of airfields: a choice
+has to be made. The AI reads the mission, lists the bases each side holds (those with slots first,
+red ones included), with the frequencies and TACAN **DCS gives them** — the ones the pilot sees on
+the F10 view — and proposes which to put in the radio plan. It only writes the ones you choose, and
+refuses to invent a frequency: a base DCS does not declare gets no channel. The tactical and flight
+channels do not move.
+
+> 💬 *"Which bases deserve a radio channel in my mission?"* · *"Put Batumi, Kutaisi and Vaziani in the radio plan."*
 
 ### Place a complete FARP {#add-farp}
 

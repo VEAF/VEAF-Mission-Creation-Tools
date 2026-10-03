@@ -284,7 +284,8 @@ def write_mission_folder(
     """Serialize ``mission_content`` back to a folder's loose ``mission`` file.
 
     The write-side counterpart of :func:`read_mission_folder`. Rewrites the ``mission`` table and,
-    when the folder has them, the ``warehouses`` table and the ``l10n/DEFAULT/dictionary`` — the ones a
+    when the folder has them, the ``warehouses`` table, the ``l10n/DEFAULT/dictionary`` and the
+    ``l10n/DEFAULT/mapResource`` (created when the mission carries resources the folder lacks) — the ones a
     caller can mutate through :class:`DcsMission`. Everything else in ``src/mission/`` is left untouched. Uses the same
     ``luadata`` serializer as :func:`write_miz`, so no Lua is executed.
 
@@ -346,6 +347,22 @@ def write_mission_folder(
             mission.dictionary_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
         )
         _write_if_changed(dictionary_file, f"dictionary = \n{dictionary_lua}", before_overwrite)
+
+    # The resource keys (sounds, briefing pictures) the mission table points at: a key added to
+    # `map_resource_content` was lost in silence (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 16). Compared by
+    # content, like the dictionary; created when the mission carries resources and the folder has no file.
+    map_resource_file = root / DEFAULT_SCRIPTS_LOCATION / "mapResource"
+    resources = mission.map_resource_content
+    if resources is not None:
+        on_disk = (
+            luadata.unserialize(map_resource_file.read_text(encoding="utf-8")) if map_resource_file.is_file() else None
+        )
+        if (on_disk is None and resources) or (on_disk is not None and on_disk != resources):
+            map_resource_lua = luadata.serialize(
+                resources, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
+            )
+            map_resource_file.parent.mkdir(parents=True, exist_ok=True)
+            _write_if_changed(map_resource_file, f"mapResource = \n{map_resource_lua}", before_overwrite)
 
     return mission_file
 

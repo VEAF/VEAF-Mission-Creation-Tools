@@ -81,6 +81,16 @@ veafSpawn.spawnedNamesIndex = {}
 -- time delay between the watchdog checks for each CAP
 veafSpawn.CAP_WATCHDOG_DELAY = 10
 
+--- The zone each running CAP watchdog guards, by group name. The watchdog reads it on every tick, so a
+--- group given a new role (`veafAircraftSpawn.assignRole`) is re-aimed instead of handed a second
+--- watchdog; an entry exists exactly while a watchdog runs for that group (FEAT-AIRCRAFT-ROLES).
+veafSpawn.capWatchdogZones = {}
+
+--- The CAP groups their watchdog has seen in the air at least once, by group name. Only those can have
+--- *landed*: a flight placed on a parking spot is on the ground at the first tick, one second after its
+--- spawn, and was destroyed before it had started its engines (FEAT-AIRCRAFT-ROLES).
+veafSpawn.capWatchdogFlown = {}
+
 -- range scale of cargo weight biases
 veafSpawn.cargoWeightBiasRange = 6
 
@@ -405,8 +415,16 @@ function veafSpawn.executeCommand(
               --stuff below does not support statics
               -- make the group combat ready ! well except if the user said otherwise, tweak the AlarmState for some scenarios
               --veaf.loggers.get(veafSpawn.Id):trace("options.disperse=%s", veaf.p(options.disperse))
-              veaf.readyForCombat(groupObject, options.AlarmState, options.disperse)
-              if not route and not routeDone and options.destination then
+              -- An aircraft spawned with a role already has its route and its options, and its CAP
+              -- watchdog owns `PROHIBIT_AA`: making it weapons free or re-routing it here undid both
+              -- (FEAT-AIRCRAFT-ROLES).
+              local hasRole = veafAircraftSpawn.getRole(spawnedGroup) ~= nil
+              if not hasRole then
+                veaf.readyForCombat(groupObject, options.AlarmState, options.disperse)
+              end
+              if hasRole then
+                veaf.loggers.get(veafSpawn.Id):trace("%s flies a role, its route and options are kept", veaf.p(spawnedGroup))
+              elseif not route and not routeDone and options.destination then
                 --  make the group go to destination
                 local actualPosition = groupObject:getUnit(1):getPosition().p
                 local route = veaf.generateVehiclesRoute(
@@ -666,6 +684,8 @@ function veafSpawn._reportNoGroupPosition(silent)
 end
 
 --- Spawn a specific group at a specific spot
+--- `job` (helicopter groups only): what the group does once spawned, `{ task, destination, altitude,
+--- speed }` — see veafAircraftSpawn.spawnHelicopterGroup.
 function veafSpawn.doSpawnGroup(
   spawnSpot,
   radius,
@@ -679,7 +699,8 @@ function veafSpawn.doSpawnGroup(
   silent,
   hasDest,
   hiddenOnMFD,
-  shuffle
+  shuffle,
+  job
 )
   veaf.loggers.get(veafSpawn.Id):debug(
     "doSpawnGroup(czName=%s, country=%s, alt=%s, hdg=%s, spacing=%s, groupName=%s, silent=%s, hasDest=%s, hiddenOnMFD=%s, shuffle=%s)",
@@ -718,6 +739,11 @@ function veafSpawn.doSpawnGroup(
 
   veaf.loggers.get(veafSpawn.Id):trace("doSpawnGroup: groupDefinition.description=" .. groupDefinition.description)
 
+  -- A helicopter's `dest` is where it flies, not a road to line up on (FEAT-HELICOPTER-SPAWN).
+  if groupDefinition.helicopter then
+    hasDest = false
+  end
+
   local units = {}
 
   -- place group units on the map
@@ -750,7 +776,8 @@ function veafSpawn.doSpawnGroup(
     local unitName = groupName .. " / " .. unit.displayName .. " #" .. i
 
     local spawnPoint = unit.spawnPoint
-    if alt > 0 then
+    -- on a helicopter, `alt` is the altitude of its job: it is put down on the ground first
+    if alt > 0 and not groupDefinition.helicopter then
       spawnPoint.y = alt
     end
 
@@ -771,6 +798,9 @@ function veafSpawn.doSpawnGroup(
         ["skill"] = "Random",
         ["heading"] = spawnPoint.hdg,
       }
+      if groupDefinition.helicopter then
+        toInsert.payload = veafUnits.aircraftPayload(unit)
+      end
 
       veaf.loggers.get(veafSpawn.Id):trace(
         string.format(
@@ -800,6 +830,15 @@ function veafSpawn.doSpawnGroup(
   -- actually spawn the group
   if group.naval then
     veaf.addGroup({ country = country, category = "SHIP", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
+  elseif groupDefinition.helicopter then
+    groupName = veafAircraftSpawn.spawnHelicopterGroup(
+      { country = country, name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD },
+      job,
+      silent
+    )
+    if not groupName then
+      return nil
+    end
   elseif group.air then
     veaf.addGroup({ country = country, category = "AIRPLANE", name = groupName, hidden = false, units = units, hiddenOnMFD = hiddenOnMFD })
   else

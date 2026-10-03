@@ -287,6 +287,14 @@ Two fields decide what the reporter sees next, and both are easy to get wrong:
   that is absent, zero or ahead of the clock is treated as *now* rather than as expired, so the
   ambiguous case never loses a link.
 
+Before replaying a backlog, check **who wrote it and whether the issue is still open**. #946's link
+was the case this procedure was written for, and on 2026-10-03, when it could finally be run, it was
+no longer worth running: the issue had been closed again for 24 days, and six of the twelve comments
+missing from the thread were the reporter's own, written on GitHub where he had followed the whole
+discussion. Replaying them would have echoed his own words into his thread three weeks late. A
+repair pays when the reporter is still waiting on Discord; once the conversation has moved to
+GitHub, leave the link lost.
+
 A fourth field, `closed_marked`, records whether the **thread** wears the mark, which is not the
 same statement as `closed`: Discord allows a thread two renames every ten minutes, so the rename
 can be refused, and the flag survives the refusal to be retried on a later round. It needs no

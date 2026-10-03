@@ -28,7 +28,7 @@ SESSION_VERSION = 2
 
 
 def default_session_path() -> Path:
-    """`%APPDATA%\\dcslog\\session.json` sous Windows, `~/.config` ailleurs."""
+    """`%APPDATA%\\veaf_logs\\session.json` sous Windows, `~/.config` ailleurs."""
     base = os.environ.get("APPDATA") or os.path.expanduser("~/.config")
     return Path(base) / "veaf_logs" / "session.json"
 

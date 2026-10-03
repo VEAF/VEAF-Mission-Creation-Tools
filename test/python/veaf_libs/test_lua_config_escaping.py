@@ -80,7 +80,12 @@ FREE_TEXT_FIELDS: dict[str, dict] = {
     ),
     "SHORTCUTS.shortcuts[].command": _module("SHORTCUTS", {"shortcuts": [{"name": "a", "command": NASTY}]}),
     # ── SANCTUARY ──────────────────────────────────────────────────────────
-    "SANCTUARY.sanctuary_zones[].name": _module("SANCTUARY", {"sanctuary_zones": [{"name": NASTY}]}),
+    "SANCTUARY.sanctuary_zones[].name": _module(
+        "SANCTUARY", {"sanctuary_zones": [{"name": NASTY, "polygon_units": ["u1", "u2", "u3"]}]}
+    ),
+    "SANCTUARY.sanctuary_zones[].trigger_zone": _module(
+        "SANCTUARY", {"sanctuary_zones": [{"name": "a", "trigger_zone": NASTY}]}
+    ),
     "SANCTUARY.sanctuary_zones[].polygon_units[]": _module(
         "SANCTUARY", {"sanctuary_zones": [{"name": "a", "polygon_units": [NASTY]}]}
     ),

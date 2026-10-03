@@ -29,6 +29,7 @@ from typing import Any
 
 import yaml
 from veaf_libs.bundled_data import read_bundled_text
+from veaf_libs.dcs_units_data import get_unit_countermeasures, get_unit_fuel_capacity, get_unit_types_in_category
 from veaf_libs.i18n import t
 from veaf_libs.lua_literals import lua_quoted_string
 
@@ -110,10 +111,55 @@ def _render_unit_entry(unit: dict[str, Any]) -> str:
     return "{ " + ", ".join(parts) + " }"
 
 
+def _render_pylons(pylons: dict[Any, Any]) -> str:
+    """Render an alias's pylons (``{station: {CLSID}}``) with explicit station keys.
+
+    Explicit keys because a loadout skips stations (the Gazelle's is 1, 2 and 4): a Lua list
+    literal would renumber them.
+
+    Args:
+        pylons: The alias's ``pylons`` mapping, station number to ``{"CLSID": ...}``.
+
+    Returns:
+        A Lua table literal, ``{ [1] = { CLSID = "..." }, ... }``, stations in ascending order.
+    """
+    stations = sorted(pylons.items(), key=lambda item: int(item[0]))
+    return (
+        "{ "
+        + ", ".join(f"[{int(station)}] = {{ CLSID = {_lua_string(pylon['CLSID'])} }}" for station, pylon in stations)
+        + " }"
+    )
+
+
 def _render_unit_db_entry(entry: dict[str, Any], indent: str) -> str:
-    """Render one ``UnitsDatabase`` entry."""
-    rendered = f"{indent}{{ aliases = {_lua_aliases(entry['aliases'])}, unitType = {_lua_string(entry['unitType'])} }},"
+    """Render one ``UnitsDatabase`` entry, with its pylons when the alias is an armed aircraft."""
+    pylons = f", pylons = {_render_pylons(entry['pylons'])}" if entry.get("pylons") else ""
+    rendered = f"{indent}{{ aliases = {_lua_aliases(entry['aliases'])}, unitType = {_lua_string(entry['unitType'])}{pylons} }},"
     return rendered
+
+
+def _render_aircraft_payloads() -> list[str]:
+    """Render ``veafUnits.AircraftPayloads``: fuel, chaff and flare for every helicopter type.
+
+    From ``dcsUnits.yaml`` (``M_fuel_max`` and the Mission Editor's countermeasures), because the
+    runtime knows neither and a helicopter spawned from a marker needs both (FEAT-HELICOPTER-SPAWN).
+    A type with no known fuel capacity is left out: no entry lets DCS choose, where ``fuel = 0`` would
+    be an order to carry none.
+
+    Returns:
+        The lines of the assignment.
+    """
+    lines = ["veafUnits.AircraftPayloads = {"]
+    for unit_type in get_unit_types_in_category("Helicopter"):
+        fuel = get_unit_fuel_capacity(unit_type)
+        if not fuel:
+            continue
+        chaff, flare = get_unit_countermeasures(unit_type) or (0, 0)
+        lines.append(
+            f"  [{_lua_string(unit_type)}] = {{ fuel = {_lua_number(fuel)}, chaff = {int(chaff)}, flare = {int(flare)} }},"
+        )
+    lines.append("}")
+    return lines
 
 
 def _render_group_entry(entry: dict[str, Any]) -> str:
@@ -138,15 +184,15 @@ def _render_group_entry(entry: dict[str, Any]) -> str:
 
 
 def render_spawn_data_lua(data: dict[str, Any]) -> str:
-    """Render the spawn-data Lua module assigning the two ``veafUnits`` tables.
+    """Render the spawn-data Lua module assigning the three ``veafUnits`` tables.
 
     Args:
         data: A ``{"units": [...], "groups": [...]}`` dict (the merged framework +
             mission spawn data).
 
     Returns:
-        Lua source assigning ``veafUnits.UnitsDatabase`` and
-        ``veafUnits.GroupsDatabase``.
+        Lua source assigning ``veafUnits.UnitsDatabase``, ``veafUnits.GroupsDatabase``
+        and ``veafUnits.AircraftPayloads``.
     """
     units = data.get("units") or []
     groups = data.get("groups") or []
@@ -158,6 +204,8 @@ def render_spawn_data_lua(data: dict[str, Any]) -> str:
     out.append("veafUnits.GroupsDatabase = {")
     out.extend(_described(_render_group_entry, entry, index, "groups") for index, entry in enumerate(groups))
     out.append("}")
+    out.append("")
+    out.extend(_render_aircraft_payloads())
     out.append("")
     return "\n".join(out)
 

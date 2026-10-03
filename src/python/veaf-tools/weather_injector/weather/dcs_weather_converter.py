@@ -151,10 +151,7 @@ class DCSWeatherConverter:
             fog = fog_enabled or bool(weather.get("fog"))
 
             if clearsky:
-                weather["cloud_type"] = min(weather.get("cloud_type", 0), DCSWeatherConverter.CLOUD_TYPES["few"])
-                weather["wind_speed"] = min(weather.get("wind_speed", 5.0), _CLEARSKY_MAX_WIND_MPS)
-                weather["visibility"] = max(weather.get("visibility", 10000.0), 9999.0)
-                weather["precipitation"] = False
+                weather = cap_clearsky(weather)
                 fog = False
                 logger.debug(t("weather.clearsky_applied"))
 
@@ -197,6 +194,32 @@ class DCSWeatherConverter:
         except Exception as e:
             logger.error(t("weather.converter.convert_failed", error=str(e)))
             raise
+
+
+def cap_clearsky(values: dict[str, Any]) -> dict[str, Any]:
+    """Cap weather values to the VFR-friendly conditions of ``clearsky: true``.
+
+    The one place the caps live: the injected weather table and the briefing's ``${METAR}`` both go
+    through it, so the pilot reads the sky DCS is given (FIX-CLEARSKY-METAR — the METAR of an
+    ``airport_icao`` variant used to announce the uncapped report).
+
+    Args:
+        values: Weather values in this module's form — ``cloud_type`` 0 (clear) to 4 (overcast),
+            ``wind_speed`` in m/s, ``visibility`` in m, ``precipitation`` and ``fog``; each optional.
+
+    Returns:
+        A capped copy: clouds at most FEW, wind under 15 kt, visibility 10 km or more, no rain, no fog.
+        A missing wind or cloud stays missing; the input is left untouched.
+    """
+    capped = dict(values)
+    if capped.get("cloud_type") is not None:
+        capped["cloud_type"] = min(capped["cloud_type"], DCSWeatherConverter.CLOUD_TYPES["few"])
+    if capped.get("wind_speed") is not None:
+        capped["wind_speed"] = min(float(capped["wind_speed"]), _CLEARSKY_MAX_WIND_MPS)
+    capped["visibility"] = max(float(capped.get("visibility") or 10000.0), 9999.0)
+    capped["precipitation"] = False
+    capped["fog"] = False
+    return capped
 
 
 def fetch_metar_string(airport_icao: str) -> str:

@@ -440,6 +440,13 @@ end
 ---
 --- This is the sweep `veafAirWaves` used to run by hand, under the comment *"Dynamic slot players via
 --- DCS coalition API (not tracked by mist)"*. It belongs here, once, rather than in each consumer.
+---
+--- Red and blue only, on purpose: a dynamic slot comes from an airfield's warehouse linking an aircraft
+--- type to a dynamic-spawn template, and the shipped template catalogue holds none for the neutral side,
+--- so no mission the tools build can offer one. Whether DCS would offer a neutral dynamic slot at all is
+--- not established: the 2026-10-03 try had no neutral aircraft to offer. A mission that adds neutral
+--- templates by hand would need NEUTRAL here, and the coalition
+--- label below, which reads anything not red as blue, corrected with it.
 function veafMissionDb.refreshDynamicSlots()
   for _, coalitionId in pairs({ coalition.side.RED, coalition.side.BLUE }) do
     for categoryId, categoryName in pairs(veafMissionDb.PLAYER_GROUP_CATEGORIES) do
@@ -665,6 +672,17 @@ function veafMissionDb.getDestroyedSceneryInZones(zoneNames)
   return found
 end
 
+--- Whether the scenery object with this id has been destroyed since the mission started.
+---
+--- What a combat zone asks for each of its scenery targets: the id is the one a mission maker writes,
+--- and the object stands wherever it stands, so no trigger zone is involved.
+---
+--- @param id number the scenery object's id
+--- @return boolean
+function veafMissionDb.isSceneryDestroyed(id)
+  return veafMissionDb.destroyedScenery[id] ~= nil
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Framework façades. Callers use `veaf.*` and never name the implementation.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -685,21 +703,29 @@ veaf.takeSpawnedName = veafMissionDb.takeSpawnedName
 veaf.releaseSpawnedName = veafMissionDb.releaseSpawnedName
 veaf.isNameTaken = veafMissionDb.isNameTaken
 veaf.getDestroyedSceneryInZones = veafMissionDb.getDestroyedSceneryInZones
+veaf.isSceneryDestroyed = veafMissionDb.isSceneryDestroyed
 
 --- Subscribe the destroyed-scenery register to the event bus, once.
 ---
---- Not done at load time: `veaf_build/worker.py` loads this module *before* `veafEventHandler`, so
---- there is nothing to subscribe to yet. `initialize` runs a second time on the module init pass,
---- when the bus exists — hence the guard, which is what keeps a second pass from recording every
+--- Not possible at load time: `veaf_build/worker.py` loads this module *before* `veafEventHandler`, so
+--- there is no bus to subscribe to yet. It used to count on `initialize` running a second time on the
+--- module init pass; that pass is only generated for a mission listing MISSIONDB, and none does —
+--- measured in game on 2026-10-01 (FIX-OBJECTIVE-COMPLETION): one "Initializing module" in dcs.log, and
+--- a register that never recorded a destruction. So `veafEventHandler.initialize`, which runs on every
+--- mission, calls this once the bus exists. The guard keeps the two callers from recording every
 --- destruction twice.
-local function registerSceneryCallback()
+--- @return boolean true when this call subscribed it
+function veafMissionDb.registerSceneryCallback()
   if veafMissionDb.sceneryCallbackRegistered then
     return false
   end
   if not (veafEventHandler and veafEventHandler.addCallback) then
     return false
   end
-  veafEventHandler.addCallback("veafMissionDb.destroyedScenery", { "S_EVENT_DEAD" }, veafMissionDb.recordDestroyedScenery)
+  -- flagged only on success: a refused subscription must leave the next caller free to try again
+  if not veafEventHandler.addCallback("veafMissionDb.destroyedScenery", { "S_EVENT_DEAD" }, veafMissionDb.recordDestroyedScenery) then
+    return false
+  end
   veafMissionDb.sceneryCallbackRegistered = true
   return true
 end
@@ -709,7 +735,7 @@ function veafMissionDb.initialize()
   veafMissionDb.buildSnapshot()
   veafMissionDb.humansByName = {}
   indexEditorSlots()
-  registerSceneryCallback()
+  veafMissionDb.registerSceneryCallback()
 end
 
 -- Built at load time, not on the module init pass: other modules read the snapshot from their own

@@ -16,6 +16,8 @@ These tests are the regression guard:
 * :class:`ShippedSpawnablesCategoryTest` asserts the committed default places every template
   in the bucket matching its units' real DCS category (caught in **both** directions, so a
   helicopter mis-filed under ``airplanes`` fails too).
+* :class:`ShippedSpawnablesCountryTest` asserts every template sits under its side's CJTF
+  country with a western-shaped callsign (#985).
 * :class:`InjectorBucketMappingTest` pins the bucket → DCS-table mapping the guarantee relies on.
 """
 
@@ -85,6 +87,36 @@ class ShippedSpawnablesCategoryTest(unittest.TestCase):
                     f"{group_name} ({coalition}/{country}) is under '{bucket}:' "
                     f"but unit '{utype}' is a DCS {expected[:-1]} → must be under '{expected}:'",
                 )
+
+
+#: One country per coalition, the constraint `test_dynslot_catalogue_invariants` pins on the other
+#: catalogue fed through the same injector (#985). A template filed under a real country makes the
+#: injection list that country in `coalitions.<side>` without checking the other side, so a blue
+#: `France` template injected where France is red lists France on both. `CJTF Blue` (80) and
+#: `CJTF Red` (81) are side-locked by construction.
+_COUNTRY_FOR_COALITION = {"blue": "CJTF Blue", "red": "CJTF Red"}
+
+
+class ShippedSpawnablesCountryTest(unittest.TestCase):
+    """The committed default spawnables.yaml files every template under its side's CJTF country."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.groups = list(_iter_groups(yaml.safe_load(_SPAWNABLES.read_text(encoding="utf-8")) or {}))
+
+    def test_each_coalition_uses_its_single_country(self) -> None:
+        self.assertGreater(len(self.groups), 0, "no templates found in shipped spawnables.yaml")
+        for bucket, coalition, country, group_name, _group in self.groups:
+            with self.subTest(template=f"{group_name} ({bucket}/{coalition}/{country})"):
+                self.assertEqual(country, _COUNTRY_FOR_COALITION[coalition])
+
+    def test_every_callsign_has_the_western_shape(self) -> None:
+        """A CJTF aircraft carries a ``{1, 2, 3, name}`` callsign; a bare number is a Russian-style one."""
+        for _bucket, _coalition, _country, group_name, group in self.groups:
+            units = group.get("units") or []
+            for unit in units.values() if isinstance(units, dict) else units:
+                with self.subTest(unit=unit.get("name", group_name)):
+                    self.assertIsInstance(unit.get("callsign"), dict)
 
 
 class InjectorBucketMappingTest(unittest.TestCase):

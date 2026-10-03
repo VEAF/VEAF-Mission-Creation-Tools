@@ -22,7 +22,10 @@ Before naming a group, picking a unit type, or configuring a module, call the re
 actions. They read VEAF's canonical, always-current data — your training memory of DCS types or
 VEAF conventions may be stale or wrong.
 
-- `list_unit_types` — real DCS unit type ids (filter by category / name).
+- `list_unit_types` — real DCS unit type ids (filter by category / name), with the weapon and sensor
+  ranges DCS gives them (`threat_range_m`, `detection_range_m`).
+- `list_payloads` — the loadouts DCS offers an AI aircraft type, by name: what `payload` takes in
+  `add_air_group`, `create_qra` and `create_cap_mission`.
 - `list_shortcuts` — VEAF spawn aliases. Three families: `units` (`shilka`, `sa8`), `groups`
   (composite SAM/convoy groups), and `commands` — the `#command` shortcuts (`-samVLR`, `-samLR`,
   `-armor`, random convoys, …), each with its `randomParameters`: the range of every parameter it
@@ -160,7 +163,10 @@ is not the one playing the zone.
 **QRA** — interceptor groups are referenced **by exact name**, coalition **matters**, and they
 **must be Late Activation** (VEAF scrambles them). So: create the trigger zone, create the
 late-activation interceptor group with a coherent name, set its coalition, and list that exact
-name in the QRA definition.
+name in the QRA definition. Task it `CAP` or `Intercept` and give it **a single waypoint and no
+task** (`create_qra` does): when it scrambles, the QRA module sends it to patrol the zone and engage
+what enters it. A route you write yourself is flown as written only if it carries an
+`EngageTargets` (`Air`) task — without one it is replaced, and the build warns about it.
 
 ## Airbases — coalition & dynamic slots
 

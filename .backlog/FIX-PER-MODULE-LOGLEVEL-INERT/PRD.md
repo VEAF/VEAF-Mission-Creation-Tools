@@ -1,6 +1,6 @@
 # FIX-PER-MODULE-LOGLEVEL-INERT — a documented setting that has never done anything
 
-Status: 🧑 waiting-human — fixed 2026-09-29 by route b; R18 of `DCS-SESSION-TODO.md` is the in-game reading.
+Status: ✅ done — verified in game 2026-10-03 (R18)
 
 Found 2026-09-01 while trying to trace one module during the release-gate session. Setting
 `logLevel: trace` under a module changed nothing, and the reason is not the module.
@@ -100,3 +100,16 @@ loop now uses the same `setModuleLevel`. Tests (`TestPerModuleLogLevel`, `test_v
 config to a line printed through the mocked `env`: the module traces, another does not, a level set
 before the module loads applies, an unknown id leaves `veaf` alone, and the global level still reaches
 the other modules.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+`global_log_level: info`, `SPAWN.logLevel: trace`: 422 `VEAF-SPAWN|T|` lines and no `|T|` line from
+any other module.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a documented setting that has never done anything.** `logLevel:` under a module is emitted correctly and stored correctly, but the loop that pushes it into the logger lives in `veaf.initialize()` — which **nothing ever calls**. Measured by the clock: the mission carrying `SPAWN: logLevel: trace` was loaded two minutes after it was built, and produced zero trace lines and zero `log level forced to`. Wider than the log level: **29 `registerModule` calls across 27 files** feed a registry nothing reads, so declared init order and the `enable` flag are inert too. It cost a wrong diagnosis this session — absent lines were read as absent behaviour. Fixed 2026-09-29 (route b); R18 of `DCS-SESSION-TODO.md` is the in-game reading

@@ -49,15 +49,17 @@ veafSpawn.initialize()
 
 ```
 _spawn unit, name [DCS_TYPE]
-_spawn unit, name F-16C, hdg 180, alt 20000
 _spawn unit, name T-80, hdg 270, spacing 50
 ```
+
+Un **avion** ne peut pas être créé ainsi (la commande le refuse) : passez par une patrouille CAP. Un
+**hélicoptère**, si : voir [Faire apparaître un hélicoptère](#helicopters).
 
 **Options :**
 
 - `name` — type d'unité
 - `hdg` — cap (degrés)
-- `alt` — altitude (pieds)
+- `alt` — altitude (pieds) ; pour un hélicoptère, la hauteur de sa tâche
 - `side` — coalition
 - `country` — pays
 - `skill` — niveau de compétence IA
@@ -74,20 +76,58 @@ L'alias de groupe doit exister dans la **base de spawn** : celle intégrée (ex.
 
 > **Une faute de frappe annule la commande.** Si un paramètre n'est pas reconnu (ex. `headng` au lieu de `heading`), le spawn n'est **pas** effectué et le pilote reçoit un indice (*vouliez-vous dire « heading » ?*). Corrigez le texte du marqueur et réessayez.
 
+### Faire apparaître un hélicoptère {#helicopters}
+
+```
+_spawn unit, name mi8
+_spawn unit, name mi24, task orbit
+_spawn unit, name uh1, task transport, dest FOB-NORD
+_spawn group, name [GROUPE_D_HELICOPTERES], task orbit, alt 800
+```
+
+L'hélicoptère apparaît **posé** à l'endroit du marqueur, puis fait ce que dit `task` :
+
+| `task` | Ce qu'il fait |
+|---|---|
+| *(rien)* | reste posé, moteur coupé : une cible |
+| `orbit` | décolle et tourne au-dessus du marqueur ; tire sur ce qui passe s'il est armé, ne tire pas sinon |
+| `transport` | décolle, va à `dest` et se pose dans la clairière la plus proche (jusqu'à 300 m), en ne faisant que riposter ; refusé sans `dest`. Visez un terrain dégagé : au bord d'une forêt, il reste en vol stationnaire sans se poser |
+| `patrol` | armé : boucle de 1 km autour du marqueur (ou aller-retour jusqu'à `dest`), engage le sol et les hélicoptères à portée ; non armé : navette marqueur ↔ `dest`, 5 min au sol à chaque bout, sans fin (refusée sans `dest`) |
+| `attack` | armé seulement : va à `dest`, engage le sol et les hélicoptères à portée, puis tourne sur place |
+| `escort` | armé seulement : `dest` est le **nom d'un groupe au sol**, qu'il rejoint et couvre |
+
+`alt` est la hauteur au-dessus du sol (pieds, 500 par défaut), `speed` la vitesse (nœuds, 80 par
+défaut). `dest` est un point nommé ou des coordonnées, comme pour un convoi. `capradius` est la portée
+d'engagement d'un hélicoptère armé (mètres, 3 000 par défaut).
+
+**Armé ou non, c'est l'alias qui le dit**, pas le type : DCS range le Mi-8 à la fois parmi les
+hélicoptères d'attaque et de transport.
+
+| Non armés | Armés (armement du slot dynamique livré) |
+|---|---|
+| `mi8` (Mi-8MTV2), `mi26` (Mi-26), `uh1` (UH-1H), `ch47` (CH-47F) | `mi24` (Mi-24P), `ka50` (Ka-50 III), `ah64` (AH-64D), `gazelle` (SA342M) |
+
+Un type DCS écrit directement (`name Mi-8MT`) vole non armé. Un `src/spawn-groups.yaml` peut ajouter
+ses propres alias, avec des `pylons`, et des groupes de plusieurs hélicoptères.
+
+> Vérifié en jeu le 2026-10-02 : `orbit` tourne à 1,5–2 km de son point, `transport` se pose à 30 m du sien sur terrain dégagé. `patrol`, `attack` et `escort` aussi (l'escorte tourne à moins de 3 km de son groupe).
+
 ### Faire apparaître une patrouille CAP
 
 ```
-_spawn cap, name Su-27, alt 25000, capradius 20000
+_spawn cap, name Su-27, alt 25000, capradius 20
 ```
 
 **Options :**
 
 - `name` — type d'avion
-- `alt` — altitude de patrouille (pieds)
+- `alt` — altitude de patrouille (pieds) ; jamais moins de 150 m au-dessus du sol sous le point d'apparition, l'altitude est relevée sinon (DCS ne remonte pas un avion trop bas : il s'écrase dans les arbres)
 - `hdg` — cap initial
 - `speed` — vitesse de patrouille (nœuds)
-- `capradius` — rayon d'orbite CAP (mètres)
-- `distance` — distance depuis le marqueur
+- `capradius` — rayon de la zone que la patrouille défend, centrée au milieu de son hippodrome
+  (milles nautiques, 60 par défaut). Pour un hélicoptère, la même option est en **mètres** (voir
+  ci-dessus).
+- `distance` — longueur de la branche de l'hippodrome (milles nautiques, 20 par défaut)
 
 **Ce que la patrouille attaque.** Elle reste en patrouille, tir interdit contre les avions, tant
 qu'elle n'a rien vu qui vaille l'engagement. Toutes les dix secondes elle regarde ce que son radar lui
@@ -179,6 +219,14 @@ _spawn smoke, color green, shells 5
 ```
 _spawn flare, power 1000000, shells 5, heading 90, distance 500
 ```
+
+### Tirer une fusée de signal
+
+```
+_spawn signal, color green
+```
+
+**Couleurs :** `red` (par défaut), `green`, `white`, `yellow`. Une fusée n'a pas les couleurs de la fumée : `orange` et `blue` n'existent pas dans DCS, la commande le dit et ne tire rien.
 
 ### Faire apparaître des explosions
 

@@ -234,10 +234,14 @@ trigger = {
     radioTransmission = function(...) end,
     setMarkupColor = function(...) end,
     setUserFlag = function(flag, val) end,
+    -- DCS refuses a nil colour with "Parameter #2 (color) missed" (measured 2026-10-03); accepting it
+    -- here is how eleven nil colours passed the suite.
     smoke = function(position, color)
+      assert(color ~= nil, "Parameter #2 (color) missed")
       table.insert(dcs_mocks.effects, { kind = "smoke", position = position, color = color })
     end,
     signalFlare = function(position, color, azimuth)
+      assert(color ~= nil, "Parameter #2 (color) missed")
       table.insert(dcs_mocks.effects, { kind = "signalFlare", position = position, color = color, azimuth = azimuth })
     end,
     illuminationBomb = function(position, power)
@@ -463,8 +467,8 @@ coalition = {
 -- INSURGENTS carries id 17, per `veaf_libs/data/dcs-schema/dcs-world-api.lua`, and it is here because
 -- the neutral coalition is where mission makers put scenery statics — the case
 -- FIX-STATIC-RESPAWN-BY-UNIT-NAME reproduces (#953). What matters to `resolveCountry` is that the two
--- tables below agree with each other; the schema's own `country.name` list is shifted by one against
--- its ids, so it is not the thing to copy.
+-- tables below agree with each other (the schema's own `country.name` list was shifted by one against
+-- its ids up to v0.3.5, fixed in v0.4.0).
 country = {
   name = { [0] = "RUSSIA", [2] = "USA", [17] = "INSURGENTS" },
   id = { RUSSIA = 0, USA = 2, INSURGENTS = 17 },
@@ -809,6 +813,11 @@ end
 ---
 --- Each module is guarded: a suite loads only what it needs, so most of these are nil in most files.
 function dcs_mocks.resetVeafRuntimeState()
+  if veafAircraftSpawn then
+    -- The role each spawned group flies, by name: the command layer reads it to leave those alone.
+    veafAircraftSpawn.groupRoles = {}
+    veafAircraftSpawn.groupOptions = {}
+  end
   if veafMissionDb then
     -- The spawned-name registry outlives a snapshot rebuild, which is right in a mission and wrong
     -- between two tests: a leftover name makes the clone-name uniquifier append a ` #2`, and the
@@ -828,6 +837,10 @@ function dcs_mocks.resetVeafRuntimeState()
     -- A plain running total of everything spawned since the module loaded. Nothing puts it back, so
     -- any test asserting on it holds only while it runs before every spawn in the file.
     veafSpawn.spawnedUnitsCounter = 0
+    -- One entry per running CAP watchdog. A leftover one makes the next spawn of the same name believe
+    -- a watchdog already guards it, and schedule none.
+    veafSpawn.capWatchdogZones = {}
+    veafSpawn.capWatchdogFlown = {}
   end
 end
 
@@ -997,8 +1010,11 @@ end
 
 -- ---------------------------------------------------------------------------
 -- trigger.flareColor (used by veafSpawnEffects.spawnSignalFlare)
+-- Keys and values as DCS returns them, measured in game on 2026-10-03: capitalised, not upper case.
+-- This mock used to say `RED = 0, GREEN = 1`, so code writing `trigger.flareColor.RED` passed here
+-- and handed DCS a nil.
 -- ---------------------------------------------------------------------------
-trigger.flareColor = { RED = 0, GREEN = 1, WHITE = 2, YELLOW = 3 }
+trigger.flareColor = { Green = 0, Red = 1, White = 2, Yellow = 3 }
 
 -- ---------------------------------------------------------------------------
 -- Controller  (DCS unit/group controller)

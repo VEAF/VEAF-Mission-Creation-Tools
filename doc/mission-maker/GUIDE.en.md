@@ -526,6 +526,7 @@ The build tells you how many it added.
 | `inject-aircraft-groups` | Injects aircraft group templates |
 | `extract-aircraft-groups` | Extracts aircraft groups from a mission |
 | `pull-aircraft-groups` | Lists what the shipped catalogue has and your folder does not, and copies in the entries you choose (your own entries are never replaced) |
+| `airfield-channels` | Lists the mission's airfields with the frequencies DCS gives them, and writes the chosen ones into the radio plan's `bases` collection (`--apply`) |
 | `inject-waypoints` | Injects waypoints (bullseye, nav points) for human groups |
 | `extract-waypoints` | Extracts waypoints from a mission |
 | `convert-v5` | Migrates a v5 mission folder to v6 format |
@@ -534,6 +535,8 @@ The build tells you how many it added.
 | `ask` | Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session. |
 | `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json; `--parking` also writes the parking spots to `parking/<theatre>.json`. |
 | `clear-ground-check` | Check in DCS, without spawning them, whether a built mission's ground vehicles stand in scenery, and compare with the clear-ground catalogue. |
+| `scenery-objects` | List in DCS the map objects (bridges, buildings) around points, with the id a combat zone's [`scenery_targets`](scripts/veafCombatZone.en.md#scenery-targets) takes. |
+| `terrain-sweep` | Sweep in DCS the ground elevation of a whole theatre, which the MCP action `terrain_elevation` then reads with no DCS (a target's altitude, a route's floor, terrain masking). |
 | `clear-ground-sweep` | Probe, step by step, the clear ground around a theatre's airfields and combat zones: writes the survey mission, tells you what to do in DCS, sweeps, then writes the catalogue; resumes an interrupted sweep. |
 | `convert-other` | Adopt a third-party (non-VEAF) .miz mission onto the v6 toolchain. |
 | `doctor` | Collect the versions, paths and recent errors a bug report needs, and produce a redacted block to paste into a report — see [Getting help](../SUPPORT.en.md). |
@@ -819,6 +822,8 @@ Transitions are announced in game in the mission's language (`transport.airbase_
 
 !!! note "The accepted 250 m gap"
     There is only **one** zone of `airbase_logistics_radius` (250 m by default) per airfield, centred on the parking stand nearest the terrain's centroid. On a widely spread airfield, an aircraft parked more than 250 m from that point reads *"No logistics in range"* even though the field is active. This is an accepted compromise (2026-09-27): the radius is the setting to raise if your theatre has large dispersed aprons.
+
+    Measured on 2026-10-03 at **Ramstein**: a C-130 parked by DCS itself ended up **997 m** from the zone's centre, and only one of the field's 90 large-aircraft stands is within 250 m. The radius applies to **every** airfield of the mission and cannot be set per field: size it for the **largest** airfield your transports start from. For a major air base such as Ramstein, **1,100 m** covers the C-130's stand and the six nearest large-aircraft stands. A larger circle costs nothing but its size on the F10 map.
 
 #### CTLD's language
 

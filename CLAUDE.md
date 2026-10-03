@@ -65,8 +65,8 @@ These are enforcement obligations on **every** lot, not a separate clean-up task
 
 ## 6. Backlog and Roadmap Maintenance
 
-- **Real-Time Updates**: the `.backlog/` directory and `ROADMAP.md` must exactly reflect task status. Each active lot is a directory `.backlog/<LOT-ID>/` (PRD.md + tickets); `.backlog/README.md` is the lot index, maintained by hand.
-- **Archiving**: move lots closed for more than 3 days from `.backlog/<LOT-ID>/` to a compact `.backlog/archive/<LOT-ID>.md`.
+- **Real-Time Updates**: the `.backlog/` directory and `ROADMAP.md` must exactly reflect task status. Each active lot is a directory `.backlog/<LOT-ID>/` (PRD.md + tickets), listed as a short paragraph in the index of its status — `.backlog/ACTIVE.md` (🔄 🧑 ⏸), `READY.md` (⬜) or `DONE.md` (✅ 🚫) — and `.backlog/README.md` is the front page counting and listing them. All maintained by hand; a lot that changes status **moves** to the matching index, and `test_backlog_status_consistency.py` fails otherwise.
+- **Archiving**: move lots closed for more than 3 days from `.backlog/<LOT-ID>/` to a compact `.backlog/archive/<LOT-ID>.md`, and their entry from `DONE.md` to the table of `.backlog/archive/README.md`.
 
 ---
 
@@ -111,7 +111,7 @@ For every action requested by the user, execute these steps in order:
    - **When starting work on a ticket, first restate it in 1–3 sentences.** What it is and what
      "done" means, before any tool call. The point is that the user can catch a misread before the
      work is built on it, not after.
-2. **Create a lot** under `.backlog/<LOT-ID>/`: write `PRD.md` (Status `⬜ ready`) and one `tickets/<NN>-<slug>.md` per ticket. Add a row to `.backlog/README.md`.
+2. **Create a lot** under `.backlog/<LOT-ID>/`: write `PRD.md` (Status `⬜ ready`) and one `tickets/<NN>-<slug>.md` per ticket. Add its paragraph to `.backlog/READY.md` and its link to `.backlog/README.md`.
 3. **Create a branch** from `develop` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.

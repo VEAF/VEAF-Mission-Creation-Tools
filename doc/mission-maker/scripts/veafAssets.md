@@ -45,6 +45,7 @@ modules:
         jtac: 1688                      # code laser — la ressource est un JTAC qui illumine avec ce code (optionnel)
         freq: null                      # fréquence de remplacement pour l'affichage infos (optionnel)
         mod: null                       # modulation radio (AM | FM, optionnel)
+        coalition: null                 # BLUE | RED : montrée à ce camp seulement (absent : aux deux)
 ```
 
 | Champ | Type | Défaut | Requis | Description |
@@ -60,6 +61,7 @@ modules:
 | `assets[].jtac` | nombre | `null` | Non | Code laser : la ressource est un JTAC qui illumine automatiquement avec ce code (nécessite CTLD) |
 | `assets[].freq` | nombre | `null` | Non | Fréquence de remplacement pour l'affichage infos (MHz) |
 | `assets[].mod` | string | `null` | Non | Modulation radio de remplacement (`AM` ou `FM`) |
+| `assets[].coalition` | string | — | Non | `BLUE` ou `RED` : l'entrée n'apparaît que dans le menu Assets de ce camp ; absente, chez les deux. Avec le rouge jouable, la fréquence d'un ravitailleur rouge ne s'affiche plus chez les bleus |
 
 > Le groupe DCS référencé par `name` doit exister dans l'éditeur de mission.
 

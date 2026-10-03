@@ -1,6 +1,6 @@
 # FIX-SKYNET-ADDS-DESTROYED-GROUPS — the IADS enrols groups DCS has already destroyed
 
-Status: 🧑 waiting-human — **fix shipped**, awaiting one in-game observation
+Status: ✅ done — start-up half verified in game 2026-10-03 (R14); the deactivated-zone site that ticket 03 missed is fixed and verified in `FIX-IN-GAME-SESSION-2026-10-03` ticket 03 (#1055)
 
 Origin: [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946), filed by the support
 bot from Tripack's Discord report of 2026-09-08 on `Snowfox_20260908.miz` (Persian Gulf): *"au
@@ -176,3 +176,21 @@ Tripack's to send, and they would settle one question only: whether 16 is the st
 this lot fixes, or a coincidence — `Snowfox_20260903.miz` happens to hold exactly 16
 `ZSU-23-4 Shilka` groups. Not blocking: the defect is in the code either way, the reproduction above
 exercises the mechanism, and the fix does not wait for it.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+`Skynet-test` (#946) rebuilt from `develop`: `TESTCZ - SA6`, destroyed by its zone at start, was not
+enrolled; the network listed the three outside sites and the zone's **respawned** SA-6, which
+`FIX-SKYNET-CZ-RESPAWN-AND-RANGE` makes join on purpose. No `ADD GROUP REFUSED` line: the guard had
+nothing to refuse, so it is not exercised by this run.
+
+Ticket 03 did not hold: after a deactivate/reactivate cycle the old SA-6 stayed listed for more than
+four minutes (five sweeps) although DCS no longer held it. Followed in `FIX-IN-GAME-SESSION-2026-10-03` ticket 03.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**the IADS enrols groups DCS has already destroyed**. [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946), Tripack 2026-09-08: *16 SAM dont le radar est détruit* at mission start, with nothing shot at. `Raddest` counts sites where `hasWorkingRadar()` is false, and a site Skynet accepted always has a search radar — so those sixteen radars **no longer exist**. A combat zone destroys every group inside it while the config script loads; `veafSkynet` walks `coalition.getGroups` one second later with no `isExist()` guard, and DCS still lists what it has just destroyed — a quirk the repository already documents on the Skynet side, at the very place the guard *does* exist. Tripack's log puts both inside the same second. Measured on `Snowfox_20260903.miz`: **all 67** red SAM sites are combat-zone groups, 61 of them inside the zone geometry, so the mechanism has 61 chances to fire. The live SAMs are unaffected (`getUsableSAMSites` filters on `isDestroyed`), which is why this reads as a false alarm and is not one: nothing removes the dead entries, they hold their group **name**, and `addGroupToNetwork` refuses a name it already lists — so a site respawned under its own name can never rejoin the IADS. The delicate half is ticket 03: a sweep must **not** remove the sites the player killed, and a kill is indistinguishable from a despawn on the object — only the absence of `S_EVENT_DEAD` tells them apart. Fix shipped, all four tickets done; waiting on the in-game check R14 against the reproduction Tripack built

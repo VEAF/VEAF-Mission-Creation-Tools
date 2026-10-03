@@ -3,8 +3,10 @@
 from pathlib import Path
 from typing import Any
 
+from presets_injector.airfield_channels_manager import apply_airfield_channels, describe_airfield_channels
 from veaf_libs.blank_mission import supported_theatres
 from veaf_libs.clear_ground_check import offer_check
+from veaf_libs.scenery_lookup import DEFAULT_RADIUS_METERS, offer_lookup
 
 from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_farp import add_farp
@@ -44,15 +46,18 @@ from veaf_mission_mcp.oracle import (
     describe_known_limitations,
     describe_module,
     describe_naming_conventions,
+    list_payloads,
     list_shortcuts,
     list_unit_types,
 )
 from veaf_mission_mcp.player_slot import add_player_slot
 from veaf_mission_mcp.remove_group import remove_group
+from veaf_mission_mcp.repair_static_shapes import repair_static_shapes
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
 from veaf_mission_mcp.set_group_properties import set_group_properties
 from veaf_mission_mcp.set_unit_properties import set_unit_properties
+from veaf_mission_mcp.terrain import describe_terrain
 
 
 def register_default_actions(catalog: ActionCatalog) -> None:
@@ -301,7 +306,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "callsign": {
                         "description": "Aircraft: an object with any of family/flight/number/name "
                         "(1..9 each); 'family' requires 'name' since the family->word table is not "
-                        "shipped. Ground unit: the bare number.",
+                        "shipped. 'name' is the word ('Texaco', completed to Texaco21 from flight and "
+                        "number) or the full callsign ('Texaco21', kept). Ground unit: the bare number.",
                     },
                     "onboard_num": {
                         "type": "string",
@@ -317,9 +323,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "pylons": {
                         "type": "object",
-                        "description": "Loadout as {station number: weapon CLSID}. BY STATION, not by "
-                        "position: a real FA-18C carries 1, 4, 5, 6, 9. Omit to leave the loadout "
-                        "alone; pass {} with mode 'replace' for a clean airframe.",
+                        "description": "Loadout as {station number: weapon CLSID} or {station number: "
+                        "{CLSID: weapon CLSID}} (add_air_group's shape). BY STATION, not by position: a "
+                        "real FA-18C carries 1, 4, 5, 6, 9. Any other value is refused. Omit to leave the "
+                        "loadout alone; pass {} with mode 'replace' for a clean airframe.",
                     },
                     "pylons_mode": {
                         "type": "string",
@@ -358,8 +365,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "mission that breaks it. A rename that would trigger a reserved VEAF convention is "
                 "refused unless you acknowledge it -- naming a group after a combat zone's trigger "
                 "zone makes the runtime despawn it at start. Unit names are never renamed with the "
-                "group. WARNING: the destination's surface cannot be checked design-time, so a "
-                "ground group can end up in water. Mutates in place, backed up first."
+                "group. A moved ground group or static that lands in the sea (ground 0 m), or a ship "
+                "that lands on land, is warned about where the theatre has a swept elevation grid "
+                "(terrain_elevation); without one the warning says the surface was not checked. "
+                "Mutates in place, backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -936,7 +945,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "'Client'). Starts: parking-cold / parking-hot (need 'airfield'), runway (needs "
                 "'airfield'), air (needs 'position'), deck-cold / deck-hot (need 'carrier'). Each aircraft "
                 "gets its type's default chaff and flare, a callsign and a tail number no other aircraft of "
-                "the mission carries. Target a FOLDER (durable) or .miz (transient); backed up first."
+                "the mission carries; a western flight NAMED like its callsign ('Texaco 2', 'Magic 1') gets "
+                "that callsign (Texaco21...) when its family fits the task and the flight is free, else the "
+                "next free one and a warning. A fighting task (Escort, CAP, CAS, SEAD...) with no pylons "
+                "warns for an AI flight. Target a FOLDER (durable) or .miz (transient); backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -986,7 +998,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "AI level, or 'Client'/'Player' for human slots.",
                     },
                     "frequency_mhz": {"type": "number", "default": 251, "description": "Group radio frequency in MHz."},
-                    "task": {"type": "string", "default": "CAS", "description": "Aircraft-group task."},
+                    "task": {
+                        "type": "string",
+                        "default": "CAS",
+                        "description": "Aircraft-group task. 'AFAC' makes a LASER DRONE (an MQ-9 with an air "
+                        "start over its zone): its first point gets unlimited fuel and a circle orbit at "
+                        "altitude_ft / speed_kt (an AFAC on another start gets a warning instead). The lasing is CTLD's: declare the group in modules.ASSETS "
+                        "with jtac (laser code), freq and mod. Checked in game: CTLD moves it to "
+                        "JTAC_droneAltitude (3000 m AGL) whatever is written, it designates VEHICLES only, "
+                        "and within 10 km.",
+                    },
                     "parking": {
                         "type": "array",
                         "items": {"type": "string"},
@@ -1020,6 +1041,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "pylons": {
                         "type": "object",
                         "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                    },
+                    "payload": {
+                        "type": "string",
+                        "description": "A DCS loadout by the name the Mission Editor lists (list_payloads gives "
+                        "a type's names), instead of 'pylons'.",
                     },
                 },
                 "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
@@ -1471,8 +1497,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "Place a COMPLETE FARP: the heliport static (FARP, Invisible FARP, SINGLE_HELIPAD...), its "
                 "radio frequency and callsign, and the warehouse entry that lets helicopters refuel and "
-                "rearm there. add_group with category 'static' places the object ALONE, which serves "
-                "nobody. The build's warehouses.yaml ('farps:') then stocks it like any base. Target a "
+                "rearm there, and by default its ammunition dump ('<name> - Ammo', a FARP Ammo Dump "
+                "Coating 120 m east) that CTLD takes as a loading point. add_group with category 'static' "
+                "places the object ALONE, which serves nobody. The build's warehouses.yaml ('farps:') then "
+                "stocks it like any base. Warns when the pad is in the sea (elevation grid). Target a "
                 "FOLDER (durable) or a .miz; backed up."
             ),
             parameters_schema={
@@ -1496,6 +1524,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "frequency_mhz": {"type": "number", "default": 127.5},
                     "modulation": {"type": "string", "enum": ["AM", "FM"], "default": "AM"},
                     "callsign_id": {"type": "integer", "default": 1, "description": "1-based heliport callsign."},
+                    "ammo_dump": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Place the FARP's ammunition dump (CTLD loading point); false skips it.",
+                    },
                 },
                 "required": ["target", "name", "position", "coalition", "country_id", "country_name"],
             },
@@ -1594,6 +1627,27 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         handler=lambda p: add_sound(
             Path(p["mission_path"]), source_path=p["sound_path"], resource_name=p.get("resource_name")
         ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="repair_static_shapes",
+            description=(
+                "FILL the shape_name of every static placed without one (by a tool before 6.26, or a "
+                "script), from the units database -- what the Mission Editor writes. DCS refuses some "
+                "static types without it at mission load ('unknown static shape_name') and the object "
+                "never exists; validate_mission lists them. Reports what it filled and the statics whose "
+                "type has no known shape. Writes nothing when there is nothing to fill. Target a FOLDER "
+                "(durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                },
+                "required": ["target"],
+            },
+        ),
+        handler=lambda p: repair_static_shapes(Path(p["target"])),
     )
     catalog.register(
         ActionSpec(
@@ -1719,9 +1773,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "a trigger zone + Late-Activation interceptor group(s) on the given coalition in "
                 "src/mission, and an appended modules.QRA.definitions[] entry in mission.yaml "
                 "referencing the group names verbatim. Interceptors are built AIRBORNE and fuelled "
-                "(one aircraft type per group); give them a loadout with 'pylons' or copy one with "
+                "(one aircraft type per group); give them a loadout with 'pylons', a DCS loadout by name "
+                "with 'payload' (list_payloads), or copy one with "
                 "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
-                "unarmed interceptor intercepts nothing."
+                "unarmed interceptor intercepts nothing. Each group gets a single waypoint and no task "
+                "on purpose: when it scrambles, the QRA module gives a CAP/Intercept group whose route "
+                "engages no aircraft its job -- a patrol across the zone and engagement of what enters "
+                "it. Do not add waypoints to such a group without an EngageTargets (Air) task, or that "
+                "route is replaced."
             ),
             parameters_schema={
                 "type": "object",
@@ -1756,6 +1815,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                 "pylons": {
                                     "type": "object",
                                     "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                                },
+                                "payload": {
+                                    "type": "string",
+                                    "description": "A DCS loadout by the name the Mission Editor lists (list_payloads "
+                                    "gives a type's names). One of pylons / payload / loadout_from.",
                                 },
                                 "loadout_from": {
                                     "type": "string",
@@ -1800,7 +1864,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml. The "
                 "template is built AIRBORNE at 'position' and fuelled; give a 'route' point and it "
                 "flies a race-track between the two (without one it orbits nowhere), and a loadout "
-                "with 'pylons' or 'loadout_from'."
+                "with 'pylons', 'payload' (a DCS loadout by name, list_payloads) or 'loadout_from'."
             ),
             parameters_schema={
                 "type": "object",
@@ -1843,6 +1907,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "pylons": {
                         "type": "object",
                         "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
+                    },
+                    "payload": {
+                        "type": "string",
+                        "description": "A DCS loadout by the name the Mission Editor lists (list_payloads "
+                        "gives a type's names). One of pylons / payload / loadout_from.",
                     },
                     "loadout_from": {
                         "type": "string",
@@ -1911,6 +1980,69 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="describe_airfield_channels",
+            description=(
+                "List, for a mission FOLDER, the airfields it uses -- side (from warehouses), whether "
+                "they offer dynamic slots once src/warehouses.yaml is applied, how many player slots "
+                "are parked there -- with the ATC frequencies DCS itself gives them and the TACAN. "
+                "Ranked: held with slots first, then held without, then (include_neutral) neutral. "
+                "Read-only. Use it BEFORE set_airfield_channels to propose which bases deserve a "
+                "radio channel: a DCS radio holds about twenty, so ask the mission author which ones "
+                "when the list is longer than the obvious ones. Never type an airfield frequency."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (src/mission/ + src/presets.yaml).",
+                    },
+                    "include_neutral": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Also list the airfields no side holds.",
+                    },
+                },
+                "required": ["folder_path"],
+            },
+        ),
+        handler=lambda p: describe_airfield_channels(
+            Path(p["folder_path"]), include_neutral=p.get("include_neutral", False)
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_airfield_channels",
+            description=(
+                "Write the chosen airfields into the 'bases' channel collection of a mission FOLDER's "
+                "src/presets.yaml, with the frequencies DCS declares for them (refuses an airfield DCS "
+                "does not declare -- never invent one). An airfield already in 'bases' keeps its alias; "
+                "a new one is aliased Base-<DCS name>; entries matching no chosen airfield (a FARP, a "
+                "ship) are left as they are and reported. Only 'bases' changes: tactical and flight "
+                "channels and channel_lists are untouched -- the result lists the written channels on "
+                "no radio yet, to add to channel_lists. Idempotent. Only write what the author chose: "
+                "propose with describe_airfield_channels first."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (src/mission/ + src/presets.yaml).",
+                    },
+                    "airfields": {
+                        "type": "array",
+                        "items": {"type": ["string", "integer"]},
+                        "description": "Airfields by DCS name or airdrome id, in the order wanted.",
+                    },
+                },
+                "required": ["folder_path", "airfields"],
+            },
+        ),
+        handler=lambda p: apply_airfield_channels(Path(p["folder_path"]), list(p["airfields"])),
+    )
+    catalog.register(
+        ActionSpec(
             name="resolve_coordinates",
             description=(
                 "Convert a position between DCS local x/y and geographic lat/lon for the mission's "
@@ -1955,7 +2087,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Resolve a real-world place name (optionally offset by a bearing + distance) to DCS "
                 "coordinates for the mission's theatre — DCS maps are the real world projected. "
                 "Returns lat/lon + x/y; results are approximate (confirm visually). Read-only. "
-                "Uses OSM Nominatim by default (or Google if a key is configured)."
+                "Uses OSM Nominatim by default (or Google if a key is configured). Nominatim takes one "
+                "request a second (paced for you; a refusal comes back as found=false saying so), and "
+                "often has a single candidate for a transliterated name: osm_class/osm_type say what came "
+                "back, and a road or an administrative area (a street of another country, a governorate's "
+                "centre) is warned about -- check it, or search a nearby town or landmark."
             ),
             parameters_schema={
                 "type": "object",
@@ -1990,7 +2126,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "List DCS unit types from the canonical generated database (the same the build "
                 "ships). Filter by category and/or a name substring. Read-only knowledge for the "
-                "LLM to pick concrete unit types."
+                "LLM to pick concrete unit types. A unit with weapons or sensors carries "
+                "threat_range_m / detection_range_m (metres, DCS's ThreatRange / DetectionRange, the "
+                "Mission Editor's range circles): measure an air defence against the bases with those."
             ),
             parameters_schema={
                 "type": "object",
@@ -2001,6 +2139,25 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: list_unit_types(category=p.get("category"), name_contains=p.get("name_contains")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="list_payloads",
+            description=(
+                "List the DCS default loadouts of an AI aircraft type by the names the Mission Editor "
+                "offers ('R-40T*2,R-33*4' for a MiG-31), with their pylons -- what add_air_group, "
+                "create_qra and create_cap_mission take as 'payload'. Without a type, the types that "
+                "have loadouts (a module aircraft has none here: give it pylons or loadout_from). "
+                "Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "unit_type": {"type": "string", "description": "Exact DCS type, e.g. 'MiG-31', 'Su-27'."},
+                },
+            },
+        ),
+        handler=lambda p: list_payloads(p.get("unit_type")),
     )
     catalog.register(
         ActionSpec(
@@ -2069,6 +2226,133 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: offer_check(Path(p["miz_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="offer_scenery_lookup",
+            description=(
+                "Before using a MAP OBJECT (a bridge, a building that is part of the map) as a combat zone "
+                "objective, OFFER the user to look its DCS id up: `scenery_targets` takes ids, and they exist "
+                "only inside DCS. Launches nothing: returns the command the user runs (it needs DCS), which "
+                "lists the map objects around each point with id, type and distance."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "theatre": {"type": "string", "description": "The theatre, e.g. 'Syria'."},
+                    "points": {
+                        "type": "array",
+                        "description": "Points to search around, in mission coordinates (x north, y east), metres.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "radius": {
+                                    "type": "number",
+                                    "description": f"Search radius in metres (default {DEFAULT_RADIUS_METERS:g}).",
+                                },
+                            },
+                            "required": ["x", "y"],
+                        },
+                        "minItems": 1,
+                    },
+                },
+                "required": ["theatre", "points"],
+            },
+        ),
+        handler=lambda p: offer_lookup(
+            p["theatre"],
+            [(float(q["x"]), float(q["y"]), float(q.get("radius", DEFAULT_RADIUS_METERS))) for q in p["points"]],
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="terrain_elevation",
+            description=(
+                "Ground heights from the theatre's swept elevation grid, with no DCS running. Read-only. "
+                "Ask any of: `points` — the ground height at each (target altitudes for a briefing); "
+                "`route` — the highest ground along each leg (the floor of a low-level route); `route` + "
+                "`observers` — how many metres of each leg each radar or SAM sees over the terrain, within "
+                "its range (4/3 Earth radar horizon); `area` — the highest sample per 10 km MGRS square "
+                "(F10 grid) or 30' quadrangle. Terrain only (no buildings, pylons, trees) — say so on every "
+                "figure; a point off the grid is null, never 0. With no grid for the theatre, returns "
+                "`available: false` and the command that sweeps one."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "theatre": {"type": "string", "description": "The theatre, e.g. 'Caucasus'."},
+                    "points": {
+                        "type": "array",
+                        "description": "Points, mission coordinates (x north, y east), metres.",
+                        "items": {
+                            "type": "object",
+                            "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                            "required": ["x", "y"],
+                        },
+                    },
+                    "route": {
+                        "type": "array",
+                        "description": (
+                            "Route points in order, mission coordinates. `alt` (metres) and `alt_type` "
+                            "('BARO' above sea level, default; 'RADIO' above the ground, as a waypoint "
+                            "carries them) are required with `observers`: a leg between two RADIO points "
+                            "follows the ground, any other is straight between the two altitudes."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "alt": {"type": "number"},
+                                "alt_type": {"type": "string", "enum": ["BARO", "RADIO"]},
+                            },
+                            "required": ["x", "y"],
+                        },
+                        "minItems": 2,
+                    },
+                    "observers": {
+                        "type": "array",
+                        "description": "Radars or SAMs looking at the route.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "range": {"type": "number", "description": "Metres; beyond, a leg is not counted."},
+                                "height_agl": {
+                                    "type": "number",
+                                    "description": "Antenna height above the ground, metres (default 5).",
+                                },
+                            },
+                            "required": ["x", "y", "range"],
+                        },
+                    },
+                    "area": {
+                        "type": "object",
+                        "description": "An area to give the highest ground of, per cell.",
+                        "properties": {
+                            "min_x": {"type": "number"},
+                            "min_y": {"type": "number"},
+                            "max_x": {"type": "number"},
+                            "max_y": {"type": "number"},
+                            "cell": {"type": "string", "enum": ["mgrs10km", "quadrangle30"]},
+                        },
+                        "required": ["min_x", "min_y", "max_x", "max_y"],
+                    },
+                },
+                "required": ["theatre"],
+            },
+        ),
+        handler=lambda p: describe_terrain(
+            p["theatre"],
+            points=p.get("points"),
+            route=p.get("route"),
+            observers=p.get("observers"),
+            area=p.get("area"),
+        ),
     )
     catalog.register(
         ActionSpec(
@@ -2297,6 +2581,7 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         fuel_fraction=params.get("fuel_fraction"),
         late_activation=params.get("late_activation", False),
         pylons=params.get("pylons"),
+        payload=params.get("payload"),
         chaff=params.get("chaff"),
         flare=params.get("flare"),
         carrier=params.get("carrier"),
@@ -2370,6 +2655,7 @@ def _handle_create_cap_mission(params: dict[str, Any]) -> dict[str, Any]:
         speed_kt=params.get("speed_kt", 350.0),
         pylons=params.get("pylons"),
         loadout_from=params.get("loadout_from"),
+        payload=params.get("payload"),
     )
 
 

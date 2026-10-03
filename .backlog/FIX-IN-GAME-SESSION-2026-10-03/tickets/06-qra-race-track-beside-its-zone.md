@@ -1,6 +1,6 @@
 # 06 — the QRA race-track sits beside its zone
 
-Status: ⬜ ready
+Status: 🔄 probably fixed by ticket 04 — to measure in game
 Type: fix
 
 ## Measured
@@ -14,3 +14,15 @@ between **30 and 64 km** from the zone's centre — a race-track of about 35 km 
 
 How `zone_defense` places its two turn points from the group's position and the zone: centred on the
 zone, or starting from where the group enters it.
+
+## Read (2026-10-03, afternoon)
+
+`zone_defense` places its turn points **centred** on the zone: `wp2` and `wp3` are the centre minus
+and plus half a leg along the approach axis (`veafAircraftSpawn.lua`), and `QRA-Sayqal-Zone` is a
+circle with its easting in `y` (read in the `.miz`). A race-track 30 to 64 km from the centre is not
+what the route says.
+
+The likely cause is ticket 04: an `EngageUnit` left on the queue for a target outside the zone kept
+the CAP chasing it, and the cleanup could pop the route itself. Ticket 04 now hands the patrol back
+when the targets change or the CAP leaves its zone. To measure again in game, positions every ten
+seconds, before calling this one fixed.

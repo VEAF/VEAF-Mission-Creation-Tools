@@ -345,8 +345,10 @@ farmland in Caucasus (`_spawn cap, side red, alt 2`) was in the air, hit shrubs 
 second (`HIT` on `SHRUB`, `GREEN_ASH`, `EUROPEAN_BEECH`) and crashed (`PILOT_DEAD`, `CRASH`).
 Nothing raises: the spawn succeeds and the aircraft dies.
 
-**What to do:** Spawn an aircraft well above what stands on the ground — the MiST-derived spawner in VEAF lifts a
-requested altitude into a band for exactly this reason. Not being under the terrain is not enough.
+**What to do:** Spawn an aircraft well above what stands on the ground. Not being under the terrain is not enough.
+VEAF floors every aircraft it gives a role (`-cap`, a QRA or a wave defending its zone) at
+`veafAircraftSpawn.MINIMUM_CLEARANCE_METRES` (150 m) above the ground under its spawn point, spawn
+and patrol alike; the MiST-derived spawner lifts a requested altitude into a band for the same reason.
 
 *What it cost:* `FIX-AIR-SPAWN-ALTITUDE-GUARD` had to choose between refusing and lifting; this measurement is what
 settles that refusing only a point under the terrain leaves the crash in place.

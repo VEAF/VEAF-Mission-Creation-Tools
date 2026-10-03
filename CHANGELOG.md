@@ -243,6 +243,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   failure called a logger method that does not exist, raised, and the zone's checks stopped for the
   rest of the mission. Same call fixed in the Skynet monitor.
 
+- **A CAP no longer piles up attack orders, nor loses its patrol after a fight.** The CAP watchdog gave
+  the aircraft a new attack order for every target on every check (every ten seconds), and when the
+  fight was over it removed as many orders as it had counted — although DCS drops the order of a dead
+  target by itself — so it removed the patrol route too. It now gives one order per target, rebuilds
+  them only when the targets change, hands the patrol back from where the CAP is, and stops chasing
+  once the CAP has left its zone. Found in game on 2026-10-03.
+- **An aircraft given a role no longer appears in the trees.** A `-cap`, a QRA or a wave defending its
+  zone is now placed, and patrols, at least 150 m above the ground under its spawn point. DCS does not
+  lift an aircraft spawned too low: on 2026-10-03, a `-cap` asked at `alt 2` appeared 15 m above the
+  ground and crashed within a second.
+- **`_spawn signal, color …` fires the colour asked.** It was handed the smoke colour: orange came out
+  yellow and blue fired nothing. A signal flare is `red` (the default), `green`, `white` or `yellow`;
+  `orange` and `blue` are refused with a message.
+- **A FARP escort on open ground stays where it is laid out.** Its search for clear ground counted the
+  tents and props of its own FARP as obstacles, so it moved every time; it now stands beside them, and
+  still avoids anything else.
+
 ## [6.26.0] — 2026-09-30
 
 ### Added

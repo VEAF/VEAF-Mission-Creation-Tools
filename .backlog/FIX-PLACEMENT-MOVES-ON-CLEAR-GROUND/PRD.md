@@ -1,6 +1,6 @@
 # FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND — the escort is moved even when the requested spot is free
 
-Status: 🔄 in-progress — R19 run in game 2026-10-03: on open ground the escort still moved, for a new reason; ticket 04 waits to be seen in game
+Status: 🔄 in-progress — every ticket done and verified in game 2026-10-03; closes with the merge
 
 Origin: measured in game 2026-08-28 while running
 [`DCS-SESSION-TODO`](../../DCS-SESSION-TODO.md) item 21, the exhaustion count for
@@ -78,7 +78,7 @@ a few dozen metres is exactly the outcome that history was guarding against.
 | 01 | Keep the requested bearing when the cloud proves it clear | medium — changes where every FARP escort lands | ✅ |
 | 02 | Verify in game that a FARP on open ground does not move | needs DCS | ✅ |
 | 03 | [Ask about the wanted spot itself, not its nearest neighbour](tickets/03-ask-about-the-wanted-spot-itself.md) | medium — replaces ticket 01's method | ✅ |
-| 04 | The escort stands beside its own FARP's props | low — the escort only | 🔄 |
+| 04 | The escort stands beside its own FARP's props, and the bearing walk stays out of the trees | low — the escort only; a `-farp` in a dense wood is now refused | ✅ |
 
 ## What ticket 01 delivered (2026-09-01)
 

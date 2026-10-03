@@ -1,6 +1,6 @@
 # 04 — the CAP watchdog keeps adding tasks
 
-Status: 🔄 fixed — to see in game
+Status: ✅ done — verified in game 2026-10-03
 Type: fix
 
 ## Measured
@@ -38,3 +38,12 @@ count:
 
 That `setTask` followed by `pushTask` in the same frame keeps both, and that a CAP whose fight is over
 flies its race-track again.
+
+## Seen in game (2026-10-03, second pass)
+
+Three `-cap` watched for seven minutes on the Caucasus mission: on a tick where the targets did not
+change, **no** `EngageUnit` was pushed (this morning: five or six more each tick). When the C-130 left
+the MiG-31's list, the queue was rebuilt in one go (six tasks) and the MiG-31 came back to 12 km from
+its zone's centre. At At Tanf, the Sayqal MiG-29S fired six R-77 and an R-73 at an immortal intruder;
+when it was removed, `resumes its patrol` was logged and the pair flew back over the zone centre
+(ticket 06). Not seen: a new shot *after* a rebuild — the MiG-31 had most likely emptied its rails.

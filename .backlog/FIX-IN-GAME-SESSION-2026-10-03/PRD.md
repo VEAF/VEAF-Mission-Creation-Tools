@@ -1,6 +1,6 @@
 # FIX-IN-GAME-SESSION-2026-10-03 — what a DCS session flown without a pilot found
 
-Status: 🔄 in-progress — 01 and 02 merged in #1054; 04 and 08 fixed, 05 wontfix, 07 not reproduced;
+Status: 🔄 in-progress — 03, 04, 06 and 08 fixed and verified in game in a second pass the same afternoon; 05 wontfix; 07 waits for one answer
 03 and 06 wait for the second session's measurement
 
 Origin: the DCS session of 2026-10-03, run without anyone at the controls. Five missions were built
@@ -44,12 +44,12 @@ Each line closes or advances the lot named; the lots carry the measurement.
 |---|---|---|
 | 01 | [Smoke and flare colours are named the way DCS names them](tickets/01-dcs-colour-names.md) | ✅ |
 | 02 | [`logger:warning` does not exist](tickets/02-logger-warning.md) | ✅ |
-| 03 | [A deactivated zone's SAM site stays in the IADS](tickets/03-zone-site-stays-in-the-iads.md) | 🔄 |
-| 04 | [The CAP watchdog keeps adding tasks](tickets/04-cap-watchdog-task-count.md) | 🔄 |
+| 03 | [A deactivated zone's SAM site stays in the IADS](tickets/03-zone-site-stays-in-the-iads.md) | ✅ |
+| 04 | [The CAP watchdog keeps adding tasks](tickets/04-cap-watchdog-task-count.md) | ✅ |
 | 05 | [A `-cap` zone drawing outlives its group](tickets/05-cap-drawing-outlives-its-group.md) | 🚫 |
-| 06 | [The QRA race-track sits beside its zone](tickets/06-qra-race-track-beside-its-zone.md) | 🔄 |
+| 06 | [The QRA race-track sits beside its zone](tickets/06-qra-race-track-beside-its-zone.md) | ✅ |
 | 07 | [The editor's DCS stubs teach the wrong colour names](tickets/07-editor-stubs-teach-the-wrong-colour-names.md) | 🧑 |
-| 08 | [`_spawn signal` fires the smoke colour](tickets/08-signal-takes-the-smoke-colour.md) | 🔄 |
+| 08 | [`_spawn signal` fires the smoke colour](tickets/08-signal-takes-the-smoke-colour.md) | ✅ |
 
 R9 and R19 are not tickets here: their lots exist, and the measurement goes there.
 
@@ -65,3 +65,14 @@ Tickets 03 to 08 go in one branch with the two lots the session advanced:
 [`FIX-AIR-SPAWN-ALTITUDE-GUARD`](../FIX-AIR-SPAWN-ALTITUDE-GUARD/PRD.md) (R9, the clearance floor) and
 [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](../FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md) (R19, the
 escort beside its own FARP). David's calls of 2026-10-03, on the plan: every recommendation taken.
+
+## The second pass (2026-10-03 afternoon)
+
+Built from this branch, run without a pilot in `D:\dev\_VEAF\tmp\dcs-session-2026-10-03b\`. Seen
+working: every coloured smoke from a marker, the `-farp` green smoke and red flares, the convoy smokes
+(David's eyes), the signal flares, a wave whose only element is invalid skipped without freezing its
+zone, R7's QRA half (a bracketed command and a bare one, both where they should land), R9's floor,
+R17's last line (a FAB-250 dropped over the Holzdorf sanctuary, no error), and tickets 03, 04 and 06.
+Two defects found during the run and fixed in the branch: the Skynet sweep fooled by a reused group id
+(ticket 03's real cause) and the FARP bearing walk ignoring forests. In passing, David saw Arco's escort
+engage the threats and rejoin formation.

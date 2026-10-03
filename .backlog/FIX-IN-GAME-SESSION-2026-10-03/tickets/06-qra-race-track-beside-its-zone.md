@@ -1,6 +1,6 @@
 # 06 — the QRA race-track sits beside its zone
 
-Status: 🔄 probably fixed by ticket 04 — to measure in game
+Status: ✅ done — fixed by ticket 04, verified in game 2026-10-03
 Type: fix
 
 ## Measured
@@ -26,3 +26,10 @@ The likely cause is ticket 04: an `EngageUnit` left on the queue for a target ou
 the CAP chasing it, and the cleanup could pop the route itself. Ticket 04 now hands the patrol back
 when the targets change or the CAP leaves its zone. To measure again in game, positions every ten
 seconds, before calling this one fixed.
+
+## Verified in game (2026-10-03, second pass)
+
+The Sayqal pair crossed its zone and turned back at 21 km (half a 20 NM leg, plus the turn) — the
+race-track centred. Then an intercept: the pair chased out to 40 km while engaging, and once the target
+was gone the watchdog handed the patrol back; the leader flew back in and passed **0.1 km** from the
+zone's centre. This morning it kept circling 30 to 64 km out.

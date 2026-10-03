@@ -1,6 +1,6 @@
 # FIX-AIR-SPAWN-ALTITUDE-GUARD — the aircraft height check reads the easting, not the altitude
 
-Status: 🔄 in-progress — R9 answered in game 2026-10-03 (DCS does not lift a too-low aircraft); the floor of ticket 03 waits to be seen in game
+Status: 🔄 in-progress — every ticket done and verified in game 2026-10-03; closes with the merge
 to answer whether the game lifts a too-low aircraft by itself (ticket 02, `DCS-SESSION-TODO.md` R9).
 
 Found 2026-09-01 while delivering [`CHORE-ONE-TERRAIN-CHECK`](../archive/CHORE-ONE-TERRAIN-CHECK.md), and
@@ -45,7 +45,7 @@ than a live defect. That changes what the repair should do, not whether the line
 |---|---|---|---|
 | 01 | The height test reads the altitude, and two cases prove which field it read | medium — it makes a dead guard live, so a spawn can now be refused that used to be accepted | ✅ |
 | 02 | Does DCS lift a too-low aircraft on its own? The clearance rule depends on the answer | none — a question, no code | ✅ |
-| 03 | Floor every aircraft given a role at a clearance above the ground | low — moves only a flight asked under 150 m above the ground | 🔄 |
+| 03 | Floor every aircraft given a role at a clearance above the ground | low — moves only a flight asked under 150 m above the ground | ✅ |
 
 ## Definition of done
 

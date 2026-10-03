@@ -256,9 +256,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`_spawn signal, color …` fires the colour asked.** It was handed the smoke colour: orange came out
   yellow and blue fired nothing. A signal flare is `red` (the default), `green`, `white` or `yellow`;
   `orange` and `blue` are refused with a message.
-- **A FARP escort on open ground stays where it is laid out.** Its search for clear ground counted the
-  tents and props of its own FARP as obstacles, so it moved every time; it now stands beside them, and
-  still avoids anything else.
+- **A FARP escort on open ground stays where it is laid out, and never in the trees.** Its search for
+  clear ground counted the tents and props of its own FARP as obstacles, so it moved every time; it now
+  stands beside them, and still avoids anything else. When it has to look elsewhere it now also checks
+  for forest: in a dense wood, where it used to park the escort under the trees, a `-farp` is refused
+  with "no clear ground for its escort".
+- **A combat zone's air defence leaves the Skynet network when the zone is deactivated.** Its respawn
+  reuses the group's DCS id, and the old site's object then answered for the new one, so the network
+  kept one more site after each deactivation. Found in game on 2026-10-03.
 
 ## [6.26.0] — 2026-09-30
 

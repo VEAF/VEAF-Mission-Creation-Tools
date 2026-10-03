@@ -1,6 +1,6 @@
 # 03 — a deactivated zone's SAM site stays in the IADS
 
-Status: 🔄 in-progress — cause measured and fixed 2026-10-03, verified hot in game
+Status: ✅ done — measured, fixed and verified in game 2026-10-03
 Type: fix
 
 ## Measured

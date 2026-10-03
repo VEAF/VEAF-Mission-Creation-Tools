@@ -34,28 +34,12 @@ the plan and a `fiddle.sh` that runs a Lua file in the live mission.
 from branch `fix/in-game-session-2026-10-03-followups`, plan in `SESSION-DCS-2026-10-03b.md`: the
 #1054 colours and AirWaves fixes never seen in game, R7 (QRA half), R9 (the new floor), R17 (last
 line), R19 (the escort beside its own props), and tickets 03, 04 and 06 of
-`FIX-IN-GAME-SESSION-2026-10-03`.
+`FIX-IN-GAME-SESSION-2026-10-03`. **Run the same afternoon**: R7 (QRA half), R17 (last line) and R19 passed and are removed below; the results are in those lots and in `FIX-IN-GAME-SESSION-2026-10-03`.
 
 
 ### R4. The `100` (`SmallSizeFighter`) parking type
 
 Already written up at the end of this file — left there, it is a measurement rather than a gate.
-
-### R19. A `-farp` on open ground keeps its escort where it was planned — **run 2026-10-03, negative**
-
-Run on the Caucasus session mission with four `-farp`: in a wood the escort left the trees; on open
-ground it still moved, because the FARP's **own vehicles**, placed first, make the occupancy probe
-answer false for the escort's spot. Recorded in
-[`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md); re-run
-this item once that lot changes the probe. The refusal case ("somewhere nothing fits") was not reached.
-
-### R17. A GermanyCW-v6 start — **run 2026-10-03, one line left**
-
-[`FIX-IN-GAME-TEST-FINDINGS`](.backlog/FIX-IN-GAME-TEST-FINDINGS/PRD.md). The start-up was read on
-2026-10-03 and is clean (no shape refused, one initialisation per zone, no script error). One line was
-not run: **fire one unguided air-to-ground weapon near a sanctuary** and grep `dcs.log` for
-`attempt to index local 'target'` and `Weapon doesn't exist` — no line expected. Needs a pilot, or an
-AI aircraft given a rocket loadout.
 
 ### R20. Does a departing player's slot change still arrive after DCS forgot the player, in 2.9.30?
 
@@ -506,15 +490,6 @@ Unblocks [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON
 (shipped 2026-09-01) and item 04 of `FIX-PLACEMENT-IGNORES-SCENERY`. **Written up as item 25 at the
 end of this file** — three markers, and the point worth repeating here: *a run where nothing moves in
 any of the three is a failure, not a pass*. It would mean the fix turned tier 1 off.
-
-### R7. A QRA launched by a VEAF command lands in its zone — **wave half verified 2026-10-03**
-
-The wave half is settled (`[5000,0]` 5.2 km north, the default offset on the right axes). Left: a QRA
-whose deploy list holds a **command** (`[0,3000]-shilka`, say) and a non-zero `respawn_default_offset`.
-An editor group, as the session mission has, keeps its editor position and proves nothing about the
-offset. Unblocks the QRA half of
-[`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md) and
-[`FIX-QRA-COMMANDS-AND-OFFSET`](.backlog/FIX-QRA-COMMANDS-AND-OFFSET/PRD.md).
 
 ### ✅ R8. Does a teleported escort hold formation — and does it engage? — **both yes, 2026-09-01**
 

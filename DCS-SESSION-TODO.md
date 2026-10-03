@@ -30,7 +30,7 @@ were run and are removed below; the results are in the lots and in
 are rewritten to what is left. The missions are in `D:\dev\_VEAF\tmp\dcs-session-2026-10-03\`, with
 the plan and a `fiddle.sh` that runs a Lua file in the live mission.
 
-**Second pass prepared 2026-10-03 afternoon** — `D:\dev\_VEAF	mp\dcs-session-2026-10-03b\`, built
+**Second pass prepared 2026-10-03 afternoon** — `D:\dev\_VEAF\tmp\dcs-session-2026-10-03b\`, built
 from branch `fix/in-game-session-2026-10-03-followups`, plan in `SESSION-DCS-2026-10-03b.md`: the
 #1054 colours and AirWaves fixes never seen in game, R7 (QRA half), R9 (the new floor), R17 (last
 line), R19 (the escort beside its own props), and tickets 03, 04 and 06 of

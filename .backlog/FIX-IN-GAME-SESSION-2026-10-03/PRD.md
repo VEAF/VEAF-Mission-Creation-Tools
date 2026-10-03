@@ -1,7 +1,6 @@
 # FIX-IN-GAME-SESSION-2026-10-03 — what a DCS session flown without a pilot found
 
-Status: 🔄 in-progress — every ticket done or closed (05, 07 wontfix); closes with the merge of the second PR
-03 and 06 wait for the second session's measurement
+Status: ✅ done — merged in #1054 and #1055 (2026-10-03); every ticket done or closed (05, 07 wontfix)
 
 Origin: the DCS session of 2026-10-03, run without anyone at the controls. Five missions were built
 from `develop` (`d333d58a`, dev mode) in `D:\dev\_VEAF\tmp\dcs-session-2026-10-03\`; David loaded

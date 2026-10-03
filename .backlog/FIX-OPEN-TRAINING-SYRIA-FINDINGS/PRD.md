@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-SYRIA-FINDINGS — what building the Syria Open Training v6 through the MCP found
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — tickets 01–17 done; 18 waits on VEAF/CTLD (`FIX-JTAC-IMPOSED-CODE-AND-RADIO`)
 
 Asked by David on 2026-10-02. The Syria Open Training v6 was built from scratch with the Open Training
 prompt (`.prompts/new-open-training-mission.fr.md`), the `veaf-mission-mcp` actions and the tools of

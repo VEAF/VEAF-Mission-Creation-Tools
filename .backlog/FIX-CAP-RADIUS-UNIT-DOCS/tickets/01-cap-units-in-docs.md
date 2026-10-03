@@ -1,6 +1,6 @@
 # 01 — correct the units in the CAP docs
 
-Status: 🔄 in-progress
+Status: ✅ done — #1056
 
 `doc/mission-maker/scripts/veafSpawn{,.en}.md` (CAP options and example), `doc/pilot/GUIDE{,.en}.md`
 (example) and `doc/LUA_API_REFERENCE{,.en}.md` (`spawnCombatAirPatrol` parameters): `capradius` and

@@ -1,6 +1,6 @@
 # FIX-AIR-SPAWN-ALTITUDE-GUARD — the aircraft height check reads the easting, not the altitude
 
-Status: 🔄 in-progress — every ticket done and verified in game 2026-10-03; closes with the merge
+Status: ✅ done — every ticket verified in game 2026-10-03; merged in #1055
 to answer whether the game lifts a too-low aircraft by itself (ticket 02, `DCS-SESSION-TODO.md` R9).
 
 Found 2026-09-01 while delivering [`CHORE-ONE-TERRAIN-CHECK`](../archive/CHORE-ONE-TERRAIN-CHECK.md), and

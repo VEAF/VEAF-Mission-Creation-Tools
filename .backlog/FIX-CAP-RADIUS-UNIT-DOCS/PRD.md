@@ -1,6 +1,6 @@
 # FIX-CAP-RADIUS-UNIT-DOCS — `-cap` `capradius` is in nautical miles, not metres
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #1056 (2026-10-03)
 
 ## Problem
 

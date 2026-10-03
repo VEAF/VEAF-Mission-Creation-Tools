@@ -614,6 +614,25 @@ function TestVeafGrassSceneryCloud:test_one_truck_in_the_trees_moves_the_group()
   luaunit.assertAlmostEquals(angle, 180, 0.01, "a group with a truck in the trees must go where the cloud says")
 end
 
+--- R19, measured in game 2026-10-03: the wanted spot in a wood (`scenery probe=false`), the cloud empty
+--- (`0 cloud candidate(s) in the band out of 0`), and the bearing walk kept bearing 0 at 1x — into the
+--- trees — because it only asked the occupancy probe, which does not see forests. That morning the same
+--- case had moved, but only because the FARP's own windsock blocked bearing 0.
+function TestVeafGrassSceneryCloud:test_the_bearing_walk_does_not_put_the_group_back_in_the_trees()
+  local inTheTrees = _scaledGroupAt(90, 1)
+  self:_terrain({}, function(centre)
+    for _, position in ipairs(inTheTrees) do
+      if math.abs(centre.x - position.x) < 1 and math.abs(centre.z - position.y) < 1 then
+        return false
+      end
+    end
+    return true
+  end)
+  local angle, _, found = veafGrass.findClearBearing(90, _scaledGroupAt, _own)
+  luaunit.assertNotEquals(math.floor(angle + 0.5), 90, "the walk must not keep a bearing the scenery probe refused")
+  luaunit.assertTrue(found)
+end
+
 function TestVeafGrassSceneryCloud:test_a_clear_wanted_spot_that_is_occupied_still_moves()
   -- The probe knows forests; the occupancy probe knows units, statics, buildings and the aprons. The
   -- two compose, so a clear wood never overrides a static FARP's pad.

@@ -583,11 +583,25 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own, ignoredNamePre
     return cloudAngle, cloudScale, true
   end
 
-  -- Tier 2 — walk the bearings, then the distances. Sees units, statics, aprons and buildings.
+  -- Tier 2 — walk the bearings, then the distances. Sees units, statics, aprons and buildings, and
+  -- forests through the same small probe tier 1 asks about the wanted spot. Without it the walk kept a
+  -- bearing in a wood whenever nothing *occupied* it: measured in game 2026-10-03 (R19), the cloud
+  -- empty, the wanted spot refused by the scenery probe, and the escort kept bearing 0 under the trees.
+  -- The probe is asked only of a bearing the occupancy probe already accepted, so a crowded walk costs
+  -- no more than before.
+  local function clearAndOutOfTheTrees(angle, scale)
+    if not allClear(angle, scale) then
+      return false
+    end
+    if veaf.doNotAvoidScenery or not own or not Disposition or not Disposition.getSimpleZones then
+      return true
+    end
+    return isClearOfScenery(positionsFor(angle, scale) or {})
+  end
   local steps = math.floor(360 / veafGrass.PLACEMENT_BEARING_STEP)
   for _, scale in ipairs(veafGrass.PLACEMENT_DISTANCE_STEPS) do
     -- The original bearing first at every distance, so the group stays where it was aimed when it can.
-    if allClear(baseAngle, scale) then
+    if clearAndOutOfTheTrees(baseAngle, scale) then
       if scale ~= 1 then
         veaf.loggers.get(veafGrass.Id):debug("findClearBearing: kept bearing %s, pushed out to %sx", veaf.p(baseAngle), veaf.p(scale))
       end
@@ -600,7 +614,7 @@ function veafGrass.findClearBearing(baseAngle, positionsFor, own, ignoredNamePre
         offset = -offset
       end
       local candidate = baseAngle + offset
-      if allClear(candidate, scale) then
+      if clearAndOutOfTheTrees(candidate, scale) then
         veaf.loggers
           .get(veafGrass.Id)
           :debug("findClearBearing: moved from %s to %s at %sx to find clear ground", veaf.p(baseAngle), veaf.p(candidate), veaf.p(scale))

@@ -242,6 +242,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A wave that fails to deploy no longer freezes its AirWaves zone.** The branch reporting the
   failure called a logger method that does not exist, raised, and the zone's checks stopped for the
   rest of the mission. Same call fixed in the Skynet monitor.
+- **Docs: a `-cap`'s `capradius` is in nautical miles**, not metres. The code reads it in nautical miles
+  (60 by default), and the pages' example `capradius 20000` asked for a 20 000 NM zone;
+  it now reads `capradius 20`. `distance` is the length of the race-track leg (20 NM by default), not a
+  distance from the marker. A helicopter's `capradius` stays in metres.
 
 ## [6.26.0] — 2026-09-30
 

@@ -94,6 +94,37 @@ def test_plan_keeps_aliases_writes_real_frequencies_and_leaves_the_rest() -> Non
     assert untouched == ["Base-FARP-London"]
 
 
+_GERMANY: dict[int, dict[str, Any]] = {
+    5: {"name": "Buchel", "uhf": 251.0, "tacan": "118X"},
+    7: {"name": "Norvenich", "uhf": 252.0, "tacan": "77X"},
+}
+
+
+def test_accents_fold_when_matching_an_existing_channel() -> None:
+    names = [e["name"] for e in _GERMANY.values()]
+    bases = {"BCH": {"title": "Büchel"}, "Base-Nörvenich": {"title": "Norvenich / 77X"}}
+    assert M.match_existing(bases, "Buchel", names) == "BCH"
+    assert M.match_existing(bases, "Norvenich", names) == "Base-Nörvenich"
+
+
+def test_plan_keeps_the_authors_spelling_and_refreshes_the_tacan() -> None:
+    bases = {"BCH": {"title": "Büchel"}, "Base-Norvenich": {"title": "Nörvenich / 12X"}}
+    planned, _ = M.plan_bases(bases, ["Buchel", "Norvenich"], _GERMANY, "GermanyCW")
+    assert list(planned) == ["BCH", "Base-Norvenich"]  # matched, not duplicated as Base-Buchel
+    assert planned["BCH"]["title"] == "Büchel / 118X"
+    assert planned["Base-Norvenich"]["title"] == "Nörvenich / 77X"
+
+
+def test_plan_keeps_an_accented_title_already_up_to_date() -> None:
+    planned, _ = M.plan_bases({"Base-Buchel": {"title": "Büchel / 118X"}}, [5], _GERMANY, "GermanyCW")
+    assert planned["Base-Buchel"]["title"] == "Büchel / 118X"
+
+
+def test_plan_replaces_a_title_naming_something_else() -> None:
+    planned, _ = M.plan_bases({"Base-Buchel": {"title": "Home plate"}}, [5], _GERMANY, "GermanyCW")
+    assert planned["Base-Buchel"]["title"] == "Buchel / 118X"
+
+
 def test_plan_refuses_an_airfield_dcs_does_not_declare() -> None:
     with pytest.raises(ValueError, match="Gotham"):
         M.plan_bases({}, ["Batumi", "Gotham"], _REFERENCE, "Caucasus")

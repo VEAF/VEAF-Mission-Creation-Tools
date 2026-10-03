@@ -45,6 +45,11 @@ or with it after the orbit, it does not) passed and are removed; the results are
 R35 and R36 are rewritten to what is left, and the ticket 04 reconstruction is at the end of this file.
 R38 needs a server, not the local game.
 
+**Fourth pass prepared 2026-10-03 night** — `D:\dev\_VEAF\tmp\dcs-session-2026-10-03d\`, plan in
+`SESSION-DCS-2026-10-03d.md`, probes `probes\d_*.lua`: every item left that needs no pilot. M1 is
+GermanyCW rebuilt from `develop` (`ed94463b`) with `airbase_logistics_radius: 1100` — R39 and R36;
+M2 is the Syria Open Training of 2026-08-30, unchanged — R4, measured by a probe instead of the editor.
+
 ### R35. Combat-zone ground units start warm — the thermal look
 
 [`FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP`](.backlog/FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/tickets/02-zone-defences-start-warm.md)
@@ -391,7 +396,7 @@ takeoff, landing, crash, shots — are printed as they happen; everything also g
 
 The answer to give: the five letters, each with what it did.
 
-### R34. An unknown combat mission name is reported, not raised
+### R39. An unknown combat mission name is reported, not raised
 
 Added 2026-10-03 by [`FIX-COMBATMISSION-UNKNOWN-NAME`](.backlog/FIX-COMBATMISSION-UNKNOWN-NAME/PRD.md).
 **Run**, in any mission with a `cap_missions:` entry (session `dcs-session-2026-10-03c` has

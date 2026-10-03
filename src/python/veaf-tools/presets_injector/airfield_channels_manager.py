@@ -18,6 +18,7 @@ Claude while authoring get the same list and the same write.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -166,7 +167,7 @@ def _dynamic_after_build(
 
 
 def _normalise(text: str) -> str:
-    """Reduce a channel alias or title to letters and digits, ``Base-`` prefix and TACAN dropped.
+    """Reduce a channel alias or title to letters and digits, accents folded, ``Base-`` and TACAN dropped.
 
     Args:
         text: An alias (``Base-Sochi``) or a title (``Sochi / 18X``).
@@ -176,6 +177,7 @@ def _normalise(text: str) -> str:
     """
     text = text.split("/")[0]
     text = re.sub(r"^\s*base[-_ ]", "", text, flags=re.IGNORECASE)
+    text = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
     return re.sub(r"[^0-9a-z]", "", text.casefold())
 
 
@@ -295,6 +297,25 @@ def yaml_scalar(text: str) -> str:
     )
 
 
+def _title_name(existing: object, name: str) -> str:
+    """Return the airfield name a refreshed title should carry: the author's spelling when it names it.
+
+    DCS names are ASCII (``Buchel``); an author who wrote ``Büchel`` keeps it — it is what the pilot
+    reads in the cockpit and on the kneeboard. A title naming something else gives way to the DCS name.
+
+    Args:
+        existing: The current channel entry, or ``None``.
+        name: The airfield's DCS name.
+
+    Returns:
+        The name part of the title, TACAN suffix not included.
+    """
+    title = existing.get("title") if isinstance(existing, dict) else None
+    if isinstance(title, str) and _normalise(title) == _normalise(name):
+        return title.split("/")[0].strip()
+    return name
+
+
 def plan_bases(
     bases: dict[str, Any], chosen: list[str | int], reference: dict[int, dict[str, Any]], theatre: str
 ) -> tuple[dict[str, dict[str, Any]], list[str]]:
@@ -302,7 +323,8 @@ def plan_bases(
 
     An airfield already in the collection keeps its alias — the channel lists refer to it — and any
     other key the author set on it (``color``, ``priority``…), and gets the reference's frequencies and
-    title. A new one is aliased ``Base-<DCS name>``: a bare name could be shadowed by an older copy of
+    TACAN; its title keeps the author's spelling when it names the same airfield (``Büchel`` for DCS's
+    ``Buchel``), and takes the DCS name otherwise. A new one is aliased ``Base-<DCS name>``: a bare name could be shadowed by an older copy of
     the same airfield in the mission's ``airports-<theatre>`` collection, since an alias resolves in the
     first collection holding it. An entry that matches no chosen airfield is left as it is, and
     reported: it may be a FARP or a ship, which the reference does not cover, and deleting it would
@@ -335,7 +357,7 @@ def plan_bases(
         existing = bases.get(alias)
         kept = {k: v for k, v in existing.items() if k not in ("title", "freqs")} if isinstance(existing, dict) else {}
         planned[alias] = {
-            "title": channel_title(str(entry["name"]), entry.get("tacan")),
+            "title": channel_title(_title_name(existing, str(entry["name"])), entry.get("tacan")),
             "freqs": {b: entry[b] for b in _BANDS if b in entry},
             **kept,
         }

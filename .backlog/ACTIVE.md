@@ -28,7 +28,7 @@ Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, 
 
 ### [FIX-COMBATMISSION-UNKNOWN-NAME](FIX-COMBATMISSION-UNKNOWN-NAME/PRD.md) · 🧑
 
-Activating or deactivating a combat mission by a name the registry does not know — the bare name of an on-demand CAP — raised a Lua error instead of reporting it on screen. Fixed; the in-game look (R34) is left.
+Activating or deactivating a combat mission by a name the registry does not know — the bare name of an on-demand CAP — raised a Lua error instead of reporting it on screen. Fixed; the in-game look (R39) is left.
 
 ### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · 🧑
 
@@ -45,10 +45,6 @@ What building the Syria Open Training v6 through the MCP found: callsigns, loado
 ### [FIX-RELAY-RENDERS-MARKDOWN](FIX-RELAY-RENDERS-MARKDOWN/PRD.md) · 🧑
 
 Comments relayed from GitHub to Discord showed their markup in a code block. Now a block quote with formatting applied, long comments split; one reading left in a real thread.
-
-### [FIX-RELAY-STOPS-AT-CLOSE](FIX-RELAY-STOPS-AT-CLOSE/PRD.md) · 🧑
-
-Closing a support issue cut its Discord relay for good, so a reopened issue went silent; deleted issues were retried for ever. Fixed; the live repair on the Docker host (ticket 03) is left.
 
 ### [FIX-SCRATCH-MISSION-FINDINGS](FIX-SCRATCH-MISSION-FINDINGS/PRD.md) · 🧑
 

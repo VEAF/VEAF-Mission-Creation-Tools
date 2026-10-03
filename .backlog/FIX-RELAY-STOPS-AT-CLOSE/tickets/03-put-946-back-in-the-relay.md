@@ -1,6 +1,11 @@
 # 03 — put #946 back in the relay
 
-Status: 🧑 waiting-human
+Status: 🚫 wontfix — 2026-10-03, David: when it could finally be run, #946 had been closed again for
+24 days (reopened 2026-09-09 07:41, closed 21:15) and six of the twelve missing comments were Tripack's
+own, written on GitHub where he followed the whole discussion. Replaying them would have echoed his own
+words into his thread three weeks late. The link is left lost (the live file, read on the host, follows
+#953 and #989 only); the procedure was already in the bot's README, which now also says when not to run
+it.
 
 The code fix does not repair the live link: #946's entry is already gone from
 `/app/state/relay-links.json`, and nothing recreates it. This is the one-off repair, plus the

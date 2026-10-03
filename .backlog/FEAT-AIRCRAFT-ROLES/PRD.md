@@ -80,3 +80,9 @@ reads `QRA-Sayqal-MiG29 engages no aircraft by itself: it defends the zone`; the
 the zone, shot the intruder down with an R-77, and flew a race-track of about 35 km for ten minutes
 without landing. A `-cap` spawned from a marker had a route and turned. The race-track lies beside
 the zone rather than across it: `FIX-IN-GAME-SESSION-2026-10-03` ticket 06.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**one way to spawn an aircraft with a job to do.** The Tacview of *Ligne rouge d'At Tanf* (2026-10-01): the Sayqal QRA scrambled three times and landed three times, four and a half minutes after appearing — its group, built by `create_qra`, has one waypoint and no task. The QRA (and AirWaves) now give a `CAP`/`Intercept` group whose route engages no aircraft the `zone_defense` role at clone time; the role comes from a new `veafAircraftSpawn` module that `-cap` moves onto, and the build says which groups get it. Waits on the in-game check (`DCS-SESSION-TODO.md` R21).

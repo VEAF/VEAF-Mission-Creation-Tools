@@ -143,3 +143,9 @@ From `FIX-IN-GAME-SESSION-2026-10-03`.
 
 Two unarmed F-16 flown at the SA-6 sites of `Skynet-test`: both sites lit at 25 km, stayed lit
 without cycling, and fired — `Sol_g-2` four times, the zone's SA-6 once; both F-16 shot down.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a SAM site is switched off every other evaluation cycle, so it never keeps its radar long enough to launch.** Observed on `verify-mission-c`: locks, raises, retracts, five times. **Not DCS** — a complete SA-6 in one group fires normally with no scripts at all, which is what closed the two-day DCS theory. Traced in `skynet-iads-compiled.lua`: `targetCycleUpdateStart` clears `targetsInRange` every cycle, only **inactive** sites are collected for `informOfContact` (`:1616`), that call is the sole place setting the flag back (`:3779`, one occurrence), and `targetCycleUpdateEnd` goes dark when it is false — so live and dark alternate. Predicts state changes **5 s apart** (`contactUpdateInterval`), which is a stopwatch away from confirmed. Skynet is `vendoring: compiled`, so the route is upstream to the RP fork or a runtime method replacement, never an edit in place. Candidate explanation for Tripack's silent zone SAMs on 6.15.2. **Fix proposed upstream 2026-08-23**: [regroupement-patrouille/Skynet-IADS#4](https://github.com/regroupement-patrouille/Skynet-IADS/pull/4) removes the `isActive() == false` filter and adds the regression test their suite lacked — every existing test on that path calls `goDark()` first, so none exercises a *live* site being skipped. Sent to the fork rather than to walder, dormant since 2023. Their suite needs DCS to run, so it is proposed unrun and said so. Message for Flogas drafted alongside.

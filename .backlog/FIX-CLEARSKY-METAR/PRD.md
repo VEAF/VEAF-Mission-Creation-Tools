@@ -25,3 +25,9 @@ Decisions (David, 2026-10-02):
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Compose `${METAR}` from the capped weather of a METAR or ICAO `clearsky` variant](tickets/01-clearsky-metar.md) | ✅ |
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a `clearsky` variant's briefing announced the uncapped sky.** David, 2026-10-02, Syria Open Training v6: `airport_icao` + `clearsky` flew FEW while `${METAR}` read the published BKN report. `${METAR}` is now composed from the capped weather (real station, temperature and QNH); a raw METAR keeps its publication time, documented

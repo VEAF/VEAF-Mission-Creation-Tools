@@ -8,12 +8,17 @@ Lots, PRDs, and tickets for this repo live as markdown under `.backlog/`.
 - The PRD is `.backlog/<LOT-ID>/PRD.md` (Matt's PRD template; no separate `## Goal`)
 - Tickets are `.backlog/<LOT-ID>/tickets/<NN>-<slug>.md`, numbered from `01` in dependency order
 - Status is a `Status:` line near the top of each PRD/ticket file (see `triage-labels.md`)
-- The lot index (Summary table of every lot + status) is `.backlog/README.md`, maintained by hand
-- Completed lots are moved to `.backlog/archive/<LOT-ID>.md` (compact, ticket table preserved) once closed > 3 days
+- Every lot on disk sits in the index of its status, as a `###` heading holding the lot's link to its
+  `PRD.md`, a ` · ` and its status icon, followed by a one- or two-line summary: `.backlog/ACTIVE.md` (🔄 🧑, and ⏸ in its own section),
+  `.backlog/READY.md` (⬜), `.backlog/DONE.md` (✅ 🚫). `.backlog/README.md` is the front page: per index,
+  a count per status and the list of links. All maintained by hand (ADR 0020); a lot whose status
+  changes moves to the matching index, and `test_backlog_status_consistency.py` checks all of it
+- Completed lots are moved to `.backlog/archive/<LOT-ID>.md` (compact, ticket table preserved) once closed > 3 days,
+  and their entry from `DONE.md` to the table in `.backlog/archive/README.md`
 
 ## When a skill says "publish to the issue tracker"
 
-- A PRD → write `.backlog/<LOT-ID>/PRD.md`, create the directory if needed, and add a row to `.backlog/README.md`.
+- A PRD → write `.backlog/<LOT-ID>/PRD.md`, create the directory if needed, add its paragraph to `.backlog/READY.md` and its link to the front page `.backlog/README.md`.
 - An issue → write `.backlog/<LOT-ID>/tickets/<NN>-<slug>.md`.
 - New artifacts are created at `Status: ⬜ ready`.
 

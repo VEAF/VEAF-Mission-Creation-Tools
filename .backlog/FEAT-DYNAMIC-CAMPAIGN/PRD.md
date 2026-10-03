@@ -114,3 +114,9 @@ composite from a theatre description, the authoring skill) are the **next lot**,
 | 05 | [Persistence, victory and reset](tickets/05-persistence-victory-reset.md) | ⬜ |
 | 06 | [Documentation and an example campaign](tickets/06-doc-and-example.md) | ⬜ |
 | 07 | [Measure it against Foothold, then tune the caps](tickets/07-measure-against-foothold.md) | ⬜ |
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a Foothold-like persistent campaign, built on VMCT alone.** David, 2026-10-03: Foothold is hard on our servers and he suspects Moose; he wants its player experience without it. Read on Foothold 4.7.0: an 81 542-line engine fed per map by 7 386 hand-written lines and ~1 200 hand-placed zones, Moose on 2 % of the engine's lines; a fork is ruled out (no upstream licence, thousands of engine lines rewritten every weekly release). Here the campaign is declared in a `campaign.yaml` sidecar, the build generates zones, slots and data, garrisons are drawn per size class from the VEAF database, sorties are derived from the graph, a neutral zone is captured by any ground presence of one side (convoy, CTLD 2 troops or crate, landed supply helicopter — Foothold's rule, one detection instead of one per channel), and performance is designed in (dormant zones, one loop, events, caps). Production allows `io`/`lfs` to missions (measured), so persistence needs no server change. Seven tickets; no up-front measurement (a workstation says nothing of the servers): the caps are settings, tuned after a server evening, which also compares with Foothold. MCP actions and the prompt are the next lot

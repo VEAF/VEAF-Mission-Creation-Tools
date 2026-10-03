@@ -17,3 +17,9 @@ in metres — left as is, and now pointed out from the CAP options.
 ## Tickets
 
 - [01 — correct the units in the CAP docs](tickets/01-cap-units-in-docs.md)
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**`-cap` `capradius` is in nautical miles.** The code multiplies it by 1852 (60 NM by default) and the pages said metres, with an example asking for a 20 000 NM zone; `distance`, the race-track leg (20 NM), was described as a distance from the marker. Docs only

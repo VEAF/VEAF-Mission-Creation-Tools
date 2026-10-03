@@ -56,3 +56,9 @@ a crashed `changes` job (a failed `git fetch`, say) would have turned every gate
 nothing run. The dependents therefore read `!cancelled() && needs.changes.outputs.run != 'false'`:
 only an explicit `run=false` skips them, and a failed gate runs the checks. Asserted by
 `test_a_failing_gate_runs_the_checks_rather_than_skipping_them`.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**path-filtered workflows a required check can wait for.** `develop` had no required check, so auto-merge had nothing to wait for. Requiring a check whose workflow skips a PR at the trigger leaves that PR *Expected* for ever, so `Python Quality`, `Docs Check` and `Support Bot` now start on every PR and filter in a `changes` job — a job it leaves out reports *Skipped*, which a required check accepts. Then David adds those checks on `develop`. Merged in #1053

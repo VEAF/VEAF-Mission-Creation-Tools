@@ -41,3 +41,9 @@ fixing it comes first and is the real work.
 - [ ] `-escortme` escorts the caller's own aircraft — **and defends it**, verified in game rather than
       assumed from the spawn succeeding
 - [ ] Both documented, both languages
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**`-awacs` and `-escortme`** (#188 + #189), grouped since both spawn a group with a predefined mission. **Blocked on the DCS session, deliberately**: #101 and #107 say the escort mechanism may be broken — a teleported escort stops defending, a respawned one does not follow — so shipping `-escortme` on top would hand a pilot a **decorative** escort that appears, formates and defends nothing. The command would look delivered and be useless, the same shape as everything else closed this month. The AWACS half does not depend on that bug and can ship first

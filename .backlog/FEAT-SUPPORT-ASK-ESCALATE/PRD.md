@@ -44,3 +44,9 @@ the model and should be reused rather than re-invented.
 | # | Title | Status |
 |---|---|---|
 | 01 | [Escalate a thread into a bug or a suggestion](tickets/01-escalate-a-thread.md) | ⬜ |
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**turn an answered question into an issue**. An `/ask` thread is where a mission maker finds out something is wrong, and it is the cheapest moment to write the report: the context is already phrased. Nothing collects it — `/bug` and `/suggest` both start from an empty form, so whoever just spent twenty minutes explaining the problem to the bot has to explain it again. Measured on the CSAR thread of 2026-09-22, which produced a real documentation gap and **zero issues**; David noticed it himself in the thread. Escalates a thread into a pre-filled `/bug` or `/suggest`, shown as a draft and filed only on explicit confirmation, reusing the consent path of `FEAT-SUPPORT-BUG-INTAKE`. Explicitly **not** pinging a human, and explicitly not reading the whole thread on the strength of the `MESSAGE_CONTENT` intent enabled that same day

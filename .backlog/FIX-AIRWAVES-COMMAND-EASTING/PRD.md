@@ -149,3 +149,9 @@ The morning's in-game check of the wave half used waves written `-spawn shilka`,
 alias: re-run in the afternoon, the zone logged `VeafAlias [-spawn] was not found` and spawned nothing.
 The morning's numbers cannot have come from those waves, so the wave half goes back to
 `DCS-SESSION-TODO.md` R7 with a valid alias. The QRA half was verified that afternoon.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a command-driven air wave spawns with a nil easting.** `veafAirWaves.lua:1012` hands `veafInterpreter.execute` the vec2 that `getRandomPointInCircle` answers, while a command expects a vec3 whose `z` is the easting — `veafSpawnGround` reads `spawnPosition.z`. Hidden because the MiST stub in `dcs_mocks` answered a vec3 where MiST answers a vec2, so the test was asserting the mock. Found while porting ticket 06 of DROP-MIST, 2026-08-28. **Fixed 2026-09-01, in two places rather than one:** enumerating the three callers of `veafInterpreter.execute` instead of trusting the PRD found `veafQraCore.lua:994` carrying the identical branch — `veafCombatZone` builds its vec3 by hand and was fine. The PRD's own supporting argument had gone stale meanwhile: the converting "sibling twenty lines down" no longer exists, the `VeafGroupSpawn` chain having absorbed it. Tests tell *correct*, *zero* and *absent* apart and are proven to fail two different ways. Remaining: the in-game look, ticket 02.

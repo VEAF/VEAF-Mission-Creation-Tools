@@ -52,3 +52,9 @@ silent failure.
 | 01 | [Read the real usage before fixing anything](tickets/01-measure-real-usage.md) | chore |
 | 02 | [An exhausted quota says so, and says when it comes back](tickets/02-quota-message.md) | fix |
 | 03 | [The page tells visitors the assistant is rationed](tickets/03-document-the-ceiling.md) | docs |
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**the website chatbot has a ceiling nobody has looked at**. Measured on 2026-09-05 while sizing the support programme: Google's free tier is **20 requests per day** for `gemini-2.5-flash-lite` (10 RPM) and for `gemini-2.5-flash` (5 RPM), per project — read off AI Studio, not from documentation. The production chatbot spends one generation call per question, so its ceiling is on the order of twenty questions a day for every visitor of the site combined, low enough that one link posted on Discord could exhaust it in an afternoon. **What is not measured** is whether it ever gets there: the screen consulted was showing the wrong Google project, so ticket 01 is to read the real peak before anything else — it may be three a day, in which case this lot is a message and a documentation line. Either way the failure is invisible from outside: the widget answers, then stops, and a visitor concludes it is broken rather than rationed. David decided the same day **not to enable billing** (50 analyses a day for the support bot would have run about $6 a month at the paid rate), so the ceiling stays; what changes is that it stops being silent

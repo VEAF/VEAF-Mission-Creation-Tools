@@ -44,3 +44,9 @@ same file; none blocks anything on its own.
   decides the level.
 - `CHANGELOG.md` entry. `doc/` updated wherever `/secu login` is still taught as the way to unlock
   a mission — and the reason ticket 01 exists is that pilots are still reading it somewhere.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**what a live private1 session showed on 2026-09-29.** David could not activate a combat zone from the radio menu although he is `level=99` in `veaf-pilots.txt`, and `/secu login` answered "mission authenticated" without unlocking anything; `/secu elevate` did, 17 s before a zone activation came through the secured proxy. The afternoon's secured-"for all" fix was already in the running mission, so it is not that: `registerUserSlot` fabricates a **level-less** user when the pilot is not yet in `remoteUsers`, and the menu then reads him at 0. Four more from the same 90 minutes: a mistyped chat command raises a Lua traceback instead of answering the pilot (three pilots, four spellings, all hunting for the verb), 2 506 combat-zone watchdog lines at INFO, an ERROR on every normal disconnect, and the `+` on a secured command that never goes away — which is what David read as "still protected"

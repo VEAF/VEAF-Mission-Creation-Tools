@@ -1,0 +1,111 @@
+# Active lots
+
+[Back to the backlog](README.md)
+
+Work started and not finished: in progress, waiting for a human, or deliberately paused.
+
+## 🔄 In progress
+
+### [CHORE-BACKLOG-INDEX-SPLIT](CHORE-BACKLOG-INDEX-SPLIT/PRD.md) · 🔄
+
+The backlog index split into active, ready and done indexes, one short paragraph per lot; the archived lots get their own index.
+
+## 🧑 Waiting for a human
+
+### [CHORE-SMS-QUICK-WINS](CHORE-SMS-QUICK-WINS/PRD.md) · 🧑
+
+Three small items from the dcs-sms study: DCS coordinate conventions documented, a `dev_condition` hatch for checklists (both done), and the authoring skill shipped to other agents — waits on a Gemini CLI round trip.
+
+### [DOC-PROMPTS-TWO-CARRIERS](DOC-PROMPTS-TWO-CARRIERS/PRD.md) · 🧑
+
+The Open Training and objective-mission prompts ask for both the Stennis and the Roosevelt, each with its own TACAN, ICLS, Link 4 and frequencies. Prompt text only; waits on a mission built from it.
+
+### [FEAT-ASSIST-FOLLOWUP](FEAT-ASSIST-FOLLOWUP/PRD.md) · 🧑
+
+What `FEAT-ASSIST-CHECKLISTS` left open: content-hashed resource names (DCS caches images by name), two pilots at once, and a pilot's review of the F-16C slice. Kept for after a release.
+
+### [FEAT-AWACS-ESCORT-COMMANDS](FEAT-AWACS-ESCORT-COMMANDS/PRD.md) · 🧑
+
+`-awacs` and `-escortme` (#188, #189). Blocked on proving the escort mechanism actually defends (#101, #107); the AWACS half could ship first.
+
+### [FEAT-CTLD-AIRBASE-LOGISTICS](FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md) · 🧑
+
+Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, captured ones after two minutes of ground presence, marked by a green circle. Left: the loading check at Ramstein, in game.
+
+### [FIX-AIRWAVES-COMMAND-EASTING](FIX-AIRWAVES-COMMAND-EASTING/PRD.md) · 🧑
+
+A command-driven air wave (and the same branch in QRA) spawned with a nil easting, being handed a vec2 where a vec3 was expected. Fixed; the in-game look (ticket 02) is left.
+
+### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · 🧑
+
+A combat zone's info panel and its completion disagreed: the panel was blind to static targets (fixed) and spawned vehicles now start warm. Ticket 02's in-game check is left.
+
+### [FIX-COMBATZONE-RENAME-OPTION](FIX-COMBATZONE-RENAME-OPTION/PRD.md) · 🧑
+
+A combat zone always renames its units (`renameUnitsSequentially` hard-coded), which hides the editor names while debugging (#289). To become a zone-level `combat_zones:` key.
+
+### [FIX-CONVERT-V5-SILENT-LOSSES](FIX-CONVERT-V5-SILENT-LOSSES/PRD.md) · 🧑
+
+`convert-v5` silently dropped settings: multi-line `setBriefing` truncated the chain, six `combat_zones` setters had no key. All five tickets shipped 2026-08-17; waits on Sharko's two harnesses.
+
+### [FIX-IN-GAME-TEST-FINDINGS](FIX-IN-GAME-TEST-FINDINGS/PRD.md) · 🧑
+
+The first in-game test of an MCP-built mission (GermanyCW-v6): statics without `shape_name`, zones initialised twice, sanctuary weapon check, CTLD sample names, no cities. All fixed; R17 is the in-game reading.
+
+### [FIX-OPEN-TRAINING-SYRIA-FINDINGS](FIX-OPEN-TRAINING-SYRIA-FINDINGS/PRD.md) · 🧑
+
+What building the Syria Open Training v6 through the MCP found: callsigns, loadouts, QRA simple groups, FARP ammo, FAC task, METAR and more — 17 of 18 tickets done; 18 (JTAC codes) waits on VEAF/CTLD.
+
+### [FIX-PLACEMENT-IGNORES-SCENERY](FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) · 🧑
+
+Ground units placed inside buildings and forests, and a crowded FARP giving up silently. Most tickets merged; ticket 12 (probe sweep) waits on R16 and ticket 04 (`-farp` refused) on R19.
+
+### [FIX-QRA-COMMANDS-AND-OFFSET](FIX-QRA-COMMANDS-AND-OFFSET/PRD.md) · 🧑
+
+A QRA config accepted then ignored: VEAF commands refused by `validate` in deploy lists, and `respawn_default_offset` never emitted. Fixed 2026-09-29; R7 is the in-game reading.
+
+### [FIX-RELAY-RENDERS-MARKDOWN](FIX-RELAY-RENDERS-MARKDOWN/PRD.md) · 🧑
+
+Comments relayed from GitHub to Discord showed their markup in a code block. Now a block quote with formatting applied, long comments split; one reading left in a real thread.
+
+### [FIX-RELAY-STOPS-AT-CLOSE](FIX-RELAY-STOPS-AT-CLOSE/PRD.md) · 🧑
+
+Closing a support issue cut its Discord relay for good, so a reopened issue went silent; deleted issues were retried for ever. Fixed; the live repair on the Docker host (ticket 03) is left.
+
+### [FIX-SCRATCH-MISSION-FINDINGS](FIX-SCRATCH-MISSION-FINDINGS/PRD.md) · 🧑
+
+What building Open Training Germany CW from an empty folder found (weather, solar times, presets, MCP actions, defense levels…). Tickets 01–22 merged; left: the rebuild with the fixed tools and ticket 17 in DCS.
+
+### [FIX-SECU-VERB-AND-LOG-NOISE](FIX-SECU-VERB-AND-LOG-NOISE/PRD.md) · 🧑
+
+A private1 session where a level-99 pilot could not activate a zone, plus traceback-raising chat commands and log noise. Merged in #1032 and deployed; ticket 01's in-game check is left.
+
+### [FIX-SKYNET-ADDS-DESTROYED-GROUPS](FIX-SKYNET-ADDS-DESTROYED-GROUPS/PRD.md) · 🧑
+
+The IADS enrolled groups a combat zone had just destroyed (#946), so a respawned site could never rejoin. Start-up half verified (R14); a deactivated zone's site is followed in the 2026-10-03 session lot.
+
+### [FIX-SKYNET-HELPER-AND-VENDORING](FIX-SKYNET-HELPER-AND-VENDORING/PRD.md) · 🧑
+
+The VMCT half of The Reaper's report: dead actAsEW blocks removed, what a network SAM sees documented, Skynet 3.5.0 vendored, drift watch repaired. Only ticket 03's in-game reading is owed.
+
+### [FIX-TRIPACK-FIELD-REPORTS](FIX-TRIPACK-FIELD-REPORTS/PRD.md) · 🧑
+
+Three defects from one 6.19.0 flight: Skynet dead and silent, naval groups dragged onto land, a QRA that scrambles and never engages. All landed (#917, #918, #921); R12 and R13 are the in-game readings.
+
+### [FIX-TUTORIAL-FIRST-RUN](FIX-TUTORIAL-FIRST-RUN/PRD.md) · 🧑
+
+Paluche's first run through the walkthrough: three steps that could not be followed, plus zone smoke that never appeared. Landed in #908; R12 says whether the smoke now shows.
+
+## ⏸ Paused
+
+### [FEAT-ASSIST-AUTHORING](FEAT-ASSIST-AUTHORING/PRD.md) · ⏸
+
+Guided checklists written by an instructor (`control: bouton power sur main pwr`) instead of element ids, through a deterministic matcher. Delivered in #651; ticket 05 (another aircraft) paused by David.
+
+### [FEAT-BRIEFING-MAP](FEAT-BRIEFING-MAP/PRD.md) · ⏸
+
+The briefing map drawn by the tools rather than by each mission's own script. Paused 2026-09-30: only missions built from the Open Training prompt need it.
+
+### [REFACTOR-SPAWN-AIR-TEMPLATES](REFACTOR-SPAWN-AIR-TEMPLATES/PRD.md) · ⏸
+
+How an air template is chosen for a spawn has no clear model (#284). Its one visible symptom (#240) is fixed; resume when a lot is already in this code.

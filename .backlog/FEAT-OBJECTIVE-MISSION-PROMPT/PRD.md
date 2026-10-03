@@ -39,3 +39,9 @@ completes when the object is destroyed.
 | 03 | [call the completion hook of an operation](tickets/03-operation-completion-hook.md) | ✅ |
 | 04 | [`scenery_targets`: map objects a zone must see destroyed](tickets/04-scenery-targets.md) | ✅ |
 | 05 | [`dcs scenery-objects` + `offer_scenery_lookup`: find a map object's id](tickets/05-scenery-lookup.md) | ✅ |
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a prompt for an objective mission, played once in one session.** David, 2026-10-01. Proposes numbered scenarios (as many as wanted, pre-briefing in the conversation on request), writes nothing until one is approved, then builds the mission and a PPTX/PDF briefing in the VEAF template (*Deep Strike Palmyra*). Same lot closes the two gaps writing it found: an operation can be `active_at_start` (its "Operation … is over" is the end-of-mission message) and its completion hook is called; `scenery_targets` lets a zone count map objects, whose ids `dcs scenery-objects` / `offer_scenery_lookup` find. Waiting on an in-game check of the scenery part

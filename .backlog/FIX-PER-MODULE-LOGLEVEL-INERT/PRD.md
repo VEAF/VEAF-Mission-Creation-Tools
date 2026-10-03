@@ -107,3 +107,9 @@ From `FIX-IN-GAME-SESSION-2026-10-03`.
 
 `global_log_level: info`, `SPAWN.logLevel: trace`: 422 `VEAF-SPAWN|T|` lines and no `|T|` line from
 any other module.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a documented setting that has never done anything.** `logLevel:` under a module is emitted correctly and stored correctly, but the loop that pushes it into the logger lives in `veaf.initialize()` — which **nothing ever calls**. Measured by the clock: the mission carrying `SPAWN: logLevel: trace` was loaded two minutes after it was built, and produced zero trace lines and zero `log level forced to`. Wider than the log level: **29 `registerModule` calls across 27 files** feed a registry nothing reads, so declared init order and the `enable` flag are inert too. It cost a wrong diagnosis this session — absent lines were read as absent behaviour. Fixed 2026-09-29 (route b); R18 of `DCS-SESSION-TODO.md` is the in-game reading

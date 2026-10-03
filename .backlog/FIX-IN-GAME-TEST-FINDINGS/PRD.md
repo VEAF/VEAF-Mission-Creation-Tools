@@ -50,3 +50,9 @@ From `FIX-IN-GAME-SESSION-2026-10-03`.
 GermanyCW-v6 from `develop`, the four shapes rewritten by `repair_static_shapes`: no
 `unknown static shape_name`, one initialisation of Torgau, Torgau activating with 6 elements (the six
 groups the mission now declares), no script error. The unguided weapon near a sanctuary was not run.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**what the first in-game test of an MCP-built mission found.** Opened 2026-09-28 on GermanyCW-v6: statics placed without a `shape_name`, which DCS refuses for some types (four objectives never existed), every combat zone initialized twice, the sanctuary's weapon check raising on a weapon with no target or already gone, CTLD's sample `extract` / `logistic` names in every mission, and no cities for GermanyCW. All five fixed 2026-09-29; the in-game reading is R17 of `DCS-SESSION-TODO.md`

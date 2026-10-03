@@ -43,3 +43,9 @@ derives clear radii. A table of maxima per cell answers only one of the needs:
 | 01 | [Sweep + storage, measured on one theatre](tickets/01-sweep-and-storage.md) | ✅ |
 | 02 | [Point, maximum per cell, profile, line of sight](tickets/02-queries.md) | ✅ |
 | 03 | [The objective-mission prompt uses them](tickets/03-objective-prompt.md) | ✅ |
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a ground-elevation table per theatre, read with no DCS running.** Found writing the objective-mission prompt: no action gives target altitudes, a low-level route's floor or terrain masking. Sweep `land.getHeight` through dcs-serve like the clear-ground catalogue, store the grid, derive point elevation, maximum per cell and profiles on demand. Resolution to measure on one theatre first

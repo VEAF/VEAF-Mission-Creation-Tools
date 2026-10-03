@@ -1,6 +1,6 @@
 # CHORE-REQUIRED-CHECKS-GATE — path-filtered workflows that a required check can wait for
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — merged in #1053; the required checks are David's to add on `develop`
 
 Origin: David, 2026-10-03 — *"pourquoi je ne peux jamais activer l'automerge ?"*
 
@@ -43,7 +43,7 @@ In *Settings → Branches → develop*, add to the required checks: `python-qual
 
 - [x] Gate script with its tests; trigger-path test rewritten and proven to fail on the old files.
 - [x] Developer guide (FR/EN) and CHANGELOG.
-- [ ] This PR's own run shows both outcomes: `Python Quality` and `Docs Check` run (it touches
+- [x] This PR's own run shows both outcomes: `Python Quality` and `Docs Check` run (it touches
   `veaf_build/**`, `doc/**`, `*.md`), `Support Bot`'s `quality` and `container` report Skipped (it
   touches nothing of theirs but their own workflow file — which *is* in their list, so they run too;
   the skip is proven by the next PR that touches no bot path).

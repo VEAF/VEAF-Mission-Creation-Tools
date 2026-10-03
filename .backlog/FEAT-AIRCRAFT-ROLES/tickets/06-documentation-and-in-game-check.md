@@ -1,6 +1,6 @@
 # 06 — Documentation, `create_qra`, the in-game check
 
-Status: 🧑 waiting-human
+Status: ✅ done — verified in game 2026-10-03
 
 Type: docs
 

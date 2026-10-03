@@ -1,6 +1,6 @@
 # FIX-ESCORT-RESPAWN-DISTANCE — a respawned asset reappears 80 km from its escort
 
-Status: 🧑 waiting-human — option (a) **shipped 2026-09-01 (PR #882)** and unit-tested; the one thing left is item R5 of `DCS-SESSION-TODO.md`, which no unit test can answer (the mocked `coalition.addGroup` does not register the group it is handed)
+Status: ✅ done — verified in game 2026-10-03 (R5)
 
 Origin: the in-game verification of [`FIX-ESCORT-RESPAWN-TASK`](../archive/FIX-ESCORT-RESPAWN-TASK.md),
 run 2026-08-28 on `VEAF-session-2026-08-27`. That lot's repair is now proven to work; the escort
@@ -190,3 +190,11 @@ reasons are specific, not "it is a different function":
 
 Filed as [`FIX-TELEPORT-ESCORT-WAYPOINT`](../archive/FIX-TELEPORT-ESCORT-WAYPOINT.md), which carries both
 in the order they have to be taken: measure first, then fix the arithmetic.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Arco respawned: `Arco escort` came back with it and held 1.0–2.5 km, at its altitude; the control
+`Arco-escort1`, deliberately misnamed, was left behind and drifted to 15 km. `Arco escort` destroyed
+by script, then Arco respawned: a fresh escort came back and held 1.0–1.8 km.

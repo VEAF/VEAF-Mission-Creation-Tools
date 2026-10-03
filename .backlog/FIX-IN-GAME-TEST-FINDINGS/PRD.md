@@ -42,3 +42,11 @@ in the sanctuary runtime, 04 in `ctld_config.py`, 05 in `veafNamedPoints` and it
 
 - The five tickets closed; the GermanyCW-v6 statics placed by the MCP spawn in DCS without the
   hand-written `shape_name` the mission now carries.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+GermanyCW-v6 from `develop`, the four shapes rewritten by `repair_static_shapes`: no
+`unknown static shape_name`, one initialisation of Torgau, Torgau activating with 6 elements (the six
+groups the mission now declares), no script error. The unguided weapon near a sanctuary was not run.

@@ -145,10 +145,10 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
         veaf.loggers
           .get(veafSpawn.Id)
           :trace(string.format("spawnCargo: smokePosition  x=%.1f y=%.1f z=%.1f", smokePosition.x, smokePosition.y, smokePosition.z))
-        veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.GREEN)
+        veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.Green)
         for i = 1, 10 do
           veaf.loggers.get(veafSpawn.Id):trace("Signal flare 1 at " .. timer.getTime() + i * 7)
-          veaf.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.RED }, timer.getTime() + i * 3)
+          veaf.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.Red }, timer.getTime() + i * 3)
         end
       end
 
@@ -222,10 +222,10 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
       veaf.loggers
         .get(veafSpawn.Id)
         :trace(string.format("doSpawnStatic: smokePosition  x=%.1f y=%.1f z=%.1f", smokePosition.x, smokePosition.y, smokePosition.z))
-      veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.GREEN)
+      veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.Green)
       for i = 1, 10 do
         veaf.loggers.get(veafSpawn.Id):trace("Signal flare 1 at " .. timer.getTime() + i * 7)
-        veaf.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.RED }, timer.getTime() + i * 3)
+        veaf.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.Red }, timer.getTime() + i * 3)
       end
     end
 

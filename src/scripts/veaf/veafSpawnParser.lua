@@ -144,15 +144,15 @@ veafSpawn.ParameterRules = {
     apply = function(options, val)
       options.drawColor = val
       if val:lower() == "red" then
-        options.smokeColor = trigger.smokeColor.RED
+        options.smokeColor = trigger.smokeColor.Red
       elseif val:lower() == "green" then
-        options.smokeColor = trigger.smokeColor.GREEN
+        options.smokeColor = trigger.smokeColor.Green
       elseif val:lower() == "orange" then
-        options.smokeColor = trigger.smokeColor.ORANGE
+        options.smokeColor = trigger.smokeColor.Orange
       elseif val:lower() == "blue" then
-        options.smokeColor = trigger.smokeColor.BLUE
+        options.smokeColor = trigger.smokeColor.Blue
       elseif val:lower() == "white" then
-        options.smokeColor = trigger.smokeColor.WHITE
+        options.smokeColor = trigger.smokeColor.White
       end
     end,
   },
@@ -431,21 +431,21 @@ veafSpawn.CommandDescriptors = {
     match = veafSpawn.SpawnKeyphrase .. " smoke",
     init = function(options)
       options.smoke = true
-      options.smokeColor = trigger.smokeColor.RED
+      options.smokeColor = trigger.smokeColor.Red
     end,
   },
   {
     match = veafSpawn.SpawnKeyphrase .. " flare",
     init = function(options)
       options.flare = true
-      options.smokeColor = trigger.smokeColor.RED
+      options.smokeColor = trigger.smokeColor.Red
     end,
   },
   {
     match = veafSpawn.SpawnKeyphrase .. " signal",
     init = function(options)
       options.signal = true
-      options.smokeColor = trigger.smokeColor.RED
+      options.smokeColor = trigger.smokeColor.Red
     end,
   },
   {

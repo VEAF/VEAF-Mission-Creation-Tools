@@ -235,6 +235,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the last dotted segment, so `x(); import os; os.system` passed as `system` and listed every
   `system (` in the checkout as a caller. Harmless — the name only ever reaches an escaped regex —
   but its test was green by luck, and turned red the day a file held that text.
+- **Coloured smoke and flares asked from a map marker work again**, and so do the smoke and flares of
+  `-farp` and of a convoy. DCS names its colours `Red`, `Green`, `White`…; eleven sites wrote `RED`,
+  `GREEN`, `WHITE`, which is nil, and DCS refused every such call ("Parameter #2 (color) missed" in
+  `dcs.log`, no smoke). The combat-zone smoke was not affected. Found in game on 2026-10-03.
+- **A wave that fails to deploy no longer freezes its AirWaves zone.** The branch reporting the
+  failure called a logger method that does not exist, raised, and the zone's checks stopped for the
+  rest of the mission. Same call fixed in the Skynet monitor.
 
 ## [6.26.0] — 2026-09-30
 

@@ -1,6 +1,6 @@
 # 02 — a dynamic-slot helicopter gets its CSAR menu
 
-Status: 🧑 waiting-human — fixed 2026-10-02; in-game reading `DCS-SESSION-TODO.md` R22
+Status: ✅ done — verified in game 2026-10-03
 
 [#989](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/989), Tripack 2026-09-22: no CSAR
 radio menu in a UH-1, while the MAYDAY and the downed pilot showed CSAR running.

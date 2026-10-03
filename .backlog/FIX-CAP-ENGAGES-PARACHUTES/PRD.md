@@ -1,6 +1,6 @@
 # FIX-CAP-ENGAGES-PARACHUTES — a spawned CAP hunts ejected pilots and ignores fighters
 
-Status: 🧑 waiting-human
+Status: ✅ done — verified in game 2026-10-03 (R11)
 
 Found in game 2026-09-01: *"les `-cap` fonctionnent, mais les appareils spawnés n'engagent pas le
 combat ; j'en ai spawné 14 et les 3 escortes d'Arco les ont tous détruits."*
@@ -124,3 +124,12 @@ Two things the same log shows, neither of them this lot's subject:
 - **The 2026-09-01 session ran under time acceleration**, so the watchdog's ten model seconds land
   2.5 s apart on the wall clock in the middle of the log and 1.43 s apart later. Worth knowing before
   anyone reads a cadence out of that file as a defect.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Part one: a `-cap` MiG-29S turned on an unarmed F-15C inside its zone and fired an R-27 (t=800 s).
+Part two: an F-15C damaged into ejecting inside the zone; on the three watchdog passes that followed,
+the parachute never appeared in the target list. Two side findings went to
+`FIX-IN-GAME-SESSION-2026-10-03` ticket 04.

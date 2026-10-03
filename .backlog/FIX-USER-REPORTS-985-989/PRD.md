@@ -1,6 +1,6 @@
 # FIX-USER-REPORTS-985-989 — two user reports with no lot behind them
 
-Status: 🧑 waiting-human — both fixed 2026-10-02; ticket 02 waits for its in-game reading (`DCS-SESSION-TODO.md` R22)
+Status: ✅ done — verified in game 2026-10-03 (R22, and R15's group half)
 
 Opened 2026-10-02 from a sweep of the backlog against the open issues: three reports from mission makers
 had no lot — [#985](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/985),
@@ -14,7 +14,7 @@ in the same move.
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [the shipped spawnables sit under the CJTF countries](tickets/01-spawnables-under-cjtf.md) | ✅ |
-| 02 | [a dynamic-slot helicopter gets its CSAR menu](tickets/02-csar-menu-for-dynamic-slots.md) | 🧑 |
+| 02 | [a dynamic-slot helicopter gets its CSAR menu](tickets/02-csar-menu-for-dynamic-slots.md) | ✅ |
 | 03 | [#953: what Tripack's 09-19 test settles](tickets/03-hidden-statics-953.md) | ✅ |
 
 ## Definition of done
@@ -23,3 +23,14 @@ in the same move.
 - [x] `csar.getGroupId` reads the live group, with a test that fails on the old code; `vendored.yaml` names the adaptation.
 - [x] #953's static half recorded as a DCS behaviour in `known-limitations.yaml`, R15 updated, a reply drafted for David to post.
 - [ ] R22 read in game.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+R22: a UH-1H taken from a dynamic slot shows `F10 Other… > CSAR` (David). #989 closed.
+
+R15, the group half of #953: the QRA's Su-27 pair, `hidden = true` in the editor and recreated twice
+by `coalition.addGroup`, never showed on a blue F10 map that did show a non-hidden red Shilka and
+red MiG-29S. DCS keeps `hidden` on a recreated **group**; it drops it on a recreated **static**
+(Tripack, 2026-09-19).

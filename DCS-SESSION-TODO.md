@@ -23,349 +23,33 @@ as later lots land in the same state, so read the list rather than a count.
 Each item below states what to run, what to look at, and **what each of the two outcomes means** — a
 check that cannot come out negative proves nothing.
 
-### R1. A SAM that has locked you must keep its radar long enough to fire
+**Session of 2026-10-03, flown without a pilot** — R1, R2, R3, R5, R9, R11, R12, R13, R14, R15, R16,
+R18, R21, R22, R32 and the three French items on the cloned QRA, the zone SA-6 and the neutral slot
+were run and are removed below; the results are in the lots and in
+[`FIX-IN-GAME-SESSION-2026-10-03`](.backlog/FIX-IN-GAME-SESSION-2026-10-03/PRD.md). R7, R17 and R19
+are rewritten to what is left. The missions are in `D:\dev\_VEAF\tmp\dcs-session-2026-10-03\`, with
+the plan and a `fiddle.sh` that runs a Lua file in the live mission.
 
-Unblocks [`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md),
-whose last two boxes are exactly this. The repair is in the artefact VEAF embeds (`VEAF/Skynet-IADS`
-commit `3a94937`, carried in by #846): the faulty `isActive() == false` filter is gone from
-`src/scripts/community/skynet-iads-compiled.lua`.
-
-**Run**: `verify-mission-c`, the SA-6 site (`Kub 1S91 str` ×1 + `Kub 2P25 ln` ×2) — the same site as
-the 2026-08-22 observation. Get locked and stay in the engagement envelope.
-
-- **Fixed**: the launchers rise, stay up, and the site shoots.
-- **Not fixed**: they still alternate raise/retract without firing. On 2026-08-22 the period was
-  *"toutes les 10 secondes"*; if that cycling is back, note whether the 10 s runs **raise → raise** or
-  **raise → retraction**, because the PRD's mechanism predicts 5 s for the second one and the
-  difference tells us which constant is wrong.
-
-### R2. One airfield assigned must not disable the other 224
-
-Unblocks [`FIX-WAREHOUSES-INCREMENTAL`](.backlog/FIX-WAREHOUSES-INCREMENTAL/PRD.md) — implemented
-2026-08-16, never seen in game. Before the fix, `ensure_airports_populated` filled the airfield table
-only when it was **empty**, so the documented MCP workflow (assign one airfield, then build) shipped a
-mission with **1 airfield out of 225** usable.
-
-**Run**: a Syria mission, one airfield set blue and one red through the MCP, then
-`.\veaf-tools.exe mission build`. In game, try to spawn at a **third**, untouched airfield.
-
-- **Fixed**: the two named airfields carry their coalition and dynamic slots, *and* the untouched ones
-  are still usable — that second half is the whole point.
-- **Not fixed**: only the airfields you named have slots.
-
-The measured reference from the lot, for comparison: Deir ez-Zor BLUE / Palmyra RED both
-`dynamicSpawn = true` with 52 aircraft types, Nicosia untouched NEUTRAL with none.
-
-### R3. The airfields come back on a mission rebuilt from a current version
-
-Unblocks [`FIX-WAREHOUSES-LIST-FORM`](.backlog/FIX-WAREHOUSES-LIST-FORM/PRD.md) — every base turned
-neutral in a 6.14.2 build. Shipped in **6.15.0** (#756, published 2026-08-18); the lot has been waiting
-on Tripack rebuilding his mission ever since.
-
-Tripack is the reference case and that is his to run, but it does not have to wait for him: rebuilding
-any mission that has airfield ownership answers the same question.
-
-- **Fixed**: the airfields hold the coalition the mission declares.
-- **Not fixed**: they come out neutral, and 6.15.0 did not carry what we think it carried.
 
 ### R4. The `100` (`SmallSizeFighter`) parking type
 
 Already written up at the end of this file — left there, it is a measurement rather than a gate.
 
-### R5. A respawned tanker's escort must be *with* it, not 80 km away
+### R19. A `-farp` on open ground keeps its escort where it was planned — **run 2026-10-03, negative**
 
-Unblocks [`FIX-ESCORT-RESPAWN-DISTANCE`](.backlog/FIX-ESCORT-RESPAWN-DISTANCE/PRD.md), whose only
-remaining box is this one. Repairing the Escort task was already shipped and already proven to run;
-what it could not fix is the distance. Measured on 2026-08-28, minutes after a respawn: **78 km and
-82 km** between the demo mission's tanker and its escorts, one of them already landed at 14 m —
-against the Escort task's own `engagementDistMax` of **60 km**. The escort is now respawned with its
-charge, and only then is the task repaired.
+Run on the Caucasus session mission with four `-farp`: in a wood the escort left the trees; on open
+ground it still moved, because the FARP's **own vehicles**, placed first, make the occupancy probe
+answer false for the escort's spot. Recorded in
+[`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md); re-run
+this item once that lot changes the probe. The refusal case ("somewhere nothing fits") was not reached.
 
-**Run**: the session mission, **F10 → ASSETS → Respawn Arco**. Read the escorts' distance to Arco
-straight away — the same reading that produced the 78/82 km above.
+### R17. A GermanyCW-v6 start — **run 2026-10-03, one line left**
 
-- **Fixed**: a few hundred metres, in formation. The escort was put back with its charge.
-- **Not fixed**: tens of kilometres, or an escort still sitting on a runway. That means the escort was
-  not respawned at all, which is a different defect from the one this lot closed.
-
-Then the second half, which is easy to skip and is where the risk actually is: **shoot one escort
-down**, then respawn its asset. It should come back *and* escort. This is the only path no unit test
-can cover — the mocked `coalition.addGroup` does not register the group it is handed, so nothing off
-DCS can show whether the freshly created escort is already findable by the repair that runs a few
-instructions later.
-
-Worth expecting, so it is not read as a regression: the escort that comes back is a **fresh** one, so
-one that was engaged or damaged is replaced. That is the accepted cost of the design call made on
-2026-08-28, not a bug.
-
-**Reminders for whatever mission you build for these**: `security.disabled: true` goes at the **root**
-of `mission.yaml`, not under `modules:` (a check that asks for a password cannot be run), and playable
-slots are `parking-cold` — never an air start.
-
-### R11. A spawned CAP shoots at the fighter and not at the man on the parachute
-
-Unblocks [`FIX-CAP-ENGAGES-PARACHUTES`](.backlog/FIX-CAP-ENGAGES-PARACHUTES/PRD.md), whose only
-remaining box is this one. Added 2026-09-01, when the lot was implemented.
-
-**Two separate things to look at, and the second is the one no test can reach.**
-
-**Run, part one — the patrol works at all.** Spawn a CAP from a marker (`-cap mig29`) with a hostile
-flight inside its patrol radius, and watch what it does. This is the half that failed on 2026-09-01,
-when fourteen CAPs were destroyed by three F-14s without returning fire.
-
-- **Fixed**: the patrol turns onto the enemy flight and shoots. When the enemy leaves or dies, it goes
-  back to flying its racetrack instead of continuing straight ahead.
-- **Not fixed**: it flies its route and never turns, or it turns and never fires. Then read
-  `dcs.log` for `VEAF-SPAWN|D|` — *"Watchdog has targets"* with no *"Engaging target!"* after it means
-  the target list is being emptied again, and *"Watchdog found no targets"* while an enemy is plainly on
-  the radar means the filter is refusing something it should not. Both lines are `debug`, so the mission
-  needs `logLevel: debug` under `SPAWN` — which, until
-  [`FIX-PER-MODULE-LOGLEVEL-INERT`](.backlog/FIX-PER-MODULE-LOGLEVEL-INERT/PRD.md) is closed, means the
-  **global** level, not the per-module one.
-
-**Run, part two — the parachute.** Get a pilot into the air under a canopy inside the CAP's patrol
-radius (eject from a slot, or shoot down an AI flight) while an enemy fighter is also in the zone.
-
-- **Fixed**: the CAP goes for the fighter. With the fighter gone and only the parachute left, it goes
-  back on patrol with air-to-air prohibited rather than orbiting the canopy.
-- **Not fixed**: it chases the parachute. That would mean DCS hands an ejected pilot a descriptor
-  carrying the `Air` attribute — i.e. it copies the aircraft's — and the filter needs a second
-  discriminator. **This is the outcome no workstation can predict**: the filter is built on the
-  attribute table of the 883 units `dcsUnits` ships, and an ejected pilot is not in it. If it comes out
-  this way, the useful thing to bring back is the trace of one detection: with `logLevel: trace` under
-  `SPAWN`, the `targetType=` and `targetAttributes=` lines say exactly what DCS thinks a man under a
-  parachute is, and the filter can then be routed on whatever that turns out to be.
-
-Worth expecting, so it is not read as a defect: a **tanker or an AWACS is a legitimate CAP target** and
-the patrol will go for one. The 2026-09-01 log shows Arco the KC-135 correctly listed — at low priority,
-behind the fighters.
-
-### R12. A combat zone's smoke must actually appear
-
-Unblocks [`FIX-TUTORIAL-FIRST-RUN`](.backlog/FIX-TUTORIAL-FIRST-RUN/PRD.md) ticket 05, merged in #908
-and never seen in game. Paluche reported it on 2026-09-02 against 6.18.0: he asked a zone for smoke,
-got the confirmation message *"Bien reçu, fumée ROUGE demandée sur …"*, and no smoke came — while
-illumination flares from the same menu worked.
-
-`spawnSmoke` schedules its only shell for exactly `timer.getTime()`, and one site asks for
-`timer.getTime() - 1`. The illumination flare, the one that worked, is the only one of the four
-effects with a strictly positive delay. Until #828 this went through MiST, whose 10 ms loop ran
-anything overdue at the next tick; it now goes through one native `timer.scheduleFunction` per task.
-`veafScheduler` therefore arms a task due now, or overdue, for the next tick instead.
-
-**The hypothesis this checks — and it is only a hypothesis**: that DCS silently discards a call
-scheduled for a time already elapsed. Nothing on a workstation can settle it, which is why the fix
-was written to be correct either way.
-
-**Run**: any mission with a combat zone (the tutorial's `CZ-Alpha` does), activate it, then
-**F10 → ZONES DE COMBAT → \<zone\> → the smoke command**. Also try `_smoke` on an F10 marker, which
-takes the same path with the same single shell.
-
-- **Fixed**: red smoke rises at the zone. That confirms both the fix and the hypothesis behind it —
-  DCS was dropping the past-due call.
-- **Not fixed**: still the message and no smoke. Then the scheduler was never the cause, and the
-  hypothesis is dead. The useful thing to bring back is a `dcs.log` with `logLevel: trace` under
-  `SPAWN`: `spawnSmoke` traces its `spawnSpot=` and `placePointOnLand` traces the height it resolved,
-  so the next suspect — a point DCS will not render smoke at — becomes readable. Look for
-  `error in scheduled function` too; the scheduler logs any raise there, and its absence has already
-  been established as meaning the call was made.
-
-While the mission is up, one free observation for the same lot: `standard` turns **STTS** on, and no
-workstation here could load it without an SRS server. The tutorial now tells a reader without SRS to
-set `STTS: false` at step 2, so this is only about knowing whether leaving it **on** without SRS is
-noisy at start-up. Grep the log for `STTS` — if it is silent, the tutorial's note can relax from
-"switch it off" to "it does nothing".
-
-### R13. Skynet's SAMs must wake up, and its status page must have something to print
-
-Unblocks [`FIX-TRIPACK-FIELD-REPORTS`](.backlog/FIX-TRIPACK-FIELD-REPORTS/PRD.md) ticket 01. Tripack
-reported it on 2026-09-03 against 6.19.0: with `SKYNET.enabled: true` no SAM ever engaged and the
-radio menu showed neither status nor contacts; the same mission with Skynet off worked. Cause held
-and fixed — Skynet arms its contact cycle for one second of mission time, and the vendored scheduler
-handed that already-elapsed time to the native timer, so `evaluateContacts` never ran. The artefact
-is regenerated at build 05.09.2026.
-
-**This is the same wager as R12**, on the other side of the repository boundary, so run them in the
-same session: both fixes assume DCS drops a call scheduled for a time already gone.
-
-**Run**: a mission with `SKYNET.enabled: true` (Tripack's `Snowfox_20260903.miz` is the reported one).
-Let it come up, then **F10 → the Skynet menu → the status command**, and fly into a defended area.
-
-- **Fixed**: the status page lists sites and contacts, and SAMs engage.
-- **Not fixed**: still blank and still asleep. Then the lost task was not the cause and the diagnosis
-  is dead. Bring back a `dcs.log`: the banner line must read `SKYNET VERSION: 3.4.0RP-VEAF build
-  05.09.2026` — anything older means the mission carries a stale artefact and the check never
-  happened — and grep for `SkynetIADS: error in scheduled function`, which the module logs on any
-  raise inside a scheduled call.
-
-### R14. A combat zone's SAM must not join the IADS as a corpse
-
-Unblocks [`FIX-SKYNET-ADDS-DESTROYED-GROUPS`](.backlog/FIX-SKYNET-ADDS-DESTROYED-GROUPS/PRD.md), the
-whole lot. #946, Tripack 2026-09-08: the status page announced *16 SAM sites with a destroyed radar*
-at mission start, with nothing shot at. Cause held and fixed — `coalition.getGroups` still lists a
-group DCS destroyed a moment earlier, and the enrolment runs one second after every combat zone has
-cleaned itself out, so the corpses were enrolled as SAM sites whose radar never existed.
-
-**Run**: `Skynet-test_20260908.miz`, the minimal reproduction Tripack built for exactly this — one
-combat zone `TESTCZ` holding `TESTCZ - SA6`, three red SAM groups and one EWR outside it. It sets
-`debugRed = true`, so **the status page goes to `dcs.log`** and the whole check is readable from the
-log: no need to open the F10 menu, though the in-game page says the same thing.
-
-**Where to look, and this needed checking rather than assuming**: the aggregate
-`SAM: n | … | Raddest: n` line goes through `trigger.action.outText` — **screen only, never the log**.
-What `debugRed` puts in the log is `samSiteStatusEnvOutput`, i.e. `printSAMSiteStatus`, which writes
-**one `GROUP: <name> | TYPE: <nato>` line per site in the network**. That is the better check anyway:
-it names the site instead of making you count. So grep `SKYNET: GROUP:` and
-`VEAF-SKYNET.*ADD GROUP REFUSED`.
-
-- **Fixed**: three `GROUP:` lines — the S-300, the Kub and the 2S6, all outside the zone — and **no
-  `TESTCZ - SA6`**, plus one `ADD GROUP REFUSED [TESTCZ - SA6]: DCS no longer holds this group`.
-- **Not fixed**: a fourth `GROUP: TESTCZ - SA6` line. Then the corpse was still enrolled and the guard
-  is not on the path this mission takes — bring back the log, because the question becomes which of
-  the four doors into the network the group came through.
-- **Neither**: a fourth `GROUP:` line whose name is *not* `TESTCZ - SA6` but a zone-suffixed variant.
-  That is the zone's **respawned** group, a different matter — `dynamic_spawn` is off here, so nothing
-  should have integrated it, and it would be worth a ticket of its own rather than a line here.
-
-The refusal is logged at `info`, so it shows without touching the mission's log level (the default is
-`info`, and this mission sets none).
-
-The zone is activated at `t + 1` by the config (`veafCombatZone.ActivateZone("TESTCZ", true)`), the
-same second the enrolment fires, so the timing this lot is about is exercised whether or not the
-guard holds.
-
-### R15. Does DCS still hide a group it did not place itself?
-
-Settles the open half of [#953](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/953),
-which [`FIX-STATIC-RESPAWN-BY-UNIT-NAME`](.backlog/archive/FIX-STATIC-RESPAWN-BY-UNIT-NAME.md) states and
-deliberately does not answer. Tripack reports QRA aircraft and neutral statics, all `hidden` in the
-Mission Editor, showing on the F10 map of a **remote** server. Everything measurable from a keyboard
-says the framework is not losing the flag: his `.miz` carries `hidden = true` on all of them, the
-respawn chain forwards it end to end, and tests now lock that for a clone, a respawn and a static.
-What no reading can settle is whether **DCS** honours `hidden` on an object created through
-`coalition.addGroup` / `addStaticObject` at all — there is no API that answers it, only the map.
-
-**Run**: any mission holding a group hidden in the editor — `verify-mission-c` will do, tick *Hidden
-On Map* on one red group and rebuild. In game, open the F10 map, then respawn that group by script
-(`-respawn` through a marker, or activate a combat zone that holds it). Look at the same map before
-and after.
-
-- **Honoured** (the group is absent before *and* after the respawn): the flag survives a dynamic
-  spawn, and #953's cause is on Tripack's side — his mission sets `forcedOptions.optionsView =
-  "optview_all"`, which forces every client joining a server to the full map view, while his own
-  `options` file says `optview_onlyallies`. That is exactly the "remote server only" shape of his
-  report. Answer him with that and close.
-- **Ignored** (absent before, visible after): DCS drops `hidden` for anything a script creates, and
-  every VEAF verb that puts an editor group back on the map exposes it. Then the lot to open is about
-  saying so — documenting the limit for mission makers, and deciding whether a combat zone should
-  avoid respawning what it could merely deactivate. Do **not** file it as a framework regression: the
-  flag is submitted, and the tests prove it.
-- **Visible both times**: the map option is already showing everything, so this mission cannot answer
-  the question. Check the mission's forced options before drawing anything from it.
-
-Worth doing on a **dedicated server** rather than a self-hosted session if one is at hand, since that
-is the only configuration in which the reporter sees it.
-
-**Measured 2026-09-18 on his second mission** (`TEST-Training-Chypres_20250909.miz`, v5 framework
-1.56.0, attached to #953), which narrows the question rather than answering it. His 138 neutral
-statics are identical in the file — `hidden = true`, `Fortifications`, no other flag — so nothing in
-the mission explains why he sees some and not others. What differs is mission start: **27** of them
-are both inside a declared combat zone *and* named after it, which is the exact rule
-`findUnitsInCombatZone` applies, so `VeafCombatZone:initialize()` destroys them; the other **111**
-are left untouched. The sandbag his own screenshot has selected (N34°42.408 E33°05.428) is
-`Statique_g M92 Sac de sable 02-11`, one of the 111 — it lies inside the BARRAGE circle but is not
-named after it, so no script ever touched it, and it is on the map with `hidden = true`.
-
-So the "visible both times" branch is already settled **for a neutral object that no script created**:
-the flag is not honoured, and the framework cannot be the cause. His two screenshots (same view, same
-instant, Game Master vs Tactical Commander) add that the red groups vanish for the blue commander
-while the neutral sandbags stay — consistent with DCS applying `hidden` towards **opposing**
-coalitions only, a neutral object being nobody's enemy. Not proven: the red groups could equally be
-hidden by ordinary fog of war.
-
-What the run must therefore still answer, and it now needs a **red** group to be discriminating:
-does an object **recreated** by `coalition.addGroup` / `addStaticObject` keep the flag? Testing it on
-a neutral one proves nothing, since those show anyway. He was asked to try the neutral → red switch
-on one sandbag, which would confirm the coalition reading on its own.
-
-**Settled for statics by Tripack, 2026-09-19** (v6 mission, blue Hornet slot and Tactical Commander):
-the neutral sandbags no script touched stay **hidden**, the ones a combat zone recreates are
-**visible** — the zone deactivated, they vanish; reactivated, they come back on the map. That
-contradicts the 09-18 "neutral shows anyway" reading and lands on the **Ignored** branch, for
-`addStaticObject`: recorded as `dcs-scripted-static-ignores-hidden` in `known-limitations.yaml`. What
-the run still has to answer is the **group** half — a red group recreated by `coalition.addGroup`,
-which is the QRA side of #953.
-
-### R16. Does `settleGroup`'s sweep get more vehicles out of the trees than ticket 11 did?
-
-[`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 12.
-`veafUnits.settleGroup` no longer asks `Disposition` to propose a clearing; it sweeps rings of
-growing radius (20 m apart, up to 300 m) with the small per-point probe. The reference is ticket
-11's run on GermanyCW-v6, 2026-09-26 evening: **17 vehicles under trees before `settleGroup`, 4
-after**, 4 of 31 groups translated, formations to 0.0000 m.
-
-**Run**: GermanyCW-v6 rebuilt with this branch, with the DCS bridge injected (see the memory note
-on the bridge). David only launches the mission; the measurement goes through the bridge, the same
-way as ticket 11's: wrap `settleGroup` to probe every unit **before** the spawn (never after — the
-probe counts the group's own vehicles), activate the 25 combat zones once, and record per call the
-translation, the probe count and the elapsed time.
-
-- **Fewer than 4 vehicles under trees after `settleGroup`**, formations unchanged: the sweep does
-  what the large query could not. Record the figures in ticket 12 and close it.
-- **Still about 4**: the vehicles left are in places the sweep cannot reach within 300 m either.
-  Read their `no offset within 300m` lines before touching the bound: raising it only helps if the
-  probe finds ground a little beyond 300 m.
-- **More than 4**, or a formation distance that moves: a regression. Look first at the groups the
-  log says gave up with `no offset within`: ticket 11 accepted translations up to 1000 m and was
-  measured moving one group **266 m**, so a group whose nearest clear ground lies beyond the sweep's
-  radius is the expected shape of a regression here.
-- **Whatever the count**: note the worst per-group time. Above about 0.4 s for one group, the probe
-  cost is not the 0.38 ms measured, and `SETTLE_SWEEP_PROBE_BUDGET` has to be sized again.
-
-### R19. A `-farp` on open ground keeps its escort where it was planned; one with nowhere to go is refused
-
-[`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md) ticket 03
-and [`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 04, one
-branch. The escort's wanted spot is now asked of the small probe (5 m free within 20 m), vehicle by
-vehicle, instead of being read off the nearest candidate of the large query — which was never nearer
-than 43.9 m on 2026-09-01, so the escort always moved.
-
-**Run**: the Caucasus session mission, security off, rebuilt with this branch, with
-`veafGrass.LogLevel = "debug"` (the placement lines are at debug since #898 and #1025). Four `-farp` markers:
-
-1. **open ground**, nothing within a kilometre;
-2. **in or beside a wood**, the planned spot genuinely in the trees;
-3. **beside a static FARP**, the planned spot on its apron;
-4. **somewhere nothing fits** — the middle of a dense town, or ringed by static FARPs — to see the refusal.
-
-Grep `dcs.log` for `FARP escort:`, `wanted spot at bearing` and `refused`:
-
-| Case | Expected | Otherwise |
-|---|---|---|
-| Open ground | `scenery probe=true, occupancy probe=true`, then `bearing N requested, N used at 1x` — **equal** | `scenery probe=false` on open ground: the probe sees something the eye does not, note the point |
-| Wood | `scenery probe=false`, the bearings **differ**, escort visibly out of the trees | `scenery probe=true` in the trees: the probe's 20 m radius finds a gap — the check cannot fail, say so |
-| Static FARP | `occupancy probe=false`, bearings differ or scale > 1, escort off the apron | on the apron: the occupancy half broke |
-| Nowhere | the message *"FARP … refusé"* on screen, **nothing** on the F10 map, a `refused` WARN line | a FARP built anyway: the refusal is unreachable in the field; if no spot can be found that refuses, record that too — the refusal is then only theoretical |
-
-The first three rows together are what make this a check: a run where nothing moves anywhere means
-the fix went too far.
-
-### R17. A GermanyCW-v6 start with no shape refused, one initialization per zone, no sanctuary error
-
-[`FIX-IN-GAME-TEST-FINDINGS`](.backlog/FIX-IN-GAME-TEST-FINDINGS/PRD.md). Every one of its five
-findings was read in `dcs.log`, so the check is `dcs.log` too. **Run**: in GermanyCW-v6, delete the
-four hand-written `shape_name` (Wünsdorf's `.Command Center`, Torgau's two and Wittenberg's one
-`.Ammunition depot`) and place those four statics again with `add_group`. Build with this branch, start the mission, activate Torgau, fire one
-unguided weapon at nothing near a sanctuary. Then grep `dcs.log`:
-
-| `grep` | Expected | Otherwise |
-|---|---|---|
-| `unknown static shape_name` | no line | the shape written is not the one DCS wants: compare with the editor's |
-| `DIAG\|zone combatZone_Torgau: deactivated` | **one** line | a second caller of `initialize()` — read who |
-| `combatZone_Torgau: activating` | `4 element(s)` | elements still doubled |
-| `attempt to index local 'target'` / `Weapon doesn't exist` | no line | another path in `handleWeapon` |
-| `no cities in veafNamedPoints` | no line | `veafCities.lua` missing from the bundle |
-| `extract` / `logistic` `not found` | no line (GermanyCW-v6's lists were emptied by hand, and `validate` would name any left) | a name `validate` did not report: its check reads the wrong section |
+[`FIX-IN-GAME-TEST-FINDINGS`](.backlog/FIX-IN-GAME-TEST-FINDINGS/PRD.md). The start-up was read on
+2026-10-03 and is clean (no shape refused, one initialisation per zone, no script error). One line was
+not run: **fire one unguided air-to-ground weapon near a sanctuary** and grep `dcs.log` for
+`attempt to index local 'target'` and `Weapon doesn't exist` — no line expected. Needs a pilot, or an
+AI aircraft given a rocket loadout.
 
 ### R20. Does a departing player's slot change still arrive after DCS forgot the player, in 2.9.30?
 
@@ -386,43 +70,12 @@ version line at the top of each log first: a log still on 2.9.29 answers nothing
   Record the new order in the entry, mark it fixed by DCS 2.9.30, and decide whether the hook's
   remembered-disconnect list is still needed.
 
-### R21. A QRA built by `create_qra` intercepts instead of landing, and a `-cap` patrols
 
-FEAT-AIRCRAFT-ROLES, from the Tacview of *Ligne rouge d'At Tanf* (2026-10-01): the Sayqal QRA scrambled
-three times, each time appeared at 5 262 m, descended and landed on runway 090 four and a half minutes
-later, and intercepted nobody. Its group has one waypoint and no task; the QRA module now gives such a
-`CAP`/`Intercept` group the `zone_defense` role. The same lot found that every `-cap` and `-afac` had
-spawned with **no waypoint** since 6.18.0 (#842).
-
-**Run**: rebuild *Ligne rouge d'At Tanf* with this version (no edit to the mission), fly into the Sayqal
-QRA zone, and watch the scramble on the F10 map or in Tacview for ten minutes. Then drop a `-cap mig29`
-marker anywhere and watch it for five.
-
-- **Fixed**: the MiG-29S pair turns towards the zone centre and flies a race-track across it (two turns
-  20 NM apart), and turns on you when you enter the zone; it does **not** land. The `-cap` flies a
-  race-track along its heading. Close the lot's in-game item.
-- **Not fixed**: the pair still descends and lands, or orbits over Sayqal. Read `dcs.log` for `AIRSPAWN`
-  — `engages no aircraft by itself: it defends the zone` says the role was chosen, and its absence says
-  `needsZoneDefense` answered no (check the group's task in the editor: it must be `CAP` or
-  `Intercept`). A `-cap` that holds still with no route means `withRoute` is still handed the wrong
-  shape.
-
-### R22. A UH-1 in a dynamic slot has its CSAR menu
-
-Unblocks [`FIX-USER-REPORTS-985-989`](.backlog/FIX-USER-REPORTS-985-989/PRD.md) ticket 02, from
-[#989](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/989) (Tripack, 2026-09-22): no CSAR
-menu in a UH-1 although the MAYDAY and the downed pilot showed that CSAR was running.
-
-**Run**: a mission with `CSAR` enabled and a **dynamic slot** offering the UH-1H — none of the repository's
-test missions has one, so use Tripack's `Snowfox_20260922.miz` from the #989 Discord thread, or add a
-dynamic UH-1 slot to `verify-mission-c` first. Take the UH-1 from the dynamic slot, wait ten seconds,
-open the radio menu.
-
-- **Fixed**: `F10 Other… > CSAR` is there with its four commands (*List Active CSAR*, *Check Onboard*,
-  *Request Signal Flare*, *Request Smoke*). Close ticket 02, and #989.
-- **Not fixed**: no `CSAR` entry. Check the same in a UH-1 placed in the editor: present there means the
-  dynamic-slot path is still broken; absent there too means CSAR never reached `addMedevacMenuItem` —
-  read `dcs.log` for `CSAR` and its `Initializing version` line.
+**Partial reading, 2026-10-03 morning**: all six servers on **2.9.30.28536** since 2026-10-02 19:50.
+Four disconnects overnight (private1 ×2, private2, public1): DCSServerBot logs `disconnect` then
+`change_slot` in the same second every time — the order is unchanged. Whether the player info is nil
+at the second call no longer shows in these logs (the hook writes it at `debug`). Four cases on a
+quiet night: count again after an ordinary evening before touching `known-limitations.yaml`.
 
 ### ✅ R23. How does DCS keep a scripted helicopter on the ground? — **run 2026-10-02**
 
@@ -519,21 +172,6 @@ watched). **A** looped as in R29 ✅. **D** came back near G now and then (460�
 **7.2 km** from it in between — `escort` ❌ on a stationary group; `GroundEscort` is meant for a moving
 convoy, not yet tried. Unexplained: D fell from 20 to 4 life around T+45 s and C from 15 to 13 around
 T+60 s, each with a gun `HIT` of its own and no target logged. Hence R32.
-
-### R32. A red `-cap` spawns red templates only
-
-Unblocks [`FIX-CAP-SIDE-TEMPLATES`](.backlog/FIX-CAP-SIDE-TEMPLATES/PRD.md), from
-[#240](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/240): on 2026-08-17 a red `-cap`
-gave 7 NATO airframes out of 10, two of them F-15Cs that only the blue templates hold.
-
-**Run**: any mission built with this branch and the shipped `spawnables.yaml`. Place a marker reading `_spawn cap, side red`
-on the F10 map ten times and note the types.
-
-- **Fixed**: only MiG-21, MiG-23, MiG-25, Mirage F1 and Mirage 2000 — the red templates. Mirages are
-  expected (14 of the 36 red templates). Close #240.
-- **Not fixed**: any F-15C, F-14, F-4, F-5 or MQ-9. Look in `dcs.log` for *"no template of side"*:
-  present means the side was not recorded on the templates; absent means the side never reached the
-  draw.
 
 ### R31. Helicopters patrol, attack and escort — R30 with a passive target
 
@@ -857,27 +495,14 @@ Unblocks [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON
 end of this file** — three markers, and the point worth repeating here: *a run where nothing moves in
 any of the three is a failure, not a pass*. It would mean the fix turned tier 1 off.
 
-### R7. A wave — or a QRA — launched by a VEAF command lands in its zone
+### R7. A QRA launched by a VEAF command lands in its zone — **wave half verified 2026-10-03**
 
-Unblocks [`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md) (shipped
-2026-09-01, in two modules). **Written up in French at the very end of this file.** The position handed
-to the command carried no easting, which reads as zero — the theatre's central meridian, hundreds of
-kilometres from the zone. Never measured. Also worth knowing: `FIX-WAVE-OFFSET-AXES` shipped the same
-day and **moves any mission using a non-zero `[latDelta,lonDelta]` offset**, so a zone with an offset
-is the interesting one to trigger.
-
-**Since `FIX-QRA-COMMANDS-AND-OFFSET` the QRA half can be built as intended**: `validate` no longer
-refuses a command in a QRA deploy list, and `respawn_default_offset` under a QRA reaches the Lua
-(`:setRespawnDefaultOffset` on the QRA chain). Give the QRA a command and a non-zero offset, and read
-where its element spawns.
-
-### R18. `logLevel: trace` under one module traces that module and no other
-
-[`FIX-PER-MODULE-LOGLEVEL-INERT`](.backlog/FIX-PER-MODULE-LOGLEVEL-INERT/PRD.md). Tested through the
-logger with the DCS mocks; never seen in `dcs.log`. **Run**: any mission with `global_log_level: info`
-and `modules.SPAWN.logLevel: trace`; spawn one group with a marker. `grep "VEAF-SPAWN|T|"` must find
-lines, `grep "|T|"` must find nothing from any other module. None from SPAWN: the logger id differs
-from the config key — compare `veafSpawn.Id` with the `veaf.setConfig` line in `veaf-config.lua`.
+The wave half is settled (`[5000,0]` 5.2 km north, the default offset on the right axes). Left: a QRA
+whose deploy list holds a **command** (`[0,3000]-shilka`, say) and a non-zero `respawn_default_offset`.
+An editor group, as the session mission has, keeps its editor position and proves nothing about the
+offset. Unblocks the QRA half of
+[`FIX-AIRWAVES-COMMAND-EASTING`](.backlog/FIX-AIRWAVES-COMMAND-EASTING/PRD.md) and
+[`FIX-QRA-COMMANDS-AND-OFFSET`](.backlog/FIX-QRA-COMMANDS-AND-OFFSET/PRD.md).
 
 ### ✅ R8. Does a teleported escort hold formation — and does it engage? — **both yes, 2026-09-01**
 
@@ -937,39 +562,6 @@ searches every one of them because the demo mission puts the task on waypoint 2 
 **What to write down**: the mission, the date, and the two answers. Whichever of the two notes turns
 out wrong gets corrected in the code comment *and* in `FIX-ESCORT-RESPAWN-TASK`'s PRD — the point of
 this item is that the repository stops telling two stories.
-
-### R9. Does DCS lift an aircraft spawned too low, or let it die there?
-
-Unblocks [`FIX-AIR-SPAWN-ALTITUDE-GUARD`](.backlog/FIX-AIR-SPAWN-ALTITUDE-GUARD/PRD.md) ticket 02, and
-it is a **question about DCS**, not a check of a fix — nothing to rebuild, and no VEAF script is under
-suspicion. It is the only thing standing between the lot and closure.
-
-What is established without the game: `veafUnits.checkPositionForUnit`'s rule *"an aircraft will not
-spawn below 10 m"* read `spawnPosition.z`, the **easting**, so it had never refused anything anywhere a
-mission is flown. It now reads the altitude and refuses a point **under the terrain** — that much is
-right whatever the answer here.
-
-What it cannot say: whether merely *not being underground* is enough. The author of the line wrote 10 m,
-and the MiST-derived spawner in our own scripts applies exactly that margin and, when a requested
-altitude does not clear it, **lifts** the aircraft into an altitude band instead of refusing it. So MiST
-did not trust DCS to clamp. If DCS does clamp, that machinery is unnecessary here and the lot closes as
-a non-finding.
-
-**Run**: spawn an aircraft group at an explicit low altitude over flat ground — `_spawn group` with an
-`alt` of a couple of metres is the shortest route, and a bare `-spawn` of an air group with no `alt` at
-all is the same case (the altitude then comes out as the ground height). Watch the F10 map and the
-aircraft itself.
-
-- **DCS clamps**: the aircraft appears flying, at some altitude of the game's choosing. Then form A —
-  what shipped — is the complete answer, and ticket 02 closes.
-- **DCS does not clamp**: the aircraft appears at ground level and crashes, or is destroyed on spawn.
-  Then a clearance margin is needed, and the useful detail is *what* happened — an explosion, a landed
-  aircraft, or a group that never appears — because it decides whether refusing is acceptable or whether
-  the caller has to lift it the way `veafDcsSpawner` does.
-
-Worth noting either way: **an aircraft placed as a static must still work on the coast.** A static sits
-at 1 m over water and at sea level, so if `_spawn unit, name <aircraft>, static` on a beach ever reports
-*"cannot find a suitable position"*, that is this lot's regression and it should be said plainly.
 
 ### Reste de la session
 
@@ -1376,90 +968,6 @@ Full protocol: [ticket 02](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/tickets/
 
 ---
 
-## Une vague aérienne — et une QRA — lancée par commande VEAF : où atterrit le groupe ?
-
-Ouvert par `FIX-AIRWAVES-COMMAND-EASTING` (ticket 02), correctif du 2026-09-01.
-
-Ce qui est établi sans DCS : quand l'élément d'une vague (ou d'une QRA) est une **commande** et non un
-groupe de l'éditeur, la position transmise à la commande n'avait **pas de coordonnée est**. Les tests
-unitaires prouvent que la position sort maintenant correctement formée, dans les deux modules.
-
-Ce qu'ils ne peuvent pas dire : ce que DCS faisait de l'ancienne. Une coordonnée est absente se lit
-comme zéro, c'est-à-dire le méridien central du théâtre — donc le groupe devait apparaître à des
-centaines de kilomètres de sa zone. Jamais mesuré.
-
-**À faire** : une zone de vague avec un élément commande (par exemple `[0,0]-shilka`), et une zone QRA
-avec le même genre d'élément. Déclencher chacune, regarder la carte F10.
-
-- **Attendu** : le groupe apparaît *dans* la zone, dans le rayon de réapparition autour du centre.
-- **Ce qui contredirait le correctif** : le groupe atterrit encore loin de la zone, ou à une altitude
-  absurde. Dans ce cas le dire, avec ce qu'on voit : ça voudrait dire que la position est juste et que
-  quelque chose en aval la relit autrement, et le lot se rouvre.
-
-Accessoirement, ça répond à une question ouverte du lot : est-ce que ce défaut échouait **bruyamment**
-(un groupe visiblement nulle part) ou **silencieusement** (un groupe qui n'engageait jamais, mis sur le
-compte de l'IA) ? La deuxième réponse expliquerait pourquoi personne ne l'a signalé.
-
----
-
-## DCS crée-t-il jamais un slot joueur *dynamique* du côté neutre ?
-
-Ouvert par `FIX-GETGROUPDATA-SKIPS-NEUTRALS` (2026-09-01), qui a trouvé le site en passant et l'a
-laissé plutôt que de coder à l'aveugle.
-
-Ce qui est établi sans DCS : `veafMissionDb.refreshDynamicSlots` balaie `{ RED, BLUE }` et c'est le
-seul balayage de coalition de l'arbre qui omette `NEUTRAL`. Les slots neutres **déclarés dans
-l'éditeur** sont déjà couverts — ils passent par `indexEditorSlots`, qui lit la mission et ne filtre
-sur aucune coalition. Le trou ne peut donc concerner qu'un slot que DCS aurait créé lui-même.
-
-Ce qui n'est pas établi, et ne peut pas l'être hors du jeu : est-ce que le mécanisme de slots
-dynamiques produit un jour un slot neutre ? Si la réponse est non, le balayage est correct et il
-manque juste une phrase qui le dise. Si elle est oui, un joueur sur ce slot est invisible pour tout ce
-qui lit `getAllHumanRecords` — AirWaves, QRA, CSAR.
-
-**À faire** : ouvrir une mission où le côté neutre a des appareils, activer les slots dynamiques, et
-regarder si l'interface de choix de slot propose quoi que ce soit du côté neutre.
-
-- **Réponse « non »** : rien de neutre n'est proposé. Alors on écrit la raison à côté de la boucle et
-  le sujet est clos — pas de code.
-- **Réponse « oui »** : un slot neutre existe. Alors il y a **deux** lignes à corriger, pas une —
-  `veafMissionDb.lua:346` (la liste des coalitions) **et** `:357`, qui étiquette la coalition par
-  `coalitionId == RED and "red" or "blue"` et rangerait donc tout neutre dans le bleu. Un correctif
-  qui n'ajouterait que `NEUTRAL` à la boucle laisserait le second défaut en place.
-
-Utile même en cas de « non » : c'est la seule asymétrie de coalition qui reste dans l'arbre après ce
-lot, et savoir qu'elle est **voulue** évite qu'un prochain passage la « corrige » sans savoir.
-
----
-
-## Une QRA clonée engage-t-elle vraiment, maintenant que `task` la suit ?
-
-Ouvert par `FIX-TRIPACK-FIELD-REPORTS` (ticket 05), correctif du 2026-09-05.
-
-Ce qui est établi sans DCS : `veafMissionDb`'s group record ne portait que dix champs, et `task`
-n'en faisait pas partie — vérifié, le mot n'apparaissait nulle part dans le fichier. Un clone ou un
-respawn atteignait donc `coalition.addGroup` sans tâche de groupe du tout, alors même que la tâche
-par point de route (`EngageTargetsInZone`) survivait, elle. Les tests unitaires prouvent que le champ
-suit désormais le clone jusqu'à l'appel — `task`, `taskSelected`, `uncontrolled`, `frequency`,
-`modulation`, `communication`, `radioSet` et `hidden`.
-
-Ce qu'ils ne peuvent pas dire : si l'absence de `task` est bien ce qui rendait Tripack's QRA
-« tranquilos » — sans engager — plutôt qu'un autre effet de bord. C'est plausible (une IA sans tâche
-de groupe peut plausiblement ignorer les tâches de route) mais pas prouvé hors du jeu.
-
-**À faire** : déployer une QRA dont un des groupes pré-placés porte `task = 'CAP'` et un
-`EngageTargetsInZone` sur une route, comme `CAP_AL_MINHAD-1` dans la mission de Tripack. Déclencher
-son scramble, faire pénétrer un intrus dans sa zone d'engagement.
-
-- **Attendu** : le groupe engage l'intrus, comme avant la régression (avant 6.19.0 / `REFACTOR-SPAWNER`).
-- **Ce qui contredirait le correctif** : le groupe continue sa route sans engager malgré `task` et
-  l'`EngageTargetsInZone` tous deux présents. Dans ce cas le dire : ça voudrait dire que la cause de
-  Tripack est ailleurs, et que ce correctif — juste en soi, puisqu'il restitue un champ que l'éditeur
-  a posé — ne referme pas son rapport.
-
-Accessoirement, vérifier au passage que le groupe cloné reste **caché** sur la carte F10 si l'éditeur
-l'avait déclaré `hidden = true` — capture d'écran de Tripack à comparer, plus rapide qu'un vol.
-
 ## Zone de combat : un groupe très étalé garde-t-il sa forme ?
 
 Ouvert par `FIX-TRIPACK-FIELD-REPORTS` (ticket 04), correctif du 2026-09-05.
@@ -1503,58 +1011,3 @@ Comparer `position` aux coordonnées éditeur de `AAA-1` — attention à la con
   sans que rien ne le remarque.
 
 ---
-
-## Le SA-6 d'une zone de combat : radar muet, puis absent du réseau
-
-Ouvert par `FIX-SKYNET-CZ-RESPAWN-AND-RANGE`, correctif du 2026-09-09. Suite des deux retours de
-Tripack sur [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946).
-
-Ce qui est établi sans DCS, depuis son journal du 2026-09-09 :
-
-- son SA-6 de zone de combat est bien dans le réseau, ses rampes répondent, les trois autres sites le
-  voient — et **il ne voit personne**. Sa portée radar est nulle. Skynet la lit **une seule fois**, à
-  l'entrée dans le réseau, dans `getSensors()` ; si cette unique réponse est `nil`, la portée reste à
-  zéro pour toute la mission. C'est ce qui produit à la fois le « radar détruit » du tableau et le
-  site qui ne s'allume jamais ;
-- après désactivation puis réactivation de la zone, le site ne rejoint **plus du tout** le réseau : la
-  chaîne de respawn ne parle pas à Skynet, et le rattrapage par événement de naissance est éteint par
-  défaut. Preuve dans son journal, sans le fichier de mission : le SA-6 posé au marqueur est intégré
-  **2 ms** après sa naissance, là où ce rattrapage attend une seconde.
-
-Ce que ça ne dit pas, et qui demande le jeu : **pourquoi DCS répond `nil`** sur un radar qu'il détient
-encore. Quatre hypothèses sont éliminées dans le ticket 01 du lot (dont celle proposée à Tripack le
-2026-09-09 : le radar pas encore né). Le correctif supprime la dépendance à cette lecture unique — il
-n'explique pas la réponse de DCS.
-
-**À faire** : reconstruire le `.miz` de test de Tripack (`Skynet-test_20260908.miz`, une zone
-`TESTCZ` avec un `TESTCZ - SA6`, trois sites hors zone, `debug_red: true`) avec les scripts de cette
-branche, le lancer, et relever dans `dcs.log` :
-
-1. au démarrage, la ligne `RADAR RANGE ZERO [TESTCZ …]: radars=N live=N launchers=N` — **c'est elle
-   qui nomme la cause DCS** :
-   - `radars=1 live=1` → le radar est là, DCS le détient, et il ne répond pas : la lecture arrive trop
-     tôt ou `getSensors()` ne répond pas sur une unité fraîchement créée ;
-   - `radars=1 live=0` → le handle est mort alors que le groupe vit : c'est le groupe respawné qui
-     porte un cadavre d'unité, et il faut regarder le nettoyage de zone ;
-   - `radars=0` → Skynet a accepté un site sans radar, ce que `addSAMSite` est censé refuser : c'est
-     alors la reconnaissance de type qu'il faut regarder ;
-   - **aucune ligne du tout** → la portée est lue correctement dans ce build, et le défaut A ne se
-     reproduit pas — auquel cas ne pas conclure trop vite, comparer avec le journal du 2026-09-09 ;
-2. la suite : `RADAR RANGE RECOVERED [...]: N m on re-read` (la relecture a réussi, donc c'était
-   l'instant de la lecture) ou `RADAR RANGE STILL ZERO` (trois relectures, toujours rien : c'est
-   l'unité elle-même) ;
-3. `SAM: 4 | … | Raddest: 0` au démarrage, puis **désactiver et réactiver la zone** par le menu radio
-   (`ZONES DE COMBAT → SAM → TESTCZ`) : le compteur doit revenir à **4 SAM**, alors qu'il restait à 3
-   avant ce lot. Le journal doit montrer un `GOING LIVE` pour le groupe respawné, une seconde après sa
-   naissance ;
-4. voler dans la zone d'interception du SA-6 : il doit s'allumer et tirer.
-
-- **Attendu après correctif** : `Raddest: 0` au démarrage ou après relecture, `4 SAM` après le cycle
-  de zone, et le SA-6 qui engage.
-- **Ce qui rouvrirait le sujet** : `RADAR RANGE STILL ZERO` après les trois relectures — la portée
-  n'est alors pas récupérable par une nouvelle lecture, et il faudra la calculer autrement (la base de
-  types de Skynet porte une portée nominale par type, qui pourrait servir de repli).
-
-Cette vérification est **surtout celle de Tripack** : la mission est la sienne et le journal du
-2026-09-09 vient de son poste. Une session DCS locale peut la faire, mais la mission de test doit
-alors être reconstruite depuis ses sources.

@@ -121,7 +121,7 @@ drops `taskSelected`, `uncontrolled`, `frequency`, `modulation`, `communication`
 
 | # | Ticket | Type | Status |
 |---|--------|------|--------|
-| 01 | [Skynet's scheduler keeps the promise its docstring makes](tickets/01-skynet-scheduler-floor.md) | fix | 🧑 |
+| 01 | [Skynet's scheduler keeps the promise its docstring makes](tickets/01-skynet-scheduler-floor.md) | fix | ✅ |
 | 02 | [A zone's naval element looks for water, not for dry land](tickets/02-naval-elements-look-for-water.md) | fix | ✅ |
 | 03 | [Why the terrain check refuses a ship already at sea](tickets/03-measure-the-naval-refusal.md) | fix | ✅ |
 | 04 | [ZU-23s of a combat zone come up kilometres out to sea](tickets/04-units-displaced-out-to-sea.md) | fix | 🧑 |
@@ -169,3 +169,11 @@ belong instead of here:
   every draw lands on the centre and a dispersion assertion passes both ways. Written up in ticket
   04, and the reason `dcs_mocks.setRandomSequence` has to be driven by any test that means to
   exercise a radius.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ticket 01 verified (R13): Skynet woke up and every site fired at two unarmed F-16.
+Ticket 05 verified: a QRA clone carrying `task = CAP` and `EngageTargetsInZone` fired an R-27 at an
+intruder in its zone. Ticket 04 (the ZU-23 out at sea) was not run.

@@ -440,6 +440,13 @@ end
 ---
 --- This is the sweep `veafAirWaves` used to run by hand, under the comment *"Dynamic slot players via
 --- DCS coalition API (not tracked by mist)"*. It belongs here, once, rather than in each consumer.
+---
+--- Red and blue only, on purpose: a dynamic slot comes from an airfield's warehouse linking an aircraft
+--- type to a dynamic-spawn template, and the shipped template catalogue holds none for the neutral side,
+--- so no mission the tools build can offer one. Whether DCS would offer a neutral dynamic slot at all is
+--- not established: the 2026-10-03 try had no neutral aircraft to offer. A mission that adds neutral
+--- templates by hand would need NEUTRAL here, and the coalition
+--- label below, which reads anything not red as blue, corrected with it.
 function veafMissionDb.refreshDynamicSlots()
   for _, coalitionId in pairs({ coalition.side.RED, coalition.side.BLUE }) do
     for categoryId, categoryName in pairs(veafMissionDb.PLAYER_GROUP_CATEGORIES) do

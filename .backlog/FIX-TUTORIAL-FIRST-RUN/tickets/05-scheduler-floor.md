@@ -1,6 +1,6 @@
 # 05 — A task due now still runs
 
-Status: 🧑 waiting-human
+Status: ✅ done — verified in game 2026-10-03
 
 Type: fix
 

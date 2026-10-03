@@ -134,3 +134,11 @@ days old:
 - [ ] Checked in game on an air wave with a command element — ticket 02
 - [x] `stylua --check` clean locally; `luacheck` is not installed on this workstation and **passed on
       the CI Lua gate** (PR #884), so the gate is met rather than merely deferred
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ticket 02, wave half (R7): a wave element `[0,0]-shilka` spawned 150 m from its zone centre,
+`[5000,0]-shilka` 5.2 km north, a bare `-shilka` at the default offset (4 km N, 7 km W). The QRA
+half was not run: the session mission's QRA deploys an editor group, which keeps its editor position.

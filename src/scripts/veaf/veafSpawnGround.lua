@@ -1129,13 +1129,13 @@ function veafSpawn._markClosestConvoyWithSmoke(unitName, markRoute)
       local route = veafSpawn.spawnedConvoys[closestConvoyName].route
       local startPoint = veaf.placePointOnLand({ x = route[1].x, y = 0, z = route[1].y })
       local endPoint = veaf.placePointOnLand({ x = route[2].x, y = 0, z = route[2].y })
-      trigger.action.smoke(startPoint, trigger.smokeColor.GREEN)
-      trigger.action.smoke(endPoint, trigger.smokeColor.RED)
+      trigger.action.smoke(startPoint, trigger.smokeColor.Green)
+      trigger.action.smoke(endPoint, trigger.smokeColor.Red)
       veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_smoke_switch", closestConvoyName), 10)
     else
       local averageGroupPosition = veaf.getAveragePosition(closestConvoyName)
       ---@diagnostic disable-next-line: param-type-mismatch
-      trigger.action.smoke(averageGroupPosition, trigger.smokeColor.WHITE)
+      trigger.action.smoke(averageGroupPosition, trigger.smokeColor.White)
       veaf.outTextForUnit(unitName, veaf.t("spawn.convoy_white_smoke", closestConvoyName), 10)
     end
   end

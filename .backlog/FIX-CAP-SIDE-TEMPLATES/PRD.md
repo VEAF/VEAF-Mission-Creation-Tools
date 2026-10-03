@@ -1,6 +1,6 @@
 # FIX-CAP-SIDE-TEMPLATES — a red `-cap` draws red templates
 
-Status: 🧑 waiting-human — merged in #1052; the in-game check is R32 in `DCS-SESSION-TODO.md`
+Status: ✅ done — verified in game 2026-10-03 (R32); #240 closed
 
 Origin: [#240](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/240) (veaf-Sharko, 2023-08),
 confirmed in game on 2026-08-17 by `CHORE-ISSUE-VERIFY-SESSION`; option **a** chosen by David on
@@ -47,7 +47,7 @@ MiGs.
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [A `-cap` or `-afac` draws from its own side](tickets/01-draw-from-the-requesting-side.md) | 🧑 |
+| 01 | [A `-cap` or `-afac` draws from its own side](tickets/01-draw-from-the-requesting-side.md) | ✅ |
 | 02 | [Vendored DCS schema `v0.4.0`](tickets/02-dcs-schema-v0-4-0.md) | ✅ |
 | 03 | [#1007 is a VMCT issue](tickets/03-issue-1007-references.md) | ✅ |
 
@@ -62,3 +62,10 @@ MiGs.
 ## Not claimed
 
 Not flown in DCS. The evidence stops at the mocks; the in-game check is David's.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ten `_spawn cap, side red`: Su-30, MiG-25PD, MiG-29S, MiG-29A, Mirage 2000-5, Mirage F1EE, MiG-21Bis
+×2, MiG-23MLD, JF-17 — red templates only.

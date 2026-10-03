@@ -1,6 +1,6 @@
 # FEAT-AIRCRAFT-ROLES — one way to spawn an aircraft with a job to do
 
-Status: 🧑 waiting-human — code merged, the in-game check `DCS-SESSION-TODO.md` R21 remains
+Status: ✅ done — verified in game 2026-10-03 (R21)
 
 Origin: David, 2026-10-02, from the Tacview of *Ligne rouge d'At Tanf* (2026-10-01).
 
@@ -45,7 +45,7 @@ needs today, and moves `-cap` onto it.
 | 03 | [An aircraft command run by a QRA or a wave defends that zone](tickets/03-an-aircraft-command-defends-the-zone.md) | feat | ✅ |
 | 04 | [The command layer leaves an aircraft with a role alone](tickets/04-the-command-layer-leaves-a-role-alone.md) | fix | ✅ |
 | 05 | [The build says what a QRA or wave group will do](tickets/05-the-build-says-what-the-group-will-do.md) | feat | ✅ |
-| 06 | [Documentation, `create_qra`, the in-game check](tickets/06-documentation-and-in-game-check.md) | docs | 🧑 |
+| 06 | [Documentation, `create_qra`, the in-game check](tickets/06-documentation-and-in-game-check.md) | docs | ✅ |
 
 ## Out of scope, and why (agreed with David 2026-10-02)
 
@@ -70,3 +70,13 @@ needs today, and moves `-cap` onto it.
       non-blocking warning; route that engages air → information
 - [x] Docs FR + EN, `create_qra` description, CHANGELOG, `DCS-SESSION-TODO.md` item for the game
 - [x] Lua + Python gates green, coverage floors bumped
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+*Ligne rouge d'At Tanf* rebuilt from `develop`, QRA Sayqal triggered by an AI stand-in: `dcs.log`
+reads `QRA-Sayqal-MiG29 engages no aircraft by itself: it defends the zone`; the pair flew level to
+the zone, shot the intruder down with an R-77, and flew a race-track of about 35 km for ten minutes
+without landing. A `-cap` spawned from a marker had a route and turned. The race-track lies beside
+the zone rather than across it: `FIX-IN-GAME-SESSION-2026-10-03` ticket 06.

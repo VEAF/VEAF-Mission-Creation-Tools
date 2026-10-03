@@ -1,5 +1,5 @@
 ---
-Status: 🧑 waiting-human — tickets 01 to 05 merged in #1009; the in-flight check on GermanyCW v6 is David's (a C-130 loads at Ramstein, a captured field opens 2 min after blue ground troops arrive, the green circle follows the holder)
+Status: 🧑 waiting-human — a capture seen in game 2026-10-03; the loading check at Ramstein remains
 ---
 
 # FEAT-CTLD-AIRBASE-LOGISTICS — airfields are outside CTLD's logistic system, and VEAF can put them in without touching CTLD
@@ -335,3 +335,11 @@ on its own. The verification happens in flight, on the mission that reported the
   not a constant in the loop.
 - The log says how many airfields VEAF registered and which class each one is in.
 - A mission that wants none of it can say so, and says so in `mission.yaml`.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+On the Caucasus session mission David received the capture message for Kobuleti (logistic zone
+activated). The C-130 loading at Ramstein, the check #1007 asked for, was not flown. #1007 closed on
+that evidence.

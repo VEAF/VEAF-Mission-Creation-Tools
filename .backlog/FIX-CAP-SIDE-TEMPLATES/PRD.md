@@ -1,6 +1,6 @@
 # FIX-CAP-SIDE-TEMPLATES — a red `-cap` draws red templates
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — merged in #1052; the in-game check is R32 in `DCS-SESSION-TODO.md`
 
 Origin: [#240](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/240) (veaf-Sharko, 2023-08),
 confirmed in game on 2026-08-17 by `CHORE-ISSUE-VERIFY-SESSION`; option **a** chosen by David on
@@ -47,9 +47,9 @@ MiGs.
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [A `-cap` or `-afac` draws from its own side](tickets/01-draw-from-the-requesting-side.md) | 🔄 |
-| 02 | [Vendored DCS schema `v0.4.0`](tickets/02-dcs-schema-v0-4-0.md) | 🔄 |
-| 03 | [#1007 is a VMCT issue](tickets/03-issue-1007-references.md) | 🔄 |
+| 01 | [A `-cap` or `-afac` draws from its own side](tickets/01-draw-from-the-requesting-side.md) | 🧑 |
+| 02 | [Vendored DCS schema `v0.4.0`](tickets/02-dcs-schema-v0-4-0.md) | ✅ |
+| 03 | [#1007 is a VMCT issue](tickets/03-issue-1007-references.md) | ✅ |
 
 ## Definition of done
 

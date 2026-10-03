@@ -1,6 +1,6 @@
 # 02 — vendored DCS schema `v0.4.0`
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-10-03 (PR #1052)
 
 The drift watch reports `YoloWingPixie/dcs-world-schema` `v0.3.5` → `v0.4.0` (released 2026-10-02).
 Re-download `dcs-world-api-schema.json` and `dcs-world-api.lua` verbatim, bump `vendored.yaml` and the

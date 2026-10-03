@@ -1,6 +1,6 @@
 # CHORE-REQUIRED-CHECKS-GATE — path-filtered workflows that a required check can wait for
 
-Status: 🧑 waiting-human — merged in #1053; the required checks are David's to add on `develop`
+Status: ✅ done — merged in #1053; the 11 required checks are on `develop` (verified 2026-10-03)
 
 Origin: David, 2026-10-03 — *"pourquoi je ne peux jamais activer l'automerge ?"*
 
@@ -47,7 +47,7 @@ In *Settings → Branches → develop*, add to the required checks: `python-qual
   `veaf_build/**`, `doc/**`, `*.md`), `Support Bot`'s `quality` and `container` report Skipped (it
   touches nothing of theirs but their own workflow file — which *is* in their list, so they run too;
   the skip is proven by the next PR that touches no bot path).
-- [ ] The required checks added on `develop`.
+- [x] The required checks added on `develop`.
 
 ## Fail closed
 

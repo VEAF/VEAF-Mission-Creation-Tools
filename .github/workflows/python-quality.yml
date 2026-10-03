@@ -39,6 +39,8 @@ on:
   pull_request:
 
 jobs:
+  # Its dependents skip only on an explicit `run=false`: a gate that fails runs the checks instead of
+  # skipping them, since a skipped job reads as a pass to a required check.
   changes:
     name: Python Quality — changed paths
     runs-on: ubuntu-latest
@@ -73,7 +75,7 @@ jobs:
 
   python-quality:
     needs: changes
-    if: needs.changes.outputs.run == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -134,7 +136,7 @@ jobs:
   # ---------------------------------------------------------------------------
   exe-smoke:
     needs: changes
-    if: needs.changes.outputs.run == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -194,7 +196,7 @@ jobs:
   # ---------------------------------------------------------------------------
   veaf-logs-exe-smoke:
     needs: changes
-    if: needs.changes.outputs.run == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

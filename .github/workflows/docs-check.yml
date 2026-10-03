@@ -18,6 +18,8 @@ on:
   pull_request:
 
 jobs:
+  # Its dependents skip only on an explicit `run=false`: a gate that fails runs the checks instead of
+  # skipping them, since a skipped job reads as a pass to a required check.
   changes:
     name: Docs Check — changed paths
     runs-on: ubuntu-latest
@@ -57,7 +59,7 @@ jobs:
   docs-check:
     name: Links, anchors, translations, nav (+ repo-wide links)
     needs: changes
-    if: needs.changes.outputs.run == 'true'
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

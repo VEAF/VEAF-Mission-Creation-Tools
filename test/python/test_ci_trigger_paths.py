@@ -159,6 +159,17 @@ class _GateFilterAssertions:
             f"{self.workflow} filters pull requests at the trigger: a required check would wait for ever",
         )
 
+    def test_a_failing_gate_runs_the_checks_rather_than_skipping_them(self) -> None:
+        # A skipped job reads as a pass to a required check, so a gate that crashed (empty output)
+        # must not skip anything: only an explicit `run=false` may.
+        jobs = self.parsed["jobs"]
+        for name, job in jobs.items():
+            needs = job.get("needs", [])
+            if "changes" in ([needs] if isinstance(needs, str) else needs):
+                condition = str(job.get("if", ""))
+                self.assertIn("!cancelled()", condition, f"{self.workflow}: {name} is skipped when the gate fails")
+                self.assertIn("needs.changes.outputs.run != 'false'", condition, f"{self.workflow}: {name}")
+
     def test_every_job_waits_for_the_gate(self) -> None:
         jobs = self.parsed["jobs"]
         for name in jobs:

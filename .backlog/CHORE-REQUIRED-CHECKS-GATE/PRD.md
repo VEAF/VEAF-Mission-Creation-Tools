@@ -48,3 +48,11 @@ In *Settings → Branches → develop*, add to the required checks: `python-qual
   touches nothing of theirs but their own workflow file — which *is* in their list, so they run too;
   the skip is proven by the next PR that touches no bot path).
 - [ ] The required checks added on `develop`.
+
+## Fail closed
+
+Found reviewing the first push: a job skipped because its `needs` **failed** also reports Skipped, so
+a crashed `changes` job (a failed `git fetch`, say) would have turned every gated check green with
+nothing run. The dependents therefore read `!cancelled() && needs.changes.outputs.run != 'false'`:
+only an explicit `run=false` skips them, and a failed gate runs the checks. Asserted by
+`test_a_failing_gate_runs_the_checks_rather_than_skipping_them`.

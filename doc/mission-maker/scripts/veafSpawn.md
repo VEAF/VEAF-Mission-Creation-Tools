@@ -115,7 +115,7 @@ ses propres alias, avec des `pylons`, et des groupes de plusieurs hélicoptères
 ### Faire apparaître une patrouille CAP
 
 ```
-_spawn cap, name Su-27, alt 25000, capradius 20000
+_spawn cap, name Su-27, alt 25000, capradius 20
 ```
 
 **Options :**
@@ -124,8 +124,10 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 - `alt` — altitude de patrouille (pieds) ; jamais moins de 150 m au-dessus du sol sous le point d'apparition, l'altitude est relevée sinon (DCS ne remonte pas un avion trop bas : il s'écrase dans les arbres)
 - `hdg` — cap initial
 - `speed` — vitesse de patrouille (nœuds)
-- `capradius` — rayon d'orbite CAP (mètres)
-- `distance` — distance depuis le marqueur
+- `capradius` — rayon de la zone que la patrouille défend, centrée au milieu de son hippodrome
+  (milles nautiques, 60 par défaut). Pour un hélicoptère, la même option est en **mètres** (voir
+  ci-dessus).
+- `distance` — longueur de la branche de l'hippodrome (milles nautiques, 20 par défaut)
 
 **Ce que la patrouille attaque.** Elle reste en patrouille, tir interdit contre les avions, tant
 qu'elle n'a rien vu qui vaille l'engagement. Toutes les dix secondes elle regarde ce que son radar lui

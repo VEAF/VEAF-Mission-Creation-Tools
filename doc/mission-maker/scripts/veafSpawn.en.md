@@ -116,7 +116,7 @@ aliases, with `pylons`, and groups of several helicopters.
 ### Spawn a CAP patrol
 
 ```
-_spawn cap, name Su-27, alt 25000, capradius 20000
+_spawn cap, name Su-27, alt 25000, capradius 20
 ```
 
 **Options:**
@@ -125,8 +125,9 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 - `alt` — patrol altitude (feet); never less than 150 m above the ground under the spawn point, raised otherwise (DCS does not lift a too-low aircraft: it flies into the trees)
 - `hdg` — initial heading
 - `speed` — patrol speed (knots)
-- `capradius` — CAP orbit radius (meters)
-- `distance` — distance from marker
+- `capradius` — radius of the zone the patrol defends, centred on the middle of its race-track
+  (nautical miles, 60 by default). For a helicopter the same option is in **metres** (see above).
+- `distance` — length of the race-track leg (nautical miles, 20 by default)
 
 **What the patrol attacks.** It stays on its patrol, forbidden to shoot at aircraft, for as long as it
 has seen nothing worth engaging. Every ten seconds it looks at what its radar returns and keeps only

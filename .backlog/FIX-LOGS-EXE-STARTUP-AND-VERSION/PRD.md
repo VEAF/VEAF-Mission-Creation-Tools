@@ -80,3 +80,9 @@ this investigation to a stale file first; corrected.
   numbers are written here; the cause is named by a measurement, not assumed.
 - [x] A release-built `veaf-logs.exe` puts the shipped version in `tool.version`, checked in the exe
   (and now in CI: `veaf-logs-exe-smoke` reads the module out of the built archive).
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**`veaf-logs.exe` takes 14 s to open and its report most likely says `tool.version: unknown`.** Found closing CHORE-LOGS-EXE-TRIM: removing 20 MB saved 0.5 s, so the size is not the cause; the recipe bundles no version. **Measured 2026-10-03**: the session's remote tabs (SSH + SFTP copy) were reopened before the window was shown — 10.45 s → 2.27 s once they reopen after it; the version was `unknown` in the exe, now stamped by `veaf-build build-logs`; and the tests no longer overwrite the user's session

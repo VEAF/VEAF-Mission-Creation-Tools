@@ -73,3 +73,9 @@ A rig whose limits are not written down is read as proving more than it does.
 - [x] `poetry run test-lua` and `poetry run pytest` green.
 - [ ] The demonstration layer (ticket 05).
 - [ ] The rig run once in DCS, and its reading recorded. **Needs DCS.**
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a mission built so the answer cannot be mistaken for something else.** `verify-mission-c` check 13 was written to answer *does a spotter report travel to a battery that never saw the aircraft?* and had become indiscriminate three days later, killed by the lot that unblocked it: the only red units there able to spot are two trucks with 3 km of sight, sitting 8.9 km from a battery whose own last-line-of-defence radius is now 10–15 km. Two designs died before this one, both on facts read in the code: a battery with **no** EWR is not dark but permanently live (`isAutonomous = true`, `AUTONOMOUS_STATE_DCS_AI` at construction), and the only record attributing a wake-up to the relay was **wiped every cycle** by a drain sitting outside its own debug test — a product defect before a testing one, since nobody could answer *did the network wake anything last night?*. So: a durable history, a rig with a control battery out of radio reach, and an opt-in `smoke-test --suite spotter`. The demonstration layer and the in-game reading are what is left

@@ -60,3 +60,9 @@ investigates only exists in VEAF missions, and the investigation is entirely on 
 Either a named cause with the measurement behind it and a fix, or a documented "not a defect" with
 the geometry that explains it. Do not close it on a plausible story: hypothesis 2 is the one that
 looks most like an excuse and it is also the cheapest to check, so check it first.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**three red A-50s, 286 status cycles each, not one contact**, while the ground radars covering the same sixteen sites held up to 14 aircraft at the same instants. Found while diagnosing the report above, and it makes it worse: a covering EWR keeps a site non-autonomous whether or not it ever feeds it anything, so a blind AWACS holds sixteen batteries under network control and contributes nothing to waking them. Three hypotheses bounded — the once-read range filter, plain orbit geometry, the airborne wrapper — cheapest first

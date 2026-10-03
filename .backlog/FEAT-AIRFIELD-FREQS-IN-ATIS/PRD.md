@@ -49,3 +49,9 @@ when it has one for that field and it differs — named as the channel the pilot
 That needs a second, per-mission table: the scripts do not know the mission's radio plan, so the build
 hands them, per airdrome id, the `bases` channel that matches it (alias, title, frequencies), matched the
 way `content airfield-channels` matches them (`airfield_channels_manager.match_existing`). See ticket 03.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**the ATIS and the welcome brief give the airfield's own frequencies.** David, 2026-10-01, after FEAT-AIRFIELD-CHANNELS-FROM-DCS. `DCS.getATCradiosData` is not reachable from the mission scripts and `Airbase` has no frequency getter, so the captured reference is rendered as a Lua table loaded with the scripts (the `veafCities.lua` model); the welcome brief and the ATIS add the tower and TACAN, and — David's decision — also the mission's own `bases` channel when it differs. Three tickets

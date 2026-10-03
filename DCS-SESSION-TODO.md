@@ -4,8 +4,8 @@ Everything the backlog is waiting on that **needs DCS started** — nothing here
 keyboard on a workstation without the game. Each item says what to run, what to look at, and what it
 unblocks, so a session can be worked through without re-reading the whole backlog.
 
-**Tick a line off by deleting it**, and update the ticket it names. `.backlog/README.md` stays the
-source of truth for scope and status; this file is only the running order for a session in front of
+**Tick a line off by deleting it**, and update the ticket it names. The backlog indexes (`.backlog/README.md`)
+stay the source of truth for scope and status; this file is only the running order for a session in front of
 the game.
 
 Written 2026-08-12, reordered 2026-08-14 when items 0 and 0b arrived — they gate a release, so they

@@ -154,3 +154,9 @@ and Arco orbit well behind the line. Ask David what he expects before building a
 - The `onUnitDead` handler that emits the message for 1 — the log line quoted above is the exact
   string to grep for.
 - Reproduce on `combatZone_WahnerHeide` specifically, since that is where it was seen.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+a combat zone's panel and its completion disagree. Ownership turned out fine (ticket 01); the watched session found the **info panel blind to static targets**, fixed, and spawned vehicles now start warm — in-game check left. The dead-unit symptom that named the lot was CTLD logging at the wrong level (VEAF/CTLD#212)

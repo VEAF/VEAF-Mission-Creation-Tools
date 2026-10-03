@@ -60,3 +60,9 @@ new data set from the datamine) and 13 (Lua, radio menus per coalition).
 
 Each ticket that leaves a limitation unfixed adds it to `known-limitations.yaml` (`kind: tool`); the
 Open Training prompt loses the workarounds this lot makes unnecessary, in the same lot.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**what building the Syria Open Training v6 through the MCP found.** David, 2026-10-02: the « Retours pour VMCT » of the prompt, each checked against `develop`. Three made a wrong mission with no warning: `add_air_group` built unarmed escorts and gave the second tanker of a family another family's callsign (the group name is never read); `set_unit_properties` wrote `str(dict)` as a CLSID; `create_qra` writes `simple_groups` next to the scramble levels, where they never deploy and the YAML misleads (measured: the PRD's « every interceptor at the first intruder » was wrong). Then: surface check from the elevation grid, FARP ammo dump, FAC task, geocoder pace and place type, weapon ranges, DCS default loadouts, `${METAR}` for manual weather, `.gitignore`, circular sanctuary in YAML, ASSETS per coalition, compact `list_catalog`. 18 tickets (15-17 from the Caucasus findings; 18, CTLD JTAC codes, waits on VEAF/CTLD)

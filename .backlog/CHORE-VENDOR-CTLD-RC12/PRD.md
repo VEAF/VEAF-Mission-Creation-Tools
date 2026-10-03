@@ -63,3 +63,9 @@ initialises under the mocks".
 - The dcs-schema drift: a documentation/stub reference, not a shipped script; it gets its own sync.
 - Closing #618 by hand: the watcher closes it when nothing drifts any more — which the dcs-schema
   drift will prevent until that one is taken too.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**take CTLD `2.0.0-rc12`, reported by the drift watch on #618.** Verbatim, LF-normalised; the real diff is 91 lines. A reoccupied slot no longer inherits the previous pilot's flight state, `EXZ_<name>_<flag>_<smoke>` trigger zones become extraction zones, and — first time since ADR 0016 — the embedded configuration catalogue moves: the UH-1H stops carrying whole vehicles (troops 8 → 10), the Mi-8MT starts. Missions with no `ctld-config.yaml` or scaffolded from now on get it; an existing `ctld-config.yaml` keeps its values

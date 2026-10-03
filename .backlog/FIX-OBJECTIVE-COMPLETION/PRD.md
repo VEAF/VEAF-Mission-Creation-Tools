@@ -20,3 +20,9 @@ David's go: 2026-10-01 ("go").
 | 01 | [the event bus subscribes the destroyed-scenery register](tickets/01-subscribe-the-scenery-register.md) | ✅ |
 | 02 | [a destroyed static no longer counts in a combat zone](tickets/02-destroyed-static-does-not-count.md) | ✅ |
 | 03 | [test mission v3, with no workaround: every line YES](tickets/03-verify-in-game.md) | ✅ |
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a combat zone holding a static completes, and the destroyed-scenery register records.** Found in game on 2026-10-01 by the FEAT-OBJECTIVE-MISSION-PROMPT test mission: `StaticObject.getByName` still returns a destroyed static (`isExist` false, life 0) and the zone watchdog counted it, so a zone with a static never completed; and the register of destroyed map objects never subscribed to `S_EVENT_DEAD` since #836 (no mission lists MISSIONDB for its second init). Waiting on the v3 test mission

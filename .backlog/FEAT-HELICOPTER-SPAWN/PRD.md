@@ -139,3 +139,9 @@ on a scripted helicopter yet** — each role needs its own in-game reading, the 
 - [x] The limitation in `known-limitations.yaml` (airplanes only, now).
 - [x] #164 answered (2026-10-03), closed by the merge of #1050.
 - [ ] A helicopter spawned from a marker in game for each task — R24 for `parked`, `orbit`, `transport`; 05–06 for the rest.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**helicopters spawned from a marker, with a job.** #164 was never done: `_spawn unit` refused every aircraft and `_spawn group` filed a helicopter as an airplane, which DCS refuses (measured, R23). The ground path now lands it as a target, or gives it a job from the `veafAircraftSpawn` roles — `orbit`, `transport`, `patrol`, `attack`, `escort` — armed or not by its alias's loadout

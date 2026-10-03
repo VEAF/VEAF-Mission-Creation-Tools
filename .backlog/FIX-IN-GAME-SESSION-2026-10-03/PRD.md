@@ -75,3 +75,9 @@ R17's last line (a FAB-250 dropped over the Holzdorf sanctuary, no error), and t
 Two defects found during the run and fixed in the branch: the Skynet sweep fooled by a reused group id
 (ticket 03's real cause) and the FARP bearing walk ignoring forests. In passing, David saw Arco's escort
 engage the threats and rejoin formation.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**what a DCS session flown without a pilot found.** 2026-10-03, five missions built from `develop`, every check driven through the fiddle hook with AI stand-ins. 19 fixes seen working; two defects fixed here — marker smoke and flare colours named `RED` where DCS says `Red`, and a `logger:warning` that froze an AirWaves zone — and, in a second PR, the CAP watchdog that stacked a task per target per tick and could pop its own patrol (fixed), `_spawn signal` firing the smoke colour (fixed), `-cap` drawings (trace markers, wontfix), the editor stubs (not reproduced); a second in-game pass the same afternoon found the zone SAM's real cause — its respawn reuses the group id, so the old site's DCS object answers for the new one — and saw the QRA race-track back on its zone once the watchdog stopped chasing

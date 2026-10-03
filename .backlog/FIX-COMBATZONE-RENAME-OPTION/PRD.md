@@ -66,3 +66,9 @@ is exactly the defect `FIX-COMBATZONE-DEAD-SPAWN-RADIUS-DEFAULT` had just spent 
       test the reporter's own harness uses
 - [x] Documented in the combat-zone reference, **both languages**
 - [ ] Sharko told on #289, since he has been waiting since February 2025 — **David's to do**
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a combat zone always renames its units, and nothing can stop it.** Sharko's #289, open since February 2025: the renaming is useful on a finished map and gets in the way while debugging a `.miz`, since the original unit name is gone. Reclassified from `verify` to `still-valid` once the cause was found — `veafCombatZone.lua:1098` sets `vars.renameUnitsSequentially = true` **hard-coded**, and that identifier occurs exactly **once** in the whole runtime, so there is nothing to set. Becomes a zone-level `combat_zones:` key defaulting to today's behaviour, following the convention the five keys of `FIX-CONVERT-V5-SILENT-LOSSES` ticket 03 just established — a zone switch rather than a debug global, because a global is one more thing to remember to turn back off before shipping

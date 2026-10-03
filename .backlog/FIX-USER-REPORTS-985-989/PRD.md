@@ -34,3 +34,9 @@ R15, the group half of #953: the QRA's Su-27 pair, `hidden = true` in the editor
 by `coalition.addGroup`, never showed on a blue F10 map that did show a non-hidden red Shilka and
 red MiG-29S. DCS keeps `hidden` on a recreated **group**; it drops it on a recreated **static**
 (Tripack, 2026-09-19).
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**two user reports with no lot behind them.** #985: 14 shipped spawnables under `USA`/`France`/`USSR` instead of the side-locked CJTF countries, now pinned by a test. #989: no CSAR menu in a dynamic-slot helicopter since CSAR left MiST (6.18.0) — `csar.getGroupId` read the editor snapshot, it reads the live group. Also records #953's static half as a DCS behaviour (a scripted static ignores `hidden`)

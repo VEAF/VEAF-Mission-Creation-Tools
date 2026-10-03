@@ -101,3 +101,9 @@ from the reference) would work; recorded, not built.
   (266.0) Mozdok. Choosing a band clear of towers **on all seven theatres** is a decision of its
   own, and it moves callsigns on every mission — David's call, not opened here.
 - The two v6 missions still carry their invented series; fixing them belongs to their repositories.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**the radio plan's airfield channels are typed, not derived, and two v6 missions invented theirs.** Found in flight on 2026-10-01: Open Training Caucasus v6 puts Batumi on 270.3 where DCS's tower is on 260.0, 11 of 13 base channels wrong; GermanyCW v6 the same with 9 of 12, both carrying an invented `270.x` series. The reference was wrong too (corrected 2026-10-01 during the lot: it parsed `Radio.lua`, which the Mission Editor only reads as a fallback — Persian Gulf got one VHF frequency per field where the editor shows four — and keyed fields by radio callsign); and the default `airports-*` collections are hand-written and have drifted from it: 8 channels for Caucasus's 21 fields, Sanliurfa at 251.6 instead of 252.7, no name matching at all on Persian Gulf, and nothing for GermanyColdWar, Normandy, Sinai or the Marianas. Measured across 56 presets.yaml and 3 658 airfield channels: the ten Foothold missions and Open Training v5 are at 0 wrong, so this is a v6 authoring defect, not a data one. Two tickets: generate the collections from the reference in the same command, and a CLI + MCP tool that reads a mission, lists the fields it uses (blue and red) and writes the channels it deserves — 392 airfields do not fit in twenty presets. Recorded but not opened: eight VEAF tactical channels sit on real Caucasus towers (Arco 1 is Krasnodar's, Magic 1 is Nalchik's)

@@ -77,3 +77,9 @@ still has no in-game check on the QRA side.
 - **Found beside it:** an AIRWAVES wave whose `groups` is a YAML list went through `str()` and reached
   the runtime as the single group `"['su27-a', 'su27-b']"`. It is now a Lua table. The AirWaves page
   said a string could be "space-separated"; the runtime never split it, and the page now says so.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**two ways a QRA config is accepted and then ignored.** `validate` refuses a VEAF command in a QRA deploy list — it checks every entry against the mission's group names — although `veafQraCore` routes exactly that form to the interpreter; AIRWAVES waves are not collected at all, so the same syntax passes there. And `respawn_default_offset` is emitted only inside the AirWaveZone builder, so a QRA declaring one gets no error, no warning and no offset, although `VeafQRACore:setRespawnDefaultOffset` exists. Found 2026-09-01 preparing gate item R7, which had to fall back to an editor group because the build would not produce the mission — which is also why nobody ever reported the easting defect #884 repaired. Fixed 2026-09-29; R7 of `DCS-SESSION-TODO.md` is the in-game reading

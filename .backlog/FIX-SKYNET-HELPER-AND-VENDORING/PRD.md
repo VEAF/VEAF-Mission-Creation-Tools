@@ -77,3 +77,9 @@ is what ticket 04 is about — read it before touching `vendored.yaml`.
       which is exactly what let CTLD rc8 through and killed every radio menu (#957).
 - [x] `poetry run test-lua` green (49 suites).
 - [ ] The in-game reading of ticket 03, which also closes `FEAT-SPOTTER-NETWORK`. **Needs DCS.**
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**the VMCT half of The Reaper's report of 2026-09-17.** A SAM held by the network has its emission cut, so it only lights up when an EWR that covers it hands it a contact: fly under their horizon and nothing reacts, kill them and everything reverts to the DCS AI and engages. Measured on his log: 7 933 SAM status lines dark, **zero** ever lit in 24 minutes. The fix itself lives in VEAF/Skynet-IADS, which VEAF now maintains — this lot carries the VMCT side: removing two dead actAsEW reset blocks left over from a behaviour dropped in 2022, the documentation of what a network SAM actually sees, and vendoring the new Skynet version with its month of upstream work. **Unblocked 2026-09-21**: [Skynet 3.5.0](https://github.com/VEAF/Skynet-IADS/releases/tag/v3.5.0) is released, and a fourth ticket was added for a drift watch that can no longer fire — it points at the artifact Skynet stopped committing, so its `drifted` reading is the file's own deletion and the next release would pass unnoticed. **Built 2026-09-21**: both sweeps gone with a test that fails on the old code, 3.5.0 vendored from the release asset (the `stylua` pass earns its keep — 843 changed lines against 9 085 raw), five new `modules.SKYNET` keys for the last line of defence, the documentation of what a network SAM actually sees in both languages, and the watch moved to GitHub releases and proved able to fire. Only the in-game reading is left, and it needs DCS

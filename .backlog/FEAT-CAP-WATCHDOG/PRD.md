@@ -62,3 +62,9 @@ names the group `<template> #NNNN` (`veafSpawnAircraft.lua`) and its message —
 - [ ] CHANGELOG under `[Unreleased]`.
 - [ ] In-game check of the watchdog changes (they cannot be settled by mocks).
 - [ ] #178 and #187 closed, pointing here.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**remove a spawned CAP by a handle, and a watchdog that picks its fights** ([#178](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/178), [#187](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/187)). Both 2023 requests were parked behind Mission B of `CHORE-ISSUE-VERIFY-SESSION`, which is closed: #209 not reproducible, #240 fixed on its own. Today a `-cap` group is named `<template> #NNNN` and nobody is told; the watchdog ranks by type and distance only and tasks the whole group onto one target, aircraft only. Four tickets: a removal handle, shared targets, aspect and a priority cut-off, and a decision on cruise missiles and escorts. Read `FIX-IN-GAME-SESSION-2026-10-03` ticket 04 first — same function

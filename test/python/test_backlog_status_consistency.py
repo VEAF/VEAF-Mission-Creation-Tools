@@ -1,6 +1,6 @@
 """A lot's status is written in three places; they must agree.
 
-`.backlog/README.md` carries one row per lot, `<LOT>/PRD.md` carries a `Status:` header and often a
+An index carries one entry per lot, `<LOT>/PRD.md` carries a `Status:` header and often a
 scope table with one row per ticket, and each `tickets/NN-*.md` carries its own `Status:` header.
 Nothing checked that the three tell the same story, and on 2026-08-10 that cost four separate
 corrections in one day — the last of them inside the very commit that called the pattern out and
@@ -14,6 +14,11 @@ Two holes, closed after review: nothing may **silently opt out** of a check. A m
 line and an unrecognised icon both used to make a file or a row invisible, which is the failure mode
 this gate exists to remove — the same one that let a coverage rule pass while extracting zero names
 and a link checker compensate for a defect instead of reporting it.
+
+Since CHORE-BACKLOG-INDEX-SPLIT (2026-10-03) the index is three files — `ACTIVE.md`, `READY.md`,
+`DONE.md` — and `README.md` is a front page listing them. That adds two ways to be wrong, both checked
+here: a lot filed in the index of another status (closed, and never moved to `DONE.md`), and a front
+page whose counts or lists no longer match the indexes.
 """
 
 from __future__ import annotations
@@ -28,8 +33,17 @@ BACKLOG = Path(__file__).parents[2] / ".backlog"
 STATUS_ICONS = "⬜🔄🧑⏸✅🚫"
 _ICON = re.compile(f"[{STATUS_ICONS}]")
 
-#: `| [LOT-ID](LOT-ID/PRD.md) — prose … | ✅ |`
-_INDEX_ROW = re.compile(r"^\| \[([A-Z0-9-]+)\]\(")
+#: `### [LOT-ID](LOT-ID/PRD.md) · ✅` — the heading of a lot's paragraph in an index.
+_INDEX_ENTRY = re.compile(r"^### \[([A-Z0-9-]+)\]\([^)]*\) · (.*)$")
+
+#: Which statuses each index holds. Archived lots are files under `archive/`, in its own README.
+INDEXES = {"ACTIVE.md": "🔄🧑⏸", "READY.md": "⬜", "DONE.md": "✅🚫"}
+
+#: `## [Active lots](ACTIVE.md) — 25`, the front page's heading for one index.
+_FRONT_HEADING = re.compile(r"^## \[[^\]]+\]\(([A-Z]+\.md)\) — (\d+)$")
+#: `- **🧑 Waiting for a human (21)** — [LOT](LOT/PRD.md) · …`, one line per status.
+_FRONT_LINE = re.compile(r"^- \*\*(\S+) [^(]+\((\d+)\)\*\* — (.*)$")
+_LOT_LINK = re.compile(r"\[([A-Z0-9-]+)\]\(\1/PRD\.md\)")
 
 #: A data row of a scope table: its first cell is the ticket number.
 _TICKET_ROW = re.compile(r"^\|\s*(\d{2})\s*\|")
@@ -68,15 +82,35 @@ def _header_status(path: Path) -> str | None:
     return None
 
 
+def _index_entries() -> list[tuple[str, str, str | None]]:
+    """Return `(index file, lot, status icon)` for every lot heading of the three indexes."""
+    entries = []
+    for name in INDEXES:
+        for line in (BACKLOG / name).read_text(encoding="utf-8").split("\n"):
+            match = _INDEX_ENTRY.match(line)
+            if match:
+                entries.append((name, match.group(1), _sole_icon(match.group(2))))
+    return entries
+
+
 def _index_statuses() -> dict[str, str | None]:
-    """Return the status icon of every lot row in the backlog index."""
-    result: dict[str, str | None] = {}
+    """Return the status icon each lot carries in the indexes."""
+    return {lot: icon for _, lot, icon in _index_entries()}
+
+
+def _front_page() -> dict[str, tuple[int, dict[str, tuple[int, list[str]]]]]:
+    """Return, per index file, the front page's total and `{icon: (stated count, listed lots)}`."""
+    result: dict[str, tuple[int, dict[str, tuple[int, list[str]]]]] = {}
+    current: str | None = None
     for line in (BACKLOG / "README.md").read_text(encoding="utf-8").split("\n"):
-        match = _INDEX_ROW.match(line)
-        if not match:
+        heading = _FRONT_HEADING.match(line)
+        if heading:
+            current = heading.group(1)
+            result[current] = (int(heading.group(2)), {})
             continue
-        cells = _cells(line)
-        result[match.group(1)] = _sole_icon(cells[-1]) if cells else None
+        status = _FRONT_LINE.match(line)
+        if status and current in result:
+            result[current][1][status.group(1)] = (int(status.group(2)), _LOT_LINK.findall(status.group(3)))
     return result
 
 
@@ -150,10 +184,58 @@ def _scope_rows(prd: Path) -> dict[str, str | None]:
 
 
 class TestEveryLotIsListed(unittest.TestCase):
-    def test_each_active_lot_has_an_index_row(self) -> None:
+    def test_each_active_lot_has_an_index_entry(self) -> None:
         listed = set(_index_statuses())
         missing = sorted(lot.name for lot in _active_lots() if lot.name not in listed)
-        self.assertEqual(missing, [], f"lots with no row in .backlog/README.md: {missing}")
+        self.assertEqual(missing, [], f"lots in no index (ACTIVE.md, READY.md, DONE.md): {missing}")
+
+    def test_each_lot_is_listed_once(self) -> None:
+        seen: dict[str, list[str]] = {}
+        for name, lot, _ in _index_entries():
+            seen.setdefault(lot, []).append(name)
+        twice = {lot: names for lot, names in seen.items() if len(names) > 1}
+        self.assertEqual(twice, {}, f"lots listed more than once: {twice}")
+
+    def test_each_index_entry_has_a_lot_directory(self) -> None:
+        on_disk = {lot.name for lot in _active_lots()}
+        dangling = sorted(lot for _, lot, _ in _index_entries() if lot not in on_disk)
+        self.assertEqual(dangling, [], f"index entries with no `.backlog/<LOT>/` (archived? renamed?): {dangling}")
+
+    def test_each_lot_sits_in_the_index_of_its_status(self) -> None:
+        """A lot closed and never moved to DONE.md, or picked up and left in READY.md, is filed wrong."""
+        misfiled = []
+        for name, lot, _ in _index_entries():
+            prd = BACKLOG / lot / "PRD.md"
+            status = _header_status(prd) if prd.exists() else None
+            if status is not None and status not in INDEXES[name]:
+                expected = next(index for index, icons in INDEXES.items() if status in icons)
+                misfiled.append(f"{lot} is {status} but listed in {name}, belongs in {expected}")
+        self.assertEqual(misfiled, [], "\n  ".join(misfiled))
+
+
+class TestTheFrontPageAgreesWithTheIndexes(unittest.TestCase):
+    """`README.md` restates each index as a count and a list; both go stale without a check."""
+
+    def test_every_index_has_a_front_page_section(self) -> None:
+        self.assertEqual(sorted(_front_page()), sorted(INDEXES))
+
+    def test_the_front_page_lists_exactly_the_lots_of_each_status(self) -> None:
+        by_status: dict[str, list[str]] = {}
+        for _, lot, icon in _index_entries():
+            by_status.setdefault(icon or "?", []).append(lot)
+        drift = []
+        for name, (total, lines) in _front_page().items():
+            for icon in INDEXES[name]:
+                stated, listed = lines.get(icon, (-1, []))
+                actual = sorted(by_status.get(icon, []))
+                if sorted(listed) != actual:
+                    drift.append(f"{name} {icon}: front page lists {sorted(listed)}, index has {actual}")
+                if stated != len(actual):
+                    drift.append(f"{name} {icon}: front page says {stated}, index has {len(actual)}")
+            expected_total = sum(len(by_status.get(icon, [])) for icon in INDEXES[name])
+            if total != expected_total:
+                drift.append(f"{name}: front page total {total}, index has {expected_total}")
+        self.assertEqual(drift, [], "README.md disagrees with the indexes:\n  " + "\n  ".join(drift))
 
     def test_each_active_lot_has_a_prd(self) -> None:
         missing = sorted(lot.name for lot in _active_lots() if not (lot / "PRD.md").exists())
@@ -181,9 +263,9 @@ class TestNothingOptsOutSilently(unittest.TestCase):
             + "\n  ".join(offenders),
         )
 
-    def test_every_index_row_declares_a_known_status(self) -> None:
+    def test_every_index_entry_declares_a_known_status(self) -> None:
         offenders = sorted(lot for lot, icon in _index_statuses().items() if icon is None)
-        self.assertEqual(offenders, [], f"index rows whose status cell is not a lone known icon: {offenders}")
+        self.assertEqual(offenders, [], f"index headings whose status is not a lone known icon: {offenders}")
 
     def test_every_scope_row_declares_a_known_status(self) -> None:
         offenders = []
@@ -207,7 +289,7 @@ class TestTheIndexAgreesWithThePrd(unittest.TestCase):
                 continue
             row, header = index.get(lot.name), _header_status(prd)
             if row != header:
-                drift.append(f"{lot.name}: index row {row} vs PRD header {header}")
+                drift.append(f"{lot.name}: index entry {row} vs PRD header {header}")
         self.assertEqual(drift, [], "the index and the PRD disagree:\n  " + "\n  ".join(drift))
 
 

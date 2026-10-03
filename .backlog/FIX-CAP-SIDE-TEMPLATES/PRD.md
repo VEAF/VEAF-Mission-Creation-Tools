@@ -69,3 +69,9 @@ From `FIX-IN-GAME-SESSION-2026-10-03`.
 
 Ten `_spawn cap, side red`: Su-30, MiG-25PD, MiG-29S, MiG-29A, Mirage 2000-5, Mirage F1EE, MiG-21Bis
 ×2, MiG-23MLD, JF-17 — red templates only.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a red `-cap` draws red templates (#240).** The `veafSpawn-` templates of every side went into one pool and the drawn one spawned in the requester's country: on the shipped catalogue a red `-cap` drew from 51 templates, 29 of them western — 7 out of 10 in game, two of them F-15Cs that only blue holds. `-cap` and `-afac` now draw from their own side, falling back to every side when theirs has none. Same PR: the vendored DCS schema to `v0.4.0` (upstream fixed its `country.name` off-by-one) and the #1007 references corrected to this repository. Merged in #1052; the in-game check is R32

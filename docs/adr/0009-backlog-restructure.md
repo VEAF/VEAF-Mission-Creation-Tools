@@ -23,7 +23,8 @@ Adopt a per-lot `.backlog/` structure:
 - The Matt Pocock skills stay globally installed and unmodified; per-repo config
   under `docs/agents/*` plus an `## Agent skills` block in `CLAUDE.md` adapts them
   to this backlog.
-- The lot index `.backlog/README.md` is maintained by hand (no generator script).
+- The lot index `.backlog/README.md` is maintained by hand (no generator script). *Amended by
+  [ADR 0020](0020-backlog-index-by-status.md): one index per status, the README a front page.*
 - ROADMAP remains the **sequencing** source of truth; `.backlog/` is the **scope +
   status** source of truth.
 

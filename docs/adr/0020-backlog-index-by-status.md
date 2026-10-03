@@ -14,8 +14,8 @@ large slice of its context for every backlog question.
 
 ## Decision
 
-- Every lot on disk sits in the index of its status, as a heading `### [LOT](LOT/PRD.md) · <icon>`
-  and a one- or two-line summary: `ACTIVE.md` (🔄 in progress, 🧑 waiting for a human, ⏸ paused in a
+- Every lot on disk sits in the index of its status, as a `###` heading holding the link to
+  its `PRD.md` and its status icon, then a one- or two-line summary: `ACTIVE.md` (🔄 in progress, 🧑 waiting for a human, ⏸ paused in a
   section of its own), `READY.md` (⬜), `DONE.md` (✅, 🚫 — until archived).
 - `.backlog/README.md` is a front page: per index, a count per status and the list of links.
 - Archived lots keep their former table, moved unchanged to `.backlog/archive/README.md` (David: not

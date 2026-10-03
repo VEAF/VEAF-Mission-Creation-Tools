@@ -6,9 +6,12 @@
 # aussi de faire grossir `veaf-tools.exe` de plusieurs dizaines de mega-octets
 # pour une interface que la plupart de ses utilisateurs n'ouvriront jamais.
 #
-#   poetry run pyinstaller veaf-logs.spec
+#   poetry run veaf-build build-logs --version x.y.z
 #
-# Produit `dist/veaf-logs.exe` sous Windows, `dist/veaf-logs` ailleurs.
+# Produit `dist/veaf-logs.exe` sous Windows, `dist/veaf-logs` ailleurs. Un appel
+# direct a `pyinstaller veaf-logs.spec` marche aussi, mais le rapport de
+# diagnostic dira `tool.version: unknown` : seul `veaf-build` inscrit la version
+# dans `veaf_tools/_version.py` le temps de la construction.
 
 from pathlib import Path
 

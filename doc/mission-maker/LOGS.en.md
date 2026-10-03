@@ -47,7 +47,9 @@ servers:
 ```
 
 The menu then offers `veaf › private1`, `veaf › public1`… Each instance opens a
-`veaf:private1` tab, reopened at the next launch like a local file.
+`veaf:private1` tab, reopened at the next launch like a local file — once the
+window is up, in its place among the tabs: each connection takes a second or two,
+and the window does not wait for them.
 
 **Key authentication only.** The tool never asks for, reads or stores a password.
 When the machine's key is not yet in `~/.ssh/known_hosts`, a dialog shows its

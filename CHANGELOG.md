@@ -268,6 +268,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A combat zone's air defence leaves the Skynet network when the zone is deactivated.** Its respawn
   reuses the group's DCS id, and the old site's object then answered for the new one, so the network
   kept one more site after each deactivation. Found in game on 2026-10-03.
+- **`veaf-logs` opens its window in about 2 s instead of 10.** It reconnected to every remote log of
+  the last session — an SSH connection and a copy of the log each — before showing anything: three
+  remote tabs cost 8 s. The window now comes up first, and the remote tabs reopen one after the other,
+  each in its place. Its diagnostic report also gives the real version: every shipped `veaf-logs`
+  said `tool.version: unknown`, the release having built it after the version was reset; the release
+  now builds it with `veaf-build build-logs`. And running the tests no longer overwrites the
+  `veaf-logs` session of whoever runs them.
 
 ## [6.26.0] — 2026-09-30
 

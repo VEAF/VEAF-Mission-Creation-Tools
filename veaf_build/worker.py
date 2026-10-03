@@ -634,6 +634,41 @@ class BuildAndReleaseWorker:
         finally:
             self._restore_version_py(version_py_path)
 
+    def build_veaf_logs(self) -> Path:
+        """Build ``veaf-logs`` from its own recipe, with the build version stamped in.
+
+        The log viewer's report reads its version from ``veaf_tools._version``, which only
+        holds a real value while ``veaf-build`` has it stamped: built after ``veaf-build build``
+        restored the stub, every shipped report said ``tool.version: unknown``
+        (FIX-LOGS-EXE-STARTUP-AND-VERSION). ``dist/`` is left alone, since the release builds
+        ``veaf-tools`` into it first.
+
+        Returns:
+            Path to the executable in ``dist/`` (``veaf-logs.exe`` on Windows).
+
+        Raises:
+            typer.Abort: PyInstaller is missing or the build failed (``_version.py`` is restored first).
+        """
+        if not self.version:
+            self.version = self.resolve_auto_version()
+            logger.info(f"Version not specified, auto-computed: {self.version}")
+        version_py_path = self._version_py_path
+        try:
+            self._write_version_py(version_py_path)
+            cmd = ["pyinstaller", "veaf-logs.spec", "--noconfirm"]
+            logger.debug(f"Running PyInstaller: {' '.join(cmd)}")
+            try:
+                with spinner_context("Building veaf-logs executable..."):
+                    result = subprocess.run(cmd, cwd=str(self.script_root), capture_output=True, text=True)
+            except FileNotFoundError:
+                logger.error("PyInstaller not found: install the build group (`poetry install --with build`)")
+            if result.returncode != 0:
+                logger.debug(f"PyInstaller stderr:\n{result.stderr}")
+                logger.error(f"PyInstaller build failed for veaf-logs with exit code {result.returncode}")
+        finally:
+            self._restore_version_py(version_py_path)
+        return self.dist_dir / ("veaf-logs.exe" if sys.platform == "win32" else "veaf-logs")
+
     def _build_pyinstaller_executable(  # sourcery skip: extract-method
         self,
         name: str,

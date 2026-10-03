@@ -226,6 +226,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `dcs.log`) when none of those matches. The shipped red
   templates still include Mirage F1 and Mirage 2000 adversaries, on purpose; `-cap mig` keeps to
   MiGs.
+- **Support bot: a function name read from a trace is checked whole.** `find_callers` validated only
+  the last dotted segment, so `x(); import os; os.system` passed as `system` and listed every
+  `system (` in the checkout as a caller. Harmless — the name only ever reaches an escaped regex —
+  but its test was green by luck, and turned red the day a file held that text.
 
 ## [6.26.0] — 2026-09-30
 

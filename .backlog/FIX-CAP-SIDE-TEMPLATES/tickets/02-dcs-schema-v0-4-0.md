@@ -20,3 +20,11 @@ Re-download `dcs-world-api-schema.json` and `dcs-world-api.lua` verbatim, bump `
 
 `v0.4.0` changes types (PascalCase task ids, typed ids). That reaches only LuaLS hints in a
 contributor's editor through `.luarc.json`; no CI step reads the annotations.
+
+## What the bump exposed
+
+The support bot's `find_callers` validated only the last dotted segment of a function name, so its
+test feeding `convert_fixture(); import os; os.system` searched for `system(`. It stayed green only
+while no file in the checkout held that text; `v0.4.0` has one in a comment (`Link 4 system (label
+only)`), and the bot's `quality` job went red on this PR. Fixed in `traces.py`: every segment must
+be an identifier.

@@ -30,6 +30,10 @@ Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, 
 
 A command-driven air wave (and the same branch in QRA) spawned with a nil easting, being handed a vec2 where a vec3 was expected. Fixed; the in-game look (ticket 02) is left.
 
+### [FIX-COMBATMISSION-UNKNOWN-NAME](FIX-COMBATMISSION-UNKNOWN-NAME/PRD.md) · 🧑
+
+Activating or deactivating a combat mission by a name the registry does not know — the bare name of an on-demand CAP — raised a Lua error instead of reporting it on screen. Fixed; the in-game look (R34) is left.
+
 ### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · 🧑
 
 A combat zone's info panel and its completion disagreed: the panel was blind to static targets (fixed) and spawned vehicles now start warm. Ticket 02's in-game check is left.

@@ -275,6 +275,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   said `tool.version: unknown`, the release having built it after the version was reset; the release
   now builds it with `veaf-build build-logs`. And running the tests no longer overwrites the
   `veaf-logs` session of whoever runs them.
+- **Activating a combat mission by a name it does not know reports it on screen instead
+  of raising a Lua error.** The bare name of an on-demand CAP is such a name, since each CAP is registered per
+  skill and size (`TEST-T17 CAP/good/2`): on 2026-10-03, `ActivateMission("TEST-T17 CAP")` raised
+  `attempt to index local 'mission' (a nil value)`. Deactivating, describing and checking a mission
+  had the same defect, and deactivating one by its number raised on every call.
 
 ## [6.26.0] — 2026-09-30
 

@@ -30,6 +30,12 @@ were run and are removed below; the results are in the lots and in
 are rewritten to what is left. The missions are in `D:\dev\_VEAF\tmp\dcs-session-2026-10-03\`, with
 the plan and a `fiddle.sh` that runs a Lua file in the live mission.
 
+**Second pass prepared 2026-10-03 afternoon** — `D:\dev\_VEAF	mp\dcs-session-2026-10-03b\`, built
+from branch `fix/in-game-session-2026-10-03-followups`, plan in `SESSION-DCS-2026-10-03b.md`: the
+#1054 colours and AirWaves fixes never seen in game, R7 (QRA half), R9 (the new floor), R17 (last
+line), R19 (the escort beside its own props), and tickets 03, 04 and 06 of
+`FIX-IN-GAME-SESSION-2026-10-03`.
+
 
 ### R4. The `100` (`SmallSizeFighter`) parking type
 
@@ -76,6 +82,12 @@ Four disconnects overnight (private1 ×2, private2, public1): DCSServerBot logs 
 `change_slot` in the same second every time — the order is unchanged. Whether the player info is nil
 at the second call no longer shows in these logs (the hook writes it at `debug`). Four cases on a
 quiet night: count again after an ordinary evening before touching `known-limitations.yaml`.
+
+**Second reading, 2026-10-03 14:15**: five real departures since 2.9.30 (private1 ×3, private2,
+public1), each `onGameEvent(disconnect)` then `onGameEvent(change_slot)` in the same millisecond, and
+no `_playerDetails is nil` warning from the VEAF hook. Still unchanged, still few: an ordinary
+evening is what is missing. The hundreds of `ASYNCNET … Client connect timeout` lines are aborted
+connections, not players — do not count them.
 
 ### ✅ R23. How does DCS keep a scripted helicopter on the ground? — **run 2026-10-02**
 

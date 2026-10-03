@@ -16,6 +16,10 @@ The ATIS and the welcome brief give the airfield's own tower and TACAN frequenci
 
 Rebuild QRA on AirWaves instead of beside it (~120 KB of neighbouring Lua), closing six AirWaves issues in one design. A design lot before any refactor.
 
+### [FEAT-AWACS-ESCORT-COMMANDS](FEAT-AWACS-ESCORT-COMMANDS/PRD.md) · ⬜
+
+`-awacs` and `-escortme` (#188, #189). Unblocked: the escort mechanism they rely on was fixed (#107) or never broken (#101).
+
 ### [FEAT-CAP-WATCHDOG](FEAT-CAP-WATCHDOG/PRD.md) · ⬜
 
 A handle to remove a spawned CAP (#178), and a watchdog that spreads targets, weighs aspect and has a priority cut-off (#187). Four tickets; the 2026-10-03 task fix it builds on is merged.

@@ -1,7 +1,6 @@
 # FIX-IN-GAME-TEST-FINDINGS — what the first in-game test of an MCP-built mission found
 
-Status: 🧑 waiting-human — opened 2026-09-28; all five tickets fixed 2026-09-29, one PR. What is
-left is the in-game reading: item R17 of `DCS-SESSION-TODO.md`.
+Status: ✅ done — all five tickets fixed 2026-09-29; verified in game 2026-10-03 (R17) except ticket 03's case of an unguided weapon near a sanctuary, which was not flown — covered by unit tests only
 
 ## Origin
 

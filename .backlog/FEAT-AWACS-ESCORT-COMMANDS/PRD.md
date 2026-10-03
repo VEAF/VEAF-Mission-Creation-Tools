@@ -1,6 +1,6 @@
 # FEAT-AWACS-ESCORT-COMMANDS — `-awacs` and `-escortme`
 
-Status: 🧑 waiting-human — blocked on `CHORE-ISSUE-VERIFY-SESSION`, see *Why it waits*.
+Status: ⬜ ready — unblocked 2026-10-03: Mission D of `CHORE-ISSUE-VERIFY-SESSION` answered both escort bugs — #107 confirmed then fixed by `FIX-ESCORT-RESPAWN-DISTANCE` (verified in game, R5), #101 not reproducible; both issues closed
 
 Origin: [#188](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/188) (`-awacs`) and
 [#189](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/189) (`-escortme`). Grouped: both

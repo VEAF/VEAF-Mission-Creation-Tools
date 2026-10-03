@@ -58,6 +58,10 @@ A red `-cap` drew from every side's templates, 7 in 10 of them western; `-cap` a
 
 A `clearsky` variant's `${METAR}` announced the uncapped published sky; it is now composed from the capped weather.
 
+### [FIX-CONVERT-V5-SILENT-LOSSES](FIX-CONVERT-V5-SILENT-LOSSES/PRD.md) · ✅
+
+`convert-v5` silently dropped settings: multi-line `setBriefing` truncated the chain, six `combat_zones` setters had no key. Shipped in 6.15; closed without Sharko's harnesses, which never came.
+
 ### [FIX-ESCORT-RESPAWN-DISTANCE](FIX-ESCORT-RESPAWN-DISTANCE/PRD.md) · ✅
 
 A respawned asset reappeared ~80 km from its escort; the escort now respawns with its charge. Verified in game (R5).
@@ -65,6 +69,10 @@ A respawned asset reappeared ~80 km from its escort; the escort now respawns wit
 ### [FIX-IN-GAME-SESSION-2026-10-03](FIX-IN-GAME-SESSION-2026-10-03/PRD.md) · ✅
 
 What a pilotless DCS session found: colour names, a freezing `logger:warning`, the CAP watchdog's task pile-up, `_spawn signal`, and the zone SAM respawn id (#1054, #1055).
+
+### [FIX-IN-GAME-TEST-FINDINGS](FIX-IN-GAME-TEST-FINDINGS/PRD.md) · ✅
+
+The first in-game test of an MCP-built mission: statics without `shape_name`, zones initialised twice, sanctuary weapon check, CTLD sample names, no cities. Fixed; verified in game (R17), the sanctuary case by tests only.
 
 ### [FIX-LOGS-EXE-STARTUP-AND-VERSION](FIX-LOGS-EXE-STARTUP-AND-VERSION/PRD.md) · ✅
 
@@ -78,13 +86,29 @@ A combat zone holding a static never completed, and the destroyed-scenery regist
 
 A module's `logLevel:` never applied because nothing called `veaf.initialize()`. Fixed; verified in game (R18).
 
+### [FIX-PLACEMENT-IGNORES-SCENERY](FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) · ✅
+
+Ground units placed inside buildings and forests, and a crowded FARP giving up silently. All tickets shipped; the probe sweep (R16) and the `-farp` refusal (R19) verified in game.
+
 ### [FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND](FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md) · ✅
 
 A FARP escort moved even on free ground; it now checks the wanted spot itself and stands beside its own FARP's props (#1055).
 
+### [FIX-QRA-COMMANDS-AND-OFFSET](FIX-QRA-COMMANDS-AND-OFFSET/PRD.md) · ✅
+
+A QRA config accepted then ignored: VEAF commands refused by `validate` in deploy lists, and `respawn_default_offset` never emitted. Fixed; verified in game (R7, QRA half).
+
+### [FIX-SKYNET-ADDS-DESTROYED-GROUPS](FIX-SKYNET-ADDS-DESTROYED-GROUPS/PRD.md) · ✅
+
+The IADS enrolled groups a combat zone had just destroyed (#946). Verified in game (R14); the deactivated-zone half closed by the 2026-10-03 session lot (#1055).
+
 ### [FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING](FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md) · ✅
 
 A SAM site went dark every other Skynet cycle and never launched; fix proposed upstream and verified in game (R1).
+
+### [FIX-TUTORIAL-FIRST-RUN](FIX-TUTORIAL-FIRST-RUN/PRD.md) · ✅
+
+Paluche's first run through the walkthrough: three steps that could not be followed, plus zone smoke that never appeared. Shipped in #908; the smoke verified in game (R12).
 
 ### [FIX-USER-REPORTS-985-989](FIX-USER-REPORTS-985-989/PRD.md) · ✅
 

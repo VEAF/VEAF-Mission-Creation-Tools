@@ -1,6 +1,6 @@
 # FIX-QRA-COMMANDS-AND-OFFSET — two ways a QRA config is accepted and then ignored
 
-Status: 🧑 waiting-human — fixed 2026-09-29; R7 of `DCS-SESSION-TODO.md` is the in-game reading.
+Status: ✅ done — fixed 2026-09-29; the QRA half of R7 verified in game 2026-10-03 afternoon (a bracketed command and a bare one, each where it should land). The AirWaves half of R7 belongs to `FIX-AIRWAVES-COMMAND-EASTING`
 
 Found 2026-09-01 while preparing the DCS session mission for release-gate item **R7**. Both defects
 sit between `mission.yaml` and the runtime, and both are silent: nothing in the build says the

@@ -22,10 +22,6 @@ The Open Training and objective-mission prompts ask for both the Stennis and the
 
 What `FEAT-ASSIST-CHECKLISTS` left open: content-hashed resource names (DCS caches images by name), two pilots at once, and a pilot's review of the F-16C slice. Kept for after a release.
 
-### [FEAT-AWACS-ESCORT-COMMANDS](FEAT-AWACS-ESCORT-COMMANDS/PRD.md) · 🧑
-
-`-awacs` and `-escortme` (#188, #189). Blocked on proving the escort mechanism actually defends (#101, #107); the AWACS half could ship first.
-
 ### [FEAT-CTLD-AIRBASE-LOGISTICS](FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md) · 🧑
 
 Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, captured ones after two minutes of ground presence, marked by a green circle. Left: the loading check at Ramstein, in game.
@@ -42,25 +38,9 @@ A combat zone's info panel and its completion disagreed: the panel was blind to 
 
 A combat zone always renames its units (`renameUnitsSequentially` hard-coded), which hides the editor names while debugging (#289). To become a zone-level `combat_zones:` key.
 
-### [FIX-CONVERT-V5-SILENT-LOSSES](FIX-CONVERT-V5-SILENT-LOSSES/PRD.md) · 🧑
-
-`convert-v5` silently dropped settings: multi-line `setBriefing` truncated the chain, six `combat_zones` setters had no key. All five tickets shipped 2026-08-17; waits on Sharko's two harnesses.
-
-### [FIX-IN-GAME-TEST-FINDINGS](FIX-IN-GAME-TEST-FINDINGS/PRD.md) · 🧑
-
-The first in-game test of an MCP-built mission (GermanyCW-v6): statics without `shape_name`, zones initialised twice, sanctuary weapon check, CTLD sample names, no cities. All fixed; R17 is the in-game reading.
-
 ### [FIX-OPEN-TRAINING-SYRIA-FINDINGS](FIX-OPEN-TRAINING-SYRIA-FINDINGS/PRD.md) · 🧑
 
 What building the Syria Open Training v6 through the MCP found: callsigns, loadouts, QRA simple groups, FARP ammo, FAC task, METAR and more — 17 of 18 tickets done; 18 (JTAC codes) waits on VEAF/CTLD.
-
-### [FIX-PLACEMENT-IGNORES-SCENERY](FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) · 🧑
-
-Ground units placed inside buildings and forests, and a crowded FARP giving up silently. Most tickets merged; ticket 12 (probe sweep) waits on R16 and ticket 04 (`-farp` refused) on R19.
-
-### [FIX-QRA-COMMANDS-AND-OFFSET](FIX-QRA-COMMANDS-AND-OFFSET/PRD.md) · 🧑
-
-A QRA config accepted then ignored: VEAF commands refused by `validate` in deploy lists, and `respawn_default_offset` never emitted. Fixed 2026-09-29; R7 is the in-game reading.
 
 ### [FIX-RELAY-RENDERS-MARKDOWN](FIX-RELAY-RENDERS-MARKDOWN/PRD.md) · 🧑
 
@@ -78,10 +58,6 @@ What building Open Training Germany CW from an empty folder found (weather, sola
 
 A private1 session where a level-99 pilot could not activate a zone, plus traceback-raising chat commands and log noise. Merged in #1032 and deployed; ticket 01's in-game check is left.
 
-### [FIX-SKYNET-ADDS-DESTROYED-GROUPS](FIX-SKYNET-ADDS-DESTROYED-GROUPS/PRD.md) · 🧑
-
-The IADS enrolled groups a combat zone had just destroyed (#946), so a respawned site could never rejoin. Start-up half verified (R14); a deactivated zone's site is followed in the 2026-10-03 session lot.
-
 ### [FIX-SKYNET-HELPER-AND-VENDORING](FIX-SKYNET-HELPER-AND-VENDORING/PRD.md) · 🧑
 
 The VMCT half of The Reaper's report: dead actAsEW blocks removed, what a network SAM sees documented, Skynet 3.5.0 vendored, drift watch repaired. Only ticket 03's in-game reading is owed.
@@ -89,10 +65,6 @@ The VMCT half of The Reaper's report: dead actAsEW blocks removed, what a networ
 ### [FIX-TRIPACK-FIELD-REPORTS](FIX-TRIPACK-FIELD-REPORTS/PRD.md) · 🧑
 
 Three defects from one 6.19.0 flight: Skynet dead and silent, naval groups dragged onto land, a QRA that scrambles and never engages. All landed (#917, #918, #921); R12 and R13 are the in-game readings.
-
-### [FIX-TUTORIAL-FIRST-RUN](FIX-TUTORIAL-FIRST-RUN/PRD.md) · 🧑
-
-Paluche's first run through the walkthrough: three steps that could not be followed, plus zone smoke that never appeared. Landed in #908; R12 says whether the smoke now shows.
 
 ## ⏸ Paused
 

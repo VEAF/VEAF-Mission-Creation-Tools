@@ -1,6 +1,6 @@
 # FIX-TUTORIAL-FIRST-RUN — the walkthrough asks for three things that cannot be done
 
-Status: 🧑 waiting-human
+Status: ✅ done — every ticket shipped in #908; ticket 05's smoke verified in game 2026-10-03 (R12)
 
 Origin: Paluche's write-up of his first run through
 [`doc/mission-maker/TUTORIAL.md`](../../doc/mission-maker/TUTORIAL.md), reported 2026-09-02 against

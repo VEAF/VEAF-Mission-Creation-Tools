@@ -1,6 +1,6 @@
 # FIX-SKYNET-ADDS-DESTROYED-GROUPS — the IADS enrols groups DCS has already destroyed
 
-Status: 🧑 waiting-human — the start-up half verified in game 2026-10-03 (R14); a deactivated zone's site still stays, see `FIX-IN-GAME-SESSION-2026-10-03` ticket 03
+Status: ✅ done — start-up half verified in game 2026-10-03 (R14); the deactivated-zone site that ticket 03 missed is fixed and verified in `FIX-IN-GAME-SESSION-2026-10-03` ticket 03 (#1055)
 
 Origin: [#946](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/946), filed by the support
 bot from Tripack's Discord report of 2026-09-08 on `Snowfox_20260908.miz` (Persian Gulf): *"au

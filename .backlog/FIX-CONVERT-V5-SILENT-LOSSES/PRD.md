@@ -1,7 +1,6 @@
 # FIX-CONVERT-V5-SILENT-LOSSES — what `convert-v5` drops without saying so
 
-Status: 🧑 waiting-human — all five tickets shipped 2026-08-17; waiting on Sharko's two harnesses,
-which are the acceptance test this lot signed up to.
+Status: ✅ done — all five tickets shipped 2026-08-17 (6.15). Closed 2026-10-03 without Sharko's two harnesses, which never came after seven weeks (David's call): the fixes stand on their own tests
 
 Origin: [#722](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/722),
 [#723](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/723),

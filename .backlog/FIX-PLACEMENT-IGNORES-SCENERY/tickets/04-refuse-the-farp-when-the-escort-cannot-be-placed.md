@@ -1,7 +1,6 @@
 # 04 — Refuse the FARP when the escort cannot be placed
 
-Status: 🧑 waiting-human — implemented 2026-09-30 (branch `fix/placement-escort-probe-and-refusal`, with `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` ticket 03); the in-game check is R19 of `DCS-SESSION-TODO.md`
-Type: fix
+Status: ✅ done — verified in game 2026-10-03 (R19): in a dense wood the `-farp` is refused with "no clear ground for its escort"; on open ground the escort stays beside the FARP's props
 
 David, 2026-08-27: *"les escortes (farp) doivent être placées intelligemment, ou le farp est refusé si
 c'est pas possible (avec un message)"*.

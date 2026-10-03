@@ -2060,6 +2060,34 @@ function TestVeafSkynetVanishedSitesSweep:test_a_destroyed_site_is_kept()
   luaunit.assertNotNil(network.groups["SAM-SHOT-AT"], "a site the player destroyed must stay in the network")
 end
 
+--- FIX-IN-GAME-SESSION-2026-10-03 ticket 03, measured in game the same afternoon: a combat zone
+--- respawns its SA-6 under a new name (`#10212`) but with its template's group id (44). A DCS Group
+--- object is an id, so the old site's object answered `isExist() == true` — and `getName()` with the
+--- **new** name. The sweep kept the old site for the rest of the mission.
+function TestVeafSkynetVanishedSitesSweep:test_a_site_whose_object_now_answers_another_name_leaves()
+  local old = _sweepableElement("TESTCZ - SA6#10211", "SA6-radar-old", true)
+  old.dcsRepresentation.getName = function()
+    return "TESTCZ - SA6#10212"
+  end
+  local new = _sweepableElement("TESTCZ - SA6#10212", "SA6-radar-new", true)
+  local network = self:_network({ old, new }, {})
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 1)
+  luaunit.assertEquals(#network.iads.samSites, 1)
+  luaunit.assertEquals(network.iads.samSites[1].dcsName, "TESTCZ - SA6#10212", "the new site stays")
+end
+
+--- Skynet names an element after its object's id when the object has no name. Such an element cannot
+--- be compared by name, and must not be swept for it.
+function TestVeafSkynetVanishedSitesSweep:test_an_element_named_by_its_id_is_not_swept_for_its_name()
+  local static = _sweepableElement(77, "SA6-radar", true)
+  static.dcsRepresentation.getName = function()
+    return ""
+  end
+  local network = self:_network({ static }, {})
+  luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 0)
+  luaunit.assertEquals(#network.iads.samSites, 1)
+end
+
 function TestVeafSkynetVanishedSitesSweep:test_a_live_site_is_left_alone()
   local network = self:_network({ _sweepableElement("SAM-ALIVE", "SA6-radar", true) }, {})
   luaunit.assertEquals(veafSkynet.removeVanishedSites("red iads"), 0)

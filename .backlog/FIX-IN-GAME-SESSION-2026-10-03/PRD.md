@@ -44,7 +44,7 @@ Each line closes or advances the lot named; the lots carry the measurement.
 |---|---|---|
 | 01 | [Smoke and flare colours are named the way DCS names them](tickets/01-dcs-colour-names.md) | ✅ |
 | 02 | [`logger:warning` does not exist](tickets/02-logger-warning.md) | ✅ |
-| 03 | [A deactivated zone's SAM site stays in the IADS](tickets/03-zone-site-stays-in-the-iads.md) | ⬜ |
+| 03 | [A deactivated zone's SAM site stays in the IADS](tickets/03-zone-site-stays-in-the-iads.md) | 🔄 |
 | 04 | [The CAP watchdog keeps adding tasks](tickets/04-cap-watchdog-task-count.md) | 🔄 |
 | 05 | [A `-cap` zone drawing outlives its group](tickets/05-cap-drawing-outlives-its-group.md) | 🚫 |
 | 06 | [The QRA race-track sits beside its zone](tickets/06-qra-race-track-beside-its-zone.md) | 🔄 |

@@ -1,6 +1,6 @@
 # 01 — vendor CTLD 2.0.0-rc12
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-10-03 (PR #1051)
 
 Replace `src/scripts/community/CTLD.lua` with the `CTLD.lua` asset of the VEAF/CTLD release
 `published-v2.0.0-rc12`, converted from CRLF to LF, and move both pins of the `ctld` entry in

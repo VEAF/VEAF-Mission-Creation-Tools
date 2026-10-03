@@ -1,6 +1,6 @@
 # CHORE-VENDOR-CTLD-RC12 — take CTLD 2.0.0-rc12
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-10-03 (PR #1051)
 
 `published-v2.0.0-rc12` shipped on 2026-09-24; the weekly drift watch reported it on #618
 (`published-v2.0.0-rc11` → `published-v2.0.0-rc12`). A routine verbatim sync, done the way

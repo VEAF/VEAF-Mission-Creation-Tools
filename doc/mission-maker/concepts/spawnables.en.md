@@ -69,7 +69,12 @@ in `spawnables.yaml`; a group flagged `dynSpawnTemplate: true` belongs in
 `dynamic-slot-templates.yaml` — and the `dynSpawnTemplate` flag wins over the prefix if a group
 carries both.
 
-Second gotcha: an entry in `spawn-groups.yaml` reusing an alias the framework already knows
+**The group's side matters too.** A `-cap` or an `-afac` only draws from the `veafSpawn-` groups
+of the side that asks for it and from the neutral ones, which serve everybody: put your red
+adversaries in a red coalition. When none of those matches the requested name, the draw falls back
+to the other side's groups, and `dcs.log` says so.
+
+Another gotcha: an entry in `spawn-groups.yaml` reusing an alias the framework already knows
 **replaces** it. Useful to redefine a standard group, surprising when it was not intended.
 
 ## Going further {#more}

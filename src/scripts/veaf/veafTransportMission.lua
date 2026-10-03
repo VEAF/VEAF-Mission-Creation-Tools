@@ -682,7 +682,7 @@ end
 -- maker declares — LGZ_ trigger zones, logisticUnits, logisticUnitTypes — but none of those
 -- three routes can carry an airbase, and the fourth (registerFOBAsLogistic) is runtime-only:
 -- airfields are outside CTLD's logistic system, and always were (FEAT-CTLD-AIRBASE-LOGISTICS,
--- answering VEAF-Open-Training-Mission-GermanyCW-v6#1007). So VEAF registers every airdrome of
+-- answering #1007). So VEAF registers every airdrome of
 -- the theatre itself, through that public API, below.
 
 function veafTransportMission.initializeAllHelosInCTLD()

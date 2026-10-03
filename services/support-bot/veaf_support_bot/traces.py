@@ -390,9 +390,11 @@ def find_callers(
     """
     if not function:
         return (), 0
-    bare = function.split(".")[-1].split(":")[-1]
-    if not bare.isidentifier():
+    # Every segment, not only the last: `x(); import os; os.system` ends on a valid `system`.
+    segments = re.split(r"[.:]", function)
+    if not all(segment.isidentifier() for segment in segments):
         return (), 0
+    bare = segments[-1]
     pattern = re.compile(rf"(?<![\w.:]){re.escape(bare)}\s*\(")
     definition = re.compile(rf"^\s*(?:async\s+)?(?:def|local\s+function|function)\s+[\w.:]*{re.escape(bare)}\s*\(")
 

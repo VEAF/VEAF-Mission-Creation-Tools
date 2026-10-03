@@ -6,7 +6,7 @@ Status: 🧑 waiting-human — tickets 01 to 05 merged in #1009; the in-flight c
 
 ## The report, and what measuring it found
 
-[Issue #1007](https://github.com/VEAF/VEAF-Open-Training-Mission-GermanyCW-v6/issues/1007): a C-130
+[Issue #1007](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1007): a C-130
 landed at Ramstein on Open Training GermanyCW v6 and its *Request Equipment* menu read **"Aucune
 logistique à portée"**. Filed as a regression — *airfields used to be logistic zones*. It is not one,
 and the distinction is what makes this a feature lot rather than a repair.

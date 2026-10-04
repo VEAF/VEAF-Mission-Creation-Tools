@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FIX-DESTROY-NAME-KEY](FIX-DESTROY-NAME-KEY/PRD.md) · 🔄
+
+`_destroy, name X` (the documented form) cleared everything within 150 m instead of destroying X: the handler only read `unitname`.
 
 ## 🧑 Waiting for a human
 

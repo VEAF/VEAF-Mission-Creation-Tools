@@ -45,6 +45,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   It joins its side's Skynet network and turns its datalink on by default (`skynet false`, `eplrs false`), and `escort <template>` adds fighters to escort it.
   `-escort f15-fox3` escorts the friendly or neutral airplane nearest the marker, within 10 NM: the fighters appear 3 km behind it with the DCS `Escort` task and are cleared to fire.
   Pilots can also ask for their own escort from *F10 → VEAF → SPAWN → +Escort me*, at the known-pilot level `-escort` asks for.
+- **`_destroy, name X` destroys X, and only X** (FIX-DESTROY-NAME-KEY).
+  The command only read `unitname`, so the documented `_destroy, name Tank-1` was taken as having no name: Tank-1 survived and every unit and static within 150 m of the marker was destroyed.
+  `name` is now accepted like `unitname` (which wins when both are written), and the pages show `unitname` with the command's options.
 
 ## [6.27.0] — 2026-10-03
 

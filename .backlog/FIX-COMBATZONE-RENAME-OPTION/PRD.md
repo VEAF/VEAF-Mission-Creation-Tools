@@ -1,6 +1,6 @@
 # FIX-COMBATZONE-RENAME-OPTION — let a mission maker keep the original unit names while debugging
 
-Status: 🧑 waiting-human
+Status: ✅ done — Sharko told on #289 on 2026-09-01, and the issue is closed
 
 Shipped in 6.15.16, with `FIX-COMBATZONE-ZONE-TYPE-SILENT`. Waiting only on **telling Sharko on #289**,
 which is David's to do — the code, the tests and the documentation are done and need no DCS.

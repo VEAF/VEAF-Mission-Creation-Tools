@@ -1,6 +1,7 @@
 # 03 — Vendor Skynet 3.5.0
 
-Status: 🧑 waiting-human — vendored 2026-09-21; only the in-game reading is owed
+Status: ✅ done — vendored 2026-09-21; the in-game reading moved to `FEAT-SPOTTER-DEMO-MISSION`
+ticket 05 (2026-10-04), 3.5.0 seen running in game 2026-10-03 (R1, R13)
 
 ## Take the release asset, do not rebuild
 
@@ -112,8 +113,10 @@ left, and it is invisible from anywhere but here.
       the Skynet side. Spelled `last_line_of_defence` (British), matching the Skynet API
       (`setLastLineOfDefence`) and this page's documentation; the lot's own name uses the American
       spelling and the code follows the API it calls.
-- [ ] **Check 13 of `verify-mission-c` run and its reading recorded**, which closes
-      `FEAT-SPOTTER-NETWORK`. ⏸ **needs DCS** — the only item left in this lot.
+- [x] ~~**Check 13 of `verify-mission-c` run and its reading recorded**, which closes
+      `FEAT-SPOTTER-NETWORK`.~~ Superseded 2026-10-04: the check cannot discriminate since the last
+      line of defence is on (`FEAT-SPOTTER-DEMO-MISSION` ticket 04); the question is that lot's
+      ticket 05.
 - [x] `poetry run test-lua` (49 suites) and `poetry run pytest` green, `CHANGELOG.md` updated.
 
 ## The end-to-end build, read from the `.miz` rather than from the yaml

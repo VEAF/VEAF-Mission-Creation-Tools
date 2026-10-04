@@ -98,6 +98,8 @@ Les aliases intégrés les plus courants sont regroupés ci-dessous. Voir la **[
 | Alias | Description |
 |-------|-------------|
 | `-cap` | CAP dynamique (nécessite le nom de l'appareil) |
+| `-awacs` | AWACS en hippodrome depuis le marqueur, dans Skynet et liaison de données allumée ; `escort <template>` ajoute une escorte |
+| `-escort` | Escorte de chasse pour l'avion ami ou neutre le plus proche du marqueur (template en option) |
 | `-airstart` | Démarrer une mission de combat (nécessite un nom) |
 | `-airstop` | Arrêter une mission de combat (nécessite un nom) |
 | `-zonestart` | Activer une zone de combat (nécessite un nom) |

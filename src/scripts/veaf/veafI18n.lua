@@ -764,6 +764,26 @@ veaf.i18nCatalog = {
     fr = "Une CAP de %s (%s) est apparue",
     en = "A CAP of %s (%s) has been spawned",
   },
+  ["spawn.awacs_unknown_type"] = {
+    fr = "%s n'est pas un AWACS ; types connus : %s",
+    en = "%s is not an AWACS; known types: %s",
+  },
+  ["spawn.awacs_spawned"] = {
+    fr = "Un AWACS %s est apparu, sur %s MHz AM",
+    en = "An AWACS %s has been spawned, on %s MHz AM",
+  },
+  ["spawn.escort_spawned"] = {
+    fr = "Une escorte %s part couvrir %s",
+    en = "An escort %s is on its way to cover %s",
+  },
+  ["spawn.escort_no_aircraft"] = {
+    fr = "Aucun avion ami ou neutre à moins de %s NM du marqueur : rien à escorter",
+    en = "No friendly or neutral airplane within %s NM of the marker: nothing to escort",
+  },
+  ["spawn.escort_not_an_airplane"] = {
+    fr = "Seul un avion peut être escorté",
+    en = "Only an airplane can be escorted",
+  },
 
   -- veafQraManager (default status messages; %s = QRA description)
   ["qra.msg_start"] = {
@@ -1666,6 +1686,10 @@ veaf.i18nCatalog = {
   ["menu.spawn.available_aircraft"] = {
     fr = "Appareils disponibles",
     en = "Available Aircraft spawns",
+  },
+  ["menu.spawn.escort_me"] = {
+    fr = "Escorte-moi (%s)",
+    en = "Escort me (%s)",
   },
   ["menu.spawn.convoy_cleanup"] = {
     fr = "Retirer tous les convois",

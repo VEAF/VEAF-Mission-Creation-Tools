@@ -168,6 +168,16 @@ Sans `task`, il reste posé, moteur coupé. Les tâches et les alias sont détai
 _spawn cap, name Su-27, alt 25000, capradius 20
 ```
 
+**Faire apparaître un AWACS, ou une escorte pour votre avion — `-awacs`, `-escort` :**
+
+```
+-awacs escort f15-fox3
+-escort f15-fox3
+```
+
+Le marqueur `-escort` se pose à côté de l'avion à escorter ; pour votre propre avion, *F10 → VEAF → APPARITION → +Escorte-moi* suffit.
+Détails dans [veafSpawn — AWACS](../mission-maker/scripts/veafSpawn.md#awacs) et [escorte](../mission-maker/scripts/veafSpawn.md#escort).
+
 **Fumée, fusées éclairantes, explosions :**
 
 ```

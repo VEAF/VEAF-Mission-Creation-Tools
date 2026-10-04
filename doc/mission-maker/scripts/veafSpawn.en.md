@@ -141,6 +141,56 @@ A patrol built from a group template whose first waypoint carries no instruction
 settings its template's author intended (radar, ECM, rules of engagement). That case is reported in the
 DCS log, naming the template at fault.
 
+### Spawn an AWACS {#awacs}
+
+```
+_spawn awacs, type E-3A, alt 30000, hdg 90, dist 30, freq 251, escort f15-fox3
+```
+
+The `-awacs` alias does the same: `-awacs escort f15-fox3`.
+
+The AWACS appears on the marker, airborne, and flies a race-track that starts at the marker and runs along `hdg`.
+It needs no template: it is built from its type.
+
+**Options:**
+
+- `type` — `E-3A`, `E-2C` (the E-2D), `A-50` or `KJ-2000`; an E-3A for blue and an A-50 for red by default
+- `alt` — altitude (feet, 30,000 by default); raised to 150 m above the ground when needed, as for a CAP
+- `hdg` — direction of the race-track (degrees, 0 by default)
+- `dist` — length of the race-track (nautical miles, 30 by default)
+- `speed` — speed (knots indicated); Mach 0.5 by default
+- `freq` — the AWACS radio frequency (MHz, AM, 251 by default)
+- `skynet false` — keep it out of its side's Skynet network; **it is added by default**
+- `eplrs false` (or `datalink false`) — turn its datalink off; **it is on by default**
+- `escort <template>` — spawn an escort too, as `-escort` would (see below); `escort` alone takes any fighter template of the side
+
+The escort of an AWACS is named `<AWACS name> escort`.
+An AWACS spawned during the mission has no Mission Editor record: `_move` and the assets menu can neither move it nor respawn it, nor its escort.
+
+> ⚠️ An AWACS added to Skynet covers its side's SAM sites and keeps them under network control.
+> The `INVESTIGATE-SKYNET-AWACS-BLIND` lot is looking into enrolled A-50s that saw no contact for a whole session.
+> If your mission's SAMs stay dark with an AWACS in the air, try `skynet false`.
+
+### Spawn an escort {#escort}
+
+```
+_spawn escort, name f15-fox3
+```
+
+The `-escort` alias does the same: `-escort f15-fox3`.
+
+Place the marker **next to an airplane**, friendly or neutral: the airplane nearest the marker, within 10 nautical miles, is the one escorted.
+An enemy airplane is never escorted, and a helicopter cannot be.
+`name` searches the side's `veafSpawn-` templates, as for `-cap`; without `name`, any template will do.
+
+The escort appears 3 km behind the airplane it escorts, at its altitude.
+It is given the DCS `Escort` task: it follows its charge and engages enemy aircraft up to 60 km from it.
+Its rules of engagement are set to "open fire" after the template's own settings, so that a template written to hold fire does not make an escort that defends nothing.
+
+**To escort your own airplane, the F10 menu is enough**: *F10 → VEAF → SPAWN → +Escort me (fox3)* or *(fox2)* (the `+` marks a protected command).
+It asks the same level as `-escort` (known pilot).
+A mission can change the entries offered by replacing `veafSpawn.EscortRadioMenuTemplates` (`{ "fox3", "fox2" }` by default).
+
 ### Spawn an AFAC/JTAC
 
 ```

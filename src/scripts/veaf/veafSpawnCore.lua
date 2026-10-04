@@ -1051,6 +1051,7 @@ function veafSpawn.buildRadioMenu()
       veafRadio.USAGE_ForGroup
     )
     veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.spawn.convoy_cleanup"), veafSpawn.rootPath, veafSpawn.cleanupAllConvoys)
+    veafSpawn.addEscortRadioCommands(veafSpawn.rootPath)
     veafRadio.refreshRadioMenu()
   end
 end

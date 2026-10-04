@@ -180,6 +180,8 @@ power are each drawn at random from a range.
 | Alias | Description |
 |-------|-------------|
 | `-cap` | Dynamic CAP (needs aircraft name) |
+| `-awacs` | AWACS on a race-track from the marker, in Skynet with its datalink on; `escort <template>` adds an escort |
+| `-escort` | Fighter escort for the friendly or neutral airplane nearest the marker (template optional) |
 | `-airstart` | Start a combat mission (needs name) |
 | `-airstop` | Stop a combat mission (needs name) |
 | `-zonestart` | Activate a combat zone (needs name) |

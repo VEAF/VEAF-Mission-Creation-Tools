@@ -181,6 +181,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafQraManager.lua` | Machine à états QRA, gestion de zones |
 | `test_veafAirWaves.lua` | Planification de waves, assignation de groupes |
 | `test_veafAircraftSpawn.lua` | Avion lancé avec un rôle : contrat `-cap`, lecture de route, défense de zone (`zone_defense`) |
+| `test_veafAwacsEscort.lua` | `-awacs` (hippodrome, Skynet, liaison de données) et `-escort` (tâche `Escort`, avion le plus proche du marqueur, entrée F10 « Escorte-moi ») |
 | `test_veafSanctuary.lua` | Détection de zone sanctuaire |
 | `test_veafMissileGuardian.lua` | Logique d'interception de missiles |
 | `test_veafCasMission.lua` | Génération de packages de menaces CAS |

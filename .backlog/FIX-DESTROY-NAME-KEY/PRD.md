@@ -1,6 +1,6 @@
 # FIX-DESTROY-NAME-KEY — `_destroy, name X` clears the circle instead of destroying X
 
-Status: 🔄 in progress
+Status: ✅ done — merged in #1069 (2026-10-04)
 
 ## Problem
 

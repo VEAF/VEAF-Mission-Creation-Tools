@@ -366,7 +366,13 @@ veafSpawn.registerCommandHandler("logistic", "KNOWN_PILOT", function(eventPos, o
 end)
 
 veafSpawn.registerCommandHandler("destroy", "SENIOR_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
-  veafSpawn.destroy(eventPos, options.radius, options.unitName)
+  -- `name` is accepted too, as for `_teleport`: it is what pilots type. Left blank, the parser's
+  -- default is "", which must still mean "no name" and clear the circle (FIX-DESTROY-NAME-KEY).
+  local unitName = options.unitName
+  if not unitName and not veaf.isBlank(options.name) then
+    unitName = options.name
+  end
+  veafSpawn.destroy(eventPos, options.radius, unitName)
   return nil, nil, false
 end)
 

@@ -336,8 +336,16 @@ au lieu de ne rien faire.
 
 ```
 _destroy, radius 500
-_destroy, name Tank-1
+_destroy, unitname Tank-1
 ```
+
+| Option | Défaut | Description |
+|--------|--------|-------------|
+| `unitname` | — | détruit l'unité, le static ou le groupe qui porte ce nom, et rien d'autre |
+| `name` | — | synonyme de `unitname` ; si les deux sont écrits, `unitname` l'emporte |
+| `radius` | 150 | sans nom : détruit toutes les unités et tous les statics dans ce rayon autour du marqueur, en mètres |
+
+Sans `unitname` ni `name`, la commande vide le cercle : vérifiez le nom avant de valider le marqueur.
 
 ### Téléporter un groupe
 

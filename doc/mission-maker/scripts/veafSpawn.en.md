@@ -336,8 +336,16 @@ than doing nothing.
 
 ```
 _destroy, radius 500
-_destroy, name Tank-1
+_destroy, unitname Tank-1
 ```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `unitname` | — | destroys the unit, static or group with that name, and nothing else |
+| `name` | — | same as `unitname`; when both are written, `unitname` wins |
+| `radius` | 150 | with no name: destroys every unit and static within this radius of the marker, in metres |
+
+With neither `unitname` nor `name`, the command clears the circle: check the name before you validate the marker.
 
 ### Teleport a group
 

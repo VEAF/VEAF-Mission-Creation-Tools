@@ -366,6 +366,7 @@ limitations:
   kind: tool
   area: runtime
   title: "`_destroy, name X` ignores the name and destroys everything within 150 m of the marker"
+  fixed_in: "6.28.0"
   symptom: |
     The `_destroy` handler reads the `unitname` option; `name` fills another field it never looks at.
     With no `unitname`, it falls back to the radius form: every unit and static within 150 m of the marker is destroyed, the named one only if it happens to be there.

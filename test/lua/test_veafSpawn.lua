@@ -504,6 +504,45 @@ function TestVeafSpawnEffects:test_destroy_by_radius()
   luaunit.assertTrue(true)
 end
 
+--- Run a `_destroy` marker through the parser and the registered handler, with "Tank-1" and a
+--- "Bystander" standing inside the search circle, and return the names of the units destroyed.
+local function unitsDestroyedBy(text)
+  dcs_mocks.addUnit("Tank-1")
+  dcs_mocks.addUnit("Bystander")
+  local savedFind, savedDestroy = veaf.findUnitsInCircle, Unit.destroy
+  veaf.findUnitsInCircle = function()
+    return { ["Tank-1"] = true, ["Bystander"] = true }
+  end
+  local destroyed = {}
+  Unit.destroy = function(unit)
+    table.insert(destroyed, unit:getName())
+  end
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, text, coalition.side.BLUE, 0, true)
+  veaf.findUnitsInCircle, Unit.destroy = savedFind, savedDestroy
+  table.sort(destroyed)
+  return destroyed
+end
+
+--- `_destroy, name X` is what the pages showed and what pilots type, as for `_teleport, name X`.
+--- It used to leave `unitName` nil and fall into the radius branch: X survived and everything
+--- within 150 m of the marker went (FIX-DESTROY-NAME-KEY).
+function TestVeafSpawnEffects:test_destroy_by_name_destroys_only_that_unit()
+  luaunit.assertEquals(unitsDestroyedBy("_destroy, name Tank-1"), { "Tank-1" })
+end
+
+function TestVeafSpawnEffects:test_destroy_by_unitname_destroys_only_that_unit()
+  luaunit.assertEquals(unitsDestroyedBy("_destroy, unitname Tank-1"), { "Tank-1" })
+end
+
+--- Both written: `unitname` is the specific key and wins.
+function TestVeafSpawnEffects:test_destroy_unitname_wins_over_name()
+  luaunit.assertEquals(unitsDestroyedBy("_destroy, unitname Bystander, name Tank-1"), { "Bystander" })
+end
+
+function TestVeafSpawnEffects:test_destroy_with_no_name_clears_the_circle()
+  luaunit.assertEquals(unitsDestroyedBy("_destroy"), { "Bystander", "Tank-1" })
+end
+
 function TestVeafSpawnEffects:test_teleport_silent()
   veafSpawn.teleport({ x = 0, y = 0, z = 0 }, "SomeGroup", true)
   luaunit.assertTrue(true)

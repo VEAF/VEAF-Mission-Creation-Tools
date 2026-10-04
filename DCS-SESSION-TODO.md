@@ -54,6 +54,25 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R40. The welcome brief and the ATIS give the tower's frequencies — **no pilot needed**
+
+[`FEAT-AIRFIELD-FREQS-IN-ATIS`](.backlog/FEAT-AIRFIELD-FREQS-IN-ATIS/PRD.md), tickets 02 and 03.
+The lines are built from a table rendered at build time and from `veafAirbases.MissionChannels` in `veaf-config.lua`; the mocks prove the text, not that `Airbase:getID()` in DCS is the airdrome id the table is keyed by.
+
+**Run** on a copy of Open Training Caucasus v6 built from the branch **before** its base channels are corrected (its `Base-Batumi` is on 270.3 where DCS's tower is 260.0), through `fiddle.sh`:
+`return veafWeatherAtis.getAtisString(veafAirbases.getAirbaseByName("Batumi"))`, then the same for a field whose `bases` channel matches DCS, and for the carrier if the mission has one.
+Then take a slot on Batumi, or call `veafWeather.buildWelcomeBrief(Unit.getByName("<a parked unit>"))`.
+
+- **Verified**: Batumi's ATIS ends with `Tour 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X` — what Batumi's card shows in the F10 view — followed by `Canal de la mission …: 270.300 UHF …`; the matching field has one line; the carrier has none.
+- **Re-opened, the key**: no `Tour` line on Batumi at all, or another field's frequencies — `getID()` does not answer the airdrome id in DCS; log `veafAirbases.getAirbaseByName("Batumi").DcsAirbase:getID()`.
+- **Re-opened, the match**: the tower line right but no mission-channel line — read `veafAirbases.MissionChannels` in the live mission to tell a build that wrote nothing from a lookup that missed it.
+
+**Then the silenced tower**: run `veaf.silenceAtcOnAllAirbases()` in the live mission and ask both ATIS again.
+The ATIS records once an hour per field, so clear it first: `veafWeatherAtis.ListInEffect = {}`.
+
+- **Verified**: Batumi now gives the mission channel alone (`Canal de la mission …`, no `Tour` line); a field with no `bases` channel still gives its `Tour` line.
+- **Re-opened**: Batumi still shows `Tour 260.000 …` — `getRadioSilentMode()` does not answer `true` after `setRadioSilentMode(true)`; log it on the airbase.
+
 ### R35. Combat-zone ground units start warm — the thermal look
 
 [`FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP`](.backlog/FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/tickets/02-zone-defences-start-warm.md)

@@ -310,3 +310,63 @@ def test_the_cli_command_and_the_mcp_actions_reach_the_same_code(
         ("apply", tmp_path, ["Batumi", 22]),
         ("describe", tmp_path, True),
     ]
+
+
+# --- the mission's channels handed to the scripts (FEAT-AIRFIELD-FREQS-IN-ATIS 03) ---------------
+
+
+def test_channels_by_airdrome_matches_the_way_content_airfield_channels_does() -> None:
+    bases = {
+        "Base-Batumi": {"title": "Batumi / 16X", "freqs": {"uhf": 270.3, "vhf": 130.3}},
+        "Base-Sochi": {"title": "Sochi", "freqs": {"uhf": 256.0}},  # first word, unique on the map
+        "Base-Krasnodar": {"title": "Krasnodar", "freqs": {"uhf": 251.0}},  # two Krasnodar: no guess
+        "Base-FARP-London": {"title": "FARP London", "freqs": {"fm": 31.0}},  # not in the reference
+    }
+    assert M.channels_by_airdrome(bases, _REFERENCE) == {
+        22: {"alias": "Base-Batumi", "title": "Batumi / 16X", "freqs": {"uhf": 270.3, "vhf": 130.3}},
+        18: {"alias": "Base-Sochi", "title": "Sochi", "freqs": {"uhf": 256.0}},
+    }
+
+
+def test_channels_by_airdrome_skips_a_channel_with_no_usable_frequency() -> None:
+    bases = {"Base-Batumi": {"title": "Batumi", "freqs": {"hf": 4.3, "uhf": "two hundred"}}, "Vaziani": "x"}
+    assert M.channels_by_airdrome(bases, _REFERENCE) == {}
+
+
+def test_channels_by_airdrome_names_by_alias_when_no_title() -> None:
+    got = M.channels_by_airdrome({"Batumi": {"freqs": {"uhf": 270}}}, _REFERENCE)
+    assert got == {22: {"alias": "Batumi", "title": "Batumi", "freqs": {"uhf": 270.0}}}
+
+
+def _mission_folder(tmp_path: Path, presets: str | None, theatre: str | None = "Caucasus") -> Path:
+    (tmp_path / "src" / "mission").mkdir(parents=True)
+    if theatre is not None:
+        (tmp_path / "src" / "mission" / "theatre").write_text(theatre, encoding="utf-8")
+    if presets is not None:
+        (tmp_path / "src" / "presets.yaml").write_text(presets, encoding="utf-8")
+    return tmp_path
+
+
+def test_mission_channels_reads_the_theatre_and_the_bases_collection(tmp_path: Path) -> None:
+    folder = _mission_folder(
+        tmp_path, "channels_collection:\n  bases:\n    Base-Batumi:\n      title: Batumi\n      freqs: { uhf: 270.3 }\n"
+    )
+    assert M.mission_channels(folder) == {22: {"alias": "Base-Batumi", "title": "Batumi", "freqs": {"uhf": 270.3}}}
+
+
+@pytest.mark.parametrize(
+    ("presets", "theatre"),
+    [
+        (None, "Caucasus"),  # no presets.yaml
+        ("channels_collection:\n  tactical: {}\n", "Caucasus"),  # no bases collection
+        ("channels_collection:\n  bases:\n    Batumi:\n      freqs: { uhf: 270.3 }\n", None),  # no theatre
+        ("channels_collection:\n  bases:\n    Batumi:\n      freqs: { uhf: 270.3 }\n", "NoSuchMap"),
+        ("channels_collection: [a, b]\n", "Caucasus"),  # not a mapping
+        ("- just a list\n", "Caucasus"),
+        ("channels_collection:\n\tbases: {}\n", "Caucasus"),  # does not parse
+    ],
+)
+def test_mission_channels_is_empty_when_there_is_nothing_to_match(
+    tmp_path: Path, presets: str | None, theatre: str | None
+) -> None:
+    assert M.mission_channels(_mission_folder(tmp_path, presets, theatre)) == {}

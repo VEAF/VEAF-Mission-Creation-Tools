@@ -8,10 +8,6 @@ Lots written up and ready to take.
 
 Broaden the shipped default radio presets, after phase 1 of the radio preset projection.
 
-### [FEAT-AIRFIELD-FREQS-IN-ATIS](FEAT-AIRFIELD-FREQS-IN-ATIS/PRD.md) · ⬜
-
-The ATIS and the welcome brief give the airfield's own tower and TACAN frequencies (and the mission's `bases` channel when it differs), from a reference table loaded with the scripts. Three tickets.
-
 ### [FEAT-AIRWAVES-QRA-MERGE](FEAT-AIRWAVES-QRA-MERGE/PRD.md) · ⬜
 
 Rebuild QRA on AirWaves instead of beside it (~120 KB of neighbouring Lua), closing six AirWaves issues in one design. A design lot before any refactor.

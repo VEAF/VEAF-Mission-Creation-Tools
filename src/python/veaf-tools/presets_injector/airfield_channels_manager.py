@@ -219,6 +219,67 @@ def match_existing(bases: dict[str, Any], name: str, theatre_names: list[str]) -
     return None
 
 
+def channels_by_airdrome(bases: dict[str, Any], reference: dict[int, dict[str, Any]]) -> dict[int, dict[str, Any]]:
+    """Find, per airfield of the theatre, the ``bases`` channel that names it.
+
+    Matched with :func:`match_existing`, so the build and ``content airfield-channels`` agree on which
+    channel is which field. A channel naming no airfield of the reference (a FARP, a ship) is not
+    returned, nor one without a frequency in a VEAF band.
+
+    Args:
+        bases: The mission's ``bases`` collection.
+        reference: The theatre's reference.
+
+    Returns:
+        Airdrome id -> ``{alias, title, freqs}``; the title falls back to the alias.
+    """
+    names = [str(e["name"]) for e in reference.values()]
+    result: dict[int, dict[str, Any]] = {}
+    for airdrome_id, entry in reference.items():
+        alias = match_existing(bases, str(entry["name"]), names)
+        channel = bases.get(alias) if alias else None
+        raw_freqs = channel.get("freqs") if isinstance(channel, dict) else None
+        if not isinstance(channel, dict) or not isinstance(raw_freqs, dict):
+            continue
+        freqs = {
+            band: float(value)
+            for band, value in raw_freqs.items()
+            if band in _BANDS and isinstance(value, (int, float)) and not isinstance(value, bool)
+        }
+        if freqs:
+            result[airdrome_id] = {"alias": alias, "title": str(channel.get("title") or alias), "freqs": freqs}
+    return result
+
+
+def mission_channels(folder: Path) -> dict[int, dict[str, Any]]:
+    """Return the mission's own channel for each airfield its ``bases`` collection names.
+
+    The build writes it into the mission's scripts, so the ATIS and the welcome brief can give the
+    mission's channel beside the DCS tower (FEAT-AIRFIELD-FREQS-IN-ATIS). Read before the ``.miz``
+    is built, from ``src/mission/theatre`` and ``src/presets.yaml``.
+
+    Args:
+        folder: The mission folder.
+
+    Returns:
+        Airdrome id -> ``{alias, title, freqs}``; empty without a theatre, a known reference or a
+        ``bases`` collection, and when ``presets.yaml`` does not parse (the presets step reports it).
+    """
+    theatre_file = folder / "src" / "mission" / "theatre"
+    if not theatre_file.is_file():
+        return {}
+    reference = load_reference(theatre_file.read_text(encoding="utf-8-sig").strip())
+    try:
+        _text, presets = _read_presets(folder / "src" / "presets.yaml")
+    except yaml.YAMLError:
+        return {}  # the presets step reports it, in its own words; this one only reads along
+    collections = presets.get("channels_collection") if isinstance(presets, dict) else None
+    bases = collections.get(BASES_COLLECTION) if isinstance(collections, dict) else None
+    if not reference or not isinstance(bases, dict):
+        return {}
+    return channels_by_airdrome(bases, reference)
+
+
 def list_candidates(
     mission: DcsMission,
     warehouses_config: dict[str, Any],

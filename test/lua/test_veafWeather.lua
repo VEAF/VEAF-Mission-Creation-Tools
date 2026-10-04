@@ -1182,6 +1182,9 @@ function TestVeafWeatherWelcomeBrief:_airbase(category, runway)
       getPoint = function()
         return { x = 0, y = 0, z = 0 }
       end,
+      getID = function()
+        return 24
+      end,
     },
     getRunwayInServiceString = function(_, wind)
       test.askedWind = wind
@@ -1455,6 +1458,180 @@ function TestVeafWeatherWelcomeBrief:test_an_initiator_with_neither_name_is_igno
   self:_arrange()
   veafWeather.onPlayerEnterUnit({ initiator = { unitType = "F-16C_50" } })
   luaunit.assertEquals(#self.scheduled, 0)
+end
+
+-- ============================================================================
+-- TestVeafWeatherAtcFrequencies — the welcome brief and the ATIS say how to call the tower
+-- (FEAT-AIRFIELD-FREQS-IN-ATIS). The table is a stand-in for veafAirfieldFrequencies.lua, so the
+-- values under test are chosen here: an airfield with every band, one with VHF only, and the
+-- frequencies whose third decimal a careless format would lose.
+-- ============================================================================
+TestVeafWeatherAtcFrequencies = {}
+
+function TestVeafWeatherAtcFrequencies:setUp()
+  dcs_mocks.reset()
+  veafWeatherAtis.ListInEffect = {}
+  env.mission.theatre = "Caucasus"
+  self._savedTable = veafAirfieldFrequencies
+  self._savedChannels = veafAirbases.MissionChannels
+  self._savedNearest = veafAirbases.getNearestAirbase
+  self._savedCreate = veafWeatherData.create
+  veafAirfieldFrequencies = {
+    Caucasus = {
+      [22] = { uhf = 260.0, vhf = 131.0, fm = 40.4, tacan = "16X" },
+      [30] = { vhf = 126.525 },
+      [31] = { uhf = 250.55 },
+    },
+  }
+  veafAirbases.MissionChannels = {}
+  veafWeatherData.create = function()
+    return {
+      WindDirection = 270,
+      toStringAtis = function()
+        return "WIND 270/10 QNH 1013"
+      end,
+    }
+  end
+end
+
+function TestVeafWeatherAtcFrequencies:tearDown()
+  veafAirfieldFrequencies = self._savedTable
+  veafAirbases.MissionChannels = self._savedChannels
+  veafAirbases.getNearestAirbase = self._savedNearest
+  veafWeatherData.create = self._savedCreate
+  veafWeatherAtis.ListInEffect = {}
+end
+
+--- A real veafAirbase of `category` whose DCS object answers `id`, with no runway to report; `silent` is
+--- what its getRadioSilentMode() answers (a mission that silenced ATC).
+function TestVeafWeatherAtcFrequencies:_airbase(id, category, silent)
+  return setmetatable({
+    Name = "Batumi",
+    DisplayName = "Batumi",
+    Category = category or Airbase.Category.AIRDROME,
+    Runways = {},
+    DcsAirbase = {
+      getID = function()
+        return id
+      end,
+      getRadioSilentMode = function()
+        return silent == true
+      end,
+      isExist = function()
+        return true
+      end,
+      getPoint = function()
+        return { x = 0, y = 0, z = 0 }
+      end,
+      getUnit = function()
+        return nil
+      end,
+    },
+  }, veafAirbase)
+end
+
+-- ── the line ────────────────────────────────────────────────────────────────
+
+function TestVeafWeatherAtcFrequencies:test_every_band_in_the_order_a_pilot_dials_then_the_tacan()
+  luaunit.assertEquals(veafWeather.getAtcFrequenciesString(self:_airbase(22)), "Tower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X")
+end
+
+function TestVeafWeatherAtcFrequencies:test_a_vhf_only_field_names_only_its_vhf()
+  luaunit.assertEquals(veafWeather.getAtcFrequenciesString(self:_airbase(30)), "Tower 126.525 VHF")
+end
+
+function TestVeafWeatherAtcFrequencies:test_the_third_decimal_is_kept()
+  -- 250.55 must not read 250.6, nor 126.525 read 126.53: a pilot dials what he reads.
+  luaunit.assertEquals(veafWeather.getAtcFrequenciesString(self:_airbase(31)), "Tower 250.550 UHF")
+end
+
+function TestVeafWeatherAtcFrequencies:test_nothing_rather_than_an_empty_or_invented_line()
+  luaunit.assertNil(veafWeather.getAtcFrequenciesString(self:_airbase(999)), "a field the table lacks")
+  luaunit.assertNil(veafWeather.getAtcFrequenciesString(self:_airbase(22, Airbase.Category.SHIP)), "a ship")
+  luaunit.assertNil(veafWeather.getAtcFrequenciesString(self:_airbase(22, Airbase.Category.HELIPAD)), "a helipad")
+end
+
+-- ── the mission's own channel (ticket 03) ───────────────────────────────────
+
+function TestVeafWeatherAtcFrequencies:test_a_mission_channel_that_differs_is_given_on_its_own_line()
+  veafAirbases.MissionChannels = { [22] = { alias = "Base-Batumi", title = "Batumi / 16X", uhf = 270.3, vhf = 130.3 } }
+  luaunit.assertEquals(
+    veafWeather.getAtcFrequenciesString(self:_airbase(22)),
+    "Tower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X\nMission channel Batumi / 16X: 270.300 UHF / 130.300 VHF"
+  )
+end
+
+function TestVeafWeatherAtcFrequencies:test_a_mission_channel_without_a_title_is_named_by_its_alias()
+  veafAirbases.MissionChannels = { [22] = { alias = "Base-Batumi", uhf = 270.3 } }
+  local s = veafWeather.getAtcFrequenciesString(self:_airbase(22))
+  luaunit.assertNotNil(s:find("Mission channel Base-Batumi: 270.300 UHF", 1, true), s)
+end
+
+function TestVeafWeatherAtcFrequencies:test_a_mission_channel_that_repeats_the_tower_adds_nothing()
+  -- Same frequencies, or a subset of them: one line, not two.
+  veafAirbases.MissionChannels = { [22] = { alias = "Base-Batumi", title = "Batumi", uhf = 260.0, vhf = 131.0 } }
+  luaunit.assertEquals(veafWeather.getAtcFrequenciesString(self:_airbase(22)), "Tower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X")
+end
+
+function TestVeafWeatherAtcFrequencies:test_one_band_off_is_a_different_channel()
+  veafAirbases.MissionChannels = { [22] = { alias = "Base-Batumi", title = "Batumi", uhf = 260.0, vhf = 131.5 } }
+  local s = veafWeather.getAtcFrequenciesString(self:_airbase(22))
+  luaunit.assertNotNil(s:find("Mission channel Batumi: 260.000 UHF / 131.500 VHF", 1, true), s)
+end
+
+-- ── a mission that silenced ATC (David, 2026-10-04) ─────────────────────────
+-- A silenced tower answers nobody, so its frequency is not worth giving when the mission has its own
+-- channel for the field; when it has none (the common case), the DCS frequency is all there is.
+
+function TestVeafWeatherAtcFrequencies:test_a_silenced_tower_gives_way_to_the_mission_channel()
+  veafAirbases.MissionChannels = { [22] = { alias = "Base-Batumi", title = "Batumi / 16X", uhf = 270.3, vhf = 130.3 } }
+  luaunit.assertEquals(
+    veafWeather.getAtcFrequenciesString(self:_airbase(22, nil, true)),
+    "Mission channel Batumi / 16X: 270.300 UHF / 130.300 VHF"
+  )
+end
+
+function TestVeafWeatherAtcFrequencies:test_a_silenced_tower_with_no_mission_channel_still_gives_the_dcs_frequency()
+  luaunit.assertEquals(
+    veafWeather.getAtcFrequenciesString(self:_airbase(22, nil, true)),
+    "Tower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X"
+  )
+end
+
+function TestVeafWeatherAtcFrequencies:test_a_silenced_tower_whose_mission_channel_repeats_it_keeps_one_line()
+  veafAirbases.MissionChannels = { [22] = { alias = "Base-Batumi", title = "Batumi", uhf = 260.0 } }
+  luaunit.assertEquals(
+    veafWeather.getAtcFrequenciesString(self:_airbase(22, nil, true)),
+    "Tower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X"
+  )
+end
+
+-- ── where it is said ────────────────────────────────────────────────────────
+
+function TestVeafWeatherAtcFrequencies:test_the_welcome_brief_says_it()
+  local airbase = self:_airbase(22)
+  veafAirbases.getNearestAirbase = function()
+    return airbase
+  end
+  local brief = veafWeather.buildWelcomeBrief({
+    getPoint = function()
+      return { x = 0, y = 0, z = 0 }
+    end,
+  })
+  luaunit.assertNotNil(brief)
+  luaunit.assertNotNil(brief:find("\nTower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X", 1, true), brief)
+end
+
+function TestVeafWeatherAtcFrequencies:test_the_atis_says_it()
+  local atis = veafWeatherAtis.getAtisString(self:_airbase(22))
+  luaunit.assertNotNil(atis)
+  luaunit.assertNotNil(atis:find("\nTower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X", 1, true), atis)
+end
+
+function TestVeafWeatherAtcFrequencies:test_an_atis_with_no_tower_has_no_tower_line()
+  local atis = veafWeatherAtis.getAtisString(self:_airbase(999))
+  luaunit.assertNotNil(atis)
+  luaunit.assertNil(atis:find("Tower", 1, true), atis)
 end
 
 -- ── who is already flying ───────────────────────────────────────────────────

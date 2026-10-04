@@ -547,6 +547,33 @@ def _spotter_view_mode(skynet_cfg: dict) -> str | None:
     return mode
 
 
+def _emit_mission_channels(mission_channels: Mapping[int, Mapping[str, object]]) -> list[str]:
+    """Emit ``veafAirbases.MissionChannels``: the mission's own channel for each airfield it names.
+
+    Guarded on ``veafAirbases``: a mission built against scripts that predate the table must still
+    load its configuration (FEAT-AIRFIELD-FREQS-IN-ATIS).
+
+    Args:
+        mission_channels: Airdrome id -> ``{alias, title, freqs: {band: MHz}}``.
+
+    Returns:
+        The Lua lines, a blank line last.
+    """
+    lines = [
+        "-- ── Airfield channels of the mission's radio plan (src/presets.yaml, `bases`) ──────",
+        "if veafAirbases then",
+        "    veafAirbases.MissionChannels = {",
+    ]
+    for airdrome_id, channel in sorted(mission_channels.items()):
+        freqs = channel.get("freqs")
+        fields = [f"alias = {_lua_key(channel['alias'])}", f"title = {_lua_key(channel['title'])}"]
+        if isinstance(freqs, Mapping):
+            fields += [f"{band} = {float(freqs[band])!r}" for band in ("uhf", "vhf", "fm") if band in freqs]
+        lines.append(f"        [{int(airdrome_id)}] = {{ {', '.join(fields)} }},")
+    lines += ["    }", "end", ""]
+    return lines
+
+
 def _whole_if_it_can_be(value: float) -> float | int:
     """Return *value* as an ``int`` when it is a whole number, unchanged otherwise.
 
@@ -1880,6 +1907,7 @@ def generate_config_lua(
     header: str | None = None,
     checklists: Sequence[Checklist] | None = None,
     checklist_images: Mapping[str, Sequence[str]] | None = None,
+    mission_channels: Mapping[int, Mapping[str, object]] | None = None,
 ) -> str:
     """Render ``veaf-config.lua`` from the full *mission_yaml* content dict.
 
@@ -1897,6 +1925,10 @@ def generate_config_lua(
         which is what keeps a mission that activates none of them free of cost.
     checklist_images:
         Per checklist id, the resource key of each rendered progress state.
+    mission_channels:
+        Per DCS airdrome id, the mission's own ``bases`` channel for that airfield
+        (``{alias, title, freqs}``), which the ATIS and the welcome brief give beside the
+        DCS tower. Nothing is emitted when empty.
 
     Returns
     -------
@@ -1941,6 +1973,9 @@ def generate_config_lua(
     language = mission_cfg.get("language") or current_language()
     lines.append(f"veaf.config.language = {_lua_text(language)}")
     lines.append("")
+
+    if mission_channels:
+        lines.extend(_emit_mission_channels(mission_channels))
 
     # ── Security ──────────────────────────────────────────────────────────
     security_cfg: dict = mission_yaml.get("security") or {}

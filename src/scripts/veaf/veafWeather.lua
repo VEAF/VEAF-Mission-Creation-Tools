@@ -1020,6 +1020,83 @@ function FgWeather.CreateMetarMark(mooseCoord, mooseGroup)
 end
 ]]
 ---------------------------------------------------------------------------------------------------
+---  The airfield's tower frequencies (FEAT-AIRFIELD-FREQS-IN-ATIS)
+---------------------------------------------------------------------------------------------------
+
+--- In the order a pilot dials them, with the name he reads on his radio.
+local _ATC_BANDS = { { "uhf", "UHF" }, { "vhf", "VHF" }, { "fm", "FM" } }
+
+--- "260.000 UHF / 131.000 VHF", or nil when no band is given. Three decimals, always: 126.525 is a real
+--- tower frequency, and a radio displays 251.000 rather than 251.
+local function _formatAtcFrequencies(freqs)
+  local parts = {}
+  for _, band in ipairs(_ATC_BANDS) do
+    local nMhz = freqs[band[1]]
+    if nMhz then
+      parts[#parts + 1] = string.format("%.3f %s", nMhz, band[2])
+    end
+  end
+  if #parts == 0 then
+    return nil
+  end
+  return table.concat(parts, " / ")
+end
+
+--- Whether every band the mission's channel gives is the tower's own — then it says nothing new.
+local function _repeatsTheTower(channel, tower)
+  for _, band in ipairs(_ATC_BANDS) do
+    local nMhz = channel[band[1]]
+    if nMhz and not (tower[band[1]] and math.abs(nMhz - tower[band[1]]) < 0.0005) then
+      return false
+    end
+  end
+  return true
+end
+
+--- How to call an airfield's tower: its frequencies and TACAN as DCS gives them, and on a second line the
+--- mission's own channel for it when the radio plan has one that differs (David's decision, 2026-10-01: a
+--- mission that gave the field its own frequency would otherwise hear one tower here and read another on
+--- its kneeboard). The channel is named by its title, what the pilot's presets show.
+---
+--- A mission that silenced ATC (`veaf.silenceAtcOnAllAirbases`) leaves a tower that answers nobody: its
+--- frequency then gives way to the mission's channel. When the mission has no channel for the field —
+--- the common case — the DCS frequency is still all there is, so it is given (David, 2026-10-04).
+---
+--- @param veafAirbase table the airbase
+--- @return string|nil the line(s), or nil for a ship, a FARP or a field DCS gives no frequency — never an
+---   empty or invented line
+function veafWeather.getAtcFrequenciesString(veafAirbase)
+  local tower = veafAirbases.getAtcFrequencies(veafAirbase)
+  local sTower = tower and _formatAtcFrequencies(tower)
+  if not sTower then
+    return nil
+  end
+  local sLine = veaf.t("weather.atc_tower", sTower)
+  if tower.tacan then
+    sLine = sLine .. veaf.t("weather.atc_tacan", tower.tacan)
+  end
+  local channel = veafAirbases.getMissionChannel(veafAirbase)
+  local sChannel = channel and _formatAtcFrequencies(channel)
+  if not sChannel or _repeatsTheTower(channel, tower) then
+    return sLine
+  end
+  local sChannelLine = veaf.t("weather.atc_mission_channel", channel.title or channel.alias, sChannel)
+  if veafAirbase.DcsAirbase:getRadioSilentMode() then
+    return sChannelLine
+  end
+  return sLine .. "\n" .. sChannelLine
+end
+
+--- `sMessage`, followed on a new line by the airfield's tower when there is one to give.
+local function _withAtcFrequencies(sMessage, veafAirbase)
+  local sAtc = veafWeather.getAtcFrequenciesString(veafAirbase)
+  if not sAtc then
+    return sMessage
+  end
+  return sMessage .. "\n" .. sAtc
+end
+
+---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 ---  ATIS management class
 ---  Simulation of the recording of an ATIS information per hour per airfield
@@ -1095,7 +1172,7 @@ function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
     end
   end
 
-  sMessage = sMessage .. "\n" .. weatherData:toStringAtis(unitSystem)
+  sMessage = _withAtcFrequencies(sMessage .. "\n" .. weatherData:toStringAtis(unitSystem), veafAirbase)
   --sMessage = sMessage .. "\n" .. weatherData:toStringExtended()
 
   local this = {
@@ -1924,9 +2001,9 @@ function veafWeather.buildWelcomeBrief(dcsUnit)
 
   local sRunway = veafAirbaseNear:getRunwayInServiceString(weatherData.WindDirection)
   if veaf.isNullOrEmpty(sRunway) then
-    return veaf.t("weather.welcome_brief_no_runway", sName, sWeather)
+    return _withAtcFrequencies(veaf.t("weather.welcome_brief_no_runway", sName, sWeather), veafAirbaseNear)
   end
-  return veaf.t("weather.welcome_brief", sName, sRunway, sWeather)
+  return _withAtcFrequencies(veaf.t("weather.welcome_brief", sName, sRunway, sWeather), veafAirbaseNear)
 end
 
 --- Show the brief to the player who just took a slot.

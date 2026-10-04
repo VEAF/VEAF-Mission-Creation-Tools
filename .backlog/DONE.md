@@ -90,6 +90,10 @@ A combat zone's unit renaming became a zone-level `combat_zones:` switch (#289, 
 
 `convert-v5` silently dropped settings: multi-line `setBriefing` truncated the chain, six `combat_zones` setters had no key. Shipped in 6.15; closed without Sharko's harnesses, which never came.
 
+### [FIX-DESTROY-NAME-KEY](FIX-DESTROY-NAME-KEY/PRD.md) · ✅
+
+`_destroy, name X` destroys X only; it used to clear everything within 150 m of the marker (#1069).
+
 ### [FIX-ESCORT-RESPAWN-DISTANCE](FIX-ESCORT-RESPAWN-DISTANCE/PRD.md) · ✅
 
 A respawned asset reappeared ~80 km from its escort; the escort now respawns with its charge. Verified in game (R5).

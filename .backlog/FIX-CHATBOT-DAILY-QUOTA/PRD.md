@@ -1,6 +1,6 @@
 # FIX-CHATBOT-DAILY-QUOTA — the website chatbot has a ceiling nobody has looked at
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Origin: measured on 2026-09-05 while sizing the support programme's lot 4. Google's free tier for
 `gemini-2.5-flash-lite` is **20 requests per day** and 10 per minute — read off AI Studio's *Rate

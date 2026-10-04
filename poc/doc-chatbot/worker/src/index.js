@@ -39,7 +39,9 @@
  *
  * `thinkingConfig` switches reasoning off where a model has it on by default: thinking tokens
  * count against `maxOutputTokens`, so a model left to think could run out of room mid-answer.
- * The two Gemma entries are both kept until a replay of `answer-cases.json` decides between them
+ * Both Gemma entries stay: each has its own 16 000 tokens-per-minute budget, so the second one takes
+ * over when the first is throttled for the minute. 26B comes first because a replay of
+ * `answer-cases.json` on 2026-10-04 found it about five times faster than 31B at equal answers
  * (FIX-CHATBOT-DAILY-QUOTA ticket 04).
  */
 const MODEL_CHAIN = [

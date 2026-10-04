@@ -1,6 +1,6 @@
 # 04 — When the day's allowance is spent, answer with another model
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: feat
 
@@ -50,6 +50,22 @@ Chaining both Gemma models buys nothing if the figure is per day: one is enough.
 - [x] Fallback on a spent day only, tested: per-minute 429 does not fall back, a non-quota failure is reported as is, a spent primary moves to rank 2, a spent chain gives the `dailyQuota` message
 - [x] Every model is sent the same `systemInstruction`, with its own `thinkingConfig`; a streamed `thought` part is never relayed
 - [x] `replay-answers.mjs --model <id>` pins one chain entry, asked alone with no fallback; any id outside the chain is a 400
-- [ ] Gemma 26B vs 31B decided on a replay of `answer-cases.json` once deployed, results written here, the loser dropped from `MODEL_CHAIN`
+- [x] Gemma 26B vs 31B decided on a replay of `answer-cases.json` once deployed (#1066), results below. Neither is dropped: each has its own TPM budget, so keeping both doubles the per-minute throughput at no cost. 26B stays first.
+
+## Replay — 2026-10-04, live Worker, `replay-answers.mjs --model`
+
+| Model | Run | Cases passed | Wall time for 3 cases (16 s of it is pacing) |
+|-------|-----|--------------|----------------------------------------------|
+| `gemma-4-26b-a4b-it` | 1 | 2 of 3 | 38 s |
+| `gemma-4-26b-a4b-it` | 2 | 3 of 3 | 38 s |
+| `gemma-4-31b-it` | 1 | 3 of 3 | 132 s |
+
+Both models accepted `systemInstruction` and `thinkingLevel: "minimal"`: every case got an answer, none an error.
+That is the live observation the ids and the call contract were waiting for.
+On answers they are level within what three non-deterministic cases can tell (26B missed one marker once, and the run log did not keep which).
+On speed 26B answers in about 7 s, 31B in about 39 s, so 26B goes first.
+Three cases is a small sample: it rules out a broken model, not a subtly worse one.
+
+A baseline run on `gemini-2.5-flash-lite` right after got one answer and two 429s from the Worker's own `cli` burst limit (10 a minute), spent by the runs before it, not from Google.
 - [x] Worker's own daily cap has a wording of its own, in both languages (`callerDailyCap`: resets 24 h after the caller's latest question)
 - [x] Worker README updated; `doc/SUPPORT.md` / `.en.md` and the CLI reference still true as written — they say the assistant is rationed and comes back the next day, which stays right but becomes rarer

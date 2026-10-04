@@ -6,9 +6,7 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-CHATBOT-DAILY-QUOTA](FIX-CHATBOT-DAILY-QUOTA/PRD.md) · 🔄
-
-The website chatbot runs on a free tier of 20 requests a day, and hit it on 2026-09-22. The limit is visible (tickets 01–03 done); ticket 04 falls back to other models, each with its own free allowance.
+*None.*
 
 ## 🧑 Waiting for a human
 

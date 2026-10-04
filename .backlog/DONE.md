@@ -70,6 +70,10 @@ Docs: `-cap` `capradius` is in nautical miles, not metres, and `distance` is the
 
 A red `-cap` drew from every side's templates, 7 in 10 of them western; `-cap` and `-afac` now draw from their own side (#1052, #240).
 
+### [FIX-CHATBOT-DAILY-QUOTA](FIX-CHATBOT-DAILY-QUOTA/PRD.md) · ✅
+
+The documentation assistant hit Google's free tier (23 of 20 a day on 2026-09-22); a spent day now falls back through `gemini-2.5-flash` and two Gemma 4 models, each with its own allowance, and the limit says so when the whole chain is spent (#916, #1066).
+
 ### [FIX-CLEARSKY-METAR](FIX-CLEARSKY-METAR/PRD.md) · ✅
 
 A `clearsky` variant's `${METAR}` announced the uncapped published sky; it is now composed from the capped weather.

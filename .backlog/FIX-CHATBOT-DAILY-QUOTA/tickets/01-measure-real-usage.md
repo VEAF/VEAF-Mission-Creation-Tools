@@ -1,6 +1,6 @@
 # 01 — Read the real usage before fixing anything
 
-Status: ⬜ ready
+Status: ✅ done
 
 Type: chore
 
@@ -26,9 +26,27 @@ explanation.
 While there, note the same figures for `gemini-embedding-001`: the Worker spends one embedding call
 per question on top of the generation call, and that quota is separate.
 
+## Reading — 2026-10-04 (28-day window, read by David in AI Studio)
+
+| Model | Peak RPD | Free-tier limit | Day of the peak |
+|-------|----------|-----------------|-----------------|
+| `gemini-2.5-flash-lite` (generation) | 23 | 20 | 2026-09-22 |
+| `gemini-embedding-001` | 257 | 1000 | 2026-09-21 |
+
+The peak RPM was not read.
+The project holding the Worker's key is **VEAF documentation assistant** (`gen-lang-client-0120610618`).
+The peak counted above the limit (23 against 20).
+The likeliest reason is that refused calls are counted too, but that is not verified.
+
+The embedding peak includes the reindex runs, which share the key.
+`build-index.mjs` only embeds chunks that changed, so a reindex costs little.
+
+**Verdict: the ceiling is being hit.** The generation quota was spent at least once in 28 days, so ticket 02's message was needed and has already been shown to visitors.
+The embedding quota is far away.
+
 ## Definition of done
 
-- [ ] The project holding the Worker's key is identified and written down
-- [ ] 28-day peak RPD and RPM recorded for the generation model, with the date of the reading
-- [ ] Embedding model quota and peak recorded too
-- [ ] A one-line verdict: is the ceiling being hit, near, or far away
+- [x] The project holding the Worker's key is identified and written down
+- [x] 28-day peak RPD recorded for the generation model, with the date of the reading (RPM not read)
+- [x] Embedding model quota and peak recorded too
+- [x] A one-line verdict: is the ceiling being hit, near, or far away

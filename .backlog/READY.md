@@ -46,7 +46,7 @@ Turn an answered `/ask` thread into a pre-filled `/bug` or `/suggest`, filed onl
 
 ### [FIX-CHATBOT-DAILY-QUOTA](FIX-CHATBOT-DAILY-QUOTA/PRD.md) · ⬜
 
-The website chatbot runs on a free tier of ~20 requests a day and stops silently. First measure the real peak, then make the limit visible.
+The website chatbot runs on a free tier of 20 requests a day, and hit it on 2026-09-22. The limit is now visible (tickets 01–03 done); what remains is falling back to other models, each with its own free allowance.
 
 ### [INVESTIGATE-SKYNET-AWACS-BLIND](INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md) · ⬜
 

@@ -1,6 +1,6 @@
 # 04 — When the day's allowance is spent, answer with another model
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Type: feat
 
@@ -44,10 +44,12 @@ Chaining both Gemma models buys nothing if the figure is per day: one is enough.
 
 ## Definition of done
 
-- [ ] Quotas (RPM, TPM, RPD) of the three candidates recorded with the date
-- [ ] Exact model ids read from the API
-- [ ] Fallback on a spent day only, tested: per-minute 429 does not fall back, a spent primary moves to rank 2, a spent chain gives the `dailyQuota` message
-- [ ] Gemma call path tested for the system-instruction contract actually observed
-- [ ] Gemma 26B vs 31B decided on a replay of `answer-cases.json`, results written here
-- [ ] Worker's own daily cap has a wording of its own, in both languages
-- [ ] Worker README, `doc/SUPPORT.md` / `.en.md` and the CLI reference still true — they say the assistant is rationed and comes back the next day, which stays right but becomes rarer
+- [x] Quotas recorded — 2026-10-04, read by David in AI Studio: `gemma-4-26b-a4b-it` and `gemma-4-31b-it` each **14 400 RPD and 16 000 TPM** (the 14.4K figure was requests per day). RPM not read. `gemini-2.5-flash` stays at the 20 RPD read on 2026-09-05.
+      At 4–5 k tokens a question, 16 000 TPM is three questions a minute on a Gemma, and a full `/analyze` excerpt (40 000 characters, about 10 k tokens) one a minute — which is why a fallback's per-minute refusal hands over to the next model. The day's ceiling now sits far above the Worker's own per-caller caps.
+- [x] Exact model ids — `gemma-4-26b-a4b-it` and `gemma-4-31b-it`, from Google's *Run Gemma with the Gemini API* page (2026-10-04), which also documents `systemInstruction` as supported and `thinkingLevel: "minimal"` as thinking off. Not yet observed against the live API: the replay below is that observation.
+- [x] Fallback on a spent day only, tested: per-minute 429 does not fall back, a non-quota failure is reported as is, a spent primary moves to rank 2, a spent chain gives the `dailyQuota` message
+- [x] Every model is sent the same `systemInstruction`, with its own `thinkingConfig`; a streamed `thought` part is never relayed
+- [x] `replay-answers.mjs --model <id>` pins one chain entry, asked alone with no fallback; any id outside the chain is a 400
+- [ ] Gemma 26B vs 31B decided on a replay of `answer-cases.json` once deployed, results written here, the loser dropped from `MODEL_CHAIN`
+- [x] Worker's own daily cap has a wording of its own, in both languages (`callerDailyCap`: resets 24 h after the caller's latest question)
+- [x] Worker README updated; `doc/SUPPORT.md` / `.en.md` and the CLI reference still true as written — they say the assistant is rationed and comes back the next day, which stays right but becomes rarer

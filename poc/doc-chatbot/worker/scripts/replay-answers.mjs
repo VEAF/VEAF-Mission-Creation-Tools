@@ -16,6 +16,11 @@
  *     node scripts/replay-answers.mjs
  *     node scripts/replay-answers.mjs --endpoint https://veaf-docs-chatbot.veaf.workers.dev/chat
  *     node scripts/replay-answers.mjs --case csar-aircrafttype-fr
+ *     node scripts/replay-answers.mjs --model gemma-4-31b-it
+ *
+ * `--model` pins one model of the Worker's fallback chain and asks it alone, so a fallback's answers
+ * are measured before the chain relies on them. Without it the Worker answers with whichever model
+ * still has allowance today, and the run says nothing about any one of them.
  *
  * Three exit codes, because "no case failed" and "no case was asked" must not look alike. A check
  * that goes green having measured nothing is the failure this repository has already paid for
@@ -138,9 +143,10 @@ export function conversation(question) {
  * @param {string} endpoint The Worker `/chat` URL.
  * @param {{question: string, lang: string}} spec The case.
  * @param {typeof fetch} [fetchImpl] Injected by the tests.
+ * @param {string|null} [model] A model of the Worker's chain to ask alone, or null for the chain.
  * @returns {Promise<{text: string, error: string|null, status: number}>} What came back.
  */
-export async function askLive(endpoint, spec, fetchImpl = fetch) {
+export async function askLive(endpoint, spec, fetchImpl = fetch, model = null) {
   const response = await fetchImpl(endpoint, {
     method: "POST",
     headers: {
@@ -151,7 +157,11 @@ export async function askLive(endpoint, spec, fetchImpl = fetch) {
     // No `subject`: the Worker only honours one for a client mode holding a secret, and `cli` holds
     // none, so its rate limit is keyed on the caller's IP whatever is sent. Sending one anyway
     // would read as a quota this script controls, which it does not.
-    body: JSON.stringify({ lang: spec.lang, messages: conversation(spec.question) }),
+    body: JSON.stringify({
+      lang: spec.lang,
+      messages: conversation(spec.question),
+      ...(model ? { model } : {}),
+    }),
   });
   const body = await response.text();
   if (!response.ok) {
@@ -190,17 +200,19 @@ function arg(argv, name, fallback = null) {
 async function main(argv) {
   const endpoint = arg(argv, "--endpoint", DEFAULT_ENDPOINT);
   const only = arg(argv, "--case", null);
+  const model = arg(argv, "--model", null);
   const file = path.join(path.dirname(fileURLToPath(import.meta.url)), "answer-cases.json");
   const { cases } = JSON.parse(await readFile(file, "utf8"));
   const selected = only ? cases.filter((c) => c.id === only) : cases;
   if (!selected.length) throw new Error(`no case matches ${JSON.stringify(only)}`);
 
-  console.log(`Replaying ${selected.length} case(s) against ${endpoint}\n`);
+  const pinned = model ? ` on ${model}` : "";
+  console.log(`Replaying ${selected.length} case(s) against ${endpoint}${pinned}\n`);
   let failed = 0;
   let unavailable = 0;
   for (const [index, spec] of selected.entries()) {
     if (index) await sleep(PACING_SECONDS * 1000);
-    const { text, error } = await askLive(endpoint, spec);
+    const { text, error } = await askLive(endpoint, spec, fetch, model);
     // An empty stream carrying no error is the same thing as an error for this purpose: the
     // assistant did not answer. Sent to `verdict` it would miss every marker and be printed as a
     // wrong answer, which is the one reading that is certainly false. The support bot draws the

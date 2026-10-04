@@ -17,6 +17,7 @@ import worker, {
   upstreamErrorMessage,
   isDailyQuotaFailure,
   MESSAGES,
+  MODEL_CHAIN,
   isAllowedClient,
   resolveClient,
   allowRequest,
@@ -346,20 +347,20 @@ test("every declared client carries its own limits, ceiling and routes", () => {
 
 test("allowRequest counts per client and denies once the KV counter is at the ceiling", async () => {
   const env = fakeKv();
-  assert.equal(await allowRequest(env, "cli", "1.2.3.4"), true);
+  assert.equal(await allowRequest(env, "cli", "1.2.3.4"), "allowed");
   const atCeiling = fakeKv({
     values: { [`rl:min:cli:1.2.3.4`]: String(CLIENTS.cli.perWindow) },
   });
-  assert.equal(await allowRequest(atCeiling, "cli", "1.2.3.4"), false);
+  assert.equal(await allowRequest(atCeiling, "cli", "1.2.3.4"), "minute");
   // The daily ceiling is independent of the burst one.
   const dayFull = fakeKv({ values: { [`rl:day:logs:1.2.3.4`]: String(CLIENTS.logs.perDay) } });
-  assert.equal(await allowRequest(dayFull, "logs", "1.2.3.4"), false);
+  assert.equal(await allowRequest(dayFull, "logs", "1.2.3.4"), "day");
 });
 
 test("allowRequest keeps each client's counters separate", async () => {
   const env = fakeKv({ values: { "rl:min:web:9.9.9.9": String(CLIENTS.web.perWindow) } });
-  assert.equal(await allowRequest(env, "web", "9.9.9.9"), false);
-  assert.equal(await allowRequest(env, "logs", "9.9.9.9"), true, "logs must not inherit web's count");
+  assert.equal(await allowRequest(env, "web", "9.9.9.9"), "minute");
+  assert.equal(await allowRequest(env, "logs", "9.9.9.9"), "allowed", "logs must not inherit web's count");
 });
 
 test("allowRequest fails closed: a KV outage degrades the limit instead of removing it", async () => {
@@ -367,18 +368,18 @@ test("allowRequest fails closed: a KV outage degrades the limit instead of remov
   const ip = `kv-outage-${Date.now()}`; // fresh subject: the degraded counter is per isolate
   let allowed = 0;
   for (let i = 0; i < 10; i++) {
-    if (await allowRequest(env, "cli", ip)) allowed++;
+    if ((await allowRequest(env, "cli", ip)) === "allowed") allowed++;
   }
   assert.equal(allowed, DEGRADED_MAX_PER_WINDOW, "a KV outage must not lift the rate limit");
-  assert.equal(await allowRequest(env, "cli", ip), false);
+  assert.equal(await allowRequest(env, "cli", ip), "minute");
 });
 
 test("allowRequest refuses an undeclared client outright, inherited names included", async () => {
-  assert.equal(await allowRequest(fakeKv(), "not-a-client", "1.2.3.4"), false);
+  assert.equal(await allowRequest(fakeKv(), "not-a-client", "1.2.3.4"), "minute");
   // A bare `CLIENTS[client]` read answered `Object` for these — truthy, and with no quota fields,
   // so every `count >= undefined` comparison was false and the request went through.
   for (const name of ["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"]) {
-    assert.equal(await allowRequest(fakeKv(), name, "1.2.3.4"), false, `${name} is not a client`);
+    assert.equal(await allowRequest(fakeKv(), name, "1.2.3.4"), "minute", `${name} is not a client`);
   }
 });
 
@@ -388,19 +389,19 @@ test("allowRequest treats an unreadable counter as the ceiling and does not rewr
   // open for good. Measured before the fix: 10 of 200 requests admitted, value still "NaN".
   for (const poison of ["NaN", "abc", "-1", "1e3", "9.5"]) {
     const day = fakeKv({ values: { "rl:day:cli:7.7.7.7": poison } });
-    assert.equal(await allowRequest(day, "cli", "7.7.7.7"), false, `daily counter "${poison}"`);
+    assert.equal(await allowRequest(day, "cli", "7.7.7.7"), "day", `daily counter "${poison}"`);
     const min = fakeKv({ values: { "rl:min:cli:7.7.7.7": poison } });
-    assert.equal(await allowRequest(min, "cli", "7.7.7.7"), false, `burst counter "${poison}"`);
+    assert.equal(await allowRequest(min, "cli", "7.7.7.7"), "minute", `burst counter "${poison}"`);
   }
   const env = fakeKv({ values: { "rl:day:cli:7.7.7.7": "NaN" } });
-  assert.equal(await allowRequest(env, "cli", "7.7.7.7"), false);
+  assert.equal(await allowRequest(env, "cli", "7.7.7.7"), "day");
   assert.equal(env.store.get("rl:day:cli:7.7.7.7"), "NaN", "the poisoned value must not be refreshed");
   assert.equal(env.store.has("rl:min:cli:7.7.7.7"), false, "a refused request writes no counter");
 });
 
 test("allowRequest still reads an absent or empty counter as zero", async () => {
   const env = fakeKv({ values: { "rl:min:cli:7.7.7.9": "" } });
-  assert.equal(await allowRequest(env, "cli", "7.7.7.9"), true);
+  assert.equal(await allowRequest(env, "cli", "7.7.7.9"), "allowed");
   assert.equal(env.store.get("rl:min:cli:7.7.7.9"), "1");
 });
 
@@ -601,7 +602,230 @@ test("fetch: a caller at its daily ceiling gets a localized 429", async () => {
     env,
   );
   assert.equal(res.status, 429);
-  assert.match(await res.text(), /back in a minute/);
+  const body = await res.text();
+  // Its own wording: the caller's counter is a rolling 24 h, not Google's 09:00 rollover, and
+  // waiting a minute does not lift it.
+  assert.ok(body.includes(MESSAGES.en.callerDailyCap));
+  assert.doesNotMatch(body, /back in a minute|09:00/);
+});
+
+test("allowRequest names the daily ceiling when both are reached", async () => {
+  const both = fakeKv({
+    values: {
+      "rl:min:cli:5.5.5.5": String(CLIENTS.cli.perWindow),
+      "rl:day:cli:5.5.5.5": String(CLIENTS.cli.perDay),
+    },
+  });
+  assert.equal(await allowRequest(both, "cli", "5.5.5.5"), "day", "a minute's wait would not lift it");
+});
+
+test("the caller's daily cap promises neither a minute nor 09:00, in both languages", () => {
+  for (const lang of ["fr", "en"]) {
+    const msg = MESSAGES[lang].callerDailyCap;
+    assert.match(msg, /24 h/);
+    assert.doesNotMatch(msg, /minute|9 h|09:00/);
+  }
+});
+
+// --- Model fallback ---------------------------------------------------------
+// The free tier counts its daily allowance per model, so a spent day on one model moves the question
+// to the next. These pin the wiring: which failure moves down the chain, which does not, and what
+// the caller reads once the whole chain is spent.
+
+const dailyBody = () => quotaFailure("GenerateRequestsPerDayPerProjectPerModel-FreeTier");
+const minuteBody = () => quotaFailure("GenerateRequestsPerMinutePerProjectPerModel-FreeTier");
+const answerChunk = (text, extra = {}) =>
+  `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text, ...extra }] } }] })}\n\n`;
+
+/**
+ * Stub the upstream: embeddings answer a fixed vector, and each generation model answers what
+ * `byModel` says (a Response factory), defaulting to a short streamed answer. Returns the list of
+ * generation models asked, in order, plus the bodies they were sent.
+ */
+function stubGemini(byModel = {}) {
+  const asked = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const u = String(url);
+    if (u.includes(":embedContent")) {
+      return new Response(JSON.stringify({ embedding: { values: new Array(768).fill(0.01) } }));
+    }
+    const id = /models\/([^:]+):streamGenerateContent/.exec(u)[1];
+    asked.push({ id, body: JSON.parse(init.body) });
+    const make = byModel[id];
+    return make ? make() : new Response(answerChunk(`from ${id}`), { status: 200 });
+  };
+  return { asked, restore: () => (globalThis.fetch = realFetch) };
+}
+
+async function ask(body, ip = "203.0.113.70", caller = { client: "cli" }) {
+  // One indexed passage pointing the same way as the stubbed question vector, so retrieval
+  // succeeds and the question reaches generation. The index cache is module-level and keyed by
+  // language, and `/chat` only takes `fr` or `en`: these helpers are the only tests that load the
+  // `fr` index, and every call seeds the same one, so the order the tests run in does not matter.
+  // A new test loading a *different* `fr` index would break that.
+  const env = workerEnv({
+      kv: {
+        "idx:vec:fr": new Float32Array(768).fill(0.01).buffer,
+        "idx:txt:fr": [{ title: "Build", text: "body" }],
+      },
+    });
+  const res = await worker.fetch(
+    call("/chat", { ...caller, ip, body: { lang: "fr", messages: [{ role: "user", content: "comment builder ?" }], ...body } }),
+    env,
+  );
+  return { res, text: await res.text(), env };
+}
+
+test("fallback: a spent day on the primary moves the question to the next model", async () => {
+  const stub = stubGemini({ [MODEL_CHAIN[0].id]: () => new Response(dailyBody(), { status: 429 }) });
+  try {
+    const { text } = await ask({}, "203.0.113.71");
+    assert.deepEqual(stub.asked.map((a) => a.id), [MODEL_CHAIN[0].id, MODEL_CHAIN[1].id]);
+    assert.match(text, new RegExp(`from ${MODEL_CHAIN[1].id}`));
+    assert.doesNotMatch(text, /"error"/, "the caller never sees the primary's refusal");
+  } finally {
+    stub.restore();
+  }
+});
+
+test("fallback: a per-minute throttle does not spend a fallback's allowance", async () => {
+  const stub = stubGemini({ [MODEL_CHAIN[0].id]: () => new Response(minuteBody(), { status: 429 }) });
+  try {
+    const { text } = await ask({}, "203.0.113.72");
+    assert.deepEqual(stub.asked.map((a) => a.id), [MODEL_CHAIN[0].id]);
+    assert.ok(text.includes(MESSAGES.fr.rateLimited));
+  } finally {
+    stub.restore();
+  }
+});
+
+test("fallback: a non-quota failure of the primary is reported, not retried elsewhere", async () => {
+  const stub = stubGemini({ [MODEL_CHAIN[0].id]: () => new Response("boom", { status: 500 }) });
+  try {
+    const { text } = await ask({}, "203.0.113.73");
+    assert.equal(stub.asked.length, 1);
+    assert.ok(text.includes(MESSAGES.fr.unavailable));
+  } finally {
+    stub.restore();
+  }
+});
+
+test("fallback: a fallback that fails for any reason hands over to the next one", async () => {
+  // Past the primary, the question is only there because the day is spent: a fallback rejecting
+  // its config, or throttled for the minute, must not end the walk while another one is left.
+  const stub = stubGemini({
+    [MODEL_CHAIN[0].id]: () => new Response(dailyBody(), { status: 429 }),
+    [MODEL_CHAIN[1].id]: () => new Response(minuteBody(), { status: 429 }),
+    [MODEL_CHAIN[2].id]: () => new Response('{"error":{"code":400}}', { status: 400 }),
+  });
+  try {
+    const { text } = await ask({}, "203.0.113.79");
+    assert.deepEqual(stub.asked.map((a) => a.id), MODEL_CHAIN.map((m) => m.id));
+    assert.match(text, new RegExp(`from ${MODEL_CHAIN[3].id}`));
+  } finally {
+    stub.restore();
+  }
+});
+
+test("fallback: a spent chain says the day, unless a fallback was only throttled", async () => {
+  const daily = () => new Response(dailyBody(), { status: 429 });
+  const broken = () => new Response("boom", { status: 500 });
+  const minute = () => new Response(minuteBody(), { status: 429 });
+  const cases = [
+    // A broken fallback is not news for the visitor: the reason they got no answer is the day.
+    [{ [MODEL_CHAIN[1].id]: broken }, MESSAGES.fr.dailyQuota, "203.0.113.80"],
+    // A throttled one is back in a minute, which is the better advice.
+    [{ [MODEL_CHAIN[2].id]: minute }, MESSAGES.fr.rateLimited, "203.0.113.81"],
+  ];
+  for (const [override, expected, ip] of cases) {
+    const all = Object.fromEntries(MODEL_CHAIN.map((m) => [m.id, daily]));
+    const stub = stubGemini({ ...all, ...override });
+    try {
+      const { text } = await ask({}, ip);
+      assert.ok(text.includes(expected), `${Object.keys(override)}: ${text}`);
+    } finally {
+      stub.restore();
+    }
+  }
+});
+
+test("fallback: the daily message only appears once every model has spent its day", async () => {
+  const spent = Object.fromEntries(MODEL_CHAIN.map((m) => [m.id, () => new Response(dailyBody(), { status: 429 })]));
+  const stub = stubGemini(spent);
+  try {
+    const { text } = await ask({}, "203.0.113.74");
+    assert.deepEqual(stub.asked.map((a) => a.id), MODEL_CHAIN.map((m) => m.id));
+    assert.match(text, /allocation de questions pour la journée/);
+  } finally {
+    stub.restore();
+  }
+});
+
+test("fallback: each model gets its own thinking switch, and the same instruction", async () => {
+  const spent = Object.fromEntries(MODEL_CHAIN.map((m) => [m.id, () => new Response(dailyBody(), { status: 429 })]));
+  const stub = stubGemini(spent);
+  try {
+    await ask({}, "203.0.113.75");
+    const instruction = stub.asked[0].body.systemInstruction.parts[0].text;
+    for (const [i, model] of MODEL_CHAIN.entries()) {
+      const sent = stub.asked[i].body;
+      assert.deepEqual(sent.generationConfig.thinkingConfig, model.thinkingConfig, model.id);
+      assert.equal(sent.systemInstruction.parts[0].text, instruction, model.id);
+    }
+    assert.equal(stub.asked[0].body.generationConfig.thinkingConfig, undefined, "flash-lite is sent no thinking config");
+  } finally {
+    stub.restore();
+  }
+});
+
+test("a pinned model is asked alone, with no fallback, so a replay measures that model", async () => {
+  const pinned = MODEL_CHAIN[2].id;
+  const stub = stubGemini({ [pinned]: () => new Response(dailyBody(), { status: 429 }) });
+  try {
+    const { text } = await ask({ model: pinned }, "203.0.113.76");
+    assert.deepEqual(stub.asked.map((a) => a.id), [pinned]);
+    assert.match(text, /allocation de questions pour la journée/);
+  } finally {
+    stub.restore();
+  }
+});
+
+test("a model outside the chain is refused before anything is spent", async () => {
+  const stub = stubGemini();
+  try {
+    const { res, env } = await ask({ model: "gemini-2.5-pro" }, "203.0.113.77");
+    assert.equal(res.status, 400);
+    assert.equal(stub.asked.length, 0);
+    assert.deepEqual(rateLimitKeys(env), [], "a mistyped pin costs the caller no quota");
+  } finally {
+    stub.restore();
+  }
+});
+
+test("only the cli mode may pin a model, so a page visitor cannot spend a fallback's day", async () => {
+  const stub = stubGemini();
+  try {
+    const { res } = await ask({ model: MODEL_CHAIN[1].id }, "203.0.113.82", { origin: "https://veaf.github.io" });
+    assert.equal(res.status, 400);
+    assert.equal(stub.asked.length, 0);
+  } finally {
+    stub.restore();
+  }
+});
+
+test("a streamed thought part is never relayed to the caller", async () => {
+  const stub = stubGemini({
+    [MODEL_CHAIN[0].id]: () =>
+      new Response(answerChunk("secret reasoning", { thought: true }) + answerChunk("the answer"), { status: 200 }),
+  });
+  try {
+    const { text } = await ask({}, "203.0.113.78");
+    assert.match(text, /the answer/);
+    assert.doesNotMatch(text, /secret reasoning/);
+  } finally {
+    stub.restore();
+  }
 });
 
 test("fetch: an exhausted daily Gemini quota reaches the caller as the daily message", async () => {
@@ -1067,6 +1291,19 @@ test("askLive declares a User-Agent, which Cloudflare refuses the request withou
     assert.equal(seen.headers["X-VEAF-Client"], "cli", "the secret-free client mode is declared");
     assert.ok(!("X-VEAF-Auth" in seen.headers), "no secret is needed, and none is invented");
   });
+});
+
+test("askLive pins a model only when asked to", async () => {
+  const bodies = [];
+  const fake = async (url, init) => {
+    bodies.push(JSON.parse(init.body));
+    return { ok: true, status: 200, async text() { return "data: [DONE]\n\n"; } };
+  };
+  const spec = { lang: "fr", question: "q" };
+  await askLive("https://example.invalid/chat", spec, fake);
+  await askLive("https://example.invalid/chat", spec, fake, MODEL_CHAIN[3].id);
+  assert.ok(!("model" in bodies[0]), "no --model: the Worker's chain answers");
+  assert.equal(bodies[1].model, MODEL_CHAIN[3].id);
 });
 
 test("a non-200 is reported as an unaskable case, not as a wrong answer", async () => {

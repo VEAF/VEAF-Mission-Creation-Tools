@@ -24,6 +24,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   An Intel Mac now gets the updater's "unsupported platform" message instead of looking for an asset that does not exist.
   Linux x86_64 and macOS arm64 (Apple Silicon) binaries are unchanged.
 
+### Changed
+
+- **The documentation assistant keeps answering after its first model has spent its day** (FIX-CHATBOT-DAILY-QUOTA).
+  Google's free tier allows 20 questions a day per model, and the assistant hit that ceiling on 2026-09-22.
+  When the day's allowance is spent, the question now goes to the next model in a chain — `gemini-2.5-flash`, then Gemma 4 — each with its own free allowance, still without billing.
+  The "comes back tomorrow morning" message only shows once the whole chain is spent.
+  A caller who reaches the assistant's own per-person daily limit now reads that, rather than "back in a minute".
+
 ## [6.27.0] — 2026-10-03
 
 ### Changed

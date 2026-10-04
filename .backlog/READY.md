@@ -44,10 +44,6 @@ A mission that proves a spotter report reaches a battery that never saw the airc
 
 Turn an answered `/ask` thread into a pre-filled `/bug` or `/suggest`, filed only on explicit confirmation.
 
-### [FIX-CHATBOT-DAILY-QUOTA](FIX-CHATBOT-DAILY-QUOTA/PRD.md) · ⬜
-
-The website chatbot runs on a free tier of 20 requests a day, and hit it on 2026-09-22. The limit is now visible (tickets 01–03 done); what remains is falling back to other models, each with its own free allowance.
-
 ### [INVESTIGATE-SKYNET-AWACS-BLIND](INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md) · ⬜
 
 Three red A-50s reported no contact in 286 cycles while ground radars saw up to 14 aircraft. Three hypotheses to test, cheapest first.

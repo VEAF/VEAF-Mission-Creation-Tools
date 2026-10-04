@@ -31,7 +31,23 @@
  *                                          is refused outright (it is groundwork, not an open door).
  */
 
-const MODEL = "gemini-2.5-flash-lite";
+/**
+ * Generation models, in the order they are asked. The free tier counts its daily allowance *per
+ * model*, so when one has spent its day the next still has all of its own: the chain raises the
+ * ceiling without enabling billing. Only a spent day moves down the chain — a per-minute throttle
+ * clears by itself, and spending a fallback's allowance on it would be waste.
+ *
+ * `thinkingConfig` switches reasoning off where a model has it on by default: thinking tokens
+ * count against `maxOutputTokens`, so a model left to think could run out of room mid-answer.
+ * The two Gemma entries are both kept until a replay of `answer-cases.json` decides between them
+ * (FIX-CHATBOT-DAILY-QUOTA ticket 04).
+ */
+const MODEL_CHAIN = [
+  { id: "gemini-2.5-flash-lite" },
+  { id: "gemini-2.5-flash", thinkingConfig: { thinkingBudget: 0 } },
+  { id: "gemma-4-26b-a4b-it", thinkingConfig: { thinkingLevel: "minimal" } },
+  { id: "gemma-4-31b-it", thinkingConfig: { thinkingLevel: "minimal" } },
+];
 const EMBED_MODEL = "gemini-embedding-001";
 const EMBED_DIMS = 768; // embedding dimensionality (must match the index built by build-index.mjs)
 const TOP_K = 6; // passages retrieved per question
@@ -135,11 +151,19 @@ const CLIENTS = {
  *
  * The daily wording also says *why*, because being rationed and being broken look identical from
  * the outside: an assistant that answered a minute ago and now refuses reads as a defect unless
- * it explains that it is running on a free, shared allowance.
+ * it explains that it is running on a free, shared allowance. It is only shown once every model
+ * of MODEL_CHAIN has spent its day.
+ *
+ * `callerDailyCap` is the Worker's *own* per-caller daily counter (CLIENTS `perDay`), which is not
+ * Google's: it counts one caller, not every visitor, and it is a rolling window whose 24 h restart
+ * from that caller's latest question — so it must promise neither "a minute" nor "09:00".
  */
 const MESSAGES = {
   fr: {
     rateLimited: "Trop de questions à la fois — l'assistant repart dans une minute.",
+    callerDailyCap:
+      "Vous avez atteint votre nombre de questions pour la journée. Le compteur repart à zéro " +
+      "24 h après votre dernière question.",
     dailyQuota:
       "L'assistant a épuisé son allocation de questions pour la journée : elle est gratuite et " +
       "partagée par tous les visiteurs du site. Elle repart chaque matin vers 9 h (heure de " +
@@ -150,6 +174,9 @@ const MESSAGES = {
   },
   en: {
     rateLimited: "Too many questions at once — the assistant is back in a minute.",
+    callerDailyCap:
+      "You have reached your number of questions for the day. The counter resets 24 hours " +
+      "after your latest question.",
     dailyQuota:
       "The assistant has used up its question allowance for the day: it is free, and shared by " +
       "every visitor of the site. The allowance refills each morning around 09:00 Central " +
@@ -341,30 +368,33 @@ function readCounter(raw, limit) {
  * @param {object} env Worker bindings (needs `CHAT_KV`).
  * @param {string} client A key of CLIENTS.
  * @param {string} subject Rate-limit subject (IP, or a service-supplied user id).
- * @returns {Promise<boolean>} True when the request is allowed.
+ * @returns {Promise<"allowed"|"minute"|"day">} `"allowed"`, or which ceiling refused the request
+ *   — the two need different messages. The daily one wins when both are reached, since waiting a
+ *   minute would not lift it; an undeclared client and a KV outage both answer `"minute"`.
  */
 async function allowRequest(env, client, subject) {
   // Own-property lookup, never a bare read: `CLIENTS["constructor"]` is `Object`, which is truthy
   // and has no `perWindow`, so every comparison below would be `>= undefined` — i.e. false — and
   // the request would be allowed. `resolveClient` already refuses those names, and so does this.
   const spec = Object.prototype.hasOwnProperty.call(CLIENTS, client) ? CLIENTS[client] : null;
-  if (!spec) return false;
+  if (!spec) return "minute";
   const minKey = `rl:min:${client}:${subject}`;
   const dayKey = `rl:day:${client}:${subject}`;
   try {
     const [minRaw, dayRaw] = await Promise.all([env.CHAT_KV.get(minKey), env.CHAT_KV.get(dayKey)]);
     const minCount = readCounter(minRaw, spec.perWindow);
     const dayCount = readCounter(dayRaw, spec.perDay);
-    if (minCount >= spec.perWindow || dayCount >= spec.perDay) return false;
+    if (dayCount >= spec.perDay) return "day";
+    if (minCount >= spec.perWindow) return "minute";
     await Promise.all([
       env.CHAT_KV.put(minKey, String(minCount + 1), { expirationTtl: RL_WINDOW }),
       env.CHAT_KV.put(dayKey, String(dayCount + 1), { expirationTtl: 86400 }),
     ]);
-    return true;
+    return "allowed";
   } catch {
     // Fail closed-ish: KV is gone, so fall back to a much stricter per-isolate ceiling.
     // Returning true here (as this used to) meant a KV outage silently removed every limit.
-    return degradedAllow(`${client}:${subject}`);
+    return degradedAllow(`${client}:${subject}`) ? "allowed" : "minute";
   }
 }
 
@@ -516,20 +546,51 @@ function toGeminiContents(messages) {
  * @param {string} lang `"fr"` or `"en"`, used for the failure messages.
  * @param {Array<object>} contents Gemini-shaped `contents` (already trimmed and mapped).
  * @param {string} instruction The system instruction framing the answer.
+ * @param {string} [onlyModel] A MODEL_CHAIN id to ask alone, with no fallback — so a replay
+ *   measures that model and not whichever one happened to have allowance left.
  */
-async function streamGemini(env, lang, contents, instruction) {
-  const url = `${GEMINI_BASE}/${MODEL}:streamGenerateContent?alt=sse&key=${env.GEMINI_API_KEY}`;
-  const body = {
-    systemInstruction: { parts: [{ text: instruction }] },
-    contents,
-    generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
-  };
-
-  const upstream = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+async function streamGemini(env, lang, contents, instruction, onlyModel) {
+  const chain = onlyModel ? MODEL_CHAIN.filter((m) => m.id === onlyModel) : MODEL_CHAIN;
+  let upstream;
+  let failure = null; // the message owed to the caller when no model answers
+  let throttled = false; // a fallback was refused for the minute, so one is back in a minute
+  for (const [rank, model] of chain.entries()) {
+    const url = `${GEMINI_BASE}/${model.id}:streamGenerateContent?alt=sse&key=${env.GEMINI_API_KEY}`;
+    const generationConfig = { temperature: 0.3, maxOutputTokens: 1024 };
+    if (model.thinkingConfig) generationConfig.thinkingConfig = model.thinkingConfig;
+    upstream = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: instruction }] },
+        contents,
+        generationConfig,
+      }),
+    });
+    if (upstream.ok && upstream.body) {
+      failure = null;
+      break;
+    }
+    // The body is what distinguishes a daily quota exhaustion from a burst limit; it is only read
+    // on the failure path, where the response is a small JSON error rather than a stream. Nothing
+    // has reached the caller yet, so moving to the next model is invisible to them.
+    const detail = await upstream.text().catch(() => "");
+    if (rank === 0) {
+      // The first model asked decides whether the chain is walked at all: only its spent day does.
+      failure = upstreamErrorMessage(lang, upstream.status, detail);
+      if (failure !== MESSAGES[lang].dailyQuota) break;
+      continue;
+    }
+    // Past it, the question is only here because the day is spent, so any failure of a fallback —
+    // its own minute, a config it rejects, an outage — moves on: each model has its own budgets,
+    // and the caller is owed the next one rather than that fallback's error. Once the chain is
+    // exhausted, the day is the honest cause unless one fallback was only refused for the minute.
+    if (upstream.status === 429 && !isDailyQuotaFailure(detail)) throttled = true;
+    else if (upstream.status !== 429) {
+      console.warn(`fallback ${model.id} failed: ${upstream.status} ${detail.slice(0, 200)}`);
+    }
+    failure = throttled ? MESSAGES[lang].rateLimited : MESSAGES[lang].dailyQuota;
+  }
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
@@ -540,12 +601,7 @@ async function streamGemini(env, lang, contents, instruction) {
         controller.enqueue(encoder.encode(sse({ error: msg })));
         controller.close();
       };
-      if (!upstream.ok || !upstream.body) {
-        // The body is what distinguishes a daily quota exhaustion from a burst limit; it is only
-        // read on the failure path, where the response is a small JSON error rather than a stream.
-        const detail = await upstream.text().catch(() => "");
-        return fail(upstreamErrorMessage(lang, upstream.status, detail));
-      }
+      if (failure) return fail(failure);
 
       const reader = upstream.body.getReader();
       let buffer = "";
@@ -563,7 +619,12 @@ async function streamGemini(env, lang, contents, instruction) {
             if (!raw || raw === "[DONE]") continue;
             try {
               const parsed = JSON.parse(raw);
-              const text = parsed?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
+              // A part flagged `thought` is the model reasoning, not answering: never relay it.
+              const parts = parsed?.candidates?.[0]?.content?.parts || [];
+              const text = parts
+                .filter((p) => !p.thought)
+                .map((p) => p.text)
+                .join("");
               if (text) controller.enqueue(encoder.encode(sse({ text })));
             } catch {
               // Ignore partial/non-JSON keep-alive lines.
@@ -788,6 +849,7 @@ export {
   upstreamErrorMessage,
   isDailyQuotaFailure,
   MESSAGES,
+  MODEL_CHAIN,
   isAllowedClient,
   resolveClient,
   allowRequest,
@@ -860,13 +922,30 @@ export default {
 
     const lang = payload?.lang === "en" ? "en" : "fr";
 
+    // `model` pins one MODEL_CHAIN entry, for `replay-answers.mjs --model`: it is how a fallback's
+    // answers get measured before the chain relies on them. Only the `cli` mode the script declares
+    // may pin, so a page visitor cannot spend a fallback's day while the primary still has its own,
+    // and the check runs before the rate limiter so a mistyped id costs the caller no quota.
+    const onlyModel = payload?.model;
+    if (
+      onlyModel !== undefined &&
+      (route !== "/chat" || client !== "cli" || !MODEL_CHAIN.some((m) => m.id === onlyModel))
+    ) {
+      return sseError(lang, 400);
+    }
+
     // Rate-limit subject: the caller's IP, unless a secret-bearing service carries the quota for
     // its own users (a whole Discord otherwise shares one IP, hence one daily quota).
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
     const subjectId = typeof payload?.subject === "string" ? payload.subject.slice(0, 64) : "";
     const subject = spec.secretBinding && subjectId ? `u:${subjectId}` : ip;
-    if (!(await allowRequest(env, client, subject))) {
-      return sseError(lang, 429, MESSAGES[lang].rateLimited);
+    const admission = await allowRequest(env, client, subject);
+    if (admission !== "allowed") {
+      return sseError(
+        lang,
+        429,
+        admission === "day" ? MESSAGES[lang].callerDailyCap : MESSAGES[lang].rateLimited,
+      );
     }
 
     if (route === "/analyze") {
@@ -903,7 +982,13 @@ export default {
     }
 
     return sseStream(
-      await streamGemini(env, lang, toGeminiContents(messages), systemInstruction(lang, passages)),
+      await streamGemini(
+        env,
+        lang,
+        toGeminiContents(messages),
+        systemInstruction(lang, passages),
+        onlyModel,
+      ),
     );
   },
 };

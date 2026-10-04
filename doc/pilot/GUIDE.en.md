@@ -168,6 +168,16 @@ With no `task`, it stays on the ground, engine off. The tasks and the aliases ar
 _spawn cap, name Su-27, alt 25000, capradius 20
 ```
 
+**Spawn an AWACS, or an escort for your airplane — `-awacs`, `-escort`:**
+
+```
+-awacs escort f15-fox3
+-escort f15-fox3
+```
+
+Place the `-escort` marker next to the airplane to escort; for your own airplane, *F10 → VEAF → SPAWN → +Escort me* is enough.
+Details in [veafSpawn — AWACS](../mission-maker/scripts/veafSpawn.en.md#awacs) and [escort](../mission-maker/scripts/veafSpawn.en.md#escort).
+
 **Smoke, flares, explosions:**
 
 ```

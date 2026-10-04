@@ -54,6 +54,27 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R41. `-awacs` and `-escort` — does the escort defend? — **no pilot needed for the AWACS half**
+
+[`FEAT-AWACS-ESCORT-COMMANDS`](.backlog/FEAT-AWACS-ESCORT-COMMANDS/tickets/04-in-game-check.md) ticket 04.
+The mocks prove what is handed to DCS; three things only DCS can answer: whether an AWACS built from its type (no template, no callsign set) flies its race-track and answers on its frequency, whether the datalink and Skynet take it, and above all **whether an escort shoots** or only flies alongside — the defect David asked this lot not to ship.
+
+**Run** on any mission built from the branch, with a blue slot (security off, `security.disabled: true`):
+
+1. `-awacs hdg 90, escort fox3` on open ground.
+   - **Verified**: an E-3A on an east-west race-track at FL300, `AWACS E-3A escort` 3 km behind it then in formation; the AWACS answers on 251 AM from the radio menu; `veafSkynet` logs it added to the blue network.
+   - **Re-opened, the AWACS**: it flies straight on, or lands — the `Orbit` task is not taken; read its route with `veafAircraftSpawn.groupRoutes["AWACS E-3A"]`.
+   - **Re-opened, the radio**: no answer on 251 — the group's `frequency` is not what DCS reads for an AWACS; a callsign may be needed too.
+2. A red CAP flying at the AWACS: `_spawn cap, name fox3, side red, hdg 270` 40 NM east of it.
+   - **Verified**: the escort leaves the AWACS to engage the red CAP, and comes back to it afterwards.
+   - **Re-opened, decorative**: the escort stays in formation while the CAP shoots — `Escort` with `OPEN_FIRE` is not enough; try `WEAPON_FREE` through `fiddle.sh` on the live escort before changing the code.
+3. A `-escort fox3` marker next to a blue AI airplane, and *F10 → VEAF → SPAWN → +Escort me (fox3)* from the slot once airborne.
+   - **Verified**: each escort spawns behind its charge and follows it.
+   - **Re-opened**: *Escort me* answers nothing — read `dcs.log` for the refusal (level, or no group).
+4. A `-escort fox3` marker next to a **neutral** AI airplane (a country of the neutral coalition).
+   - **Verified**: the blue escort follows the neutral airplane.
+   - **Re-opened**: it spawns, then flies its waypoint and goes home — DCS does not take an `Escort` task on a group of another coalition; the doc must then say friendly only, and `findEscortableAircraft` drop the neutral side.
+
 ### R40. The welcome brief and the ATIS give the tower's frequencies — **no pilot needed**
 
 [`FEAT-AIRFIELD-FREQS-IN-ATIS`](.backlog/FEAT-AIRFIELD-FREQS-IN-ATIS/PRD.md), tickets 02 and 03.

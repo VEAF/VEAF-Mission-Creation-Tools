@@ -40,6 +40,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   When the mission's `bases` collection gives the airfield its own channel and it differs from the DCS tower, a second line gives that channel too, under its title; the build writes it into `veaf-config.lua`.
   A carrier, a FARP or an airfield the reference lacks gets no line.
   When the mission silences ATC, an airfield with a mission channel gets that channel alone; one without still gets the DCS frequency.
+- **`-awacs` spawns an AWACS, and `-escort` an escort for an airplane** (FEAT-AWACS-ESCORT-COMMANDS, #188, #189).
+  `-awacs` puts an E-3A (blue) or an A-50 (red) on a race-track from the marker, built from its type so no template is needed; `type`, `alt`, `hdg`, `dist`, `speed` and `freq` change it.
+  It joins its side's Skynet network and turns its datalink on by default (`skynet false`, `eplrs false`), and `escort <template>` adds fighters to escort it.
+  `-escort f15-fox3` escorts the friendly or neutral airplane nearest the marker, within 10 NM: the fighters appear 3 km behind it with the DCS `Escort` task and are cleared to fire.
+  Pilots can also ask for their own escort from *F10 → VEAF → SPAWN → +Escort me*, at the known-pilot level `-escort` asks for.
 
 ## [6.27.0] — 2026-10-03
 

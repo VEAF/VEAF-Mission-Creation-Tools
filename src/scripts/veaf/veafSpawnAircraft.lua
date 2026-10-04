@@ -1045,6 +1045,279 @@ function veafSpawn.spawnCombatAirPatrol(
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- AWACS and escorts (FEAT-AWACS-ESCORT-COMMANDS, #188 and #189)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Altitude an AWACS flies at when the command gives none, in feet.
+veafSpawn.AWACS_DEFAULT_ALTITUDE = 30000
+
+--- Mach number an AWACS flies at when the command gives no speed. Between an E-2's cruise and an
+--- E-3's; an estimate, not a reading.
+veafSpawn.AWACS_DEFAULT_MACH = 0.5
+
+--- Length of the AWACS race-track when the command gives none, in nautical miles.
+veafSpawn.AWACS_DEFAULT_LEG = 30
+
+--- Radio frequency of a spawned AWACS when the command gives none, in MHz, AM.
+veafSpawn.AWACS_DEFAULT_FREQUENCY = 251
+
+--- How far from the marker `-escort` looks for the airplane to escort, in metres (10 NM).
+veafSpawn.ESCORT_SEARCH_RADIUS = 10 * 1852
+
+--- How far behind its charge an escort appears, in metres.
+veafSpawn.ESCORT_SPAWN_BEHIND = 3000
+
+--- Appended to the escorted group's name to name its escort: the convention `veafMove` reads on editor
+--- groups. A group spawned at runtime has no editor record, so `_move` cannot use it on these.
+veafSpawn.EscortGroupNameSuffix = " escort"
+
+--- The templates the F10 menu offers to escort a pilot, one entry each: a search on the `veafSpawn-`
+--- templates of their side, as `-escort` takes it. A mission may replace the list.
+veafSpawn.EscortRadioMenuTemplates = { "fox3", "fox2" }
+
+--- Spawn an AWACS on its race-track, from its type.
+---
+--- @param spawnSpot table runtime vec3, where the race-track starts
+--- @param options table the marker options: `country`, `type`, `altitude` (ft, 0 = default), `speed`
+---   (kt IAS), `heading`, `distance` (NM), `freq` (MHz), `eplrs`, `escortTemplate`, `skill`, `silent`,
+---   `showMFD`
+--- @return string|nil the AWACS group's name
+function veafSpawn.spawnAwacs(spawnSpot, options)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.spawnAwacs(type=%s)", veaf.p(options.type))
+  local side = veaf.getCoalitionForCountry(options.country, true)
+  if not side then
+    veaf.loggers.get(veafSpawn.Id):error("No country/coalition for AWACS !")
+    return nil
+  end
+  local function tell(message)
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    if not options.silent then
+      trigger.action.outText(message, 15)
+    end
+  end
+
+  local dcsType = veafAircraftSpawn.awacsType(options.type, side)
+  if not dcsType then
+    local known = {}
+    for name, _ in pairs(veafAircraftSpawn.AWACS_TYPES) do
+      table.insert(known, name)
+    end
+    table.sort(known)
+    tell(veaf.t("spawn.awacs_unknown_type", tostring(options.type), table.concat(known, ", ")))
+    return nil
+  end
+
+  local altitude = veafAircraftSpawn.flooredAltitude(
+    spawnSpot,
+    ((options.altitude and options.altitude > 0) and options.altitude or veafSpawn.AWACS_DEFAULT_ALTITUDE) * 0.3048
+  )
+  local speed = options.speed and veaf.convertIndicatedAirSpeed(options.speed, altitude).TAS_ms
+    or veaf.convertMachSpeed(veafSpawn.AWACS_DEFAULT_MACH, altitude).TAS_ms
+  local frequency = tonumber(options.freq) or veafSpawn.AWACS_DEFAULT_FREQUENCY
+  local groupName = "AWACS " .. dcsType
+  if veaf.isNameTaken(groupName) then
+    groupName = veafDcsSpawner.freeNameFrom(groupName)
+  end
+
+  local groupData = {
+    country = options.country,
+    name = groupName,
+    hidden = false,
+    hiddenOnMFD = not options.showMFD,
+    communication = true,
+    frequency = frequency,
+    modulation = 0, -- AM
+    units = {
+      {
+        type = dcsType,
+        name = groupName .. " 1",
+        x = spawnSpot.x,
+        y = spawnSpot.z,
+        alt = altitude,
+        heading = math.rad(options.heading or 0),
+        skill = options.skill or "Excellent",
+        payload = veafAircraftSpawn.awacsPayload(dcsType),
+      },
+    },
+  }
+  local spawnedName = veafAircraftSpawn.spawnAirplaneGroup(groupData, "awacs", {
+    heading = options.heading or 0,
+    distance = (options.distance or veafSpawn.AWACS_DEFAULT_LEG) * 1852,
+    altitude = altitude,
+    speed = speed,
+    eplrs = options.eplrs,
+  })
+  if not spawnedName then
+    return nil
+  end
+  if not options.silent then
+    trigger.action.outText(veaf.t("spawn.awacs_spawned", dcsType, string.format("%.3f", frequency)), 15)
+  end
+
+  if options.escortTemplate then
+    veafSpawn.spawnEscort(options.escortTemplate, spawnedName, options.country, options.silent, not options.showMFD)
+  end
+  return spawnedName
+end
+
+--- Where an escort appears: `ESCORT_SPAWN_BEHIND` behind its charge's leader, at its altitude.
+---
+--- @param leader table the escorted group's first unit
+--- @return table runtime vec3
+function veafSpawn.escortSpawnSpot(leader)
+  local position = leader:getPosition()
+  local forwardX, forwardZ = position.x.x, position.x.z
+  local length = math.sqrt(forwardX * forwardX + forwardZ * forwardZ)
+  if length < 0.001 then
+    forwardX, forwardZ, length = 1, 0, 1
+  end
+  local behind = veafSpawn.ESCORT_SPAWN_BEHIND / length
+  return { x = position.p.x - forwardX * behind, y = position.p.y, z = position.p.z - forwardZ * behind }
+end
+
+--- Spawn fighters from a `veafSpawn-` template to escort an airplane group, and defend it.
+---
+--- @param name string the template search, as `-cap` takes it (`f15-fox3`, `fox3`); blank is any
+--- @param escortedGroupName string the group to escort
+--- @param country string the country the escort flies for
+--- @param silent boolean|nil true: nothing is shown to the players
+--- @param hiddenOnMFD boolean|nil
+--- @return string|nil the escort group's name
+function veafSpawn.spawnEscort(name, escortedGroupName, country, silent, hiddenOnMFD)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.spawnEscort(name=%s, escorted=%s)", veaf.p(name), veaf.p(escortedGroupName))
+  local side = veaf.getCoalitionForCountry(country, true)
+  if not side then
+    -- without a side, the template search draws from every side and the escort keeps its template's
+    -- country: an enemy of the group it is told to escort
+    veaf.loggers.get(veafSpawn.Id):error("spawnEscort: no coalition for country %s", veaf.p(country))
+    return nil
+  end
+  local escorted = Group.getByName(escortedGroupName or "")
+  local leader = escorted and escorted:isExist() and escorted:getUnits()[1]
+  if not leader then
+    local message = veaf.t("spawn.helicopter_escort_no_group", tostring(escortedGroupName))
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    if not silent then
+      trigger.action.outText(message, 15)
+    end
+    return nil
+  end
+
+  local templateName, templateData = veafSpawn.findSpawnableAircraftGroupname(name, side)
+  if not templateName or not templateData then
+    return nil
+  end
+
+  local groupName = escortedGroupName .. veafSpawn.EscortGroupNameSuffix
+  if veaf.isNameTaken(groupName) then
+    groupName = veafDcsSpawner.freeNameFrom(groupName)
+  end
+  local spawn = VeafAircraftSpawn:new()
+    :fromGroup(templateName)
+    :named(groupName)
+    :at(veafSpawn.escortSpawnSpot(leader))
+    :shownOnMap(hiddenOnMFD)
+    :withRole("air_escort", { escorted = escortedGroupName })
+  if country and #country > 0 then
+    spawn:inCountry(veaf.getCountryId(country))
+  end
+  local spawnedName = spawn:spawn()
+  if not spawnedName then
+    return nil
+  end
+  if not silent then
+    -- the template drawn, not the search: `-escort` alone searches for nothing
+    trigger.action.outText(
+      veaf.t("spawn.escort_spawned", templateName:sub(veafSpawn.AirUnitTemplatesPrefix:len() + 1), escortedGroupName),
+      15
+    )
+  end
+  return spawnedName
+end
+
+--- The airplane group nearest a point, within `ESCORT_SEARCH_RADIUS`, of this side or neutral: what a
+--- `-escort` marker placed next to an aircraft means to escort.
+---
+--- @param point table runtime vec3
+--- @param side number the coalition asking
+--- @return string|nil the group's name
+function veafSpawn.findEscortableAircraft(point, side)
+  local found, nearest = nil, veafSpawn.ESCORT_SEARCH_RADIUS
+  local sides = { side }
+  if side ~= coalition.side.NEUTRAL then
+    table.insert(sides, coalition.side.NEUTRAL)
+  end
+  for _, eachSide in ipairs(sides) do
+    for _, group in pairs(coalition.getGroups(eachSide, Group.Category.AIRPLANE) or {}) do
+      if group:isExist() then
+        for _, unit in pairs(group:getUnits() or {}) do
+          -- `isActive` too: a late-activated group answers `isExist()` true before it appears
+          -- (docs/agents/dcs-runtime-traps.md), and an escort would orbit an aircraft nobody sees
+          if unit:isExist() and unit:isActive() then
+            local unitPoint = unit:getPoint()
+            local dx, dz = unitPoint.x - point.x, unitPoint.z - point.z
+            local distance = math.sqrt(dx * dx + dz * dz)
+            if distance <= nearest then
+              found, nearest = group:getName(), distance
+            end
+          end
+        end
+      end
+    end
+  end
+  return found
+end
+
+--- The `-escort` marker: escort the airplane it was placed next to.
+---
+--- @return string|nil the escort group's name
+function veafSpawn.spawnEscortNear(point, options)
+  local escortedGroupName = veafSpawn.findEscortableAircraft(point, options.side)
+  if not escortedGroupName then
+    local message = veaf.t("spawn.escort_no_aircraft", veafSpawn.ESCORT_SEARCH_RADIUS / 1852)
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    if not options.silent then
+      trigger.action.outText(message, 15)
+    end
+    return nil
+  end
+  return veafSpawn.spawnEscort(options.name, escortedGroupName, options.country, options.silent, not options.showMFD)
+end
+
+--- The F10 entry "Escort me": escort the group of the pilot who asked.
+---
+--- @param parameters table `{ templateSearch, unitName }`, as a per-group radio command receives it
+function veafSpawn.escortMe(parameters)
+  local name, unitName = veaf.safeUnpack(parameters)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.escortMe(name=%s, unitName=%s)", veaf.p(name), veaf.p(unitName))
+  local unit = unitName and Unit.getByName(unitName)
+  if not unit or not unit:isExist() then
+    return nil
+  end
+  if unit:getCategoryEx() ~= Unit.Category.AIRPLANE then
+    veaf.outTextForUnit(unitName, veaf.t("spawn.escort_not_an_airplane"), 10)
+    return nil
+  end
+  local group = unit:getGroup()
+  if not group then
+    return nil
+  end
+  return veafSpawn.spawnEscort(name, group:getName(), veaf.getCountryForCoalition(unit:getCoalition()), false, true)
+end
+
+--- Add one "Escort me" entry per `EscortRadioMenuTemplates` to a menu, per group, at the level `-cap`
+--- asks of a marker.
+function veafSpawn.addEscortRadioCommands(menu)
+  for _, name in ipairs(veafSpawn.EscortRadioMenuTemplates) do
+    local command =
+      veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.spawn.escort_me", name), menu, veafSpawn.escortMe, name, veafRadio.USAGE_ForGroup)
+    if command then
+      command.securityLevel = veafSecurity.LEVEL_KNOWN_PILOT
+    end
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- CAP target selection
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1548,4 +1821,12 @@ veafSpawn.registerCommandHandler("cap", "KNOWN_PILOT", function(eventPos, option
     not options.showMFD -- VMR-099: same inversion as the afac handler above
   )
   return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("awacs", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
+  return veafSpawn.spawnAwacs(eventPos, options), nil, false
+end)
+
+veafSpawn.registerCommandHandler("escort", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
+  return veafSpawn.spawnEscortNear(eventPos, options), nil, false
 end)

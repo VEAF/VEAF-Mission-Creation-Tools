@@ -141,6 +141,56 @@ Une patrouille faite à partir d'un modèle de groupe dont le premier point de r
 consigne vole sans les réglages voulus par l'auteur du modèle (radar, ECM, règles d'engagement). Le cas
 est signalé dans le journal DCS, avec le nom du modèle en cause.
 
+### Faire apparaître un AWACS {#awacs}
+
+```
+_spawn awacs, type E-3A, alt 30000, hdg 90, dist 30, freq 251, escort f15-fox3
+```
+
+L'alias `-awacs` fait la même chose : `-awacs escort f15-fox3`.
+
+L'AWACS apparaît sur le marqueur, en vol, et tourne sur un hippodrome qui part du marqueur dans la direction `hdg`.
+Il n'a pas besoin de template : il est construit à partir de son type.
+
+**Options :**
+
+- `type` — `E-3A`, `E-2C` (l'E-2D), `A-50` ou `KJ-2000` ; par défaut un E-3A pour les bleus et un A-50 pour les rouges
+- `alt` — altitude (pieds, 30 000 par défaut) ; relevée à 150 m au-dessus du sol si besoin, comme pour une CAP
+- `hdg` — direction de l'hippodrome (degrés, 0 par défaut)
+- `dist` — longueur de l'hippodrome (milles nautiques, 30 par défaut)
+- `speed` — vitesse (nœuds indiqués) ; Mach 0,5 par défaut
+- `freq` — fréquence radio de l'AWACS (MHz, AM, 251 par défaut)
+- `skynet false` — ne pas l'ajouter au réseau Skynet de son camp ; **il y est ajouté par défaut**
+- `eplrs false` (ou `datalink false`) — couper sa liaison de données ; **elle est allumée par défaut**
+- `escort <template>` — faire aussi apparaître une escorte, comme le ferait `-escort` (voir ci-dessous) ; `escort` seul prend n'importe quel template de chasse du camp
+
+L'escorte d'un AWACS s'appelle `<nom de l'AWACS> escort`.
+Un AWACS apparu en cours de mission n'a pas de fiche dans l'éditeur : `_move` et le menu des ressources ne savent ni le déplacer ni le faire réapparaître, lui ou son escorte.
+
+> ⚠️ Un AWACS ajouté à Skynet couvre les sites SAM de son camp et les garde sous le contrôle du réseau.
+> Le lot `INVESTIGATE-SKYNET-AWACS-BLIND` enquête sur des A-50 enrôlés qui n'ont vu aucun contact pendant toute une session.
+> Si les SAM de votre mission restent éteints avec un AWACS en l'air, essayez `skynet false`.
+
+### Faire apparaître une escorte {#escort}
+
+```
+_spawn escort, name f15-fox3
+```
+
+L'alias `-escort` fait la même chose : `-escort f15-fox3`.
+
+Le marqueur se pose **à côté d'un avion** ami ou neutre : c'est l'avion le plus proche du marqueur, à moins de 10 milles nautiques, qui est escorté.
+Un avion ennemi n'est jamais escorté, et un hélicoptère ne peut pas l'être.
+`name` cherche un template `veafSpawn-` du camp, comme pour `-cap` ; sans `name`, n'importe quel template convient.
+
+L'escorte apparaît à 3 km derrière l'avion escorté, à son altitude.
+Elle reçoit la tâche DCS `Escort` : elle le suit, et engage les aéronefs ennemis jusqu'à 60 km de lui.
+Ses règles d'engagement sont mises à « tir sur les cibles désignées » après les réglages du template, pour qu'un template prévu pour tenir son feu ne donne pas une escorte qui ne défend rien.
+
+**Pour escorter son propre avion, le menu F10 suffit** : *F10 → VEAF → APPARITION → +Escorte-moi (fox3)* ou *(fox2)* (le `+` marque une commande protégée).
+La commande demande le même niveau que `-escort` (pilote connu).
+Une mission peut changer les entrées proposées en remplaçant `veafSpawn.EscortRadioMenuTemplates` (par défaut `{ "fox3", "fox2" }`).
+
 ### Faire apparaître un AFAC/JTAC
 
 ```

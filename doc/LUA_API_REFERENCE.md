@@ -2435,7 +2435,7 @@ Spawne un contrôleur aérien avancé en vol (AFAC).
 veafSpawn.spawnAFAC(pos, "A-10C", nil, 15000, 250, 0, 133.0, "AM", 1688, true, false)
 ```
 
-##### `veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)`
+##### `veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pEngagedTargetIds)`
 
 Démarre le watchdog d'engagement de la CAP.
 
@@ -2444,12 +2444,25 @@ Démarre le watchdog d'engagement de la CAP.
 - `capGroupName` (string) — Nom du groupe CAP
 - `capCoalition` (coalition) — Coalition
 - `capZone` (table) — Définition de la zone
-- `pTargetsList` (table, optionnel) — Cibles spécifiques
-- `pNumberOfTasksAddedByWatchdog` (number, optionnel) — Tâches maximum
+- `pTargetsList` (table, optionnel) — Cibles suivies, du passage précédent
+- `pEngagedTargetIds` (table, optionnel) — Cibles ayant déjà un `EngageUnit`, du passage précédent
 
 **Retourne :** Rien
 
 **Description :** Surveille la zone et missionne la CAP pour engager les appareils ennemis.
+Les cibles sont classées par type, distance et aspect ; une cible cold au-delà de `veafSpawn.CAP_COLD_CUTOFF` (40 000 m) n'est pas engagée.
+Face à plusieurs cibles, chaque avion reçoit la sienne sur son propre contrôleur (`veafSpawn.spreadCapTargets`).
+
+##### `veafSpawn.targetAspect(targetPosition, targetVelocity, capPosition)`
+
+Renvoie `"hot"`, `"flanking"` ou `"cold"` selon l'angle entre la trajectoire de la cible et la ligne cible → CAP, dans le plan horizontal : jusqu'à `veafSpawn.CAP_ASPECT_HOT_MAX` (60°) hot, à partir de `veafSpawn.CAP_ASPECT_COLD_MIN` (120°) cold.
+Sans vitesse lisible, `"flanking"`.
+Renvoie aussi l'angle en degrés (nil sans vitesse).
+
+##### `veafSpawn.spreadCapTargets(unitNames, targets)`
+
+Répartit les cibles (triées, la plus prioritaire d'abord) entre les avions de la CAP, en tournant.
+Renvoie une table nom d'avion → id de cible, vide avec une seule cible ou un seul avion.
 
 #### Cargo et logistique
 

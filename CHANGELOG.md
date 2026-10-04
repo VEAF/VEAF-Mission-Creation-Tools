@@ -48,6 +48,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`_destroy, name X` destroys X, and only X** (FIX-DESTROY-NAME-KEY).
   The command only read `unitname`, so the documented `_destroy, name Tank-1` was taken as having no name: Tank-1 survived and every unit and static within 150 m of the marker was destroyed.
   `name` is now accepted like `unitname` (which wins when both are written), and the pages show `unitname` with the command's options.
+- **A CAP weighs where its targets point, stops chasing the ones that leave, and splits up over several** (FEAT-CAP-WATCHDOG, #187).
+  At the same distance, an aircraft flying at the patrol (hot) now comes before one crossing it (flanking), and that one before one flying away (cold).
+  An aircraft flying away more than 40 km from the patrol is not engaged at all: the patrol stays on its zone.
+  Facing several targets, each aircraft of the patrol is given its own, the most important first; facing one, they all go for it as before.
+  The aspect boundaries, weights and the 40 km cut-off are estimates, to be tuned in game; the per-aircraft tasking is still to be confirmed in game too.
 
 ## [6.27.0] — 2026-10-03
 

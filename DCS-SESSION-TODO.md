@@ -54,6 +54,22 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R42. A CAP splits over two targets, and lets a leaving one go — **no pilot needed**
+
+[`FEAT-CAP-WATCHDOG`](.backlog/FEAT-CAP-WATCHDOG/PRD.md) tickets 02 and 03.
+The mocks prove what the watchdog hands to DCS; they cannot say whether DCS lets an aircraft's own `EngageUnit` (on the **unit** controller) win over its group's tasks — the whole of ticket 02 rests on that.
+
+**Run** on any mission built from the branch, with the log level of `veafSpawn` at `debug` (security off, `security.disabled: true`):
+
+1. A blue two-ship CAP — `_spawn cap, name fox3, side blue, hdg 90` — then two red fighters 30 NM east of it, a few miles apart, flying west at it (two `_spawn cap, name fox3, side red, hdg 270`).
+   - **Verified**: `dcs.log` shows `CAP aircraft … goes for target …` with a different target for each blue aircraft, and each one shoots at its own (F10 view, or the shot events).
+   - **Re-opened, unit tasks ignored**: both blue aircraft fire on the same red one — DCS keeps the group's task; drop the spread (`applyCapSpread`) and close ticket 02 with this measurement.
+   - **Re-opened, unit tasks break the group**: an aircraft given its own target leaves the fight or the patrol and does not come back after `follows its group again` — note what `resetTask` did to it.
+2. Once a red fighter has turned away and is more than 40 km from the blue CAP.
+   - **Verified**: `targetName=… is leaving, not chasing it`, the blue CAP flies back to its zone.
+   - **Re-opened, chases anyway**: the CAP keeps after it — read `targetAspect=` in the trace; the velocity may not answer, which ranks it flanking.
+   - **To tune**: a CAP that gives up too early or too late — the cut-off (`veafSpawn.CAP_COLD_CUTOFF`) and the boundaries are estimates, change them through `fiddle.sh` on the live mission before changing the code.
+
 ### R41. `-awacs` and `-escort` — does the escort defend? — **no pilot needed for the AWACS half**
 
 [`FEAT-AWACS-ESCORT-COMMANDS`](.backlog/FEAT-AWACS-ESCORT-COMMANDS/tickets/04-in-game-check.md) ticket 04.

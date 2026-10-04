@@ -91,6 +91,11 @@ veafSpawn.capWatchdogZones = {}
 --- spawn, and was destroyed before it had started its engines (FEAT-AIRCRAFT-ROLES).
 veafSpawn.capWatchdogFlown = {}
 
+--- The target each aircraft of a CAP was given on its own controller, by group name then unit id
+--- (`veafSpawn.spreadCapTargets`); the watchdog touches an aircraft's controller only when its entry
+--- changes (FEAT-CAP-WATCHDOG).
+veafSpawn.capWatchdogAssignments = {}
+
 -- range scale of cargo weight biases
 veafSpawn.cargoWeightBiasRange = 6
 

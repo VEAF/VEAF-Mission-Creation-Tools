@@ -12,10 +12,6 @@ Broaden the shipped default radio presets, after phase 1 of the radio preset pro
 
 Rebuild QRA on AirWaves instead of beside it (~120 KB of neighbouring Lua), closing six AirWaves issues in one design. A design lot before any refactor.
 
-### [FEAT-CAP-WATCHDOG](FEAT-CAP-WATCHDOG/PRD.md) · ⬜
-
-A handle to remove a spawned CAP (#178), and a watchdog that spreads targets, weighs aspect and has a priority cut-off (#187). Four tickets; the 2026-10-03 task fix it builds on is merged.
-
 ### [FEAT-DYNAMIC-CAMPAIGN](FEAT-DYNAMIC-CAMPAIGN/PRD.md) · ⬜
 
 A Foothold-like persistent campaign built on VMCT alone, declared in a `campaign.yaml` sidecar from which the build generates zones, slots and data.

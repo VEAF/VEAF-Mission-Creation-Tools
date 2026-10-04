@@ -137,6 +137,12 @@ appartient toujours au groupe de son avion. Les cibles retenues sont classées p
 d'abord, puis bombardiers, drones, AWACS, transports, hélicoptères), et la patrouille les engage. Dès
 qu'il n'y a plus rien à engager, elle reprend sa route et repasse en riposte seulement.
 
+L'aspect de la cible compte aussi : à distance égale, un avion qui vient vers la patrouille (hot) passe avant un avion qui la croise (flanking), lui-même avant un avion qui s'éloigne (cold).
+Un avion qui s'éloigne à plus de 40 km de la patrouille n'est pas engagé du tout : elle reste sur sa zone au lieu de le poursuivre.
+Face à plusieurs cibles, chaque avion de la patrouille reçoit la sienne, les plus prioritaires d'abord ; face à une seule, tous vont dessus.
+
+Pour retirer une patrouille, poser un marqueur `_destroy, radius <mètres>` sur elle (voir [Détruire des unités](#destroy)) ; tout ce qui se trouve dans le cercle disparaît avec elle, au sol comme en vol.
+
 Une patrouille faite à partir d'un modèle de groupe dont le premier point de route ne porte aucune
 consigne vole sans les réglages voulus par l'auteur du modèle (radar, ECM, règles d'engagement). Le cas
 est signalé dans le journal DCS, avec le nom du modèle en cause.
@@ -326,7 +332,7 @@ au lieu de ne rien faire.
 | `side` | bleu | coalition qui entend la balise |
 | `radius` | 0 | dispersion autour du marqueur, en mètres |
 
-### Détruire des unités
+### Détruire des unités {#destroy}
 
 ```
 _destroy, radius 500

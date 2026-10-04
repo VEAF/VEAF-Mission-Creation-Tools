@@ -208,7 +208,8 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
 
 def test_generate_writes_reference_and_collections_and_is_idempotent(tmp_path: Path) -> None:
     dumps, airbases, presets, output = _write_fixture(tmp_path)
-    count = A.generate(output=output, presets=presets, dumps_dir=dumps, airbase_dumps_dir=airbases)
+    lua = tmp_path / "veafAirfieldFrequencies.lua"
+    count = A.generate(output=output, presets=presets, dumps_dir=dumps, airbase_dumps_dir=airbases, lua_output=lua)
     assert count == 1
     first = (output.read_text(encoding="utf-8"), presets.read_text(encoding="utf-8"))
     data = yaml.safe_load(presets.read_text(encoding="utf-8"))["channels_collection"]
@@ -216,14 +217,20 @@ def test_generate_writes_reference_and_collections_and_is_idempotent(tmp_path: P
     assert "stale" not in data and "tactical" in data
     assert yaml.safe_load(first[0])["theatres"]["Caucasus"][22]["uhf"] == 260.0
 
-    A.generate(output=output, presets=presets, dumps_dir=dumps, airbase_dumps_dir=airbases)
+    A.generate(output=output, presets=presets, dumps_dir=dumps, airbase_dumps_dir=airbases, lua_output=lua)
     assert (output.read_text(encoding="utf-8"), presets.read_text(encoding="utf-8")) == first
 
 
 def test_generate_refuses_to_run_without_any_dump(tmp_path: Path) -> None:
     _dumps, airbases, presets, output = _write_fixture(tmp_path)
     with pytest.raises(FileNotFoundError):
-        A.generate(output=output, presets=presets, dumps_dir=tmp_path / "nothing", airbase_dumps_dir=airbases)
+        A.generate(
+            output=output,
+            presets=presets,
+            dumps_dir=tmp_path / "nothing",
+            airbase_dumps_dir=airbases,
+            lua_output=tmp_path / "x.lua",
+        )
 
 
 def test_terrain_folder_maps_runtime_theatre_names_to_install_folders() -> None:
@@ -259,3 +266,37 @@ def test_two_fields_sharing_a_name_in_one_theatre_both_keep_a_channel() -> None:
         "LeMolay [7]": {"title": "LeMolay", "freqs": {"vhf": 118.0}},
         "LeMolay [9]": {"title": "LeMolay", "freqs": {"vhf": 119.0}},
     }
+
+
+# --- the Lua table the mission scripts load (FEAT-AIRFIELD-FREQS-IN-ATIS 01) ---------------------
+
+
+def test_render_lua_keys_by_theatre_then_airdrome_id() -> None:
+    lua = A.render_lua({"Caucasus": {22: {"name": "Batumi", "fm": 40.4, "vhf": 131.0, "uhf": 260.0, "tacan": "16X"}}})
+    assert "GENERATED" in lua and "DO NOT EDIT" in lua
+    assert "veafAirfieldFrequencies = {}" in lua
+    assert 'veafAirfieldFrequencies["Caucasus"] = {' in lua
+    assert '  [22] = { uhf = 260.0, vhf = 131.0, fm = 40.4, tacan = "16X" }, -- Batumi' in lua
+
+
+def test_render_lua_keeps_every_decimal_dcs_gives() -> None:
+    """126.525 must not come out as 126.53, nor 250.55 as 250.6."""
+    lua = A.render_lua({"Syria": {1: {"name": "X", "uhf": 250.55, "vhf": 126.525}}})
+    assert "uhf = 250.55, vhf = 126.525 }" in lua
+
+
+def test_render_lua_omits_a_band_the_field_does_not_have() -> None:
+    lua = A.render_lua({"Syria": {3: {"name": "VHF only", "vhf": 122.3}}})
+    assert "  [3] = { vhf = 122.3 }, -- VHF only" in lua
+
+
+def test_generate_also_renders_the_lua_table(tmp_path: Path) -> None:
+    dumps, airbases, presets, output = _write_fixture(tmp_path)
+    lua = tmp_path / "veafAirfieldFrequencies.lua"
+    A.generate(output=output, presets=presets, dumps_dir=dumps, airbase_dumps_dir=airbases, lua_output=lua)
+    assert lua.read_text(encoding="utf-8") == A.render_lua(A.load_reference(output))
+
+
+def test_the_committed_lua_is_the_render_of_the_committed_reference() -> None:
+    """The drift guard: veafAirfieldFrequencies.lua is never edited by hand."""
+    assert A.DEFAULT_LUA.read_text(encoding="utf-8") == A.render_lua(A.load_reference(A.DEFAULT_OUTPUT))

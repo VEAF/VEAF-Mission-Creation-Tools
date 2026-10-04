@@ -30,6 +30,7 @@ from mission_tools import (
     read_miz,
     write_miz,
 )
+from presets_injector.airfield_channels_manager import mission_channels
 from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.build_profiles import pipeline_step_enabled_anywhere, resolve_profile
@@ -2537,7 +2538,12 @@ class MissionBuilderWorker(BaseWorker):
         # means no VEAF module initialises at all — and the only trace is in `dcs.log`,
         # after the mission has been loaded. Stop here instead of shipping it.
         try:
-            content = generate_config_lua(yaml_dict, checklists=checklists, checklist_images=image_keys)
+            content = generate_config_lua(
+                yaml_dict,
+                checklists=checklists,
+                checklist_images=image_keys,
+                mission_channels=mission_channels(self.mission_folder),
+            )
         except LuaSyntaxError as exc:
             logger.error(
                 t(

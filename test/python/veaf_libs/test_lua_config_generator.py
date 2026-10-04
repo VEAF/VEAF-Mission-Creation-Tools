@@ -1932,3 +1932,24 @@ def test_combatzone_includes_must_be_a_list():
     """A bare string would otherwise be read one letter at a time."""
     with pytest.raises(ValueError, match="includes.*list"):
         generate_config_lua(_combatzones_yaml({"zone_name": "A", "includes": "B"}, {"zone_name": "B"}))
+
+
+# ---------------------------------------------------------------------------
+# The mission's airfield channels, for the ATIS and the welcome brief (FEAT-AIRFIELD-FREQS-IN-ATIS 03)
+# ---------------------------------------------------------------------------
+
+
+def test_mission_channels_are_written_for_the_scripts():
+    lua = generate_config_lua(
+        {},
+        mission_channels={
+            22: {"alias": "Base-Batumi", "title": 'Batumi "16X"', "freqs": {"uhf": 270.3, "vhf": 130.3}},
+        },
+    )
+    assert "veafAirbases.MissionChannels = {" in lua
+    assert '[22] = { alias = "Base-Batumi", title = "Batumi \\"16X\\"", uhf = 270.3, vhf = 130.3 },' in lua
+
+
+def test_no_mission_channel_no_block():
+    assert "MissionChannels" not in generate_config_lua({})
+    assert "MissionChannels" not in generate_config_lua({}, mission_channels={})

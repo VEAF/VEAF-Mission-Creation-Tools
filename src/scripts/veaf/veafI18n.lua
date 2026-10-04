@@ -567,6 +567,22 @@ veaf.i18nCatalog = {
     fr = "\nCoucher %s",
     en = "\nSunset %s",
   },
+  -- The airfield's tower, in the ATIS and the welcome brief (FEAT-AIRFIELD-FREQS-IN-ATIS). %s is the
+  -- frequency list, "260.000 UHF / 131.000 VHF / 40.400 FM": the band names are the radio's, untranslated.
+  ["weather.atc_tower"] = {
+    fr = "Tour %s",
+    en = "Tower %s",
+  },
+  ["weather.atc_tacan"] = {
+    fr = " — TACAN %s",
+    en = " — TACAN %s",
+  },
+  -- The mission's own channel for the field, when its radio plan gives one that differs from the DCS
+  -- tower; named by its title, what the pilot's presets show.
+  ["weather.atc_mission_channel"] = {
+    fr = "Canal de la mission %s : %s",
+    en = "Mission channel %s: %s",
+  },
 
   -- veafMove
   ["move.tanker_set_no_orbit"] = {

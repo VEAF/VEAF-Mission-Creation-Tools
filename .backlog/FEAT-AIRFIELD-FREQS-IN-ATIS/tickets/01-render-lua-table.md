@@ -1,6 +1,6 @@
 # 01 — the reference is rendered as a Lua table the scripts load
 
-Status: ⬜ ready
+Status: ✅ done
 
 The mission scripts cannot ask DCS for an airfield's frequencies (see PRD). The reference the tools
 already ship can be handed to them instead.

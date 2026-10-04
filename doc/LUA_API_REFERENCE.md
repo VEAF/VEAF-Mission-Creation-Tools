@@ -3679,6 +3679,26 @@ veaf.outTextForUnit("Viper 1-1",
   string.format("Nearest airbase: %s", nearest.Name), 10)
 ```
 
+##### `veafAirbases.getAtcFrequencies(veafAirbase)`
+
+Fréquences de la tour (MHz) et TACAN que DCS donne au terrain, lues dans `veafAirfieldFrequencies` (table livrée avec les scripts, les scripts de mission n'ayant aucune API pour les demander à DCS).
+
+**Paramètres :**
+
+- `veafAirbase` (veafAirbase) — Aérodrome
+
+**Retourne :** `table|nil` — `{ uhf?, vhf?, fm?, tacan? }`, ou `nil` pour un porte-avions, une FARP ou un terrain absent de la table
+
+##### `veafAirbases.getMissionChannel(veafAirbase)`
+
+Canal que le plan radio de la mission donne au terrain (collection `bases` de `src/presets.yaml`), écrit par le build dans `veaf-config.lua`.
+
+**Paramètres :**
+
+- `veafAirbase` (veafAirbase) — Aérodrome
+
+**Retourne :** `table|nil` — `{ alias, title, uhf?, vhf?, fm? }`, ou `nil` quand la mission n'en a pas
+
 ---
 
 ### veafCarrierOperations.lua

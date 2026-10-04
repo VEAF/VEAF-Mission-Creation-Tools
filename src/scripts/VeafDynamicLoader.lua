@@ -32,6 +32,7 @@ __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafMissionDb.lua"
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafI18n.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafCommands.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafTime.lua")
+__Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafAirfieldFrequencies.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafAirbases.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafWeather.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafAssets.lua")

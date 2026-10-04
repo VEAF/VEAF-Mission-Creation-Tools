@@ -32,6 +32,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The "comes back tomorrow morning" message only shows once the whole chain is spent.
   A caller who reaches the assistant's own per-person daily limit now reads that, rather than "back in a minute".
 
+### Added
+
+- **The welcome brief and the ATIS say how to call the airfield's tower** (FEAT-AIRFIELD-FREQS-IN-ATIS).
+  A pilot taking a slot, or asking the ATIS from the F10 menu, now reads the tower's UHF / VHF / FM frequencies and its TACAN, the ones the airfield's card shows in the F10 view: `Tower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X`.
+  The mission scripts cannot ask DCS for them, so `veaf-build update-dcs-data --airfield-freqs` now also renders the captured reference as `veafAirfieldFrequencies.lua`, shipped with the scripts.
+  When the mission's `bases` collection gives the airfield its own channel and it differs from the DCS tower, a second line gives that channel too, under its title; the build writes it into `veaf-config.lua`.
+  A carrier, a FARP or an airfield the reference lacks gets no line.
+  When the mission silences ATC, an airfield with a mission channel gets that channel alone; one without still gets the DCS frequency.
+
 ## [6.27.0] — 2026-10-03
 
 ### Changed

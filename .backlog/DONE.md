@@ -10,6 +10,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 The backlog index split into active, ready and done indexes, one short paragraph per lot; the archived lots got their own index (#1058).
 
+### [CHORE-DROP-MACOS-INTEL](CHORE-DROP-MACOS-INTEL/PRD.md) · ✅
+
+The macOS Intel target leaves the release matrix: it never published an asset and held the 6.27.0 run open overnight.
+
 ### [CHORE-REQUIRED-CHECKS-GATE](CHORE-REQUIRED-CHECKS-GATE/PRD.md) · ✅
 
 Path-filtered workflows made usable as required checks; the 11 checks are now required on `develop`, so auto-merge waits for them.

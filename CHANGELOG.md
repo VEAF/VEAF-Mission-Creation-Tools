@@ -17,6 +17,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+
+- **No more macOS Intel (`x86_64`) binary in the releases** (CHORE-DROP-MACOS-INTEL).
+  None was ever published: its `macos-13` runner pool is so scarce that the job never got a runner in time, and on 6.27.0 it held the release run open overnight.
+  An Intel Mac now gets the updater's "unsupported platform" message instead of looking for an asset that does not exist.
+  Linux x86_64 and macOS arm64 (Apple Silicon) binaries are unchanged.
+
 ## [6.27.0] — 2026-10-03
 
 ### Changed

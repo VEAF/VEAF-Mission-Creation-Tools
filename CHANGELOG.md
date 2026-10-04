@@ -45,6 +45,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   It joins its side's Skynet network and turns its datalink on by default (`skynet false`, `eplrs false`), and `escort <template>` adds fighters to escort it.
   `-escort f15-fox3` escorts the friendly or neutral airplane nearest the marker, within 10 NM: the fighters appear 3 km behind it with the DCS `Escort` task and are cleared to fire.
   Pilots can also ask for their own escort from *F10 → VEAF → SPAWN → +Escort me*, at the known-pilot level `-escort` asks for.
+- **A CAP weighs where its targets point, stops chasing the ones that leave, and splits up over several** (FEAT-CAP-WATCHDOG, #187).
+  At the same distance, an aircraft flying at the patrol (hot) now comes before one crossing it (flanking), and that one before one flying away (cold).
+  An aircraft flying away more than 40 km from the patrol is not engaged at all: the patrol stays on its zone.
+  Facing several targets, each aircraft of the patrol is given its own, the most important first; facing one, they all go for it as before.
+  The aspect boundaries, weights and the 40 km cut-off are estimates, to be tuned in game; the per-aircraft tasking is still to be confirmed in game too.
 
 ## [6.27.0] — 2026-10-03
 

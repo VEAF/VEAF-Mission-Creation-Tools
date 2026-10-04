@@ -137,6 +137,12 @@ keeps is ranked by priority (fighters first, then bombers, drones, AWACS, transp
 the patrol engages it. As soon as there is nothing left to engage, it goes back to its route and to
 return fire only.
 
+The target's aspect counts too: at the same distance, an aircraft flying at the patrol (hot) comes before one crossing it (flanking), which comes before one flying away (cold).
+An aircraft flying away more than 40 km from the patrol is not engaged at all: the patrol stays on its zone instead of chasing it.
+Facing several targets, each aircraft of the patrol is given its own, the most important first; facing one, they all go for it.
+
+To remove a patrol, place a `_destroy, radius <metres>` marker on it (see [Destroy units](#destroy)); everything inside the circle goes with it, on the ground as in the air.
+
 A patrol built from a group template whose first waypoint carries no instructions flies without the
 settings its template's author intended (radar, ECM, rules of engagement). That case is reported in the
 DCS log, naming the template at fault.
@@ -326,7 +332,7 @@ than doing nothing.
 | `side` | blue | the coalition that hears it |
 | `radius` | 0 | scatter around the marker, in metres |
 
-### Destroy units
+### Destroy units {#destroy}
 
 ```
 _destroy, radius 500

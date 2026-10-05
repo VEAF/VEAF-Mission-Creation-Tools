@@ -25,9 +25,11 @@ They come first.
 | [06](tickets/06-operation-has-no-activation-command.md) | A combat operation's radio menu has no activate / deactivate command | commands commented out at `veafCombatZone.lua:2897`, `:2913`; docs describe an « Opérations » submenu that does not exist |
 | [07](tickets/07-mcp-authoring-gaps.md) | MCP gaps the demo had to script around | no `On Road` waypoint, no operation composite, no briefing-pictures action, `describe_map` without group positions, `#veafInterpreter` clear ground sized for one vehicle |
 | [08](tickets/08-small-truths.md) | Small places where docs or labels say something false or nothing | `_spawn unit, name T-80` matches no type; build adds a BULLSEYE waypoint the template does not mention; carrier ops label not translated |
+| [09](tickets/09-demo-mission-in-the-docs.md) | The docs still point to the old v5 demo and tell makers to fork it; nothing says the v6 demo exists, shows every feature with a guided tour, and is the pre-release check | links in `README.md`, `doc/index.md`, `GUIDE.md` (fork as the way to start, l. 163) |
 
 ## Definition of done
 
+- Ticket 09: the docs link the v6 demo and say what it is for (David, 2026-10-05).
 - Tickets 01–03: each defect reproduced by a test that fails before the fix, and caught by `validate` or the build where it cannot be prevented.
 - Every ticket's demo workaround removed in the demo repository, the demo rebuilt and `tools/verify.py` green, and the demo's `docs/retours-vmct.md` updated.
 - Tickets 01, 02, 03 and 05 checked in DCS (the demo's test mission and bridge make it a short session).

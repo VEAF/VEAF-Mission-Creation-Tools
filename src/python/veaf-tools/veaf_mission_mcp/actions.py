@@ -1944,7 +1944,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="describe_map",
             description=(
                 "Summarize a mission's map for orientation (theatre, per-coalition bullseyes, and "
-                "existing trigger zones/groups as reference points), from a .miz or a mission "
+                "existing trigger zones/groups as reference points -- each zone with its x/y/radius, "
+                "each group with its x/y and its number of units), from a .miz or a mission "
                 "folder. Read-only; helps place things relative to known anchors without DCS."
             ),
             parameters_schema={

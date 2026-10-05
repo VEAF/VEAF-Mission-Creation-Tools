@@ -361,6 +361,46 @@ function TestVeafMoveFunctions:test_changeTanker_no_units_returns_false()
   luaunit.assertFalse(result)
 end
 
+--- The tanker is taken from the objects the search found, not looked up again by name: `Unit.getByName`
+--- answers nil for some units the search returns (FIX-DEMO-RECETTE-FINDINGS 01).
+function TestVeafMoveFunctions:test_changeTanker_finds_a_tanker_unknown_to_getByName()
+  dcs_mocks.reset()
+  local tankerGroup = {
+    getName = function()
+      return "Texaco"
+    end,
+  }
+  local tanker = {
+    getName = function()
+      return "Texaco-1 [CH]"
+    end,
+    getPosition = function()
+      return { p = { x = 500, y = 0, z = 0 } }
+    end,
+    getDesc = function()
+      return { attributes = { Tankers = true } }
+    end,
+    getGroup = function()
+      return tankerGroup
+    end,
+  }
+  dcs_mocks.addGroup("Texaco", {
+    _coalition = coalition.side.BLUE,
+    getUnits = function()
+      return { tanker }
+    end,
+  })
+  local askedFor = nil
+  local savedGetRoute = veafMove._getTankerRouteData
+  veafMove._getTankerRouteData = function(groupName)
+    askedFor = groupName
+    return nil, "stop here"
+  end
+  veafMove.changeTanker({ x = 0, y = 0, z = 0 }, -1, -1)
+  veafMove._getTankerRouteData = savedGetRoute
+  luaunit.assertEquals(askedFor, "Texaco")
+end
+
 function TestVeafMoveFunctions:test_moveTanker_nonexistent_group_returns_false()
   local result = veafMove.moveTanker({ x = 0, y = 0, z = 0 }, "NonexistentTanker_abc", -1, -1, nil, nil, false, false)
   luaunit.assertFalse(result)

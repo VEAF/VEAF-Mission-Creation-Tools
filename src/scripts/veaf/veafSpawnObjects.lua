@@ -312,17 +312,10 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
     local units = veaf.findUnitsInCircle(spawnSpot, radius or 150, true)
     veaf.loggers.get(veafSpawn.Id):trace(string.format("units=%s", veaf.p(units)))
     if units then
-      for name, _ in pairs(units) do
-        -- try and find a  unit
-        local unit = Unit.getByName(name)
-        if unit then
-          Unit.destroy(unit)
-        else
-          local staticUnit = StaticObject.getByName(name)
-          if staticUnit then
-            StaticObject.destroy(staticUnit)
-          end
-        end
+      -- destroy the objects found, units and statics alike: looking them up again by name loses some,
+      -- `Unit.getByName` answers nil for the « [CH] » vehicle pack units the search has just returned
+      for _, unit in pairs(units) do
+        unit:destroy()
       end
     end
   end

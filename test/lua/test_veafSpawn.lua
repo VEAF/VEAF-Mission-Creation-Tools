@@ -1128,6 +1128,35 @@ function TestVeafSpawnGroundSceneryAware:test_a_naval_group_spawns_at_sea()
   veafUnits.findGroup, veafUnits.findUnit, veafUnits.placeGroup = savedFindGroup, savedFindUnit, savedPlaceGroup
 end
 
+--- The review of FIX-DEMO-MISSION-FINDINGS 05: a ship refuses shallow water (`checkPositionForUnit`
+--- reads `veaf.OPEN_WATER`), so the group centre must be searched on open water too — otherwise a
+--- centre "found" in the shallows hands every ship to a check that drops it.
+function TestVeafSpawnGroundSceneryAware:test_a_naval_group_is_not_centred_in_the_shallows()
+  land.getSurfaceType = function()
+    return land.SurfaceType.SHALLOW_WATER
+  end
+  local savedFindGroup = veafUnits.findGroup
+  veafUnits.findGroup = function(alias)
+    return {
+      groupName = alias,
+      description = alias,
+      disposition = { h = 20, w = 20 },
+      naval = true,
+      units = { { displayName = "ELNYA", typeName = "ELNYA", naval = true } },
+    }
+  end
+  local added = 0
+  local savedAddGroup = veaf.addGroup
+  veaf.addGroup = function()
+    added = added + 1
+  end
+  local result = veafSpawn.spawnGroup({ x = 0, y = 0, z = 0 }, 0, "cargoships", nil, "RUSSIA", 0, 0, 10, nil, true, false, false)
+  veaf.addGroup = savedAddGroup
+  veafUnits.findGroup = savedFindGroup
+  luaunit.assertNil(result, "a ship group was centred in shallow water")
+  luaunit.assertEquals(added, 0)
+end
+
 function TestVeafSpawnGroundSceneryAware:test_a_water_candidate_is_skipped_and_the_spawn_still_happens()
   -- Before this lot the first jitter was used as-is, so this spawn put its centre in
   -- the sea and every unit was dropped downstream one by one.

@@ -2798,7 +2798,12 @@ function VeafCombatOperation:activate()
   -- activates member combat zones and sets starting primary tasks
   veaf.loggers.get(veafCombatZone.Id):trace("activate the operation's zones")
   for _, taskingOrder in pairs(self.taskingOrderDict) do
-    taskingOrder:getZone():activate()
+    -- A zone already running is left as it is: `activate` spawns its elements again, with no guard,
+    -- and an operation can now be reactivated from its menu (FIX-DEMO-MISSION-FINDINGS 06).
+    local zone = taskingOrder:getZone()
+    if not zone:isActive() then
+      zone:activate()
+    end
 
     -- selects combat zones with no requiredComplete combat zones
     if veaf.length(taskingOrder.requiredCompleteNames) == 0 then
@@ -2821,10 +2826,24 @@ end
 -- desactivate the operation
 function VeafCombatOperation:desactivate()
   veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:desactivate()", veaf.p(self.missionEditorZoneName)))
+  local wasActive = self:isActive()
   self:setActive(false)
 
   -- unscheduel watchdog function
   self:unscheduleWatchdogFunction()
+
+  -- Take the member zones down with it: deactivating used to leave their units on the map, which no one
+  -- noticed while only scripts could do it. Now that the operation's menu offers it, a deactivated
+  -- operation must not keep its enemies (FIX-DEMO-MISSION-FINDINGS 06). Only an operation that was running
+  -- does it: `initialize` calls this too, and must leave alone a zone something else has started.
+  if wasActive then
+    for _, taskingOrder in pairs(self.taskingOrderDict) do
+      local zone = taskingOrder:getZone()
+      if zone:isActive() then
+        zone:desactivate()
+      end
+    end
+  end
 
   -- refresh the radio menu
   self:updateRadioMenu()

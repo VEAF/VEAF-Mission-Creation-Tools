@@ -255,7 +255,7 @@ def marker_footprint(unit_name: str, *, coalition: str = "red") -> Footprint | N
         coalition: The unit's side.
 
     A ``#veafInterpreter["…"]`` unit is sized from its command too, with no zone scatter: the command
-    runs at the unit's own position. It used to count as one vehicle, so the demo mission's SA-11 site
+    runs at the unit's own position; when that size cannot be known it stays a plain vehicle. It used to count as one vehicle, so the demo mission's SA-11 site
     was given « 0 m of clear ground » (FIX-DEMO-MISSION-FINDINGS ticket 07).
 
     Returns:
@@ -264,7 +264,12 @@ def marker_footprint(unit_name: str, *, coalition: str = "red") -> Footprint | N
     match = _TAG_COMMAND.search(unit_name)
     if not match:
         interpreted = _TAG_INTERPRETER.search(unit_name)
-        return command_footprint(interpreted.group(1), coalition=coalition) if interpreted else None
+        if not interpreted:
+            return None
+        footprint = command_footprint(interpreted.group(1), coalition=coalition)
+        # A size that cannot be known keeps the unit a plain vehicle, as before: an interpreter unit
+        # often runs no spawn at all (`-destroy`, a TACAN), and placement must not refuse the group.
+        return footprint if footprint.radius is not None else None
     footprint = command_footprint(match.group(1), coalition=coalition)
     if footprint.radius is None:
         return footprint

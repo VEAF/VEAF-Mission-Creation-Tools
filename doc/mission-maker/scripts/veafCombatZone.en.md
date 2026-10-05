@@ -733,6 +733,7 @@ operation:initialize()
 
 Its menu offers the information, each active task's briefing and, like a zone's, the **Activate zone** command (or **Deactivate zone** while it runs — the label is the zones' one).
 That command is secured, except in training mode, and absent when player activation is off (`disableUserActivation()`).
+Deactivating the operation deactivates its zones too, and so removes their units; reactivating it does not spawn a zone that is already running a second time.
 An operation can also start on its own (`active_at_start: true`) or from the `-zonestart` marker command.
 
 By default the operation sits directly under the combat zones menu.

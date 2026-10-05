@@ -4411,6 +4411,62 @@ function TestCombatOperationActivationMenu:test_an_active_operation_offers_a_sec
   luaunit.assertNil(self:_find("menu.combatzone.activate"))
 end
 
+--- A member zone that counts its activations and deactivations.
+function TestCombatOperationActivationMenu:_memberZone(name)
+  local zone = { name = name, active = false, activations = 0, deactivations = 0 }
+  function zone:isActive()
+    return self.active
+  end
+  function zone:activate()
+    self.active = true
+    self.activations = self.activations + 1
+  end
+  function zone:desactivate()
+    self.active = false
+    self.deactivations = self.deactivations + 1
+  end
+  function zone:getFriendlyName()
+    return self.name
+  end
+  function zone:getMissionEditorZoneName()
+    return self.name
+  end
+  self.operation.taskingOrderDict[name] = {
+    zone = zone,
+    requiredCompleteNames = {},
+    getZone = function()
+      return zone
+    end,
+  }
+  return zone
+end
+
+-- Found by the review of FIX-DEMO-MISSION-FINDINGS 06: once a player can deactivate an operation, the
+-- deactivation has to take its zones down, and the next activation must not spawn them a second time.
+function TestCombatOperationActivationMenu:test_deactivating_an_operation_deactivates_its_zones()
+  self.operation.scheduleWatchdogFunction = function() end
+  self.operation.unscheduleWatchdogFunction = function() end
+  local alpha = self:_memberZone("CZ-Alpha")
+  local bravo = self:_memberZone("CZ-Bravo")
+
+  self.operation:activate()
+  self.operation:desactivate()
+
+  luaunit.assertFalse(alpha:isActive(), "CZ-Alpha's units stay on the map after the operation is deactivated")
+  luaunit.assertFalse(bravo:isActive())
+  luaunit.assertEquals(alpha.deactivations, 1)
+end
+
+function TestCombatOperationActivationMenu:test_activating_does_not_spawn_an_active_zone_again()
+  self.operation.scheduleWatchdogFunction = function() end
+  local alpha = self:_memberZone("CZ-Alpha")
+  alpha.active = true -- already running, started on its own
+
+  self.operation:activate()
+
+  luaunit.assertEquals(alpha.activations, 0, "an active zone was activated again: its units are doubled")
+end
+
 function TestCombatOperationActivationMenu:test_no_command_when_user_activation_is_off()
   self.operation:disableUserActivation()
   self.operation:updateRadioMenu(true)

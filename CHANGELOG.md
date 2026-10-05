@@ -107,6 +107,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A ship group's position was searched on land; a spawn that finds no position is now logged as a warning.
 - **A combat operation can be activated and deactivated from its own radio menu** (FIX-DEMO-MISSION-FINDINGS).
   The commands were commented out; they follow a combat zone's rules (secured, except in training).
+  Deactivating an operation now deactivates its zones, and activating it leaves a zone already running alone instead of spawning it again.
 - **Clear-ground placement sizes a `#veafInterpreter` marker from its command** (FIX-DEMO-MISSION-FINDINGS).
   An SA-11 site carried by one unit was given the room of a single vehicle.
 - **Small truths** (FIX-DEMO-MISSION-FINDINGS): the docs spawn a `T-80UD` (a `T-80` matches no DCS type), the `waypoints.yaml` template says the build adds a `BULLSEYE` waypoint, and the carrier's « start air operations » commands are translated.

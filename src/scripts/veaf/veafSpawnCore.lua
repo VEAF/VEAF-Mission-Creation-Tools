@@ -691,7 +691,7 @@ function veafSpawn._reportNoGroupPosition(silent)
 end
 
 --- Whether a group definition is made of ships
--- Decided by its first unit the database knows, the way `veafUnits.placeGroup` decides it: a group
+-- Decided by its first unit the database knows, the way `veafUnits.processGroup` sets `naval`: a group
 -- mixing ships with anything else is not supported there either.
 -- @param groupDefinition table a group from the groups database
 -- @return boolean
@@ -760,11 +760,13 @@ function veafSpawn.doSpawnGroup(
     end
   end
 
-  -- A ship group's centre is searched on water. It used to be searched on land like any other,
-  -- so `-cargoships` at sea found no point and spawned nothing (FIX-DEMO-MISSION-FINDINGS 05).
+  -- A ship group's centre is searched on open water. It used to be searched on land like any other,
+  -- so `-cargoships` at sea found no point and spawned nothing (FIX-DEMO-MISSION-FINDINGS 05). Open
+  -- water, not `veaf.WATER_TERRAIN`: each ship is then checked against `veaf.OPEN_WATER`
+  -- (`veafUnits.checkPositionForUnit`), and a centre in the shallows would see them all dropped.
   local surfaces = nil
   if veafSpawn._isNavalGroupDefinition(groupDefinition) then
-    surfaces = veaf.WATER_TERRAIN
+    surfaces = veaf.OPEN_WATER
   end
   local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius, nil, surfaces)
   if not spawnSpot then

@@ -746,6 +746,7 @@ operation:initialize()
 
 Son menu propose les infos, le briefing de chaque tâche active et, comme celui d'une zone, la commande **Activer la zone** (ou **Désactiver la zone** quand elle tourne — le libellé est celui des zones).
 Cette commande est sécurisée, sauf en mode entraînement, et absente quand l'activation par les joueurs est coupée (`disableUserActivation()`).
+Désactiver l'opération désactive aussi ses zones, et retire donc leurs unités ; la réactiver ne fait pas réapparaître une zone qui tourne déjà.
 Une opération peut aussi démarrer seule (`active_at_start: true`) ou par la commande de marqueur `-zonestart`.
 
 Par défaut l'opération se range directement sous le menu des zones de combat.

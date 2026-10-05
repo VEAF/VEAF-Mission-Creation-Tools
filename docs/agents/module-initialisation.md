@@ -66,6 +66,7 @@ a VEAF module — the generator starts it from its own block, before the module 
 | `NAMEDPOINTS` | `veafNamedPoints` | 50 | 3 | -- | `initialize(customPoints)` |
 | `QRA` | `veafQraManager` | 130 | 10 | -- | `initialize()` |
 | `RADIO` | `veafRadio` | 30 | 1 | -- | `initialize(skipHelpMenus, dontCreateMenus)` |
+| `REACTIVEZONE` | `veafReactiveZone` | -- | -- | -- | -- |
 | `REMOTE` | `veafRemote` | 230 | 17 | -- | `initialize()` |
 | `SANCTUARY` | `veafSanctuary` | 140 | 15 | -- | `initialize()` |
 | `SCHEDULER` | `veafScheduler` | -- | -- | -- | `initialize()` |
@@ -94,9 +95,9 @@ the same values positionally, from `_MODULE_INIT_PARAMS` and its per-module bran
   a mission declares `VeafAirWaveZone:new()…:start()` chains and there is nothing global to start.
   Its slot in `_MODULE_INIT_ORDER` places the emitted *data*; `_NO_INIT_MODULES` suppresses the
   init call.
-- **`AIRSPAWN`, `GEO`, `I18N`, `MATH`, `SCHEDULER`, `SPAWNER` are in neither list.** They are libraries: they
+- **`AIRSPAWN`, `GEO`, `I18N`, `MATH`, `REACTIVEZONE`, `SCHEDULER`, `SPAWNER` are in neither list.** They are libraries: they
   publish their functions when their file loads — onto `veaf.*`, or on their own table for
-  `veafAircraftSpawn`. `veafI18n` and `veafAircraftSpawn` have no `initialize()`; the other four have
+  `veafAircraftSpawn` and `veafReactiveZone`. `veafI18n`, `veafAircraftSpawn` and `veafReactiveZone` have no `initialize()`; the other four have
   one that logs a line and does nothing else.
 - **`EVENTS` and `MISSIONDB` initialise themselves at load.** Both are read from the top level of
   other modules' files, so waiting for an init pass would be too late. Both are then initialised a

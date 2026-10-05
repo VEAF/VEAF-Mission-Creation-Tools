@@ -54,6 +54,29 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R43. QRA and air waves on their shared base — **a pilot for items 4 and 5 only**
+
+[`FEAT-AIRWAVES-QRA-MERGE`](.backlog/FEAT-AIRWAVES-QRA-MERGE/PRD.md) and #1078.
+The 54 Lua suites prove what the two modules hand to DCS through `veafReactiveZone`; they cannot say how a zone on a moving carrier, a group spawned thirty seconds late, or a human flying into a closed zone actually behave.
+
+**Run** on a mission built from the branch (security off, `security.disabled: true`), log level of `QRA`, `AIRWAVES` and `REACTIVEZONE` at `debug`:
+
+1. An existing QRA block, untouched (the Syria Open Training's, with its `airport_link`), and a blue fighter flown into its zone with `fiddle.sh`.
+   - **Verified**: the QRA scrambles where it did on 6.27.0, and re-arms after the fighter leaves.
+   - **Re-opened**: no scramble, or a scramble somewhere else — compare `unitsInZone=` in the trace with the 6.27.0 log of the same mission.
+2. A QRA with `follow_unit:` the carrier, and the carrier sailing; a blue fighter put 5 NM from where the carrier **now** is, then 5 NM from where it **started**.
+   - **Verified**: the first scrambles, the second does not.
+   - **Re-opened**: the zone stayed where the carrier started — `getFollowedUnit` found nothing; check the unit name, or the `linkUnit` id of the trigger zone against `veafMissionDb.unitsById`.
+3. An air-wave zone whose wave is a command with `, delayed 30` appended (the keyword `veafSpawnParser.lua` reads; syntax to confirm on the first try), red players.
+   - **Verified**: the wave appears 30 s later **for blue**, the zone stays `ACTIVE` meanwhile, and destroying the group moves it to the next wave.
+   - **Re-opened, the side**: the wave is red — the command named a side of its own, or `getCoalition()` did not answer blue.
+   - **Re-opened, the wait**: the zone goes `NEXTWAVE` before the group appears — `hasPendingSpawns` saw nothing; the command returned false.
+4. An air-wave zone with `friendly_groups: ["<a tanker>"]` on its first wave; shoot the tanker down with `fiddle.sh` (`Group.getByName(…):destroy()` is not a death — use an explosion).
+   - **Verified**: *perdu (plus d'alliés à défendre)*, and the zone resets.
+5. An air-wave zone with `closed_once_active: true`: a pilot enters, the wave starts, a second slot flies in.
+   - **Verified**: the second pilot reads *la zone est fermée*, then flak after 30 s, then is destroyed after 60 s; the first pilot is left alone.
+   - **Re-opened**: the first pilot is treated as an intruder — not airborne at activation, so not in the roster; note it, the roster is taken at activation.
+
 ### R42. A CAP splits over two targets, and lets a leaving one go — **no pilot needed**
 
 [`FEAT-CAP-WATCHDOG`](.backlog/FEAT-CAP-WATCHDOG/PRD.md) tickets 02 and 03.

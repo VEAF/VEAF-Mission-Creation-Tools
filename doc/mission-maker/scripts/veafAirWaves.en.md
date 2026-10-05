@@ -62,6 +62,10 @@ modules:
         max_seconds_outside_ia: 300     # seconds before an AI group is considered lost outside zone
         minimum_life_percent: 10        # life percentage (0–100) below which an AI unit counts as destroyed (default: 0)
         reset_when_dying: false         # reset all waves when a player dies
+        closed_once_active: false       # true = dead is dead: an intruder is warned, shot at, then destroyed
+        max_seconds_outside_players: 30 # the escalation delay (leaving the zone, intruder in a closed zone)
+        # links: ["Maykop"]             # airbases, FARPs, ships, groups or statics the zone depends on
+        # follow_unit: "CVN-74"         # the zone follows this unit
         message_start: "Zone active!"   # custom zone-start message (optional)
         message_wait_for_humans: "Waiting for players..."
         message_wave_deployed: "Wave inbound!"
@@ -74,6 +78,8 @@ modules:
             bias: 0                     # shift random selection towards harder groups
           - groups: "su30sm-flight"
             delay: 120
+            friendly_groups: ["Tanker"]   # to defend: if they all die, the zone is lost
+            support_groups: "Red AWACS"   # scenery: they count neither for the end of the wave nor for its loss
 ```
 
 ### `airwave_zones[]` common fields
@@ -83,7 +89,10 @@ modules:
 | `name` | string | — | Yes | Internal identifier |
 | `description` | string | — | No | Label shown in messages and logs |
 | `start` | boolean | `false` | No | Auto-start at mission launch |
-| `player_coalitions` | string[] | — | No | Coalitions whose players trigger waves (`BLUE`, `RED`) |
+| `player_coalitions` | string[] | — | No | Coalitions whose players trigger waves (`BLUE`, `RED`). The waves spawn for the opposite side |
+| `links` | string[] | `[]` | No | What the zone depends on: airbases, FARPs, ships, groups or statics, by DCS name. An airbase or FARP no longer held by the waves' side, or too damaged, **pauses the zone** (the current wave goes) until it is retaken; a ship, group or static destroyed **stops it for good** |
+| `follow_unit` | string | — | No | Name of a unit the zone follows (a carrier, for instance). A trigger zone linked to a unit in the editor follows it too, without this key. The drawing on the map stays where it was put at start |
+| `closed_once_active` | boolean | `false` | No | **Dead is dead**: once the zone runs, a human who was not in it at activation — or who comes back in the slot of an aircraft shot down — is warned, then put under flak, then destroyed, on the delay of `max_seconds_outside_players` (30 s without it) |
 
 ### Zone location (use one)
 
@@ -125,6 +134,7 @@ now checks the file it generates and refuses to ship one that does not parse.
 | `min_altitude_ft` | integer | — | Player detection floor: a player below it is not counted in the zone |
 | `max_seconds_outside_ia` | integer | — | Seconds before off-zone AI group is discarded |
 | `minimum_life_percent` | number | `0` | Life percentage (0–100, compared to `100 × life / initial life`) below which an AI unit counts as destroyed |
+| `max_seconds_outside_players` | integer | — | Delay of the escalation applied to a player who left the zone, or to an intruder in a closed zone: flak past this delay, destruction past twice it |
 
 ### `waves[]` fields
 
@@ -134,6 +144,8 @@ now checks the file it generates and refuses to ship one that does not parse.
 | `delay` | integer | `0` | Seconds after wave cleared before next; `-1` = concurrent |
 | `number` | string \| integer | — | How many groups to pick: `2` or `"1-3"` range |
 | `bias` | integer | `0` | Shift random start index toward harder entries |
+| `friendly_groups` | string or string[] | — | Groups or VEAF commands **to defend**, spawned with the wave for the players' side. If they all die, the zone is lost — the same message and reset as the players' death. Survivors go with the wave |
+| `support_groups` | string or string[] | — | **Unimportant** groups or VEAF commands (support, defence), spawned with the wave for the waves' side. They count neither for the end of the wave nor for its loss, and go with it |
 
 ### Control radio menu (shortcut)
 
@@ -206,7 +218,12 @@ modules:
 | `:setRespawnRadius(m)` | Spawn scatter radius (default: 250 m) |
 | `:setRespawnDefaultOffset(lat, lon)` | Offset from zone centre for spawns (metres) — first number north, second east; see [below](#spawn-offset) |
 | `:setMaxSecondsOutsideOfZoneIA(n)` | Seconds before an AI wave group is considered lost if it leaves the zone |
-| `:setMaxSecondsOutsideOfZonePlayers(n)` | Seconds before the zone resets if all players leave |
+| `:setMaxSecondsOutsideOfZonePlayers(n)` | Escalation delay for a player who left the zone (or an intruder in a closed zone): flak past this delay, destruction past twice it |
+| `:setClosedOnceActive(bool)` | Close the zone once it runs: dead is dead |
+| `:setFollowUnit(unitName)` | The zone follows this unit, a carrier for instance |
+| `:addLink(name)` | Make the zone depend on an airbase, FARP, ship, group or static |
+| `:setLinkMinLifePercent(pct)` | Minimum health of a linked airbase (0–1, default `0.9`) |
+| `:setCoalition(side)` | The waves' side (default: opposite the players) |
 | `:setDelayBetweenWaves(n)` | Default delay in seconds between waves |
 | `:setDelayBeforeActivation(n)` | Seconds after players enter before the first wave |
 | `:setMinimumAltitudeInFeet(n)` | Player detection floor (in feet) |
@@ -452,6 +469,7 @@ STOP ──start()──► READY
 | `WAITING_FOR_NEXTWAVE` | Wave slot available; the inter-wave delay is counting down. |
 | `ACTIVE` | Current wave is spawned and alive. |
 | `OVER` | All waves have been destroyed — the zone is finished. |
+| `PAUSED` | A linked airbase is lost: the current wave is gone, the zone waits for the airbase to be retaken, then starts again. |
 
 `NEXTWAVE` is a transient state that the zone crosses in a single `check()` cycle: it never lingers there. Callbacks such as `setOnDestroyed` fire on the `ACTIVE → NEXTWAVE` exit, and `setOnWon` fires on the `NEXTWAVE → OVER` entry.
 

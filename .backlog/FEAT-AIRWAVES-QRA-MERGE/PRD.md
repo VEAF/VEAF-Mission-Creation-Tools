@@ -1,6 +1,6 @@
 # FEAT-AIRWAVES-QRA-MERGE — rebuild QRA on AirWaves instead of beside it
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code done; waits on its in-game check, R43 in `DCS-SESSION-TODO.md`
 
 Origin: David, 2026-08-17, closing the six open AirWaves issues into one design:
 [#185](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/185) (replace the QRA module),
@@ -38,6 +38,13 @@ settings. That has to be established, not assumed. The questions to answer **fir
   the merge is real. If it does not, this becomes "AirWaves gains five features" and QRA stays, and
   that is an acceptable outcome to reach explicitly rather than by drift.
 
+## Decision (2026-10-05)
+
+**Option b, one PR**: no merge of the behaviours, one shared base under both modules.
+The written comparison is [comparison.md](comparison.md): a QRA and an air-wave zone look at the scene from opposite sides and their life cycles differ in shape, while the zone, drawing, altitude, group-choice and spawn code is duplicated.
+The shared base carries #183 (entity link, generalising `airport_link`) and #186 (mobile zone); #182, #179 and #176 land in AirWaves alone; QRA and AirWaves keep their state machines, public API and labels.
+Added on the way, at David's request: the QRA logistics declared in `mission.yaml` (ticket 08). And #1078 — QRA and waves reading a command's groups before a deferred spawn — is fixed in the shared spawn, now its only site.
+
 ## Migration is the hard half
 
 Every VEAF mission declares QRAs in `mission.yaml`, and `FEAT-ACTIVATION-CONTROLS` added keys to that
@@ -62,10 +69,10 @@ schema this month. So:
 
 ## Definition of done
 
-- [ ] The comparison exists and carries an explicit go/no-go
-- [ ] An existing mission's `modules.QRA` block still works, unchanged, with a test proving it
-- [ ] The six issues each either delivered or closed against the recorded decision
-- [ ] No pilot-facing label changed without its catalogue entry following
+- [x] The comparison exists and carries an explicit go/no-go
+- [x] An existing mission's `modules.QRA` block still works, unchanged, with a test proving it — the QRA Lua suite passes with no assertion changed (one test double now goes through `veaf.collectSpawnedGroup`, the real insertion point), and so does the generator sweep (`test_qra_keys_reach_the_lua.py`); the in-game check is R43 of `DCS-SESSION-TODO.md`
+- [x] The six issues each either delivered or closed against the recorded decision — #185 answered by the comparison, the five others delivered
+- [x] No pilot-facing label changed without its catalogue entry following — no label changed; three new messages added to the catalogue (`airwaves.msg_paused`, `msg_closed`, `msg_lost_friendlies`)
 
 ## Former index entry
 

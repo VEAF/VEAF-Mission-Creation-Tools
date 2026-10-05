@@ -864,6 +864,18 @@ veaf.i18nCatalog = {
     fr = "%s - hors ligne",
     en = "%s - offline",
   },
+  ["airwaves.msg_paused"] = {
+    fr = "%s - en pause : %s est perdu",
+    en = "%s - paused: %s is lost",
+  },
+  ["airwaves.msg_closed"] = {
+    fr = "%s - la zone est fermée : quittez-la, ou vous serez détruit après %s secondes.",
+    en = "%s - the zone is closed: leave it, or you'll be destroyed after %s seconds.",
+  },
+  ["airwaves.msg_lost_friendlies"] = {
+    fr = "%s - perdu (plus d'alliés à défendre)",
+    en = "%s - lost (no more friendlies to defend)",
+  },
 
   -- veafSanctuary (default messages)
   ["sanctuary.msg_warning"] = {

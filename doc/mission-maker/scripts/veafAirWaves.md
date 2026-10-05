@@ -61,6 +61,10 @@ modules:
         max_seconds_outside_ia: 300     # secondes avant de considérer une unité IA hors zone comme perdue
         minimum_life_percent: 10        # pourcentage de vie (0–100) sous lequel une unité IA est considérée comme détruite (défaut : 0)
         reset_when_dying: false         # réinitialiser toutes les vagues quand un joueur meurt
+        closed_once_active: false       # true = mort c'est mort : un intrus est averti, pris sous le feu, puis détruit
+        max_seconds_outside_players: 30 # délai de l'escalade (sortie de zone, intrus d'une zone fermée)
+        # links: ["Maykop"]             # bases, FARP, navires, groupes ou statics dont dépend la zone
+        # follow_unit: "CVN-74"         # la zone suit cette unité
         message_start: "Zone active !"  # message personnalisé de début de zone (optionnel)
         message_wait_for_humans: "En attente des joueurs..."
         message_wave_deployed: "Vague en approche !"
@@ -73,6 +77,8 @@ modules:
             bias: 0                     # décaler la sélection aléatoire vers les entrées plus difficiles
           - groups: "su30sm-flight"
             delay: 120
+            friendly_groups: ["Tanker"]   # à défendre : s'ils meurent tous, la zone est perdue
+            support_groups: "AWACS rouge" # de décor : ne comptent ni pour la fin de vague ni pour la défaite
 ```
 
 ### Champs communs de `airwave_zones[]`
@@ -82,7 +88,10 @@ modules:
 | `name` | string | — | Oui | Identifiant interne |
 | `description` | string | — | Non | Libellé affiché dans les messages et les logs |
 | `start` | booléen | `false` | Non | Démarrage automatique au lancement de la mission |
-| `player_coalitions` | string[] | — | Non | Coalitions dont les joueurs déclenchent les vagues (`BLUE`, `RED`) |
+| `player_coalitions` | string[] | — | Non | Coalitions dont les joueurs déclenchent les vagues (`BLUE`, `RED`). Les vagues apparaissent pour le camp opposé |
+| `links` | string[] | `[]` | Non | Ce dont dépend la zone : bases aériennes, FARP, navires, groupes ou statics, par leur nom DCS. Une base ou un FARP qui n'est plus tenu par le camp des vagues, ou trop endommagé, **met la zone en pause** (la vague en cours disparaît) jusqu'à sa reprise ; un navire, un groupe ou un static détruit **l'arrête pour de bon** |
+| `follow_unit` | string | — | Non | Nom d'une unité que la zone suit (un porte-avions, par exemple). Une trigger zone liée à une unité dans l'éditeur la suit aussi, sans cette clé. Le tracé sur la carte, lui, reste où il a été posé au démarrage |
+| `closed_once_active` | booléen | `false` | Non | **Mort c'est mort** : une fois la zone lancée, un humain qui n'y était pas à l'activation — ou qui revient dans le slot d'un avion abattu — est averti, puis pris sous la flak, puis détruit, avec le délai de `max_seconds_outside_players` (30 s sans lui) |
 
 ### Localisation de la zone (utiliser l'une ou l'autre)
 
@@ -125,6 +134,7 @@ se lit pas.
 | `max_altitude_ft` | entier | — | Plafond de détection des joueurs : un joueur au-dessus n'est pas compté dans la zone |
 | `min_altitude_ft` | entier | — | Plancher de détection des joueurs : un joueur en dessous n'est pas compté dans la zone |
 | `max_seconds_outside_ia` | entier | — | Secondes avant qu'un groupe IA hors zone soit éliminé |
+| `max_seconds_outside_players` | entier | — | Délai de l'escalade appliquée à un joueur sorti de la zone, ou à un intrus d'une zone fermée : flak passé ce délai, destruction passé le double |
 | `minimum_life_percent` | nombre | `0` | Pourcentage de vie (0–100, comparé à `100 × vie / vie initiale`) sous lequel une unité IA est considérée comme détruite |
 
 ### Champs de `waves[]`
@@ -135,6 +145,8 @@ se lit pas.
 | `delay` | entier | `0` | Secondes après la vague avant la suivante ; `-1` = simultané |
 | `number` | string \| entier | — | Groupes à choisir : `2` ou plage `"1-3"` |
 | `bias` | entier | `0` | Décaler l'index de début aléatoire vers les entrées plus difficiles |
+| `friendly_groups` | string ou string[] | — | Groupes ou commandes VEAF **à défendre**, spawnés avec la vague pour le camp des joueurs. S'ils meurent tous, la zone est perdue — même message et même reset que la mort des joueurs. Les survivants disparaissent avec la vague |
+| `support_groups` | string ou string[] | — | Groupes ou commandes VEAF **sans importance** (soutien, défense), spawnés avec la vague pour le camp des vagues. Ils ne comptent ni pour la fin de la vague ni pour la défaite, et disparaissent avec elle |
 
 ### Menu radio de contrôle (raccourci)
 
@@ -208,7 +220,12 @@ modules:
 | `:setRespawnRadius(m)` | Rayon de dispersion des spawns (défaut : 250 m) |
 | `:setRespawnDefaultOffset(lat, lon)` | Décalage par rapport au centre de zone pour les spawns (mètres) — premier nombre vers le nord, second vers l'est ; voir [plus bas](#spawn-offset) |
 | `:setMaxSecondsOutsideOfZoneIA(n)` | Secondes avant qu'un groupe IA hors zone soit considéré comme perdu |
-| `:setMaxSecondsOutsideOfZonePlayers(n)` | Secondes avant que la zone se réinitialise si tous les joueurs sortent |
+| `:setMaxSecondsOutsideOfZonePlayers(n)` | Délai de l'escalade d'un joueur sorti de la zone (ou d'un intrus d'une zone fermée) : flak passé ce délai, destruction passé le double |
+| `:setClosedOnceActive(bool)` | Fermer la zone une fois lancée : mort c'est mort |
+| `:setFollowUnit(unitName)` | La zone suit cette unité, un porte-avions par exemple |
+| `:addLink(name)` | Faire dépendre la zone d'une base, d'un FARP, d'un navire, d'un groupe ou d'un static |
+| `:setLinkMinLifePercent(pct)` | Santé minimale d'une base liée (0–1, défaut `0,9`) |
+| `:setCoalition(side)` | Camp des vagues (défaut : l'opposé des joueurs) |
 | `:setDelayBetweenWaves(n)` | Délai par défaut en secondes entre les vagues |
 | `:setDelayBeforeActivation(n)` | Secondes après l'entrée des joueurs avant la première vague |
 | `:setMinimumAltitudeInFeet(n)` | Plancher de détection des joueurs (en pieds) |
@@ -455,6 +472,7 @@ STOP ──start()──► READY
 | `WAITING_FOR_NEXTWAVE` | Prochain slot de vague disponible ; le délai entre vagues décompte. |
 | `ACTIVE` | La vague courante est spawnée et vivante. |
 | `OVER` | Toutes les vagues ont été détruites — la zone est terminée. |
+| `PAUSED` | Une base liée est perdue : la vague en cours a disparu, la zone attend que la base soit reprise, puis redémarre. |
 
 `NEXTWAVE` est un état transitoire que la zone traverse en un seul cycle de `check()` : elle n'y reste jamais. Les callbacks comme `setOnDestroyed` se déclenchent à la sortie de `ACTIVE → NEXTWAVE`, et `setOnWon` à l'entrée de `NEXTWAVE → OVER`.
 

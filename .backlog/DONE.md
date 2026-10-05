@@ -166,6 +166,10 @@ Assigning one airfield to a coalition disabled all the others; the airfield tabl
 
 Every base came out neutral in 6.14.2: a contiguous airfield table read as a list was replaced by an empty one. Verified (R3).
 
+### [INVESTIGATE-SKYNET-AWACS-BLIND](INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md) · ✅
+
+Not a defect: measured in game, an A-50 enrolled by the helper detects by radar and feeds Skynet, and the three A-50s of the report orbited more than its 204 km from every Georgian base, which the ground radars reached — consistent, not proven, the log being lost. The contact flag that can stay `DLINK` for minutes is now a recorded DCS trap.
+
 ## 🚫 Won't fix
 
 *None.*

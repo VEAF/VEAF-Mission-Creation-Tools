@@ -58,6 +58,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The form is filled from the bot's own record of the thread — the questions addressed to it and its answers, the most recent first when they do not all fit — and the rest of the thread is not read.
   The *Report a bug* button under an answer now carries the whole thread too, not only the last question and answer.
   Asking for it spends no question of the quota, and a question that merely starts with the word (*"bug dans CTLD ?"*) is still answered as a question.
+- **A new DCS trap for agents: an AWACS contact can stay flagged `DLINK` only for minutes** (INVESTIGATE-SKYNET-AWACS-BLIND).
+  Measured in game on an A-50: a KC-135 82 km away was in its detected list for nearly four minutes before DCS flagged it `RADAR`, and Skynet, which reads `RADAR` only, ignored it until then.
+  `describe_known_limitations` now returns it, with the A-50's declared radar range (204 km).
+  The investigation itself closes as not a defect: the A-50 enrolled by the helper does feed Skynet, and the three blind A-50s of the 2026-09-17 report orbited more than its 204 km from every Georgian base — consistent with an empty sky, though the lost log no longer allows proving it.
 
 ## [6.27.0] — 2026-10-03
 

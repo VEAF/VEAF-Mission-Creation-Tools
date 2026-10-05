@@ -27,7 +27,3 @@ A design lot: bundle mission content (groups, statics, zones, media, mod depende
 ### [FEAT-SPOTTER-DEMO-MISSION](FEAT-SPOTTER-DEMO-MISSION/PRD.md) · ⬜
 
 A mission that proves a spotter report reaches a battery that never saw the aircraft. Tickets 01–04 done (durable history, rig, smoke-test suite); the demonstration layer is left.
-
-### [INVESTIGATE-SKYNET-AWACS-BLIND](INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md) · ⬜
-
-Three red A-50s reported no contact in 286 cycles while ground radars saw up to 14 aircraft. Three hypotheses to test, cheapest first.

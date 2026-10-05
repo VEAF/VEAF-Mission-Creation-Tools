@@ -1,6 +1,6 @@
 # 01 — Emit `initialize()` after the missions it builds the menu from
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: fix
 Files: `src/python/veaf-tools/veaf_libs/lua_config_generator.py` (branch `elif mod_id == "COMBATMISSION":`), `test/python/veaf_libs/`, `CHANGELOG.md`
 

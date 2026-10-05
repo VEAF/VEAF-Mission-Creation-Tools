@@ -786,7 +786,6 @@ def _emit_module_body(
                     )
 
     elif mod_id == "COMBATMISSION":
-        lines.append(f"    {var_name}.initialize()")
         for cap in cap_missions:
             g = cap.get("group_name", "")
             m = cap.get("menu_name", "")
@@ -796,6 +795,10 @@ def _emit_module_body(
             lines.append(f"    {var_name}.addCapMission({_lua_text(g)}, {_lua_text(m)}, {_lua_text(b)}, {d}, {a})")
         for cm in combat_missions_data:
             lines.extend(_emit_combat_mission(cm, var_name, indent="    "))
+        # After the missions: initialize() builds the MISSIONS radio menu from the missions already
+        # registered, skips it when there are none, and nothing rebuilds it later
+        # (FIX-COMBATMISSION-MENU-MISSING).
+        lines.append(f"    {var_name}.initialize()")
 
     elif mod_id == "SHORTCUTS":
         shortcuts: list = mod_cfg.get("shortcuts") or []

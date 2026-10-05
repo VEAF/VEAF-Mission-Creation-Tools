@@ -1997,3 +1997,44 @@ def test_mission_channels_are_written_for_the_scripts():
 def test_no_mission_channel_no_block():
     assert "MissionChannels" not in generate_config_lua({})
     assert "MissionChannels" not in generate_config_lua({}, mission_channels={})
+
+
+# ---------------------------------------------------------------------------
+# One module's init error does not stop the others (FIX-DEMO-MISSION-FINDINGS 02)
+# ---------------------------------------------------------------------------
+
+# Any global the generated file touches and the test does not care about answers with a table that
+# accepts every call and index, so the file runs end to end on nothing but these lines.
+_AUTO_STUBS = """
+local function auto()
+    return setmetatable({}, { __index = function() return auto() end, __call = function() return auto() end })
+end
+setmetatable(_G, { __index = function() return auto() end })
+initialized = {}
+local function module(name, fails)
+    return { initialize = function()
+        if fails then error(name .. " exploded") end
+        initialized[#initialized + 1] = name
+    end }
+end
+veaf = setmetatable({ Id = "VEAF", config = {}, setConfig = function() end, loggers = {
+    get = function() return { error = function(_, text, ...) print("ERROR " .. string.format(text, ...)) end } end,
+} }, { __index = function() return auto() end })
+veafRadio = module("RADIO")
+veafNamedPoints = module("NAMEDPOINTS", true)
+veafSpawn = module("SPAWN")
+veafCommands = module("COMMANDS")
+"""
+
+
+def test_a_module_that_raises_does_not_stop_the_ones_after_it() -> None:
+    """On the demo mission a CTLD init error left no combat zone, QRA, asset or IADS."""
+    config = generate_config_lua({"lua_modules": {"NAMEDPOINTS": {}, "SPAWN": {}, "RADIO": {}}})
+    result = run_lua(_AUTO_STUBS + config + "\nprint('INITIALIZED ' .. table.concat(initialized, ','))\n")
+
+    assert result.returncode == 0, result.stderr
+    assert "INITIALIZED RADIO,SPAWN,COMMANDS" in result.stdout
+    error_lines = [line for line in result.stdout.splitlines() if line.startswith("ERROR")]
+    assert len(error_lines) == 1
+    assert error_lines[0].startswith("ERROR NAMEDPOINTS init failed:")
+    assert "NAMEDPOINTS exploded" in error_lines[0]

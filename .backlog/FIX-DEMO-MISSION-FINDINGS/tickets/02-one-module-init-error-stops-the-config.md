@@ -1,6 +1,6 @@
 # 02 — One module's init error stops the whole config
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix (resilience)
 Files: `src/python/veaf-tools/veaf_libs/lua_config_generator.py` (module init blocks, e.g. `veaf.ctld_initialize()` at l. 2164), tests
 

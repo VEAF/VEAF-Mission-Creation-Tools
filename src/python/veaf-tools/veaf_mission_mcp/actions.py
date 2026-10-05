@@ -15,6 +15,7 @@ from veaf_mission_mcp.add_sound import add_sound
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
 from veaf_mission_mcp.catalog import ActionCatalog
@@ -1634,6 +1635,37 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ),
         handler=lambda p: add_sound(
             Path(p["mission_path"]), source_path=p["sound_path"], resource_name=p.get("resource_name")
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_briefing_picture",
+            description=(
+                "ADD an image (.png or .jpg) to a coalition's BRIEFING: copied into l10n/DEFAULT, declared "
+                "in mapResource, and its key appended to the mission's pictureFileNameB / R / N -- the "
+                "three pieces DCS keeps apart. The side's existing pictures are kept; adding the same "
+                "file again lists it once. Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "source_path": {"type": "string", "description": "The .png or .jpg file to embed."},
+                    "side": {
+                        "type": "string",
+                        "enum": ["blue", "red", "neutral"],
+                        "description": "Whose briefing shows it.",
+                    },
+                    "resource_name": {
+                        "type": "string",
+                        "description": "The file name inside the mission; the source's own name when omitted.",
+                    },
+                },
+                "required": ["mission_path", "source_path", "side"],
+            },
+        ),
+        handler=lambda p: set_briefing_picture(
+            Path(p["mission_path"]), source_path=p["source_path"], side=p["side"], resource_name=p.get("resource_name")
         ),
     )
     catalog.register(

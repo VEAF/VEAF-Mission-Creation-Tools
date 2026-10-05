@@ -28,5 +28,4 @@ Look at `test/python/mission_builder/test_cap_missions_arguments.py` for how a g
 
 ## Branch and PR
 
-David wants it in 6.28.0: branch `fix/combat-mission-menu` from `origin/release/6.28.0`, PR into `release/6.28.0` (it reaches `develop` with the release back-merge).
-The CHANGELOG entry goes under `## [6.28.0]`, not `[Unreleased]`.
+Branch `fix/combat-mission-menu`, PR #1085. First aimed at `release/6.28.0`, then moved onto `develop` at David's request (2026-10-05); the CHANGELOG entry sits under `[Unreleased]`.

@@ -1091,11 +1091,94 @@ function TestVeafWeatherFogMenuWiring:test_every_fog_menu_entry_passes_the_prese
   -- name means the entry applies a *different* preset than the one the pilot clicked.
   for _, command in ipairs(self:_fogCommands()) do
     luaunit.assertEquals(
-      command.parameters and command.parameters.name,
+      command.parameters and command.parameters:getTitle(),
       command.title,
       "fog menu entry '" .. tostring(command.title) .. "' applies another preset"
     )
   end
+end
+
+-- ============================================================================
+-- FIX-DEMO-RECETTE-FINDINGS 02 -- the fog commands were English literals in a French mission
+-- ============================================================================
+--- Enumerated from the real `buildRadioMenu`, like the wiring sweep above: every fog command and every
+--- fog submenu, in both languages.
+TestVeafWeatherFogMenuTranslation = {}
+
+function TestVeafWeatherFogMenuTranslation:setUp()
+  self.titles = {}
+  self.fogCommands = {}
+  local titles, fogCommands = self.titles, self.fogCommands
+  local record = function(title, _path, method, parameters)
+    table.insert(titles, title)
+    if method == veafWeather.setAndActivateFog then
+      table.insert(fogCommands, { title = title, parameters = parameters })
+    end
+  end
+  self.originalVeafRadio = veafRadio
+  self.originalLanguage = veaf.config.language
+  veafRadio = {
+    USAGE_ForAll = 0,
+    USAGE_ForGroup = 1,
+    addMenu = function(title)
+      table.insert(titles, title)
+      return { title = title }
+    end,
+    addSubMenu = function(title)
+      table.insert(titles, title)
+      return { title = title }
+    end,
+    addCommandToSubmenu = record,
+    addSecuredCommandToSubmenu = record,
+  }
+end
+
+function TestVeafWeatherFogMenuTranslation:tearDown()
+  veafRadio = self.originalVeafRadio
+  veaf.config.language = self.originalLanguage
+  veafWeather.rootPath = nil
+end
+
+function TestVeafWeatherFogMenuTranslation:_build(language)
+  veaf.config.language = language
+  veafWeather.buildRadioMenu()
+end
+
+function TestVeafWeatherFogMenuTranslation:test_no_english_fog_title_is_left_in_french()
+  self:_build("fr")
+  luaunit.assertTrue(#self.fogCommands >= 40, "the harness must see the fog commands")
+  for _, title in ipairs(self.titles) do
+    luaunit.assertNil(title:lower():find("fog", 1, true), "English fog title in a French menu: " .. title)
+  end
+end
+
+function TestVeafWeatherFogMenuTranslation:test_french_titles_read_as_french()
+  self:_build("fr")
+  local seen = {}
+  for _, title in ipairs(self.titles) do
+    seen[title] = true
+  end
+  luaunit.assertTrue(seen["Brouillard dynamique ÉPAIS"])
+  luaunit.assertTrue(seen["Brouillard statique LÉGER BAS"])
+  luaunit.assertTrue(seen["Brouillard animé MOYEN sur 5 minutes"])
+  -- one minute, singular: the submenu used to say « sur 1 minutes »
+  luaunit.assertTrue(seen["Brouillard animé sur 1 minute"])
+  luaunit.assertTrue(seen["Brouillard animé ÉPAIS sur 1 minute"])
+end
+
+--- In English the titles stay the names the presets always had (now with « 1 minute » singular).
+function TestVeafWeatherFogMenuTranslation:test_english_titles_are_the_preset_names()
+  self:_build("en")
+  for _, command in ipairs(self.fogCommands) do
+    luaunit.assertEquals(command.title, command.parameters.name)
+  end
+  local seen = {}
+  for _, title in ipairs(self.titles) do
+    seen[title] = true
+  end
+  luaunit.assertTrue(seen["Animated fog over 1 minute"])
+  luaunit.assertTrue(seen["Animated HEAVY fog over 1 minute"])
+  luaunit.assertTrue(seen["Static NO fog"])
 end
 
 -- ============================================================================

@@ -1,7 +1,7 @@
 # DCS units database (type, kind, category, attributes, fuel, countermeasures, decks, shapes,
 # weapon and detection ranges).
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Source ref: fe1d8008e6e8dc4c1c4e85558cd1b0b29a02da3f
+# Source ref: fdd11ed960d5402909a876558b7bec3b2653b268
 # Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).
 # Re-run `veaf-build update-dcs-data --units` to regenerate after a pin bump.
 # DO NOT EDIT BY HAND — CI fails if this file drifts from the generator output.
@@ -2117,15 +2117,11 @@ units:
   category: Unarmed
   description: Trailer SLT-50 [CH]
   attributes:
-  - Trucks
+  - Trailers
   - All
   - Ground Units
   - Vehicles
   - Ground vehicles
-  - Ground Units Non Airdefence
-  - NonAndLightArmoredUnits
-  - NonArmoredUnits
-  - Unarmed vehicles
 - type: CHAP_T64BV
   name: MBT T-64BV Type 2017 [CH]
   kind: vehicle
@@ -8449,6 +8445,7 @@ units:
   description: PLZ-05
   attributes:
   - Artillery
+  - Datalink
   - All
   - Ground Units
   - Ground Units Non Airdefence

@@ -1,6 +1,6 @@
 # 01 — forget the role registry with the CAP watchdog
 
-Status: 🔄 in progress
+Status: ✅ done — #1080
 
 `veafAircraftSpawn.forgetGroup(groupName)` clears the group's entry in `groupRoles`, `groupOptions` and `groupRoutes`.
 `forgetCapWatchdog` (`src/scripts/veaf/veafSpawnAircraft.lua`) calls it, so every path where the watchdog stops watching a group — gone from DCS, no position, landed and destroyed, no controller — also forgets its role.

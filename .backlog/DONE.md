@@ -50,6 +50,10 @@ A ground-elevation grid per theatre, read without DCS running: point elevation, 
 
 The aircraft height check read the easting; it now reads the altitude, and every aircraft given a role is floored 150 m above the ground (#1055).
 
+### [FIX-AIRCRAFT-ROLE-REGISTRY-PURGE](FIX-AIRCRAFT-ROLE-REGISTRY-PURGE/PRD.md) · ✅
+
+The aircraft role registry forgets a group once it is gone: through the CAP watchdog for `cap` and `zone_defense`, on the next spawn with a role for the others (#1079, #1080).
+
 ### [FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS](FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS/PRD.md) · ✅
 
 `content airfield-channels --apply` kept the DCS spelling (`Büchel` → `Buchel`) and its matching ignored accents; titles now keep the author's spelling, and accents fold.

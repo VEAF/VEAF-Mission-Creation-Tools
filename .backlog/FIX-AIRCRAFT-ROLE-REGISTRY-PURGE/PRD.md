@@ -1,6 +1,6 @@
 # FIX-AIRCRAFT-ROLE-REGISTRY-PURGE — the aircraft role registry is never purged
 
-Status: 🔄 in progress — #1079
+Status: ✅ done — merged in #1080 (2026-10-05)
 
 ## Problem
 

@@ -399,7 +399,9 @@ Appuyez sur F10 : si un sous-menu « VEAF » apparaît sous « Autre », c'est u
 Vérifiez la syntaxe (les commandes brutes commencent par `_`, les alias par `-`). En multijoueur, si vous n'êtes pas sur la liste des pilotes du serveur, ajoutez `password [MOT_DE_PASSE]` à la commande. Pour le menu F10, rappelez-vous que le groupe agit au niveau de son membre le moins gradé : `_auth elevate` le monte à votre niveau pendant 2 minutes. Vérifiez aussi que le serveur autorise les commandes par marqueur.
 
 **Quels noms d'unités puis-je utiliser avec `_spawn unit` ?**
-Les noms de types standard de DCS : `F-16C`, `Su-27`, `T-80UD`, `M1 Abrams`, `SA-6`, etc. Attention, ils sont sensibles à la casse (majuscules/minuscules).
+Le type DCS d'un véhicule ou d'un navire (`T-80UD`, `M-1 Abrams`, `ZSU-23-4 Shilka`), son nom dans l'éditeur de mission (`MBT M1A2 Abrams`) ou un alias VEAF (`sa8`, `shilka`) ; les majuscules et minuscules ne comptent pas.
+Un avion ne peut pas être créé ainsi : passez par une patrouille CAP.
+Une batterie de défense aérienne est un groupe, pas une unité : utilisez son raccourci, par exemple `-sa6`.
 
 **Les unités que j'ai fait apparaître ont disparu. Est-ce normal ?**
 Oui, certaines missions imposent une limite de distance (environ 40 à 50 NM) : l'IA est nettoyée si vous vous éloignez trop.

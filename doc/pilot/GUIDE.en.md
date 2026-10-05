@@ -398,7 +398,9 @@ Press F10: if a "VEAF" submenu appears under "Other", it is a VEAF mission.
 Check the syntax (raw commands start with `_`, aliases with `-`). In multiplayer, if you are not on the server's pilot list, add `password [PASSWORD]` to the command. For the F10 menu, remember the group acts at the level of its lowest-graded occupant: `_auth elevate` raises it to your own level for 2 minutes. Also check that the server allows marker commands.
 
 **What unit names can I use with `_spawn unit`?**
-Standard DCS type names: `F-16C`, `Su-27`, `T-80UD`, `M1 Abrams`, `SA-6`, etc. Note that they are case-sensitive.
+A vehicle's or a ship's DCS type (`T-80UD`, `M-1 Abrams`, `ZSU-23-4 Shilka`), its name in the mission editor (`MBT M1A2 Abrams`) or a VEAF alias (`sa8`, `shilka`); upper and lower case do not matter.
+An aircraft cannot be spawned this way: use a CAP patrol.
+An air-defence battery is a group, not a unit: use its shortcut, for example `-sa6`.
 
 **The units I spawned disappeared. Is that normal?**
 Yes — some missions enforce a range limit (about 40–50 NM): AI is cleaned up if you fly too far away.

@@ -111,6 +111,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Clear-ground placement sizes a `#veafInterpreter` marker from its command** (FIX-DEMO-MISSION-FINDINGS).
   An SA-11 site carried by one unit was given the room of a single vehicle.
 - **Small truths** (FIX-DEMO-MISSION-FINDINGS): the docs spawn a `T-80UD` (a `T-80` matches no DCS type), the `waypoints.yaml` template says the build adds a `BULLSEYE` waypoint, and the carrier's « start air operations » commands are translated.
+  The pilot guide's list of `_spawn unit` names offered two aircraft (refused by the command), a battery (`SA-6`, a group) and a wrong `M1 Abrams`, and claimed the names were case-sensitive (they are not).
 
 ## [6.27.0] — 2026-10-03
 

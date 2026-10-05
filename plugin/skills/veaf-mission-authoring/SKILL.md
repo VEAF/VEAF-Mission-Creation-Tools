@@ -214,7 +214,8 @@ for the one-pass composite (`create_combat_zone` / `create_qra` / `create_cap_mi
 call. Drop to the primitives (`add_trigger_zone`, `add_group`, `set_mission_module`) only for
 partial or one-off edits, or when there's no folder (a lone `.miz`).
 
-A **combat operation** (zones activated in turn, each once its dependencies are complete) is
+A **combat operation** (zones grouped under one menu; activating it spawns **all** its zones at once,
+`dependencies` only orders which task is listed as the current objective) is
 `add_combat_operation`, called **after** its zones exist: it writes `mission.yaml` only, and refuses
 a task naming a zone the mission does not declare. Do not write `type: operation` by hand.
 
@@ -248,7 +249,8 @@ the coalitions that actually get dynamic slots.
 - A **bullseye on a landmark** pilots can name (`set_bullseye`), the same for both sides unless the
   scenario says otherwise. The blank mission's bullseyes are arbitrary.
 - A briefing (`set_briefing`: `sortie`, situation, blue task) that lists bases, support frequencies,
-  zones and rules. A briefing **picture** (a map, a target photo) is `set_briefing_picture`, per side.
+  zones and rules. A briefing **picture** (a map, a target photo) is `set_briefing_picture`, per side — not the same
+  picture on both sides: a player whose side the briefing does not know sees red then blue, so it twice.
 
 **Airbases.** Colour every airfield of each side (`set_airbase_coalition`), not a sample: the
 front line must read on the map. Decide which bases offer slots; a neutral base with dynamic slots,

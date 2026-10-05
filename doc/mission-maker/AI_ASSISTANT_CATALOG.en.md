@@ -285,8 +285,9 @@ give it a second point and it flies a race-track between the two — without one
 
 ### Create an operation (chained zones) {#create-operation}
 
-*Recipe (folder) · ◽* — Groups **combat zones already created** into an operation: its tasks start in
-order, each once the ones it depends on are complete. Players start it from its F10 menu, or it starts
+*Recipe (folder) · ◽* — Groups **combat zones already created** into an operation: activating it
+brings **all** its zones to life at once, and each task becomes the current objective once the ones it
+depends on are complete — an objective that must not exist before another is a chained zone instead. Players start it from its F10 menu, or it starts
 with the mission. The AI refuses a task that names no zone of the mission.
 
 > 💬 *"Make an operation Thunder: CZ-Alpha first, then CZ-Bravo once Alpha has fallen."*
@@ -670,7 +671,8 @@ beacon of a helicopter zone, a distress signal. Embedding the same file twice re
 
 *Recipe + built · ◽* — Copies a picture (`.png` or `.jpg`) into the mission and adds it to a side's
 briefing (blue, red or neutral), after the pictures it already has — as the editor does when you pick a
-briefing picture.
+briefing picture. Avoid putting the same picture on both sides: a player whose side the briefing does
+not know (a dynamic slot, for instance) would see it twice.
 
 > 💬 *"Put map.jpg in the blue briefing."*
 

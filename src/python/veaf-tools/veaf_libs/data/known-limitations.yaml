@@ -789,3 +789,74 @@ limitations:
   workaround: |
     Leave `draw_zone` off for a mobile zone, or restart the zone (radio menu `qra.start` /
     `airwave.reset`) to draw it again where the unit now is.
+
+- id: radio-lua-action-stops-the-config
+  kind: tool
+  area: pipeline
+  title: "A `lua` action in `modules.RADIO.user_menus` stops the whole VEAF configuration at load"
+  fixed_in: "6.28.0"
+  symptom: |
+    The action was written as a bare reference (`demo.spawnCsar`), evaluated when `veaf-config.lua`
+    loads — before `mission-script.lua`, where the documentation tells you to define the function.
+    The load fails on `attempt to index global '<table>' (a nil value)` and nothing after that line of
+    the configuration runs. `validate` and the build pass: they only check that the name appears in
+    the mission's Lua. Found on the v6 demo mission, 2026-10-05.
+  workaround: |
+    Build the menu in your own Lua (`veafRadio` in `mission-script.lua`) rather than with an
+    `action: lua` entry, or define the function in a script loaded before `veaf-config.lua`.
+  cost: |
+    No combat zone, QRA, asset or IADS: every module initialised after the radio menu was lost.
+
+- id: ctld-config-end-of-line-comment
+  kind: tool
+  area: pipeline
+  title: "An end-of-line comment in `ctld-config.yaml` becomes part of the value CTLD reads"
+  fixed_in: "6.28.0"
+  symptom: |
+    CTLD reads its configuration with its own YAML reader, which keeps `# …` after a value:
+    `jtacLaserCodeMax: 1686   # note` becomes the string `"1686   # note"`, and CTLD's JTAC init fails on
+    `'for' limit must be a number`. Standard YAML — and so `validate` and the build — read `1686`.
+    Seen on the v6 demo mission, 2026-10-05. The same build could also embed the **previous** build's
+    configuration: a stale `src/scripts/CTLD_userConfig.lua` won over the one just generated.
+  workaround: |
+    Put every comment of `ctld-config.yaml` on its own line, and build twice after editing the file.
+  cost: |
+    Up to 6.27, one module's init error also stopped every module after it: the demo mission was left
+    with no combat zone, QRA, asset or IADS.
+
+- id: build-exits-1-with-a-null-stdin
+  kind: tool
+  area: pipeline
+  title: "`mission build … > /dev/null` from Git Bash writes the `.miz` and exits 1"
+  fixed_in: "6.28.0"
+  symptom: |
+    Windows answers `isatty()` true for `NUL`, so the launch passed for a double-click and the closing
+    « Press Enter » pause raised `EOFError`, replacing the command's exit code. A script testing the
+    code read a failed build. Measured on the v6 demo mission folder, 2026-10-05.
+  workaround: |
+    Set `VEAF_UPDATER_NO_PAUSE=1`, or redirect the output to a file rather than to `/dev/null`.
+
+- id: cargoships-spawn-nothing-at-sea
+  kind: tool
+  area: runtime
+  title: "`-cargoships`, `-escortedcargoships` and `-combatships` spawn nothing at sea, silently"
+  fixed_in: "6.28.0"
+  symptom: |
+    The group's centre was searched on land, so a ship group found no point at sea and no group was
+    created; the only trace was an INFO line, and nothing on screen from a combat zone's command.
+    Measured in DCS on the v6 demo mission, 2026-10-05.
+  workaround: |
+    Place the ships in the Mission Editor (in a combat zone, as native groups of the zone).
+
+- id: operation-has-no-activation-command
+  kind: tool
+  area: runtime
+  title: "A combat operation's radio menu has no activate / deactivate command"
+  fixed_in: "6.28.0"
+  symptom: |
+    The commands were commented out: an operation not `active_at_start` could only be started by
+    script (`veafCombatZone.ActivateZone("<name>")`) or the `-zonestart` marker command. Seen on the
+    v6 demo mission, 2026-10-05.
+  workaround: |
+    `active_at_start: true`, the `-zonestart` marker command, or a menu of your own calling
+    `veafCombatZone.ActivateZone`.

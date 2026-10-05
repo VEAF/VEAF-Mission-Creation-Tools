@@ -138,8 +138,9 @@ def add_combat_operation(
 ) -> dict[str, Any]:
     """Declare a VEAF combat operation in a mission folder's ``mission.yaml``.
 
-    An operation groups combat zones the mission already declares: its tasks are activated in turn,
-    each once its dependencies are complete. Its ``zone_name`` is a label, not a trigger zone, so
+    An operation groups combat zones the mission already declares. Activating it spawns all of them at
+    once; a task's dependencies only decide when it becomes the current objective (known limitation
+    ``operation-spawns-all-its-zones-at-once``). Its ``zone_name`` is a label, not a trigger zone, so
     nothing is written to ``src/mission/``. The demo mission had to write one by hand
     (FIX-DEMO-MISSION-FINDINGS ticket 07).
 

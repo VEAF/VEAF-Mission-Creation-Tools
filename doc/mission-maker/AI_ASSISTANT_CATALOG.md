@@ -288,8 +288,10 @@ nulle part.
 
 ### Créer une opération (zones enchaînées) {#create-operation}
 
-*Recette (dossier) · ◽* — Regroupe des **combat zones déjà créées** en une opération : ses tâches
-s'activent dans l'ordre, chacune quand celles dont elle dépend sont terminées. Les joueurs la lancent
+*Recette (dossier) · ◽* — Regroupe des **combat zones déjà créées** en une opération : l'activer fait
+apparaître **toutes** ses zones d'un coup, et chaque tâche devient l'objectif en cours quand celles dont
+elle dépend sont terminées — un objectif qui ne doit pas exister avant un autre est plutôt une zone
+chaînée. Les joueurs la lancent
 depuis son menu F10, ou elle démarre seule avec la mission. L'IA refuse une tâche qui ne nomme pas une
 zone de la mission.
 
@@ -692,7 +694,8 @@ deux fois le même fichier réutilise le premier.
 
 *Recette + construite · ◽* — Copie une image (`.png` ou `.jpg`) dans la mission et l'ajoute au
 briefing d'un camp (bleu, rouge ou neutre), à la suite des images qu'il a déjà — comme l'éditeur quand
-tu choisis une image de briefing.
+tu choisis une image de briefing. Évite de mettre la même image aux deux camps : un joueur dont le
+camp n'est pas connu du briefing (slot dynamique, par exemple) la verrait deux fois.
 
 > 💬 *« Mets carte.jpg dans le briefing bleu. »*
 

@@ -74,6 +74,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `closed_once_active: true` sends away, once the zone runs, any human who was not there at activation or who comes back in the slot of an aircraft shot down: warned, then flak, then destroyed, on the `max_seconds_outside_players` delay, which `mission.yaml` can now set.
 - **A QRA's stock of aircraft and its resupply are declared in `mission.yaml`** (FEAT-AIRWAVES-QRA-MERGE).
   The `logistics:` block of a QRA definition — `groups_available`, `max_ready`, `resupply_delay`, `resupply_amount`, `max_resupplies`, `resupply_below` — sets what only hand-written Lua could set before; `validate` reports a key it does not know.
+- **MCP: combat operations, briefing pictures, road waypoints and group positions** (FIX-DEMO-MISSION-FINDINGS).
+  `add_combat_operation` declares an operation over zones the mission already has, and refuses a task naming a zone it does not.
+  `set_briefing_picture` adds an image to a side's briefing: the file, its `mapResource` key and the `pictureFileName` entry in one call.
+  `edit_route` takes `road: true|false` on a ground group's waypoint (`On Road` / `Off Road`), and `describe_map` gives each group its position and number of units.
+- **The documentation points to the v6 demo mission** (FIX-DEMO-MISSION-FINDINGS).
+  [VEAF-Demo-Mission-v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) shows every feature in game with a guided tour, and is the check run before each release; each module page says which step shows it.
+  The mission maker guide no longer tells you to fork the old demo to start: `mission prepare` does that.
 
 ### Fixed
 
@@ -88,6 +95,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   They were handed no side at all, which a command naming no country turns into red: red enemies for red players.
 - **Stopping an air-wave zone erases its drawing from the map.**
   The reset that runs first forgot the drawing, so it stayed on the F10 map after every stop.
+- **A `lua` radio-menu action no longer stops the whole VEAF configuration** (FIX-DEMO-MISSION-FINDINGS).
+  It was evaluated when `veaf-config.lua` loads, before `mission-script.lua` defines the function, and everything after it in the configuration never ran; the function is now looked up on click.
+- **One module's initialisation error no longer takes the others down** (FIX-DEMO-MISSION-FINDINGS).
+  Each module starts in its own protected block: a failure is logged as `<MODULE> init failed: …` and the next module starts.
+- **An end-of-line comment in `ctld-config.yaml` no longer breaks CTLD, and the `.miz` carries the configuration of the build that made it** (FIX-DEMO-MISSION-FINDINGS).
+  CTLD's own reader kept the comment as part of the value; the copy handed to CTLD is now stripped of them. A stale `src/scripts/CTLD_userConfig.lua` could also win over the one just generated.
+- **`mission build` keeps its exit code when its output goes to `/dev/null`** (FIX-DEMO-MISSION-FINDINGS).
+  The closing pause took that launch for a double-click and failed on a closed input, turning a successful build into exit code 1.
+- **`-cargoships`, `-escortedcargoships` and `-combatships` spawn at sea** (FIX-DEMO-MISSION-FINDINGS).
+  A ship group's position was searched on land; a spawn that finds no position is now logged as a warning.
+- **A combat operation can be activated and deactivated from its own radio menu** (FIX-DEMO-MISSION-FINDINGS).
+  The commands were commented out; they follow a combat zone's rules (secured, except in training).
+- **Clear-ground placement sizes a `#veafInterpreter` marker from its command** (FIX-DEMO-MISSION-FINDINGS).
+  An SA-11 site carried by one unit was given the room of a single vehicle.
+- **Small truths** (FIX-DEMO-MISSION-FINDINGS): the docs spawn a `T-80UD` (a `T-80` matches no DCS type), the `waypoints.yaml` template says the build adds a `BULLSEYE` waypoint, and the carrier's « start air operations » commands are translated.
 
 ## [6.27.0] — 2026-10-03
 

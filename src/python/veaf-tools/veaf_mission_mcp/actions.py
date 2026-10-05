@@ -1644,7 +1644,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "ADD an image (.png or .jpg) to a coalition's BRIEFING: copied into l10n/DEFAULT, declared "
                 "in mapResource, and its key appended to the mission's pictureFileNameB / R / N -- the "
                 "three pieces DCS keeps apart. The side's existing pictures are kept; adding the same "
-                "file again lists it once. Target a FOLDER (durable) or a .miz; backed up."
+                "file again lists it once. Do not put one picture on both sides to 'show it to everyone': "
+                "a player whose side the briefing does not know (a Client or dynamic slot) sees the red "
+                "list then the blue one, so it twice. Target a FOLDER (durable) or a .miz; backed up."
             ),
             parameters_schema={
                 "type": "object",
@@ -1811,8 +1813,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "Declare a VEAF combat OPERATION in a mission FOLDER's mission.yaml (no build): a "
                 "modules.COMBATZONE.combat_zones[] entry of type 'operation' grouping combat zones the "
-                "mission ALREADY declares (create_combat_zone first). Its tasks are activated in order, "
-                "each once its dependencies are complete; players activate the operation from its F10 "
+                "mission ALREADY declares (create_combat_zone first). Activating the operation spawns ALL its "
+                "zones at once; a task's dependencies only decide when it becomes the current objective "
+                "(an objective that must not exist before another is a chained_zones of that zone "
+                "instead). Players activate the operation from its F10 "
                 "menu, or it starts by itself with active_at_start. The operation's name is a label, "
                 "not a trigger zone: nothing is written to src/mission. Refuses a task or dependency "
                 "naming an undeclared zone (or another operation) -- it would resolve to nothing at "

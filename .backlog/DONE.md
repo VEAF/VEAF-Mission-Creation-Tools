@@ -183,3 +183,7 @@ Not a defect: measured in game, an A-50 enrolled by the helper detects by radar 
 ### [FEAT-MISSION-RECIPES](FEAT-MISSION-RECIPES/PRD.md) · 🚫
 
 Not needed for an always-current demo: the versioned mission folder is already the replayable source, content is added through the MCP, and CI can build and run it as is. A new demo mission replaces the idea.
+
+### [FEAT-PORTABLE-PREFABS](FEAT-PORTABLE-PREFABS/PRD.md) · 🚫
+
+Bundling mission content to reuse elsewhere: nobody asked for it, its selection front end lives in the Mission Editor that ADR 0017 rules out, and the MCP composites already place the same content.

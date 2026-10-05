@@ -127,6 +127,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafSecurity.lua",
     "veafShortcuts.lua",
     "veafAirbases.lua",
+    "veafReactiveZone.lua",
     "veafAirWaves.lua",
     "veafAssets.lua",
     "veafAssist.lua",

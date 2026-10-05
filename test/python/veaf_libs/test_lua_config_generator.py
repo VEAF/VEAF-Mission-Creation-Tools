@@ -962,6 +962,10 @@ def _fully_populated_airwave_zone() -> dict:
         "waves": [{"groups": "Wave1", "delay": 10, "number": "2", "bias": 1}],
         "minimum_life_percent": 50,
         "reset_when_dying": True,
+        "follow_unit": "CVN-74",
+        "links": ["Maykop"],
+        "closed_once_active": True,
+        "max_seconds_outside_players": 40,
         "start": True,
     }
 

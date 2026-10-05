@@ -146,7 +146,7 @@ def _unknown_qra_keys(module: str, cfg: dict) -> list[str]:
     Returns:
         One warning per unknown key, naming the definition.
     """
-    from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
+    from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS, QRA_LOGISTICS_SETTERS
 
     warnings: list[str] = []
     for definition in cfg.get("definitions") or []:
@@ -156,6 +156,27 @@ def _unknown_qra_keys(module: str, cfg: dict) -> list[str]:
             if qra_key not in QRA_DEFINITION_KEYS:
                 warnings.append(
                     t("yaml.semantic.unknown_qra_key", module=module, qra=definition.get("name"), setting=qra_key)
+                )
+        logistics = definition.get("logistics")
+        if logistics is not None and not isinstance(logistics, dict):
+            # the build ignores it: say so rather than let a stock silently stay unlimited
+            warnings.append(
+                t(
+                    "yaml.semantic.unknown_qra_key",
+                    module=module,
+                    qra=definition.get("name"),
+                    setting=f"logistics: {logistics!r}",
+                )
+            )
+        for logistics_key in logistics if isinstance(logistics, dict) else {}:
+            if logistics_key not in QRA_LOGISTICS_SETTERS:
+                warnings.append(
+                    t(
+                        "yaml.semantic.unknown_qra_key",
+                        module=module,
+                        qra=definition.get("name"),
+                        setting=f"logistics.{logistics_key}",
+                    )
                 )
     return warnings
 

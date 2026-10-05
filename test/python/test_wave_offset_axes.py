@@ -1,7 +1,7 @@
 """The wave/QRA spawn offset must put latitude on the northing and longitude on the easting.
 
-`veafAirWaves` and `veafQraCore` each apply `[latDelta,lonDelta]` in **two** branches — the VEAF
-command one and the DCS group one — so the same arithmetic is written four times. Until 2026-09-01
+`veafAirWaves` and `veafQraCore` each applied `[latDelta,lonDelta]` in **two** branches — the VEAF
+command one and the DCS group one — so the same arithmetic was written four times. Until 2026-09-01
 all four read `x = zoneCenter.x - lonDelta, z = zoneCenter.z + latDelta`: the first bracket number
 went east and the second went south, neither where its name says.
 
@@ -10,6 +10,9 @@ path a mission actually takes. The DCS-group branch only reaches its offset when
 a group's units — a degraded path that is awkward to drive and easy to leave behind, which is exactly
 how a swap survives in half the call sites. This test covers all four at once by refusing the shape
 itself, so a repair that misses one is caught wherever it sits.
+
+Since FEAT-AIRWAVES-QRA-MERGE the four are two, in `veafReactiveZone.deployGroups`, which both modules
+call; the second test below also refuses a twin growing back in either of them.
 
 Source-level, deliberately: the defect is a pairing of names to axes, and that pairing is visible in
 the text. See `docs/agents/dcs-coordinates.md` for why `x` is the northing and `z` the easting.
@@ -22,7 +25,9 @@ import unittest
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[2] / "src" / "scripts" / "veaf"
-MODULES = ("veafAirWaves.lua", "veafQraCore.lua")
+MODULES = ("veafReactiveZone.lua",)
+#: The modules that used to carry their own copy, and must not again.
+FORMER_TWINS = ("veafAirWaves.lua", "veafQraCore.lua")
 
 # An assignment of `x` or `z` built from one of the two deltas, e.g.
 #   x = zoneCenter.x - lonDelta,
@@ -80,6 +85,16 @@ class TestTheOffsetLandsOnTheRightAxis(unittest.TestCase):
                 found = [m for line in text.splitlines() for m in ASSIGNMENT.finditer(line.split("--", 1)[0])]
 
                 self.assertEqual(len(found), 4, f"{module} should apply both deltas in both of its branches")
+
+    def test_the_former_twins_spawn_through_the_shared_base(self) -> None:
+        for module in FORMER_TWINS:
+            with self.subTest(module=module):
+                text = (SCRIPTS / module).read_text(encoding="utf-8")
+                found = [m for line in text.splitlines() for m in ASSIGNMENT.finditer(line.split("--", 1)[0])]
+
+                self.assertEqual(
+                    found, [], f"{module} applies an offset of its own again: spawn through veafReactiveZone"
+                )
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ dofile(src .. "/dcsUnits.lua")
 dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafGrass.lua")
 dofile(src .. "/veafSpawn.lua")
+dofile(src .. "/veafReactiveZone.lua")
 dofile(src .. "/veafAirWaves.lua")
 
 -- ---------------------------------------------------------------------------
@@ -1361,7 +1362,8 @@ function TestAirWavesZoneDefense:test_a_cap_command_is_re_tasked_on_the_wave_zon
     -- what `-cap` leaves behind: its role, and a running watchdog on its own zone
     veafAircraftSpawn.groupRoles[capName] = "cap"
     veafSpawn.capWatchdogZones[capName] = { x = 0, y = 0, radius = 60 * 1852 }
-    table.insert(spawnedGroups, capName)
+    -- the one insertion point of the real spawn, which notifies the caller's hook (#66, #1078)
+    veaf.collectSpawnedGroup(spawnedGroups, capName)
   end
   local z = AirWaveZone:new()
   z.currentWaveIndex = 0
@@ -1379,6 +1381,436 @@ function TestAirWavesZoneDefense:test_a_cap_command_is_re_tasked_on_the_wave_zon
   luaunit.assertEquals(veafAircraftSpawn.getRole(capName), "zone_defense")
   luaunit.assertEquals(veafSpawn.capWatchdogZones[capName], { x = WAVE_ZD_CENTRE.x, y = WAVE_ZD_CENTRE.z, radius = 40000 })
   luaunit.assertEquals(#self.scheduled, 0, "the running watchdog is re-aimed, no second one")
+end
+
+-- ============================================================================
+-- FEAT-AIRWAVES-QRA-MERGE — what the air-wave zones gained on the shared base
+-- ============================================================================
+
+--- A silent zone with red players and a centre, its check() rescheduling into the void.
+local function mergeZone()
+  local z = AirWaveZone:new()
+  z.name = "MergeZone"
+  z:setSilent(true)
+  z:addPlayerCoalition(coalition.side.RED)
+  z:setZoneCenter({ x = 0, y = 0, z = 0 })
+  z:setZoneRadius(10000)
+  return z
+end
+
+local function aliveGroup(name, alive, onDestroy)
+  dcs_mocks.addGroup(name, {
+    getUnits = function()
+      return {
+        {
+          isExist = function()
+            return true
+          end,
+          getLife = function()
+            return alive() and 10 or 0
+          end,
+          getName = function()
+            return name .. "-1"
+          end,
+          inAir = function()
+            return true
+          end,
+          -- an AI unit: the dynamic-slot sweep must not take it for a player
+          getPlayerName = function()
+            return nil
+          end,
+        },
+      }
+    end,
+    destroy = onDestroy,
+  })
+end
+
+-- ---------------------------------------------------------------------------
+-- The side the waves spawn for
+-- ---------------------------------------------------------------------------
+TestAirWavesSide = {}
+
+function TestAirWavesSide:setUp()
+  dcs_mocks.reset()
+  self._savedInterpreter = veafInterpreter
+  self.executed = {}
+  local executed = self.executed
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function(command, _, side, _, _)
+    table.insert(executed, { command = command, side = side })
+  end
+end
+
+function TestAirWavesSide:tearDown()
+  veafInterpreter = self._savedInterpreter
+end
+
+function TestAirWavesSide:test_the_waves_fight_for_the_side_opposite_the_players()
+  luaunit.assertEquals(mergeZone():getCoalition(), coalition.side.BLUE)
+end
+
+function TestAirWavesSide:test_a_side_set_explicitly_wins()
+  luaunit.assertEquals(mergeZone():setCoalition(coalition.side.RED):getCoalition(), coalition.side.RED)
+end
+
+function TestAirWavesSide:test_a_command_wave_is_handed_the_waves_side_not_nil()
+  -- nil became red in veaf.getCountryForCoalition: red enemies for red players
+  local z = mergeZone():addWave({ groups = { "-sa2" } })
+  z:deployWaves()
+  luaunit.assertEquals(#self.executed, 1)
+  luaunit.assertEquals(self.executed[1].side, coalition.side.BLUE)
+end
+
+function TestAirWavesSide:test_friendly_and_support_groups_spawn_with_the_wave_each_for_its_side()
+  local z = mergeZone():addWave({ groups = { "-mig29" }, friendlyGroups = { "-tanker" }, supportGroups = "-awacs" })
+  z:deployWaves()
+  local sides = {}
+  for _, call in ipairs(self.executed) do
+    sides[call.command] = call.side
+  end
+  luaunit.assertEquals(sides["-mig29"], coalition.side.BLUE, "the enemies")
+  luaunit.assertEquals(sides["-tanker"], coalition.side.RED, "the friendlies fly for the players")
+  luaunit.assertEquals(sides["-awacs"], coalition.side.BLUE, "the support flies for the waves")
+end
+
+-- ---------------------------------------------------------------------------
+-- Friendly groups (#182) and support groups (#176)
+-- ---------------------------------------------------------------------------
+TestAirWavesFriendlyAndSupport = {}
+
+function TestAirWavesFriendlyAndSupport:setUp()
+  dcs_mocks.reset()
+end
+
+function TestAirWavesFriendlyAndSupport:test_the_end_of_a_wave_despawns_its_friendly_and_support_groups()
+  local destroyed = {}
+  aliveGroup("Friendly", function()
+    return true
+  end, function()
+    table.insert(destroyed, "Friendly")
+  end)
+  aliveGroup("Support", function()
+    return true
+  end, function()
+    table.insert(destroyed, "Support")
+  end)
+  local z = mergeZone()
+  z.friendlyGroupsNames = { "Friendly" }
+  z.supportGroupsNames = { "Support" }
+  AirWaveZone._onExitActive(z)
+  luaunit.assertEquals(destroyed, { "Friendly", "Support" })
+  luaunit.assertEquals(z.friendlyGroupsNames, {})
+  luaunit.assertEquals(z.supportGroupsNames, {})
+end
+
+function TestAirWavesFriendlyAndSupport:test_a_live_support_group_does_not_hold_the_wave_open()
+  aliveGroup("Support", function()
+    return true
+  end)
+  local z = mergeZone()
+  z.spawnedGroupsNames = {}
+  z.supportGroupsNames = { "Support" }
+  luaunit.assertTrue(AirWaveZone._canExitActive(z))
+end
+
+function TestAirWavesFriendlyAndSupport:test_the_zone_is_lost_when_every_friendly_is_dead()
+  local friendlyAlive = true
+  aliveGroup("Friendly", function()
+    return friendlyAlive
+  end)
+  local z = mergeZone():setResetWhenDying(false):disableOutsideOfZoneIA()
+  local lost = 0
+  z:setOnLost(function()
+    lost = lost + 1
+  end)
+  -- a live enemy keeps the wave going: a wave that ends takes its friendlies with it
+  aliveGroup("Enemy", function()
+    return true
+  end)
+  z:_setState(veafAirWaves.STATUS_ACTIVE)
+  z.spawnedGroupsNames = { "Enemy" }
+  z.friendlyGroupsNames = { "Friendly" }
+  z:check()
+  luaunit.assertEquals(lost, 0, "alive: nothing lost")
+  friendlyAlive = false
+  z:check()
+  luaunit.assertEquals(lost, 1, "every friendly dead: the zone is lost")
+  z:check()
+  luaunit.assertEquals(lost, 1, "and it is said once")
+end
+
+function TestAirWavesFriendlyAndSupport:test_the_loss_says_so_to_the_players()
+  aliveGroup("Friendly", function()
+    return false
+  end)
+  local z = mergeZone():setResetWhenDying(false):setSilent(false)
+  z:_setState(veafAirWaves.STATUS_ACTIVE)
+  z.friendlyGroupsNames = { "Friendly" }
+  z:check()
+  local expected = veaf.t(veafAirWaves.DEFAULT_MESSAGE_LOST_FRIENDLIES, "MergeZone")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(expected), 1)
+end
+
+-- ---------------------------------------------------------------------------
+-- A closed zone (#179)
+-- ---------------------------------------------------------------------------
+TestAirWavesClosedZone = {}
+
+local function pilot(name)
+  local destroyed = false
+  return {
+    getName = function()
+      return name
+    end,
+    getPoint = function()
+      return { x = 0, y = 3000, z = 0 }
+    end,
+    getVelocity = function()
+      return { x = 200, y = 0, z = 0 }
+    end,
+    destroy = function()
+      destroyed = true
+    end,
+    wasDestroyed = function()
+      return destroyed
+    end,
+  }
+end
+
+function TestAirWavesClosedZone:setUp()
+  dcs_mocks.reset()
+  self._savedBomb = veafSpawn.spawnBomb
+  self.bombs = 0
+  veafSpawn.spawnBomb = function()
+    self.bombs = self.bombs + 1
+  end
+end
+
+function TestAirWavesClosedZone:tearDown()
+  veafSpawn.spawnBomb = self._savedBomb
+end
+
+function TestAirWavesClosedZone:_zone()
+  local z = mergeZone():setClosedOnceActive(true)
+  self.warned = {}
+  local warned = self.warned
+  z.signalClosed = function(_, unitName)
+    table.insert(warned, unitName)
+  end
+  z.playerUnitsNames = { "Player" }
+  return z
+end
+
+function TestAirWavesClosedZone:test_a_player_from_activation_is_left_alone_an_intruder_is_warned()
+  local z = self:_zone()
+  z:_handleIntruders({ pilot("Player"), pilot("Latecomer") })
+  luaunit.assertEquals(self.warned, { "Latecomer" })
+  luaunit.assertEquals(self.bombs, 0, "warned first, not shot at")
+end
+
+function TestAirWavesClosedZone:test_an_intruder_who_stays_is_shot_at_then_destroyed()
+  local z = self:_zone()
+  local intruder = pilot("Latecomer")
+  z.timestampsIntruders["Latecomer"] = timer.getTime() - 45 -- past 30 s: flak
+  z:_handleIntruders({ intruder })
+  luaunit.assertEquals(self.bombs, 3)
+  luaunit.assertFalse(intruder.wasDestroyed())
+  z.timestampsIntruders["Latecomer"] = timer.getTime() - 61 -- past twice 30 s: destroyed
+  z:_handleIntruders({ intruder })
+  luaunit.assertTrue(intruder.wasDestroyed())
+end
+
+function TestAirWavesClosedZone:test_the_zone_delay_drives_the_escalation()
+  local z = self:_zone():setMaxSecondsOutsideOfZonePlayers(100)
+  local intruder = pilot("Latecomer")
+  z.timestampsIntruders["Latecomer"] = timer.getTime() - 45
+  z:_handleIntruders({ intruder })
+  luaunit.assertEquals(self.bombs, 0, "45 s is within a 100 s allowance")
+end
+
+function TestAirWavesClosedZone:test_a_dead_player_flying_the_same_slot_again_is_an_intruder()
+  local z = self:_zone()
+  z.deadPlayerUnitsNames["Player"] = true
+  z:_handleIntruders({ pilot("Player") })
+  luaunit.assertEquals(self.warned, { "Player" })
+end
+
+function TestAirWavesClosedZone:test_an_intruder_who_leaves_starts_from_zero()
+  local z = self:_zone()
+  z.timestampsIntruders["Latecomer"] = timer.getTime() - 45
+  z:_handleIntruders({})
+  luaunit.assertNil(z.timestampsIntruders["Latecomer"])
+end
+
+function TestAirWavesClosedZone:test_check_records_a_player_whose_aircraft_died()
+  local z = self:_zone():setResetWhenDying(false)
+  z:_setState(veafAirWaves.STATUS_ACTIVE)
+  -- "Player" answers to nothing: dead
+  z:check()
+  luaunit.assertTrue(z.deadPlayerUnitsNames["Player"])
+end
+
+function TestAirWavesClosedZone:test_an_open_zone_lets_anybody_in()
+  local z = self:_zone():setClosedOnceActive(false)
+  local called = false
+  z._handleIntruders = function()
+    called = true
+  end
+  z.playerUnitsNames = {}
+  z:_setState(veafAirWaves.STATUS_ACTIVE)
+  z:check()
+  luaunit.assertFalse(called)
+end
+
+function TestAirWavesClosedZone:test_a_zone_waiting_for_its_players_is_not_closed_yet()
+  local z = self:_zone()
+  luaunit.assertFalse(z:_setState(veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS):_isEngaged())
+  luaunit.assertTrue(z:_setState(veafAirWaves.STATUS_ACTIVE):_isEngaged())
+  luaunit.assertFalse(z:_setState(veafAirWaves.STATUS_OVER):_isEngaged())
+end
+
+-- ---------------------------------------------------------------------------
+-- Links (#183)
+-- ---------------------------------------------------------------------------
+TestAirWavesLinks = {}
+
+function TestAirWavesLinks:setUp()
+  dcs_mocks.reset()
+  self._savedCheckLinks = veafReactiveZone.checkLinks
+  self.linksState = veafReactiveZone.LINKS_OK
+  veafReactiveZone.checkLinks = function(_, side, _, _)
+    self.askedSide = side
+    return self.linksState, "Maykop"
+  end
+end
+
+function TestAirWavesLinks:tearDown()
+  veafReactiveZone.checkLinks = self._savedCheckLinks
+end
+
+function TestAirWavesLinks:test_the_airbase_is_held_by_the_waves_side()
+  local z = mergeZone():addLink("Maykop")
+  z:start()
+  luaunit.assertEquals(self.askedSide, coalition.side.BLUE)
+end
+
+function TestAirWavesLinks:test_a_paused_link_clears_the_wave_and_a_retaken_one_starts_afresh()
+  local destroyed = false
+  aliveGroup("Enemy", function()
+    return true
+  end, function()
+    destroyed = true
+  end)
+  local z = mergeZone():addLink("Maykop")
+  z:start()
+  z:_setState(veafAirWaves.STATUS_ACTIVE)
+  z.spawnedGroupsNames = { "Enemy" }
+  self.linksState = veafReactiveZone.LINKS_PAUSED
+  z:check()
+  luaunit.assertEquals(z.state, veafAirWaves.STATUS_PAUSED)
+  luaunit.assertTrue(destroyed, "the wave goes")
+  z:check()
+  luaunit.assertEquals(z.state, veafAirWaves.STATUS_PAUSED, "and the zone waits")
+  self.linksState = veafReactiveZone.LINKS_OK
+  z:check()
+  luaunit.assertEquals(z.state, veafAirWaves.STATUS_READY, "retaken: ready for the next players")
+end
+
+function TestAirWavesLinks:test_a_lost_link_stops_the_zone()
+  local z = mergeZone():addLink("Kuznetsov")
+  z:start()
+  self.linksState = veafReactiveZone.LINKS_LOST
+  z:check()
+  luaunit.assertEquals(z.state, veafAirWaves.STATUS_STOP)
+end
+
+function TestAirWavesLinks:test_a_zone_without_links_never_asks()
+  self.askedSide = nil
+  mergeZone():start()
+  luaunit.assertNil(self.askedSide)
+end
+
+-- ---------------------------------------------------------------------------
+-- The drawing goes with the zone
+-- ---------------------------------------------------------------------------
+TestAirWavesDrawing = {}
+
+function TestAirWavesDrawing:test_stop_erases_the_drawing()
+  -- reset() used to forget the drawing before stop() could erase it
+  local z = mergeZone()
+  local erased = false
+  z.zoneDrawing = {
+    erase = function()
+      erased = true
+    end,
+  }
+  z:stop()
+  luaunit.assertTrue(erased)
+  luaunit.assertNil(z.zoneDrawing)
+end
+
+-- ---------------------------------------------------------------------------
+-- #1078: a wave whose command spawns later is not dead before it arrives
+-- ---------------------------------------------------------------------------
+TestAirWavesDeferredSpawn = {}
+
+function TestAirWavesDeferredSpawn:setUp()
+  dcs_mocks.reset()
+  self._savedInterpreter = veafInterpreter
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function()
+    return true -- accepted, spawned later
+  end
+end
+
+function TestAirWavesDeferredSpawn:tearDown()
+  veafInterpreter = self._savedInterpreter
+end
+
+function TestAirWavesDeferredSpawn:test_the_wave_waits_for_its_deferred_group()
+  local z = mergeZone():addWave({ groups = { "-mig29, delayed 30" } })
+  z:deployWaves()
+  luaunit.assertEquals(z.spawnedGroupsNames, {})
+  luaunit.assertFalse(AirWaveZone._canExitActive(z), "an empty list is not a dead wave while its group is coming")
+end
+
+-- ---------------------------------------------------------------------------
+-- Review of the lot
+-- ---------------------------------------------------------------------------
+TestAirWavesReview = {}
+
+function TestAirWavesReview:setUp()
+  dcs_mocks.reset()
+  self._savedInterpreter = veafInterpreter
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function()
+    return true
+  end
+  self._savedCheckLinks = veafReactiveZone.checkLinks
+end
+
+function TestAirWavesReview:tearDown()
+  veafInterpreter = self._savedInterpreter
+  veafReactiveZone.checkLinks = self._savedCheckLinks
+end
+
+function TestAirWavesReview:test_a_deferred_wave_keeps_its_own_delay()
+  local z = mergeZone():setDelayBetweenWaves(300)
+  z:addWave({ groups = { "-mig29, delayed 30" }, delay = 45 })
+  z:addWave({ groups = { "-su27" } })
+  AirWaveZone._onEnterActive(z)
+  luaunit.assertEquals(z.delayBeforeNextWave, 45, "its own delay, not the zone's 300 s")
+end
+
+function TestAirWavesReview:test_a_won_zone_stays_won_when_its_airbase_is_lost()
+  veafReactiveZone.checkLinks = function()
+    return veafReactiveZone.LINKS_PAUSED, "Maykop"
+  end
+  local z = mergeZone():addLink("Maykop")
+  z:_setState(veafAirWaves.STATUS_OVER)
+  z:check()
+  luaunit.assertEquals(z.state, veafAirWaves.STATUS_OVER)
 end
 
 os.exit(luaunit.LuaUnit.run())

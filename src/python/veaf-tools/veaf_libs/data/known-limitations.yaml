@@ -777,3 +777,15 @@ limitations:
     Seat an aircraft only on the stand types its airframe fits: the tools offer 68, 72 and 104
     (`AIRCRAFT_STAND_TYPES`) and leave 100 out. After spawning on a named stand, read the unit's
     position back rather than trusting the stand you asked for.
+
+- id: mobile-zone-drawing-stays-put
+  kind: tool
+  area: runtime
+  title: "The map drawing of a QRA or air-wave zone that follows a unit does not move with it"
+  symptom: |
+    A zone declared with `follow_unit:`, or a trigger zone linked to a unit in the Mission Editor,
+    follows its unit for detection and spawning. Its `draw_zone` outline is drawn once, where the
+    unit stood when the zone started, and stays there while the carrier sails on.
+  workaround: |
+    Leave `draw_zone` off for a mobile zone, or restart the zone (radio menu `qra.start` /
+    `airwave.reset`) to draw it again where the unit now is.

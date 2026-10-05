@@ -48,6 +48,7 @@ local _moduleOrder = {
   "veafSkynetIadsHelper",
   "veafSkynetIadsMonitor",
   "veafSanctuary",
+  "veafReactiveZone",
   "veafQraManager",
   "veafAirWaves",
   "veafAssist",

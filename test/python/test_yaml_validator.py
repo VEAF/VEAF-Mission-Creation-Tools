@@ -254,6 +254,16 @@ class TestUnknownQraKey(unittest.TestCase):
         self.assertIn("respawn_radius", warnings[0])
         self.assertIn("QRA-Nord", warnings[0])
 
+    def test_an_unknown_logistics_key_is_reported(self) -> None:
+        warnings = self._warnings({"name": "QRA-Nord", "logistics": {"groups_available": 4, "stock": 2}})
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("stock", warnings[0])
+
+    def test_a_logistics_that_is_not_a_mapping_is_reported(self) -> None:
+        warnings = self._warnings({"name": "QRA-Nord", "logistics": 4})
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("logistics", warnings[0])
+
     def test_every_known_key_is_silent(self) -> None:
         from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
 

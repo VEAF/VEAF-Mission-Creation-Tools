@@ -5406,6 +5406,8 @@ function veaf._discoverTriggerZones()
         ["x"] = zoneData.x,
         ["name"] = zoneData.name,
         ["type"] = zoneData.type,
+        -- the editor id of the unit the zone is linked to, if any: a zone that follows a unit (#186)
+        ["linkUnit"] = zoneData.linkUnit,
       }
       if zoneData.type == 2 then
         veaf.triggerZones[zoneData.name].verticies = zoneData.verticies

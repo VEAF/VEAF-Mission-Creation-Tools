@@ -31,6 +31,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   When the day's allowance is spent, the question now goes to the next model in a chain — `gemini-2.5-flash`, then Gemma 4 — each with its own free allowance, still without billing.
   The "comes back tomorrow morning" message only shows once the whole chain is spent.
   A caller who reaches the assistant's own per-person daily limit now reads that, rather than "back in a minute".
+- **QRA and air-wave zones now stand on one shared base** (FEAT-AIRWAVES-QRA-MERGE).
+  The written comparison found two behaviours that are not one — a QRA defends its ground in an endless loop, an air-wave zone runs a game that ends — and the same plumbing written twice underneath: zone, altitude filter, group draw, spawn, drawing.
+  That plumbing is now `veafReactiveZone.lua`, which both call; their `mission.yaml` keys, builder methods and pilot messages are unchanged.
+  One behaviour moves: a QRA whose `airport_link` is a **ship** now stops when the ship is sunk, where it used to wait for ever for an airbase that could not come back.
 
 ### Added
 
@@ -62,6 +66,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Measured in game on an A-50: a KC-135 82 km away was in its detected list for nearly four minutes before DCS flagged it `RADAR`, and Skynet, which reads `RADAR` only, ignored it until then.
   `describe_known_limitations` now returns it, with the A-50's declared radar range (204 km).
   The investigation itself closes as not a defect: the A-50 enrolled by the helper does feed Skynet, and the three blind A-50s of the 2026-09-17 report orbited more than its 204 km from every Georgian base — consistent with an empty sky, though the lost log no longer allows proving it.
+- **A QRA or an air-wave zone can depend on more than an airfield, and follow a carrier** (FEAT-AIRWAVES-QRA-MERGE, #183, #186).
+  `links:` names the airbases, FARPs, ships, groups or statics a zone depends on: an airbase or FARP lost pauses it until it is retaken, as `airport_link` always did; a ship, group or static destroyed stops it for good.
+  `follow_unit:` makes the zone follow a unit, a carrier for instance, and a trigger zone linked to a unit in the Mission Editor now follows it too.
+- **Air-wave zones gain friendly groups to defend, support groups, and "dead is dead"** (FEAT-AIRWAVES-QRA-MERGE, #182, #176, #179).
+  A wave's `friendly_groups` spawn with it for the players' side, and the zone is lost when they are all dead; its `support_groups` spawn with it and count for nothing.
+  `closed_once_active: true` sends away, once the zone runs, any human who was not there at activation or who comes back in the slot of an aircraft shot down: warned, then flak, then destroyed, on the `max_seconds_outside_players` delay, which `mission.yaml` can now set.
+- **A QRA's stock of aircraft and its resupply are declared in `mission.yaml`** (FEAT-AIRWAVES-QRA-MERGE).
+  The `logistics:` block of a QRA definition — `groups_available`, `max_ready`, `resupply_delay`, `resupply_amount`, `max_resupplies`, `resupply_below` — sets what only hand-written Lua could set before; `validate` reports a key it does not know.
 
 ### Fixed
 
@@ -69,6 +81,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The scripts kept the role, the first-waypoint options and the full route of every aircraft group spawned with a role, and never let go of them.
   A `cap` or `zone_defense` group is now forgotten when the CAP watchdog stops watching it; a group flying any other role, at the next spawn with a role once DCS no longer knows it.
   Nothing changes in flight: the group names involved are never reused, so no later group could have inherited a stale role.
+- **A QRA or a wave whose command spawns later is no longer lost on the way** (#1078).
+  A command carrying `delayed` or `repeat` returns before it spawns, and both modules read its groups right after the call: the CAP guarded the wrong zone, the wave was called dead on the next tick, and nothing could ever destroy the group.
+  The groups are now collected as they appear, the zone waits for them (ten minutes at most), and one that arrives after its wave has ended is destroyed — the fix #66 gave combat zones.
+- **An air-wave zone's command waves spawn for the side opposite the players.**
+  They were handed no side at all, which a command naming no country turns into red: red enemies for red players.
+- **Stopping an air-wave zone erases its drawing from the map.**
+  The reset that runs first forgot the drawing, so it stayed on the F10 map after every stop.
 
 ## [6.27.0] — 2026-10-03
 

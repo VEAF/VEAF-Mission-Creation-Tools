@@ -101,10 +101,12 @@ def collect_declared_groups(mission_yaml: dict[str, Any]) -> list[tuple[str, str
     airwaves_cfg = _module_cfg(modules, "AIRWAVES")
     for zone in airwaves_cfg.get("airwave_zones") or []:
         for wave in (zone.get("waves") or []) if isinstance(zone, dict) else []:
-            groups = wave.get("groups") if isinstance(wave, dict) else None
-            # a single name or a list, as AirWaveZone:addWave takes them
-            names = [groups] if isinstance(groups, str) else list(groups or [])
-            refs.extend(("AIRWAVES", str(g)) for g in names if not is_veaf_command(str(g)))
+            # the wave's own groups, then its friendly (#182) and support (#176) ones
+            for key in ("groups", "friendly_groups", "support_groups"):
+                groups = wave.get(key) if isinstance(wave, dict) else None
+                # a single name or a list, as AirWaveZone:addWave takes them
+                names = [groups] if isinstance(groups, str) else list(groups or [])
+                refs.extend(("AIRWAVES", str(g)) for g in names if not is_veaf_command(str(g)))
 
     for cap in mission_yaml.get("cap_missions") or []:
         if isinstance(cap, dict) and (g := cap.get("group_name")):

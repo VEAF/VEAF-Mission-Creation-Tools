@@ -1208,6 +1208,42 @@ def _number_pair(value: object, key: str) -> tuple[float, float]:
     raise ValueError(t("lua_config.err.not_a_number_pair", setting=key, value=value))
 
 
+def _lua_groups(groups: str | list) -> str:
+    """A wave's groups as Lua: one name as a string, a list as a table.
+
+    Args:
+        groups: A group name or VEAF command, or a list of them.
+
+    Returns:
+        The Lua expression. A list through ``_lua_text`` became the one group ``"['a', 'b']"``.
+    """
+    if isinstance(groups, list):
+        return "{" + ", ".join(_lua_text(x) for x in groups) + "}"
+    return _lua_text(groups)
+
+
+def _emit_follow_unit_and_links(definition: dict, indent: str) -> list[str]:
+    """The setters shared by a QRA and an air-wave zone (FEAT-AIRWAVES-QRA-MERGE).
+
+    ``follow_unit`` makes the zone follow a unit, a carrier for instance (#186); ``links`` names the
+    airbases, ships, groups or statics it depends on (#183).
+
+    Args:
+        definition: The QRA definition or air-wave zone.
+        indent: The chain's indentation.
+
+    Returns:
+        The builder-chain lines.
+    """
+    lines: list[str] = []
+    if unit := definition.get("follow_unit"):
+        lines.append(f"{indent}    :setFollowUnit({_lua_text(unit)})")
+    links = definition.get("links") or []
+    for link in [links] if isinstance(links, str) else links:
+        lines.append(f"{indent}    :addLink({_lua_text(link)})")
+    return lines
+
+
 def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     """Emit an AirWaveZone:new():...:start() builder chain."""
     lines: list[str] = []
@@ -1226,6 +1262,7 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
         lines.append(f"{indent}    :setTriggerZone({_lua_text(tz)})")
     if zr := zone.get("zone_radius"):
         lines.append(f"{indent}    :setZoneRadius({zr})")
+    lines.extend(_emit_follow_unit_and_links(zone, indent))
     if "draw_zone" in zone:
         lines.append(f"{indent}    :setDrawZone({'true' if zone['draw_zone'] else 'false'})")
     if ro := zone.get("respawn_default_offset"):
@@ -1252,6 +1289,10 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
         lines.append(f"{indent}    :setMinimumAltitudeInFeet({min_alt})")
     if mso := zone.get("max_seconds_outside_ia"):
         lines.append(f"{indent}    :setMaxSecondsOutsideOfZoneIA({mso})")
+    if msp := zone.get("max_seconds_outside_players"):
+        lines.append(f"{indent}    :setMaxSecondsOutsideOfZonePlayers({msp})")
+    if zone.get("closed_once_active"):
+        lines.append(f"{indent}    :setClosedOnceActive(true)")
     # Map each YAML message key to a real AirWaveZone setter. The runtime has no
     # "all zones cleared" message, so message_end_all has no equivalent and is
     # intentionally not emitted.
@@ -1267,9 +1308,12 @@ def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
     for wave in zone.get("waves") or []:
         parts = []
         if g := wave.get("groups"):
-            # a list is a Lua table: through _lua_text it became the one group "['a', 'b']"
-            groups_lua = "{" + ", ".join(_lua_text(x) for x in g) + "}" if isinstance(g, list) else _lua_text(g)
-            parts.append(f"groups = {groups_lua}")
+            parts.append(f"groups = {_lua_groups(g)}")
+        # #182 and #176: spawned with the wave, for the players' side and for the waves' side
+        if fg := wave.get("friendly_groups"):
+            parts.append(f"friendlyGroups = {_lua_groups(fg)}")
+        if sg := wave.get("support_groups"):
+            parts.append(f"supportGroups = {_lua_groups(sg)}")
         if "delay" in wave:
             parts.append(f"delay = {wave['delay']}")
         if n := wave.get("number"):
@@ -1312,8 +1356,23 @@ QRA_DEFINITION_KEYS: frozenset[str] = frozenset(
         "radio_menu",
         "radio_menu_restrict_to_group",
         "radio_menu_secured",
+        "follow_unit",
+        "links",
+        "logistics",
     }
 )
+
+#: The keys of a QRA's ``logistics:`` block, each with the setter it emits (ticket 08 of
+#: FEAT-AIRWAVES-QRA-MERGE). Until then the stock and resupply chain was reachable from hand-written
+#: Lua only.
+QRA_LOGISTICS_SETTERS: dict[str, str] = {
+    "groups_available": "setQRAcount",
+    "max_ready": "setQRAmaxCount",
+    "resupply_delay": "setQRAresupplyDelay",
+    "resupply_amount": "setResupplyAmount",
+    "max_resupplies": "setQRAmaxResupplyCount",
+    "resupply_below": "setQRAminCountforResupply",
+}
 
 
 def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
@@ -1335,6 +1394,7 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
         lines.append(f"{indent}    :setTriggerZone({_lua_text(tz)})")
     if zr := qra_def.get("zone_radius"):
         lines.append(f"{indent}    :setZoneRadius({zr})")
+    lines.extend(_emit_follow_unit_and_links(qra_def, indent))
 
     for grp in qra_def.get("simple_groups") or []:
         lines.append(f"{indent}    :addGroup({_lua_text(grp)})")
@@ -1358,6 +1418,13 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
     if ro := qra_def.get("respawn_default_offset"):
         x, y = _number_pair(ro, "respawn_default_offset")
         lines.append(f"{indent}    :setRespawnDefaultOffset({x}, {y})")
+    # Tested for presence, not truthiness: `groups_available: 0` is a QRA that starts empty.
+    # Anything but a mapping is ignored here and reported by `validate`.
+    logistics = qra_def.get("logistics")
+    logistics = logistics if isinstance(logistics, dict) else {}
+    for key, setter in QRA_LOGISTICS_SETTERS.items():
+        if logistics.get(key) is not None:
+            lines.append(f"{indent}    :{setter}({logistics[key]})")
 
     # `active_at_start: false` declares the QRA without arming it: the builder chain stops
     # before :start(). The QRA is still registered under its name by :setName(), so a

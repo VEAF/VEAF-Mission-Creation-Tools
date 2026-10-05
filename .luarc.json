@@ -80,6 +80,7 @@
     "veafNamedPoints",
     "VeafQRA",
     "veafQraManager",
+    "veafReactiveZone",
     "veafRadio",
     "veafRecorder",
     "veafRemote",

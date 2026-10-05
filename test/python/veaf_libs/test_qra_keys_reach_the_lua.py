@@ -42,6 +42,9 @@ _SAMPLES: dict[str, Any] = {
     "radio_menu": True,
     "radio_menu_restrict_to_group": "MM Ctrl",
     "radio_menu_secured": True,
+    "follow_unit": "CVN-74",
+    "links": ["Batumi", "SA-10 site"],
+    "logistics": {"groups_available": 4},
 }
 
 
@@ -89,3 +92,69 @@ def test_a_list_of_wave_groups_is_a_lua_table() -> None:
     lines = _emit_airwave_zone({"name": "Z", "waves": [{"groups": ["su27-a", "su27-b"]}, {"groups": "solo"}]})
     waves = [line.strip() for line in lines if "addWave" in line]
     assert waves == [':addWave({groups = {"su27-a", "su27-b"}})', ':addWave({groups = "solo"})']
+
+
+def test_a_zone_that_follows_a_unit_and_its_links() -> None:
+    """FEAT-AIRWAVES-QRA-MERGE #186 and #183, on the QRA chain."""
+    lines = [
+        line.strip()
+        for line in _emit_qra_definition({**_BASE, "follow_unit": "CVN-74", "links": ["Batumi", "SA-10 site"]})
+    ]
+    assert ':setFollowUnit("CVN-74")' in lines
+    assert ':addLink("Batumi")' in lines
+    assert ':addLink("SA-10 site")' in lines
+
+
+def test_logistics_emits_every_setter() -> None:
+    """Ticket 08: the stock and resupply chain, reachable from mission.yaml."""
+    logistics = {
+        "groups_available": 4,
+        "max_ready": 2,
+        "resupply_delay": 600,
+        "resupply_amount": 1,
+        "max_resupplies": 3,
+        "resupply_below": 2,
+    }
+    lines = [line.strip() for line in _emit_qra_definition({**_BASE, "logistics": logistics})]
+    for call in (
+        ":setQRAcount(4)",
+        ":setQRAmaxCount(2)",
+        ":setQRAresupplyDelay(600)",
+        ":setResupplyAmount(1)",
+        ":setQRAmaxResupplyCount(3)",
+        ":setQRAminCountforResupply(2)",
+    ):
+        assert call in lines, call
+
+
+def test_logistics_comes_before_the_start() -> None:
+    lines = [line.strip() for line in _emit_qra_definition({**_BASE, "logistics": {"groups_available": 4}})]
+    assert lines.index(":setQRAcount(4)") < lines.index(":start()")
+
+
+def test_a_zero_in_logistics_is_written() -> None:
+    """`groups_available: 0` is a QRA that starts empty — not an absent setting."""
+    lines = [line.strip() for line in _emit_qra_definition({**_BASE, "logistics": {"groups_available": 0}})]
+    assert ":setQRAcount(0)" in lines
+
+
+def test_the_new_wave_zone_keys_are_emitted() -> None:
+    zone = {
+        "name": "Z",
+        "follow_unit": "CVN-74",
+        "links": ["Maykop"],
+        "closed_once_active": True,
+        "max_seconds_outside_players": 40,
+        "waves": [{"groups": "Bandits", "friendly_groups": ["Tanker"], "support_groups": "AWACS"}],
+    }
+    lines = [line.strip() for line in _emit_airwave_zone(zone)]
+    assert ':setFollowUnit("CVN-74")' in lines
+    assert ':addLink("Maykop")' in lines
+    assert ":setClosedOnceActive(true)" in lines
+    assert ":setMaxSecondsOutsideOfZonePlayers(40)" in lines
+    assert ':addWave({groups = "Bandits", friendlyGroups = {"Tanker"}, supportGroups = "AWACS"})' in lines
+
+
+def test_a_logistics_that_is_not_a_mapping_does_not_break_the_build() -> None:
+    lines = _emit_qra_definition({**_BASE, "logistics": 4})
+    assert not any("setQRAcount" in line for line in lines)

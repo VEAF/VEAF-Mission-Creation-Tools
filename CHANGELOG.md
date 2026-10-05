@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.28.0] — 2026-10-05
+
 ### Removed
 
 - **No more macOS Intel (`x86_64`) binary in the releases** (CHORE-DROP-MACOS-INTEL).

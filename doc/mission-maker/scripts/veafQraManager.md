@@ -2,6 +2,8 @@
 
 **Module ID:** `QRA` | **Fichier:** `veafQraManager.lua`
 
+> **Voir en jeu** : étape 10 « QRA de Soukhoumi » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

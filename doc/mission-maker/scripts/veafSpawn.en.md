@@ -3,6 +3,8 @@
 
 **Module ID:** `SPAWN` | **File:** `veafSpawn.lua`
 
+> **See it in game**: step 02 “Sandbox: marker commands” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose

@@ -2,6 +2,8 @@
 
 **Module ID:** `SPAWN` | **Fichier:** `veafSpawn.lua`
 
+> **Voir en jeu** : étape 02 « Bac à sable : les commandes de marqueur » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

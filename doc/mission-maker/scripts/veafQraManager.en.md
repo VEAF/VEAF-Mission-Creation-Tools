@@ -3,6 +3,8 @@
 
 **Module ID:** `QRA` | **File:** `veafQraManager.lua`
 
+> **See it in game**: step 10 “Sukhumi QRA” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose

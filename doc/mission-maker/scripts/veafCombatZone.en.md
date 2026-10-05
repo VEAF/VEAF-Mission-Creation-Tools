@@ -3,6 +3,8 @@
 
 **Module ID:** `COMBATZONE` | **File:** `veafCombatZone.lua`
 
+> **See it in game**: steps 04 “Khoni training range: three levels”, 07 “Chained mission: Ochamchire port”, 08 “Operation Tkvarcheli: tasks and dependencies” and 09 “Moving convoy” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose

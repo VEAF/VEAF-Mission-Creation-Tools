@@ -2,6 +2,8 @@
 
 **Module ID:** `COMBATMISSION` | **Fichier:** `veafCombatMission.lua`
 
+> **Voir en jeu** : étape 11 « CAP à la demande et raid sur Senaki » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

@@ -3,6 +3,8 @@
 
 **Module ID:** `CARRIER` | **File:** `veafCarrierOperations.lua`
 
+> **See it in game**: step 16 “Stennis and Roosevelt carriers” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose

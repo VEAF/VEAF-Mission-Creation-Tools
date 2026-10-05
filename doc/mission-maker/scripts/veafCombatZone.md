@@ -2,6 +2,8 @@
 
 **Module ID:** `COMBATZONE` | **Fichier:** `veafCombatZone.lua`
 
+> **Voir en jeu** : étapes 04 « Entraînement de Khoni : trois niveaux », 07 « Mission chaînée : le port d'Ochamchire », 08 « Opération Tkvarcheli : tâches et dépendances » et 09 « Convoi en mouvement » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

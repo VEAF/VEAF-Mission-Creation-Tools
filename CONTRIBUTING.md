@@ -98,6 +98,7 @@ Optional body — wrap at 100 chars.
 
 ### All changes
 - [ ] `CHANGELOG.md` updated for any user-visible change
+- [ ] A new feature has its step in the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6) (`tour/steps.yaml`, see its `CLAUDE.md`); a release runs the demo's `docs/recette.md`
 
 ---
 

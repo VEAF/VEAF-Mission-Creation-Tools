@@ -1,5 +1,7 @@
 # Combat zones
 
+> **See it in game**: step 05 “Gali front, and the JTAC drone” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ## What it is {#what-it-is}
 
 An objective prepared in the DCS editor and **activated on demand** from the F10 radio menu. At

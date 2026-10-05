@@ -52,6 +52,10 @@ flowchart TD
 
 Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, placez un marqueur et tapez une commande — par exemple `_spawn unit, name T-80UD` ou `_cas`. Voir le [Guide du pilote](pilot/README.md) pour toutes les commandes disponibles.
 
+### Mission de démo
+
+La [mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) montre chaque fonctionnalité en jeu, avec une visite guidée (**F10 → Autre → Visite guidée**), en français et en anglais. C'est aussi la recette des outils, rejouée avant chaque release — voir [le guide du créateur de missions](mission-maker/GUIDE.md#demo-mission).
+
 ### Créateurs de missions
 
 > **Le `.\` est obligatoire.** Le terminal Windows par défaut est PowerShell, qui ne cherche pas
@@ -66,7 +70,7 @@ Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, pla
 
 Ensuite, selon votre point de départ :
 
-**Vous avez déjà un dossier mission VEAF** (ou vous avez forké la [mission de démonstration](https://github.com/VEAF/VEAF-Demo-Mission)) :
+**Vous avez déjà un dossier mission VEAF** (ou vous en avez créé un avec `mission prepare`) :
 ```powershell
 .\veaf-tools.exe mission build
 ```

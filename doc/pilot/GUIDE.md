@@ -8,15 +8,16 @@ Ce guide s'adresse aux joueurs qui volent dans des missions utilisant le framewo
 
 1. [Qu'est-ce que VEAF MCT ?](#quest-ce-que-veaf-mct)
 2. [Reconnaître une mission VEAF](#reconnaître-une-mission-veaf)
-3. [Le menu radio F10](#le-menu-radio-f10)
-4. [Les commandes par marqueur](#marker-commands)
-5. [Ressources : ravitailleurs, AWACS, porte-avions](#ressources)
-6. [Zones et missions de combat](#zones-et-missions-de-combat)
-7. [Entraînement CAS](#entraînement-cas)
-8. [Sécurité et permissions](#security)
-9. [Conseils selon votre appareil](#conseils-selon-votre-appareil)
-10. [Questions fréquentes (FAQ)](#questions-fréquentes-faq)
-11. [Communauté et support](#communauté-et-support)
+3. [Découvrir en jeu : la mission de démo](#demo-mission)
+4. [Le menu radio F10](#le-menu-radio-f10)
+5. [Les commandes par marqueur](#marker-commands)
+6. [Ressources : ravitailleurs, AWACS, porte-avions](#ressources)
+7. [Zones et missions de combat](#zones-et-missions-de-combat)
+8. [Entraînement CAS](#entraînement-cas)
+9. [Sécurité et permissions](#security)
+10. [Conseils selon votre appareil](#conseils-selon-votre-appareil)
+11. [Questions fréquentes (FAQ)](#questions-fréquentes-faq)
+12. [Communauté et support](#communauté-et-support)
 
 ---
 
@@ -42,6 +43,12 @@ Trois signes indiquent qu'une mission utilise VEAF :
 3. **Des marqueurs** sur la carte indiquent les trajectoires des ravitailleurs, les orbites des AWACS ou la position des zones de combat.
 
 > 📷 *Capture à venir : messages de démarrage VEAF dans le coin inférieur droit.*
+
+---
+
+## Découvrir en jeu : la mission de démo {#demo-mission}
+
+La [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6) (Caucase) montre **chaque fonctionnalité VEAF**, une étape à la fois. Prenez un slot, puis ouvrez **F10 → Autre → Visite guidée** : chaque entrée dit où aller, quoi faire et quoi observer, et pose un repère sur votre carte. Elle existe en version française et en version anglaise.
 
 ---
 

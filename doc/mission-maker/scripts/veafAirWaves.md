@@ -2,6 +2,8 @@
 
 **Module ID:** `AIRWAVES` | **Fichier:** `veafAirWaves.lua`
 
+> **Voir en jeu** : étape 12 « Arène BVR (vagues aériennes) » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

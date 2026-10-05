@@ -8,15 +8,16 @@ This guide is for players flying missions that use the VEAF framework. No techni
 
 1. [What is VEAF MCT?](#what-is-veaf-mct)
 2. [Recognising a VEAF Mission](#recognising-a-veaf-mission)
-3. [The F10 Radio Menu](#the-f10-radio-menu)
-4. [Marker Commands](#marker-commands)
-5. [Assets: Tankers, AWACS, Carriers](#assets)
-6. [Combat Zones and Missions](#combat-zones-and-missions)
-7. [CAS Training](#cas-training)
-8. [Security and Permissions](#security)
-9. [Tips for Your Aircraft](#tips-for-your-aircraft)
-10. [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
-11. [Community and Support](#community-and-support)
+3. [Try it in game: the demo mission](#demo-mission)
+4. [The F10 Radio Menu](#the-f10-radio-menu)
+5. [Marker Commands](#marker-commands)
+6. [Assets: Tankers, AWACS, Carriers](#assets)
+7. [Combat Zones and Missions](#combat-zones-and-missions)
+8. [CAS Training](#cas-training)
+9. [Security and Permissions](#security)
+10. [Tips for Your Aircraft](#tips-for-your-aircraft)
+11. [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
+12. [Community and Support](#community-and-support)
 
 ---
 
@@ -42,6 +43,12 @@ Three signs tell you a mission uses VEAF:
 3. **Map markers** show tanker tracks, AWACS orbits or combat zone positions.
 
 > 📷 *Screenshot coming soon: VEAF startup messages in the lower-right corner.*
+
+---
+
+## Try it in game: the demo mission {#demo-mission}
+
+The [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) (Caucasus) shows **every VEAF feature**, one step at a time. Take a slot, then open **F10 → Other → Guided tour**: each entry says where to go, what to do and what to look for, and puts a mark on your map. It comes in a French and an English version.
 
 ---
 

@@ -3,6 +3,8 @@
 
 **Module ID:** `AIRWAVES` | **File:** `veafAirWaves.lua`
 
+> **See it in game**: step 12 “BVR arena (air waves)” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose

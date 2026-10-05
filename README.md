@@ -52,7 +52,9 @@ You're in a mission that uses VEAF scripts. Open the F10 map, place a marker, an
 
 Then, depending on your starting point:
 
-**You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
+**To see every feature in game first**, play the [v6 demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md): a guided tour leads you through all of them.
+
+**You already have a VEAF mission folder** (or created one with `mission prepare`):
 ```powershell
 .\veaf-tools.exe build
 ```
@@ -192,7 +194,9 @@ Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, pla
 
 Ensuite, selon votre point de départ :
 
-**Vous avez déjà un dossier mission VEAF** (ou vous avez forké la [mission de démonstration](https://github.com/VEAF/VEAF-Demo-Mission)) :
+**Pour voir d'abord chaque fonctionnalité en jeu**, jouez la [mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) : une visite guidée vous les fait toutes parcourir.
+
+**Vous avez déjà un dossier mission VEAF** (ou vous en avez créé un avec `mission prepare`) :
 ```powershell
 .\veaf-tools.exe build
 ```

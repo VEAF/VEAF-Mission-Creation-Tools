@@ -2,6 +2,8 @@
 
 **Module ID:** `CARRIER` | **Fichier:** `veafCarrierOperations.lua`
 
+> **Voir en jeu** : étape 16 « Porte-avions Stennis et Roosevelt » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

@@ -2,6 +2,8 @@
 
 **Module ID:** `SKYNET` | **File:** `veafSkynetIadsHelper.lua` | **Lua table:** `veafSkynet`
 
+> **See it in game**: step 06 “Integrated air defence (Skynet)” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose

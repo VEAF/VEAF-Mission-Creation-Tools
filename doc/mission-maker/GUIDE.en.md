@@ -159,15 +159,23 @@ Or inspect/edit values interactively:
 
 ## Creating a New Mission
 
-### Recommended: Fork the Demo Mission
+### Recommended: `mission prepare`
 
-The fastest way to start is to fork [VEAF-Demo-Mission](https://github.com/VEAF/VEAF-Demo-Mission), which already has the correct folder structure, sample configurations, and build scripts.
+For a new mission, let the tools create the folder: `prepare` lays down the structure, a documented `mission.yaml` with the module set you choose and, when you give the map, a blank mission for that theatre — with no trip through DCS.
 
 ```powershell
-git clone https://github.com/VEAF/VEAF-Demo-Mission.git my-mission
-cd my-mission
-.\veaf-tools-updater.exe
+.\veaf-tools.exe mission prepare c:\my-mission --template standard --theatre Caucasus
 ```
+
+With no option, the [wizard](#interactive-mode-wizard) asks for the folder and the module set. The options are detailed in the [design-time tools](#design-time-tools).
+
+### The demo mission {#demo-mission}
+
+The [v6 demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) (Caucasus) shows **every feature in game**. A guided tour (**F10 > Other > Guided tour**) leads from one step to the next, says what to do and what to look for, and puts a mark on your map. It comes in a French and an English version.
+
+It is also the tools' acceptance check: every new feature adds a step to it, and its checklist (`docs/recette.md`) is run before every release.
+
+Its folder is a good example of a complete `mission.yaml` to read. To start your own mission, begin with `mission prepare` rather than a copy of the demo: you would have to remove everything it shows.
 
 ### From Scratch
 
@@ -714,6 +722,8 @@ local defenseZone = AirWaveZone:new()
 
 ## CTLD and CSAR Integration {#ctld-and-csar-integration}
 
+> **See it in game**: step 15 “Helicopters: FARP, CTLD, CSAR” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 [CTLD](https://github.com/VEAF/CTLD) (troop transport and logistics) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively: you never have to load or initialise them yourself. They are **not** configured the same way — **CSAR in `mission.yaml`, CTLD in a file of its own.**
 
 ### Configuring CTLD: `ctld-config.yaml` + ctld-tools
@@ -1144,6 +1154,6 @@ If the log shows an error you cannot explain, [Getting help](../SUPPORT.en.md) s
 - [Scripts Reference](scripts/README.en.md) — all scripts with configuration details
 - [CLI Reference](../CLI_REFERENCE.en.md) — all 25 `veaf-tools` commands, arguments and options
 - [Lua API Reference](../LUA_API_REFERENCE.en.md) — complete Lua API documentation
-- [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — working example mission
+- [v6 demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) — every feature in game, with a guided tour ([see above](#demo-mission))
 - [VEAF Discord](https://www.veaf.org/discord) — community help
 

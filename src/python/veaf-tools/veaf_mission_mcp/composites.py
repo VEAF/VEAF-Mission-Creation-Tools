@@ -127,6 +127,85 @@ def _append_combat_zone(yaml_path: Path, zone_name: str, combat_zone: dict[str, 
     save_yaml(yaml_path, data)
 
 
+def add_combat_operation(
+    folder_path: Path,
+    *,
+    zone_name: str,
+    tasking_orders: list[dict[str, Any]],
+    friendly_name: str | None = None,
+    briefing: str | None = None,
+    active_at_start: bool | None = None,
+) -> dict[str, Any]:
+    """Declare a VEAF combat operation in a mission folder's ``mission.yaml``.
+
+    An operation groups combat zones the mission already declares: its tasks are activated in turn,
+    each once its dependencies are complete. Its ``zone_name`` is a label, not a trigger zone, so
+    nothing is written to ``src/mission/``. The demo mission had to write one by hand
+    (FIX-DEMO-MISSION-FINDINGS ticket 07).
+
+    Args:
+        folder_path: The mission folder (holds ``mission.yaml``).
+        zone_name: The operation's technical name, unique among ``combat_zones[]``.
+        tasking_orders: ``[{"zone_name": ..., "dependencies"?: [...]}, ...]``, in order; each zone a
+            declared, non-operation combat zone.
+        friendly_name: The label in the F10 menu.
+        briefing: The text shown to the players.
+        active_at_start: Activate the operation when the mission starts; written only when given.
+
+    Returns:
+        ``{"zone_name", "tasking_orders": [<zone names>]}``.
+
+    Raises:
+        FileNotFoundError: When the folder has no ``mission.yaml``.
+        ValueError: When there is no task, the name is already taken, or a task or a dependency names
+            a zone the mission does not declare — the generated ``GetZone()`` would be ``nil`` at
+            runtime. Nothing is written then.
+    """
+    yaml_path = mission_yaml_path(folder_path)
+    data: Any = load_yaml(yaml_path)
+    modules: Any = data.get("modules") if hasattr(data, "get") else None
+    combatzone: Any = modules.get("COMBATZONE") if hasattr(modules, "get") else None
+    existing: Any = combatzone.get("combat_zones") if hasattr(combatzone, "get") else None
+    existing = existing if isinstance(existing, list) else []
+    taken = {str(z.get("zone_name")) for z in existing if hasattr(z, "get") and z.get("zone_name")}
+    zones = {
+        str(z.get("zone_name"))
+        for z in existing
+        if hasattr(z, "get") and z.get("type", "zone") != "operation" and z.get("zone_name")
+    }
+
+    if not tasking_orders:
+        raise ValueError("an operation needs at least one entry in tasking_orders")
+    if zone_name in taken:
+        raise ValueError(f"{zone_name!r} is already a combat_zones[] entry; an operation needs a name of its own")
+    orders: list[dict[str, Any]] = []
+    for position, order in enumerate(tasking_orders, start=1):
+        task = str(order.get("zone_name") or "")
+        dependencies = [str(d) for d in order.get("dependencies") or []]
+        unknown = [name for name in [task, *dependencies] if name not in zones]
+        if unknown:
+            raise ValueError(
+                f"tasking_orders[{position}]: {', '.join(repr(n) for n in unknown)} is not a combat zone of this "
+                f"mission (declared zones: {', '.join(sorted(zones)) or 'none'}); an operation's tasks are "
+                "zones, never another operation"
+            )
+        entry: dict[str, Any] = {"zone_name": task}
+        if dependencies:
+            entry["dependencies"] = dependencies
+        orders.append(entry)
+
+    operation: dict[str, Any] = {"type": "operation", "zone_name": zone_name}
+    if friendly_name:
+        operation["friendly_name"] = friendly_name
+    if briefing:
+        operation["briefing"] = briefing
+    if active_at_start is not None:
+        operation["active_at_start"] = bool(active_at_start)
+    operation["tasking_orders"] = orders
+    _append_combat_zone(yaml_path, zone_name, operation)
+    return {"zone_name": zone_name, "tasking_orders": [order["zone_name"] for order in orders]}
+
+
 def create_qra(
     folder_path: Path,
     *,

@@ -18,7 +18,7 @@ from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
 from veaf_mission_mcp.catalog import ActionCatalog
-from veaf_mission_mcp.composites import create_cap_mission, create_combat_zone, create_qra
+from veaf_mission_mcp.composites import add_combat_operation, create_cap_mission, create_combat_zone, create_qra
 from veaf_mission_mcp.describe_mission import describe_mission
 from veaf_mission_mcp.describe_units import describe_units
 from veaf_mission_mcp.edit_mission_yaml import (
@@ -1775,6 +1775,58 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="add_combat_operation",
+            description=(
+                "Declare a VEAF combat OPERATION in a mission FOLDER's mission.yaml (no build): a "
+                "modules.COMBATZONE.combat_zones[] entry of type 'operation' grouping combat zones the "
+                "mission ALREADY declares (create_combat_zone first). Its tasks are activated in order, "
+                "each once its dependencies are complete; players activate the operation from its F10 "
+                "menu, or it starts by itself with active_at_start. The operation's name is a label, "
+                "not a trigger zone: nothing is written to src/mission. Refuses a task or dependency "
+                "naming an undeclared zone (or another operation) -- it would resolve to nothing at "
+                "runtime."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (holds mission.yaml).",
+                    },
+                    "zone_name": {
+                        "type": "string",
+                        "description": "The operation's technical name, unique among combat_zones[].",
+                    },
+                    "friendly_name": {"type": "string", "description": "Label in the F10 menu."},
+                    "briefing": {"type": "string", "description": "Text shown to the players."},
+                    "active_at_start": {
+                        "type": "boolean",
+                        "description": "Activate the operation when the mission starts.",
+                    },
+                    "tasking_orders": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "zone_name": {"type": "string", "description": "A declared combat zone."},
+                                "dependencies": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "Zones that must be complete before this task starts.",
+                                },
+                            },
+                            "required": ["zone_name"],
+                        },
+                        "description": "The operation's tasks, in order; at least one.",
+                    },
+                },
+                "required": ["folder_path", "zone_name", "tasking_orders"],
+            },
+        ),
+        handler=_handle_add_combat_operation,
+    )
+    catalog.register(
+        ActionSpec(
             name="create_qra",
             description=(
                 "Lay down a complete VEAF QRA in a mission FOLDER, one pass, both worlds (no build): "
@@ -2629,6 +2681,17 @@ def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:
         country_name=params["country_name"],
         category=params.get("category", "vehicle"),
         combat_zone=params.get("combat_zone"),
+    )
+
+
+def _handle_add_combat_operation(params: dict[str, Any]) -> dict[str, Any]:
+    return add_combat_operation(
+        Path(params["folder_path"]),
+        zone_name=params["zone_name"],
+        tasking_orders=params["tasking_orders"],
+        friendly_name=params.get("friendly_name"),
+        briefing=params.get("briefing"),
+        active_at_start=params.get("active_at_start"),
     )
 
 

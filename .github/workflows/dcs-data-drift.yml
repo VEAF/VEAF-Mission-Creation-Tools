@@ -80,4 +80,10 @@ jobs:
 
             Review the country and units diffs for unexpected changes before merging
             (e.g. a unit changing `kind`, or many units added/removed).
+
+            **CI does not start on its own**: this PR is opened with the default
+            `GITHUB_TOKEN`, so its `pull_request` runs wait for approval (`action_required`)
+            and the required checks never report. Pushing the radio follow-up commit starts
+            them normally; otherwise click *Approve workflows to run* on the PR, or approve
+            each run with `gh api -X POST repos/VEAF/VEAF-Mission-Creation-Tools/actions/runs/<id>/approve`.
           labels: dcs-data

@@ -12,10 +12,6 @@ Broaden the shipped default radio presets, after phase 1 of the radio preset pro
 
 A Foothold-like persistent campaign built on VMCT alone, declared in a `campaign.yaml` sidecar from which the build generates zones, slots and data.
 
-### [FEAT-MISSION-RECIPES](FEAT-MISSION-RECIPES/PRD.md) · ⬜
-
-Scripted mission generation with no AI in the loop: a recipe file of MCP actions run by `veaf-tools`; the demo mission regenerated in CI would become the end-to-end test. Start with one recipe.
-
 ### [FEAT-PORTABLE-PREFABS](FEAT-PORTABLE-PREFABS/PRD.md) · ⬜
 
 A design lot: bundle mission content (groups, statics, zones, media, mod dependencies) and re-instantiate it elsewhere. Rejecting the idea is an acceptable outcome.

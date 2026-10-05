@@ -180,4 +180,6 @@ Not a defect: measured in game, an A-50 enrolled by the helper detects by radar 
 
 ## 🚫 Won't fix
 
-*None.*
+### [FEAT-MISSION-RECIPES](FEAT-MISSION-RECIPES/PRD.md) · 🚫
+
+Not needed for an always-current demo: the versioned mission folder is already the replayable source, content is added through the MCP, and CI can build and run it as is. A new demo mission replaces the idea.

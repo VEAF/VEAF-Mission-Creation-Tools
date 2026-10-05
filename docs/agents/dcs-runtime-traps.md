@@ -430,6 +430,26 @@ parenting a battery also sees everything the battery would.
 
 **What to do:** Plan the network around those two types.
 
+### An AWACS can hold a contact for minutes flagged `DLINK` only, which Skynet does not read {#awacs-contact-radar-flag-comes-and-goes}
+
+Measured **2026-10-05**.
+
+`Controller:getDetectedTargets(Controller.Detection.RADAR)` on an AI A-50 leaves out contacts the
+same call without a filter returns. A blue KC-135 82 km from the A-50, at 24 000 ft, was in its
+list from t = 6 s but flagged `DLINK` only in every reading up to t = 239 s, and `RADAR` at
+t = 269 s — while a C-130 and a second KC-135 spawned next to it, and an E-3A spawned 60 km from
+the A-50, were flagged `RADAR` within a minute. Skynet asks for `RADAR` only, so for those minutes the AWACS fed the IADS
+nothing about that aircraft. The A-50's radar range, as `getSensors` declares it, is 204 462 m
+(55G6: 267 496 m), and Skynet reads it correctly.
+
+**What to do:** Do not read one sample of a contact's detection flag as a property of the radar: read it over
+several minutes. Do not count on an AWACS to report a given aircraft to Skynet the moment it
+holds it: the same contact can stay invisible to the IADS for minutes.
+
+*What it cost:* Read at t = 6 and t = 78 alone, it looked like "an AWACS only reports datalink contacts", and
+was announced as the cause of three blind A-50s (INVESTIGATE-SKYNET-AWACS-BLIND) before a later
+reading refuted it.
+
 ### A battery lights up only when the contact is in *its own* envelope {#battery-wakes-in-its-own-envelope}
 
 Measured **2026-09-21**.

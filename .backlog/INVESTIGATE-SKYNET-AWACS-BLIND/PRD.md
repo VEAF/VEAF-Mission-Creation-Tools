@@ -1,6 +1,6 @@
 # INVESTIGATE-SKYNET-AWACS-BLIND — three red A-50s covering sixteen SAM sites, and not one contact
 
-Status: ⬜ ready
+Status: ✅ done — closed 2026-10-05 as not a defect (see [Outcome](#outcome))
 
 Origin: found while diagnosing The Reaper's report of 2026-09-17
 (`VEAF_OpenTraining_Caucasus_v6_20260917_debug_skynet_1705.miz`, same `dcs.log`). Not what he
@@ -54,6 +54,72 @@ investigates only exists in VEAF missions, and the investigation is entirely on 
    (`isUpdateOfAutonomousStateOfSAMSitesRequired`). If an airborne element's radar unit is wrapped
    differently from a ground one, the filter in 1 or the controller call could be reading the wrong
    object.
+
+## Findings, 2026-10-05
+
+### The evidence that survives
+
+The `dcs.log` of 2026-09-17 is gone: the server keeps only the current logs, and the transcripts of the session that measured it no longer exist.
+So the table above can no longer be re-read, and neither can the contacts' positions.
+The mission survives on dcs.veaf.org, as uploaded, under `Saved Games/DCS.missions/PourLeServeurPrivé/The_Reaper/OpenTraining/.dcssb/VEAF_OpenTraining_Caucasus_v6_20260917_debug_skynet_1705.miz.orig`.
+
+| group | late activation | start | orbit (x, y, m) | options at WP1 |
+|---|---|---|---|---|
+| `AWACS - AirQuake` | no | 0 | (83 288, −203 200) → (82 632, −271 282), 7 925 m | AWACS, unlimited fuel |
+| `A2-Overlordsky-1` | no | 0 | (−30 655, 855 923) → (13 812, 756 261), 7 925 m | AWACS, unlimited fuel, reaction on threat = 2, ECM = 2 |
+| `A2-Overlordsky-2` | no | 0 | (105 227, 312 353) → (106 278, 391 390), 7 925 m | same as Overlordsky-1 |
+
+No late activation, no radar option: they fly from t = 0 with their radar on.
+
+### Measured in game (DAVID-BUREAU, `develop` at `f0b54231`)
+
+Mission `D:\dev\_VEAF\tmp\dcs-session-2026-10-05-awacs\Skynet-awacs-blind_20261005.miz`: a red A-50 in a race-track at 26 000 ft, a red 55G6, a blue KC-135 82 km from the A-50, and, spawned at runtime, a blue E-3A, a C-130 and two more KC-135s. Read through the fiddle hook with `probe-awacs.lua` and `probe3.lua` in the same folder.
+
+| reading | value |
+|---|---|
+| A-50 sensor `Shmel`, `detectionDistanceAir` (all four hemispheres/aspects) | **204 462 m** |
+| 55G6 sensor, same | 267 496 m |
+| range Skynet stores for the A-50 (`searchRadars[1].maximumRange`) | 204 462 m — read correctly |
+| A-50 `getDetectedTargets(Controller.Detection.RADAR)`, t = 239 s | E-3A, C-130, second KC-135 |
+| Skynet's own `getDetectedTargets()` on the A-50 element, t = 239 s | **3** |
+| same, t = 269 s | the first KC-135 too — 5 in all |
+
+So an A-50 enrolled by the helper does detect by radar, Skynet does keep its contacts, and the five functions on that path — `SkynetIADSAWACSRadar:setupElements`, `SkynetIADSAbstractRadarElement:getDetectedTargets` and `:isTargetInRange`, `SkynetIADSSAMSearchRadar:setupRangeData` and `:isInRange` — are byte-identical between the version that ran on 2026-09-17 (vendored at `bcce928c`) and today's.
+**Hypotheses 1 and 3 are refuted by measurement.**
+
+Two traps met on the way, recorded so the next reading does not fall into them:
+
+- **The `RADAR` flag of a contact comes and goes.** The first KC-135 was in the A-50's list from t = 6 s, but flagged `DLINK` only in every reading up to t = 239 s, and `RADAR` at t = 269 s. Read at t = 6 and t = 78 alone, it looked like "an AWACS only reports datalink contacts", which is false: one reading is not a measurement of a flag.
+- **The 55G6 saw only the E-3A**, not the C-130 nor the KC-135s at 60 km. Not explained, and not needed here: it is the comparison radar, not the subject.
+
+### What this does to the reasoning above
+
+**The inference "at least 579 km" written earlier the same day was wrong.**
+It rested on the table's "each lists 16 SAM sites", which cannot hold for `AWACS - AirQuake`: with a range of 204 km it covers none of the 53 red SAM-eligible groups, all at 579 km or more.
+The figure of 16 came from the lost log and can no longer be checked.
+
+**Hypothesis 2 — geometry — fits every number left.** Minimum distance from each orbit to the blue airfields of Georgia, against the 204 km of the A-50 and the 267 km of the 55G6:
+
+| radar | Batumi | Kobuleti | Senaki | Kutaisi | Tbilisi | Vaziani |
+|---|---|---|---|---|---|---|
+| A-50 `Overlordsky-1` | 394 | 351 | 314 | 302 | 287 | 291 |
+| A-50 `Overlordsky-2` | 515 | 490 | 466 | 489 | 657 | 664 |
+| A-50 `AirQuake` | 932 | 931 | 927 | 961 | 1 169 | 1 176 |
+| 55G6 `-38` | 320 | 278 | **240** | **237** | 327 | 333 |
+| 55G6 `-39` | 350 | 311 | 279 | **253** | **200** | **204** |
+| 55G6 `-41` | **273** | **241** | **213** | **235** | 411 | 418 |
+
+In bold, what lies inside the 55G6's 267 km. No blue airfield is within the reach of any A-50, and every 55G6 that held contacts reaches at least two of them.
+That is consistent with the ground radars seeing the traffic around the Georgian bases while the A-50s, 290 km and more away, saw nothing — but it is consistent, not proven: the contacts' positions died with the log.
+
+## Outcome
+
+Closed as **not a defect**, on David's decision of 2026-10-05.
+An A-50 enrolled by the helper detects by radar and feeds Skynet, measured in game, on a detection path byte-identical to the one that ran on 2026-09-17.
+The geometry above accounts for The Reaper's three zeros, without proving it, since the contacts' positions were lost with the log; replaying his mission is the only way to complete the proof, and it was judged not worth it.
+
+The one real behaviour the investigation found — a contact flagged `DLINK` only for minutes, which Skynet's `RADAR` filter drops — is recorded as the DCS trap `awacs-contact-radar-flag-comes-and-goes` in `known-limitations.yaml`.
+Skynet is left unchanged: accepting `DLINK` would make an AWACS relay the coalition's whole datalink, a design decision for [VEAF/Skynet-IADS](https://github.com/VEAF/Skynet-IADS), not a fix.
 
 ## Definition of done
 

@@ -192,8 +192,7 @@ sait convertir entre les coordonnées locales DCS (x/y) et la lat/long.*
 ### Lire la carte {#read-the-map}
 
 *Repérage · ⭐* — L'IA lit le **théâtre**, les **bullseyes** par coalition et les zones/groupes déjà
-présents comme points de repère, avec la position de chacun (et la taille des groupes), pour placer les
-choses les unes par rapport aux autres.
+présents comme points de repère, avec la position de chacun (et la taille des groupes), pour placer les choses les unes par rapport aux autres.
 
 > 💬 *« C'est quel théâtre ? Montre-moi les bullseyes et les zones existantes. »*
 
@@ -288,12 +287,9 @@ nulle part.
 
 ### Créer une opération (zones enchaînées) {#create-operation}
 
-*Recette (dossier) · ◽* — Regroupe des **combat zones déjà créées** en une opération : l'activer fait
-apparaître **toutes** ses zones d'un coup, et chaque tâche devient l'objectif en cours quand celles dont
-elle dépend sont terminées — un objectif qui ne doit pas exister avant un autre est plutôt une zone
-chaînée. Les joueurs la lancent
-depuis son menu F10, ou elle démarre seule avec la mission. L'IA refuse une tâche qui ne nomme pas une
-zone de la mission.
+*Recette (dossier) · ◽* — Regroupe des **combat zones déjà créées** en une opération : l'activer fait apparaître **toutes** ses zones d'un coup, et chaque tâche devient l'objectif en cours quand celles dont elle dépend sont terminées — un objectif qui ne doit pas exister avant un autre est plutôt une zone chaînée.
+Les joueurs la lancent depuis son menu F10, ou elle démarre seule avec la mission.
+L'IA refuse une tâche qui ne nomme pas une zone de la mission.
 
 > 💬 *« Fais une opération Tonnerre : d'abord CZ-Alpha, puis CZ-Bravo une fois Alpha tombée. »*
 
@@ -551,8 +547,8 @@ ou boucler la route sur elle-même. Pour un **vol de soutien** : ravitailler (`t
 allumer un **TACAN** (canal, mode X/Y, indicatif), activer la liaison de données (EPLRS), avoir du
 carburant illimité, ou **escorter** un autre groupe désigné par son nom. Pour une **balise radio** :
 une unité qui **diffuse un son** en boucle sur sa fréquence, que l'hélicoptère retrouve au
-radiocompas ([embarque le son](#add-sound) d'abord, et règle la fréquence juste avant). Pour un
-**convoi**, chaque point peut suivre les **routes** ou couper à travers champs.
+radiocompas ([embarque le son](#add-sound) d'abord, et règle la fréquence juste avant).
+Pour un **convoi**, chaque point peut suivre les **routes** ou couper à travers champs.
 
 > 💬 *« Ajoute un point de passage après le troisième, à 20 000 pieds. »*
 > 💬 *« Fais orbiter ce ravitailleur en hippodrome à 20 000 pieds, 300 nœuds. »*
@@ -692,10 +688,8 @@ deux fois le même fichier réutilise le premier.
 
 ### Ajouter une image au briefing {#briefing-picture}
 
-*Recette + construite · ◽* — Copie une image (`.png` ou `.jpg`) dans la mission et l'ajoute au
-briefing d'un camp (bleu, rouge ou neutre), à la suite des images qu'il a déjà — comme l'éditeur quand
-tu choisis une image de briefing. Évite de mettre la même image aux deux camps : un joueur dont le
-camp n'est pas connu du briefing (slot dynamique, par exemple) la verrait deux fois.
+*Recette + construite · ◽* — Copie une image (`.png` ou `.jpg`) dans la mission et l'ajoute au briefing d'un camp (bleu, rouge ou neutre), à la suite des images qu'il a déjà — comme l'éditeur quand tu choisis une image de briefing.
+Évite de mettre la même image aux deux camps : un joueur dont le camp n'est pas connu du briefing (slot dynamique, par exemple) la verrait deux fois.
 
 > 💬 *« Mets carte.jpg dans le briefing bleu. »*
 

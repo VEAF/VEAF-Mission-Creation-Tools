@@ -240,11 +240,9 @@ de valider et de mentir.
 une opération de liste sur `route.points` ; les **tâches** d'un point de passage (`add_task`,
 `clear_tasks`) sont ce qui fait qu'un vol fait quelque chose.
 
-**Route ou hors route.** Sur un groupe **terrestre**, `road: true` écrit l'action `On Road` d'un
-`Turning Point` (les véhicules suivent les routes), `road: false` écrit `Off Road` ; pour `add`,
-`insert` et `set`. Refusé sur un autre groupe et sur un autre type de point. Tous les points étaient
-écrits `Turning Point`, et le convoi de la mission de démo coupait à travers champs
-(FIX-DEMO-MISSION-FINDINGS 07).
+**Route ou hors route.** Sur un groupe **terrestre**, `road: true` écrit l'action `On Road` d'un `Turning Point` (les véhicules suivent les routes), `road: false` écrit `Off Road` ; pour `add`, `insert` et `set`.
+Refusé sur un autre groupe et sur un autre type de point.
+Tous les points étaient écrits `Turning Point`, et le convoi de la mission de démo coupait à travers champs (FIX-DEMO-MISSION-FINDINGS 07).
 
 **L'invariant qui en fait de la chirurgie et pas de l'édition de liste.**
 `FIX-WAYPOINTS-ETA-LOCKED` a établi que DCS **refuse d'enregistrer** une mission dont une route n'a
@@ -731,9 +729,7 @@ modules) :
 - `add_sound(mission_path, sound_path, resource_name)` — copie un `.ogg`/`.wav` dans `l10n/DEFAULT` et
   le déclare dans `mapResource` sous `MCP_Sound_<nom>` ; `edit_route` `transmit_message` le diffuse
   (`TransmitMessage` enveloppé, `file` = la clé, `loop`, `duration`, `subtitle` écrit au dictionnaire).
-- `set_briefing_picture(mission_path, source_path, side, resource_name)` — copie un `.png`/`.jpg` dans
-  `l10n/DEFAULT`, le déclare dans `mapResource` sous `MCP_Picture_<nom>` et ajoute la clé au
-  `pictureFileNameB` / `R` / `N` du camp, en gardant les images qu'il avait (FIX-DEMO-MISSION-FINDINGS 07).
+- `set_briefing_picture(mission_path, source_path, side, resource_name)` — copie un `.png`/`.jpg` dans `l10n/DEFAULT`, le déclare dans `mapResource` sous `MCP_Picture_<nom>` et ajoute la clé au `pictureFileNameB` / `R` / `N` du camp, en gardant les images qu'il avait (FIX-DEMO-MISSION-FINDINGS 07).
 
 ### Open Training Syrie (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 
@@ -991,11 +987,10 @@ zone est un groupe de la zone, pas un appel séparé. En catégorie `ship`, les 
 
 ### `add_combat_operation`
 
-Écrit dans `mission.yaml` seulement une entrée `combat_zones[]` de type `operation` : `tasking_orders`
-(chaque tâche, ses `dependencies`), `friendly_name`, `briefing`, `active_at_start`. Le nom d'une
-opération est une étiquette, pas une zone de déclenchement : rien n'est écrit dans `src/mission/`.
-Refuse une tâche ou une dépendance qui ne nomme pas une zone de combat déclarée (ou qui nomme une autre
-opération) : le `GetZone()` généré vaudrait `nil` au runtime (FIX-DEMO-MISSION-FINDINGS 07).
+Écrit dans `mission.yaml` seulement une entrée `combat_zones[]` de type `operation` : `tasking_orders` (chaque tâche, ses `dependencies`), `friendly_name`, `briefing`, `active_at_start`.
+Le nom d'une opération est une étiquette, pas une zone de déclenchement : rien n'est écrit dans `src/mission/`.
+Refuse une tâche ou une dépendance qui ne nomme pas une zone de combat déclarée (ou qui nomme une autre opération) : le `GetZone()` généré vaudrait `nil` au runtime (FIX-DEMO-MISSION-FINDINGS 07).
+Activer l'opération fait apparaître toutes ses zones d'un coup ; les `dependencies` ne décident que du moment où une tâche devient l'objectif en cours.
 
 ### `create_qra`
 
@@ -1067,8 +1062,8 @@ réel projeté**, ce socle relie `x/y DCS ↔ lat/lon réel`.
 
 Lecture seule. Depuis un `.miz` **ou** un dossier de mission : renvoie le **théâtre**, les
 **bullseyes** par coalition, et les zones/groupes existants comme **points de repère** — pour que le
-LLM s'oriente sans DCS. Chaque zone porte son `x`/`y`/`radius`, chaque groupe son `x`/`y` et son
-nombre d'unités (`units`).
+LLM s'oriente sans DCS.
+Chaque zone porte son `x`/`y`/`radius`, chaque groupe son `x`/`y` et son nombre d'unités (`units`).
 
 ```json
 {"mission_path": "chemin/vers/mission.miz-ou-dossier"}

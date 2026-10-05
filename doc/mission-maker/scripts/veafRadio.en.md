@@ -172,7 +172,8 @@ The action vocabulary is **closed** (v1). Each `action` requires the listed keys
 
 > **The `lua` action is the bridge to your Lua.** The function referenced by `function:` must be defined by the mission maker in `mission-script.lua`. If it is referenced in YAML but **missing** from the mission's Lua, **the build fails** (and `veaf-tools mission validate` flags it). This is how you attach a custom Lua function to a menu declared in YAML.
 >
-> The function is looked up **on click**, not when the configuration loads: `mission-script.lua` loads after the generated configuration, and that is where it belongs. `args` reaches it as **a single parameter**, a table: `function myMission.startEverything(args) … args[1] … end`.
+> The function is looked up **on click**, not when the configuration loads: `mission-script.lua` loads after the generated configuration, and that is where it belongs.
+> `args` reaches it as **a single parameter**, a table: `function myMission.startEverything(args) … args[1] … end`.
 
 ---
 

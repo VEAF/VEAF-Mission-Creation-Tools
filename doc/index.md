@@ -54,7 +54,8 @@ Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, pla
 
 ### Mission de démo
 
-La [mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) montre chaque fonctionnalité en jeu, avec une visite guidée (**F10 → Autre → Visite guidée**), en français et en anglais. C'est aussi la recette des outils, rejouée avant chaque release — voir [le guide du créateur de missions](mission-maker/GUIDE.md#demo-mission).
+La [mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) montre chaque fonctionnalité en jeu, avec une visite guidée (**F10 → Autre → Visite guidée**), en français et en anglais.
+C'est aussi la recette des outils, rejouée avant chaque release — voir [le guide du créateur de missions](mission-maker/GUIDE.md#demo-mission).
 
 ### Créateurs de missions
 

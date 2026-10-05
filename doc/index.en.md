@@ -54,7 +54,8 @@ You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, a
 
 ### Demo mission
 
-The [v6 demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) shows every feature in game, with a guided tour (**F10 → Other → Guided tour**), in French and in English. It is also the tools' acceptance check, run before every release — see [the mission maker guide](mission-maker/GUIDE.en.md#demo-mission).
+The [v6 demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) shows every feature in game, with a guided tour (**F10 → Other → Guided tour**), in French and in English.
+It is also the tools' acceptance check, run before every release — see [the mission maker guide](mission-maker/GUIDE.en.md#demo-mission).
 
 ### Mission Makers
 

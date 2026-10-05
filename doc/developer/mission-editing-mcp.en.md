@@ -234,10 +234,9 @@ Write. Two layers: the **route** (`add`, `insert`, `remove`, `reorder`, `set`) i
 operation on `route.points`; a waypoint's **tasks** (`add_task`, `clear_tasks`) are what makes a flight
 do something.
 
-**On or off the road.** On a **ground** group, `road: true` writes a `Turning Point`'s `On Road`
-action (the vehicles follow the roads), `road: false` writes `Off Road`; for `add`, `insert` and `set`.
-Refused on any other group and any other waypoint type. Every point used to be written `Turning Point`,
-and the demo mission's convoy drove across fields (FIX-DEMO-MISSION-FINDINGS 07).
+**On or off the road.** On a **ground** group, `road: true` writes a `Turning Point`'s `On Road` action (the vehicles follow the roads), `road: false` writes `Off Road`; for `add`, `insert` and `set`.
+Refused on any other group and any other waypoint type.
+Every point used to be written `Turning Point`, and the demo mission's convoy drove across fields (FIX-DEMO-MISSION-FINDINGS 07).
 
 **The invariant that makes this surgery rather than list editing.** `FIX-WAYPOINTS-ETA-LOCKED`
 established that DCS **refuses to save** a mission whose route has no waypoint with a locked time
@@ -710,9 +709,7 @@ initialise):
   declares it in `mapResource` as `MCP_Sound_<name>`; `edit_route` `transmit_message` plays it (a
   wrapped `TransmitMessage`, `file` = the key, `loop`, `duration`, `subtitle` written to the
   dictionary).
-- `set_briefing_picture(mission_path, source_path, side, resource_name)` — copies a `.png`/`.jpg` into
-  `l10n/DEFAULT`, declares it in `mapResource` as `MCP_Picture_<name>` and appends the key to the side's
-  `pictureFileNameB` / `R` / `N`, keeping the pictures it had (FIX-DEMO-MISSION-FINDINGS 07).
+- `set_briefing_picture(mission_path, source_path, side, resource_name)` — copies a `.png`/`.jpg` into `l10n/DEFAULT`, declares it in `mapResource` as `MCP_Picture_<name>` and appends the key to the side's `pictureFileNameB` / `R` / `N`, keeping the pictures it had (FIX-DEMO-MISSION-FINDINGS 07).
 
 ### Syria Open Training (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 
@@ -962,11 +959,10 @@ collide as they spawned).
 
 ### `add_combat_operation`
 
-Writes `mission.yaml` only: a `combat_zones[]` entry of type `operation` — `tasking_orders` (each task,
-its `dependencies`), `friendly_name`, `briefing`, `active_at_start`. An operation's name is a label, not
-a trigger zone: nothing is written to `src/mission/`. Refuses a task or a dependency that names no
-declared combat zone (or names another operation): the generated `GetZone()` would be `nil` at runtime
-(FIX-DEMO-MISSION-FINDINGS 07).
+Writes `mission.yaml` only: a `combat_zones[]` entry of type `operation` — `tasking_orders` (each task, its `dependencies`), `friendly_name`, `briefing`, `active_at_start`.
+An operation's name is a label, not a trigger zone: nothing is written to `src/mission/`.
+Refuses a task or a dependency that names no declared combat zone (or names another operation): the generated `GetZone()` would be `nil` at runtime (FIX-DEMO-MISSION-FINDINGS 07).
+Activating the operation spawns all its zones at once; `dependencies` only decide when a task becomes the current objective.
 
 ### `create_qra`
 

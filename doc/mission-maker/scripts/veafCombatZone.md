@@ -744,9 +744,12 @@ operation:initialize()
 
 `VeafCombatOperation = VeafCombatZone:new()` — l'opération étend `VeafCombatZone`. Les tâches sont ajoutées avec `:addTaskingOrder(zone, requiredComplete)`, où `zone` est une `VeafCombatZone` et `requiredComplete` la liste optionnelle des noms de zones devant être terminées avant que celle-ci soit activée. L'opération apparaît dans le menu radio comme une seule entrée.
 
-Son menu propose les infos, le briefing de chaque tâche active et, comme celui d'une zone, la commande **Activer la zone** (ou **Désactiver la zone** quand elle tourne — le libellé est celui des zones). Cette commande est sécurisée, sauf en mode entraînement, et absente quand l'activation par les joueurs est coupée (`disableUserActivation()`). Une opération peut aussi démarrer seule (`active_at_start: true`) ou par la commande de marqueur `-zonestart`.
+Son menu propose les infos, le briefing de chaque tâche active et, comme celui d'une zone, la commande **Activer la zone** (ou **Désactiver la zone** quand elle tourne — le libellé est celui des zones).
+Cette commande est sécurisée, sauf en mode entraînement, et absente quand l'activation par les joueurs est coupée (`disableUserActivation()`).
+Une opération peut aussi démarrer seule (`active_at_start: true`) ou par la commande de marqueur `-zonestart`.
 
-Par défaut l'opération se range directement sous le menu des zones de combat. Le sous-menu **Opérations** n'existe que si `operation_menu_name` est renseigné dans `combat_zone_settings`.
+Par défaut l'opération se range directement sous le menu des zones de combat.
+Le sous-menu **Opérations** n'existe que si `operation_menu_name` est renseigné dans `combat_zone_settings`.
 
 ---
 

@@ -48,7 +48,9 @@ Trois signes indiquent qu'une mission utilise VEAF :
 
 ## Découvrir en jeu : la mission de démo {#demo-mission}
 
-La [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6) (Caucase) montre **chaque fonctionnalité VEAF**, une étape à la fois. Prenez un slot, puis ouvrez **F10 → Autre → Visite guidée** : chaque entrée dit où aller, quoi faire et quoi observer, et pose un repère sur votre carte. Elle existe en version française et en version anglaise.
+La [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6) (Caucase) montre **chaque fonctionnalité VEAF**, une étape à la fois.
+Prenez un slot, puis ouvrez **F10 → Autre → Visite guidée** : chaque entrée dit où aller, quoi faire et quoi observer, et pose un repère sur votre carte.
+Elle existe en version française et en version anglaise.
 
 ---
 

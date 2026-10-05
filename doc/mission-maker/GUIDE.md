@@ -166,15 +166,19 @@ Pour une mission neuve, laissez les outils créer le dossier : `prepare` pose la
 .\veaf-tools.exe mission prepare c:\ma-mission --template standard --theatre Caucasus
 ```
 
-Sans option, l'[assistant](#mode-interactif-assistant) demande le dossier et le jeu de modules. Les options sont détaillées dans les [outils de conception](#outils-de-conception).
+Sans option, l'[assistant](#mode-interactif-assistant) demande le dossier et le jeu de modules.
+Les options sont détaillées dans les [outils de conception](#outils-de-conception).
 
 ### La mission de démo {#demo-mission}
 
-La [mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) (Caucase) montre **chaque fonctionnalité en jeu**. Une visite guidée (**F10 > Autre > Visite guidée**) mène d'une étape à l'autre, dit quoi faire et quoi observer, et pose un repère sur votre carte. Elle existe en version française et en version anglaise.
+La [mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) (Caucase) montre **chaque fonctionnalité en jeu**.
+Une visite guidée (**F10 > Autre > Visite guidée**) mène d'une étape à l'autre, dit quoi faire et quoi observer, et pose un repère sur votre carte.
+Elle existe en version française et en version anglaise.
 
 C'est aussi la recette des outils : elle reçoit une étape à chaque nouvelle fonctionnalité, et sa liste de contrôle (`docs/recette.md`) est rejouée avant chaque release.
 
-Son dossier est un bon exemple de `mission.yaml` complet à lire. Pour démarrer votre propre mission, partez plutôt de `mission prepare` que d'une copie de la démo : vous auriez à retirer tout ce qu'elle montre.
+Son dossier est un bon exemple de `mission.yaml` complet à lire.
+Pour démarrer votre propre mission, partez plutôt de `mission prepare` que d'une copie de la démo : vous auriez à retirer tout ce qu'elle montre.
 
 ### Depuis zéro
 

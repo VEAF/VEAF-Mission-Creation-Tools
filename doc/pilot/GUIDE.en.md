@@ -48,7 +48,9 @@ Three signs tell you a mission uses VEAF:
 
 ## Try it in game: the demo mission {#demo-mission}
 
-The [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) (Caucasus) shows **every VEAF feature**, one step at a time. Take a slot, then open **F10 → Other → Guided tour**: each entry says where to go, what to do and what to look for, and puts a mark on your map. It comes in a French and an English version.
+The [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) (Caucasus) shows **every VEAF feature**, one step at a time.
+Take a slot, then open **F10 → Other → Guided tour**: each entry says where to go, what to do and what to look for, and puts a mark on your map.
+It comes in a French and an English version.
 
 ---
 

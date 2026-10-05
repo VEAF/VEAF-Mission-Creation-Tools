@@ -189,9 +189,7 @@ convert between DCS local coordinates (x/y) and lat/long.*
 
 ### Read the map {#read-the-map}
 
-*Orientation · ⭐* — The AI reads the **theatre**, per-coalition **bullseyes**, and existing
-zones/groups as reference points, each with its position (and each group its size), to place things
-relative to known anchors.
+*Orientation · ⭐* — The AI reads the **theatre**, per-coalition **bullseyes**, and existing zones/groups as reference points, each with its position (and each group its size), to place things relative to known anchors.
 
 > 💬 *"Which theatre is this? Show me the bullseyes and existing zones."*
 
@@ -285,10 +283,9 @@ give it a second point and it flies a race-track between the two — without one
 
 ### Create an operation (chained zones) {#create-operation}
 
-*Recipe (folder) · ◽* — Groups **combat zones already created** into an operation: activating it
-brings **all** its zones to life at once, and each task becomes the current objective once the ones it
-depends on are complete — an objective that must not exist before another is a chained zone instead. Players start it from its F10 menu, or it starts
-with the mission. The AI refuses a task that names no zone of the mission.
+*Recipe (folder) · ◽* — Groups **combat zones already created** into an operation: activating it brings **all** its zones to life at once, and each task becomes the current objective once the ones it depends on are complete — an objective that must not exist before another is a chained zone instead.
+Players start it from its F10 menu, or it starts with the mission.
+The AI refuses a task that names no zone of the mission.
 
 > 💬 *"Make an operation Thunder: CZ-Alpha first, then CZ-Bravo once Alpha has fallen."*
 
@@ -537,8 +534,8 @@ a zone, land, set a frequency, or loop the route back on itself. For a **support
 (`tanker`), act as AWACS, turn on a **TACAN** (channel, X/Y mode, callsign), enable the datalink (EPLRS),
 carry unlimited fuel, or **escort** another group named by its name. For a **radio beacon**: a unit
 that **plays a sound** in a loop on its frequency, which a helicopter homes on with its direction
-finder ([embed the sound](#add-sound) first, and set the frequency just before). For a **convoy**, each
-waypoint can follow the **roads** or drive straight across.
+finder ([embed the sound](#add-sound) first, and set the frequency just before).
+For a **convoy**, each waypoint can follow the **roads** or drive straight across.
 
 > 💬 *"Add a waypoint after the third, at 20,000 feet."*
 > 💬 *"Have this tanker orbit a race-track at 20,000 feet, 300 knots."*
@@ -669,10 +666,8 @@ beacon of a helicopter zone, a distress signal. Embedding the same file twice re
 
 ### Add a picture to the briefing {#briefing-picture}
 
-*Recipe + built · ◽* — Copies a picture (`.png` or `.jpg`) into the mission and adds it to a side's
-briefing (blue, red or neutral), after the pictures it already has — as the editor does when you pick a
-briefing picture. Avoid putting the same picture on both sides: a player whose side the briefing does
-not know (a dynamic slot, for instance) would see it twice.
+*Recipe + built · ◽* — Copies a picture (`.png` or `.jpg`) into the mission and adds it to a side's briefing (blue, red or neutral), after the pictures it already has — as the editor does when you pick a briefing picture.
+Avoid putting the same picture on both sides: a player whose side the briefing does not know (a dynamic slot, for instance) would see it twice.
 
 > 💬 *"Put map.jpg in the blue briefing."*
 

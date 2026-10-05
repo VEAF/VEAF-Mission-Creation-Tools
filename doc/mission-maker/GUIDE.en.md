@@ -167,15 +167,19 @@ For a new mission, let the tools create the folder: `prepare` lays down the stru
 .\veaf-tools.exe mission prepare c:\my-mission --template standard --theatre Caucasus
 ```
 
-With no option, the [wizard](#interactive-mode-wizard) asks for the folder and the module set. The options are detailed in the [design-time tools](#design-time-tools).
+With no option, the [wizard](#interactive-mode-wizard) asks for the folder and the module set.
+The options are detailed in the [design-time tools](#design-time-tools).
 
 ### The demo mission {#demo-mission}
 
-The [v6 demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) (Caucasus) shows **every feature in game**. A guided tour (**F10 > Other > Guided tour**) leads from one step to the next, says what to do and what to look for, and puts a mark on your map. It comes in a French and an English version.
+The [v6 demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) (Caucasus) shows **every feature in game**.
+A guided tour (**F10 > Other > Guided tour**) leads from one step to the next, says what to do and what to look for, and puts a mark on your map.
+It comes in a French and an English version.
 
 It is also the tools' acceptance check: every new feature adds a step to it, and its checklist (`docs/recette.md`) is run before every release.
 
-Its folder is a good example of a complete `mission.yaml` to read. To start your own mission, begin with `mission prepare` rather than a copy of the demo: you would have to remove everything it shows.
+Its folder is a good example of a complete `mission.yaml` to read.
+To start your own mission, begin with `mission prepare` rather than a copy of the demo: you would have to remove everything it shows.
 
 ### From Scratch
 

@@ -42,6 +42,10 @@ Helicopters spawned from a marker, landed as targets or given a job (orbit, tran
 
 A prompt for a one-session objective mission with numbered scenarios and a PPTX/PDF briefing; operations active at start and scenery targets came with it.
 
+### [FEAT-SPOTTER-DEMO-MISSION](FEAT-SPOTTER-DEMO-MISSION/PRD.md) · ✅
+
+Missions that show a spotter report reaching a battery that never saw the aircraft: a durable wake-up history, the rig and its smoke suite, and a Syria walkthrough validated by David on 2026-09-21.
+
 ### [FEAT-TERRAIN-ELEVATION](FEAT-TERRAIN-ELEVATION/PRD.md) · ✅
 
 A ground-elevation grid per theatre, read without DCS running: point elevation, cell maximum, profiles (#1045).

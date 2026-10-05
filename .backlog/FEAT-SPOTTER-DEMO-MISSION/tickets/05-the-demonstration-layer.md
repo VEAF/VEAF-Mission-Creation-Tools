@@ -1,7 +1,7 @@
 # 05 — The demonstration layer
 
-Status: 🔄 in-progress — built and running; the visual validation was interrupted on 2026-09-21 and
-resumes in a fresh session. **Nothing in this lot is committed.**
+Status: ✅ done — committed and validated by David on 2026-09-21 (`a3fe2438`, `36c9e999`,
+`749d24af`); the README dropped on 2026-10-05.
 
 The rig answers the question; it is not something a human enjoys loading. David's sequencing on
 2026-09-21 was the rig first, then this — and within this, bridge-driven before flyable.
@@ -90,4 +90,5 @@ opposite.
       fixed first: `dropLatchesForVanishedContacts` walked the whole `spotterLatches` table on
       every coalition, so the pass for a side with an empty sky cancelled the other side's
       detections and the two shapes were **unobservable** rather than merely unverified.
-- [ ] The README this folder does not yet have.
+- [x] ~~The README this folder does not yet have.~~ Dropped 2026-10-05: the feature has been seen
+      working in four missions since, and nobody needs a guide to this one (David).

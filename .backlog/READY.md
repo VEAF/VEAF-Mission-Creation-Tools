@@ -19,7 +19,3 @@ Scripted mission generation with no AI in the loop: a recipe file of MCP actions
 ### [FEAT-PORTABLE-PREFABS](FEAT-PORTABLE-PREFABS/PRD.md) · ⬜
 
 A design lot: bundle mission content (groups, statics, zones, media, mod dependencies) and re-instantiate it elsewhere. Rejecting the idea is an acceptable outcome.
-
-### [FEAT-SPOTTER-DEMO-MISSION](FEAT-SPOTTER-DEMO-MISSION/PRD.md) · ⬜
-
-A mission that proves a spotter report reaches a battery that never saw the aircraft. Tickets 01–04 done (durable history, rig, smoke-test suite); the demonstration layer is left.

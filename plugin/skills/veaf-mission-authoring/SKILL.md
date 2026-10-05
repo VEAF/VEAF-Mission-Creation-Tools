@@ -144,6 +144,8 @@ is not the one playing the zone.
   activated** (dynamic), and despawned/respawned with the zone.
 - Both take the alias from `list_shortcuts` and spawn in the carrier's coalition. Pick
   `#veafInterpreter` for a standing site, `#command` for zone-driven content.
+- `add_group` sizes the clear ground it looks for from **both** markers' command (a `-sa11` carrier
+  needs the whole site's room, not one vehicle's), and keeps other groups off that ground.
 - **The carrier's unit type is not indifferent**: pick a unit of the **class the alias spawns** — a
   Rapier launcher for `-rapier`, a `Kub 2P25 ln` for `-sa6`, a `ZSU-23-4 Shilka` for `-shilka`, a
   tank for `-armor` (`list_unit_types`). The editor then draws the right threat ring and the map reads
@@ -212,10 +214,15 @@ for the one-pass composite (`create_combat_zone` / `create_qra` / `create_cap_mi
 call. Drop to the primitives (`add_trigger_zone`, `add_group`, `set_mission_module`) only for
 partial or one-off edits, or when there's no folder (a lone `.miz`).
 
+A **combat operation** (zones activated in turn, each once its dependencies are complete) is
+`add_combat_operation`, called **after** its zones exist: it writes `mission.yaml` only, and refuses
+a task naming a zone the mission does not declare. Do not write `type: operation` by hand.
+
 ## Coordinates and the map
 
 Placement actions take DCS local `x/y`. To orient, call `describe_map` (theatre, bullseyes,
-existing zones/groups as anchors). If the user gives a **lat/long**, use `resolve_coordinates` to get
+existing zones/groups as anchors, each with its `x/y` — and each group its number of `units`); do
+not read the mission table by hand for a position. If the user gives a **lat/long**, use `resolve_coordinates` to get
 the `x/y` for the mission's theatre, then place. Real place names ("near Batumi", "north of
 Kobuleti") resolve through the geocoder (`geocode` action) when available — always surface the
 resolved point so the user can sanity-check it (DCS terrain approximates the real world).
@@ -241,13 +248,15 @@ the coalitions that actually get dynamic slots.
 - A **bullseye on a landmark** pilots can name (`set_bullseye`), the same for both sides unless the
   scenario says otherwise. The blank mission's bullseyes are arbitrary.
 - A briefing (`set_briefing`: `sortie`, situation, blue task) that lists bases, support frequencies,
-  zones and rules.
+  zones and rules. A briefing **picture** (a map, a target photo) is `set_briefing_picture`, per side.
 
 **Airbases.** Colour every airfield of each side (`set_airbase_coalition`), not a sample: the
 front line must read on the map. Decide which bases offer slots; a neutral base with dynamic slots,
 or a red base with slots nobody asked for, is an inconsistency.
 
 **Support aircraft.**
+- A **convoy** follows the roads only when its waypoints say so: `edit_route` `set` (or `add`) with
+  `road: true` writes `On Road`; without it the vehicles drive straight across.
 - A tanker needs its tasks, which a plain `add_air_group` does not give: `edit_route` `add_task`
   with `tanker`, `activate_beacon` (its TACAN) and `set_unlimited_fuel`; an AWACS `awacs` and
   `eplrs`; an escort `escort`, naming the escorted group.

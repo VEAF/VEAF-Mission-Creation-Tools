@@ -281,7 +281,7 @@ Le workflow GitHub Actions (`.github/workflows/lua-ci.yml`) s'exécute à chaque
 **`lua-coverage`** — Ubuntu latest
 1. Checkout du dépôt
 2. Installation de `lua5.1` + `luacov` via LuaRocks, puis de Poetry et des dépendances
-3. Exécution de `poetry run test-lua --cov-fail-under 80` (couverture ligne via luacov)
+3. Exécution de `poetry run test-lua --cov-fail-under 81` (couverture ligne via luacov)
 4. Échec si la couverture passe sous le plancher à cliquet (le nombre ne fait que monter)
 
 ### Exécuter StyLua localement

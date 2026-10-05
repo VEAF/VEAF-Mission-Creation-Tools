@@ -2833,6 +2833,21 @@ function VeafCombatOperation:desactivate()
 end
 
 -- updates the radio menu according to the zone state
+--- Add the activate / deactivate command to the operation's menu, under the rules of a combat zone's:
+--- only when user activation is enabled, and secured unless the operation is a training one.
+--- The commands used to be commented out, so an operation not active at start could only be started
+--- by script or `-zonestart` (FIX-DEMO-MISSION-FINDINGS ticket 06).
+function VeafCombatOperation:_addActivationCommand(labelKey, method)
+  if not self.enableUserActivation then
+    return
+  end
+  local add = veafRadio.addSecuredCommandToSubmenu
+  if self:isTraining() then
+    add = veafRadio.addCommandToSubmenu
+  end
+  add(veaf.t(labelKey), self.radioRootPath, method, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+end
+
 function VeafCombatOperation:updateRadioMenu(inBatch)
   veaf.loggers
     .get(veafCombatZone.Id)
@@ -2894,7 +2909,7 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
     -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
     veaf.loggers.get(veafCombatZone.Id):trace("zone is active")
 
-    -- veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.combatzone.deactivate"), self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    self:_addActivationCommand("menu.combatzone.deactivate", veafCombatZone.DesactivateZone)
 
     -- if self.smokeResetFunctionId then
     --     veafRadio.addCommandToSubmenu(veaf.t("menu.combatzone.smoke_unavailable"), self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
@@ -2910,7 +2925,7 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
     -- zone is not active, set up accordingly (activate zone)
     veaf.loggers.get(veafCombatZone.Id):trace("zone is not active")
 
-    -- veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.combatzone.activate"), self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    self:_addActivationCommand("menu.combatzone.activate", veafCombatZone.ActivateZone)
   end
 
   if not inBatch then

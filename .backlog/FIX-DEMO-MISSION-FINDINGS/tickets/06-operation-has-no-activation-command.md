@@ -1,6 +1,6 @@
 # 06 — A combat operation cannot be activated from its menu
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix (or doc — decide in the plan)
 Files: `src/scripts/veaf/veafCombatZone.lua` (`VeafCombatOperation:updateRadioMenu`, l. ~2897 and ~2913; `OperationRadioMenuName = nil`, l. 114), `doc/mission-maker/scripts/veafCombatZone*.md`, tests
 

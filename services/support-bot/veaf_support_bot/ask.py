@@ -100,17 +100,15 @@ class Exchange(Protocol):
             content: The new content.
         """
 
-    async def offer_escalation(self, question: str, answer: str, lang: str) -> None:
+    async def offer_escalation(self, turns: list[dict[str, str]], lang: str) -> None:
         """Offer to turn an unsatisfying answer into a bug report.
 
         An answer that did not help is the moment the asker is most likely to give up, and the
         documentation bot is where a real bug most often shows up first. The offer carries the
-        question and the answer into the report form, so escalating costs a click rather than a
-        retype.
+        thread into the report form, so escalating costs a click rather than a retype.
 
         Args:
-            question: What was asked.
-            answer: What the bot replied.
+            turns: The thread so far, alternating ``user`` and ``assistant``, oldest first.
             lang: ``"fr"`` or ``"en"``.
         """
 
@@ -349,7 +347,15 @@ class AskHandler:
         await exchange.edit(parts[0])
         for part in parts[1:]:
             await exchange.post(part)
-        await exchange.offer_escalation(context.question, body, lang)
+        # The whole thread when it is on record, so the button and a mention with `bug` hand the
+        # same thread to the same form; the last exchange alone when nothing could be recorded.
+        remembered = memory.conversation(thread) if recorded and memory and thread else None
+        turns = (
+            remembered.turns
+            if remembered
+            else [{"role": "user", "content": context.question}, {"role": "assistant", "content": body}]
+        )
+        await exchange.offer_escalation(turns, lang)
         self._logger.info(
             "question answered",
             extra={

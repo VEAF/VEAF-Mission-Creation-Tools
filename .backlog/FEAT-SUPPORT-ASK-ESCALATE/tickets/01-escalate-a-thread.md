@@ -1,6 +1,6 @@
 # 01 — Escalate a thread into a bug or a suggestion
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Type: feat
 

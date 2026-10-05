@@ -28,9 +28,8 @@ from veaf_support_bot.draft import (
     Draft,
     fold,
 )
+from veaf_support_bot.followup import ESCALATED_ANSWER_CHARS, ESCALATED_QUESTION_CHARS
 from veaf_support_bot.intake import (
-    ESCALATED_ANSWER_CHARS,
-    ESCALATED_QUESTION_CHARS,
     PARAGRAPH_MAX_CHARS,
     SUMMARY_MAX_CHARS,
     escalation_form,
@@ -237,7 +236,8 @@ class TestTheEscalatedForm(unittest.TestCase):
         Returns:
             The form.
         """
-        return escalation_form(question, answer, reporter="Tripack", reporter_id="4242", language="en")
+        turns = [{"role": "user", "content": question}, {"role": "assistant", "content": answer}]
+        return escalation_form(turns, reporter="Tripack", reporter_id="4242", language="en")
 
     def test_the_exchange_is_carried_into_what_happened(self) -> None:
         form = self._form()
@@ -261,3 +261,32 @@ class TestTheEscalatedForm(unittest.TestCase):
         self.assertLessEqual(len(form.summary), SUMMARY_MAX_CHARS)
         self.assertLessEqual(len(form.happened), PARAGRAPH_MAX_CHARS)
         self.assertLess(ESCALATED_QUESTION_CHARS + ESCALATED_ANSWER_CHARS, PARAGRAPH_MAX_CHARS)
+
+    def test_the_whole_thread_is_carried_not_only_the_last_exchange(self) -> None:
+        """FEAT-SUPPORT-ASK-ESCALATE: the report starts from the thread, not from its last line."""
+        turns = [
+            {"role": "user", "content": "how do I configure CSAR?"},
+            {"role": "assistant", "content": "in mission.yaml."},
+            {"role": "user", "content": "and the pickup zones?"},
+            {"role": "assistant", "content": "the documentation does not say."},
+        ]
+
+        form = escalation_form(turns, reporter="Tripack", reporter_id="4242", language="en")
+
+        self.assertIn("how do I configure CSAR?", form.happened)
+        self.assertIn("the documentation does not say.", form.happened)
+        self.assertLess(form.happened.index("CSAR"), form.happened.index("pickup"), "oldest first")
+        self.assertEqual(form.summary, "and the pickup zones?", "the thread is about where it ended up")
+
+    def test_a_long_thread_keeps_its_latest_turns(self) -> None:
+        """A thread drifts; when it does not all fit, the end of it is what the report is about."""
+        turns: list[dict[str, str]] = []
+        for index in range(6):
+            turns.append({"role": "user", "content": f"question {index} " + "q" * 250})
+            turns.append({"role": "assistant", "content": f"answer {index} " + "a" * 650})
+
+        form = escalation_form(turns, reporter="Tripack", reporter_id="4242", language="en")
+
+        self.assertLessEqual(len(form.happened), PARAGRAPH_MAX_CHARS)
+        self.assertIn("answer 5", form.happened)
+        self.assertNotIn("question 0", form.happened)

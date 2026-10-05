@@ -1,6 +1,6 @@
 # FEAT-SUPPORT-ASK-ESCALATE — turn an answered question into an issue
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Origin: David, 2026-09-22, in the `/ask` thread about CSAR configuration
 ([1551871856972271616](https://discord.com/channels/471061487662792715/1551871856972271616)). Tripack
@@ -32,6 +32,16 @@ The bot is an intermediary, not a reporter: the draft is shown to the user, who 
 before anything is filed. The existing `/bug` consent step (`FEAT-SUPPORT-BUG-INTAKE` ticket 04) is
 the model and should be reused rather than re-invented.
 
+## What was built
+
+Decided with David on 2026-10-04, after finding that half of it already existed: every answer already carried a *Report a bug* button, pre-filled, going through the `/bug` draft and confirmation — but for one hour only, bug only, and with the last question and answer only.
+
+- **The trigger is a mention with one word**, `@bot bug` or `@bot suggest`, in a thread the bot opened. Discord cannot show a slash command or a context-menu entry in some threads only, so either would have appeared everywhere; a mention is only recognised where the follow-up already is. A message cannot open a form, so the bot answers with a button and the click opens it. The word must stand alone: *"bug dans CTLD ?"* is a question.
+- **The answer's button stays**, for the hour after the answer; the mention is for later, with no time limit, since the thread record lives on disk.
+- **The form is filled from `ThreadMemory`**, the record the follow-ups already keep: the questions addressed to the bot and its answers, the most recent first when they do not fit the field. Discord's history is not read at all, so the `MESSAGE_CONTENT` question below does not arise.
+- **The button carries the same thread**, so both paths give the same draft.
+- **Anybody in the thread may escalate**; the reporter is whoever clicks, as with the button.
+
 ## Not in scope
 
 - Filing anything without an explicit confirmation from the user.
@@ -43,7 +53,7 @@ the model and should be reused rather than re-invented.
 
 | # | Title | Status |
 |---|---|---|
-| 01 | [Escalate a thread into a bug or a suggestion](tickets/01-escalate-a-thread.md) | ⬜ |
+| 01 | [Escalate a thread into a bug or a suggestion](tickets/01-escalate-a-thread.md) | 🧑 |
 
 ## Former index entry
 

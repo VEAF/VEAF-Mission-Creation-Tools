@@ -492,11 +492,24 @@ def _answered(intake: BugIntake | None, message: _AnswerMessage) -> InteractionE
     return exchange
 
 
+def _exchange(question: str, answer: str) -> list[dict[str, str]]:
+    """Build the turns of one exchange.
+
+    Args:
+        question: What was asked.
+        answer: What the bot replied.
+
+    Returns:
+        The two turns, oldest first.
+    """
+    return [{"role": "user", "content": question}, {"role": "assistant", "content": answer}]
+
+
 class TestTheEscalationOffer(unittest.IsolatedAsyncioTestCase):
     async def test_the_answer_gains_a_report_button(self) -> None:
         message = _AnswerMessage()
 
-        await _answered(_intake(), message).offer_escalation("how do I set a QRA?", "you cannot", "en")
+        await _answered(_intake(), message).offer_escalation(_exchange("how do I set a QRA?", "you cannot"), "en")
 
         labels = [item.label for item in message.views[0].children]
         self.assertEqual(labels, ["Report a bug"])
@@ -505,13 +518,13 @@ class TestTheEscalationOffer(unittest.IsolatedAsyncioTestCase):
         """The deployment where ``/bug`` is not published either."""
         message = _AnswerMessage()
 
-        await _answered(None, message).offer_escalation("q", "a", "en")
+        await _answered(None, message).offer_escalation(_exchange("q", "a"), "en")
 
         self.assertEqual(message.views, [])
 
     async def test_pressing_it_opens_the_form_carrying_the_exchange(self) -> None:
         message = _AnswerMessage()
-        await _answered(_intake(), message).offer_escalation("how do I set a QRA?", "you cannot", "en")
+        await _answered(_intake(), message).offer_escalation(_exchange("how do I set a QRA?", "you cannot"), "en")
         click = _Click()
 
         await message.views[0].children[0].callback(cast(discord.Interaction, cast(object, click)))
@@ -524,7 +537,7 @@ class TestTheEscalationOffer(unittest.IsolatedAsyncioTestCase):
         """The answer is already posted; trading it for a button would be the wrong way round."""
         message = _AnswerMessage(edit_error=discord.HTTPException(cast(Any, _Stub()), "rate limited"))
 
-        await _answered(_intake(), message).offer_escalation("q", "a", "en")  # must not raise
+        await _answered(_intake(), message).offer_escalation(_exchange("q", "a"), "en")  # must not raise
 
     async def test_the_button_is_taken_off_when_it_stops_being_live(self) -> None:
         message = _AnswerMessage()

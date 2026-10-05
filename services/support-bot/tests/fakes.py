@@ -35,7 +35,7 @@ class RecordingExchange:
                 placeholder forever — so it has to be reachable from a test.
         """
         self.calls: list[tuple[str, str]] = []
-        self.escalations: list[tuple[str, str, str]] = []
+        self.escalations: list[tuple[list[dict[str, str]], str]] = []
         self.thread_allowed = thread_allowed
         self.thread = thread
         self._fails_on = set(fails_on)
@@ -94,20 +94,19 @@ class RecordingExchange:
         """
         self._record("edit", content)
 
-    async def offer_escalation(self, question: str, answer: str, lang: str) -> None:
+    async def offer_escalation(self, turns: list[dict[str, str]], lang: str) -> None:
         """Record that the report form was offered, and with what.
 
-        The transcript keeps the pair rather than a flag: what the escalation carries into the form
+        The transcript keeps the turns rather than a flag: what the escalation carries into the form
         is the whole point of it, and a test asserting only that *something* was offered would pass
         on a button that escalates an empty exchange.
 
         Args:
-            question: What was asked.
-            answer: What the bot replied.
+            turns: The thread the escalation carries.
             lang: The language it was offered in.
         """
-        self.escalations.append((question, answer, lang))
-        self._record("offer_escalation", answer)
+        self.escalations.append(([dict(turn) for turn in turns], lang))
+        self._record("offer_escalation", turns[-1]["content"] if turns else "")
 
     async def thread_id(self) -> str | None:
         """Return the thread the answer went into.

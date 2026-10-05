@@ -69,6 +69,24 @@ Trois choses à savoir :
   déclenche rien ;
 - **chaque relance compte comme une question** dans les quotas, au même titre qu'un `/ask`.
 
+### Faire un ticket du fil {#escalate}
+
+Un fil `/ask` est souvent l'endroit où l'on découvre qu'il manque quelque chose : une page floue, un exemple qui ne marche pas, une fonction qui n'existe pas.
+Pour en faire un ticket sans tout réécrire, mentionnez le bot avec un seul mot :
+
+```text
+@VEAF Tools Bot bug
+@VEAF Tools Bot suggest
+```
+
+Le bot répond par un bouton qui ouvre le formulaire de [`/bug`](#bug) ou de [`/suggest`](#suggest), déjà rempli avec le fil : vos questions et ses réponses, les plus récentes en priorité si tout ne tient pas.
+Il reste à écrire ce que vous attendiez et comment reproduire, pour un bug, ou la solution que vous proposez, pour une suggestion.
+Vous voyez ensuite le brouillon du ticket, et **rien n'est publié tant que vous ne l'avez pas confirmé** ; l'abandonner est une issue normale.
+
+Le mot doit être **seul** après la mention : « @VEAF Tools Bot bug dans CTLD ? » reste une question, et il y répond.
+Cette demande ne compte pas dans les quotas, puisqu'elle ne pose aucune question à l'assistant.
+Le bot ne lit pour cela que ce qu'il a déjà en mémoire du fil : les messages qui le mentionnent et ses propres réponses, pas le reste de la conversation.
+
 ### Ce qu'il faut savoir avant de s'y fier
 
 - **Il répond à partir de la documentation, et de rien d'autre.** Il ne lit pas le code, ne regarde
@@ -88,7 +106,8 @@ Trois choses à savoir :
 
 Il ne lit pas les sources et ne regarde pas votre mission. En revanche, si sa réponse ne règle pas
 votre problème, le bouton **« Signaler un bug »** sous la réponse ouvre le formulaire de
-[`/bug`](#bug) avec votre question et sa réponse déjà dedans.
+[`/bug`](#bug) avec le fil déjà dedans.
+Le bouton disparaît au bout d'une heure ; ensuite, mentionnez le bot avec `bug` ou `suggest` (voir [Faire un ticket du fil](#escalate)).
 
 !!! tip "La même chose hors du Discord"
     `.\veaf-tools.exe ask` pose les mêmes questions au même assistant, depuis votre machine. Voir

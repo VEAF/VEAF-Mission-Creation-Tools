@@ -68,6 +68,24 @@ Three things to know:
 - **it only works in the threads it opened** for an `/ask`. Mentioning it anywhere else does nothing;
 - **each follow-up counts as one question** against the quotas, exactly like an `/ask`.
 
+### Turning the thread into an issue {#escalate}
+
+An `/ask` thread is often where you find out something is missing: an unclear page, an example that does not work, a feature that does not exist.
+To turn it into an issue without retyping it, mention the bot with a single word:
+
+```text
+@VEAF Tools Bot bug
+@VEAF Tools Bot suggest
+```
+
+The bot answers with a button that opens the [`/bug`](#bug) or [`/suggest`](#suggest) form, already filled with the thread: your questions and its answers, the most recent first when they do not all fit.
+What is left to write is what you expected and how to reproduce it, for a bug, or the solution you propose, for a suggestion.
+You then see the draft of the issue, and **nothing is published until you confirm it**; dropping it is a normal outcome.
+
+The word has to stand **alone** after the mention: "@VEAF Tools Bot bug in CTLD?" is still a question, and it answers it.
+This does not count against the quotas, since it asks the assistant nothing.
+For this the bot only reads what it already remembers of the thread: the messages that mention it and its own answers, not the rest of the conversation.
+
 ### What to know before relying on it
 
 - **It answers from the documentation, and from nothing else.** It does not read the code, does not
@@ -86,7 +104,8 @@ Three things to know:
 
 It does not read the sources and does not look at your mission. If its answer does not solve your
 problem, though, the **Report a bug** button under the answer opens the [`/bug`](#bug) form with
-your question and its answer already in it.
+the thread already in it.
+The button goes away after an hour; after that, mention the bot with `bug` or `suggest` (see [Turning the thread into an issue](#escalate)).
 
 !!! tip "The same thing outside Discord"
     `.\veaf-tools.exe ask` asks the same assistant the same questions, from your own machine. See

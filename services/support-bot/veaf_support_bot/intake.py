@@ -58,6 +58,7 @@ from veaf_support_bot.draft import CANCEL, EDIT, EXPIRED, FILE, SAME, UNANSWERED
 from veaf_support_bot.enrichment import DISABLED, Enricher
 from veaf_support_bot.exchange import ThreadExchange, ThreadHandle
 from veaf_support_bot.filing import Outcome
+from veaf_support_bot.followup import escalation_paragraph, latest_question
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.priorart import DUPLICATE, PriorArtGate, Sweep, render_match
 from veaf_support_bot.texts import REPOSITORY_URL, normalize_language, text
@@ -71,13 +72,6 @@ PREVIEW_MAX_CHARS = 1900
 SUMMARY_MAX_CHARS = 200
 PARAGRAPH_MAX_CHARS = 1200
 DOCTOR_MAX_CHARS = 4000
-
-#: How much of an escalated ``/ask`` exchange is carried into the form. Discord **refuses** a modal
-#: whose pre-filled value is longer than the field, so an unsatisfying answer of two thousand
-#: characters would not produce a truncated form — it would produce no form at all. The two bounds
-#: leave room for the sentence that introduces them.
-ESCALATED_QUESTION_CHARS = 300
-ESCALATED_ANSWER_CHARS = 700
 
 #: Longest follow-up thread name. Discord's own ceiling is 100 characters.
 THREAD_NAME_MAX_CHARS = 90
@@ -750,38 +744,31 @@ def _split_fields(form: BugForm, redacted_text: str) -> tuple[str, str, str, str
 
 
 def escalation_form(
-    question: str,
-    answer: str,
+    turns: list[dict[str, str]],
     *,
     reporter: str,
     reporter_id: str,
     language: str,
 ) -> BugForm:
-    """Turn an unsatisfying ``/ask`` exchange into the start of a report.
+    """Turn an unsatisfying ``/ask`` thread into the start of a report.
 
-    What it fills is *what happened*: the question and the answer are the observation, not the
-    diagnosis. *What was expected* and *the steps* are deliberately left empty — the form still
-    requires them, so escalating remains a report somebody wrote rather than a transcript nobody
-    read.
+    What it fills is *what happened*: the exchange is the observation, not the diagnosis. *What was
+    expected* and *the steps* are deliberately left empty — the form still requires them, so
+    escalating remains a report somebody wrote rather than a transcript nobody read.
 
     Args:
-        question: What was asked.
-        answer: What the bot replied.
-        reporter: The asker's display name.
-        reporter_id: The asker's Discord id.
+        turns: The thread so far, alternating ``user`` and ``assistant``, oldest first — the whole
+            record when the thread has one, the last exchange otherwise.
+        reporter: The display name of whoever escalates.
+        reporter_id: Their Discord id.
         language: The language of the exchange.
 
     Returns:
         The pre-filled form.
     """
     return BugForm(
-        summary=one_line(question, SUMMARY_MAX_CHARS),
-        happened=text(
-            "escalate.happened",
-            normalize_language(language),
-            question=one_line(question, ESCALATED_QUESTION_CHARS),
-            answer=one_line(answer, ESCALATED_ANSWER_CHARS),
-        )[:PARAGRAPH_MAX_CHARS],
+        summary=one_line(latest_question(turns), SUMMARY_MAX_CHARS),
+        happened=escalation_paragraph("escalate.happened", turns, normalize_language(language), PARAGRAPH_MAX_CHARS),
         expected="",
         steps="",
         doctor="",

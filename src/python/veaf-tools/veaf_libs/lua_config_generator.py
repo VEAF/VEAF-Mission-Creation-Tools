@@ -1487,7 +1487,11 @@ def _emit_action_call(item: dict) -> str:
             raise ValueError(f"radio-menu action {action!r} requires '{key}'")
 
     if action == "lua":
-        fn = str(item["function"])
+        # A closure that looks the name up at click time, never a bare reference: this file loads
+        # before mission-script.lua, where the maker defines the function, so a bare `demo.spawnCsar`
+        # raised `attempt to index global 'demo'` and stopped the rest of the configuration
+        # (FIX-DEMO-MISSION-FINDINGS ticket 01).
+        fn = f"function(...) return {item['function']}(...) end"
         args = item.get("args")
         if not args:
             return fn

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import typer
+from lua_runner import run_lua
 from veaf_libs.lua_config_generator import (
     MANDATORY_MODULES,
     RADIO_MENU_ACTIONS,
@@ -1190,13 +1191,52 @@ def test_action_airwave_verbs_guarded():
         assert f"o:{verb}()" in call
 
 
-def test_action_lua_reference_without_args():
-    assert _emit_action_call({"action": "lua", "function": "maMission.doStuff"}) == "maMission.doStuff"
+def test_action_lua_resolves_the_function_at_click_time():
+    # A closure, not a bare reference: `veaf-config.lua` loads before `mission-script.lua`, where
+    # the documentation tells the maker to define the function (FIX-DEMO-MISSION-FINDINGS 01).
+    call = _emit_action_call({"action": "lua", "function": "maMission.doStuff"})
+    assert call == "function(...) return maMission.doStuff(...) end"
 
 
-def test_action_lua_reference_with_args():
+def test_action_lua_args_follow_the_closure():
     call = _emit_action_call({"action": "lua", "function": "maMission.doStuff", "args": [1, "x"]})
-    assert call == 'maMission.doStuff, {1, "x"}'
+    assert call == 'function(...) return maMission.doStuff(...) end, {1, "x"}'
+
+
+_RADIO_STUBS = """
+veafRadio = {}
+function veafRadio.command(name, fn, parameters) return { "command", name, fn, parameters } end
+function veafRadio.securedCommand(name, fn, parameters) return { "securedcommand", name, fn, parameters } end
+function veafRadio.mainmenu(...) return { ... } end
+function veafRadio.menu(name, ...) return { "menu", name, { ... } } end
+function veafRadio.createUserMenu(configuration) captured = configuration end
+"""
+
+
+@pytest.mark.parametrize(
+    ("item", "expected"),
+    [
+        ({"command": "Run", "action": "lua", "function": "demo.spawnCsar"}, "nil"),
+        ({"command": "Run", "action": "lua", "function": "demo.spawnCsar", "args": [1, "x"]}, "1/x"),
+    ],
+)
+def test_lua_action_survives_a_function_defined_after_the_config(item: dict, expected: str) -> None:
+    """The demo mission's whole config stopped at this line: `attempt to index global 'demo'`."""
+    menu = "\n".join(_emit_user_menus({"tree": [item]}))
+    # What veafRadio does at click time: call the function with the command's parameters.
+    source = (
+        _RADIO_STUBS
+        + menu
+        + "\n-- mission-script.lua, loaded after veaf-config.lua\n"
+        + "demo = {}\n"
+        + "function demo.spawnCsar(p) called = p and (p[1] .. '/' .. p[2]) or 'nil' end\n"
+        + "local command = captured[1]\n"
+        + "command[3](command[4])\n"
+        + "print(called)\n"
+    )
+    result = run_lua(source)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == expected
 
 
 def test_action_unknown_raises():

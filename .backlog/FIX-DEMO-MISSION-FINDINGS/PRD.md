@@ -1,6 +1,6 @@
 # FIX-DEMO-MISSION-FINDINGS — what building the v6 demo mission found
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 ## Origin
 

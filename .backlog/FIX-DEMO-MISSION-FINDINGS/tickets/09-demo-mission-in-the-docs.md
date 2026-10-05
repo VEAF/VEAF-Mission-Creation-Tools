@@ -1,6 +1,6 @@
 # 09 — The docs point to the v6 demo mission, and say what it is for
 
-Status: ⬜ ready
+Status: ✅ done
 Type: doc
 Files: `README.md` (l. 55, 195), `doc/index.md` / `.en.md` (l. 69), `doc/mission-maker/GUIDE.md` / `.en.md` (l. 163-166, 1153), the module pages, `CLAUDE.md` / contributing rules, `.prompts/`
 

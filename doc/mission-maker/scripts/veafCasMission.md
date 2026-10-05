@@ -2,6 +2,8 @@
 
 **Module ID:** `CASMISSION` | **Fichier:** `veafCasMission.lua`
 
+> **Voir en jeu** : étape 03 « Missions générées : CAS et transport » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

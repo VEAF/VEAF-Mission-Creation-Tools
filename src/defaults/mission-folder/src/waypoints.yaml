@@ -19,6 +19,11 @@ waypoints:
   # one — 483 km, measured on the Syria smoke-test mission. INITIAL_POINT and TARGET below are per-mission
   # choices nobody can call wrong; a bullseye has one correct value, so naming an example after it is a
   # claim and not an example.
+  #
+  # You do not need to declare the bullseye: the build appends a BULLSEYE waypoint, at your mission's own
+  # bullseye, to every flight plan. A waypoint of yours named exactly BULLSEYE replaces it; under any other
+  # name (BULLS, BE…) your flight plans get both. To turn the automatic one off, set
+  # `pipeline: waypoints: bullseye: false` in mission.yaml.
   HOLDING_POINT:
     type: "Turning Point"
     action: "Turning Point"

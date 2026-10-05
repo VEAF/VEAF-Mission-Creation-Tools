@@ -171,6 +171,9 @@ Le vocabulaire d'actions est **fermé** (v1). Chaque `action` requiert les clés
 | `lua` | `function: "<nom.de.fonction>"`, `args: [ ... ]` (optionnel) | Appelle une fonction Lua du créateur de mission |
 
 > **L'action `lua` est le pont vers votre Lua.** La fonction référencée par `function:` doit être définie par le créateur de mission dans `mission-script.lua`. Si elle est référencée en YAML mais **absente** du Lua de la mission, **le build échoue** (et `veaf-tools mission validate` la signale). C'est le moyen de rattacher une fonction Lua personnalisée à un menu déclaré en YAML.
+>
+> La fonction est cherchée **au clic**, pas au chargement de la configuration : `mission-script.lua` est chargé après la configuration générée, et c'est bien là qu'elle doit vivre.
+> `args` lui arrive en **un seul paramètre**, une table : `function maMission.demarrerTout(args) … args[1] … end`.
 
 ---
 

@@ -141,5 +141,28 @@ class TestAgainstTheVendoredEngine(unittest.TestCase):
                     self.assertNotIn("#", line, line)
 
 
+class TestStripEndOfLineComments(unittest.TestCase):
+    """What CTLD's own YAML reader would otherwise read as part of a value (FIX-DEMO-MISSION-FINDINGS 03)."""
+
+    def test_cases(self) -> None:
+        from veaf_libs.ctld_config import strip_end_of_line_comments
+
+        cases = {
+            "jtacLaserCodeMax: 1686   # highest code\n": "jtacLaserCodeMax: 1686\n",
+            "key: []\t# tab before the hash\n": "key: []\n",
+            "# whole-line comment stays\n": "# whole-line comment stays\n",
+            "  # indented whole-line comment stays\n": "  # indented whole-line comment stays\n",
+            'msg: "Bravo # 2"  # note\n': 'msg: "Bravo # 2"\n',
+            "msg: 'it''s # here' # note\n": "msg: 'it''s # here'\n",
+            'msg: "a \\" # still quoted" # note\n': 'msg: "a \\" # still quoted"\n',
+            "colour: red#nospace\n": "colour: red#nospace\n",
+            "  - Stennis # carrier\r\n": "  - Stennis\r\n",
+            "no newline at the end # gone": "no newline at the end",
+        }
+        for given, expected in cases.items():
+            with self.subTest(given=given):
+                self.assertEqual(strip_end_of_line_comments(given), expected)
+
+
 if __name__ == "__main__":
     unittest.main()

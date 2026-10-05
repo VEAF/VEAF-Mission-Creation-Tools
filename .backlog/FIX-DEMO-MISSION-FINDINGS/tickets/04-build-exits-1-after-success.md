@@ -1,6 +1,6 @@
 # 04 — The build exits 1 after succeeding when its output goes to `/dev/null`
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/python/veaf-tools/veaf_tools/helpers.py` (`should_auto_pause`, `_is_double_clicked`), `veaf_tools/app.py` (l. 81-87), tests
 

@@ -1,6 +1,6 @@
 # 07 — MCP gaps the demo had to script around
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat (MCP actions)
 Files: `veaf_mission_mcp` actions (`edit_route`, `describe_map`, `add_group` clear-ground sizing, new composites), tests
 

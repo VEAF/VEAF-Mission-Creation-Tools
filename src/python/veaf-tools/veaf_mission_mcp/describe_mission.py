@@ -49,8 +49,17 @@ def _list_zones(content: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _list_groups(content: dict[str, Any]) -> list[dict[str, Any]]:
-    """List groups (name, coalition, country, category) across all coalitions/countries."""
+def _list_groups(content: dict[str, Any], with_position: bool = False) -> list[dict[str, Any]]:
+    """List groups (name, coalition, country, category) across all coalitions/countries.
+
+    Args:
+        content: The mission table.
+        with_position: Add each group's ``x`` / ``y`` and its number of ``units`` — what
+            ``describe_map`` needs to place things relative to them (FIX-DEMO-MISSION-FINDINGS 07).
+
+    Returns:
+        One entry per named group.
+    """
     result: list[dict[str, Any]] = []
     coalitions = content.get("coalition") or {}
     if not isinstance(coalitions, dict):
@@ -72,12 +81,16 @@ def _list_groups(content: dict[str, Any]) -> list[dict[str, Any]]:
                     groups = list(groups.values())
                 for group in groups or []:
                     if isinstance(group, dict) and group.get("name"):
-                        result.append(
-                            {
-                                "name": group.get("name"),
-                                "coalition": side,
-                                "country": country_name,
-                                "category": category,
-                            }
-                        )
+                        entry: dict[str, Any] = {
+                            "name": group.get("name"),
+                            "coalition": side,
+                            "country": country_name,
+                            "category": category,
+                        }
+                        if with_position:
+                            units = group.get("units") or []
+                            entry["x"] = group.get("x")
+                            entry["y"] = group.get("y")
+                            entry["units"] = len(units)
+                        result.append(entry)
     return result

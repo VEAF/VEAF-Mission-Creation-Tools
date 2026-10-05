@@ -159,6 +159,30 @@ def test_a_marker_adds_its_zone_spawn_radius() -> None:
     assert gf.marker_footprint("Unit #001") is None
 
 
+def test_an_interpreter_marker_is_sized_from_its_command() -> None:
+    """The demo's SA-11 site was placed as one vehicle, « 0 m of clear ground » (FIX-DEMO-MISSION-FINDINGS 07).
+
+    `#veafInterpreter` runs its command at the unit's own position: no zone scatter is added.
+    """
+    expected = gf.command_footprint("-sa11, spacing 3")
+    footprint = gf.marker_footprint('SA-11 site #veafInterpreter["-sa11, spacing 3"]')
+    assert footprint is not None
+    assert expected.radius is not None and expected.radius > 0
+    assert footprint.radius == pytest.approx(expected.radius)
+    assert footprint.what == expected.what
+
+
+def test_an_interpreter_marker_that_spawns_nothing_measurable_stays_a_plain_vehicle() -> None:
+    """Review of FIX-DEMO-MISSION-FINDINGS 07: an unknown size must not stop the group being placed.
+
+    A `#command` of unknown size is a promise of a group, and placement refuses to guess it. A
+    `#veafInterpreter` unit commonly runs something else (`-destroy`, a TACAN, a move): before the lot it
+    counted as one vehicle, and it still does.
+    """
+    assert gf.command_footprint("-destroy").radius is None
+    assert gf.marker_footprint('Cleaner #veafInterpreter["-destroy"]') is None
+
+
 def test_the_long_range_list_is_the_lua_table() -> None:
     source = (_LUA / "veafCasMission.lua").read_text(encoding="utf-8")
     block = source[source.index("veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS = {") :]

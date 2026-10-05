@@ -38,7 +38,7 @@ from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 from veaf_libs.safe_zip import safe_extract_all
-from veaf_tools.helpers import should_auto_pause
+from veaf_tools.helpers import pause_before_exit, should_auto_pause
 
 # Parse --lang early from sys.argv so that --help is also rendered in the
 # requested language (Typer's --help is eager and fires before main_callback).
@@ -932,7 +932,7 @@ def main(
     success = worker.run()
 
     if pause:
-        input(PAUSE_MESSAGE)
+        pause_before_exit(PAUSE_MESSAGE)
 
     if not success:
         raise typer.Exit(code=1)
@@ -947,4 +947,4 @@ if __name__ == "__main__":
     finally:
         logger.stop_status()
         if auto_pause:
-            input(PAUSE_MESSAGE)
+            pause_before_exit(PAUSE_MESSAGE)

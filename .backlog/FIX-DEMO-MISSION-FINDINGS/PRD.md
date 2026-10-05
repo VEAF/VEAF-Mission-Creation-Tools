@@ -1,6 +1,6 @@
 # FIX-DEMO-MISSION-FINDINGS — what building the v6 demo mission found
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 ## Origin
 
@@ -33,3 +33,13 @@ They come first.
 - Tickets 01–03: each defect reproduced by a test that fails before the fix, and caught by `validate` or the build where it cannot be prevented.
 - Every ticket's demo workaround removed in the demo repository, the demo rebuilt and `tools/verify.py` green, and the demo's `docs/retours-vmct.md` updated.
 - Tickets 01, 02, 03 and 05 checked in DCS (the demo's test mission and bridge make it a short session).
+
+## State (2026-10-05)
+
+All nine tickets are implemented on `fix/demo-mission-findings`, one pull request.
+Waiting for a human:
+
+- **In DCS**: tickets 01, 02, 03 and 05 are proven on stubs and Lua 5.1, not yet in game. Ticket 05 is the one to watch: the run of 2026-10-05 logged nothing after `doSpawnGroup`, which the land-only search explains only if the INFO line was filtered.
+- **In the demo repository** (not touched by this lot): remove the workarounds, rebuild, `tools/verify.py`, update `docs/retours-vmct.md`.
+- Ticket 06 took option a (David, 2026-10-05): the commands are back.
+- Ticket 07's « `save_folder_mission` does not rewrite `mapResource` » was already fixed by FIX-OPEN-TRAINING-SYRIA-FINDINGS 16; `set_briefing_picture`'s test pins it.

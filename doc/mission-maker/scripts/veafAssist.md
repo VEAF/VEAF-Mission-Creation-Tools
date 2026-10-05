@@ -2,6 +2,8 @@
 
 **Module ID:** `ASSIST` | **Fichier:** `veafAssist.lua`
 
+> **Voir en jeu** : étape 17 « Météo, ATC et assistance cockpit » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

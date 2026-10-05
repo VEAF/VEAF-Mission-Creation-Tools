@@ -39,7 +39,7 @@ from typing import Any
 from veaf_libs.dcs_units_data import get_unit_category
 
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
-from veaf_mission_mcp.mission_table import find_group, indexed, listed
+from veaf_mission_mcp.mission_table import find_group, group_category, indexed, listed
 
 #: Metres per foot, and metres per second per knot.
 _M_PER_FT = 0.3048
@@ -58,6 +58,10 @@ _WAYPOINT_TYPES: dict[str, str] = {
     "TakeOffGroundHot": "From Ground Area Hot",
     "Land": "Landing",
 }
+
+#: The `action` a ground group's `Turning Point` carries to follow the roads, or not. DCS writes these
+#: two in place of the `Turning Point` action on a vehicle route.
+_ROAD_ACTIONS: dict[bool, str] = {True: "On Road", False: "Off Road"}
 
 #: Orbit patterns DCS accepts.
 _ORBIT_PATTERNS: tuple[str, ...] = ("Race-Track", "Circle")
@@ -92,6 +96,7 @@ def edit_route(
     task: str | None = None,
     task_params: dict[str, Any] | None = None,
     task_position: int | None = None,
+    road: bool | None = None,
 ) -> dict[str, Any]:
     """Edit one group's route in place, backed up first.
 
@@ -115,6 +120,9 @@ def edit_route(
         task_position: For ``add_task``, the 1-based place the task takes among the waypoint's tasks,
             the others renumbered after it; appended when omitted. DCS runs them by ``number``, so a
             task placed after one that never ends — an orbit — is never reached.
+        road: For a **ground** group, whether the waypoint follows the roads (``On Road``) or drives
+            straight across (``Off Road``), for ``add``, ``insert`` or ``set``. Only a ``Turning Point``
+            carries it.
 
     Returns:
         ``{group, operation, changed, route, warnings}`` — ``route`` is the resulting route, so a
@@ -132,22 +140,20 @@ def edit_route(
 
     group = find_group(content, group_name)
     points = _points_list(group, group_name)
+    if road is not None and group_category(content, group_name) != "vehicle":
+        raise ValueError(
+            f"road applies to a ground group only: {group_name!r} is not under 'vehicle', and only a "
+            "vehicle follows roads"
+        )
 
     changed: dict[str, Any] = {}
     warnings: list[str] = []
 
-    if operation == "add":
-        _add(points, position, name, len(points) + 1, changed, altitude_ft=altitude_ft, speed_kt=speed_kt)
-    elif operation == "insert":
-        _add(
-            points,
-            position,
-            name,
-            _checked_index(index, points, allow_append=True),
-            changed,
-            altitude_ft=altitude_ft,
-            speed_kt=speed_kt,
-        )
+    if operation in ("add", "insert"):
+        at = len(points) + 1 if operation == "add" else _checked_index(index, points, allow_append=True)
+        _add(points, position, name, at, changed, altitude_ft=altitude_ft, speed_kt=speed_kt)
+        if road is not None:
+            _set_road(points[at - 1], road, changed)
     elif operation == "remove":
         _remove(points, _checked_index(index, points), changed)
     elif operation == "reorder":
@@ -161,6 +167,7 @@ def edit_route(
             waypoint_type=waypoint_type,
             eta_locked=eta_locked,
             changed=changed,
+            road=road,
         )
     elif operation == "add_task":
         _add_task(
@@ -335,6 +342,7 @@ def _set_fields(
     waypoint_type: str | None,
     eta_locked: bool | None,
     changed: dict[str, Any],
+    road: bool | None = None,
 ) -> None:
     """Set a waypoint's editable fields, converting the units the caller speaks.
 
@@ -346,12 +354,16 @@ def _set_fields(
         waypoint_type: A DCS waypoint type; its `action` travels with it.
         eta_locked: Whether the time is locked.
         changed: The report to record the changes in.
+        road: Whether a ground waypoint follows the roads; applied after ``waypoint_type``.
 
     Raises:
-        ValueError: If nothing was given, or the waypoint type is unknown.
+        ValueError: If nothing was given, the waypoint type is unknown, or ``road`` meets a waypoint
+            that is not a ``Turning Point``.
     """
-    if all(value is None for value in (name, altitude_ft, speed_kt, waypoint_type, eta_locked)):
-        raise ValueError("no field given — pass at least one of name, altitude_ft, speed_kt, waypoint_type, eta_locked")
+    if all(value is None for value in (name, altitude_ft, speed_kt, waypoint_type, eta_locked, road)):
+        raise ValueError(
+            "no field given — pass at least one of name, altitude_ft, speed_kt, waypoint_type, eta_locked, road"
+        )
     if name is not None:
         changed["name"] = {"from": point.get("name"), "to": name}
         point["name"] = name
@@ -374,6 +386,28 @@ def _set_fields(
     if eta_locked is not None:
         changed["eta_locked"] = {"from": bool(point.get("ETA_locked")), "to": eta_locked}
         point["ETA_locked"] = eta_locked
+    if road is not None:
+        _set_road(point, road, changed)
+
+
+def _set_road(point: dict[str, Any], road: bool, changed: dict[str, Any]) -> None:
+    """Make a ground group's ``Turning Point`` follow the roads (``On Road``) or not (``Off Road``).
+
+    Every point used to be written ``Turning Point``/``Turning Point``, so a convoy drove straight across
+    fields (FIX-DEMO-MISSION-FINDINGS ticket 07).
+
+    Args:
+        point: The waypoint to mutate.
+        road: True for ``On Road``, False for ``Off Road``.
+        changed: The report to record the change in.
+
+    Raises:
+        ValueError: If the waypoint is not a ``Turning Point``.
+    """
+    if point.get("type") != "Turning Point":
+        raise ValueError(f"road applies to a Turning Point only; this waypoint is a {point.get('type')!r}")
+    changed["road"] = {"from": point.get("action"), "to": _ROAD_ACTIONS[road]}
+    point["action"] = _ROAD_ACTIONS[road]
 
 
 def _empty_combo_task() -> dict[str, Any]:

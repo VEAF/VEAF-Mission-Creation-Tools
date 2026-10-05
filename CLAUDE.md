@@ -137,6 +137,9 @@ For every action requested by the user, execute these steps in order:
 6. Run `poetry install` to update the development environment.
 7. **Defaults lockstep**: if the change touches how `convert-v5` or `lua_config_generator` produce `mission.yaml` (comments, config blocks, module keys, structure), update `src/defaults/mission-folder/mission.yaml` in the **same lot** so the shipped default stays aligned with the generated output.
 8. **Known limitations**: a lot that finds a limitation of the tools without fixing it adds an entry to `src/python/veaf-tools/veaf_libs/data/known-limitations.yaml` (`kind: tool`); a lot that fixes one sets that entry's `fixed_in` to the coming release; a surprising DCS behaviour, measured, goes there too (`kind: dcs`, with its date). Then run `poetry run python -m veaf_libs.known_limitations` to regenerate `docs/agents/dcs-runtime-traps.md`. *Why:* the MCP action `describe_known_limitations` serves that file from the executable, so an agent building a mission without this repository reads the traps that match its version — a trap left in a prompt or a skill goes stale.
+9. **Demo mission**: a lot that adds a feature a player or a mission maker can see adds its step to [`VEAF/VEAF-Demo-Mission-v6`](https://github.com/VEAF/VEAF-Demo-Mission-v6) — one entry in its `tour/steps.yaml`, with its acceptance check; the demo's `CLAUDE.md` says how it is regenerated and rebuilt.
+   A release runs the demo's `docs/recette.md` first.
+   *Why:* the demo is where every feature can be tried in game and the pre-release check; a feature it does not show is one nobody verifies before shipping.
 
 ---
 

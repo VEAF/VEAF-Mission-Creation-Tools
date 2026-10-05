@@ -2,6 +2,8 @@
 
 **Module ID:** `ASSETS` | **Fichier:** `veafAssets.lua`
 
+> **Voir en jeu** : étape 14 « Ravitailleurs, AWACS et escorte » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

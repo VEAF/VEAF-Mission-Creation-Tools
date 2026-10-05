@@ -1487,7 +1487,11 @@ def _emit_action_call(item: dict) -> str:
             raise ValueError(f"radio-menu action {action!r} requires '{key}'")
 
     if action == "lua":
-        fn = str(item["function"])
+        # A closure that looks the name up at click time, never a bare reference: this file loads
+        # before mission-script.lua, where the maker defines the function, so a bare `demo.spawnCsar`
+        # raised `attempt to index global 'demo'` and stopped the rest of the configuration
+        # (FIX-DEMO-MISSION-FINDINGS ticket 01).
+        fn = f"function(...) return {item['function']}(...) end"
         args = item.get("args")
         if not args:
             return fn
@@ -1969,6 +1973,51 @@ def emit_checklists_lua(
     return lines
 
 
+#: Name of the local function the generated file runs each initialisation block through.
+_GUARDED_INIT_FN = "veafGuardedInit"
+
+#: Its definition, emitted once, before the first guarded block. `xpcall` rather than `pcall` so the
+#: traceback is the failing module's, not the logger's; `debug` may be absent from the mission
+#: sandbox, hence the guard.
+_GUARDED_INIT_HELPER: tuple[str, ...] = (
+    "-- One module's initialisation error must not take the others down (FIX-DEMO-MISSION-FINDINGS 02).",
+    f"local function {_GUARDED_INIT_FN}(name, initialize)",
+    "    local ok, err = xpcall(initialize, function(e)",
+    "        if debug and debug.traceback then",
+    "            return debug.traceback(tostring(e), 2)",
+    "        end",
+    "        return tostring(e)",
+    "    end)",
+    "    if not ok then",
+    '        veaf.loggers.get(veaf.Id):error("%s init failed: %s", name, err)',
+    "    end",
+    "end",
+    "",
+)
+
+
+def _emit_guarded_init(lines: list[str], name: str, block: list[str]) -> None:
+    """Append *block* to *lines*, run through the guarded-init helper under *name*.
+
+    Each module used to be initialised straight in the file, so the first one to raise stopped
+    everything after it: on the demo mission a CTLD error left no combat zone, QRA, asset or IADS.
+    Wrapped, the error is logged at ERROR with the module's name and the next module starts.
+
+    The block is **not** re-indented: it may hold a multi-line long string (`[[ … ]]`), whose
+    content indentation would change.
+
+    Args:
+        lines: The Lua being assembled; the helper's definition is added the first time.
+        name: What the log calls the block, e.g. ``"CTLD"`` or a module id.
+        block: The block's Lua lines, typically an ``if <module> then … end``.
+    """
+    if _GUARDED_INIT_HELPER[1] not in lines:
+        lines.extend(_GUARDED_INIT_HELPER)
+    lines.append(f"{_GUARDED_INIT_FN}({_lua_text(name)}, function()")
+    lines.extend(block)
+    lines.append("end)")
+
+
 def generate_config_lua(
     mission_yaml: dict,
     header: str | None = None,
@@ -2160,9 +2209,7 @@ def generate_config_lua(
                     lines.append(
                         f"veaf.config.{setting_key} = {_to_lua_scalar(ctld_cfg[setting_key], f'veaf.config.{setting_key}')}"
                     )
-        lines.append("if ctld then")
-        lines.append("    veaf.ctld_initialize()")
-        lines.append("end")
+        _emit_guarded_init(lines, "CTLD", ["if ctld then", "    veaf.ctld_initialize()", "end"])
         lines.append("")
 
     # ── Module configuration + initialization ─────────────────────────────
@@ -2240,9 +2287,10 @@ def generate_config_lua(
                 lines.append("")
                 continue
 
-            lines.append(f"if {var_name} then")
-            _emit_module_body(lines, mod_id, mod_cfg, var_name, qra_section, cap_missions, combat_missions_data)
-            lines.append("end")
+            block = [f"if {var_name} then"]
+            _emit_module_body(block, mod_id, mod_cfg, var_name, qra_section, cap_missions, combat_missions_data)
+            block.append("end")
+            _emit_guarded_init(lines, mod_id, block)
             lines.append("")
 
     # ── Community-script enable flags (FIX-VEAF-MODULE-GATING) ────────────
@@ -2274,7 +2322,7 @@ def generate_config_lua(
         b = "true" if include_blue else "false"
         db = "true" if debug_blue else "false"
         lines.append("-- ── Skynet-IADS ──────────────────────────────────────────────────────────────")
-        lines.append("if veafSkynet then")
+        skynet_block = ["if veafSkynet then"]
         # Emitted **only when the field is given**, the way `veaf.SecurityDisabled` is handled above.
         #
         # It used to be written unconditionally from a `False` default, right before `initialize()`. A
@@ -2289,7 +2337,7 @@ def generate_config_lua(
         # default. An explicit `dynamic_spawn: false` is a statement and still overrides a hatch.
         if "dynamic_spawn" in skynet_cfg:
             ds = "true" if skynet_cfg["dynamic_spawn"] else "false"
-            lines.append(f"    veafSkynet.DynamicSpawn = {ds}")
+            skynet_block.append(f"    veafSkynet.DynamicSpawn = {ds}")
         # The spotter network, emitted under the same rule and for the same reason: a line written
         # from a Python default lands after the `module_settings:` hatch and silently undoes it.
         #
@@ -2298,27 +2346,31 @@ def generate_config_lua(
         # happens here, once, rather than at every use inside the module.
         if "spotter_network" in skynet_cfg:
             sn = "true" if skynet_cfg["spotter_network"] else "false"
-            lines.append(f"    veafSkynet.SpotterNetwork = {sn}")
+            skynet_block.append(f"    veafSkynet.SpotterNetwork = {sn}")
         radio_range_km = _skynet_number(skynet_cfg, "spotter_radio_range_km", "km", 20)
         if radio_range_km is not None:
             radio_range_m = radio_range_km * 1000
-            lines.append(f"    veafSkynet.SpotterRadioRange = {_to_lua_scalar(_whole_if_it_can_be(radio_range_m))}")
+            skynet_block.append(
+                f"    veafSkynet.SpotterRadioRange = {_to_lua_scalar(_whole_if_it_can_be(radio_range_m))}"
+            )
         # km/h to m/s. A speed is exposed rather than a hop period on purpose: the period is
         # range / speed, so exposing both would let widening the range silently double how fast
         # an alert crosses the map.
         speed_kmh = _skynet_number(skynet_cfg, "spotter_propagation_speed_kmh", "km/h", 3600)
         if speed_kmh is not None:
             speed_ms = speed_kmh / 3.6
-            lines.append(f"    veafSkynet.SpotterPropagationSpeed = {_to_lua_scalar(_whole_if_it_can_be(speed_ms))}")
+            skynet_block.append(
+                f"    veafSkynet.SpotterPropagationSpeed = {_to_lua_scalar(_whole_if_it_can_be(speed_ms))}"
+            )
         spotter_view = _spotter_view_mode(skynet_cfg)
         if spotter_view is not None:
-            lines.append(f"    veafSkynet.SpotterView = {_lua_text(spotter_view)}")
+            skynet_block.append(f"    veafSkynet.SpotterView = {_lua_text(spotter_view)}")
         # Skynet 3.5.0's last line of defence and coverage sweep, under the same "only when the
         # field is given" rule as everything above it. The radii are written in kilometres and
         # stored in metres, like the spotter range.
         if "last_line_of_defence" in skynet_cfg:
             lld = "true" if skynet_cfg["last_line_of_defence"] else "false"
-            lines.append(f"    veafSkynet.LastLineOfDefence = {lld}")
+            skynet_block.append(f"    veafSkynet.LastLineOfDefence = {lld}")
         # The example in the warning is each bound's own default, not a shared one: suggesting 10 for
         # the maximum would tell an author to collapse the 10-15 spread the feature exists for.
         for key, lua_name, example_km in (
@@ -2327,17 +2379,22 @@ def generate_config_lua(
         ):
             radius_km = _skynet_number(skynet_cfg, key, "km", example_km)
             if radius_km is not None:
-                lines.append(f"    veafSkynet.{lua_name} = {_to_lua_scalar(_whole_if_it_can_be(radius_km * 1000))}")
+                skynet_block.append(
+                    f"    veafSkynet.{lua_name} = {_to_lua_scalar(_whole_if_it_can_be(radius_km * 1000))}"
+                )
         persistence_s = _skynet_number(skynet_cfg, "last_line_of_defence_persistence_s", "seconds", 45)
         if persistence_s is not None:
-            lines.append(
+            skynet_block.append(
                 f"    veafSkynet.LastLineOfDefencePersistence = {_to_lua_scalar(_whole_if_it_can_be(persistence_s))}"
             )
         coverage_s = _skynet_number(skynet_cfg, "coverage_refresh_interval_s", "seconds", 10)
         if coverage_s is not None:
-            lines.append(f"    veafSkynet.CoverageRefreshInterval = {_to_lua_scalar(_whole_if_it_can_be(coverage_s))}")
-        lines.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
-        lines.append("end")
+            skynet_block.append(
+                f"    veafSkynet.CoverageRefreshInterval = {_to_lua_scalar(_whole_if_it_can_be(coverage_s))}"
+            )
+        skynet_block.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
+        skynet_block.append("end")
+        _emit_guarded_init(lines, "SKYNET", skynet_block)
         lines.append("")
 
     # No CTLD configuration block: CTLD 2 is configured by the mission's ctld-config.yaml,
@@ -2349,21 +2406,20 @@ def generate_config_lua(
     if csar_cfg.get("enabled"):
         lines.append("-- ── CSAR configuration ───────────────────────────────────────────────────────")
         lines.append("-- Note: CSAR.lua must be loaded by mission-script.lua before this block.")
-        lines.append("if csar then")
+        csar_block = ["if csar then"]
         csar_props = {k: v for k, v in csar_cfg.items() if k != "enabled"}
         for key, value in csar_props.items():
-            lines.append(f"    csar.{key} = {_to_lua_scalar(value, f'csar.{key}')}")
-        lines.append("    csar.initialize()")
-        lines.append("end")
+            csar_block.append(f"    csar.{key} = {_to_lua_scalar(value, f'csar.{key}')}")
+        csar_block.append("    csar.initialize()")
+        csar_block.append("end")
+        _emit_guarded_init(lines, "CSAR", csar_block)
         lines.append("")
 
     # TheUniversalMission (TUM) — community script with no config, only an init call.
     if _community_enabled(mission_yaml, "tum"):
         lines.append("-- ── TheUniversalMission (TUM) ────────────────────────────────────────────────")
         lines.append("-- Note: TheUniversalMission.lua must be loaded by mission-script.lua before this block.")
-        lines.append("if TUM then")
-        lines.append("    TUM.initialize()")
-        lines.append("end")
+        _emit_guarded_init(lines, "TUM", ["if TUM then", "    TUM.initialize()", "end"])
         lines.append("")
 
     _warn_on_shadowed_module_settings(module_settings, lines)

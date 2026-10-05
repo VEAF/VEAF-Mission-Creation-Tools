@@ -89,8 +89,11 @@ jobs:
 
       # veaf-logs is a Qt application: its tests run headless (QT_QPA_PLATFORM=offscreen,
       # set by their conftest), but the offscreen plugin still links against these.
-      - name: Install the Qt runtime libraries
-        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3
+      # Lua 5.1 runs the generated Lua some tests execute (test/python/testlib/lua_runner.py): a
+      # reference evaluated at load time, or an error that stops the rest of a file, only shows when
+      # the code runs. Without it those tests fail here rather than skip.
+      - name: Install the Qt runtime libraries and Lua 5.1
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3 lua5.1
 
       - name: Install dependencies
         # Install runtime + dev deps; exclude only the 'build' group (pyinstaller)

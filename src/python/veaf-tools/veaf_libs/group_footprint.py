@@ -49,6 +49,8 @@ LONG_RANGE_AIR_DEFENSE_GROUPS: tuple[str, ...] = (
 _DYNAMIC_KINDS = frozenset({"armorgroup", "infantrygroup", "transportgroup", "combatgroup", "convoy"})
 
 _TAG_COMMAND = re.compile(r'#command\s*=\s*"([^"]+)"', re.IGNORECASE)
+#: `veafInterpreter.Starter` / `Trailer`, which the runtime matches case-sensitively.
+_TAG_INTERPRETER = re.compile(r'#veafInterpreter\["(.+?)"\]')
 _TAG_SPAWN_RADIUS = re.compile(r"#spawnradius\s*=\s*([\d\-]+)", re.IGNORECASE)
 
 
@@ -252,12 +254,22 @@ def marker_footprint(unit_name: str, *, coalition: str = "red") -> Footprint | N
         unit_name: The unit's name, as written in the mission.
         coalition: The unit's side.
 
+    A ``#veafInterpreter["…"]`` unit is sized from its command too, with no zone scatter: the command
+    runs at the unit's own position; when that size cannot be known it stays a plain vehicle. It used to count as one vehicle, so the demo mission's SA-11 site
+    was given « 0 m of clear ground » (FIX-DEMO-MISSION-FINDINGS ticket 07).
+
     Returns:
-        The footprint, or ``None`` when the unit carries no ``#command``.
+        The footprint, or ``None`` when the unit carries neither ``#command`` nor ``#veafInterpreter``.
     """
     match = _TAG_COMMAND.search(unit_name)
     if not match:
-        return None
+        interpreted = _TAG_INTERPRETER.search(unit_name)
+        if not interpreted:
+            return None
+        footprint = command_footprint(interpreted.group(1), coalition=coalition)
+        # A size that cannot be known keeps the unit a plain vehicle, as before: an interpreter unit
+        # often runs no spawn at all (`-destroy`, a TACAN), and placement must not refuse the group.
+        return footprint if footprint.radius is not None else None
     footprint = command_footprint(match.group(1), coalition=coalition)
     if footprint.radius is None:
         return footprint

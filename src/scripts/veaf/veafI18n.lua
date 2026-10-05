@@ -1799,6 +1799,10 @@ veaf.i18nCatalog = {
     fr = "Fin des opérations aériennes",
     en = "End air operations",
   },
+  ["menu.carrier.start_ops"] = {
+    fr = "Démarrer les opérations aériennes pour %d minutes",
+    en = "Start carrier air operations for %d minutes",
+  },
   ["menu.casmission.info"] = {
     fr = "Infos sur l'objectif",
     en = "Target information",

@@ -2,6 +2,8 @@
 
 **Module ID :** `SKYNET` | **Fichier :** `veafSkynetIadsHelper.lua` | **Table Lua :** `veafSkynet`
 
+> **Voir en jeu** : étape 06 « Défense aérienne intégrée (Skynet) » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

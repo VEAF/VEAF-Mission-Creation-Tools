@@ -2,6 +2,8 @@
 
 **Module ID:** `SANCTUARY` | **Fichier:** `veafSanctuary.lua`
 
+> **Voir en jeu** : étape 13 « Sanctuaire rouge de Gudauta » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif

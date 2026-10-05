@@ -15,10 +15,11 @@ from veaf_mission_mcp.add_sound import add_sound
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
 from veaf_mission_mcp.catalog import ActionCatalog
-from veaf_mission_mcp.composites import create_cap_mission, create_combat_zone, create_qra
+from veaf_mission_mcp.composites import add_combat_operation, create_cap_mission, create_combat_zone, create_qra
 from veaf_mission_mcp.describe_mission import describe_mission
 from veaf_mission_mcp.describe_units import describe_units
 from veaf_mission_mcp.edit_mission_yaml import (
@@ -431,7 +432,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="edit_route",
             description=(
                 "EDIT a group's waypoints and what the flight DOES at them. Operations: add (append), "
-                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked), "
+                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked/road), "
                 "add_task, clear_tasks. Call describe_units first to see the route you are editing -- the "
                 "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
                 "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
@@ -491,6 +492,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "Its matching DCS 'action' is written with it -- they are a pair.",
                     },
                     "eta_locked": {"type": "boolean", "description": "Whether this waypoint's time is locked."},
+                    "road": {
+                        "type": "boolean",
+                        "description": (
+                            "GROUND groups only, for add / insert / set: true writes 'On Road' (the "
+                            "vehicles follow the roads), false 'Off Road' (straight across). Only a "
+                            "Turning Point carries it."
+                        ),
+                    },
                     "task": {
                         "type": "string",
                         "enum": [
@@ -1630,6 +1639,39 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="set_briefing_picture",
+            description=(
+                "ADD an image (.png or .jpg) to a coalition's BRIEFING: copied into l10n/DEFAULT, declared "
+                "in mapResource, and its key appended to the mission's pictureFileNameB / R / N -- the "
+                "three pieces DCS keeps apart. The side's existing pictures are kept; adding the same "
+                "file again lists it once. Do not put one picture on both sides to 'show it to everyone': "
+                "a player whose side the briefing does not know (a Client or dynamic slot) sees the red "
+                "list then the blue one, so it twice. Target a FOLDER (durable) or a .miz; backed up."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
+                    "source_path": {"type": "string", "description": "The .png or .jpg file to embed."},
+                    "side": {
+                        "type": "string",
+                        "enum": ["blue", "red", "neutral"],
+                        "description": "Whose briefing shows it.",
+                    },
+                    "resource_name": {
+                        "type": "string",
+                        "description": "The file name inside the mission; the source's own name when omitted.",
+                    },
+                },
+                "required": ["mission_path", "source_path", "side"],
+            },
+        ),
+        handler=lambda p: set_briefing_picture(
+            Path(p["mission_path"]), source_path=p["source_path"], side=p["side"], resource_name=p.get("resource_name")
+        ),
+    )
+    catalog.register(
+        ActionSpec(
             name="repair_static_shapes",
             description=(
                 "FILL the shape_name of every static placed without one (by a tool before 6.26, or a "
@@ -1764,6 +1806,60 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=_handle_create_combat_zone,
+    )
+    catalog.register(
+        ActionSpec(
+            name="add_combat_operation",
+            description=(
+                "Declare a VEAF combat OPERATION in a mission FOLDER's mission.yaml (no build): a "
+                "modules.COMBATZONE.combat_zones[] entry of type 'operation' grouping combat zones the "
+                "mission ALREADY declares (create_combat_zone first). Activating the operation spawns ALL its "
+                "zones at once; a task's dependencies only decide when it becomes the current objective "
+                "(an objective that must not exist before another is a chained_zones of that zone "
+                "instead). Players activate the operation from its F10 "
+                "menu, or it starts by itself with active_at_start. The operation's name is a label, "
+                "not a trigger zone: nothing is written to src/mission. Refuses a task or dependency "
+                "naming an undeclared zone (or another operation) -- it would resolve to nothing at "
+                "runtime."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (holds mission.yaml).",
+                    },
+                    "zone_name": {
+                        "type": "string",
+                        "description": "The operation's technical name, unique among combat_zones[].",
+                    },
+                    "friendly_name": {"type": "string", "description": "Label in the F10 menu."},
+                    "briefing": {"type": "string", "description": "Text shown to the players."},
+                    "active_at_start": {
+                        "type": "boolean",
+                        "description": "Activate the operation when the mission starts.",
+                    },
+                    "tasking_orders": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "zone_name": {"type": "string", "description": "A declared combat zone."},
+                                "dependencies": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "Zones that must be complete before this task starts.",
+                                },
+                            },
+                            "required": ["zone_name"],
+                        },
+                        "description": "The operation's tasks, in order; at least one.",
+                    },
+                },
+                "required": ["folder_path", "zone_name", "tasking_orders"],
+            },
+        ),
+        handler=_handle_add_combat_operation,
     )
     catalog.register(
         ActionSpec(
@@ -1936,7 +2032,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="describe_map",
             description=(
                 "Summarize a mission's map for orientation (theatre, per-coalition bullseyes, and "
-                "existing trigger zones/groups as reference points), from a .miz or a mission "
+                "existing trigger zones/groups as reference points -- each zone with its x/y/radius, "
+                "each group with its x/y and its number of units), from a .miz or a mission "
                 "folder. Read-only; helps place things relative to known anchors without DCS."
             ),
             parameters_schema={
@@ -2484,6 +2581,7 @@ def _handle_edit_route(params: dict[str, Any]) -> dict[str, Any]:
         task=params.get("task"),
         task_params=params.get("task_params"),
         task_position=params.get("task_position"),
+        road=params.get("road"),
     )
 
 
@@ -2619,6 +2717,17 @@ def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:
         country_name=params["country_name"],
         category=params.get("category", "vehicle"),
         combat_zone=params.get("combat_zone"),
+    )
+
+
+def _handle_add_combat_operation(params: dict[str, Any]) -> dict[str, Any]:
+    return add_combat_operation(
+        Path(params["folder_path"]),
+        zone_name=params["zone_name"],
+        tasking_orders=params["tasking_orders"],
+        friendly_name=params.get("friendly_name"),
+        briefing=params.get("briefing"),
+        active_at_start=params.get("active_at_start"),
     )
 
 

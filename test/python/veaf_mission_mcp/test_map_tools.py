@@ -18,6 +18,26 @@ class TestDescribeMap:
         assert any(z["name"] == "combatZone_Test" for z in result["zones"])
         assert {g["coalition"] for g in result["groups"]} <= {"blue", "red", "neutrals"}
 
+    def test_each_group_carries_its_position_and_size(self, sample_miz: Path) -> None:
+        """The demo mission read `src/mission/mission` by hand to find its groups (FIX-DEMO-MISSION-FINDINGS 07)."""
+        from mission_tools.miz_tools import read_miz
+
+        def values(container: object) -> list:
+            return list(container.values()) if isinstance(container, dict) else list(container or [])
+
+        content = read_miz(sample_miz).mission_content
+        expected = {}
+        for coalition in values(content["coalition"]):
+            for country in values(coalition.get("country")):
+                for category in ("plane", "helicopter", "vehicle", "ship", "static"):
+                    for group in values((country.get(category) or {}).get("group")):
+                        expected[group["name"]] = (group.get("x"), group.get("y"), len(values(group.get("units"))))
+
+        result = describe_map(sample_miz)
+
+        assert expected, "the sample mission has groups"
+        assert {g["name"]: (g["x"], g["y"], g["units"]) for g in result["groups"]} == expected
+
 
 class TestResolveCoordinates:
     def test_xy_to_latlon_roundtrips(self, sample_miz: Path) -> None:

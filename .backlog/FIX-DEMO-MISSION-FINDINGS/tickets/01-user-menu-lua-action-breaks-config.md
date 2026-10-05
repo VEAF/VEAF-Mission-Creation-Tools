@@ -1,6 +1,6 @@
 # 01 — A `lua` user-menu action breaks the whole config
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/python/veaf-tools/veaf_libs/lua_config_generator.py` (`lua` branch near l. 1489), `validate`, `doc/mission-maker/scripts/veafRadio*.md`, tests
 

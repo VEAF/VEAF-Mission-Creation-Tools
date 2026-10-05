@@ -8,15 +8,16 @@ This guide is for players flying missions that use the VEAF framework. No techni
 
 1. [What is VEAF MCT?](#what-is-veaf-mct)
 2. [Recognising a VEAF Mission](#recognising-a-veaf-mission)
-3. [The F10 Radio Menu](#the-f10-radio-menu)
-4. [Marker Commands](#marker-commands)
-5. [Assets: Tankers, AWACS, Carriers](#assets)
-6. [Combat Zones and Missions](#combat-zones-and-missions)
-7. [CAS Training](#cas-training)
-8. [Security and Permissions](#security)
-9. [Tips for Your Aircraft](#tips-for-your-aircraft)
-10. [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
-11. [Community and Support](#community-and-support)
+3. [Try it in game: the demo mission](#demo-mission)
+4. [The F10 Radio Menu](#the-f10-radio-menu)
+5. [Marker Commands](#marker-commands)
+6. [Assets: Tankers, AWACS, Carriers](#assets)
+7. [Combat Zones and Missions](#combat-zones-and-missions)
+8. [CAS Training](#cas-training)
+9. [Security and Permissions](#security)
+10. [Tips for Your Aircraft](#tips-for-your-aircraft)
+11. [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
+12. [Community and Support](#community-and-support)
 
 ---
 
@@ -42,6 +43,14 @@ Three signs tell you a mission uses VEAF:
 3. **Map markers** show tanker tracks, AWACS orbits or combat zone positions.
 
 > 📷 *Screenshot coming soon: VEAF startup messages in the lower-right corner.*
+
+---
+
+## Try it in game: the demo mission {#demo-mission}
+
+The [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) (Caucasus) shows **every VEAF feature**, one step at a time.
+Take a slot, then open **F10 → Other → Guided tour**: each entry says where to go, what to do and what to look for, and puts a mark on your map.
+It comes in a French and an English version.
 
 ---
 
@@ -128,7 +137,7 @@ For anything not covered by an alias, you can write a full VEAF command directly
 
 ```
 _spawn unit, name F-16C
-_spawn unit, name T-80, multiplier 4, hdg 270
+_spawn unit, name T-80UD, multiplier 4, hdg 270
 _spawn unit, name SA-6
 ```
 
@@ -389,7 +398,9 @@ Press F10: if a "VEAF" submenu appears under "Other", it is a VEAF mission.
 Check the syntax (raw commands start with `_`, aliases with `-`). In multiplayer, if you are not on the server's pilot list, add `password [PASSWORD]` to the command. For the F10 menu, remember the group acts at the level of its lowest-graded occupant: `_auth elevate` raises it to your own level for 2 minutes. Also check that the server allows marker commands.
 
 **What unit names can I use with `_spawn unit`?**
-Standard DCS type names: `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Note that they are case-sensitive.
+A vehicle's or a ship's DCS type (`T-80UD`, `M-1 Abrams`, `ZSU-23-4 Shilka`), its name in the mission editor (`MBT M1A2 Abrams`) or a VEAF alias (`sa8`, `shilka`); upper and lower case do not matter.
+An aircraft cannot be spawned this way: use a CAP patrol.
+An air-defence battery is a group, not a unit: use its shortcut, for example `-sa6`.
 
 **The units I spawned disappeared. Is that normal?**
 Yes — some missions enforce a range limit (about 40–50 NM): AI is cleaned up if you fly too far away.

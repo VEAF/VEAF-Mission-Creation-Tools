@@ -1,6 +1,6 @@
 # 01 — `_destroy, radius …` spares units it has already found
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/scripts/veaf/veafSpawnObjects.lua` (`veafSpawn.destroy`, « radius based destruction »), `test/lua/`
 

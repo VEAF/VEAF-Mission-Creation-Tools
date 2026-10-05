@@ -1,6 +1,6 @@
 # 03 — The CAS group name sticks to « Blue CAS Group »
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/scripts/veaf/veafCasMission.lua` (`generateCasMission`, l. ~1097), `test/lua/test_veafCasMission*.lua`
 

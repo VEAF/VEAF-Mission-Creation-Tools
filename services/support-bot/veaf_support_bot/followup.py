@@ -64,7 +64,8 @@ from typing import Any
 
 from veaf_support_bot import answer as answer_module
 from veaf_support_bot.logging_setup import get_logger
-from veaf_support_bot.texts import DEFAULT_LANGUAGE, LANGUAGES
+from veaf_support_bot.texts import DEFAULT_LANGUAGE, LANGUAGES, text
+from veaf_support_bot.untrusted import one_line
 from veaf_support_bot.worker import MAX_QUESTION_CHARS
 
 #: Version of the on-disk document. A file that does not carry it is ignored rather than guessed at.
@@ -85,6 +86,17 @@ _JOIN = "\n\n"
 
 #: A Discord user mention, in both the modern and the legacy nickname form.
 _MENTION = re.compile(r"<@!?(\d+)>")
+
+#: The flows a thread can be escalated into, by the word that asks for it. The word has to stand
+#: **alone** after the mention: *"bug dans CTLD ?"* is a question, and taking it for an escalation
+#: would swallow it.
+ESCALATION_KEYWORDS: dict[str, str] = {"bug": "bug", "suggest": "suggest", "suggestion": "suggest"}
+
+#: How much of one turn an escalated transcript carries. Discord **refuses** a modal whose pre-filled
+#: value is longer than the field, so an answer of two thousand characters would not produce a
+#: truncated form — it would produce no form at all. The bounds leave room for more than one turn.
+ESCALATED_QUESTION_CHARS = 300
+ESCALATED_ANSWER_CHARS = 700
 
 
 def strip_mentions(content: str, bot_id: str) -> str:
@@ -125,6 +137,95 @@ def retrieval_query(subject: str, followup: str) -> str:
     return f"{about[:room]}{_JOIN}{asked}"
 
 
+def escalation_kind(question: str) -> str | None:
+    """Say whether a follow-up is a request to escalate the thread, and into what.
+
+    Args:
+        question: The follow-up, with the bot's mention already stripped.
+
+    Returns:
+        ``"bug"`` or ``"suggest"`` when the follow-up is one of :data:`ESCALATION_KEYWORDS` and
+        nothing else, ``None`` for anything that is a question. Punctuation around the word is
+        ignored — *"bug !"*, the way French typography writes it, and *"/bug"* are still the word.
+    """
+    word = "".join(character for character in question.lower() if character.isalnum() or character.isspace())
+    return ESCALATION_KEYWORDS.get(word.strip())
+
+
+def latest_question(turns: list[dict[str, str]]) -> str:
+    """Return the last non-empty question in a list of turns.
+
+    Args:
+        turns: The exchange, alternating ``user`` and ``assistant``, oldest first.
+
+    Returns:
+        The question, or an empty string when no user turn holds one.
+    """
+    for turn in reversed(turns):
+        if turn.get("role") == "user" and turn.get("content", "").strip():
+            return turn["content"]
+    return ""
+
+
+def escalation_transcript(turns: list[dict[str, str]], lang: str, budget: int) -> str:
+    """Render a thread as the transcript an escalated report starts from.
+
+    Only what the thread record holds: the questions addressed to the bot and its own answers. The
+    rest of the thread is not read — see ``FEAT-SUPPORT-ASK-ESCALATE``.
+
+    The **most recent** turns are kept when they do not all fit, because a thread drifts and the
+    report is about where it ended up, not where it started. A cut never leaves an answer at the top
+    whose question was dropped: the reader of the issue could not tell what it answers.
+
+    Args:
+        turns: The exchange, alternating ``user`` and ``assistant``, oldest first.
+        lang: ``"fr"`` or ``"en"``.
+        budget: Longest result, in characters.
+
+    Returns:
+        One paragraph per turn, oldest first, never longer than ``budget``.
+    """
+    kept: list[str] = []
+    roles: list[str] = []
+    used = 0
+    for turn in reversed(turns):
+        role = turn.get("role", "")
+        content = turn.get("content", "")
+        if role not in ("user", "assistant") or not content.strip():
+            continue
+        limit = ESCALATED_QUESTION_CHARS if role == "user" else ESCALATED_ANSWER_CHARS
+        line = text(f"escalate.turn.{role}", lang, content=one_line(content, limit))
+        cost = len(line) + (len(_JOIN) if kept else 0)
+        if used + cost > budget:
+            if not kept:
+                kept.append(line[:budget])
+            elif len(kept) > 1 and roles[-1] == "assistant":
+                kept.pop()
+            break
+        kept.append(line)
+        roles.append(role)
+        used += cost
+    return _JOIN.join(reversed(kept))
+
+
+def escalation_paragraph(key: str, turns: list[dict[str, str]], lang: str, max_chars: int) -> str:
+    """Render the pre-filled field of an escalated form: one introducing sentence, then the thread.
+
+    Args:
+        key: Catalogue key of the introducing sentence, which holds a ``{transcript}`` placeholder.
+        turns: The exchange, alternating ``user`` and ``assistant``, oldest first.
+        lang: ``"fr"`` or ``"en"``.
+        max_chars: Longest value the form field accepts. Discord **refuses** a modal whose pre-filled
+            value overflows, so this is a hard ceiling rather than a preference.
+
+    Returns:
+        The field value, never longer than ``max_chars``.
+    """
+    introduction = text(key, lang, transcript="")
+    transcript = escalation_transcript(turns, lang, max_chars - len(introduction))
+    return text(key, lang, transcript=transcript)[:max_chars]
+
+
 @dataclass
 class ThreadConversation:
     """One continuable thread.
@@ -159,10 +260,7 @@ def widening_subject(conversation: ThreadConversation) -> str:
         trimmed at :data:`MAX_REMEMBERED_TURNS`, or read back from a file written by an older
         version, can carry fewer turns than it was written with.
     """
-    for turn in reversed(conversation.turns):
-        if turn.get("role") == "user" and turn.get("content", "").strip():
-            return turn["content"]
-    return conversation.question
+    return latest_question(conversation.turns) or conversation.question
 
 
 def followup_turns(conversation: ThreadConversation, followup: str) -> list[dict[str, str]]:

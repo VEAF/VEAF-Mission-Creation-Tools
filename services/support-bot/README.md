@@ -90,8 +90,14 @@ with the count of lines and characters that go into the issue anyway. A fenced b
 through is closed, so the rest of the message still renders.
 
 An unsatisfying `/ask` answer carries a **Report a bug** button that opens the same form, pre-filled
-with the question and the answer. What was expected and the steps stay empty on purpose: the
+with the thread. What was expected and the steps stay empty on purpose: the
 exchange is the observation, the report is still his to make.
+
+Later, a mention with the single word `bug` or `suggest` in a thread the bot opened does the same thing without a time limit (FEAT-SUPPORT-ASK-ESCALATE).
+A message cannot open a form, so the bot answers with a button and the click opens `/bug` or `/suggest` pre-filled; from there the draft and the confirmation are the ordinary ones.
+The form is filled from the thread record (`ask-threads.json`), which holds only the questions addressed to the bot and its own answers: the rest of the thread is not read, whatever the portal's `MESSAGE_CONTENT` toggle says.
+The most recent turns are kept when they do not all fit in the field, because a thread drifts.
+Asking for an escalation spends no question of the quota, and on a deployment with no checkout the word is answered as an ordinary follow-up.
 
 **Everything published is redacted at the transport.** Not by each caller: the GitHub client
 redacts *every outgoing body*, however deeply nested, on its way to the network, and refuses to send
@@ -353,7 +359,7 @@ live.
    therefore show *fewer* sources than it used — never one that does not exist.
 5. No page cited reads as "the documentation may not cover this", with a route to the support page.
 6. The answer carries a **Report a bug** button for an hour, which opens `/bug`'s form pre-filled
-   with the exchange. An answer that did not help is where somebody gives up, and it is also where a
+   with the thread. An answer that did not help is where somebody gives up, and it is also where a
    real bug most often surfaces first.
 
 If the bot cannot open a thread — usually a missing **Create Public Threads** permission — it says

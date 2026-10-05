@@ -44,7 +44,7 @@ from veaf_support_bot.draft import (
     SAME,
     UNANSWERED,
 )
-from veaf_support_bot.followup import strip_mentions
+from veaf_support_bot.followup import ThreadConversation, escalation_kind, strip_mentions
 from veaf_support_bot.health import ServiceState
 from veaf_support_bot.intake import (
     DOCTOR_MAX_CHARS,
@@ -58,7 +58,7 @@ from veaf_support_bot.intake import (
 from veaf_support_bot.logging_setup import get_logger
 from veaf_support_bot.service import InFlightTasks
 from veaf_support_bot.suggest import SuggestIntake, SuggestSubmission
-from veaf_support_bot.suggestion import COMPONENTS, UNKNOWN_COMPONENT, SuggestionForm
+from veaf_support_bot.suggestion import COMPONENTS, UNKNOWN_COMPONENT, SuggestionForm, escalated_suggestion
 from veaf_support_bot.suggestion import PARAGRAPH_MAX_CHARS as SUGGESTION_PARAGRAPH_MAX_CHARS
 from veaf_support_bot.suggestion import SUMMARY_MAX_CHARS as SUGGESTION_SUMMARY_MAX_CHARS
 from veaf_support_bot.texts import DEFAULT_LANGUAGE, normalize_language, text
@@ -199,8 +199,7 @@ def _locale_of(interaction: discord.Interaction) -> str:
 
 def escalation_opener(
     intake: BugIntake,
-    question: str,
-    answer: str,
+    turns: list[dict[str, str]],
     lang: str,
     logger: Logger,
     tasks: InFlightTasks | None,
@@ -213,14 +212,13 @@ def escalation_opener(
     Args:
         intake: What the escalated report is handed to, passed in rather than read back off an
             exchange so the closure cannot outlive the check that it exists.
-        question: What was asked.
-        answer: What the bot replied.
+        turns: The thread the report starts from, oldest first.
         lang: ``"fr"`` or ``"en"``.
         logger: Logger handed to the report's own modal.
         tasks: Registry a shutdown drains, handed to that modal.
 
     Returns:
-        A coroutine function opening the report form, pre-filled with the exchange.
+        A coroutine function opening the report form, pre-filled with the thread.
     """
 
     async def open_form(click: discord.Interaction) -> None:
@@ -230,13 +228,55 @@ def escalation_opener(
             click: The click, which is the interaction the modal must answer.
         """
         prefill = escalation_form(
-            question,
-            answer,
+            turns,
             reporter=click.user.display_name,
             reporter_id=str(click.user.id),
             language=lang,
         )
         await click.response.send_modal(BugModal(intake, [], logger, prefill=prefill, tasks=tasks, lang=lang))
+
+    return open_form
+
+
+def suggestion_opener(
+    suggest: SuggestIntake,
+    turns: list[dict[str, str]],
+    lang: str,
+    logger: Logger,
+    tasks: InFlightTasks | None,
+) -> Callable[[discord.Interaction], Awaitable[None]]:
+    """Build what a *Suggest an improvement* button does when pressed.
+
+    The twin of :func:`escalation_opener`: same thread, same pre-filling, the ``/suggest`` form
+    instead of the ``/bug`` one, and from there the same draft and the same confirmation as a
+    suggestion typed from scratch.
+
+    Args:
+        suggest: What the escalated suggestion is handed to.
+        turns: The thread the suggestion starts from, oldest first.
+        lang: ``"fr"`` or ``"en"``.
+        logger: Logger handed to the suggestion form.
+        tasks: Registry a shutdown drains, handed to that form.
+
+    Returns:
+        A coroutine function opening the suggestion form, pre-filled with the thread.
+    """
+
+    async def open_form(click: discord.Interaction) -> None:
+        """Open the suggestion form on the clicker's own click.
+
+        Args:
+            click: The click, which is the interaction the modal must answer.
+        """
+        prefill = escalated_suggestion(
+            turns,
+            asker=click.user.display_name,
+            asker_id=str(click.user.id),
+            language=lang,
+        )
+        await click.response.send_modal(
+            SuggestModal(suggest, UNKNOWN_COMPONENT, logger, prefill=prefill, tasks=tasks, lang=lang)
+        )
 
     return open_form
 
@@ -337,22 +377,21 @@ class InteractionExchange:
                 extra={"event": "ask.edit_failed", "error": f"{type(error).__name__}: {error}"},
             )
 
-    async def offer_escalation(self, question: str, answer: str, lang: str) -> None:
-        """Attach a *Report a bug* button to the answer, carrying the exchange into the form.
+    async def offer_escalation(self, turns: list[dict[str, str]], lang: str) -> None:
+        """Attach a *Report a bug* button to the answer, carrying the thread into the form.
 
         Never raises: the answer is already posted by the time this runs, and losing it to a failure
         while adding a button would trade the thing that worked for the thing that did not.
 
         Args:
-            question: What was asked.
-            answer: What the bot replied.
+            turns: The thread so far, oldest first.
             lang: ``"fr"`` or ``"en"``.
         """
         if self._intake is None or self._message is None:
             return
         view = _EscalationView(
             label=text("escalate.button", lang),
-            open_form=self._escalation_opener(self._intake, question, answer, lang),
+            open_form=self._escalation_opener(self._intake, turns, lang),
             logger=self._logger,
         )
         try:
@@ -364,21 +403,20 @@ class InteractionExchange:
             )
 
     def _escalation_opener(
-        self, intake: BugIntake, question: str, answer: str, lang: str
+        self, intake: BugIntake, turns: list[dict[str, str]], lang: str
     ) -> Callable[[discord.Interaction], Awaitable[None]]:
         """Build what the escalation button does when pressed.
 
         Args:
             intake: What the escalated report is handed to, passed in rather than read back off
                 the exchange so the closure cannot outlive the check that it exists.
-            question: What was asked.
-            answer: What the bot replied.
+            turns: The thread so far, oldest first.
             lang: ``"fr"`` or ``"en"``.
 
         Returns:
-            A coroutine function opening the report form, pre-filled with the exchange.
+            A coroutine function opening the report form, pre-filled with the thread.
         """
-        return escalation_opener(intake, question, answer, lang, self._logger, self._tasks)
+        return escalation_opener(intake, turns, lang, self._logger, self._tasks)
 
     async def thread_id(self) -> str | None:
         """Return the thread the answer went into, when one was opened.
@@ -476,22 +514,21 @@ class ThreadExchange:
                 extra={"event": "followup.edit_failed", "error": f"{type(error).__name__}: {error}"},
             )
 
-    async def offer_escalation(self, question: str, answer: str, lang: str) -> None:
+    async def offer_escalation(self, turns: list[dict[str, str]], lang: str) -> None:
         """Attach a *Report a bug* button to the answer, as a slash command would.
 
         A follow-up is where an unsatisfying answer most often ends up — the reader has already
         tried once — so this is the last place the offer should be missing.
 
         Args:
-            question: What was asked.
-            answer: What the bot replied.
+            turns: The thread so far, oldest first.
             lang: ``"fr"`` or ``"en"``.
         """
         if self._intake is None or self._message is None:
             return
         view = _EscalationView(
             label=text("escalate.button", lang),
-            open_form=escalation_opener(self._intake, question, answer, lang, self._logger, self._tasks),
+            open_form=escalation_opener(self._intake, turns, lang, self._logger, self._tasks),
             logger=self._logger,
         )
         try:
@@ -557,6 +594,7 @@ class SupportBotClient(discord.Client):
         self._handler = handler
         self._tasks = tasks
         self._intake = intake
+        self._suggest = suggest
         self._logger = get_logger("discord")
         self.tree = app_commands.CommandTree(self)
         register_commands(self.tree, handler, self._logger, tasks, intake)
@@ -668,6 +706,9 @@ class SupportBotClient(discord.Client):
         question = strip_mentions(message.content, str(self.user.id))
         if not question:
             return
+        kind = escalation_kind(question)
+        if kind is not None and await self._offer_thread_escalation(message, kind, conversation):
+            return
         context = AskContext(
             user_id=str(message.author.id),
             user_display=message.author.display_name,
@@ -686,6 +727,57 @@ class SupportBotClient(discord.Client):
             # Tracked like a slash-command exchange, so a shutdown waits for the final edit instead
             # of leaving a placeholder in the thread for ever.
             await self._tasks.track(self._handler.handle(exchange, context), name=f"followup:{context.user_id}")
+
+    async def _offer_thread_escalation(
+        self, message: discord.Message, kind: str, conversation: ThreadConversation
+    ) -> bool:
+        """Answer a mention with ``bug`` or ``suggest`` by offering the pre-filled form.
+
+        A message is not an interaction, and only an interaction can open a form: so the bot answers
+        with a button, and the click opens it. From there it is the ordinary ``/bug`` or ``/suggest``
+        flow, where the draft is shown and nothing is filed without the confirmation it asks for.
+
+        Args:
+            message: The mention.
+            kind: ``"bug"`` or ``"suggest"``.
+            conversation: The thread's record, which is what the form is filled from.
+
+        Returns:
+            ``True`` when the offer was made. ``False`` when that flow is not published on this
+            deployment, so the mention is answered as the question it then is.
+        """
+        lang = conversation.lang
+        turns = conversation.turns or [{"role": "user", "content": conversation.question}]
+        if kind == "bug" and self._intake is not None:
+            label = text("escalate.button", lang)
+            open_form = escalation_opener(self._intake, turns, lang, self._logger, self._tasks)
+            emoji = "🐞"
+        elif kind == "suggest" and self._suggest is not None:
+            label = text("escalate.button.suggest", lang)
+            open_form = suggestion_opener(self._suggest, turns, lang, self._logger, self._tasks)
+            emoji = "💡"
+        else:
+            return False
+        view = _EscalationView(label=label, open_form=open_form, logger=self._logger, emoji=emoji)
+        self._logger.info(
+            "a thread escalation was offered",
+            extra={
+                "event": "followup.escalation_offered",
+                "kind": kind,
+                "user": str(message.author.id),
+                "discord_thread": str(message.channel.id),
+            },
+        )
+        try:
+            view.message = await message.channel.send(
+                text(f"escalate.ready.{kind}", lang), view=view, allowed_mentions=NO_MENTIONS
+            )
+        except discord.HTTPException as error:
+            self._logger.warning(
+                "could not offer the thread escalation",
+                extra={"event": "followup.escalation_failed", "error": type(error).__name__},
+            )
+        return True
 
     async def on_ready(self) -> None:
         """Mark the service ready: the gateway is connected and commands can arrive."""
@@ -1177,6 +1269,7 @@ class _EscalationView(discord.ui.View):
         label: str,
         open_form: Callable[[discord.Interaction], Awaitable[None]],
         logger: Logger,
+        emoji: str = "🐞",
     ) -> None:
         """Initialize the view.
 
@@ -1184,11 +1277,12 @@ class _EscalationView(discord.ui.View):
             label: What the button says.
             open_form: What pressing it does.
             logger: Logger for a failed clean-up.
+            emoji: What the button shows beside its label.
         """
         super().__init__(timeout=ESCALATION_EXPIRY_SECONDS)
         self.message: discord.Message | None = None
         self._logger = logger
-        self.add_item(_EscalateButton(label, open_form))
+        self.add_item(_EscalateButton(label, open_form, emoji))
 
     async def on_timeout(self) -> None:
         """Take the button off the answer once it is no longer live."""
@@ -1209,10 +1303,13 @@ class _EscalateButton(discord.ui.Button["_EscalationView"]):
     Args:
         label: What it says.
         open_form: What pressing it does.
+        emoji: What it shows beside its label.
     """
 
-    def __init__(self, label: str, open_form: Callable[[discord.Interaction], Awaitable[None]]) -> None:
-        super().__init__(label=label, style=discord.ButtonStyle.secondary, emoji="🐞")
+    def __init__(
+        self, label: str, open_form: Callable[[discord.Interaction], Awaitable[None]], emoji: str = "🐞"
+    ) -> None:
+        super().__init__(label=label, style=discord.ButtonStyle.secondary, emoji=emoji)
         self._open_form = open_form
 
     async def callback(self, interaction: discord.Interaction) -> None:

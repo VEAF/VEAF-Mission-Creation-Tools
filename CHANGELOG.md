@@ -53,6 +53,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   An aircraft flying away more than 40 km from the patrol is not engaged at all: the patrol stays on its zone.
   Facing several targets, each aircraft of the patrol is given its own, the most important first; facing one, they all go for it as before.
   The aspect boundaries, weights and the 40 km cut-off are estimates, to be tuned in game; the per-aircraft tasking is still to be confirmed in game too.
+- **An `/ask` thread can become a bug report or a suggestion without retyping it** (FEAT-SUPPORT-ASK-ESCALATE).
+  In a thread the bot opened, mentioning it with the single word `bug` or `suggest` answers with a button that opens the `/bug` or `/suggest` form, pre-filled from the thread; the draft is then shown and nothing is filed without the usual confirmation.
+  The form is filled from the bot's own record of the thread — the questions addressed to it and its answers, the most recent first when they do not all fit — and the rest of the thread is not read.
+  The *Report a bug* button under an answer now carries the whole thread too, not only the last question and answer.
+  Asking for it spends no question of the quota, and a question that merely starts with the word (*"bug dans CTLD ?"*) is still answered as a question.
 
 ## [6.27.0] — 2026-10-03
 

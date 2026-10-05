@@ -1,6 +1,6 @@
 # 05 — `-cargoships` spawns nothing, silently
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — fixed on stubs, to check in DCS
 Type: fix
 Files: `src/scripts/veaf/veafShortcuts.lua` (`-cargoships`, `-escortedcargoships`, `-combatships`), `veafSpawn.lua` (`doSpawnGroup` for ship groups), `veaf-units.yaml` (`cargoships-nodef`), tests
 

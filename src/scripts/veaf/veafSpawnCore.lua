@@ -681,11 +681,35 @@ end
 -- @param silent when true, log only — a scripted spawn must not spam the players
 -- @return nil always, so a caller can `return veafSpawn._reportNoGroupPosition(silent)`
 function veafSpawn._reportNoGroupPosition(silent)
-  veaf.loggers.get(veafSpawn.Id):info("cannot find a suitable position for spawning the group")
+  -- `warn`, not `info`: a spawn that produced nothing is worth seeing in a log read at the default
+  -- level, the more so when it is silent on screen, as a combat zone's commands are.
+  veaf.loggers.get(veafSpawn.Id):warn("cannot find a suitable position for spawning the group")
   if not silent then
     trigger.action.outText(veaf.t("spawn.no_position_group"), 5)
   end
   return nil
+end
+
+--- Whether a group definition is made of ships
+-- Decided by its first unit the database knows, the way `veafUnits.placeGroup` decides it: a group
+-- mixing ships with anything else is not supported there either.
+-- @param groupDefinition table a group from the groups database
+-- @return boolean
+function veafSpawn._isNavalGroupDefinition(groupDefinition)
+  if groupDefinition.naval then
+    return true
+  end
+  for _, u in ipairs(groupDefinition.units or {}) do
+    local unitType = u
+    if type(u) == "table" then
+      unitType = u.typeName or u[1]
+    end
+    local unit = type(unitType) == "string" and veafUnits.findUnit(unitType)
+    if unit then
+      return unit.naval == true
+    end
+  end
+  return false
 end
 
 --- Spawn a specific group at a specific spot
@@ -721,14 +745,8 @@ function veafSpawn.doSpawnGroup(
     shuffle
   )
 
-  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius)
-  if not spawnSpot then
-    return veafSpawn._reportNoGroupPosition(silent)
-  end
-  veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
-
-  veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
-
+  -- Resolved before the spawn point is searched: what the group floats or drives on decides where
+  -- that point may be.
   if type(groupDefinition) == "string" then
     local name = groupDefinition
     -- find the desired group in the groups database
@@ -741,6 +759,20 @@ function veafSpawn.doSpawnGroup(
       return nil
     end
   end
+
+  -- A ship group's centre is searched on water. It used to be searched on land like any other,
+  -- so `-cargoships` at sea found no point and spawned nothing (FIX-DEMO-MISSION-FINDINGS 05).
+  local surfaces = nil
+  if veafSpawn._isNavalGroupDefinition(groupDefinition) then
+    surfaces = veaf.WATER_TERRAIN
+  end
+  local spawnSpot = veaf.findSpawnPoint(spawnSpot, radius, nil, surfaces)
+  if not spawnSpot then
+    return veafSpawn._reportNoGroupPosition(silent)
+  end
+  veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
+
+  veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
 
   veaf.loggers.get(veafSpawn.Id):trace("doSpawnGroup: groupDefinition.description=" .. groupDefinition.description)
 

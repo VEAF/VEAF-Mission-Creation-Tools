@@ -1082,6 +1082,52 @@ function TestVeafSpawnGroundSceneryAware:_jitter(xs, waterXs)
   end
 end
 
+--- FIX-DEMO-MISSION-FINDINGS 05: `-cargoships` at open sea, measured in DCS 2026-10-05, created
+--- no group and said nothing. The group centre was searched on land, for ships.
+function TestVeafSpawnGroundSceneryAware:test_a_naval_group_spawns_at_sea()
+  self:_allWater()
+  -- The three shortcut groups as veaf-units.yaml declares them. veafUnits is stubbed in this suite
+  -- (dcs_mocks.lua), so findGroup answers with what the real one returns — the database entry run
+  -- through processGroup, `naval` set from its units — and placeGroup puts each unit at the centre.
+  local groups = {
+    ["cargoships"] = { "Dry-cargo ship-1", "Dry-cargo ship-2", "ELNYA" },
+    ["cargoships-escorted"] = { "Dry-cargo ship-1", "Dry-cargo ship-2", "ELNYA", "MOLNIYA", "ALBATROS", "NEUSTRASH" },
+    ["combatships"] = { "MOLNIYA", "ALBATROS", "NEUSTRASH" },
+  }
+  local savedFindGroup, savedFindUnit, savedPlaceGroup = veafUnits.findGroup, veafUnits.findUnit, veafUnits.placeGroup
+  veafUnits.findGroup = function(alias)
+    local types = groups[alias]
+    if not types then
+      return nil
+    end
+    local units = {}
+    for _, typeName in ipairs(types) do
+      table.insert(units, { displayName = typeName, typeName = typeName, naval = true, air = false, static = false })
+    end
+    return { groupName = alias, description = alias, disposition = { h = 20, w = 20 }, units = units, naval = true }
+  end
+  veafUnits.placeGroup = function(group, spawnPoint)
+    for _, unit in ipairs(group.units) do
+      unit.spawnPoint = { x = spawnPoint.x, y = spawnPoint.y, z = spawnPoint.z, hdg = 0 }
+    end
+    return group, {}
+  end
+  for _, name in ipairs({ "cargoships", "cargoships-escorted", "combatships" }) do
+    local added = {}
+    local savedAddGroup = veaf.addGroup
+    veaf.addGroup = function(group)
+      table.insert(added, group)
+    end
+    local result = veafSpawn.spawnGroup({ x = -250000, y = 0, z = 575000 }, 0, name, nil, "RUSSIA", 0, 0, 10, nil, true, false, false)
+    veaf.addGroup = savedAddGroup
+    luaunit.assertIsString(result, name)
+    luaunit.assertEquals(#added, 1, name)
+    luaunit.assertEquals(added[1].category, "SHIP", name)
+    luaunit.assertTrue(#added[1].units > 0, name .. ": every ship was dropped")
+  end
+  veafUnits.findGroup, veafUnits.findUnit, veafUnits.placeGroup = savedFindGroup, savedFindUnit, savedPlaceGroup
+end
+
 function TestVeafSpawnGroundSceneryAware:test_a_water_candidate_is_skipped_and_the_spawn_still_happens()
   -- Before this lot the first jitter was used as-is, so this spawn put its centre in
   -- the sea and every unit was dropped downstream one by one.

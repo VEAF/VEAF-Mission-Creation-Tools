@@ -861,7 +861,7 @@ function veafCarrierOperations.rebuildRadioMenu()
       end
     else
       -- add the "start for veafCarrierOperations.MAX_OPERATIONS_DURATION" menu
-      local startMenuName1 = "Start carrier air operations for " .. veafCarrierOperations.MAX_OPERATIONS_DURATION .. " minutes"
+      local startMenuName1 = veaf.t("menu.carrier.start_ops", veafCarrierOperations.MAX_OPERATIONS_DURATION)
       if veafCarrierOperations.DisableSecurity then
         veafRadio.addCommandToSubmenu(
           startMenuName1,
@@ -881,7 +881,7 @@ function veafCarrierOperations.rebuildRadioMenu()
       end
 
       -- add the "start for veafCarrierOperations.MAX_OPERATIONS_DURATION * 2" menu
-      local startMenuName2 = "Start carrier air operations for " .. veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 .. " minutes"
+      local startMenuName2 = veaf.t("menu.carrier.start_ops", veafCarrierOperations.MAX_OPERATIONS_DURATION * 2)
       if veafCarrierOperations.DisableSecurity then
         veafRadio.addCommandToSubmenu(
           startMenuName2,

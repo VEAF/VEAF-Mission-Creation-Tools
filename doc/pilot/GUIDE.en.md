@@ -128,7 +128,7 @@ For anything not covered by an alias, you can write a full VEAF command directly
 
 ```
 _spawn unit, name F-16C
-_spawn unit, name T-80, multiplier 4, hdg 270
+_spawn unit, name T-80UD, multiplier 4, hdg 270
 _spawn unit, name SA-6
 ```
 
@@ -389,7 +389,7 @@ Press F10: if a "VEAF" submenu appears under "Other", it is a VEAF mission.
 Check the syntax (raw commands start with `_`, aliases with `-`). In multiplayer, if you are not on the server's pilot list, add `password [PASSWORD]` to the command. For the F10 menu, remember the group acts at the level of its lowest-graded occupant: `_auth elevate` raises it to your own level for 2 minutes. Also check that the server allows marker commands.
 
 **What unit names can I use with `_spawn unit`?**
-Standard DCS type names: `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Note that they are case-sensitive.
+Standard DCS type names: `F-16C`, `Su-27`, `T-80UD`, `M1 Abrams`, `SA-6`, etc. Note that they are case-sensitive.
 
 **The units I spawned disappeared. Is that normal?**
 Yes — some missions enforce a range limit (about 40–50 NM): AI is cleaned up if you fly too far away.

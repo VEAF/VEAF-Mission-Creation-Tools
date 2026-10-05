@@ -50,7 +50,7 @@ Call after all other modules that veafSpawn depends on.
 
 ```
 _spawn unit, name [DCS_TYPE]
-_spawn unit, name T-80, hdg 270, spacing 50
+_spawn unit, name T-80UD, hdg 270, spacing 50
 ```
 
 An **airplane** cannot be spawned this way (the command refuses it): use a CAP patrol. A

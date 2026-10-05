@@ -1,6 +1,6 @@
 # 08 — Small truths
 
-Status: ⬜ ready
+Status: ✅ done
 Type: doc + i18n
 Files: `doc/mission-maker/scripts/veafSpawn*.md`, `src/defaults/mission-folder/src/waypoints.yaml` (template comment), `src/scripts/veaf/veafCarrierOperations.lua` (l. ~864) + `veafI18n.lua`
 

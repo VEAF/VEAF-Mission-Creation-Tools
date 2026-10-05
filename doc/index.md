@@ -50,7 +50,7 @@ flowchart TD
 
 ### Joueurs et pilotes
 
-Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, placez un marqueur et tapez une commande — par exemple `_spawn unit T-80` ou `_cas`. Voir le [Guide du pilote](pilot/README.md) pour toutes les commandes disponibles.
+Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, placez un marqueur et tapez une commande — par exemple `_spawn unit, name T-80UD` ou `_cas`. Voir le [Guide du pilote](pilot/README.md) pour toutes les commandes disponibles.
 
 ### Créateurs de missions
 

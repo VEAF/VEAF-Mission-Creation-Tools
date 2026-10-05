@@ -128,7 +128,7 @@ Pour tout ce qui n'est pas couvert par un alias, vous pouvez écrire directement
 
 ```
 _spawn unit, name F-16C
-_spawn unit, name T-80, multiplier 4, hdg 270
+_spawn unit, name T-80UD, multiplier 4, hdg 270
 _spawn unit, name SA-6
 ```
 
@@ -390,7 +390,7 @@ Appuyez sur F10 : si un sous-menu « VEAF » apparaît sous « Autre », c'est u
 Vérifiez la syntaxe (les commandes brutes commencent par `_`, les alias par `-`). En multijoueur, si vous n'êtes pas sur la liste des pilotes du serveur, ajoutez `password [MOT_DE_PASSE]` à la commande. Pour le menu F10, rappelez-vous que le groupe agit au niveau de son membre le moins gradé : `_auth elevate` le monte à votre niveau pendant 2 minutes. Vérifiez aussi que le serveur autorise les commandes par marqueur.
 
 **Quels noms d'unités puis-je utiliser avec `_spawn unit` ?**
-Les noms de types standard de DCS : `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Attention, ils sont sensibles à la casse (majuscules/minuscules).
+Les noms de types standard de DCS : `F-16C`, `Su-27`, `T-80UD`, `M1 Abrams`, `SA-6`, etc. Attention, ils sont sensibles à la casse (majuscules/minuscules).
 
 **Les unités que j'ai fait apparaître ont disparu. Est-ce normal ?**
 Oui, certaines missions imposent une limite de distance (environ 40 à 50 NM) : l'IA est nettoyée si vous vous éloignez trop.

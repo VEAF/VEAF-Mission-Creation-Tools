@@ -49,7 +49,7 @@ veafSpawn.initialize()
 
 ```
 _spawn unit, name [DCS_TYPE]
-_spawn unit, name T-80, hdg 270, spacing 50
+_spawn unit, name T-80UD, hdg 270, spacing 50
 ```
 
 Un **avion** ne peut pas être créé ainsi (la commande le refuse) : passez par une patrouille CAP. Un

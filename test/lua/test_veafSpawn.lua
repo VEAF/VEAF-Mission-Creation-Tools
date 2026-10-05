@@ -3733,6 +3733,34 @@ function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_that_flew_and_landed_
   luaunit.assertNil(veafSpawn.capWatchdogFlown["parked"], "the registry forgets it")
 end
 
+--- FIX-AIRCRAFT-ROLE-REGISTRY-PURGE: the role registry is forgotten with the watchdog's own tables,
+--- or it keeps one route per CAP for the whole server session.
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_that_landed_leaves_nothing_in_the_role_registry()
+  local zone = { x = 0, y = 0, radius = 100000 }
+  veafAircraftSpawn.groupRoles["parked"] = "cap"
+  veafAircraftSpawn.groupOptions["parked"] = { id = "ComboTask" }
+  veafAircraftSpawn.groupRoutes["parked"] = { {}, {} }
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = true
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = false
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  luaunit.assertTrue(self.destroyed)
+  luaunit.assertNil(veafAircraftSpawn.getRole("parked"))
+  luaunit.assertNil(veafAircraftSpawn.groupOptions["parked"])
+  luaunit.assertNil(veafAircraftSpawn.groupRoutes["parked"])
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_gone_from_dcs_leaves_nothing_in_the_role_registry()
+  veafAircraftSpawn.groupRoles["gone"] = "cap"
+  veafAircraftSpawn.groupOptions["gone"] = { id = "ComboTask" }
+  veafAircraftSpawn.groupRoutes["gone"] = { {}, {} }
+  veafSpawn.startCapWatchdog("gone", coalition.side.RED, { x = 0, y = 0, radius = 100000 })
+  luaunit.assertNil(veafAircraftSpawn.getRole("gone"))
+  luaunit.assertNil(veafAircraftSpawn.groupOptions["gone"])
+  luaunit.assertNil(veafAircraftSpawn.groupRoutes["gone"])
+end
+
 function TestVeafSpawnCapTargetFilter:setUp()
   dcs_mocks.reset()
 end

@@ -247,6 +247,30 @@ function veafAircraftSpawn.getRole(groupName)
   return groupName and veafAircraftSpawn.groupRoles[groupName] or nil
 end
 
+--- Forget what a group's role left behind, once that group is gone.
+---
+--- Called by the CAP watchdog when it stops watching a group, and by `forgetGoneGroups` for the roles
+--- that have no watchdog. Without it, these tables keep one route per role group for the whole server
+--- session. A stale entry is otherwise harmless today: a spawned name is never released
+--- (`veafMissionDb.releaseSpawnedName` serves the AFAC alone), so no later group can inherit it
+--- (issue #1079). Releasing names would change that.
+--- @param groupName string
+function veafAircraftSpawn.forgetGroup(groupName)
+  veafAircraftSpawn.groupRoles[groupName] = nil
+  veafAircraftSpawn.groupOptions[groupName] = nil
+  veafAircraftSpawn.groupRoutes[groupName] = nil
+end
+
+--- Forget every group DCS no longer knows. Only `cap` and `zone_defense` have a watchdog to say when
+--- their group is gone; the other roles are swept here, on the next spawn with a role.
+function veafAircraftSpawn.forgetGoneGroups()
+  for groupName in pairs(veafAircraftSpawn.groupRoles) do
+    if not Group.getByName(groupName) then
+      veafAircraftSpawn.forgetGroup(groupName)
+    end
+  end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Routes
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -986,6 +1010,7 @@ function veafAircraftSpawn.spawnAirplaneGroup(groupData, roleName, params)
     logger:warn(string.format("group [%s] was spawned but DCS does not know it; its role cannot be set up", veaf.p(groupName)))
     return nil
   end
+  veafAircraftSpawn.forgetGoneGroups()
   veafAircraftSpawn.groupRoles[groupName] = roleName
   veafAircraftSpawn.groupRoutes[groupName] = route
   role.afterSpawn(dcsGroup, groupName, dcsGroup:getCoalition(), state)
@@ -1065,6 +1090,7 @@ function veafAircraftSpawn.spawnHelicopterGroup(groupData, job, silent)
     return nil
   end
   local groupName = spawned.name
+  veafAircraftSpawn.forgetGoneGroups()
   veafAircraftSpawn.groupRoles[groupName] = roleName
   local dcsGroup = Group.getByName(groupName)
   if role.afterSpawn then
@@ -1274,6 +1300,7 @@ function VeafAircraftSpawn:spawn()
     logger:warn(string.format("group [%s] was spawned but DCS does not know it; its role cannot be set up", veaf.p(groupName)))
     return nil
   end
+  veafAircraftSpawn.forgetGoneGroups()
   veafAircraftSpawn.groupRoles[groupName] = self.roleName
   veafAircraftSpawn.groupOptions[groupName] = firstWaypointTask
   veafAircraftSpawn.groupRoutes[groupName] = route

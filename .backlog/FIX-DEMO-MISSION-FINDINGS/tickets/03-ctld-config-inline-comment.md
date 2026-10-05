@@ -1,6 +1,6 @@
 # 03 — `ctld-config.yaml`: an end-of-line comment becomes part of the value
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix + validate
 Files: build step that embeds `ctld-config.yaml` into `CTLD_userConfig.lua`, `validate`, `mission_builder/mission_builder_worker.py` (order of the embed), tests
 

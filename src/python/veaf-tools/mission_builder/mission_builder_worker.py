@@ -50,6 +50,7 @@ from veaf_libs.ctld_config import (
     logistics_lists_are_empty,
     manage_logistics_enabled,
     merge_veaf_logistics,
+    strip_end_of_line_comments,
 )
 from veaf_libs.dcs_countries import all_country_ids
 from veaf_libs.i18n import current_language, t, tn
@@ -989,6 +990,9 @@ class MissionBuilderWorker(BaseWorker):
         if config_file.is_file():
             yaml_text = config_file.read_text(encoding="utf-8")
             yaml_text = self._ctld_managed_logistics(yaml_text, lines)
+            # Last, so a comment ruamel kept through the logistics merge goes too: CTLD's reader
+            # would take it as part of the value (FIX-DEMO-MISSION-FINDINGS ticket 03).
+            yaml_text = strip_end_of_line_comments(yaml_text)
             lines.append(f"ctld.configUser = {_lua_long_bracket(yaml_text)}")
         elif self._community_explicitly_listed("ctld"):
             logger.info(t("builder.ctld_no_config", file=CTLD_CONFIG_FILENAME))
@@ -1168,13 +1172,20 @@ class MissionBuilderWorker(BaseWorker):
         defaults_folder: Path = (
             (self.scripts_path or (self.mission_folder / "published")) / "src" / "defaults" / "mission-folder"
         )
-        self.collected_mission_script_files = _without_generated_artifacts(
+        collected = _without_generated_artifacts(
             collect_files_from_globs(
                 base_folder=self.mission_folder,
                 file_patterns=get_mission_script_files(),
                 alternative_folder=defaults_folder,
             )
         )
+        # `src/scripts/CTLD_userConfig.lua` is written for dynamic mode only, and this collection runs
+        # (and is cached) before the build rewrites it: what it read was the previous build's copy.
+        # In the .miz it shares its key with the entry `_with_ctld_user_config` generates, and won —
+        # the mission shipped the CTLD configuration of one build earlier (FIX-DEMO-MISSION-FINDINGS 03).
+        self.collected_mission_script_files = {
+            key: content for key, content in collected.items() if Path(key).name != CTLD_USER_CONFIG_FILENAME
+        }
         return self.collected_mission_script_files
 
     def get_collected_mission_data_files(self) -> dict[str, bytes]:

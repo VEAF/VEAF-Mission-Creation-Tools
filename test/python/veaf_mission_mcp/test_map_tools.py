@@ -31,7 +31,7 @@ class TestDescribeMap:
             for country in values(coalition.get("country")):
                 for category in ("plane", "helicopter", "vehicle", "ship", "static"):
                     for group in values((country.get(category) or {}).get("group")):
-                        expected[group["name"]] = (group["x"], group["y"], len(values(group["units"])))
+                        expected[group["name"]] = (group.get("x"), group.get("y"), len(values(group.get("units"))))
 
         result = describe_map(sample_miz)
 

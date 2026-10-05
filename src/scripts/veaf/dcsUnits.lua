@@ -18,7 +18,7 @@ dcsUnits = {}
 dcsUnits.Id = "DCSUNITS"
 
 --- Version (provenance: the datamine ref the data was generated from).
-dcsUnits.Version = "datamine-fe1d8008"
+dcsUnits.Version = "datamine-fdd11ed9"
 
 dcsUnits.logger = veaf.loggers.new(dcsUnits.Id, dcsUnits.LogLevel)
 
@@ -2315,12 +2315,8 @@ dcsUnits.DcsUnitsDatabase = {
     attribute = {
       ["All"] = true,
       ["Ground Units"] = true,
-      ["Ground Units Non Airdefence"] = true,
       ["Ground vehicles"] = true,
-      ["NonAndLightArmoredUnits"] = true,
-      ["NonArmoredUnits"] = true,
-      ["Trucks"] = true,
-      ["Unarmed vehicles"] = true,
+      ["Trailers"] = true,
       ["Vehicles"] = true,
     },
   },
@@ -9146,6 +9142,7 @@ dcsUnits.DcsUnitsDatabase = {
       ["Armed ground units"] = true,
       ["Armed vehicles"] = true,
       ["Artillery"] = true,
+      ["Datalink"] = true,
       ["Ground Units"] = true,
       ["Ground Units Non Airdefence"] = true,
       ["Ground vehicles"] = true,

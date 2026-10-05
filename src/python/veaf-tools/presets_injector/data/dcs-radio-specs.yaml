@@ -1,6 +1,6 @@
 # DCS aircraft radio frequency specifications
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Source ref: d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a
+# Source ref: fdd11ed960d5402909a876558b7bec3b2653b268
 # Re-run `veaf-build update-dcs-data --radio` to update after a pin bump.
 #
 # Structure:
@@ -933,6 +933,9 @@ MB-339A:
     - max_mhz: 155.975
       min_mhz: 137.0
       modulation: AM/FM
+    - max_mhz: 173.975
+      min_mhz: 156.0
+      modulation: AM/FM
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
@@ -963,6 +966,9 @@ MB-339APAN:
       modulation: AM/FM
     - max_mhz: 155.975
       min_mhz: 137.0
+      modulation: AM/FM
+    - max_mhz: 173.975
+      min_mhz: 156.0
       modulation: AM/FM
     - max_mhz: 399.975
       min_mhz: 225.0

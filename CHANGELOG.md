@@ -63,6 +63,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `describe_known_limitations` now returns it, with the A-50's declared radar range (204 km).
   The investigation itself closes as not a defect: the A-50 enrolled by the helper does feed Skynet, and the three blind A-50s of the 2026-09-17 report orbited more than its 204 km from every Georgian base — consistent with an empty sky, though the lost log no longer allows proving it.
 
+### Fixed
+
+- **A CAP that lands or is destroyed no longer leaves its route in memory for the rest of the session** (FIX-AIRCRAFT-ROLE-REGISTRY-PURGE, #1079).
+  The scripts kept the role, the first-waypoint options and the full route of every aircraft group spawned with a role, and never let go of them.
+  A `cap` or `zone_defense` group is now forgotten when the CAP watchdog stops watching it; a group flying any other role, at the next spawn with a role once DCS no longer knows it.
+  Nothing changes in flight: the group names involved are never reused, so no later group could have inherited a stale role.
+
 ## [6.27.0] — 2026-10-03
 
 ### Changed

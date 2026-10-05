@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FIX-AIRCRAFT-ROLE-REGISTRY-PURGE](FIX-AIRCRAFT-ROLE-REGISTRY-PURGE/PRD.md) · 🔄
+
+The aircraft role registry (`groupRoles`, `groupOptions`, `groupRoutes`) is forgotten when the CAP watchdog stops watching a group, instead of keeping one route per CAP for the whole session (#1079).
 
 ## 🧑 Waiting for a human
 

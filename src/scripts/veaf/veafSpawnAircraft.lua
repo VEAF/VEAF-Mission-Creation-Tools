@@ -1536,6 +1536,7 @@ local function forgetCapWatchdog(capGroupName)
   veafSpawn.capWatchdogZones[capGroupName] = nil
   veafSpawn.capWatchdogFlown[capGroupName] = nil
   veafSpawn.capWatchdogAssignments[capGroupName] = nil
+  veafAircraftSpawn.forgetGroup(capGroupName)
 end
 
 --- One tick of the CAP watchdog, which re-arms itself.

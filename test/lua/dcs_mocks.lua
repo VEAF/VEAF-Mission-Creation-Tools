@@ -817,6 +817,7 @@ function dcs_mocks.resetVeafRuntimeState()
     -- The role each spawned group flies, by name: the command layer reads it to leave those alone.
     veafAircraftSpawn.groupRoles = {}
     veafAircraftSpawn.groupOptions = {}
+    veafAircraftSpawn.groupRoutes = {}
   end
   if veafMissionDb then
     -- The spawned-name registry outlives a snapshot rebuild, which is right in a mission and wrong

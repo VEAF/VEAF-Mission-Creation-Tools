@@ -431,7 +431,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="edit_route",
             description=(
                 "EDIT a group's waypoints and what the flight DOES at them. Operations: add (append), "
-                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked), "
+                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked/road), "
                 "add_task, clear_tasks. Call describe_units first to see the route you are editing -- the "
                 "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
                 "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
@@ -491,6 +491,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "Its matching DCS 'action' is written with it -- they are a pair.",
                     },
                     "eta_locked": {"type": "boolean", "description": "Whether this waypoint's time is locked."},
+                    "road": {
+                        "type": "boolean",
+                        "description": (
+                            "GROUND groups only, for add / insert / set: true writes 'On Road' (the "
+                            "vehicles follow the roads), false 'Off Road' (straight across). Only a "
+                            "Turning Point carries it."
+                        ),
+                    },
                     "task": {
                         "type": "string",
                         "enum": [
@@ -2484,6 +2492,7 @@ def _handle_edit_route(params: dict[str, Any]) -> dict[str, Any]:
         task=params.get("task"),
         task_params=params.get("task_params"),
         task_position=params.get("task_position"),
+        road=params.get("road"),
     )
 
 

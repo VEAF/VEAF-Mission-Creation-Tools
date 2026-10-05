@@ -398,6 +398,8 @@ function TestVeafMoveFunctions:test_changeTanker_finds_a_tanker_unknown_to_getBy
   end
   veafMove.changeTanker({ x = 0, y = 0, z = 0 }, -1, -1)
   veafMove._getTankerRouteData = savedGetRoute
+  -- the tanker must not outlive the test: `test_changeTanker_no_units_returns_false` would find it
+  dcs_mocks.reset()
   luaunit.assertEquals(askedFor, "Texaco")
 end
 

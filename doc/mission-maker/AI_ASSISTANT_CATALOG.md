@@ -210,7 +210,7 @@ Un fichier déjà appliqué, d'une autre campagne, ou qui saute une mission est 
 ### Préparer la mission suivante d'une campagne {#campaign-next}
 
 *Campagne (dossier) · ⭐* — L'IA prépare le dossier de la mission suivante à partir de l'état : chaque base à son propriétaire et ses slots dynamiques, les garnisons et leurs pertes, le module campagne activé.
-Elle reçoit la partie factuelle du briefing stratégique en français et en anglais, puis conçoit la mission par-dessus et écrit la partie narrative.
+Elle reçoit la partie factuelle du briefing stratégique en français et en anglais — déjà le briefing d'un nouveau dossier de mission —, puis conçoit la mission par-dessus et écrit la partie narrative.
 
 > 💬 *« Prépare la mission 4 : les rouges contre-attaquent sur Senaki. »*
 

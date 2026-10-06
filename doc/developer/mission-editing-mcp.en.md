@@ -680,7 +680,7 @@ initialise):
 
 - `campaign_status(campaign_folder)` — where the campaign stands: missions applied, each zone's owner, garrison strength, kind and neighbours, reserves, objectives met or not, the last mission's changes. Read-only.
 - `campaign_apply(campaign_folder, state_file)` — merges a flown mission's state file, plays the turn between missions, judges the objectives, writes and returns the FR/EN debriefing; refuses a file already applied, from another campaign or skipping a mission, writing nothing.
-- `campaign_next(campaign_folder)` — creates (a copy of `template/`) or refreshes `missions/mission-NN/mission`: airfields to their owner through `set_airbase_coalition`, `src/campaign-data.yaml`, the `CAMPAIGN` module in `mission.yaml`; returns the folder and the factual part of the strategic briefing in FR and EN.
+- `campaign_next(campaign_folder)` — creates (a copy of `template/`) or refreshes `missions/mission-NN/mission`: airfields to their owner through `set_airbase_coalition`, `src/campaign-data.yaml`, the `CAMPAIGN` module in `mission.yaml`, and, on a folder it creates, the strategic situation as the briefing; returns the folder and the factual part of the strategic briefing in FR and EN.
 
 Each one is the matching `veaf-tools campaign` command (`campaign_manager.CampaignWorker`), returning data instead of printing it. See [Multi-mission campaign](../mission-maker/CAMPAIGN.en.md).
 

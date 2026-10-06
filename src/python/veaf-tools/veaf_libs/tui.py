@@ -291,6 +291,13 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="campaign-briefing",
+        description=t("tui.cmd.campaign_briefing.description"),
+        prompts=[
+            ArgPrompt("campaign_folder", t("tui.arg.campaign_folder"), default=".", is_option=False),
+        ],
+    ),
+    CommandSpec(
         cli_name="resolve-checklist",
         description=t("tui.cmd.resolve_checklist.description"),
         prompts=[

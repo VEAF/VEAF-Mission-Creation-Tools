@@ -1443,5 +1443,11 @@
   "campaign.deck.annex.counter_attack": "– A neutral zone bordered by one side only is retaken by it.",
   "campaign.deck.annex.contested": "– {zone} touches both sides: nobody will retake it by default.",
   "campaign.deck.annex.no_counter_attack": "– No neutral zone is retaken by default: someone has to go there.",
-  "campaign.deck.annex.continuity": "– Losses, zones taken and scenery destroyed are recorded in flight and carried into the next mission. What is destroyed stays destroyed."
+  "campaign.deck.annex.continuity": "– Losses, zones taken and scenery destroyed are recorded in flight and carried into the next mission. What is destroyed stays destroyed.",
+  "cmd.campaign_briefing.help": "Write the coming mission's strategic briefing deck (PPTX), from the campaign and its briefing.yaml.",
+  "cmd.campaign_briefing.title": "[bold green]veaf-tools campaign briefing v{version}[/bold green]",
+  "cmd.campaign_briefing.done": "[bold green]✓ Campaign briefing written: {path}[/bold green]",
+  "cmd.campaign_briefing.no_prose": "No briefing.yaml in the campaign: the deck holds only what the tools know (military situation, map, objectives, rules). The situation, intent, concept and rules of engagement are written in briefing.yaml.",
+  "cmd.campaign_briefing.offline": "Map background unavailable (no network, or tiles refused): the strategic map stands on a plain background. Run the command again once online.",
+  "tui.cmd.campaign_briefing.description": "Write a campaign's strategic briefing (PPTX)"
 }

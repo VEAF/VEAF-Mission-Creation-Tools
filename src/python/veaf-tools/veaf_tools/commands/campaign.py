@@ -88,6 +88,33 @@ def campaign_next(
         key = "cmd.campaign_next.created" if report.created else "cmd.campaign_next.refreshed"
         console.print(t(key, mission=report.mission, path=report.folder))
         console.print(t("cmd.campaign_next.airbases", count=len(report.airbases)))
+        if report.deck:
+            console.print(t("cmd.campaign_briefing.done", path=report.deck))
+    if pause:
+        input(t("help.pause_msg"))
+    if failed:
+        raise typer.Exit(code=1)
+
+
+@app.command(help=t("cmd.campaign_briefing.help"))
+def campaign_briefing(
+    campaign_folder: str = typer.Argument(".", help=t("cmd.campaign.opt.folder")),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+    """Write the coming mission's strategic briefing deck, from the campaign and `briefing.yaml`."""
+    from campaign_manager.campaign_worker import CampaignWorker
+
+    logger.set_verbose(verbose)
+    console.print(t("cmd.campaign_briefing.title", version=VERSION))
+    issues, report = CampaignWorker(Path(campaign_folder).resolve()).briefing()
+    failed = _report(issues)
+    if report is not None:
+        console.print(t("cmd.campaign_briefing.done", path=report.path))
+        if not report.prose:
+            console.print(t("cmd.campaign_briefing.no_prose"))
+        if report.map.offline:
+            console.print(t("cmd.campaign_briefing.offline"))
     if pause:
         input(t("help.pause_msg"))
     if failed:

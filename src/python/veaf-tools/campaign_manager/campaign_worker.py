@@ -8,17 +8,19 @@ sub-folder per mission under `missions/` (tickets 08 and 09).
 from __future__ import annotations
 
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
 from veaf_libs.i18n import language, t
-from veaf_libs.mission_validator import ERROR, ValidationIssue
+from veaf_libs.map_tiles import Fetch
+from veaf_libs.mission_validator import ERROR, WARNING, ValidationIssue
 
+from campaign_manager.briefing_deck import DeckReport, campaign_deck
 from campaign_manager.briefing_prose import load_prose
 from campaign_manager.campaign_manager import initial_state, load_campaign, load_state, save_state, validate_state
 from campaign_manager.debriefing import debriefing_text
-from campaign_manager.models import Objective
+from campaign_manager.models import CampaignDefinition, CampaignState, Objective
 from campaign_manager.next_mission import BRIEFING_LANGUAGES, NextMissionReport, prepare_next_mission
 from campaign_manager.turn_manager import (
     evaluate_objectives,
@@ -63,15 +65,19 @@ class ApplyReport:
 class CampaignWorker:
     """Runs the campaign commands on one campaign folder."""
 
-    def __init__(self, folder: Path) -> None:
+    def __init__(self, folder: Path, *, tile_cache: Path | None = None, tile_fetch: Fetch | None = None) -> None:
         """Bind the worker to a folder.
 
         Args:
             folder: The campaign folder, holding `campaign.yaml`.
+            tile_cache: Where the strategic map's tiles are kept; the user's cache when omitted.
+            tile_fetch: How a map tile is downloaded; from OpenStreetMap when omitted.
         """
         self.folder = folder
         self.campaign_file = folder / CAMPAIGN_FILE
         self.state_file = folder / STATE_FILE
+        self.tile_cache = tile_cache
+        self.tile_fetch = tile_fetch
 
     def init(self) -> list[ValidationIssue]:
         """Create the initial campaign state from `campaign.yaml`.
@@ -181,6 +187,46 @@ class CampaignWorker:
             report = prepare_next_mission(campaign, state, self.folder, folder)
         except FileNotFoundError as error:
             return [*issues, ValidationIssue(ERROR, str(error))], None
+        # the deck comes with the folder; a defect in briefing.yaml does not stop the mission
+        deck_issues, deck = self._deck(campaign, state)
+        issues += [ValidationIssue(WARNING, issue.message) for issue in deck_issues]
+        return issues, replace(report, deck=deck.path if deck else None)
+
+    def briefing(self) -> tuple[list[ValidationIssue], DeckReport | None]:
+        """Write the coming mission's strategic briefing deck: ``missions/mission-NN/briefing-campagne.pptx``.
+
+        Returns:
+            Every issue found, and the report — ``None`` when any issue is an error.
+        """
+        campaign, issues = load_campaign(self.campaign_file)
+        if campaign is None:
+            return issues, None
+        if not self.state_file.exists():
+            return [*issues, ValidationIssue(ERROR, t("campaign.issue.not_started", path=self.state_file))], None
+        state, state_issues = load_state(self.state_file)
+        if state is None:
+            return issues + state_issues, None
+        mismatch = validate_state(campaign, state)
+        if mismatch:
+            return issues + mismatch, None
+        deck_issues, report = self._deck(campaign, state)
+        return issues + deck_issues, report
+
+    def _deck(
+        self, campaign: CampaignDefinition, state: CampaignState
+    ) -> tuple[list[ValidationIssue], DeckReport | None]:
+        """Generate the deck from `briefing.yaml`, unless that file has an error."""
+        prose, issues = load_prose(self.folder, campaign.missions, state.mission + 1)
+        if any(issue.level == ERROR for issue in issues):
+            return issues, None
+        report = campaign_deck(
+            campaign,
+            state,
+            prose,
+            self.mission_folder(state.mission + 1),
+            cache_dir=self.tile_cache,
+            fetch=self.tile_fetch,
+        )
         return issues, report
 
     def validate(self) -> list[ValidationIssue]:

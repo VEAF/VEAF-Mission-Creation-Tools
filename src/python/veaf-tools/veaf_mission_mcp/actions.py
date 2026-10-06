@@ -17,7 +17,7 @@ from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
-from veaf_mission_mcp.campaign import campaign_apply, campaign_next, campaign_status
+from veaf_mission_mcp.campaign import campaign_apply, campaign_briefing, campaign_next, campaign_status
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import add_combat_operation, create_cap_mission, create_combat_zone, create_qra
@@ -1468,9 +1468,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "design already done in it survives: every campaign airbase given to its owner (dynamic "
                 "slots for each side's bases, none on a neutral one), the campaign data table the runtime "
                 "reads (garrisons with their losses, reserves, destroyed scenery), the CAMPAIGN module "
-                "turned on in mission.yaml. Returns the folder and the FACTUAL part of the strategic "
-                "briefing in French and English: design the mission on top of that folder with the other "
-                "actions, and write the briefing's narrative part yourself."
+                "turned on in mission.yaml, the strategic situation as the mission's DCS briefing on a "
+                "folder it creates, and the strategic briefing deck next to it (see campaign_briefing). "
+                "Returns the folder and the FACTUAL part of the strategic briefing in French and English: "
+                "design the mission on top of that folder with the other actions. When you write the DCS "
+                "briefing (set_briefing), ADD to the factual block already there, never replace it."
             ),
             parameters_schema={
                 "type": "object",
@@ -1479,6 +1481,39 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: campaign_next(Path(p["campaign_folder"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="campaign_briefing",
+            description=(
+                "Write the coming mission's strategic briefing deck (missions/mission-NN/"
+                "briefing-campagne.pptx, VEAF briefing template, imports into Google Slides) and its "
+                "strategic map. The tools generate the FACTS: the enemy as uneven intelligence, the "
+                "friendly positions and reserves, the map, the conditions of victory, and an annex of the "
+                "campaign's rules. The PROSE is yours, in briefing.yaml next to campaign.yaml (sections "
+                "returned in `sections`; texts are a string or a list of paragraphs): operation, subtitle; "
+                "situation.political / economic / enemy_course_of_action / friendly; mission; "
+                "intent.purpose / main_effect / method / end_state; objectives.political / military / "
+                "economic; concept.phases (one {title, text} per mission at most) and concept.attention; "
+                "rules_of_engagement.targeting / civilians / self_defence; missions: {N: {title, tasks: "
+                "[{title, text}]}}. Write it as a MILITARY SITUATION BRIEF, the language of a staff: "
+                "political, economic and military situation, mission and intent, objectives by nature, "
+                "concept by phase, rules of engagement. NO GAME MECHANICS in it -- garrisons drawn from a "
+                "reserve, a capture clock, a circle to hold belong to the generated annex. The ENEMY STAYS "
+                "MYSTERIOUS: no figure, no count, intelligence of uneven quality; a fixed site (a long-range "
+                "SAM) is named by the tools once the campaign state records it, never before. The scenario "
+                "is fiction on real ground: places from geocode / list_airfields, never from memory. After "
+                "each mission, rewrite the coming mission's page and the concept's progress from the "
+                "debriefing campaign_apply returned, and keep the rest unless the situation changed it. "
+                "Give zones a display_name in campaign.yaml when their name is not the players' language."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {"campaign_folder": _campaign_folder},
+                "required": ["campaign_folder"],
+            },
+        ),
+        handler=lambda p: campaign_briefing(Path(p["campaign_folder"])),
     )
     catalog.register(
         ActionSpec(

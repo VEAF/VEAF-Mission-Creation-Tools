@@ -1443,5 +1443,11 @@
   "campaign.deck.annex.counter_attack": "– Une zone neutre bordée par un seul camp est reprise par lui.",
   "campaign.deck.annex.contested": "– {zone} touche les deux camps : personne ne la reprendra d'office.",
   "campaign.deck.annex.no_counter_attack": "– Aucune zone neutre n'est reprise d'office : il faut y aller.",
-  "campaign.deck.annex.continuity": "– Les pertes, les zones prises et le décor détruit sont enregistrés en vol et reportés sur la mission suivante. Ce qui est détruit le reste."
+  "campaign.deck.annex.continuity": "– Les pertes, les zones prises et le décor détruit sont enregistrés en vol et reportés sur la mission suivante. Ce qui est détruit le reste.",
+  "cmd.campaign_briefing.help": "Écrit le document de briefing stratégique de la prochaine mission (PPTX), à partir de la campagne et de son briefing.yaml.",
+  "cmd.campaign_briefing.title": "[bold green]veaf-tools briefing de campagne v{version}[/bold green]",
+  "cmd.campaign_briefing.done": "[bold green]✓ Briefing de campagne écrit : {path}[/bold green]",
+  "cmd.campaign_briefing.no_prose": "Pas de briefing.yaml dans la campagne : le document ne contient que ce que les outils savent (situation militaire, carte, objectifs, règles). La situation, l'intention, le concept et les règles d'engagement s'écrivent dans briefing.yaml.",
+  "cmd.campaign_briefing.offline": "Fond de carte indisponible (pas de réseau, ou tuiles refusées) : la carte stratégique est sur un fond uni. Relancer la commande une fois en ligne.",
+  "tui.cmd.campaign_briefing.description": "Écrire le briefing stratégique d'une campagne (PPTX)"
 }

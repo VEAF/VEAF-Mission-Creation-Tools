@@ -14,7 +14,7 @@ from campaign_manager.models import CampaignDefinition
 from campaign_manager.strategic_map import render_strategic_map, zone_position
 from PIL import Image
 from veaf_libs import map_tiles
-from veaf_libs.map_tiles import USER_AGENT, render_base_map, world_pixel
+from veaf_libs.map_tiles import USER_AGENT, http_fetch, render_base_map, world_pixel
 
 
 def _png(colour: tuple[int, int, int]) -> bytes:
@@ -57,7 +57,8 @@ class TestTheBackground:
             return Response()
 
         monkeypatch.setattr(map_tiles.requests, "get", get)
-        assert map_tiles.http_fetch("https://tile.openstreetmap.org/1/0/0.png") == b"tile"
+        # the function itself: the conftest replaces map_tiles.http_fetch for every other test
+        assert http_fetch("https://tile.openstreetmap.org/1/0/0.png") == b"tile"
         assert sent == {"User-Agent": USER_AGENT}
 
     def test_tiles_are_cached_and_not_downloaded_twice(self, tmp_path: Path) -> None:

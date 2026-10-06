@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 import yaml
-from campaign_fixture import VALID
+from campaign_fixture import PROSE, VALID
 from campaign_manager.campaign_worker import CAMPAIGN_FILE, STATE_FILE, CampaignWorker
 from veaf_libs.blank_mission import generate_blank_mission
 from veaf_mission_mcp.actions import register_default_actions
-from veaf_mission_mcp.campaign import campaign_apply, campaign_next, campaign_status
+from veaf_mission_mcp.campaign import campaign_apply, campaign_briefing, campaign_next, campaign_status
 from veaf_mission_mcp.catalog import ActionCatalog
 
 
@@ -107,6 +107,27 @@ def test_next_returns_the_folder_and_both_briefings(tmp_path: Path) -> None:
     assert result["airbases"] == ["Kobuleti", "Senaki-Kolkhi"]
     assert "SITUATION STRATÉGIQUE" in result["strategic_situation"]["fr"]
     assert "STRATEGIC SITUATION" in result["strategic_situation"]["en"]
+    assert Path(result["briefing_deck"]) == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
+    assert Path(result["briefing_deck"]).is_file()
+
+
+def test_the_briefing_action_runs_through_the_catalog(tmp_path: Path) -> None:
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    folder = _campaign_folder(tmp_path)
+    (folder / "briefing.yaml").write_text(yaml.safe_dump(copy.deepcopy(PROSE), allow_unicode=True), encoding="utf-8")
+    result = catalog.run_action("campaign_briefing", {"campaign_folder": str(folder)})
+    assert Path(result["path"]).is_file()
+    assert (result["prose"], result["map_offline"]) == (True, True)
+    assert result["pages"] == 10
+    assert "rules_of_engagement" in result["sections"]
+
+
+def test_a_briefing_yaml_with_an_error_is_refused(tmp_path: Path) -> None:
+    folder = _campaign_folder(tmp_path)
+    (folder / "briefing.yaml").write_text("situation: 12\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="situation"):
+        campaign_briefing(folder)
 
 
 def test_next_without_a_template_is_refused(tmp_path: Path) -> None:

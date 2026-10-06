@@ -1,6 +1,6 @@
 # DOC-TUTORIAL-NEXT-STEPS — the tutorial stops before the three things a mission maker does next
 
-Status: 🔄 in-progress
+Status: ✅ done — shipped in #1090
 
 Origin: David, 2026-10-06 — "help me write a tutorial on how to install, configure and use VMCT".
 [`doc/mission-maker/TUTORIAL.md`](../../doc/mission-maker/TUTORIAL.md) already covers installing and using; this lot completes it rather than adding a page.

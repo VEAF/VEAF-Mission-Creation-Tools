@@ -1,6 +1,6 @@
 # 05 — The build names its community scripts
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: fix
 

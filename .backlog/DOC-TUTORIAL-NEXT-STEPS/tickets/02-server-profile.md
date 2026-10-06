@@ -1,6 +1,6 @@
 # 02 — The server build, through a profile
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: docs
 

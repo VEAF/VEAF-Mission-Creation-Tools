@@ -1,6 +1,6 @@
 # 03 — Capture: neutral zones, any ground presence, airbase ownership and slots
 
-Status: ⬜ ready
+Status: 🚫 wontfix — moved to FEAT-MULTI-MISSION-CAMPAIGN ticket 04 (David, 2026-10-06), which builds this rule as a shared brick; kept here for its reading of Foothold
 
 David, 2026-10-03: capture cannot be CTLD only — a convoy or troops arriving in a zone must capture too,
 as in Foothold.

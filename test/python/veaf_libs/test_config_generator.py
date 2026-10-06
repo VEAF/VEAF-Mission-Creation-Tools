@@ -770,6 +770,21 @@ class TestSummarizeActiveModules(unittest.TestCase):
         )
         self.assertEqual(self.summary(normalized)["QRA"], 1)
 
+    def test_community_scripts_are_listed_on_the_dict_the_build_actually_passes(self) -> None:
+        """DOC-TUTORIAL-NEXT-STEPS: the build listed 20 modules for the tutorial's 22.
+
+        Normalisation moves CTLD, CSAR and the other community scripts out of `lua_modules` into
+        `community_scripts`, lowercased, so the line never named them — while both were in the
+        `.miz`. The tutorial's promise, "a module that is not listed was not read", was false for
+        every one of them.
+        """
+        from mission_builder.mission_builder_worker import _normalize_mission_yaml
+
+        normalized = _normalize_mission_yaml(
+            {"modules": {"SPAWN": True, "CTLD": {"enabled": True}, "CSAR": True, "STTS": False}}
+        )
+        self.assertEqual(self.summary(normalized), {"SPAWN": None, "CTLD": None, "CSAR": None})
+
     def test_the_legacy_lua_modules_key_is_read_too(self) -> None:
         self.assertEqual(self.summary({"lua_modules": {"SPAWN": True}}), {"SPAWN": None})
 

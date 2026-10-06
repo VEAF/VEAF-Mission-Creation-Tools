@@ -17,6 +17,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- **The tutorial now goes on past the first flight** (DOC-TUTORIAL-NEXT-STEPS).
+  Step 0 shows which language the tool answers in and how to set it (`user-config --set lang=…`), and points to `doctor` for asking for help.
+  A new step 10 brings security back for the server through a `TEST` build profile, instead of the "put it back before deploying" that step 2 left unexplained; a new step 11 updates the tools and says why a rebuild has to follow.
+  The closing table now also leads to the demo mission, the v5 migration, third-party missions and the AI assistant.
+
+### Fixed
+
+- **The build's "active modules" line now names CTLD, CSAR and the other community scripts** (DOC-TUTORIAL-NEXT-STEPS).
+  They were injected all along, but the line only read the VEAF modules, so the `standard` template reported 20 modules where the tutorial announced 22 — and a mission maker checking that CTLD had been read found it missing.
+
 ### Changed
 
 - **Vendored DCS scripting-API schema `v0.5.0`** (was `v0.4.0`). The scripting API itself does not move: the LuaLS annotations are byte-identical and `audit-dcs-mocks` reports exactly what it did on `v0.4.0`. Only the reference-data types (`types.Entity.*`: weapon and aircraft flight models, sensor and mobility fields) grow. The vendored `LICENSE` is now the release's own: the previous copy named a different copyright holder than the `v0.4.0` tag did.

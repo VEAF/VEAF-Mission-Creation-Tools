@@ -93,7 +93,7 @@ Puis exécutez :
 
 Cela télécharge `published.zip`, vérifie le checksum SHA256 et extrait tous les scripts et outils dans votre dossier de mission.
 
-### Mises à jour
+### Mises à jour {#updates}
 
 Exécutez la même commande dès qu'une nouvelle release est disponible :
 

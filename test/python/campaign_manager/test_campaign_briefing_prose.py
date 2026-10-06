@@ -7,31 +7,11 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from campaign_fixture import VALID
+from campaign_fixture import PROSE, VALID
 from campaign_manager.briefing_prose import PROSE_FILE, load_prose, parse_prose
 from campaign_manager.campaign_worker import CAMPAIGN_FILE, CampaignWorker
 from veaf_libs.i18n import t
 from veaf_libs.mission_validator import ERROR, WARNING
-
-#: A complete prose file, the shape the Kolkhida prototype was written in.
-PROSE: dict[str, Any] = {
-    "operation": "Kolkhida",
-    "subtitle": "Briefing de situation — campagne",
-    "situation": {
-        "political": ["Les forces rouges ont franchi l'Inguri.", "Une négociation s'ouvre."],
-        "economic": "Le port de Poti ne tourne plus.",
-        "enemy_course_of_action": "Tenir Senaki, puis reprendre l'offensive.",
-    },
-    "mission": "Reprendre Senaki et détruire le dépôt de Khobi.",
-    "intent": {"purpose": "Briser l'offensive.", "end_state": "Senaki tenue."},
-    "objectives": {"political": ["Rétablir l'autorité du gouvernement."], "military": ["Reprendre Senaki."]},
-    "concept": {
-        "phases": [{"title": "Phase 1 — la porte de Poti", "text": "Prendre Poti."}],
-        "attention": ["Zugdidi n'est pas un objectif."],
-    },
-    "rules_of_engagement": {"targeting": ["Identification positive avant le tir."]},
-    "missions": {1: {"title": "La porte de Poti", "tasks": [{"title": "Prendre Poti", "text": "Sécuriser le port."}]}},
-}
 
 
 def _messages(raw: Any, missions: int = 3, coming: int = 1, level: str = ERROR) -> list[str]:

@@ -1,6 +1,6 @@
 # 07 — Destroyed scenery replayed at start
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-10-06: a bridge destroyed in a mission starts destroyed in the next.
 

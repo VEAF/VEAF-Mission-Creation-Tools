@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------------
+# Example multi-mission campaign — western Georgia, ten missions
+# ---------------------------------------------------------------------------
+# Blue holds the south (Batumi, Kobuleti); red holds the coast up to Sochi and the
+# airfields of Senaki and Kutaisi. Poti is in nobody's hands. The objectives push
+# blue north along the coast, and the depot at Ochamchire feeds red's reserve until
+# somebody destroys it.
+#
+# To use it: copy this folder, add a `template/` mission folder next to this file
+# (`.\veaf-tools.exe prepare --theatre Caucasus` in it), then
+#   .\veaf-tools.exe campaign init  <this folder>
+#   .\veaf-tools.exe campaign next  <this folder>
+# See doc/mission-maker/CAMPAIGN.md for every key.
+# ---------------------------------------------------------------------------
+
+campaign:
+  name: Western Georgia
+  theatre: Caucasus
+  era: MODERN
+  missions: 10
+  player_side: blue
+  objectives:
+    - capture: [Senaki, Kutaisi, Sukhumi]
+    - destroy: { zone: Ochamchire depot, kind: logistics }
+
+zones:
+  # blue
+  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue }
+  - { name: Kobuleti, at: { airfield: Kobuleti }, size: airfield, side: blue }
+  # nobody's
+  - { name: Poti, at: { lat: 42.150, lon: 41.670 }, size: outpost, side: neutral }
+  # red, the front
+  - { name: Senaki, at: { airfield: Senaki-Kolkhi }, size: airfield, side: red, radius: 3000 }
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, radius: 3000 }
+  - { name: Zugdidi, at: { lat: 42.510, lon: 41.870 }, size: outpost, side: red }
+  - { name: Gali, at: { lat: 42.630, lon: 41.730 }, size: outpost, side: red }
+  # red, the depth
+  - { name: Ochamchire depot, at: { lat: 42.710, lon: 41.470 }, size: outpost, side: red, kind: logistics }
+  - { name: Tkvarcheli, at: { lat: 42.850, lon: 41.680 }, size: outpost, side: red }
+  - { name: Sukhumi, at: { airfield: Sukhumi-Babushara }, size: airfield, side: red }
+  - { name: Gudauta, at: { airfield: Gudauta }, size: airfield, side: red }
+  - { name: Sochi, at: { airfield: Sochi-Adler }, size: airfield, side: red, kind: logistics }
+
+connections:
+  - [Batumi, Kobuleti]
+  - [Kobuleti, Poti]
+  - [Poti, Senaki]
+  - [Senaki, Kutaisi]
+  - [Senaki, Zugdidi]
+  - [Zugdidi, Gali]
+  - [Gali, Ochamchire depot]
+  - [Gali, Tkvarcheli]
+  - [Ochamchire depot, Sukhumi]
+  - [Tkvarcheli, Sukhumi]
+  - [Sukhumi, Gudauta]
+  - [Gudauta, Sochi]
+
+sides:
+  blue: { reserve: { armor: 8, air_defense: 4, transport: 6 } }
+  red: { reserve: { armor: 15, air_defense: 6, transport: 8 } }

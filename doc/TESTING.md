@@ -185,6 +185,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafAwacsEscort.lua` | `-awacs` (hippodrome, Skynet, liaison de données) et `-escort` (tâche `Escort`, avion le plus proche du marqueur, entrée F10 « Escorte-moi ») |
 | `test_veafSanctuary.lua` | Détection de zone sanctuaire |
 | `test_veafMissileGuardian.lua` | Logique d'interception de missiles |
+| `test_veafCampaign.lua` | Campagne multi-missions : tirage, enregistrement et pertes des garnisons |
 | `test_veafCasMission.lua` | Génération de packages de menaces CAS |
 | `test_veafTransportMission.lua` | Setup de mission de transport |
 | `test_veafCarrierOperations.lua` | Séquence de recovery porte-avions |

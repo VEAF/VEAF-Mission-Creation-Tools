@@ -1,6 +1,6 @@
 # 06 — Stocks: warehouses, ground reserve, SAM missiles
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-10-06: keep munitions, aircraft and ground units, so that the strategic side is real — destroying the enemy's logistics means fewer tanks facing us, making a SAM network fire 90 % of its missiles makes it less aggressive.
 

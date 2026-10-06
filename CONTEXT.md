@@ -264,6 +264,37 @@ call, across **both worlds** of a mission folder — the exploded `src/mission/`
 `mission.yaml` (module config) — by orchestrating the lower-level primitives (`create_combat_zone`,
 `create_qra`, `create_cap_mission`). Edits the durable source; no build is triggered.
 
+## Multi-mission campaign
+
+**Campaign**:
+A sequence of missions flown one after another, each starting from what the previous one left;
+declared once in `campaign.yaml`, with strategic objectives sized for a number of missions.
+_Avoid_: dynamic campaign (that is the persistent server mission, `FEAT-DYNAMIC-CAMPAIGN`)
+
+**Campaign zone**:
+A place the campaign is fought over — an airfield or a point — with an owner, a garrison, a size
+class and connections to its neighbours.
+
+**Campaign state**:
+What the campaign has become after the missions applied so far: each zone's owner and garrison
+with its losses, each side's reserve, the scenery destroyed, the mission count.
+
+**State file**:
+What one mission writes about itself, during the flight and at its end, in the structure of the
+campaign state; merged into the campaign state between two missions.
+
+**Size class**:
+The size of a zone's garrison, as the parameters of the CAS mission generators (`size`,
+`defense`, `armor`, an optional long-range SAM).
+
+**Reserve**:
+A side's ground units held back, counted by category (armour, air defence, transport); fed by its
+logistics zones, spent on garrisons drawn after a capture and on repairs.
+
+**Turn**:
+What happens between two missions by fixed rules — logistics feeding the reserves, repairs,
+counter-attacks — as opposed to the enemy's intent, decided when building the next mission.
+
 ## Script loading
 
 **Static loading**:

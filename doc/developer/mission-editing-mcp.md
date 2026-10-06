@@ -697,6 +697,14 @@ modules) :
 > n'est écrit si le fichier manque (l'étape ne tourne pas) ou si le camp n'y est pas déclaré (le
 > déclarer ouvrirait toutes ses bases).
 
+### Campagne multi-missions
+
+- `campaign_status(campaign_folder)` — où en est la campagne : missions appliquées, propriétaire, force de garnison, type et voisins de chaque zone, réserves, objectifs atteints ou non, changements de la dernière mission. Lecture seule.
+- `campaign_apply(campaign_folder, state_file)` — fusionne le fichier d'état d'une mission jouée, joue le tour entre les missions, juge les objectifs ; refuse un fichier déjà appliqué, d'une autre campagne ou qui saute une mission, sans rien écrire.
+- `campaign_next(campaign_folder)` — crée (copie de `template/`) ou rafraîchit `missions/mission-NN/mission` : aérodromes à leur propriétaire par `set_airbase_coalition`, `src/campaign-data.yaml`, module `CAMPAIGN` dans `mission.yaml` ; rend le dossier et la partie factuelle du briefing stratégique en FR et EN.
+
+Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.CampaignWorker`), qui rend des données au lieu de les afficher. Voir [Campagne multi-missions](../mission-maker/CAMPAIGN.md).
+
 ### FARP
 
 - `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",

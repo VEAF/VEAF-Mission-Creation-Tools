@@ -29,6 +29,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The build's "active modules" line now names CTLD, CSAR and the other community scripts** (DOC-TUTORIAL-NEXT-STEPS).
   They were injected all along, but the line only read the VEAF modules, so the `standard` template reported 20 modules where the tutorial announced 22 — and a mission maker checking that CTLD had been read found it missing.
 
+### Added
+
+- **Multi-mission campaigns: a campaign flown mission after mission, each one built from what the last one left** (FEAT-MULTI-MISSION-CAMPAIGN).
+  A campaign folder declares zones, connections, objectives and reserves in `campaign.yaml`; `veaf-tools campaign init`, `next`, `apply` and `validate` run the loop, and the MCP actions `campaign_status`, `campaign_apply` and `campaign_next` let Claude run it.
+  In flight, the new `veafCampaign` module spawns each zone's garrison minus its losses, draws the situation on the F10 map, lets a side take a neutral zone by holding it on the ground, and writes a state file to `Saved Games` during the flight and at its end.
+  Between missions, the state file is merged and a turn is played by fixed rules — logistics feed the reserves, the reserves repair the garrisons, a neutral zone bordered by one side only is retaken by it — and `campaign next` prepares the next mission folder with its bases, its dynamic slots and the factual part of its strategic briefing in French and English.
+  Not yet replayed in the next mission, though recorded: destroyed scenery, SAM missiles left, warehouse stocks — see [the page](doc/mission-maker/CAMPAIGN.en.md#to-verify).
+
 ### Changed
 
 - **Vendored DCS scripting-API schema `v0.5.0`** (was `v0.4.0`). The scripting API itself does not move: the LuaLS annotations are byte-identical and `audit-dcs-mocks` reports exactly what it did on `v0.4.0`. Only the reference-data types (`types.Entity.*`: weapon and aircraft flight models, sensor and mobility fields) grow. The vendored `LICENSE` is now the release's own: the previous copy named a different copyright holder than the `v0.4.0` tag did.

@@ -497,6 +497,10 @@ StaticObject = {
 Object = {
   Category = { UNIT = 1, WEAPON = 2, STATIC = 3, BASE = 4, SCENERY = 5, CARGO = 6 },
 }
+-- From veaf_libs/data/dcs-schema/dcs-world-api.lua: the campaign counts a SAM's missiles by it.
+Weapon = {
+  Category = { SHELL = 0, MISSILE = 1, ROCKET = 2, BOMB = 3, TORPEDO = 4 },
+}
 Airbase = {
   getByName = function(name)
     return nil

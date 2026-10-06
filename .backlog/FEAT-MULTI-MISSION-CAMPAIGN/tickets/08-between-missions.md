@@ -1,6 +1,6 @@
 # 08 — Between missions: merge the state file, the enemy's turn, victory
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Merge
 

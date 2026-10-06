@@ -880,3 +880,18 @@ limitations:
   workaround: |
     `active_at_start: true`, the `-zonestart` marker command, or a menu of your own calling
     `veafCombatZone.ActivateZone`.
+
+- id: campaign-records-more-than-it-replays
+  kind: tool
+  area: runtime
+  title: "A campaign mission records destroyed scenery, SAM missiles left and warehouse stocks, but the next mission does not replay them yet"
+  symptom: |
+    The state file of a multi-mission campaign carries the scenery destroyed in flight, the missiles
+    each surviving air-defence unit has left and every campaign airbase's warehouse content
+    (FEAT-MULTI-MISSION-CAMPAIGN, tickets 06 and 07). The next mission starts with a bridge standing
+    again, a SAM fully loaded and its airbase stocked as the template says: how to make an object
+    start destroyed, whether a unit can start a mission with fewer missiles, and how exact the
+    warehouse counts read in flight are, are still to be measured in game.
+  workaround: |
+    Garrisons, their losses, owners, captures and reserves are replayed. For a bridge or a depot that
+    must stay down, make it a zone (`kind: logistics` for a depot) rather than relying on the scenery.

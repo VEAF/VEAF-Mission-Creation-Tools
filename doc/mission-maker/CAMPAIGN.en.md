@@ -38,6 +38,7 @@ Caucasus/
     ├── mission-01/
     │   ├── mission/         the mission folder of mission 1
     │   ├── mission-01.state the state file the mission wrote
+    │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
     └── mission-02/
@@ -109,12 +110,14 @@ A zone that loses its whole garrison turns **neutral**, and can be captured.
 
 ### Size classes {#size-classes}
 
-A size class is a set of parameters of the CAS generators:
+A size class is a set of parameters of the CAS generators: the garrison has as many infantry sections, armour platoons and air defence groups as a CAS mission of the same size, **without its transport company** — a garrison has no use for fifteen lorries.
 
-| shipped class | `size` | `defense` | `armor` | long-range SAM |
-|---|---|---|---|---|
-| `outpost` | 2 | 1 | 1 | no |
-| `airfield` | 4 | 3 | 2 | yes |
+| shipped class | `size` | `defense` | `armor` | long-range SAM | units (average, min – max) |
+|---|---|---|---|---|---|
+| `outpost` | 1 | 1 | 1 | no | 23 (12 – 36) |
+| `airfield` | 1 | 3 | 2 | yes | 51 (35 – 74), of which ≈ 20 for the SAM |
+
+Measured over 40 draws on 2026-10-06; the example campaign thus has about 470 ground units.
 
 `size` runs from 1 to 5, `defense` and `armor` from 0 to 5, as for a `_cas` marker.
 A new class must set `size`, `defense` and `armor`.
@@ -169,6 +172,11 @@ Otherwise it merges the file, then plays the **turn** with fixed rules, for both
 Destroying an enemy depot means a smaller reserve, so fewer repairs and thinner garrisons behind it: an empty reserve only allows a token garrison.
 
 The enemy's **intent** — where it puts its effort, what the next mission asks of the players — is not in the rules: Claude decides it while building the next mission, and writes it in the briefing.
+
+## The debriefing {#debriefing}
+
+`campaign apply` also writes the debriefing of the mission flown, in French and English, in `missions/mission-NN/` (`debriefing.fr.txt`, `debriefing.en.txt`): the ground that changed hands, each side's losses zone by zone and unit type by unit type, the scenery destroyed, what the turn did next, and where the objectives stand.
+It is a text to read after the evening or to post as it is; the AI assistant tells it as a story for the squadron when asked, keeping to its facts.
 
 ## The strategic briefing {#strategic-briefing}
 

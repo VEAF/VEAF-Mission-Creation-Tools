@@ -79,9 +79,14 @@ class SizeClass:
 
 
 #: The shipped size classes. A campaign overrides any parameter of them, or declares new ones.
+#:
+#: Measured on 2026-10-06, 40 draws each with the real spawn data: an outpost averages 23 units
+#: (12 to 36), an airfield 51 (35 to 74), of which its long-range battery is about 20. The first
+#: values, CAS-mission sizes 2 and 4 drawn through `generateCasGroup`, gave 49 and 119 — about a
+#: thousand ground units for the 12-zone example campaign.
 DEFAULT_SIZE_CLASSES: dict[str, SizeClass] = {
-    "outpost": SizeClass("outpost", size=2, defense=1, armor=1),
-    "airfield": SizeClass("airfield", size=4, defense=3, armor=2, long_range_sam=True),
+    "outpost": SizeClass("outpost", size=1, defense=1, armor=1),
+    "airfield": SizeClass("airfield", size=1, defense=3, armor=2, long_range_sam=True),
 }
 
 

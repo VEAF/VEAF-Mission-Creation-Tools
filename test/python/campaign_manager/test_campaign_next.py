@@ -91,7 +91,7 @@ class TestTheDataTable:
         state = initial_state(campaign)
         state.zones["Senaki"].garrison = [{"name": "g", "units": []}]
         senaki = mission_data(campaign, state)["zones"][1]
-        assert senaki["size"] == {"size": 4, "defense": 3, "armor": 2, "long_range_sam": True}
+        assert senaki["size"] == {"size": 1, "defense": 3, "armor": 2, "long_range_sam": True}
         assert senaki["garrison"] == [{"name": "g", "units": []}]
         assert "garrison" not in mission_data(campaign, state)["zones"][0]
 

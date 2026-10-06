@@ -1297,7 +1297,7 @@
   "campaign.issue.state_file_skips": "Le fichier d'état est celui de la mission {mission}, la campagne attend la mission {expected}.",
   "campaign.issue.not_started": "{path} n'existe pas : démarrer d'abord la campagne avec `campaign init`.",
   "campaign.change.owner": "{zone} : {from} → {to}",
-  "campaign.change.losses": "{zone} : {lost} unité(s) perdue(s)",
+  "campaign.change.losses": "{zone} : le camp {side} a perdu {lost} unité(s)",
   "campaign.change.scenery": "{destroyed} objet(s) du décor détruit(s)",
   "campaign.change.logistics": "{zone} alimente la réserve {side} : {added}",
   "campaign.change.repaired": "{zone} : {units} unité(s) remplacée(s) depuis la réserve",
@@ -1343,5 +1343,17 @@
   "campaign.side_name.neutral": "neutre",
   "campaign.reserve_name.armor": "blindés",
   "campaign.reserve_name.air_defense": "défense aérienne",
-  "campaign.reserve_name.transport": "transport"
+  "campaign.reserve_name.transport": "transport",
+  "campaign.debriefing.header": "DÉBRIEFING — {campaign}, mission {mission} sur {missions}",
+  "campaign.debriefing.ground": "Terrain qui a changé de mains :",
+  "campaign.debriefing.no_ground": "- aucune zone n'a changé de mains",
+  "campaign.debriefing.losses": "Pertes :",
+  "campaign.debriefing.side_losses": "- {side} : {count} unité(s)",
+  "campaign.debriefing.zone_losses": "  - {zone} : {count} — {types}",
+  "campaign.debriefing.no_losses": "- aucune perte d'un côté comme de l'autre",
+  "campaign.debriefing.scenery": "Décor détruit : {count} objet(s).",
+  "campaign.debriefing.turn": "Entre les missions :",
+  "campaign.debriefing.quiet_turn": "- rien",
+  "campaign.debriefing.left": "{left} mission(s) prévue(s) restante(s).",
+  "cmd.campaign_apply.debriefing": "Débriefing écrit dans {path} (debriefing.fr.txt, debriefing.en.txt)."
 }

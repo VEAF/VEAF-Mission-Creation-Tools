@@ -37,6 +37,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Between missions, the state file is merged and a turn is played by fixed rules — logistics feed the reserves, the reserves repair the garrisons, a neutral zone bordered by one side only is retaken by it — and `campaign next` prepares the next mission folder with its bases, its dynamic slots and the factual part of its strategic briefing in French and English.
   Not yet replayed in the next mission, though recorded: destroyed scenery, SAM missiles left, warehouse stocks — see [the page](doc/mission-maker/CAMPAIGN.en.md#to-verify).
   `campaign apply` given a path where no state file exists says so, rather than calling it a file that is not a state file.
+  A garrison has the infantry, armour and air defence of a CAS target of its size but not its transport company, and stands within its zone: the shipped size classes give about 23 units for an outpost and 51 for an airfield with its long-range SAM, where the first cut gave 49 and 119.
+  It also writes the mission's debriefing in French and English next to the state file — ground changing hands, each side's losses zone by zone and unit type by unit type, scenery destroyed, the turn, the objectives — and the MCP action returns it for Claude to tell as a story.
 
 ### Changed
 

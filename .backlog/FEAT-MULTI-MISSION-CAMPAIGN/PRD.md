@@ -80,6 +80,8 @@ So a size class is a set of parameters of those generators (`size`, `defense`, `
 | 09 | [Build the next mission from the state, with its strategic briefing](tickets/09-build-next-mission.md) | ✅ |
 | 10 | [Documentation and an example campaign](tickets/10-doc-and-example.md) | 🧑 |
 | 11 | [Two missions flown end to end](tickets/11-two-missions-flown.md) | 🧑 |
+| 12 | [The debriefing written by `campaign apply`](tickets/12-debriefing.md) | ✅ |
+| 13 | [Garrisons of a sensible size](tickets/13-garrison-size.md) | ✅ |
 
 Tickets 04 to 07 and 11 wait for the game (item **R44** of [`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md)); ticket 10 waits for the demo mission step.
 
@@ -96,7 +98,7 @@ David could not start DCS, so the lot was built up to the in-game checks (David,
    Mission 1 draws in game; its state file brings the real figures.
 3. **`os` is sanitized on the VEAF servers** (measured 2026-10-03, `dcs-veaf-org-ssh-access`): the planned temporary-then-rename write would have left the state in the temporary for ever.
    Without `os` the mission writes the complete temporary, then the file itself; `campaign apply` falls back on the temporary when the file is cut short.
-4. **A garrison is one DCS group per zone**, plus its long-range battery as a group of its own, drawn by `veafCasMission.generateCasGroup` unchanged — whose placement (`findPointInZone` + `settleGroup`) is reused rather than `veaf.findSpawnPoint`. `veafCasMission` was not touched, so CAS missions get exactly what they got.
+4. **A garrison is one DCS group per zone**, plus its long-range battery as a group of its own, composed by `veafCampaign.composeGarrison` from `veafCasMission`'s unit generators (infantry, armour, air defence) in the numbers `generateCasGroup` draws — but without its transport company, and within the zone's radius (ticket 13). `veafCasMission` was not touched, so CAS missions get exactly what they got.
 5. **A garrison drawn after the start is paid from the reserve, unit by unit**; an empty reserve gives the smallest draw (size 1, no long-range battery). Mission 1's starting garrisons cost nothing.
    The reserve is therefore the mission's on the way back: the merge takes it from the state file.
 6. **Repairs are counted in units, not groups** (`rules.repairs_per_mission`, 4 per side), each taken from the reserve category of its type; a repaired SAM comes back fully loaded.

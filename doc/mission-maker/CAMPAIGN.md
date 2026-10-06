@@ -38,6 +38,7 @@ Caucase/
     ├── mission-01/
     │   ├── mission/         le dossier de mission de la mission 1
     │   ├── mission-01.state le fichier d'état écrit par la mission
+    │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
     └── mission-02/
@@ -109,12 +110,14 @@ Une zone qui perd toute sa garnison devient **neutre**, et peut être prise.
 
 ### Les classes de taille {#size-classes}
 
-Une classe de taille est un jeu de paramètres des générateurs CAS :
+Une classe de taille est un jeu de paramètres des générateurs CAS : la garnison compte autant de sections d'infanterie, de pelotons blindés et de groupes de défense aérienne qu'une mission CAS de la même taille, **sans sa compagnie de transport** — une garnison n'a que faire de quinze camions.
 
-| classe livrée | `size` | `defense` | `armor` | SAM longue portée |
-|---|---|---|---|---|
-| `outpost` | 2 | 1 | 1 | non |
-| `airfield` | 4 | 3 | 2 | oui |
+| classe livrée | `size` | `defense` | `armor` | SAM longue portée | unités (moyenne, min – max) |
+|---|---|---|---|---|---|
+| `outpost` | 1 | 1 | 1 | non | 23 (12 – 36) |
+| `airfield` | 1 | 3 | 2 | oui | 51 (35 – 74), dont ≈ 20 pour le SAM |
+
+Mesuré sur 40 tirages, le 2026-10-06 ; la campagne d'exemple compte ainsi environ 470 unités au sol.
 
 `size` va de 1 à 5, `defense` et `armor` de 0 à 5, comme pour un marqueur `_cas`.
 Une classe nouvelle doit fixer `size`, `defense` et `armor`.
@@ -169,6 +172,11 @@ Sinon il fusionne le fichier, puis joue le **tour** avec des règles fixes, pour
 Détruire un dépôt ennemi, c'est moins de réserve, donc moins de réparations et des garnisons plus maigres derrière : une réserve vide ne permet plus qu'une garnison minimale.
 
 L'**intention** de l'ennemi — où il porte son effort, ce que la prochaine mission demande aux joueurs — n'est pas dans les règles : c'est Claude qui la décide en construisant la mission suivante, et qui l'écrit dans le briefing.
+
+## Le débriefing {#debriefing}
+
+`campaign apply` écrit aussi le débriefing de la mission jouée, en français et en anglais, dans `missions/mission-NN/` (`debriefing.fr.txt`, `debriefing.en.txt`) : le terrain qui a changé de mains, les pertes de chaque camp zone par zone et type d'unité par type d'unité, le décor détruit, ce que le tour a fait ensuite, et l'état des objectifs.
+C'est un texte à lire après la soirée ou à poster tel quel ; l'assistant IA en fait le récit pour l'escadrille quand on le lui demande, en s'en tenant à ses faits.
 
 ## Le briefing stratégique {#strategic-briefing}
 

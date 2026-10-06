@@ -24,6 +24,7 @@ from campaign_manager.models import (
     CampaignDefinition,
     CampaignState,
     Objective,
+    ZoneState,
 )
 
 #: How DCS unit categories (`dcsUnits.yaml`) fall into the reserve's categories. Anything else —
@@ -130,8 +131,47 @@ def validate_state_file(
     return []
 
 
-def _count_dead(garrison: list[dict[str, Any]] | None) -> int:
-    return sum(1 for group in garrison or [] for unit in group["units"] if not unit.get("alive"))
+def _units(garrison: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    return [unit for group in garrison or [] for unit in group["units"]]
+
+
+def _loss_record(zone: str, side: str, types: list[str]) -> list[dict[str, Any]]:
+    """One `losses` change for these unit types, or nothing when there are none."""
+    if not types:
+        return []
+    counted: dict[str, int] = {}
+    for unit_type in types:
+        counted[unit_type] = counted.get(unit_type, 0) + 1
+    ordered = dict(sorted(counted.items(), key=lambda item: (-item[1], item[0])))
+    return [{"kind": "losses", "zone": zone, "side": side, "lost": len(types), "types": ordered}]
+
+
+def _losses(name: str, before: ZoneState, flown: ZoneState) -> list[dict[str, Any]]:
+    """What a zone's garrisons lost during the flight, charged to the side that owned each.
+
+    The same garrison on both sides of the flight loses the units alive before and dead after,
+    matched by position — the record keeps them in place. A garrison that is gone, or replaced
+    because the zone changed hands, lost every unit it started with; a garrison drawn in flight
+    lost its dead units.
+
+    Args:
+        name: The zone.
+        before: The zone in the campaign state, before the flight.
+        flown: The zone in the state file.
+
+    Returns:
+        Zero, one or two `losses` changes.
+    """
+    same_garrison = before.garrison is not None and flown.garrison is not None and flown.owner == before.owner
+    if same_garrison:
+        pairs = zip(_units(before.garrison), _units(flown.garrison), strict=False)
+        return _loss_record(name, flown.owner, [b["type"] for b, f in pairs if b.get("alive") and not f.get("alive")])
+    changes = []
+    if before.garrison is not None:
+        changes += _loss_record(name, before.owner, [u["type"] for u in _units(before.garrison) if u.get("alive")])
+    if flown.garrison is not None:
+        changes += _loss_record(name, flown.owner, [u["type"] for u in _units(flown.garrison) if not u.get("alive")])
+    return changes
 
 
 def merge_state_file(current: CampaignState, flown: CampaignState) -> tuple[CampaignState, list[dict[str, Any]]]:
@@ -157,9 +197,7 @@ def merge_state_file(current: CampaignState, flown: CampaignState) -> tuple[Camp
         before = merged.zones[name]
         if zone.owner != before.owner:
             changes.append({"kind": "owner", "zone": name, "from": before.owner, "to": zone.owner})
-        lost = _count_dead(zone.garrison) - (_count_dead(before.garrison) if zone.owner == before.owner else 0)
-        if lost > 0:
-            changes.append({"kind": "losses", "zone": name, "lost": lost})
+        changes += _losses(name, before, zone)
         before.owner = zone.owner
         before.garrison = copy.deepcopy(zone.garrison)
         before.capture = None

@@ -200,6 +200,7 @@ This is what the AI decides the enemy's intent for the next turn from.
 ### Apply a flown campaign mission {#campaign-apply}
 
 *Campaign (folder) · ⭐* — Once the mission is flown and its state file fetched from the server, the AI merges it into the campaign, plays the turn between missions (reserves, repairs, counter-attacks) and says what changed.
+It also writes the mission's debriefing, and can tell it as a story for the squadron.
 A file already applied, from another campaign, or skipping a mission is refused without writing anything.
 
 > 💬 *"Here is mission 3's state file, apply it."*

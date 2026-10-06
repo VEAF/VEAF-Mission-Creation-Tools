@@ -45,7 +45,7 @@ class TestAValidCampaign:
         campaign, _ = parse_campaign(copy.deepcopy(VALID))
         assert campaign is not None
         outpost = campaign.size_classes["outpost"]
-        assert outpost.size == 1
+        assert outpost.size == 2
         assert outpost.defense == DEFAULT_SIZE_CLASSES["outpost"].defense
         assert campaign.size_classes["airfield"] == DEFAULT_SIZE_CLASSES["airfield"]
 

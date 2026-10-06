@@ -64,6 +64,7 @@ def campaign_apply(
             mark = "[green]✓[/]" if met else "[red]✗[/]"
             console.print(f"  {mark} {t(f'campaign.objective.{objective.kind}', zones=', '.join(objective.zones))}")
         console.print(t(f"campaign.outcome.{report.outcome}", left=report.missions_left))
+        console.print(t("cmd.campaign_apply.debriefing", path=report.folder))
     if pause:
         input(t("help.pause_msg"))
     if failed:

@@ -12,12 +12,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from veaf_libs.i18n import t
+from veaf_libs.i18n import language, t
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
 from campaign_manager.campaign_manager import initial_state, load_campaign, load_state, save_state, validate_state
+from campaign_manager.debriefing import debriefing_text
 from campaign_manager.models import Objective
-from campaign_manager.next_mission import NextMissionReport, prepare_next_mission
+from campaign_manager.next_mission import BRIEFING_LANGUAGES, NextMissionReport, prepare_next_mission
 from campaign_manager.turn_manager import (
     evaluate_objectives,
     merge_state_file,
@@ -36,6 +37,9 @@ STATE_FILE = "campaign-state.yaml"
 #: Where each mission's history is kept, one sub-folder per mission.
 MISSIONS_FOLDER = "missions"
 
+#: The debriefing `apply` writes in the mission's sub-folder, one file per language.
+DEBRIEFING_FILE = "debriefing.{lang}.txt"
+
 #: The mission folder itself, inside a mission's sub-folder.
 MISSION_SUBFOLDER = "mission"
 
@@ -49,6 +53,10 @@ class ApplyReport:
     objectives: list[tuple[Objective, bool]]
     outcome: str
     missions_left: int
+    debriefing: dict[str, str]
+    """The debriefing, by language, as written next to the state file."""
+    folder: Path
+    """The mission's sub-folder, where the debriefing and the states before and after are kept."""
 
 
 class CampaignWorker:
@@ -120,8 +128,9 @@ class CampaignWorker:
         if refused:
             return issues + refused, None
 
-        merged, changes = merge_state_file(current, flown)
-        changes += play_turn(campaign, merged)
+        merged, flight = merge_state_file(current, flown)
+        turn = play_turn(campaign, merged)
+        changes = flight + turn
         result = outcome(campaign, merged)
         merged.history.append({"mission": merged.mission, "changes": changes, "outcome": result})
 
@@ -134,12 +143,19 @@ class CampaignWorker:
         save_state(current, archive / "campaign-state.before.yaml")
         save_state(merged, archive / "campaign-state.after.yaml")
         save_state(merged, self.state_file)
+        debriefing = {}
+        for lang in BRIEFING_LANGUAGES:
+            with language(lang):
+                debriefing[lang] = debriefing_text(campaign, merged, flight, turn)
+            (archive / DEBRIEFING_FILE.format(lang=lang)).write_text(debriefing[lang], encoding="utf-8")
         return issues, ApplyReport(
             mission=merged.mission,
             changes=changes,
             objectives=evaluate_objectives(campaign, merged),
             outcome=result,
             missions_left=max(campaign.missions - merged.mission, 0),
+            debriefing=debriefing,
+            folder=archive,
         )
 
     def next(self) -> tuple[list[ValidationIssue], NextMissionReport | None]:

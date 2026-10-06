@@ -202,6 +202,7 @@ C'est là-dessus que l'IA décide de l'intention de l'ennemi pour le tour suivan
 ### Appliquer une mission de campagne jouée {#campaign-apply}
 
 *Campagne (dossier) · ⭐* — Une fois la mission jouée et son fichier d'état récupéré sur le serveur, l'IA le fusionne dans la campagne, joue le tour entre les missions (réserves, réparations, contre-attaques) et dit ce qui a changé.
+Elle écrit aussi le débriefing de la mission, et peut en faire le récit pour l'escadrille.
 Un fichier déjà appliqué, d'une autre campagne, ou qui saute une mission est refusé sans rien écrire.
 
 > 💬 *« Voilà le fichier d'état de la mission 3, applique-le. »*

@@ -84,6 +84,7 @@ def test_apply_then_status_tells_what_changed(tmp_path: Path) -> None:
     assert result["mission"] == 1
     assert result["objectives"][0]["met"] is True
     assert any("Senaki" in change for change in result["changes"])
+    assert result["debriefing"]["en"].startswith("DEBRIEFING — Caucasus Front, mission 1 of 8")
     status = campaign_status(folder)
     assert status["mission"] == 1
     assert status["last_mission"]["mission"] == 1

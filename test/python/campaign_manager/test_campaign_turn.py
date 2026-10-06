@@ -201,7 +201,40 @@ class TestMerging:
         assert merged.zones["Senaki"].garrison == garrison
         assert merged.zones["Kobuleti"].warehouse == {"weapon": {}}
         assert merged.mission == 1
-        assert {"kind": "losses", "zone": "Senaki", "lost": 1} in changes
+        # drawn in flight: its dead units are its losses
+        assert {"kind": "losses", "zone": "Senaki", "side": "red", "lost": 1, "types": {"Osa 9A33 ln": 1}} in changes
+
+    def test_losses_of_a_known_garrison_are_the_units_alive_before_and_dead_after(self) -> None:
+        current = initial_state(_campaign())
+        current.zones["Senaki"].garrison = _garrison("Senaki", True, False, True, True)
+        flown = _flown(current, Senaki={"garrison": _garrison("Senaki", False, False, True, False)})
+        _, changes = merge_state_file(current, flown)
+        # unit 2 was already dead before the flight: not this mission's loss
+        assert {"kind": "losses", "zone": "Senaki", "side": "red", "lost": 2, "types": {"T-72B": 2}} in changes
+
+    def test_a_garrison_wiped_out_loses_every_unit_it_started_with(self) -> None:
+        current = initial_state(_campaign())
+        current.zones["Senaki"].garrison = _garrison("Senaki", True, True, False)
+        flown = _flown(current, Senaki={"owner": "neutral", "garrison": None})
+        _, changes = merge_state_file(current, flown)
+        assert {
+            "kind": "losses",
+            "zone": "Senaki",
+            "side": "red",
+            "lost": 2,
+            "types": {"Osa 9A33 ln": 1, "T-72B": 1},
+        } in changes
+
+    def test_a_zone_captured_in_flight_charges_both_garrisons_to_their_side(self) -> None:
+        current = initial_state(_campaign())
+        current.zones["Senaki"].garrison = _garrison("Senaki", True)
+        flown = _flown(current, Senaki={"owner": "blue", "garrison": _garrison("Senaki", True, False)})
+        _, changes = merge_state_file(current, flown)
+        losses = [c for c in changes if c["kind"] == "losses"]
+        assert losses == [
+            {"kind": "losses", "zone": "Senaki", "side": "red", "lost": 1, "types": {"T-72B": 1}},
+            {"kind": "losses", "zone": "Senaki", "side": "blue", "lost": 1, "types": {"Osa 9A33 ln": 1}},
+        ]
 
     def test_a_capture_in_progress_at_mission_end_is_dropped(self) -> None:
         current = initial_state(_campaign())
@@ -336,6 +369,12 @@ class TestSayingAChange:
                 }
             )
         assert owner == "Poti : neutre → rouge"
+        with language("fr"):
+            losses = describe_change(
+                {"kind": "losses", "zone": "Senaki", "side": "red", "lost": 7, "types": {"T-72B": 7}}
+            )
+        # a zone taken in flight has a line for each side: the side has to be said
+        assert losses == "Senaki : le camp rouge a perdu 7 unité(s)"
         assert logistics == "Sochi alimente la réserve rouge : blindés +2, défense aérienne +1"
 
     def test_and_in_english(self) -> None:

@@ -341,10 +341,9 @@ function veafMove.changeTanker(eventPos, speed, alt)
   local units = veaf.findUnitsInCircle(eventPos, 2000, false)
   veaf.loggers.get(veafMove.Id):trace(string.format("units=%s", veaf.p(units)))
   if units then
-    for name, _ in pairs(units) do
-      -- try and find a tanker unit
-      local unit = Unit.getByName(name)
-      if unit and unit:getDesc()["attributes"]["Tankers"] then
+    for _, unit in pairs(units) do
+      -- try and find a tanker unit, on the object found: a lookup by name can miss it
+      if unit:getDesc()["attributes"]["Tankers"] then
         tankerUnit = unit
         break
       end

@@ -114,6 +114,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   An SA-11 site carried by one unit was given the room of a single vehicle.
 - **Small truths** (FIX-DEMO-MISSION-FINDINGS): the docs spawn a `T-80UD` (a `T-80` matches no DCS type), the `waypoints.yaml` template says the build adds a `BULLSEYE` waypoint, and the carrier's « start air operations » commands are translated.
   The pilot guide's list of `_spawn unit` names offered two aircraft (refused by the command), a battery (`SA-6`, a group) and a wrong `M1 Abrams`, and claimed the names were case-sensitive (they are not).
+- **The F10 « MISSIONS » menu is built at mission start in missions that declare `cap_missions` or `combat_missions`** (FIX-COMBATMISSION-MENU-MISSING).
+  The generated configuration initialised the module before adding its missions, so the menu was built from an empty list and never rebuilt; it is now initialised after them.
+- **`_destroy, radius …` destroys every unit in the circle** (FIX-DEMO-RECETTE-FINDINGS).
+  The units found were looked up again by name, and DCS answers nothing for some of them (the « [CH] » vehicle pack): `-menage` left a whole platoon alive. The same lookup could make `_tanker` miss a tanker under the marker.
+- **The fog commands of the weather menu are translated** (FIX-DEMO-RECETTE-FINDINGS).
+  « Animated HEAVY fog over 1 minutes » stayed in English in a French mission; it now reads « Brouillard animé ÉPAIS sur 1 minute », and one minute is singular in English too.
+- **A CAS group is named after its own side** (FIX-DEMO-RECETTE-FINDINGS).
+  After one blue CAS, every later group, red included, was named « Blue CAS Group ».
 
 ## [6.27.0] — 2026-10-03
 

@@ -579,6 +579,19 @@ function TestVeafCasMissionUnfoundGroup:test_a_refused_spawn_stops_the_mission_t
   luaunit.assertFalse(self._reached, "a refused spawn must not go on to build the rest of the mission")
 end
 
+-- The group name follows the side on every generation. A blue CAS used to switch it to
+-- `BlueCasGroupName` for good, and every later red group was named « Blue CAS Group »
+-- (FIX-DEMO-RECETTE-FINDINGS 03).
+function TestVeafCasMissionUnfoundGroup:test_a_red_cas_after_a_blue_one_is_named_red()
+  pcall(veafCasMission.generateCasMission, { x = 0, y = 0, z = 0 }, 1, 1, 1, 100, false, coalition.side.BLUE)
+  luaunit.assertEquals(veafCasMission.casGroupName, veafCasMission.BlueCasGroupName)
+  veafCasMission.groupAliveCheckTaskID = "none"
+  self:_generate()
+  local name = veafCasMission.casGroupName
+  veafCasMission.casGroupName = veafCasMission.RedCasGroupName
+  luaunit.assertEquals(name, veafCasMission.RedCasGroupName)
+end
+
 -- ============================================================================
 -- FIX-UNGUARDED-DCS-LOOKUPS — the target report and the missing bullseye
 --

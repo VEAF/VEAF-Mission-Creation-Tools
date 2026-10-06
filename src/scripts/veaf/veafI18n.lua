@@ -1840,8 +1840,53 @@ veaf.i18nCatalog = {
     en = "Get info",
   },
   ["menu.weather.fog_animated_over"] = {
-    fr = "Brouillard animé sur %d minutes",
-    en = "Animated fog over %d minutes",
+    fr = "Brouillard animé sur %s",
+    en = "Animated fog over %s",
+  },
+  -- the fog commands: a density (weather.fog_density.*) and, when animated, a duration
+  ["menu.weather.fog_dynamic_level"] = {
+    fr = "Brouillard dynamique %s",
+    en = "Dynamic %s fog",
+  },
+  ["menu.weather.fog_static_level"] = {
+    fr = "Brouillard statique %s",
+    en = "Static %s fog",
+  },
+  ["menu.weather.fog_animated_level"] = {
+    fr = "Brouillard animé %s sur %s",
+    en = "Animated %s fog over %s",
+  },
+  ["weather.fog_minutes"] = {
+    fr = "%d minutes",
+    en = "%d minutes",
+  },
+  ["weather.fog_one_minute"] = {
+    fr = "1 minute",
+    en = "1 minute",
+  },
+  ["weather.fog_density.heavy"] = {
+    fr = "ÉPAIS",
+    en = "HEAVY",
+  },
+  ["weather.fog_density.medium"] = {
+    fr = "MOYEN",
+    en = "MEDIUM",
+  },
+  ["weather.fog_density.medium_low"] = {
+    fr = "MOYEN BAS",
+    en = "MEDIUM LOW",
+  },
+  ["weather.fog_density.sparse"] = {
+    fr = "LÉGER",
+    en = "SPARSE",
+  },
+  ["weather.fog_density.sparse_low"] = {
+    fr = "LÉGER BAS",
+    en = "SPARSE LOW",
+  },
+  ["weather.fog_density.no"] = {
+    fr = "AUCUN",
+    en = "NO",
   },
 }
 

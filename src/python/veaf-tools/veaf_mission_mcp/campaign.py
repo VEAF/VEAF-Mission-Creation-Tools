@@ -1,10 +1,10 @@
 """Drive a multi-mission campaign from the MCP: read it, apply a flown mission, build the next one.
 
-The three actions are the loop of FEAT-MULTI-MISSION-CAMPAIGN as Claude runs it: ``campaign_status``
+The actions are the loop of FEAT-MULTI-MISSION-CAMPAIGN as Claude runs it: ``campaign_status``
 before deciding anything, ``campaign_apply`` once the squadron has flown and the state file has been
 fetched, ``campaign_next`` to lay down the next mission folder — which Claude then designs with the
-other actions. Each one is the matching ``veaf-tools campaign`` command, returning data instead of
-printing it.
+other actions —, ``campaign_briefing`` for the strategic briefing deck around `briefing.yaml`. Each
+one is the matching ``veaf-tools campaign`` command, returning data instead of printing it.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from campaign_manager.briefing_prose import SECTIONS
 from campaign_manager.campaign_manager import load_campaign, load_state, validate_state
 from campaign_manager.campaign_worker import CampaignWorker
 from campaign_manager.next_mission import BRIEFING_FILE, BRIEFING_LANGUAGES
@@ -115,8 +116,9 @@ def campaign_next(campaign_folder: Path) -> dict[str, Any]:
         campaign_folder: The campaign folder.
 
     Returns:
-        ``{mission, folder, created, airbases, strategic_situation}``: the folder to design the
-        mission in, and the factual part of its strategic briefing in each language.
+        ``{mission, folder, created, airbases, briefing_deck, strategic_situation}``: the folder to
+        design the mission in, the strategic briefing deck written next to it (``None`` when
+        `briefing.yaml` has an error), and the factual part of its strategic briefing in each language.
 
     Raises:
         ValueError: The campaign is invalid, not started, or has no mission template.
@@ -129,8 +131,37 @@ def campaign_next(campaign_folder: Path) -> dict[str, Any]:
         "folder": str(report.folder),
         "created": report.created,
         "airbases": report.airbases,
+        "briefing_deck": str(report.deck) if report.deck else None,
         "strategic_situation": {
             lang: (report.folder / BRIEFING_FILE.format(lang=lang)).read_text(encoding="utf-8")
             for lang in BRIEFING_LANGUAGES
         },
+    }
+
+
+def campaign_briefing(campaign_folder: Path) -> dict[str, Any]:
+    """Write the coming mission's strategic briefing deck, from the campaign and its `briefing.yaml`.
+
+    Args:
+        campaign_folder: The campaign folder.
+
+    Returns:
+        ``{path, map, pages, prose, map_offline, sections, warnings}``: the deck and its map, its page
+        count, whether `briefing.yaml` was there, whether the map had to do without its background,
+        and the sections `briefing.yaml` may hold.
+
+    Raises:
+        ValueError: The campaign is invalid or not started, or `briefing.yaml` has an error.
+    """
+    issues, report = CampaignWorker(campaign_folder).briefing()
+    _refuse(issues)
+    assert report is not None
+    return {
+        "path": str(report.path),
+        "map": str(report.map.path),
+        "pages": report.pages,
+        "prose": report.prose,
+        "map_offline": report.map.offline,
+        "sections": {section: list(parts) for section, parts in SECTIONS.items()},
+        "warnings": [issue.message for issue in issues if issue.level != ERROR],
     }

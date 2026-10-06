@@ -56,8 +56,9 @@ _LAZY_PACKAGES: tuple[str, ...] = ("mission_builder",)
 #: Third-party packages that read files from their own package directory at runtime, which
 #: PyInstaller does not bundle unless told to. avwx loads its station table on the first
 #: ``Metar(icao)``: without it every live-weather variant of the 6.24.0 exe fell back to the
-#: default weather while the build exited 0 (FIX-SCRATCH-MISSION-FINDINGS ticket 03).
-_DATA_PACKAGES: tuple[str, ...] = ("avwx",)
+#: default weather while the build exited 0 (FIX-SCRATCH-MISSION-FINDINGS ticket 03). python-pptx
+#: opens its ``templates/default.pptx`` for every new deck (the campaign briefing).
+_DATA_PACKAGES: tuple[str, ...] = ("avwx", "pptx")
 
 
 def deploy_published_locally(published_zip: Path, target: Path) -> list[str]:

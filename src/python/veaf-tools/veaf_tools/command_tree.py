@@ -72,7 +72,9 @@ COMMAND_GROUPS: tuple[CommandGroup, ...] = (
             "airfield-channels",
         ),
     ),
-    CommandGroup("campaign", ("campaign-init", "campaign-validate", "campaign-apply", "campaign-next")),
+    CommandGroup(
+        "campaign", ("campaign-init", "campaign-validate", "campaign-apply", "campaign-next", "campaign-briefing")
+    ),
     CommandGroup("cockpit", ("resolve-checklist", "verify-checklist", "explore-cockpit")),
     CommandGroup(
         "dcs",

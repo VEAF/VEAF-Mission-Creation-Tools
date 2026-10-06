@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 import yaml
+from campaign_manager.briefing_prose import PROSE_FILE
 from campaign_manager.campaign_manager import load_campaign
 from campaign_manager.campaign_worker import CAMPAIGN_FILE, CampaignWorker
 from campaign_manager.next_mission import DATA_FILE
@@ -26,6 +27,18 @@ def _folder(tmp_path: Path) -> Path:
         path.write_bytes(content)
     (template / "mission.yaml").write_text("mission:\n  name: Western Georgia\n", encoding="utf-8")
     return tmp_path
+
+
+def test_its_briefing_deck_generates_from_a_fresh_copy(tmp_path: Path) -> None:
+    folder = _folder(tmp_path)
+    shutil.copy(EXAMPLE / PROSE_FILE, folder / PROSE_FILE)
+    worker = CampaignWorker(folder)
+    worker.init()
+    assert worker.validate() == []
+    issues, report = worker.briefing()
+    assert issues == []
+    assert report is not None and report.prose
+    assert report.path == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
 
 
 def test_the_example_is_valid_without_a_single_warning() -> None:

@@ -21,7 +21,7 @@ from veaf_libs.blank_mission import generate_blank_mission
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.i18n import language, t
 from veaf_libs.lua_config_generator import generate_config_lua
-from veaf_libs.mission_validator import ERROR
+from veaf_libs.mission_validator import ERROR, WARNING
 from veaf_mission_mcp.mission_folder import load_folder_mission
 from veaf_mission_mcp.mission_settings import set_briefing
 
@@ -357,3 +357,49 @@ class TestTheWorker:
         result = CliRunner().invoke(app, ["campaign-next", str(folder)])
         assert result.exit_code == 0, result.output
         assert (folder / "missions" / "mission-01" / "mission" / DATA_FILE).is_file()
+
+    def test_next_writes_the_strategic_briefing_deck_next_to_the_mission(self, tmp_path: Path) -> None:
+        folder = self._folder(tmp_path)
+        worker = CampaignWorker(folder)
+        worker.init()
+        _, report = worker.next()
+        assert report is not None
+        assert report.deck == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
+        assert report.deck.is_file()
+
+    def test_an_error_in_briefing_yaml_does_not_stop_the_next_mission(self, tmp_path: Path) -> None:
+        folder = self._folder(tmp_path)
+        (folder / "briefing.yaml").write_text("situation: 12\n", encoding="utf-8")
+        worker = CampaignWorker(folder)
+        worker.init()
+        issues, report = worker.next()
+        assert report is not None and report.deck is None
+        assert issues and all(issue.level == WARNING for issue in issues)
+
+    def test_a_deck_that_cannot_be_drawn_does_not_stop_the_next_mission(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from campaign_manager import campaign_worker
+
+        def full_disk(*args: Any, **kwargs: Any) -> None:
+            raise OSError("no space left on device")
+
+        monkeypatch.setattr(campaign_worker, "campaign_deck", full_disk)
+        folder = self._folder(tmp_path)
+        worker = CampaignWorker(folder)
+        worker.init()
+        issues, report = worker.next()
+        assert report is not None and report.deck is None
+        assert [issue.message for issue in issues] == [
+            t("campaign.issue.deck_failed", error=OSError("no space left on device"))
+        ]
+
+    def test_the_briefing_command(self, tmp_path: Path) -> None:
+        import veaf_tools.commands  # noqa: F401
+        from veaf_tools.app import app
+
+        folder = self._folder(tmp_path)
+        CampaignWorker(folder).init()
+        result = CliRunner().invoke(app, ["campaign-briefing", str(folder)])
+        assert result.exit_code == 0, result.output
+        assert (folder / "missions" / "mission-01" / "briefing-campagne.pptx").is_file()

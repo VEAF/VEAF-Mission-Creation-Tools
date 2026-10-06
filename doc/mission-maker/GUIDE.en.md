@@ -554,6 +554,7 @@ The build tells you how many it added.
 | `campaign-init` | Start a [multi-mission campaign](CAMPAIGN.en.md): create its state from `campaign.yaml`. |
 | `campaign-validate` | Check a campaign folder: `campaign.yaml`, and the campaign state against it. |
 | `campaign-next` | Create, or refresh, a campaign's next mission folder from its state. |
+| `campaign-briefing` | Write the campaign's strategic briefing deck (PPTX) for the coming mission, from the campaign and `briefing.yaml`. |
 | `campaign-apply` | Apply a flown mission's state file to its campaign, then play the turn between missions. |
 | `doctor` | Collect the versions, paths and recent errors a bug report needs, and produce a redacted block to paste into a report — see [Getting help](../SUPPORT.en.md). |
 | `explore-cockpit` | Explore a live cockpit: name a control to see it, or move one to name it. |

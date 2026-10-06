@@ -41,6 +41,7 @@ PySide6-Essentials = { version = ">=6.6", optional = true, python = "<3.15" }
 # Client SSH/SFTP de veaf-logs (journaux distants). Meme extra que Qt : rien
 # d'autre dans veaf-tools ne s'en sert.
 paramiko = { version = ">=3.4,<6", optional = true }
+python-pptx = ">=1.0,<2"
 
 [tool.poetry.extras]
 logs = ["PySide6-Essentials", "paramiko"]

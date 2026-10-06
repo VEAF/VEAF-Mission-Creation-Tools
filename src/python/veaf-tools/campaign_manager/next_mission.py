@@ -45,6 +45,8 @@ class NextMissionReport:
     created: bool
     """Whether the folder was copied from the template now, rather than refreshed."""
     airbases: list[str]
+    deck: Path | None = None
+    """The strategic briefing deck written next to the folder, or ``None`` when it could not be."""
 
 
 def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str, Any]:

@@ -321,9 +321,26 @@ def _parse_zone(
     if not _is_int(radius) or not low <= radius <= high:
         issues.append(_error("bad_radius", zone=name, value=radius, low=low, high=high))
 
+    texts: dict[str, str | None] = {}
+    for key in ("display_name", "intel"):
+        value = raw.get(key)
+        if value is not None and (not isinstance(value, str) or not value.strip()):
+            issues.append(_error("bad_zone_text", zone=name, field=key))
+        texts[key] = value.strip() if isinstance(value, str) else None
+
     if len(issues) > count or location is None:
         return None
-    return CampaignZone(name=name, location=location, size=size, side=side, kind=kind, garrison=garrison, radius=radius)
+    return CampaignZone(
+        name=name,
+        location=location,
+        size=size,
+        side=side,
+        kind=kind,
+        garrison=garrison,
+        radius=radius,
+        display_name=texts["display_name"],
+        intel=texts["intel"],
+    )
 
 
 def _parse_connections(raw: Any, names: set[str], issues: list[ValidationIssue]) -> list[tuple[str, str]]:

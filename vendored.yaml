@@ -216,9 +216,9 @@ artifacts:
   - id: dcs-schema
     source: https://github.com/YoloWingPixie/dcs-world-schema
     upstream: https://github.com/YoloWingPixie/dcs-world-schema
-    pinned: "v0.4.0"
+    pinned: "v0.5.0"
     vendoring: verbatim
     path: src/python/veaf-tools/veaf_libs/data/dcs-schema
     manual_steps: "(verbatim) re-download the schema artifacts from the matching upstream release (bump the TOOLING-DCS-MOCK-COVERAGE NOTICE)."
     watch:
-      - { kind: github-release, repo: YoloWingPixie/dcs-world-schema, pinned: "v0.4.0" }
+      - { kind: github-release, repo: YoloWingPixie/dcs-world-schema, pinned: "v0.5.0" }

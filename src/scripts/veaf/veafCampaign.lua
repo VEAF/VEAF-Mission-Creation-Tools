@@ -185,6 +185,46 @@ local function reserveTotal(reserve)
   return total
 end
 
+--- Compose and place a garrison from `veafCasMission`'s unit generators: infantry sections, armour
+--- platoons, air defence groups, in the numbers `generateCasGroup` draws for the same size.
+---
+--- Not `generateCasGroup` itself, for two reasons measured on 2026-10-06 (40 draws per setting): it
+--- always adds a transport company of 10 to 15 lorries, which a garrison has no use for — 15 to 42 of
+--- the 28 to 119 units it gives — and it spreads them over `(size + spacing) * 350` m, whatever the
+--- zone's radius. Here they stand within the zone.
+--- @param name string the group name, used as the prefix of the generated ones
+--- @param center table the zone's centre, a vec3
+--- @param radius number the zone's radius, in metres
+--- @param size table `{ size, defense, armor }`
+--- @param side number the DCS coalition
+--- @return table the placed units, as `veafCasMission.placeGroup` hands them back
+function veafCampaign.composeGarrison(name, center, radius, size, side)
+  local units = {}
+  local function place(group)
+    local position = veaf.findPointInZone(center, radius, false)
+    if group and position then
+      veafCasMission.placeGroup(group, position, veafCampaign.GARRISON_SPACING, units)
+    end
+  end
+  local sections = math.random(math.max(1, size.size - 2), size.size + 1)
+  for index = 1, sections do
+    place(veafCasMission.generateInfantryGroup(name .. " - Infantry Section " .. index, size.defense, size.armor, side))
+  end
+  if size.armor > 0 then
+    local platoons = math.random(math.max(1, size.size - 2), size.size + 1)
+    for index = 1, platoons do
+      place(veafCasMission.generateArmorPlatoon(name .. " - Armor Platoon " .. index, size.defense, size.armor, side))
+    end
+  end
+  if size.defense > 0 then
+    local groups = size.defense > 3 and 2 or 1
+    for index = 1, groups do
+      place(veafCasMission.generateAirDefenseGroup(name .. " - Air Defense Group " .. index, size.defense, side))
+    end
+  end
+  return units
+end
+
 --- The size class a draw uses: the zone's own, or the smallest one when the reserve it takes from is
 --- empty — a side with nothing left in reserve can only scrape a token garrison together.
 local function sizeForDraw(size, reserve)
@@ -223,15 +263,7 @@ function VeafCampaignZone:drawGarrison(reserve)
     table.insert(placedGroups, { name = self.name .. " garrison", units = units })
   else
     local size = sizeForDraw(self.entry.size, reserve)
-    local units = veafCasMission.generateCasGroup(
-      self.name .. " garrison",
-      center,
-      size.size,
-      size.defense,
-      size.armor,
-      veafCampaign.GARRISON_SPACING,
-      side
-    )
+    local units = veafCampaign.composeGarrison(self.name .. " garrison", center, radius, size, side)
     table.insert(placedGroups, { name = self.name .. " garrison", units = units })
     if size.long_range_sam then
       local battery = veafCasMission.generateLongRangeAirDefenseGroup(self.name .. " long-range SAM", side)

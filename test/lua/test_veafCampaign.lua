@@ -73,7 +73,7 @@ local function setUpSuite(self)
   dcs_mocks.reset()
   local this = self
   self.saved = {
-    generateCasGroup = veafCasMission.generateCasGroup,
+    composeGarrison = veafCampaign.composeGarrison,
     generateLongRange = veafCasMission.generateLongRangeAirDefenseGroup,
     placeGroup = veafCasMission.placeGroup,
     findGroup = veafUnits.findGroup,
@@ -92,15 +92,15 @@ local function setUpSuite(self)
     table.insert(this.lines, { id = id, from = from, to = to })
   end
   self.casCalls = {}
-  veafCasMission.generateCasGroup = function(name, spot, size, defense, armor, spacing, side)
-    table.insert(this.casCalls, { name = name, size = size, defense = defense, armor = armor, side = side })
+  veafCampaign.composeGarrison = function(name, center, radius, size, side)
+    table.insert(this.casCalls, { name = name, size = size.size, defense = size.defense, armor = size.armor, side = side })
     return { placed("T-72B", 1, 2), placed("BMP-2", 3, 4) }
   end
   veafCampaign.data = nil
 end
 
 local function tearDownSuite(self)
-  veafCasMission.generateCasGroup = self.saved.generateCasGroup
+  veafCampaign.composeGarrison = self.saved.composeGarrison
   veafCasMission.generateLongRangeAirDefenseGroup = self.saved.generateLongRange
   veafCasMission.placeGroup = self.saved.placeGroup
   veafUnits.findGroup = self.saved.findGroup
@@ -148,7 +148,7 @@ function TestVeafCampaignDraw:test_the_drawn_garrison_is_recorded_in_the_data_ta
 end
 
 function TestVeafCampaignDraw:test_a_draw_that_places_nothing_is_left_for_the_next_mission()
-  veafCasMission.generateCasGroup = function()
+  veafCampaign.composeGarrison = function()
     return {}
   end
   veafCampaign.data = { zones = { zoneEntry("Senaki", "red") } }
@@ -273,6 +273,85 @@ function TestVeafCampaignDraw:test_an_explicit_garrison_list_replaces_the_draw()
     table.insert(types, unit.type)
   end
   luaunit.assertEquals(types, { "HQ-7_LN_SP", "sa8", "T-72B" })
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafCampaignCompose — the garrison is not a CAS target group
+-- ---------------------------------------------------------------------------
+TestVeafCampaignCompose = {}
+
+function TestVeafCampaignCompose:setUp()
+  self.saved = {
+    random = math.random,
+    findPointInZone = veaf.findPointInZone,
+    placeGroup = veafCasMission.placeGroup,
+    infantry = veafCasMission.generateInfantryGroup,
+    armor = veafCasMission.generateArmorPlatoon,
+    airDefense = veafCasMission.generateAirDefenseGroup,
+    transport = veafCasMission.generateTransportCompany,
+  }
+  local this = self
+  self.made, self.radii = {}, {}
+  math.random = function(low, high)
+    return high or low -- the largest draw
+  end
+  veaf.findPointInZone = function(center, radius)
+    table.insert(this.radii, radius)
+    return { x = center.x, y = center.z }
+  end
+  veafCasMission.placeGroup = function(group, position, spacing, result)
+    table.insert(result, placed(group.kind, position.x, position.y))
+    return result
+  end
+  local function maker(kind)
+    return function()
+      table.insert(this.made, kind)
+      return { kind = kind, units = {} }
+    end
+  end
+  veafCasMission.generateInfantryGroup = maker("infantry")
+  veafCasMission.generateArmorPlatoon = maker("armor")
+  veafCasMission.generateAirDefenseGroup = maker("air defense")
+  veafCasMission.generateTransportCompany = maker("transport")
+end
+
+function TestVeafCampaignCompose:tearDown()
+  local s = self.saved
+  math.random, veaf.findPointInZone, veafCasMission.placeGroup = s.random, s.findPointInZone, s.placeGroup
+  veafCasMission.generateInfantryGroup, veafCasMission.generateArmorPlatoon = s.infantry, s.armor
+  veafCasMission.generateAirDefenseGroup, veafCasMission.generateTransportCompany = s.airDefense, s.transport
+end
+
+local function count(list, kind)
+  local n = 0
+  for _, item in ipairs(list) do
+    if item == kind then
+      n = n + 1
+    end
+  end
+  return n
+end
+
+function TestVeafCampaignCompose:test_the_same_groups_as_a_cas_target_but_no_transport_company()
+  veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 2, defense = 4, armor = 1 }, coalition.side.RED)
+  -- the largest draw of a size 2: size + 1 sections and platoons; defense above 3: two air defence groups
+  luaunit.assertEquals(count(self.made, "infantry"), 3)
+  luaunit.assertEquals(count(self.made, "armor"), 3)
+  luaunit.assertEquals(count(self.made, "air defense"), 2)
+  luaunit.assertEquals(count(self.made, "transport"), 0)
+end
+
+function TestVeafCampaignCompose:test_no_armour_and_no_defence_mean_infantry_alone()
+  veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
+  luaunit.assertEquals(self.made, { "infantry", "infantry" })
+end
+
+function TestVeafCampaignCompose:test_every_group_stands_within_the_zone_radius()
+  local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 1, armor = 1 }, coalition.side.RED)
+  luaunit.assertEquals(#units, #self.made)
+  for _, radius in ipairs(self.radii) do
+    luaunit.assertEquals(radius, 1500)
+  end
 end
 
 -- ---------------------------------------------------------------------------

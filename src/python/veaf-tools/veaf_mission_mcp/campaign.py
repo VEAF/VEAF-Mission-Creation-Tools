@@ -85,7 +85,9 @@ def campaign_apply(campaign_folder: Path, state_file: Path) -> dict[str, Any]:
         state_file: The file the mission wrote, fetched from the server.
 
     Returns:
-        ``{mission, changes, objectives, outcome, missions_left}``, the changes said in plain words.
+        ``{mission, changes, objectives, outcome, missions_left, debriefing}``, the changes said in
+        plain words, and the factual debriefing by language — the one `apply` wrote next to the state
+        file.
 
     Raises:
         ValueError: The file is refused — already applied, from another campaign, skipping a
@@ -102,6 +104,7 @@ def campaign_apply(campaign_folder: Path, state_file: Path) -> dict[str, Any]:
         ],
         "outcome": report.outcome,
         "missions_left": report.missions_left,
+        "debriefing": report.debriefing,
     }
 
 

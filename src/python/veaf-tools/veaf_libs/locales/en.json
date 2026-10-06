@@ -1343,5 +1343,17 @@
   "campaign.side_name.neutral": "neutral",
   "campaign.reserve_name.armor": "armour",
   "campaign.reserve_name.air_defense": "air defence",
-  "campaign.reserve_name.transport": "transport"
+  "campaign.reserve_name.transport": "transport",
+  "campaign.debriefing.header": "DEBRIEFING — {campaign}, mission {mission} of {missions}",
+  "campaign.debriefing.ground": "Ground changing hands:",
+  "campaign.debriefing.no_ground": "- no zone changed hands",
+  "campaign.debriefing.losses": "Losses:",
+  "campaign.debriefing.side_losses": "- {side}: {count} unit(s)",
+  "campaign.debriefing.zone_losses": "  - {zone}: {count} — {types}",
+  "campaign.debriefing.no_losses": "- no loss on either side",
+  "campaign.debriefing.scenery": "Scenery destroyed: {count} object(s).",
+  "campaign.debriefing.turn": "Between missions:",
+  "campaign.debriefing.quiet_turn": "- nothing",
+  "campaign.debriefing.left": "{left} mission(s) planned left.",
+  "cmd.campaign_apply.debriefing": "Debriefing written to {path} (debriefing.fr.txt, debriefing.en.txt)."
 }

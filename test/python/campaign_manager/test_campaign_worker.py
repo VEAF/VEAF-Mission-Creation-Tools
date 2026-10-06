@@ -103,10 +103,24 @@ class TestApply:
         assert sorted(p.name for p in archive.iterdir()) == [
             "campaign-state.after.yaml",
             "campaign-state.before.yaml",
+            "debriefing.en.txt",
+            "debriefing.fr.txt",
             "mission-01.state",
         ]
         before = yaml.safe_load((archive / "campaign-state.before.yaml").read_text(encoding="utf-8"))
         assert before["mission"] == 0
+
+    def test_the_debriefing_is_written_in_both_languages_next_to_the_state(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        worker = CampaignWorker(folder)
+        worker.init()
+        _, report = worker.apply(_state_file(folder, senaki="blue"))
+        assert report is not None
+        archive = worker.mission_folder(1)
+        for lang in ("fr", "en"):
+            assert (archive / f"debriefing.{lang}.txt").read_text(encoding="utf-8") == report.debriefing[lang]
+        assert report.debriefing["fr"].startswith("DÉBRIEFING — Caucasus Front, mission 1 sur 8")
+        assert "- Senaki : rouge → bleu" in report.debriefing["fr"]
 
     def test_applying_the_same_file_twice_is_refused_and_changes_nothing(self, tmp_path: Path) -> None:
         folder = _folder(tmp_path)

@@ -14,7 +14,7 @@ VALID: dict[str, Any] = {
             {"destroy": {"zone": "Gudauta depot", "kind": "logistics"}},
         ],
     },
-    "size_classes": {"outpost": {"size": 1}},
+    "size_classes": {"outpost": {"size": 2}},
     "zones": [
         {"name": "Kobuleti", "at": {"airfield": "Kobuleti"}, "size": "airfield", "side": "blue"},
         {"name": "Senaki", "at": {"airfield": "Senaki-Kolkhi"}, "size": "airfield", "side": "red"},

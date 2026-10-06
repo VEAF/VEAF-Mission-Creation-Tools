@@ -1443,7 +1443,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the reserves, the reserves repair garrisons, a neutral zone bordered by one side only is "
                 "retaken by it) and judge the objectives. Refuses a file already applied, from another "
                 "campaign, or skipping a mission; nothing is written then. Keeps the before/after state "
-                "under missions/mission-NN/."
+                "and a factual debriefing (French and English) under missions/mission-NN/, and returns "
+                "that debriefing: tell it to the squadron as the story of the evening when asked -- who "
+                "lost what where, what changed hands, what the enemy will make of it -- keeping to its "
+                "facts."
             ),
             parameters_schema={
                 "type": "object",

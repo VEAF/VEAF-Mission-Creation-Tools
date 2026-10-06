@@ -2,7 +2,7 @@
 
 **Cette version est celle de la mission de démo v6.**
 [VEAF-Demo-Mission-v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) montre chaque fonctionnalité en jeu, avec une visite guidée, et sert désormais de recette avant chaque release.
-La construire a fait remonter une douzaine de défauts que rien ne signalait — un menu radio `lua` qui arrêtait toute la configuration, un commentaire qui cassait CTLD, des navires qui cherchaient leur place sur la terre ferme — et ils sont corrigés ici.
+La construire, puis la dérouler comme recette, a fait remonter une quinzaine de défauts que rien ne signalait — un menu radio `lua` qui arrêtait toute la configuration, un menu « MISSIONS » vide, un commentaire qui cassait CTLD, des navires qui cherchaient leur place sur la terre ferme — et ils sont corrigés ici.
 À côté, les QRA et les vagues aériennes reposent maintenant sur une même base, et gagnent ce que plusieurs issues demandaient : suivre un porte-avions, dépendre d'autre chose qu'un aérodrome, défendre des groupes amis.
 
 > ### ⚠️ Ce qui change dans vos missions
@@ -29,7 +29,7 @@ La construire a fait remonter une douzaine de défauts que rien ne signalait —
 Chaque page de module de la documentation dit quelle étape de la visite le montre.
 Le guide du mission maker ne dit plus de forker l'ancienne démo pour commencer : `mission prepare` le fait.
 
-Ce que sa construction a fait corriger :
+Ce que sa construction et sa recette ont fait corriger :
 
 - **Une action `lua` dans un menu radio n'arrête plus toute la configuration VEAF.**
   Elle était évaluée au chargement de `veaf-config.lua`, avant que `mission-script.lua` ne définisse la fonction, et tout ce qui suivait dans la configuration ne s'exécutait jamais.
@@ -42,8 +42,14 @@ Ce que sa construction a fait corriger :
 - **Une opération de combat s'active et se désactive depuis son propre menu radio**, avec les règles d'une zone de combat (sécurisé, sauf en entraînement).
   La désactiver désactive ses zones, et l'activer laisse tranquille une zone qui tourne déjà au lieu de la spawner une seconde fois.
 - **Un marqueur `#veafInterpreter` reçoit la place que demande sa commande** : un site SA-11 porté par une seule unité recevait la place d'un seul véhicule.
+- **Le menu F10 « MISSIONS » apparaît au démarrage dans une mission qui déclare des `cap_missions` ou des `combat_missions`.**
+  La configuration générée initialisait le module avant d'y ajouter ses missions : le menu était construit sur une liste vide et jamais reconstruit.
+- **`_destroy, radius …` détruit toutes les unités du cercle.**
+  Les unités trouvées étaient recherchées une seconde fois par leur nom, et DCS ne répond rien pour certaines (le pack de véhicules « [CH] ») : `-menage` laissait un peloton entier debout.
+  La même recherche pouvait faire manquer à `_tanker` un ravitailleur sous le marqueur.
+- **Un groupe CAS porte le nom de son camp** : après une première CAS bleue, tous les groupes suivants, rouges compris, s'appelaient « Blue CAS Group ».
 - **`mission build` garde son code de sortie** quand sa sortie part vers `/dev/null` : la pause de fin le prenait pour un double-clic et transformait un build réussi en échec.
-- **Petites vérités** : la documentation spawne un `T-80UD` (`T-80` ne correspond à aucun type DCS), le modèle `waypoints.yaml` dit que le build ajoute un waypoint `BULLSEYE`, et les commandes « start air operations » du porte-avions sont traduites.
+- **Petites vérités** : la documentation spawne un `T-80UD` (`T-80` ne correspond à aucun type DCS), le modèle `waypoints.yaml` dit que le build ajoute un waypoint `BULLSEYE`, et les commandes « start air operations » du porte-avions comme celles du brouillard du menu météo sont traduites.
   La liste des noms `_spawn unit` du guide pilote proposait deux avions (refusés par la commande), une batterie (`SA-6`, qui est un groupe) et un `M1 Abrams` mal écrit ; elle affirmait aussi que les noms étaient sensibles à la casse, ce qu'ils ne sont pas.
 
 ---
@@ -97,6 +103,8 @@ Un porte-avions, une FARP ou un aérodrome absent de la référence n'a pas de l
 - **`set_briefing_picture`** ajoute une image au briefing d'un camp en un seul appel.
 - **`edit_route`** accepte `road: true|false` sur le waypoint d'un groupe terrestre, et **`describe_map`** donne la position et le nombre d'unités de chaque groupe.
 - **Un nouveau piège DCS documenté** (`describe_known_limitations`) : un contact AWACS peut rester marqué `DLINK` plusieurs minutes avant de passer `RADAR`, et Skynet, qui ne lit que `RADAR`, l'ignore jusque-là.
+- **Un second piège DCS documenté** : `Unit.getByName` peut répondre `nil` pour une unité qui existe et porte bien ce nom — mesuré sur les véhicules du pack « [CH] ».
+  Une fois l'objet en main, il faut agir dessus plutôt que le rechercher par son nom.
 
 ---
 

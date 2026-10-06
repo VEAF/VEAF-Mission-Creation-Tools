@@ -609,25 +609,26 @@ limitations:
     The combat zone watchdog counted every static it found, so **a zone holding a static never
     completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
     FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
-- id: unit-getbyname-misses-a-unit-that-exists
+- id: unit-getbyname-misses-units-sharing-a-name
   kind: dcs
   area: spawning
-  title: "`Unit.getByName` can answer nil for a unit that exists and answers that very name"
-  measured: "2026-10-05"
+  title: "`Unit.getByName` answers nil for units that share a name"
+  measured: "2026-10-06"
   symptom: |
-    On the v6 demo test mission, a spawned `[r]-Armored Platoon#10252` stood 1 295 m to 1 512 m from
-    the marker. Its group's `getUnit(1):getName()` returned `[r]-Armored Platoon#10252 - IFV BMP-3 [CH]`,
-    `veaf.findUnitsInCircle` returned its three units, and
-    `Unit.getByName("[r]-Armored Platoon#10252 - IFV BMP-3 [CH]")` returned **nil**. Seen on every
-    « [CH] » vehicle pack unit of that session (MCV-80, CHAP_BMPT, CHAP_T64BV); the cause is not
-    established.
+    DCS accepts two units with the same name — it spawns both — but then resolves neither by that name.
+    On the v6 demo test mission, `[r]-Armored Platoon#10344` held two units both named
+    `[r]-Armored Platoon#10344 - MBT T-72B` (ids 200108 and 200109): `Unit.getByName` of that name
+    returned **nil**, and `veaf.findUnitsInCircle`, whose result is keyed by name, returned it once.
+    A first reading on 2026-10-05 blamed the « [CH] » vehicle pack; the units it could not resolve had
+    duplicate names.
   workaround: |
-    Once you hold the object — from `coalition.getGroups`, `Group:getUnits`, a search — act on the
-    object. Never throw it away to look it up again by name. `veafSpawn.destroy` (radius) and
-    `veafMove.changeTanker` do so since FIX-DEMO-RECETTE-FINDINGS.
+    Give every unit a unique name — `veafSpawnGround` numbers them `<group> - <type> #<n>` since
+    FIX-DUPLICATE-UNIT-NAMES. And once you hold the object — from `coalition.getGroups`,
+    `Group:getUnits`, a search — act on the object rather than looking it up again by name, as
+    `veafSpawn.destroy` (radius) and `veafMove.changeTanker` do since FIX-DEMO-RECETTE-FINDINGS.
   cost: |
-    `_destroy, radius 2000` (`-menage`) found the platoon and left it alive: the units the name lookup
-    missed were silently skipped.
+    `_destroy, radius 2000` (`-menage`) left both tanks alive at 1 358 m and 1 405 m: the name lookup
+    missed them, and nothing said so.
 - id: aircraft-at-the-end-of-its-route-lands
   kind: dcs
   area: spawning

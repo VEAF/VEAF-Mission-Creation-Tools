@@ -39,7 +39,7 @@ ignore = { "211", "212", "213", "231", "311", "312", "314", "321", "331", "411",
 globals = {
   -- Core DCS API
   "coalition", "world", "trigger", "timer", "land", "env", "country",
-  "Group", "Unit", "Airbase", "Object", "Spot", "Controller", "AI", "Radio",
+  "Group", "Unit", "Airbase", "Object", "Weapon", "Spot", "Controller", "AI", "Radio",
   "VoiceChat", "net", "lfs", "StaticObject",
   -- DCS API globals commonly used but often omitted from stub lists
   "coord", "atmosphere", "missionCommands", "log",
@@ -60,7 +60,7 @@ globals = {
   -- Community scripts
   "mist", "ctld", "CTLD", "csar", "CSAR", "SkynetIADS", "AIRBOSS",
   -- CTLD 2 managers: the engine's public surface, replacing the v1 ctld.* globals
-  "CTLDZoneManager", "CTLDBeaconManager", "CTLDJTACManager",
+  "CTLDZoneManager", "CTLDBeaconManager", "CTLDJTACManager", "CTLDCrateManager",
   -- CTLD 2 config singleton: veaf.isCtldReady() reads its isLoaded flag to tell a started
   -- engine from one still parked on ctld.dontInitialize
   "CTLDConfig",

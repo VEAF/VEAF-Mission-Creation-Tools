@@ -1,6 +1,6 @@
 # FIX-COMBATMISSION-MENU-MISSING — the MISSIONS radio menu is never built
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 ## Origin
 

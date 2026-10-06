@@ -94,7 +94,7 @@ Then run:
 
 This downloads `published.zip`, verifies the SHA256 checksum, and extracts all scripts and tools into your mission folder.
 
-### Updating
+### Updating {#updates}
 
 Run the same command whenever a new release is available:
 

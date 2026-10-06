@@ -44,6 +44,35 @@ l'updater.
 
 affiche la version installée.
 
+**Dans quelle langue l'outil vous répond.** Il suit la langue de Windows.
+Pour voir celle qu'il a retenue, et d'où il la tient :
+
+```powershell
+.\veaf-tools.exe user-config
+```
+
+```text
+Paramètres effectifs
+Langue : fr (source : OS/default)
+```
+
+Ce tutoriel cite les messages de l'outil en français.
+Si les vôtres sortent en anglais, fixez la langue une fois pour toutes :
+
+```powershell
+.\veaf-tools.exe user-config --set lang=fr
+```
+
+Le réglage est écrit dans `veafmct.yaml`, à la racine de votre dossier utilisateur (`C:\Users\<vous>\veafmct.yaml`), et vaut pour tous vos dossiers de mission sur cette machine.
+`user-config` donne désormais ce fichier comme source de la langue.
+Les autres réglages qu'il peut contenir : [configuration globale utilisateur](GUIDE.md#global-user-configuration).
+
+!!! tip "Le jour où vous demandez de l'aide"
+    `.\veaf-tools.exe doctor` affiche la version de l'outil, celle de DCS, le système et les dernières erreurs de l'outil, puis les répète dans un bloc prêt à copier dans un message Discord ou une issue GitHub.
+    Votre nom d'utilisateur Windows y est déjà masqué.
+    Collez ce bloc tel quel : c'est la première chose qu'on vous demanderait.
+    → [Lancer `doctor`](../SUPPORT.md#doctor)
+
 ---
 
 ## Étape 1 — Créer le dossier de mission {#step-1-prepare}
@@ -159,7 +188,8 @@ est commenté : ce sont des exemples prêts à décommenter, pas de la configura
     activations de zone de combat exigent alors une radio authentifiée ou un mot de passe. En solo,
     hors serveur, ça se manifeste par des commandes qui ne font rien — et on cherche le bug
     ailleurs. Le bloc `security:` va à la **racine** du fichier, pas dans `modules:`. Remettez-la
-    avant de déployer sur un serveur.
+    avant de déployer sur un serveur — l'[étape 10](#step-10-server-profile) montre comment le faire
+    une fois pour toutes.
 
 → [fiche : `mission.yaml` et ses modules](concepts/mission-yaml.md) ·
 [veafSecurity](scripts/veafSecurity.md)
@@ -465,7 +495,97 @@ d'avions, quel que soit le stock.
 
 ---
 
-## Étape 10 — Et ensuite {#step-10-next}
+## Étape 10 — Préparer la version serveur {#step-10-server-profile}
+
+À l'étape 2, vous avez coupé la sécurité le temps d'apprendre.
+Elle doit revenir avant que la mission parte sur un serveur : sans elle, n'importe quel joueur peut faire apparaître ou détruire ce qu'il veut avec un marqueur.
+La remettre à la main avant chaque déploiement, c'est l'oublier un jour ; un **profil de build** s'en charge.
+
+Dans `mission.yaml`, remplacez le bloc `security:` de l'étape 2 par :
+
+```yaml
+profiles:
+  TEST:
+    security:
+      disabled: true
+```
+
+Le bloc reste à la **racine** du fichier, là où était `security:`.
+Un profil ne contient que ce qui change : ici, la seule différence entre votre version de test et celle du serveur.
+Sans profil, la configuration de base s'applique, et elle a désormais la sécurité active.
+
+Pour jouer et tester, construisez **avec** le profil :
+
+```powershell
+.\veaf-tools.exe build --profile TEST Mon-Premier-Vol.miz
+```
+
+C'est la nouvelle forme de la boucle **éditeur → `extract` → `build`** : seul le `build` change.
+
+Pour le serveur, construisez **sans** profil, dans un fichier à part :
+
+```powershell
+.\veaf-tools.exe build Mon-Premier-Vol-serveur.miz
+```
+
+Le fichier à rouvrir dans l'éditeur reste `Mon-Premier-Vol.miz`. `Mon-Premier-Vol-serveur.miz` est un produit, comme les variantes de `missions/` : on l'envoie sur le serveur, on ne l'édite pas.
+
+**Comment savoir** : le build avec profil l'annonce dans ses premières lignes,
+
+> Construction avec le profil : TEST
+
+et le build sans profil n'affiche rien de tel.
+
+!!! warning "Un profil mal orthographié ne bloque pas le build"
+    `--profile TSET` affiche « Profil 'TSET' introuvable dans mission.yaml — configuration de base utilisée », puis construit **sans** profil : sécurité active, et des commandes de marqueur qui ne font plus rien en solo.
+    Si `-shilka` cesse de marcher après cette étape, relisez la sortie du build avant de chercher ailleurs.
+    Les majuscules, elles, ne comptent pas : `--profile test` trouve `TEST`.
+
+Sur le serveur, la sécurité laisse passer les pilotes inscrits dans le fichier `veaf-pilots.txt` du serveur, selon leur niveau ; les autres doivent donner un mot de passe.
+Avant d'ouvrir la mission au public, définissez vos propres mots de passe : ceux livrés par défaut sont publiés avec les outils.
+
+→ [veafSecurity](scripts/veafSecurity.md) · [profils de build](GUIDE.md#build-profiles)
+
+---
+
+## Étape 11 — Mettre à jour les outils {#step-11-update}
+
+Les outils évoluent : correctifs, nouveaux modules, nouvelles commandes.
+Pour mettre à jour, relancez l'updater depuis le dossier de mission :
+
+```powershell
+.\veaf-tools-updater.exe
+```
+
+**Ce qui doit se passer** : il interroge la dernière release, la compare à la version installée, et ne télécharge que si elle est plus récente.
+Déjà à jour, il s'arrête là :
+
+```text
+Version de la release trouvée : X.Y.Z
+La version installée X.Y.Z est déjà à jour
+Traitement terminé !
+```
+
+Sinon il annonce « Nouvelle version disponible : … → … », puis télécharge, vérifie et installe.
+
+La mise à jour remplace le dossier `published/` et les deux exécutables.
+Elle ne touche ni à `mission.yaml`, ni à `src/`, ni à vos `.miz`.
+
+**Puis reconstruisez.** Les scripts VEAF voyagent *dans* le `.miz` : c'est le build qui les y copie.
+Une mission construite avant la mise à jour garde donc les anciens scripts tant que vous ne l'avez pas reconstruite :
+
+```powershell
+.\veaf-tools.exe build --profile TEST Mon-Premier-Vol.miz
+.\veaf-tools.exe build Mon-Premier-Vol-serveur.miz
+```
+
+**Comment savoir** : `.\veaf-tools.exe about` affiche la nouvelle version, et le build l'écrit sur sa première ligne.
+
+Pour rester sur une version précise, par exemple le temps d'un événement : [mises à jour](GUIDE.md#updates).
+
+---
+
+## Étape 12 — Et ensuite {#step-12-next}
 
 Vous avez une mission qui tourne, versionnable, reconstructible. La suite se choisit à la carte :
 
@@ -476,6 +596,10 @@ Vous avez une mission qui tourne, versionnable, reconstructible. La suite se cho
 | Une QRA qui décolle sur intrusion | [veafQraManager](scripts/veafQraManager.md) |
 | Du combat aérien par vagues | [veafAirWaves](scripts/veafAirWaves.md) |
 | Protéger votre serveur par mot de passe | [veafSecurity](scripts/veafSecurity.md) |
+| Voir chaque fonctionnalité tourner en jeu | [la mission de démo](GUIDE.md#demo-mission) |
+| Reprendre une mission faite avec la v5 des outils | [Migration vers la v6](MIGRATION_GUIDE.md) |
+| Adopter une mission qui n'a pas été faite avec VMCT | [Adopter une mission tierce](CONVERT_OTHER.md) |
+| Construire ou modifier une mission en le demandant à un assistant IA | [Installer l'assistant IA](AI_ASSISTANT_INSTALL.md) |
 | Toutes les options de configuration | [Référence `mission.yaml`](../MISSION_YAML_REFERENCE.md) |
 | Toutes les commandes | [Référence CLI](../CLI_REFERENCE.md) |
 | Le détail de bout en bout | [Guide complet](GUIDE.md) |

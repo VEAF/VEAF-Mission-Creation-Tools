@@ -394,6 +394,17 @@ def summarize_active_modules(mission_yaml: dict) -> list[tuple[str, int | None]]
             if mod_id == "QRA" and not entries:
                 entries = (mission_yaml.get("qra") or {}).get("definitions") or []
             summary.append((mod_id, len(entries) if isinstance(entries, list) else 0))
+    # The build normalises mission.yaml before this runs, and that moves CTLD, CSAR and the other
+    # community scripts out of `modules:` into `community_scripts`, lowercased: read there too, or the
+    # line never names them although they are in the .miz (DOC-TUTORIAL-NEXT-STEPS).
+    listed = {mod_id for mod_id, _ in summary}
+    community = mission_yaml.get("community_scripts")
+    if not isinstance(community, dict):  # the build already warns about a malformed section
+        community = {}
+    for script_id, raw_cfg in community.items():
+        mod_id = str(script_id).upper()
+        if mod_id not in listed and _get_module_enabled(_normalize_module_cfg(raw_cfg), True):
+            summary.append((mod_id, None))
     return sorted(summary)
 
 

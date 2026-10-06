@@ -17,6 +17,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- **The tutorial now goes on past the first flight** (DOC-TUTORIAL-NEXT-STEPS).
+  Step 0 shows which language the tool answers in and how to set it (`user-config --set lang=…`), and points to `doctor` for asking for help.
+  A new step 10 brings security back for the server through a `TEST` build profile, instead of the "put it back before deploying" that step 2 left unexplained; a new step 11 updates the tools and says why a rebuild has to follow.
+  The closing table now also leads to the demo mission, the v5 migration, third-party missions and the AI assistant.
+
+### Fixed
+
+- **The build's "active modules" line now names CTLD, CSAR and the other community scripts** (DOC-TUTORIAL-NEXT-STEPS).
+  They were injected all along, but the line only read the VEAF modules, so the `standard` template reported 20 modules where the tutorial announced 22 — and a mission maker checking that CTLD had been read found it missing.
+
 ## [6.28.0] — 2026-10-05
 
 ### Removed

@@ -1,7 +1,9 @@
 # FIX-SKYNET-HELPER-AND-VENDORING — the VMCT half of The Reaper's report
 
-Status: 🧑 waiting-human — built 2026-09-21; **only ticket 03's in-game reading is owed**, and it
-needs DCS. Everything else is done and green.
+Status: ✅ done — 2026-10-04. Ticket 03's in-game reading is no longer owed: check 13 of
+`verify-mission-c` cannot discriminate any more (`FEAT-SPOTTER-DEMO-MISSION` ticket 04) and its
+question moved to that lot's ticket 05; Skynet 3.5.0 itself was seen running in game on 2026-10-03
+(R1, R13).
 
 Origin: The Reaper, 2026-09-17, on a mission built with veaf-tools:
 

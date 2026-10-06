@@ -10,7 +10,8 @@
 --
 -- See the documentation : https://veaf.github.io/documentation/
 --
--- This file is a proxy that loads the 2 sub-modules:
+-- This file is a proxy that loads the 2 sub-modules, and the base they share with veafAirWaves:
+--   veafReactiveZone.lua  (veafReactiveZone -- zone, spawn, links, drawing; FEAT-AIRWAVES-QRA-MERGE)
 --   veafQraLogistics.lua  (VeafQRALogistics -- warehousing / resupply chain)
 --   veafQraCore.lua       (VeafQRACore -- state, detection, spawn/despawn; veafQraManager table)
 --
@@ -30,6 +31,9 @@ if not veafQraManager or not veafQraManager.Id then
       end
       _dir = _src:match("^(.+[\\/])") or ""
     end
+  end
+  if not veafReactiveZone then
+    dofile(_dir .. "veafReactiveZone.lua")
   end
   dofile(_dir .. "veafQraLogistics.lua")
   dofile(_dir .. "veafQraCore.lua")

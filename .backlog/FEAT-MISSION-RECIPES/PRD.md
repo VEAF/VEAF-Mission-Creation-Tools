@@ -1,6 +1,16 @@
 # FEAT-MISSION-RECIPES — scripted mission generation, no AI in the loop
 
-Status: ⬜ ready
+Status: 🚫 wontfix — 2026-10-05. David: the demo mission is what this lot was for, and it does not need it.
+
+## Why it is closed
+
+An always-current demo breaks down into three needs, and a recipe serves none of them:
+
+- **Running the latest scripts** is a rebuild of the mission folder with the new release.
+- **Showing each new feature** means someone writes the example; the MCP and the generation prompts edit the folder directly, so a recipe would only move where it is written.
+- **The end-to-end test** is a CI job that builds the versioned demo folder and runs the produced scripts against the DCS mocks — it reads the folder, not a recipe.
+
+The versioned mission folder already is the declarative, replayable source. A list of actions only adds regeneration from scratch (another theatre), which the demo does not need and which is the risk this PRD named. David will build a new demo mission instead.
 
 Origin: David's idea, 2026-08-31. Recorded for later; **not scoped for implementation yet** — the
 open questions below decide what it even is.

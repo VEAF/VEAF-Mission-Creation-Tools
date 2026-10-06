@@ -139,6 +139,24 @@ function TestAircraftSpawnCapContract:test_the_cap_name_comes_back()
   luaunit.assertEquals(spawnTheCap(), CAP_CLONE)
 end
 
+--- FIX-AIRCRAFT-ROLE-REGISTRY-PURGE: a role with no watchdog (`orbit`, `awacs`...) has no moment
+--- where its group is known to be gone, so the next spawn with a role sweeps out the groups DCS no
+--- longer knows, and keeps the ones it does.
+function TestAircraftSpawnCapContract:test_a_spawn_with_a_role_forgets_the_groups_that_are_gone()
+  registerLiveGroup("still-flying")
+  for _, name in ipairs({ "gone", "still-flying" }) do
+    veafAircraftSpawn.groupRoles[name] = "orbit"
+    veafAircraftSpawn.groupOptions[name] = { id = "ComboTask" }
+    veafAircraftSpawn.groupRoutes[name] = { {}, {} }
+  end
+  spawnTheCap()
+  luaunit.assertNil(veafAircraftSpawn.getRole("gone"))
+  luaunit.assertNil(veafAircraftSpawn.groupOptions["gone"])
+  luaunit.assertNil(veafAircraftSpawn.groupRoutes["gone"])
+  luaunit.assertEquals(veafAircraftSpawn.getRole("still-flying"), "orbit")
+  luaunit.assertEquals(veafAircraftSpawn.getRole(CAP_CLONE), "cap")
+end
+
 function TestAircraftSpawnCapContract:test_three_waypoints_at_the_patrol_altitude()
   spawnTheCap()
   local points = submittedRoute()

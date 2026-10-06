@@ -2,6 +2,8 @@
 
 **Module ID:** `SPAWN` | **Fichier:** `veafSpawn.lua`
 
+> **Voir en jeu** : étape 02 « Bac à sable : les commandes de marqueur » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif
@@ -49,7 +51,7 @@ veafSpawn.initialize()
 
 ```
 _spawn unit, name [DCS_TYPE]
-_spawn unit, name T-80, hdg 270, spacing 50
+_spawn unit, name T-80UD, hdg 270, spacing 50
 ```
 
 Un **avion** ne peut pas être créé ainsi (la commande le refuse) : passez par une patrouille CAP. Un
@@ -137,9 +139,65 @@ appartient toujours au groupe de son avion. Les cibles retenues sont classées p
 d'abord, puis bombardiers, drones, AWACS, transports, hélicoptères), et la patrouille les engage. Dès
 qu'il n'y a plus rien à engager, elle reprend sa route et repasse en riposte seulement.
 
+L'aspect de la cible compte aussi : à distance égale, un avion qui vient vers la patrouille (hot) passe avant un avion qui la croise (flanking), lui-même avant un avion qui s'éloigne (cold).
+Un avion qui s'éloigne à plus de 40 km de la patrouille n'est pas engagé du tout : elle reste sur sa zone au lieu de le poursuivre.
+Face à plusieurs cibles, chaque avion de la patrouille reçoit la sienne, les plus prioritaires d'abord ; face à une seule, tous vont dessus.
+
+Pour retirer une patrouille, poser un marqueur `_destroy, radius <mètres>` sur elle (voir [Détruire des unités](#destroy)) ; tout ce qui se trouve dans le cercle disparaît avec elle, au sol comme en vol.
+
 Une patrouille faite à partir d'un modèle de groupe dont le premier point de route ne porte aucune
 consigne vole sans les réglages voulus par l'auteur du modèle (radar, ECM, règles d'engagement). Le cas
 est signalé dans le journal DCS, avec le nom du modèle en cause.
+
+### Faire apparaître un AWACS {#awacs}
+
+```
+_spawn awacs, type E-3A, alt 30000, hdg 90, dist 30, freq 251, escort f15-fox3
+```
+
+L'alias `-awacs` fait la même chose : `-awacs escort f15-fox3`.
+
+L'AWACS apparaît sur le marqueur, en vol, et tourne sur un hippodrome qui part du marqueur dans la direction `hdg`.
+Il n'a pas besoin de template : il est construit à partir de son type.
+
+**Options :**
+
+- `type` — `E-3A`, `E-2C` (l'E-2D), `A-50` ou `KJ-2000` ; par défaut un E-3A pour les bleus et un A-50 pour les rouges
+- `alt` — altitude (pieds, 30 000 par défaut) ; relevée à 150 m au-dessus du sol si besoin, comme pour une CAP
+- `hdg` — direction de l'hippodrome (degrés, 0 par défaut)
+- `dist` — longueur de l'hippodrome (milles nautiques, 30 par défaut)
+- `speed` — vitesse (nœuds indiqués) ; Mach 0,5 par défaut
+- `freq` — fréquence radio de l'AWACS (MHz, AM, 251 par défaut)
+- `skynet false` — ne pas l'ajouter au réseau Skynet de son camp ; **il y est ajouté par défaut**
+- `eplrs false` (ou `datalink false`) — couper sa liaison de données ; **elle est allumée par défaut**
+- `escort <template>` — faire aussi apparaître une escorte, comme le ferait `-escort` (voir ci-dessous) ; `escort` seul prend n'importe quel template de chasse du camp
+
+L'escorte d'un AWACS s'appelle `<nom de l'AWACS> escort`.
+Un AWACS apparu en cours de mission n'a pas de fiche dans l'éditeur : `_move` et le menu des ressources ne savent ni le déplacer ni le faire réapparaître, lui ou son escorte.
+
+> ⚠️ Un AWACS ajouté à Skynet couvre les sites SAM de son camp et les garde sous le contrôle du réseau.
+> Le lot `INVESTIGATE-SKYNET-AWACS-BLIND` enquête sur des A-50 enrôlés qui n'ont vu aucun contact pendant toute une session.
+> Si les SAM de votre mission restent éteints avec un AWACS en l'air, essayez `skynet false`.
+
+### Faire apparaître une escorte {#escort}
+
+```
+_spawn escort, name f15-fox3
+```
+
+L'alias `-escort` fait la même chose : `-escort f15-fox3`.
+
+Le marqueur se pose **à côté d'un avion** ami ou neutre : c'est l'avion le plus proche du marqueur, à moins de 10 milles nautiques, qui est escorté.
+Un avion ennemi n'est jamais escorté, et un hélicoptère ne peut pas l'être.
+`name` cherche un template `veafSpawn-` du camp, comme pour `-cap` ; sans `name`, n'importe quel template convient.
+
+L'escorte apparaît à 3 km derrière l'avion escorté, à son altitude.
+Elle reçoit la tâche DCS `Escort` : elle le suit, et engage les aéronefs ennemis jusqu'à 60 km de lui.
+Ses règles d'engagement sont mises à « tir sur les cibles désignées » après les réglages du template, pour qu'un template prévu pour tenir son feu ne donne pas une escorte qui ne défend rien.
+
+**Pour escorter son propre avion, le menu F10 suffit** : *F10 → VEAF → APPARITION → +Escorte-moi (fox3)* ou *(fox2)* (le `+` marque une commande protégée).
+La commande demande le même niveau que `-escort` (pilote connu).
+Une mission peut changer les entrées proposées en remplaçant `veafSpawn.EscortRadioMenuTemplates` (par défaut `{ "fox3", "fox2" }`).
 
 ### Faire apparaître un AFAC/JTAC
 
@@ -276,12 +334,20 @@ au lieu de ne rien faire.
 | `side` | bleu | coalition qui entend la balise |
 | `radius` | 0 | dispersion autour du marqueur, en mètres |
 
-### Détruire des unités
+### Détruire des unités {#destroy}
 
 ```
 _destroy, radius 500
-_destroy, name Tank-1
+_destroy, unitname Tank-1
 ```
+
+| Option | Défaut | Description |
+|--------|--------|-------------|
+| `unitname` | — | détruit l'unité, le static ou le groupe qui porte ce nom, et rien d'autre |
+| `name` | — | synonyme de `unitname` ; si les deux sont écrits, `unitname` l'emporte |
+| `radius` | 150 | sans nom : détruit toutes les unités et tous les statics dans ce rayon autour du marqueur, en mètres |
+
+Sans `unitname` ni `name`, la commande vide le cercle : vérifiez le nom avant de valider le marqueur.
 
 ### Téléporter un groupe
 

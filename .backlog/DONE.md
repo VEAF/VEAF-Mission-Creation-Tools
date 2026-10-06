@@ -10,6 +10,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 The backlog index split into active, ready and done indexes, one short paragraph per lot; the archived lots got their own index (#1058).
 
+### [CHORE-DROP-MACOS-INTEL](CHORE-DROP-MACOS-INTEL/PRD.md) · ✅
+
+The macOS Intel target leaves the release matrix: it never published an asset and held the 6.27.0 run open overnight.
+
 ### [CHORE-REQUIRED-CHECKS-GATE](CHORE-REQUIRED-CHECKS-GATE/PRD.md) · ✅
 
 Path-filtered workflows made usable as required checks; the 11 checks are now required on `develop`, so auto-merge waits for them.
@@ -38,6 +42,10 @@ Helicopters spawned from a marker, landed as targets or given a job (orbit, tran
 
 A prompt for a one-session objective mission with numbered scenarios and a PPTX/PDF briefing; operations active at start and scenery targets came with it.
 
+### [FEAT-SPOTTER-DEMO-MISSION](FEAT-SPOTTER-DEMO-MISSION/PRD.md) · ✅
+
+Missions that show a spotter report reaching a battery that never saw the aircraft: a durable wake-up history, the rig and its smoke suite, and a Syria walkthrough validated by David on 2026-09-21.
+
 ### [FEAT-TERRAIN-ELEVATION](FEAT-TERRAIN-ELEVATION/PRD.md) · ✅
 
 A ground-elevation grid per theatre, read without DCS running: point elevation, cell maximum, profiles (#1045).
@@ -45,6 +53,10 @@ A ground-elevation grid per theatre, read without DCS running: point elevation, 
 ### [FIX-AIR-SPAWN-ALTITUDE-GUARD](FIX-AIR-SPAWN-ALTITUDE-GUARD/PRD.md) · ✅
 
 The aircraft height check read the easting; it now reads the altitude, and every aircraft given a role is floored 150 m above the ground (#1055).
+
+### [FIX-AIRCRAFT-ROLE-REGISTRY-PURGE](FIX-AIRCRAFT-ROLE-REGISTRY-PURGE/PRD.md) · ✅
+
+The aircraft role registry forgets a group once it is gone: through the CAP watchdog for `cap` and `zone_defense`, on the next spawn with a role for the others (#1079, #1080).
 
 ### [FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS](FIX-AIRFIELD-CHANNEL-TITLE-ACCENTS/PRD.md) · ✅
 
@@ -66,6 +78,10 @@ Docs: `-cap` `capradius` is in nautical miles, not metres, and `distance` is the
 
 A red `-cap` drew from every side's templates, 7 in 10 of them western; `-cap` and `-afac` now draw from their own side (#1052, #240).
 
+### [FIX-CHATBOT-DAILY-QUOTA](FIX-CHATBOT-DAILY-QUOTA/PRD.md) · ✅
+
+The documentation assistant hit Google's free tier (23 of 20 a day on 2026-09-22); a spent day now falls back through `gemini-2.5-flash` and two Gemma 4 models, each with its own allowance, and the limit says so when the whole chain is spent (#916, #1066).
+
 ### [FIX-CLEARSKY-METAR](FIX-CLEARSKY-METAR/PRD.md) · ✅
 
 A `clearsky` variant's `${METAR}` announced the uncapped published sky; it is now composed from the capped weather.
@@ -74,9 +90,17 @@ A `clearsky` variant's `${METAR}` announced the uncapped published sky; it is no
 
 An unknown combat mission name — the bare name of an on-demand CAP — raised a Lua error; it is now reported on screen (#1060), seen in game 2026-10-03.
 
+### [FIX-COMBATZONE-RENAME-OPTION](FIX-COMBATZONE-RENAME-OPTION/PRD.md) · ✅
+
+A combat zone's unit renaming became a zone-level `combat_zones:` switch (#289, shipped in 6.15.16); Sharko told on 2026-09-01.
+
 ### [FIX-CONVERT-V5-SILENT-LOSSES](FIX-CONVERT-V5-SILENT-LOSSES/PRD.md) · ✅
 
 `convert-v5` silently dropped settings: multi-line `setBriefing` truncated the chain, six `combat_zones` setters had no key. Shipped in 6.15; closed without Sharko's harnesses, which never came.
+
+### [FIX-DESTROY-NAME-KEY](FIX-DESTROY-NAME-KEY/PRD.md) · ✅
+
+`_destroy, name X` destroys X only; it used to clear everything within 150 m of the marker (#1069).
 
 ### [FIX-ESCORT-RESPAWN-DISTANCE](FIX-ESCORT-RESPAWN-DISTANCE/PRD.md) · ✅
 
@@ -118,9 +142,17 @@ A QRA config accepted then ignored: VEAF commands refused by `validate` in deplo
 
 Closing a support issue cut its Discord relay for good, so a reopened issue went silent; deleted issues were retried for ever. Fixed; the live repair of #946 (ticket 03) was dropped — by then the issue was closed again and the reporter had followed it on GitHub.
 
+### [FIX-SCRATCH-MISSION-FINDINGS](FIX-SCRATCH-MISSION-FINDINGS/PRD.md) · ✅
+
+What building Open Training Germany CW from an empty folder found: 22 tickets merged, and the mission rebuilt with the fixed tools on 2026-09-25, its five workarounds removed.
+
 ### [FIX-SKYNET-ADDS-DESTROYED-GROUPS](FIX-SKYNET-ADDS-DESTROYED-GROUPS/PRD.md) · ✅
 
 The IADS enrolled groups a combat zone had just destroyed (#946). Verified in game (R14); the deactivated-zone half closed by the 2026-10-03 session lot (#1055).
+
+### [FIX-SKYNET-HELPER-AND-VENDORING](FIX-SKYNET-HELPER-AND-VENDORING/PRD.md) · ✅
+
+The VMCT half of The Reaper's report: dead actAsEW blocks removed, what a network SAM sees documented, Skynet 3.5.0 vendored and seen in game, drift watch repaired.
 
 ### [FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING](FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md) · ✅
 
@@ -142,6 +174,16 @@ Assigning one airfield to a coalition disabled all the others; the airfield tabl
 
 Every base came out neutral in 6.14.2: a contiguous airfield table read as a list was replaced by an empty one. Verified (R3).
 
+### [INVESTIGATE-SKYNET-AWACS-BLIND](INVESTIGATE-SKYNET-AWACS-BLIND/PRD.md) · ✅
+
+Not a defect: measured in game, an A-50 enrolled by the helper detects by radar and feeds Skynet, and the three A-50s of the report orbited more than its 204 km from every Georgian base, which the ground radars reached — consistent, not proven, the log being lost. The contact flag that can stay `DLINK` for minutes is now a recorded DCS trap.
+
 ## 🚫 Won't fix
 
-*None.*
+### [FEAT-MISSION-RECIPES](FEAT-MISSION-RECIPES/PRD.md) · 🚫
+
+Not needed for an always-current demo: the versioned mission folder is already the replayable source, content is added through the MCP, and CI can build and run it as is. A new demo mission replaces the idea.
+
+### [FEAT-PORTABLE-PREFABS](FEAT-PORTABLE-PREFABS/PRD.md) · 🚫
+
+Bundling mission content to reuse elsewhere: nobody asked for it, its selection front end lives in the Mission Editor that ADR 0017 rules out, and the MCP composites already place the same content.

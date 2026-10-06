@@ -1,6 +1,6 @@
 # FEAT-AIRFIELD-FREQS-IN-ATIS — the ATIS and the welcome brief give the airfield's own frequencies
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code, tests and docs done; the one in-game check is R40 in `DCS-SESSION-TODO.md`
 
 Opened 2026-10-01 by David, right after FEAT-AIRFIELD-CHANNELS-FROM-DCS: *"On pourrait utiliser
 DCS.getATCradiosData dans les scripts, par exemple quand on demande l'ATIS ou les infos météo d'un
@@ -26,9 +26,9 @@ found, (c) relay through the server hook — servers only, not single player. **
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [the reference is rendered as a Lua table the scripts load](tickets/01-render-lua-table.md) | ⬜ |
-| 02 | [the ATIS and the welcome brief say the airfield's frequencies](tickets/02-atis-and-welcome-brief.md) | ⬜ |
-| 03 | [the mission's own base channel is given beside the DCS tower](tickets/03-mission-base-channel.md) | ⬜ |
+| 01 | [the reference is rendered as a Lua table the scripts load](tickets/01-render-lua-table.md) | ✅ |
+| 02 | [the ATIS and the welcome brief say the airfield's frequencies](tickets/02-atis-and-welcome-brief.md) | 🧑 |
+| 03 | [the mission's own base channel is given beside the DCS tower](tickets/03-mission-base-channel.md) | 🧑 |
 
 ## Definition of done
 
@@ -49,6 +49,15 @@ when it has one for that field and it differs — named as the channel the pilot
 That needs a second, per-mission table: the scripts do not know the mission's radio plan, so the build
 hands them, per airdrome id, the `bases` channel that matches it (alias, title, frequencies), matched the
 way `content airfield-channels` matches them (`airfield_channels_manager.match_existing`). See ticket 03.
+
+## Delivered (2026-10-04)
+
+- `veafAirfieldFrequencies.lua`, rendered by `veaf-build update-dcs-data --airfield-freqs` with the reference; loaded with the scripts (bundle and `VeafDynamicLoader.lua`), drift test beside the reference's own.
+- `veafAirbases.getAtcFrequencies(veafAirbase)` and `getMissionChannel(veafAirbase)`, taking the `veafAirbase` rather than the DCS object: its `Category` is the one `veafAirbase:create` corrected, and only an airdrome is looked up — a ship's or a FARP's `getID()` is a unit id, which can collide with an airdrome id.
+- `veafWeather.getAtcFrequenciesString`, appended to the ATIS and the welcome brief: bands UHF / VHF / FM, three decimals, then the TACAN.
+- Ticket 03: the build writes `veafAirbases.MissionChannels` into `veaf-config.lua` (`airfield_channels_manager.mission_channels`, matched by `match_existing`). The mission channel is named by its **title** rather than its alias, the ticket's example notwithstanding: the title is what the pilot's presets and kneeboard show. A channel that only repeats bands of the tower (same values, or a subset) adds no line.
+- David, 2026-10-04, after review: a tower the mission silenced (`getRadioSilentMode()`) gives way to the mission channel, which is then the only line; with no mission channel for the field (the common case) the DCS frequency is still given.
+- Left: the in-game check, R40 in `DCS-SESSION-TODO.md`.
 
 ## Former index entry
 

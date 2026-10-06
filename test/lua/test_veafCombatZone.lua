@@ -4340,4 +4340,138 @@ function TestVeafCombatZoneSpawnJoinsTheIads:test_a_mission_without_skynet_does_
   luaunit.assertTrue(ok, "a zone must spawn its groups with no IADS loaded: " .. tostring(err))
 end
 
+-- ============================================================================
+-- FIX-DEMO-MISSION-FINDINGS 06 — an operation is activated from its own menu, like a zone
+--
+-- The commands were commented out: an operation not active at start could only be started by
+-- script or `-zonestart`. Seen on the demo mission's Op_Tkvarcheli, 2026-10-05.
+-- ============================================================================
+TestCombatOperationActivationMenu = {}
+
+function TestCombatOperationActivationMenu:setUp()
+  self.savedRootPath = veafCombatZone.rootPath
+  self.savedOperationRootPath = veafCombatZone.operationRootPath
+  self.saved = {
+    addSubMenu = veafRadio.addSubMenu,
+    addCommandToSubmenu = veafRadio.addCommandToSubmenu,
+    addSecuredCommandToSubmenu = veafRadio.addSecuredCommandToSubmenu,
+    clearSubmenu = veafRadio.clearSubmenu,
+  }
+  veafCombatZone.rootPath = { title = "COMBAT ZONES", subMenus = {}, commands = {} }
+  veafCombatZone.operationRootPath = nil
+  self.commands = {}
+  veafRadio.addSubMenu = function(title)
+    return { title = title, subMenus = {}, commands = {} }
+  end
+  veafRadio.clearSubmenu = function() end
+  veafRadio.addCommandToSubmenu = function(title, _, method)
+    table.insert(self.commands, { title = title, method = method, secured = false })
+  end
+  veafRadio.addSecuredCommandToSubmenu = function(title, _, method)
+    table.insert(self.commands, { title = title, method = method, secured = true })
+  end
+  self.operation = VeafCombatOperation:new():setMissionEditorZoneName("Op_Tkvarcheli")
+  self.operation.friendlyName = "Tkvarcheli"
+end
+
+function TestCombatOperationActivationMenu:tearDown()
+  veafCombatZone.rootPath = self.savedRootPath
+  veafCombatZone.operationRootPath = self.savedOperationRootPath
+  for name, fn in pairs(self.saved) do
+    veafRadio[name] = fn
+  end
+end
+
+function TestCombatOperationActivationMenu:_find(key)
+  for _, command in ipairs(self.commands) do
+    if command.title == veaf.t(key) then
+      return command
+    end
+  end
+  return nil
+end
+
+function TestCombatOperationActivationMenu:test_an_inactive_operation_offers_a_secured_activation()
+  self.operation.active = false
+  self.operation:updateRadioMenu(true)
+  local command = self:_find("menu.combatzone.activate")
+  luaunit.assertNotNil(command, "no activation command on the operation's menu")
+  luaunit.assertTrue(command.secured)
+  luaunit.assertEquals(command.method, veafCombatZone.ActivateZone)
+  luaunit.assertNil(self:_find("menu.combatzone.deactivate"))
+end
+
+function TestCombatOperationActivationMenu:test_an_active_operation_offers_a_secured_deactivation()
+  self.operation.active = true
+  self.operation:updateRadioMenu(true)
+  local command = self:_find("menu.combatzone.deactivate")
+  luaunit.assertNotNil(command, "no deactivation command on the operation's menu")
+  luaunit.assertTrue(command.secured)
+  luaunit.assertEquals(command.method, veafCombatZone.DesactivateZone)
+  luaunit.assertNil(self:_find("menu.combatzone.activate"))
+end
+
+--- A member zone that counts its activations and deactivations.
+function TestCombatOperationActivationMenu:_memberZone(name)
+  local zone = { name = name, active = false, activations = 0, deactivations = 0 }
+  function zone:isActive()
+    return self.active
+  end
+  function zone:activate()
+    self.active = true
+    self.activations = self.activations + 1
+  end
+  function zone:desactivate()
+    self.active = false
+    self.deactivations = self.deactivations + 1
+  end
+  function zone:getFriendlyName()
+    return self.name
+  end
+  function zone:getMissionEditorZoneName()
+    return self.name
+  end
+  self.operation.taskingOrderDict[name] = {
+    zone = zone,
+    requiredCompleteNames = {},
+    getZone = function()
+      return zone
+    end,
+  }
+  return zone
+end
+
+-- Found by the review of FIX-DEMO-MISSION-FINDINGS 06: once a player can deactivate an operation, the
+-- deactivation has to take its zones down, and the next activation must not spawn them a second time.
+function TestCombatOperationActivationMenu:test_deactivating_an_operation_deactivates_its_zones()
+  self.operation.scheduleWatchdogFunction = function() end
+  self.operation.unscheduleWatchdogFunction = function() end
+  local alpha = self:_memberZone("CZ-Alpha")
+  local bravo = self:_memberZone("CZ-Bravo")
+
+  self.operation:activate()
+  self.operation:desactivate()
+
+  luaunit.assertFalse(alpha:isActive(), "CZ-Alpha's units stay on the map after the operation is deactivated")
+  luaunit.assertFalse(bravo:isActive())
+  luaunit.assertEquals(alpha.deactivations, 1)
+end
+
+function TestCombatOperationActivationMenu:test_activating_does_not_spawn_an_active_zone_again()
+  self.operation.scheduleWatchdogFunction = function() end
+  local alpha = self:_memberZone("CZ-Alpha")
+  alpha.active = true -- already running, started on its own
+
+  self.operation:activate()
+
+  luaunit.assertEquals(alpha.activations, 0, "an active zone was activated again: its units are doubled")
+end
+
+function TestCombatOperationActivationMenu:test_no_command_when_user_activation_is_off()
+  self.operation:disableUserActivation()
+  self.operation:updateRadioMenu(true)
+  luaunit.assertNil(self:_find("menu.combatzone.activate"))
+  luaunit.assertNil(self:_find("menu.combatzone.deactivate"))
+end
+
 os.exit(luaunit.LuaUnit.run())

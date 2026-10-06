@@ -180,7 +180,9 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafRadio.lua` | Radio menu tree construction |
 | `test_veafQraManager.lua` | QRA state machine, zone management |
 | `test_veafAirWaves.lua` | Wave scheduling, group assignment |
+| `test_veafReactiveZone.lua` | Base shared by QRA and AirWaves: zone, mobile zone, spawn, links, deferred spawns |
 | `test_veafAircraftSpawn.lua` | Aircraft spawned with a role: the `-cap` contract, reading a route, zone defense (`zone_defense`) |
+| `test_veafAwacsEscort.lua` | `-awacs` (race-track, Skynet, datalink) and `-escort` (the `Escort` task, the airplane nearest the marker, the F10 "Escort me" entry) |
 | `test_veafSanctuary.lua` | Sanctuary zone detection |
 | `test_veafMissileGuardian.lua` | Missile intercept logic |
 | `test_veafCasMission.lua` | CAS threat package generation |
@@ -279,7 +281,7 @@ The GitHub Actions workflow (`.github/workflows/lua-ci.yml`) runs on every push 
 **`lua-coverage`** — Ubuntu latest
 1. Checkout repository
 2. Install `lua5.1` + `luacov` via LuaRocks, then Poetry and dependencies
-3. Run `poetry run test-lua --cov-fail-under 80` (luacov line coverage)
+3. Run `poetry run test-lua --cov-fail-under 81` (luacov line coverage)
 4. Fail if coverage drops below the ratchet floor (the number only ever goes up)
 
 ### Running StyLua Locally

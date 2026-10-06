@@ -89,6 +89,10 @@ function VeafQRACore.init(object)
   object.zoneCenter = nil
   -- radius (size of the circle, when not using a zone)
   object.zoneRadius = nil
+  -- name of a unit the zone follows (#186); a trigger zone linked to a unit in the editor follows it too
+  object.followUnitName = nil
+  -- names of the airbases, ships, groups or statics the QRA depends on (#183); see veafReactiveZone.checkLinks
+  object.links = {}
   -- draw the zone on screen
   object.drawZone = false
   -- description for the briefing
@@ -469,7 +473,37 @@ function VeafQRACore:setAirportLink(airport_name)
   veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:setAirportLink(%s)", veaf.lp(self.name), veaf.lp(airport_name))
   if airport_name and type(airport_name) == "string" and Airbase.getByName(airport_name) then
     self.airportLink = airport_name
+    -- the one-entry shortcut of `links` (#183): same rule, same messages
+    self:addLink(airport_name)
   end
+  return self
+end
+
+--- Make the QRA depend on an airbase, FARP, ship, group or static (#183).
+---
+--- An airbase or FARP captured, or under the minimum life, pauses the QRA until it is retaken; a ship,
+--- group or static destroyed stops it for good.
+---@param name string
+---@return table self
+function VeafQRACore:addLink(name)
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:addLink(%s)", veaf.lp(self.name), veaf.lp(name))
+  if name and type(name) == "string" then
+    for _, existing in ipairs(self.links) do
+      if existing == name then
+        return self
+      end
+    end
+    table.insert(self.links, name)
+  end
+  return self
+end
+
+--- Make the zone follow a unit, a carrier for instance (#186).
+---@param unitName string
+---@return table self
+function VeafQRACore:setFollowUnit(unitName)
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:setFollowUnit(%s)", veaf.lp(self.name), veaf.lp(unitName))
+  self.followUnitName = unitName
   return self
 end
 
@@ -698,10 +732,10 @@ function VeafQRACore:check()
   self:applyScheduledState()
 
   if self.state ~= veafQraManager.STATUS_STOP then
-    --if the QRA is linked to an airbase. Airport is checked before even trying to deploy a group and check warehousing which has a lower priority
-    if self.airportLink then
-      veaf.loggers.get(veafQraManager.Id):trace("Checking Airport link : %s", veaf.lp(self.airportLink))
-      self:checkAirport()
+    --if the QRA is linked to airbases or other entities. Links are checked before even trying to deploy a group and check warehousing which has a lower priority
+    if #self.links > 0 then
+      veaf.loggers.get(veafQraManager.Id):trace("Checking links : %s", veaf.lp(self.links))
+      self:checkLinks()
       self:applyScheduledState()
     end
 
@@ -716,34 +750,12 @@ function VeafQRACore:check()
 
       if self.state ~= veafQraManager.STATUS_OUT then
         local unitNames = self:_getEnemyHumanUnits()
-        local unitsInZone = nil
-        local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
-
-        if not veaf.isNullOrEmpty(self.triggerZoneName) and triggerZone == nil then
-          veaf.loggers.get(veafQraManager.Id):error("QRA has a non-existant zone: " .. self.triggerZoneName)
-        end
-        unitsInZone = {}
-        if triggerZone then
-          -- `or {}`, deliberately: a QRA that cannot read its zone must not scramble, which is what an
-          -- empty list already gives. The error naming the zone is in the log either way.
-          unitsInZone = veaf.getUnitsInTriggerZone(self.triggerZoneName, unitNames, veafQraManager.Id) or {}
-        elseif self.zoneCenter then
-          unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
-        else
-          veaf.loggers.get(veafQraManager.Id):error("QRA [%s] has no zone defined, cannot check for units in zone", self.name)
-          return
-        end
+        -- `or {}`, deliberately: a QRA that cannot read its zone must not scramble, which is what an
+        -- empty list already gives. The error naming the zone is in the log either way.
+        local unitsInZone = veafReactiveZone.findUnitsInZone(self, unitNames, veafQraManager.Id) or {}
         veaf.loggers.get(veafQraManager.Id):trace("unitsInZone=%s", unitsInZone)
-        local nbUnitsInZone = 0
-        for _, unit in pairs(unitsInZone) do
-          -- check the unit altitude against the ceiling and floor
-          if unit:isExist() and unit:inAir() then -- never count a landed aircraft
-            local alt = unit:getPoint().y
-            if alt >= self:getMinimumAltitudeInMeters() and alt <= self:getMaximumAltitudeInMeters() then
-              nbUnitsInZone = nbUnitsInZone + 1
-            end
-          end
-        end
+        -- airborne, between the floor and the ceiling: never a landed aircraft
+        local nbUnitsInZone = #veafReactiveZone.filterAirborne(self, unitsInZone)
         veaf.loggers.get(veafQraManager.Id):trace("nbUnitsInZone=%s", nbUnitsInZone)
         if (self.state == veafQraManager.STATUS_READY) and (unitsInZone and nbUnitsInZone > 0) then
           veaf.loggers
@@ -817,7 +829,10 @@ function VeafQRACore:check()
               veaf.loggers.get(veafQraManager.Id):trace("qraInAir=%s", veaf.lp(qraInAir))
             end
           end
-          if not qraAlive then
+          if veafReactiveZone.hasPendingSpawns(self.spawnedGroupsNames) then
+            -- a deferred command has not spawned its group yet: neither dead nor landed (#1078)
+            veaf.loggers.get(veafQraManager.Id):trace("QRA [%s] waits for a deferred spawn", veaf.lp(self.name))
+          elseif not qraAlive then
             -- signal QRA destroyed
             self:destroyed()
           elseif (self.resetWhenLeavingZone and nbUnitsInZone == 0) or not qraInAir then
@@ -863,16 +878,30 @@ function VeafQRACore:applyScheduledState()
   end
 end
 
-function VeafQRACore:checkAirport()
-  local QRA_airportObject = veaf.getAirbaseForCoalition(self.airportLink, self.coalition)
-  local airport_life_percent = nil
-  if QRA_airportObject then
-    airport_life_percent = veaf.getAirbaseLife(self.airportLink, true)
+--- Check what the QRA depends on (#183) and move it accordingly.
+---
+--- A lost ship, group or static stops the QRA for good. A captured or damaged airbase pauses it
+--- (STATUS_NOAIRBASE) until it is retaken — the `airport_link` behaviour, messages and callbacks
+--- unchanged.
+function VeafQRACore:checkLinks()
+  local state, culprit = veafReactiveZone.checkLinks(self, self.coalition, self.airportMinLifePercent, veafQraManager.Id)
+  veaf.loggers.get(veafQraManager.Id):trace("VeafQRACore[%s] links are %s (%s)", veaf.lp(self.name), veaf.lp(state), veaf.lp(culprit))
+
+  if state == veafReactiveZone.LINKS_LOST then
+    if self.scheduled_state ~= veafQraManager.STATUS_STOP then
+      veaf.loggers.get(veafQraManager.Id):info("QRA [%s] lost [%s] for good and stops", veaf.p(self.name), veaf.p(culprit))
+      self:stop()
+      -- now, even when airborne: applyScheduledState leaves ACTIVE alone, and the next tick would
+      -- find the despawned groups dead and announce the QRA destroyed after announcing it offline
+      self.state = veafQraManager.STATUS_STOP
+    end
+    return
   end
 
-  veaf.loggers.get(veafQraManager.Id):trace("VeafQRACore[%s] is linked to airbase %s", veaf.lp(self.name), veaf.lp(self.airportLink))
-
-  if not QRA_airportObject or airport_life_percent < self.airportMinLifePercent then
+  if state == veafReactiveZone.LINKS_PAUSED then
+    -- remembered, so that the "airbase up" callback is handed the airbase that came back
+    self._pausedByLink = culprit
+    local QRA_airportObject = veaf.getAirbaseForCoalition(culprit, self.coalition)
     veaf.loggers.get(veafQraManager.Id):trace("QRA lost it's airbase")
     self:setScheduledState(veafQraManager.STATUS_NOAIRBASE)
     if not self.silent and not self.noAB_announced then
@@ -883,7 +912,8 @@ function VeafQRACore:checkAirport()
     end
     self.noAB_announced = true
   elseif self.state == veafQraManager.STATUS_NOAIRBASE then
-    veaf.loggers.get(veafQraManager.Id):trace("QRA has it's airbase %s", veaf.lp(QRA_airportObject:getName()))
+    local QRA_airportObject = self._pausedByLink and veaf.getAirbaseForCoalition(self._pausedByLink, self.coalition)
+    veaf.loggers.get(veafQraManager.Id):trace("QRA has it's airbase %s", veaf.lp(self._pausedByLink))
     if not self.silent then
       self:_sendStatusMessage(self.messageAirbaseUp)
     end
@@ -892,11 +922,17 @@ function VeafQRACore:checkAirport()
     end
 
     self.noAB_announced = false
+    self._pausedByLink = nil
     self.state = veafQraManager.STATUS_DEAD --QRA that have just been recommisionned act as if they were dead since they need to be rearmed after a delay
     if self.scheduled_state == veafQraManager.STATUS_NOAIRBASE then
       self.scheduled_state = nil
     end --make sure you reset the scheduled state if you are within the bounds of this method
   end
+end
+
+--- The name this check had while only an airbase could be linked; kept for missions that call it.
+function VeafQRACore:checkAirport()
+  self:checkLinks()
 end
 
 --- Delegate warehousing check to the logistics object.
@@ -936,13 +972,7 @@ function VeafQRACore:chooseGroupsToDeploy(nbUnitsInZone)
       and bias
       and type(bias) == "number"
     then
-      local result = {}
-      for _ = 1, numberOfGroups do
-        local group = veaf.randomlyChooseFrom(groupsToChooseFrom, bias)
-        veaf.loggers.get(veafQraManager.Id):trace("group=%s", veaf.lp(group))
-        table.insert(result, group)
-      end
-      groupsToDeploy = result
+      groupsToDeploy = veafReactiveZone.pickGroups(groupsToChooseFrom, numberOfGroups, bias)
     end
   end
   return groupsToDeploy
@@ -961,95 +991,8 @@ function VeafQRACore:deploy(nbUnitsInZone)
   local groupsToDeploy = self:chooseGroupsToDeploy(nbUnitsInZone)
   self.spawnedGroupsNames = {}
   if groupsToDeploy then
-    local zoneCenter = {}
-    local triggerZone
-    if self.triggerZoneName then
-      triggerZone = veaf.getTriggerZone(self.triggerZoneName)
-      zoneCenter.x = triggerZone.x
-      zoneCenter.z = triggerZone.y
-      zoneCenter.y = 0
-    elseif self.zoneCenter then
-      zoneCenter = self.zoneCenter
-    end
-    -- what a scrambled interceptor with no job of its own defends (FEAT-AIRCRAFT-ROLES)
-    local zoneToDefend = veafAircraftSpawn.zoneToDefend(triggerZone, self.zoneCenter, self.zoneRadius)
-    for _, groupNameOrCommand in pairs(groupsToDeploy) do
-      -- check if this is a DCS group or a VEAF command
-      if veaf.startsWith(groupNameOrCommand, "[") or veaf.startsWith(groupNameOrCommand, "-") then
-        -- this is a command
-        local command = groupNameOrCommand
-        local latDelta = self.respawnDefaultOffset.latDelta
-        local lonDelta = self.respawnDefaultOffset.lonDelta
-        if veaf.startsWith(groupNameOrCommand, "[") then
-          -- extract relative coordinates and the actual command
-          local coords
-          coords, command = groupNameOrCommand:match("%[(.*)%](.*)")
-          veaf.loggers.get(veafQraManager.Id):trace("coords=%s", veaf.lp(coords))
-          veaf.loggers.get(veafQraManager.Id):trace("command=%s", veaf.lp(command))
-          if coords then
-            latDelta, lonDelta = coords:match("([%+-%d]+),%s*([%+-%d]+)")
-          end
-        end
-        veaf.loggers.get(veafQraManager.Id):debug("running command [%s]", veaf.lp(command))
-        veaf.loggers.get(veafQraManager.Id):trace("latDelta = [%s]", veaf.lp(latDelta))
-        veaf.loggers.get(veafQraManager.Id):trace("lonDelta = [%s]", veaf.lp(lonDelta))
-        -- Latitude delta on the northing (`x`), longitude delta on the easting (`z`), both added.
-        -- This read `x = zoneCenter.x - lonDelta, z = zoneCenter.z + latDelta` until 2026-09-01, which
-        -- sent the first bracket number east and the second one south — see the twin in
-        -- `AirWaveZone:deployWaves` and FIX-WAVE-OFFSET-AXES.
-        local position = { x = zoneCenter.x + latDelta, y = zoneCenter.y, z = zoneCenter.z + lonDelta }
-        -- Same conversion, same reason as `AirWaveZone:deployWaves` — this branch is its twin. The
-        -- draw answers the mission-table shape (`{ x, y }`, easting in `y`, no `z`) while
-        -- `veafInterpreter.execute` takes a runtime vec3 whose easting is `z` and whose `y` is the
-        -- altitude; `veafSpawnGround` reads `spawnPosition.z` for the easting it writes. Untouched,
-        -- the QRA spawned on the theatre's central meridian at an altitude equal to its easting. See
-        -- docs/agents/dcs-coordinates.md. The altitude comes from the zone centre, as it does for the
-        -- DCS-group branch below.
-        local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
-        randomPosition.z = randomPosition.y
-        randomPosition.y = position.y
-        local spawnedGroupsNames = {}
-        veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
-        -- a `-cap` patrols this zone, not the one its own leg drew (FEAT-AIRCRAFT-ROLES)
-        veafAircraftSpawn.defendZoneWithCaps(spawnedGroupsNames, zoneToDefend)
-        for _, newGroupName in pairs(spawnedGroupsNames) do
-          table.insert(self.spawnedGroupsNames, newGroupName)
-        end
-      else
-        -- this is a DCS group
-        local groupName = groupNameOrCommand
-        veaf.loggers.get(veafQraManager.Id):debug("spawning group [%s]", veaf.lp(groupName))
-        local group = Group.getByName(groupName)
-        if not group then
-          veaf.loggers.get(veafQraManager.Id):error("group [%s] does not exist in the mission!", veaf.p(groupName))
-        else
-          veaf.loggers.get(veafQraManager.Id):debug("group=%s", veaf.lp(group))
-          veaf.loggers.get(veafQraManager.Id):debug("group:getUnits()=%s", veaf.lp(group:getUnits()))
-          -- Latitude on the northing, longitude on the easting, both added — see the command branch
-          -- above (FIX-WAVE-OFFSET-AXES).
-          local spawnSpot = {
-            x = zoneCenter.x + self.respawnDefaultOffset.latDelta,
-            y = zoneCenter.y,
-            z = zoneCenter.z + self.respawnDefaultOffset.lonDelta,
-          }
-          -- Try and set the spawn spot at the place the group has been set in the Mission Editor.
-          -- Unfortunately this is sometimes not possible because DCS is not returning the group units for some reason.
-          -- When this happens we'll default to the default spawn offset (same as spawning with VEAF commands)
-          if not group:getUnit(1) then
-            veaf.loggers.get(veafQraManager.Id):warn("group [%s] does not have any unit!", veaf.p(groupName))
-          else
-            spawnSpot = group:getUnit(1):getPoint()
-          end
-          -- A group placed with one waypoint and no task reached the end of its route the moment it
-          -- appeared, and landed: the Sayqal QRA of *Ligne rouge d'At Tanf*, three scrambles, no
-          -- interception. One tasked CAP or Intercept with no air engagement now defends the zone.
-          local newGroupName = veafAircraftSpawn.deployEditorGroup(groupName, spawnSpot, self.respawnRadius, zoneToDefend)
-          if newGroupName then
-            table.insert(self.spawnedGroupsNames, newGroupName)
-          end
-        end
-      end
-    end
+    -- the spawn shared with the air-wave zones: commands, editor groups, offsets (FEAT-AIRWAVES-QRA-MERGE)
+    self.spawnedGroupsNames = veafReactiveZone.deployGroups(self, groupsToDeploy, self.coalition, veafQraManager.Id)
     veaf.loggers.get(veafQraManager.Id):trace("self.spawnedGroups=%s", veaf.lp(self.spawnedGroupsNames))
     self.state = veafQraManager.STATUS_ACTIVE
   end
@@ -1073,14 +1016,7 @@ function VeafQRACore:rearm(silent)
   if not silent then
     self:_sendStatusMessage(self.messageReady)
   end
-  if self.spawnedGroupsNames then
-    for _, groupName in pairs(self.spawnedGroupsNames) do
-      local group = Group.getByName(groupName)
-      if group then
-        group:destroy()
-      end
-    end
-  end
+  veafReactiveZone.destroyGroups(self.spawnedGroupsNames)
   if self.onReady then
     self.onReady()
   end
@@ -1095,19 +1031,7 @@ function VeafQRACore:start()
 
   -- draw the zone
   if self.drawZone then
-    if self.triggerZoneName then
-      self.zoneDrawing = veaf.drawTriggerZone(self.triggerZoneName, { message = self:getDescription() })
-    else
-      self.zoneDrawing = VeafCircleOnMap:new()
-        :setName(self:getName())
-        :setCoalition(self:getEnnemyCoalition())
-        :setCenter(self.zoneCenter)
-        :setRadius(self.zoneRadius)
-        :setLineType("dashed")
-        :setColor("white")
-        :setFillColor("transparent")
-        :draw()
-    end
+    veafReactiveZone.draw(self, self:getEnnemyCoalition(), self:getDescription())
   end
 
   self:_sendStatusMessage(self.messageStart)
@@ -1123,24 +1047,10 @@ function VeafQRACore:stop(silent)
   self:setScheduledState(veafQraManager.STATUS_STOP)
 
   -- just in case, despawn the spawned groups
-  if self.spawnedGroupsNames then
-    for _, groupName in pairs(self.spawnedGroupsNames) do
-      local group = Group.getByName(groupName)
-      if group then
-        group:destroy()
-      end
-    end
-  end
+  veafReactiveZone.destroyGroups(self.spawnedGroupsNames)
 
   -- erase the zone
-  if self.zoneDrawing then
-    if self.triggerZoneName then
-      veaf.removeDrawing(self.zoneDrawing.markId)
-    else
-      self.zoneDrawing:erase()
-    end
-    self.zoneDrawing = nil
-  end
+  veafReactiveZone.erase(self)
 
   if not silent then
     self:_sendStatusMessage(self.messageStop)

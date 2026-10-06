@@ -1,6 +1,6 @@
 # 01 — Decide the entry point, and write the ADR
 
-Status: ⬜ ready
+Status: 🚫 wontfix — 2026-10-05, outcome D (see the PRD)
 Type: chore
 Files: a new `docs/adr/00NN-*.md`, then this lot's PRD
 

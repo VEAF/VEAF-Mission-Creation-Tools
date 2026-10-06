@@ -165,6 +165,69 @@ def merge_veaf_logistics(catalogue: str) -> tuple[str, dict[str, list[str]]]:
     return stream.getvalue(), added
 
 
+def _end_of_line_comment_start(line: str) -> int | None:
+    """Return where an end-of-line comment starts in *line*, or ``None`` when it has none.
+
+    A ``#`` opens a comment when it stands outside quotes and follows whitespace — the YAML rule,
+    which keeps ``"Bravo # 2"`` and ``a#b`` as values. A whole-line comment is not reported: CTLD
+    reads those fine.
+
+    Args:
+        line: One line of the configuration, without its line ending.
+
+    Returns:
+        The index of the ``#``, or ``None``.
+    """
+    if line.lstrip().startswith("#"):
+        return None
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(line):
+        if quote == '"':
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                quote = None
+        elif quote == "'":
+            # A doubled '' inside single quotes closes and reopens: toggling twice is a no-op.
+            if char == "'":
+                quote = None
+        elif char in ("'", '"'):
+            quote = char
+        elif char == "#" and index > 0 and line[index - 1] in " \t":
+            return index
+    return None
+
+
+def strip_end_of_line_comments(catalogue: str) -> str:
+    """Return *catalogue* without its end-of-line comments.
+
+    CTLD 2 reads its configuration with its own YAML reader (``CTLDConfig.parseYAML``), which skips
+    a whole-line comment but keeps an end-of-line one as part of the value:
+    ``jtacLaserCodeMax: 1686   # …`` became the string ``"1686   # …"``, and CTLD's JTAC init failed
+    on ``'for' limit must be a number`` (FIX-DEMO-MISSION-FINDINGS ticket 03). Standard YAML, and
+    therefore ``validate`` and the build, read ``1686``. Applied to the copy handed to the engine,
+    never to the mission maker's file.
+
+    Args:
+        catalogue: The configuration about to be injected.
+
+    Returns:
+        The same document, each end-of-line comment and the blanks before it removed.
+    """
+    out: list[str] = []
+    for line in catalogue.splitlines(keepends=True):
+        body = line.rstrip("\r\n")
+        start = _end_of_line_comment_start(body)
+        if start is None:
+            out.append(line)
+        else:
+            out.append(body[:start].rstrip() + line[len(body) :])
+    return "".join(out)
+
+
 def logistics_lists_are_empty(catalogue: str) -> bool:
     """Return whether the catalogue declares no logistic type and no troop pickup ship type.
 

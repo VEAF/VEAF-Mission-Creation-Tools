@@ -596,4 +596,70 @@ function TestVeafCarrierVanishedGroup:test_the_warning_names_the_carrier()
   luaunit.assertTrue(named, "the warning must name the carrier group")
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-DEMO-MISSION-FINDINGS 08 — the start commands speak the mission's language
+--
+-- « Start carrier air operations for 45 minutes » stayed in English in a `language: fr` mission.
+-- ---------------------------------------------------------------------------
+TestVeafCarrierStartMenuLanguage = {}
+
+local function contains(list, value)
+  for _, item in ipairs(list) do
+    if item == value then
+      return true
+    end
+  end
+  return false
+end
+
+function TestVeafCarrierStartMenuLanguage:setUp()
+  self._veafRadio = veafRadio
+  self._carriers = veafCarrierOperations.carriers
+  self._language = veaf.config.language
+  self.titles = {}
+  local this = self
+  local function record(title)
+    table.insert(this.titles, title)
+  end
+  veafRadio = {
+    skipHelpMenus = true,
+    USAGE_ForGroup = "ForGroup",
+    addSubMenu = function(title)
+      return { title = title }
+    end,
+    delSubmenu = function() end,
+    addCommandToSubmenu = record,
+    addSecuredCommandToSubmenu = record,
+    refreshRadioMenu = function() end,
+  }
+  veafCarrierOperations.carriers = { Stennis = { name = "Stennis", side = coalition.side.BLUE } }
+end
+
+function TestVeafCarrierStartMenuLanguage:tearDown()
+  veafRadio = self._veafRadio
+  veafCarrierOperations.carriers = self._carriers
+  veaf.config.language = self._language
+end
+
+function TestVeafCarrierStartMenuLanguage:test_a_french_mission_gets_french_start_commands()
+  veaf.config.language = "fr"
+  veafCarrierOperations.rebuildRadioMenu()
+  local duration = veafCarrierOperations.MAX_OPERATIONS_DURATION
+  luaunit.assertTrue(
+    contains(self.titles, string.format("Démarrer les opérations aériennes pour %d minutes", duration)),
+    "got: " .. table.concat(self.titles, " | ")
+  )
+  luaunit.assertTrue(
+    contains(self.titles, string.format("Démarrer les opérations aériennes pour %d minutes", duration * 2)),
+    "got: " .. table.concat(self.titles, " | ")
+  )
+end
+
+function TestVeafCarrierStartMenuLanguage:test_an_english_mission_keeps_its_wording()
+  veaf.config.language = "en"
+  veafCarrierOperations.rebuildRadioMenu()
+  local expected = string.format("Start carrier air operations for %d minutes", veafCarrierOperations.MAX_OPERATIONS_DURATION)
+  luaunit.assertTrue(contains(self.titles, expected), "got: " .. table.concat(self.titles, " | "))
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -1058,7 +1058,8 @@ function TestVeafQraCommandDefendsTheZone:test_a_cap_command_is_re_tasked_on_the
   veafInterpreter = veafInterpreter or {}
   veafInterpreter.execute = function(_, position, _, _, spawnedGroups)
     local name = veafSpawn.spawnCombatAirPatrol(position, 0, "QRACAP", "usa", 25000, 0, 90, 20, nil, 60, "Excellent", true, false)
-    table.insert(spawnedGroups, name)
+    -- the one insertion point of the real spawn, which notifies the caller's hook (#66, #1078)
+    veaf.collectSpawnedGroup(spawnedGroups, name)
   end
 
   q:deploy(1)
@@ -1092,6 +1093,119 @@ function TestVeafQraSimpleGroupsBesideLevels:test_levels_from_two_up_keep_them_f
   -- deploy() returns before choosing anything below the lowest level the rules set
   luaunit.assertEquals(q.minimumNbEnemyPlanes, 2)
   luaunit.assertEquals(q:chooseGroupsToDeploy(2), { "PAIR" })
+end
+
+-- ---------------------------------------------------------------------------
+-- #1078: a QRA whose command spawns later is neither dead nor landed before it arrives
+-- ---------------------------------------------------------------------------
+TestVeafQraDeferredSpawn = {}
+
+function TestVeafQraDeferredSpawn:setUp()
+  dcs_mocks.reset()
+  self._savedInterpreter = veafInterpreter
+  veafInterpreter = veafInterpreter or {}
+  veafInterpreter.execute = function()
+    return true -- accepted, spawned later
+  end
+end
+
+function TestVeafQraDeferredSpawn:tearDown()
+  veafInterpreter = self._savedInterpreter
+end
+
+function TestVeafQraDeferredSpawn:test_an_empty_deployment_waiting_for_its_group_is_not_destroyed()
+  local q = VeafQRA:new()
+  q.name = "QraDeferred"
+  q.silent = true
+  q:setZoneCenter({ x = 0, y = 0, z = 0 })
+  q:setZoneRadius(10000)
+  q:setCoalition(coalition.side.RED)
+  q.chooseGroupsToDeploy = function()
+    return { "-mig29, delayed 30" }
+  end
+  q:deploy(1)
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_ACTIVE)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_ACTIVE, "not DEAD: the scramble has not taken off yet")
+end
+
+-- ---------------------------------------------------------------------------
+-- FEAT-AIRWAVES-QRA-MERGE #183: the QRA side of its links
+-- ---------------------------------------------------------------------------
+TestVeafQraLinks = {}
+
+function TestVeafQraLinks:setUp()
+  dcs_mocks.reset()
+  self._savedCheckLinks = veafReactiveZone.checkLinks
+  self._savedAirbase = veaf.getAirbaseForCoalition
+  self.linksState = veafReactiveZone.LINKS_OK
+  veafReactiveZone.checkLinks = function()
+    return self.linksState, self.linksState ~= veafReactiveZone.LINKS_OK and "Maykop" or nil
+  end
+  self.maykop = { name = "Maykop" }
+  veaf.getAirbaseForCoalition = function(name, _)
+    return name == "Maykop" and self.maykop or nil
+  end
+end
+
+function TestVeafQraLinks:tearDown()
+  veafReactiveZone.checkLinks = self._savedCheckLinks
+  veaf.getAirbaseForCoalition = self._savedAirbase
+end
+
+function TestVeafQraLinks:_qra()
+  local q = VeafQRA:new()
+  q.name = "QraLinked"
+  q.silent = true
+  q:setCoalition(coalition.side.RED)
+  q:addLink("Maykop")
+  return q
+end
+
+function TestVeafQraLinks:test_a_lost_airbase_pauses_and_its_return_rearms_with_the_airbase()
+  local q = self:_qra()
+  local down, up = nil, nil
+  q:setOnAirbaseDown(function(airbase)
+    down = airbase or "nil"
+  end)
+  q:setOnAirbaseUp(function(airbase)
+    up = airbase
+  end)
+  q.state = veafQraManager.STATUS_READY
+  self.linksState = veafReactiveZone.LINKS_PAUSED
+  q:checkLinks()
+  q:applyScheduledState()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_NOAIRBASE)
+  luaunit.assertNotNil(down)
+  self.linksState = veafReactiveZone.LINKS_OK
+  q:checkLinks()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_DEAD, "back in service, to be re-armed")
+  luaunit.assertIs(up, self.maykop, "the callback is handed the airbase that came back")
+end
+
+function TestVeafQraLinks:test_a_link_lost_while_airborne_stops_without_announcing_a_destruction()
+  local q = self:_qra()
+  local destroyed = false
+  q:setOnDestroyed(function()
+    destroyed = true
+  end)
+  q.state = veafQraManager.STATUS_ACTIVE
+  self.linksState = veafReactiveZone.LINKS_LOST
+  q:checkLinks()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_STOP)
+  q:check()
+  luaunit.assertFalse(destroyed)
+end
+
+function TestVeafQraLinks:test_set_airport_link_is_one_link()
+  local savedGetByName = Airbase.getByName
+  Airbase.getByName = function(name)
+    return name == "Batumi" and {} or nil
+  end
+  local q = VeafQRA:new():setAirportLink("Batumi"):setAirportLink("Batumi")
+  Airbase.getByName = savedGetByName
+  luaunit.assertEquals(q.links, { "Batumi" })
+  luaunit.assertEquals(q.airportLink, "Batumi")
 end
 
 os.exit(luaunit.LuaUnit.run())

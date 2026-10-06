@@ -1,6 +1,16 @@
 # FEAT-PORTABLE-PREFABS — circulate reusable mission content between missions and squadrons
 
-Status: ⬜ ready
+Status: 🚫 wontfix — 2026-10-05. David, on the analysis of the four entry points ticket 01 listed.
+
+## Why it is closed
+
+Outcome D of ticket 01: the value is real, the entry point costs more than it returns.
+
+- **Nobody asked for it.** The lot comes from studying dcs-sms, not from a squadron's need.
+- **The selection front end would have to be invented.** dcs-sms selects inside the Mission Editor, which [ADR 0017](../../docs/adr/0017-no-live-mission-editor-bridge.md) rules out, and its code is GPL v3.
+- **Reuse is already covered.** The MCP composites (`create_combat_zone`, `create_qra`…) and an agent editing the mission folder place the same content without a second mechanism.
+
+The one idea worth keeping does not need prefabs: warning when a mission uses a unit type from a mod the player may not have.
 
 Origin: [`docs/exploration/DCS-SMS-EXPLOIT.md`](../../docs/exploration/DCS-SMS-EXPLOIT.md) §4.
 
@@ -52,7 +62,7 @@ action, or a `mission.yaml` section.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Decide the entry point, and write the ADR](tickets/01-decide-the-entry-point.md) | ⬜ |
+| 01 | [Decide the entry point, and write the ADR](tickets/01-decide-the-entry-point.md) | 🚫 |
 | — | Format + instantiation, and manifest distribution — **cannot be specified before 01** | — |
 
 ## Definition of Done for the lot as it stands

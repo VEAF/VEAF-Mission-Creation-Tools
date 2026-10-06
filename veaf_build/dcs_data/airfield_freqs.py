@@ -37,6 +37,7 @@ from typing import Any
 
 import yaml
 from presets_injector.airfield_channels_manager import channel_title, yaml_scalar  # type: ignore[import-not-found]
+from veaf_libs.lua_literals import lua_comment_line, lua_quoted_string  # type: ignore[import-not-found]
 
 from veaf_build.dcs_data.airdromes import LEGACY_THEATRE_ALIASES
 
@@ -44,6 +45,9 @@ _ROOT = Path(__file__).parent.parent.parent
 
 #: Committed reference consumed at design time (convert-v5 aliasing, the mission airfield plan).
 DEFAULT_OUTPUT = _ROOT / "src/python/veaf-tools/veaf_libs/data/airfield-frequencies.yaml"
+
+#: The same reference rendered for the mission scripts, which cannot ask DCS for it (FEAT-AIRFIELD-FREQS-IN-ATIS).
+DEFAULT_LUA = _ROOT / "src/scripts/veaf/veafAirfieldFrequencies.lua"
 
 #: The shipped default plan, whose ``airports-<theatre>`` collections are generated.
 DEFAULT_PRESETS = _ROOT / "src/defaults/mission-folder/src/presets.yaml"
@@ -390,6 +394,61 @@ def replace_generated_block(text: str, block: str) -> str:
     return text[: start.end()] + block + text[end.start() :]
 
 
+_LUA_HEADER = """------------------------------------------------------------------
+-- VEAF airfield frequencies: the tower frequencies (MHz) and TACAN DCS gives each airfield, per
+-- theatre (env.mission.theatre) and DCS airdrome id (Airbase:getID()). Read by veafAirbases for the
+-- welcome brief and the ATIS: the mission scripts have no API to ask DCS for them.
+--
+-- GENERATED from veaf_libs/data/airfield-frequencies.yaml by `veaf-build update-dcs-data --airfield-freqs`.
+-- DO NOT EDIT BY HAND — edits are overwritten and a test fails on drift.
+------------------------------------------------------------------
+
+veafAirfieldFrequencies = {}
+"""
+
+
+def load_reference(path: Path) -> dict[str, dict[int, dict[str, Any]]]:
+    """Read a committed reference YAML back.
+
+    Args:
+        path: The reference written by :func:`write_reference`.
+
+    Returns:
+        Theatre -> airdrome id -> ``{name, uhf?, vhf?, fm?, tacan?}``.
+    """
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return {
+        theatre: {int(airdrome_id): entry for airdrome_id, entry in (entries or {}).items()}
+        for theatre, entries in (data.get("theatres") or {}).items()
+    }
+
+
+def render_lua(reference: dict[str, dict[int, dict[str, Any]]]) -> str:
+    """Render ``veafAirfieldFrequencies.lua``: theatre -> airdrome id -> ``{uhf, vhf, fm, tacan}``.
+
+    Frequencies are written as Python's shortest round-trip form, so ``126.525`` stays ``126.525``; a
+    band the field does not have is left out rather than written as ``nil``. The airfield's name is a
+    trailing comment, for whoever reads the file.
+
+    Args:
+        reference: Output of :func:`reference_from_dumps` (or :func:`load_reference`).
+
+    Returns:
+        The complete Lua source.
+    """
+    lines = [_LUA_HEADER]
+    for theatre, entries in sorted(reference.items()):
+        lines.append(f"veafAirfieldFrequencies[{lua_quoted_string(theatre)}] = {{")
+        for airdrome_id, entry in sorted(entries.items()):
+            fields = [f"{band} = {float(entry[band])!r}" for band in ("uhf", "vhf", "fm") if band in entry]
+            if entry.get("tacan"):
+                fields.append(f"tacan = {lua_quoted_string(str(entry['tacan']))}")
+            lines.append(lua_comment_line(f"  [{int(airdrome_id)}] = {{ {', '.join(fields)} }}, -- {entry['name']}"))
+        lines.append("}")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def write_reference(reference: dict[str, dict[int, dict[str, Any]]], output: Path) -> None:
     """Write the committed reference YAML.
 
@@ -412,14 +471,16 @@ def generate(
     presets: Path = DEFAULT_PRESETS,
     dumps_dir: Path = DUMPS_DIR,
     airbase_dumps_dir: Path = AIRBASE_DUMPS_DIR,
+    lua_output: Path = DEFAULT_LUA,
 ) -> int:
-    """Regenerate the reference and the default airfield collections from the committed captures.
+    """Regenerate the reference, its Lua rendering and the default airfield collections from the captures.
 
     Args:
         output: Reference YAML path.
         presets: Default ``presets.yaml`` holding the generated block.
         dumps_dir: Directory of the captures.
         airbase_dumps_dir: Directory of the runtime airbase dumps (names).
+        lua_output: The Lua table the mission scripts load.
 
     Returns:
         The number of airfields written across all theatres.
@@ -432,6 +493,9 @@ def generate(
         raise FileNotFoundError(f"no airfield-frequency capture in {dumps_dir}")
     reference = reference_from_dumps(dumps, load_airbase_names(airbase_dumps_dir))
     write_reference(reference, output)
+    lua_output.parent.mkdir(parents=True, exist_ok=True)
+    with open(lua_output, "w", encoding="utf-8", newline="\n") as f:
+        f.write(render_lua(load_reference(output)))
     text = presets.read_text(encoding="utf-8")
     updated = replace_generated_block(text, render_collections(collections_from_reference(reference)))
     if updated != text:

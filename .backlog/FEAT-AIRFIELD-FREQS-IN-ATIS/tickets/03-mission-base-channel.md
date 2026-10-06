@@ -1,6 +1,6 @@
 # 03 — the mission's own base channel is given beside the DCS tower
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the in-game check (R40)
 
 David, 2026-10-01: when a mission's radio plan gives an airfield its own frequency, the ATIS and the
 welcome brief give **both** — the DCS tower and the mission's channel.

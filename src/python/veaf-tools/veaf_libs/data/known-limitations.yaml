@@ -232,6 +232,28 @@ limitations:
     parenting a battery also sees everything the battery would.
   workaround: Plan the network around those two types.
 
+- id: awacs-contact-radar-flag-comes-and-goes
+  kind: dcs
+  area: air-defence
+  title: An AWACS can hold a contact for minutes flagged `DLINK` only, which Skynet does not read
+  measured: "2026-10-05"
+  symptom: |
+    `Controller:getDetectedTargets(Controller.Detection.RADAR)` on an AI A-50 leaves out contacts the
+    same call without a filter returns. A blue KC-135 82 km from the A-50, at 24 000 ft, was in its
+    list from t = 6 s but flagged `DLINK` only in every reading up to t = 239 s, and `RADAR` at
+    t = 269 s — while a C-130 and a second KC-135 spawned next to it, and an E-3A spawned 60 km from
+    the A-50, were flagged `RADAR` within a minute. Skynet asks for `RADAR` only, so for those minutes the AWACS fed the IADS
+    nothing about that aircraft. The A-50's radar range, as `getSensors` declares it, is 204 462 m
+    (55G6: 267 496 m), and Skynet reads it correctly.
+  workaround: |
+    Do not read one sample of a contact's detection flag as a property of the radar: read it over
+    several minutes. Do not count on an AWACS to report a given aircraft to Skynet the moment it
+    holds it: the same contact can stay invisible to the IADS for minutes.
+  cost: |
+    Read at t = 6 and t = 78 alone, it looked like "an AWACS only reports datalink contacts", and
+    was announced as the cause of three blind A-50s (INVESTIGATE-SKYNET-AWACS-BLIND) before a later
+    reading refuted it.
+
 - id: battery-wakes-in-its-own-envelope
   kind: dcs
   area: air-defence
@@ -362,6 +384,20 @@ limitations:
     map. Otherwise, taxi into the green circle. For a field with no parking data, place an `LGZ_`
     trigger zone in the Mission Editor.
 
+- id: destroy-by-name-reads-unitname
+  kind: tool
+  area: runtime
+  title: "`_destroy, name X` ignores the name and destroys everything within 150 m of the marker"
+  fixed_in: "6.28.0"
+  symptom: |
+    The `_destroy` handler reads the `unitname` option; `name` fills another field it never looks at.
+    With no `unitname`, it falls back to the radius form: every unit and static within 150 m of the marker is destroyed, the named one only if it happens to be there.
+    The mission-maker page showed `_destroy, name Tank-1` as the example. Found on 2026-10-04 while reading the code for FEAT-CAP-WATCHDOG, not measured in game.
+  workaround: |
+    Write `_destroy, unitname Tank-1` — it destroys the unit, static or group of that exact name, wherever it is.
+  cost: |
+    A marker meant to remove one named unit removes whatever stands near the marker instead.
+
 - id: no-airplane-spawn-from-a-marker
   kind: tool
   area: runtime
@@ -372,9 +408,22 @@ limitations:
     object, which does not fly. Helicopters are spawned from a marker since FEAT-HELICOPTER-SPAWN
     (#164), landed or with a `task`.
   workaround: |
-    `-cap` (or `_spawn cap`) clones a `veafSpawn-` airplane template with a patrol. Otherwise place the
-    group in the Mission Editor: inside a combat zone, which spawns it with the zone, or
-    late-activated and activated by a trigger or a script.
+    `-cap` (or `_spawn cap`) clones a `veafSpawn-` airplane template with a patrol; `-escort` clones
+    one to escort the airplane next to the marker; `-awacs` spawns an AWACS from its type, no template
+    needed. Otherwise place the group in the Mission Editor: inside a combat zone, which spawns it with
+    the zone, or late-activated and activated by a trigger or a script.
+
+- id: spawned-awacs-cannot-be-moved
+  kind: tool
+  area: runtime
+  title: An AWACS spawned with `-awacs` cannot be moved or respawned, nor can its escort
+  symptom: |
+    `_move tanker` and the F10 assets menu read a group's Mission Editor record, and a group spawned
+    during the mission has none: they refuse the `-awacs` AWACS and the escort `-awacs, escort` or
+    `-escort` gave it. The AWACS is also spawned with no callsign of its own: DCS chooses one.
+  workaround: |
+    Spawn a new AWACS with `-awacs` where it is needed, and remove the old one with `_destroy`. For an
+    AWACS that must be moved or respawned from the assets menu, place it in the Mission Editor.
 
 - id: scripted-helicopter-leaves-the-ground
   kind: dcs
@@ -560,6 +609,26 @@ limitations:
     The combat zone watchdog counted every static it found, so **a zone holding a static never
     completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
     FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
+- id: unit-getbyname-misses-units-sharing-a-name
+  kind: dcs
+  area: spawning
+  title: "`Unit.getByName` answers nil for units that share a name"
+  measured: "2026-10-06"
+  symptom: |
+    DCS accepts two units with the same name — it spawns both — but then resolves neither by that name.
+    On the v6 demo test mission, `[r]-Armored Platoon#10344` held two units both named
+    `[r]-Armored Platoon#10344 - MBT T-72B` (ids 200108 and 200109): `Unit.getByName` of that name
+    returned **nil**, and `veaf.findUnitsInCircle`, whose result is keyed by name, returned it once.
+    A first reading on 2026-10-05 blamed the « [CH] » vehicle pack; the units it could not resolve had
+    duplicate names.
+  workaround: |
+    Give every unit a unique name — `veafSpawnGround` numbers them `<group> - <type> #<n>` since
+    FIX-DUPLICATE-UNIT-NAMES. And once you hold the object — from `coalition.getGroups`,
+    `Group:getUnits`, a search — act on the object rather than looking it up again by name, as
+    `veafSpawn.destroy` (radius) and `veafMove.changeTanker` do since FIX-DEMO-RECETTE-FINDINGS.
+  cost: |
+    `_destroy, radius 2000` (`-menage`) left both tanks alive at 1 358 m and 1 405 m: the name lookup
+    missed them, and nothing said so.
 - id: aircraft-at-the-end-of-its-route-lands
   kind: dcs
   area: spawning
@@ -728,3 +797,86 @@ limitations:
     Seat an aircraft only on the stand types its airframe fits: the tools offer 68, 72 and 104
     (`AIRCRAFT_STAND_TYPES`) and leave 100 out. After spawning on a named stand, read the unit's
     position back rather than trusting the stand you asked for.
+
+- id: mobile-zone-drawing-stays-put
+  kind: tool
+  area: runtime
+  title: "The map drawing of a QRA or air-wave zone that follows a unit does not move with it"
+  symptom: |
+    A zone declared with `follow_unit:`, or a trigger zone linked to a unit in the Mission Editor,
+    follows its unit for detection and spawning. Its `draw_zone` outline is drawn once, where the
+    unit stood when the zone started, and stays there while the carrier sails on.
+  workaround: |
+    Leave `draw_zone` off for a mobile zone, or restart the zone (radio menu `qra.start` /
+    `airwave.reset`) to draw it again where the unit now is.
+
+- id: radio-lua-action-stops-the-config
+  kind: tool
+  area: pipeline
+  title: "A `lua` action in `modules.RADIO.user_menus` stops the whole VEAF configuration at load"
+  fixed_in: "6.28.0"
+  symptom: |
+    The action was written as a bare reference (`demo.spawnCsar`), evaluated when `veaf-config.lua`
+    loads — before `mission-script.lua`, where the documentation tells you to define the function.
+    The load fails on `attempt to index global '<table>' (a nil value)` and nothing after that line of
+    the configuration runs. `validate` and the build pass: they only check that the name appears in
+    the mission's Lua. Found on the v6 demo mission, 2026-10-05.
+  workaround: |
+    Build the menu in your own Lua (`veafRadio` in `mission-script.lua`) rather than with an
+    `action: lua` entry, or define the function in a script loaded before `veaf-config.lua`.
+  cost: |
+    No combat zone, QRA, asset or IADS: every module initialised after the radio menu was lost.
+
+- id: ctld-config-end-of-line-comment
+  kind: tool
+  area: pipeline
+  title: "An end-of-line comment in `ctld-config.yaml` becomes part of the value CTLD reads"
+  fixed_in: "6.28.0"
+  symptom: |
+    CTLD reads its configuration with its own YAML reader, which keeps `# …` after a value:
+    `jtacLaserCodeMax: 1686   # note` becomes the string `"1686   # note"`, and CTLD's JTAC init fails on
+    `'for' limit must be a number`. Standard YAML — and so `validate` and the build — read `1686`.
+    Seen on the v6 demo mission, 2026-10-05. The same build could also embed the **previous** build's
+    configuration: a stale `src/scripts/CTLD_userConfig.lua` won over the one just generated.
+  workaround: |
+    Put every comment of `ctld-config.yaml` on its own line, and build twice after editing the file.
+  cost: |
+    Up to 6.27, one module's init error also stopped every module after it: the demo mission was left
+    with no combat zone, QRA, asset or IADS.
+
+- id: build-exits-1-with-a-null-stdin
+  kind: tool
+  area: pipeline
+  title: "`mission build … > /dev/null` from Git Bash writes the `.miz` and exits 1"
+  fixed_in: "6.28.0"
+  symptom: |
+    Windows answers `isatty()` true for `NUL`, so the launch passed for a double-click and the closing
+    « Press Enter » pause raised `EOFError`, replacing the command's exit code. A script testing the
+    code read a failed build. Measured on the v6 demo mission folder, 2026-10-05.
+  workaround: |
+    Set `VEAF_UPDATER_NO_PAUSE=1`, or redirect the output to a file rather than to `/dev/null`.
+
+- id: cargoships-spawn-nothing-at-sea
+  kind: tool
+  area: runtime
+  title: "`-cargoships`, `-escortedcargoships` and `-combatships` spawn nothing at sea, silently"
+  fixed_in: "6.28.0"
+  symptom: |
+    The group's centre was searched on land, so a ship group found no point at sea and no group was
+    created; the only trace was an INFO line, and nothing on screen from a combat zone's command.
+    Measured in DCS on the v6 demo mission, 2026-10-05.
+  workaround: |
+    Place the ships in the Mission Editor (in a combat zone, as native groups of the zone).
+
+- id: operation-has-no-activation-command
+  kind: tool
+  area: runtime
+  title: "A combat operation's radio menu has no activate / deactivate command"
+  fixed_in: "6.28.0"
+  symptom: |
+    The commands were commented out: an operation not `active_at_start` could only be started by
+    script (`veafCombatZone.ActivateZone("<name>")`) or the `-zonestart` marker command. Seen on the
+    v6 demo mission, 2026-10-05.
+  workaround: |
+    `active_at_start: true`, the `-zonestart` marker command, or a menu of your own calling
+    `veafCombatZone.ActivateZone`.

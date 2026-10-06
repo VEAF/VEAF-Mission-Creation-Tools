@@ -220,6 +220,21 @@ veafSpawn.ParameterRules = {
     end,
   },
   { keys = { "showmfd" }, apply = _flag("showMFD") },
+  {
+    -- FEAT-AWACS-ESCORT-COMMANDS: the datalink of a spawned AWACS, on by default; `eplrs false` turns it off
+    keys = { "eplrs", "datalink" },
+    apply = function(options, val)
+      options.eplrs = val:lower() ~= "false"
+    end,
+  },
+  {
+    -- the fighters escorting a spawned AWACS: a template search, as `-cap` takes it; blank is any
+    keys = { "escort" },
+    when = function(options)
+      return options.awacs
+    end,
+    apply = _str("escortTemplate"),
+  },
   { keys = { "disperse" }, apply = _numNonNegative("disperse") },
 }
 
@@ -286,6 +301,22 @@ veafSpawn.CommandDescriptors = {
       options.cap = true
       options.speed = nil
       options.capradius = nil
+    end,
+  },
+  {
+    -- FEAT-AWACS-ESCORT-COMMANDS (#188): Skynet and the datalink on by default, as the issue asks
+    match = veafSpawn.SpawnKeyphrase .. " awacs",
+    init = function(options)
+      options.awacs = true
+      options.skynet = true
+      options.eplrs = true
+    end,
+  },
+  {
+    -- FEAT-AWACS-ESCORT-COMMANDS (#189): escort the airplane the marker was placed next to
+    match = veafSpawn.SpawnKeyphrase .. " escort",
+    init = function(options)
+      options.escort = true
     end,
   },
   {

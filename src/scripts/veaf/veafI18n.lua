@@ -567,6 +567,22 @@ veaf.i18nCatalog = {
     fr = "\nCoucher %s",
     en = "\nSunset %s",
   },
+  -- The airfield's tower, in the ATIS and the welcome brief (FEAT-AIRFIELD-FREQS-IN-ATIS). %s is the
+  -- frequency list, "260.000 UHF / 131.000 VHF / 40.400 FM": the band names are the radio's, untranslated.
+  ["weather.atc_tower"] = {
+    fr = "Tour %s",
+    en = "Tower %s",
+  },
+  ["weather.atc_tacan"] = {
+    fr = " — TACAN %s",
+    en = " — TACAN %s",
+  },
+  -- The mission's own channel for the field, when its radio plan gives one that differs from the DCS
+  -- tower; named by its title, what the pilot's presets show.
+  ["weather.atc_mission_channel"] = {
+    fr = "Canal de la mission %s : %s",
+    en = "Mission channel %s: %s",
+  },
 
   -- veafMove
   ["move.tanker_set_no_orbit"] = {
@@ -748,6 +764,26 @@ veaf.i18nCatalog = {
     fr = "Une CAP de %s (%s) est apparue",
     en = "A CAP of %s (%s) has been spawned",
   },
+  ["spawn.awacs_unknown_type"] = {
+    fr = "%s n'est pas un AWACS ; types connus : %s",
+    en = "%s is not an AWACS; known types: %s",
+  },
+  ["spawn.awacs_spawned"] = {
+    fr = "Un AWACS %s est apparu, sur %s MHz AM",
+    en = "An AWACS %s has been spawned, on %s MHz AM",
+  },
+  ["spawn.escort_spawned"] = {
+    fr = "Une escorte %s part couvrir %s",
+    en = "An escort %s is on its way to cover %s",
+  },
+  ["spawn.escort_no_aircraft"] = {
+    fr = "Aucun avion ami ou neutre à moins de %s NM du marqueur : rien à escorter",
+    en = "No friendly or neutral airplane within %s NM of the marker: nothing to escort",
+  },
+  ["spawn.escort_not_an_airplane"] = {
+    fr = "Seul un avion peut être escorté",
+    en = "Only an airplane can be escorted",
+  },
 
   -- veafQraManager (default status messages; %s = QRA description)
   ["qra.msg_start"] = {
@@ -827,6 +863,18 @@ veaf.i18nCatalog = {
   ["airwaves.msg_stop"] = {
     fr = "%s - hors ligne",
     en = "%s - offline",
+  },
+  ["airwaves.msg_paused"] = {
+    fr = "%s - en pause : %s est perdu",
+    en = "%s - paused: %s is lost",
+  },
+  ["airwaves.msg_closed"] = {
+    fr = "%s - la zone est fermée : quittez-la, ou vous serez détruit après %s secondes.",
+    en = "%s - the zone is closed: leave it, or you'll be destroyed after %s seconds.",
+  },
+  ["airwaves.msg_lost_friendlies"] = {
+    fr = "%s - perdu (plus d'alliés à défendre)",
+    en = "%s - lost (no more friendlies to defend)",
   },
 
   -- veafSanctuary (default messages)
@@ -1651,6 +1699,10 @@ veaf.i18nCatalog = {
     fr = "Appareils disponibles",
     en = "Available Aircraft spawns",
   },
+  ["menu.spawn.escort_me"] = {
+    fr = "Escorte-moi (%s)",
+    en = "Escort me (%s)",
+  },
   ["menu.spawn.convoy_cleanup"] = {
     fr = "Retirer tous les convois",
     en = "Cleanup all convoys",
@@ -1747,6 +1799,10 @@ veaf.i18nCatalog = {
     fr = "Fin des opérations aériennes",
     en = "End air operations",
   },
+  ["menu.carrier.start_ops"] = {
+    fr = "Démarrer les opérations aériennes pour %d minutes",
+    en = "Start carrier air operations for %d minutes",
+  },
   ["menu.casmission.info"] = {
     fr = "Infos sur l'objectif",
     en = "Target information",
@@ -1784,8 +1840,53 @@ veaf.i18nCatalog = {
     en = "Get info",
   },
   ["menu.weather.fog_animated_over"] = {
-    fr = "Brouillard animé sur %d minutes",
-    en = "Animated fog over %d minutes",
+    fr = "Brouillard animé sur %s",
+    en = "Animated fog over %s",
+  },
+  -- the fog commands: a density (weather.fog_density.*) and, when animated, a duration
+  ["menu.weather.fog_dynamic_level"] = {
+    fr = "Brouillard dynamique %s",
+    en = "Dynamic %s fog",
+  },
+  ["menu.weather.fog_static_level"] = {
+    fr = "Brouillard statique %s",
+    en = "Static %s fog",
+  },
+  ["menu.weather.fog_animated_level"] = {
+    fr = "Brouillard animé %s sur %s",
+    en = "Animated %s fog over %s",
+  },
+  ["weather.fog_minutes"] = {
+    fr = "%d minutes",
+    en = "%d minutes",
+  },
+  ["weather.fog_one_minute"] = {
+    fr = "1 minute",
+    en = "1 minute",
+  },
+  ["weather.fog_density.heavy"] = {
+    fr = "ÉPAIS",
+    en = "HEAVY",
+  },
+  ["weather.fog_density.medium"] = {
+    fr = "MOYEN",
+    en = "MEDIUM",
+  },
+  ["weather.fog_density.medium_low"] = {
+    fr = "MOYEN BAS",
+    en = "MEDIUM LOW",
+  },
+  ["weather.fog_density.sparse"] = {
+    fr = "LÉGER",
+    en = "SPARSE",
+  },
+  ["weather.fog_density.sparse_low"] = {
+    fr = "LÉGER BAS",
+    en = "SPARSE LOW",
+  },
+  ["weather.fog_density.no"] = {
+    fr = "AUCUN",
+    en = "NO",
   },
 }
 

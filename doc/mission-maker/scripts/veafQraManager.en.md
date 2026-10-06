@@ -3,6 +3,8 @@
 
 **Module ID:** `QRA` | **File:** `veafQraManager.lua`
 
+> **See it in game**: step 10 “Sukhumi QRA” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose
@@ -73,7 +75,12 @@ modules:
         delay_before_rearming: 30        # seconds before zone resets after intruders leave
         delay_before_activating: 30      # seconds after :start() before QRA goes online
         react_on_helicopters: false      # true = also trigger on enemy helicopters
-        airport_link: "Batumi"           # QRA goes offline if this airbase is destroyed
+        airport_link: "Batumi"           # paused while this airbase is lost (shortcut for links)
+        # links: ["Batumi", "SA-10 North"]  # airbases, FARPs, ships, groups or statics the QRA depends on
+        # follow_unit: "CVN-74"             # the zone follows this unit (a carrier, for instance)
+        logistics:                       # a finite stock of aircraft (without this block: unlimited)
+          groups_available: 4            # groups in stock at the start
+          resupply_delay: 1800           # one resupply every 30 min
 ```
 
 ### `modules.QRA` fields
@@ -101,7 +108,10 @@ modules:
 | `delay_before_activating` | integer | `0` | No | Seconds after start before QRA goes online |
 | `react_on_helicopters` | boolean | `false` | No | Also trigger on enemy helicopters |
 | `active_at_start` | boolean | `true` | No | `false`: the QRA is declared but **not armed** at start — it waits for a `qra.start` (radio menu) or a scripted call |
-| `airport_link` | string | — | No | Linked DCS airbase name — QRA offline when destroyed |
+| `airport_link` | string | — | No | Name of a linked DCS airbase: the QRA pauses while the airbase is captured or too damaged, and resumes when it is retaken. Shortcut for one entry of `links` |
+| `links` | string[] | `[]` | No | What the QRA depends on: airbases, FARPs, ships, groups or statics, by DCS name. A lost airbase or FARP **pauses the QRA** until it is retaken; a ship, group or static destroyed **stops it for good**. One lost link is enough |
+| `follow_unit` | string | — | No | Name of a unit the zone follows (a carrier, for instance); the centre is read again on every check. A trigger zone linked to a unit in the editor follows it too, without this key. If the unit dies, the zone stays where it last saw it |
+| `logistics` | object | — | No | A finite stock of aircraft and its resupply — see [Logistics chain](#logistics-chain) |
 | `respawn_default_offset` | [number, number] | `[0, 0]` | No | Offset in metres `[north, east]` from the zone centre where an element deployed by a VEAF command with no `[x,y]` of its own appears |
 | `radio_menu` | boolean | `false` | No | Automatically generate an F10 radio submenu to control this QRA (see below) |
 | `radio_menu_restrict_to_group` | string | — | No | Name of a DCS group; the generated submenu only appears for that group |
@@ -170,6 +180,7 @@ Use one of the following to define the protected airspace:
 | `:setZoneCenter(vec3)` | Manual center point (DCS vec3) — use with `:setZoneRadius()` |
 | `:setZoneCenterFromCoordinates(coordStr)` | Center from a `"lat,lon"` string |
 | `:setZoneRadius(meters)` | Radius in meters when not using a trigger zone |
+| `:setFollowUnit(unitName)` | The zone follows this unit, a carrier for instance |
 
 ### Defenders
 
@@ -203,11 +214,12 @@ Use one of the following to define the protected airspace:
 | `:setRespawnDefaultOffset(latDelta, lonDelta)` | Spawn offset from zone center (meters, lat/lon) — first number north, second east; see [veafAirWaves](veafAirWaves.en.md#spawn-offset) |
 | `:setRespawnRadius(meters)` | Scatter radius around spawn point (minimum 250 m) |
 
-### Airbase Link
+### Links
 
 | Method | Description |
 |--------|-------------|
-| `:setAirportLink(name)` | Link to an airbase — QRA goes offline if the airbase is destroyed |
+| `:addLink(name)` | Make the QRA depend on an airbase, FARP, ship, group or static: a lost airbase pauses it, anything else destroyed stops it |
+| `:setAirportLink(name)` | Link to an airbase — the QRA pauses while the airbase is lost (shortcut for `:addLink`) |
 | `:setAirportMinLifePercent(pct)` | Minimum airbase health for QRA to remain active (0–1, default `0.9`) |
 
 ### Messages and Callbacks
@@ -273,7 +285,7 @@ Full states:
 | `DEAD` | QRA was destroyed; waiting for conditions to rearm |
 | `WILLREARM` | Rearming timer is running |
 | `OUT` | No more aircraft available (stock exhausted) |
-| `NOAIRBASE` | The linked airbase was destroyed — QRA stands down |
+| `NOAIRBASE` | A linked airbase is captured or too damaged — the QRA waits for it to be retaken |
 
 ### Setting up in the DCS Mission Editor
 
@@ -331,7 +343,7 @@ about it. A group with any other task (`CAS`, `Ground Attack`, `Escort`…) alwa
 A `-cap` command listed in `simple_groups` also defends the QRA zone, not the 60 NM zone it draws around
 its own leg.
 
-### Logistics chain
+### Logistics chain {#logistics-chain}
 
 By default a QRA has unlimited aircraft. The logistics system lets you model a finite airfield stock with optional resupply — useful for long persistent missions:
 
@@ -345,6 +357,34 @@ By default a QRA has unlimited aircraft. The logistics system lets you model a f
 | `setResupplyAmount(n)` | Groups added per resupply cycle (default `1`) |
 
 Think of it as a warehouse: `QRAcount` is what is on the shelf, `resupplyDelay` is the truck delivery time, and `minCountforResupply` is the reorder point.
+
+In `mission.yaml`, the `logistics:` block of a definition sets the same things, one key per method:
+
+| `logistics` key | Method | Role |
+|-----------------|--------|------|
+| `groups_available` | `setQRAcount` | Groups in stock at the start; at `0`, the QRA starts empty and waits for a resupply |
+| `max_ready` | `setQRAmaxCount` | Ceiling of groups in stock |
+| `resupply_delay` | `setQRAresupplyDelay` | Seconds between the order and the delivery |
+| `resupply_amount` | `setResupplyAmount` | Groups delivered by each resupply |
+| `max_resupplies` | `setQRAmaxResupplyCount` | Groups deliverable in total (`-1` = unlimited, `0` = no resupply) |
+| `resupply_below` | `setQRAminCountforResupply` | Stock below which a resupply leaves; absent, it leaves as soon as a group is lost |
+
+```yaml
+modules:
+  QRA:
+    definitions:
+      - name: "QRA-LIMITED"
+        coalition: RED
+        trigger_zone: "ZONE-LIMITED"
+        simple_groups: ["F-15C QRA 1", "F-15C QRA 2"]
+        logistics:
+          groups_available: 4
+          max_ready: 2
+          resupply_delay: 1800
+          resupply_amount: 1
+```
+
+`validate` reports a `logistics` key it does not know.
 
 ---
 

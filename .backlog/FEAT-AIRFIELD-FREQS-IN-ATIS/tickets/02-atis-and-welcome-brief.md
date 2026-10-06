@@ -1,6 +1,6 @@
 # 02 — the ATIS and the welcome brief say the airfield's frequencies
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the in-game check (R40)
 
 Where a pilot meets an airfield in VEAF, nothing tells them how to call its tower: the welcome brief
 (`veafWeather.buildWelcomeBrief`, on taking a slot) gives the runway and the weather, the ATIS

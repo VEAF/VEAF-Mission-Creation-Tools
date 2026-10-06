@@ -17,6 +17,114 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.28.0] — 2026-10-05
+
+### Removed
+
+- **No more macOS Intel (`x86_64`) binary in the releases** (CHORE-DROP-MACOS-INTEL).
+  None was ever published: its `macos-13` runner pool is so scarce that the job never got a runner in time, and on 6.27.0 it held the release run open overnight.
+  An Intel Mac now gets the updater's "unsupported platform" message instead of looking for an asset that does not exist.
+  Linux x86_64 and macOS arm64 (Apple Silicon) binaries are unchanged.
+
+### Changed
+
+- **The documentation assistant keeps answering after its first model has spent its day** (FIX-CHATBOT-DAILY-QUOTA).
+  Google's free tier allows 20 questions a day per model, and the assistant hit that ceiling on 2026-09-22.
+  When the day's allowance is spent, the question now goes to the next model in a chain — `gemini-2.5-flash`, then Gemma 4 — each with its own free allowance, still without billing.
+  The "comes back tomorrow morning" message only shows once the whole chain is spent.
+  A caller who reaches the assistant's own per-person daily limit now reads that, rather than "back in a minute".
+- **QRA and air-wave zones now stand on one shared base** (FEAT-AIRWAVES-QRA-MERGE).
+  The written comparison found two behaviours that are not one — a QRA defends its ground in an endless loop, an air-wave zone runs a game that ends — and the same plumbing written twice underneath: zone, altitude filter, group draw, spawn, drawing.
+  That plumbing is now `veafReactiveZone.lua`, which both call; their `mission.yaml` keys, builder methods and pilot messages are unchanged.
+  One behaviour moves: a QRA whose `airport_link` is a **ship** now stops when the ship is sunk, where it used to wait for ever for an airbase that could not come back.
+
+### Added
+
+- **The welcome brief and the ATIS say how to call the airfield's tower** (FEAT-AIRFIELD-FREQS-IN-ATIS).
+  A pilot taking a slot, or asking the ATIS from the F10 menu, now reads the tower's UHF / VHF / FM frequencies and its TACAN, the ones the airfield's card shows in the F10 view: `Tower 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X`.
+  The mission scripts cannot ask DCS for them, so `veaf-build update-dcs-data --airfield-freqs` now also renders the captured reference as `veafAirfieldFrequencies.lua`, shipped with the scripts.
+  When the mission's `bases` collection gives the airfield its own channel and it differs from the DCS tower, a second line gives that channel too, under its title; the build writes it into `veaf-config.lua`.
+  A carrier, a FARP or an airfield the reference lacks gets no line.
+  When the mission silences ATC, an airfield with a mission channel gets that channel alone; one without still gets the DCS frequency.
+- **`-awacs` spawns an AWACS, and `-escort` an escort for an airplane** (FEAT-AWACS-ESCORT-COMMANDS, #188, #189).
+  `-awacs` puts an E-3A (blue) or an A-50 (red) on a race-track from the marker, built from its type so no template is needed; `type`, `alt`, `hdg`, `dist`, `speed` and `freq` change it.
+  It joins its side's Skynet network and turns its datalink on by default (`skynet false`, `eplrs false`), and `escort <template>` adds fighters to escort it.
+  `-escort f15-fox3` escorts the friendly or neutral airplane nearest the marker, within 10 NM: the fighters appear 3 km behind it with the DCS `Escort` task and are cleared to fire.
+  Pilots can also ask for their own escort from *F10 → VEAF → SPAWN → +Escort me*, at the known-pilot level `-escort` asks for.
+- **`_destroy, name X` destroys X, and only X** (FIX-DESTROY-NAME-KEY).
+  The command only read `unitname`, so the documented `_destroy, name Tank-1` was taken as having no name: Tank-1 survived and every unit and static within 150 m of the marker was destroyed.
+  `name` is now accepted like `unitname` (which wins when both are written), and the pages show `unitname` with the command's options.
+- **A CAP weighs where its targets point, stops chasing the ones that leave, and splits up over several** (FEAT-CAP-WATCHDOG, #187).
+  At the same distance, an aircraft flying at the patrol (hot) now comes before one crossing it (flanking), and that one before one flying away (cold).
+  An aircraft flying away more than 40 km from the patrol is not engaged at all: the patrol stays on its zone.
+  Facing several targets, each aircraft of the patrol is given its own, the most important first; facing one, they all go for it as before.
+  The aspect boundaries, weights and the 40 km cut-off are estimates, to be tuned in game; the per-aircraft tasking is still to be confirmed in game too.
+- **An `/ask` thread can become a bug report or a suggestion without retyping it** (FEAT-SUPPORT-ASK-ESCALATE).
+  In a thread the bot opened, mentioning it with the single word `bug` or `suggest` answers with a button that opens the `/bug` or `/suggest` form, pre-filled from the thread; the draft is then shown and nothing is filed without the usual confirmation.
+  The form is filled from the bot's own record of the thread — the questions addressed to it and its answers, the most recent first when they do not all fit — and the rest of the thread is not read.
+  The *Report a bug* button under an answer now carries the whole thread too, not only the last question and answer.
+  Asking for it spends no question of the quota, and a question that merely starts with the word (*"bug dans CTLD ?"*) is still answered as a question.
+- **A new DCS trap for agents: an AWACS contact can stay flagged `DLINK` only for minutes** (INVESTIGATE-SKYNET-AWACS-BLIND).
+  Measured in game on an A-50: a KC-135 82 km away was in its detected list for nearly four minutes before DCS flagged it `RADAR`, and Skynet, which reads `RADAR` only, ignored it until then.
+  `describe_known_limitations` now returns it, with the A-50's declared radar range (204 km).
+  The investigation itself closes as not a defect: the A-50 enrolled by the helper does feed Skynet, and the three blind A-50s of the 2026-09-17 report orbited more than its 204 km from every Georgian base — consistent with an empty sky, though the lost log no longer allows proving it.
+- **A QRA or an air-wave zone can depend on more than an airfield, and follow a carrier** (FEAT-AIRWAVES-QRA-MERGE, #183, #186).
+  `links:` names the airbases, FARPs, ships, groups or statics a zone depends on: an airbase or FARP lost pauses it until it is retaken, as `airport_link` always did; a ship, group or static destroyed stops it for good.
+  `follow_unit:` makes the zone follow a unit, a carrier for instance, and a trigger zone linked to a unit in the Mission Editor now follows it too.
+- **Air-wave zones gain friendly groups to defend, support groups, and "dead is dead"** (FEAT-AIRWAVES-QRA-MERGE, #182, #176, #179).
+  A wave's `friendly_groups` spawn with it for the players' side, and the zone is lost when they are all dead; its `support_groups` spawn with it and count for nothing.
+  `closed_once_active: true` sends away, once the zone runs, any human who was not there at activation or who comes back in the slot of an aircraft shot down: warned, then flak, then destroyed, on the `max_seconds_outside_players` delay, which `mission.yaml` can now set.
+- **A QRA's stock of aircraft and its resupply are declared in `mission.yaml`** (FEAT-AIRWAVES-QRA-MERGE).
+  The `logistics:` block of a QRA definition — `groups_available`, `max_ready`, `resupply_delay`, `resupply_amount`, `max_resupplies`, `resupply_below` — sets what only hand-written Lua could set before; `validate` reports a key it does not know.
+- **MCP: combat operations, briefing pictures, road waypoints and group positions** (FIX-DEMO-MISSION-FINDINGS).
+  `add_combat_operation` declares an operation over zones the mission already has, and refuses a task naming a zone it does not.
+  `set_briefing_picture` adds an image to a side's briefing: the file, its `mapResource` key and the `pictureFileName` entry in one call.
+  `edit_route` takes `road: true|false` on a ground group's waypoint (`On Road` / `Off Road`), and `describe_map` gives each group its position and number of units.
+- **The documentation points to the v6 demo mission** (FIX-DEMO-MISSION-FINDINGS).
+  [VEAF-Demo-Mission-v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) shows every feature in game with a guided tour, and is the check run before each release; each module page says which step shows it.
+  The mission maker guide no longer tells you to fork the old demo to start: `mission prepare` does that.
+
+### Fixed
+
+- **A CAP that lands or is destroyed no longer leaves its route in memory for the rest of the session** (FIX-AIRCRAFT-ROLE-REGISTRY-PURGE, #1079).
+  The scripts kept the role, the first-waypoint options and the full route of every aircraft group spawned with a role, and never let go of them.
+  A `cap` or `zone_defense` group is now forgotten when the CAP watchdog stops watching it; a group flying any other role, at the next spawn with a role once DCS no longer knows it.
+  Nothing changes in flight: the group names involved are never reused, so no later group could have inherited a stale role.
+- **A QRA or a wave whose command spawns later is no longer lost on the way** (#1078).
+  A command carrying `delayed` or `repeat` returns before it spawns, and both modules read its groups right after the call: the CAP guarded the wrong zone, the wave was called dead on the next tick, and nothing could ever destroy the group.
+  The groups are now collected as they appear, the zone waits for them (ten minutes at most), and one that arrives after its wave has ended is destroyed — the fix #66 gave combat zones.
+- **An air-wave zone's command waves spawn for the side opposite the players.**
+  They were handed no side at all, which a command naming no country turns into red: red enemies for red players.
+- **Stopping an air-wave zone erases its drawing from the map.**
+  The reset that runs first forgot the drawing, so it stayed on the F10 map after every stop.
+- **A `lua` radio-menu action no longer stops the whole VEAF configuration** (FIX-DEMO-MISSION-FINDINGS).
+  It was evaluated when `veaf-config.lua` loads, before `mission-script.lua` defines the function, and everything after it in the configuration never ran; the function is now looked up on click.
+- **One module's initialisation error no longer takes the others down** (FIX-DEMO-MISSION-FINDINGS).
+  Each module starts in its own protected block: a failure is logged as `<MODULE> init failed: …` and the next module starts.
+- **An end-of-line comment in `ctld-config.yaml` no longer breaks CTLD, and the `.miz` carries the configuration of the build that made it** (FIX-DEMO-MISSION-FINDINGS).
+  CTLD's own reader kept the comment as part of the value; the copy handed to CTLD is now stripped of them. A stale `src/scripts/CTLD_userConfig.lua` could also win over the one just generated.
+- **`mission build` keeps its exit code when its output goes to `/dev/null`** (FIX-DEMO-MISSION-FINDINGS).
+  The closing pause took that launch for a double-click and failed on a closed input, turning a successful build into exit code 1.
+- **`-cargoships`, `-escortedcargoships` and `-combatships` spawn at sea** (FIX-DEMO-MISSION-FINDINGS).
+  A ship group's position was searched on land; a spawn that finds no position is now logged as a warning.
+- **A combat operation can be activated and deactivated from its own radio menu** (FIX-DEMO-MISSION-FINDINGS).
+  The commands were commented out; they follow a combat zone's rules (secured, except in training).
+  Deactivating an operation now deactivates its zones, and activating it leaves a zone already running alone instead of spawning it again.
+- **Clear-ground placement sizes a `#veafInterpreter` marker from its command** (FIX-DEMO-MISSION-FINDINGS).
+  An SA-11 site carried by one unit was given the room of a single vehicle.
+- **Small truths** (FIX-DEMO-MISSION-FINDINGS): the docs spawn a `T-80UD` (a `T-80` matches no DCS type), the `waypoints.yaml` template says the build adds a `BULLSEYE` waypoint, and the carrier's « start air operations » commands are translated.
+  The pilot guide's list of `_spawn unit` names offered two aircraft (refused by the command), a battery (`SA-6`, a group) and a wrong `M1 Abrams`, and claimed the names were case-sensitive (they are not).
+- **The F10 « MISSIONS » menu is built at mission start in missions that declare `cap_missions` or `combat_missions`** (FIX-COMBATMISSION-MENU-MISSING).
+  The generated configuration initialised the module before adding its missions, so the menu was built from an empty list and never rebuilt; it is now initialised after them.
+- **`_destroy, radius …` destroys every unit in the circle** (FIX-DEMO-RECETTE-FINDINGS).
+  The units found were looked up again by name, and DCS answers nothing for units sharing a name (see the entry below): `-menage` left a whole platoon alive. The same lookup could make `_tanker` miss a tanker under the marker.
+- **The fog commands of the weather menu are translated** (FIX-DEMO-RECETTE-FINDINGS).
+  « Animated HEAVY fog over 1 minutes » stayed in English in a French mission; it now reads « Brouillard animé ÉPAIS sur 1 minute », and one minute is singular in English too.
+- **A CAS group is named after its own side** (FIX-DEMO-RECETTE-FINDINGS).
+  After one blue CAS, every later group, red included, was named « Blue CAS Group ».
+- **Every unit of a spawned ground group has its own name** (FIX-DUPLICATE-UNIT-NAMES).
+  Two units of the same type in one group shared a name (`<group> - <type>`), so DCS resolved neither by name and `-menage` left both alive; unit names now end with their index, `<group> - <type> #<n>`.
+
 ## [6.27.0] — 2026-10-03
 
 ### Changed

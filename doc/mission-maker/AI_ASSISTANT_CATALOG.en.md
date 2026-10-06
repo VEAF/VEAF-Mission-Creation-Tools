@@ -87,6 +87,8 @@ The AI can act in two places, and it changes what "survives":
 | 43 | [Know the ground elevation and terrain masking](#terrain-elevation) | 🗺️ Map & coordinates | — | ⭐ |
 | 44 | [List an aircraft's default loadouts](#list-payloads) | Domain knowledge | — | ⭐ |
 | 45 | [Complete the statics placed without a shape](#repair-static-shapes) | 🏁 Validate & build | Recipe + built | ◽ |
+| 46 | [Create an operation (chained zones)](#create-operation) | 🏗️ Composites | Recipe (folder) | ◽ |
+| 47 | [Add a picture to the briefing](#briefing-picture) | 🕰️ Mission settings | Recipe + built | ◽ |
 
 ---
 
@@ -187,8 +189,7 @@ convert between DCS local coordinates (x/y) and lat/long.*
 
 ### Read the map {#read-the-map}
 
-*Orientation · ⭐* — The AI reads the **theatre**, per-coalition **bullseyes**, and existing
-zones/groups as reference points, to place things relative to known anchors.
+*Orientation · ⭐* — The AI reads the **theatre**, per-coalition **bullseyes**, and existing zones/groups as reference points, each with its position (and each group its size), to place things relative to known anchors.
 
 > 💬 *"Which theatre is this? Show me the bullseyes and existing zones."*
 
@@ -279,6 +280,14 @@ created **airborne**, fuelled and with a loadout: give it, or ask for it to be c
 give it a second point and it flies a race-track between the two — without one it patrols nowhere.
 
 > 💬 *"Create an on-demand CAP “Escort” with two F-15s."*
+
+### Create an operation (chained zones) {#create-operation}
+
+*Recipe (folder) · ◽* — Groups **combat zones already created** into an operation: activating it brings **all** its zones to life at once, and each task becomes the current objective once the ones it depends on are complete — an objective that must not exist before another is a chained zone instead.
+Players start it from its F10 menu, or it starts with the mission.
+The AI refuses a task that names no zone of the mission.
+
+> 💬 *"Make an operation Thunder: CZ-Alpha first, then CZ-Bravo once Alpha has fallen."*
 
 ## 🛫 Bases & airfields
 
@@ -526,6 +535,7 @@ a zone, land, set a frequency, or loop the route back on itself. For a **support
 carry unlimited fuel, or **escort** another group named by its name. For a **radio beacon**: a unit
 that **plays a sound** in a loop on its frequency, which a helicopter homes on with its direction
 finder ([embed the sound](#add-sound) first, and set the frequency just before).
+For a **convoy**, each waypoint can follow the **roads** or drive straight across.
 
 > 💬 *"Add a waypoint after the third, at 20,000 feet."*
 > 💬 *"Have this tanker orbit a race-track at 20,000 feet, 300 knots."*
@@ -534,6 +544,7 @@ finder ([embed the sound](#add-sound) first, and set the frequency just before).
 > 💬 *"Make Texaco a tanker, TACAN 30Y callsign TXO, unlimited fuel."*
 > 💬 *"Have the two F-15s escort Texaco."*
 > 💬 *"Make this truck a beacon on 31 MHz FM playing beacon.ogg in a loop."*
+> 💬 *"Have the convoy follow the road up to the third waypoint."*
 
 Three things worth knowing:
 
@@ -652,6 +663,13 @@ does when you pick a file. It is what a unit needs before it can [play it](#chan
 beacon of a helicopter zone, a distress signal. Embedding the same file twice reuses the first.
 
 > 💬 *"Embed beacon.ogg and sos.ogg in the mission."*
+
+### Add a picture to the briefing {#briefing-picture}
+
+*Recipe + built · ◽* — Copies a picture (`.png` or `.jpg`) into the mission and adds it to a side's briefing (blue, red or neutral), after the pictures it already has — as the editor does when you pick a briefing picture.
+Avoid putting the same picture on both sides: a player whose side the briefing does not know (a dynamic slot, for instance) would see it twice.
+
+> 💬 *"Put map.jpg in the blue briefing."*
 
 ---
 

@@ -1,7 +1,8 @@
 # FEAT-SPOTTER-DEMO-MISSION — a mission that proves the word travels
 
-Status: ⬜ ready — tickets 01 to 04 done; ticket 05, the demonstration layer, is not started and
-nothing blocks it.
+Status: ✅ done — 2026-10-05. Every ticket done; ticket 05's walkthrough was built, committed and
+validated by David on 2026-09-21. Its README was dropped: the feature has since been seen working in
+four missions, so a walkthrough guide would serve nobody (David, 2026-10-05).
 
 Origin: David, 2026-09-21, reading what `verify-mission-c` check 13 would have measured:
 
@@ -50,7 +51,7 @@ trivial.
 | 02 | [The rig mission, and its geometry](tickets/02-the-rig-mission.md) | ✅ done |
 | 03 | [An opt-in smoke suite that reads it](tickets/03-the-spotter-smoke-suite.md) | ✅ done |
 | 04 | [Check 13 says it no longer discriminates, and points here](tickets/04-retire-check-13.md) | ✅ done |
-| 05 | [The demonstration layer](tickets/05-the-demonstration-layer.md) | ⬜ ready |
+| 05 | [The demonstration layer](tickets/05-the-demonstration-layer.md) | ✅ done |
 
 David's sequencing, 2026-09-21: the discriminating rig first, then the demonstration; and within the
 demonstration, bridge-driven before flyable.

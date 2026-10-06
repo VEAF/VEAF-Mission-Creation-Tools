@@ -1,6 +1,6 @@
 # FIX-CHATBOT-DAILY-QUOTA — the website chatbot has a ceiling nobody has looked at
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: measured on 2026-09-05 while sizing the support programme's lot 4. Google's free tier for
 `gemini-2.5-flash-lite` is **20 requests per day** and 10 per minute — read off AI Studio's *Rate
@@ -41,8 +41,8 @@ silent failure.
   (UTC-7 or UTC-8 against CEST or CET). So "try again tomorrow" is *correct* in a European evening
   and **wrong in the early morning**, when the allowance returns in a couple of hours on the same
   day. The wording has to hold at both ends of the day.
-- The Worker is deployed by hand (`npx wrangler deploy`); nothing here reaches production until
-  that runs.
+- The Worker ships on a push to `develop` or `master` through `chatbot-worker.yml` (since
+  2026-09-19); it used to be deployed by hand.
 - Both documentation languages, in lockstep.
 
 ## Scope
@@ -52,6 +52,10 @@ silent failure.
 | 01 | [Read the real usage before fixing anything](tickets/01-measure-real-usage.md) | chore |
 | 02 | [An exhausted quota says so, and says when it comes back](tickets/02-quota-message.md) | fix |
 | 03 | [The page tells visitors the assistant is rationed](tickets/03-document-the-ceiling.md) | docs |
+| 04 | [When the day's allowance is spent, answer with another model](tickets/04-model-fallback.md) | feat |
+
+Tickets 01–03 are done: 02 and 03 shipped in #916 on 2026-09-05, and 01 found the ceiling hit — 23 generation requests against 20 on 2026-09-22.
+Ticket 04 was added on 2026-10-04 because of that reading: the free tier counts per model, so a chain of models raises the ceiling without enabling billing.
 
 ## Former index entry
 

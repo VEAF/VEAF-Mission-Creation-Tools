@@ -63,7 +63,8 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "ask.truncated": "-# ✂️ Réponse tronquée : elle dépassait ce qu'un message Discord peut porter.",
         "ask.continue": (
             "-# 💬 Une question complémentaire ? Mentionne-moi dans ce fil et je réponds avec ce qui "
-            "précède en tête. Chaque relance compte comme une question."
+            "précède en tête. Chaque relance compte comme une question. Mentionne-moi avec `bug` ou "
+            "`suggest` pour en faire un rapport."
         ),
         "ask.followup.forgotten": (
             "Je ne retrouve plus ce dont parlait ce fil — il est peut-être trop ancien, ou le service "
@@ -355,8 +356,18 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "match.button.same": "Oui, c'est ça",
         "match.button.different": "Non, le mien est différent",
         "escalate.button": "Signaler un bug",
-        "escalate.happened": (
-            "J'ai posé cette question au bot :\n{question}\n\nSa réponse ne règle pas mon problème :\n{answer}"
+        "escalate.happened": "Mon échange avec le bot de documentation ne règle pas mon problème :\n\n{transcript}",
+        "escalate.problem": "C'est apparu dans un échange avec le bot de documentation :\n\n{transcript}",
+        "escalate.turn.user": "Question : {content}",
+        "escalate.turn.assistant": "Réponse du bot : {content}",
+        "escalate.button.suggest": "Proposer une amélioration",
+        "escalate.ready.bug": (
+            "🐞 Le rapport est prêt, pré-rempli avec ce fil. Ouvre-le et complète-le : tu verras le "
+            "brouillon avant que quoi que ce soit soit publié."
+        ),
+        "escalate.ready.suggest": (
+            "💡 La suggestion est prête, pré-remplie avec ce fil. Ouvre-la et complète-la : tu verras le "
+            "brouillon avant que quoi que ce soit soit publié."
         ),
         # --- /suggest, l'idee confrontee a ce qui existe deja ---------------------------------
         # --- /suggest : l'antériorité, dite sans promettre ce que ce flux ne fait pas ---------
@@ -435,7 +446,8 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "ask.truncated": "-# ✂️ Answer truncated: it was longer than a Discord message can carry.",
         "ask.continue": (
             "-# 💬 A follow-up? Mention me in this thread and I answer with what came before in mind. "
-            "Each follow-up counts as one question."
+            "Each follow-up counts as one question. Mention me with `bug` or `suggest` to turn it into a "
+            "report."
         ),
         "ask.followup.forgotten": (
             "I no longer have what this thread was about — it may be too old, or the service was "
@@ -696,8 +708,18 @@ _TEXTS: Final[dict[str, dict[str, str]]] = {
         "match.button.same": "Yes, that is it",
         "match.button.different": "No, mine is different",
         "escalate.button": "Report a bug",
-        "escalate.happened": (
-            "I asked the bot this question:\n{question}\n\nIts answer does not solve my problem:\n{answer}"
+        "escalate.happened": "My exchange with the documentation bot does not solve my problem:\n\n{transcript}",
+        "escalate.problem": "This came up in an exchange with the documentation bot:\n\n{transcript}",
+        "escalate.turn.user": "Question: {content}",
+        "escalate.turn.assistant": "Bot's answer: {content}",
+        "escalate.button.suggest": "Suggest an improvement",
+        "escalate.ready.bug": (
+            "🐞 The report is ready, pre-filled from this thread. Open it and complete it: you will see "
+            "the draft before anything is published."
+        ),
+        "escalate.ready.suggest": (
+            "💡 The suggestion is ready, pre-filled from this thread. Open it and complete it: you will "
+            "see the draft before anything is published."
         ),
         # --- /suggest, the idea weighed against what already exists ---------------------------
         # --- /suggest: prior art, said without promising what this flow does not do -----------

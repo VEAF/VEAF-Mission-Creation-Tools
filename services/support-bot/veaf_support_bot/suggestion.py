@@ -30,8 +30,10 @@ import hashlib
 from dataclasses import dataclass
 
 from veaf_support_bot.existing import ABSENT, EXISTS, DocumentationCheck
+from veaf_support_bot.followup import escalation_paragraph, latest_question
 from veaf_support_bot.issue_body import BODY_MAX_CHARS, marker_for
 from veaf_support_bot.priorart import Sweep
+from veaf_support_bot.texts import normalize_language
 from veaf_support_bot.untrusted import one_line, quote
 
 #: Label the repository's own template puts on a feature request.
@@ -173,6 +175,39 @@ class SuggestionForm:
         """
         named = (("summary", self.summary), ("problem", self.problem), ("solution", self.solution))
         return tuple(name for name, value in named if not value.strip())
+
+
+def escalated_suggestion(
+    turns: list[dict[str, str]],
+    *,
+    asker: str,
+    asker_id: str,
+    language: str,
+) -> SuggestionForm:
+    """Turn an ``/ask`` thread into the start of a suggestion.
+
+    The thread is the *problem*: it is where the gap showed up. The *solution* is deliberately left
+    empty — the form still requires it, so what gets filed is a request somebody made rather than a
+    transcript. The component stays unknown because a modal cannot hold the command's dropdown.
+
+    Args:
+        turns: The thread so far, alternating ``user`` and ``assistant``, oldest first.
+        asker: The display name of whoever escalates.
+        asker_id: Their Discord id.
+        language: The language of the exchange.
+
+    Returns:
+        The pre-filled form.
+    """
+    return SuggestionForm(
+        summary=one_line(latest_question(turns), SUMMARY_MAX_CHARS),
+        problem=escalation_paragraph("escalate.problem", turns, normalize_language(language), PARAGRAPH_MAX_CHARS),
+        solution="",
+        component=UNKNOWN_COMPONENT,
+        asker=asker,
+        asker_id=asker_id,
+        language=language,
+    )
 
 
 def heading(key: str, lang: str) -> str:

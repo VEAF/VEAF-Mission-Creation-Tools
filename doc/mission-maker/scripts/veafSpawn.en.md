@@ -3,6 +3,8 @@
 
 **Module ID:** `SPAWN` | **File:** `veafSpawn.lua`
 
+> **See it in game**: step 02 “Sandbox: marker commands” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose
@@ -50,7 +52,7 @@ Call after all other modules that veafSpawn depends on.
 
 ```
 _spawn unit, name [DCS_TYPE]
-_spawn unit, name T-80, hdg 270, spacing 50
+_spawn unit, name T-80UD, hdg 270, spacing 50
 ```
 
 An **airplane** cannot be spawned this way (the command refuses it): use a CAP patrol. A
@@ -137,9 +139,65 @@ keeps is ranked by priority (fighters first, then bombers, drones, AWACS, transp
 the patrol engages it. As soon as there is nothing left to engage, it goes back to its route and to
 return fire only.
 
+The target's aspect counts too: at the same distance, an aircraft flying at the patrol (hot) comes before one crossing it (flanking), which comes before one flying away (cold).
+An aircraft flying away more than 40 km from the patrol is not engaged at all: the patrol stays on its zone instead of chasing it.
+Facing several targets, each aircraft of the patrol is given its own, the most important first; facing one, they all go for it.
+
+To remove a patrol, place a `_destroy, radius <metres>` marker on it (see [Destroy units](#destroy)); everything inside the circle goes with it, on the ground as in the air.
+
 A patrol built from a group template whose first waypoint carries no instructions flies without the
 settings its template's author intended (radar, ECM, rules of engagement). That case is reported in the
 DCS log, naming the template at fault.
+
+### Spawn an AWACS {#awacs}
+
+```
+_spawn awacs, type E-3A, alt 30000, hdg 90, dist 30, freq 251, escort f15-fox3
+```
+
+The `-awacs` alias does the same: `-awacs escort f15-fox3`.
+
+The AWACS appears on the marker, airborne, and flies a race-track that starts at the marker and runs along `hdg`.
+It needs no template: it is built from its type.
+
+**Options:**
+
+- `type` — `E-3A`, `E-2C` (the E-2D), `A-50` or `KJ-2000`; an E-3A for blue and an A-50 for red by default
+- `alt` — altitude (feet, 30,000 by default); raised to 150 m above the ground when needed, as for a CAP
+- `hdg` — direction of the race-track (degrees, 0 by default)
+- `dist` — length of the race-track (nautical miles, 30 by default)
+- `speed` — speed (knots indicated); Mach 0.5 by default
+- `freq` — the AWACS radio frequency (MHz, AM, 251 by default)
+- `skynet false` — keep it out of its side's Skynet network; **it is added by default**
+- `eplrs false` (or `datalink false`) — turn its datalink off; **it is on by default**
+- `escort <template>` — spawn an escort too, as `-escort` would (see below); `escort` alone takes any fighter template of the side
+
+The escort of an AWACS is named `<AWACS name> escort`.
+An AWACS spawned during the mission has no Mission Editor record: `_move` and the assets menu can neither move it nor respawn it, nor its escort.
+
+> ⚠️ An AWACS added to Skynet covers its side's SAM sites and keeps them under network control.
+> The `INVESTIGATE-SKYNET-AWACS-BLIND` lot is looking into enrolled A-50s that saw no contact for a whole session.
+> If your mission's SAMs stay dark with an AWACS in the air, try `skynet false`.
+
+### Spawn an escort {#escort}
+
+```
+_spawn escort, name f15-fox3
+```
+
+The `-escort` alias does the same: `-escort f15-fox3`.
+
+Place the marker **next to an airplane**, friendly or neutral: the airplane nearest the marker, within 10 nautical miles, is the one escorted.
+An enemy airplane is never escorted, and a helicopter cannot be.
+`name` searches the side's `veafSpawn-` templates, as for `-cap`; without `name`, any template will do.
+
+The escort appears 3 km behind the airplane it escorts, at its altitude.
+It is given the DCS `Escort` task: it follows its charge and engages enemy aircraft up to 60 km from it.
+Its rules of engagement are set to "open fire" after the template's own settings, so that a template written to hold fire does not make an escort that defends nothing.
+
+**To escort your own airplane, the F10 menu is enough**: *F10 → VEAF → SPAWN → +Escort me (fox3)* or *(fox2)* (the `+` marks a protected command).
+It asks the same level as `-escort` (known pilot).
+A mission can change the entries offered by replacing `veafSpawn.EscortRadioMenuTemplates` (`{ "fox3", "fox2" }` by default).
 
 ### Spawn an AFAC/JTAC
 
@@ -276,12 +334,20 @@ than doing nothing.
 | `side` | blue | the coalition that hears it |
 | `radius` | 0 | scatter around the marker, in metres |
 
-### Destroy units
+### Destroy units {#destroy}
 
 ```
 _destroy, radius 500
-_destroy, name Tank-1
+_destroy, unitname Tank-1
 ```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `unitname` | — | destroys the unit, static or group with that name, and nothing else |
+| `name` | — | same as `unitname`; when both are written, `unitname` wins |
+| `radius` | 150 | with no name: destroys every unit and static within this radius of the marker, in metres |
+
+With neither `unitname` nor `name`, the command clears the circle: check the name before you validate the marker.
 
 ### Teleport a group
 

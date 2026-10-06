@@ -1,5 +1,7 @@
 # Zones de combat
 
+> **Voir en jeu** : étape 05 « Front de Gali, et le drone JTAC » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ## Ce que c'est {#what-it-is}
 
 Un objectif préparé dans l'éditeur DCS et **activable à la demande** depuis le menu radio F10. Au

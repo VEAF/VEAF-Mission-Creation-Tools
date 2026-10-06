@@ -40,7 +40,8 @@ def describe_map(mission_path: Path) -> dict[str, Any]:
 
     Returns:
         ``{theatre, bullseyes: {coalition: {x, y}}, zones: [...], groups: [...]}`` — zones and
-        groups reuse the `describe_mission` extraction as reference points.
+        groups reuse the `describe_mission` extraction as reference points; each group also carries
+        its ``x`` / ``y`` and its number of ``units``.
 
     Raises:
         ValueError: when the mission has no readable content.
@@ -53,7 +54,7 @@ def describe_map(mission_path: Path) -> dict[str, Any]:
         "theatre": mission.theatre_content,
         "bullseyes": _bullseyes(content),
         "zones": _list_zones(content),
-        "groups": _list_groups(content),
+        "groups": _list_groups(content, with_position=True),
     }
 
 

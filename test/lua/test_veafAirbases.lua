@@ -7,6 +7,7 @@
 ---   - veafAirbase:getRunwayInService   (wind-based runway selection via headwind component)
 ---   - getRunwayInService with multiple runways (best headwind wins)
 ---   - Edge cases: crosswind (tie) and calm (both directions equal)
+---   - veafAirbases.getAtcFrequencies / getMissionChannel (the airfield's tower and the mission's channel)
 
 local _base = debug.getinfo(1, "S").source:match("^@(.+)[\\/]") or "."
 luaunit = dofile(_base .. "/luaunit.lua")
@@ -18,6 +19,7 @@ dofile(src .. "/veafMath.lua")
 dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
+dofile(src .. "/veafAirfieldFrequencies.lua")
 dofile(src .. "/veafAirbases.lua")
 
 -- ---------------------------------------------------------------------------
@@ -358,6 +360,81 @@ function TestVeafAirbaseRunwayInServiceString:test_returns_nil_when_no_runways()
 end
 
 -- ============================================================================
+-- TestVeafAirbasesFrequencies — the tower DCS gives an airfield, and the mission's own channel
+-- (FEAT-AIRFIELD-FREQS-IN-ATIS). The scripts cannot ask DCS for them; the table is rendered at build time.
+-- ============================================================================
+TestVeafAirbasesFrequencies = {}
+
+function TestVeafAirbasesFrequencies:setUp()
+  dcs_mocks.reset()
+  env.mission.theatre = "Caucasus"
+  self._savedChannels = veafAirbases.MissionChannels
+end
+
+function TestVeafAirbasesFrequencies:tearDown()
+  veafAirbases.MissionChannels = self._savedChannels
+end
+
+--- An airbase of `category` whose DCS object answers `id` to getID().
+local function airbaseWithId(category, id)
+  return setmetatable({
+    Name = "TestAB",
+    Category = category,
+    DcsAirbase = {
+      getID = function()
+        return id
+      end,
+    },
+  }, veafAirbase)
+end
+
+function TestVeafAirbasesFrequencies:test_an_airdrome_gets_the_tower_of_the_rendered_table()
+  -- Batumi is airdrome 22 on Caucasus; the values are the committed table's, so this also proves it loads.
+  local freqs = veafAirbases.getAtcFrequencies(airbaseWithId(Airbase.Category.AIRDROME, 22))
+  luaunit.assertNotNil(freqs)
+  luaunit.assertEquals(freqs.uhf, 260.0)
+  luaunit.assertEquals(freqs.vhf, 131.0)
+  luaunit.assertEquals(freqs.fm, 40.4)
+  luaunit.assertEquals(freqs.tacan, "16X")
+end
+
+function TestVeafAirbasesFrequencies:test_the_theatre_decides_which_table_is_read()
+  env.mission.theatre = "PersianGulf"
+  local freqs = veafAirbases.getAtcFrequencies(airbaseWithId(Airbase.Category.AIRDROME, 22))
+  luaunit.assertEquals(freqs, veafAirfieldFrequencies.PersianGulf[22], "the table of the mission's own map")
+  luaunit.assertNotEquals(freqs, veafAirfieldFrequencies.Caucasus[22], "Batumi's tower must not answer on another map")
+end
+
+function TestVeafAirbasesFrequencies:test_a_ship_is_never_looked_up_even_when_its_id_collides()
+  -- A ship's or a FARP's id is a unit id, which can be any number: 22 would read as Batumi.
+  luaunit.assertNil(veafAirbases.getAtcFrequencies(airbaseWithId(Airbase.Category.SHIP, 22)))
+  luaunit.assertNil(veafAirbases.getAtcFrequencies(airbaseWithId(Airbase.Category.HELIPAD, 22)))
+end
+
+function TestVeafAirbasesFrequencies:test_an_unknown_field_or_theatre_has_no_tower()
+  luaunit.assertNil(veafAirbases.getAtcFrequencies(airbaseWithId(Airbase.Category.AIRDROME, 999999)))
+  env.mission.theatre = "NoSuchMap"
+  luaunit.assertNil(veafAirbases.getAtcFrequencies(airbaseWithId(Airbase.Category.AIRDROME, 22)))
+  luaunit.assertNil(veafAirbases.getAtcFrequencies(nil))
+end
+
+function TestVeafAirbasesFrequencies:test_the_mission_channel_comes_from_the_table_the_build_writes()
+  veafAirbases.MissionChannels = { [22] = { alias = "Base-Batumi", title = "Batumi / 16X", uhf = 270.3 } }
+  local channel = veafAirbases.getMissionChannel(airbaseWithId(Airbase.Category.AIRDROME, 22))
+  luaunit.assertNotNil(channel)
+  luaunit.assertEquals(channel.alias, "Base-Batumi")
+  luaunit.assertNil(veafAirbases.getMissionChannel(airbaseWithId(Airbase.Category.SHIP, 22)))
+  luaunit.assertNil(veafAirbases.getMissionChannel(airbaseWithId(Airbase.Category.AIRDROME, 23)))
+end
+
+function TestVeafAirbasesFrequencies:test_no_mission_channel_without_a_table()
+  -- A mission with no `bases` collection gets no table from the build.
+  veafAirbases.MissionChannels = nil
+  luaunit.assertNil(veafAirbases.getMissionChannel(airbaseWithId(Airbase.Category.AIRDROME, 22)))
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
+
 os.exit(luaunit.LuaUnit.run())

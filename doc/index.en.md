@@ -50,7 +50,12 @@ flowchart TD
 
 ### Players and Pilots
 
-You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command — for example `_spawn unit T-80` or `_cas`. See the [Pilot Guide](pilot/README.en.md) for all available commands.
+You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command — for example `_spawn unit, name T-80UD` or `_cas`. See the [Pilot Guide](pilot/README.en.md) for all available commands.
+
+### Demo mission
+
+The [v6 demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md) shows every feature in game, with a guided tour (**F10 → Other → Guided tour**), in French and in English.
+It is also the tools' acceptance check, run before every release — see [the mission maker guide](mission-maker/GUIDE.en.md#demo-mission).
 
 ### Mission Makers
 
@@ -66,7 +71,7 @@ You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, a
 
 Then, depending on your starting point:
 
-**You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
+**You already have a VEAF mission folder** (or created one with `mission prepare`):
 ```powershell
 .\veaf-tools.exe mission build
 ```

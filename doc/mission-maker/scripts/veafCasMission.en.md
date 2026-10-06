@@ -3,6 +3,8 @@
 
 **Module ID:** `CASMISSION` | **File:** `veafCasMission.lua`
 
+> **See it in game**: step 03 “Generated missions: CAS and transport” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose

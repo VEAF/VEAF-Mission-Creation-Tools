@@ -3,6 +3,8 @@
 
 **Module ID:** `COMBATZONE` | **File:** `veafCombatZone.lua`
 
+> **See it in game**: steps 04 “Khoni training range: three levels”, 07 “Chained mission: Ochamchire port”, 08 “Operation Tkvarcheli: tasks and dependencies” and 09 “Moving convoy” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
+
 ---
 
 ## Purpose
@@ -728,6 +730,14 @@ operation:initialize()
 ```
 
 `VeafCombatOperation = VeafCombatZone:new()` — the operation extends `VeafCombatZone`. Tasks are added with `:addTaskingOrder(zone, requiredComplete)`, where `zone` is a `VeafCombatZone` and `requiredComplete` is the optional list of zone names that must complete before this one is activated. The operation appears in the radio menu as a single entry.
+
+Its menu offers the information, each active task's briefing and, like a zone's, the **Activate zone** command (or **Deactivate zone** while it runs — the label is the zones' one).
+That command is secured, except in training mode, and absent when player activation is off (`disableUserActivation()`).
+Deactivating the operation deactivates its zones too, and so removes their units; reactivating it does not spawn a zone that is already running a second time.
+An operation can also start on its own (`active_at_start: true`) or from the `-zonestart` marker command.
+
+By default the operation sits directly under the combat zones menu.
+The **Operations** submenu only exists when `operation_menu_name` is set in `combat_zone_settings`.
 
 ---
 

@@ -6,7 +6,7 @@ target aircraft's radio hardware.
 
 <!-- BEGIN generated: source note -->
 > **Source**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  
-> Source ref: `d75d7ac540ab5683b07d6a7c0f59b48528e8ff1a`  
+> Source ref: `fdd11ed960d5402909a876558b7bec3b2653b268`  
 > Re-generate with `veaf-build update-dcs-data --radio` after a pin bump.
 <!-- END generated: source note -->
 
@@ -272,12 +272,14 @@ An aircraft with no `human_radio` block enforces no bound: the promotion happens
 |  |  |  | 108.000 | 117.975 | AM / FM |
 |  |  |  | 118.000 | 136.992 | AM / FM |
 |  |  |  | 137.000 | 155.975 | AM / FM |
+|  |  |  | 156.000 | 173.975 | AM / FM |
 |  |  |  | 225.000 | 399.975 | AM / FM |
 | **MB-339A/PAN** | `MB-339APAN` | AN/ARC-150(V)-2 | 225.000 | 399.975 | AM / FM |
 |  |  | SRT-651/N | 30.000 | 87.975 | AM / FM |
 |  |  |  | 108.000 | 117.975 | AM / FM |
 |  |  |  | 118.000 | 136.992 | AM / FM |
 |  |  |  | 137.000 | 155.975 | AM / FM |
+|  |  |  | 156.000 | 173.975 | AM / FM |
 |  |  |  | 225.000 | 399.975 | AM / FM |
 | **MiG-19P** | `MiG-19P` | RSIU-4V Radio | 100.000 | 150.000 | AM / FM |
 | **MiG-21Bis** | `MiG-21Bis` | R-832 | 118.000 | 140.000 | AM / FM |

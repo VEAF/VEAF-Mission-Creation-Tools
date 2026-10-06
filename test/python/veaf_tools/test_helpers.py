@@ -93,6 +93,45 @@ class TestShouldAutoPause(unittest.TestCase):
                 self.assertFalse(should_auto_pause())
 
 
+class TestPauseOnAClosedStdin(unittest.TestCase):
+    """`mission build … > /dev/null` from Git Bash exited 1 after succeeding (FIX-DEMO-MISSION-FINDINGS 04).
+
+    Windows answers `isatty()` true for `NUL`, so the launch passed for a double-click, and the final
+    `input()` raised `EOFError` with nobody to press a key — replacing the command's own exit code.
+    """
+
+    def test_the_pause_returns_quietly_when_nobody_can_answer(self) -> None:
+        from veaf_tools.helpers import pause_before_exit
+
+        with patch("builtins.input", side_effect=EOFError):
+            pause_before_exit("Press Enter")  # must not raise
+
+    def test_the_command_keeps_its_exit_code(self) -> None:
+        from veaf_tools import app as app_module
+
+        with (
+            patch.object(app_module, "app", side_effect=SystemExit(0)),
+            patch("veaf_tools.command_tree.build_cli_tree"),
+            patch("veaf_libs.tui.maybe_bridge_to_tui", return_value=None),
+            patch("veaf_tools.helpers.should_auto_pause", return_value=True),
+            patch("veaf_libs.logger.logger.stop_status"),
+            patch("builtins.input", side_effect=EOFError),
+            self.assertRaises(SystemExit) as raised,
+        ):
+            app_module.main()
+        self.assertEqual(raised.exception.code, 0)
+
+    def test_no_double_click_when_stdin_is_not_a_terminal(self) -> None:
+        with (
+            patch.object(sys.stdout, "isatty", return_value=True),
+            patch.object(sys.stdin, "isatty", return_value=False),
+            patch("sys.platform", "win32"),
+            patch("veaf_tools.helpers._build_process_tree_windows") as tree,
+        ):
+            self.assertFalse(_is_double_clicked())
+            tree.assert_not_called()
+
+
 class TestIsDoubleClicked(unittest.TestCase):
     def test_returns_false_when_not_a_tty(self) -> None:
         with patch.object(sys.stdout, "isatty", return_value=False):

@@ -247,6 +247,30 @@ function veafAircraftSpawn.getRole(groupName)
   return groupName and veafAircraftSpawn.groupRoles[groupName] or nil
 end
 
+--- Forget what a group's role left behind, once that group is gone.
+---
+--- Called by the CAP watchdog when it stops watching a group, and by `forgetGoneGroups` for the roles
+--- that have no watchdog. Without it, these tables keep one route per role group for the whole server
+--- session. A stale entry is otherwise harmless today: a spawned name is never released
+--- (`veafMissionDb.releaseSpawnedName` serves the AFAC alone), so no later group can inherit it
+--- (issue #1079). Releasing names would change that.
+--- @param groupName string
+function veafAircraftSpawn.forgetGroup(groupName)
+  veafAircraftSpawn.groupRoles[groupName] = nil
+  veafAircraftSpawn.groupOptions[groupName] = nil
+  veafAircraftSpawn.groupRoutes[groupName] = nil
+end
+
+--- Forget every group DCS no longer knows. Only `cap` and `zone_defense` have a watchdog to say when
+--- their group is gone; the other roles are swept here, on the next spawn with a role.
+function veafAircraftSpawn.forgetGoneGroups()
+  for groupName in pairs(veafAircraftSpawn.groupRoles) do
+    if not Group.getByName(groupName) then
+      veafAircraftSpawn.forgetGroup(groupName)
+    end
+  end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Routes
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -790,6 +814,210 @@ veafAircraftSpawn.roles.escort = {
   end,
 }
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Support aircraft: the AWACS and the fighters escorting an aircraft (FEAT-AWACS-ESCORT-COMMANDS)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The AWACS types `-awacs` spawns, and what each carries: fuel in kg, chaff and flares.
+---
+--- Every DCS type carrying the `AWACS` attribute, read from `dcsUnits.yaml` (2026-10-04); a test
+--- compares the two. Built from the type rather than from a `veafSpawn-` template: no reference mission
+--- holds an AWACS template, so a template-based `-awacs` would have failed everywhere. The fuel is
+--- here because nothing at runtime knows it, and an aircraft created with none falls out of the sky.
+veafAircraftSpawn.AWACS_TYPES = {
+  ["E-3A"] = { fuel = 65000, chaff = 120, flare = 60 },
+  ["E-2C"] = { fuel = 5624, chaff = 120, flare = 60 },
+  ["A-50"] = { fuel = 70000, chaff = 192, flare = 192 },
+  ["KJ-2000"] = { fuel = 70000, chaff = 0, flare = 0 },
+}
+
+--- The AWACS type spawned when none is asked, by coalition.
+veafAircraftSpawn.DEFAULT_AWACS_TYPE = {
+  [coalition.side.NEUTRAL] = "E-3A",
+  [coalition.side.RED] = "A-50",
+  [coalition.side.BLUE] = "E-3A",
+}
+
+--- The AWACS type a command asked for, written as the player wrote it (`e-3a`, `A-50`…).
+---
+--- @param typeName string|nil the type asked; nil or blank is the coalition's default
+--- @param side number the coalition it flies for
+--- @return string|nil the DCS type; nil when the type asked is not an AWACS
+function veafAircraftSpawn.awacsType(typeName, side)
+  if typeName == nil or veaf.isBlank(typeName) then
+    return veafAircraftSpawn.DEFAULT_AWACS_TYPE[side] or veafAircraftSpawn.DEFAULT_AWACS_TYPE[coalition.side.BLUE]
+  end
+  for dcsType, _ in pairs(veafAircraftSpawn.AWACS_TYPES) do
+    if dcsType:lower() == typeName:lower() then
+      return dcsType
+    end
+  end
+  return nil
+end
+
+--- The payload an AWACS of this type carries: its fuel and countermeasures, no weapons.
+function veafAircraftSpawn.awacsPayload(dcsType)
+  local base = veafAircraftSpawn.AWACS_TYPES[dcsType] or {}
+  return { fuel = base.fuel, chaff = base.chaff or 0, flare = base.flare or 0, gun = 100, pylons = {} }
+end
+
+--- Turn the datalink on (EPLRS). `veafDcsSpawner.addGroup` writes the group id in once it has one.
+local function eplrsTask()
+  return { id = "WrappedAction", params = { action = { id = "EPLRS", params = { value = true, groupId = 0 } } } }
+end
+
+--- `awacs`: the AWACS task, and a race-track flown for ever between the spawn point and a point
+--- `distance` along `heading` — the Mission Editor's own shape, an `Orbit` of pattern `Race-Track` on
+--- the first waypoint, flown between it and the next one. Datalink on unless `eplrs` is `false`.
+---
+--- `params`: `heading` (degrees), `distance` (leg, m), `altitude` (m), `speed` (m/s), `eplrs`.
+veafAircraftSpawn.roles.awacs = {
+  buildRoute = function(context)
+    local params = context.params
+    local headingRad = math.rad(params.heading or 0)
+    local tasks = { { id = "AWACS", params = {} } }
+    if params.eplrs ~= false then
+      table.insert(tasks, eplrsTask())
+    end
+    table.insert(tasks, { id = "Orbit", params = { pattern = "Race-Track", altitude = params.altitude, speed = params.speed } })
+    local function point(x, y, pointTasks)
+      return {
+        ["x"] = x,
+        ["y"] = y,
+        ["alt"] = params.altitude,
+        ["alt_type"] = "BARO",
+        ["type"] = "Turning Point",
+        ["action"] = "Turning Point",
+        ["speed"] = params.speed,
+        ["speed_locked"] = true,
+        ["task"] = comboTask(pointTasks),
+      }
+    end
+    local spot = context.spot
+    return {
+      point(spot.x, spot.z, tasks),
+      point(spot.x + params.distance * math.cos(headingRad), spot.z + params.distance * math.sin(headingRad), {}),
+    }, { task = "AWACS" }
+  end,
+  afterSpawn = function() end,
+}
+
+--- Where an escort flies relative to its charge, in metres: `x` ahead, `y` up, `z` to the right.
+--- Behind and to the right; a VEAF choice, not a DCS default.
+veafAircraftSpawn.ESCORT_POSITION = { x = -500, y = 0, z = 500 }
+
+--- How far from its charge an escort engages, in metres: the `engagementDistMax` read on the escort
+--- tasks of the demo mission, written by the Mission Editor (FIX-ESCORT-RESPAWN-DISTANCE).
+veafAircraftSpawn.ESCORT_ENGAGEMENT_DISTANCE = 60000
+
+--- What an escort engages.
+veafAircraftSpawn.ESCORT_TARGET_TYPES = { "Air" }
+
+--- `air_escort`: escort the airplane group `escorted` and defend it — the DCS `Escort` task, on the
+--- first waypoint, after the template's own options.
+---
+--- The rules of engagement are set to `OPEN_FIRE` after the template's options: an escort spawned from
+--- a template written to hold fire would follow its charge and defend nothing, and an escort that only
+--- flies alongside is exactly what this role exists not to be.
+---
+--- `params`: `escorted` (the group's name, mandatory).
+veafAircraftSpawn.roles.air_escort = {
+  buildRoute = function(context)
+    local escorted = Group.getByName(context.params.escorted or "")
+    if not escorted or not escorted:isExist() then
+      return refusal("spawn.helicopter_escort_no_group", tostring(context.params.escorted))
+    end
+    local task = veaf.deepCopy(context.firstWaypointTask) or emptyComboTask()
+    local tasks = task.params.tasks
+    table.insert(tasks, roeTask(AI.Option.Air.val.ROE.OPEN_FIRE))
+    table.insert(tasks, {
+      id = "Escort",
+      params = {
+        groupId = escorted:getID(),
+        pos = veaf.deepCopy(veafAircraftSpawn.ESCORT_POSITION),
+        lastWptIndexFlag = false,
+        engagementDistMax = veafAircraftSpawn.ESCORT_ENGAGEMENT_DISTANCE,
+        targetTypes = veaf.deepCopy(veafAircraftSpawn.ESCORT_TARGET_TYPES),
+      },
+    })
+    for index, each in ipairs(tasks) do
+      each.number = index
+      each.enabled = true
+      if each.auto == nil then
+        each.auto = false
+      end
+    end
+    return {
+      {
+        ["x"] = context.spot.x,
+        ["y"] = context.spot.z,
+        ["alt"] = context.spot.y,
+        ["alt_type"] = "BARO",
+        ["type"] = "Turning Point",
+        ["action"] = "Turning Point",
+        ["speed"] = context.templateSpeed or veaf.convertMachSpeed(veafAircraftSpawn.DEFAULT_PATROL_MACH, context.spot.y).TAS_ms,
+        ["task"] = task,
+      },
+    }, {}
+  end,
+  afterSpawn = function() end,
+}
+
+--- Spawn an airplane group built from its type rather than cloned from a template, with a role.
+---
+--- @param groupData table `{ country, name, units, hidden, hiddenOnMFD, frequency, modulation }`, each
+---   unit carrying its position (`x`, `y` the easting, `alt` sea level), type, name, heading and payload
+--- @param roleName string a name from `veafAircraftSpawn.roles`
+--- @param params table the role's parameters
+--- @return string|nil the group's name; nil when the role refused or DCS did not take the group
+--- @return table|nil the role's state when it refused: `refusal`, `refusalArgs`
+function veafAircraftSpawn.spawnAirplaneGroup(groupData, roleName, params)
+  local logger = veaf.loggers.get(veafAircraftSpawn.Id)
+  local role = veafAircraftSpawn.roles[roleName]
+  if not role or role.helicopter then
+    logger:error("unknown airplane role [%s] for %s", veaf.p(roleName), veaf.p(groupData.name))
+    return nil
+  end
+  local leader = groupData.units and groupData.units[1]
+  if not leader then
+    logger:error("no unit to spawn in %s", veaf.p(groupData.name))
+    return nil
+  end
+  local spot = { x = leader.x, y = leader.alt, z = leader.y }
+  local route, state = role.buildRoute({ spot = spot, params = params or {} })
+  state = state or {}
+  if not route then
+    return nil, state
+  end
+
+  local group = veaf.deepCopy(groupData)
+  group.category = "AIRPLANE"
+  group.task = state.task
+  group.route = { points = route }
+  for _, unit in pairs(group.units) do
+    unit.alt_type = "BARO"
+    unit.speed = route[1].speed
+  end
+
+  local spawned = veaf.addGroup(group)
+  if not spawned then
+    logger:error("cannot spawn airplane group %s", veaf.p(group.name))
+    return nil
+  end
+  local groupName = spawned.name
+  local dcsGroup = Group.getByName(groupName)
+  if not dcsGroup then
+    logger:warn(string.format("group [%s] was spawned but DCS does not know it; its role cannot be set up", veaf.p(groupName)))
+    return nil
+  end
+  veafAircraftSpawn.forgetGoneGroups()
+  veafAircraftSpawn.groupRoles[groupName] = roleName
+  veafAircraftSpawn.groupRoutes[groupName] = route
+  role.afterSpawn(dcsGroup, groupName, dcsGroup:getCoalition(), state)
+  logger:debug("spawned airplane group %s as %s", veaf.p(groupName), veaf.p(roleName))
+  return groupName
+end
+
 --- Is any unit of this group armed — does its payload carry pylons?
 local function isArmed(units)
   for _, unit in pairs(units or {}) do
@@ -862,6 +1090,7 @@ function veafAircraftSpawn.spawnHelicopterGroup(groupData, job, silent)
     return nil
   end
   local groupName = spawned.name
+  veafAircraftSpawn.forgetGoneGroups()
   veafAircraftSpawn.groupRoles[groupName] = roleName
   local dcsGroup = Group.getByName(groupName)
   if role.afterSpawn then
@@ -1011,6 +1240,12 @@ function VeafAircraftSpawn:spawn()
       takeoffPoint = takeoffPoint,
     }
     route, state = role.buildRoute(context)
+    if not route then
+      -- a refusal (`air_escort` with nothing to escort): the template's own route would spawn a group
+      -- with none of the job it was asked for
+      logger:info("%s refused the role %s: %s", veaf.p(self.templateName), veaf.p(self.roleName), veaf.p(state and state.refusal))
+      return nil, state
+    end
   end
   -- a flight the role leaves on its take-off point starts where the editor put it, at ground level
   local airborneRole = role and not (state and state.keepsTakeoff)
@@ -1065,6 +1300,7 @@ function VeafAircraftSpawn:spawn()
     logger:warn(string.format("group [%s] was spawned but DCS does not know it; its role cannot be set up", veaf.p(groupName)))
     return nil
   end
+  veafAircraftSpawn.forgetGoneGroups()
   veafAircraftSpawn.groupRoles[groupName] = self.roleName
   veafAircraftSpawn.groupOptions[groupName] = firstWaypointTask
   veafAircraftSpawn.groupRoutes[groupName] = route

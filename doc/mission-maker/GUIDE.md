@@ -158,15 +158,27 @@ Ou inspecter/modifier les valeurs de manière interactive :
 
 ## Créer une nouvelle mission
 
-### Recommandé : forker la mission de démonstration
+### Recommandé : `mission prepare`
 
-La façon la plus rapide de démarrer est de forker [VEAF-Demo-Mission](https://github.com/VEAF/VEAF-Demo-Mission), qui dispose déjà de la structure de dossiers correcte, de configurations d'exemple et de scripts de build.
+Pour une mission neuve, laissez les outils créer le dossier : `prepare` pose la structure, un `mission.yaml` documenté avec le jeu de modules choisi et, si vous donnez la carte, une mission vierge pour ce théâtre — sans passer par DCS.
 
 ```powershell
-git clone https://github.com/VEAF/VEAF-Demo-Mission.git my-mission
-cd my-mission
-.\veaf-tools-updater.exe
+.\veaf-tools.exe mission prepare c:\ma-mission --template standard --theatre Caucasus
 ```
+
+Sans option, l'[assistant](#mode-interactif-assistant) demande le dossier et le jeu de modules.
+Les options sont détaillées dans les [outils de conception](#outils-de-conception).
+
+### La mission de démo {#demo-mission}
+
+La [mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) (Caucase) montre **chaque fonctionnalité en jeu**.
+Une visite guidée (**F10 > Autre > Visite guidée**) mène d'une étape à l'autre, dit quoi faire et quoi observer, et pose un repère sur votre carte.
+Elle existe en version française et en version anglaise.
+
+C'est aussi la recette des outils : elle reçoit une étape à chaque nouvelle fonctionnalité, et sa liste de contrôle (`docs/recette.md`) est rejouée avant chaque release.
+
+Son dossier est un bon exemple de `mission.yaml` complet à lire.
+Pour démarrer votre propre mission, partez plutôt de `mission prepare` que d'une copie de la démo : vous auriez à retirer tout ce qu'elle montre.
 
 ### Depuis zéro
 
@@ -718,6 +730,8 @@ local defenseZone = AirWaveZone:new()
 
 ## Intégration CTLD et CSAR {#ctld-and-csar-integration}
 
+> **Voir en jeu** : étape 15 « Hélicoptères : FARP, CTLD, CSAR » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 [CTLD](https://github.com/VEAF/CTLD) (transport de troupes et logistique) et [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) sont des scripts tiers que VEAF supporte nativement : vous n'avez ni à les charger ni à les initialiser vous-même. Ils ne se configurent pas de la même façon — **CSAR se règle dans `mission.yaml`, CTLD dans son propre fichier.**
 
 ### Configurer CTLD : `ctld-config.yaml` + ctld-tools
@@ -1150,5 +1164,5 @@ Si le journal montre une erreur que vous ne vous expliquez pas, [Obtenir de l'ai
 - [Référence des scripts](scripts/README.md) — tous les scripts avec les détails de configuration
 - [Référence CLI](../CLI_REFERENCE.md) — les 25 commandes de `veaf-tools`, arguments et options
 - [Référence API Lua](../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
-- [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — mission d'exemple fonctionnelle
+- [Mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) — chaque fonctionnalité en jeu, avec une visite guidée ([voir plus haut](#demo-mission))
 - [Discord VEAF](https://www.veaf.org/discord) — aide communautaire

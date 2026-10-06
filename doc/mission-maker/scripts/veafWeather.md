@@ -2,6 +2,8 @@
 
 **Module ID:** `WEATHER` | **Fichier:** `veafWeather.lua`
 
+> **Voir en jeu** : étape 17 « Météo, ATC et assistance cockpit » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
+
 ---
 
 ## Objectif
@@ -83,7 +85,7 @@ Le sous-menu **WEATHER AND ATC** du menu radio F10 permet aux joueurs d'obtenir 
 | Entrée | Accessible à | Ce qu'elle affiche |
 |--------|--------------|--------------------|
 | Weather on closest point | Par groupe | Vent, visibilité, QNH, température au point nommé le plus proche — unités et format adaptés à l'appareil du joueur |
-| ATC on closest airbase | Par groupe | Piste en service, QFE/QNH, informations de circuit sur la base la plus proche |
+| ATC on closest airbase | Par groupe | Piste en service, QFE/QNH, informations de circuit et [fréquences de la tour](#tower-frequencies) sur la base la plus proche |
 | ATC and weather in one go | Par groupe | Les deux rapports d'un coup |
 | Fog settings → … | Tous (sécurisé) | Modifier les conditions de brouillard (voir plus bas) |
 
@@ -179,6 +181,7 @@ proche, la **piste en service** déduite du vent, et la météo du moment.
 ```
 Bienvenue à Kobuleti — piste en service 13
 WIND 270/10 QNH 1013 ...
+Tour 262.000 UHF / 133.000 VHF / 40.800 FM — TACAN 67X
 ```
 
 Le message va **à son groupe seulement**, pas à la coalition : il parle de *son* terrain, et diffusé à
@@ -196,6 +199,8 @@ Quelques choix à connaître :
 - Le rapport **complet** (ATIS) reste disponible dans le menu radio. L'accueil est volontairement plus
   court : un message qui remplit l'écran à chaque changement de slot cesse d'être lu.
 
+- Il finit par les [fréquences de la tour](#tower-frequencies), comme l'ATIS.
+
 Pour le désactiver — par exemple si votre mission fait son propre briefing :
 
 ```yaml
@@ -204,6 +209,33 @@ modules:
     enabled: true
     welcomeBrief: false
 ```
+
+---
+
+## Fréquences de la tour {#tower-frequencies}
+
+L'accueil à la prise de slot et l'ATIS du menu radio se terminent par la ligne qui dit comment appeler la tour du terrain : ses fréquences UHF, VHF et FM, puis son TACAN.
+Ce sont celles que DCS donne au terrain, celles que montre sa fiche dans la vue F10.
+
+```
+Tour 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X
+```
+
+Les scripts de mission n'ont aucun moyen de demander ces fréquences à DCS : elles viennent d'une table livrée avec les scripts (`veafAirfieldFrequencies.lua`), relevée dans DCS et régénérée par `veaf-build update-dcs-data --airfield-freqs`.
+Un porte-avions, une FARP ou un terrain absent de la table n'ont pas de ligne du tout, plutôt qu'une ligne vide ou inventée.
+
+Si le plan radio de la mission donne au terrain **son propre canal** — une entrée de la collection `bases` de `src/presets.yaml` —, et que ce canal diffère de la tour DCS, une seconde ligne le donne, sous le titre que le pilote lit dans ses presets :
+
+```
+Tour 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X
+Canal de la mission Batumi / 16X : 270.300 UHF / 130.300 VHF
+```
+
+Le canal est rattaché au terrain comme le fait `veaf-tools content airfield-channels` : par le nom DCS, ou par son premier mot quand aucun autre terrain de la carte ne le partage.
+Quand il reprend les fréquences de la tour, il n'ajoute rien et la seconde ligne n'apparaît pas.
+
+Une mission qui **rend l'ATC silencieux** (`mission.silence_atc_on_all_airbases`) laisse une tour qui ne répond à personne : quand le terrain a un canal de mission, ce canal est alors la seule ligne donnée.
+Quand il n'en a pas — le cas courant —, la fréquence DCS est quand même donnée, puisque c'est la seule qui existe.
 
 ---
 

@@ -119,6 +119,16 @@ class TestCollectDeclaredGroups:
             ("AIRWAVES", "su30-b"),
         ]
 
+    def test_friendly_and_support_groups_are_checked_too(self) -> None:
+        """FEAT-AIRWAVES-QRA-MERGE #182 and #176: the wave spawns them like its own groups."""
+        wave = {"groups": "bandits", "friendly_groups": ["tanker", "-awacs"], "support_groups": "ewr"}
+        my = {"modules": {"AIRWAVES": {"airwave_zones": [{"waves": [wave]}]}}}
+        assert collect_declared_groups(my) == [
+            ("AIRWAVES", "bandits"),
+            ("AIRWAVES", "tanker"),
+            ("AIRWAVES", "ewr"),
+        ]
+
     def test_is_veaf_command(self) -> None:
         assert is_veaf_command("[0,0]-spawn shilka") and is_veaf_command("-sa6")
         assert not is_veaf_command("Vol QRA MiG-29") and not is_veaf_command("")

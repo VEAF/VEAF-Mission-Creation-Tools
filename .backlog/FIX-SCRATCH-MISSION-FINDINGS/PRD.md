@@ -1,6 +1,6 @@
 # FIX-SCRATCH-MISSION-FINDINGS — what building one mission from scratch with 6.24.0 found
 
-Status: 🧑 waiting-human — reopened on 2026-09-24 (#999). Tickets 01–14 merged: #992 (01–05, 09), #993 (06, 08), #994 (07), #995 (10), #996 (11–13), #998 (14). Tickets 15–22 (second GermanyCW-v6 rebuild, 2026-09-24) merged in #1000; 17 checked in DCS on 2026-10-03 (the fixed template engages). Status 🧑: the rebuild with the fixed tools is still owed — see the Definition of Done — David plays the Germany map with the fixed tools on the evening of 2026-09-24.
+Status: ✅ done — reopened on 2026-09-24 (#999). Tickets 01–14 merged: #992 (01–05, 09), #993 (06, 08), #994 (07), #995 (10), #996 (11–13), #998 (14). Tickets 15–22 (second GermanyCW-v6 rebuild, 2026-09-24) merged in #1000; 17 checked in DCS on 2026-10-03 (the fixed template engages). ✅ done 2026-10-04: the rebuild with the fixed tools was done on 2026-09-25 in the GermanyCW-v6 repository — its `docs/journal-v6.md` records the five workarounds removed and the rebuild validated (weather differing per variant, dawn at 05:23, presets on 62 of 102 templates).
 
 ## Origin
 

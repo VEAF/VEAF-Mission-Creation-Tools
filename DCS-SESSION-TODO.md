@@ -54,6 +54,85 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R43. QRA and air waves on their shared base — **a pilot for items 4 and 5 only**
+
+[`FEAT-AIRWAVES-QRA-MERGE`](.backlog/FEAT-AIRWAVES-QRA-MERGE/PRD.md) and #1078.
+The 54 Lua suites prove what the two modules hand to DCS through `veafReactiveZone`; they cannot say how a zone on a moving carrier, a group spawned thirty seconds late, or a human flying into a closed zone actually behave.
+
+**Run** on a mission built from the branch (security off, `security.disabled: true`), log level of `QRA`, `AIRWAVES` and `REACTIVEZONE` at `debug`:
+
+1. An existing QRA block, untouched (the Syria Open Training's, with its `airport_link`), and a blue fighter flown into its zone with `fiddle.sh`.
+   - **Verified**: the QRA scrambles where it did on 6.27.0, and re-arms after the fighter leaves.
+   - **Re-opened**: no scramble, or a scramble somewhere else — compare `unitsInZone=` in the trace with the 6.27.0 log of the same mission.
+2. A QRA with `follow_unit:` the carrier, and the carrier sailing; a blue fighter put 5 NM from where the carrier **now** is, then 5 NM from where it **started**.
+   - **Verified**: the first scrambles, the second does not.
+   - **Re-opened**: the zone stayed where the carrier started — `getFollowedUnit` found nothing; check the unit name, or the `linkUnit` id of the trigger zone against `veafMissionDb.unitsById`.
+3. An air-wave zone whose wave is a command with `, delayed 30` appended (the keyword `veafSpawnParser.lua` reads; syntax to confirm on the first try), red players.
+   - **Verified**: the wave appears 30 s later **for blue**, the zone stays `ACTIVE` meanwhile, and destroying the group moves it to the next wave.
+   - **Re-opened, the side**: the wave is red — the command named a side of its own, or `getCoalition()` did not answer blue.
+   - **Re-opened, the wait**: the zone goes `NEXTWAVE` before the group appears — `hasPendingSpawns` saw nothing; the command returned false.
+4. An air-wave zone with `friendly_groups: ["<a tanker>"]` on its first wave; shoot the tanker down with `fiddle.sh` (`Group.getByName(…):destroy()` is not a death — use an explosion).
+   - **Verified**: *perdu (plus d'alliés à défendre)*, and the zone resets.
+5. An air-wave zone with `closed_once_active: true`: a pilot enters, the wave starts, a second slot flies in.
+   - **Verified**: the second pilot reads *la zone est fermée*, then flak after 30 s, then is destroyed after 60 s; the first pilot is left alone.
+   - **Re-opened**: the first pilot is treated as an intruder — not airborne at activation, so not in the roster; note it, the roster is taken at activation.
+
+### R42. A CAP splits over two targets, and lets a leaving one go — **no pilot needed**
+
+[`FEAT-CAP-WATCHDOG`](.backlog/FEAT-CAP-WATCHDOG/PRD.md) tickets 02 and 03.
+The mocks prove what the watchdog hands to DCS; they cannot say whether DCS lets an aircraft's own `EngageUnit` (on the **unit** controller) win over its group's tasks — the whole of ticket 02 rests on that.
+
+**Run** on any mission built from the branch, with the log level of `veafSpawn` at `debug` (security off, `security.disabled: true`):
+
+1. A blue two-ship CAP — `_spawn cap, name fox3, side blue, hdg 90` — then two red fighters 30 NM east of it, a few miles apart, flying west at it (two `_spawn cap, name fox3, side red, hdg 270`).
+   - **Verified**: `dcs.log` shows `CAP aircraft … goes for target …` with a different target for each blue aircraft, and each one shoots at its own (F10 view, or the shot events).
+   - **Re-opened, unit tasks ignored**: both blue aircraft fire on the same red one — DCS keeps the group's task; drop the spread (`applyCapSpread`) and close ticket 02 with this measurement.
+   - **Re-opened, unit tasks break the group**: an aircraft given its own target leaves the fight or the patrol and does not come back after `follows its group again` — note what `resetTask` did to it.
+2. Once a red fighter has turned away and is more than 40 km from the blue CAP.
+   - **Verified**: `targetName=… is leaving, not chasing it`, the blue CAP flies back to its zone.
+   - **Re-opened, chases anyway**: the CAP keeps after it — read `targetAspect=` in the trace; the velocity may not answer, which ranks it flanking.
+   - **To tune**: a CAP that gives up too early or too late — the cut-off (`veafSpawn.CAP_COLD_CUTOFF`) and the boundaries are estimates, change them through `fiddle.sh` on the live mission before changing the code.
+
+### R41. `-awacs` and `-escort` — does the escort defend? — **no pilot needed for the AWACS half**
+
+[`FEAT-AWACS-ESCORT-COMMANDS`](.backlog/FEAT-AWACS-ESCORT-COMMANDS/tickets/04-in-game-check.md) ticket 04.
+The mocks prove what is handed to DCS; three things only DCS can answer: whether an AWACS built from its type (no template, no callsign set) flies its race-track and answers on its frequency, whether the datalink and Skynet take it, and above all **whether an escort shoots** or only flies alongside — the defect David asked this lot not to ship.
+
+**Run** on any mission built from the branch, with a blue slot (security off, `security.disabled: true`):
+
+1. `-awacs hdg 90, escort fox3` on open ground.
+   - **Verified**: an E-3A on an east-west race-track at FL300, `AWACS E-3A escort` 3 km behind it then in formation; the AWACS answers on 251 AM from the radio menu; `veafSkynet` logs it added to the blue network.
+   - **Re-opened, the AWACS**: it flies straight on, or lands — the `Orbit` task is not taken; read its route with `veafAircraftSpawn.groupRoutes["AWACS E-3A"]`.
+   - **Re-opened, the radio**: no answer on 251 — the group's `frequency` is not what DCS reads for an AWACS; a callsign may be needed too.
+2. A red CAP flying at the AWACS: `_spawn cap, name fox3, side red, hdg 270` 40 NM east of it.
+   - **Verified**: the escort leaves the AWACS to engage the red CAP, and comes back to it afterwards.
+   - **Re-opened, decorative**: the escort stays in formation while the CAP shoots — `Escort` with `OPEN_FIRE` is not enough; try `WEAPON_FREE` through `fiddle.sh` on the live escort before changing the code.
+3. A `-escort fox3` marker next to a blue AI airplane, and *F10 → VEAF → SPAWN → +Escort me (fox3)* from the slot once airborne.
+   - **Verified**: each escort spawns behind its charge and follows it.
+   - **Re-opened**: *Escort me* answers nothing — read `dcs.log` for the refusal (level, or no group).
+4. A `-escort fox3` marker next to a **neutral** AI airplane (a country of the neutral coalition).
+   - **Verified**: the blue escort follows the neutral airplane.
+   - **Re-opened**: it spawns, then flies its waypoint and goes home — DCS does not take an `Escort` task on a group of another coalition; the doc must then say friendly only, and `findEscortableAircraft` drop the neutral side.
+
+### R40. The welcome brief and the ATIS give the tower's frequencies — **no pilot needed**
+
+[`FEAT-AIRFIELD-FREQS-IN-ATIS`](.backlog/FEAT-AIRFIELD-FREQS-IN-ATIS/PRD.md), tickets 02 and 03.
+The lines are built from a table rendered at build time and from `veafAirbases.MissionChannels` in `veaf-config.lua`; the mocks prove the text, not that `Airbase:getID()` in DCS is the airdrome id the table is keyed by.
+
+**Run** on a copy of Open Training Caucasus v6 built from the branch **before** its base channels are corrected (its `Base-Batumi` is on 270.3 where DCS's tower is 260.0), through `fiddle.sh`:
+`return veafWeatherAtis.getAtisString(veafAirbases.getAirbaseByName("Batumi"))`, then the same for a field whose `bases` channel matches DCS, and for the carrier if the mission has one.
+Then take a slot on Batumi, or call `veafWeather.buildWelcomeBrief(Unit.getByName("<a parked unit>"))`.
+
+- **Verified**: Batumi's ATIS ends with `Tour 260.000 UHF / 131.000 VHF / 40.400 FM — TACAN 16X` — what Batumi's card shows in the F10 view — followed by `Canal de la mission …: 270.300 UHF …`; the matching field has one line; the carrier has none.
+- **Re-opened, the key**: no `Tour` line on Batumi at all, or another field's frequencies — `getID()` does not answer the airdrome id in DCS; log `veafAirbases.getAirbaseByName("Batumi").DcsAirbase:getID()`.
+- **Re-opened, the match**: the tower line right but no mission-channel line — read `veafAirbases.MissionChannels` in the live mission to tell a build that wrote nothing from a lookup that missed it.
+
+**Then the silenced tower**: run `veaf.silenceAtcOnAllAirbases()` in the live mission and ask both ATIS again.
+The ATIS records once an hour per field, so clear it first: `veafWeatherAtis.ListInEffect = {}`.
+
+- **Verified**: Batumi now gives the mission channel alone (`Canal de la mission …`, no `Tour` line); a field with no `bases` channel still gives its `Tour` line.
+- **Re-opened**: Batumi still shows `Tour 260.000 …` — `getRadioSilentMode()` does not answer `true` after `setRadioSilentMode(true)`; log it on the airbase.
+
 ### R35. Combat-zone ground units start warm — the thermal look
 
 [`FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP`](.backlog/FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/tickets/02-zone-defences-start-warm.md)

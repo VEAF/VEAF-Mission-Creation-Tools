@@ -1045,6 +1045,279 @@ function veafSpawn.spawnCombatAirPatrol(
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- AWACS and escorts (FEAT-AWACS-ESCORT-COMMANDS, #188 and #189)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Altitude an AWACS flies at when the command gives none, in feet.
+veafSpawn.AWACS_DEFAULT_ALTITUDE = 30000
+
+--- Mach number an AWACS flies at when the command gives no speed. Between an E-2's cruise and an
+--- E-3's; an estimate, not a reading.
+veafSpawn.AWACS_DEFAULT_MACH = 0.5
+
+--- Length of the AWACS race-track when the command gives none, in nautical miles.
+veafSpawn.AWACS_DEFAULT_LEG = 30
+
+--- Radio frequency of a spawned AWACS when the command gives none, in MHz, AM.
+veafSpawn.AWACS_DEFAULT_FREQUENCY = 251
+
+--- How far from the marker `-escort` looks for the airplane to escort, in metres (10 NM).
+veafSpawn.ESCORT_SEARCH_RADIUS = 10 * 1852
+
+--- How far behind its charge an escort appears, in metres.
+veafSpawn.ESCORT_SPAWN_BEHIND = 3000
+
+--- Appended to the escorted group's name to name its escort: the convention `veafMove` reads on editor
+--- groups. A group spawned at runtime has no editor record, so `_move` cannot use it on these.
+veafSpawn.EscortGroupNameSuffix = " escort"
+
+--- The templates the F10 menu offers to escort a pilot, one entry each: a search on the `veafSpawn-`
+--- templates of their side, as `-escort` takes it. A mission may replace the list.
+veafSpawn.EscortRadioMenuTemplates = { "fox3", "fox2" }
+
+--- Spawn an AWACS on its race-track, from its type.
+---
+--- @param spawnSpot table runtime vec3, where the race-track starts
+--- @param options table the marker options: `country`, `type`, `altitude` (ft, 0 = default), `speed`
+---   (kt IAS), `heading`, `distance` (NM), `freq` (MHz), `eplrs`, `escortTemplate`, `skill`, `silent`,
+---   `showMFD`
+--- @return string|nil the AWACS group's name
+function veafSpawn.spawnAwacs(spawnSpot, options)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.spawnAwacs(type=%s)", veaf.p(options.type))
+  local side = veaf.getCoalitionForCountry(options.country, true)
+  if not side then
+    veaf.loggers.get(veafSpawn.Id):error("No country/coalition for AWACS !")
+    return nil
+  end
+  local function tell(message)
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    if not options.silent then
+      trigger.action.outText(message, 15)
+    end
+  end
+
+  local dcsType = veafAircraftSpawn.awacsType(options.type, side)
+  if not dcsType then
+    local known = {}
+    for name, _ in pairs(veafAircraftSpawn.AWACS_TYPES) do
+      table.insert(known, name)
+    end
+    table.sort(known)
+    tell(veaf.t("spawn.awacs_unknown_type", tostring(options.type), table.concat(known, ", ")))
+    return nil
+  end
+
+  local altitude = veafAircraftSpawn.flooredAltitude(
+    spawnSpot,
+    ((options.altitude and options.altitude > 0) and options.altitude or veafSpawn.AWACS_DEFAULT_ALTITUDE) * 0.3048
+  )
+  local speed = options.speed and veaf.convertIndicatedAirSpeed(options.speed, altitude).TAS_ms
+    or veaf.convertMachSpeed(veafSpawn.AWACS_DEFAULT_MACH, altitude).TAS_ms
+  local frequency = tonumber(options.freq) or veafSpawn.AWACS_DEFAULT_FREQUENCY
+  local groupName = "AWACS " .. dcsType
+  if veaf.isNameTaken(groupName) then
+    groupName = veafDcsSpawner.freeNameFrom(groupName)
+  end
+
+  local groupData = {
+    country = options.country,
+    name = groupName,
+    hidden = false,
+    hiddenOnMFD = not options.showMFD,
+    communication = true,
+    frequency = frequency,
+    modulation = 0, -- AM
+    units = {
+      {
+        type = dcsType,
+        name = groupName .. " 1",
+        x = spawnSpot.x,
+        y = spawnSpot.z,
+        alt = altitude,
+        heading = math.rad(options.heading or 0),
+        skill = options.skill or "Excellent",
+        payload = veafAircraftSpawn.awacsPayload(dcsType),
+      },
+    },
+  }
+  local spawnedName = veafAircraftSpawn.spawnAirplaneGroup(groupData, "awacs", {
+    heading = options.heading or 0,
+    distance = (options.distance or veafSpawn.AWACS_DEFAULT_LEG) * 1852,
+    altitude = altitude,
+    speed = speed,
+    eplrs = options.eplrs,
+  })
+  if not spawnedName then
+    return nil
+  end
+  if not options.silent then
+    trigger.action.outText(veaf.t("spawn.awacs_spawned", dcsType, string.format("%.3f", frequency)), 15)
+  end
+
+  if options.escortTemplate then
+    veafSpawn.spawnEscort(options.escortTemplate, spawnedName, options.country, options.silent, not options.showMFD)
+  end
+  return spawnedName
+end
+
+--- Where an escort appears: `ESCORT_SPAWN_BEHIND` behind its charge's leader, at its altitude.
+---
+--- @param leader table the escorted group's first unit
+--- @return table runtime vec3
+function veafSpawn.escortSpawnSpot(leader)
+  local position = leader:getPosition()
+  local forwardX, forwardZ = position.x.x, position.x.z
+  local length = math.sqrt(forwardX * forwardX + forwardZ * forwardZ)
+  if length < 0.001 then
+    forwardX, forwardZ, length = 1, 0, 1
+  end
+  local behind = veafSpawn.ESCORT_SPAWN_BEHIND / length
+  return { x = position.p.x - forwardX * behind, y = position.p.y, z = position.p.z - forwardZ * behind }
+end
+
+--- Spawn fighters from a `veafSpawn-` template to escort an airplane group, and defend it.
+---
+--- @param name string the template search, as `-cap` takes it (`f15-fox3`, `fox3`); blank is any
+--- @param escortedGroupName string the group to escort
+--- @param country string the country the escort flies for
+--- @param silent boolean|nil true: nothing is shown to the players
+--- @param hiddenOnMFD boolean|nil
+--- @return string|nil the escort group's name
+function veafSpawn.spawnEscort(name, escortedGroupName, country, silent, hiddenOnMFD)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.spawnEscort(name=%s, escorted=%s)", veaf.p(name), veaf.p(escortedGroupName))
+  local side = veaf.getCoalitionForCountry(country, true)
+  if not side then
+    -- without a side, the template search draws from every side and the escort keeps its template's
+    -- country: an enemy of the group it is told to escort
+    veaf.loggers.get(veafSpawn.Id):error("spawnEscort: no coalition for country %s", veaf.p(country))
+    return nil
+  end
+  local escorted = Group.getByName(escortedGroupName or "")
+  local leader = escorted and escorted:isExist() and escorted:getUnits()[1]
+  if not leader then
+    local message = veaf.t("spawn.helicopter_escort_no_group", tostring(escortedGroupName))
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    if not silent then
+      trigger.action.outText(message, 15)
+    end
+    return nil
+  end
+
+  local templateName, templateData = veafSpawn.findSpawnableAircraftGroupname(name, side)
+  if not templateName or not templateData then
+    return nil
+  end
+
+  local groupName = escortedGroupName .. veafSpawn.EscortGroupNameSuffix
+  if veaf.isNameTaken(groupName) then
+    groupName = veafDcsSpawner.freeNameFrom(groupName)
+  end
+  local spawn = VeafAircraftSpawn:new()
+    :fromGroup(templateName)
+    :named(groupName)
+    :at(veafSpawn.escortSpawnSpot(leader))
+    :shownOnMap(hiddenOnMFD)
+    :withRole("air_escort", { escorted = escortedGroupName })
+  if country and #country > 0 then
+    spawn:inCountry(veaf.getCountryId(country))
+  end
+  local spawnedName = spawn:spawn()
+  if not spawnedName then
+    return nil
+  end
+  if not silent then
+    -- the template drawn, not the search: `-escort` alone searches for nothing
+    trigger.action.outText(
+      veaf.t("spawn.escort_spawned", templateName:sub(veafSpawn.AirUnitTemplatesPrefix:len() + 1), escortedGroupName),
+      15
+    )
+  end
+  return spawnedName
+end
+
+--- The airplane group nearest a point, within `ESCORT_SEARCH_RADIUS`, of this side or neutral: what a
+--- `-escort` marker placed next to an aircraft means to escort.
+---
+--- @param point table runtime vec3
+--- @param side number the coalition asking
+--- @return string|nil the group's name
+function veafSpawn.findEscortableAircraft(point, side)
+  local found, nearest = nil, veafSpawn.ESCORT_SEARCH_RADIUS
+  local sides = { side }
+  if side ~= coalition.side.NEUTRAL then
+    table.insert(sides, coalition.side.NEUTRAL)
+  end
+  for _, eachSide in ipairs(sides) do
+    for _, group in pairs(coalition.getGroups(eachSide, Group.Category.AIRPLANE) or {}) do
+      if group:isExist() then
+        for _, unit in pairs(group:getUnits() or {}) do
+          -- `isActive` too: a late-activated group answers `isExist()` true before it appears
+          -- (docs/agents/dcs-runtime-traps.md), and an escort would orbit an aircraft nobody sees
+          if unit:isExist() and unit:isActive() then
+            local unitPoint = unit:getPoint()
+            local dx, dz = unitPoint.x - point.x, unitPoint.z - point.z
+            local distance = math.sqrt(dx * dx + dz * dz)
+            if distance <= nearest then
+              found, nearest = group:getName(), distance
+            end
+          end
+        end
+      end
+    end
+  end
+  return found
+end
+
+--- The `-escort` marker: escort the airplane it was placed next to.
+---
+--- @return string|nil the escort group's name
+function veafSpawn.spawnEscortNear(point, options)
+  local escortedGroupName = veafSpawn.findEscortableAircraft(point, options.side)
+  if not escortedGroupName then
+    local message = veaf.t("spawn.escort_no_aircraft", veafSpawn.ESCORT_SEARCH_RADIUS / 1852)
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    if not options.silent then
+      trigger.action.outText(message, 15)
+    end
+    return nil
+  end
+  return veafSpawn.spawnEscort(options.name, escortedGroupName, options.country, options.silent, not options.showMFD)
+end
+
+--- The F10 entry "Escort me": escort the group of the pilot who asked.
+---
+--- @param parameters table `{ templateSearch, unitName }`, as a per-group radio command receives it
+function veafSpawn.escortMe(parameters)
+  local name, unitName = veaf.safeUnpack(parameters)
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.escortMe(name=%s, unitName=%s)", veaf.p(name), veaf.p(unitName))
+  local unit = unitName and Unit.getByName(unitName)
+  if not unit or not unit:isExist() then
+    return nil
+  end
+  if unit:getCategoryEx() ~= Unit.Category.AIRPLANE then
+    veaf.outTextForUnit(unitName, veaf.t("spawn.escort_not_an_airplane"), 10)
+    return nil
+  end
+  local group = unit:getGroup()
+  if not group then
+    return nil
+  end
+  return veafSpawn.spawnEscort(name, group:getName(), veaf.getCountryForCoalition(unit:getCoalition()), false, true)
+end
+
+--- Add one "Escort me" entry per `EscortRadioMenuTemplates` to a menu, per group, at the level `-cap`
+--- asks of a marker.
+function veafSpawn.addEscortRadioCommands(menu)
+  for _, name in ipairs(veafSpawn.EscortRadioMenuTemplates) do
+    local command =
+      veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.spawn.escort_me", name), menu, veafSpawn.escortMe, name, veafRadio.USAGE_ForGroup)
+    if command then
+      command.securityLevel = veafSecurity.LEVEL_KNOWN_PILOT
+    end
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- CAP target selection
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1160,10 +1433,110 @@ function veafSpawn.isCapEngageableTarget(target, capCoalition)
   return true, nil
 end
 
+--- Aspect boundaries, in degrees between the target's track and the line from the target to the CAP:
+--- up to `CAP_ASPECT_HOT_MAX` it is flying at the CAP, from `CAP_ASPECT_COLD_MIN` it is flying away,
+--- flanking in between. An estimate, not a sourced doctrine (FEAT-CAP-WATCHDOG, #187).
+veafSpawn.CAP_ASPECT_HOT_MAX = 60
+veafSpawn.CAP_ASPECT_COLD_MIN = 120
+
+--- What the aspect does to the distance the priority ladder reads: a hot target counts as twice as
+--- close, a cold one as twice as far. An estimate, to be tuned in game.
+veafSpawn.CAP_ASPECT_DISTANCE_FACTOR = { hot = 0.5, flanking = 1, cold = 2 }
+
+--- A cold target further than this from the CAP, in metres, is leaving: it is not engaged, and the CAP
+--- stays on its zone instead of chasing it. An estimate, to be tuned in game.
+veafSpawn.CAP_COLD_CUTOFF = 40000
+
+--- How much further from cold, in degrees, a target past the cut-off must turn before it is picked up
+--- again. Without it, a target beaming at about `CAP_ASPECT_COLD_MIN` flips between engaged and dropped
+--- every tick, and every drop sets the patrol again.
+veafSpawn.CAP_COLD_CUTOFF_HYSTERESIS = 15
+
+--- Where a target points relative to the CAP, on the ground plane.
+---
+--- @param targetPosition table runtime vec3
+--- @param targetVelocity table|nil runtime vec3, m/s
+--- @param capPosition table runtime vec3
+--- @return string `hot`, `flanking` or `cold`; `flanking`, the neutral weight, when there is no track
+---   to read (a hovering helicopter, a velocity that did not answer)
+--- @return number|nil the angle, in degrees; nil with no track
+function veafSpawn.targetAspect(targetPosition, targetVelocity, capPosition)
+  -- a detected object's answer is not trusted: a raise here would stop the watchdog for good
+  if type(targetVelocity) ~= "table" or type(targetVelocity.x) ~= "number" or type(targetVelocity.z) ~= "number" then
+    return "flanking"
+  end
+  local toCapX, toCapZ = capPosition.x - targetPosition.x, capPosition.z - targetPosition.z
+  local distance = math.sqrt(toCapX * toCapX + toCapZ * toCapZ)
+  local speed = math.sqrt(targetVelocity.x * targetVelocity.x + targetVelocity.z * targetVelocity.z)
+  if distance < 1 or speed < 1 then
+    return "flanking"
+  end
+  local cosine = (targetVelocity.x * toCapX + targetVelocity.z * toCapZ) / (distance * speed)
+  local angle = math.deg(math.acos(math.max(-1, math.min(1, cosine))))
+  if angle <= veafSpawn.CAP_ASPECT_HOT_MAX then
+    return "hot", angle
+  elseif angle >= veafSpawn.CAP_ASPECT_COLD_MIN then
+    return "cold", angle
+  end
+  return "flanking", angle
+end
+
+--- Which target each aircraft of a CAP goes for, when there is a choice to make.
+---
+--- Round the targets in priority order, so the most important one gets the first aircraft and, with
+--- more aircraft than targets, the most important ones get the extra aircraft.
+---
+--- @param unitNames table the CAP's airborne aircraft, in group order
+--- @param targets table the targets to engage, most important first, each with a `targetId`
+--- @return table unit name -> target id; empty with one target or one aircraft, where the group's own
+---   tasks already say everything
+function veafSpawn.spreadCapTargets(unitNames, targets)
+  local spread = {}
+  if #targets < 2 or #unitNames < 2 then
+    return spread
+  end
+  for index, unitName in ipairs(unitNames) do
+    spread[unitName] = targets[(index - 1) % #targets + 1].targetId
+  end
+  return spread
+end
+
+--- Give each aircraft of a CAP the target `spread` names, on its own controller, touching only the
+--- aircraft whose target changed; an aircraft with no target any more is reset, and follows its
+--- group's tasks again. `again` sets every target once more, unchanged or not: the group's task has
+--- just been set anew.
+---
+--- `units` is the whole group, not only the aircraft `spread` covers, so one that left the spread (landed,
+--- out of the zone) is reset rather than left on its old target. What was given is remembered by unit
+--- **id**: a group respawned under the same names has new ids, and is given its targets again.
+local function applyCapSpread(capGroupName, units, spread, again)
+  local previous = veafSpawn.capWatchdogAssignments[capGroupName] or {}
+  local given = {}
+  for _, unit in ipairs(units) do
+    local unitName = unit:getName()
+    local unitId = unit:getID()
+    local targetId = spread[unitName]
+    given[unitId] = targetId
+    if targetId ~= previous[unitId] or (again and targetId) then
+      local unitController = unit:getController()
+      if targetId then
+        veaf.loggers.get(veafSpawn.Id):debug("CAP aircraft %s goes for target %s", veaf.p(unitName), veaf.p(targetId))
+        unitController:setTask({ id = "EngageUnit", params = { unitId = targetId, weaponType = "ALL" } })
+      else
+        veaf.loggers.get(veafSpawn.Id):debug("CAP aircraft %s follows its group again", veaf.p(unitName))
+        unitController:resetTask()
+      end
+    end
+  end
+  veafSpawn.capWatchdogAssignments[capGroupName] = given
+end
+
 --- Forget what the CAP watchdog keeps about a group, when it stops watching it.
 local function forgetCapWatchdog(capGroupName)
   veafSpawn.capWatchdogZones[capGroupName] = nil
   veafSpawn.capWatchdogFlown[capGroupName] = nil
+  veafSpawn.capWatchdogAssignments[capGroupName] = nil
+  veafAircraftSpawn.forgetGroup(capGroupName)
 end
 
 --- One tick of the CAP watchdog, which re-arms itself.
@@ -1211,13 +1584,19 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
   -- check CAP group for state and position
   local capLanded = true
   local capInZone = false
+  local capUnits = {} -- every aircraft, for the spread to reset the ones it no longer covers
+  local spreadUnitNames = {} -- the aircraft in the air and in the zone: the ones a target may be spread to
   for _, unit in pairs(capGroup:getUnits()) do
+    if unit then
+      table.insert(capUnits, unit)
+    end
     if unit and unit:inAir() then
       capLanded = false
       local isUnitInZone = veaf.isUnitInZone(unit, capZone)
       veaf.loggers.get(veafSpawn.Id):trace("unitName=%s, isUnitInZone=%s", veaf.lp(unit:getName()), veaf.lp(isUnitInZone))
       if isUnitInZone then
         capInZone = true
+        table.insert(spreadUnitNames, unit:getName())
         -- unit is in the zone, and in the air, let's test the targets it can see
         local detectedTargets = unit:getController():getDetectedTargets()
         if detectedTargets and #detectedTargets > 0 then
@@ -1244,49 +1623,68 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
               local targetDistanceFromCapZoneCenter = veaf.get2DDist(targetPosition, capZone)
               veaf.loggers.get(veafSpawn.Id):trace("targetPosition=%s", veaf.lp(targetPosition))
               veaf.loggers.get(veafSpawn.Id):trace("targetDistanceFromCapZoneCenter=%s", veaf.lp(targetDistanceFromCapZoneCenter))
-              if targetDistanceFromCapZoneCenter <= capZone.radius then
+              local targetDistanceFromCapGroup = veaf.get2DDist(targetPosition, capGroupPosition)
+              -- From the group's average position, not the aircraft that saw it: every aircraft of the
+              -- CAP must reach the same verdict on the same target in the same tick.
+              local targetAspect, targetAngle =
+                veafSpawn.targetAspect(targetPosition, askDetectedObject(target, "getVelocity"), capGroupPosition)
+              -- A target already tracked is dropped once it is cold; one not tracked (never seen, or just
+              -- dropped) is picked up only once it has turned `CAP_COLD_CUTOFF_HYSTERESIS` further in.
+              local coldFrom = veafSpawn.CAP_ASPECT_COLD_MIN
+              if not targetsList[targetId] then
+                coldFrom = coldFrom - veafSpawn.CAP_COLD_CUTOFF_HYSTERESIS
+              end
+              local targetIsLeaving = targetAngle ~= nil
+                and targetAngle >= coldFrom
+                and targetDistanceFromCapGroup > veafSpawn.CAP_COLD_CUTOFF
+              veaf.loggers.get(veafSpawn.Id):trace("targetAspect=%s, targetIsLeaving=%s", veaf.lp(targetAspect), veaf.lp(targetIsLeaving))
+              if targetDistanceFromCapZoneCenter <= capZone.radius and not targetIsLeaving then
                 -- consider only the targets that are in the CAP zone
 
                 local targetAttributes = target:getDesc().attributes
                 local targetType = target:getTypeName()
-                local targetDistanceFromCapGroup = veaf.get2DDist(targetPosition, capGroupPosition)
                 veaf.loggers.get(veafSpawn.Id):trace("targetType=%s", veaf.lp(targetType))
                 veaf.loggers.get(veafSpawn.Id):trace("targetAttributes=%s", veaf.lp(targetAttributes))
                 veaf.loggers.get(veafSpawn.Id):trace("targetDistanceFromCapGroup=%s", veaf.lp(targetDistanceFromCapGroup))
+
+                -- The ladder below reads the distance weighed by the aspect: a hot target counts as
+                -- closer than it is, a cold one as further (`CAP_ASPECT_DISTANCE_FACTOR`). Past
+                -- `CAP_COLD_CUTOFF`, a cold target never reaches the ladder at all.
+                local rankingDistance = targetDistanceFromCapGroup * veafSpawn.CAP_ASPECT_DISTANCE_FACTOR[targetAspect]
 
                 local targetPriority = nil
 
                 if targetAttributes["Fighters"] or targetAttributes["Multirole fighters"] then
                   veaf.loggers.get(veafSpawn.Id):trace("Target is a Fighter")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 2)
+                  targetPriority = math.floor(rankingDistance / 2)
                 elseif targetAttributes["Strategic bombers"] then
                   veaf.loggers.get(veafSpawn.Id):trace("Target is a strategic bomber")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 1.5) + 10000
+                  targetPriority = math.floor(rankingDistance / 1.5) + 10000
                 elseif targetAttributes["Bombers"] then
                   veaf.loggers.get(veafSpawn.Id):trace("Target is a bomber")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 1) + 15000
+                  targetPriority = math.floor(rankingDistance / 1) + 15000
                 elseif targetAttributes["UAVs"] and targetType ~= "Yak-52" then --wtf ED, Yak-52 UAV master race
                   veaf.loggers.get(veafSpawn.Id):trace("Target is a UAV (except the Yak-52, that shit is not a UAV ED)")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 0.5) + 15000
+                  targetPriority = math.floor(rankingDistance / 0.5) + 15000
                 elseif targetAttributes["AWACS"] then
                   veaf.loggers.get(veafSpawn.Id):trace("Target is an AWACS")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 0.5) + 15000
+                  targetPriority = math.floor(rankingDistance / 0.5) + 15000
                 elseif targetAttributes["Transports"] then
                   veaf.loggers.get(veafSpawn.Id):trace("Target is a Transport")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 0.5) + 15000
+                  targetPriority = math.floor(rankingDistance / 0.5) + 15000
                 elseif targetAttributes["Battle airplanes"] or targetAttributes["Battleplanes"] then
                   veaf.loggers.get(veafSpawn.Id):trace("Target is a generic Battleplane")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 0.25) + 15000
+                  targetPriority = math.floor(rankingDistance / 0.25) + 15000
                 elseif
                   targetAttributes["Helicopters"]
                   or targetAttributes["Attack helicopters"]
                   or targetAttributes["Transport helicopters"]
                 then
                   veaf.loggers.get(veafSpawn.Id):trace("Target is a Helicopter")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 0.1) + 20000
+                  targetPriority = math.floor(rankingDistance / 0.1) + 20000
                 else
                   veaf.loggers.get(veafSpawn.Id):trace("Target has unknown attributes, calculating generic priority")
-                  targetPriority = math.floor(targetDistanceFromCapGroup / 0.25) + 15000
+                  targetPriority = math.floor(rankingDistance / 0.25) + 15000
                 end
                 -- https://www.geogebra.org/calculator if you want to visualize, type in functions y=x/factor + offset and set points on each curve. y is the priority, x the distance
 
@@ -1331,6 +1729,10 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
                   targetsList[targetId] =
                     { isNew = true, seenAt = timestamp, priority = targetPriority, targetId = targetId, target = target }
                 end
+              elseif targetIsLeaving then
+                -- dropped now rather than left to expire, so a chase in progress stops on this tick
+                veaf.loggers.get(veafSpawn.Id):debug("targetName=%s is leaving, not chasing it", veaf.lp(targetName))
+                targetsList[targetId] = nil
               end
             end
           end
@@ -1434,6 +1836,11 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     end
     engagedTargetIds = toEngageIds
 
+    -- Each aircraft its own target when there is a choice (FEAT-CAP-WATCHDOG, #187). The group's tasks
+    -- above stay as they were; whether DCS lets an aircraft's own task win over them is the in-game check
+    -- of the lot. A rebuild sets the group's task again, so the spread is set again on top of it.
+    applyCapSpread(capGroupName, capUnits, veafSpawn.spreadCapTargets(spreadUnitNames, toEngage), rebuilt)
+
     if #toEngage > 0 then
       veaf.loggers.get(veafSpawn.Id):debug("Watchdog has %s target(s) ! Allowing AA for CAP", veaf.lp(#toEngage))
       controller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
@@ -1451,6 +1858,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
       veafAircraftSpawn.resumePatrol(capGroupName)
       engagedTargetIds = {}
     end
+    applyCapSpread(capGroupName, capUnits, {})
     controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
     controller:setOption(0, 3) --return fire
   end
@@ -1548,4 +1956,12 @@ veafSpawn.registerCommandHandler("cap", "KNOWN_PILOT", function(eventPos, option
     not options.showMFD -- VMR-099: same inversion as the afac handler above
   )
   return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("awacs", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
+  return veafSpawn.spawnAwacs(eventPos, options), nil, false
+end)
+
+veafSpawn.registerCommandHandler("escort", "KNOWN_PILOT", function(eventPos, options, coalition, markId, bypassSecurity)
+  return veafSpawn.spawnEscortNear(eventPos, options), nil, false
 end)

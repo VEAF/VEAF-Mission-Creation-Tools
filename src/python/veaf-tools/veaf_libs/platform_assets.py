@@ -4,7 +4,7 @@ PyInstaller produces one binary per OS/arch; the release ships them as
 ``veaf-tools-<os>-<arch>`` / ``veaf-tools-updater-<os>-<arch>`` assets (see the
 FEAT-CROSSPLATFORM-BINARIES lot). This module is the single source of truth the
 updater uses at runtime to pick the asset matching the machine it runs on. The CI
-release matrix mirrors the same three suffixes.
+release matrix mirrors the same two suffixes.
 
 All functions accept optional ``system`` / ``machine`` overrides (defaulting to the
 live :mod:`platform` values) so the mapping is testable across platforms.
@@ -18,7 +18,6 @@ import platform
 _SUFFIXES: dict[tuple[str, str], str] = {
     ("linux", "x86_64"): "linux-x86_64",
     ("darwin", "arm64"): "macos-arm64",
-    ("darwin", "x86_64"): "macos-x86_64",
 }
 
 #: Normalize the many spellings of an architecture to the ones used in _SUFFIXES.
@@ -44,8 +43,8 @@ def asset_suffix(system: str, machine: str) -> str | None:
         machine: Architecture as reported by :func:`platform.machine` (aliases ok).
 
     Returns:
-        ``"linux-x86_64"`` / ``"macos-arm64"`` / ``"macos-x86_64"``, or ``None`` on
-        Windows and unsupported architectures (no standalone Unix asset applies).
+        ``"linux-x86_64"`` / ``"macos-arm64"``, or ``None`` on Windows and
+        unsupported platforms, Intel macOS included (no standalone Unix asset applies).
     """
     return _SUFFIXES.get((system.lower(), normalize_machine(machine)))
 

@@ -114,6 +114,47 @@ mission = {
                   },
                 },
               },
+              [2] = {
+                ["name"] = "Moving Convoy",
+                ["groupId"] = 21,
+                ["x"] = -321000.0,
+                ["y"] = 621000.0,
+                ["units"] = {
+                  [1] = {
+                    ["name"] = "Moving-1",
+                    ["type"] = "M-1 Abrams",
+                    ["x"] = -321000.0,
+                    ["y"] = 621000.0,
+                  },
+                },
+                ["route"] = {
+                  ["points"] = {
+                    [1] = {
+                      ["name"] = "",
+                      ["type"] = "Turning Point",
+                      ["action"] = "Off Road",
+                      ["x"] = -321000.0,
+                      ["y"] = 621000.0,
+                      ["alt"] = 0,
+                      ["speed"] = 10,
+                      ["ETA"] = 0,
+                      ["ETA_locked"] = true,
+                      ["speed_locked"] = true,
+                    },
+                    [2] = {
+                      ["name"] = "",
+                      ["type"] = "Turning Point",
+                      ["action"] = "Off Road",
+                      ["x"] = -322000.0,
+                      ["y"] = 622000.0,
+                      ["alt"] = 0,
+                      ["speed"] = 10,
+                      ["ETA_locked"] = false,
+                      ["speed_locked"] = true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -321,6 +362,43 @@ class TestWaypointFields:
             _points(miz)[-2]["alt"],
             _points(miz)[-2]["speed"],
         )
+
+
+class TestRoadWaypoints:
+    """A ground group drives a road only when its waypoint says `On Road` (FIX-DEMO-MISSION-FINDINGS 07).
+
+    `edit_route` wrote every point as `Turning Point`/`Turning Point`, so the demo's combat-zone convoy
+    drove straight across fields, and the demo needed a script to fix it.
+    """
+
+    def test_set_puts_a_waypoint_on_the_road(self, miz: Path) -> None:
+        edit_route(miz, group_name="Moving Convoy", operation="set", index=2, road=True)
+        point = _points(miz, "Moving Convoy")[1]
+        assert (point["type"], point["action"]) == ("Turning Point", "On Road")
+
+    def test_set_takes_it_off_the_road(self, miz: Path) -> None:
+        edit_route(miz, group_name="Moving Convoy", operation="set", index=2, road=True)
+        edit_route(miz, group_name="Moving Convoy", operation="set", index=2, road=False)
+        assert _points(miz, "Moving Convoy")[1]["action"] == "Off Road"
+
+    def test_an_added_waypoint_can_be_on_the_road(self, miz: Path) -> None:
+        edit_route(
+            miz, group_name="Moving Convoy", operation="add", position={"x": -323000.0, "y": 623000.0}, road=True
+        )
+        point = _points(miz, "Moving Convoy")[-1]
+        assert (point["type"], point["action"]) == ("Turning Point", "On Road")
+
+    def test_the_change_is_reported(self, miz: Path) -> None:
+        result = edit_route(miz, group_name="Moving Convoy", operation="set", index=2, road=True)
+        assert result["changed"]["road"] == {"from": "Off Road", "to": "On Road"}
+
+    def test_an_aircraft_has_no_road(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="ground"):
+            edit_route(miz, group_name="Colt 1-1", operation="set", index=2, road=True)
+
+    def test_only_a_turning_point_drives_a_road(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="Turning Point"):
+            edit_route(miz, group_name="Moving Convoy", operation="set", index=2, waypoint_type="Land", road=True)
 
 
 class TestTaskPosition:

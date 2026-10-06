@@ -68,7 +68,7 @@ def main() -> None:
     # Reshape the flat registrations into the themed tree. Every flat name survives as a
     # hidden alias, so existing scripts and doc pages keep working while --help shows the tree.
     build_cli_tree(app)
-    from veaf_tools.helpers import should_auto_pause
+    from veaf_tools.helpers import pause_before_exit, should_auto_pause
 
     console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
 
@@ -84,4 +84,4 @@ def main() -> None:
     finally:
         logger.stop_status()
         if auto_pause:
-            input(t("help.pause_msg"))
+            pause_before_exit(t("help.pause_msg"))

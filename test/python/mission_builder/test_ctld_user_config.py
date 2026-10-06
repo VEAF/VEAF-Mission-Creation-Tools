@@ -87,6 +87,39 @@ class TestGeneratedLua(unittest.TestCase):
     def test_nothing_generated_when_the_module_is_disabled(self) -> None:
         self.assertIsNone(_make_worker(ctld_enabled=False)._ctld_user_config_lua())
 
+    def test_an_end_of_line_comment_never_reaches_ctld(self) -> None:
+        """CTLD's own YAML reader keeps it as part of the value (FIX-DEMO-MISSION-FINDINGS 03).
+
+        `jtacLaserCodeMax: 1686   # …` became the string "1686   # …" and CTLD's JTAC init died on
+        `'for' limit must be a number` — which, before ticket 02, took the whole config down.
+        """
+        worker = _make_worker()
+        (worker.mission_folder / CTLD_CONFIG_FILENAME).write_text(
+            'configVersion: "2.0.0"\n'
+            "# a whole-line comment CTLD reads fine\n"
+            "mm_facing:\n"
+            "  jtacLaserCodeMax: 1686   # highest code a pod accepts\n"
+            '  message: "Bravo # 2 ready"  # quoted hash stays\n',
+            encoding="utf-8",
+        )
+        lua = worker._ctld_user_config_lua()
+        assert lua is not None
+        self.assertIn("  jtacLaserCodeMax: 1686\n", lua)
+        self.assertNotIn("highest code", lua)
+        self.assertIn('  message: "Bravo # 2 ready"\n', lua)
+        self.assertNotIn("quoted hash stays", lua)
+
+    def test_the_comment_goes_with_manage_logistics_off_too(self) -> None:
+        worker = _make_worker()
+        worker.mission_yaml = {"community_scripts": {"ctld": {"manage_logistics": False}}}
+        (worker.mission_folder / CTLD_CONFIG_FILENAME).write_text(
+            "mm_facing:\n  jtacLaserCodeMax: 1686 # note\n", encoding="utf-8"
+        )
+        lua = worker._ctld_user_config_lua()
+        assert lua is not None
+        self.assertIn("  jtacLaserCodeMax: 1686\n", lua)
+        self.assertNotIn("# note", lua)
+
 
 class TestManagedLogistics(unittest.TestCase):
     """FEAT-CTLD-AUTO-LOGISTICS: the VEAF logistic types reach the injected configuration.
@@ -173,6 +206,27 @@ class TestStaticInjection(unittest.TestCase):
         collected = _collected("mist.lua")
         result = _make_worker()._with_ctld_user_config(collected)
         self.assertEqual(list(result), list(collected))
+
+
+class TestStaleCopyOnDisk(unittest.TestCase):
+    def test_the_previous_builds_copy_is_not_collected_as_a_mission_script(self) -> None:
+        """The .miz carried the *previous* build's CTLD config (FIX-DEMO-MISSION-FINDINGS 03).
+
+        The mission scripts are collected (and cached) before `generate_ctld_user_config()`
+        rewrites `src/scripts/CTLD_userConfig.lua`, and in the .miz their entry shares its key
+        with the freshly generated one — and wins. The generated entry is the only one that counts.
+        """
+        worker = _make_worker()
+        scripts = worker.mission_folder / "src" / "scripts"
+        scripts.mkdir(parents=True)
+        (scripts / CTLD_USER_CONFIG_FILENAME).write_text("-- stale, from the previous build\n", encoding="utf-8")
+        (scripts / "mission-script.lua").write_text("-- mission\n", encoding="utf-8")
+        worker.collected_mission_script_files = None
+
+        collected = worker.get_collected_mission_script_files()
+
+        self.assertIn("mission-script.lua", [Path(k).name for k in collected])
+        self.assertNotIn(CTLD_USER_CONFIG_FILENAME, [Path(k).name for k in collected])
 
 
 class TestDynamicMode(unittest.TestCase):

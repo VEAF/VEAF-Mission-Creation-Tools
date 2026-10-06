@@ -1,6 +1,6 @@
 # FEAT-CAP-WATCHDOG — remove a spawned CAP by a handle, and a watchdog that picks its fights
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — done on the mocks, waits on R42 in `DCS-SESSION-TODO.md`
 
 Origin: two 2023 requests left open by the issue triage,
 [#178](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/178) (a token to destroy the CAPs a
@@ -42,10 +42,17 @@ names the group `<template> #NNNN` (`veafSpawnAircraft.lua`) and its message —
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [A handle to remove a spawned CAP (#178)](tickets/01-cap-removal-handle.md) | ⬜ |
-| 02 | [The watchdog spreads its CAP over several targets (#187)](tickets/02-watchdog-shared-targets.md) | ⬜ |
-| 03 | [Aspect and a priority cut-off in the target ranking (#187)](tickets/03-watchdog-aspect-and-cutoff.md) | ⬜ |
-| 04 | [Cruise missiles and escorts — decide first (#187)](tickets/04-watchdog-missiles-and-escort.md) | ⬜ |
+| 01 | [A handle to remove a spawned CAP (#178)](tickets/01-cap-removal-handle.md) | 🚫 |
+| 02 | [The watchdog spreads its CAP over several targets (#187)](tickets/02-watchdog-shared-targets.md) | 🧑 |
+| 03 | [Aspect and a priority cut-off in the target ranking (#187)](tickets/03-watchdog-aspect-and-cutoff.md) | 🧑 |
+| 04 | [Cruise missiles and escorts — decide first (#187)](tickets/04-watchdog-missiles-and-escort.md) | 🚫 |
+
+## Decisions (David, 2026-10-04)
+
+- **01 dropped**: no handle; `-destroy` is geographic and stays `SENIOR_PILOT`, a radius placed on the CAP removes it. The CAP section of the mission-maker page says how.
+- **02 coded before measuring**: each aircraft gets its own target on its own controller; whether DCS honours it is R42.
+- **03 reframed**: the escort left the watchdog with #1068, so the cut-off is *a cold target more than 40 km away is not chased*, the same for `cap` and `zone_defense`.
+- **04 dropped**: cruise missiles unmeasured and unspecified; escorting a friendly group is `-escort`.
 
 ## Related
 
@@ -56,12 +63,12 @@ names the group `<template> #NNNN` (`veafSpawnAircraft.lua`) and its message —
 
 ## Definition of done
 
-- [ ] Every ticket done or explicitly dropped with its reason.
-- [ ] Lua tests for each behaviour change, failing without it.
-- [ ] Mission-maker doc (FR + EN) updated for the new command or option.
-- [ ] CHANGELOG under `[Unreleased]`.
-- [ ] In-game check of the watchdog changes (they cannot be settled by mocks).
-- [ ] #178 and #187 closed, pointing here.
+- [x] Every ticket done or explicitly dropped with its reason.
+- [x] Lua tests for each behaviour change, failing without it.
+- [x] Mission-maker doc (FR + EN) updated for the new command or option.
+- [x] CHANGELOG under `[Unreleased]`.
+- [ ] In-game check of the watchdog changes (they cannot be settled by mocks) — R42 in `DCS-SESSION-TODO.md`.
+- [x] #178 and #187 closed, pointing here (both closed on 2026-10-03 when the lot was opened).
 
 ## Former index entry
 

@@ -2433,7 +2433,7 @@ Spawn Airborne Forward Air Controller (AFAC).
 veafSpawn.spawnAFAC(pos, "A-10C", nil, 15000, 250, 0, 133.0, "AM", 1688, true, false)
 ```
 
-##### `veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)`
+##### `veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pEngagedTargetIds)`
 
 Start CAP engagement watchdog.
 
@@ -2442,12 +2442,25 @@ Start CAP engagement watchdog.
 - `capGroupName` (string) - CAP group name
 - `capCoalition` (coalition) - Coalition
 - `capZone` (table) - Zone definition
-- `pTargetsList` (table, optional) - Specific targets
-- `pNumberOfTasksAddedByWatchdog` (number, optional) - Max tasks
+- `pTargetsList` (table, optional) - Targets tracked, from the previous pass
+- `pEngagedTargetIds` (table, optional) - Targets that already have an `EngageUnit`, from the previous pass
 
 **Returns:** None
 
 **Description:** Monitors area and tasks CAP to engage enemy aircraft.
+Targets are ranked by type, distance and aspect; a cold target past `veafSpawn.CAP_COLD_CUTOFF` (40,000 m) is not engaged.
+Facing several targets, each aircraft is given its own on its own controller (`veafSpawn.spreadCapTargets`).
+
+##### `veafSpawn.targetAspect(targetPosition, targetVelocity, capPosition)`
+
+Returns `"hot"`, `"flanking"` or `"cold"` from the angle between the target's track and the target → CAP line, on the horizontal plane: up to `veafSpawn.CAP_ASPECT_HOT_MAX` (60°) hot, from `veafSpawn.CAP_ASPECT_COLD_MIN` (120°) cold.
+With no readable velocity, `"flanking"`.
+Also returns the angle in degrees (nil with no velocity).
+
+##### `veafSpawn.spreadCapTargets(unitNames, targets)`
+
+Spreads the targets (sorted, most important first) over the CAP's aircraft, round-robin.
+Returns a table aircraft name → target id, empty with one target or one aircraft.
 
 #### Cargo & Logistics
 
@@ -3676,6 +3689,26 @@ local nearest = veafAirbases.getNearestAirbase(unit)
 veaf.outTextForUnit("Viper 1-1",
   string.format("Nearest airbase: %s", nearest.Name), 10)
 ```
+
+##### `veafAirbases.getAtcFrequencies(veafAirbase)`
+
+Tower frequencies (MHz) and TACAN DCS gives the airfield, read from `veafAirfieldFrequencies` (a table shipped with the scripts, since the mission scripts have no API to ask DCS for them).
+
+**Parameters:**
+
+- `veafAirbase` (veafAirbase) - Airbase
+
+**Returns:** `table|nil` - `{ uhf?, vhf?, fm?, tacan? }`, or `nil` for a carrier, a FARP or an airfield the table lacks
+
+##### `veafAirbases.getMissionChannel(veafAirbase)`
+
+The channel the mission's radio plan gives the airfield (`bases` collection of `src/presets.yaml`), written by the build into `veaf-config.lua`.
+
+**Parameters:**
+
+- `veafAirbase` (veafAirbase) - Airbase
+
+**Returns:** `table|nil` - `{ alias, title, uhf?, vhf?, fm? }`, or `nil` when the mission has none
 
 ---
 

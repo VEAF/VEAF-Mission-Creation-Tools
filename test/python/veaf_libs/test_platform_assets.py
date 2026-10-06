@@ -18,7 +18,7 @@ from veaf_libs import platform_assets as pa
         ("Linux", "amd64", "linux-x86_64"),  # alias
         ("Darwin", "arm64", "macos-arm64"),
         ("Darwin", "aarch64", "macos-arm64"),  # alias
-        ("Darwin", "x86_64", "macos-x86_64"),
+        ("Darwin", "x86_64", None),  # Intel Mac: no binary published (CHORE-DROP-MACOS-INTEL)
         ("Windows", "AMD64", None),  # no Unix asset on Windows
         ("Linux", "riscv64", None),  # unsupported arch
     ],

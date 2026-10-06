@@ -504,6 +504,75 @@ function TestVeafSpawnEffects:test_destroy_by_radius()
   luaunit.assertTrue(true)
 end
 
+--- Run a `_destroy` marker through the parser and the registered handler, with "Tank-1" and a
+--- "Bystander" standing inside the search circle, and return the names of the units destroyed.
+local function unitsDestroyedBy(text)
+  local destroyed = {}
+  local function recordDestroy(self)
+    table.insert(destroyed, self:getName())
+  end
+  dcs_mocks.addUnit("Tank-1", { destroy = recordDestroy })
+  dcs_mocks.addUnit("Bystander", { destroy = recordDestroy })
+  local savedFind, savedDestroy = veaf.findUnitsInCircle, Unit.destroy
+  veaf.findUnitsInCircle = function()
+    return { ["Tank-1"] = Unit.getByName("Tank-1"), ["Bystander"] = Unit.getByName("Bystander") }
+  end
+  Unit.destroy = function(unit)
+    unit:destroy()
+  end
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, text, coalition.side.BLUE, 0, true)
+  veaf.findUnitsInCircle, Unit.destroy = savedFind, savedDestroy
+  table.sort(destroyed)
+  return destroyed
+end
+
+--- `_destroy, name X` is what the pages showed and what pilots type, as for `_teleport, name X`.
+--- It used to leave `unitName` nil and fall into the radius branch: X survived and everything
+--- within 150 m of the marker went (FIX-DESTROY-NAME-KEY).
+function TestVeafSpawnEffects:test_destroy_by_name_destroys_only_that_unit()
+  luaunit.assertEquals(unitsDestroyedBy("_destroy, name Tank-1"), { "Tank-1" })
+end
+
+function TestVeafSpawnEffects:test_destroy_by_unitname_destroys_only_that_unit()
+  luaunit.assertEquals(unitsDestroyedBy("_destroy, unitname Tank-1"), { "Tank-1" })
+end
+
+--- Both written: `unitname` is the specific key and wins.
+function TestVeafSpawnEffects:test_destroy_unitname_wins_over_name()
+  luaunit.assertEquals(unitsDestroyedBy("_destroy, unitname Bystander, name Tank-1"), { "Bystander" })
+end
+
+function TestVeafSpawnEffects:test_destroy_with_no_name_clears_the_circle()
+  luaunit.assertEquals(unitsDestroyedBy("_destroy"), { "Bystander", "Tank-1" })
+end
+
+--- The radius branch destroys the objects the search found. It used to look each one up again with
+--- `Unit.getByName`, and in game that lookup returns nil for the « [CH] » vehicle pack units even though
+--- the search returns them: `-menage` left a whole platoon alive (FIX-DEMO-RECETTE-FINDINGS 01).
+function TestVeafSpawnEffects:test_destroy_by_radius_destroys_a_unit_unknown_to_getByName()
+  local destroyed = false
+  local unit = {
+    getName = function()
+      return "[r]-Armored Platoon#10252 - IFV BMP-3 [CH]"
+    end,
+    getPosition = function()
+      return { p = { x = 100, y = 0, z = 0 } }
+    end,
+    destroy = function()
+      destroyed = true
+    end,
+  }
+  dcs_mocks.addGroup("[r]-Armored Platoon#10252", {
+    _coalition = coalition.side.RED,
+    getUnits = function()
+      return { unit }
+    end,
+  })
+  luaunit.assertNil(Unit.getByName(unit:getName()))
+  veafSpawn.destroy({ x = 0, y = 0, z = 0 }, 2000, nil)
+  luaunit.assertTrue(destroyed)
+end
+
 function TestVeafSpawnEffects:test_teleport_silent()
   veafSpawn.teleport({ x = 0, y = 0, z = 0 }, "SomeGroup", true)
   luaunit.assertTrue(true)
@@ -1041,6 +1110,81 @@ function TestVeafSpawnGroundSceneryAware:_jitter(xs, waterXs)
     calls = calls + 1
     return { x = xs[calls] or xs[#xs], y = 0, z = spot.z or 0 }
   end
+end
+
+--- FIX-DEMO-MISSION-FINDINGS 05: `-cargoships` at open sea, measured in DCS 2026-10-05, created
+--- no group and said nothing. The group centre was searched on land, for ships.
+function TestVeafSpawnGroundSceneryAware:test_a_naval_group_spawns_at_sea()
+  self:_allWater()
+  -- The three shortcut groups as veaf-units.yaml declares them. veafUnits is stubbed in this suite
+  -- (dcs_mocks.lua), so findGroup answers with what the real one returns — the database entry run
+  -- through processGroup, `naval` set from its units — and placeGroup puts each unit at the centre.
+  local groups = {
+    ["cargoships"] = { "Dry-cargo ship-1", "Dry-cargo ship-2", "ELNYA" },
+    ["cargoships-escorted"] = { "Dry-cargo ship-1", "Dry-cargo ship-2", "ELNYA", "MOLNIYA", "ALBATROS", "NEUSTRASH" },
+    ["combatships"] = { "MOLNIYA", "ALBATROS", "NEUSTRASH" },
+  }
+  local savedFindGroup, savedFindUnit, savedPlaceGroup = veafUnits.findGroup, veafUnits.findUnit, veafUnits.placeGroup
+  veafUnits.findGroup = function(alias)
+    local types = groups[alias]
+    if not types then
+      return nil
+    end
+    local units = {}
+    for _, typeName in ipairs(types) do
+      table.insert(units, { displayName = typeName, typeName = typeName, naval = true, air = false, static = false })
+    end
+    return { groupName = alias, description = alias, disposition = { h = 20, w = 20 }, units = units, naval = true }
+  end
+  veafUnits.placeGroup = function(group, spawnPoint)
+    for _, unit in ipairs(group.units) do
+      unit.spawnPoint = { x = spawnPoint.x, y = spawnPoint.y, z = spawnPoint.z, hdg = 0 }
+    end
+    return group, {}
+  end
+  for _, name in ipairs({ "cargoships", "cargoships-escorted", "combatships" }) do
+    local added = {}
+    local savedAddGroup = veaf.addGroup
+    veaf.addGroup = function(group)
+      table.insert(added, group)
+    end
+    local result = veafSpawn.spawnGroup({ x = -250000, y = 0, z = 575000 }, 0, name, nil, "RUSSIA", 0, 0, 10, nil, true, false, false)
+    veaf.addGroup = savedAddGroup
+    luaunit.assertIsString(result, name)
+    luaunit.assertEquals(#added, 1, name)
+    luaunit.assertEquals(added[1].category, "SHIP", name)
+    luaunit.assertTrue(#added[1].units > 0, name .. ": every ship was dropped")
+  end
+  veafUnits.findGroup, veafUnits.findUnit, veafUnits.placeGroup = savedFindGroup, savedFindUnit, savedPlaceGroup
+end
+
+--- The review of FIX-DEMO-MISSION-FINDINGS 05: a ship refuses shallow water (`checkPositionForUnit`
+--- reads `veaf.OPEN_WATER`), so the group centre must be searched on open water too — otherwise a
+--- centre "found" in the shallows hands every ship to a check that drops it.
+function TestVeafSpawnGroundSceneryAware:test_a_naval_group_is_not_centred_in_the_shallows()
+  land.getSurfaceType = function()
+    return land.SurfaceType.SHALLOW_WATER
+  end
+  local savedFindGroup = veafUnits.findGroup
+  veafUnits.findGroup = function(alias)
+    return {
+      groupName = alias,
+      description = alias,
+      disposition = { h = 20, w = 20 },
+      naval = true,
+      units = { { displayName = "ELNYA", typeName = "ELNYA", naval = true } },
+    }
+  end
+  local added = 0
+  local savedAddGroup = veaf.addGroup
+  veaf.addGroup = function()
+    added = added + 1
+  end
+  local result = veafSpawn.spawnGroup({ x = 0, y = 0, z = 0 }, 0, "cargoships", nil, "RUSSIA", 0, 0, 10, nil, true, false, false)
+  veaf.addGroup = savedAddGroup
+  veafUnits.findGroup = savedFindGroup
+  luaunit.assertNil(result, "a ship group was centred in shallow water")
+  luaunit.assertEquals(added, 0)
 end
 
 function TestVeafSpawnGroundSceneryAware:test_a_water_candidate_is_skipped_and_the_spawn_still_happens()
@@ -3518,6 +3662,12 @@ local function detectedObject(spec)
   object.getPosition = function()
     return { p = spec.point or { x = 0, y = 6000, z = 1000 } }
   end
+  -- only when the spec gives one: an object without it is what the older tests describe
+  if spec.velocity then
+    object.getVelocity = function()
+      return spec.velocity
+    end
+  end
   return object
 end
 
@@ -3686,6 +3836,34 @@ function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_that_flew_and_landed_
   veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
   luaunit.assertTrue(self.destroyed)
   luaunit.assertNil(veafSpawn.capWatchdogFlown["parked"], "the registry forgets it")
+end
+
+--- FIX-AIRCRAFT-ROLE-REGISTRY-PURGE: the role registry is forgotten with the watchdog's own tables,
+--- or it keeps one route per CAP for the whole server session.
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_that_landed_leaves_nothing_in_the_role_registry()
+  local zone = { x = 0, y = 0, radius = 100000 }
+  veafAircraftSpawn.groupRoles["parked"] = "cap"
+  veafAircraftSpawn.groupOptions["parked"] = { id = "ComboTask" }
+  veafAircraftSpawn.groupRoutes["parked"] = { {}, {} }
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = true
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  self.airborne = false
+  veafSpawn.startCapWatchdog("parked", coalition.side.RED, zone)
+  luaunit.assertTrue(self.destroyed)
+  luaunit.assertNil(veafAircraftSpawn.getRole("parked"))
+  luaunit.assertNil(veafAircraftSpawn.groupOptions["parked"])
+  luaunit.assertNil(veafAircraftSpawn.groupRoutes["parked"])
+end
+
+function TestVeafSpawnCapWatchdogGroundStart:test_a_flight_gone_from_dcs_leaves_nothing_in_the_role_registry()
+  veafAircraftSpawn.groupRoles["gone"] = "cap"
+  veafAircraftSpawn.groupOptions["gone"] = { id = "ComboTask" }
+  veafAircraftSpawn.groupRoutes["gone"] = { {}, {} }
+  veafSpawn.startCapWatchdog("gone", coalition.side.RED, { x = 0, y = 0, radius = 100000 })
+  luaunit.assertNil(veafAircraftSpawn.getRole("gone"))
+  luaunit.assertNil(veafAircraftSpawn.groupOptions["gone"])
+  luaunit.assertNil(veafAircraftSpawn.groupRoutes["gone"])
 end
 
 function TestVeafSpawnCapTargetFilter:setUp()
@@ -3996,6 +4174,435 @@ function TestVeafSpawnCapTargetFilter:test_a_template_without_a_first_waypoint_t
   local warnings = dcs_mocks.findLog("has no usable task on its first waypoint")
   luaunit.assertTrue(#warnings > 0, "the template must be named")
   luaunit.assertStrContains(warnings[1].text, "veafSpawn-NOTASK")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafSpawnCapAspect — FEAT-CAP-WATCHDOG ticket 03
+--
+-- Where the target points, relative to the CAP: hot, flanking or cold. The ranking weighs it, and a
+-- cold target far enough away is not chased at all.
+-- ---------------------------------------------------------------------------
+TestVeafSpawnCapAspect = {}
+
+function TestVeafSpawnCapAspect:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafSpawnCapAspect:tearDown()
+  dcs_mocks.reset()
+end
+
+--- A velocity of 200 m/s whose track makes `degrees` with the line from the target to a CAP due north.
+local function trackAt(degrees)
+  local radians = math.rad(degrees)
+  return { x = 200 * math.cos(radians), y = 0, z = 200 * math.sin(radians) }
+end
+
+local ORIGIN = { x = 0, y = 6000, z = 0 }
+local CAP_NORTH = { x = 30000, y = 8000, z = 0 }
+
+function TestVeafSpawnCapAspect:test_a_target_flying_at_the_cap_is_hot()
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, trackAt(0), CAP_NORTH), "hot")
+end
+
+function TestVeafSpawnCapAspect:test_a_target_flying_away_is_cold()
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, trackAt(180), CAP_NORTH), "cold")
+end
+
+function TestVeafSpawnCapAspect:test_a_target_crossing_is_flanking()
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, trackAt(90), CAP_NORTH), "flanking")
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, trackAt(-90), CAP_NORTH), "flanking", "either side")
+end
+
+--- One degree each side of both boundaries, so moving either constant shows here.
+function TestVeafSpawnCapAspect:test_the_boundaries()
+  local hot, cold = veafSpawn.CAP_ASPECT_HOT_MAX, veafSpawn.CAP_ASPECT_COLD_MIN
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, trackAt(hot - 1), CAP_NORTH), "hot")
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, trackAt(hot + 1), CAP_NORTH), "flanking")
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, trackAt(cold - 1), CAP_NORTH), "flanking")
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, trackAt(cold + 1), CAP_NORTH), "cold")
+end
+
+--- The vertical is not part of it: a target climbing straight at the CAP is still hot.
+function TestVeafSpawnCapAspect:test_the_climb_does_not_count()
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, { x = 200, y = 150, z = 0 }, CAP_NORTH), "hot")
+end
+
+--- A hovering helicopter, or a velocity nobody could read, has no aspect: it is ranked as flanking,
+--- the neutral weight.
+function TestVeafSpawnCapAspect:test_no_track_is_flanking()
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, { x = 0, y = 0, z = 0 }, CAP_NORTH), "flanking")
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, nil, CAP_NORTH), "flanking")
+end
+
+--- A velocity that does not answer as a vector is no track; it must not raise.
+function TestVeafSpawnCapAspect:test_a_malformed_velocity_is_flanking()
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, { x = 200 }, CAP_NORTH), "flanking")
+  luaunit.assertEquals(veafSpawn.targetAspect(ORIGIN, "fast", CAP_NORTH), "flanking")
+end
+
+--- A fighter at `distance` metres north of the CAP (which sits on the origin), flying `track`.
+local function aFighterNorth(id, distance, track)
+  local fighter = detectedObject({
+    id = id,
+    typeName = "F-14B",
+    attributes = { ["Air"] = true, ["Fighters"] = true },
+    point = { x = distance, y = 6000, z = 0 },
+    velocity = track,
+  })
+  return fighter
+end
+
+local INBOUND = { x = -200, y = 0, z = 0 }
+local OUTBOUND = { x = 200, y = 0, z = 0 }
+
+--- The EngageUnit priority the watchdog gave each target, by target id.
+local function engagedPriorities()
+  local priorities = {}
+  for _, pushed in ipairs(dcs_mocks.tasksPushed) do
+    if pushed.task and pushed.task.id == "EngageUnit" then
+      priorities[pushed.task.params.unitId] = pushed.task.params.priority
+    end
+  end
+  return priorities
+end
+
+--- Same type, same distance: the one coming at the CAP goes first (a lower number is a higher priority).
+function TestVeafSpawnCapAspect:test_a_hot_target_outranks_a_cold_one_at_the_same_distance()
+  aCapSeeing({ { object = aFighterNorth(33, 20000, OUTBOUND) }, { object = aFighterNorth(34, 20000, INBOUND) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  local priorities = engagedPriorities()
+  luaunit.assertNotNil(priorities[33], "a cold target inside the cut-off is still engaged")
+  luaunit.assertTrue(priorities[34] < priorities[33], "the hot one first")
+end
+
+--- A cold target past the cut-off is leaving: the CAP stays on its zone.
+function TestVeafSpawnCapAspect:test_a_cold_target_past_the_cutoff_is_not_engaged()
+  local beyond = veafSpawn.CAP_COLD_CUTOFF + 5000
+  aCapSeeing({ { object = aFighterNorth(33, beyond, OUTBOUND) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(engagedUnitIds(), {})
+  luaunit.assertTrue(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA), "nothing worth engaging: the CAP stays on patrol")
+end
+
+--- The cut-off is about leaving, not about distance: the same target, inbound, is engaged.
+function TestVeafSpawnCapAspect:test_a_hot_target_at_the_same_distance_is_engaged()
+  local beyond = veafSpawn.CAP_COLD_CUTOFF + 5000
+  aCapSeeing({ { object = aFighterNorth(33, beyond, INBOUND) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(engagedUnitIds(), { 33 })
+end
+
+--- A target engaged inbound that turns away past the cut-off is given up on the tick it turns.
+function TestVeafSpawnCapAspect:test_a_target_turning_cold_past_the_cutoff_is_given_up()
+  local beyond = veafSpawn.CAP_COLD_CUTOFF + 5000
+  local track = INBOUND
+  local fighter = aFighterNorth(33, beyond, nil)
+  fighter.getVelocity = function()
+    return track
+  end
+  aCapSeeing({ { object = fighter } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(engagedUnitIds(), { 33 })
+
+  track = OUTBOUND
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+  luaunit.assertEquals(#patrolsResumed(), 1, "the chase is dropped by handing the patrol back")
+  luaunit.assertTrue(lastOptionValue(AI.Option.Air.id.PROHIBIT_AA))
+end
+
+--- A target past the cut-off beaming about the cold boundary does not flip in and out every tick.
+---
+--- Engaged inbound, it stays engaged just short of cold; once cold it is dropped, and turning back just
+--- short of cold is not enough to be picked up again — only `CAP_COLD_CUTOFF_HYSTERESIS` further in.
+function TestVeafSpawnCapAspect:test_a_target_about_the_cold_boundary_does_not_flap()
+  local beyond = veafSpawn.CAP_COLD_CUTOFF + 5000
+  -- the CAP is south of the target (towards -x): an angle of `degrees` from the line to it
+  local function awayFromCapAt(degrees)
+    local radians = math.rad(degrees)
+    return { x = -200 * math.cos(radians), y = 0, z = 200 * math.sin(radians) }
+  end
+  local cold = veafSpawn.CAP_ASPECT_COLD_MIN
+  local track = INBOUND
+  local fighter = aFighterNorth(33, beyond, nil)
+  fighter.getVelocity = function()
+    return track
+  end
+  aCapSeeing({ { object = fighter } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+
+  track = awayFromCapAt(cold - 5)
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+  luaunit.assertEquals(#patrolsResumed(), 0, "tracked and not yet cold: kept")
+
+  track = awayFromCapAt(cold + 5)
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 2 + 1)
+  luaunit.assertEquals(#patrolsResumed(), 1, "cold: dropped")
+
+  track = awayFromCapAt(cold - 5)
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+  luaunit.assertEquals(#engagedUnitIds(), 1, "just short of cold is not enough to be picked up again")
+
+  track = awayFromCapAt(cold - veafSpawn.CAP_COLD_CUTOFF_HYSTERESIS - 5)
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 4 + 1)
+  luaunit.assertEquals(#engagedUnitIds(), 2, "turned well in: engaged again")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafSpawnCapSpread — FEAT-CAP-WATCHDOG ticket 02
+--
+-- With several targets, each aircraft of the CAP is given its own, on its own controller. The group
+-- keeps its tasks as before; whether DCS lets the unit's task win is the in-game check of the lot.
+-- ---------------------------------------------------------------------------
+TestVeafSpawnCapSpread = {}
+
+function TestVeafSpawnCapSpread:setUp()
+  dcs_mocks.reset()
+  self.unitTasks = {}
+  self.grounded = {}
+  self.away = {}
+  self.firstId = nil
+  -- module state, not a mock: a spread left by the previous test would read as "unchanged"
+  veafSpawn.capWatchdogAssignments = {}
+end
+
+function TestVeafSpawnCapSpread:tearDown()
+  dcs_mocks.reset()
+  veafSpawn.capWatchdogAssignments = {}
+end
+
+--- A CAP of `count` aircraft, all seeing `detectedObjects`; what reaches each aircraft's own
+--- controller is recorded in `test.unitTasks`, as `{ unit = name, task = task }` or
+--- `{ unit = name, reset = true }`. `test.grounded[name]` takes an aircraft out of the air,
+--- `test.firstId` numbers the units (a respawn has new ids).
+local function aCapOfSeeing(test, count, detectedObjects)
+  local units = {}
+  test.grounded = test.grounded or {}
+  for index = 1, count do
+    local unitName = "cap-" .. index
+    local controller = {
+      getDetectedTargets = function()
+        return detectedObjects
+      end,
+      setTask = function(_self, task)
+        table.insert(test.unitTasks, { unit = unitName, task = task })
+      end,
+      resetTask = function()
+        table.insert(test.unitTasks, { unit = unitName, reset = true })
+      end,
+    }
+    dcs_mocks.addUnit(unitName, {
+      _id = (test.firstId or 100) + index,
+      inAir = function()
+        return not test.grounded[unitName]
+      end,
+      isActive = function()
+        return true
+      end,
+      getPoint = function()
+        if test.away and test.away[unitName] then
+          return { x = 500000, y = 8000, z = 500000 }
+        end
+        return { x = 0, y = 8000, z = 100 * index }
+      end,
+      getController = function()
+        return controller
+      end,
+    })
+    table.insert(units, Unit.getByName(unitName))
+  end
+  dcs_mocks.addGroup("cap", {
+    getUnits = function()
+      return units
+    end,
+    getUnit = function(_self, index)
+      return units[index]
+    end,
+  })
+  veafAircraftSpawn.groupRoutes["cap"] = {
+    { x = -10000, y = 0, alt = 8000, speed = 220, type = "Turning Point", action = "Turning Point" },
+    { x = -10000, y = 0, alt = 8000, speed = 220, type = "Turning Point", action = "Turning Point" },
+    { x = 10000, y = 0, alt = 8000, speed = 220, type = "Turning Point", action = "Turning Point" },
+  }
+end
+
+--- The target each aircraft was last given on its own controller; `false` for one that was reset.
+local function unitTargets(test)
+  local targets = {}
+  for _, entry in ipairs(test.unitTasks) do
+    if entry.reset then
+      targets[entry.unit] = false
+    else
+      targets[entry.unit] = entry.task.params.unitId
+    end
+  end
+  return targets
+end
+
+function TestVeafSpawnCapSpread:test_the_spread_goes_round_the_targets_in_priority_order()
+  local spread = veafSpawn.spreadCapTargets({ "a", "b", "c", "d" }, { { targetId = 1 }, { targetId = 2 } })
+  luaunit.assertEquals(spread, { a = 1, b = 2, c = 1, d = 2 })
+end
+
+function TestVeafSpawnCapSpread:test_one_target_or_one_aircraft_is_not_spread()
+  luaunit.assertEquals(veafSpawn.spreadCapTargets({ "a", "b" }, { { targetId = 1 } }), {})
+  luaunit.assertEquals(veafSpawn.spreadCapTargets({ "a" }, { { targetId = 1 }, { targetId = 2 } }), {})
+end
+
+--- More targets than aircraft: the aircraft take the most important ones.
+function TestVeafSpawnCapSpread:test_more_targets_than_aircraft()
+  local spread = veafSpawn.spreadCapTargets({ "a", "b" }, { { targetId = 1 }, { targetId = 2 }, { targetId = 3 } })
+  luaunit.assertEquals(spread, { a = 1, b = 2 })
+end
+
+--- The acceptance of the ticket: a two-ship facing two bandits sends one at each.
+function TestVeafSpawnCapSpread:test_a_two_ship_facing_two_bandits_goes_for_both()
+  aCapOfSeeing(self, 2, { { object = aFighter(33) }, { object = aFighter(34) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  local targets = unitTargets(self)
+  luaunit.assertNotNil(targets["cap-1"])
+  luaunit.assertNotNil(targets["cap-2"])
+  luaunit.assertNotEquals(targets["cap-1"], targets["cap-2"], "not both on the same one")
+  luaunit.assertEquals(#engagedUnitIds(), 2, "the group keeps its own tasks, as before")
+end
+
+--- The other half of the acceptance: one bandit, nothing on the aircraft's own controllers.
+function TestVeafSpawnCapSpread:test_one_bandit_leaves_the_aircraft_controllers_alone()
+  aCapOfSeeing(self, 2, { { object = aFighter(33) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#self.unitTasks, 0)
+  luaunit.assertEquals(engagedUnitIds(), { 33 })
+end
+
+--- A spread that does not change touches nothing: the accumulation of 2026-10-03, at unit level.
+function TestVeafSpawnCapSpread:test_an_unchanged_spread_is_not_set_again()
+  aCapOfSeeing(self, 2, { { object = aFighter(33) }, { object = aFighter(34) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+  luaunit.assertEquals(#self.unitTasks, 2, "one task per aircraft, once")
+end
+
+--- Down to one bandit: the aircraft give their own task back and follow the group's again.
+function TestVeafSpawnCapSpread:test_down_to_one_bandit_the_aircraft_are_reset()
+  local sky = { { object = aFighter(33) }, { object = aFighter(34) } }
+  aCapOfSeeing(self, 2, sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  sky[2] = nil
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+  luaunit.assertEquals(unitTargets(self), { ["cap-1"] = false, ["cap-2"] = false })
+end
+
+--- A rebuild sets the group's task anew; the aircraft are given theirs again on top of it, even
+--- unchanged, in case the group's task took them back.
+function TestVeafSpawnCapSpread:test_a_rebuild_sets_the_spread_again()
+  local sky = { { object = aFighter(33) }, { object = aFighter(34) }, { object = aFighter(35) } }
+  aCapOfSeeing(self, 2, sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#self.unitTasks, 2)
+  sky[3] = nil -- the least important one leaves: the spread does not change, the group is rebuilt
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY * 3 + 1)
+  luaunit.assertEquals(#patrolsResumed(), 1)
+  luaunit.assertEquals(#self.unitTasks, 4, "both aircraft given their target again, once")
+end
+
+--- A wingman that lands while the leader fights is reset, not left on its old target.
+function TestVeafSpawnCapSpread:test_a_wingman_that_lands_is_reset()
+  aCapOfSeeing(self, 3, { { object = aFighter(33) }, { object = aFighter(34) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  self.grounded["cap-3"] = true
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+  luaunit.assertEquals(unitTargets(self)["cap-3"], false)
+end
+
+--- An aircraft out of the zone while the others are in it is given no target of its own.
+function TestVeafSpawnCapSpread:test_an_aircraft_out_of_the_zone_gets_no_target()
+  self.away["cap-3"] = true
+  aCapOfSeeing(self, 3, { { object = aFighter(33) }, { object = aFighter(34) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  local targets = unitTargets(self)
+  luaunit.assertNil(targets["cap-3"])
+  luaunit.assertNotEquals(targets["cap-1"], targets["cap-2"])
+end
+
+--- A group respawned under the same names has new aircraft: they are given their targets.
+function TestVeafSpawnCapSpread:test_a_group_respawned_under_the_same_names_gets_its_targets()
+  local sky = { { object = aFighter(33) }, { object = aFighter(34) } }
+  aCapOfSeeing(self, 2, sky)
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  luaunit.assertEquals(#self.unitTasks, 2)
+  self.firstId = 200
+  aCapOfSeeing(self, 2, sky)
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+  luaunit.assertEquals(#self.unitTasks, 4, "the new aircraft are given their targets")
+end
+
+--- Out of its zone, nobody chases: the aircraft's own tasks go too.
+function TestVeafSpawnCapSpread:test_out_of_its_zone_the_aircraft_are_reset()
+  aCapOfSeeing(self, 2, { { object = aFighter(33) }, { object = aFighter(34) } })
+  veafSpawn.startCapWatchdog("cap", coalition.side.RED, CAP_ZONE)
+  veafSpawn.capWatchdogZones["cap"] = { x = 500000, y = 500000, radius = 1000 }
+  dcs_mocks.runScheduled(veafSpawn.CAP_WATCHDOG_DELAY + 1)
+  luaunit.assertEquals(unitTargets(self), { ["cap-1"] = false, ["cap-2"] = false })
+  veafSpawn.capWatchdogZones["cap"] = nil
+end
+
+--- Unit names handed to DCS by `_createDcsUnits` (FIX-DUPLICATE-UNIT-NAMES).
+-- Two units of one type used to share a name: DCS then resolves neither by name, and `-menage`
+-- (`_destroy` by radius, keyed by name) left both alive.
+TestVeafSpawnUnitNames = {}
+
+function TestVeafSpawnUnitNames:setUp()
+  self._savedAddGroup = veaf.addGroup
+  self._savedCheckPosition = veafUnits.checkPositionForUnit
+  self._savedSettleGroup = veafUnits.settleGroup
+  self._savedHideType = veafSpawn.HideTypeFromGroupNames
+  self.added = {}
+  veaf.addGroup = function(group)
+    table.insert(self.added, group)
+  end
+  veafUnits.checkPositionForUnit = function()
+    return true
+  end
+  veafUnits.settleGroup = function()
+    return 0
+  end
+end
+
+function TestVeafSpawnUnitNames:tearDown()
+  veaf.addGroup = self._savedAddGroup
+  veafUnits.checkPositionForUnit = self._savedCheckPosition
+  veafUnits.settleGroup = self._savedSettleGroup
+  veafSpawn.HideTypeFromGroupNames = self._savedHideType
+end
+
+local function aTank(x)
+  return { typeName = "T-72B", displayName = "MBT T-72B", spawnPoint = { x = x, y = 0, z = 0, hdg = 0 } }
+end
+
+function TestVeafSpawnUnitNames:_spawnedNames()
+  veafSpawn._createDcsUnits("RUSSIA", { aTank(0), aTank(20) }, "[r]-Armored Platoon#10344", false, false, true)
+  luaunit.assertEquals(#self.added, 1)
+  local names = {}
+  for _, unit in ipairs(self.added[1].units) do
+    table.insert(names, unit.name)
+  end
+  return names
+end
+
+function TestVeafSpawnUnitNames:test_two_units_of_one_type_get_distinct_names()
+  veafSpawn.HideTypeFromGroupNames = false
+  luaunit.assertEquals(self:_spawnedNames(), {
+    "[r]-Armored Platoon#10344 - MBT T-72B #1",
+    "[r]-Armored Platoon#10344 - MBT T-72B #2",
+  })
+end
+
+function TestVeafSpawnUnitNames:test_names_stay_distinct_when_the_type_is_hidden()
+  veafSpawn.HideTypeFromGroupNames = true
+  luaunit.assertEquals(self:_spawnedNames(), {
+    "[r]-Armored Platoon#10344 #1",
+    "[r]-Armored Platoon#10344 #2",
+  })
 end
 
 os.exit(luaunit.LuaUnit.run())

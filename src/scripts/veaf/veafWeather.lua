@@ -1020,6 +1020,83 @@ function FgWeather.CreateMetarMark(mooseCoord, mooseGroup)
 end
 ]]
 ---------------------------------------------------------------------------------------------------
+---  The airfield's tower frequencies (FEAT-AIRFIELD-FREQS-IN-ATIS)
+---------------------------------------------------------------------------------------------------
+
+--- In the order a pilot dials them, with the name he reads on his radio.
+local _ATC_BANDS = { { "uhf", "UHF" }, { "vhf", "VHF" }, { "fm", "FM" } }
+
+--- "260.000 UHF / 131.000 VHF", or nil when no band is given. Three decimals, always: 126.525 is a real
+--- tower frequency, and a radio displays 251.000 rather than 251.
+local function _formatAtcFrequencies(freqs)
+  local parts = {}
+  for _, band in ipairs(_ATC_BANDS) do
+    local nMhz = freqs[band[1]]
+    if nMhz then
+      parts[#parts + 1] = string.format("%.3f %s", nMhz, band[2])
+    end
+  end
+  if #parts == 0 then
+    return nil
+  end
+  return table.concat(parts, " / ")
+end
+
+--- Whether every band the mission's channel gives is the tower's own — then it says nothing new.
+local function _repeatsTheTower(channel, tower)
+  for _, band in ipairs(_ATC_BANDS) do
+    local nMhz = channel[band[1]]
+    if nMhz and not (tower[band[1]] and math.abs(nMhz - tower[band[1]]) < 0.0005) then
+      return false
+    end
+  end
+  return true
+end
+
+--- How to call an airfield's tower: its frequencies and TACAN as DCS gives them, and on a second line the
+--- mission's own channel for it when the radio plan has one that differs (David's decision, 2026-10-01: a
+--- mission that gave the field its own frequency would otherwise hear one tower here and read another on
+--- its kneeboard). The channel is named by its title, what the pilot's presets show.
+---
+--- A mission that silenced ATC (`veaf.silenceAtcOnAllAirbases`) leaves a tower that answers nobody: its
+--- frequency then gives way to the mission's channel. When the mission has no channel for the field —
+--- the common case — the DCS frequency is still all there is, so it is given (David, 2026-10-04).
+---
+--- @param veafAirbase table the airbase
+--- @return string|nil the line(s), or nil for a ship, a FARP or a field DCS gives no frequency — never an
+---   empty or invented line
+function veafWeather.getAtcFrequenciesString(veafAirbase)
+  local tower = veafAirbases.getAtcFrequencies(veafAirbase)
+  local sTower = tower and _formatAtcFrequencies(tower)
+  if not sTower then
+    return nil
+  end
+  local sLine = veaf.t("weather.atc_tower", sTower)
+  if tower.tacan then
+    sLine = sLine .. veaf.t("weather.atc_tacan", tower.tacan)
+  end
+  local channel = veafAirbases.getMissionChannel(veafAirbase)
+  local sChannel = channel and _formatAtcFrequencies(channel)
+  if not sChannel or _repeatsTheTower(channel, tower) then
+    return sLine
+  end
+  local sChannelLine = veaf.t("weather.atc_mission_channel", channel.title or channel.alias, sChannel)
+  if veafAirbase.DcsAirbase:getRadioSilentMode() then
+    return sChannelLine
+  end
+  return sLine .. "\n" .. sChannelLine
+end
+
+--- `sMessage`, followed on a new line by the airfield's tower when there is one to give.
+local function _withAtcFrequencies(sMessage, veafAirbase)
+  local sAtc = veafWeather.getAtcFrequenciesString(veafAirbase)
+  if not sAtc then
+    return sMessage
+  end
+  return sMessage .. "\n" .. sAtc
+end
+
+---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 ---  ATIS management class
 ---  Simulation of the recording of an ATIS information per hour per airfield
@@ -1095,7 +1172,7 @@ function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
     end
   end
 
-  sMessage = sMessage .. "\n" .. weatherData:toStringAtis(unitSystem)
+  sMessage = _withAtcFrequencies(sMessage .. "\n" .. weatherData:toStringAtis(unitSystem), veafAirbase)
   --sMessage = sMessage .. "\n" .. weatherData:toStringExtended()
 
   local this = {
@@ -1549,24 +1626,52 @@ function VeafFog:dynamicCheck()
     veaf.scheduleFunction(VeafFog.dynamicCheck, { self }, timer.getTime() + VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS)
 end
 
-function veafWeather.createStaticFog(name, thickness, visibility)
+--- The title of a fog preset in the mission's language, built when the menu is: the presets are
+--- created when the script loads, before the mission configuration sets the language.
+function VeafFog:getTitle()
+  if not self.titleKey then
+    return self.name
+  end
+  local level = veaf.t("weather.fog_density." .. self.density)
+  if self.minutes then
+    return veaf.t(self.titleKey, level, veafWeather.fogDuration(self.minutes))
+  end
+  return veaf.t(self.titleKey, level)
+end
+
+--- « 1 minute », « 5 minutes », in the mission's language.
+function veafWeather.fogDuration(minutes)
+  if minutes == 1 then
+    return veaf.t("weather.fog_one_minute")
+  end
+  return veaf.t("weather.fog_minutes", minutes)
+end
+
+function veafWeather.createStaticFog(name, thickness, visibility, density)
   local fog = VeafFog:new()
   fog.name = name
+  fog.titleKey = "menu.weather.fog_static_level"
+  fog.density = density
   fog.fogStaticData = { thickness = thickness, visibility = visibility }
   return fog
 end
 
-function veafWeather.createDynamicFog(name, baseFactor, notAnimated)
+function veafWeather.createDynamicFog(name, baseFactor, notAnimated, density)
   local fog = VeafFog:new()
   fog.name = name
+  fog.titleKey = "menu.weather.fog_dynamic_level"
+  fog.density = density
   fog.dynamicFogBaseFactor = baseFactor
   fog.dynamicFogIsAnimated = not notAnimated
   return fog
 end
 
-function veafWeather.createAnimatedFog(name, minutes, thickness, visibility)
+function veafWeather.createAnimatedFog(name, minutes, thickness, visibility, density)
   local fog = VeafFog:new()
   fog.name = name
+  fog.titleKey = "menu.weather.fog_animated_level"
+  fog.density = density
+  fog.minutes = minutes
   fog.forAnimationData = { minutes * 60, visibility, thickness }
   return fog
 end
@@ -1586,38 +1691,39 @@ function veafWeather.setAndActivateFog(fogObject)
   veafWeather.existingFog = fogObject
   fogObject:enable()
 
-  trigger.action.outText(veaf.t("weather.fog_set", fogObject.name), 5)
+  trigger.action.outText(veaf.t("weather.fog_set", fogObject:getTitle()), 5)
 
   return fogObject
 end
 
 -- dynamically managed fog instances
-veafWeather.FOG_DYNAMIC_HEAVY = veafWeather.createDynamicFog("Dynamic HEAVY fog", VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY)
-veafWeather.FOG_DYNAMIC_MEDIUM = veafWeather.createDynamicFog("Dynamic MEDIUM fog", VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM)
-veafWeather.FOG_DYNAMIC_SPARSE = veafWeather.createDynamicFog("Dynamic SPARSE fog", VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE)
+veafWeather.FOG_DYNAMIC_HEAVY = veafWeather.createDynamicFog("Dynamic HEAVY fog", VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY, nil, "heavy")
+veafWeather.FOG_DYNAMIC_MEDIUM = veafWeather.createDynamicFog("Dynamic MEDIUM fog", VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM, nil, "medium")
+veafWeather.FOG_DYNAMIC_SPARSE = veafWeather.createDynamicFog("Dynamic SPARSE fog", VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE, nil, "sparse")
 
 -- static fog instances
-veafWeather.FOG_STATIC_HEAVY = veafWeather.createStaticFog("Static HEAVY fog", 500, 100)
-veafWeather.FOG_STATIC_MEDIUM = veafWeather.createStaticFog("Static MEDIUM fog", 500, 500)
-veafWeather.FOG_STATIC_MEDIUM_LOW = veafWeather.createStaticFog("Static MEDIUM LOW fog", 100, 500)
-veafWeather.FOG_STATIC_SPARSE = veafWeather.createStaticFog("Static SPARSE fog", 500, 5000)
-veafWeather.FOG_STATIC_SPARSE_LOW = veafWeather.createStaticFog("Static SPARSE LOW fog", 100, 5000)
-veafWeather.FOG_STATIC_NO = veafWeather.createStaticFog("Static NO fog", 0, 0)
+veafWeather.FOG_STATIC_HEAVY = veafWeather.createStaticFog("Static HEAVY fog", 500, 100, "heavy")
+veafWeather.FOG_STATIC_MEDIUM = veafWeather.createStaticFog("Static MEDIUM fog", 500, 500, "medium")
+veafWeather.FOG_STATIC_MEDIUM_LOW = veafWeather.createStaticFog("Static MEDIUM LOW fog", 100, 500, "medium_low")
+veafWeather.FOG_STATIC_SPARSE = veafWeather.createStaticFog("Static SPARSE fog", 500, 5000, "sparse")
+veafWeather.FOG_STATIC_SPARSE_LOW = veafWeather.createStaticFog("Static SPARSE LOW fog", 100, 5000, "sparse_low")
+veafWeather.FOG_STATIC_NO = veafWeather.createStaticFog("Static NO fog", 0, 0, "no")
 
 -- animated fog instances
 for _, minutes in pairs({ 1, 5, 10, 15, 30, 60, 90 }) do
-  local overMinutesText = string.format(" over %d minutes", minutes)
+  local overMinutesText = minutes == 1 and " over 1 minute" or string.format(" over %d minutes", minutes)
   veafWeather["FOG_ANIMATED_" .. minutes .. "M_HEAVY"] =
-    veafWeather.createAnimatedFog("Animated HEAVY fog" .. overMinutesText, minutes, 500, 100)
+    veafWeather.createAnimatedFog("Animated HEAVY fog" .. overMinutesText, minutes, 500, 100, "heavy")
   veafWeather["FOG_ANIMATED_" .. minutes .. "M_MEDIUM"] =
-    veafWeather.createAnimatedFog("Animated MEDIUM fog" .. overMinutesText, minutes, 500, 500)
+    veafWeather.createAnimatedFog("Animated MEDIUM fog" .. overMinutesText, minutes, 500, 500, "medium")
   veafWeather["FOG_ANIMATED_" .. minutes .. "M_MEDIUM_LOW"] =
-    veafWeather.createAnimatedFog("Animated MEDIUM LOW fog" .. overMinutesText, minutes, 100, 500)
+    veafWeather.createAnimatedFog("Animated MEDIUM LOW fog" .. overMinutesText, minutes, 100, 500, "medium_low")
   veafWeather["FOG_ANIMATED_" .. minutes .. "M_SPARSE"] =
-    veafWeather.createAnimatedFog("Animated SPARSE fog" .. overMinutesText, minutes, 500, 5000)
+    veafWeather.createAnimatedFog("Animated SPARSE fog" .. overMinutesText, minutes, 500, 5000, "sparse")
   veafWeather["FOG_ANIMATED_" .. minutes .. "M_SPARSE_LOW"] =
-    veafWeather.createAnimatedFog("Animated SPARSE LOW fog" .. overMinutesText, minutes, 100, 5000)
-  veafWeather["FOG_ANIMATED_" .. minutes .. "M_NO"] = veafWeather.createAnimatedFog("Animated NO fog" .. overMinutesText, minutes, 0, 0)
+    veafWeather.createAnimatedFog("Animated SPARSE LOW fog" .. overMinutesText, minutes, 100, 5000, "sparse_low")
+  veafWeather["FOG_ANIMATED_" .. minutes .. "M_NO"] =
+    veafWeather.createAnimatedFog("Animated NO fog" .. overMinutesText, minutes, 0, 0, "no")
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -1655,21 +1761,21 @@ function veafWeather.buildRadioMenu()
 
   local dynamicFogPath = veafRadio.addSubMenu(veaf.t("menu.weather.fog_dynamic"), fogPath)
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_DYNAMIC_HEAVY.name,
+    veafWeather.FOG_DYNAMIC_HEAVY:getTitle(),
     dynamicFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_DYNAMIC_HEAVY,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_DYNAMIC_MEDIUM.name,
+    veafWeather.FOG_DYNAMIC_MEDIUM:getTitle(),
     dynamicFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_DYNAMIC_MEDIUM,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_DYNAMIC_SPARSE.name,
+    veafWeather.FOG_DYNAMIC_SPARSE:getTitle(),
     dynamicFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_DYNAMIC_SPARSE,
@@ -1678,45 +1784,44 @@ function veafWeather.buildRadioMenu()
 
   local animatedFogPath = veafRadio.addSubMenu(veaf.t("menu.weather.fog_animated"), fogPath)
   for _, minutes in pairs({ 1, 5, 10, 15, 30, 60, 90 }) do
-    local overMinutesText = string.format(" over %d minutes", minutes)
-    local _path = veafRadio.addSubMenu(veaf.t("menu.weather.fog_animated_over", minutes), animatedFogPath)
+    local _path = veafRadio.addSubMenu(veaf.t("menu.weather.fog_animated_over", veafWeather.fogDuration(minutes)), animatedFogPath)
     veafRadio.addSecuredCommandToSubmenu(
-      veafWeather["FOG_ANIMATED_" .. minutes .. "M_HEAVY"].name,
+      veafWeather["FOG_ANIMATED_" .. minutes .. "M_HEAVY"]:getTitle(),
       _path,
       veafWeather.setAndActivateFog,
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_HEAVY"],
       veafRadio.USAGE_ForAll
     )
     veafRadio.addSecuredCommandToSubmenu(
-      veafWeather["FOG_ANIMATED_" .. minutes .. "M_MEDIUM"].name,
+      veafWeather["FOG_ANIMATED_" .. minutes .. "M_MEDIUM"]:getTitle(),
       _path,
       veafWeather.setAndActivateFog,
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_MEDIUM"],
       veafRadio.USAGE_ForAll
     )
     veafRadio.addSecuredCommandToSubmenu(
-      veafWeather["FOG_ANIMATED_" .. minutes .. "M_MEDIUM_LOW"].name,
+      veafWeather["FOG_ANIMATED_" .. minutes .. "M_MEDIUM_LOW"]:getTitle(),
       _path,
       veafWeather.setAndActivateFog,
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_MEDIUM_LOW"],
       veafRadio.USAGE_ForAll
     )
     veafRadio.addSecuredCommandToSubmenu(
-      veafWeather["FOG_ANIMATED_" .. minutes .. "M_SPARSE"].name,
+      veafWeather["FOG_ANIMATED_" .. minutes .. "M_SPARSE"]:getTitle(),
       _path,
       veafWeather.setAndActivateFog,
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_SPARSE"],
       veafRadio.USAGE_ForAll
     )
     veafRadio.addSecuredCommandToSubmenu(
-      veafWeather["FOG_ANIMATED_" .. minutes .. "M_SPARSE_LOW"].name,
+      veafWeather["FOG_ANIMATED_" .. minutes .. "M_SPARSE_LOW"]:getTitle(),
       _path,
       veafWeather.setAndActivateFog,
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_SPARSE_LOW"],
       veafRadio.USAGE_ForAll
     )
     veafRadio.addSecuredCommandToSubmenu(
-      veafWeather["FOG_ANIMATED_" .. minutes .. "M_NO"].name,
+      veafWeather["FOG_ANIMATED_" .. minutes .. "M_NO"]:getTitle(),
       _path,
       veafWeather.setAndActivateFog,
       veafWeather["FOG_ANIMATED_" .. minutes .. "M_NO"],
@@ -1726,42 +1831,42 @@ function veafWeather.buildRadioMenu()
 
   local staticFogPath = veafRadio.addSubMenu(veaf.t("menu.weather.fog_static"), fogPath)
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_STATIC_HEAVY.name,
+    veafWeather.FOG_STATIC_HEAVY:getTitle(),
     staticFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_STATIC_HEAVY,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_STATIC_MEDIUM.name,
+    veafWeather.FOG_STATIC_MEDIUM:getTitle(),
     staticFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_STATIC_MEDIUM,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_STATIC_MEDIUM_LOW.name,
+    veafWeather.FOG_STATIC_MEDIUM_LOW:getTitle(),
     staticFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_STATIC_MEDIUM_LOW,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_STATIC_SPARSE.name,
+    veafWeather.FOG_STATIC_SPARSE:getTitle(),
     staticFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_STATIC_SPARSE,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_STATIC_SPARSE_LOW.name,
+    veafWeather.FOG_STATIC_SPARSE_LOW:getTitle(),
     staticFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_STATIC_SPARSE_LOW,
     veafRadio.USAGE_ForAll
   )
   veafRadio.addSecuredCommandToSubmenu(
-    veafWeather.FOG_STATIC_NO.name,
+    veafWeather.FOG_STATIC_NO:getTitle(),
     staticFogPath,
     veafWeather.setAndActivateFog,
     veafWeather.FOG_STATIC_NO,
@@ -1924,9 +2029,9 @@ function veafWeather.buildWelcomeBrief(dcsUnit)
 
   local sRunway = veafAirbaseNear:getRunwayInServiceString(weatherData.WindDirection)
   if veaf.isNullOrEmpty(sRunway) then
-    return veaf.t("weather.welcome_brief_no_runway", sName, sWeather)
+    return _withAtcFrequencies(veaf.t("weather.welcome_brief_no_runway", sName, sWeather), veafAirbaseNear)
   end
-  return veaf.t("weather.welcome_brief", sName, sRunway, sWeather)
+  return _withAtcFrequencies(veaf.t("weather.welcome_brief", sName, sRunway, sWeather), veafAirbaseNear)
 end
 
 --- Show the brief to the player who just took a slot.

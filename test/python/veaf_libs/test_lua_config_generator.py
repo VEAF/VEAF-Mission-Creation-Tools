@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import typer
+from lua_runner import run_lua
 from veaf_libs.lua_config_generator import (
     MANDATORY_MODULES,
     RADIO_MENU_ACTIONS,
@@ -962,6 +963,10 @@ def _fully_populated_airwave_zone() -> dict:
         "waves": [{"groups": "Wave1", "delay": 10, "number": "2", "bias": 1}],
         "minimum_life_percent": 50,
         "reset_when_dying": True,
+        "follow_unit": "CVN-74",
+        "links": ["Maykop"],
+        "closed_once_active": True,
+        "max_seconds_outside_players": 40,
         "start": True,
     }
 
@@ -1186,13 +1191,52 @@ def test_action_airwave_verbs_guarded():
         assert f"o:{verb}()" in call
 
 
-def test_action_lua_reference_without_args():
-    assert _emit_action_call({"action": "lua", "function": "maMission.doStuff"}) == "maMission.doStuff"
+def test_action_lua_resolves_the_function_at_click_time():
+    # A closure, not a bare reference: `veaf-config.lua` loads before `mission-script.lua`, where
+    # the documentation tells the maker to define the function (FIX-DEMO-MISSION-FINDINGS 01).
+    call = _emit_action_call({"action": "lua", "function": "maMission.doStuff"})
+    assert call == "function(...) return maMission.doStuff(...) end"
 
 
-def test_action_lua_reference_with_args():
+def test_action_lua_args_follow_the_closure():
     call = _emit_action_call({"action": "lua", "function": "maMission.doStuff", "args": [1, "x"]})
-    assert call == 'maMission.doStuff, {1, "x"}'
+    assert call == 'function(...) return maMission.doStuff(...) end, {1, "x"}'
+
+
+_RADIO_STUBS = """
+veafRadio = {}
+function veafRadio.command(name, fn, parameters) return { "command", name, fn, parameters } end
+function veafRadio.securedCommand(name, fn, parameters) return { "securedcommand", name, fn, parameters } end
+function veafRadio.mainmenu(...) return { ... } end
+function veafRadio.menu(name, ...) return { "menu", name, { ... } } end
+function veafRadio.createUserMenu(configuration) captured = configuration end
+"""
+
+
+@pytest.mark.parametrize(
+    ("item", "expected"),
+    [
+        ({"command": "Run", "action": "lua", "function": "demo.spawnCsar"}, "nil"),
+        ({"command": "Run", "action": "lua", "function": "demo.spawnCsar", "args": [1, "x"]}, "1/x"),
+    ],
+)
+def test_lua_action_survives_a_function_defined_after_the_config(item: dict, expected: str) -> None:
+    """The demo mission's whole config stopped at this line: `attempt to index global 'demo'`."""
+    menu = "\n".join(_emit_user_menus({"tree": [item]}))
+    # What veafRadio does at click time: call the function with the command's parameters.
+    source = (
+        _RADIO_STUBS
+        + menu
+        + "\n-- mission-script.lua, loaded after veaf-config.lua\n"
+        + "demo = {}\n"
+        + "function demo.spawnCsar(p) called = p and (p[1] .. '/' .. p[2]) or 'nil' end\n"
+        + "local command = captured[1]\n"
+        + "command[3](command[4])\n"
+        + "print(called)\n"
+    )
+    result = run_lua(source)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == expected
 
 
 def test_action_unknown_raises():
@@ -1932,3 +1976,65 @@ def test_combatzone_includes_must_be_a_list():
     """A bare string would otherwise be read one letter at a time."""
     with pytest.raises(ValueError, match="includes.*list"):
         generate_config_lua(_combatzones_yaml({"zone_name": "A", "includes": "B"}, {"zone_name": "B"}))
+
+
+# ---------------------------------------------------------------------------
+# The mission's airfield channels, for the ATIS and the welcome brief (FEAT-AIRFIELD-FREQS-IN-ATIS 03)
+# ---------------------------------------------------------------------------
+
+
+def test_mission_channels_are_written_for_the_scripts():
+    lua = generate_config_lua(
+        {},
+        mission_channels={
+            22: {"alias": "Base-Batumi", "title": 'Batumi "16X"', "freqs": {"uhf": 270.3, "vhf": 130.3}},
+        },
+    )
+    assert "veafAirbases.MissionChannels = {" in lua
+    assert '[22] = { alias = "Base-Batumi", title = "Batumi \\"16X\\"", uhf = 270.3, vhf = 130.3 },' in lua
+
+
+def test_no_mission_channel_no_block():
+    assert "MissionChannels" not in generate_config_lua({})
+    assert "MissionChannels" not in generate_config_lua({}, mission_channels={})
+
+
+# ---------------------------------------------------------------------------
+# One module's init error does not stop the others (FIX-DEMO-MISSION-FINDINGS 02)
+# ---------------------------------------------------------------------------
+
+# Any global the generated file touches and the test does not care about answers with a table that
+# accepts every call and index, so the file runs end to end on nothing but these lines.
+_AUTO_STUBS = """
+local function auto()
+    return setmetatable({}, { __index = function() return auto() end, __call = function() return auto() end })
+end
+setmetatable(_G, { __index = function() return auto() end })
+initialized = {}
+local function module(name, fails)
+    return { initialize = function()
+        if fails then error(name .. " exploded") end
+        initialized[#initialized + 1] = name
+    end }
+end
+veaf = setmetatable({ Id = "VEAF", config = {}, setConfig = function() end, loggers = {
+    get = function() return { error = function(_, text, ...) print("ERROR " .. string.format(text, ...)) end } end,
+} }, { __index = function() return auto() end })
+veafRadio = module("RADIO")
+veafNamedPoints = module("NAMEDPOINTS", true)
+veafSpawn = module("SPAWN")
+veafCommands = module("COMMANDS")
+"""
+
+
+def test_a_module_that_raises_does_not_stop_the_ones_after_it() -> None:
+    """On the demo mission a CTLD init error left no combat zone, QRA, asset or IADS."""
+    config = generate_config_lua({"lua_modules": {"NAMEDPOINTS": {}, "SPAWN": {}, "RADIO": {}}})
+    result = run_lua(_AUTO_STUBS + config + "\nprint('INITIALIZED ' .. table.concat(initialized, ','))\n")
+
+    assert result.returncode == 0, result.stderr
+    assert "INITIALIZED RADIO,SPAWN,COMMANDS" in result.stdout
+    error_lines = [line for line in result.stdout.splitlines() if line.startswith("ERROR")]
+    assert len(error_lines) == 1
+    assert error_lines[0].startswith("ERROR NAMEDPOINTS init failed:")
+    assert "NAMEDPOINTS exploded" in error_lines[0]

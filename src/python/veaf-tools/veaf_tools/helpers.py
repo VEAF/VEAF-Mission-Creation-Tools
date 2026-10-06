@@ -162,9 +162,12 @@ def _is_double_clicked() -> bool:
 
     Walks up the process tree to handle PyInstaller one-file exes, where the
     direct parent is the bootloader subprocess rather than explorer.exe.
-    Returns False on non-Windows systems and when stdout is redirected (CI / pipe).
+    Returns False on non-Windows systems and when stdout or stdin is redirected (CI / pipe).
+
+    stdin is checked too because Windows answers ``isatty()`` true for the ``NUL`` device: a build
+    run as ``… > /dev/null`` from Git Bash passed for a double-click (FIX-DEMO-MISSION-FINDINGS 04).
     """
-    if not sys.stdout.isatty():
+    if not sys.stdout.isatty() or not sys.stdin.isatty():
         return False
     if sys.platform != "win32":
         return False
@@ -207,6 +210,22 @@ def should_auto_pause() -> bool:
     if os.environ.get(NO_PAUSE_ENV_VAR, "").strip().lower() in _TRUTHY:
         return False
     return _is_double_clicked()
+
+
+def pause_before_exit(message: str) -> None:
+    """Wait for Enter before the window closes, or return at once when nobody can press it.
+
+    ``input()`` raises ``EOFError`` on a closed or null stdin. Raised in the ``finally`` that calls
+    this, it replaced the command's own exit code with 1: a build that had written its ``.miz`` read
+    as failed to any script testing the code (FIX-DEMO-MISSION-FINDINGS ticket 04).
+
+    Args:
+        message: The prompt shown to the user.
+    """
+    try:
+        input(message)
+    except EOFError:
+        pass
 
 
 def _read_single_char() -> str:

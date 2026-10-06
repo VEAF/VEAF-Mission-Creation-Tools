@@ -283,6 +283,25 @@ report now use.
 completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
 FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
 
+### `Unit.getByName` answers nil for units that share a name {#unit-getbyname-misses-units-sharing-a-name}
+
+Measured **2026-10-06**.
+
+DCS accepts two units with the same name — it spawns both — but then resolves neither by that name.
+On the v6 demo test mission, `[r]-Armored Platoon#10344` held two units both named
+`[r]-Armored Platoon#10344 - MBT T-72B` (ids 200108 and 200109): `Unit.getByName` of that name
+returned **nil**, and `veaf.findUnitsInCircle`, whose result is keyed by name, returned it once.
+A first reading on 2026-10-05 blamed the « [CH] » vehicle pack; the units it could not resolve had
+duplicate names.
+
+**What to do:** Give every unit a unique name — `veafSpawnGround` numbers them `<group> - <type> #<n>` since
+FIX-DUPLICATE-UNIT-NAMES. And once you hold the object — from `coalition.getGroups`,
+`Group:getUnits`, a search — act on the object rather than looking it up again by name, as
+`veafSpawn.destroy` (radius) and `veafMove.changeTanker` do since FIX-DEMO-RECETTE-FINDINGS.
+
+*What it cost:* `_destroy, radius 2000` (`-menage`) left both tanks alive at 1 358 m and 1 405 m: the name lookup
+missed them, and nothing said so.
+
 ### An aircraft spawned with a single waypoint and no task lands at the nearest airfield {#aircraft-at-the-end-of-its-route-lands}
 
 Measured **2026-10-01**.
@@ -429,6 +448,26 @@ Measured **2026-09-21**.
 parenting a battery also sees everything the battery would.
 
 **What to do:** Plan the network around those two types.
+
+### An AWACS can hold a contact for minutes flagged `DLINK` only, which Skynet does not read {#awacs-contact-radar-flag-comes-and-goes}
+
+Measured **2026-10-05**.
+
+`Controller:getDetectedTargets(Controller.Detection.RADAR)` on an AI A-50 leaves out contacts the
+same call without a filter returns. A blue KC-135 82 km from the A-50, at 24 000 ft, was in its
+list from t = 6 s but flagged `DLINK` only in every reading up to t = 239 s, and `RADAR` at
+t = 269 s — while a C-130 and a second KC-135 spawned next to it, and an E-3A spawned 60 km from
+the A-50, were flagged `RADAR` within a minute. Skynet asks for `RADAR` only, so for those minutes the AWACS fed the IADS
+nothing about that aircraft. The A-50's radar range, as `getSensors` declares it, is 204 462 m
+(55G6: 267 496 m), and Skynet reads it correctly.
+
+**What to do:** Do not read one sample of a contact's detection flag as a property of the radar: read it over
+several minutes. Do not count on an AWACS to report a given aircraft to Skynet the moment it
+holds it: the same contact can stay invisible to the IADS for minutes.
+
+*What it cost:* Read at t = 6 and t = 78 alone, it looked like "an AWACS only reports datalink contacts", and
+was announced as the cause of three blind A-50s (INVESTIGATE-SKYNET-AWACS-BLIND) before a later
+reading refuted it.
 
 ### A battery lights up only when the contact is in *its own* envelope {#battery-wakes-in-its-own-envelope}
 

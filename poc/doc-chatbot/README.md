@@ -21,7 +21,7 @@ MkDocs page (static, public)
        │    (binary Float32 index loaded from KV, L2-normalized → cosine = dot product)
        │  • injects only the top-K passages (~few k tokens) into the prompt
        ▼
-  Google Gemini API (free tier, gemini-2.5-flash-lite) → token stream
+  Google Gemini API (free tier, gemini-2.5-flash-lite, then the fallback chain) → token stream
 ```
 
 **Why RAG.** Injecting the *whole* doc set (~100k tokens/request) hit the Gemini free-tier
@@ -132,7 +132,12 @@ more — it never reaches Gemini, so it costs no quota. What it cannot see is th
 cd poc/doc-chatbot/worker
 node scripts/replay-answers.mjs                     # every case
 node scripts/replay-answers.mjs --case csar-aircrafttype-fr
+node scripts/replay-answers.mjs --model gemma-4-31b-it   # one model of the chain, alone
 ```
+
+`--model` pins one entry of `MODEL_CHAIN` and the Worker asks it with no fallback, so the run measures that model.
+Without it, the Worker answers with whichever model still has allowance today.
+A fallback is replayed this way before the chain relies on it.
 
 No secret: it declares the `cli` client mode, which needs none. Three exit codes, because "no case
 failed" and "no case was asked" must not look alike: **0** at least one case answered and none
@@ -203,7 +208,7 @@ bucket, which is strict rather than lax and is left as is.
 
 | Constant | Default | Meaning |
 |----------|---------|---------|
-| `MODEL` | `gemini-2.5-flash-lite` | Gemini generation model (2.0-flash-lite is deprecated) |
+| `MODEL_CHAIN` | `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemma-4-26b-a4b-it`, `gemma-4-31b-it` | Generation models, asked in order — see the fallback note below |
 | `EMBED_MODEL` / `EMBED_DIMS` | `gemini-embedding-001` / `768` | Embedding model + dims (must match the built index) |
 | `TOP_K` | `6` | Passages retrieved per question |
 | `CLIENTS` | see the table above | Client vocabulary: routes, quotas, body ceilings |
@@ -286,6 +291,12 @@ results that may have missed, and to decline rather than guess.
       audience shares one daily allowance; the two 429s need opposite advice). The widget and
       `veaf-tools ask` both read the Worker's wording out of the response body rather than
       reporting a bare status.
+- [x] A spent day moves down `MODEL_CHAIN`: the free tier counts its daily allowance per model, so
+      each fallback has its whole day left when the one above has spent its own. Only a *daily* 429
+      falls back — a per-minute throttle clears by itself, and any other failure is reported as is.
+      The daily message is shown once every model of the chain is spent. The Worker's own
+      per-caller daily cap (`CLIENTS` `perDay`) has its own wording: it is a rolling 24 h per
+      caller, so it promises neither a minute nor 09:00.
 - [x] Unit tests under `worker/test/`, run by `npm test`.
 - [x] Declared client modes, admission that ignores a self-declared header for browsers,
       fail-closed rate limiting, body ceiling, `/analyze` log-analysis mode.

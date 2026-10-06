@@ -21,6 +21,11 @@ veaf.loggers.new(veafAirbases.Id, veafAirbases.LogLevel)
 
 veafAirbases.Airbases = nil
 
+--- The mission's own channel for an airfield, by DCS airdrome id: `{ alias, title, uhf?, vhf?, fm? }`, the
+--- `bases` channel of the mission's `presets.yaml` that names it. Written by the build into veaf-config.lua,
+--- which loads after this file; left empty when the mission has no `bases` collection.
+veafAirbases.MissionChannels = {}
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local constants
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -96,6 +101,41 @@ function veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)
   end
 
   return veafAirbases.getAirbaseByName(dcsAirbase:getName())
+end
+
+--- The DCS airdrome id of an airfield, or nil for anything that is not one.
+---
+--- A ship's or a FARP's `getID()` is a unit id, which can be any number — 22 would read as Batumi — so
+--- only an airdrome is looked up. The category is the one `veafAirbase:create` corrected (a FARP DCS
+--- reports as a ship).
+local function _airdromeId(veafAirbase)
+  if not veafAirbase or veafAirbase.Category ~= Airbase.Category.AIRDROME or not veafAirbase.DcsAirbase then
+    return nil
+  end
+  return veafAirbase.DcsAirbase:getID()
+end
+
+--- The tower frequencies (MHz) and TACAN DCS gives an airfield — what its F10 view shows.
+---
+--- The mission scripts have no API for them: `DCS.getATCradiosData` lives in the GUI environment and
+--- `Airbase` has no frequency getter. They come from `veafAirfieldFrequencies`, rendered at build time
+--- from the reference the tools captured from DCS.
+---
+--- @param veafAirbase table the airbase
+--- @return table|nil `{ uhf?, vhf?, fm?, tacan? }`, or nil for a ship, a FARP or a field the table lacks
+function veafAirbases.getAtcFrequencies(veafAirbase)
+  local iId = _airdromeId(veafAirbase)
+  local theatre = iId and veafAirfieldFrequencies and veafAirfieldFrequencies[env.mission.theatre]
+  return theatre and theatre[iId] or nil
+end
+
+--- The mission's own channel for an airfield (see `veafAirbases.MissionChannels`).
+---
+--- @param veafAirbase table the airbase
+--- @return table|nil `{ alias, title, uhf?, vhf?, fm? }`, or nil when the mission's radio plan has none
+function veafAirbases.getMissionChannel(veafAirbase)
+  local iId = _airdromeId(veafAirbase)
+  return iId and veafAirbases.MissionChannels and veafAirbases.MissionChannels[iId] or nil
 end
 
 --- FIX-UNGUARDED-DCS-LOOKUPS: `dcsUnit` is dereferenced below without a check, on purpose.

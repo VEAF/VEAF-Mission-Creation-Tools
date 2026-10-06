@@ -180,7 +180,9 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafRadio.lua` | Construction de l'arbre de menus radio |
 | `test_veafQraManager.lua` | Machine à états QRA, gestion de zones |
 | `test_veafAirWaves.lua` | Planification de waves, assignation de groupes |
+| `test_veafReactiveZone.lua` | Base commune QRA / AirWaves : zone, zone mobile, spawn, liens, spawns différés |
 | `test_veafAircraftSpawn.lua` | Avion lancé avec un rôle : contrat `-cap`, lecture de route, défense de zone (`zone_defense`) |
+| `test_veafAwacsEscort.lua` | `-awacs` (hippodrome, Skynet, liaison de données) et `-escort` (tâche `Escort`, avion le plus proche du marqueur, entrée F10 « Escorte-moi ») |
 | `test_veafSanctuary.lua` | Détection de zone sanctuaire |
 | `test_veafMissileGuardian.lua` | Logique d'interception de missiles |
 | `test_veafCasMission.lua` | Génération de packages de menaces CAS |
@@ -279,7 +281,7 @@ Le workflow GitHub Actions (`.github/workflows/lua-ci.yml`) s'exécute à chaque
 **`lua-coverage`** — Ubuntu latest
 1. Checkout du dépôt
 2. Installation de `lua5.1` + `luacov` via LuaRocks, puis de Poetry et des dépendances
-3. Exécution de `poetry run test-lua --cov-fail-under 80` (couverture ligne via luacov)
+3. Exécution de `poetry run test-lua --cov-fail-under 81` (couverture ligne via luacov)
 4. Échec si la couverture passe sous le plancher à cliquet (le nombre ne fait que monter)
 
 ### Exécuter StyLua localement

@@ -90,6 +90,9 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 45 | [Compléter les statiques posés sans forme](#repair-static-shapes) | 🏁 Valider & construire | Recette + construite | ◽ |
 | 46 | [Créer une opération (zones enchaînées)](#create-operation) | 🏗️ Composites | Recette (dossier) | ◽ |
 | 47 | [Ajouter une image au briefing](#briefing-picture) | 🕰️ Réglages de la mission | Recette + construite | ◽ |
+| 48 | [Lire où en est une campagne](#campaign-status) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
+| 49 | [Appliquer une mission de campagne jouée](#campaign-apply) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
+| 50 | [Préparer la mission suivante d'une campagne](#campaign-next) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 
 ---
 
@@ -183,6 +186,32 @@ carte directement, prête à recevoir des combat zones / QRA — **sans passer p
 
 > 💬 *« Crée-moi une nouvelle mission VEAF sur Caucasus dans ce dossier. »* (l'IA demande le
 > template + le théâtre, puis installe et génère tout)
+
+## 🎖️ Campagne multi-missions
+
+*Une [campagne](CAMPAIGN.md) jouée mission après mission, chaque mission partant de ce que la précédente a laissé.
+L'IA mène la boucle : lire la situation, appliquer la mission jouée, préparer la suivante, puis la concevoir avec les autres actions.*
+
+### Lire où en est une campagne {#campaign-status}
+
+*Campagne (dossier) · ⭐* — Les missions jouées, le propriétaire et la force de garnison de chaque zone, les réserves des deux camps, les objectifs atteints ou non, et ce qui a changé à la dernière mission.
+C'est là-dessus que l'IA décide de l'intention de l'ennemi pour le tour suivant.
+
+> 💬 *« Où en est la campagne du Caucase ? Qu'est-ce que les rouges vont tenter ? »*
+
+### Appliquer une mission de campagne jouée {#campaign-apply}
+
+*Campagne (dossier) · ⭐* — Une fois la mission jouée et son fichier d'état récupéré sur le serveur, l'IA le fusionne dans la campagne, joue le tour entre les missions (réserves, réparations, contre-attaques) et dit ce qui a changé.
+Un fichier déjà appliqué, d'une autre campagne, ou qui saute une mission est refusé sans rien écrire.
+
+> 💬 *« Voilà le fichier d'état de la mission 3, applique-le. »*
+
+### Préparer la mission suivante d'une campagne {#campaign-next}
+
+*Campagne (dossier) · ⭐* — L'IA prépare le dossier de la mission suivante à partir de l'état : chaque base à son propriétaire et ses slots dynamiques, les garnisons et leurs pertes, le module campagne activé.
+Elle reçoit la partie factuelle du briefing stratégique en français et en anglais, puis conçoit la mission par-dessus et écrit la partie narrative.
+
+> 💬 *« Prépare la mission 4 : les rouges contre-attaquent sur Senaki. »*
 
 ## 🗺️ Carte & coordonnées
 

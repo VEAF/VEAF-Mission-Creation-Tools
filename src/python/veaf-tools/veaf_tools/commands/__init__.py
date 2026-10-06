@@ -4,6 +4,7 @@ from . import (  # noqa: F401
     airfield_channels,
     ask,
     build,
+    campaign,
     capture_map,
     clear_ground,
     config,

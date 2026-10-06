@@ -1,6 +1,6 @@
 # 02 — Garrisons: drawn once, recorded, spawned from the state
 
-Status: ⬜ ready
+Status: ✅ done
 
 Shared brick: reused by `FEAT-DYNAMIC-CAMPAIGN`, which adds dormancy on top.
 

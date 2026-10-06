@@ -185,6 +185,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafAwacsEscort.lua` | `-awacs` (race-track, Skynet, datalink) and `-escort` (the `Escort` task, the airplane nearest the marker, the F10 "Escort me" entry) |
 | `test_veafSanctuary.lua` | Sanctuary zone detection |
 | `test_veafMissileGuardian.lua` | Missile intercept logic |
+| `test_veafCampaign.lua` | Multi-mission campaign: garrisons drawn, recorded, and their losses |
 | `test_veafCasMission.lua` | CAS threat package generation |
 | `test_veafTransportMission.lua` | Transport mission setup |
 | `test_veafCarrierOperations.lua` | Carrier recovery sequence |

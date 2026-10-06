@@ -468,6 +468,7 @@ modules:
 | `AIRWAVES` | veafAirWaves | [veafAirWaves](mission-maker/scripts/veafAirWaves.md) |
 | `QRA` | veafQraManager | [veafQraManager](mission-maker/scripts/veafQraManager.md) |
 | `CASMISSION` | veafCasMission | [veafCasMission](mission-maker/scripts/veafCasMission.md) |
+| `CAMPAIGN` | veafCampaign | [veafCampaign](mission-maker/scripts/veafCampaign.md) |
 | `COMBATMISSION` | veafCombatMission | — |
 | `SPAWN` | veafSpawn | [veafSpawn](mission-maker/scripts/veafSpawn.md) |
 | `MOVE` | veafMove | [veafMove](mission-maker/scripts/veafMove.md) |
@@ -506,6 +507,23 @@ modules:
 Chaque nœud de `tree` est soit un sous-menu (`{ menu: "...", items: [...] }`, récursif) soit une commande (`{ command: "...", action: <verbe>, <clés> }`). Le vocabulaire d'actions est fermé (`qra.start`/`qra.stop`, `airwave.start`/`airwave.stop`/`airwave.reset`, `flag.on`/`flag.off`/`flag.set`/`flag.increment`/`flag.decrement`, `message`, `lua`). Une action `lua` référence une fonction définie dans `mission-script.lua` : si la fonction est absente, le build échoue.
 
 Voir le schéma complet, le tableau des actions et un exemple détaillé dans [veafRadio → Menus radio en YAML](mission-maker/scripts/veafRadio.md#radio-menus-in-yaml).
+
+---
+
+### `modules.CAMPAIGN` — mission d'une campagne {#campaign-module}
+
+Activé et rempli par `veaf-tools campaign next`, jamais à la main : il fait de la mission un épisode d'une [campagne multi-missions](mission-maker/CAMPAIGN.md).
+
+```yaml
+modules:
+  CAMPAIGN:
+    enable: true
+    data_file: src/campaign-data.yaml
+```
+
+| Clé | Rôle |
+|---|---|
+| `data_file` | le fichier, relatif au dossier de mission, dont le build fait la table `veafCampaign.data` (zones, garnisons, réserves, décor détruit) ; lu au build, jamais transmis au runtime tel quel |
 
 ---
 

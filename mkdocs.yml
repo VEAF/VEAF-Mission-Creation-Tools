@@ -104,6 +104,7 @@ plugins:
             Updater & release tools: Mise à jour & publication
             Guided checklists (veafAssist): Checklists guidées (veafAssist)
             Missions menu (veafCombatMission): Menu MISSIONS (veafCombatMission)
+            Multi-mission campaign: Campagne multi-missions
             Ground AI (veafGroundAI): IA au sol (veafGroundAI)
             Security & permissions (veafSecurity): Sécurité & permissions (veafSecurity)
             Lua API Reference: Référence de l'API Lua
@@ -155,6 +156,7 @@ nav:
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
     - Adopt a third-party mission: mission-maker/CONVERT_OTHER.md
     - Foothold moulinette: mission-maker/FOOTHOLD.md
+    - Multi-mission campaign: mission-maker/CAMPAIGN.md
     - Read the DCS logs: mission-maker/LOGS.md
     - AI assistant — install: mission-maker/AI_ASSISTANT_INSTALL.md
     - AI assistant — action catalogue: mission-maker/AI_ASSISTANT_CATALOG.md
@@ -166,6 +168,7 @@ nav:
       - veafAssets: mission-maker/scripts/veafAssets.md
       - Guided checklists (veafAssist): mission-maker/scripts/veafAssist.md
       - veafCarrierOperations: mission-maker/scripts/veafCarrierOperations.md
+      - veafCampaign: mission-maker/scripts/veafCampaign.md
       - veafCasMission: mission-maker/scripts/veafCasMission.md
       - Missions menu (veafCombatMission): mission-maker/scripts/veafCombatMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md

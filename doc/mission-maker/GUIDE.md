@@ -522,7 +522,7 @@ Le build vous dit combien il en a ajouté.
 > **Les commandes sont rangées par thème.** `veaf-tools mission build`, `veaf-tools content
 > inject-presets`, `veaf-tools convert v5`… `veaf-tools --help` liste les groupes, et
 > `veaf-tools <groupe> --help` leur contenu. Le groupe `dcs` regroupe ce qui **exige DCS lancé**.
-> Les groupes sont : `mission`, `convert`, `content`, `cockpit` et `dcs`.
+> Les groupes sont : `mission`, `convert`, `content`, `campaign`, `cockpit` et `dcs`.
 > Une commande dont le nom commence par celui de son groupe le perd à l'intérieur : on écrit
 > `veaf-tools convert v5` et `veaf-tools convert other`, pas `convert convert-v5`.
 >
@@ -555,6 +555,10 @@ Le build vous dit combien il en a ajouté.
 | `terrain-sweep` | Relève dans DCS l'altitude du sol de tout un théâtre, que l'action MCP `terrain_elevation` lit ensuite sans DCS (altitude d'une cible, plancher d'une route, masquage par le relief). |
 | `clear-ground-sweep` | Sonde, pas à pas, le terrain dégagé autour des aérodromes et des combat zones d'un théâtre : écrit la mission d'arpentage, explique quoi faire dans DCS, balaie, puis écrit le catalogue ; reprend un balayage interrompu. |
 | `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
+| `campaign-init` | Démarre une [campagne multi-missions](CAMPAIGN.md) : crée son état à partir de `campaign.yaml`. |
+| `campaign-validate` | Vérifie un dossier de campagne : `campaign.yaml`, et l'état de campagne par rapport à lui. |
+| `campaign-next` | Crée, ou rafraîchit, le dossier de la mission suivante d'une campagne à partir de son état. |
+| `campaign-apply` | Applique à une campagne le fichier d'état d'une mission jouée, puis joue le tour entre les missions. |
 | `doctor` | Rassemble les versions, chemins et erreurs récentes qu'un rapport de bug exige, et produit un bloc caviardé à coller dans un signalement — voir [Obtenir de l'aide](../SUPPORT.md). |
 | `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
 | `generate-config` | Génère un modèle mission.yaml documenté pour un dossier de mission. |
@@ -1162,7 +1166,7 @@ Si le journal montre une erreur que vous ne vous expliquez pas, [Obtenir de l'ai
 ## Ressources
 
 - [Référence des scripts](scripts/README.md) — tous les scripts avec les détails de configuration
-- [Référence CLI](../CLI_REFERENCE.md) — les 25 commandes de `veaf-tools`, arguments et options
+- [Référence CLI](../CLI_REFERENCE.md) — les 36 commandes de `veaf-tools`, arguments et options
 - [Référence API Lua](../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
 - [Mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) — chaque fonctionnalité en jeu, avec une visite guidée ([voir plus haut](#demo-mission))
 - [Discord VEAF](https://www.veaf.org/discord) — aide communautaire

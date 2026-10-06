@@ -518,7 +518,7 @@ The build tells you how many it added.
 > **Commands are filed by theme.** `veaf-tools mission build`, `veaf-tools content
 > inject-presets`, `veaf-tools convert v5`… `veaf-tools --help` lists the groups, and
 > `veaf-tools <group> --help` shows what is in one. The `dcs` group is what **needs DCS running**.
-> The groups are: `mission`, `convert`, `content`, `cockpit` and `dcs`.
+> The groups are: `mission`, `convert`, `content`, `campaign`, `cockpit` and `dcs`.
 > A command whose name starts with its group's name drops that word inside: you write
 > `veaf-tools convert v5` and `veaf-tools convert other`, not `convert convert-v5`.
 >
@@ -551,6 +551,10 @@ The build tells you how many it added.
 | `terrain-sweep` | Sweep in DCS the ground elevation of a whole theatre, which the MCP action `terrain_elevation` then reads with no DCS (a target's altitude, a route's floor, terrain masking). |
 | `clear-ground-sweep` | Probe, step by step, the clear ground around a theatre's airfields and combat zones: writes the survey mission, tells you what to do in DCS, sweeps, then writes the catalogue; resumes an interrupted sweep. |
 | `convert-other` | Adopt a third-party (non-VEAF) .miz mission onto the v6 toolchain. |
+| `campaign-init` | Start a [multi-mission campaign](CAMPAIGN.en.md): create its state from `campaign.yaml`. |
+| `campaign-validate` | Check a campaign folder: `campaign.yaml`, and the campaign state against it. |
+| `campaign-next` | Create, or refresh, a campaign's next mission folder from its state. |
+| `campaign-apply` | Apply a flown mission's state file to its campaign, then play the turn between missions. |
 | `doctor` | Collect the versions, paths and recent errors a bug report needs, and produce a redacted block to paste into a report — see [Getting help](../SUPPORT.en.md). |
 | `explore-cockpit` | Explore a live cockpit: name a control to see it, or move one to name it. |
 | `generate-config` | Generate a documented mission.yaml template for a mission folder. |

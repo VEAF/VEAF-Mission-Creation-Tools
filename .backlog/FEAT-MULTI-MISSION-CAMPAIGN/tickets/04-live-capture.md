@@ -1,6 +1,6 @@
 # 04 — Live capture by ground presence
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Shared brick, moved here from `FEAT-DYNAMIC-CAMPAIGN` ticket 03 (David, 2026-10-06: capture happens during the flight).
 The rule, Foothold's reading and the reasons are in [that ticket](../../FEAT-DYNAMIC-CAMPAIGN/tickets/03-capture.md); summarized:

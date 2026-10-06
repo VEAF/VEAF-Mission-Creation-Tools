@@ -1,0 +1,188 @@
+# Multi-mission campaign
+
+> A campaign for the squadron, flown mission after mission.
+> Each mission starts from what the last one left: a bridge destroyed stays destroyed, a base freed stays ours, a garrison that lost two launchers has lost them for good.
+> It is an **episodic** campaign, in the spirit of DCS Liberation: each mission is a bounded flying session, and the campaign moves on between two missions.
+
+## The loop {#loop}
+
+| step | who | how |
+|---|---|---|
+| declare the campaign | the mission maker, often with Claude | a campaign folder and its `campaign.yaml` |
+| start | the tools | `campaign init` creates the starting state |
+| build mission N | the tools, then Claude | `campaign next` prepares the mission folder from the state; Claude designs the mission in it through the MCP |
+| fly | the squadron | the mission writes its **state file** during the flight and at its end |
+| fetch the state file | the mission maker or Claude | from the server's `Saved Games` |
+| apply | the tools | `campaign apply` merges the state file and plays the turn between missions |
+
+Then back to `campaign next`, until the objectives are met or the planned missions have been flown.
+
+```powershell
+.\veaf-tools.exe campaign init C:\Campaigns\Caucasus
+.\veaf-tools.exe campaign next C:\Campaigns\Caucasus
+# … the mission is designed, built, flown …
+.\veaf-tools.exe campaign apply "C:\Saved Games\DCS\Missions\Saves\Caucasus Front\mission-01.state" C:\Campaigns\Caucasus
+.\veaf-tools.exe campaign next C:\Campaigns\Caucasus
+```
+
+With the AI assistant, the same steps go through the `campaign_status`, `campaign_apply` and `campaign_next` actions (see the [catalogue](AI_ASSISTANT_CATALOG.en.md)).
+
+## The campaign folder {#campaign-folder}
+
+```text
+Caucasus/
+├── campaign.yaml            what you declare; the tools never rewrite it
+├── campaign-state.yaml      what the campaign has become; rewritten after every mission
+├── template/                an ordinary mission folder: every mission starts from it
+└── missions/
+    ├── mission-01/
+    │   ├── mission/         the mission folder of mission 1
+    │   ├── mission-01.state the state file the mission wrote
+    │   ├── campaign-state.before.yaml
+    │   └── campaign-state.after.yaml
+    └── mission-02/
+        └── mission/
+```
+
+`template/` is prepared once, like any mission folder (`.\veaf-tools.exe prepare`, or the MCP action `scaffold_mission`): the map, the slots, the presets, the scripts.
+Every mission of the campaign starts as a copy of it.
+
+The history is kept whole: to undo a merge, put `campaign-state.before.yaml` back in place of `campaign-state.yaml`.
+
+## Declaring a campaign {#declare}
+
+```yaml
+campaign:
+  name: Caucasus Front
+  theatre: Caucasus
+  era: MODERN                # MODERN, COLD_WAR or WW2: what the garrisons draw
+  missions: 10               # the objectives are sized for about this many
+  player_side: blue          # the players' side; blue by default
+  capture_seconds: 120       # ground presence needed to take a neutral zone
+  state_write_seconds: 60    # how often the state file is written in flight
+  objectives:
+    - capture: [Senaki, Kutaisi]
+    - destroy: { zone: Gudauta depot, kind: logistics }
+size_classes:                # override the shipped classes, or declare new ones
+  outpost: { size: 2 }
+zones:
+  - name: Kobuleti
+    at: { airfield: Kobuleti }
+    size: airfield
+    side: blue
+  - name: Senaki
+    at: { airfield: Senaki-Kolkhi }
+    size: airfield
+    side: red
+    radius: 3000             # in metres; 2000 by default
+  - name: Gudauta depot
+    at: { lat: 43.10, lon: 40.58 }
+    size: outpost
+    side: red
+    kind: logistics          # feeds its side's reserve between missions
+    garrison: [sa8, shilka, T-72B]   # replaces the draw, for the side declaring it
+connections:
+  - [Kobuleti, Senaki]
+  - [Senaki, Gudauta depot]
+sides:
+  red: { reserve: { armor: 12, air_defense: 4, transport: 6 } }
+rules:
+  repairs_per_mission: 4
+```
+
+A complete campaign, ready to copy — western Georgia in 12 zones and 10 missions — ships with the tools: [`src/defaults/campaign-folder/campaign.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/defaults/campaign-folder/campaign.yaml).
+
+A zone is **on an airfield** (`at: { airfield: <DCS name> }`) or **at coordinates** (`at: { lat, lon }`).
+An airfield zone gives its base to its owner: dynamic slots for its side, none for a neutral base.
+
+A `capture` objective is met when the players' side holds every zone it names.
+A `destroy` objective is met when the enemy no longer holds the zone: its garrison destroyed, or the zone taken.
+
+`.\veaf-tools.exe campaign validate <folder>` checks the file, and the state against it: unknown airfield, duplicate zone, connection to an unknown zone, a graph in pieces, an objective on an unknown zone, an unknown garrison alias, a parameter out of range.
+A zone renamed or removed in `campaign.yaml` after the start is reported, never silently forgotten.
+
+## Garrisons {#garrisons}
+
+A garrison is drawn **once** by the CAS mission generators (`veafCasMission`), for the side holding the zone and the campaign's era.
+Its composition is recorded, and every following mission spawns it again **minus its losses**: a SAM site that lost two launchers starts without them.
+A zone that loses its whole garrison turns **neutral**, and can be captured.
+
+### Size classes {#size-classes}
+
+A size class is a set of parameters of the CAS generators:
+
+| shipped class | `size` | `defense` | `armor` | long-range SAM |
+|---|---|---|---|---|
+| `outpost` | 2 | 1 | 1 | no |
+| `airfield` | 4 | 3 | 2 | yes |
+
+`size` runs from 1 to 5, `defense` and `armor` from 0 to 5, as for a `_cas` marker.
+A new class must set `size`, `defense` and `armor`.
+
+### Before the first mission {#first-mission}
+
+The starting garrisons are drawn by mission 1 itself, in game.
+The first briefing therefore speaks in intelligence terms ("estimated strength"); the real figures come with mission 1's state file.
+
+## In flight {#in-flight}
+
+- The **F10 map** shows each zone as a circle in its owner's colour, with its name and its garrison's strength, and the connections as dashed lines.
+- The **Campaign → Situation** radio menu gives the zones, the objectives and the mission number.
+- **Taking a neutral zone**: ground units of a single side stay there for `capture_seconds` (120 s by default) — CTLD 2 troops or vehicles, a convoy, a `_spawn` group, a Combined Arms vehicle, a **landed** helicopter, a CTLD 2 crate.
+  Both sides present stop the clock; everybody gone cancels it.
+  An aircraft in flight never counts.
+  The zone taken gets its new side's garrison at once, paid from that side's reserve.
+
+## The state file {#state-file}
+
+The mission writes everything the next one depends on — each zone's owner, garrisons and losses, reserves, destroyed scenery, the missiles the SAMs have left, the warehouses' content — to:
+
+```text
+<Saved Games>\DCS\Missions\Saves\<campaign name>\mission-NN.state
+```
+
+It writes it every `state_write_seconds` during the flight, and at the end of the mission: a server that crashes loses one interval at most.
+Every write starts with a complete temporary (`mission-NN.state.tmp`).
+When `os` is available the temporary replaces the file; otherwise the file is written in turn.
+Either way a write cut short leaves a whole file behind, and `campaign apply` falls back on the temporary when the file itself is cut short.
+
+The mission scripting environment needs `io` and `lfs` (`MissionScripting.lua` not sanitizing those two).
+The VEAF servers sanitize only `os` and `loadlib` (measured 2026-10-03).
+Without `io` or `lfs`, the mission says so once and runs anyway: the campaign simply cannot record it.
+
+### Fetching the file from a server {#fetch-state}
+
+The file is in the `Saved Games` of the DCS instance that ran the mission: on dcs.veaf.org, `C:/Users/veaf/Saved Games/<instance>_server/Missions/Saves/<campaign name>/`, reachable over SFTP.
+Copy `mission-NN.state` to your machine — with its `.tmp` when there is one — then pass its path to `campaign apply`.
+
+## Between missions {#between-missions}
+
+`campaign apply` refuses a file already applied, one from another campaign, or one that skips a mission; in those cases nothing is written.
+Otherwise it merges the file, then plays the **turn** with fixed rules, for both sides:
+
+| rule | setting | default |
+|---|---|---|
+| each `logistics` zone held feeds its side's reserve | `rules.logistics_output` | `{armor: 2, air_defense: 1, transport: 1}` |
+| lost units are replaced from the reserve, category by category | `rules.repairs_per_mission` | 4 units per side |
+| a neutral zone bordered by a single side is retaken by it | `rules.counter_attack` | `true` |
+
+Destroying an enemy depot means a smaller reserve, so fewer repairs and thinner garrisons behind it: an empty reserve only allows a token garrison.
+
+The enemy's **intent** — where it puts its effort, what the next mission asks of the players — is not in the rules: Claude decides it while building the next mission, and writes it in the briefing.
+
+## The strategic briefing {#strategic-briefing}
+
+`campaign next` writes, at the root of the mission folder, the factual part of the strategic briefing in French and English (`strategic-situation.fr.txt`, `strategic-situation.en.txt`): the front, what changed in the last mission, the enemy's reserve and garrisons, the objectives and the missions left.
+Claude adds the narrative part while designing the mission.
+
+## What is still to verify in game {#to-verify}
+
+These points are written and tested outside DCS, but not measured in game yet:
+
+- what `Airbase.setCoalition` and `Airbase.autoCapture(false)` do to the dynamic slots and warehouses of a base changing sides;
+- how exact the warehouse content read in flight is, and writing it back into the next mission (not done yet);
+- whether a SAM can start a mission with fewer missiles (the count left is recorded, not replayed yet);
+- how to make a bridge or a building start destroyed (the destroyed scenery is recorded, not replayed yet);
+- where airfield garrisons stand, drawn around the base's centre.
+
+See also the [`veafCampaign` module reference](scripts/veafCampaign.en.md).

@@ -34,6 +34,7 @@ from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
 from veaf_libs.lua_literals import (
     lua_comment_line,
+    lua_data,
     lua_long_string,
     lua_quoted_string,
     lua_scalar,
@@ -87,6 +88,7 @@ _MODULE_INIT_ORDER: list[str] = [
     "CACHE",
     "EVENTS",
     "GROUNDAI",
+    "CAMPAIGN",  # after EVENTS (loss callbacks) and the spawners its garrisons need
     "SKYNET",
     "SKYNET_MONITOR",
     "INTERPRETER",  # MUST be last
@@ -129,6 +131,8 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
         # whether they carry images.
         "checklists",
         "display",
+        # CAMPAIGN: the build reads the data file and emits the table itself.
+        "data_file",
     }
 )
 
@@ -709,6 +713,7 @@ def _emit_module_body(
     qra_section: dict,
     cap_missions: list,
     combat_missions_data: list,
+    campaign_data: Mapping[str, object] | None = None,
 ) -> None:
     """Emit the body of an ``if varName then … end`` initialisation block."""
     init_cfg: dict = mod_cfg.get("init") or {}
@@ -771,6 +776,13 @@ def _emit_module_body(
                     parts.append(f"coalition = coalition.side.{side}")
                 lines.append("        {" + ", ".join(parts) + "},")
             lines.append("    }")
+        lines.append(f"    {var_name}.initialize()")
+
+    elif mod_id == "CAMPAIGN":
+        # The data table first: initialize() draws and spawns the garrisons it describes. Without one
+        # (a `campaign next` never run), initialize() says so in the log and does nothing.
+        if campaign_data is not None:
+            lines.append(f"    {var_name}.data = {lua_data(campaign_data)}")
         lines.append(f"    {var_name}.initialize()")
 
     elif mod_id == "QRA":
@@ -2038,6 +2050,7 @@ def generate_config_lua(
     checklists: Sequence[Checklist] | None = None,
     checklist_images: Mapping[str, Sequence[str]] | None = None,
     mission_channels: Mapping[int, Mapping[str, object]] | None = None,
+    campaign_data: Mapping[str, object] | None = None,
 ) -> str:
     """Render ``veaf-config.lua`` from the full *mission_yaml* content dict.
 
@@ -2059,6 +2072,11 @@ def generate_config_lua(
         Per DCS airdrome id, the mission's own ``bases`` channel for that airfield
         (``{alias, title, freqs}``), which the ATIS and the welcome brief give beside the
         DCS tower. Nothing is emitted when empty.
+    campaign_data:
+        The campaign data table of a mission of a multi-mission campaign — what
+        ``veaf-tools campaign next`` wrote to the file the ``CAMPAIGN`` module's
+        ``data_file`` names. Emitted as ``veafCampaign.data`` before the module
+        initialises; ignored when the module is not enabled.
 
     Returns
     -------
@@ -2302,7 +2320,9 @@ def generate_config_lua(
                 continue
 
             block = [f"if {var_name} then"]
-            _emit_module_body(block, mod_id, mod_cfg, var_name, qra_section, cap_missions, combat_missions_data)
+            _emit_module_body(
+                block, mod_id, mod_cfg, var_name, qra_section, cap_missions, combat_missions_data, campaign_data
+            )
             block.append("end")
             _emit_guarded_init(lines, mod_id, block)
             lines.append("")

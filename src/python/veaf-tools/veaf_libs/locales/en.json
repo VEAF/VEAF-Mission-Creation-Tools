@@ -1336,5 +1336,12 @@
   "cmd.campaign_next.airbases": "{count} airbase(s) given to their owner.",
   "tui.cmd.campaign_next.description": "Build the next mission of a campaign",
   "builder.campaign_data_missing": "The CAMPAIGN module names {path}, which does not exist: run `veaf-tools campaign next` first. The mission is built without its campaign.",
-  "campaign.issue.state_file_from_temporary": "The state file is missing or cut short: its complete temporary {path} is used instead."
+  "campaign.issue.state_file_from_temporary": "The state file is missing or cut short: its complete temporary {path} is used instead.",
+  "campaign.issue.state_file_missing": "No state file at {path} (nor its .tmp): check the path — the file appears under Saved Games once the mission has run for a minute.",
+  "campaign.side_name.blue": "blue",
+  "campaign.side_name.red": "red",
+  "campaign.side_name.neutral": "neutral",
+  "campaign.reserve_name.armor": "armour",
+  "campaign.reserve_name.air_defense": "air defence",
+  "campaign.reserve_name.transport": "transport"
 }

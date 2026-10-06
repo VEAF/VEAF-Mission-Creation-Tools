@@ -11,6 +11,7 @@ from campaign_fixture import VALID
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.models import CampaignDefinition, CampaignState
 from campaign_manager.turn_manager import (
+    describe_change,
     evaluate_objectives,
     merge_state_file,
     outcome,
@@ -20,7 +21,7 @@ from campaign_manager.turn_manager import (
     validate_state_file,
 )
 from lua_runner import run_lua
-from veaf_libs.i18n import t
+from veaf_libs.i18n import language, t
 from veaf_libs.mission_validator import ERROR
 
 REPO = Path(__file__).resolve().parents[3]
@@ -123,10 +124,19 @@ class TestReadingTheStateFile:
         assert [i.message for i in issues] == [t("campaign.issue.state_file_from_temporary", path=temporary)]
         assert issues[0].level != ERROR
 
-    def test_a_missing_file_is_reported(self, tmp_path: Path) -> None:
+    def test_a_missing_file_is_said_to_be_missing_not_unreadable(self, tmp_path: Path) -> None:
+        """David, 2026-10-06: a mistyped path read as a corrupt file sends you looking for the wrong defect."""
         state, issues = read_state_file(tmp_path / "nope.state")
         assert state is None
-        assert [i.message for i in issues] == [t("campaign.issue.state_file_unreadable", path=tmp_path / "nope.state")]
+        assert [i.message for i in issues] == [t("campaign.issue.state_file_missing", path=tmp_path / "nope.state")]
+
+    def test_a_missing_file_whose_temporary_is_there_falls_back_on_it(self, tmp_path: Path) -> None:
+        whole = _lua_state_file(tmp_path, '{ format_version = 1, campaign = "C", mission = 1, zones = {} }')
+        temporary = whole.with_name(whole.name + ".tmp")
+        whole.rename(temporary)
+        state, issues = read_state_file(whole)
+        assert state is not None
+        assert [i.message for i in issues] == [t("campaign.issue.state_file_from_temporary", path=temporary)]
 
 
 # ---------------------------------------------------------------------------
@@ -309,6 +319,38 @@ class TestTheTurn:
         state.zones["Gudauta depot"].owner = "neutral"
         play_turn(campaign, state)
         assert state.zones["Gudauta depot"].owner == "neutral"
+
+
+class TestSayingAChange:
+    """David, 2026-10-06: `Poti : neutral → red` and `réserve red : armor +2` read half in English."""
+
+    def test_sides_and_categories_are_said_in_french(self) -> None:
+        with language("fr"):
+            owner = describe_change({"kind": "owner", "zone": "Poti", "from": "neutral", "to": "red"})
+            logistics = describe_change(
+                {
+                    "kind": "logistics",
+                    "zone": "Sochi",
+                    "side": "red",
+                    "added": {"armor": 2, "air_defense": 1, "transport": 0},
+                }
+            )
+        assert owner == "Poti : neutre → rouge"
+        assert logistics == "Sochi alimente la réserve rouge : blindés +2, défense aérienne +1"
+
+    def test_and_in_english(self) -> None:
+        with language("en"):
+            owner = describe_change({"kind": "counter_attack", "zone": "Gali", "side": "blue"})
+            logistics = describe_change(
+                {
+                    "kind": "logistics",
+                    "zone": "Sochi",
+                    "side": "red",
+                    "added": {"armor": 2, "air_defense": 0, "transport": 1},
+                }
+            )
+        assert owner == "Gali retaken by blue between missions"
+        assert logistics == "Sochi feeds the red reserve: armour +2, transport +1"
 
 
 @pytest.mark.parametrize(

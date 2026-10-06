@@ -1336,5 +1336,12 @@
   "cmd.campaign_next.airbases": "{count} aérodrome(s) attribué(s) à leur propriétaire.",
   "tui.cmd.campaign_next.description": "Construire la mission suivante d'une campagne",
   "builder.campaign_data_missing": "Le module CAMPAIGN nomme {path}, qui n'existe pas : lancer d'abord `veaf-tools campaign next`. La mission est construite sans sa campagne.",
-  "campaign.issue.state_file_from_temporary": "Le fichier d'état manque ou est tronqué : son temporaire complet {path} est utilisé à la place."
+  "campaign.issue.state_file_from_temporary": "Le fichier d'état manque ou est tronqué : son temporaire complet {path} est utilisé à la place.",
+  "campaign.issue.state_file_missing": "Pas de fichier d'état à {path} (ni de .tmp) : vérifier le chemin — le fichier apparaît dans Saved Games après une minute de mission.",
+  "campaign.side_name.blue": "bleu",
+  "campaign.side_name.red": "rouge",
+  "campaign.side_name.neutral": "neutre",
+  "campaign.reserve_name.armor": "blindés",
+  "campaign.reserve_name.air_defense": "défense aérienne",
+  "campaign.reserve_name.transport": "transport"
 }

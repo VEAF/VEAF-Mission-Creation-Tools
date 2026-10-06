@@ -170,7 +170,9 @@ class TestTheCommands:
         state_file = _state_file(folder, senaki="blue")
         result = CliRunner().invoke(app, ["campaign-apply", str(state_file), str(folder)])
         assert result.exit_code == 0, result.output
-        assert t("campaign.change.owner", zone="Senaki", **{"from": "red", "to": "blue"}) in result.output
+        from campaign_manager.turn_manager import describe_change
+
+        assert describe_change({"kind": "owner", "zone": "Senaki", "from": "red", "to": "blue"}) in result.output
         result = CliRunner().invoke(app, ["campaign-apply", str(state_file), str(folder)])
         assert result.exit_code == 1
 

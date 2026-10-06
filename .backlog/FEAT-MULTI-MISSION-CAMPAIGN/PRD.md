@@ -1,6 +1,6 @@
 # FEAT-MULTI-MISSION-CAMPAIGN — a campaign flown mission after mission, each one built from what the last one left
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 David, 2026-10-06: he wants a campaign for his VEAF friends that evolves as they fly it.
 A starting situation with strategic objectives reachable in a few missions (configurable, 10 by default); Claude builds the first mission from it, complete, with the campaign's strategic situation added to the usual briefing; the squadron flies it; the result of the flight is read back and updates the strategic situation; the next mission starts from it — a bridge destroyed starts destroyed, a base freed or captured is ours — and the loop goes on.

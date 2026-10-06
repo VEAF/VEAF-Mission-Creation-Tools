@@ -122,6 +122,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   « Animated HEAVY fog over 1 minutes » stayed in English in a French mission; it now reads « Brouillard animé ÉPAIS sur 1 minute », and one minute is singular in English too.
 - **A CAS group is named after its own side** (FIX-DEMO-RECETTE-FINDINGS).
   After one blue CAS, every later group, red included, was named « Blue CAS Group ».
+- **Every unit of a spawned ground group has its own name** (FIX-DUPLICATE-UNIT-NAMES).
+  Two units of the same type in one group shared a name (`<group> - <type>`), so DCS resolved neither by name and `-menage` left both alive; unit names now end with their index, `<group> - <type> #<n>`.
 
 ## [6.27.0] — 2026-10-03
 

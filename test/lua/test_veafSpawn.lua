@@ -4546,4 +4546,63 @@ function TestVeafSpawnCapSpread:test_out_of_its_zone_the_aircraft_are_reset()
   veafSpawn.capWatchdogZones["cap"] = nil
 end
 
+--- Unit names handed to DCS by `_createDcsUnits` (FIX-DUPLICATE-UNIT-NAMES).
+-- Two units of one type used to share a name: DCS then resolves neither by name, and `-menage`
+-- (`_destroy` by radius, keyed by name) left both alive.
+TestVeafSpawnUnitNames = {}
+
+function TestVeafSpawnUnitNames:setUp()
+  self._savedAddGroup = veaf.addGroup
+  self._savedCheckPosition = veafUnits.checkPositionForUnit
+  self._savedSettleGroup = veafUnits.settleGroup
+  self._savedHideType = veafSpawn.HideTypeFromGroupNames
+  self.added = {}
+  veaf.addGroup = function(group)
+    table.insert(self.added, group)
+  end
+  veafUnits.checkPositionForUnit = function()
+    return true
+  end
+  veafUnits.settleGroup = function()
+    return 0
+  end
+end
+
+function TestVeafSpawnUnitNames:tearDown()
+  veaf.addGroup = self._savedAddGroup
+  veafUnits.checkPositionForUnit = self._savedCheckPosition
+  veafUnits.settleGroup = self._savedSettleGroup
+  veafSpawn.HideTypeFromGroupNames = self._savedHideType
+end
+
+local function aTank(x)
+  return { typeName = "T-72B", displayName = "MBT T-72B", spawnPoint = { x = x, y = 0, z = 0, hdg = 0 } }
+end
+
+function TestVeafSpawnUnitNames:_spawnedNames()
+  veafSpawn._createDcsUnits("RUSSIA", { aTank(0), aTank(20) }, "[r]-Armored Platoon#10344", false, false, true)
+  luaunit.assertEquals(#self.added, 1)
+  local names = {}
+  for _, unit in ipairs(self.added[1].units) do
+    table.insert(names, unit.name)
+  end
+  return names
+end
+
+function TestVeafSpawnUnitNames:test_two_units_of_one_type_get_distinct_names()
+  veafSpawn.HideTypeFromGroupNames = false
+  luaunit.assertEquals(self:_spawnedNames(), {
+    "[r]-Armored Platoon#10344 - MBT T-72B #1",
+    "[r]-Armored Platoon#10344 - MBT T-72B #2",
+  })
+end
+
+function TestVeafSpawnUnitNames:test_names_stay_distinct_when_the_type_is_hidden()
+  veafSpawn.HideTypeFromGroupNames = true
+  luaunit.assertEquals(self:_spawnedNames(), {
+    "[r]-Armored Platoon#10344 #1",
+    "[r]-Armored Platoon#10344 #2",
+  })
+end
+
 os.exit(luaunit.LuaUnit.run())

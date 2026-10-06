@@ -4,6 +4,8 @@
 
 > **Voir en jeu** : étape 02 « Bac à sable : les commandes de marqueur » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
 
+> **Liste des alias** : tous les raccourcis de marqueur prêts à l'emploi (`-sa8`, `-armor`, `-convoy`…) sont dans la [référence des alias](../../ALIASES.md).
+
 ---
 
 ## Objectif

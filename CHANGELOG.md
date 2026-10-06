@@ -36,6 +36,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   In flight, the new `veafCampaign` module spawns each zone's garrison minus its losses, draws the situation on the F10 map, lets a side take a neutral zone by holding it on the ground, and writes a state file to `Saved Games` during the flight and at its end.
   Between missions, the state file is merged and a turn is played by fixed rules — logistics feed the reserves, the reserves repair the garrisons, a neutral zone bordered by one side only is retaken by it — and `campaign next` prepares the next mission folder with its bases, its dynamic slots and the factual part of its strategic briefing in French and English.
   Not yet replayed in the next mission, though recorded: destroyed scenery, SAM missiles left, warehouse stocks — see [the page](doc/mission-maker/CAMPAIGN.en.md#to-verify).
+  `campaign apply` given a path where no state file exists says so, rather than calling it a file that is not a state file.
 
 ## [6.28.0] — 2026-10-05
 

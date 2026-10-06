@@ -85,6 +85,10 @@ def read_state_file(path: Path) -> tuple[CampaignState | None, list[ValidationIs
         temporary = path.with_name(path.name + ".tmp")
         raw = _read_lua_table(temporary)
         if raw is None:
+            # A path typed wrong is the common case: saying "not a state file" sent the user looking
+            # for a corrupt file that did not exist (David, 2026-10-06).
+            if not path.is_file() and not temporary.is_file():
+                return None, [_error("state_file_missing", path=path)]
             return None, [_error("state_file_unreadable", path=path)]
         issues.append(ValidationIssue(WARNING, t("campaign.issue.state_file_from_temporary", path=temporary)))
     zones = raw.get("zones")
@@ -312,8 +316,16 @@ def describe_change(change: dict[str, Any]) -> str:
     """
     kind = change["kind"]
     values = {k: v for k, v in change.items() if k != "kind"}
+    # sides and reserve categories are stored as keys; they are said as words
+    for key in ("from", "to", "side"):
+        if key in values:
+            values[key] = t(f"campaign.side_name.{values[key]}")
     if kind == "logistics":
-        values["added"] = ", ".join(f"{category} +{amount}" for category, amount in change["added"].items() if amount)
+        values["added"] = ", ".join(
+            f"{t(f'campaign.reserve_name.{category}')} +{amount}"
+            for category, amount in change["added"].items()
+            if amount
+        )
     return t(f"campaign.change.{kind}", **values)
 
 

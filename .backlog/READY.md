@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FIX-COMBATMISSION-MENU-MISSING](FIX-COMBATMISSION-MENU-MISSING/PRD.md) · ⬜
-
-The generated config calls `veafCombatMission.initialize()` before adding the missions, so the MISSIONS radio menu is never built; wanted in 6.28.0.
-
 ### [FIX-DEMO-RECETTE-FINDINGS](FIX-DEMO-RECETTE-FINDINGS/PRD.md) · ⬜
 
 Three defects the demo's first bridge recette found: `_destroy, radius` spares units it has already found, untranslated fog commands, the CAS group name stuck to « Blue CAS Group ».

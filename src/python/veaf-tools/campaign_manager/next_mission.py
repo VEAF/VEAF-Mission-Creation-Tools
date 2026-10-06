@@ -18,6 +18,7 @@ import yaml
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
 from veaf_libs.i18n import language, t
 from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.mission_settings import set_briefing
 
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
 from campaign_manager.turn_manager import describe_change, enemy_of, evaluate_objectives, garrison_strength, outcome
@@ -214,5 +215,9 @@ def prepare_next_mission(
         with language(lang):
             text = strategic_situation(campaign, state)
         (mission_folder / BRIEFING_FILE.format(lang=lang)).write_text(text, encoding="utf-8")
+    if created:
+        # the mission flies with the facts even if nobody designs it further; a refresh leaves the
+        # briefing alone, since what was written on top of them is design
+        set_briefing(mission_folder, situation=strategic_situation(campaign, state))
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
     return NextMissionReport(mission=state.mission + 1, folder=mission_folder, created=created, airbases=airbases)

@@ -67,6 +67,7 @@ The 62 Lua tests and the Python suite prove what `veafCampaign` hands to DCS and
    - **Re-opened, no file**: `io`/`lfs` sanitized on this install, or the folder not created — `cannot write the campaign state` in `dcs.log`.
 2. Destroy every unit of `Gali garrison` with `fiddle.sh` (explosions, not `destroy()`), then put one blue ground unit in Gali for 130 s.
    - **Verified**: *Gali … est neutre*, then *Gali a été prise par le camp bleu*, a blue garrison appears, the circle turns blue.
+   - **Re-opened, never taken**: `dcs.log` says `neutral zone [Gali] held by …` at each change and names the object of each side — a red one after the garrison died is what blocks it (on 2026-10-06 Senaki stayed neutral with two Abrams in it; dead units are filtered out since, and the retest took it at once).
    - **Re-opened**: no capture — `sidesPresent` saw nothing; dump `world.searchObjects` over the zone in `fiddle.sh`.
 3. Destroy all of `Senaki garrison`, put blue ground units on Senaki-Kolkhi for 130 s, then read `Airbase.getByName("Senaki-Kolkhi"):getCoalition()` and spawn a blue dynamic slot there.
    - **Verified**: coalition 2, the blue slot is offered, and no red unit standing on it makes DCS take it back (`autoCapture(false)` holds).

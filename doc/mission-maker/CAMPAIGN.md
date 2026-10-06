@@ -133,7 +133,8 @@ Le premier briefing parle donc en termes de renseignement (« force estimée »)
 - Le menu radio **Campagne → Situation** donne les zones, les objectifs et le numéro de la mission.
 - **Prendre une zone neutre** : des unités au sol d'un seul camp y restent `capture_seconds` (120 s par défaut) — troupes ou véhicules CTLD 2, convoi, groupe `_spawn`, véhicule Combined Arms, hélicoptère **posé**, caisse CTLD 2.
   Les deux camps présents arrêtent le compteur ; tout le monde parti l'annule.
-  Un avion en vol ne compte jamais.
+  Un avion en vol ne compte jamais, une épave non plus.
+  Le journal DCS (`dcs.log`) note, à chaque changement, qui tient une zone neutre et par quelle unité : c'est là qu'on lit pourquoi une prise ne démarre pas.
   La zone prise reçoit aussitôt la garnison de son nouveau camp, payée sur sa réserve.
 
 ## Le fichier d'état {#state-file}
@@ -181,7 +182,7 @@ C'est un texte à lire après la soirée ou à poster tel quel ; l'assistant IA 
 ## Le briefing stratégique {#strategic-briefing}
 
 `campaign next` écrit, à la racine du dossier de mission, la partie factuelle du briefing stratégique en français et en anglais (`strategic-situation.fr.txt`, `strategic-situation.en.txt`) : le front, ce qui a changé à la dernière mission, la réserve et les garnisons ennemies, les objectifs et les missions restantes.
-Claude y ajoute la partie narrative en concevant la mission.
+Le texte, dans la langue des outils, devient aussi le briefing de la mission à sa création, pour qu'une mission construite telle quelle ne parte pas sans briefing ; Claude y ajoute la partie narrative en concevant la mission, et un second `campaign next` sur le même dossier ne l'écrase pas.
 
 ## Ce qui reste à vérifier en jeu {#to-verify}
 

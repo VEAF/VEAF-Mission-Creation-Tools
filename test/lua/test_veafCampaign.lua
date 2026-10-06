@@ -853,6 +853,12 @@ local function object(side, category, options)
     getName = function()
       return options.name or "some object"
     end,
+    isExist = function()
+      return not options.gone
+    end,
+    getLife = function()
+      return options.life or 10
+    end,
   }
 end
 
@@ -972,6 +978,29 @@ function TestVeafCampaignCapture:test_a_late_activated_unit_does_not_hold_ground
   dcs_mocks.searchObjectsObjects = { groundUnit(BLUE, { inactive = true }) }
   beats(1)
   luaunit.assertNil(self.poti.entry.capture)
+end
+
+function TestVeafCampaignCapture:test_the_wreck_of_a_dead_unit_does_not_contest_the_zone()
+  -- a garrison destroyed, its wrecks still around: they must not stop the capture
+  dcs_mocks.searchObjectsObjects = {
+    groundUnit(BLUE),
+    groundUnit(RED, { life = 0 }),
+    groundUnit(RED, { gone = true }),
+  }
+  beats(1)
+  luaunit.assertEquals(self.poti.entry.capture, { side = "blue", seconds = 10 })
+end
+
+function TestVeafCampaignCapture:test_who_holds_a_neutral_zone_is_said_when_it_changes()
+  dcs_mocks.searchObjectsObjects = { groundUnit(BLUE, { name = "Abrams 1" }) }
+  beats(1)
+  luaunit.assertEquals(self.poti.presence, "blue (Abrams 1)")
+  dcs_mocks.searchObjectsObjects = { groundUnit(BLUE, { name = "Abrams 1" }), groundUnit(RED, { name = "BMP 7" }) }
+  beats(1)
+  luaunit.assertEquals(self.poti.presence, "contested: blue (Abrams 1), red (BMP 7)")
+  dcs_mocks.searchObjectsObjects = {}
+  beats(1)
+  luaunit.assertEquals(self.poti.presence, "nobody")
 end
 
 function TestVeafCampaignCapture:test_a_ctld_crate_holds_ground_and_another_static_does_not()

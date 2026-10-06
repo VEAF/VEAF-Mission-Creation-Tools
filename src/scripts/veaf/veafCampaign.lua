@@ -409,8 +409,14 @@ local function isCtldCrate(name)
 end
 
 --- Whether an object found in a zone holds it for its coalition: a ground unit that is active, a
---- helicopter on the ground, or a CTLD crate. Aircraft in flight never do.
+--- helicopter on the ground, or a CTLD crate. Aircraft in flight never do, and neither does a wreck.
 function veafCampaign.holdsGround(object, isStatic)
+  if object.isExist and not object:isExist() then
+    return false
+  end
+  if object.getLife and object:getLife() < 1 then
+    return false -- a destroyed object can still be found, and still answers its coalition (dcs-runtime-traps)
+  end
   if isStatic then
     return isCtldCrate(object:getName())
   end
@@ -425,14 +431,15 @@ function veafCampaign.holdsGround(object, isStatic)
 end
 
 --- Which coalitions hold ground in the zone right now.
---- @return table `{ [coalition.side.BLUE] = true, ... }`
+--- @return table `{ [coalition.side.BLUE] = "name of the first object found", ... }`
 function VeafCampaignZone:sidesPresent()
   local present = {}
   local volume = { id = world.VolumeType.SPHERE, params = { point = self:getCenter(), radius = self.entry.radius or 2000 } }
   local function visit(isStatic)
     return function(object)
       if object and veafCampaign.holdsGround(object, isStatic) then
-        present[object:getCoalition()] = true
+        local side = object:getCoalition()
+        present[side] = present[side] or tostring(object:getName())
       end
       return true
     end
@@ -447,10 +454,20 @@ end
 --- @param elapsed number seconds since the last check
 function VeafCampaignZone:checkCapture(elapsed)
   if self.entry.owner ~= "neutral" then
+    self.presence = nil
     return
   end
   local present = self:sidesPresent()
   local blue, red = present[coalition.side.BLUE], present[coalition.side.RED]
+  local presence = (blue and red and string.format("contested: blue (%s), red (%s)", blue, red))
+    or (blue and string.format("blue (%s)", blue))
+    or (red and string.format("red (%s)", red))
+    or "nobody"
+  if presence ~= self.presence then
+    -- said once per change, so a capture that does not happen can be read in dcs.log
+    self.presence = presence
+    veaf.loggers.get(veafCampaign.Id):info("neutral zone [%s] held by %s", self.name, presence)
+  end
   if blue and red then
     return -- contested: the clock stops where it is
   end

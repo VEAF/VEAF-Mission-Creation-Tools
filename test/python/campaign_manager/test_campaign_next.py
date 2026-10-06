@@ -23,6 +23,7 @@ from veaf_libs.i18n import language, t
 from veaf_libs.lua_config_generator import generate_config_lua
 from veaf_libs.mission_validator import ERROR
 from veaf_mission_mcp.mission_folder import load_folder_mission
+from veaf_mission_mcp.mission_settings import set_briefing
 
 REPO = Path(__file__).resolve().parents[3]
 
@@ -54,6 +55,13 @@ def _template(folder: Path) -> Path:
 
 def _airport(mission: DcsMission, name: str) -> dict[str, Any]:
     return mission.warehouses_content["airports"][airdrome_id_for_name("Caucasus", name)]
+
+
+def _briefing(mission: DcsMission) -> str:
+    """The situation text of the briefing, through the dictionary key when there is one."""
+    text = mission.mission_content.get("descriptionText")
+    dictionary = mission.dictionary_content or {}
+    return str(dictionary.get(text, text))
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +221,24 @@ class TestTheMissionFolder:
         assert not report.created
         assert (tmp_path / "m1" / "src" / "designed.lua").is_file()
         assert _airport(load_folder_mission(tmp_path / "m1"), "Kobuleti")["coalition"] == "RED"
+
+    def test_the_strategic_situation_is_the_missions_briefing(self, tmp_path: Path) -> None:
+        # a mission built straight after `campaign next` flies with it, not with an empty briefing
+        _template(tmp_path)
+        campaign = _campaign()
+        with language("fr"):
+            prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        assert _briefing(load_folder_mission(tmp_path / "m1")) == (
+            tmp_path / "m1" / "strategic-situation.fr.txt"
+        ).read_text(encoding="utf-8")
+
+    def test_a_second_run_leaves_the_briefing_as_designed(self, tmp_path: Path) -> None:
+        _template(tmp_path)
+        campaign = _campaign()
+        prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        set_briefing(tmp_path / "m1", situation="Claude's narrative")
+        prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        assert _briefing(load_folder_mission(tmp_path / "m1")) == "Claude's narrative"
 
     def test_a_missing_template_is_reported(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError, match="template"):

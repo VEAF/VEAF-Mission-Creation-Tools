@@ -78,7 +78,9 @@ class TestTheEnemyPicture:
         state = initial_state(campaign)
         state.zones["Senaki"].garrison = _garrison(SA10)
         with language("fr"):
-            assert "Batterie SA-10 confirmée sur la position." in enemy_picture(campaign, state, campaign.zone("Senaki"))
+            assert "Batterie SA-10 confirmée sur la position." in enemy_picture(
+                campaign, state, campaign.zone("Senaki")
+            )
         state.zones["Senaki"].garrison = _garrison(SA10, alive=False)
         with language("fr"):
             assert "Batterie SA-10 détruite." in enemy_picture(campaign, state, campaign.zone("Senaki"))

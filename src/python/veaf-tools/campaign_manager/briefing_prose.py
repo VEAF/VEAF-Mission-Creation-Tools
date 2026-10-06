@@ -164,7 +164,9 @@ def parse_prose(raw: Any, missions: int, coming: int) -> tuple[BriefingProse | N
         if not isinstance(page, dict) or not isinstance(page.get("title"), str):
             issues.append(_issue(ERROR, "not_titled", section=f"missions.{number}"))
             continue
-        tasks = [_titled(f"missions.{number}.tasks[{i}]", task, issues) for i, task in enumerate(page.get("tasks") or [], 1)]
+        tasks = [
+            _titled(f"missions.{number}.tasks[{i}]", task, issues) for i, task in enumerate(page.get("tasks") or [], 1)
+        ]
         pages[number] = MissionPage(page["title"].strip(), tuple(task for task in tasks if task))
     if coming not in pages:
         issues.append(_issue(WARNING, "no_mission_page", mission=coming))

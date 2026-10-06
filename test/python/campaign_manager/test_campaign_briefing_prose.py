@@ -44,7 +44,10 @@ class TestReadingTheProse:
         assert issues == []
         assert prose is not None
         assert (prose.operation, prose.subtitle) == ("Kolkhida", "Briefing de situation — campagne")
-        assert prose.text("situation", "political") == ("Les forces rouges ont franchi l'Inguri.", "Une négociation s'ouvre.")
+        assert prose.text("situation", "political") == (
+            "Les forces rouges ont franchi l'Inguri.",
+            "Une négociation s'ouvre.",
+        )
         assert prose.text("situation", "economic") == ("Le port de Poti ne tourne plus.",)
         assert prose.text("mission", "mission") == ("Reprendre Senaki et détruire le dépôt de Khobi.",)
         assert prose.text("intent", "method") == ()

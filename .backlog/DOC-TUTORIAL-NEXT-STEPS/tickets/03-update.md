@@ -1,6 +1,6 @@
 # 03 — Updating the tools
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: docs
 

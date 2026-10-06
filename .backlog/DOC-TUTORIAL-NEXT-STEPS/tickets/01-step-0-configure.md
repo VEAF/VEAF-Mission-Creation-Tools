@@ -1,6 +1,6 @@
 # 01 — Set the tool's language, and `doctor`
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: docs
 

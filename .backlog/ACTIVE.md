@@ -6,9 +6,7 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [DOC-TUTORIAL-NEXT-STEPS](DOC-TUTORIAL-NEXT-STEPS/PRD.md) · 🔄
-
-The tutorial stops before the three things a mission maker does next: set the tool's language, get security back for the server build through a profile, and update the tools.
+*None.*
 
 ## 🧑 Waiting for a human
 

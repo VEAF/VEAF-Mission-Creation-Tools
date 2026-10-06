@@ -1,6 +1,6 @@
 # 04 — The "what next" table
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Type: docs
 

@@ -22,6 +22,10 @@ Path-filtered workflows made usable as required checks; the 11 checks are now re
 
 CTLD `2.0.0-rc12` vendored (#1051): reoccupied slots, `EXZ_` extraction zones, UH-1H / Mi-8MT catalogue changes.
 
+### [DOC-TUTORIAL-NEXT-STEPS](DOC-TUTORIAL-NEXT-STEPS/PRD.md) · ✅
+
+The tutorial stops before the three things a mission maker does next: set the tool's language, get security back for the server build through a profile, and update the tools.
+
 ### [FEAT-AIRCRAFT-ROLES](FEAT-AIRCRAFT-ROLES/PRD.md) · ✅
 
 One way to spawn an aircraft with a job: `veafAircraftSpawn` roles, given to QRA and AirWaves CAP groups at clone time. Verified in game (R21).

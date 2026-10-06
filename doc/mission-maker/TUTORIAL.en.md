@@ -43,6 +43,35 @@ drop it in, and run it:
 
 prints the installed version.
 
+**Which language the tool answers in.** It follows the language of Windows.
+To see the one it picked, and where it got it from:
+
+```powershell
+.\veaf-tools.exe user-config
+```
+
+```text
+Effective settings
+Language: en (from: OS/default)
+```
+
+This tutorial quotes the tool's messages in English.
+If yours come out in another language, set it once and for all:
+
+```powershell
+.\veaf-tools.exe user-config --set lang=en
+```
+
+The setting is written to `veafmct.yaml`, at the root of your user folder (`C:\Users\<you>\veafmct.yaml`), and applies to every mission folder on this machine.
+`user-config` now names that file as the language's source.
+The other settings it can hold: [global user configuration](GUIDE.en.md#global-user-configuration).
+
+!!! tip "The day you ask for help"
+    `.\veaf-tools.exe doctor` shows the tool's version, DCS's, the system and the tool's latest errors, then repeats them in a block ready to paste into a Discord message or a GitHub issue.
+    Your Windows user name is already masked in it.
+    Paste that block as it is: it is the first thing anyone would ask you for.
+    → [Running `doctor`](../SUPPORT.en.md#doctor)
+
 ---
 
 ## Step 1 — Create the mission folder {#step-1-prepare}
@@ -157,7 +186,8 @@ configuration — is commented out: those are examples ready to uncomment, not a
     VEAF security is **on** by default: most marker commands and combat-zone activations then need
     an authenticated radio or a password. Offline, on your own, that shows up as commands doing
     nothing — and you go looking for the bug elsewhere. The `security:` block goes at the **root** of
-    the file, not inside `modules:`. Put it back before you deploy on a server.
+    the file, not inside `modules:`. Put it back before you deploy on a server —
+    [step 10](#step-10-server-profile) shows how to do it once and for all.
 
 → [card: `mission.yaml` and its modules](concepts/mission-yaml.en.md) ·
 [veafSecurity](scripts/veafSecurity.en.md)
@@ -454,7 +484,97 @@ take. An airfield with helicopter-only spots will not offer aircraft, whatever t
 
 ---
 
-## Step 10 — What next {#step-10-next}
+## Step 10 — Prepare the server version {#step-10-server-profile}
+
+In step 2 you switched security off while learning.
+It has to come back before the mission goes to a server: without it, any player can spawn or destroy whatever they like with a marker.
+Putting it back by hand before every deployment means forgetting it one day; a **build profile** does it for you.
+
+In `mission.yaml`, replace the `security:` block from step 2 with:
+
+```yaml
+profiles:
+  TEST:
+    security:
+      disabled: true
+```
+
+The block stays at the **root** of the file, where `security:` was.
+A profile only holds what changes: here, the one difference between your test version and the server's.
+Without a profile the base configuration applies, and it now has security on.
+
+To fly and test, build **with** the profile:
+
+```powershell
+.\veaf-tools.exe build --profile TEST Mon-Premier-Vol.miz
+```
+
+That is the new shape of the **editor → `extract` → `build`** loop: only the `build` changes.
+
+For the server, build **without** a profile, into a separate file:
+
+```powershell
+.\veaf-tools.exe build Mon-Premier-Vol-serveur.miz
+```
+
+The file to reopen in the editor is still `Mon-Premier-Vol.miz`. `Mon-Premier-Vol-serveur.miz` is a product, like the variants in `missions/`: it goes to the server, you do not edit it.
+
+**How to tell**: the build with a profile says so in its first lines,
+
+> Building with profile: TEST
+
+and the build without one prints nothing of the sort.
+
+!!! warning "A misspelt profile does not stop the build"
+    `--profile TSET` prints "Profile 'TSET' not found in mission.yaml — using base config", then builds **without** a profile: security on, and marker commands that no longer do anything offline.
+    If `-shilka` stops working after this step, read the build output before looking anywhere else.
+    Case, on the other hand, does not matter: `--profile test` finds `TEST`.
+
+On the server, security lets through the pilots listed in the server's `veaf-pilots.txt` file, according to their level; everybody else has to give a password.
+Before opening the mission to the public, set your own passwords: the default ones are published with the tools.
+
+→ [veafSecurity](scripts/veafSecurity.en.md) · [build profiles](GUIDE.en.md#build-profiles)
+
+---
+
+## Step 11 — Update the tools {#step-11-update}
+
+The tools move on: fixes, new modules, new commands.
+To update, rerun the updater from the mission folder:
+
+```powershell
+.\veaf-tools-updater.exe
+```
+
+**What should happen**: it asks for the latest release, compares it with the installed version, and only downloads when the release is newer.
+Already up to date, it stops there:
+
+```text
+Found release version: X.Y.Z
+Installed version X.Y.Z is already up-to-date
+Work done!
+```
+
+Otherwise it announces "Newer version available: … → …", then downloads, verifies and installs.
+
+The update replaces the `published/` folder and both executables.
+It touches neither `mission.yaml`, nor `src/`, nor your `.miz` files.
+
+**Then rebuild.** The VEAF scripts travel *inside* the `.miz`: the build copies them in.
+A mission built before the update therefore keeps the old scripts until you rebuild it:
+
+```powershell
+.\veaf-tools.exe build --profile TEST Mon-Premier-Vol.miz
+.\veaf-tools.exe build Mon-Premier-Vol-serveur.miz
+```
+
+**How to tell**: `.\veaf-tools.exe about` prints the new version, and the build writes it on its first line.
+
+To stay on one specific version, for the length of an event for instance: [updating](GUIDE.en.md#updates).
+
+---
+
+## Step 12 — What next {#step-12-next}
 
 You have a mission that runs, versioned, rebuildable. The rest is à la carte:
 
@@ -465,6 +585,10 @@ You have a mission that runs, versioned, rebuildable. The rest is à la carte:
 | A QRA that scrambles on intrusion | [veafQraManager](scripts/veafQraManager.en.md) |
 | Air combat by waves | [veafAirWaves](scripts/veafAirWaves.en.md) |
 | Password-protect your server | [veafSecurity](scripts/veafSecurity.en.md) |
+| See every feature running in game | [the demo mission](GUIDE.en.md#demo-mission) |
+| Take over a mission made with v5 of the tools | [Migrating to v6](MIGRATION_GUIDE.en.md) |
+| Adopt a mission that was not made with VMCT | [Adopt a third-party mission](CONVERT_OTHER.en.md) |
+| Build or change a mission by asking an AI assistant | [Install the AI assistant](AI_ASSISTANT_INSTALL.en.md) |
 | Every configuration option | [`mission.yaml` reference](../MISSION_YAML_REFERENCE.en.md) |
 | Every command | [CLI reference](../CLI_REFERENCE.en.md) |
 | The end-to-end detail | [Full guide](GUIDE.en.md) |

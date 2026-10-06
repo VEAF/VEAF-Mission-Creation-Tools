@@ -1,6 +1,6 @@
 # 01 — Give every spawned unit a unique name
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/scripts/veaf/veafSpawnGround.lua` (unit loop near l. 373), other spawn paths that build unit names the same way, `test/lua/`, `CHANGELOG.md`
 

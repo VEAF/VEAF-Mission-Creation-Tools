@@ -1,6 +1,6 @@
 # FIX-DUPLICATE-UNIT-NAMES — spawned units of the same type share one name
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 ## Origin
 

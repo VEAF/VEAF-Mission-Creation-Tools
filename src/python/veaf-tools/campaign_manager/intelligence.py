@@ -138,10 +138,25 @@ def enemy_picture(campaign: CampaignDefinition, state: CampaignState, zone: Camp
 
 
 def friendly_picture(campaign: CampaignDefinition, zone: CampaignZone) -> str:
-    """What a zone the players' side holds is, in the current language."""
+    """What a zone the players' side holds is, in the current language.
+
+    Args:
+        campaign: The validated campaign, for the zone's size class.
+        zone: A zone the players' side holds.
+
+    Returns:
+        A phrase, with no final full stop.
+    """
     return t(f"campaign.intel.own.{_category(campaign, zone)}")
 
 
 def reserve_text(reserve: dict[str, int]) -> str:
-    """A friendly reserve, said in words, in the current language."""
+    """A friendly reserve, said in words, in the current language.
+
+    Args:
+        reserve: Units by category, as the campaign state records them.
+
+    Returns:
+        The reserve, every category named.
+    """
     return t("campaign.intel.reserve", **{category: reserve.get(category, 0) for category in RESERVE_CATEGORIES})

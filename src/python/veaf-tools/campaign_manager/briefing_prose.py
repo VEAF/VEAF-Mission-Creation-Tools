@@ -65,7 +65,15 @@ class BriefingProse:
     missions: dict[int, MissionPage] = field(default_factory=dict)
 
     def text(self, section: str, part: str) -> tuple[str, ...]:
-        """The paragraphs of a sub-section, empty when it is not written."""
+        """The paragraphs of a sub-section, empty when it is not written.
+
+        Args:
+            section: The section, `situation` for instance.
+            part: The sub-section, `political` for instance.
+
+        Returns:
+            The paragraphs, in the file's order.
+        """
         return self.texts.get(section, {}).get(part, ())
 
 

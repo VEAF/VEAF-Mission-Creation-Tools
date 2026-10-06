@@ -61,13 +61,26 @@ def http_fetch(url: str) -> bytes | None:
 
 
 def default_cache_dir() -> Path:
-    """Where tiles are kept between runs: the user's local application data, never the mission."""
+    """Where tiles are kept between runs: the user's local application data, never the mission.
+
+    Returns:
+        ``%LOCALAPPDATA%/veaf-tools/tiles``, or ``~/.cache/veaf-tools/tiles`` without it.
+    """
     base = os.environ.get("LOCALAPPDATA")
     return (Path(base) if base else Path.home() / ".cache") / "veaf-tools" / "tiles"
 
 
 def world_pixel(lat: float, lon: float, zoom: int) -> tuple[float, float]:
-    """Web Mercator: the pixel of a point in the whole world's image at that zoom."""
+    """Web Mercator: the pixel of a point in the whole world's image at that zoom.
+
+    Args:
+        lat: The point's latitude, in degrees.
+        lon: Its longitude, in degrees.
+        zoom: The tile zoom level.
+
+    Returns:
+        ``(x, y)`` in pixels from the world image's top-left corner.
+    """
     scale = TILE_SIZE * 2**zoom
     x = (lon + 180.0) / 360.0 * scale
     y = (1.0 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2.0 * scale
@@ -75,12 +88,31 @@ def world_pixel(lat: float, lon: float, zoom: int) -> tuple[float, float]:
 
 
 def metres_per_pixel(lat: float, zoom: int) -> float:
-    """The ground a pixel covers at that latitude and zoom."""
+    """The ground a pixel covers at that latitude and zoom.
+
+    Args:
+        lat: The latitude, in degrees.
+        zoom: The tile zoom level.
+
+    Returns:
+        Metres per pixel.
+    """
     return 156543.03392 * math.cos(math.radians(lat)) / 2**zoom
 
 
 def choose_zoom(north: float, west: float, south: float, east: float, max_pixels: int) -> int:
-    """The highest zoom at which the box fits in ``max_pixels`` on its longer side."""
+    """The highest zoom at which the box fits in ``max_pixels`` on its longer side.
+
+    Args:
+        north: The box's northern latitude.
+        west: Its western longitude.
+        south: Its southern latitude.
+        east: Its eastern longitude.
+        max_pixels: The longer side's size at most.
+
+    Returns:
+        A zoom level from 14 down to 3.
+    """
     for zoom in range(14, 2, -1):
         x0, y0 = world_pixel(north, west, zoom)
         x1, y1 = world_pixel(south, east, zoom)
@@ -101,7 +133,15 @@ class BaseMap:
     """Whether at least one tile was missing, and the plain background shows instead."""
 
     def pixel(self, lat: float, lon: float) -> tuple[float, float]:
-        """The pixel of a point in this image."""
+        """The pixel of a point in this image.
+
+        Args:
+            lat: The point's latitude, in degrees.
+            lon: Its longitude, in degrees.
+
+        Returns:
+            ``(x, y)`` in pixels from the image's top-left corner.
+        """
         x, y = world_pixel(lat, lon, self.zoom)
         return x - self.origin[0], y - self.origin[1]
 

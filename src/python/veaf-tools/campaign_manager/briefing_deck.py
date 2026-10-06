@@ -131,7 +131,15 @@ def line_count(text: str, size: int, width: float, bold: bool = False) -> int:
 
 
 def block_height(block: Block, width: float) -> float:
-    """The height of a block, in points, in a frame that wide."""
+    """The height of a block, in points, in a frame that wide.
+
+    Args:
+        block: The heading and paragraphs.
+        width: The frame's width, in points.
+
+    Returns:
+        The height, the space before its heading included.
+    """
     height = 0.0
     if block.heading:
         height += (

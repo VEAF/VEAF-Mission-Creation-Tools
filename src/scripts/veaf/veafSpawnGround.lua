@@ -370,11 +370,14 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
   for i = 1, #units do
     local unit = units[i]
     local unitType = unit.typeName
-    local unitNameTemplate = "%s - %s"
+    -- The index keeps names unique within the group: two units of one type used to share a name,
+    -- and DCS then resolves neither by name (`-menage` left both alive, FIX-DUPLICATE-UNIT-NAMES)
+    local unitName
     if veafSpawn.HideTypeFromGroupNames then
-      unitNameTemplate = "%s"
+      unitName = string.format("%s #%d", groupName, i)
+    else
+      unitName = string.format("%s - %s #%d", groupName, unit.displayName, i)
     end
-    local unitName = string.format(unitNameTemplate, groupName, unit.displayName)
     local spawnPosition = unit.spawnPoint
     local hdg = spawnPosition.hdg or math.random(0, 359)
 

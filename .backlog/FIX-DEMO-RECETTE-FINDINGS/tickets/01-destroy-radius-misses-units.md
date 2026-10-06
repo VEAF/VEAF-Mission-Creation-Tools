@@ -19,6 +19,8 @@ Demo test mission, 2026-10-05, over the bridge, after `-armor` then `-menage` (`
 - `Unit.getByName("[r]-Armored Platoon#10252 - IFV BMP-3 [CH]")` returns nil, though the group's `getUnit(1):getName()` returns that very name.
 
 Every unit spawned with a « [CH] » display name (the CH vehicle pack, drawn at random by `-armor`) is affected; the cause of the failed lookup is not established — the fix does not need it.
+
+**Superseded (2026-10-06):** the « [CH] » diagnosis was wrong. The units `Unit.getByName` could not resolve had **duplicate names** — two units of one type in a group got the same `<group> - <type>` name — and `-menage` still spared them on the 6.28.0 candidate; see [FIX-DUPLICATE-UNIT-NAMES](../../FIX-DUPLICATE-UNIT-NAMES/PRD.md).
 Same thing seen twice in that session (MCV-80 then CHAP_BMPT / CHAP_T64BV).
 
 ## Fix

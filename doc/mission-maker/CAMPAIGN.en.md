@@ -133,7 +133,8 @@ The first briefing therefore speaks in intelligence terms ("estimated strength")
 - The **Campaign → Situation** radio menu gives the zones, the objectives and the mission number.
 - **Taking a neutral zone**: ground units of a single side stay there for `capture_seconds` (120 s by default) — CTLD 2 troops or vehicles, a convoy, a `_spawn` group, a Combined Arms vehicle, a **landed** helicopter, a CTLD 2 crate.
   Both sides present stop the clock; everybody gone cancels it.
-  An aircraft in flight never counts.
+  An aircraft in flight never counts, nor does a wreck.
+  The DCS log (`dcs.log`) says, at each change, who holds a neutral zone and through which unit: that is where to read why a capture does not start.
   The zone taken gets its new side's garrison at once, paid from that side's reserve.
 
 ## The state file {#state-file}
@@ -181,7 +182,7 @@ It is a text to read after the evening or to post as it is; the AI assistant tel
 ## The strategic briefing {#strategic-briefing}
 
 `campaign next` writes, at the root of the mission folder, the factual part of the strategic briefing in French and English (`strategic-situation.fr.txt`, `strategic-situation.en.txt`): the front, what changed in the last mission, the enemy's reserve and garrisons, the objectives and the missions left.
-Claude adds the narrative part while designing the mission.
+The text, in the language the tools run in, also becomes the mission's briefing when the folder is created, so a mission built as it is does not fly without one; Claude adds the narrative part while designing the mission, and a second `campaign next` on the same folder does not overwrite it.
 
 ## What is still to verify in game {#to-verify}
 

@@ -609,6 +609,24 @@ limitations:
     The combat zone watchdog counted every static it found, so **a zone holding a static never
     completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
     FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
+- id: destroyed-units-are-still-found-by-searchobjects
+  kind: dcs
+  area: spawning
+  title: "`world.searchObjects` still finds ground units after their destruction"
+  measured: "2026-10-06"
+  symptom: |
+    A volume search (`world.searchObjects(Object.Category.UNIT, …)`) around a garrison destroyed by
+    explosions keeps returning its units with their coalition, as if they still held the ground.
+    Measured on Caucasus at Senaki with a red garrison killed by `-shell`: without a filter the zone
+    stayed contested by red for minutes, two blue M1A2 in it and no live red unit on the F10 map; with
+    `isExist()` and `getLife() >= 1` tested, the same search right after the last death answered nobody.
+    Which of the two tests rejects the wrecks was not isolated.
+  workaround: |
+    Filter every object a search returns: `isExist()` true and `getLife()` at least 1.
+    `veafCampaign.holdsGround` does both.
+  cost: |
+    A campaign zone whose garrison was destroyed could never be captured: the wrecks held it for the
+    side that had lost it. Found in the first two-mission test of FEAT-MULTI-MISSION-CAMPAIGN.
 - id: unit-getbyname-misses-units-sharing-a-name
   kind: dcs
   area: spawning

@@ -208,7 +208,7 @@ A file already applied, from another campaign, or skipping a mission is refused 
 ### Prepare a campaign's next mission {#campaign-next}
 
 *Campaign (folder) · ⭐* — The AI prepares the next mission's folder from the state: each base to its owner with its dynamic slots, the garrisons with their losses, the campaign module turned on.
-It gets the factual part of the strategic briefing in French and English, then designs the mission on top and writes the narrative part.
+It gets the factual part of the strategic briefing in French and English — already the briefing of a new mission folder — then designs the mission on top and writes the narrative part.
 
 > 💬 *"Prepare mission 4: red counter-attacks at Senaki."*
 

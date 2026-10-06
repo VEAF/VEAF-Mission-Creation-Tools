@@ -46,6 +46,10 @@ class TestReadingTheProse:
         raw["situation"]["economic"] = 12
         assert t("campaign.issue.prose.not_text", section="situation.economic") in _messages(raw)
 
+    def test_an_unquoted_french_colon_is_said_to_need_quotes(self) -> None:
+        raw = yaml.safe_load("rules_of_engagement:\n  targeting:\n    - Cibles autorisées : les unités rouges\n")
+        assert t("campaign.issue.prose.unquoted_colon", section="rules_of_engagement.targeting") in _messages(raw)
+
     def test_a_phase_or_task_without_a_title_is_reported(self) -> None:
         raw = copy.deepcopy(PROSE)
         raw["concept"]["phases"].append({"text": "sans titre"})

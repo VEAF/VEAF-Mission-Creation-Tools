@@ -1,6 +1,6 @@
 # FEAT-CAMPAIGN-BRIEFING-DECK — the campaign's strategic briefing, as a document the squadron reads
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-10-06, testing the start of a campaign: "où est le briefing de campagne (stratégique) ? — je parle d'un document de briefing (comme les ppt que tu génères pour les missions)".
 The objective-mission prompt already produces a PPTX briefing after the VEAF template (`.prompts/new-objective-mission.fr.md` §3 and §6); a campaign has nothing of the kind — only `strategic-situation.{fr,en}.txt`, a list of facts, and the DCS briefing text.
@@ -47,12 +47,19 @@ The prose — political and economic situation, intent, objectives by nature, co
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-strategic-map.md) | The strategic map, rendered from the campaign | ⬜ |
-| [02](tickets/02-intelligence-picture.md) | What the players know of the enemy | ⬜ |
-| [03](tickets/03-briefing-prose-file.md) | The prose, in a file of the campaign folder | ⬜ |
-| [04](tickets/04-deck-generator.md) | The deck: `campaign briefing`, and `campaign next` | ⬜ |
-| [05](tickets/05-claude-writes-the-brief.md) | Claude writes the brief, and rewrites it after each mission | ⬜ |
-| [06](tickets/06-doc-and-example.md) | Documentation and the example campaign | ⬜ |
+| [01](tickets/01-strategic-map.md) | The strategic map, rendered from the campaign | ✅ |
+| [02](tickets/02-intelligence-picture.md) | What the players know of the enemy | ✅ |
+| [03](tickets/03-briefing-prose-file.md) | The prose, in a file of the campaign folder | ✅ |
+| [04](tickets/04-deck-generator.md) | The deck: `campaign briefing`, and `campaign next` | ✅ |
+| [05](tickets/05-claude-writes-the-brief.md) | Claude writes the brief, and rewrites it after each mission | 🧑 |
+| [06](tickets/06-doc-and-example.md) | Documentation and the example campaign | ✅ |
+
+## What waits for a human
+
+- **The deck as Slides shows it.** No PowerPoint or LibreOffice on the build machine: where a page ends is computed with the font's metrics, the rendering itself was never looked at. Import `briefing-campagne.pptx` into Google Slides and look at every page.
+- **Ticket 05 in a real session**: the writing rules are in the `campaign_briefing` action's description; a campaign driven by Claude through the MCP — the prose written at the start, then rewritten after a mission — has not been run.
+
+Measured on the way: python-pptx (with lxml) grows the executable from 40.7 to 45.4 MB, and `campaign briefing` runs from the frozen executable, its template bundled. A French text holding " : " unquoted is read by YAML as a key and its value: `campaign validate` names it.
 
 ## Related
 

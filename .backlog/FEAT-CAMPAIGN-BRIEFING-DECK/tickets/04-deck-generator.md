@@ -1,6 +1,6 @@
 # 04 — The deck: `campaign briefing`, and `campaign next`
 
-Status: ⬜ ready
+Status: ✅ done
 
 `campaign briefing <folder>` writes `missions/mission-NN/briefing-campagne.pptx` for the coming mission: the pages of the PRD, the generated facts (tickets 01, 02, the objectives, the victory conditions, the annex) around the prose of ticket 03.
 `campaign next` produces it too, and the MCP gets a `campaign_briefing` action (catalogue row, lockstep).

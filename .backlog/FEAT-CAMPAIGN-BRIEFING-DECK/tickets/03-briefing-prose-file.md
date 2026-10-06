@@ -1,6 +1,6 @@
 # 03 — The prose, in a file of the campaign folder
 
-Status: ⬜ ready
+Status: ✅ done
 
 The written half of the brief lives in a file of the campaign folder (for instance `briefing.yaml`), next to `campaign.yaml`, so it survives from one mission to the next and the deck can be regenerated at will.
 

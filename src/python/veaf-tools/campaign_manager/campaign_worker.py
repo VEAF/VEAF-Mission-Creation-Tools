@@ -187,8 +187,12 @@ class CampaignWorker:
             report = prepare_next_mission(campaign, state, self.folder, folder)
         except FileNotFoundError as error:
             return [*issues, ValidationIssue(ERROR, str(error))], None
-        # the deck comes with the folder; a defect in briefing.yaml does not stop the mission
-        deck_issues, deck = self._deck(campaign, state)
+        # the deck comes with the folder; neither a defect in briefing.yaml nor a failure to draw it
+        # stops the mission, which is what the squadron flies
+        try:
+            deck_issues, deck = self._deck(campaign, state)
+        except (OSError, KeyError, ValueError) as error:
+            deck_issues, deck = [ValidationIssue(WARNING, t("campaign.issue.deck_failed", error=error))], None
         issues += [ValidationIssue(WARNING, issue.message) for issue in deck_issues]
         return issues, replace(report, deck=deck.path if deck else None)
 

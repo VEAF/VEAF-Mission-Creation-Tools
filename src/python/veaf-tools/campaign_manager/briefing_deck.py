@@ -196,6 +196,15 @@ def _labels(campaign: CampaignDefinition, names: tuple[str, ...] | list[str]) ->
     return _join([campaign.zone(name).label for name in names])
 
 
+def _after_colon(text: str) -> str:
+    """A sentence put after a colon: its first letter lowered, unless it starts an acronym (`SA-10`)."""
+    return text[0].lower() + text[1:] if len(text) > 1 and text[0].isupper() and text[1].islower() else text
+
+
+def _zone_line(zone: CampaignZone, text: str) -> str:
+    return t("campaign.deck.zone_line", zone=zone.label, text=_after_colon(text))
+
+
 def _zones_of(campaign: CampaignDefinition, state: CampaignState, side: str) -> list[CampaignZone]:
     return [zone for zone in campaign.zones if state.zones[zone.name].owner == side]
 
@@ -214,9 +223,7 @@ def _strategic_page(prose: BriefingProse | None) -> Page | None:
 def _military_page(campaign: CampaignDefinition, state: CampaignState, prose: BriefingProse | None) -> Page:
     player = campaign.player_side
     enemy = enemy_of(player)
-    enemy_lines = [
-        f"– {zone.label} : {enemy_picture(campaign, state, zone)}" for zone in _zones_of(campaign, state, enemy)
-    ]
+    enemy_lines = [_zone_line(zone, enemy_picture(campaign, state, zone)) for zone in _zones_of(campaign, state, enemy)]
     depots = [zone.name for zone in _zones_of(campaign, state, enemy) if zone.kind == "logistics"]
     enemy_lines.append(
         t("campaign.deck.enemy_reserve_fed", depots=_labels(campaign, depots))
@@ -224,9 +231,9 @@ def _military_page(campaign: CampaignDefinition, state: CampaignState, prose: Br
         else t("campaign.deck.enemy_reserve")
     )
     for paragraph in prose.text("situation", "enemy_course_of_action") if prose else ():
-        enemy_lines.append(t("campaign.deck.enemy_course_of_action", text=paragraph))
+        enemy_lines.append(t("campaign.deck.enemy_course_of_action", text=_after_colon(paragraph)))
     friendly_lines = [
-        f"– {zone.label} : {friendly_picture(campaign, zone)}." for zone in _zones_of(campaign, state, player)
+        _zone_line(zone, friendly_picture(campaign, zone) + ".") for zone in _zones_of(campaign, state, player)
     ]
     friendly_lines.append(t("campaign.deck.friendly_reserve", reserve=reserve_text(state.sides[player].reserve)))
     friendly_lines += [f"– {paragraph}" for paragraph in (prose.text("situation", "friendly") if prose else ())]
@@ -243,7 +250,7 @@ def _military_page(campaign: CampaignDefinition, state: CampaignState, prose: Br
 def _intent_page(prose: BriefingProse | None) -> Page | None:
     blocks = _prose_block(prose, "campaign.deck.heading.mission", "mission", "mission")
     intent = [
-        t(f"campaign.deck.intent.{part}", text=paragraph)
+        t(f"campaign.deck.intent.{part}", text=_after_colon(paragraph))
         for part in ("purpose", "main_effect", "method", "end_state")
         for paragraph in (prose.text("intent", part) if prose else ())
     ]

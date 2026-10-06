@@ -32,12 +32,14 @@ Avec l'assistant IA, les mêmes étapes passent par les actions `campaign_status
 ```text
 Caucase/
 ├── campaign.yaml            ce que vous déclarez ; les outils ne le réécrivent jamais
+├── briefing.yaml            le texte du briefing de campagne (voir plus bas) ; facultatif
 ├── campaign-state.yaml      ce que la campagne est devenue ; réécrit après chaque mission
 ├── template/                un dossier de mission ordinaire : chaque mission en part
 └── missions/
     ├── mission-01/
     │   ├── mission/         le dossier de mission de la mission 1
     │   ├── mission-01.state le fichier d'état écrit par la mission
+    │   ├── briefing-campagne.pptx / carte-strategique.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -81,6 +83,8 @@ zones:
     size: outpost
     side: red
     kind: logistics          # alimente la réserve de son camp entre les missions
+    display_name: Dépôt de Gudauta   # le nom que lisent les joueurs ; le nom reste la clé
+    intel: Dépôt actif, gardé.       # ce que dit le renseignement, à la place du texte généré
     garrison: [sa8, shilka, T-72B]   # remplace le tirage, pour le camp qui le déclare
 connections:
   - [Kobuleti, Senaki]
@@ -183,6 +187,73 @@ C'est un texte à lire après la soirée ou à poster tel quel ; l'assistant IA 
 
 `campaign next` écrit, à la racine du dossier de mission, la partie factuelle du briefing stratégique en français et en anglais (`strategic-situation.fr.txt`, `strategic-situation.en.txt`) : le front, ce qui a changé à la dernière mission, la réserve et les garnisons ennemies, les objectifs et les missions restantes.
 Le texte, dans la langue des outils, devient aussi le briefing de la mission à sa création, pour qu'une mission construite telle quelle ne parte pas sans briefing ; Claude y ajoute la partie narrative en concevant la mission, et un second `campaign next` sur le même dossier ne l'écrase pas.
+
+## Le document de briefing de campagne {#briefing-deck}
+
+`campaign next` écrit aussi, dans `missions/mission-NN/`, le **briefing stratégique de la campagne** en PPTX (`briefing-campagne.pptx`) et sa carte (`carte-strategique.png`).
+C'est un briefing de situation au format des briefings VEAF — 16:9, fond blanc, titre en gras en haut à gauche — qui s'importe tel quel dans Google Slides.
+`.\veaf-tools.exe campaign briefing <dossier>` le régénère à tout moment, par exemple après avoir retouché le texte.
+
+| Page | D'où elle vient |
+|---|---|
+| Situation stratégique — politique, économique | `briefing.yaml` |
+| Situation militaire — forces ennemies, forces amies, terrain neutre | les outils, et le mode d'action ennemi de `briefing.yaml` |
+| Carte stratégique | les outils : chaque zone à son rayon, dans la couleur de son propriétaire, et les axes |
+| Mission et intention — mission, but, effet majeur, méthode, état final recherché | `briefing.yaml` |
+| Objectifs de la campagne — politiques, militaires, économiques, conditions de victoire | `briefing.yaml`, et les objectifs de `campaign.yaml` |
+| Concept d'opération — une phase par mission, points de vigilance | `briefing.yaml` |
+| Règles d'engagement — ciblage, protection des civils et des infrastructures, autodéfense | `briefing.yaml` |
+| Mission N — ses tâches | `briefing.yaml` |
+| Annexe — Règles de la campagne | les outils, d'après les règles de `campaign.yaml` |
+
+**Les faits sont générés, la prose est écrite.**
+Les outils écrivent ce que la campagne sait ; la situation, l'intention, le concept et les règles d'engagement s'écrivent dans `briefing.yaml`, à côté de `campaign.yaml`, par Claude ou à la main.
+Sans `briefing.yaml`, le document ne contient que la partie générée, et le dit ; `campaign validate` contrôle le fichier.
+Seule l'annexe parle de la mécanique du jeu : le reste se lit comme un état-major parlerait.
+
+**L'ennemi reste mystérieux.**
+Le document ne donne jamais un effectif ennemi, ni sa réserve : seulement ce que le renseignement en dit, avec la fiabilité de sa source.
+Un site fixe — le SAM longue portée d'une zone — est nommé dès que l'état de la campagne l'enregistre : sa batterie est tirée au démarrage de la mission, donc il est « probable, type non confirmé » avant la mission 1, puis nommé (« Batterie SA-10 confirmée ») à partir de la mission 2.
+Une zone peut porter son propre texte de renseignement (`intel:`) et le nom que les joueurs lisent (`display_name: Dépôt de Khobi`).
+
+```yaml
+operation: Kolkhida
+situation:
+  political:
+    - Il y a dix jours, les forces rouges ont franchi l'Inguri et pris pied dans la plaine de Colchide.
+    - Une négociation s'ouvre ; chaque kilomètre tenu par l'adversaire à son ouverture lui sera acquis.
+  economic: Le port de Poti ne tourne plus.
+  enemy_course_of_action: Tenir Senaki sous sa défense aérienne, puis reprendre l'offensive.
+mission: En 3 missions, la coalition reprend Senaki et détruit le dépôt de Khobi.
+intent:
+  purpose: Priver l'adversaire de sa capacité à reprendre l'offensive.
+  main_effect: Priver Senaki de son soutien logistique.
+  end_state: Senaki et Poti tenues, Khobi détruit, les villes épargnées.
+objectives:
+  political: [Rétablir l'autorité du gouvernement jusqu'à l'Inguri.]
+  military: [Reprendre l'aérodrome de Senaki., Détruire le dépôt de Khobi.]
+  economic: [Rouvrir le port de Poti, intact.]
+concept:
+  phases:
+    - { title: "Phase 1 — mission 1 : la porte de Poti", text: Prendre Poti et commencer l'attrition de Khobi. }
+  attention: [Zugdidi n'est pas un objectif.]
+rules_of_engagement:
+  targeting: [Identification positive de toute cible avant le tir.]
+  civilians: [Pas de bombardement de zone dans les agglomérations.]
+  self_defence: [Le droit de légitime défense n'est jamais restreint.]
+missions:
+  1:
+    title: La porte de Poti
+    tasks:
+      - { title: Prendre Poti — priorité 1, text: Sécuriser le port avec des troupes héliportées. }
+```
+
+Chaque texte est une chaîne ou une liste de paragraphes.
+Un texte qui contient « : » se met entre guillemets (`"Cibles autorisées : les unités rouges."`) : sans eux, YAML le lit comme une clé et sa valeur, et `campaign validate` le signale.
+Après chaque mission, la page de la mission suivante et l'avancée du concept se réécrivent d'après le débriefing ; le reste se garde tant que la situation ne le change pas.
+
+La carte est tracée sur les tuiles d'OpenStreetMap, gardées en cache dans `%LOCALAPPDATA%\veaf-tools\tiles` ; les outils s'identifient au serveur par leur adresse GitHub, et rien d'autre.
+Sans réseau, la carte est tracée sur un fond uni et le document le signale : relancez `campaign briefing` une fois en ligne.
 
 ## Ce qui reste à vérifier en jeu {#to-verify}
 

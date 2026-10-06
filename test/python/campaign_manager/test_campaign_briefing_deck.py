@@ -91,10 +91,10 @@ class TestTheDeck:
         slides = {slide[0]: "\n".join(slide[1:]) for slide in _deck(tmp_path)[1:]}
         assert "Une négociation s'ouvre." in slides["1. Situation stratégique"]
         assert (
-            "– Mode d'action le plus probable : Tenir Senaki, puis reprendre l'offensive."
+            "– Mode d'action le plus probable : tenir Senaki, puis reprendre l'offensive."
             in slides["2. Situation militaire"]
         )
-        assert "– But : Briser l'offensive." in slides["4. Mission et intention"]
+        assert "– But : briser l'offensive." in slides["4. Mission et intention"]
         assert "Phase 1 — la porte de Poti" in slides["6. Concept d'opération"]
         assert "1. Prendre Poti\nSécuriser le port." in slides["8. Mission 1 — La porte de Poti"]
 
@@ -102,7 +102,9 @@ class TestTheDeck:
         slides = {slide[0]: "\n".join(slide[1:]) for slide in _deck(tmp_path)[1:]}
         military = slides["2. Situation militaire"]
         assert "– Kobuleti : base défendue" in military
-        assert "Réserves : volume inconnu. Le renseignement estime qu'elles transitent par Gudauta depot." in military
+        assert (
+            "Réserves : volume inconnu. Elles transiteraient par ses centres logistiques (Gudauta depot)." in military
+        )
         objectives = slides["5. Objectifs de la campagne"]
         assert "– prendre et tenir : Senaki" in objectives
         assert "– détruire : Gudauta depot" in objectives
@@ -129,6 +131,14 @@ class TestTheDeck:
         ]
         with language("fr"):
             assert t("campaign.deck.prose_missing") in "\n".join(slides[0])
+
+
+def test_a_sentence_after_a_colon_starts_lower_case_but_an_acronym_does_not() -> None:
+    from campaign_manager.briefing_deck import _after_colon
+
+    assert _after_colon("Position principale.") == "position principale."
+    assert _after_colon("SA-10 confirmé.") == "SA-10 confirmé."
+    assert _after_colon("Batterie SA-10 confirmée.") == "batterie SA-10 confirmée."
 
 
 class TestWhereAPageEnds:

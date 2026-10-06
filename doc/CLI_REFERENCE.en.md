@@ -1,6 +1,6 @@
 # CLI reference — `veaf-tools`
 
-All **36 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
+All **37 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
 page: it says what each command accepts, not how to take a mission from start to finish. For that,
 read the [mission maker's guide](mission-maker/GUIDE.en.md), which tells the story in order, and the
 [pipeline reference](PIPELINE_REFERENCE.en.md), which details each build step.
@@ -564,6 +564,27 @@ The folder is copied from `template/` the first time, and only refreshed afterwa
 ```
 
 *Flat alias : `veaf-tools campaign-next`*
+
+### `veaf-tools campaign briefing` {#campaign-briefing}
+
+Write the coming mission's strategic briefing deck (PPTX), from the campaign and its briefing.yaml.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | no | Campaign folder, holding campaign.yaml. Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
+| `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
+
+Writes `missions/mission-NN/briefing-campagne.pptx` and its map; `campaign next` does too. The prose comes from `briefing.yaml`, the facts from the campaign.
+
+```powershell
+.\veaf-tools.exe campaign briefing C:\Campaigns\Caucasus
+```
+
+*Flat alias : `veaf-tools campaign-briefing`*
 
 **See also** : [mission-maker/CAMPAIGN.md](mission-maker/CAMPAIGN.en.md)
 

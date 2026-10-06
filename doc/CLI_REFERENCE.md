@@ -1,6 +1,6 @@
 # Référence CLI — `veaf-tools`
 
-Les **36 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
+Les **37 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
 page de référence : elle dit ce que chaque commande accepte, pas comment mener une mission de bout
 en bout. Pour cela, lisez le [guide du créateur de mission](mission-maker/GUIDE.md), qui raconte
 l'enchaînement, et la [référence du pipeline](PIPELINE_REFERENCE.md), qui détaille chaque étape du
@@ -566,6 +566,27 @@ Le dossier est copié depuis `template/` la première fois, et seulement rafraî
 ```
 
 *Alias plat : `veaf-tools campaign-next`*
+
+### `veaf-tools campaign briefing` {#campaign-briefing}
+
+Écrit le document de briefing stratégique de la prochaine mission (PPTX), à partir de la campagne et de son briefing.yaml.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | non | Dossier de campagne, qui contient campaign.yaml. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+Écrit `missions/mission-NN/briefing-campagne.pptx` et sa carte ; `campaign next` le fait aussi. La prose vient de `briefing.yaml`, les faits de la campagne.
+
+```powershell
+.\veaf-tools.exe campaign briefing C:\Campagnes\Caucase
+```
+
+*Alias plat : `veaf-tools campaign-briefing`*
 
 **Voir aussi** : [mission-maker/CAMPAIGN.md](mission-maker/CAMPAIGN.md)
 

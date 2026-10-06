@@ -32,12 +32,14 @@ With the AI assistant, the same steps go through the `campaign_status`, `campaig
 ```text
 Caucasus/
 ├── campaign.yaml            what you declare; the tools never rewrite it
+├── briefing.yaml            the text of the campaign briefing (see below); optional
 ├── campaign-state.yaml      what the campaign has become; rewritten after every mission
 ├── template/                an ordinary mission folder: every mission starts from it
 └── missions/
     ├── mission-01/
     │   ├── mission/         the mission folder of mission 1
     │   ├── mission-01.state the state file the mission wrote
+    │   ├── briefing-campagne.pptx / carte-strategique.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -81,6 +83,8 @@ zones:
     size: outpost
     side: red
     kind: logistics          # feeds its side's reserve between missions
+    display_name: Gudauta depot      # the name the players read; the name stays the key
+    intel: Active depot, guarded.    # what the intelligence says, in place of the generated text
     garrison: [sa8, shilka, T-72B]   # replaces the draw, for the side declaring it
 connections:
   - [Kobuleti, Senaki]
@@ -183,6 +187,73 @@ It is a text to read after the evening or to post as it is; the AI assistant tel
 
 `campaign next` writes, at the root of the mission folder, the factual part of the strategic briefing in French and English (`strategic-situation.fr.txt`, `strategic-situation.en.txt`): the front, what changed in the last mission, the enemy's reserve and garrisons, the objectives and the missions left.
 The text, in the language the tools run in, also becomes the mission's briefing when the folder is created, so a mission built as it is does not fly without one; Claude adds the narrative part while designing the mission, and a second `campaign next` on the same folder does not overwrite it.
+
+## The campaign briefing deck {#briefing-deck}
+
+`campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`briefing-campagne.pptx`) and its map (`carte-strategique.png`).
+It is a situation brief after the VEAF briefing template — 16:9, white, bold title top left — that imports as it is into Google Slides.
+`.\veaf-tools.exe campaign briefing <folder>` regenerates it at any time, for instance after touching up the text.
+
+| Page | Where it comes from |
+|---|---|
+| Strategic situation — political, economic | `briefing.yaml` |
+| Military situation — enemy forces, friendly forces, neutral ground | the tools, and the enemy's course of action from `briefing.yaml` |
+| Strategic map | the tools: each zone at its radius, in its owner's colour, and the axes |
+| Mission and intent — mission, purpose, main effect, method, end state | `briefing.yaml` |
+| Campaign objectives — political, military, economic, conditions of victory | `briefing.yaml`, and the objectives of `campaign.yaml` |
+| Concept of operations — one phase per mission, points of attention | `briefing.yaml` |
+| Rules of engagement — targeting, protection of civilians and infrastructure, self-defence | `briefing.yaml` |
+| Mission N — its tasks | `briefing.yaml` |
+| Annex — Campaign rules | the tools, from the rules of `campaign.yaml` |
+
+**Facts are generated, prose is written.**
+The tools write what the campaign knows; the situation, intent, concept and rules of engagement are written in `briefing.yaml`, next to `campaign.yaml`, by Claude or by hand.
+Without `briefing.yaml`, the deck holds the generated part only, and says so; `campaign validate` checks the file.
+Only the annex speaks of the game's mechanics: the rest reads as a staff would speak.
+
+**The enemy stays mysterious.**
+The deck never gives an enemy strength, nor its reserve: only what the intelligence says of it, with the reliability of its source.
+A fixed site — a zone's long-range SAM — is named as soon as the campaign state records it: its battery is drawn when the mission starts, so it is "likely, type unconfirmed" before mission 1, then named ("SA-10 battery confirmed") from mission 2 on.
+A zone can carry its own intelligence text (`intel:`) and the name the players read (`display_name: Khobi depot`).
+
+```yaml
+operation: Kolkhida
+situation:
+  political:
+    - Ten days ago, red forces crossed the Inguri and gained a foothold in the Colchis plain.
+    - Negotiations are opening; every kilometre the enemy holds when they do will be his.
+  economic: The port of Poti has stopped working.
+  enemy_course_of_action: Hold Senaki under its air defence, then resume the offensive.
+mission: In 3 missions, the coalition retakes Senaki and destroys the Khobi depot.
+intent:
+  purpose: Deprive the enemy of the means to resume the offensive.
+  main_effect: Cut Senaki off from its logistic support.
+  end_state: Senaki and Poti held, Khobi destroyed, the towns spared.
+objectives:
+  political: [Restore the government's authority up to the Inguri.]
+  military: [Retake Senaki airfield., Destroy the Khobi depot.]
+  economic: [Reopen the port of Poti, intact.]
+concept:
+  phases:
+    - { title: "Phase 1 — mission 1: the gate of Poti", text: Take Poti and start wearing down Khobi. }
+  attention: [Zugdidi is not an objective.]
+rules_of_engagement:
+  targeting: [Positive identification of every target before firing.]
+  civilians: [No area bombing in built-up areas.]
+  self_defence: [The right of self-defence is never restricted.]
+missions:
+  1:
+    title: The gate of Poti
+    tasks:
+      - { title: Take Poti — priority 1, text: Secure the port with heliborne troops. }
+```
+
+Each text is a string or a list of paragraphs.
+A text holding ": " goes in quotes (`"Targets: red units."`): without them YAML reads it as a key and its value, and `campaign validate` says so.
+After each mission, the coming mission's page and the concept's progress are rewritten from the debriefing; the rest is kept as long as the situation does not change it.
+
+The map is drawn on OpenStreetMap tiles, cached in `%LOCALAPPDATA%\veaf-tools\tiles`; the tools identify themselves to the server by their GitHub address, and nothing else.
+Without the network, the map is drawn on a plain background and the deck says so: run `campaign briefing` again once online.
 
 ## What is still to verify in game {#to-verify}
 

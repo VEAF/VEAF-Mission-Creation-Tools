@@ -1,6 +1,6 @@
 # 02 — What the players know of the enemy
 
-Status: ⬜ ready
+Status: ✅ done
 
 David: "les forces rouges doivent rester mystérieuses. on a des renseignements qui peuvent être plus ou moins bons mais on ne connait pas le détail des forces — sauf pour les trucs fixes comme un SA10".
 

@@ -558,6 +558,7 @@ Le build vous dit combien il en a ajouté.
 | `campaign-init` | Démarre une [campagne multi-missions](CAMPAIGN.md) : crée son état à partir de `campaign.yaml`. |
 | `campaign-validate` | Vérifie un dossier de campagne : `campaign.yaml`, et l'état de campagne par rapport à lui. |
 | `campaign-next` | Crée, ou rafraîchit, le dossier de la mission suivante d'une campagne à partir de son état. |
+| `campaign-briefing` | Écrit le briefing stratégique de la campagne (PPTX) pour la mission suivante, à partir de la campagne et de `briefing.yaml`. |
 | `campaign-apply` | Applique à une campagne le fichier d'état d'une mission jouée, puis joue le tour entre les missions. |
 | `doctor` | Rassemble les versions, chemins et erreurs récentes qu'un rapport de bug exige, et produit un bloc caviardé à coller dans un signalement — voir [Obtenir de l'aide](../SUPPORT.md). |
 | `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
@@ -1166,7 +1167,7 @@ Si le journal montre une erreur que vous ne vous expliquez pas, [Obtenir de l'ai
 ## Ressources
 
 - [Référence des scripts](scripts/README.md) — tous les scripts avec les détails de configuration
-- [Référence CLI](../CLI_REFERENCE.md) — les 36 commandes de `veaf-tools`, arguments et options
+- [Référence CLI](../CLI_REFERENCE.md) — les 37 commandes de `veaf-tools`, arguments et options
 - [Référence API Lua](../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
 - [Mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) — chaque fonctionnalité en jeu, avec une visite guidée ([voir plus haut](#demo-mission))
 - [Discord VEAF](https://www.veaf.org/discord) — aide communautaire

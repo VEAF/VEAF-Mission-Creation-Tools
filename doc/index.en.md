@@ -39,7 +39,7 @@ flowchart TD
 | Reference | Description |
 |-----------|-------------|
 | [Lua API Reference](LUA_API_REFERENCE.en.md) | Full API for the Lua runtime modules |
-| [CLI Reference](CLI_REFERENCE.en.md) | `veaf-tools` — all 36 commands, their arguments and every option |
+| [CLI Reference](CLI_REFERENCE.en.md) | `veaf-tools` — all 37 commands, their arguments and every option |
 | [Updater & release tools](TOOLS_REFERENCE.en.md) | `veaf-tools-updater` and `veaf-build`: install, update, publish |
 | [Testing Guide](TESTING.en.md) | Lua unit test suite and CI/CD pipeline |
 | [Roadmap](ROADMAP.en.md) | Planned features and known limitations |

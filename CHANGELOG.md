@@ -40,6 +40,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A garrison has the infantry, armour and air defence of a CAS target of its size but not its transport company, and stands within its zone: the shipped size classes give about 23 units for an outpost and 51 for an airfield with its long-range SAM, where the first cut gave 49 and 119.
   It also writes the mission's debriefing in French and English next to the state file — ground changing hands, each side's losses zone by zone and unit type by unit type, scenery destroyed, the turn, the objectives — and the MCP action returns it for Claude to tell as a story.
   A new mission folder gets the strategic situation as its briefing, so a mission built straight away does not fly without one; the wrecks of a destroyed garrison no longer hold a neutral zone against the side taking it, and `dcs.log` says who holds a neutral zone each time that changes.
+- **The campaign's strategic briefing, as a document the squadron reads** (FEAT-CAMPAIGN-BRIEFING-DECK).
+  `veaf-tools campaign briefing` — and `campaign next` with it — writes `missions/mission-NN/briefing-campagne.pptx`, a military situation brief after the VEAF briefing template that imports into Google Slides: strategic and military situation, a strategic map on OpenStreetMap, mission and intent, objectives, concept of operations, rules of engagement, the coming mission's tasks, and an annex of the campaign's rules.
+  The tools generate the facts; the prose is written in a new `briefing.yaml`, checked by `campaign validate`, by Claude through the new MCP action `campaign_briefing` or by hand.
+  The enemy is never given a figure — intelligence of uneven reliability only — and a long-range SAM is named once the campaign state records it; a zone can carry a `display_name` and its own `intel` text.
+  The example campaign ships a `briefing.yaml`; python-pptx joins the dependencies: the executable grows from 40.7 to 45.4 MB, measured.
 
 ### Changed
 

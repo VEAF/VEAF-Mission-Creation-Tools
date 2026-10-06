@@ -93,6 +93,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 48 | [Lire où en est une campagne](#campaign-status) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 49 | [Appliquer une mission de campagne jouée](#campaign-apply) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 50 | [Préparer la mission suivante d'une campagne](#campaign-next) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
+| 51 | [Écrire le briefing de campagne](#campaign-briefing) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 
 ---
 
@@ -213,6 +214,14 @@ Un fichier déjà appliqué, d'une autre campagne, ou qui saute une mission est 
 Elle reçoit la partie factuelle du briefing stratégique en français et en anglais — déjà le briefing d'un nouveau dossier de mission —, puis conçoit la mission par-dessus et écrit la partie narrative.
 
 > 💬 *« Prépare la mission 4 : les rouges contre-attaquent sur Senaki. »*
+
+### Écrire le briefing de campagne {#campaign-briefing}
+
+*Campagne (dossier) · ⭐* — L'IA rédige le briefing de situation de la campagne dans `briefing.yaml` — situation politique, économique et militaire, mission et intention, objectifs, concept d'opération par phase, règles d'engagement, tâches de la mission — et les outils en font un PPTX au format des briefings VEAF, avec la carte stratégique, le renseignement sur l'ennemi et une annexe des règles.
+L'ennemi reste mystérieux : jamais un effectif, seulement un renseignement plus ou moins fiable, et les sites fixes nommés une fois connus.
+Après chaque mission, l'IA réécrit la page de la mission suivante d'après le débriefing.
+
+> 💬 *« Écris le briefing de campagne : les rouges ont franchi l'Inguri, la coalition a trois missions pour reprendre Senaki. »*
 
 ## 🗺️ Carte & coordonnées
 

@@ -1416,7 +1416,7 @@
   "campaign.deck.heading.annex_between": "Between two missions",
   "campaign.deck.heading.annex_continuity": "Continuity",
   "campaign.deck.enemy_reserve": "– Reserves: strength unknown.",
-  "campaign.deck.enemy_reserve_fed": "– Reserves: strength unknown. Intelligence assesses that they come through {depots}.",
+  "campaign.deck.enemy_reserve_fed": "– Reserves: strength unknown. They are thought to come through its logistics centres ({depots}).",
   "campaign.deck.enemy_course_of_action": "– Most likely course of action: {text}",
   "campaign.deck.friendly_reserve": "– Reserves: {reserve}.",
   "campaign.deck.neutral_zone": "– {zone}: neither side holds it.",
@@ -1449,5 +1449,8 @@
   "cmd.campaign_briefing.done": "[bold green]✓ Campaign briefing written: {path}[/bold green]",
   "cmd.campaign_briefing.no_prose": "No briefing.yaml in the campaign: the deck holds only what the tools know (military situation, map, objectives, rules). The situation, intent, concept and rules of engagement are written in briefing.yaml.",
   "cmd.campaign_briefing.offline": "Map background unavailable (no network, or tiles refused): the strategic map stands on a plain background. Run the command again once online.",
-  "tui.cmd.campaign_briefing.description": "Write a campaign's strategic briefing (PPTX)"
+  "tui.cmd.campaign_briefing.description": "Write a campaign's strategic briefing (PPTX)",
+  "campaign.issue.prose.unquoted_colon": "briefing.yaml: `{section}`: a text holds \": \" unquoted, and YAML read it as a key and its value. Put that text in quotes: \"Targets: red units.\"",
+  "campaign.deck.zone_line": "– {zone}: {text}",
+  "campaign.issue.deck_failed": "The campaign briefing could not be written ({error}): the mission is ready without it. `veaf-tools campaign briefing` tries again."
 }

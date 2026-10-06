@@ -92,6 +92,7 @@ The AI can act in two places, and it changes what "survives":
 | 48 | [Read where a campaign stands](#campaign-status) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 49 | [Apply a flown campaign mission](#campaign-apply) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 50 | [Prepare a campaign's next mission](#campaign-next) | 🎖️ Campaign | Campaign (folder) | ⭐ |
+| 51 | [Write the campaign briefing](#campaign-briefing) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 
 ---
 
@@ -211,6 +212,14 @@ A file already applied, from another campaign, or skipping a mission is refused 
 It gets the factual part of the strategic briefing in French and English — already the briefing of a new mission folder — then designs the mission on top and writes the narrative part.
 
 > 💬 *"Prepare mission 4: red counter-attacks at Senaki."*
+
+### Write the campaign briefing {#campaign-briefing}
+
+*Campaign (folder) · ⭐* — The AI writes the campaign's situation brief in `briefing.yaml` — political, economic and military situation, mission and intent, objectives, concept of operations by phase, rules of engagement, the mission's tasks — and the tools turn it into a PPTX after the VEAF briefing template, with the strategic map, the intelligence on the enemy and an annex of the rules.
+The enemy stays mysterious: never a strength, only intelligence of uneven reliability, and fixed sites named once known.
+After each mission, the AI rewrites the coming mission's page from the debriefing.
+
+> 💬 *"Write the campaign briefing: red has crossed the Inguri, the coalition has three missions to retake Senaki."*
 
 ## 🗺️ Map & coordinates
 

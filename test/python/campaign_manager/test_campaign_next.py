@@ -376,6 +376,24 @@ class TestTheWorker:
         assert report is not None and report.deck is None
         assert issues and all(issue.level == WARNING for issue in issues)
 
+    def test_a_deck_that_cannot_be_drawn_does_not_stop_the_next_mission(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from campaign_manager import campaign_worker
+
+        def full_disk(*args: Any, **kwargs: Any) -> None:
+            raise OSError("no space left on device")
+
+        monkeypatch.setattr(campaign_worker, "campaign_deck", full_disk)
+        folder = self._folder(tmp_path)
+        worker = CampaignWorker(folder)
+        worker.init()
+        issues, report = worker.next()
+        assert report is not None and report.deck is None
+        assert [issue.message for issue in issues] == [
+            t("campaign.issue.deck_failed", error=OSError("no space left on device"))
+        ]
+
     def test_the_briefing_command(self, tmp_path: Path) -> None:
         import veaf_tools.commands  # noqa: F401
         from veaf_tools.app import app

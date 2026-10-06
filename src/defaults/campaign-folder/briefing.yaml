@@ -1,0 +1,76 @@
+# ---------------------------------------------------------------------------
+# The written half of the campaign briefing — western Georgia, ten missions
+# ---------------------------------------------------------------------------
+# `campaign next` and `campaign briefing` turn it into missions/mission-NN/briefing-campagne.pptx,
+# around what the tools generate themselves: the intelligence on the enemy (never a figure), the
+# friendly positions and reserves, the strategic map, the conditions of victory, the annex of rules.
+# Each text is a string or a list of paragraphs; quote one that holds " : " (French typography),
+# which YAML would otherwise read as a key and its value. Write it as a staff would: no game mechanics here,
+# they belong to the generated annex. After each mission, rewrite the coming mission's page and the
+# concept's progress from the debriefing. See doc/mission-maker/CAMPAIGN.md#briefing-deck.
+# ---------------------------------------------------------------------------
+
+operation: Côte d'Ébène
+subtitle: Briefing de situation — campagne
+
+situation:
+  political:
+    - Depuis trois semaines, les forces rouges tiennent la côte géorgienne de Sotchi à Senaki, et les aérodromes de l'intérieur jusqu'à Koutaïssi. Le gouvernement de Tbilissi a demandé l'assistance de la coalition, qui a reçu le mandat de rétablir sa souveraineté sur l'ouest du pays.
+    - L'adversaire présente son occupation comme une opération de maintien de l'ordre. Chaque ville libérée sans destruction affaiblit ce récit ; chaque village rasé le renforce.
+  economic:
+    - La côte est l'artère économique de la Géorgie occidentale. Ses ports sont fermés, la voie ferrée côtière est coupée à Senaki.
+    - Le dépôt d'Otchamtchiré et l'aérodrome de Sotchi alimentent tout le front rouge. Tant qu'ils tournent, l'adversaire remplace ce qu'il perd.
+  enemy_course_of_action: Tenir la ligne Senaki – Koutaïssi sous la protection de sa défense aérienne, reconstituer ses forces par Otchamtchiré, puis frapper vers Kobuleti.
+  friendly:
+    - Le port de Poti, entre les lignes, n'est tenu par personne.
+
+mission: En dix missions, la coalition reprend Senaki, Koutaïssi et Soukhoumi, et détruit le dépôt d'Otchamtchiré, afin de rendre à Tbilissi le contrôle de la côte occidentale.
+
+intent:
+  purpose: Rompre le dispositif rouge sur la côte et le repousser au-delà de Soukhoumi.
+  main_effect: Couper le front rouge de son soutien logistique, en détruisant le dépôt d'Otchamtchiré.
+  method: Prendre Poti pour ouvrir la route de Senaki, conquérir la supériorité aérienne au-dessus de la plaine, puis remonter la côte aérodrome par aérodrome.
+  end_state: Senaki, Koutaïssi et Soukhoumi tenues par la coalition, le dépôt d'Otchamtchiré détruit, les villes de la côte épargnées.
+
+objectives:
+  political:
+    - Rétablir l'autorité du gouvernement sur la côte occidentale.
+    - Priver l'adversaire de son récit de maintien de l'ordre.
+  military:
+    - Reprendre les aérodromes de Senaki, Koutaïssi et Soukhoumi.
+    - Détruire le dépôt logistique d'Otchamtchiré.
+  economic:
+    - Rouvrir le port de Poti et la voie ferrée côtière.
+
+concept:
+  phases:
+    - title: "Phase 1 — missions 1 et 2 : la plaine de Colchide"
+      text: Prendre Poti, user la défense aérienne de Senaki, reconnaître Koutaïssi.
+    - title: "Phase 2 — missions 3 à 5 : Senaki et Koutaïssi"
+      text: Reprendre Senaki, puis Koutaïssi. Empêcher la contre-attaque depuis Zougdidi.
+    - title: "Phase 3 — missions 6 à 8 : le ravitaillement"
+      text: Détruire le dépôt d'Otchamtchiré, remonter par Gali et Tkvartcheli.
+    - title: "Phase 4 — missions 9 et 10 : Soukhoumi"
+      text: Réduire les défenses de Soukhoumi et s'emparer de l'aérodrome.
+  attention:
+    - Le plan sera réajusté après chaque mission en fonction des résultats obtenus.
+    - Sotchi et Goudaouta ne sont pas des objectifs. Leurs forces peuvent renforcer Soukhoumi.
+
+rules_of_engagement:
+  targeting:
+    - Identification positive de toute cible avant le tir. En cas de doute, on ne tire pas.
+    - "Cibles autorisées : les unités militaires rouges, au sol et en l'air, et leurs installations militaires."
+  civilians:
+    - "Pas de bombardement de zone dans les agglomérations : armement guidé, axes d'attaque choisis pour épargner les habitations."
+    - "Infrastructures à préserver : les ports, les pistes des aérodromes à reprendre, les ponts de la côte."
+  self_defence:
+    - Le droit de légitime défense n'est jamais restreint.
+
+missions:
+  1:
+    title: La porte de Poti
+    tasks:
+      - title: Prendre Poti — priorité 1
+        text: Sécuriser le port avec des troupes héliportées et en chasser toute présence ennemie.
+      - title: Reconnaître Senaki — priorité 2
+        text: Confirmer la présence et le type de la défense aérienne longue portée, et commencer à l'user. Ne pas s'engager au sol sans couverture.

@@ -1,6 +1,6 @@
 # 01 — The strategic map, rendered from the campaign
 
-Status: ⬜ ready
+Status: ✅ done
 
 A PNG of the campaign's ground, rendered from `campaign.yaml` and the campaign state: each zone as a circle at its radius in its owner's colour, its display name (ticket 03), the axes between zones, a scale in km and nm, the OpenStreetMap credit.
 Airfield positions come from `veaf_libs/data/airdrome-positions.yaml`, never from memory; the prototype read them there.

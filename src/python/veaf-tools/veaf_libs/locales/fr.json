@@ -1416,7 +1416,7 @@
   "campaign.deck.heading.annex_between": "Entre deux missions",
   "campaign.deck.heading.annex_continuity": "Continuité",
   "campaign.deck.enemy_reserve": "– Réserves : volume inconnu.",
-  "campaign.deck.enemy_reserve_fed": "– Réserves : volume inconnu. Le renseignement estime qu'elles transitent par {depots}.",
+  "campaign.deck.enemy_reserve_fed": "– Réserves : volume inconnu. Elles transiteraient par ses centres logistiques ({depots}).",
   "campaign.deck.enemy_course_of_action": "– Mode d'action le plus probable : {text}",
   "campaign.deck.friendly_reserve": "– Réserves : {reserve}.",
   "campaign.deck.neutral_zone": "– {zone} : aucun des deux camps n'y est installé.",
@@ -1449,5 +1449,8 @@
   "cmd.campaign_briefing.done": "[bold green]✓ Briefing de campagne écrit : {path}[/bold green]",
   "cmd.campaign_briefing.no_prose": "Pas de briefing.yaml dans la campagne : le document ne contient que ce que les outils savent (situation militaire, carte, objectifs, règles). La situation, l'intention, le concept et les règles d'engagement s'écrivent dans briefing.yaml.",
   "cmd.campaign_briefing.offline": "Fond de carte indisponible (pas de réseau, ou tuiles refusées) : la carte stratégique est sur un fond uni. Relancer la commande une fois en ligne.",
-  "tui.cmd.campaign_briefing.description": "Écrire le briefing stratégique d'une campagne (PPTX)"
+  "tui.cmd.campaign_briefing.description": "Écrire le briefing stratégique d'une campagne (PPTX)",
+  "campaign.issue.prose.unquoted_colon": "briefing.yaml : `{section}` : un texte contient « : » sans guillemets, et YAML l'a lu comme une clé et sa valeur. Mettez ce texte entre guillemets : \"Cibles autorisées : les unités rouges.\"",
+  "campaign.deck.zone_line": "– {zone} : {text}",
+  "campaign.issue.deck_failed": "Le briefing de campagne n'a pas pu être écrit ({error}) : la mission est prête sans lui. `veaf-tools campaign briefing` le réessaie."
 }

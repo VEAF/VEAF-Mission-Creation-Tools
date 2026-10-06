@@ -79,7 +79,12 @@ def _paragraphs(where: str, value: Any, issues: list[ValidationIssue]) -> tuple[
         return (value.strip(),)
     if isinstance(value, list) and value and all(isinstance(item, str) and item.strip() for item in value):
         return tuple(item.strip() for item in value)
-    issues.append(_issue(ERROR, "not_text", section=where))
+    items = value if isinstance(value, list) else [value]
+    if any(isinstance(item, dict) and len(item) == 1 for item in items):
+        # `Cibles autorisées : les unités…` unquoted: YAML read a key and its value
+        issues.append(_issue(ERROR, "unquoted_colon", section=where))
+    else:
+        issues.append(_issue(ERROR, "not_text", section=where))
     return ()
 
 

@@ -1,6 +1,8 @@
 # 05 — Claude writes the brief, and rewrites it after each mission
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
+
+Done: the rules below are in the description of the MCP action `campaign_briefing`, where Claude reads them when it writes `briefing.yaml`, and `campaign_next` says to add to the DCS briefing's factual block rather than replace it. Waiting: a campaign run by Claude through the MCP, to see the rules hold.
 
 The prose file of ticket 03 is Claude's to write: when the campaign starts, from the scenario agreed with the mission maker; after each mission, from the debriefing (`campaign_apply` returns it) and the new strategic situation.
 

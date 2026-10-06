@@ -45,8 +45,8 @@ Ce que sa construction et sa recette ont fait corriger :
 - **Le menu F10 « MISSIONS » apparaît au démarrage dans une mission qui déclare des `cap_missions` ou des `combat_missions`.**
   La configuration générée initialisait le module avant d'y ajouter ses missions : le menu était construit sur une liste vide et jamais reconstruit.
 - **`_destroy, radius …` détruit toutes les unités du cercle.**
-  Les unités trouvées étaient recherchées une seconde fois par leur nom, et DCS ne répond rien pour certaines (le pack de véhicules « [CH] ») : `-menage` laissait un peloton entier debout.
-  La même recherche pouvait faire manquer à `_tanker` un ravitailleur sous le marqueur.
+  Deux unités du même type dans un groupe spawné portaient le même nom (`<groupe> - <type>`), et DCS ne retrouvait aucune des deux par ce nom : `-menage` laissait des véhicules debout.
+  Chaque unité spawnée porte maintenant son numéro, `<groupe> - <type> #<n>`, et `_destroy` agit sur les unités qu'il trouve sans les rechercher à nouveau par leur nom ; `_tanker` aussi, qui pouvait manquer un ravitailleur sous le marqueur.
 - **Un groupe CAS porte le nom de son camp** : après une première CAS bleue, tous les groupes suivants, rouges compris, s'appelaient « Blue CAS Group ».
 - **`mission build` garde son code de sortie** quand sa sortie part vers `/dev/null` : la pause de fin le prenait pour un double-clic et transformait un build réussi en échec.
 - **Petites vérités** : la documentation spawne un `T-80UD` (`T-80` ne correspond à aucun type DCS), le modèle `waypoints.yaml` dit que le build ajoute un waypoint `BULLSEYE`, et les commandes « start air operations » du porte-avions comme celles du brouillard du menu météo sont traduites.
@@ -103,8 +103,6 @@ Un porte-avions, une FARP ou un aérodrome absent de la référence n'a pas de l
 - **`set_briefing_picture`** ajoute une image au briefing d'un camp en un seul appel.
 - **`edit_route`** accepte `road: true|false` sur le waypoint d'un groupe terrestre, et **`describe_map`** donne la position et le nombre d'unités de chaque groupe.
 - **Un nouveau piège DCS documenté** (`describe_known_limitations`) : un contact AWACS peut rester marqué `DLINK` plusieurs minutes avant de passer `RADAR`, et Skynet, qui ne lit que `RADAR`, l'ignore jusque-là.
-- **Un second piège DCS documenté** : `Unit.getByName` peut répondre `nil` pour une unité qui existe et porte bien ce nom — mesuré sur les véhicules du pack « [CH] ».
-  Une fois l'objet en main, il faut agir dessus plutôt que le rechercher par son nom.
 
 ---
 

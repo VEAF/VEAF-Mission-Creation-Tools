@@ -1297,7 +1297,7 @@
   "campaign.issue.state_file_skips": "Le fichier d'état est celui de la mission {mission}, la campagne attend la mission {expected}.",
   "campaign.issue.not_started": "{path} n'existe pas : démarrer d'abord la campagne avec `campaign init`.",
   "campaign.change.owner": "{zone} : {from} → {to}",
-  "campaign.change.losses": "{zone} : {lost} unité(s) perdue(s)",
+  "campaign.change.losses": "{zone} : le camp {side} a perdu {lost} unité(s)",
   "campaign.change.scenery": "{destroyed} objet(s) du décor détruit(s)",
   "campaign.change.logistics": "{zone} alimente la réserve {side} : {added}",
   "campaign.change.repaired": "{zone} : {units} unité(s) remplacée(s) depuis la réserve",

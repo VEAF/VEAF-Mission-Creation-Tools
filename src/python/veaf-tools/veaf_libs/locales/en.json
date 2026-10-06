@@ -1297,7 +1297,7 @@
   "campaign.issue.state_file_skips": "The state file is mission {mission}, the campaign expects mission {expected}.",
   "campaign.issue.not_started": "{path} does not exist: start the campaign with `campaign init` first.",
   "campaign.change.owner": "{zone}: {from} → {to}",
-  "campaign.change.losses": "{zone}: {lost} unit(s) lost",
+  "campaign.change.losses": "{zone}: {side} lost {lost} unit(s)",
   "campaign.change.scenery": "{destroyed} scenery object(s) destroyed",
   "campaign.change.logistics": "{zone} feeds the {side} reserve: {added}",
   "campaign.change.repaired": "{zone}: {units} unit(s) replaced from the reserve",

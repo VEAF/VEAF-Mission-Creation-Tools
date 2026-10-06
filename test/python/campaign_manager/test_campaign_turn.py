@@ -369,6 +369,12 @@ class TestSayingAChange:
                 }
             )
         assert owner == "Poti : neutre → rouge"
+        with language("fr"):
+            losses = describe_change(
+                {"kind": "losses", "zone": "Senaki", "side": "red", "lost": 7, "types": {"T-72B": 7}}
+            )
+        # a zone taken in flight has a line for each side: the side has to be said
+        assert losses == "Senaki : le camp rouge a perdu 7 unité(s)"
         assert logistics == "Sochi alimente la réserve rouge : blindés +2, défense aérienne +1"
 
     def test_and_in_english(self) -> None:

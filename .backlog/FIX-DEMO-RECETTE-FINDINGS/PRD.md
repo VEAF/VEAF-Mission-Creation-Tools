@@ -1,6 +1,6 @@
 # FIX-DEMO-RECETTE-FINDINGS — what the first bridge recette of the demo found
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 ## Origin
 

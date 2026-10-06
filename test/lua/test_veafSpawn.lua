@@ -507,15 +507,18 @@ end
 --- Run a `_destroy` marker through the parser and the registered handler, with "Tank-1" and a
 --- "Bystander" standing inside the search circle, and return the names of the units destroyed.
 local function unitsDestroyedBy(text)
-  dcs_mocks.addUnit("Tank-1")
-  dcs_mocks.addUnit("Bystander")
+  local destroyed = {}
+  local function recordDestroy(self)
+    table.insert(destroyed, self:getName())
+  end
+  dcs_mocks.addUnit("Tank-1", { destroy = recordDestroy })
+  dcs_mocks.addUnit("Bystander", { destroy = recordDestroy })
   local savedFind, savedDestroy = veaf.findUnitsInCircle, Unit.destroy
   veaf.findUnitsInCircle = function()
-    return { ["Tank-1"] = true, ["Bystander"] = true }
+    return { ["Tank-1"] = Unit.getByName("Tank-1"), ["Bystander"] = Unit.getByName("Bystander") }
   end
-  local destroyed = {}
   Unit.destroy = function(unit)
-    table.insert(destroyed, unit:getName())
+    unit:destroy()
   end
   veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, text, coalition.side.BLUE, 0, true)
   veaf.findUnitsInCircle, Unit.destroy = savedFind, savedDestroy
@@ -541,6 +544,33 @@ end
 
 function TestVeafSpawnEffects:test_destroy_with_no_name_clears_the_circle()
   luaunit.assertEquals(unitsDestroyedBy("_destroy"), { "Bystander", "Tank-1" })
+end
+
+--- The radius branch destroys the objects the search found. It used to look each one up again with
+--- `Unit.getByName`, and in game that lookup returns nil for the « [CH] » vehicle pack units even though
+--- the search returns them: `-menage` left a whole platoon alive (FIX-DEMO-RECETTE-FINDINGS 01).
+function TestVeafSpawnEffects:test_destroy_by_radius_destroys_a_unit_unknown_to_getByName()
+  local destroyed = false
+  local unit = {
+    getName = function()
+      return "[r]-Armored Platoon#10252 - IFV BMP-3 [CH]"
+    end,
+    getPosition = function()
+      return { p = { x = 100, y = 0, z = 0 } }
+    end,
+    destroy = function()
+      destroyed = true
+    end,
+  }
+  dcs_mocks.addGroup("[r]-Armored Platoon#10252", {
+    _coalition = coalition.side.RED,
+    getUnits = function()
+      return { unit }
+    end,
+  })
+  luaunit.assertNil(Unit.getByName(unit:getName()))
+  veafSpawn.destroy({ x = 0, y = 0, z = 0 }, 2000, nil)
+  luaunit.assertTrue(destroyed)
 end
 
 function TestVeafSpawnEffects:test_teleport_silent()

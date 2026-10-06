@@ -1,6 +1,6 @@
 # 02 — The fog commands are not translated
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Files: `src/scripts/veaf/veafWeather.lua` (`createDynamicFog` / `createStaticFog` calls near l. 1672-1681, the animated fog titles), `src/scripts/veaf/veafI18n.lua`, tests
 

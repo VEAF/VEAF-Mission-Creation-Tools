@@ -1094,8 +1094,11 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     trigger.action.outText(veaf.t("cas.target_exists"), 15)
     return
   end
+  -- on every generation, both ways: set only for blue, the name stayed blue for every later group
   if side == veafCasMission.SIDE_BLUE then
     veafCasMission.casGroupName = veafCasMission.BlueCasGroupName
+  else
+    veafCasMission.casGroupName = veafCasMission.RedCasGroupName
   end
   local country = veaf.getCountryForCoalition(side)
   local units = veafCasMission.generateCasGroup(veafCasMission.casGroupName, spawnSpot, size, defense, armor, spacing, side)

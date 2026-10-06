@@ -17,6 +17,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Vendored DCS scripting-API schema `v0.5.0`** (was `v0.4.0`). The scripting API itself does not move: the LuaLS annotations are byte-identical and `audit-dcs-mocks` reports exactly what it did on `v0.4.0`. Only the reference-data types (`types.Entity.*`: weapon and aircraft flight models, sensor and mobility fields) grow. The vendored `LICENSE` is now the release's own: the previous copy named a different copyright holder than the `v0.4.0` tag did.
+
 ## [6.28.0] — 2026-10-05
 
 ### Removed

@@ -108,7 +108,7 @@ These commands must pass without errors before committing. CI also runs them aut
 
 ### Vendored DCS schema
 
-A frozen copy (release `v0.4.0`) is vendored under `src/python/veaf-tools/veaf_libs/data/dcs-schema/` (upstream MIT `LICENSE` + a `NOTICE` recording the tag, URL and fetch date). It serves two purposes:
+A frozen copy (release `v0.5.0`) is vendored under `src/python/veaf-tools/veaf_libs/data/dcs-schema/` (upstream MIT `LICENSE` + a `NOTICE` recording the tag, URL and fetch date). It serves two purposes:
 
 - **Mock-coverage audit** — `poetry run audit-dcs-mocks` cross-references the schema's DCS functions, the calls actually made by `src/scripts/veaf/*.lua` and the stubs in `test/lua/dcs_mocks.lua`, then lists the DCS calls used by VEAF but not mocked (the gap we find too late today, when a test fails). Use `--format json`/`markdown` for machine-readable output. A non-blocking CI job publishes the report to the run summary.
 - **IDE help (optional)** — `.luarc.json` wires LuaLS to the vendored `dcs-world-api.lua` EmmyLua annotations, for autocomplete and signature diagnostics in VSCode while writing VEAF Lua.

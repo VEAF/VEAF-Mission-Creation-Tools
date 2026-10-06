@@ -10,6 +10,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 The backlog index split into active, ready and done indexes, one short paragraph per lot; the archived lots got their own index (#1058).
 
+### [CHORE-DCS-SCHEMA-V0-5-0](CHORE-DCS-SCHEMA-V0-5-0/PRD.md) · ✅
+
+dcs-world-schema `v0.5.0` vendored: the scripting API and the LuaLS annotations do not move, only reference-data types grow; closes #1076.
+
 ### [CHORE-DROP-MACOS-INTEL](CHORE-DROP-MACOS-INTEL/PRD.md) · ✅
 
 The macOS Intel target leaves the release matrix: it never published an asset and held the 6.27.0 run open overnight.

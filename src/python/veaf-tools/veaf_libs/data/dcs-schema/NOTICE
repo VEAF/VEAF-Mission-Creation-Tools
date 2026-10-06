@@ -7,8 +7,8 @@ functions (see the `audit-dcs-mocks` command) and, optionally, as an IDE
 reference (EmmyLua/LuaLS) for contributors writing VEAF Lua.
 
 Source:      https://github.com/YoloWingPixie/dcs-world-schema
-Release tag: v0.4.0
-Fetch date:  2026-10-03
+Release tag: v0.5.0
+Fetch date:  2026-10-06
 License:     MIT (see the LICENSE file alongside)
 
 Vendored artifacts

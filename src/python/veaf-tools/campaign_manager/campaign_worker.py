@@ -15,6 +15,7 @@ from typing import Any
 from veaf_libs.i18n import language, t
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
+from campaign_manager.briefing_prose import load_prose
 from campaign_manager.campaign_manager import initial_state, load_campaign, load_state, save_state, validate_state
 from campaign_manager.debriefing import debriefing_text
 from campaign_manager.models import Objective
@@ -183,15 +184,19 @@ class CampaignWorker:
         return issues, report
 
     def validate(self) -> list[ValidationIssue]:
-        """Check `campaign.yaml`, and the campaign state against it when there is one.
+        """Check `campaign.yaml`, the campaign state against it when there is one, and `briefing.yaml`.
 
         Returns:
             Every issue found; empty when the folder is clean.
         """
         campaign, issues = load_campaign(self.campaign_file)
-        if campaign is None or not self.state_file.exists():
+        if campaign is None:
             return issues
-        state, state_issues = load_state(self.state_file)
-        if state is None:
-            return issues + state_issues
-        return issues + validate_state(campaign, state)
+        coming = 1
+        if self.state_file.exists():
+            state, state_issues = load_state(self.state_file)
+            if state is None:
+                return issues + state_issues
+            issues = issues + validate_state(campaign, state)
+            coming = state.mission + 1
+        return issues + load_prose(self.folder, campaign.missions, coming)[1]

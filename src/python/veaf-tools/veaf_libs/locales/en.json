@@ -1371,5 +1371,14 @@
   "campaign.intel.own.main": "defended base, with its long-range air defence",
   "campaign.intel.own.logistics": "logistics depot, feeding our reserves",
   "campaign.intel.own.outpost": "a detachment the size of a reinforced company",
-  "campaign.intel.reserve": "{armor} armoured units, {air_defense} air-defence, {transport} transport"
+  "campaign.intel.reserve": "{armor} armoured units, {air_defense} air-defence, {transport} transport",
+  "campaign.issue.prose.not_a_mapping": "briefing.yaml: the file must be a mapping of sections (situation, intent, objectives…).",
+  "campaign.issue.prose.unknown_key": "briefing.yaml: `{section}`: unknown key `{key_name}`; expected: {known}.",
+  "campaign.issue.prose.not_text": "briefing.yaml: `{section}` must be text, or a list of texts (one paragraph each).",
+  "campaign.issue.prose.not_a_section": "briefing.yaml: `{section}` must be a mapping of sub-sections.",
+  "campaign.issue.prose.not_titled": "briefing.yaml: `{section}` needs a `title`, and its text under `text`.",
+  "campaign.issue.prose.too_many_phases": "briefing.yaml: {count} phases for a campaign of {missions} missions: one phase per mission at most.",
+  "campaign.issue.prose.mission_out_of_range": "briefing.yaml: `missions`: there is no mission `{mission}`, the campaign has {missions}.",
+  "campaign.issue.prose.no_mission_page": "briefing.yaml: no page for mission {mission} (`missions: {{{mission}: …}}`): the briefing will not have its tasks.",
+  "campaign.issue.prose.unreadable": "briefing.yaml cannot be read ({path}): {error}"
 }

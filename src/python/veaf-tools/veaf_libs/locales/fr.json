@@ -1371,5 +1371,14 @@
   "campaign.intel.own.main": "base défendue, avec sa défense aérienne longue portée",
   "campaign.intel.own.logistics": "dépôt logistique, qui alimente nos réserves",
   "campaign.intel.own.outpost": "détachement de la valeur d'une compagnie renforcée",
-  "campaign.intel.reserve": "{armor} unités blindées, {air_defense} de défense aérienne, {transport} de transport"
+  "campaign.intel.reserve": "{armor} unités blindées, {air_defense} de défense aérienne, {transport} de transport",
+  "campaign.issue.prose.not_a_mapping": "briefing.yaml : le fichier doit être une table de sections (situation, intent, objectives…).",
+  "campaign.issue.prose.unknown_key": "briefing.yaml : `{section}` : clé inconnue `{key_name}` ; attendu : {known}.",
+  "campaign.issue.prose.not_text": "briefing.yaml : `{section}` doit être un texte, ou une liste de textes (un paragraphe chacun).",
+  "campaign.issue.prose.not_a_section": "briefing.yaml : `{section}` doit être une table de sous-sections.",
+  "campaign.issue.prose.not_titled": "briefing.yaml : `{section}` doit avoir un `title`, et son texte dans `text`.",
+  "campaign.issue.prose.too_many_phases": "briefing.yaml : {count} phases pour une campagne de {missions} missions : une phase par mission au plus.",
+  "campaign.issue.prose.mission_out_of_range": "briefing.yaml : `missions` : la mission `{mission}` n'existe pas, la campagne en compte {missions}.",
+  "campaign.issue.prose.no_mission_page": "briefing.yaml : pas de page pour la mission {mission} (`missions: {{{mission}: …}}`) : le briefing n'aura pas ses tâches.",
+  "campaign.issue.prose.unreadable": "briefing.yaml illisible ({path}) : {error}"
 }

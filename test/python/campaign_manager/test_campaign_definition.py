@@ -204,6 +204,22 @@ class TestZones:
         raw["zones"][0]["radius"] = radius
         assert t("campaign.issue.bad_radius", zone="Kobuleti", value=radius, low=200, high=20000) in _errors(raw)
 
+    def test_a_zone_can_be_named_for_the_players_and_carry_its_intelligence(self) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][2]["display_name"] = "Dépôt de Gudauta"
+        raw["zones"][2]["intel"] = "Dépôt actif, gardé."
+        campaign, _ = parse_campaign(raw)
+        assert campaign is not None
+        depot = campaign.zone("Gudauta depot")
+        assert (depot.label, depot.intel) == ("Dépôt de Gudauta", "Dépôt actif, gardé.")
+        assert campaign.zone("Kobuleti").label == "Kobuleti"
+
+    @pytest.mark.parametrize("key", ["display_name", "intel"])
+    def test_a_display_name_or_intel_that_is_not_text_is_reported(self, key: str) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][0][key] = ["not", "text"]
+        assert t("campaign.issue.bad_zone_text", zone="Kobuleti", field=key) in _errors(raw)
+
     def test_an_empty_garrison_list_is_reported(self) -> None:
         raw = copy.deepcopy(VALID)
         raw["zones"][2]["garrison"] = []

@@ -1355,5 +1355,21 @@
   "campaign.debriefing.turn": "Between missions:",
   "campaign.debriefing.quiet_turn": "- nothing",
   "campaign.debriefing.left": "{left} mission(s) planned left.",
-  "cmd.campaign_apply.debriefing": "Debriefing written to {path} (debriefing.fr.txt, debriefing.en.txt)."
+  "cmd.campaign_apply.debriefing": "Debriefing written to {path} (debriefing.fr.txt, debriefing.en.txt).",
+  "campaign.issue.bad_zone_text": "campaign.yaml: zone `{zone}`: `{field}` must be text.",
+  "campaign.intel.line": "{text} Source: {source}.",
+  "campaign.intel.enemy.main": "Main position. Armoured and mechanised activity reported.",
+  "campaign.intel.enemy.logistics": "Active logistics centre, daily truck movements. Site protection of unknown nature.",
+  "campaign.intel.enemy.outpost": "Presence reported, strength and nature unknown.",
+  "campaign.intel.long_range.suspected": "Long-range air defence likely, type unconfirmed.",
+  "campaign.intel.long_range.confirmed": "{system} battery confirmed on the position.",
+  "campaign.intel.long_range.destroyed": "{system} battery destroyed.",
+  "campaign.intel.long_range.unnamed": "heavy air-defence",
+  "campaign.intel.source.main": "imagery, fairly reliable",
+  "campaign.intel.source.logistics": "local human intelligence, not corroborated",
+  "campaign.intel.source.outpost": "fragmentary intelligence",
+  "campaign.intel.own.main": "defended base, with its long-range air defence",
+  "campaign.intel.own.logistics": "logistics depot, feeding our reserves",
+  "campaign.intel.own.outpost": "a detachment the size of a reinforced company",
+  "campaign.intel.reserve": "{armor} armoured units, {air_defense} air-defence, {transport} transport"
 }

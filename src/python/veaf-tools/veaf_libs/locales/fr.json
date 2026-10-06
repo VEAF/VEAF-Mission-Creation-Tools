@@ -1355,5 +1355,21 @@
   "campaign.debriefing.turn": "Entre les missions :",
   "campaign.debriefing.quiet_turn": "- rien",
   "campaign.debriefing.left": "{left} mission(s) prévue(s) restante(s).",
-  "cmd.campaign_apply.debriefing": "Débriefing écrit dans {path} (debriefing.fr.txt, debriefing.en.txt)."
+  "cmd.campaign_apply.debriefing": "Débriefing écrit dans {path} (debriefing.fr.txt, debriefing.en.txt).",
+  "campaign.issue.bad_zone_text": "campaign.yaml : zone `{zone}` : `{field}` doit être un texte.",
+  "campaign.intel.line": "{text} Source : {source}.",
+  "campaign.intel.enemy.main": "Position principale. Activité blindée et mécanisée signalée.",
+  "campaign.intel.enemy.logistics": "Centre logistique actif, mouvements de camions quotidiens. Protection du site de nature inconnue.",
+  "campaign.intel.enemy.outpost": "Présence signalée, volume et nature inconnus.",
+  "campaign.intel.long_range.suspected": "Défense aérienne longue portée probable, type non confirmé.",
+  "campaign.intel.long_range.confirmed": "Batterie {system} confirmée sur la position.",
+  "campaign.intel.long_range.destroyed": "Batterie {system} détruite.",
+  "campaign.intel.long_range.unnamed": "de défense aérienne lourde",
+  "campaign.intel.source.main": "imagerie, plutôt fiable",
+  "campaign.intel.source.logistics": "renseignement humain local, non recoupé",
+  "campaign.intel.source.outpost": "renseignement fragmentaire",
+  "campaign.intel.own.main": "base défendue, avec sa défense aérienne longue portée",
+  "campaign.intel.own.logistics": "dépôt logistique, qui alimente nos réserves",
+  "campaign.intel.own.outpost": "détachement de la valeur d'une compagnie renforcée",
+  "campaign.intel.reserve": "{armor} unités blindées, {air_defense} de défense aérienne, {transport} de transport"
 }

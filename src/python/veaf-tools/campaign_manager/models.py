@@ -112,6 +112,15 @@ class CampaignZone:
     """An explicit list of aliases or DCS types that replaces the draw, or ``None`` to draw."""
     radius: int = 2000
     """Metres around the zone's centre: where its garrison stands and where ground holds it."""
+    display_name: str | None = None
+    """How the briefing names the zone to the players ("Dépôt de Khobi"); the name stays the key."""
+    intel: str | None = None
+    """What the intelligence says of the zone when the enemy holds it, in place of the generated text."""
+
+    @property
+    def label(self) -> str:
+        """The zone's name as the players read it."""
+        return self.display_name or self.name
 
 
 @dataclass(frozen=True)

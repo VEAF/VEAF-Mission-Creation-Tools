@@ -1,6 +1,6 @@
 # 05 — The state file written by the mission
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Shared brick: the same writer is the periodic save of `FEAT-DYNAMIC-CAMPAIGN`.
 

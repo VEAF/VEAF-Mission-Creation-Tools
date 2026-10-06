@@ -1,6 +1,6 @@
 # 10 — Documentation and an example campaign
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 - `doc/mission-maker/CAMPAIGN.md` + `CAMPAIGN.en.md`: what a campaign is for the squadron, the loop (build, fly, fetch the state file, apply, next), declaring one, size classes, stocks, how to fetch the state file from a server; in `mkdocs.yml` nav with its translation; `poetry run docs-check` clean; support bot index refreshed.
 - `MISSION_YAML_REFERENCE` (FR/EN): the `CAMPAIGN` module; `CLI_REFERENCE`: the `campaign` commands.

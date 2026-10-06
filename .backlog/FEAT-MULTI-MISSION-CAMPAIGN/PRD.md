@@ -1,6 +1,6 @@
 # FEAT-MULTI-MISSION-CAMPAIGN — a campaign flown mission after mission, each one built from what the last one left
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 David, 2026-10-06: he wants a campaign for his VEAF friends that evolves as they fly it.
 A starting situation with strategic objectives reachable in a few missions (configurable, 10 by default); Claude builds the first mission from it, complete, with the campaign's strategic situation added to the usual briefing; the squadron flies it; the result of the flight is read back and updates the strategic situation; the next mission starts from it — a bridge destroyed starts destroyed, a base freed or captured is ours — and the loop goes on.
@@ -69,14 +69,53 @@ So a size class is a set of parameters of those generators (`size`, `defense`, `
 
 | # | ticket | status |
 |---|---|---|
-| 01 | [Campaign folder: `campaign.yaml`, campaign state, validation](tickets/01-campaign-folder.md) | ⬜ |
-| 02 | [Garrisons: drawn once, recorded, spawned from the state](tickets/02-garrisons.md) | ⬜ |
-| 03 | [Runtime: F10 map and situation menu](tickets/03-map-and-menu.md) | ⬜ |
-| 04 | [Live capture by ground presence](tickets/04-live-capture.md) | ⬜ |
-| 05 | [The state file written by the mission](tickets/05-state-file.md) | ⬜ |
-| 06 | [Stocks: warehouses, ground reserve, SAM missiles](tickets/06-stocks.md) | ⬜ |
-| 07 | [Destroyed scenery replayed at start](tickets/07-scenery.md) | ⬜ |
-| 08 | [Between missions: merge the state file, the enemy's turn, victory](tickets/08-between-missions.md) | ⬜ |
-| 09 | [Build the next mission from the state, with its strategic briefing](tickets/09-build-next-mission.md) | ⬜ |
-| 10 | [Documentation and an example campaign](tickets/10-doc-and-example.md) | ⬜ |
-| 11 | [Two missions flown end to end](tickets/11-two-missions-flown.md) | ⬜ |
+| 01 | [Campaign folder: `campaign.yaml`, campaign state, validation](tickets/01-campaign-folder.md) | ✅ |
+| 02 | [Garrisons: drawn once, recorded, spawned from the state](tickets/02-garrisons.md) | ✅ |
+| 03 | [Runtime: F10 map and situation menu](tickets/03-map-and-menu.md) | ✅ |
+| 04 | [Live capture by ground presence](tickets/04-live-capture.md) | 🧑 |
+| 05 | [The state file written by the mission](tickets/05-state-file.md) | 🧑 |
+| 06 | [Stocks: warehouses, ground reserve, SAM missiles](tickets/06-stocks.md) | 🧑 |
+| 07 | [Destroyed scenery replayed at start](tickets/07-scenery.md) | 🧑 |
+| 08 | [Between missions: merge the state file, the enemy's turn, victory](tickets/08-between-missions.md) | ✅ |
+| 09 | [Build the next mission from the state, with its strategic briefing](tickets/09-build-next-mission.md) | ✅ |
+| 10 | [Documentation and an example campaign](tickets/10-doc-and-example.md) | 🧑 |
+| 11 | [Two missions flown end to end](tickets/11-two-missions-flown.md) | 🧑 |
+
+Tickets 04 to 07 and 11 wait for the game (item **R44** of [`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md)); ticket 10 waits for the demo mission step.
+
+## Progress, 2026-10-06 — everything that can be done without DCS
+
+David could not start DCS, so the lot was built up to the in-game checks (David, 2026-10-06: "pars sur des trucs que tu peux faire").
+
+### Decisions taken while building
+
+1. **The state file is a Lua literal, the campaign state YAML, with one structure.**
+   The mission writes `return { … }` with its own serializer, and `luadata` reads it back; a Python test runs the real serializer under the DCS mocks and reads its output, so the contract is checked across the two languages.
+2. **The first mission's briefing speaks in intelligence terms** (ticket 02's open question).
+   Drawing in Python would have meant a second copy of ~370 lines of `veafCasMission` tables plus `_addDefenseForGroups` and the era swaps, kept in step by hand — the opposite of #296.
+   Mission 1 draws in game; its state file brings the real figures.
+3. **`os` is sanitized on the VEAF servers** (measured 2026-10-03, `dcs-veaf-org-ssh-access`): the planned temporary-then-rename write would have left the state in the temporary for ever.
+   Without `os` the mission writes the complete temporary, then the file itself; `campaign apply` falls back on the temporary when the file is cut short.
+4. **A garrison is one DCS group per zone**, plus its long-range battery as a group of its own, drawn by `veafCasMission.generateCasGroup` unchanged — whose placement (`findPointInZone` + `settleGroup`) is reused rather than `veaf.findSpawnPoint`. `veafCasMission` was not touched, so CAS missions get exactly what they got.
+5. **A garrison drawn after the start is paid from the reserve, unit by unit**; an empty reserve gives the smallest draw (size 1, no long-range battery). Mission 1's starting garrisons cost nothing.
+   The reserve is therefore the mission's on the way back: the merge takes it from the state file.
+6. **Repairs are counted in units, not groups** (`rules.repairs_per_mission`, 4 per side), each taken from the reserve category of its type; a repaired SAM comes back fully loaded.
+7. **A capture still in progress at mission end is dropped**: the next mission starts with the zone as it was left.
+8. **A CTLD 2 crate counts through `CTLDCrateManager`'s registry**, not its events: a static found in the zone counts when CTLD lists it as a crate. No state to keep in step with events.
+9. **"Campaign units that took part are consumed" does not apply here**: an episodic campaign moves no unit of its own between zones. It comes back with the convoys of `FEAT-DYNAMIC-CAMPAIGN`.
+10. **`at: { point: … }` is not supported**: a VEAF named point is a mission's, not a campaign's. A zone is on an airfield or at coordinates; the runtime resolves both (`Airbase:getPoint`, `coord.LLtoLO`), so the tools need no projection.
+11. **`campaign next` copies a `template/` mission folder** rather than scaffolding one (which downloads from GitHub), and only refreshes a folder that exists: what Claude designed in it survives a second run.
+12. **The strategic briefing is two text files** (`strategic-situation.fr.txt`, `.en.txt`) that Claude puts into the briefing it writes, rather than a variable substituted at build: the narrative half is Claude's anyway.
+
+### Left for the game (R44)
+
+- `Airbase.setCoalition` / `autoCapture(false)`: both exist in the scripting API schema and are called guarded; their effect on dynamic slots and warehouses is unmeasured.
+- Warehouses: read in flight into the state file; writing them back at build waits for the reading to be measured.
+- SAM missiles: recorded per unit (`missiles`); rendering at next start waits for the measurement.
+- Scenery: recorded (through `veafMissionDb.destroyedScenery`); the replay method waits for the measurement.
+- Recorded in `known-limitations.yaml` as `campaign-records-more-than-it-replays`.
+
+### Left outside this repository
+
+- The demo mission step (`VEAF/VEAF-Demo-Mission-v6`, CLAUDE.md §9 item 9): a campaign is a folder of missions, not a step of one mission; to decide with David whether the demo shows one campaign mission or a link to the example campaign.
+- The Python coverage gate: measured locally at 83.8 % without PySide6, which the CI installs; raised once the CI has measured it.

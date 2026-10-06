@@ -17,6 +17,7 @@ from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
+from veaf_mission_mcp.campaign import campaign_apply, campaign_next, campaign_status
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import add_combat_operation, create_cap_mission, create_combat_zone, create_qra
@@ -1409,6 +1410,72 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_mission_setting(Path(p["mission_yaml_path"]), p["key"], p["value"]),
+    )
+    _campaign_folder = {
+        "type": "string",
+        "description": "Path to the campaign folder (campaign.yaml, campaign-state.yaml, template/, missions/).",
+    }
+    catalog.register(
+        ActionSpec(
+            name="campaign_status",
+            description=(
+                "Read where a multi-mission campaign stands: missions flown, each zone's owner, garrison "
+                "strength, kind and neighbours, both sides' ground reserves, each campaign objective met or "
+                "not, and what changed in the last mission. Call it FIRST, before deciding the next "
+                "mission: the enemy's intent for the turn (where it reinforces, what it defends) is yours "
+                "to decide from this, and goes into the next mission's briefing. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {"campaign_folder": _campaign_folder},
+                "required": ["campaign_folder"],
+            },
+        ),
+        handler=lambda p: campaign_status(Path(p["campaign_folder"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="campaign_apply",
+            description=(
+                "Apply a flown campaign mission: merge the state file the mission wrote "
+                "(Saved Games/DCS/Missions/Saves/<campaign>/mission-NN.state, fetched from the server) into "
+                "the campaign state, then play the fixed rules of the turn between missions (logistics feed "
+                "the reserves, the reserves repair garrisons, a neutral zone bordered by one side only is "
+                "retaken by it) and judge the objectives. Refuses a file already applied, from another "
+                "campaign, or skipping a mission; nothing is written then. Keeps the before/after state "
+                "under missions/mission-NN/."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "campaign_folder": _campaign_folder,
+                    "state_file": {"type": "string", "description": "The state file the mission wrote."},
+                },
+                "required": ["campaign_folder", "state_file"],
+            },
+        ),
+        handler=lambda p: campaign_apply(Path(p["campaign_folder"]), Path(p["state_file"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="campaign_next",
+            description=(
+                "Lay down the next campaign mission's FOLDER (missions/mission-NN/mission), copied from the "
+                "campaign's template/ mission folder on the first run and only refreshed afterwards, so the "
+                "design already done in it survives: every campaign airbase given to its owner (dynamic "
+                "slots for each side's bases, none on a neutral one), the campaign data table the runtime "
+                "reads (garrisons with their losses, reserves, destroyed scenery), the CAMPAIGN module "
+                "turned on in mission.yaml. Returns the folder and the FACTUAL part of the strategic "
+                "briefing in French and English: design the mission on top of that folder with the other "
+                "actions, and write the briefing's narrative part yourself."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {"campaign_folder": _campaign_folder},
+                "required": ["campaign_folder"],
+            },
+        ),
+        handler=lambda p: campaign_next(Path(p["campaign_folder"])),
     )
     catalog.register(
         ActionSpec(

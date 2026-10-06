@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import luadata
 import pytest
-from veaf_libs.lua_literals import lua_long_string, lua_quoted_string, lua_scalar, lua_string
+from lua_runner import run_lua
+from veaf_libs.lua_literals import lua_data, lua_long_string, lua_quoted_string, lua_scalar, lua_string
 
 #: Values that broke one emitter or another before this module existed.
 NASTY_VALUES = [
@@ -163,3 +164,46 @@ def test_scalar_quotes_strings_safely() -> None:
     """This is the VMR-012 hole: the string branch used to interpolate with no escaping."""
     assert lua_scalar('a "quoted" value').startswith("[")
     assert lua_scalar("plain") == '"plain"'
+
+
+# ---------------------------------------------------------------------------
+# lua_data -- a whole data structure (FEAT-MULTI-MISSION-CAMPAIGN)
+# ---------------------------------------------------------------------------
+
+DATA = {
+    "campaign": 'Caucasus "Front"',
+    "mission": 2,
+    "zones": [
+        {"name": "Gudauta depot", "x": 1.5, "owner": "red", "garrison": None, "size": {"long_range_sam": True}},
+    ],
+    "sides": {"red": {"reserve": {}}},
+    "warehouse": {"F-16C_50": 4, 7: "seven"},
+}
+
+
+def test_data_reads_back_identical_through_luadata() -> None:
+    """luadata reads the tools' own files; `None` values are left out of a mapping."""
+    expected = {**DATA, "zones": [{k: v for k, v in DATA["zones"][0].items() if v is not None}]}
+    assert luadata.unserialize(lua_data(DATA)) == expected
+
+
+def test_data_runs_in_lua() -> None:
+    """The real reader is DCS's Lua: every key, quoted or not, comes out as written."""
+    result = run_lua(
+        f"local d = {lua_data(DATA)}\n"
+        'print(d.campaign, d.zones[1].name, d.zones[1].garrison, d.zones[1].size.long_range_sam, d.warehouse["F-16C_50"], d.warehouse[7])'
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.rstrip("\n").split("\t") == ['Caucasus "Front"', "Gudauta depot", "nil", "true", "4", "seven"]
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf")])
+def test_data_refuses_a_number_lua_cannot_spell(value: float) -> None:
+    with pytest.raises(ValueError):
+        lua_data({"x": value})
+
+
+@pytest.mark.parametrize("value", [{1.5: "x"}, {True: "x"}, {"x": object()}])
+def test_data_refuses_what_has_no_lua_literal(value: dict) -> None:
+    with pytest.raises(TypeError):
+        lua_data(value)

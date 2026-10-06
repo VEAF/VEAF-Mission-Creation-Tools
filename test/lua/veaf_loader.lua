@@ -56,6 +56,7 @@ local _moduleOrder = {
   "veafCacheManager",
   "veafGroundAI",
   "veafMissileGuardian",
+  "veafCampaign",
   "veafMissionFlightPlanEditor",
 }
 

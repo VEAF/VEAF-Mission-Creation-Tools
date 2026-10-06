@@ -1,6 +1,6 @@
 # 03 — Runtime: F10 map and situation menu
 
-Status: ⬜ ready
+Status: ✅ done
 
 Shared brick: reused by `FEAT-DYNAMIC-CAMPAIGN`.
 

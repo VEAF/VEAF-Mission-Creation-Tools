@@ -15,7 +15,7 @@ Que construisez-vous ? Choisissez l'étape qui correspond.
 | **Fondation** | `veaf.lua`, `veafMarkers`, [veafRadio](veafRadio.md), [veafInterpreter](veafInterpreter.md), [veafCommands](veafCommands.md), [veafI18n](veafI18n.md), [veafUnits](veafUnits.md), `veafEventHandler`, `veafCacheManager` | Infrastructure de base (toujours chargée) |
 | **Mise en place** | [veafSecurity](veafSecurity.md), [veafNamedPoints](veafNamedPoints.md), [veafAirbases](veafAirbases.md) | Contrôle d'accès, positions carte, données de bases |
 | **Spawning** | [veafSpawn](veafSpawn.md), [veafMove](veafMove.md), [veafGroundAI](veafGroundAI.md) | Permettre aux joueurs de créer, déplacer et piloter des unités |
-| **Types de mission** | [veafCasMission](veafCasMission.md), [veafCombatMission](veafCombatMission.md), [veafCombatZone](veafCombatZone.md), [veafTransportMission](veafTransportMission.md), [veafQraManager](veafQraManager.md), [veafAirWaves](veafAirWaves.md) | Scénarios de gameplay structurés |
+| **Types de mission** | [veafCasMission](veafCasMission.md), [veafCombatMission](veafCombatMission.md), [veafCombatZone](veafCombatZone.md), [veafTransportMission](veafTransportMission.md), [veafQraManager](veafQraManager.md), [veafAirWaves](veafAirWaves.md), [veafCampaign](veafCampaign.md) | Scénarios de gameplay structurés |
 | **Assets & services** | [veafAssets](veafAssets.md), [veafCarrierOperations](veafCarrierOperations.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md) | Ravitailleurs/AWACS/porte-avions gérés, météo |
 | **Protection** | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md) | Défense anti-missiles, zones sûres |
 | **Assistance en vol** | [veafAssist](veafAssist.md) | Checklists guidées : la mission encadre le bon interrupteur dans le cockpit et coche la ligne |
@@ -46,7 +46,7 @@ Quelle est la fréquence d'utilisation de ce module ?
 | **Essentiel** (quasi toute mission) | [veafSpawn](veafSpawn.md), [veafAssets](veafAssets.md), [veafNamedPoints](veafNamedPoints.md), [veafSecurity](veafSecurity.md) |
 | **Courant** (la plupart des missions de combat) | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafAirWaves](veafAirWaves.md), [veafCarrierOperations](veafCarrierOperations.md) |
 | **Situationnel** (scénarios spécifiques) | [veafQraManager](veafQraManager.md), [veafTransportMission](veafTransportMission.md), [veafMove](veafMove.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md), [veafAirbases](veafAirbases.md) |
-| **Spécialisé** (configurations avancées) | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md), [veafSkynetIadsHelper](veafSkynetIadsHelper.md) |
+| **Spécialisé** (configurations avancées) | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md), [veafSkynetIadsHelper](veafSkynetIadsHelper.md), [veafCampaign](veafCampaign.md) |
 
 ---
 

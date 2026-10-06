@@ -181,3 +181,44 @@ def lua_sequence(values: object) -> str:
         return "{}"
     rendered = [lua_sequence(item) if isinstance(item, (list, tuple, dict)) else lua_scalar(item) for item in values]
     return "{ " + ", ".join(rendered) + " }"
+
+
+def lua_data(value: object) -> str:
+    """Return a Lua literal for a whole data structure: mappings, sequences and scalars.
+
+    Where :func:`lua_sequence` refuses a mapping on purpose — a mission's *settings* never
+    carry one — a campaign's data table is nothing but (FEAT-MULTI-MISSION-CAMPAIGN): zones
+    with their garrisons, reserves by category. Every key is written in brackets, so a key
+    that is not a Lua name (``"Gudauta depot"``, ``"F-16C_50"``) needs no special case.
+    ``None`` values are left out of a mapping, as Lua has no way to hold them.
+
+    Args:
+        value: Builtins only: ``dict`` with ``str`` or ``int`` keys, ``list``/``tuple``,
+            ``str``, ``int``, ``float``, ``bool``, ``None``.
+
+    Returns:
+        The Lua source for that value.
+
+    Raises:
+        TypeError: On a key that is neither a string nor an integer, or a value of another type.
+        ValueError: On a float that is not finite, which Lua source cannot spell.
+    """
+    if isinstance(value, dict):
+        parts = []
+        for key, item in value.items():
+            if item is None:
+                continue
+            if isinstance(key, bool) or not isinstance(key, (str, int)):
+                raise TypeError(f"a Lua table key must be a string or an integer, not {type(key).__name__}")
+            literal = f"[{key}]" if isinstance(key, int) else f"[{lua_quoted_string(key)}]"
+            parts.append(f"{literal}={lua_data(item)}")
+        return "{" + ",".join(parts) + "}"
+    if isinstance(value, (list, tuple)):
+        return "{" + ",".join(lua_data(item) for item in value) + "}"
+    if isinstance(value, float) and (value != value or value in (float("inf"), float("-inf"))):
+        raise ValueError(f"{value} has no Lua literal")
+    if isinstance(value, str):
+        return lua_quoted_string(value)
+    if value is None or isinstance(value, (bool, int, float)):
+        return lua_scalar(value)
+    raise TypeError(f"no Lua literal for {type(value).__name__}")

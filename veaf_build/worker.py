@@ -133,6 +133,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafAssist.lua",
     "veafCarrierOperations.lua",
     "veafCasMission.lua",
+    "veafCampaign.lua",
     "veafCombatMission.lua",
     "veafCombatZone.lua",
     "veafGrass.lua",

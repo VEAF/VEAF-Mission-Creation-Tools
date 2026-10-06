@@ -1,6 +1,6 @@
 # 11 — Two missions flown end to end
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 The acceptance of the lot is the loop itself, in game:
 

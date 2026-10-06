@@ -1888,6 +1888,47 @@ veaf.i18nCatalog = {
     fr = "AUCUN",
     en = "NO",
   },
+  -- veafCampaign
+  ["campaign.zone_neutral"] = {
+    fr = "Campagne : %s a perdu toute sa garnison, la zone est neutre et peut être prise.",
+    en = "Campaign: %s has lost its whole garrison; the zone is neutral and can be captured.",
+  },
+  ["campaign.zone_captured"] = {
+    fr = "Campagne : %s a été prise par le camp %s.",
+    en = "Campaign: %s has been captured by %s.",
+  },
+  ["campaign.side.blue"] = { fr = "bleu", en = "blue" },
+  ["campaign.side.red"] = { fr = "rouge", en = "red" },
+  ["campaign.side.neutral"] = { fr = "neutre", en = "neutral" },
+  ["campaign.map_label"] = { fr = "%s — %d %%", en = "%s — %d%%" },
+  ["campaign.map_label_neutral"] = { fr = "%s — neutre", en = "%s — neutral" },
+  ["campaign.map_label_capture"] = {
+    fr = "%s — capture %s en cours (%d s)",
+    en = "%s — %s capture in progress (%d s)",
+  },
+  ["campaign.situation.header"] = {
+    fr = "Campagne %s — mission %d sur %d",
+    en = "Campaign %s — mission %d of %d",
+  },
+  ["campaign.situation.zone"] = { fr = "- %s : %s, garnison %d %%", en = "- %s: %s, garrison %d%%" },
+  ["campaign.situation.capture"] = {
+    fr = ", capture %s en cours (%d s)",
+    en = ", %s capture in progress (%d s)",
+  },
+  ["campaign.situation.objectives"] = { fr = "Objectifs :", en = "Objectives:" },
+  ["campaign.objective.capture"] = { fr = "- prendre %s", en = "- capture %s" },
+  ["campaign.objective.destroy"] = { fr = "- détruire %s", en = "- destroy %s" },
+  ["campaign.counters"] = {
+    fr = "Campagne : %d battements, %d zones visitées, %d dessins, %d unités apparues, %d pertes traitées, %d écritures d'état",
+    en = "Campaign: %d beats, %d zones visited, %d drawings, %d units spawned, %d losses handled, %d state writes",
+  },
+  ["campaign.state_unwritable"] = {
+    fr = "Campagne : io/lfs indisponibles sur ce serveur, l'état de la campagne ne peut pas être enregistré.",
+    en = "Campaign: io/lfs are not available on this server; the campaign state cannot be recorded.",
+  },
+  ["menu.campaign.root"] = { fr = "Campagne", en = "Campaign" },
+  ["menu.campaign.situation"] = { fr = "Situation", en = "Situation" },
+  ["menu.campaign.counters"] = { fr = "Compteurs (admin)", en = "Counters (admin)" },
 }
 
 veaf.loggers.get(veafI18n.Id):info(veaf.loggers.get(veafI18n.Id):getVersionInfo())

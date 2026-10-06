@@ -1,6 +1,6 @@
 # 09 — Build the next mission from the state, with its strategic briefing
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## What the tools apply
 

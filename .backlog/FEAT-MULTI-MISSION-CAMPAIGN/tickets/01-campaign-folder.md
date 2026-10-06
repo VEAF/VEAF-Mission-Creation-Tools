@@ -1,6 +1,6 @@
 # 01 — Campaign folder: `campaign.yaml`, campaign state, validation
 
-Status: ⬜ ready
+Status: ✅ done
 
 Shared brick: the format is reused as is by `FEAT-DYNAMIC-CAMPAIGN`.
 
@@ -31,7 +31,7 @@ zones:
     size: outpost
     side: red
     kind: logistics             # feeds its side's ground reserve (ticket 06)
-    garrison: [sa8, zu23, T-72] # optional: replaces the draw
+    garrison: [sa8, shilka, T-72B] # optional: replaces the draw
 connections:
   - [Kobuleti, Senaki]
 ```

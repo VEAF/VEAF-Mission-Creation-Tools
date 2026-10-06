@@ -54,6 +54,35 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R44. A multi-mission campaign, two missions end to end — **no pilot for items 1 to 5**
+
+[`FEAT-MULTI-MISSION-CAMPAIGN`](.backlog/FEAT-MULTI-MISSION-CAMPAIGN/PRD.md), tickets 04, 06, 07 and 11.
+The 62 Lua tests and the Python suite prove what `veafCampaign` hands to DCS and what `campaign apply` makes of it; what DCS does with an airbase changing hands, a warehouse read, a unit started short of missiles or a bridge destroyed again is unmeasured.
+
+**Prepare**: copy `src/defaults/campaign-folder/` to a working folder, add a `template/` mission folder (`prepare --theatre Caucasus`, security off), `campaign init`, `campaign next`, build `missions/mission-01/mission`, `dcs-serve` running for `fiddle.sh`.
+
+1. Start mission 1, wait 70 s.
+   - **Verified**: eleven garrisons on the F10 map with their circles and labels, `Campaign → Situation` lists 12 zones, `Saved Games/DCS/Missions/Saves/Western Georgia/mission-01.state` exists.
+   - **Re-opened, nothing drawn**: `veafCampaign.data` missing — look for `no campaign data` in `dcs.log`.
+   - **Re-opened, no file**: `io`/`lfs` sanitized on this install, or the folder not created — `cannot write the campaign state` in `dcs.log`.
+2. Destroy every unit of `Gali garrison` with `fiddle.sh` (explosions, not `destroy()`), then put one blue ground unit in Gali for 130 s.
+   - **Verified**: *Gali … est neutre*, then *Gali a été prise par le camp bleu*, a blue garrison appears, the circle turns blue.
+   - **Re-opened**: no capture — `sidesPresent` saw nothing; dump `world.searchObjects` over the zone in `fiddle.sh`.
+3. Destroy all of `Senaki garrison`, put blue ground units on Senaki-Kolkhi for 130 s, then read `Airbase.getByName("Senaki-Kolkhi"):getCoalition()` and spawn a blue dynamic slot there.
+   - **Verified**: coalition 2, the blue slot is offered, and no red unit standing on it makes DCS take it back (`autoCapture(false)` holds).
+   - **Re-opened**: the coalition stays 1, or the slot list is unchanged — record which one in `known-limitations.yaml` (`kind: dcs`).
+4. Read `Airbase.getByName("Kobuleti"):getWarehouse():getInventory()` before and after a blue aircraft takes off with two missiles.
+   - **Verified**: the aircraft count drops by one and the missile count by two — the state file's `warehouse` can be written back (ticket 06).
+   - **Re-opened**: counts unchanged or absent — record what the call answers; writing back stays out of scope.
+5. Spawn a SAM with `coalition.addGroup` and a reduced ammunition entry if the API takes one, or check `Unit.getAmmo` after `fiddle.sh` fires two missiles; destroy a bridge (`scenery-objects` gives its id) and try both an explosion at its position and a scenery destruction zone at the next start.
+   - **Verified**: one way leaves the bridge down without collateral — note it for ticket 07; a SAM can start short — note it for ticket 06.
+   - **Re-opened**: neither — record it, and the PRD says how the low stock is rendered instead (fewer launchers, a more cautious IADS).
+6. End mission 1, `campaign apply` its state file, `campaign next`, build and start mission 2.
+   - **Verified**: Gali and Senaki are blue, Senaki offers blue slots, the destroyed units of the other garrisons are missing, the strategic briefing tells it.
+   - **Re-opened**: anything not carried over — compare `missions/mission-01/campaign-state.after.yaml` with what mission 2 shows.
+7. Kill the server process in the middle of mission 2.
+   - **Verified**: `mission-02.state` (or its `.tmp`) holds the last interval, and `campaign apply` reads it.
+
 ### R43. QRA and air waves on their shared base — **a pilot for items 4 and 5 only**
 
 [`FEAT-AIRWAVES-QRA-MERGE`](.backlog/FEAT-AIRWAVES-QRA-MERGE/PRD.md) and #1078.

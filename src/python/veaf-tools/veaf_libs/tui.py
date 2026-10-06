@@ -262,6 +262,35 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="campaign-init",
+        description=t("tui.cmd.campaign_init.description"),
+        prompts=[
+            ArgPrompt("campaign_folder", t("tui.arg.campaign_folder"), default=".", is_option=False),
+        ],
+    ),
+    CommandSpec(
+        cli_name="campaign-validate",
+        description=t("tui.cmd.campaign_validate.description"),
+        prompts=[
+            ArgPrompt("campaign_folder", t("tui.arg.campaign_folder"), default=".", is_option=False),
+        ],
+    ),
+    CommandSpec(
+        cli_name="campaign-apply",
+        description=t("tui.cmd.campaign_apply.description"),
+        prompts=[
+            ArgPrompt("state_file", t("tui.arg.campaign_state_file"), default="", is_option=False),
+            ArgPrompt("campaign_folder", t("tui.arg.campaign_folder"), default=".", is_option=False),
+        ],
+    ),
+    CommandSpec(
+        cli_name="campaign-next",
+        description=t("tui.cmd.campaign_next.description"),
+        prompts=[
+            ArgPrompt("campaign_folder", t("tui.arg.campaign_folder"), default=".", is_option=False),
+        ],
+    ),
+    CommandSpec(
         cli_name="resolve-checklist",
         description=t("tui.cmd.resolve_checklist.description"),
         prompts=[

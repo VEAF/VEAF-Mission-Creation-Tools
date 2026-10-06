@@ -69,7 +69,7 @@ globals = {
   "SkynetIADSAbstractRadarElement",
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})
   "veaf", "veafAircraftSpawn", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
-  "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCarrierOperations",
+  "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCampaign", "veafCarrierOperations",
   "veafCasMission", "veafCombatMission", "veafCombatZone", "veafCommands",
   "veafEventHandler", "veafGeo", "veafGrass", "veafGroundAI",
   "veafI18n", "veafInterpreter", "veafMarkers", "veafMath", "veafMissileGuardian",
@@ -84,7 +84,7 @@ globals = {
   -- VEAF class names (PascalCase — OOP constructors)
   "VeafAircraftSpawn", "VeafAirUnitTemplate",
   "VeafAlias", "VeafAliasForCombatMission", "VeafAliasForCombatZone",
-  "VeafCache", "VeafCircleOnMap",
+  "VeafCache", "VeafCampaignZone", "VeafCircleOnMap",
   "VeafCombatMission", "VeafCombatMissionElement", "VeafCombatMissionObjective",
   "VeafCombatOperation", "VeafCombatOperationTaskingOrder",
   "VeafCombatZone", "VeafCombatZoneElement", "VeafDrawingOnMap",

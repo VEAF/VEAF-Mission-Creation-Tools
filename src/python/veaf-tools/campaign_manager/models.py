@@ -12,6 +12,7 @@ Two structures, kept apart on purpose:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 #: The coalitions that can own a zone. A neutral zone has lost its whole garrison and waits to be
@@ -53,6 +54,11 @@ DEFAULT_MISSION_TEMPLATE = "template"
 
 #: The bounds of a zone's radius, in metres: a few vehicles at the least, a sector at the most.
 ZONE_RADIUS_RANGE: tuple[int, int] = (200, 20000)
+
+#: When a campaign mission starts when `campaign.yaml` does not say: half an hour after sunrise on
+#: the campaign's ground, a clock time (``"06:30"``) or a solar expression the build's weather
+#: variants accept (``"sunset-45*60"``).
+DEFAULT_START_TIME = "sunrise+30*60"
 
 
 @dataclass(frozen=True)
@@ -153,6 +159,10 @@ class CampaignDefinition:
     state_write_seconds: int = DEFAULT_STATE_WRITE_SECONDS
     mission_template: str = DEFAULT_MISSION_TEMPLATE
     """The mission folder, relative to the campaign folder, every mission starts as a copy of."""
+    start_date: date | None = None
+    """The first mission's date, or ``None`` to keep the template's."""
+    start_time: str = DEFAULT_START_TIME
+    """When each mission starts, as a clock time or a solar expression."""
 
     def zone(self, name: str) -> CampaignZone:
         """Return the zone of that name.
@@ -217,4 +227,5 @@ class CampaignState:
     scenery_destroyed: list[dict[str, Any]] = field(default_factory=list)
     """Scenery objects destroyed so far (ticket 07)."""
     history: list[dict[str, Any]] = field(default_factory=list)
-    """One entry per mission applied: what changed, for the next briefing (tickets 08 and 09)."""
+    """One entry per mission applied: what changed, for the next briefing (tickets 08 and 09), and the
+    date the mission was flown on (``date``, ``YYYY-MM-DD``), which the next mission's date follows."""

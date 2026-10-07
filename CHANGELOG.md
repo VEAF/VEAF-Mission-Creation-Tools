@@ -45,6 +45,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The tools generate the facts; the prose is written in a new `briefing.yaml`, checked by `campaign validate`, by Claude through the new MCP action `campaign_briefing` or by hand.
   The enemy is never given a figure — intelligence of uneven reliability only — and a long-range SAM is named once the campaign state records it; a zone can carry a `display_name` and its own `intel` text.
   The example campaign ships a `briefing.yaml`; python-pptx joins the dependencies: the executable grows from 40.7 to 45.4 MB, measured.
+- **Each campaign mission gets its own mission briefing, and a date, a time and a weather of its own** (FEAT-CAMPAIGN-MISSION-BRIEFING).
+  Once the mission is built, `campaign briefing` — and `campaign next` with it — writes `missions/mission-NN/briefing-mission.pptx` after the VEAF mission briefing: general situation, ATO, a tactical map and one zoom per objective, mission flow, frequency plan, objective coordinates in DMS — all read from the built mission, never typed: the players' flights without the dynamic-slot or spawn templates, each support aircraft once, the carrier's tower in VHF, the wind said from where it comes, the enemy's QRA zones; the maps' labels never overlap.
+  A campaign mission is one mission: the folder `campaign next` creates has no weather variant (`pipeline.weather: false`, no `src/versions.yaml`) and its date, time and weather fixed — the day after the last mission flown, `start_time` (default `sunrise+30*60`) computed on the campaign's own ground rather than at Damascus, a weather drawn per mission with the ground visible (clear, few or scattered clouds, 8 km or more, no fog, no rain); `campaign.yaml` takes a `start_date` and a `start_time`, and a refresh keeps what Claude set since.
 
 ### Changed
 

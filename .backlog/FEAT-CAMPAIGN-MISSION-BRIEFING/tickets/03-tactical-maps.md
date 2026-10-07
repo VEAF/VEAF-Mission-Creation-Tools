@@ -1,6 +1,6 @@
 # 03 — The tactical map and one zoom per objective
 
-Status: ⬜ ready
+Status: ✅ done
 
 On the OpenStreetMap base of `veaf_libs/map_tiles.py`:
 

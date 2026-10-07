@@ -40,6 +40,7 @@ Caucasus/
     │   ├── mission/         the mission folder of mission 1
     │   ├── mission-01.state the state file the mission wrote
     │   ├── briefing-campagne.pptx / carte-strategique.png
+    │   ├── briefing-mission.pptx / carte-tactique.png / zoom-<zone>.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -63,6 +64,8 @@ campaign:
   player_side: blue          # the players' side; blue by default
   capture_seconds: 120       # ground presence needed to take a neutral zone
   state_write_seconds: 60    # how often the state file is written in flight
+  start_date: 2016-06-01     # the first mission's date; the template's otherwise
+  start_time: sunrise+30*60  # start time: "06:30" or a solar expression; this is the default
   objectives:
     - capture: [Senaki, Kutaisi]
     - destroy: { zone: Gudauta depot, kind: logistics }
@@ -188,6 +191,21 @@ It is a text to read after the evening or to post as it is; the AI assistant tel
 `campaign next` writes, at the root of the mission folder, the factual part of the strategic briefing in French and English (`strategic-situation.fr.txt`, `strategic-situation.en.txt`): the front, what changed in the last mission, the enemy's reserve and garrisons, the objectives and the missions left.
 The text, in the language the tools run in, also becomes the mission's briefing when the folder is created, so a mission built as it is does not fly without one; Claude adds the narrative part while designing the mission, and a second `campaign next` on the same folder does not overwrite it.
 
+## A mission's date, time and weather {#mission-conditions}
+
+A campaign mission is **one** mission: no weather variants.
+The folder `campaign next` creates has `pipeline.weather: false` as the last block of `mission.yaml` and no `src/versions.yaml`; date, time and weather are **fixed in the mission** itself.
+
+- **The date moves on with the campaign**: mission N+1 takes place the day after mission N, whose date `campaign apply` keeps in the campaign state. The first one takes `start_date` from `campaign.yaml`, or the template's date.
+- **The time serves the mission**: `start_time` from `campaign.yaml`, a clock time (`"06:30"`) or a solar expression (`sunrise+30*60`, the default). The expression is computed for the campaign's ground — the centre of its zones — and the mission's date, on the theatre's clock: sunrise over Colchis, not over Damascus as the shipped `versions.yaml` has it.
+- **The weather may change from one mission to the next, the ground stays visible**: no clouds, few or scattered, based between 1,500 and 3,500 m, visibility 8 km or more, neither fog nor rain — CAVOK or nearly. The draw depends on the campaign's name and the mission's number: the same mission draws the same sky again.
+
+DCS rains only under its "rainy" clouds, which are overcast: light rain under a clear sky does not exist, so a campaign's weather never has rain.
+
+What `campaign next` set is a starting point: Claude, preparing the mission, moves the date on when the story wants it and sets the hour the mission needs (action `set_mission_date`), and may change the weather (`set_weather`) while keeping the ground visible.
+A second `campaign next` on the same folder keeps what was set.
+The DCS briefing shows the mission's date, time and weather; the mission briefing writes them too.
+
 ## The campaign briefing deck {#briefing-deck}
 
 `campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`briefing-campagne.pptx`) and its map (`carte-strategique.png`).
@@ -254,6 +272,29 @@ After each mission, the coming mission's page and the concept's progress are rew
 
 The map is drawn on OpenStreetMap tiles, cached in `%LOCALAPPDATA%\veaf-tools\tiles`; the tools identify themselves to the server by their GitHub address, and nothing else.
 Without the network, the map is drawn on a plain background and the deck says so: run `campaign briefing` again once online.
+
+## The mission briefing {#mission-briefing}
+
+Next to the campaign briefing, each mission has its **mission briefing**: `missions/mission-NN/briefing-mission.pptx`, after the VEAF mission briefing, with its tactical map (`carte-tactique.png`) and one zoom per objective (`zoom-<zone>.png`).
+It is read from the **built** mission: `campaign briefing` writes it as soon as a `.miz` exists in `missions/mission-NN/mission` (at its root or in `build/`), and says how to get one otherwise.
+Run `campaign briefing` again after every change to the mission.
+
+| Page | What it says |
+|---|---|
+| Cover | the operation and the mission's number, its title (`briefing.yaml`), the date and time |
+| General situation | context, mission (the tasks), bullseye (DMS, bearing and range from a friendly base), departures, threat (the intelligence, and the enemy's interception alert), weather and time **read from the mission** |
+| ATO | the players' flights (callsign, type, count, base, pilot lines, free loadout), the airfields with dynamic slots, the support (AWACS, tankers) with frequency and TACAN, the control (the carrier's tower in VHF, airfields) |
+| Tactical situation | zones, axes, interception alert zone, carrier, AWACS orbit, tanker track, bullseye, a scale in nm |
+| One page per objective | the zone at its radius, its intelligence, the task naming it |
+| Mission flow | objectives, air opposition, air defences, other information (refuelling, diversion fields, rescue) |
+| Frequency plan | UHF then VHF, guard first |
+| Objective coordinates | each zone's centre in DMS, and its elevation when a terrain grid has been swept (`terrain-sweep`) |
+
+The objectives are the zones the mission's task titles name in `briefing.yaml` ("Frapper le dépôt de Khobi" names the zone *Dépôt de Khobi*), or else the campaign's objectives.
+The flights are the players': neither the dynamic-slot templates nor the VEAF spawn templates are flights; a support aircraft appears once, by its task; the wind is said from where it comes, as a pilot reads it.
+
+**No target coordinate and no flight plan**: a garrison is drawn when the mission starts, so no unit's position is known when the briefing is written, and it says so — exact positions are found in flight.
+The maps' labels never overlap one another or a symbol.
 
 ## What is still to verify in game {#to-verify}
 

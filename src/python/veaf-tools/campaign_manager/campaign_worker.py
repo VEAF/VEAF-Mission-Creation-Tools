@@ -8,6 +8,7 @@ sub-folder per mission under `missions/` (tickets 08 and 09).
 from __future__ import annotations
 
 import shutil
+import zipfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -17,9 +18,12 @@ from veaf_libs.map_tiles import Fetch
 from veaf_libs.mission_validator import ERROR, WARNING, ValidationIssue
 
 from campaign_manager.briefing_deck import DeckReport, campaign_deck
-from campaign_manager.briefing_prose import load_prose
+from campaign_manager.briefing_prose import BriefingProse, load_prose
 from campaign_manager.campaign_manager import initial_state, load_campaign, load_state, save_state, validate_state
 from campaign_manager.debriefing import debriefing_text
+from campaign_manager.mission_conditions import folder_date
+from campaign_manager.mission_deck import MissionDeckReport, mission_deck
+from campaign_manager.mission_picture import find_built_mission, read_mission_picture
 from campaign_manager.models import CampaignDefinition, CampaignState, Objective
 from campaign_manager.next_mission import BRIEFING_LANGUAGES, NextMissionReport, prepare_next_mission
 from campaign_manager.turn_manager import (
@@ -139,7 +143,11 @@ class CampaignWorker:
         turn = play_turn(campaign, merged)
         changes = flight + turn
         result = outcome(campaign, merged)
-        merged.history.append({"mission": merged.mission, "changes": changes, "outcome": result})
+        entry: dict[str, Any] = {"mission": merged.mission, "changes": changes, "outcome": result}
+        flown_on = folder_date(self.mission_folder(merged.mission) / MISSION_SUBFOLDER)
+        if flown_on:
+            entry["date"] = flown_on  # the next mission's date follows it
+        merged.history.append(entry)
 
         archive = self.mission_folder(merged.mission)
         archive.mkdir(parents=True, exist_ok=True)
@@ -194,13 +202,17 @@ class CampaignWorker:
         except (OSError, KeyError, ValueError) as error:
             deck_issues, deck = [ValidationIssue(WARNING, t("campaign.issue.deck_failed", error=error))], None
         issues += [ValidationIssue(WARNING, issue.message) for issue in deck_issues]
-        return issues, replace(report, deck=deck.path if deck else None)
+        return issues, replace(
+            report, deck=deck.path if deck else None, mission_deck=deck.mission_deck if deck else None
+        )
 
     def briefing(self) -> tuple[list[ValidationIssue], DeckReport | None]:
-        """Write the coming mission's strategic briefing deck: ``missions/mission-NN/briefing-campagne.pptx``.
+        """Write the coming mission's briefings: ``missions/mission-NN/briefing-campagne.pptx``, and
+        ``briefing-mission.pptx`` once the mission has been built.
 
         Returns:
-            Every issue found, and the report — ``None`` when any issue is an error.
+            Every issue found — a mission not built yet is a warning saying how to build it —, and the
+            report: ``None`` when any issue is an error.
         """
         campaign, issues = load_campaign(self.campaign_file)
         if campaign is None:
@@ -214,6 +226,9 @@ class CampaignWorker:
         if mismatch:
             return issues + mismatch, None
         deck_issues, report = self._deck(campaign, state)
+        folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
+        if report is not None and find_built_mission(folder) is None:
+            deck_issues = [*deck_issues, ValidationIssue(WARNING, t("campaign.issue.no_built_mission", folder=folder))]
         return issues + deck_issues, report
 
     def _deck(
@@ -231,7 +246,29 @@ class CampaignWorker:
             cache_dir=self.tile_cache,
             fetch=self.tile_fetch,
         )
-        return issues, report
+        built = find_built_mission(self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER)
+        if built is None:
+            return issues, report
+        try:
+            mission = self._mission_deck(campaign, state, prose, built)
+        except (OSError, KeyError, ValueError, zipfile.BadZipFile) as error:  # a build cut short
+            return [*issues, ValidationIssue(WARNING, t("campaign.issue.mission_deck_failed", error=error))], report
+        return issues, replace(report, mission_deck=mission.path)
+
+    def _mission_deck(
+        self, campaign: CampaignDefinition, state: CampaignState, prose: BriefingProse | None, built: Path
+    ) -> MissionDeckReport:
+        """Write the mission's own briefing from its built `.miz`."""
+        picture = read_mission_picture(built, campaign.player_side, built.parent)
+        return mission_deck(
+            campaign,
+            state,
+            prose,
+            picture,
+            self.mission_folder(state.mission + 1),
+            cache_dir=self.tile_cache,
+            fetch=self.tile_fetch,
+        )
 
     def validate(self) -> list[ValidationIssue]:
         """Check `campaign.yaml`, the campaign state against it when there is one, and `briefing.yaml`.

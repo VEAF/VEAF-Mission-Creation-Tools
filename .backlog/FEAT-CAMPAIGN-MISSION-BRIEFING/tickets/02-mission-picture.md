@@ -1,6 +1,6 @@
 # 02 — What the built mission says: flights, support, carrier, QRA, airfields
 
-Status: ⬜ ready
+Status: ✅ done
 
 The briefing states what the squadron will find in the mission, read from the **built** `.miz` (after presets and the rest of the pipeline), never typed:
 

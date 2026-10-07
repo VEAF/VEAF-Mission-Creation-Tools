@@ -20,6 +20,7 @@ from veaf_libs.i18n import language, t
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.mission_settings import set_briefing
 
+from campaign_manager.mission_conditions import MissionConditions, set_conditions
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
 from campaign_manager.turn_manager import describe_change, enemy_of, evaluate_objectives, garrison_strength, outcome
 
@@ -47,6 +48,10 @@ class NextMissionReport:
     airbases: list[str]
     deck: Path | None = None
     """The strategic briefing deck written next to the folder, or ``None`` when it could not be."""
+    conditions: MissionConditions | None = None
+    """The date, time and weather fixed in a folder created now; ``None`` on a refresh, which keeps them."""
+    mission_deck: Path | None = None
+    """The mission briefing deck, written when the folder holds a built mission."""
 
 
 def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str, Any]:
@@ -176,9 +181,10 @@ def prepare_next_mission(
 ) -> NextMissionReport:
     """Create, or refresh, the next mission's folder from the campaign state.
 
-    A folder that does not exist yet is copied from the campaign's mission template. One that does is
-    only refreshed — the campaign files rewritten, the airbases set again — so the design already
-    done in it survives a second run.
+    A folder that does not exist yet is copied from the campaign's mission template, and its date, start
+    time and weather are fixed there, one mission and no weather variant. One that does is only
+    refreshed — the campaign files rewritten, the airbases set again — so the design already done in
+    it, date, time and weather included, survives a second run.
 
     Args:
         campaign: The validated campaign.
@@ -222,4 +228,8 @@ def prepare_next_mission(
         # briefing alone, since what was written on top of them is design
         set_briefing(mission_folder, situation=strategic_situation(campaign, state))
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
-    return NextMissionReport(mission=state.mission + 1, folder=mission_folder, created=created, airbases=airbases)
+    # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
+    conditions = set_conditions(campaign, state, mission_folder) if created else None
+    return NextMissionReport(
+        mission=state.mission + 1, folder=mission_folder, created=created, airbases=airbases, conditions=conditions
+    )

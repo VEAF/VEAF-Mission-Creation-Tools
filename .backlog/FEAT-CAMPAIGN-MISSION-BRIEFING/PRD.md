@@ -1,6 +1,6 @@
 # FEAT-CAMPAIGN-MISSION-BRIEFING — each campaign mission gets its own briefing, and a date, a time and a weather of its own
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-10-07, the evening before the first mission of *Kolkhida* flown by the squadron: "y'a pas de doc de briefing spécifique à chaque mission ? que le briefing de campagne ?".
 The campaign briefing ([`FEAT-CAMPAIGN-BRIEFING-DECK`](../FEAT-CAMPAIGN-BRIEFING-DECK/PRD.md)) has one page for the coming mission; the VEAF mission briefing — the one the objective-mission prompt produces (`.prompts/new-objective-mission.fr.md` §3 and §6) — had no equivalent for a campaign mission. Answer "a puis b": a prototype for the next day's flight, then this lot.
@@ -54,14 +54,18 @@ What the prototype got wrong first, and the tool must not:
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-date-time-weather.md) | A campaign mission's date, time and weather, fixed and moving on | ⬜ |
-| [02](tickets/02-mission-picture.md) | What the built mission says: flights, support, carrier, QRA, airfields | ⬜ |
-| [03](tickets/03-tactical-maps.md) | The tactical map and one zoom per objective | ⬜ |
-| [04](tickets/04-mission-deck.md) | The mission briefing deck, from `campaign next` and `campaign briefing` | ⬜ |
-| [05](tickets/05-doc.md) | Documentation, and Claude's instructions | ⬜ |
+| [01](tickets/01-date-time-weather.md) | A campaign mission's date, time and weather, fixed and moving on | ✅ |
+| [02](tickets/02-mission-picture.md) | What the built mission says: flights, support, carrier, QRA, airfields | ✅ |
+| [03](tickets/03-tactical-maps.md) | The tactical map and one zoom per objective | ✅ |
+| [04](tickets/04-mission-deck.md) | The mission briefing deck, from `campaign next` and `campaign briefing` | ✅ |
+| [05](tickets/05-doc.md) | Documentation, and Claude's instructions | ✅ |
+
+## What is left
+
+Everything is built and tested off DCS. What waits for David: reading a mission briefing the tools generated — the next one being Kolkhida mission 2, after `campaign apply` and `campaign next` — against the prototype's, and saying what the squadron missed in it.
 
 ## Related
 
 - [`FEAT-CAMPAIGN-BRIEFING-DECK`](../FEAT-CAMPAIGN-BRIEFING-DECK/PRD.md) (🧑): the campaign briefing; its deck helpers, intelligence and map base are reused.
-- [`FEAT-BRIEFING-MAP`](../FEAT-BRIEFING-MAP/PRD.md) (⏸): label de-cluttering for mission maps; ticket 03 needs it.
+- [`FEAT-BRIEFING-MAP`](../FEAT-BRIEFING-MAP/PRD.md) (⏸): label de-cluttering for mission maps; ticket 03 needed it and put it in `veaf_libs/map_labels.py` (`LabelPlacer`) for that lot to reuse.
 - Found the same evening, outside this lot: the MCP declared in `~/.claude.json` runs from the main checkout, and a stale pre-generated `veaf_modules_list.json` there hid the `CAMPAIGN` module from `validate_mission` — the pre-generated list wins over the live scan in development.

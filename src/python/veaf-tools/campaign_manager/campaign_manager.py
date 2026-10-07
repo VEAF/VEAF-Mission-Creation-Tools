@@ -12,6 +12,7 @@ import math
 import os
 import tempfile
 from dataclasses import asdict
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,12 +24,14 @@ from veaf_libs.dcs_units_data import get_unit_category
 from veaf_libs.i18n import t
 from veaf_libs.mission_validator import ERROR, WARNING, ValidationIssue
 
+from campaign_manager.mission_conditions import start_seconds
 from campaign_manager.models import (
     COALITIONS,
     DEFAULT_CAPTURE_SECONDS,
     DEFAULT_MISSION_TEMPLATE,
     DEFAULT_MISSIONS,
     DEFAULT_SIZE_CLASSES,
+    DEFAULT_START_TIME,
     DEFAULT_STATE_WRITE_SECONDS,
     ERAS,
     RESERVE_CATEGORIES,
@@ -240,6 +243,45 @@ def _parse_seconds(head: dict[str, Any], setting: str, default: int, issues: lis
         issues.append(_error("bad_seconds", setting=setting, value=value))
         return default
     return int(value)
+
+
+def _parse_start_date(raw: Any, issues: list[ValidationIssue]) -> date | None:
+    """Read the first mission's date: ``YYYY-MM-DD``, which YAML may already have made a date.
+
+    Args:
+        raw: The `start_date` value, ``None`` when absent.
+        issues: Where a problem found is appended.
+
+    Returns:
+        The date, or ``None`` when absent or invalid.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, date) and not isinstance(raw, datetime):
+        return raw
+    try:
+        return date.fromisoformat(str(raw))
+    except ValueError:
+        issues.append(_error("bad_start_date", value=raw))
+        return None
+
+
+def _parse_start_time(raw: Any, issues: list[ValidationIssue]) -> str:
+    """Read when each mission starts: a clock time or a solar expression.
+
+    Args:
+        raw: The `start_time` value.
+        issues: Where a problem found is appended.
+
+    Returns:
+        The expression, or the default when invalid.
+    """
+    try:
+        start_seconds(str(raw), 21600, 72000)
+    except ValueError:
+        issues.append(_error("bad_start_time", value=raw))
+        return DEFAULT_START_TIME
+    return str(raw)
 
 
 def _parse_location(zone: str, raw: Any, theatre: str | None, issues: list[ValidationIssue]) -> ZoneLocation | None:
@@ -479,6 +521,8 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
     if player_side not in COALITIONS:
         issues.append(_error("bad_player_side", side=player_side))
 
+    start_date = _parse_start_date(head.get("start_date"), issues)
+    start_time = _parse_start_time(head.get("start_time", DEFAULT_START_TIME), issues)
     capture_seconds = _parse_seconds(head, "capture_seconds", DEFAULT_CAPTURE_SECONDS, issues)
     state_write_seconds = _parse_seconds(head, "state_write_seconds", DEFAULT_STATE_WRITE_SECONDS, issues)
     size_classes = _parse_size_classes(raw.get("size_classes"), issues)
@@ -531,6 +575,8 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
             capture_seconds=capture_seconds,
             state_write_seconds=state_write_seconds,
             mission_template=str(head.get("mission_template", DEFAULT_MISSION_TEMPLATE)),
+            start_date=start_date,
+            start_time=start_time,
         ),
         issues,
     )

@@ -8,6 +8,7 @@ sub-folder per mission under `missions/` (tickets 08 and 09).
 from __future__ import annotations
 
 import shutil
+import zipfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -250,7 +251,7 @@ class CampaignWorker:
             return issues, report
         try:
             mission = self._mission_deck(campaign, state, prose, built)
-        except (OSError, KeyError, ValueError) as error:
+        except (OSError, KeyError, ValueError, zipfile.BadZipFile) as error:  # a build cut short
             return [*issues, ValidationIssue(WARNING, t("campaign.issue.mission_deck_failed", error=error))], report
         return issues, replace(report, mission_deck=mission.path)
 

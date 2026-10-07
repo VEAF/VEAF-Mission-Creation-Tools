@@ -257,6 +257,15 @@ class TestTheWorker:
         assert report is not None and report.mission_deck is None
         assert any(issue.level == WARNING and "build" in issue.message for issue in issues)
 
+    def test_a_corrupt_build_is_a_warning_and_the_campaign_briefing_still_comes(self, tmp_path: Path) -> None:
+        worker = self._folder(tmp_path)
+        (worker.mission_folder(1) / "mission" / "Half_written.miz").write_bytes(b"PK\x03\x04 cut short")
+        issues, report = worker.briefing()
+        assert report is not None and report.path.is_file() and report.mission_deck is None
+        assert any(issue.level == WARNING for issue in issues)
+        _, next_report = worker.next()  # a refresh with the same file does not fail either
+        assert next_report is not None
+
     def test_with_a_built_mission_both_briefings_are_written(self, tmp_path: Path) -> None:
         worker = self._folder(tmp_path)
         built_mission(worker.mission_folder(1) / "mission")

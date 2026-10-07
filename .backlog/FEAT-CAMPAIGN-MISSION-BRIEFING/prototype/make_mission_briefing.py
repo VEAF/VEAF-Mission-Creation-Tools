@@ -334,8 +334,8 @@ if prose.phases[NUMBER - 1:NUMBER]:
     context += list(prose.phases[NUMBER - 1].text)
 departures = []
 if CARRIER_UNIT:
-    departures.append(f"{CARRIER_UNIT['name']} : pont froid, Case I, le porte-avions fait route au {round(math.degrees(CARRIER_UNIT['heading'])) % 360:03d}°.")
-departures += [f"{a['name']} : slots dynamiques, parking froid." for a in DYNAMIC]
+    departures.append(f"{CARRIER_UNIT['name']} : démarrage à froid sur le pont, Case I, le porte-avions fait route au {round(math.degrees(CARRIER_UNIT['heading'])) % 360:03d}°.")
+departures += [f"{a['name']} : slots dynamiques, démarrage à froid." for a in DYNAMIC]
 threats = [f"{z.label} : {_after_colon(enemy_picture(campaign, state, z))}" for z in campaign.zones if state.zones[z.name].owner != campaign.player_side and state.zones[z.name].owner != "neutral"]
 if QRA_ZONES:
     threats.insert(0, "Chasse adverse en alerte d'interception à Senaki : tout passage au-dessus de la plaine la fait décoller.")

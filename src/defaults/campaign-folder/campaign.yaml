@@ -19,6 +19,8 @@ campaign:
   era: MODERN
   missions: 10
   player_side: blue
+  start_date: 2016-06-01     # the first mission's date; each next one is the day after the last flown
+  start_time: sunrise+30*60  # computed on the campaign's ground; or a clock time, "06:30"
   objectives:
     - capture: [Senaki, Kutaisi, Sukhumi]
     - destroy: { zone: Ochamchire depot, kind: logistics }

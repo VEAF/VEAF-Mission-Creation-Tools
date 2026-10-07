@@ -210,6 +210,7 @@ A file already applied, from another campaign, or skipping a mission is refused 
 
 *Campaign (folder) · ⭐* — The AI prepares the next mission's folder from the state: each base to its owner with its dynamic slots, the garrisons with their losses, the campaign module turned on.
 It gets the factual part of the strategic briefing in French and English — already the briefing of a new mission folder — then designs the mission on top and writes the narrative part.
+One mission, no weather variant: date, time and weather are fixed in the mission, the date moving on with the campaign and the ground staying visible; the AI adjusts date and time to the story ([details](CAMPAIGN.en.md#mission-conditions)).
 
 > 💬 *"Prepare mission 4: red counter-attacks at Senaki."*
 
@@ -218,6 +219,7 @@ It gets the factual part of the strategic briefing in French and English — alr
 *Campaign (folder) · ⭐* — The AI writes the campaign's situation brief in `briefing.yaml` — political, economic and military situation, mission and intent, objectives, concept of operations by phase, rules of engagement, the mission's tasks — and the tools turn it into a PPTX after the VEAF briefing template, with the strategic map, the intelligence on the enemy and an annex of the rules.
 The enemy stays mysterious: never a strength, only intelligence of uneven reliability, and fixed sites named once known.
 After each mission, the AI rewrites the coming mission's page from the debriefing.
+Once the mission is built, the tools also write its [mission briefing](CAMPAIGN.en.md#mission-briefing) — ATO, tactical map, one zoom per objective, frequencies —, read from the mission itself.
 
 > 💬 *"Write the campaign briefing: red has crossed the Inguri, the coalition has three missions to retake Senaki."*
 

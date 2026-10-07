@@ -1,6 +1,6 @@
 # 01 — A campaign mission's date, time and weather, fixed and moving on
 
-Status: ⬜ ready
+Status: ✅ done
 
 David, 2026-10-07: one mission and no variant; date, time and weather fixed; weather may change between missions but the ground stays visible; "c'est à toi de fixer la date et l'heure en fonction de l'avancée de la campagne".
 

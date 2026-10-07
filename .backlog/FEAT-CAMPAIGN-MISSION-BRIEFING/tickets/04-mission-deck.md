@@ -1,6 +1,6 @@
 # 04 — The mission briefing deck, from `campaign next` and `campaign briefing`
 
-Status: ⬜ ready
+Status: ✅ done
 
 `missions/mission-NN/briefing-mission.pptx`, the pages of the PRD, written with the campaign deck's helpers (pagination by the font's metrics, the VEAF template, the military register), from tickets 01–03 and the coming mission's page of `briefing.yaml` (title, tasks).
 

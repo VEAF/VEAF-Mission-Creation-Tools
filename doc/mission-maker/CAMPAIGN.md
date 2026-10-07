@@ -40,6 +40,7 @@ Caucase/
     │   ├── mission/         le dossier de mission de la mission 1
     │   ├── mission-01.state le fichier d'état écrit par la mission
     │   ├── briefing-campagne.pptx / carte-strategique.png
+    │   ├── briefing-mission.pptx / carte-tactique.png / zoom-<zone>.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -63,6 +64,8 @@ campaign:
   player_side: blue          # le camp des joueurs ; blue par défaut
   capture_seconds: 120       # présence au sol pour prendre une zone neutre
   state_write_seconds: 60    # intervalle d'écriture du fichier d'état en vol
+  start_date: 2016-06-01     # date de la première mission ; celle du template sinon
+  start_time: sunrise+30*60  # heure de début : "06:30" ou expression solaire ; c'est le défaut
   objectives:
     - capture: [Senaki, Kutaisi]
     - destroy: { zone: Gudauta depot, kind: logistics }
@@ -188,6 +191,21 @@ C'est un texte à lire après la soirée ou à poster tel quel ; l'assistant IA 
 `campaign next` écrit, à la racine du dossier de mission, la partie factuelle du briefing stratégique en français et en anglais (`strategic-situation.fr.txt`, `strategic-situation.en.txt`) : le front, ce qui a changé à la dernière mission, la réserve et les garnisons ennemies, les objectifs et les missions restantes.
 Le texte, dans la langue des outils, devient aussi le briefing de la mission à sa création, pour qu'une mission construite telle quelle ne parte pas sans briefing ; Claude y ajoute la partie narrative en concevant la mission, et un second `campaign next` sur le même dossier ne l'écrase pas.
 
+## Date, heure et météo des missions {#mission-conditions}
+
+Une mission de campagne est **une** mission : pas de variantes météo.
+Le dossier que `campaign next` crée a `pipeline.weather: false` en dernier bloc de `mission.yaml` et pas de `src/versions.yaml` ; la date, l'heure et la météo sont **fixées dans la mission** elle-même.
+
+- **La date avance avec la campagne** : la mission N+1 a lieu le lendemain de la mission N, dont `campaign apply` garde la date dans l'état de la campagne. La première prend `start_date` de `campaign.yaml`, ou la date du template.
+- **L'heure sert la mission** : `start_time` de `campaign.yaml`, une heure (`"06:30"`) ou une expression solaire (`sunrise+30*60`, la valeur par défaut). L'expression est calculée pour le terrain de la campagne — le centre de ses zones — et la date de la mission, à l'heure du théâtre : le lever du soleil de la Colchide, pas celui de Damas que prend le `versions.yaml` livré.
+- **La météo peut changer d'une mission à l'autre, le sol reste visible** : nuages absents, peu nombreux ou épars, base entre 1 500 et 3 500 m, visibilité de 8 km ou plus, ni brouillard ni pluie — CAVOK ou presque. Le tirage dépend du nom de la campagne et du numéro de la mission : la même mission retire le même ciel.
+
+DCS ne fait pleuvoir que sous ses nuages « pluvieux », qui sont couvrants : une pluie légère sous un ciel dégagé n'existe pas, donc la météo d'une campagne n'a jamais de pluie.
+
+Ce que `campaign next` a fixé est un point de départ : Claude, en préparant la mission, avance la date si l'histoire le demande et met l'heure que la mission veut (action `set_mission_date`), et peut changer la météo (`set_weather`) en gardant le sol visible.
+Un second `campaign next` sur le même dossier garde ce qui a été réglé.
+Le briefing DCS affiche la date, l'heure et la météo de la mission ; le briefing de mission les écrit aussi.
+
 ## Le document de briefing de campagne {#briefing-deck}
 
 `campaign next` écrit aussi, dans `missions/mission-NN/`, le **briefing stratégique de la campagne** en PPTX (`briefing-campagne.pptx`) et sa carte (`carte-strategique.png`).
@@ -254,6 +272,29 @@ Après chaque mission, la page de la mission suivante et l'avancée du concept s
 
 La carte est tracée sur les tuiles d'OpenStreetMap, gardées en cache dans `%LOCALAPPDATA%\veaf-tools\tiles` ; les outils s'identifient au serveur par leur adresse GitHub, et rien d'autre.
 Sans réseau, la carte est tracée sur un fond uni et le document le signale : relancez `campaign briefing` une fois en ligne.
+
+## Le briefing de mission {#mission-briefing}
+
+À côté du briefing de campagne, chaque mission a son **briefing de mission** : `missions/mission-NN/briefing-mission.pptx`, au format du briefing de mission VEAF, avec sa carte tactique (`carte-tactique.png`) et un zoom par objectif (`zoom-<zone>.png`).
+Il se lit dans la mission **construite** : `campaign briefing` l'écrit dès qu'un `.miz` existe dans `missions/mission-NN/mission` (à la racine ou dans `build/`), et dit sinon comment en obtenir un.
+Relancez `campaign briefing` après chaque modification de la mission.
+
+| Page | Ce qu'elle dit |
+|---|---|
+| Couverture | l'opération et le numéro de la mission, son titre (`briefing.yaml`), la date et l'heure |
+| Situation générale | contexte, mission (les tâches), bullseye (DMS, relèvement et distance depuis une base amie), départs, menace (le renseignement, et l'alerte d'interception ennemie), météo et horaire **lus dans la mission** |
+| ATO | les vols des joueurs (indicatif, type, nombre, base, lignes de pilotes, armement libre), les terrains à slots dynamiques, le soutien (AWACS, ravitailleurs) avec fréquence et TACAN, le contrôle (tour du porte-avions en VHF, terrains) |
+| Situation tactique | zones, axes, zone d'alerte d'interception, porte-avions, orbite AWACS, hippodrome du ravitailleur, bullseye, échelle en nm |
+| Une page par objectif | la zone à son rayon, son renseignement, la tâche qui la nomme |
+| Déroulement mission | objectifs, opposition aérienne, défenses antiaériennes, autres informations (ravitaillement, dégagements, sauvetage) |
+| Plan de fréquences | UHF puis VHF, la garde en tête |
+| Coordonnées des objectifs | le centre de chaque zone en DMS, et son altitude quand une grille de terrain a été relevée (`terrain-sweep`) |
+
+Les objectifs sont les zones que nomment les titres des tâches de la mission dans `briefing.yaml` (« Frapper le dépôt de Khobi » nomme la zone *Dépôt de Khobi*), à défaut les objectifs de la campagne.
+Les vols sont ceux des joueurs : ni les gabarits de slots dynamiques ni les modèles de spawn VEAF n'en sont ; un avion de soutien n'apparaît qu'une fois, selon sa tâche ; le vent se dit d'où il vient, comme le lit un pilote.
+
+**Pas de coordonnées de cible ni de plan de vol** : une garnison est tirée au démarrage de la mission, donc aucune position d'unité n'est connue quand le briefing s'écrit, et il le dit — les positions exactes se relèvent en vol.
+Les étiquettes des cartes ne se chevauchent jamais, ni entre elles ni sur un symbole.
 
 ## Ce qui reste à vérifier en jeu {#to-verify}
 

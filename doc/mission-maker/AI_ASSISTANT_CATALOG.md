@@ -212,6 +212,7 @@ Un fichier déjà appliqué, d'une autre campagne, ou qui saute une mission est 
 
 *Campagne (dossier) · ⭐* — L'IA prépare le dossier de la mission suivante à partir de l'état : chaque base à son propriétaire et ses slots dynamiques, les garnisons et leurs pertes, le module campagne activé.
 Elle reçoit la partie factuelle du briefing stratégique en français et en anglais — déjà le briefing d'un nouveau dossier de mission —, puis conçoit la mission par-dessus et écrit la partie narrative.
+Une seule mission, sans variante météo : la date, l'heure et la météo sont fixées dans la mission, la date avançant avec la campagne et le sol restant visible ; l'IA ajuste date et heure selon l'histoire ([détail](CAMPAIGN.md#mission-conditions)).
 
 > 💬 *« Prépare la mission 4 : les rouges contre-attaquent sur Senaki. »*
 
@@ -220,6 +221,7 @@ Elle reçoit la partie factuelle du briefing stratégique en français et en ang
 *Campagne (dossier) · ⭐* — L'IA rédige le briefing de situation de la campagne dans `briefing.yaml` — situation politique, économique et militaire, mission et intention, objectifs, concept d'opération par phase, règles d'engagement, tâches de la mission — et les outils en font un PPTX au format des briefings VEAF, avec la carte stratégique, le renseignement sur l'ennemi et une annexe des règles.
 L'ennemi reste mystérieux : jamais un effectif, seulement un renseignement plus ou moins fiable, et les sites fixes nommés une fois connus.
 Après chaque mission, l'IA réécrit la page de la mission suivante d'après le débriefing.
+Une fois la mission construite, les outils écrivent aussi son [briefing de mission](CAMPAIGN.md#mission-briefing) — ATO, carte tactique, un zoom par objectif, fréquences —, lu dans la mission elle-même.
 
 > 💬 *« Écris le briefing de campagne : les rouges ont franchi l'Inguri, la coalition a trois missions pour reprendre Senaki. »*
 

@@ -88,8 +88,20 @@ def campaign_next(
         key = "cmd.campaign_next.created" if report.created else "cmd.campaign_next.refreshed"
         console.print(t(key, mission=report.mission, path=report.folder))
         console.print(t("cmd.campaign_next.airbases", count=len(report.airbases)))
+        if report.conditions:
+            weather = report.conditions.weather
+            console.print(
+                t(
+                    "cmd.campaign_next.conditions",
+                    date=report.conditions.date.isoformat(),
+                    time=report.conditions.clock,
+                    weather=f"{weather['cloud_type']}, {weather['wind_direction']:03.0f}° / {weather['wind_speed']} m/s",
+                )
+            )
         if report.deck:
             console.print(t("cmd.campaign_briefing.done", path=report.deck))
+        if report.mission_deck:
+            console.print(t("cmd.campaign_briefing.mission_done", path=report.mission_deck))
     if pause:
         input(t("help.pause_msg"))
     if failed:
@@ -111,6 +123,8 @@ def campaign_briefing(
     failed = _report(issues)
     if report is not None:
         console.print(t("cmd.campaign_briefing.done", path=report.path))
+        if report.mission_deck:
+            console.print(t("cmd.campaign_briefing.mission_done", path=report.mission_deck))
         if not report.prose:
             console.print(t("cmd.campaign_briefing.no_prose"))
         if report.map.offline:

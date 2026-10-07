@@ -82,6 +82,8 @@ class DeckReport:
     pages: int
     prose: bool
     """Whether the written half was there; without it the deck is the generated half only."""
+    mission_deck: Path | None = None
+    """The mission's own briefing (`mission_deck.py`), written when the mission has been built."""
 
 
 # ---------------------------------------------------------------------------

@@ -216,10 +216,34 @@ def offset_latlon(lat: float, lon: float, bearing_deg: float, distance_m: float)
     return math.degrees(phi2), math.degrees(lambda2)
 
 
+def to_dms(lat: float, lon: float) -> str:
+    """Write a position in degrees, minutes and seconds to the hundredth: ``N42°08'60.00"`` never.
+
+    The value is rounded once, to the hundredth of a second, and only then split into degrees,
+    minutes and seconds, so that 59.999" carries into the minute rather than printing as 60.00".
+
+    Args:
+        lat: Latitude, decimal degrees.
+        lon: Longitude, decimal degrees.
+
+    Returns:
+        ``N42°08'59.99" E041°40'12.00"``.
+    """
+
+    def part(value: float, positive: str, negative: str, width: int) -> str:
+        hundredths = round(abs(value) * 360000)
+        degrees, rest = divmod(hundredths, 360000)
+        minutes, rest = divmod(rest, 6000)
+        return f"{positive if value >= 0 else negative}{degrees:0{width}d}°{minutes:02d}'{rest / 100:05.2f}\""
+
+    return f"{part(lat, 'N', 'S', 2)} {part(lon, 'E', 'W', 3)}"
+
+
 __all__ = [
     "supported_theatres",
     "is_theatre_supported",
     "xy_to_latlon",
     "latlon_to_xy",
     "offset_latlon",
+    "to_dms",
 ]

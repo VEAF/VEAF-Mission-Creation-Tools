@@ -12,6 +12,7 @@ from campaign_manager.campaign_worker import CAMPAIGN_FILE, CampaignWorker
 from campaign_manager.next_mission import DATA_FILE
 from lua_runner import run_lua
 from veaf_libs.blank_mission import generate_blank_mission
+from veaf_libs.i18n import t
 from veaf_libs.lua_config_generator import generate_config_lua
 
 REPO = Path(__file__).resolve().parents[3]
@@ -36,7 +37,10 @@ def test_its_briefing_deck_generates_from_a_fresh_copy(tmp_path: Path) -> None:
     worker.init()
     assert worker.validate() == []
     issues, report = worker.briefing()
-    assert issues == []
+    # the one warning: no mission built yet, so no mission briefing, and how to get one
+    assert [issue.message for issue in issues] == [
+        t("campaign.issue.no_built_mission", folder=worker.mission_folder(1) / "mission")
+    ]
     assert report is not None and report.prose
     assert report.path == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
 

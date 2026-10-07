@@ -116,9 +116,12 @@ def campaign_next(campaign_folder: Path) -> dict[str, Any]:
         campaign_folder: The campaign folder.
 
     Returns:
-        ``{mission, folder, created, airbases, briefing_deck, strategic_situation}``: the folder to
-        design the mission in, the strategic briefing deck written next to it (``None`` when
-        `briefing.yaml` has an error), and the factual part of its strategic briefing in each language.
+        ``{mission, folder, created, airbases, conditions, briefing_deck, mission_deck,
+        strategic_situation}``: the folder to design the mission in; the date, start time and weather
+        fixed in a folder created now (``None`` on a refresh, which keeps them); the strategic briefing
+        deck written next to it (``None`` when `briefing.yaml` has an error) and the mission's own
+        briefing (``None`` until the mission is built); and the factual part of its strategic briefing
+        in each language.
 
     Raises:
         ValueError: The campaign is invalid, not started, or has no mission template.
@@ -131,7 +134,17 @@ def campaign_next(campaign_folder: Path) -> dict[str, Any]:
         "folder": str(report.folder),
         "created": report.created,
         "airbases": report.airbases,
+        "conditions": (
+            {
+                "date": report.conditions.date.isoformat(),
+                "start_time": report.conditions.clock,
+                "weather": report.conditions.weather,
+            }
+            if report.conditions
+            else None
+        ),
         "briefing_deck": str(report.deck) if report.deck else None,
+        "mission_deck": str(report.mission_deck) if report.mission_deck else None,
         "strategic_situation": {
             lang: (report.folder / BRIEFING_FILE.format(lang=lang)).read_text(encoding="utf-8")
             for lang in BRIEFING_LANGUAGES
@@ -146,9 +159,10 @@ def campaign_briefing(campaign_folder: Path) -> dict[str, Any]:
         campaign_folder: The campaign folder.
 
     Returns:
-        ``{path, map, pages, prose, map_offline, sections, warnings}``: the deck and its map, its page
-        count, whether `briefing.yaml` was there, whether the map had to do without its background,
-        and the sections `briefing.yaml` may hold.
+        ``{path, map, pages, prose, map_offline, mission_deck, sections, warnings}``: the deck and its
+        map, its page count, whether `briefing.yaml` was there, whether the map had to do without its
+        background, the mission's own briefing (``None`` until the mission is built — a warning then
+        says how), and the sections `briefing.yaml` may hold.
 
     Raises:
         ValueError: The campaign is invalid or not started, or `briefing.yaml` has an error.
@@ -162,6 +176,7 @@ def campaign_briefing(campaign_folder: Path) -> dict[str, Any]:
         "pages": report.pages,
         "prose": report.prose,
         "map_offline": report.map.offline,
+        "mission_deck": str(report.mission_deck) if report.mission_deck else None,
         "sections": {section: list(parts) for section, parts in SECTIONS.items()},
         "warnings": [issue.message for issue in issues if issue.level != ERROR],
     }

@@ -20,6 +20,7 @@ from campaign_manager.briefing_deck import DeckReport, campaign_deck
 from campaign_manager.briefing_prose import load_prose
 from campaign_manager.campaign_manager import initial_state, load_campaign, load_state, save_state, validate_state
 from campaign_manager.debriefing import debriefing_text
+from campaign_manager.mission_conditions import folder_date
 from campaign_manager.models import CampaignDefinition, CampaignState, Objective
 from campaign_manager.next_mission import BRIEFING_LANGUAGES, NextMissionReport, prepare_next_mission
 from campaign_manager.turn_manager import (
@@ -139,7 +140,11 @@ class CampaignWorker:
         turn = play_turn(campaign, merged)
         changes = flight + turn
         result = outcome(campaign, merged)
-        merged.history.append({"mission": merged.mission, "changes": changes, "outcome": result})
+        entry: dict[str, Any] = {"mission": merged.mission, "changes": changes, "outcome": result}
+        flown_on = folder_date(self.mission_folder(merged.mission) / MISSION_SUBFOLDER)
+        if flown_on:
+            entry["date"] = flown_on  # the next mission's date follows it
+        merged.history.append(entry)
 
         archive = self.mission_folder(merged.mission)
         archive.mkdir(parents=True, exist_ok=True)

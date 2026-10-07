@@ -1,6 +1,12 @@
 """The reference campaign the campaign_manager tests share (FEAT-MULTI-MISSION-CAMPAIGN)."""
 
+import shutil
+from pathlib import Path
 from typing import Any
+
+from veaf_libs.blank_mission import generate_blank_mission
+
+_REPO = Path(__file__).resolve().parents[3]
 
 #: A small but complete campaign: two airfields, a point zone, a chain of connections.
 VALID: dict[str, Any] = {
@@ -49,3 +55,28 @@ PROSE: dict[str, Any] = {
     "rules_of_engagement": {"targeting": ["Identification positive avant le tir."]},
     "missions": {1: {"title": "La porte de Poti", "tasks": [{"title": "Prendre Poti", "text": "Sécuriser le port."}]}},
 }
+
+
+def mission_template(folder: Path) -> Path:
+    """A minimal mission folder in `folder/template`, as `prepare --theatre Caucasus` lays one down.
+
+    Args:
+        folder: The campaign folder.
+
+    Returns:
+        The template folder.
+    """
+    template = folder / "template"
+    for relative, content in generate_blank_mission("Caucasus").items():
+        path = template / "src" / "mission" / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    for shipped in ("warehouses.yaml", "versions.yaml"):
+        shutil.copy(_REPO / "src" / "defaults" / "mission-folder" / "src" / shipped, template / "src" / shipped)
+    (template / "mission.yaml").write_text(
+        "# the mission maker's comment, kept\nmission:\n  name: Campaign mission\nmodules:\n  UNITS: true\n",
+        encoding="utf-8",
+    )
+    (template / "build").mkdir()
+    (template / "build" / "old.miz").write_bytes(b"x")
+    return template

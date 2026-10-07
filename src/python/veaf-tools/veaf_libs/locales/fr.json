@@ -1452,5 +1452,7 @@
   "tui.cmd.campaign_briefing.description": "Écrire le briefing stratégique d'une campagne (PPTX)",
   "campaign.issue.prose.unquoted_colon": "briefing.yaml : `{section}` : un texte contient « : » sans guillemets, et YAML l'a lu comme une clé et sa valeur. Mettez ce texte entre guillemets : \"Cibles autorisées : les unités rouges.\"",
   "campaign.deck.zone_line": "– {zone} : {text}",
-  "campaign.issue.deck_failed": "Le briefing de campagne n'a pas pu être écrit ({error}) : la mission est prête sans lui. `veaf-tools campaign briefing` le réessaie."
+  "campaign.issue.deck_failed": "Le briefing de campagne n'a pas pu être écrit ({error}) : la mission est prête sans lui. `veaf-tools campaign briefing` le réessaie.",
+  "campaign.issue.bad_start_date": "campaign.yaml : `start_date` doit être une date écrite AAAA-MM-JJ, pas `{value}`.",
+  "campaign.issue.bad_start_time": "campaign.yaml : `start_time` doit être une heure (`06:30`) ou une expression solaire (`sunrise+30*60`), pas `{value}`."
 }

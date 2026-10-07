@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 import yaml
 from campaign_fixture import VALID
+from campaign_fixture import mission_template as _template
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.campaign_worker import CAMPAIGN_FILE, STATE_FILE, CampaignWorker
 from campaign_manager.models import CampaignDefinition, CampaignState
@@ -32,25 +33,6 @@ def _campaign() -> CampaignDefinition:
     campaign, issues = parse_campaign(copy.deepcopy(VALID))
     assert campaign is not None, issues
     return campaign
-
-
-def _template(folder: Path) -> Path:
-    """A minimal mission folder, as `prepare --theatre Caucasus` lays one down."""
-    template = folder / "template"
-    for relative, content in generate_blank_mission("Caucasus").items():
-        path = template / "src" / "mission" / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(content)
-    shutil.copy(
-        REPO / "src" / "defaults" / "mission-folder" / "src" / "warehouses.yaml", template / "src" / "warehouses.yaml"
-    )
-    (template / "mission.yaml").write_text(
-        "# the mission maker's comment, kept\nmission:\n  name: Campaign mission\nmodules:\n  UNITS: true\n",
-        encoding="utf-8",
-    )
-    (template / "build").mkdir()
-    (template / "build" / "old.miz").write_bytes(b"x")
-    return template
 
 
 def _airport(mission: DcsMission, name: str) -> dict[str, Any]:

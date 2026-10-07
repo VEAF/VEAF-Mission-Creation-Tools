@@ -1452,5 +1452,7 @@
   "tui.cmd.campaign_briefing.description": "Write a campaign's strategic briefing (PPTX)",
   "campaign.issue.prose.unquoted_colon": "briefing.yaml: `{section}`: a text holds \": \" unquoted, and YAML read it as a key and its value. Put that text in quotes: \"Targets: red units.\"",
   "campaign.deck.zone_line": "– {zone}: {text}",
-  "campaign.issue.deck_failed": "The campaign briefing could not be written ({error}): the mission is ready without it. `veaf-tools campaign briefing` tries again."
+  "campaign.issue.deck_failed": "The campaign briefing could not be written ({error}): the mission is ready without it. `veaf-tools campaign briefing` tries again.",
+  "campaign.issue.bad_start_date": "campaign.yaml: `start_date` must be a date written YYYY-MM-DD, not `{value}`.",
+  "campaign.issue.bad_start_time": "campaign.yaml: `start_time` must be a clock time (`06:30`) or a solar expression (`sunrise+30*60`), not `{value}`."
 }

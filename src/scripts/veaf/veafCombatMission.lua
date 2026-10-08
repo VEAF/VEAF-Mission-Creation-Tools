@@ -1181,6 +1181,50 @@ function veafCombatMission.ActivateMission(name, silent, unitName)
   veafCombatMission.buildRadioMenu()
 end
 
+--- The scale a combat mission is activated at for an opposition level: one scale per two player
+--- aircraft, rounded up, kept within the scales the mission offers. With no level, the smallest.
+---@param level number|nil
+---@param scales table the scales offered, as numbers
+---@return number|nil
+function veafCombatMission.scaleForOppositionLevel(level, scales)
+  local smallest = nil
+  for _, scale in pairs(scales or {}) do
+    if smallest == nil or scale < smallest then
+      smallest = scale
+    end
+  end
+  if smallest == nil or not level then
+    return smallest
+  end
+  local wanted = math.ceil(level / 2)
+  -- the biggest offered scale not above the one wanted, so a gap in the scales never rounds up
+  local chosen = smallest
+  for _, scale in pairs(scales) do
+    if scale <= wanted and scale > chosen then
+      chosen = scale
+    end
+  end
+  return chosen
+end
+
+--- Activate the copy of a combat mission whose scale the opposition level calls for.
+---@param parameters table { baseName, skill }
+function veafCombatMission.ActivateMissionAtOppositionLevel(parameters, unitName)
+  local baseName, skill = parameters[1], parameters[2]
+  local prefix = (baseName .. "/" .. skill .. "/"):lower()
+  local scales = {}
+  for name, _ in pairs(veafCombatMission.missionsDict) do
+    if name:sub(1, #prefix) == prefix then
+      table.insert(scales, tonumber(name:sub(#prefix + 1)))
+    end
+  end
+  local scale = veafCombatMission.scaleForOppositionLevel(veafOpposition and veafOpposition.getLevel(), scales)
+  veaf.loggers.get(veafCombatMission.Id):debug("ActivateMissionAtOppositionLevel(%s, %s) -> scale %s", baseName, skill, veaf.p(scale))
+  if scale then
+    veafCombatMission.ActivateMission(baseName .. "/" .. skill .. "/" .. scale, nil, unitName)
+  end
+end
+
 -- desactivate a mission by number
 function veafCombatMission.DesactivateMissionNumber(number, silent)
   local mission = veafCombatMission.GetMissionNumber(number)
@@ -1291,9 +1335,13 @@ function veafCombatMission._buildMissionRadioMenu(menu, title, element)
     -- group by skill and scale
     veaf.loggers.get(veafCombatMission.Id):trace("group by skill and scale")
     local skills = {}
+    local baseName = nil
+    local secured = false
     for _, mission in pairs(missions) do
       local regex = "^([^/]+)/([^/]+)/(%d+)$"
       local name, skill, scale = mission:getName():match(regex)
+      baseName = baseName or name
+      secured = secured or mission:isSecured()
       veaf.loggers.get(veafCombatMission.Id):trace(
         string.format(
           "missionName=[%s], name=%s, skill=%s, scale=%s",
@@ -1346,6 +1394,17 @@ function veafCombatMission._buildMissionRadioMenu(menu, title, element)
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("      %s", scale))
         mission.radioRootPath = scalePath
         mission:updateRadioMenu(true)
+      end
+      -- the scale the opposition level calls for (FEAT-OPPOSITION-SCALES-WITH-PLAYERS)
+      if baseName and veafOpposition and veafOpposition.isEnabled() then
+        local addCommand = secured and veafRadio.addSecuredCommandToSubmenu or veafRadio.addCommandToSubmenu
+        addCommand(
+          veaf.t("menu.combatmission.scale_auto"),
+          skillPath,
+          veafCombatMission.ActivateMissionAtOppositionLevel,
+          { baseName, skill },
+          veafRadio.USAGE_ForAll
+        )
       end
     end
   end

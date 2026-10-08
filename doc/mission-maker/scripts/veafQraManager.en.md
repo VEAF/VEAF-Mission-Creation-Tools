@@ -68,11 +68,12 @@ modules:
         groups_by_enemy_count:           # scale response to intruder count
           - enemy_count: 1               # scramble when 1 intruder detected
             groups: ["Pair-1", "Pair-2"] # group pool
-            random_pick: 1               # how many groups to pick from the pool
+            random_pick: 1               # draw 1 group from the pool (without random_pick: all take off)
           - enemy_count: 3
-            groups: ["Flight-1", "Flight-2"]
-            random_pick: 2
+            groups: ["Pair-1", "Flight-2"]   # no random_pick: both take off
         delay_before_rearming: 30        # seconds before zone resets after intruders leave
+        rearm_while_occupied: true       # rearm without waiting for the zone to clear
+        scale_with_opposition: true      # tier also chosen from the opposition level
         delay_before_activating: 30      # seconds after :start() before QRA goes online
         react_on_helicopters: false      # true = also trigger on enemy helicopters
         airport_link: "Batumi"           # paused while this airbase is lost (shortcut for links)
@@ -103,9 +104,11 @@ modules:
 | `groups_by_enemy_count` | object[] | `[]` | No | Scaled scramble rules |
 | `groups_by_enemy_count[].enemy_count` | integer | — | Yes | Number of intruders that activates this rule |
 | `groups_by_enemy_count[].groups` | string[] | — | Yes | Pool of group names or VEAF commands, as for `simple_groups` |
-| `groups_by_enemy_count[].random_pick` | integer | `1` | No | How many groups to pick from the pool |
+| `groups_by_enemy_count[].random_pick` | integer | — | No | How many groups to **draw** from the pool, without replacement: never the same group twice, never more than the list holds. **Absent: every group of the tier takes off.** The tier used is the biggest whose `enemy_count` does not exceed the intruders, whatever order the tiers are written in |
 | `delay_before_rearming` | integer | `0` | No | Seconds before zone resets after intruders leave |
 | `delay_before_activating` | integer | `0` | No | Seconds after start before QRA goes online |
+| `rearm_while_occupied` | boolean | `false` | No | A destroyed QRA rearms **even with intruders still in its zone**. Without it, it waits for the zone to be empty — with several players over the target, almost never |
+| `scale_with_opposition` | boolean | `false` | No | Choose the tier from the [opposition level](#opposition-level) when it exceeds the intruders in the zone — the lowest tier's threshold too: a pair triggers a QRA whose first tier is 3 when the mission is sized for six. The trigger stays on the zone: nobody in it, no scramble |
 | `react_on_helicopters` | boolean | `false` | No | Also trigger on enemy helicopters |
 | `active_at_start` | boolean | `true` | No | `false`: the QRA is declared but **not armed** at start — it waits for a `qra.start` (radio menu) or a scripted call |
 | `airport_link` | string | — | No | Name of a linked DCS airbase: the QRA pauses while the airbase is captured or too damaged, and resumes when it is retaken. Shortcut for one entry of `links` |
@@ -143,6 +146,41 @@ modules:
     in turn — and add `radio_menu_secured: true` so that pilot must also hold the required security level.
 
 This is **mechanism 1** (per-module shortcut). For a custom MM menu that is structured or combines several actions (QRA, AirWaves, flags, messages, Lua), use **mechanism 2** described in [veafRadio → Radio menus in YAML](veafRadio.en.md#radio-menus-in-yaml).
+
+### Sizing the opposition to the number of players {#opposition-level}
+
+Tiers by `enemy_count` answer **what enters the zone**. A pair showing up ahead of a six-ship package gets a pair's tier, while the other four are still away. The **opposition level** says how many player aircraft the enemy fighters are sized for, in the same unit as `enemy_count`; a QRA set to `scale_with_opposition: true` takes the tier of the bigger of the two numbers.
+
+```yaml
+opposition:                 # a root block of mission.yaml, beside modules:
+  level: 6                  # sized for 6 player aircraft
+  follow: players           # off (default) | players: players connected | airborne: players in the air
+  lower_after: 300          # seconds a lower count must hold before the level drops
+  players_coalition: BLUE   # BLUE (default) | RED: the coalition whose players are counted
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `level` | integer ≥ 0 | — | The level at start. With neither a level nor a follow mode, QRAs answer their zone alone |
+| `follow` | string | `off` | `players`: the level follows the coalition's players connected; `airborne`: those in the air. Re-read every 60 s |
+| `lower_after` | seconds | `300` | A rise is taken **at once** (a player who joins must be served); a drop only once the count has stayed lower for this long — a disconnect, or a crash and respawn, changes nothing |
+| `players_coalition` | string | `BLUE` | The coalition whose players are counted |
+
+The block also adds, in game:
+
+- an **Opposition** radio menu: current level (for everyone), level +1 / −1 and the follow mode (secured commands);
+- an **`_opposition`** marker, for the *SENIOR_PILOT* security level: `_opposition 6` sets the level (and stops following), `_opposition players` / `_opposition airborne` / `_opposition off` changes the mode, `_opposition` alone announces it;
+- in the [combat missions](veafCombatMission.en.md) menu, under each skill, an **Auto scale** entry that activates the scale of one enemy group per two players (rounded up), within the scales offered.
+
+Every change of level is announced to everybody.
+
+**How to choose.** Write the tiers up to the package size you expect: for 5 to 7 players, for instance `1` → a pair, `3` → two pairs, `5` → three. Never a single fixed pair against 5 players or more. Then:
+
+- an evening whose attendance you know → a fixed `level`;
+- attendance unknown, or changing during the flight → `follow: players`;
+- what counts is what is **airborne**, not what waits on the ramp → `follow: airborne`.
+
+A campaign writes this block itself from its `players` or `campaign next --players` — see [Campaigns](../CAMPAIGN.en.md#players).
 
 ### Minimal example
 
@@ -188,8 +226,8 @@ Use one of the following to define the protected airspace:
 |--------|-------------|
 | `:addGroup(name)` | Add a DCS group name to scramble (call multiple times for multiple groups) |
 | `:addRandomGroup(groups, number, bias)` | Randomly pick `number` groups from a list |
-| `:setGroupsToDeployByEnemyQuantity(n, groups)` | Scale response: deploy `groups` when `n` enemies are in zone |
-| `:setRandomGroupsToDeployByEnemyQuantity(n, groups, number, bias)` | Randomized scaling |
+| `:setGroupsToDeployByEnemyQuantity(n, groups)` | Scale response: deploy **every** group of `groups` when at least `n` enemies are in zone (the biggest tier reached wins) |
+| `:setRandomGroupsToDeployByEnemyQuantity(n, groups, number, bias)` | The same, drawing `number` groups without replacement |
 
 ### Coalition
 
@@ -206,7 +244,8 @@ Use one of the following to define the protected airspace:
 | `:setDrawZone(bool)` | Draw the protected zone on the map |
 | `:setReactOnHelicopters()` | Also trigger on enemy helicopters (planes only by default) |
 | `:setDelayBeforeRearming(seconds)` | Delay before the QRA resets after all intruders leave (`-1` = no delay) |
-| `:setNoNeedToLeaveZoneBeforeRearming()` | Allow rearming even if enemies are still in the zone |
+| `:setNoNeedToLeaveZoneBeforeRearming()` | Allow rearming even if enemies are still in the zone (`rearm_while_occupied`) |
+| `:setScaleWithOpposition()` | Choose the tier from the opposition level when it exceeds the intruders (`scale_with_opposition`) |
 | `:setResetWhenLeavingZone()` | Reset immediately the moment all enemies leave (no wait) |
 | `:setDelayBeforeActivating(seconds)` | Delay before the QRA goes online after `:start()` |
 | `:setMinimumAltitudeInFeet(feet)` | Minimum enemy altitude to trigger a scramble |

@@ -65,6 +65,7 @@ a VEAF module — the generator starts it from its own block, before the module 
 | `MISSIONDB` | `veafMissionDb` | 5 | -- | yes | `initialize()` |
 | `MOVE` | `veafMove` | 60 | 14 | -- | `initialize()` |
 | `NAMEDPOINTS` | `veafNamedPoints` | 50 | 3 | -- | `initialize(customPoints)` |
+| `OPPOSITION` | `veafOpposition` | -- | -- | -- | `initialize()` |
 | `QRA` | `veafQraManager` | 130 | 10 | -- | `initialize()` |
 | `RADIO` | `veafRadio` | 30 | 1 | -- | `initialize(skipHelpMenus, dontCreateMenus)` |
 | `REACTIVEZONE` | `veafReactiveZone` | -- | -- | -- | -- |
@@ -96,6 +97,7 @@ the same values positionally, from `_MODULE_INIT_PARAMS` and its per-module bran
   a mission declares `VeafAirWaveZone:new()…:start()` chains and there is nothing global to start.
   Its slot in `_MODULE_INIT_ORDER` places the emitted *data*; `_NO_INIT_MODULES` suppresses the
   init call.
+- **`OPPOSITION` is in neither list, and is not a library.** The generator starts it from its own root block of `mission.yaml`, `opposition:`, not from `modules:`: `veafOpposition.configure({...})` before the module block, so a combat mission building its radio menu knows there is a level, and `veafOpposition.initialize()` after it, once the radio and the command dispatcher exist. A mission without the block never loads its menu or its marker. The test declares it in `ROOT_BLOCK_MODULES`.
 - **`AIRSPAWN`, `GEO`, `I18N`, `MATH`, `REACTIVEZONE`, `SCHEDULER`, `SPAWNER` are in neither list.** They are libraries: they
   publish their functions when their file loads — onto `veaf.*`, or on their own table for
   `veafAircraftSpawn` and `veafReactiveZone`. `veafI18n`, `veafAircraftSpawn` and `veafReactiveZone` have no `initialize()`; the other four have

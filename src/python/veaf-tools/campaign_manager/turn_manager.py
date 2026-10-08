@@ -98,6 +98,11 @@ def read_state_file(path: Path) -> tuple[CampaignState | None, list[ValidationIs
             if isinstance(zone, dict) and "garrison" in zone:
                 zone["garrison"] = _as_list(zone["garrison"])
     raw["scenery_destroyed"] = _as_list(raw.get("scenery_destroyed"))
+    raw["convoys"] = _as_list(raw.get("convoys"))
+    for convoy in raw["convoys"]:
+        if isinstance(convoy, dict):
+            for key in ("sent", "alive", "absorbed"):
+                convoy[key] = _as_list(convoy.get(key))
     for side in (raw.get("sides") or {}).values():
         if isinstance(side, dict) and not isinstance(side.get("reserve"), dict):
             side["reserve"] = {}
@@ -174,6 +179,42 @@ def _losses(name: str, before: ZoneState, flown: ZoneState) -> list[dict[str, An
     return changes
 
 
+def _settle_convoy(convoy: dict[str, Any], reserve: dict[str, int]) -> list[dict[str, Any]]:
+    """What an assault convoy cost, and what of it goes back to the reserve.
+
+    Its dead are what left minus what is alive minus what became a zone's garrison, type by type; its
+    survivors still on the road return to its side's reserve, category by category.
+
+    Args:
+        convoy: The convoy, as the state file records it.
+        reserve: Its side's reserve, after the merge; modified.
+
+    Returns:
+        A `losses` change for its dead, and a `convoy_returned` change for its survivors.
+    """
+    left = list(convoy.get("sent") or [])
+    for unit_type in [*(convoy.get("alive") or []), *(convoy.get("absorbed") or [])]:
+        if unit_type in left:
+            left.remove(unit_type)
+    label = t("campaign.convoy_label", **{"from": convoy["from"], "to": convoy["to"]})
+    changes = _loss_record(label, convoy["side"], left)
+    alive = convoy.get("alive") or []
+    for unit_type in alive:
+        category = reserve_category(unit_type)
+        reserve[category] = reserve.get(category, 0) + 1
+    if alive:
+        changes.append(
+            {
+                "kind": "convoy_returned",
+                "side": convoy["side"],
+                "from": convoy["from"],
+                "to": convoy["to"],
+                "units": len(alive),
+            }
+        )
+    return changes
+
+
 def merge_state_file(current: CampaignState, flown: CampaignState) -> tuple[CampaignState, list[dict[str, Any]]]:
     """Merge what a mission left into the campaign state.
 
@@ -208,6 +249,12 @@ def merge_state_file(current: CampaignState, flown: CampaignState) -> tuple[Camp
         for category in RESERVE_CATEGORIES:
             if isinstance(flown_reserve.get(category), int):
                 side_state.reserve[category] = flown_reserve[category]
+    # assault convoys (ticket 04 of FEAT-OPPOSITION-SCALES-WITH-PLAYERS): their reserve was charged
+    # when they left, so the reserve just taken already counts them out
+    for convoy in flown.convoys:
+        if convoy.get("side") in merged.sides:
+            changes += _settle_convoy(convoy, merged.sides[convoy["side"]].reserve)
+    merged.convoys = []
     newly_destroyed = len(flown.scenery_destroyed) - len(current.scenery_destroyed)
     if newly_destroyed > 0:
         changes.append({"kind": "scenery", "destroyed": newly_destroyed})
@@ -355,7 +402,9 @@ def describe_change(change: dict[str, Any]) -> str:
     kind = change["kind"]
     values = {k: v for k, v in change.items() if k != "kind"}
     # sides and reserve categories are stored as keys; they are said as words
-    for key in ("from", "to", "side"):
+    # a convoy's ends are zones, not sides
+    side_keys = ("side",) if kind == "convoy_returned" else ("from", "to", "side")
+    for key in side_keys:
         if key in values:
             values[key] = t(f"campaign.side_name.{values[key]}")
     if kind == "logistics":

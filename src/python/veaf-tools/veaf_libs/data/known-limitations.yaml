@@ -139,6 +139,18 @@ limitations:
     The whole-map 200 m pass FEAT-CLEAR-GROUND-AT-AUTHORING first planned would have promised
     clearings in woods; ticket 01 measured it before it was built.
 
+- id: assault-convoy-garrison-keeps-its-convoy-behaviour
+  kind: tool
+  area: runtime
+  title: "An assault convoy that took a zone is its garrison, and still a convoy"
+  symptom: |
+    When a campaign's assault convoy captures a neutral zone, its survivors become the zone's
+    garrison where they stand, but `veafGroundAI` still drives them as a convoy under fire: at the
+    next contact they may split and fall back, leaving the zone they are recorded as garrisoning.
+    The next mission spawns them back in the zone, at the positions recorded at the capture.
+  workaround: |
+    None in flight; an escorted convoy rarely meets a second contact after taking its zone.
+
 - id: clear-ground-covers-what-was-swept
   kind: tool
   area: mcp

@@ -59,6 +59,8 @@ def debriefing_text(
     for change in flight:
         if change["kind"] == "scenery":
             lines.append(t("campaign.debriefing.scenery", count=change["destroyed"]))
+        elif change["kind"] == "convoy_returned":
+            lines.append(f"- {describe_change(change)}")
 
     lines += ["", t("campaign.debriefing.turn")]
     lines += [f"- {describe_change(change)}" for change in turn] or [t("campaign.debriefing.quiet_turn")]

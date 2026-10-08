@@ -1989,6 +1989,50 @@ veaf.i18nCatalog = {
   ["menu.campaign.root"] = { fr = "Campagne", en = "Campaign" },
   ["menu.campaign.situation"] = { fr = "Situation", en = "Situation" },
   ["menu.campaign.counters"] = { fr = "Compteurs (admin)", en = "Counters (admin)" },
+  ["menu.campaign.assault"] = { fr = "Assauts", en = "Assaults" },
+  ["menu.campaign.assault_entry"] = { fr = "%s vers %s", en = "%s to %s" },
+  ["campaign.convoy_sent_own"] = {
+    fr = "Un convoi d'assaut quitte %s pour prendre %s.",
+    en = "An assault convoy leaves %s to take %s.",
+  },
+  ["campaign.convoy_sent_enemy"] = {
+    fr = "Renseignement : une colonne ennemie quitte %s en direction de %s.",
+    en = "Intelligence: an enemy column is leaving %s towards %s.",
+  },
+  ["campaign.assault_refused"] = {
+    fr = "Assaut de %s vers %s impossible : la zone de départ n'est plus à nous, la cible l'est déjà, ou un convoi y va déjà.",
+    en = "No assault from %s to %s: the start zone is no longer ours, the target already is, or a convoy is already on its way.",
+  },
+  ["campaign.assault_no_reserve"] = {
+    fr = "Assaut impossible : plus rien en réserve.",
+    en = "No assault: nothing left in reserve.",
+  },
+
+  -- veafOpposition
+  ["opposition.level"] = {
+    fr = "Opposition aérienne dimensionnée pour %d avion(s) (%s)",
+    en = "Air opposition sized for %d aircraft (%s)",
+  },
+  ["opposition.no_level"] = {
+    fr = "Opposition aérienne : aucun niveau, chaque QRA répond aux avions dans sa zone",
+    en = "Air opposition: no level, each QRA answers the aircraft in its zone",
+  },
+  ["opposition.follow.players"] = { fr = "suit les joueurs connectés", en = "follows the players connected" },
+  ["opposition.follow.airborne"] = { fr = "suit les joueurs en vol", en = "follows the players airborne" },
+  ["opposition.follow.off"] = { fr = "fixe", en = "fixed" },
+  ["opposition.usage"] = {
+    fr = "_opposition <nombre> | players | airborne | off",
+    en = "_opposition <number> | players | airborne | off",
+  },
+  ["menu.opposition.root"] = { fr = "Opposition", en = "Opposition" },
+  ["menu.opposition.show"] = { fr = "Niveau actuel", en = "Current level" },
+  ["menu.opposition.raise"] = { fr = "Niveau +1", en = "Level +1" },
+  ["menu.opposition.lower"] = { fr = "Niveau -1", en = "Level -1" },
+  ["menu.opposition.follow"] = { fr = "Mode : %s", en = "Mode: %s" },
+  ["menu.combatmission.scale_auto"] = {
+    fr = "Taille auto (niveau d'opposition)",
+    en = "Auto scale (opposition level)",
+  },
 }
 
 veaf.loggers.get(veafI18n.Id):info(veaf.loggers.get(veafI18n.Id):getVersionInfo())

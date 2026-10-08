@@ -1374,4 +1374,46 @@ function TestVeafCombatMissionCloneUnitNames:test_the_group_names_are_still_the_
   luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.name, string.format("%s #%04d", SCALED_TEMPLATE, 2))
 end
 
+-- ---------------------------------------------------------------------------
+-- The scale the opposition level calls for (FEAT-OPPOSITION-SCALES-WITH-PLAYERS ticket 02)
+-- ---------------------------------------------------------------------------
+TestCombatMissionOppositionScale = {}
+
+function TestCombatMissionOppositionScale:test_one_scale_per_two_players_rounded_up()
+  local scales = { 1, 2, 3, 4 }
+  local expected = { [0] = 1, 1, 1, 2, 2, 3, 3, 4, 4, 4, 4 }
+  for level = 0, 10 do
+    luaunit.assertEquals(veafCombatMission.scaleForOppositionLevel(level, scales), expected[level], "level " .. level)
+  end
+end
+
+function TestCombatMissionOppositionScale:test_a_gap_in_the_scales_never_rounds_up()
+  luaunit.assertEquals(veafCombatMission.scaleForOppositionLevel(5, { 4, 1, 2 }), 2)
+end
+
+function TestCombatMissionOppositionScale:test_no_level_the_smallest()
+  luaunit.assertEquals(veafCombatMission.scaleForOppositionLevel(nil, { 3, 2 }), 2)
+end
+
+function TestCombatMissionOppositionScale:test_no_scale_nothing()
+  luaunit.assertNil(veafCombatMission.scaleForOppositionLevel(6, {}))
+end
+
+function TestCombatMissionOppositionScale:test_activates_the_copy_of_the_level()
+  local savedDict, savedActivate = veafCombatMission.missionsDict, veafCombatMission.ActivateMission
+  veafCombatMission.missionsDict = { ["cap/good/1"] = {}, ["cap/good/2"] = {}, ["cap/good/3"] = {}, ["cap/high/4"] = {} }
+  local activated = nil
+  veafCombatMission.ActivateMission = function(name)
+    activated = name
+  end
+  veafOpposition = {
+    getLevel = function()
+      return 6
+    end,
+  }
+  veafCombatMission.ActivateMissionAtOppositionLevel({ "CAP", "Good" })
+  veafCombatMission.missionsDict, veafCombatMission.ActivateMission, veafOpposition = savedDict, savedActivate, nil
+  luaunit.assertEquals(activated, "CAP/Good/3")
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -13,10 +13,11 @@ from pathlib import Path
 from typing import Any
 
 from campaign_manager.briefing_prose import SECTIONS
-from campaign_manager.campaign_manager import load_campaign, load_state, validate_state
+from campaign_manager.campaign_manager import load_campaign, load_state, parse_players, validate_state
 from campaign_manager.campaign_worker import CampaignWorker
 from campaign_manager.next_mission import BRIEFING_FILE, BRIEFING_LANGUAGES
 from campaign_manager.turn_manager import describe_change, evaluate_objectives, garrison_strength, outcome
+from veaf_libs.i18n import t
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
 
@@ -109,11 +110,13 @@ def campaign_apply(campaign_folder: Path, state_file: Path) -> dict[str, Any]:
     }
 
 
-def campaign_next(campaign_folder: Path) -> dict[str, Any]:
+def campaign_next(campaign_folder: Path, players: int | str | None = None) -> dict[str, Any]:
     """Create, or refresh, the next mission's folder from the campaign state.
 
     Args:
         campaign_folder: The campaign folder.
+        players: How many players are expected tonight, a count or a range (``"5-7"``); beats
+            `campaign.yaml`'s `players`.
 
     Returns:
         ``{mission, folder, created, airbases, conditions, briefing_deck, mission_deck,
@@ -124,9 +127,16 @@ def campaign_next(campaign_folder: Path) -> dict[str, Any]:
         in each language.
 
     Raises:
-        ValueError: The campaign is invalid, not started, or has no mission template.
+        ValueError: The campaign is invalid, not started, has no mission template, or `players` is not a
+            count of players.
     """
-    issues, report = CampaignWorker(campaign_folder).next()
+    expected = None
+    if players is not None:
+        try:
+            expected = parse_players(players)
+        except ValueError:
+            raise ValueError(t("campaign.issue.bad_players", value=players)) from None
+    issues, report = CampaignWorker(campaign_folder).next(players=expected)
     _refuse(issues)
     assert report is not None
     return {

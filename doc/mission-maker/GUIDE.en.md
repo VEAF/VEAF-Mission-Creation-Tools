@@ -689,6 +689,9 @@ local northQra = VeafQRA:new()
   :start()
 ```
 
+A single fixed QRA scales badly: a pair of MiG-29s is a challenge for two players, target practice for six.
+Give it tiers by intruder count (`groups_by_enemy_count`) up to the package size you expect, and, when attendance varies, an [opposition level](scripts/veafQraManager.en.md#opposition-level) that follows the players connected.
+
 ### Combat Zone
 
 A combat zone is declared in `mission.yaml`. Its contents are **not listed here**: the zone adopts every group that stands inside the DCS trigger zone it names **and whose name starts with the zone's name** (case is ignored). You draw the circle in the Mission Editor, put the armour and the AAA inside it — named `ZONE-STRIKE-ALPHA-ARMOR`, `ZONE-STRIKE-ALPHA-AAA` — and the zone destroys and respawns them on activation. A group placed inside the circle but named otherwise is ignored, silently: see [the prefix rule](scripts/veafCombatZone.en.md#zone-membership).

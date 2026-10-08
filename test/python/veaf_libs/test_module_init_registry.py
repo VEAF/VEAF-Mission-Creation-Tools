@@ -36,6 +36,11 @@ UNORDERED_BY_DESIGN: frozenset[str] = frozenset({"COMMANDS", "MISSIONDB"})
 #: Their ``initialize()``, where they have one, logs a line and does nothing else.
 LIBRARY_MODULES: frozenset[str] = frozenset({"AIRSPAWN", "GEO", "I18N", "MATH", "REACTIVEZONE", "SCHEDULER", "SPAWNER"})
 
+#: Modules the generator starts from a root block of their own in mission.yaml, not from ``modules:``.
+#: ``veafOpposition`` is configured by the ``opposition:`` block before the module block and
+#: initialised after it (FEAT-OPPOSITION-SCALES-WITH-PLAYERS), so it holds no place in the order.
+ROOT_BLOCK_MODULES: frozenset[str] = frozenset({"OPPOSITION"})
+
 #: Modules known to initialise themselves at load time, on purpose. Both are read from the top
 #: level of other modules' files, so waiting for an init pass would be too late.
 SELF_INITIALISING: frozenset[str] = frozenset({"EVENTS", "MISSIONDB"})
@@ -105,9 +110,10 @@ class TestRegistryMatchesGenerator(unittest.TestCase):
         orphans = {mid for mid, f in self.facts.items() if not f["registers"] and mid not in self.ordered}
         self.assertEqual(
             orphans,
-            set(LIBRARY_MODULES),
+            set(LIBRARY_MODULES) | set(ROOT_BLOCK_MODULES),
             "a module belonging to neither mechanism is never initialised. Register it, give it a "
-            "place in _MODULE_INIT_ORDER, or declare it a library in LIBRARY_MODULES.",
+            "place in _MODULE_INIT_ORDER, declare it a library in LIBRARY_MODULES, or, when a root "
+            "block of mission.yaml starts it, in ROOT_BLOCK_MODULES.",
         )
 
     def test_self_initialising_modules_are_the_declared_ones(self) -> None:

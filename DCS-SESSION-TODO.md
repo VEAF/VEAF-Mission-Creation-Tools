@@ -54,6 +54,35 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R46. The opposition level, from the shipped build — **one pilot for item 3**
+
+[`FEAT-OPPOSITION-SCALES-WITH-PLAYERS`](.backlog/FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md), tickets 02 and 04.
+On the mocks: the tiers, the hysteresis, the marker and its security, the "Auto scale" choice. What the mocks cannot show: the radio menu as DCS draws it, `coalition.getPlayers` on a real server, and a QRA scrambling the tier of the level.
+
+**Prepare**: a Caucasus test mission built from the branch, security off, a game master slot and one blue client slot, `opposition: { level: 6 }`, a red QRA over Kobuleti with `scale_with_opposition: true` and tiers `1` → `MiG-29 QRA-1` and `5` → `MiG-29 QRA-1`, `MiG-29 QRA-2` (no `random_pick`), and a combat mission `CAP Red` with its skills and scales.
+
+1. F10 → **Opposition** → *Niveau actuel*.
+   - **Verified**: "dimensionnée pour 6 avion(s) (fixe)" shows to everybody.
+   - **Re-opened, no menu**: `dcs.log` around `OPPOSITION` — the generated `veaf-config.lua` should carry `veafOpposition.configure({level = 6})` before the modules and `veafOpposition.initialize()` after them.
+2. Marker `_opposition 2`, then `_opposition players`.
+   - **Verified**: two announcements, "2 avion(s) (fixe)" then the count of players connected with "suit les joueurs connectés".
+   - **Re-opened, nothing**: the marker stayed on the map — the handler did not answer (`dcs.log`, `COMMANDS`).
+3. `_opposition 6`, then fly one blue aircraft into the QRA zone.
+   - **Verified**: **both** MiG-29 groups scramble (the tier of 6, not the tier of 1).
+   - **Re-opened, one group**: the tier came from the zone count — `dcs.log`, `chooseGroupsToDeploy(` should read `6`.
+4. F10 → combat missions → `CAP Red` → a skill → *Taille auto (niveau d'opposition)*.
+   - **Verified**: the copy at scale 3 activates (`* scale 3` in the menu).
+   - **Re-opened, no entry**: the menu was built before the level was configured.
+
+5. *(ticket 04, assault convoys)* A test campaign mission (`campaign next`) with Poti neutral between a blue Kobuleti and a red Senaki, `rules.assault_seconds: 60`.
+   - **Verified**: after 60 s a red column leaves Senaki by road towards Poti (blue gets "une colonne ennemie quitte Senaki…", an arrow on the F10 map), and a blue one from Kobuleti; the red reserve in the state file is down by the units sent.
+   - **Re-opened, nothing leaves**: `dcs.log` around `assault convoy` — "nothing left in reserve", or no `will send` line (the rule did not plan it).
+6. Let the red convoy reach Poti unopposed (kill the blue one with `_destroy`).
+   - **Verified**: after `capture_seconds` Poti turns red and its garrison is the convoy's survivors — no new group named `Poti garrison` appears; the arrow is gone.
+   - **Re-opened**: a `Poti garrison` group spawned (the convoy was not in the zone at capture: note how far its vehicles stopped from the centre).
+7. F10 → Campaign → Assaults → *Kobuleti vers Poti* in a blue slot, then end the mission with the convoy on the road and run `campaign apply`.
+   - **Verified**: the debriefing lists "convoi Kobuleti → Poti" losses and "encore en route : N unité(s) rendue(s) à la réserve".
+
 ### R45. A convoy under fire, from the shipped build — **no pilot needed**
 
 [`FEAT-CONVOY-UNDER-FIRE`](.backlog/FEAT-CONVOY-UNDER-FIRE/PRD.md), ticket 07.

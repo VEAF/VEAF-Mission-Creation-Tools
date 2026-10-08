@@ -1,6 +1,6 @@
 # 01 — The QRA's tiers: the biggest that fits, every group when asked, rearm while occupied
 
-Status: ⬜ ready
+Status: ✅ done — `pickDistinctGroups` for the QRA only (the air waves draw with replacement on purpose); convert-v5 keeps a fixed tier and the rearm key
 
 The three defects of the PRD's table, in `veafQraCore.lua`, `veafReactiveZone.lua` and `lua_config_generator.py`:
 

@@ -556,6 +556,7 @@ Crée, ou rafraîchit, le dossier de la mission suivante à partir de l'état de
 
 | Options | Type | Défaut | Description |
 |---|---|---|---|
+| `--players` | `str` | — | Combien de joueurs sont attendus ce soir : un nombre (`6`) ou une fourchette (`5-7`). Dimensionne l'opposition aérienne de la mission ([bloc `opposition:`](mission-maker/scripts/veafQraManager.md#opposition-level)), et prime sur le `players` de `campaign.yaml`. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 | `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
 

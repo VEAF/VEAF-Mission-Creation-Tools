@@ -101,6 +101,8 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
         "mission": state.mission + 1,
         "missions": campaign.missions,
         "capture_seconds": campaign.capture_seconds,
+        "assault_convoys": campaign.rules.assault_convoys,
+        "assault_seconds": campaign.rules.assault_seconds,
         "state_write_seconds": campaign.state_write_seconds,
         "objectives": [{"kind": o.kind, "zones": list(o.zones)} for o in campaign.objectives],
         "zones": zones,
@@ -176,8 +178,45 @@ def _enable_campaign_module(mission_yaml: Path, era: str) -> None:
     save_yaml(mission_yaml, data)
 
 
+def opposition_for(players: tuple[int, int], player_side: str) -> dict[str, Any]:
+    """Return the `opposition:` block of a mission flown by that many players.
+
+    Sized for the most expected, and following the players connected: a squadron that comes short
+    meets the opposition of who came, once the count has held for a few minutes.
+
+    Args:
+        players: The fewest and the most players expected.
+        player_side: The coalition the players fly for.
+
+    Returns:
+        The block, as mission.yaml holds it.
+    """
+    return {"level": players[1], "follow": "players", "players_coalition": player_side.upper()}
+
+
+def _set_opposition(mission_yaml: Path, block: dict[str, Any]) -> None:
+    """Write the `opposition:` block of `mission.yaml`, keeping the rest of the file.
+
+    The level is the campaign's; any other key already in the block was designed in the mission
+    folder (a follow mode, a delay) and is kept, the way a refresh keeps the rest of the design.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+        block: The block `opposition_for` computed.
+    """
+    data = load_yaml(mission_yaml)
+    existing = data.get("opposition")
+    designed = dict(existing) if isinstance(existing, dict) else {}
+    data["opposition"] = {**block, **designed, "level": block["level"]}
+    save_yaml(mission_yaml, data)
+
+
 def prepare_next_mission(
-    campaign: CampaignDefinition, state: CampaignState, campaign_folder: Path, mission_folder: Path
+    campaign: CampaignDefinition,
+    state: CampaignState,
+    campaign_folder: Path,
+    mission_folder: Path,
+    players: tuple[int, int] | None = None,
 ) -> NextMissionReport:
     """Create, or refresh, the next mission's folder from the campaign state.
 
@@ -191,6 +230,8 @@ def prepare_next_mission(
         state: The campaign state the mission starts from.
         campaign_folder: The campaign folder, holding the mission template.
         mission_folder: Where the next mission goes.
+        players: How many players are expected tonight, beating `campaign.yaml`'s `players`; with
+            neither, the mission's `opposition:` block is left as it is.
 
     Returns:
         What was produced.
@@ -228,6 +269,9 @@ def prepare_next_mission(
         # briefing alone, since what was written on top of them is design
         set_briefing(mission_folder, situation=strategic_situation(campaign, state))
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
+    expected = players or campaign.players
+    if expected:
+        _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
     # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
     conditions = set_conditions(campaign, state, mission_folder) if created else None
     return NextMissionReport(

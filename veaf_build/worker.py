@@ -143,6 +143,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafCities.lua",
     "veafAirfieldFrequencies.lua",
     "veafNamedPoints.lua",
+    "veafOpposition.lua",
     "veafQraLogistics.lua",
     "veafQraCore.lua",
     "veafQraManager.lua",

@@ -66,6 +66,7 @@ campaign:
   state_write_seconds: 60    # how often the state file is written in flight
   start_date: 2016-06-01     # the first mission's date; the template's otherwise
   start_time: sunrise+30*60  # start time: "06:30" or a solar expression; this is the default
+  players: 5-7               # the squadron's expected size: a count (6) or a range
   objectives:
     - capture: [Senaki, Kutaisi]
     - destroy: { zone: Gudauta depot, kind: logistics }
@@ -96,6 +97,7 @@ sides:
   red: { reserve: { armor: 12, air_defense: 4, transport: 6 } }
 rules:
   repairs_per_mission: 4
+  assault_seconds: 600       # delay before an assault convoy leaves (see "In flight")
 ```
 
 A complete campaign, ready to copy — western Georgia in 12 zones and 10 missions — ships with the tools: [`src/defaults/campaign-folder/campaign.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/defaults/campaign-folder/campaign.yaml).
@@ -142,7 +144,19 @@ The first briefing therefore speaks in intelligence terms ("estimated strength")
   Both sides present stop the clock; everybody gone cancels it.
   An aircraft in flight never counts, nor does a wreck.
   The DCS log (`dcs.log`) says, at each change, who holds a neutral zone and through which unit: that is where to read why a capture does not start.
-  The zone taken gets its new side's garrison at once, paid from that side's reserve.
+  The zone taken gets its new side's garrison at once, paid from that side's reserve — unless an assault convoy takes it: its survivors become the garrison.
+
+### Assault convoys {#assault-convoys}
+
+A neutral zone is the target of every side that holds a neighbouring (connected) zone.
+After `rules.assault_seconds` (600 s by default, sooner when the [opposition level](scripts/veafQraManager.en.md#opposition-level) is above 4 players: half as long at 8), a convoy leaves by road from that side's first neighbour for the target — for a mission starting with a neutral zone as for a zone turning neutral in flight.
+One convoy at a time per side and target; it does not leave if its start zone changed hands.
+It is armour after its start zone's size class plus a few trucks, **paid from its side's reserve**, unit by unit; an empty reserve sends nothing.
+It behaves like any convoy under fire ([veafGroundAI](scripts/veafGroundAI.en.md)): it watches ahead, splits, calls for help, falls back.
+Its side is told it leaves, the other side hears it as intelligence ("an enemy column is leaving Senaki towards Poti"), and an arrow in its colour marks its axis on the F10 map.
+Once there, it holds the zone like any ground unit and takes it after `capture_seconds`: its survivors in the zone become the garrison, with no second draw from the reserve.
+Blue players also send them from the **Campaign → Assaults** menu, from a blue zone to a neighbour that is not, at the mission's security level.
+`rules.assault_convoys: false` turns the rule off; the menu stays.
 
 ## The state file {#state-file}
 
@@ -176,10 +190,30 @@ Otherwise it merges the file, then plays the **turn** with fixed rules, for both
 | each `logistics` zone held feeds its side's reserve | `rules.logistics_output` | `{armor: 2, air_defense: 1, transport: 1}` |
 | lost units are replaced from the reserve, category by category | `rules.repairs_per_mission` | 4 units per side |
 | a neutral zone bordered by a single side is retaken by it | `rules.counter_attack` | `true` |
+| an assault convoy still on the road when the flight ends returns its survivors to its side's reserve; its dead are campaign losses | — | — |
 
 Destroying an enemy depot means a smaller reserve, so fewer repairs and thinner garrisons behind it: an empty reserve only allows a token garrison.
 
 The enemy's **intent** — where it puts its effort, what the next mission asks of the players — is not in the rules: Claude decides it while building the next mission, and writes it in the briefing.
+
+## The opposition sized to the squadron {#players}
+
+What scales with the number of players is the **enemy air**: the QRAs and the on-demand CAPs.
+The ground garrisons are the campaign's books — reserves, losses, repairs — and do not depend on who came tonight.
+
+`players` in `campaign.yaml` says the usual attendance; `campaign next --players 6` says tonight's, and wins:
+
+```powershell
+.\veaf-tools.exe campaign next . --players 6
+```
+
+`campaign next` then writes the mission's [`opposition:`](scripts/veafQraManager.en.md#opposition-level) block: a level equal to the most expected, which then follows the players connected on the players' side — if the squadron comes four-strong, the opposition comes down to four after a few minutes.
+A second `campaign next` on the same folder changes the level only: a follow mode or a delay set in the mission since is kept.
+With neither `players` nor `--players`, the mission's block is left alone.
+
+The mission's enemy QRAs need tiers up to that size (`groups_by_enemy_count`); Claude writes them when designing the mission.
+The mission briefing says it as intelligence — "the enemy reinforces its alert against a large package" — never as tiers or numbers.
+It likewise announces an [expected ground counter-attack](#assault-convoys) towards a neutral zone the enemy borders, without its strength.
 
 ## The debriefing {#debriefing}
 

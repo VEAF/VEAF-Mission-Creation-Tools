@@ -363,6 +363,29 @@ class TestExtractQraChains(unittest.TestCase):
         new_content = self.m._extract_qra_chains(content, result)
         self.assertIn("[v6 extracted to mission.yaml]", new_content)
 
+    def test_qra_chain_fixed_tiers_keep_every_group(self) -> None:
+        # a tier set without a draw used to be commented out and lost (FEAT-OPPOSITION-SCALES-WITH-PLAYERS)
+        content = (
+            'local q = VeafQRA:new()\n  :setName("Q")\n'
+            '  :setGroupsToDeployByEnemyQuantity(3, {"MiG-29", "Su-27"})\n'
+            '  :setRandomGroupsToDeployByEnemyQuantity(1, {"MiG-29"}, 1)\n  :start()\n'
+        )
+        result = MigrationResult(new_content="")
+        self.m._extract_qra_chains(content, result)
+        self.assertEqual(
+            result.qra_definitions[0]["groups_by_enemy_count"],
+            [
+                {"enemy_count": 1, "groups": ["MiG-29"], "random_pick": 1},
+                {"enemy_count": 3, "groups": ["MiG-29", "Su-27"]},
+            ],
+        )
+
+    def test_qra_chain_rearm_while_occupied(self) -> None:
+        content = 'local q = VeafQRA:new()\n  :setName("Q")\n  :setNoNeedToLeaveZoneBeforeRearming()\n  :start()\n'
+        result = MigrationResult(new_content="")
+        self.m._extract_qra_chains(content, result)
+        self.assertIs(result.qra_definitions[0]["rearm_while_occupied"], True)
+
 
 class TestExtractCapMissions(unittest.TestCase):
     """_extract_cap_missions must extract CAP mission definitions."""

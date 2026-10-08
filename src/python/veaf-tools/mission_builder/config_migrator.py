@@ -1142,7 +1142,7 @@ class ConfigMigrator:
             qra["simple_groups"] = simple_groups
 
         # Groups by enemy count
-        gbc_list = []
+        gbc_list: list[dict] = []
         for gbc_m in re.finditer(
             r":setRandomGroupsToDeployByEnemyQuantity\s*\(\s*(\d+)\s*,\s*\{([^}]+)\}\s*,\s*(\d+)\s*\)", chain_text
         ):
@@ -1151,6 +1151,10 @@ class ConfigMigrator:
             pick = int(gbc_m.group(3))
             groups = re.findall(r'"([^"]+)"', groups_str)
             gbc_list.append({"enemy_count": count, "groups": groups, "random_pick": pick})
+        # A tier set without a draw deploys every group it names: no `random_pick`.
+        for gbc_m in re.finditer(r":setGroupsToDeployByEnemyQuantity\s*\(\s*(\d+)\s*,\s*\{([^}]+)\}\s*\)", chain_text):
+            gbc_list.append({"enemy_count": int(gbc_m.group(1)), "groups": re.findall(r'"([^"]+)"', gbc_m.group(2))})
+        gbc_list.sort(key=lambda entry: entry["enemy_count"])
         if gbc_list:
             qra["groups_by_enemy_count"] = gbc_list
 
@@ -1165,6 +1169,9 @@ class ConfigMigrator:
 
         if re.search(r":setReactOnHelicopters\s*\(\s*\)", chain_text):
             qra["react_on_helicopters"] = True
+
+        if re.search(r":setNoNeedToLeaveZoneBeforeRearming\s*\(\s*\)", chain_text):
+            qra["rearm_while_occupied"] = True
 
         m = re.search(r':setAirportLink\s*\(\s*"([^"]+)"\s*\)', chain_text)
         if m:

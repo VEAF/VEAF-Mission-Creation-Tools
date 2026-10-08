@@ -1,6 +1,6 @@
 # 04 — Assault convoys: the campaign attacks and counter-attacks in flight
 
-Status: ⬜ ready
+Status: ✅ done on the mocks — `veafCampaign` (rule, menu, reserve, absorption, state), `campaign apply` (losses, return to reserve), the briefing; the column on a real road and its capture left to R46
 
 David, 2026-10-08: "est-ce que des convois sont envoyés pour prendre d'assaut les zones à capturer ? ou est-ce que les joueurs doivent se débrouiller avec CTLD ?" — answer: no convoy, `veafCampaign.lua` holds no movement at all; a zone is taken only by ground presence the players bring (CTLD, a landed helicopter, a marker spawn), and the only automatic move is the counter-attack rule **between** missions. "oui, ajoute-le au lot".
 

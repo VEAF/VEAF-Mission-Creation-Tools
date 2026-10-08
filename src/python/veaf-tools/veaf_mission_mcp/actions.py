@@ -1482,15 +1482,25 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "ground visible. A refresh keeps what you set. "
                 "Returns the folder and the FACTUAL part of the strategic briefing in French and English: "
                 "design the mission on top of that folder with the other actions. When you write the DCS "
-                "briefing (set_briefing), ADD to the factual block already there, never replace it."
+                "briefing (set_briefing), ADD to the factual block already there, never replace it. "
+                "PLAYERS: ask the mission maker how many players are expected tonight and pass it as "
+                "'players' (6, or a range \"5-7\"); without it, campaign.yaml's players is used. It writes "
+                "the mission's opposition: block (level = the most expected, following the players "
+                "connected). Give the enemy QRA tiers by enemy count up to that size (see create_qra)."
             ),
             parameters_schema={
                 "type": "object",
-                "properties": {"campaign_folder": _campaign_folder},
+                "properties": {
+                    "campaign_folder": _campaign_folder,
+                    "players": {
+                        "type": ["integer", "string"],
+                        "description": 'Players expected tonight: a count (6) or a range ("5-7").',
+                    },
+                },
                 "required": ["campaign_folder"],
             },
         ),
-        handler=lambda p: campaign_next(Path(p["campaign_folder"])),
+        handler=lambda p: campaign_next(Path(p["campaign_folder"]), p.get("players")),
     )
     catalog.register(
         ActionSpec(
@@ -1998,7 +2008,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "on purpose: when it scrambles, the QRA module gives a CAP/Intercept group whose route "
                 "engages no aircraft its job -- a patrol across the zone and engagement of what enters "
                 "it. Do not add waypoints to such a group without an EngageTargets (Air) task, or that "
-                "route is replaced."
+                "route is replaced. SIZE IT TO THE PLAYERS: in 'qra', give groups_by_enemy_count tiers "
+                "({enemy_count, groups}, every group of the tier scrambles; add random_pick to draw that "
+                "many instead, never the same group twice), the biggest tier sized to the squadron's "
+                "expected size -- never a single fixed pair against 5 players or more. "
+                "scale_with_opposition: true picks the tier from the mission's opposition level (the "
+                "opposition: block of mission.yaml) when it is higher than the aircraft in the zone; "
+                "rearm_while_occupied: true rearms a dead QRA without waiting for its zone to clear."
             ),
             parameters_schema={
                 "type": "object",

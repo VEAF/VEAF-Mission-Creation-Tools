@@ -9,6 +9,8 @@
 --   mission start from the record minus the losses.
 -- * The situation on the F10 map (zones by owner, connections) and in a radio menu.
 -- * The state file: what the next mission depends on, written during the flight and at its end.
+-- * Assault convoys: a side sends one along a connection to a neutral neighbour, by rule, and the
+--   players order blue ones from the radio menu; paid from the reserve, their dead are campaign losses.
 --
 -- The campaign's data table (`veafCampaign.data`) is written by the build from the campaign state,
 -- and has the same structure as the state this module writes back: zones by name with their owner,
@@ -64,6 +66,28 @@ veafCampaign.GARRISON_SPACING = 1
 
 --- The coalitions a zone can belong to, as DCS numbers them. A neutral zone has no garrison.
 veafCampaign.SIDES = { blue = coalition.side.BLUE, red = coalition.side.RED }
+
+--- Seconds between a zone becoming a target and the assault convoy leaving for it, unless the data
+--- table sets `assault_seconds`. Shortened by the opposition level: more players, an earlier attack.
+veafCampaign.ASSAULT_SECONDS = 600
+
+--- The trucks an assault convoy brings beside its armour: the infantry it lands in the zone.
+veafCampaign.ASSAULT_TRUCKS = 2
+
+--- The assault convoys of this mission, in the order they left: what the state file records of them.
+veafCampaign.convoys = {}
+
+--- The assaults waiting to leave, by `<target>|<side>`: `{ side, from, to, at }`.
+veafCampaign.pendingAssaults = {}
+
+--- The radio submenu blue assaults are ordered from, once built.
+veafCampaign.assaultPath = nil
+
+--- Line and fill colours of a convoy's axis on the F10 map, by side.
+veafCampaign.AXIS_COLORS = {
+  blue = { line = { 0, 0, 1, 1 }, fill = { 0, 0, 1, 0.4 } },
+  red = { line = { 1, 0, 0, 1 }, fill = { 1, 0, 0, 0.4 } },
+}
 
 --- The zones of the campaign, by name: `VeafCampaignZone` objects built from `veafCampaign.data`.
 veafCampaign.zones = {}
@@ -393,6 +417,8 @@ function VeafCampaignZone:becomeNeutral()
   veafCampaign.setAirbaseCoalition(self, coalition.side.NEUTRAL)
   veaf.loggers.get(veafCampaign.Id):info("zone [%s] lost its garrison and is now neutral (was %s)", self.name, former)
   trigger.action.outText(veaf.t("campaign.zone_neutral", self.name), 15)
+  veafCampaign.planAssaults(self, timer.getTime())
+  veafCampaign.buildAssaultMenu()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -493,10 +519,19 @@ function VeafCampaignZone:capturedBy(side)
   self.entry.owner = side
   self.entry.capture = nil
   veafCampaign.setAirbaseCoalition(self, veafCampaign.SIDES[side])
-  self:drawGarrison(veafCampaign.reserveOf(side))
-  self:spawnGarrison()
+  -- an assault convoy that took the zone stays as its garrison: paid once, from the reserve, when it left
+  if not veafCampaign.absorbConvoy(self, side) then
+    self:drawGarrison(veafCampaign.reserveOf(side))
+    self:spawnGarrison()
+  end
   veaf.loggers.get(veafCampaign.Id):info("zone [%s] captured by %s", self.name, side)
   trigger.action.outText(veaf.t("campaign.zone_captured", self.name, veaf.t("campaign.side." .. side)), 15)
+  for key, pending in pairs(veafCampaign.pendingAssaults) do
+    if pending.to == self.name then
+      veafCampaign.pendingAssaults[key] = nil -- nothing left to take
+    end
+  end
+  veafCampaign.buildAssaultMenu()
 end
 
 --- Make an airfield zone's airbase follow its owner. Both calls exist in the scripting API
@@ -575,6 +610,296 @@ function veafCampaign.drawConnections()
       trigger.action.lineToAll(-1, veaf.getUniqueIdentifier(), a:getCenter(), b:getCenter(), { 1, 1, 1, 0.8 }, 2, true)
     end
   end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Assault convoys (FEAT-OPPOSITION-SCALES-WITH-PLAYERS ticket 04)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The zones connected to this one, in the order the connections are declared.
+--- @param zoneName string
+--- @return table the neighbouring zones
+function veafCampaign.neighbours(zoneName)
+  local found = {}
+  for _, connection in ipairs(veafCampaign.data.connections or {}) do
+    local other = (connection[1] == zoneName and connection[2]) or (connection[2] == zoneName and connection[1]) or nil
+    local zone = other and veafCampaign.zones[other]
+    if zone and zone.placed then
+      table.insert(found, zone)
+    end
+  end
+  return found
+end
+
+--- Seconds before an assault leaves: the campaign's delay, shortened when the opposition is sized for
+--- more than four players (eight players, half the delay).
+function veafCampaign.assaultDelay()
+  local delay = veafCampaign.data.assault_seconds or veafCampaign.ASSAULT_SECONDS
+  local level = veafOpposition and veafOpposition.getLevel and veafOpposition.getLevel()
+  if level and level > 4 then
+    delay = delay * 4 / level
+  end
+  return delay
+end
+
+--- Whether a convoy of that side is already on its way to that zone.
+local function convoyUnderway(side, target)
+  for _, record in ipairs(veafCampaign.convoys) do
+    if record.side == side and record.to == target and not record.ended then
+      return true
+    end
+  end
+  return false
+end
+
+--- The rule: a neutral zone is the target of every side that holds a neighbour of it. The convoy leaves
+--- from the first such neighbour, after `assaultDelay()`; one at a time per side and target.
+--- @param target table the neutral zone
+--- @param now number the mission time
+function veafCampaign.planAssaults(target, now)
+  if veafCampaign.data.assault_convoys == false or target.entry.owner ~= "neutral" or not target.placed then
+    return
+  end
+  for _, neighbour in ipairs(veafCampaign.neighbours(target.name)) do
+    local side = neighbour.entry.owner
+    local key = target.name .. "|" .. side
+    if veafCampaign.SIDES[side] and not veafCampaign.pendingAssaults[key] and not convoyUnderway(side, target.name) then
+      veafCampaign.pendingAssaults[key] = { side = side, from = neighbour.name, to = target.name, at = now + veafCampaign.assaultDelay() }
+      veaf.loggers.get(veafCampaign.Id):info("%s will send an assault convoy from [%s] to [%s]", side, neighbour.name, target.name)
+    end
+  end
+end
+
+--- Send the assaults that are due, if they still make sense: the source still held by its side.
+--- @param now number the mission time
+function veafCampaign.launchDueAssaults(now)
+  local due = {}
+  for key, pending in pairs(veafCampaign.pendingAssaults) do
+    if pending.at <= now then
+      table.insert(due, key)
+    end
+  end
+  table.sort(due)
+  for _, key in ipairs(due) do
+    local pending = veafCampaign.pendingAssaults[key]
+    veafCampaign.pendingAssaults[key] = nil
+    local from, to = veafCampaign.zones[pending.from], veafCampaign.zones[pending.to]
+    if from and to and from.entry.owner == pending.side and to.entry.owner ~= pending.side then
+      veafCampaign.sendConvoy(pending.side, from, to)
+    end
+  end
+end
+
+--- The live DCS units of a convoy: its group, and its unarmed vehicles once the convoy watch split them
+--- off (`veafGroundAI`, FEAT-CONVOY-UNDER-FIRE), which respawns them under new names.
+--- @param record table the convoy's record
+--- @return table the units
+function veafCampaign.convoyUnits(record)
+  local names = { record.name }
+  local handler = veafGroundAI and veafGroundAI.convoysByGroupName and veafGroundAI.convoysByGroupName[record.name]
+  if handler and handler.unarmedGroupName then
+    table.insert(names, handler.unarmedGroupName)
+  end
+  local units = {}
+  for _, name in ipairs(names) do
+    local group = Group.getByName(name)
+    if group and group:isExist() then
+      for _, unit in ipairs(group:getUnits() or {}) do
+        -- the pathfinding unit a spawned convoy carries for its first seconds is not the campaign's:
+        -- counted, its removal would read as a loss
+        local fixer = veafUnits and unit and unit:getTypeName() == veafUnits.DefaultPathfindingUnitType
+        if unit and not fixer and unit:isExist() and unit:getLife() >= 1 then
+          table.insert(units, unit)
+        end
+      end
+    end
+  end
+  return units
+end
+
+local function typesOf(units)
+  local types = {}
+  for _, unit in ipairs(units) do
+    table.insert(types, unit:getTypeName())
+  end
+  table.sort(types)
+  return types
+end
+
+local function removeAxis(record)
+  if record.axisId then
+    trigger.action.removeMark(record.axisId)
+    record.axisId = nil
+  end
+end
+
+--- Count what is left of a convoy; a convoy with nobody left has ended.
+--- @param record table the convoy's record
+function veafCampaign.refreshConvoy(record)
+  if record.ended then
+    return
+  end
+  record.alive = typesOf(veafCampaign.convoyUnits(record))
+  if #record.alive == 0 then
+    record.ended = true
+    removeAxis(record)
+    veaf.loggers.get(veafCampaign.Id):info("assault convoy [%s] to [%s] destroyed", record.name, record.to)
+  end
+end
+
+--- Send an assault convoy along a connection: armour after the source zone's size class, a few trucks,
+--- drawn from the side's reserve unit by unit, on the road to the target with the convoy watch.
+--- @param side string "blue" or "red"
+--- @param from table the zone it leaves from
+--- @param to table the zone it goes to
+--- @return table|nil the convoy's record, or nil when none could be sent
+function veafCampaign.sendConvoy(side, from, to)
+  local reserve = veafCampaign.reserveOf(side)
+  if reserve and reserveTotal(reserve) == 0 then
+    veaf.loggers.get(veafCampaign.Id):info("%s has nothing left in reserve for an assault from [%s] to [%s]", side, from.name, to.name)
+    return nil
+  end
+  local destination = "CAMPAIGN " .. to.name
+  local target = to:getCenter()
+  veafNamedPoints.addPoint(destination, { x = target.x, y = target.y, z = target.z })
+  local size = from.entry.size or { defense = 1, armor = 1 }
+  local name = veafCampaign.uniqueConvoyName(from.name .. " - " .. to.name .. " assault")
+  local country = veaf.getCountryForCoalition(veafCampaign.SIDES[side])
+  local groupName = veafSpawn.spawnConvoy(
+    from:getCenter(),
+    name,
+    nil,
+    math.min(500, from.entry.radius or 2000),
+    country,
+    veafCampaign.SIDES[side],
+    0,
+    5,
+    nil,
+    false,
+    false,
+    destination,
+    size.defense or 1,
+    veafCampaign.ASSAULT_TRUCKS,
+    math.max(1, size.armor or 1),
+    true,
+    false
+  )
+  if not groupName then
+    veaf.loggers.get(veafCampaign.Id):error("the assault convoy from [%s] to [%s] could not be spawned", from.name, to.name)
+    return nil
+  end
+  local record = { name = groupName, side = side, from = from.name, to = to.name, absorbed = {} }
+  record.sent = typesOf(veafCampaign.convoyUnits(record))
+  record.alive = { unpack(record.sent) }
+  if reserve then
+    for _, unitType in ipairs(record.sent) do
+      local category = veafCampaign.reserveCategory(unitType)
+      reserve[category] = math.max(0, (reserve[category] or 0) - 1)
+    end
+  end
+  local colors = veafCampaign.AXIS_COLORS[side]
+  record.axisId = veaf.getUniqueIdentifier()
+  trigger.action.arrowToAll(-1, record.axisId, from:getCenter(), target, colors.line, colors.fill, 1, true)
+  table.insert(veafCampaign.convoys, record)
+  -- the side's own people are told it leaves; the other side hears it as intelligence
+  local own = veafCampaign.SIDES[side]
+  local other = own == coalition.side.BLUE and coalition.side.RED or coalition.side.BLUE
+  trigger.action.outTextForCoalition(own, veaf.t("campaign.convoy_sent_own", from.name, to.name), 20)
+  trigger.action.outTextForCoalition(other, veaf.t("campaign.convoy_sent_enemy", from.name, to.name), 20)
+  veaf.loggers
+    .get(veafCampaign.Id)
+    :info("%s assault convoy [%s] left [%s] for [%s], %d unit(s)", side, groupName, from.name, to.name, #record.sent)
+  return record
+end
+
+--- A convoy name nobody uses yet, so a second assault on the same axis is a second group.
+function veafCampaign.uniqueConvoyName(base)
+  local name, index = base, 1
+  while Group.getByName(name) do
+    index = index + 1
+    name = string.format("%s %d", base, index)
+  end
+  return name
+end
+
+--- A side has just taken a zone: if one of its assault convoys is there, its survivors become the
+--- zone's garrison, recorded where they stand, and keep their DCS names for this mission's losses.
+--- @param zone table the zone captured
+--- @param side string the side that took it
+--- @return boolean true when a convoy became the garrison
+function veafCampaign.absorbConvoy(zone, side)
+  local center, radius = zone:getCenter(), zone.entry.radius or 2000
+  for _, record in ipairs(veafCampaign.convoys) do
+    if record.side == side and not record.ended then
+      local inside = {}
+      for _, unit in ipairs(veafCampaign.convoyUnits(record)) do
+        local point = unit:getPoint()
+        if (point.x - center.x) ^ 2 + (point.z - center.z) ^ 2 <= radius ^ 2 then
+          table.insert(inside, unit)
+        end
+      end
+      if #inside > 0 then
+        local group = { name = record.name, units = {} }
+        for index, unit in ipairs(inside) do
+          local point = unit:getPoint()
+          table.insert(group.units, { type = unit:getTypeName(), x = point.x, z = point.z, heading = 0, alive = true })
+          veafCampaign.unitIndex[unit:getName()] = { zone = zone, group = 1, unit = index }
+        end
+        zone.entry.garrison = { group }
+        record.absorbed = typesOf(inside)
+        record.ended = true
+        record.alive = {}
+        removeAxis(record)
+        veaf.loggers
+          .get(veafCampaign.Id)
+          :info("assault convoy [%s] holds [%s]: %d unit(s) become its garrison", record.name, zone.name, #inside)
+        return true
+      end
+    end
+  end
+  return false
+end
+
+--- Radio command: a blue assault from one zone to a neighbour, at once, if it still makes sense.
+--- @param parameters table `{ from, to }`
+function veafCampaign.orderAssault(parameters)
+  local from, to = veafCampaign.zones[parameters[1]], veafCampaign.zones[parameters[2]]
+  if not (from and to) or from.entry.owner ~= "blue" or to.entry.owner == "blue" or convoyUnderway("blue", to.name) then
+    trigger.action.outTextForCoalition(coalition.side.BLUE, veaf.t("campaign.assault_refused", parameters[1], parameters[2]), 15)
+    return
+  end
+  if not veafCampaign.sendConvoy("blue", from, to) then
+    trigger.action.outTextForCoalition(coalition.side.BLUE, veaf.t("campaign.assault_no_reserve"), 15)
+  end
+end
+
+--- The "Assault" submenu, for blue: one entry per blue zone and neighbour it does not hold. Rebuilt
+--- whenever a zone changes hands.
+function veafCampaign.buildAssaultMenu()
+  if not (veafRadio and veafCampaign.rootPath) then
+    return
+  end
+  if veafCampaign.assaultPath then
+    veafRadio.clearSubmenu(veafCampaign.assaultPath)
+  else
+    veafCampaign.assaultPath = veafRadio.addSubMenu(veaf.t("menu.campaign.assault"), veafCampaign.rootPath, coalition.side.BLUE)
+  end
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zone.entry.owner == "blue" then
+      for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
+        if neighbour.entry.owner ~= "blue" then
+          veafRadio.addSecuredCommandToSubmenu(
+            veaf.t("menu.campaign.assault_entry", zone.name, neighbour.name),
+            veafCampaign.assaultPath,
+            veafCampaign.orderAssault,
+            { zone.name, neighbour.name },
+            veafRadio.USAGE_ForAll
+          )
+        end
+      end
+    end
+  end
+  veafRadio.refreshRadioMenu()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -768,12 +1093,26 @@ function veafCampaign.stateTable()
       warehouse = zone:readWarehouse(),
     }
   end
+  local convoys = {}
+  for _, record in ipairs(veafCampaign.convoys) do
+    veafCampaign.refreshConvoy(record)
+    table.insert(convoys, {
+      name = record.name,
+      side = record.side,
+      from = record.from,
+      to = record.to,
+      sent = record.sent,
+      alive = record.alive,
+      absorbed = record.absorbed,
+    })
+  end
   return {
     format_version = data.format_version,
     campaign = data.campaign,
     mission = data.mission,
     simulation_time = timer.getTime(),
     zones = zones,
+    convoys = convoys,
     sides = data.sides or {},
     scenery_destroyed = veafCampaign.destroyedScenery(),
   }
@@ -862,6 +1201,10 @@ end
 --- One beat of the module's single loop: every zone is visited once, the state written when due.
 function veafCampaign.beat()
   veafCampaign.counters.beats = veafCampaign.counters.beats + 1
+  veafCampaign.launchDueAssaults(timer.getTime())
+  for _, record in ipairs(veafCampaign.convoys) do
+    veafCampaign.refreshConvoy(record)
+  end
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed then
       veafCampaign.counters.zonesProcessed = veafCampaign.counters.zonesProcessed + 1
@@ -899,6 +1242,7 @@ end
 function veafCampaign.initialize()
   veaf.loggers.get(veafCampaign.Id):info("Initializing module")
   veafCampaign.zones, veafCampaign.zoneList, veafCampaign.unitIndex = {}, {}, {}
+  veafCampaign.convoys, veafCampaign.pendingAssaults, veafCampaign.assaultPath = {}, {}, nil
   veafCampaign.counters = { beats = 0, zonesProcessed = 0, drawings = 0, spawns = 0, eventsHandled = 0, stateWrites = 0 }
   local data = veafCampaign.data
   if type(data) ~= "table" or type(data.zones) ~= "table" then
@@ -934,6 +1278,11 @@ function veafCampaign.initialize()
     end
   end
   veafCampaign.buildRadioMenu()
+  veafCampaign.buildAssaultMenu()
+  -- a neutral zone at the start is a target already: the counter-attack leaves after the delay
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    veafCampaign.planAssaults(zone, timer.getTime())
+  end
   -- the first write is due one interval in: at load time the state is the data table itself
   veafCampaign.nextStateWrite = timer.getTime() + (data.state_write_seconds or veafCampaign.STATE_WRITE_SECONDS)
   veafCampaign.loopId =

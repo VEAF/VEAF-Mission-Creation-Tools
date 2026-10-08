@@ -54,6 +54,30 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R47. What *Kolkhida* mission 1 found, once fixed — **a helicopter pilot for item 1**
+
+[`FIX-CAMPAIGN-MISSION-1-FINDINGS`](.backlog/FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md), and ticket 02 of [`FIX-CAPTURE-ZONE-MEMBERSHIP`](.backlog/FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md).
+David, 2026-10-08, after the squadron's flight: "on doit tester des trucs aussi (CTLD de mémoire)".
+The squadron could neither spawn a crate nor take troops at Batumi and Kobuleti, with the CH-47F inside the green zone; the rest of the lot was seen by players and only needs looking at again.
+
+**Prepare**: a copy of `D:\dev\_VEAF\_campaigns\campaign-kolkhida` (never the live campaign), mission 1 rebuilt from the lot's branch, security off, a game master slot, the blue dynamic slots as shipped, `rules.assault_seconds: 60`.
+
+1. *(ticket 05)* A CH-47F on a Batumi stand, then on a Kobuleti helicopter spot: CTLD → load troops, then CTLD → a crate.
+   - **Verified**: troops board and a crate appears next to the helicopter, at both fields.
+   - **Re-opened, "not in a pickup zone" or no menu entry**: `dcs.log` around `CTLDZoneManager` at start — which troop and logistic zones were registered, their radius, and the helicopter's distance to each.
+   - Then a blue helicopter on Senaki (red): **verified** if it can do neither.
+2. *(ticket 01)* Any blue aircraft, a dynamic slot: the radio presets and the kneeboard.
+   - **Verified**: the channels of `src/presets.yaml` on the radios, the mission's kneeboard pages.
+   - **Re-opened**: read the built `.miz` — the slot's `Radio` table and the `KNEEBOARD` folder — to find which step dropped them.
+3. *(tickets 02, 03, 04)* At start: the ATC answers nobody; no garrison unit on the runways of Batumi and Senaki (F10 map, zoomed); a blue aircraft entering the Senaki QRA zone.
+   - **Verified**: the QRA rolls from Senaki's runway and climbs — note the minutes from the scramble to wheels up, for the doc.
+   - **Re-opened, it appears in the air or never leaves**: the group's start in the built mission, then what stands on the runway.
+4. *(ticket 07)* Fire on the red assault convoy until it falls back, no red player connected.
+   - **Verified**: no smoke, no troops-in-contact call; with a red player connected, both come back.
+5. *(`FIX-CAPTURE-ZONE-MEMBERSHIP` ticket 02)* Let the blue convoy reach Poti.
+   - **Verified**: it drives on after the capture, to within a few hundred metres of the centre (its road ends 163 m from it).
+   - **Re-opened, it stops about 2.1 km out**: the convoy's route in the running mission (the fiddle hook, read-only) — as on 2026-10-08, when its units stood 2 123–2 182 m out in the state file.
+
 ### R46. The opposition level, from the shipped build — **one pilot for item 3**
 
 [`FEAT-OPPOSITION-SCALES-WITH-PLAYERS`](.backlog/FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md), tickets 02 and 04.

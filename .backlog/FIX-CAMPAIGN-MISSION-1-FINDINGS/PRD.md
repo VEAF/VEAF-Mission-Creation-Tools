@@ -46,6 +46,7 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 
 All seven tickets ship in one branch and one PR.
 Each ticket reads the code before choosing a fix; what needs DCS is gathered into one test mission (a copy of the campaign, never David's live session) for David to run.
+The in-game checks are R47 in `DCS-SESSION-TODO.md`, CTLD first.
 
 ## Related
 

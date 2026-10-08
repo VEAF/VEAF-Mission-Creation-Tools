@@ -78,6 +78,14 @@ veafCampaign.INTEL_SECONDS = 1200
 --- The trucks an assault convoy brings beside its armour: the infantry it lands in the zone.
 veafCampaign.ASSAULT_TRUCKS = 2
 
+--- The air defence level an assault convoy brings at most, whatever its source zone's class: 1 is a gun
+--- or two (Vulcan, Gepard; ZU-23, ZSU-57, Shilka), never a missile system.
+veafCampaign.ASSAULT_DEFENSE = 1
+
+--- What DCS calls the armour an assault is made of: a tank or an infantry fighting vehicle. The scouts
+--- and personnel carriers of `veafCasMission.ARMOR_TYPES`' light levels are left out.
+veafCampaign.ASSAULT_ARMOR_ATTRIBUTES = { "Tanks", "IFV" }
+
 --- The assault convoys of this mission, in the order they left: what the state file records of them.
 veafCampaign.convoys = {}
 
@@ -773,8 +781,63 @@ function veafCampaign.refreshConvoy(record)
   end
 end
 
---- Send an assault convoy along a connection: armour after the source zone's size class, a few trucks,
---- drawn from the side's reserve unit by unit, on the road to the target with the convoy watch.
+--- The tanks and infantry fighting vehicles a side can send in an assault, in the mission's era: every
+--- type of `veafCasMission.ARMOR_TYPES` for that side and era that DCS classes as one of
+--- `ASSAULT_ARMOR_ATTRIBUTES`, in the order of the table, each once.
+--- @param side number the DCS coalition
+--- @return table the type names
+function veafCampaign.assaultArmorTypes(side)
+  local byLevel = veafCasMission.ARMOR_TYPES[side] and veafCasMission.ARMOR_TYPES[side][veaf.config.era] or {}
+  local found, seen = {}, {}
+  for level = 1, 5 do
+    for _, typeName in ipairs(byLevel[level] or {}) do
+      if not seen[typeName] then
+        seen[typeName] = true
+        local unit = veafUnits.findDcsUnit(typeName)
+        for _, attribute in ipairs(veafCampaign.ASSAULT_ARMOR_ATTRIBUTES) do
+          if unit and unit.attribute and unit.attribute[attribute] then
+            table.insert(found, typeName)
+            break
+          end
+        end
+      end
+    end
+  end
+  return found
+end
+
+--- How many armoured vehicles an assault brings: two per level of its source zone's `armor`, plus two —
+--- 4 from an `outpost`, 6 from an `airfield`.
+--- @param size table the source zone's size class
+--- @return number
+function veafCampaign.assaultArmorCount(size)
+  return 2 * ((size.armor or 1) + 1)
+end
+
+--- The armour of an assault convoy, drawn at random among the side's tanks and IFVs of the era; nil when
+--- the era has none, and the convoy then takes the armour platoon `veafSpawn.spawnConvoy` generates.
+--- @param side number the DCS coalition
+--- @param size table the source zone's size class
+--- @return table|nil the type names
+function veafCampaign.composeAssaultArmor(side, size)
+  local candidates = veafCampaign.assaultArmorTypes(side)
+  if #candidates == 0 then
+    return nil
+  end
+  local armor = {}
+  for _ = 1, veafCampaign.assaultArmorCount(size) do
+    table.insert(armor, candidates[math.random(#candidates)])
+  end
+  return armor
+end
+
+--- Send an assault convoy along a connection: tanks and IFVs after the source zone's size class, a few
+--- trucks and a gun or two of air defence, drawn from the side's reserve unit by unit, on the road to the
+--- target with the convoy watch.
+---
+--- Until FIX-ASSAULT-CONVOY-FINDINGS the armour was `veafSpawn.spawnConvoy`'s generated platoon, half the
+--- convoy's size give or take 20 %: with two trucks, 0 or 1 vehicle, and the source zone's whole air
+--- defence level twice over — on Kolkhida, 2026-10-08, Gepard ×2, Chaparral, Linebacker and two trucks.
 --- @param side string "blue" or "red"
 --- @param from table the zone it leaves from
 --- @param to table the zone it goes to
@@ -804,11 +867,13 @@ function veafCampaign.sendConvoy(side, from, to)
     false,
     false,
     destination,
-    size.defense or 1,
+    math.min(veafCampaign.ASSAULT_DEFENSE, size.defense or 1),
     veafCampaign.ASSAULT_TRUCKS,
     math.max(1, size.armor or 1),
     true,
-    false
+    false,
+    nil,
+    veafCampaign.composeAssaultArmor(veafCampaign.SIDES[side], size)
   )
   if not groupName then
     veaf.loggers.get(veafCampaign.Id):error("the assault convoy from [%s] to [%s] could not be spawned", from.name, to.name)

@@ -4605,4 +4605,74 @@ function TestVeafSpawnUnitNames:test_names_stay_distinct_when_the_type_is_hidden
   })
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-ASSAULT-CONVOY-FINDINGS ticket 04 — a convoy given its armour types brings exactly those
+-- ---------------------------------------------------------------------------
+TestVeafSpawnConvoyArmorTypes = {}
+
+function TestVeafSpawnConvoyArmorTypes:setUp()
+  dcs_mocks.reset()
+  self.saved = {
+    getPoint = veafNamedPoints.getPoint,
+    platoon = veafCasMission.generateArmorPlatoon,
+    createDcsUnits = veafSpawn._createDcsUnits,
+  }
+  veafNamedPoints.getPoint = function()
+    return { x = 5000, y = 0, z = 0 }
+  end
+  self.platoons = 0
+  veafCasMission.generateArmorPlatoon = function()
+    self.platoons = self.platoons + 1
+    return { disposition = { h = 4, w = 4 }, units = { { "Generated", random = true } } }
+  end
+  veafSpawn._createDcsUnits = function(_, units)
+    self.created = units
+  end
+end
+
+function TestVeafSpawnConvoyArmorTypes:tearDown()
+  veafNamedPoints.getPoint = self.saved.getPoint
+  veafCasMission.generateArmorPlatoon = self.saved.platoon
+  veafSpawn._createDcsUnits = self.saved.createDcsUnits
+end
+
+function TestVeafSpawnConvoyArmorTypes:_spawn(armorTypes)
+  return veafSpawn.spawnConvoy(
+    { x = 0, y = 0, z = 0 },
+    "Assault",
+    nil,
+    0,
+    2,
+    coalition.side.RED,
+    0,
+    5,
+    nil,
+    false,
+    false,
+    "CAMPAIGN Poti",
+    1,
+    2,
+    1,
+    true,
+    false,
+    nil,
+    armorTypes
+  )
+end
+
+function TestVeafSpawnConvoyArmorTypes:test_the_armour_types_given_replace_the_generated_platoon()
+  luaunit.assertEquals(self:_spawn({ "T-72B", "BMP-2", "BMP-2" }), "Assault")
+  luaunit.assertEquals(self.platoons, 0)
+  local types = {}
+  for _, unit in ipairs(self.created) do
+    table.insert(types, unit[1])
+  end
+  luaunit.assertEquals(types, { "T-72B", "BMP-2", "BMP-2" })
+end
+
+function TestVeafSpawnConvoyArmorTypes:test_without_them_the_platoon_is_generated_as_before()
+  self:_spawn(nil)
+  luaunit.assertEquals(self.platoons, 1)
+end
+
 os.exit(luaunit.LuaUnit.run())

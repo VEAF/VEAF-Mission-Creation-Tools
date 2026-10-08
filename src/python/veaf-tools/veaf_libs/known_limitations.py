@@ -30,6 +30,7 @@ _DCS_AREAS = {
     "players": "## Players, roles and the map {#players}",
     "radio": "## Radio and frequencies {#radio}",
     "ground-ai": "## Ground AI {#ground-ai}",
+    "scripting": "## Mission scripting {#scripting}",
 }
 
 GENERATED_BEGIN = "<!-- BEGIN GENERATED from src/python/veaf-tools/veaf_libs/data/known-limitations.yaml -->"

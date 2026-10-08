@@ -864,6 +864,34 @@ ConvoyUnitHandler.UNARMED_SUFFIX = "unarmed"
 ConvoyUnitHandler.GUARD_FREQUENCIES = "243,121.5"
 ConvoyUnitHandler.GUARD_MODULATIONS = "AM,AM"
 
+--- The callsigns a convoy is given when nobody named it, in this order; once all are taken, the list
+--- starts again with a number (`Mule 2`). Beasts of burden, for columns that carry loads; without
+--- accents, because the callsign is also the name `_gc` addresses the convoy by and is typed in a marker.
+ConvoyUnitHandler.CALLSIGNS = {
+  "Mule",
+  "Bison",
+  "Yak",
+  "Lama",
+  "Zebu",
+  "Buffle",
+  "Chameau",
+  "Mammouth",
+  "Taureau",
+  "Elan",
+  "Renne",
+  "Okapi",
+  "Bourricot",
+  "Percheron",
+  "Dromadaire",
+  "Boeuf",
+}
+
+--- Seconds the armed vehicles wait for their unarmed ones to rejoin before both drive on separately.
+ConvoyUnitHandler.REJOIN_TIMEOUT = 600
+
+--- Seconds between two moves of the F10 marker that shows a convoy in contact.
+ConvoyUnitHandler.DANGER_MARK_PERIOD = 15
+
 --- The strength a vehicle brings to a fight, by DCS attribute, first match wins.
 ---
 --- Read from DCS on 2026-10-08: a `Hummer` is an `APC` and `Armed vehicles` like the armed HMMWV; a
@@ -952,6 +980,11 @@ end
 --- The unarmed vehicles' group, or nil when the convoy has not split or they are gone.
 function ConvoyUnitHandler:getUnarmedGroup()
   return veafGroundAI.livingGroup(self.unarmedGroupName)
+end
+
+function ConvoyUnitHandler:stop()
+  self:clearDanger()
+  return GroundUnitHandler.stop(self)
 end
 
 function ConvoyUnitHandler:getDescription()
@@ -1381,6 +1414,9 @@ function ConvoyUnitHandler:watch(now, group)
   end
 
   if self:isInContact() then
+    if now >= (self.nextDangerMark or 0) then
+      self:markDanger(now)
+    end
     if now - self.lastContact >= ConvoyUnitHandler.QUIET_DELAY then
       self:standDown()
     elseif self.calledForHelp and now >= self.nextSmoke then
@@ -1507,6 +1543,7 @@ function ConvoyUnitHandler:engage(now)
   if self.state == ConvoyUnitHandler.STATE_FALLING_BACK then
     self:callForHelp(now)
   end
+  self:markDanger(now)
 end
 
 --- Where the convoy falls back to, from where it stands now.
@@ -1611,7 +1648,7 @@ function ConvoyUnitHandler:fight(threats)
     })
   end
   local bearing, range = veaf.getBearingAndRangeFromTo(from, threat.point)
-  self:say("groundai.convoy_fighting", #threats, bearing, veaf.round(range, -1))
+  self:say("groundai.convoy_fighting", self:relativeDirection(threat.point), #threats, veaf.round(range, -1), bearing)
 end
 
 --- Send a group away on the fall-back route, returning fire as it goes.
@@ -1628,13 +1665,73 @@ function ConvoyUnitHandler:fallBack(groupName, rally, destination)
   controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
   veaf.goRoute(groupName, veafGroundAI.fallBackRoute(veaf.getAveragePosition(group), rally, destination, veafGroundAI.FALL_BACK_SPEED))
   if groupName == self.groupName then
-    self:say("groundai.convoy_falling_back")
+    local threats = self:recentThreats()
+    self:say("groundai.convoy_falling_back", threats[1] and self:relativeDirection(threats[1].point) or "")
   end
 end
 
---- A message to the convoy's coalition, naming it.
+--- A message to the convoy's coalition, opened by its callsign — the handler's name.
 function ConvoyUnitHandler:say(key, ...)
   trigger.action.outTextForCoalition(self.side, veaf.t(key, self:getName(), ...), 15)
+end
+
+--- Where a point is from the convoy, as a crew says it: ahead, right, behind or left of its lead's heading.
+--- @param point table a vec3
+--- @return string the word, in the mission's language
+function ConvoyUnitHandler:relativeDirection(point)
+  local group = self:getGroup() or self:getUnarmedGroup()
+  local lead = group and group:getUnits()[1]
+  if not lead then
+    return ""
+  end
+  local position = lead:getPosition()
+  local heading = math.deg(math.atan2(position.x.z, position.x.x))
+  local bearing = math.deg(math.atan2(point.z - position.p.z, point.x - position.p.x))
+  return veaf.t(veafGroundAI.relativeDirectionKey(bearing - heading))
+end
+
+--- The i18n key of a relative bearing: within 45 degrees of the heading is ahead, and so on round.
+--- @param relative number degrees, any range
+--- @return string
+function veafGroundAI.relativeDirectionKey(relative)
+  local angle = relative % 360
+  if angle < 45 or angle >= 315 then
+    return "groundai.direction_ahead"
+  elseif angle < 135 then
+    return "groundai.direction_right"
+  elseif angle < 225 then
+    return "groundai.direction_behind"
+  end
+  return "groundai.direction_left"
+end
+
+--- Put, or move, the F10 marker that shows the convoy in contact to its coalition (David, 2026-10-08:
+--- "pendant la résolution du combat, il faut mettre un marqueur sur la carte pour identifier le convoi en
+--- danger, et le retirer quand c'est plus nécessaire"). A DCS mark cannot move: it is replaced.
+--- @param now number
+function ConvoyUnitHandler:markDanger(now)
+  self:clearDanger()
+  local group = self:getGroup() or self:getUnarmedGroup()
+  if not group then
+    return
+  end
+  self.dangerMarkId = veaf.getUniqueIdentifier()
+  trigger.action.markToCoalition(
+    self.dangerMarkId,
+    veaf.t("groundai.convoy_danger_mark", self:getName()),
+    veaf.getAveragePosition(group),
+    self.side,
+    true
+  )
+  self.nextDangerMark = now + ConvoyUnitHandler.DANGER_MARK_PERIOD
+end
+
+--- Remove the convoy's contact marker, if there is one.
+function ConvoyUnitHandler:clearDanger()
+  if self.dangerMarkId then
+    trigger.action.removeMark(self.dangerMarkId)
+    self.dangerMarkId = nil
+  end
 end
 
 --- Call for help: the text to the coalition, the voice on guard when the mission can speak, the smokes.
@@ -1697,6 +1794,7 @@ end
 --- reports and holds, waiting for an order (Q4): the enemy it fled is still there, and driving on would
 --- take it back into the same ambush.
 function ConvoyUnitHandler:standDown()
+  self:clearDanger()
   if self.state == ConvoyUnitHandler.STATE_FIGHTING then
     veaf.loggers
       .get(veafGroundAI.Id)
@@ -1748,6 +1846,7 @@ function ConvoyUnitHandler:retreat(destinationText)
     destination = place.point
   end
   self:suspendItinerary()
+  self:clearDanger()
   local speed = veafGroundAI.FALL_BACK_SPEED
   local route = { routePoint(from, "On Road", speed), routePoint(destination, "On Road", speed) }
   veaf.goRoute(self.groupName, route)
@@ -1770,6 +1869,7 @@ function ConvoyUnitHandler:hold()
     return false
   end
   self:suspendItinerary()
+  self:clearDanger()
   group:getController():pushTask({ id = "Hold", params = {} })
   local unarmed = self:getUnarmedGroup()
   if unarmed then
@@ -1793,17 +1893,23 @@ function ConvoyUnitHandler:resume()
   self.enemies = {}
   self.nextWideWatch = 0
   self.calledForHelp = false
-  veaf.goRoute(self.groupName, self:onwardRoute(group))
+  self:clearDanger()
   local unarmed = self:getUnarmedGroup()
   if unarmed then
+    -- The armed vehicles wait where they are, and the convoy drives on once merged. Driving on at once
+    -- left the trucks, sent to where the armed vehicles had been, parked on the ambush site while the
+    -- column went on without them (the demo's run, 2026-10-08).
+    controller:pushTask({ id = "Hold", params = {} })
     -- Straight across, not by road: sent "On Road" on 2026-10-08, the trucks drove away to reach the road
     -- network first, 2.8 km then 3.2 km from where they were going.
     veaf.goRoute(self.unarmedGroupName, {
       routePoint(veaf.getAveragePosition(unarmed), "Off Road", veafGroundAI.FALL_BACK_SPEED),
       routePoint(veaf.getAveragePosition(group), "Off Road", veafGroundAI.FALL_BACK_SPEED),
     })
+    self.rejoinDeadline = timer.getTime() + ConvoyUnitHandler.REJOIN_TIMEOUT
     self.state = ConvoyUnitHandler.STATE_RESUMING
   else
+    veaf.goRoute(self.groupName, self:onwardRoute(group))
     self.state = ConvoyUnitHandler.STATE_DRIVING
   end
   self:say("groundai.convoy_resuming")
@@ -1862,10 +1968,22 @@ end
 function ConvoyUnitHandler:mergeIfClose()
   local group, unarmed = self:getGroup(), self:getUnarmedGroup()
   if not (group and unarmed) then
+    -- nobody left to wait for: whoever is left drives on
+    local left = group or unarmed
+    if left then
+      veaf.goRoute(left:getName(), self:onwardRoute(left))
+    end
     self.state = ConvoyUnitHandler.STATE_DRIVING
     return
   end
   if dist2D(veaf.getAveragePosition(group), veaf.getAveragePosition(unarmed)) > ConvoyUnitHandler.MERGE_DISTANCE then
+    if timer.getTime() >= (self.rejoinDeadline or math.huge) then
+      -- a truck stuck short of the column: both drive on, each on its own
+      veaf.loggers.get(veafGroundAI.Id):warn("convoy %s: the unarmed vehicles did not rejoin, driving on apart", veaf.p(self:getName()))
+      veaf.goRoute(self.groupName, self:onwardRoute(group))
+      veaf.goRoute(self.unarmedGroupName, self:onwardRoute(unarmed))
+      self.state = ConvoyUnitHandler.STATE_DRIVING
+    end
     return
   end
   local definitions = {}
@@ -1900,8 +2018,12 @@ veafGroundAI.convoysByGroupName = {}
 
 --- Hand a group to the convoy watch. Called for every `_spawn convoy`, for the groups `mission.yaml`
 --- lists under `GROUNDAI.convoys`, and by `_gc <name>, convoy`.
+---
+--- The handler's name is the convoy's **callsign**: what it opens its messages with, and what `_gc`
+--- addresses it by — `_gc eglantine, resume`. A name the player chose is kept as the callsign; a convoy
+--- nobody named takes the next free one of `ConvoyUnitHandler.CALLSIGNS`.
 --- @param groupName string the DCS group's name
---- @param handlerName string|nil the name `_gc` addresses it by; the group's name by default
+--- @param handlerName string|nil the callsign; the next free one of the list by default
 --- @return table|nil the handler, or nil when there is no such group
 function veafGroundAI.addConvoy(groupName, handlerName)
   veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.addConvoy(%s)", veaf.p(groupName))
@@ -1914,7 +2036,7 @@ function veafGroundAI.addConvoy(groupName, handlerName)
   end
   local handler = ConvoyUnitHandler:new()
   handler:setSilent(true)
-  handler:setName(handlerName or groupName)
+  handler:setName(handlerName or veafGroundAI.nextConvoyCallsign())
   handler:setGroupName(groupName)
   if not (veafSpawn and veafSpawn.spawnedConvoys and veafSpawn.spawnedConvoys[groupName]) then
     handler.originalRoute = veafDcsSpawner.getGroupRoute(groupName)
@@ -1931,8 +2053,24 @@ function veafGroundAI.forgetConvoy(handler)
       veafGroundAI.convoysByGroupName[name] = nil
     end
   end
+  handler:clearDanger()
   handler.status = GroundUnitHandler.STATUS_OVER
   veafGroundAI.remove(handler)
+end
+
+--- The next callsign nobody holds: the first free one of the list, then the list again with a number.
+--- @return string
+function veafGroundAI.nextConvoyCallsign()
+  local round = 1
+  while true do
+    for _, flower in ipairs(ConvoyUnitHandler.CALLSIGNS) do
+      local callsign = round == 1 and flower or string.format("%s %d", flower, round)
+      if not veafGroundAI.handlers[callsign:lower()] then
+        return callsign
+      end
+    end
+    round = round + 1
+  end
 end
 
 --- The DCS events a convoy reacts to: a shot starting at one of its units, a hit on one.

@@ -1378,37 +1378,47 @@ veaf.i18nCatalog = {
     fr = "%s, troops in contact, %d ennemis, au %03d, %d mètres. Fumigène rouge sur l'ennemi, vert sur nous.",
     en = "%s, troops in contact, %d enemies, bearing %03d, %d meters. Red smoke on the enemy, green smoke on us.",
   },
+  -- The convoy speaks like a crew on the radio, opening with its callsign (David, 2026-10-08:
+  -- "Eglantine, contact avant, on engage le combat").
   ["groundai.convoy_fighting"] = {
-    fr = "%s : contact, %d ennemis au %03d pour %d m ; les véhicules armés font front.",
-    en = "%s: contact, %d enemies bearing %03d, %d m; the armed vehicles stand and fight.",
+    fr = "%s, contact %s, %d ennemis à %d m au %03d, on engage le combat.",
+    en = "%s, contact %s, %d enemies at %d m bearing %03d, engaging.",
   },
   ["groundai.convoy_falling_back"] = {
-    fr = "%s : contact, repli à couvert.",
-    en = "%s: contact, falling back behind cover.",
+    fr = "%s, contact %s, trop fort pour nous, on décroche à couvert.",
+    en = "%s, contact %s, too strong for us, breaking contact behind cover.",
   },
   ["groundai.convoy_unarmed_falling_back"] = {
-    fr = "%s : les véhicules non armés se replient.",
-    en = "%s: the unarmed vehicles are falling back.",
+    fr = "%s, les véhicules non armés se replient.",
+    en = "%s, the unarmed vehicles are falling back.",
   },
   ["groundai.convoy_holding"] = {
-    fr = "%s : plus de contact, on tient la position. Pour repartir : _gc %s, resume",
-    en = "%s: no more contact, holding position. To drive on: _gc %s, resume",
+    fr = "%s, plus de contact, on tient la position. Pour repartir : _gc %s, resume",
+    en = "%s, no more contact, holding position. To drive on: _gc %s, resume",
   },
   ["groundai.convoy_retreating"] = {
-    fr = "%s : repli en cours, comme ordonné.",
-    en = "%s: retreating, as ordered.",
+    fr = "%s, bien reçu, on se replie.",
+    en = "%s, copy, falling back.",
   },
   ["groundai.convoy_resuming"] = {
-    fr = "%s : on reprend la route.",
-    en = "%s: back on the road.",
+    fr = "%s, on reprend la route.",
+    en = "%s, back on the road.",
   },
   ["groundai.convoy_nowhere_to_go"] = {
-    fr = "%s : aucun lieu ami connu où se replier. Donnez un point : _gc %s, retreat <point>",
-    en = "%s: no friendly place known to fall back to. Give a point: _gc %s, retreat <point>",
+    fr = "%s, aucun lieu ami connu où se replier. Donnez un point : _gc %s, retreat <point>",
+    en = "%s, no friendly place known to fall back to. Give a point: _gc %s, retreat <point>",
   },
+  ["groundai.convoy_danger_mark"] = {
+    fr = "%s — convoi au contact",
+    en = "%s — convoy in contact",
+  },
+  ["groundai.direction_ahead"] = { fr = "avant", en = "ahead" },
+  ["groundai.direction_right"] = { fr = "droite", en = "right" },
+  ["groundai.direction_behind"] = { fr = "arrière", en = "behind" },
+  ["groundai.direction_left"] = { fr = "gauche", en = "left" },
   ["groundai.convoy_watched"] = {
-    fr = "%s est surveillé comme un convoi.",
-    en = "%s is now watched as a convoy.",
+    fr = "%s est surveillé comme un convoi, sous cet indicatif.",
+    en = "%s is now watched as a convoy, under that callsign.",
   },
   ["groundai.not_a_convoy"] = {
     fr = "%s n'est pas un convoi. Pour le surveiller comme tel : _gc %s, convoy",

@@ -272,8 +272,8 @@ function TestConvoyContact:test_an_unknown_group_is_not_watched()
 end
 
 function TestConvoyContact:test_a_burst_of_hits_is_one_contact()
-  self:_convoy(IFV)
-  local shooter = makeUnit("r-1", { side = RED, attributes = APC, type = "BTR-80", point = { x = 1500, y = 0, z = 0 } })
+  self:_convoy(APC)
+  local shooter = makeUnit("r-1", { side = RED, attributes = IFV, type = "BMP-2", point = { x = 1500, y = 0, z = 0 } })
   for _ = 1, 20 do
     veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = Unit.getByName("c-2") })
   end
@@ -390,8 +390,8 @@ function TestConvoyContact:test_a_wholly_unarmed_convoy_flees_as_one()
 end
 
 function TestConvoyContact:test_the_smokes_go_with_the_call()
-  self:_convoy(IFV)
-  local shooter = makeUnit("r-1", { side = RED, attributes = APC, point = { x = 1500, y = 0, z = 300 } })
+  self:_convoy(APC)
+  local shooter = makeUnit("r-1", { side = RED, attributes = IFV, point = { x = 1500, y = 0, z = 300 } })
   veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = Unit.getByName("c-1") })
   local red, green = nil, nil
   for _, effect in ipairs(dcs_mocks.effects) do
@@ -415,13 +415,13 @@ function TestConvoyContact:test_a_radio_that_raises_takes_neither_the_smokes_nor
       error("bad argument #2 to 'format' (string expected, got nil)")
     end,
   }
-  local units = { makeUnit("v-1", { attributes = IFV, point = { x = 0, y = 0, z = 0 } }) }
+  local units = { makeUnit("v-1", { attributes = APC, point = { x = 0, y = 0, z = 0 } }) }
   makeGroup("Voiced", units)
   dcs_mocks.visibilityAnswer = true
-  dcs_mocks.searchObjectsObjects = { makeUnit("seen", { side = RED, attributes = APC, point = { x = 2000, y = 0, z = 0 } }) }
+  dcs_mocks.searchObjectsObjects = { makeUnit("seen", { side = RED, attributes = IFV, point = { x = 2000, y = 0, z = 0 } }) }
   local handler = veafGroundAI.addConvoy("Voiced")
   veafRadio = savedRadio
-  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
   local smokes = 0
   for _, effect in ipairs(dcs_mocks.effects) do
     if effect.kind == "smoke" then
@@ -429,11 +429,13 @@ function TestConvoyContact:test_a_radio_that_raises_takes_neither_the_smokes_nor
     end
   end
   luaunit.assertEquals(smokes, 2)
-  local scheduled = 0
-  for _ in pairs(dcs_mocks.scheduledTasks) do
-    scheduled = scheduled + 1
+  local beats = 0
+  for _, task in pairs(dcs_mocks.scheduledTasks) do
+    if task.time - dcs_mocks.currentTime == ConvoyUnitHandler.CLOSE_WATCH_PERIOD then
+      beats = beats + 1
+    end
   end
-  luaunit.assertEquals(scheduled, 1, "the next beat is scheduled")
+  luaunit.assertEquals(beats, 1, "the next beat is scheduled")
 end
 
 -- ---------------------------------------------------------------------------
@@ -482,6 +484,23 @@ function TestConvoyWatch:test_an_enemy_in_sight_within_range_is_a_contact_before
   dcs_mocks.searchObjectsObjects = { makeUnit("seen", { side = RED, attributes = APC, point = { x = 2500, y = 0, z = 0 } }) }
   local handler = veafGroundAI.addConvoy("Watched")
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING, "3 against 1")
+  luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 0, "strong enough: no call for help (David, 2026-10-08)")
+  -- radio style, its callsign first and the enemy placed from its heading (north, the enemy north of it)
+  luaunit.assertStrContains(
+    dcs_mocks.messagesContaining("engaging")[1].text,
+    "Mule, contact ahead, 1 enemy at 2510 m bearing 000, engaging."
+  )
+  luaunit.assertEquals(#dcs_mocks.effects, 0, "and no smoke")
+end
+
+function TestConvoyWatch:test_an_outgunned_convoy_calls_for_help()
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.searchObjectsObjects = {
+    makeUnit("seen-1", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 0 } }),
+    makeUnit("seen-2", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 60 } }),
+  }
+  local handler = veafGroundAI.addConvoy("Watched")
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK, "3 against 8")
   luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 1)
 end
 
@@ -492,7 +511,7 @@ function TestConvoyWatch:test_an_enemy_in_sight_beyond_range_is_no_contact()
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_ALERTED)
 end
 
-function TestConvoyWatch:test_quiet_for_a_minute_it_holds_and_says_so()
+function TestConvoyWatch:test_quiet_for_a_minute_after_a_fight_it_drives_on_by_itself()
   dcs_mocks.visibilityAnswer = true
   local enemy = makeUnit("seen", { side = RED, attributes = APC, point = { x = 2500, y = 0, z = 0 } })
   dcs_mocks.searchObjectsObjects = { enemy }
@@ -503,9 +522,72 @@ function TestConvoyWatch:test_quiet_for_a_minute_it_holds_and_says_so()
     return 0
   end
   dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 5)
-  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_HOLDING)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_DRIVING, "no `_gc resume` needed after a won fight")
+  luaunit.assertEquals(countMessages("back on the road"), 1)
+  luaunit.assertEquals(countMessages("holding position"), 0)
+end
+
+function TestConvoyWatch:test_out_of_sight_is_not_destroyed_it_closes_in_again()
+  -- the demo's run of 2026-10-08: one BMP of three seen, then lost from sight, and the convoy drove on
+  local enemy = makeUnit("seen", { side = RED, attributes = APC, point = { x = 2500, y = 0, z = 0 } })
+  dcs_mocks.searchObjectsObjects = { enemy }
+  dcs_mocks.visibilityAnswer = true
+  local handler = veafGroundAI.addConvoy("Watched")
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  dcs_mocks.visibilityAnswer = false
+  local routesBefore = #dcs_mocks.tasksSet
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 5)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING, "still alive out of sight: the fight goes on")
+  luaunit.assertTrue(#dcs_mocks.tasksSet > routesBefore, "it closes in again on the enemy the watch knows of")
+  luaunit.assertEquals(countMessages("back on the road"), 0)
+  enemy.getLife = function()
+    return 0
+  end
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.QUIET_DELAY + 40)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_DRIVING, "none left alive: it drives on")
+  luaunit.assertEquals(countMessages("engaging"), 1, "the contact is reported once, not at each new approach")
+end
+
+function TestConvoyWatch:test_the_contact_report_comes_first_the_tactical_messages_after()
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.searchObjectsObjects = {
+    makeUnit("seen-1", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 0 } }),
+    makeUnit("seen-2", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 60 } }),
+  }
+  veafGroundAI.addConvoy("Watched")
+  luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 1, "the call at once")
+  luaunit.assertEquals(countMessages("breaking contact"), 0, "not yet")
+  luaunit.assertEquals(countMessages("unarmed vehicles"), 0, "not yet")
+  dcs_mocks.runScheduled(ConvoyUnitHandler.TACTICAL_MESSAGE_DELAY + 5)
+  local order = {}
+  for index, message in ipairs(dcs_mocks.messages) do
+    for _, needle in ipairs({ "TROOPS IN CONTACT", "breaking contact", "unarmed vehicles" }) do
+      if message.text:find(needle, 1, true) and not order[needle] then
+        order[needle] = index
+      end
+    end
+  end
+  luaunit.assertNotNil(order["breaking contact"])
+  luaunit.assertNotNil(order["unarmed vehicles"])
+  luaunit.assertTrue(order["TROOPS IN CONTACT"] < order["breaking contact"])
+  luaunit.assertTrue(order["breaking contact"] < order["unarmed vehicles"])
+end
+
+function TestConvoyWatch:test_quiet_for_a_minute_after_a_fall_back_it_holds_and_says_so()
+  dcs_mocks.visibilityAnswer = true
+  local enemies = {
+    makeUnit("seen-1", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 0 } }),
+    makeUnit("seen-2", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 60 } }),
+  }
+  dcs_mocks.searchObjectsObjects = enemies
+  local handler = veafGroundAI.addConvoy("Watched")
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
+  -- out of their sight now
+  dcs_mocks.visibilityAnswer = false
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 5)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_HOLDING, "the enemy it fled is still there")
   luaunit.assertEquals(countMessages("holding position"), 1)
-  luaunit.assertStrContains(dcs_mocks.messagesContaining("holding position")[1].text, "_gc Watched, resume")
+  luaunit.assertStrContains(dcs_mocks.messagesContaining("holding position")[1].text, "_gc Mule, resume")
 end
 
 function TestConvoyWatch:test_the_watch_ends_when_the_convoy_is_gone()
@@ -551,7 +633,7 @@ end
 
 function TestConvoyOrders:test_hold_halts_both_groups()
   makeGroup("Column", { makeUnit("k-1", { attributes = IFV }) })
-  local handler = veafGroundAI.addConvoy("Column")
+  local handler = veafGroundAI.addConvoy("Column", "Column")
   makeGroup("Column unarmed", { makeUnit("k-2", { point = { x = -2000, y = 0, z = 0 } }) })
   handler.unarmedGroupName = "Column unarmed"
   luaunit.assertTrue(veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, "_gc column, hold", BLUE))
@@ -562,14 +644,14 @@ end
 
 function TestConvoyOrders:test_retreat_without_a_friendly_place_says_where_to_give_one()
   makeGroup("Lost", { makeUnit("l-1", { attributes = IFV }) })
-  veafGroundAI.addConvoy("Lost")
+  veafGroundAI.addConvoy("Lost", "Lost")
   luaunit.assertFalse(veafGroundAI.executeCommand({ x = 0, y = 0, z = 0 }, "_gc lost, retreat", BLUE))
   luaunit.assertStrContains(dcs_mocks.messagesContaining("no friendly place")[1].text, "_gc Lost, retreat <point>")
 end
 
 function TestConvoyOrders:test_retreat_to_the_nearest_friendly_airbase()
   makeGroup("Column", { makeUnit("k-1", { attributes = IFV }) })
-  local handler = veafGroundAI.addConvoy("Column")
+  local handler = veafGroundAI.addConvoy("Column", "Column")
   local saved = coalition.getAirbases
   coalition.getAirbases = function(side)
     local function airbase(name, x, z, category)
@@ -610,6 +692,11 @@ function TestConvoyOrders:test_resume_brings_the_unarmed_group_back_and_merges_i
 
   luaunit.assertTrue(handler:resume())
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_RESUMING)
+  -- the trucks wait where they fell back, and the armed vehicles go and fetch them, by road
+  luaunit.assertEquals(tasksPushedTo("Column unarmed", "Hold"), 1)
+  luaunit.assertNil(lastTaskSetOn("Column unarmed"), "no route for the trucks before the merge")
+  local points = lastTaskSetOn("Column").params.route.points
+  luaunit.assertEquals({ points[#points].x, points[#points].y, points[#points].action }, { -2000, 0, "On Road" })
   handler:mergeIfClose()
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0, "2 km apart: not yet")
 
@@ -624,13 +711,114 @@ function TestConvoyOrders:test_resume_brings_the_unarmed_group_back_and_merges_i
   luaunit.assertNil(veafGroundAI.convoysByGroupName["Column unarmed"])
 end
 
+function TestConvoyOrders:test_the_onward_route_of_a_spawned_convoy_goes_back_to_the_road()
+  -- the convoy stands 350 m off the road after its fight; the road is at x = 0
+  makeGroup("[b]-Convoy-9", { makeUnit("o-1", { attributes = IFV, point = { x = 350, y = 0, z = 1000 } }) })
+  local savedSpawn, savedRoads = veafSpawn, land.getClosestPointOnRoads
+  veafSpawn = {
+    spawnedConvoys = {
+      ["[b]-Convoy-9"] = {
+        stopped = true,
+        route = {
+          { name = "T_STA", x = 300, y = 0, action = "Off Road" },
+          { name = "STA", x = 0, y = 0, action = "On Road" },
+          { name = "END", x = 0, y = 9000, action = "On Road" },
+          { name = "T_END", x = 200, y = 9100, action = "Diamond" },
+        },
+      },
+    },
+  }
+  land.getClosestPointOnRoads = function(_, x, z)
+    return 0, z
+  end
+  local handler = veafGroundAI.addConvoy("[b]-Convoy-9")
+  local points = handler:onwardRoute(Group.getByName("[b]-Convoy-9"))
+  local record = veafSpawn.spawnedConvoys["[b]-Convoy-9"]
+  veafSpawn, land.getClosestPointOnRoads = savedSpawn, savedRoads
+  luaunit.assertEquals(#points, 4)
+  luaunit.assertEquals({ points[2].x, points[2].y, points[2].action }, { 0, 1000, "On Road" }, "back to the road first")
+  luaunit.assertEquals({ points[3].x, points[3].y, points[3].action }, { 0, 9000, "On Road" }, "then the leg's road end")
+  luaunit.assertEquals(points[4].action, "Diamond", "and its true end last, as the spawn made it")
+  luaunit.assertFalse(record.stopped, "the itinerary watch may advance it again")
+end
+
+function TestConvoyOrders:test_trucks_that_never_rejoin_do_not_hold_the_column_forever()
+  makeGroup("Column", { makeUnit("t-1", { attributes = IFV, point = { x = 0, y = 0, z = 0 } }) })
+  local handler = veafGroundAI.addConvoy("Column", "Column")
+  makeGroup("Column unarmed", { makeUnit("t-2", { point = { x = -2000, y = 0, z = 0 } }) })
+  handler.unarmedGroupName = "Column unarmed"
+  handler:resume()
+  dcs_mocks.advanceTime(ConvoyUnitHandler.REJOIN_TIMEOUT + 1)
+  handler:mergeIfClose()
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_DRIVING)
+  luaunit.assertNotNil(lastTaskSetOn("Column"), "the armed vehicles drive on")
+  luaunit.assertNotNil(lastTaskSetOn("Column unarmed"), "and so do the trucks, on their own")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0, "never merged")
+end
+
+function TestConvoyOrders:test_a_marker_shows_the_convoy_in_contact_and_goes_with_it()
+  local marks, removed = {}, {}
+  local savedMark, savedRemove = trigger.action.markToCoalition, trigger.action.removeMark
+  trigger.action.markToCoalition = function(id, text, point, side, readOnly)
+    marks[#marks + 1] = { id = id, text = text, point = point, side = side, readOnly = readOnly }
+  end
+  trigger.action.removeMark = function(id)
+    removed[#removed + 1] = id
+  end
+  dcs_mocks.visibilityAnswer = true
+  local enemy = makeUnit("seen", { side = RED, attributes = APC, point = { x = 2500, y = 0, z = 0 } })
+  dcs_mocks.searchObjectsObjects = { enemy }
+  makeGroup("Marked", { makeUnit("mk-1", { attributes = IFV, point = { x = 0, y = 0, z = 0 } }) })
+  local handler = veafGroundAI.addConvoy("Marked")
+  local first = marks[1]
+  dcs_mocks.runScheduled(ConvoyUnitHandler.DANGER_MARK_PERIOD + 4)
+  local movedOnce = #marks
+  enemy.getLife = function()
+    return 0
+  end
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 30)
+  trigger.action.markToCoalition, trigger.action.removeMark = savedMark, savedRemove
+  luaunit.assertNotNil(first, "a marker at the contact")
+  luaunit.assertStrContains(first.text, "Mule")
+  luaunit.assertEquals(first.side, BLUE)
+  luaunit.assertTrue(first.readOnly)
+  luaunit.assertTrue(movedOnce >= 2, "moved with the convoy: " .. movedOnce)
+  luaunit.assertNil(handler.dangerMarkId, "gone once the contact is over")
+  luaunit.assertEquals(removed[#removed], marks[#marks].id, "the last one put is the last one removed")
+end
+
 function TestConvoyOrders:test_a_part_of_the_name_gives_an_order_to_one_handler()
-  makeGroup("[b]-Convoy-3", { makeUnit("p-1") })
-  makeGroup("[b]-Convoy-4", { makeUnit("p-2") })
-  veafGroundAI.addConvoy("[b]-Convoy-3")
-  veafGroundAI.addConvoy("[b]-Convoy-4")
-  luaunit.assertEquals(veafGroundAI.getOrComplain("convoy-3"):getName(), "[b]-Convoy-3")
-  luaunit.assertNil(veafGroundAI.getByPart("convoy"), "two matches are no match")
+  makeGroup("Supply North", { makeUnit("p-1") })
+  makeGroup("Supply South", { makeUnit("p-2") })
+  veafGroundAI.addConvoy("Supply North", "Supply North")
+  veafGroundAI.addConvoy("Supply South", "Supply South")
+  luaunit.assertEquals(veafGroundAI.getOrComplain("north"):getName(), "Supply North")
+  luaunit.assertNil(veafGroundAI.getByPart("supply"), "two matches are no match")
+end
+
+function TestConvoyOrders:test_a_convoy_nobody_named_takes_the_next_free_callsign()
+  -- `_gc mule, resume` rather than `_gc [b]-Convoy#10473, resume`
+  makeGroup("[b]-Convoy#1", { makeUnit("n-1") })
+  makeGroup("[b]-Convoy#2", { makeUnit("n-2") })
+  luaunit.assertEquals(veafGroundAI.addConvoy("[b]-Convoy#1"):getName(), "Mule")
+  luaunit.assertEquals(veafGroundAI.addConvoy("[b]-Convoy#2"):getName(), "Bison")
+  luaunit.assertEquals(veafGroundAI.getOrComplain("mule"):getGroupName(), "[b]-Convoy#1")
+  -- once every callsign is held, the list starts again with a number
+  for index = 3, #ConvoyUnitHandler.CALLSIGNS do
+    makeGroup("[b]-Convoy#" .. index, { makeUnit("n-" .. index) })
+    veafGroundAI.addConvoy("[b]-Convoy#" .. index)
+  end
+  makeGroup("[b]-Convoy#99", { makeUnit("n-99") })
+  luaunit.assertEquals(veafGroundAI.addConvoy("[b]-Convoy#99"):getName(), "Mule 2")
+end
+
+function TestConvoyOrders:test_the_relative_direction_of_a_threat()
+  luaunit.assertEquals(veafGroundAI.relativeDirectionKey(10), "groundai.direction_ahead")
+  luaunit.assertEquals(veafGroundAI.relativeDirectionKey(-30), "groundai.direction_ahead")
+  luaunit.assertEquals(veafGroundAI.relativeDirectionKey(90), "groundai.direction_right")
+  luaunit.assertEquals(veafGroundAI.relativeDirectionKey(180), "groundai.direction_behind")
+  luaunit.assertEquals(veafGroundAI.relativeDirectionKey(-90), "groundai.direction_left")
+  luaunit.assertEquals(veafGroundAI.relativeDirectionKey(270), "groundai.direction_left")
 end
 
 function TestConvoyOrders:test_set_does_not_take_over_an_autopilot_by_a_part_of_its_name()

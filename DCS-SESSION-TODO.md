@@ -58,11 +58,13 @@ removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4'
 
 [`FEAT-CONVOY-UNDER-FIRE`](.backlog/FEAT-CONVOY-UNDER-FIRE/PRD.md), ticket 07.
 Already seen on 2026-10-08 with the module hot-loaded into a running mission (`D:\dev\_VEAF\tmp\dcs-session-2026-10-08-convoy\`, probes `p*.lua` through `fiddle.sh`): the watch made contact at 1.9 km before any shot, the trucks left at once and whole, the Bradleys closed in and destroyed a BMP-2 and a BTR-80 in 16 s from ~1.3 km without a loss, the convoy held after 60 s, and `resume` brought the trucks back.
-What that run did not show: the code **as built** (`_spawn convoy` attaching itself, `GROUNDAI.convoys` from `mission.yaml`), an **outgunned** convoy falling back behind terrain to a friendly airbase, the **voice**, and how long a smoke lasts.
+**Run again on the shipped build the same day**, the demo's `convoy-ambush` step (`recette_pont.py`, 2 checks, 0 failed): `-convoy, dest EMBUSCADE, side blue` was attached to the watch by the spawn itself, made contact, split, closed in and destroyed the three red vehicles without a loss (20 vehicles out of 20 intact), held, and `_gc convoy, resume` merged it back into one group. Items 1 and 5 below are done but for the text and the smokes, not looked at.
+**Third pass, the same afternoon**, hot-loaded into the demo's test mission after David's remarks: a strong convoy reported the contact under its callsign (*Bison, contact avant, …, on engage le combat*), without a call or smoke, the tactical message 18 s after; an F10 marker showed it during the contact and went with it; it drove on only once the ambush was destroyed, fetched its trucks and drove on as one group, by road. An outgunned convoy fell back with both groups on the road, out of the ambush's sight, called for help and held.
+What is left: `GROUNDAI.convoys` from `mission.yaml`, an **outgunned** convoy falling back behind terrain to a friendly airbase, the **voice**, how long a smoke lasts, and the call and the smokes seen by eye.
 
 **Prepare**: a Caucasus test mission built from the branch, security off, a game master slot, `GROUNDAI: { enabled: true, convoys: [ "Supply North" ] }` with a Mission Editor group `Supply North` (one HMMWV, three trucks) on a road 6 km from Kutaisi, and on DAVID-BUREAU the `SRS_for_scripting_config.lua` of the ground AI page ([Faire parler la mission](doc/mission-maker/scripts/veafGroundAI.md#srs-voice)) with an SRS server running.
 
-1. `_spawn convoy` toward a road with two BMP-2 400 m off it; a ridge beside the road.
+1. `_spawn convoy` toward a road with two BMP-2 400 m off it; a ridge beside the road. **Done on 2026-10-08 but for the last point** — `side blue`: `-convoy` is red by default.
    - **Verified**: `_gc convoy, status` answers (the spawn attached it); contact before the first red shot; `<convoy> unarmed` leaves at once; the call for help appears to blue with a red smoke on the nearest BMP and a green one on the convoy.
    - **Re-opened, no status**: the convoy was not handed to the watch — `veafGroundAI.initialized` was false when it spawned.
 2. Let `Supply North` drive into three BMP-2 (outgunned: 1 against 9).
@@ -73,9 +75,9 @@ What that run did not show: the code **as built** (`_spawn convoy` attaching its
    - **Re-opened, silent**: `dcs.log` says `SRS is not configured` (the file was not read) or nothing at all (`os` missing).
 4. Note when the green smoke of item 1 disappears, by eye.
    - **Answer**: its duration — write it into `known-limitations.yaml` and set `ConvoyUnitHandler.SMOKE_RENEW_PERIOD` just below it.
-5. After the hold, `_gc convoy, resume`.
-   - **Verified**: the trucks drive straight to the armed vehicles, the convoy becomes one group (`dcs.log`: `merged back`) and drives on.
-   - **Re-opened**: no merge — the trucks stopped short of 300 m, or drove away to a road.
+5. After a won fight, a minute with nothing in sight. **`_gc convoy, resume` and the merge done on 2026-10-08**, on the shipped build; the convoy then drove on **across country**, 330 to 376 m from the road — fixed since (it goes back to the road first), and the resume is automatic after a fight.
+   - **Verified**: without any order, *back on the road*; the trucks drive straight to the armed vehicles, the convoy becomes one group (`dcs.log`: `merged back`) and drives on **by road**; no call for help nor smoke during that fight, only the contact message.
+   - **Re-opened**: it holds after a won fight, or drives across country — note the distance to the road (`land.getClosestPointOnRoads`).
 
 ### R44. A multi-mission campaign, two missions end to end — **no pilot for items 1 to 5**
 

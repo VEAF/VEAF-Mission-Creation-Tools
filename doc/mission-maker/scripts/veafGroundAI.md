@@ -162,28 +162,37 @@ Le pilote automatique de convoi fait le travail à sa place, **sans personne aux
 2. **Il réagit au premier qui compte** : un ennemi en vue à moins de 3 km, ou le premier tir reçu (artillerie, avion, embuscade invisible).
 3. **Il se scinde.** Les véhicules non armés (camions…) partent **immédiatement** se replier, dans leur propre groupe, nommé `<convoi> unarmed`. Les véhicules armés restent dans le groupe du convoi, qui garde son nom.
 4. **Les armés combattent ou se replient.** Chaque véhicule a une valeur de combat : char 4, véhicule de combat d'infanterie 3, blindé de transport, AAA ou autre véhicule armé 1, non armé 0. Si les armés valent au moins 1,5 fois les ennemis en vue, ils **vont au contact** jusqu'à 900 m de l'ennemi le plus proche, alarme rouge, feu à volonté ; sinon ils se replient à leur tour. Un avion ou un tir venu de plus de 3 km ne se combat pas : on se replie.
-5. **Il appelle à l'aide**, à sa coalition, sous la forme d'un appel *troops in contact* : sa position (coordonnées et MGRS), le nombre et le type d'ennemis, leur cap et leur distance. Un **fumigène rouge** marque l'ennemi le plus proche, un **vert** le convoi, renouvelés toutes les 5 minutes tant que le contact dure. Si la mission sait parler ([SRS configuré](#srs-voice)), le même appel passe en voix sur 243 et 121,5 MHz AM.
+5. **S'il se replie, il appelle à l'aide**, à sa coalition, sous la forme d'un appel *troops in contact* : sa position (coordonnées et MGRS), le nombre et le type d'ennemis, leur cap et leur distance. Un **fumigène rouge** marque l'ennemi le plus proche, un **vert** le convoi, renouvelés toutes les 5 minutes tant que le contact dure. Si la mission sait parler ([SRS configuré](#srs-voice)), le même appel passe en voix sur 243 et 121,5 MHz AM.
+   Assez fort pour combattre, il ne demande rien : un message d'information dit le contact, le nombre d'ennemis, leur cap et leur distance, sans fumigène.
+   Dans les deux cas, un **marqueur F10** montre le convoi à sa coalition tant que le contact dure (« Mule — convoi au contact »), suivi toutes les 15 s, et retiré quand le contact est fini.
 6. **Il se replie à couvert** : vers le lieu ami le plus proche (une zone de campagne de son camp, un de ses aérodromes), en passant par un point que le relief ou une ville cache à l'ennemi ; s'il n'y en a aucun, le plus court chemin hors de portée.
-7. **Il tient.** Une minute sans rien voir ni rien recevoir : il le dit, s'arrête et attend un ordre — il ne repart pas tout seul dans la même embuscade.
+7. **Après le contact.** Une minute sans rien voir ni rien recevoir :
+   - **après un combat**, une fois qu'il ne reste plus d'ennemi vivant autour de lui (un ennemi seulement sorti de sa vue, il retourne le chercher), il reprend la route tout seul : les véhicules armés vont rechercher leurs non armés, qui les attendent là où ils se sont repliés, le convoi se reforme, puis repart par la route et non à travers champs (si le ralliement n'a pas eu lieu en 10 minutes, chacun repart de son côté) ;
+   - **après un repli**, il le dit, s'arrête et attend un ordre : l'ennemi qu'il a fui est toujours là, et il ne repart pas tout seul dans la même embuscade.
 
 Un convoi rouge fait exactement la même chose, du côté rouge.
 
+**Il parle comme un équipage à la radio**, en commençant par son **indicatif** : « Mule, contact avant, 3 ennemis à 2500 m au 045, on engage le combat. » La direction (avant, arrière, gauche, droite) est donnée par rapport au cap du convoi. Le compte rendu de contact vient d'abord ; les messages tactiques (« les véhicules non armés se replient ») suivent 15 s plus tard.
+
 ### Quels groupes {#convoy-groups}
 
-- **Chaque convoi apparu par `_spawn convoy`**, automatiquement. Son nom est celui que le spawn lui donne (`[b]-Convoy-3`…) ; un fragment suffit dans `_gc`, comme pour `groupname`.
+- **Chaque convoi apparu par `_spawn convoy`**, automatiquement.
+  Attention : `-convoy` fait apparaître un convoi **rouge** par défaut — une cible. Pour un convoi ami, ajoutez `side blue` : `-convoy, dest ALPHA, side blue`.
 - Un groupe de l'éditeur de missions, listé dans `mission.yaml` ([plus bas](#configuration-missionyaml)).
 - N'importe quel groupe, en jeu : `_gc <nom>, convoy`, le marqueur posé sur le groupe (ou avec `groupname`).
+
+Chaque convoi a un **indicatif**, qui est aussi le nom que `_gc` utilise pour lui : le nom donné dans `_gc <nom>, convoy`, sinon le premier libre d'une liste de bêtes de somme (Mule, Bison, Yak, Lama, Zebu, Buffle, Chameau…), sans accents pour se taper facilement ; une fois la liste épuisée, elle repart avec un numéro (`Mule 2`). `_gc <indicatif>, status` le rappelle, avec le nom DCS du groupe ; un fragment de l'indicatif suffit.
 
 ### Les ordres {#convoy-orders}
 
 | Ce que vous écrivez | Ce que ça fait |
 |---|---|
-| `_gc convoy-3, retreat` | repli par la route vers le lieu ami le plus proche |
-| `_gc convoy-3, retreat KOBULETI` | repli vers ce point nommé, ou ces coordonnées |
-| `_gc convoy-3, hold` | arrêt sur place, des deux groupes |
-| `_gc convoy-3, resume` | repart : les combattants reprennent la route, les non armés les rejoignent, et le convoi se reforme en un seul groupe à moins de 300 m |
-| `_gc convoy-3, status` | ce que fait le convoi (en route, en alerte, au combat, en repli, à l'arrêt…) |
-| `_gc ravito, convoy, groupname Ravitaillement` | confie le groupe `Ravitaillement` au pilote de convoi, sous le nom `ravito` |
+| `_gc mule, retreat` | repli par la route vers le lieu ami le plus proche |
+| `_gc mule, retreat KOBULETI` | repli vers ce point nommé, ou ces coordonnées |
+| `_gc mule, hold` | arrêt sur place, des deux groupes |
+| `_gc mule, resume` | repart (automatique après un combat gagné) : les combattants vont rechercher les non armés, qui les attendent, le convoi se reforme en un seul groupe à moins de 300 m et reprend la route |
+| `_gc mule, status` | ce que fait le convoi (en route, en alerte, au combat, en repli, à l'arrêt…) |
+| `_gc ravito, convoy, groupname Ravitaillement` | confie le groupe `Ravitaillement` au pilote de convoi, sous l'indicatif `ravito` |
 
 Ce sont aussi ces marqueurs qu'un maître du jeu envoie pour diriger un convoi.
 
@@ -259,6 +268,7 @@ modules:
 - **La veille du convoi ne voit pas la végétation.** `land.isVisible` ne tient compte que du relief : le convoi peut juger « en vue » un ennemi que les arbres cachent à l'IA de DCS. C'est pourquoi ses armés vont au contact au lieu de s'arrêter : arrêtés à 1,9 km d'un ennemi « en vue », deux Bradley n'ont pas tiré un coup en deux minutes (mesuré le 2026-10-08).
 - **Les arbres ne servent pas de couvert au repli** : `world.searchObjects` ne les trouve pas. Seuls le relief et les villes cachent le point de repli.
 - **Le fumigène n'aveugle pas l'IA de DCS** (mesuré le 2026-10-08) : il marque, pour les pilotes. Le convoi ne pose donc pas de rideau de fumée.
+- **Un ennemi vivant que le convoi ne peut pas atteindre le retient au combat** : tant qu'il en reste un dans son rayon de veille, il retourne le chercher plutôt que de reprendre la route. `_gc <indicatif>, resume` le fait repartir.
 - **Un véhicule détaché ou regroupé repart neuf** : DCS ne permet pas de recréer une unité avec ses dégâts. La veille scinde presque toujours le convoi avant le premier coup reçu.
 - **Le rayon de recherche de 250 mètres n'est pas configurable.**
 - Les ordres passent par la carte F10 uniquement : **ce module n'a pas de menu radio**.

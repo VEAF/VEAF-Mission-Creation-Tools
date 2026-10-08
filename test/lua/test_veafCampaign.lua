@@ -1208,25 +1208,29 @@ function TestVeafCampaignAssault:test_the_convoy_leaves_on_the_road_to_its_targe
   luaunit.assertEquals(#dcs_mocks.messagesContaining("Senaki"), 2, "its side told, the other one warned")
 end
 
--- FIX-CAMPAIGN-ARROW-ALTITUDE: the axis was drawn at y = 0, and on the F10 map it slid away from the
--- ground as the map was panned (right only fully zoomed in) — both its ends sit on the terrain now.
-function TestVeafCampaignAssault:test_the_axis_arrow_lies_on_the_ground_from_source_to_target()
-  local savedArrow, savedHeight = trigger.action.arrowToAll, land.getHeight
-  local arrows = {}
-  trigger.action.arrowToAll = function(_, _, startPoint, endPoint)
-    table.insert(arrows, { startPoint = startPoint, endPoint = endPoint })
-  end
-  land.getHeight = function(vec2)
-    return 30 + vec2.x / 1000
-  end
+-- FIX-CAMPAIGN-ARROW-ALTITUDE: on the F10 map an `arrowToAll` axis slid away from its points as the map
+-- was panned, at sea level or on the terrain alike. The axis is a line in the side's colour over the
+-- link, the primitive the links themselves use and that holds still.
+function TestVeafCampaignAssault:test_the_axis_is_a_line_in_the_side_colour_from_source_to_target()
+  local savedArrow, savedLine = trigger.action.arrowToAll, trigger.action.lineToAll
   veafCampaign.initialize()
+  local arrows, lines = 0, {}
+  trigger.action.arrowToAll = function()
+    arrows = arrows + 1
+  end
+  trigger.action.lineToAll = function(coalitionSide, id, startPoint, endPoint, color)
+    table.insert(lines, { coalition = coalitionSide, id = id, startPoint = startPoint, endPoint = endPoint, color = color })
+  end
   veafCampaign.pendingAssaults["Poti|blue"] = nil
   timer.setTime(600)
   veafCampaign.beat()
-  trigger.action.arrowToAll, land.getHeight = savedArrow, savedHeight
-  luaunit.assertEquals(#arrows, 1)
-  luaunit.assertEquals(arrows[1].startPoint, { x = 20000, y = 50, z = 0 })
-  luaunit.assertEquals(arrows[1].endPoint, { x = 10000, y = 40, z = 0 })
+  trigger.action.arrowToAll, trigger.action.lineToAll = savedArrow, savedLine
+  luaunit.assertEquals(arrows, 0)
+  luaunit.assertEquals(#lines, 1)
+  luaunit.assertEquals(lines[1].coalition, -1)
+  luaunit.assertEquals({ lines[1].startPoint.x, lines[1].endPoint.x }, { 20000, 10000 })
+  luaunit.assertEquals(lines[1].color, veafCampaign.AXIS_COLORS.red)
+  luaunit.assertEquals(lines[1].id, veafCampaign.convoys[1].axisId)
 end
 
 function TestVeafCampaignAssault:test_a_bigger_opposition_attacks_earlier()

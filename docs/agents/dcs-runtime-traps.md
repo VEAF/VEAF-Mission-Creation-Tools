@@ -577,19 +577,25 @@ an `Orbit` alone: they patrolled and never fought.
 
 ## Players, roles and the map {#players}
 
-### An `arrowToAll` drawn at y = 0 slides away from the ground as the F10 map is panned {#arrow-at-sea-level-slides-on-the-f10-map}
+### An `arrowToAll` slides away from its points as the F10 map is panned, and its tip is the first point {#arrow-to-all-slides-on-the-f10-map}
 
 Measured **2026-10-08**.
 
-Observed by David on *Kolkhida* mission 1 (Caucasus, Colchis plain, terrain 0–50 m): the campaign's
-assault-convoy arrows, both ends at `y = 0`, were right only fully zoomed in. Panned, even zoomed,
-they shifted "as if on another plane": both started from one point east of Poti, about 25 %
-longer than the axes they drew. The zone circles (`circleToAll`, also at `y = 0`), their labels
-and DCS's own route lines held still.
+Observed by David on *Kolkhida* mission 1 (Caucasus, Colchis plain): each assault-convoy arrow,
+drawn with `arrowToAll(-1, id, source, target, …)`, was right only fully zoomed in; panned, even
+zoomed, it slid away "as if on another plane", about 25 % longer than its axis. Points at `y = 0`
+and points at the terrain height (`land.getHeight`) gave the same picture. `circleToAll`,
+`lineToAll` and their labels, at `y = 0`, held still.
 
-**What to do:** Give every point of a drawn shape the terrain height, `land.getHeight({ x = p.x, y = p.z })`, as
-the points of the shapes drawn from map markers already are. That this is the whole answer is
-**not confirmed** yet: the circles at `y = 0` do not slide.
+**The tip is the first point**, not the second: the arrows pointed at their source. MOOSE
+(`COORDINATE:ArrowToAll`, `Core/Point.lua`) passes the tip first, and so do `veaf.lua` and the
+Skynet spotter tests; the DCS schema shipped in `veaf_libs/data/dcs-schema/dcs-world-api.lua`
+says the opposite and is wrong. MOOSE has nothing against the sliding: a plain call, "no control
+over other dimensions of the arrow".
+
+**What to do:** Draw a direction with `lineToAll` in the side's colour rather than an arrow — the campaign's axes
+since FIX-CAMPAIGN-ARROW-ALTITUDE; the Skynet spotter view had already dropped arrows for their
+8 km heads. An arrow that must stay: tip first.
 
 ### A game master **is** coalition-scoped for map marks {#game-master-marks-are-coalition-scoped}
 

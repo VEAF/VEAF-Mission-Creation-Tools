@@ -153,7 +153,7 @@ After `rules.assault_seconds` (600 s by default, sooner when the [opposition lev
 One convoy at a time per side and target; it does not leave if its start zone changed hands.
 It is armour after its start zone's size class plus a few trucks, **paid from its side's reserve**, unit by unit; an empty reserve sends nothing.
 It behaves like any convoy under fire ([veafGroundAI](scripts/veafGroundAI.en.md)): it watches ahead, splits, calls for help, falls back.
-Its side is told it leaves, the other side hears it as intelligence ("an enemy column is leaving Senaki towards Poti"), and an arrow in its colour marks its axis on the F10 map.
+Its side is told it leaves, the other side hears it as intelligence ("an enemy column is leaving Senaki towards Poti"), and a line in its colour, over the link, marks its axis on the F10 map until it arrives or is destroyed.
 Once there, it holds the zone like any ground unit and takes it after `capture_seconds`: its survivors in the zone become the garrison, with no second draw from the reserve.
 Blue players also send them from the **Campaign → Assaults** menu, from a blue zone to a neighbour that is not, at the mission's security level.
 `rules.assault_convoys: false` turns the rule off; the menu stays.

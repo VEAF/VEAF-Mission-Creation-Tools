@@ -21,3 +21,4 @@ On the way: a flight plan in `waypoints.yaml` takes its waypoints by **key** (`w
 | # | Ticket | Status |
 |---|---|---|
 | [01](tickets/01-objective-waypoints.md) | `campaign next` writes the objectives as waypoints; the plan's key/value said plainly | ⬜ |
+| [02](tickets/02-navigation-page.md) | The mission briefing shows the flight plan | ⬜ |

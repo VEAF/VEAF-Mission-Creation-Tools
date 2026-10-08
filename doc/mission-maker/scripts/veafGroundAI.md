@@ -162,9 +162,12 @@ Le pilote automatique de convoi fait le travail à sa place, **sans personne aux
 2. **Il réagit au premier qui compte** : un ennemi en vue à moins de 3 km, ou le premier tir reçu (artillerie, avion, embuscade invisible).
 3. **Il se scinde.** Les véhicules non armés (camions…) partent **immédiatement** se replier, dans leur propre groupe, nommé `<convoi> unarmed`. Les véhicules armés restent dans le groupe du convoi, qui garde son nom.
 4. **Les armés combattent ou se replient.** Chaque véhicule a une valeur de combat : char 4, véhicule de combat d'infanterie 3, blindé de transport, AAA ou autre véhicule armé 1, non armé 0. Si les armés valent au moins 1,5 fois les ennemis en vue, ils **vont au contact** jusqu'à 900 m de l'ennemi le plus proche, alarme rouge, feu à volonté ; sinon ils se replient à leur tour. Un avion ou un tir venu de plus de 3 km ne se combat pas : on se replie.
-5. **Il appelle à l'aide**, à sa coalition, sous la forme d'un appel *troops in contact* : sa position (coordonnées et MGRS), le nombre et le type d'ennemis, leur cap et leur distance. Un **fumigène rouge** marque l'ennemi le plus proche, un **vert** le convoi, renouvelés toutes les 5 minutes tant que le contact dure. Si la mission sait parler ([SRS configuré](#srs-voice)), le même appel passe en voix sur 243 et 121,5 MHz AM.
+5. **S'il se replie, il appelle à l'aide**, à sa coalition, sous la forme d'un appel *troops in contact* : sa position (coordonnées et MGRS), le nombre et le type d'ennemis, leur cap et leur distance. Un **fumigène rouge** marque l'ennemi le plus proche, un **vert** le convoi, renouvelés toutes les 5 minutes tant que le contact dure. Si la mission sait parler ([SRS configuré](#srs-voice)), le même appel passe en voix sur 243 et 121,5 MHz AM.
+   Assez fort pour combattre, il ne demande rien : un message d'information dit le contact, le nombre d'ennemis, leur cap et leur distance, sans fumigène.
 6. **Il se replie à couvert** : vers le lieu ami le plus proche (une zone de campagne de son camp, un de ses aérodromes), en passant par un point que le relief ou une ville cache à l'ennemi ; s'il n'y en a aucun, le plus court chemin hors de portée.
-7. **Il tient.** Une minute sans rien voir ni rien recevoir : il le dit, s'arrête et attend un ordre — il ne repart pas tout seul dans la même embuscade.
+7. **Après le contact.** Une minute sans rien voir ni rien recevoir :
+   - **après un combat**, il reprend la route tout seul, par la route et non à travers champs, et ses véhicules non armés le rejoignent ;
+   - **après un repli**, il le dit, s'arrête et attend un ordre : l'ennemi qu'il a fui est toujours là, et il ne repart pas tout seul dans la même embuscade.
 
 Un convoi rouge fait exactement la même chose, du côté rouge.
 
@@ -182,7 +185,7 @@ Un convoi rouge fait exactement la même chose, du côté rouge.
 | `_gc convoy-3, retreat` | repli par la route vers le lieu ami le plus proche |
 | `_gc convoy-3, retreat KOBULETI` | repli vers ce point nommé, ou ces coordonnées |
 | `_gc convoy-3, hold` | arrêt sur place, des deux groupes |
-| `_gc convoy-3, resume` | repart : les combattants reprennent la route, les non armés les rejoignent, et le convoi se reforme en un seul groupe à moins de 300 m |
+| `_gc convoy-3, resume` | repart (automatique après un combat gagné) : les combattants reprennent la route, les non armés les rejoignent, et le convoi se reforme en un seul groupe à moins de 300 m |
 | `_gc convoy-3, status` | ce que fait le convoi (en route, en alerte, au combat, en repli, à l'arrêt…) |
 | `_gc ravito, convoy, groupname Ravitaillement` | confie le groupe `Ravitaillement` au pilote de convoi, sous le nom `ravito` |
 

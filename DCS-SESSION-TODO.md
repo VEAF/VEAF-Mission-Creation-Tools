@@ -74,9 +74,9 @@ What is left: `GROUNDAI.convoys` from `mission.yaml`, an **outgunned** convoy fa
    - **Re-opened, silent**: `dcs.log` says `SRS is not configured` (the file was not read) or nothing at all (`os` missing).
 4. Note when the green smoke of item 1 disappears, by eye.
    - **Answer**: its duration — write it into `known-limitations.yaml` and set `ConvoyUnitHandler.SMOKE_RENEW_PERIOD` just below it.
-5. After the hold, `_gc convoy, resume`. **Done on 2026-10-08**, on the shipped build.
-   - **Verified**: the trucks drive straight to the armed vehicles, the convoy becomes one group (`dcs.log`: `merged back`) and drives on.
-   - **Re-opened**: no merge — the trucks stopped short of 300 m, or drove away to a road.
+5. After a won fight, a minute with nothing in sight. **`_gc convoy, resume` and the merge done on 2026-10-08**, on the shipped build; the convoy then drove on **across country**, 330 to 376 m from the road — fixed since (it goes back to the road first), and the resume is automatic after a fight.
+   - **Verified**: without any order, *back on the road*; the trucks drive straight to the armed vehicles, the convoy becomes one group (`dcs.log`: `merged back`) and drives on **by road**; no call for help nor smoke during that fight, only the contact message.
+   - **Re-opened**: it holds after a won fight, or drives across country — note the distance to the road (`land.getClosestPointOnRoads`).
 
 ### R44. A multi-mission campaign, two missions end to end — **no pilot for items 1 to 5**
 

@@ -163,9 +163,12 @@ The convoy autopilot does the work instead, **with nobody at the controls**.
 2. **It reacts to the first one that matters**: an enemy in sight within 3 km, or the first shot received (artillery, aircraft, an ambush it could not see).
 3. **It splits.** The unarmed vehicles (trucks…) leave **at once** to fall back, as their own group, named `<convoy> unarmed`. The armed vehicles stay in the convoy's group, which keeps its name.
 4. **The armed vehicles fight or fall back.** Each vehicle has a combat value: tank 4, infantry fighting vehicle 3, armoured personnel carrier, AAA or other armed vehicle 1, unarmed 0. When the armed ones are worth at least 1.5 times the enemies in sight, they **close in** to 900 m of the nearest enemy, alarm red, weapons free; otherwise they fall back as well. An aircraft, or fire from beyond 3 km, cannot be fought: they fall back.
-5. **It calls for help**, to its coalition, in the shape of a *troops in contact* call: its position (coordinates and MGRS), how many enemies and of what type, their bearing and distance. A **red smoke** marks the nearest enemy, a **green** one the convoy, renewed every 5 minutes while the contact lasts. When the mission can speak ([SRS configured](#srs-voice)), the same call goes out in voice on 243 and 121.5 MHz AM.
+5. **When it falls back, it calls for help**, to its coalition, in the shape of a *troops in contact* call: its position (coordinates and MGRS), how many enemies and of what type, their bearing and distance. A **red smoke** marks the nearest enemy, a **green** one the convoy, renewed every 5 minutes while the contact lasts. When the mission can speak ([SRS configured](#srs-voice)), the same call goes out in voice on 243 and 121.5 MHz AM.
+   Strong enough to fight, it asks for nothing: an information message gives the contact, how many enemies, their bearing and distance, with no smoke.
 6. **It falls back behind cover**: toward the nearest friendly place (a campaign zone its side owns, one of its airbases), through a point terrain or a town hides from the enemy; when there is none, the shortest way out of range.
-7. **It holds.** A minute with nothing in sight and nothing received: it says so, stops and waits for an order — it does not drive back into the same ambush by itself.
+7. **After the contact.** A minute with nothing in sight and nothing received:
+   - **after a fight**, it drives on by itself, by road rather than across country, and its unarmed vehicles join it;
+   - **after a fall back**, it says so, stops and waits for an order: the enemy it fled is still there, and it does not drive back into the same ambush by itself.
 
 A red convoy does exactly the same, on the red side.
 
@@ -183,7 +186,7 @@ A red convoy does exactly the same, on the red side.
 | `_gc convoy-3, retreat` | falls back by road to the nearest friendly place |
 | `_gc convoy-3, retreat KOBULETI` | falls back to this named point, or these coordinates |
 | `_gc convoy-3, hold` | stops where it stands, both groups |
-| `_gc convoy-3, resume` | drives on: the armed vehicles take the road again, the unarmed ones join them, and the convoy becomes one group again within 300 m |
+| `_gc convoy-3, resume` | drives on (by itself after a won fight): the armed vehicles take the road again, the unarmed ones join them, and the convoy becomes one group again within 300 m |
 | `_gc convoy-3, status` | what the convoy is doing (driving, alerted, fighting, falling back, holding…) |
 | `_gc supply, convoy, groupname Supply North` | hands the group `Supply North` to the convoy autopilot, under the name `supply` |
 

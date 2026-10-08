@@ -1470,15 +1470,42 @@ function ConvoyUnitHandler:recordThreat(unit, now, fired)
   self.lastContact = now
 end
 
+--- The unit behind a shot: the initiator itself, or the launcher of a weapon; nil when nobody is known.
+---
+--- Some hits name the weapon as their initiator: on Kolkhida, 2026-10-08, a convoy's threats held
+--- `weapons.shells.M61_20_HE_gr`, counted for `math.huge` since a shell is no ground unit — enough to make a
+--- convoy fall back from a round (FIX-CAPTURE-ZONE-MEMBERSHIP ticket 05).
+--- @param initiator table|nil the event's initiator
+--- @return table|nil the DCS unit that fired
+function veafGroundAI.shooterOf(initiator)
+  if not initiator then
+    return nil
+  end
+  local ok, category = pcall(function()
+    return initiator:getCategory()
+  end)
+  if not (ok and category == Object.Category.WEAPON) then
+    return initiator
+  end
+  local found, launcher = pcall(function()
+    return initiator:getLauncher()
+  end)
+  return found and launcher or nil
+end
+
 --- A shot fired at the convoy or a hit taken, from the event handler.
 ---
 --- A same-coalition initiator is ignored: a truck's explosion raises `S_EVENT_HIT` on its neighbours with
 --- the truck as the initiator (measured 2026-10-08), and it is not an enemy. An event with no initiator
 --- is ignored too: some shell hits carry none, and the shooter's own `S_EVENT_SHOOTING_START` names it.
---- @param initiator table|nil the DCS unit that fired
+--- @param initiator table|nil the DCS unit that fired, or the weapon it fired
 function ConvoyUnitHandler:reportFire(initiator)
   -- `_gc <convoy>, stop` or `unset` leaves the convoy in the event registry; stopped, it reacts to nothing
-  if not initiator or self.status ~= GroundUnitHandler.STATUS_ACTIVE then
+  if self.status ~= GroundUnitHandler.STATUS_ACTIVE then
+    return
+  end
+  initiator = veafGroundAI.shooterOf(initiator)
+  if not initiator then
     return
   end
   local ok, side = pcall(function()

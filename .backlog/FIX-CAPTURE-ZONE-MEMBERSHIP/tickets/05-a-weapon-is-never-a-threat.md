@@ -1,6 +1,6 @@
 # 05 — A weapon is never a threat
 
-Status: ⬜ ready
+Status: ✅ done
 
 Measured on the same convoy (fiddle hook, read-only): its threat list holds `weapons.shells.M61_20_HE_gr strength=inf at 3697 m from Poti`. The hit event path records the weapon object, not the unit that fired it. Counted for an infinite strength, such an entry can make a convoy fall back for nothing.
 

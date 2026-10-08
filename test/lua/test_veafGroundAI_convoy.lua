@@ -388,6 +388,49 @@ function TestConvoyContact:test_no_red_smoke_under_an_aircraft()
   luaunit.assertEquals(green, 1, "the convoy is still marked for the pilots")
 end
 
+--- A shell as some hit events hand it over for initiator: red, far away, fired by `launcher` (or nobody).
+local function shell(launcher)
+  return {
+    getCategory = function()
+      return Object.Category.WEAPON
+    end,
+    getCoalition = function()
+      return RED
+    end,
+    getName = function()
+      return "16777473"
+    end,
+    getTypeName = function()
+      return "weapons.shells.M61_20_HE_gr"
+    end,
+    getPoint = function()
+      return { x = 3697, y = 0, z = 0 }
+    end,
+    getLauncher = function()
+      return launcher
+    end,
+  }
+end
+
+-- FIX-CAPTURE-ZONE-MEMBERSHIP ticket 05: on Kolkhida, 2026-10-08, a convoy's threats held
+-- "weapons.shells.M61_20_HE_gr strength=inf at 3697 m": the hit's initiator was the shell, recorded as a threat.
+function TestConvoyContact:test_a_shell_is_never_a_threat_its_launcher_is()
+  local handler, units = self:_convoy(IFV)
+  local shooter = makeUnit("r-1", { side = RED, attributes = APC, type = "BTR-80", point = { x = 1500, y = 0, z = 0 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shell(shooter), target = units[1] })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING, "the BTR is fought")
+  luaunit.assertNotNil(handler.threats["r-1"])
+  luaunit.assertNil(handler.threats["16777473"], "the shell is not a threat")
+end
+
+function TestConvoyContact:test_a_shell_whose_launcher_is_unknown_is_no_contact()
+  local handler, units = self:_convoy(IFV)
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shell(nil), target = units[1] })
+  luaunit.assertNil(next(handler.threats), "nothing recorded")
+  luaunit.assertNotEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK, "nobody to fall back from")
+  luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 0)
+end
+
 function TestConvoyContact:test_a_wholly_unarmed_convoy_flees_as_one()
   local handler = self:_convoy(nil)
   local shooter = makeUnit("r-1", { side = RED, attributes = APC, point = { x = 1500, y = 0, z = 0 } })

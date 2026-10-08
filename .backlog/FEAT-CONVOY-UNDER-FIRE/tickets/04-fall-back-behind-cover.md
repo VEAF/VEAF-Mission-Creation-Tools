@@ -1,6 +1,6 @@
 # 04 — Falling back behind cover
 
-Status: ⬜ ready
+Status: ✅ done — on the mocks; an outgunned convoy behind a real ridge left to R45
 
 - The destination: the nearest blue-held place — a campaign zone it owns, a friendly airbase, a friendly combat zone — reachable by road or off road.
 - The route: candidate points sampled away from the threat, kept when `land.isVisible` says terrain masks them from the threat's position, or when a town of `veafCities` lies between; the cheapest masked chain wins, otherwise the shortest way out of the threat's weapons range.

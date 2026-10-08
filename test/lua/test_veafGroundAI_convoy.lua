@@ -355,6 +355,31 @@ function TestConvoyContact:test_an_aircraft_is_not_fought()
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
 end
 
+function TestConvoyContact:test_a_stopped_convoy_reacts_to_nothing()
+  local handler, units = self:_convoy(IFV)
+  handler:stop()
+  local shooter = makeUnit("r-1", { side = RED, attributes = APC, point = { x = 1500, y = 0, z = 0 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = units[1] })
+  luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 0)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+function TestConvoyContact:test_no_red_smoke_under_an_aircraft()
+  local _, units = self:_convoy(TANK)
+  local jet = makeUnit("su25", { side = RED, categoryEx = Unit.Category.AIRPLANE, point = { x = 1000, y = 500, z = 0 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_SHOOTING_START, initiator = jet, target = units[1] })
+  local red, green = 0, 0
+  for _, effect in ipairs(dcs_mocks.effects) do
+    if effect.color == trigger.smokeColor.Red then
+      red = red + 1
+    elseif effect.color == trigger.smokeColor.Green then
+      green = green + 1
+    end
+  end
+  luaunit.assertEquals(red, 0)
+  luaunit.assertEquals(green, 1, "the convoy is still marked for the pilots")
+end
+
 function TestConvoyContact:test_a_wholly_unarmed_convoy_flees_as_one()
   local handler = self:_convoy(nil)
   local shooter = makeUnit("r-1", { side = RED, attributes = APC, point = { x = 1500, y = 0, z = 0 } })
@@ -599,13 +624,19 @@ function TestConvoyOrders:test_resume_brings_the_unarmed_group_back_and_merges_i
   luaunit.assertNil(veafGroundAI.convoysByGroupName["Column unarmed"])
 end
 
-function TestConvoyOrders:test_a_part_of_the_name_finds_one_handler()
+function TestConvoyOrders:test_a_part_of_the_name_gives_an_order_to_one_handler()
   makeGroup("[b]-Convoy-3", { makeUnit("p-1") })
   makeGroup("[b]-Convoy-4", { makeUnit("p-2") })
   veafGroundAI.addConvoy("[b]-Convoy-3")
   veafGroundAI.addConvoy("[b]-Convoy-4")
-  luaunit.assertEquals(veafGroundAI.get("convoy-3"):getName(), "[b]-Convoy-3")
-  luaunit.assertNil(veafGroundAI.get("convoy"), "two matches are no match")
+  luaunit.assertEquals(veafGroundAI.getOrComplain("convoy-3"):getName(), "[b]-Convoy-3")
+  luaunit.assertNil(veafGroundAI.getByPart("convoy"), "two matches are no match")
+end
+
+function TestConvoyOrders:test_set_does_not_take_over_an_autopilot_by_a_part_of_its_name()
+  -- `_gc arty, set` while `arty-1` exists creates `arty`; it must not re-target `arty-1`.
+  ArtilleryUnitHandler:new():setName("arty-1")
+  luaunit.assertNil(veafGroundAI.get("arty"), "get is exact: set relies on it to create what it does not find")
 end
 
 -- ---------------------------------------------------------------------------

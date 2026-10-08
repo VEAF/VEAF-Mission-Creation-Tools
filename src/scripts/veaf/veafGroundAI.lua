@@ -1406,7 +1406,7 @@ function ConvoyUnitHandler:recordThreat(unit, now)
   if isGround and group and dist2D(point, veaf.getAveragePosition(group)) <= ConvoyUnitHandler.ENGAGEMENT_RANGE then
     strength = veafGroundAI.unitStrength(unit)
   end
-  self.threats[name] = { name = name, point = point, typeName = typeName, strength = strength, lastSeen = now }
+  self.threats[name] = { name = name, point = point, typeName = typeName, strength = strength, lastSeen = now, ground = isGround }
   self.lastContact = now
 end
 
@@ -1417,7 +1417,8 @@ end
 --- is ignored too: some shell hits carry none, and the shooter's own `S_EVENT_SHOOTING_START` names it.
 --- @param initiator table|nil the DCS unit that fired
 function ConvoyUnitHandler:reportFire(initiator)
-  if not initiator then
+  -- `_gc <convoy>, stop` or `unset` leaves the convoy in the event registry; stopped, it reacts to nothing
+  if not initiator or self.status ~= GroundUnitHandler.STATUS_ACTIVE then
     return
   end
   local ok, side = pcall(function()
@@ -1671,7 +1672,13 @@ function ConvoyUnitHandler:markWithSmoke(now)
   if not group or #threats == 0 then
     return
   end
-  trigger.action.smoke(onGround(threats[1].point), trigger.smokeColor.Red)
+  -- on the nearest enemy on the ground: under an aircraft, a red smoke would mark nothing
+  for _, threat in ipairs(threats) do
+    if threat.ground then
+      trigger.action.smoke(onGround(threat.point), trigger.smokeColor.Red)
+      break
+    end
+  end
   trigger.action.smoke(onGround(veaf.getAveragePosition(group)), trigger.smokeColor.Green)
   self.nextSmoke = now + ConvoyUnitHandler.SMOKE_RENEW_PERIOD
 end
@@ -1938,6 +1945,28 @@ function veafGroundAI.onEventMarkChange(eventPos, event)
   end
 end
 
+--- The one autopilot whose name contains this text, or nil when none or several do.
+---
+--- A `_spawn convoy` is named by the spawner (`[b]-Convoy-3` and the like), so a part of the name that
+--- designates one autopilot is enough to give it an order, the way `groupname` already works.
+--- Deliberately not part of `get`: `set` creates the autopilot it does not find by its exact name, and a
+--- partial match there would hand `arty-1`'s autopilot to the group a new `arty` was meant for.
+--- @param text string
+--- @return table|nil
+function veafGroundAI.getByPart(text)
+  local wanted = text:lower()
+  local found = nil
+  for name, candidate in pairs(veafGroundAI.handlers) do
+    if name:find(wanted, 1, true) then
+      if found then
+        return nil
+      end
+      found = candidate
+    end
+  end
+  return found
+end
+
 --- Find a named autopilot, and tell the player when there is none.
 ---
 --- Six `_ground` verbs used to do `if handler then … end` with no `else`, so a command addressed to a name
@@ -1951,7 +1980,7 @@ end
 --- @param handlerName string the name the player used
 --- @return table|nil the handler, or nil after having said so
 function veafGroundAI.getOrComplain(handlerName)
-  local handler = veafGroundAI.get(handlerName)
+  local handler = veafGroundAI.get(handlerName) or veafGroundAI.getByPart(handlerName)
   if not handler then
     veaf.loggers.get(veafGroundAI.Id):warn("no autopilot named %s", veaf.p(handlerName))
     trigger.action.outText(veaf.t("groundai.no_such_handler", tostring(handlerName), tostring(handlerName)), 10)
@@ -2205,8 +2234,8 @@ veafGroundAI.MarkerSpec = {
     veafGroundAI.verbRule("clear", veafGroundAI.VERB_CLEAR),
     veafGroundAI.verbRule("status", veafGroundAI.VERB_STATUS),
 
-    -- Les verbes du convoi (FEAT-CONVOY-UNDER-FIRE). `retreat` porte en ligne, facultatif, le point ou les
-    -- coordonnees ou se replier ; sans valeur, le lieu ami le plus proche.
+    -- The convoy's verbs (FEAT-CONVOY-UNDER-FIRE). `retreat` carries, inline and optional, the named point
+    -- or the coordinates to fall back to; without a value, the nearest friendly place.
     veafGroundAI.verbRule("convoy", veafGroundAI.VERB_CONVOY),
     veafGroundAI.verbRule("hold", veafGroundAI.VERB_HOLD),
     veafGroundAI.verbRule("resume", veafGroundAI.VERB_RESUME),
@@ -2371,20 +2400,7 @@ end
 
 function veafGroundAI.get(handlerName)
   veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.get([%s])", veaf.lp(handlerName))
-  local wanted = handlerName:lower()
-  local handler = veafGroundAI.handlers[wanted]
-  if not handler then
-    -- A `_spawn convoy` is named by the spawner (`[b]-Convoy-3` and the like): a part of the name that
-    -- designates one handler is enough, the way `groupname` already works. Two matches are no match.
-    for name, candidate in pairs(veafGroundAI.handlers) do
-      if name:find(wanted, 1, true) then
-        if handler then
-          return nil
-        end
-        handler = candidate
-      end
-    end
-  end
+  local handler = veafGroundAI.handlers[handlerName:lower()]
   if handler then
     veaf.loggers.get(veafGroundAI.Id):trace("handler found: %s", veaf.lp(handler))
   end

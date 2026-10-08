@@ -1,6 +1,6 @@
 # 02 — The watch, the split and the fight
 
-Status: ⬜ ready
+Status: ✅ done — seen in game 2026-10-08: contact at 1.9 km before any shot, the split, the assault
 
 A `ConvoyUnitHandler` in `veafGroundAI`, beside the artillery one (PRD, *Design*, 1 to 5).
 

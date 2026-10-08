@@ -1,6 +1,6 @@
 # 01 — Measure what DCS gives and honours
 
-Status: 🔄 in-progress — 1 to 6 measured 2026-10-08 (see the PRD's table); 7 to be timed by eye
+Status: ✅ done — 1 to 6 measured 2026-10-08 (the PRD's table, `known-limitations.yaml`); 7 seen to last over 3 min, its end to time in R45
 
 Before any behaviour is written, measured in DCS through the bridge on a test mission, each with its date in `known-limitations.yaml` (`kind: dcs`) whatever the answer:
 

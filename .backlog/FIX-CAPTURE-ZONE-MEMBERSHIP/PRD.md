@@ -33,7 +33,7 @@ Same picture on the earlier run of the day (FIX-ASSAULT-CONVOY-FINDINGS): measur
 | [01](tickets/01-one-definition-of-in-the-zone.md) | One definition of "in the zone" for the capture and the absorption | ✅ |
 | [02](tickets/02-convoy-drives-into-the-zone.md) | The assault convoy drives into the zone, not to its edge | ⬜ |
 | [03](tickets/03-searchobjects-overshoots.md) | `world.searchObjects` overshoots its sphere: a DCS trap, measured | ✅ |
-| [04](tickets/04-assault-convoy-presses-on.md) | An assault convoy strong enough to fight presses on to its target zone | ⬜ |
+| [04](tickets/04-assault-convoy-presses-on.md) | An assault convoy strong enough to fight presses on to its target zone | ✅ |
 | [05](tickets/05-a-weapon-is-never-a-threat.md) | A weapon is never a threat | ✅ |
 
 ## Related

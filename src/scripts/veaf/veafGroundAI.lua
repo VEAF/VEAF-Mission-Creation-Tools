@@ -1679,6 +1679,11 @@ end
 --- the watch could see: in two minutes not a round was fired by either side, their unit-level
 --- `getDetectedTargets` stayed empty, and neither `Controller.knowTarget` nor a `FireAtPoint` task made
 --- them fire. Sent forward instead, they opened fire at ~1.3 km and destroyed both in 16 s.
+---
+--- An assault convoy (`veafGroundAI.setConvoyObjective`) drives into its objective instead, firing as it
+--- goes. On Kolkhida, 2026-10-08, the red assault on Poti stood 2.8 km from the zone for good: its garrison
+--- was always in sight, so the contact never ended and the convoy never drove on (FIX-CAPTURE-ZONE-MEMBERSHIP
+--- ticket 04).
 --- @param threats table the threats' records, nearest first
 --- @param quietly boolean|nil true when closing in again: the contact was already reported
 function ConvoyUnitHandler:fight(threats, quietly)
@@ -1689,7 +1694,13 @@ function ConvoyUnitHandler:fight(threats, quietly)
   controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
   local from = veaf.getAveragePosition(group)
   local distance = dist2D(from, threat.point)
-  if distance <= ConvoyUnitHandler.ASSAULT_STANDOFF then
+  local objective = veafGroundAI.convoyObjectives[self.groupName]
+  if objective then
+    veaf.goRoute(self.groupName, {
+      routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
+      routePoint(objective, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
+    })
+  elseif distance <= ConvoyUnitHandler.ASSAULT_STANDOFF then
     controller:pushTask({ id = "Hold", params = {} })
   else
     local share = (distance - ConvoyUnitHandler.ASSAULT_STANDOFF) / distance
@@ -2174,6 +2185,17 @@ end
 
 --- The convoy handler of each DCS group name — the convoy and, once split, its unarmed group.
 veafGroundAI.convoysByGroupName = {}
+
+--- The place an assault convoy was sent to take, by its DCS group name (see `setConvoyObjective`).
+veafGroundAI.convoyObjectives = {}
+
+--- Make a convoy an assault on a place: strong enough to fight, it drives into that place while engaging,
+--- instead of closing on the threat of the moment and standing there. The campaign's assault convoys.
+--- @param groupName string the convoy's DCS group name
+--- @param point table the place's vec3 — a zone's centre
+function veafGroundAI.setConvoyObjective(groupName, point)
+  veafGroundAI.convoyObjectives[groupName] = point
+end
 
 --- Hand a group to the convoy watch. Called for every `_spawn convoy`, for the groups `mission.yaml`
 --- lists under `GROUNDAI.convoys`, and by `_gc <name>, convoy`.

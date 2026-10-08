@@ -901,6 +901,11 @@ function veafCampaign.sendConvoy(side, from, to)
     veaf.loggers.get(veafCampaign.Id):error("the assault convoy from [%s] to [%s] could not be spawned", from.name, to.name)
     return nil
   end
+  -- strong enough to fight, it drives into the zone while engaging, rather than standing off the threat
+  -- of the moment for as long as the zone's garrison stays in sight (FIX-CAPTURE-ZONE-MEMBERSHIP)
+  if veafGroundAI and veafGroundAI.setConvoyObjective then
+    veafGroundAI.setConvoyObjective(groupName, target)
+  end
   local record = { name = groupName, side = side, from = from.name, to = to.name, absorbed = {} }
   record.sent = typesOf(veafCampaign.convoyUnits(record))
   record.alive = { unpack(record.sent) }

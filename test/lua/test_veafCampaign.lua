@@ -1203,6 +1203,24 @@ function TestVeafCampaignAssault:test_a_neutral_zone_at_the_start_is_the_target_
   luaunit.assertEquals({ blue.from, blue.at }, { "Kutaisi", 600 })
 end
 
+-- FIX-CAPTURE-ZONE-MEMBERSHIP ticket 04: strong enough to fight, an assault drives into the zone it was sent to.
+function TestVeafCampaignAssault:test_the_convoy_s_watch_knows_the_zone_it_is_sent_to_take()
+  local saved, objectives = veafGroundAI, {}
+  veafGroundAI = {
+    setConvoyObjective = function(groupName, point)
+      objectives[groupName] = point
+    end,
+  }
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  veafGroundAI = saved
+  local objective = objectives[veafCampaign.convoys[1].name]
+  luaunit.assertNotNil(objective)
+  luaunit.assertEquals({ objective.x, objective.z }, { 10000, 0 }, "Poti's centre")
+end
+
 function TestVeafCampaignAssault:test_nothing_leaves_before_the_delay()
   veafCampaign.initialize()
   timer.setTime(599)

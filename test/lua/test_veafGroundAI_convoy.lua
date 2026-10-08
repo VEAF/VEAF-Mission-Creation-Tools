@@ -119,6 +119,7 @@ local function resetWorld()
   end
   veafGroundAI.handlers = {}
   veafGroundAI.convoysByGroupName = {}
+  veafGroundAI.convoyObjectives = {}
   veafGroundAI._townPoints = {}
   veaf.config.language = "en"
 end
@@ -429,6 +430,54 @@ function TestConvoyContact:test_a_shell_whose_launcher_is_unknown_is_no_contact(
   luaunit.assertNil(next(handler.threats), "nothing recorded")
   luaunit.assertNotEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK, "nobody to fall back from")
   luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 0)
+end
+
+-- FIX-CAPTURE-ZONE-MEMBERSHIP ticket 04: on Kolkhida, 2026-10-08, the red assault convoy fought Poti's
+-- garrison from 2.8 km for good: in sight all the time, the contact never ended, and the convoy stood 900 m
+-- short of the threat of the moment instead of driving into the zone it had been sent to take.
+local POTI = { x = 0, y = 0, z = 5000 }
+
+local function lastRoutePoint(groupName)
+  local points = lastTaskSetOn(groupName).params.route.points
+  return points[#points]
+end
+
+function TestConvoyContact:test_an_assault_convoy_strong_enough_drives_into_its_objective()
+  local handler, units = self:_convoy(IFV)
+  veafGroundAI.setConvoyObjective("Convoy-1", POTI)
+  local shooter = makeUnit("r-1", { side = RED, attributes = APC, type = "BTR-80", point = { x = 600, y = 0, z = 2000 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = units[1] })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  luaunit.assertEquals(tasksPushedTo("Convoy-1", "Hold"), 0, "never a halt short of the objective")
+  local stop = lastRoutePoint("Convoy-1")
+  luaunit.assertEquals({ stop.x, stop.y, stop.action }, { POTI.x, POTI.z, "Off Road" }, "into the zone, firing as it goes")
+  -- still in contact a minute later, the enemy alive out of sight: it presses on to the same place
+  dcs_mocks.tasksSet = {}
+  handler.enemies = { shooter }
+  luaunit.assertTrue(handler:pressOn(timer.getTime()))
+  stop = lastRoutePoint("Convoy-1")
+  luaunit.assertEquals({ stop.x, stop.y }, { POTI.x, POTI.z })
+end
+
+function TestConvoyContact:test_an_assault_convoy_close_to_a_threat_does_not_hold_either()
+  local handler, units = self:_convoy(IFV)
+  veafGroundAI.setConvoyObjective("Convoy-1", POTI)
+  local shooter = makeUnit("r-1", { side = RED, attributes = APC, point = { x = 600, y = 0, z = 0 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = units[1] })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  luaunit.assertEquals(tasksPushedTo("Convoy-1", "Hold"), 0)
+  local stop = lastRoutePoint("Convoy-1")
+  luaunit.assertEquals({ stop.x, stop.y }, { POTI.x, POTI.z })
+end
+
+function TestConvoyContact:test_an_assault_convoy_too_weak_still_falls_back()
+  local handler, units = self:_convoy(APC)
+  veafGroundAI.setConvoyObjective("Convoy-1", POTI)
+  makeUnit("r-1", { side = RED, attributes = IFV, type = "BMP-2", point = { x = 1500, y = 0, z = 0 } })
+  makeUnit("r-2", { side = RED, attributes = IFV, type = "BMP-2", point = { x = 1500, y = 0, z = 60 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = Unit.getByName("r-1"), target = units[1] })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = Unit.getByName("r-2"), target = units[1] })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
 end
 
 function TestConvoyContact:test_a_wholly_unarmed_convoy_flees_as_one()

@@ -1390,6 +1390,18 @@ function TestVeafRadioShellSafety:tearDown()
   STTS = nil
 end
 
+--- What `veaf.lua` leaves in STTS when the server's `SERVER_CONFIG` has no `SRS_*` keys: the
+--- directory and the executable copied as nil. Measured on DAVID-BUREAU on 2026-10-08, where the
+--- `string.format` of the command raised and took the convoy watch down with it.
+function TestVeafRadioShellSafety:test_an_unconfigured_srs_transmits_nothing_and_raises_nothing()
+  STTS = { DIRECTORY = nil, EXECUTABLE = nil, SRS_PORT = nil }
+  veafRadio.transmitMessage("troops in contact", "243,121.5", "AM,AM", "Convoy-1", 2, nil, true)
+  luaunit.assertEquals(#self.commands, 0)
+  STTS = { DIRECTORY = "", EXECUTABLE = "DCS-SR-ExternalAudio.exe", SRS_PORT = 0 }
+  veafRadio.transmitMessage("troops in contact", "243,121.5", "AM,AM", "Convoy-1", 2, nil, true)
+  luaunit.assertEquals(#self.commands, 0, "the community script's own unedited default is no configuration either")
+end
+
 --- The finding itself: a marker message that closes its quote and chains a command.
 function TestVeafRadioShellSafety:test_message_cannot_chain_a_command()
   veafRadio.transmitMessage('inbound" & calc.exe & rem "', "251", "AM", "SRS", 1, nil, true)

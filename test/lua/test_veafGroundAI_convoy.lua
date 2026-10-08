@@ -313,13 +313,25 @@ function TestConvoyContact:test_strong_enough_it_splits_and_fights()
   luaunit.assertEquals(added.units[1].type, "M 818")
   luaunit.assertEquals(added.units[2].x, -40)
   luaunit.assertTrue(#added.route.points >= 2, "and they flee at once")
-  -- the armed vehicles halt, alarm red, weapons free
+  -- the armed vehicles close in, alarm red, weapons free: to 900 m of the BTR, 1.5 km north
   local options = optionsFor("Convoy-1")
   luaunit.assertEquals(options[AI.Option.Ground.id.ALARM_STATE], AI.Option.Ground.val.ALARM_STATE.RED)
   luaunit.assertEquals(options[AI.Option.Ground.id.ROE], AI.Option.Ground.val.ROE.OPEN_FIRE)
-  luaunit.assertEquals(tasksPushedTo("Convoy-1", "Hold"), 1)
+  luaunit.assertEquals(tasksPushedTo("Convoy-1", "Hold"), 0, "not a halt: halted at 1.9 km, nobody fired (2026-10-08)")
+  local points = lastTaskSetOn("Convoy-1").params.route.points
+  local stop = points[#points]
+  luaunit.assertAlmostEquals(math.sqrt((stop.x - 1500) ^ 2 + stop.y ^ 2), ConvoyUnitHandler.ASSAULT_STANDOFF, 1)
+  luaunit.assertEquals(stop.action, "Off Road")
   -- the unarmed group is the convoy's too: a hit on it is the same contact
   luaunit.assertEquals(veafGroundAI.convoysByGroupName[added.name], handler)
+end
+
+function TestConvoyContact:test_already_close_it_holds_and_fights_where_it_stands()
+  local handler, units = self:_convoy(IFV)
+  local shooter = makeUnit("r-1", { side = RED, attributes = APC, point = { x = 600, y = 0, z = 0 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = units[1] })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  luaunit.assertEquals(tasksPushedTo("Convoy-1", "Hold"), 1)
 end
 
 function TestConvoyContact:test_too_weak_it_falls_back_after_the_trucks()
@@ -368,6 +380,35 @@ function TestConvoyContact:test_the_smokes_go_with_the_call()
   luaunit.assertEquals(red.position.x, 1500)
   luaunit.assertEquals(red.position.z, 300)
   luaunit.assertNotNil(green, "green on the convoy")
+end
+
+function TestConvoyContact:test_a_radio_that_raises_takes_neither_the_smokes_nor_the_watch_down()
+  -- What a half-configured SRS did in game on 2026-10-08: the voice raised two calls down the watch.
+  local savedRadio = veafRadio
+  veafRadio = {
+    transmitMessage = function()
+      error("bad argument #2 to 'format' (string expected, got nil)")
+    end,
+  }
+  local units = { makeUnit("v-1", { attributes = IFV, point = { x = 0, y = 0, z = 0 } }) }
+  makeGroup("Voiced", units)
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.searchObjectsObjects = { makeUnit("seen", { side = RED, attributes = APC, point = { x = 2000, y = 0, z = 0 } }) }
+  local handler = veafGroundAI.addConvoy("Voiced")
+  veafRadio = savedRadio
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  local smokes = 0
+  for _, effect in ipairs(dcs_mocks.effects) do
+    if effect.kind == "smoke" then
+      smokes = smokes + 1
+    end
+  end
+  luaunit.assertEquals(smokes, 2)
+  local scheduled = 0
+  for _ in pairs(dcs_mocks.scheduledTasks) do
+    scheduled = scheduled + 1
+  end
+  luaunit.assertEquals(scheduled, 1, "the next beat is scheduled")
 end
 
 -- ---------------------------------------------------------------------------

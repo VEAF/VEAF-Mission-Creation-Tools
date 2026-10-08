@@ -841,6 +841,10 @@ ConvoyUnitHandler.FIGHT_RATIO = 1.5
 ConvoyUnitHandler.QUIET_DELAY = 60
 --- The unarmed group is merged back into the convoy once this close to it, in metres.
 ConvoyUnitHandler.MERGE_DISTANCE = 300
+--- How close the armed vehicles go to the nearest threat to fight it, in metres, and how fast. On
+--- 2026-10-08 Bradleys driving in opened fire at ~1.3 km; halted at 1.9 km they never did.
+ConvoyUnitHandler.ASSAULT_STANDOFF = 900
+ConvoyUnitHandler.ASSAULT_SPEED = 8
 --- Seconds between two smoke marks while the contact lasts.
 ConvoyUnitHandler.SMOKE_RENEW_PERIOD = 300
 --- The fall-back search: rings around the convoy, in metres, and the spread of bearings away from the
@@ -1321,11 +1325,13 @@ function ConvoyUnitHandler:check()
     veafGroundAI.forgetConvoy(self)
     return
   end
+  -- Guarded, so that a beat that raises still schedules the next one: the first in-game run lost its
+  -- watch to an error two calls down (2026-10-08).
   if group then
-    self:watch(now, group)
+    veaf.safeCall(self.watch, self, now, group)
   end
   if self.state == ConvoyUnitHandler.STATE_RESUMING then
-    self:mergeIfClose()
+    veaf.safeCall(self.mergeIfClose, self)
   end
 
   local delay = ConvoyUnitHandler.CLOSE_WATCH_PERIOD
@@ -1488,7 +1494,7 @@ function ConvoyUnitHandler:engage(now)
       self:fallBack(self.unarmedGroupName, rally, destination)
     end
     if veafGroundAI.convoyShouldFight(ownStrength, enemyStrength) then
-      self:fight()
+      self:fight(threats[1])
       self.state = ConvoyUnitHandler.STATE_FIGHTING
     else
       self:fallBack(self.groupName, rally, destination)
@@ -1574,12 +1580,30 @@ function veafGroundAI.unitDefinition(unit)
   }
 end
 
---- Halt, alarm red, weapons free.
-function ConvoyUnitHandler:fight()
-  local controller = self:getGroup():getController()
+--- Go and fight: alarm red, weapons free, and close in to `ASSAULT_STANDOFF` of the nearest threat.
+---
+--- Not a halt where the contact was made. On 2026-10-08 two Bradleys halted 1.9 km from a BMP and a BTR
+--- the watch could see: in two minutes not a round was fired by either side, their unit-level
+--- `getDetectedTargets` stayed empty, and neither `Controller.knowTarget` nor a `FireAtPoint` task made
+--- them fire. Sent forward instead, they opened fire at ~1.3 km and destroyed both in 16 s.
+--- @param threat table the nearest threat's record
+function ConvoyUnitHandler:fight(threat)
+  local group = self:getGroup()
+  local controller = group:getController()
   controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
   controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
-  controller:pushTask({ id = "Hold", params = {} })
+  local from = veaf.getAveragePosition(group)
+  local distance = dist2D(from, threat.point)
+  if distance <= ConvoyUnitHandler.ASSAULT_STANDOFF then
+    controller:pushTask({ id = "Hold", params = {} })
+  else
+    local share = (distance - ConvoyUnitHandler.ASSAULT_STANDOFF) / distance
+    local stop = { x = from.x + (threat.point.x - from.x) * share, y = 0, z = from.z + (threat.point.z - from.z) * share }
+    veaf.goRoute(self.groupName, {
+      routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
+      routePoint(stop, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
+    })
+  end
   self:say("groundai.convoy_fighting")
 end
 
@@ -1621,8 +1645,12 @@ function ConvoyUnitHandler:callForHelp(now)
   local center = veaf.getAveragePosition(group)
   local text, voice = veafGroundAI.convoyContactCall(self:getName(), center, threats)
   trigger.action.outTextForCoalition(self.side, text, 30)
+  self:markWithSmoke(now)
+  -- Last, and guarded: a radio that raises must not take the smokes or the watch down with it, which is
+  -- what a half-configured SRS did on 2026-10-08.
   if veafRadio and veafRadio.transmitMessage then
-    veafRadio.transmitMessage(
+    veaf.safeCall(
+      veafRadio.transmitMessage,
       voice,
       ConvoyUnitHandler.GUARD_FREQUENCIES,
       ConvoyUnitHandler.GUARD_MODULATIONS,
@@ -1632,7 +1660,6 @@ function ConvoyUnitHandler:callForHelp(now)
       true
     )
   end
-  self:markWithSmoke(now)
 end
 
 --- Red smoke on the nearest enemy, green on the convoy: only with a call for help (David, 2026-10-08),
@@ -1742,9 +1769,11 @@ function ConvoyUnitHandler:resume()
   veaf.goRoute(self.groupName, self:onwardRoute(group))
   local unarmed = self:getUnarmedGroup()
   if unarmed then
+    -- Straight across, not by road: sent "On Road" on 2026-10-08, the trucks drove away to reach the road
+    -- network first, 2.8 km then 3.2 km from where they were going.
     veaf.goRoute(self.unarmedGroupName, {
-      routePoint(veaf.getAveragePosition(unarmed), "On Road", veafGroundAI.FALL_BACK_SPEED),
-      routePoint(veaf.getAveragePosition(group), "On Road", veafGroundAI.FALL_BACK_SPEED),
+      routePoint(veaf.getAveragePosition(unarmed), "Off Road", veafGroundAI.FALL_BACK_SPEED),
+      routePoint(veaf.getAveragePosition(group), "Off Road", veafGroundAI.FALL_BACK_SPEED),
     })
     self.state = ConvoyUnitHandler.STATE_RESUMING
   else

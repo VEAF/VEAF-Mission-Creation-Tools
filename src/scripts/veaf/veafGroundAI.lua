@@ -889,6 +889,10 @@ ConvoyUnitHandler.CALLSIGNS = {
 --- Seconds the armed vehicles wait for their unarmed ones to rejoin before both drive on separately.
 ConvoyUnitHandler.REJOIN_TIMEOUT = 600
 
+--- Seconds a convoy holding after a fall back waits for an order before driving on by itself, when no
+--- player of its coalition is connected to give one (FIX-ASSAULT-CONVOY-FINDINGS).
+ConvoyUnitHandler.HOLD_ALONE_DELAY = 300
+
 --- Seconds between the contact report and the tactical messages that follow it.
 ConvoyUnitHandler.TACTICAL_MESSAGE_DELAY = 15
 
@@ -1865,7 +1869,8 @@ end
 --- After a fight, the convoy drives on by itself and its unarmed vehicles join it (David, 2026-10-08:
 --- "il faut faire `_gc resume` après l'engagement ? ça devrait [être automatique]"). After a fall back it
 --- reports and holds, waiting for an order (Q4): the enemy it fled is still there, and driving on would
---- take it back into the same ambush.
+--- take it back into the same ambush. When nobody of its side is there to give that order, it drives on
+--- by itself after `HOLD_ALONE_DELAY` (see `driveOnIfAlone`).
 function ConvoyUnitHandler:standDown()
   self:clearDanger()
   if self.state == ConvoyUnitHandler.STATE_FIGHTING then
@@ -1881,7 +1886,51 @@ function ConvoyUnitHandler:standDown()
     group:getController():pushTask({ id = "Hold", params = {} })
   end
   self.state = ConvoyUnitHandler.STATE_HOLDING
+  self.holdId = (self.holdId or 0) + 1
+  self:scheduleDriveOnAlone(self.holdId)
   self:say("groundai.convoy_holding", self:getName())
+end
+
+--- Is a player of that coalition connected? A player in a slot of that side — an aircraft, a
+--- helicopter or a vehicle; a game master in a neutral slot is not one. A `getPlayers` that raises
+--- counts as nobody: the alternative is the convoy holding for ever.
+--- @param side number a coalition.side
+--- @return boolean
+function veafGroundAI.coalitionHasPlayers(side)
+  local ok, players = pcall(coalition.getPlayers, side)
+  return ok and type(players) == "table" and next(players) ~= nil
+end
+
+--- Look again, `HOLD_ALONE_DELAY` from now, whether the hold `holdId` should end by itself.
+--- @param holdId number the hold this check belongs to
+function ConvoyUnitHandler:scheduleDriveOnAlone(holdId)
+  veaf.scheduleFunction(function()
+    veaf.safeCall(self.driveOnIfAlone, self, holdId)
+  end, nil, timer.getTime() + ConvoyUnitHandler.HOLD_ALONE_DELAY)
+end
+
+--- The end of a hold after a fall back, when nobody of the convoy's side is there to order it.
+---
+--- Kolkhida, 2026-10-08: the red assault convoy fell back, held, and waited for a `_gc resume` that no
+--- one on red — a side without players in a campaign — could give. So the hold ends by itself after
+--- `HOLD_ALONE_DELAY` when no player of its coalition is connected, checked when the delay ends: a player
+--- who connected meanwhile keeps the choice, and the check comes back every delay while he stays. A hold
+--- that is no longer this one (a new contact, a new fall back, an order) is left alone.
+--- @param holdId number the hold this check belongs to
+function ConvoyUnitHandler:driveOnIfAlone(holdId)
+  if holdId ~= self.holdId or self.state ~= ConvoyUnitHandler.STATE_HOLDING or self.status ~= GroundUnitHandler.STATUS_ACTIVE then
+    return
+  end
+  if veafGroundAI.coalitionHasPlayers(self.side) then
+    self:scheduleDriveOnAlone(holdId)
+    return
+  end
+  veaf.loggers.get(veafGroundAI.Id):info(
+    "convoy %s: held %d s with no player of its side to order it, driving on",
+    veaf.p(self:getName()),
+    ConvoyUnitHandler.HOLD_ALONE_DELAY
+  )
+  self:resume()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1949,6 +1998,8 @@ function ConvoyUnitHandler:hold()
     unarmed:getController():pushTask({ id = "Hold", params = {} })
   end
   self.state = ConvoyUnitHandler.STATE_HOLDING
+  -- an order to hold is never ended by `driveOnIfAlone`: it is no longer the hold that check belongs to
+  self.holdId = (self.holdId or 0) + 1
   self:say("groundai.convoy_holding", self:getName())
   return true
 end

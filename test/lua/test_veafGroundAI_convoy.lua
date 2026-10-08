@@ -616,6 +616,83 @@ function TestConvoyWatch:test_quiet_for_a_minute_after_a_fall_back_it_holds_and_
   luaunit.assertStrContains(dcs_mocks.messagesContaining("holding position")[1].text, "_gc Mule, resume")
 end
 
+--- Fall back from two tanks, then lose sight of them: the convoy holds at QUIET_DELAY.
+function TestConvoyWatch:_fallBackAndHold()
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.searchObjectsObjects = {
+    makeUnit("seen-1", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 0 } }),
+    makeUnit("seen-2", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 60 } }),
+  }
+  local handler = veafGroundAI.addConvoy("Watched")
+  dcs_mocks.visibilityAnswer = false
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 5)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_HOLDING)
+  return handler
+end
+
+function TestConvoyWatch:_withPlayers(side, count)
+  coalition.getPlayers = function(asked)
+    local players = {}
+    if asked == side then
+      for index = 1, count do
+        players[index] = {
+          getPlayerName = function()
+            return "player " .. index
+          end,
+        }
+      end
+    end
+    return players
+  end
+end
+
+function TestConvoyWatch:tearDown()
+  coalition.getPlayers = function()
+    return {}
+  end
+end
+
+function TestConvoyWatch:test_holding_with_nobody_of_its_side_it_drives_on_after_the_delay()
+  -- Kolkhida, 2026-10-08: the red convoy held for ever, waiting for a `_gc resume` nobody on red can give
+  self:_withPlayers(RED, 2)
+  local handler = self:_fallBackAndHold()
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + ConvoyUnitHandler.HOLD_ALONE_DELAY - 5)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_HOLDING, "not before the delay")
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + ConvoyUnitHandler.HOLD_ALONE_DELAY + 10)
+  luaunit.assertNotEquals(handler.state, ConvoyUnitHandler.STATE_HOLDING)
+  luaunit.assertEquals(countMessages("back on the road"), 1)
+end
+
+function TestConvoyWatch:test_holding_with_a_player_of_its_side_it_keeps_the_choice()
+  self:_withPlayers(BLUE, 1)
+  local handler = self:_fallBackAndHold()
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 3 * ConvoyUnitHandler.HOLD_ALONE_DELAY)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_HOLDING, "a player of its side gives the order")
+  luaunit.assertEquals(countMessages("back on the road"), 0)
+  -- he leaves: at the next check, nobody is left to give it
+  self:_withPlayers(BLUE, 0)
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 4 * ConvoyUnitHandler.HOLD_ALONE_DELAY + 10)
+  luaunit.assertEquals(countMessages("back on the road"), 1)
+end
+
+function TestConvoyWatch:test_a_new_contact_while_holding_cancels_the_drive_on()
+  local handler = self:_fallBackAndHold()
+  -- the enemy shows up again before the delay ends
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 100)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + ConvoyUnitHandler.HOLD_ALONE_DELAY + 10)
+  luaunit.assertEquals(countMessages("back on the road"), 0, "the first hold's delay no longer counts")
+end
+
+function TestConvoyWatch:test_an_order_to_hold_is_never_overridden()
+  local handler = self:_fallBackAndHold()
+  luaunit.assertTrue(handler:hold())
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 2 * ConvoyUnitHandler.HOLD_ALONE_DELAY)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_HOLDING)
+  luaunit.assertEquals(countMessages("back on the road"), 0)
+end
+
 function TestConvoyWatch:test_the_watch_ends_when_the_convoy_is_gone()
   local handler = veafGroundAI.addConvoy("Watched")
   dcs_mocks.removeGroup("Watched")

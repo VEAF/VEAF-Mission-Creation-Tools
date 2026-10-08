@@ -16,3 +16,14 @@ Status: 🧑 waiting-human — the halt is to be measured in DCS
 ## To measure in DCS
 
 Test mission (a copy of *Kolkhida* mission 1, built from this branch, `assault_seconds: 30`): `D:\dev\_VEAF\tmp\fix-capture-zone-membership\Kolkhida-capture-test_20261008.miz`. Its `mission-script.lua` logs a `PROBE Poti` line every 15 s and a `PROBE VERDICT` line once the blue convoy has stood still for a minute.
+
+## Measured on the squadron's flight (2026-10-08, evening)
+
+*Kolkhida* mission 1, built by veaf-tools `6.28.1-kolkhida7` (it logs `logRoadEnd`, so it carries this lot's tickets 01 and 04), flown on `private1`; log and state kept in `D:\dev\_VEAF\_campaigns\campaign-kolkhida\missions\mission-01\` (see `FIX-CAMPAIGN-MISSION-1-FINDINGS`).
+
+- `19:29:15 UTC`: `its road ends 163 m from [Poti]'s centre (radius 2000), then Diamond to the centre` — `END` is well inside the zone, so the edge is not the road's end.
+- `20:44:44 UTC`: `9 unit(s) alive, 9 inside, nearest 2123 m from the centre`, then `9 unit(s) become its garrison` — ticket 01 holds in game.
+- In the state files of 22:45 and 23:00 local time (UTC+2), the Poti garrison's units stand **2 123 to 2 182 m** from the centre (Poti at 42.15 N 41.67 E, `latlon_to_xy`), 16 minutes after the capture.
+
+So the column halted at the edge again, with its road going on to 163 m.
+To settle before concluding: whether a garrison's positions in the state file are read live at each write or frozen at absorption.

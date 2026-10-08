@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS](FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS/PRD.md) · 🔄
+
+`campaign next` writes the mission's objectives as waypoints for the players' side, and the mission briefing shows the flight plan. In progress.
 
 ## 🧑 Waiting for a human
 

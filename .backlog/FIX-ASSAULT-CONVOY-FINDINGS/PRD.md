@@ -1,6 +1,6 @@
 # FIX-ASSAULT-CONVOY-FINDINGS — the red assault convoy flees an infantryman and never drives on; a captured zone draws a garrison anyway; convoys without armour
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — merged (#1108), to be checked in game
 
 ## Found
 

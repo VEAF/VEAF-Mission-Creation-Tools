@@ -158,7 +158,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
 ]
 
 # `src/scripts/veaf/*.lua` files deliberately NOT in the runtime bundle:
-# - veaf.lua: the framework root, bundled first and separately (see build_lua_scripts).
+# - veaf.lua: the framework root, bundled first and separately (see bundle_body).
 # - dcsDataExport.lua: a datamine export helper run inside DCS to dump unit data, not a
 #   runtime module.
 LUA_BUNDLE_EXCLUDED: frozenset[str] = frozenset({"veaf.lua", "dcsDataExport.lua"})

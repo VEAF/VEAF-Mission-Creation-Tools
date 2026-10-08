@@ -1,6 +1,6 @@
 # FIX-SPAWN-DATA-LOAD-ORDER — campaign garrisons drawn from an empty groups database: no air defence
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 ## Problem
 
@@ -38,7 +38,7 @@ Trigger order in a built `.miz` (Kolkhida mission 1): 3 `VEAF scripts loading - 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-load-with-the-framework.md) | The spawn data loads with the framework, and a campaign mission draws its garrisons with their air defence | ⬜ |
+| [01](tickets/01-load-with-the-framework.md) | The spawn data loads with the framework, and a campaign mission draws its garrisons with their air defence | 🔄 |
 
 ## Related
 

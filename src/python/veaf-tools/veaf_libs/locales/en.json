@@ -1339,6 +1339,8 @@
   "cmd.campaign_next.created": "[bold green]✓ Mission {mission} created from the template: {path}[/bold green]",
   "cmd.campaign_next.refreshed": "[bold green]✓ Mission {mission} refreshed from the campaign state: {path}[/bold green]",
   "cmd.campaign_next.airbases": "{count} airbase(s) given to their owner.",
+  "cmd.campaign_next.waypoints": "Waypoints written from the mission's objectives: src/waypoints.yaml.",
+  "cmd.campaign_next.waypoints_kept": "src/waypoints.yaml edited since campaign next wrote it: kept.",
   "tui.cmd.campaign_next.description": "Build the next mission of a campaign",
   "builder.campaign_data_missing": "The CAMPAIGN module names {path}, which does not exist: run `veaf-tools campaign next` first. The mission is built without its campaign.",
   "campaign.issue.state_file_from_temporary": "The state file is missing or cut short: its complete temporary {path} is used instead.",

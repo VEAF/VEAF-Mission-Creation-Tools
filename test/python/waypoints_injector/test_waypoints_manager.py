@@ -375,7 +375,10 @@ class TestHowAPlanNamesItsWaypoints(unittest.TestCase):
     }
 
     def _load(self, plan_waypoints: object) -> tuple[WaypointsManager, list[str]]:
-        data = {"waypoints": self.WAYPOINTS, "settings": {"helos": {"category": "helicopter", "waypoints": plan_waypoints}}}
+        data = {
+            "waypoints": self.WAYPOINTS,
+            "settings": {"helos": {"category": "helicopter", "waypoints": plan_waypoints}},
+        }
         warnings: list[str] = []
         with tempfile.TemporaryDirectory() as td:
             f = Path(td) / "waypoints.yaml"

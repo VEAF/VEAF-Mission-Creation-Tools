@@ -1339,6 +1339,8 @@
   "cmd.campaign_next.created": "[bold green]✓ Mission {mission} créée à partir du modèle : {path}[/bold green]",
   "cmd.campaign_next.refreshed": "[bold green]✓ Mission {mission} rafraîchie à partir de l'état de la campagne : {path}[/bold green]",
   "cmd.campaign_next.airbases": "{count} aérodrome(s) attribué(s) à leur propriétaire.",
+  "cmd.campaign_next.waypoints": "Waypoints écrits depuis les objectifs de la mission : src/waypoints.yaml.",
+  "cmd.campaign_next.waypoints_kept": "src/waypoints.yaml modifié depuis campaign next : conservé.",
   "tui.cmd.campaign_next.description": "Construire la mission suivante d'une campagne",
   "builder.campaign_data_missing": "Le module CAMPAIGN nomme {path}, qui n'existe pas : lancer d'abord `veaf-tools campaign next`. La mission est construite sans sa campagne.",
   "campaign.issue.state_file_from_temporary": "Le fichier d'état manque ou est tronqué : son temporaire complet {path} est utilisé à la place.",

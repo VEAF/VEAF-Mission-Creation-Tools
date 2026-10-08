@@ -43,6 +43,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The database now loads as the last action of the VEAF framework load triggers, before the mission scripts; a mission without those triggers keeps the old trailing trigger, and the build says why that is a risk.
 - **A campaign's assault-convoy axis holds still on the F10 map** (FIX-CAMPAIGN-ARROW-ALTITUDE).
   It was an arrow, which slid away from its axis as the map was panned, whether its points were at sea level or on the terrain — and pointed at its source, DCS putting the tip on the first point. The axis is now a line in the side's colour over the link, removed when the convoy arrives or is destroyed.
+- **A flight plan in `waypoints.yaml` takes its waypoints by key, and a waypoint keeps its `name:`** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  Only a plan's keys were ever read, while the shipped example wrote `HOLDING_POINT: "HOLDING_POINT"` as if the value mapped somewhere: `POTI: "POTI_LOW"` silently flew to `POTI`. A plan now also takes a list of keys, which the shipped example uses; the mapping form still loads, and the build warns when a value names another waypoint.
+  A waypoint's `name:` was overwritten by its key, so *Kolkhida* mission 1's helicopters showed `POTI_LOW` in the cockpit: the name is now kept, the key being the fallback.
 
 ### Added
 
@@ -73,6 +76,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **Assault convoys in flight**: a neutral zone is the target of each side holding a connected neighbour, and after `rules.assault_seconds` (600 s, sooner above four players) a convoy leaves by road for it — armour after its start zone's size class and a few trucks, paid unit by unit from the side's reserve, with the convoy behaviour of FEAT-CONVOY-UNDER-FIRE, announced to its side, told to the other as intelligence and drawn as an arrow on the F10 map. The convoy that takes a zone stays as its garrison, with no second draw; blue players also send them from **Campaign → Assaults**. The state file records each convoy: between missions its dead are campaign losses in the debriefing and its survivors still on the road go back to the reserve; the mission briefing announces an expected counter-attack, without its strength. `rules.assault_convoys: false` turns the rule off.
 - **The other side hears of a campaign's assault convoy later, as intelligence** (FEAT-CAMPAIGN-INTEL-DELAY).
   `rules.intel_seconds` in `campaign.yaml` (20 minutes by default, 0 for at once): the convoy's own side is told and sees its axis when it leaves, the other side gets the message and the line on its map together, that much later — and never for a convoy destroyed before.
+- **`campaign next` writes the mission's objectives as the players' waypoints** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  The mission folder's `src/waypoints.yaml` was the template's example, steerpoints nowhere near the theatre. It is now one waypoint per zone the mission's tasks name in `briefing.yaml` (else the campaign's objectives), at the zone's centre, in the tasks' order, for the players' side: planes at 10,000 ft, helicopters at 500 ft above the ground, under the same name. A file edited since is kept by a second `campaign next`.
 
 ### Changed
 

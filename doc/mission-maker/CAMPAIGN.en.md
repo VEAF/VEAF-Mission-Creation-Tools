@@ -242,6 +242,18 @@ What `campaign next` set is a starting point: Claude, preparing the mission, mov
 A second `campaign next` on the same folder keeps what was set.
 The DCS briefing shows the mission's date, time and weather; the mission briefing writes them too.
 
+## The players' waypoints {#objective-waypoints}
+
+`campaign next` writes the mission's `src/waypoints.yaml` from its objectives, instead of keeping the template's example: one waypoint per zone the mission's tasks name in `briefing.yaml` (else the campaign's objectives), at the zone's centre, in the tasks' order, for the players' side.
+
+- **Planes** get them at 10,000 ft (`BARO`), **helicopters** at 500 ft above the ground (`RADIO`); the cockpit shows the same name to both.
+- **The name** is the zone's first word, in capitals and without accents: *Khobi depot* becomes `KHOBI`. Two zones starting with the same word keep their whole names (`SENAKI_NORTH`).
+- **The build adds `BULLSEYE`** to every flight plan.
+
+Once edited, the file is yours: it carries the fingerprint of what `campaign next` wrote, and a second `campaign next` rewrites it only while that fingerprint matches.
+A hand-written file in a folder created earlier is kept the same way.
+The file's format is described in the [pipeline reference](../PIPELINE_REFERENCE.en.md#waypoints-by-key).
+
 ## The campaign briefing deck {#briefing-deck}
 
 `campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`briefing-campagne.pptx`) and its map (`carte-strategique.png`).

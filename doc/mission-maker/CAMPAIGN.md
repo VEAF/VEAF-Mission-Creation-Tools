@@ -242,6 +242,18 @@ Ce que `campaign next` a fixé est un point de départ : Claude, en préparant l
 Un second `campaign next` sur le même dossier garde ce qui a été réglé.
 Le briefing DCS affiche la date, l'heure et la météo de la mission ; le briefing de mission les écrit aussi.
 
+## Les waypoints des joueurs {#objective-waypoints}
+
+`campaign next` écrit le `src/waypoints.yaml` de la mission à partir de ses objectifs, au lieu de garder l'exemple du template : un waypoint par zone que nomment les tâches de la mission dans `briefing.yaml` (à défaut, les objectifs de la campagne), au centre de la zone, dans l'ordre des tâches, pour le camp des joueurs.
+
+- **Les avions** les reçoivent à 10 000 ft (`BARO`), **les hélicoptères** à 500 ft sol (`RADIO`) ; le cockpit affiche le même nom aux deux.
+- **Le nom** est le premier mot de la zone, en majuscules et sans accent : *Khobi depot* devient `KHOBI`. Deux zones qui commencent par le même mot gardent leur nom entier (`SENAKI_NORTH`).
+- **Le build ajoute `BULLSEYE`** à chaque plan de vol.
+
+Une fois modifié, le fichier est à vous : il porte l'empreinte de ce que `campaign next` a écrit, et un second `campaign next` ne le réécrit que tant qu'elle correspond.
+Un fichier écrit à la main dans un dossier déjà créé est gardé de même.
+Le format du fichier est décrit dans la [référence du pipeline](../PIPELINE_REFERENCE.md#waypoints-by-key).
+
 ## Le document de briefing de campagne {#briefing-deck}
 
 `campaign next` écrit aussi, dans `missions/mission-NN/`, le **briefing stratégique de la campagne** en PPTX (`briefing-campagne.pptx`) et sa carte (`carte-strategique.png`).

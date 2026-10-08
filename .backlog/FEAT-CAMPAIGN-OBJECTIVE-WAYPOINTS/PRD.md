@@ -1,6 +1,6 @@
 # FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS — a campaign mission's flight plans carry its objectives, not the shipped example
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 ## Found
 

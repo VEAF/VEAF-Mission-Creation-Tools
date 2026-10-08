@@ -726,13 +726,17 @@ def _emit_qra_definitions(silence_all: bool | None, definitions: list[dict], ind
                 if groups:
                     lines.append(f"{sub}  groups:")
                     lines.extend(f"{sub}    - {g}" for g in groups)
-                lines.append(f"{sub}  random_pick: {entry.get('random_pick', 1)}")
+                # absent = every group of the tier deploys (FEAT-OPPOSITION-SCALES-WITH-PLAYERS)
+                if "random_pick" in entry:
+                    lines.append(f"{sub}  random_pick: {entry['random_pick']}")
         if dbr := qra.get("delay_before_rearming"):
             lines.append(f"{field}delay_before_rearming: {dbr}")
         if dba := qra.get("delay_before_activating"):
             lines.append(f"{field}delay_before_activating: {dba}")
         if qra.get("react_on_helicopters"):
             lines.append(f"{field}react_on_helicopters: true")
+        if qra.get("rearm_while_occupied"):
+            lines.append(f"{field}rearm_while_occupied: true")
         if al := qra.get("airport_link"):
             lines.append(f"{field}airport_link: {_yaml_str(al)}")
         # `active_at_start`, the key the generator reads: `start`, written here until

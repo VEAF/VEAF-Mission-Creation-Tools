@@ -173,8 +173,11 @@ class CampaignWorker:
             folder=archive,
         )
 
-    def next(self) -> tuple[list[ValidationIssue], NextMissionReport | None]:
+    def next(self, players: tuple[int, int] | None = None) -> tuple[list[ValidationIssue], NextMissionReport | None]:
         """Create, or refresh, the next mission's folder: ``missions/mission-NN/mission``.
+
+        Args:
+            players: How many players are expected tonight, beating `campaign.yaml`'s `players`.
 
         Returns:
             Every issue found, and the report — ``None`` when any issue is an error.
@@ -192,7 +195,7 @@ class CampaignWorker:
             return issues + mismatch, None
         folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
         try:
-            report = prepare_next_mission(campaign, state, self.folder, folder)
+            report = prepare_next_mission(campaign, state, self.folder, folder, players=players)
         except FileNotFoundError as error:
             return [*issues, ValidationIssue(ERROR, str(error))], None
         # the deck comes with the folder; neither a defect in briefing.yaml nor a failure to draw it

@@ -32,6 +32,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The MCP knew five countries whose aircraft carry a number, measured on existing missions; the editor's own code lists ten, and DCS's callsign table agrees.
 - **A server whose `SERVER_CONFIG` has no `SRS_*` keys no longer crashes the radio voice** (FEAT-CONVOY-UNDER-FIRE).
   `veaf.lua` copied the missing keys into `STTS` as nil and `veafRadio` built its SRS command anyway: the `string.format` raised inside whatever had asked for a voice. The mission now stays silent and says so in the log.
+- **A QRA scrambles the tier it was written for, with every group of it** (FEAT-OPPOSITION-SCALES-WITH-PLAYERS).
+  The tier chosen was the last one Lua's table order happened to visit, not the biggest that fits: tiers written 5, 1, 3 gave 6 intruders the tier of 3. A `random_pick` drew with replacement, so "2 of [MiG-29, Su-27]" could send the MiG-29 pair twice — that is, once; under the test mocks it did, 200 draws out of 200. The draw is now without replacement and never picks more than the list holds.
+  **Migration:** in `mission.yaml`, a `groups_by_enemy_count` tier without `random_pick` used to draw one group; it now sends **every** group it lists. Add `random_pick: 1` to a tier that relied on the old default. `convert-v5` keeps a tier set without a draw as such (it used to drop it), and reads `setNoNeedToLeaveZoneBeforeRearming`.
+  The new `rearm_while_occupied: true` rearms a destroyed QRA without waiting for its zone to be clear — which, with several players over the target, it almost never was.
 
 ### Added
 
@@ -55,6 +59,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Convoys that do not die in an ambush** (FEAT-CONVOY-UNDER-FIRE).
   Left to DCS, a convoy drives through an ambush at full speed without firing a round (measured). Every `_spawn convoy` — and any group listed under `GROUNDAI.convoys` or handed over with `_gc <name>, convoy` — now watches ahead for the enemy, and at the first enemy in sight or the first shot received splits: the unarmed vehicles flee at once as their own group, the armed ones close in to fight or fall back too when outgunned.
   It calls for help as a troops-in-contact call to its coalition, with a red smoke on the enemy and a green one on itself, in voice on guard when SRS is configured; it falls back toward a friendly place through a point terrain or a town hides; then it holds and waits for `_gc <convoy>, retreat`, `hold` or `resume`, which merges it back into one group.
+- **The enemy air sized to the number of players** (FEAT-OPPOSITION-SCALES-WITH-PLAYERS).
+  A new `opposition:` block of `mission.yaml` gives the mission a level — the number of player aircraft the enemy fighters are sized for — set at generation, changed in flight from an **Opposition** radio menu or the `_opposition` marker (*SENIOR_PILOT*), or following the players connected or airborne: a rise is taken at once, a drop once the count has held five minutes. Every change is announced.
+  A QRA with `scale_with_opposition: true` scrambles the tier of the level when it is higher than the intruders in its zone; a combat mission's skill menu gains an **Auto scale** entry, one enemy group per two players.
+  `campaign.yaml` takes the squadron's expected size (`players: 5-7`) and `campaign next --players 6` tonight's, which write the block; the MCP action `campaign_next` takes `players`, its and `create_qra`'s descriptions ask Claude for tiers up to that size, and the mission briefing says "the enemy reinforces its alert against a large package" — never a figure.
 
 ### Changed
 

@@ -184,7 +184,11 @@ def _qra_line(campaign: CampaignDefinition, picture: MissionPicture) -> str | No
     if not picture.qra_zones:
         return None
     near = _join([_nearest_zone(campaign, zone.x, zone.y).label for zone in picture.qra_zones])
-    return t("campaign.mission_deck.qra", zones=near)
+    line = t("campaign.mission_deck.qra", zones=near)
+    # said as intelligence: the tiers and the level are the mission maker's, never the players'
+    if any(zone.scaled for zone in picture.qra_zones):
+        line += " " + t("campaign.mission_deck.qra_scaled")
+    return line
 
 
 def _situation_page(

@@ -45,6 +45,8 @@ _SAMPLES: dict[str, Any] = {
     "follow_unit": "CVN-74",
     "links": ["Batumi", "SA-10 site"],
     "logistics": {"groups_available": 4},
+    "rearm_while_occupied": True,
+    "scale_with_opposition": True,
 }
 
 
@@ -158,3 +160,23 @@ def test_the_new_wave_zone_keys_are_emitted() -> None:
 def test_a_logistics_that_is_not_a_mapping_does_not_break_the_build() -> None:
     lines = _emit_qra_definition({**_BASE, "logistics": 4})
     assert not any("setQRAcount" in line for line in lines)
+
+
+def test_a_tier_without_random_pick_deploys_every_group() -> None:
+    lines = _emit_qra_definition({**_BASE, "groups_by_enemy_count": [{"enemy_count": 3, "groups": ["A", "B"]}]})
+    assert ':setGroupsToDeployByEnemyQuantity(3, {"A", "B"})' in [line.strip() for line in lines]
+
+
+def test_a_tier_with_random_pick_draws() -> None:
+    lines = _emit_qra_definition(
+        {**_BASE, "groups_by_enemy_count": [{"enemy_count": 3, "groups": ["A", "B"], "random_pick": 1}]}
+    )
+    assert ':setRandomGroupsToDeployByEnemyQuantity(3, {"A", "B"}, 1)' in [line.strip() for line in lines]
+
+
+def test_rearm_while_occupied_emits_its_setter() -> None:
+    lines = _emit_qra_definition({**_BASE, "rearm_while_occupied": True})
+    assert ":setNoNeedToLeaveZoneBeforeRearming()" in [line.strip() for line in lines]
+    assert not any(
+        "NoNeedToLeaveZone" in line for line in _emit_qra_definition({**_BASE, "rearm_while_occupied": False})
+    )

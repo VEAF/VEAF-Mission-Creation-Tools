@@ -66,6 +66,7 @@ campaign:
   state_write_seconds: 60    # intervalle d'écriture du fichier d'état en vol
   start_date: 2016-06-01     # date de la première mission ; celle du template sinon
   start_time: sunrise+30*60  # heure de début : "06:30" ou expression solaire ; c'est le défaut
+  players: 5-7               # effectif attendu de l'escadrille : un nombre (6) ou une fourchette
   objectives:
     - capture: [Senaki, Kutaisi]
     - destroy: { zone: Gudauta depot, kind: logistics }
@@ -180,6 +181,24 @@ Sinon il fusionne le fichier, puis joue le **tour** avec des règles fixes, pour
 Détruire un dépôt ennemi, c'est moins de réserve, donc moins de réparations et des garnisons plus maigres derrière : une réserve vide ne permet plus qu'une garnison minimale.
 
 L'**intention** de l'ennemi — où il porte son effort, ce que la prochaine mission demande aux joueurs — n'est pas dans les règles : c'est Claude qui la décide en construisant la mission suivante, et qui l'écrit dans le briefing.
+
+## L'opposition à la taille de l'escadrille {#players}
+
+Ce qui s'adapte au nombre de joueurs, c'est la **chasse adverse** : les QRA et les CAP à la demande.
+Les garnisons au sol, elles, sont les comptes de la campagne — réserves, pertes, réparations — et ne dépendent pas de qui est venu ce soir.
+
+`players` de `campaign.yaml` dit l'effectif habituel ; `campaign next --players 6` dit celui de ce soir, et prime :
+
+```powershell
+.\veaf-tools.exe campaign next . --players 6
+```
+
+`campaign next` écrit alors le bloc [`opposition:`](scripts/veafQraManager.md#opposition-level) de la mission : un niveau égal au plus grand effectif attendu, qui suit ensuite les joueurs connectés du camp des joueurs — si l'escadrille vient à quatre, l'opposition redescend à quatre après quelques minutes.
+Un second `campaign next` sur le même dossier ne change que le niveau : un mode de suivi ou un délai réglés depuis dans la mission sont gardés.
+Sans `players` ni `--players`, le bloc de la mission n'est pas touché.
+
+Les QRA ennemies de la mission doivent avoir des paliers jusqu'à cet effectif (`groups_by_enemy_count`) ; c'est ce que Claude écrit en concevant la mission.
+Le briefing de mission le dit en renseignement — « la chasse adverse renforce son alerte face à un dispositif important » — jamais en paliers ni en nombres.
 
 ## Le débriefing {#debriefing}
 

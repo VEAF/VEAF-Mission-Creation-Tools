@@ -1,6 +1,6 @@
 # 02 — An opposition level, set at generation, changed in flight, or followed automatically
 
-Status: ⬜ ready
+Status: ✅ done on the mocks — `veafOpposition.lua`; the radio menu, `coalition.getPlayers` on a server and a scramble at the level's tier left to R46
 
 David's three ways, all of them, one mechanism:
 

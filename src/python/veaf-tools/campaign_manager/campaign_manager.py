@@ -10,6 +10,7 @@ from __future__ import annotations
 import functools
 import math
 import os
+import re
 import tempfile
 from dataclasses import asdict
 from datetime import date, datetime
@@ -264,6 +265,30 @@ def _parse_start_date(raw: Any, issues: list[ValidationIssue]) -> date | None:
     except ValueError:
         issues.append(_error("bad_start_date", value=raw))
         return None
+
+
+def parse_players(raw: object) -> tuple[int, int]:
+    """Read how many players are expected: a count (``6``) or a range (``"5-7"``).
+
+    Args:
+        raw: The value, from `campaign.yaml` or the command line.
+
+    Returns:
+        The fewest and the most expected; both the same for a single count.
+
+    Raises:
+        ValueError: Not a count of at least one player, or a range that runs backwards.
+    """
+    if isinstance(raw, int) and _is_int(raw):
+        low = high = raw
+    elif isinstance(raw, str) and re.fullmatch(r"\s*\d+\s*(-\s*\d+\s*)?", raw):
+        parts = [int(part) for part in raw.split("-")]
+        low, high = parts[0], parts[-1]
+    else:
+        raise ValueError(raw)
+    if low < 1 or high < low:
+        raise ValueError(raw)
+    return low, high
 
 
 def _parse_start_time(raw: Any, issues: list[ValidationIssue]) -> str:
@@ -523,6 +548,12 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
 
     start_date = _parse_start_date(head.get("start_date"), issues)
     start_time = _parse_start_time(head.get("start_time", DEFAULT_START_TIME), issues)
+    players: tuple[int, int] | None = None
+    if head.get("players") is not None:
+        try:
+            players = parse_players(head["players"])
+        except ValueError:
+            issues.append(_error("bad_players", value=head["players"]))
     capture_seconds = _parse_seconds(head, "capture_seconds", DEFAULT_CAPTURE_SECONDS, issues)
     state_write_seconds = _parse_seconds(head, "state_write_seconds", DEFAULT_STATE_WRITE_SECONDS, issues)
     size_classes = _parse_size_classes(raw.get("size_classes"), issues)
@@ -577,6 +608,7 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
             mission_template=str(head.get("mission_template", DEFAULT_MISSION_TEMPLATE)),
             start_date=start_date,
             start_time=start_time,
+            players=players,
         ),
         issues,
     )

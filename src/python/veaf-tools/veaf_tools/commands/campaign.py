@@ -74,15 +74,24 @@ def campaign_apply(
 @app.command(help=t("cmd.campaign_next.help"))
 def campaign_next(
     campaign_folder: str = typer.Argument(".", help=t("cmd.campaign.opt.folder")),
+    players: str | None = typer.Option(None, help=t("cmd.campaign_next.opt.players")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """Create, or refresh, the next mission's folder from the campaign state."""
+    from campaign_manager.campaign_manager import parse_players
     from campaign_manager.campaign_worker import CampaignWorker
 
     logger.set_verbose(verbose)
     console.print(t("cmd.campaign_next.title", version=VERSION))
-    issues, report = CampaignWorker(Path(campaign_folder).resolve()).next()
+    expected: tuple[int, int] | None = None
+    if players is not None:
+        try:
+            expected = parse_players(players)
+        except ValueError:
+            console.print(f"[red]✗[/]  {t('campaign.issue.bad_players', value=players)}")
+            raise typer.Exit(code=1) from None
+    issues, report = CampaignWorker(Path(campaign_folder).resolve()).next(players=expected)
     failed = _report(issues)
     if report is not None:
         key = "cmd.campaign_next.created" if report.created else "cmd.campaign_next.refreshed"

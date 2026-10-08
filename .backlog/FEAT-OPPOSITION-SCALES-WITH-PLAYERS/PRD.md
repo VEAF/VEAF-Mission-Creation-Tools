@@ -1,6 +1,6 @@
 # FEAT-OPPOSITION-SCALES-WITH-PLAYERS — the opposition sized to the number of players
 
-Status: ⬜ ready
+Status: 🔄 in-progress — coded and tested on the mocks; R46 in `DCS-SESSION-TODO.md` checks it in game
 
 David, 2026-10-08, before flying *Kolkhida* mission 1 with 5 to 7 players: "tu penses que l'opposition est bien réglée ? ça serait pas mal d'avoir un truc un peu dynamique pour ça, en fonction du nombre de personnes (soit en générant la mission, soit au lancement via un menu ou une commande, soit automatiquement en fonction du nombre d'avions en l'air). je crois que Foothold fait un truc comme ça".
 
@@ -23,11 +23,18 @@ Checked the same evening:
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-qra-tiers-right.md) | The QRA's tiers: the biggest that fits, every group when asked, rearm while occupied | ⬜ |
-| [02](tickets/02-opposition-level.md) | An opposition level, set at generation, changed in flight, or followed automatically | ⬜ |
-| [03](tickets/03-campaign-and-claude.md) | Campaigns and Claude size the opposition, and the briefing says it | ⬜ |
+| [01](tickets/01-qra-tiers-right.md) | The QRA's tiers: the biggest that fits, every group when asked, rearm while occupied | ✅ |
+| [02](tickets/02-opposition-level.md) | An opposition level, set at generation, changed in flight, or followed automatically | ✅ on the mocks, R46 in game |
+| [03](tickets/03-campaign-and-claude.md) | Campaigns and Claude size the opposition, and the briefing says it | ✅ |
 
 ## Decided before writing
 
 - **What scales is the air opposition** (QRA tiers, on-demand CAP), not the campaign's ground garrisons: those are the campaign's books — reserves, losses, repairs — and sizing them to tonight's attendance would make the campaign's state depend on who came.
 - **Measured, not supposed**: every number the scaling uses (players connected, aircraft airborne, aircraft in a zone) is counted from DCS at the moment, the way the QRA counts its zone.
+
+## Decided with David, 2026-10-08
+
+- **The level is a number of player aircraft**, in the unit of a QRA's `enemy_count`; a QRA following it takes the tier of max(level, intruders in its zone). The trigger stays on the zone.
+- **Hysteresis**: re-read every 60 s, a rise taken at once, a drop once the lower count has held `lower_after` (300 s).
+- **Combat missions**: an "Auto scale" entry per skill, scale = ⌈level / 2⌉ within the scales offered — one enemy group per two players, an estimate of mine, not sourced.
+- **Campaigns**: `players: 5-7` or `--players 6` write `opposition: {level: <most expected>, follow: players}` — sized for the squadron, followed down to who came.

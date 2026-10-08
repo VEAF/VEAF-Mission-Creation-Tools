@@ -56,6 +56,9 @@ the F10 menu, the group acts at the level of its **lowest-graded** occupant (see
 
 A combat mission also offers **skill** and **scale** submenus, which set the difficulty and the
 number of groups engaged.
+When the mission has an [opposition level](veafQraManager.en.md#opposition-level), each skill also carries
+the `Auto scale (opposition level)` entry: it activates the scale of one enemy group per two players,
+rounded up, within the scales offered (level 6 → scale 3).
 
 ---
 

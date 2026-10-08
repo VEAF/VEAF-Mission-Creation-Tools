@@ -137,3 +137,25 @@ def test_next_without_a_template_is_refused(tmp_path: Path) -> None:
     shutil.rmtree(folder / "template")
     with pytest.raises(ValueError, match="template"):
         campaign_next(folder)
+
+
+def test_next_through_the_catalog_takes_tonights_players(tmp_path: Path) -> None:
+    """FEAT-OPPOSITION-SCALES-WITH-PLAYERS: what Claude passes reaches mission.yaml."""
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    folder = _campaign_folder(tmp_path)
+    result = catalog.run_action("campaign_next", {"campaign_folder": str(folder), "players": "5-7"})
+    mission_yaml = yaml.safe_load((Path(result["folder"]) / "mission.yaml").read_text(encoding="utf-8"))
+    assert mission_yaml["opposition"] == {"level": 7, "follow": "players", "players_coalition": "BLUE"}
+
+
+def test_next_refuses_a_wrong_count_of_players(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="players"):
+        campaign_next(_campaign_folder(tmp_path), "lots")
+
+
+def test_the_descriptions_carry_the_sizing_rule() -> None:
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    assert "never a single fixed pair" in catalog.describe_action("create_qra").description
+    assert "players" in catalog.describe_action("campaign_next").parameters_schema["properties"]

@@ -1778,6 +1778,7 @@ function TestNoMessageTeachesAnUnknownCommand:_motsClesEnregistres()
     "veafShortcuts.lua",
     "veafNamedPoints.lua",
     "veafInterpreter.lua",
+    "veafOpposition.lua",
   }
   local mots = {}
   for _, nom in ipairs(modules) do

@@ -66,6 +66,7 @@ campaign:
   state_write_seconds: 60    # how often the state file is written in flight
   start_date: 2016-06-01     # the first mission's date; the template's otherwise
   start_time: sunrise+30*60  # start time: "06:30" or a solar expression; this is the default
+  players: 5-7               # the squadron's expected size: a count (6) or a range
   objectives:
     - capture: [Senaki, Kutaisi]
     - destroy: { zone: Gudauta depot, kind: logistics }
@@ -180,6 +181,24 @@ Otherwise it merges the file, then plays the **turn** with fixed rules, for both
 Destroying an enemy depot means a smaller reserve, so fewer repairs and thinner garrisons behind it: an empty reserve only allows a token garrison.
 
 The enemy's **intent** — where it puts its effort, what the next mission asks of the players — is not in the rules: Claude decides it while building the next mission, and writes it in the briefing.
+
+## The opposition sized to the squadron {#players}
+
+What scales with the number of players is the **enemy air**: the QRAs and the on-demand CAPs.
+The ground garrisons are the campaign's books — reserves, losses, repairs — and do not depend on who came tonight.
+
+`players` in `campaign.yaml` says the usual attendance; `campaign next --players 6` says tonight's, and wins:
+
+```powershell
+.\veaf-tools.exe campaign next . --players 6
+```
+
+`campaign next` then writes the mission's [`opposition:`](scripts/veafQraManager.en.md#opposition-level) block: a level equal to the most expected, which then follows the players connected on the players' side — if the squadron comes four-strong, the opposition comes down to four after a few minutes.
+A second `campaign next` on the same folder changes the level only: a follow mode or a delay set in the mission since is kept.
+With neither `players` nor `--players`, the mission's block is left alone.
+
+The mission's enemy QRAs need tiers up to that size (`groups_by_enemy_count`); Claude writes them when designing the mission.
+The mission briefing says it as intelligence — "the enemy reinforces its alert against a large package" — never as tiers or numbers.
 
 ## The debriefing {#debriefing}
 

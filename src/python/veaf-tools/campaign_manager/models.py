@@ -163,6 +163,8 @@ class CampaignDefinition:
     """The first mission's date, or ``None`` to keep the template's."""
     start_time: str = DEFAULT_START_TIME
     """When each mission starts, as a clock time or a solar expression."""
+    players: tuple[int, int] | None = None
+    """The fewest and the most players the squadron expects, or ``None`` when the campaign does not say."""
 
     def zone(self, name: str) -> CampaignZone:
         """Return the zone of that name.

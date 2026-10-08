@@ -554,6 +554,7 @@ Create, or refresh, the next mission's folder from the campaign state.
 
 | Options | Type | Default | Description |
 |---|---|---|---|
+| `--players` | `str` | — | How many players are expected tonight: a count (`6`) or a range (`5-7`). Sizes the mission's air opposition ([`opposition:` block](mission-maker/scripts/veafQraManager.en.md#opposition-level)), beating `campaign.yaml`'s `players`. |
 | `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
 | `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
 

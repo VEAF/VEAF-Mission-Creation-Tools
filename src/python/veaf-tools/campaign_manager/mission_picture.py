@@ -110,6 +110,8 @@ class QraZone:
     x: float
     y: float
     radius: float
+    scaled: bool = False
+    """Whether it scrambles more against more aircraft: tiers by enemy count, or the opposition level."""
 
 
 @dataclass(frozen=True)
@@ -292,8 +294,21 @@ def _enabled(entry: Any) -> bool:
     return bool(entry)
 
 
-def _qra_zones(content: dict[str, Any], modules: dict[str, Any], player_side: str) -> list[QraZone]:
-    """The trigger zones of the enemy's QRA definitions, where the mission has them."""
+def _folder_has_opposition(folder: Path | None) -> bool:
+    """Whether the mission folder's `mission.yaml` sets an opposition level (an `opposition:` block)."""
+    if folder is None or not (folder / "mission.yaml").is_file():
+        return False
+    return isinstance(load_yaml(folder / "mission.yaml").get("opposition"), dict)
+
+
+def _qra_zones(
+    content: dict[str, Any], modules: dict[str, Any], player_side: str, has_level: bool = False
+) -> list[QraZone]:
+    """The trigger zones of the enemy's QRA definitions, where the mission has them.
+
+    A zone is ``scaled`` when its QRA has tiers by enemy count, or follows the opposition level of a
+    mission that sets one: following the level scales nothing in a mission without it.
+    """
     qra = modules.get("QRA")
     if not isinstance(qra, dict) or not _enabled(qra):
         return []
@@ -305,7 +320,10 @@ def _qra_zones(content: dict[str, Any], modules: dict[str, Any], player_side: st
         zone = zones.get(str(definition.get("trigger_zone")))
         if zone is not None:
             radius = float(definition.get("zone_radius") or zone.get("radius") or 0)
-            found.append(QraZone(str(zone["name"]), float(zone["x"]), float(zone["y"]), radius))
+            tiers = definition.get("groups_by_enemy_count")
+            follows = bool(definition.get("scale_with_opposition")) and has_level
+            scaled = follows or (isinstance(tiers, list) and len(tiers) > 1)
+            found.append(QraZone(str(zone["name"]), float(zone["x"]), float(zone["y"]), radius, scaled))
     return found
 
 
@@ -407,7 +425,7 @@ def read_mission_picture(miz: Path, player_side: str, folder: Path | None = None
         support=support,
         carriers=carriers,
         airfields=sorted(airfields, key=lambda a: a.name),
-        qra_zones=_qra_zones(content, modules, player_side),
+        qra_zones=_qra_zones(content, modules, player_side, _folder_has_opposition(folder)),
         plane_guard=plane_guard,
         csar=_enabled(modules.get("CSAR")),
     )

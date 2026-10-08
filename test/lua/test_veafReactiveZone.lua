@@ -209,6 +209,27 @@ function TestReactiveZonePick:test_a_plain_list_comes_back_unchanged()
   luaunit.assertEquals(veafReactiveZone.pickGroups({ "a", "b" }, nil, nil), { "a", "b" })
 end
 
+function TestReactiveZonePick:test_a_distinct_draw_never_repeats_a_group()
+  -- the mocks' draw answers 0 every time
+  local picked = veafReactiveZone.pickDistinctGroups({ "a", "b", "c" }, 3, 0)
+  table.sort(picked)
+  luaunit.assertEquals(picked, { "a", "b", "c" })
+end
+
+function TestReactiveZonePick:test_a_distinct_draw_stops_at_the_size_of_the_list()
+  luaunit.assertEquals(#veafReactiveZone.pickDistinctGroups({ "a", "b" }, 5, 0), 2)
+end
+
+function TestReactiveZonePick:test_a_distinct_draw_leaves_the_list_untouched()
+  local groups = { "a", "b" }
+  veafReactiveZone.pickDistinctGroups(groups, 2, 0)
+  luaunit.assertEquals(groups, { "a", "b" })
+end
+
+function TestReactiveZonePick:test_a_distinct_draw_of_a_plain_list_comes_back_unchanged()
+  luaunit.assertEquals(veafReactiveZone.pickDistinctGroups({ "a", "b" }, nil, nil), { "a", "b" })
+end
+
 -- ---------------------------------------------------------------------------
 -- Groups alive or dead
 -- ---------------------------------------------------------------------------

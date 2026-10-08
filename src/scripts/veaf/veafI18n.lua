@@ -1976,6 +1976,32 @@ veaf.i18nCatalog = {
   ["menu.campaign.root"] = { fr = "Campagne", en = "Campaign" },
   ["menu.campaign.situation"] = { fr = "Situation", en = "Situation" },
   ["menu.campaign.counters"] = { fr = "Compteurs (admin)", en = "Counters (admin)" },
+
+  -- veafOpposition
+  ["opposition.level"] = {
+    fr = "Opposition aérienne dimensionnée pour %d avion(s) (%s)",
+    en = "Air opposition sized for %d aircraft (%s)",
+  },
+  ["opposition.no_level"] = {
+    fr = "Opposition aérienne : aucun niveau, chaque QRA répond aux avions dans sa zone",
+    en = "Air opposition: no level, each QRA answers the aircraft in its zone",
+  },
+  ["opposition.follow.players"] = { fr = "suit les joueurs connectés", en = "follows the players connected" },
+  ["opposition.follow.airborne"] = { fr = "suit les joueurs en vol", en = "follows the players airborne" },
+  ["opposition.follow.off"] = { fr = "fixe", en = "fixed" },
+  ["opposition.usage"] = {
+    fr = "_opposition <nombre> | players | airborne | off",
+    en = "_opposition <number> | players | airborne | off",
+  },
+  ["menu.opposition.root"] = { fr = "Opposition", en = "Opposition" },
+  ["menu.opposition.show"] = { fr = "Niveau actuel", en = "Current level" },
+  ["menu.opposition.raise"] = { fr = "Niveau +1", en = "Level +1" },
+  ["menu.opposition.lower"] = { fr = "Niveau -1", en = "Level -1" },
+  ["menu.opposition.follow"] = { fr = "Mode : %s", en = "Mode: %s" },
+  ["menu.combatmission.scale_auto"] = {
+    fr = "Taille auto (niveau d'opposition)",
+    en = "Auto scale (opposition level)",
+  },
 }
 
 veaf.loggers.get(veafI18n.Id):info(veaf.loggers.get(veafI18n.Id):getVersionInfo())

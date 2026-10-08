@@ -159,6 +159,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafSecurity.lua` | Security levels, admin management |
 | `test_veafServerHook.lua` | Server hook: chat-command parsing and dispatch |
 | `test_veafNamedPoints.lua` | Point registration, lookup, ATC helpers |
+| `test_veafOpposition.lua` | Opposition level: counted from the players connected or airborne, hysteresis (an immediate rise, a delayed drop), the `_opposition` marker and its security level |
 | `test_veafShortcuts.lua` | Shortcut registration and resolution |
 | `test_veafWeather.lua` | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | Unit data export utilities |

@@ -1439,9 +1439,15 @@ function ConvoyUnitHandler:watch(now, group)
 end
 
 --- Remember an enemy unit that was seen or that fired. One record per unit, however many bullets.
+---
+--- A ground unit counts for its own strength, except one that **fired** from beyond `ENGAGEMENT_RANGE`:
+--- that is the gun the convoy cannot answer, and it counts for `math.huge`, like an aircraft. A unit
+--- merely **seen** counts for its strength wherever it stands — on 2026-10-08 one rifleman seen 3164 m
+--- from the convoy's centre counted for `math.huge`, and a group of strength 5 fell back from him.
 --- @param unit table a DCS unit
 --- @param now number
-function ConvoyUnitHandler:recordThreat(unit, now)
+--- @param fired boolean|nil true when the unit fired at the convoy (a shot or hit event)
+function ConvoyUnitHandler:recordThreat(unit, now, fired)
   local ok, name, point, typeName = pcall(function()
     return unit:getName(), unit:getPoint(), unit:getTypeName()
   end)
@@ -1452,7 +1458,8 @@ function ConvoyUnitHandler:recordThreat(unit, now)
   local group = self:getGroup()
   local isGround = veafGroundAI.isLivingGroundUnitOf(unit, self.enemySide)
   -- an aircraft, or a gun firing from beyond the range the convoy can answer at: nothing to fight
-  if isGround and group and dist2D(point, veaf.getAveragePosition(group)) <= ConvoyUnitHandler.ENGAGEMENT_RANGE then
+  local outOfReach = fired and not (group and dist2D(point, veaf.getAveragePosition(group)) <= ConvoyUnitHandler.ENGAGEMENT_RANGE)
+  if isGround and not outOfReach then
     strength = veafGroundAI.unitStrength(unit)
   end
   self.threats[name] = { name = name, point = point, typeName = typeName, strength = strength, lastSeen = now, ground = isGround }
@@ -1477,7 +1484,7 @@ function ConvoyUnitHandler:reportFire(initiator)
     return
   end
   local now = timer.getTime()
-  self:recordThreat(initiator, now)
+  self:recordThreat(initiator, now, true)
   if not self:isInContact() then
     self:engage(now)
   end

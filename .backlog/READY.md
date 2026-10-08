@@ -8,10 +8,6 @@ Lots written up and ready to take.
 
 A campaign mission's flight plans came from the template's example `waypoints.yaml`, pointing nowhere near the theatre; `campaign next` would write the mission's objectives as waypoints instead. Found on *Kolkhida* mission 1, fixed there by hand.
 
-### [FIX-ASSAULT-CONVOY-FINDINGS](FIX-ASSAULT-CONVOY-FINDINGS/PRD.md) · ⬜
-
-Found on *Kolkhida* mission 1: the red assault convoy fled one infantryman seen just beyond its engagement range, then held forever waiting for an order nobody on red can give; Poti, taken by the blue convoy, drew a 24-unit garrison anyway; and assault convoys carry no armour.
-
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 
 Broaden the shipped default radio presets, after phase 1 of the radio preset projection.

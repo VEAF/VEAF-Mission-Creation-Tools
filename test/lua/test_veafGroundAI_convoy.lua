@@ -355,6 +355,14 @@ function TestConvoyContact:test_an_aircraft_is_not_fought()
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
 end
 
+function TestConvoyContact:test_a_gun_firing_from_beyond_range_is_not_fought()
+  -- a gun the convoy cannot answer: whatever its own strength, it counts for all of it
+  local handler, units = self:_convoy(TANK)
+  local gun = makeUnit("r-1", { side = RED, attributes = APC, type = "2S1", point = { x = 6000, y = 0, z = 0 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_SHOOTING_START, initiator = gun, target = units[1] })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
+end
+
 function TestConvoyContact:test_a_stopped_convoy_reacts_to_nothing()
   local handler, units = self:_convoy(IFV)
   handler:stop()
@@ -509,6 +517,24 @@ function TestConvoyWatch:test_an_enemy_in_sight_beyond_range_is_no_contact()
   dcs_mocks.searchObjectsObjects = { makeUnit("far", { side = RED, attributes = APC, point = { x = 4500, y = 0, z = 0 } }) }
   local handler = veafGroundAI.addConvoy("Watched")
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_ALERTED)
+end
+
+function TestConvoyWatch:test_a_rifleman_seen_beyond_engagement_range_counts_for_his_own_strength()
+  -- Kolkhida, 2026-10-08: one `Soldier M4 GRG` seen 3164 m from the convoy's centre counted for
+  -- `math.huge`, and a group of strength 5 fell back from him. Seen, not fired at by: he counts for 1.
+  local units = {
+    makeUnit("s-1", { attributes = IFV, point = { x = 0, y = 0, z = 0 } }),
+    makeUnit("s-2", { attributes = AAA, point = { x = -250, y = 0, z = 0 } }),
+    makeUnit("s-3", { attributes = AAA, point = { x = -500, y = 0, z = 0 } }),
+  }
+  makeGroup("Bison", units)
+  dcs_mocks.visibilityAnswer = true
+  local rifleman =
+    makeUnit("Poti garrison #8", { side = RED, attributes = INFANTRY, type = "Soldier M4 GRG", point = { x = 2914, y = 0, z = 0 } })
+  dcs_mocks.searchObjectsObjects = { rifleman }
+  local handler = veafGroundAI.addConvoy("Bison")
+  luaunit.assertEquals(handler.threats["Poti garrison #8"].strength, 1)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING, "5 against 1")
 end
 
 function TestConvoyWatch:test_quiet_for_a_minute_after_a_fight_it_drives_on_by_itself()

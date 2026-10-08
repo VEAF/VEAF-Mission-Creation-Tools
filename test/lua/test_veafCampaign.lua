@@ -1432,6 +1432,25 @@ function TestVeafCampaignAssault:test_a_convoy_that_takes_the_zone_becomes_its_g
   luaunit.assertEquals(veafCampaign.zones["Poti"]:countUnits(), 1)
 end
 
+-- FIX-ASSAULT-CONVOY-FINDINGS ticket 03: Poti, taken by the blue convoy, drew a garrison anyway, and nothing
+-- in dcs.log said why. The capture now says, for each convoy it looks at, why it is or is not absorbed.
+function TestVeafCampaignAssault:test_the_capture_logs_why_each_convoy_is_or_is_not_absorbed()
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  local record = veafCampaign.convoys[1]
+  veafCampaign.zones["Poti"]:capturedBy("red") -- the convoy is still in Senaki, 10 km away
+  luaunit.assertEquals(#self.casCalls, 1)
+  local line = dcs_mocks.findLog("zone %[Poti%]: convoy %[" .. record.name:gsub("%p", "%%%0") .. "%]")[1]
+  luaunit.assertNotNil(line, "the convoy looked at is logged")
+  luaunit.assertStrContains(
+    line.text,
+    "of red, ended nil, group exists, 3 unit(s) alive, 0 inside, nearest 10000 m from the centre (radius 2000)"
+  )
+  luaunit.assertEquals(#dcs_mocks.findLog("no assault convoy of red in it, its garrison is drawn from the reserve"), 1)
+end
+
 function TestVeafCampaignAssault:test_without_a_convoy_there_the_capture_draws_a_garrison()
   veafCampaign.initialize()
   veafCampaign.zones["Poti"]:capturedBy("blue")

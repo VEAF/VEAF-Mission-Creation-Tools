@@ -533,6 +533,9 @@ function VeafCampaignZone:capturedBy(side)
   veafCampaign.setAirbaseCoalition(self, veafCampaign.SIDES[side])
   -- an assault convoy that took the zone stays as its garrison: paid once, from the reserve, when it left
   if not veafCampaign.absorbConvoy(self, side) then
+    veaf.loggers
+      .get(veafCampaign.Id)
+      :info("zone [%s]: no assault convoy of %s in it, its garrison is drawn from the reserve", self.name, side)
     self:drawGarrison(veafCampaign.reserveOf(side))
     self:spawnGarrison()
   end
@@ -917,39 +920,68 @@ function veafCampaign.uniqueConvoyName(base)
   return name
 end
 
+--- What DCS answers for a convoy's group name, for the log: "missing", "not existing" or "exists".
+local function groupState(name)
+  local group = Group.getByName(name)
+  if not group then
+    return "missing"
+  end
+  local ok, exists = pcall(group.isExist, group)
+  return (ok and exists) and "exists" or "not existing"
+end
+
 --- A side has just taken a zone: if one of its assault convoys is there, its survivors become the
 --- zone's garrison, recorded where they stand, and keep their DCS names for this mission's losses.
+---
+--- Every convoy record looked at is logged, with why it is or is not absorbed: on Kolkhida, 2026-10-08,
+--- Poti was taken by the blue convoy, whose six units were measured 0 to 90 m from its centre, and this
+--- returned false anyway — the cause was not found from the code (FIX-ASSAULT-CONVOY-FINDINGS ticket 03).
 --- @param zone table the zone captured
 --- @param side string the side that took it
 --- @return boolean true when a convoy became the garrison
 function veafCampaign.absorbConvoy(zone, side)
   local center, radius = zone:getCenter(), zone.entry.radius or 2000
+  local logger = veaf.loggers.get(veafCampaign.Id)
+  logger:info("zone [%s] taken by %s: %d assault convoy record(s) to look at", zone.name, side, #veafCampaign.convoys)
   for _, record in ipairs(veafCampaign.convoys) do
-    if record.side == side and not record.ended then
-      local inside = {}
-      for _, unit in ipairs(veafCampaign.convoyUnits(record)) do
+    local units = veafCampaign.convoyUnits(record)
+    local inside, nearest = {}, nil
+    for _, unit in ipairs(units) do
+      local point = unit:getPoint()
+      local distance2 = (point.x - center.x) ^ 2 + (point.z - center.z) ^ 2
+      nearest = math.min(nearest or distance2, distance2)
+      if distance2 <= radius ^ 2 then
+        table.insert(inside, unit)
+      end
+    end
+    logger:info(
+      "zone [%s]: convoy [%s] of %s, ended %s, group %s, %d unit(s) alive, %d inside, nearest %s m from the centre (radius %s)",
+      zone.name,
+      tostring(record.name),
+      tostring(record.side),
+      tostring(record.ended),
+      groupState(record.name),
+      #units,
+      #inside,
+      nearest and tostring(math.floor(math.sqrt(nearest))) or "-",
+      tostring(radius)
+    )
+    if record.side == side and not record.ended and #inside > 0 then
+      local group = { name = record.name, units = {} }
+      for index, unit in ipairs(inside) do
         local point = unit:getPoint()
-        if (point.x - center.x) ^ 2 + (point.z - center.z) ^ 2 <= radius ^ 2 then
-          table.insert(inside, unit)
-        end
+        table.insert(group.units, { type = unit:getTypeName(), x = point.x, z = point.z, heading = 0, alive = true })
+        veafCampaign.unitIndex[unit:getName()] = { zone = zone, group = 1, unit = index }
       end
-      if #inside > 0 then
-        local group = { name = record.name, units = {} }
-        for index, unit in ipairs(inside) do
-          local point = unit:getPoint()
-          table.insert(group.units, { type = unit:getTypeName(), x = point.x, z = point.z, heading = 0, alive = true })
-          veafCampaign.unitIndex[unit:getName()] = { zone = zone, group = 1, unit = index }
-        end
-        zone.entry.garrison = { group }
-        record.absorbed = typesOf(inside)
-        record.ended = true
-        record.alive = {}
-        removeAxis(record)
-        veaf.loggers
-          .get(veafCampaign.Id)
-          :info("assault convoy [%s] holds [%s]: %d unit(s) become its garrison", record.name, zone.name, #inside)
-        return true
-      end
+      zone.entry.garrison = { group }
+      record.absorbed = typesOf(inside)
+      record.ended = true
+      record.alive = {}
+      removeAxis(record)
+      veaf.loggers
+        .get(veafCampaign.Id)
+        :info("assault convoy [%s] holds [%s]: %d unit(s) become its garrison", record.name, zone.name, #inside)
+      return true
     end
   end
   return false

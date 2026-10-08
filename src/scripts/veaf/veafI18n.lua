@@ -1367,6 +1367,53 @@ veaf.i18nCatalog = {
     fr = "%s tire %d obus sur %s avec une dispersion de %s m",
     en = "%s is firing %d shells at %s with a %s m dispersion",
   },
+  -- veafGroundAI — the convoy watch (FEAT-CONVOY-UNDER-FIRE). The call for help follows JP 3-09.3's
+  -- troops-in-contact call and immediate request; "troops in contact" stays in English in French, the
+  -- way pilots say it.
+  ["groundai.convoy_tic"] = {
+    fr = "%s à tout appui aérien : TROOPS IN CONTACT, demande d'appui immédiat, priorité 1. Notre position : %s. Ennemis : %d (%s), au %03d pour %d m. Fumigène rouge sur l'ennemi, vert sur nous.",
+    en = "%s to any CAS: TROOPS IN CONTACT, immediate CAS request, priority 1. Our position: %s. Enemy: %d (%s), bearing %03d, %d m. Red smoke on the enemy, green smoke on us.",
+  },
+  ["groundai.convoy_tic_voice"] = {
+    fr = "%s, troops in contact, %d ennemis, au %03d, %d mètres. Fumigène rouge sur l'ennemi, vert sur nous.",
+    en = "%s, troops in contact, %d enemies, bearing %03d, %d meters. Red smoke on the enemy, green smoke on us.",
+  },
+  ["groundai.convoy_fighting"] = {
+    fr = "%s : contact, les véhicules armés font front.",
+    en = "%s: contact, the armed vehicles stand and fight.",
+  },
+  ["groundai.convoy_falling_back"] = {
+    fr = "%s : contact, repli à couvert.",
+    en = "%s: contact, falling back behind cover.",
+  },
+  ["groundai.convoy_unarmed_falling_back"] = {
+    fr = "%s : les véhicules non armés se replient.",
+    en = "%s: the unarmed vehicles are falling back.",
+  },
+  ["groundai.convoy_holding"] = {
+    fr = "%s : plus de contact, on tient la position. Pour repartir : _gc %s, resume",
+    en = "%s: no more contact, holding position. To drive on: _gc %s, resume",
+  },
+  ["groundai.convoy_retreating"] = {
+    fr = "%s : repli en cours, comme ordonné.",
+    en = "%s: retreating, as ordered.",
+  },
+  ["groundai.convoy_resuming"] = {
+    fr = "%s : on reprend la route.",
+    en = "%s: back on the road.",
+  },
+  ["groundai.convoy_nowhere_to_go"] = {
+    fr = "%s : aucun lieu ami connu où se replier. Donnez un point : _gc %s, retreat <point>",
+    en = "%s: no friendly place known to fall back to. Give a point: _gc %s, retreat <point>",
+  },
+  ["groundai.convoy_watched"] = {
+    fr = "%s est surveillé comme un convoi.",
+    en = "%s is now watched as a convoy.",
+  },
+  ["groundai.not_a_convoy"] = {
+    fr = "%s n'est pas un convoi. Pour le surveiller comme tel : _gc %s, convoy",
+    en = "%s is not a convoy. To watch it as one: _gc %s, convoy",
+  },
 
   -- veafWeather
   ["weather.fog_set"] = {

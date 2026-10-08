@@ -171,6 +171,7 @@ Un convoi rouge fait exactement la même chose, du côté rouge.
 ### Quels groupes {#convoy-groups}
 
 - **Chaque convoi apparu par `_spawn convoy`**, automatiquement. Son nom est celui que le spawn lui donne (`[b]-Convoy-3`…) ; un fragment suffit dans `_gc`, comme pour `groupname`.
+  Attention : `-convoy` fait apparaître un convoi **rouge** par défaut — une cible. Pour un convoi ami, ajoutez `side blue` : `-convoy, dest ALPHA, side blue`.
 - Un groupe de l'éditeur de missions, listé dans `mission.yaml` ([plus bas](#configuration-missionyaml)).
 - N'importe quel groupe, en jeu : `_gc <nom>, convoy`, le marqueur posé sur le groupe (ou avec `groupname`).
 

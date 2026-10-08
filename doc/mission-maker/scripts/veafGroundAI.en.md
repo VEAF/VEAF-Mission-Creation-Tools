@@ -172,6 +172,7 @@ A red convoy does exactly the same, on the red side.
 ### Which groups {#convoy-groups}
 
 - **Every convoy spawned by `_spawn convoy`**, automatically. Its name is the one the spawn gives it (`[b]-Convoy-3`…); a part of it is enough in `_gc`, as with `groupname`.
+  Beware: `-convoy` spawns a **red** convoy by default — a target. For a friendly one, add `side blue`: `-convoy, dest ALPHA, side blue`.
 - A Mission Editor group listed in `mission.yaml` ([below](#configuration-missionyaml)).
 - Any group, in game: `_gc <name>, convoy`, with the marker on the group (or with `groupname`).
 

@@ -1383,7 +1383,7 @@ function ConvoyUnitHandler:watch(now, group)
   if self:isInContact() then
     if now - self.lastContact >= ConvoyUnitHandler.QUIET_DELAY then
       self:standDown()
-    elseif now >= self.nextSmoke then
+    elseif self.calledForHelp and now >= self.nextSmoke then
       self:markWithSmoke(now)
     end
   end
@@ -1495,14 +1495,18 @@ function ConvoyUnitHandler:engage(now)
       self:fallBack(self.unarmedGroupName, rally, destination)
     end
     if veafGroundAI.convoyShouldFight(ownStrength, enemyStrength) then
-      self:fight(threats[1])
+      self:fight(threats)
       self.state = ConvoyUnitHandler.STATE_FIGHTING
     else
       self:fallBack(self.groupName, rally, destination)
       self.state = ConvoyUnitHandler.STATE_FALLING_BACK
     end
   end
-  self:callForHelp(now)
+  -- Only a convoy falling back needs the air: one strong enough to fight says what it meets and deals
+  -- with it, without smoke nor a call (David, after the demo's run of 2026-10-08).
+  if self.state == ConvoyUnitHandler.STATE_FALLING_BACK then
+    self:callForHelp(now)
+  end
 end
 
 --- Where the convoy falls back to, from where it stands now.
@@ -1587,8 +1591,9 @@ end
 --- the watch could see: in two minutes not a round was fired by either side, their unit-level
 --- `getDetectedTargets` stayed empty, and neither `Controller.knowTarget` nor a `FireAtPoint` task made
 --- them fire. Sent forward instead, they opened fire at ~1.3 km and destroyed both in 16 s.
---- @param threat table the nearest threat's record
-function ConvoyUnitHandler:fight(threat)
+--- @param threats table the threats' records, nearest first
+function ConvoyUnitHandler:fight(threats)
+  local threat = threats[1]
   local group = self:getGroup()
   local controller = group:getController()
   controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
@@ -1605,7 +1610,8 @@ function ConvoyUnitHandler:fight(threat)
       routePoint(stop, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
     })
   end
-  self:say("groundai.convoy_fighting")
+  local bearing, range = veaf.getBearingAndRangeFromTo(from, threat.point)
+  self:say("groundai.convoy_fighting", #threats, bearing, veaf.round(range, -1))
 end
 
 --- Send a group away on the fall-back route, returning fire as it goes.
@@ -1646,6 +1652,7 @@ function ConvoyUnitHandler:callForHelp(now)
   local center = veaf.getAveragePosition(group)
   local text, voice = veafGroundAI.convoyContactCall(self:getName(), center, threats)
   trigger.action.outTextForCoalition(self.side, text, 30)
+  self.calledForHelp = true
   self:markWithSmoke(now)
   -- Last, and guarded: a radio that raises must not take the smokes or the watch down with it, which is
   -- what a half-configured SRS did on 2026-10-08.
@@ -1683,8 +1690,20 @@ function ConvoyUnitHandler:markWithSmoke(now)
   self.nextSmoke = now + ConvoyUnitHandler.SMOKE_RENEW_PERIOD
 end
 
---- Nothing in sight and no shot for a while: report and hold, waiting for an order (Q4).
+--- Nothing in sight and no shot for a while.
+---
+--- After a fight, the convoy drives on by itself and its unarmed vehicles join it (David, 2026-10-08:
+--- "il faut faire `_gc resume` après l'engagement ? ça devrait [être automatique]"). After a fall back it
+--- reports and holds, waiting for an order (Q4): the enemy it fled is still there, and driving on would
+--- take it back into the same ambush.
 function ConvoyUnitHandler:standDown()
+  if self.state == ConvoyUnitHandler.STATE_FIGHTING then
+    veaf.loggers
+      .get(veafGroundAI.Id)
+      :info("convoy %s: no contact for %d s after a fight, driving on", veaf.p(self:getName()), ConvoyUnitHandler.QUIET_DELAY)
+    self:resume()
+    return
+  end
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s: no contact for %d s, holding", veaf.p(self:getName()), ConvoyUnitHandler.QUIET_DELAY)
   local group = self:getGroup()
   if group then
@@ -1773,6 +1792,7 @@ function ConvoyUnitHandler:resume()
   self.threats = {}
   self.enemies = {}
   self.nextWideWatch = 0
+  self.calledForHelp = false
   veaf.goRoute(self.groupName, self:onwardRoute(group))
   local unarmed = self:getUnarmedGroup()
   if unarmed then
@@ -1790,22 +1810,33 @@ function ConvoyUnitHandler:resume()
   return true
 end
 
---- The route on from where the convoy stands: its itinerary's current leg for a `_spawn convoy`, the
---- rest of its Mission Editor route otherwise (from the waypoint nearest to it).
+--- The route on from where the convoy stands: back to the nearest road, then its itinerary's current
+--- leg for a `_spawn convoy`, the rest of its Mission Editor route otherwise (from the waypoint nearest
+--- to it).
+---
+--- Back to the road first, the way `veaf.generateVehiclesRoute` starts a convoy (`T_STA` off road, `STA`
+--- on it). On 2026-10-08 the route went straight to the leg's last point — `T_END`, the true end, whose
+--- action is `Diamond` — and the convoy drove on across country, 330 to 376 m from the road at 3 to 4 m/s.
 --- @param group table the convoy's DCS group
 --- @return table route points
 function ConvoyUnitHandler:onwardRoute(group)
   local from = veaf.getAveragePosition(group)
+  local speed = veafGroundAI.FALL_BACK_SPEED
+  local roadX, roadZ = land.getClosestPointOnRoads("roads", from.x, from.z)
+  local points = { routePoint(from, "Off Road", speed) }
+  if roadX and roadZ then
+    table.insert(points, routePoint({ x = roadX, z = roadZ }, "On Road", speed))
+  end
   local record = veafSpawn and veafSpawn.spawnedConvoys and veafSpawn.spawnedConvoys[self.groupName]
   if record and record.route then
-    local last = record.route[#record.route]
     record.stopped = false
-    return {
-      routePoint(from, "On Road", veafGroundAI.FALL_BACK_SPEED),
-      routePoint({ x = last.x, z = last.y }, last.action or "On Road", last.speed or veafGroundAI.FALL_BACK_SPEED),
-    }
+    -- the leg's road end (`END`) and its true end (`T_END`), as the spawn made them; never the start
+    for index = 3, #record.route do
+      local point = record.route[index]
+      table.insert(points, routePoint({ x = point.x, z = point.y }, point.action or "On Road", point.speed or speed))
+    end
+    return points
   end
-  local points = { routePoint(from, "On Road", veafGroundAI.FALL_BACK_SPEED) }
   local original = self.originalRoute or {}
   local nearest, nearestDistance = nil, math.huge
   for index, point in ipairs(original) do

@@ -1379,8 +1379,8 @@ veaf.i18nCatalog = {
     en = "%s, troops in contact, %d enemies, bearing %03d, %d meters. Red smoke on the enemy, green smoke on us.",
   },
   ["groundai.convoy_fighting"] = {
-    fr = "%s : contact, les véhicules armés font front.",
-    en = "%s: contact, the armed vehicles stand and fight.",
+    fr = "%s : contact, %d ennemis au %03d pour %d m ; les véhicules armés font front.",
+    en = "%s: contact, %d enemies bearing %03d, %d m; the armed vehicles stand and fight.",
   },
   ["groundai.convoy_falling_back"] = {
     fr = "%s : contact, repli à couvert.",

@@ -75,6 +75,8 @@ class CampaignRules:
     """Whether, in flight, each side sends an assault convoy to a neutral zone it borders."""
     assault_seconds: int = 600
     """Seconds between a zone becoming such a target and the convoy leaving for it."""
+    intel_seconds: int = 1200
+    """Seconds between a convoy leaving and the other side hearing of it; 0 tells it at once."""
 
 
 @dataclass(frozen=True)

@@ -98,6 +98,7 @@ sides:
 rules:
   repairs_per_mission: 4
   assault_seconds: 600       # délai avant qu'un convoi d'assaut parte (voir « En vol »)
+  intel_seconds: 1200        # délai avant que l'autre camp apprenne son départ ; 0 : tout de suite
 ```
 
 Une campagne complète, prête à copier — la Géorgie occidentale en 12 zones et 10 missions — est livrée avec les outils : [`src/defaults/campaign-folder/campaign.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/defaults/campaign-folder/campaign.yaml).
@@ -153,7 +154,8 @@ Après `rules.assault_seconds` (600 s par défaut, plus tôt quand le [niveau d'
 Un seul convoi à la fois par camp et par cible ; il ne part pas si sa zone de départ a changé de mains.
 Il est fait de blindés à la mesure de la classe de taille de sa zone de départ et de quelques camions, **payés sur la réserve** de son camp, unité par unité ; une réserve vide n'envoie rien.
 Il se conduit comme tout convoi sous le feu ([veafGroundAI](scripts/veafGroundAI.md)) : il regarde devant lui, se scinde, appelle à l'aide, se replie.
-Son camp est prévenu de son départ, l'autre l'apprend en renseignement (« une colonne ennemie quitte Senaki en direction de Poti »), et un trait à sa couleur, posé sur la liaison, marque son axe sur la carte F10 jusqu'à ce qu'il arrive ou soit détruit.
+Son camp est prévenu de son départ et voit aussitôt son axe sur la carte F10 : un trait à sa couleur, posé sur la liaison, jusqu'à ce qu'il arrive ou soit détruit.
+L'autre camp l'apprend en renseignement, `rules.intel_seconds` plus tard (1 200 s, 20 minutes, par défaut ; 0 : tout de suite) : le message (« une colonne ennemie quitte Senaki en direction de Poti ») et le même trait sur sa carte arrivent ensemble, et un convoi détruit avant n'est jamais signalé.
 Arrivé, il tient la zone comme toute unité au sol, et la prend au bout de `capture_seconds` : ses survivants dans la zone en deviennent la garnison, sans second tirage sur la réserve.
 Les joueurs bleus en lancent aussi depuis le menu **Campagne → Assauts**, d'une zone bleue vers une voisine qui ne l'est pas, au niveau de sécurité de la mission.
 `rules.assault_convoys: false` coupe la règle ; le menu reste.

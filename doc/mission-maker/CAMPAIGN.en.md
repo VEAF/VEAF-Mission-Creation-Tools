@@ -98,6 +98,7 @@ sides:
 rules:
   repairs_per_mission: 4
   assault_seconds: 600       # delay before an assault convoy leaves (see "In flight")
+  intel_seconds: 1200        # delay before the other side hears it left; 0: at once
 ```
 
 A complete campaign, ready to copy — western Georgia in 12 zones and 10 missions — ships with the tools: [`src/defaults/campaign-folder/campaign.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/defaults/campaign-folder/campaign.yaml).
@@ -153,7 +154,8 @@ After `rules.assault_seconds` (600 s by default, sooner when the [opposition lev
 One convoy at a time per side and target; it does not leave if its start zone changed hands.
 It is armour after its start zone's size class plus a few trucks, **paid from its side's reserve**, unit by unit; an empty reserve sends nothing.
 It behaves like any convoy under fire ([veafGroundAI](scripts/veafGroundAI.en.md)): it watches ahead, splits, calls for help, falls back.
-Its side is told it leaves, the other side hears it as intelligence ("an enemy column is leaving Senaki towards Poti"), and a line in its colour, over the link, marks its axis on the F10 map until it arrives or is destroyed.
+Its side is told it leaves and sees its axis on the F10 map at once: a line in its colour, over the link, until it arrives or is destroyed.
+The other side hears of it as intelligence `rules.intel_seconds` later (1,200 s, 20 minutes, by default; 0: at once): the message ("an enemy column is leaving Senaki towards Poti") and the same line on its map come together, and a convoy destroyed before then is never reported.
 Once there, it holds the zone like any ground unit and takes it after `capture_seconds`: its survivors in the zone become the garrison, with no second draw from the reserve.
 Blue players also send them from the **Campaign → Assaults** menu, from a blue zone to a neighbour that is not, at the mission's security level.
 `rules.assault_convoys: false` turns the rule off; the menu stays.

@@ -1,6 +1,6 @@
 # Lot FEAT-DCS-REFERENCE-DATA — use the dcs-world-schema reference data
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-10-08 (#1098)
 Branch: feature/dcs-reference-data → PR → develop
 
 ## Problem Statement

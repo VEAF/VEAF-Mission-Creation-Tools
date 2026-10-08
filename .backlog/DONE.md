@@ -42,6 +42,10 @@ Airfield radio channels generated from DCS's own reference instead of typed by h
 
 Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, captured ones after two minutes of ground presence, marked by a green circle. Seen in game 2026-10-03: at Ramstein a C-130 parks 997 m out, so a mission raises `airbase_logistics_radius` (1 100 m there).
 
+### [FEAT-DCS-REFERENCE-DATA](FEAT-DCS-REFERENCE-DATA/PRD.md) · ✅
+
+Airfield names, ids and positions generated from the `dcs-world-schema` reference database (positions now on the runways' centre), numeric callsigns for the ten countries the Mission Editor numbers. Liveries and spotter sight dropped on measurement. #1098.
+
 ### [FEAT-HELICOPTER-SPAWN](FEAT-HELICOPTER-SPAWN/PRD.md) · ✅
 
 Helicopters spawned from a marker, landed as targets or given a job (orbit, transport, patrol, attack, escort) (#1050, #164).

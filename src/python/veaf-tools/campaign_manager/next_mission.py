@@ -20,8 +20,10 @@ from veaf_libs.i18n import language, t
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.mission_settings import set_briefing
 
+from campaign_manager.briefing_prose import MissionPage
 from campaign_manager.mission_conditions import MissionConditions, set_conditions
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
+from campaign_manager.objective_waypoints import write_objective_waypoints
 from campaign_manager.turn_manager import describe_change, enemy_of, evaluate_objectives, garrison_strength, outcome
 
 #: The data table, in the mission folder, the build turns into `veafCampaign.data`.
@@ -52,6 +54,8 @@ class NextMissionReport:
     """The date, time and weather fixed in a folder created now; ``None`` on a refresh, which keeps them."""
     mission_deck: Path | None = None
     """The mission briefing deck, written when the folder holds a built mission."""
+    waypoints: bool = False
+    """Whether `src/waypoints.yaml` was written from the objectives; ``False`` when an edited one was kept."""
 
 
 def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str, Any]:
@@ -218,6 +222,7 @@ def prepare_next_mission(
     campaign_folder: Path,
     mission_folder: Path,
     players: tuple[int, int] | None = None,
+    page: MissionPage | None = None,
 ) -> NextMissionReport:
     """Create, or refresh, the next mission's folder from the campaign state.
 
@@ -233,6 +238,8 @@ def prepare_next_mission(
         mission_folder: Where the next mission goes.
         players: How many players are expected tonight, beating `campaign.yaml`'s `players`; with
             neither, the mission's `opposition:` block is left as it is.
+        page: The coming mission's page of `briefing.yaml`, whose tasks name the zones its waypoints go
+            to; ``None`` for the campaign's objectives.
 
     Returns:
         What was produced.
@@ -275,6 +282,12 @@ def prepare_next_mission(
         _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
     # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
     conditions = set_conditions(campaign, state, mission_folder) if created else None
+    waypoints = write_objective_waypoints(campaign, page, mission_folder, created=created)
     return NextMissionReport(
-        mission=state.mission + 1, folder=mission_folder, created=created, airbases=airbases, conditions=conditions
+        mission=state.mission + 1,
+        folder=mission_folder,
+        created=created,
+        airbases=airbases,
+        conditions=conditions,
+        waypoints=waypoints,
     )

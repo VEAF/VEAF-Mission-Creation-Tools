@@ -49,6 +49,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   An enemy seen just beyond 3 km counted as impossible to fight, like an aircraft: one rifleman at 3164 m made a strength-5 group fall back. A ground unit seen now counts for its own strength; only an aircraft or a unit that fired from beyond 3 km still makes the convoy fall back whatever its strength.
 - **A campaign's assault convoys are tanks and IFVs** (FIX-ASSAULT-CONVOY-FINDINGS).
   They came out as air defence and trucks: the armour platoon was half the convoy's size give or take 20 %, so two trucks brought 0 or 1 armoured vehicle, and the start zone's air defence came twice. A convoy now brings 4 tanks and IFVs of its side and era from an `outpost`, 6 from an `airfield`, two trucks, and one or two anti-aircraft guns at most.
+- **A flight plan in `waypoints.yaml` takes its waypoints by key, and a waypoint keeps its `name:`** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  Only a plan's keys were ever read, while the shipped example wrote `HOLDING_POINT: "HOLDING_POINT"` as if the value mapped somewhere: `POTI: "POTI_LOW"` silently flew to `POTI`. A plan now also takes a list of keys, which the shipped example uses; the mapping form still loads, and the build warns when a value names another waypoint.
+  A waypoint's `name:` was overwritten by its key, so *Kolkhida* mission 1's helicopters showed `POTI_LOW` in the cockpit: the name is now kept, the key being the fallback.
 
 ### Added
 
@@ -81,6 +84,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `rules.intel_seconds` in `campaign.yaml` (20 minutes by default, 0 for at once): the convoy's own side is told and sees its axis when it leaves, the other side gets the message and the line on its map together, that much later — and never for a convoy destroyed before.
 - **A campaign capture says in `dcs.log` why an assault convoy did or did not become the zone's garrison** (FIX-ASSAULT-CONVOY-FINDINGS).
   Poti, taken by the blue convoy on *Kolkhida*, drew a garrison from the reserve anyway and the cause was not found from the code; each convoy looked at is now logged — side, ended or not, what DCS answers for its group, units alive and inside, the nearest one's distance.
+- **`campaign next` writes the mission's objectives as the players' waypoints** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  The mission folder's `src/waypoints.yaml` was the template's example, steerpoints nowhere near the theatre. It is now one waypoint per zone the mission's tasks name in `briefing.yaml` (else the campaign's objectives), at the zone's centre, in the tasks' order, for the players' side: planes at 10,000 ft, helicopters at 500 ft above the ground, under the same name. A file edited since is kept by a second `campaign next`.
+- **The mission briefing has a navigation plan** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  `briefing-mission.pptx` gains a "Navigation plan" page read from the built mission: the waypoints the players' planes then helicopters carry after their departure, `BULLSEYE` included — name, DMS position, altitude and its reference (BARO or AGL). The tactical map shows them as numbered points, the numbers of the page.
 
 ### Changed
 

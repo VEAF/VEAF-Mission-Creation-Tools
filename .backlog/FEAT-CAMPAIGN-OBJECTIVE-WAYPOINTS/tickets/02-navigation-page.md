@@ -1,6 +1,6 @@
 # 02 — The mission briefing shows the flight plan
 
-Status: ⬜ ready
+Status: ✅ done
 
 David, 2026-10-08: "régénère les briefings avec les waypoints". The mission briefing deck (`campaign_manager/mission_deck.py`) has no page for the waypoints the players' aircraft carry: regenerating it showed nothing new.
 

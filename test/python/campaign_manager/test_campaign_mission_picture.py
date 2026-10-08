@@ -28,6 +28,31 @@ class TestTheFlights:
         ]
 
 
+class TestTheFlightPlans:
+    """FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS ticket 02: the waypoints the players' aircraft carry."""
+
+    def test_one_plan_per_route_with_the_types_that_fly_it(self, tmp_path: Path) -> None:
+        plans = _picture(tmp_path).flight_plans
+        assert [(plan.category, plan.aircraft) for plan in plans] == [
+            ("plane", ("F-16C_50",)),
+            ("helicopter", ("UH-1H",)),
+        ]
+
+    def test_the_points_after_the_departure_bullseye_included(self, tmp_path: Path) -> None:
+        plane, helicopter = _picture(tmp_path).flight_plans
+        assert [(p.name, p.alt, p.alt_type) for p in plane.waypoints] == [
+            ("POTI", 3048.0, "BARO"),
+            ("KHOBI", 3048.0, "BARO"),
+            ("BULLSEYE", 6096.0, "BARO"),
+        ]
+        assert [(p.name, p.alt_type) for p in helicopter.waypoints][:2] == [("POTI", "RADIO"), ("KHOBI", "RADIO")]
+        assert (plane.waypoints[0].x, plane.waypoints[0].y) == (-295152.0, 617091.0)
+
+    def test_a_flight_without_waypoints_has_no_plan(self, tmp_path: Path) -> None:
+        # the carrier's Hornets carry their departure only
+        assert all("FA-18C_hornet" not in plan.aircraft for plan in _picture(tmp_path).flight_plans)
+
+
 class TestTheSupport:
     def test_each_support_aircraft_once_by_its_task(self, tmp_path: Path) -> None:
         support = _picture(tmp_path).support

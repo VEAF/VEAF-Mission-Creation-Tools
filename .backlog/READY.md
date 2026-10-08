@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS](FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS/PRD.md) · ⬜
-
-A campaign mission's flight plans came from the template's example `waypoints.yaml`, pointing nowhere near the theatre; `campaign next` would write the mission's objectives as waypoints instead. Found on *Kolkhida* mission 1, fixed there by hand.
-
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 
 Broaden the shipped default radio presets, after phase 1 of the radio preset projection.

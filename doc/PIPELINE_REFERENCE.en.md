@@ -284,7 +284,7 @@ waypoints:
     speed_type: "TAS"                   # TAS | IAS
     x: 75869                            # Mission X coordinate
     y: 48674                            # Mission Y coordinate
-    name: "BULLSEYE"                    # Waypoint label (optional)
+    name: "POTI"                        # What the cockpit shows (optional, the key when absent)
     ETA: 364.89                         # Estimated time of arrival in seconds (optional)
     ETA_locked: false                   # Lock ETA (optional)
 
@@ -295,9 +295,17 @@ settings:
     coalition: "blue"                   # blue | red (optional filter)
     type: "F-16C_50"                    # DCS aircraft type (optional filter)
     country: "USA"                      # Country name (optional filter)
-    waypoints:
-      <WAYPOINT_NAME>: "<WAYPOINT_NAME>"  # map waypoint definition to slot
+    waypoints:                          # the waypoints' KEYS, in flight order
+      - <WAYPOINT_NAME>
 ```
+
+### A plan takes its waypoints by key {#waypoints-by-key}
+
+A waypoint has a **key** (`<WAYPOINT_NAME>`) and a `name:`. A plan refers to it by its key; the cockpit shows its `name:`, or its key when it has none. Two waypoints may share a name but never a key: `POTI` at 10 000 ft for the planes and `POTI_LOW` at 500 ft above the ground for the helicopters, both shown as `POTI`.
+
+A plan lists its waypoints as a list of keys. The older mapping form — `HOLDING_POINT: "HOLDING_POINT"` — still loads, but **only its keys are read**: the value is ignored, so `POTI: "POTI_LOW"` flies to `POTI`. The build warns when a value names another waypoint.
+
+The build also appends a `BULLSEYE` waypoint, at the mission's own bullseye, to every flight plan: do not declare one.
 
 ### Matching priority
 
@@ -312,23 +320,22 @@ Flight plans are matched to groups using this priority order:
 
 ```yaml
 waypoints:
-  BULLSEYE:
+  POTI:
     type: "Turning Point"
     action: "Turning Point"
-    alt: 6096
+    alt: 3048
     alt_type: "BARO"
-    speed: 999
+    speed: 180
     speed_type: "TAS"
-    x: 75869
-    y: 48674
-    name: "BULLSEYE"
+    x: -295152
+    y: 617091
 
 settings:
   BLUE_PLANES:
     category: "plane"
     coalition: "blue"
     waypoints:
-      BULLSEYE: "BULLSEYE"
+      - POTI
 ```
 
 ---

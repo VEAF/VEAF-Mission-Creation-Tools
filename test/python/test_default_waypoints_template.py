@@ -39,6 +39,15 @@ TEMPLATES = (
 CLAIMED_NAMES = {"BULLSEYE", "BULLS", "BE"}
 
 
+def _plan_keys(plan: object) -> list[str]:
+    """The waypoint keys a plan references: a list of keys, or the keys of the older mapping form.
+
+    The loader reads keys only (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS); a mapping's values are never read.
+    """
+    listed = (plan or {}).get("waypoints") if isinstance(plan, dict) else None
+    return [str(key) for key in listed or []]
+
+
 class TestDefaultWaypointsTemplate(unittest.TestCase):
     def test_the_files_are_there_and_readable(self) -> None:
         """A check that silently reads nothing passes every assertion below."""
@@ -74,9 +83,9 @@ class TestDefaultWaypointsTemplate(unittest.TestCase):
         for path in TEMPLATES:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
             for plan_name, plan in (data.get("settings") or {}).items():
-                for key, value in ((plan or {}).get("waypoints") or {}).items():
-                    if str(key).upper() in CLAIMED_NAMES or str(value).upper() in CLAIMED_NAMES:
-                        offences.append(f"{path.name}: plan {plan_name!r} references {key!r} -> {value!r}")
+                for key in _plan_keys(plan):
+                    if key.upper() in CLAIMED_NAMES:
+                        offences.append(f"{path.name}: plan {plan_name!r} references {key!r}")
 
         self.assertEqual(
             offences, [], "a flight plan still references a bullseye waypoint:\n  " + "\n  ".join(offences)
@@ -89,9 +98,9 @@ class TestDefaultWaypointsTemplate(unittest.TestCase):
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
             defined = set((data.get("waypoints") or {}).keys())
             for plan_name, plan in (data.get("settings") or {}).items():
-                for value in ((plan or {}).get("waypoints") or {}).values():
-                    if value not in defined:
-                        dangling.append(f"{path.name}: plan {plan_name!r} wants {value!r}, which is not defined")
+                for key in _plan_keys(plan):
+                    if key not in defined:
+                        dangling.append(f"{path.name}: plan {plan_name!r} wants {key!r}, which is not defined")
 
         self.assertEqual(dangling, [], "a flight plan references an undefined waypoint:\n  " + "\n  ".join(dangling))
 

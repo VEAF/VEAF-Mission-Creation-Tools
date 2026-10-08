@@ -194,8 +194,13 @@ class CampaignWorker:
         if mismatch:
             return issues + mismatch, None
         folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
+        # the tasks name the zones the waypoints go to; a defect in briefing.yaml is the deck's to report
+        prose, prose_issues = load_prose(self.folder, campaign.missions, state.mission + 1)
+        page = (
+            prose.missions.get(state.mission + 1) if prose and not any(i.level == ERROR for i in prose_issues) else None
+        )
         try:
-            report = prepare_next_mission(campaign, state, self.folder, folder, players=players)
+            report = prepare_next_mission(campaign, state, self.folder, folder, players=players, page=page)
         except FileNotFoundError as error:
             return [*issues, ValidationIssue(ERROR, str(error))], None
         # the deck comes with the folder; neither a defect in briefing.yaml nor a failure to draw it

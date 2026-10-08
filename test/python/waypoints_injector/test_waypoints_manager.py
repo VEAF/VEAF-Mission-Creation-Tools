@@ -5,6 +5,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 from waypoints_injector.waypoints_manager import FlightPlanDefinition, WaypointDefinition, WaypointsManager
@@ -357,3 +358,53 @@ class TestShippedTemplateMatching(unittest.TestCase):
             "these plans in the shipped template cannot be reached by any aircraft, so they are dead "
             "configuration shipped as an example: " + ", ".join(unreachable),
         )
+
+
+class TestHowAPlanNamesItsWaypoints(unittest.TestCase):
+    """FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS: a plan takes its waypoints by key, and says so.
+
+    Found on *Kolkhida* mission 1: `POTI_LOW: "POTI"` in a plan was read as a mapping to `POTI`, while the
+    loader only reads the key; and the waypoint's own `name: "POTI"` was overwritten by its key, so the
+    helicopters flew to `POTI_LOW` in the cockpit.
+    """
+
+    WAYPOINTS = {
+        "POTI": {"type": "Turning Point", "action": "Turning Point", "alt": 3048.0},
+        "POTI_LOW": {"type": "Turning Point", "action": "Turning Point", "alt": 152.0, "name": "POTI"},
+        "KHOBI": {"type": "Turning Point", "action": "Turning Point", "alt": 3048.0},
+    }
+
+    def _load(self, plan_waypoints: object) -> tuple[WaypointsManager, list[str]]:
+        data = {
+            "waypoints": self.WAYPOINTS,
+            "settings": {"helos": {"category": "helicopter", "waypoints": plan_waypoints}},
+        }
+        warnings: list[str] = []
+        with tempfile.TemporaryDirectory() as td:
+            f = Path(td) / "waypoints.yaml"
+            f.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+            manager = WaypointsManager()
+            with patch("waypoints_injector.waypoints_manager.logger") as logger:
+                logger.warning.side_effect = lambda message, *a, **k: warnings.append(str(message))
+                manager.read_yaml(f)
+        return manager, warnings
+
+    def test_a_waypoint_carries_its_name_and_its_key_without_one(self) -> None:
+        manager, _ = self._load(["POTI_LOW", "KHOBI"])
+        self.assertEqual([wp.name for wp in manager.flight_plans["helos"].waypoints], ["POTI", "KHOBI"])
+
+    def test_a_plan_written_as_a_list_takes_its_waypoints_in_order(self) -> None:
+        manager, warnings = self._load(["KHOBI", "POTI_LOW"])
+        self.assertEqual([wp.alt for wp in manager.flight_plans["helos"].waypoints], [3048.0, 152.0])
+        self.assertEqual(warnings, [])
+
+    def test_a_plan_written_as_a_mapping_takes_the_keys(self) -> None:
+        manager, warnings = self._load({"POTI_LOW": "POTI_LOW", "KHOBI": None})
+        self.assertEqual([wp.alt for wp in manager.flight_plans["helos"].waypoints], [152.0, 3048.0])
+        self.assertEqual(warnings, [])
+
+    def test_a_value_naming_another_waypoint_is_ignored_and_said(self) -> None:
+        manager, warnings = self._load({"POTI": "POTI_LOW"})
+        self.assertEqual([wp.alt for wp in manager.flight_plans["helos"].waypoints], [3048.0])
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("POTI_LOW", warnings[0])

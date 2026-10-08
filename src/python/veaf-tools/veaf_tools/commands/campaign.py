@@ -97,6 +97,7 @@ def campaign_next(
         key = "cmd.campaign_next.created" if report.created else "cmd.campaign_next.refreshed"
         console.print(t(key, mission=report.mission, path=report.folder))
         console.print(t("cmd.campaign_next.airbases", count=len(report.airbases)))
+        console.print(t("cmd.campaign_next.waypoints" if report.waypoints else "cmd.campaign_next.waypoints_kept"))
         if report.conditions:
             weather = report.conditions.weather
             console.print(

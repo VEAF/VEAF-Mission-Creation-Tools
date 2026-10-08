@@ -244,6 +244,18 @@ What `campaign next` set is a starting point: Claude, preparing the mission, mov
 A second `campaign next` on the same folder keeps what was set.
 The DCS briefing shows the mission's date, time and weather; the mission briefing writes them too.
 
+## The players' waypoints {#objective-waypoints}
+
+`campaign next` writes the mission's `src/waypoints.yaml` from its objectives, instead of keeping the template's example: one waypoint per zone the mission's tasks name in `briefing.yaml` (else the campaign's objectives), at the zone's centre, in the tasks' order, for the players' side.
+
+- **Planes** get them at 10,000 ft (`BARO`), **helicopters** at 500 ft above the ground (`RADIO`); the cockpit shows the same name to both.
+- **The name** is the zone's first word, in capitals and without accents: *Khobi depot* becomes `KHOBI`. Two zones starting with the same word keep their whole names (`SENAKI_NORTH`).
+- **The build adds `BULLSEYE`** to every flight plan.
+
+Once edited, the file is yours: it carries the fingerprint of what `campaign next` wrote, and a second `campaign next` rewrites it only while that fingerprint matches.
+A hand-written file in a folder created earlier is kept the same way.
+The file's format is described in the [pipeline reference](../PIPELINE_REFERENCE.en.md#waypoints-by-key).
+
 ## The campaign briefing deck {#briefing-deck}
 
 `campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`briefing-campagne.pptx`) and its map (`carte-strategique.png`).
@@ -322,16 +334,19 @@ Run `campaign briefing` again after every change to the mission.
 | Cover | the operation and the mission's number, its title (`briefing.yaml`), the date and time |
 | General situation | context, mission (the tasks), bullseye (DMS, bearing and range from a friendly base), departures, threat (the intelligence, and the enemy's interception alert), weather and time **read from the mission** |
 | ATO | the players' flights (callsign, type, count, base, pilot lines, free loadout), the airfields with dynamic slots, the support (AWACS, tankers) with frequency and TACAN, the control (the carrier's tower in VHF, airfields) |
-| Tactical situation | zones, axes, interception alert zone, carrier, AWACS orbit, tanker track, bullseye, a scale in nm |
+| Tactical situation | zones, axes, interception alert zone, carrier, AWACS orbit, tanker track, bullseye, the players' waypoints numbered as in the navigation plan, a scale in nm |
 | One page per objective | the zone at its radius, its intelligence, the task naming it |
 | Mission flow | objectives, air opposition, air defences, other information (refuelling, diversion fields, rescue) |
 | Frequency plan | UHF then VHF, guard first |
+| Navigation plan | the waypoints the players' planes then helicopters carry after their departure, `BULLSEYE` included: name, DMS position, altitude and its reference (`BARO`, or `AGL` above the ground); the aircraft types when a category carries several routes |
 | Objective coordinates | each zone's centre in DMS, and its elevation when a terrain grid has been swept (`terrain-sweep`) |
 
 The objectives are the zones the mission's task titles name in `briefing.yaml` ("Frapper le dépôt de Khobi" names the zone *Dépôt de Khobi*), or else the campaign's objectives.
 The flights are the players': neither the dynamic-slot templates nor the VEAF spawn templates are flights; a support aircraft appears once, by its task; the wind is said from where it comes, as a pilot reads it.
 
-**No target coordinate and no flight plan**: a garrison is drawn when the mission starts, so no unit's position is known when the briefing is written, and it says so — exact positions are found in flight.
+The navigation plan is read from the players' flights and from the dynamic-slot templates, which a campaign's players fly from: these are the [waypoints](#objective-waypoints) the build injected into them.
+
+**No target coordinate**: a garrison is drawn when the mission starts, so no unit's position is known when the briefing is written, and it says so — exact positions are found in flight.
 The maps' labels never overlap one another or a symbol.
 
 ## What is still to verify in game {#to-verify}

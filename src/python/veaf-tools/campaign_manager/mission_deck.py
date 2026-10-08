@@ -5,9 +5,9 @@ a campaign mission allows, next to the campaign's strategic one and written with
 VEAF template, pagination by the font's metrics, the military register.
 
 Everything comes from the campaign, `briefing.yaml` (the mission's title and tasks) and the **built**
-mission (date, time, weather, bullseye, flights, support, carrier, QRA zones). What a campaign
-mission cannot have: target coordinates and a flight plan — a garrison is drawn when the mission
-starts, so the briefing gives the zones' centres and says positions are found in flight.
+mission (date, time, weather, bullseye, flights and their waypoints, support, carrier, QRA zones). What
+a campaign mission cannot have: target coordinates — a garrison is drawn when the mission starts, so
+the briefing gives the zones' centres and says positions are found in flight.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ from campaign_manager.briefing_deck import (
 )
 from campaign_manager.briefing_prose import BriefingProse, MissionPage
 from campaign_manager.intelligence import enemy_picture
-from campaign_manager.mission_picture import NM, Carrier, MissionPicture
+from campaign_manager.mission_picture import NM, Carrier, MissionPicture, Waypoint
 from campaign_manager.models import CampaignDefinition, CampaignState, CampaignZone
 from campaign_manager.strategic_map import zone_position
 from campaign_manager.tactical_map import TACTICAL_MAP_FILE, render_objective_map, render_tactical_map, zoom_file
@@ -390,6 +390,31 @@ def _frequencies_page(picture: MissionPicture) -> Page:
     return Page(t("campaign.mission_deck.title.frequencies"), blocks)
 
 
+def _altitude(waypoint: Waypoint) -> str:
+    """``10 000 ft BARO`` or ``500 ft AGL``, to the ten feet, never broken across two lines."""
+    feet = f"{round(metres_to_feet(waypoint.alt), -1):,.0f}".replace(",", "\u00a0")
+    return t(f"campaign.mission_deck.altitude.{'agl' if waypoint.alt_type == 'RADIO' else 'baro'}", feet=feet)
+
+
+def _navigation_page(campaign: CampaignDefinition, picture: MissionPicture) -> Page | None:
+    """The players' waypoints after their departure, one block per route: planes, then helicopters.
+
+    Numbered as the mission editor numbers them, the departure being 0; a category carrying several
+    routes names the types that fly each.
+    """
+    blocks = []
+    for plan in picture.flight_plans:
+        heading = t(f"campaign.mission_deck.heading.{plan.category}s")
+        if sum(1 for other in picture.flight_plans if other.category == plan.category) > 1:
+            heading = f"{heading} — {', '.join(plan.aircraft)}"
+        lines = tuple(
+            f"{index}. " + _line(wp.name, f"{to_dms(*xy_to_latlon(campaign.theatre, wp.x, wp.y))} — {_altitude(wp)}")
+            for index, wp in enumerate(plan.waypoints, 1)
+        )
+        blocks.append(Block(heading, lines))
+    return Page(t("campaign.mission_deck.title.navigation"), blocks) if blocks else None
+
+
 def _coordinates_page(campaign: CampaignDefinition, zones: list[CampaignZone]) -> Page:
     grid = grid_for_theatre(campaign.theatre)
     lines = [t("campaign.mission_deck.coordinates_format")]
@@ -493,19 +518,20 @@ def mission_deck(
     ato = _ato_page(picture)
     flow = _flow_page(campaign, state, page, picture)
     frequencies = _frequencies_page(picture)
+    navigation = _navigation_page(campaign, picture)
     coordinates = _coordinates_page(campaign, zones)
+    closing = [flow, frequencies, *([navigation] if navigation else []), coordinates]
     titles = [
         situation.title,
         ato.title,
         t("campaign.mission_deck.title.tactical"),
         *[t("campaign.mission_deck.title.zoom", zone=zone.label) for zone in zones],
-        flow.title,
-        frequencies.title,
-        coordinates.title,
+        *[closing_page.title for closing_page in closing],
     ]
     numbered = [f"{n}. {title}" for n, title in enumerate(titles, 1)]
     situation.title, ato.title = numbered[0], numbered[1]
-    flow.title, frequencies.title, coordinates.title = numbered[-3:]
+    for closing_page, title in zip(closing, numbered[-len(closing) :], strict=True):
+        closing_page.title = title
 
     deck = Presentation()
     deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
@@ -518,6 +544,7 @@ def mission_deck(
         (t("campaign.mission_deck.legend.qra"), False),
         (t("campaign.mission_deck.legend.carrier"), False),
         (t("campaign.mission_deck.legend.support"), False),
+        *([(t("campaign.mission_deck.legend.waypoints"), False)] if navigation else []),
         (t("campaign.mission_deck.legend.remember"), True),
         (t("campaign.mission_deck.positions_in_flight"), False),
     ]
@@ -533,7 +560,7 @@ def mission_deck(
             notes += [(t("campaign.mission_deck.heading.task"), True), (task.title, False)]
             notes += [(text, False) for text in task.text]
         _picture_page(deck, title, zoom.path, notes)
-    for part in [*paginate(flow), *paginate(frequencies), *paginate(coordinates)]:
+    for part in [part for closing_page in closing for part in paginate(closing_page)]:
         _write_page(deck, part)
     out = folder / MISSION_DECK_FILE
     deck.save(str(out))

@@ -1,6 +1,6 @@
 # FEAT-CAMPAIGN-INTEL-DELAY — the other side hears of an assault convoy later, as intelligence would
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — merged on `develop` (#1106); to be checked in game
 
 ## Need
 
@@ -18,7 +18,7 @@ David, 2026-10-08, preparing *Kolkhida* mission 1: "fais en sorte qu'on n'ait pa
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-intel-delay.md) | The intelligence delay, in flight and in `campaign.yaml` | 🔄 |
+| [01](tickets/01-intel-delay.md) | The intelligence delay, in flight and in `campaign.yaml` | ✅ |
 
 ## To check in game
 

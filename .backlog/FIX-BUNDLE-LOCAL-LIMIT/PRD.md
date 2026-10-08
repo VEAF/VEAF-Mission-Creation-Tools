@@ -1,6 +1,6 @@
 # FIX-BUNDLE-LOCAL-LIMIT — the VEAF bundle no longer loads in DCS: more than 200 top-level locals
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — merged on `develop` (#1102); waits for Kolkhida mission 1 loading in DCS
 
 ## Problem
 
@@ -35,4 +35,4 @@ No test executed the bundle: every Lua test loads the source modules one by one,
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-wrap-modules.md) | Each module in its own block, and a test that runs the bundle | 🔄 |
+| [01](tickets/01-wrap-modules.md) | Each module in its own block, and a test that runs the bundle | ✅ |

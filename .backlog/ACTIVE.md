@@ -8,7 +8,7 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ### [FEAT-OPPOSITION-SCALES-WITH-PLAYERS](FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md) · 🔄
 
-The air opposition sized to the number of players — an `opposition:` level set at generation, changed in flight (radio menu, `_opposition` marker) or following the players connected or airborne with a hysteresis — driving the QRA tiers and an "Auto scale" combat-mission entry; campaigns write it from `players` / `--players`. The three QRA defects found on Kolkhida mission 1 fixed on the way. Coded and tested on the mocks; R46 in `DCS-SESSION-TODO.md` checks it in game.
+The air opposition sized to the number of players — an `opposition:` level set at generation, changed in flight (radio menu, `_opposition` marker) or following the players connected or airborne with a hysteresis — driving the QRA tiers and an "Auto scale" combat-mission entry; campaigns write it from `players` / `--players`. The three QRA defects found on Kolkhida mission 1 fixed on the way. Tickets 01–03 merged (#1100), R46 in `DCS-SESSION-TODO.md` checks them in game; ticket 04, assault convoys sent by the campaign in flight, to do.
 
 ## 🧑 Waiting for a human
 

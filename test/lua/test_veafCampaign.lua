@@ -1208,6 +1208,27 @@ function TestVeafCampaignAssault:test_the_convoy_leaves_on_the_road_to_its_targe
   luaunit.assertEquals(#dcs_mocks.messagesContaining("Senaki"), 2, "its side told, the other one warned")
 end
 
+-- FIX-CAMPAIGN-ARROW-ALTITUDE: the axis was drawn at y = 0, and on the F10 map it slid away from the
+-- ground as the map was panned (right only fully zoomed in) — both its ends sit on the terrain now.
+function TestVeafCampaignAssault:test_the_axis_arrow_lies_on_the_ground_from_source_to_target()
+  local savedArrow, savedHeight = trigger.action.arrowToAll, land.getHeight
+  local arrows = {}
+  trigger.action.arrowToAll = function(_, _, startPoint, endPoint)
+    table.insert(arrows, { startPoint = startPoint, endPoint = endPoint })
+  end
+  land.getHeight = function(vec2)
+    return 30 + vec2.x / 1000
+  end
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  trigger.action.arrowToAll, land.getHeight = savedArrow, savedHeight
+  luaunit.assertEquals(#arrows, 1)
+  luaunit.assertEquals(arrows[1].startPoint, { x = 20000, y = 50, z = 0 })
+  luaunit.assertEquals(arrows[1].endPoint, { x = 10000, y = 40, z = 0 })
+end
+
 function TestVeafCampaignAssault:test_a_bigger_opposition_attacks_earlier()
   veafOpposition = {
     getLevel = function()

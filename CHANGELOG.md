@@ -38,6 +38,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The new `rearm_while_occupied: true` rearms a destroyed QRA without waiting for its zone to be clear — which, with several players over the target, it almost never was.
 - **A mission built from `develop` loads its VEAF scripts again** (FIX-BUNDLE-LOCAL-LIMIT).
   The build concatenates every module into `veaf-scripts.lua`, where their top-level locals added up past the 200 a Lua 5.1 chunk accepts: DCS refused the whole file ("main function has more than 200 local variables") and no VEAF module loaded. Each module now sits in its own `do … end` block, and a test runs the bundle under Lua 5.1 in the CI Lua job. Released 6.28.0 was not affected.
+- **A campaign's assault-convoy arrows lie on the ground of the F10 map** (FIX-CAMPAIGN-ARROW-ALTITUDE).
+  Drawn at sea level, they slid away from their zones as the map was panned and were right only fully zoomed in; both ends now take the terrain height.
 
 ### Added
 

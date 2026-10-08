@@ -799,7 +799,12 @@ function veafCampaign.sendConvoy(side, from, to)
   end
   local colors = veafCampaign.AXIS_COLORS[side]
   record.axisId = veaf.getUniqueIdentifier()
-  trigger.action.arrowToAll(-1, record.axisId, from:getCenter(), target, colors.line, colors.fill, 1, true)
+  -- both ends on the terrain: at y = 0 the arrow slid away from the ground as the F10 map was panned,
+  -- right only fully zoomed in (FIX-CAMPAIGN-ARROW-ALTITUDE)
+  local function onGround(point)
+    return { x = point.x, y = land.getHeight({ x = point.x, y = point.z }), z = point.z }
+  end
+  trigger.action.arrowToAll(-1, record.axisId, onGround(from:getCenter()), onGround(target), colors.line, colors.fill, 1, true)
   table.insert(veafCampaign.convoys, record)
   -- the side's own people are told it leaves; the other side hears it as intelligence
   local own = veafCampaign.SIDES[side]

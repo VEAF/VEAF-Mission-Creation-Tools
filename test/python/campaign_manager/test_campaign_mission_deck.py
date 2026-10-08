@@ -19,7 +19,7 @@ from campaign_manager.models import CampaignDefinition
 from campaign_manager.tactical_map import render_objective_map, render_tactical_map
 from PIL import Image
 from pptx import Presentation
-from veaf_libs.coordinates import to_dms
+from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import language
 from veaf_libs.map_labels import LabelPlacer, intersects
 from veaf_libs.mission_validator import WARNING
@@ -114,14 +114,28 @@ class TestTheMaps:
             cache_dir=tmp_path,
             fetch=_white,
         )
-        # zones, QRA, carrier, three support aircraft, bullseye
-        assert len(report.labels) == 3 + 1 + 1 + 3 + 1
+        # zones, QRA, carrier, three support aircraft, bullseye, the flight plan's three numbered points
+        assert len(report.labels) == 3 + 1 + 1 + 3 + 1 + 3
         for a, b in itertools.combinations(report.labels, 2):
             assert not intersects(a, b), (a, b)
         for label in report.labels:
             for name in ("carrier", "bullseye"):
                 x, y = report.symbols[name]
                 assert not intersects(label, (x - 5, y - 5, x + 5, y + 5)), name
+
+    def test_the_flight_plans_points_are_numbered_where_they_stand(self, tmp_path: Path) -> None:
+        campaign = _campaign()
+        picture = _picture(tmp_path)
+        report = render_tactical_map(
+            campaign, initial_state(campaign), picture, tmp_path / "map.png", cache_dir=tmp_path, fetch=_white
+        )
+        # planes and helicopters share POTI and KHOBI: one numbered point each, the bullseye third
+        assert [name for name in report.symbols if name.startswith("waypoint ")] == [
+            "waypoint 1",
+            "waypoint 2",
+            "waypoint 3",
+        ]
+        assert report.symbols["waypoint 3"] == report.symbols["bullseye"]
 
     def test_the_maps_render_without_the_network(self, tmp_path: Path) -> None:
         campaign = _campaign()
@@ -193,7 +207,8 @@ class TestTheDeck:
             "5. Situation tactique — Senaki",
             "6. Déroulement mission",
             "7. Plan de fréquences",
-            "8. Coordonnées des objectifs",
+            "8. Plan de navigation",
+            "9. Coordonnées des objectifs",
         ]
 
     def test_the_cover_gives_the_mission_its_date_and_time(self, tmp_path: Path) -> None:
@@ -224,10 +239,20 @@ class TestTheDeck:
 
     def test_coordinates_are_zone_centres_never_at_sixty_seconds(self, tmp_path: Path) -> None:
         slides = _deck(tmp_path)
-        (page,) = [slide for slide in slides if slide[0] == "8. Coordonnées des objectifs"]
+        (page,) = [slide for slide in slides if slide[0] == "9. Coordonnées des objectifs"]
         assert "Gudauta depot : N43°06'00.00\" E040°34'48.00\"" in page[1]
         assert "se relèvent en vol" in page[1]
         assert not re.search(r"60\.00\"", "\n".join("\n".join(slide) for slide in slides))
+
+    def test_the_navigation_plan_planes_then_helicopters_bullseye_included(self, tmp_path: Path) -> None:
+        (page,) = [slide for slide in _deck(tmp_path) if slide[0] == "8. Plan de navigation"]
+        poti = to_dms(*xy_to_latlon("Caucasus", -295152.0, 617091.0))
+        planes, helicopters = page[1].split("\nHélicoptères\n")
+        assert planes.startswith("Avions\n")
+        assert f"1. POTI : {poti} — 10\u00a0000 ft BARO" in planes
+        assert "3. BULLSEYE : " in planes and "20\u00a0000 ft BARO" in planes
+        assert f"1. POTI : {poti} — 500 ft AGL" in helicopters
+        assert "2. KHOBI : " in helicopters
 
     def test_a_zoom_page_says_the_task_on_its_zone(self, tmp_path: Path) -> None:
         (page,) = [slide for slide in _deck(tmp_path) if slide[0] == "5. Situation tactique — Senaki"]

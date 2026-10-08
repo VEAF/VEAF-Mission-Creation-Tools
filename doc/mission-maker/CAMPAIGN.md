@@ -332,16 +332,19 @@ Relancez `campaign briefing` après chaque modification de la mission.
 | Couverture | l'opération et le numéro de la mission, son titre (`briefing.yaml`), la date et l'heure |
 | Situation générale | contexte, mission (les tâches), bullseye (DMS, relèvement et distance depuis une base amie), départs, menace (le renseignement, et l'alerte d'interception ennemie), météo et horaire **lus dans la mission** |
 | ATO | les vols des joueurs (indicatif, type, nombre, base, lignes de pilotes, armement libre), les terrains à slots dynamiques, le soutien (AWACS, ravitailleurs) avec fréquence et TACAN, le contrôle (tour du porte-avions en VHF, terrains) |
-| Situation tactique | zones, axes, zone d'alerte d'interception, porte-avions, orbite AWACS, hippodrome du ravitailleur, bullseye, échelle en nm |
+| Situation tactique | zones, axes, zone d'alerte d'interception, porte-avions, orbite AWACS, hippodrome du ravitailleur, bullseye, les waypoints des joueurs numérotés comme au plan de navigation, échelle en nm |
 | Une page par objectif | la zone à son rayon, son renseignement, la tâche qui la nomme |
 | Déroulement mission | objectifs, opposition aérienne, défenses antiaériennes, autres informations (ravitaillement, dégagements, sauvetage) |
 | Plan de fréquences | UHF puis VHF, la garde en tête |
+| Plan de navigation | les waypoints que portent les avions puis les hélicoptères des joueurs après leur point de départ, `BULLSEYE` compris : nom, position en DMS, altitude et sa référence (`BARO`, ou `AGL` au-dessus du sol) ; les types d'appareil quand une catégorie porte plusieurs routes |
 | Coordonnées des objectifs | le centre de chaque zone en DMS, et son altitude quand une grille de terrain a été relevée (`terrain-sweep`) |
 
 Les objectifs sont les zones que nomment les titres des tâches de la mission dans `briefing.yaml` (« Frapper le dépôt de Khobi » nomme la zone *Dépôt de Khobi*), à défaut les objectifs de la campagne.
 Les vols sont ceux des joueurs : ni les gabarits de slots dynamiques ni les modèles de spawn VEAF n'en sont ; un avion de soutien n'apparaît qu'une fois, selon sa tâche ; le vent se dit d'où il vient, comme le lit un pilote.
 
-**Pas de coordonnées de cible ni de plan de vol** : une garnison est tirée au démarrage de la mission, donc aucune position d'unité n'est connue quand le briefing s'écrit, et il le dit — les positions exactes se relèvent en vol.
+Le plan de navigation se lit dans les vols des joueurs et dans les gabarits de slots dynamiques, d'où partent les joueurs d'une campagne : ce sont les [waypoints](#objective-waypoints) que le build y a injectés.
+
+**Pas de coordonnées de cible** : une garnison est tirée au démarrage de la mission, donc aucune position d'unité n'est connue quand le briefing s'écrit, et il le dit — les positions exactes se relèvent en vol.
 Les étiquettes des cartes ne se chevauchent jamais, ni entre elles ni sur un symbole.
 
 ## Ce qui reste à vérifier en jeu {#to-verify}

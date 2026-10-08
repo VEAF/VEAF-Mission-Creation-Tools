@@ -1,7 +1,8 @@
 """The mission briefing's maps: the tactical situation, and one zoom per objective (ticket 03).
 
 On the OpenStreetMap base of `veaf_libs/map_tiles.py`: the zones in their owner's colour, the axes,
-the enemy's QRA zones dashed, the carrier, the AWACS orbit, the tanker track, the bullseye, a scale.
+the enemy's QRA zones dashed, the carrier, the AWACS orbit, the tanker track, the bullseye, the players'
+waypoints numbered as the navigation plan numbers them, a scale.
 Labels never overlap one another or a symbol (`veaf_libs/map_labels.py`). Nothing the intelligence
 does not know is drawn: no garrison unit — a garrison is drawn when the mission starts.
 """
@@ -88,7 +89,7 @@ class _Canvas:
         self.draw = ImageDraw.Draw(self.overlay)
         self.placer = LabelPlacer(*self.background.size)
         self.symbols: dict[str, tuple[float, float]] = {}
-        self.big, self.small = _font(22, bold=True), _font(16)
+        self.big, self.small, self.number = _font(22, bold=True), _font(16), _font(18, bold=True)
 
     def at(self, lat: float, lon: float) -> tuple[float, float]:
         return self.base.pixel(lat, lon)
@@ -196,6 +197,14 @@ def render_tactical_map(
     points = [zone_position(campaign, zone) for zone in campaign.zones]
     points += [xy_to_latlon(theatre, carrier.x, carrier.y) for carrier in picture.carriers]
     points += [xy_to_latlon(theatre, *support.route[0]) for support in picture.support if support.route]
+    # where the players' waypoints stand, and the numbers each one carries in the navigation plan
+    numbers: dict[tuple[float, float], list[str]] = {}
+    for plan in picture.flight_plans:
+        for index, waypoint in enumerate(plan.waypoints, 1):
+            listed = numbers.setdefault((waypoint.x, waypoint.y), [])
+            if str(index) not in listed:
+                listed.append(str(index))
+    points += [xy_to_latlon(theatre, x, y) for x, y in numbers]
     canvas = _Canvas(theatre, points, _TACTICAL_MARGIN, cache_dir, fetch)
     blue = OWNER_COLOURS[campaign.player_side]
     enemy = OWNER_COLOURS["red" if campaign.player_side == "blue" else "blue"]
@@ -238,6 +247,12 @@ def render_tactical_map(
     canvas.draw.line((bx - 22, by, bx + 22, by), fill=_BLACK, width=2)
     canvas.draw.line((bx, by - 22, bx, by + 22), fill=_BLACK, width=2)
     bullseye_box = canvas.mark("bullseye", (bx, by), 22)
+    waypoint_boxes = []
+    for (x, y), listed in numbers.items():
+        wx, wy = canvas.at_xy(x, y)
+        if (x, y) != picture.bullseye:  # the bullseye has its own symbol
+            canvas.draw.ellipse((wx - 5, wy - 5, wx + 5, wy + 5), fill=_BLACK, outline=(255, 255, 255, 255), width=2)
+        waypoint_boxes.append(("/".join(listed), canvas.mark(f"waypoint {'/'.join(listed)}", (wx, wy), 6)))
     canvas.scale(20 * NM, "20 nm")
 
     for zone, box in zone_boxes:
@@ -249,6 +264,8 @@ def render_tactical_map(
     for support, box in support_boxes:
         canvas.label(box, support.callsign, canvas.small, (*blue, 255))
     canvas.label(bullseye_box, "Bullseye", canvas.small, _BLACK)
+    for text, box in waypoint_boxes:
+        canvas.label(box, text, canvas.number, _BLACK)
     return canvas.save(out)
 
 

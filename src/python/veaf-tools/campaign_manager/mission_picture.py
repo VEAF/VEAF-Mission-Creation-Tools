@@ -60,6 +60,29 @@ class Flight:
 
 
 @dataclass(frozen=True)
+class Waypoint:
+    """A point of a players' flight plan, after the departure."""
+
+    name: str
+    x: float
+    y: float
+    alt: float
+    """Metres."""
+    alt_type: str
+    """``BARO`` (above sea level) or ``RADIO`` (above the ground)."""
+
+
+@dataclass(frozen=True)
+class FlightPlan:
+    """A route the players' aircraft carry, with the types that carry it."""
+
+    category: str
+    """``plane`` or ``helicopter``."""
+    aircraft: tuple[str, ...]
+    waypoints: tuple[Waypoint, ...]
+
+
+@dataclass(frozen=True)
 class Support:
     """An AWACS or a tanker."""
 
@@ -153,6 +176,8 @@ class MissionPicture:
     weather: Weather
     bullseye: tuple[float, float]
     flights: list[Flight] = field(default_factory=list)
+    flight_plans: list[FlightPlan] = field(default_factory=list)
+    """The players' routes, planes first, the most carried first in each category."""
     support: list[Support] = field(default_factory=list)
     carriers: list[Carrier] = field(default_factory=list)
     airfields: list[Airfield] = field(default_factory=list)
@@ -245,6 +270,40 @@ def _groups(content: dict[str, Any], side: str) -> list[tuple[str, dict[str, Any
                 if indexed(group.get("units")):
                     found.append((category, group))
     return found
+
+
+def _flight_plans(content: dict[str, Any], side: str) -> list[FlightPlan]:
+    """The routes the players' aircraft carry after their departure: client flights and dynamic-slot templates.
+
+    The dynamic-slot templates are where a campaign's players fly from, and the waypoints injector gives
+    them their plan like any client flight; a route carried by several groups is listed once.
+    """
+    found: dict[tuple[str, tuple[Waypoint, ...]], list[str]] = {}
+    for country in indexed(((content.get("coalition") or {}).get(side) or {}).get("country")):
+        for category in ("plane", "helicopter"):
+            for group in indexed((country.get(category) or {}).get("group")):
+                units = indexed(group.get("units"))
+                players = any(unit.get("skill") in ("Client", "Player") for unit in units)
+                if not units or not (players or group.get("dynSpawnTemplate")):
+                    continue
+                if str(group.get("name", "")).startswith(_SPAWN_TEMPLATE_PREFIX):
+                    continue
+                points = indexed((group.get("route") or {}).get("points"))[1:]
+                route = tuple(
+                    Waypoint(
+                        str(point.get("name") or f"WP{index}"),
+                        float(point["x"]),
+                        float(point["y"]),
+                        float(point.get("alt", 0)),
+                        str(point.get("alt_type", "BARO")),
+                    )
+                    for index, point in enumerate(points, 1)
+                )
+                if route:
+                    found.setdefault((category, route), []).append(str(units[0]["type"]))
+    plans = [FlightPlan(category, tuple(dict.fromkeys(types)), route) for (category, route), types in found.items()]
+    counts = {(plan.category, plan.waypoints): len(found[(plan.category, plan.waypoints)]) for plan in plans}
+    return sorted(plans, key=lambda plan: (plan.category != "plane", -counts[(plan.category, plan.waypoints)]))
 
 
 def _route(group: dict[str, Any]) -> tuple[tuple[float, float], ...]:
@@ -422,6 +481,7 @@ def read_mission_picture(miz: Path, player_side: str, folder: Path | None = None
         weather=_weather(content.get("weather") or {}),
         bullseye=(float(bullseye.get("x", 0)), float(bullseye.get("y", 0))),
         flights=flights,
+        flight_plans=_flight_plans(content, player_side),
         support=support,
         carriers=carriers,
         airfields=sorted(airfields, key=lambda a: a.name),

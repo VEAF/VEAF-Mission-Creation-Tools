@@ -78,6 +78,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `rules.intel_seconds` in `campaign.yaml` (20 minutes by default, 0 for at once): the convoy's own side is told and sees its axis when it leaves, the other side gets the message and the line on its map together, that much later — and never for a convoy destroyed before.
 - **`campaign next` writes the mission's objectives as the players' waypoints** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
   The mission folder's `src/waypoints.yaml` was the template's example, steerpoints nowhere near the theatre. It is now one waypoint per zone the mission's tasks name in `briefing.yaml` (else the campaign's objectives), at the zone's centre, in the tasks' order, for the players' side: planes at 10,000 ft, helicopters at 500 ft above the ground, under the same name. A file edited since is kept by a second `campaign next`.
+- **The mission briefing has a navigation plan** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  `briefing-mission.pptx` gains a "Navigation plan" page read from the built mission: the waypoints the players' planes then helicopters carry after their departure, `BULLSEYE` included — name, DMS position, altitude and its reference (BARO or AGL). The tactical map shows them as numbered points, the numbers of the page.
 
 ### Changed
 

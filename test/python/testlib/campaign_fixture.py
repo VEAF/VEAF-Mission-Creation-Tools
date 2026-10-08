@@ -100,6 +100,23 @@ def _point(x: float, y: float, *actions: dict[str, Any], **extra: Any) -> dict[s
 #: Where the fixture mission's carrier sails, mission x/y.
 CARRIER_XY = (-360000.0, 560000.0)
 
+#: The flight plan the build injected into the players' planes: two objectives, then the bullseye.
+PLANE_ROUTE = (("POTI", -295152.0, 617091.0, 3048.0, "BARO"), ("KHOBI", -274838.0, 634185.0, 3048.0, "BARO"))
+
+#: The same objectives, low, for the players' helicopters.
+HELICOPTER_ROUTE = (("POTI", -295152.0, 617091.0, 152.0, "RADIO"), ("KHOBI", -274838.0, 634185.0, 152.0, "RADIO"))
+
+#: The fixture mission's blue bullseye, mission x/y.
+BULLSEYE_XY = (-291014.0, 617414.0)
+
+
+def _injected(route: tuple[tuple[str, float, float, float, str], ...]) -> list[dict[str, Any]]:
+    """The points the waypoints injector appends: the route, then the bullseye at 20 000 ft."""
+    points = [
+        {"name": n, "x": x, "y": y, "alt": alt, "alt_type": ref, "type": "Turning Point"} for n, x, y, alt, ref in route
+    ]
+    return [*points, {"name": "BULLSEYE", "x": BULLSEYE_XY[0], "y": BULLSEYE_XY[1], "alt": 6096.0, "alt_type": "BARO"}]
+
 
 def built_mission(folder: Path) -> Path:
     """A built `.miz` and its mission folder's `mission.yaml`, as the Kolkhida mission 1 had them.
@@ -107,7 +124,9 @@ def built_mission(folder: Path) -> Path:
     Two client flights (one from the carrier, one from Kobuleti), the things that are not flights
     (a dynamic-slot template, a VEAF spawn template), an AWACS, a tanker and the carrier's S-3B, a
     plane guard, the carrier with its tower, TACAN, ICLS and Link 4, a red QRA zone, Kobuleti blue
-    with dynamic slots; the ground wind stored blowing TO 90°, so FROM 270°.
+    with dynamic slots; the ground wind stored blowing TO 90°, so FROM 270°. The Kobuleti flight and
+    the plane template carry `PLANE_ROUTE`, a helicopter template `HELICOPTER_ROUTE`, each then the
+    bullseye, as the waypoints injector leaves them.
 
     Args:
         folder: The mission folder to write into.
@@ -149,13 +168,19 @@ def built_mission(folder: Path) -> Path:
     vipers = _group(
         "Kobuleti Viper",
         [_unit(20 + n, "F-16C_50", f"Viper {n}", f"Colt1{n}", "Client") for n in range(1, 3)],
-        [_point(-317000.0, 636000.0, airdromeId=kobuleti)],
+        [_point(-317000.0, 636000.0, airdromeId=kobuleti), *_injected(PLANE_ROUTE)],
         task="CAS",
     )
     template = _group(
         "F-16C Template",
         [_unit(30, "F-16C_50", "t", "Enfield11", "Client")],
-        [_point(0.0, 0.0)],
+        [_point(0.0, 0.0), *_injected(PLANE_ROUTE)],
+        dynSpawnTemplate=True,
+    )
+    huey = _group(
+        "UH-1H Template",
+        [_unit(32, "UH-1H", "u", "Dodge11", "Client")],
+        [_point(0.0, 0.0), *_injected(HELICOPTER_ROUTE)],
         dynSpawnTemplate=True,
     )
     spawn = _group("veafSpawn-KC135", [_unit(31, "KC-135", "s", "Shell11")], [_point(0.0, 0.0)], task="Refueling")
@@ -185,11 +210,11 @@ def built_mission(folder: Path) -> Path:
             "id": 2,
             "name": "USA",
             "plane": {"group": [hornets, vipers, template, spawn, awacs, arco, texaco]},
-            "helicopter": {"group": [pedro]},
+            "helicopter": {"group": [pedro, huey]},
             "ship": {"group": [carrier]},
         }
     ]
-    mission["coalition"]["blue"]["bullseye"] = {"x": -291014.0, "y": 617414.0}
+    mission["coalition"]["blue"]["bullseye"] = {"x": BULLSEYE_XY[0], "y": BULLSEYE_XY[1]}
     mission["triggers"] = {"zones": [{"name": "QRA Senaki", "x": -281903.0, "y": 648379.0, "radius": 45000}]}
     mission["weather"]["wind"] = {
         "atGround": {"dir": 90, "speed": 8},

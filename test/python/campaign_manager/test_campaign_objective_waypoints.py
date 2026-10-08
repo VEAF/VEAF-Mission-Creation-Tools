@@ -216,7 +216,13 @@ class TestTheWorker:
         _template(tmp_path)
         prose = copy.deepcopy(PROSE)
         prose["missions"] = {
-            1: {"title": "Mission", "tasks": [{"title": "Frapper Gudauta depot", "text": "Le dépôt."}, {"title": "Senaki", "text": "La base."}]}
+            1: {
+                "title": "Mission",
+                "tasks": [
+                    {"title": "Frapper Gudauta depot", "text": "Le dépôt."},
+                    {"title": "Senaki", "text": "La base."},
+                ],
+            }
         }
         (tmp_path / "briefing.yaml").write_text(yaml.safe_dump(prose, allow_unicode=True), encoding="utf-8")
         worker = CampaignWorker(tmp_path)

@@ -744,6 +744,23 @@ destroyed both in 16 s. Earlier the same day, stationary trucks 1 km from BMPs, 
 **What to do:** To make ground units fight an enemy you can see by script, send them closer — `veafGroundAI`'s
 convoy closes in to 900 m.
 
+### `world.searchObjects` on a `SPHERE` returns units beyond its radius {#searchobjects-sphere-overshoots-its-radius}
+
+Measured **2026-10-08**.
+
+Caucasus, *Kolkhida* mission 1: a `SPHERE` search of radius 2000 m centred on Poti (`y = 0`) returned
+the blue convoy's nine units at **2036 to 2077 m** from its centre, 2D and 3D alike (units at
+`y = 5 m`); 40 s earlier, the same search had found the convoy while its nearest unit stood **2117 m**
+away — up to about 6 % beyond the radius, by a margin nobody has explained.
+
+**What to do:** Never mix the two answers to one question. Either filter what the search returns by the exact
+distance, or take the search's result as the definition everywhere it is asked — the campaign does
+the latter (`VeafCampaignZone:groundHolders`). Expect a few percent of slack beyond a sphere's radius.
+
+*What it cost:* The campaign's capture trusted the search and its absorption of the assault convoy measured the exact
+distance: the convoy took Poti, was not found in it, and a 24-unit garrison was drawn from blue's
+reserve under it (`a-captured-zone-may-draw-a-garrison-under-its-convoy`).
+
 ## Mission scripting {#scripting}
 
 ### A Lua file with more than 200 top-level locals is refused whole {#lua-chunk-over-200-locals-is-refused}

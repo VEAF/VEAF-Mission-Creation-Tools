@@ -155,10 +155,11 @@ One convoy at a time per side and target; it does not leave if its start zone ch
 It is armour after its start zone's size class plus a few trucks, **paid from its side's reserve**, unit by unit; an empty reserve sends nothing.
 Its armour is tanks and infantry fighting vehicles of its side and of the campaign's era — two per `armor` level of the class, plus two: 4 from an `outpost`, 6 from an `airfield` —, drawn from the CAS missions' armour without scouts or personnel carriers.
 It brings two trucks and at most one or two anti-aircraft guns (Vulcan, Gepard; ZU-23, ZSU-57, Shilka), never missiles, whatever its start zone's air defence.
-It behaves like any convoy under fire ([veafGroundAI](scripts/veafGroundAI.en.md)): it watches ahead, splits, calls for help, falls back.
+It behaves like any convoy under fire ([veafGroundAI](scripts/veafGroundAI.en.md)): it watches ahead, splits, calls for help, falls back — except that, strong enough to fight, it does not stop short of the garrison: it drives into the zone, firing.
 Its side is told it leaves and sees its axis on the F10 map at once: a line in its colour, over the link, until it arrives or is destroyed.
 The other side hears of it as intelligence `rules.intel_seconds` later (1,200 s, 20 minutes, by default; 0: at once): the message ("an enemy column is leaving Senaki towards Poti") and the same line on its map come together, and a convoy destroyed before then is never reported.
 Once there, it holds the zone like any ground unit and takes it after `capture_seconds`: its survivors in the zone become the garrison, with no second draw from the reserve.
+The units that took the zone are the ones that become its garrison: "in the zone" is what DCS's search over the zone's circle finds, which reaches a few percent beyond its radius — a convoy halted right at the edge, 2,040 m from the centre of a 2,000 m zone, takes it and keeps it.
 Blue players also send them from the **Campaign → Assaults** menu, from a blue zone to a neighbour that is not, at the mission's security level.
 `rules.assault_convoys: false` turns the rule off; the menu stays.
 

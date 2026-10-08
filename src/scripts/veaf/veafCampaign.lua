@@ -468,22 +468,41 @@ function veafCampaign.holdsGround(object, isStatic)
   return category == Unit.Category.HELICOPTER and not object:inAir()
 end
 
---- Which coalitions hold ground in the zone right now.
---- @return table `{ [coalition.side.BLUE] = "name of the first object found", ... }`
-function VeafCampaignZone:sidesPresent()
-  local present = {}
+--- The objects that hold ground in the zone right now: the one definition of "in the zone", for the
+--- capture and for the convoy that becomes the garrison alike.
+---
+--- It is what `world.searchObjects` finds in the zone's sphere, with its slack, and not filtered to the
+--- exact radius. That search overshoots: on Kolkhida, 2026-10-08, it found a convoy in a 2000 m zone whose
+--- nearest unit stood 2117 m from the centre, and 40 s later returned its nine units at 2036 to 2077 m
+--- (dcs-runtime-traps). The capture trusted it and the absorption
+--- measured the exact distance, so the convoy took Poti and was not found in it: a garrison was drawn from
+--- the reserve under the convoy. Filtering both to the exact radius would agree too, but a convoy halted at
+--- the zone's edge — the very case measured — would then never take the zone at all. A few percent beyond
+--- the circle drawn on the map is the lesser wrong, as long as both questions get the same answer.
+--- @return table the objects, each `{ object = DCS object, side = coalition, name = string }`
+function VeafCampaignZone:groundHolders()
+  local holders = {}
   local volume = { id = world.VolumeType.SPHERE, params = { point = self:getCenter(), radius = self.entry.radius or 2000 } }
   local function visit(isStatic)
     return function(object)
       if object and veafCampaign.holdsGround(object, isStatic) then
-        local side = object:getCoalition()
-        present[side] = present[side] or tostring(object:getName())
+        table.insert(holders, { object = object, side = object:getCoalition(), name = tostring(object:getName()) })
       end
       return true
     end
   end
   world.searchObjects(Object.Category.UNIT, volume, visit(false))
   world.searchObjects(Object.Category.STATIC, volume, visit(true))
+  return holders
+end
+
+--- Which coalitions hold ground in the zone right now.
+--- @return table `{ [coalition.side.BLUE] = "name of the first object found", ... }`
+function VeafCampaignZone:sidesPresent()
+  local present = {}
+  for _, holder in ipairs(self:groundHolders()) do
+    present[holder.side] = present[holder.side] or holder.name
+  end
   return present
 end
 
@@ -882,6 +901,11 @@ function veafCampaign.sendConvoy(side, from, to)
     veaf.loggers.get(veafCampaign.Id):error("the assault convoy from [%s] to [%s] could not be spawned", from.name, to.name)
     return nil
   end
+  -- strong enough to fight, it drives into the zone while engaging, rather than standing off the threat
+  -- of the moment for as long as the zone's garrison stays in sight (FIX-CAPTURE-ZONE-MEMBERSHIP)
+  if veafGroundAI and veafGroundAI.setConvoyObjective then
+    veafGroundAI.setConvoyObjective(groupName, target)
+  end
   local record = { name = groupName, side = side, from = from.name, to = to.name, absorbed = {} }
   record.sent = typesOf(veafCampaign.convoyUnits(record))
   record.alive = { unpack(record.sent) }
@@ -907,7 +931,34 @@ function veafCampaign.sendConvoy(side, from, to)
   veaf.loggers
     .get(veafCampaign.Id)
     :info("%s assault convoy [%s] left [%s] for [%s], %d unit(s)", side, groupName, from.name, to.name, #record.sent)
+  veafCampaign.logRoadEnd(groupName, to)
   return record
+end
+
+--- Say in dcs.log where an assault convoy's road ends, against its target zone: the route drives on the
+--- road to the point of it nearest the zone's centre (`END`), then off it to the centre (`T_END`).
+---
+--- On Kolkhida, 2026-10-08, the blue convoy's nine units halted together 2.04 to 2.08 km from the centre of
+--- Poti's 2000 m zone, and nothing in the code stops a convoy there; whether its road ended there was not
+--- written anywhere (FIX-CAPTURE-ZONE-MEMBERSHIP ticket 02).
+--- @param groupName string the convoy's group
+--- @param to table the zone it goes to
+function veafCampaign.logRoadEnd(groupName, to)
+  local convoy = veafSpawn.spawnedConvoys and veafSpawn.spawnedConvoys[groupName]
+  local route = convoy and convoy.route
+  local roadEnd, trueEnd = route and route[3], route and route[4]
+  if not roadEnd then
+    return
+  end
+  local center = to:getCenter()
+  veaf.loggers.get(veafCampaign.Id):info(
+    "assault convoy [%s]: its road ends %d m from [%s]'s centre (radius %s), then %s to the centre",
+    groupName,
+    math.floor(math.sqrt((roadEnd.x - center.x) ^ 2 + (roadEnd.y - center.z) ^ 2)),
+    to.name,
+    tostring(to.entry.radius or 2000),
+    trueEnd and tostring(trueEnd.action) or "nothing"
+  )
 end
 
 --- A convoy name nobody uses yet, so a second assault on the same axis is a second group.
@@ -933,9 +984,13 @@ end
 --- A side has just taken a zone: if one of its assault convoys is there, its survivors become the
 --- zone's garrison, recorded where they stand, and keep their DCS names for this mission's losses.
 ---
---- Every convoy record looked at is logged, with why it is or is not absorbed: on Kolkhida, 2026-10-08,
---- Poti was taken by the blue convoy, whose six units were measured 0 to 90 m from its centre, and this
---- returned false anyway — the cause was not found from the code (FIX-ASSAULT-CONVOY-FINDINGS ticket 03).
+--- "There" is `VeafCampaignZone:groundHolders`, the search the capture itself ran: the units that took
+--- the zone are the ones that become its garrison. Until FIX-CAPTURE-ZONE-MEMBERSHIP this measured the
+--- exact distance instead, and a convoy the search had found just beyond the radius took Poti without
+--- being found in it. The nearest distance is still logged, to read the search's slack in dcs.log.
+---
+--- Every convoy record looked at is logged, with why it is or is not absorbed (FIX-ASSAULT-CONVOY-FINDINGS
+--- ticket 03).
 --- @param zone table the zone captured
 --- @param side string the side that took it
 --- @return boolean true when a convoy became the garrison
@@ -943,6 +998,10 @@ function veafCampaign.absorbConvoy(zone, side)
   local center, radius = zone:getCenter(), zone.entry.radius or 2000
   local logger = veaf.loggers.get(veafCampaign.Id)
   logger:info("zone [%s] taken by %s: %d assault convoy record(s) to look at", zone.name, side, #veafCampaign.convoys)
+  local held = {}
+  for _, holder in ipairs(zone:groundHolders()) do
+    held[holder.name] = true
+  end
   for _, record in ipairs(veafCampaign.convoys) do
     local units = veafCampaign.convoyUnits(record)
     local inside, nearest = {}, nil
@@ -950,7 +1009,7 @@ function veafCampaign.absorbConvoy(zone, side)
       local point = unit:getPoint()
       local distance2 = (point.x - center.x) ^ 2 + (point.z - center.z) ^ 2
       nearest = math.min(nearest or distance2, distance2)
-      if distance2 <= radius ^ 2 then
+      if held[unit:getName()] then
         table.insert(inside, unit)
       end
     end

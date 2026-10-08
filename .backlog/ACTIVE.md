@@ -10,6 +10,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🧑 Waiting for a human
 
+### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · 🧑
+
+Poti, taken on *Kolkhida* by the blue convoy, drew a garrison anyway: the capture trusted `world.searchObjects`, which overshoots its sphere, and the absorption measured the exact distance. Both now ask the same search; a strong enough assault convoy drives into its target zone while fighting; a shell is never a threat. To be checked in game, with ticket 02's measurement of why the convoy halted at the zone's edge (test mission ready).
+
 ### [FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS](FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS/PRD.md) · 🧑
 
 `campaign next` writes the mission's objectives as waypoints for the players' side (planes at 10 000 ft, helicopters at 500 ft above the ground), and the mission briefing gains a navigation page read from the built mission. To be checked on the next campaign mission.

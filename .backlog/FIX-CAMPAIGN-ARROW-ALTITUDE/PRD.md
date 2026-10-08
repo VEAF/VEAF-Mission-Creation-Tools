@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-ARROW-ALTITUDE — the assault convoy arrows slide off the ground on the F10 map
 
-Status: 🧑 waiting-human — merged on `develop` (#1103); waits for the arrows holding still in DCS
+Status: 🔄 in-progress
 
 ## Problem
 
@@ -22,8 +22,13 @@ What is not explained: the zone circles are at `y = 0` too and hold still. Only 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-arrow-on-the-ground.md) | The axis arrow on the terrain | ✅ |
+| [01](tickets/01-arrow-on-the-ground.md) | The axis arrow on the terrain — merged (#1103), did not help | ✅ |
+| [02](tickets/02-a-line-not-an-arrow.md) | The axis as a line in the side's colour over the link | 🔄 |
+
+## Measured in game, 2026-10-08
+
+With #1103 (points on the terrain) the picture did not change: David, "tes flèches c'est pas mieux… vire les. Les flèches sur les traits de liaison c'est suffisant. A moins que ça ne soient les mêmes ?". They were the same: one `arrowToAll` per convoy, shown twice — flat on the link (the coloured band he liked) and as the sliding copy. Decided with David (option b): a `lineToAll` in the side's colour over the link, rather than no axis at all.
 
 ## To check in game
 
-The arrows hold still on the F10 map while it is panned, at every zoom level. If they still slide, ground height was not the cause.
+A red line from Senaki and a blue one from Kobuleti over their links to Poti, holding still as the map is panned, gone when the convoy arrives or is destroyed.

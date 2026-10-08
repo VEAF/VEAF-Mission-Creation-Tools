@@ -153,7 +153,7 @@ Après `rules.assault_seconds` (600 s par défaut, plus tôt quand le [niveau d'
 Un seul convoi à la fois par camp et par cible ; il ne part pas si sa zone de départ a changé de mains.
 Il est fait de blindés à la mesure de la classe de taille de sa zone de départ et de quelques camions, **payés sur la réserve** de son camp, unité par unité ; une réserve vide n'envoie rien.
 Il se conduit comme tout convoi sous le feu ([veafGroundAI](scripts/veafGroundAI.md)) : il regarde devant lui, se scinde, appelle à l'aide, se replie.
-Son camp est prévenu de son départ, l'autre l'apprend en renseignement (« une colonne ennemie quitte Senaki en direction de Poti »), et une flèche à sa couleur marque son axe sur la carte F10.
+Son camp est prévenu de son départ, l'autre l'apprend en renseignement (« une colonne ennemie quitte Senaki en direction de Poti »), et un trait à sa couleur, posé sur la liaison, marque son axe sur la carte F10 jusqu'à ce qu'il arrive ou soit détruit.
 Arrivé, il tient la zone comme toute unité au sol, et la prend au bout de `capture_seconds` : ses survivants dans la zone en deviennent la garnison, sans second tirage sur la réserve.
 Les joueurs bleus en lancent aussi depuis le menu **Campagne → Assauts**, d'une zone bleue vers une voisine qui ne l'est pas, au niveau de sécurité de la mission.
 `rules.assault_convoys: false` coupe la règle ; le menu reste.

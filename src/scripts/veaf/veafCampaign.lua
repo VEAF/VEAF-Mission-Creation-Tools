@@ -83,10 +83,10 @@ veafCampaign.pendingAssaults = {}
 --- The radio submenu blue assaults are ordered from, once built.
 veafCampaign.assaultPath = nil
 
---- Line and fill colours of a convoy's axis on the F10 map, by side.
+--- Colour of a convoy's axis on the F10 map, by side.
 veafCampaign.AXIS_COLORS = {
-  blue = { line = { 0, 0, 1, 1 }, fill = { 0, 0, 1, 0.4 } },
-  red = { line = { 1, 0, 0, 1 }, fill = { 1, 0, 0, 0.4 } },
+  blue = { 0, 0, 1, 1 },
+  red = { 1, 0, 0, 1 },
 }
 
 --- The zones of the campaign, by name: `VeafCampaignZone` objects built from `veafCampaign.data`.
@@ -797,14 +797,11 @@ function veafCampaign.sendConvoy(side, from, to)
       reserve[category] = math.max(0, (reserve[category] or 0) - 1)
     end
   end
-  local colors = veafCampaign.AXIS_COLORS[side]
   record.axisId = veaf.getUniqueIdentifier()
-  -- both ends on the terrain: at y = 0 the arrow slid away from the ground as the F10 map was panned,
-  -- right only fully zoomed in (FIX-CAMPAIGN-ARROW-ALTITUDE)
-  local function onGround(point)
-    return { x = point.x, y = land.getHeight({ x = point.x, y = point.z }), z = point.z }
-  end
-  trigger.action.arrowToAll(-1, record.axisId, onGround(from:getCenter()), onGround(target), colors.line, colors.fill, 1, true)
+  -- a line in the side's colour over the link, not an arrow: DCS drew each `arrowToAll` twice on the F10
+  -- map, flat on the link and as a copy sliding away when the map was panned, whatever the altitude of
+  -- its points (FIX-CAMPAIGN-ARROW-ALTITUDE); the links are lines too, and hold still
+  trigger.action.lineToAll(-1, record.axisId, from:getCenter(), target, veafCampaign.AXIS_COLORS[side], 1, true)
   table.insert(veafCampaign.convoys, record)
   -- the side's own people are told it leaves; the other side hears it as intelligence
   local own = veafCampaign.SIDES[side]

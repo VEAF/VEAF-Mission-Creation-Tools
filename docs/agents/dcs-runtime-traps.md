@@ -577,19 +577,20 @@ an `Orbit` alone: they patrolled and never fought.
 
 ## Players, roles and the map {#players}
 
-### An `arrowToAll` drawn at y = 0 slides away from the ground as the F10 map is panned {#arrow-at-sea-level-slides-on-the-f10-map}
+### An `arrowToAll` shows twice on the F10 map, once sliding away as the map is panned {#arrow-to-all-is-drawn-twice-on-the-f10-map}
 
 Measured **2026-10-08**.
 
-Observed by David on *Kolkhida* mission 1 (Caucasus, Colchis plain, terrain 0–50 m): the campaign's
-assault-convoy arrows, both ends at `y = 0`, were right only fully zoomed in. Panned, even zoomed,
-they shifted "as if on another plane": both started from one point east of Poti, about 25 %
-longer than the axes they drew. The zone circles (`circleToAll`, also at `y = 0`), their labels
-and DCS's own route lines held still.
+Observed by David on *Kolkhida* mission 1 (Caucasus, Colchis plain): each assault-convoy arrow
+appeared twice — flat on the link it was drawn along, and as a bigger outlined copy, about 25 %
+longer, starting east of the target, that slid away "as if on another plane" when the map was
+panned and met the first only fully zoomed in. Points at `y = 0` and points at the terrain height
+(`land.getHeight`) gave the same picture. `circleToAll`, `lineToAll` and their labels, at `y = 0`,
+held still.
 
-**What to do:** Give every point of a drawn shape the terrain height, `land.getHeight({ x = p.x, y = p.z })`, as
-the points of the shapes drawn from map markers already are. That this is the whole answer is
-**not confirmed** yet: the circles at `y = 0` do not slide.
+**What to do:** Draw a direction with `lineToAll` in the side's colour rather than an arrow. The campaign's axes
+have done so since FIX-CAMPAIGN-ARROW-ALTITUDE; the Skynet spotter view had already dropped arrows
+for their 8 km heads.
 
 ### A game master **is** coalition-scoped for map marks {#game-master-marks-are-coalition-scoped}
 

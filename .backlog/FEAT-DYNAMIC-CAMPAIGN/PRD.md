@@ -64,6 +64,9 @@ Foothold's cost to the author is the data: 7 400 lines and ~1 200 hand-placed zo
 7. The campaign survives a server restart.
 8. It ends: one side holds every zone (or every zone flagged `key`), it is announced, and the state can be
    reset.
+9. What can be spawned during a flight is bounded by the campaign, for everyone: a player's or a human game master's `_spawn` and Claude's live actions ([`FEAT-LIVE-GAME-MASTER`](../FEAT-LIVE-GAME-MASTER/PRD.md)) alike.
+   Measured 2026-10-08: the multi-mission campaign has a ground reserve per side and category (`veafCampaign.reserveOf`), drawn on when a garrison is composed, but nothing checks a `_spawn` against it during the flight.
+   David, 2026-10-08: "en campagne, tu ne peux pas spawner n'importe quoi. Mais c'est aussi valable pour nous".
 
 ## Performance is a requirement, not a tuning pass
 

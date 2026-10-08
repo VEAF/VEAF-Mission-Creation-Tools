@@ -28,6 +28,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **The build's "active modules" line now names CTLD, CSAR and the other community scripts** (DOC-TUTORIAL-NEXT-STEPS).
   They were injected all along, but the line only read the VEAF modules, so the `standard` template reported 20 modules where the tutorial announced 22 — and a mission maker checking that CTLD had been read found it missing.
+- **A flight of Belarus, GDR, Yugoslavia, South Ossetia or the Insurgents now gets a numeric callsign, as the Mission Editor gives it** (FEAT-DCS-REFERENCE-DATA).
+  The MCP knew five countries whose aircraft carry a number, measured on existing missions; the editor's own code lists ten, and DCS's callsign table agrees.
 
 ### Added
 
@@ -52,6 +54,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **Vendored DCS scripting-API schema `v0.5.0`** (was `v0.4.0`). The scripting API itself does not move: the LuaLS annotations are byte-identical and `audit-dcs-mocks` reports exactly what it did on `v0.4.0`. Only the reference-data types (`types.Entity.*`: weapon and aircraft flight models, sensor and mobility fields) grow. The vendored `LICENSE` is now the release's own: the previous copy named a different copyright holder than the `v0.4.0` tag did.
+- **Airfield names, ids and positions now come from the `dcs-world-schema` reference database, no longer from captures made in a running DCS** (FEAT-DCS-REFERENCE-DATA).
+  The 798 airbases of its 13 theatres carry exactly the names and ids we had; TheChannel, which it lacks, keeps its capture.
+  An airfield's position is now its reference point, the centre of its runways, where the captures held a point about a kilometre away: `list_airfields`, the campaign map and the clear-ground survey's airfield layers move accordingly, and FOB Clark (Afghanistan) is no longer at 0°N 0°E.
+  `veaf-build update-dcs-data` regenerates both tables by default, and CI fails if they drift.
 
 ## [6.28.0] — 2026-10-05
 

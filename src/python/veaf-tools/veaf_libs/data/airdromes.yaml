@@ -1,7 +1,8 @@
 # DCS airdrome name -> id table, per theatre.
-# Generated from runtime airbase dumps — see veaf_build/dcs_data/airbase_dumps/<Theatre>.json.
+# Generated from the dcs-world-schema reference data, and from the runtime airbase dumps
+# (veaf_build/dcs_data/airbase_dumps/<Theatre>.json) for a theatre it lacks.
 # Names are exact Airbase:getName() values (what airport_link / Airbase.getByName expects).
-# Runtime-dependent, so NOT CI-guarded. Re-run `veaf-build update-dcs-data --airdromes`.
+# DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.
 # Used at build time to resolve airdrome names in warehouses.yaml and to validate QRA airport_link.
 
 theatres:

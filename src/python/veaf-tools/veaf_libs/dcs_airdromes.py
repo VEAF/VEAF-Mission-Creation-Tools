@@ -7,9 +7,10 @@ id for a given theatre, so build tools (e.g. the Dynamic-Slot warehouse wiring)
 can let users name airbases instead of guessing ids.
 
 Backed by ``data/airdromes.yaml``, whose names are the exact ``Airbase:getName()``
-values captured from runtime dumps (``world.getAirbases()`` via the VEAF dcs-bridge —
-see ``veaf-build update-dcs-data --airdromes``). The table is per-theatre: a theatre
-not yet dumped simply has no entries, and the lookup returns ``None``.
+values, read from the ``dcs-world-schema`` reference database and, for a theatre it
+lacks, from runtime dumps (``world.getAirbases()`` via the VEAF dcs-bridge) — see
+``veaf-build update-dcs-data --airdromes``. The table is per-theatre: a theatre in
+neither simply has no entries, and the lookup returns ``None``.
 """
 
 from __future__ import annotations
@@ -74,10 +75,10 @@ def _positions() -> dict[str, list[dict[str, Any]]]:
 
 
 def airfields_for_theatre(theatre: str) -> list[dict[str, Any]]:
-    """Return a theatre's airbases with their positions (empty if the theatre was never dumped).
+    """Return a theatre's airbases with their positions (empty for a theatre with no source).
 
     Backed by ``data/airdrome-positions.yaml``, generated with ``airdromes.yaml`` from the same
-    runtime dumps — which are not shipped with the tools, hence the copy.
+    sources; the position is the airbase's reference point, the runways' centre.
 
     Args:
         theatre: The DCS theatre/map name (case-insensitive).

@@ -1053,8 +1053,8 @@ Each zone carries its `x`/`y`/`radius`, each group its `x`/`y` and its number of
 
 Read-only. Lists a theatre's airbases — name, DCS airdrome id, lat/lon, and DCS `x`/`y` when the
 theatre's projection is known — from the data shipped with the tools
-(`veaf_libs/data/airdrome-positions.yaml`, generated with `airdromes.yaml` from the runtime dumps by
-`veaf-build update-dcs-data --airdromes`). With `mission_path`, the mission's theatre; without a
+(`veaf_libs/data/airdrome-positions.yaml`, generated with `airdromes.yaml` from the `dcs-world-schema` reference database by
+`veaf-build update-dcs-data --airdromes`). The position is the airbase's reference point, the runways' centre. With `mission_path`, the mission's theatre; without a
 mission, `theatre`.
 
 ```json

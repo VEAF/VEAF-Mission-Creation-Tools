@@ -597,7 +597,10 @@ def update_dcs_data(
     units: bool = typer.Option(False, "--units", help="Regenerate the DCS units database (YAML + dcsUnits.lua)."),
     radio: bool = typer.Option(False, "--radio", help="Regenerate the DCS aircraft radio specs."),
     airdromes: bool = typer.Option(
-        False, "--airdromes", help="Regenerate the airdrome name->id table from committed runtime dumps."
+        False,
+        "--airdromes",
+        help="Regenerate the airdrome name->id and position tables from the dcs-world-schema reference data "
+        "(committed runtime dumps for a theatre it lacks).",
     ),
     parking: bool = typer.Option(
         False, "--parking", help="Regenerate the bundled parking-stand table from committed parking dumps."
@@ -665,11 +668,13 @@ def update_dcs_data(
     """Regenerate the DCS reference data committed in this repository.
 
     Datamine-sourced artifacts are generated from the Quaggles/dcs-lua-datamine
-    dump at the pinned ref (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so the
-    output is reproducible and CI fails if a committed artifact drifts. With no
-    flag, every pure datamine artifact (countries, units) is regenerated; radio
-    (manual overlays) and airdromes / airfield-freqs / cities (install-dependent) are
-    excluded from --all and must be requested explicitly.
+    dump at the pinned ref (`veaf_build.dcs_data.datamine.DATAMINE_REF`), and the
+    airdromes from the dcs-world-schema reference database at a pinned release
+    (`veaf_build.dcs_data.reference`), so the output is reproducible and CI fails if
+    a committed artifact drifts. With no flag, every pure artifact (countries, units,
+    airdromes) is regenerated; radio (manual overlays) and airfield-freqs / cities /
+    payloads / cockpit-controls (install-dependent) are excluded from --all and must
+    be requested explicitly.
     """
     from veaf_build.dcs_data import countries as countries_provider
     from veaf_build.dcs_data import units as units_provider
@@ -681,7 +686,7 @@ def update_dcs_data(
     )
     ref_short = DATAMINE_REF[:8]
 
-    if airdromes:
+    if airdromes or run_all:
         from pathlib import Path
 
         from veaf_libs import dcs_bridge_capture as capture_mod  # type: ignore[import-not-found]
@@ -703,11 +708,16 @@ def update_dcs_data(
             dump_path = capture_mod.write_airbase_dump(theatre, airbases, airdromes_provider.DUMPS_DIR)
             console.print(f"[green]✓ captured theatre '{theatre}' ({len(airbases)} airbases) → {dump_path}[/green]")
 
-        # Regenerate from the committed dumps, unless the run only injected the bridge.
+        # Regenerate from the reference and the committed dumps, unless the run only injected the bridge.
         if capture or not inject_bridge:
-            console.print("[cyan]Generating airdrome table from committed runtime dumps...[/cyan]")
-            count = airdromes_provider.generate()
-            console.print(f"[green]✓ {count} airfields written across all dumped theatres[/green]")
+            from veaf_build.dcs_data.reference import REFERENCE_TAG, open_reference
+
+            console.print(
+                f"[cyan]Generating airdrome tables (dcs-world-schema {REFERENCE_TAG}, dumps for the rest)...[/cyan]"
+            )
+            with open_reference() as connection:
+                count = airdromes_provider.generate(reference=airdromes_provider.reference_airbases(connection))
+            console.print(f"[green]✓ {count} airfields written[/green]")
 
     if parking:
         from veaf_build.dcs_data import parking as parking_provider

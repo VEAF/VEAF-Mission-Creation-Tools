@@ -1082,8 +1082,8 @@ Chaque zone porte son `x`/`y`/`radius`, chaque groupe son `x`/`y` et son nombre 
 
 Lecture seule. Liste les bases d'un théâtre — nom, id d'aérodrome DCS, lat/lon, et `x`/`y` DCS quand
 la projection du théâtre est connue — depuis la donnée livrée avec les outils
-(`veaf_libs/data/airdrome-positions.yaml`, générée avec `airdromes.yaml` depuis les dumps runtime par
-`veaf-build update-dcs-data --airdromes`). Avec `mission_path`, le théâtre de la mission ; sans
+(`veaf_libs/data/airdrome-positions.yaml`, générée avec `airdromes.yaml` depuis la base de référence `dcs-world-schema` par
+`veaf-build update-dcs-data --airdromes`). La position est le point de référence de l'aérodrome, au centre des pistes. Avec `mission_path`, le théâtre de la mission ; sans
 mission, `theatre`.
 
 ```json

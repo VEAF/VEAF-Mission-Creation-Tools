@@ -1,12 +1,12 @@
 # Lot FEAT-DCS-REFERENCE-DATA — use the dcs-world-schema reference data
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Branch: feature/dcs-reference-data → PR → develop
 
 ## Problem Statement
 
 Since `v0.4.0`, `YoloWingPixie/dcs-world-schema` attaches to each release a database read from DCS itself (`v0.5.0`: DCS 2.9.30.28536), shipped as SQLite, a Python wheel, an npm package and a Lua 5.1 package.
-It holds 798 airbases with their beacons and navaids, 3 077 liveries with the countries allowed to use them, 92 per-country callsign tables, 244 sensors with their detection ranges, the threats, the weapons and the AI options and tasks.
+It holds 798 airbases with their beacons and navaids, 3 077 liveries with the countries allowed to use them, 92 per-country callsign tables, 244 sensors (radars with a range, optics without), the threats, the weapons and the AI options and tasks.
 
 Several of our own data files and validations are hand-captured or missing where this database already answers:
 
@@ -29,7 +29,7 @@ Several of our own data files and validations are hand-captured or missing where
 
 ## Tickets
 
-- [01 — airdromes from the reference data](tickets/01-airdromes-from-reference.md)
-- [02 — validate liveries against the reference](tickets/02-validate-liveries.md)
-- [03 — callsigns from DCS's own table](tickets/03-callsigns-from-reference.md)
-- [04 — spotter sight from the unit's sensors](tickets/04-spotter-sight-from-sensors.md)
+- [01 — airdromes from the reference data](tickets/01-airdromes-from-reference.md) · ✅ — positions move to the runways' centre
+- [02 — validate liveries against the reference](tickets/02-validate-liveries.md) · 🚫 — the reference misses zipped liveries
+- [03 — callsigns from DCS's own table](tickets/03-callsigns-from-reference.md) · ✅
+- [04 — spotter sight from the unit's sensors](tickets/04-spotter-sight-from-sensors.md) · 🚫 — optics carry no range, and the blind SAM elements are by design

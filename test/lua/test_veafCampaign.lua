@@ -1221,6 +1221,26 @@ function TestVeafCampaignAssault:test_the_convoy_s_watch_knows_the_zone_it_is_se
   luaunit.assertEquals({ objective.x, objective.z }, { 10000, 0 }, "Poti's centre")
 end
 
+-- FIX-CAPTURE-ZONE-MEMBERSHIP ticket 02: the blue convoy halted 2.04 to 2.08 km from Poti's centre, and
+-- whether its road ends there could not be read anywhere. Its departure now says where its road ends.
+function TestVeafCampaignAssault:test_the_departure_says_where_the_convoy_s_road_ends()
+  local spawnConvoy = veafSpawn.spawnConvoy
+  veafSpawn.spawnedConvoys = {}
+  veafSpawn.spawnConvoy = function(spot, name, ...)
+    local groupName = spawnConvoy(spot, name, ...)
+    veafSpawn.spawnedConvoys[groupName] = {
+      route = { {}, {}, { name = "END", x = 12040, y = 0 }, { name = "T_END", x = 10000, y = 0, action = "Diamond" } },
+    }
+    return groupName
+  end
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|red"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  local line = dcs_mocks.findLog("its road ends 2040 m from %[Poti%]'s centre %(radius 2000%), then Diamond to the centre")[1]
+  luaunit.assertNotNil(line, "the road's end, measured, in dcs.log")
+end
+
 function TestVeafCampaignAssault:test_nothing_leaves_before_the_delay()
   veafCampaign.initialize()
   timer.setTime(599)

@@ -931,7 +931,34 @@ function veafCampaign.sendConvoy(side, from, to)
   veaf.loggers
     .get(veafCampaign.Id)
     :info("%s assault convoy [%s] left [%s] for [%s], %d unit(s)", side, groupName, from.name, to.name, #record.sent)
+  veafCampaign.logRoadEnd(groupName, to)
   return record
+end
+
+--- Say in dcs.log where an assault convoy's road ends, against its target zone: the route drives on the
+--- road to the point of it nearest the zone's centre (`END`), then off it to the centre (`T_END`).
+---
+--- On Kolkhida, 2026-10-08, the blue convoy's nine units halted together 2.04 to 2.08 km from the centre of
+--- Poti's 2000 m zone, and nothing in the code stops a convoy there; whether its road ended there was not
+--- written anywhere (FIX-CAPTURE-ZONE-MEMBERSHIP ticket 02).
+--- @param groupName string the convoy's group
+--- @param to table the zone it goes to
+function veafCampaign.logRoadEnd(groupName, to)
+  local convoy = veafSpawn.spawnedConvoys and veafSpawn.spawnedConvoys[groupName]
+  local route = convoy and convoy.route
+  local roadEnd, trueEnd = route and route[3], route and route[4]
+  if not roadEnd then
+    return
+  end
+  local center = to:getCenter()
+  veaf.loggers.get(veafCampaign.Id):info(
+    "assault convoy [%s]: its road ends %d m from [%s]'s centre (radius %s), then %s to the centre",
+    groupName,
+    math.floor(math.sqrt((roadEnd.x - center.x) ^ 2 + (roadEnd.y - center.z) ^ 2)),
+    to.name,
+    tostring(to.entry.radius or 2000),
+    trueEnd and tostring(trueEnd.action) or "nothing"
+  )
 end
 
 --- A convoy name nobody uses yet, so a second assault on the same axis is a second group.

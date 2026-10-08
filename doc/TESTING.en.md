@@ -177,6 +177,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafSkynetIadsHelper_spotter.lua` | Spotter network: detection, radio graph, propagation, hand-over to Skynet |
 | `test_veafSkynetIadsMonitor.lua` | Skynet monitor state |
 | `test_veafGroundAI.lua` | Ground AI behavior flags |
+| `test_veafGroundAI_convoy.lua` | Convoy under fire: the watch, the split, fight or fall back, the call for help, the `_gc` orders |
 | `test_veafRadio.lua` | Radio menu tree construction |
 | `test_veafQraManager.lua` | QRA state machine, zone management |
 | `test_veafAirWaves.lua` | Wave scheduling, group assignment |

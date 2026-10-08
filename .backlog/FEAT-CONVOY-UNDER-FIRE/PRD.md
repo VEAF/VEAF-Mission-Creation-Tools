@@ -36,7 +36,7 @@ On Caucasus, east of Kutaisi, through the fiddle hook: a blue convoy driven alon
 | 4 | Options and a new route while engaged | Alarm red, ROE open fire and a new `Mission` task applied at the first shot: the **lead** turned and drove back within 3 s, the convoy returned fire and killed two of the three. But **only the lead obeyed**: the column stalled off road, a truck stayed on the road and was destroyed, another was damaged. A ground group moves as one; there is no per-vehicle order. |
 | 5 | `world.searchObjects` and trees | 117 scenery objects within 3 km — buildings, bridges, light poles — **no tree**. Forest cannot be found as cover; terrain and towns only. |
 | 6 | Cost of `land.isVisible` | 2 000 calls in 28 ms, ~14 µs each. Line-of-sight work is not the limit. |
-| 7 | Smoke marker duration | To be timed by eye — the scripting API has no way to read it. |
+| 7 | Smoke marker duration | Still there after 3 min (David, by eye); the end not timed — the scripting API cannot read it. Renewed every 5 min meanwhile. |
 
 Also seen: stationary trucks 1 km from the BMPs, in line of sight by `isVisible`, were **never detected** in five minutes; at 350 m they were engaged at once. Whatever masks them (vegetation, most likely) is not something `isVisible` sees.
 
@@ -44,16 +44,19 @@ Also seen: stationary trucks 1 km from the BMPs, in line of sight by `isVisible`
 
 David's proposal, after the first two runs: react **before** the first shot, by looking.
 
-1. **Wide watch, every 30 s** — `world.searchObjects` around the convoy, radius 5 km + 60 s of driving at its speed; living enemy ground units only (`searchObjects` returns destroyed ones too — see the known limitations). For a `_spawn convoy`, the route ahead is searched as well.
+1. **Wide watch, every 30 s** — `world.searchObjects` around the convoy, radius 5 km + 60 s of driving at its speed; living enemy ground units only (`searchObjects` returns destroyed ones too — see the known limitations). The radius already covers well over the 30 s to the next watch, so the route ahead is not searched separately.
 2. **Close watch, every 3 s** — while an enemy is within that radius: line of sight (`land.isVisible`, eyes at 2.5 m) from every convoy vehicle to every enemy.
 3. **Contact** — an enemy in sight within 3 km, **or** a shot or hit received (the net that catches artillery and aircraft).
 4. **Split** — the unarmed vehicles are respawned as their own group, where they stand, and flee at once; the armed ones stay in the original group, which keeps its name (`_gc`, the convoy registry). A wholly unarmed convoy flees as one. DCS cannot set a respawned unit's damage: a damaged truck comes back whole; with the early watch the split almost always comes before the first hit (decision 2).
-5. **Fight or fall back** — the armed group's strength (DCS attributes: tank 4, IFV 3, APC or armed vehicle 1, unarmed 0) against the enemies in sight: at least 1.5 times theirs, it halts, alarm red, weapons free; otherwise it falls back too, after the unarmed group.
+5. **Fight or fall back** — the armed group's strength (DCS attributes: tank 4, IFV 3, APC, AAA or armed ground unit 1, unarmed 0 — read in DCS on 2026-10-08) against the enemies in sight: at least 1.5 times theirs, it **closes in** to 900 m of the nearest one, alarm red, weapons free; otherwise it falls back too, after the unarmed group. An aircraft, or a shooter beyond 3 km, counts as unanswerable: fall back.
+   Not a halt, as first written: in game, two Bradleys halted 1.9 km from the enemy the watch saw fired nothing for two minutes — neither `Controller.knowTarget` nor `FireAtPoint` changed it — and sent forward they destroyed both enemies in 16 s, from ~1.3 km.
 6. **Call for help** — to the convoy's coalition, in the shape of a troops-in-contact call; red smoke near the enemy, green on the convoy, **only with the call** (David: no smoke screen, since it blinds nobody).
 7. **Fall back** — to the nearest friendly place (a campaign zone the side owns, a friendly airbase), preferably by road (off road, the second run's column bogged down at 0.6 m/s), on a route masked from the enemy by terrain or a town where one exists.
-8. **Afterwards** — nothing in sight for 60 s: the armed group reports and holds; the unarmed group waits where it fell back. On `resume`, both drive on and are merged back into one group once within 300 m.
+8. **Afterwards** — nothing in sight for 60 s: the armed group reports and holds; the unarmed group waits where it fell back. On `resume`, the unarmed group drives straight across to the armed one (sent "On Road", it drove away to reach the road network first) and the two are merged back into one group once within 300 m — `coalition.addGroup` under the convoy's own name replaces it (measured).
 
 The troops-in-contact wording follows JP 3-09.3 (25 November 2014): "troops in contact" is friendly forces receiving effective fire, an advisory call that highlights urgency (p. III-36); an immediate request names the unit called and the caller, priority #1 emergency, and "target is / number of" (Appendix A, Section I).
+
+Found by the in-game run: a server whose `SERVER_CONFIG` lacks the `SRS_*` keys left `STTS.DIRECTORY` nil, and `veafRadio._transmitViaSRS` raised on it — inside the convoy's watch, which died. Fixed at the root in `veafRadio`, and the convoy guards its voice and its beat anyway.
 
 ## Questions — decided 2026-10-08
 
@@ -61,7 +64,7 @@ The troops-in-contact wording follows JP 3-09.3 (25 November 2014): "troops in c
 |---|---|---|
 | Q1 | Which groups behave like this | every convoy spawned by `_spawn convoy`, plus any group a mission maker hands to `veafGroundAI` as a convoy |
 | Q2 | Red convoys too | yes, the same code with the sides swapped; the call for help then goes to red |
-| Q3 | The voice from the mission | `SERVER_CONFIG.SRS_*` added to DAVID-BUREAU's `MissionScripting.lua` (three lines, prepared for David); **not on dcs.veaf.org for now** — the text goes alone there |
+| Q3 | The voice from the mission | `SERVER_CONFIG.SRS_*` in DAVID-BUREAU's `Saved Games\DCS\DCS-SimpleRadio-Standalone\SRS_for_scripting_config.lua` — the file `veafRadio` reads, as on dcs.veaf.org's Foothold instance; the block is in the ground AI page, prepared for David; **not on dcs.veaf.org's other instances for now** — the text goes alone there |
 | Q4 | After the contact | hold, report, and wait for an order (a human or Claude), rather than drive back into the same ambush |
 
 ## Out of scope

@@ -43,6 +43,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The database now loads as the last action of the VEAF framework load triggers, before the mission scripts; a mission without those triggers keeps the old trailing trigger, and the build says why that is a risk.
 - **A campaign's assault-convoy axis holds still on the F10 map** (FIX-CAMPAIGN-ARROW-ALTITUDE).
   It was an arrow, which slid away from its axis as the map was panned, whether its points were at sea level or on the terrain — and pointed at its source, DCS putting the tip on the first point. The axis is now a line in the side's colour over the link, removed when the convoy arrives or is destroyed.
+- **A convoy that fell back no longer waits for ever on a side without players** (FIX-ASSAULT-CONVOY-FINDINGS).
+  After a fall back it held until a `_gc <callsign>, resume` that nobody on red, in a campaign, could give. When no player of its side is connected, it now drives on by itself after 5 minutes, checked when the delay ends; a player of its side keeps the choice, a new contact cancels it, and a `_gc hold` is never lifted.
+- **A convoy no longer flees one infantryman it merely saw** (FIX-ASSAULT-CONVOY-FINDINGS).
+  An enemy seen just beyond 3 km counted as impossible to fight, like an aircraft: one rifleman at 3164 m made a strength-5 group fall back. A ground unit seen now counts for its own strength; only an aircraft or a unit that fired from beyond 3 km still makes the convoy fall back whatever its strength.
+- **A campaign's assault convoys are tanks and IFVs** (FIX-ASSAULT-CONVOY-FINDINGS).
+  They came out as air defence and trucks: the armour platoon was half the convoy's size give or take 20 %, so two trucks brought 0 or 1 armoured vehicle, and the start zone's air defence came twice. A convoy now brings 4 tanks and IFVs of its side and era from an `outpost`, 6 from an `airfield`, two trucks, and one or two anti-aircraft guns at most.
 
 ### Added
 
@@ -73,6 +79,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **Assault convoys in flight**: a neutral zone is the target of each side holding a connected neighbour, and after `rules.assault_seconds` (600 s, sooner above four players) a convoy leaves by road for it — armour after its start zone's size class and a few trucks, paid unit by unit from the side's reserve, with the convoy behaviour of FEAT-CONVOY-UNDER-FIRE, announced to its side, told to the other as intelligence and drawn as an arrow on the F10 map. The convoy that takes a zone stays as its garrison, with no second draw; blue players also send them from **Campaign → Assaults**. The state file records each convoy: between missions its dead are campaign losses in the debriefing and its survivors still on the road go back to the reserve; the mission briefing announces an expected counter-attack, without its strength. `rules.assault_convoys: false` turns the rule off.
 - **The other side hears of a campaign's assault convoy later, as intelligence** (FEAT-CAMPAIGN-INTEL-DELAY).
   `rules.intel_seconds` in `campaign.yaml` (20 minutes by default, 0 for at once): the convoy's own side is told and sees its axis when it leaves, the other side gets the message and the line on its map together, that much later — and never for a convoy destroyed before.
+- **A campaign capture says in `dcs.log` why an assault convoy did or did not become the zone's garrison** (FIX-ASSAULT-CONVOY-FINDINGS).
+  Poti, taken by the blue convoy on *Kolkhida*, drew a garrison from the reserve anyway and the cause was not found from the code; each convoy looked at is now logged — side, ended or not, what DCS answers for its group, units alive and inside, the nearest one's distance.
 
 ### Changed
 

@@ -1087,3 +1087,19 @@ limitations:
   workaround: |
     Rebuilding a group under its own name is a replacement, not a duplicate; it is how the convoy merges
     its unarmed vehicles back. It cannot carry damage over: the units come back whole.
+
+- id: a-captured-zone-may-draw-a-garrison-under-its-convoy
+  kind: tool
+  area: runtime
+  title: A zone taken by an assault convoy can draw a garrison from the reserve anyway
+  symptom: |
+    On *Kolkhida* mission 1 (2026-10-08), Poti was taken by the blue assault convoy, whose six units
+    were measured 0 to 90 m from the zone's centre, and the capture drew a 24-unit garrison from blue's
+    reserve instead of making the convoy the garrison: the reserve pays twice, and the zone holds the
+    convoy and a garrison. The cause was not found from the code (FIX-ASSAULT-CONVOY-FINDINGS ticket
+    03); since that lot, each capture logs in `dcs.log`, for every convoy it looks at, why it is or is
+    not absorbed (`zone [<name>]: convoy [<name>] of <side>, ended …, group …, … unit(s) alive, … inside,
+    nearest … m from the centre`).
+  workaround: |
+    None in flight. Read those `VEAF-CAMPAIGN` lines after a capture and report them: they name the
+    condition that failed.

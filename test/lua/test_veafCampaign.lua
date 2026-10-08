@@ -1131,12 +1131,22 @@ function TestVeafCampaignAssault:setUp()
       destination,
       defense,
       size,
-      armor
+      armor,
+      _silent,
+      _hiddenOnMFD,
+      _itinerary,
+      armorTypes
     )
-      table.insert(
-        this.spawns,
-        { spot = spot, name = name, side = side, destination = destination, defense = defense, size = size, armor = armor }
-      )
+      table.insert(this.spawns, {
+        spot = spot,
+        name = name,
+        side = side,
+        destination = destination,
+        defense = defense,
+        size = size,
+        armor = armor,
+        armorTypes = armorTypes,
+      })
       local units = {
         convoyUnit(name .. " #1", "T-72B", spot.x, spot.z),
         convoyUnit(name .. " #2", "BMP-2", spot.x, spot.z),
@@ -1208,6 +1218,52 @@ function TestVeafCampaignAssault:test_the_convoy_leaves_on_the_road_to_its_targe
   local told = dcs_mocks.messagesContaining("Senaki")
   luaunit.assertEquals(#told, 1, "its own side is told at once; the other one hears it later")
   luaunit.assertEquals(told[1].target, coalition.side.RED)
+end
+
+-- FIX-ASSAULT-CONVOY-FINDINGS ticket 04: on Kolkhida, 2026-10-08, both convoys came out as air defence and
+-- trucks, no tank — "c'était effectivement déjà comme ça dans tous les tests". An assault is tanks and IFVs
+-- of its side and era, as many as its source zone's class says, with at most a gun or two of air defence.
+function TestVeafCampaignAssault:test_an_assault_is_tanks_and_ifvs_of_its_side_and_era()
+  local classes = {
+    outpost = { size = 1, defense = 1, armor = 1, long_range_sam = false },
+    airfield = { size = 1, defense = 3, armor = 2, long_range_sam = true },
+  }
+  local expected = { outpost = 4, airfield = 6 }
+  local savedEra = veaf.config.era
+  for _, era in ipairs({ veaf.ERA.MODERN, veaf.ERA.COLD_WAR }) do
+    veaf.config.era = era
+    for _, side in ipairs({ coalition.side.BLUE, coalition.side.RED }) do
+      local allowed = {}
+      for level = 1, 5 do
+        for _, typeName in ipairs(veafCasMission.ARMOR_TYPES[side][era][level]) do
+          allowed[typeName] = true
+        end
+      end
+      for className, size in pairs(classes) do
+        local label = string.format("era %s, side %d, %s", era, side, className)
+        local armor = veafCampaign.composeAssaultArmor(side, size)
+        luaunit.assertEquals(#armor, expected[className], label)
+        for _, typeName in ipairs(armor) do
+          luaunit.assertTrue(allowed[typeName], label .. ": " .. typeName .. " is of that side and era")
+          local attributes = veafUnits.findDcsUnit(typeName).attribute
+          luaunit.assertTrue(attributes.Tanks or attributes.IFV, label .. ": " .. typeName .. " is a tank or an IFV")
+        end
+      end
+    end
+  end
+  veaf.config.era = savedEra
+end
+
+function TestVeafCampaignAssault:test_the_assault_brings_its_armour_and_light_air_defence_to_the_spawn()
+  veafCampaign.data.zones[3].size = { size = 1, defense = 3, armor = 2, long_range_sam = true }
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  local spawn = self.spawns[1]
+  luaunit.assertEquals(#spawn.armorTypes, 6)
+  luaunit.assertEquals(spawn.defense, 1, "a gun or two, never the airfield's missiles")
+  luaunit.assertEquals(spawn.size, veafCampaign.ASSAULT_TRUCKS)
 end
 
 --- Send the red convoy from Senaki at 600 s, with the axis lines and arrows recorded from then on.
@@ -1374,6 +1430,25 @@ function TestVeafCampaignAssault:test_a_convoy_that_takes_the_zone_becomes_its_g
   -- its units keep their names, and their loss is the zone's
   veafCampaign.onUnitDead(deadEvent(record.name .. " #1"))
   luaunit.assertEquals(veafCampaign.zones["Poti"]:countUnits(), 1)
+end
+
+-- FIX-ASSAULT-CONVOY-FINDINGS ticket 03: Poti, taken by the blue convoy, drew a garrison anyway, and nothing
+-- in dcs.log said why. The capture now says, for each convoy it looks at, why it is or is not absorbed.
+function TestVeafCampaignAssault:test_the_capture_logs_why_each_convoy_is_or_is_not_absorbed()
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  local record = veafCampaign.convoys[1]
+  veafCampaign.zones["Poti"]:capturedBy("red") -- the convoy is still in Senaki, 10 km away
+  luaunit.assertEquals(#self.casCalls, 1)
+  local line = dcs_mocks.findLog("zone %[Poti%]: convoy %[" .. record.name:gsub("%p", "%%%0") .. "%]")[1]
+  luaunit.assertNotNil(line, "the convoy looked at is logged")
+  luaunit.assertStrContains(
+    line.text,
+    "of red, ended nil, group exists, 3 unit(s) alive, 0 inside, nearest 10000 m from the centre (radius 2000)"
+  )
+  luaunit.assertEquals(#dcs_mocks.findLog("no assault convoy of red in it, its garrison is drawn from the reserve"), 1)
 end
 
 function TestVeafCampaignAssault:test_without_a_convoy_there_the_capture_draws_a_garrison()

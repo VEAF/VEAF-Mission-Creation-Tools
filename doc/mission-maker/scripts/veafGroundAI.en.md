@@ -268,6 +268,7 @@ modules:
 - **The convoy's watch does not see vegetation.** `land.isVisible` only accounts for terrain: the convoy may judge "in sight" an enemy that trees hide from DCS's AI. That is why its armed vehicles close in rather than halt: halted 1.9 km from an enemy "in sight", two Bradleys did not fire a round in two minutes (measured 2026-10-08).
 - **Trees are no cover for the fall-back**: `world.searchObjects` does not find them. Only terrain and towns hide the rally point.
 - **Smoke does not blind DCS's AI** (measured 2026-10-08): it marks, for the pilots. So the convoy lays no smoke screen.
+- **A living enemy the convoy cannot reach keeps it fighting**: while one is left within its watch, it goes back for it rather than drive on. `_gc <callsign>, resume` sends it on its way.
 - **A vehicle split off or merged back comes back whole**: DCS cannot recreate a unit with its damage. The watch almost always splits the convoy before the first hit.
 - **The 250-metre search radius is not configurable.**
 - Orders go through the F10 map only: **this module has no radio menu**.

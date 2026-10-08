@@ -268,6 +268,7 @@ modules:
 - **La veille du convoi ne voit pas la végétation.** `land.isVisible` ne tient compte que du relief : le convoi peut juger « en vue » un ennemi que les arbres cachent à l'IA de DCS. C'est pourquoi ses armés vont au contact au lieu de s'arrêter : arrêtés à 1,9 km d'un ennemi « en vue », deux Bradley n'ont pas tiré un coup en deux minutes (mesuré le 2026-10-08).
 - **Les arbres ne servent pas de couvert au repli** : `world.searchObjects` ne les trouve pas. Seuls le relief et les villes cachent le point de repli.
 - **Le fumigène n'aveugle pas l'IA de DCS** (mesuré le 2026-10-08) : il marque, pour les pilotes. Le convoi ne pose donc pas de rideau de fumée.
+- **Un ennemi vivant que le convoi ne peut pas atteindre le retient au combat** : tant qu'il en reste un dans son rayon de veille, il retourne le chercher plutôt que de reprendre la route. `_gc <indicatif>, resume` le fait repartir.
 - **Un véhicule détaché ou regroupé repart neuf** : DCS ne permet pas de recréer une unité avec ses dégâts. La veille scinde presque toujours le convoi avant le premier coup reçu.
 - **Le rayon de recherche de 250 mètres n'est pas configurable.**
 - Les ordres passent par la carte F10 uniquement : **ce module n'a pas de menu radio**.

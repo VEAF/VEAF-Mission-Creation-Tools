@@ -4,6 +4,10 @@
 # STRUCTURE:
 # 1. waypoints: Define individual waypoints (position, altitude, speed, etc.)
 # 2. settings: Define flight plan templates that use those waypoints
+#
+# A waypoint has a KEY (HOLDING_POINT below) and a `name:`. Plans refer to it by its key; the cockpit shows
+# its `name:`, or its key when it has none. Two waypoints may share a name — POTI at 10 000 ft for the planes
+# and POTI_LOW at 500 ft for the helicopters, both shown as POTI — but never a key.
 
 # Define individual waypoints
 # These are the building blocks that will be assembled into flight plans
@@ -71,16 +75,17 @@ settings:
     category: "plane"
     coalition: "blue"
     # No type or country specified - applies to all blue planes
+    # a plan lists its waypoints BY KEY, in flight order
     waypoints:
-      HOLDING_POINT: "HOLDING_POINT"
-      INITIAL_POINT: "INITIAL_POINT"
+      - HOLDING_POINT
+      - INITIAL_POINT
 
   # Flight plan for all red helicopters
   all_red_helicopters:
     category: "helicopter"
     coalition: "red"
     waypoints:
-      HOLDING_POINT: "HOLDING_POINT"
+      - HOLDING_POINT
 
   # Flight plan for specific aircraft type
   f16_flight_plan:
@@ -89,16 +94,16 @@ settings:
     type: "F-16C_50"
     # Only F-16C aircraft will receive this plan
     waypoints:
-      INITIAL_POINT: "INITIAL_POINT"
-      TARGET: "TARGET"
-      HOLDING_POINT: "HOLDING_POINT"
+      - INITIAL_POINT
+      - TARGET
+      - HOLDING_POINT
 
   # Flight plan for all aircraft (acts as default)
   default_plan:
     # No category, coalition, or type specified
     # Only used if no other plans match
     waypoints:
-      HOLDING_POINT: "HOLDING_POINT"
+      - HOLDING_POINT
 
 # USAGE NOTES:
 #
@@ -129,9 +134,16 @@ settings:
 #    - Waypoints are injected in the order they appear in the settings
 #    - The first waypoint becomes the initial waypoint
 #
-# 5. Fields:
+# 5. A plan takes its waypoints BY KEY:
+#    - Write them as a list of keys, as above.
+#    - The older mapping form (`HOLDING_POINT: "HOLDING_POINT"`) still loads, but only its KEYS are read: the
+#      value is ignored. `POTI: "POTI_LOW"` flies to POTI, not POTI_LOW — the build warns when a value names
+#      another waypoint.
+#
+# 6. Fields:
 #    - type: "Turning Point", "TakeOffGround", "TakeOff", "Landing", etc.
 #    - action: Usually same as type
 #    - alt_type: "BARO" (barometric) or "RADIO" (AGL)
 #    - speed_type: "TAS" (true airspeed) or "IAS" (indicated airspeed)
 #    - ETA fields are optional
+#    - name: what the cockpit shows; the waypoint's key when absent

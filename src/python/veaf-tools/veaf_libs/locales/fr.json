@@ -1135,6 +1135,7 @@
   "warehouses.unknown_category": "Impossible de classer le type d'aéronef « {type} » (avion ou hélicoptère) ; « planes » par défaut. Le modèle dynamic-slot peut ne pas se lier.",
   "waypoints.plan_load_failed": "Échec du chargement du plan de vol {plan} : {error}",
   "waypoints.plan_waypoint_not_found": "Waypoint '{name}' référencé dans le plan '{plan}' introuvable",
+  "waypoints.plan_value_ignored": "Plan '{plan}' : c'est le waypoint '{name}' qui est pris, pas '{value}' — un plan prend ses waypoints par clé, la valeur n'est pas lue",
   "waypoints.waypoint_load_failed": "Échec du chargement du waypoint {name} : {error}",
   "waypoints.yaml_empty": "Le fichier YAML est vide : {path}",
   "waypoints.yaml_load_failed": "Échec du chargement du fichier YAML {path} : {error}",

@@ -1135,6 +1135,7 @@
   "warehouses.unknown_category": "Cannot classify aircraft type '{type}' as plane or helicopter; defaulting to 'planes'. Dynamic-slot template may not bind.",
   "waypoints.plan_load_failed": "Failed to load flight plan {plan}: {error}",
   "waypoints.plan_waypoint_not_found": "Waypoint '{name}' referenced in plan '{plan}' not found",
+  "waypoints.plan_value_ignored": "Plan '{plan}': waypoint '{name}' is used, not '{value}' — a plan takes its waypoints by key, the value is not read",
   "waypoints.waypoint_load_failed": "Failed to load waypoint {name}: {error}",
   "waypoints.yaml_empty": "YAML file is empty: {path}",
   "waypoints.yaml_load_failed": "Failed to load YAML file {path}: {error}",

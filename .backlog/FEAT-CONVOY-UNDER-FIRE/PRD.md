@@ -1,6 +1,6 @@
 # FEAT-CONVOY-UNDER-FIRE — a convoy that watches ahead, splits, calls for help and falls back
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — merged on `develop` (#1099); R45 in `DCS-SESSION-TODO.md` checks the shipped build
 
 David, 2026-10-08, while writing up [`FEAT-LIVE-GAME-MASTER`](../FEAT-LIVE-GAME-MASTER/PRD.md): "ça serait vraiment bien si tu pouvais suppléer à l'IA de DCS qui est nulle, surtout pour le comportement des unités au sol".
 His example — "juste un exemple" — is a friendly convoy that meets opposition: DCS just stops it while the enemy destroys it at leisure.

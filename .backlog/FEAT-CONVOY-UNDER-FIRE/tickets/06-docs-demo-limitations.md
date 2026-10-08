@@ -1,6 +1,6 @@
 # 06 — Documentation, demo step, known limitations
 
-Status: 🔄 in-progress — page FR/EN, SRS block, known limitations, changelog done; the demo step comes once the lot is on `develop`, which the demo builds from
+Status: ✅ done — page FR/EN, SRS block, known limitations, changelog; demo step in VEAF-Demo-Mission-v6#2
 
 - The ground AI page (FR and EN) gains the convoy: what it does by itself, the `_gc` verbs, what DCS does not allow (ticket 01).
 - The `SERVER_CONFIG.SRS_*` lines that make a mission speak, for whoever hosts a server.

@@ -168,7 +168,7 @@ The convoy autopilot does the work instead, **with nobody at the controls**.
    Either way, an **F10 marker** shows the convoy to its coalition while the contact lasts ("Mule — convoy in contact"), moved every 15 s and removed once the contact is over.
 6. **It falls back behind cover**: toward the nearest friendly place (a campaign zone its side owns, one of its airbases), through a point terrain or a town hides from the enemy; when there is none, the shortest way out of range.
 7. **After the contact.** A minute with nothing in sight and nothing received:
-   - **after a fight**, once no enemy is left alive around it (an enemy merely out of its sight, it goes back for), it drives on by itself: the armed vehicles wait for the unarmed ones, the convoy becomes one again, then drives on by road rather than across country (when the unarmed ones have not rejoined within 10 minutes, each drives on by itself);
+   - **after a fight**, once no enemy is left alive around it (an enemy merely out of its sight, it goes back for), it drives on by itself: the armed vehicles go and fetch the unarmed ones, which wait where they fell back, the convoy becomes one again, then drives on by road rather than across country (when they have not met within 10 minutes, each drives on by itself);
    - **after a fall back**, it says so, stops and waits for an order: the enemy it fled is still there, and it does not drive back into the same ambush by itself.
 
 A red convoy does exactly the same, on the red side.
@@ -191,7 +191,7 @@ Each convoy has a **callsign**, which is also the name `_gc` uses for it: the na
 | `_gc mule, retreat` | falls back by road to the nearest friendly place |
 | `_gc mule, retreat KOBULETI` | falls back to this named point, or these coordinates |
 | `_gc mule, hold` | stops where it stands, both groups |
-| `_gc mule, resume` | drives on (by itself after a won fight): the unarmed vehicles join the armed ones, which wait for them, the convoy becomes one group again within 300 m and takes the road |
+| `_gc mule, resume` | drives on (by itself after a won fight): the armed vehicles go and fetch the unarmed ones, which wait for them, the convoy becomes one group again within 300 m and takes the road |
 | `_gc mule, status` | what the convoy is doing (driving, alerted, fighting, falling back, holding…) |
 | `_gc supply, convoy, groupname Supply North` | hands the group `Supply North` to the convoy autopilot, under the callsign `supply` |
 

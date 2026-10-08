@@ -167,7 +167,7 @@ Le pilote automatique de convoi fait le travail à sa place, **sans personne aux
    Dans les deux cas, un **marqueur F10** montre le convoi à sa coalition tant que le contact dure (« Mule — convoi au contact »), suivi toutes les 15 s, et retiré quand le contact est fini.
 6. **Il se replie à couvert** : vers le lieu ami le plus proche (une zone de campagne de son camp, un de ses aérodromes), en passant par un point que le relief ou une ville cache à l'ennemi ; s'il n'y en a aucun, le plus court chemin hors de portée.
 7. **Après le contact.** Une minute sans rien voir ni rien recevoir :
-   - **après un combat**, une fois qu'il ne reste plus d'ennemi vivant autour de lui (un ennemi seulement sorti de sa vue, il retourne le chercher), il reprend la route tout seul : les véhicules armés attendent leurs non armés, le convoi se reforme, puis repart par la route et non à travers champs (si les non armés ne l'ont pas rejoint en 10 minutes, chacun repart de son côté) ;
+   - **après un combat**, une fois qu'il ne reste plus d'ennemi vivant autour de lui (un ennemi seulement sorti de sa vue, il retourne le chercher), il reprend la route tout seul : les véhicules armés vont rechercher leurs non armés, qui les attendent là où ils se sont repliés, le convoi se reforme, puis repart par la route et non à travers champs (si le ralliement n'a pas eu lieu en 10 minutes, chacun repart de son côté) ;
    - **après un repli**, il le dit, s'arrête et attend un ordre : l'ennemi qu'il a fui est toujours là, et il ne repart pas tout seul dans la même embuscade.
 
 Un convoi rouge fait exactement la même chose, du côté rouge.
@@ -190,7 +190,7 @@ Chaque convoi a un **indicatif**, qui est aussi le nom que `_gc` utilise pour lu
 | `_gc mule, retreat` | repli par la route vers le lieu ami le plus proche |
 | `_gc mule, retreat KOBULETI` | repli vers ce point nommé, ou ces coordonnées |
 | `_gc mule, hold` | arrêt sur place, des deux groupes |
-| `_gc mule, resume` | repart (automatique après un combat gagné) : les non armés rejoignent les combattants, qui les attendent, le convoi se reforme en un seul groupe à moins de 300 m et reprend la route |
+| `_gc mule, resume` | repart (automatique après un combat gagné) : les combattants vont rechercher les non armés, qui les attendent, le convoi se reforme en un seul groupe à moins de 300 m et reprend la route |
 | `_gc mule, status` | ce que fait le convoi (en route, en alerte, au combat, en repli, à l'arrêt…) |
 | `_gc ravito, convoy, groupname Ravitaillement` | confie le groupe `Ravitaillement` au pilote de convoi, sous l'indicatif `ravito` |
 

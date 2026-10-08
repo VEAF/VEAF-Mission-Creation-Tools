@@ -1962,16 +1962,24 @@ function ConvoyUnitHandler:resume()
   self:clearDanger()
   local unarmed = self:getUnarmedGroup()
   if unarmed then
-    -- The armed vehicles wait where they are, and the convoy drives on once merged. Driving on at once
-    -- left the trucks, sent to where the armed vehicles had been, parked on the ambush site while the
-    -- column went on without them (the demo's run, 2026-10-08).
-    controller:pushTask({ id = "Hold", params = {} })
-    -- Straight across, not by road: sent "On Road" on 2026-10-08, the trucks drove away to reach the road
-    -- network first, 2.8 km then 3.2 km from where they were going.
-    veaf.goRoute(self.unarmedGroupName, {
-      routePoint(veaf.getAveragePosition(unarmed), "Off Road", veafGroundAI.FALL_BACK_SPEED),
-      routePoint(veaf.getAveragePosition(group), "Off Road", veafGroundAI.FALL_BACK_SPEED),
-    })
+    -- The trucks wait where they fell back, and the armed vehicles go and fetch them; the convoy drives
+    -- on once merged. Two orders that failed first, in the demo's runs of 2026-10-08:
+    --  * both at once, the trucks sent to where the armed vehicles had been: the column drove on and the
+    --    trucks parked on the ambush site;
+    --  * the armed vehicles waiting, the trucks coming back across country: five minutes at 3 to 6 m/s.
+    -- The trucks' fall back ends on a road (the rally point is moved onto one within 300 m, then the
+    -- friendly place is reached by road), so the armed vehicles get there by road too.
+    unarmed:getController():pushTask({ id = "Hold", params = {} })
+    local from = veaf.getAveragePosition(group)
+    local meeting = veaf.getAveragePosition(unarmed)
+    local speed = veafGroundAI.FALL_BACK_SPEED
+    local route = { routePoint(from, "Off Road", speed) }
+    local roadX, roadZ = land.getClosestPointOnRoads("roads", from.x, from.z)
+    if roadX and roadZ then
+      table.insert(route, routePoint({ x = roadX, z = roadZ }, "On Road", speed))
+    end
+    table.insert(route, routePoint(meeting, "On Road", speed))
+    veaf.goRoute(self.groupName, route)
     self.rejoinDeadline = timer.getTime() + ConvoyUnitHandler.REJOIN_TIMEOUT
     self.state = ConvoyUnitHandler.STATE_RESUMING
   else

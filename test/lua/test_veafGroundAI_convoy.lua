@@ -692,9 +692,11 @@ function TestConvoyOrders:test_resume_brings_the_unarmed_group_back_and_merges_i
 
   luaunit.assertTrue(handler:resume())
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_RESUMING)
-  -- the armed vehicles wait for the trucks, rather than drive on and leave them on the ambush site
-  luaunit.assertEquals(tasksPushedTo("Column", "Hold"), 1)
-  luaunit.assertNil(lastTaskSetOn("Column"), "no route for the armed vehicles before the merge")
+  -- the trucks wait where they fell back, and the armed vehicles go and fetch them, by road
+  luaunit.assertEquals(tasksPushedTo("Column unarmed", "Hold"), 1)
+  luaunit.assertNil(lastTaskSetOn("Column unarmed"), "no route for the trucks before the merge")
+  local points = lastTaskSetOn("Column").params.route.points
+  luaunit.assertEquals({ points[#points].x, points[#points].y, points[#points].action }, { -2000, 0, "On Road" })
   handler:mergeIfClose()
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0, "2 km apart: not yet")
 

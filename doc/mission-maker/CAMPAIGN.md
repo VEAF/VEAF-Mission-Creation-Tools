@@ -97,6 +97,7 @@ sides:
   red: { reserve: { armor: 12, air_defense: 4, transport: 6 } }
 rules:
   repairs_per_mission: 4
+  assault_seconds: 600       # délai avant qu'un convoi d'assaut parte (voir « En vol »)
 ```
 
 Une campagne complète, prête à copier — la Géorgie occidentale en 12 zones et 10 missions — est livrée avec les outils : [`src/defaults/campaign-folder/campaign.yaml`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/src/defaults/campaign-folder/campaign.yaml).
@@ -143,7 +144,19 @@ Le premier briefing parle donc en termes de renseignement (« force estimée »)
   Les deux camps présents arrêtent le compteur ; tout le monde parti l'annule.
   Un avion en vol ne compte jamais, une épave non plus.
   Le journal DCS (`dcs.log`) note, à chaque changement, qui tient une zone neutre et par quelle unité : c'est là qu'on lit pourquoi une prise ne démarre pas.
-  La zone prise reçoit aussitôt la garnison de son nouveau camp, payée sur sa réserve.
+  La zone prise reçoit aussitôt la garnison de son nouveau camp, payée sur sa réserve — sauf quand c'est un convoi d'assaut qui la prend : ses survivants deviennent la garnison.
+
+### Les convois d'assaut {#assault-convoys}
+
+Une zone neutre est la cible de chaque camp qui tient une zone voisine (connectée).
+Après `rules.assault_seconds` (600 s par défaut, plus tôt quand le [niveau d'opposition](scripts/veafQraManager.md#opposition-level) dépasse 4 joueurs : moitié moins à 8), un convoi part par la route de la première voisine de ce camp vers la cible — à la mission qui démarre avec une zone neutre comme à la zone qui le devient en vol.
+Un seul convoi à la fois par camp et par cible ; il ne part pas si sa zone de départ a changé de mains.
+Il est fait de blindés à la mesure de la classe de taille de sa zone de départ et de quelques camions, **payés sur la réserve** de son camp, unité par unité ; une réserve vide n'envoie rien.
+Il se conduit comme tout convoi sous le feu ([veafGroundAI](scripts/veafGroundAI.md)) : il regarde devant lui, se scinde, appelle à l'aide, se replie.
+Son camp est prévenu de son départ, l'autre l'apprend en renseignement (« une colonne ennemie quitte Senaki en direction de Poti »), et une flèche à sa couleur marque son axe sur la carte F10.
+Arrivé, il tient la zone comme toute unité au sol, et la prend au bout de `capture_seconds` : ses survivants dans la zone en deviennent la garnison, sans second tirage sur la réserve.
+Les joueurs bleus en lancent aussi depuis le menu **Campagne → Assauts**, d'une zone bleue vers une voisine qui ne l'est pas, au niveau de sécurité de la mission.
+`rules.assault_convoys: false` coupe la règle ; le menu reste.
 
 ## Le fichier d'état {#state-file}
 
@@ -177,6 +190,7 @@ Sinon il fusionne le fichier, puis joue le **tour** avec des règles fixes, pour
 | chaque zone `logistics` tenue alimente la réserve de son camp | `rules.logistics_output` | `{armor: 2, air_defense: 1, transport: 1}` |
 | les unités perdues sont remplacées sur la réserve, catégorie par catégorie | `rules.repairs_per_mission` | 4 unités par camp |
 | une zone neutre bordée par un seul camp est reprise par lui | `rules.counter_attack` | `true` |
+| un convoi d'assaut encore en route à la fin du vol rend ses survivants à la réserve de son camp ; ses morts sont des pertes de la campagne | — | — |
 
 Détruire un dépôt ennemi, c'est moins de réserve, donc moins de réparations et des garnisons plus maigres derrière : une réserve vide ne permet plus qu'une garnison minimale.
 
@@ -199,6 +213,7 @@ Sans `players` ni `--players`, le bloc de la mission n'est pas touché.
 
 Les QRA ennemies de la mission doivent avoir des paliers jusqu'à cet effectif (`groups_by_enemy_count`) ; c'est ce que Claude écrit en concevant la mission.
 Le briefing de mission le dit en renseignement — « la chasse adverse renforce son alerte face à un dispositif important » — jamais en paliers ni en nombres.
+Il annonce de même une [contre-attaque terrestre attendue](#assault-convoys) vers une zone neutre que l'ennemi borde, sans sa force.
 
 ## Le débriefing {#debriefing}
 

@@ -1,6 +1,6 @@
 # FEAT-OPPOSITION-SCALES-WITH-PLAYERS — the opposition sized to the number of players
 
-Status: 🔄 in-progress — tickets 01–03 merged (#1100), R46 in `DCS-SESSION-TODO.md` checks them in game; ticket 04 to do
+Status: 🔄 in-progress — the four tickets coded and tested on the mocks (#1100); R46 in `DCS-SESSION-TODO.md` checks them in game
 
 David, 2026-10-08, before flying *Kolkhida* mission 1 with 5 to 7 players: "tu penses que l'opposition est bien réglée ? ça serait pas mal d'avoir un truc un peu dynamique pour ça, en fonction du nombre de personnes (soit en générant la mission, soit au lancement via un menu ou une commande, soit automatiquement en fonction du nombre d'avions en l'air). je crois que Foothold fait un truc comme ça".
 
@@ -26,7 +26,7 @@ Checked the same evening:
 | [01](tickets/01-qra-tiers-right.md) | The QRA's tiers: the biggest that fits, every group when asked, rearm while occupied | ✅ |
 | [02](tickets/02-opposition-level.md) | An opposition level, set at generation, changed in flight, or followed automatically | ✅ on the mocks, R46 in game |
 | [03](tickets/03-campaign-and-claude.md) | Campaigns and Claude size the opposition, and the briefing says it | ✅ |
-| [04](tickets/04-assault-convoys.md) | Assault convoys: the campaign attacks and counter-attacks in flight | ⬜ |
+| [04](tickets/04-assault-convoys.md) | Assault convoys: the campaign attacks and counter-attacks in flight | ✅ on the mocks, R46 in game |
 
 ## Decided before writing
 
@@ -39,3 +39,4 @@ Checked the same evening:
 - **Hysteresis**: re-read every 60 s, a rise taken at once, a drop once the lower count has held `lower_after` (300 s).
 - **Combat missions**: an "Auto scale" entry per skill, scale = ⌈level / 2⌉ within the scales offered — one enemy group per two players, an estimate of mine, not sourced.
 - **Campaigns**: `players: 5-7` or `--players 6` write `opposition: {level: <most expected>, follow: players}` — sized for the squadron, followed down to who came.
+- **Assault convoys** (ticket 04): a neutral zone is the target of each side bordering it, the convoy leaving after a delay the opposition level shortens; the convoy that takes a zone becomes its garrison; survivors still on the road at the end go back to the reserve; blue both by rule and from the radio menu.

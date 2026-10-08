@@ -214,7 +214,9 @@ def _parse_rules(raw: Any, issues: list[ValidationIssue]) -> CampaignRules:
     for name, value in raw.items():
         if name == "repairs_per_mission" and _is_int(value) and value >= 0:
             values[name] = value
-        elif name == "counter_attack" and isinstance(value, bool):
+        elif name in ("counter_attack", "assault_convoys") and isinstance(value, bool):
+            values[name] = value
+        elif name == "assault_seconds" and _is_int(value) and value > 0:
             values[name] = value
         elif (
             name == "logistics_output"
@@ -665,7 +667,10 @@ def state_to_dict(state: CampaignState) -> dict[str, Any]:
     Returns:
         A dict of builtins only, keyed by zone and side name.
     """
-    return asdict(state)
+    data = asdict(state)
+    if not data["convoys"]:
+        del data["convoys"]  # a state file's, settled by the merge: the campaign state has none
+    return data
 
 
 def state_from_dict(raw: Any) -> CampaignState | None:
@@ -685,6 +690,7 @@ def state_from_dict(raw: Any) -> CampaignState | None:
             zones={str(name): ZoneState(**zone) for name, zone in raw["zones"].items()},
             sides={str(name): SideState(**side) for name, side in raw["sides"].items()},
             scenery_destroyed=list(raw.get("scenery_destroyed") or []),
+            convoys=list(raw.get("convoys") or []),
             history=list(raw.get("history") or []),
         )
     except (KeyError, TypeError, ValueError, AttributeError):

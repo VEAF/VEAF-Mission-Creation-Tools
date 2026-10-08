@@ -1077,4 +1077,263 @@ function TestVeafCampaignCapture:test_an_airbase_whose_zone_turns_neutral_turns_
   luaunit.assertEquals(self.airbaseCalls[#self.airbaseCalls], { "setCoalition", "Senaki-Kolkhi", coalition.side.NEUTRAL })
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafCampaignAssault — FEAT-OPPOSITION-SCALES-WITH-PLAYERS ticket 04: assault convoys in flight
+-- ---------------------------------------------------------------------------
+TestVeafCampaignAssault = {}
+
+--- A convoy unit as Group:getUnits() hands it over, at a position that can be moved.
+local function convoyUnit(name, typeName, x, z)
+  local unit = { _name = name, _type = typeName, _alive = true, _x = x, _z = z }
+  function unit:getName()
+    return self._name
+  end
+  function unit:getTypeName()
+    return self._type
+  end
+  function unit:isExist()
+    return self._alive
+  end
+  function unit:getLife()
+    return self._alive and 10 or 0
+  end
+  function unit:getPoint()
+    return { x = self._x, y = 0, z = self._z }
+  end
+  return unit
+end
+
+function TestVeafCampaignAssault:setUp()
+  setUpSuite(self)
+  local this = self
+  self.savedSpawn, self.savedNamedPoints, self.savedOpposition = veafSpawn, veafNamedPoints, veafOpposition
+  self.savedUnits = veafUnits.DefaultPathfindingUnitType
+  veafUnits.DefaultPathfindingUnitType = "Fixer"
+  self.spawns, self.points, self.units = {}, {}, {}
+  veafNamedPoints = {
+    addPoint = function(name, point)
+      this.points[name] = point
+    end,
+  }
+  veafSpawn = {
+    spawnConvoy = function(
+      spot,
+      name,
+      _,
+      radius,
+      country,
+      side,
+      heading,
+      spacing,
+      speed,
+      patrol,
+      offroad,
+      destination,
+      defense,
+      size,
+      armor
+    )
+      table.insert(
+        this.spawns,
+        { spot = spot, name = name, side = side, destination = destination, defense = defense, size = size, armor = armor }
+      )
+      local units = {
+        convoyUnit(name .. " #1", "T-72B", spot.x, spot.z),
+        convoyUnit(name .. " #2", "BMP-2", spot.x, spot.z),
+        convoyUnit(name .. " #3", "Ural-375", spot.x, spot.z),
+        convoyUnit(name .. " #4", "Fixer", spot.x, spot.z),
+      }
+      this.units[name] = units
+      dcs_mocks.addGroup(name, {
+        getUnits = function()
+          return units
+        end,
+      })
+      return name
+    end,
+  }
+  veafOpposition = nil
+  timer.setTime(0)
+  veafCampaign.data = {
+    capture_seconds = 60,
+    assault_seconds = 600,
+    zones = {
+      zoneEntry("Kutaisi", "blue", { x = 0, z = 0, garrison = recordedGarrison("Kutaisi") }),
+      zoneEntry("Poti", "neutral", { x = 10000, z = 0 }),
+      zoneEntry("Senaki", "red", { x = 20000, z = 0, garrison = recordedGarrison("Senaki") }),
+    },
+    connections = { { "Kutaisi", "Poti" }, { "Poti", "Senaki" } },
+    sides = {
+      blue = { reserve = { armor = 6, air_defense = 2, transport = 3 } },
+      red = { reserve = { armor = 6, air_defense = 2, transport = 3 } },
+    },
+  }
+end
+
+function TestVeafCampaignAssault:tearDown()
+  veafSpawn, veafNamedPoints, veafOpposition = self.savedSpawn, self.savedNamedPoints, self.savedOpposition
+  veafUnits.DefaultPathfindingUnitType = self.savedUnits
+  dcs_mocks.searchObjectsObjects = {}
+  tearDownSuite(self)
+end
+
+function TestVeafCampaignAssault:test_a_neutral_zone_at_the_start_is_the_target_of_both_neighbours()
+  veafCampaign.initialize()
+  local red, blue = veafCampaign.pendingAssaults["Poti|red"], veafCampaign.pendingAssaults["Poti|blue"]
+  luaunit.assertEquals({ red.from, red.at }, { "Senaki", 600 })
+  luaunit.assertEquals({ blue.from, blue.at }, { "Kutaisi", 600 })
+end
+
+function TestVeafCampaignAssault:test_nothing_leaves_before_the_delay()
+  veafCampaign.initialize()
+  timer.setTime(599)
+  veafCampaign.beat()
+  luaunit.assertEquals(#self.spawns, 0)
+end
+
+function TestVeafCampaignAssault:test_the_convoy_leaves_on_the_road_to_its_target_paid_from_the_reserve()
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  luaunit.assertEquals(#self.spawns, 1)
+  local spawn = self.spawns[1]
+  luaunit.assertEquals({ spawn.side, spawn.destination, spawn.spot.x }, { coalition.side.RED, "CAMPAIGN Poti", 20000 })
+  luaunit.assertEquals(self.points["CAMPAIGN Poti"].x, 10000)
+  local record = veafCampaign.convoys[1]
+  luaunit.assertEquals({ record.side, record.from, record.to }, { "red", "Senaki", "Poti" })
+  -- the pathfinding unit a spawned convoy carries is not counted, nor paid for
+  luaunit.assertEquals(record.sent, { "BMP-2", "T-72B", "Ural-375" })
+  luaunit.assertEquals(veafCampaign.data.sides.red.reserve, { armor = 4, air_defense = 2, transport = 2 })
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("Senaki"), 2, "its side told, the other one warned")
+end
+
+function TestVeafCampaignAssault:test_a_bigger_opposition_attacks_earlier()
+  veafOpposition = {
+    getLevel = function()
+      return 8
+    end,
+  }
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.pendingAssaults["Poti|red"].at, 300)
+end
+
+function TestVeafCampaignAssault:test_the_campaign_can_turn_the_rule_off()
+  veafCampaign.data.assault_convoys = false
+  veafCampaign.initialize()
+  luaunit.assertNil(next(veafCampaign.pendingAssaults))
+end
+
+function TestVeafCampaignAssault:test_a_zone_that_falls_neutral_is_counter_attacked()
+  veafCampaign.data.zones[2].owner = "red"
+  veafCampaign.data.zones[2].garrison = recordedGarrison("Poti")
+  veafCampaign.initialize()
+  luaunit.assertNil(next(veafCampaign.pendingAssaults))
+  timer.setTime(100)
+  for index = 1, 3 do
+    veafCampaign.onUnitDead(deadEvent("Kutaisi garrison #" .. index))
+  end
+  luaunit.assertEquals(veafCampaign.zones["Kutaisi"].entry.owner, "neutral")
+  local pending = veafCampaign.pendingAssaults["Kutaisi|red"]
+  luaunit.assertEquals({ pending.from, pending.at }, { "Poti", 700 })
+end
+
+function TestVeafCampaignAssault:test_one_convoy_at_a_time_per_side_and_target()
+  veafCampaign.initialize()
+  timer.setTime(600)
+  veafCampaign.beat()
+  veafCampaign.planAssaults(veafCampaign.zones["Poti"], 700)
+  luaunit.assertNil(veafCampaign.pendingAssaults["Poti|red"], "a red convoy is already on its way")
+end
+
+function TestVeafCampaignAssault:test_an_empty_reserve_sends_nothing()
+  veafCampaign.data.sides.red.reserve = { armor = 0, air_defense = 0, transport = 0 }
+  veafCampaign.initialize()
+  timer.setTime(600)
+  veafCampaign.beat()
+  for _, spawn in ipairs(self.spawns) do
+    luaunit.assertNotEquals(spawn.side, coalition.side.RED)
+  end
+end
+
+function TestVeafCampaignAssault:test_the_dead_of_a_convoy_are_in_the_state()
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  local name = veafCampaign.convoys[1].name
+  self.units[name][1]._alive = false
+  local state = veafCampaign.stateTable()
+  luaunit.assertEquals(state.convoys[1].sent, { "BMP-2", "T-72B", "Ural-375" })
+  luaunit.assertEquals(state.convoys[1].alive, { "BMP-2", "Ural-375" })
+  self.units[name][2]._alive, self.units[name][3]._alive = false, false
+  veafCampaign.beat()
+  luaunit.assertTrue(veafCampaign.convoys[1].ended)
+  luaunit.assertEquals(veafCampaign.convoys[1].alive, {})
+end
+
+function TestVeafCampaignAssault:test_a_convoy_that_takes_the_zone_becomes_its_garrison()
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  local record = veafCampaign.convoys[1]
+  for _, unit in ipairs(self.units[record.name]) do
+    unit._x = 10050 -- arrived in Poti
+  end
+  self.units[record.name][3]._alive = false
+  self.casCalls = {}
+  veafCampaign.zones["Poti"]:capturedBy("red")
+  local garrison = veafCampaign.zones["Poti"].entry.garrison
+  luaunit.assertEquals(#self.casCalls, 0, "no second draw: the convoy was paid for when it left")
+  luaunit.assertEquals(#garrison[1].units, 2)
+  luaunit.assertEquals(record.absorbed, { "BMP-2", "T-72B" })
+  luaunit.assertTrue(record.ended)
+  -- its units keep their names, and their loss is the zone's
+  veafCampaign.onUnitDead(deadEvent(record.name .. " #1"))
+  luaunit.assertEquals(veafCampaign.zones["Poti"]:countUnits(), 1)
+end
+
+function TestVeafCampaignAssault:test_without_a_convoy_there_the_capture_draws_a_garrison()
+  veafCampaign.initialize()
+  veafCampaign.zones["Poti"]:capturedBy("blue")
+  luaunit.assertEquals(#self.casCalls, 1)
+end
+
+function TestVeafCampaignAssault:test_blue_orders_an_assault_from_the_menu()
+  veafCampaign.initialize()
+  veafCampaign.orderAssault({ "Kutaisi", "Poti" })
+  luaunit.assertEquals(#self.spawns, 1)
+  luaunit.assertEquals(self.spawns[1].side, coalition.side.BLUE)
+  veafCampaign.orderAssault({ "Kutaisi", "Poti" })
+  luaunit.assertEquals(#self.spawns, 1, "one convoy at a time to the same target")
+end
+
+function TestVeafCampaignAssault:test_blue_cannot_order_from_a_zone_it_does_not_hold()
+  veafCampaign.initialize()
+  veafCampaign.orderAssault({ "Senaki", "Poti" })
+  luaunit.assertEquals(#self.spawns, 0)
+end
+
+function TestVeafCampaignAssault:test_an_assault_whose_start_zone_was_lost_does_not_leave()
+  veafCampaign.initialize()
+  veafCampaign.zones["Senaki"].entry.owner = "blue"
+  timer.setTime(600)
+  veafCampaign.launchDueAssaults(600)
+  for _, spawn in ipairs(self.spawns) do
+    luaunit.assertNotEquals(spawn.side, coalition.side.RED)
+  end
+end
+
+function TestVeafCampaignAssault:test_the_blue_menu_lists_each_blue_zone_towards_each_neighbour_it_does_not_hold()
+  veaf.config.language = "en"
+  veafCampaign.initialize()
+  local titles = {}
+  for _, command in ipairs(veafCampaign.assaultPath.commands or {}) do
+    table.insert(titles, command.title)
+  end
+  luaunit.assertEquals(titles, { "Kutaisi to Poti" })
+  luaunit.assertEquals(veafCampaign.assaultPath.commands[1].isSecured, true)
+end
+
 os.exit(luaunit.LuaUnit.run())

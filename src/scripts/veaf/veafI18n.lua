@@ -1989,6 +1989,24 @@ veaf.i18nCatalog = {
   ["menu.campaign.root"] = { fr = "Campagne", en = "Campaign" },
   ["menu.campaign.situation"] = { fr = "Situation", en = "Situation" },
   ["menu.campaign.counters"] = { fr = "Compteurs (admin)", en = "Counters (admin)" },
+  ["menu.campaign.assault"] = { fr = "Assauts", en = "Assaults" },
+  ["menu.campaign.assault_entry"] = { fr = "%s vers %s", en = "%s to %s" },
+  ["campaign.convoy_sent_own"] = {
+    fr = "Un convoi d'assaut quitte %s pour prendre %s.",
+    en = "An assault convoy leaves %s to take %s.",
+  },
+  ["campaign.convoy_sent_enemy"] = {
+    fr = "Renseignement : une colonne ennemie quitte %s en direction de %s.",
+    en = "Intelligence: an enemy column is leaving %s towards %s.",
+  },
+  ["campaign.assault_refused"] = {
+    fr = "Assaut de %s vers %s impossible : la zone de départ n'est plus à nous, la cible l'est déjà, ou un convoi y va déjà.",
+    en = "No assault from %s to %s: the start zone is no longer ours, the target already is, or a convoy is already on its way.",
+  },
+  ["campaign.assault_no_reserve"] = {
+    fr = "Assaut impossible : plus rien en réserve.",
+    en = "No assault: nothing left in reserve.",
+  },
 
   -- veafOpposition
   ["opposition.level"] = {

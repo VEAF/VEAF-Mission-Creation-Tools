@@ -71,6 +71,10 @@ class CampaignRules:
     """How many lost garrison units each side gets back from its reserve after every mission."""
     counter_attack: bool = True
     """Whether a neutral zone bordered by one side only is retaken by it between missions."""
+    assault_convoys: bool = True
+    """Whether, in flight, each side sends an assault convoy to a neutral zone it borders."""
+    assault_seconds: int = 600
+    """Seconds between a zone becoming such a target and the convoy leaving for it."""
 
 
 @dataclass(frozen=True)
@@ -228,6 +232,10 @@ class CampaignState:
     sides: dict[str, SideState]
     scenery_destroyed: list[dict[str, Any]] = field(default_factory=list)
     """Scenery objects destroyed so far (ticket 07)."""
+    convoys: list[dict[str, Any]] = field(default_factory=list)
+    """The assault convoys a mission sent (FEAT-OPPOSITION-SCALES-WITH-PLAYERS ticket 04): in a state
+    file only, ``{name, side, from, to, sent, alive, absorbed}`` with unit types. The merge settles
+    them, so the campaign state never keeps one."""
     history: list[dict[str, Any]] = field(default_factory=list)
     """One entry per mission applied: what changed, for the next briefing (tickets 08 and 09), and the
     date the mission was flown on (``date``, ``YYYY-MM-DD``), which the next mission's date follows."""

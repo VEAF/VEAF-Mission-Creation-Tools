@@ -191,6 +191,27 @@ def _qra_line(campaign: CampaignDefinition, picture: MissionPicture) -> str | No
     return line
 
 
+def _counter_attack_line(campaign: CampaignDefinition, state: CampaignState) -> str | None:
+    """The counter-attack the enemy is expected to launch, said as intelligence, without its strength.
+
+    A neutral zone the enemy borders is the target of an assault convoy in flight (ticket 04 of
+    FEAT-OPPOSITION-SCALES-WITH-PLAYERS), unless the campaign turned the rule off.
+    """
+    if not campaign.rules.assault_convoys:
+        return None
+    enemy = enemy_of(campaign.player_side)
+    targets = []
+    for zone in campaign.zones:
+        if state.zones[zone.name].owner != "neutral":
+            continue
+        neighbours = [b if a == zone.name else a for a, b in campaign.connections if zone.name in (a, b)]
+        if any(state.zones[name].owner == enemy for name in neighbours):
+            targets.append(zone.label)
+    if not targets:
+        return None
+    return t("campaign.mission_deck.counter_attack", zones=_join(targets))
+
+
 def _situation_page(
     campaign: CampaignDefinition,
     state: CampaignState,
@@ -237,6 +258,9 @@ def _situation_page(
     qra = _qra_line(campaign, picture)
     if qra:
         threats.insert(0, f"– {qra}")
+    counter_attack = _counter_attack_line(campaign, state)
+    if counter_attack:
+        threats.append(f"– {counter_attack}")
     if threats:
         blocks.append(Block(t("campaign.mission_deck.heading.threat"), tuple(threats)))
     blocks.append(Block(t("campaign.mission_deck.heading.weather"), _weather_lines(picture)))

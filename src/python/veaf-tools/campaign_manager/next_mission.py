@@ -101,6 +101,8 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
         "mission": state.mission + 1,
         "missions": campaign.missions,
         "capture_seconds": campaign.capture_seconds,
+        "assault_convoys": campaign.rules.assault_convoys,
+        "assault_seconds": campaign.rules.assault_seconds,
         "state_write_seconds": campaign.state_write_seconds,
         "objectives": [{"kind": o.kind, "zones": list(o.zones)} for o in campaign.objectives],
         "zones": zones,

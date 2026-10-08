@@ -1,6 +1,6 @@
 # FEAT-OPPOSITION-SCALES-WITH-PLAYERS — the opposition sized to the number of players
 
-Status: 🔄 in-progress — the four tickets coded and tested on the mocks (#1100); R46 in `DCS-SESSION-TODO.md` checks them in game
+Status: 🧑 waiting-human — merged on `develop` (#1100); R46 in `DCS-SESSION-TODO.md` checks it in game
 
 David, 2026-10-08, before flying *Kolkhida* mission 1 with 5 to 7 players: "tu penses que l'opposition est bien réglée ? ça serait pas mal d'avoir un truc un peu dynamique pour ça, en fonction du nombre de personnes (soit en générant la mission, soit au lancement via un menu ou une commande, soit automatiquement en fonction du nombre d'avions en l'air). je crois que Foothold fait un truc comme ça".
 

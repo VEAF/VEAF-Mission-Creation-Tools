@@ -139,6 +139,30 @@ limitations:
     The whole-map 200 m pass FEAT-CLEAR-GROUND-AT-AUTHORING first planned would have promised
     clearings in woods; ticket 01 measured it before it was built.
 
+- id: lua-chunk-over-200-locals-is-refused
+  kind: dcs
+  area: scripting
+  title: "A Lua file with more than 200 top-level locals is refused whole"
+  measured: "2026-10-08"
+  symptom: |
+    DCS runs Lua 5.1, which accepts at most 200 active `local` variables in one function — and a
+    script file's top level is one function. Past that, the file does not load at all:
+    `Mission script error: [string "l10n/DEFAULT/veaf-scripts.lua"]:81100: main function has more
+    than 200 local variables`. Nothing in the file runs, and every later script that uses it fails
+    in turn (`attempt to index global 'veaf' (a nil value)`).
+
+    Measured on the VEAF bundle, which concatenates every module into one file: 190 top-level
+    `local` lines loaded on 2026-10-07, 198 lines (202 names) failed on 2026-10-08, after the
+    campaign, opposition and convoy modules were added. Every module loaded alone was fine.
+  workaround: |
+    Wrap each part of a long script in its own `do ... end` block: its locals die at its `end`, and
+    the limit applies per block. The VEAF build does it for every module since
+    FIX-BUNDLE-LOCAL-LIMIT. In a hand-written `mission-script.lua`, keep state in a table
+    (`myMission = {}`) rather than in hundreds of top-level locals.
+  cost: |
+    *Kolkhida* mission 1, rebuilt from `develop` the afternoon it was to be flown, loaded no VEAF
+    module; no test had ever run the concatenated bundle.
+
 - id: assault-convoy-garrison-keeps-its-convoy-behaviour
   kind: tool
   area: runtime

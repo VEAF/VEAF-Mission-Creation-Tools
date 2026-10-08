@@ -158,10 +158,50 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
 ]
 
 # `src/scripts/veaf/*.lua` files deliberately NOT in the runtime bundle:
-# - veaf.lua: the framework root, bundled first and separately (see build_lua_scripts).
+# - veaf.lua: the framework root, bundled first and separately (see bundle_body).
 # - dcsDataExport.lua: a datamine export helper run inside DCS to dump unit data, not a
 #   runtime module.
 LUA_BUNDLE_EXCLUDED: frozenset[str] = frozenset({"veaf.lua", "dcsDataExport.lua"})
+
+
+def bundle_section(script_name: str, source: str) -> str:
+    """Return one module's section of the static `veaf-scripts.lua` bundle.
+
+    Args:
+        script_name: The module's file name, written in its START and END banners.
+        source: The module's Lua source.
+
+    Returns:
+        The section: the module's source in a `do ... end` block, between its banners.
+        The block scopes the module's top-level locals to it: concatenated in one chunk,
+        the modules' locals add up, and Lua 5.1 refuses a chunk with more than 200 of them
+        — DCS then loads no VEAF module at all (FIX-BUNDLE-LOCAL-LIMIT).
+    """
+    rule = "--" + "-" * 75 + "\n"
+    return (
+        f"\n{rule}-- START script {script_name}\n{rule}\ndo\n"
+        + source
+        + f"\nend\n{rule}-- END script {script_name}\n{rule}\n"
+    )
+
+
+def bundle_body(scripts_dir: Path, lua_scripts: list[str]) -> str:
+    """Return the modules of the static bundle: `veaf.lua` first, then `lua_scripts` in order.
+
+    Args:
+        scripts_dir: The folder holding the modules.
+        lua_scripts: The modules to bundle after `veaf.lua`, in order; one missing from
+            `scripts_dir` is left out.
+
+    Returns:
+        The concatenated sections, without the bundle's header and footer.
+    """
+    sections = []
+    for script_name in ["veaf.lua", *lua_scripts]:
+        script_path = scripts_dir / script_name
+        if script_path.exists():
+            sections.append(bundle_section(script_name, script_path.read_text(encoding="utf-8")))
+    return "".join(sections)
 
 
 class BuildAndReleaseWorker:
@@ -357,36 +397,8 @@ class BuildAndReleaseWorker:
                 with open(output_path, "w", encoding="utf-8") as out_file:
                     out_file.write(header)
 
-                    # Add veaf.lua first
-                    veaf_path = self.build_dir / "veaf.lua"
-                    if veaf_path.exists():
-                        out_file.write("\n")
-                        out_file.write("--" + "-" * 75 + "\n")
-                        out_file.write("-- START script veaf.lua\n")
-                        out_file.write("--" + "-" * 75 + "\n")
-                        out_file.write("\n")
-                        out_file.write(veaf_path.read_text(encoding="utf-8"))
-                        out_file.write("\n")
-                        out_file.write("--" + "-" * 75 + "\n")
-                        out_file.write("-- END script veaf.lua\n")
-                        out_file.write("--" + "-" * 75 + "\n")
-                        out_file.write("\n")
-
-                    # Add other scripts in order
-                    for script_name in lua_scripts:
-                        script_path = self.build_dir / script_name
-                        if script_path.exists():
-                            out_file.write("\n")
-                            out_file.write("--" + "-" * 75 + "\n")
-                            out_file.write(f"-- START script {script_name}\n")
-                            out_file.write("--" + "-" * 75 + "\n")
-                            out_file.write("\n")
-                            out_file.write(script_path.read_text(encoding="utf-8"))
-                            out_file.write("\n")
-                            out_file.write("--" + "-" * 75 + "\n")
-                            out_file.write(f"-- END script {script_name}\n")
-                            out_file.write("--" + "-" * 75 + "\n")
-                            out_file.write("\n")
+                    # veaf.lua first, then the other scripts in order
+                    out_file.write(bundle_body(self.build_dir, lua_scripts))
 
                     # Add footer
                     footer = (

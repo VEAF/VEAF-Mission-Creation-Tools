@@ -36,6 +36,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The tier chosen was the last one Lua's table order happened to visit, not the biggest that fits: tiers written 5, 1, 3 gave 6 intruders the tier of 3. A `random_pick` drew with replacement, so "2 of [MiG-29, Su-27]" could send the MiG-29 pair twice — that is, once; under the test mocks it did, 200 draws out of 200. The draw is now without replacement and never picks more than the list holds.
   **Migration:** in `mission.yaml`, a `groups_by_enemy_count` tier without `random_pick` used to draw one group; it now sends **every** group it lists. Add `random_pick: 1` to a tier that relied on the old default. `convert-v5` keeps a tier set without a draw as such (it used to drop it), and reads `setNoNeedToLeaveZoneBeforeRearming`.
   The new `rearm_while_occupied: true` rearms a destroyed QRA without waiting for its zone to be clear — which, with several players over the target, it almost never was.
+- **A mission built from `develop` loads its VEAF scripts again** (FIX-BUNDLE-LOCAL-LIMIT).
+  The build concatenates every module into `veaf-scripts.lua`, where their top-level locals added up past the 200 a Lua 5.1 chunk accepts: DCS refused the whole file ("main function has more than 200 local variables") and no VEAF module loaded. Each module now sits in its own `do … end` block, and a test runs the bundle under Lua 5.1 in the CI Lua job. Released 6.28.0 was not affected.
 
 ### Added
 

@@ -724,6 +724,30 @@ destroyed both in 16 s. Earlier the same day, stationary trucks 1 km from BMPs, 
 **What to do:** To make ground units fight an enemy you can see by script, send them closer — `veafGroundAI`'s
 convoy closes in to 900 m.
 
+## Mission scripting {#scripting}
+
+### A Lua file with more than 200 top-level locals is refused whole {#lua-chunk-over-200-locals-is-refused}
+
+Measured **2026-10-08**.
+
+DCS runs Lua 5.1, which accepts at most 200 active `local` variables in one function — and a
+script file's top level is one function. Past that, the file does not load at all:
+`Mission script error: [string "l10n/DEFAULT/veaf-scripts.lua"]:81100: main function has more
+than 200 local variables`. Nothing in the file runs, and every later script that uses it fails
+in turn (`attempt to index global 'veaf' (a nil value)`).
+
+Measured on the VEAF bundle, which concatenates every module into one file: 190 top-level
+`local` lines loaded on 2026-10-07, 198 lines (202 names) failed on 2026-10-08, after the
+campaign, opposition and convoy modules were added. Every module loaded alone was fine.
+
+**What to do:** Wrap each part of a long script in its own `do ... end` block: its locals die at its `end`, and
+the limit applies per block. The VEAF build does it for every module since
+FIX-BUNDLE-LOCAL-LIMIT. In a hand-written `mission-script.lua`, keep state in a table
+(`myMission = {}`) rather than in hundreds of top-level locals.
+
+*What it cost:* *Kolkhida* mission 1, rebuilt from `develop` the afternoon it was to be flown, loaded no VEAF
+module; no test had ever run the concatenated bundle.
+
 <!-- END GENERATED -->
 
 ## For script developers {#script-developers}

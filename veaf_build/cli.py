@@ -693,6 +693,10 @@ def update_dcs_data(
 
         from veaf_build.dcs_data import airdromes as airdromes_provider
 
+        # --inject-bridge and --capture belong to --airdromes: a plain run never touches DCS.
+        inject_bridge = inject_bridge if airdromes else None
+        capture_airbases = capture and airdromes
+
         if inject_bridge:
             lua = capture_mod.resolve_bridge_lua(bridge_lua)
             res = capture_mod.inject_bridge(Path(inject_bridge), lua)
@@ -700,7 +704,7 @@ def update_dcs_data(
                 f"[green]✓ dcs-bridge injected into {inject_bridge} (trigger #{res['trigger_index']})[/green]"
             )
 
-        if capture:
+        if capture_airbases:
             console.print(f"[cyan]Capturing airbases from the running mission via {serve_url}...[/cyan]")
             # Falls back to the api_key in a dcs-serve.yaml / dcs-client.yaml nearby.
             key = capture_mod.resolve_api_key(api_key)
@@ -709,7 +713,7 @@ def update_dcs_data(
             console.print(f"[green]✓ captured theatre '{theatre}' ({len(airbases)} airbases) → {dump_path}[/green]")
 
         # Regenerate from the reference and the committed dumps, unless the run only injected the bridge.
-        if capture or not inject_bridge:
+        if capture_airbases or not inject_bridge:
             from veaf_build.dcs_data.reference import REFERENCE_TAG, open_reference
 
             console.print(

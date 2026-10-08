@@ -577,6 +577,20 @@ an `Orbit` alone: they patrolled and never fought.
 
 ## Players, roles and the map {#players}
 
+### An `arrowToAll` drawn at y = 0 slides away from the ground as the F10 map is panned {#arrow-at-sea-level-slides-on-the-f10-map}
+
+Measured **2026-10-08**.
+
+Observed by David on *Kolkhida* mission 1 (Caucasus, Colchis plain, terrain 0–50 m): the campaign's
+assault-convoy arrows, both ends at `y = 0`, were right only fully zoomed in. Panned, even zoomed,
+they shifted "as if on another plane": both started from one point east of Poti, about 25 %
+longer than the axes they drew. The zone circles (`circleToAll`, also at `y = 0`), their labels
+and DCS's own route lines held still.
+
+**What to do:** Give every point of a drawn shape the terrain height, `land.getHeight({ x = p.x, y = p.z })`, as
+the points of the shapes drawn from map markers already are. That this is the whole answer is
+**not confirmed** yet: the circles at `y = 0` do not slide.
+
 ### A game master **is** coalition-scoped for map marks {#game-master-marks-are-coalition-scoped}
 
 Measured **2026-09-21**.

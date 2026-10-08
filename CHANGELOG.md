@@ -41,6 +41,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A campaign garrison is drawn with its air defence again** (FIX-SPAWN-DATA-LOAD-ORDER).
   The groups database (`veaf-spawn-data.lua`, ADR 0005) was loaded by a trigger of its own, appended after the mission scripts, while `veafCampaign` draws the garrisons as `veaf-config.lua` runs: every SAM group came out of an empty database (`cannot find group [sa10]` in `dcs.log`), and Senaki stood without its SA-10.
   The database now loads as the last action of the VEAF framework load triggers, before the mission scripts; a mission without those triggers keeps the old trailing trigger, and the build says why that is a risk.
+- **A campaign's assault-convoy arrows lie on the ground of the F10 map** (FIX-CAMPAIGN-ARROW-ALTITUDE).
+  Drawn at sea level, they slid away from their zones as the map was panned and were right only fully zoomed in; both ends now take the terrain height.
 
 ### Added
 

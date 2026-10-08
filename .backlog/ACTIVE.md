@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · 🔄
+
+On *Kolkhida* mission 1 the blue convoy took Poti and did not become its garrison: the capture trusts `world.searchObjects`, which returned its units at 2036–2077 m of a 2000 m zone, and the absorption measures the exact distance. One definition of "in the zone", the convoy driven inside, and the DCS trap recorded.
 
 ## 🧑 Waiting for a human
 

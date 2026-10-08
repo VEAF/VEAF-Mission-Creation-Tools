@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · ⬜
-
-On *Kolkhida* mission 1 the blue convoy took Poti and did not become its garrison: the capture trusts `world.searchObjects`, which returned its units at 2036–2077 m of a 2000 m zone, and the absorption measures the exact distance. One definition of "in the zone", the convoy driven inside, and the DCS trap recorded.
-
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 
 Broaden the shipped default radio presets, after phase 1 of the radio preset projection.

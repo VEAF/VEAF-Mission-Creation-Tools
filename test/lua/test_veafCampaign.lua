@@ -1082,11 +1082,20 @@ end
 -- ---------------------------------------------------------------------------
 TestVeafCampaignAssault = {}
 
---- A convoy unit as Group:getUnits() hands it over, at a position that can be moved.
-local function convoyUnit(name, typeName, x, z)
-  local unit = { _name = name, _type = typeName, _alive = true, _x = x, _z = z }
+--- A convoy unit as Group:getUnits() and world.searchObjects hand it over, at a position that can be moved.
+local function convoyUnit(name, typeName, x, z, side)
+  local unit = { _name = name, _type = typeName, _alive = true, _x = x, _z = z, _side = side }
   function unit:getName()
     return self._name
+  end
+  function unit:getCoalition()
+    return self._side
+  end
+  function unit:getDesc()
+    return { category = Unit.Category.GROUND_UNIT }
+  end
+  function unit:isActive()
+    return true
   end
   function unit:getTypeName()
     return self._type
@@ -1148,10 +1157,10 @@ function TestVeafCampaignAssault:setUp()
         armorTypes = armorTypes,
       })
       local units = {
-        convoyUnit(name .. " #1", "T-72B", spot.x, spot.z),
-        convoyUnit(name .. " #2", "BMP-2", spot.x, spot.z),
-        convoyUnit(name .. " #3", "Ural-375", spot.x, spot.z),
-        convoyUnit(name .. " #4", "Fixer", spot.x, spot.z),
+        convoyUnit(name .. " #1", "T-72B", spot.x, spot.z, side),
+        convoyUnit(name .. " #2", "BMP-2", spot.x, spot.z, side),
+        convoyUnit(name .. " #3", "Ural-375", spot.x, spot.z, side),
+        convoyUnit(name .. " #4", "Fixer", spot.x, spot.z, side),
       }
       this.units[name] = units
       dcs_mocks.addGroup(name, {
@@ -1420,6 +1429,7 @@ function TestVeafCampaignAssault:test_a_convoy_that_takes_the_zone_becomes_its_g
     unit._x = 10050 -- arrived in Poti
   end
   self.units[record.name][3]._alive = false
+  dcs_mocks.searchObjectsObjects = self.units[record.name] -- what DCS finds in Poti
   self.casCalls = {}
   veafCampaign.zones["Poti"]:capturedBy("red")
   local garrison = veafCampaign.zones["Poti"].entry.garrison
@@ -1449,6 +1459,49 @@ function TestVeafCampaignAssault:test_the_capture_logs_why_each_convoy_is_or_is_
     "of red, ended nil, group exists, 3 unit(s) alive, 0 inside, nearest 10000 m from the centre (radius 2000)"
   )
   luaunit.assertEquals(#dcs_mocks.findLog("no assault convoy of red in it, its garrison is drawn from the reserve"), 1)
+end
+
+-- FIX-CAPTURE-ZONE-MEMBERSHIP ticket 01: on Kolkhida, 2026-10-08, world.searchObjects returned the blue
+-- convoy's nine units 2036 to 2077 m from the centre of Poti's 2000 m zone. They took it, and the absorption,
+-- measuring the exact distance, found none of them in it: a 24-unit garrison was drawn from the reserve.
+local function placeAtTheEdge(units)
+  for index, unit in ipairs(units) do
+    unit._x = 10000 + 2036 + (index - 1) * 13 -- 2036 to 2075 m from Poti's centre, radius 2000
+  end
+end
+
+function TestVeafCampaignAssault:test_the_units_that_took_the_zone_become_its_garrison()
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  local record = veafCampaign.convoys[1]
+  placeAtTheEdge(self.units[record.name])
+  dcs_mocks.searchObjectsObjects = self.units[record.name] -- the search overshoots its sphere
+  self.casCalls = {}
+  local reserve = veaf.deepCopy(veafCampaign.data.sides.red.reserve)
+  local poti = veafCampaign.zones["Poti"]
+  poti:checkCapture(veafCampaign.data.capture_seconds)
+  luaunit.assertEquals(poti.entry.owner, "red", "the convoy took the zone")
+  luaunit.assertEquals(#self.casCalls, 0, "nothing drawn from the reserve")
+  luaunit.assertEquals(record.absorbed, { "BMP-2", "T-72B", "Ural-375" })
+  luaunit.assertEquals(#poti.entry.garrison[1].units, 3)
+  luaunit.assertEquals(veafCampaign.data.sides.red.reserve, reserve, "the convoy was paid for when it left")
+end
+
+function TestVeafCampaignAssault:test_a_unit_the_search_does_not_find_is_not_in_the_zone()
+  veafCampaign.initialize()
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+  local record = veafCampaign.convoys[1]
+  local units = self.units[record.name]
+  for _, unit in ipairs(units) do
+    unit._x = 10050 -- inside by the exact distance
+  end
+  dcs_mocks.searchObjectsObjects = { units[1] } -- but DCS found only the tank
+  veafCampaign.zones["Poti"]:capturedBy("red")
+  luaunit.assertEquals(record.absorbed, { "T-72B" }, "the units that held the zone, and only them")
 end
 
 function TestVeafCampaignAssault:test_without_a_convoy_there_the_capture_draws_a_garrison()

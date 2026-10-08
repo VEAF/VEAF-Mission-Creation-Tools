@@ -159,6 +159,7 @@ It behaves like any convoy under fire ([veafGroundAI](scripts/veafGroundAI.en.md
 Its side is told it leaves and sees its axis on the F10 map at once: a line in its colour, over the link, until it arrives or is destroyed.
 The other side hears of it as intelligence `rules.intel_seconds` later (1,200 s, 20 minutes, by default; 0: at once): the message ("an enemy column is leaving Senaki towards Poti") and the same line on its map come together, and a convoy destroyed before then is never reported.
 Once there, it holds the zone like any ground unit and takes it after `capture_seconds`: its survivors in the zone become the garrison, with no second draw from the reserve.
+The units that took the zone are the ones that become its garrison: "in the zone" is what DCS's search over the zone's circle finds, which reaches a few percent beyond its radius — a convoy halted right at the edge, 2,040 m from the centre of a 2,000 m zone, takes it and keeps it.
 Blue players also send them from the **Campaign → Assaults** menu, from a blue zone to a neighbour that is not, at the mission's security level.
 `rules.assault_convoys: false` turns the rule off; the menu stays.
 

@@ -1087,19 +1087,39 @@ limitations:
   workaround: |
     Rebuilding a group under its own name is a replacement, not a duplicate; it is how the convoy merges
     its unarmed vehicles back. It cannot carry damage over: the units come back whole.
+- id: searchobjects-sphere-overshoots-its-radius
+  kind: dcs
+  area: ground-ai
+  title: "`world.searchObjects` on a `SPHERE` returns units beyond its radius"
+  measured: "2026-10-08"
+  symptom: |
+    Caucasus, *Kolkhida* mission 1: a `SPHERE` search of radius 2000 m centred on Poti (`y = 0`) returned
+    the blue convoy's nine units at **2036 to 2077 m** from its centre, 2D and 3D alike (units at
+    `y = 5 m`); 40 s earlier, the same search had found the convoy while its nearest unit stood **2117 m**
+    away — up to about 6 % beyond the radius, by a margin nobody has explained.
+  cost: |
+    The campaign's capture trusted the search and its absorption of the assault convoy measured the exact
+    distance: the convoy took Poti, was not found in it, and a 24-unit garrison was drawn from blue's
+    reserve under it (`a-captured-zone-may-draw-a-garrison-under-its-convoy`).
+  workaround: |
+    Never mix the two answers to one question. Either filter what the search returns by the exact
+    distance, or take the search's result as the definition everywhere it is asked — the campaign does
+    the latter (`VeafCampaignZone:groundHolders`). Expect a few percent of slack beyond a sphere's radius.
 
 - id: a-captured-zone-may-draw-a-garrison-under-its-convoy
   kind: tool
   area: runtime
   title: A zone taken by an assault convoy can draw a garrison from the reserve anyway
+  fixed_in: "6.29.0"
   symptom: |
     On *Kolkhida* mission 1 (2026-10-08), Poti was taken by the blue assault convoy, whose six units
     were measured 0 to 90 m from the zone's centre, and the capture drew a 24-unit garrison from blue's
     reserve instead of making the convoy the garrison: the reserve pays twice, and the zone holds the
-    convoy and a garrison. The cause was not found from the code (FIX-ASSAULT-CONVOY-FINDINGS ticket
-    03); since that lot, each capture logs in `dcs.log`, for every convoy it looks at, why it is or is
-    not absorbed (`zone [<name>]: convoy [<name>] of <side>, ended …, group …, … unit(s) alive, … inside,
-    nearest … m from the centre`).
+    convoy and a garrison. The logging FIX-ASSAULT-CONVOY-FINDINGS ticket 03 added gave the cause on the
+    next run: the capture trusted `world.searchObjects`, which found the convoy just beyond the zone's
+    radius (`searchobjects-sphere-overshoots-its-radius`), and the absorption measured the exact distance
+    (`9 unit(s) alive, 0 inside, nearest 2117 m from the centre (radius 2000)`). Two definitions of "in
+    the zone": the convoy took it and was not found in it. Since FIX-CAPTURE-ZONE-MEMBERSHIP the units the
+    capture's search found are the ones that become the garrison.
   workaround: |
-    None in flight. Read those `VEAF-CAMPAIGN` lines after a capture and report them: they name the
-    condition that failed.
+    Before 6.29.0, none in flight: the zone keeps both the convoy and the garrison drawn for it.

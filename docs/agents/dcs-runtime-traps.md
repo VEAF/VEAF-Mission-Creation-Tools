@@ -443,6 +443,20 @@ suggested: GermanyCW has some too (Ramstein, Wittstock, Altes Lager, Bremen at l
 (`AIRCRAFT_STAND_TYPES`) and leave 100 out. After spawning on a named stand, read the unit's
 position back rather than trusting the stand you asked for.
 
+### `Airbase:getPoint()` lands about a kilometre from the runways' centre {#airbase-getpoint-is-not-the-runways-centre}
+
+Measured **2026-10-08**.
+
+On 13 theatres, the point `getPoint()` returns for an airdrome is 300 m to 1.4 km (median per
+theatre) from the middle of its runway thresholds, where the terrain's reference point — what the
+Mission Editor and the `dcs-world-schema` reference data give — sits at a median 0 m. Nothing
+says so: it is a valid point on the airfield's side. VMCT's airfield positions were captured with
+`getPoint()` until FEAT-DCS-REFERENCE-DATA moved them to the reference point.
+
+**What to do:** For "where is this airfield", use the shipped positions (`list_airfields`), which are the
+reference points. In game, take a runway's position from `Airbase:getRunways()` rather than
+`getPoint()` when the runway is what matters.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}
@@ -525,6 +539,10 @@ Measured **2026-09-21**.
 | `ZSU-23-4 Shilka`, `Roland ADS` | `SAM elements` | **0 — blind** |
 | `Kub 1S91 str`, `Osa 9A33 ln` | `SAM elements` | **0 — blind** |
 | `Ural-375` | `Unarmed vehicles` | 3 000 m |
+
+The zero is VEAF's, and deliberate: DCS does give the Shilka and the Osa optics, but `SAM elements`
+are covered by Skynet's last line of defence, and a second competing radius would make one of the
+two settings dead weight (`veafSkynetIadsHelper.lua`, above `SpotterUnitTable`).
 
 **What to do:** Use manpads or ordinary vehicles as spotters, not air-defence vehicles.
 

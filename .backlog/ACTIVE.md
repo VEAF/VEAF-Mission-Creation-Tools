@@ -6,11 +6,13 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-CAMPAIGN-ARROW-ALTITUDE](FIX-CAMPAIGN-ARROW-ALTITUDE/PRD.md) · 🔄
-
-The assault-convoy axes were drawn at `y = 0` and slid off the ground on the F10 map as it was panned, right only fully zoomed in. Both ends now sit on the terrain; to be confirmed in game.
+*None.*
 
 ## 🧑 Waiting for a human
+
+### [FIX-CAMPAIGN-ARROW-ALTITUDE](FIX-CAMPAIGN-ARROW-ALTITUDE/PRD.md) · 🧑
+
+The assault-convoy axes were drawn at `y = 0` and slid off the ground on the F10 map as it was panned, right only fully zoomed in. Both ends now sit on the terrain; merged on `develop` (#1103), to be confirmed in game.
 
 ### [FIX-SPAWN-DATA-LOAD-ORDER](FIX-SPAWN-DATA-LOAD-ORDER/PRD.md) · 🧑
 

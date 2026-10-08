@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-ARROW-ALTITUDE — the assault convoy arrows slide off the ground on the F10 map
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — merged on `develop` (#1103); waits for the arrows holding still in DCS
 
 ## Problem
 
@@ -22,7 +22,7 @@ What is not explained: the zone circles are at `y = 0` too and hold still. Only 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-arrow-on-the-ground.md) | The axis arrow on the terrain | 🔄 |
+| [01](tickets/01-arrow-on-the-ground.md) | The axis arrow on the terrain | ✅ |
 
 ## To check in game
 

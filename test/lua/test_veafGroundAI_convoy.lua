@@ -429,11 +429,13 @@ function TestConvoyContact:test_a_radio_that_raises_takes_neither_the_smokes_nor
     end
   end
   luaunit.assertEquals(smokes, 2)
-  local scheduled = 0
-  for _ in pairs(dcs_mocks.scheduledTasks) do
-    scheduled = scheduled + 1
+  local beats = 0
+  for _, task in pairs(dcs_mocks.scheduledTasks) do
+    if task.time - dcs_mocks.currentTime == ConvoyUnitHandler.CLOSE_WATCH_PERIOD then
+      beats = beats + 1
+    end
   end
-  luaunit.assertEquals(scheduled, 1, "the next beat is scheduled")
+  luaunit.assertEquals(beats, 1, "the next beat is scheduled")
 end
 
 -- ---------------------------------------------------------------------------
@@ -523,6 +525,52 @@ function TestConvoyWatch:test_quiet_for_a_minute_after_a_fight_it_drives_on_by_i
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_DRIVING, "no `_gc resume` needed after a won fight")
   luaunit.assertEquals(countMessages("back on the road"), 1)
   luaunit.assertEquals(countMessages("holding position"), 0)
+end
+
+function TestConvoyWatch:test_out_of_sight_is_not_destroyed_it_closes_in_again()
+  -- the demo's run of 2026-10-08: one BMP of three seen, then lost from sight, and the convoy drove on
+  local enemy = makeUnit("seen", { side = RED, attributes = APC, point = { x = 2500, y = 0, z = 0 } })
+  dcs_mocks.searchObjectsObjects = { enemy }
+  dcs_mocks.visibilityAnswer = true
+  local handler = veafGroundAI.addConvoy("Watched")
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  dcs_mocks.visibilityAnswer = false
+  local routesBefore = #dcs_mocks.tasksSet
+  dcs_mocks.runScheduled(ConvoyUnitHandler.QUIET_DELAY + 5)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING, "still alive out of sight: the fight goes on")
+  luaunit.assertTrue(#dcs_mocks.tasksSet > routesBefore, "it closes in again on the enemy the watch knows of")
+  luaunit.assertEquals(countMessages("back on the road"), 0)
+  enemy.getLife = function()
+    return 0
+  end
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.QUIET_DELAY + 40)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_DRIVING, "none left alive: it drives on")
+  luaunit.assertEquals(countMessages("engaging"), 1, "the contact is reported once, not at each new approach")
+end
+
+function TestConvoyWatch:test_the_contact_report_comes_first_the_tactical_messages_after()
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.searchObjectsObjects = {
+    makeUnit("seen-1", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 0 } }),
+    makeUnit("seen-2", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 60 } }),
+  }
+  veafGroundAI.addConvoy("Watched")
+  luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 1, "the call at once")
+  luaunit.assertEquals(countMessages("breaking contact"), 0, "not yet")
+  luaunit.assertEquals(countMessages("unarmed vehicles"), 0, "not yet")
+  dcs_mocks.runScheduled(ConvoyUnitHandler.TACTICAL_MESSAGE_DELAY + 5)
+  local order = {}
+  for index, message in ipairs(dcs_mocks.messages) do
+    for _, needle in ipairs({ "TROOPS IN CONTACT", "breaking contact", "unarmed vehicles" }) do
+      if message.text:find(needle, 1, true) and not order[needle] then
+        order[needle] = index
+      end
+    end
+  end
+  luaunit.assertNotNil(order["breaking contact"])
+  luaunit.assertNotNil(order["unarmed vehicles"])
+  luaunit.assertTrue(order["TROOPS IN CONTACT"] < order["breaking contact"])
+  luaunit.assertTrue(order["breaking contact"] < order["unarmed vehicles"])
 end
 
 function TestConvoyWatch:test_quiet_for_a_minute_after_a_fall_back_it_holds_and_says_so()

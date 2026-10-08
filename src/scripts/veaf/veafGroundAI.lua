@@ -889,6 +889,9 @@ ConvoyUnitHandler.CALLSIGNS = {
 --- Seconds the armed vehicles wait for their unarmed ones to rejoin before both drive on separately.
 ConvoyUnitHandler.REJOIN_TIMEOUT = 600
 
+--- Seconds between the contact report and the tactical messages that follow it.
+ConvoyUnitHandler.TACTICAL_MESSAGE_DELAY = 15
+
 --- Seconds between two moves of the F10 marker that shows a convoy in contact.
 ConvoyUnitHandler.DANGER_MARK_PERIOD = 15
 
@@ -1418,7 +1421,9 @@ function ConvoyUnitHandler:watch(now, group)
       self:markDanger(now)
     end
     if now - self.lastContact >= ConvoyUnitHandler.QUIET_DELAY then
-      self:standDown()
+      if not self:pressOn(now) then
+        self:standDown()
+      end
     elseif self.calledForHelp and now >= self.nextSmoke then
       self:markWithSmoke(now)
     end
@@ -1601,7 +1606,7 @@ function ConvoyUnitHandler:detachUnarmed(units, rally, destination)
   })
   self.unarmedGroupName = name
   veafGroundAI.convoysByGroupName[name] = self
-  self:say("groundai.convoy_unarmed_falling_back")
+  self:sayLater(ConvoyUnitHandler.TACTICAL_MESSAGE_DELAY + 3, "groundai.convoy_unarmed_falling_back")
 end
 
 --- Speed of a falling-back group, in metres per second (about 40 km/h).
@@ -1629,7 +1634,8 @@ end
 --- `getDetectedTargets` stayed empty, and neither `Controller.knowTarget` nor a `FireAtPoint` task made
 --- them fire. Sent forward instead, they opened fire at ~1.3 km and destroyed both in 16 s.
 --- @param threats table the threats' records, nearest first
-function ConvoyUnitHandler:fight(threats)
+--- @param quietly boolean|nil true when closing in again: the contact was already reported
+function ConvoyUnitHandler:fight(threats, quietly)
   local threat = threats[1]
   local group = self:getGroup()
   local controller = group:getController()
@@ -1647,8 +1653,10 @@ function ConvoyUnitHandler:fight(threats)
       routePoint(stop, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
     })
   end
-  local bearing, range = veaf.getBearingAndRangeFromTo(from, threat.point)
-  self:say("groundai.convoy_fighting", self:relativeDirection(threat.point), #threats, veaf.round(range, -1), bearing)
+  if not quietly then
+    local bearing, range = veaf.getBearingAndRangeFromTo(from, threat.point)
+    self:say("groundai.convoy_fighting", self:relativeDirection(threat.point), #threats, veaf.round(range, -1), bearing)
+  end
 end
 
 --- Send a group away on the fall-back route, returning fire as it goes.
@@ -1666,13 +1674,28 @@ function ConvoyUnitHandler:fallBack(groupName, rally, destination)
   veaf.goRoute(groupName, veafGroundAI.fallBackRoute(veaf.getAveragePosition(group), rally, destination, veafGroundAI.FALL_BACK_SPEED))
   if groupName == self.groupName then
     local threats = self:recentThreats()
-    self:say("groundai.convoy_falling_back", threats[1] and self:relativeDirection(threats[1].point) or "")
+    self:sayLater(
+      ConvoyUnitHandler.TACTICAL_MESSAGE_DELAY,
+      "groundai.convoy_falling_back",
+      threats[1] and self:relativeDirection(threats[1].point) or ""
+    )
   end
 end
 
 --- A message to the convoy's coalition, opened by its callsign — the handler's name.
 function ConvoyUnitHandler:say(key, ...)
   trigger.action.outTextForCoalition(self.side, veaf.t(key, self:getName(), ...), 15)
+end
+
+--- A message said a little later: the tactical ones come after the contact report, the way a crew
+--- reports first and acts on the net afterwards (David, 2026-10-08: "d'abord le message de contact, puis
+--- on attend quelques secondes, puis les messages tactiques"). The actions themselves are not delayed.
+--- @param delay number seconds
+function ConvoyUnitHandler:sayLater(delay, key, ...)
+  local args = { ... }
+  veaf.scheduleFunction(function()
+    self:say(key, unpack(args))
+  end, nil, timer.getTime() + delay)
 end
 
 --- Where a point is from the convoy, as a crew says it: ahead, right, behind or left of its lead's heading.
@@ -1785,6 +1808,34 @@ function ConvoyUnitHandler:markWithSmoke(now)
   end
   trigger.action.smoke(onGround(veaf.getAveragePosition(group)), trigger.smokeColor.Green)
   self.nextSmoke = now + ConvoyUnitHandler.SMOKE_RENEW_PERIOD
+end
+
+--- After a quiet minute in a fight: is an enemy still alive within the watch, even out of sight?
+---
+--- Out of sight is not destroyed. In the demo's run of 2026-10-08 the convoy saw one BMP of three, lost
+--- sight of it, and drove on after a quiet minute — back toward an ambush still whole. So a fighting
+--- convoy closes in again on the nearest living enemy the wide watch knows of, and only stands down when
+--- none is left. A convoy falling back does not press on: it stands down and holds (Q4).
+--- @param now number
+--- @return boolean true when it closes in again rather than standing down
+function ConvoyUnitHandler:pressOn(now)
+  if self.state ~= ConvoyUnitHandler.STATE_FIGHTING then
+    return false
+  end
+  local alive = {}
+  for _, enemy in ipairs(self.enemies) do
+    if veafGroundAI.isLivingGroundUnitOf(enemy, self.enemySide) then
+      self:recordThreat(enemy, now)
+      table.insert(alive, enemy)
+    end
+  end
+  if #alive == 0 then
+    return false
+  end
+  veaf.loggers.get(veafGroundAI.Id):info("convoy %s: %d enemies still alive out of sight, closing in again", veaf.p(self:getName()), #alive)
+  self:fight(self:recentThreats(), true)
+  self.lastContact = now
+  return true
 end
 
 --- Nothing in sight and no shot for a while.

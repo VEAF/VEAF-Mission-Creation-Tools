@@ -1375,15 +1375,18 @@ veaf.i18nCatalog = {
     en = "%s to any CAS: TROOPS IN CONTACT, immediate CAS request, priority 1. Our position: %s. Enemy: %d (%s), bearing %03d, %d m. Red smoke on the enemy, green smoke on us.",
   },
   ["groundai.convoy_tic_voice"] = {
-    fr = "%s, troops in contact, %d ennemis, au %03d, %d mètres. Fumigène rouge sur l'ennemi, vert sur nous.",
-    en = "%s, troops in contact, %d enemies, bearing %03d, %d meters. Red smoke on the enemy, green smoke on us.",
+    fr = "%s, troops in contact, %d %s, au %03d, %d mètres. Fumigène rouge sur l'ennemi, vert sur nous.",
+    en = "%s, troops in contact, %d %s, bearing %03d, %d meters. Red smoke on the enemy, green smoke on us.",
   },
   -- The convoy speaks like a crew on the radio, opening with its callsign (David, 2026-10-08:
   -- "Eglantine, contact avant, on engage le combat").
   ["groundai.convoy_fighting"] = {
-    fr = "%s, contact %s, %d ennemis à %d m au %03d, on engage le combat.",
-    en = "%s, contact %s, %d enemies at %d m bearing %03d, engaging.",
+    fr = "%s, contact %s, %d %s à %d m au %03d, on engage le combat.",
+    en = "%s, contact %s, %d %s at %d m bearing %03d, engaging.",
   },
+  -- "1 ennemis" in the first in-game run (2026-10-08): the count chooses the word
+  ["groundai.enemy_one"] = { fr = "ennemi", en = "enemy" },
+  ["groundai.enemy_many"] = { fr = "ennemis", en = "enemies" },
   ["groundai.convoy_falling_back"] = {
     fr = "%s, contact %s, trop fort pour nous, on décroche à couvert.",
     en = "%s, contact %s, too strong for us, breaking contact behind cover.",

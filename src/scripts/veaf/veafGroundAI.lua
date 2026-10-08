@@ -1309,6 +1309,13 @@ function veafGroundAI.fallBackRoute(from, rally, destination, speed)
   return points
 end
 
+--- "enemy" or "enemies", in the mission's language, for this count.
+--- @param count number
+--- @return string
+function veafGroundAI.enemyWord(count)
+  return veaf.t(count == 1 and "groundai.enemy_one" or "groundai.enemy_many")
+end
+
 --- The call for help, in the shape of a troops-in-contact call.
 ---
 --- JP 3-09.3, *Close Air Support* (25 November 2014): "troops in contact" is friendly forces receiving
@@ -1339,7 +1346,8 @@ function veafGroundAI.convoyContactCall(callsign, convoyPoint, threats)
     table.insert(described, string.format("%d x %s", counts[typeName], typeName))
   end
   local text = veaf.t("groundai.convoy_tic", callsign, position, #threats, table.concat(described, ", "), bearing, veaf.round(distance, -1))
-  local voice = veaf.t("groundai.convoy_tic_voice", callsign, #threats, bearing, veaf.round(distance / 100, 0) * 100)
+  local voice =
+    veaf.t("groundai.convoy_tic_voice", callsign, #threats, veafGroundAI.enemyWord(#threats), bearing, veaf.round(distance / 100, 0) * 100)
   return text, voice
 end
 
@@ -1655,7 +1663,14 @@ function ConvoyUnitHandler:fight(threats, quietly)
   end
   if not quietly then
     local bearing, range = veaf.getBearingAndRangeFromTo(from, threat.point)
-    self:say("groundai.convoy_fighting", self:relativeDirection(threat.point), #threats, veaf.round(range, -1), bearing)
+    self:say(
+      "groundai.convoy_fighting",
+      self:relativeDirection(threat.point),
+      #threats,
+      veafGroundAI.enemyWord(#threats),
+      veaf.round(range, -1),
+      bearing
+    )
   end
 end
 

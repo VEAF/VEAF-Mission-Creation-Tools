@@ -168,12 +168,12 @@ The convoy autopilot does the work instead, **with nobody at the controls**.
    Either way, an **F10 marker** shows the convoy to its coalition while the contact lasts ("Mule — convoy in contact"), moved every 15 s and removed once the contact is over.
 6. **It falls back behind cover**: toward the nearest friendly place (a campaign zone its side owns, one of its airbases), through a point terrain or a town hides from the enemy; when there is none, the shortest way out of range.
 7. **After the contact.** A minute with nothing in sight and nothing received:
-   - **after a fight**, it drives on by itself: the armed vehicles wait for the unarmed ones, the convoy becomes one again, then drives on by road rather than across country (when the unarmed ones have not rejoined within 10 minutes, each drives on by itself);
+   - **after a fight**, once no enemy is left alive around it (an enemy merely out of its sight, it goes back for), it drives on by itself: the armed vehicles wait for the unarmed ones, the convoy becomes one again, then drives on by road rather than across country (when the unarmed ones have not rejoined within 10 minutes, each drives on by itself);
    - **after a fall back**, it says so, stops and waits for an order: the enemy it fled is still there, and it does not drive back into the same ambush by itself.
 
 A red convoy does exactly the same, on the red side.
 
-**It speaks like a crew on the radio**, opening with its **callsign**: "Mule, contact ahead, 3 enemies at 2500 m bearing 045, engaging." The direction (ahead, behind, left, right) is given from the convoy's heading.
+**It speaks like a crew on the radio**, opening with its **callsign**: "Mule, contact ahead, 3 enemies at 2500 m bearing 045, engaging." The direction (ahead, behind, left, right) is given from the convoy's heading. The contact report comes first; the tactical messages ("the unarmed vehicles are falling back") follow 15 s later.
 
 ### Which groups {#convoy-groups}
 

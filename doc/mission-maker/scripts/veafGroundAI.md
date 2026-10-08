@@ -167,12 +167,12 @@ Le pilote automatique de convoi fait le travail à sa place, **sans personne aux
    Dans les deux cas, un **marqueur F10** montre le convoi à sa coalition tant que le contact dure (« Mule — convoi au contact »), suivi toutes les 15 s, et retiré quand le contact est fini.
 6. **Il se replie à couvert** : vers le lieu ami le plus proche (une zone de campagne de son camp, un de ses aérodromes), en passant par un point que le relief ou une ville cache à l'ennemi ; s'il n'y en a aucun, le plus court chemin hors de portée.
 7. **Après le contact.** Une minute sans rien voir ni rien recevoir :
-   - **après un combat**, il reprend la route tout seul : les véhicules armés attendent leurs non armés, le convoi se reforme, puis repart par la route et non à travers champs (si les non armés ne l'ont pas rejoint en 10 minutes, chacun repart de son côté) ;
+   - **après un combat**, une fois qu'il ne reste plus d'ennemi vivant autour de lui (un ennemi seulement sorti de sa vue, il retourne le chercher), il reprend la route tout seul : les véhicules armés attendent leurs non armés, le convoi se reforme, puis repart par la route et non à travers champs (si les non armés ne l'ont pas rejoint en 10 minutes, chacun repart de son côté) ;
    - **après un repli**, il le dit, s'arrête et attend un ordre : l'ennemi qu'il a fui est toujours là, et il ne repart pas tout seul dans la même embuscade.
 
 Un convoi rouge fait exactement la même chose, du côté rouge.
 
-**Il parle comme un équipage à la radio**, en commençant par son **indicatif** : « Mule, contact avant, 3 ennemis à 2500 m au 045, on engage le combat. » La direction (avant, arrière, gauche, droite) est donnée par rapport au cap du convoi.
+**Il parle comme un équipage à la radio**, en commençant par son **indicatif** : « Mule, contact avant, 3 ennemis à 2500 m au 045, on engage le combat. » La direction (avant, arrière, gauche, droite) est donnée par rapport au cap du convoi. Le compte rendu de contact vient d'abord ; les messages tactiques (« les véhicules non armés se replient ») suivent 15 s plus tard.
 
 ### Quels groupes {#convoy-groups}
 

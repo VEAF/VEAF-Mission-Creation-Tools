@@ -488,7 +488,7 @@ function TestConvoyWatch:test_an_enemy_in_sight_within_range_is_a_contact_before
   -- radio style, its callsign first and the enemy placed from its heading (north, the enemy north of it)
   luaunit.assertStrContains(
     dcs_mocks.messagesContaining("engaging")[1].text,
-    "Mule, contact ahead, 1 enemies at 2510 m bearing 000, engaging."
+    "Mule, contact ahead, 1 enemy at 2510 m bearing 000, engaging."
   )
   luaunit.assertEquals(#dcs_mocks.effects, 0, "and no smoke")
 end

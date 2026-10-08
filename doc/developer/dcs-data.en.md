@@ -7,34 +7,35 @@ into committed artifacts so the build never needs a DCS installation.
 
 ## Sourcing strategies
 
-There are **two** ways for DCS data to enter the repository, and they are not
+There are several ways for DCS data to enter the repository, and they are not
 interchangeable:
 
 | Source | How | Needs DCS? | Examples |
 |--------|-----|-----------|----------|
 | **Community datamine** | clone `Quaggles/dcs-lua-datamine` at a pinned ref | no | country table, **units database**, radio specs |
-| **In-DCS export** | capture a dump in-game (dcs-bridge `world.getAirbases()`, or `dcsDataExport.lua`), commit the dump | yes (DCS running) | airdrome name→id table, weapons |
+| **`dcs-world-schema` reference database** | SQLite asset of a pinned release (version and SHA-256) | no | airdrome name→id table and positions |
+| **In-DCS export** | capture a dump in-game (dcs-bridge `world.getAirbases()`, or `dcsDataExport.lua`), commit the dump | yes (DCS running) | airbases of a theatre the reference database lacks, weapons |
 | **DCS install files** | read files from a local DCS install (`--dcs-path`) | install only (not running) | airfield ATC frequencies, cockpit controls |
 
 The datamine path is reproducible and CI-checkable; it is the default for all the
-data VEAF needs at build/runtime. The in-DCS export now only covers data the
-datamine does not expose (airbases, weapons) and is a rare manual step.
+data VEAF needs at build/runtime. The in-DCS export now only covers data neither the
+datamine nor the reference database exposes (weapons, TheChannel's airbases) and is a rare manual step.
 
 ## The `update-dcs-data` command
 
 Datamine-sourced artifacts are regenerated with:
 
 ```bash
-veaf-build update-dcs-data            # every pure artifact (countries + units)
+veaf-build update-dcs-data            # every pure artifact (countries + units + airdromes)
 veaf-build update-dcs-data --countries
 veaf-build update-dcs-data --units    # regenerates dcsUnits.yaml AND dcsUnits.lua
 veaf-build update-dcs-data --radio
-veaf-build update-dcs-data --airdromes    # merges the committed runtime dumps
+veaf-build update-dcs-data --airdromes    # reference database + committed runtime dumps
 ```
 
-`--radio`, `--airdromes`, `--airfield-freqs`, `--cockpit-controls` and `--cities` are excluded
-from the no-flag / `--all` run: radio has manual overlays, airdromes merges committed runtime
-dumps, and the last three read a local DCS install (`--dcs-path`).
+`--radio`, `--airfield-freqs`, `--cockpit-controls`, `--cities` and `--payloads` are excluded
+from the no-flag / `--all` run: radio has manual overlays, and the others read a local DCS
+install (`--dcs-path`).
 
 The datamine is cloned at a **pinned** ref
 (`veaf_build.dcs_data.datamine.DATAMINE_REF`), so generation is reproducible:
@@ -172,20 +173,24 @@ airfield display name to its numeric **airdrome id** — the same id a mission's
 `warehouses` uses as `airports[<id>]`. It lets build tools (the Dynamic-Slot
 warehouse wiring) accept airfield *names* instead of raw ids.
 
-It is **runtime-dependent**: the only source for the *exact* name `Airbase.getByName`
-/ a QRA `airport_link` expects is DCS itself (`Airbase:getName()`). Terrain files carry
-*beacon*/*ATC* callsigns that differ from the real name (e.g. `Abu_Ad_Duhur` instead of
-`Abu al-Duhur`) — hence `Beacons.lua` is dropped. Each theatre is captured once in-game
-with the **VEAF dcs-bridge** (`world.getAirbases()`, category `AIRDROME` — everything,
-airfields **and** terrain helipads, all valid `Airbase` objects with a warehouse) and
-the dump committed under `veaf_build/dcs_data/airdrome_dumps/<Theatre>.tsv`
-(`<id><TAB><name>`). `--airdromes` merges the available dumps into the YAML (a dumped
-theatre is regenerated, a theatre with no dump is preserved — migrated lot-by-lot). It is
-**not CI-guarded** (depends on a running DCS):
+The only source for the *exact* name `Airbase.getByName` / a QRA `airport_link` expects is DCS itself (`Airbase:getName()`).
+Terrain files carry *beacon*/*ATC* callsigns that differ from the real name (e.g. `Abu_Ad_Duhur` instead of `Abu al-Duhur`) — hence `Beacons.lua` is dropped.
+
+**Main source: the `dcs-world-schema` reference database** (`veaf_build.dcs_data.reference`), a SQLite database that project reads from DCS and publishes with each release.
+It is downloaded at a pinned release and checked against its SHA-256: an asset re-published upstream fails the generation instead of changing a committed artifact.
+Measured on 2026-10-08 against `v0.5.0`: its 798 airbases of 13 theatres carry the same names and ids as our runtime dumps, without exception.
+Its position is the terrain's **reference point**, which sits on the runways' centre (median gap 0 m); `Airbase:getPoint()`, what the dumps hold, lands about 1 km away.
+`airdrome-positions.yaml` has therefore carried the reference point since FEAT-DCS-REFERENCE-DATA.
+
+**Runtime dumps now only serve the theatres the database lacks** (TheChannel at `v0.5.0`): for a theatre the database knows, the database wins.
+Each dump is captured once in-game with the **VEAF dcs-bridge** (`world.getAirbases()`, category `AIRDROME` — everything, airfields **and** terrain helipads, all valid `Airbase` objects with a warehouse).
+Both sources being pinned or committed, both files are **CI-guarded** (`dcs-data-consistency.yml`):
 
 ```bash
 veaf-build update-dcs-data --airdromes
 ```
+
+For a newer database, change `REFERENCE_TAG`, `REFERENCE_ASSET` and `REFERENCE_SHA256` together (GitHub publishes the SHA-256 in the asset's `digest`), re-run the command and commit the diff.
 
 **Capturing a dump (delegable, no source or Python).** Two `veaf-tools` commands (so
 in the shipped executable, usable by a non-dev) produce the rich
@@ -199,12 +204,12 @@ veaf-tools dcs capture-map --api-key <dcs-serve superuser token> --out-dir <fold
 ```
 
 On the dev side, `veaf-build update-dcs-data --airdromes` then merges the committed
-`.json` under `veaf_build/dcs_data/airbase_dumps/` into the YAML (name→id projection).
+`.json` under `veaf_build/dcs_data/airbase_dumps/` into the YAML, for the theatres the reference database does not know.
 Full procedure for helpers: [capture-airbases](capture-airbases.en.md). See the
 [VEAF-dcs-bridge repo](https://github.com/VEAF/VEAF-dcs-bridge) for `dcs-serve`.
 
-`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Coverage: **all 14 DCS theatres** are dumped (810 airbases). Residual caveat:
-the table only covers **already-dumped** theatres; an un-dumped theatre yields no
+`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Coverage: **all 14 DCS theatres** (810 airbases: 798 from the reference database, 12 from the TheChannel dump). Residual caveat:
+the table only covers theatres the database knows or **already dumped**; any other theatre yields no
 entries — callers fall back to ids. Resolution is case-insensitive.
 
 ## Parking spots {#parking}

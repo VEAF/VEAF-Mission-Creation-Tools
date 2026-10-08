@@ -9,14 +9,16 @@ used here were **measured** on 377 distinct missions under ``D:\\dev\\_VEAF`` (2
 
 - an aircraft of **Russia, USSR, Ukraine, China or Abkhazia** carries a bare number (``callsign =
   182``) — 10 832 of 10 956 aircraft of those countries; every other country present carries a
-  ``{1: family, 2: flight, 3: number, name}`` table;
+  ``{1: family, 2: flight, 3: number, name}`` table. Which countries get a number is not a
+  measurement, though: the editor's own ``isWesternCountry``
+  (``MissionEditor/modules/me_utilities.lua``) lists ten, the five above plus Insurgents, South
+  Ossetia, Belarus, Yugoslavia and GDR, and the ``numeric`` flag of DCS's callsign table
+  (``dcs-world-schema`` v0.5.0 reference data) agrees (FEAT-DCS-REFERENCE-DATA ticket 03);
 - the family word follows the group's **task**: ``Refueling`` uses Texaco / Arco / Shell (807 of
   807), ``AWACS`` Overlord / Magic / Wizard / Focus / Darkstar, and every other task the eight
   common families Enfield ... Pontiac (the type-specific families — Viper, Hornet, Hawg — are an
   alternative the editor offers, never the only choice).
 
-Countries absent from those missions (Belarus, Kazakhstan, South Ossetia...) get a table: that is
-what a mission maker can see and correct, where a guessed number would pass unnoticed.
 """
 
 import re
@@ -25,8 +27,21 @@ from typing import Any
 from veaf_libs.dcs_countries import country_name_for_id
 from veaf_libs.mission_table import indexed
 
-#: Countries whose aircraft carry a numeric callsign, as measured (see the module docstring).
-NUMERIC_CALLSIGN_COUNTRIES: frozenset[str] = frozenset({"Russia", "USSR", "Ukraine", "China", "Abkhazia"})
+#: Countries whose aircraft carry a numeric callsign: the Mission Editor's non-western countries.
+NUMERIC_CALLSIGN_COUNTRIES: frozenset[str] = frozenset(
+    {
+        "Russia",
+        "Ukraine",
+        "Insurgents",
+        "Abkhazia",
+        "South Ossetia",
+        "China",
+        "Belarus",
+        "USSR",
+        "Yugoslavia",
+        "GDR",
+    }
+)
 
 #: Family words by group task, index 1 first; any task not listed uses ``_COMMON_FAMILIES``.
 _TASK_FAMILIES: dict[str, tuple[str, ...]] = {

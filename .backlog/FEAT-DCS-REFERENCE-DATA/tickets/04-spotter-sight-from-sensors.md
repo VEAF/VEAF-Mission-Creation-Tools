@@ -1,24 +1,16 @@
 # FEAT-DCS-REFERENCE-DATA-04 — spotter sight from the unit's sensors
 
-Status: ⬜ ready
-Type: fix
-Files: `src/scripts/veaf/veafSkynetIadsHelper.lua`, a generated Lua table, `known-limitations.yaml`, `test/lua/`
+Status: 🚫 wontfix — 2026-10-08
 
-## What
+## What was planned
 
-Give each spotter the sight range its real sensors allow, from the reference's `sensors` table (optics and their `detectionRangeKm`), rather than the range of the first `SpotterUnitTable` row its attributes match.
+Give each spotter the sight range its real sensors allow, from the reference's `sensors` table, instead of the range of the first `SpotterUnitTable` row its attributes match.
 
-## Why
+## Why it is not done
 
-`SAM elements` (range 0) comes before `AAA` and `Air Defence vehicles` in the table, so a Shilka, a Roland, a Kub or an Osa is blind as a spotter (`air-defence-spotters-are-blind`, measured 2026-09-21).
-DCS gives the Shilka and the Osa optics; the blindness is ours.
+Both premises were wrong (measured 2026-10-08, `v0.5.0`):
 
-## Open point
+- **Optical sensors carry no range.** All 134 optical sensors (`OPTIC_SENSOR_TV`, `_LLTV`, `_IR`) have a null `detectionRangeKm`; they only carry magnifications. The ranges that exist are radars' and the unit-level `DetectionRange`, which `dcsUnits.yaml` already has as `detection_range_m`.
+- **The zero range of `SAM elements` is deliberate.** `veafSkynetIadsHelper.lua` documents it above `SpotterUnitTable`: those units are covered by the last line of defence (a radius drawn once between 10 and 15 km), and a second competing radius would make one of the two settings dead weight.
 
-The sensor ranges are what DCS's AI uses to detect, not what a forward observer should report: decide when the ticket is taken whether the table keeps a cap per class, and what a unit with no sensor gets (Strela-10M3, ZU-23 Ural have none).
-
-## Done when
-
-- The spotter range of a unit with optics comes from its sensors; a unit with none falls back to the table.
-- `air-defence-spotters-are-blind` gets `fixed_in`, `dcs-runtime-traps.md` regenerated.
-- Lua test: a Shilka spotter has a non-zero range.
+So `air-defence-spotters-are-blind` describes a design choice, and its workaround (spot with manpads or ordinary vehicles) stands.

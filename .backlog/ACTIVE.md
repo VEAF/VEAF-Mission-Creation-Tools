@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FEAT-DCS-REFERENCE-DATA](FEAT-DCS-REFERENCE-DATA/PRD.md) · 🔄
+
+Use the reference data `dcs-world-schema` ships since `v0.4.0`: airdromes and their positions generated without running DCS, numeric callsigns for the ten countries the Mission Editor numbers. Liveries and spotter sight dropped on measurement.
 
 ## 🧑 Waiting for a human
 

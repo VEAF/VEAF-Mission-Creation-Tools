@@ -85,7 +85,8 @@ class TestTheStrategicMap:
     def test_an_airfield_zone_stands_at_the_shipped_airbase_position(self) -> None:
         campaign = _campaign()
         lat, lon = zone_position(campaign, campaign.zone("Senaki"))
-        assert (round(lat, 2), round(lon, 2)) == (42.24, 42.06)
+        # The reference point, on the runways' centre (FEAT-DCS-REFERENCE-DATA); getPoint() gave 42.06.
+        assert (round(lat, 2), round(lon, 2)) == (42.24, 42.05)
         assert zone_position(campaign, campaign.zone("Gudauta depot")) == (43.10, 40.58)
 
     def test_each_zone_is_drawn_in_its_owners_colour(self, tmp_path: Path) -> None:

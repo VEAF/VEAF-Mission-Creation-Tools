@@ -1,4 +1,4 @@
-"""Generate the airdrome name->id table from DCS runtime airbase dumps.
+"""Generate the airdrome name->id table from the DCS reference data and runtime airbase dumps.
 
 The airdrome name<->id mapping is **terrain-specific** and, crucially, the only
 authoritative source for the *exact* name a mission uses (the value ``airport_link``
@@ -14,15 +14,23 @@ airbase, real airfields and terrain helipads alike). This generator only consume
 read, and writes the positions beside it in ``airdrome-positions.yaml`` for the MCP
 ``list_airfields`` action — the dumps themselves are not shipped with the tools.
 
-``generate`` **merges** the available dumps into ``airdromes.yaml``: a theatre with a
-dump is fully replaced from it, a theatre without one is left untouched (theatres are
-migrated to runtime dumps lot-by-lot). Runtime-dependent, so the committed artifact is
-**not** CI-guarded. Run via ``veaf-build update-dcs-data --airdromes``.
+Since FEAT-DCS-REFERENCE-DATA, the ``dcs-world-schema`` reference database (see
+:mod:`veaf_build.dcs_data.reference`) is the first source: it carries the same names and ids as
+the dumps for every theatre it knows (798 of 798 identical, measured 2026-10-08), read offline.
+Its position is the terrain's reference point, which sits on the runways' centre (median 0 m on
+13 theatres), where ``Airbase:getPoint()`` — what the dumps hold — lands about a kilometre away.
+A dump is used only for a theatre the reference lacks (TheChannel at ``v0.5.0``).
+
+``generate`` **merges** those sources into ``airdromes.yaml``: a theatre found in the
+reference or a dump is fully replaced from it, a theatre in neither is left untouched.
+Both sources are pinned or committed, so the artifacts are CI-guarded. Run via
+``veaf-build update-dcs-data --airdromes``.
 """
 
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -76,21 +84,36 @@ def positions(airbases: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [by_name[name] for name in sorted(by_name)]
 
 
-def load_position_dumps(dumps_dir: Path = DUMPS_DIR) -> dict[str, list[dict[str, Any]]]:
-    """Parse every committed dump into ``{theatre: [{name, id, lat, lon}]}``.
+def reference_airbases(connection: sqlite3.Connection) -> dict[str, list[dict[str, Any]]]:
+    """Read every airbase of the reference database, in the shape of a dump's records.
 
     Args:
-        dumps_dir: Directory holding the per-theatre ``.json`` dumps.
+        connection: An open reference database (see :func:`veaf_build.dcs_data.reference.open_reference`).
 
     Returns:
-        Theatre name -> its positioned airbases.
+        Theatre -> ``[{id, name, lat, lon}]``, the position being the airbase's reference point
+        rounded to six decimals like the dumps.
     """
+    result: dict[str, list[dict[str, Any]]] = {}
+    query = "select theatre, airdromeId, name, referencePoint from airbases order by theatre, name"
+    for theatre, airdrome_id, name, reference_point in connection.execute(query):
+        point = json.loads(reference_point) if reference_point else {}
+        record: dict[str, Any] = {"id": int(airdrome_id), "name": str(name)}
+        if point.get("latitude") is not None and point.get("longitude") is not None:
+            record["lat"] = round(float(point["latitude"]), 6)
+            record["lon"] = round(float(point["longitude"]), 6)
+        result.setdefault(str(theatre), []).append(record)
+    return result
+
+
+def _load_dump_records(dumps_dir: Path) -> dict[str, list[dict[str, Any]]]:
+    """Return each committed dump's airbase records, keyed by theatre."""
     result: dict[str, list[dict[str, Any]]] = {}
     if not dumps_dir.is_dir():
         return result
     for dump in sorted(dumps_dir.glob("*.json")):
         doc = json.loads(dump.read_text(encoding="utf-8"))
-        result[str(doc.get("theatre") or dump.stem)] = positions(doc.get("airbases") or [])
+        result[str(doc.get("theatre") or dump.stem)] = list(doc.get("airbases") or [])
     return result
 
 
@@ -104,9 +127,10 @@ def write_positions_yaml(theatres: dict[str, list[dict[str, Any]]], output: Path
     output.parent.mkdir(parents=True, exist_ok=True)
     data = {"theatres": dict(sorted(theatres.items()))}
     with open(output, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# DCS airbase positions (lat/lon), per theatre — every airbase a runtime dump carries.\n")
-        f.write("# Generated from veaf_build/dcs_data/airbase_dumps/<Theatre>.json with airdromes.yaml.\n")
-        f.write("# Runtime-dependent, so NOT CI-guarded. Re-run `veaf-build update-dcs-data --airdromes`.\n")
+        f.write("# DCS airbase positions (lat/lon of the reference point, the runways' centre), per theatre.\n")
+        f.write("# Generated with airdromes.yaml from the dcs-world-schema reference data, and from\n")
+        f.write("# veaf_build/dcs_data/airbase_dumps/<Theatre>.json for a theatre it lacks.\n")
+        f.write("# DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.\n")
         f.write("# Read by the MCP list_airfields action.\n\n")
         yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
@@ -150,39 +174,49 @@ def write_airdromes_yaml(theatres: dict[str, dict[str, int]], output: Path) -> N
     data = {"theatres": {theatre: airfields for theatre, airfields in sorted(theatres.items())}}
     with open(output, "w", encoding="utf-8", newline="\n") as f:
         f.write("# DCS airdrome name -> id table, per theatre.\n")
-        f.write("# Generated from runtime airbase dumps — see veaf_build/dcs_data/airbase_dumps/<Theatre>.json.\n")
+        f.write("# Generated from the dcs-world-schema reference data, and from the runtime airbase dumps\n")
+        f.write("# (veaf_build/dcs_data/airbase_dumps/<Theatre>.json) for a theatre it lacks.\n")
         f.write("# Names are exact Airbase:getName() values (what airport_link / Airbase.getByName expects).\n")
-        f.write("# Runtime-dependent, so NOT CI-guarded. Re-run `veaf-build update-dcs-data --airdromes`.\n")
+        f.write("# DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.\n")
         f.write(
             "# Used at build time to resolve airdrome names in warehouses.yaml and to validate QRA airport_link.\n\n"
         )
         yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
 
-def generate(dumps_dir: Path = DUMPS_DIR, output: Path | None = None) -> int:
-    """Merge the committed runtime dumps into the airdrome table.
+def generate(
+    dumps_dir: Path = DUMPS_DIR,
+    output: Path | None = None,
+    reference: dict[str, list[dict[str, Any]]] | None = None,
+) -> int:
+    """Merge the reference airbases and the committed runtime dumps into the airdrome table.
 
-    A theatre that has a dump is fully (re)generated from it; a theatre without a
-    dump is preserved as already committed in *output* (progressive migration).
-    A legacy folder-named duplicate (see :data:`LEGACY_THEATRE_ALIASES`) is dropped
-    once its canonical theatre has been captured. The positions are written beside *output*, as
-    ``airdrome-positions.yaml``, from the dumps alone: a theatre never dumped has no position.
+    A theatre found in *reference* is fully (re)generated from it; otherwise a theatre that has
+    a dump is generated from the dump; a theatre in neither is preserved as already committed in
+    *output*. A legacy folder-named duplicate (see :data:`LEGACY_THEATRE_ALIASES`) is dropped
+    once its canonical theatre has a source. The positions are written beside *output*, as
+    ``airdrome-positions.yaml``, from the same sources: a theatre in neither has no position.
 
     Args:
         dumps_dir: Directory holding the per-theatre ``.json`` dumps.
         output: Destination YAML path. Defaults to the committed :data:`DEFAULT_OUTPUT`.
+        reference: Theatre -> airbase records read by :func:`reference_airbases`; ``None`` uses
+            the dumps alone.
 
     Returns:
         The total number of airfields written across all theatres.
     """
     if output is None:
         output = DEFAULT_OUTPUT
+    sources = {**_load_dump_records(dumps_dir), **(reference or {})}
     merged = _load_existing_theatres(output)
-    dumped = load_dumps(dumps_dir)
-    merged.update(dumped)
+    merged.update({theatre: names_to_ids(records) for theatre, records in sources.items()})
     for legacy, canonical in LEGACY_THEATRE_ALIASES.items():
-        if canonical in dumped:
+        if canonical in sources:
             merged.pop(legacy, None)
     write_airdromes_yaml(merged, output)
-    write_positions_yaml(load_position_dumps(dumps_dir), output.with_name("airdrome-positions.yaml"))
+    write_positions_yaml(
+        {theatre: positions(records) for theatre, records in sources.items()},
+        output.with_name("airdrome-positions.yaml"),
+    )
     return sum(len(a) for a in merged.values())

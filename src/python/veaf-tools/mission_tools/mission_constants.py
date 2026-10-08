@@ -22,6 +22,12 @@ DCS_BRIDGE_ARTIFACT: str = "dcs-bridge.lua"
 
 GENERATED_LUA_ARTIFACTS: frozenset[str] = frozenset({SPAWN_DATA_ARTIFACT, DCS_BRIDGE_ARTIFACT})
 
+#: Comments of the two triggers that load the VEAF framework bundle, written by the mission
+#: builder and looked up by the spawn-data injector, which loads the spawn database at their end
+#: (FIX-SPAWN-DATA-LOAD-ORDER).
+VEAF_SCRIPTS_LOADING_DYNAMIC_COMMENT: str = "VEAF scripts loading - dynamic"
+VEAF_SCRIPTS_LOADING_STATIC_COMMENT: str = "VEAF scripts loading - static"
+
 
 def get_generated_lua_artifacts(map_resource_content: dict[str, str] | None) -> set[str]:
     """Return the Lua file names a VEAF build injected into this mission.

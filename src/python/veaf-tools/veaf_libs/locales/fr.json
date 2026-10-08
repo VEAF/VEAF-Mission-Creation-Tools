@@ -745,6 +745,7 @@
   "pipeline.console.spawn_data": "[bold blue]Pipeline : données de spawn{file}[/bold blue]",
   "pipeline.console.spawn_data_done": "{units}, {groups} injectés",
   "pipeline.console.spawn_data_groups": "{count} groupe(s)",
+  "pipeline.console.spawn_data_no_framework_trigger": "Aucun trigger de chargement du framework VEAF dans cette mission : la base de spawn se charge en dernier, après les scripts de mission — un module qui la lit pendant son initialisation (une campagne qui tire ses garnisons) la trouve vide.",
   "pipeline.console.spawn_data_units": "{count} unité(s)",
   "pipeline.console.warehouses": "Warehouses Dynamic-Slot ({file})",
   "pipeline.console.warehouses_airports": "{count} aéroport(s) configuré(s)",

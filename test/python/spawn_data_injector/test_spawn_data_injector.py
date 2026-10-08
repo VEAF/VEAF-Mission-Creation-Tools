@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from mission_tools.miz_tools import DcsMission, read_miz
 from spawn_data_injector import SpawnDataInjectorWorker, inject_spawn_data, merge_spawn_data
 from spawn_data_injector.spawn_data_injector_worker import _MAP_KEY, _RESOURCE_FILENAME
+from veaf_libs.i18n import t
 
 _RESOURCE_ARCNAME = f"l10n/DEFAULT/{_RESOURCE_FILENAME}"
 
@@ -70,6 +72,89 @@ class TestInjectSpawnData:
         mission = _mission_with_triggers()
         files = inject_spawn_data(mission, "veafUnits.UnitsDatabase = {}")
         assert files[_RESOURCE_ARCNAME] == b"veafUnits.UnitsDatabase = {}"
+
+
+# ---------------------------------------------------------------------------
+# FIX-SPAWN-DATA-LOAD-ORDER — the database loads with the framework, before veaf-config.lua: the
+# campaign draws its garrisons while veaf-config.lua runs, and a database loaded by a last trigger
+# was still empty then — every garrison came out without its air defence.
+# ---------------------------------------------------------------------------
+
+_LOAD_DATA = {"predicate": "a_do_script_file", "file": _MAP_KEY}
+_LOAD_DATA_CALL = f'a_do_script_file(getValueResourceByKey("{_MAP_KEY}"));'
+
+
+def _mission_with_framework_triggers() -> DcsMission:
+    """The VEAF load triggers as the builder writes them: dynamic framework 3, static 4, config 6."""
+    return DcsMission(
+        file_path=Path("dummy.miz"),
+        mission_content={
+            "trigrules": {
+                3: {
+                    "comment": "VEAF scripts loading - dynamic",
+                    "actions": {1: {"predicate": "a_do_script", "text": "load()"}},
+                },
+                4: {
+                    "comment": "VEAF scripts loading - static",
+                    "actions": {1: {"predicate": "a_do_script_file", "file": "VEAF_MapKey_ActionText_10004"}},
+                },
+                6: {
+                    "comment": "Mission scripts loading - static",
+                    "actions": {1: {"predicate": "a_do_script_file", "file": "VEAF_MapKey_ActionText_10005"}},
+                },
+            },
+            "trig": {
+                "actions": {3: 'a_do_script("load()");', 4: "scripts();", 6: "config();"},
+                "conditions": {3: "return false", 4: "return true", 6: "return true"},
+                "flag": {3: True, 4: True, 6: True},
+                "funcStartup": {3: "...", 4: "...", 6: "..."},
+            },
+        },
+        map_resource_content={},
+    )
+
+
+class TestSpawnDataLoadsWithTheFramework:
+    def test_both_framework_triggers_load_it_last(self) -> None:
+        mission = _mission_with_framework_triggers()
+        inject_spawn_data(mission, "-- lua")
+        rules = mission.mission_content["trigrules"]
+        for index in (3, 4):
+            actions = rules[index]["actions"]
+            assert actions[max(actions)] == _LOAD_DATA
+            assert mission.mission_content["trig"]["actions"][index].endswith(_LOAD_DATA_CALL)
+        assert mission.mission_content["trig"]["actions"][4] == "scripts();" + _LOAD_DATA_CALL
+
+    def test_no_trigger_of_its_own_and_the_mission_scripts_untouched(self) -> None:
+        mission = _mission_with_framework_triggers()
+        inject_spawn_data(mission, "-- lua")
+        assert set(mission.mission_content["trigrules"]) == {3, 4, 6}
+        assert mission.mission_content["trig"]["actions"][6] == "config();"
+
+    def test_a_list_of_actions_is_extended_too(self) -> None:
+        mission = _mission_with_framework_triggers()
+        mission.mission_content["trigrules"][4]["actions"] = [{"predicate": "a_do_script", "text": "x"}]
+        inject_spawn_data(mission, "-- lua")
+        assert mission.mission_content["trigrules"][4]["actions"][-1] == _LOAD_DATA
+
+    def test_injected_twice_it_loads_once(self) -> None:
+        mission = _mission_with_framework_triggers()
+        inject_spawn_data(mission, "-- lua")
+        inject_spawn_data(mission, "-- lua")
+        assert list(mission.mission_content["trigrules"][4]["actions"].values()).count(_LOAD_DATA) == 1
+        assert mission.mission_content["trig"]["actions"][4].count(_LOAD_DATA_CALL) == 1
+
+    def test_no_warning_when_it_loads_with_the_framework(self) -> None:
+        with patch("spawn_data_injector.spawn_data_injector_worker.logger") as mock_logger:
+            inject_spawn_data(_mission_with_framework_triggers(), "-- lua")
+        mock_logger.warning.assert_not_called()
+
+    def test_without_framework_triggers_it_warns_and_keeps_the_trailing_trigger(self) -> None:
+        mission = _mission_with_triggers()
+        with patch("spawn_data_injector.spawn_data_injector_worker.logger") as mock_logger:
+            inject_spawn_data(mission, "-- lua")
+        mock_logger.warning.assert_called_once_with(t("pipeline.console.spawn_data_no_framework_trigger"))
+        assert mission.mission_content["trigrules"][3]["comment"] == "VEAF spawn-data loading"
 
 
 # ---------------------------------------------------------------------------

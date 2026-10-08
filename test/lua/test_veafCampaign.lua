@@ -1208,9 +1208,9 @@ function TestVeafCampaignAssault:test_the_convoy_leaves_on_the_road_to_its_targe
   luaunit.assertEquals(#dcs_mocks.messagesContaining("Senaki"), 2, "its side told, the other one warned")
 end
 
--- FIX-CAMPAIGN-ARROW-ALTITUDE: DCS drew each `arrowToAll` axis twice on the F10 map — flat on the link,
--- and a copy that slid away as the map was panned, at sea level or on the terrain alike. The axis is a
--- line in the side's colour over the link, the primitive the links themselves use and that holds still.
+-- FIX-CAMPAIGN-ARROW-ALTITUDE: on the F10 map an `arrowToAll` axis slid away from its points as the map
+-- was panned, at sea level or on the terrain alike. The axis is a line in the side's colour over the
+-- link, the primitive the links themselves use and that holds still.
 function TestVeafCampaignAssault:test_the_axis_is_a_line_in_the_side_colour_from_source_to_target()
   local savedArrow, savedLine = trigger.action.arrowToAll, trigger.action.lineToAll
   veafCampaign.initialize()

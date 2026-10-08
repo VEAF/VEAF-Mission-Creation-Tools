@@ -27,7 +27,7 @@ What is not explained: the zone circles are at `y = 0` too and hold still. Only 
 
 ## Measured in game, 2026-10-08
 
-With #1103 (points on the terrain) the picture did not change: David, "tes flèches c'est pas mieux… vire les. Les flèches sur les traits de liaison c'est suffisant. A moins que ça ne soient les mêmes ?". They were the same: one `arrowToAll` per convoy, shown twice — flat on the link (the coloured band he liked) and as the sliding copy. Decided with David (option b): a `lineToAll` in the side's colour over the link, rather than no axis at all.
+With #1103 (points on the terrain) the picture did not change: David, "tes flèches c'est pas mieux… vire les. Les flèches sur les traits de liaison c'est suffisant. A moins que ça ne soient les mêmes ?". They were the same: one `arrowToAll` per convoy, shown twice — flat on the link (the coloured band he liked) and as the sliding copy. Read the same day in MOOSE (`COORDINATE:ArrowToAll`, `Core/Point.lua`), at David's request: no trick against the sliding, a plain call; but it passes the **tip first**, so our arrows pointed at their source, and the thin coloured bands on the links were more likely the convoys' routes, drawn by DCS, than a second copy of the arrow. Decided with David (option b): a `lineToAll` in the side's colour over the link, rather than no axis at all.
 
 ## To check in game
 

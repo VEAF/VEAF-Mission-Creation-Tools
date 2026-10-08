@@ -577,20 +577,25 @@ an `Orbit` alone: they patrolled and never fought.
 
 ## Players, roles and the map {#players}
 
-### An `arrowToAll` shows twice on the F10 map, once sliding away as the map is panned {#arrow-to-all-is-drawn-twice-on-the-f10-map}
+### An `arrowToAll` slides away from its points as the F10 map is panned, and its tip is the first point {#arrow-to-all-slides-on-the-f10-map}
 
 Measured **2026-10-08**.
 
-Observed by David on *Kolkhida* mission 1 (Caucasus, Colchis plain): each assault-convoy arrow
-appeared twice — flat on the link it was drawn along, and as a bigger outlined copy, about 25 %
-longer, starting east of the target, that slid away "as if on another plane" when the map was
-panned and met the first only fully zoomed in. Points at `y = 0` and points at the terrain height
-(`land.getHeight`) gave the same picture. `circleToAll`, `lineToAll` and their labels, at `y = 0`,
-held still.
+Observed by David on *Kolkhida* mission 1 (Caucasus, Colchis plain): each assault-convoy arrow,
+drawn with `arrowToAll(-1, id, source, target, …)`, was right only fully zoomed in; panned, even
+zoomed, it slid away "as if on another plane", about 25 % longer than its axis. Points at `y = 0`
+and points at the terrain height (`land.getHeight`) gave the same picture. `circleToAll`,
+`lineToAll` and their labels, at `y = 0`, held still.
 
-**What to do:** Draw a direction with `lineToAll` in the side's colour rather than an arrow. The campaign's axes
-have done so since FIX-CAMPAIGN-ARROW-ALTITUDE; the Skynet spotter view had already dropped arrows
-for their 8 km heads.
+**The tip is the first point**, not the second: the arrows pointed at their source. MOOSE
+(`COORDINATE:ArrowToAll`, `Core/Point.lua`) passes the tip first, and so do `veaf.lua` and the
+Skynet spotter tests; the DCS schema shipped in `veaf_libs/data/dcs-schema/dcs-world-api.lua`
+says the opposite and is wrong. MOOSE has nothing against the sliding: a plain call, "no control
+over other dimensions of the arrow".
+
+**What to do:** Draw a direction with `lineToAll` in the side's colour rather than an arrow — the campaign's axes
+since FIX-CAMPAIGN-ARROW-ALTITUDE; the Skynet spotter view had already dropped arrows for their
+8 km heads. An arrow that must stay: tip first.
 
 ### A game master **is** coalition-scoped for map marks {#game-master-marks-are-coalition-scoped}
 

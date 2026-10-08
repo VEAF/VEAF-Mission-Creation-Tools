@@ -798,9 +798,9 @@ function veafCampaign.sendConvoy(side, from, to)
     end
   end
   record.axisId = veaf.getUniqueIdentifier()
-  -- a line in the side's colour over the link, not an arrow: DCS drew each `arrowToAll` twice on the F10
-  -- map, flat on the link and as a copy sliding away when the map was panned, whatever the altitude of
-  -- its points (FIX-CAMPAIGN-ARROW-ALTITUDE); the links are lines too, and hold still
+  -- a line in the side's colour over the link, not an arrow: on the F10 map an `arrowToAll` slid away
+  -- from its points as the map was panned, whatever their altitude, and it puts its tip on the first
+  -- point (FIX-CAMPAIGN-ARROW-ALTITUDE); the links are lines too, and hold still
   trigger.action.lineToAll(-1, record.axisId, from:getCenter(), target, veafCampaign.AXIS_COLORS[side], 1, true)
   table.insert(veafCampaign.convoys, record)
   -- the side's own people are told it leaves; the other side hears it as intelligence

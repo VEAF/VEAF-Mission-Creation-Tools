@@ -71,6 +71,10 @@ veafCampaign.SIDES = { blue = coalition.side.BLUE, red = coalition.side.RED }
 --- table sets `assault_seconds`. Shortened by the opposition level: more players, an earlier attack.
 veafCampaign.ASSAULT_SECONDS = 600
 
+--- Seconds between an assault convoy leaving and the other side hearing of it — the message and the
+--- line on its map — unless the data table sets `intel_seconds`. Its own side knows at once.
+veafCampaign.INTEL_SECONDS = 1200
+
 --- The trucks an assault convoy brings beside its armour: the infantry it lands in the zone.
 veafCampaign.ASSAULT_TRUCKS = 2
 
@@ -727,10 +731,32 @@ local function typesOf(units)
 end
 
 local function removeAxis(record)
-  if record.axisId then
-    trigger.action.removeMark(record.axisId)
-    record.axisId = nil
+  for _, key in ipairs({ "axisId", "intelAxisId" }) do
+    if record[key] then
+      trigger.action.removeMark(record[key])
+      record[key] = nil
+    end
   end
+end
+
+--- The coalition opposed to a convoy's side.
+local function otherCoalition(side)
+  return veafCampaign.SIDES[side] == coalition.side.BLUE and coalition.side.RED or coalition.side.BLUE
+end
+
+--- Once its intelligence delay has passed, tell the other side of a convoy still on the road: the
+--- message and the line on its map, together, once (FEAT-CAMPAIGN-INTEL-DELAY).
+--- @param record table the convoy's record
+--- @param now number the mission time
+function veafCampaign.reportConvoy(record, now)
+  if record.reported or record.ended or now < record.intelAt then
+    return
+  end
+  record.reported = true
+  local other = otherCoalition(record.side)
+  record.intelAxisId = veaf.getUniqueIdentifier()
+  trigger.action.lineToAll(other, record.intelAxisId, record.axisFrom, record.axisTo, veafCampaign.AXIS_COLORS[record.side], 1, true)
+  trigger.action.outTextForCoalition(other, veaf.t("campaign.convoy_sent_enemy", record.from, record.to), 20)
 end
 
 --- Count what is left of a convoy; a convoy with nobody left has ended.
@@ -798,16 +824,18 @@ function veafCampaign.sendConvoy(side, from, to)
     end
   end
   record.axisId = veaf.getUniqueIdentifier()
+  record.axisFrom, record.axisTo = from:getCenter(), target
   -- a line in the side's colour over the link, not an arrow: on the F10 map an `arrowToAll` slid away
   -- from its points as the map was panned, whatever their altitude, and it puts its tip on the first
   -- point (FIX-CAMPAIGN-ARROW-ALTITUDE); the links are lines too, and hold still
-  trigger.action.lineToAll(-1, record.axisId, from:getCenter(), target, veafCampaign.AXIS_COLORS[side], 1, true)
-  table.insert(veafCampaign.convoys, record)
-  -- the side's own people are told it leaves; the other side hears it as intelligence
   local own = veafCampaign.SIDES[side]
-  local other = own == coalition.side.BLUE and coalition.side.RED or coalition.side.BLUE
+  trigger.action.lineToAll(own, record.axisId, record.axisFrom, record.axisTo, veafCampaign.AXIS_COLORS[side], 1, true)
+  table.insert(veafCampaign.convoys, record)
+  -- the side's own people are told it leaves; the other side hears it as intelligence, later
   trigger.action.outTextForCoalition(own, veaf.t("campaign.convoy_sent_own", from.name, to.name), 20)
-  trigger.action.outTextForCoalition(other, veaf.t("campaign.convoy_sent_enemy", from.name, to.name), 20)
+  local now = timer.getTime()
+  record.intelAt = now + (veafCampaign.data.intel_seconds or veafCampaign.INTEL_SECONDS)
+  veafCampaign.reportConvoy(record, now)
   veaf.loggers
     .get(veafCampaign.Id)
     :info("%s assault convoy [%s] left [%s] for [%s], %d unit(s)", side, groupName, from.name, to.name, #record.sent)
@@ -1206,6 +1234,7 @@ function veafCampaign.beat()
   veafCampaign.launchDueAssaults(timer.getTime())
   for _, record in ipairs(veafCampaign.convoys) do
     veafCampaign.refreshConvoy(record)
+    veafCampaign.reportConvoy(record, timer.getTime())
   end
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed then

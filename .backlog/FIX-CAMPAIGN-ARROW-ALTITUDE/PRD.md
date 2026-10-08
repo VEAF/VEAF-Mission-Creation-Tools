@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-ARROW-ALTITUDE — the assault convoy arrows slide off the ground on the F10 map
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — merged on `develop` (#1103, #1105); the line to be checked in game
 
 ## Problem
 
@@ -23,7 +23,7 @@ What is not explained: the zone circles are at `y = 0` too and hold still. Only 
 | # | Ticket | Status |
 |---|---|---|
 | [01](tickets/01-arrow-on-the-ground.md) | The axis arrow on the terrain — merged (#1103), did not help | ✅ |
-| [02](tickets/02-a-line-not-an-arrow.md) | The axis as a line in the side's colour over the link | 🔄 |
+| [02](tickets/02-a-line-not-an-arrow.md) | The axis as a line in the side's colour over the link | ✅ |
 
 ## Measured in game, 2026-10-08
 

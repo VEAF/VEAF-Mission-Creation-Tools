@@ -1205,32 +1205,89 @@ function TestVeafCampaignAssault:test_the_convoy_leaves_on_the_road_to_its_targe
   -- the pathfinding unit a spawned convoy carries is not counted, nor paid for
   luaunit.assertEquals(record.sent, { "BMP-2", "T-72B", "Ural-375" })
   luaunit.assertEquals(veafCampaign.data.sides.red.reserve, { armor = 4, air_defense = 2, transport = 2 })
-  luaunit.assertEquals(#dcs_mocks.messagesContaining("Senaki"), 2, "its side told, the other one warned")
+  local told = dcs_mocks.messagesContaining("Senaki")
+  luaunit.assertEquals(#told, 1, "its own side is told at once; the other one hears it later")
+  luaunit.assertEquals(told[1].target, coalition.side.RED)
+end
+
+--- Send the red convoy from Senaki at 600 s, with the axis lines and arrows recorded from then on.
+local function sendRedConvoyRecordingDrawings(test)
+  veafCampaign.initialize()
+  test.savedArrow, test.savedLine = trigger.action.arrowToAll, trigger.action.lineToAll
+  test.arrows, test.lines = 0, {}
+  trigger.action.arrowToAll = function()
+    test.arrows = test.arrows + 1
+  end
+  trigger.action.lineToAll = function(coalitionSide, id, startPoint, endPoint, color)
+    table.insert(test.lines, { coalition = coalitionSide, id = id, startPoint = startPoint, endPoint = endPoint, color = color })
+  end
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.beat()
+end
+
+local function restoreDrawings(test)
+  trigger.action.arrowToAll, trigger.action.lineToAll = test.savedArrow, test.savedLine
 end
 
 -- FIX-CAMPAIGN-ARROW-ALTITUDE: on the F10 map an `arrowToAll` axis slid away from its points as the map
 -- was panned, at sea level or on the terrain alike. The axis is a line in the side's colour over the
 -- link, the primitive the links themselves use and that holds still.
-function TestVeafCampaignAssault:test_the_axis_is_a_line_in_the_side_colour_from_source_to_target()
-  local savedArrow, savedLine = trigger.action.arrowToAll, trigger.action.lineToAll
-  veafCampaign.initialize()
-  local arrows, lines = 0, {}
-  trigger.action.arrowToAll = function()
-    arrows = arrows + 1
-  end
-  trigger.action.lineToAll = function(coalitionSide, id, startPoint, endPoint, color)
-    table.insert(lines, { coalition = coalitionSide, id = id, startPoint = startPoint, endPoint = endPoint, color = color })
-  end
-  veafCampaign.pendingAssaults["Poti|blue"] = nil
-  timer.setTime(600)
+-- FEAT-CAMPAIGN-INTEL-DELAY: drawn for its own side only when it leaves.
+function TestVeafCampaignAssault:test_the_axis_is_a_line_in_the_side_colour_for_its_own_side()
+  sendRedConvoyRecordingDrawings(self)
+  restoreDrawings(self)
+  luaunit.assertEquals(self.arrows, 0)
+  luaunit.assertEquals(#self.lines, 1)
+  luaunit.assertEquals(self.lines[1].coalition, coalition.side.RED)
+  luaunit.assertEquals({ self.lines[1].startPoint.x, self.lines[1].endPoint.x }, { 20000, 10000 })
+  luaunit.assertEquals(self.lines[1].color, veafCampaign.AXIS_COLORS.red)
+  luaunit.assertEquals(self.lines[1].id, veafCampaign.convoys[1].axisId)
+end
+
+-- FEAT-CAMPAIGN-INTEL-DELAY: the other side learns of a convoy `intel_seconds` after it left (1200 by
+-- default) — the message and the line on its map together, as intelligence would bring them.
+function TestVeafCampaignAssault:test_the_other_side_hears_of_it_after_the_intelligence_delay()
+  sendRedConvoyRecordingDrawings(self)
+  timer.setTime(600 + veafCampaign.INTEL_SECONDS - 1)
   veafCampaign.beat()
-  trigger.action.arrowToAll, trigger.action.lineToAll = savedArrow, savedLine
-  luaunit.assertEquals(arrows, 0)
-  luaunit.assertEquals(#lines, 1)
-  luaunit.assertEquals(lines[1].coalition, -1)
-  luaunit.assertEquals({ lines[1].startPoint.x, lines[1].endPoint.x }, { 20000, 10000 })
-  luaunit.assertEquals(lines[1].color, veafCampaign.AXIS_COLORS.red)
-  luaunit.assertEquals(lines[1].id, veafCampaign.convoys[1].axisId)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("Senaki"), 1, "nothing for blue yet")
+  luaunit.assertEquals(#self.lines, 1)
+  timer.setTime(600 + veafCampaign.INTEL_SECONDS)
+  veafCampaign.beat()
+  veafCampaign.beat()
+  restoreDrawings(self)
+  local told = dcs_mocks.messagesContaining("Senaki")
+  luaunit.assertEquals(#told, 2, "blue hears of it once")
+  luaunit.assertEquals(told[2].target, coalition.side.BLUE)
+  luaunit.assertEquals(#self.lines, 2)
+  luaunit.assertEquals(self.lines[2].coalition, coalition.side.BLUE)
+  luaunit.assertEquals(self.lines[2].color, veafCampaign.AXIS_COLORS.red)
+  luaunit.assertEquals(self.lines[2].id, veafCampaign.convoys[1].intelAxisId)
+end
+
+function TestVeafCampaignAssault:test_the_campaign_sets_its_own_intelligence_delay()
+  veafCampaign.data.intel_seconds = 0
+  sendRedConvoyRecordingDrawings(self)
+  restoreDrawings(self)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("Senaki"), 2)
+  luaunit.assertEquals(#self.lines, 2)
+end
+
+function TestVeafCampaignAssault:test_a_convoy_destroyed_before_the_delay_is_never_reported_and_leaves_no_line()
+  sendRedConvoyRecordingDrawings(self)
+  local record = veafCampaign.convoys[1]
+  local axisId = record.axisId
+  for _, unit in ipairs(self.units[record.name]) do
+    unit._alive = false
+  end
+  timer.setTime(600 + veafCampaign.INTEL_SECONDS)
+  veafCampaign.beat()
+  restoreDrawings(self)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("Senaki"), 1)
+  luaunit.assertEquals(#self.lines, 1)
+  luaunit.assertTrue(record.ended)
+  luaunit.assertEquals(dcs_mocks.marksRemoved[#dcs_mocks.marksRemoved], axisId, "its own side's line is removed")
 end
 
 function TestVeafCampaignAssault:test_a_bigger_opposition_attacks_earlier()

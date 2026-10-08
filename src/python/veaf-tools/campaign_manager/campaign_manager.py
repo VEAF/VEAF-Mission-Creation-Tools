@@ -218,6 +218,8 @@ def _parse_rules(raw: Any, issues: list[ValidationIssue]) -> CampaignRules:
             values[name] = value
         elif name == "assault_seconds" and _is_int(value) and value > 0:
             values[name] = value
+        elif name == "intel_seconds" and _is_int(value) and value >= 0:
+            values[name] = value
         elif (
             name == "logistics_output"
             and isinstance(value, dict)

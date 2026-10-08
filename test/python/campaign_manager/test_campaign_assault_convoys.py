@@ -75,6 +75,28 @@ class TestTheRules:
         assert (data["assault_convoys"], data["assault_seconds"]) == (False, 300)
 
 
+class TestTheIntelligenceDelay:
+    """FEAT-CAMPAIGN-INTEL-DELAY: the other side hears of a convoy `intel_seconds` after it left."""
+
+    def test_twenty_minutes_by_default(self) -> None:
+        assert _campaign().rules.intel_seconds == 1200
+
+    def test_the_campaign_sets_it_and_zero_means_at_once(self) -> None:
+        assert _campaign(intel_seconds=0).rules.intel_seconds == 0
+        assert _campaign(intel_seconds=1800).rules.intel_seconds == 1800
+
+    def test_a_negative_delay_is_an_error(self) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["rules"] = {"intel_seconds": -1}
+        campaign, issues = parse_campaign(raw)
+        assert campaign is None
+        assert any("intel_seconds" in issue.message for issue in issues)
+
+    def test_the_mission_reads_it(self) -> None:
+        campaign = _campaign(intel_seconds=900)
+        assert mission_data(campaign, initial_state(campaign))["intel_seconds"] == 900
+
+
 class TestTheStateFile:
     def test_the_mission_writes_its_convoys_and_the_tools_read_them(self, tmp_path: Path) -> None:
         src = (REPO / "src" / "scripts" / "veaf").as_posix()

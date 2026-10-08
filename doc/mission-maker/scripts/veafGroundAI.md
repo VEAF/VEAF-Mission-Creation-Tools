@@ -161,7 +161,7 @@ Le pilote automatique de convoi fait le travail à sa place, **sans personne aux
 1. **Il guette.** Toutes les 30 s, il cherche les véhicules ennemis à moins de 5 km (plus une minute de route à sa vitesse). Tant qu'il y en a, il vérifie toutes les 3 s s'il les voit — le relief entre eux compte, la végétation non (voir les [limites](#limitations)).
 2. **Il réagit au premier qui compte** : un ennemi en vue à moins de 3 km, ou le premier tir reçu (artillerie, avion, embuscade invisible).
 3. **Il se scinde.** Les véhicules non armés (camions…) partent **immédiatement** se replier, dans leur propre groupe, nommé `<convoi> unarmed`. Les véhicules armés restent dans le groupe du convoi, qui garde son nom.
-4. **Les armés combattent ou se replient.** Chaque véhicule a une valeur de combat : char 4, véhicule de combat d'infanterie 3, blindé de transport, AAA ou autre véhicule armé 1, non armé 0. Si les armés valent au moins 1,5 fois les ennemis en vue, ils **vont au contact** jusqu'à 900 m de l'ennemi le plus proche, alarme rouge, feu à volonté ; sinon ils se replient à leur tour. Un avion ou un tir venu de plus de 3 km ne se combat pas : on se replie.
+4. **Les armés combattent ou se replient.** Chaque véhicule a une valeur de combat : char 4, véhicule de combat d'infanterie 3, blindé de transport, AAA ou autre véhicule armé 1, non armé 0. Si les armés valent au moins 1,5 fois les ennemis en vue, ils **vont au contact** jusqu'à 900 m de l'ennemi le plus proche, alarme rouge, feu à volonté ; sinon ils se replient à leur tour. Un avion ou un tir venu de plus de 3 km ne se combat pas : on se replie. Un ennemi au sol seulement **vu**, lui, compte pour sa valeur, où qu'il soit : un fantassin aperçu à 3,2 km vaut 1, pas plus.
 5. **S'il se replie, il appelle à l'aide**, à sa coalition, sous la forme d'un appel *troops in contact* : sa position (coordonnées et MGRS), le nombre et le type d'ennemis, leur cap et leur distance. Un **fumigène rouge** marque l'ennemi le plus proche, un **vert** le convoi, renouvelés toutes les 5 minutes tant que le contact dure. Si la mission sait parler ([SRS configuré](#srs-voice)), le même appel passe en voix sur 243 et 121,5 MHz AM.
    Assez fort pour combattre, il ne demande rien : un message d'information dit le contact, le nombre d'ennemis, leur cap et leur distance, sans fumigène.
    Dans les deux cas, un **marqueur F10** montre le convoi à sa coalition tant que le contact dure (« Mule — convoi au contact »), suivi toutes les 15 s, et retiré quand le contact est fini.
@@ -169,6 +169,7 @@ Le pilote automatique de convoi fait le travail à sa place, **sans personne aux
 7. **Après le contact.** Une minute sans rien voir ni rien recevoir :
    - **après un combat**, une fois qu'il ne reste plus d'ennemi vivant autour de lui (un ennemi seulement sorti de sa vue, il retourne le chercher), il reprend la route tout seul : les véhicules armés vont rechercher leurs non armés, qui les attendent là où ils se sont repliés, le convoi se reforme, puis repart par la route et non à travers champs (si le ralliement n'a pas eu lieu en 10 minutes, chacun repart de son côté) ;
    - **après un repli**, il le dit, s'arrête et attend un ordre : l'ennemi qu'il a fui est toujours là, et il ne repart pas tout seul dans la même embuscade.
+     Si **aucun joueur de son camp** n'est connecté pour donner cet ordre — le camp rouge d'une campagne, typiquement —, il repart tout seul au bout de **5 minutes**, comme après un combat. C'est vérifié à la fin du délai : un joueur arrivé entre-temps garde la main, et la vérification revient toutes les 5 minutes tant qu'il reste. Compte comme joueur de ce camp celui qui occupe un slot de ce camp (avion, hélicoptère, véhicule) ; un maître du jeu dans un slot neutre, non. Un nouveau contact pendant l'attente annule ce départ, et un `_gc <indicatif>, hold` donné par un joueur n'est jamais levé tout seul.
 
 Un convoi rouge fait exactement la même chose, du côté rouge.
 
@@ -190,7 +191,7 @@ Chaque convoi a un **indicatif**, qui est aussi le nom que `_gc` utilise pour lu
 | `_gc mule, retreat` | repli par la route vers le lieu ami le plus proche |
 | `_gc mule, retreat KOBULETI` | repli vers ce point nommé, ou ces coordonnées |
 | `_gc mule, hold` | arrêt sur place, des deux groupes |
-| `_gc mule, resume` | repart (automatique après un combat gagné) : les combattants vont rechercher les non armés, qui les attendent, le convoi se reforme en un seul groupe à moins de 300 m et reprend la route |
+| `_gc mule, resume` | repart (automatique après un combat gagné, et 5 minutes après un repli quand aucun joueur de son camp n'est là) : les combattants vont rechercher les non armés, qui les attendent, le convoi se reforme en un seul groupe à moins de 300 m et reprend la route |
 | `_gc mule, status` | ce que fait le convoi (en route, en alerte, au combat, en repli, à l'arrêt…) |
 | `_gc ravito, convoy, groupname Ravitaillement` | confie le groupe `Ravitaillement` au pilote de convoi, sous l'indicatif `ravito` |
 

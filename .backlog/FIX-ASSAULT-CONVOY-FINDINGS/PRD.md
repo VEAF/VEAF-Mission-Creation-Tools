@@ -1,6 +1,6 @@
 # FIX-ASSAULT-CONVOY-FINDINGS — the red assault convoy flees an infantryman and never drives on; a captured zone draws a garrison anyway; convoys without armour
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — merged (#1108), to be checked in game
 
 ## Found
 
@@ -33,10 +33,10 @@ Measured in `dcs.log` and in the running mission (read-only, through the fiddle 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-hold-then-drive-on.md) | A convoy holding with nobody of its side to order it drives on by itself | ⬜ |
-| [02](tickets/02-a-seen-unit-counts-for-its-strength.md) | A ground unit seen beyond engagement range counts for its own strength | ⬜ |
-| [03](tickets/03-capture-absorbs-the-convoy.md) | The convoy that takes a zone becomes its garrison — find why it did not | ⬜ |
-| [04](tickets/04-assault-convoys-with-armour.md) | Assault convoys made of armour | ⬜ |
+| [01](tickets/01-hold-then-drive-on.md) | A convoy holding with nobody of its side to order it drives on by itself | ✅ |
+| [02](tickets/02-a-seen-unit-counts-for-its-strength.md) | A ground unit seen beyond engagement range counts for its own strength | ✅ |
+| [03](tickets/03-capture-absorbs-the-convoy.md) | The convoy that takes a zone becomes its garrison — find why it did not | 🔄 measurement shipped |
+| [04](tickets/04-assault-convoys-with-armour.md) | Assault convoys made of armour | ✅ |
 
 ## Related
 

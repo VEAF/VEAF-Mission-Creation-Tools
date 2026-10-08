@@ -682,7 +682,13 @@ function veafSpawn.spawnFullCombatGroup(
   return groupName
 end
 
---- Spawn a specific group at a specific spot
+--- Spawn a convoy: a transport company of `size` trucks with its air defence, an armour platoon, and the
+--- route to `destination`.
+---
+--- `armorTypes`, when given, is the exact list of armoured vehicle types to bring instead of the platoon
+--- generated from `armor` — what the campaign's assault convoys use (FIX-ASSAULT-CONVOY-FINDINGS): the
+--- generated platoon is half the convoy's size give or take 20 %, so two trucks brought 0 or 1 armoured
+--- vehicle, and its own air defence on top.
 function veafSpawn.spawnConvoy(
   spawnSpot,
   name,
@@ -701,7 +707,8 @@ function veafSpawn.spawnConvoy(
   armor,
   silent,
   hiddenOnMFD,
-  itinerary
+  itinerary,
+  armorTypes
 )
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnConvoy(czName=[%s], spawnSpot=[%s], name=[%s], radius=[%s], country=[%s], side=[%s], speed=[%s], patrol=[%s], offroad=[%s], destination=[%s], defense=[%s], size=[%s], armor=[%s], silent=[%s], hiddenOnMFD=[%s], itinerary=[%s])",
@@ -773,7 +780,15 @@ function veafSpawn.spawnConvoy(
   end
 
   -- generate the armored vehicles
-  if armor and armor > 0 then
+  if armorTypes then
+    local group = { disposition = { h = 4, w = 4 }, units = {}, description = groupId, groupName = groupId }
+    for _, armorType in ipairs(armorTypes) do
+      table.insert(group.units, { armorType, random = true })
+    end
+    for _, u in pairs(veafUnits.processGroup(group).units) do
+      table.insert(groupUnits.units, u)
+    end
+  elseif armor and armor > 0 then
     -- generate the group (size may be nil here; the platoon is half the convoy size)
     local platoonSize = size and (size / 2) or nil
     local group = veafCasMission.generateArmorPlatoon(groupId, defense, armor, side, platoonSize)

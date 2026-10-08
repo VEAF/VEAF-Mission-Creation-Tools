@@ -1,6 +1,6 @@
 # 03 — The call for help
 
-Status: ⬜ ready
+Status: ✅ done — text and smokes; the voice skips cleanly without SRS (the `veafRadio` crash it revealed is fixed); heard voice left to R45
 
 - To the convoy's coalition: a text message in the shape of a troops-in-contact call — the format comes from a cited source, not from memory — with the convoy's position and the threat's bearing and distance from it.
 - Red smoke near the enemy, green on the convoy, renewed while the contact lasts (duration from ticket 01).

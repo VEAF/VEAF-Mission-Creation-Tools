@@ -1021,6 +1021,16 @@ function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name
     l_os = SERVER_CONFIG.getModule("os")
   end
 
+  -- `STTS` alone is not a configuration: when the server's `SERVER_CONFIG` has no `SRS_*` keys,
+  -- `veaf.lua` copies them into STTS as nil, and the community script's own default directory is "".
+  -- The command below then raised on its `string.format`, inside whatever had asked for a voice —
+  -- the convoy watch, on DAVID-BUREAU on 2026-10-08 (FEAT-CONVOY-UNDER-FIRE).
+  local configured = STTS and STTS.DIRECTORY and STTS.DIRECTORY ~= "" and STTS.EXECUTABLE and STTS.SRS_PORT
+  if l_os and STTS and not configured then
+    veaf.loggers.get(veafRadio.Id):debug("SRS is not configured on this server (STTS.DIRECTORY/EXECUTABLE/SRS_PORT), nothing transmitted")
+    return nil
+  end
+
   if l_os and STTS then
     local cmd = string.format(
       'start /min "%s" "%s\\%s" %s -f %s -m %s -c %s -p %s -n "%s" %s',

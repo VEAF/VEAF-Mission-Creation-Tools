@@ -457,6 +457,17 @@ says so: it is a valid point on the airfield's side. VMCT's airfield positions w
 reference points. In game, take a runway's position from `Airbase:getRunways()` rather than
 `getPoint()` when the runway is what matters.
 
+### `coalition.addGroup` with the name of an existing group replaces it {#addgroup-with-an-existing-name-replaces-the-group}
+
+Measured **2026-10-08**.
+
+A two-truck group spawned, then `coalition.addGroup` called again with the same group name and three
+trucks: one group of that name afterwards, **the same group id**, three units, and the first group's
+units gone (`Unit.getByName` nil) — in the same call and three seconds later.
+
+**What to do:** Rebuilding a group under its own name is a replacement, not a duplicate; it is how the convoy merges
+its unarmed vehicles back. It cannot carry damage over: the units come back whole.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}
@@ -643,6 +654,75 @@ logic) — through `describe_airfield_channels` / `set_airfield_channels`, or
 
 *What it cost:* The tools' reference was parsed from the text of `Radio.lua`: on Persian Gulf it held no UHF channel
 for any airfield, and made the hand-written channel collection — which was right — look wrong.
+
+## Ground AI {#ground-ai}
+
+### A convoy under fire drives on, and its `getDetectedTargets` can stay empty {#a-convoy-drives-through-an-ambush}
+
+Measured **2026-10-08**.
+
+Measured on Caucasus east of Kutaisi, a blue convoy (armed HMMWV, Stryker, two M818) driven along a
+road into two BMP-2 and a BTR-80 placed 400 m off it: the ambush opened fire at ~1.3 km and the
+convoy **drove on at 10 m/s without firing a round** until its four vehicles were dead. Its group
+`getDetectedTargets()` stayed **empty for 45 s under fire**, until one vehicle was left. The same
+road with a Bradley in the convoy: an enemy detected at 1 227 m, 10 s before the first shot.
+`S_EVENT_SHOOTING_START` carries its target (a convoy unit) and its shooter; some `S_EVENT_HIT` by
+shells carry a nameless initiator; a truck's explosion raises `S_EVENT_HIT` on its neighbours with
+the truck as the initiator.
+
+**What to do:** Do not wait for DCS to notice: watch for the enemy yourself (`world.searchObjects`, then
+`land.isVisible`) and react to `S_EVENT_SHOOTING_START` / `S_EVENT_HIT`, ignoring a same-coalition
+initiator. `veafGroundAI`'s convoy watch does it (FEAT-CONVOY-UNDER-FIRE).
+
+*What it cost:* Every convoy of every mission was a sitting duck: the reason for FEAT-CONVOY-UNDER-FIRE.
+
+### A ground group given a new route under fire: only its lead obeys {#a-new-route-under-fire-moves-only-the-lead}
+
+Measured **2026-10-08**.
+
+Alarm state red, ROE open fire and a new `Mission` task set at the first shot on a five-vehicle
+convoy: the **lead** turned and drove back within 3 s, and the convoy returned fire, but the rest
+of the column stayed where it was — a truck still on the road, destroyed, another damaged. Off
+road, the lead itself bogged down at 0.6 m/s on a 9 km straight line across country.
+
+**What to do:** A group moves as one: to make some vehicles leave while others stay, respawn them as their own
+group (`coalition.addGroup` where they stand) and route that one. Keep off-road legs short.
+
+### Smoke does not blind DCS's AI {#smoke-does-not-blind-the-ai}
+
+Measured **2026-10-08**.
+
+Three `trigger.action.effectSmokeBig` (preset 7) set between two BMP-2 and their target 350 m away:
+the BMPs **kept detecting all three targets and firing** — about 300 hits in the next 60 s, the
+rate falling only because their 30 mm HE ran out.
+
+**What to do:** A smoke screen is for the players' eyes, never cover. Use smoke to mark (`trigger.action.smoke`),
+as the convoy's call for help does.
+
+### `world.searchObjects` finds no tree {#searchobjects-finds-no-trees}
+
+Measured **2026-10-08**.
+
+A `SCENERY` search of 3 km radius east of Kutaisi returned 117 objects — houses, garages, bridges,
+39 light poles — and **no tree**. `land.isVisible` does not account for them either.
+
+**What to do:** Forest cannot be found by script as cover; only terrain (`land.isVisible`) and the towns
+(`veafCities`) can. `Disposition.getSimpleZones` knows where forests are, with the caveats of
+`disposition-getsimplezones-is-a-lottery`.
+
+### Ground AI does not see an enemy `land.isVisible` says is in sight, and `knowTarget` does not make it {#ground-ai-does-not-see-what-isvisible-sees}
+
+Measured **2026-10-08**.
+
+Two Bradleys halted 1.9 km from a BMP-2 and a BTR-80 on flat ground, in sight by `land.isVisible`:
+in two minutes **neither side fired a round**; the Bradleys' unit-level `getDetectedTargets` stayed
+at 0, and neither `Controller.knowTarget(enemy, true, true)` on each unit nor a `FireAtPoint` task
+on the group made them fire (seven TOW still aboard). Sent forward, they opened fire at ~1.3 km and
+destroyed both in 16 s. Earlier the same day, stationary trucks 1 km from BMPs, in sight by
+`isVisible`, were never engaged in five minutes; at 350 m at once. Vegetation is the likeliest mask.
+
+**What to do:** To make ground units fight an enemy you can see by script, send them closer — `veafGroundAI`'s
+convoy closes in to 900 m.
 
 <!-- END GENERATED -->
 

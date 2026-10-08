@@ -54,6 +54,29 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R45. A convoy under fire, from the shipped build — **no pilot needed**
+
+[`FEAT-CONVOY-UNDER-FIRE`](.backlog/FEAT-CONVOY-UNDER-FIRE/PRD.md), ticket 07.
+Already seen on 2026-10-08 with the module hot-loaded into a running mission (`D:\dev\_VEAF\tmp\dcs-session-2026-10-08-convoy\`, probes `p*.lua` through `fiddle.sh`): the watch made contact at 1.9 km before any shot, the trucks left at once and whole, the Bradleys closed in and destroyed a BMP-2 and a BTR-80 in 16 s from ~1.3 km without a loss, the convoy held after 60 s, and `resume` brought the trucks back.
+What that run did not show: the code **as built** (`_spawn convoy` attaching itself, `GROUNDAI.convoys` from `mission.yaml`), an **outgunned** convoy falling back behind terrain to a friendly airbase, the **voice**, and how long a smoke lasts.
+
+**Prepare**: a Caucasus test mission built from the branch, security off, a game master slot, `GROUNDAI: { enabled: true, convoys: [ "Supply North" ] }` with a Mission Editor group `Supply North` (one HMMWV, three trucks) on a road 6 km from Kutaisi, and on DAVID-BUREAU the `SRS_for_scripting_config.lua` of the ground AI page ([Faire parler la mission](doc/mission-maker/scripts/veafGroundAI.md#srs-voice)) with an SRS server running.
+
+1. `_spawn convoy` toward a road with two BMP-2 400 m off it; a ridge beside the road.
+   - **Verified**: `_gc convoy, status` answers (the spawn attached it); contact before the first red shot; `<convoy> unarmed` leaves at once; the call for help appears to blue with a red smoke on the nearest BMP and a green one on the convoy.
+   - **Re-opened, no status**: the convoy was not handed to the watch — `veafGroundAI.initialized` was false when it spawned.
+2. Let `Supply North` drive into three BMP-2 (outgunned: 1 against 9).
+   - **Verified**: armed and unarmed fall back, through a point the BMPs cannot see, toward Kutaisi; the column does not bog down on the first leg.
+   - **Re-opened**: it stays in sight of the BMPs, or bogs down — note where (F10 map) and whether a road was near.
+3. Listen on 243.0 AM in SRS during item 1.
+   - **Verified**: the call is heard.
+   - **Re-opened, silent**: `dcs.log` says `SRS is not configured` (the file was not read) or nothing at all (`os` missing).
+4. Note when the green smoke of item 1 disappears, by eye.
+   - **Answer**: its duration — write it into `known-limitations.yaml` and set `ConvoyUnitHandler.SMOKE_RENEW_PERIOD` just below it.
+5. After the hold, `_gc convoy, resume`.
+   - **Verified**: the trucks drive straight to the armed vehicles, the convoy becomes one group (`dcs.log`: `merged back`) and drives on.
+   - **Re-opened**: no merge — the trucks stopped short of 300 m, or drove away to a road.
+
 ### R44. A multi-mission campaign, two missions end to end — **no pilot for items 1 to 5**
 
 [`FEAT-MULTI-MISSION-CAMPAIGN`](.backlog/FEAT-MULTI-MISSION-CAMPAIGN/PRD.md), tickets 04, 06, 07 and 11.

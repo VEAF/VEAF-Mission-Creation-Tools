@@ -833,6 +833,12 @@ function veafSpawn.spawnConvoy(
       veaf.scheduleFunction(veafSpawn.convoyArrivalWatchdog, { groupName }, timer.getTime() + veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS)
     end
 
+    -- The convoy watch (FEAT-CONVOY-UNDER-FIRE): it looks ahead, splits and falls back under fire. Only
+    -- once GROUNDAI has started; a convoy spawned before that is adopted by its initialize().
+    if veafGroundAI and veafGroundAI.initialized then
+      veafGroundAI.addConvoy(groupName)
+    end
+
     if not silent then
       trigger.action.outText(veaf.t("spawn.spawned_convoy", groupName), 5)
     end

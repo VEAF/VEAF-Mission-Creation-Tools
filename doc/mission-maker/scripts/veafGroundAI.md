@@ -1,4 +1,4 @@
-# veafGroundAI — Piloter une batterie d'artillerie au marqueur
+# veafGroundAI — L'artillerie au marqueur et les convois sous le feu
 
 **Module ID:** `GROUNDAI` | **Fichier:** `veafGroundAI.lua`
 
@@ -7,9 +7,10 @@
 ## Objectif
 
 Donne à un groupe de véhicules au sol un **pilote automatique** que les joueurs commandent depuis la
-carte F10, avec le marqueur `_gc`. Aujourd'hui un seul type de pilote existe : l'artillerie
-(`ArtilleryUnitHandler`), à qui on ordonne de tirer sur des coordonnées — quelques obus pour se
-régler, puis un tir d'efficacité.
+carte F10, avec le marqueur `_gc`. Deux types de pilote existent :
+
+- **l'artillerie** (`ArtilleryUnitHandler`), à qui on ordonne de tirer sur des coordonnées — quelques obus pour se régler, puis un tir d'efficacité ;
+- **le convoi** (`ConvoyUnitHandler`), qui se débrouille seul : il guette l'ennemi devant lui, se scinde quand il le voit, appelle l'appui aérien et se replie à couvert ([le convoi sous le feu](#convoy)).
 
 Le module est **actif par défaut** (`veaf.registerModule(..., { enable = true }, 190)`), et ses
 commandes sont réservées aux **pilotes connus du serveur** : `KNOWN_PILOT`, soit tout pilote inscrit
@@ -149,6 +150,63 @@ La correction est refusée, et le refus est annoncé au pilote, dans deux cas : 
 
 ---
 
+## Le convoi sous le feu {#convoy}
+
+Livré à lui-même, un convoi DCS traverse une embuscade à pleine vitesse sans tirer un coup, et meurt.
+Mesuré le 2026-10-08 : quatre véhicules détruits sur quatre, aucune riposte ; et quand on lui donne une nouvelle route en plein feu, seul le véhicule de tête obéit, le reste de la colonne reste planté.
+Le pilote automatique de convoi fait le travail à sa place, **sans personne aux commandes**.
+
+### Ce qu'il fait tout seul {#convoy-behaviour}
+
+1. **Il guette.** Toutes les 30 s, il cherche les véhicules ennemis à moins de 5 km (plus une minute de route à sa vitesse). Tant qu'il y en a, il vérifie toutes les 3 s s'il les voit — le relief entre eux compte, la végétation non (voir les [limites](#limitations)).
+2. **Il réagit au premier qui compte** : un ennemi en vue à moins de 3 km, ou le premier tir reçu (artillerie, avion, embuscade invisible).
+3. **Il se scinde.** Les véhicules non armés (camions…) partent **immédiatement** se replier, dans leur propre groupe, nommé `<convoi> unarmed`. Les véhicules armés restent dans le groupe du convoi, qui garde son nom.
+4. **Les armés combattent ou se replient.** Chaque véhicule a une valeur de combat : char 4, véhicule de combat d'infanterie 3, blindé de transport, AAA ou autre véhicule armé 1, non armé 0. Si les armés valent au moins 1,5 fois les ennemis en vue, ils **vont au contact** jusqu'à 900 m de l'ennemi le plus proche, alarme rouge, feu à volonté ; sinon ils se replient à leur tour. Un avion ou un tir venu de plus de 3 km ne se combat pas : on se replie.
+5. **Il appelle à l'aide**, à sa coalition, sous la forme d'un appel *troops in contact* : sa position (coordonnées et MGRS), le nombre et le type d'ennemis, leur cap et leur distance. Un **fumigène rouge** marque l'ennemi le plus proche, un **vert** le convoi, renouvelés toutes les 5 minutes tant que le contact dure. Si la mission sait parler ([SRS configuré](#srs-voice)), le même appel passe en voix sur 243 et 121,5 MHz AM.
+6. **Il se replie à couvert** : vers le lieu ami le plus proche (une zone de campagne de son camp, un de ses aérodromes), en passant par un point que le relief ou une ville cache à l'ennemi ; s'il n'y en a aucun, le plus court chemin hors de portée.
+7. **Il tient.** Une minute sans rien voir ni rien recevoir : il le dit, s'arrête et attend un ordre — il ne repart pas tout seul dans la même embuscade.
+
+Un convoi rouge fait exactement la même chose, du côté rouge.
+
+### Quels groupes {#convoy-groups}
+
+- **Chaque convoi apparu par `_spawn convoy`**, automatiquement. Son nom est celui que le spawn lui donne (`[b]-Convoy-3`…) ; un fragment suffit dans `_gc`, comme pour `groupname`.
+- Un groupe de l'éditeur de missions, listé dans `mission.yaml` ([plus bas](#configuration-missionyaml)).
+- N'importe quel groupe, en jeu : `_gc <nom>, convoy`, le marqueur posé sur le groupe (ou avec `groupname`).
+
+### Les ordres {#convoy-orders}
+
+| Ce que vous écrivez | Ce que ça fait |
+|---|---|
+| `_gc convoy-3, retreat` | repli par la route vers le lieu ami le plus proche |
+| `_gc convoy-3, retreat KOBULETI` | repli vers ce point nommé, ou ces coordonnées |
+| `_gc convoy-3, hold` | arrêt sur place, des deux groupes |
+| `_gc convoy-3, resume` | repart : les combattants reprennent la route, les non armés les rejoignent, et le convoi se reforme en un seul groupe à moins de 300 m |
+| `_gc convoy-3, status` | ce que fait le convoi (en route, en alerte, au combat, en repli, à l'arrêt…) |
+| `_gc ravito, convoy, groupname Ravitaillement` | confie le groupe `Ravitaillement` au pilote de convoi, sous le nom `ravito` |
+
+Ce sont aussi ces marqueurs qu'un maître du jeu envoie pour diriger un convoi.
+
+### Faire parler la mission {#srs-voice}
+
+La voix passe par SRS (`DCS-SR-ExternalAudio.exe`). VEAF lit sa configuration dans `Saved Games\DCS\DCS-SimpleRadio-Standalone\SRS_for_scripting_config.lua`, sur la machine qui héberge la mission ; sans ce fichier, l'appel part en texte seulement :
+
+```lua
+if not SERVER_CONFIG then SERVER_CONFIG = {} end
+SERVER_CONFIG.SRS_DIRECTORY = "C:\\Program Files\\DCS-SimpleRadio-Standalone\\ExternalAudio"
+SERVER_CONFIG.SRS_PORT = 5002
+SERVER_CONFIG.SRS_EXECUTABLE = "DCS-SR-ExternalAudio.exe"
+if not STTS then STTS = {} end
+STTS.DIRECTORY = SERVER_CONFIG.SRS_DIRECTORY
+STTS.SRS_PORT = SERVER_CONFIG.SRS_PORT
+STTS.EXECUTABLE = SERVER_CONFIG.SRS_EXECUTABLE
+```
+
+`SRS_DIRECTORY` est le dossier qui contient `DCS-SR-ExternalAudio.exe` (un sous-dossier `ExternalAudio` sur les versions récentes de SRS), `SRS_PORT` le port du serveur SRS.
+Il faut aussi que la mission ait accès à `os` : un `MissionScripting.lua` qui le retire, comme le fait celui d'origine de DCS, rend la mission muette.
+
+---
+
 ## Les alias fournis {#aliases}
 
 `veafShortcuts` livre des raccourcis prêts à l'emploi, et c'est par eux que la plupart des pilotes
@@ -174,20 +232,34 @@ coordonnées juste après, et elles complètent l'ordre.
 
 ## Configuration `mission.yaml` {#configuration-missionyaml}
 
-Le module n'a **aucune option de configuration**. Il s'active et se désactive comme les autres :
+Le module s'active et se désactive comme les autres :
 
 ```yaml
 modules:
-  GROUNDAI: true      # actif par défaut ; `false` retire le marqueur _gc
+  GROUNDAI: true      # actif par défaut ; `false` retire le marqueur _gc et la surveillance des convois
+```
+
+Sa seule option est la liste des groupes de l'éditeur à surveiller comme des convois — les `_spawn convoy` le sont toujours, sans rien déclarer :
+
+```yaml
+modules:
+  GROUNDAI:
+    enabled: true
+    convoys:
+      - Ravitaillement Nord
+      - Convoi Kutaisi
 ```
 
 ---
 
 ## Limites connues {#limitations}
 
-- **Un seul type de pilote automatique existe** : l'artillerie. Le module est bâti pour en accueillir
-  d'autres (`veafGroundAI.add` / `.remove` / `.get` prennent n'importe quel gestionnaire nommé), mais
-  aucun autre n'est livré.
+- **Deux types de pilote automatique existent** : l'artillerie et le convoi. Le module est bâti pour en accueillir
+  d'autres (`veafGroundAI.add` / `.remove` / `.get` prennent n'importe quel gestionnaire nommé).
+- **La veille du convoi ne voit pas la végétation.** `land.isVisible` ne tient compte que du relief : le convoi peut juger « en vue » un ennemi que les arbres cachent à l'IA de DCS. C'est pourquoi ses armés vont au contact au lieu de s'arrêter : arrêtés à 1,9 km d'un ennemi « en vue », deux Bradley n'ont pas tiré un coup en deux minutes (mesuré le 2026-10-08).
+- **Les arbres ne servent pas de couvert au repli** : `world.searchObjects` ne les trouve pas. Seuls le relief et les villes cachent le point de repli.
+- **Le fumigène n'aveugle pas l'IA de DCS** (mesuré le 2026-10-08) : il marque, pour les pilotes. Le convoi ne pose donc pas de rideau de fumée.
+- **Un véhicule détaché ou regroupé repart neuf** : DCS ne permet pas de recréer une unité avec ses dégâts. La veille scinde presque toujours le convoi avant le premier coup reçu.
 - **Le rayon de recherche de 250 mètres n'est pas configurable.**
 - Les ordres passent par la carte F10 uniquement : **ce module n'a pas de menu radio**.
 - **La correction n'a pas d'observateur automatique** : c'est le pilote qui regarde où les obus tombent et qui annonce le décalage. Le module ne mesure pas l'écart

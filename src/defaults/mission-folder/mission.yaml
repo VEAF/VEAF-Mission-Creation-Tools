@@ -88,7 +88,12 @@ modules:
   #           items:
   #             - { command: "Enable ALPHA", action: flag.on, flag: "alpha" }
   #             - { command: "Start QRA North", action: qra.start, qra: "QRA-North" }
-  GROUNDAI: true
+  GROUNDAI: true            # the _gc marker, and the convoy watch (every _spawn convoy is watched)
+  # GROUNDAI (extended form, to watch Mission Editor groups as convoys too):
+  #   GROUNDAI:
+  #     enabled: true
+  #     convoys:
+  #       - Supply North
   SPAWN: true
   NAMEDPOINTS: true
   SHORTCUTS: true           # built-in aliases (-shilka, -sa2, …) ; add custom ones with the extended form below

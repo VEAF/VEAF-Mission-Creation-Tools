@@ -37,6 +37,7 @@
     "veafServerHook",
     "AirWaveZone",
     "ArtilleryUnitHandler",
+    "ConvoyUnitHandler",
     "DcsDataExport",
     "dcsUnits",
     "veafCities",

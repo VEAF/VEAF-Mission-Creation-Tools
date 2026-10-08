@@ -30,6 +30,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   They were injected all along, but the line only read the VEAF modules, so the `standard` template reported 20 modules where the tutorial announced 22 — and a mission maker checking that CTLD had been read found it missing.
 - **A flight of Belarus, GDR, Yugoslavia, South Ossetia or the Insurgents now gets a numeric callsign, as the Mission Editor gives it** (FEAT-DCS-REFERENCE-DATA).
   The MCP knew five countries whose aircraft carry a number, measured on existing missions; the editor's own code lists ten, and DCS's callsign table agrees.
+- **A server whose `SERVER_CONFIG` has no `SRS_*` keys no longer crashes the radio voice** (FEAT-CONVOY-UNDER-FIRE).
+  `veaf.lua` copied the missing keys into `STTS` as nil and `veafRadio` built its SRS command anyway: the `string.format` raised inside whatever had asked for a voice. The mission now stays silent and says so in the log.
 
 ### Added
 
@@ -50,6 +52,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Each campaign mission gets its own mission briefing, and a date, a time and a weather of its own** (FEAT-CAMPAIGN-MISSION-BRIEFING).
   Once the mission is built, `campaign briefing` — and `campaign next` with it — writes `missions/mission-NN/briefing-mission.pptx` after the VEAF mission briefing: general situation, ATO, a tactical map and one zoom per objective, mission flow, frequency plan, objective coordinates in DMS — all read from the built mission, never typed: the players' flights without the dynamic-slot or spawn templates, each support aircraft once, the carrier's tower in VHF, the wind said from where it comes, the enemy's QRA zones; the maps' labels never overlap.
   A campaign mission is one mission: the folder `campaign next` creates has no weather variant (`pipeline.weather: false`, no `src/versions.yaml`) and its date, time and weather fixed — the day after the last mission flown, `start_time` (default `sunrise+30*60`) computed on the campaign's own ground rather than at Damascus, a weather drawn per mission with the ground visible (clear, few or scattered clouds, 8 km or more, no fog, no rain); `campaign.yaml` takes a `start_date` and a `start_time`, and a refresh keeps what Claude set since.
+- **Convoys that do not die in an ambush** (FEAT-CONVOY-UNDER-FIRE).
+  Left to DCS, a convoy drives through an ambush at full speed without firing a round (measured). Every `_spawn convoy` — and any group listed under `GROUNDAI.convoys` or handed over with `_gc <name>, convoy` — now watches ahead for the enemy, and at the first enemy in sight or the first shot received splits: the unarmed vehicles flee at once as their own group, the armed ones close in to fight or fall back too when outgunned.
+  It calls for help as a troops-in-contact call to its coalition, with a red smoke on the enemy and a green one on itself, in voice on guard when SRS is configured; it falls back toward a friendly place through a point terrain or a town hides; then it holds and waits for `_gc <convoy>, retreat`, `hold` or `resume`, which merges it back into one group.
 
 ### Changed
 

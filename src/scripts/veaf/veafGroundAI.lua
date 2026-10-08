@@ -799,6 +799,1132 @@ function ArtilleryUnitHandler:clearOrders()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ConvoyUnitHandler class
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- A convoy that looks ahead, splits when it sees the enemy, calls for help and falls back.
+---
+--- What DCS does with a convoy on its own was measured on 2026-10-08 (FEAT-CONVOY-UNDER-FIRE, the PRD's
+--- table): it drives on at full speed through an ambush without firing a round, its
+--- `getDetectedTargets` can stay empty for 45 s under fire, and when it is given a new route only its
+--- lead obeys while the rest of the column stalls where it stands. So this handler does not wait for
+--- DCS to notice anything:
+---
+--- * a **wide watch** every 30 s lists the living enemy ground units within reach;
+--- * while there are some, a **close watch** every 3 s traces lines of sight to them;
+--- * an enemy in sight within range, or a shot or a hit received, is a **contact**: the unarmed vehicles
+---   are respawned as their own group and flee at once, the armed ones fight or fall back after them,
+---   and the convoy calls for help.
+---
+--- The two watches are David's design (2026-10-08). A line of sight costs ~14 µs (measured), so the close
+--- watch is not the expensive part; the wide watch is kept slow because it asks the engine to walk every
+--- object in a sphere.
+ConvoyUnitHandler = GroundUnitHandler:new()
+ConvoyUnitHandler.CLASS_NAME = "ConvoyUnitHandler"
+
+--- Seconds between two wide watches.
+ConvoyUnitHandler.WIDE_WATCH_PERIOD = 30
+--- Seconds between two close watches, while an enemy is within the watch radius.
+ConvoyUnitHandler.CLOSE_WATCH_PERIOD = 3
+--- The wide watch's radius at a standstill, in metres; it grows with the speed.
+ConvoyUnitHandler.WATCH_BASE_RADIUS = 5000
+--- Seconds of driving added to the watch radius, so the next wide watch does not come too late.
+ConvoyUnitHandler.WATCH_LOOKAHEAD_SECONDS = 60
+--- An enemy in sight closer than this is a contact, in metres. The ambush of 2026-10-08 opened fire at
+--- ~1.3 km; a BMP's Konkurs reaches 4 km, its guns much less.
+ConvoyUnitHandler.ENGAGEMENT_RANGE = 3000
+--- Height of a vehicle's eyes above the ground, for the lines of sight.
+ConvoyUnitHandler.EYE_HEIGHT = 2.5
+--- The armed vehicles fight when their strength is at least this many times the enemy's in sight.
+ConvoyUnitHandler.FIGHT_RATIO = 1.5
+--- Seconds with nothing in sight and no shot received before the convoy stands down and holds.
+ConvoyUnitHandler.QUIET_DELAY = 60
+--- The unarmed group is merged back into the convoy once this close to it, in metres.
+ConvoyUnitHandler.MERGE_DISTANCE = 300
+--- How close the armed vehicles go to the nearest threat to fight it, in metres, and how fast. On
+--- 2026-10-08 Bradleys driving in opened fire at ~1.3 km; halted at 1.9 km they never did.
+ConvoyUnitHandler.ASSAULT_STANDOFF = 900
+ConvoyUnitHandler.ASSAULT_SPEED = 8
+--- Seconds between two smoke marks while the contact lasts.
+ConvoyUnitHandler.SMOKE_RENEW_PERIOD = 300
+--- The fall-back search: rings around the convoy, in metres, and the spread of bearings away from the
+--- enemy, in degrees either side of straight away.
+ConvoyUnitHandler.RALLY_RINGS = { 1000, 1500, 2000, 2500, 3000 }
+ConvoyUnitHandler.RALLY_SPREAD = 90
+ConvoyUnitHandler.RALLY_STEP = 15
+--- At most this many threats are tested for each candidate rally point (the nearest ones).
+ConvoyUnitHandler.RALLY_MAX_THREATS = 5
+--- A rally point this close to a road is moved onto it: off road, the second run's column bogged down.
+ConvoyUnitHandler.ROAD_SNAP_DISTANCE = 300
+--- A town masks a rally point when its centre lies this close to the line from the enemy to it.
+ConvoyUnitHandler.TOWN_COVER_RADIUS = 400
+--- The name the unarmed vehicles' group takes, after the convoy's.
+ConvoyUnitHandler.UNARMED_SUFFIX = "unarmed"
+--- What the call for help is sent on, in voice, when the mission can speak: the two guard frequencies.
+ConvoyUnitHandler.GUARD_FREQUENCIES = "243,121.5"
+ConvoyUnitHandler.GUARD_MODULATIONS = "AM,AM"
+
+--- The strength a vehicle brings to a fight, by DCS attribute, first match wins.
+---
+--- Read from DCS on 2026-10-08: a `Hummer` is an `APC` and `Armed vehicles` like the armed HMMWV; a
+--- `ZSU-23-4 Shilka` is `AAA` but not `Armed ground units`, which is why `AAA` has its own line; a truck
+--- is `Unarmed vehicles` and matches none of them.
+ConvoyUnitHandler.STRENGTH_BY_ATTRIBUTE = {
+  { attribute = "Tanks", strength = 4 },
+  { attribute = "IFV", strength = 3 },
+  { attribute = "APC", strength = 1 },
+  { attribute = "AAA", strength = 1 },
+  { attribute = "Armed ground units", strength = 1 },
+}
+
+ConvoyUnitHandler.STATE_DRIVING = 1
+ConvoyUnitHandler.STATE_ALERTED = 2
+ConvoyUnitHandler.STATE_FIGHTING = 3
+ConvoyUnitHandler.STATE_FALLING_BACK = 4
+ConvoyUnitHandler.STATE_HOLDING = 5
+ConvoyUnitHandler.STATE_RETREATING = 6
+ConvoyUnitHandler.STATE_RESUMING = 7
+
+function ConvoyUnitHandler.stateToString(state)
+  return veaf.enumToString(state, {
+    [ConvoyUnitHandler.STATE_DRIVING] = "driving",
+    [ConvoyUnitHandler.STATE_ALERTED] = "alerted",
+    [ConvoyUnitHandler.STATE_FIGHTING] = "fighting",
+    [ConvoyUnitHandler.STATE_FALLING_BACK] = "falling back",
+    [ConvoyUnitHandler.STATE_HOLDING] = "holding",
+    [ConvoyUnitHandler.STATE_RETREATING] = "retreating",
+    [ConvoyUnitHandler.STATE_RESUMING] = "resuming",
+  })
+end
+
+function ConvoyUnitHandler.init(object)
+  -- the DCS group's name: the group object itself is replaced when the convoy is merged back
+  object.groupName = nil
+  -- the group of the unarmed vehicles, once the convoy has split
+  object.unarmedGroupName = nil
+  object.side = nil
+  object.enemySide = nil
+  object.state = ConvoyUnitHandler.STATE_DRIVING
+  -- the enemy units the last wide watch found, as DCS objects
+  object.enemies = {}
+  -- one record per enemy unit that was seen or fired: { name, point, typeName, strength, lastSeen }
+  object.threats = {}
+  object.lastContact = nil
+  object.nextWideWatch = 0
+  object.nextSmoke = 0
+  -- the route a Mission Editor group was given, kept to drive on after a contact
+  object.originalRoute = nil
+end
+
+function ConvoyUnitHandler:new(objectToCopy)
+  veaf.loggers.get(veafGroundAI.Id):debug(ConvoyUnitHandler.CLASS_NAME .. ":new()")
+  local objectToCreate = objectToCopy or {}
+  setmetatable(objectToCreate, self)
+  self.__index = self
+  GroundUnitHandler.init(objectToCreate)
+  ConvoyUnitHandler.init(objectToCreate)
+  return objectToCreate
+end
+
+--- The convoy's DCS group, by name, and the coalitions that follow from it.
+--- @param value string
+function ConvoyUnitHandler:setGroupName(value)
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setGroupName(%s)", veaf.lp(self:getName()), veaf.lp(value))
+  self.groupName = value
+  local group = Group.getByName(value)
+  if group then
+    self.dcsGroup = group
+    self.side = group:getCoalition()
+    self.enemySide = veafGroundAI.enemySideOf(self.side)
+  end
+  return self
+end
+
+function ConvoyUnitHandler:getGroupName()
+  return self.groupName
+end
+
+--- The convoy's group, or nil once it no longer exists.
+function ConvoyUnitHandler:getGroup()
+  return veafGroundAI.livingGroup(self.groupName)
+end
+
+--- The unarmed vehicles' group, or nil when the convoy has not split or they are gone.
+function ConvoyUnitHandler:getUnarmedGroup()
+  return veafGroundAI.livingGroup(self.unarmedGroupName)
+end
+
+function ConvoyUnitHandler:getDescription()
+  return string.format(
+    "%s is a convoy (%s), DCS group %s",
+    self:getName(),
+    ConvoyUnitHandler.stateToString(self.state),
+    tostring(self.groupName)
+  )
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- convoy helpers, kept free of any handler so that they can be tested on their own
+
+--- The coalition a convoy of this side fights. Neutral fights nobody.
+--- @param side number a coalition.side
+--- @return number|nil
+function veafGroundAI.enemySideOf(side)
+  if side == coalition.side.RED then
+    return coalition.side.BLUE
+  elseif side == coalition.side.BLUE then
+    return coalition.side.RED
+  end
+  return nil
+end
+
+--- A group that exists and still has units, or nil.
+--- @param groupName string|nil
+--- @return table|nil
+function veafGroundAI.livingGroup(groupName)
+  if not groupName then
+    return nil
+  end
+  local group = Group.getByName(groupName)
+  if not group then
+    return nil
+  end
+  local ok, alive = pcall(function()
+    return group:isExist() and #group:getUnits() > 0
+  end)
+  if ok and alive then
+    return group
+  end
+  return nil
+end
+
+--- How far the wide watch looks, in metres, for a convoy driving at this speed.
+--- @param speed number metres per second
+--- @return number
+function veafGroundAI.convoyWatchRadius(speed)
+  return ConvoyUnitHandler.WATCH_BASE_RADIUS + ConvoyUnitHandler.WATCH_LOOKAHEAD_SECONDS * (speed or 0)
+end
+
+--- The strength a unit brings to a fight; 0 for a truck.
+--- @param unit table a DCS unit
+--- @return number
+function veafGroundAI.unitStrength(unit)
+  for _, entry in ipairs(ConvoyUnitHandler.STRENGTH_BY_ATTRIBUTE) do
+    if unit:hasAttribute(entry.attribute) then
+      return entry.strength
+    end
+  end
+  return 0
+end
+
+--- Do the armed vehicles stand and fight, rather than fall back?
+--- @param ownStrength number
+--- @param enemyStrength number `math.huge` for an enemy they cannot answer (an aircraft, a gun out of range)
+--- @return boolean
+function veafGroundAI.convoyShouldFight(ownStrength, enemyStrength)
+  return ownStrength > 0 and ownStrength >= ConvoyUnitHandler.FIGHT_RATIO * enemyStrength
+end
+
+--- Is this object a living ground unit of that coalition?
+---
+--- `world.searchObjects` keeps returning destroyed ground units with their coalition (known limitation
+--- `destroyed-units-are-still-found-by-searchobjects`), so `isExist()` and `getLife() >= 1` are both
+--- tested. Guarded: an object handed by DCS may be released while it is read.
+--- @param object table a DCS object
+--- @param side number a coalition.side
+--- @return boolean
+function veafGroundAI.isLivingGroundUnitOf(object, side)
+  if not object or not side then
+    return false
+  end
+  local ok, result = pcall(function()
+    return object:isExist()
+      and object:getCoalition() == side
+      and object:getCategoryEx() == Unit.Category.GROUND_UNIT
+      and object:getLife() >= 1
+      and (not object.isActive or object:isActive())
+  end)
+  return ok and result == true
+end
+
+--- The living enemy ground units within a sphere.
+--- @param center table a vec3
+--- @param radius number metres
+--- @param enemySide number a coalition.side
+--- @return table the DCS units
+function veafGroundAI.findEnemyGroundUnits(center, radius, enemySide)
+  local found = {}
+  local volume = { id = world.VolumeType.SPHERE, params = { point = center, radius = radius } }
+  world.searchObjects(Object.Category.UNIT, volume, function(object)
+    if veafGroundAI.isLivingGroundUnitOf(object, enemySide) then
+      table.insert(found, object)
+    end
+    return true
+  end)
+  return found
+end
+
+local function dist2D(a, b)
+  local dx, dz = a.x - b.x, a.z - b.z
+  return math.sqrt(dx * dx + dz * dz)
+end
+
+--- A point raised to a vehicle's eyes, on the ground under it.
+local function atEyeHeight(point)
+  return { x = point.x, y = land.getHeight({ x = point.x, y = point.z }) + ConvoyUnitHandler.EYE_HEIGHT, z = point.z }
+end
+
+--- A point on the ground, as `trigger.action.smoke` wants it.
+local function onGround(point)
+  return { x = point.x, y = land.getHeight({ x = point.x, y = point.z }), z = point.z }
+end
+
+--- Does any of these units see the enemy, within range?
+--- @param units table DCS units
+--- @param enemyPoint table a vec3
+--- @return boolean
+function veafGroundAI.anyUnitSees(units, enemyPoint)
+  local enemyEyes = atEyeHeight(enemyPoint)
+  for _, unit in ipairs(units) do
+    local point = unit:getPoint()
+    if dist2D(point, enemyPoint) <= ConvoyUnitHandler.ENGAGEMENT_RANGE and land.isVisible(atEyeHeight(point), enemyEyes) then
+      return true
+    end
+  end
+  return false
+end
+
+--- The towns of the theatre, as map points, converted once.
+veafGroundAI._townPoints = nil
+
+function veafGroundAI.townPoints()
+  if veafGroundAI._townPoints then
+    return veafGroundAI._townPoints
+  end
+  local points = {}
+  local theatre = env and env.mission and env.mission.theatre
+  local towns = veafCities and theatre and veafCities[theatre]
+  for _, town in pairs(towns or {}) do
+    local point = coord.LLtoLO(town.latitude, town.longitude, 0)
+    table.insert(points, { x = point.x, y = 0, z = point.z })
+  end
+  veafGroundAI._townPoints = points
+  return points
+end
+
+--- Does a town stand between the enemy and the point, close enough to the line to mask it?
+--- @param from table the enemy's vec3
+--- @param to table the point's vec3
+--- @return boolean
+function veafGroundAI.townBetween(from, to)
+  local dx, dz = to.x - from.x, to.z - from.z
+  local length2 = dx * dx + dz * dz
+  if length2 == 0 then
+    return false
+  end
+  local cover = ConvoyUnitHandler.TOWN_COVER_RADIUS
+  for _, town in ipairs(veafGroundAI.townPoints()) do
+    local t = ((town.x - from.x) * dx + (town.z - from.z) * dz) / length2
+    -- strictly between the two, and not on top of either: a town the enemy stands in masks nothing
+    if t > 0 and t < 1 and dist2D(town, from) > cover and dist2D(town, to) > cover then
+      local closest = { x = from.x + t * dx, z = from.z + t * dz }
+      if dist2D(town, closest) <= cover then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+--- Is the point hidden from every one of these threats, by terrain or a town?
+--- @param point table a vec3
+--- @param threatPoints table vec3s
+--- @return boolean
+function veafGroundAI.isMaskedFrom(point, threatPoints)
+  local eyes = atEyeHeight(point)
+  for _, threatPoint in ipairs(threatPoints) do
+    if land.isVisible(atEyeHeight(threatPoint), eyes) and not veafGroundAI.townBetween(threatPoint, point) then
+      return false
+    end
+  end
+  return true
+end
+
+--- The nearest friendly place: a campaign zone the side owns, or one of its airbases (not a ship).
+--- @param side number a coalition.side
+--- @param from table a vec3
+--- @return table|nil { name, point }
+function veafGroundAI.nearestFriendlyPlace(side, from)
+  local best, bestDistance = nil, math.huge
+  local function consider(name, point)
+    local distance = dist2D(point, from)
+    if distance < bestDistance then
+      best, bestDistance = { name = name, point = { x = point.x, y = 0, z = point.z } }, distance
+    end
+  end
+  local owner = (side == coalition.side.BLUE and "blue") or (side == coalition.side.RED and "red") or nil
+  if owner and veafCampaign and veafCampaign.zoneList then
+    for _, zone in ipairs(veafCampaign.zoneList) do
+      if zone:getOwner() == owner and zone.entry.x and zone.entry.z then
+        consider(zone.name, zone:getCenter())
+      end
+    end
+  end
+  for _, airbase in ipairs(coalition.getAirbases(side) or {}) do
+    local desc = airbase:getDesc()
+    if not (desc and desc.category == Airbase.Category.SHIP) then
+      consider(airbase:getName(), airbase:getPoint())
+    end
+  end
+  return best
+end
+
+--- The point a convoy falls back to: out of the enemy's sight, preferably toward a friendly place.
+---
+--- Candidates are sampled on rings around the convoy, across the half-plane away from the enemy, and
+--- moved onto a road when one is near. A candidate the threats cannot see (terrain or a town in the
+--- way) wins over one they can; among the hidden ones the cheapest is the shortest drive there plus the
+--- drive on to the friendly place. When none is hidden, the cheapest one out of the enemy's range wins;
+--- when there is none of those either, straight away from the nearest threat, out of its range.
+---
+--- Bounded work: `#RALLY_RINGS * (2 * RALLY_SPREAD / RALLY_STEP + 1)` candidates, each tested against
+--- at most `RALLY_MAX_THREATS` threats — 325 lines of sight at most, ~5 ms by the 2026-10-08 measure.
+---
+--- @param from table the convoy's vec3
+--- @param threatPoints table the threats' vec3s, nearest first
+--- @param destination table|nil the friendly place's vec3
+--- @return table the rally point, a vec3
+--- @return boolean whether it is hidden from the threats
+function veafGroundAI.chooseRallyPoint(from, threatPoints, destination)
+  local threats = {}
+  for index = 1, math.min(#threatPoints, ConvoyUnitHandler.RALLY_MAX_THREATS) do
+    threats[index] = threatPoints[index]
+  end
+  local nearest = threats[1]
+  local away = math.atan2(from.z - nearest.z, from.x - nearest.x)
+  local outOfRange = ConvoyUnitHandler.ENGAGEMENT_RANGE + 500
+
+  local bestHidden, bestHiddenCost = nil, math.huge
+  local bestFar, bestFarCost = nil, math.huge
+  for _, ring in ipairs(ConvoyUnitHandler.RALLY_RINGS) do
+    for offset = -ConvoyUnitHandler.RALLY_SPREAD, ConvoyUnitHandler.RALLY_SPREAD, ConvoyUnitHandler.RALLY_STEP do
+      local bearing = away + math.rad(offset)
+      local candidate = { x = from.x + ring * math.cos(bearing), y = 0, z = from.z + ring * math.sin(bearing) }
+      local roadX, roadZ = land.getClosestPointOnRoads("roads", candidate.x, candidate.z)
+      if roadX and roadZ and dist2D({ x = roadX, z = roadZ }, candidate) <= ConvoyUnitHandler.ROAD_SNAP_DISTANCE then
+        candidate = { x = roadX, y = 0, z = roadZ }
+      end
+      local cost = dist2D(from, candidate) + (destination and dist2D(candidate, destination) or 0)
+      if veafGroundAI.isMaskedFrom(candidate, threats) then
+        if cost < bestHiddenCost then
+          bestHidden, bestHiddenCost = candidate, cost
+        end
+      else
+        local closest = math.huge
+        for _, threat in ipairs(threats) do
+          closest = math.min(closest, dist2D(threat, candidate))
+        end
+        if closest >= outOfRange and cost < bestFarCost then
+          bestFar, bestFarCost = candidate, cost
+        end
+      end
+    end
+  end
+  if bestHidden then
+    return bestHidden, true
+  end
+  if bestFar then
+    return bestFar, false
+  end
+  local alreadyAway = dist2D(from, nearest)
+  local run = math.max(outOfRange - alreadyAway, ConvoyUnitHandler.RALLY_RINGS[1])
+  return { x = from.x + run * math.cos(away), y = 0, z = from.z + run * math.sin(away) }, false
+end
+
+--- A route point in mission-table form, where `y` is the easting (docs/agents/dcs-coordinates.md).
+local function routePoint(point, action, speed)
+  return {
+    x = point.x,
+    y = point.z,
+    type = "Turning Point",
+    action = action,
+    speed = speed,
+    speed_locked = true,
+    ETA = 0,
+    ETA_locked = false,
+  }
+end
+
+--- The route a convoy falls back on: off road to the rally point, then on road to the friendly place.
+---
+--- Off road only for the first leg, which is short; the second run of 2026-10-08 bogged down at 0.6 m/s
+--- on a 9 km straight line across country.
+--- @param from table the convoy's vec3
+--- @param rally table the rally point's vec3
+--- @param destination table|nil the friendly place's vec3
+--- @param speed number metres per second
+--- @return table route points
+function veafGroundAI.fallBackRoute(from, rally, destination, speed)
+  local points = { routePoint(from, "Off Road", speed), routePoint(rally, "Off Road", speed) }
+  if destination then
+    table.insert(points, routePoint(rally, "On Road", speed))
+    table.insert(points, routePoint(destination, "On Road", speed))
+  end
+  return points
+end
+
+--- The call for help, in the shape of a troops-in-contact call.
+---
+--- JP 3-09.3, *Close Air Support* (25 November 2014): "troops in contact" is friendly forces receiving
+--- effective fire, an advisory call that highlights the urgency of the ground situation (p. III-36); an
+--- immediate request names the unit called and the caller, priority #1 emergency, then "target is /
+--- number of" (Appendix A, Section I). The rest is what a pilot needs to find both sides: where the
+--- convoy is, where the enemy is from it, and the smokes.
+--- @param callsign string
+--- @param convoyPoint table a vec3
+--- @param threats table the threat records, nearest first
+--- @return string the text
+--- @return string the shorter text for the voice
+function veafGroundAI.convoyContactCall(callsign, convoyPoint, threats)
+  local nearest = threats[1]
+  local bearing, distance = veaf.getBearingAndRangeFromTo(convoyPoint, nearest.point)
+  local lat, lon = coord.LOtoLL(convoyPoint)
+  local position = veafGeo.toStringLL(lat, lon, 3) .. " / " .. veafGeo.toStringMGRS(coord.LLtoMGRS(lat, lon), 4)
+  local counts, order = {}, {}
+  for _, threat in ipairs(threats) do
+    if not counts[threat.typeName] then
+      counts[threat.typeName] = 0
+      table.insert(order, threat.typeName)
+    end
+    counts[threat.typeName] = counts[threat.typeName] + 1
+  end
+  local described = {}
+  for _, typeName in ipairs(order) do
+    table.insert(described, string.format("%d x %s", counts[typeName], typeName))
+  end
+  local text = veaf.t("groundai.convoy_tic", callsign, position, #threats, table.concat(described, ", "), bearing, veaf.round(distance, -1))
+  local voice = veaf.t("groundai.convoy_tic_voice", callsign, #threats, bearing, veaf.round(distance / 100, 0) * 100)
+  return text, voice
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- the watch
+
+function ConvoyUnitHandler:start()
+  self.nextWideWatch = 0
+  return GroundUnitHandler.start(self)
+end
+
+--- One beat of the watch, then the next one scheduled: every 30 s while nothing is near, every 3 s
+--- otherwise. The beat ends for good once the convoy and its unarmed group are both gone.
+function ConvoyUnitHandler:check()
+  local now = timer.getTime()
+  local group = self:getGroup()
+  if not group and not self:getUnarmedGroup() then
+    veaf.loggers.get(veafGroundAI.Id):info("convoy %s is gone, its watch ends", veaf.p(self:getName()))
+    veafGroundAI.forgetConvoy(self)
+    return
+  end
+  -- Guarded, so that a beat that raises still schedules the next one: the first in-game run lost its
+  -- watch to an error two calls down (2026-10-08).
+  if group then
+    veaf.safeCall(self.watch, self, now, group)
+  end
+  if self.state == ConvoyUnitHandler.STATE_RESUMING then
+    veaf.safeCall(self.mergeIfClose, self)
+  end
+
+  local delay = ConvoyUnitHandler.CLOSE_WATCH_PERIOD
+  if self.state == ConvoyUnitHandler.STATE_DRIVING then
+    delay = ConvoyUnitHandler.WIDE_WATCH_PERIOD
+  end
+  self:setCheckFunctionSchedule(veaf.scheduleFunction(function(handler)
+    veaf.safeCall(handler.check, handler)
+  end, { self }, now + delay))
+end
+
+--- Is the convoy in contact, rather than looking for one?
+function ConvoyUnitHandler:isInContact()
+  return self.state == ConvoyUnitHandler.STATE_FIGHTING or self.state == ConvoyUnitHandler.STATE_FALLING_BACK
+end
+
+--- The wide watch when it is due, the close watch while an enemy is near, and what follows from them.
+--- @param now number
+--- @param group table the convoy's DCS group
+function ConvoyUnitHandler:watch(now, group)
+  local units = group:getUnits()
+  if now >= self.nextWideWatch then
+    self.nextWideWatch = now + ConvoyUnitHandler.WIDE_WATCH_PERIOD
+    local velocity = units[1]:getVelocity()
+    local speed = math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+    local center = veaf.getAveragePosition(group)
+    self.enemies = veafGroundAI.findEnemyGroundUnits(center, veafGroundAI.convoyWatchRadius(speed), self.enemySide)
+    if self.state == ConvoyUnitHandler.STATE_DRIVING and #self.enemies > 0 then
+      veaf.loggers.get(veafGroundAI.Id):debug("convoy %s: %d enemies within reach, close watch on", veaf.p(self:getName()), #self.enemies)
+      self.state = ConvoyUnitHandler.STATE_ALERTED
+    elseif self.state == ConvoyUnitHandler.STATE_ALERTED and #self.enemies == 0 then
+      self.state = ConvoyUnitHandler.STATE_DRIVING
+    end
+  end
+
+  local seen = {}
+  for _, enemy in ipairs(self.enemies) do
+    if veafGroundAI.isLivingGroundUnitOf(enemy, self.enemySide) and veafGroundAI.anyUnitSees(units, enemy:getPoint()) then
+      table.insert(seen, enemy)
+    end
+  end
+  for _, enemy in ipairs(seen) do
+    self:recordThreat(enemy, now)
+  end
+  if #seen > 0 and not self:isInContact() then
+    self:engage(now)
+  end
+
+  if self:isInContact() then
+    if now - self.lastContact >= ConvoyUnitHandler.QUIET_DELAY then
+      self:standDown()
+    elseif now >= self.nextSmoke then
+      self:markWithSmoke(now)
+    end
+  end
+end
+
+--- Remember an enemy unit that was seen or that fired. One record per unit, however many bullets.
+--- @param unit table a DCS unit
+--- @param now number
+function ConvoyUnitHandler:recordThreat(unit, now)
+  local ok, name, point, typeName = pcall(function()
+    return unit:getName(), unit:getPoint(), unit:getTypeName()
+  end)
+  if not ok then
+    return
+  end
+  local strength = math.huge
+  local group = self:getGroup()
+  local isGround = veafGroundAI.isLivingGroundUnitOf(unit, self.enemySide)
+  -- an aircraft, or a gun firing from beyond the range the convoy can answer at: nothing to fight
+  if isGround and group and dist2D(point, veaf.getAveragePosition(group)) <= ConvoyUnitHandler.ENGAGEMENT_RANGE then
+    strength = veafGroundAI.unitStrength(unit)
+  end
+  self.threats[name] = { name = name, point = point, typeName = typeName, strength = strength, lastSeen = now, ground = isGround }
+  self.lastContact = now
+end
+
+--- A shot fired at the convoy or a hit taken, from the event handler.
+---
+--- A same-coalition initiator is ignored: a truck's explosion raises `S_EVENT_HIT` on its neighbours with
+--- the truck as the initiator (measured 2026-10-08), and it is not an enemy. An event with no initiator
+--- is ignored too: some shell hits carry none, and the shooter's own `S_EVENT_SHOOTING_START` names it.
+--- @param initiator table|nil the DCS unit that fired
+function ConvoyUnitHandler:reportFire(initiator)
+  -- `_gc <convoy>, stop` or `unset` leaves the convoy in the event registry; stopped, it reacts to nothing
+  if not initiator or self.status ~= GroundUnitHandler.STATUS_ACTIVE then
+    return
+  end
+  local ok, side = pcall(function()
+    return initiator:getCoalition()
+  end)
+  if not ok or side ~= self.enemySide then
+    return
+  end
+  local now = timer.getTime()
+  self:recordThreat(initiator, now)
+  if not self:isInContact() then
+    self:engage(now)
+  end
+end
+
+--- The threats seen lately, nearest first.
+--- @return table threat records
+function ConvoyUnitHandler:recentThreats()
+  local now = timer.getTime()
+  local group = self:getGroup() or self:getUnarmedGroup()
+  local center = group and veaf.getAveragePosition(group)
+  local recent = {}
+  for _, threat in pairs(self.threats) do
+    if now - threat.lastSeen <= ConvoyUnitHandler.QUIET_DELAY then
+      table.insert(recent, threat)
+    end
+  end
+  if center then
+    table.sort(recent, function(a, b)
+      return dist2D(a.point, center) < dist2D(b.point, center)
+    end)
+  end
+  return recent
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- the reaction
+
+--- The contact: split, fight or fall back, call for help.
+--- @param now number
+function ConvoyUnitHandler:engage(now)
+  local group = self:getGroup()
+  local threats = self:recentThreats()
+  if not group or #threats == 0 then
+    return
+  end
+  veaf.loggers.get(veafGroundAI.Id):info("convoy %s: contact with %d enemies", veaf.p(self:getName()), #threats)
+  self.lastContact = now
+  self:suspendItinerary()
+
+  local armed, unarmed, ownStrength = {}, {}, 0
+  for _, unit in ipairs(group:getUnits()) do
+    local strength = veafGroundAI.unitStrength(unit)
+    if strength > 0 then
+      table.insert(armed, unit)
+      ownStrength = ownStrength + strength
+    else
+      table.insert(unarmed, unit)
+    end
+  end
+  local enemyStrength = 0
+  for _, threat in ipairs(threats) do
+    enemyStrength = enemyStrength + threat.strength
+  end
+
+  local rally, destination = self:fallBackPoints(group, threats)
+  if #armed == 0 then
+    self:fallBack(self.groupName, rally, destination)
+    self.state = ConvoyUnitHandler.STATE_FALLING_BACK
+  else
+    if #unarmed > 0 then
+      self:detachUnarmed(unarmed, rally, destination)
+    elseif self:getUnarmedGroup() then
+      self:fallBack(self.unarmedGroupName, rally, destination)
+    end
+    if veafGroundAI.convoyShouldFight(ownStrength, enemyStrength) then
+      self:fight(threats[1])
+      self.state = ConvoyUnitHandler.STATE_FIGHTING
+    else
+      self:fallBack(self.groupName, rally, destination)
+      self.state = ConvoyUnitHandler.STATE_FALLING_BACK
+    end
+  end
+  self:callForHelp(now)
+end
+
+--- Where the convoy falls back to, from where it stands now.
+--- @return table the rally point
+--- @return table|nil the friendly place's point
+function ConvoyUnitHandler:fallBackPoints(group, threats)
+  local from = veaf.getAveragePosition(group)
+  local threatPoints = {}
+  for _, threat in ipairs(threats) do
+    table.insert(threatPoints, threat.point)
+  end
+  local place = veafGroundAI.nearestFriendlyPlace(self.side, from)
+  local destination = place and place.point
+  local rally = veafGroundAI.chooseRallyPoint(from, threatPoints, destination)
+  return rally, destination
+end
+
+--- A `_spawn convoy` keeps walking its itinerary through `veafSpawn.convoyArrivalWatchdog`, which would
+--- send it back on its way at the next arrival check; its `stopped` flag is what that watch respects.
+function ConvoyUnitHandler:suspendItinerary()
+  local record = veafSpawn and veafSpawn.spawnedConvoys and veafSpawn.spawnedConvoys[self.groupName]
+  if record then
+    record.stopped = true
+  end
+end
+
+--- Respawn the unarmed vehicles as their own group, where they stand, and send it away at once.
+---
+--- A DCS ground group moves as one — the second run of 2026-10-08 turned its lead and left the rest of
+--- the column standing — so a split is the only way for some vehicles to stay while others leave. DCS
+--- cannot set a respawned unit's damage: a damaged truck comes back whole (decided 2026-10-08; the watch
+--- makes the split come before the first hit in most cases).
+--- @param units table the unarmed DCS units
+--- @param rally table the rally point
+--- @param destination table|nil the friendly place
+function ConvoyUnitHandler:detachUnarmed(units, rally, destination)
+  local definitions = {}
+  local countryId = units[1]:getCountry()
+  local center = { x = 0, y = 0, z = 0 }
+  for _, unit in ipairs(units) do
+    table.insert(definitions, veafGroundAI.unitDefinition(unit))
+    local point = unit:getPoint()
+    center.x, center.z = center.x + point.x / #units, center.z + point.z / #units
+  end
+  local name = self.unarmedGroupName or veafDcsSpawner.freeNameFrom(self.groupName .. " " .. ConvoyUnitHandler.UNARMED_SUFFIX)
+  for _, unit in ipairs(units) do
+    unit:destroy()
+  end
+  veafDcsSpawner.addGroup({
+    countryId = countryId,
+    category = "vehicle",
+    name = name,
+    units = definitions,
+    route = { points = veafGroundAI.fallBackRoute(center, rally, destination, veafGroundAI.FALL_BACK_SPEED) },
+  })
+  self.unarmedGroupName = name
+  veafGroundAI.convoysByGroupName[name] = self
+  self:say("groundai.convoy_unarmed_falling_back")
+end
+
+--- Speed of a falling-back group, in metres per second (about 40 km/h).
+veafGroundAI.FALL_BACK_SPEED = 11
+
+--- What `addGroup` needs to rebuild this unit where it stands. The name is left to the spawner: the unit
+--- being replaced may still hold its own for a frame.
+--- @param unit table a DCS unit
+--- @return table the unit definition
+function veafGroundAI.unitDefinition(unit)
+  local position = unit:getPosition()
+  return {
+    type = unit:getTypeName(),
+    x = position.p.x,
+    y = position.p.z,
+    heading = math.atan2(position.x.z, position.x.x),
+    skill = "Average",
+  }
+end
+
+--- Go and fight: alarm red, weapons free, and close in to `ASSAULT_STANDOFF` of the nearest threat.
+---
+--- Not a halt where the contact was made. On 2026-10-08 two Bradleys halted 1.9 km from a BMP and a BTR
+--- the watch could see: in two minutes not a round was fired by either side, their unit-level
+--- `getDetectedTargets` stayed empty, and neither `Controller.knowTarget` nor a `FireAtPoint` task made
+--- them fire. Sent forward instead, they opened fire at ~1.3 km and destroyed both in 16 s.
+--- @param threat table the nearest threat's record
+function ConvoyUnitHandler:fight(threat)
+  local group = self:getGroup()
+  local controller = group:getController()
+  controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
+  controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
+  local from = veaf.getAveragePosition(group)
+  local distance = dist2D(from, threat.point)
+  if distance <= ConvoyUnitHandler.ASSAULT_STANDOFF then
+    controller:pushTask({ id = "Hold", params = {} })
+  else
+    local share = (distance - ConvoyUnitHandler.ASSAULT_STANDOFF) / distance
+    local stop = { x = from.x + (threat.point.x - from.x) * share, y = 0, z = from.z + (threat.point.z - from.z) * share }
+    veaf.goRoute(self.groupName, {
+      routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
+      routePoint(stop, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
+    })
+  end
+  self:say("groundai.convoy_fighting")
+end
+
+--- Send a group away on the fall-back route, returning fire as it goes.
+--- @param groupName string
+--- @param rally table
+--- @param destination table|nil
+function ConvoyUnitHandler:fallBack(groupName, rally, destination)
+  local group = veafGroundAI.livingGroup(groupName)
+  if not group then
+    return
+  end
+  local controller = group:getController()
+  controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
+  controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
+  veaf.goRoute(groupName, veafGroundAI.fallBackRoute(veaf.getAveragePosition(group), rally, destination, veafGroundAI.FALL_BACK_SPEED))
+  if groupName == self.groupName then
+    self:say("groundai.convoy_falling_back")
+  end
+end
+
+--- A message to the convoy's coalition, naming it.
+function ConvoyUnitHandler:say(key, ...)
+  trigger.action.outTextForCoalition(self.side, veaf.t(key, self:getName(), ...), 15)
+end
+
+--- Call for help: the text to the coalition, the voice on guard when the mission can speak, the smokes.
+---
+--- The voice goes through `veafRadio.transmitMessage`, which does nothing when the mission has no SRS
+--- configured (`STTS`) or no `os` — the case on dcs.veaf.org, decided 2026-10-08 — and the text goes out
+--- regardless.
+--- @param now number
+function ConvoyUnitHandler:callForHelp(now)
+  local group = self:getGroup() or self:getUnarmedGroup()
+  local threats = self:recentThreats()
+  if not group or #threats == 0 then
+    return
+  end
+  local center = veaf.getAveragePosition(group)
+  local text, voice = veafGroundAI.convoyContactCall(self:getName(), center, threats)
+  trigger.action.outTextForCoalition(self.side, text, 30)
+  self:markWithSmoke(now)
+  -- Last, and guarded: a radio that raises must not take the smokes or the watch down with it, which is
+  -- what a half-configured SRS did on 2026-10-08.
+  if veafRadio and veafRadio.transmitMessage then
+    veaf.safeCall(
+      veafRadio.transmitMessage,
+      voice,
+      ConvoyUnitHandler.GUARD_FREQUENCIES,
+      ConvoyUnitHandler.GUARD_MODULATIONS,
+      self:getName(),
+      self.side,
+      center,
+      true
+    )
+  end
+end
+
+--- Red smoke on the nearest enemy, green on the convoy: only with a call for help (David, 2026-10-08),
+--- and for the pilots' eyes only — smoke does not blind DCS's AI (measured 2026-10-08).
+--- @param now number
+function ConvoyUnitHandler:markWithSmoke(now)
+  local group = self:getGroup() or self:getUnarmedGroup()
+  local threats = self:recentThreats()
+  if not group or #threats == 0 then
+    return
+  end
+  -- on the nearest enemy on the ground: under an aircraft, a red smoke would mark nothing
+  for _, threat in ipairs(threats) do
+    if threat.ground then
+      trigger.action.smoke(onGround(threat.point), trigger.smokeColor.Red)
+      break
+    end
+  end
+  trigger.action.smoke(onGround(veaf.getAveragePosition(group)), trigger.smokeColor.Green)
+  self.nextSmoke = now + ConvoyUnitHandler.SMOKE_RENEW_PERIOD
+end
+
+--- Nothing in sight and no shot for a while: report and hold, waiting for an order (Q4).
+function ConvoyUnitHandler:standDown()
+  veaf.loggers.get(veafGroundAI.Id):info("convoy %s: no contact for %d s, holding", veaf.p(self:getName()), ConvoyUnitHandler.QUIET_DELAY)
+  local group = self:getGroup()
+  if group then
+    group:getController():pushTask({ id = "Hold", params = {} })
+  end
+  self.state = ConvoyUnitHandler.STATE_HOLDING
+  self:say("groundai.convoy_holding", self:getName())
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- the orders: `_gc <convoy>, retreat|hold|resume`
+
+--- Fall back now, to a named point or coordinates when one is given, otherwise to the nearest friendly
+--- place. Not under fire, so on the road all the way, and no stand-down timer.
+--- @param destinationText string|nil a named point or coordinates
+--- @return boolean true when an order was given
+function ConvoyUnitHandler:retreat(destinationText)
+  local group = self:getGroup()
+  if not group then
+    return false
+  end
+  local from = veaf.getAveragePosition(group)
+  local destination
+  if destinationText and destinationText ~= "" then
+    destination = veafNamedPoints and veafNamedPoints.getPoint(destinationText)
+    if not destination then
+      local lat, lon = veaf.computeLLFromString(destinationText)
+      if lat and lon then
+        destination = coord.LLtoLO(lat, lon)
+      end
+    end
+    if not destination then
+      trigger.action.outText(veaf.t("spawn.point_not_found", destinationText), 10)
+      return false
+    end
+  else
+    local place = veafGroundAI.nearestFriendlyPlace(self.side, from)
+    if not place then
+      self:say("groundai.convoy_nowhere_to_go", self:getName())
+      return false
+    end
+    destination = place.point
+  end
+  self:suspendItinerary()
+  local speed = veafGroundAI.FALL_BACK_SPEED
+  local route = { routePoint(from, "On Road", speed), routePoint(destination, "On Road", speed) }
+  veaf.goRoute(self.groupName, route)
+  if self:getUnarmedGroup() then
+    veaf.goRoute(
+      self.unarmedGroupName,
+      { routePoint(veaf.getAveragePosition(self:getUnarmedGroup()), "On Road", speed), routePoint(destination, "On Road", speed) }
+    )
+  end
+  self.state = ConvoyUnitHandler.STATE_RETREATING
+  self:say("groundai.convoy_retreating")
+  return true
+end
+
+--- Halt where it stands, both groups.
+--- @return boolean
+function ConvoyUnitHandler:hold()
+  local group = self:getGroup()
+  if not group then
+    return false
+  end
+  self:suspendItinerary()
+  group:getController():pushTask({ id = "Hold", params = {} })
+  local unarmed = self:getUnarmedGroup()
+  if unarmed then
+    unarmed:getController():pushTask({ id = "Hold", params = {} })
+  end
+  self.state = ConvoyUnitHandler.STATE_HOLDING
+  self:say("groundai.convoy_holding", self:getName())
+  return true
+end
+
+--- Drive on: the convoy back on its way, the unarmed group joining it to be merged back.
+--- @return boolean
+function ConvoyUnitHandler:resume()
+  local group = self:getGroup()
+  if not group then
+    return false
+  end
+  local controller = group:getController()
+  controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.AUTO)
+  self.threats = {}
+  self.enemies = {}
+  self.nextWideWatch = 0
+  veaf.goRoute(self.groupName, self:onwardRoute(group))
+  local unarmed = self:getUnarmedGroup()
+  if unarmed then
+    -- Straight across, not by road: sent "On Road" on 2026-10-08, the trucks drove away to reach the road
+    -- network first, 2.8 km then 3.2 km from where they were going.
+    veaf.goRoute(self.unarmedGroupName, {
+      routePoint(veaf.getAveragePosition(unarmed), "Off Road", veafGroundAI.FALL_BACK_SPEED),
+      routePoint(veaf.getAveragePosition(group), "Off Road", veafGroundAI.FALL_BACK_SPEED),
+    })
+    self.state = ConvoyUnitHandler.STATE_RESUMING
+  else
+    self.state = ConvoyUnitHandler.STATE_DRIVING
+  end
+  self:say("groundai.convoy_resuming")
+  return true
+end
+
+--- The route on from where the convoy stands: its itinerary's current leg for a `_spawn convoy`, the
+--- rest of its Mission Editor route otherwise (from the waypoint nearest to it).
+--- @param group table the convoy's DCS group
+--- @return table route points
+function ConvoyUnitHandler:onwardRoute(group)
+  local from = veaf.getAveragePosition(group)
+  local record = veafSpawn and veafSpawn.spawnedConvoys and veafSpawn.spawnedConvoys[self.groupName]
+  if record and record.route then
+    local last = record.route[#record.route]
+    record.stopped = false
+    return {
+      routePoint(from, "On Road", veafGroundAI.FALL_BACK_SPEED),
+      routePoint({ x = last.x, z = last.y }, last.action or "On Road", last.speed or veafGroundAI.FALL_BACK_SPEED),
+    }
+  end
+  local points = { routePoint(from, "On Road", veafGroundAI.FALL_BACK_SPEED) }
+  local original = self.originalRoute or {}
+  local nearest, nearestDistance = nil, math.huge
+  for index, point in ipairs(original) do
+    local distance = dist2D({ x = point.x, z = point.y }, from)
+    if distance < nearestDistance then
+      nearest, nearestDistance = index, distance
+    end
+  end
+  for index = (nearest or #original) + 1, #original do
+    local point = original[index]
+    table.insert(
+      points,
+      routePoint({ x = point.x, z = point.y }, point.form or point.action or "On Road", point.speed or veafGroundAI.FALL_BACK_SPEED)
+    )
+  end
+  return points
+end
+
+--- Once the unarmed group has caught up, rebuild the convoy as one group, under its own name.
+---
+--- `coalition.addGroup` with the name of a group that exists replaces it — same id, the old vehicles
+--- gone, one group of that name (measured 2026-10-08). Like the split, it cannot carry damage over.
+function ConvoyUnitHandler:mergeIfClose()
+  local group, unarmed = self:getGroup(), self:getUnarmedGroup()
+  if not (group and unarmed) then
+    self.state = ConvoyUnitHandler.STATE_DRIVING
+    return
+  end
+  if dist2D(veaf.getAveragePosition(group), veaf.getAveragePosition(unarmed)) > ConvoyUnitHandler.MERGE_DISTANCE then
+    return
+  end
+  local definitions = {}
+  local units = group:getUnits()
+  for _, unit in ipairs(units) do
+    table.insert(definitions, veafGroundAI.unitDefinition(unit))
+  end
+  for _, unit in ipairs(unarmed:getUnits()) do
+    table.insert(definitions, veafGroundAI.unitDefinition(unit))
+  end
+  local route = self:onwardRoute(group)
+  local countryId = units[1]:getCountry()
+  veafGroundAI.convoysByGroupName[self.unarmedGroupName] = nil
+  unarmed:destroy()
+  self.unarmedGroupName = nil
+  veafDcsSpawner.addGroup({
+    countryId = countryId,
+    category = "vehicle",
+    name = self.groupName,
+    units = definitions,
+    route = { points = route },
+  })
+  self.state = ConvoyUnitHandler.STATE_DRIVING
+  veaf.loggers.get(veafGroundAI.Id):info("convoy %s merged back", veaf.p(self:getName()))
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- the convoys' registry and their events
+
+--- The convoy handler of each DCS group name — the convoy and, once split, its unarmed group.
+veafGroundAI.convoysByGroupName = {}
+
+--- Hand a group to the convoy watch. Called for every `_spawn convoy`, for the groups `mission.yaml`
+--- lists under `GROUNDAI.convoys`, and by `_gc <name>, convoy`.
+--- @param groupName string the DCS group's name
+--- @param handlerName string|nil the name `_gc` addresses it by; the group's name by default
+--- @return table|nil the handler, or nil when there is no such group
+function veafGroundAI.addConvoy(groupName, handlerName)
+  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.addConvoy(%s)", veaf.p(groupName))
+  if veafGroundAI.convoysByGroupName[groupName] then
+    return veafGroundAI.convoysByGroupName[groupName]
+  end
+  if not veafGroundAI.livingGroup(groupName) then
+    veaf.loggers.get(veafGroundAI.Id):warn("no group named %s to watch as a convoy", veaf.p(groupName))
+    return nil
+  end
+  local handler = ConvoyUnitHandler:new()
+  handler:setSilent(true)
+  handler:setName(handlerName or groupName)
+  handler:setGroupName(groupName)
+  if not (veafSpawn and veafSpawn.spawnedConvoys and veafSpawn.spawnedConvoys[groupName]) then
+    handler.originalRoute = veafDcsSpawner.getGroupRoute(groupName)
+  end
+  veafGroundAI.convoysByGroupName[groupName] = handler
+  handler:start()
+  return handler
+end
+
+--- Drop a convoy whose groups are all gone.
+function veafGroundAI.forgetConvoy(handler)
+  for name, registered in pairs(veafGroundAI.convoysByGroupName) do
+    if registered == handler then
+      veafGroundAI.convoysByGroupName[name] = nil
+    end
+  end
+  handler.status = GroundUnitHandler.STATUS_OVER
+  veafGroundAI.remove(handler)
+end
+
+--- The DCS events a convoy reacts to: a shot starting at one of its units, a hit on one.
+veafGroundAI.eventHandler = {}
+
+function veafGroundAI.eventHandler:onEvent(event)
+  if not event or (event.id ~= world.event.S_EVENT_SHOOTING_START and event.id ~= world.event.S_EVENT_HIT) then
+    return
+  end
+  local target = event.target
+  if not (target and target.getGroup) then
+    return
+  end
+  local ok, groupName = pcall(function()
+    return target:getGroup():getName()
+  end)
+  local handler = ok and veafGroundAI.convoysByGroupName[groupName]
+  if handler then
+    veaf.safeCall(handler.reportFire, handler, event.initiator)
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -819,6 +1945,28 @@ function veafGroundAI.onEventMarkChange(eventPos, event)
   end
 end
 
+--- The one autopilot whose name contains this text, or nil when none or several do.
+---
+--- A `_spawn convoy` is named by the spawner (`[b]-Convoy-3` and the like), so a part of the name that
+--- designates one autopilot is enough to give it an order, the way `groupname` already works.
+--- Deliberately not part of `get`: `set` creates the autopilot it does not find by its exact name, and a
+--- partial match there would hand `arty-1`'s autopilot to the group a new `arty` was meant for.
+--- @param text string
+--- @return table|nil
+function veafGroundAI.getByPart(text)
+  local wanted = text:lower()
+  local found = nil
+  for name, candidate in pairs(veafGroundAI.handlers) do
+    if name:find(wanted, 1, true) then
+      if found then
+        return nil
+      end
+      found = candidate
+    end
+  end
+  return found
+end
+
 --- Find a named autopilot, and tell the player when there is none.
 ---
 --- Six `_ground` verbs used to do `if handler then … end` with no `else`, so a command addressed to a name
@@ -832,7 +1980,7 @@ end
 --- @param handlerName string the name the player used
 --- @return table|nil the handler, or nil after having said so
 function veafGroundAI.getOrComplain(handlerName)
-  local handler = veafGroundAI.get(handlerName)
+  local handler = veafGroundAI.get(handlerName) or veafGroundAI.getByPart(handlerName)
   if not handler then
     veaf.loggers.get(veafGroundAI.Id):warn("no autopilot named %s", veaf.p(handlerName))
     trigger.action.outText(veaf.t("groundai.no_such_handler", tostring(handlerName), tostring(handlerName)), 10)
@@ -909,6 +2057,30 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
           trigger.action.outText(veaf.t("groundai.handler_info", handlerName, handler:getDescription()), 10)
           return true
         end
+      elseif options.verb == veafGroundAI.VERB_CONVOY then
+        local handler = options.group and veafGroundAI.addConvoy(options.group:getName(), options.name)
+        if handler then
+          trigger.action.outText(veaf.t("groundai.convoy_watched", handler:getName()), 10)
+          return true
+        end
+      elseif
+        options.verb == veafGroundAI.VERB_RETREAT
+        or options.verb == veafGroundAI.VERB_HOLD
+        or options.verb == veafGroundAI.VERB_RESUME
+      then
+        local handler = veafGroundAI.getOrComplain(options.name)
+        if handler then
+          if not handler.retreat then
+            -- an artillery battery has no such order: said, rather than silently ignored
+            trigger.action.outText(veaf.t("groundai.not_a_convoy", handler:getName(), handler:getName()), 10)
+          elseif options.verb == veafGroundAI.VERB_RETREAT then
+            return handler:retreat(options.destination)
+          elseif options.verb == veafGroundAI.VERB_HOLD then
+            return handler:hold()
+          else
+            return handler:resume()
+          end
+        end
       elseif options.verb == veafGroundAI.VERB_ORDER then
         veaf.loggers.get(veafGroundAI.Id):trace("options.verb == veafGroundAI.VERB_ORDER")
         local handlerName = options.name
@@ -939,6 +2111,11 @@ veafGroundAI.VERB_START = 4
 veafGroundAI.VERB_STOP = 5
 veafGroundAI.VERB_CLEAR = 6
 veafGroundAI.VERB_STATUS = 7
+-- FEAT-CONVOY-UNDER-FIRE: hand a group to the convoy watch, and steer a convoy.
+veafGroundAI.VERB_CONVOY = 8
+veafGroundAI.VERB_RETREAT = 9
+veafGroundAI.VERB_HOLD = 10
+veafGroundAI.VERB_RESUME = 11
 
 --- The ground-AI module's marker specification, read by `veaf.parseMarkerText`.
 ---
@@ -964,6 +2141,7 @@ veafGroundAI.MarkerSpec = {
     options.correction = nil -- { bearing, distance }, validee a la lecture
     options.shells = nil
     options.radius = nil
+    options.destination = nil -- `retreat <point>`, the convoy's
   end,
   commands = {
     {
@@ -1056,6 +2234,21 @@ veafGroundAI.MarkerSpec = {
     veafGroundAI.verbRule("clear", veafGroundAI.VERB_CLEAR),
     veafGroundAI.verbRule("status", veafGroundAI.VERB_STATUS),
 
+    -- The convoy's verbs (FEAT-CONVOY-UNDER-FIRE). `retreat` carries, inline and optional, the named point
+    -- or the coordinates to fall back to; without a value, the nearest friendly place.
+    veafGroundAI.verbRule("convoy", veafGroundAI.VERB_CONVOY),
+    veafGroundAI.verbRule("hold", veafGroundAI.VERB_HOLD),
+    veafGroundAI.verbRule("resume", veafGroundAI.VERB_RESUME),
+    {
+      keys = { "retreat" },
+      apply = function(options, value)
+        options.verb = veafGroundAI.VERB_RETREAT
+        if value and value ~= "" then
+          options.destination = value
+        end
+      end,
+    },
+
     -- Les verbes d'ordre portent leur valeur EN LIGNE, et c'est tout l'objet du lot : la grille se
     -- recopie telle que DCS l'affiche, espaces compris, sans mot `target` ni point-virgule.
     --
@@ -1137,7 +2330,9 @@ function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
   -- Seuls `set` et `unset` designent un groupe ; les autres verbes s'adressent a un pilote automatique
   -- deja pose et ignorent `groupname`, y compris ecrit de travers. Les deux blocs ci-dessous partagent
   -- donc cette condition.
-  local needsGroup = options.verb == veafGroundAI.VERB_SET or options.verb == veafGroundAI.VERB_UNSET
+  local needsGroup = options.verb == veafGroundAI.VERB_SET
+    or options.verb == veafGroundAI.VERB_UNSET
+    or options.verb == veafGroundAI.VERB_CONVOY
 
   -- Un nom donne qui ne designe pas UN groupe arrete la commande, au lieu de retomber sur la recherche
   -- de proximite : le pilote a nomme le groupe qu'il voulait, et lui poser le pilote automatique sur le
@@ -1233,6 +2428,21 @@ function veafGroundAI.initialize()
   end
   veafCommands.registerCommandHandler(handleMarker, veafCommands.PRIORITY_GROUNDAI, "KNOWN_PILOT", veafGroundAI.MarkerKeyphrase)
   veafCommands.registerCommandHandler(handleMarker, veafCommands.PRIORITY_GROUNDAI, "KNOWN_PILOT", veafGroundAI.ShortKeyphrase)
+
+  -- FEAT-CONVOY-UNDER-FIRE: the convoys' own event handler, registered once — DCS delivers an event to a
+  -- handler as many times as it was added (#824). It reads the raw `target` and `initiator`, which
+  -- `veafEventHandler` hands its callbacks as data tables with no methods.
+  if not veafGroundAI.initialized then
+    world.addEventHandler(veafGroundAI.eventHandler)
+  end
+  veafGroundAI.initialized = true
+  for _, groupName in ipairs(veaf.getConfig(veafGroundAI.Id).convoys or {}) do
+    veafGroundAI.addConvoy(groupName)
+  end
+  -- the convoys spawned before this module started up, by a mission script or a combat zone
+  for groupName in pairs(veafSpawn and veafSpawn.spawnedConvoys or {}) do
+    veafGroundAI.addConvoy(groupName)
+  end
 end
 
 veaf.registerModule(veafGroundAI.Id, veafGroundAI.initialize, { enable = true }, 190)

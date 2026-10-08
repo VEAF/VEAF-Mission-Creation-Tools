@@ -845,6 +845,10 @@ ConvoyUnitHandler.MERGE_DISTANCE = 300
 --- 2026-10-08 Bradleys driving in opened fire at ~1.3 km; halted at 1.9 km they never did.
 ConvoyUnitHandler.ASSAULT_STANDOFF = 900
 ConvoyUnitHandler.ASSAULT_SPEED = 8
+--- An assault convoy in a fight this close to its objective drives into it, in metres; farther, it closes in
+--- on the threat like any convoy. The drive is off road: on 2026-10-08 a column bogged down at 0.6 m/s on a
+--- 9 km line across country. The red assault on Poti stood 2.8 km from the zone's centre.
+ConvoyUnitHandler.OBJECTIVE_PRESS_DISTANCE = 5000
 --- Seconds between two smoke marks while the contact lasts.
 ConvoyUnitHandler.SMOKE_RENEW_PERIOD = 300
 --- The fall-back search: rings around the convoy, in metres, and the spread of bearings away from the
@@ -1695,6 +1699,9 @@ function ConvoyUnitHandler:fight(threats, quietly)
   local from = veaf.getAveragePosition(group)
   local distance = dist2D(from, threat.point)
   local objective = veafGroundAI.convoyObjectives[self.groupName]
+  if objective and dist2D(from, objective) > ConvoyUnitHandler.OBJECTIVE_PRESS_DISTANCE then
+    objective = nil -- too far to drive there across country: it fights like any convoy
+  end
   if objective then
     veaf.goRoute(self.groupName, {
       routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),

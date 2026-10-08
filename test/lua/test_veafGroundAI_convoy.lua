@@ -435,7 +435,7 @@ end
 -- FIX-CAPTURE-ZONE-MEMBERSHIP ticket 04: on Kolkhida, 2026-10-08, the red assault convoy fought Poti's
 -- garrison from 2.8 km for good: in sight all the time, the contact never ended, and the convoy stood 900 m
 -- short of the threat of the moment instead of driving into the zone it had been sent to take.
-local POTI = { x = 0, y = 0, z = 5000 }
+local POTI = { x = 0, y = 0, z = 3000 }
 
 local function lastRoutePoint(groupName)
   local points = lastTaskSetOn(groupName).params.route.points
@@ -445,7 +445,7 @@ end
 function TestConvoyContact:test_an_assault_convoy_strong_enough_drives_into_its_objective()
   local handler, units = self:_convoy(IFV)
   veafGroundAI.setConvoyObjective("Convoy-1", POTI)
-  local shooter = makeUnit("r-1", { side = RED, attributes = APC, type = "BTR-80", point = { x = 600, y = 0, z = 2000 } })
+  local shooter = makeUnit("r-1", { side = RED, attributes = APC, type = "BTR-80", point = { x = 600, y = 0, z = 1500 } })
   veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = units[1] })
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
   luaunit.assertEquals(tasksPushedTo("Convoy-1", "Hold"), 0, "never a halt short of the objective")
@@ -468,6 +468,17 @@ function TestConvoyContact:test_an_assault_convoy_close_to_a_threat_does_not_hol
   luaunit.assertEquals(tasksPushedTo("Convoy-1", "Hold"), 0)
   local stop = lastRoutePoint("Convoy-1")
   luaunit.assertEquals({ stop.x, stop.y }, { POTI.x, POTI.z })
+end
+
+function TestConvoyContact:test_an_assault_convoy_far_from_its_objective_fights_like_any_convoy()
+  -- 9 km across country bogged a column down at 0.6 m/s (2026-10-08): far off, it closes in on the threat
+  local handler, units = self:_convoy(IFV)
+  veafGroundAI.setConvoyObjective("Convoy-1", { x = 0, y = 0, z = 9000 })
+  local shooter = makeUnit("r-1", { side = RED, attributes = APC, point = { x = 1500, y = 0, z = 0 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = units[1] })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  local stop = lastRoutePoint("Convoy-1")
+  luaunit.assertAlmostEquals(math.sqrt((stop.x - 1500) ^ 2 + stop.y ^ 2), ConvoyUnitHandler.ASSAULT_STANDOFF, 1)
 end
 
 function TestConvoyContact:test_an_assault_convoy_too_weak_still_falls_back()

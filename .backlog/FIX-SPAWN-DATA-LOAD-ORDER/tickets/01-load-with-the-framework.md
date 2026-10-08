@@ -1,6 +1,6 @@
 # 01 — The spawn data loads with the framework, and a campaign mission draws its garrisons with their air defence
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 - `spawn_data_injector_worker.inject_spawn_data`: the load as last action of both framework triggers (dict or list `actions`, and the `trig.actions` string), once; the trailing trigger and a warning only without them.
 - Tests in `test/python/spawn_data_injector/test_spawn_data_injector.py`: both framework triggers end with the load, no trigger of its own, the mission-script trigger untouched, a list of actions extended, injected twice it loads once; the existing tests (missions without framework triggers) keep the trailing trigger.

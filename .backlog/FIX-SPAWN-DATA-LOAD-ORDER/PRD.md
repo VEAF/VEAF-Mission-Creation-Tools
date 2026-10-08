@@ -1,6 +1,6 @@
 # FIX-SPAWN-DATA-LOAD-ORDER — campaign garrisons drawn from an empty groups database: no air defence
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 ## Problem
 
@@ -38,7 +38,20 @@ Trigger order in a built `.miz` (Kolkhida mission 1): 3 `VEAF scripts loading - 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-load-with-the-framework.md) | The spawn data loads with the framework, and a campaign mission draws its garrisons with their air defence | 🔄 |
+| [01](tickets/01-load-with-the-framework.md) | The spawn data loads with the framework, and a campaign mission draws its garrisons with their air defence | 🧑 |
+
+## Proof on the built mission (2026-10-08)
+
+Executable built from the branch, `publish-local` into Kolkhida mission 1, `veaf-tools build` from the mission folder, then the `.miz`'s `l10n/DEFAULT` scripts replayed in trigger order under Lua 5.1.5 with `test/lua/dcs_mocks.lua` (airbases stubbed).
+
+| | before (`6.28.1-kolkhida2`) | after (`6.28.1-kolkhida3`, with #1103) |
+|---|---|---|
+| spawn data loaded | trigger 8, after `veaf-config.lua` | end of trigger 4, before it |
+| `cannot find group` | 9, `[sa10]` and `[patriot]` among them | 0 |
+| Senaki | 9 units, no SAM | 13 units + long-range SAM, 14 units (S-300PS) |
+| Batumi / Kobuleti | 9 / 9 units | 30 / 30 units, Patriot each |
+
+Not exercised by the mocks: real airbase positions, trigger zones, placement on the terrain, DCS spawning the groups. The in-game check is what this lot waits for.
 
 ## Related
 

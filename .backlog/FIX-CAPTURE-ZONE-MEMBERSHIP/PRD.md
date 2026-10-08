@@ -1,6 +1,6 @@
 # FIX-CAPTURE-ZONE-MEMBERSHIP — a convoy takes a zone without becoming its garrison: two definitions of "in the zone"
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 ## Found
 

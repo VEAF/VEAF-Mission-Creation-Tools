@@ -6,11 +6,13 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · 🔄
-
-On *Kolkhida* mission 1 the blue convoy took Poti and did not become its garrison: the capture trusts `world.searchObjects`, which returned its units at 2036–2077 m of a 2000 m zone, and the absorption measures the exact distance. One definition of "in the zone", the convoy driven inside, and the DCS trap recorded.
+*None.*
 
 ## 🧑 Waiting for a human
+
+### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · 🧑
+
+Poti, taken on *Kolkhida* by the blue convoy, drew a garrison anyway: the capture trusted `world.searchObjects`, which overshoots its sphere, and the absorption measured the exact distance. Both now ask the same search; a strong enough assault convoy drives into its target zone while fighting; a shell is never a threat. To be checked in game, with ticket 02's measurement of why the convoy halted at the zone's edge (test mission ready).
 
 ### [FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS](FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS/PRD.md) · 🧑
 

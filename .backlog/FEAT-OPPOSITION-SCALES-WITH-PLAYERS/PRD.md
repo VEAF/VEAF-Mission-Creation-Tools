@@ -26,6 +26,7 @@ Checked the same evening:
 | [01](tickets/01-qra-tiers-right.md) | The QRA's tiers: the biggest that fits, every group when asked, rearm while occupied | ⬜ |
 | [02](tickets/02-opposition-level.md) | An opposition level, set at generation, changed in flight, or followed automatically | ⬜ |
 | [03](tickets/03-campaign-and-claude.md) | Campaigns and Claude size the opposition, and the briefing says it | ⬜ |
+| [04](tickets/04-assault-convoys.md) | Assault convoys: the campaign attacks and counter-attacks in flight | ⬜ |
 
 ## Decided before writing
 

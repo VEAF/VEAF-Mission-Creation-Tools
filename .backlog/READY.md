@@ -14,4 +14,4 @@ Claude acting in a running mission while the squadron flies — spawn, destroy, 
 
 ### [FEAT-OPPOSITION-SCALES-WITH-PLAYERS](FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md) · ⬜
 
-The air opposition sized to the number of players — set at generation, changed in flight, or followed automatically — after fixing three QRA defects found on Kolkhida mission 1 (tier choice by pairs() order, random_pick with replacement, no rearm-while-occupied key).
+The air opposition sized to the number of players — set at generation, changed in flight, or followed automatically — and assault convoys sent by the campaign in flight, after fixing three QRA defects found on Kolkhida mission 1 (tier choice by pairs() order, random_pick with replacement, no rearm-while-occupied key).

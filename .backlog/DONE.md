@@ -158,6 +158,10 @@ A FARP escort moved even on free ground; it now checks the wanted spot itself an
 
 A QRA config accepted then ignored: VEAF commands refused by `validate` in deploy lists, and `respawn_default_offset` never emitted. Fixed; verified in game (R7, QRA half).
 
+### [FIX-RADIO-MENU-ID-RECYCLING](FIX-RADIO-MENU-ID-RECYCLING/PRD.md) · ✅
+
+A VEAF F10 menu left open fires another command than the one the player sees: DCS gives a removed entry's id to the next one created, and the builder recreated the whole tree on every refresh. Measured in game 2026-10-09; the render is now incremental, each freed id parked on an inert command, pages stable (#1113).
+
 ### [FIX-RELAY-STOPS-AT-CLOSE](FIX-RELAY-STOPS-AT-CLOSE/PRD.md) · ✅
 
 Closing a support issue cut its Discord relay for good, so a reopened issue went silent; deleted issues were retried for ever. Fixed; the live repair of #946 (ticket 03) was dropped — by then the issue was closed again and the reporter had followed it on GitHub.

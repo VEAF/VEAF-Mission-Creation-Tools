@@ -1,6 +1,6 @@
 # 01 — Render the radio menu incrementally
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 `RadioMenuBuilder:rebuild()` stops removing the VEAF root.
 Every `missionCommands` call of a render goes through the builder, which keys each entry by its audience (all, a coalition, a group), its parent and its label, and keeps what it rendered last time.

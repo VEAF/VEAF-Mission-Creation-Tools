@@ -1,6 +1,6 @@
 # 02 — Park each freed id on an inert command
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Measured 2026-10-09: right after `removeItem`, a command added for a group that does not exist takes the freed id, and a stale click on the removed entry fires it.
 

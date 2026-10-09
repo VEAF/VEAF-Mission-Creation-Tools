@@ -1,6 +1,6 @@
 # FIX-RADIO-MENU-ID-RECYCLING — a VEAF menu left open fires the command the player sees
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Reported by Fulgas on 2026-10-09: now and then, a CTLD or VEAF F10 command fires something other than what the player clicked.
 CTLD had already "fixed" it (VEAF/CTLD ADR 0015: wipe the menu now, rebuild it 4 s later), and it still happens.

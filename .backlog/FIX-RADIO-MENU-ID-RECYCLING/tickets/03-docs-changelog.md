@@ -1,6 +1,6 @@
 # 03 — Docs and changelog
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Done when
 

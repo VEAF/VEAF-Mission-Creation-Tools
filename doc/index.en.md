@@ -6,13 +6,62 @@ Complete toolkit for creating dynamic [DCS World](https://www.digitalcombatsimul
 
 ---
 
-## Choose Your Guide
+## Start here {#start-here}
 
-| Role | Start Here | What You'll Find |
-|------|------------|-----------------|
-| **Player / Pilot** | [Pilot Guide](pilot/README.en.md) | F10 menus, marker commands, available assets and combat zones |
-| **Mission Maker** | [Mission Maker Guide](mission-maker/README.en.md) | Install, configure modules, build and deploy missions |
-| **Developer** | [Developer Guide](developer/README.en.md) | Architecture, build pipeline, quality gates, contributing |
+<div class="grid cards" markdown>
+
+-   :material-airplane:{ .lg .middle } **Fly**
+
+    ---
+
+    You are joining a VEAF mission: F10 menus, marker commands, what you can spawn.
+
+    [:octicons-arrow-right-24: Pilot Guide](pilot/README.en.md)
+
+-   :material-compass-outline:{ .lg .middle } **Discover VMCT**
+
+    ---
+
+    What the tools do and how a mission is made, in ten minutes.
+
+    [:octicons-arrow-right-24: Discover VMCT](mission-maker/DISCOVER.en.md)
+
+-   :material-hammer-wrench:{ .lg .middle } **My first mission**
+
+    ---
+
+    The tutorial, from an empty folder to a mission running in DCS.
+
+    [:octicons-arrow-right-24: Tutorial](mission-maker/TUTORIAL.en.md)
+
+-   :material-robot-outline:{ .lg .middle } **Create with an AI**
+
+    ---
+
+    Claude, Gemini or another AI: you describe the mission, it builds it.
+
+    [:octicons-arrow-right-24: Install the AI assistant](mission-maker/AI_ASSISTANT_INSTALL.en.md)
+
+-   :material-file-restore-outline:{ .lg .middle } **Take over a mission**
+
+    ---
+
+    A VEAF v5 mission to bring to v6, or another author's mission to adopt.
+
+    [:octicons-arrow-right-24: Migrate a v5 mission](mission-maker/MIGRATION_GUIDE.en.md)<br>
+    [:octicons-arrow-right-24: Adopt a third-party mission](mission-maker/CONVERT_OTHER.en.md)
+
+-   :material-lifebuoy:{ .lg .middle } **Get help**
+
+    ---
+
+    Where to ask, and what to provide so that someone can answer.
+
+    [:octicons-arrow-right-24: Getting help](SUPPORT.en.md)
+
+</div>
+
+Everything else for mission makers is in the [Mission Maker Guide](mission-maker/README.en.md); to contribute to the tools, see the [Developer Guide](developer/README.en.md).
 
 ---
 

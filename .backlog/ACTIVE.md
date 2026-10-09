@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [DOC-ENTRY-POINTS](DOC-ENTRY-POINTS/PRD.md) · 🔄
+
+The main ways into the docs made obvious: "I want to…" cards on the home page and the Mission Maker overview, the AI pages right after the tutorial in the menu, and the Mission Maker labels that showed in English on the French site translated.
 
 ## 🧑 Waiting for a human
 

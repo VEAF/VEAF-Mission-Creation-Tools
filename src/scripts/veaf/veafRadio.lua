@@ -35,6 +35,12 @@ veafRadio.USAGE_ForUnit = 2
 -- automatically at render time (ADR 0013), a "Next page" submenu taking one slot.
 veafRadio.MENU_PAGE_SIZE = 10
 
+-- A group id no player can hold. DCS gives the id of a removed menu entry to the next entry created,
+-- and a player whose F10 screen still shows the removed entry fires that new one (measured 2026-10-09,
+-- `f10-menu-entry-id-is-recycled`). An inert command added for this group right after each removal
+-- takes the freed id instead, and nobody sees it (FIX-RADIO-MENU-ID-RECYCLING).
+veafRadio.PARKING_GROUP_ID = 999999
+
 -- delay for the actual refresh
 veafRadio.refreshRadioMenu_DELAY = 1
 
@@ -387,40 +393,171 @@ function veafRadio.RadioMenuBuilder:addCommand(label, parent, method, parameters
   return command
 end
 
---- Removes the root DCS menu entry and rebuilds the entire tree from scratch.
+--- Renders the tree again, touching in DCS only what changed since the last render.
+---
+--- It used to remove the root and recreate everything, on every player join. DCS gives the id of a
+--- removed entry to the next one created and does not refresh an F10 screen that stays open, so a
+--- player reading the menu across a rebuild fired another command than the one shown — B fired C,
+--- measured 2026-10-09 (FIX-RADIO-MENU-ID-RECYCLING). Now an entry rendered again with the same
+--- place, label, callback and parameters keeps its DCS entry, and only what disappeared is removed.
 function veafRadio.RadioMenuBuilder:rebuild()
-  if self._root.dcsRadioMenu then
-    -- Coalition-scoped nodes live in their own DCS namespace, so the global removeItem on the
-    -- root is not guaranteed to reach them. The menu is rebuilt on every player join, so
-    -- anything left behind would stack up one duplicate per join — remove them explicitly
-    -- first (FEAT-COMBATZONE-MENU-COALITION). Removing an already-gone item is a no-op.
-    self:_removeCoalitionMenus(self._root)
-    missionCommands.removeItem(self._root.dcsRadioMenu)
-  else
-    veaf.loggers.get(veafRadio.Id):debug("RadioMenuBuilder:rebuild() first time — no DCS radio menu yet")
-  end
+  self._seen = {}
+  self._seenNodes = {}
   self:build()
+  local seen = self._seen
+  self._seen = nil
+  -- forget the pages of the menus no longer rendered
+  for nodeKey in pairs(self._pagesByNode or {}) do
+    if not self._seenNodes[nodeKey] then
+      self._pagesByNode[nodeKey] = nil
+    end
+  end
+  self._seenNodes = nil
+  local gone = {}
+  for key, entry in pairs(self._rendered or {}) do
+    if not seen[key] then
+      table.insert(gone, entry)
+    end
+  end
+  -- Children before their parent: each removal frees one id, which gets parked.
+  table.sort(gone, function(a, b)
+    return a.depth > b.depth
+  end)
+  for _, entry in ipairs(gone) do
+    self:_removeEntry(entry)
+  end
 end
 
---- (internal) Depth-first removal of every rendered coalition-scoped submenu under node.
-function veafRadio.RadioMenuBuilder:_removeCoalitionMenus(node)
-  if not node then
-    return
+--- (internal) True when two callback parameters are the same: the same value, or plain tables
+--- holding the same values. A table with a metatable is an object and only equals itself, except
+--- a DCS object (`Unit`, `Group`…), which `getByName` hands out as a new table every time: two of
+--- them are the same when they share their class and their DCS `id_`.
+function veafRadio.RadioMenuBuilder._sameValue(a, b, depth)
+  if a == b then
+    return true
   end
-  for _, subMenu in ipairs(node.subMenus or {}) do
-    self:_removeCoalitionMenus(subMenu)
+  depth = depth or 0
+  if type(a) ~= "table" or type(b) ~= "table" or depth > 4 then
+    return false
   end
-  if node.renderedForCoalition and node.dcsRadioMenu then
-    veaf.loggers.get(veafRadio.Id):trace("removing coalition %s menu %s", node.renderedForCoalition, veaf.p(node.title))
-    missionCommands.removeItemForCoalition(node.renderedForCoalition, node.dcsRadioMenu)
-    node.dcsRadioMenu = nil
-    node.renderedForCoalition = nil
+  if getmetatable(a) or getmetatable(b) then
+    return getmetatable(a) == getmetatable(b) and a.id_ ~= nil and a.id_ == b.id_
   end
+  for k, v in pairs(a) do
+    if not veafRadio.RadioMenuBuilder._sameValue(v, b[k], depth + 1) then
+      return false
+    end
+  end
+  for k in pairs(b) do
+    if a[k] == nil then
+      return false
+    end
+  end
+  return true
+end
+
+--- (internal) Renders one DCS entry, or reuses the one rendered last time.
+--- An entry is keyed by its parent, its audience (everyone, a coalition, a group) and its label;
+--- a command is reused only when its callback and parameters are unchanged too.
+--- @return table the DCS path of the entry, to pass as parent to its children
+function veafRadio.RadioMenuBuilder:_render(kind, groupId, coalitionSide, label, parentPath, method, parameters)
+  self._rendered = self._rendered or {}
+  self._keysByPath = self._keysByPath or {}
+  local parentKey = parentPath and self._keysByPath[parentPath] or ""
+  local audience = groupId and ("G" .. groupId) or (coalitionSide and ("C" .. coalitionSide)) or "A"
+  -- The kind is part of the key: a submenu turned into a command of the same label must leave
+  -- through the end-of-rebuild removal, children first, never through the inline replacement below,
+  -- which parks only one id.
+  local key = parentKey .. "\n" .. audience .. ":" .. kind .. ":" .. tostring(label)
+  -- The same label twice under one parent is two entries in DCS.
+  if self._seen and self._seen[key] then
+    local n = 2
+    while self._seen[key .. "#" .. n] do
+      n = n + 1
+    end
+    key = key .. "#" .. n
+  end
+
+  local existing = self._rendered[key]
+  if existing and existing.method == method and veafRadio.RadioMenuBuilder._sameValue(existing.parameters, parameters) then
+    if self._seen then
+      self._seen[key] = true
+    end
+    return existing.path
+  end
+  if existing then
+    self:_removeEntry(existing)
+  end
+
+  local path
+  if kind == "menu" then
+    if coalitionSide then
+      path = missionCommands.addSubMenuForCoalition(coalitionSide, label, parentPath)
+    else
+      path = missionCommands.addSubMenu(label, parentPath)
+    end
+  elseif groupId then
+    path = missionCommands.addCommandForGroup(groupId, label, parentPath, method, parameters)
+  elseif coalitionSide then
+    path = missionCommands.addCommandForCoalition(coalitionSide, label, parentPath, method, parameters)
+  else
+    path = missionCommands.addCommand(label, parentPath, method, parameters)
+  end
+  local parentEntry = parentKey ~= "" and self._rendered[parentKey]
+  self._rendered[key] = {
+    key = key,
+    kind = kind,
+    groupId = groupId,
+    coalitionSide = coalitionSide,
+    path = path,
+    method = method,
+    parameters = parameters,
+    depth = parentEntry and parentEntry.depth + 1 or 0,
+  }
+  if path then
+    self._keysByPath[path] = key
+  end
+  if self._seen then
+    self._seen[key] = true
+  end
+  return path
+end
+
+--- (internal) Removes one rendered entry from DCS, then parks the id it freed on an inert command
+--- for veafRadio.PARKING_GROUP_ID, before anything else can be created and take it.
+function veafRadio.RadioMenuBuilder:_removeEntry(entry)
+  veaf.loggers.get(veafRadio.Id):trace("removing radio entry %s", veaf.p(entry.key))
+  if entry.groupId then
+    missionCommands.removeItemForGroup(entry.groupId, entry.path)
+  elseif entry.coalitionSide then
+    missionCommands.removeItemForCoalition(entry.coalitionSide, entry.path)
+  else
+    missionCommands.removeItem(entry.path)
+  end
+  self._rendered[entry.key] = nil
+  if entry.path then
+    self._keysByPath[entry.path] = nil
+  end
+  self._parked = (self._parked or 0) + 1
+  missionCommands.addCommandForGroup(veafRadio.PARKING_GROUP_ID, "parked " .. self._parked, nil, veafRadio._parkedCommand, self._parked)
+end
+
+--- The callback of a parked id: a click on an entry that was removed while its F10 screen stayed open.
+function veafRadio._parkedCommand(number)
+  veaf.loggers.get(veafRadio.Id):debug("click on a removed radio entry (parked id %s)", veaf.p(number))
 end
 
 --- Builds the DCS menu tree from the root node without clearing first.
 function veafRadio.RadioMenuBuilder:build()
+  -- `_seen` tells two entries sharing a label apart; rebuild() owns it when it calls us.
+  local ownsSeen = not self._seen
+  if ownsSeen then
+    self._seen = {}
+  end
   self:_buildSubtree(nil, self._root)
+  if ownsSeen then
+    self._seen = nil
+  end
 end
 
 --- (internal) True if the node carries a USAGE_ForUnit command.
@@ -533,7 +670,6 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   -- A coalition-scoped node scopes everything below it: a global child under a scoped
   -- parent has no coherent meaning in DCS (FEAT-COMBATZONE-MENU-COALITION).
   local coalitionSide = node.coalition or (parentNode and parentNode.coalition)
-  node.renderedForCoalition = coalitionSide
 
   local parentDcsMenu = parentNode and parentNode.dcsRadioMenu
   local label = node.title
@@ -541,11 +677,7 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   if parentNode and (parentNode.isRoot or parentNode == self._root) then
     label = veafRadio.toUpperCase(label)
   end
-  if coalitionSide then
-    node.dcsRadioMenu = missionCommands.addSubMenuForCoalition(coalitionSide, label, parentDcsMenu)
-  else
-    node.dcsRadioMenu = missionCommands.addSubMenu(label, parentDcsMenu)
-  end
+  node.dcsRadioMenu = self:_render("menu", nil, coalitionSide, label, parentDcsMenu)
 
   -- Entries render in alphabetical order, which is the right default when a menu is a
   -- list to browse. A module whose entries have an intended sequence — veafAssist's
@@ -576,36 +708,89 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
     paginate = false
   end
 
-  -- Place children on the current page, spilling into "Next page" submenus.
-  -- A full page holds (MENU_PAGE_SIZE - 1) items plus the "Next page" entry.
-  local currentDcsMenu = node.dcsRadioMenu
-  local placedOnPage = 0
-  local function advancePageIfFull()
-    if paginate and placedOnPage >= veafRadio.MENU_PAGE_SIZE - 1 then
-      -- A page of a scoped menu must be scoped too, or the overflow would be world-visible.
-      if coalitionSide then
-        currentDcsMenu = missionCommands.addSubMenuForCoalition(coalitionSide, veaf.t("radio.next_page"), currentDcsMenu)
-      else
-        currentDcsMenu = missionCommands.addSubMenu(veaf.t("radio.next_page"), currentDcsMenu)
-      end
-      placedOnPage = 0
+  -- Children in sorted order, commands first, each with an id that survives a module rebuilding
+  -- its nodes: kind and title, numbered when a title repeats.
+  local items = {}
+  local occurrences = {}
+  local function collect(kind, child)
+    local id = kind .. ":" .. tostring(child.title)
+    occurrences[id] = (occurrences[id] or 0) + 1
+    if occurrences[id] > 1 then
+      id = id .. "#" .. occurrences[id]
     end
+    table.insert(items, { kind = kind, child = child, id = id })
+  end
+  for _, command in ipairs(node.commands) do
+    collect("command", command)
+  end
+  for _, subMenu in ipairs(node.subMenus) do
+    collect("menu", subMenu)
+  end
+
+  -- Stable pages (FIX-RADIO-MENU-ID-RECYCLING): an entry already shown stays on its page, a new one
+  -- goes to the last page. Moving an entry to another page means recreating it, and a player reading
+  -- the old page would lose it; worse, an entry added on page 1 would land after its "Next page".
+  -- A full page holds (MENU_PAGE_SIZE - 1) items plus the "Next page" entry.
+  self._pagesByNode = self._pagesByNode or {}
+  local nodeKey = node.dcsRadioMenu and self._keysByPath[node.dcsRadioMenu] or tostring(node.title)
+  -- A menu back under the page size goes back to a single page.
+  local previousPages = paginate and self._pagesByNode[nodeKey] or {}
+  local capacity = paginate and (veafRadio.MENU_PAGE_SIZE - 1) or math.huge
+  local pageOf, countOnPage, lastPage = {}, {}, 1
+  for _, item in ipairs(items) do
+    local page = previousPages[item.id]
+    if page and (countOnPage[page] or 0) < capacity then
+      pageOf[item.id] = page
+      countOnPage[page] = (countOnPage[page] or 0) + 1
+      lastPage = math.max(lastPage, page)
+    end
+  end
+  for _, item in ipairs(items) do
+    if not pageOf[item.id] then
+      while (countOnPage[lastPage] or 0) >= capacity do
+        lastPage = lastPage + 1
+      end
+      pageOf[item.id] = lastPage
+      countOnPage[lastPage] = (countOnPage[lastPage] or 0) + 1
+    end
+  end
+  -- A page whose entries are all gone is dropped and the next ones move up: a page holding nothing
+  -- but its "Next page" is a click for nothing. The entries that move are recreated, ids parked.
+  local renumbered, used = {}, 0
+  for page = 1, lastPage do
+    if countOnPage[page] then
+      used = used + 1
+      renumbered[page] = used
+    end
+  end
+  for id, page in pairs(pageOf) do
+    pageOf[id] = renumbered[page]
+  end
+  lastPage = math.max(used, 1)
+  self._pagesByNode[nodeKey] = pageOf
+  if self._seenNodes then
+    self._seenNodes[nodeKey] = true
   end
 
   -- Every entry directly under the VEAF root is shown in capitals, whichever module added it
   -- and on whichever page it lands; the logical titles are left as written, since modules
   -- find their entries again by title (delCommand, delSubmenu).
   local isRoot = node == self._root
-  for _, command in ipairs(node.commands) do
-    advancePageIfFull()
-    self:_placeCommandOnMenu(command, currentDcsMenu, coalitionSide, isRoot and veafRadio.toUpperCase(command.title) or nil)
-    placedOnPage = placedOnPage + 1
-  end
-
-  for _, subMenu in ipairs(node.subMenus) do
-    advancePageIfFull()
-    self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide, isRoot = isRoot }, subMenu)
-    placedOnPage = placedOnPage + 1
+  local currentDcsMenu = node.dcsRadioMenu
+  for page = 1, lastPage do
+    for _, item in ipairs(items) do
+      if pageOf[item.id] == page then
+        if item.kind == "command" then
+          self:_placeCommandOnMenu(item.child, currentDcsMenu, coalitionSide, isRoot and veafRadio.toUpperCase(item.child.title) or nil)
+        else
+          self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide, isRoot = isRoot }, item.child)
+        end
+      end
+    end
+    if page < lastPage then
+      -- A page of a scoped menu must be scoped too, or the overflow would be world-visible.
+      currentDcsMenu = self:_render("menu", nil, coalitionSide, veaf.t("radio.next_page"), currentDcsMenu)
+    end
   end
 end
 
@@ -644,13 +829,13 @@ function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, co
   -- been filtered to the right side by _placeCommandOnMenu.
   if groupId then
     veaf.loggers.get(veafRadio.Id):trace("adding for group %s command %s", groupId or "", _title or "")
-    missionCommands.addCommandForGroup(groupId, _title, dcsParent, _method, _parameters)
+    self:_render("command", groupId, nil, _title, dcsParent, _method, _parameters)
   elseif coalitionSide then
     veaf.loggers.get(veafRadio.Id):trace("adding for coalition %s command %s", coalitionSide, _title or "")
-    missionCommands.addCommandForCoalition(coalitionSide, _title, dcsParent, _method, _parameters)
+    self:_render("command", nil, coalitionSide, _title, dcsParent, _method, _parameters)
   else
     veaf.loggers.get(veafRadio.Id):trace("adding for all command %s", _title or "")
-    missionCommands.addCommand(_title, dcsParent, _method, _parameters)
+    self:_render("command", nil, nil, _title, dcsParent, _method, _parameters)
   end
 end
 
@@ -682,7 +867,15 @@ function veafRadio._refreshRadioMenu()
 end
 
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
-  veafRadio._builder:_buildSubtree(parentRadioMenu, radioMenu)
+  local builder = veafRadio._builder
+  local ownsSeen = not builder._seen
+  if ownsSeen then
+    builder._seen = {}
+  end
+  builder:_buildSubtree(parentRadioMenu, radioMenu)
+  if ownsSeen then
+    builder._seen = nil
+  end
 end
 
 function veafRadio.addCommandToMainMenu(title, method)

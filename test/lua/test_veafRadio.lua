@@ -1182,19 +1182,335 @@ function TestVeafRadioCoalitionMenus:test_pagination_pages_inherit_the_scope()
   luaunit.assertTrue(pages > 0)
 end
 
-function TestVeafRadioCoalitionMenus:test_rebuild_removes_scoped_menus()
-  -- The menu is rebuilt on every player join; a scoped node the global removeItem cannot
-  -- reach would stack one duplicate per join.
+function TestVeafRadioCoalitionMenus:test_rebuild_removes_a_dropped_scoped_menu_with_the_coalition_api()
+  -- A scoped node lives in its coalition's namespace: the global removeItem would not reach it.
   local root = { title = "Root", subMenus = {}, commands = {} }
   local builder = veafRadio.RadioMenuBuilder:new(root)
-  builder:addMenu("Red zone", nil, coalition.side.RED)
-  builder:build()
+  local scoped = builder:addMenu("Red zone", nil, coalition.side.RED)
+  builder:rebuild()
+  veafRadio.delSubmenu(scoped, root)
   self.calls = {}
   builder:rebuild()
   local call = self:_firstOfKind("removeItemForCoalition")
   luaunit.assertNotNil(call)
   luaunit.assertEquals(call.args[1], coalition.side.RED)
-  luaunit.assertNotNil(self:_firstOfKind("removeItem"))
+  luaunit.assertNil(self:_firstOfKind("removeItem"))
+end
+
+-------------------------------------------------------------------------------------------------
+-- FIX-RADIO-MENU-ID-RECYCLING — a rebuild touches only what changed
+--
+-- DCS gives the id of a removed entry to the next one created and does not refresh an F10 screen
+-- left open: a player reading the menu across a full rebuild clicked B and fired C (measured
+-- 2026-10-09). So an unchanged entry must never be removed, and each freed id is parked.
+-------------------------------------------------------------------------------------------------
+TestVeafRadioIncrementalRender = {}
+
+local INCREMENTAL_API = {
+  "addSubMenu",
+  "addSubMenuForCoalition",
+  "addCommand",
+  "addCommandForCoalition",
+  "addCommandForGroup",
+  "removeItem",
+  "removeItemForCoalition",
+  "removeItemForGroup",
+}
+
+function TestVeafRadioIncrementalRender:setUp()
+  self._orig = { humanGroups = veafRadio.humanGroups, humanUnits = veafRadio.humanUnits }
+  self.calls = {}
+  local this = self
+  for _, name in ipairs(INCREMENTAL_API) do
+    self._orig[name] = missionCommands[name]
+    missionCommands[name] = function(...)
+      local args = { ... }
+      table.insert(this.calls, { kind = name, args = args })
+      return { kind = name, title = name:find("For") and args[2] or args[1] }
+    end
+  end
+  veafRadio.humanGroups = {}
+  veafRadio.humanUnits = {}
+  self.root = { title = "Root", subMenus = {}, commands = {} }
+  self.builder = veafRadio.RadioMenuBuilder:new(self.root)
+end
+
+function TestVeafRadioIncrementalRender:tearDown()
+  for name, value in pairs(self._orig) do
+    if name == "humanGroups" or name == "humanUnits" then
+      veafRadio[name] = value
+    else
+      missionCommands[name] = value
+    end
+  end
+end
+
+function TestVeafRadioIncrementalRender:_addHumanGroup(groupId, unitName)
+  veafRadio.humanGroups[groupId] = { callsigns = { unitName }, units = { [unitName] = { name = unitName } } }
+  veafRadio.humanUnits[unitName] = { name = unitName, spawned = true }
+end
+
+--- The kinds of the DCS calls since the last reset, a parked id shown as "park".
+function TestVeafRadioIncrementalRender:_kinds()
+  local kinds = {}
+  for _, call in ipairs(self.calls) do
+    if call.kind == "addCommandForGroup" and call.args[1] == veafRadio.PARKING_GROUP_ID then
+      table.insert(kinds, "park")
+    else
+      table.insert(kinds, call.kind)
+    end
+  end
+  return kinds
+end
+
+function TestVeafRadioIncrementalRender:test_an_unchanged_menu_makes_no_dcs_call()
+  local menu = self.builder:addMenu("Zones", nil)
+  local function activate() end
+  self.builder:addCommand("Activate", menu, activate, { zone = "Alpha" })
+  self.builder:rebuild()
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), {})
+end
+
+function TestVeafRadioIncrementalRender:test_a_module_rebuilding_its_entries_identically_keeps_them()
+  -- What modules do: clear their submenu and add fresh command nodes with fresh parameter tables.
+  local menu = self.builder:addMenu("Zones", nil)
+  local function activate() end
+  self.builder:addCommand("Activate", menu, activate, { zone = "Alpha" })
+  self.builder:rebuild()
+  veafRadio.clearSubmenu(menu)
+  self.builder:addCommand("Activate", menu, activate, { zone = "Alpha" })
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), {})
+end
+
+function TestVeafRadioIncrementalRender:test_a_changed_parameter_replaces_the_entry_parking_the_freed_id()
+  local menu = self.builder:addMenu("Zones", nil)
+  local function activate() end
+  self.builder:addCommand("Activate", menu, activate, { zone = "Alpha" })
+  self.builder:rebuild()
+  veafRadio.clearSubmenu(menu)
+  self.builder:addCommand("Activate", menu, activate, { zone = "Bravo" })
+  self.calls = {}
+  self.builder:rebuild()
+  -- the park must come between the removal and the add, or the new entry takes the freed id
+  luaunit.assertEquals(self:_kinds(), { "removeItem", "park", "addCommand" })
+end
+
+function TestVeafRadioIncrementalRender:test_a_new_entry_is_added_alone()
+  local menu = self.builder:addMenu("Zones", nil)
+  self.builder:addCommand("Alpha", menu, function() end)
+  self.builder:rebuild()
+  self.builder:addCommand("Bravo", menu, function() end)
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), { "addCommand" })
+  luaunit.assertEquals(self.calls[1].args[1], "Bravo")
+end
+
+function TestVeafRadioIncrementalRender:test_a_dropped_submenu_is_removed_children_first_each_id_parked()
+  local menu = self.builder:addMenu("Zones", nil)
+  self.builder:addCommand("Alpha", menu, function() end)
+  self.builder:rebuild()
+  veafRadio.delSubmenu(menu, self.root)
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), { "removeItem", "park", "removeItem", "park" })
+  -- the command (child) goes before its submenu
+  luaunit.assertEquals(self.calls[1].args[1].title, "Alpha")
+  luaunit.assertEquals(self.calls[3].args[1].title, "ZONES")
+end
+
+function TestVeafRadioIncrementalRender:test_each_parked_id_has_its_own_label()
+  local menu = self.builder:addMenu("Zones", nil)
+  self.builder:addCommand("Alpha", menu, function() end)
+  self.builder:addCommand("Bravo", menu, function() end)
+  self.builder:rebuild()
+  veafRadio.clearSubmenu(menu)
+  self.calls = {}
+  self.builder:rebuild()
+  local labels = {}
+  for _, call in ipairs(self.calls) do
+    if call.kind == "addCommandForGroup" then
+      luaunit.assertNil(labels[call.args[2]], "two parked commands share a label")
+      labels[call.args[2]] = true
+      luaunit.assertEquals(call.args[4], veafRadio._parkedCommand)
+    end
+  end
+end
+
+function TestVeafRadioIncrementalRender:test_a_joining_group_only_adds_its_own_commands()
+  self:_addHumanGroup(1, "Pilot1")
+  local menu = self.builder:addMenu("Assist", nil)
+  self.builder:addCommand("Info", menu, function() end, nil, veafRadio.USAGE_ForGroup)
+  self.builder:addCommand("Weather", menu, function() end)
+  self.builder:rebuild()
+  self:_addHumanGroup(2, "Pilot2")
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), { "addCommandForGroup" })
+  luaunit.assertEquals(self.calls[1].args[1], 2)
+end
+
+function TestVeafRadioIncrementalRender:test_a_group_command_is_removed_with_the_group_api()
+  self:_addHumanGroup(1, "Pilot1")
+  local menu = self.builder:addMenu("Assist", nil)
+  local command = self.builder:addCommand("Info", menu, function() end, nil, veafRadio.USAGE_ForGroup)
+  self.builder:rebuild()
+  veafRadio.delCommand(menu, command.title)
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), { "removeItemForGroup", "park" })
+  luaunit.assertEquals(self.calls[1].args[1], 1)
+end
+
+function TestVeafRadioIncrementalRender:test_two_entries_with_the_same_label_stay_two()
+  local menu = self.builder:addMenu("Zones", nil)
+  local function a() end
+  local function b() end
+  self.builder:addCommand("Same", menu, a)
+  self.builder:addCommand("Same", menu, b)
+  self.builder:rebuild()
+  local adds = 0
+  for _, call in ipairs(self.calls) do
+    if call.kind == "addCommand" then
+      adds = adds + 1
+    end
+  end
+  luaunit.assertEquals(adds, 2)
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), {})
+end
+
+function TestVeafRadioIncrementalRender:test_a_submenu_turned_command_parks_every_id_it_freed()
+  local menu = self.builder:addMenu("Zones", nil)
+  local sub = self.builder:addMenu("X", menu)
+  self.builder:addCommand("Child", sub, function() end)
+  self.builder:rebuild()
+  veafRadio.delSubmenu(sub, menu)
+  self.builder:addCommand("X", menu, function() end)
+  self.calls = {}
+  self.builder:rebuild()
+  -- the new command first, then the old subtree, child before parent, each id parked
+  luaunit.assertEquals(self:_kinds(), { "addCommand", "removeItem", "park", "removeItem", "park" })
+  luaunit.assertEquals(self.calls[2].args[1].title, "Child")
+end
+
+--- A paginated "Zones" menu of `count` commands named cmd01, cmd02…
+function TestVeafRadioIncrementalRender:_paginatedMenu(count)
+  local menu = self.builder:addMenu("Zones", nil)
+  for i = 1, count do
+    self.builder:addCommand(string.format("cmd%02d", i), menu, function() end)
+  end
+  return menu
+end
+
+function TestVeafRadioIncrementalRender:test_a_new_entry_goes_to_the_last_page_moving_nothing()
+  -- Sorted first, it would have pushed cmd09 to page 2 and landed after page 1's "Next page".
+  local menu = self:_paginatedMenu(veafRadio.MENU_PAGE_SIZE + 2)
+  self.builder:rebuild()
+  self.builder:addCommand("aaa", menu, function() end)
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), { "addCommand" })
+  luaunit.assertEquals(self.calls[1].args[1], "aaa")
+  luaunit.assertEquals(self.calls[1].args[2].title, veaf.t("radio.next_page"))
+end
+
+function TestVeafRadioIncrementalRender:test_a_removal_on_page_one_moves_nothing_up()
+  local menu = self:_paginatedMenu(veafRadio.MENU_PAGE_SIZE + 2)
+  self.builder:rebuild()
+  veafRadio.delCommand(menu, "cmd01")
+  self.calls = {}
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_kinds(), { "removeItem", "park" })
+end
+
+function TestVeafRadioIncrementalRender:test_a_page_never_holds_more_than_it_can_show()
+  local menu = self:_paginatedMenu(veafRadio.MENU_PAGE_SIZE)
+  self.builder:rebuild()
+  -- the eleventh entry turns pagination on: page 1 keeps (MENU_PAGE_SIZE - 1) entries and its link
+  self.builder:addCommand("cmd11", menu, function() end)
+  self.calls = {}
+  self.builder:rebuild()
+  local onPageOne = 0
+  for _, entry in pairs(self.builder._rendered) do
+    if entry.kind == "command" and entry.depth == 2 then
+      onPageOne = onPageOne + 1
+    end
+  end
+  luaunit.assertEquals(onPageOne, veafRadio.MENU_PAGE_SIZE - 1)
+end
+
+--- The DCS depth of each rendered command, by label.
+function TestVeafRadioIncrementalRender:_depthOf(label)
+  for _, entry in pairs(self.builder._rendered) do
+    if entry.kind == "command" and entry.key:find(":command:" .. label, 1, true) then
+      return entry.depth
+    end
+  end
+end
+
+function TestVeafRadioIncrementalRender:test_an_emptied_page_is_dropped()
+  -- 25 entries: page 1 holds cmd01..cmd09, page 2 cmd10..cmd18, page 3 the rest
+  local menu = self:_paginatedMenu(25)
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_depthOf("cmd25"), 4)
+  for i = 1, 9 do
+    veafRadio.delCommand(menu, string.format("cmd%02d", i))
+  end
+  self.builder:rebuild()
+  -- still paginated (16 entries), and page 1 would hold nothing but its "Next page": the pages move up
+  luaunit.assertEquals(self:_depthOf("cmd10"), 2)
+  luaunit.assertEquals(self:_depthOf("cmd25"), 3)
+end
+
+function TestVeafRadioIncrementalRender:test_a_menu_back_under_the_page_size_goes_back_to_one_page()
+  local menu = self:_paginatedMenu(veafRadio.MENU_PAGE_SIZE + 2)
+  self.builder:rebuild()
+  veafRadio.delCommand(menu, "cmd01")
+  veafRadio.delCommand(menu, "cmd02")
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_depthOf("cmd12"), 2)
+end
+
+function TestVeafRadioIncrementalRender:test_the_pages_of_a_dropped_menu_are_forgotten()
+  local menu = self:_paginatedMenu(veafRadio.MENU_PAGE_SIZE + 2)
+  self.builder:rebuild()
+  veafRadio.delSubmenu(menu, self.root)
+  self.builder:rebuild()
+  local remembered = 0
+  for _ in pairs(self.builder._pagesByNode) do
+    remembered = remembered + 1
+  end
+  luaunit.assertEquals(remembered, 1, "only the root is still rendered")
+end
+
+function TestVeafRadioIncrementalRender:test_build_alone_keeps_two_entries_with_the_same_label()
+  local menu = self.builder:addMenu("Zones", nil)
+  self.builder:addCommand("Same", menu, function() end)
+  self.builder:addCommand("Same", menu, function() end)
+  self.builder:build()
+  luaunit.assertEquals(self:_kinds(), { "addSubMenu", "addSubMenu", "addCommand", "addCommand" })
+end
+
+function TestVeafRadioIncrementalRender:test_same_value_compares_plain_tables_and_objects_by_identity()
+  local same = veafRadio.RadioMenuBuilder._sameValue
+  luaunit.assertTrue(same({ "a", { 1, 2 } }, { "a", { 1, 2 } }))
+  luaunit.assertFalse(same({ "a" }, { "a", "b" }))
+  luaunit.assertFalse(same({ "a", "b" }, { "a" }))
+  local object = setmetatable({}, {})
+  luaunit.assertTrue(same({ object }, { object }))
+  luaunit.assertFalse(same({ setmetatable({}, {}) }, { setmetatable({}, {}) }))
+  luaunit.assertTrue(same(nil, nil))
+  -- a DCS object comes back as a new table from every getByName: same class and id_ is the same object
+  local unitClass = {}
+  luaunit.assertTrue(same({ setmetatable({ id_ = 7 }, unitClass) }, { setmetatable({ id_ = 7 }, unitClass) }))
+  luaunit.assertFalse(same({ setmetatable({ id_ = 7 }, unitClass) }, { setmetatable({ id_ = 8 }, unitClass) }))
+  luaunit.assertFalse(same({ setmetatable({ id_ = 7 }, unitClass) }, { setmetatable({ id_ = 7 }, {}) }))
 end
 
 function TestVeafRadioCoalitionMenus:test_addSubMenu_passes_the_side_through()

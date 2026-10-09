@@ -25,6 +25,7 @@ automatically and for every menu, with an **opt-out** flag.
   logical menu tree is untouched, so the references modules hold (`rootPath`,
   submenu handles) stay valid.
 - **Opt-out**: `veafRadio.doNotPaginate(menu)` sets `menu.noPagination = true`.
+- **Stable pages** (FIX-RADIO-MENU-ID-RECYCLING, 2026-10-09): the first render distributes the children in sorted order; afterwards an entry already shown keeps its page and a new one goes to the last page, since moving an entry means recreating it in DCS, which a player reading the old page would lose, and an entry added to page 1 would land after its `Next page`.
 - **Item count = one per logical child** (each submenu, each command counts as 1).
   This is exact — not an approximation — because a node produces at most one DCS
   entry per group: submenus and `USAGE_ForAll` commands are global (1 entry),

@@ -68,6 +68,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The build lists every AWACS and tanker no preset reaches: mission 1's radios and kneeboards carried the shipped channel plan, not its own Overlord on 251 MHz.
   **Migration:** a campaign mission folder refreshed by `campaign next` loses its `security.disabled` and passwords; turn security off in a test copy, never in the campaign.
 
+- **A VEAF radio menu left open fires the command the player sees** (FIX-RADIO-MENU-ID-RECYCLING).
+  Reading an F10 menu while another player joined, or while a zone or a mission changed, could fire another command than the one clicked: DCS gives a removed menu entry's internal number to the next one created and does not refresh a menu left open, and the VEAF menu was recreated whole on every such change.
+  It is now updated in place: an unchanged entry keeps its number, and each freed number is taken by an invisible inert command.
+  An entry that appears after the first display goes to the end of its menu, on its last page, instead of its alphabetical place; an entry already shown never changes page.
+  The vendored CTLD has the same defect; it is reported upstream as VEAF/CTLD#257.
+
 ### Added
 
 - **Multi-mission campaigns: a campaign flown mission after mission, each one built from what the last one left** (FEAT-MULTI-MISSION-CAMPAIGN).

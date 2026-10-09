@@ -293,6 +293,30 @@ def describe_known_limitations(kind: str | None = None) -> dict[str, Any]:
     return {"veaf_tools_version": version, "limitations": [dict(entry) for entry in entries]}
 
 
+# The skill ships once, in the plugin; the build bundles that file (`_veaf_tools_extra_data`).
+_AUTHORING_GUIDE_IN_REPO = ("plugin", "skills", "veaf-mission-authoring", "SKILL.md")
+
+
+def describe_authoring_guide() -> dict[str, Any]:
+    """Return the VEAF mission authoring guide, for an MCP client that has no plugin.
+
+    The text is the plugin's ``veaf-mission-authoring`` skill, verbatim: Claude Code and Gemini CLI
+    load it from the plugin, any other client reads it here, and both read the same file.
+
+    Returns:
+        `{"guide": <markdown text>}`.
+
+    Raises:
+        FileNotFoundError: Neither the bundled copy nor the repository's plugin file exists.
+    """
+    try:
+        return {"guide": read_bundled_text("veaf_mission_mcp", "data", "SKILL.md")}
+    except FileNotFoundError:
+        # Resolved here, not at import: a frozen module's path can be too short for parents[4].
+        repo_root = Path(__file__).resolve().parents[4]
+        return {"guide": repo_root.joinpath(*_AUTHORING_GUIDE_IN_REPO).read_text(encoding="utf-8")}
+
+
 def _module_enabled(mission_yaml_path: Path, module_id: str) -> bool | None:
     """Return whether `module_id` is enabled in `mission_yaml_path`, or None if absent/unknown."""
     data = load_yaml(mission_yaml_path)

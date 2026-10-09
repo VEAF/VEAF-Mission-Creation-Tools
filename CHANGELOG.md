@@ -95,6 +95,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The mission briefing has a navigation plan** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
   `briefing-mission.pptx` gains a "Navigation plan" page read from the built mission: the waypoints the players' planes then helicopters carry after their departure, `BULLSEYE` included — name, DMS position, altitude and its reference (BARO or AGL). The tactical map shows them as numbered points, the numbers of the page.
 
+- **Any MCP-capable AI can author a VEAF mission, not only Claude Code and Gemini CLI** (FEAT-AI-ASSISTANT-ANY-CLIENT).
+  The new `describe_authoring_guide` action serves the plugin's authoring skill, verbatim, and the server's MCP instructions ask a client to read it first — so an AI wired by hand, Claude Desktop for instance, gets the naming conventions and the order of work along with the tools.
+  [Install the AI assistant](doc/mission-maker/AI_ASSISTANT_INSTALL.en.md) explains how to wire another MCP client and what a chat AI without MCP can still do, and the tutorial now points there from its first lines.
+
 ### Changed
 
 - **Vendored DCS scripting-API schema `v0.5.0`** (was `v0.4.0`). The scripting API itself does not move: the LuaLS annotations are byte-identical and `audit-dcs-mocks` reports exactly what it did on `v0.4.0`. Only the reference-data types (`types.Entity.*`: weapon and aircraft flight models, sensor and mobility fields) grow. The vendored `LICENSE` is now the release's own: the previous copy named a different copyright holder than the `v0.4.0` tag did.

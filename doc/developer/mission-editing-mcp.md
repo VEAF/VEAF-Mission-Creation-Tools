@@ -909,6 +909,20 @@ généré.
 {"kind": "dcs"}
 ```
 
+### `describe_authoring_guide` (lot FEAT-AI-ASSISTANT-ANY-CLIENT)
+
+Lecture seule, sans paramètre. Renvoie `{"guide": …}` : le texte de la skill `veaf-mission-authoring` du plugin, tel quel.
+Claude Code et Gemini CLI chargent cette skill depuis le plugin ; un autre client MCP n'a pas de plugin, et la lit ici.
+Le fichier n'existe qu'une fois, `plugin/skills/veaf-mission-authoring/SKILL.md` : le build l'embarque dans l'exe sous `veaf_mission_mcp/data/`, et en développement l'action le lit dans le dépôt.
+
+Les **consignes du serveur** (`instructions` du protocole MCP, envoyées au client à la connexion) demandent de lire ce guide en premier — en chargeant la skill si le client l'a, en appelant cette action sinon.
+Elles tiennent en quelques lignes exprès : Claude Code les met dans le prompt de chaque session, où la skill du plugin est déjà.
+Tous les clients n'en tiennent pas compte ; [la page d'installation](../mission-maker/AI_ASSISTANT_INSTALL.md#other-mcp-client) fait donc commencer la conversation par la demande explicite.
+
+```json
+{}
+```
+
 ### `offer_clear_ground_check` (lot FEAT-CLEAR-GROUND-AT-AUTHORING)
 
 Lecture seule, et **ne lance rien**. Sur un `.miz` construit, renvoie de quoi **proposer** à

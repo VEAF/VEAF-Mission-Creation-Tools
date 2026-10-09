@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FEAT-AI-ASSISTANT-ANY-CLIENT](FEAT-AI-ASSISTANT-ANY-CLIENT/PRD.md) · 🔄
+
+Using VMCT with Claude, Gemini or another AI: the tutorial points to the install page from its first lines, the install page covers another MCP client and a chat AI without MCP, and the server serves the authoring skill to any client through `describe_authoring_guide`.
 
 ## 🧑 Waiting for a human
 

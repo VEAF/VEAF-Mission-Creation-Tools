@@ -45,6 +45,7 @@ from veaf_mission_mcp.map_tools import describe_map, list_airfields, resolve_coo
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
+    describe_authoring_guide,
     describe_known_limitations,
     describe_module,
     describe_naming_conventions,
@@ -2423,6 +2424,19 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={"type": "object", "properties": {}},
         ),
         handler=lambda _p: describe_naming_conventions(),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_authoring_guide",
+            description=(
+                "Read this first, before any other action, unless you have the veaf-mission-authoring "
+                "skill: load that instead, it is the same text. Returns the VEAF mission authoring guide: the "
+                "order of work, the reserved naming conventions, combat zone vs QRA groups, and which "
+                "actions to consult instead of guessing. Read-only."
+            ),
+            parameters_schema={"type": "object", "properties": {}},
+        ),
+        handler=lambda _p: describe_authoring_guide(),
     )
     catalog.register(
         ActionSpec(

@@ -115,6 +115,13 @@ def test_veaf_tools_extra_data_bundles_known_limitations(tmp_path: Path) -> None
     assert "known-limitations.yaml" in sources
 
 
+def test_veaf_tools_extra_data_bundles_the_authoring_skill(tmp_path: Path) -> None:
+    """The MCP describe_authoring_guide action reads it: the skill lives in plugin/, outside the package."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    bundled = worker._veaf_tools_extra_data(None)
+    assert any(src.name == "SKILL.md" and dest == "veaf_mission_mcp/data" for src, dest in bundled)
+
+
 def test_veaf_tools_extra_data_bundles_airfield_frequencies(tmp_path: Path) -> None:
     """Regression guard: airfield-frequencies.yaml must ship so convert-v5 freq aliasing
     works in the packaged executable (FEAT-AIRFIELD-FREQS-DATA)."""

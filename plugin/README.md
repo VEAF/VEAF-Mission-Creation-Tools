@@ -21,6 +21,7 @@ drift is silent because nobody reads both.
 - `scripts/bootstrap.ps1` — installs/refreshes the `veaf-tools` binary (see below).
 - `skills/veaf-mission-authoring/` — the authoring skill (auto-discovered): naming conventions,
   combat-zone vs QRA group models, always consulting the oracle actions.
+  The build also bundles `SKILL.md` into `veaf-tools`, whose `describe_authoring_guide` action serves it to MCP clients that have no plugin.
 
 ## Install — Claude Code
 

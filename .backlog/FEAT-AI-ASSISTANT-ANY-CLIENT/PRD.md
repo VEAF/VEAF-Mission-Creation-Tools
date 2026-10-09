@@ -1,6 +1,6 @@
 # FEAT-AI-ASSISTANT-ANY-CLIENT — using VMCT with Claude, Gemini or another AI
 
-Status: 🔄 in progress
+Status: ✅ done — shipped in #1110
 
 Origin: David, 2026-10-09 — "a section in the docs, in the tutorial for instance, on what to do if I have Claude or another AI and want to use VMCT".
 

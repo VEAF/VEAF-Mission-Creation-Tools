@@ -30,6 +30,10 @@ CTLD `2.0.0-rc12` vendored (#1051): reoccupied slots, `EXZ_` extraction zones, U
 
 The tutorial stops before the three things a mission maker does next: set the tool's language, get security back for the server build through a profile, and update the tools.
 
+### [FEAT-AI-ASSISTANT-ANY-CLIENT](FEAT-AI-ASSISTANT-ANY-CLIENT/PRD.md) · ✅
+
+Using VMCT with Claude, Gemini or another AI: the tutorial points to the install page from its first lines, the install page covers another MCP client and a chat AI without MCP, and the server serves the authoring skill to any client through `describe_authoring_guide` (#1110).
+
 ### [FEAT-AIRCRAFT-ROLES](FEAT-AIRCRAFT-ROLES/PRD.md) · ✅
 
 One way to spawn an aircraft with a job: `veafAircraftSpawn` roles, given to QRA and AirWaves CAP groups at clone time. Verified in game (R21).

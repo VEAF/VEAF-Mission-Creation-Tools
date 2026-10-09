@@ -152,9 +152,11 @@ class CampaignWorker:
         archive = self.mission_folder(merged.mission)
         archive.mkdir(parents=True, exist_ok=True)
         # both the file and its temporary when there is one: the one actually read may be either
+        # (a file already sitting in its archive folder, where CAMPAIGN.md shows it, stays as it is)
         for written in (state_file, state_file.with_name(state_file.name + ".tmp")):
-            if written.is_file():
-                shutil.copyfile(written, archive / written.name)
+            target = archive / written.name
+            if written.is_file() and not (target.exists() and written.samefile(target)):
+                shutil.copyfile(written, target)
         save_state(current, archive / "campaign-state.before.yaml")
         save_state(merged, archive / "campaign-state.after.yaml")
         save_state(merged, self.state_file)

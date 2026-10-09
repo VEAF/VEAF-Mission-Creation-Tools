@@ -374,6 +374,13 @@ route n'en prévoit pas : s'il ne porte aucune tâche d'engagement des aéronefs
 Un groupe placé **au parking ou sur la piste** garde son décollage tel que vous l'avez réglé, puis monte à
 27 000 ft pour sa patrouille.
 
+**Sur la piste par défaut.** Une QRA décolle vraiment de son terrain : c'est le départ que pose l'action MCP `create_qra` quand on ne lui dit rien (l'aérodrome de la coalition le plus proche de la zone, ou celui qu'on nomme), un départ en l'air seulement sur demande.
+Ce que ça coûte :
+
+- **le temps de décoller** avant d'arriver sur la zone — à mesurer en jeu, pas estimé ici ;
+- **un terrain trop endommagé ou pris** (sous `airbaseMinLifePercent`) garde la QRA au sol (`NOAIRBASE`) : dans une campagne, frapper le terrain ennemi est une façon de clouer sa QRA, et c'est voulu ;
+- **une unité sur la piste** l'empêche de rouler : les garnisons d'une campagne sont tenues hors du béton pour cette raison.
+
 C'est donc le cas normal : placez l'intercepteur avec **un seul point**, sans tâche, et le script fait le
 reste ; le build l'annonce pour chaque groupe concerné. Si vous voulez votre propre plan de vol, écrivez-le **avec** une tâche d'engagement des aéronefs : il
 est alors suivi tel quel. Une route écrite à la main sans cet engagement est remplacée, et le build vous le

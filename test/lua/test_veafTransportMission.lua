@@ -646,6 +646,28 @@ function TestVeafTransportAirbaseLogistics:test_starting_ctld_registers_the_airf
   luaunit.assertNotNil(veafTransportMission.airbaseLogisticsTaskId, "and schedule the tick that holds them")
 end
 
+function TestVeafTransportAirbaseLogistics:test_a_held_airfield_is_a_troop_pickup_zone_too()
+  -- FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 05: at Batumi and Kobuleti troops could be taken from the
+  -- carrier only — the airfields were logistic zones, never troop zones
+  veafAirbases.Airbases = { makeAirbaseRecord("Ramstein", Airbase.Category.AIRDROME, makeDcsAirbase(coalition.side.BLUE, threeStands())) }
+
+  veafTransportMission.initializeAllLogisticInCTLD()
+
+  local logistic = zoneManagerCalls("registerFOBAsLogistic")[1]
+  local troops = zoneManagerCalls("registerFOBAsTroopZone")
+  luaunit.assertEquals(#troops, 1)
+  -- the same name, point, radius and coalition: one place, both services
+  luaunit.assertEquals(troops[1].args, logistic.args)
+end
+
+function TestVeafTransportAirbaseLogistics:test_a_neutral_airfield_is_no_troop_zone()
+  veafAirbases.Airbases = { makeAirbaseRecord("Nowhere", Airbase.Category.AIRDROME, makeDcsAirbase(coalition.side.NEUTRAL, threeStands())) }
+
+  veafTransportMission.initializeAllLogisticInCTLD()
+
+  luaunit.assertEquals(#zoneManagerCalls("registerFOBAsTroopZone"), 0)
+end
+
 function TestVeafTransportAirbaseLogistics:test_red_airdrome_registers_under_red()
   veafAirbases.Airbases = { makeAirbaseRecord("Krasnodar", Airbase.Category.AIRDROME, makeDcsAirbase(coalition.side.RED, threeStands())) }
 
@@ -887,6 +909,23 @@ function TestVeafTransportAirbaseLogisticsTick:test_return_to_the_holder_reactiv
   luaunit.assertEquals(state.class, "A")
   luaunit.assertEquals(#zoneManagerCalls("deactivateLogisticZone"), 0)
   luaunit.assertEquals(#messagesTo(coalition.side.BLUE), 1, "the gaining side is told it can load again")
+end
+
+function TestVeafTransportAirbaseLogisticsTick:test_the_troop_zone_goes_dark_and_comes_back_with_the_logistic_zone()
+  local ab = self:_registerBlue("Ramstein")
+
+  ab._set(coalition.side.NEUTRAL)
+  veafTransportMission.updateAirbaseLogisticsZones()
+  local off = zoneManagerCalls("setTroopZoneActive")
+  luaunit.assertEquals(#off, 1)
+  luaunit.assertEquals(off[1].args, { "AB_Ramstein", false })
+
+  CTLDZoneManager._instance.calls = {}
+  ab._set(coalition.side.BLUE)
+  veafTransportMission.updateAirbaseLogisticsZones()
+  local on = zoneManagerCalls("setTroopZoneActive")
+  luaunit.assertEquals(#on, 1)
+  luaunit.assertEquals(on[1].args, { "AB_Ramstein", true })
 end
 
 function TestVeafTransportAirbaseLogisticsTick:test_taken_by_the_other_side_reclassifies_a_to_b_and_tells_the_loser()
@@ -1213,6 +1252,11 @@ function TestVeafTransportAirbaseLogisticsClassB:test_red_troops_on_a_captured_b
   luaunit.assertEquals(#registered, 1)
   luaunit.assertEquals(registered[1].args[4], coalition.side.RED)
   luaunit.assertEquals(#messagesTo(coalition.side.RED), 1, "red is told when it can actually load")
+  -- the troop zone follows: moved to red the same way, so blue cannot board troops on red's field
+  luaunit.assertEquals(#zoneManagerCalls("unregisterTroopZone"), 1)
+  local troops = zoneManagerCalls("registerFOBAsTroopZone")
+  luaunit.assertEquals(#troops, 1)
+  luaunit.assertEquals(troops[1].args[4], coalition.side.RED)
 end
 
 -- ---------------------------------------------------------------------------

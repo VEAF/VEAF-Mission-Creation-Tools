@@ -1118,6 +1118,11 @@ CTLDZoneManager = _manager({
   unregisterLogistic = function() end,
   deactivateLogisticZone = function() end,
   activateLogisticZone = function() end,
+  registerFOBAsTroopZone = function()
+    return true
+  end,
+  unregisterTroopZone = function() end,
+  setTroopZoneActive = function() end,
   getLogisticZonesAtPoint = function()
     return dcs_mocks.logisticZonesAtPoint or {}
   end,

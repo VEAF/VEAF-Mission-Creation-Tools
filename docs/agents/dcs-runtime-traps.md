@@ -468,6 +468,20 @@ units gone (`Unit.getByName` nil) — in the same call and three seconds later.
 **What to do:** Rebuilding a group under its own name is a replacement, not a duplicate; it is how the convoy merges
 its unarmed vehicles back. It cannot carry damage over: the units come back whole.
 
+### `land.getSurfaceType` answers `RUNWAY` for a whole airfield's concrete: taxiways, aprons and stands too {#an-airfields-concrete-is-all-runway-surface}
+
+Measured **2026-10-09**.
+
+Sampled every 20 m over 4 km around Batumi and Senaki-Kolkhi (Caucasus), with the fiddle hook:
+all 12 of Batumi's stands and all 70 of Senaki's stand on `RUNWAY`, and `RUNWAY` cells reach more
+than 300 m from the runway centreline — 1 059 cells at Batumi where the runway alone (2 070 × 60 m)
+makes about 310. A terrain check that accepts `RUNWAY` (`veaf.DRIVABLE_TERRAIN`, kept for the dams
+DCS reports as `RUNWAY`) therefore places vehicles on runways, taxiways and parking alike: on
+*Kolkhida* mission 1 a Patriot on Batumi's runway and armour on Senaki's.
+
+**What to do:** To keep something off an airfield, refuse the `RUNWAY` surface for each unit's own position
+(`veafCampaign.isOnConcrete`), not only for the group's anchor: a group spreads its units around it.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

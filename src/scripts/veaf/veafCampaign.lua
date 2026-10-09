@@ -64,6 +64,75 @@ veafCampaign.rootPath = nil
 --- The spacing `veafCasMission`'s generators place a garrison with; 1 is their default.
 veafCampaign.GARRISON_SPACING = 1
 
+--- How many places in the zone a garrison group tries before it keeps the last, whose units on the
+--- concrete `drawGarrison` then drops one by one.
+veafCampaign.GARRISON_PLACEMENT_TRIES = 10
+
+--- A unit recorded on the concrete is moved to the nearest bare ground, searched in rings this far
+--- apart, out to `OFF_CONCRETE_MAX` metres.
+veafCampaign.OFF_CONCRETE_STEP = 25
+veafCampaign.OFF_CONCRETE_MAX = 1000
+
+--- Whether a point is on an airfield's concrete, where no garrison unit may stand.
+---
+--- DCS reports runways, taxiways, aprons and stands alike as `RUNWAY`: measured on 2026-10-09 on
+--- Batumi and Senaki, all 82 of their stands were on it, and paved cells reached more than 300 m from
+--- the runway centreline (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 03). So the surface alone keeps a
+--- garrison off all of it — which `veaf.DRIVABLE_TERRAIN` deliberately does not, for a convoy's dams.
+--- @param point table a vec2 or a vec3
+--- @return boolean
+function veafCampaign.isOnConcrete(point)
+  return veaf.isTerrainValid(point, "RUNWAY")
+end
+
+--- The nearest point off the concrete, on drivable ground, from `(x, z)`.
+--- @return table|nil `{ x, z }`, or nil when there is none within `OFF_CONCRETE_MAX`
+function veafCampaign.nearestOffConcrete(x, z)
+  for distance = veafCampaign.OFF_CONCRETE_STEP, veafCampaign.OFF_CONCRETE_MAX, veafCampaign.OFF_CONCRETE_STEP do
+    for step = 0, 15 do
+      local angle = step * math.pi / 8
+      local point = { x = x + distance * math.cos(angle), z = z + distance * math.sin(angle) }
+      if veaf.isTerrainValid(point, { "LAND", "ROAD" }) then
+        return point
+      end
+    end
+  end
+  return nil
+end
+
+--- Place one garrison group in the zone, off the concrete: a group a unit of which lands on it is
+--- placed again elsewhere, up to `GARRISON_PLACEMENT_TRIES` times.
+--- @param definition table the group, as `veafCasMission.placeGroup` takes it
+--- @param center table the zone's centre, a vec3
+--- @param radius number the zone's radius, in metres
+--- @param units table the list the placed units are appended to
+function veafCampaign.placeGarrisonGroup(definition, center, radius, units)
+  if not definition then
+    return
+  end
+  local placed = {}
+  for _ = 1, veafCampaign.GARRISON_PLACEMENT_TRIES do
+    local position = veaf.findPointInZone(center, radius, false)
+    if not position then
+      return
+    end
+    placed = veafCasMission.placeGroup(definition, { x = position.x, y = position.z or position.y }, veafCampaign.GARRISON_SPACING, {})
+    local onConcrete = false
+    for _, unit in ipairs(placed) do
+      if unit.spawnPoint and veafCampaign.isOnConcrete(unit.spawnPoint) then
+        onConcrete = true
+        break
+      end
+    end
+    if not onConcrete then
+      break
+    end
+  end
+  for _, unit in ipairs(placed) do
+    table.insert(units, unit)
+  end
+end
+
 --- The coalitions a zone can belong to, as DCS numbers them. A neutral zone has no garrison.
 veafCampaign.SIDES = { blue = coalition.side.BLUE, red = coalition.side.RED }
 
@@ -237,10 +306,7 @@ end
 function veafCampaign.composeGarrison(name, center, radius, size, side)
   local units = {}
   local function place(group)
-    local position = veaf.findPointInZone(center, radius, false)
-    if group and position then
-      veafCasMission.placeGroup(group, position, veafCampaign.GARRISON_SPACING, units)
-    end
+    veafCampaign.placeGarrisonGroup(group, center, radius, units)
   end
   local sections = math.random(math.max(1, size.size - 2), size.size + 1)
   for index = 1, sections do
@@ -291,10 +357,7 @@ function VeafCampaignZone:drawGarrison(reserve)
   if self.entry.garrison_list and (declared == nil or declared == self.entry.owner) then
     local units = {}
     for _, definition in ipairs(explicitGroupDefinitions(self.name, self.entry.garrison_list)) do
-      local position = veaf.findPointInZone(center, radius, false)
-      if position then
-        veafCasMission.placeGroup(definition, { x = position.x, y = position.z or position.y }, veafCampaign.GARRISON_SPACING, units)
-      end
+      veafCampaign.placeGarrisonGroup(definition, center, radius, units)
     end
     table.insert(placedGroups, { name = self.name .. " garrison", units = units })
   else
@@ -303,14 +366,9 @@ function VeafCampaignZone:drawGarrison(reserve)
     table.insert(placedGroups, { name = self.name .. " garrison", units = units })
     if size.long_range_sam then
       local battery = veafCasMission.generateLongRangeAirDefenseGroup(self.name .. " long-range SAM", side)
-      local position = veaf.findPointInZone(center, radius, false)
-      if battery and position then
-        local lrUnits = veafCasMission.placeGroup(
-          battery,
-          { x = position.x, y = position.z or position.y },
-          veafCampaign.GARRISON_SPACING,
-          {}
-        )
+      local lrUnits = {}
+      veafCampaign.placeGarrisonGroup(battery, center, radius, lrUnits)
+      if #lrUnits > 0 then
         table.insert(placedGroups, { name = self.name .. " long-range SAM", units = lrUnits })
       end
     end
@@ -320,7 +378,7 @@ function VeafCampaignZone:drawGarrison(reserve)
   for _, placed in ipairs(placedGroups) do
     local group = { name = placed.name, units = {} }
     for _, unit in ipairs(placed.units) do
-      if unit.spawnPoint and veafUnits.checkPositionForUnit(unit.spawnPoint, unit) then
+      if unit.spawnPoint and veafUnits.checkPositionForUnit(unit.spawnPoint, unit) and not veafCampaign.isOnConcrete(unit.spawnPoint) then
         table.insert(group.units, recordUnit(unit))
       end
     end
@@ -369,6 +427,20 @@ function VeafCampaignZone:spawnGarrison()
     for unitIndex, unit in ipairs(group.units) do
       if unit.alive then
         local name = veafCampaign.unitName(group, unitIndex)
+        -- drawn before the concrete was kept clear, or by hand: moved, and recorded where it now stands
+        if veafCampaign.isOnConcrete({ x = unit.x, z = unit.z }) then
+          local clear = veafCampaign.nearestOffConcrete(unit.x, unit.z)
+          if clear then
+            veaf.loggers.get(veafCampaign.Id):info(
+              "unit [%s] moved off the airfield's concrete, %d m",
+              name,
+              math.floor(math.sqrt((clear.x - unit.x) ^ 2 + (clear.z - unit.z) ^ 2))
+            )
+            unit.x, unit.z = clear.x, clear.z
+          else
+            veaf.loggers.get(veafCampaign.Id):warn("unit [%s] stands on the airfield's concrete and no bare ground was found near it", name)
+          end
+        end
         table.insert(dcsUnits, {
           x = unit.x,
           y = unit.z,

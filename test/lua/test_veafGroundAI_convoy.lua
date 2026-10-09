@@ -122,6 +122,14 @@ local function resetWorld()
   veafGroundAI.convoyObjectives = {}
   veafGroundAI._townPoints = {}
   veaf.config.language = "en"
+  -- a pilot on each side: the call for help and its smokes are for a side that has some (ticket 07)
+  coalition.getPlayers = function()
+    return { {
+      getPlayerName = function()
+        return "pilot"
+      end,
+    } }
+  end
 end
 
 -- ---------------------------------------------------------------------------
@@ -516,6 +524,48 @@ function TestConvoyContact:test_the_smokes_go_with_the_call()
   luaunit.assertEquals(red.position.x, 1500)
   luaunit.assertEquals(red.position.z, 300)
   luaunit.assertNotNil(green, "green on the convoy")
+end
+
+function TestConvoyContact:test_a_side_without_pilots_falls_back_without_smoke_nor_call()
+  -- Kolkhida, 2026-10-08: the red convoy's smokes only marked it for blue, red having no pilot
+  -- (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 07)
+  coalition.getPlayers = function()
+    return {}
+  end
+  local voiced = 0
+  local savedRadio = veafRadio
+  veafRadio = {
+    transmitMessage = function()
+      voiced = voiced + 1
+    end,
+  }
+  local handler = self:_convoy(APC)
+  local shooter = makeUnit("r-1", { side = RED, attributes = IFV, point = { x = 1500, y = 0, z = 300 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = Unit.getByName("c-1") })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK, "it still falls back")
+  -- and the renewal, five minutes on, pops none either
+  dcs_mocks.runScheduled(ConvoyUnitHandler.SMOKE_RENEW_PERIOD + 10)
+  veafRadio = savedRadio
+  for _, effect in ipairs(dcs_mocks.effects) do
+    luaunit.assertNotEquals(effect.kind, "smoke")
+  end
+  luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 0)
+  luaunit.assertEquals(voiced, 0)
+end
+
+function TestConvoyContact:test_the_pilots_asked_about_are_the_convoys_own_side()
+  local asked = {}
+  coalition.getPlayers = function(side)
+    table.insert(asked, side)
+    return side == BLUE and { {} } or {}
+  end
+  self:_convoy(APC)
+  local shooter = makeUnit("r-1", { side = RED, attributes = IFV, point = { x = 1500, y = 0, z = 300 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = shooter, target = Unit.getByName("c-1") })
+  luaunit.assertEquals(countMessages("TROOPS IN CONTACT"), 1, "blue has a pilot: the call goes out")
+  for _, side in ipairs(asked) do
+    luaunit.assertEquals(side, BLUE)
+  end
 end
 
 function TestConvoyContact:test_a_radio_that_raises_takes_neither_the_smokes_nor_the_watch_down()

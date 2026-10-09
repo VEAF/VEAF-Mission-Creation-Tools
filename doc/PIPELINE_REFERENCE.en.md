@@ -234,6 +234,8 @@ At injection time, every frequency assigned to an aircraft is checked against th
 
 After each preset injection, a file `presets-validation-report.md` is automatically created in the mission folder if at least one aircraft (critical or not) has out-of-range frequencies. The file lists all issues with the invalid values and a YAML snippet to disable them temporarily. If no issues are found, the file is deleted.
 
+The report, and the build's log, also list **every AI AWACS and tanker whose frequency is on no preset injected for its coalition**: its pilots would find it neither on their radios nor on their kneeboard. It is the sign that the shipped channel plan was kept instead of the mission's; add its channel to `src/presets.yaml`. A coalition that received no preset is not checked.
+
 ```
 <mission-folder>/presets-validation-report.md
 ```

@@ -12,6 +12,10 @@ The main ways into the docs made obvious: "I want to…" cards on the home page 
 
 ## 🧑 Waiting for a human
 
+### [FIX-CAMPAIGN-MISSION-1-FINDINGS](FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md) · 🧑
+
+What the squadron found flying *Kolkhida* mission 1 on 2026-10-08, with no script error all evening: no radio presets nor right kneeboard on any aircraft, ATC not silenced, garrison units on the runways, CTLD crates and troops unavailable at the blue airfields, objective waypoints in the air, a red convoy smoking itself for blue, and the server's DCSServerBot replacing the campaign's date, time and clear sky with real weather. Decided: a QRA takes off from the ground by default. Ten tickets, one PR: the code is in; left are the CTLD release that takes the unit's country, the server's MizEdit filter, and the in-game checks of R47.
+
 ### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · 🧑
 
 Poti, taken on *Kolkhida* by the blue convoy, drew a garrison anyway: the capture trusted `world.searchObjects`, which overshoots its sphere, and the absorption measured the exact distance. Both now ask the same search; a strong enough assault convoy drives into its target zone while fighting; a shell is never a threat. To be checked in game, with ticket 02's measurement of why the convoy halted at the zone's edge (test mission ready).

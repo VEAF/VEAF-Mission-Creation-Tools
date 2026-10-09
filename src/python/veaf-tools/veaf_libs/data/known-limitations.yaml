@@ -1123,3 +1123,60 @@ limitations:
     capture's search found are the ones that become the garrison.
   workaround: |
     Before 6.29.0, none in flight: the zone keeps both the convoy and the garrison drawn for it.
+
+- id: an-airfields-concrete-is-all-runway-surface
+  kind: dcs
+  area: spawning
+  title: "`land.getSurfaceType` answers `RUNWAY` for a whole airfield's concrete: taxiways, aprons and stands too"
+  measured: "2026-10-09"
+  symptom: |
+    Sampled every 20 m over 4 km around Batumi and Senaki-Kolkhi (Caucasus), with the fiddle hook:
+    all 12 of Batumi's stands and all 70 of Senaki's stand on `RUNWAY`, and `RUNWAY` cells reach more
+    than 300 m from the runway centreline — 1 059 cells at Batumi where the runway alone (2 070 × 60 m)
+    makes about 310. A terrain check that accepts `RUNWAY` (`veaf.DRIVABLE_TERRAIN`, kept for the dams
+    DCS reports as `RUNWAY`) therefore places vehicles on runways, taxiways and parking alike: on
+    *Kolkhida* mission 1 a Patriot on Batumi's runway and armour on Senaki's.
+  workaround: |
+    To keep something off an airfield, refuse the `RUNWAY` surface for each unit's own position
+    (`veafCampaign.isOnConcrete`), not only for the group's anchor: a group spreads its units around it.
+
+- id: campaign-garrisons-on-the-runways
+  kind: tool
+  area: runtime
+  title: A campaign's airfield garrison could stand on the runways, taxiways and parking
+  fixed_in: "6.29.0"
+  symptom: |
+    `drawGarrison` placed its groups with `veaf.DRIVABLE_TERRAIN`, which accepts `RUNWAY`
+    (`an-airfields-concrete-is-all-runway-surface`): *Kolkhida* mission 1 had a Patriot on Batumi's
+    runway, blue's only loss of the evening, and ground units on Senaki's, which would keep a QRA there
+    on the ground. Since FIX-CAMPAIGN-MISSION-1-FINDINGS a garrison keeps off the concrete, and a unit
+    recorded on it is moved to the nearest bare ground when it spawns again.
+  workaround: |
+    Before 6.29.0, none: the garrison is drawn once and comes back where it was.
+
+- id: airfields-were-no-troop-pickup-zones
+  kind: tool
+  area: runtime
+  title: A held airfield was a CTLD logistic zone but no troop pickup zone
+  fixed_in: "6.29.0"
+  symptom: |
+    VEAF registered every held airfield with `registerFOBAsLogistic` and never `registerFOBAsTroopZone`:
+    on *Kolkhida* mission 1 a CH-47F at Batumi or Kobuleti could not take troops, which only the
+    carrier offered. Since FIX-CAMPAIGN-MISSION-1-FINDINGS the airfield's zone is both, and both follow
+    the field's owner.
+  workaround: |
+    Before 6.29.0, a troop pickup zone (`TRZ_`) placed in the editor at the airfield.
+
+- id: ctld-crates-need-usa-or-russia-in-the-mission
+  kind: tool
+  area: runtime
+  title: CTLD creates its crates under the USA or Russia, and a mission without them gets no crate
+  symptom: |
+    Asked for a crate with no country, CTLD 2.0.0-rc12 creates the static under `country.id.USA` (blue)
+    or `country.id.RUSSIA` (red), hardcoded at six sites. In a mission whose coalitions hold only CJTF
+    Blue and CJTF Red — every campaign mission — `coalition.getCountryCoalition(country.id.USA)` is 0,
+    `coalition.addStaticObject` raises, and CTLD swallows it: *Request Equipment* shows, a pick does
+    nothing, no message (measured in game on 2026-10-09; the same static under CJTF Blue exists). Fixed
+    in VEAF/CTLD, to be taken with its next release.
+  workaround: |
+    Put the USA in the mission's blue coalition and Russia in its red one (not checked in game).

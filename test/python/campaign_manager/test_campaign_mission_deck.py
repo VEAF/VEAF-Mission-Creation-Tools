@@ -13,8 +13,8 @@ from campaign_fixture import PROSE, VALID, built_mission, mission_template
 from campaign_manager.briefing_prose import BriefingProse, parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.campaign_worker import CampaignWorker
-from campaign_manager.mission_deck import MISSION_DECK_FILE, mission_deck, objective_zones
-from campaign_manager.mission_picture import MissionPicture, read_mission_picture
+from campaign_manager.mission_deck import MISSION_DECK_FILE, _altitude, mission_deck, objective_zones
+from campaign_manager.mission_picture import MissionPicture, Waypoint, read_mission_picture
 from campaign_manager.models import CampaignDefinition
 from campaign_manager.tactical_map import render_objective_map, render_tactical_map
 from PIL import Image
@@ -253,6 +253,14 @@ class TestTheDeck:
         assert "3. BULLSEYE : " in planes and "20\u00a0000 ft BARO" in planes
         assert f"1. POTI : {poti} — 500 ft AGL" in helicopters
         assert "2. KHOBI : " in helicopters
+
+    def test_a_waypoint_on_the_ground_reads_ground_not_zero_feet(self) -> None:
+        # what `campaign next` writes for every objective (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 06)
+        with language("fr"):
+            assert _altitude(Waypoint("POTI", 0.0, 0.0, 0, "RADIO")) == "sol"
+            assert _altitude(Waypoint("POTI", 0.0, 0.0, 152, "RADIO")) == "500 ft AGL"
+        with language("en"):
+            assert _altitude(Waypoint("POTI", 0.0, 0.0, 0, "RADIO")) == "ground"
 
     def test_a_zoom_page_says_the_task_on_its_zone(self, tmp_path: Path) -> None:
         (page,) = [slide for slide in _deck(tmp_path) if slide[0] == "5. Situation tactique — Senaki"]

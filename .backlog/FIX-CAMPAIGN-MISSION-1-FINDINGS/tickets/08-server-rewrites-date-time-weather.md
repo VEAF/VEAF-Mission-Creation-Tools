@@ -1,6 +1,6 @@
 # 08 — The server rewrote the mission's date, time and weather
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: config + fix
 
 ## Found
@@ -70,3 +70,8 @@ The server's administrators make the change; nothing is edited from here.
 ## Done when
 
 The instance that will fly *Kolkhida* mission 2 serves it with the date, time and sky the campaign built, read in the served `.miz` against the `.orig`.
+
+## Left (2026-10-09)
+
+`campaign next` writes the name, and `CAMPAIGN.md` says what to ask of the server.
+Left: the server's administrators set the MizEdit filter and switch the instance-level RealWeather off; then mission 2 served identical to its `.orig`.

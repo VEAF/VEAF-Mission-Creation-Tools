@@ -825,6 +825,12 @@ Si vous montez CTLD de version et que votre fichier a été écrit pour la préc
 
 Jusqu'ici, un avion de transport posé sur un aérodrome capturé lisait *« Aucune logistique à portée »* : CTLD 2 ne reconnaît comme points de chargement que les types d'unité déclarés dans `logisticUnitTypes` (les FARP et porte-avions de la section précédente) et les zones `LGZ_` posées dans l'éditeur. Un aérodrome — un `Airbase` de la carte, pas une unité — n'est ni l'un ni l'autre. VEAF comble l'écart : au démarrage, il enregistre **chaque aérodrome de la carte** comme zone logistique CTLD, puis la tient à jour au fil de la partie.
 
+La même zone est aussi une **zone d'embarquement de troupes**, au même endroit, du même rayon et pour le même camp : elle s'éteint et revient avec la zone logistique, et change de camp avec elle. Sans elle, sur *Kolkhida*, les troupes ne s'embarquaient que sur le porte-avions.
+Revers de la médaille, c'est le comportement de CTLD dans toute zone de troupes : débarquer des troupes **dans** ce cercle les renvoie à la base au lieu de les déployer. Pour les poser sur un aérodrome tenu, débarquez-les hors du cercle.
+
+!!! warning "Une mission dont les coalitions ne comptent que CJTF Blue et CJTF Red"
+    CTLD crée ses caisses sous le pays USA (bleu) ou Russie (rouge), quel que soit celui de l'hélicoptère. Quand ce pays n'appartient à aucune coalition de la mission — le cas des campagnes —, DCS refuse l'objet et la demande ne donne rien, sans message (mesuré en jeu le 2026-10-09). Le correctif est dans CTLD lui-même ; d'ici sa version, mettre USA dans la coalition bleue et la Russie dans la rouge de la mission devrait suffire (non vérifié en jeu).
+
 C'est un réglage, pas une fatalité :
 
 ```yaml

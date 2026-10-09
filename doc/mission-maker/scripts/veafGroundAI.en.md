@@ -166,6 +166,7 @@ The convoy autopilot does the work instead, **with nobody at the controls**.
    A [campaign](../CAMPAIGN.en.md#assault-convoys) **assault convoy** strong enough, within 5 km of its target, does not stop at 900 m: it drives on across country to the centre of the zone it was sent to take, firing as it goes, since the garrison it attacks stays in sight and the contact would never end.
    Fire for which DCS names only the shell counts for the vehicle that fired it, or is ignored when DCS does not say: a shell is never a threat.
 5. **When it falls back, it calls for help**, to its coalition, in the shape of a *troops in contact* call: its position (coordinates and MGRS), how many enemies and of what type, their bearing and distance. A **red smoke** marks the nearest enemy, a **green** one the convoy, renewed every 5 minutes while the contact lasts. When the mission can speak ([SRS configured](#srs-voice)), the same call goes out in voice on 243 and 121.5 MHz AM.
+   **Only when its side has pilots connected**, checked at the call and at each renewal: the smokes and the call are for them, and without them they only show the convoy to the enemy. A red convoy of a campaign nobody flies red in falls back without smoke and without a call.
    Strong enough to fight, it asks for nothing: an information message gives the contact, how many enemies, their bearing and distance, with no smoke.
    Either way, an **F10 marker** shows the convoy to its coalition while the contact lasts ("Mule — convoy in contact"), moved every 15 s and removed once the contact is over.
 6. **It falls back behind cover**: toward the nearest friendly place (a campaign zone its side owns, one of its airbases), through a point terrain or a town hides from the enemy; when there is none, the shortest way out of range.
@@ -217,6 +218,8 @@ STTS.EXECUTABLE = SERVER_CONFIG.SRS_EXECUTABLE
 
 `SRS_DIRECTORY` is the folder holding `DCS-SR-ExternalAudio.exe` (an `ExternalAudio` subfolder in recent SRS versions), `SRS_PORT` the SRS server's port.
 The mission also needs `os`: a `MissionScripting.lua` that removes it, as DCS's own does, leaves the mission mute.
+
+**Who hears the call**: it is sent for the convoy's coalition, but 243 and 121.5 MHz are guard frequencies, which both sides' pilots listen to. By the way SRS works, the enemy does not hear it only when the SRS server keeps the coalitions apart (*coalition audio security*) — not measured in game.
 
 ---
 

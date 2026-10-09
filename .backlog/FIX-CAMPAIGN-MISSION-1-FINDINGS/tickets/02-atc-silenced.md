@@ -1,6 +1,6 @@
 # 02 — A campaign mission silences the ATC
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -20,3 +20,7 @@ Confirmed by David the same evening: the ATC is to be silent, as on the other VE
 ## Done when
 
 A mission built by `campaign next` silences the ATC on every airbase unless its `mission.yaml` says otherwise.
+
+## Decided (2026-10-09)
+
+The campaign folders are written by Claude, nothing edited by hand: `campaign next` writes `mission.silence_atc_on_all_airbases: true` when the key is absent.

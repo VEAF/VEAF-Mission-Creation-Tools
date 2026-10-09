@@ -374,6 +374,13 @@ with *Air* targets), it is launched on **zone defense**:
 A group placed **on a parking spot or the runway** keeps its take-off as you set it, then climbs to
 27,000 ft for its patrol.
 
+**On the runway by default.** A QRA really takes off from its field: that is the start the MCP action `create_qra` lays down when told nothing (the coalition's airfield nearest the zone, or the one named), an air start only when asked.
+What it costs:
+
+- **the time to get airborne** before reaching the zone — to be measured in game, not estimated here;
+- **a field too damaged or taken** (below `airbaseMinLifePercent`) keeps the QRA on the ground (`NOAIRBASE`): in a campaign, striking the enemy's field is a way to ground its QRA, and that is intended;
+- **a unit on the runway** keeps it from rolling: a campaign's garrisons are kept off the concrete for that reason.
+
 So this is the normal case: place the interceptor with **a single waypoint** and no task, and the script
 does the rest; the build says so for every such group. If you want a flight plan of your own, write it **with** an aircraft engagement task: it is
 then flown as written. A hand-written route without that engagement is replaced, and the build warns you

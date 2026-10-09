@@ -165,6 +165,7 @@ Le pilote automatique de convoi fait le travail à sa place, **sans personne aux
    Un **convoi d'assaut** de la [campagne](../CAMPAIGN.md#assault-convoys) assez fort, à moins de 5 km de sa cible, ne s'arrête pas à 900 m : il roule hors route jusqu'au centre de la zone qu'il doit prendre, en tirant, car la garnison qu'il attaque reste en vue et le contact ne finirait jamais.
    Un tir dont DCS ne donne que l'obus est compté pour le véhicule qui l'a tiré, ou ignoré si DCS ne le dit pas : un obus n'est jamais une menace.
 5. **S'il se replie, il appelle à l'aide**, à sa coalition, sous la forme d'un appel *troops in contact* : sa position (coordonnées et MGRS), le nombre et le type d'ennemis, leur cap et leur distance. Un **fumigène rouge** marque l'ennemi le plus proche, un **vert** le convoi, renouvelés toutes les 5 minutes tant que le contact dure. Si la mission sait parler ([SRS configuré](#srs-voice)), le même appel passe en voix sur 243 et 121,5 MHz AM.
+   **Seulement si son camp a des pilotes connectés**, vérifié au moment de l'appel et à chaque renouvellement : les fumigènes et l'appel sont pour eux, et sans eux ils ne font que montrer le convoi à l'ennemi. Un convoi rouge d'une campagne où personne ne vole rouge se replie donc sans fumigène et sans appel.
    Assez fort pour combattre, il ne demande rien : un message d'information dit le contact, le nombre d'ennemis, leur cap et leur distance, sans fumigène.
    Dans les deux cas, un **marqueur F10** montre le convoi à sa coalition tant que le contact dure (« Mule — convoi au contact »), suivi toutes les 15 s, et retiré quand le contact est fini.
 6. **Il se replie à couvert** : vers le lieu ami le plus proche (une zone de campagne de son camp, un de ses aérodromes), en passant par un point que le relief ou une ville cache à l'ennemi ; s'il n'y en a aucun, le plus court chemin hors de portée.
@@ -216,6 +217,8 @@ STTS.EXECUTABLE = SERVER_CONFIG.SRS_EXECUTABLE
 
 `SRS_DIRECTORY` est le dossier qui contient `DCS-SR-ExternalAudio.exe` (un sous-dossier `ExternalAudio` sur les versions récentes de SRS), `SRS_PORT` le port du serveur SRS.
 Il faut aussi que la mission ait accès à `os` : un `MissionScripting.lua` qui le retire, comme le fait celui d'origine de DCS, rend la mission muette.
+
+**Qui entend l'appel** : il est émis pour la coalition du convoi, mais 243 et 121,5 MHz sont des fréquences de garde, que les pilotes des deux camps écoutent. D'après le fonctionnement de SRS, l'ennemi ne l'entend pas seulement si le serveur SRS sépare les coalitions (*coalition audio security*) — non mesuré en jeu.
 
 ---
 

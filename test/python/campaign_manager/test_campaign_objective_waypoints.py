@@ -21,8 +21,6 @@ from campaign_manager.campaign_worker import CAMPAIGN_FILE, CampaignWorker
 from campaign_manager.models import CampaignDefinition, CampaignZone, ZoneLocation
 from campaign_manager.next_mission import prepare_next_mission
 from campaign_manager.objective_waypoints import (
-    HELICOPTER_ALTITUDE,
-    PLANE_ALTITUDE,
     WAYPOINTS_FILE,
     objective_waypoints,
     waypoint_keys,
@@ -65,21 +63,22 @@ class TestTheWaypoints:
         campaign = _campaign()
         data = objective_waypoints(campaign, _page("Frapper Gudauta depot", "Prendre Senaki"))
         assert _plan(data, "plane")["waypoints"] == ["GUDAUTA", "SENAKI"]
-        assert _plan(data, "helicopter")["waypoints"] == ["GUDAUTA_LOW", "SENAKI_LOW"]
+        assert _plan(data, "helicopter")["waypoints"] == ["GUDAUTA", "SENAKI"]
 
     def test_each_waypoint_stands_on_its_zones_centre(self) -> None:
         campaign = _campaign()
         data = objective_waypoints(campaign, None)
-        for key, zone in (("SENAKI", "Senaki"), ("GUDAUTA_LOW", "Gudauta depot")):
+        for key, zone in (("SENAKI", "Senaki"), ("GUDAUTA", "Gudauta depot")):
             x, y = latlon_to_xy(campaign.theatre, *zone_position(campaign, campaign.zone(zone)))
             assert (data["waypoints"][key]["x"], data["waypoints"][key]["y"]) == (round(x), round(y))
 
-    def test_planes_cruise_and_helicopters_fly_low_under_the_same_name(self) -> None:
+    def test_every_waypoint_sits_on_the_ground_for_planes_and_helicopters_alike(self) -> None:
+        # where a targeting pod or a weapon slaved to the steerpoint looks (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 06)
         data = objective_waypoints(_campaign(), None)
-        plane, helicopter = data["waypoints"]["SENAKI"], data["waypoints"]["SENAKI_LOW"]
-        assert (plane["alt"], plane["alt_type"]) == (PLANE_ALTITUDE, "BARO") == (3048, "BARO")
-        assert (helicopter["alt"], helicopter["alt_type"]) == (HELICOPTER_ALTITUDE, "RADIO") == (152, "RADIO")
-        assert plane["name"] == helicopter["name"] == "SENAKI"
+        assert set(data["waypoints"]) == {"SENAKI", "GUDAUTA"}
+        for waypoint in data["waypoints"].values():
+            assert (waypoint["alt"], waypoint["alt_type"]) == (0, "RADIO")
+        assert _plan(data, "plane")["waypoints"] == _plan(data, "helicopter")["waypoints"]
 
     def test_the_plans_are_the_players_side(self) -> None:
         data = objective_waypoints(_campaign(player_side="red"), None)
@@ -114,8 +113,11 @@ class TestTheFile:
         plane = manager.get_flight_plan_for(coalition="blue", category="plane", aircraft_type="F-16C_50")
         helicopter = manager.get_flight_plan_for(coalition="blue", category="helicopter", aircraft_type="UH-1H")
         assert plane is not None and helicopter is not None
-        assert [(wp.name, wp.alt) for wp in plane.waypoints] == [("SENAKI", 3048), ("GUDAUTA", 3048)]
-        assert [(wp.name, wp.alt_type) for wp in helicopter.waypoints] == [("SENAKI", "RADIO"), ("GUDAUTA", "RADIO")]
+        for plan in (plane, helicopter):
+            assert [(wp.name, wp.alt, wp.alt_type) for wp in plan.waypoints] == [
+                ("SENAKI", 0, "RADIO"),
+                ("GUDAUTA", 0, "RADIO"),
+            ]
         assert manager.get_flight_plan_for(coalition="red", category="plane") is None
 
     def test_the_mission_page_of_campaign_next_orders_them(self, tmp_path: Path) -> None:
@@ -142,7 +144,7 @@ class TestTheFile:
         campaign = _campaign()
         prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
         path = tmp_path / "m1" / WAYPOINTS_FILE
-        edited = path.read_text(encoding="utf-8").replace("alt: 3048", "alt: 6096")
+        edited = path.read_text(encoding="utf-8").replace("alt: 0", "alt: 500")
         path.write_text(edited, encoding="utf-8")
         prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1", page=_page("Gudauta depot"))
         assert path.read_text(encoding="utf-8") == edited
@@ -200,7 +202,7 @@ class TestKolkhidaMissionOne:
         )
         data = objective_waypoints(self._kolkhida(), page)
         assert _plan(data, "plane")["waypoints"] == ["POTI", "KHOBI", "SENAKI"]
-        assert _plan(data, "helicopter")["waypoints"] == ["POTI_LOW", "KHOBI_LOW", "SENAKI_LOW"]
+        assert _plan(data, "helicopter")["waypoints"] == ["POTI", "KHOBI", "SENAKI"]
         by_hand = {"POTI": (-295152, 617091), "KHOBI": (-274838, 634185), "SENAKI": (-281903, 648379)}
         for key, (x, y) in by_hand.items():
             written = data["waypoints"][key]

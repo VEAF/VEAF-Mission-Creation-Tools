@@ -82,6 +82,7 @@ local function setUpSuite(self)
     textToAll = trigger.action.textToAll,
     lineToAll = trigger.action.lineToAll,
     language = veaf.config.language,
+    surface = land.getSurfaceType,
   }
   veafEventHandler.callbacks = {}
   self.texts, self.lines = {}, {}
@@ -109,8 +110,16 @@ local function tearDownSuite(self)
   trigger.action.textToAll = self.saved.textToAll
   trigger.action.lineToAll = self.saved.lineToAll
   veaf.config.language = self.saved.language
+  land.getSurfaceType = self.saved.surface
   veafCampaign.data = nil
   veafCampaign.stateUnwritableReported = nil
+end
+
+--- The airfield's concrete, as DCS reports it: `RUNWAY` west of x = 50 (runways, taxiways, aprons alike).
+local function concreteWestOf50()
+  land.getSurfaceType = function(vec2)
+    return vec2.x < 50 and land.SurfaceType.RUNWAY or land.SurfaceType.LAND
+  end
 end
 
 -- ---------------------------------------------------------------------------
@@ -157,6 +166,19 @@ function TestVeafCampaignDraw:test_a_draw_that_places_nothing_is_left_for_the_ne
   luaunit.assertNil(veafCampaign.data.zones[1].garrison)
   luaunit.assertEquals(veafCampaign.data.zones[1].owner, "red")
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
+end
+
+function TestVeafCampaignDraw:test_no_drawn_unit_stands_on_the_airfields_concrete()
+  -- FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 03: a Patriot on Batumi's runway, armour on Senaki's
+  concreteWestOf50()
+  veafCampaign.composeGarrison = function()
+    return { placed("T-72B", 10, 2), placed("BMP-2", 60, 4) }
+  end
+  veafCampaign.data = { zones = { zoneEntry("Senaki", "red") } }
+  veafCampaign.initialize()
+  local units = veafCampaign.data.zones[1].garrison[1].units
+  luaunit.assertEquals(#units, 1)
+  luaunit.assertEquals(units[1].type, "BMP-2")
 end
 
 function TestVeafCampaignDraw:test_a_zone_with_a_recorded_garrison_does_not_draw_again()
@@ -289,6 +311,7 @@ function TestVeafCampaignCompose:setUp()
     armor = veafCasMission.generateArmorPlatoon,
     airDefense = veafCasMission.generateAirDefenseGroup,
     transport = veafCasMission.generateTransportCompany,
+    surface = land.getSurfaceType,
   }
   local this = self
   self.made, self.radii = {}, {}
@@ -317,6 +340,7 @@ end
 
 function TestVeafCampaignCompose:tearDown()
   local s = self.saved
+  land.getSurfaceType = s.surface
   math.random, veaf.findPointInZone, veafCasMission.placeGroup = s.random, s.findPointInZone, s.placeGroup
   veafCasMission.generateInfantryGroup, veafCasMission.generateArmorPlatoon = s.infantry, s.armor
   veafCasMission.generateAirDefenseGroup, veafCasMission.generateTransportCompany = s.airDefense, s.transport
@@ -354,6 +378,35 @@ function TestVeafCampaignCompose:test_every_group_stands_within_the_zone_radius(
   end
 end
 
+function TestVeafCampaignCompose:test_a_group_landing_on_concrete_is_placed_again_elsewhere_in_the_zone()
+  concreteWestOf50()
+  local points = { { x = 0, y = 0 }, { x = 0, y = 0 }, { x = 100, y = 0 } }
+  local asked = 0
+  veaf.findPointInZone = function()
+    asked = asked + 1
+    return points[math.min(asked, #points)]
+  end
+  local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
+  -- two sections: the first tries twice on the concrete then lands on x = 100, the second at once
+  luaunit.assertEquals(asked, 4)
+  luaunit.assertEquals(#units, 2)
+  for _, unit in ipairs(units) do
+    luaunit.assertEquals(unit.spawnPoint.x, 100)
+  end
+end
+
+function TestVeafCampaignCompose:test_a_zone_all_concrete_gives_up_after_its_tries()
+  concreteWestOf50()
+  local asked = 0
+  veaf.findPointInZone = function()
+    asked = asked + 1
+    return { x = 0, y = 0 }
+  end
+  veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
+  -- what it keeps then is dropped by drawGarrison's check, unit by unit
+  luaunit.assertEquals(asked, 2 * veafCampaign.GARRISON_PLACEMENT_TRIES)
+end
+
 -- ---------------------------------------------------------------------------
 -- TestVeafCampaignSpawn
 -- ---------------------------------------------------------------------------
@@ -366,6 +419,24 @@ function TestVeafCampaignSpawn:test_a_recorded_garrison_spawns_identically()
   luaunit.assertEquals(#units, 3)
   luaunit.assertEquals({ units[1].type, units[1].x, units[1].y, units[1].heading }, { "T-72B", 10, 20, 1 })
   luaunit.assertEquals(units[3].name, "Senaki garrison #3")
+end
+
+function TestVeafCampaignSpawn:test_a_recorded_unit_on_the_concrete_is_moved_off_it_and_recorded_there()
+  -- the garrisons drawn before the fix still hold units on the runways: Senaki's would keep its QRA down
+  concreteWestOf50()
+  local garrison = recordedGarrison("Senaki")
+  garrison[1].units[2].x = 80
+  veafCampaign.data = { zones = { zoneEntry("Senaki", "red", { garrison = garrison }) } }
+  veafCampaign.initialize()
+  local units = submitted()["Senaki garrison"]
+  for index, unit in ipairs(units) do
+    luaunit.assertTrue(unit.x >= 50, "unit " .. index .. " still on the concrete at x = " .. unit.x)
+  end
+  -- moved by the shortest step that leaves the concrete, and the record follows
+  -- from x = 10, the first ring that reaches past x = 50 is the second, 2 * 25 m, due north
+  luaunit.assertEquals(units[1].x, 60)
+  luaunit.assertEquals(veafCampaign.data.zones[1].garrison[1].units[1].x, 60)
+  luaunit.assertEquals(units[2].x, 80)
 end
 
 function TestVeafCampaignSpawn:test_lost_units_are_not_spawned_and_the_others_keep_their_names()

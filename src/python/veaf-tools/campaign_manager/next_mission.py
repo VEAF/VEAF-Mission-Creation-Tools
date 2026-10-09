@@ -9,7 +9,9 @@ that folder afterwards, by Claude through the MCP, never instead of it.
 
 from __future__ import annotations
 
+import re
 import shutil
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -38,6 +40,15 @@ BRIEFING_LANGUAGES: tuple[str, ...] = ("fr", "en")
 #: What a mission folder copied from the template leaves behind: build output is not a template.
 _NOT_COPIED = shutil.ignore_patterns("build", "*.miz.bak", "__pycache__")
 
+#: What ends a campaign mission's name: the server's DCSServerBot MizEdit skips a mission carrying it,
+#: so the date, time and weather the campaign fixed reach the players (FIX-CAMPAIGN-MISSION-1-FINDINGS
+#: ticket 08). The build appends its date after it, so the server's filter looks for it anywhere.
+NO_MIZEDIT_MARKER = "NoMizedit"
+
+#: The `security:` keys a squadron's mission must not carry: with none, a pilot listed in the server's
+#: `veaf-pilots.txt` passes by his level and nobody types a password (ticket 10).
+_SECURITY_OVERRIDES = ("disabled", "password_hashes", "password_mm_hashes")
+
 
 @dataclass(frozen=True)
 class NextMissionReport:
@@ -56,6 +67,10 @@ class NextMissionReport:
     """The mission briefing deck, written when the folder holds a built mission."""
     waypoints: bool = False
     """Whether `src/waypoints.yaml` was written from the objectives; ``False`` when an edited one was kept."""
+    name: str = ""
+    """The mission's name, written into `mission.yaml`; the build appends its date to it."""
+    security_restored: bool = False
+    """Whether security overrides (`disabled`, passwords) were removed from `mission.yaml`."""
 
 
 def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str, Any]:
@@ -183,6 +198,62 @@ def _enable_campaign_module(mission_yaml: Path, era: str) -> None:
     save_yaml(mission_yaml, data)
 
 
+def _name_part(text: str) -> str:
+    """``La porte de Poti`` → ``La-porte-de-Poti``: ASCII letters, digits and dashes only.
+
+    A part ending in ``ICAO`` gets a dash after it: DCSServerBot reads the four letters after ``ICAO_`` in
+    a file name as the weather station to fetch.
+    """
+    folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    part = re.sub(r"[^A-Za-z0-9]+", "-", folded).strip("-")
+    return f"{part}-" if part.lower().endswith("icao") else part
+
+
+def mission_name(campaign: str, number: int, title: str | None) -> str:
+    """Return the name of a campaign mission: `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`.
+
+    Args:
+        campaign: The campaign's name.
+        number: The mission's number in the campaign.
+        title: The mission's title in `briefing.yaml`, or ``None`` before it is designed.
+
+    Returns:
+        The name, ASCII letters, digits, dashes and underscores only.
+    """
+    parts = ["Campaign", _name_part(campaign), "Mission", f"{number:02d}"]
+    if title and _name_part(title):
+        parts.append(_name_part(title))
+    parts.append(NO_MIZEDIT_MARKER)
+    return "_".join(parts)
+
+
+def _set_squadron_settings(mission_yaml: Path, name: str) -> bool:
+    """Name the mission, silence the ATC unless told otherwise, and give it the server's security.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+        name: The name `mission_name` computed.
+
+    Returns:
+        Whether a security override was removed.
+    """
+    data = load_yaml(mission_yaml)
+    mission = data.setdefault("mission", {})
+    if mission is None:
+        mission = data["mission"] = {}
+    mission["name"] = name
+    mission.setdefault("silence_atc_on_all_airbases", True)
+    security = data.get("security")
+    restored = isinstance(security, dict) and any(key in security for key in _SECURITY_OVERRIDES)
+    if isinstance(security, dict):
+        for key in _SECURITY_OVERRIDES:
+            security.pop(key, None)
+        if not security:
+            del data["security"]
+    save_yaml(mission_yaml, data)
+    return restored
+
+
 def opposition_for(players: tuple[int, int], player_side: str) -> dict[str, Any]:
     """Return the `opposition:` block of a mission flown by that many players.
 
@@ -277,6 +348,10 @@ def prepare_next_mission(
         # briefing alone, since what was written on top of them is design
         set_briefing(mission_folder, situation=strategic_situation(campaign, state))
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
+    # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
+    # security off, never the campaign
+    name = mission_name(campaign.name, state.mission + 1, page.title if page else None)
+    security_restored = _set_squadron_settings(mission_folder / "mission.yaml", name)
     expected = players or campaign.players
     if expected:
         _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
@@ -290,4 +365,6 @@ def prepare_next_mission(
         airbases=airbases,
         conditions=conditions,
         waypoints=waypoints,
+        name=name,
+        security_restored=security_restored,
     )

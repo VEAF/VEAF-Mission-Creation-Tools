@@ -784,6 +784,14 @@ veaf.i18nCatalog = {
     fr = "Seul un avion peut être escorté",
     en = "Only an airplane can be escorted",
   },
+  ["spawn.escort_no_template"] = {
+    fr = "Aucun modèle d'escorte « %s » pour votre camp : pas d'escorte",
+    en = "No escort template matches '%s' for your side: no escort",
+  },
+  ["spawn.escort_spawn_failed"] = {
+    fr = "L'escorte %s n'a pas pu apparaître pour couvrir %s",
+    en = "The escort %s could not be spawned to cover %s",
+  },
 
   -- veafQraManager (default status messages; %s = QRA description)
   ["qra.msg_start"] = {

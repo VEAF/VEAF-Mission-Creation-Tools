@@ -1,6 +1,6 @@
 # 06 — Objective waypoints sit on the ground
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feat
 
 ## Found
@@ -18,3 +18,8 @@ Decided by David the same evening: **every** objective waypoint on the ground, p
 ## Done when
 
 The objective waypoints of a mission built by `campaign next` sit at the ground elevation of their zone.
+
+## Decided (David, 2026-10-09)
+
+`alt = 0`, `alt_type = RADIO` for every objective waypoint, planes and helicopters alike — no terrain grid needed. One waypoint per zone; the `_LOW` helicopter copies go.
+To check once in game: the steerpoint's elevation a module shows (`R47`).

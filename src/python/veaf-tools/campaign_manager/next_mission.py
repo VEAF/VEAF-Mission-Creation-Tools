@@ -257,8 +257,9 @@ def _set_squadron_settings(mission_yaml: Path, name: str) -> bool:
 def opposition_for(players: tuple[int, int], player_side: str) -> dict[str, Any]:
     """Return the `opposition:` block of a mission flown by that many players.
 
-    Sized for the most expected, and following the players connected: a squadron that comes short
-    meets the opposition of who came, once the count has held for a few minutes.
+    Sized for the most expected, and following the players airborne armed for air-to-air: a squadron
+    that comes short, or whose pilots are not all flying CAP, meets the opposition of those who are,
+    once the count has held for a few minutes (ticket 05).
 
     Args:
         players: The fewest and the most players expected.
@@ -267,7 +268,7 @@ def opposition_for(players: tuple[int, int], player_side: str) -> dict[str, Any]
     Returns:
         The block, as mission.yaml holds it.
     """
-    return {"level": players[1], "follow": "players", "players_coalition": player_side.upper()}
+    return {"level": players[1], "follow": "air_to_air", "players_coalition": player_side.upper()}
 
 
 def _set_opposition(mission_yaml: Path, block: dict[str, Any]) -> None:

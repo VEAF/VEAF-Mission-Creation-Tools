@@ -81,7 +81,7 @@ Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolk
 
 ### R46. The opposition level, from the shipped build — **one pilot for item 3**
 
-[`FEAT-OPPOSITION-SCALES-WITH-PLAYERS`](.backlog/FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md), tickets 02 and 04.
+[`FEAT-OPPOSITION-SCALES-WITH-PLAYERS`](.backlog/FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md), tickets 02, 04 and 05.
 On the mocks: the tiers, the hysteresis, the marker and its security, the "Auto scale" choice. What the mocks cannot show: the radio menu as DCS draws it, `coalition.getPlayers` on a real server, and a QRA scrambling the tier of the level.
 
 **Prepare**: a Caucasus test mission built from the branch, security off, a game master slot and one blue client slot, `opposition: { level: 6 }`, a red QRA over Kobuleti with `scale_with_opposition: true` and tiers `1` → `MiG-29 QRA-1` and `5` → `MiG-29 QRA-1`, `MiG-29 QRA-2` (no `random_pick`), and a combat mission `CAP Red` with its skills and scales.
@@ -107,6 +107,10 @@ On the mocks: the tiers, the hysteresis, the marker and its security, the "Auto 
    - **Re-opened**: a `Poti garrison` group spawned (the convoy was not in the zone at capture: note how far its vehicles stopped from the centre).
 7. F10 → Campaign → Assaults → *Kobuleti vers Poti* in a blue slot, then end the mission with the convoy on the road and run `campaign apply`.
    - **Verified**: the debriefing lists "convoi Kobuleti → Poti" losses and "encore en route : N unité(s) rendue(s) à la réserve".
+8. *(ticket 05, the players on CAP)* `_opposition air_to_air`, then two players in the air: one with AIM-120 (or R-77, AIM-7, R-27R), one with bombs and two AIM-9.
+   - **Verified**: after a minute at most the level announced is 1 — the fighter, not the bomb truck; the bomb truck rearmed on the ground with AIM-120 and back in the air makes it 2.
+   - **Re-opened, 0**: `getAmmo` on a player aircraft does not give `desc.missileCategory` and `desc.guidance` as the schema says: dump one with `fiddle.sh` (`return veaf.p(Unit.getByName("<pilot unit>"):getAmmo())`).
+   - **Re-opened, 2 from the start**: the AIM-9 is reported radar-guided — the same dump says which field to read.
 
 ### R45. A convoy under fire, from the shipped build — **no pilot needed**
 

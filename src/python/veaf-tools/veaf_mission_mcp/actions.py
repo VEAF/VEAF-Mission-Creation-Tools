@@ -1490,7 +1490,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "PLAYERS: ask the mission maker how many players are expected tonight and pass it as "
                 "'players' (6, or a range \"5-7\"); without it, campaign.yaml's players is used. It writes "
                 "the mission's opposition: block (level = the most expected, following the players "
-                "connected). Give the enemy QRA tiers by enemy count up to that size (see create_qra)."
+                "airborne armed for air-to-air, the ones flying CAP). Give the enemy QRA tiers by enemy count up to that size (see create_qra)."
             ),
             parameters_schema={
                 "type": "object",

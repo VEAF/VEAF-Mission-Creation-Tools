@@ -58,7 +58,7 @@ def test_a_wrong_squadron_size_is_an_error() -> None:
 
 
 def test_the_opposition_is_sized_for_the_most_expected_and_follows_the_players() -> None:
-    assert opposition_for((5, 7), "blue") == {"level": 7, "follow": "players", "players_coalition": "BLUE"}
+    assert opposition_for((5, 7), "blue") == {"level": 7, "follow": "air_to_air", "players_coalition": "BLUE"}
 
 
 def test_the_block_written_is_one_the_build_reads() -> None:
@@ -70,7 +70,7 @@ def test_next_writes_the_opposition_block(tmp_path: Path) -> None:
     campaign, _ = _campaign(players="5-7")
     prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
     mission_yaml = yaml.safe_load((tmp_path / "m1" / "mission.yaml").read_text(encoding="utf-8"))
-    assert mission_yaml["opposition"] == {"level": 7, "follow": "players", "players_coalition": "BLUE"}
+    assert mission_yaml["opposition"] == {"level": 7, "follow": "air_to_air", "players_coalition": "BLUE"}
 
 
 def test_tonights_count_beats_the_campaigns(tmp_path: Path) -> None:

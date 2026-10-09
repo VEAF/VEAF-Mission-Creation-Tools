@@ -1473,7 +1473,7 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
 
 
 #: The follow modes of the ``opposition:`` block, as veafOpposition names them.
-OPPOSITION_FOLLOW_MODES: frozenset[str] = frozenset({"off", "players", "airborne"})
+OPPOSITION_FOLLOW_MODES: frozenset[str] = frozenset({"off", "players", "airborne", "air_to_air"})
 
 #: Every key of the ``opposition:`` block, with the field of ``veafOpposition.configure`` it sets.
 OPPOSITION_KEYS: dict[str, str] = {
@@ -1494,7 +1494,7 @@ def emit_opposition_block(block: object) -> tuple[list[str], list[str]]:
 
     Args:
         block: the ``opposition:`` block of mission.yaml — ``level`` (the number of player aircraft the
-            air opposition is sized for), ``follow`` (``off`` | ``players`` | ``airborne``),
+            air opposition is sized for), ``follow`` (``off`` | ``players`` | ``airborne`` | ``air_to_air``),
             ``lower_after`` (seconds a lower count must hold before the level drops) and
             ``players_coalition`` (``BLUE`` | ``RED``, the coalition counted).
 

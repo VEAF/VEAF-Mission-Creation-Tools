@@ -73,6 +73,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   It is now updated in place: an unchanged entry keeps its number, and each freed number is taken by an invisible inert command.
   An entry that appears after the first display goes to the end of its menu, on its last page, instead of its alphabetical place; an entry already shown never changes page.
   The vendored CTLD has the same defect; it is reported upstream as VEAF/CTLD#257.
+- **`campaign apply` accepts a state file already in its mission folder** (FIX-CAMPAIGN-MISSION-1-FINDINGS, ticket 11).
+  A `mission-NN.state` placed in `missions/mission-NN/`, where the campaign guide shows it, stopped the command with `SameFileError` before anything was written; it is now applied in place, and a file taken from anywhere else is still copied there.
 
 ### Added
 

@@ -38,7 +38,7 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 | [08](tickets/08-server-rewrites-date-time-weather.md) | The server rewrote the mission's date, time and weather | 🧑 |
 | [09](tickets/09-escort-me-silent.md) | "Escort me" in an A-10C answered nothing | 🧑 |
 | [10](tickets/10-campaign-flies-with-server-security.md) | A campaign mission flies with the server's security | ✅ |
-| [11](tickets/11-apply-from-the-archive-folder.md) | `campaign apply` crashes on a state file already in its mission folder | ⬜ |
+| [11](tickets/11-apply-from-the-archive-folder.md) | `campaign apply` crashes on a state file already in its mission folder | ✅ |
 
 04 depends on 03: a unit on Senaki's runway would keep the QRA on the ground.
 

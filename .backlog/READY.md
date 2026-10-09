@@ -10,7 +10,7 @@ Broaden the shipped default radio presets, after phase 1 of the radio preset pro
 
 ### [FIX-CAMPAIGN-MISSION-1-FINDINGS](FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md) · ⬜
 
-What the squadron found flying *Kolkhida* mission 1 on 2026-10-08, with no script error all evening: no radio presets nor right kneeboard on any aircraft, ATC not silenced, garrison units on the runways, CTLD crates and troops unavailable at the blue airfields, objective waypoints in the air, a red convoy smoking itself for blue. Decided: a QRA takes off from the ground by default. Seven tickets, one PR.
+What the squadron found flying *Kolkhida* mission 1 on 2026-10-08, with no script error all evening: no radio presets nor right kneeboard on any aircraft, ATC not silenced, garrison units on the runways, CTLD crates and troops unavailable at the blue airfields, objective waypoints in the air, a red convoy smoking itself for blue, and the server's DCSServerBot replacing the campaign's date, time and clear sky with real weather. Decided: a QRA takes off from the ground by default. Eight tickets, one PR.
 
 ### [FEAT-LIVE-GAME-MASTER](FEAT-LIVE-GAME-MASTER/PRD.md) · ⬜
 

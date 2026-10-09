@@ -35,6 +35,7 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 | [05](tickets/05-ctld-at-the-airfields.md) | CTLD crates and troops at the blue airfields | ⬜ |
 | [06](tickets/06-objective-waypoints-on-the-ground.md) | Objective waypoints sit on the ground | ⬜ |
 | [07](tickets/07-convoy-smoke-only-for-a-side-with-pilots.md) | A convoy's smoke and call only for a side that has pilots | ⬜ |
+| [08](tickets/08-server-rewrites-date-time-weather.md) | The server rewrote the mission's date, time and weather | ⬜ |
 
 04 depends on 03: a unit on Senaki's runway would keep the QRA on the ground.
 
@@ -44,7 +45,7 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 
 ## One PR
 
-All seven tickets ship in one branch and one PR.
+All eight tickets ship in one branch and one PR.
 Each ticket reads the code before choosing a fix; what needs DCS is gathered into one test mission (a copy of the campaign, never David's live session) for David to run.
 The in-game checks are R47 in `DCS-SESSION-TODO.md`, CTLD first.
 

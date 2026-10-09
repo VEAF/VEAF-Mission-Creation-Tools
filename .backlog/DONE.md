@@ -26,6 +26,10 @@ Path-filtered workflows made usable as required checks; the 11 checks are now re
 
 CTLD `2.0.0-rc12` vendored (#1051): reoccupied slots, `EXZ_` extraction zones, UH-1H / Mi-8MT catalogue changes.
 
+### [DOC-ENTRY-POINTS](DOC-ENTRY-POINTS/PRD.md) · ✅
+
+The main ways into the docs made obvious: "I want to…" cards on the home page and the Mission Maker overview, the AI pages right after the tutorial in the menu, and the Mission Maker labels that showed in English on the French site translated (#1112).
+
 ### [DOC-TUTORIAL-NEXT-STEPS](DOC-TUTORIAL-NEXT-STEPS/PRD.md) · ✅
 
 The tutorial stops before the three things a mission maker does next: set the tool's language, get security back for the server build through a profile, and update the tools.

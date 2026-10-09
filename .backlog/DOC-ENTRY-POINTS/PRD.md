@@ -1,6 +1,6 @@
 # DOC-ENTRY-POINTS — the main ways in should be obvious
 
-Status: 🔄 in progress
+Status: ✅ done — shipped in #1112
 
 Origin: David, 2026-10-09 — "I can't easily find the AI entry point in the docs; it should be obvious, and so should every main entry point".
 

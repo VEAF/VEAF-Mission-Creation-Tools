@@ -7,8 +7,8 @@
 -- * One number the mission carries: how many player aircraft the air opposition is sized for, in the
 --   same unit as a QRA's `enemy_count` tiers (FEAT-OPPOSITION-SCALES-WITH-PLAYERS).
 -- * Set at generation (`opposition: level:` in mission.yaml), changed in flight by a mission master
---   (`_opposition 6` marker, or the radio menu), or followed automatically — the players connected, or
---   the players airborne, re-read on a beat.
+--   (`_opposition 6` marker, or the radio menu), or followed automatically — the players connected, the
+--   players airborne, or the players airborne armed for air-to-air, re-read on a beat.
 -- * Follows with a hysteresis: a rise is taken at once (a player who joins must be served), a drop only
 --   once the count has stayed lower for `lowerAfter` seconds (a disconnect, or a crash and respawn,
 --   changes nothing).
@@ -35,6 +35,12 @@ veaf.loggers.new(veafOpposition.Id, veafOpposition.LogLevel)
 veafOpposition.FOLLOW_OFF = "off"
 veafOpposition.FOLLOW_PLAYERS = "players"
 veafOpposition.FOLLOW_AIRBORNE = "airborne"
+--- The players airborne carrying a radar-guided air-to-air missile: the ones flying CAP
+--- (ticket 05 — not everybody connected is out to fight the enemy fighters).
+veafOpposition.FOLLOW_AIR_TO_AIR = "air_to_air"
+
+--- The levels the radio menu offers, in players on CAP.
+veafOpposition.MENU_LEVELS = 8
 
 --- How often the followed count is re-read, in seconds.
 veafOpposition.SecondsBetweenChecks = 60
@@ -82,6 +88,8 @@ local function _followName(mode)
     return veaf.t("opposition.follow.players")
   elseif mode == veafOpposition.FOLLOW_AIRBORNE then
     return veaf.t("opposition.follow.airborne")
+  elseif mode == veafOpposition.FOLLOW_AIR_TO_AIR then
+    return veaf.t("opposition.follow.air_to_air")
   end
   return veaf.t("opposition.follow.off")
 end
@@ -121,13 +129,46 @@ end
 -- Following the players
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- The players of the counted coalition, all of them or only the airborne ones.
+--- Whether a unit carries, right now, a radar-guided air-to-air missile (Fox 1 or Fox 3).
+---
+--- Read with `getAmmo`, which gives what the aircraft carries at this moment: the loadout the pilot
+--- chose when rearming, not the one the mission placed it with. Two AIM-9 on a bomb truck are not a
+--- CAP; neither, by this rule, is a fighter carrying infrared missiles only.
+---@param unit table a DCS unit
+---@return boolean
+function veafOpposition.armedForAirToAir(unit)
+  if not unit.getAmmo then
+    return false
+  end
+  local ok, ammo = pcall(unit.getAmmo, unit)
+  if not ok or type(ammo) ~= "table" then
+    return false
+  end
+  local radar = { [Weapon.GuidanceType.RADAR_ACTIVE] = true, [Weapon.GuidanceType.RADAR_SEMI_ACTIVE] = true }
+  for _, item in ipairs(ammo) do
+    local desc = item.desc
+    if
+      desc
+      and (item.count or 0) > 0
+      and desc.category == Weapon.Category.MISSILE
+      and desc.missileCategory == Weapon.MissileCategory.AAM
+      and radar[desc.guidance]
+    then
+      return true
+    end
+  end
+  return false
+end
+
+--- The players of the counted coalition: all of them, only the airborne ones, or only the airborne
+--- ones armed for air-to-air.
 ---@param airborneOnly boolean
+---@param airToAirOnly boolean|nil
 ---@return number
-function veafOpposition.countPlayers(airborneOnly)
+function veafOpposition.countPlayers(airborneOnly, airToAirOnly)
   local count = 0
   for _, unit in pairs(coalition.getPlayers(veafOpposition.playersCoalition) or {}) do
-    if unit and unit:isExist() and (not airborneOnly or unit:inAir()) then
+    if unit and unit:isExist() and (not airborneOnly or unit:inAir()) and (not airToAirOnly or veafOpposition.armedForAirToAir(unit)) then
       count = count + 1
     end
   end
@@ -141,6 +182,8 @@ function veafOpposition.measure()
     return veafOpposition.countPlayers(false)
   elseif veafOpposition.follow == veafOpposition.FOLLOW_AIRBORNE then
     return veafOpposition.countPlayers(true)
+  elseif veafOpposition.follow == veafOpposition.FOLLOW_AIR_TO_AIR then
+    return veafOpposition.countPlayers(true, true)
   end
   return nil
 end
@@ -182,11 +225,28 @@ function veafOpposition.check()
   veaf.scheduleFunction(veafOpposition.check, {}, timer.getTime() + veafOpposition.SecondsBetweenChecks)
 end
 
---- Follow the players connected, the players airborne, or nothing (the level then stays where it is).
----@param mode string FOLLOW_OFF, FOLLOW_PLAYERS or FOLLOW_AIRBORNE
+--- The follow modes, in the order the radio menu offers them.
+veafOpposition.FOLLOW_MODES = {
+  veafOpposition.FOLLOW_AIR_TO_AIR,
+  veafOpposition.FOLLOW_PLAYERS,
+  veafOpposition.FOLLOW_AIRBORNE,
+  veafOpposition.FOLLOW_OFF,
+}
+
+local function _isFollowMode(mode)
+  for _, known in ipairs(veafOpposition.FOLLOW_MODES) do
+    if mode == known then
+      return true
+    end
+  end
+  return false
+end
+
+--- Follow the players flying CAP, connected or airborne, or nothing (the level then stays where it is).
+---@param mode string one of FOLLOW_MODES
 ---@return boolean whether the mode is one of them
 function veafOpposition.setFollow(mode)
-  if mode ~= veafOpposition.FOLLOW_OFF and mode ~= veafOpposition.FOLLOW_PLAYERS and mode ~= veafOpposition.FOLLOW_AIRBORNE then
+  if not _isFollowMode(mode) then
     return false
   end
   veafOpposition.follow = mode
@@ -249,9 +309,12 @@ function veafOpposition.handleMarker(_, event)
   return true
 end
 
-function veafOpposition.radioChangeLevel(delta)
+--- Radio command: a fixed level, in one click — the players actually on CAP tonight.
+function veafOpposition.radioSetLevel(level)
   veafOpposition.setFollow(veafOpposition.FOLLOW_OFF)
-  veafOpposition.setLevel((veafOpposition.level or 0) + delta)
+  if not veafOpposition.setLevel(level) then
+    veafOpposition.announce()
+  end
 end
 
 function veafOpposition.radioFollow(mode)
@@ -268,28 +331,19 @@ function veafOpposition.buildRadioMenu()
     nil,
     veafRadio.USAGE_ForAll
   )
-  veafRadio.addSecuredCommandToSubmenu(
-    veaf.t("menu.opposition.raise"),
-    veafOpposition.rootPath,
-    veafOpposition.radioChangeLevel,
-    1,
-    veafRadio.USAGE_ForAll
-  )
-  veafRadio.addSecuredCommandToSubmenu(
-    veaf.t("menu.opposition.lower"),
-    veafOpposition.rootPath,
-    veafOpposition.radioChangeLevel,
-    -1,
-    veafRadio.USAGE_ForAll
-  )
-  for _, mode in ipairs({ veafOpposition.FOLLOW_PLAYERS, veafOpposition.FOLLOW_AIRBORNE, veafOpposition.FOLLOW_OFF }) do
+  local levelPath = veafRadio.addSubMenu(veaf.t("menu.opposition.level"), veafOpposition.rootPath)
+  for level = 1, veafOpposition.MENU_LEVELS do
     veafRadio.addSecuredCommandToSubmenu(
-      veaf.t("menu.opposition.follow", _followName(mode)),
-      veafOpposition.rootPath,
-      veafOpposition.radioFollow,
-      mode,
+      veaf.t("menu.opposition.level_entry", level),
+      levelPath,
+      veafOpposition.radioSetLevel,
+      level,
       veafRadio.USAGE_ForAll
     )
+  end
+  local modePath = veafRadio.addSubMenu(veaf.t("menu.opposition.mode"), veafOpposition.rootPath)
+  for _, mode in ipairs(veafOpposition.FOLLOW_MODES) do
+    veafRadio.addSecuredCommandToSubmenu(_followName(mode), modePath, veafOpposition.radioFollow, mode, veafRadio.USAGE_ForAll)
   end
   veafRadio.refreshRadioMenu()
 end

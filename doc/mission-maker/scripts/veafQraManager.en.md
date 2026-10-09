@@ -154,7 +154,7 @@ Tiers by `enemy_count` answer **what enters the zone**. A pair showing up ahead 
 ```yaml
 opposition:                 # a root block of mission.yaml, beside modules:
   level: 6                  # sized for 6 player aircraft
-  follow: players           # off (default) | players: players connected | airborne: players in the air
+  follow: air_to_air        # off (default) | air_to_air: players on CAP | players: connected | airborne: in the air
   lower_after: 300          # seconds a lower count must hold before the level drops
   players_coalition: BLUE   # BLUE (default) | RED: the coalition whose players are counted
 ```
@@ -162,14 +162,14 @@ opposition:                 # a root block of mission.yaml, beside modules:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `level` | integer ≥ 0 | — | The level at start. With neither a level nor a follow mode, QRAs answer their zone alone |
-| `follow` | string | `off` | `players`: the level follows the coalition's players connected; `airborne`: those in the air. Re-read every 60 s |
+| `follow` | string | `off` | `air_to_air`: the level follows the players **airborne carrying at least one radar-guided air-to-air missile** (Fox 1 or Fox 3) — the ones flying CAP; `players`: every player of the coalition connected, helicopters and ground-attack aircraft included; `airborne`: every one in the air. Re-read every 60 s |
 | `lower_after` | seconds | `300` | A rise is taken **at once** (a player who joins must be served); a drop only once the count has stayed lower for this long — a disconnect, or a crash and respawn, changes nothing |
 | `players_coalition` | string | `BLUE` | The coalition whose players are counted |
 
 The block also adds, in game:
 
-- an **Opposition** radio menu: current level (for everyone), level +1 / −1 and the follow mode (secured commands);
-- an **`_opposition`** marker, for the *SENIOR_PILOT* security level: `_opposition 6` sets the level (and stops following), `_opposition players` / `_opposition airborne` / `_opposition off` changes the mode, `_opposition` alone announces it;
+- an **Opposition** radio menu: *Current level* (for everyone), *Level* → "1 player(s) on CAP" … "8 player(s) on CAP", which sets the level in one click and stops following, and *Mode* → the follow mode (secured commands);
+- an **`_opposition`** marker, for the *SENIOR_PILOT* security level: `_opposition 6` sets the level (and stops following), `_opposition air_to_air` / `_opposition players` / `_opposition airborne` / `_opposition off` changes the mode, `_opposition` alone announces it;
 - in the [combat missions](veafCombatMission.en.md) menu, under each skill, an **Auto scale** entry that activates the scale of one enemy group per two players (rounded up), within the scales offered.
 
 Every change of level is announced to everybody.
@@ -177,8 +177,12 @@ Every change of level is announced to everybody.
 **How to choose.** Write the tiers up to the package size you expect: for 5 to 7 players, for instance `1` → a pair, `3` → two pairs, `5` → three. Never a single fixed pair against 5 players or more. Then:
 
 - an evening whose attendance you know → a fixed `level`;
-- attendance unknown, or changing during the flight → `follow: players`;
-- what counts is what is **airborne**, not what waits on the ramp → `follow: airborne`.
+- attendance unknown, or changing during the flight → `follow: air_to_air`: only the players on CAP count, not the ones who came for ground attack, helicopters or transport;
+- every player must count, whatever their role → `follow: players`, or `follow: airborne` to count only those in the air.
+
+`air_to_air` reads the weapons **in flight** (`getAmmo`): what the aircraft carries at that moment, so what the pilot chose when rearming, not the loadout the mission placed.
+Two self-defence AIM-9 on a bomb truck do not count; neither does a fighter carrying infrared missiles only.
+A multirole on ground attack that keeps two AIM-120 for escort does count: the *Level* menu corrects the count on the evening it is wrong.
 
 A campaign writes this block itself from its `players` or `campaign next --players` — see [Campaigns](../CAMPAIGN.en.md#players).
 

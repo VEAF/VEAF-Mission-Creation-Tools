@@ -154,7 +154,7 @@ Des paliers par `enemy_count` répondent à **ce qui entre dans la zone**. Une p
 ```yaml
 opposition:                 # bloc racine de mission.yaml, à côté de modules:
   level: 6                  # dimensionnée pour 6 avions joueurs
-  follow: players           # off (défaut) | players : joueurs connectés | airborne : joueurs en vol
+  follow: air_to_air        # off (défaut) | air_to_air : joueurs en CAP | players : connectés | airborne : en vol
   lower_after: 300          # secondes pendant lesquelles un compte plus bas doit tenir avant de baisser le niveau
   players_coalition: BLUE   # BLUE (défaut) | RED : la coalition dont on compte les joueurs
 ```
@@ -162,14 +162,14 @@ opposition:                 # bloc racine de mission.yaml, à côté de modules:
 | Champ | Type | Défaut | Description |
 |-------|------|--------|-------------|
 | `level` | entier ≥ 0 | — | Le niveau au démarrage. Sans niveau ni suivi, les QRA répondent à leur zone seule |
-| `follow` | string | `off` | `players` : le niveau suit les joueurs connectés de la coalition ; `airborne` : ceux qui sont en vol. Relu toutes les 60 s |
+| `follow` | string | `off` | `air_to_air` : le niveau suit les joueurs **en vol qui emportent au moins un missile air-air à guidage radar** (Fox 1 ou Fox 3) — ceux qui font de la CAP ; `players` : tous les joueurs connectés de la coalition, hélicoptères et avions d'attaque au sol compris ; `airborne` : tous ceux qui sont en vol. Relu toutes les 60 s |
 | `lower_after` | secondes | `300` | Une hausse est prise **tout de suite** (un joueur qui arrive doit être servi) ; une baisse seulement quand le compte est resté plus bas pendant ce délai — une déconnexion, ou un crash suivi d'un respawn, ne change rien |
 | `players_coalition` | string | `BLUE` | La coalition dont les joueurs sont comptés |
 
 Le bloc ajoute aussi, en jeu :
 
-- un menu radio **Opposition** : niveau actuel (pour tous), niveau +1 / −1 et changement de mode (commandes sécurisées) ;
-- un marqueur **`_opposition`**, réservé au niveau de sécurité *SENIOR_PILOT* : `_opposition 6` fixe le niveau (et arrête le suivi), `_opposition players` / `_opposition airborne` / `_opposition off` change de mode, `_opposition` seul l'annonce ;
+- un menu radio **Opposition** : *Niveau actuel* (pour tous), *Niveau* → « 1 joueur(s) en CAP » … « 8 joueur(s) en CAP », qui fixe le niveau en un clic et arrête le suivi, et *Mode* → le mode de suivi (commandes sécurisées) ;
+- un marqueur **`_opposition`**, réservé au niveau de sécurité *SENIOR_PILOT* : `_opposition 6` fixe le niveau (et arrête le suivi), `_opposition air_to_air` / `_opposition players` / `_opposition airborne` / `_opposition off` change de mode, `_opposition` seul l'annonce ;
 - dans le menu des [combat missions](veafCombatMission.md), sous chaque niveau de compétence, une entrée **Taille auto** qui active le *scale* d'un groupe ennemi par deux joueurs (arrondi au-dessus), dans la limite des *scales* proposés.
 
 Chaque changement de niveau est annoncé à tout le monde.
@@ -177,8 +177,12 @@ Chaque changement de niveau est annoncé à tout le monde.
 **Comment choisir.** Écrivez les paliers jusqu'à la taille attendue du dispositif : pour un groupe de 5 à 7 joueurs, par exemple `1` → une paire, `3` → deux paires, `5` → trois. Jamais une seule paire fixe face à 5 joueurs ou plus. Ensuite :
 
 - soirée dont on connaît l'effectif → `level` fixe ;
-- effectif inconnu, ou qui change en cours de vol → `follow: players` ;
-- c'est ce qui est **en l'air** qui compte, pas ce qui attend au parking → `follow: airborne`.
+- effectif inconnu, ou qui change en cours de vol → `follow: air_to_air` : seuls les joueurs en CAP comptent, pas ceux qui sont venus faire de l'attaque au sol, de l'hélico ou du transport ;
+- tous les joueurs doivent compter, quel que soit leur rôle → `follow: players`, ou `follow: airborne` pour ne compter que ceux qui sont en l'air.
+
+`air_to_air` lit l'armement **en vol** (`getAmmo`) : ce que l'avion emporte à cet instant, donc ce que le pilote a choisi au réarmement, pas le chargement posé dans la mission.
+Deux AIM-9 d'autodéfense sur un avion chargé de bombes ne comptent pas ; un chasseur qui n'emporte que des missiles infrarouges non plus.
+Un multirôle en attaque au sol qui garde deux AIM-120 d'escorte compte : le menu *Niveau* corrige le compte le soir où il se trompe.
 
 Une campagne écrit ce bloc toute seule à partir de son `players` ou de `campaign next --players` — voir [Campagnes](../CAMPAIGN.md#players).
 

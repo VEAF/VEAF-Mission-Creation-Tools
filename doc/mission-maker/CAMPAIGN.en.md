@@ -217,7 +217,7 @@ The ground garrisons are the campaign's books — reserves, losses, repairs — 
 .\veaf-tools.exe campaign next . --players 6
 ```
 
-`campaign next` then writes the mission's [`opposition:`](scripts/veafQraManager.en.md#opposition-level) block: a level equal to the most expected, which then follows the players connected on the players' side — if the squadron comes four-strong, the opposition comes down to four after a few minutes.
+`campaign next` then writes the mission's [`opposition:`](scripts/veafQraManager.en.md#opposition-level) block: a level equal to the most expected, which then follows the players **on CAP** on the players' side (`follow: air_to_air`, the ones flying with radar-guided air-to-air missiles) — if the squadron comes four-strong with two on CAP, the opposition comes down to two after a few minutes.
 A second `campaign next` on the same folder changes the level only: a follow mode or a delay set in the mission since is kept.
 With neither `players` nor `--players`, the mission's block is left alone.
 

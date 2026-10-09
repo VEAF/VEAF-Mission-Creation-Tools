@@ -88,3 +88,8 @@ def test_validate_accepts_a_right_block(tmp_path: Path) -> None:
 def test_a_qra_scaling_with_the_opposition() -> None:
     lines = _emit_qra_definition({"name": "Q", "coalition": "RED", "scale_with_opposition": True})
     assert ":setScaleWithOpposition()" in [line.strip() for line in lines]
+
+
+def test_the_cap_follow_mode_reaches_the_lua() -> None:
+    configure, _ = emit_opposition_block({"follow": "air_to_air"})
+    assert 'follow = "air_to_air"' in "\n".join(configure)

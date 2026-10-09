@@ -217,7 +217,7 @@ Les garnisons au sol, elles, sont les comptes de la campagne — réserves, pert
 .\veaf-tools.exe campaign next . --players 6
 ```
 
-`campaign next` écrit alors le bloc [`opposition:`](scripts/veafQraManager.md#opposition-level) de la mission : un niveau égal au plus grand effectif attendu, qui suit ensuite les joueurs connectés du camp des joueurs — si l'escadrille vient à quatre, l'opposition redescend à quatre après quelques minutes.
+`campaign next` écrit alors le bloc [`opposition:`](scripts/veafQraManager.md#opposition-level) de la mission : un niveau égal au plus grand effectif attendu, qui suit ensuite les joueurs **en CAP** du camp des joueurs (`follow: air_to_air`, ceux qui volent avec des missiles air-air à guidage radar) — si l'escadrille vient à quatre dont deux en CAP, l'opposition redescend à deux après quelques minutes.
 Un second `campaign next` sur le même dossier ne change que le niveau : un mode de suivi ou un délai réglés depuis dans la mission sont gardés.
 Sans `players` ni `--players`, le bloc de la mission n'est pas touché.
 

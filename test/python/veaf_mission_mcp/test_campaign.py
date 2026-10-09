@@ -146,7 +146,7 @@ def test_next_through_the_catalog_takes_tonights_players(tmp_path: Path) -> None
     folder = _campaign_folder(tmp_path)
     result = catalog.run_action("campaign_next", {"campaign_folder": str(folder), "players": "5-7"})
     mission_yaml = yaml.safe_load((Path(result["folder"]) / "mission.yaml").read_text(encoding="utf-8"))
-    assert mission_yaml["opposition"] == {"level": 7, "follow": "players", "players_coalition": "BLUE"}
+    assert mission_yaml["opposition"] == {"level": 7, "follow": "air_to_air", "players_coalition": "BLUE"}
 
 
 def test_next_refuses_a_wrong_count_of_players(tmp_path: Path) -> None:

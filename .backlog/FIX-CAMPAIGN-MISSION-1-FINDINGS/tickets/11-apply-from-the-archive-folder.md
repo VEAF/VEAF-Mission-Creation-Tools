@@ -1,6 +1,6 @@
 # 11 — `campaign apply` crashes on a state file already in its mission folder
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found

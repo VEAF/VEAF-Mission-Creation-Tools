@@ -110,6 +110,23 @@ class TestApply:
         before = yaml.safe_load((archive / "campaign-state.before.yaml").read_text(encoding="utf-8"))
         assert before["mission"] == 0
 
+    def test_a_state_file_already_in_its_mission_folder_is_applied_in_place(self, tmp_path: Path) -> None:
+        # where CAMPAIGN.md shows it: copying it onto itself raised SameFileError (ticket 11)
+        folder = _folder(tmp_path)
+        worker = CampaignWorker(folder)
+        worker.init()
+        archive = worker.mission_folder(1)
+        archive.mkdir(parents=True)
+        path = _state_file(folder).replace(archive / "mission-01.state")
+        content = path.read_bytes()
+        (archive / "mission-01.state.tmp").write_bytes(content)
+        issues, report = worker.apply(path)
+        assert issues == []
+        assert report is not None
+        assert yaml.safe_load((folder / STATE_FILE).read_text(encoding="utf-8"))["mission"] == 1
+        assert path.read_bytes() == content
+        assert (archive / "mission-01.state.tmp").read_bytes() == content
+
     def test_the_debriefing_is_written_in_both_languages_next_to_the_state(self, tmp_path: Path) -> None:
         folder = _folder(tmp_path)
         worker = CampaignWorker(folder)

@@ -38,6 +38,7 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 | [08](tickets/08-server-rewrites-date-time-weather.md) | The server rewrote the mission's date, time and weather | 🧑 |
 | [09](tickets/09-escort-me-silent.md) | "Escort me" in an A-10C answered nothing | 🧑 |
 | [10](tickets/10-campaign-flies-with-server-security.md) | A campaign mission flies with the server's security | ✅ |
+| [11](tickets/11-apply-from-the-archive-folder.md) | `campaign apply` crashes on a state file already in its mission folder | ⬜ |
 
 04 depends on 03: a unit on Senaki's runway would keep the QRA on the ground.
 
@@ -47,7 +48,8 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 
 ## One PR
 
-All ten tickets ship in one branch and one PR.
+Tickets 01 to 10 shipped in one branch and one PR (#1111).
+Ticket 11, found on 2026-10-09 while applying mission 1 to the real campaign, ships in its own small PR.
 Each ticket reads the code before choosing a fix; what needs DCS is gathered into one test mission (a copy of the campaign, never David's live session) for David to run.
 The in-game checks are R47 in `DCS-SESSION-TODO.md`, CTLD first.
 

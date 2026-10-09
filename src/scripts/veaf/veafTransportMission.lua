@@ -854,6 +854,19 @@ local function eraseLogisticCircle(state)
   end
 end
 
+--- Register the troop pickup zone that goes with an airfield's logistic zone: same name, point, radius
+--- and coalition, and from then on the same life — dark when the logistic zone is, moved with it when
+--- the field changes hands. Without it troops could be boarded on the carrier only: VEAF made every held
+--- airfield a logistic zone and none a troop zone (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 05).
+--- @param state table the airfield's state
+--- @param forCoalition number the coalition it serves
+local function registerTroopZone(state, forCoalition)
+  local zoneManager = CTLDZoneManager.getInstance()
+  -- CTLD binds a zone's coalition at registration, as for the logistic zone: unregister, then register
+  zoneManager:unregisterTroopZone(state.zoneName)
+  zoneManager:registerFOBAsTroopZone(state.zoneName, state.point, AIRBASE_LOGISTICS_RADIUS, forCoalition)
+end
+
 --- Put an airfield's zone in service for `forCoalition`: make sure it is registered under that
 --- coalition — re-registering when it was under another — and active. Answers true when the zone
 --- serves `forCoalition` on return, false when it could not (no point, or CTLD refused).
@@ -881,8 +894,10 @@ local function serveLogisticZone(state, forCoalition)
     state.registered = true
     state.registeredCoalition = forCoalition
     state.active = true -- a freshly registered zone is born active; no separate activation
+    registerTroopZone(state, forCoalition)
   elseif not state.active then
     zoneManager:activateLogisticZone(state.zoneName)
+    zoneManager:setTroopZoneActive(state.zoneName, true)
     state.active = true
   end
   state.holder = forCoalition
@@ -896,6 +911,7 @@ end
 local function releaseLogisticZone(state)
   if state.active then
     CTLDZoneManager.getInstance():deactivateLogisticZone(state.zoneName)
+    CTLDZoneManager.getInstance():setTroopZoneActive(state.zoneName, false)
     state.active = false
   end
   eraseLogisticCircle(state)
@@ -1207,6 +1223,7 @@ function veafTransportMission.initializeAllLogisticInCTLD()
               state.registeredCoalition = airbaseCoalition
               state.active = true
               state.holder = airbaseCoalition
+              registerTroopZone(state, airbaseCoalition)
               drawLogisticCircle(state, airbaseCoalition)
               logger:debug(
                 "initializeAllLogisticInCTLD: registered %s (class %s) at stand %s, r=%dm",

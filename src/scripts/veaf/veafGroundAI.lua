@@ -1833,11 +1833,16 @@ end
 --- The voice goes through `veafRadio.transmitMessage`, which does nothing when the mission has no SRS
 --- configured (`STTS`) or no `os` — the case on dcs.veaf.org, decided 2026-10-08 — and the text goes out
 --- regardless.
+---
+--- Only for a side that has pilots connected, read at the time of the call: the smokes and the call are
+--- for them, and with none they only mark the convoy for the enemy — the red convoy of *Kolkhida*
+--- mission 1, red having no pilot (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 07). The convoy falls back
+--- all the same.
 --- @param now number
 function ConvoyUnitHandler:callForHelp(now)
   local group = self:getGroup() or self:getUnarmedGroup()
   local threats = self:recentThreats()
-  if not group or #threats == 0 then
+  if not group or #threats == 0 or not veafGroundAI.coalitionHasPlayers(self.side) then
     return
   end
   local center = veaf.getAveragePosition(group)
@@ -1867,7 +1872,8 @@ end
 function ConvoyUnitHandler:markWithSmoke(now)
   local group = self:getGroup() or self:getUnarmedGroup()
   local threats = self:recentThreats()
-  if not group or #threats == 0 then
+  -- the pilots may have left since the call: a renewal checks again
+  if not group or #threats == 0 or not veafGroundAI.coalitionHasPlayers(self.side) then
     return
   end
   -- on the nearest enemy on the ground: under an aircraft, a red smoke would mark nothing

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -11,10 +12,17 @@ import pytest
 import yaml
 from campaign_fixture import VALID
 from campaign_fixture import mission_template as _template
+from campaign_manager.briefing_prose import MissionPage
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.campaign_worker import CAMPAIGN_FILE, STATE_FILE, CampaignWorker
 from campaign_manager.models import CampaignDefinition, CampaignState
-from campaign_manager.next_mission import DATA_FILE, mission_data, prepare_next_mission, strategic_situation
+from campaign_manager.next_mission import (
+    DATA_FILE,
+    mission_data,
+    mission_name,
+    prepare_next_mission,
+    strategic_situation,
+)
 from lua_runner import run_lua
 from mission_tools.miz_tools import DcsMission
 from typer.testing import CliRunner
@@ -190,7 +198,11 @@ class TestTheMissionFolder:
         mission_yaml = yaml.safe_load(text)
         assert mission_yaml["modules"]["CAMPAIGN"] == {"enable": True, "data_file": DATA_FILE}
         assert mission_yaml["modules"]["UNITS"] is True
-        assert mission_yaml["mission"] == {"name": "Campaign mission", "era": "MODERN"}
+        assert mission_yaml["mission"] == {
+            "name": "Campaign_Caucasus-Front_Mission_01_NoMizedit",
+            "era": "MODERN",
+            "silence_atc_on_all_airbases": True,
+        }
 
     def test_a_second_run_refreshes_and_keeps_what_was_designed(self, tmp_path: Path) -> None:
         _template(tmp_path)
@@ -225,6 +237,82 @@ class TestTheMissionFolder:
     def test_a_missing_template_is_reported(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError, match="template"):
             prepare_next_mission(_campaign(), initial_state(_campaign()), tmp_path, tmp_path / "m1")
+
+
+# ---------------------------------------------------------------------------
+# What a squadron's mission needs: its name, a silent ATC, the server's security
+# (FIX-CAMPAIGN-MISSION-1-FINDINGS tickets 02, 08 and 10)
+# ---------------------------------------------------------------------------
+
+
+class TestTheMissionName:
+    def test_it_names_the_campaign_the_mission_and_the_title_and_ends_in_the_marker(self) -> None:
+        name = mission_name("Kolkhida", 2, "Couper le ravitaillement")
+        assert name == "Campaign_Kolkhida_Mission_02_Couper-le-ravitaillement_NoMizedit"
+
+    def test_without_a_title_there_is_no_title_part(self) -> None:
+        assert mission_name("Kolkhida", 1, None) == "Campaign_Kolkhida_Mission_01_NoMizedit"
+
+    def test_accents_spaces_and_punctuation_become_ascii_and_dashes(self) -> None:
+        # the build keeps both in the file name, and an `é` in a server path already cost an SFTP glob
+        name = mission_name("Front de l'Est", 12, "La porte de Poti — phase 1 !")
+        assert name == "Campaign_Front-de-l-Est_Mission_12_La-porte-de-Poti-phase-1_NoMizedit"
+        assert re.fullmatch(r"[A-Za-z0-9_-]+", name)
+
+    def test_it_never_carries_icao_which_would_pick_a_weather_station(self) -> None:
+        name = mission_name("ICAO", 3, "Toward ICAO")
+        assert "icao_" not in name.lower()
+
+    def test_campaign_next_writes_it_and_a_refresh_takes_the_title_written_since(self, tmp_path: Path) -> None:
+        _template(tmp_path)
+        campaign = _campaign()
+        prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        page = MissionPage(title="La porte de Poti", tasks=())
+        report = prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1", page=page)
+        expected = "Campaign_Caucasus-Front_Mission_01_La-porte-de-Poti_NoMizedit"
+        assert report.name == expected
+        assert yaml.safe_load((tmp_path / "m1" / "mission.yaml").read_text(encoding="utf-8"))["mission"]["name"] == (
+            expected
+        )
+
+
+class TestTheSquadronSettings:
+    def _mission_yaml(self, tmp_path: Path) -> dict[str, Any]:
+        return yaml.safe_load((tmp_path / "m1" / "mission.yaml").read_text(encoding="utf-8"))
+
+    def test_the_atc_is_silenced(self, tmp_path: Path) -> None:
+        _template(tmp_path)
+        prepare_next_mission(_campaign(), initial_state(_campaign()), tmp_path, tmp_path / "m1")
+        assert self._mission_yaml(tmp_path)["mission"]["silence_atc_on_all_airbases"] is True
+
+    def test_an_atc_left_on_on_purpose_is_kept(self, tmp_path: Path) -> None:
+        _template(tmp_path)
+        campaign = _campaign()
+        prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        text = (tmp_path / "m1" / "mission.yaml").read_text(encoding="utf-8")
+        (tmp_path / "m1" / "mission.yaml").write_text(
+            text.replace("silence_atc_on_all_airbases: true", "silence_atc_on_all_airbases: false"), encoding="utf-8"
+        )
+        prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        assert self._mission_yaml(tmp_path)["mission"]["silence_atc_on_all_airbases"] is False
+
+    def test_a_template_with_security_off_gives_a_mission_with_the_servers_security(self, tmp_path: Path) -> None:
+        template = _template(tmp_path)
+        (template / "mission.yaml").write_text(
+            "mission:\n  name: m\nsecurity:\n  disabled: true\n  password_hashes:\n    - abc\n"
+            "  password_mm_hashes:\n    - def\nmodules:\n  UNITS: true\n",
+            encoding="utf-8",
+        )
+        report = prepare_next_mission(_campaign(), initial_state(_campaign()), tmp_path, tmp_path / "m1")
+        assert report.security_restored
+        assert "security" not in self._mission_yaml(tmp_path)
+        assert self._mission_yaml(tmp_path)["modules"]["UNITS"] is True
+
+    def test_a_template_without_security_settings_is_left_alone(self, tmp_path: Path) -> None:
+        _template(tmp_path)
+        report = prepare_next_mission(_campaign(), initial_state(_campaign()), tmp_path, tmp_path / "m1")
+        assert not report.security_restored
+        assert "security" not in self._mission_yaml(tmp_path)
 
 
 # ---------------------------------------------------------------------------

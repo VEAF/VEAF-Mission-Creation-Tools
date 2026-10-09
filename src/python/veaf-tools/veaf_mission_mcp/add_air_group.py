@@ -346,8 +346,10 @@ def insert_air_group_into_content(
     late_activation: bool = False,
     pylons: dict[Any, Any] | None = None,
     route: list[dict[str, float]] | None = None,
+    start: str = "air",
+    airfield: str | None = None,
 ) -> tuple[int, list[str]]:
-    """Insert an airborne flight into a parsed mission table; the composites' aircraft builder.
+    """Insert a flight into a parsed mission table, airborne or on a runway; the composites' aircraft builder.
 
     `create_qra` and `create_cap_mission` used to build their aircraft with `add_group`'s
     ground-vehicle builder — ``Ground Nothing``, an ``Off Road`` point at altitude 0, 20 km/h, no
@@ -371,10 +373,23 @@ def insert_air_group_into_content(
         pylons: The loadout, ``{station: {"CLSID": ...}}``.
         route: Further points ``{"x", "y", "altitude_ft"?}``. With one or more, the first point
             carries a race-track orbit towards the second, so a CAP template patrols a line.
+        start: ``"air"`` at ``position``, or ``"runway"``: a take-off from ``airfield``'s runway, and
+            ``position`` is then ignored (a QRA's default since FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 04).
+        airfield: The airfield **name** a runway start takes off from.
 
     Returns:
         ``(group_id, warnings)``.
+
+    Raises:
+        ValueError: an unknown start, or a runway start whose airfield is missing, unknown, or on a
+            theatre with no captured parking data — raised before the mission is touched.
     """
+    airdrome_id: int | None = None
+    if start == "runway":
+        airdrome_id = _resolve_airfield(content, airfield)
+        position = _runway_anchor(content, airfield, airdrome_id)
+    elif start != "air":
+        raise ValueError(f"Unknown start {start!r} for this builder (expected 'air' or 'runway')")
     payload, fuel_warning = build_aircraft_payload(unit_type)
     if pylons:
         payload["pylons"] = normalize_pylons(pylons)
@@ -382,9 +397,9 @@ def insert_air_group_into_content(
         name=name,
         unit_type=unit_type,
         count=count,
-        start="air",
+        start=start,
         stands=[],
-        airdrome_id=None,
+        airdrome_id=airdrome_id,
         position=position,
         altitude_ft=altitude_ft,
         speed_kt=speed_kt,

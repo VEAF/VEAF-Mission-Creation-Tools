@@ -235,6 +235,8 @@ Lors de l'injection, chaque fréquence assignée à un aéronef est vérifiée p
 
 Après chaque injection de presets, un fichier `presets-validation-report.md` est automatiquement créé dans le dossier mission si au moins un appareil (critique ou non) présente des fréquences hors plage. Ce fichier liste tous les problèmes avec les valeurs invalides et un extrait YAML pour les désactiver temporairement. Si aucun problème n'est détecté, le fichier est supprimé.
 
+Le rapport, et le journal du build, listent aussi **chaque AWACS et ravitailleur IA dont la fréquence n'est sur aucun preset injecté pour sa coalition** : ses pilotes ne le trouveraient ni sur leurs radios ni sur leur planchette. C'est le signe qu'on a gardé le plan de canaux livré au lieu de celui de la mission ; ajoutez son canal dans `src/presets.yaml`. Une coalition qui n'a reçu aucun preset n'est pas contrôlée.
+
 ```
 <dossier-mission>/presets-validation-report.md
 ```

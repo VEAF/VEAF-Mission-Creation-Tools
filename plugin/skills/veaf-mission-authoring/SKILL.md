@@ -240,6 +240,8 @@ the coalitions that actually get dynamic slots.
 - `mission.name` ending in `_ICAO_<code>`: an airfield **of the theatre** whose METAR station is
   alive — check it (`https://tgftp.nws.noaa.gov/data/observations/metar/stations/<ICAO>.TXT`, the
   day in `DDHHMMZ` must be today). It is how the server's RealWeather finds the weather.
+  **Not a campaign mission**: `campaign_next` names it `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`
+  so that the server leaves the date, time and weather the campaign fixed — never add `ICAO_` to it.
 - `mission.era`, the mission **date** (`set_mission_date`, start time on the theatre's clock), and
   `versions.yaml` `base_date` consistent with each other (a Cold War mission is not dated 2016, the
   blank mission's default).
@@ -263,9 +265,19 @@ or a red base with slots nobody asked for, is an inconsistency.
 - One name per asset **everywhere**: group name, callsign family (Texaco = 1, Arco = 2, Shell = 3;
   AWACS Overlord = 1, Magic = 2…), radio frequency, preset label and `ASSETS` information text must
   agree. Cross-check them once written.
+- **Its channel goes into `src/presets.yaml` in the same pass.** An AWACS, a tanker or a carrier you
+  place gets its channel in the players' coalition's `channel_lists`, under the name the briefing uses;
+  the airfields the mission flies from get theirs through `set_airfield_channels`. The scaffold's plan
+  is an Open Training's (Magic 282.2, Arco-1 290.5…): left as it is, every radio and every kneeboard
+  agrees with it and not with your mission — what *Kolkhida* mission 1 flew with. The build lists every
+  AWACS and tanker no preset carries, in its log and in `presets-validation-report.md`: treat that list
+  as an error to fix, not a note.
 - Interceptors and CAP templates: **a loadout** (the `veafSpawn-*` groups of `src/spawnables.yaml`
   are a sourced place to copy CLSIDs from), late activation, and the start the theatre allows
   (`describe_known_limitations` says where a runway or ramp start is not available).
+  A **QRA takes off from the runway** of its side's field (David, 2026-10-08): `create_qra` does it
+  unless a group says `start: air`, which only the user asks for. Nothing of its side may stand on
+  that runway.
 
 **Combat content.**
 - A **training range close to a blue base** (Kobuleti next to Batumi on Caucasus): three nested

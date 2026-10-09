@@ -821,6 +821,12 @@ When you upgrade CTLD and your file was written against an earlier version, `ctl
 
 Until now a transport aircraft landed on a captured airfield read *"No logistics in range"*: CTLD 2 only recognises loading points whose unit type is declared in `logisticUnitTypes` (the FARPs and carriers of the previous section) and the `LGZ_` zones placed in the editor. An airfield — a map `Airbase`, not a unit — is neither. VEAF closes the gap: at start-up it registers **every airfield on the map** as a CTLD logistic zone, then keeps it up to date as the game unfolds.
 
+The same zone is also a **troop pickup zone**, at the same place, of the same radius and for the same side: it goes dark and comes back with the logistic zone, and changes sides with it. Without it, on *Kolkhida*, troops could be boarded on the carrier only.
+The other side of it, as in any CTLD troop zone: unloading troops **inside** that circle returns them to base instead of deploying them. To set them down on a held airfield, unload them outside the circle.
+
+!!! warning "A mission whose coalitions hold only CJTF Blue and CJTF Red"
+    CTLD creates its crates under the USA (blue) or Russia (red), whatever the helicopter's country. When that country belongs to none of the mission's coalitions — the case of campaigns —, DCS refuses the object and the request gives nothing, without a message (measured in game on 2026-10-09). The fix is in CTLD itself; until its release, putting the USA in the mission's blue coalition and Russia in its red one should do (not checked in game).
+
 It is a setting, not a given:
 
 ```yaml

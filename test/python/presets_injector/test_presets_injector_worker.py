@@ -535,6 +535,80 @@ class TestGenerateValidationReport(unittest.TestCase):
             self.assertIn("All preset frequencies are valid", content)
 
 
+class TestSupportFrequencyGaps(unittest.TestCase):
+    """An AWACS or a tanker whose frequency no injected preset carries (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 01).
+
+    *Kolkhida* mission 1 put its AWACS Overlord on 251 MHz and its tanker Arco on 252, while every blue
+    radio carried the shipped default plan (Magic 282.2, Arco-1 290.5): presets and kneeboards agreed with
+    each other and not with the mission, and nothing said so.
+    """
+
+    def setUp(self) -> None:
+        from veaf_libs.i18n import set_language
+
+        set_language("en")
+
+    def _support(self, name: str, task: str, freq: float, coalition: str = "blue") -> Group:
+        return Group(
+            group_dcs={"name": name, "task": task, "frequency": freq, "units": [{"skill": "Excellent"}]},
+            aircraft_type="plane",
+            country="CJTF Blue",
+            coalition=coalition,
+            name=name,
+            unit_type="E-3A",
+        )
+
+    def _worker(self, *groups: Group) -> PresetsInjectorWorker:
+        worker = _make_worker()
+        player = Group(
+            group_dcs={"units": [{"type": "F-16C_50", "skill": "Client"}]},
+            aircraft_type="plane",
+            country="CJTF Blue",
+            coalition="blue",
+            human_pilot=True,
+            name="Viper",
+            unit_type="F-16C_50",
+        )
+        preset = PresetDefinition("blue_plan")
+        radio = RadioDefinition("radio_1")
+        radio.channels = [Channel(1, freq=243.0), Channel(14, freq=282.2)]
+        preset.add_radio(radio)
+        worker.groups = {g.name or "": g for g in (player, *groups)}
+        worker.presets_manager = MagicMock()
+        worker.presets_manager.get_radios_for.return_value = preset
+        return worker
+
+    def test_an_awacs_off_every_preset_is_reported(self) -> None:
+        worker = self._worker(self._support("Overlord 1", "AWACS", 251.0), self._support("Magic 1", "AWACS", 282.2))
+        with patch("presets_injector.presets_injector_worker.logger") as mock_logger:
+            worker.process_groups(silent=True)
+        self.assertEqual([(gap.group_name, gap.freq_mhz) for gap in worker.support_gaps], [("Overlord 1", 251.0)])
+        warnings = [call.args[0] for call in mock_logger.warning.call_args_list]
+        self.assertTrue(any("Overlord 1" in w and "251" in w for w in warnings), warnings)
+
+    def test_a_tanker_counts_and_a_fighter_does_not(self) -> None:
+        worker = self._worker(self._support("Arco 1", "Refueling", 252.0), self._support("CAP", "CAP", 252.0))
+        worker.process_groups(silent=True)
+        self.assertEqual([gap.group_name for gap in worker.support_gaps], ["Arco 1"])
+
+    def test_a_coalition_with_no_injected_preset_is_not_checked(self) -> None:
+        # red has no player and so no plan: there is nothing for its AWACS to be missing from
+        worker = self._worker(self._support("Red AWACS", "AWACS", 251.0, coalition="red"))
+        worker.process_groups(silent=True)
+        self.assertEqual(worker.support_gaps, [])
+
+    def test_the_report_lists_them_and_counts_them(self) -> None:
+        worker = self._worker(self._support("Overlord 1", "AWACS", 251.0))
+        worker.process_groups(silent=True)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            count = worker.generate_validation_report(report_path)
+            content = report_path.read_text(encoding="utf-8")
+        self.assertEqual(count, 1)
+        self.assertIn("| `Overlord 1` | AWACS | 251.0 |", content)
+        self.assertNotIn("All preset frequencies are valid", content)
+
+
 if __name__ == "__main__":
     unittest.main()
 

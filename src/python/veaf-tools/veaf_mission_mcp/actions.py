@@ -959,7 +959,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the mission carries; a western flight NAMED like its callsign ('Texaco 2', 'Magic 1') gets "
                 "that callsign (Texaco21...) when its family fits the task and the flight is free, else the "
                 "next free one and a warning. A fighting task (Escort, CAP, CAS, SEAD...) with no pylons "
-                "warns for an AI flight. Target a FOLDER (durable) or .miz (transient); backed up first."
+                "warns for an AI flight. An AWACS or a tanker is called on its frequency_mhz: add that "
+                "channel to the players' coalition in src/presets.yaml in the same pass, or every radio "
+                "and kneeboard keeps the scaffold's plan and the build lists it as reached by no preset. "
+                "Target a FOLDER (durable) or .miz (transient); backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -2001,8 +2004,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Lay down a complete VEAF QRA in a mission FOLDER, one pass, both worlds (no build): "
                 "a trigger zone + Late-Activation interceptor group(s) on the given coalition in "
                 "src/mission, and an appended modules.QRA.definitions[] entry in mission.yaml "
-                "referencing the group names verbatim. Interceptors are built AIRBORNE and fuelled "
-                "(one aircraft type per group); give them a loadout with 'pylons', a DCS loadout by name "
+                "referencing the group names verbatim. Interceptors take off FROM THE RUNWAY by default -- "
+                "their coalition's airfield nearest the zone, or the group's 'airfield' -- and the QRA "
+                "module climbs them to their patrol; 'start': 'air' puts one in the air at its position "
+                "instead, only when asked. With no airfield of the coalition (or no parking data for the "
+                "theatre) the default falls back to the air and says so. Fuelled, one aircraft type per "
+                "group; give them a loadout with 'pylons', a DCS loadout by name "
                 "with 'payload' (list_payloads), or copy one with "
                 "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
                 "unarmed interceptor intercepts nothing. Each group gets a single waypoint and no task "
@@ -2047,6 +2054,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                 "altitude_ft": {"type": "number", "default": 15000},
                                 "speed_kt": {"type": "number", "default": 350},
                                 "task": {"type": "string", "default": "Intercept"},
+                                "start": {
+                                    "type": "string",
+                                    "enum": ["runway", "air"],
+                                    "default": "runway",
+                                    "description": "runway (the default): take off from 'airfield'; air: at "
+                                    "'position', 'altitude_ft' -- only when asked.",
+                                },
+                                "airfield": {
+                                    "type": "string",
+                                    "description": "Airfield NAME a runway start takes off from; default: the "
+                                    "coalition's airfield nearest the zone's centre.",
+                                },
                                 "pylons": {
                                     "type": "object",
                                     "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',

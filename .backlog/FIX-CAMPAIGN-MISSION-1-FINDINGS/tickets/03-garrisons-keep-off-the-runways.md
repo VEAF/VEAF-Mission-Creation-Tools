@@ -1,6 +1,6 @@
 # 03 — An airfield garrison keeps off the runways
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -21,3 +21,8 @@ Both garrisons were drawn in game by mission 1 (`drawGarrison`, 19:23:22 UTC: Ba
 ## Done when
 
 No unit of a freshly drawn airfield garrison stands on a runway or a taxiway, checked on Batumi and Senaki.
+
+## Decided (David, 2026-10-09)
+
+Parking stands and taxiways too, not only the runways.
+DCS's terrain does not see an apron (`veafGrass.lua`: `LAND` everywhere out to 260 m); what it reports for a taxiway is measured in game first (`R47`, probe `p1-runways.lua`).

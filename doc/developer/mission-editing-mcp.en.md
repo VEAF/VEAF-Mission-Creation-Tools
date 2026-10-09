@@ -885,6 +885,20 @@ always returned, with the date they were measured). Each entry: `id`, `kind`, `a
 {"kind": "dcs"}
 ```
 
+### `describe_authoring_guide` (FEAT-AI-ASSISTANT-ANY-CLIENT lot)
+
+Read-only, no parameter. Returns `{"guide": …}`: the text of the plugin's `veaf-mission-authoring` skill, verbatim.
+Claude Code and Gemini CLI load that skill from the plugin; another MCP client has no plugin, and reads it here.
+The file exists once, `plugin/skills/veaf-mission-authoring/SKILL.md`: the build bundles it into the exe under `veaf_mission_mcp/data/`, and in development the action reads it from the repository.
+
+The **server instructions** (the MCP protocol's `instructions`, sent to the client on connection) ask it to read this guide first — by loading the skill if the client has it, by calling this action otherwise.
+They are a few lines on purpose: Claude Code puts them in every session's prompt, where the plugin's skill already is.
+Not every client honours them; [the install page](../mission-maker/AI_ASSISTANT_INSTALL.en.md#other-mcp-client) therefore opens the conversation with the explicit request.
+
+```json
+{}
+```
+
 ### `offer_clear_ground_check` (FEAT-CLEAR-GROUND-AT-AUTHORING lot)
 
 Read-only, and it **launches nothing**. On a built `.miz`, returns what it takes to **offer** the user

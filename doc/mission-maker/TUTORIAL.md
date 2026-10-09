@@ -10,6 +10,11 @@ au moment où il sert. Si vous voulez d'abord la vue d'ensemble, lisez
 
 Comptez une heure, dont la moitié dans DCS.
 
+> **Vous avez Claude, Gemini ou une autre IA ?**
+> Elle peut faire tout ce parcours à votre place : vous décrivez la mission en français, elle crée le dossier, place les groupes, valide et construit.
+> Ce tutoriel reste utile pour comprendre ce qu'elle fait et vérifier ce qu'elle produit.
+> Pour la brancher sur VMCT — Claude Code, Gemini CLI, une autre IA compatible MCP, ou une IA de chat qui ne peut que conseiller — voyez [Installer l'assistant IA](AI_ASSISTANT_INSTALL.md).
+
 ---
 
 ## Étape 0 — Installer les outils {#step-0-install}

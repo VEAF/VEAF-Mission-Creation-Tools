@@ -102,6 +102,19 @@ def test_the_server_registers_the_four_discovery_tools() -> None:
     assert names == {"capabilities", "list_catalog", "describe_action", "run_action"}
 
 
+def test_the_server_tells_any_client_to_read_the_authoring_guide_first() -> None:
+    """FEAT-AI-ASSISTANT-ANY-CLIENT: a client without the plugin gets the tools, not the skill.
+
+    The instructions stay short on purpose: Claude Code puts them in every session's prompt, where
+    the plugin's skill already is, so they point at the guide instead of carrying its 21 KB.
+    """
+    instructions = server.mcp.instructions or ""
+
+    assert "describe_authoring_guide" in instructions
+    assert "veaf-mission-authoring" in instructions
+    assert len(instructions) < 1000
+
+
 def test_calling_a_tool_through_the_server_returns_its_value() -> None:
     result = asyncio.run(server.mcp.call_tool("capabilities", {}))
 

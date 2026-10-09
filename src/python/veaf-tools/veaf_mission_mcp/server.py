@@ -23,7 +23,16 @@ SERVER_NAME = "veaf-mission-mcp"
 CATALOG = ActionCatalog()
 register_default_actions(CATALOG)
 
-mcp = MCPServer(SERVER_NAME)
+# Short on purpose: Claude Code puts a server's instructions in every session's prompt, where the
+# plugin's skill already is. A client without the plugin is pointed at the same text instead.
+INSTRUCTIONS = (
+    "VEAF DCS mission authoring server. Before any other action, read the VEAF authoring guide and "
+    "follow it: it holds the order of work and the naming conventions a mission needs to work in DCS. "
+    "If you have the veaf-mission-authoring skill, load that skill: it is the guide. Otherwise call "
+    "run_action('describe_authoring_guide'). Then call run_action('describe_known_limitations')."
+)
+
+mcp = MCPServer(SERVER_NAME, instructions=INSTRUCTIONS)
 
 
 @mcp.tool()

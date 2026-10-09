@@ -25,6 +25,14 @@ Its only trace is a `debug` line, below the mission's `info` level, so `dcs.log`
 Not reproduced locally: with the mission flown on 2026-10-08 rebuilt as it was, `findSpawnableAircraftGroupname("fox3", BLUE)` finds `veafSpawn-F-15C - FOX3 - Radar ON - ECM OFF - HARD X1`, `spawnEscort` from a script spawns, and "Escort me" works from a placed A-10C in the air and from a dynamic A-10C slot on the ground.
 Every refusal now says why, to the pilot and in the log (`info`), so the next one on the server names its cause.
 
+## Hypothesis, not checked (2026-10-09)
+
+The F10 click may have fired **another** command.
+CTLD's lot `FIX-MENU-STABLE-ENTRIES` (VEAF/CTLD#257, measured on raw `missionCommands`) found that DCS tracks an F10 entry by an internal id and hands a removed entry's id to the next entry created, last freed first; a menu screen left open across a rebuild keeps the old ids, so a click there runs whatever now holds that id.
+Its PRD names `veafRadio` as having the same problem (decision D5, a design shared with VMCT).
+That would give exactly "no answer" when the command reached is a silent one, and would explain why a freshly opened menu worked locally on 2026-10-09.
+To tell the two apart on the server: with the refusal messages of this lot, a real `escortMe` refusal now says why and logs an `Escort me` line; no message and no such line while another command's trace appears points to the id reuse.
+
 ## Left
 
 `R47` item 5, on dcs.veaf.org.

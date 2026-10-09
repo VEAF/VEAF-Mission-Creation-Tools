@@ -74,6 +74,7 @@ Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolk
    - **Verified**: no smoke, no troops-in-contact call; with a red player connected, both come back.
 5. *(ticket 09, on dcs.veaf.org)* "Escort me" from a blue dynamic slot, as on 2026-10-08.
    - **Verified**: the escort comes, or a message says why it does not; the server's `dcs.log` has an `Escort me` line either way.
+   - **Re-opened, no message and no `Escort me` line**: the click reached another command — F10 id reuse after a menu rebuild (ticket 09's hypothesis, CTLD's `FIX-MENU-STABLE-ENTRIES`); note which menu screen was open and for how long.
 6. *(`FIX-CAPTURE-ZONE-MEMBERSHIP` ticket 02)* Let the blue convoy reach Poti.
    - **Verified**: it drives on after the capture, to within a few hundred metres of the centre (its road ends 163 m from it).
    - **Re-opened, it stops about 2.1 km out**: the convoy's route in the running mission (the fiddle hook, read-only) — as on 2026-10-08, when its units stood 2 123–2 182 m out in the state file.

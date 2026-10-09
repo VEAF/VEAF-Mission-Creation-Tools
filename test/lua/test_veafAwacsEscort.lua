@@ -510,6 +510,28 @@ function TestEscortCommands:test_escort_me_escorts_the_pilots_own_group()
   luaunit.assertEquals(taskWithId(submitted().route.points[1], "Escort").params.groupId, 42)
 end
 
+function TestEscortCommands:test_escort_me_with_no_template_for_the_side_says_so()
+  -- FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 09: an "Escort me" in an A-10C answered nothing at all
+  veafSpawn.findSpawnableAircraftGroupname = function()
+    return nil
+  end
+  local unitName = pilotIn("Cowboy-1")
+  luaunit.assertNil(veafSpawn.escortMe({ "fox3", unitName }))
+  luaunit.assertTrue(#dcs_mocks.messagesContaining("fox3") > 0, "the pilot is told no template matched")
+end
+
+function TestEscortCommands:test_escort_me_whose_spawn_fails_says_so()
+  local unitName = pilotIn("Cowboy-1")
+  local original = VeafAircraftSpawn.spawn
+  VeafAircraftSpawn.spawn = function()
+    return nil
+  end
+  local name = veafSpawn.escortMe({ "fox3", unitName })
+  VeafAircraftSpawn.spawn = original
+  luaunit.assertNil(name)
+  luaunit.assertTrue(#dcs_mocks.messagesContaining("Cowboy-1") > 0, "the pilot is told the escort did not come")
+end
+
 function TestEscortCommands:test_escort_me_refuses_a_helicopter()
   local unitName = pilotIn("Huey-1", Unit.Category.HELICOPTER)
   luaunit.assertNil(veafSpawn.escortMe({ "fox3", unitName }))

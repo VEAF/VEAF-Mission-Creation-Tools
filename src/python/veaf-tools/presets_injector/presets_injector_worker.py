@@ -73,6 +73,20 @@ class _PendingFreqWarning:
     aircraft_category: str = "plane"
 
 
+#: The AI tasks whose frequency a pilot calls: an AWACS and a tanker are of no use off the radios.
+_SUPPORT_TASKS = ("AWACS", "Refueling")
+
+
+@dataclass(frozen=True)
+class SupportFrequencyGap:
+    """An AWACS or a tanker of a coalition whose frequency no preset injected for that coalition carries."""
+
+    group_name: str
+    coalition: str
+    task: str
+    freq_mhz: float
+
+
 class PresetsInjectorWorker(GroupInjectorWorker):
     """
     Worker class that provides presets injection features.
@@ -101,6 +115,8 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         # unit_type → channel-1 frequency that was *not* promoted to the group's primary
         # because it falls outside the airframe's HumanRadio range; reported once per type.
         self._skipped_primary_promotions: dict[str, float] = {}
+        # AWACS and tankers no injected preset reaches; populated by process_groups().
+        self.support_gaps: list[SupportFrequencyGap] = []
         super().__init__(config_file=presets_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> Any:
@@ -381,6 +397,45 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             )
             self._pending_freq_warnings.clear()
 
+        self.support_gaps = self._find_support_gaps()
+        for gap in self.support_gaps:
+            logger.warning(
+                t(
+                    "presets_injector.support_gap",
+                    group=gap.group_name,
+                    task=gap.task,
+                    freq=gap.freq_mhz,
+                    coalition=gap.coalition,
+                )
+            )
+
+    def _find_support_gaps(self) -> list[SupportFrequencyGap]:
+        """Return the AWACS and tankers whose frequency is on no preset injected for their coalition.
+
+        A coalition that received no preset is not checked: with no plan there is nothing to be missing from.
+
+        Returns:
+            The gaps, in the groups' order.
+        """
+        planned: dict[str, list[float]] = {}
+        for (coalition, _), preset in self._injected_presets.items():
+            planned.setdefault(coalition, []).extend(
+                ch.freq
+                for radio in preset.radios.values()
+                for ch in radio.channels
+                if isinstance(ch.freq, (int, float))
+            )
+        gaps = []
+        for group in self.groups.values():
+            task = group.group_dcs.get("task")
+            freq = group.group_dcs.get("frequency")
+            if group.human_pilot or task not in _SUPPORT_TASKS or not isinstance(freq, (int, float)):
+                continue
+            freqs = planned.get(group.coalition or "")
+            if freqs is not None and not any(abs(freq - f) < 0.0005 for f in freqs):
+                gaps.append(SupportFrequencyGap(group.name or "", group.coalition or "", str(task), float(freq)))
+        return gaps
+
     def collect_freq_issues(self) -> list[FrequencyIssue]:
         """Return the resolved frequency issues collected during the last process_groups() call.
 
@@ -402,8 +457,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         Args:
             output_path: Destination .md file.
 
+        Also lists the AWACS and tankers no preset reaches (`support_gaps`).
+
         Returns:
-            Total number of issues found (0 means all presets are valid).
+            Total number of issues found, support gaps included (0 means all presets are valid).
         """
         from datetime import date
 
@@ -468,12 +525,23 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             for issue in info_issues:
                 lines += _render_issue(issue)
 
-        if not issues:
+        if self.support_gaps:
+            lines += [
+                t("presets_injector.report.section_support"),
+                "",
+                t("presets_injector.report.support_header"),
+                "|--------|------|-----------------|-----------|",
+            ]
+            lines += [f"| `{g.group_name}` | {g.task} | {g.freq_mhz} | {g.coalition} |" for g in self.support_gaps]
+            lines.append("")
+
+        total = len(issues) + len(self.support_gaps)
+        if not total:
             lines += [t("presets_injector.report.all_valid"), ""]
 
         output_path.write_text("\n".join(lines), encoding="utf-8")
-        logger.info(tn("presets_injector.validation_report.written", len(issues), path=output_path))
-        return len(issues)
+        logger.info(tn("presets_injector.validation_report.written", total, path=output_path))
+        return total
 
     def write_mission(self, silent: bool = False) -> None:
         """Write the mission file, including kneeboard pages if generated."""

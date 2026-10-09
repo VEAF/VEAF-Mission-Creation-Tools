@@ -1,6 +1,6 @@
 # 05 — CTLD crates and troops at the blue airfields
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: fix
 
 ## Found
@@ -31,3 +31,27 @@ Hypotheses, none checked yet:
 ## Done when
 
 At Batumi and Kobuleti, a CH-47F on a stand or a helicopter spot can spawn a crate and take troops; at Senaki, held by red, a blue helicopter cannot.
+
+## Read (2026-10-09)
+
+- **Troops, cause found**: VEAF registers each held airfield with `registerFOBAsLogistic` only, never `registerFOBAsTroopZone`, which CTLD offers.
+- **Crates, not explained**: the green circle is the 250 m logistic zone itself (`drawLogisticCircle`), so a Chinook inside it should have had *Request Equipment*.
+
+## Decided (David, 2026-10-09)
+
+**The zone is not enlarged**: why crates fail inside it is found first, in game with the fiddle hook (`p2-escort-ctld.lua`, `p3-players.lua`).
+
+## Measured in game (2026-10-09, `Kolkhida-DIAG-R47.miz`, fiddle hook)
+
+- A CH-47F player slot on Batumi stand 6 (the zone's own centre) was seated by DCS 244 m from it: inside the 250 m zone, but only just. `getLogisticZonesAtPoint` counts it in; *Request Equipment* shows.
+- **Crates, cause found**: picking one does nothing. `CTLDCrateManager:spawnCrate` returns nil because, given no country, CTLD creates the static under `country.id.USA` (blue) or `RUSSIA` (red), hardcoded at six sites. A campaign's coalitions hold only CJTF Blue / CJTF Red: `coalition.getCountryCoalition(country.id.USA)` = 0, `coalition.addStaticObject` raises, and CTLD swallows it. The same static under `CJTF_BLUE` exists.
+- Every stand of Batumi and Senaki is on `RUNWAY` surface (ticket 03).
+
+## Decided (David, 2026-10-09)
+
+**Fixed at the source, in VEAF/CTLD** (option b): CTLD takes the requesting unit's country, and says so when a creation fails. No workaround in VMCT. This ticket then takes the fixed CTLD release through `vendored.yaml`; the troop pickup zones at the airfields stay this ticket's own fix.
+
+## Left (2026-10-09)
+
+The troop pickup zones are in.
+Left: the VEAF/CTLD release that takes the unit's country, vendored through `vendored.yaml`, then `R47` item 1.

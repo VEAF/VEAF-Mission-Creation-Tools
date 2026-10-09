@@ -981,6 +981,7 @@ Coalition is lower-cased for placement, upper-cased in the YAML definition. Each
 gives a `CAP`/`Intercept` group whose route engages no aircraft a patrol across the zone
 ([what a scrambled group does](../mission-maker/scripts/veafQraManager.en.md#scrambled-group-task)).
 Its description asks for tiers by intruder count up to the squadron's expected size — never a single fixed pair against five players or more — and names `scale_with_opposition` and `rearm_while_occupied` ([opposition level](../mission-maker/scripts/veafQraManager.en.md#opposition-level)).
+An interceptor **takes off from the runway** by default: `airfield`'s, else its coalition's airfield nearest the zone; `start: air` puts it in the air at `position`, only when asked. With no airfield of its coalition, or no parking data for the theatre, the default falls back to the air with a warning; a `start` or an `airfield` asked for and impossible is refused.
 
 ### `create_cap_mission`
 

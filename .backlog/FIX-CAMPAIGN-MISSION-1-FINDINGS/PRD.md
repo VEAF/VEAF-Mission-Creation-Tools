@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-MISSION-1-FINDINGS — what the squadron found flying *Kolkhida* mission 1
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Origin: *Kolkhida* mission 1 (`Kolkhida_20261008.miz`, built by veaf-tools `6.28.1-kolkhida7`), flown by the squadron on `private1` (dcs.veaf.org) on 2026-10-08, from 21:23 to about 23:00 server local time.
 Claude followed the server's `dcs.log` over SSH all evening; David reported what the players saw.
@@ -28,14 +28,16 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-radio-presets-and-kneeboard.md) | Every aircraft gets its radio presets and the right kneeboard | ⬜ |
-| [02](tickets/02-atc-silenced.md) | A campaign mission silences the ATC | ⬜ |
-| [03](tickets/03-garrisons-keep-off-the-runways.md) | An airfield garrison keeps off the runways | ⬜ |
-| [04](tickets/04-qra-takes-off-from-the-ground.md) | A QRA takes off from the ground by default | ⬜ |
-| [05](tickets/05-ctld-at-the-airfields.md) | CTLD crates and troops at the blue airfields | ⬜ |
-| [06](tickets/06-objective-waypoints-on-the-ground.md) | Objective waypoints sit on the ground | ⬜ |
-| [07](tickets/07-convoy-smoke-only-for-a-side-with-pilots.md) | A convoy's smoke and call only for a side that has pilots | ⬜ |
-| [08](tickets/08-server-rewrites-date-time-weather.md) | The server rewrote the mission's date, time and weather | ⬜ |
+| [01](tickets/01-radio-presets-and-kneeboard.md) | Every aircraft gets its radio presets and the right kneeboard | ✅ |
+| [02](tickets/02-atc-silenced.md) | A campaign mission silences the ATC | ✅ |
+| [03](tickets/03-garrisons-keep-off-the-runways.md) | An airfield garrison keeps off the runways | ✅ |
+| [04](tickets/04-qra-takes-off-from-the-ground.md) | A QRA takes off from the ground by default | 🧑 |
+| [05](tickets/05-ctld-at-the-airfields.md) | CTLD crates and troops at the blue airfields | 🧑 |
+| [06](tickets/06-objective-waypoints-on-the-ground.md) | Objective waypoints sit on the ground | ✅ |
+| [07](tickets/07-convoy-smoke-only-for-a-side-with-pilots.md) | A convoy's smoke and call only for a side that has pilots | ✅ |
+| [08](tickets/08-server-rewrites-date-time-weather.md) | The server rewrote the mission's date, time and weather | 🧑 |
+| [09](tickets/09-escort-me-silent.md) | "Escort me" in an A-10C answered nothing | 🧑 |
+| [10](tickets/10-campaign-flies-with-server-security.md) | A campaign mission flies with the server's security | ✅ |
 
 04 depends on 03: a unit on Senaki's runway would keep the QRA on the ground.
 
@@ -45,7 +47,7 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 
 ## One PR
 
-All eight tickets ship in one branch and one PR.
+All ten tickets ship in one branch and one PR.
 Each ticket reads the code before choosing a fix; what needs DCS is gathered into one test mission (a copy of the campaign, never David's live session) for David to run.
 The in-game checks are R47 in `DCS-SESSION-TODO.md`, CTLD first.
 

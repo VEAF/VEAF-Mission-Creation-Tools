@@ -1,6 +1,6 @@
 # 01 — Every aircraft gets its radio presets and the right kneeboard
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -20,3 +20,12 @@ The mission folder holds `src/presets.yaml` (45 KB) and a `presets-validation-re
 ## Done when
 
 A mission built by `campaign next` from the *Kolkhida* template has the presets and the kneeboard on every player aircraft, dynamic slots included, read from the built `.miz`.
+
+## Measured (2026-10-09)
+
+**The build did not lose them; the mission was given the wrong plan.**
+The built `.miz` and the one the server served (fetched over SFTP) are identical on this: 50 blue dynamic-slot templates with a `Radio` table, 209 `linkDynTempl` resolving to them (Batumi's `F-15ESE` → group 497, `F-15E S4+ Template`), 53 kneeboards.
+But the channels are those of the mission folder's `src/presets.yaml`, which is the shipped default plan (Magic 282.2, Arco-1 290.5, Beslan, Sochi-Adler…), while the mission placed its AWACS `Overlord 1` on 251 MHz and its tanker Arco on 252 — what `briefing.yaml` announces.
+David, the same day: the kneeboards were "ceux de l'OT, par ex. 282.2 pour Magic alors que dans la mission c'était Overlord sur je crois 251"; on the Open Trainings the dynamic slots do get their presets.
+
+So the presets and the kneeboard agree with each other and not with the mission: nothing reconciles `presets.yaml` with the support groups and airfields a mission actually has.

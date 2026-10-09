@@ -1,6 +1,6 @@
 # 07 — A convoy's smoke and call only for a side that has pilots
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found

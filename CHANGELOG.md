@@ -58,6 +58,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The red assault on Poti stood 2.8 km from the zone for good: the garrison it attacked was always in sight, so the contact never ended, and a convoy in contact only ever closed to 900 m of the threat of the moment. A campaign assault convoy within 5 km of its target zone now drives on to its centre, firing as it goes (farther, across country, a column bogs down); a weaker one still falls back, and a plain convoy is unchanged.
 - **A shell is never a convoy's threat** (FIX-CAPTURE-ZONE-MEMBERSHIP).
   Some DCS hit events name the weapon as their initiator: a convoy recorded `weapons.shells.M61_20_HE_gr` as a threat of infinite strength, enough to make it fall back from a round. The convoy watch now counts the vehicle that fired it, or nothing when DCS does not say.
+- **What the squadron found flying *Kolkhida* mission 1, fixed** (FIX-CAMPAIGN-MISSION-1-FINDINGS).
+  A campaign's airfield garrison keeps off the concrete — DCS calls runways, taxiways and stands alike `RUNWAY` — and a unit recorded there is moved off it; a held airfield is a CTLD troop pickup zone as well as a logistic one; a convoy calls for help and pops smoke only when its side has pilots connected; every refusal of "Escort me" says why.
+  `campaign next` names the mission `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit` for the server's MizEdit to skip, silences the ATC, gives the mission the server's security, and puts the objective waypoints on the ground; a QRA laid down by `create_qra` takes off from its side's runway unless asked otherwise.
+  The build lists every AWACS and tanker no preset reaches: mission 1's radios and kneeboards carried the shipped channel plan, not its own Overlord on 251 MHz.
+  **Migration:** a campaign mission folder refreshed by `campaign next` loses its `security.disabled` and passwords; turn security off in a test copy, never in the campaign.
 
 ### Added
 

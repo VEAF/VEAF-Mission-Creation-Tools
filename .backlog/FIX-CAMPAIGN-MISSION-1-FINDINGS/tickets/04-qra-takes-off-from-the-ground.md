@@ -1,6 +1,6 @@
 # 04 — A QRA takes off from the ground by default
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: feat
 
 Depends on: 03 — a garrison unit on the runway would keep the QRA on the ground.
@@ -22,3 +22,8 @@ No new runtime code is needed for a ground start: `veafQraManager` keeps a group
 ## Done when
 
 A QRA designed through the MCP without saying how it starts is placed on its airfield's runway, and the doc says so.
+
+## Left (2026-10-09)
+
+`create_qra` puts a QRA on its side's runway by default, and the guidance and the QRA page say so.
+Left: the minutes from scramble to wheels up, measured in game (`R47` item 3), and mission 2 of *Kolkhida* designed with its QRA on Senaki's runway.

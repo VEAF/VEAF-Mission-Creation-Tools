@@ -1009,6 +1009,7 @@ coalition est passée en minuscule pour le placement, majuscule dans la définit
 `CAP`/`Intercept` dont la route n'engage aucun aéronef une patrouille sur la zone
 ([ce que fait un groupe décollé](../mission-maker/scripts/veafQraManager.md#scrambled-group-task)).
 Sa description demande des paliers par nombre d'intrus jusqu'à la taille attendue de l'escadrille — jamais une seule paire fixe face à cinq joueurs ou plus — et nomme `scale_with_opposition` et `rearm_while_occupied` ([niveau d'opposition](../mission-maker/scripts/veafQraManager.md#opposition-level)).
+Un intercepteur **décolle de la piste** par défaut : celle de `airfield`, sinon l'aérodrome de sa coalition le plus proche de la zone ; `start: air` le met en l'air à `position`, sur demande seulement. Sans aérodrome de sa coalition, ou sans données de parking pour le théâtre, le défaut retombe en l'air avec un avertissement ; un `start` ou un `airfield` demandés et impossibles sont refusés.
 
 ### `create_cap_mission`
 

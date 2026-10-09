@@ -118,6 +118,11 @@ Une garnison est tirée **une fois** par les générateurs des missions CAS (`ve
 Sa composition est enregistrée, et chaque mission suivante la fait réapparaître **moins ses pertes** : un site SAM qui a perdu deux lanceurs démarre sans eux.
 Une zone qui perd toute sa garnison devient **neutre**, et peut être prise.
 
+**Aucune unité de garnison sur le béton d'un aérodrome** : ni piste, ni taxiway, ni parking.
+DCS classe toutes ces surfaces en `RUNWAY` — à Batumi et Senaki, les 82 postes de stationnement le sont, et le béton s'étend à plus de 300 m de l'axe de piste.
+Un groupe tiré dessus est replacé ailleurs dans la zone, et une unité enregistrée dessus par une mission plus ancienne est déplacée sur le sol nu le plus proche quand elle réapparaît, là où le fichier d'état la garde ensuite.
+Sur *Kolkhida*, un Patriot posé sur la piste de Batumi a été la seule perte bleue de la soirée, et la garnison de Senaki aurait cloué sa QRA au sol.
+
 ### Les classes de taille {#size-classes}
 
 Une classe de taille est un jeu de paramètres des générateurs CAS : la garnison compte autant de sections d'infanterie, de pelotons blindés et de groupes de défense aérienne qu'une mission CAS de la même taille, **sans sa compagnie de transport** — une garnison n'a que faire de quinze camions.
@@ -245,11 +250,27 @@ Ce que `campaign next` a fixé est un point de départ : Claude, en préparant l
 Un second `campaign next` sur le même dossier garde ce qui a été réglé.
 Le briefing DCS affiche la date, l'heure et la météo de la mission ; le briefing de mission les écrit aussi.
 
+### Un serveur qui réécrit les missions {#server-rewrite}
+
+Un serveur DCSServerBot dont RealWeather ou MizEdit est actif **remplace la date, l'heure et la météo** de toute mission qu'il sert, celles de la campagne comprises : sur *Kolkhida*, la mission 1 a volé le 8 octobre, sous le ciel de Kutaisi plafonné à 3 000 m, au lieu du 1er juin CAVOK que le briefing annonçait.
+Le suffixe `ICAO_xxxx` d'un nom de mission ne fait que choisir la station météo : sans lui, le bot prend celle de sa propre configuration.
+C'est pourquoi `campaign next` nomme la mission `Campaign_<campagne>_Mission_<NN>_<titre>_NoMizedit` (voir [ce que `campaign next` règle](#squadron-settings)).
+Ce qu'il faut demander aux administrateurs du serveur, sur l'instance qui sert la campagne : que **MizEdit ignore les missions dont le nom contient `_NoMizedit`** (`filter: '^(?!.*_NoMizedit)'`), et **couper RealWeather au niveau de l'instance**, qui n'a pas de filtre — le preset MizEdit continue de l'appliquer aux autres missions.
+Le build ajoute sa date après le nom (`…_NoMizedit_20261015.miz`) : le filtre cherche le marqueur n'importe où.
+
+## Ce que `campaign next` règle pour l'escadrille {#squadron-settings}
+
+À chaque passage, `campaign next` écrit dans le `mission.yaml` de la mission :
+
+- **son nom**, `Campaign_<campagne>_Mission_<NN>_<titre>_NoMizedit` : le titre est celui de la mission dans `briefing.yaml`, une fois conçue, en lettres ASCII, chiffres et tirets ; pas de titre encore, pas de partie titre. Le nom ne contient jamais `ICAO_`.
+- **`silence_atc_on_all_airbases: true`**, comme sur les autres missions VEAF, sauf si la clé y est déjà : une valeur mise à `false` exprès est gardée.
+- **la sécurité du serveur** : il retire `security.disabled` et les mots de passe. Un pilote inscrit dans le `veaf-pilots.txt` du serveur passe par son niveau, sans mot de passe. C'est une **copie de test** qu'on passe en sécurité coupée, jamais la campagne : le template de *Kolkhida* l'avait, et l'escadrille a volé la mission 1 avec toutes les commandes protégées ouvertes.
+
 ## Les waypoints des joueurs {#objective-waypoints}
 
 `campaign next` écrit le `src/waypoints.yaml` de la mission à partir de ses objectifs, au lieu de garder l'exemple du template : un waypoint par zone que nomment les tâches de la mission dans `briefing.yaml` (à défaut, les objectifs de la campagne), au centre de la zone, dans l'ordre des tâches, pour le camp des joueurs.
 
-- **Les avions** les reçoivent à 10 000 ft (`BARO`), **les hélicoptères** à 500 ft sol (`RADIO`) ; le cockpit affiche le même nom aux deux.
+- **Au sol**, pour les avions comme pour les hélicoptères (`RADIO`, 0 m) : l'objectif est au sol, et c'est là que regardent une nacelle de désignation ou une arme asservie au steerpoint. Avions et hélicoptères partagent le même waypoint ; le briefing de mission écrit « sol ».
 - **Le nom** est le premier mot de la zone, en majuscules et sans accent : *Khobi depot* devient `KHOBI`. Deux zones qui commencent par le même mot gardent leur nom entier (`SENAKI_NORTH`).
 - **Le build ajoute `BULLSEYE`** à chaque plan de vol.
 
@@ -358,6 +379,7 @@ Ces points sont écrits et testés hors de DCS, mais pas encore mesurés en jeu 
 - l'exactitude du contenu des entrepôts lu en vol, et sa réécriture dans la mission suivante (pas encore faite) ;
 - la possibilité de faire démarrer un SAM avec moins de missiles (le nombre restant est enregistré, pas encore rejoué) ;
 - la façon de faire réapparaître détruit un pont ou un bâtiment (le décor détruit est enregistré, pas encore rejoué) ;
-- la place des garnisons d'aérodrome, tirées autour du centre de la base.
+- les garnisons d'aérodrome tenues hors du béton, et une unité ancienne déplacée hors de la piste, à Batumi et Senaki ;
+- l'altitude qu'un module affiche pour un steerpoint d'objectif posé au sol (`RADIO`, 0 m).
 
 Voir aussi la [référence du module `veafCampaign`](scripts/veafCampaign.md).

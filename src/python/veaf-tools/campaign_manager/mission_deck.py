@@ -391,7 +391,9 @@ def _frequencies_page(picture: MissionPicture) -> Page:
 
 
 def _altitude(waypoint: Waypoint) -> str:
-    """``10 000 ft BARO`` or ``500 ft AGL``, to the ten feet, never broken across two lines."""
+    """``10 000 ft BARO``, ``500 ft AGL`` or ``ground``, to the ten feet, never broken across two lines."""
+    if waypoint.alt_type == "RADIO" and waypoint.alt == 0:
+        return t("campaign.mission_deck.altitude.ground")
     feet = f"{round(metres_to_feet(waypoint.alt), -1):,.0f}".replace(",", "\u00a0")
     return t(f"campaign.mission_deck.altitude.{'agl' if waypoint.alt_type == 'RADIO' else 'baro'}", feet=feet)
 

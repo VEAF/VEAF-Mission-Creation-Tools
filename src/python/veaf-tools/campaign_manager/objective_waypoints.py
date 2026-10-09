@@ -2,7 +2,7 @@
 
 `campaign next` writes the mission folder's `src/waypoints.yaml` from the campaign: one waypoint per zone
 the mission's tasks name (else the campaign's objectives), at the zone's centre, in the tasks' order, for
-the players' side — planes at a cruise altitude, helicopters low. Until then the folder carried the
+the players' side, on the ground for planes and helicopters alike. Until then the folder carried the
 template's example, whose steerpoints pointed nowhere near the theatre.
 
 The file is the mission maker's once edited: it carries a fingerprint of what was written, and a second
@@ -28,18 +28,13 @@ from campaign_manager.strategic_map import zone_position
 #: The waypoints file, in the mission folder.
 WAYPOINTS_FILE = "src/waypoints.yaml"
 
-#: Where planes fly to the objectives: 10 000 ft, barometric — what *Kolkhida* mission 1 flew.
-PLANE_ALTITUDE = 3048
+#: Every objective waypoint sits on the ground, 0 m above it: the objective is there, and so is where a
+#: targeting pod or a weapon slaved to the steerpoint looks (David, 2026-10-08, FIX-CAMPAIGN-MISSION-1-FINDINGS
+#: ticket 06). Planes and helicopters share the waypoint; no altitude is kept for navigation.
+GROUND_ALTITUDE = 0
 
-#: Where helicopters fly to them: 500 ft above the ground.
-HELICOPTER_ALTITUDE = 152
-
-#: True airspeeds, m/s: about 350 kt for a plane, 100 kt for a helicopter.
-PLANE_SPEED = 180
-HELICOPTER_SPEED = 50
-
-#: The suffix of a helicopter waypoint's key; its `name:`, what the cockpit shows, is the plane one's.
-LOW_SUFFIX = "_LOW"
+#: True airspeed, m/s: about 350 kt. A player's steerpoint ignores it; DCS wants one.
+SPEED = 180
 
 #: The header line holding the fingerprint of what `campaign next` wrote.
 _FINGERPRINT = "# campaign-next-fingerprint: "
@@ -100,21 +95,14 @@ def objective_waypoints(campaign: CampaignDefinition, page: MissionPage | None) 
     waypoints: dict[str, Any] = {}
     for zone in zones:
         xy = latlon_to_xy(campaign.theatre, *zone_position(campaign, zone))
-        waypoints[keys[zone.name]] = _waypoint(keys[zone.name], xy, PLANE_ALTITUDE, "BARO", PLANE_SPEED)
-    for zone in zones:
-        xy = latlon_to_xy(campaign.theatre, *zone_position(campaign, zone))
-        low = _waypoint(keys[zone.name], xy, HELICOPTER_ALTITUDE, "RADIO", HELICOPTER_SPEED)
-        waypoints[keys[zone.name] + LOW_SUFFIX] = low
+        waypoints[keys[zone.name]] = _waypoint(keys[zone.name], xy, GROUND_ALTITUDE, "RADIO", SPEED)
     side = campaign.player_side
+    route = [keys[z.name] for z in zones]
     return {
         "waypoints": waypoints,
         "settings": {
-            f"{side}_planes": {"category": "plane", "coalition": side, "waypoints": [keys[z.name] for z in zones]},
-            f"{side}_helicopters": {
-                "category": "helicopter",
-                "coalition": side,
-                "waypoints": [keys[z.name] + LOW_SUFFIX for z in zones],
-            },
+            f"{side}_planes": {"category": "plane", "coalition": side, "waypoints": route},
+            f"{side}_helicopters": {"category": "helicopter", "coalition": side, "waypoints": list(route)},
         },
     }
 

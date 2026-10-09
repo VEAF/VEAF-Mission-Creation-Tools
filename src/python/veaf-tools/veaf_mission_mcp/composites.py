@@ -12,6 +12,8 @@ from typing import Any
 
 import yaml
 from mission_tools.mission_yaml_editor import append_to_sequence, load_yaml, save_yaml
+from veaf_libs.coordinates import latlon_to_xy
+from veaf_libs.dcs_airdromes import airfields_for_theatre
 from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
 from veaf_libs.mission_table import indexed
 from veaf_libs.shipped_defaults import shipped_default_file
@@ -207,6 +209,11 @@ def add_combat_operation(
     return {"zone_name": zone_name, "tasking_orders": [order["zone_name"] for order in orders]}
 
 
+#: How a QRA interceptor starts when its spec does not say: from its airfield's runway, then climbed to
+#: its patrol by `veafQraManager` (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 04). `"air"` on request.
+QRA_DEFAULT_START = "runway"
+
+
 def create_qra(
     folder_path: Path,
     *,
@@ -238,9 +245,10 @@ def create_qra(
         trigger_zone: The protected-airspace trigger-zone name (created).
         position: The zone centre.
         radius: The zone radius, in metres.
-        groups: `[{"name", "units", "position"?, "altitude_ft"?, "speed_kt"?, "pylons"?,
-            "payload"?, "loadout_from"?}, ...]` — the interceptor group(s), one aircraft type each,
-            built airborne and fuelled. `pylons` sets the loadout; `payload` takes a DCS loadout by
+        groups: `[{"name", "units", "start"?, "airfield"?, "position"?, "altitude_ft"?, "speed_kt"?,
+            "pylons"?, "payload"?, "loadout_from"?}, ...]` — the interceptor group(s), one aircraft type
+            each, fuelled. `start` is `"runway"` by default, from `airfield` or the coalition's airfield
+            nearest the zone; `"air"` puts it at `position` and `altitude_ft`. `pylons` sets the loadout; `payload` takes a DCS loadout by
             name (`list_payloads`); `loadout_from` copies it from a group of the mission or of the
             spawnable/dynamic-slot catalogues (a `veafSpawn-*` template). One of them at most.
         country_id: DCS numeric country id for the interceptors.
@@ -265,24 +273,46 @@ def create_qra(
 
     group_names: list[str] = []
     warnings: list[dict[str, Any]] = []
+    home = _home_airfield(mission, coalition, position)
     for spec in groups:
         group_name = spec["name"]
         unit_type, count = _single_type(spec["units"])
-        _, air_warnings = insert_air_group_into_content(
-            content,
-            coalition=coalition.lower(),
-            country_id=country_id,
-            country_name=country_name,
-            name=group_name,
-            unit_type=unit_type,
-            count=count,
-            position=spec.get("position", position),
-            altitude_ft=spec.get("altitude_ft", 15000.0),
-            speed_kt=spec.get("speed_kt", 350.0),
-            task=spec.get("task", "Intercept"),
-            late_activation=True,
-            pylons=_loadout(folder_path, content, spec, unit_type),
-        )
+        pylons = _loadout(folder_path, content, spec, unit_type)
+
+        def insert(start: str, airfield: str | None, spec: dict[str, Any] = spec) -> list[str]:
+            _, inserted = insert_air_group_into_content(
+                content,
+                coalition=coalition.lower(),
+                country_id=country_id,
+                country_name=country_name,
+                name=spec["name"],
+                unit_type=unit_type,
+                count=count,
+                position=spec.get("position", position),
+                altitude_ft=spec.get("altitude_ft", 15000.0),
+                speed_kt=spec.get("speed_kt", 350.0),
+                task=spec.get("task", "Intercept"),
+                late_activation=True,
+                pylons=pylons,
+                start=start,
+                airfield=airfield,
+            )
+            return inserted
+
+        # From the runway unless asked otherwise (David, 2026-10-08, FIX-CAMPAIGN-MISSION-1-FINDINGS
+        # ticket 04): the default falls back to the air, saying why; a start or an airfield asked for is refused.
+        start = spec.get("start", QRA_DEFAULT_START)
+        airfield = spec.get("airfield") or home
+        try:
+            if start == "runway" and not airfield:
+                raise ValueError(f"no airfield held by {coalition} on this theatre to take off from")
+            air_warnings = insert(start, airfield if start == "runway" else None)
+        except ValueError as error:
+            # a start or an airfield named is asked for: refused rather than quietly put in the air
+            if "start" in spec or "airfield" in spec:
+                raise
+            air_warnings = insert("air", None)
+            air_warnings.append(f"air start, not the runway: {error}")
         group_names.append(group_name)
         warnings += validate_group_name(group_name)["warnings"]
         warnings += [{"group": group_name, "warning": w} for w in air_warnings]
@@ -423,6 +453,32 @@ def create_cap_mission(
     _append_cap_mission(mission_yaml_path(folder_path), entry)
 
     return {"cap_mission": mission_name, "group": group_name, "warnings": air_warnings}
+
+
+def _home_airfield(mission: Any, coalition: str, position: dict[str, float]) -> str | None:
+    """The airfield a QRA rolls from when none is named: its coalition's nearest to the zone's centre.
+
+    Args:
+        mission: The mission, read from its folder: its theatre and the airfields' owners.
+        coalition: The QRA's coalition.
+        position: The zone's centre.
+
+    Returns:
+        The airfield's name, or ``None`` when the coalition holds none on a theatre the tools know.
+    """
+    content = mission.mission_content or {}
+    theatre = str(content.get("theatre") or "")
+    airports = (mission.warehouses_content or {}).get("airports") or {}
+    nearest: tuple[float, str] | None = None
+    for airfield in airfields_for_theatre(theatre):
+        entry = airports.get(airfield["id"]) if isinstance(airports, dict) else None
+        if not isinstance(entry, dict) or str(entry.get("coalition", "")).upper() != coalition.upper():
+            continue
+        x, y = latlon_to_xy(theatre, airfield["lat"], airfield["lon"])
+        distance = (x - position["x"]) ** 2 + (y - position["y"]) ** 2
+        if nearest is None or distance < nearest[0]:
+            nearest = (distance, airfield["name"])
+    return nearest[1] if nearest else None
 
 
 def _append_cap_mission(yaml_path: Path, entry: dict[str, Any]) -> None:

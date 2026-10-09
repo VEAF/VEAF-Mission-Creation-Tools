@@ -689,6 +689,40 @@ logic) — through `describe_airfield_channels` / `set_airfield_channels`, or
 *What it cost:* The tools' reference was parsed from the text of `Radio.lua`: on Persian Gulf it held no UHF channel
 for any airfield, and made the hand-written channel collection — which was right — look wrong.
 
+### A removed F10 menu entry's id goes to the next entry created, so a menu left open fires the wrong command {#f10-menu-entry-id-is-recycled}
+
+Measured **2026-10-09**.
+
+DCS tracks each `missionCommands` entry by an internal id, not by its position nor its label, and
+hands the id of a removed entry to the next entry created. The player's F10 screen is not updated
+while it stays open, so a click on what it shows reaches whichever entry now holds the id.
+Measured in single player on raw `missionCommands`, mission restarted before each test, clicks
+with the mouse, while the player held `TEST MENU > Liste` (A, B, C, D) open:
+
+| Change applied while the list is on screen | Clicked | Fired |
+|---|---|---|
+| remove A, B, C, D, then add them again, identical | B | **C** |
+| remove A, then add E | A | **E** |
+| remove A, then add E | B | B |
+| remove A, then add X and Y elsewhere; menu reopened fresh | X, Y | X, Y |
+| group menu: remove A, then add E | A | **E** |
+| remove A, add a command for a group that does not exist, then add E | A | that command |
+
+The ids are one pool for the whole server: a global entry's id went to a command added for another
+group. So a stale click can fire **another group's** command, a secured one included, which then
+runs with that group's identity.
+
+A freshly opened menu is always right. Reported by players on CTLD and on VEAF menus: both wipe
+and rebuild a whole tree on every refresh, which reassigns every id at once. Delaying the rebuild
+(CTLD ADR 0015) changes nothing, the stale screen outlives the delay.
+
+**What to do:** Never recreate an entry that did not change: remove only what disappeared and add only what
+appeared. Right after each removal, add an inert command for a group id no player can hold: it
+takes the freed id, nobody sees it, and a stale click on the removed entry lands on it.
+
+*What it cost:* Wrong F10 commands fired in multiplayer, among them a CTLD smoke instead of a troop embark
+(VEAF/CTLD#257).
+
 ## Ground AI {#ground-ai}
 
 ### A convoy under fire drives on, and its `getDetectedTargets` can stay empty {#a-convoy-drives-through-an-ambush}

@@ -4025,6 +4025,8 @@ Reconstruit le menu radio (différé).
 **Retourne :** Rien
 
 **Description :** Planifie la reconstruction du menu après un délai pour éviter les conflits.
+La reconstruction ne touche dans DCS que ce qui a changé : une entrée inchangée garde sa place, une entrée nouvelle s'ajoute en fin de son menu.
+DCS redonne le numéro d'une entrée supprimée à la suivante créée, et un pilote dont le menu F10 était resté ouvert déclencherait celle-ci (`f10-menu-entry-id-is-recycled` dans les pièges du runtime DCS).
 
 ##### `veafRadio.addPaginatedRadioElements(menu, buildFunction, elements, sortKey, sortField)`
 

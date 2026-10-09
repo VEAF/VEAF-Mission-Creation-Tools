@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FIX-RADIO-MENU-ID-RECYCLING](FIX-RADIO-MENU-ID-RECYCLING/PRD.md) · 🔄
+
+A VEAF F10 menu left open fires another command than the one the player sees: DCS gives a removed entry's id to the next one created, and the builder recreated the whole tree on every refresh. Measured in game 2026-10-09; the render becomes incremental and each freed id is parked on an inert command.
 
 ## 🧑 Waiting for a human
 

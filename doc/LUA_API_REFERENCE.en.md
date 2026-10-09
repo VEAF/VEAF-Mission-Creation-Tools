@@ -4023,6 +4023,8 @@ Rebuild radio menu (delayed).
 **Returns:** None
 
 **Description:** Schedules menu rebuild after delay to prevent conflicts.
+The rebuild only touches what changed in DCS: an unchanged entry keeps its place, a new entry is added at the end of its menu.
+DCS gives a removed entry's id to the next one created, and a player whose F10 menu stayed open would fire that one (`f10-menu-entry-id-is-recycled` in the DCS runtime traps).
 
 ##### `veafRadio.addPaginatedRadioElements(menu, buildFunction, elements, sortKey, sortField)`
 

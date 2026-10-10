@@ -381,7 +381,7 @@ A group placed **on a parking spot or the runway** keeps its take-off as you set
 **On the runway by default.** A QRA really takes off from its field: that is the start the MCP action `create_qra` lays down when told nothing (the coalition's airfield nearest the zone, or the one named), an air start only when asked.
 What it costs:
 
-- **the time to get airborne** before reaching the zone — to be measured in game, not estimated here;
+- **the time to get airborne** before reaching the zone: a MiG-29 pair placed on Senaki's runway had its wheels off the ground **25 to 35 s after the scramble**, and was climbing through 280 m at 330 kt 45 s after it (measured 2026-10-10). The group appears on the runway, not on a stand: it has no start-up and no taxi to do;
 - **a field too damaged or taken** (below `airbaseMinLifePercent`) keeps the QRA on the ground (`NOAIRBASE`): in a campaign, striking the enemy's field is a way to ground its QRA, and that is intended;
 - **a unit on the runway** keeps it from rolling: a campaign's garrisons are kept off the concrete for that reason;
 - **ten minutes to take off** (`veafQraManager.TAKEOFF_TIMEOUT`): until a group has been seen airborne it is rolling, not landed; still on the ground after that, it is taken for stuck and the QRA rearms. A group that flew and then lands rearms the QRA as before.

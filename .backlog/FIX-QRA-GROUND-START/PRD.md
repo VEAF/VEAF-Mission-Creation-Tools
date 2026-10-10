@@ -1,6 +1,6 @@
 # FIX-QRA-GROUND-START — a QRA scrambled from the runway is destroyed before it takes off
 
-Status: 🧑 waiting-human
+Status: ✅ done — 2026-10-10, seen in game
 
 ## Found
 
@@ -21,7 +21,7 @@ Option a: a group is landed only once it has been seen airborne; a group still o
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-rolling-is-not-landed.md) | A group not airborne yet is taking off, not landed | 🧑 |
+| [01](tickets/01-rolling-is-not-landed.md) | A group not airborne yet is taking off, not landed | ✅ |
 | [02](tickets/02-airwaves-rolling-is-not-crippled.md) | An air-wave aircraft rolling to the runway is not crippled | ✅ |
 
 ## Definition of done

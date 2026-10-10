@@ -482,6 +482,30 @@ DCS reports as `RUNWAY`) therefore places vehicles on runways, taxiways and park
 **What to do:** To keep something off an airfield, refuse the `RUNWAY` surface for each unit's own position
 (`veafCampaign.isOnConcrete`), not only for the group's anchor: a group spreads its units around it.
 
+### A client helicopter placed on an aircraft stand is seated elsewhere when the player takes the slot {#client-helicopter-on-an-aircraft-stand-is-seated-elsewhere}
+
+Measured **2026-10-10**.
+
+Two CH-47F (`CH-47Fbl1`) client slots, `TakeOffParking` on `Term_Type` 104 stands of Caucasus, the
+unit's `parking` the stand's `Term_Index` (checked against `Airbase:getParking()` in the running
+mission: Term_Index 24 is Kobuleti's stand 24, Term_Index 6 Batumi's stand 6). Taken by a player and
+read back through the fiddle hook:
+
+| Stand asked | Where DCS seated it |
+|---|---|
+| Kobuleti #24 | **1 201 m** from the stand, 209 m from the airfield's reference point |
+| Batumi #6 (2026-10-09) | 244 m from the stand |
+
+Nothing is raised or logged. The same slots set to `TakeOffGround` 40 m from the stand were seated
+exactly there (40 m).
+
+**What to do:** For a helicopter that must start at a given place — inside an airfield's CTLD logistic circle, for
+one — use a ground start (`TakeOffGround`, `From Ground Area`) at that point, not a stand. After a
+stand start, read the unit's position back rather than trusting the stand.
+
+*What it cost:* A CH-47F on Kobuleti's stand 24, the very centre of the field's 250 m CTLD logistic circle, started
+1.2 km outside it: no crate and no troops offered (Kolkhida test mission, R47 item 1).
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

@@ -27,6 +27,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The main ways into the documentation are on its first screen** (DOC-ENTRY-POINTS).
   The home page opens on "I want to…" cards — fly, discover VMCT, my first mission, create with an AI, take over a mission, get help — and the Mission Maker overview on four of them.
   In the menu, the AI assistant pages follow the tutorial, and five Mission Maker labels that showed in English on the French site are translated.
+- **What a runway QRA costs, measured, and a DCS trap for helicopter slots.**
+  The QRA page gives the time a runway start takes to get airborne: 25 to 35 s from the scramble to wheels up, measured on the *Kolkhida* test mission.
+  `known-limitations.yaml` (and so `describe_known_limitations`) adds that DCS seats a client helicopter placed on an aircraft stand elsewhere, up to 1.2 km away, when the player takes the slot; a ground start is seated where it is placed.
 
 ### Fixed
 

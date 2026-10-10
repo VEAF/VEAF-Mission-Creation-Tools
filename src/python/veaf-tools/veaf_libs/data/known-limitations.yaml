@@ -1216,3 +1216,29 @@ limitations:
   cost: |
     Wrong F10 commands fired in multiplayer, among them a CTLD smoke instead of a troop embark
     (VEAF/CTLD#257).
+
+- id: client-helicopter-on-an-aircraft-stand-is-seated-elsewhere
+  kind: dcs
+  area: spawning
+  title: "A client helicopter placed on an aircraft stand is seated elsewhere when the player takes the slot"
+  measured: "2026-10-10"
+  symptom: |
+    Two CH-47F (`CH-47Fbl1`) client slots, `TakeOffParking` on `Term_Type` 104 stands of Caucasus, the
+    unit's `parking` the stand's `Term_Index` (checked against `Airbase:getParking()` in the running
+    mission: Term_Index 24 is Kobuleti's stand 24, Term_Index 6 Batumi's stand 6). Taken by a player and
+    read back through the fiddle hook:
+
+    | Stand asked | Where DCS seated it |
+    |---|---|
+    | Kobuleti #24 | **1 201 m** from the stand, 209 m from the airfield's reference point |
+    | Batumi #6 (2026-10-09) | 244 m from the stand |
+
+    Nothing is raised or logged. The same slots set to `TakeOffGround` 40 m from the stand were seated
+    exactly there (40 m).
+  workaround: |
+    For a helicopter that must start at a given place — inside an airfield's CTLD logistic circle, for
+    one — use a ground start (`TakeOffGround`, `From Ground Area`) at that point, not a stand. After a
+    stand start, read the unit's position back rather than trusting the stand.
+  cost: |
+    A CH-47F on Kobuleti's stand 24, the very centre of the field's 250 m CTLD logistic circle, started
+    1.2 km outside it: no crate and no troops offered (Kolkhida test mission, R47 item 1).

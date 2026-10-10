@@ -55,3 +55,7 @@ At Batumi and Kobuleti, a CH-47F on a stand or a helicopter spot can spawn a cra
 
 The troop pickup zones are in.
 Left: the VEAF/CTLD release that takes the unit's country, vendored through `vendored.yaml`, then `R47` item 1.
+
+## Seen in game (2026-10-10, CTLD rc13)
+
+Troops board and a crate appears at Batumi (stand 6) and at Kobuleti (a ground start 40 m from the logistic centre): the fix of VEAF/CTLD#256, vendored in #1116, works. The crate stands 20 m off, not against the hull: the campaign's `ctld-config.yaml` predates rc13's per-type `crateSpawnSector` / `crateSpawnDistance`, to be completed before mission 2. A client CH-47F on Kobuleti stand 24 was seated 1.2 km out of the circle by DCS (`known-limitations.yaml`); David keeps the 250 m zone, pilots taxi into it. Left: a blue helicopter on Senaki (red) offered neither.

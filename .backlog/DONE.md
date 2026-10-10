@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-QRA-GROUND-START](FIX-QRA-GROUND-START/PRD.md) · ✅
+
+A QRA scrambled from the runway was destroyed 5 s later: the watchdog took a group not yet airborne for a landed one and reset the QRA. A group is now landed only once it has flown; one still on the ground ten minutes after the scramble is reset as before. Seen in game: wheels up 25–35 s after the scramble. Merged in #1118.
+
 ### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · ✅
 
 Poti, taken on *Kolkhida* by the blue convoy, drew a garrison anyway: the capture trusted `world.searchObjects`, which overshoots its sphere, and the absorption measured the exact distance. Both now ask the same search; a strong enough assault convoy drives into its target zone while fighting; a shell is never a threat. To be checked in game, with ticket 02's measurement of why the convoy halted at the zone's edge (test mission ready). Seen in game 2026-10-10: the convoy became Poti's garrison and drove on to the centre.

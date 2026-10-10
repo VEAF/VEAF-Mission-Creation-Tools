@@ -31,7 +31,7 @@ A log line at 20:44 happened at 22:44 on the state file's clock.
 | [01](tickets/01-radio-presets-and-kneeboard.md) | Every aircraft gets its radio presets and the right kneeboard | ✅ |
 | [02](tickets/02-atc-silenced.md) | A campaign mission silences the ATC | ✅ |
 | [03](tickets/03-garrisons-keep-off-the-runways.md) | An airfield garrison keeps off the runways | ✅ |
-| [04](tickets/04-qra-takes-off-from-the-ground.md) | A QRA takes off from the ground by default | 🧑 |
+| [04](tickets/04-qra-takes-off-from-the-ground.md) | A QRA takes off from the ground by default | ✅ |
 | [05](tickets/05-ctld-at-the-airfields.md) | CTLD crates and troops at the blue airfields | 🧑 |
 | [06](tickets/06-objective-waypoints-on-the-ground.md) | Objective waypoints sit on the ground | ✅ |
 | [07](tickets/07-convoy-smoke-only-for-a-side-with-pilots.md) | A convoy's smoke and call only for a side that has pilots | ✅ |

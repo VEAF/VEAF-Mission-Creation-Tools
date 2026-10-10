@@ -12,6 +12,11 @@ CTLD noticed at mission start and printed it to every player: three settings abs
 On the tools' side nothing reads `configVersion` (`git grep configVersion -- src/python` finds nothing), so `validate` and `build` were silent.
 The fix was copying three keys from the catalogue embedded in `CTLD.lua` into the right sections and bumping `configVersion` by hand.
 
+Below the top level, CTLD says nothing at all.
+Syria-v6 and Caucasus-v6, both at `2.2.0` after the fix, still lack the scalar keys the 2.2.0 catalogue added inside `capabilitiesByType` entries (`crateSpawnSector` and `crateSpawnDistance` on five types, `maxVehicleWeight` and `loadableVehiclesBLUE`/`RED` on the Mi-8MT) and inside `spawnableCratesModels` (`load.size`, `dynamic.size`).
+CTLD reads these entries whole, with no fallback to the catalogue (`CTLDConfig:load`, ADR 0011), so a mission keeps the 2.0 behaviour (radial crate placement, no vehicle in a Mi-8) without any message.
+Adding them changes the game, so the command below does not do it; `validate` lists them apart, as new features the mission does not use.
+
 The build never rewrites `ctld-config.yaml`, on purpose (`mission_builder_worker.py:1013`, the maker's file); this ticket keeps that.
 
 ## Done when

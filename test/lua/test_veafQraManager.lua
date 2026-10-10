@@ -1130,6 +1130,113 @@ function TestVeafQraDeferredSpawn:test_an_empty_deployment_waiting_for_its_group
 end
 
 -- ---------------------------------------------------------------------------
+-- FIX-QRA-GROUND-START: a QRA scrambled from the runway is not "landed" before it took off.
+-- Kolkhida test mission, 2026-10-10: the Senaki pairs appeared on the runway and were destroyed by
+-- the next watchdog tick, 5 s later, because "no unit in the air" read as "the QRA has landed".
+-- ---------------------------------------------------------------------------
+TestVeafQraGroundStart = {}
+
+function TestVeafQraGroundStart:setUp()
+  dcs_mocks.reset()
+  timer.setTime(1000)
+  self.inAir = false
+  self.destroyed = {}
+  local suite = self
+  dcs_mocks.addGroup("QRA Senaki sol MiG-29 #2", {
+    getCategory = function()
+      return 0 -- airplanes
+    end,
+    getUnits = function()
+      return {
+        {
+          isExist = function()
+            return true
+          end,
+          getLife = function()
+            return 1
+          end,
+          getLife0 = function()
+            return 1
+          end,
+          inAir = function()
+            return suite.inAir
+          end,
+        },
+      }
+    end,
+  })
+  self._savedDestroy = veafReactiveZone.destroyGroups
+  veafReactiveZone.destroyGroups = function(names)
+    for _, name in ipairs(names or {}) do
+      table.insert(suite.destroyed, name)
+    end
+  end
+end
+
+function TestVeafQraGroundStart:tearDown()
+  veafReactiveZone.destroyGroups = self._savedDestroy
+  dcs_mocks.reset()
+end
+
+function TestVeafQraGroundStart:_scrambled()
+  local q = VeafQRA:new()
+  q.name = "QraSenakiSol"
+  q.silent = true
+  q:setZoneCenter({ x = 0, y = 0, z = 0 })
+  q:setZoneRadius(45000)
+  q:setCoalition(coalition.side.RED)
+  -- no player in the zone: what is under test is the scrambled group, not who triggered it
+  q._getEnemyHumanUnits = function()
+    return {}
+  end
+  q.chooseGroupsToDeploy = function()
+    return { "QRA Senaki sol MiG-29" }
+  end
+  local savedDeploy = veafReactiveZone.deployGroups
+  veafReactiveZone.deployGroups = function()
+    return { "QRA Senaki sol MiG-29 #2" }
+  end
+  q:deploy(1)
+  veafReactiveZone.deployGroups = savedDeploy
+  return q
+end
+
+function TestVeafQraGroundStart:test_a_group_rolling_to_the_runway_is_not_rearmed()
+  local q = self:_scrambled()
+  timer.setTime(1005)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_ACTIVE, "on the ground before take-off is not landed")
+  luaunit.assertEquals(self.destroyed, {})
+end
+
+function TestVeafQraGroundStart:test_a_group_that_took_off_then_landed_is_rearmed()
+  local q = self:_scrambled()
+  self.inAir = true
+  timer.setTime(1180)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_ACTIVE)
+  self.inAir = false
+  timer.setTime(2400)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_READY, "back on the ground after flying: landed")
+  luaunit.assertEquals(self.destroyed, { "QRA Senaki sol MiG-29 #2" })
+end
+
+function TestVeafQraGroundStart:test_a_group_still_on_the_ground_after_the_take_off_delay_is_rearmed()
+  local q = self:_scrambled()
+  timer.setTime(1000 + veafQraManager.TAKEOFF_TIMEOUT - 1)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_ACTIVE, "still within its take-off delay")
+  timer.setTime(1000 + veafQraManager.TAKEOFF_TIMEOUT + 1)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_READY, "stuck on the ground: reset as before")
+end
+
+function TestVeafQraGroundStart:test_the_take_off_delay_is_ten_minutes()
+  luaunit.assertEquals(veafQraManager.TAKEOFF_TIMEOUT, 600)
+end
+
+-- ---------------------------------------------------------------------------
 -- FEAT-AIRWAVES-QRA-MERGE #183: the QRA side of its links
 -- ---------------------------------------------------------------------------
 TestVeafQraLinks = {}

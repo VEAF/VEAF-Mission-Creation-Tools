@@ -79,6 +79,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Found preparing an in-game test of *Kolkhida*: `create_qra` with `loadout_from` failed on `'list' object has no attribute 'items'` whenever the source group's pylons ran 1 to n with no gap; they are now read as stations 1 to n.
   Every action that creates a group refuses a group or unit name the mission already holds, naming its holder: DCS resolves either of two homonyms by name, silently.
   `remove_group` refuses a name several groups share, listing their `groupId`s, and takes `group_id` to say which one goes; it used to remove all of them and report one.
+- **A QRA scrambled from the runway takes off instead of disappearing 5 s later** (FIX-QRA-GROUND-START).
+  The watchdog took a group not yet airborne for one that had landed, and reset the QRA, destroying the aircraft rolling to the runway: every ground start failed, found on the *Kolkhida* test mission.
+  A group is landed only once it has flown; one still on the ground ten minutes after the scramble is taken for stuck and the QRA rearms, as before.
+  Air waves had the same reading — a wave aircraft not in the air was crippled and destroyed — and get the same fix.
 
 ### Added
 

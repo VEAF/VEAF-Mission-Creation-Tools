@@ -383,7 +383,8 @@ What it costs:
 
 - **the time to get airborne** before reaching the zone — to be measured in game, not estimated here;
 - **a field too damaged or taken** (below `airbaseMinLifePercent`) keeps the QRA on the ground (`NOAIRBASE`): in a campaign, striking the enemy's field is a way to ground its QRA, and that is intended;
-- **a unit on the runway** keeps it from rolling: a campaign's garrisons are kept off the concrete for that reason.
+- **a unit on the runway** keeps it from rolling: a campaign's garrisons are kept off the concrete for that reason;
+- **ten minutes to take off** (`veafQraManager.TAKEOFF_TIMEOUT`): until a group has been seen airborne it is rolling, not landed; still on the ground after that, it is taken for stuck and the QRA rearms. A group that flew and then lands rearms the QRA as before.
 
 So this is the normal case: place the interceptor with **a single waypoint** and no task, and the script
 does the rest; the build says so for every such group. If you want a flight plan of your own, write it **with** an aircraft engagement task: it is

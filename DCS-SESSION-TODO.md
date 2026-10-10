@@ -59,14 +59,14 @@ removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4'
 [`FIX-CAMPAIGN-MISSION-1-FINDINGS`](.backlog/FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md), and ticket 02 of [`FIX-CAPTURE-ZONE-MEMBERSHIP`](.backlog/FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md).
 Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolkhida`, mission 1 rebuilt as flown, fiddle hook): every stand of Batumi and Senaki is on `RUNWAY` surface; a CH-47F inside Batumi's zone gets *Request Equipment* and no crate, because CTLD creates it under the USA, absent from a campaign's coalitions (fixed in VEAF/CTLD, to be vendored); "Escort me" spawns its escort locally, from a placed slot in the air and from a dynamic slot on the ground.
 
-**Prepare**: a copy of `D:\dev\_VEAF\_campaigns\campaign-kolkhida` (never the live campaign), mission 1 rebuilt from the lot's branch **with the CTLD release that takes the unit's country**, security off in the copy, a game master slot, a CH-47F slot on Batumi stand 6 and on Kobuleti stand 24, an A-10C slot in the air near Batumi, `rules.assault_seconds: 60`.
+**Prepare**: a copy of `D:\dev\_VEAF\_campaigns\campaign-kolkhida` (never the live campaign), mission 1 rebuilt from the lot's branch **with the CTLD release that takes the unit's country**, security off in the copy, a game master slot, a CH-47F slot on Batumi stand 6 and on a Kobuleti stand **inside its logistic circle** (stand 24 is 1 200 m out of it: no crate, no troops — measured 2026-10-10; David keeps the 250 m zone, pilots taxi into the circle), an A-10C slot in the air near Batumi, `rules.assault_seconds: 60`.
 
-1. *(ticket 05)* The CH-47F on Batumi stand 6, then on Kobuleti stand 24: CTLD → load troops, then CTLD → a crate.
+**Run 2026-10-10** (`D:\dev\_VEAF\tmp\dcs-session-2026-10-10`, CTLD rc13, no pilot): item 1 at Batumi — troops board, the crate appears **20 m** abeam, because the campaign's `ctld-config.yaml` predates rc13's per-type `crateSpawnSector`/`crateSpawnDistance` (to be completed before mission 2); item 2 passed (`EL:16` on the CDU, ground 5.0 m); item 3 — ATC silent and no garrison unit on the concrete at all three fields, but the QRA on the runway was destroyed 5 s after its scramble: fixed in [`FIX-QRA-GROUND-START`](.backlog/FIX-QRA-GROUND-START/PRD.md), to be run again. The QRA counts **human** aircraft only: an AI intruder does not trigger it.
+
+1. *(ticket 05)* The CH-47F on Batumi stand 6, then on a Kobuleti stand inside the green circle: CTLD → load troops, then CTLD → a crate.
    - **Verified**: troops board and a crate appears next to the helicopter, at both fields.
    - **Re-opened, no crate**: the CTLD vendored is not the fixed one, or the fix missed a site — `dcs.log` around the request.
    - Then a blue helicopter on Senaki (red): **verified** if it can do neither.
-2. *(ticket 06)* The A-10C: the steerpoint of an objective (`POTI`).
-   - **Verified**: its elevation is the ground's, not 0 ft above sea level.
 3. *(tickets 02, 03, 04)* At start: the ATC answers nobody; no garrison unit on the concrete of Batumi and Senaki (F10 map, zoomed); a blue aircraft entering the Senaki QRA zone.
    - **Verified**: the QRA rolls from Senaki's runway and climbs — note the minutes from the scramble to wheels up, for `veafQraManager.md`.
    - **Re-opened, it appears in the air or never leaves**: the group's start in the built mission, then what stands on the runway.

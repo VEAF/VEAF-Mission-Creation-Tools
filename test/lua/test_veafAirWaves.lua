@@ -1813,4 +1813,65 @@ function TestAirWavesReview:test_a_won_zone_stays_won_when_its_airbase_is_lost()
   luaunit.assertEquals(z.state, veafAirWaves.STATUS_OVER)
 end
 
+-- ---------------------------------------------------------------------------
+-- FIX-QRA-GROUND-START: a wave aircraft rolling to the runway is not crippled.
+-- The same reading as the QRA's: "not in the air" was "crippled", and a crippled unit is destroyed.
+-- ---------------------------------------------------------------------------
+TestVeafAirWavesGroundStart = {}
+
+function TestVeafAirWavesGroundStart:setUp()
+  dcs_mocks.reset()
+  timer.setTime(1000)
+  self.inAir = false
+  self.crippled = {}
+  local suite = self
+  self.unit = {
+    getName = function()
+      return "Wave MiG-1"
+    end,
+    getLife = function()
+      return 1
+    end,
+    getLife0 = function()
+      return 1
+    end,
+    inAir = function()
+      return suite.inAir
+    end,
+  }
+  self.group = {
+    getCategory = function()
+      return 0 -- airplanes
+    end,
+    getUnits = function()
+      return { suite.unit }
+    end,
+  }
+  self.zone = AirWaveZone:new()
+  self.zone.handleCrippledEnemyUnitCallback = function(_, _, unit)
+    table.insert(suite.crippled, unit:getName())
+  end
+  self.zone.waveDeployedAt = timer.getTime()
+end
+
+function TestVeafAirWavesGroundStart:test_an_aircraft_rolling_to_the_runway_is_alive()
+  timer.setTime(1030)
+  luaunit.assertFalse(self.zone:isEnemyGroupDead(1, self.group))
+  luaunit.assertEquals(self.crippled, {})
+end
+
+function TestVeafAirWavesGroundStart:test_an_aircraft_that_flew_then_landed_is_crippled()
+  self.inAir = true
+  luaunit.assertFalse(self.zone:isEnemyGroupDead(1, self.group))
+  self.inAir = false
+  timer.setTime(1300)
+  luaunit.assertTrue(self.zone:isEnemyGroupDead(1, self.group))
+  luaunit.assertEquals(self.crippled, { "Wave MiG-1" })
+end
+
+function TestVeafAirWavesGroundStart:test_an_aircraft_still_on_the_ground_after_the_take_off_delay_is_crippled()
+  timer.setTime(1000 + veafAirWaves.TAKEOFF_TIMEOUT + 1)
+  luaunit.assertTrue(self.zone:isEnemyGroupDead(1, self.group))
+end
+
 os.exit(luaunit.LuaUnit.run())

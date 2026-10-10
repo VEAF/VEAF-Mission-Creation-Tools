@@ -383,7 +383,8 @@ Ce que ça coûte :
 
 - **le temps de décoller** avant d'arriver sur la zone — à mesurer en jeu, pas estimé ici ;
 - **un terrain trop endommagé ou pris** (sous `airbaseMinLifePercent`) garde la QRA au sol (`NOAIRBASE`) : dans une campagne, frapper le terrain ennemi est une façon de clouer sa QRA, et c'est voulu ;
-- **une unité sur la piste** l'empêche de rouler : les garnisons d'une campagne sont tenues hors du béton pour cette raison.
+- **une unité sur la piste** l'empêche de rouler : les garnisons d'une campagne sont tenues hors du béton pour cette raison ;
+- **dix minutes pour décoller** (`veafQraManager.TAKEOFF_TIMEOUT`) : tant qu'un groupe n'a pas encore été vu en l'air, il roule, il n'est pas posé ; resté au sol au-delà, il est tenu pour coincé et la QRA est réarmée. Un groupe qui a volé puis se pose est réarmé comme avant.
 
 C'est donc le cas normal : placez l'intercepteur avec **un seul point**, sans tâche, et le script fait le
 reste ; le build l'annonce pour chaque groupe concerné. Si vous voulez votre propre plan de vol, écrivez-le **avec** une tâche d'engagement des aéronefs : il

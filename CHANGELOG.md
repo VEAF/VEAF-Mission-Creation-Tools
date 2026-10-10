@@ -17,6 +17,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The VEAF radio menu no longer opens on a list of "Activate mission" entries** (FIX-COMBATMISSION-MENU-MISSING ticket 02, a 6.29.0 regression).
+  A combat mission declared in the mission's own `mission-script.lua` put its commands at the root of the VEAF menu, once per `initialize()` it went through — 25 of them on the Caucasus Open Training.
+  Such a mission now waits for its place under MISSIONS, and the menu is rebuilt once, a second after the script has declared them all.
+
 ## [6.29.0] — 2026-10-10
 
 ### Documentation

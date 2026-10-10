@@ -6,11 +6,13 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FEAT-RADIO-MENU-WATCH](FEAT-RADIO-MENU-WATCH/PRD.md) · 🔄
-
-Watching the F10 menu in a real multiplayer mission: the parked ids of FIX-RADIO-MENU-ID-RECYCLING pile up for the whole mission, cost nothing measurable in single player up to 50 000 (2026-10-10), but what a server sends its clients is not measured. A `RADIO.menu_stats` option logs the menu's size and changes, to turn on for an OT; the whitepaper on DCS recycling menu ids, FR and EN, ships with it. Left: the measurement on a real mission.
+*None.*
 
 ## 🧑 Waiting for a human
+
+### [FEAT-RADIO-MENU-WATCH](FEAT-RADIO-MENU-WATCH/PRD.md) · 🧑
+
+Watching the F10 menu in a real multiplayer mission: the parked ids of FIX-RADIO-MENU-ID-RECYCLING pile up for the whole mission, cost nothing measurable in single player up to 50 000 (2026-10-10), but what a server sends its clients is not measured. A `RADIO.menu_stats` option logs the menu's size and changes, to turn on for an OT; the whitepaper on DCS recycling menu ids, FR and EN, ships with it. Merged on `develop` (#1117). Left, ticket 03: the three new Open Training missions built with the next VMCT release and the option on, measured on dcs.veaf.org.
 
 ### [FIX-QRA-GROUND-START](FIX-QRA-GROUND-START/PRD.md) · 🧑
 

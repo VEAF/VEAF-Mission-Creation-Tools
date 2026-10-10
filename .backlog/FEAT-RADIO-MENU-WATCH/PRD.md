@@ -1,6 +1,6 @@
 # FEAT-RADIO-MENU-WATCH — watch the F10 menu in a real multiplayer mission
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 FIX-RADIO-MENU-ID-RECYCLING (#1113) parks every freed menu id on an inert command for group 999999, so a stale click on a removed entry fires nothing.
 Those commands are never removed: they pile up for the whole mission.
@@ -32,6 +32,7 @@ Nobody knows how big the VEAF menu gets in a real evening, nor how much it chang
 
 - **a)** Measure first; bound the parked pool only if a measurement shows a cost. The single-player one does not.
 - **b)** Instrument VMCT behind a `mission.yaml` option and test on real missions, rather than a synthetic multiplayer test mission.
+- **c)** The real missions are the three new Open Training missions (Caucasus, GermanyCW, Syria v6), built with the next VMCT release, not with `develop`: they run 6.26.x scripts, which do not park yet.
 
 ## Out of scope
 

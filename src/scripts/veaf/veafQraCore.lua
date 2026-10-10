@@ -50,6 +50,11 @@ veafQraManager.STATUS_STOP = 6
 
 veafQraManager.WATCHDOG_DELAY = 5
 
+--- Seconds a scrambled group may stay on the ground before it is taken for stuck and the QRA reset.
+--- A group that has not been airborne yet is taking off, not landed: a runway start stood on the
+--- runway at the first watchdog tick and was destroyed 5 s after the scramble (FIX-QRA-GROUND-START).
+veafQraManager.TAKEOFF_TIMEOUT = 600
+
 veafQraManager.MINIMUM_LIFE_FOR_QRA_IN_PERCENT = 10
 
 veafQraManager.DEFAULT_airbaseMinLifePercent = 0.9
@@ -844,6 +849,16 @@ function VeafQRACore:check()
                   end
                 end
               end
+              self.groupsSeenAirborne = self.groupsSeenAirborne or {}
+              if groupAtLeastOneUnitInAir then
+                self.groupsSeenAirborne[groupName] = true
+              elseif
+                not self.groupsSeenAirborne[groupName]
+                and timer.getTime() - (self.deployedAt or 0) <= veafQraManager.TAKEOFF_TIMEOUT
+              then
+                -- never airborne yet: rolling to the runway, not landed
+                groupAtLeastOneUnitInAir = true
+              end
               qraAlive = qraAlive or groupAtLeastOneUnitAlive
               qraInAir = qraInAir or groupAtLeastOneUnitInAir
               veaf.loggers.get(veafQraManager.Id):trace("qraAlive=%s", veaf.lp(qraAlive))
@@ -1018,6 +1033,8 @@ function VeafQRACore:deploy(nbUnitsInZone)
   if groupsToDeploy then
     -- the spawn shared with the air-wave zones: commands, editor groups, offsets (FEAT-AIRWAVES-QRA-MERGE)
     self.spawnedGroupsNames = veafReactiveZone.deployGroups(self, groupsToDeploy, self.coalition, veafQraManager.Id)
+    self.deployedAt = timer.getTime()
+    self.groupsSeenAirborne = {}
     veaf.loggers.get(veafQraManager.Id):trace("self.spawnedGroups=%s", veaf.lp(self.spawnedGroupsNames))
     self.state = veafQraManager.STATUS_ACTIVE
   end

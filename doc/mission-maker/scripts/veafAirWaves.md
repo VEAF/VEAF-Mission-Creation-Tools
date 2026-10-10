@@ -327,6 +327,7 @@ route n'en prévoit pas : s'il ne porte aucune tâche d'engagement des aéronefs
 
 Un groupe placé **au parking ou sur la piste** garde son décollage tel que vous l'avez réglé, puis monte à
 27 000 ft pour sa patrouille.
+Il a **dix minutes pour décoller** (`veafAirWaves.TAKEOFF_TIMEOUT`) : tant qu'un avion n'a pas encore été vu en l'air, il roule, il n'est pas hors de combat ; resté au sol au-delà, il est compté comme tel et retiré, comme un avion qui s'est posé.
 
 C'est donc le cas normal : placez le chasseur avec **un seul point**, sans tâche, et le script fait le
 reste ; le build l'annonce pour chaque groupe concerné. Si vous voulez votre propre plan de vol, écrivez-le **avec** une tâche d'engagement des aéronefs : il

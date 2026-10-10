@@ -325,6 +325,7 @@ with *Air* targets), it is launched on **zone defense**:
 
 A group placed **on a parking spot or the runway** keeps its take-off as you set it, then climbs to
 27,000 ft for its patrol.
+It has **ten minutes to take off** (`veafAirWaves.TAKEOFF_TIMEOUT`): until an aircraft has been seen airborne it is rolling, not out of the fight; still on the ground after that, it is counted as such and removed, like one that has landed.
 
 So this is the normal case: place the fighter with **a single waypoint** and no task, and the script
 does the rest; the build says so for every such group. If you want a flight plan of your own, write it **with** an aircraft engagement task: it is

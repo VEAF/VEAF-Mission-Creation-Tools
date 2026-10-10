@@ -1,6 +1,6 @@
 # 02 — `/secu elevate` exists whenever the refusal tells a pilot to type it
 
-Status: ⬜ ready
+Status: ✅ done
 
 The per-group check in `veafRadio._proxyMethod` applies whenever `veaf.SecurityDisabled` is false, whether or not `SECURITY` is listed in `mission.yaml`; the `/secu` verbs exist only when it is.
 `mission_template.py` writes `# SECURITY: true` commented out ("uncomment + add password_hashes … to require a password"), the shipped default `src/defaults/mission-folder/mission.yaml` has it on — so a mission scaffolded from the template refuses with a message pointing to a command it does not have.

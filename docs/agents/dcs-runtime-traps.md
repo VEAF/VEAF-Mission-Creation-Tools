@@ -691,6 +691,21 @@ from an unexplained one by remembering the ids `onGameEvent` reported disconnect
 *What it cost:* The VEAF hook logged it at ERROR, once per departure: on private1 it was the first suspect for an
 unrelated security defect until its context was measured.
 
+### `Group.getByID` does not exist: a group id leads back to no group {#group-getbyid-does-not-exist}
+
+Measured **2026-10-10**.
+
+The scripting API resolves a group by name only (`Group.getByName`). `Group.getByID` reads `nil` in
+a running mission (`private1`, read through the hook's `/code`), so code written as
+`Group.getByID and Group.getByID(id)` raises nothing and always gets `nil`.
+
+**What to do:** From a group id — the only identity an F10 `ForGroup` command carries — scan the players:
+`coalition.getPlayers(side)` for each coalition, keeping the units whose `getGroup():getID()` is
+that id (`veafSecurity.getGroupOccupantUnitNames`). For any group, keep its name or the object.
+
+*What it cost:* Every secured `+` radio command refused to every pilot from 6.14.0 on
+(`secured-radio-commands-refused-to-everybody`).
+
 ## Radio and frequencies {#radio}
 
 ### The text of `Radio.lua` is not the airfield frequencies DCS uses — DCS completes the missing bands {#radio-lua-is-not-what-the-f10-view-shows}

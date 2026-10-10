@@ -74,7 +74,7 @@ modules:
   MARKERS:
   COMMANDS:
   # ── Core ─────────────────────────────────────────────────────────────────
-  SECURITY: true
+  SECURITY: true   # the /secu verbs (elevate, …); turn the level check off with `security: disabled: true`
   RADIO: true               # the VEAF F10 radio menu
   # RADIO (extended form, instead of `RADIO: true`):
   #   RADIO:

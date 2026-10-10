@@ -1,6 +1,6 @@
 # FIX-SECURITY-GROUP-LEVEL — every secured `+` radio command is refused to everybody, because `Group.getByID` does not exist
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 ## Found
 
@@ -35,8 +35,8 @@ Next to it: `/secu elevate`, which the refusal message tells the pilot to type, 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-group-occupants-without-getbyid.md) | Find a group's human occupants without `Group.getByID` | ⬜ |
-| [02](tickets/02-secu-verbs-exist-when-security-applies.md) | `/secu elevate` exists whenever the refusal tells a pilot to type it | ⬜ |
+| [01](tickets/01-group-occupants-without-getbyid.md) | Find a group's human occupants without `Group.getByID` | ✅ |
+| [02](tickets/02-secu-verbs-exist-when-security-applies.md) | `/secu elevate` exists whenever the refusal tells a pilot to type it | ✅ |
 
 ## Definition of done
 

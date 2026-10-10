@@ -417,6 +417,9 @@ _MODULE_DEPS: dict[str, list[str]] = {
     # Core
     "COMMANDS": ["MARKERS"],
     "GROUNDAI": ["COMMANDS"],
+    # A secured `+` command is checked whatever SECURITY says, and its refusal tells the pilot to type
+    # `/secu elevate`, which only veafSecurity.initialize() registers (FIX-SECURITY-GROUP-LEVEL).
+    "RADIO": ["SECURITY"],
     "SHORTCUTS": ["RADIO", "COMMANDS"],
     "NAMEDPOINTS": ["COMMANDS"],
     "SPAWN": ["UNITS"],

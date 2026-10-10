@@ -1889,6 +1889,10 @@ end
 
 function TestVeafRadioSecuredCommands:tearDown()
   veafSecurity.getEffectiveGroupLevel = self.originalEffective
+  if self.savedGetPlayers then
+    coalition.getPlayers, veafRemote = self.savedGetPlayers, self.savedRemote
+    self.savedGetPlayers, self.savedRemote = nil, nil
+  end
 end
 
 function TestVeafRadioSecuredCommands:_run(groupId, requiredLevel)
@@ -1940,6 +1944,52 @@ function TestVeafRadioSecuredCommands:test_a_refusal_names_the_level_needed_and_
     dcs_mocks.messages[1].text,
     veaf.t("radio.level_required", veafSecurity.LEVEL_SENIOR_PILOT, veafSecurity.LEVEL_KNOWN_PILOT)
   )
+end
+
+-- FIX-SECURITY-GROUP-LEVEL ticket 01: the suite above stubs the group level, so it never saw that the
+-- real lookup asked DCS for a `Group.getByID` it does not have and refused everybody. This one runs the
+-- whole chain -- players, pilot registry, group level -- against a mock without `Group.getByID`.
+--- Wires the real lookup: `Stennis Hornet-1`, level 99, alone in group 12.
+function TestVeafRadioSecuredCommands:_realLookup()
+  luaunit.assertNil(Group.getByID)
+  veafSecurity.getEffectiveGroupLevel = self.originalEffective
+  self.savedGetPlayers, self.savedRemote = coalition.getPlayers, veafRemote
+  coalition.getPlayers = function(side)
+    if side ~= coalition.side.BLUE then
+      return {}
+    end
+    return {
+      {
+        getName = function()
+          return "Stennis Hornet-1"
+        end,
+        getGroup = function()
+          return {
+            getID = function()
+              return 12
+            end,
+          }
+        end,
+      },
+    }
+  end
+  veafRemote = {
+    getRemoteUserFromUnit = function(unitName)
+      return unitName == "Stennis Hornet-1" and { level = 99 } or nil
+    end,
+  }
+end
+
+function TestVeafRadioSecuredCommands:test_a_listed_pilot_runs_a_secured_command_through_the_real_lookup()
+  self:_realLookup()
+  self:_run(12, veafSecurity.LEVEL_SENIOR_PILOT)
+  luaunit.assertTrue(self.called)
+end
+
+function TestVeafRadioSecuredCommands:test_a_group_with_no_human_is_refused_through_the_real_lookup()
+  self:_realLookup()
+  self:_run(14, veafSecurity.LEVEL_KNOWN_PILOT)
+  luaunit.assertFalse(self.called)
 end
 
 function TestVeafRadioSecuredCommands:test_an_unlisted_pilot_reads_as_level_zero_not_minus_one()

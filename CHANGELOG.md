@@ -124,6 +124,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The 798 airbases of its 13 theatres carry exactly the names and ids we had; TheChannel, which it lacks, keeps its capture.
   An airfield's position is now its reference point, the centre of its runways, where the captures held a point about a kilometre away: `list_airfields`, the campaign map and the clear-ground survey's airfield layers move accordingly, and FOB Clark (Afghanistan) is no longer at 0°N 0°E.
   `veaf-build update-dcs-data` regenerates both tables by default, and CI fails if they drift.
+- **`RADIO.menu_stats` watches the F10 menu in a real mission** (FEAT-RADIO-MENU-WATCH).
+  A diagnostic option, off by default: on every refresh, one line in `dcs.log` says what the VEAF menu added and removed, how big it is for everyone, each coalition and each group, and how many invisible commands hold freed menu ids.
+  Turn it on temporarily on a multiplayer mission to see whether the menu grows; a whitepaper on how DCS recycles F10 menu ids, and how to build a menu that withstands it, ships in `docs/whitepapers/` (FR and EN).
 
 ## [6.28.0] — 2026-10-05
 

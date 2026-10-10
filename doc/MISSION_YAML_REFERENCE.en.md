@@ -408,6 +408,8 @@ modules:
       create_menus: false       # no VEAF radio menu; commands via markers only
 ```
 
+**`RADIO` diagnostic option** (outside `init:`): `menu_stats: true` writes to `dcs.log`, on every refresh, the F10 menu's size and what changed. Turn it on temporarily in a real mission to watch the menu in multiplayer — see [Watching the F10 menu](mission-maker/scripts/veafRadio.en.md#menu-stats).
+
 **Community scripts** are listed in the same block, using their IDs (case does not matter: `CTLD:` and `ctld:` are equivalent). When a script is absent from `modules:`, it keeps its default state — included for the *opt-out* scripts, excluded for the two *opt-in* ones (`MIST` and `TUM`, see below). Set a script to `false` to exclude it:
 
 Because that default is easy to misread, generated files (`prepare --template`, `convert-v5`) and the shipped `mission.yaml` **always** write the five *opt-out* scripts (`STTS`, `CTLD`, `AIEN`, `CSAR`, `SKYNET`) out, at `true` or `false`: the state of a community script is never inferred from silence.

@@ -1513,6 +1513,97 @@ function TestVeafRadioIncrementalRender:test_same_value_compares_plain_tables_an
   luaunit.assertFalse(same({ setmetatable({ id_ = 7 }, unitClass) }, { setmetatable({ id_ = 7 }, {}) }))
 end
 
+-------------------------------------------------------------------------------------------------
+-- FEAT-RADIO-MENU-WATCH — `RADIO.menu_stats` reports the menu's size and changes to dcs.log
+--
+-- Parked ids pile up for the whole mission. Their cost is not measurable in single player up to
+-- 50 000 (2026-10-10), but what a server sends its clients is not measured; the option lets a real
+-- mission say how big its menu grows and how much it changes.
+-------------------------------------------------------------------------------------------------
+
+--- Runs fn with `RADIO.menu_stats` set to enabled and returns the info lines logged meanwhile.
+function TestVeafRadioIncrementalRender:_withStats(enabled, fn)
+  local logger = veaf.loggers.get(veafRadio.Id)
+  local savedInfo = logger.info
+  local savedConfig = veaf.config.RADIO
+  local lines = {}
+  logger.info = function(_, fmt, ...)
+    table.insert(lines, string.format(fmt, ...))
+  end
+  veaf.config.RADIO = { menu_stats = enabled }
+  local ok, err = pcall(fn)
+  logger.info = savedInfo
+  veaf.config.RADIO = savedConfig
+  if not ok then
+    error(err, 0)
+  end
+  local stats = {}
+  for _, line in ipairs(lines) do
+    if line:find("radio menu stats", 1, true) then
+      table.insert(stats, line)
+    end
+  end
+  return stats
+end
+
+function TestVeafRadioIncrementalRender:test_menu_stats_off_logs_nothing()
+  local stats = self:_withStats(nil, function()
+    self.builder:addCommand("Alpha", self.builder:addMenu("Zones", nil), function() end)
+    self.builder:rebuild()
+  end)
+  luaunit.assertEquals(stats, {})
+end
+
+function TestVeafRadioIncrementalRender:test_menu_stats_reports_each_rebuild_with_live_counts_by_audience()
+  self:_addHumanGroup(1, "Pilot1")
+  self:_addHumanGroup(2, "Pilot2")
+  local stats = self:_withStats(true, function()
+    local menu = self.builder:addMenu("Assist", nil)
+    self.builder:addCommand("Info", menu, function() end, nil, veafRadio.USAGE_ForGroup)
+    self.builder:addCommand("Weather", menu, function() end)
+    self.builder:rebuild()
+  end)
+  luaunit.assertEquals(#stats, 1)
+  -- the root, the submenu, Weather, and one Info per group
+  luaunit.assertStrContains(stats[1], "5 added, 0 removed")
+  luaunit.assertStrContains(stats[1], "5 live entries (everyone 3, coalitions 0, groups 2 across 2 groups)")
+  luaunit.assertStrContains(stats[1], "0 ids parked in all")
+end
+
+function TestVeafRadioIncrementalRender:test_menu_stats_counts_since_the_last_report_and_parks_in_all()
+  local menu = self.builder:addMenu("Zones", nil)
+  local function activate() end
+  self.builder:addCommand("Activate", menu, activate, { zone = "Alpha" })
+  local stats = self:_withStats(true, function()
+    self.builder:rebuild()
+    veafRadio.clearSubmenu(menu)
+    self.builder:addCommand("Activate", menu, activate, { zone = "Bravo" })
+    self.builder:rebuild()
+    self.builder:rebuild()
+  end)
+  luaunit.assertEquals(#stats, 3)
+  luaunit.assertStrContains(stats[2], "1 added, 1 removed")
+  luaunit.assertStrContains(stats[2], "1 ids parked in all")
+  -- an unchanged rebuild is reported too: how often the menu is refreshed is part of the picture
+  luaunit.assertStrContains(stats[3], "0 added, 0 removed")
+  luaunit.assertStrContains(stats[3], "3 live entries") -- the root, Zones, Activate
+  luaunit.assertStrContains(stats[3], "1 ids parked in all")
+end
+
+function TestVeafRadioIncrementalRender:test_menu_stats_counts_the_entries_a_rebuild_drops()
+  local menu = self.builder:addMenu("Zones", nil)
+  self.builder:addCommand("Alpha", menu, function() end)
+  local stats = self:_withStats(true, function()
+    self.builder:rebuild()
+    veafRadio.delSubmenu(menu, self.root)
+    self.builder:rebuild()
+  end)
+  -- the submenu and its command leave through the end-of-rebuild removal, each id parked
+  luaunit.assertStrContains(stats[2], "0 added, 2 removed")
+  luaunit.assertStrContains(stats[2], "1 live entries") -- the root
+  luaunit.assertStrContains(stats[2], "2 ids parked in all")
+end
+
 function TestVeafRadioCoalitionMenus:test_addSubMenu_passes_the_side_through()
   local menu = veafRadio.addSubMenu("Scoped", nil, coalition.side.BLUE)
   luaunit.assertEquals(menu.coalition, coalition.side.BLUE)

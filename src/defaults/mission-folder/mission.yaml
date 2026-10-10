@@ -81,6 +81,7 @@ modules:
   #     enabled: true
   #     init:
   #       help_menus: true
+  #     menu_stats: true       # diagnostic, temporary: log the F10 menu's size and changes to dcs.log
   #     user_menus:            # Mission-Master F10 menus in YAML (FEAT-RADIO-YAML-MENUS)
   #       restrict_to_group: "MM Ctrl"   # optional: DCS group name; absent = global menu
   #       tree:

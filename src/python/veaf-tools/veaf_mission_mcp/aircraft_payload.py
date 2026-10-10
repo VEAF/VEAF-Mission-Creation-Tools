@@ -95,7 +95,7 @@ def resolve_loadout(unit_type: str, pylons: dict[Any, Any] | None, payload: str 
     return pylons or None
 
 
-def normalize_pylons(pylons: dict[Any, Any]) -> dict[int, dict[str, Any]]:
+def normalize_pylons(pylons: dict[Any, Any] | list[Any]) -> dict[int, dict[str, Any]]:
     """Key a loadout by integer station number, the only form DCS reads.
 
     A JSON object's keys are always strings, so a loadout arriving through the MCP is
@@ -103,8 +103,12 @@ def normalize_pylons(pylons: dict[Any, Any]) -> dict[int, dict[str, Any]]:
     aircraft flies unarmed with no sign of why (caught in review of #993; `set_unit_properties`
     has handled the same trap since #726). A bare CLSID string is accepted as ``{"CLSID": ...}``.
 
+    A loadout copied from a mission group (`loadout_from`) whose stations run 1..n with no gap comes
+    back from the Lua parser as a list; its first entry is station 1 (FIX-MCP-SESSION-PREP-FINDINGS).
+
     Args:
-        pylons: ``{station: {"CLSID": ...}}`` or ``{station: "<CLSID>"}``, keys int or numeric text.
+        pylons: ``{station: {"CLSID": ...}}`` or ``{station: "<CLSID>"}``, keys int or numeric text,
+            or a list of the same values for stations 1..n.
 
     Returns:
         The same loadout keyed by ``int``.
@@ -114,6 +118,8 @@ def normalize_pylons(pylons: dict[Any, Any]) -> dict[int, dict[str, Any]]:
     """
     from veaf_mission_mcp.set_unit_properties import _station_number
 
+    if isinstance(pylons, list):
+        pylons = dict(enumerate(pylons, start=1))
     return {
         _station_number(station): {"CLSID": value} if isinstance(value, str) else value
         for station, value in pylons.items()

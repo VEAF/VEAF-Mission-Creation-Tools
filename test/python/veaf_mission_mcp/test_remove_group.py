@@ -196,3 +196,51 @@ class TestRefusals:
         with pytest.raises(ValueError):
             remove_group(folder, group_name="Nope")
         assert mission_file.read_text(encoding="utf-8") == before
+
+
+_TWINS = _MISSION.replace('["name"] = "Texaco", ["groupId"] = 3', '["name"] = "Air Start Hornet", ["groupId"] = 3')
+
+
+@pytest.fixture
+def twins(tmp_path: Path) -> Path:
+    """Two groups named `Air Start Hornet` (ids 2 and 3), as a mission written before the MCP refused a taken name."""
+    exploded = tmp_path / "src" / "mission"
+    exploded.mkdir(parents=True)
+    (exploded / "mission").write_text(_TWINS, encoding="utf-8")
+    (tmp_path / "mission.yaml").write_text("modules:\n", encoding="utf-8")
+    return tmp_path
+
+
+class TestHomonyms:
+    """FIX-MCP-SESSION-PREP-FINDINGS ticket 03: a name two groups share removed both and reported one."""
+
+    def test_an_ambiguous_name_is_refused_listing_the_group_ids(self, twins: Path) -> None:
+        mission_file = twins / "src" / "mission" / "mission"
+        before = mission_file.read_text(encoding="utf-8")
+        with pytest.raises(ValueError, match=r"2 groups named 'Air Start Hornet'.*group_id.*\b2\b.*\b3\b"):
+            remove_group(twins, group_name="Air Start Hornet")
+        assert mission_file.read_text(encoding="utf-8") == before
+
+    def test_the_group_id_picks_one_and_leaves_the_other(self, twins: Path) -> None:
+        result = remove_group(twins, group_name="Air Start Hornet", group_id=3)
+        assert result["group_id"] == 3
+        content = read_mission_folder(twins).mission_content or {}
+        assert _names(content) == ["Player Viper", "Air Start Hornet", "Escort"]
+        container = _container(content, "plane")
+        groups = list(container.values()) if isinstance(container, dict) else container
+        assert [g["groupId"] for g in groups] == [1, 2, 4]
+
+    def test_a_group_id_that_does_not_carry_the_name_is_refused(self, folder: Path) -> None:
+        with pytest.raises(ValueError, match="group_id 3"):
+            remove_group(folder, group_name="Air Start Hornet", group_id=3)
+
+    def test_an_asset_entry_is_not_reported_while_a_homonym_still_answers_to_it(self, tmp_path: Path) -> None:
+        exploded = tmp_path / "src" / "mission"
+        exploded.mkdir(parents=True)
+        (exploded / "mission").write_text(
+            _MISSION.replace('["name"] = "Air Start Hornet", ["groupId"] = 2', '["name"] = "Texaco", ["groupId"] = 2'),
+            encoding="utf-8",
+        )
+        (tmp_path / "mission.yaml").write_text(_YAML_WITH_ASSET, encoding="utf-8")
+        result = remove_group(tmp_path, group_name="Texaco", group_id=2)
+        assert not [w for w in result["warnings"] if "ASSETS" in w]

@@ -75,6 +75,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The vendored CTLD has the same defect; it is reported upstream as VEAF/CTLD#257.
 - **`campaign apply` accepts a state file already in its mission folder** (FIX-CAMPAIGN-MISSION-1-FINDINGS, ticket 11).
   A `mission-NN.state` placed in `missions/mission-NN/`, where the campaign guide shows it, stopped the command with `SameFileError` before anything was written; it is now applied in place, and a file taken from anywhere else is still copied there.
+- **The mission-editing MCP server no longer writes two groups of one name, no longer removes both, and copies any loadout** (FIX-MCP-SESSION-PREP-FINDINGS).
+  Found preparing an in-game test of *Kolkhida*: `create_qra` with `loadout_from` failed on `'list' object has no attribute 'items'` whenever the source group's pylons ran 1 to n with no gap; they are now read as stations 1 to n.
+  Every action that creates a group refuses a group or unit name the mission already holds, naming its holder: DCS resolves either of two homonyms by name, silently.
+  `remove_group` refuses a name several groups share, listing their `groupId`s, and takes `group_id` to say which one goes; it used to remove all of them and report one.
 
 ### Added
 
@@ -124,6 +128,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The 798 airbases of its 13 theatres carry exactly the names and ids we had; TheChannel, which it lacks, keeps its capture.
   An airfield's position is now its reference point, the centre of its runways, where the captures held a point about a kilometre away: `list_airfields`, the campaign map and the clear-ground survey's airfield layers move accordingly, and FOB Clark (Afghanistan) is no longer at 0°N 0°E.
   `veaf-build update-dcs-data` regenerates both tables by default, and CI fails if they drift.
+- **Vendored CTLD `2.0.0-rc13`** (was `rc12`), the release that creates crates, troops and JTACs under a country of the requesting aircraft's coalition: a campaign flown under CJTF Blue and CJTF Red, with neither USA nor Russia, got no crate at its airfields (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 05).
+  Its F10 menu now only rebuilds the entries that changed, so a click fires the command clicked; its zone accessors take the zone's full name, which is what VMCT already passes.
 
 ## [6.28.0] — 2026-10-05
 

@@ -135,8 +135,8 @@ class TestAddGroup:
 
         assert len(list(sample_miz.parent.glob("mission.*.miz"))) == 1
 
-    def test_calling_twice_creates_two_distinct_groups(self, sample_miz: Path) -> None:
-        first = add_group(
+    def test_calling_twice_with_one_name_is_refused(self, sample_miz: Path) -> None:
+        add_group(
             sample_miz,
             coalition="red",
             country_id=0,
@@ -146,21 +146,21 @@ class TestAddGroup:
             position={"x": 0.0, "y": 0.0},
             units=[{"type": "BTR-80"}],
         )
-        second = add_group(
-            sample_miz,
-            coalition="red",
-            country_id=0,
-            country_name="Russia",
-            category="vehicle",
-            name="Repeated Group",
-            position={"x": 0.0, "y": 0.0},
-            units=[{"type": "BTR-80"}],
-        )
+        with pytest.raises(ValueError, match="'Repeated Group'.*already"):
+            add_group(
+                sample_miz,
+                coalition="red",
+                country_id=0,
+                country_name="Russia",
+                category="vehicle",
+                name="Repeated Group",
+                position={"x": 0.0, "y": 0.0},
+                units=[{"type": "BTR-80"}],
+            )
 
-        assert first["group_id"] != second["group_id"]
         described = describe_mission(sample_miz)
         matching = [g for g in described["groups"] if g["name"] == "Repeated Group"]
-        assert len(matching) == 2
+        assert len(matching) == 1
 
     def test_raises_a_clear_error_when_mission_file_is_missing(self, tmp_path: Path) -> None:
         import zipfile

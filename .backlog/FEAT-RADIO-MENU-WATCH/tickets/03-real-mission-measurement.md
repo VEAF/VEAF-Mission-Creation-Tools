@@ -13,6 +13,11 @@ Decided with David (2026-10-10):
 - upload with `D:\dev\_VEAF\server-tools\Update-ServerMission.ps1`, `-WhatIf` first; running missions are left alone;
 - nothing permanent on the production server: the network is sampled over SSH on the evenings David names.
 
+## Progress
+
+- **Caucasus, 2026-10-10**: built with 6.29.0 and `menu_stats: true`, loaded in single player as a blue game master — no script error, three `radio menu stats` lines (271 live entries at start, 231 for everyone and 40 per coalition; 434 once a group was taken, 25 ids parked). Uploaded over `DCS.missions\VEAF_OpenTraining_Caucasus_ICAO_UGTB.miz`, SHA-256 checked; it runs at the next `/mission load`. The instrumented `.miz` is kept out of the mission's repository, in its `.veaf-backups/instrumente-menu-stats-20261010/`. The recompilation's other findings are `FIX-OPEN-TRAINING-CAUCASUS-FINDINGS`.
+- GermanyCW and Syria: to do.
+
 ## How
 
 1. Update each mission's tools (`veaf-tools-updater.exe`), then build it with `modules.RADIO.menu_stats: true`, plus `logLevel: info` under `RADIO` if the mission's `global_log_level` is `warning` or `error` (the module's level outranks the global one).

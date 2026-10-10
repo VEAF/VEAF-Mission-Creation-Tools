@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FIX-OPEN-TRAINING-CAUCASUS-FINDINGS](FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md) · ⬜
+
+What recompiling the Caucasus Open Training v6 in 6.29.0 found, each fixed by hand in the mission: no game master slot nor vehicle control in any v6 scaffold, a CTLD catalogue upgrade seen only in game, and no dashed line on the F10 map. Three tickets, one PR.
+
 ### [FIX-CONVOY-FROZEN-STANDOFF](FIX-CONVOY-FROZEN-STANDOFF/PRD.md) · ⬜
 
 A convoy held at its standoff in front of an enemy DCS does not make it engage stays frozen for ever: its watch keeps the contact alive, so the quiet minute that relaunches it never comes. Measured on the *Kolkhida* test, 2026-10-10, 40 game minutes without a shot. Decided: with no fire exchanged for a while, it closes in.

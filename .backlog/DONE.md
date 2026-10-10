@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · ✅
+
+Poti, taken on *Kolkhida* by the blue convoy, drew a garrison anyway: the capture trusted `world.searchObjects`, which overshoots its sphere, and the absorption measured the exact distance. Both now ask the same search; a strong enough assault convoy drives into its target zone while fighting; a shell is never a threat. To be checked in game, with ticket 02's measurement of why the convoy halted at the zone's edge (test mission ready). Seen in game 2026-10-10: the convoy became Poti's garrison and drove on to the centre.
+
 ### [FIX-MCP-SESSION-PREP-FINDINGS](FIX-MCP-SESSION-PREP-FINDINGS/PRD.md) · ✅
 
 What preparing the *Kolkhida* in-game test through the MCP broke: `loadout_from` failing on pylons numbered 1 to n, two groups of one name written, then both removed by `remove_group`; and CTLD `2.0.0-rc13` vendored, the release that gives crates a country of the coalition. Merged in #1116.

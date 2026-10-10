@@ -1,6 +1,8 @@
 # 02 — The assault convoy drives into the zone, not to its edge
 
-Status: 🧑 waiting-human — the halt is to be measured in DCS
+Status: ✅ done — seen in game 2026-10-10
+
+**Measured 2026-10-10** (R47 item 6, `D:\dev\_VEAF\tmp\dcs-session-2026-10-10`, fiddle hook): the blue convoy of 10 halted about 2.1 km from Poti's centre while the zone was being taken (`nearest 2117 m from the centre`, `10 inside`), became its garrison (`holds [Poti]: 10 unit(s) become its garrison`, no garrison drawn from the reserve), then drove on to the centre: nearest unit 0 m, 10 of 10 alive.
 
 - Find why the blue convoy's nine units stopped together 2.04–2.08 km from Poti's centre (zone radius 2 km): its route's last point (`veafSpawn.spawnConvoy` towards the named point "CAMPAIGN Poti"), the road network near the port, `veafGroundAI`'s arrival handling, or the campaign itself. Read the code first; measure in a test mission (a copy of `D:\dev\_VEAF\_campaigns\campaign-kolkhida`, never David's live session) only for what the code cannot settle — prepare the mission and ask David to run it, never launch DCS yourself.
 - Make the convoy end its drive well inside the zone (on a road point inside the radius when the centre is off-road, as Poti's port is).

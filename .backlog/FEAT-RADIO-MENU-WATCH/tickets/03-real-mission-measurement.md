@@ -16,7 +16,8 @@ Decided with David (2026-10-10):
 ## Progress
 
 - **Caucasus, 2026-10-10**: built with 6.29.0 and `menu_stats: true`, loaded in single player as a blue game master — no script error, three `radio menu stats` lines (271 live entries at start, 231 for everyone and 40 per coalition; 434 once a group was taken, 25 ids parked). Uploaded over `DCS.missions\VEAF_OpenTraining_Caucasus_ICAO_UGTB.miz`, SHA-256 checked; it runs at the next `/mission load`. The instrumented `.miz` is kept out of the mission's repository, in its `.veaf-backups/instrumente-menu-stats-20261010/`. The recompilation's other findings are `FIX-OPEN-TRAINING-CAUCASUS-FINDINGS`.
-- GermanyCW and Syria: to do.
+- **GermanyCW, 2026-10-10**: built with 6.29.0 and `menu_stats: true`, loaded in multiplayer by David on an A-10C II dynamic slot at Büchel — no script error, two `radio menu stats` lines (208 live entries at start, 169 for everyone and 39 per coalition; 346 once the group was taken, 138 of them for that group; no id parked). The 6.29 MISSIONS-menu leak seen on Caucasus does not reach it: its six CAP missions are declared in `veaf-config.lua` before `veafCombatMission.initialize()`, and DCS Fiddle shows no command at the VEAF root. The instrumented `.miz` is kept out of the mission's repository, in its `.veaf-backups/instrumente-menu-stats-20261010/`; not uploaded yet.
+- Syria: to do.
 
 ## How
 

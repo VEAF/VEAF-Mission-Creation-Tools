@@ -1,6 +1,6 @@
 # 04 — A QRA takes off from the ground by default
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: feat
 
 Depends on: 03 — a garrison unit on the runway would keep the QRA on the ground.
@@ -27,3 +27,7 @@ A QRA designed through the MCP without saying how it starts is placed on its air
 
 `create_qra` puts a QRA on its side's runway by default, and the guidance and the QRA page say so.
 Left: the minutes from scramble to wheels up, measured in game (`R47` item 3), and mission 2 of *Kolkhida* designed with its QRA on Senaki's runway.
+
+## Seen in game (2026-10-10)
+
+The conclusion above that no runtime code was needed was wrong: the runway start was destroyed 5 s after its scramble, fixed in [`FIX-QRA-GROUND-START`](../../FIX-QRA-GROUND-START/PRD.md) (#1118). With it, the Senaki pair's wheels were up 25–35 s after the scramble; the time is in the QRA page. Mission 2's own QRA design stays on the campaign's to-do list.

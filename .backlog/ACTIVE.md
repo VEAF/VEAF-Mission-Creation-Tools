@@ -14,10 +14,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 Watching the F10 menu in a real multiplayer mission: the parked ids of FIX-RADIO-MENU-ID-RECYCLING pile up for the whole mission, cost nothing measurable in single player up to 50 000 (2026-10-10), but what a server sends its clients is not measured. A `RADIO.menu_stats` option logs the menu's size and changes, to turn on for an OT; the whitepaper on DCS recycling menu ids, FR and EN, ships with it. Merged on `develop` (#1117). Left, ticket 03: the three new Open Training missions built with the next VMCT release and the option on, measured on dcs.veaf.org.
 
-### [FIX-QRA-GROUND-START](FIX-QRA-GROUND-START/PRD.md) · 🧑
-
-A QRA scrambled from the runway was destroyed 5 s later: the watchdog took a group not yet airborne for a landed one and reset the QRA. A group is now landed only once it has flown; one still on the ground ten minutes after the scramble is reset as before. Waits for R47 item 3 in game, and the measured time to wheels up.
-
 ### [FEAT-OPPOSITION-SCALES-WITH-PLAYERS](FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md) · 🧑
 
 The air opposition sized to the number of players — an `opposition:` level set at generation, changed in flight (radio menu, `_opposition` marker) or following the players connected or airborne with a hysteresis — driving the QRA tiers and an "Auto scale" combat-mission entry; campaigns write it from `players` / `--players`. The three QRA defects found on Kolkhida mission 1 fixed on the way. With ticket 04, assault convoys sent by the campaign in flight. Merged on `develop` (#1100), the demo step in VEAF-Demo-Mission-v6; R46 in `DCS-SESSION-TODO.md` checks it in game. Ticket 05, after Kolkhida mission 1: the level counts only the players on CAP (`follow: air_to_air`), and the radio menu sets it in one click (#1115).

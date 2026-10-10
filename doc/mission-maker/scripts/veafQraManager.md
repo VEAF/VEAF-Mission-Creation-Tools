@@ -381,7 +381,7 @@ Un groupe placé **au parking ou sur la piste** garde son décollage tel que vou
 **Sur la piste par défaut.** Une QRA décolle vraiment de son terrain : c'est le départ que pose l'action MCP `create_qra` quand on ne lui dit rien (l'aérodrome de la coalition le plus proche de la zone, ou celui qu'on nomme), un départ en l'air seulement sur demande.
 Ce que ça coûte :
 
-- **le temps de décoller** avant d'arriver sur la zone — à mesurer en jeu, pas estimé ici ;
+- **le temps de décoller** avant d'arriver sur la zone : une paire de MiG-29 placée sur la piste de Senaki a eu les roues hors du sol **25 à 35 s après l'alerte**, et montait à 280 m et 330 kt 45 s après (mesuré le 2026-10-10). Le groupe apparaît sur la piste, pas au parking : il n'a ni démarrage ni roulage à faire ;
 - **un terrain trop endommagé ou pris** (sous `airbaseMinLifePercent`) garde la QRA au sol (`NOAIRBASE`) : dans une campagne, frapper le terrain ennemi est une façon de clouer sa QRA, et c'est voulu ;
 - **une unité sur la piste** l'empêche de rouler : les garnisons d'une campagne sont tenues hors du béton pour cette raison ;
 - **dix minutes pour décoller** (`veafQraManager.TAKEOFF_TIMEOUT`) : tant qu'un groupe n'a pas encore été vu en l'air, il roule, il n'est pas posé ; resté au sol au-delà, il est tenu pour coincé et la QRA est réarmée. Un groupe qui a volé puis se pose est réarmé comme avant.

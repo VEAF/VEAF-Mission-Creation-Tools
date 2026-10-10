@@ -54,7 +54,7 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
-### R47. What *Kolkhida* mission 1 found, once fixed — **a pilot for items 1 to 3**
+### R47. What *Kolkhida* mission 1 found, once fixed — **a pilot for items 1 to 3, two for item 7**
 
 [`FIX-CAMPAIGN-MISSION-1-FINDINGS`](.backlog/FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md), and ticket 02 of [`FIX-CAPTURE-ZONE-MEMBERSHIP`](.backlog/FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md).
 Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolkhida`, mission 1 rebuilt as flown, fiddle hook): every stand of Batumi and Senaki is on `RUNWAY` surface; a CH-47F inside Batumi's zone gets *Request Equipment* and no crate, because CTLD creates it under the USA, absent from a campaign's coalitions (fixed in VEAF/CTLD, to be vendored); "Escort me" spawns its escort locally, from a placed slot in the air and from a dynamic slot on the ground.
@@ -78,6 +78,10 @@ Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolk
 6. *(`FIX-CAPTURE-ZONE-MEMBERSHIP` ticket 02)* Let the blue convoy reach Poti.
    - **Verified**: it drives on after the capture, to within a few hundred metres of the centre (its road ends 163 m from it).
    - **Re-opened, it stops about 2.1 km out**: the convoy's route in the running mission (the fiddle hook, read-only) — as on 2026-10-08, when its units stood 2 123–2 182 m out in the state file.
+7. *([`FEAT-OPPOSITION-SCALES-WITH-PLAYERS`](.backlog/FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md) ticket 05)* The opposition counts the players on CAP only: mission 1 rebuilt with `campaign next`, so its `opposition:` block reads `follow: air_to_air`. F10 → Opposition → *Current level*, then the A-10C in the air (bombs, AIM-9 at most) and a fighter in the air with AIM-120 (or R-77, AIM-7, R-27R).
+   - **Verified**: within a minute the level announced is 1 — the fighter, not the A-10C; F10 → Opposition → *Level* → *3 player(s) on CAP* announces 3, fixed.
+   - **Re-opened, 0**: `getAmmo` on a player aircraft does not carry `desc.missileCategory` and `desc.guidance` as the schema says — R46 item 8 gives the `fiddle.sh` dump.
+   - **Re-opened, 2**: the A-10C's AIM-9 is reported radar-guided — the same dump says which field to read.
 
 ### R46. The opposition level, from the shipped build — **one pilot for item 3**
 

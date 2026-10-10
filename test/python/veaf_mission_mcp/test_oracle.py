@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from veaf_mission_mcp.oracle import (
     _command_category,
+    describe_authoring_guide,
     describe_known_limitations,
     describe_module,
     describe_naming_conventions,
@@ -104,6 +105,32 @@ def test_describe_known_limitations_is_in_the_catalogue() -> None:
     register_default_actions(catalog)
     assert "describe_known_limitations" in {spec.name for spec in catalog.list_catalog()}
     assert catalog.run_action("describe_known_limitations", {"kind": "tool"})["limitations"]
+
+
+def test_describe_authoring_guide_returns_the_plugin_skill_verbatim() -> None:
+    """FEAT-AI-ASSISTANT-ANY-CLIENT: one copy of the guidance, the plugin's, served to any MCP client."""
+    skill = Path(__file__).parents[3] / "plugin" / "skills" / "veaf-mission-authoring" / "SKILL.md"
+    assert describe_authoring_guide() == {"guide": skill.read_text(encoding="utf-8")}
+
+
+def test_describe_authoring_guide_reads_the_bundled_copy_in_the_executable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """In the exe there is no plugin/ folder: the copy the build bundles is the one read."""
+    bundled = tmp_path / "veaf_mission_mcp" / "data" / "SKILL.md"
+    bundled.parent.mkdir(parents=True)
+    bundled.write_text("bundled guide", encoding="utf-8")
+    monkeypatch.setattr("sys._MEIPASS", str(tmp_path), raising=False)
+    assert describe_authoring_guide() == {"guide": "bundled guide"}
+
+
+def test_describe_authoring_guide_is_in_the_catalogue() -> None:
+    from veaf_mission_mcp.actions import register_default_actions
+    from veaf_mission_mcp.catalog import ActionCatalog
+
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    assert "veaf-mission-authoring" in catalog.run_action("describe_authoring_guide", {})["guide"]
 
 
 def test_describe_naming_conventions_lists_the_reserved_patterns() -> None:

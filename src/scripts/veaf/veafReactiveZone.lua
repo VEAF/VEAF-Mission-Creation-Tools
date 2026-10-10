@@ -226,6 +226,27 @@ function veafReactiveZone.pickGroups(groups, number, bias)
   return groups
 end
 
+--- Like `pickGroups`, but drawn without replacement: a group is never picked twice, and the draw stops
+--- when the list is exhausted. A QRA tier saying "2 of [MiG-29, Su-27]" means both, not the same pair
+--- twice — which, for an editor group respawned by name, is that pair once
+--- (FEAT-OPPOSITION-SCALES-WITH-PLAYERS). The air waves keep `pickGroups`: their `number` may exceed
+--- the list on purpose.
+function veafReactiveZone.pickDistinctGroups(groups, number, bias)
+  if type(groups) == "table" and type(number) == "number" and type(bias) == "number" then
+    local remaining = {}
+    for _, group in ipairs(groups) do
+      table.insert(remaining, group)
+    end
+    local result = {}
+    while #result < number and #remaining > 0 do
+      local index = math.min(math.max(math.random(1, #remaining) + bias, 1), #remaining)
+      table.insert(result, table.remove(remaining, index))
+    end
+    return result
+  end
+  return groups
+end
+
 --- Spawn each entry around the zone, and return the names of the groups that reached DCS.
 ---
 --- An entry starting with `[` or `-` is a VEAF command, optionally prefixed with `[latDelta,lonDelta]`

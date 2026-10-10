@@ -2,9 +2,44 @@
 
 Intégrez le framework Lua VEAF dans vos missions DCS World pour offrir à vos joueurs du spawning dynamique, des zones de combat, des assets gérés, et plus — sans placer des centaines d'unités dans l'éditeur.
 
-> **Vous débutez ?** Lisez [Découvrir VMCT en dix minutes](DISCOVER.md) pour la vue d'ensemble, puis
-> suivez le [tutoriel](TUTORIAL.md), du dossier vide à la mission qui tourne. Les
-> [fiches par concept](concepts/README.md) sont ce que vous rouvrez ensuite, une par une.
+<div class="grid cards" markdown>
+
+-   :material-compass-outline:{ .lg .middle } **Découvrir VMCT**
+
+    ---
+
+    La vue d'ensemble, en dix minutes.
+
+    [:octicons-arrow-right-24: Découvrir VMCT](DISCOVER.md)
+
+-   :material-hammer-wrench:{ .lg .middle } **Ma première mission**
+
+    ---
+
+    Le tutoriel, du dossier vide à la mission qui tourne.
+
+    [:octicons-arrow-right-24: Tutoriel](TUTORIAL.md)
+
+-   :material-robot-outline:{ .lg .middle } **Créer avec une IA**
+
+    ---
+
+    Claude, Gemini ou une autre IA : vous décrivez la mission, elle la construit.
+
+    [:octicons-arrow-right-24: Installer l'assistant IA](AI_ASSISTANT_INSTALL.md)
+
+-   :material-file-restore-outline:{ .lg .middle } **Reprendre une mission**
+
+    ---
+
+    Une mission VEAF v5 à passer en v6, ou celle d'un autre auteur à adopter.
+
+    [:octicons-arrow-right-24: Migrer une mission v5](MIGRATION_GUIDE.md)<br>
+    [:octicons-arrow-right-24: Adopter une mission tierce](CONVERT_OTHER.md)
+
+</div>
+
+Les [fiches par concept](concepts/README.md) sont ce que vous rouvrez ensuite, une par une.
 
 ---
 

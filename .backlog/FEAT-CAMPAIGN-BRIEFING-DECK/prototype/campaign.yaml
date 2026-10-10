@@ -1,0 +1,41 @@
+# ---------------------------------------------------------------------------
+# Opération Kolkhida — a short campaign on the Colchis plain, three missions
+# ---------------------------------------------------------------------------
+# Blue holds Batumi and Kobuleti. Red has pushed down to Senaki and holds the road
+# north to Zugdidi; its supplies come through the depot at Khobi. Poti, the port,
+# is in nobody's hands. Blue has three missions to take Senaki and cut the depot.
+# ---------------------------------------------------------------------------
+
+campaign:
+  name: Kolkhida
+  theatre: Caucasus
+  era: MODERN
+  missions: 3
+  player_side: blue
+  objectives:
+    - capture: [Senaki]
+    - destroy: { zone: Khobi depot, kind: logistics }
+
+zones:
+  # blue
+  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue }
+  - { name: Kobuleti, at: { airfield: Kobuleti }, size: airfield, side: blue }
+  # nobody's
+  - { name: Poti, at: { lat: 42.150, lon: 41.670 }, size: outpost, side: neutral }
+  # red
+  - { name: Khobi depot, at: { lat: 42.315, lon: 41.900 }, size: outpost, side: red, kind: logistics }
+  - { name: Senaki, at: { airfield: Senaki-Kolkhi }, size: airfield, side: red, radius: 3000 }
+  - { name: Zugdidi, at: { lat: 42.510, lon: 41.870 }, size: outpost, side: red }
+
+connections:
+  - [Batumi, Kobuleti]
+  - [Kobuleti, Poti]
+  - [Poti, Senaki]
+  - [Poti, Khobi depot]
+  - [Khobi depot, Senaki]
+  - [Khobi depot, Zugdidi]
+  - [Senaki, Zugdidi]
+
+sides:
+  blue: { reserve: { armor: 4, air_defense: 2, transport: 3 } }
+  red: { reserve: { armor: 6, air_defense: 3, transport: 4 } }

@@ -17,6 +17,7 @@ from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
+from veaf_mission_mcp.campaign import campaign_apply, campaign_briefing, campaign_next, campaign_status
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import add_combat_operation, create_cap_mission, create_combat_zone, create_qra
@@ -44,6 +45,7 @@ from veaf_mission_mcp.map_tools import describe_map, list_airfields, resolve_coo
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
+    describe_authoring_guide,
     describe_known_limitations,
     describe_module,
     describe_naming_conventions,
@@ -726,8 +728,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="add_group",
             description=(
                 "Insert a ground/vehicle group into a mission, in place, backed up first. Mirrors "
-                "adding a group by hand in the DCS Mission Editor -- not deduplicated, calling this "
-                "twice creates two groups. Target a mission FOLDER for a durable group in the recipe "
+                "adding a group by hand in the DCS Mission Editor; a group or unit name the mission "
+                "already holds is REFUSED, naming its holder (DCS would resolve either). "
+                "Target a mission FOLDER for a durable group in the recipe "
                 "(survives rebuild) -- e.g. a permanent SAM via a '#veafInterpreter[\"-samLR\"]' unit "
                 "name -- or a .miz for a transient edit of the built mission."
             ),
@@ -957,7 +960,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the mission carries; a western flight NAMED like its callsign ('Texaco 2', 'Magic 1') gets "
                 "that callsign (Texaco21...) when its family fits the task and the flight is free, else the "
                 "next free one and a warning. A fighting task (Escort, CAP, CAS, SEAD...) with no pylons "
-                "warns for an AI flight. Target a FOLDER (durable) or .miz (transient); backed up first."
+                "warns for an AI flight. An AWACS or a tanker is called on its frequency_mhz: add that "
+                "channel to the players' coalition in src/presets.yaml in the same pass, or every radio "
+                "and kneeboard keeps the scaffold's plan and the build lists it as reached by no preset. "
+                "Target a FOLDER (durable) or .miz (transient); backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -1075,7 +1081,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "account of references -- you may well mean it -- but it NAMES the ones that would "
                 "break in silence: a combat zone capturing the group by name prefix, an Escort task "
                 "pointing at its group id, and a mission.yaml modules.ASSETS entry naming it. "
-                "Target a FOLDER (durable) or .miz (transient); backed up first."
+                "A name SEVERAL groups share is refused, listing their group ids: pass group_id to "
+                "say which one goes. Target a FOLDER (durable) or .miz (transient); backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -1087,6 +1094,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "group_name": {
                         "type": "string",
                         "description": "The group's EXACT name -- as describe_units reports it, not a fragment.",
+                    },
+                    "group_id": {
+                        "type": "integer",
+                        "description": "Which group, when several carry that name (the refusal lists their ids).",
                     },
                 },
                 "required": ["target", "group_name"],
@@ -1409,6 +1420,137 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_mission_setting(Path(p["mission_yaml_path"]), p["key"], p["value"]),
+    )
+    _campaign_folder = {
+        "type": "string",
+        "description": "Path to the campaign folder (campaign.yaml, campaign-state.yaml, template/, missions/).",
+    }
+    catalog.register(
+        ActionSpec(
+            name="campaign_status",
+            description=(
+                "Read where a multi-mission campaign stands: missions flown, each zone's owner, garrison "
+                "strength, kind and neighbours, both sides' ground reserves, each campaign objective met or "
+                "not, and what changed in the last mission. Call it FIRST, before deciding the next "
+                "mission: the enemy's intent for the turn (where it reinforces, what it defends) is yours "
+                "to decide from this, and goes into the next mission's briefing. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {"campaign_folder": _campaign_folder},
+                "required": ["campaign_folder"],
+            },
+        ),
+        handler=lambda p: campaign_status(Path(p["campaign_folder"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="campaign_apply",
+            description=(
+                "Apply a flown campaign mission: merge the state file the mission wrote "
+                "(Saved Games/DCS/Missions/Saves/<campaign>/mission-NN.state, fetched from the server) into "
+                "the campaign state, then play the fixed rules of the turn between missions (logistics feed "
+                "the reserves, the reserves repair garrisons, a neutral zone bordered by one side only is "
+                "retaken by it) and judge the objectives. Refuses a file already applied, from another "
+                "campaign, or skipping a mission; nothing is written then. Keeps the before/after state "
+                "and a factual debriefing (French and English) under missions/mission-NN/, and returns "
+                "that debriefing: tell it to the squadron as the story of the evening when asked -- who "
+                "lost what where, what changed hands, what the enemy will make of it -- keeping to its "
+                "facts."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "campaign_folder": _campaign_folder,
+                    "state_file": {"type": "string", "description": "The state file the mission wrote."},
+                },
+                "required": ["campaign_folder", "state_file"],
+            },
+        ),
+        handler=lambda p: campaign_apply(Path(p["campaign_folder"]), Path(p["state_file"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="campaign_next",
+            description=(
+                "Lay down the next campaign mission's FOLDER (missions/mission-NN/mission), copied from the "
+                "campaign's template/ mission folder on the first run and only refreshed afterwards, so the "
+                "design already done in it survives: every campaign airbase given to its owner (dynamic "
+                "slots for each side's bases, none on a neutral one), the campaign data table the runtime "
+                "reads (garrisons with their losses, reserves, destroyed scenery), the CAMPAIGN module "
+                "turned on in mission.yaml, the strategic situation as the mission's DCS briefing on a "
+                "folder it creates, and the strategic briefing deck next to it (see campaign_briefing). "
+                "A folder it CREATES also gets its date, start time and weather, FIXED in the mission: ONE "
+                "mission, NO weather variant (pipeline.weather: false, no src/versions.yaml -- never add "
+                "one back). The date is the day after the last mission flown (campaign.yaml start_date for "
+                "the first), the time campaign.yaml start_time (default sunrise+30*60) computed on the "
+                "campaign's own ground, the weather drawn within ground-visible limits (clear, few or "
+                "scattered clouds, visibility 8 km or more, no fog, no rain: CAVOK or nearly), returned in "
+                "`conditions`. YOU set the date and time from the campaign's progress, in every campaign "
+                "mission you prepare: move the date on further when the story needs it, set the hour the "
+                "mission wants (set_mission_date); you may change the weather (set_weather) but keep the "
+                "ground visible. A refresh keeps what you set. "
+                "Returns the folder and the FACTUAL part of the strategic briefing in French and English: "
+                "design the mission on top of that folder with the other actions. When you write the DCS "
+                "briefing (set_briefing), ADD to the factual block already there, never replace it. "
+                "PLAYERS: ask the mission maker how many players are expected tonight and pass it as "
+                "'players' (6, or a range \"5-7\"); without it, campaign.yaml's players is used. It writes "
+                "the mission's opposition: block (level = the most expected, following the players "
+                "airborne armed for air-to-air, the ones flying CAP). Give the enemy QRA tiers by enemy count up to that size (see create_qra)."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "campaign_folder": _campaign_folder,
+                    "players": {
+                        "type": ["integer", "string"],
+                        "description": 'Players expected tonight: a count (6) or a range ("5-7").',
+                    },
+                },
+                "required": ["campaign_folder"],
+            },
+        ),
+        handler=lambda p: campaign_next(Path(p["campaign_folder"]), p.get("players")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="campaign_briefing",
+            description=(
+                "Write the coming mission's strategic briefing deck (missions/mission-NN/"
+                "briefing-campagne.pptx, VEAF briefing template, imports into Google Slides) and its "
+                "strategic map; once the mission is BUILT (a .miz in missions/mission-NN/mission), also its "
+                "own MISSION briefing (briefing-mission.pptx, returned in `mission_deck`): general "
+                "situation, ATO, tactical map and one zoom per objective, mission flow, frequency plan, "
+                "objective coordinates -- read from the built mission (flights, support, carrier, QRA, "
+                "date, time, weather), so build first, and call it again after any change to the mission. "
+                "Its objectives are the zones the mission's task titles name in briefing.yaml. "
+                "The tools generate the FACTS: the enemy as uneven intelligence, the "
+                "friendly positions and reserves, the map, the conditions of victory, and an annex of the "
+                "campaign's rules. The PROSE is yours, in briefing.yaml next to campaign.yaml (sections "
+                "returned in `sections`; texts are a string or a list of paragraphs, quoted when they hold ': '): "
+                "operation, subtitle; "
+                "situation.political / economic / enemy_course_of_action / friendly; mission; "
+                "intent.purpose / main_effect / method / end_state; objectives.political / military / "
+                "economic; concept.phases (one {title, text} per mission at most) and concept.attention; "
+                "rules_of_engagement.targeting / civilians / self_defence; missions: {N: {title, tasks: "
+                "[{title, text}]}}. Write it as a MILITARY SITUATION BRIEF, the language of a staff: "
+                "political, economic and military situation, mission and intent, objectives by nature, "
+                "concept by phase, rules of engagement. NO GAME MECHANICS in it -- garrisons drawn from a "
+                "reserve, a capture clock, a circle to hold belong to the generated annex. The ENEMY STAYS "
+                "MYSTERIOUS: no figure, no count, intelligence of uneven quality; a fixed site (a long-range "
+                "SAM) is named by the tools once the campaign state records it, never before. The scenario "
+                "is fiction on real ground: places from geocode / list_airfields, never from memory. After "
+                "each mission, rewrite the coming mission's page and the concept's progress from the "
+                "debriefing campaign_apply returned, and keep the rest unless the situation changed it. "
+                "Give zones a display_name in campaign.yaml when their name is not the players' language."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {"campaign_folder": _campaign_folder},
+                "required": ["campaign_folder"],
+            },
+        ),
+        handler=lambda p: campaign_briefing(Path(p["campaign_folder"])),
     )
     catalog.register(
         ActionSpec(
@@ -1868,15 +2010,25 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Lay down a complete VEAF QRA in a mission FOLDER, one pass, both worlds (no build): "
                 "a trigger zone + Late-Activation interceptor group(s) on the given coalition in "
                 "src/mission, and an appended modules.QRA.definitions[] entry in mission.yaml "
-                "referencing the group names verbatim. Interceptors are built AIRBORNE and fuelled "
-                "(one aircraft type per group); give them a loadout with 'pylons', a DCS loadout by name "
+                "referencing the group names verbatim. Interceptors take off FROM THE RUNWAY by default -- "
+                "their coalition's airfield nearest the zone, or the group's 'airfield' -- and the QRA "
+                "module climbs them to their patrol; 'start': 'air' puts one in the air at its position "
+                "instead, only when asked. With no airfield of the coalition (or no parking data for the "
+                "theatre) the default falls back to the air and says so. Fuelled, one aircraft type per "
+                "group; give them a loadout with 'pylons', a DCS loadout by name "
                 "with 'payload' (list_payloads), or copy one with "
                 "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
                 "unarmed interceptor intercepts nothing. Each group gets a single waypoint and no task "
                 "on purpose: when it scrambles, the QRA module gives a CAP/Intercept group whose route "
                 "engages no aircraft its job -- a patrol across the zone and engagement of what enters "
                 "it. Do not add waypoints to such a group without an EngageTargets (Air) task, or that "
-                "route is replaced."
+                "route is replaced. SIZE IT TO THE PLAYERS: in 'qra', give groups_by_enemy_count tiers "
+                "({enemy_count, groups}, every group of the tier scrambles; add random_pick to draw that "
+                "many instead, never the same group twice), the biggest tier sized to the squadron's "
+                "expected size -- never a single fixed pair against 5 players or more. "
+                "scale_with_opposition: true picks the tier from the mission's opposition level (the "
+                "opposition: block of mission.yaml) when it is higher than the aircraft in the zone; "
+                "rearm_while_occupied: true rearms a dead QRA without waiting for its zone to clear."
             ),
             parameters_schema={
                 "type": "object",
@@ -1908,6 +2060,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                 "altitude_ft": {"type": "number", "default": 15000},
                                 "speed_kt": {"type": "number", "default": 350},
                                 "task": {"type": "string", "default": "Intercept"},
+                                "start": {
+                                    "type": "string",
+                                    "enum": ["runway", "air"],
+                                    "default": "runway",
+                                    "description": "runway (the default): take off from 'airfield'; air: at "
+                                    "'position', 'altitude_ft' -- only when asked.",
+                                },
+                                "airfield": {
+                                    "type": "string",
+                                    "description": "Airfield NAME a runway start takes off from; default: the "
+                                    "coalition's airfield nearest the zone's centre.",
+                                },
                                 "pylons": {
                                     "type": "object",
                                     "description": 'Loadout, {station: {"CLSID": ...}} as the mission file stores it.',
@@ -2288,6 +2452,19 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="describe_authoring_guide",
+            description=(
+                "Read this first, before any other action, unless you have the veaf-mission-authoring "
+                "skill: load that instead, it is the same text. Returns the VEAF mission authoring guide: the "
+                "order of work, the reserved naming conventions, combat zone vs QRA groups, and which "
+                "actions to consult instead of guessing. Read-only."
+            ),
+            parameters_schema={"type": "object", "properties": {}},
+        ),
+        handler=lambda _p: describe_authoring_guide(),
+    )
+    catalog.register(
+        ActionSpec(
             name="describe_known_limitations",
             description=(
                 "Read this before building a mission. Returns, for the running veaf-tools version, "
@@ -2653,7 +2830,7 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def _handle_remove_group(params: dict[str, Any]) -> dict[str, Any]:
-    return remove_group(Path(params["target"]), group_name=params["group_name"])
+    return remove_group(Path(params["target"]), group_name=params["group_name"], group_id=params.get("group_id"))
 
 
 def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:

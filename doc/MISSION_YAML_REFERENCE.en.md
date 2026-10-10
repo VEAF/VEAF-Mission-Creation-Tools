@@ -408,6 +408,8 @@ modules:
       create_menus: false       # no VEAF radio menu; commands via markers only
 ```
 
+**`RADIO` diagnostic option** (outside `init:`): `menu_stats: true` writes to `dcs.log`, on every refresh, the F10 menu's size and what changed. Turn it on temporarily in a real mission to watch the menu in multiplayer — see [Watching the F10 menu](mission-maker/scripts/veafRadio.en.md#menu-stats).
+
 **Community scripts** are listed in the same block, using their IDs (case does not matter: `CTLD:` and `ctld:` are equivalent). When a script is absent from `modules:`, it keeps its default state — included for the *opt-out* scripts, excluded for the two *opt-in* ones (`MIST` and `TUM`, see below). Set a script to `false` to exclude it:
 
 Because that default is easy to misread, generated files (`prepare --template`, `convert-v5`) and the shipped `mission.yaml` **always** write the five *opt-out* scripts (`STTS`, `CTLD`, `AIEN`, `CSAR`, `SKYNET`) out, at `true` or `false`: the state of a community script is never inferred from silence.
@@ -465,6 +467,7 @@ modules:
 | `AIRWAVES` | veafAirWaves | [veafAirWaves](mission-maker/scripts/veafAirWaves.en.md) |
 | `QRA` | veafQraManager | [veafQraManager](mission-maker/scripts/veafQraManager.en.md) |
 | `CASMISSION` | veafCasMission | [veafCasMission](mission-maker/scripts/veafCasMission.en.md) |
+| `CAMPAIGN` | veafCampaign | [veafCampaign](mission-maker/scripts/veafCampaign.en.md) |
 | `COMBATMISSION` | veafCombatMission | — |
 | `SPAWN` | veafSpawn | [veafSpawn](mission-maker/scripts/veafSpawn.en.md) |
 | `MOVE` | veafMove | [veafMove](mission-maker/scripts/veafMove.en.md) |
@@ -503,6 +506,23 @@ modules:
 Each node of `tree` is either a submenu (`{ menu: "...", items: [...] }`, recursive) or a command (`{ command: "...", action: <verb>, <keys> }`). The action vocabulary is closed (`qra.start`/`qra.stop`, `airwave.start`/`airwave.stop`/`airwave.reset`, `flag.on`/`flag.off`/`flag.set`/`flag.increment`/`flag.decrement`, `message`, `lua`). A `lua` action references a function defined in `mission-script.lua`: if the function is missing, the build fails.
 
 See the full schema, the action table and a detailed example in [veafRadio → Radio menus in YAML](mission-maker/scripts/veafRadio.en.md#radio-menus-in-yaml).
+
+---
+
+### `modules.CAMPAIGN` — a campaign mission {#campaign-module}
+
+Turned on and filled by `veaf-tools campaign next`, never by hand: it makes the mission one episode of a [multi-mission campaign](mission-maker/CAMPAIGN.en.md).
+
+```yaml
+modules:
+  CAMPAIGN:
+    enable: true
+    data_file: src/campaign-data.yaml
+```
+
+| Key | Role |
+|---|---|
+| `data_file` | the file, relative to the mission folder, the build turns into the `veafCampaign.data` table (zones, garrisons, reserves, destroyed scenery); read at build, never handed to the runtime as is |
 
 ---
 

@@ -16,7 +16,7 @@
 #
 # Fields: id (unique, kebab-case), kind (tool|dcs), area, title, symptom, workaround, cost (what it
 # broke; optional), measured (YYYY-MM-DD, required for dcs), fixed_in (tool only, optional).
-# `area` groups the entries: spawning, air-defence, players, radio (dcs); mcp, pipeline, runtime (tool).
+# `area` groups the entries: spawning, air-defence, players, radio, ground-ai (dcs); mcp, pipeline, runtime (tool).
 # symptom / workaround / cost are Markdown.
 
 limitations:
@@ -138,6 +138,64 @@ limitations:
   cost: |
     The whole-map 200 m pass FEAT-CLEAR-GROUND-AT-AUTHORING first planned would have promised
     clearings in woods; ticket 01 measured it before it was built.
+
+- id: arrow-to-all-slides-on-the-f10-map
+  kind: dcs
+  area: players
+  title: "An `arrowToAll` slides away from its points as the F10 map is panned, and its tip is the first point"
+  measured: "2026-10-08"
+  symptom: |
+    Observed by David on *Kolkhida* mission 1 (Caucasus, Colchis plain): each assault-convoy arrow,
+    drawn with `arrowToAll(-1, id, source, target, …)`, was right only fully zoomed in; panned, even
+    zoomed, it slid away "as if on another plane", about 25 % longer than its axis. Points at `y = 0`
+    and points at the terrain height (`land.getHeight`) gave the same picture. `circleToAll`,
+    `lineToAll` and their labels, at `y = 0`, held still.
+
+    **The tip is the first point**, not the second: the arrows pointed at their source. MOOSE
+    (`COORDINATE:ArrowToAll`, `Core/Point.lua`) passes the tip first, and so do `veaf.lua` and the
+    Skynet spotter tests; the DCS schema shipped in `veaf_libs/data/dcs-schema/dcs-world-api.lua`
+    says the opposite and is wrong. MOOSE has nothing against the sliding: a plain call, "no control
+    over other dimensions of the arrow".
+  workaround: |
+    Draw a direction with `lineToAll` in the side's colour rather than an arrow — the campaign's axes
+    since FIX-CAMPAIGN-ARROW-ALTITUDE; the Skynet spotter view had already dropped arrows for their
+    8 km heads. An arrow that must stay: tip first.
+
+- id: lua-chunk-over-200-locals-is-refused
+  kind: dcs
+  area: scripting
+  title: "A Lua file with more than 200 top-level locals is refused whole"
+  measured: "2026-10-08"
+  symptom: |
+    DCS runs Lua 5.1, which accepts at most 200 active `local` variables in one function — and a
+    script file's top level is one function. Past that, the file does not load at all:
+    `Mission script error: [string "l10n/DEFAULT/veaf-scripts.lua"]:81100: main function has more
+    than 200 local variables`. Nothing in the file runs, and every later script that uses it fails
+    in turn (`attempt to index global 'veaf' (a nil value)`).
+
+    Measured on the VEAF bundle, which concatenates every module into one file: 190 top-level
+    `local` lines loaded on 2026-10-07, 198 lines (202 names) failed on 2026-10-08, after the
+    campaign, opposition and convoy modules were added. Every module loaded alone was fine.
+  workaround: |
+    Wrap each part of a long script in its own `do ... end` block: its locals die at its `end`, and
+    the limit applies per block. The VEAF build does it for every module since
+    FIX-BUNDLE-LOCAL-LIMIT. In a hand-written `mission-script.lua`, keep state in a table
+    (`myMission = {}`) rather than in hundreds of top-level locals.
+  cost: |
+    *Kolkhida* mission 1, rebuilt from `develop` the afternoon it was to be flown, loaded no VEAF
+    module; no test had ever run the concatenated bundle.
+
+- id: assault-convoy-garrison-keeps-its-convoy-behaviour
+  kind: tool
+  area: runtime
+  title: "An assault convoy that took a zone is its garrison, and still a convoy"
+  symptom: |
+    When a campaign's assault convoy captures a neutral zone, its survivors become the zone's
+    garrison where they stand, but `veafGroundAI` still drives them as a convoy under fire: at the
+    next contact they may split and fall back, leaving the zone they are recorded as garrisoning.
+    The next mission spawns them back in the zone, at the positions recorded at the capture.
+  workaround: |
+    None in flight; an escorted convoy rarely meets a second contact after taking its zone.
 
 - id: clear-ground-covers-what-was-swept
   kind: tool
@@ -298,6 +356,10 @@ limitations:
     | `ZSU-23-4 Shilka`, `Roland ADS` | `SAM elements` | **0 — blind** |
     | `Kub 1S91 str`, `Osa 9A33 ln` | `SAM elements` | **0 — blind** |
     | `Ural-375` | `Unarmed vehicles` | 3 000 m |
+
+    The zero is VEAF's, and deliberate: DCS does give the Shilka and the Osa optics, but `SAM elements`
+    are covered by Skynet's last line of defence, and a second competing radius would make one of the
+    two settings dead weight (`veafSkynetIadsHelper.lua`, above `SpotterUnitTable`).
   workaround: Use manpads or ordinary vehicles as spotters, not air-defence vehicles.
 
 - id: game-master-marks-are-coalition-scoped
@@ -609,6 +671,24 @@ limitations:
     The combat zone watchdog counted every static it found, so **a zone holding a static never
     completed** — and the F10 report kept listing the destroyed targets. Found by the test mission of
     FEAT-OBJECTIVE-MISSION-PROMPT, whose static zone stayed open with its truck destroyed.
+- id: destroyed-units-are-still-found-by-searchobjects
+  kind: dcs
+  area: spawning
+  title: "`world.searchObjects` still finds ground units after their destruction"
+  measured: "2026-10-06"
+  symptom: |
+    A volume search (`world.searchObjects(Object.Category.UNIT, …)`) around a garrison destroyed by
+    explosions keeps returning its units with their coalition, as if they still held the ground.
+    Measured on Caucasus at Senaki with a red garrison killed by `-shell`: without a filter the zone
+    stayed contested by red for minutes, two blue M1A2 in it and no live red unit on the F10 map; with
+    `isExist()` and `getLife() >= 1` tested, the same search right after the last death answered nobody.
+    Which of the two tests rejects the wrecks was not isolated.
+  workaround: |
+    Filter every object a search returns: `isExist()` true and `getLife()` at least 1.
+    `veafCampaign.holdsGround` does both.
+  cost: |
+    A campaign zone whose garrison was destroyed could never be captured: the wrecks held it for the
+    side that had lost it. Found in the first two-mission test of FEAT-MULTI-MISSION-CAMPAIGN.
 - id: unit-getbyname-misses-units-sharing-a-name
   kind: dcs
   area: spawning
@@ -629,6 +709,38 @@ limitations:
   cost: |
     `_destroy, radius 2000` (`-menage`) left both tanks alive at 1 358 m and 1 405 m: the name lookup
     missed them, and nothing said so.
+- id: group-getbyid-does-not-exist
+  kind: dcs
+  area: players
+  title: "`Group.getByID` does not exist: a group id leads back to no group"
+  measured: "2026-10-10"
+  symptom: |
+    The scripting API resolves a group by name only (`Group.getByName`). `Group.getByID` reads `nil` in
+    a running mission (`private1`, read through the hook's `/code`), so code written as
+    `Group.getByID and Group.getByID(id)` raises nothing and always gets `nil`.
+  workaround: |
+    From a group id — the only identity an F10 `ForGroup` command carries — scan the players:
+    `coalition.getPlayers(side)` for each coalition, keeping the units whose `getGroup():getID()` is
+    that id (`veafSecurity.getGroupOccupantUnitNames`). For any group, keep its name or the object.
+  cost: |
+    Every secured `+` radio command refused to every pilot from 6.14.0 on
+    (`secured-radio-commands-refused-to-everybody`).
+- id: secured-radio-commands-refused-to-everybody
+  kind: tool
+  area: runtime
+  title: Every secured `+` F10 command was refused, whatever the pilot's level
+  fixed_in: "6.29.0"
+  symptom: |
+    From 6.14.0, a group's level was computed from `Group.getByID`, which DCS does not have
+    (`group-getbyid-does-not-exist`): every group read as empty, level 0, and a mission running with
+    security on refused every `+` command — *"This '+' command needs level 1; your group acts at level 0
+    (its lowest pilot)"* — to a level-99 pilot as to an unlisted one. And a mission whose `mission.yaml` left `SECURITY`
+    out (the `prepare` templates commented it) answered *unknown command* to the `/secu elevate` the
+    refusal suggests. Since FIX-SECURITY-GROUP-LEVEL the group is found from the players, and a
+    mission with `RADIO` always initialises `SECURITY`.
+  workaround: |
+    Before 6.29.0, run the mission with `security: disabled: true`: the `+` commands are then open to
+    everybody.
 - id: aircraft-at-the-end-of-its-route-lands
   kind: dcs
   area: spawning
@@ -880,3 +992,285 @@ limitations:
   workaround: |
     `active_at_start: true`, the `-zonestart` marker command, or a menu of your own calling
     `veafCombatZone.ActivateZone`.
+
+- id: campaign-records-more-than-it-replays
+  kind: tool
+  area: runtime
+  title: "A campaign mission records destroyed scenery, SAM missiles left and warehouse stocks, but the next mission does not replay them yet"
+  symptom: |
+    The state file of a multi-mission campaign carries the scenery destroyed in flight, the missiles
+    each surviving air-defence unit has left and every campaign airbase's warehouse content
+    (FEAT-MULTI-MISSION-CAMPAIGN, tickets 06 and 07). The next mission starts with a bridge standing
+    again, a SAM fully loaded and its airbase stocked as the template says: how to make an object
+    start destroyed, whether a unit can start a mission with fewer missiles, and how exact the
+    warehouse counts read in flight are, are still to be measured in game.
+  workaround: |
+    Garrisons, their losses, owners, captures and reserves are replayed. For a bridge or a depot that
+    must stay down, make it a zone (`kind: logistics` for a depot) rather than relying on the scenery.
+
+- id: airbase-getpoint-is-not-the-runways-centre
+  kind: dcs
+  area: spawning
+  title: "`Airbase:getPoint()` lands about a kilometre from the runways' centre"
+  measured: "2026-10-08"
+  symptom: |
+    On 13 theatres, the point `getPoint()` returns for an airdrome is 300 m to 1.4 km (median per
+    theatre) from the middle of its runway thresholds, where the terrain's reference point — what the
+    Mission Editor and the `dcs-world-schema` reference data give — sits at a median 0 m. Nothing
+    says so: it is a valid point on the airfield's side. VMCT's airfield positions were captured with
+    `getPoint()` until FEAT-DCS-REFERENCE-DATA moved them to the reference point.
+  workaround: |
+    For "where is this airfield", use the shipped positions (`list_airfields`), which are the
+    reference points. In game, take a runway's position from `Airbase:getRunways()` rather than
+    `getPoint()` when the runway is what matters.
+
+- id: livery-is-not-validated
+  kind: tool
+  area: mcp
+  title: The MCP writes a livery id without checking it exists for the type or the country
+  symptom: |
+    `set_unit_properties` stores any `livery` it is given and warns that it is not validated. DCS
+    shows the default skin for an id it does not find, without an error. The `dcs-world-schema`
+    reference data cannot back a check: it misses zipped liveries, most of the modules' (2 of 52 for
+    the F-16C, measured 2026-10-08), and a squadron or mod skin installed on a server is legitimate
+    and absent from any stock list.
+  workaround: Check the livery in the Mission Editor, or copy it from a unit that already shows it.
+- id: a-convoy-drives-through-an-ambush
+  kind: dcs
+  area: ground-ai
+  title: "A convoy under fire drives on, and its `getDetectedTargets` can stay empty"
+  measured: "2026-10-08"
+  symptom: |
+    Measured on Caucasus east of Kutaisi, a blue convoy (armed HMMWV, Stryker, two M818) driven along a
+    road into two BMP-2 and a BTR-80 placed 400 m off it: the ambush opened fire at ~1.3 km and the
+    convoy **drove on at 10 m/s without firing a round** until its four vehicles were dead. Its group
+    `getDetectedTargets()` stayed **empty for 45 s under fire**, until one vehicle was left. The same
+    road with a Bradley in the convoy: an enemy detected at 1 227 m, 10 s before the first shot.
+    `S_EVENT_SHOOTING_START` carries its target (a convoy unit) and its shooter; some `S_EVENT_HIT` by
+    shells carry a nameless initiator; a truck's explosion raises `S_EVENT_HIT` on its neighbours with
+    the truck as the initiator.
+  workaround: |
+    Do not wait for DCS to notice: watch for the enemy yourself (`world.searchObjects`, then
+    `land.isVisible`) and react to `S_EVENT_SHOOTING_START` / `S_EVENT_HIT`, ignoring a same-coalition
+    initiator. `veafGroundAI`'s convoy watch does it (FEAT-CONVOY-UNDER-FIRE).
+  cost: |
+    Every convoy of every mission was a sitting duck: the reason for FEAT-CONVOY-UNDER-FIRE.
+- id: a-new-route-under-fire-moves-only-the-lead
+  kind: dcs
+  area: ground-ai
+  title: "A ground group given a new route under fire: only its lead obeys"
+  measured: "2026-10-08"
+  symptom: |
+    Alarm state red, ROE open fire and a new `Mission` task set at the first shot on a five-vehicle
+    convoy: the **lead** turned and drove back within 3 s, and the convoy returned fire, but the rest
+    of the column stayed where it was — a truck still on the road, destroyed, another damaged. Off
+    road, the lead itself bogged down at 0.6 m/s on a 9 km straight line across country.
+  workaround: |
+    A group moves as one: to make some vehicles leave while others stay, respawn them as their own
+    group (`coalition.addGroup` where they stand) and route that one. Keep off-road legs short.
+- id: smoke-does-not-blind-the-ai
+  kind: dcs
+  area: ground-ai
+  title: "Smoke does not blind DCS's AI"
+  measured: "2026-10-08"
+  symptom: |
+    Three `trigger.action.effectSmokeBig` (preset 7) set between two BMP-2 and their target 350 m away:
+    the BMPs **kept detecting all three targets and firing** — about 300 hits in the next 60 s, the
+    rate falling only because their 30 mm HE ran out.
+  workaround: |
+    A smoke screen is for the players' eyes, never cover. Use smoke to mark (`trigger.action.smoke`),
+    as the convoy's call for help does.
+- id: searchobjects-finds-no-trees
+  kind: dcs
+  area: ground-ai
+  title: "`world.searchObjects` finds no tree"
+  measured: "2026-10-08"
+  symptom: |
+    A `SCENERY` search of 3 km radius east of Kutaisi returned 117 objects — houses, garages, bridges,
+    39 light poles — and **no tree**. `land.isVisible` does not account for them either.
+  workaround: |
+    Forest cannot be found by script as cover; only terrain (`land.isVisible`) and the towns
+    (`veafCities`) can. `Disposition.getSimpleZones` knows where forests are, with the caveats of
+    `disposition-getsimplezones-is-a-lottery`.
+- id: ground-ai-does-not-see-what-isvisible-sees
+  kind: dcs
+  area: ground-ai
+  title: "Ground AI does not see an enemy `land.isVisible` says is in sight, and `knowTarget` does not make it"
+  measured: "2026-10-08"
+  symptom: |
+    Two Bradleys halted 1.9 km from a BMP-2 and a BTR-80 on flat ground, in sight by `land.isVisible`:
+    in two minutes **neither side fired a round**; the Bradleys' unit-level `getDetectedTargets` stayed
+    at 0, and neither `Controller.knowTarget(enemy, true, true)` on each unit nor a `FireAtPoint` task
+    on the group made them fire (seven TOW still aboard). Sent forward, they opened fire at ~1.3 km and
+    destroyed both in 16 s. Earlier the same day, stationary trucks 1 km from BMPs, in sight by
+    `isVisible`, were never engaged in five minutes; at 350 m at once. Vegetation is the likeliest mask.
+  workaround: |
+    To make ground units fight an enemy you can see by script, send them closer — `veafGroundAI`'s
+    convoy closes in to 900 m.
+- id: addgroup-with-an-existing-name-replaces-the-group
+  kind: dcs
+  area: spawning
+  title: "`coalition.addGroup` with the name of an existing group replaces it"
+  measured: "2026-10-08"
+  symptom: |
+    A two-truck group spawned, then `coalition.addGroup` called again with the same group name and three
+    trucks: one group of that name afterwards, **the same group id**, three units, and the first group's
+    units gone (`Unit.getByName` nil) — in the same call and three seconds later.
+  workaround: |
+    Rebuilding a group under its own name is a replacement, not a duplicate; it is how the convoy merges
+    its unarmed vehicles back. It cannot carry damage over: the units come back whole.
+- id: searchobjects-sphere-overshoots-its-radius
+  kind: dcs
+  area: ground-ai
+  title: "`world.searchObjects` on a `SPHERE` returns units beyond its radius"
+  measured: "2026-10-08"
+  symptom: |
+    Caucasus, *Kolkhida* mission 1: a `SPHERE` search of radius 2000 m centred on Poti (`y = 0`) returned
+    the blue convoy's nine units at **2036 to 2077 m** from its centre, 2D and 3D alike (units at
+    `y = 5 m`); 40 s earlier, the same search had found the convoy while its nearest unit stood **2117 m**
+    away — up to about 6 % beyond the radius, by a margin nobody has explained.
+  cost: |
+    The campaign's capture trusted the search and its absorption of the assault convoy measured the exact
+    distance: the convoy took Poti, was not found in it, and a 24-unit garrison was drawn from blue's
+    reserve under it (`a-captured-zone-may-draw-a-garrison-under-its-convoy`).
+  workaround: |
+    Never mix the two answers to one question. Either filter what the search returns by the exact
+    distance, or take the search's result as the definition everywhere it is asked — the campaign does
+    the latter (`VeafCampaignZone:groundHolders`). Expect a few percent of slack beyond a sphere's radius.
+
+- id: a-captured-zone-may-draw-a-garrison-under-its-convoy
+  kind: tool
+  area: runtime
+  title: A zone taken by an assault convoy can draw a garrison from the reserve anyway
+  fixed_in: "6.29.0"
+  symptom: |
+    On *Kolkhida* mission 1 (2026-10-08), Poti was taken by the blue assault convoy, whose six units
+    were measured 0 to 90 m from the zone's centre, and the capture drew a 24-unit garrison from blue's
+    reserve instead of making the convoy the garrison: the reserve pays twice, and the zone holds the
+    convoy and a garrison. The logging FIX-ASSAULT-CONVOY-FINDINGS ticket 03 added gave the cause on the
+    next run: the capture trusted `world.searchObjects`, which found the convoy just beyond the zone's
+    radius (`searchobjects-sphere-overshoots-its-radius`), and the absorption measured the exact distance
+    (`9 unit(s) alive, 0 inside, nearest 2117 m from the centre (radius 2000)`). Two definitions of "in
+    the zone": the convoy took it and was not found in it. Since FIX-CAPTURE-ZONE-MEMBERSHIP the units the
+    capture's search found are the ones that become the garrison.
+  workaround: |
+    Before 6.29.0, none in flight: the zone keeps both the convoy and the garrison drawn for it.
+
+- id: an-airfields-concrete-is-all-runway-surface
+  kind: dcs
+  area: spawning
+  title: "`land.getSurfaceType` answers `RUNWAY` for a whole airfield's concrete: taxiways, aprons and stands too"
+  measured: "2026-10-09"
+  symptom: |
+    Sampled every 20 m over 4 km around Batumi and Senaki-Kolkhi (Caucasus), with the fiddle hook:
+    all 12 of Batumi's stands and all 70 of Senaki's stand on `RUNWAY`, and `RUNWAY` cells reach more
+    than 300 m from the runway centreline — 1 059 cells at Batumi where the runway alone (2 070 × 60 m)
+    makes about 310. A terrain check that accepts `RUNWAY` (`veaf.DRIVABLE_TERRAIN`, kept for the dams
+    DCS reports as `RUNWAY`) therefore places vehicles on runways, taxiways and parking alike: on
+    *Kolkhida* mission 1 a Patriot on Batumi's runway and armour on Senaki's.
+  workaround: |
+    To keep something off an airfield, refuse the `RUNWAY` surface for each unit's own position
+    (`veafCampaign.isOnConcrete`), not only for the group's anchor: a group spreads its units around it.
+
+- id: campaign-garrisons-on-the-runways
+  kind: tool
+  area: runtime
+  title: A campaign's airfield garrison could stand on the runways, taxiways and parking
+  fixed_in: "6.29.0"
+  symptom: |
+    `drawGarrison` placed its groups with `veaf.DRIVABLE_TERRAIN`, which accepts `RUNWAY`
+    (`an-airfields-concrete-is-all-runway-surface`): *Kolkhida* mission 1 had a Patriot on Batumi's
+    runway, blue's only loss of the evening, and ground units on Senaki's, which would keep a QRA there
+    on the ground. Since FIX-CAMPAIGN-MISSION-1-FINDINGS a garrison keeps off the concrete, and a unit
+    recorded on it is moved to the nearest bare ground when it spawns again.
+  workaround: |
+    Before 6.29.0, none: the garrison is drawn once and comes back where it was.
+
+- id: airfields-were-no-troop-pickup-zones
+  kind: tool
+  area: runtime
+  title: A held airfield was a CTLD logistic zone but no troop pickup zone
+  fixed_in: "6.29.0"
+  symptom: |
+    VEAF registered every held airfield with `registerFOBAsLogistic` and never `registerFOBAsTroopZone`:
+    on *Kolkhida* mission 1 a CH-47F at Batumi or Kobuleti could not take troops, which only the
+    carrier offered. Since FIX-CAMPAIGN-MISSION-1-FINDINGS the airfield's zone is both, and both follow
+    the field's owner.
+  workaround: |
+    Before 6.29.0, a troop pickup zone (`TRZ_`) placed in the editor at the airfield.
+
+- id: ctld-crates-need-usa-or-russia-in-the-mission
+  kind: tool
+  area: runtime
+  title: CTLD creates its crates under the USA or Russia, and a mission without them gets no crate
+  symptom: |
+    Asked for a crate with no country, CTLD 2.0.0-rc12 creates the static under `country.id.USA` (blue)
+    or `country.id.RUSSIA` (red), hardcoded at six sites. In a mission whose coalitions hold only CJTF
+    Blue and CJTF Red — every campaign mission — `coalition.getCountryCoalition(country.id.USA)` is 0,
+    `coalition.addStaticObject` raises, and CTLD swallows it: *Request Equipment* shows, a pick does
+    nothing, no message (measured in game on 2026-10-09; the same static under CJTF Blue exists). Fixed
+    in VEAF/CTLD, to be taken with its next release.
+  workaround: |
+    Put the USA in the mission's blue coalition and Russia in its red one (not checked in game).
+
+- id: f10-menu-entry-id-is-recycled
+  kind: dcs
+  area: radio
+  title: "A removed F10 menu entry's id goes to the next entry created, so a menu left open fires the wrong command"
+  measured: "2026-10-09"
+  symptom: |
+    DCS tracks each `missionCommands` entry by an internal id, not by its position nor its label, and
+    hands the id of a removed entry to the next entry created. The player's F10 screen is not updated
+    while it stays open, so a click on what it shows reaches whichever entry now holds the id.
+    Measured in single player on raw `missionCommands`, mission restarted before each test, clicks
+    with the mouse, while the player held `TEST MENU > Liste` (A, B, C, D) open:
+
+    | Change applied while the list is on screen | Clicked | Fired |
+    |---|---|---|
+    | remove A, B, C, D, then add them again, identical | B | **C** |
+    | remove A, then add E | A | **E** |
+    | remove A, then add E | B | B |
+    | remove A, then add X and Y elsewhere; menu reopened fresh | X, Y | X, Y |
+    | group menu: remove A, then add E | A | **E** |
+    | remove A, add a command for a group that does not exist, then add E | A | that command |
+
+    The ids are one pool for the whole server: a global entry's id went to a command added for another
+    group. So a stale click can fire **another group's** command, a secured one included, which then
+    runs with that group's identity.
+
+    A freshly opened menu is always right. Reported by players on CTLD and on VEAF menus: both wipe
+    and rebuild a whole tree on every refresh, which reassigns every id at once. Delaying the rebuild
+    (CTLD ADR 0015) changes nothing, the stale screen outlives the delay.
+  workaround: |
+    Never recreate an entry that did not change: remove only what disappeared and add only what
+    appeared. Right after each removal, add an inert command for a group id no player can hold: it
+    takes the freed id, nobody sees it, and a stale click on the removed entry lands on it.
+  cost: |
+    Wrong F10 commands fired in multiplayer, among them a CTLD smoke instead of a troop embark
+    (VEAF/CTLD#257).
+
+- id: client-helicopter-on-an-aircraft-stand-is-seated-elsewhere
+  kind: dcs
+  area: spawning
+  title: "A client helicopter placed on an aircraft stand is seated elsewhere when the player takes the slot"
+  measured: "2026-10-10"
+  symptom: |
+    Two CH-47F (`CH-47Fbl1`) client slots, `TakeOffParking` on `Term_Type` 104 stands of Caucasus, the
+    unit's `parking` the stand's `Term_Index` (checked against `Airbase:getParking()` in the running
+    mission: Term_Index 24 is Kobuleti's stand 24, Term_Index 6 Batumi's stand 6). Taken by a player and
+    read back through the fiddle hook:
+
+    | Stand asked | Where DCS seated it |
+    |---|---|
+    | Kobuleti #24 | **1 201 m** from the stand, 209 m from the airfield's reference point |
+    | Batumi #6 (2026-10-09) | 244 m from the stand |
+
+    Nothing is raised or logged. The same slots set to `TakeOffGround` 40 m from the stand were seated
+    exactly there (40 m).
+  workaround: |
+    For a helicopter that must start at a given place — inside an airfield's CTLD logistic circle, for
+    one — use a ground start (`TakeOffGround`, `From Ground Area`) at that point, not a stand. After a
+    stand start, read the unit's position back rather than trusting the stand.
+  cost: |
+    A CH-47F on Kobuleti's stand 24, the very centre of the field's 250 m CTLD logistic circle, started
+    1.2 km outside it: no crate and no troops offered (Kolkhida test mission, R47 item 1).

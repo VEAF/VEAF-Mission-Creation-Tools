@@ -56,3 +56,27 @@ def test_qra_start_true_emits_no_start_line() -> None:
     # default start (True) must not emit a start: line at all
     lines = _emit_qra_definitions(False, [{"name": "Q", "start": True}], indent=4)
     assert not any("start:" in line for line in lines)
+
+
+def test_a_tier_without_a_pick_stays_without_one() -> None:
+    # FEAT-OPPOSITION-SCALES-WITH-PLAYERS: no `random_pick` deploys every group; writing 1 would draw one
+    lines = _emit_qra_definitions(
+        False,
+        [
+            {
+                "name": "Q",
+                "groups_by_enemy_count": [
+                    {"enemy_count": 1, "groups": ["A"], "random_pick": 1},
+                    {"enemy_count": 3, "groups": ["A", "B"]},
+                ],
+                "rearm_while_occupied": True,
+            }
+        ],
+        indent=4,
+    )
+    definition = yaml.safe_load(_doc(lines))["modules"]["QRA"]["definitions"][0]
+    assert definition["groups_by_enemy_count"] == [
+        {"enemy_count": 1, "groups": ["A"], "random_pick": 1},
+        {"enemy_count": 3, "groups": ["A", "B"]},
+    ]
+    assert definition["rearm_while_occupied"] is True

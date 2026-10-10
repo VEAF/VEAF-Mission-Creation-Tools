@@ -58,6 +58,32 @@ mission =
                   },
                 },
               },
+              [2] =
+              {
+                ["name"] = "QRA Senaki MiG-29",
+                ["units"] =
+                {
+                  [1] =
+                  {
+                    ["type"] = "MiG-29A",
+                    ["name"] = "QRA Senaki MiG-29-1",
+                    ["payload"] =
+                    {
+                      ["pylons"] =
+                      {
+                        [1] =
+                        {
+                          ["CLSID"] = "{FBC29BFE-3D24-4C64-B81D-941239D12249}",
+                        },
+                        [2] =
+                        {
+                          ["CLSID"] = "{9B25D316-0434-4954-868F-D51DB1A38DF0}",
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -165,6 +191,19 @@ def test_a_qra_interceptor_can_copy_the_loadout_of_a_template(tmp_path: Path) ->
     _qra(folder, loadout_from="veafSpawn-MiG-23 CAP")
     unit = _items(_plane_group(folder, "QRA_Stendal-MiG21")["units"])[0]
     assert _items(unit["payload"]["pylons"])[0]["CLSID"] == "{B0DBC591-0F52-4F7D-AD7B-51E67725FB81}"
+
+
+def test_a_loadout_copied_from_stations_one_to_n_keeps_every_station(tmp_path: Path) -> None:
+    """Pylons 1..n with no gap read back from Lua as a list, not a dict: `loadout_from` copied that
+    list and the write failed on `'list' object has no attribute 'items'` — Kolkhida mission 1's
+    QRA, 2026-10-10 (FIX-MCP-SESSION-PREP-FINDINGS ticket 01)."""
+    folder = _folder(tmp_path)
+    _qra(folder, loadout_from="QRA Senaki MiG-29")
+    pylons = _items(_items(_plane_group(folder, "QRA_Stendal-MiG21")["units"])[0]["payload"]["pylons"])
+    assert [p["CLSID"] for p in pylons] == [
+        "{FBC29BFE-3D24-4C64-B81D-941239D12249}",
+        "{9B25D316-0434-4954-868F-D51DB1A38DF0}",
+    ]
 
 
 def test_an_unknown_loadout_template_is_refused(tmp_path: Path) -> None:

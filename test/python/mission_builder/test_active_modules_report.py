@@ -50,6 +50,13 @@ def test_a_disabled_module_is_not_named(caplog) -> None:
     assert "CSAR" not in text
 
 
+def test_a_community_script_is_named_after_normalisation(caplog) -> None:
+    """The build hands the report a normalised dict, where CTLD lives under `community_scripts`."""
+    text = _report({"lua_modules": {"SPAWN": True}, "community_scripts": {"ctld": {"enabled": True}}}, caplog)
+    assert "CTLD" in text
+    assert "(2)" in text
+
+
 def test_nothing_configured_says_nothing(caplog) -> None:
     """A message every build prints is a message nobody reads."""
     assert _report({"mission": {"name": "Alpha"}}, caplog) == ""

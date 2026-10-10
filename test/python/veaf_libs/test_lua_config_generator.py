@@ -852,6 +852,18 @@ def test_transitive_dep_resolution(caplog):
     assert "MARKERS" in result
 
 
+@pytest.mark.parametrize("security", [None, False])
+def test_radio_always_initialises_security(security):
+    """FIX-SECURITY-GROUP-LEVEL ticket 02: a secured `+` command is checked whether or not SECURITY is
+    listed, and its refusal tells the pilot to type `/secu elevate`. That verb only exists once
+    `veafSecurity.initialize()` has run, so a mission with RADIO initialises it, absent or `false`."""
+    modules: dict = {"RADIO": True}
+    if security is not None:
+        modules["SECURITY"] = security
+    out = generate_config_lua({"lua_modules": modules})
+    assert "veafSecurity.initialize()" in out
+
+
 def test_explicitly_disabled_module_skips_dep_check():
     """If module itself is enable: false, its dependencies are not checked."""
     effective = {"SPAWN": {"enable": False}}

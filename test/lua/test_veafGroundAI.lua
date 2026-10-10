@@ -1778,6 +1778,7 @@ function TestNoMessageTeachesAnUnknownCommand:_motsClesEnregistres()
     "veafShortcuts.lua",
     "veafNamedPoints.lua",
     "veafInterpreter.lua",
+    "veafOpposition.lua",
   }
   local mots = {}
   for _, nom in ipairs(modules) do
@@ -1805,7 +1806,9 @@ function TestNoMessageTeachesAnUnknownCommand:_jetonsEnseignes()
     -- souligne que ce balayage prendrait pour une commande.
     local estValeur = ligne:match("^%s*[fe][rn]%s*=") ~= nil or ligne:match("^%s*%.%.") ~= nil
     if estValeur and not estCommentaire then
-      for mot in ligne:gmatch("_[a-zA-Z][%w_-]*") do
+      -- `%f[%w_]` : un `_` en début de mot seulement. Sans lui, la valeur `air_to_air` (un mode, pas une
+      -- commande) se lisait `_to_air`.
+      for mot in ligne:gmatch("%f[%w_]_[a-zA-Z][%w_-]*") do
         jetons[mot:lower()] = veaf.trim(ligne)
       end
     end

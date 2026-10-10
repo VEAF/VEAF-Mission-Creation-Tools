@@ -5,6 +5,8 @@
 
 > **See it in game**: step 02 “Sandbox: marker commands” of the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission-v6/blob/main/README.en.md#the-guided-tour).
 
+> **Alias list**: every ready-made marker shortcut (`-sa8`, `-armor`, `-convoy`…) is in the [aliases reference](../../ALIASES.en.md).
+
 ---
 
 ## Purpose
@@ -197,6 +199,7 @@ Its rules of engagement are set to "open fire" after the template's own settings
 
 **To escort your own airplane, the F10 menu is enough**: *F10 → VEAF → SPAWN → +Escort me (fox3)* or *(fox2)* (the `+` marks a protected command).
 It asks the same level as `-escort` (known pilot).
+A refusal says why: no escort template for your side, or an escort that could not be spawned; the DCS log records it too.
 A mission can change the entries offered by replacing `veafSpawn.EscortRadioMenuTemplates` (`{ "fox3", "fox2" }` by default).
 
 ### Spawn an AFAC/JTAC

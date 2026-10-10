@@ -18,6 +18,10 @@ veafSecurity.initialize()
 
 À appeler avant les autres modules pour que les vérifications de sécurité soient actives lors de leur initialisation.
 
+Ce n'est pas la présence de `SECURITY` dans le `mission.yaml` qui active les contrôles : une commande F10 sécurisée est contrôlée quoi que dise le bloc `modules:`, et seul `security: disabled: true` les coupe.
+Ce que le module apporte, ce sont ses verbes — `/secu elevate`, celui qu'un refus indique au pilote.
+Une mission avec `RADIO` l'initialise donc toujours : le build ajoute `SECURITY` (avec un avertissement) quand il manque ou vaut `false`.
+
 ---
 
 ## Niveaux de permission

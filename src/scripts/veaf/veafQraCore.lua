@@ -50,6 +50,11 @@ veafQraManager.STATUS_STOP = 6
 
 veafQraManager.WATCHDOG_DELAY = 5
 
+--- Seconds a scrambled group may stay on the ground before it is taken for stuck and the QRA reset.
+--- A group that has not been airborne yet is taking off, not landed: a runway start stood on the
+--- runway at the first watchdog tick and was destroyed 5 s after the scramble (FIX-QRA-GROUND-START).
+veafQraManager.TAKEOFF_TIMEOUT = 600
+
 veafQraManager.MINIMUM_LIFE_FOR_QRA_IN_PERCENT = 10
 
 veafQraManager.DEFAULT_airbaseMinLifePercent = 0.9
@@ -157,6 +162,8 @@ function VeafQRACore.init(object)
   object.noNeedToLeaveZoneBeforeRearming = false
   -- reset the QRA immediately if all the enemy units leave the zone
   object.resetWhenLeavingZone = false
+  -- the tier scrambled is chosen from the opposition level when it is higher than the enemies in the zone
+  object.scaleWithOpposition = false
   -- name of the airport to which the QRA is linked, QRAs will be deployed only if this is set and the airport is captured by the QRA's coalition or if this is not set
   object.airportLink = nil
   -- minimum linked airbase life percentage (from 0 to 1) for the QRA to have it's airbase available
@@ -556,6 +563,25 @@ function VeafQRACore:setDelayBeforeRearming(value)
   return self
 end
 
+--- Choose the tier from the opposition level (veafOpposition) when it is higher than the enemies in the
+--- zone: a pair entering the zone of a QRA sized for six players gets the six-player tier. The trigger
+--- itself stays on the zone — nobody in it, no scramble.
+function VeafQRACore:setScaleWithOpposition()
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:setScaleWithOpposition()", veaf.lp(self.name))
+  self.scaleWithOpposition = true
+  return self
+end
+
+--- The count the tier is chosen from: the enemies in the zone, or the opposition level when it is higher
+--- and the QRA scales with it.
+function VeafQRACore:tierCount(nbUnitsInZone)
+  local level = self.scaleWithOpposition and veafOpposition and veafOpposition.getLevel()
+  if level and level > nbUnitsInZone then
+    return level
+  end
+  return nbUnitsInZone
+end
+
 function VeafQRACore:setNoNeedToLeaveZoneBeforeRearming()
   veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:setNoNeedToLeaveZoneBeforeRearming()", veaf.lp(self.name))
   self.noNeedToLeaveZoneBeforeRearming = true
@@ -823,6 +849,16 @@ function VeafQRACore:check()
                   end
                 end
               end
+              self.groupsSeenAirborne = self.groupsSeenAirborne or {}
+              if groupAtLeastOneUnitInAir then
+                self.groupsSeenAirborne[groupName] = true
+              elseif
+                not self.groupsSeenAirborne[groupName]
+                and timer.getTime() - (self.deployedAt or 0) <= veafQraManager.TAKEOFF_TIMEOUT
+              then
+                -- never airborne yet: rolling to the runway, not landed
+                groupAtLeastOneUnitInAir = true
+              end
               qraAlive = qraAlive or groupAtLeastOneUnitAlive
               qraInAir = qraInAir or groupAtLeastOneUnitInAir
               veaf.loggers.get(veafQraManager.Id):trace("qraAlive=%s", veaf.lp(qraAlive))
@@ -951,10 +987,12 @@ end
 
 function VeafQRACore:chooseGroupsToDeploy(nbUnitsInZone)
   veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:chooseGroupsToDeploy(%s)", veaf.lp(self.name), veaf.lp(nbUnitsInZone))
+  -- compared, not taken in `pairs()` order: that order is the hash's, and tiers set 5, 1, 3 iterate
+  -- 1, 5, 3 in Lua 5.1 — 6 enemies got tier 3 (FEAT-OPPOSITION-SCALES-WITH-PLAYERS)
   local biggestNumberLowerThanUnitsInZone = -1
   local groupsToDeploy = nil
   for enemyNb, groups in pairs(self.groupsToDeployByEnemyQuantity) do
-    if nbUnitsInZone >= enemyNb then
+    if nbUnitsInZone >= enemyNb and enemyNb > biggestNumberLowerThanUnitsInZone then
       biggestNumberLowerThanUnitsInZone = enemyNb
       groupsToDeploy = groups
     end
@@ -972,7 +1010,7 @@ function VeafQRACore:chooseGroupsToDeploy(nbUnitsInZone)
       and bias
       and type(bias) == "number"
     then
-      groupsToDeploy = veafReactiveZone.pickGroups(groupsToChooseFrom, numberOfGroups, bias)
+      groupsToDeploy = veafReactiveZone.pickDistinctGroups(groupsToChooseFrom, numberOfGroups, bias)
     end
   end
   return groupsToDeploy
@@ -981,18 +1019,22 @@ end
 function VeafQRACore:deploy(nbUnitsInZone)
   veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:deploy()", veaf.lp(self.name))
   veaf.loggers.get(veafQraManager.Id):trace("nbUnitsInZone=[%s]", veaf.lp(nbUnitsInZone))
-  if self.minimumNbEnemyPlanes ~= -1 and self.minimumNbEnemyPlanes > nbUnitsInZone then
+  -- the gate counts what the tier is chosen from: a QRA scaling with the opposition whose lowest tier is
+  -- 3 still answers a pair when the mission is sized for six
+  if self.minimumNbEnemyPlanes ~= -1 and self.minimumNbEnemyPlanes > self:tierCount(nbUnitsInZone) then
     veaf.loggers.get(veafQraManager.Id):trace("not enough enemies in zone, min=%s", veaf.lp(self.minimumNbEnemyPlanes))
     return
   end
 
   self:_sendStatusMessage(self.messageDeploy)
 
-  local groupsToDeploy = self:chooseGroupsToDeploy(nbUnitsInZone)
+  local groupsToDeploy = self:chooseGroupsToDeploy(self:tierCount(nbUnitsInZone))
   self.spawnedGroupsNames = {}
   if groupsToDeploy then
     -- the spawn shared with the air-wave zones: commands, editor groups, offsets (FEAT-AIRWAVES-QRA-MERGE)
     self.spawnedGroupsNames = veafReactiveZone.deployGroups(self, groupsToDeploy, self.coalition, veafQraManager.Id)
+    self.deployedAt = timer.getTime()
+    self.groupsSeenAirborne = {}
     veaf.loggers.get(veafQraManager.Id):trace("self.spawnedGroups=%s", veaf.lp(self.spawnedGroupsNames))
     self.state = veafQraManager.STATUS_ACTIVE
   end

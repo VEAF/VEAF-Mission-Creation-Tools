@@ -197,7 +197,8 @@ class WaypointsManager:
         for name, waypoint_data in waypoints_data.items():
             try:
                 waypoint = WaypointDefinition.from_dict(waypoint_data)
-                waypoint.name = name
+                # the key is how plans refer to it; `name:` is what the cockpit shows, the key when absent
+                waypoint.name = waypoint.name or name
                 self.waypoints[name] = waypoint
                 logger.debug(f"Loaded waypoint: {name}")
             except Exception as e:
@@ -215,9 +216,18 @@ class WaypointsManager:
                     country=plan_data.get("country"),
                 )
 
-                # Load waypoints for this plan
+                # A plan names its waypoints by KEY: a list of keys, or a mapping whose keys are read and
+                # whose values are not. A value naming another waypoint is the trap that form sets, so it
+                # is said rather than silently dropped.
                 if "waypoints" in plan_data:
-                    for wp_name in plan_data["waypoints"].keys():
+                    listed = plan_data["waypoints"] or []
+                    if isinstance(listed, dict):
+                        for wp_name, value in listed.items():
+                            if isinstance(value, str) and value != wp_name and value in self.waypoints:
+                                logger.warning(
+                                    t("waypoints.plan_value_ignored", plan=plan_name, name=wp_name, value=value)
+                                )
+                    for wp_name in listed:
                         if wp_name in self.waypoints:
                             plan.waypoints.append(self.waypoints[wp_name])
                         else:

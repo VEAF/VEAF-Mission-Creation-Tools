@@ -6,7 +6,9 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+import pytest
 from mission_tools.miz_tools import read_miz
+from veaf_libs.dcs_countries import country_id_for_name
 from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.aircraft_identity import assign_identities
 from veaf_mission_mcp.player_slot import add_player_slot
@@ -122,6 +124,36 @@ class TestNumericCallsigns:
         group = _flight(1)
         assign_identities(content, group, country_id=0, task="CAP")
         assert group["units"][0]["callsign"] == 183
+
+    @pytest.mark.parametrize(
+        "country",
+        [
+            "Russia",
+            "Ukraine",
+            "Insurgents",
+            "Abkhazia",
+            "South Ossetia",
+            "China",
+            "Belarus",
+            "USSR",
+            "Yugoslavia",
+            "GDR",
+        ],
+    )
+    def test_every_country_the_editor_numbers_gets_a_number(self, country: str) -> None:
+        # The ten of the Mission Editor's `isWesternCountry` (MissionEditor/modules/me_utilities.lua).
+        country_id = country_id_for_name(country)
+        assert country_id is not None
+        group = _flight(1)
+        assign_identities(_content_with(), group, country_id=country_id, task="CAP")
+        assert group["units"][0]["callsign"] == 101
+
+    def test_a_country_the_editor_does_not_number_gets_a_word(self) -> None:
+        country_id = country_id_for_name("Kazakhstan")
+        assert country_id is not None
+        group = _flight(1)
+        assign_identities(_content_with(), group, country_id=country_id, task="CAP")
+        assert group["units"][0]["callsign"]["name"] == "Enfield11"
 
 
 class TestTailNumbers:

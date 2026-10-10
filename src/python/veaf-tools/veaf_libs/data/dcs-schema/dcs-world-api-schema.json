@@ -9732,6 +9732,397 @@
         "id"
       ]
     },
+    "Entity.WeaponFlight": {
+      "kind": "record",
+      "description": "A weapon's flight configuration as DCS configures it (its configured inputs, not computed performance): aerodynamics, motor stages, autopilot, seeker, gimbal, proximity fuze and launch tables. Read from the `client` block of the weapon's `weapons_table` record (with that record's own plain keys), else from its flat `_G/rockets`, `_G/bombs` or `_G/torpedoes` record. Keys without a field here are only in the `_G` dump.",
+      "fields": {
+        "weapon": {
+          "type": "string",
+          "ref": "Entity.Weapon",
+          "description": "Cross-reference: the `Entity.Weapon` id."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Dump path of the `_G` dump file read (`_G/weapons_table/weapons/missiles/AIM_120C`)."
+        },
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block the plain values are read from: `<dump path>#<pointer>` (`#/client`, or `#` for the file's top level)."
+        },
+        "batteryLifeS": {
+          "type": "number",
+          "description": "Optional battery life in seconds (`Life_Time`)."
+        },
+        "killDistanceM": {
+          "type": "number",
+          "description": "Optional proximity detonation distance in metres (`KillDistance`)."
+        },
+        "rangeMaxM": {
+          "type": "number",
+          "description": "Optional maximum range at high altitude in metres, used by the AI (`Range_max`)."
+        },
+        "machMax": {
+          "type": "number",
+          "description": "Optional maximum Mach number (`Mach_max`)."
+        },
+        "pnCoefficients": {
+          "type": "Entity.WeaponPnCoefficient[]",
+          "description": "Optional proportional navigation gain by distance to target (`PN_coeffs`)."
+        },
+        "launchTables": {
+          "type": "Entity.WeaponLaunchTable[]",
+          "description": "Optional launch range tables (`LaunchDistData`, `MinLaunchDistData`...), sorted by key; tables of another layout are not typed."
+        },
+        "aerodynamics": {
+          "type": "Entity.WeaponAerodynamics",
+          "description": "Optional flight model (`fm`)."
+        },
+        "motorStages": {
+          "type": "Entity.WeaponMotorStage[]",
+          "description": "Optional motor stages (`boost`, `march`, `march2`, `engine`...), sorted by block key."
+        },
+        "autopilot": {
+          "type": "Entity.WeaponAutopilot",
+          "description": "Optional autopilot (`autopilot`, else `ap`)."
+        },
+        "seeker": {
+          "type": "Entity.WeaponSeeker",
+          "description": "Optional seeker (`seeker`, else `sensor`)."
+        },
+        "gimbal": {
+          "type": "Entity.WeaponGimbal",
+          "description": "Optional seeker gimbal (`gimbal`)."
+        },
+        "proximityFuze": {
+          "type": "Entity.WeaponProximityFuze",
+          "description": "Optional proximity fuze (`proximity_fuze`)."
+        }
+      },
+      "required": [
+        "weapon",
+        "sourcePaths",
+        "sourcePath"
+      ]
+    },
+    "Entity.WeaponPnCoefficient": {
+      "kind": "record",
+      "description": "One entry of `PN_coeffs` (`{n, d1, pn1, ..., dn, pnn}`).",
+      "fields": {
+        "distanceM": {
+          "type": "number",
+          "description": "Distance to target in metres below which `gain` applies."
+        },
+        "gain": {
+          "type": "number",
+          "description": "Proportional navigation gain."
+        }
+      },
+      "required": [
+        "distanceM",
+        "gain"
+      ]
+    },
+    "Entity.WeaponLaunchTable": {
+      "kind": "record",
+      "description": "A launch range table laid out as `{rows, cols, column headers, then per row its header and cells}`.",
+      "fields": {
+        "key": {
+          "type": "string",
+          "description": "The DCS key (`LaunchDistData`, `MinLaunchDistData`, `AspectDistData`, `RmaxData`...)."
+        },
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the table."
+        },
+        "columnHeaders": {
+          "type": "number[]",
+          "description": "Column headers, in DCS order."
+        },
+        "rows": {
+          "type": "Entity.WeaponLaunchTableRow[]",
+          "description": "Rows, in DCS order."
+        }
+      },
+      "required": [
+        "key",
+        "sourcePath",
+        "columnHeaders",
+        "rows"
+      ]
+    },
+    "Entity.WeaponLaunchTableRow": {
+      "kind": "record",
+      "description": "One row of a launch table.",
+      "fields": {
+        "header": {
+          "type": "number",
+          "description": "Row header; unit not stated."
+        },
+        "cells": {
+          "type": "number[]",
+          "description": "One cell per column header; unit not stated."
+        }
+      },
+      "required": [
+        "header",
+        "cells"
+      ]
+    },
+    "Entity.WeaponAerodynamics": {
+      "kind": "record",
+      "description": "A weapon's flight model (`fm`). Coefficient tables are sampled by Mach number from Mach 0 in steps of `machStep`.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the `fm` block."
+        },
+        "massKg": {
+          "type": "number",
+          "description": "Optional launch mass in kilograms (`mass`)."
+        },
+        "caliberM": {
+          "type": "number",
+          "description": "Optional body diameter in metres (`caliber`)."
+        },
+        "lengthM": {
+          "type": "number",
+          "description": "Optional reference length in metres (`L`)."
+        },
+        "referenceArea": {
+          "type": "number",
+          "description": "Optional reference area of the coefficients (`S`); unit not stated."
+        },
+        "machStep": {
+          "type": "number",
+          "description": "Optional Mach step between table samples (`table_scale`)."
+        },
+        "cx0": {
+          "type": "number[]",
+          "description": "Optional zero-lift drag coefficient per Mach sample (`Cx0`)."
+        },
+        "cxB": {
+          "type": "number[]",
+          "description": "Optional base drag coefficient per Mach sample (`CxB`)."
+        },
+        "k1": {
+          "type": "number[]",
+          "description": "Optional induced drag polar coefficient K1 per Mach sample (`K1`)."
+        },
+        "k2": {
+          "type": "number[]",
+          "description": "Optional induced drag polar coefficient K2 per Mach sample (`K2`)."
+        },
+        "cya": {
+          "type": "number[]",
+          "description": "Optional lift coefficient slope in the pitch plane per Mach sample (`Cya`)."
+        },
+        "cza": {
+          "type": "number[]",
+          "description": "Optional side-force coefficient slope in the yaw plane per Mach sample (`Cza`)."
+        },
+        "mya": {
+          "type": "number[]",
+          "description": "Optional yaw moment coefficient slope per Mach sample (`Mya`)."
+        },
+        "mza": {
+          "type": "number[]",
+          "description": "Optional pitch moment coefficient slope per Mach sample (`Mza`)."
+        },
+        "myw": {
+          "type": "number[]",
+          "description": "Optional yaw damping coefficient per Mach sample (`Myw`)."
+        },
+        "mzw": {
+          "type": "number[]",
+          "description": "Optional pitch damping coefficient per Mach sample (`Mzw`)."
+        },
+        "a1Trim": {
+          "type": "number[]",
+          "description": "Optional balancing angle of attack per Mach sample, pitch plane (`A1trim`); unit not stated."
+        },
+        "a2Trim": {
+          "type": "number[]",
+          "description": "Optional balancing angle of attack per Mach sample, yaw plane (`A2trim`); unit not stated."
+        },
+        "cxCoeff": {
+          "type": "number[]",
+          "description": "Optional drag coefficients of a bomb or rocket (`cx_coeff`)."
+        },
+        "ix": {
+          "type": "number",
+          "description": "Optional roll moment of inertia (`Ix`); unit not stated."
+        },
+        "iy": {
+          "type": "number",
+          "description": "Optional yaw moment of inertia (`Iy`); unit not stated."
+        },
+        "iz": {
+          "type": "number",
+          "description": "Optional pitch moment of inertia (`Iz`); unit not stated."
+        },
+        "finDeflectionMaxRad": {
+          "type": "number",
+          "description": "Optional maximum fin deflection in radians (`delta_max`)."
+        },
+        "maxAoaRad": {
+          "type": "number",
+          "description": "Optional maximum angle of attack in radians (`maxAoa`)."
+        }
+      },
+      "required": [
+        "sourcePath"
+      ]
+    },
+    "Entity.WeaponMotorStage": {
+      "kind": "record",
+      "description": "One motor stage (or a torpedo engine).",
+      "fields": {
+        "stage": {
+          "type": "string",
+          "description": "The DCS block key (`boost`, `march`, `engine`...)."
+        },
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block."
+        },
+        "impulseS": {
+          "type": "number",
+          "description": "Optional specific impulse in seconds (`impulse`)."
+        },
+        "fuelMassKg": {
+          "type": "number",
+          "description": "Optional propellant mass in kilograms (`fuel_mass`)."
+        },
+        "workTimeS": {
+          "type": "number",
+          "description": "Optional burn time in seconds (`work_time`)."
+        },
+        "boostFactor": {
+          "type": "number",
+          "description": "Optional booster to cruise thrust ratio (`boost_factor`)."
+        },
+        "thrust": {
+          "type": "number",
+          "description": "Optional thrust of a torpedo engine (`thrust`, else `default_thrust`); unit not stated."
+        },
+        "startTime": {
+          "type": "number",
+          "description": "Optional start time after launch (the controller's `<stage>_start`); unit not stated."
+        }
+      },
+      "required": [
+        "stage",
+        "sourcePath"
+      ]
+    },
+    "Entity.WeaponAutopilot": {
+      "kind": "record",
+      "description": "A weapon's autopilot.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block."
+        },
+        "navigationGain": {
+          "type": "number",
+          "description": "Optional proportional navigation gain (`Knav`)."
+        },
+        "gLoadLimit": {
+          "type": "number",
+          "description": "Optional maximum load factor in g (`gload_limit`)."
+        },
+        "finsLimitRad": {
+          "type": "number",
+          "description": "Optional fin deflection limit in radians (`fins_limit`)."
+        },
+        "operatingTime": {
+          "type": "number",
+          "description": "Optional operating time (`op_time`); unit not stated."
+        }
+      },
+      "required": [
+        "sourcePath"
+      ]
+    },
+    "Entity.WeaponSeeker": {
+      "kind": "record",
+      "description": "A weapon's seeker.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block."
+        },
+        "fovRad": {
+          "type": "number",
+          "description": "Optional field of view in radians (`FOV`)."
+        },
+        "nearDistance": {
+          "type": "number",
+          "description": "Optional minimum detection distance (`sens_near_dist`); unit not stated."
+        },
+        "farDistance": {
+          "type": "number",
+          "description": "Optional maximum detection distance (`sens_far_dist`); unit not stated."
+        },
+        "operatingTime": {
+          "type": "number",
+          "description": "Optional operating time (`op_time`); unit not stated."
+        }
+      },
+      "required": [
+        "sourcePath"
+      ]
+    },
+    "Entity.WeaponGimbal": {
+      "kind": "record",
+      "description": "A seeker's gimbal.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block."
+        },
+        "yawMaxRad": {
+          "type": "number",
+          "description": "Optional yaw limit in radians (`yaw_max`)."
+        },
+        "pitchMaxRad": {
+          "type": "number",
+          "description": "Optional pitch limit in radians (`pitch_max`)."
+        },
+        "trackingRateMax": {
+          "type": "number",
+          "description": "Optional maximum tracking rate (`max_tracking_rate`); unit not stated."
+        },
+        "operatingTime": {
+          "type": "number",
+          "description": "Optional operating time (`op_time`); unit not stated."
+        }
+      },
+      "required": [
+        "sourcePath"
+      ]
+    },
+    "Entity.WeaponProximityFuze": {
+      "kind": "record",
+      "description": "A weapon's proximity fuze.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block."
+        },
+        "radius": {
+          "type": "number",
+          "description": "Optional trigger radius (`radius`); unit not stated."
+        },
+        "armDelay": {
+          "type": "number",
+          "description": "Optional arming delay (`arm_delay`); unit not stated."
+        }
+      },
+      "required": [
+        "sourcePath"
+      ]
+    },
     "Entity.WeaponRequirement": {
       "kind": "record",
       "description": "One requirement of a `depends_on_unit` alternative, as DCS writes it: `{\"self\", n}` (`selfWs`), `{\"none\"}` (`none`), `{unit}` or `{unit, n}` (`unit`, `ws`).",
@@ -9807,6 +10198,18 @@
         "shotDelayS": {
           "type": "number",
           "description": "Optional `shot_delay`, seconds."
+        },
+        "switchOnDelay": {
+          "type": "number",
+          "description": "Optional `switch_on_delay`, delay before the payload can fire once selected, unit not stated."
+        },
+        "feedSlot": {
+          "type": "number",
+          "description": "Optional `feedSlot`, the ammunition feed this payload loads from, raw."
+        },
+        "automaticLoader": {
+          "type": "boolean",
+          "description": "Optional `automaticLoader`, whether the payload is loaded automatically."
         }
       },
       "required": []
@@ -9931,12 +10334,199 @@
         "slewRateRadS": {
           "type": "Entity.SlewRate",
           "description": "Optional turret slew rates of `WS[i]`."
+        },
+        "anglesMechRad": {
+          "type": "Entity.AngleSector[]",
+          "description": "Optional `WS[i].angles_mech`: the mechanical traverse sectors as DCS stores them, radians."
+        },
+        "referenceAngleXRad": {
+          "type": "number",
+          "description": "Optional `WS[i].reference_angle_X`, at-rest roll angle of the mount, radians."
+        },
+        "referenceAngleYRad": {
+          "type": "number",
+          "description": "Optional `WS[i].reference_angle_Y`, at-rest traverse angle of the mount, radians."
+        },
+        "referenceAngleZRad": {
+          "type": "number",
+          "description": "Optional `WS[i].reference_angle_Z`, at-rest elevation angle of the mount, radians."
+        },
+        "reloadAngleY": {
+          "type": "number",
+          "description": "Optional `WS[i].reloadAngleY`, traverse angle the mount reloads at, unit not stated."
+        },
+        "reloadAngleZ": {
+          "type": "number",
+          "description": "Optional `WS[i].reloadAngleZ`, elevation angle the mount reloads at, unit not stated."
+        },
+        "maxLeft": {
+          "type": "number",
+          "description": "Optional `WS[i].maxLeft`, left traverse limit, unit not stated."
+        },
+        "maxRight": {
+          "type": "number",
+          "description": "Optional `WS[i].maxRight`, right traverse limit, unit not stated."
+        },
+        "maxTop": {
+          "type": "number",
+          "description": "Optional `WS[i].maxTop`, upper elevation limit, unit not stated."
+        },
+        "maxBottom": {
+          "type": "number",
+          "description": "Optional `WS[i].maxBottom`, lower elevation limit, unit not stated."
+        },
+        "baseWs": {
+          "type": "number",
+          "description": "Optional `WS[i].base`, the index of the weapon system this mount sits on."
+        },
+        "mountEcmK": {
+          "type": "number",
+          "description": "Optional `WS[i].ECM_K` (the mount's own, beside the launcher's `ecmK`), raw."
+        },
+        "radarType": {
+          "type": "number",
+          "description": "Optional `WS[i].radar_type`, the mount's radar type, the raw DCS number."
+        },
+        "moveable": {
+          "type": "boolean",
+          "description": "Optional `WS[i].moveable`, whether the mount traverses."
+        },
+        "stabilizer": {
+          "type": "boolean",
+          "description": "Optional `WS[i].stabilizer`, whether the mount is stabilized."
+        },
+        "laser": {
+          "type": "boolean",
+          "description": "Optional `WS[i].laser`, whether the mount has a laser rangefinder."
+        },
+        "canSetTacticalDir": {
+          "type": "boolean",
+          "description": "Optional `WS[i].canSetTacticalDir`, whether the mount can be set to a tactical direction."
+        },
+        "mountBeforeMove": {
+          "type": "boolean",
+          "description": "Optional `WS[i].mount_before_move`, whether the mount returns to rest before the unit moves."
+        },
+        "sharesBarrelsBetweenLaunchers": {
+          "type": "boolean",
+          "description": "Optional `WS[i].sharesBarrelsBetweenLaunchers`, whether the mount's launchers share barrels."
+        },
+        "distanceMaxForFcs": {
+          "type": "number",
+          "description": "Optional `distanceMaxForFCS`, maximum range of the fire-control system, unit not stated."
+        },
+        "combatRange": {
+          "type": "number",
+          "description": "Optional `combatRange`, combat range, unit not stated."
+        },
+        "launchDelayHuman": {
+          "type": "number",
+          "description": "Optional `launch_delay_human`, launch delay when a player commands the unit, unit not stated."
+        },
+        "sightMaxTanVel": {
+          "type": "number",
+          "description": "Optional `sightMaxTanVel`, maximum target tangential velocity the sight follows, unit not stated."
+        },
+        "minLaunchAngle": {
+          "type": "number",
+          "description": "Optional `min_launch_angle`, minimum launch elevation, unit not stated."
+        },
+        "railLength": {
+          "type": "number",
+          "description": "Optional `rail_length`, launch rail length, unit not stated."
+        },
+        "inclinationCorrectionBias": {
+          "type": "number",
+          "description": "Optional `inclination_correction_bias`, elevation correction bias, unit not stated."
+        },
+        "inclinationCorrectionUpperLimit": {
+          "type": "number",
+          "description": "Optional `inclination_correction_upper_limit`, elevation correction upper limit, unit not stated."
+        },
+        "dispertionReductionFactor": {
+          "type": "number",
+          "description": "Optional `dispertionReductionFactor`, shot dispersion reduction factor, raw."
+        },
+        "radialDisperse": {
+          "type": "number",
+          "description": "Optional `radialDisperse`, radial shot dispersion, unit not stated."
+        },
+        "missileControlInterval": {
+          "type": "number",
+          "description": "Optional `missileControlInterval`, interval between missile guidance commands, unit not stated."
+        },
+        "outVelocity": {
+          "type": "number",
+          "description": "Optional `out_velocity`, launch velocity of the projectile, unit not stated."
+        },
+        "maxTrackingSpeed": {
+          "type": "number",
+          "description": "Optional `maxTrackingSpeed`, maximum target speed the launcher tracks, unit not stated."
+        },
+        "reloadTime": {
+          "type": "number",
+          "description": "Optional `reload_time` of the launcher (the payloads' own are `reloadTimeS`), unit not stated."
+        },
+        "barrelsReloadType": {
+          "type": "number",
+          "description": "Optional `barrels_reload_type`, barrel reload order (a `BarrelsReloadTypes` code), raw."
+        },
+        "primaryWeapon": {
+          "type": "boolean",
+          "description": "Optional `primaryWeapon`, whether this is the unit's primary weapon."
+        },
+        "secondary": {
+          "type": "boolean",
+          "description": "Optional `secondary`, whether this is a secondary weapon."
+        },
+        "useTargetAccelInSight": {
+          "type": "boolean",
+          "description": "Optional `useTargetAccelInSight`, whether the sight leads with the target's acceleration."
+        },
+        "automaticLoader": {
+          "type": "boolean",
+          "description": "Optional `automaticLoader`, whether the launcher has an automatic loader."
+        },
+        "sensor": {
+          "type": "Entity.LauncherSensor",
+          "description": "Optional `sensor` table of the launcher: its sight errors."
         }
       },
       "required": [
         "ws",
         "ln"
       ]
+    },
+    "Entity.LauncherSensor": {
+      "kind": "record",
+      "description": "A launcher's `sensor` table (`WS[i].LN[j].sensor`): the sight's type and errors, raw DCS values.",
+      "fields": {
+        "type": {
+          "type": "number",
+          "description": "Optional `type`, the sight type, the raw DCS number."
+        },
+        "deviationErrorAzimuth": {
+          "type": "number",
+          "description": "Optional `deviation_error_azimuth`, azimuth error, unit not stated."
+        },
+        "deviationErrorElevation": {
+          "type": "number",
+          "description": "Optional `deviation_error_elevation`, elevation error, unit not stated."
+        },
+        "deviationErrorDistance": {
+          "type": "number",
+          "description": "Optional `deviation_error_distance`, distance error, unit not stated."
+        },
+        "deviationErrorSpeedSensor": {
+          "type": "number",
+          "description": "Optional `deviation_error_speed_sensor`, target speed error, unit not stated."
+        },
+        "deviationErrorStability": {
+          "type": "number",
+          "description": "Optional `deviation_error_stability`, stabilization error, unit not stated."
+        }
+      },
+      "required": []
     },
     "Entity.FireControl": {
       "kind": "record",
@@ -9961,6 +10551,22 @@
         "isDetector": {
           "type": "boolean",
           "description": "Optional `WS.isDetector`."
+        },
+        "radarRotationType": {
+          "type": "number",
+          "description": "Optional `WS.radar_rotation_type`, the search radar's rotation type, the raw DCS number."
+        },
+        "searchRadarMaxElevationRad": {
+          "type": "number",
+          "description": "Optional `WS.searchRadarMaxElevation`, maximum elevation of the search radar, radians."
+        },
+        "searchRadarFrequencies": {
+          "type": "number[][]",
+          "description": "Optional `WS.searchRadarFrequencies`, the search radar's `[min, max]` frequency bands as DCS gives them, unit not stated."
+        },
+        "smoke": {
+          "type": "string[]",
+          "description": "Optional `WS.smoke`, smoke-grenade launcher names, in DCS order."
         }
       },
       "required": []
@@ -9984,6 +10590,22 @@
         "massKg": {
           "type": "number",
           "description": "Optional mass, kilograms."
+        },
+        "shipLengthM": {
+          "type": "number",
+          "description": "Optional `shipLength`, waterline length in metres (ships)."
+        },
+        "xNoseM": {
+          "type": "number",
+          "description": "Optional `X_nose`, distance from the model origin to the bow at the waterline in metres (ships)."
+        },
+        "xTailM": {
+          "type": "number",
+          "description": "Optional `X_tail`, distance from the model origin to the stern at the waterline in metres (ships)."
+        },
+        "tailWidth": {
+          "type": "number",
+          "description": "Optional `Tail_Width`, width of the stern for the wake, unit not stated (ships)."
         }
       },
       "required": []
@@ -10027,6 +10649,62 @@
         "enginePower": {
           "type": "number",
           "description": "Optional `chassis.engine_power`, the raw DCS value (DCS files disagree on its unit)."
+        },
+        "rMaxM": {
+          "type": "number",
+          "description": "Optional `chassis.r_max`, drive wheel or track sprocket radius in metres."
+        },
+        "maxAcceleration": {
+          "type": "number",
+          "description": "Optional `chassis.max_acceleration`, maximum acceleration, unit not stated."
+        },
+        "traceWidth": {
+          "type": "number",
+          "description": "Optional `chassis.trace_width`, width of the wheel or track trace, unit not stated."
+        },
+        "gearType": {
+          "type": "number",
+          "description": "Optional `chassis.gear_type`, the running gear (a `GT_t.GEAR_TYPES` code: wheels, tracks ...), raw."
+        },
+        "mainGearRatio": {
+          "type": "number",
+          "description": "Optional `chassis.mainGearRatio`, final drive ratio, raw."
+        },
+        "gearRatios": {
+          "type": "number[]",
+          "description": "Optional `chassis.gearRatios`, gearbox ratios in DCS order, raw."
+        },
+        "engineMaxRpm": {
+          "type": "number",
+          "description": "Optional `chassis.engineMaxRPM`, maximum engine speed, rpm."
+        },
+        "engineMinRpm": {
+          "type": "number",
+          "description": "Optional `chassis.engineMinRPM`, minimum engine speed, rpm."
+        },
+        "engineMaxPowerRpm": {
+          "type": "number",
+          "description": "Optional `chassis.engineMaxPowerRPM`, engine speed at maximum power, rpm."
+        },
+        "engineMoi": {
+          "type": "number",
+          "description": "Optional `chassis.engineMOI`, engine moment of inertia, unit not stated."
+        },
+        "waterlineLevel": {
+          "type": "number",
+          "description": "Optional `chassis.waterline_level`, waterline height when swimming, unit not stated."
+        },
+        "maxTrenchWidth": {
+          "type": "number",
+          "description": "Optional `chassis.max_trench_width`, widest trench crossed, unit not stated."
+        },
+        "canWade": {
+          "type": "boolean",
+          "description": "Optional `chassis.canWade`."
+        },
+        "automaticTransmission": {
+          "type": "boolean",
+          "description": "Optional `chassis.automaticTransmission`."
         }
       },
       "required": []
@@ -10055,17 +10733,41 @@
           "type": "number",
           "description": "Optional `economy_distance`, raw (metres by their values: 74080000 = 40000 NM on the Nimitz class)."
         },
-        "economyVelocity": {
+        "economyVelocityMs": {
           "type": "number",
-          "description": "Optional `economy_velocity`, raw (m/s by their values)."
+          "description": "Optional `economy_velocity`, economy speed, m/s."
         },
         "raceDistance": {
           "type": "number",
           "description": "Optional `race_distance`, raw (as `economyDistance`)."
         },
-        "raceVelocity": {
+        "raceVelocityMs": {
           "type": "number",
-          "description": "Optional `race_velocity`, raw (as `economyVelocity`)."
+          "description": "Optional `race_velocity`, maximum (race) speed, m/s."
+        },
+        "speedup": {
+          "type": "number",
+          "description": "Optional `speedup`, acceleration rate, unit not stated."
+        },
+        "distFindObstacles": {
+          "type": "number",
+          "description": "Optional `distFindObstacles`, distance at which obstacles are detected for avoidance, unit not stated."
+        },
+        "riverCraft": {
+          "type": "boolean",
+          "description": "Optional `riverCraft`, whether the ship is a river craft."
+        },
+        "minPeriscopeDepth": {
+          "type": "number",
+          "description": "Optional `minPeriscopeDepth`, shallowest periscope depth (submarines), unit not stated."
+        },
+        "maxPeriscopeDepth": {
+          "type": "number",
+          "description": "Optional `maxPeriscopeDepth`, deepest periscope depth (submarines), unit not stated."
+        },
+        "periscopeHeight": {
+          "type": "number",
+          "description": "Optional `periscopeHeight`, periscope height (submarines), unit not stated."
         }
       },
       "required": []
@@ -10473,6 +11175,10 @@
         "_source": {
           "type": "any",
           "description": "Provenance map keyed by field path: `natoReportingName` is `hand-authored` when it comes from tools/datamine/overlays.yaml. Absent fields are datamined."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths (`_G/db/Units/...`) of the `db.Units` records that define this vehicle, joined by `type`; sorted."
         }
       },
       "required": [
@@ -10514,6 +11220,10 @@
         "operators": {
           "type": "Entity.Operator[]",
           "description": "Optional countries that field this unit and their service-year ranges."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths (`_G/db/Units/...`) of the `db.Units` records that define this unit, joined by `type`; sorted."
         }
       },
       "required": [
@@ -10603,6 +11313,10 @@
         "_source": {
           "type": "any",
           "description": "Provenance map keyed by field path: `natoReportingName` is `hand-authored` when it comes from tools/datamine/overlays.yaml. Absent fields are datamined."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths (`_G/db/Units/...`) of the `db.Units` records that define this ship, joined by `type`; sorted."
         }
       },
       "required": [
@@ -10652,6 +11366,22 @@
         "operators": {
           "type": "Entity.Operator[]",
           "description": "Optional countries that operate this structure and their service-year ranges."
+        },
+        "mass": {
+          "type": "number",
+          "description": "Optional `mass`, unit not stated."
+        },
+        "minMass": {
+          "type": "number",
+          "description": "Optional `minMass`, the least mass the unit can be given, unit not stated."
+        },
+        "maxMass": {
+          "type": "number",
+          "description": "Optional `maxMass`, the greatest mass the unit can be given, unit not stated."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths (`_G/db/Units/...`) of the `db.Units` records that define this structure, joined by `type`; sorted."
         }
       },
       "required": [
@@ -10803,8 +11533,16 @@
           "description": "Optional `track_volume`."
         },
         "centeredScanVolume": {
-          "type": "Entity.CenteredScanVolume",
+          "type": "Entity.SensorSector",
           "description": "Optional `centered_scan_volume`."
+        },
+        "viewVolumeMax": {
+          "type": "Entity.SensorSector",
+          "description": "Optional `view_volume_max`: the widest field of view of an optic."
+        },
+        "velocityLimits": {
+          "type": "Entity.SensorVelocityLimits",
+          "description": "Optional `velocity_limits`."
         },
         "detectionDistance": {
           "type": "Entity.RadarDetectionDistance",
@@ -10838,9 +11576,77 @@
           "type": "Entity.IrstDetectionDistance",
           "description": "Optional `detection_distance_for_tail_on_Su_27`."
         },
+        "scanPeriodS": {
+          "type": "number",
+          "description": "Optional `scan_period`: time of one scan of `scanVolume`, seconds."
+        },
+        "vehiclesDetection": {
+          "type": "boolean",
+          "description": "Optional `vehicles_detection`: whether the radar's ground search detects vehicles."
+        },
+        "rbmDetectionDistanceM": {
+          "type": "number",
+          "description": "Optional `RBM_detection_distance`: real-beam ground-mapping range, metres."
+        },
+        "gmtiDetectionDistanceM": {
+          "type": "number",
+          "description": "Optional `GMTI_detection_distance`: ground moving-target indication range, metres."
+        },
+        "hrmDetectionDistanceM": {
+          "type": "number",
+          "description": "Optional `HRM_detection_distance`: high-resolution ground-mapping range, metres."
+        },
+        "airborneRadar": {
+          "type": "boolean",
+          "description": "Optional `airborne_radar`: whether DCS treats the radar as airborne (false on ship radars)."
+        },
+        "magnifications": {
+          "type": "number[]",
+          "description": "Optional `magnifications`: the optic's zoom levels, as magnification factors."
+        },
+        "resolution": {
+          "type": "number",
+          "description": "Optional `resolution` of an optic (the install's `OPTIC_RESOLUTION` values), raw, unit not stated."
+        },
+        "lightnessLimit": {
+          "type": "number",
+          "description": "Optional `lightness_limit`: the lowest ambient light the optic works in, raw, unit not stated."
+        },
+        "laserRanger": {
+          "type": "boolean",
+          "description": "Optional `laserRanger`: whether the sensor has a laser rangefinder."
+        },
+        "laserDesignator": {
+          "type": "boolean",
+          "description": "Optional `laserDesignator`: whether the sensor can designate with a laser."
+        },
+        "linkedAxis": {
+          "type": "number",
+          "description": "Optional `linkedAxis`: which axes follow the parent weapon system's direction (`LINKED_TO_NONE` 0, `LINKED_TO_AZIMUTH` 1, `LINKED_TO_BOTH` 2)."
+        },
+        "backgroundFactor": {
+          "type": "number",
+          "description": "Optional `background_factor`: multiplier of an IRST's detection distance against a non-sky background, raw."
+        },
+        "headOnDistanceCoeff": {
+          "type": "number",
+          "description": "Optional `head_on_distance_coeff`: an IRST's head-on detection distance as a fraction of its tail-on `irstDetectionDistance`, raw."
+        },
+        "detectionDistToRadarDetectionDistMaxRatio": {
+          "type": "number",
+          "description": "Optional `detection_dist_to_radar_detection_dist_max_ratio`: an RWR's detection distance as a fraction of the emitting radar's maximum detection distance, raw."
+        },
+        "lockOnDetection": {
+          "type": "boolean",
+          "description": "Optional `lock_on_detection`: whether an RWR detects radar lock-on."
+        },
         "pods": {
           "type": "string[]",
           "description": "Optional `DisplayName`s of the `db.Pods` entries that carry this sensor (their `Name` is redacted in dumps)."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional `_G` dump paths of the `db.Sensors` records that define this sensor (`_G/db/Sensors/Sensor/<file>`), joined by `Name`; sorted."
         }
       },
       "required": [
@@ -10863,9 +11669,9 @@
       },
       "required": []
     },
-    "Entity.CenteredScanVolume": {
+    "Entity.SensorSector": {
       "kind": "record",
-      "description": "`centered_scan_volume`, degrees.",
+      "description": "A sector block of a sensor (`centered_scan_volume`, `view_volume_max`): full widths, degrees.",
       "fields": {
         "azimuthSectorDeg": {
           "type": "number",
@@ -10931,8 +11737,27 @@
           "description": "Optional `multiple_targets_tracking`."
         },
         "centeredScanVolume": {
-          "type": "Entity.CenteredScanVolume",
+          "type": "Entity.SensorSector",
           "description": "Optional `centered_scan_volume`."
+        },
+        "velocityLimits": {
+          "type": "Entity.SensorVelocityLimits",
+          "description": "Optional `velocity_limits`."
+        }
+      },
+      "required": []
+    },
+    "Entity.SensorVelocityLimits": {
+      "kind": "record",
+      "description": "A radar's `velocity_limits` block: the slowest targets it detects.",
+      "fields": {
+        "radialVelocityMinMs": {
+          "type": "number",
+          "description": "Optional `radial_velocity_min`: minimum target velocity along the line of sight, m/s."
+        },
+        "relativeRadialVelocityMinMs": {
+          "type": "number",
+          "description": "Optional `relative_radial_velocity_min`: minimum closing velocity between radar and target, m/s."
         }
       },
       "required": []
@@ -11070,6 +11895,10 @@
         "modulesPresent": {
           "type": "string[]",
           "description": "Names of the DCS plugins (`_origin`) that registered at least one extracted unit, projectile, or launcher record."
+        },
+        "dumpJoins": {
+          "type": "Entity.DumpJoins",
+          "description": "Optional outcome of joining records to the `_G` dump files that define them (`sourcePaths`)."
         }
       },
       "required": [
@@ -11079,6 +11908,79 @@
         "source",
         "constants",
         "modulesPresent"
+      ]
+    },
+    "Entity.DumpJoins": {
+      "kind": "record",
+      "description": "How the records of each joined entity type were joined to their `_G` dump files, by exact DCS id.",
+      "fields": {
+        "counts": {
+          "type": "Entity.DumpJoinCount[]",
+          "description": "Join outcome counts per entity type."
+        },
+        "ambiguous": {
+          "type": "Entity.DumpJoinIssue[]",
+          "description": "Records with several candidate dump files, none joined (or a same-name file not joined)."
+        },
+        "unresolved": {
+          "type": "Entity.DumpJoinIssue[]",
+          "description": "Records no dump file was joined to."
+        }
+      },
+      "required": [
+        "counts",
+        "ambiguous",
+        "unresolved"
+      ]
+    },
+    "Entity.DumpJoinCount": {
+      "kind": "record",
+      "description": "Join outcome counts of one entity type.",
+      "fields": {
+        "entityType": {
+          "type": "string",
+          "description": "The entity type (for example `Entity.Weapon`)."
+        },
+        "resolved": {
+          "type": "number",
+          "description": "Records joined to their dump files."
+        },
+        "ambiguous": {
+          "type": "number",
+          "description": "Records with an ambiguous join."
+        },
+        "unresolved": {
+          "type": "number",
+          "description": "Records with no dump file."
+        }
+      },
+      "required": [
+        "entityType",
+        "resolved",
+        "ambiguous",
+        "unresolved"
+      ]
+    },
+    "Entity.DumpJoinIssue": {
+      "kind": "record",
+      "description": "One record whose join to the dump is ambiguous or unresolved.",
+      "fields": {
+        "entity": {
+          "type": "string",
+          "description": "`<entity type>:<id>` of the record."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why the join failed."
+        },
+        "candidates": {
+          "type": "string[]",
+          "description": "Optional dump paths of the candidate files."
+        }
+      },
+      "required": [
+        "entity",
+        "reason"
       ]
     },
     "Entity.ConstantFamily": {
@@ -11163,20 +12065,143 @@
         },
         "massKg": {
           "type": "number",
-          "description": "Optional mass per round in kilograms."
+          "description": "Optional mass per round in kilograms: `round_mass`, else the projectile `mass`."
         },
         "type": {
           "type": "string",
-          "description": "Optional ammunition type (for example HE, AP, API)."
+          "description": "Optional `type_name` of the shell."
         },
         "attributes": {
           "type": "string[]",
           "description": "Optional cross-reference: `Entity.Attribute` ids describing this ammunition."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional `_G` dump paths of the shell records that define this ammunition (`_G/weapons_table/weapons/shells/<name>`), joined by `name`; sorted."
+        },
+        "v0Ms": {
+          "type": "number",
+          "description": "Optional `v0`: muzzle velocity, m/s."
+        },
+        "dv0": {
+          "type": "number",
+          "description": "Optional `Dv0`: median relative muzzle-velocity spread (half of the shots within `v0 * (1 ± Dv0)`), raw."
+        },
+        "da0": {
+          "type": "number",
+          "description": "Optional `Da0`: median angular dispersion of the shot, raw, unit not stated."
+        },
+        "cx": {
+          "type": "number[]",
+          "description": "Optional `cx`: the parameters of the shell's drag-coefficient curve over Mach, in DCS order, raw."
+        },
+        "lifeTime": {
+          "type": "number",
+          "description": "Optional `life_time`: how long the shell flies before it self-destructs, raw, unit not stated."
+        },
+        "silentSelfDestruction": {
+          "type": "boolean",
+          "description": "Optional `silent_self_destruction`: whether the shell vanishes without exploding at the end of `lifeTime`."
+        },
+        "caliberMm": {
+          "type": "number",
+          "description": "Optional `caliber`: shell diameter, millimetres."
+        },
+        "apCapCaliber": {
+          "type": "number",
+          "description": "Optional `AP_cap_caliber`: penetrator diameter of a sub-calibre shell, raw, unit not stated."
+        },
+        "subcalibre": {
+          "type": "boolean",
+          "description": "Optional `subcalibre`: whether the shell is a sub-calibre (discarding-sabot) round."
+        },
+        "cartridgeMass": {
+          "type": "number",
+          "description": "Optional `cartridge_mass`: mass of the empty case and link kept per fired round, raw, unit not stated."
+        },
+        "projectile": {
+          "type": "string",
+          "description": "Optional `projectile`: the projectile class (for example `AP`, `HE`, `Ball`)."
+        },
+        "projectileMassKg": {
+          "type": "number",
+          "description": "Optional `mass`: projectile mass, kg."
+        },
+        "explosiveKg": {
+          "type": "number",
+          "description": "Optional `explosive`: explosive mass, kg."
+        },
+        "piercingMass": {
+          "type": "number",
+          "description": "Optional `piercing_mass`: mass of the shell's armour-piercing part, raw, unit not stated."
+        },
+        "cumulativeMass": {
+          "type": "number",
+          "description": "Optional `cumulative_mass`: mass of the shell's shaped (cumulative) charge, raw, unit not stated."
+        },
+        "payload": {
+          "type": "number",
+          "description": "Optional `payload`: mass of the filler of `payloadMaterial`, raw, unit not stated."
+        },
+        "payloadEffect": {
+          "type": "string",
+          "description": "Optional `payloadEffect`: the filler's effect (for example `Thermal`, `Concussion`)."
+        },
+        "payloadMaterial": {
+          "type": "string",
+          "description": "Optional `payloadMaterial`: the filler material (for example `Thermite`, `PETN`)."
+        },
+        "smokeTailLifeTime": {
+          "type": "number",
+          "description": "Optional `smoke_tail_life_time`: how long the shell's smoke trail lasts, raw, unit not stated."
+        },
+        "reboundConcrete": {
+          "type": "Entity.ShellRebound",
+          "description": "Optional `rebound_concrete`: ricochet off concrete."
+        },
+        "reboundGround": {
+          "type": "Entity.ShellRebound",
+          "description": "Optional `rebound_ground`: ricochet off ground."
+        },
+        "reboundObject": {
+          "type": "Entity.ShellRebound",
+          "description": "Optional `rebound_object`: ricochet off objects."
+        },
+        "reboundWater": {
+          "type": "Entity.ShellRebound",
+          "description": "Optional `rebound_water`: ricochet off water."
         }
       },
       "required": [
         "id"
       ]
+    },
+    "Entity.ShellRebound": {
+      "kind": "record",
+      "description": "A shell's `rebound_*` block: how it ricochets off one kind of surface.",
+      "fields": {
+        "angle0": {
+          "type": "number",
+          "description": "Optional `angle0`: impact angle at which the ricochet chance is 0 %, raw, unit not stated."
+        },
+        "angle100": {
+          "type": "number",
+          "description": "Optional `angle100`: impact angle at which the ricochet chance is 100 %, raw, unit not stated."
+        },
+        "cxFactor": {
+          "type": "number",
+          "description": "Optional `cx_factor`: drag multiplier after a ricochet, raw."
+        },
+        "deviationAngle": {
+          "type": "number",
+          "description": "Optional `deviation_angle`: maximum deviation of the ricochet direction, raw, unit not stated."
+        },
+        "velocityLossFactor": {
+          "type": "number",
+          "description": "Optional `velocity_loss_factor`: fraction of velocity lost in a ricochet, raw."
+        }
+      },
+      "required": []
     },
     "Entity.RadioBand": {
       "kind": "enum",
@@ -11347,6 +12372,10 @@
         "hardTargetPenetrator": {
           "type": "boolean",
           "description": "Optional DCS `is_htp`: hard-target penetrator warhead. Absent when DCS does not set it."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths of the `_G` dump files (`_G/...`) that define this warhead, joined by the `_G/warheads` records its weapon's sources refer to, and the weapon sources holding it inline; sorted."
         }
       },
       "required": [
@@ -11737,6 +12766,18 @@
         "heightM": {
           "type": "number",
           "description": "Optional `height`."
+        },
+        "wingAreaM2": {
+          "type": "number",
+          "description": "Optional `wing_area`, square metres."
+        },
+        "mainGearPosition": {
+          "type": "number[]",
+          "description": "Optional `main_gear_pos`, main gear position `{x, y, z}` in the model frame."
+        },
+        "noseGearPosition": {
+          "type": "number[]",
+          "description": "Optional `nose_gear_pos`, nose gear position `{x, y, z}` in the model frame."
         }
       },
       "required": []
@@ -12081,9 +13122,43 @@
         "dispenserSystems": {
           "type": "string[]",
           "description": "Optional `Countermeasures.DISPENSER` system names."
+        },
+        "chaffDefault": {
+          "type": "number",
+          "description": "Optional top-level `ChaffDefault`, default chaff load (some records give it besides or instead of `passivCounterm`)."
+        },
+        "chaffChargeSize": {
+          "type": "number",
+          "description": "Optional top-level `ChaffChargeSize`, size of one chaff charge; unit not stated."
+        },
+        "flareDefault": {
+          "type": "number",
+          "description": "Optional top-level `FlareDefault`, default flare load."
+        },
+        "flareChargeSize": {
+          "type": "number",
+          "description": "Optional top-level `FlareChargeSize`, size of one flare charge; unit not stated."
         }
       },
       "required": []
+    },
+    "Entity.AircraftSensorRole": {
+      "kind": "record",
+      "description": "One sensor name of an aircraft's `Sensors` block.",
+      "fields": {
+        "role": {
+          "type": "string",
+          "description": "The `Sensors` key (for example `RADAR`, `IRST`, `RWR`, `OPTIC`)."
+        },
+        "sensor": {
+          "type": "string",
+          "ref": "Entity.Sensor",
+          "description": "Optional cross-reference: the `Entity.Sensor` id DCS names; absent for a redacted sensor."
+        }
+      },
+      "required": [
+        "role"
+      ]
     },
     "Entity.Aircraft": {
       "kind": "record",
@@ -12130,6 +13205,10 @@
           "type": "string[]",
           "ref": "Entity.Sensor",
           "description": "Cross-reference: `Entity.Sensor` ids fitted to this aircraft."
+        },
+        "sensorRoles": {
+          "type": "Entity.AircraftSensorRole[]",
+          "description": "Optional `Sensors` block: one entry per sensor name, sorted by role (a role's list in DCS order)."
         },
         "radios": {
           "type": "string[]",
@@ -12208,6 +13287,14 @@
         "operators": {
           "type": "Entity.Operator[]",
           "description": "Countries that operate this aircraft and their service-year ranges."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths of the `_G` dump files that define this aircraft (`_G/db/Units/Planes/Plane/F-16C_50`), joined by `db.Units` `type`; sorted."
+        },
+        "connectDatalinks": {
+          "type": "string[]",
+          "description": "Optional `connectDatalinks`, names of the datalink networks the unit connects to, DCS order."
         }
       },
       "required": [
@@ -12954,6 +14041,10 @@
         "_source": {
           "type": "any",
           "description": "Optional provenance map keyed by field path: `category`/`subcategory: launcher` when they come from the delivering launchers; `category: table` when it comes from membership of DCS's `bombs` table (wsType_Bomb); `rockets` on `seekerType`, `seeker`, `rangeKm`, `rangeMinKm` and `launchRangeMaxKm` when read from the weapon's same-name `_G/rockets` record (which must agree with its own on every field both carry); `seekerTypeName: hand-authored`; `warhead: cluster` when it is the cluster's. Absent fields are the weapon's own."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths of the `_G` dump files (`_G/...`) that define this weapon, joined by its `name` and, for other same-name projectile records, an equal `_unique_resource_name` or complete `ws_type`; sorted."
         }
       },
       "required": [
@@ -13207,6 +14298,10 @@
         "required": {
           "type": "string[]",
           "description": "Optional launcher `Required`: `Entity.Store` CLSIDs (each one asserted at extraction) DCS lists as needed elsewhere on the aircraft (e.g. a datalink pod), sorted. The mission editor does not enforce it."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths of the `_G` dump files (`_G/...`) that define this store, joined by `launcher` `CLSID`; sorted."
         }
       },
       "required": [
@@ -13273,6 +14368,10 @@
         "attributes": {
           "type": "string[]",
           "description": "Optional cross-reference: `Entity.Attribute` ids describing this rack."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Optional dump paths of the `_G` dump files (`_G/...`) that define this rack, joined by `Pylons` `ShapeName`; sorted."
         }
       },
       "required": [
@@ -13396,6 +14495,18 @@
         "dragIndex": {
           "type": "number",
           "description": "Aerodynamic drag index contribution when the entity is carried externally."
+        },
+        "fuelPerTankKg": {
+          "type": "number[]",
+          "description": "Internal fuel per tank in kilograms, DCS order (aircraft `M_fuel_per_tank`)."
+        },
+        "ammoMass": {
+          "type": "number",
+          "description": "Mass of the gun ammunition (aircraft `AmmoWeight`); unit not stated."
+        },
+        "defaultFuelFraction": {
+          "type": "number",
+          "description": "Default fuel load as a fraction of full (aircraft `defFuelRatio`)."
         }
       },
       "required": []
@@ -13667,6 +14778,10 @@
         "laser": {
           "type": "boolean",
           "description": "Optional `laser`."
+        },
+        "beamWidthRad": {
+          "type": "number",
+          "description": "Optional `beamWidth` (surface units), radians."
         }
       },
       "required": []
@@ -13707,9 +14822,33 @@
           "type": "number",
           "description": "Optional `RCS`, square metres (per the DCS unit files' own comment)."
         },
+        "irEmissionCoeffAfterburner": {
+          "type": "number",
+          "description": "Optional `IR_emission_coeff_ab` (aircraft), `IR_emission_coeff` with afterburner."
+        },
         "sensor": {
           "type": "Entity.SensorEnvelope",
           "description": "Optional `sensor` block."
+        },
+        "radar1Period": {
+          "type": "number",
+          "description": "Optional `radar1_period` (ships), rotation period of the first radar, unit not stated."
+        },
+        "radar2Period": {
+          "type": "number",
+          "description": "Optional `radar2_period` (ships), rotation period of the second radar, unit not stated."
+        },
+        "radar3Period": {
+          "type": "number",
+          "description": "Optional `radar3_period` (ships), rotation period of the third radar, unit not stated."
+        },
+        "sensorMountWs": {
+          "type": "number",
+          "description": "Optional `Sensors.Mount_WS_ID` (surface units), the index of the weapon system that rotates the sensors."
+        },
+        "noVisualDetectorInAlarmedState": {
+          "type": "boolean",
+          "description": "Optional `Sensors.noVisualDetectorInAlarmedState` (surface units), whether visual detection is off when the unit is alarmed."
         }
       },
       "required": []
@@ -14032,6 +15171,359 @@
         "equipment",
         "grouping",
         "directionDeltaDeg"
+      ]
+    },
+    "Entity.AircraftFlight": {
+      "kind": "record",
+      "description": "An aircraft's AI / simple flight model as DCS configures it (its configured inputs, not computed performance): `SFM_Data` and the rotorcraft keys of its `db.Units.Planes`/`db.Units.Helicopters` record. Not the player flight model: EFM/PFM modules keep theirs in DLLs. Keys without a field here are only in the `_G` dump.",
+      "fields": {
+        "aircraft": {
+          "type": "string",
+          "ref": "Entity.Aircraft",
+          "description": "Cross-reference: the `Entity.Aircraft` id."
+        },
+        "sourcePaths": {
+          "type": "string[]",
+          "description": "Dump path of the `_G` dump file read (`_G/db/Units/Planes/Plane/F-16C_50`)."
+        },
+        "emptyMassKg": {
+          "type": "number",
+          "description": "Optional `M_empty`, empty mass of the flight model, kg (the Mission Editor's `EmptyWeight` is `Entity.Aircraft.aero`)."
+        },
+        "nominalMassKg": {
+          "type": "number",
+          "description": "Optional `M_nominal`, nominal mass of the flight model, kg."
+        },
+        "maxMassKg": {
+          "type": "number",
+          "description": "Optional `M_max`, maximum mass of the flight model, kg."
+        },
+        "maxFuelMassKg": {
+          "type": "number",
+          "description": "Optional `M_fuel_max`, maximum internal fuel mass of the flight model, kg."
+        },
+        "aerodynamics": {
+          "type": "Entity.AircraftSfmAerodynamics",
+          "description": "Optional `SFM_Data.aerodynamics`."
+        },
+        "engine": {
+          "type": "Entity.AircraftSfmEngine",
+          "description": "Optional `SFM_Data.engine`."
+        },
+        "helicopter": {
+          "type": "Entity.HelicopterFlightModel",
+          "description": "Optional rotorcraft keys of the unit record."
+        }
+      },
+      "required": [
+        "aircraft",
+        "sourcePaths"
+      ]
+    },
+    "Entity.AircraftSfmAerodynamics": {
+      "kind": "record",
+      "description": "`SFM_Data.aerodynamics`: aerodynamic coefficients of the simple flight model.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block: `<dump path>#/SFM_Data/aerodynamics`."
+        },
+        "cy0": {
+          "type": "number",
+          "description": "Optional `Cy0`, lift coefficient at zero angle of attack."
+        },
+        "czbe": {
+          "type": "number",
+          "description": "Optional `Czbe`, side force coefficient (affects yaw)."
+        },
+        "mzalfa": {
+          "type": "number",
+          "description": "Optional `Mzalfa`, pitch agility coefficient."
+        },
+        "mzalfadt": {
+          "type": "number",
+          "description": "Optional `Mzalfadt`, pitch agility coefficient (rate term)."
+        },
+        "kjx": {
+          "type": "number",
+          "description": "Optional `kjx`, inertia parameter about X."
+        },
+        "kjz": {
+          "type": "number",
+          "description": "Optional `kjz`, inertia parameter about Z."
+        },
+        "cxGear": {
+          "type": "number",
+          "description": "Optional `cx_gear`, drag coefficient increment of the extended gear."
+        },
+        "cxFlap": {
+          "type": "number",
+          "description": "Optional `cx_flap`, drag coefficient increment of full flaps."
+        },
+        "cyFlap": {
+          "type": "number",
+          "description": "Optional `cy_flap`, lift coefficient increment of flaps."
+        },
+        "cxBrake": {
+          "type": "number",
+          "description": "Optional `cx_brk`, drag coefficient increment of the airbrake."
+        },
+        "table": {
+          "type": "Entity.AircraftSfmAeroRow[]",
+          "description": "Optional `table_data` rows, DCS order (exact values); absent when its rows are not all 8 numbers."
+        }
+      },
+      "required": [
+        "sourcePath"
+      ]
+    },
+    "Entity.AircraftSfmAeroRow": {
+      "kind": "record",
+      "description": "One `SFM_Data.aerodynamics.table_data` row: the coefficients at one Mach number (columns as the install scripts' legend names them).",
+      "fields": {
+        "mach": {
+          "type": "number",
+          "description": "`M`, Mach number."
+        },
+        "cx0": {
+          "type": "number",
+          "description": "`Cx0`, profile drag coefficient."
+        },
+        "cya": {
+          "type": "number",
+          "description": "`Cya`, normal force coefficient per degree of angle of attack."
+        },
+        "b": {
+          "type": "number",
+          "description": "`B`, quadratic drag polar coefficient."
+        },
+        "b4": {
+          "type": "number",
+          "description": "`B4`, fourth-power drag polar coefficient."
+        },
+        "rollRateMaxRadS": {
+          "type": "number",
+          "description": "`Omxmax`, maximum roll rate, rad/s."
+        },
+        "aoaMax": {
+          "type": "number",
+          "description": "`Aldop`, maximum angle of attack before departure; unit not stated."
+        },
+        "cyMax": {
+          "type": "number",
+          "description": "`Cymax`, maximum lift coefficient."
+        }
+      },
+      "required": [
+        "mach",
+        "cx0",
+        "cya",
+        "b",
+        "b4",
+        "rollRateMaxRadS",
+        "aoaMax",
+        "cyMax"
+      ]
+    },
+    "Entity.AircraftSfmEngine": {
+      "kind": "record",
+      "description": "`SFM_Data.engine`: the engine of the simple flight model.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block: `<dump path>#/SFM_Data/engine`."
+        },
+        "type": {
+          "type": "string",
+          "description": "Optional `type`, engine kind name (for example `TurboJet`)."
+        },
+        "engineKind": {
+          "type": "number",
+          "description": "Optional `typeng`, engine kind code (the install scripts: 0 high-bypass, 1 jet ... 5 turboshaft)."
+        },
+        "idleRpm": {
+          "type": "number",
+          "description": "Optional `Nmg`, RPM at idle; unit not stated."
+        },
+        "throttleMin": {
+          "type": "number",
+          "description": "Optional `MinRUD`, throttle state at minimum."
+        },
+        "throttleMax": {
+          "type": "number",
+          "description": "Optional `MaxRUD`, throttle state at maximum."
+        },
+        "throttleMilitary": {
+          "type": "number",
+          "description": "Optional `MaksRUD`, throttle state at military power."
+        },
+        "throttleAfterburner": {
+          "type": "number",
+          "description": "Optional `ForsRUD`, throttle state at afterburner."
+        },
+        "altitudeMaxKm": {
+          "type": "number",
+          "description": "Optional `hMaxEng`, maximum altitude for safe engine operation, kilometres."
+        },
+        "cxEngine": {
+          "type": "number",
+          "description": "Optional `dcx_eng`, engine drag coefficient."
+        },
+        "fuelConsumptionMilitary": {
+          "type": "number",
+          "description": "Optional `cemax`, specific fuel consumption at military power the AI uses to estimate flight time; unit not stated."
+        },
+        "fuelConsumptionAfterburner": {
+          "type": "number",
+          "description": "Optional `cefor`, the same at afterburner; unit not stated."
+        },
+        "thrustAltitudeCoeffMilitary": {
+          "type": "number",
+          "description": "Optional `dpdh_m`, altitude coefficient of military thrust."
+        },
+        "thrustAltitudeCoeffAfterburner": {
+          "type": "number",
+          "description": "Optional `dpdh_f`, altitude coefficient of afterburner thrust."
+        },
+        "table": {
+          "type": "Entity.AircraftSfmEngineRow[]",
+          "description": "Optional `table_data` rows, DCS order (exact values); absent when its rows are not all 2 or all 3 numbers."
+        }
+      },
+      "required": [
+        "sourcePath"
+      ]
+    },
+    "Entity.AircraftSfmEngineRow": {
+      "kind": "record",
+      "description": "One `SFM_Data.engine.table_data` row: the thrust at one Mach number.",
+      "fields": {
+        "mach": {
+          "type": "number",
+          "description": "`M`, Mach number."
+        },
+        "thrustMilitary": {
+          "type": "number",
+          "description": "`Pmax`, thrust at military power; unit not stated."
+        },
+        "thrustAfterburner": {
+          "type": "number",
+          "description": "Optional `Pfor`, thrust with afterburner; unit not stated."
+        }
+      },
+      "required": [
+        "mach",
+        "thrustMilitary"
+      ]
+    },
+    "Entity.HelicopterFlightModel": {
+      "kind": "record",
+      "description": "Rotorcraft keys of a unit record's top level and its `engine_data` block.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the unit record's top level: `<dump path>#`."
+        },
+        "rotorHeight": {
+          "type": "number",
+          "description": "Optional `rotor_height`, height of the main rotor; unit not stated."
+        },
+        "rotorPosition": {
+          "type": "number[]",
+          "description": "Optional `rotor_pos`, main rotor position `{x, y, z}` in the model frame."
+        },
+        "rotorRpm": {
+          "type": "number",
+          "description": "Optional `rotor_RPM`, main rotor RPM."
+        },
+        "rotorMomentOfInertia": {
+          "type": "number",
+          "description": "Optional `rotor_MOI`, main rotor moment of inertia; unit not stated."
+        },
+        "bladeArea": {
+          "type": "number",
+          "description": "Optional `blade_area`, rotor blade area; unit not stated."
+        },
+        "fuselageArea": {
+          "type": "number",
+          "description": "Optional `fuselage_area`, fuselage reference area; unit not stated."
+        },
+        "tailFinArea": {
+          "type": "number",
+          "description": "Optional `tail_fin_area`, tail fin area; unit not stated."
+        },
+        "tailStabilizerArea": {
+          "type": "number",
+          "description": "Optional `tail_stab_area`, horizontal stabilizer area; unit not stated."
+        },
+        "tailRotorRpm": {
+          "type": "number",
+          "description": "Optional `tail_rotor_RPM`, tail rotor RPM."
+        },
+        "thrustCorrection": {
+          "type": "number",
+          "description": "Optional `thrust_correction`, rotor thrust correction factor."
+        },
+        "speedMaxKmh": {
+          "type": "number",
+          "description": "Optional `V_max`, maximum speed, km/h."
+        },
+        "cruiseSpeedMaxKmh": {
+          "type": "number",
+          "description": "Optional `V_max_cruise`, maximum cruise speed, km/h."
+        },
+        "engine": {
+          "type": "Entity.HelicopterEngineData",
+          "description": "Optional `engine_data` block."
+        }
+      },
+      "required": [
+        "sourcePath"
+      ]
+    },
+    "Entity.HelicopterEngineData": {
+      "kind": "record",
+      "description": "`engine_data` of a helicopter record: its engines' power model.",
+      "fields": {
+        "sourcePath": {
+          "type": "string",
+          "description": "Dump path and pointer of the block: `<dump path>#/engine_data`."
+        },
+        "powerMax": {
+          "type": "number",
+          "description": "Optional `power_max`, maximum power per engine; unit not stated."
+        },
+        "powerTakeOff": {
+          "type": "number",
+          "description": "Optional `power_take_off`, take-off power per engine; unit not stated."
+        },
+        "powerWep": {
+          "type": "number",
+          "description": "Optional `power_WEP`, war emergency power per engine; unit not stated."
+        },
+        "powerRpmMin": {
+          "type": "number",
+          "description": "Optional `power_RPM_min`, minimum engine RPM for power; unit not stated."
+        },
+        "powerRpmCoeffs": {
+          "type": "number[]",
+          "description": "Optional `power_RPM_k`, power-by-RPM coefficients, DCS order."
+        },
+        "powerAltitudeCoeffs": {
+          "type": "number[][]",
+          "description": "Optional `power_TH_k`, power-by-altitude coefficient rows, DCS order."
+        },
+        "fuelConsumptionCoeffs": {
+          "type": "number[]",
+          "description": "Optional `SFC_k`, specific fuel consumption coefficients, DCS order."
+        },
+        "idleRpmReady": {
+          "type": "number",
+          "description": "Optional `Nmg_Ready`, gas generator RPM at ready idle; unit not stated."
+        }
+      },
+      "required": [
+        "sourcePath"
       ]
     },
     "Entity.Attribute": {

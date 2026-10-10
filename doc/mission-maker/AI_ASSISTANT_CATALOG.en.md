@@ -89,6 +89,10 @@ The AI can act in two places, and it changes what "survives":
 | 45 | [Complete the statics placed without a shape](#repair-static-shapes) | 🏁 Validate & build | Recipe + built | ◽ |
 | 46 | [Create an operation (chained zones)](#create-operation) | 🏗️ Composites | Recipe (folder) | ◽ |
 | 47 | [Add a picture to the briefing](#briefing-picture) | 🕰️ Mission settings | Recipe + built | ◽ |
+| 48 | [Read where a campaign stands](#campaign-status) | 🎖️ Campaign | Campaign (folder) | ⭐ |
+| 49 | [Apply a flown campaign mission](#campaign-apply) | 🎖️ Campaign | Campaign (folder) | ⭐ |
+| 50 | [Prepare a campaign's next mission](#campaign-next) | 🎖️ Campaign | Campaign (folder) | ⭐ |
+| 51 | [Write the campaign briefing](#campaign-briefing) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 
 ---
 
@@ -181,6 +185,43 @@ directly, ready for combat zones / QRAs — **with no DCS round-trip**.
 
 > 💬 *"Create a new VEAF mission on Caucasus in this folder."* (the AI asks for the template +
 > theatre, then installs and generates everything)
+
+## 🎖️ Multi-mission campaign
+
+*A [campaign](CAMPAIGN.en.md) flown mission after mission, each mission starting from what the last one left.
+The AI runs the loop: read the situation, apply the mission flown, prepare the next one, then design it with the other actions.*
+
+### Read where a campaign stands {#campaign-status}
+
+*Campaign (folder) · ⭐* — The missions flown, each zone's owner and garrison strength, both sides' reserves, the objectives met or not, and what changed in the last mission.
+This is what the AI decides the enemy's intent for the next turn from.
+
+> 💬 *"Where does the Caucasus campaign stand? What will red try next?"*
+
+### Apply a flown campaign mission {#campaign-apply}
+
+*Campaign (folder) · ⭐* — Once the mission is flown and its state file fetched from the server, the AI merges it into the campaign, plays the turn between missions (reserves, repairs, counter-attacks) and says what changed.
+It also writes the mission's debriefing, and can tell it as a story for the squadron.
+A file already applied, from another campaign, or skipping a mission is refused without writing anything.
+
+> 💬 *"Here is mission 3's state file, apply it."*
+
+### Prepare a campaign's next mission {#campaign-next}
+
+*Campaign (folder) · ⭐* — The AI prepares the next mission's folder from the state: each base to its owner with its dynamic slots, the garrisons with their losses, the campaign module turned on.
+It gets the factual part of the strategic briefing in French and English — already the briefing of a new mission folder — then designs the mission on top and writes the narrative part.
+One mission, no weather variant: date, time and weather are fixed in the mission, the date moving on with the campaign and the ground staying visible; the AI adjusts date and time to the story ([details](CAMPAIGN.en.md#mission-conditions)).
+
+> 💬 *"Prepare mission 4: red counter-attacks at Senaki."*
+
+### Write the campaign briefing {#campaign-briefing}
+
+*Campaign (folder) · ⭐* — The AI writes the campaign's situation brief in `briefing.yaml` — political, economic and military situation, mission and intent, objectives, concept of operations by phase, rules of engagement, the mission's tasks — and the tools turn it into a PPTX after the VEAF briefing template, with the strategic map, the intelligence on the enemy and an annex of the rules.
+The enemy stays mysterious: never a strength, only intelligence of uneven reliability, and fixed sites named once known.
+After each mission, the AI rewrites the coming mission's page from the debriefing.
+Once the mission is built, the tools also write its [mission briefing](CAMPAIGN.en.md#mission-briefing) — ATO, tactical map, one zoom per objective, frequencies —, read from the mission itself.
+
+> 💬 *"Write the campaign briefing: red has crossed the Inguri, the coalition has three missions to retake Senaki."*
 
 ## 🗺️ Map & coordinates
 

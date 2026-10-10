@@ -784,6 +784,14 @@ veaf.i18nCatalog = {
     fr = "Seul un avion peut être escorté",
     en = "Only an airplane can be escorted",
   },
+  ["spawn.escort_no_template"] = {
+    fr = "Aucun modèle d'escorte « %s » pour votre camp : pas d'escorte",
+    en = "No escort template matches '%s' for your side: no escort",
+  },
+  ["spawn.escort_spawn_failed"] = {
+    fr = "L'escorte %s n'a pas pu apparaître pour couvrir %s",
+    en = "The escort %s could not be spawned to cover %s",
+  },
 
   -- veafQraManager (default status messages; %s = QRA description)
   ["qra.msg_start"] = {
@@ -1367,6 +1375,66 @@ veaf.i18nCatalog = {
     fr = "%s tire %d obus sur %s avec une dispersion de %s m",
     en = "%s is firing %d shells at %s with a %s m dispersion",
   },
+  -- veafGroundAI — the convoy watch (FEAT-CONVOY-UNDER-FIRE). The call for help follows JP 3-09.3's
+  -- troops-in-contact call and immediate request; "troops in contact" stays in English in French, the
+  -- way pilots say it.
+  ["groundai.convoy_tic"] = {
+    fr = "%s à tout appui aérien : TROOPS IN CONTACT, demande d'appui immédiat, priorité 1. Notre position : %s. Ennemis : %d (%s), au %03d pour %d m. Fumigène rouge sur l'ennemi, vert sur nous.",
+    en = "%s to any CAS: TROOPS IN CONTACT, immediate CAS request, priority 1. Our position: %s. Enemy: %d (%s), bearing %03d, %d m. Red smoke on the enemy, green smoke on us.",
+  },
+  ["groundai.convoy_tic_voice"] = {
+    fr = "%s, troops in contact, %d %s, au %03d, %d mètres. Fumigène rouge sur l'ennemi, vert sur nous.",
+    en = "%s, troops in contact, %d %s, bearing %03d, %d meters. Red smoke on the enemy, green smoke on us.",
+  },
+  -- The convoy speaks like a crew on the radio, opening with its callsign (David, 2026-10-08:
+  -- "Eglantine, contact avant, on engage le combat").
+  ["groundai.convoy_fighting"] = {
+    fr = "%s, contact %s, %d %s à %d m au %03d, on engage le combat.",
+    en = "%s, contact %s, %d %s at %d m bearing %03d, engaging.",
+  },
+  -- "1 ennemis" in the first in-game run (2026-10-08): the count chooses the word
+  ["groundai.enemy_one"] = { fr = "ennemi", en = "enemy" },
+  ["groundai.enemy_many"] = { fr = "ennemis", en = "enemies" },
+  ["groundai.convoy_falling_back"] = {
+    fr = "%s, contact %s, trop fort pour nous, on décroche à couvert.",
+    en = "%s, contact %s, too strong for us, breaking contact behind cover.",
+  },
+  ["groundai.convoy_unarmed_falling_back"] = {
+    fr = "%s, les véhicules non armés se replient.",
+    en = "%s, the unarmed vehicles are falling back.",
+  },
+  ["groundai.convoy_holding"] = {
+    fr = "%s, plus de contact, on tient la position. Pour repartir : _gc %s, resume",
+    en = "%s, no more contact, holding position. To drive on: _gc %s, resume",
+  },
+  ["groundai.convoy_retreating"] = {
+    fr = "%s, bien reçu, on se replie.",
+    en = "%s, copy, falling back.",
+  },
+  ["groundai.convoy_resuming"] = {
+    fr = "%s, on reprend la route.",
+    en = "%s, back on the road.",
+  },
+  ["groundai.convoy_nowhere_to_go"] = {
+    fr = "%s, aucun lieu ami connu où se replier. Donnez un point : _gc %s, retreat <point>",
+    en = "%s, no friendly place known to fall back to. Give a point: _gc %s, retreat <point>",
+  },
+  ["groundai.convoy_danger_mark"] = {
+    fr = "%s — convoi au contact",
+    en = "%s — convoy in contact",
+  },
+  ["groundai.direction_ahead"] = { fr = "avant", en = "ahead" },
+  ["groundai.direction_right"] = { fr = "droite", en = "right" },
+  ["groundai.direction_behind"] = { fr = "arrière", en = "behind" },
+  ["groundai.direction_left"] = { fr = "gauche", en = "left" },
+  ["groundai.convoy_watched"] = {
+    fr = "%s est surveillé comme un convoi, sous cet indicatif.",
+    en = "%s is now watched as a convoy, under that callsign.",
+  },
+  ["groundai.not_a_convoy"] = {
+    fr = "%s n'est pas un convoi. Pour le surveiller comme tel : _gc %s, convoy",
+    en = "%s is not a convoy. To watch it as one: _gc %s, convoy",
+  },
 
   -- veafWeather
   ["weather.fog_set"] = {
@@ -1887,6 +1955,95 @@ veaf.i18nCatalog = {
   ["weather.fog_density.no"] = {
     fr = "AUCUN",
     en = "NO",
+  },
+  -- veafCampaign
+  ["campaign.zone_neutral"] = {
+    fr = "Campagne : %s a perdu toute sa garnison, la zone est neutre et peut être prise.",
+    en = "Campaign: %s has lost its whole garrison; the zone is neutral and can be captured.",
+  },
+  ["campaign.zone_captured"] = {
+    fr = "Campagne : %s a été prise par le camp %s.",
+    en = "Campaign: %s has been captured by %s.",
+  },
+  ["campaign.side.blue"] = { fr = "bleu", en = "blue" },
+  ["campaign.side.red"] = { fr = "rouge", en = "red" },
+  ["campaign.side.neutral"] = { fr = "neutre", en = "neutral" },
+  ["campaign.map_label"] = { fr = "%s — %d %%", en = "%s — %d%%" },
+  ["campaign.map_label_neutral"] = { fr = "%s — neutre", en = "%s — neutral" },
+  ["campaign.map_label_capture"] = {
+    fr = "%s — capture %s en cours (%d s)",
+    en = "%s — %s capture in progress (%d s)",
+  },
+  ["campaign.situation.header"] = {
+    fr = "Campagne %s — mission %d sur %d",
+    en = "Campaign %s — mission %d of %d",
+  },
+  ["campaign.situation.zone"] = { fr = "- %s : %s, garnison %d %%", en = "- %s: %s, garrison %d%%" },
+  ["campaign.situation.capture"] = {
+    fr = ", capture %s en cours (%d s)",
+    en = ", %s capture in progress (%d s)",
+  },
+  ["campaign.situation.objectives"] = { fr = "Objectifs :", en = "Objectives:" },
+  ["campaign.objective.capture"] = { fr = "- prendre %s", en = "- capture %s" },
+  ["campaign.objective.destroy"] = { fr = "- détruire %s", en = "- destroy %s" },
+  ["campaign.counters"] = {
+    fr = "Campagne : %d battements, %d zones visitées, %d dessins, %d unités apparues, %d pertes traitées, %d écritures d'état",
+    en = "Campaign: %d beats, %d zones visited, %d drawings, %d units spawned, %d losses handled, %d state writes",
+  },
+  ["campaign.state_unwritable"] = {
+    fr = "Campagne : io/lfs indisponibles sur ce serveur, l'état de la campagne ne peut pas être enregistré.",
+    en = "Campaign: io/lfs are not available on this server; the campaign state cannot be recorded.",
+  },
+  ["menu.campaign.root"] = { fr = "Campagne", en = "Campaign" },
+  ["menu.campaign.situation"] = { fr = "Situation", en = "Situation" },
+  ["menu.campaign.counters"] = { fr = "Compteurs (admin)", en = "Counters (admin)" },
+  ["menu.campaign.assault"] = { fr = "Assauts", en = "Assaults" },
+  ["menu.campaign.assault_entry"] = { fr = "%s vers %s", en = "%s to %s" },
+  ["campaign.convoy_sent_own"] = {
+    fr = "Un convoi d'assaut quitte %s pour prendre %s.",
+    en = "An assault convoy leaves %s to take %s.",
+  },
+  ["campaign.convoy_sent_enemy"] = {
+    fr = "Renseignement : une colonne ennemie quitte %s en direction de %s.",
+    en = "Intelligence: an enemy column is leaving %s towards %s.",
+  },
+  ["campaign.assault_refused"] = {
+    fr = "Assaut de %s vers %s impossible : la zone de départ n'est plus à nous, la cible l'est déjà, ou un convoi y va déjà.",
+    en = "No assault from %s to %s: the start zone is no longer ours, the target already is, or a convoy is already on its way.",
+  },
+  ["campaign.assault_no_reserve"] = {
+    fr = "Assaut impossible : plus rien en réserve.",
+    en = "No assault: nothing left in reserve.",
+  },
+
+  -- veafOpposition
+  ["opposition.level"] = {
+    fr = "Opposition aérienne dimensionnée pour %d avion(s) (%s)",
+    en = "Air opposition sized for %d aircraft (%s)",
+  },
+  ["opposition.no_level"] = {
+    fr = "Opposition aérienne : aucun niveau, chaque QRA répond aux avions dans sa zone",
+    en = "Air opposition: no level, each QRA answers the aircraft in its zone",
+  },
+  ["opposition.follow.players"] = { fr = "suit les joueurs connectés", en = "follows the players connected" },
+  ["opposition.follow.airborne"] = { fr = "suit les joueurs en vol", en = "follows the players airborne" },
+  ["opposition.follow.air_to_air"] = {
+    fr = "suit les joueurs en vol armés air-air",
+    en = "follows the players airborne armed for air-to-air",
+  },
+  ["opposition.follow.off"] = { fr = "fixe", en = "fixed" },
+  ["opposition.usage"] = {
+    fr = "_opposition <nombre> | air_to_air | players | airborne | off",
+    en = "_opposition <number> | air_to_air | players | airborne | off",
+  },
+  ["menu.opposition.root"] = { fr = "Opposition", en = "Opposition" },
+  ["menu.opposition.show"] = { fr = "Niveau actuel", en = "Current level" },
+  ["menu.opposition.level"] = { fr = "Niveau", en = "Level" },
+  ["menu.opposition.level_entry"] = { fr = "%d joueur(s) en CAP", en = "%d player(s) on CAP" },
+  ["menu.opposition.mode"] = { fr = "Mode", en = "Mode" },
+  ["menu.combatmission.scale_auto"] = {
+    fr = "Taille auto (niveau d'opposition)",
+    en = "Auto scale (opposition level)",
   },
 }
 

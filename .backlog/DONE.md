@@ -6,9 +6,29 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-SECURITY-GROUP-LEVEL](FIX-SECURITY-GROUP-LEVEL/PRD.md) · ✅
+
+Every secured `+` radio command was refused to every pilot whenever security was on, since 6.14.0: the group's level went through `Group.getByID`, which DCS does not have. The occupants now come from `coalition.getPlayers`, and `RADIO` pulls in `SECURITY` so `/secu elevate` exists. Merged in #1120; *Escort me* seen working on `private1` on 2026-10-10 with *Kolkhida* mission 2 rebuilt.
+
+### [FIX-QRA-GROUND-START](FIX-QRA-GROUND-START/PRD.md) · ✅
+
+A QRA scrambled from the runway was destroyed 5 s later: the watchdog took a group not yet airborne for a landed one and reset the QRA. A group is now landed only once it has flown; one still on the ground ten minutes after the scramble is reset as before. Seen in game: wheels up 25–35 s after the scramble. Merged in #1118.
+
+### [FIX-CAPTURE-ZONE-MEMBERSHIP](FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md) · ✅
+
+Poti, taken on *Kolkhida* by the blue convoy, drew a garrison anyway: the capture trusted `world.searchObjects`, which overshoots its sphere, and the absorption measured the exact distance. Both now ask the same search; a strong enough assault convoy drives into its target zone while fighting; a shell is never a threat. To be checked in game, with ticket 02's measurement of why the convoy halted at the zone's edge (test mission ready). Seen in game 2026-10-10: the convoy became Poti's garrison and drove on to the centre.
+
+### [FIX-MCP-SESSION-PREP-FINDINGS](FIX-MCP-SESSION-PREP-FINDINGS/PRD.md) · ✅
+
+What preparing the *Kolkhida* in-game test through the MCP broke: `loadout_from` failing on pylons numbered 1 to n, two groups of one name written, then both removed by `remove_group`; and CTLD `2.0.0-rc13` vendored, the release that gives crates a country of the coalition. Merged in #1116.
+
 ### [CHORE-BACKLOG-INDEX-SPLIT](CHORE-BACKLOG-INDEX-SPLIT/PRD.md) · ✅
 
 The backlog index split into active, ready and done indexes, one short paragraph per lot; the archived lots got their own index (#1058).
+
+### [CHORE-DCS-SCHEMA-V0-5-0](CHORE-DCS-SCHEMA-V0-5-0/PRD.md) · ✅
+
+dcs-world-schema `v0.5.0` vendored: the scripting API and the LuaLS annotations do not move, only reference-data types grow; closes #1076.
 
 ### [CHORE-DROP-MACOS-INTEL](CHORE-DROP-MACOS-INTEL/PRD.md) · ✅
 
@@ -22,6 +42,18 @@ Path-filtered workflows made usable as required checks; the 11 checks are now re
 
 CTLD `2.0.0-rc12` vendored (#1051): reoccupied slots, `EXZ_` extraction zones, UH-1H / Mi-8MT catalogue changes.
 
+### [DOC-ENTRY-POINTS](DOC-ENTRY-POINTS/PRD.md) · ✅
+
+The main ways into the docs made obvious: "I want to…" cards on the home page and the Mission Maker overview, the AI pages right after the tutorial in the menu, and the Mission Maker labels that showed in English on the French site translated (#1112).
+
+### [DOC-TUTORIAL-NEXT-STEPS](DOC-TUTORIAL-NEXT-STEPS/PRD.md) · ✅
+
+The tutorial stops before the three things a mission maker does next: set the tool's language, get security back for the server build through a profile, and update the tools.
+
+### [FEAT-AI-ASSISTANT-ANY-CLIENT](FEAT-AI-ASSISTANT-ANY-CLIENT/PRD.md) · ✅
+
+Using VMCT with Claude, Gemini or another AI: the tutorial points to the install page from its first lines, the install page covers another MCP client and a chat AI without MCP, and the server serves the authoring skill to any client through `describe_authoring_guide` (#1110).
+
 ### [FEAT-AIRCRAFT-ROLES](FEAT-AIRCRAFT-ROLES/PRD.md) · ✅
 
 One way to spawn an aircraft with a job: `veafAircraftSpawn` roles, given to QRA and AirWaves CAP groups at clone time. Verified in game (R21).
@@ -33,6 +65,10 @@ Airfield radio channels generated from DCS's own reference instead of typed by h
 ### [FEAT-CTLD-AIRBASE-LOGISTICS](FEAT-CTLD-AIRBASE-LOGISTICS/PRD.md) · ✅
 
 Airfields become CTLD logistic zones (#1007): blue-from-start fields keep them, captured ones after two minutes of ground presence, marked by a green circle. Seen in game 2026-10-03: at Ramstein a C-130 parks 997 m out, so a mission raises `airbase_logistics_radius` (1 100 m there).
+
+### [FEAT-DCS-REFERENCE-DATA](FEAT-DCS-REFERENCE-DATA/PRD.md) · ✅
+
+Airfield names, ids and positions generated from the `dcs-world-schema` reference database (positions now on the runways' centre), numeric callsigns for the ten countries the Mission Editor numbers. Liveries and spotter sight dropped on measurement. #1098.
 
 ### [FEAT-HELICOPTER-SPAWN](FEAT-HELICOPTER-SPAWN/PRD.md) · ✅
 
@@ -137,6 +173,10 @@ A FARP escort moved even on free ground; it now checks the wanted spot itself an
 ### [FIX-QRA-COMMANDS-AND-OFFSET](FIX-QRA-COMMANDS-AND-OFFSET/PRD.md) · ✅
 
 A QRA config accepted then ignored: VEAF commands refused by `validate` in deploy lists, and `respawn_default_offset` never emitted. Fixed; verified in game (R7, QRA half).
+
+### [FIX-RADIO-MENU-ID-RECYCLING](FIX-RADIO-MENU-ID-RECYCLING/PRD.md) · ✅
+
+A VEAF F10 menu left open fires another command than the one the player sees: DCS gives a removed entry's id to the next one created, and the builder recreated the whole tree on every refresh. Measured in game 2026-10-09; the render is now incremental, each freed id parked on an inert command, pages stable (#1113).
 
 ### [FIX-RELAY-STOPS-AT-CLOSE](FIX-RELAY-STOPS-AT-CLOSE/PRD.md) · ✅
 

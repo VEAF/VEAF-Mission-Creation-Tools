@@ -430,8 +430,9 @@ collision sur la même seconde est désambiguïsée (`-2`, `-3`, ...), jamais si
 - `route` — optionnelle ; par défaut un unique point stationnaire à `position`. Avec
   `patrol: true` (et au moins 2 points), le dernier point boucle sur le premier via une tâche
   `GoToWaypoint` — une patrouille terrestre DCS classique.
-- **Pas de déduplication** : appeler deux fois avec les mêmes paramètres crée deux groupes
-  distincts, exactement comme deux clics dans l'éditeur DCS.
+- **Un nom déjà pris est refusé**, nom de groupe comme nom d'unité, en citant le groupe qui le porte.
+  DCS ne refuse pas deux objets du même nom : `Group.getByName` en renvoie un des deux sans rien dire, et tout ce qui désigne un groupe par son nom (QRA, combat zone, `remove_group`) se trompe de groupe.
+  Vaut pour toutes les actions qui créent un groupe (`add_air_group`, `add_player_slot`, `create_qra`…), qui passent par la même insertion.
 - Les `groupId`/`unitId` sont toujours frais (`mission_tools.group_insertion.max_ids`), y compris
   sur une mission aux plages d'ids déjà trouées.
 
@@ -579,6 +580,8 @@ dossier (durable) ou un `.miz` (transitoire), sauvegarde horodatée avant écrit
 - **Nom exact exigé.** Un fragment est refusé, comme pour `set_group_properties` : une suppression
   qui atterrit sur le premier groupe correspondant n'est pas rattrapable. Un nom introuvable liste ce
   qui existe, et **rien n'est écrit**.
+- **Un nom porté par plusieurs groupes est refusé**, en listant leurs `groupId` : `group_id` désigne celui à retirer, l'autre reste.
+  Avant, l'action les retirait tous et n'en annonçait qu'un.
 - **Nomme ce qu'il casse, sans refuser** — le créateur de mission veut peut-être précisément ça :
   une combat zone qui capture le groupe par préfixe de nom, une tâche `Escort` qui pointe son
   `groupId` (y compris imbriquée dans un `ComboTask`, la forme réelle de DCS), et une entrée
@@ -696,6 +699,15 @@ modules) :
 > liste `airports:`, `dynamicSpawn = false` ou pas (`FIX-SCRATCH-MISSION-FINDINGS` ticket 15). Rien
 > n'est écrit si le fichier manque (l'étape ne tourne pas) ou si le camp n'y est pas déclaré (le
 > déclarer ouvrirait toutes ses bases).
+
+### Campagne multi-missions
+
+- `campaign_status(campaign_folder)` — où en est la campagne : missions appliquées, propriétaire, force de garnison, type et voisins de chaque zone, réserves, objectifs atteints ou non, changements de la dernière mission. Lecture seule.
+- `campaign_apply(campaign_folder, state_file)` — fusionne le fichier d'état d'une mission jouée, joue le tour entre les missions, juge les objectifs, écrit et rend le débriefing FR/EN ; refuse un fichier déjà appliqué, d'une autre campagne ou qui saute une mission, sans rien écrire.
+- `campaign_next(campaign_folder, players?)` — crée (copie de `template/`) ou rafraîchit `missions/mission-NN/mission` : aérodromes à leur propriétaire par `set_airbase_coalition`, `src/campaign-data.yaml`, module `CAMPAIGN` dans `mission.yaml`, et, sur un dossier qu'il crée, la situation stratégique comme briefing et la date, l'heure et la météo fixées dans la mission (une seule mission, sans variante ; date du lendemain de la mission précédente, heure solaire calculée sur le terrain de la campagne, météo tirée sol visible) ; écrit à côté le document de briefing stratégique, et le briefing de mission si la mission est construite ; rend le dossier, `conditions`, les documents et la partie factuelle du briefing stratégique en FR et EN. Sa description demande à Claude de fixer date et heure selon l'avancée de la campagne et de garder le sol visible, et de demander combien de joueurs sont attendus ce soir : `players` (un nombre, ou une fourchette `"5-7"`, qui prime sur le `players` de `campaign.yaml`) écrit le bloc `opposition:` de la mission.
+- `campaign_briefing(campaign_folder)` — écrit `missions/mission-NN/briefing-campagne.pptx` et sa carte stratégique à partir de la campagne (les faits) et de `briefing.yaml` (la prose) ; rend les chemins, le nombre de pages, si la prose était là, si la carte a dû se passer de tuiles, les sections que `briefing.yaml` peut contenir, et `mission_deck` : le briefing de mission (`briefing-mission.pptx`, cartes tactiques), lu dans la mission construite — `None` et un avertissement qui dit comment construire tant qu'il n'y a pas de `.miz`. Sa description porte les règles d'écriture : un briefing de situation militaire, aucune mécanique de jeu hors de l'annexe, l'ennemi réduit à un renseignement inégal.
+
+Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.CampaignWorker`), qui rend des données au lieu de les afficher. Voir [Campagne multi-missions](../mission-maker/CAMPAIGN.md).
 
 ### FARP
 
@@ -900,6 +912,20 @@ généré.
 {"kind": "dcs"}
 ```
 
+### `describe_authoring_guide` (lot FEAT-AI-ASSISTANT-ANY-CLIENT)
+
+Lecture seule, sans paramètre. Renvoie `{"guide": …}` : le texte de la skill `veaf-mission-authoring` du plugin, tel quel.
+Claude Code et Gemini CLI chargent cette skill depuis le plugin ; un autre client MCP n'a pas de plugin, et la lit ici.
+Le fichier n'existe qu'une fois, `plugin/skills/veaf-mission-authoring/SKILL.md` : le build l'embarque dans l'exe sous `veaf_mission_mcp/data/`, et en développement l'action le lit dans le dépôt.
+
+Les **consignes du serveur** (`instructions` du protocole MCP, envoyées au client à la connexion) demandent de lire ce guide en premier — en chargeant la skill si le client l'a, en appelant cette action sinon.
+Elles tiennent en quelques lignes exprès : Claude Code les met dans le prompt de chaque session, où la skill du plugin est déjà.
+Tous les clients n'en tiennent pas compte ; [la page d'installation](../mission-maker/AI_ASSISTANT_INSTALL.md#other-mcp-client) fait donc commencer la conversation par la demande explicite.
+
+```json
+{}
+```
+
 ### `offer_clear_ground_check` (lot FEAT-CLEAR-GROUND-AT-AUTHORING)
 
 Lecture seule, et **ne lance rien**. Sur un `.miz` construit, renvoie de quoi **proposer** à
@@ -999,6 +1025,8 @@ Zone + intercepteurs **Late Activation** (coalition significative) + entrée
 coalition est passée en minuscule pour le placement, majuscule dans la définition YAML. Chaque intercepteur a **un seul point, sans tâche**, à dessein : au décollage, le module QRA donne à un groupe
 `CAP`/`Intercept` dont la route n'engage aucun aéronef une patrouille sur la zone
 ([ce que fait un groupe décollé](../mission-maker/scripts/veafQraManager.md#scrambled-group-task)).
+Sa description demande des paliers par nombre d'intrus jusqu'à la taille attendue de l'escadrille — jamais une seule paire fixe face à cinq joueurs ou plus — et nomme `scale_with_opposition` et `rearm_while_occupied` ([niveau d'opposition](../mission-maker/scripts/veafQraManager.md#opposition-level)).
+Un intercepteur **décolle de la piste** par défaut : celle de `airfield`, sinon l'aérodrome de sa coalition le plus proche de la zone ; `start: air` le met en l'air à `position`, sur demande seulement. Sans aérodrome de sa coalition, ou sans données de parking pour le théâtre, le défaut retombe en l'air avec un avertissement ; un `start` ou un `airfield` demandés et impossibles sont refusés.
 
 ### `create_cap_mission`
 
@@ -1073,8 +1101,8 @@ Chaque zone porte son `x`/`y`/`radius`, chaque groupe son `x`/`y` et son nombre 
 
 Lecture seule. Liste les bases d'un théâtre — nom, id d'aérodrome DCS, lat/lon, et `x`/`y` DCS quand
 la projection du théâtre est connue — depuis la donnée livrée avec les outils
-(`veaf_libs/data/airdrome-positions.yaml`, générée avec `airdromes.yaml` depuis les dumps runtime par
-`veaf-build update-dcs-data --airdromes`). Avec `mission_path`, le théâtre de la mission ; sans
+(`veaf_libs/data/airdrome-positions.yaml`, générée avec `airdromes.yaml` depuis la base de référence `dcs-world-schema` par
+`veaf-build update-dcs-data --airdromes`). La position est le point de référence de l'aérodrome, au centre des pistes. Avec `mission_path`, le théâtre de la mission ; sans
 mission, `theatre`.
 
 ```json

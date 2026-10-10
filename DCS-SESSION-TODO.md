@@ -54,6 +54,107 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R47. What *Kolkhida* mission 1 found, once fixed — **a pilot for items 1 to 3, two for item 7**
+
+[`FIX-CAMPAIGN-MISSION-1-FINDINGS`](.backlog/FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md), and ticket 02 of [`FIX-CAPTURE-ZONE-MEMBERSHIP`](.backlog/FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md).
+Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolkhida`, mission 1 rebuilt as flown, fiddle hook): every stand of Batumi and Senaki is on `RUNWAY` surface; a CH-47F inside Batumi's zone gets *Request Equipment* and no crate, because CTLD creates it under the USA, absent from a campaign's coalitions (fixed in VEAF/CTLD, to be vendored); "Escort me" spawns its escort locally, from a placed slot in the air and from a dynamic slot on the ground.
+
+**Prepare**: a copy of `D:\dev\_VEAF\_campaigns\campaign-kolkhida` (never the live campaign), mission 1 rebuilt from the lot's branch **with the CTLD release that takes the unit's country**, security off in the copy, a game master slot, a CH-47F slot on Batumi stand 6 and on a Kobuleti stand **inside its logistic circle** (stand 24 is 1 200 m out of it: no crate, no troops — measured 2026-10-10; David keeps the 250 m zone, pilots taxi into the circle), an A-10C slot in the air near Batumi, `rules.assault_seconds: 60`.
+
+**Run 2026-10-10** (`D:\dev\_VEAF\tmp\dcs-session-2026-10-10`, CTLD rc13, no pilot): item 1 at Batumi — troops board, the crate appears **20 m** abeam, because the campaign's `ctld-config.yaml` predates rc13's per-type `crateSpawnSector`/`crateSpawnDistance` (to be completed before mission 2); item 2 passed (`EL:16` on the CDU, ground 5.0 m); item 3 — ATC silent and no garrison unit on the concrete at all three fields, but the QRA on the runway was destroyed 5 s after its scramble: fixed in [`FIX-QRA-GROUND-START`](.backlog/FIX-QRA-GROUND-START/PRD.md), to be run again. The QRA counts **human** aircraft only: an AI intruder does not trigger it. Item 4 passed without a red player (no smoke, no call; the red-player half needs a second pilot); item 6 passed (the convoy became Poti's garrison and drove on to the centre, 0 m); item 7 passed (A-10C 0, Hornet with AIM-120 1, *3 player(s) on CAP* fixes 3). Found on the way: a convoy holding at its standoff in front of an enemy DCS does not make it engage stays frozen, its watch refreshing the contact for ever. **Second pass, the same afternoon** (`TEST-Kolkhida-M1b`, built from `develop` with FIX-QRA-GROUND-START): item 1 passed at Kobuleti too, the CH-47F set to a ground start 40 m from the circle's centre (a client helicopter on a stand is seated elsewhere by DCS, now in `known-limitations.yaml`); item 3 passed, the Senaki MiG-29 pair rolling from the runway with its wheels up 25–35 s after the scramble. Not explained: on the first entry into the air slot inside the zone the QRA did not react for about 90 s; on the second it did within 5 s.
+
+4. *(ticket 07)* Fire on the red assault convoy until it falls back, no red player connected.
+   - **Verified**: no smoke, no troops-in-contact call; with a red player connected, both come back.
+5. *(ticket 09, on dcs.veaf.org)* "Escort me" from a blue dynamic slot, as on 2026-10-08.
+   - **Verified**: the escort comes, or a message says why it does not; the server's `dcs.log` has an `Escort me` line either way.
+   - **Re-opened, no message and no `Escort me` line**: the click reached another command — F10 id reuse after a menu rebuild (ticket 09's hypothesis, CTLD's `FIX-MENU-STABLE-ENTRIES`); note which menu screen was open and for how long.
+### R46. The opposition level, from the shipped build — **one pilot for item 3**
+
+[`FEAT-OPPOSITION-SCALES-WITH-PLAYERS`](.backlog/FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md), tickets 02, 04 and 05.
+On the mocks: the tiers, the hysteresis, the marker and its security, the "Auto scale" choice. What the mocks cannot show: the radio menu as DCS draws it, `coalition.getPlayers` on a real server, and a QRA scrambling the tier of the level.
+
+**Prepare**: a Caucasus test mission built from the branch, security off, a game master slot and one blue client slot, `opposition: { level: 6 }`, a red QRA over Kobuleti with `scale_with_opposition: true` and tiers `1` → `MiG-29 QRA-1` and `5` → `MiG-29 QRA-1`, `MiG-29 QRA-2` (no `random_pick`), and a combat mission `CAP Red` with its skills and scales.
+
+1. F10 → **Opposition** → *Niveau actuel*.
+   - **Verified**: "dimensionnée pour 6 avion(s) (fixe)" shows to everybody.
+   - **Re-opened, no menu**: `dcs.log` around `OPPOSITION` — the generated `veaf-config.lua` should carry `veafOpposition.configure({level = 6})` before the modules and `veafOpposition.initialize()` after them.
+2. Marker `_opposition 2`, then `_opposition players`.
+   - **Verified**: two announcements, "2 avion(s) (fixe)" then the count of players connected with "suit les joueurs connectés".
+   - **Re-opened, nothing**: the marker stayed on the map — the handler did not answer (`dcs.log`, `COMMANDS`).
+3. `_opposition 6`, then fly one blue aircraft into the QRA zone.
+   - **Verified**: **both** MiG-29 groups scramble (the tier of 6, not the tier of 1).
+   - **Re-opened, one group**: the tier came from the zone count — `dcs.log`, `chooseGroupsToDeploy(` should read `6`.
+4. F10 → combat missions → `CAP Red` → a skill → *Taille auto (niveau d'opposition)*.
+   - **Verified**: the copy at scale 3 activates (`* scale 3` in the menu).
+   - **Re-opened, no entry**: the menu was built before the level was configured.
+
+**Run 2026-10-10** on *Kolkhida* mission 1 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-10`, two passes): item 5 passed (both columns left 60 s after the start, the reserves down by the units sent; the message and the arrow not looked at by eye); item 6 passed (the red column took Poti, its 9 units became the garrison, no `Poti garrison` group, both axes gone); item 7 half passed — `campaign apply` on a copy listed « convoi Kobuleti → Poti : 10 » in the losses, but no convoy was on the road at the end, so « encore en route » is still unseen; item 8 passed as R47 item 7.
+
+5. *(ticket 04, assault convoys)* A test campaign mission (`campaign next`) with Poti neutral between a blue Kobuleti and a red Senaki, `rules.assault_seconds: 60`.
+   - **Verified**: after 60 s a red column leaves Senaki by road towards Poti (blue gets "une colonne ennemie quitte Senaki…", an arrow on the F10 map), and a blue one from Kobuleti; the red reserve in the state file is down by the units sent.
+   - **Re-opened, nothing leaves**: `dcs.log` around `assault convoy` — "nothing left in reserve", or no `will send` line (the rule did not plan it).
+7. F10 → Campaign → Assaults → *Kobuleti vers Poti* in a blue slot, then end the mission with the convoy on the road and run `campaign apply`.
+   - **Verified**: the debriefing lists "convoi Kobuleti → Poti" losses and "encore en route : N unité(s) rendue(s) à la réserve".
+8. *(ticket 05, the players on CAP)* `_opposition air_to_air`, then two players in the air: one with AIM-120 (or R-77, AIM-7, R-27R), one with bombs and two AIM-9.
+   - **Verified**: after a minute at most the level announced is 1 — the fighter, not the bomb truck; the bomb truck rearmed on the ground with AIM-120 and back in the air makes it 2.
+   - **Re-opened, 0**: `getAmmo` on a player aircraft does not give `desc.missileCategory` and `desc.guidance` as the schema says: dump one with `fiddle.sh` (`return veaf.p(Unit.getByName("<pilot unit>"):getAmmo())`).
+   - **Re-opened, 2 from the start**: the AIM-9 is reported radar-guided — the same dump says which field to read.
+
+### R45. A convoy under fire, from the shipped build — **no pilot needed**
+
+[`FEAT-CONVOY-UNDER-FIRE`](.backlog/FEAT-CONVOY-UNDER-FIRE/PRD.md), ticket 07.
+Already seen on 2026-10-08 with the module hot-loaded into a running mission (`D:\dev\_VEAF\tmp\dcs-session-2026-10-08-convoy\`, probes `p*.lua` through `fiddle.sh`): the watch made contact at 1.9 km before any shot, the trucks left at once and whole, the Bradleys closed in and destroyed a BMP-2 and a BTR-80 in 16 s from ~1.3 km without a loss, the convoy held after 60 s, and `resume` brought the trucks back.
+**Run again on the shipped build the same day**, the demo's `convoy-ambush` step (`recette_pont.py`, 2 checks, 0 failed): `-convoy, dest EMBUSCADE, side blue` was attached to the watch by the spawn itself, made contact, split, closed in and destroyed the three red vehicles without a loss (20 vehicles out of 20 intact), held, and `_gc convoy, resume` merged it back into one group. Items 1 and 5 below are done but for the text and the smokes, not looked at.
+**Third pass, the same afternoon**, hot-loaded into the demo's test mission after David's remarks: a strong convoy reported the contact under its callsign (*Bison, contact avant, …, on engage le combat*), without a call or smoke, the tactical message 18 s after; an F10 marker showed it during the contact and went with it; it drove on only once the ambush was destroyed, fetched its trucks and drove on as one group, by road. An outgunned convoy fell back with both groups on the road, out of the ambush's sight, called for help and held.
+What is left: `GROUNDAI.convoys` from `mission.yaml`, an **outgunned** convoy falling back behind terrain to a friendly airbase, the **voice**, how long a smoke lasts, and the call and the smokes seen by eye.
+
+**Prepare**: a Caucasus test mission built from the branch, security off, a game master slot, `GROUNDAI: { enabled: true, convoys: [ "Supply North" ] }` with a Mission Editor group `Supply North` (one HMMWV, three trucks) on a road 6 km from Kutaisi, and on DAVID-BUREAU the `SRS_for_scripting_config.lua` of the ground AI page ([Faire parler la mission](doc/mission-maker/scripts/veafGroundAI.md#srs-voice)) with an SRS server running.
+
+1. `_spawn convoy` toward a road with two BMP-2 400 m off it; a ridge beside the road. **Done on 2026-10-08 but for the last point** — `side blue`: `-convoy` is red by default.
+   - **Verified**: `_gc convoy, status` answers (the spawn attached it); contact before the first red shot; `<convoy> unarmed` leaves at once; the call for help appears to blue with a red smoke on the nearest BMP and a green one on the convoy.
+   - **Re-opened, no status**: the convoy was not handed to the watch — `veafGroundAI.initialized` was false when it spawned.
+2. Let `Supply North` drive into three BMP-2 (outgunned: 1 against 9).
+   - **Verified**: armed and unarmed fall back, through a point the BMPs cannot see, toward Kutaisi; the column does not bog down on the first leg.
+   - **Re-opened**: it stays in sight of the BMPs, or bogs down — note where (F10 map) and whether a road was near.
+3. Listen on 243.0 AM in SRS during item 1.
+   - **Verified**: the call is heard.
+   - **Re-opened, silent**: `dcs.log` says `SRS is not configured` (the file was not read) or nothing at all (`os` missing).
+4. Note when the green smoke of item 1 disappears, by eye.
+   - **Answer**: its duration — write it into `known-limitations.yaml` and set `ConvoyUnitHandler.SMOKE_RENEW_PERIOD` just below it.
+5. After a won fight, a minute with nothing in sight. **`_gc convoy, resume` and the merge done on 2026-10-08**, on the shipped build; the convoy then drove on **across country**, 330 to 376 m from the road — fixed since (it goes back to the road first), and the resume is automatic after a fight.
+   - **Verified**: without any order, *back on the road*; the trucks drive straight to the armed vehicles, the convoy becomes one group (`dcs.log`: `merged back`) and drives on **by road**; no call for help nor smoke during that fight, only the contact message.
+   - **Re-opened**: it holds after a won fight, or drives across country — note the distance to the road (`land.getClosestPointOnRoads`).
+
+### R44. A multi-mission campaign, two missions end to end — **no pilot for items 1 to 5**
+
+[`FEAT-MULTI-MISSION-CAMPAIGN`](.backlog/FEAT-MULTI-MISSION-CAMPAIGN/PRD.md), tickets 04, 06, 07 and 11.
+The 62 Lua tests and the Python suite prove what `veafCampaign` hands to DCS and what `campaign apply` makes of it; what DCS does with an airbase changing hands, a warehouse read, a unit started short of missiles or a bridge destroyed again is unmeasured.
+
+**Prepare**: copy `src/defaults/campaign-folder/` to a working folder, add a `template/` mission folder (`prepare --theatre Caucasus`, security off), `campaign init`, `campaign next`, build `missions/mission-01/mission`, `dcs-serve` running for `fiddle.sh`.
+
+1. Start mission 1, wait 70 s.
+   - **Verified**: eleven garrisons on the F10 map with their circles and labels, `Campaign → Situation` lists 12 zones, `Saved Games/DCS/Missions/Saves/Western Georgia/mission-01.state` exists.
+   - **Re-opened, nothing drawn**: `veafCampaign.data` missing — look for `no campaign data` in `dcs.log`.
+   - **Re-opened, no file**: `io`/`lfs` sanitized on this install, or the folder not created — `cannot write the campaign state` in `dcs.log`.
+2. Destroy every unit of `Gali garrison` with `fiddle.sh` (explosions, not `destroy()`), then put one blue ground unit in Gali for 130 s.
+   - **Verified**: *Gali … est neutre*, then *Gali a été prise par le camp bleu*, a blue garrison appears, the circle turns blue.
+   - **Re-opened, never taken**: `dcs.log` says `neutral zone [Gali] held by …` at each change and names the object of each side — a red one after the garrison died is what blocks it (on 2026-10-06 Senaki stayed neutral with two Abrams in it; dead units are filtered out since, and the retest took it at once).
+   - **Re-opened**: no capture — `sidesPresent` saw nothing; dump `world.searchObjects` over the zone in `fiddle.sh`.
+3. Destroy all of `Senaki garrison`, put blue ground units on Senaki-Kolkhi for 130 s, then read `Airbase.getByName("Senaki-Kolkhi"):getCoalition()` and spawn a blue dynamic slot there.
+   - **Verified**: coalition 2, the blue slot is offered, and no red unit standing on it makes DCS take it back (`autoCapture(false)` holds).
+   - **Re-opened**: the coalition stays 1, or the slot list is unchanged — record which one in `known-limitations.yaml` (`kind: dcs`).
+4. Read `Airbase.getByName("Kobuleti"):getWarehouse():getInventory()` before and after a blue aircraft takes off with two missiles.
+   - **Verified**: the aircraft count drops by one and the missile count by two — the state file's `warehouse` can be written back (ticket 06).
+   - **Re-opened**: counts unchanged or absent — record what the call answers; writing back stays out of scope.
+5. Spawn a SAM with `coalition.addGroup` and a reduced ammunition entry if the API takes one, or check `Unit.getAmmo` after `fiddle.sh` fires two missiles; destroy a bridge (`scenery-objects` gives its id) and try both an explosion at its position and a scenery destruction zone at the next start.
+   - **Verified**: one way leaves the bridge down without collateral — note it for ticket 07; a SAM can start short — note it for ticket 06.
+   - **Re-opened**: neither — record it, and the PRD says how the low stock is rendered instead (fewer launchers, a more cautious IADS).
+6. End mission 1, `campaign apply` its state file, `campaign next`, build and start mission 2.
+   - **Verified**: Gali and Senaki are blue, Senaki offers blue slots, the destroyed units of the other garrisons are missing, the strategic briefing tells it.
+   - **Re-opened**: anything not carried over — compare `missions/mission-01/campaign-state.after.yaml` with what mission 2 shows.
+7. Kill the server process in the middle of mission 2.
+   - **Verified**: `mission-02.state` (or its `.tmp`) holds the last interval, and `campaign apply` reads it.
+
 ### R43. QRA and air waves on their shared base — **a pilot for items 4 and 5 only**
 
 [`FEAT-AIRWAVES-QRA-MERGE`](.backlog/FEAT-AIRWAVES-QRA-MERGE/PRD.md) and #1078.
@@ -155,6 +256,10 @@ ticket 01. The mission half shipped in 6.26.0; the hook half (`VEAF-Server-hook.
 the pilot's level with every slot change) was copied by hand to all six servers on 2026-10-01. The
 reported scenario needs a multiplayer server and a pilot listed in `veaf-pilots.txt`, which a local
 single-player session cannot give.
+
+**It could not pass before [`FIX-SECURITY-GROUP-LEVEL`](.backlog/FIX-SECURITY-GROUP-LEVEL/PRD.md)**: from 6.14.0 every secured `+` click was refused to every pilot (`Group.getByID` does not exist, found on `private1` on 2026-10-10).
+Run it on a mission built with that fix, and add what that lot leaves to check: the click passes from a **dynamic** slot and from a **placed** one, an **unlisted** pilot is refused, and `/secu elevate` answers on a mission whose `mission.yaml` does not list `SECURITY`.
+That closes the lot too.
 
 **Run**, on any VEAF server running a 6.26.0+ mission: a pilot listed at level ≥ 10 takes a slot and
 clicks a secured `+` combat-zone command **without any verb**; then, **still connected**, the mission

@@ -1,0 +1,371 @@
+"""Build the next mission of a campaign from its state (ticket 09).
+
+What the tools apply is everything the state decides: who owns each airbase, and so where each side's
+dynamic slots are; the campaign data table the runtime module reads (garrisons with their losses,
+reserves, destroyed scenery); the `CAMPAIGN` module in `mission.yaml`; and the factual half of the
+strategic briefing. The mission itself — objectives, packages, the narrative — is designed on top of
+that folder afterwards, by Claude through the MCP, never instead of it.
+"""
+
+from __future__ import annotations
+
+import re
+import shutil
+import unicodedata
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import yaml
+from mission_tools.mission_yaml_editor import load_yaml, save_yaml
+from veaf_libs.i18n import language, t
+from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.mission_settings import set_briefing
+
+from campaign_manager.briefing_prose import MissionPage
+from campaign_manager.mission_conditions import MissionConditions, set_conditions
+from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
+from campaign_manager.objective_waypoints import write_objective_waypoints
+from campaign_manager.turn_manager import describe_change, enemy_of, evaluate_objectives, garrison_strength, outcome
+
+#: The data table, in the mission folder, the build turns into `veafCampaign.data`.
+DATA_FILE = "src/campaign-data.yaml"
+
+#: The factual part of the strategic briefing, one file per language, at the mission folder's root.
+BRIEFING_FILE = "strategic-situation.{lang}.txt"
+
+#: The languages the briefing is written in.
+BRIEFING_LANGUAGES: tuple[str, ...] = ("fr", "en")
+
+#: What a mission folder copied from the template leaves behind: build output is not a template.
+_NOT_COPIED = shutil.ignore_patterns("build", "*.miz.bak", "__pycache__")
+
+#: What ends a campaign mission's name: the server's DCSServerBot MizEdit skips a mission carrying it,
+#: so the date, time and weather the campaign fixed reach the players (FIX-CAMPAIGN-MISSION-1-FINDINGS
+#: ticket 08). The build appends its date after it, so the server's filter looks for it anywhere.
+NO_MIZEDIT_MARKER = "NoMizedit"
+
+#: The `security:` keys a squadron's mission must not carry: with none, a pilot listed in the server's
+#: `veaf-pilots.txt` passes by his level and nobody types a password (ticket 10).
+_SECURITY_OVERRIDES = ("disabled", "password_hashes", "password_mm_hashes")
+
+
+@dataclass(frozen=True)
+class NextMissionReport:
+    """What `campaign next` produced."""
+
+    mission: int
+    folder: Path
+    created: bool
+    """Whether the folder was copied from the template now, rather than refreshed."""
+    airbases: list[str]
+    deck: Path | None = None
+    """The strategic briefing deck written next to the folder, or ``None`` when it could not be."""
+    conditions: MissionConditions | None = None
+    """The date, time and weather fixed in a folder created now; ``None`` on a refresh, which keeps them."""
+    mission_deck: Path | None = None
+    """The mission briefing deck, written when the folder holds a built mission."""
+    waypoints: bool = False
+    """Whether `src/waypoints.yaml` was written from the objectives; ``False`` when an edited one was kept."""
+    name: str = ""
+    """The mission's name, written into `mission.yaml`; the build appends its date to it."""
+    security_restored: bool = False
+    """Whether security overrides (`disabled`, passwords) were removed from `mission.yaml`."""
+
+
+def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str, Any]:
+    """Return the campaign data table of the next mission: `veafCampaign.data` at run time.
+
+    Zones carry their position as the runtime can resolve it — an airbase name, or coordinates the
+    runtime converts with `coord.LLtoLO` — so the tools need no projection of their own.
+
+    Args:
+        campaign: The validated campaign.
+        state: The campaign state the mission starts from.
+
+    Returns:
+        Plain data, with the structure the state file has on its way back.
+    """
+    zones = []
+    for zone in campaign.zones:
+        zone_state = state.zones[zone.name]
+        size = campaign.size_classes[zone.size]
+        entry: dict[str, Any] = {
+            "name": zone.name,
+            "radius": zone.radius,
+            "owner": zone_state.owner,
+            "size": {
+                "size": size.size,
+                "defense": size.defense,
+                "armor": size.armor,
+                "long_range_sam": size.long_range_sam,
+            },
+        }
+        if zone.location.airfield:
+            entry["airbase"] = zone.location.airfield
+        else:
+            entry["lat"], entry["lon"] = zone.location.lat, zone.location.lon
+        if zone.kind:
+            entry["kind"] = zone.kind
+        if zone.garrison:
+            # the declared side's garrison: a side that takes the zone draws its own instead
+            entry["garrison_list"] = list(zone.garrison)
+            entry["declared_side"] = zone.side
+        if zone_state.garrison is not None:
+            entry["garrison"] = zone_state.garrison
+        zones.append(entry)
+    return {
+        "format_version": state.format_version,
+        "campaign": campaign.name,
+        "mission": state.mission + 1,
+        "missions": campaign.missions,
+        "capture_seconds": campaign.capture_seconds,
+        "assault_convoys": campaign.rules.assault_convoys,
+        "assault_seconds": campaign.rules.assault_seconds,
+        "intel_seconds": campaign.rules.intel_seconds,
+        "state_write_seconds": campaign.state_write_seconds,
+        "objectives": [{"kind": o.kind, "zones": list(o.zones)} for o in campaign.objectives],
+        "zones": zones,
+        "connections": [list(connection) for connection in campaign.connections],
+        "sides": {side: {"reserve": dict(state.sides[side].reserve)} for side in COALITIONS},
+        "scenery_destroyed": state.scenery_destroyed,
+    }
+
+
+def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> str:
+    """Write the factual part of the next mission's strategic briefing, in the current language.
+
+    The front, what changed in the last mission, the enemy's state, the objectives and the missions
+    left. The narrative — what the enemy intends, what is asked of the players — is not here.
+
+    Args:
+        campaign: The validated campaign.
+        state: The campaign state the mission starts from.
+
+    Returns:
+        Plain text, one fact per line.
+    """
+    mission = state.mission + 1
+    lines = [t("campaign.briefing.header", mission=mission, missions=campaign.missions), ""]
+    for side in (*COALITIONS, "neutral"):
+        held = [zone.name for zone in campaign.zones if state.zones[zone.name].owner == side]
+        if held:
+            lines.append(t(f"campaign.briefing.held.{side}", zones=", ".join(held)))
+    if state.history:
+        last = state.history[-1]
+        lines += ["", t("campaign.briefing.last_mission", mission=last["mission"])]
+        lines += [f"- {describe_change(change)}" for change in last["changes"]] or [t("campaign.briefing.quiet")]
+    enemy = enemy_of(campaign.player_side)
+    reserve = state.sides[enemy].reserve
+    lines += [
+        "",
+        t(
+            "campaign.briefing.enemy_reserve",
+            armor=reserve.get("armor", 0),
+            air_defense=reserve.get("air_defense", 0),
+            transport=reserve.get("transport", 0),
+        ),
+    ]
+    for zone in campaign.zones:
+        zone_state = state.zones[zone.name]
+        if zone_state.owner != enemy:
+            continue
+        strength = garrison_strength(zone_state.garrison)
+        if strength is None:
+            lines.append(t("campaign.briefing.enemy_zone_unknown", zone=zone.name))
+        else:
+            lines.append(t("campaign.briefing.enemy_zone", zone=zone.name, strength=strength))
+    lines += ["", t("campaign.briefing.objectives")]
+    for objective, met in evaluate_objectives(campaign, state):
+        mark = "[x]" if met else "[ ]"
+        lines.append(f"{mark} {t(f'campaign.objective.{objective.kind}', zones=', '.join(objective.zones))}")
+    left = max(campaign.missions - state.mission, 0)
+    lines.append(t(f"campaign.briefing.outcome.{outcome(campaign, state)}", left=left))
+    return "\n".join(lines) + "\n"
+
+
+def _enable_campaign_module(mission_yaml: Path, era: str) -> None:
+    """Turn the `CAMPAIGN` module on in `mission.yaml`, pointed at the data file; set the era."""
+    data = load_yaml(mission_yaml)
+    modules = data.setdefault("modules", {})
+    if modules is None:
+        modules = data["modules"] = {}
+    modules["CAMPAIGN"] = {"enable": True, "data_file": DATA_FILE}
+    mission = data.setdefault("mission", {})
+    if mission is None:
+        mission = data["mission"] = {}
+    mission["era"] = era
+    save_yaml(mission_yaml, data)
+
+
+def _name_part(text: str) -> str:
+    """``La porte de Poti`` → ``La-porte-de-Poti``: ASCII letters, digits and dashes only.
+
+    A part ending in ``ICAO`` gets a dash after it: DCSServerBot reads the four letters after ``ICAO_`` in
+    a file name as the weather station to fetch.
+    """
+    folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    part = re.sub(r"[^A-Za-z0-9]+", "-", folded).strip("-")
+    return f"{part}-" if part.lower().endswith("icao") else part
+
+
+def mission_name(campaign: str, number: int, title: str | None) -> str:
+    """Return the name of a campaign mission: `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`.
+
+    Args:
+        campaign: The campaign's name.
+        number: The mission's number in the campaign.
+        title: The mission's title in `briefing.yaml`, or ``None`` before it is designed.
+
+    Returns:
+        The name, ASCII letters, digits, dashes and underscores only.
+    """
+    parts = ["Campaign", _name_part(campaign), "Mission", f"{number:02d}"]
+    if title and _name_part(title):
+        parts.append(_name_part(title))
+    parts.append(NO_MIZEDIT_MARKER)
+    return "_".join(parts)
+
+
+def _set_squadron_settings(mission_yaml: Path, name: str) -> bool:
+    """Name the mission, silence the ATC unless told otherwise, and give it the server's security.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+        name: The name `mission_name` computed.
+
+    Returns:
+        Whether a security override was removed.
+    """
+    data = load_yaml(mission_yaml)
+    mission = data.setdefault("mission", {})
+    if mission is None:
+        mission = data["mission"] = {}
+    mission["name"] = name
+    mission.setdefault("silence_atc_on_all_airbases", True)
+    security = data.get("security")
+    restored = isinstance(security, dict) and any(key in security for key in _SECURITY_OVERRIDES)
+    if isinstance(security, dict):
+        for key in _SECURITY_OVERRIDES:
+            security.pop(key, None)
+        if not security:
+            del data["security"]
+    save_yaml(mission_yaml, data)
+    return restored
+
+
+def opposition_for(players: tuple[int, int], player_side: str) -> dict[str, Any]:
+    """Return the `opposition:` block of a mission flown by that many players.
+
+    Sized for the most expected, and following the players airborne armed for air-to-air: a squadron
+    that comes short, or whose pilots are not all flying CAP, meets the opposition of those who are,
+    once the count has held for a few minutes (ticket 05).
+
+    Args:
+        players: The fewest and the most players expected.
+        player_side: The coalition the players fly for.
+
+    Returns:
+        The block, as mission.yaml holds it.
+    """
+    return {"level": players[1], "follow": "air_to_air", "players_coalition": player_side.upper()}
+
+
+def _set_opposition(mission_yaml: Path, block: dict[str, Any]) -> None:
+    """Write the `opposition:` block of `mission.yaml`, keeping the rest of the file.
+
+    The level is the campaign's; any other key already in the block was designed in the mission
+    folder (a follow mode, a delay) and is kept, the way a refresh keeps the rest of the design.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+        block: The block `opposition_for` computed.
+    """
+    data = load_yaml(mission_yaml)
+    existing = data.get("opposition")
+    designed = dict(existing) if isinstance(existing, dict) else {}
+    data["opposition"] = {**block, **designed, "level": block["level"]}
+    save_yaml(mission_yaml, data)
+
+
+def prepare_next_mission(
+    campaign: CampaignDefinition,
+    state: CampaignState,
+    campaign_folder: Path,
+    mission_folder: Path,
+    players: tuple[int, int] | None = None,
+    page: MissionPage | None = None,
+) -> NextMissionReport:
+    """Create, or refresh, the next mission's folder from the campaign state.
+
+    A folder that does not exist yet is copied from the campaign's mission template, and its date, start
+    time and weather are fixed there, one mission and no weather variant. One that does is only
+    refreshed — the campaign files rewritten, the airbases set again — so the design already done in
+    it, date, time and weather included, survives a second run.
+
+    Args:
+        campaign: The validated campaign.
+        state: The campaign state the mission starts from.
+        campaign_folder: The campaign folder, holding the mission template.
+        mission_folder: Where the next mission goes.
+        players: How many players are expected tonight, beating `campaign.yaml`'s `players`; with
+            neither, the mission's `opposition:` block is left as it is.
+        page: The coming mission's page of `briefing.yaml`, whose tasks name the zones its waypoints go
+            to; ``None`` for the campaign's objectives.
+
+    Returns:
+        What was produced.
+
+    Raises:
+        FileNotFoundError: The template has no `mission.yaml`.
+    """
+    template = campaign_folder / campaign.mission_template
+    created = not mission_folder.exists()
+    if created:
+        if not (template / "mission.yaml").is_file():
+            raise FileNotFoundError(t("campaign.issue.no_template", path=template))
+        shutil.copytree(template, mission_folder, ignore=_NOT_COPIED)
+
+    airbases = []
+    for zone in campaign.zones:
+        if zone.location.airfield:
+            owner = state.zones[zone.name].owner
+            set_airbase_coalition(
+                mission_folder, name=zone.location.airfield, coalition=owner, dynamic_spawn=owner in COALITIONS
+            )
+            airbases.append(zone.location.airfield)
+
+    data_path = mission_folder / DATA_FILE
+    data_path.parent.mkdir(parents=True, exist_ok=True)
+    data_path.write_text(
+        yaml.safe_dump(mission_data(campaign, state), allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
+    for lang in BRIEFING_LANGUAGES:
+        with language(lang):
+            text = strategic_situation(campaign, state)
+        (mission_folder / BRIEFING_FILE.format(lang=lang)).write_text(text, encoding="utf-8")
+    if created:
+        # the mission flies with the facts even if nobody designs it further; a refresh leaves the
+        # briefing alone, since what was written on top of them is design
+        set_briefing(mission_folder, situation=strategic_situation(campaign, state))
+    _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
+    # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
+    # security off, never the campaign
+    name = mission_name(campaign.name, state.mission + 1, page.title if page else None)
+    security_restored = _set_squadron_settings(mission_folder / "mission.yaml", name)
+    expected = players or campaign.players
+    if expected:
+        _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
+    # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
+    conditions = set_conditions(campaign, state, mission_folder) if created else None
+    waypoints = write_objective_waypoints(campaign, page, mission_folder, created=created)
+    return NextMissionReport(
+        mission=state.mission + 1,
+        folder=mission_folder,
+        created=created,
+        airbases=airbases,
+        conditions=conditions,
+        waypoints=waypoints,
+        name=name,
+        security_restored=security_restored,
+    )

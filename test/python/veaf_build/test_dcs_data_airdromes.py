@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import yaml
@@ -149,3 +150,63 @@ def test_committed_positions_cover_every_dumped_theatre() -> None:
     assert set(theatres) == set(A.load_dumps())
     ramstein = next(a for a in theatres["GermanyCW"] if a["name"] == "Ramstein")
     assert isinstance(ramstein["id"], int)
+
+
+# FEAT-DCS-REFERENCE-DATA ticket 01: the dcs-world-schema reference database carries every airbase of
+# 13 theatres with the same names and ids as the runtime dumps, and a reference point that is the
+# runways' centre where `Airbase:getPoint()` lands about a kilometre away.
+
+
+def _reference(*rows: tuple[str, int, str, float, float]) -> sqlite3.Connection:
+    """An in-memory reference database holding the given ``(theatre, id, name, lat, lon)`` airbases."""
+    connection = sqlite3.connect(":memory:")
+    connection.execute("create table airbases (theatre text, airdromeId integer, name text, referencePoint text)")
+    connection.executemany(
+        "insert into airbases values (?, ?, ?, ?)",
+        [(t, i, n, json.dumps({"latitude": lat, "longitude": lon, "x": 0, "z": 0})) for t, i, n, lat, lon in rows],
+    )
+    return connection
+
+
+def test_the_reference_airbases_are_read_per_theatre_with_their_reference_point() -> None:
+    connection = _reference(("Caucasus", 24, "Kobuleti", 41.9299189, 41.8632749), ("Syria", 39, "Tiyas", 34.5, 37.6))
+    result = A.reference_airbases(connection)
+    assert result == {
+        "Caucasus": [{"id": 24, "name": "Kobuleti", "lat": 41.929919, "lon": 41.863275}],
+        "Syria": [{"id": 39, "name": "Tiyas", "lat": 34.5, "lon": 37.6}],
+    }
+
+
+def test_the_reference_wins_over_a_dump_and_a_dump_fills_a_theatre_it_lacks(tmp_path: Path) -> None:
+    out = tmp_path / "airdromes.yaml"
+    dumps = tmp_path / "dumps"
+    dumps.mkdir()
+    (dumps / "Syria.json").write_text(json.dumps(_DUMP), encoding="utf-8")
+    (dumps / "TheChannel.json").write_text(
+        json.dumps(
+            {"theatre": "TheChannel", "airbases": [{"id": 1, "name": "Abbeville Drucat", "lat": 50.1, "lon": 1.8}]}
+        ),
+        encoding="utf-8",
+    )
+    reference = A.reference_airbases(_reference(("Syria", 39, "Tiyas", 34.6, 37.7)))
+
+    count = A.generate(dumps, out, reference=reference)
+
+    table = yaml.safe_load(out.read_text(encoding="utf-8"))["theatres"]
+    assert table["Syria"] == {"Tiyas": 39}
+    assert table["TheChannel"] == {"Abbeville Drucat": 1}
+    positions = yaml.safe_load((tmp_path / "airdrome-positions.yaml").read_text(encoding="utf-8"))["theatres"]
+    assert positions["Syria"] == [{"name": "Tiyas", "id": 39, "lat": 34.6, "lon": 37.7}]
+    assert positions["TheChannel"] == [{"name": "Abbeville Drucat", "id": 1, "lat": 50.1, "lon": 1.8}]
+    assert count == 2
+
+
+def test_committed_positions_are_the_reference_points() -> None:
+    """Kobuleti sits on its runways' centre (reference point), not on `getPoint()` about 1.2 km away."""
+    path = (
+        Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_libs" / "data" / "airdrome-positions.yaml"
+    )
+    theatres = yaml.safe_load(path.read_text(encoding="utf-8"))["theatres"]
+    kobuleti = next(a for a in theatres["Caucasus"] if a["name"] == "Kobuleti")
+    assert (kobuleti["lat"], kobuleti["lon"]) == (41.929919, 41.863275)
+    assert any(a["name"] == "Abbeville Drucat" for a in theatres["TheChannel"])

@@ -17,6 +17,137 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.29.0] — 2026-10-10
+
+### Documentation
+
+- **The tutorial now goes on past the first flight** (DOC-TUTORIAL-NEXT-STEPS).
+  Step 0 shows which language the tool answers in and how to set it (`user-config --set lang=…`), and points to `doctor` for asking for help.
+  A new step 10 brings security back for the server through a `TEST` build profile, instead of the "put it back before deploying" that step 2 left unexplained; a new step 11 updates the tools and says why a rebuild has to follow.
+  The closing table now also leads to the demo mission, the v5 migration, third-party missions and the AI assistant.
+
+- **The main ways into the documentation are on its first screen** (DOC-ENTRY-POINTS).
+  The home page opens on "I want to…" cards — fly, discover VMCT, my first mission, create with an AI, take over a mission, get help — and the Mission Maker overview on four of them.
+  In the menu, the AI assistant pages follow the tutorial, and five Mission Maker labels that showed in English on the French site are translated.
+- **What a runway QRA costs, measured, and a DCS trap for helicopter slots.**
+  The QRA page gives the time a runway start takes to get airborne: 25 to 35 s from the scramble to wheels up, measured on the *Kolkhida* test mission.
+  `known-limitations.yaml` (and so `describe_known_limitations`) adds that DCS seats a client helicopter placed on an aircraft stand elsewhere, up to 1.2 km away, when the player takes the slot; a ground start is seated where it is placed.
+
+### Fixed
+
+- **The build's "active modules" line now names CTLD, CSAR and the other community scripts** (DOC-TUTORIAL-NEXT-STEPS).
+  They were injected all along, but the line only read the VEAF modules, so the `standard` template reported 20 modules where the tutorial announced 22 — and a mission maker checking that CTLD had been read found it missing.
+- **A flight of Belarus, GDR, Yugoslavia, South Ossetia or the Insurgents now gets a numeric callsign, as the Mission Editor gives it** (FEAT-DCS-REFERENCE-DATA).
+  The MCP knew five countries whose aircraft carry a number, measured on existing missions; the editor's own code lists ten, and DCS's callsign table agrees.
+- **A server whose `SERVER_CONFIG` has no `SRS_*` keys no longer crashes the radio voice** (FEAT-CONVOY-UNDER-FIRE).
+  `veaf.lua` copied the missing keys into `STTS` as nil and `veafRadio` built its SRS command anyway: the `string.format` raised inside whatever had asked for a voice. The mission now stays silent and says so in the log.
+- **A QRA scrambles the tier it was written for, with every group of it** (FEAT-OPPOSITION-SCALES-WITH-PLAYERS).
+  The tier chosen was the last one Lua's table order happened to visit, not the biggest that fits: tiers written 5, 1, 3 gave 6 intruders the tier of 3. A `random_pick` drew with replacement, so "2 of [MiG-29, Su-27]" could send the MiG-29 pair twice — that is, once; under the test mocks it did, 200 draws out of 200. The draw is now without replacement and never picks more than the list holds.
+  **Migration:** in `mission.yaml`, a `groups_by_enemy_count` tier without `random_pick` used to draw one group; it now sends **every** group it lists. Add `random_pick: 1` to a tier that relied on the old default. `convert-v5` keeps a tier set without a draw as such (it used to drop it), and reads `setNoNeedToLeaveZoneBeforeRearming`.
+  The new `rearm_while_occupied: true` rearms a destroyed QRA without waiting for its zone to be clear — which, with several players over the target, it almost never was.
+- **A mission built from `develop` loads its VEAF scripts again** (FIX-BUNDLE-LOCAL-LIMIT).
+  The build concatenates every module into `veaf-scripts.lua`, where their top-level locals added up past the 200 a Lua 5.1 chunk accepts: DCS refused the whole file ("main function has more than 200 local variables") and no VEAF module loaded. Each module now sits in its own `do … end` block, and a test runs the bundle under Lua 5.1 in the CI Lua job. Released 6.28.0 was not affected.
+- **A campaign garrison is drawn with its air defence again** (FIX-SPAWN-DATA-LOAD-ORDER).
+  The groups database (`veaf-spawn-data.lua`, ADR 0005) was loaded by a trigger of its own, appended after the mission scripts, while `veafCampaign` draws the garrisons as `veaf-config.lua` runs: every SAM group came out of an empty database (`cannot find group [sa10]` in `dcs.log`), and Senaki stood without its SA-10.
+  The database now loads as the last action of the VEAF framework load triggers, before the mission scripts; a mission without those triggers keeps the old trailing trigger, and the build says why that is a risk.
+- **A campaign's assault-convoy axis holds still on the F10 map** (FIX-CAMPAIGN-ARROW-ALTITUDE).
+  It was an arrow, which slid away from its axis as the map was panned, whether its points were at sea level or on the terrain — and pointed at its source, DCS putting the tip on the first point. The axis is now a line in the side's colour over the link, removed when the convoy arrives or is destroyed.
+- **A convoy that fell back no longer waits for ever on a side without players** (FIX-ASSAULT-CONVOY-FINDINGS).
+  After a fall back it held until a `_gc <callsign>, resume` that nobody on red, in a campaign, could give. When no player of its side is connected, it now drives on by itself after 5 minutes, checked when the delay ends; a player of its side keeps the choice, a new contact cancels it, and a `_gc hold` is never lifted.
+- **A convoy no longer flees one infantryman it merely saw** (FIX-ASSAULT-CONVOY-FINDINGS).
+  An enemy seen just beyond 3 km counted as impossible to fight, like an aircraft: one rifleman at 3164 m made a strength-5 group fall back. A ground unit seen now counts for its own strength; only an aircraft or a unit that fired from beyond 3 km still makes the convoy fall back whatever its strength.
+- **A campaign's assault convoys are tanks and IFVs** (FIX-ASSAULT-CONVOY-FINDINGS).
+  They came out as air defence and trucks: the armour platoon was half the convoy's size give or take 20 %, so two trucks brought 0 or 1 armoured vehicle, and the start zone's air defence came twice. A convoy now brings 4 tanks and IFVs of its side and era from an `outpost`, 6 from an `airfield`, two trucks, and one or two anti-aircraft guns at most.
+- **A flight plan in `waypoints.yaml` takes its waypoints by key, and a waypoint keeps its `name:`** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  Only a plan's keys were ever read, while the shipped example wrote `HOLDING_POINT: "HOLDING_POINT"` as if the value mapped somewhere: `POTI: "POTI_LOW"` silently flew to `POTI`. A plan now also takes a list of keys, which the shipped example uses; the mapping form still loads, and the build warns when a value names another waypoint.
+  A waypoint's `name:` was overwritten by its key, so *Kolkhida* mission 1's helicopters showed `POTI_LOW` in the cockpit: the name is now kept, the key being the fallback.
+- **An assault convoy that takes a zone becomes its garrison, even halted at its edge** (FIX-CAPTURE-ZONE-MEMBERSHIP).
+  On *Kolkhida*, Poti was taken by the blue convoy and drew a 24-unit garrison from blue's reserve anyway: the capture trusted DCS's `world.searchObjects`, which found the convoy 2036 to 2117 m from the centre of the 2000 m zone, and the absorption measured the exact distance. Both now ask the same search, so the units that took the zone are the ones that become its garrison. The overshoot is recorded as a DCS trap (`searchobjects-sphere-overshoots-its-radius`). Each assault convoy's departure now also says in `dcs.log` where its road ends against its target zone.
+- **An assault convoy strong enough to fight drives into its target zone** (FIX-CAPTURE-ZONE-MEMBERSHIP).
+  The red assault on Poti stood 2.8 km from the zone for good: the garrison it attacked was always in sight, so the contact never ended, and a convoy in contact only ever closed to 900 m of the threat of the moment. A campaign assault convoy within 5 km of its target zone now drives on to its centre, firing as it goes (farther, across country, a column bogs down); a weaker one still falls back, and a plain convoy is unchanged.
+- **A shell is never a convoy's threat** (FIX-CAPTURE-ZONE-MEMBERSHIP).
+  Some DCS hit events name the weapon as their initiator: a convoy recorded `weapons.shells.M61_20_HE_gr` as a threat of infinite strength, enough to make it fall back from a round. The convoy watch now counts the vehicle that fired it, or nothing when DCS does not say.
+- **What the squadron found flying *Kolkhida* mission 1, fixed** (FIX-CAMPAIGN-MISSION-1-FINDINGS).
+  A campaign's airfield garrison keeps off the concrete — DCS calls runways, taxiways and stands alike `RUNWAY` — and a unit recorded there is moved off it; a held airfield is a CTLD troop pickup zone as well as a logistic one; a convoy calls for help and pops smoke only when its side has pilots connected; every refusal of "Escort me" says why.
+  `campaign next` names the mission `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit` for the server's MizEdit to skip, silences the ATC, gives the mission the server's security, and puts the objective waypoints on the ground; a QRA laid down by `create_qra` takes off from its side's runway unless asked otherwise.
+  The build lists every AWACS and tanker no preset reaches: mission 1's radios and kneeboards carried the shipped channel plan, not its own Overlord on 251 MHz.
+  **Migration:** a campaign mission folder refreshed by `campaign next` loses its `security.disabled` and passwords; turn security off in a test copy, never in the campaign.
+
+- **A VEAF radio menu left open fires the command the player sees** (FIX-RADIO-MENU-ID-RECYCLING).
+  Reading an F10 menu while another player joined, or while a zone or a mission changed, could fire another command than the one clicked: DCS gives a removed menu entry's internal number to the next one created and does not refresh a menu left open, and the VEAF menu was recreated whole on every such change.
+  It is now updated in place: an unchanged entry keeps its number, and each freed number is taken by an invisible inert command.
+  An entry that appears after the first display goes to the end of its menu, on its last page, instead of its alphabetical place; an entry already shown never changes page.
+  The vendored CTLD has the same defect; it is reported upstream as VEAF/CTLD#257.
+- **`campaign apply` accepts a state file already in its mission folder** (FIX-CAMPAIGN-MISSION-1-FINDINGS, ticket 11).
+  A `mission-NN.state` placed in `missions/mission-NN/`, where the campaign guide shows it, stopped the command with `SameFileError` before anything was written; it is now applied in place, and a file taken from anywhere else is still copied there.
+- **The mission-editing MCP server no longer writes two groups of one name, no longer removes both, and copies any loadout** (FIX-MCP-SESSION-PREP-FINDINGS).
+  Found preparing an in-game test of *Kolkhida*: `create_qra` with `loadout_from` failed on `'list' object has no attribute 'items'` whenever the source group's pylons ran 1 to n with no gap; they are now read as stations 1 to n.
+  Every action that creates a group refuses a group or unit name the mission already holds, naming its holder: DCS resolves either of two homonyms by name, silently.
+  `remove_group` refuses a name several groups share, listing their `groupId`s, and takes `group_id` to say which one goes; it used to remove all of them and report one.
+- **A QRA scrambled from the runway takes off instead of disappearing 5 s later** (FIX-QRA-GROUND-START).
+  The watchdog took a group not yet airborne for one that had landed, and reset the QRA, destroying the aircraft rolling to the runway: every ground start failed, found on the *Kolkhida* test mission.
+  A group is landed only once it has flown; one still on the ground ten minutes after the scramble is taken for stuck and the QRA rearms, as before.
+  Air waves had the same reading — a wave aircraft not in the air was crippled and destroyed — and get the same fix.
+- **A secured `+` F10 command runs again for a pilot with the level** (FIX-SECURITY-GROUP-LEVEL).
+  Since 6.14.0 a group's level was read through `Group.getByID`, which DCS does not have: every group came out empty, at level 0, and every `+` command was refused to every pilot on every mission running with security on, whatever `veaf-pilots.txt` said.
+  The group's pilots are now found among the players.
+  A mission with `RADIO` now always initialises `SECURITY`, which the `prepare` templates used to leave commented out: the `/secu elevate` a refusal suggests answered *unknown command*.
+  Leaving `SECURITY` out never switched the level check off; `security: disabled: true` does.
+
+### Added
+
+- **Multi-mission campaigns: a campaign flown mission after mission, each one built from what the last one left** (FEAT-MULTI-MISSION-CAMPAIGN).
+  A campaign folder declares zones, connections, objectives and reserves in `campaign.yaml`; `veaf-tools campaign init`, `next`, `apply` and `validate` run the loop, and the MCP actions `campaign_status`, `campaign_apply` and `campaign_next` let Claude run it.
+  In flight, the new `veafCampaign` module spawns each zone's garrison minus its losses, draws the situation on the F10 map, lets a side take a neutral zone by holding it on the ground, and writes a state file to `Saved Games` during the flight and at its end.
+  Between missions, the state file is merged and a turn is played by fixed rules — logistics feed the reserves, the reserves repair the garrisons, a neutral zone bordered by one side only is retaken by it — and `campaign next` prepares the next mission folder with its bases, its dynamic slots and the factual part of its strategic briefing in French and English.
+  Not yet replayed in the next mission, though recorded: destroyed scenery, SAM missiles left, warehouse stocks — see [the page](doc/mission-maker/CAMPAIGN.en.md#to-verify).
+  `campaign apply` given a path where no state file exists says so, rather than calling it a file that is not a state file.
+  A garrison has the infantry, armour and air defence of a CAS target of its size but not its transport company, and stands within its zone: the shipped size classes give about 23 units for an outpost and 51 for an airfield with its long-range SAM, where the first cut gave 49 and 119.
+  It also writes the mission's debriefing in French and English next to the state file — ground changing hands, each side's losses zone by zone and unit type by unit type, scenery destroyed, the turn, the objectives — and the MCP action returns it for Claude to tell as a story.
+  A new mission folder gets the strategic situation as its briefing, so a mission built straight away does not fly without one; the wrecks of a destroyed garrison no longer hold a neutral zone against the side taking it, and `dcs.log` says who holds a neutral zone each time that changes.
+- **The campaign's strategic briefing, as a document the squadron reads** (FEAT-CAMPAIGN-BRIEFING-DECK).
+  `veaf-tools campaign briefing` — and `campaign next` with it — writes `missions/mission-NN/briefing-campagne.pptx`, a military situation brief after the VEAF briefing template that imports into Google Slides: strategic and military situation, a strategic map on OpenStreetMap, mission and intent, objectives, concept of operations, rules of engagement, the coming mission's tasks, and an annex of the campaign's rules.
+  The tools generate the facts; the prose is written in a new `briefing.yaml`, checked by `campaign validate`, by Claude through the new MCP action `campaign_briefing` or by hand.
+  The enemy is never given a figure — intelligence of uneven reliability only — and a long-range SAM is named once the campaign state records it; a zone can carry a `display_name` and its own `intel` text.
+  The example campaign ships a `briefing.yaml`; python-pptx joins the dependencies: the executable grows from 40.7 to 45.4 MB, measured.
+- **Each campaign mission gets its own mission briefing, and a date, a time and a weather of its own** (FEAT-CAMPAIGN-MISSION-BRIEFING).
+  Once the mission is built, `campaign briefing` — and `campaign next` with it — writes `missions/mission-NN/briefing-mission.pptx` after the VEAF mission briefing: general situation, ATO, a tactical map and one zoom per objective, mission flow, frequency plan, objective coordinates in DMS — all read from the built mission, never typed: the players' flights without the dynamic-slot or spawn templates, each support aircraft once, the carrier's tower in VHF, the wind said from where it comes, the enemy's QRA zones; the maps' labels never overlap.
+  A campaign mission is one mission: the folder `campaign next` creates has no weather variant (`pipeline.weather: false`, no `src/versions.yaml`) and its date, time and weather fixed — the day after the last mission flown, `start_time` (default `sunrise+30*60`) computed on the campaign's own ground rather than at Damascus, a weather drawn per mission with the ground visible (clear, few or scattered clouds, 8 km or more, no fog, no rain); `campaign.yaml` takes a `start_date` and a `start_time`, and a refresh keeps what Claude set since.
+- **Convoys that do not die in an ambush** (FEAT-CONVOY-UNDER-FIRE).
+  Left to DCS, a convoy drives through an ambush at full speed without firing a round (measured). Every `_spawn convoy` — and any group listed under `GROUNDAI.convoys` or handed over with `_gc <name>, convoy` — now watches ahead for the enemy, and at the first enemy in sight or the first shot received splits: the unarmed vehicles flee at once as their own group, the armed ones close in to fight or fall back too when outgunned.
+  It speaks like a crew on the radio under a callsign (Mule, Bison, Yak…), which is also its name for `_gc`, and an F10 marker shows it while the contact lasts. Strong enough, it only reports the contact, and drives on by itself — its unarmed vehicles rejoined, by road — once nothing is left in sight. Outgunned, it calls for help as a troops-in-contact call to its coalition, with a red smoke on the enemy and a green one on itself, in voice on guard when SRS is configured; it falls back toward a friendly place through a point terrain or a town hides; then it holds and waits for `_gc <convoy>, retreat`, `hold` or `resume`, which merges it back into one group.
+- **The enemy air sized to the number of players** (FEAT-OPPOSITION-SCALES-WITH-PLAYERS).
+  Sized to the players **on CAP** (ticket 05, after Kolkhida mission 1): the new `follow: air_to_air` counts only the players airborne carrying a radar-guided air-to-air missile, read from what they carry in flight, and is what `campaign next` writes; the Opposition radio menu sets the level in one click, 1 to 8 players on CAP, instead of +1 / −1.
+  A new `opposition:` block of `mission.yaml` gives the mission a level — the number of player aircraft the enemy fighters are sized for — set at generation, changed in flight from an **Opposition** radio menu or the `_opposition` marker (*SENIOR_PILOT*), or following the players connected or airborne: a rise is taken at once, a drop once the count has held five minutes. Every change is announced.
+  A QRA with `scale_with_opposition: true` scrambles the tier of the level when it is higher than the intruders in its zone; a combat mission's skill menu gains an **Auto scale** entry, one enemy group per two players.
+  `campaign.yaml` takes the squadron's expected size (`players: 5-7`) and `campaign next --players 6` tonight's, which write the block; the MCP action `campaign_next` takes `players`, its and `create_qra`'s descriptions ask Claude for tiers up to that size, and the mission briefing says "the enemy reinforces its alert against a large package" — never a figure.
+  **Assault convoys in flight**: a neutral zone is the target of each side holding a connected neighbour, and after `rules.assault_seconds` (600 s, sooner above four players) a convoy leaves by road for it — armour after its start zone's size class and a few trucks, paid unit by unit from the side's reserve, with the convoy behaviour of FEAT-CONVOY-UNDER-FIRE, announced to its side, told to the other as intelligence and drawn as an arrow on the F10 map. The convoy that takes a zone stays as its garrison, with no second draw; blue players also send them from **Campaign → Assaults**. The state file records each convoy: between missions its dead are campaign losses in the debriefing and its survivors still on the road go back to the reserve; the mission briefing announces an expected counter-attack, without its strength. `rules.assault_convoys: false` turns the rule off.
+- **The other side hears of a campaign's assault convoy later, as intelligence** (FEAT-CAMPAIGN-INTEL-DELAY).
+  `rules.intel_seconds` in `campaign.yaml` (20 minutes by default, 0 for at once): the convoy's own side is told and sees its axis when it leaves, the other side gets the message and the line on its map together, that much later — and never for a convoy destroyed before.
+- **A campaign capture says in `dcs.log` why an assault convoy did or did not become the zone's garrison** (FIX-ASSAULT-CONVOY-FINDINGS).
+  Poti, taken by the blue convoy on *Kolkhida*, drew a garrison from the reserve anyway and the cause was not found from the code; each convoy looked at is now logged — side, ended or not, what DCS answers for its group, units alive and inside, the nearest one's distance.
+- **`campaign next` writes the mission's objectives as the players' waypoints** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  The mission folder's `src/waypoints.yaml` was the template's example, steerpoints nowhere near the theatre. It is now one waypoint per zone the mission's tasks name in `briefing.yaml` (else the campaign's objectives), at the zone's centre, in the tasks' order, for the players' side: planes at 10,000 ft, helicopters at 500 ft above the ground, under the same name. A file edited since is kept by a second `campaign next`.
+- **The mission briefing has a navigation plan** (FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS).
+  `briefing-mission.pptx` gains a "Navigation plan" page read from the built mission: the waypoints the players' planes then helicopters carry after their departure, `BULLSEYE` included — name, DMS position, altitude and its reference (BARO or AGL). The tactical map shows them as numbered points, the numbers of the page.
+
+- **Any MCP-capable AI can author a VEAF mission, not only Claude Code and Gemini CLI** (FEAT-AI-ASSISTANT-ANY-CLIENT).
+  The new `describe_authoring_guide` action serves the plugin's authoring skill, verbatim, and the server's MCP instructions ask a client to read it first — so an AI wired by hand, Claude Desktop for instance, gets the naming conventions and the order of work along with the tools.
+  [Install the AI assistant](doc/mission-maker/AI_ASSISTANT_INSTALL.en.md) explains how to wire another MCP client and what a chat AI without MCP can still do, and the tutorial now points there from its first lines.
+
+### Changed
+
+- **Vendored DCS scripting-API schema `v0.5.0`** (was `v0.4.0`). The scripting API itself does not move: the LuaLS annotations are byte-identical and `audit-dcs-mocks` reports exactly what it did on `v0.4.0`. Only the reference-data types (`types.Entity.*`: weapon and aircraft flight models, sensor and mobility fields) grow. The vendored `LICENSE` is now the release's own: the previous copy named a different copyright holder than the `v0.4.0` tag did.
+- **Airfield names, ids and positions now come from the `dcs-world-schema` reference database, no longer from captures made in a running DCS** (FEAT-DCS-REFERENCE-DATA).
+  The 798 airbases of its 13 theatres carry exactly the names and ids we had; TheChannel, which it lacks, keeps its capture.
+  An airfield's position is now its reference point, the centre of its runways, where the captures held a point about a kilometre away: `list_airfields`, the campaign map and the clear-ground survey's airfield layers move accordingly, and FOB Clark (Afghanistan) is no longer at 0°N 0°E.
+  `veaf-build update-dcs-data` regenerates both tables by default, and CI fails if they drift.
+- **Vendored CTLD `2.0.0-rc13`** (was `rc12`), the release that creates crates, troops and JTACs under a country of the requesting aircraft's coalition: a campaign flown under CJTF Blue and CJTF Red, with neither USA nor Russia, got no crate at its airfields (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 05).
+  Its F10 menu now only rebuilds the entries that changed, so a click fires the command clicked; its zone accessors take the zone's full name, which is what VMCT already passes.
+- **`RADIO.menu_stats` watches the F10 menu in a real mission** (FEAT-RADIO-MENU-WATCH).
+  A diagnostic option, off by default: on every refresh, one line in `dcs.log` says what the VEAF menu added and removed, how big it is for everyone, each coalition and each group, and how many invisible commands hold freed menu ids.
+  Turn it on temporarily on a multiplayer mission to see whether the menu grows; a whitepaper on how DCS recycles F10 menu ids, and how to build a menu that withstands it, ships in `docs/whitepapers/` (FR and EN).
+
 ## [6.28.0] — 2026-10-05
 
 ### Removed

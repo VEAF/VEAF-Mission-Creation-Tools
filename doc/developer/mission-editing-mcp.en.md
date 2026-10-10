@@ -414,8 +414,9 @@ silently overwritten.
 - `route` — optional; defaults to a single stationary point at `position`. With `patrol: true`
   (and at least 2 points), the last point loops back to the first via a `GoToWaypoint` task — a
   classic DCS ground-unit patrol.
-- **No deduplication**: calling this twice with the same parameters creates two distinct groups,
-  exactly like two clicks in the DCS Mission Editor.
+- **A name already taken is refused**, group name and unit name alike, naming the group that holds it.
+  DCS does not refuse two objects of one name: `Group.getByName` returns either one and says nothing, and everything that names a group (a QRA, a combat zone, `remove_group`) works on the wrong one.
+  Applies to every action that creates a group (`add_air_group`, `add_player_slot`, `create_qra`…), which share the same insertion.
 - `groupId`/`unitId`s are always fresh (`mission_tools.group_insertion.max_ids`), even on a
   mission with gaps in its existing id ranges.
 
@@ -560,6 +561,8 @@ while `edit_zone` and `edit_map_drawing` both have a `remove: true`. Targets a f
 - **Exact name required.** A fragment is refused, as `set_group_properties` refuses one: a removal
   landing on whichever group matched first is not recoverable. An unknown name lists what exists, and
   **nothing is written**.
+- **A name several groups share is refused**, listing their `groupId`s: `group_id` says which one goes, the other stays.
+  It used to remove all of them and report one.
 - **Names what it breaks without refusing** — the mission maker may well mean it: a combat zone
   capturing the group by name prefix, an `Escort` task pointing at its `groupId` (nested inside a
   `ComboTask`, which is how DCS actually writes it), and a `mission.yaml`
@@ -675,6 +678,15 @@ initialise):
 > `airports:` list, `dynamicSpawn = false` or not (`FIX-SCRATCH-MISSION-FINDINGS` ticket 15). Nothing
 > is written when the file is absent (the step does not run) or the side is not declared in it
 > (declaring it would open every one of its bases).
+
+### Multi-mission campaign
+
+- `campaign_status(campaign_folder)` — where the campaign stands: missions applied, each zone's owner, garrison strength, kind and neighbours, reserves, objectives met or not, the last mission's changes. Read-only.
+- `campaign_apply(campaign_folder, state_file)` — merges a flown mission's state file, plays the turn between missions, judges the objectives, writes and returns the FR/EN debriefing; refuses a file already applied, from another campaign or skipping a mission, writing nothing.
+- `campaign_next(campaign_folder, players?)` — creates (a copy of `template/`) or refreshes `missions/mission-NN/mission`: airfields to their owner through `set_airbase_coalition`, `src/campaign-data.yaml`, the `CAMPAIGN` module in `mission.yaml`, and, on a folder it creates, the strategic situation as the briefing and the date, time and weather fixed in the mission (one mission, no variant; the day after the last mission, a solar time computed on the campaign's ground, a weather drawn with the ground visible); writes the strategic briefing deck next to it, and the mission briefing when the mission is built; returns the folder, `conditions`, the decks and the factual part of the strategic briefing in FR and EN. Its description asks Claude to set the date and time from the campaign's progress and to keep the ground visible, and to ask how many players are expected tonight: `players` (a count, or a range `"5-7"`, beating `campaign.yaml`'s `players`) writes the mission's `opposition:` block.
+- `campaign_briefing(campaign_folder)` — writes `missions/mission-NN/briefing-campagne.pptx` and its strategic map from the campaign (facts) and `briefing.yaml` (prose); returns the paths, the page count, whether the prose was there, whether the map had to do without tiles, the sections `briefing.yaml` may hold, and `mission_deck`: the mission briefing (`briefing-mission.pptx`, tactical maps), read from the built mission — `None` and a warning saying how to build while there is no `.miz`. Its description carries the writing rules: a military situation brief, no game mechanics outside the annex, the enemy kept to uneven intelligence.
+
+Each one is the matching `veaf-tools campaign` command (`campaign_manager.CampaignWorker`), returning data instead of printing it. See [Multi-mission campaign](../mission-maker/CAMPAIGN.en.md).
 
 ### FARP
 
@@ -876,6 +888,20 @@ always returned, with the date they were measured). Each entry: `id`, `kind`, `a
 {"kind": "dcs"}
 ```
 
+### `describe_authoring_guide` (FEAT-AI-ASSISTANT-ANY-CLIENT lot)
+
+Read-only, no parameter. Returns `{"guide": …}`: the text of the plugin's `veaf-mission-authoring` skill, verbatim.
+Claude Code and Gemini CLI load that skill from the plugin; another MCP client has no plugin, and reads it here.
+The file exists once, `plugin/skills/veaf-mission-authoring/SKILL.md`: the build bundles it into the exe under `veaf_mission_mcp/data/`, and in development the action reads it from the repository.
+
+The **server instructions** (the MCP protocol's `instructions`, sent to the client on connection) ask it to read this guide first — by loading the skill if the client has it, by calling this action otherwise.
+They are a few lines on purpose: Claude Code puts them in every session's prompt, where the plugin's skill already is.
+Not every client honours them; [the install page](../mission-maker/AI_ASSISTANT_INSTALL.en.md#other-mcp-client) therefore opens the conversation with the explicit request.
+
+```json
+{}
+```
+
 ### `offer_clear_ground_check` (FEAT-CLEAR-GROUND-AT-AUTHORING lot)
 
 Read-only, and it **launches nothing**. On a built `.miz`, returns what it takes to **offer** the user
@@ -971,6 +997,8 @@ Trigger zone + **Late-Activation** interceptors (coalition-significant) + a
 Coalition is lower-cased for placement, upper-cased in the YAML definition. Each interceptor has **a single waypoint and no task**, on purpose: when it scrambles, the QRA module
 gives a `CAP`/`Intercept` group whose route engages no aircraft a patrol across the zone
 ([what a scrambled group does](../mission-maker/scripts/veafQraManager.en.md#scrambled-group-task)).
+Its description asks for tiers by intruder count up to the squadron's expected size — never a single fixed pair against five players or more — and names `scale_with_opposition` and `rearm_while_occupied` ([opposition level](../mission-maker/scripts/veafQraManager.en.md#opposition-level)).
+An interceptor **takes off from the runway** by default: `airfield`'s, else its coalition's airfield nearest the zone; `start: air` puts it in the air at `position`, only when asked. With no airfield of its coalition, or no parking data for the theatre, the default falls back to the air with a warning; a `start` or an `airfield` asked for and impossible is refused.
 
 ### `create_cap_mission`
 
@@ -1044,8 +1072,8 @@ Each zone carries its `x`/`y`/`radius`, each group its `x`/`y` and its number of
 
 Read-only. Lists a theatre's airbases — name, DCS airdrome id, lat/lon, and DCS `x`/`y` when the
 theatre's projection is known — from the data shipped with the tools
-(`veaf_libs/data/airdrome-positions.yaml`, generated with `airdromes.yaml` from the runtime dumps by
-`veaf-build update-dcs-data --airdromes`). With `mission_path`, the mission's theatre; without a
+(`veaf_libs/data/airdrome-positions.yaml`, generated with `airdromes.yaml` from the `dcs-world-schema` reference database by
+`veaf-build update-dcs-data --airdromes`). The position is the airbase's reference point, the runways' centre. With `mission_path`, the mission's theatre; without a
 mission, `theatre`.
 
 ```json

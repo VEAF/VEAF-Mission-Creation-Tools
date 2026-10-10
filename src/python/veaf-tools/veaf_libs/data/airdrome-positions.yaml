@@ -1,496 +1,497 @@
-# DCS airbase positions (lat/lon), per theatre — every airbase a runtime dump carries.
-# Generated from veaf_build/dcs_data/airbase_dumps/<Theatre>.json with airdromes.yaml.
-# Runtime-dependent, so NOT CI-guarded. Re-run `veaf-build update-dcs-data --airdromes`.
+# DCS airbase positions (lat/lon of the reference point, the runways' centre), per theatre.
+# Generated with airdromes.yaml from the dcs-world-schema reference data, and from
+# veaf_build/dcs_data/airbase_dumps/<Theatre>.json for a theatre it lacks.
+# DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.
 # Read by the MCP list_airfields action.
 
 theatres:
   Afghanistan:
   - name: Bagram
     id: 16
-    lat: 34.958799
-    lon: 69.275381
+    lat: 34.945742
+    lon: 69.265886
   - name: Bamyan
     id: 18
-    lat: 34.806271
-    lon: 67.80689
+    lat: 34.808935
+    lon: 67.81677
   - name: Bost
     id: 8
-    lat: 31.552017
-    lon: 64.363255
+    lat: 31.559826
+    lon: 64.364802
   - name: Camp Bastion
     id: 10
-    lat: 31.83582
-    lon: 64.220203
+    lat: 31.850157
+    lon: 64.223667
   - name: Camp Bastion Heliport
     id: 13
-    lat: 31.853778
-    lon: 64.212514
+    lat: 31.855445
+    lon: 64.213202
   - name: Chaghcharan
     id: 5
-    lat: 34.529394
-    lon: 65.280156
+    lat: 34.526524
+    lon: 65.271331
   - name: Dwyer
     id: 11
-    lat: 31.085639
-    lon: 64.057556
+    lat: 31.091947
+    lon: 64.066958
   - name: FOB Camp Dubs
     id: 27
-    lat: 0.0
-    lon: 2.0e-06
+    lat: 34.455152
+    lon: 69.107493
   - name: FOB Clark
     id: 28
-    lat: 0.0
-    lon: 2.0e-06
+    lat: 33.345327
+    lon: 69.729855
   - name: FOB Salerno
     id: 23
-    lat: 33.363209
-    lon: 69.958743
+    lat: 33.3634
+    lon: 69.955233
   - name: FOB Thunder
     id: 26
-    lat: 0.0
-    lon: 2.0e-06
+    lat: 33.572391
+    lon: 69.276869
   - name: Farah
     id: 2
-    lat: 32.354877
-    lon: 62.173144
+    lat: 32.363323
+    lon: 62.167735
   - name: Gardez
     id: 20
-    lat: 33.621613
-    lon: 69.2331
+    lat: 33.628069
+    lon: 69.23751
   - name: Ghazni Heliport
     id: 21
-    lat: 33.502879
-    lon: 68.414037
+    lat: 33.504558
+    lon: 68.41424
   - name: Herat
     id: 1
-    lat: 34.220031
-    lon: 62.23013
+    lat: 34.207906
+    lon: 62.227941
   - name: Jalalabad
     id: 19
-    lat: 34.406067
-    lon: 70.490638
+    lat: 34.400242
+    lon: 70.498113
   - name: Kabul
     id: 17
-    lat: 34.570239
-    lon: 69.19633
+    lat: 34.56576
+    lon: 69.212658
   - name: Kandahar
     id: 7
-    lat: 31.513218
-    lon: 65.860715
+    lat: 31.505774
+    lon: 65.847656
   - name: Kandahar Heliport
     id: 15
-    lat: 31.52107
-    lon: 65.846961
+    lat: 31.520729
+    lon: 65.845835
   - name: Khost
     id: 25
-    lat: 33.33647
-    lon: 69.959203
+    lat: 33.333062
+    lon: 69.950993
   - name: Maymana Zahiraddin Faryabi
     id: 4
-    lat: 35.924391
-    lon: 64.766196
+    lat: 35.93067
+    lon: 64.760893
   - name: Nimroz
     id: 12
-    lat: 30.970915
-    lon: 62.053757
+    lat: 30.963493
+    lon: 62.060735
   - name: Qala i Naw
     id: 6
-    lat: 34.992086
-    lon: 63.124538
+    lat: 34.985805
+    lon: 63.117749
   - name: Sharana
     id: 22
-    lat: 33.121102
-    lon: 68.842034
+    lat: 33.125789
+    lon: 68.838509
   - name: Shindand
     id: 3
-    lat: 33.383008
-    lon: 62.260362
+    lat: 33.392659
+    lon: 62.261066
   - name: Shindand Heliport
     id: 14
-    lat: 33.406895
-    lon: 62.267975
+    lat: 33.407831
+    lon: 62.268335
   - name: Tarinkot
     id: 9
-    lat: 32.609904
-    lon: 65.85651
+    lat: 32.605102
+    lon: 65.864236
   - name: Urgoon Heliport
     id: 24
-    lat: 32.937884
-    lon: 69.150001
+    lat: 32.937485
+    lon: 69.151747
   - name: Zaranj
     id: 37
-    lat: 30.965807
-    lon: 61.86754
+    lat: 30.972761
+    lon: 61.865758
   Caucasus:
   - name: Anapa-Vityazevo
     id: 12
-    lat: 45.013175
-    lon: 37.359783
+    lat: 45.004948
+    lon: 37.347825
   - name: Batumi
     id: 22
-    lat: 41.60328
-    lon: 41.609275
+    lat: 41.609597
+    lon: 41.600237
   - name: Beslan
     id: 32
-    lat: 43.208501
-    lon: 44.588923
+    lat: 43.205706
+    lon: 44.605808
   - name: Gelendzhik
     id: 17
-    lat: 44.567675
-    lon: 38.004146
+    lat: 44.572901
+    lon: 38.011614
   - name: Gudauta
     id: 21
-    lat: 43.124233
-    lon: 40.564176
+    lat: 43.114327
+    lon: 40.569741
   - name: Kobuleti
     id: 24
-    lat: 41.932105
-    lon: 41.876484
+    lat: 41.929919
+    lon: 41.863275
   - name: Krasnodar-Center
     id: 13
-    lat: 45.08743
-    lon: 38.925202
+    lat: 45.08695
+    lon: 38.939984
   - name: Krasnodar-Pashkovsky
     id: 19
-    lat: 45.0461
-    lon: 39.203067
+    lat: 45.038008
+    lon: 39.188135
   - name: Krymsk
     id: 15
-    lat: 44.961383
-    lon: 37.985887
+    lat: 44.967937
+    lon: 37.99503
   - name: Kutaisi
     id: 25
-    lat: 42.179154
-    lon: 42.495684
+    lat: 42.177616
+    lon: 42.481293
   - name: Maykop-Khanskaya
     id: 16
-    lat: 44.67144
-    lon: 40.021427
+    lat: 44.681285
+    lon: 40.035254
   - name: Mineralnye Vody
     id: 26
-    lat: 44.218647
-    lon: 43.10068
+    lat: 44.227853
+    lon: 43.081191
   - name: Mozdok
     id: 28
-    lat: 43.791303
-    lon: 44.620327
+    lat: 43.791711
+    lon: 44.605838
   - name: Nalchik
     id: 27
-    lat: 43.510071
-    lon: 43.625109
+    lat: 43.514002
+    lon: 43.636451
   - name: Novorossiysk
     id: 14
-    lat: 44.67333
-    lon: 37.786226
+    lat: 44.668096
+    lon: 37.778258
   - name: Senaki-Kolkhi
     id: 23
-    lat: 42.238728
-    lon: 42.061021
+    lat: 42.240849
+    lon: 42.048015
   - name: Sochi-Adler
     id: 18
-    lat: 43.439378
-    lon: 39.924232
+    lat: 43.444354
+    lon: 39.941077
   - name: Soganlug
     id: 30
-    lat: 41.641163
-    lon: 44.947183
+    lat: 41.649542
+    lon: 44.938358
   - name: Sukhumi-Babushara
     id: 20
-    lat: 42.852741
-    lon: 41.142448
+    lat: 42.861092
+    lon: 41.124999
   - name: Tbilisi-Lochini
     id: 29
-    lat: 41.67472
-    lon: 44.946875
+    lat: 41.667034
+    lon: 44.956288
   - name: Vaziani
     id: 31
-    lat: 41.637736
-    lon: 45.019091
+    lat: 41.629026
+    lon: 45.027231
   Falklands:
   - name: Almirante Schroeders
     id: 19
-    lat: -53.602107
-    lon: -70.482982
+    lat: -53.60693
+    lon: -70.476206
   - name: Comandante Luis Piedrabuena
     id: 16
-    lat: -49.995185
-    lon: -68.944056
+    lat: -49.994984
+    lon: -68.951448
   - name: Cullen
     id: 28
-    lat: -52.883657
-    lon: -68.403599
+    lat: -52.885073
+    lon: -68.411979
   - name: El Calafate
     id: 14
-    lat: -50.279555
-    lon: -72.036793
+    lat: -50.280244
+    lon: -72.05275
   - name: Franco Bianco
     id: 23
-    lat: -52.736735
-    lon: -69.345005
+    lat: -52.736586
+    lon: -69.333789
   - name: Gobernador Gregores
     id: 26
-    lat: -48.786184
-    lon: -70.130774
+    lat: -48.783169
+    lon: -70.147972
   - name: Goose Green
     id: 24
-    lat: -51.817546
-    lon: -58.982588
+    lat: -51.819815
+    lon: -58.980164
   - name: Gull Point
     id: 29
-    lat: -52.177612
-    lon: -58.861619
+    lat: -52.179394
+    lon: -58.860684
   - name: Hipico Flying Club
     id: 25
-    lat: -48.759556
-    lon: -70.233348
+    lat: -48.756736
+    lon: -70.23128
   - name: Mount Pleasant
     id: 2
-    lat: -51.81798
-    lon: -58.472047
+    lat: -51.820679
+    lon: -58.457737
   - name: O'Higgins
     id: 27
-    lat: -48.474318
-    lon: -72.562251
+    lat: -48.469006
+    lon: -72.563329
   - name: Pampa Guanaco
     id: 10
-    lat: -54.050236
-    lon: -68.803567
+    lat: -54.049979
+    lon: -68.808999
   - name: Port Stanley
     id: 1
-    lat: -51.686118
-    lon: -57.768162
+    lat: -51.685912
+    lon: -57.777841
   - name: Porvenir
     id: 18
-    lat: -53.249805
-    lon: -70.335774
+    lat: -53.253687
+    lon: -70.319301
   - name: Puerto Natales
     id: 13
-    lat: -51.674476
-    lon: -72.518434
+    lat: -51.670708
+    lon: -72.528191
   - name: Puerto Santa Cruz
     id: 15
-    lat: -50.018362
-    lon: -68.590805
+    lat: -50.01703
+    lon: -68.579084
   - name: Puerto Williams
     id: 12
-    lat: -54.930623
-    lon: -67.636409
+    lat: -54.930991
+    lon: -67.626219
   - name: Punta Arenas
     id: 9
-    lat: -53.012694
-    lon: -70.847155
+    lat: -53.005534
+    lon: -70.856917
   - name: Rio Chico
     id: 21
-    lat: -51.668467
-    lon: -69.273094
+    lat: -51.669047
+    lon: -69.266066
   - name: Rio Gallegos
     id: 5
-    lat: -51.608004
-    lon: -69.289205
+    lat: -51.608851
+    lon: -69.31226
   - name: Rio Grande
     id: 6
-    lat: -53.777683
-    lon: -67.763501
+    lat: -53.777599
+    lon: -67.749881
   - name: Rio Turbio
     id: 20
-    lat: -51.60304
-    lon: -72.209321
+    lat: -51.605055
+    lon: -72.219823
   - name: San Carlos FOB
     id: 3
-    lat: -51.50204
-    lon: -59.002822
+    lat: -51.501283
+    lon: -59.004904
   - name: San Julian
     id: 11
-    lat: -49.305372
-    lon: -67.789938
+    lat: -49.306694
+    lon: -67.802726
   - name: Tolhuin
     id: 17
-    lat: -54.499704
-    lon: -67.180115
+    lat: -54.499617
+    lon: -67.172385
   - name: Ushuaia
     id: 7
-    lat: -54.843736
-    lon: -68.313832
+    lat: -54.843308
+    lon: -68.295846
   - name: Ushuaia Helo Port
     id: 8
-    lat: -54.815912
-    lon: -68.303936
+    lat: -54.822824
+    lon: -68.30419
   GermanyCW:
   - name: Adelsheim
     id: 52
-    lat: 49.363604
-    lon: 9.427626
+    lat: 49.36917
+    lon: 9.440137
   - name: Airracing Frankfurt
     id: 204
-    lat: 50.006801
-    lon: 8.093154
+    lat: 50.008207
+    lon: 8.098693
   - name: Airracing Koblenz
     id: 123
-    lat: 50.288813
-    lon: 7.833594
+    lat: 50.292048
+    lon: 7.830378
   - name: Airracing Lubeck
     id: 201
-    lat: 53.708027
-    lon: 10.76871
+    lat: 53.711666
+    lon: 10.766574
   - name: Allstedt
     id: 157
-    lat: 51.383812
-    lon: 11.463157
+    lat: 51.380584
+    lon: 11.446474
   - name: Altes Lager
     id: 2
-    lat: 51.99691
-    lon: 12.96658
+    lat: 51.995486
+    lon: 12.983764
   - name: Bad Durkheim
     id: 242
-    lat: 49.472261
-    lon: 8.190537
+    lat: 49.472683
+    lon: 8.194936
   - name: Barth
     id: 3
-    lat: 54.338497
-    lon: 12.7022
+    lat: 54.338192
+    lon: 12.709697
   - name: Bienenfarm
     id: 110
-    lat: 52.656329
-    lon: 12.752561
+    lat: 52.658628
+    lon: 12.747121
   - name: Bindersleben
     id: 164
-    lat: 50.978123
-    lon: 10.976018
+    lat: 50.979473
+    lon: 10.962329
   - name: Bitburg
     id: 200
-    lat: 49.950342
-    lon: 6.577423
+    lat: 49.944659
+    lon: 6.564183
   - name: Bornholm
     id: 33
-    lat: 55.067177
-    lon: 14.745143
+    lat: 55.063383
+    lon: 14.759014
   - name: Brand
     id: 34
-    lat: 52.035731
-    lon: 13.762987
+    lat: 52.036838
+    lon: 13.746437
   - name: Brandis
     id: 35
-    lat: 51.330329
-    lon: 12.670063
+    lat: 51.328329
+    lon: 12.656378
   - name: Braunschweig
     id: 107
-    lat: 52.31936
-    lon: 10.563799
+    lat: 52.319083
+    lon: 10.55393
   - name: Bremen
     id: 5
-    lat: 53.046923
-    lon: 8.774707
+    lat: 53.046942
+    lon: 8.788272
   - name: Briest
     id: 6
-    lat: 52.440517
-    lon: 12.47095
+    lat: 52.437638
+    lon: 12.453931
   - name: Buchel
     id: 235
-    lat: 50.164801
-    lon: 7.055254
+    lat: 50.174095
+    lon: 7.063849
   - name: Buckeburg
     id: 7
-    lat: 52.277235
-    lon: 9.071338
+    lat: 52.278579
+    lon: 9.083267
   - name: Celle
     id: 8
-    lat: 52.592647
-    lon: 10.039395
+    lat: 52.591416
+    lon: 10.024321
   - name: Chojna
     id: 36
-    lat: 52.938968
-    lon: 14.438256
+    lat: 52.939562
+    lon: 14.421984
   - name: Cochstedt
     id: 9
-    lat: 51.853775
-    lon: 11.400507
+    lat: 51.855915
+    lon: 11.417947
   - name: Cologne
     id: 37
-    lat: 50.877794
-    lon: 7.133831
+    lat: 50.867921
+    lon: 7.147544
   - name: Damgarten
     id: 10
-    lat: 54.260926
-    lon: 12.426974
+    lat: 54.264011
+    lon: 12.444217
   - name: Dedelow
     id: 103
-    lat: 53.35624
-    lon: 13.777079
+    lat: 53.35552
+    lon: 13.785071
   - name: Dessau
     id: 83
-    lat: 51.832133
-    lon: 12.176999
+    lat: 51.831724
+    lon: 12.193084
   - name: Dusseldorf
     id: 38
-    lat: 51.281637
-    lon: 6.755849
+    lat: 51.286957
+    lon: 6.767706
   - name: Falkenberg
     id: 39
-    lat: 51.548467
-    lon: 13.236448
+    lat: 51.546467
+    lon: 13.216107
   - name: Fassberg
     id: 11
-    lat: 52.919237
-    lon: 10.166477
+    lat: 52.919426
+    lon: 10.184824
   - name: Finow
     id: 12
-    lat: 52.824949
-    lon: 13.711836
+    lat: 52.82714
+    lon: 13.694045
   - name: Frankfurt
     id: 163
-    lat: 50.046583
-    lon: 8.594214
+    lat: 50.040431
+    lon: 8.56732
   - name: Fritzlar
     id: 154
-    lat: 51.112496
-    lon: 9.291124
+    lat: 51.11461
+    lon: 9.285835
   - name: Fulda
     id: 166
-    lat: 50.539951
-    lon: 9.647069
+    lat: 50.539912
+    lon: 9.643015
   - name: Gardelegen
     id: 112
-    lat: 52.527721
-    lon: 11.357486
+    lat: 52.529523
+    lon: 11.350135
   - name: Garz
     id: 13
-    lat: 53.875886
-    lon: 14.167761
+    lat: 53.878503
+    lon: 14.153541
   - name: Gatow
     id: 14
-    lat: 52.476596
-    lon: 13.150991
+    lat: 52.475349
+    lon: 13.138099
   - name: Gelnhausen
     id: 243
-    lat: 50.195814
-    lon: 9.159491
+    lat: 50.196331
+    lon: 9.166999
   - name: Giebelstadt
     id: 159
-    lat: 49.646513
-    lon: 9.952675
+    lat: 49.647901
+    lon: 9.964733
   - name: Glindbruchkippe
     id: 113
-    lat: 52.324523
-    lon: 10.172632
+    lat: 52.323828
+    lon: 10.180462
   - name: Gross Mohrdorf
     id: 80
-    lat: 54.389384
-    lon: 12.898065
+    lat: 54.383196
+    lon: 12.912291
   - name: Grosse Wiese
     id: 141
-    lat: 52.1376
-    lon: 10.576288
+    lat: 52.136877
+    lon: 10.570782
   - name: Gutersloh
     id: 16
-    lat: 51.923148
-    lon: 8.290827
+    lat: 51.922807
+    lon: 8.304065
   - name: H FRG 01
     id: 53
-    lat: 52.266052
+    lat: 52.266053
     lon: 10.615637
   - name: H FRG 02
     id: 54
-    lat: 53.878601
+    lat: 53.8786
     lon: 10.642456
   - name: H FRG 03
     id: 55
@@ -498,15 +499,15 @@ theatres:
     lon: 10.140129
   - name: H FRG 04
     id: 56
-    lat: 53.44223
+    lat: 53.442231
     lon: 10.517905
   - name: H FRG 05
     id: 57
-    lat: 53.159287
+    lat: 53.159288
     lon: 10.948311
   - name: H FRG 06
     id: 58
-    lat: 53.07272
+    lat: 53.072719
     lon: 8.907938
   - name: H FRG 07
     id: 59
@@ -514,19 +515,19 @@ theatres:
     lon: 11.184009
   - name: H FRG 08
     id: 60
-    lat: 52.606014
-    lon: 10.630504
+    lat: 52.606017
+    lon: 10.630505
   - name: H FRG 09
     id: 61
-    lat: 52.518207
-    lon: 10.844312
+    lat: 52.518209
+    lon: 10.844313
   - name: H FRG 10
     id: 62
-    lat: 52.386185
+    lat: 52.386183
     lon: 9.771017
   - name: H FRG 11
     id: 100
-    lat: 52.80537
+    lat: 52.805371
     lon: 10.05105
   - name: H FRG 12
     id: 64
@@ -546,35 +547,35 @@ theatres:
     lon: 13.314887
   - name: H FRG 16
     id: 96
-    lat: 52.110313
+    lat: 52.110315
     lon: 9.444643
   - name: H FRG 17
     id: 97
-    lat: 53.151012
-    lon: 9.481282
+    lat: 53.151013
+    lon: 9.481281
   - name: H FRG 18
     id: 98
-    lat: 54.150635
-    lon: 10.552375
+    lat: 54.150636
+    lon: 10.552376
   - name: H FRG 19
     id: 99
-    lat: 53.464558
-    lon: 9.908177
+    lat: 53.464559
+    lon: 9.908176
   - name: H FRG 20
     id: 143
-    lat: 51.713306
+    lat: 51.713308
     lon: 10.589121
   - name: H FRG 21
     id: 148
-    lat: 52.335758
-    lon: 10.639429
+    lat: 52.33576
+    lon: 10.639428
   - name: H FRG 23
     id: 150
-    lat: 52.947968
+    lat: 52.947966
     lon: 10.115503
   - name: H FRG 25
     id: 191
-    lat: 50.724075
+    lat: 50.724076
     lon: 9.931884
   - name: H FRG 27
     id: 202
@@ -586,7 +587,7 @@ theatres:
     lon: 7.349018
   - name: H FRG 31
     id: 212
-    lat: 49.920067
+    lat: 49.920066
     lon: 7.293042
   - name: H FRG 32
     id: 213
@@ -594,19 +595,19 @@ theatres:
     lon: 7.881512
   - name: H FRG 34
     id: 215
-    lat: 50.416492
+    lat: 50.416494
     lon: 7.441757
   - name: H FRG 38
     id: 219
-    lat: 50.517971
-    lon: 9.134741
+    lat: 50.51797
+    lon: 9.134742
   - name: H FRG 39
     id: 151
-    lat: 50.577255
-    lon: 9.695579
+    lat: 50.577254
+    lon: 9.69558
   - name: H FRG 40
     id: 234
-    lat: 50.374081
+    lat: 50.37408
     lon: 7.58396
   - name: H FRG 41
     id: 253
@@ -614,15 +615,15 @@ theatres:
     lon: 9.984979
   - name: H FRG 42
     id: 254
-    lat: 49.828194
+    lat: 49.828193
     lon: 9.887384
   - name: H FRG 43
     id: 237
     lat: 49.760147
-    lon: 9.491091
+    lon: 9.491092
   - name: H FRG 44
     id: 238
-    lat: 49.944073
+    lat: 49.944071
     lon: 8.916184
   - name: H FRG 45
     id: 239
@@ -630,15 +631,15 @@ theatres:
     lon: 9.071655
   - name: H FRG 46
     id: 240
-    lat: 50.050911
-    lon: 9.8238
+    lat: 50.050912
+    lon: 9.823801
   - name: H FRG 47
     id: 241
-    lat: 49.576088
-    lon: 9.349868
+    lat: 49.576087
+    lon: 9.34987
   - name: H FRG 48
     id: 220
-    lat: 49.922039
+    lat: 49.922038
     lon: 6.677135
   - name: H FRG 49
     id: 221
@@ -647,7 +648,7 @@ theatres:
   - name: H FRG 50
     id: 149
     lat: 52.831764
-    lon: 9.775314
+    lon: 9.775313
   - name: H FRG 51
     id: 218
     lat: 49.613483
@@ -658,88 +659,88 @@ theatres:
     lon: 11.144806
   - name: H GDR 02
     id: 68
-    lat: 52.618755
+    lat: 52.618756
     lon: 12.356065
   - name: H GDR 03
     id: 69
-    lat: 53.112141
+    lat: 53.112142
     lon: 13.52652
   - name: H GDR 04
     id: 70
-    lat: 53.524124
+    lat: 53.524125
     lon: 13.320291
   - name: H GDR 05
     id: 71
-    lat: 53.638531
+    lat: 53.638532
     lon: 13.897128
   - name: H GDR 06
     id: 72
-    lat: 52.414478
-    lon: 12.534485
+    lat: 52.41448
+    lon: 12.534486
   - name: H GDR 07
     id: 73
-    lat: 52.984531
+    lat: 52.984533
     lon: 11.703077
   - name: H GDR 08
     id: 74
-    lat: 52.70723
+    lat: 52.707228
     lon: 13.543298
   - name: H GDR 09
     id: 75
-    lat: 53.867264
+    lat: 53.867262
     lon: 13.115553
   - name: H GDR 10
     id: 76
     lat: 52.504551
-    lon: 13.52469
+    lon: 13.524691
   - name: H GDR 11
     id: 77
     lat: 52.385353
     lon: 13.611285
   - name: H GDR 12
     id: 85
-    lat: 52.484844
+    lat: 52.484843
     lon: 11.596376
   - name: H GDR 13
     id: 91
-    lat: 53.609173
+    lat: 53.609172
     lon: 12.206164
   - name: H GDR 14
     id: 92
-    lat: 53.044029
+    lat: 53.044028
     lon: 13.381989
   - name: H GDR 15
     id: 93
-    lat: 52.186172
+    lat: 52.186174
     lon: 12.179097
   - name: H GDR 16
     id: 94
-    lat: 52.221176
+    lat: 52.221177
     lon: 11.781077
   - name: H GDR 17
     id: 95
-    lat: 53.900059
-    lon: 11.38724
+    lat: 53.900057
+    lon: 11.387239
   - name: H GDR 18
     id: 142
-    lat: 51.848137
+    lat: 51.848138
     lon: 10.766606
   - name: H GDR 19
     id: 145
-    lat: 51.845871
+    lat: 51.84587
     lon: 11.29379
   - name: H GDR 21
     id: 152
-    lat: 54.281006
+    lat: 54.281007
     lon: 12.518647
   - name: H GDR 22
     id: 153
-    lat: 52.070557
+    lat: 52.070556
     lon: 13.089146
   - name: H GDR 24
     id: 185
-    lat: 52.166626
-    lon: 13.484154
+    lat: 52.166627
+    lon: 13.484153
   - name: H GDR 25
     id: 226
     lat: 51.138687
@@ -750,31 +751,31 @@ theatres:
     lon: 11.907455
   - name: H GDR 30
     id: 146
-    lat: 54.510483
+    lat: 54.510481
     lon: 13.618227
   - name: H GDR 31
     id: 229
-    lat: 54.368923
+    lat: 54.368925
     lon: 13.08567
   - name: H GDR 32
     id: 230
-    lat: 54.34737
+    lat: 54.347369
     lon: 13.455492
   - name: H GDR 33
     id: 122
-    lat: 50.859188
-    lon: 10.743132
+    lat: 50.859189
+    lon: 10.743133
   - name: H GDR 34
     id: 124
     lat: 53.072506
     lon: 12.629696
   - name: H Med FRG 01
     id: 129
-    lat: 53.84798
+    lat: 53.847982
     lon: 10.688355
   - name: H Med FRG 02
     id: 130
-    lat: 53.561298
+    lat: 53.5613
     lon: 10.024595
   - name: H Med FRG 04
     id: 132
@@ -782,16 +783,16 @@ theatres:
     lon: 10.398181
   - name: H Med FRG 06
     id: 134
-    lat: 52.296394
+    lat: 52.296393
     lon: 8.891155
   - name: H Med FRG 11
     id: 139
-    lat: 51.730316
+    lat: 51.730317
     lon: 8.778217
   - name: H Med FRG 12
     id: 144
-    lat: 51.817207
-    lon: 10.336157
+    lat: 51.817208
+    lon: 10.336158
   - name: H Med FRG 13
     id: 186
     lat: 49.452728
@@ -802,43 +803,43 @@ theatres:
     lon: 9.80471
   - name: H Med FRG 15
     id: 188
-    lat: 51.257019
-    lon: 9.379733
+    lat: 51.25702
+    lon: 9.379734
   - name: H Med FRG 16
     id: 189
     lat: 51.552895
     lon: 8.332072
   - name: H Med FRG 17
     id: 190
-    lat: 51.399204
+    lat: 51.399203
     lon: 9.659754
   - name: H Med FRG 21
     id: 208
-    lat: 49.246117
+    lat: 49.246115
     lon: 7.36523
   - name: H Med FRG 24
     id: 222
-    lat: 51.554184
-    lon: 8.568386
+    lat: 51.554183
+    lon: 8.568385
   - name: H Med FRG 26
     id: 225
-    lat: 49.927509
+    lat: 49.927511
     lon: 6.839789
   - name: H Med FRG 27
     id: 231
-    lat: 50.077335
-    lon: 8.216296
+    lat: 50.077334
+    lon: 8.216295
   - name: H Med FRG 29
     id: 233
-    lat: 49.402496
+    lat: 49.402495
     lon: 7.558637
   - name: H Med GDR 01
     id: 119
-    lat: 54.093304
+    lat: 54.093302
     lon: 12.088701
   - name: H Med GDR 02
     id: 120
-    lat: 54.302376
+    lat: 54.302377
     lon: 13.072044
   - name: H Med GDR 03
     id: 121
@@ -846,7 +847,7 @@ theatres:
     lon: 13.376113
   - name: H Med GDR 08
     id: 126
-    lat: 52.270981
+    lat: 52.27098
     lon: 11.878193
   - name: H Med GDR 09
     id: 127
@@ -854,23 +855,23 @@ theatres:
     lon: 11.633036
   - name: H Med GDR 10
     id: 128
-    lat: 51.959778
-    lon: 12.100929
+    lat: 51.959779
+    lon: 12.100928
   - name: H Med GDR 11
     id: 147
-    lat: 51.77092
+    lat: 51.770921
     lon: 10.790493
   - name: H Med GDR 12
     id: 180
-    lat: 50.987915
+    lat: 50.987916
     lon: 10.316368
   - name: H Med GDR 13
     id: 181
-    lat: 51.289265
+    lat: 51.289264
     lon: 10.743367
   - name: H Med GDR 14
     id: 182
-    lat: 50.809082
+    lat: 50.809081
     lon: 10.21873
   - name: H Med GDR 16
     id: 184
@@ -878,1552 +879,1552 @@ theatres:
     lon: 11.617337
   - name: H Radar FRG 02
     id: 223
-    lat: 50.233296
+    lat: 50.233295
     lon: 8.457879
   - name: H Radar GDR 01
     id: 193
-    lat: 51.799797
+    lat: 51.799798
     lon: 10.612503
   - name: H Radar GDR 02
     id: 194
-    lat: 50.571777
-    lon: 10.08525
+    lat: 50.571778
+    lon: 10.085249
   - name: H Radar GDR 03
     id: 195
-    lat: 51.107845
+    lat: 51.107844
     lon: 10.193686
   - name: H Radar GDR 04
     id: 196
     lat: 51.624039
-    lon: 10.724235
+    lon: 10.724236
   - name: H Radar GDR 05
     id: 197
-    lat: 52.006374
+    lat: 52.006375
     lon: 10.723486
   - name: H Radar GDR 06
     id: 198
-    lat: 52.325382
+    lat: 52.325383
     lon: 11.455597
   - name: H Radar GDR 07
     id: 199
-    lat: 53.280174
+    lat: 53.280173
     lon: 11.081132
   - name: H Radar GDR 08
     id: 252
-    lat: 52.791889
+    lat: 52.791891
     lon: 10.811338
   - name: H Radar GDR 09
     id: 251
-    lat: 52.493992
+    lat: 52.493991
     lon: 14.088625
   - name: Hahn
     id: 155
-    lat: 49.956485
-    lon: 7.27233
+    lat: 49.948452
+    lon: 7.263905
   - name: Haina
     id: 161
-    lat: 50.988978
-    lon: 10.494268
+    lat: 50.991663
+    lon: 10.47957
   - name: Hamburg
     id: 17
-    lat: 53.635092
-    lon: 9.998606
+    lat: 53.626843
+    lon: 9.981322
   - name: Hamburg Finkenwerder
     id: 18
-    lat: 53.529414
-    lon: 9.822141
+    lat: 53.534149
+    lon: 9.832895
   - name: Hannover
     id: 19
-    lat: 52.453769
-    lon: 9.710421
+    lat: 52.454479
+    lon: 9.693753
   - name: Hasselfelde
     id: 140
-    lat: 51.705472
-    lon: 10.885994
+    lat: 51.705392
+    lon: 10.878693
   - name: Heidelberg
     id: 40
-    lat: 49.393982
-    lon: 8.658982
+    lat: 49.39351
+    lon: 8.652138
   - name: Herrenteich
     id: 244
-    lat: 49.340612
-    lon: 8.485711
+    lat: 49.343501
+    lon: 8.489852
   - name: Hildesheim
     id: 115
-    lat: 52.180931
-    lon: 9.954169
+    lat: 52.179792
+    lon: 9.94579
   - name: Hockenheim
     id: 245
-    lat: 49.322112
-    lon: 8.530673
+    lat: 49.325263
+    lon: 8.527476
   - name: Holzdorf
     id: 118
-    lat: 51.766821
-    lon: 13.188867
+    lat: 51.767796
+    lon: 13.169713
   - name: Kammermark
     id: 104
-    lat: 53.195245
-    lon: 12.157066
+    lat: 53.195961
+    lon: 12.165032
   - name: Kastrup
     id: 41
-    lat: 55.614387
-    lon: 12.66461
+    lat: 55.619241
+    lon: 12.652365
   - name: Kiel
     id: 42
-    lat: 54.379097
-    lon: 10.135983
+    lat: 54.3795
+    lon: 10.144681
   - name: Kothen
     id: 82
-    lat: 51.721398
-    lon: 11.979096
+    lat: 51.721377
+    lon: 11.961542
   - name: Laage
     id: 20
-    lat: 53.919812
-    lon: 12.260841
+    lat: 53.918052
+    lon: 12.2794
   - name: Landstuhl
     id: 43
-    lat: 49.402807
-    lon: 7.536287
+    lat: 49.403076
+    lon: 7.53632
   - name: Langenselbold
     id: 246
-    lat: 50.176585
-    lon: 9.068646
+    lat: 50.174621
+    lon: 9.063287
   - name: Larz
     id: 21
-    lat: 53.303901
-    lon: 12.7356
+    lat: 53.306376
+    lon: 12.752547
   - name: Leipzig Mockau
     id: 236
-    lat: 51.39656
-    lon: 12.417527
+    lat: 51.393782
+    lon: 12.408046
   - name: Lubeck
     id: 81
-    lat: 53.802258
-    lon: 10.701777
+    lat: 53.804876
+    lon: 10.716883
   - name: Luneburg
     id: 89
-    lat: 53.249034
-    lon: 10.463902
+    lat: 53.248542
+    lon: 10.459531
   - name: Mahlwinkel
     id: 22
-    lat: 52.387953
-    lon: 11.844443
+    lat: 52.388279
+    lon: 11.826442
   - name: Mainz Finthen
     id: 44
-    lat: 49.968258
-    lon: 8.141445
+    lat: 49.969133
+    lon: 8.147878
   - name: Marxwalde
     id: 46
-    lat: 52.61364
-    lon: 14.259045
+    lat: 52.612976
+    lon: 14.24273
   - name: Mendig
     id: 168
-    lat: 50.367587
-    lon: 7.326516
+    lat: 50.366013
+    lon: 7.315629
   - name: Merseburg
     id: 169
-    lat: 51.361552
-    lon: 11.932953
+    lat: 51.363973
+    lon: 11.950009
   - name: Neubrandenburg
     id: 23
-    lat: 53.602182
-    lon: 13.290616
+    lat: 53.602225
+    lon: 13.306104
   - name: Neuruppin
     id: 24
-    lat: 52.942843
-    lon: 12.769586
+    lat: 52.941057
+    lon: 12.786901
   - name: Nordholz
     id: 47
-    lat: 53.769375
-    lon: 8.675758
+    lat: 53.767587
+    lon: 8.658518
   - name: Northeim
     id: 90
-    lat: 52.984606
-    lon: 11.243762
+    lat: 52.984329
+    lon: 11.237111
   - name: Norvenich
     id: 48
-    lat: 50.82734
-    lon: 6.643104
+    lat: 50.831274
+    lon: 6.658647
   - name: Ober-Morlen
     id: 248
-    lat: 50.364653
-    lon: 8.716647
+    lat: 50.362445
+    lon: 8.712215
   - name: Obermehler Schlotheim
     id: 51
-    lat: 51.265397
-    lon: 10.643938
+    lat: 51.267735
+    lon: 10.634806
   - name: Oranienburg
     id: 49
-    lat: 52.71536
-    lon: 13.222682
+    lat: 52.724895
+    lon: 13.216861
   - name: Parchim
     id: 84
-    lat: 53.423304
-    lon: 11.769254
+    lat: 53.427856
+    lon: 11.786589
   - name: Peenemunde
     id: 25
-    lat: 54.166479
-    lon: 13.761513
+    lat: 54.1587
+    lon: 13.773616
   - name: Perwenitz
     id: 125
-    lat: 52.665192
-    lon: 13.004817
+    lat: 52.675639
+    lon: 13.006942
   - name: Pferdsfeld
     id: 232
-    lat: 49.854633
-    lon: 7.588759
+    lat: 49.855128
+    lon: 7.604706
   - name: Pinnow
     id: 111
-    lat: 53.621228
-    lon: 11.565138
+    lat: 53.616543
+    lon: 11.563143
   - name: Pottschutthohe
     id: 249
-    lat: 49.262912
-    lon: 7.485459
+    lat: 49.26447
+    lon: 7.488764
   - name: Ramstein
     id: 165
-    lat: 49.437282
-    lon: 7.615644
+    lat: 49.436899
+    lon: 7.600077
   - name: Revinge
     id: 79
-    lat: 55.726092
-    lon: 13.44253
+    lat: 55.728818
+    lon: 13.427335
   - name: Rinteln
     id: 117
-    lat: 52.175927
-    lon: 9.04906
+    lat: 52.174688
+    lon: 9.052913
   - name: Schkeuditz
     id: 171
-    lat: 51.411827
-    lon: 12.244023
+    lat: 51.415024
+    lon: 12.227159
   - name: Schonefeld
     id: 26
-    lat: 52.388535
-    lon: 13.553727
+    lat: 52.384226
+    lon: 13.534354
   - name: Schweinfurt
     id: 160
-    lat: 50.048892
-    lon: 10.173992
+    lat: 50.048852
+    lon: 10.169674
   - name: Sembach
     id: 156
-    lat: 49.510639
-    lon: 7.878218
+    lat: 49.506152
+    lon: 7.863413
   - name: Sittensen
     id: 131
-    lat: 53.318275
-    lon: 9.575904
+    lat: 53.320957
+    lon: 9.582918
   - name: Spangdahlem
     id: 162
-    lat: 49.985889
-    lon: 6.71365
+    lat: 49.976572
+    lon: 6.698827
   - name: Sperenberg
     id: 101
-    lat: 52.137955
-    lon: 13.288085
+    lat: 52.136914
+    lon: 13.305952
   - name: Sprendlingen
     id: 135
-    lat: 49.865223
-    lon: 7.964851
+    lat: 49.87099
+    lon: 7.959922
   - name: Stendal
     id: 27
-    lat: 52.628094
-    lon: 11.80594
+    lat: 52.629081
+    lon: 11.819859
   - name: Sturup
     id: 45
-    lat: 55.547906
-    lon: 13.374422
+    lat: 55.535659
+    lon: 13.376404
   - name: Szczecin-Goleniow
     id: 50
-    lat: 53.578866
-    lon: 14.912986
+    lat: 53.584757
+    lon: 14.90226
   - name: Tagra
     id: 87
-    lat: 55.594915
-    lon: 13.721929
+    lat: 55.600852
+    lon: 13.714128
   - name: Tegel
     id: 28
-    lat: 52.559846
-    lon: 13.309965
+    lat: 52.558431
+    lon: 13.292892
   - name: Tempelhof
     id: 29
-    lat: 52.471003
-    lon: 13.389723
+    lat: 52.471066
+    lon: 13.404304
   - name: Templin
     id: 15
-    lat: 53.03203
-    lon: 13.568105
+    lat: 53.031999
+    lon: 13.542583
   - name: Thurland
     id: 136
-    lat: 51.686564
-    lon: 12.207919
+    lat: 51.696381
+    lon: 12.210249
   - name: Tutow
     id: 30
-    lat: 53.931396
-    lon: 13.216531
+    lat: 53.921793
+    lon: 13.219059
   - name: Uelzen
     id: 102
-    lat: 52.983635
-    lon: 10.472323
+    lat: 52.983622
+    lon: 10.464482
   - name: Uetersen
     id: 86
-    lat: 53.645944
-    lon: 9.712089
+    lat: 53.646507
+    lon: 9.704034
   - name: Ummern
     id: 114
-    lat: 52.618729
-    lon: 10.414364
+    lat: 52.620466
+    lon: 10.411016
   - name: Verden-Scharnhorst
     id: 116
-    lat: 52.967502
-    lon: 9.277339
+    lat: 52.965761
+    lon: 9.280623
   - name: Walldorf
     id: 247
-    lat: 49.300125
-    lon: 8.661047
+    lat: 49.303708
+    lon: 8.661445
   - name: Waren Vielist
     id: 109
-    lat: 53.568008
-    lon: 12.658787
+    lat: 53.565922
+    lon: 12.653834
   - name: Werneuchen
     id: 31
-    lat: 52.630984
-    lon: 13.751116
+    lat: 52.631801
+    lon: 13.768795
   - name: Weser Wumme
     id: 106
-    lat: 53.060947
-    lon: 9.208321
+    lat: 53.056097
+    lon: 9.208308
   - name: Wiesbaden
     id: 170
-    lat: 50.047353
-    lon: 8.311329
+    lat: 50.049819
+    lon: 8.325574
   - name: Wismar
     id: 108
-    lat: 53.91429
-    lon: 11.497933
+    lat: 53.914448
+    lon: 11.502444
   - name: Wittstock
     id: 1
-    lat: 53.2049
-    lon: 12.54027
+    lat: 53.202366
+    lon: 12.522974
   - name: Worms
     id: 250
-    lat: 49.607376
-    lon: 8.369167
+    lat: 49.606503
+    lon: 8.365413
   - name: Wunstorf
     id: 32
-    lat: 52.458256
-    lon: 9.440303
+    lat: 52.457325
+    lon: 9.427111
   - name: Zerbst
     id: 4
-    lat: 51.995191
-    lon: 12.128058
+    lat: 51.999629
+    lon: 12.14426
   - name: Zollschen
     id: 137
-    lat: 51.261892
-    lon: 12.091337
+    lat: 51.266365
+    lon: 12.099991
   - name: Zweibrucken
     id: 158
-    lat: 49.200481
-    lon: 7.392413
+    lat: 49.20955
+    lon: 7.400867
   Iraq:
   - name: Al-Asad Airbase
     id: 1
-    lat: 33.78107
-    lon: 42.407293
+    lat: 33.781247
+    lon: 42.427626
   - name: Al-Kut Airport
     id: 19
-    lat: 32.487757
-    lon: 45.743051
+    lat: 32.483893
+    lon: 45.755576
   - name: Al-Sahra Airport
     id: 12
-    lat: 34.676327
-    lon: 43.529009
+    lat: 34.667905
+    lon: 43.536441
   - name: Al-Salam Airbase
     id: 14
-    lat: 33.287275
-    lon: 44.488033
+    lat: 33.278894
+    lon: 44.494309
   - name: Al-Taji Airport
     id: 9
-    lat: 33.517
-    lon: 44.259248
+    lat: 33.52379
+    lon: 44.256767
   - name: Al-Taquddum Airport
     id: 13
-    lat: 33.346037
-    lon: 43.584803
+    lat: 33.339247
+    lon: 43.598509
   - name: Baghdad International Airport
     id: 2
-    lat: 33.267637
-    lon: 44.217886
+    lat: 33.255819
+    lon: 44.225627
   - name: Balad Airbase
     id: 8
-    lat: 33.952586
-    lon: 44.359505
+    lat: 33.942808
+    lon: 44.367129
   - name: Bashur Airport
     id: 5
-    lat: 36.540089
-    lon: 44.333529
+    lat: 36.534491
+    lon: 44.33922
   - name: Erbil International Airport
     id: 4
-    lat: 36.258346
-    lon: 43.947146
+    lat: 36.238309
+    lon: 43.946661
   - name: H-2 Airbase
     id: 15
-    lat: 33.363764
-    lon: 40.586067
+    lat: 33.356304
+    lon: 40.58851
   - name: H-3 Main Airbase
     id: 16
-    lat: 32.940568
-    lon: 39.733778
+    lat: 32.93623
+    lon: 39.74566
   - name: H-3 Northwest Airbase
     id: 18
-    lat: 33.081532
-    lon: 39.586629
+    lat: 33.076407
+    lon: 39.595774
   - name: H-3 Southwest Airbase
     id: 17
-    lat: 32.748121
-    lon: 39.59354
+    lat: 32.743819
+    lon: 39.601383
   - name: K1 Base
     id: 11
-    lat: 35.518198
-    lon: 44.279261
+    lat: 35.512696
+    lon: 44.284315
   - name: Kharg Airfield
     id: 20
-    lat: 29.267417
-    lon: 50.314697
+    lat: 29.260941
+    lon: 50.321773
   - name: Kirkuk International Airport
     id: 10
-    lat: 35.476631
-    lon: 44.337933
+    lat: 35.471146
+    lon: 44.344569
   - name: Mosul International Airport
     id: 3
-    lat: 36.315017
-    lon: 43.143028
+    lat: 36.306397
+    lon: 43.147063
   - name: Qayyarah Airfield West
     id: 6
-    lat: 35.778104
-    lon: 43.114842
+    lat: 35.76582
+    lon: 43.122319
   - name: Sulaimaniyah International Airport
     id: 7
-    lat: 35.570506
-    lon: 45.302468
+    lat: 35.560806
+    lon: 45.314753
   Kola:
   - name: Afrikanda
     id: 33
-    lat: 67.454209
-    lon: 32.809867
+    lat: 67.457305
+    lon: 32.784017
   - name: Alakurtti
     id: 19
-    lat: 66.966443
-    lon: 30.365891
+    lat: 66.972733
+    lon: 30.348536
   - name: Alta
     id: 24
-    lat: 69.980949
-    lon: 23.349632
+    lat: 69.97726
+    lon: 23.365899
   - name: Andoya
     id: 20
-    lat: 69.306749
-    lon: 16.121185
+    lat: 69.297581
+    lon: 16.135408
   - name: Arvidsjaur
     id: 36
-    lat: 65.598218
-    lon: 19.258236
+    lat: 65.591501
+    lon: 19.277802
   - name: Banak
     id: 1
-    lat: 70.05776
-    lon: 24.975276
+    lat: 70.068784
+    lon: 24.973511
   - name: Bardufoss
     id: 21
-    lat: 69.052219
-    lon: 18.566432
+    lat: 69.055348
+    lon: 18.543504
   - name: Boden Heli Base
     id: 34
-    lat: 65.810454
-    lon: 21.692645
+    lat: 65.809326
+    lon: 21.694523
   - name: Bodo
     id: 7
-    lat: 67.266973
-    lon: 14.335478
+    lat: 67.269204
+    lon: 14.365363
   - name: Enontekio
     id: 26
-    lat: 68.369035
-    lon: 23.437226
+    lat: 68.362497
+    lon: 23.424096
   - name: Evenes
     id: 25
-    lat: 68.50251
-    lon: 16.677568
+    lat: 68.49119
+    lon: 16.67814
   - name: Hemavan
     id: 35
-    lat: 65.799748
-    lon: 15.090087
+    lat: 65.805459
+    lon: 15.083595
   - name: Hosio
     id: 23
-    lat: 65.89861
-    lon: 25.721762
+    lat: 65.896111
+    lon: 25.703854
   - name: Ivalo
     id: 18
-    lat: 68.613256
-    lon: 27.42397
+    lat: 68.607118
+    lon: 27.404838
   - name: Jokkmokk
     id: 11
-    lat: 66.503493
-    lon: 20.13492
+    lat: 66.496346
+    lon: 20.147011
   - name: Kalevala
     id: 32
-    lat: 65.211405
-    lon: 31.13767
+    lat: 65.209507
+    lon: 31.133596
   - name: Kalixfors
     id: 13
-    lat: 67.76986
-    lon: 20.24961
+    lat: 67.764963
+    lon: 20.251009
   - name: Kallax
     id: 15
-    lat: 65.55461
-    lon: 22.098573
+    lat: 65.543786
+    lon: 22.121867
   - name: Kemi Tornio
     id: 3
-    lat: 65.792105
-    lon: 24.586346
+    lat: 65.781484
+    lon: 24.582284
   - name: Kilpyavr
     id: 28
-    lat: 69.101813
-    lon: 32.420332
+    lat: 69.094912
+    lon: 32.400591
   - name: Kirkenes
     id: 14
-    lat: 69.727983
-    lon: 29.911999
+    lat: 69.725364
+    lon: 29.89007
   - name: Kiruna
     id: 5
-    lat: 67.83031
-    lon: 20.352317
+    lat: 67.822005
+    lon: 20.33681
   - name: Kittila
     id: 22
-    lat: 67.710632
-    lon: 24.841318
+    lat: 67.700992
+    lon: 24.846872
   - name: Koshka Yavr
     id: 30
-    lat: 69.262938
-    lon: 31.208859
+    lat: 69.251218
+    lon: 31.196377
   - name: Kuusamo
     id: 16
-    lat: 65.994259
-    lon: 29.22226
+    lat: 65.987367
+    lon: 29.239947
   - name: Luostari Pechenga
     id: 29
-    lat: 69.40697
-    lon: 30.999283
+    lat: 69.402386
+    lon: 30.990917
   - name: Monchegorsk
     id: 10
-    lat: 67.980068
-    lon: 33.005546
+    lat: 67.989043
+    lon: 33.018673
   - name: Murmansk International
     id: 12
-    lat: 68.79078
-    lon: 32.735392
+    lat: 68.78165
+    lon: 32.75136
   - name: Olenya
     id: 9
-    lat: 68.165641
-    lon: 33.478249
+    lat: 68.151778
+    lon: 33.464299
   - name: Poduzhemye
     id: 31
-    lat: 64.916729
-    lon: 34.286119
+    lat: 64.918655
+    lon: 34.262989
   - name: Rovaniemi
     id: 2
-    lat: 66.574566
-    lon: 25.849959
+    lat: 66.564846
+    lon: 25.830488
   - name: Severomorsk-1
     id: 8
-    lat: 69.041039
-    lon: 33.404833
+    lat: 69.030503
+    lon: 33.422995
   - name: Severomorsk-3
     id: 6
-    lat: 68.856774
-    lon: 33.715938
+    lat: 68.867062
+    lon: 33.718116
   - name: Sodankyla
     id: 27
-    lat: 67.401033
-    lon: 26.615792
+    lat: 67.395033
+    lon: 26.619135
   - name: Tromso
     id: 37
-    lat: 69.673352
-    lon: 18.911499
+    lat: 69.681509
+    lon: 18.917733
   - name: Vidsel
     id: 17
-    lat: 65.879747
-    lon: 20.129465
+    lat: 65.875266
+    lon: 20.149866
   - name: Vuojarvi
     id: 4
-    lat: 67.075947
-    lon: 26.560454
+    lat: 67.069133
+    lon: 26.539805
   MarianaIslands:
   - name: Andersen AFB
     id: 6
-    lat: 13.576048
-    lon: 144.917461
+    lat: 13.581703
+    lon: 144.931052
   - name: Antonio B. Won Pat Intl
     id: 4
-    lat: 13.479569
-    lon: 144.784775
+    lat: 13.48478
+    lon: 144.796824
   - name: North West Field
     id: 8
     lat: 13.625334
-    lon: 144.858398
+    lon: 144.858399
   - name: Olf Orote
     id: 5
-    lat: 13.439831
-    lon: 144.64681
+    lat: 13.438201
+    lon: 144.64224
   - name: Pagan Airstrip
     id: 7
-    lat: 18.124206
-    lon: 145.761064
+    lat: 18.123154
+    lon: 145.763149
   - name: Rota Intl
     id: 1
-    lat: 14.174905
-    lon: 145.232486
+    lat: 14.174373
+    lon: 145.241092
   - name: Saipan Intl
     id: 2
-    lat: 15.115122
-    lon: 145.718798
+    lat: 15.118931
+    lon: 145.729129
   - name: Tinian Intl
     id: 3
-    lat: 14.997429
-    lon: 145.608306
+    lat: 14.999194
+    lon: 145.619182
   MarianaIslandsWWII:
   - name: Agana
     id: 1
-    lat: 13.480571
-    lon: 144.783754
+    lat: 13.482536
+    lon: 144.789669
   - name: Airfield 3
     id: 3
-    lat: 15.068688
-    lon: 145.631266
+    lat: 15.068026
+    lon: 145.634733
   - name: Charon Kanoa
     id: 4
-    lat: 15.156408
-    lon: 145.702816
+    lat: 15.160454
+    lon: 145.705933
   - name: Gurguan Point
     id: 5
-    lat: 15.002243
-    lon: 145.594282
+    lat: 15.001892
+    lon: 145.598798
   - name: Isley
     id: 6
-    lat: 15.119959
-    lon: 145.722399
+    lat: 15.11961
+    lon: 145.726169
   - name: Kagman
     id: 7
-    lat: 15.167955
-    lon: 145.768808
+    lat: 15.167631
+    lon: 145.773512
   - name: Marpi
     id: 8
-    lat: 15.283359
-    lon: 145.809215
+    lat: 15.281768
+    lon: 145.812486
   - name: Orote
     id: 2
-    lat: 13.439826
-    lon: 144.633582
+    lat: 13.437356
+    lon: 144.639267
   - name: Pagan
     id: 11
-    lat: 18.124433
-    lon: 145.761969
+    lat: 18.123599
+    lon: 145.764915
   - name: Rota
     id: 9
-    lat: 14.174851
-    lon: 145.23728
+    lat: 14.174431
+    lon: 145.242031
   - name: Ushi
     id: 10
-    lat: 15.07885
-    lon: 145.632141
+    lat: 15.078215
+    lon: 145.636685
   Nevada:
   - name: Beatty
     id: 5
-    lat: 36.868394
-    lon: -116.786083
+    lat: 36.861003
+    lon: -116.786417
   - name: Boulder City
     id: 6
-    lat: 35.943682
-    lon: -114.860552
+    lat: 35.948667
+    lon: -114.861818
   - name: Creech
     id: 1
-    lat: 36.58443
-    lon: -115.686811
+    lat: 36.583819
+    lon: -115.676442
   - name: Echo Bay
     id: 7
-    lat: 36.310471
-    lon: -114.469338
+    lat: 36.311061
+    lon: -114.463899
   - name: Groom Lake
     id: 2
-    lat: 37.219139
-    lon: -115.785311
+    lat: 37.233179
+    lon: -115.792335
   - name: Henderson Executive
     id: 8
-    lat: 35.967469
-    lon: -115.133471
+    lat: 35.973994
+    lon: -115.133052
   - name: Jean
     id: 9
-    lat: 35.773786
-    lon: -115.325703
+    lat: 35.769187
+    lon: -115.329568
   - name: Laughlin
     id: 10
-    lat: 35.165905
-    lon: -114.559864
+    lat: 35.156103
+    lon: -114.559452
   - name: Lincoln County
     id: 11
-    lat: 37.79339
-    lon: -114.419237
+    lat: 37.787355
+    lon: -114.419911
   - name: McCarran International
     id: 3
-    lat: 36.07667
-    lon: -115.16219
+    lat: 36.07641
+    lon: -115.144632
   - name: Mesquite
     id: 13
-    lat: 36.827345
-    lon: -114.060335
+    lat: 36.833119
+    lon: -114.055907
   - name: Mina
     id: 14
-    lat: 38.374547
-    lon: -118.093499
+    lat: 38.379786
+    lon: -118.096677
   - name: Nellis
     id: 4
-    lat: 36.225662
-    lon: -115.043808
+    lat: 36.235224
+    lon: -115.033
   - name: North Las Vegas
     id: 15
-    lat: 36.213365
-    lon: -115.186738
+    lat: 36.213472
+    lon: -115.194768
   - name: Pahute Mesa
     id: 16
-    lat: 37.094831
-    lon: -116.3154
+    lat: 37.101996
+    lon: -116.312846
   - name: Tonopah
     id: 17
-    lat: 38.058024
-    lon: -117.075917
+    lat: 38.062431
+    lon: -117.083286
   - name: Tonopah Test Range
     id: 18
-    lat: 37.78404
-    lon: -116.773303
+    lat: 37.798875
+    lon: -116.780792
   Normandy:
   - name: Abbeville Drucat
     id: 75
-    lat: 50.134533
-    lon: 1.843953
+    lat: 50.138133
+    lon: 1.837893
   - name: Alderney
     id: 85
-    lat: 49.706373
-    lon: -2.220094
+    lat: 49.706759
+    lon: -2.214594
   - name: Amiens-Glisy
     id: 59
-    lat: 49.87479
-    lon: 2.382581
+    lat: 49.872011
+    lon: 2.390358
   - name: Argentan
     id: 32
-    lat: 48.7663
-    lon: -0.024739
+    lat: 48.768762
+    lon: -0.030445
   - name: Avranches Le Val-Saint-Pere
     id: 65
-    lat: 48.671025
-    lon: -1.385696
+    lat: 48.668148
+    lon: -1.380639
   - name: Azeville
     id: 15
-    lat: 49.479646
-    lon: -1.324803
+    lat: 49.480991
+    lon: -1.317616
   - name: Barville
     id: 34
-    lat: 48.475043
-    lon: 0.318096
+    lat: 48.480139
+    lon: 0.313983
   - name: Bazenville
     id: 20
-    lat: 49.301185
-    lon: -0.571477
+    lat: 49.303964
+    lon: -0.564728
   - name: Beaumont-le-Roger
     id: 67
-    lat: 49.0934
-    lon: 0.799703
+    lat: 49.096381
+    lon: 0.796926
   - name: Beauvais-Tille
     id: 44
-    lat: 49.45813
-    lon: 2.104886
+    lat: 49.454163
+    lon: 2.113238
   - name: Bembridg
     id: 90
-    lat: 50.676115
-    lon: -1.104761
+    lat: 50.678471
+    lon: -1.110802
   - name: Beny-sur-Mer
     id: 22
-    lat: 49.293694
-    lon: -0.426302
+    lat: 49.298021
+    lon: -0.426621
   - name: Bernay Saint Martin
     id: 69
-    lat: 49.108776
-    lon: 0.599147
+    lat: 49.104433
+    lon: 0.598438
   - name: Beuzeville
     id: 14
-    lat: 49.417373
-    lon: -1.305003
+    lat: 49.420546
+    lon: -1.298552
   - name: Biggin Hill
     id: 71
-    lat: 51.335586
-    lon: 0.03644
+    lat: 51.33001
+    lon: 0.03165
   - name: Biniville
     id: 10
-    lat: 49.432936
-    lon: -1.46484
+    lat: 49.436721
+    lon: -1.46897
   - name: Broglie
     id: 68
-    lat: 49.01314
-    lon: 0.504567
+    lat: 49.015629
+    lon: 0.49886
   - name: Brucheville
     id: 5
-    lat: 49.370367
-    lon: -1.208502
+    lat: 49.368674
+    lon: -1.215765
   - name: Cardonville
     id: 11
-    lat: 49.356791
-    lon: -1.054566
+    lat: 49.351013
+    lon: -1.050997
   - name: Carpiquet
     id: 19
-    lat: 49.179411
-    lon: -0.462931
+    lat: 49.175126
+    lon: -0.454461
   - name: Chailey
     id: 27
-    lat: 50.956788
-    lon: -0.050298
+    lat: 50.952521
+    lon: -0.047401
   - name: Chippelle
     id: 13
-    lat: 49.244719
-    lon: -0.962914
+    lat: 49.241917
+    lon: -0.97165
   - name: Conches
     id: 40
-    lat: 48.939213
-    lon: 0.968852
+    lat: 48.93481
+    lon: 0.961308
   - name: Cormeilles-en-Vexin
     id: 45
-    lat: 49.09818
-    lon: 2.043007
+    lat: 49.09328
+    lon: 2.035435
   - name: Creil
     id: 46
-    lat: 49.248974
-    lon: 2.511293
+    lat: 49.252764
+    lon: 2.505931
   - name: Cretteville
     id: 3
-    lat: 49.33224
-    lon: -1.372378
+    lat: 49.336592
+    lon: -1.379356
   - name: Cricqueville-en-Bessin
     id: 7
-    lat: 49.359831
-    lon: -1.006558
+    lat: 49.364575
+    lon: -1.006884
   - name: Deanland
     id: 54
-    lat: 50.886702
-    lon: 0.16765
+    lat: 50.884349
+    lon: 0.161353
   - name: Deauville
     id: 62
-    lat: 49.366313
-    lon: 0.152165
+    lat: 49.364267
+    lon: 0.157245
   - name: Detling
     id: 73
-    lat: 51.302455
-    lon: 0.595876
+    lat: 51.305788
+    lon: 0.601579
   - name: Deux Jumeaux
     id: 12
-    lat: 49.349375
-    lon: -0.990008
+    lat: 49.347327
+    lon: -0.980809
   - name: Dinan-Trelivan
     id: 49
-    lat: 48.44252
-    lon: -2.108143
+    lat: 48.443383
+    lon: -2.103121
   - name: Dunkirk-Mardyck
     id: 79
-    lat: 51.029995
-    lon: 2.24811
+    lat: 51.030384
+    lon: 2.256982
   - name: Eastchurch
     id: 81
-    lat: 51.391887
-    lon: 0.84272
+    lat: 51.390358
+    lon: 0.847936
   - name: Essay
     id: 35
-    lat: 48.519684
-    lon: 0.264562
+    lat: 48.520544
+    lon: 0.257691
   - name: Evreux
     id: 26
-    lat: 49.029131
-    lon: 1.220147
+    lat: 49.023804
+    lon: 1.21326
   - name: Farnborough
     id: 52
-    lat: 51.283694
-    lon: -0.775096
+    lat: 51.278719
+    lon: -0.77468
   - name: Fecamp-Benouville
     id: 51
-    lat: 49.750648
-    lon: 0.356796
+    lat: 49.746304
+    lon: 0.356102
   - name: Flers
     id: 64
-    lat: 48.751572
-    lon: -0.589973
+    lat: 48.749217
+    lon: -0.595621
   - name: Ford
     id: 31
-    lat: 50.823127
-    lon: -0.595829
+    lat: 50.818497
+    lon: -0.59117
   - name: Friston
     id: 53
-    lat: 50.759964
-    lon: 0.16513
+    lat: 50.761749
+    lon: 0.171492
   - name: Funtington
     id: 29
-    lat: 50.862831
-    lon: -0.864985
+    lat: 50.868196
+    lon: -0.86908
   - name: Goulet
     id: 33
-    lat: 48.745888
-    lon: -0.115115
+    lat: 48.749692
+    lon: -0.111457
   - name: Gravesend
     id: 66
-    lat: 51.425122
-    lon: 0.397152
+    lat: 51.418056
+    lon: 0.396748
   - name: Guernsey
     id: 83
-    lat: 49.434105
-    lon: -2.590834
+    lat: 49.435785
+    lon: -2.595957
   - name: Guyancourt
     id: 47
-    lat: 48.761472
-    lon: 2.076625
+    lat: 48.758745
+    lon: 2.079925
   - name: Hauterive
     id: 36
-    lat: 48.503769
-    lon: 0.19651
+    lat: 48.499941
+    lon: 0.200091
   - name: Hawkinge
     id: 82
-    lat: 51.108664
-    lon: 1.152649
+    lat: 51.111742
+    lon: 1.15806
   - name: Headcorn
     id: 86
-    lat: 51.183024
-    lon: 0.680018
+    lat: 51.182858
+    lon: 0.6887
   - name: Heathrow
     id: 50
-    lat: 51.477794
-    lon: -0.473705
+    lat: 51.477585
+    lon: -0.454852
   - name: High Halden
     id: 78
-    lat: 51.129372
-    lon: 0.710201
+    lat: 51.124641
+    lon: 0.705641
   - name: Holmsley South
     id: 89
-    lat: 50.787874
-    lon: -1.693187
+    lat: 50.790069
+    lon: -1.700979
   - name: Jersey
     id: 84
-    lat: 49.207508
-    lon: -2.2055
+    lat: 49.207677
+    lon: -2.199688
   - name: Kenley
     id: 43
-    lat: 51.305838
-    lon: -0.100205
+    lat: 51.304183
+    lon: -0.096943
   - name: Lantheuil
     id: 25
-    lat: 49.269369
-    lon: -0.54524
+    lat: 49.271457
+    lon: -0.538403
   - name: Lashenden
     id: 80
-    lat: 51.157994
-    lon: 0.63555
+    lat: 51.156294
+    lon: 0.644352
   - name: Le Molay
     id: 17
-    lat: 49.257858
-    lon: -0.88743
+    lat: 49.261538
+    lon: -0.881665
   - name: Lessay
     id: 8
-    lat: 49.206399
-    lon: -1.516793
+    lat: 49.202168
+    lon: -1.508343
   - name: Lignerolles
     id: 2
-    lat: 49.177205
-    lon: -0.795874
+    lat: 49.175104
+    lon: -0.788931
   - name: Longues-sur-Mer
     id: 18
-    lat: 49.340172
-    lon: -0.700733
+    lat: 49.342662
+    lon: -0.70616
   - name: Lonrai
     id: 48
-    lat: 48.465355
-    lon: 0.029871
+    lat: 48.467673
+    lon: 0.037385
   - name: Lymington
     id: 37
-    lat: 50.766069
-    lon: -1.518951
+    lat: 50.762479
+    lon: -1.514305
   - name: Lympne
     id: 74
-    lat: 51.08462
-    lon: 1.014094
+    lat: 51.082915
+    lon: 1.019371
   - name: Manston
     id: 72
-    lat: 51.344974
-    lon: 1.327783
+    lat: 51.342411
+    lon: 1.34618
   - name: Maupertus
     id: 4
-    lat: 49.648179
-    lon: -1.457139
+    lat: 49.649802
+    lon: -1.466956
   - name: Meautis
     id: 6
-    lat: 49.283764
-    lon: -1.291997
+    lat: 49.283189
+    lon: -1.300239
   - name: Merville Calonne
     id: 77
-    lat: 50.621577
-    lon: 2.662567
+    lat: 50.620596
+    lon: 2.653472
   - name: Needs Oar Point
     id: 28
-    lat: 50.769114
-    lon: -1.442811
+    lat: 50.771664
+    lon: -1.43453
   - name: Northolt
     id: 88
-    lat: 51.554806
-    lon: -0.409432
+    lat: 51.552791
+    lon: -0.419285
   - name: Odiham
     id: 39
-    lat: 51.233417
-    lon: -0.931367
+    lat: 51.234422
+    lon: -0.941727
   - name: Orly
     id: 57
-    lat: 48.734054
-    lon: 2.385341
+    lat: 48.73514
+    lon: 2.391826
   - name: Picauville
     id: 16
-    lat: 49.398517
-    lon: -1.418534
+    lat: 49.396374
+    lon: -1.411155
   - name: Poix
     id: 56
-    lat: 49.813907
-    lon: 1.969707
+    lat: 49.818859
+    lon: 1.977265
   - name: Ronai
     id: 60
-    lat: 48.819736
-    lon: -0.154371
+    lat: 48.823384
+    lon: -0.161215
   - name: Rouen-Boos
     id: 61
-    lat: 49.39037
-    lon: 1.183728
+    lat: 49.387229
+    lon: 1.178984
   - name: Rucqueville
     id: 23
-    lat: 49.251915
-    lon: -0.589838
+    lat: 49.251425
+    lon: -0.58031
   - name: Saint Pierre du Mont
     id: 1
-    lat: 49.389798
-    lon: -0.947183
+    lat: 49.390508
+    lon: -0.957074
   - name: Saint-Andre-de-lEure
     id: 70
-    lat: 48.895893
-    lon: 1.26067
+    lat: 48.891284
+    lon: 1.268338
   - name: Saint-Aubin
     id: 63
-    lat: 49.882421
-    lon: 1.085068
+    lat: 49.885015
+    lon: 1.080429
   - name: Saint-Omer Wizernes
     id: 76
-    lat: 50.728388
-    lon: 2.236385
+    lat: 50.728845
+    lon: 2.232304
   - name: Saint-Pol-Bryas
     id: 87
-    lat: 50.399973
-    lon: 2.354094
+    lat: 50.396662
+    lon: 2.350691
   - name: Sainte-Croix-sur-Mer
     id: 21
-    lat: 49.320699
-    lon: -0.525281
+    lat: 49.320276
+    lon: -0.517246
   - name: Sainte-Laurent-sur-Mer
     id: 9
-    lat: 49.362172
-    lon: -0.864574
+    lat: 49.364463
+    lon: -0.873488
   - name: Sommervieu
     id: 24
-    lat: 49.300288
-    lon: -0.67901
+    lat: 49.300228
+    lon: -0.670951
   - name: Stoney Cross
     id: 58
-    lat: 50.921058
-    lon: -1.652438
+    lat: 50.914793
+    lon: -1.653211
   - name: Tangmere
     id: 30
-    lat: 50.840469
-    lon: -0.698294
+    lat: 50.84576
+    lon: -0.701897
   - name: Triqueville
     id: 55
-    lat: 49.331957
-    lon: 0.460061
+    lat: 49.336215
+    lon: 0.45828
   - name: Villacoublay
     id: 42
-    lat: 48.764077
-    lon: 2.210921
+    lat: 48.767348
+    lon: 2.205032
   - name: Vrigny
     id: 38
-    lat: 48.675792
-    lon: -0.006434
+    lat: 48.672283
+    lon: -0.002161
   - name: West Malling
     id: 41
-    lat: 51.272843
-    lon: 0.414966
+    lat: 51.27036
+    lon: 0.404697
   PersianGulf:
   - name: Abu Dhabi Intl
     id: 22
-    lat: 24.464723
-    lon: 54.639226
+    lat: 24.453708
+    lon: 54.654268
   - name: Abu Musa Island
     id: 1
-    lat: 25.875042
-    lon: 55.021382
+    lat: 25.875992
+    lon: 55.032918
   - name: Al Ain Intl
     id: 25
-    lat: 24.276767
-    lon: 55.611736
+    lat: 24.261428
+    lon: 55.609245
   - name: Al Dhafra AFB
     id: 4
-    lat: 24.257929
-    lon: 54.534203
+    lat: 24.248288
+    lon: 54.547699
   - name: Al Maktoum Intl
     id: 6
-    lat: 24.888624
-    lon: 55.17492
+    lat: 24.897057
+    lon: 55.160239
   - name: Al Minhad AFB
     id: 12
-    lat: 25.026806
-    lon: 55.383678
+    lat: 25.026881
+    lon: 55.365758
   - name: Al-Bateen
     id: 23
-    lat: 24.434059
-    lon: 54.450706
+    lat: 24.428077
+    lon: 54.45858
   - name: Bandar Abbas Intl
     id: 2
-    lat: 27.203639
-    lon: 56.370356
+    lat: 27.217687
+    lon: 56.378962
   - name: Bandar Lengeh
     id: 3
-    lat: 26.530817
-    lon: 54.813116
+    lat: 26.532264
+    lon: 54.824667
   - name: Bandar-e-Jask
     id: 21
-    lat: 25.650484
-    lon: 57.792126
+    lat: 25.654673
+    lon: 57.801436
   - name: Dubai Intl
     id: 5
-    lat: 25.248265
-    lon: 55.379296
+    lat: 25.256376
+    lon: 55.365261
   - name: Fujairah Intl
     id: 7
-    lat: 25.105736
-    lon: 56.340424
+    lat: 25.11094
+    lon: 56.327351
   - name: Havadarya
     id: 9
-    lat: 27.159928
-    lon: 56.183089
+    lat: 27.158224
+    lon: 56.172019
   - name: Jiroft
     id: 27
-    lat: 28.731593
-    lon: 57.664119
+    lat: 28.723517
+    lon: 57.675095
   - name: Kerman
     id: 18
-    lat: 30.257696
-    lon: 56.958269
+    lat: 30.27311
+    lon: 56.951551
   - name: Khasab
     id: 10
-    lat: 26.179806
-    lon: 56.243172
+    lat: 26.169826
+    lon: 56.24017
   - name: Kish Intl
     id: 24
-    lat: 26.529651
-    lon: 53.964909
+    lat: 26.528149
+    lon: 53.981049
   - name: Lar
     id: 11
-    lat: 27.674805
-    lon: 54.368317
+    lat: 27.674732
+    lon: 54.383145
   - name: Lavan Island
     id: 26
-    lat: 26.815354
-    lon: 53.341604
+    lat: 26.811108
+    lon: 53.353293
   - name: Liwa AFB
     id: 29
-    lat: 23.660697
-    lon: 53.812498
+    lat: 23.650775
+    lon: 53.824429
   - name: Qeshm Island
     id: 13
-    lat: 26.766332
-    lon: 55.91807
+    lat: 26.754669
+    lon: 55.902384
   - name: Quasoura_airport
     id: 30
-    lat: 22.775988
-    lon: 55.077138
+    lat: 22.7761
+    lon: 55.0633
   - name: Ras Al Khaimah Intl
     id: 28
-    lat: 25.602262
-    lon: 55.941865
+    lat: 25.613494
+    lon: 55.938797
   - name: Sas Al Nakheel
     id: 20
-    lat: 24.448211
-    lon: 54.514697
+    lat: 24.441109
+    lon: 54.517023
   - name: Sharjah Intl
     id: 14
-    lat: 25.322796
-    lon: 55.531388
+    lat: 25.330675
+    lon: 55.518263
   - name: Shiraz Intl
     id: 19
-    lat: 29.533104
-    lon: 52.609894
+    lat: 29.54091
+    lon: 52.591074
   - name: Sir Abu Nuayr
     id: 17
-    lat: 25.216155
-    lon: 54.23694
+    lat: 25.216871
+    lon: 54.23365
   - name: Sirri Island
     id: 15
-    lat: 25.903344
-    lon: 54.548215
+    lat: 25.909603
+    lon: 54.539254
   - name: Tunb Island AFB
     id: 8
-    lat: 26.251539
-    lon: 55.31128
+    lat: 26.258888
+    lon: 55.315782
   - name: Tunb Kochak
     id: 16
-    lat: 26.243605
-    lon: 55.149352
+    lat: 26.243322
+    lon: 55.145568
   SinaiMap:
   - name: Abu Rudeis
     id: 26
-    lat: 28.905341
-    lon: 33.195412
+    lat: 28.899536
+    lon: 33.202337
   - name: Abu Suwayr
     id: 2
-    lat: 30.570418
-    lon: 32.109823
+    lat: 30.575385
+    lon: 32.096271
   - name: Al Bahr al Ahmar
     id: 44
-    lat: 26.545548
-    lon: 33.128604
+    lat: 26.556378
+    lon: 33.121031
   - name: Al Ismailiyah
     id: 4
-    lat: 30.59008
-    lon: 32.246684
+    lat: 30.598815
+    lon: 32.234582
   - name: Al Khatatbah
     id: 31
-    lat: 30.313333
-    lon: 30.873121
+    lat: 30.312375
+    lon: 30.874447
   - name: Al Mansurah
     id: 14
-    lat: 30.955645
-    lon: 31.440852
+    lat: 30.965201
+    lon: 31.431509
   - name: Al Rahmaniyah Air Base
     id: 32
-    lat: 31.032572
-    lon: 30.668829
+    lat: 31.043422
+    lon: 30.664376
   - name: As Salihiyah
     id: 3
-    lat: 30.783021
-    lon: 32.037799
+    lat: 30.795111
+    lon: 32.042546
   - name: AzZaqaziq
     id: 15
-    lat: 30.58226
-    lon: 31.663705
+    lat: 30.594823
+    lon: 31.664577
   - name: Baluza
     id: 27
-    lat: 31.001504
-    lon: 32.561255
+    lat: 30.99977
+    lon: 32.552221
   - name: Ben-Gurion
     id: 24
-    lat: 31.996997
-    lon: 34.886275
+    lat: 32.007029
+    lon: 34.8931
   - name: Beni Suef
     id: 33
-    lat: 29.182934
-    lon: 31.016127
+    lat: 29.197907
+    lon: 31.019001
   - name: Bilbeis Air Base
     id: 16
-    lat: 30.386276
-    lon: 31.609749
+    lat: 30.398675
+    lon: 31.60728
   - name: Bir Hasanah
     id: 28
-    lat: 30.187986
-    lon: 33.425569
+    lat: 30.194637
+    lon: 33.412829
   - name: Birma Air Base
     id: 34
-    lat: 30.826797
-    lon: 30.944291
+    lat: 30.837038
+    lon: 30.936019
   - name: Borg El Arab International Airport
     id: 35
-    lat: 30.928718
-    lon: 29.683903
+    lat: 30.916902
+    lon: 29.693893
   - name: Cairo International Airport
     id: 17
-    lat: 30.098133
-    lon: 31.419873
+    lat: 30.108988
+    lon: 31.43482
   - name: Cairo West
     id: 18
-    lat: 30.093241
-    lon: 30.899751
+    lat: 30.108373
+    lon: 30.895657
   - name: Damascus Intl
     id: 48
-    lat: 33.38558
-    lon: 36.496399
+    lat: 33.395471
+    lon: 36.510202
   - name: Difarsuwar Airfield
     id: 1
-    lat: 30.423829
-    lon: 32.335049
+    lat: 30.425742
+    lon: 32.335384
   - name: Ein Shamer
     id: 52
-    lat: 32.439875
-    lon: 35.013575
+    lat: 32.440849
+    lon: 35.007511
   - name: El Arish
     id: 29
-    lat: 31.025935
-    lon: 33.824634
+    lat: 31.037878
+    lon: 33.819091
   - name: El Gora
     id: 30
-    lat: 31.070896
-    lon: 34.13767
+    lat: 31.073011
+    lon: 34.14836
   - name: El Minya
     id: 36
-    lat: 28.089334
-    lon: 30.734993
+    lat: 28.101047
+    lon: 30.729653
   - name: Fayed
     id: 6
-    lat: 30.328723
-    lon: 32.282131
+    lat: 30.329071
+    lon: 32.267488
   - name: Gebel El Basur Air Base
     id: 37
-    lat: 30.549951
-    lon: 30.545968
+    lat: 30.538232
+    lon: 30.552675
   - name: Hatzerim
     id: 7
-    lat: 31.235725
-    lon: 34.669682
+    lat: 31.238604
+    lon: 34.658504
   - name: Hatzor
     id: 20
-    lat: 31.754914
-    lon: 34.715697
+    lat: 31.760479
+    lon: 34.725331
   - name: Hurghada International Airport
     id: 38
-    lat: 27.193353
-    lon: 33.786995
+    lat: 27.176465
+    lon: 33.791691
   - name: Inshas Airbase
     id: 19
-    lat: 30.326969
-    lon: 31.437177
+    lat: 30.334249
+    lon: 31.446579
   - name: Jiyanklis Air Base
     id: 39
-    lat: 30.82954
-    lon: 30.180528
+    lat: 30.822325
+    lon: 30.192399
   - name: Kedem
     id: 12
-    lat: 31.258515
-    lon: 34.648416
+    lat: 31.260616
+    lon: 34.639945
   - name: Khalkhalah Air Base
     id: 55
-    lat: 33.089428
-    lon: 36.533861
+    lat: 33.078937
+    lon: 36.540704
   - name: Kibrit Air Base
     id: 11
-    lat: 30.235209
-    lon: 32.500059
+    lat: 30.243534
+    lon: 32.491179
   - name: King Feisal Air Base
     id: 54
-    lat: 30.337047
-    lon: 36.163191
+    lat: 30.343686
+    lon: 36.147409
   - name: Kom Awshim
     id: 40
-    lat: 29.54455
-    lon: 30.898615
+    lat: 29.553644
+    lon: 30.893503
   - name: Megiddo
     id: 51
-    lat: 32.597595
-    lon: 35.219967
+    lat: 32.597143
+    lon: 35.230212
   - name: Melez
     id: 5
-    lat: 30.401003
-    lon: 33.156202
+    lat: 30.409932
+    lon: 33.149742
   - name: Mezzeh Air Base
     id: 49
-    lat: 33.472038
-    lon: 36.211502
+    lat: 33.477649
+    lon: 36.223628
   - name: Nevatim
     id: 8
-    lat: 31.205365
-    lon: 34.995878
+    lat: 31.208343
+    lon: 35.012075
   - name: Ovda
     id: 10
-    lat: 29.93064
-    lon: 34.929107
+    lat: 29.940817
+    lon: 34.934128
   - name: Palmachim
     id: 21
-    lat: 31.893067
-    lon: 34.68777
+    lat: 31.901788
+    lon: 34.692887
   - name: Quwaysina
     id: 45
-    lat: 30.590723
-    lon: 31.126081
+    lat: 30.579003
+    lon: 31.129037
   - name: Rafic Hariri Intl
     id: 46
-    lat: 33.838378
-    lon: 35.479703
+    lat: 33.824474
+    lon: 35.483232
   - name: Ramat David
     id: 50
-    lat: 32.674888
-    lon: 35.177388
+    lat: 32.666469
+    lon: 35.184092
   - name: Ramon Airbase
     id: 9
-    lat: 30.773347
-    lon: 34.65385
+    lat: 30.777574
+    lon: 34.666146
   - name: Ramon International Airport
     id: 41
-    lat: 29.74208
-    lon: 35.018555
+    lat: 29.727039
+    lon: 35.014024
   - name: Sde Dov
     id: 22
-    lat: 32.119759
-    lon: 34.785752
+    lat: 32.114672
+    lon: 34.78228
   - name: Sharm El Sheikh International Airport
     id: 42
-    lat: 27.969205
-    lon: 34.382927
+    lat: 27.978735
+    lon: 34.393277
   - name: St Catherine
     id: 25
-    lat: 28.67657
-    lon: 34.063779
+    lat: 28.685165
+    lon: 34.062629
   - name: Taba International Airport
     id: 53
-    lat: 29.600751
-    lon: 34.791733
+    lat: 29.588024
+    lon: 34.778285
   - name: Tabuk
     id: 47
-    lat: 28.379804
-    lon: 36.59569
+    lat: 28.371022
+    lon: 36.606148
   - name: TabukHeliBase
     id: 56
-    lat: 28.311846
+    lat: 28.311845
     lon: 36.689877
   - name: Tel Nof
     id: 23
-    lat: 31.826102
-    lon: 34.816978
+    lat: 31.836021
+    lon: 34.817828
   - name: Wadi Abu Rish
     id: 43
-    lat: 28.987755
-    lon: 31.703676
+    lat: 28.971017
+    lon: 31.698667
   - name: Wadi al Jandali
     id: 13
-    lat: 30.057609
-    lon: 31.828304
+    lat: 30.072551
+    lon: 31.8333
   Syria:
   - name: Abu al-Duhur
     id: 1
-    lat: 35.731462
-    lon: 37.118802
+    lat: 35.732306
+    lon: 37.104128
   - name: Adana Sakirpasa
     id: 2
-    lat: 36.988387
-    lon: 35.291557
+    lat: 36.981938
+    lon: 35.280098
   - name: Adiyaman
     id: 219
-    lat: 37.725762
-    lon: 38.460339
+    lat: 37.731261
+    lon: 38.468922
   - name: Akrotiri
     id: 44
-    lat: 34.594066
-    lon: 32.974818
+    lat: 34.590373
+    lon: 32.987777
   - name: Al Qusayr
     id: 3
-    lat: 34.566877
-    lon: 36.585415
+    lat: 34.569276
+    lon: 36.571454
   - name: Al-Dumayr
     id: 9
-    lat: 33.615122
-    lon: 36.763409
+    lat: 33.609697
+    lon: 36.749135
   - name: Aleppo
     id: 27
-    lat: 36.179024
-    lon: 37.23835
+    lat: 36.180618
+    lon: 37.224367
   - name: An Nasiriyah
     id: 4
-    lat: 33.926566
-    lon: 36.875345
+    lat: 33.918607
+    lon: 36.86584
   - name: At Tanf
     id: 63
-    lat: 33.506451
-    lon: 38.614883
+    lat: 33.50645
+    lon: 38.614884
   - name: Bassel Al-Assad
     id: 21
-    lat: 35.412866
-    lon: 35.949954
+    lat: 35.403848
+    lon: 35.95024
   - name: Beirut-Rafic Hariri
     id: 6
-    lat: 33.812429
-    lon: 35.486242
+    lat: 33.825144
+    lon: 35.483038
   - name: Ben Gurion
     id: 221
-    lat: 32.012418
-    lon: 34.870943
+    lat: 32.006079
+    lon: 34.882423
   - name: Chukurova
     id: 90
-    lat: 36.905723
-    lon: 35.079591
+    lat: 36.892733
+    lon: 35.069324
   - name: Damascus
     id: 7
-    lat: 33.41534
-    lon: 36.504255
+    lat: 33.425508
+    lon: 36.518512
   - name: Deir ez-Zor
     id: 42
-    lat: 35.290033
-    lon: 40.161449
+    lat: 35.285432
+    lon: 40.176061
   - name: Diyarbakir
     id: 217
-    lat: 37.878276
-    lon: 40.204302
+    lat: 37.89334
+    lon: 40.198688
   - name: Ercan
     id: 49
-    lat: 35.154614
-    lon: 33.498108
+    lat: 35.149641
+    lon: 33.512512
   - name: Eyn Shemer
     id: 10
-    lat: 32.442094
-    lon: 34.999301
+    lat: 32.440932
+    lon: 35.006998
   - name: Gaziantep
     id: 11
-    lat: 36.951779
-    lon: 37.462742
+    lat: 36.948128
+    lon: 37.478344
   - name: Gazipasa
     id: 41
-    lat: 36.297823
-    lon: 32.286068
+    lat: 36.298922
+    lon: 32.297628
   - name: Gecitkale
     id: 50
-    lat: 35.236404
-    lon: 33.707278
+    lat: 35.236011
+    lon: 33.720895
   - name: Gulechoba
     id: 216
-    lat: 38.006044
-    lon: 39.952822
+    lat: 38.012022
+    lon: 39.95472
   - name: H3
     id: 53
-    lat: 32.940993
-    lon: 39.732583
+    lat: 32.936195
+    lon: 39.745813
   - name: H3 Northwest
     id: 54
-    lat: 33.070356
-    lon: 39.606626
+    lat: 33.075956
+    lon: 39.596579
   - name: H3 Southwest
     id: 55
-    lat: 32.738104
-    lon: 39.612103
+    lat: 32.743345
+    lon: 39.602408
   - name: H4
     id: 12
-    lat: 32.536851
-    lon: 38.206376
+    lat: 32.539283
+    lon: 38.195079
   - name: H4 Emergency
     id: 61
-    lat: 32.386549
-    lon: 37.775112
+    lat: 32.386262
+    lon: 37.781702
   - name: HC01
     id: 69
-    lat: 34.924213
+    lat: 34.924215
     lon: 33.603722
   - name: HC02
     id: 70
-    lat: 34.830849
+    lat: 34.830846
     lon: 33.478191
   - name: HC03
     id: 71
@@ -2432,314 +2433,314 @@ theatres:
   - name: HC04
     id: 72
     lat: 35.267204
-    lon: 33.495895
+    lon: 33.495894
   - name: HC05
     id: 73
-    lat: 35.093868
+    lat: 35.093867
     lon: 33.88578
   - name: HC06
     id: 74
-    lat: 35.084003
-    lon: 33.89719
+    lat: 35.084005
+    lon: 33.897191
   - name: HI01
     id: 79
-    lat: 32.882233
-    lon: 35.718987
+    lat: 32.882232
+    lon: 35.718989
   - name: HI02
     id: 80
-    lat: 32.937675
-    lon: 35.568729
+    lat: 32.937677
+    lon: 35.568728
   - name: HI03
     id: 82
-    lat: 32.805607
+    lat: 32.805606
     lon: 35.401592
   - name: HI05
     id: 83
-    lat: 32.808124
+    lat: 32.808126
     lon: 35.425282
   - name: HI06
     id: 84
-    lat: 32.606247
+    lat: 32.606246
     lon: 34.973019
   - name: HI07
     id: 85
-    lat: 32.823078
-    lon: 35.43618
+    lat: 32.823077
+    lon: 35.436181
   - name: HI08
     id: 76
-    lat: 32.96188
-    lon: 35.550068
+    lat: 32.961878
+    lon: 35.550067
   - name: HI09
     id: 77
-    lat: 32.982101
-    lon: 35.514713
+    lat: 32.982102
+    lon: 35.514712
   - name: HI11
     id: 86
-    lat: 32.994808
-    lon: 35.484074
+    lat: 32.99481
+    lon: 35.484072
   - name: HI12
     id: 87
-    lat: 33.017097
-    lon: 35.704506
+    lat: 33.017099
+    lon: 35.704507
   - name: HI13
     id: 116
-    lat: 32.983322
-    lon: 35.727112
+    lat: 32.983324
+    lon: 35.72711
   - name: HI14
     id: 115
     lat: 32.762867
-    lon: 35.302696
+    lon: 35.302697
   - name: HI15
     id: 114
     lat: 33.010471
-    lon: 35.662956
+    lon: 35.662957
   - name: HI16
     id: 113
-    lat: 32.945545
+    lat: 32.945547
     lon: 35.204643
   - name: HI17
     id: 112
-    lat: 32.624008
-    lon: 35.379086
+    lat: 32.624007
+    lon: 35.379087
   - name: HI18
     id: 186
     lat: 32.467857
     lon: 35.023209
   - name: HI20
     id: 193
-    lat: 32.999348
-    lon: 35.407543
+    lat: 32.999346
+    lon: 35.407542
   - name: HI21
     id: 199
-    lat: 32.761124
+    lat: 32.761123
     lon: 35.400593
   - name: HI22
     id: 198
-    lat: 32.087601
-    lon: 34.919762
+    lat: 32.0876
+    lon: 34.919761
   - name: HI23
     id: 197
     lat: 31.747503
-    lon: 34.935722
+    lon: 34.935721
   - name: HI24
     id: 196
-    lat: 32.143486
+    lat: 32.143485
     lon: 34.815281
   - name: HI25
     id: 195
     lat: 33.182911
-    lon: 35.234249
+    lon: 35.234251
   - name: HI26
     id: 194
-    lat: 32.084785
-    lon: 34.781246
+    lat: 32.084786
+    lon: 34.781245
   - name: HJ01
     id: 203
     lat: 33.313847
     lon: 38.702709
   - name: HJ02
     id: 202
-    lat: 32.586731
-    lon: 35.924606
+    lat: 32.586732
+    lon: 35.924607
   - name: HJ03
     id: 201
-    lat: 32.484177
+    lat: 32.484175
     lon: 36.065887
   - name: HJ04
     id: 200
-    lat: 32.476517
-    lon: 36.063328
+    lat: 32.476518
+    lon: 36.063329
   - name: HL01
     id: 208
-    lat: 33.265526
+    lat: 33.265524
     lon: 35.216251
   - name: HL02
     id: 207
     lat: 33.169388
-    lon: 35.187008
+    lon: 35.187009
   - name: HL03
     id: 206
-    lat: 33.182842
-    lon: 35.495831
+    lat: 33.182843
+    lon: 35.495829
   - name: HL04
     id: 205
-    lat: 33.132565
+    lat: 33.132564
     lon: 35.393307
   - name: HL05
     id: 204
     lat: 33.153759
-    lon: 35.196449
+    lon: 35.196448
   - name: HL06
     id: 157
     lat: 33.305878
-    lon: 35.540962
+    lon: 35.540964
   - name: HL07
     id: 155
-    lat: 33.262177
-    lon: 35.418499
+    lat: 33.262178
+    lon: 35.418498
   - name: HL08
     id: 154
-    lat: 33.20377
-    lon: 35.353058
+    lat: 33.203768
+    lon: 35.353057
   - name: HL09
     id: 153
-    lat: 34.365204
+    lat: 34.365203
     lon: 36.512112
   - name: HL10
     id: 152
     lat: 34.264351
-    lon: 36.483223
+    lon: 36.483222
   - name: HL11
     id: 151
     lat: 33.709881
     lon: 35.966698
   - name: HL12
     id: 148
-    lat: 33.173721
+    lat: 33.173722
     lon: 35.275311
   - name: HL13
     id: 147
-    lat: 33.138226
-    lon: 35.504536
+    lat: 33.138224
+    lon: 35.504537
   - name: HMed00
     id: 129
-    lat: 36.576164
-    lon: 36.198921
+    lat: 36.576166
+    lon: 36.19892
   - name: HMed01
     id: 128
-    lat: 34.974998
-    lon: 33.848
+    lat: 34.974999
+    lon: 33.847998
   - name: HMed02
     id: 127
-    lat: 35.955952
-    lon: 38.989261
+    lat: 35.95595
+    lon: 38.989263
   - name: HMed03
     id: 126
-    lat: 35.516701
-    lon: 35.791237
+    lat: 35.516699
+    lon: 35.791235
   - name: HMed04
     id: 125
-    lat: 37.05294
-    lon: 35.278847
+    lat: 37.052941
+    lon: 35.278848
   - name: HMed05
     id: 124
-    lat: 35.144325
+    lat: 35.144324
     lon: 33.353882
   - name: HMed06
     id: 123
-    lat: 35.14653
-    lon: 36.75338
+    lat: 35.146529
+    lon: 36.753378
   - name: HMed07
     id: 122
-    lat: 35.333282
-    lon: 33.324345
+    lat: 35.333284
+    lon: 33.324346
   - name: HMed08
     id: 121
     lat: 35.343964
-    lon: 33.194805
+    lon: 33.194806
   - name: HMed09
     id: 120
-    lat: 35.004292
-    lon: 34.059132
+    lat: 35.00429
+    lon: 34.059131
   - name: HMed10
     id: 119
     lat: 33.207394
-    lon: 35.571163
+    lon: 35.571165
   - name: HMed11
     id: 130
-    lat: 32.570587
+    lat: 32.570588
     lon: 35.846153
   - name: HMed12
     id: 176
-    lat: 31.993191
-    lon: 35.890022
+    lat: 31.99319
+    lon: 35.890023
   - name: HMed13
     id: 175
     lat: 32.181805
-    lon: 34.978767
+    lon: 34.978768
   - name: HMed14
     id: 174
     lat: 34.883778
-    lon: 35.886967
+    lon: 35.886966
   - name: HMed15
     id: 173
-    lat: 36.206242
+    lat: 36.206243
     lon: 36.152401
   - name: HMed16
     id: 172
-    lat: 34.720741
+    lat: 34.72074
     lon: 36.732967
   - name: HMed17
     id: 171
-    lat: 33.523601
-    lon: 36.354866
+    lat: 33.523603
+    lon: 36.354867
   - name: HMed18
     id: 170
-    lat: 32.70816
-    lon: 35.302074
+    lat: 32.708162
+    lon: 35.302076
   - name: HMed19
     id: 169
-    lat: 32.821049
-    lon: 34.990643
+    lat: 32.82105
+    lon: 34.990642
   - name: HMed20
     id: 168
     lat: 32.16534
-    lon: 34.845364
+    lon: 34.845362
   - name: HMed21
     id: 167
-    lat: 33.455982
-    lon: 36.235229
+    lat: 33.455981
+    lon: 36.235228
   - name: HMed22
     id: 166
     lat: 31.881649
-    lon: 36.009781
+    lon: 36.00978
   - name: HMed23
     id: 165
     lat: 34.692108
-    lon: 32.960266
+    lon: 32.960268
   - name: HMed24
     id: 164
-    lat: 33.893459
+    lat: 33.893458
     lon: 35.567333
   - name: HMed25
     id: 163
     lat: 31.719399
-    lon: 35.797813
+    lon: 35.797812
   - name: HMed26
     id: 162
-    lat: 36.194
+    lat: 36.194001
     lon: 37.097927
   - name: HMed27
     id: 161
-    lat: 35.960659
-    lon: 38.041775
+    lat: 35.960658
+    lon: 38.041776
   - name: HMed28
     id: 160
     lat: 34.558056
-    lon: 38.278747
+    lon: 38.278748
   - name: HMed29
     id: 159
-    lat: 35.338799
-    lon: 40.129429
+    lat: 35.338798
+    lon: 40.129427
   - name: HMed30
     id: 158
-    lat: 37.050694
-    lon: 37.389832
+    lat: 37.050695
+    lon: 37.38983
   - name: HOil01
     id: 181
-    lat: 34.602757
-    lon: 37.901714
+    lat: 34.602758
+    lon: 37.901716
   - name: HOil02
     id: 180
-    lat: 35.337807
-    lon: 39.760842
+    lat: 35.337805
+    lon: 39.76084
   - name: HOil03
     id: 179
-    lat: 35.191097
+    lat: 35.191099
     lon: 39.90297
   - name: HOil04
     id: 178
-    lat: 35.194103
+    lat: 35.194105
     lon: 40.081764
   - name: HOil05
     id: 177
@@ -2747,20 +2748,20 @@ theatres:
     lon: 40.105461
   - name: HOil06
     id: 211
-    lat: 32.113991
+    lat: 32.11399
     lon: 36.106201
   - name: HS02
     id: 89
-    lat: 35.338551
-    lon: 36.074306
+    lat: 35.33855
+    lon: 36.074308
   - name: HS03
     id: 187
-    lat: 34.669693
+    lat: 34.669694
     lon: 38.298283
   - name: HS04
     id: 184
     lat: 35.791042
-    lon: 37.726269
+    lon: 37.726268
   - name: HS05
     id: 92
     lat: 35.789131
@@ -2772,131 +2773,131 @@ theatres:
   - name: HS07
     id: 185
     lat: 34.65768
-    lon: 38.289162
+    lon: 38.289161
   - name: HS08
     id: 94
     lat: 34.644829
-    lon: 36.743645
+    lon: 36.743643
   - name: HS09
     id: 95
-    lat: 36.060356
-    lon: 37.34314
+    lat: 36.060355
+    lon: 37.343139
   - name: HS10
     id: 96
-    lat: 36.05069
+    lat: 36.050691
     lon: 37.332313
   - name: HS11
     id: 97
-    lat: 33.386337
-    lon: 36.272713
+    lat: 33.386339
+    lon: 36.272711
   - name: HS12
     id: 105
-    lat: 33.429516
-    lon: 36.118744
+    lat: 33.429514
+    lon: 36.118745
   - name: HS13
     id: 104
-    lat: 33.745689
+    lat: 33.74569
     lon: 36.803543
   - name: HS14
     id: 103
-    lat: 33.455406
-    lon: 36.08709
+    lat: 33.455405
+    lon: 36.087091
   - name: HS15
     id: 102
     lat: 33.394596
-    lon: 36.359737
+    lon: 36.359739
   - name: HS16
     id: 101
-    lat: 35.987839
+    lat: 35.98784
     lon: 37.414272
   - name: HS17
     id: 100
-    lat: 34.627048
-    lon: 38.24295
+    lat: 34.627049
+    lon: 38.242949
   - name: HS18
     id: 99
-    lat: 34.610935
-    lon: 38.252987
+    lat: 34.610936
+    lon: 38.252986
   - name: HS19
     id: 98
-    lat: 33.415749
+    lat: 33.415748
     lon: 36.284515
   - name: HS20
     id: 111
-    lat: 33.353466
+    lat: 33.353465
     lon: 36.484825
   - name: HS21
     id: 110
-    lat: 33.411659
+    lat: 33.411662
     lon: 36.191734
   - name: HS22
     id: 109
-    lat: 33.707951
-    lon: 36.672863
+    lat: 33.707949
+    lon: 36.672864
   - name: HS23
     id: 108
-    lat: 33.181957
-    lon: 36.572014
+    lat: 33.181959
+    lon: 36.572013
   - name: HS24
     id: 107
-    lat: 33.44479
-    lon: 36.309883
+    lat: 33.444788
+    lon: 36.309884
   - name: HS25
     id: 106
-    lat: 33.457619
+    lat: 33.457617
     lon: 36.130844
   - name: HS26
     id: 145
-    lat: 33.046852
-    lon: 39.608337
+    lat: 33.046853
+    lon: 39.608339
   - name: HS27
     id: 156
-    lat: 33.427551
-    lon: 35.934891
+    lat: 33.427553
+    lon: 35.934889
   - name: HS28
     id: 189
-    lat: 33.274971
-    lon: 36.270191
+    lat: 33.27497
+    lon: 36.27019
   - name: HS29
     id: 190
     lat: 33.251736
-    lon: 36.270973
+    lon: 36.270972
   - name: HS30
     id: 191
-    lat: 33.281158
+    lat: 33.28116
     lon: 36.264183
   - name: HS31
     id: 210
-    lat: 33.732975
-    lon: 36.509041
+    lat: 33.732974
+    lon: 36.50904
   - name: HS32
     id: 209
-    lat: 32.075859
-    lon: 36.144588
+    lat: 32.075858
+    lon: 36.144587
   - name: HS33
     id: 118
-    lat: 33.035233
-    lon: 35.138645
+    lat: 33.035232
+    lon: 35.138647
   - name: HS34
     id: 183
-    lat: 34.927536
-    lon: 35.992031
+    lat: 34.927537
+    lon: 35.99203
   - name: HS35
     id: 150
-    lat: 33.804146
-    lon: 36.149845
+    lat: 33.804145
+    lon: 36.149846
   - name: HS36
     id: 188
     lat: 33.234722
-    lon: 36.148785
+    lon: 36.148784
   - name: HS37
     id: 215
-    lat: 33.552185
-    lon: 36.447208
+    lat: 33.552186
+    lon: 36.447207
   - name: HS38
     id: 214
-    lat: 32.438259
-    lon: 36.019165
+    lat: 32.438261
+    lon: 36.019166
   - name: HS39
     id: 213
     lat: 32.587032
@@ -2907,28 +2908,28 @@ theatres:
     lon: 35.996227
   - name: HS41
     id: 149
-    lat: 32.757938
-    lon: 35.897854
+    lat: 32.75794
+    lon: 35.897852
   - name: HS42
     id: 146
-    lat: 32.746105
-    lon: 35.879589
+    lat: 32.746107
+    lon: 35.87959
   - name: HStad01
     id: 144
-    lat: 36.999065
+    lat: 36.999064
     lon: 35.329559
   - name: HStad02
     id: 143
-    lat: 35.146095
-    lon: 33.314098
+    lat: 35.146097
+    lon: 33.3141
   - name: HStad03
     id: 142
-    lat: 36.216019
+    lat: 36.21602
     lon: 37.156712
   - name: HStad04
     id: 141
-    lat: 35.560509
-    lon: 35.744415
+    lat: 35.560507
+    lon: 35.744414
   - name: HStad05
     id: 140
     lat: 35.116772
@@ -2939,23 +2940,23 @@ theatres:
     lon: 36.298248
   - name: HT01
     id: 117
-    lat: 36.848221
-    lon: 34.721374
+    lat: 36.848222
+    lon: 34.721373
   - name: HT02
     id: 192
-    lat: 37.019718
-    lon: 35.343609
+    lat: 37.019719
+    lon: 35.34361
   - name: H_med_orig_01
     id: 138
-    lat: 37.011604
+    lat: 37.011605
     lon: 35.352592
   - name: H_med_orig_02
     id: 137
-    lat: 34.787979
-    lon: 32.445278
+    lat: 34.78798
+    lon: 32.44528
   - name: H_med_orig_03
     id: 136
-    lat: 34.921448
+    lat: 34.921449
     lon: 33.604271
   - name: H_med_orig_04
     id: 135
@@ -2963,252 +2964,252 @@ theatres:
     lon: 32.981915
   - name: H_med_orig_05
     id: 134
-    lat: 32.785538
-    lon: 34.980602
+    lat: 32.785536
+    lon: 34.980603
   - name: H_med_orig_06
     id: 133
-    lat: 35.128021
-    lon: 33.378605
+    lat: 35.12802
+    lon: 33.378603
   - name: H_med_orig_07
     id: 132
-    lat: 32.833473
-    lon: 34.986786
+    lat: 32.833474
+    lon: 34.986785
   - name: H_med_orig_08
     id: 131
-    lat: 33.892998
-    lon: 35.523026
+    lat: 33.892996
+    lon: 35.523027
   - name: H_med_orig_09
     id: 182
-    lat: 37.028118
-    lon: 35.351902
+    lat: 37.02812
+    lon: 35.351901
   - name: Haifa
     id: 13
-    lat: 32.806453
-    lon: 35.045021
+    lat: 32.810748
+    lon: 35.04354
   - name: Hama
     id: 14
-    lat: 35.116099
-    lon: 36.725473
+    lat: 35.118044
+    lon: 36.712379
   - name: Hatay
     id: 15
-    lat: 36.37127
-    lon: 36.29809
+    lat: 36.36232
+    lon: 36.287422
   - name: Hatzerim
     id: 81
-    lat: 31.241537
-    lon: 34.647086
+    lat: 31.23881
+    lon: 34.65768
   - name: Hatzor
     id: 222
-    lat: 31.766167
-    lon: 34.735268
+    lat: 31.760397
+    lon: 34.725255
   - name: Herzliya
     id: 66
-    lat: 32.177311
-    lon: 34.844129
+    lat: 32.179374
+    lon: 34.837941
   - name: Incirlik
     id: 16
-    lat: 36.994254
-    lon: 35.412713
+    lat: 37.002048
+    lon: 35.426089
   - name: Jirah
     id: 17
-    lat: 36.09941
-    lon: 37.920906
+    lat: 36.096872
+    lon: 37.936536
   - name: Kahramanmaras
     id: 75
-    lat: 37.540346
-    lon: 36.962365
+    lat: 37.538483
+    lon: 36.952401
   - name: Kedem
     id: 88
-    lat: 31.262423
-    lon: 34.63314
+    lat: 31.260531
+    lon: 34.640461
   - name: Khalkhalah
     id: 18
-    lat: 33.08831
-    lon: 36.534633
+    lat: 33.078369
+    lon: 36.5411
   - name: Kharab Ishk
     id: 59
-    lat: 36.546867
-    lon: 38.587486
+    lat: 36.546869
+    lon: 38.587487
   - name: King Abdullah II
     id: 65
-    lat: 31.999049
-    lon: 36.232154
+    lat: 32.00551
+    lon: 36.223695
   - name: King Hussein Air College
     id: 19
-    lat: 32.348794
-    lon: 36.270213
+    lat: 32.35668
+    lon: 36.259855
   - name: Kingsfield
     id: 45
-    lat: 35.016621
-    lon: 33.721656
+    lat: 35.014806
+    lon: 33.717033
   - name: Kiryat Shmona
     id: 20
-    lat: 33.212372
-    lon: 35.59242
+    lat: 33.215815
+    lon: 35.595835
   - name: Konya
     id: 218
-    lat: 37.96525
-    lon: 32.556388
+    lat: 37.977748
+    lon: 32.561488
   - name: Kuweires
     id: 31
-    lat: 36.189374
-    lon: 37.570439
+    lat: 36.187494
+    lon: 37.581495
   - name: Lakatamia
     id: 48
-    lat: 35.106312
-    lon: 33.321671
+    lat: 35.104606
+    lon: 33.321655
   - name: Larnaca
     id: 47
-    lat: 34.86562
-    lon: 33.613584
+    lat: 34.873174
+    lon: 33.623249
   - name: Marj Ruhayyil
     id: 23
-    lat: 33.284184
-    lon: 36.444304
+    lat: 33.288761
+    lon: 36.455438
   - name: Marj as Sultan North
     id: 22
-    lat: 33.500423
-    lon: 36.466322
+    lat: 33.500281
+    lon: 36.467149
   - name: Marj as Sultan South
     id: 8
-    lat: 33.487476
-    lon: 36.474471
+    lat: 33.487222
+    lon: 36.475394
   - name: Marka
     id: 67
-    lat: 31.978747
-    lon: 36.007007
+    lat: 31.972763
+    lon: 35.991746
   - name: Megiddo
     id: 24
-    lat: 32.597578
-    lon: 35.220203
+    lat: 32.597107
+    lon: 35.230082
   - name: Mezzeh
     id: 25
-    lat: 33.482714
-    lon: 36.235064
+    lat: 33.477795
+    lon: 36.224216
   - name: Minakh
     id: 26
-    lat: 36.522812
-    lon: 37.033622
+    lat: 36.521376
+    lon: 37.041337
   - name: Muwaffaq Salti
     id: 68
-    lat: 31.819166
-    lon: 36.790783
+    lat: 31.817617
+    lon: 36.778686
   - name: Naqoura
     id: 52
-    lat: 33.107906
-    lon: 35.127285
+    lat: 33.107905
+    lon: 35.127286
   - name: Nevatim
     id: 62
-    lat: 31.211499
-    lon: 35.028902
+    lat: 31.208377
+    lon: 35.012096
   - name: Nicosia
     id: 43
-    lat: 35.143831
-    lon: 33.282144
+    lat: 35.152675
+    lon: 33.275079
   - name: Palmachim
     id: 223
-    lat: 31.894923
-    lon: 34.688798
+    lat: 31.902807
+    lon: 34.693438
   - name: Palmyra
     id: 28
-    lat: 34.558297
-    lon: 38.331885
+    lat: 34.557297
+    lon: 38.316824
   - name: Paphos
     id: 46
-    lat: 34.722393
-    lon: 32.471802
+    lat: 34.718152
+    lon: 32.484789
   - name: Pinarbashi
     id: 51
-    lat: 35.278335
-    lon: 33.267014
+    lat: 35.273829
+    lon: 33.268239
   - name: Prince Hassan
     id: 64
-    lat: 32.169308
-    lon: 37.138222
+    lat: 32.160735
+    lon: 37.149403
   - name: Qabr as Sitt
     id: 29
-    lat: 33.458595
-    lon: 36.356859
+    lat: 33.458736
+    lon: 36.357718
   - name: Ramat David
     id: 30
-    lat: 32.657742
-    lon: 35.19107
+    lat: 32.666411
+    lon: 35.184166
   - name: Rayak
     id: 32
-    lat: 33.842902
-    lon: 35.976932
+    lat: 33.851123
+    lon: 35.987324
   - name: Rene Mouawad
     id: 33
-    lat: 34.583953
-    lon: 35.998687
+    lat: 34.5893
+    lon: 36.011449
   - name: Rosh Pina
     id: 34
-    lat: 32.979282
-    lon: 35.572651
+    lat: 32.982648
+    lon: 35.570738
   - name: Ruwayshid
     id: 57
-    lat: 32.403696
-    lon: 39.142216
+    lat: 32.404967
+    lon: 39.130518
   - name: Sanliurfa
     id: 58
-    lat: 37.460456
-    lon: 38.912852
+    lat: 37.448071
+    lon: 38.898378
   - name: Sanliurfa Heliport
     id: 224
     lat: 37.186493
-    lon: 38.791603
+    lon: 38.791602
   - name: Sayqal
     id: 35
-    lat: 33.680052
-    lon: 37.204069
+    lat: 33.679842
+    lon: 37.217112
   - name: Shayrat
     id: 36
-    lat: 34.49464
-    lon: 36.894469
+    lat: 34.490202
+    lon: 36.907613
   - name: T2
     id: 225
-    lat: 34.386512
-    lon: 40.157659
+    lat: 34.389768
+    lon: 40.153521
   - name: T3
     id: 226
-    lat: 34.526927
-    lon: 38.739218
+    lat: 34.528957
+    lon: 38.729439
   - name: Tabqa
     id: 37
-    lat: 35.755614
-    lon: 38.551251
+    lat: 35.754722
+    lon: 38.566448
   - name: Taftanaz
     id: 38
-    lat: 35.973223
-    lon: 36.785894
+    lat: 35.974106
+    lon: 36.781442
   - name: Tal Siman
     id: 60
-    lat: 36.263473
-    lon: 38.924055
+    lat: 36.262422
+    lon: 38.928312
   - name: Tel Nof
     id: 220
-    lat: 31.829716
-    lon: 34.837949
+    lat: 31.838354
+    lon: 34.832634
   - name: Teyman
     id: 91
-    lat: 31.283647
-    lon: 34.725987
+    lat: 31.286974
+    lon: 34.722804
   - name: Tha'lah
     id: 5
-    lat: 32.698127
-    lon: 36.402739
+    lat: 32.704004
+    lon: 36.413775
   - name: Tiyas
     id: 39
-    lat: 34.522725
-    lon: 37.61448
+    lat: 34.522629
+    lon: 37.630123
   - name: Wujah Al Hajar
     id: 40
-    lat: 34.286961
-    lon: 35.68399
+    lat: 34.281337
+    lon: 35.680106
   - name: Zarqa
     id: 56
-    lat: 32.028284
-    lon: 36.134631
+    lat: 32.025762
+    lon: 36.143735
   TheChannel:
   - name: Abbeville Drucat
     id: 1

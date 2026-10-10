@@ -32,6 +32,11 @@ veafAirWaves.zones = {}
 
 veafAirWaves.WATCHDOG_DELAY = 1
 
+--- Seconds a wave aircraft may stay on the ground before it is taken for crippled. One that has not
+--- been airborne yet is taking off: read as crippled, a wave started on a runway was destroyed at
+--- the first check (FIX-QRA-GROUND-START, the same reading as the QRA's).
+veafAirWaves.TAKEOFF_TIMEOUT = 600
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- AirWave class methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -869,7 +874,15 @@ function AirWaveZone:isEnemyGroupDead(waveNumber, group)
           category == 0 --[[airplanes]]
           or category == 1 --[[helicopters]]
         then
+          self.unitsSeenAirborne = self.unitsSeenAirborne or {}
           if unit:inAir() then
+            unitAlive = true
+            self.unitsSeenAirborne[unit:getName()] = true
+          elseif
+            not self.unitsSeenAirborne[unit:getName()]
+            and timer.getTime() - (self.waveDeployedAt or 0) <= veafAirWaves.TAKEOFF_TIMEOUT
+          then
+            -- never airborne yet: rolling to the runway, not crippled
             unitAlive = true
           end
         else
@@ -1224,6 +1237,8 @@ function AirWaveZone:deployWaves()
   -- groups for the players' (#182), the support groups for the waves' side again (#176)
   local aiSide = self:getCoalition()
   self.spawnedGroupsNames = veafReactiveZone.deployGroups(self, groupsToDeployForTheseWaves, aiSide, veafAirWaves.Id)
+  self.waveDeployedAt = timer.getTime()
+  self.unitsSeenAirborne = {}
   self.friendlyGroupsNames = veafReactiveZone.deployGroups(self, friendlyGroupsForTheseWaves, self:getPlayerCoalition(), veafAirWaves.Id)
   self.supportGroupsNames = veafReactiveZone.deployGroups(self, supportGroupsForTheseWaves, aiSide, veafAirWaves.Id)
   veaf.loggers.get(veafAirWaves.Id):trace("self.spawnedGroupsNames=%s", veaf.lp(self.spawnedGroupsNames))

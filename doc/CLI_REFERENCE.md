@@ -1,6 +1,6 @@
 # Référence CLI — `veaf-tools`
 
-Les **25 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
+Les **37 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
 page de référence : elle dit ce que chaque commande accepte, pas comment mener une mission de bout
 en bout. Pour cela, lisez le [guide du créateur de mission](mission-maker/GUIDE.md), qui raconte
 l'enchaînement, et la [référence du pipeline](PIPELINE_REFERENCE.md), qui détaille chaque étape du
@@ -479,6 +479,117 @@ veaf-tools content inject-weather MaMission
 *Alias plat : `veaf-tools inject-weather`*
 
 **Voir aussi** : [PIPELINE_REFERENCE.md](PIPELINE_REFERENCE.md)
+
+## Campagne — `veaf-tools campaign`
+
+Une [campagne multi-missions](mission-maker/CAMPAIGN.md) se mène avec ces quatre commandes, dans l'ordre `init`, puis `next` et `apply` à chaque mission.
+
+### `veaf-tools campaign init` {#campaign-init}
+
+Démarre une campagne : crée son état à partir de campaign.yaml.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | non | Dossier de campagne, qui contient campaign.yaml. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+Un état existant n'est jamais écrasé : il porte les missions déjà jouées.
+
+```powershell
+.\veaf-tools.exe campaign init C:\Campagnes\Caucase
+```
+
+*Alias plat : `veaf-tools campaign-init`*
+
+### `veaf-tools campaign validate` {#campaign-validate}
+
+Vérifie un dossier de campagne : campaign.yaml, et l'état de campagne par rapport à lui.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | non | Dossier de campagne, qui contient campaign.yaml. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+```powershell
+.\veaf-tools.exe campaign validate C:\Campagnes\Caucase
+```
+
+*Alias plat : `veaf-tools campaign-validate`*
+
+### `veaf-tools campaign apply` {#campaign-apply}
+
+Applique à la campagne le fichier d'état d'une mission jouée, puis joue le tour entre les missions.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `STATE_FILE` | `str` | oui | Le fichier d'état écrit par la mission (Saved Games/DCS/Missions/Saves/<campagne>/mission-NN.state). |
+| `CAMPAIGN_FOLDER` | `str` | non | Dossier de campagne, qui contient campaign.yaml. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+Refuse un fichier déjà appliqué, celui d'une autre campagne ou celui qui saute une mission ; rien n'est écrit dans ce cas.
+
+```powershell
+.\veaf-tools.exe campaign apply mission-01.state C:\Campagnes\Caucase
+```
+
+*Alias plat : `veaf-tools campaign-apply`*
+
+### `veaf-tools campaign next` {#campaign-next}
+
+Crée, ou rafraîchit, le dossier de la mission suivante à partir de l'état de la campagne.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | non | Dossier de campagne, qui contient campaign.yaml. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--players` | `str` | — | Combien de joueurs sont attendus ce soir : un nombre (`6`) ou une fourchette (`5-7`). Dimensionne l'opposition aérienne de la mission ([bloc `opposition:`](mission-maker/scripts/veafQraManager.md#opposition-level)), et prime sur le `players` de `campaign.yaml`. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+Le dossier est copié depuis `template/` la première fois, et seulement rafraîchi ensuite : ce qui y a été conçu survit.
+
+```powershell
+.\veaf-tools.exe campaign next C:\Campagnes\Caucase
+```
+
+*Alias plat : `veaf-tools campaign-next`*
+
+### `veaf-tools campaign briefing` {#campaign-briefing}
+
+Écrit le document de briefing stratégique de la prochaine mission (PPTX), à partir de la campagne et de son briefing.yaml.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | non | Dossier de campagne, qui contient campaign.yaml. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+Écrit `missions/mission-NN/briefing-campagne.pptx` et sa carte ; `campaign next` le fait aussi. La prose vient de `briefing.yaml`, les faits de la campagne.
+
+```powershell
+.\veaf-tools.exe campaign briefing C:\Campagnes\Caucase
+```
+
+*Alias plat : `veaf-tools campaign-briefing`*
+
+**Voir aussi** : [mission-maker/CAMPAIGN.md](mission-maker/CAMPAIGN.md)
 
 ## Cockpit — `veaf-tools cockpit`
 

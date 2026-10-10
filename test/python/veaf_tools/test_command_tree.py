@@ -153,7 +153,8 @@ class TestNoStutter(unittest.TestCase):
 
         for group in COMMAND_GROUPS:
             for command in group.commands:
-                if group.id == "convert" and command.startswith("convert-"):
+                # `convert v5` and `campaign init` are the two groups whose commands carry its name.
+                if group.id in ("convert", "campaign") and command.startswith(f"{group.id}-"):
                     continue
                 self.assertEqual(in_group_name(command, group.id), command, f"{group.id} {command}")
 

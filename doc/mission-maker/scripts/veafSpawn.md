@@ -4,6 +4,8 @@
 
 > **Voir en jeu** : étape 02 « Bac à sable : les commandes de marqueur » de la [mission de démo](https://github.com/VEAF/VEAF-Demo-Mission-v6#la-visite-guidée).
 
+> **Liste des alias** : tous les raccourcis de marqueur prêts à l'emploi (`-sa8`, `-armor`, `-convoy`…) sont dans la [référence des alias](../../ALIASES.md).
+
 ---
 
 ## Objectif
@@ -197,6 +199,7 @@ Ses règles d'engagement sont mises à « tir sur les cibles désignées » apr�
 
 **Pour escorter son propre avion, le menu F10 suffit** : *F10 → VEAF → APPARITION → +Escorte-moi (fox3)* ou *(fox2)* (le `+` marque une commande protégée).
 La commande demande le même niveau que `-escort` (pilote connu).
+Un refus dit pourquoi : aucun modèle d'escorte pour votre camp, ou une escorte qui n'a pas pu apparaître ; le journal DCS le note aussi.
 Une mission peut changer les entrées proposées en remplaçant `veafSpawn.EscortRadioMenuTemplates` (par défaut `{ "fox3", "fox2" }`).
 
 ### Faire apparaître un AFAC/JTAC

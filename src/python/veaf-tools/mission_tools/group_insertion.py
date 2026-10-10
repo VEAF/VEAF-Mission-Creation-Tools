@@ -166,6 +166,63 @@ def find_or_add_country(coalition: dict[str, Any], country_id: int, country_name
     return country
 
 
+def names_in_use(mission_content: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
+    """Return every group name and unit name of the mission, each with where it lives.
+
+    Args:
+        mission_content: The parsed DCS `mission` table.
+
+    Returns:
+        ``(groups, units)``: name → ``"<coalition> <category>"`` for groups, name → its group's name
+        for units.
+    """
+    groups: dict[str, str] = {}
+    units: dict[str, str] = {}
+    for side, coalition in (mission_content.get("coalition") or {}).items():
+        for country in indexed((coalition or {}).get("country")):
+            for category in GROUP_CATEGORIES:
+                for group in indexed(((country or {}).get(category) or {}).get("group")):
+                    if not isinstance(group, dict):
+                        continue
+                    group_name = str(group.get("name", ""))
+                    if group_name:
+                        groups.setdefault(group_name, f"{side} {category}")
+                    for unit in indexed(group.get("units")):
+                        if isinstance(unit, dict) and unit.get("name"):
+                            units.setdefault(str(unit["name"]), group_name)
+    return groups, units
+
+
+def _refuse_names_in_use(mission_content: dict[str, Any], group: dict[str, Any]) -> None:
+    """Refuse a group whose name, or one of whose unit names, the mission already holds.
+
+    DCS does not refuse two objects of one name, it resolves one of them: `Group.getByName` and
+    `Unit.getByName` return either and say nothing, so everything keyed by name — a QRA, a
+    combat zone, `remove_group` — silently works on the wrong one (FIX-MCP-SESSION-PREP-FINDINGS,
+    the same trap as FIX-DUPLICATE-UNIT-NAMES at runtime). The Mission Editor renames a copy;
+    an action that inserts a group refuses instead, so the caller chooses the name.
+
+    Args:
+        mission_content: The parsed DCS `mission` table.
+        group: The group about to be inserted.
+
+    Raises:
+        ValueError: Naming the clashing name and what holds it.
+    """
+    groups, units = names_in_use(mission_content)
+    name = str(group.get("name", ""))
+    if name and name in groups:
+        raise ValueError(
+            f"group name {name!r} is already used by a {groups[name]} group of the mission; choose another name"
+        )
+    for unit in indexed(group.get("units")):
+        unit_name = str((unit or {}).get("name", "")) if isinstance(unit, dict) else ""
+        if unit_name and unit_name in units:
+            raise ValueError(
+                f"unit name {unit_name!r} is already used in group {units[unit_name]!r}; choose another name"
+            )
+
+
 def add_group(
     mission_content: dict[str, Any],
     *,
@@ -178,8 +235,8 @@ def add_group(
     """Insert `group` into the mission, allocating a fresh groupId/unitId.
 
     Mirrors what a Mission Maker does by hand in the DCS Mission Editor: appends
-    `group` under the given coalition/country/category. Not deduplicated — calling
-    this twice with the same `group` produces two distinct groups.
+    `group` under the given coalition/country/category. A group or unit name the
+    mission already holds is refused, not duplicated (FIX-MCP-SESSION-PREP-FINDINGS).
 
     Args:
         mission_content: The parsed DCS `mission` table (mutated in place).
@@ -196,7 +253,8 @@ def add_group(
         The freshly-assigned `groupId`.
 
     Raises:
-        ValueError: If `category` is not a recognized group category.
+        ValueError: If `category` is not a recognized group category, or the group's name or one of
+            its unit names is already used in the mission.
         KeyError: If `coalition` does not exist in the mission.
     """
     if category not in GROUP_CATEGORIES:
@@ -204,6 +262,7 @@ def add_group(
     coalitions = mission_content.get("coalition") or {}
     if coalition not in coalitions or not isinstance(coalitions[coalition], dict):
         raise KeyError(f"Unknown coalition: {coalition!r}")
+    _refuse_names_in_use(mission_content, group)
     coalition_dict = coalitions[coalition]
 
     next_group_id, next_unit_id = (n + 1 for n in max_ids(mission_content))

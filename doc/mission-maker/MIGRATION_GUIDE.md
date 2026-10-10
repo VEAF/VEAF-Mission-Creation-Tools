@@ -377,4 +377,4 @@ Exécutez `.\veaf-tools-updater.exe` d'abord — le dossier `published/` est man
 
 - [Guide du créateur de missions](GUIDE.md) — workflow général de création de missions
 - [Référence des scripts](scripts/README.md) — tous les modules disponibles
-- [Référence CLI](../CLI_REFERENCE.md) — les 25 commandes de `veaf-tools`, arguments et options
+- [Référence CLI](../CLI_REFERENCE.md) — les 37 commandes de `veaf-tools`, arguments et options

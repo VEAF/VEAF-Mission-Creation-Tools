@@ -8,7 +8,7 @@ KC-135 and its two F-15C escorts created at 20 000 ft pitched into the ground on
 from __future__ import annotations
 
 import pytest
-from veaf_mission_mcp.aircraft_payload import build_aircraft_payload
+from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons
 
 
 class TestFullInternalFuelByDefault:
@@ -121,3 +121,13 @@ class TestCountermeasures:
     def test_a_negative_count_is_refused(self) -> None:
         with pytest.raises(ValueError, match="chaff must be >= 0"):
             build_aircraft_payload("F-14B", chaff=-1)
+
+
+class TestNormalizePylons:
+    """FIX-MCP-SESSION-PREP-FINDINGS ticket 01: stations 1..n with no gap read back from Lua as a list."""
+
+    def test_a_list_is_read_as_stations_from_one(self) -> None:
+        assert normalize_pylons([{"CLSID": "{A}"}, "{B}"]) == {1: {"CLSID": "{A}"}, 2: {"CLSID": "{B}"}}
+
+    def test_a_dict_keeps_its_station_numbers(self) -> None:
+        assert normalize_pylons({"4": "{A}", 7: {"CLSID": "{B}"}}) == {4: {"CLSID": "{A}"}, 7: {"CLSID": "{B}"}}

@@ -94,7 +94,7 @@ Then run:
 
 This downloads `published.zip`, verifies the SHA256 checksum, and extracts all scripts and tools into your mission folder.
 
-### Updating
+### Updating {#updates}
 
 Run the same command whenever a new release is available:
 
@@ -518,7 +518,7 @@ The build tells you how many it added.
 > **Commands are filed by theme.** `veaf-tools mission build`, `veaf-tools content
 > inject-presets`, `veaf-tools convert v5`… `veaf-tools --help` lists the groups, and
 > `veaf-tools <group> --help` shows what is in one. The `dcs` group is what **needs DCS running**.
-> The groups are: `mission`, `convert`, `content`, `cockpit` and `dcs`.
+> The groups are: `mission`, `convert`, `content`, `campaign`, `cockpit` and `dcs`.
 > A command whose name starts with its group's name drops that word inside: you write
 > `veaf-tools convert v5` and `veaf-tools convert other`, not `convert convert-v5`.
 >
@@ -551,6 +551,11 @@ The build tells you how many it added.
 | `terrain-sweep` | Sweep in DCS the ground elevation of a whole theatre, which the MCP action `terrain_elevation` then reads with no DCS (a target's altitude, a route's floor, terrain masking). |
 | `clear-ground-sweep` | Probe, step by step, the clear ground around a theatre's airfields and combat zones: writes the survey mission, tells you what to do in DCS, sweeps, then writes the catalogue; resumes an interrupted sweep. |
 | `convert-other` | Adopt a third-party (non-VEAF) .miz mission onto the v6 toolchain. |
+| `campaign-init` | Start a [multi-mission campaign](CAMPAIGN.en.md): create its state from `campaign.yaml`. |
+| `campaign-validate` | Check a campaign folder: `campaign.yaml`, and the campaign state against it. |
+| `campaign-next` | Create, or refresh, a campaign's next mission folder from its state. |
+| `campaign-briefing` | Write the campaign's strategic briefing deck (PPTX) for the coming mission, from the campaign and `briefing.yaml`. |
+| `campaign-apply` | Apply a flown mission's state file to its campaign, then play the turn between missions. |
 | `doctor` | Collect the versions, paths and recent errors a bug report needs, and produce a redacted block to paste into a report — see [Getting help](../SUPPORT.en.md). |
 | `explore-cockpit` | Explore a live cockpit: name a control to see it, or move one to name it. |
 | `generate-config` | Generate a documented mission.yaml template for a mission folder. |
@@ -684,6 +689,9 @@ local northQra = VeafQRA:new()
   :start()
 ```
 
+A single fixed QRA scales badly: a pair of MiG-29s is a challenge for two players, target practice for six.
+Give it tiers by intruder count (`groups_by_enemy_count`) up to the package size you expect, and, when attendance varies, an [opposition level](scripts/veafQraManager.en.md#opposition-level) that follows the players connected.
+
 ### Combat Zone
 
 A combat zone is declared in `mission.yaml`. Its contents are **not listed here**: the zone adopts every group that stands inside the DCS trigger zone it names **and whose name starts with the zone's name** (case is ignored). You draw the circle in the Mission Editor, put the armour and the AAA inside it — named `ZONE-STRIKE-ALPHA-ARMOR`, `ZONE-STRIKE-ALPHA-AAA` — and the zone destroys and respawns them on activation. A group placed inside the circle but named otherwise is ignored, silently: see [the prefix rule](scripts/veafCombatZone.en.md#zone-membership).
@@ -812,6 +820,12 @@ When you upgrade CTLD and your file was written against an earlier version, `ctl
 #### Airfields become logistic zones {#ctld-airbase-logistics}
 
 Until now a transport aircraft landed on a captured airfield read *"No logistics in range"*: CTLD 2 only recognises loading points whose unit type is declared in `logisticUnitTypes` (the FARPs and carriers of the previous section) and the `LGZ_` zones placed in the editor. An airfield — a map `Airbase`, not a unit — is neither. VEAF closes the gap: at start-up it registers **every airfield on the map** as a CTLD logistic zone, then keeps it up to date as the game unfolds.
+
+The same zone is also a **troop pickup zone**, at the same place, of the same radius and for the same side: it goes dark and comes back with the logistic zone, and changes sides with it. Without it, on *Kolkhida*, troops could be boarded on the carrier only.
+The other side of it, as in any CTLD troop zone: unloading troops **inside** that circle returns them to base instead of deploying them. To set them down on a held airfield, unload them outside the circle.
+
+!!! warning "A mission whose coalitions hold only CJTF Blue and CJTF Red"
+    CTLD creates its crates under the USA (blue) or Russia (red), whatever the helicopter's country. When that country belongs to none of the mission's coalitions — the case of campaigns —, DCS refuses the object and the request gives nothing, without a message (measured in game on 2026-10-09). The fix is in CTLD itself; until its release, putting the USA in the mission's blue coalition and Russia in its red one should do (not checked in game).
 
 It is a setting, not a given:
 

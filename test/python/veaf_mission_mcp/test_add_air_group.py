@@ -244,6 +244,24 @@ class TestAirAndRunway:
         assert "parking" not in units[0]
         assert group["lateActivation"] is False
 
+    def test_a_second_flight_of_the_same_name_is_refused(self, tmp_path: Path) -> None:
+        """Kolkhida test mission, 2026-10-10: a second `TEST A-10C air` was written beside the first,
+        and `remove_group` then took both (FIX-MCP-SESSION-PREP-FINDINGS ticket 02)."""
+        miz = _caucasus_miz(tmp_path)
+        spec = {
+            "coalition": "blue",
+            "country_id": 2,
+            "country_name": "USA",
+            "name": "TEST A-10C air",
+            "unit_type": "A-10C_2",
+            "start": "air",
+            "position": {"x": -300000.0, "y": 600000.0},
+            "skill": "Client",
+        }
+        add_air_group(miz, **spec)
+        with pytest.raises(ValueError, match="'TEST A-10C air'.*already"):
+            add_air_group(miz, **spec)
+
     def test_late_activation_and_loadout_in_one_call(self, tmp_path: Path) -> None:
         """FIX-SCRATCH-MISSION-FINDINGS ticket 06: it used to take a second call to
         `set_group_properties`, and the pylons a third."""

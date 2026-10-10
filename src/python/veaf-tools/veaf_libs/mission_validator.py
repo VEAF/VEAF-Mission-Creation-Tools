@@ -19,6 +19,7 @@ Checks:
   8. a ``ctld-config.yaml`` ``extractableGroups`` / ``logisticUnits`` name the mission lacks (warning)
   9. a QRA / AIRWAVES ``CAP`` or ``Intercept`` group whose written route the runtime replaces (warning)
   10. a QRA definition with both ``simple_groups`` and ``groups_by_enemy_count`` (warning)
+  11. an ``opposition:`` block the build would refuse                (error)
 
 Checks 4-9 read the unpacked source mission table (``src/mission/mission``); when it is
 absent they are skipped (reported once as a warning).
@@ -93,6 +94,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     # 2d. QRA simple_groups written beside scramble levels never deploy
     issues += _check_qra_simple_groups_beside_levels(yaml_data)
 
+    # 2e. the opposition level the build would refuse (FEAT-OPPOSITION-SCALES-WITH-PLAYERS)
+    issues += _check_opposition(yaml_data)
+
     # 3. custom_scripts files exist
     issues += _check_custom_scripts(folder, yaml_data)
 
@@ -153,6 +157,26 @@ def _check_qra_simple_groups_beside_levels(yaml_data: dict) -> list[ValidationIs
                 )
             )
     return issues
+
+
+def _check_opposition(yaml_data: dict) -> list[ValidationIssue]:
+    """Report an ``opposition:`` block the build would refuse, with the build's own message.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml``.
+
+    Returns:
+        One error when the block is wrong, none otherwise.
+    """
+    if yaml_data.get("opposition") is None:
+        return []
+    from veaf_libs.lua_config_generator import emit_opposition_block
+
+    try:
+        emit_opposition_block(yaml_data["opposition"])
+    except ValueError as error:
+        return [ValidationIssue(ERROR, str(error))]
+    return []
 
 
 def _check_deployed_aircraft_routes(yaml_data: dict, mission: dict) -> list[ValidationIssue]:

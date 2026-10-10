@@ -1130,6 +1130,113 @@ function TestVeafQraDeferredSpawn:test_an_empty_deployment_waiting_for_its_group
 end
 
 -- ---------------------------------------------------------------------------
+-- FIX-QRA-GROUND-START: a QRA scrambled from the runway is not "landed" before it took off.
+-- Kolkhida test mission, 2026-10-10: the Senaki pairs appeared on the runway and were destroyed by
+-- the next watchdog tick, 5 s later, because "no unit in the air" read as "the QRA has landed".
+-- ---------------------------------------------------------------------------
+TestVeafQraGroundStart = {}
+
+function TestVeafQraGroundStart:setUp()
+  dcs_mocks.reset()
+  timer.setTime(1000)
+  self.inAir = false
+  self.destroyed = {}
+  local suite = self
+  dcs_mocks.addGroup("QRA Senaki sol MiG-29 #2", {
+    getCategory = function()
+      return 0 -- airplanes
+    end,
+    getUnits = function()
+      return {
+        {
+          isExist = function()
+            return true
+          end,
+          getLife = function()
+            return 1
+          end,
+          getLife0 = function()
+            return 1
+          end,
+          inAir = function()
+            return suite.inAir
+          end,
+        },
+      }
+    end,
+  })
+  self._savedDestroy = veafReactiveZone.destroyGroups
+  veafReactiveZone.destroyGroups = function(names)
+    for _, name in ipairs(names or {}) do
+      table.insert(suite.destroyed, name)
+    end
+  end
+end
+
+function TestVeafQraGroundStart:tearDown()
+  veafReactiveZone.destroyGroups = self._savedDestroy
+  dcs_mocks.reset()
+end
+
+function TestVeafQraGroundStart:_scrambled()
+  local q = VeafQRA:new()
+  q.name = "QraSenakiSol"
+  q.silent = true
+  q:setZoneCenter({ x = 0, y = 0, z = 0 })
+  q:setZoneRadius(45000)
+  q:setCoalition(coalition.side.RED)
+  -- no player in the zone: what is under test is the scrambled group, not who triggered it
+  q._getEnemyHumanUnits = function()
+    return {}
+  end
+  q.chooseGroupsToDeploy = function()
+    return { "QRA Senaki sol MiG-29" }
+  end
+  local savedDeploy = veafReactiveZone.deployGroups
+  veafReactiveZone.deployGroups = function()
+    return { "QRA Senaki sol MiG-29 #2" }
+  end
+  q:deploy(1)
+  veafReactiveZone.deployGroups = savedDeploy
+  return q
+end
+
+function TestVeafQraGroundStart:test_a_group_rolling_to_the_runway_is_not_rearmed()
+  local q = self:_scrambled()
+  timer.setTime(1005)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_ACTIVE, "on the ground before take-off is not landed")
+  luaunit.assertEquals(self.destroyed, {})
+end
+
+function TestVeafQraGroundStart:test_a_group_that_took_off_then_landed_is_rearmed()
+  local q = self:_scrambled()
+  self.inAir = true
+  timer.setTime(1180)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_ACTIVE)
+  self.inAir = false
+  timer.setTime(2400)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_READY, "back on the ground after flying: landed")
+  luaunit.assertEquals(self.destroyed, { "QRA Senaki sol MiG-29 #2" })
+end
+
+function TestVeafQraGroundStart:test_a_group_still_on_the_ground_after_the_take_off_delay_is_rearmed()
+  local q = self:_scrambled()
+  timer.setTime(1000 + veafQraManager.TAKEOFF_TIMEOUT - 1)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_ACTIVE, "still within its take-off delay")
+  timer.setTime(1000 + veafQraManager.TAKEOFF_TIMEOUT + 1)
+  q:check()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_READY, "stuck on the ground: reset as before")
+end
+
+function TestVeafQraGroundStart:test_the_take_off_delay_is_ten_minutes()
+  luaunit.assertEquals(veafQraManager.TAKEOFF_TIMEOUT, 600)
+end
+
+-- ---------------------------------------------------------------------------
 -- FEAT-AIRWAVES-QRA-MERGE #183: the QRA side of its links
 -- ---------------------------------------------------------------------------
 TestVeafQraLinks = {}
@@ -1206,6 +1313,166 @@ function TestVeafQraLinks:test_set_airport_link_is_one_link()
   Airbase.getByName = savedGetByName
   luaunit.assertEquals(q.links, { "Batumi" })
   luaunit.assertEquals(q.airportLink, "Batumi")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafQraTiers — FEAT-OPPOSITION-SCALES-WITH-PLAYERS ticket 01: the tier a QRA scrambles is the
+-- biggest that fits whatever the order the tiers were set in, a tier can deploy all its groups, and a
+-- random pick never sends the same group twice.
+-- ---------------------------------------------------------------------------
+TestVeafQraTiers = {}
+
+function TestVeafQraTiers:tearDown()
+  dcs_mocks.reset()
+  -- a stub left by a failed assertion must not reach the next test
+  veafOpposition = nil
+end
+
+local function _permutations(list)
+  if #list <= 1 then
+    return { list }
+  end
+  local result = {}
+  for i = 1, #list do
+    local rest = {}
+    for j = 1, #list do
+      if j ~= i then
+        table.insert(rest, list[j])
+      end
+    end
+    for _, tail in ipairs(_permutations(rest)) do
+      table.insert(result, { list[i], unpack(tail) })
+    end
+  end
+  return result
+end
+
+function TestVeafQraTiers:test_the_biggest_tier_that_fits_in_every_insertion_order()
+  for _, order in ipairs(_permutations({ 1, 3, 5 })) do
+    local q = VeafQRA:new()
+    for _, tier in ipairs(order) do
+      q:setGroupsToDeployByEnemyQuantity(tier, { "T" .. tier })
+    end
+    for enemies = 0, 8 do
+      local expected = nil
+      for _, tier in ipairs({ 1, 3, 5 }) do
+        if enemies >= tier then
+          expected = { "T" .. tier }
+        end
+      end
+      luaunit.assertEquals(
+        q:chooseGroupsToDeploy(enemies),
+        expected,
+        string.format("tiers set in order %s, %d enemies", table.concat(order, ","), enemies)
+      )
+    end
+  end
+end
+
+function TestVeafQraTiers:test_a_tier_without_a_pick_deploys_every_group()
+  local q = VeafQRA:new():setGroupsToDeployByEnemyQuantity(3, { "MiG-29", "Su-27" })
+  luaunit.assertEquals(q:chooseGroupsToDeploy(4), { "MiG-29", "Su-27" })
+end
+
+function TestVeafQraTiers:test_a_pick_of_n_from_n_gives_n_distinct_groups()
+  -- the mocks' draw answers 0: a draw with replacement would send the first group twice
+  local q = VeafQRA:new():setRandomGroupsToDeployByEnemyQuantity(3, { "MiG-29", "Su-27" }, 2)
+  local picked = q:chooseGroupsToDeploy(3)
+  table.sort(picked)
+  luaunit.assertEquals(picked, { "MiG-29", "Su-27" })
+end
+
+function TestVeafQraTiers:test_a_pick_never_draws_more_than_the_list_holds()
+  local q = VeafQRA:new():setRandomGroupsToDeployByEnemyQuantity(1, { "MiG-29", "Su-27" }, 5)
+  luaunit.assertEquals(#q:chooseGroupsToDeploy(1), 2)
+end
+
+function TestVeafQraTiers:test_a_qra_following_the_level_scrambles_its_tier()
+  veafOpposition = {
+    getLevel = function()
+      return 6
+    end,
+  }
+  local q =
+    VeafQRA:new():setGroupsToDeployByEnemyQuantity(1, { "T1" }):setGroupsToDeployByEnemyQuantity(5, { "T5" }):setScaleWithOpposition()
+  luaunit.assertEquals(q:tierCount(2), 6, "two in the zone, sized for six")
+  luaunit.assertEquals(q:tierCount(8), 8, "more in the zone than the level: the zone")
+  luaunit.assertEquals(q:chooseGroupsToDeploy(q:tierCount(2)), { "T5" })
+  veafOpposition = nil
+end
+
+function TestVeafQraTiers:test_a_qra_not_following_the_level_ignores_it()
+  veafOpposition = {
+    getLevel = function()
+      return 6
+    end,
+  }
+  luaunit.assertEquals(VeafQRA:new():tierCount(2), 2)
+  veafOpposition = nil
+end
+
+function TestVeafQraTiers:test_no_level_leaves_the_zone_count()
+  veafOpposition = {
+    getLevel = function()
+      return nil
+    end,
+  }
+  luaunit.assertEquals(VeafQRA:new():setScaleWithOpposition():tierCount(2), 2)
+  veafOpposition = nil
+  luaunit.assertEquals(VeafQRA:new():setScaleWithOpposition():tierCount(2), 2, "and no module at all")
+end
+
+function TestVeafQraTiers:test_deploy_scrambles_the_tier_of_the_level()
+  veafOpposition = {
+    getLevel = function()
+      return 6
+    end,
+  }
+  local q =
+    VeafQRA:new():setGroupsToDeployByEnemyQuantity(1, { "T1" }):setGroupsToDeployByEnemyQuantity(5, { "T5" }):setScaleWithOpposition()
+  local chosenFrom = nil
+  local savedChoose = q.chooseGroupsToDeploy
+  q.chooseGroupsToDeploy = function(self, count)
+    chosenFrom = count
+    return nil
+  end
+  q:deploy(2)
+  q.chooseGroupsToDeploy = savedChoose
+  veafOpposition = nil
+  luaunit.assertEquals(chosenFrom, 6)
+end
+
+function TestVeafQraTiers:test_the_lowest_tier_gate_follows_the_level_too()
+  veafOpposition = {
+    getLevel = function()
+      return 6
+    end,
+  }
+  local q =
+    VeafQRA:new():setGroupsToDeployByEnemyQuantity(3, { "T3" }):setGroupsToDeployByEnemyQuantity(5, { "T5" }):setScaleWithOpposition()
+  local chosenFrom = nil
+  q.chooseGroupsToDeploy = function(_, count)
+    chosenFrom = count
+    return nil
+  end
+  q:deploy(2)
+  luaunit.assertEquals(chosenFrom, 6, "a pair in the zone of a QRA sized for six, lowest tier 3")
+end
+
+function TestVeafQraTiers:test_without_the_level_the_lowest_tier_still_gates()
+  local q = VeafQRA:new():setGroupsToDeployByEnemyQuantity(3, { "T3" })
+  local chosen = false
+  q.chooseGroupsToDeploy = function()
+    chosen = true
+    return nil
+  end
+  q:deploy(2)
+  luaunit.assertFalse(chosen)
+end
+
+function TestVeafQraTiers:test_a_dead_qra_rearms_with_the_zone_occupied_when_asked()
+  local q = VeafQRA:new():setNoNeedToLeaveZoneBeforeRearming()
+  luaunit.assertTrue(q.noNeedToLeaveZoneBeforeRearming)
 end
 
 os.exit(luaunit.LuaUnit.run())

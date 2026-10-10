@@ -93,7 +93,7 @@ Puis exécutez :
 
 Cela télécharge `published.zip`, vérifie le checksum SHA256 et extrait tous les scripts et outils dans votre dossier de mission.
 
-### Mises à jour
+### Mises à jour {#updates}
 
 Exécutez la même commande dès qu'une nouvelle release est disponible :
 
@@ -522,7 +522,7 @@ Le build vous dit combien il en a ajouté.
 > **Les commandes sont rangées par thème.** `veaf-tools mission build`, `veaf-tools content
 > inject-presets`, `veaf-tools convert v5`… `veaf-tools --help` liste les groupes, et
 > `veaf-tools <groupe> --help` leur contenu. Le groupe `dcs` regroupe ce qui **exige DCS lancé**.
-> Les groupes sont : `mission`, `convert`, `content`, `cockpit` et `dcs`.
+> Les groupes sont : `mission`, `convert`, `content`, `campaign`, `cockpit` et `dcs`.
 > Une commande dont le nom commence par celui de son groupe le perd à l'intérieur : on écrit
 > `veaf-tools convert v5` et `veaf-tools convert other`, pas `convert convert-v5`.
 >
@@ -555,6 +555,11 @@ Le build vous dit combien il en a ajouté.
 | `terrain-sweep` | Relève dans DCS l'altitude du sol de tout un théâtre, que l'action MCP `terrain_elevation` lit ensuite sans DCS (altitude d'une cible, plancher d'une route, masquage par le relief). |
 | `clear-ground-sweep` | Sonde, pas à pas, le terrain dégagé autour des aérodromes et des combat zones d'un théâtre : écrit la mission d'arpentage, explique quoi faire dans DCS, balaie, puis écrit le catalogue ; reprend un balayage interrompu. |
 | `convert-other` | Adopte une mission .miz tierce (non-VEAF) sur la chaîne d'outils v6. |
+| `campaign-init` | Démarre une [campagne multi-missions](CAMPAIGN.md) : crée son état à partir de `campaign.yaml`. |
+| `campaign-validate` | Vérifie un dossier de campagne : `campaign.yaml`, et l'état de campagne par rapport à lui. |
+| `campaign-next` | Crée, ou rafraîchit, le dossier de la mission suivante d'une campagne à partir de son état. |
+| `campaign-briefing` | Écrit le briefing stratégique de la campagne (PPTX) pour la mission suivante, à partir de la campagne et de `briefing.yaml`. |
+| `campaign-apply` | Applique à une campagne le fichier d'état d'une mission jouée, puis joue le tour entre les missions. |
 | `doctor` | Rassemble les versions, chemins et erreurs récentes qu'un rapport de bug exige, et produit un bloc caviardé à coller dans un signalement — voir [Obtenir de l'aide](../SUPPORT.md). |
 | `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
 | `generate-config` | Génère un modèle mission.yaml documenté pour un dossier de mission. |
@@ -688,6 +693,9 @@ local northQra = VeafQRA:new()
   :start()
 ```
 
+Une QRA unique et fixe se dimensionne mal : une paire de MiG-29 est un défi pour deux joueurs, un exercice de tir pour six.
+Donnez-lui des paliers par nombre d'intrus (`groups_by_enemy_count`) jusqu'à la taille attendue du dispositif, et, si l'effectif varie, un [niveau d'opposition](scripts/veafQraManager.md#opposition-level) qui suit les joueurs connectés.
+
 ### Zone de combat
 
 Une zone de combat se déclare dans `mission.yaml`. Son contenu **ne se liste pas ici** : la zone adopte tous les groupes situés à l'intérieur de la trigger zone DCS qu'elle nomme **et dont le nom commence par le nom de la zone** (la casse est ignorée). Vous tracez le cercle dans l'éditeur de mission, vous y placez les blindés et la DCA — nommés `ZONE-STRIKE-ALPHA-ARMOR`, `ZONE-STRIKE-ALPHA-AAA` — et la zone les détruit puis les fait réapparaître à l'activation. Un groupe posé dans le cercle mais nommé autrement est ignoré, en silence : voir [la règle du préfixe](scripts/veafCombatZone.md#zone-membership).
@@ -816,6 +824,12 @@ Si vous montez CTLD de version et que votre fichier a été écrit pour la préc
 #### Les aérodromes deviennent des zones logistiques {#ctld-airbase-logistics}
 
 Jusqu'ici, un avion de transport posé sur un aérodrome capturé lisait *« Aucune logistique à portée »* : CTLD 2 ne reconnaît comme points de chargement que les types d'unité déclarés dans `logisticUnitTypes` (les FARP et porte-avions de la section précédente) et les zones `LGZ_` posées dans l'éditeur. Un aérodrome — un `Airbase` de la carte, pas une unité — n'est ni l'un ni l'autre. VEAF comble l'écart : au démarrage, il enregistre **chaque aérodrome de la carte** comme zone logistique CTLD, puis la tient à jour au fil de la partie.
+
+La même zone est aussi une **zone d'embarquement de troupes**, au même endroit, du même rayon et pour le même camp : elle s'éteint et revient avec la zone logistique, et change de camp avec elle. Sans elle, sur *Kolkhida*, les troupes ne s'embarquaient que sur le porte-avions.
+Revers de la médaille, c'est le comportement de CTLD dans toute zone de troupes : débarquer des troupes **dans** ce cercle les renvoie à la base au lieu de les déployer. Pour les poser sur un aérodrome tenu, débarquez-les hors du cercle.
+
+!!! warning "Une mission dont les coalitions ne comptent que CJTF Blue et CJTF Red"
+    CTLD crée ses caisses sous le pays USA (bleu) ou Russie (rouge), quel que soit celui de l'hélicoptère. Quand ce pays n'appartient à aucune coalition de la mission — le cas des campagnes —, DCS refuse l'objet et la demande ne donne rien, sans message (mesuré en jeu le 2026-10-09). Le correctif est dans CTLD lui-même ; d'ici sa version, mettre USA dans la coalition bleue et la Russie dans la rouge de la mission devrait suffire (non vérifié en jeu).
 
 C'est un réglage, pas une fatalité :
 
@@ -1162,7 +1176,7 @@ Si le journal montre une erreur que vous ne vous expliquez pas, [Obtenir de l'ai
 ## Ressources
 
 - [Référence des scripts](scripts/README.md) — tous les scripts avec les détails de configuration
-- [Référence CLI](../CLI_REFERENCE.md) — les 25 commandes de `veaf-tools`, arguments et options
+- [Référence CLI](../CLI_REFERENCE.md) — les 37 commandes de `veaf-tools`, arguments et options
 - [Référence API Lua](../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
 - [Mission de démo v6](https://github.com/VEAF/VEAF-Demo-Mission-v6) — chaque fonctionnalité en jeu, avec une visite guidée ([voir plus haut](#demo-mission))
 - [Discord VEAF](https://www.veaf.org/discord) — aide communautaire

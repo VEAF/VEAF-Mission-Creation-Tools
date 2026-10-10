@@ -1,6 +1,6 @@
 # CLI reference — `veaf-tools`
 
-All **25 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
+All **37 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
 page: it says what each command accepts, not how to take a mission from start to finish. For that,
 read the [mission maker's guide](mission-maker/GUIDE.en.md), which tells the story in order, and the
 [pipeline reference](PIPELINE_REFERENCE.en.md), which details each build step.
@@ -477,6 +477,117 @@ veaf-tools content inject-weather MaMission
 *Flat alias : `veaf-tools inject-weather`*
 
 **See also** : [PIPELINE_REFERENCE.md](PIPELINE_REFERENCE.en.md)
+
+## Campaign — `veaf-tools campaign`
+
+A [multi-mission campaign](mission-maker/CAMPAIGN.en.md) is run with these four commands, in the order `init`, then `next` and `apply` for every mission.
+
+### `veaf-tools campaign init` {#campaign-init}
+
+Start a campaign: create its state from campaign.yaml.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | no | Campaign folder, holding campaign.yaml. Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
+| `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
+
+An existing state is never overwritten: it holds the missions already flown.
+
+```powershell
+.\veaf-tools.exe campaign init C:\Campaigns\Caucasus
+```
+
+*Flat alias : `veaf-tools campaign-init`*
+
+### `veaf-tools campaign validate` {#campaign-validate}
+
+Check a campaign folder: campaign.yaml, and the campaign state against it.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | no | Campaign folder, holding campaign.yaml. Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
+| `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
+
+```powershell
+.\veaf-tools.exe campaign validate C:\Campaigns\Caucasus
+```
+
+*Flat alias : `veaf-tools campaign-validate`*
+
+### `veaf-tools campaign apply` {#campaign-apply}
+
+Apply a flown mission's state file to the campaign, then play the turn between missions.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `STATE_FILE` | `str` | yes | The state file the mission wrote (Saved Games/DCS/Missions/Saves/<campaign>/mission-NN.state). |
+| `CAMPAIGN_FOLDER` | `str` | no | Campaign folder, holding campaign.yaml. Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
+| `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
+
+Refuses a file already applied, one from another campaign, or one that skips a mission; nothing is written then.
+
+```powershell
+.\veaf-tools.exe campaign apply mission-01.state C:\Campaigns\Caucasus
+```
+
+*Flat alias : `veaf-tools campaign-apply`*
+
+### `veaf-tools campaign next` {#campaign-next}
+
+Create, or refresh, the next mission's folder from the campaign state.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | no | Campaign folder, holding campaign.yaml. Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--players` | `str` | — | How many players are expected tonight: a count (`6`) or a range (`5-7`). Sizes the mission's air opposition ([`opposition:` block](mission-maker/scripts/veafQraManager.en.md#opposition-level)), beating `campaign.yaml`'s `players`. |
+| `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
+| `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
+
+The folder is copied from `template/` the first time, and only refreshed afterwards: what was designed in it survives.
+
+```powershell
+.\veaf-tools.exe campaign next C:\Campaigns\Caucasus
+```
+
+*Flat alias : `veaf-tools campaign-next`*
+
+### `veaf-tools campaign briefing` {#campaign-briefing}
+
+Write the coming mission's strategic briefing deck (PPTX), from the campaign and its briefing.yaml.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `CAMPAIGN_FOLDER` | `str` | no | Campaign folder, holding campaign.yaml. Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
+| `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
+
+Writes `missions/mission-NN/briefing-campagne.pptx` and its map; `campaign next` does too. The prose comes from `briefing.yaml`, the facts from the campaign.
+
+```powershell
+.\veaf-tools.exe campaign briefing C:\Campaigns\Caucasus
+```
+
+*Flat alias : `veaf-tools campaign-briefing`*
+
+**See also** : [mission-maker/CAMPAIGN.md](mission-maker/CAMPAIGN.en.md)
 
 ## Cockpit — `veaf-tools cockpit`
 

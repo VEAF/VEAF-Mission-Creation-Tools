@@ -1,6 +1,10 @@
 # FEAT-DYNAMIC-CAMPAIGN — a Foothold-like persistent campaign, built on VMCT alone
 
-Status: ⬜ ready
+Status: ⏸ paused — after FEAT-MULTI-MISSION-CAMPAIGN, built on its bricks (David, 2026-10-06)
+
+> **Paused 2026-10-06.** David wants a multi-mission campaign first ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)), then this persistent mission built on the bricks it leaves: the `campaign.yaml` format, garrisons drawn once and recorded, live capture, the F10 map and menu, the runtime state writer, stocks, scenery.
+> When this lot is resumed, its tickets 01, 02 and 05 shrink to what those bricks do not cover (dormancy, caps, the periodic save's cadence), and ticket 03 is already done there.
+> One premise below did not hold: the VEAF group database has no era, role or side to draw garrisons from; that lot draws them with `veafCasMission`'s generators instead.
 
 David, 2026-10-02/03: VEAF likes Foothold, but it is hard on our servers' performance, and his
 experience points at Moose (many modules, nearly all active all the time, many loops). He wants a
@@ -60,6 +64,9 @@ Foothold's cost to the author is the data: 7 400 lines and ~1 200 hand-placed zo
 7. The campaign survives a server restart.
 8. It ends: one side holds every zone (or every zone flagged `key`), it is announced, and the state can be
    reset.
+9. What can be spawned during a flight is bounded by the campaign, for everyone: a player's or a human game master's `_spawn` and Claude's live actions ([`FEAT-LIVE-GAME-MASTER`](../FEAT-LIVE-GAME-MASTER/PRD.md)) alike.
+   Measured 2026-10-08: the multi-mission campaign has a ground reserve per side and category (`veafCampaign.reserveOf`), drawn on when a garrison is composed, but nothing checks a `_spawn` against it during the flight.
+   David, 2026-10-08: "en campagne, tu ne peux pas spawner n'importe quoi. Mais c'est aussi valable pour nous".
 
 ## Performance is a requirement, not a tuning pass
 
@@ -109,7 +116,7 @@ composite from a theatre description, the authoring skill) are the **next lot**,
 |---|---|---|
 | 01 | [`campaign.yaml`, validation and build generation](tickets/01-campaign-yaml-and-build.md) | ⬜ |
 | 02 | [Runtime: zones, garrisons, dormancy, F10, radio](tickets/02-runtime-zones.md) | ⬜ |
-| 03 | [Capture: neutral zones, any ground presence, airbase ownership and slots](tickets/03-capture.md) | ⬜ |
+| 03 | [Capture: neutral zones, any ground presence, airbase ownership and slots](tickets/03-capture.md) | 🚫 |
 | 04 | [AI sorties derived from the graph](tickets/04-ai-sorties.md) | ⬜ |
 | 05 | [Persistence, victory and reset](tickets/05-persistence-victory-reset.md) | ⬜ |
 | 06 | [Documentation and an example campaign](tickets/06-doc-and-example.md) | ⬜ |

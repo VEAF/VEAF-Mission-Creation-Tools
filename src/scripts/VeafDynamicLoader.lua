@@ -64,6 +64,7 @@ __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafEventHandler.l
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafCacheManager.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafGroundAI.lua")
 __Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafMissileGuardian.lua")
+__Veaf.Include(VEAF_DYNAMIC_SCRIPTSPATH .. "/src/scripts/veaf/veafCampaign.lua")
 
 -- set the environment in debug mode
 env.info("*** VEAF-DYNAMICLOADER set the environment in debug mode *** ")

@@ -235,6 +235,8 @@ Lors de l'injection, chaque fréquence assignée à un aéronef est vérifiée p
 
 Après chaque injection de presets, un fichier `presets-validation-report.md` est automatiquement créé dans le dossier mission si au moins un appareil (critique ou non) présente des fréquences hors plage. Ce fichier liste tous les problèmes avec les valeurs invalides et un extrait YAML pour les désactiver temporairement. Si aucun problème n'est détecté, le fichier est supprimé.
 
+Le rapport, et le journal du build, listent aussi **chaque AWACS et ravitailleur IA dont la fréquence n'est sur aucun preset injecté pour sa coalition** : ses pilotes ne le trouveraient ni sur leurs radios ni sur leur planchette. C'est le signe qu'on a gardé le plan de canaux livré au lieu de celui de la mission ; ajoutez son canal dans `src/presets.yaml`. Une coalition qui n'a reçu aucun preset n'est pas contrôlée.
+
 ```
 <dossier-mission>/presets-validation-report.md
 ```
@@ -285,7 +287,7 @@ waypoints:
     speed_type: "TAS"                   # TAS | IAS
     x: 75869                            # coordonnée X mission
     y: 48674                            # coordonnée Y mission
-    name: "BULLSEYE"                    # libellé du waypoint (optionnel)
+    name: "POTI"                        # ce qu'affiche le cockpit (optionnel, la clé sinon)
     ETA: 364.89                         # temps d'arrivée estimé en secondes (optionnel)
     ETA_locked: false                   # verrouiller l'ETA (optionnel)
 
@@ -296,9 +298,17 @@ settings:
     coalition: "blue"                   # blue | red (filtre optionnel)
     type: "F-16C_50"                    # type d'aéronef DCS (filtre optionnel)
     country: "USA"                      # nom du pays (filtre optionnel)
-    waypoints:
-      <NOM_WAYPOINT>: "<NOM_WAYPOINT>"  # associer la définition du waypoint au slot
+    waypoints:                          # les CLÉS des waypoints, dans l'ordre du vol
+      - <NOM_WAYPOINT>
 ```
+
+### Un plan prend ses waypoints par clé {#waypoints-by-key}
+
+Un waypoint a une **clé** (`<NOM_WAYPOINT>`) et un `name:`. Un plan le désigne par sa clé ; le cockpit affiche son `name:`, ou sa clé s'il n'en a pas. Deux waypoints peuvent partager un nom, jamais une clé : `POTI` à 10 000 ft pour les avions et `POTI_LOW` à 500 ft sol pour les hélicoptères, affichés tous deux `POTI`.
+
+Un plan liste ses waypoints sous forme d'une liste de clés. L'ancienne forme en mapping — `HOLDING_POINT: "HOLDING_POINT"` — se charge toujours, mais **seules ses clés sont lues** : la valeur est ignorée, donc `POTI: "POTI_LOW"` mène à `POTI`. Le build prévient quand une valeur nomme un autre waypoint.
+
+Le build ajoute aussi à chaque plan de vol un waypoint `BULLSEYE`, au bullseye de la mission : ne pas en déclarer.
 
 ### Priorité de correspondance
 
@@ -313,23 +323,22 @@ Les plans de vol sont associés aux groupes selon cet ordre de priorité :
 
 ```yaml
 waypoints:
-  BULLSEYE:
+  POTI:
     type: "Turning Point"
     action: "Turning Point"
-    alt: 6096
+    alt: 3048
     alt_type: "BARO"
-    speed: 999
+    speed: 180
     speed_type: "TAS"
-    x: 75869
-    y: 48674
-    name: "BULLSEYE"
+    x: -295152
+    y: 617091
 
 settings:
   AVIONS_BLEUS:
     category: "plane"
     coalition: "blue"
     waypoints:
-      BULLSEYE: "BULLSEYE"
+      - POTI
 ```
 
 ---

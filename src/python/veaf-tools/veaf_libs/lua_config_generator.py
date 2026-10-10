@@ -34,6 +34,7 @@ from veaf_libs.i18n import current_language, t
 from veaf_libs.logger import logger
 from veaf_libs.lua_literals import (
     lua_comment_line,
+    lua_data,
     lua_long_string,
     lua_quoted_string,
     lua_scalar,
@@ -87,6 +88,7 @@ _MODULE_INIT_ORDER: list[str] = [
     "CACHE",
     "EVENTS",
     "GROUNDAI",
+    "CAMPAIGN",  # after EVENTS (loss callbacks) and the spawners its garrisons need
     "SKYNET",
     "SKYNET_MONITOR",
     "INTERPRETER",  # MUST be last
@@ -129,6 +131,8 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
         # whether they carry images.
         "checklists",
         "display",
+        # CAMPAIGN: the build reads the data file and emits the table itself.
+        "data_file",
     }
 )
 
@@ -394,6 +398,17 @@ def summarize_active_modules(mission_yaml: dict) -> list[tuple[str, int | None]]
             if mod_id == "QRA" and not entries:
                 entries = (mission_yaml.get("qra") or {}).get("definitions") or []
             summary.append((mod_id, len(entries) if isinstance(entries, list) else 0))
+    # The build normalises mission.yaml before this runs, and that moves CTLD, CSAR and the other
+    # community scripts out of `modules:` into `community_scripts`, lowercased: read there too, or the
+    # line never names them although they are in the .miz (DOC-TUTORIAL-NEXT-STEPS).
+    listed = {mod_id for mod_id, _ in summary}
+    community = mission_yaml.get("community_scripts")
+    if not isinstance(community, dict):  # the build already warns about a malformed section
+        community = {}
+    for script_id, raw_cfg in community.items():
+        mod_id = str(script_id).upper()
+        if mod_id not in listed and _get_module_enabled(_normalize_module_cfg(raw_cfg), True):
+            summary.append((mod_id, None))
     return sorted(summary)
 
 
@@ -402,6 +417,9 @@ _MODULE_DEPS: dict[str, list[str]] = {
     # Core
     "COMMANDS": ["MARKERS"],
     "GROUNDAI": ["COMMANDS"],
+    # A secured `+` command is checked whatever SECURITY says, and its refusal tells the pilot to type
+    # `/secu elevate`, which only veafSecurity.initialize() registers (FIX-SECURITY-GROUP-LEVEL).
+    "RADIO": ["SECURITY"],
     "SHORTCUTS": ["RADIO", "COMMANDS"],
     "NAMEDPOINTS": ["COMMANDS"],
     "SPAWN": ["UNITS"],
@@ -698,6 +716,7 @@ def _emit_module_body(
     qra_section: dict,
     cap_missions: list,
     combat_missions_data: list,
+    campaign_data: Mapping[str, object] | None = None,
 ) -> None:
     """Emit the body of an ``if varName then … end`` initialisation block."""
     init_cfg: dict = mod_cfg.get("init") or {}
@@ -760,6 +779,13 @@ def _emit_module_body(
                     parts.append(f"coalition = coalition.side.{side}")
                 lines.append("        {" + ", ".join(parts) + "},")
             lines.append("    }")
+        lines.append(f"    {var_name}.initialize()")
+
+    elif mod_id == "CAMPAIGN":
+        # The data table first: initialize() draws and spawns the garrisons it describes. Without one
+        # (a `campaign next` never run), initialize() says so in the log and does nothing.
+        if campaign_data is not None:
+            lines.append(f"    {var_name}.data = {lua_data(campaign_data)}")
         lines.append(f"    {var_name}.initialize()")
 
     elif mod_id == "QRA":
@@ -1352,6 +1378,8 @@ QRA_DEFINITION_KEYS: frozenset[str] = frozenset(
         "delay_before_rearming",
         "delay_before_activating",
         "react_on_helicopters",
+        "rearm_while_occupied",
+        "scale_with_opposition",
         "airport_link",
         "respawn_default_offset",
         "active_at_start",
@@ -1405,9 +1433,14 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
     for gbc in qra_def.get("groups_by_enemy_count") or []:
         count = gbc.get("enemy_count", 1)
         groups: list = gbc.get("groups") or []
-        pick = gbc.get("random_pick", 1)
         groups_lua = "{" + ", ".join(_lua_text(g) for g in groups) + "}"
-        lines.append(f"{indent}    :setRandomGroupsToDeployByEnemyQuantity({count}, {groups_lua}, {pick})")
+        # Without `random_pick` the tier sends every group it names; with it, that many drawn without
+        # replacement (FEAT-OPPOSITION-SCALES-WITH-PLAYERS). It used to default to 1: a tier listing
+        # two groups sent one of them.
+        if (pick := gbc.get("random_pick")) is None:
+            lines.append(f"{indent}    :setGroupsToDeployByEnemyQuantity({count}, {groups_lua})")
+        else:
+            lines.append(f"{indent}    :setRandomGroupsToDeployByEnemyQuantity({count}, {groups_lua}, {pick})")
 
     if dbr := qra_def.get("delay_before_rearming"):
         lines.append(f"{indent}    :setDelayBeforeRearming({dbr})")
@@ -1415,6 +1448,11 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
         lines.append(f"{indent}    :setDelayBeforeActivating({dba})")
     if qra_def.get("react_on_helicopters"):
         lines.append(f"{indent}    :setReactOnHelicopters()")
+    if qra_def.get("scale_with_opposition"):
+        lines.append(f"{indent}    :setScaleWithOpposition()")
+    # By default a dead QRA rearms once its zone is clear: with several players over the target, never.
+    if qra_def.get("rearm_while_occupied"):
+        lines.append(f"{indent}    :setNoNeedToLeaveZoneBeforeRearming()")
     if al := qra_def.get("airport_link"):
         lines.append(f"{indent}    :setAirportLink({_lua_text(al)})")
     # Where a command-driven element spawns, relative to the zone: the same setter as a wave zone's.
@@ -1435,6 +1473,78 @@ def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
     if qra_def.get("active_at_start", qra_def.get("start", True)):
         lines.append(f"{indent}    :start()")
     return lines
+
+
+#: The follow modes of the ``opposition:`` block, as veafOpposition names them.
+OPPOSITION_FOLLOW_MODES: frozenset[str] = frozenset({"off", "players", "airborne", "air_to_air"})
+
+#: Every key of the ``opposition:`` block, with the field of ``veafOpposition.configure`` it sets.
+OPPOSITION_KEYS: dict[str, str] = {
+    "level": "level",
+    "follow": "follow",
+    "lower_after": "lowerAfter",
+    "players_coalition": "playersCoalition",
+}
+
+
+def emit_opposition_block(block: object) -> tuple[list[str], list[str]]:
+    """Emit the opposition level of a mission (FEAT-OPPOSITION-SCALES-WITH-PLAYERS).
+
+    Two parts, because they belong on either side of the module block: the level is configured
+    before the modules initialize, so a combat mission building its radio menu knows there is a level
+    to offer, and the marker and radio menu are set up after them, once the radio and the command
+    dispatcher exist.
+
+    Args:
+        block: the ``opposition:`` block of mission.yaml — ``level`` (the number of player aircraft the
+            air opposition is sized for), ``follow`` (``off`` | ``players`` | ``airborne`` | ``air_to_air``),
+            ``lower_after`` (seconds a lower count must hold before the level drops) and
+            ``players_coalition`` (``BLUE`` | ``RED``, the coalition counted).
+
+    Returns:
+        The lines to emit before the module block, and the lines to emit after it.
+
+    Raises:
+        ValueError: on a block that is not a mapping, an unknown key, or a value veafOpposition cannot
+            use — a level it would read as nothing is a mission sized for nobody, silently.
+    """
+    if not isinstance(block, Mapping):
+        raise ValueError(f"opposition: must be a block of keys (level, follow, ...), not {block!r}")
+    unknown = sorted(str(key) for key in block if key not in OPPOSITION_KEYS)
+    if unknown:
+        raise ValueError(f"opposition: unknown key(s) {', '.join(unknown)} (expected {', '.join(OPPOSITION_KEYS)})")
+    fields: list[str] = []
+    level = block.get("level")
+    if level is not None:
+        if isinstance(level, bool) or not isinstance(level, int) or level < 0:
+            raise ValueError(f"opposition: level must be a whole number of aircraft, 0 or more, not {level!r}")
+        fields.append(f"level = {level}")
+    follow = block.get("follow")
+    if follow is not None:
+        if follow not in OPPOSITION_FOLLOW_MODES:
+            raise ValueError(
+                f"opposition: follow must be one of {', '.join(sorted(OPPOSITION_FOLLOW_MODES))}, not {follow!r}"
+            )
+        fields.append(f"follow = {_lua_text(follow)}")
+    lower_after = block.get("lower_after")
+    if lower_after is not None:
+        if isinstance(lower_after, bool) or not isinstance(lower_after, int | float) or lower_after <= 0:
+            raise ValueError(f"opposition: lower_after must be a number of seconds above 0, not {lower_after!r}")
+        fields.append(f"lowerAfter = {_to_lua_scalar(lower_after)}")
+    side = block.get("players_coalition")
+    if side is not None:
+        if side not in ("BLUE", "RED"):
+            raise ValueError(f"opposition: players_coalition must be BLUE or RED, not {side!r}")
+        fields.append(f"playersCoalition = coalition.side.{side}")
+    configure = [
+        "-- ── Opposition level ─────────────────────────────────────────────────────────",
+        "if veafOpposition then",
+        f"    veafOpposition.configure({{{', '.join(fields)}}})",
+        "end",
+        "",
+    ]
+    initialize = ["if veafOpposition then", "    veafOpposition.initialize()", "end", ""]
+    return configure, initialize
 
 
 # ---------------------------------------------------------------------------
@@ -2027,6 +2137,7 @@ def generate_config_lua(
     checklists: Sequence[Checklist] | None = None,
     checklist_images: Mapping[str, Sequence[str]] | None = None,
     mission_channels: Mapping[int, Mapping[str, object]] | None = None,
+    campaign_data: Mapping[str, object] | None = None,
 ) -> str:
     """Render ``veaf-config.lua`` from the full *mission_yaml* content dict.
 
@@ -2048,6 +2159,11 @@ def generate_config_lua(
         Per DCS airdrome id, the mission's own ``bases`` channel for that airfield
         (``{alias, title, freqs}``), which the ATIS and the welcome brief give beside the
         DCS tower. Nothing is emitted when empty.
+    campaign_data:
+        The campaign data table of a mission of a multi-mission campaign — what
+        ``veaf-tools campaign next`` wrote to the file the ``CAMPAIGN`` module's
+        ``data_file`` names. Emitted as ``veafCampaign.data`` before the module
+        initialises; ignored when the module is not enabled.
 
     Returns
     -------
@@ -2215,6 +2331,12 @@ def generate_config_lua(
         _emit_guarded_init(lines, "CTLD", ["if ctld then", "    veaf.ctld_initialize()", "end"])
         lines.append("")
 
+    opposition_block = mission_yaml.get("opposition")
+    opposition_init: list[str] = []
+    if opposition_block is not None:
+        opposition_configure, opposition_init = emit_opposition_block(opposition_block)
+        lines.extend(opposition_configure)
+
     # ── Module configuration + initialization ─────────────────────────────
     # Accept both `modules:` (new) and `lua_modules:` (legacy) keys.
     raw_lua_modules: dict = mission_yaml.get("lua_modules") or {}
@@ -2291,10 +2413,14 @@ def generate_config_lua(
                 continue
 
             block = [f"if {var_name} then"]
-            _emit_module_body(block, mod_id, mod_cfg, var_name, qra_section, cap_missions, combat_missions_data)
+            _emit_module_body(
+                block, mod_id, mod_cfg, var_name, qra_section, cap_missions, combat_missions_data, campaign_data
+            )
             block.append("end")
             _emit_guarded_init(lines, mod_id, block)
             lines.append("")
+
+    lines.extend(opposition_init)
 
     # ── Community-script enable flags (FIX-VEAF-MODULE-GATING) ────────────
     # Tell the framework which community libs the mission disabled, so its runtime

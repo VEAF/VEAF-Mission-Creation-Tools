@@ -1203,8 +1203,15 @@ function veafSpawn.spawnEscort(name, escortedGroupName, country, silent, hiddenO
     return nil
   end
 
+  -- Every refusal says why: an "Escort me" that answered nothing in game could not be told apart from a
+  -- menu that never reached the script (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 09).
   local templateName, templateData = veafSpawn.findSpawnableAircraftGroupname(name, side)
   if not templateName or not templateData then
+    local message = veaf.t("spawn.escort_no_template", tostring(name or ""))
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    if not silent then
+      trigger.action.outText(message, 15)
+    end
     return nil
   end
 
@@ -1223,6 +1230,11 @@ function veafSpawn.spawnEscort(name, escortedGroupName, country, silent, hiddenO
   end
   local spawnedName = spawn:spawn()
   if not spawnedName then
+    local message = veaf.t("spawn.escort_spawn_failed", templateName, escortedGroupName)
+    veaf.loggers.get(veafSpawn.Id):warn(message)
+    if not silent then
+      trigger.action.outText(message, 15)
+    end
     return nil
   end
   if not silent then
@@ -1292,6 +1304,8 @@ function veafSpawn.escortMe(parameters)
   veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.escortMe(name=%s, unitName=%s)", veaf.p(name), veaf.p(unitName))
   local unit = unitName and Unit.getByName(unitName)
   if not unit or not unit:isExist() then
+    -- nobody left to tell: the log is the only trace
+    veaf.loggers.get(veafSpawn.Id):info("Escort me: unit [%s] not found, no escort", tostring(unitName))
     return nil
   end
   if unit:getCategoryEx() ~= Unit.Category.AIRPLANE then

@@ -19,6 +19,10 @@ veafSecurity.initialize()
 
 Call before other modules so that security checks are active when they initialise.
 
+Listing `SECURITY` in `mission.yaml` is not what turns the checks on: a secured F10 command is checked whatever the `modules:` block says, and only `security: disabled: true` switches the checks off.
+What the module adds is its verbs — `/secu elevate`, the one a refused command tells the pilot to type.
+So a mission with `RADIO` always initialises it: the build adds `SECURITY` (with a warning) when it is missing or set to `false`.
+
 ---
 
 ## Permission Levels

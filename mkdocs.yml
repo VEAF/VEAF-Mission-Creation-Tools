@@ -48,6 +48,11 @@ markdown_extensions:
   # identical across the FR/EN versions of a page (DOC-GUIDE-ANCHORS).
   - attr_list
   - admonition
+  # Grid cards on the home pages (`<div class="grid cards" markdown>`) and their `:material-…:` icons.
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -79,6 +84,11 @@ plugins:
             Mission Maker: Créateur de Mission
             Discover VMCT: Découvrir VMCT
             Tutorial — your first mission: Tutoriel — votre première mission
+            Create with an AI: Créer avec une IA
+            What to ask the AI: Ce qu'on peut demander à l'IA
+            Adopt a third-party mission: Adopter une mission tierce
+            Foothold moulinette: Moulinette Foothold
+            Read the DCS logs: Lire les journaux de DCS
             Concepts: Les fiches
             The mission folder: Le dossier de mission
             mission.yaml and its modules: mission.yaml et ses modules
@@ -104,6 +114,7 @@ plugins:
             Updater & release tools: Mise à jour & publication
             Guided checklists (veafAssist): Checklists guidées (veafAssist)
             Missions menu (veafCombatMission): Menu MISSIONS (veafCombatMission)
+            Multi-mission campaign: Campagne multi-missions
             Ground AI (veafGroundAI): IA au sol (veafGroundAI)
             Security & permissions (veafSecurity): Sécurité & permissions (veafSecurity)
             Lua API Reference: Référence de l'API Lua
@@ -133,6 +144,8 @@ nav:
     - Overview: mission-maker/README.md
     - Discover VMCT: mission-maker/DISCOVER.md
     - Tutorial — your first mission: mission-maker/TUTORIAL.md
+    - Create with an AI: mission-maker/AI_ASSISTANT_INSTALL.md
+    - What to ask the AI: mission-maker/AI_ASSISTANT_CATALOG.md
     - Concepts:
       - Overview: mission-maker/concepts/README.md
       - The mission folder: mission-maker/concepts/mission-folder.md
@@ -155,9 +168,8 @@ nav:
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
     - Adopt a third-party mission: mission-maker/CONVERT_OTHER.md
     - Foothold moulinette: mission-maker/FOOTHOLD.md
+    - Multi-mission campaign: mission-maker/CAMPAIGN.md
     - Read the DCS logs: mission-maker/LOGS.md
-    - AI assistant — install: mission-maker/AI_ASSISTANT_INSTALL.md
-    - AI assistant — action catalogue: mission-maker/AI_ASSISTANT_CATALOG.md
     - Aliases: ALIASES.md
     - Scripts:
       - Overview: mission-maker/scripts/README.md
@@ -166,6 +178,7 @@ nav:
       - veafAssets: mission-maker/scripts/veafAssets.md
       - Guided checklists (veafAssist): mission-maker/scripts/veafAssist.md
       - veafCarrierOperations: mission-maker/scripts/veafCarrierOperations.md
+      - veafCampaign: mission-maker/scripts/veafCampaign.md
       - veafCasMission: mission-maker/scripts/veafCasMission.md
       - Missions menu (veafCombatMission): mission-maker/scripts/veafCombatMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md

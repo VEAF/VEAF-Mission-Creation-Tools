@@ -67,11 +67,12 @@ modules:
         groups_by_enemy_count:           # réponse proportionnelle au nombre d'intrus
           - enemy_count: 1               # scramble quand 1 intrus détecté
             groups: ["Duo-1", "Duo-2"]   # pool de groupes
-            random_pick: 1               # combien de groupes choisir dans le pool
+            random_pick: 1               # tirer 1 groupe du pool (sans random_pick : tous décollent)
           - enemy_count: 3
-            groups: ["Vol-1", "Vol-2"]
-            random_pick: 2
+            groups: ["Duo-1", "Vol-2"]   # pas de random_pick : les deux décollent
         delay_before_rearming: 30        # secondes avant réinitialisation après départ des intrus
+        rearm_while_occupied: true       # réarmer sans attendre que la zone se vide
+        scale_with_opposition: true      # palier choisi aussi d'après le niveau d'opposition
         delay_before_activating: 30      # secondes après :start() avant mise en ligne de la QRA
         react_on_helicopters: false      # true = déclencher aussi sur les hélicoptères ennemis
         airport_link: "Batumi"           # en pause tant que cette base est perdue (raccourci de links)
@@ -102,9 +103,11 @@ modules:
 | `groups_by_enemy_count` | objet[] | `[]` | Non | Règles de scramble proportionnel |
 | `groups_by_enemy_count[].enemy_count` | entier | — | Oui | Nombre d'intrus activant cette règle |
 | `groups_by_enemy_count[].groups` | string[] | — | Oui | Pool de noms de groupes ou de commandes VEAF, comme `simple_groups` |
-| `groups_by_enemy_count[].random_pick` | entier | `1` | Non | Combien de groupes choisir dans le pool |
+| `groups_by_enemy_count[].random_pick` | entier | — | Non | Combien de groupes **tirer** dans le pool, sans remise : jamais deux fois le même groupe, jamais plus que la liste n'en contient. **Absent : tous les groupes du palier décollent.** Le palier retenu est le plus grand dont `enemy_count` ne dépasse pas le nombre d'intrus, dans quelque ordre que les paliers soient écrits |
 | `delay_before_rearming` | entier | `0` | Non | Secondes avant réinitialisation après départ des intrus |
 | `delay_before_activating` | entier | `0` | Non | Secondes après le démarrage avant mise en ligne |
+| `rearm_while_occupied` | booléen | `false` | Non | Une QRA détruite se réarme **même si des intrus sont encore dans sa zone**. Sans cette clé, elle attend que la zone soit vide — avec plusieurs joueurs sur l'objectif, presque jamais |
+| `scale_with_opposition` | booléen | `false` | Non | Choisir le palier d'après le [niveau d'opposition](#opposition-level) quand il dépasse le nombre d'intrus dans la zone — le seuil du plus petit palier aussi : une paire déclenche une QRA dont le premier palier est 3 si la mission est dimensionnée pour six. Le déclenchement reste sur la zone : personne dedans, pas de scramble |
 | `react_on_helicopters` | booléen | `false` | Non | Déclencher aussi sur les hélicoptères ennemis |
 | `airport_link` | string | — | Non | Nom d'une base aérienne DCS liée : la QRA se met en pause tant que la base est capturée ou trop endommagée, et repart quand elle est reprise. Raccourci d'une entrée de `links` |
 | `links` | string[] | `[]` | Non | Ce dont dépend la QRA : bases aériennes, FARP, navires, groupes ou statics, par leur nom DCS. Une base ou un FARP perdu **met la QRA en pause** jusqu'à sa reprise ; un navire, un groupe ou un static détruit **l'arrête pour de bon**. Un seul lien perdu suffit |
@@ -143,6 +146,45 @@ modules:
     doive en plus avoir le niveau de sécurité requis.
 
 C'est le **mécanisme 1** (raccourci par module). Pour un menu MM personnalisé, structuré ou combinant plusieurs actions (QRA, AirWaves, flags, messages, Lua), utilisez le **mécanisme 2** décrit dans [veafRadio → Menus radio en YAML](veafRadio.md#radio-menus-in-yaml).
+
+### Dimensionner l'opposition au nombre de joueurs {#opposition-level}
+
+Des paliers par `enemy_count` répondent à **ce qui entre dans la zone**. Une paire qui s'y présente devant un dispositif de six reçoit le palier d'une paire, pendant que les quatre autres sont encore à l'écart. Le **niveau d'opposition** dit pour combien d'avions joueurs la chasse adverse est dimensionnée, dans la même unité que `enemy_count` ; une QRA marquée `scale_with_opposition: true` prend le palier du plus grand des deux nombres.
+
+```yaml
+opposition:                 # bloc racine de mission.yaml, à côté de modules:
+  level: 6                  # dimensionnée pour 6 avions joueurs
+  follow: air_to_air        # off (défaut) | air_to_air : joueurs en CAP | players : connectés | airborne : en vol
+  lower_after: 300          # secondes pendant lesquelles un compte plus bas doit tenir avant de baisser le niveau
+  players_coalition: BLUE   # BLUE (défaut) | RED : la coalition dont on compte les joueurs
+```
+
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `level` | entier ≥ 0 | — | Le niveau au démarrage. Sans niveau ni suivi, les QRA répondent à leur zone seule |
+| `follow` | string | `off` | `air_to_air` : le niveau suit les joueurs **en vol qui emportent au moins un missile air-air à guidage radar** (Fox 1 ou Fox 3) — ceux qui font de la CAP ; `players` : tous les joueurs connectés de la coalition, hélicoptères et avions d'attaque au sol compris ; `airborne` : tous ceux qui sont en vol. Relu toutes les 60 s |
+| `lower_after` | secondes | `300` | Une hausse est prise **tout de suite** (un joueur qui arrive doit être servi) ; une baisse seulement quand le compte est resté plus bas pendant ce délai — une déconnexion, ou un crash suivi d'un respawn, ne change rien |
+| `players_coalition` | string | `BLUE` | La coalition dont les joueurs sont comptés |
+
+Le bloc ajoute aussi, en jeu :
+
+- un menu radio **Opposition** : *Niveau actuel* (pour tous), *Niveau* → « 1 joueur(s) en CAP » … « 8 joueur(s) en CAP », qui fixe le niveau en un clic et arrête le suivi, et *Mode* → le mode de suivi (commandes sécurisées) ;
+- un marqueur **`_opposition`**, réservé au niveau de sécurité *SENIOR_PILOT* : `_opposition 6` fixe le niveau (et arrête le suivi), `_opposition air_to_air` / `_opposition players` / `_opposition airborne` / `_opposition off` change de mode, `_opposition` seul l'annonce ;
+- dans le menu des [combat missions](veafCombatMission.md), sous chaque niveau de compétence, une entrée **Taille auto** qui active le *scale* d'un groupe ennemi par deux joueurs (arrondi au-dessus), dans la limite des *scales* proposés.
+
+Chaque changement de niveau est annoncé à tout le monde.
+
+**Comment choisir.** Écrivez les paliers jusqu'à la taille attendue du dispositif : pour un groupe de 5 à 7 joueurs, par exemple `1` → une paire, `3` → deux paires, `5` → trois. Jamais une seule paire fixe face à 5 joueurs ou plus. Ensuite :
+
+- soirée dont on connaît l'effectif → `level` fixe ;
+- effectif inconnu, ou qui change en cours de vol → `follow: air_to_air` : seuls les joueurs en CAP comptent, pas ceux qui sont venus faire de l'attaque au sol, de l'hélico ou du transport ;
+- tous les joueurs doivent compter, quel que soit leur rôle → `follow: players`, ou `follow: airborne` pour ne compter que ceux qui sont en l'air.
+
+`air_to_air` lit l'armement **en vol** (`getAmmo`) : ce que l'avion emporte à cet instant, donc ce que le pilote a choisi au réarmement, pas le chargement posé dans la mission.
+Deux AIM-9 d'autodéfense sur un avion chargé de bombes ne comptent pas ; un chasseur qui n'emporte que des missiles infrarouges non plus.
+Un multirôle en attaque au sol qui garde deux AIM-120 d'escorte compte : le menu *Niveau* corrige le compte le soir où il se trompe.
+
+Une campagne écrit ce bloc toute seule à partir de son `players` ou de `campaign next --players` — voir [Campagnes](../CAMPAIGN.md#players).
 
 ### Exemple minimal
 
@@ -188,8 +230,8 @@ Utiliser l'une des options suivantes :
 |---------|-------------|
 | `:addGroup(name)` | Ajouter un groupe DCS à scrambler (appeler plusieurs fois pour plusieurs groupes) |
 | `:addRandomGroup(groups, number, bias)` | Piocher aléatoirement `number` groupes dans une liste |
-| `:setGroupsToDeployByEnemyQuantity(n, groups)` | Adapter la réponse : déployer `groups` quand `n` ennemis sont dans la zone |
-| `:setRandomGroupsToDeployByEnemyQuantity(n, groups, number, bias)` | Adaptation aléatoire au nombre d'ennemis |
+| `:setGroupsToDeployByEnemyQuantity(n, groups)` | Adapter la réponse : déployer **tous** les `groups` quand au moins `n` ennemis sont dans la zone (le plus grand palier atteint l'emporte) |
+| `:setRandomGroupsToDeployByEnemyQuantity(n, groups, number, bias)` | Même chose, en tirant `number` groupes sans remise |
 
 ### Coalition
 
@@ -206,7 +248,8 @@ Utiliser l'une des options suivantes :
 | `:setDrawZone(bool)` | Afficher la zone protégée sur la carte |
 | `:setReactOnHelicopters()` | Déclencher aussi sur les hélicoptères ennemis (avions seulement par défaut) |
 | `:setDelayBeforeRearming(seconds)` | Délai avant réinitialisation après départ de tous les intrus (`-1` = pas de délai) |
-| `:setNoNeedToLeaveZoneBeforeRearming()` | Autoriser le réarmement même si des ennemis sont encore dans la zone |
+| `:setNoNeedToLeaveZoneBeforeRearming()` | Autoriser le réarmement même si des ennemis sont encore dans la zone (`rearm_while_occupied`) |
+| `:setScaleWithOpposition()` | Choisir le palier d'après le niveau d'opposition quand il dépasse le nombre d'intrus (`scale_with_opposition`) |
 | `:setResetWhenLeavingZone()` | Réinitialiser immédiatement quand tous les ennemis quittent la zone |
 | `:setDelayBeforeActivating(seconds)` | Délai avant mise en ligne après `:start()` |
 | `:setMinimumAltitudeInFeet(feet)` | Altitude minimale de l'ennemi pour déclencher un scramble |
@@ -334,6 +377,14 @@ route n'en prévoit pas : s'il ne porte aucune tâche d'engagement des aéronefs
 
 Un groupe placé **au parking ou sur la piste** garde son décollage tel que vous l'avez réglé, puis monte à
 27 000 ft pour sa patrouille.
+
+**Sur la piste par défaut.** Une QRA décolle vraiment de son terrain : c'est le départ que pose l'action MCP `create_qra` quand on ne lui dit rien (l'aérodrome de la coalition le plus proche de la zone, ou celui qu'on nomme), un départ en l'air seulement sur demande.
+Ce que ça coûte :
+
+- **le temps de décoller** avant d'arriver sur la zone : une paire de MiG-29 placée sur la piste de Senaki a eu les roues hors du sol **25 à 35 s après l'alerte**, et montait à 280 m et 330 kt 45 s après (mesuré le 2026-10-10). Le groupe apparaît sur la piste, pas au parking : il n'a ni démarrage ni roulage à faire ;
+- **un terrain trop endommagé ou pris** (sous `airbaseMinLifePercent`) garde la QRA au sol (`NOAIRBASE`) : dans une campagne, frapper le terrain ennemi est une façon de clouer sa QRA, et c'est voulu ;
+- **une unité sur la piste** l'empêche de rouler : les garnisons d'une campagne sont tenues hors du béton pour cette raison ;
+- **dix minutes pour décoller** (`veafQraManager.TAKEOFF_TIMEOUT`) : tant qu'un groupe n'a pas encore été vu en l'air, il roule, il n'est pas posé ; resté au sol au-delà, il est tenu pour coincé et la QRA est réarmée. Un groupe qui a volé puis se pose est réarmé comme avant.
 
 C'est donc le cas normal : placez l'intercepteur avec **un seul point**, sans tâche, et le script fait le
 reste ; le build l'annonce pour chaque groupe concerné. Si vous voulez votre propre plan de vol, écrivez-le **avec** une tâche d'engagement des aéronefs : il

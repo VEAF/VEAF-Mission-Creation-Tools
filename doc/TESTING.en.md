@@ -159,6 +159,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafSecurity.lua` | Security levels, admin management |
 | `test_veafServerHook.lua` | Server hook: chat-command parsing and dispatch |
 | `test_veafNamedPoints.lua` | Point registration, lookup, ATC helpers |
+| `test_veafOpposition.lua` | Opposition level: counted from the players connected or airborne, hysteresis (an immediate rise, a delayed drop), the `_opposition` marker and its security level |
 | `test_veafShortcuts.lua` | Shortcut registration and resolution |
 | `test_veafWeather.lua` | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | Unit data export utilities |
@@ -177,6 +178,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafSkynetIadsHelper_spotter.lua` | Spotter network: detection, radio graph, propagation, hand-over to Skynet |
 | `test_veafSkynetIadsMonitor.lua` | Skynet monitor state |
 | `test_veafGroundAI.lua` | Ground AI behavior flags |
+| `test_veafGroundAI_convoy.lua` | Convoy under fire: the watch, the split, fight or fall back, the call for help, the `_gc` orders |
 | `test_veafRadio.lua` | Radio menu tree construction |
 | `test_veafQraManager.lua` | QRA state machine, zone management |
 | `test_veafAirWaves.lua` | Wave scheduling, group assignment |
@@ -185,6 +187,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafAwacsEscort.lua` | `-awacs` (race-track, Skynet, datalink) and `-escort` (the `Escort` task, the airplane nearest the marker, the F10 "Escort me" entry) |
 | `test_veafSanctuary.lua` | Sanctuary zone detection |
 | `test_veafMissileGuardian.lua` | Missile intercept logic |
+| `test_veafCampaign.lua` | Multi-mission campaign: garrisons drawn, recorded, and their losses |
 | `test_veafCasMission.lua` | CAS threat package generation |
 | `test_veafTransportMission.lua` | Transport mission setup |
 | `test_veafCarrierOperations.lua` | Carrier recovery sequence |

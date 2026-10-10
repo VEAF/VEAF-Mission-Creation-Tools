@@ -39,7 +39,7 @@ ignore = { "211", "212", "213", "231", "311", "312", "314", "321", "331", "411",
 globals = {
   -- Core DCS API
   "coalition", "world", "trigger", "timer", "land", "env", "country",
-  "Group", "Unit", "Airbase", "Object", "Spot", "Controller", "AI", "Radio",
+  "Group", "Unit", "Airbase", "Object", "Weapon", "Spot", "Controller", "AI", "Radio",
   "VoiceChat", "net", "lfs", "StaticObject",
   -- DCS API globals commonly used but often omitted from stub lists
   "coord", "atmosphere", "missionCommands", "log",
@@ -60,21 +60,21 @@ globals = {
   -- Community scripts
   "mist", "ctld", "CTLD", "csar", "CSAR", "SkynetIADS", "AIRBOSS",
   -- CTLD 2 managers: the engine's public surface, replacing the v1 ctld.* globals
-  "CTLDZoneManager", "CTLDBeaconManager", "CTLDJTACManager",
+  "CTLDZoneManager", "CTLDBeaconManager", "CTLDJTACManager", "CTLDCrateManager",
   -- CTLD 2 config singleton: veaf.isCtldReady() reads its isLoaded flag to tell a started
   -- engine from one still parked on ctld.dontInitialize
   "CTLDConfig",
-  "AirWaveZone", "ArtilleryUnitHandler", "DcsDataExport", "dcsUnits", "veafCities", "veafAirfieldFrequencies",
+  "AirWaveZone", "ArtilleryUnitHandler", "ConvoyUnitHandler", "DcsDataExport", "dcsUnits", "veafCities", "veafAirfieldFrequencies",
   "GroundUnitHandler", "sha1", "STTS", "AIEN", "weathermark", "dcsbot",
   "SkynetIADSAbstractRadarElement",
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})
   "veaf", "veafAircraftSpawn", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
-  "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCarrierOperations",
+  "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCampaign", "veafCarrierOperations",
   "veafCasMission", "veafCombatMission", "veafCombatZone", "veafCommands",
   "veafEventHandler", "veafGeo", "veafGrass", "veafGroundAI",
   "veafI18n", "veafInterpreter", "veafMarkers", "veafMath", "veafMissileGuardian",
   "veafMissionDb", "veafMove",
-  "veafNamedPoints", "veafQraManager", "veafRadio", "veafReactiveZone", "veafRecorder", "veafRemote",
+  "veafNamedPoints", "veafOpposition", "veafQraManager", "veafRadio", "veafReactiveZone", "veafRecorder", "veafRemote",
   "veafSanctuary", "veafScheduler", "veafSecurity", "veafShortcuts",
   "veafSkynet", "veafSkynetMonitor",
   "veafDcsSpawner", "veafSpawn", "veafSpawnableAircraftsEditor",
@@ -84,7 +84,7 @@ globals = {
   -- VEAF class names (PascalCase — OOP constructors)
   "VeafAircraftSpawn", "VeafAirUnitTemplate",
   "VeafAlias", "VeafAliasForCombatMission", "VeafAliasForCombatZone",
-  "VeafCache", "VeafCircleOnMap",
+  "VeafCache", "VeafCampaignZone", "VeafCircleOnMap",
   "VeafCombatMission", "VeafCombatMissionElement", "VeafCombatMissionObjective",
   "VeafCombatOperation", "VeafCombatOperationTaskingOrder",
   "VeafCombatZone", "VeafCombatZoneElement", "VeafDrawingOnMap",

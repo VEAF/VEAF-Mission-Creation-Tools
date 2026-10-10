@@ -461,6 +461,92 @@ function TestVeafSecurityGroupLevel:test_elevation_is_per_group()
 end
 
 -------------------------------------------------------------------------------------------------
+-- FIX-SECURITY-GROUP-LEVEL ticket 01 — who sits in a group, without `Group.getByID`
+--
+-- DCS has no `Group.getByID`. The occupant lookup used it behind an `and` guard, so every group
+-- was empty, level 0, and every secured command was refused on every server from 6.14.0 on.
+-- The suite above stubs `getGroupOccupantUnitNames` and never ran it; these run it for real,
+-- against a mock that, like DCS, has no `Group.getByID`.
+-------------------------------------------------------------------------------------------------
+
+TestVeafSecurityGroupOccupants = {}
+
+--- A unit a human sits in, the way `coalition.getPlayers` returns it.
+local function _playerUnit(unitName, groupId)
+  return {
+    getName = function()
+      return unitName
+    end,
+    getPlayerName = function()
+      return "player of " .. unitName
+    end,
+    getGroup = function()
+      return {
+        getID = function()
+          return groupId
+        end,
+      }
+    end,
+  }
+end
+
+function TestVeafSecurityGroupOccupants:setUp()
+  veafSecurity.groupElevations = {}
+  self.savedGetPlayers = coalition.getPlayers
+  self.savedRemote = veafRemote
+  self.players = {}
+  coalition.getPlayers = function(side)
+    return self.players[side] or {}
+  end
+  veafRemote = {
+    remoteUnitsPilots = {},
+    getRemoteUserFromUnit = function(unitName)
+      return veafRemote.remoteUnitsPilots[unitName]
+    end,
+  }
+end
+
+function TestVeafSecurityGroupOccupants:tearDown()
+  coalition.getPlayers = self.savedGetPlayers
+  veafRemote = self.savedRemote
+end
+
+function TestVeafSecurityGroupOccupants:test_the_mock_has_no_getByID_like_dcs()
+  -- If a mock ever grows one, these tests stop proving anything about DCS.
+  luaunit.assertNil(Group.getByID)
+end
+
+function TestVeafSecurityGroupOccupants:test_a_listed_pilot_alone_gives_their_level()
+  -- The regression: `Stennis Hornet-1`, level 99, read as level 0 on private1 on 2026-10-10.
+  self.players[coalition.side.BLUE] = { _playerUnit("Stennis Hornet-1", 12) }
+  veafRemote.remoteUnitsPilots["Stennis Hornet-1"] = { level = 99 }
+  luaunit.assertEquals(veafSecurity.getGroupOccupantUnitNames(12), { "Stennis Hornet-1" })
+  luaunit.assertEquals(veafSecurity.getGroupLevel(12), 99)
+end
+
+function TestVeafSecurityGroupOccupants:test_a_listed_and_an_unlisted_pilot_take_the_lowest()
+  self.players[coalition.side.BLUE] = { _playerUnit("Hornet-1", 12), _playerUnit("Hornet-2", 12) }
+  veafRemote.remoteUnitsPilots["Hornet-1"] = { level = 99 }
+  luaunit.assertEquals(veafSecurity.getGroupLevel(12), 0)
+end
+
+function TestVeafSecurityGroupOccupants:test_a_pilot_in_another_group_is_not_counted()
+  -- Same unit count, other group, other coalition: only the group id decides.
+  self.players[coalition.side.BLUE] = { _playerUnit("Hornet-1", 12) }
+  self.players[coalition.side.RED] = { _playerUnit("Fulcrum-1", 13) }
+  veafRemote.remoteUnitsPilots["Hornet-1"] = { level = 99 }
+  luaunit.assertEquals(veafSecurity.getGroupOccupantUnitNames(12), { "Hornet-1" })
+  luaunit.assertEquals(veafSecurity.getGroupLevel(12), 99)
+end
+
+function TestVeafSecurityGroupOccupants:test_a_group_with_no_human_is_zero()
+  self.players[coalition.side.BLUE] = { _playerUnit("Hornet-1", 12) }
+  veafRemote.remoteUnitsPilots["Hornet-1"] = { level = 99 }
+  luaunit.assertEquals(veafSecurity.getGroupOccupantUnitNames(14), {})
+  luaunit.assertEquals(veafSecurity.getGroupLevel(14), 0)
+end
+
+-------------------------------------------------------------------------------------------------
 -- The elevation command, on both channels (REVIEW-SECURITY-LAYER ticket 01)
 --
 -- The minimum-of-the-group rule costs an admin sharing a four-slot group their admin commands.

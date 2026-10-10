@@ -63,7 +63,7 @@ artifacts:
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc12"
+    pinned: "2.0.0-rc13"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
@@ -71,7 +71,7 @@ artifacts:
       - {
           kind: github-release,
           repo: VEAF/CTLD,
-          pinned: "published-v2.0.0-rc12",
+          pinned: "published-v2.0.0-rc13",
           prereleases: true,
           tag_pattern: "^published-v",
         }
@@ -216,9 +216,9 @@ artifacts:
   - id: dcs-schema
     source: https://github.com/YoloWingPixie/dcs-world-schema
     upstream: https://github.com/YoloWingPixie/dcs-world-schema
-    pinned: "v0.4.0"
+    pinned: "v0.5.0"
     vendoring: verbatim
     path: src/python/veaf-tools/veaf_libs/data/dcs-schema
     manual_steps: "(verbatim) re-download the schema artifacts from the matching upstream release (bump the TOOLING-DCS-MOCK-COVERAGE NOTICE)."
     watch:
-      - { kind: github-release, repo: YoloWingPixie/dcs-world-schema, pinned: "v0.4.0" }
+      - { kind: github-release, repo: YoloWingPixie/dcs-world-schema, pinned: "v0.5.0" }

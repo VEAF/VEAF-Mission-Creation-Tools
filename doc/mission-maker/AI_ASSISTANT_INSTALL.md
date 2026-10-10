@@ -1,7 +1,7 @@
 # Installer l'assistant IA de création de missions
 
 > **Public** : créateurs de missions VEAF qui veulent créer et éditer une mission en langage
-> naturel via un assistant IA (Claude Code ou Gemini CLI), branché sur le serveur `veaf-mission-mcp`.
+> naturel via un assistant IA (Claude, Gemini ou une autre IA), branché sur le serveur `veaf-mission-mcp`.
 
 Le plugin **veaf-mission-editor** apporte à votre assistant les outils VEAF (le serveur MCP —
 les « mains ») et le savoir-faire d'authoring (la skill — le « cerveau »). Une fois installé, vous
@@ -9,15 +9,22 @@ demandez une mission en français et l'assistant l'enchaîne : création → éd
 build. Le catalogue de ce que vous pouvez demander est dans
 [AI_ASSISTANT_CATALOG.md](AI_ASSISTANT_CATALOG.md).
 
-Il fonctionne avec **deux assistants**, et c'est le même savoir-faire dans les deux cas — un seul
-fichier de consignes, pas une copie par assistant. Choisissez la section qui correspond au vôtre.
+Le savoir-faire est le même quelle que soit l'IA — un seul fichier de consignes, pas une copie par assistant.
+Choisissez la ligne qui correspond à la vôtre :
+
+| Votre IA | Ce qu'elle peut faire | Section |
+|---|---|---|
+| **Claude Code** (en terminal, ou l'onglet **Code** de l'application Claude) | tout, et elle installe `veaf-tools` toute seule | [Installation avec Claude Code](#install-claude-code) |
+| **Gemini CLI** | tout, si `veaf-tools` est déjà installé | [Installation avec Gemini CLI](#install-gemini-cli) |
+| Une autre IA qui sait lancer un **serveur MCP** sur votre PC (Claude Desktop en mode chat, éditeurs de code avec assistant…) | tout, une fois branchée à la main | [Une autre IA compatible MCP](#other-mcp-client) |
+| Une IA de chat dans le navigateur (ChatGPT, Le Chat, Gemini web…) | conseiller, pas agir sur vos fichiers | [Une IA sans MCP](#no-mcp) |
 
 ## Prérequis
 
-- **Claude Code** ou **Gemini CLI** installé.
+- **Claude Code**, **Gemini CLI** ou une autre IA compatible MCP installée.
 - **Windows** (le plugin est Windows-first ; les créateurs de missions DCS sont sous Windows).
 
-## Installation avec Claude Code
+## Installation avec Claude Code {#install-claude-code}
 
 Dans un terminal — ou via les commandes `/plugin …` directement dans Claude Code :
 
@@ -34,7 +41,7 @@ Puis **redémarrez Claude Code**. (Dépôt public : aucune authentification néc
 > `~/.claude/plugins/marketplaces/` puis réessayez. En cas de refus de clé SSH sur une machine
 > neuve, forcez HTTPS : `git config --global url."https://github.com/".insteadOf "git@github.com:"`.
 
-## Installation avec Gemini CLI
+## Installation avec Gemini CLI {#install-gemini-cli}
 
 Gemini installe une extension depuis un dossier de votre disque, et il veut trouver le fichier
 d'extension à la racine de ce dossier — chez nous il est dans le sous-dossier `plugin`. D'où le clone
@@ -59,6 +66,57 @@ gemini extensions uninstall veaf-mission-editor
 > tout seul (voir la section suivante). **Avec Gemini, non** : il faut que `veaf-tools` soit déjà
 > installé sur votre machine et accessible depuis un terminal — tapez `veaf-tools --help` pour le
 > vérifier. Si la commande n'est pas reconnue, installez les outils VEAF avant d'utiliser l'assistant.
+
+## Une autre IA compatible MCP {#other-mcp-client}
+
+Le serveur VEAF est un programme standard : n'importe quelle IA qui sait lancer un **serveur MCP local** peut s'en servir.
+Le plugin, lui, n'existe que pour Claude Code et Gemini CLI, donc deux choses se font à la main : installer `veaf-tools`, et déclarer le serveur.
+
+**1. Installer `veaf-tools`.**
+Suivez l'[étape 0 du tutoriel](TUTORIAL.md#step-0-install) dans un dossier qui ne bougera plus, par exemple `C:\VEAF\outils` — l'étape parle d'un dossier de mission ; ici, c'est le dossier des outils, à part de vos missions.
+Notez le chemin complet de `veaf-tools.exe` : l'IA le lance elle-même, sans passer par un terminal ouvert dans ce dossier.
+Ce `veaf-tools.exe` sert de serveur ; chaque mission que l'IA crée reçoit ensuite ses propres outils dans son dossier, comme au tutoriel.
+Pensez à relancer `veaf-tools-updater.exe` dans `C:\VEAF\outils` de temps en temps : avec Claude Code, le plugin le fait à votre place ; ici, personne.
+
+**2. Déclarer le serveur.**
+Toutes ces IA demandent les deux mêmes informations : la **commande** (le chemin de `veaf-tools.exe`) et ses **arguments** (`mcp`).
+La plupart les lisent dans un fichier JSON de cette forme :
+
+```json
+{
+  "mcpServers": {
+    "veaf-mission-editor": {
+      "command": "C:\\VEAF\\outils\\veaf-tools.exe",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+> **Les barres obliques inverses sont doublées** : c'est la règle du JSON, une seule `\` y est un caractère spécial.
+> Écrire `C:\VEAF\outils\veaf-tools.exe` tel quel rend le fichier illisible.
+
+Avec **Claude Desktop** (l'application Claude, en mode chat) : menu **Paramètres** (*Settings*) → **Développeur** (*Developer*) → **Modifier la configuration** (*Edit Config*).
+Le fichier qui s'ouvre est `%APPDATA%\Claude\claude_desktop_config.json` ; ajoutez-y le bloc `mcpServers` ci-dessus — s'il contient déjà d'autres réglages, gardez-les et ajoutez seulement la clé — puis **quittez complètement** l'application et relancez-la.
+Pour une autre IA, cherchez « MCP » dans sa documentation : le nom du fichier change, les deux informations restent les mêmes.
+
+**3. Lui donner le savoir-faire.**
+C'est ce que le plugin apporte et qui manque ici : les conventions de nommage, l'ordre de travail, ce qu'il faut vérifier plutôt que deviner.
+Sans elles, l'IA construit des missions qui ont l'air justes et ne marchent pas dans DCS, sans aucune erreur visible.
+Le serveur les sert lui-même — l'action `describe_authoring_guide` renvoie le même texte que le plugin — et demande à l'IA de les lire en premier.
+Toutes les IA ne tiennent pas compte de cette demande, donc commencez chaque conversation par :
+
+> « Avant toute chose, lis le guide de création VEAF avec l'action `describe_authoring_guide`, puis les limites connues avec `describe_known_limitations`. »
+
+**Comment savoir que ça marche** : demandez « quelle version de veaf-tools utilises-tu ? ».
+L'IA doit répondre avec la version installée, celle qu'affiche `.\veaf-tools.exe about`.
+
+## Une IA sans MCP {#no-mcp}
+
+Une IA de chat dans le navigateur ne peut pas lancer de programme sur votre PC : elle ne lit pas votre mission, ne la modifie pas, ne la construit pas.
+Elle reste utile pour **comprendre** et **rédiger** : expliquer une option, proposer un bloc de `mission.yaml`, relire un message d'erreur.
+Pour qu'elle ne réponde pas de mémoire, donnez-lui la page qui fait foi — la [référence `mission.yaml`](../MISSION_YAML_REFERENCE.md), la fiche du script concerné — en la collant dans la conversation ou en lui donnant son adresse.
+Puis vérifiez ce qu'elle propose avec `.\veaf-tools.exe validate` avant de construire : c'est vous qui faites tourner les outils.
 
 ## Premier démarrage (Claude Code)
 

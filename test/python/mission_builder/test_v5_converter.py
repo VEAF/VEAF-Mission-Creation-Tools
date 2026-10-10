@@ -752,9 +752,14 @@ class TestBuildMissionYamlDependencyResolution(unittest.TestCase):
         self.assertIn("SPAWN", report.auto_resolved_deps)
 
     def test_no_deps_recorded_when_none_needed(self) -> None:
-        # RADIO has no dependencies; the always-on base set is self-consistent.
-        _, report = self._build(["RADIO"])
+        # WEATHER has no dependencies; the always-on base set is self-consistent.
+        _, report = self._build(["WEATHER"])
         self.assertEqual(report.auto_resolved_deps, [])
+
+    def test_radio_pulls_in_security(self) -> None:
+        # FIX-SECURITY-GROUP-LEVEL: the `/secu elevate` a refused `+` command suggests needs SECURITY.
+        _, report = self._build(["RADIO"])
+        self.assertEqual(report.auto_resolved_deps, ["SECURITY"])
 
     def test_report_mentions_resolved_dependencies(self) -> None:
         _, report = self._build(["CASMISSION"])

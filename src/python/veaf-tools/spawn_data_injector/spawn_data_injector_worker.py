@@ -3,14 +3,17 @@
 ``veafUnits.lua`` ships its ``UnitsDatabase`` / ``GroupsDatabase`` empty. At
 mission build this step renders the framework spawn data (``veaf-units.yaml``),
 merged with any per-mission data (SPAWN-EXTERNALIZE-004), into a Lua module that
-assigns the two tables, embeds it as a mission map resource, and appends a
-``a_do_script_file`` trigger that runs **after** the VEAF framework bundle has
-loaded ``veafUnits.lua``. See ADR 0005.
+assigns the two tables, embeds it as a mission map resource, and loads it with an
+``a_do_script_file`` action. See ADR 0005.
 
-The trigger is appended at the end of the trigger list (highest index), so it
-runs after every framework and mission script load trigger. That is safe because
-the spawn database is consumed at runtime (``_spawn`` commands, dynamic group
-generation), never during script load.
+The action is the **last of the VEAF framework load triggers** (static and dynamic),
+right after the bundle has defined ``veafUnits`` and before the mission scripts run:
+``veaf-config.lua`` initializes the modules, and the campaign draws its garrisons
+from the groups database there. The step used to append a trigger of its own at the
+end of the list, on the premise that the database is only read at runtime; the
+garrisons then came out of an empty database, without any air defence
+(FIX-SPAWN-DATA-LOAD-ORDER). A mission without the framework triggers still gets that
+trailing trigger, and a warning.
 """
 
 from __future__ import annotations
@@ -20,7 +23,14 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from mission_tools import DEFAULT_SCRIPTS_LOCATION, SPAWN_DATA_ARTIFACT, read_miz, write_miz
+from mission_tools import (
+    DEFAULT_SCRIPTS_LOCATION,
+    SPAWN_DATA_ARTIFACT,
+    VEAF_SCRIPTS_LOADING_DYNAMIC_COMMENT,
+    VEAF_SCRIPTS_LOADING_STATIC_COMMENT,
+    read_miz,
+    write_miz,
+)
 from mission_tools.miz_tools import DcsMission
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.i18n import t, tn
@@ -33,6 +43,9 @@ from spawn_data_injector.spawn_data_emitter import load_framework_spawn_data, re
 #: recognise this file as build output (FIX-EXTRACT-GENERATED-ARTIFACTS).
 _MAP_KEY = "VEAF_MapKey_SpawnData"
 _RESOURCE_FILENAME = SPAWN_DATA_ARTIFACT
+
+#: The triggers that load the framework bundle: the spawn data loads as their last action.
+_FRAMEWORK_TRIGGER_COMMENTS = frozenset({VEAF_SCRIPTS_LOADING_DYNAMIC_COMMENT, VEAF_SCRIPTS_LOADING_STATIC_COMMENT})
 
 
 @dataclass
@@ -100,8 +113,40 @@ def _numeric_keys(container: dict) -> list[int]:
     return result
 
 
+def _framework_trigger_indices(mission_content: dict) -> list:
+    """Return the indices of the VEAF framework load triggers, static and dynamic."""
+    trigrules = mission_content.get("trigrules") or {}
+    return [
+        index
+        for index, rule in trigrules.items()
+        if isinstance(rule, dict) and rule.get("comment") in _FRAMEWORK_TRIGGER_COMMENTS
+    ]
+
+
+def _load_with_trigger(mission_content: dict, index: Any) -> None:
+    """Add the spawn-data load as the last action of trigger *index*, once.
+
+    Args:
+        mission_content: The mission table (mutated).
+        index: The trigger's key, the same in ``trigrules`` and in ``trig``.
+    """
+    load = {"predicate": "a_do_script_file", "file": _MAP_KEY}
+    call = f'a_do_script_file(getValueResourceByKey("{_MAP_KEY}"));'
+    rule = mission_content["trigrules"][index]
+    actions = rule.setdefault("actions", {})
+    if isinstance(actions, list):
+        if load not in actions:
+            actions.append(load)
+    elif load not in actions.values():
+        actions[max(_numeric_keys(actions), default=0) + 1] = load
+    trig_actions: dict = mission_content.setdefault("trig", {}).setdefault("actions", {})
+    current = str(trig_actions.get(index) or "")
+    if call not in current:
+        trig_actions[index] = current + call
+
+
 def inject_spawn_data(mission: DcsMission, lua_text: str) -> dict[str, bytes]:
-    """Embed the spawn-data module and append its load trigger, in place.
+    """Embed the spawn-data module and load it with the VEAF framework, in place.
 
     Args:
         mission: The parsed mission (``mission_content`` / ``map_resource_content``
@@ -116,6 +161,13 @@ def inject_spawn_data(mission: DcsMission, lua_text: str) -> dict[str, bytes]:
     mission.map_resource_content = mission.map_resource_content or {}
     mission.map_resource_content[_MAP_KEY] = _RESOURCE_FILENAME
 
+    framework_triggers = _framework_trigger_indices(mission.mission_content)
+    if framework_triggers:
+        for framework_index in framework_triggers:
+            _load_with_trigger(mission.mission_content, framework_index)
+        return {f"{DEFAULT_SCRIPTS_LOCATION}/{_RESOURCE_FILENAME}": lua_text.encode("utf-8")}
+
+    logger.warning(t("pipeline.console.spawn_data_no_framework_trigger"))
     index = _next_trigger_index(mission.mission_content)
 
     trigrules: dict = mission.mission_content.setdefault("trigrules", {})

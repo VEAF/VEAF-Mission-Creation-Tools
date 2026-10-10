@@ -72,6 +72,9 @@ COMMAND_GROUPS: tuple[CommandGroup, ...] = (
             "airfield-channels",
         ),
     ),
+    CommandGroup(
+        "campaign", ("campaign-init", "campaign-validate", "campaign-apply", "campaign-next", "campaign-briefing")
+    ),
     CommandGroup("cockpit", ("resolve-checklist", "verify-checklist", "explore-cockpit")),
     CommandGroup(
         "dcs",
@@ -122,8 +125,8 @@ def in_group_name(command: str, group_id: str) -> str:
 
     A command whose name already begins with its group's stutters when the two are read together —
     ``convert convert-v5``. The group has already said that word, so the command drops it and reads
-    ``convert v5``. Nothing else in the tree is affected: only ``convert-v5`` and ``convert-other``
-    start with their group's name.
+    ``convert v5``. Nothing else in the tree is affected: only ``convert-v5``, ``convert-other`` and
+    the ``campaign-*`` commands start with their group's name.
 
     The flat name is unchanged and stays registered at the root as a hidden alias, so
     ``veaf-tools convert-v5`` keeps working. Only the grouped spelling is shortened — and since the

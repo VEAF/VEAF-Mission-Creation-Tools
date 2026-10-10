@@ -56,6 +56,9 @@ sécurité : au menu F10, le groupe agit au niveau de son occupant **le moins gr
 
 Une mission de combat propose en plus des sous-menus de **compétence** et d'**échelle**, qui règlent
 la difficulté et le nombre de groupes engagés.
+Quand la mission a un [niveau d'opposition](veafQraManager.md#opposition-level), chaque compétence porte
+aussi l'entrée `Taille auto (niveau d'opposition)` : elle active l'échelle d'un groupe ennemi par deux
+joueurs, arrondie au-dessus, dans la limite des échelles proposées (niveau 6 → échelle 3).
 
 ---
 

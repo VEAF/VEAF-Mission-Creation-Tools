@@ -17,6 +17,8 @@ from mission_tools import (
     DEFAULT_SCRIPTS_LOCATION,
     GENERATED_LUA_ARTIFACTS,
     SPAWN_DATA_ARTIFACT,
+    VEAF_SCRIPTS_LOADING_DYNAMIC_COMMENT,
+    VEAF_SCRIPTS_LOADING_STATIC_COMMENT,
     DcsMission,
     collect_files_from_globs,
     create_miz,
@@ -2187,8 +2189,8 @@ class MissionBuilderWorker(BaseWorker):
                 True,
                 [LuaAction(f"VEAF_DYNAMIC_MISSIONPATH = {mission_path}")],
             ),
-            VeafTriggerSpec(keys[2], "VEAF scripts loading - dynamic", "0x00ff80ff", False, dynamic_scripts),
-            VeafTriggerSpec(keys[3], "VEAF scripts loading - static", "0x00ff80ff", False, static_scripts),
+            VeafTriggerSpec(keys[2], VEAF_SCRIPTS_LOADING_DYNAMIC_COMMENT, "0x00ff80ff", False, dynamic_scripts),
+            VeafTriggerSpec(keys[3], VEAF_SCRIPTS_LOADING_STATIC_COMMENT, "0x00ff80ff", False, static_scripts),
             VeafTriggerSpec(
                 keys[4],
                 "Mission scripts loading - dynamic",
@@ -2554,6 +2556,7 @@ class MissionBuilderWorker(BaseWorker):
                 checklists=checklists,
                 checklist_images=image_keys,
                 mission_channels=mission_channels(self.mission_folder),
+                campaign_data=self._campaign_data(yaml_dict),
             )
         except LuaSyntaxError as exc:
             logger.error(
@@ -2569,6 +2572,28 @@ class MissionBuilderWorker(BaseWorker):
         config_file.write_text(content, encoding="utf-8")
         logger.info(t("builder.veaf_config_generated", file=config_file))
         self._report_active_modules(yaml_dict)
+
+    def _campaign_data(self, yaml_dict: dict) -> dict | None:
+        """Read the campaign data table a campaign mission carries (FEAT-MULTI-MISSION-CAMPAIGN).
+
+        Args:
+            yaml_dict: The mission's ``mission.yaml``.
+
+        Returns:
+            The table the ``CAMPAIGN`` module's ``data_file`` holds, or ``None`` when the module is
+            off, names no file, or the file is missing — the runtime module then says in the log
+            that it has no data, and the mission runs without the campaign.
+        """
+        module = enabled_module_config(yaml_dict, "CAMPAIGN")
+        data_file = module.get("data_file") if module else None
+        if not data_file:
+            return None
+        path = self.mission_folder / str(data_file)
+        if not path.is_file():
+            logger.warning(t("builder.campaign_data_missing", path=path))
+            return None
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else None
 
     @staticmethod
     def _report_active_modules(yaml_dict: dict) -> None:

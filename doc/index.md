@@ -6,13 +6,62 @@ Ensemble complet d'outils pour créer des missions [DCS World](https://www.digit
 
 ---
 
-## Choisissez votre guide
+## Par où commencer {#start-here}
 
-| Rôle | Par ici | Ce que vous trouverez |
-|------|---------|-----------------------|
-| **Joueur / Pilote** | [Guide du pilote](pilot/README.md) | Menus F10, commandes marqueurs, assets et zones de combat disponibles |
-| **Créateur de missions** | [Guide créateur de missions](mission-maker/README.md) | Installation, configuration des modules, build et déploiement |
-| **Développeur** | [Guide du développeur](developer/README.md) | Architecture, pipeline de build, qualité, contribution |
+<div class="grid cards" markdown>
+
+-   :material-airplane:{ .lg .middle } **Voler**
+
+    ---
+
+    Vous rejoignez une mission VEAF : menus F10, commandes marqueurs, ce que vous pouvez faire apparaître.
+
+    [:octicons-arrow-right-24: Guide du pilote](pilot/README.md)
+
+-   :material-compass-outline:{ .lg .middle } **Découvrir VMCT**
+
+    ---
+
+    Ce que font les outils et comment une mission est fabriquée, en dix minutes.
+
+    [:octicons-arrow-right-24: Découvrir VMCT](mission-maker/DISCOVER.md)
+
+-   :material-hammer-wrench:{ .lg .middle } **Ma première mission**
+
+    ---
+
+    Le tutoriel, du dossier vide à la mission qui tourne dans DCS.
+
+    [:octicons-arrow-right-24: Tutoriel](mission-maker/TUTORIAL.md)
+
+-   :material-robot-outline:{ .lg .middle } **Créer avec une IA**
+
+    ---
+
+    Claude, Gemini ou une autre IA : vous décrivez la mission, elle la construit.
+
+    [:octicons-arrow-right-24: Installer l'assistant IA](mission-maker/AI_ASSISTANT_INSTALL.md)
+
+-   :material-file-restore-outline:{ .lg .middle } **Reprendre une mission**
+
+    ---
+
+    Une mission VEAF v5 à passer en v6, ou celle d'un autre auteur à adopter.
+
+    [:octicons-arrow-right-24: Migrer une mission v5](mission-maker/MIGRATION_GUIDE.md)<br>
+    [:octicons-arrow-right-24: Adopter une mission tierce](mission-maker/CONVERT_OTHER.md)
+
+-   :material-lifebuoy:{ .lg .middle } **Obtenir de l'aide**
+
+    ---
+
+    Où demander, et quoi fournir pour qu'on puisse vous répondre.
+
+    [:octicons-arrow-right-24: Obtenir de l'aide](SUPPORT.md)
+
+</div>
+
+Tout le reste du créateur de missions est dans le [guide du créateur de missions](mission-maker/README.md) ; pour contribuer aux outils, voyez le [guide du développeur](developer/README.md).
 
 ---
 
@@ -39,7 +88,7 @@ flowchart TD
 | Référence | Description |
 |-----------|-------------|
 | [Référence API Lua](LUA_API_REFERENCE.md) | API complète des modules Lua runtime |
-| [Référence CLI](CLI_REFERENCE.md) | `veaf-tools` — les 25 commandes, leurs arguments et toutes leurs options |
+| [Référence CLI](CLI_REFERENCE.md) | `veaf-tools` — les 37 commandes, leurs arguments et toutes leurs options |
 | [Mise à jour & publication](TOOLS_REFERENCE.md) | `veaf-tools-updater` et `veaf-build` : installer, mettre à jour, publier |
 | [Guide de tests](TESTING.md) | Suite de tests Lua unitaires et pipeline CI/CD |
 | [Feuille de route](ROADMAP.md) | Fonctionnalités prévues et limitations connues |

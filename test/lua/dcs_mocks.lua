@@ -497,6 +497,13 @@ StaticObject = {
 Object = {
   Category = { UNIT = 1, WEAPON = 2, STATIC = 3, BASE = 4, SCENERY = 5, CARGO = 6 },
 }
+-- From veaf_libs/data/dcs-schema/dcs-world-api.lua: the campaign counts a SAM's missiles by it, and the
+-- opposition level counts the players armed for air-to-air by the other two.
+Weapon = {
+  Category = { SHELL = 0, MISSILE = 1, ROCKET = 2, BOMB = 3, TORPEDO = 4 },
+  GuidanceType = { INS = 1, IR = 2, RADAR_ACTIVE = 3, RADAR_SEMI_ACTIVE = 4, RADAR_PASSIVE = 5, TV = 6, LASER = 7, TELE = 8 },
+  MissileCategory = { AAM = 1, SAM = 2, BM = 3, ANTI_SHIP = 4, CRUISE = 5, OTHER = 6 },
+}
 Airbase = {
   getByName = function(name)
     return nil
@@ -1114,6 +1121,11 @@ CTLDZoneManager = _manager({
   unregisterLogistic = function() end,
   deactivateLogisticZone = function() end,
   activateLogisticZone = function() end,
+  registerFOBAsTroopZone = function()
+    return true
+  end,
+  unregisterTroopZone = function() end,
+  setTroopZoneActive = function() end,
   getLogisticZonesAtPoint = function()
     return dcs_mocks.logisticZonesAtPoint or {}
   end,

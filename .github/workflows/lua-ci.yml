@@ -111,4 +111,12 @@ jobs:
         # excludes like dcsUnits. They were counted as covered; the logic lost nothing (82.09 % →
         # 78.86 % measured, veafNamedPoints' uncovered lines 144 → 118).
         # Raised to 81.0 by FEAT-AIRWAVES-QRA-MERGE (82.40 % measured locally, Lua 5.1, 2026-10-05).
-        run: poetry run test-lua --cov-fail-under 81.0
+        run: poetry run test-lua --cov-fail-under 82.0
+
+      - name: Run the static bundle under Lua 5.1
+        # The Lua tests load each module in its own chunk; DCS loads the concatenated bundle,
+        # where a chunk over 200 top-level locals is refused (FIX-BUNDLE-LOCAL-LIMIT). The test
+        # skips without Lua 5.1 elsewhere; here it must run.
+        env:
+          VEAF_REQUIRE_LUA51: "1"
+        run: poetry run pytest test/python/veaf_build/test_lua_bundle_runs.py -o addopts=""

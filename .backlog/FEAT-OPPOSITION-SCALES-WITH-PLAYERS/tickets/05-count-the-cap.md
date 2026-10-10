@@ -1,6 +1,6 @@
 # 05 — Count the players flying CAP, and set the level in one click
 
-Status: ✅ done on the mocks — #1115, the demo's opposition step in VEAF-Demo-Mission-v6#7; `getAmmo` on a player aircraft left to R46 item 8
+Status: ✅ done on the mocks — #1115, the demo's opposition step in VEAF-Demo-Mission-v6#7; **seen in game 2026-10-10** (R47 item 7): an A-10C in the air with bombs and two AIM-9 counts 0, an F/A-18C with an AIM-120 counts 1, *Level → 3 player(s) on CAP* fixes 3 — `getAmmo` reads what the schema says on a player aircraft
 
 David, 2026-10-09, after flying *Kolkhida* mission 1 with the level following the players connected: "tous ces joueurs ne sont pas partis pour faire de la CAP, donc l'opposition est trop forte. On pourrait ajouter un menu radio pour le réglage manuel (avec des options du genre 1-2-3-4-5-6 joueurs en CAP), mais si t'as une meilleure idée je prends" — then "option c": both.
 

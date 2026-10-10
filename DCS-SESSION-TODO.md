@@ -61,7 +61,7 @@ Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolk
 
 **Prepare**: a copy of `D:\dev\_VEAF\_campaigns\campaign-kolkhida` (never the live campaign), mission 1 rebuilt from the lot's branch **with the CTLD release that takes the unit's country**, security off in the copy, a game master slot, a CH-47F slot on Batumi stand 6 and on a Kobuleti stand **inside its logistic circle** (stand 24 is 1 200 m out of it: no crate, no troops — measured 2026-10-10; David keeps the 250 m zone, pilots taxi into the circle), an A-10C slot in the air near Batumi, `rules.assault_seconds: 60`.
 
-**Run 2026-10-10** (`D:\dev\_VEAF\tmp\dcs-session-2026-10-10`, CTLD rc13, no pilot): item 1 at Batumi — troops board, the crate appears **20 m** abeam, because the campaign's `ctld-config.yaml` predates rc13's per-type `crateSpawnSector`/`crateSpawnDistance` (to be completed before mission 2); item 2 passed (`EL:16` on the CDU, ground 5.0 m); item 3 — ATC silent and no garrison unit on the concrete at all three fields, but the QRA on the runway was destroyed 5 s after its scramble: fixed in [`FIX-QRA-GROUND-START`](.backlog/FIX-QRA-GROUND-START/PRD.md), to be run again. The QRA counts **human** aircraft only: an AI intruder does not trigger it.
+**Run 2026-10-10** (`D:\dev\_VEAF\tmp\dcs-session-2026-10-10`, CTLD rc13, no pilot): item 1 at Batumi — troops board, the crate appears **20 m** abeam, because the campaign's `ctld-config.yaml` predates rc13's per-type `crateSpawnSector`/`crateSpawnDistance` (to be completed before mission 2); item 2 passed (`EL:16` on the CDU, ground 5.0 m); item 3 — ATC silent and no garrison unit on the concrete at all three fields, but the QRA on the runway was destroyed 5 s after its scramble: fixed in [`FIX-QRA-GROUND-START`](.backlog/FIX-QRA-GROUND-START/PRD.md), to be run again. The QRA counts **human** aircraft only: an AI intruder does not trigger it. Item 4 passed without a red player (no smoke, no call; the red-player half needs a second pilot); item 6 passed (the convoy became Poti's garrison and drove on to the centre, 0 m); item 7 passed (A-10C 0, Hornet with AIM-120 1, *3 player(s) on CAP* fixes 3). Found on the way: a convoy holding at its standoff in front of an enemy DCS does not make it engage stays frozen, its watch refreshing the contact for ever.
 
 1. *(ticket 05)* The CH-47F on Batumi stand 6, then on a Kobuleti stand inside the green circle: CTLD → load troops, then CTLD → a crate.
    - **Verified**: troops board and a crate appears next to the helicopter, at both fields.
@@ -75,14 +75,6 @@ Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolk
 5. *(ticket 09, on dcs.veaf.org)* "Escort me" from a blue dynamic slot, as on 2026-10-08.
    - **Verified**: the escort comes, or a message says why it does not; the server's `dcs.log` has an `Escort me` line either way.
    - **Re-opened, no message and no `Escort me` line**: the click reached another command — F10 id reuse after a menu rebuild (ticket 09's hypothesis, CTLD's `FIX-MENU-STABLE-ENTRIES`); note which menu screen was open and for how long.
-6. *(`FIX-CAPTURE-ZONE-MEMBERSHIP` ticket 02)* Let the blue convoy reach Poti.
-   - **Verified**: it drives on after the capture, to within a few hundred metres of the centre (its road ends 163 m from it).
-   - **Re-opened, it stops about 2.1 km out**: the convoy's route in the running mission (the fiddle hook, read-only) — as on 2026-10-08, when its units stood 2 123–2 182 m out in the state file.
-7. *([`FEAT-OPPOSITION-SCALES-WITH-PLAYERS`](.backlog/FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md) ticket 05)* The opposition counts the players on CAP only: mission 1 rebuilt with `campaign next`, so its `opposition:` block reads `follow: air_to_air`. F10 → Opposition → *Current level*, then the A-10C in the air (bombs, AIM-9 at most) and a fighter in the air with AIM-120 (or R-77, AIM-7, R-27R).
-   - **Verified**: within a minute the level announced is 1 — the fighter, not the A-10C; F10 → Opposition → *Level* → *3 player(s) on CAP* announces 3, fixed.
-   - **Re-opened, 0**: `getAmmo` on a player aircraft does not carry `desc.missileCategory` and `desc.guidance` as the schema says — R46 item 8 gives the `fiddle.sh` dump.
-   - **Re-opened, 2**: the A-10C's AIM-9 is reported radar-guided — the same dump says which field to read.
-
 ### R46. The opposition level, from the shipped build — **one pilot for item 3**
 
 [`FEAT-OPPOSITION-SCALES-WITH-PLAYERS`](.backlog/FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md), tickets 02, 04 and 05.

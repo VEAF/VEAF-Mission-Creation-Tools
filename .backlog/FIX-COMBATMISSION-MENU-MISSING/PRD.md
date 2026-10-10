@@ -41,6 +41,7 @@ if veafCombatMission then
 | # | Ticket |
 |---|--------|
 | [01](tickets/01-initialize-after-missions.md) | Emit `initialize()` after the missions it builds the menu from |
+| [02](tickets/02-missions-declared-after-initialize.md) | Missions declared after `initialize()` land at the root of the VEAF menu (6.29.0 regression) |
 
 ## Definition of done
 

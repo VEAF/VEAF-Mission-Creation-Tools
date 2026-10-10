@@ -5,7 +5,7 @@ types (this server does not curate a unit catalog — see
 ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md``), then delegates the actual mutation to
 :func:`mission_tools.group_insertion.add_group`, backed up first
 (:func:`mission_tools.miz_backup.backup_before_write`). Mirrors adding a group by hand
-in the DCS Mission Editor: not deduplicated, calling this twice creates two groups.
+in the DCS Mission Editor, except that a name the mission already holds is refused rather than duplicated.
 """
 
 from pathlib import Path

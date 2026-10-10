@@ -430,8 +430,9 @@ collision sur la même seconde est désambiguïsée (`-2`, `-3`, ...), jamais si
 - `route` — optionnelle ; par défaut un unique point stationnaire à `position`. Avec
   `patrol: true` (et au moins 2 points), le dernier point boucle sur le premier via une tâche
   `GoToWaypoint` — une patrouille terrestre DCS classique.
-- **Pas de déduplication** : appeler deux fois avec les mêmes paramètres crée deux groupes
-  distincts, exactement comme deux clics dans l'éditeur DCS.
+- **Un nom déjà pris est refusé**, nom de groupe comme nom d'unité, en citant le groupe qui le porte.
+  DCS ne refuse pas deux objets du même nom : `Group.getByName` en renvoie un des deux sans rien dire, et tout ce qui désigne un groupe par son nom (QRA, combat zone, `remove_group`) se trompe de groupe.
+  Vaut pour toutes les actions qui créent un groupe (`add_air_group`, `add_player_slot`, `create_qra`…), qui passent par la même insertion.
 - Les `groupId`/`unitId` sont toujours frais (`mission_tools.group_insertion.max_ids`), y compris
   sur une mission aux plages d'ids déjà trouées.
 
@@ -579,6 +580,8 @@ dossier (durable) ou un `.miz` (transitoire), sauvegarde horodatée avant écrit
 - **Nom exact exigé.** Un fragment est refusé, comme pour `set_group_properties` : une suppression
   qui atterrit sur le premier groupe correspondant n'est pas rattrapable. Un nom introuvable liste ce
   qui existe, et **rien n'est écrit**.
+- **Un nom porté par plusieurs groupes est refusé**, en listant leurs `groupId` : `group_id` désigne celui à retirer, l'autre reste.
+  Avant, l'action les retirait tous et n'en annonçait qu'un.
 - **Nomme ce qu'il casse, sans refuser** — le créateur de mission veut peut-être précisément ça :
   une combat zone qui capture le groupe par préfixe de nom, une tâche `Escort` qui pointe son
   `groupId` (y compris imbriquée dans un `ComboTask`, la forme réelle de DCS), et une entrée

@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FIX-MCP-SESSION-PREP-FINDINGS](FIX-MCP-SESSION-PREP-FINDINGS/PRD.md) · 🔄
+
+What preparing the *Kolkhida* in-game test through the MCP broke: `loadout_from` failing on pylons numbered 1 to n, two groups of one name written, then both removed by `remove_group`; and CTLD `2.0.0-rc13` vendored, the release that gives crates a country of the coalition.
 
 ## 🧑 Waiting for a human
 

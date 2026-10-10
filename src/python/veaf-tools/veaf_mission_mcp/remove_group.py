@@ -35,33 +35,44 @@ from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.mission_table import group_names, listed
 
 
-def remove_group(target: Path, *, group_name: str) -> dict[str, Any]:
+def remove_group(target: Path, *, group_name: str, group_id: int | None = None) -> dict[str, Any]:
     """Remove one group from a mission, renumbering the container it leaves behind.
 
     Args:
         target: The mission **folder** (durable) or a **`.miz`** (transient).
         group_name: The group's **exact** name — a fragment is refused, as `set_group_properties`
             refuses one: a removal landing on whichever group matched first is not recoverable.
+        group_id: Which group, when several carry that name. A name two groups share is refused
+            without it: removing both and reporting one was the defect (FIX-MCP-SESSION-PREP-FINDINGS).
 
     Returns:
         ``{"group", "category", "coalition", "country", "group_id", "remaining", "durable",
         "warnings"}`` — ``remaining`` being how many groups the category still holds.
 
     Raises:
-        ValueError: If the target is not a readable mission, or no group carries that exact name.
+        ValueError: If the target is not a readable mission, no group carries that exact name, several
+            do and no ``group_id`` says which, or the ``group_id`` is not one of theirs.
     """
     mission, content = open_mission(target)
 
-    found = _locate(content, group_name)
-    if found is None:
+    matches = _locate_all(content, group_name)
+    if not matches:
         raise ValueError(
             f"No group named {group_name!r} in this mission. Groups present: {listed(group_names(content))}"
         )
-    coalition_name, country, category, group = found
+    if group_id is not None:
+        matches = [found for found in matches if found[3].get("groupId") == group_id]
+        if not matches:
+            raise ValueError(f"group_id {group_id} is not a group named {group_name!r}")
+    elif len(matches) > 1:
+        ids = ", ".join(f"{found[3].get('groupId')} ({found[0]} {found[2]})" for found in matches)
+        raise ValueError(f"{len(matches)} groups named {group_name!r}; pass the group_id of the one to remove: {ids}")
+    homonym_stays = len(_locate_all(content, group_name)) > 1
+    coalition_name, country, category, group = matches[0]
     group_id = group.get("groupId")
 
-    warnings = _reference_warnings(content, target, group_name, group_id)
-    remaining = _remove_and_renumber(country, category, group_name)
+    warnings = _reference_warnings(content, target, group_name, group_id, homonym_stays=homonym_stays)
+    remaining = _remove_and_renumber(country, category, group)
     durable = commit_mission(mission, target)["durable"]
 
     return {
@@ -76,16 +87,17 @@ def remove_group(target: Path, *, group_name: str) -> dict[str, Any]:
     }
 
 
-def _locate(content: dict[str, Any], group_name: str) -> tuple[str, dict[str, Any], str, dict[str, Any]] | None:
-    """Find the group and the country/category that hold it.
+def _locate_all(content: dict[str, Any], group_name: str) -> list[tuple[str, dict[str, Any], str, dict[str, Any]]]:
+    """Find every group of that exact name, with the country/category that holds it.
 
     Args:
         content: The parsed ``mission`` table.
         group_name: The exact group name.
 
     Returns:
-        ``(coalition_name, country, category, group)``, or ``None`` when the name is absent.
+        ``(coalition_name, country, category, group)`` for each, in table order; empty when the name is absent.
     """
+    found: list[tuple[str, dict[str, Any], str, dict[str, Any]]] = []
     for coalition_name, coalition in (content.get("coalition") or {}).items():
         if not isinstance(coalition, dict):
             continue
@@ -95,12 +107,12 @@ def _locate(content: dict[str, Any], group_name: str) -> tuple[str, dict[str, An
             for category in CATEGORIES:
                 for group in indexed((country.get(category) or {}).get("group")):
                     if isinstance(group, dict) and str(group.get("name", "")) == group_name:
-                        return str(coalition_name), country, category, group
-    return None
+                        found.append((str(coalition_name), country, category, group))
+    return found
 
 
-def _remove_and_renumber(country: dict[str, Any], category: str, group_name: str) -> int:
-    """Drop the named group and rewrite the container's keys as a contiguous ``1..n``.
+def _remove_and_renumber(country: dict[str, Any], category: str, removed: dict[str, Any]) -> int:
+    """Drop that group and rewrite the container's keys as a contiguous ``1..n``.
 
     A hole is the whole defect this action exists to prevent, so the container is rebuilt rather than
     patched: the survivors keep their table order and are re-keyed from 1. When nothing is left, the
@@ -110,7 +122,7 @@ def _remove_and_renumber(country: dict[str, Any], category: str, group_name: str
     Args:
         country: The country table holding the category.
         category: The category key (``plane``, ``vehicle``, …).
-        group_name: The group to drop.
+        removed: The group to drop — the table itself, so a homonym stays.
 
     Returns:
         How many groups the category still holds.
@@ -118,11 +130,7 @@ def _remove_and_renumber(country: dict[str, Any], category: str, group_name: str
     category_table = country.get(category)
     if not isinstance(category_table, dict):
         return 0
-    survivors = [
-        group
-        for group in indexed(category_table.get("group"))
-        if not (isinstance(group, dict) and str(group.get("name", "")) == group_name)
-    ]
+    survivors = [group for group in indexed(category_table.get("group")) if group is not removed]
     if survivors:
         category_table["group"] = {index: group for index, group in enumerate(survivors, start=1)}
     else:
@@ -130,7 +138,9 @@ def _remove_and_renumber(country: dict[str, Any], category: str, group_name: str
     return len(survivors)
 
 
-def _reference_warnings(content: dict[str, Any], target: Path, group_name: str, group_id: Any) -> list[str]:
+def _reference_warnings(
+    content: dict[str, Any], target: Path, group_name: str, group_id: Any, *, homonym_stays: bool = False
+) -> list[str]:
     """Name every reference to the group that will survive its removal, in silence.
 
     Args:
@@ -138,6 +148,8 @@ def _reference_warnings(content: dict[str, Any], target: Path, group_name: str, 
         target: The mission folder or `.miz`, so `mission.yaml` can be read when there is one.
         group_name: The group being removed.
         group_id: Its `groupId`, for the task references that point by id.
+        homonym_stays: Whether another group of that name remains: an `ASSETS` entry naming it then
+            still resolves, so it is not reported.
 
     Returns:
         One message per surviving reference; empty when nothing points at the group.
@@ -156,7 +168,8 @@ def _reference_warnings(content: dict[str, Any], target: Path, group_name: str, 
             "exists — the task will do nothing."
         )
 
-    warnings.extend(_asset_warnings(target, group_name))
+    if not homonym_stays:
+        warnings.extend(_asset_warnings(target, group_name))
     return warnings
 
 

@@ -104,19 +104,62 @@ class TestAddGroup:
         unit_ids = [unit["unitId"] for unit in new_group["units"]]
         assert unit_ids == [10, 11]
 
-    def test_calling_twice_creates_two_distinct_groups(self) -> None:
+    def test_two_groups_of_different_names_are_both_kept(self) -> None:
         mission = _mission()
 
         first_id = add_group(
-            mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group()
+            mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group("A")
         )
         second_id = add_group(
-            mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group()
+            mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group("B")
         )
 
         assert first_id != second_id
         groups = mission["coalition"]["red"]["country"][0]["vehicle"]["group"]
         assert len(groups) == 2
+
+    def test_a_group_name_already_taken_is_refused_naming_the_holder(self) -> None:
+        """Two groups of one name: `Group.getByName` resolves one of them, silently (FIX-MCP-SESSION-PREP-FINDINGS)."""
+        mission = _mission()
+        add_group(
+            mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group("Twin")
+        )
+
+        with pytest.raises(ValueError, match=r"'Twin'.*already.*red.*vehicle"):
+            add_group(
+                mission, coalition="blue", country_id=2, country_name="USA", category="plane", group=_group("Twin")
+            )
+        assert mission["coalition"]["blue"]["country"] == [], "nothing written for the refused group"
+
+    def test_a_unit_name_already_taken_is_refused(self) -> None:
+        mission = _mission()
+        add_group(mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group("A"))
+        clash = _group("B")
+        clash["units"][0]["name"] = "A Unit 1"
+
+        with pytest.raises(ValueError, match=r"unit name 'A Unit 1'.*already"):
+            add_group(mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=clash)
+
+    def test_groups_without_a_name_do_not_clash_on_the_empty_name(self) -> None:
+        mission = _mission()
+        for _ in range(2):
+            add_group(
+                mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group={"units": []}
+            )
+        assert len(mission["coalition"]["red"]["country"][0]["vehicle"]["group"]) == 2
+
+    def test_a_group_reading_back_as_a_dict_table_is_seen(self) -> None:
+        mission = _mission(
+            {
+                "blue": {"country": []},
+                "red": {"country": {1: {"id": 0, "name": "Russia", "vehicle": {"group": {1: _group("Old")}}}}},
+            }
+        )
+
+        with pytest.raises(ValueError, match="'Old'"):
+            add_group(
+                mission, coalition="red", country_id=0, country_name="Russia", category="vehicle", group=_group("Old")
+            )
 
     def test_raises_for_an_unknown_category(self) -> None:
         mission = _mission()

@@ -137,6 +137,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `veaf-build update-dcs-data` regenerates both tables by default, and CI fails if they drift.
 - **Vendored CTLD `2.0.0-rc13`** (was `rc12`), the release that creates crates, troops and JTACs under a country of the requesting aircraft's coalition: a campaign flown under CJTF Blue and CJTF Red, with neither USA nor Russia, got no crate at its airfields (FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 05).
   Its F10 menu now only rebuilds the entries that changed, so a click fires the command clicked; its zone accessors take the zone's full name, which is what VMCT already passes.
+- **`RADIO.menu_stats` watches the F10 menu in a real mission** (FEAT-RADIO-MENU-WATCH).
+  A diagnostic option, off by default: on every refresh, one line in `dcs.log` says what the VEAF menu added and removed, how big it is for everyone, each coalition and each group, and how many invisible commands hold freed menu ids.
+  Turn it on temporarily on a multiplayer mission to see whether the menu grows; a whitepaper on how DCS recycles F10 menu ids, and how to build a menu that withstands it, ships in `docs/whitepapers/` (FR and EN).
 
 ## [6.28.0] — 2026-10-05
 

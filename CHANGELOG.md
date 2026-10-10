@@ -86,6 +86,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The watchdog took a group not yet airborne for one that had landed, and reset the QRA, destroying the aircraft rolling to the runway: every ground start failed, found on the *Kolkhida* test mission.
   A group is landed only once it has flown; one still on the ground ten minutes after the scramble is taken for stuck and the QRA rearms, as before.
   Air waves had the same reading — a wave aircraft not in the air was crippled and destroyed — and get the same fix.
+- **A secured `+` F10 command runs again for a pilot with the level** (FIX-SECURITY-GROUP-LEVEL).
+  Since 6.14.0 a group's level was read through `Group.getByID`, which DCS does not have: every group came out empty, at level 0, and every `+` command was refused to every pilot on every mission running with security on, whatever `veaf-pilots.txt` said.
+  The group's pilots are now found among the players.
+  A mission with `RADIO` now always initialises `SECURITY`, which the `prepare` templates used to leave commented out: the `/secu elevate` a refusal suggests answered *unknown command*.
+  Leaving `SECURITY` out never switched the level check off; `security: disabled: true` does.
 
 ### Added
 

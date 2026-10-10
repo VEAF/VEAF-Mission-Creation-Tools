@@ -11,8 +11,9 @@ Rendering per module, for a given enabled set:
   - a config-required module in the set is emitted as a **commented** example block
     (ready to uncomment — a fresh mission stays valid and ``validate`` does not flag
     placeholder groups/zones);
-  - ``SECURITY`` is always emitted commented (off by default — uncomment to require a
-    password); ``TUM`` is emitted commented with a warning (it aborts at start-up
+  - ``SECURITY`` is always emitted **active**: it carries the ``/secu`` verbs a refused
+    ``+`` command points to, while the level check itself is switched by ``security.disabled``;
+    ``TUM`` is emitted commented with a warning (it aborts at start-up
     without BLUFOR/REDFOR territory zones);
   - modules outside the set are omitted, so each tier's file stays focused — **except**
     the opt-out community scripts, which are written as ``ID: false`` instead (see
@@ -174,7 +175,9 @@ _CATALOG: tuple[Module, ...] = (
         "SECURITY",
         SECURITY,
         "Core",
-        config_block="  # SECURITY: true   # uncomment + add password_hashes in a `security:` section to require a password",
+        config_block=(
+            "  SECURITY: true   # the /secu verbs (elevate, …); turn the level check off with `security: disabled: true`"
+        ),
         tiers=frozenset({"minimal", "standard", "full"}),
     ),
     # ── Features ──
@@ -267,7 +270,7 @@ def tier_modules(tier: str) -> set[str]:
 
 
 #: Modules a user may pick in the ``custom`` template — everything except the
-#: always-emitted ones (infrastructure and the SECURITY how-to block).
+#: always-emitted ones (infrastructure and SECURITY).
 SELECTABLE_MODULES: tuple[str, ...] = tuple(m.id for m in _CATALOG if m.kind not in (INFRA, SECURITY))
 
 
@@ -290,7 +293,7 @@ def module_category(module_id: str) -> str:
 def render_modules_block(enabled: set[str]) -> list[str]:
     """Render the body of a ``modules:`` block (category-grouped) for *enabled*.
 
-    Infrastructure modules and the SECURITY how-to block are always emitted;
+    Infrastructure modules and SECURITY are always emitted;
     every other module only when its id is in *enabled* — except a module carrying a
     :attr:`Module.disabled_block` (the opt-out community scripts), which is emitted as
     an explicit ``false`` instead of being left out, since the build reads *their*
@@ -322,7 +325,7 @@ def render_modules_block(enabled: set[str]) -> list[str]:
                 lines.append(module.enabled_block)
             else:
                 lines.append(f"  {module.id}: true{suffix}")
-        else:  # CONFIG / SECURITY / TUM → commented block
+        else:  # CONFIG / TUM → commented block; SECURITY → its active line
             lines.append(module.config_block)
     return lines
 

@@ -32,13 +32,12 @@ class TestMissionTemplate(unittest.TestCase):
         for mod in ("WEATHER", "CASMISSION", "QRA", "TUM", "MIST"):
             self.assertNotIn(mod, active)
 
-    def test_security_is_always_present_but_never_active(self) -> None:
-        # David's rule: security off by default (commented) but always shown — every tier
-        # AND a custom set that omits it must still carry the commented SECURITY how-to.
+    def test_security_is_always_active(self) -> None:
+        # Commenting SECURITY out never turned the level check off — `security.disabled` does —
+        # it only removed `/secu elevate`, the verb a refused `+` command tells the pilot to type
+        # (FIX-SECURITY-GROUP-LEVEL ticket 02). So every tier, and a custom set that omits it, has it on.
         for enabled in (tier_modules("minimal"), tier_modules("standard"), tier_modules("full"), {"RADIO"}):
-            text = generate_mission_yaml(enabled)
-            self.assertIn("SECURITY", text)  # the commented how-to is always emitted
-            self.assertNotIn("SECURITY", _modules(text))  # ...but never active
+            self.assertIs(_modules(generate_mission_yaml(enabled)).get("SECURITY"), True)
 
     def test_groundai_tracks_casmission_tiers(self) -> None:
         # GROUNDAI is CASMISSION's dependency: it must sit in exactly the same tiers so

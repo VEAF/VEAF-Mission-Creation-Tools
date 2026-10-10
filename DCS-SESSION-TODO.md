@@ -257,6 +257,10 @@ the pilot's level with every slot change) was copied by hand to all six servers 
 reported scenario needs a multiplayer server and a pilot listed in `veaf-pilots.txt`, which a local
 single-player session cannot give.
 
+**It could not pass before [`FIX-SECURITY-GROUP-LEVEL`](.backlog/FIX-SECURITY-GROUP-LEVEL/PRD.md)**: from 6.14.0 every secured `+` click was refused to every pilot (`Group.getByID` does not exist, found on `private1` on 2026-10-10).
+Run it on a mission built with that fix, and add what that lot leaves to check: the click passes from a **dynamic** slot and from a **placed** one, an **unlisted** pilot is refused, and `/secu elevate` answers on a mission whose `mission.yaml` does not list `SECURITY`.
+That closes the lot too.
+
 **Run**, on any VEAF server running a 6.26.0+ mission: a pilot listed at level ≥ 10 takes a slot and
 clicks a secured `+` combat-zone command **without any verb**; then, **still connected**, the mission
 is reloaded and he clicks it again; then `/secu login` in chat. With `VEAF-REMOTE` and

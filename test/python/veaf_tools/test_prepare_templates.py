@@ -43,7 +43,7 @@ class TestPrepareTemplates(unittest.TestCase):
             self.assertIn("RADIO", modules)
             self.assertIn("SPAWN", modules)
             self.assertNotIn("WEATHER", modules)  # standard-only
-            self.assertNotIn("SECURITY", modules)  # off by default
+            self.assertIs(modules.get("SECURITY"), True)  # the /secu verbs; `security.disabled` is the switch
 
     def test_standard_template_seeds_the_ctld_configuration(self) -> None:
         """A template that enables CTLD ships the matching ctld-config.yaml (ADR 0016).

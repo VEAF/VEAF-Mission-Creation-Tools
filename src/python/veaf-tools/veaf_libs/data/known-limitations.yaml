@@ -709,6 +709,38 @@ limitations:
   cost: |
     `_destroy, radius 2000` (`-menage`) left both tanks alive at 1 358 m and 1 405 m: the name lookup
     missed them, and nothing said so.
+- id: group-getbyid-does-not-exist
+  kind: dcs
+  area: players
+  title: "`Group.getByID` does not exist: a group id leads back to no group"
+  measured: "2026-10-10"
+  symptom: |
+    The scripting API resolves a group by name only (`Group.getByName`). `Group.getByID` reads `nil` in
+    a running mission (`private1`, read through the hook's `/code`), so code written as
+    `Group.getByID and Group.getByID(id)` raises nothing and always gets `nil`.
+  workaround: |
+    From a group id — the only identity an F10 `ForGroup` command carries — scan the players:
+    `coalition.getPlayers(side)` for each coalition, keeping the units whose `getGroup():getID()` is
+    that id (`veafSecurity.getGroupOccupantUnitNames`). For any group, keep its name or the object.
+  cost: |
+    Every secured `+` radio command refused to every pilot from 6.14.0 on
+    (`secured-radio-commands-refused-to-everybody`).
+- id: secured-radio-commands-refused-to-everybody
+  kind: tool
+  area: runtime
+  title: Every secured `+` F10 command was refused, whatever the pilot's level
+  fixed_in: "6.29.0"
+  symptom: |
+    From 6.14.0, a group's level was computed from `Group.getByID`, which DCS does not have
+    (`group-getbyid-does-not-exist`): every group read as empty, level 0, and a mission running with
+    security on refused every `+` command — *"This '+' command needs level 1; your group acts at level 0
+    (its lowest pilot)"* — to a level-99 pilot as to an unlisted one. And a mission whose `mission.yaml` left `SECURITY`
+    out (the `prepare` templates commented it) answered *unknown command* to the `/secu elevate` the
+    refusal suggests. Since FIX-SECURITY-GROUP-LEVEL the group is found from the players, and a
+    mission with `RADIO` always initialises `SECURITY`.
+  workaround: |
+    Before 6.29.0, run the mission with `security: disabled: true`: the `+` commands are then open to
+    everybody.
 - id: aircraft-at-the-end-of-its-route-lands
   kind: dcs
   area: spawning

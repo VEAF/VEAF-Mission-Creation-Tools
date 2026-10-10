@@ -1,6 +1,6 @@
 # 01 — Find a group's human occupants without `Group.getByID`
 
-Status: ⬜ ready
+Status: ✅ done
 
 - `veafSecurity.getGroupOccupantUnitNames(groupId)` scans the players instead: `coalition.getPlayers(side)` for each coalition, keeping the units whose `getGroup():getID()` is `groupId`.
   These are exactly the "slots with a human in them" the function means, so the AI-wingman rule in its comment still holds by construction.

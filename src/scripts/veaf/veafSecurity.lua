@@ -853,20 +853,23 @@ function veafSecurity.getPilotLevelForUnit(unitName)
 end
 
 --- Return the unit names currently occupied by a player in `groupId`.
+---
+--- DCS has no `Group.getByID` (only `Group.getByName`), so the group cannot be reached from its id.
+--- The players are scanned instead: `coalition.getPlayers` returns only the units a human sits in,
+--- so an AI wingman, which has no security level, never drags the group to zero.
+--- From 6.14.0 this read `Group.getByID and Group.getByID(groupId)`: the guard turned the missing
+--- function into an empty group, level 0, and every secured command was refused (FIX-SECURITY-GROUP-LEVEL).
 function veafSecurity.getGroupOccupantUnitNames(groupId)
   local _names = {}
   if not groupId then
     return _names
   end
-  local _group = Group.getByID and Group.getByID(groupId)
-  if not _group or not _group.getUnits then
-    return _names
-  end
-  for _, _unit in pairs(_group:getUnits() or {}) do
-    -- Only slots with a human in them matter: an AI wingman has no security level and must not
-    -- drag the group to zero.
-    if _unit and _unit.getPlayerName and _unit:getPlayerName() and _unit.getName then
-      table.insert(_names, _unit:getName())
+  for _, _side in pairs(coalition.side) do
+    for _, _unit in pairs(coalition.getPlayers(_side) or {}) do
+      local _group = _unit and _unit.getGroup and _unit:getGroup()
+      if _group and _group.getID and _group:getID() == groupId and _unit.getName then
+        table.insert(_names, _unit:getName())
+      end
     end
   end
   return _names

@@ -91,7 +91,7 @@ See [FOOTHOLD](FOOTHOLD.en.md) for the full per-version procedure.
      entries + `mapResource` resources) so they do not double-load alongside the
      re-injected `custom_scripts`;
    - a `modules:` block seeded with the **`minimal`** tier (infra +
-     RADIO/SPAWN/SHORTCUTS/INTERPRETER, SECURITY commented): a working VEAF
+     RADIO/SPAWN/SHORTCUTS/INTERPRETER/SECURITY): a working VEAF
      baseline out of the box; enable more as needed.
 4. **Emits** a Markdown report summarising the actions and review items.
 

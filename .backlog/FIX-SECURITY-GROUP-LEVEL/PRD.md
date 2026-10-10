@@ -1,6 +1,11 @@
 # FIX-SECURITY-GROUP-LEVEL — every secured `+` radio command is refused to everybody, because `Group.getByID` does not exist
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged in #1120; seen in game on `private1` on 2026-10-10, closed by David
+
+## Verified
+
+2026-10-10, `private1`: *Kolkhida* mission 2 rebuilt with `6.28.1-kolkhida9+2eaf7925` and loaded at 12:48 UTC; David (level 99) clicked *+Escort me (fox3)* and the escort came.
+The refusal of an unlisted pilot and the answer to `/secu elevate` were not run; David closed the lot on that check.
 
 ## Found
 

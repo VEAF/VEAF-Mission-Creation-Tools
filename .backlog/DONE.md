@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-SECURITY-GROUP-LEVEL](FIX-SECURITY-GROUP-LEVEL/PRD.md) · ✅
+
+Every secured `+` radio command was refused to every pilot whenever security was on, since 6.14.0: the group's level went through `Group.getByID`, which DCS does not have. The occupants now come from `coalition.getPlayers`, and `RADIO` pulls in `SECURITY` so `/secu elevate` exists. Merged in #1120; *Escort me* seen working on `private1` on 2026-10-10 with *Kolkhida* mission 2 rebuilt.
+
 ### [FIX-QRA-GROUND-START](FIX-QRA-GROUND-START/PRD.md) · ✅
 
 A QRA scrambled from the runway was destroyed 5 s later: the watchdog took a group not yet airborne for a landed one and reset the QRA. A group is now landed only once it has flown; one still on the ground ten minutes after the scramble is reset as before. Seen in game: wheels up 25–35 s after the scramble. Merged in #1118.

@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.29.0] — 2026-10-10
+
 ### Documentation
 
 - **The tutorial now goes on past the first flight** (DOC-TUTORIAL-NEXT-STEPS).

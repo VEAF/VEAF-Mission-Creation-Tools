@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-MCP-SESSION-PREP-FINDINGS](FIX-MCP-SESSION-PREP-FINDINGS/PRD.md) · ✅
+
+What preparing the *Kolkhida* in-game test through the MCP broke: `loadout_from` failing on pylons numbered 1 to n, two groups of one name written, then both removed by `remove_group`; and CTLD `2.0.0-rc13` vendored, the release that gives crates a country of the coalition. Merged in #1116.
+
 ### [CHORE-BACKLOG-INDEX-SPLIT](CHORE-BACKLOG-INDEX-SPLIT/PRD.md) · ✅
 
 The backlog index split into active, ready and done indexes, one short paragraph per lot; the archived lots got their own index (#1058).

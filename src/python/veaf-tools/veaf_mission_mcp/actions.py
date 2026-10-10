@@ -728,8 +728,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="add_group",
             description=(
                 "Insert a ground/vehicle group into a mission, in place, backed up first. Mirrors "
-                "adding a group by hand in the DCS Mission Editor -- not deduplicated, calling this "
-                "twice creates two groups. Target a mission FOLDER for a durable group in the recipe "
+                "adding a group by hand in the DCS Mission Editor; a group or unit name the mission "
+                "already holds is REFUSED, naming its holder (DCS would resolve either). "
+                "Target a mission FOLDER for a durable group in the recipe "
                 "(survives rebuild) -- e.g. a permanent SAM via a '#veafInterpreter[\"-samLR\"]' unit "
                 "name -- or a .miz for a transient edit of the built mission."
             ),
@@ -1080,7 +1081,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "account of references -- you may well mean it -- but it NAMES the ones that would "
                 "break in silence: a combat zone capturing the group by name prefix, an Escort task "
                 "pointing at its group id, and a mission.yaml modules.ASSETS entry naming it. "
-                "Target a FOLDER (durable) or .miz (transient); backed up first."
+                "A name SEVERAL groups share is refused, listing their group ids: pass group_id to "
+                "say which one goes. Target a FOLDER (durable) or .miz (transient); backed up first."
             ),
             parameters_schema={
                 "type": "object",
@@ -1092,6 +1094,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "group_name": {
                         "type": "string",
                         "description": "The group's EXACT name -- as describe_units reports it, not a fragment.",
+                    },
+                    "group_id": {
+                        "type": "integer",
+                        "description": "Which group, when several carry that name (the refusal lists their ids).",
                     },
                 },
                 "required": ["target", "group_name"],
@@ -2824,7 +2830,7 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def _handle_remove_group(params: dict[str, Any]) -> dict[str, Any]:
-    return remove_group(Path(params["target"]), group_name=params["group_name"])
+    return remove_group(Path(params["target"]), group_name=params["group_name"], group_id=params.get("group_id"))
 
 
 def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:

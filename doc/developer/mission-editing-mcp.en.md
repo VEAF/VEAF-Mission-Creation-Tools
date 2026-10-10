@@ -414,8 +414,9 @@ silently overwritten.
 - `route` — optional; defaults to a single stationary point at `position`. With `patrol: true`
   (and at least 2 points), the last point loops back to the first via a `GoToWaypoint` task — a
   classic DCS ground-unit patrol.
-- **No deduplication**: calling this twice with the same parameters creates two distinct groups,
-  exactly like two clicks in the DCS Mission Editor.
+- **A name already taken is refused**, group name and unit name alike, naming the group that holds it.
+  DCS does not refuse two objects of one name: `Group.getByName` returns either one and says nothing, and everything that names a group (a QRA, a combat zone, `remove_group`) works on the wrong one.
+  Applies to every action that creates a group (`add_air_group`, `add_player_slot`, `create_qra`…), which share the same insertion.
 - `groupId`/`unitId`s are always fresh (`mission_tools.group_insertion.max_ids`), even on a
   mission with gaps in its existing id ranges.
 
@@ -560,6 +561,8 @@ while `edit_zone` and `edit_map_drawing` both have a `remove: true`. Targets a f
 - **Exact name required.** A fragment is refused, as `set_group_properties` refuses one: a removal
   landing on whichever group matched first is not recoverable. An unknown name lists what exists, and
   **nothing is written**.
+- **A name several groups share is refused**, listing their `groupId`s: `group_id` says which one goes, the other stays.
+  It used to remove all of them and report one.
 - **Names what it breaks without refusing** — the mission maker may well mean it: a combat zone
   capturing the group by name prefix, an `Escort` task pointing at its `groupId` (nested inside a
   `ComboTask`, which is how DCS actually writes it), and a `mission.yaml`

@@ -32,7 +32,7 @@ Après l'initialisation de tous les modules, appeler :
 veafRadio.refreshRadioMenu()
 ```
 
-Cela reconstruit l'intégralité de l'arbre F10. L'appel est idempotent — il gère en interne un délai anti-rebond de 1 seconde.
+L'arbre F10 est rendu à nouveau, mais seules les entrées qui ont changé sont touchées dans DCS : une entrée inchangée n'est jamais supprimée ni recréée. L'appel est idempotent — il gère en interne un délai anti-rebond de 1 seconde.
 
 ---
 
@@ -45,6 +45,7 @@ modules:
     logLevel: info        # surcharge optionnelle du niveau de log
     init:
       help_menus: true    # afficher les entrées "Aide" intégrées dans les menus radio (défaut : true)
+    menu_stats: false     # journaliser la taille et les changements du menu F10 (défaut : false)
 ```
 
 | Champ | Type | Défaut | Requis | Description |
@@ -52,6 +53,7 @@ modules:
 | `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `init.help_menus` | booléen | `true` | Non | Afficher les entrées "Aide" intégrées dans les menus radio générés |
+| `menu_stats` | booléen | `false` | Non | Écrire dans `dcs.log`, à chaque rafraîchissement, la taille du menu F10 et ce qui a changé — voir [Surveiller le menu F10](#menu-stats) |
 
 ### Exemple minimal
 
@@ -60,6 +62,22 @@ modules:
   RADIO:
     enabled: true
 ```
+
+### Surveiller le menu F10 {#menu-stats}
+
+`menu_stats: true` est une option de diagnostic, à activer **temporairement** sur une mission réelle (une opération, une soirée sur le serveur) pour voir comment le menu F10 se comporte en multijoueur.
+À chaque rafraîchissement du menu, une ligne de niveau `info` s'écrit dans le `dcs.log` du serveur :
+
+```text
+radio menu stats: 3 added, 1 removed since the last report; 412 live entries (everyone 38, coalitions 6, groups 368 across 23 groups); 57 ids parked in all
+```
+
+- **added / removed** : les entrées créées et supprimées dans DCS depuis la ligne précédente. Une ligne à `0 added, 0 removed` est un rafraîchissement qui n'a rien changé.
+- **live entries** : la taille du menu VEAF à cet instant, hors menus `user_menus` construits à part, répartie entre les entrées visibles par tout le monde, par une coalition, et par un seul groupe.
+- **ids parked** : le nombre total de commandes invisibles créées depuis le début de la mission. DCS redonne l'identifiant d'une entrée supprimée à la prochaine entrée créée, ce qui faisait partir un clic sur un menu resté ouvert vers une autre commande ; chaque identifiant libéré est donc « garé » sur une commande invisible qui ne fait rien. Elles s'accumulent pendant toute la mission.
+
+Les lignes sont de niveau `info`. Une mission qui baisse son niveau de log (`global_log_level: warning` ou `error`) les masque : ajoutez alors `logLevel: info` sous `RADIO`, qui prime sur le niveau global.
+Une fois la mesure faite, retirez l'option.
 
 ---
 

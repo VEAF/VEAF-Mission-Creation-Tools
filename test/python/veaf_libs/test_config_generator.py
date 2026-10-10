@@ -133,6 +133,11 @@ class TestLuaModules(unittest.TestCase):
         lua = generate_config_lua({"lua_modules": {"RADIO": {"enable": True, "init": {"help_menus": True}}}})
         self.assertIn("veafRadio.initialize(true)", lua)
 
+    def test_radio_menu_stats_reaches_the_runtime_config(self) -> None:
+        """`RADIO.menu_stats` is read by veafRadio through veaf.getConfig (FEAT-RADIO-MENU-WATCH)."""
+        lua = generate_config_lua({"lua_modules": {"RADIO": {"enabled": True, "menu_stats": True}}})
+        self.assertIn('veaf.setConfig("RADIO", "menu_stats", true)', lua)
+
     def test_unknown_module_is_ignored(self) -> None:
         """Unknown module IDs are not emitted — they stay in mission-script.lua."""
         lua = generate_config_lua({"lua_modules": {"FOOBAR": {"enable": True}}})

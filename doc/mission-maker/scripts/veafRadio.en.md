@@ -32,7 +32,7 @@ After all modules are initialised, call:
 veafRadio.refreshRadioMenu()
 ```
 
-This rebuilds the entire F10 tree. It is safe to call multiple times — it debounces internally (1-second delay).
+The F10 tree is rendered again, but only the entries that changed are touched in DCS: an unchanged entry is never removed nor recreated. It is safe to call multiple times — it debounces internally (1-second delay).
 
 ---
 
@@ -45,6 +45,7 @@ modules:
     logLevel: info        # optional log level override
     init:
       help_menus: true    # show built-in "Help" entries in radio menus (default: true)
+    menu_stats: false     # log the F10 menu's size and changes (default: false)
 ```
 
 | Field | Type | Default | Required | Description |
@@ -52,6 +53,7 @@ modules:
 | `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `init.help_menus` | boolean | `true` | No | Show built-in "Help" entries in the generated radio menus |
+| `menu_stats` | boolean | `false` | No | Write to `dcs.log`, on every refresh, the F10 menu's size and what changed — see [Watching the F10 menu](#menu-stats) |
 
 ### Minimal example
 
@@ -60,6 +62,22 @@ modules:
   RADIO:
     enabled: true
 ```
+
+### Watching the F10 menu {#menu-stats}
+
+`menu_stats: true` is a diagnostic option, to turn on **temporarily** in a real mission (an operation, an evening on the server) to see how the F10 menu behaves in multiplayer.
+On every menu refresh, an `info` line goes to the server's `dcs.log`:
+
+```text
+radio menu stats: 3 added, 1 removed since the last report; 412 live entries (everyone 38, coalitions 6, groups 368 across 23 groups); 57 ids parked in all
+```
+
+- **added / removed**: the entries created and removed in DCS since the previous line. A `0 added, 0 removed` line is a refresh that changed nothing.
+- **live entries**: the VEAF menu's size at that moment, `user_menus` menus excluded since they are built apart, split between the entries everyone sees, those one coalition sees, and those a single group sees.
+- **ids parked**: the total number of invisible commands created since the mission started. DCS gives the id of a removed entry to the next entry created, which sent a click on a menu left open to another command; each freed id is therefore "parked" on an invisible command that does nothing. They pile up for the whole mission.
+
+The lines are at `info` level. A mission that lowers its log level (`global_log_level: warning` or `error`) hides them: then add `logLevel: info` under `RADIO`, which outranks the global level.
+Once the measurement is done, remove the option.
 
 ---
 

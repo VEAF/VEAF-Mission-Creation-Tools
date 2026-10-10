@@ -426,6 +426,44 @@ function veafRadio.RadioMenuBuilder:rebuild()
   for _, entry in ipairs(gone) do
     self:_removeEntry(entry)
   end
+  self:_reportStats()
+end
+
+--- (internal) With `RADIO.menu_stats` on, logs what the menu changed since the last report and how
+--- big it is now, by audience. Parked ids pile up for the whole mission; their cost is not
+--- measurable in single player, but what a server sends its clients is not measured, so a real
+--- mission can turn this on to watch it (FEAT-RADIO-MENU-WATCH).
+function veafRadio.RadioMenuBuilder:_reportStats()
+  local stats = self._stats or { added = 0, removed = 0 }
+  self._stats = { added = 0, removed = 0 }
+  if not veaf.getConfig("RADIO").menu_stats then
+    return
+  end
+  local everyone, coalitions, groups, groupIds, groupCount = 0, 0, 0, {}, 0
+  for _, entry in pairs(self._rendered or {}) do
+    if entry.groupId then
+      groups = groups + 1
+      if not groupIds[entry.groupId] then
+        groupIds[entry.groupId] = true
+        groupCount = groupCount + 1
+      end
+    elseif entry.coalitionSide then
+      coalitions = coalitions + 1
+    else
+      everyone = everyone + 1
+    end
+  end
+  veaf.loggers.get(veafRadio.Id):info(
+    "radio menu stats: %d added, %d removed since the last report; %d live entries (everyone %d, coalitions %d, groups %d across %d groups); %d ids parked in all",
+    stats.added,
+    stats.removed,
+    everyone + coalitions + groups,
+    everyone,
+    coalitions,
+    groups,
+    groupCount,
+    self._parked or 0
+  )
 end
 
 --- (internal) True when two callback parameters are the same: the same value, or plain tables
@@ -503,6 +541,8 @@ function veafRadio.RadioMenuBuilder:_render(kind, groupId, coalitionSide, label,
   else
     path = missionCommands.addCommand(label, parentPath, method, parameters)
   end
+  self._stats = self._stats or { added = 0, removed = 0 }
+  self._stats.added = self._stats.added + 1
   local parentEntry = parentKey ~= "" and self._rendered[parentKey]
   self._rendered[key] = {
     key = key,
@@ -538,6 +578,8 @@ function veafRadio.RadioMenuBuilder:_removeEntry(entry)
   if entry.path then
     self._keysByPath[entry.path] = nil
   end
+  self._stats = self._stats or { added = 0, removed = 0 }
+  self._stats.removed = self._stats.removed + 1
   self._parked = (self._parked or 0) + 1
   missionCommands.addCommandForGroup(veafRadio.PARKING_GROUP_ID, "parked " .. self._parked, nil, veafRadio._parkedCommand, self._parked)
 end

@@ -32,6 +32,8 @@ veafCombatMission.RadioMenuName = "menu.combatmission.root"
 
 veafCombatMission.MinimumSpacingBetweenClones = 300 -- minimum spawn distance between clones of a group
 
+veafCombatMission.RadioMenuRebuildDelay = 1 -- seconds; missions declared after initialize() are added to the menu then
+
 veafCombatMission.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -40,6 +42,10 @@ veafCombatMission.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
 --- Radio menus paths
 veafCombatMission.rootPath = nil
+
+-- set by initialize(); a mission added after it schedules a rebuild of the menu
+veafCombatMission._initialized = nil
+veafCombatMission._radioMenuRebuildScheduled = nil
 
 -- Missions list (table of VeafCombatMission objects)
 veafCombatMission.missionsList = {}
@@ -1028,8 +1034,10 @@ function VeafCombatMission:updateRadioMenu(inBatch)
     return self
   end
 
-  -- do not update the radio menu if not yet initialized
-  if not veafCombatMission.rootPath then
+  -- do not update the radio menu if not yet initialized, nor before buildRadioMenu() has given this
+  -- mission its own submenu: with a nil parent veafRadio puts the commands at the root of the VEAF
+  -- menu, where nothing clears them (FIX-COMBATMISSION-MENU-MISSING ticket 02)
+  if not veafCombatMission.rootPath or not self.radioRootPath then
     return self
   end
 
@@ -1126,7 +1134,24 @@ function veafCombatMission.AddMission(mission)
   mission:initialize()
   table.insert(veafCombatMission.missionsList, mission)
   veafCombatMission.missionsDict[mission:getName():lower()] = mission
+  -- a mission added after initialize() (from a mission-script.lua) is in no menu yet
+  if veafCombatMission._initialized then
+    veafCombatMission._scheduleRadioMenuRebuild()
+  end
   return mission
+end
+
+--- Rebuild the MISSIONS menu shortly, once for a whole burst of declarations: a mission script
+--- declares its missions one after the other, and the menu is paginated and rebuilt whole.
+function veafCombatMission._scheduleRadioMenuRebuild()
+  if veafCombatMission._radioMenuRebuildScheduled then
+    return
+  end
+  veafCombatMission._radioMenuRebuildScheduled = true
+  veaf.scheduleFunction(function()
+    veafCombatMission._radioMenuRebuildScheduled = nil
+    veafCombatMission.buildRadioMenu()
+  end, {}, timer.getTime() + veafCombatMission.RadioMenuRebuildDelay)
 end
 
 -- add a mission and create copies with different skills
@@ -1670,6 +1695,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafCombatMission.initialize()
   veaf.loggers.get(veafCombatMission.Id):info("Initializing module")
+  veafCombatMission._initialized = true
   veafCombatMission.buildRadioMenu()
   veafCombatMission.dumpMissionsList(veaf.config.MISSION_EXPORT_PATH)
   veafRemote.registerRemoteModule("air", veafCombatMission.executeCommandFromRemote)

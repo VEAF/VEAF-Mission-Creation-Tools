@@ -1,6 +1,6 @@
 # FIX-MCP-SESSION-PREP-FINDINGS — what preparing an in-game test through the MCP broke
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-10-10 (PR #1116)
 
 ## Found
 
@@ -20,10 +20,10 @@ And taken in the same lot: CTLD `2.0.0-rc13`, released 2026-10-09, carrying VEAF
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-loadout-from-stations-one-to-n.md) | `loadout_from` copies a loadout whose stations run 1 to n | 🔄 |
-| [02](tickets/02-a-taken-name-is-refused.md) | A group or unit name already in the mission is refused | 🔄 |
-| [03](tickets/03-remove-group-homonyms.md) | `remove_group` refuses an ambiguous name and takes `group_id` | 🔄 |
-| [04](tickets/04-vendor-ctld-rc13.md) | Vendor CTLD `2.0.0-rc13` | 🔄 |
+| [01](tickets/01-loadout-from-stations-one-to-n.md) | `loadout_from` copies a loadout whose stations run 1 to n | ✅ |
+| [02](tickets/02-a-taken-name-is-refused.md) | A group or unit name already in the mission is refused | ✅ |
+| [03](tickets/03-remove-group-homonyms.md) | `remove_group` refuses an ambiguous name and takes `group_id` | ✅ |
+| [04](tickets/04-vendor-ctld-rc13.md) | Vendor CTLD `2.0.0-rc13` | ✅ |
 
 ## Definition of done
 

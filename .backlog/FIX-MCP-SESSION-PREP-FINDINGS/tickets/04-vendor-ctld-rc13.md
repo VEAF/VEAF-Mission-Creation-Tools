@@ -1,6 +1,6 @@
 # 04 — Vendor CTLD `2.0.0-rc13`
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 `published-v2.0.0-rc13`, 2026-10-09: crates, vehicles, JTACs, troops and beacons created under the requesting aircraft's country or a country of its coalition (VEAF/CTLD#256) — what *Kolkhida* needs, flown under CJTF Blue and CJTF Red ([`FIX-CAMPAIGN-MISSION-1-FINDINGS`](../../FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md) ticket 05); the F10 menu rebuilt entry by entry; crates placed where the native cargo window loads them.
 

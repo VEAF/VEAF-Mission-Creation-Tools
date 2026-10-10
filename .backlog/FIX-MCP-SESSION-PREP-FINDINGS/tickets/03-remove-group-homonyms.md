@@ -1,6 +1,6 @@
 # 03 — `remove_group` refuses an ambiguous name and takes `group_id`
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 `remove_group` located the first group of the name, then filtered the container by name: every homonym went, one was reported.
 

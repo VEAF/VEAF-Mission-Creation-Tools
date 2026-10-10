@@ -1,6 +1,6 @@
 # 01 — `loadout_from` copies a loadout whose stations run 1 to n
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 `normalize_pylons` iterated `pylons.items()`; a loadout read from a mission group with stations 1..n and no gap comes back from the Lua parser as a list.
 

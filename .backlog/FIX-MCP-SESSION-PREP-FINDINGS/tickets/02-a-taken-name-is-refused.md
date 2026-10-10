@@ -1,6 +1,6 @@
 # 02 — A group or unit name already in the mission is refused
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 `mission_tools.group_insertion.add_group`, which every MCP action creating a group goes through, appended whatever it was given — documented as "not deduplicated, like two clicks in the Mission Editor", which is wrong twice: the editor renames a copy, and DCS resolves either of two homonyms by name.
 

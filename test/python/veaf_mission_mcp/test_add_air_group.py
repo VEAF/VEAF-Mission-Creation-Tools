@@ -648,6 +648,21 @@ class TestLoadoutFrom:
         unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Escort"))[0]
         assert unit["payload"]["pylons"]
 
+    def test_a_j11a_is_armed_from_its_dynamic_slot_template(self, tmp_path: Path) -> None:
+        """The J-11A has no DCS named payload; its catalogue template was the empty table (ticket 04)."""
+        miz = _caucasus_miz(tmp_path)
+        escort = {
+            **self._ESCORT,
+            "unit_type": "J-11A",
+            "coalition": "red",
+            "country_id": 81,
+            "country_name": "CJTF Red",
+        }
+        add_air_group(miz, loadout_from="J-11A Template Red", **escort)
+        unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Escort"))[0]
+        clsids = {pylon["CLSID"] for pylon in unit["payload"]["pylons"].values()}
+        assert "{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}" in clsids  # stations 5-6 of the v5 Marianas loadout
+
     def test_two_loadouts_at_once_are_refused(self, tmp_path: Path) -> None:
         miz = _caucasus_miz(tmp_path)
         with pytest.raises(ValueError, match="give one loadout"):

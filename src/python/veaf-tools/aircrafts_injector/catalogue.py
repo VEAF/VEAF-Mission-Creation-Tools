@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from veaf_libs.dcs_units_data import get_unit_category
 
 #: The two catalogue files, and the header written into an empty one. Keyed by the file name so a
 #: caller that already holds a path does not have to carry a second identifier alongside it.
@@ -130,6 +131,30 @@ def catalogue_has_groups(catalogue: dict[str, Any]) -> bool:
         ``True`` as soon as one group is found.
     """
     return next(iter_groups(catalogue), None) is not None
+
+
+def unknown_unit_types(catalogue: dict[str, Any]) -> list[tuple[str, str]]:
+    """The templates of a catalogue whose aircraft type the DCS unit database does not know.
+
+    Such a type is a mod: the shipped dynamic-slot catalogue offered three of them to every mission
+    (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 04).
+
+    Args:
+        catalogue: A parsed catalogue.
+
+    Returns:
+        ``(group name, type)`` once per group and unknown type, in file order.
+    """
+    found: list[tuple[str, str]] = []
+    for ref, group in iter_groups(catalogue):
+        units = group.get("units") if isinstance(group, dict) else None
+        seen: set[str] = set()
+        for unit in units.values() if isinstance(units, dict) else units or []:
+            unit_type = str(unit.get("type") or "") if isinstance(unit, dict) else ""
+            if unit_type and unit_type not in seen and get_unit_category(unit_type) is None:
+                seen.add(unit_type)
+                found.append((ref.name, unit_type))
+    return found
 
 
 def catalogue_file_has_groups(path: Path) -> bool:

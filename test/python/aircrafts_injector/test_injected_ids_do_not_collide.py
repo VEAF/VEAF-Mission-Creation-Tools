@@ -245,7 +245,7 @@ class InjectedIdsDoNotCollideTest(unittest.TestCase):
             for group in mission.iter_groups()
             if group.group_dcs.get("dynSpawnTemplate") is True
         }
-        self.assertEqual(128, len(templates), "the whole catalogue must be injected and keep distinct ids")
+        self.assertEqual(122, len(templates), "the whole catalogue must be injected and keep distinct ids")
 
         stock = (mission.warehouses_content or {})["airports"][18]["aircrafts"]
         links = {

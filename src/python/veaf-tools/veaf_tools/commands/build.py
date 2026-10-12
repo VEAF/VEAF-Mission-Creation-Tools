@@ -5,7 +5,12 @@ from pathlib import Path
 import typer
 import yaml
 from aircrafts_injector import AircraftGroupsInjectorWorker, AircraftGroupsYAMLValidator
-from aircrafts_injector.catalogue import CatalogueUnreadable, catalogue_file_has_groups
+from aircrafts_injector.catalogue import (
+    CatalogueUnreadable,
+    catalogue_file_has_groups,
+    load_catalogue,
+    unknown_unit_types,
+)
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
@@ -191,6 +196,28 @@ def resolve_pipeline_step_file(pipeline_cfg: dict, mission_folder: Path, key: st
     return None
 
 
+def warn_unknown_aircraft_types(path: Path) -> list[str]:
+    """Warn about each template of an aircraft catalogue whose type DCS does not know: a mod.
+
+    Args:
+        path: The catalogue being injected.
+
+    Returns:
+        The warnings logged, one per template and type.
+    """
+    try:
+        catalogue = load_catalogue(path)
+    except CatalogueUnreadable:
+        return []  # the validator reports an unreadable file
+    warnings = [
+        t("cmd.build.aircraft_unknown_type", group=group, type=unit_type, file=path.name)
+        for group, unit_type in unknown_unit_types(catalogue)
+    ]
+    for warning in warnings:
+        logger.warning(warning)
+    return warnings
+
+
 def resolve_aircraft_catalogue(
     pipeline_cfg: dict, mission_folder: Path, key: str, candidate: str
 ) -> tuple[Path | None, bool]:
@@ -351,6 +378,7 @@ def build(
             validator = AircraftGroupsYAMLValidator(path)
             is_valid, _ = validator.validate()
             if is_valid:
+                warn_unknown_aircraft_types(path)
                 logger.info(t("pipeline.injecting_aircraft_mode", path=path, mode=mode))
                 # Which catalogue, and where it came from: "spawnables.yaml" alone reads the same
                 # whether it is the maker's file or the one shipped with the tool, and the whole

@@ -26,9 +26,12 @@ from typing import Any
 
 import yaml
 from aircrafts_injector import AircraftGroupsYAMLValidator
+from aircrafts_injector.catalogue import iter_groups
+from veaf_libs.dcs_units_data import get_unit_category
 
 _REPO_ROOT = Path(__file__).parents[3]
 _DYNSLOT = _REPO_ROOT / "src" / "defaults" / "mission-folder" / "src" / "dynamic-slot-templates.yaml"
+_SPAWNABLES = _DYNSLOT.with_name("spawnables.yaml")
 
 #: One country per coalition, and this is a design constraint rather than tidiness. A template
 #: filed under a real country makes the injection demand that country join a side: it creates it
@@ -45,8 +48,13 @@ _SUFFIX_FOR_COALITION = {"blue": " Template", "red": " Template Red"}
 #: Floors, in the ratchet sense: what the catalogue guarantees, raised by each lot that adds to
 #: it — never lowered, and never an equality, so adding a template is not a test edit.
 #: 104 templates of which 18 were armed before this lot grafted 24 and armed 15 more.
-_MIN_TEMPLATES = 128
-_MIN_ARMED = 33
+#: FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 04 took the floor down once, on purpose: the six
+#: templates of three community mods left (122), and three CAP templates were armed (36).
+_MIN_TEMPLATES = 122
+_MIN_ARMED = 36
+
+#: A CAP template whose type fights with its guns alone: a warbird.
+_GUNS_ONLY_TYPES = frozenset({"P-47D-40"})
 
 
 class _Template:
@@ -237,6 +245,36 @@ class DynSlotCatalogueInvariantsTest(unittest.TestCase):
                     clsid = pylon.get("CLSID")
                     self.assertIsInstance(clsid, str)
                     self.assertTrue(clsid, "an empty CLSID is an empty pylon, which DCS omits")
+
+    def test_every_type_is_in_the_unit_database(self) -> None:
+        """A type DCS does not know is a mod: `A-4E-C`, `Bronco-OV-10A` and `T-45` were offered as
+        slots to every mission, against the Open Training rule « aucun mod exigé »
+        (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 04)."""
+        for tpl in self.templates:
+            for unit in tpl.units:
+                with self.subTest(template=str(tpl)):
+                    self.assertIsNotNone(get_unit_category(str(unit.get("type"))), unit.get("type"))
+
+    def test_every_cap_template_carries_a_loadout(self) -> None:
+        """`loadout_from` a CAP template is how an AI flight of a module aircraft is armed: the
+        J-11A templates carried an empty table, and the J-11A has no DCS named payload."""
+        for tpl in self.templates:
+            if tpl.group.get("task") != "CAP" or tpl.units[0].get("type") in _GUNS_ONLY_TYPES:
+                continue
+            with self.subTest(template=str(tpl)):
+                self.assertTrue(tpl.pylons)
+
+
+class TestTheShippedSpawnables(unittest.TestCase):
+    """The other shipped catalogue `loadout_from` reads (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 04)."""
+
+    def test_every_type_is_in_the_unit_database(self) -> None:
+        catalogue = yaml.safe_load(_SPAWNABLES.read_text(encoding="utf-8"))
+        for ref, group in iter_groups(catalogue):
+            units = group.get("units") or {}
+            for unit in units.values() if isinstance(units, dict) else units:
+                with self.subTest(group=ref.name):
+                    self.assertIsNotNone(get_unit_category(str(unit.get("type"))), unit.get("type"))
 
 
 if __name__ == "__main__":

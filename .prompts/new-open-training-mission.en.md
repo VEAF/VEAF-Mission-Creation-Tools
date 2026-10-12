@@ -11,8 +11,8 @@ VEAF Mission Creation Tools v6 (`veaf-tools`) and the `veaf-mission-mcp` MCP ser
 
 An Open Training runs on the VEAF servers, open to all: airbases where anyone takes an aircraft
 (dynamic slots), support (tankers, AWACS), graded training ranges, real combat zones spread over the
-theatre, CAPs and QRAs, a credible air defense, and weather in several variants. The pilots do not
-know the mission: everything they read must be right.
+theatre, CAPs and QRAs, a credible air defense, and a plausible base weather (the VEAF server sets the weather and time of each session).
+The pilots do not know the mission: everything they read must be right.
 
 ## 0. First of all
 
@@ -72,7 +72,7 @@ mission follows the rules of this prompt.
 
 - **Read it entirely**: groups **and unit names** (a group that looks inert often carries a
   `#veafInterpreter["…"]` that spawns a whole battery), zones, triggers, drawings, coalitions of all
-  the airfields, slots, bullseye, date, briefing, configuration, presets, weather variants.
+  the airfields, slots, bullseye, date, briefing, configuration, presets, weather.
 - Keep **its intentions**: which bases, which support, which defenses, which zones, what spirit. Take
   over what is intended and good; fix what is inconsistent (and prove it); leave out what serves
   nothing; **report what you do not understand** instead of deleting or copying it.
@@ -96,7 +96,7 @@ why.
 - **Draw the front of the era**: which countries / regions are blue, red, neutral (historical reality
   or the map's usual scenario). One sentence before starting.
 - **Blue bases with dynamic slots** (often 8 to 12). In this order:
-  1. **real military bases of the era**; the main one becomes the "home base" (ICAO weather, rear
+  1. **real military bases of the era**; the main one becomes the "home base" (ICAO name, rear
      tanker);
   2. spread **in depth**: a few forward bases, the rest in the rear;
   3. an **enclave** if history offers one.
@@ -138,7 +138,7 @@ why.
   live METAR station** (check
   `https://tgftp.nws.noaa.gov/data/observations/metar/stations/<ICAO>.TXT`, today's day in
   `DDHHMMZ`); otherwise the nearest large airfield of the theatre that has one.
-- `mission.era`, the **mission date** and the `base_date` of `versions.yaml` consistent with the era.
+- `mission.era` and the **mission date** consistent with the era.
 - **Language**: `mission.language: fr` and briefing in French — the VEAF servers' language — unless
   told otherwise.
 - `silence_atc_on_all_airbases: true`.
@@ -150,11 +150,14 @@ why.
   A single mod in it locks out of the server every player who does not have it. It fills up
   silently when a mod unit is placed, or when an existing mission is taken over.
 - **Two uses, two configurations** in `mission.yaml`:
-  - **default** = server: security on, `info` logs, all the weather variants;
+  - **default** = server: security on, `info` logs, **no weather variants** (`pipeline.weather: false`).
+    The VEAF server sets the weather and time of each session: an Open Training has no `src/versions.yaml` and no variants (David's decision of 12/10/2026).
   - **`LOCAL_TEST` profile** (`veaf-tools mission build --profile LOCAL_TEST`): security off,
-    `debug` logs, readable group names (`hide_names_from_spawned_groups: false`), no weather variants
-    (`pipeline.weather: false`), and whatever makes a local test faster.
+    `debug` logs, readable group names (`hide_names_from_spawned_groups: false`), and whatever makes a
+    local test faster.
 - **Mission date and time**: `set_mission_date`.
+- **Base weather** (`set_weather`): plausible for the date and place, since it is the only one the mission carries.
+  The scaffold's blank mission has its cloud base on the ground (Preset1 at 0 m): replace it.
 - **Bullseye** (`set_bullseye`): a **landmark the pilots can name**, at the centre of the front, the
   same for both sides, **not on a zone** (it would hide it on the map).
 - **Briefing** (`set_briefing`: title, situation, blue and red tasks): the context in two sentences,
@@ -292,9 +295,10 @@ Rules:
   airbase its base defense, a convoy its own AAA), through the aliases, carriers of the class spawned,
   unique unit names.
 - **Targets**: statics for buildings, bunkers, aircraft on the ground; native groups for what lives;
-  convoys = **one native group** with a road route (points 2+ "On Road"), its air defense in the same
-  group. A **convoy starts on firm ground**, not on a bridge nor in water: VEAF moves a group whose
-  position is on invalid terrain to a random spot.
+  convoys = **one native group** with a road route, its air defense in the same group.
+  **Every point of a convoy, the start included, is on a road**: take the point DCS gives (`land.getClosestPointOnRoads` through the dcs-bridge), and set **all** the points "On Road".
+  Measured on the Persian Gulf OT on 12/10/2026: starts placed by eye were 3 and 7 km from the road, and the first leg, leaving an "Off Road" point, went cross-country; snapped to the road, the three convoys drove on it from the first minute.
+  A **convoy starts on firm ground**, not on a bridge nor in water: VEAF moves a group whose position is on invalid terrain to a random spot.
 - **Ships of one group at least 150 m apart**: packed together they collide and get in each other's way.
 - **Range of the active zones' SAMs**: none may reach a friendly base, a tanker track or a training
   zone. A zone activated at start is a permanent defense: the rule of 4.5 applies to it.
@@ -350,8 +354,8 @@ Rules:
   291.0).
 - **Then check that no frequency appears twice** in one channel list, and that no non-airfield
   channel falls on a tower of the theatre. That check was the one missing.
-- **`src/versions.yaml` to rewrite**: position = home base, timezone, era `base_date`; variants night
-  / dawn / morning / day / evening × real (`airport_icao`) / clear (`clearsky`) / scattered / rain.
+- **No weather variants**: delete `src/versions.yaml` and set `pipeline.weather: false` (4.2).
+  Measured on the Persian Gulf OT on 12/10/2026: a METAR without clouds makes every "clear" variant identical to its real twin, and the server replaces the weather anyway.
 - **`src/waypoints.yaml`**: remove the template's examples; one plan per category and per playable
   side, with the bullseye.
 
@@ -442,7 +446,7 @@ briefing, the theatre map first.
 8. **`README.md` = the pilots' briefing**, in French, one file, **generated from the mission** by a script
    (like the map), never typed: situation, map, bases (frequencies, TACAN), permanent air defense,
    support, carriers, drones, training by family, combat zones by kind with each one's briefing, scripted
-   missions, QRA, CAP, player-versus-player and arena, blue and red radio plan, weather and times, useful
+   missions, QRA, CAP, player-versus-player and arena, blue and red radio plan, base weather and time, useful
    commands; then "For mission makers": building, files, regenerating this document, known limitations.
 9. **Local test mission** (section 8).
 
@@ -464,7 +468,7 @@ the sides; running DCS.
 ## 8. Checks before saying "it's ready"
 
 - **Read the whole build log**, not just the exit code: presets injected into how many aircraft,
-  waypoints into how many groups, warehouse links, number of variants, warnings. Any zero is suspect.
+  waypoints into how many groups, warehouse links, warnings. Any zero is suspect.
 - **Open the built `.miz`** (a zip; `mission` and `warehouses` are Lua tables) and check:
   - **unique** group and unit names;
   - dynamic slots on the intended bases only;
@@ -478,8 +482,8 @@ the sides; running DCS.
     editor shows the range ring of another weapon);
   - no permanent defense within reach of an enemy base with slots (4.5): the table of distances;
   - `requiredModules` empty (4.2);
-  - two weather variants **different in the fields DCS reads** (`clouds.preset`,
-    `season.temperature`, `wind.atGround`), and a dawn time consistent with sunrise;
+  - a single mission, no weather variant, and a plausible base weather in the fields DCS reads
+    (`clouds`, `season.temperature`, `wind.atGround`): no cloud base on the ground;
   - the `LOCAL_TEST` profile built without security, the default configuration with it;
   - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
     `pictureFileNameN`, `pictureFileNameR` empty (4.13).

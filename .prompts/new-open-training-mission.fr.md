@@ -12,8 +12,8 @@ VEAF Mission Creation Tools v6 (`veaf-tools`) et le serveur MCP `veaf-mission-mc
 Une Open Training tourne sur les serveurs VEAF, ouverte à tous : des bases où l'on prend un avion
 librement (slots dynamiques), du soutien (ravitailleurs, AWACS), des zones d'entraînement graduées,
 de vraies zones de combat réparties sur le théâtre, des CAP et des QRA, une défense aérienne
-crédible, et une météo déclinée en variantes. Les pilotes ne connaissent pas la mission : tout ce
-qu'ils lisent doit être juste.
+crédible, et une météo de base plausible (le serveur VEAF fixe la météo et l'heure de chaque session).
+Les pilotes ne connaissent pas la mission : tout ce qu'ils lisent doit être juste.
 
 ## 0. Avant tout
 
@@ -72,7 +72,7 @@ accumulation ; la nouvelle mission suit les règles de ce prompt.
 
 - **Lis-la en entier** : groupes **et noms d'unités** (un groupe d'apparence inerte porte souvent un
   `#veafInterpreter["…"]` qui crée une batterie entière), zones, triggers, dessins, coalitions de
-  tous les aérodromes, slots, bullseye, date, briefing, configuration, presets, variantes météo.
+  tous les aérodromes, slots, bullseye, date, briefing, configuration, presets, météo.
 - Retiens-en **les intentions** : quelles bases, quel soutien, quelles défenses, quelles zones, quel
   esprit. Reprends ce qui est voulu et bon ; corrige ce qui est incohérent (et prouve-le) ; laisse ce
   qui ne sert à rien ; **signale ce que tu ne comprends pas** au lieu de l'effacer ou de le copier.
@@ -96,7 +96,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Trace le front de l'époque** : quels pays / régions sont bleus, rouges, neutres (réalité
   historique ou scénario usuel de la carte). Une phrase avant de commencer.
 - **Bases bleues avec slots dynamiques** (souvent 8 à 12). Dans l'ordre :
-  1. bases **militaires réelles de l'époque** ; la principale devient la « base mère » (météo ICAO,
+  1. bases **militaires réelles de l'époque** ; la principale devient la « base mère » (nom ICAO,
      ravitailleur arrière) ;
   2. réparties **en profondeur** : quelques bases avancées, le reste en arrière ;
   3. une **enclave** si l'histoire en offre une.
@@ -140,7 +140,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   station METAR vivante** (vérifie
   `https://tgftp.nws.noaa.gov/data/observations/metar/stations/<ICAO>.TXT`, jour du jour dans
   `JJHHMMZ`) ; sinon le grand aérodrome du théâtre le plus proche qui en a une.
-- `mission.era`, **date de mission** et `base_date` de `versions.yaml` cohérentes avec l'époque.
+- `mission.era` et **date de mission** cohérentes avec l'époque.
 - **Langue** : `mission.language: fr` et briefing en français, sauf mention contraire.
 - `silence_atc_on_all_airbases: true`.
 - **Sécurité active par défaut** : la mission tourne sur les serveurs VEAF. Pas de
@@ -151,11 +151,14 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   Un seul mod y suffit à interdire le serveur aux joueurs qui ne l'ont pas. Elle se remplit sans
   bruit quand on pose une unité d'un mod, ou quand on reprend une mission existante.
 - **Deux usages, deux configurations** dans `mission.yaml` :
-  - **par défaut** = serveur : sécurité active, logs `info`, toutes les variantes météo ;
+  - **par défaut** = serveur : sécurité active, logs `info`, **pas de variantes météo** (`pipeline.weather: false`).
+    Le serveur VEAF fixe la météo et l'heure de chaque session : une Open Training n'a ni `src/versions.yaml` ni variantes (décision de David du 12/10/2026).
   - **profil `LOCAL_TEST`** (`veaf-tools mission build --profile LOCAL_TEST`) : sécurité désactivée,
-    logs `debug`, noms des groupes lisibles (`hide_names_from_spawned_groups: false`), pas de
-    variantes météo (`pipeline.weather: false`), et ce qui rend un test local plus rapide.
+    logs `debug`, noms des groupes lisibles (`hide_names_from_spawned_groups: false`), et ce qui rend
+    un test local plus rapide.
 - **Date et heure** de mission : `set_mission_date`.
+- **Météo de base** (`set_weather`) : plausible pour la date et le lieu, puisque c'est la seule que la mission porte.
+  Le squelette du scaffold a sa base de nuages au sol (Preset1 à 0 m) : à remplacer.
 - **Bullseye** (`set_bullseye`) : un **repère que les pilotes peuvent nommer**, au centre du front, le
   même pour les deux camps, **pas sur une zone** (il la masquerait sur la carte).
 - **Briefing** (`set_briefing` : titre, situation, tâches bleue et rouge) : le contexte en deux
@@ -300,9 +303,10 @@ Règles :
   base aérienne sa défense de base, un convoi sa propre AAA), via les alias, porteurs de la classe
   générée, noms d'unités uniques.
 - **Cibles** : statiques pour bâtiments, bunkers, avions au sol ; groupes natifs pour ce qui vit ;
-  convois = **un groupe natif** avec une route sur route (points 2+ « On Road »), sa défense
-  antiaérienne dans le même groupe. Le **point de départ d'un convoi est sur la terre ferme**, pas sur un
-  pont ni dans l'eau : VEAF replace au hasard un groupe dont la position est sur un terrain invalide.
+  convois = **un groupe natif** avec une route sur route, sa défense antiaérienne dans le même groupe.
+  **Chaque point d'un convoi, départ compris, est sur une route** : prends le point que DCS donne (`land.getClosestPointOnRoads` par le pont dcs-bridge), et mets **tous** les points en « On Road ».
+  Mesuré sur l'OT Golfe Persique le 12/10/2026 : des départs posés à l'œil étaient à 3 et 7 km de la route, et le premier tronçon, parti d'un point « Off Road », se faisait à travers champs ; recalés sur la route, les trois convois y roulaient dès la première minute.
+  Le **point de départ est sur la terre ferme**, pas sur un pont ni dans l'eau : VEAF replace au hasard un groupe dont la position est sur un terrain invalide.
 - **Navires d'un même groupe espacés d'au moins 150 m** : collés, ils s'abordent et se gênent.
 - **Portée des SAM des zones actives** : aucun ne doit atteindre une base amie, une piste de
   ravitailleur ou une zone d'entraînement. Une zone activée au démarrage est une défense permanente :
@@ -363,8 +367,8 @@ Règles :
   mnémonique quand il y en a une (le TACAN 51Y du ravitailleur Arco 1 donne 291.0).
 - **Vérifie ensuite qu'aucune fréquence n'apparaît deux fois** dans une même liste de canaux, et
   qu'aucun canal non-aérodrome ne tombe sur une tour du théâtre. C'est ce contrôle qui manquait.
-- **`src/versions.yaml` à réécrire** : position = base mère, fuseau, `base_date` d'époque ; variantes
-  nuit / aube / matin / jour / soir × réel (`airport_icao`) / dégagé (`clearsky`) / épars / pluie.
+- **Pas de variantes météo** : supprime `src/versions.yaml` et mets `pipeline.weather: false` (4.2).
+  Mesuré sur l'OT Golfe Persique le 12/10/2026 : un METAR sans nuage rend chaque variante « dégagée » identique à sa jumelle réelle, et le serveur remplace de toute façon la météo.
 - **`src/waypoints.yaml`** : retire les exemples du gabarit ; un plan par catégorie et par camp jouable,
   avec le bullseye.
 
@@ -462,7 +466,7 @@ images dans le briefing de la mission, la carte générale d'abord.
    un script (comme la carte), jamais tapé : situation, carte, bases (fréquences, TACAN), défense
    aérienne permanente, soutien, porte-avions, drones, entraînement par famille, zones de combat par type
    avec le briefing de chacune, missions scénarisées, QRA, CAP, combat entre joueurs et arène, plan radio
-   bleu et rouge, météo et heures, commandes utiles ; puis « Pour les créateurs de mission » :
+   bleu et rouge, météo et heure de base, commandes utiles ; puis « Pour les créateurs de mission » :
    construire, fichiers, régénérer ce document, limites connues.
 9. **Mission de test locale** (section 8).
 
@@ -484,7 +488,7 @@ l'époque ou les camps ; lancer DCS.
 ## 8. Vérification avant de dire « c'est prêt »
 
 - **Lis tout le journal du build**, pas seulement le code de sortie : presets injectés dans combien
-  d'appareils, waypoints dans combien de groupes, liens des warehouses, nombre de variantes,
+  d'appareils, waypoints dans combien de groupes, liens des warehouses,
   avertissements. Tout zéro est suspect.
 - **Ouvre le `.miz` produit** (un zip ; `mission` et `warehouses` sont des tables Lua) et contrôle :
   - noms de groupes et d'unités **uniques** ;
@@ -500,8 +504,8 @@ l'époque ou les camps ; lancer DCS.
   - aucune défense permanente à portée d'une base adverse avec slots (4.5) : le tableau des
     distances ;
   - `requiredModules` vide (4.2) ;
-  - deux variantes météo **différentes dans les champs que DCS lit** (`clouds.preset`,
-    `season.temperature`, `wind.atGround`), et l'heure de l'aube cohérente avec le lever du soleil ;
+  - une seule mission, sans variante météo, et une météo de base plausible dans les champs que DCS
+    lit (`clouds`, `season.temperature`, `wind.atGround`) : pas de nuages au sol ;
   - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec ;
   - les images de briefing présentes dans le `.miz`, listées dans `pictureFileNameB` et
     `pictureFileNameN`, `pictureFileNameR` vide (4.13).

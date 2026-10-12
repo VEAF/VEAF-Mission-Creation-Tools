@@ -6,11 +6,13 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · 🔄
-
-A FARP placed in the jungle and on a slope with no warning (Marianas OT v6, seen in game): `add_farp` checks only water; it should check clear ground and slope where the data exists, offer to clear the scenery around the pad (the DCS action the Marianas v5 used by hand), and an in-game finder should list the flat, clear spots near a point. Three tickets, one PR; one unknown to measure in DCS. Ticket 01 done; 02 and 03 coded, waiting for their measurement in DCS.
+*None.*
 
 ## 🧑 Waiting for a human
+
+### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · 🧑
+
+A FARP placed in the jungle and on a slope with no warning (Marianas OT v6, seen in game). `add_farp` now checks its pad for trees (moved off them within 1 km, or `keep_position`) and slope (more than 3 m over 40 m), says what it could not check, can clear the trees around the pad (`clear_scenery_radius`), and `veaf-tools dcs farp-spot` finds a flat, clear spot in DCS (#1125). Left: the in-game measurement of the tree removal (single player, then a multiplayer client) and one live `farp-spot` run; a test mission is ready.
 
 ### [FIX-OPEN-TRAINING-MARIANAS-FINDINGS](FIX-OPEN-TRAINING-MARIANAS-FINDINGS/PRD.md) · 🧑
 

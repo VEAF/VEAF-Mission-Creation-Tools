@@ -3,7 +3,7 @@
 DCS is never reached here: the transport is a fake that answers in the format the Lua chunk writes, so
 what is tested is the chunks sent — one per band, in DCS axes, with the criteria — and the parsing of
 their answers. Whether the criteria find a usable spot is the Marianas measurement of 2026-10-12: one
-spot within 1.2 km of Merizo, 2.5 m of height range over 80 m, accepted in game.
+spot within 1.2 km of Merizo, 2.5 m of height range over 80 m, where the FARP was moved.
 """
 
 import re

@@ -59,7 +59,7 @@ def surface_warnings(theatre: str | None, units: Any, *, afloat: bool) -> list[s
 
 #: A helicopter pad is measured at its centre and on a ring this far around it (FIX-FARP-PLACEMENT).
 PAD_RING_METERS = 40.0
-#: Above this height range over the pad, it is on a slope: the Marianas spot accepted in game reads
+#: Above this height range over the pad, it is on a slope: the spot accepted for FARP Merizo reads
 #: 2.5 m over 80 m (FIX-FARP-PLACEMENT, 2026-10-12).
 PAD_MAX_DROP_METERS = 3.0
 

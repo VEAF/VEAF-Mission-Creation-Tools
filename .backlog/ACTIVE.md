@@ -10,6 +10,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🧑 Waiting for a human
 
+### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · 🧑
+
+A FARP placed in the jungle and on a slope with no warning (Marianas OT v6, seen in game). `add_farp` now checks its pad for trees (moved off them within 1 km, or `keep_position`) and slope (more than 3 m over 40 m), says what it could not check, can clear the trees around the pad (`clear_scenery_radius`), and `veaf-tools dcs farp-spot` finds a flat, clear spot in DCS (#1125). Left: the in-game measurement of the tree removal (single player, then a multiplayer client) and one live `farp-spot` run; a test mission is ready.
+
 ### [FIX-OPEN-TRAINING-MARIANAS-FINDINGS](FIX-OPEN-TRAINING-MARIANAS-FINDINGS/PRD.md) · 🧑
 
 What building the Marianas Open Training v6 through the MCP found: a QRA group with a CAP task that landed, the carrier tanker taking the tankers' callsigns, no `loadout_from` on `add_air_group`, a weaponless J-11A and three mods in the shipped catalogue, read actions that disagreed, no ROE for a ground group, a placement warning that said nothing useful. Tickets 01–06 and 07's code done; left, ticket 07: the MarianaIslands sweeps in DCS.

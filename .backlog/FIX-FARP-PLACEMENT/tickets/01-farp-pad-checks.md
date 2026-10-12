@@ -1,6 +1,6 @@
 # 01 — add_farp checks its pad: clear ground and slope
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/add_farp.py`, `veaf_libs/clear_ground_placement.py` (reuse), the elevation grid reader behind `terrain_elevation`, `veaf_mission_mcp/actions.py` (description), tests.
 

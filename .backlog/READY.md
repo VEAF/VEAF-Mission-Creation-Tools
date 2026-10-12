@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · ⬜
-
-A FARP placed in the jungle and on a slope with no warning (Marianas OT v6, seen in game): `add_farp` checks only water; it should check clear ground and slope where the data exists, offer to clear the scenery around the pad (the DCS action the Marianas v5 used by hand), and an in-game finder should list the flat, clear spots near a point. Three tickets, one PR; one unknown to measure in DCS.
-
 ### [FIX-OPEN-TRAINING-CAUCASUS-FINDINGS](FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md) · ⬜
 
 What recompiling the Caucasus Open Training v6 in 6.29.0 found, each fixed by hand in the mission: no game master slot nor vehicle control in any v6 scaffold, a CTLD catalogue upgrade seen only in game, no dashed line on the F10 map, and (found on GermanyCW-v6) a committed presets report that names the machine. Four tickets, one PR.

@@ -1,6 +1,6 @@
 # 03 — An in-game finder for a flat, clear FARP spot
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Files: `veaf_tools` (a `dcs` subcommand next to `clear-ground-check`), the dcs-bridge client, docs, tests on the Lua it sends.
 
@@ -14,3 +14,12 @@ With no grid and no catalogue (MarianaIslands), the only way to find a usable FA
 - It runs in slices that each stay under the bridge's call timeout (the mission's script splits the grid into 300 m bands).
 - `add_farp`'s warning (ticket 01) points to it when the theatre has no data to check the pad.
 - Tests: the Lua it builds is the expected one; the parser of its answer.
+
+## Done so far (2026-10-12, #1125)
+
+- `veaf-tools dcs farp-spot <theatre> --at x,y [--radius] [--max-drop] [--limit] [--report]`, on the empty survey mission like `scenery-objects`. The point is an option, not two arguments: click reads `-22300` in a positional slot as an unknown option (measured: « No such option: -2 »), and Marianas coordinates are negative.
+- The band chunk was executed in Lua 5.1 against mocks (water, a blocked ring point, the radius, the error path); the CLI is driven end to end against a fake DCS.
+
+## Left
+
+- One run against DCS around Merizo: it should find the spot the mission's probe found, some 1.2 km away (2.5 m over 80 m).

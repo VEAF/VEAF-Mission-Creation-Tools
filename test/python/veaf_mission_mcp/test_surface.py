@@ -137,5 +137,5 @@ class TestThroughTheActions:
 def test_without_a_grid_a_farp_says_it_once(sample_miz: Path) -> None:
     """Review of the lot: the pad and its ammunition dump each said 'surface not checked'."""
     result = add_farp(sample_miz, name="FARP X", position=_LAND, coalition="blue", country_id=2, country_name="USA")
-    [warning] = result["warnings"]
-    assert warning.startswith("surface not checked: no elevation grid for Caucasus")
+    surface = [w for w in result["warnings"] if w.startswith("surface not checked")]
+    assert len(surface) == 1 and surface[0].startswith("surface not checked: no elevation grid for Caucasus")

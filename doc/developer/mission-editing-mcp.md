@@ -712,7 +712,8 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
 ### FARP
 
 - `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
-  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True)` — un FARP **complet** : le statique
+  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True, keep_position=False,
+  clear_scenery_radius=None)` — un FARP **complet** : le statique
   d'héliport (`category = "Heliports"`, `shape_name` du type), sa radio et son indicatif, et l'entrée
   d'entrepôt `warehouses.warehouses[<unitId>]` qui permet de s'y ravitailler. `add_group` en `static`
   ne posait que l'objet (ticket 19). Forme mesurée sur les 372 héliports des missions de
@@ -721,6 +722,9 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
   `Fortifications` / `SetkaKP` comme les 68 des missions OT) que CTLD prend comme point de chargement ;
   `ammo_dump=False` s'en passe (`FIX-OPEN-TRAINING-SYRIA-FINDINGS` ticket 05). Un héliport en mer
   (sol à 0 m sur la grille d'altitude) est signalé (ticket 04).
+  Le pad est vérifié (`FIX-FARP-PLACEMENT` ticket 01) : là où le catalogue de sol dégagé couvre l'endroit, un pad dans les arbres ou les bâtiments est déplacé avec son dépôt sur le sol dégagé le plus proche, à 1 km au plus (`keep_position=True` refuse le déplacement et se contente d'avertir) ; là où la grille d'altitude le couvre, plus de 3 m de dénivelé entre le centre et un anneau à 40 m est signalé comme une pente.
+  Là où ni l'un ni l'autre ne couvre l'endroit, l'avertissement dit ce qui n'a pas été vérifié et donne la commande [`veaf-tools dcs farp-spot`](../CLI_REFERENCE.md#farp-spot), qui cherche dans DCS une place plate et dégagée ; `position` dans le résultat dit où le pad est allé.
+  `clear_scenery_radius` (mètres) retire les arbres autour du pad (ticket 02) : une zone `<nom> - Clear` et un trigger ONCE, 1 s après le début de la mission, avec l'action DCS `a_remove_scene_objects` en `objects_mask = 1` (« TREES ONLY » dans la liste de l'éditeur, `me_trigrules.lua`), la forme de la v5 Mariannes pour son FARP de Tinian.
 
 ### Groupe aéronaval, slots sur le pont, sons (FIX-OPEN-TRAINING-PROMPT-FINDINGS)
 

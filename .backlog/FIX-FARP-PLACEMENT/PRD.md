@@ -1,6 +1,6 @@
 # FIX-FARP-PLACEMENT — a FARP placed in the jungle and on a slope, and nothing said
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Asked by David on 2026-10-12.
 On the Marianas Open Training v6, `add_farp` put « FARP Merizo » in the forest and on a slope: David saw it in game (screenshot, 2026-10-12), and a DCS probe confirmed it (`Disposition.getSimpleZones` small query, 0 of 12 points free at 30 m, 3 to 6 of 12 at 60–120 m).
@@ -15,8 +15,8 @@ A helicopter pad in the trees or on a slope is unusable, and the maker learns it
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [add_farp checks its pad: clear ground and slope](tickets/01-farp-pad-checks.md) | ⬜ |
-| 02 | [add_farp can clear the scenery around its pad](tickets/02-farp-clear-scenery.md) | ⬜ |
-| 03 | [An in-game finder for a flat, clear FARP spot](tickets/03-farp-spot-finder.md) | ⬜ |
+| 01 | [add_farp checks its pad: clear ground and slope](tickets/01-farp-pad-checks.md) | ✅ |
+| 02 | [add_farp can clear the scenery around its pad](tickets/02-farp-clear-scenery.md) | 🧑 |
+| 03 | [An in-game finder for a flat, clear FARP spot](tickets/03-farp-spot-finder.md) | 🧑 |
 
 Ticket 02 has one unknown to measure in DCS before the code is final (what `a_remove_scene_objects` removes, and whether every client sees it in multiplayer); 03 needs DCS to run. One branch, one PR.

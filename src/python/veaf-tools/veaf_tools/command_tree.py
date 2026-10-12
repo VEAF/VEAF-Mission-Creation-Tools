@@ -85,6 +85,7 @@ COMMAND_GROUPS: tuple[CommandGroup, ...] = (
             "clear-ground-sweep",
             "clear-ground-check",
             "scenery-objects",
+            "farp-spot",
             "terrain-sweep",
         ),
     ),

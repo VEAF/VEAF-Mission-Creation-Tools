@@ -32,6 +32,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `describe_mission` reads a mission folder, `describe_units` gives each `group_id` and `unit_id`, `terrain_elevation` takes `mission_path`, and `geocode` warns when it answers an island or an area for a place inside it.
 - **A placement warning says what was not checked and how to check it** (ticket 07).
   On a theatre with no elevation grid or clear-ground catalogue, it names the sea, the trees and the buildings, and `veaf-tools dcs clear-ground-check` on the built mission.
+- **`add_farp` no longer puts a FARP in the trees or on a slope without a word** (FIX-FARP-PLACEMENT tickets 01–03).
+  « FARP Merizo » went into the Marianas jungle, on a slope, with only a warning about the sea.
+  Where the clear-ground catalogue covers the place, a pad in trees or buildings now moves with its ammunition dump onto the nearest clear ground within 1 km (`keep_position` refuses the move and only warns); where the elevation grid covers it, more than 3 m of height difference over 40 m around the pad is warned as a slope; where neither does, the warning says what was not checked.
+  The new `veaf-tools dcs farp-spot <theatre> --at x,y` finds the flat, clear spots near a point in DCS, and `add_farp`'s new `clear_scenery_radius` removes the trees around the pad at mission start.
 
 ### Added
 

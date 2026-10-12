@@ -8,11 +8,16 @@ FARP` → `invisiblefarp`, `SINGLE_HELIPAD` → `FARP`), 127.5 MHz AM in 288 of 
 keyed by the unit id with the coalition in lower case (292 of 300).
 """
 
+import math
+from array import array
 from pathlib import Path
 from typing import Any
 
 import pytest
 from mission_tools.miz_tools import read_mission_folder
+from veaf_libs import clear_ground_placement as placement
+from veaf_libs.clear_ground_catalogue import STATE_BLOCKED, STATE_CLEAR, Catalogue, GridSpec, Layer
+from veaf_libs.terrain_elevation import ElevationGrid, save_grid
 from veaf_mission_mcp.add_farp import add_farp
 
 _MISSION = """\
@@ -144,3 +149,155 @@ class TestTheAmmoDump:
         result = _add(folder, ammo_dump=False)
         assert [u["type"] for u in _statics(folder)] == ["FARP"]
         assert "ammo_dump" not in result
+
+
+# FIX-FARP-PLACEMENT 01: « FARP Merizo » was placed in the Marianas jungle and on a slope, and the only
+# warning was about the sea. The pad is now checked for trees (clear-ground catalogue) and slope
+# (elevation grid), and says what it could not check.
+
+_MISSION_CAUCASUS = _MISSION.replace("mission =\n{\n", 'mission =\n{\n  ["theatre"] = "Caucasus",\n', 1)
+
+
+def _wood_then_field() -> Catalogue:
+    """Rows 0-19 wood, the rest open, 25 m apart: a wood south of x=0, a field north of it."""
+    grid = GridSpec(-500, -1000, 25, 81, 81)
+    states = bytearray([STATE_CLEAR]) * grid.size
+    for index in range(20 * 81):
+        states[index] = STATE_BLOCKED
+    layer = Layer("zone:test", grid, states)
+    layer.derive_radii()
+    return Catalogue("Caucasus", [layer])
+
+
+@pytest.fixture
+def caucasus(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A Caucasus folder, a wood-then-field catalogue, and a grid: flat south of x=2000, a 10 % slope north."""
+    folder = _folder(tmp_path)
+    (folder / "src" / "mission" / "mission").write_text(_MISSION_CAUCASUS, encoding="utf-8")
+    catalogue = _wood_then_field()
+    monkeypatch.setattr(
+        placement, "catalogue_for_theatre", lambda theatre: catalogue if theatre == "Caucasus" else None
+    )
+    grid = GridSpec(-5000.0, -5000.0, 100.0, 101, 101)
+    heights = array("h")
+    for row in range(grid.rows):
+        for col in range(grid.cols):
+            x, _y = grid.cell_position(row, col)
+            heights.append(100 + max(0, int((x - 2000) / 10)))
+    monkeypatch.setenv("VEAF_HOME", str(tmp_path / "home"))
+    save_grid(ElevationGrid("Caucasus", grid, heights), tmp_path / "home" / "terrain" / "Caucasus.terrain")
+    return folder
+
+
+def _add_at(folder: Path, x: float, y: float, **extra: Any) -> dict[str, Any]:
+    return add_farp(
+        folder,
+        name="FARP Merizo",
+        position={"x": x, "y": y},
+        coalition="blue",
+        country_id=2,
+        country_name="USA",
+        **extra,
+    )
+
+
+def _pad_and_dump(folder: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    statics = _statics(folder)
+    return (
+        next(u for u in statics if u["type"] == "FARP"),
+        next(u for u in statics if u["type"] == "FARP Ammo Dump Coating"),
+    )
+
+
+class TestThePadIsChecked:
+    def test_a_pad_in_a_catalogued_wood_moves_onto_clear_ground_with_its_dump(self, caucasus: Path) -> None:
+        result = _add_at(caucasus, -300.0, 0.0)
+        pad, dump = _pad_and_dump(caucasus)
+        assert pad["x"] > -300.0
+        assert (dump["x"], dump["y"] - pad["y"]) == (pad["x"], pytest.approx(120.0))
+        assert result["position"] == {"x": pad["x"], "y": pad["y"]}
+        moved = [w for w in result["warnings"] if w.startswith("'FARP Merizo' moved")]
+        assert len(moved) == 1 and "clear ground" in moved[0]
+        assert math.hypot(pad["x"] + 300.0, pad["y"]) <= placement.SEARCH_RADIUS_METERS
+
+    def test_keep_position_keeps_it_and_says_it_stands_in_the_trees(self, caucasus: Path) -> None:
+        result = _add_at(caucasus, -300.0, 0.0, keep_position=True)
+        pad, _ = _pad_and_dump(caucasus)
+        assert (pad["x"], pad["y"]) == (-300.0, 0.0)
+        assert any(
+            "'FARP Merizo' stands in trees or buildings" in w and "keep_position" in w for w in result["warnings"]
+        )
+
+    def test_a_pad_already_on_clear_flat_ground_says_nothing(self, caucasus: Path) -> None:
+        result = _add_at(caucasus, 800.0, 0.0)
+        assert _pad_and_dump(caucasus)[0]["x"] == 800.0
+        assert "warnings" not in result
+
+    def test_a_pad_on_a_slope_warns_with_the_drop(self, caucasus: Path) -> None:
+        # North of x=2000 the ground climbs 10 m per 100 m: 8 m over the 80 m of the ring.
+        result = _add_at(caucasus, 3000.0, 0.0, keep_position=True)
+        slope = [w for w in result["warnings"] if "is on a slope" in w]
+        assert len(slope) == 1 and "8.0 m" in slope[0] and "farp-spot" in slope[0]
+
+    def test_a_pad_with_nothing_to_check_it_says_what_was_not_checked(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        (folder / "src" / "mission" / "mission").write_text(
+            _MISSION.replace("mission =\n{\n", 'mission =\n{\n  ["theatre"] = "MarianaIslands",\n', 1), encoding="utf-8"
+        )
+        result = _add_at(folder, -22300.0, -12450.0)
+        unchecked = [w for w in result["warnings"] if "not checked for 'FARP Merizo'" in w]
+        assert len(unchecked) == 1
+        assert "trees" in unchecked[0] and "slope" in unchecked[0]
+        assert "veaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450" in unchecked[0]
+
+
+# FIX-FARP-PLACEMENT 02: the Marianas v5 cleared the trees of its Tinian FARP by hand, with trigger zones
+# and a once-trigger removing the scene objects in them. The shape below is that mission's, which is also
+# the one DCS's own mission generator writes (`removeTreesRule.mt`): `objects_mask` 1 is « TREES ONLY »
+# in the editor's combo (`me_trigrules.lua`: 0 all, 1 trees only, 2 objects only).
+
+
+def _content(folder: Path) -> dict[str, Any]:
+    return read_mission_folder(folder).mission_content or {}
+
+
+class TestClearingTheScenery:
+    def test_a_zone_at_the_pad_and_a_once_trigger_removing_its_trees_are_written(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        result = _add(folder, clear_scenery_radius=60)
+        content = _content(folder)
+        zone = next(z for z in _values(content["triggers"]["zones"]) if z["name"] == "FARP Fulda - Clear")
+        assert (zone["x"], zone["y"], zone["radius"], zone["type"]) == (1000.0, 2000.0, 60, 0)
+        rule = _values(content["trigrules"])[-1]
+        index = result["clear_scenery"]["trigger_index"]
+        assert result["clear_scenery"]["zone"] == "FARP Fulda - Clear"
+        assert rule["predicate"] == "triggerOnce"
+        assert _values(rule["rules"]) == [{"predicate": "c_time_after", "seconds": 1}]
+        assert _values(rule["actions"]) == [
+            {"predicate": "a_remove_scene_objects", "zone": zone["zoneId"], "objects_mask": 1}
+        ]
+        trig = content["trig"]
+        assert _values(trig["actions"])[-1] == (
+            f"a_remove_scene_objects({zone['zoneId']}, 1); mission.trig.func[{index}]=nil;"
+        )
+        assert _values(trig["conditions"])[-1] == "return(c_time_after(1) )"
+        assert _values(trig["func"])[-1] == (
+            f"if mission.trig.conditions[{index}]() then mission.trig.actions[{index}]() end"
+        )
+        assert _values(trig["flag"])[-1] is True
+
+    def test_the_zone_follows_a_pad_moved_off_scenery(self, caucasus: Path) -> None:
+        result = _add_at(caucasus, -300.0, 0.0, clear_scenery_radius=40)
+        zone = next(z for z in _values(_content(caucasus)["triggers"]["zones"]) if z["name"].endswith(" - Clear"))
+        assert (zone["x"], zone["y"]) == (result["position"]["x"], result["position"]["y"])
+
+    def test_without_the_option_nothing_is_added(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        result = _add(folder)
+        content = _content(folder)
+        assert "clear_scenery" not in result
+        assert not content.get("trigrules") and not (content.get("triggers") or {}).get("zones")
+
+    def test_a_radius_that_is_not_positive_is_refused(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="clear_scenery_radius"):
+            _add(_folder(tmp_path), clear_scenery_radius=0)

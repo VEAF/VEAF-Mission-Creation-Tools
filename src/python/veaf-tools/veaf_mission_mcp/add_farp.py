@@ -8,15 +8,19 @@ Every value below is measured on the 372 heliports of the missions under D:\\dev
 not assumed: see the constants.
 """
 
+import math
 from pathlib import Path
 from typing import Any
 
 from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.group_insertion import max_ids
+from veaf_libs.clear_ground_placement import occupied_by, place_on_clear_ground
 
 from veaf_mission_mcp.add_group import insert_group_into_content
+from veaf_mission_mcp.add_startup_script_trigger import apply_scenery_removal_trigger
+from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
-from veaf_mission_mcp.surface import surface_warnings
+from veaf_mission_mcp.surface import PAD_MAX_DROP_METERS, PAD_RING_METERS, pad_drop, surface_warnings
 
 #: Heliport type -> the `shape_name` the editor writes with it (135, 128, 52, 8 and 2 occurrences).
 _SHAPES: dict[str, str] = {
@@ -49,6 +53,8 @@ def add_farp(
     modulation: str = "AM",
     callsign_id: int = 1,
     ammo_dump: bool = True,
+    keep_position: bool = False,
+    clear_scenery_radius: float | None = None,
 ) -> dict[str, Any]:
     """Place a heliport with its radio and a warehouse entry, backed up first.
 
@@ -70,14 +76,23 @@ def add_farp(
         ammo_dump: Place a ``FARP Ammo Dump Coating`` static named ``<name> - Ammo``, 120 m east of
             the pad, same coalition and country — CTLD's loading point. Each Syria FARP needed a
             separate call for it (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 05).
+        keep_position: The position is the mission maker's own: never move the pad. By default a pad
+            the clear-ground catalogue finds in trees or buildings is moved, with its dump, onto the
+            nearest clear ground within 1 km (FIX-FARP-PLACEMENT ticket 01); kept, it is only warned
+            about.
+        clear_scenery_radius: Remove the trees within this many metres of the pad, one second after
+            mission start: a zone ``<name> - Clear`` and a once-trigger, as the Marianas v5 cleared its
+            Tinian FARP (FIX-FARP-PLACEMENT ticket 02). ``None`` (the default) touches no scenery.
 
     Returns:
-        ``{farp, group_id, unit_id, durable, ammo_dump?, warnings?}`` — ``warnings`` when the pad is in the sea
-        or the theatre has no elevation grid to tell.
+        ``{farp, group_id, unit_id, position, durable, ammo_dump?, clear_scenery?, warnings?}`` —
+        ``position`` is where the pad went; ``clear_scenery`` is ``{zone, trigger_index}`` when the
+        option is set; ``warnings`` when the pad was moved off scenery, stands in it, is on a slope, is in
+        the sea, or when the trees or the slope could not be checked.
 
     Raises:
-        ValueError: On an unknown type or modulation, an incomplete position, or a mission with no
-            ``warehouses`` table to register the FARP in.
+        ValueError: On an unknown type or modulation, an incomplete position, a radius to clear that
+            is not positive, or a mission with no ``warehouses`` table to register the FARP in.
     """
     if farp_type not in _SHAPES:
         raise ValueError(f"farp_type must be one of {', '.join(_SHAPES)}, got {farp_type!r}")
@@ -85,6 +100,8 @@ def add_farp(
         raise ValueError(f"modulation must be AM or FM, got {modulation!r}")
     if position.get("x") is None or position.get("y") is None:
         raise ValueError("position must be a complete {x, y}")
+    if clear_scenery_radius is not None and clear_scenery_radius <= 0:
+        raise ValueError(f"clear_scenery_radius must be positive, got {clear_scenery_radius!r}")
 
     mission, content = open_mission(target)
     warehouses = mission.warehouses_content
@@ -92,6 +109,9 @@ def add_farp(
         raise ValueError(f"the mission has no warehouses table to register the FARP in: {target}")
 
     x, y = float(position["x"]), float(position["y"])
+    theatre = content.get("theatre") or mission.theatre_content
+    dump_name = f"{name} - Ammo"
+    warnings, (x, y) = _check_pad(content, theatre, name, dump_name if ammo_dump else None, x, y, keep_position)
     unit: dict[str, Any] = {
         "type": farp_type,
         "category": "Heliports",
@@ -136,9 +156,7 @@ def add_farp(
         warehouses["warehouses"] = table
     table[unit_id] = _default_warehouse(coalition.lower())
 
-    theatre = content.get("theatre") or mission.theatre_content
-    warnings = surface_warnings(theatre, [unit], afloat=False)
-    dump_name = f"{name} - Ammo"
+    warnings += surface_warnings(theatre, [unit], afloat=False)
     if ammo_dump:
         insert_group_into_content(
             content,
@@ -151,14 +169,89 @@ def add_farp(
             units=[{"type": _AMMO_DUMP_TYPE, "count": 1}],
             warnings=warnings,
         )
+    clear_scenery: dict[str, Any] | None = None
+    if clear_scenery_radius is not None:
+        zone = f"{name} - Clear"
+        zone_id = insert_trigger_zone(content, name=zone, position={"x": x, "y": y}, radius=clear_scenery_radius)
+        index = apply_scenery_removal_trigger(content, zone_id=zone_id, comment=f"Clear {name}")
+        clear_scenery = {"zone": zone, "trigger_index": index}
     durable = commit_mission(mission, target)["durable"]
-    result: dict[str, Any] = {"farp": name, "group_id": group_id, "unit_id": unit_id, "durable": durable}
+    result: dict[str, Any] = {
+        "farp": name,
+        "group_id": group_id,
+        "unit_id": unit_id,
+        "position": {"x": x, "y": y},
+        "durable": durable,
+    }
     if ammo_dump:
         result["ammo_dump"] = dump_name
+    if clear_scenery:
+        result["clear_scenery"] = clear_scenery
     if warnings:
         # The pad and its dump share a surface verdict when the theatre has no grid: said once.
         result["warnings"] = list(dict.fromkeys(warnings))
     return result
+
+
+def _check_pad(
+    content: dict[str, Any],
+    theatre: str | None,
+    name: str,
+    dump_name: str | None,
+    x: float,
+    y: float,
+    keep_position: bool,
+) -> tuple[list[str], tuple[float, float]]:
+    """Check a pad for trees and slope, and move it off scenery unless its position is kept.
+
+    « FARP Merizo » went into the Marianas jungle, on a slope, with a warning about the sea only
+    (FIX-FARP-PLACEMENT ticket 01).
+
+    Args:
+        content: The parsed ``mission`` table, before the FARP is inserted.
+        theatre: The mission's theatre.
+        name: The FARP's name.
+        dump_name: Its ammunition dump's name, or ``None`` when there is none.
+        x: Mission ``x`` asked for the pad.
+        y: Mission ``y`` asked for the pad.
+        keep_position: Never move the pad.
+
+    Returns:
+        The warnings, and where the pad goes.
+    """
+    footprint = [{"x": x, "y": y, "name": name}]
+    if dump_name:
+        footprint.append({"x": x, "y": y + _AMMO_DUMP_OFFSET_M, "name": dump_name})
+    # The coalition only decides what a `#command` marker may draw, and a FARP carries none.
+    placement = place_on_clear_ground(theatre, footprint, coalition="neutral", occupied=occupied_by(content))
+    warnings: list[str] = []
+    unchecked: list[str] = []
+    if not placement.covered:
+        unchecked.append("trees (no clear-ground catalogue covers this place)")
+    elif (placement.dx or placement.dy) and keep_position:
+        warnings.append(
+            f"'{name}' stands in trees or buildings: the clear-ground catalogue of {theatre} has clear ground "
+            f"{math.hypot(placement.dx, placement.dy):.0f} m away; kept where asked (keep_position)"
+        )
+    elif placement.message:
+        x, y = x + placement.dx, y + placement.dy
+        warnings.append(
+            f"'{name}' {placement.message}" if placement.dx or placement.dy else f"'{name}': {placement.message}"
+        )
+    spot = f"'.\\veaf-tools.exe dcs farp-spot {theatre} --at {x:.0f},{y:.0f}'"
+    drop = pad_drop(theatre, x, y)
+    if drop is None:
+        unchecked.append(f"slope (no elevation grid for {theatre or 'this theatre'})")
+    elif drop > PAD_MAX_DROP_METERS:
+        warnings.append(
+            f"'{name}' is on a slope: the ground varies by {drop:.1f} m within {PAD_RING_METERS:.0f} m of the pad, "
+            f"more than {PAD_MAX_DROP_METERS:.0f} m; find a flat, clear spot in game with {spot}"
+        )
+    if unchecked:
+        warnings.append(
+            f"{' and '.join(unchecked)} not checked for '{name}'; find a flat, clear spot in game with {spot}"
+        )
+    return warnings, (x, y)
 
 
 def _default_warehouse(coalition: str) -> dict[str, Any]:

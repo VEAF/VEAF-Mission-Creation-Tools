@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · ⬜
+
+A FARP placed in the jungle and on a slope with no warning (Marianas OT v6, seen in game): `add_farp` checks only water; it should check clear ground and slope where the data exists, offer to clear the scenery around the pad (the DCS action the Marianas v5 used by hand), and an in-game finder should list the flat, clear spots near a point. Three tickets, one PR; one unknown to measure in DCS.
+
 ### [FIX-OPEN-TRAINING-MARIANAS-FINDINGS](FIX-OPEN-TRAINING-MARIANAS-FINDINGS/PRD.md) · ⬜
 
 What building the Marianas Open Training v6 through the MCP found, each checked against `develop`: a QRA group created with a CAP task lands instead of defending its zone, and on a theatre with no elevation grid nothing says that 57 of 97 vehicles stood in the trees (measured in DCS); then the carrier recovery tankers taking the tanker callsigns, no `loadout_from` on `add_air_group`, a weaponless J-11A and three mods in the shipped catalogues, read actions that disagree on their parameters, no ROE option for a ground group. Seven tickets, one PR; the MarianaIslands sweeps need DCS.

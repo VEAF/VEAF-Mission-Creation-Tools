@@ -177,7 +177,13 @@ class TestTheRecoveryTankerCallsign:
         assert (first["tanker_callsign"], second["tanker_callsign"]) == ("Shell91", "Shell81")
         for name in ("Texaco 1", "Arco 1", "Texaco 2", "Arco 2"):
             result = add_air_group(
-                miz, name=name, unit_type="KC-135", start="air", position={"x": 0.0, "y": 0.0}, task="Refueling", **_BLUE
+                miz,
+                name=name,
+                unit_type="KC-135",
+                start="air",
+                position={"x": 0.0, "y": 0.0},
+                task="Refueling",
+                **_BLUE,
             )
             assert "warnings" not in result
         given = [self._callsign(miz, name) for name in ("Texaco 1", "Arco 1", "Texaco 2", "Arco 2")]

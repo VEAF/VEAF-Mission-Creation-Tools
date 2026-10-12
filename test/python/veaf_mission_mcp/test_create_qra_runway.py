@@ -117,6 +117,4 @@ def test_a_qra_group_carries_no_task_whatever_its_task_so_it_defends_its_zone(tm
     assert not _items(first["task"]["params"]["tasks"])
     mission_yaml = {"modules": {"QRA": {"definitions": [{"simple_groups": ["QRA Senaki MiG-29"]}]}}}
     content = read_mission_folder(folder).mission_content or {}
-    assert find_deployed_aircraft_routes(mission_yaml, content) == [
-        ("QRA", "QRA Senaki MiG-29", ROUTE_ZONE_DEFENSE)
-    ]
+    assert find_deployed_aircraft_routes(mission_yaml, content) == [("QRA", "QRA Senaki MiG-29", ROUTE_ZONE_DEFENSE)]

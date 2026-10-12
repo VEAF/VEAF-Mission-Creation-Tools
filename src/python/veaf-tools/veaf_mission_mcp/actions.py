@@ -1062,6 +1062,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "A DCS loadout by the name the Mission Editor lists (list_payloads gives "
                         "a type's names), instead of 'pylons'.",
                     },
+                    "loadout_from": {
+                        "type": "string",
+                        "description": "Group to copy the loadout from: the mission's, then the aircraft "
+                        "catalogues' (a veafSpawn-* template) -- the way to arm a module aircraft with no DCS "
+                        "named payload. One of pylons / payload / loadout_from.",
+                    },
                 },
                 "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
             },
@@ -2868,6 +2874,7 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         late_activation=params.get("late_activation", False),
         pylons=params.get("pylons"),
         payload=params.get("payload"),
+        loadout_from=params.get("loadout_from"),
         chaff=params.get("chaff"),
         flare=params.get("flare"),
         carrier=params.get("carrier"),

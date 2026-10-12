@@ -1,6 +1,6 @@
 # 02 — add_farp can clear the scenery around its pad
 
-Status: 🧑 waiting-human
+Status: 🚫 wontfix
 
 Files: `veaf_mission_mcp/add_farp.py`, the trigger writer `add_startup_script_trigger` uses (or a sibling for a DCS action), `veaf_mission_mcp/actions.py`, the authoring skill, tests.
 
@@ -33,8 +33,11 @@ Nothing in VMCT removes scenery. The Marianas v5 cleared the trees of its Tinian
 - `dcs.log`: no error after the mission start.
 - Not known yet: whether the trigger fires at all. Next step: read `mission.trig.func[<index>]` in the server environment through the fiddle hook (`net.dostring_in`, `veaf_libs/dcs_fiddle_client.py`) after the first second — nil means it fired. Then, either way, save the same trigger from the Mission Editor (zone + ONCE + TIME MORE 1 + SCENERY REMOVE OBJECTS ZONE, TREES ONLY) and diff the two `.miz`: the editor's own file is the reference, not the v5's, which nobody has shown to work.
 
-## Left: the measurement in DCS
+## Measured again, 2026-10-12 afternoon, and decided
 
-- Test mission: `Saved Games\DCS\Missions\veaf-test-farp-clear.miz` — blank MarianaIslands, the bridge, FARP Merizo at its first position (-22300, -12450) with `clear_scenery_radius: 80`, an A-10C II air start 4 km north heading for it at 1 500 ft, a game master slot. Built from `add_farp` itself.
-- Single player: load it, take the A-10 slot; a probe through the bridge counts a free 5 m spot within 20 m on rings of 20–150 m around the pad, and the scenery objects left within 80 m. Expected: rings inside 80 m free apart from the pad itself, rings outside as blocked as the 2026-10-12 baseline (0 of 12 free at 30 m, 3–6 of 12 at 60–120 m). A screenshot from the cockpit for the eye.
-- Multiplayer client, including one joining late: needs a server and a second client — dcs.veaf.org or two machines; not doable on one workstation.
+- The trigger **does fire**: read through the fiddle hook in the server's mission environment, `mission.trig.func[2..4]` are nil after the first second (the entry clears itself when it runs), and `a_remove_scene_objects` is a function there.
+- The zone is right: `trigger.misc.getZone` gives the FARP's centre and 80 m.
+- Called directly near Batumi, `a_remove_scene_objects(<zoneId>, 0)` (« ALL ») and `a_remove_scene_objects("<zone name>", 0)` both return without error and leave the forest standing (F12 view, before and after).
+- The small Disposition query is **not** a measure of trees: near Sukhumi it found 0 of 48 free points around a pad standing in open grass (F12 view). The probe figures above prove nothing on their own; the screenshots do.
+
+**Decision (David, 2026-10-12): take the option out before any release, record both measurements as known limitations** (`scenery-remove-objects-zone-leaves-the-forest`, `disposition-small-query-blocks-open-grass`), **and say in `farp-spot`'s documentation that a spot it leaves out is not necessarily wooded.** Done in the follow-up pull request; the multiplayer measurement is moot.

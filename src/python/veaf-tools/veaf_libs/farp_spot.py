@@ -3,7 +3,7 @@
 On a theatre with no clear-ground catalogue and no elevation grid (MarianaIslands, 2026-10-12), the only
 way to find a usable FARP spot was a probe written for the mission
 (``VEAF-Open-Training-Mission-Marianas-v6/tools/find_farp_spot.py``); it found the one spot within
-1.2 km of Merizo, which David accepted in game. This module is that probe, made a tool.
+1.2 km of Merizo, where the FARP was then moved. This module is that probe, made a tool.
 
 For each point of a 50 m grid within the radius, DCS is asked:
 
@@ -31,7 +31,7 @@ from typing import Any
 LuaExec = Callable[[str], str]
 
 DEFAULT_RADIUS_METERS = 1200.0
-#: The Marianas spot accepted in game reads 2.5 m over 80 m.
+#: The spot accepted for FARP Merizo on the Marianas reads 2.5 m over 80 m.
 DEFAULT_MAX_DROP_METERS = 3.0
 #: Distance between two points tried.
 GRID_STEP_METERS = 50

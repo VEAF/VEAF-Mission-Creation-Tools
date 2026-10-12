@@ -16,7 +16,7 @@ A helicopter pad in the trees or on a slope is unusable, and the maker learns it
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [add_farp checks its pad: clear ground and slope](tickets/01-farp-pad-checks.md) | ✅ |
-| 02 | [add_farp can clear the scenery around its pad](tickets/02-farp-clear-scenery.md) | 🧑 |
+| 02 | [add_farp can clear the scenery around its pad](tickets/02-farp-clear-scenery.md) | 🚫 |
 | 03 | [An in-game finder for a flat, clear FARP spot](tickets/03-farp-spot-finder.md) | 🧑 |
 
 Ticket 02 has one unknown to measure in DCS before the code is final (what `a_remove_scene_objects` removes, and whether every client sees it in multiplayer); 03 needs DCS to run. One branch, one PR.

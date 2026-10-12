@@ -17,8 +17,6 @@ from mission_tools.group_insertion import max_ids
 from veaf_libs.clear_ground_placement import occupied_by, place_on_clear_ground
 
 from veaf_mission_mcp.add_group import insert_group_into_content
-from veaf_mission_mcp.add_startup_script_trigger import apply_scenery_removal_trigger
-from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.surface import PAD_MAX_DROP_METERS, PAD_RING_METERS, pad_drop, surface_warnings
 
@@ -54,7 +52,6 @@ def add_farp(
     callsign_id: int = 1,
     ammo_dump: bool = True,
     keep_position: bool = False,
-    clear_scenery_radius: float | None = None,
 ) -> dict[str, Any]:
     """Place a heliport with its radio and a warehouse entry, backed up first.
 
@@ -80,19 +77,15 @@ def add_farp(
             the clear-ground catalogue finds in trees or buildings is moved, with its dump, onto the
             nearest clear ground within 1 km (FIX-FARP-PLACEMENT ticket 01); kept, it is only warned
             about.
-        clear_scenery_radius: Remove the trees within this many metres of the pad, one second after
-            mission start: a zone ``<name> - Clear`` and a once-trigger, as the Marianas v5 cleared its
-            Tinian FARP (FIX-FARP-PLACEMENT ticket 02). ``None`` (the default) touches no scenery.
 
     Returns:
-        ``{farp, group_id, unit_id, position, durable, ammo_dump?, clear_scenery?, warnings?}`` —
-        ``position`` is where the pad went; ``clear_scenery`` is ``{zone, trigger_index}`` when the
-        option is set; ``warnings`` when the pad was moved off scenery, stands in it, is on a slope, is in
+        ``{farp, group_id, unit_id, position, durable, ammo_dump?, warnings?}`` — ``position`` is where
+        the pad went; ``warnings`` when the pad was moved off scenery, stands in it, is on a slope, is in
         the sea, or when the trees or the slope could not be checked.
 
     Raises:
-        ValueError: On an unknown type or modulation, an incomplete position, a radius to clear that
-            is not positive, or a mission with no ``warehouses`` table to register the FARP in.
+        ValueError: On an unknown type or modulation, an incomplete position, or a mission with no
+            ``warehouses`` table to register the FARP in.
     """
     if farp_type not in _SHAPES:
         raise ValueError(f"farp_type must be one of {', '.join(_SHAPES)}, got {farp_type!r}")
@@ -100,8 +93,6 @@ def add_farp(
         raise ValueError(f"modulation must be AM or FM, got {modulation!r}")
     if position.get("x") is None or position.get("y") is None:
         raise ValueError("position must be a complete {x, y}")
-    if clear_scenery_radius is not None and clear_scenery_radius <= 0:
-        raise ValueError(f"clear_scenery_radius must be positive, got {clear_scenery_radius!r}")
 
     mission, content = open_mission(target)
     warehouses = mission.warehouses_content
@@ -169,12 +160,6 @@ def add_farp(
             units=[{"type": _AMMO_DUMP_TYPE, "count": 1}],
             warnings=warnings,
         )
-    clear_scenery: dict[str, Any] | None = None
-    if clear_scenery_radius is not None:
-        zone = f"{name} - Clear"
-        zone_id = insert_trigger_zone(content, name=zone, position={"x": x, "y": y}, radius=clear_scenery_radius)
-        index = apply_scenery_removal_trigger(content, zone_id=zone_id, comment=f"Clear {name}")
-        clear_scenery = {"zone": zone, "trigger_index": index}
     durable = commit_mission(mission, target)["durable"]
     result: dict[str, Any] = {
         "farp": name,
@@ -185,8 +170,6 @@ def add_farp(
     }
     if ammo_dump:
         result["ammo_dump"] = dump_name
-    if clear_scenery:
-        result["clear_scenery"] = clear_scenery
     if warnings:
         # The pad and its dump share a surface verdict when the theatre has no grid: said once.
         result["warnings"] = list(dict.fromkeys(warnings))

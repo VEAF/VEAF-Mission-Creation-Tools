@@ -691,8 +691,8 @@ Each one is the matching `veaf-tools campaign` command (`campaign_manager.Campai
 ### FARP
 
 - `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
-  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True, keep_position=False,
-  clear_scenery_radius=None)` — a **complete** FARP: the heliport static
+  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True, keep_position=False)` — a
+  **complete** FARP: the heliport static
   (`category = "Heliports"`, the type's `shape_name`), its radio and callsign, and the
   `warehouses.warehouses[<unitId>]` entry that lets helicopters refuel there. `add_group` in `static`
   placed the object alone (ticket 19). Shape measured on the 372 heliports of the missions under
@@ -703,7 +703,7 @@ Each one is the matching `veaf-tools campaign` command (`campaign_manager.Campai
   is warned about (ticket 04).
   The pad is checked (`FIX-FARP-PLACEMENT` ticket 01): where the clear-ground catalogue covers the place, a pad in trees or buildings is moved with its dump onto the nearest clear ground, within 1 km (`keep_position=True` refuses the move and only warns); where the elevation grid covers it, more than 3 m of height difference between the centre and a 40 m ring is warned as a slope.
   Where neither covers the place, the warning says what was not checked and gives the [`veaf-tools dcs farp-spot`](../CLI_REFERENCE.en.md#farp-spot) command, which finds a flat, clear spot in DCS; `position` in the result says where the pad went.
-  `clear_scenery_radius` (metres) removes the trees around the pad (ticket 02): a zone `<name> - Clear` and a ONCE trigger, 1 s after mission start, with the DCS action `a_remove_scene_objects` at `objects_mask = 1` (« TREES ONLY » in the editor's list, `me_trigrules.lua`), the shape the Marianas v5 used for its Tinian FARP.
+  Clearing the trees around the pad by trigger (ticket 02) was tried and taken out: DCS's « SCENERY REMOVE OBJECTS ZONE » removed no tree on MarianaIslands or Caucasus (known limitation `scenery-remove-objects-zone-leaves-the-forest`).
 
 ### Carrier group, deck slots, sounds (FIX-OPEN-TRAINING-PROMPT-FINDINGS)
 

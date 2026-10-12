@@ -1297,3 +1297,52 @@ limitations:
   cost: |
     A CH-47F on Kobuleti's stand 24, the very centre of the field's 250 m CTLD logistic circle, started
     1.2 km outside it: no crate and no troops offered (Kolkhida test mission, R47 item 1).
+
+- id: scenery-remove-objects-zone-leaves-the-forest
+  kind: dcs
+  area: spawning
+  title: "« SCENERY REMOVE OBJECTS ZONE » (`a_remove_scene_objects`) leaves the forest standing"
+  measured: "2026-10-12"
+  symptom: |
+    A zone of 80 m around a FARP in a wood, and the editor's action removing the scene objects in it
+    one second after mission start (`triggerOnce`, `c_time_after(1)`, `objects_mask` 1 « TREES ONLY »,
+    the shape the Marianas v5 used for its Tinian FARP and DCS's own mission generator writes). Single
+    player, looked at from the F12 view:
+
+    | Where | Call | Trees within 80 m |
+    |---|---|---|
+    | MarianaIslands, Merizo (-22300, -12450) | the trigger | still there, up to the FARP's square |
+    | Caucasus, near Batumi (-353825, 620825) | the trigger | still there |
+    | the same | `a_remove_scene_objects(<zoneId>, 0)` (« ALL »), called in the server's mission environment | still there |
+    | the same | `a_remove_scene_objects("<zone name>", 0)` | still there |
+
+    The trigger did fire — its `mission.trig.func` entry cleared itself — the zone was where it should
+    be (`trigger.misc.getZone`: centre and 80 m radius), every call returned without error, and
+    `dcs.log` says nothing. Why the forest is not removed is not known: the action is implemented in
+    the engine, not in Lua.
+  workaround: |
+    Do not count on clearing trees by trigger. Put a FARP on ground that is already clear: `add_farp`
+    moves a pad off scenery where the clear-ground catalogue covers the place, and
+    `veaf-tools dcs farp-spot` lists flat, clear spots near a point in DCS.
+  cost: |
+    `add_farp` gained a `clear_scenery_radius` option built on this action (FIX-FARP-PLACEMENT ticket
+    02, #1125); it removed nothing on two maps and was taken out before any release.
+
+- id: disposition-small-query-blocks-open-grass
+  kind: dcs
+  area: spawning
+  title: "The small `Disposition.getSimpleZones` query can say « no room » on open grass"
+  measured: "2026-10-12"
+  symptom: |
+    The small query — a free 5 m spot within 20 m — was taken as the measure of trees
+    (`disposition-getsimplezones-is-a-lottery`). Near Sukhumi on Caucasus (-223575, 567550), with no
+    unit and no building within 80 m, it found **0 free points of 48** on rings of 40 to 70 m around a
+    FARP, and 0 of 48 at a point 300 m away, while the F12 view showed open grass around the pad. On
+    the same day, on MarianaIslands, it answered 10 of 10 at the spot the Marianas v6 probe had chosen
+    for FARP Merizo.
+  workaround: |
+    A point the small query calls free is free; a point it calls blocked may not be. Treat its « no »
+    as « not shown free », and look in game before concluding that a place is wooded.
+  cost: |
+    `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
+    Neither what it lists nor what it leaves out has been checked by eye yet.

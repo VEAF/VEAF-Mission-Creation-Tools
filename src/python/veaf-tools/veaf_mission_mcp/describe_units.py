@@ -193,6 +193,7 @@ def _unit(unit: dict[str, Any]) -> dict[str, Any]:
     payload = unit.get("payload") if isinstance(unit.get("payload"), dict) else {}
     return {
         "name": unit.get("name"),
+        "unit_id": unit.get("unitId"),
         "type": unit.get("type"),
         "skill": unit.get("skill"),
         "livery": unit.get("livery_id"),
@@ -234,6 +235,7 @@ def _group(
     """
     return {
         "name": group.get("name"),
+        "group_id": group.get("groupId"),
         "coalition": coalition,
         "country": country,
         "category": category,

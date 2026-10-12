@@ -66,6 +66,20 @@ def test_the_action_is_registered(caucasus) -> None:
     assert result["points"][0]["ground"]["m"] == 1000
 
 
+def test_the_action_reads_the_theatre_from_the_mission(caucasus, sample_miz: Path) -> None:
+    """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05: every other action takes `mission_path`."""
+    from veaf_mission_mcp.actions import register_default_actions
+
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    result = catalog.run_action(
+        "terrain_elevation", {"mission_path": str(sample_miz), "points": [{"x": -275000, "y": 685000}]}
+    )
+    assert result["points"][0]["ground"]["m"] == 1000
+    with pytest.raises(ValueError, match="mission_path or theatre"):
+        catalog.run_action("terrain_elevation", {"points": [{"x": 0, "y": 0}]})
+
+
 def test_observers_need_every_route_altitude(caucasus) -> None:
     route = [{"x": -271000, "y": 681000}, {"x": -271000, "y": 689000, "alt": 50}]
     with pytest.raises(ValueError, match=r"\[0\] have no alt"):

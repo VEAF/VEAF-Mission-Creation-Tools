@@ -73,7 +73,7 @@ def resolve_coordinates(mission_path: Path, position: dict[str, float]) -> dict[
         ValueError: when the mission has no theatre, the theatre is unsupported, or ``position`` is
             neither a complete ``{x, y}`` nor a complete ``{lat, lon}``.
     """
-    theatre = _theatre(mission_path)
+    theatre = mission_theatre(mission_path)
     return {"theatre": theatre, **_convert(theatre, position)}
 
 
@@ -91,7 +91,7 @@ def resolve_coordinates_batch(mission_path: Path, positions: list[dict[str, floa
         ValueError: when the mission has no usable theatre, or a position is incomplete — named
             by its 0-based index.
     """
-    theatre = _theatre(mission_path)
+    theatre = mission_theatre(mission_path)
     points: list[dict[str, Any]] = []
     for index, position in enumerate(positions):
         try:
@@ -101,7 +101,7 @@ def resolve_coordinates_batch(mission_path: Path, positions: list[dict[str, floa
     return {"theatre": theatre, "points": points}
 
 
-def _theatre(mission_path: Path) -> str:
+def mission_theatre(mission_path: Path) -> str:
     """Return the mission's theatre, or refuse when it has none."""
     theatre = _load_mission(mission_path).theatre_content
     if not theatre:
@@ -140,7 +140,7 @@ def list_airfields(*, mission_path: Path | None = None, theatre: str | None = No
         ValueError: when neither is given, or the theatre has no airbase data.
     """
     if mission_path is not None:
-        theatre = _theatre(mission_path)
+        theatre = mission_theatre(mission_path)
     if not theatre:
         raise ValueError("list_airfields needs mission_path or theatre")
     airfields = dcs_airdromes.airfields_for_theatre(theatre)

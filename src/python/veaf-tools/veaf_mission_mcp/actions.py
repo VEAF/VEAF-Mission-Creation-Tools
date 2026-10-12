@@ -41,7 +41,13 @@ from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
 from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
-from veaf_mission_mcp.map_tools import describe_map, list_airfields, resolve_coordinates, resolve_coordinates_batch
+from veaf_mission_mcp.map_tools import (
+    describe_map,
+    list_airfields,
+    mission_theatre,
+    resolve_coordinates,
+    resolve_coordinates_batch,
+)
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
@@ -74,12 +80,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="describe_mission",
             description=(
                 "List the groups and trigger zones currently present in a mission's source "
-                ".miz, for situational awareness before an editor-parity write."
+                ".miz or mission FOLDER, for situational awareness before an editor-parity write. "
+                "describe_units gives each group's group_id and each unit's unit_id."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {"type": "string", "description": "The mission's source .miz, or a mission FOLDER."},
                 },
                 "required": ["miz_path"],
             },
@@ -2573,7 +2580,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "theatre": {"type": "string", "description": "The theatre, e.g. 'Caucasus'."},
+                    "mission_path": {
+                        "type": "string",
+                        "description": "A .miz or mission folder whose theatre to read; wins over 'theatre'.",
+                    },
+                    "theatre": {
+                        "type": "string",
+                        "description": "The theatre, e.g. 'Caucasus', when there is no mission.",
+                    },
                     "points": {
                         "type": "array",
                         "description": "Points, mission coordinates (x north, y east), metres.",
@@ -2634,11 +2648,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "required": ["min_x", "min_y", "max_x", "max_y"],
                     },
                 },
-                "required": ["theatre"],
             },
         ),
         handler=lambda p: describe_terrain(
-            p["theatre"],
+            _terrain_theatre(p),
             points=p.get("points"),
             route=p.get("route"),
             observers=p.get("observers"),
@@ -2848,6 +2861,16 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
 
 def _handle_remove_group(params: dict[str, Any]) -> dict[str, Any]:
     return remove_group(Path(params["target"]), group_name=params["group_name"], group_id=params.get("group_id"))
+
+
+def _terrain_theatre(params: dict[str, Any]) -> str:
+    """The theatre `terrain_elevation` reads: the mission's, else the one named (ticket 05 of
+    FIX-OPEN-TRAINING-MARIANAS-FINDINGS — every other action takes `mission_path`)."""
+    if params.get("mission_path"):
+        return mission_theatre(Path(params["mission_path"]))
+    if not params.get("theatre"):
+        raise ValueError("terrain_elevation needs mission_path or theatre")
+    return str(params["theatre"])
 
 
 def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:

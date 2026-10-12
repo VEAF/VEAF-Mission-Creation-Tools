@@ -101,6 +101,30 @@ class TestRoadsRegionsAndRefusals:
         assert (result["osm_class"], result["osm_type"]) == ("highway", "residential")
         assert any("not a named place" in w for w in result["warnings"])
 
+    @pytest.mark.parametrize(
+        ("query", "display_name"),
+        [("Umatac, Guam", "Guam, United States"), ("San Jose, Tinian", "Tinian, Northern Mariana Islands")],
+    )
+    def test_an_island_given_for_a_village_is_warned_about(
+        self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch, query: str, display_name: str
+    ) -> None:
+        """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05: a village asked, the island's centre given, no word."""
+        island = GeocodeResult(13.4, 144.7, display_name, "place", "island")
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(island))
+        warnings = geo.geocode(sample_miz, query)["warnings"]
+        named, found = query.split(",")[0], display_name.split(",")[0]
+        assert any(named in w and found in w and "island" in w for w in warnings), warnings
+
+    def test_the_island_asked_for_is_not_warned_about(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        island = GeocodeResult(13.4, 144.7, "Guam, United States", "place", "island")
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(island))
+        assert not [w for w in geo.geocode(sample_miz, "Guam")["warnings"] if "island" in w]
+
+    def test_the_village_found_is_not_warned_about(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        village = GeocodeResult(13.3, 144.66, "Umatac, Guam, United States", "place", "village")
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(village))
+        assert not [w for w in geo.geocode(sample_miz, "Umatac, Guam")["warnings"] if "Umatac" in w]
+
     def test_a_refusal_is_a_miss_that_says_why(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         class _Refusing:
             def geocode(self, query: str, *, bounds: Bounds | None = None) -> GeocodeResult | None:

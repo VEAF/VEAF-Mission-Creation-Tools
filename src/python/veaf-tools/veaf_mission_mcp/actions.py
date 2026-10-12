@@ -1717,6 +1717,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "The position is the mission maker's own: never move the pad off scenery, only warn."
                         ),
                     },
+                    "clear_scenery_radius": {
+                        "type": "number",
+                        "description": (
+                            "Remove the TREES within this many metres of the pad, 1 s after mission start: a "
+                            "zone '<name> - Clear' and a once-trigger (DCS action 'SCENERY REMOVE OBJECTS ZONE', "
+                            "trees only). Omitted, no scenery is touched. The way out when the clear spot is "
+                            "too far from where the FARP is wanted (jungle maps)."
+                        ),
+                    },
                 },
                 "required": ["target", "name", "position", "coalition", "country_id", "country_name"],
             },

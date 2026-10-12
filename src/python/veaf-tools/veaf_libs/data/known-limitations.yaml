@@ -213,6 +213,26 @@ limitations:
     (about ten seconds a combat zone on Caucasus) — and check a built mission with
     `veaf-tools dcs clear-ground-check`.
 
+- id: marianas-placement-checks-nothing
+  kind: tool
+  area: mcp
+  title: "On MarianaIslands, no placement is checked against the sea, the trees or the buildings"
+  symptom: |
+    MarianaIslands has no clear-ground catalogue and no parking data shipped, and an elevation grid
+    only once `terrain-sweep` has run on the workstation. Every ground placement there is written as
+    asked, with a warning that says the sea, the trees and the buildings were not checked; every QRA
+    starts in the air (`no-parking-data-outside-three-theatres`).
+  workaround: |
+    Check the built mission in DCS with `veaf-tools dcs clear-ground-check <mission.miz>` and move what
+    it finds. Sweep the theatre on the workstation with `veaf-tools dcs terrain-sweep MarianaIslands`
+    (the sea), and the places of the mission with `veaf-tools dcs clear-ground-sweep MarianaIslands`
+    (the scenery).
+  cost: |
+    The Marianas Open Training v6, probed in DCS on 2026-10-12 (`Disposition.getSimpleZones` small
+    query, `land.getSurfaceType`): 57 of 97 vehicles stood in trees or buildings and one in the sea,
+    though the mission had checked land and sea itself against OpenStreetMap island outlines
+    (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 07).
+
 - id: late-activated-group-is-visible
   kind: dcs
   area: spawning

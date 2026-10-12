@@ -22,6 +22,21 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The VEAF radio menu no longer opens on a list of "Activate mission" entries** (FIX-COMBATMISSION-MENU-MISSING ticket 02, a 6.29.0 regression).
   A combat mission declared in the mission's own `mission-script.lua` put its commands at the root of the VEAF menu, once per `initialize()` it went through — 25 of them on the Caucasus Open Training.
   Such a mission now waits for its place under MISSIONS, and the menu is rebuilt once, a second after the script has declared them all.
+- **A QRA interceptor created with `task: "CAP"` defends its zone** (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 01).
+  `create_qra` wrote the editor's automatic `EngageTargets` on such a group, so the build flew its one-point route as written and the interceptors landed at the nearest airfield; a QRA group now carries no task on its point, whatever its task.
+- **The carrier recovery tanker leaves the tanker callsigns to the tankers** (ticket 02).
+  `add_carrier_group` gives the S-3B the `Shell` family from flight 9 down (`Shell91`, `Shell81`), so the tankers named `Texaco 1` or `Arco 1` placed afterwards keep their callsign; `tanker_callsign` imposes another.
+- **The shipped dynamic-slot catalogue offers no mod and arms its J-11A** (ticket 04).
+  The `A-4E-C`, `OV-10A` and `T-45` templates leave it, the J-11A templates carry the Marianas Open Training v5 air-to-air loadout, `Mig-29G Template Red` its blue twin's, and the build warns about a catalogue template whose type the DCS unit database does not know.
+- **The read actions agree with the write actions** (ticket 05).
+  `describe_mission` reads a mission folder, `describe_units` gives each `group_id` and `unit_id`, `terrain_elevation` takes `mission_path`, and `geocode` warns when it answers an island or an area for a place inside it.
+- **A placement warning says what was not checked and how to check it** (ticket 07).
+  On a theatre with no elevation grid or clear-ground catalogue, it names the sea, the trees and the buildings, and `veaf-tools dcs clear-ground-check` on the built mission.
+
+### Added
+
+- **`add_air_group` takes `loadout_from`**, like `create_qra` and `create_cap_mission`: the only sourced loadout of a module aircraft with no DCS named payload (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 03).
+- **A ground group that holds fire and does not disperse**: `add_group` and each `create_combat_zone` group take `roe` (`weapons_free`, `return_fire`, `weapons_hold`) and `disperse`, written as the Mission Editor writes them (ticket 06).
 
 ## [6.29.0] — 2026-10-10
 

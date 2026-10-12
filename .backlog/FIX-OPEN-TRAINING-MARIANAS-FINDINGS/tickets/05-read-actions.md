@@ -1,6 +1,6 @@
 # 05 — Read and lookup actions: one parameter name, the group id, a place that is not an island
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/actions.py`, `veaf_mission_mcp/describe_mission.py`, `veaf_mission_mcp/describe_units.py`, the `terrain_elevation` and `geocode` handlers, tests.
 
@@ -18,3 +18,7 @@ Files: `veaf_mission_mcp/actions.py`, `veaf_mission_mcp/describe_mission.py`, `v
 - `terrain_elevation` accepts `mission_path` and reads the theatre from it (`theatre` kept).
 - `geocode` warns when the answer is an island, a territory or an administrative area while the query names a smaller place (a comma-qualified name, a village), and says what it found.
 - Tests for each.
+
+## Done
+
+All four. `map_tools._theatre` became public as `mission_theatre`, which `terrain_elevation` uses. The `geocode` warning compares the query's first comma-separated part with the answer's name, for an answer of class `boundary` or a `place` of type island, archipelago or an administrative area.

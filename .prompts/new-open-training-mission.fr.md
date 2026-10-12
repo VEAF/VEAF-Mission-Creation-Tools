@@ -133,6 +133,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   `src/dynamic-slot-templates.yaml` : modèles des deux coalitions qui ont des slots, **de l'époque de la
   mission seulement** — le catalogue livré propose aussi des appareils WW2 et Guerre froide : retire ceux
   d'une autre époque (ils encombrent la liste et leurs radios ne prennent pas le plan de fréquences).
+  Le catalogue livré ne propose plus de mod ; si le build avertit d'un template dont le type est inconnu de la base d'unités DCS, c'est un mod : retire-le (4.2, aucun mod exigé).
 
 ### 4.2 Identité et sécurité
 
@@ -196,11 +197,13 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   **Toujours deux porte-avions, le Stennis et le Roosevelt** (un `add_carrier_group` chacun, TACAN,
   ICLS, Link 4 et fréquences distincts) : décision de David du 02/10/2026, valable pour toute mission
   générée qui a un groupe aéronaval.
+  Le ravitailleur embarqué prend la famille `Shell` en partant du vol 9 (`Shell91`, puis `Shell81`), donc les ravitailleurs `Texaco 1`, `Arco 1` posés ensuite gardent leur indicatif ; `tanker_callsign` en impose un autre.
 
 ### 4.4 Escortes
 
 - Orbite **loin du front** (hors d'atteinte d'une CAP ou d'une QRA ennemie) : **escorte** (un vol de
   chasse avec la tâche `escort` vers le groupe escorté).
+  Arme-la avec `loadout_from` : un template `veafSpawn-*` du catalogue, ou le template de slot dynamique du type (`J-11A Template Red`) quand l'appareil n'a pas d'emport DCS nommé (`list_payloads`).
 - Orbite **proche du front** : **demande à l'utilisateur** (question 1.5). Une escorte protège l'actif,
   mais elle abat aussi les cibles que les joueurs font apparaître à côté.
 
@@ -274,6 +277,7 @@ chaque cible comme un groupe d'un seul véhicule, à sa place exacte, **chaud au
 (`coldAtStart = false`), **tir interdit** (ROE `weapon hold`) et **sans dispersion sous le feu** : il
 reste immobile et muet, et un pod le voit (vérifié en jeu sur GermanyCW v6). Les statiques restent pour
 ce qui ne vit pas : bâtiments, dépôts, avions au parking.
+`add_group` le pose chaud au départ ; donne-lui `roe: "weapons_hold"` et `disperse: false` (les mêmes clés sur un groupe de `create_combat_zone`).
 `training: true`, un menu radio par famille.
 
 **En option, une zone hélicoptère hors combat** : navigation ou recherche d'un équipage abattu,

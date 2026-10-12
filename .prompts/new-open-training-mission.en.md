@@ -131,6 +131,7 @@ why.
   `src/dynamic-slot-templates.yaml`: templates for the coalitions that have slots, **of the mission's
   era only** — the shipped catalogue also offers WW2 and Cold War aircraft: remove those of another era
   (they clutter the list and their radios do not take the frequency plan).
+  The shipped catalogue offers no mod any more; if the build warns about a template whose type the DCS unit database does not know, it is a mod: remove it (4.2, no mod required).
 
 ### 4.2 Identity and security
 
@@ -194,11 +195,13 @@ why.
   **Always two carriers, the Stennis and the Roosevelt** (one `add_carrier_group` each, with distinct
   TACAN, ICLS, Link 4 and frequencies): David's decision of 2026-10-02, for every generated mission
   that has a carrier group.
+  The recovery tanker takes the `Shell` family from flight 9 down (`Shell91`, then `Shell81`), so the tankers `Texaco 1`, `Arco 1` placed afterwards keep their callsign; `tanker_callsign` imposes another.
 
 ### 4.4 Escorts
 
 - Orbit **far from the front** (out of reach of an enemy CAP or QRA): **escort** (a fighter flight
   with the `escort` task towards the escorted group).
+  Arm it with `loadout_from`: a `veafSpawn-*` template of the catalogue, or the type's dynamic-slot template (`J-11A Template Red`) when the aircraft has no DCS named payload (`list_payloads`).
 - Orbit **close to the front**: **ask the user** (question 1.5). An escort protects the asset, but it
   also shoots down the targets players spawn next to it.
 
@@ -267,7 +270,9 @@ find the site they learnt. Applies to the real zones too (4.7).
 (no engine, no script warms it) and the laser drone does not designate it. Place each target as a
 one-vehicle group at its exact spot, **hot at start** (`coldAtStart = false`), **weapons hold** and **no
 dispersal under fire**: it stays still and silent, and a pod sees it (checked in game on GermanyCW v6).
-Statics remain for what does not live: buildings, depots, parked aircraft. `training: true`, one radio menu per family.
+Statics remain for what does not live: buildings, depots, parked aircraft.
+`add_group` places it hot at start; give it `roe: "weapons_hold"` and `disperse: false` (the same keys on a `create_combat_zone` group).
+`training: true`, one radio menu per family.
 
 **As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
 beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a

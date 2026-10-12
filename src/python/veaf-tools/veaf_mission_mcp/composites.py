@@ -296,6 +296,9 @@ def create_qra(
                 pylons=pylons,
                 start=start,
                 airfield=airfield,
+                # no task on its point, whatever its task: the build defends the zone with a group
+                # whose route carries nothing (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 01)
+                engage_air=False,
             )
             return inserted
 

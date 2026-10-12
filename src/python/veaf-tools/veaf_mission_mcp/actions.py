@@ -2019,7 +2019,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "with 'payload' (list_payloads), or copy one with "
                 "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
                 "unarmed interceptor intercepts nothing. Each group gets a single waypoint and no task "
-                "on purpose: when it scrambles, the QRA module gives a CAP/Intercept group whose route "
+                "on purpose, whatever its 'task' (CAP or Intercept): when it scrambles, the QRA module gives a CAP/Intercept group whose route "
                 "engages no aircraft its job -- a patrol across the zone and engagement of what enters "
                 "it. Do not add waypoints to such a group without an EngageTargets (Air) task, or that "
                 "route is replaced. SIZE IT TO THE PLAYERS: in 'qra', give groups_by_enemy_count tiers "
@@ -2059,7 +2059,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                 },
                                 "altitude_ft": {"type": "number", "default": 15000},
                                 "speed_kt": {"type": "number", "default": 350},
-                                "task": {"type": "string", "default": "Intercept"},
+                                "task": {
+                                    "type": "string",
+                                    "default": "Intercept",
+                                    "description": "The group's task; CAP or Intercept, its waypoint carries no "
+                                    "task either way, so the QRA module defends the zone with it.",
+                                },
                                 "start": {
                                     "type": "string",
                                     "enum": ["runway", "air"],

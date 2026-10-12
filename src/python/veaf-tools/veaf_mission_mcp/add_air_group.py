@@ -348,6 +348,7 @@ def insert_air_group_into_content(
     route: list[dict[str, float]] | None = None,
     start: str = "air",
     airfield: str | None = None,
+    engage_air: bool = True,
 ) -> tuple[int, list[str]]:
     """Insert a flight into a parsed mission table, airborne or on a runway; the composites' aircraft builder.
 
@@ -376,6 +377,9 @@ def insert_air_group_into_content(
         start: ``"air"`` at ``position``, or ``"runway"``: a take-off from ``airfield``'s runway, and
             ``position`` is then ignored (a QRA's default since FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 04).
         airfield: The airfield **name** a runway start takes off from.
+        engage_air: Give a ``CAP`` flight the editor's automatic ``EngageTargets``. ``False`` for a QRA
+            interceptor: the build gives a route with no task the ``zone_defense`` role, and flies one
+            that engages air as written (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 01).
 
     Returns:
         ``(group_id, warnings)``.
@@ -412,7 +416,7 @@ def insert_air_group_into_content(
     )
     points = group["route"]["points"]
     first_tasks: list[dict[str, Any]] = []
-    if task == "CAP":
+    if task == "CAP" and engage_air:
         # The editor's CAP task adds this one on its own; without it the template patrols and never
         # engages (ticket 17). First, because a task numbered after an endless orbit is never reached.
         first_tasks.append(_cap_engage_task())

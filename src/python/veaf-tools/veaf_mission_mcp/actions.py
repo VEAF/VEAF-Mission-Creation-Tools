@@ -1675,8 +1675,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "rearm there, and by default its ammunition dump ('<name> - Ammo', a FARP Ammo Dump "
                 "Coating 120 m east) that CTLD takes as a loading point. add_group with category 'static' "
                 "places the object ALONE, which serves nobody. The build's warehouses.yaml ('farps:') then "
-                "stocks it like any base. Warns when the pad is in the sea (elevation grid). Target a "
-                "FOLDER (durable) or a .miz; backed up."
+                "stocks it like any base. Checks the pad: a pad the clear-ground catalogue finds in trees "
+                "or buildings is MOVED with its dump onto the nearest clear ground within 1 km (warned; "
+                "keep_position refuses the move and only warns); a pad with more than 3 m of height "
+                "difference over 40 m around it is warned as on a slope (elevation grid); a pad in the sea "
+                "is warned. Where no catalogue or grid covers the place, the warning says what was not "
+                "checked and gives the 'veaf-tools dcs farp-spot' command that finds a flat, clear spot in "
+                "game. The result's 'position' is where the pad went. Target a FOLDER (durable) or a "
+                ".miz; backed up."
             ),
             parameters_schema={
                 "type": "object",
@@ -1703,6 +1709,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "default": True,
                         "description": "Place the FARP's ammunition dump (CTLD loading point); false skips it.",
+                    },
+                    "keep_position": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": (
+                            "The position is the mission maker's own: never move the pad off scenery, only warn."
+                        ),
                     },
                 },
                 "required": ["target", "name", "position", "coalition", "country_id", "country_name"],

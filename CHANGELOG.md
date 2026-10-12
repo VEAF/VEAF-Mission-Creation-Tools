@@ -41,6 +41,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **`add_air_group` takes `loadout_from`**, like `create_qra` and `create_cap_mission`: the only sourced loadout of a module aircraft with no DCS named payload (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 03).
 - **A ground group that holds fire and does not disperse**: `add_group` and each `create_combat_zone` group take `roe` (`weapons_free`, `return_fire`, `weapons_hold`) and `disperse`, written as the Mission Editor writes them (ticket 06).
+- **Parking data for Sinai** (FEAT-SINAI-PARKING-DATA).
+  3 614 stands on 56 airfields, captured in DCS on 2026-10-12 for the Sinai Open Training v6: `add_air_group` and `create_qra` now start a flight from the ramp or the runway on Sinai, and the build's dynamic-slot warehouses offer each Sinai airfield only what its parking accepts.
 
 ## [6.29.0] — 2026-10-10
 

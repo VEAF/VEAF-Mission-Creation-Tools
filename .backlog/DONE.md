@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-SINAI-PARKING-DATA](FEAT-SINAI-PARKING-DATA/PRD.md) · ✅
+
+Sinai ships its parking capture: 3 614 stands on 56 airfields, taken in DCS on 2026-10-12 for the Sinai Open Training v6. `add_air_group` and `create_qra` start from the ramp or the runway there, and the build filters Sinai's dynamic-slot stock by what each parking accepts.
+
 ### [FIX-SECURITY-GROUP-LEVEL](FIX-SECURITY-GROUP-LEVEL/PRD.md) · ✅
 
 Every secured `+` radio command was refused to every pilot whenever security was on, since 6.14.0: the group's level went through `Group.getByID`, which DCS does not have. The occupants now come from `coalition.getPlayers`, and `RADIO` pulls in `SECURITY` so `/secu elevate` exists. Merged in #1120; *Escort me* seen working on `private1` on 2026-10-10 with *Kolkhida* mission 2 rebuilt.

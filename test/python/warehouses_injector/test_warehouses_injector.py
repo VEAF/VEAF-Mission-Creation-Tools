@@ -365,7 +365,7 @@ class TestParkingLimits:
         assert not [r for r in caplog.records if "A-10C" in r.getMessage()]
 
     def test_a_theatre_with_no_parking_data_is_untouched(self) -> None:
-        # Every map but Caucasus, Persian Gulf and Syria: no data, no filtering, no message.
+        # Every map but Caucasus, Persian Gulf, Syria and Sinai: no data, no filtering, no message.
         m = self._syria_mission([_NAQOURA])
         m.theatre_content = "Normandy"
         apply_warehouses(m, {"blue": {"defaults": {}}})

@@ -1,6 +1,6 @@
 # 02 — add_farp can clear the scenery around its pad
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Files: `veaf_mission_mcp/add_farp.py`, the trigger writer `add_startup_script_trigger` uses (or a sibling for a DCS action), `veaf_mission_mcp/actions.py`, the authoring skill, tests.
 

@@ -248,7 +248,7 @@ class TestThePadIsChecked:
         unchecked = [w for w in result["warnings"] if "not checked for 'FARP Merizo'" in w]
         assert len(unchecked) == 1
         assert "trees" in unchecked[0] and "slope" in unchecked[0]
-        assert "veaf-tools.exe dcs farp-spot MarianaIslands -22300 -12450" in unchecked[0]
+        assert "veaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450" in unchecked[0]
 
 
 # FIX-FARP-PLACEMENT 02: the Marianas v5 cleared the trees of its Tinian FARP by hand, with trigger zones

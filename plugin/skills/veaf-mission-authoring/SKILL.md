@@ -216,6 +216,16 @@ partial or one-off edits, or when there's no folder (a lone `.miz`).
 A **combat operation** (zones grouped under one menu; activating it spawns **all** its zones at once, `dependencies` only orders which task is listed as the current objective) is `add_combat_operation`, called **after** its zones exist: it writes `mission.yaml` only, and refuses a task naming a zone the mission does not declare.
 Do not write `type: operation` by hand.
 
+## FARPs — the pad must be flat and clear
+
+Place a FARP with **`add_farp`**, never `add_group` in `static` (that places the object alone, which serves nobody). It checks the pad, and its warnings are for the user, not noise:
+
+- where the clear-ground catalogue covers the place, a pad in trees or buildings is **moved** with its ammunition dump onto the nearest clear ground within 1 km, and the result's `position` says where; pass `keep_position: true` when the user drew the spot themselves (it then only warns);
+- where the elevation grid covers it, a pad with more than 3 m of height difference over 40 m around it is warned as **on a slope** — a helicopter cannot use it;
+- where neither covers it (MarianaIslands, any theatre not swept on this workstation), the warning says the trees and slope were **not checked** and gives the command `veaf-tools dcs farp-spot <theatre> --at x,y`. Relay it: it needs DCS, and lists the flat, clear spots near the point. Do not claim the pad is usable when it was not checked.
+
+On a jungle map the clear spot can be more than a kilometre from where the FARP is wanted. The other way out is **`clear_scenery_radius`** (metres): it writes a zone `<FARP> - Clear` and a once-trigger removing the **trees** in it one second after mission start. Offer it; do not set it unasked — it changes the map the players see.
+
 ## Coordinates and the map
 
 Placement actions take DCS local `x/y`. To orient, call `describe_map` (theatre, bullseyes,

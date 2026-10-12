@@ -1,6 +1,6 @@
 # 03 — An in-game finder for a flat, clear FARP spot
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Files: `veaf_tools` (a `dcs` subcommand next to `clear-ground-check`), the dcs-bridge client, docs, tests on the Lua it sends.
 

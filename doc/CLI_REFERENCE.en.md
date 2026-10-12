@@ -817,6 +817,40 @@ instructions, waiting. Points are in mission coordinates (`x` north, `y` east, m
 
 *Flat alias : `veaf-tools scenery-objects`*
 
+### `veaf-tools dcs farp-spot` {#farp-spot}
+
+Finds the **flat spots clear of trees and buildings** near a point, where a FARP can go, and lists them nearest first with their distance and height difference. It is what to run when `add_farp` warns that it could not check the trees or the slope (a theatre with no clear-ground catalogue and no elevation grid, such as MarianaIslands), or that the pad is on a slope: the warning gives the command, point included.
+
+A spot is kept when the ground there is earth (not water, road or runway), when DCS finds a free 5 m spot within 20 m at the spot **and** at 8 points 40 m around it, and when the height difference over those 9 points is at most `--max-drop` metres. The search goes over a 50 m grid, in bands of 300 m so that each call to `dcs-serve` stays short. Same flow as `clear-ground-check`: `dcs-serve`, empty survey mission, instructions, waiting. The point is in mission coordinates (`x` north, `y` east, metres).
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | yes | The theatre, as DCS spells it (Caucasus, MarianaIslands…). |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--at` | `str` | *(required)* | The point to search around, as `x,y`. |
+| `--radius` | `float` | `1200` | How far from the point to search, in metres. |
+| `--max-drop` | `float` | `3` | The largest height difference accepted over a spot (its centre and the 40 m ring), in metres. |
+| `--limit` | `int` | `10` | How many spots to list. |
+| `--report` | `str` | *(none)* | Also write every spot found as JSON to this file. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<theatre>.miz` | Where to write the survey mission. |
+| `--bridge-lua` | `str` | *(none)* | Local dcs-bridge.lua to embed (default: download). |
+| `--wait` | `int` | `900` | How many seconds to wait for the survey mission to answer. |
+| `--api-key` | `str` | *(none)* | dcs-serve superuser Bearer token (default: read from dcs-serve.yaml). (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | Path of a dcs-serve.yaml / dcs-client.yaml to read the key from. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | dcs-serve base URL. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none is running. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debugging information. |
+
+```bash
+.eaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
+```
+
+The point is given with `--at` rather than as two arguments: a negative number in second position would be read as an option.
+
+*Flat alias : `veaf-tools farp-spot`*
+
 ### `veaf-tools dcs terrain-sweep` {#terrain-sweep}
 
 Sweeps the **ground elevation** of a whole theatre (`land.getHeight`, every 250 m by default) and writes

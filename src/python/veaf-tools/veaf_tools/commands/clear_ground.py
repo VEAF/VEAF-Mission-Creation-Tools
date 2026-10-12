@@ -41,6 +41,8 @@ from veaf_libs.dcs_bridge_capture import (
 )
 from veaf_libs.dcs_serve_launcher import DcsServe, ensure_config, find_dcs_serve, is_serving
 from veaf_libs.diagnostics import find_dcs_write_dirs
+from veaf_libs.farp_spot import DEFAULT_MAX_DROP_METERS, DEFAULT_RADIUS_METERS, find_farp_spots
+from veaf_libs.farp_spot import parse_point as parse_farp_point
 from veaf_libs.scenery_lookup import lookup_scenery, parse_point
 
 from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
@@ -230,6 +232,65 @@ def scenery_objects(
         for o in here:
             console.print(t("cmd.scenery_objects.object", id=o.id, type=o.type_name, distance=o.distance))
     console.print(t("cmd.scenery_objects.done", count=len(found)))
+
+
+@app.command(name="farp-spot", no_args_is_help=True, help=t("cmd.farp_spot.help"))
+def farp_spot(
+    theatre: str = typer.Argument(..., help=t("cmd.clear_ground.opt.theatre")),
+    at: str = typer.Option(..., "--at", help=t("cmd.farp_spot.opt.at")),
+    radius: float = typer.Option(DEFAULT_RADIUS_METERS, "--radius", min=50, help=t("cmd.farp_spot.opt.radius")),
+    max_drop: float = typer.Option(DEFAULT_MAX_DROP_METERS, "--max-drop", min=0, help=t("cmd.farp_spot.opt.max_drop")),
+    limit: int = typer.Option(10, "--limit", min=1, help=t("cmd.farp_spot.opt.limit")),
+    report: str | None = typer.Option(None, "--report", help=t("cmd.farp_spot.opt.report")),
+    survey_mission: str | None = typer.Option(
+        None, "--survey-mission", help=t("cmd.clear_ground_sweep.opt.survey_mission")
+    ),
+    bridge_lua: str | None = typer.Option(None, "--bridge-lua", help=t("cmd.inject_bridge.opt.bridge_lua")),
+    wait: int = typer.Option(900, "--wait", min=0, help=t("cmd.clear_ground_sweep.opt.wait")),
+    api_key: str | None = typer.Option(
+        None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help=t("cmd.capture_map.opt.api_key")
+    ),
+    config: str | None = typer.Option(None, "--config", help=t("cmd.capture_map.opt.config")),
+    serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help=t("cmd.capture_map.opt.serve_url")),
+    dcs_serve: str | None = typer.Option(None, "--dcs-serve", help=t("cmd.clear_ground_sweep.opt.dcs_serve")),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+) -> None:
+    """List the flat spots clear of scenery near a point of *theatre*, where a FARP can go."""
+    logger.set_verbose(verbose)
+    console.print(t("cmd.farp_spot.title", version=VERSION))
+    started: list[DcsServe] = []
+    theatre = canonical_theatre_name(theatre)
+    try:
+        x, y = parse_farp_point(at)
+        exec_lua = _open_survey_session(
+            theatre, survey_mission, bridge_lua, serve_url, dcs_serve, api_key, config, wait, started
+        )
+        with Progress(TextColumn("{task.description}"), BarColumn(), MofNCompleteColumn(), console=console) as progress:
+            task = progress.add_task(theatre, total=None)
+
+            def on_band(done: int, total: int) -> None:
+                progress.update(task, completed=done, total=total)
+
+            spots = find_farp_spots(exec_lua, x, y, radius=radius, max_drop=max_drop, on_band=on_band)
+        if report:
+            Path(report).write_text(json.dumps([s.to_dict() for s in spots], indent=1), encoding="utf-8")
+    except (RuntimeError, OSError, ValueError) as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(code=1) from e
+    finally:
+        for server in started:
+            server.stop()
+    for spot in spots[:limit]:
+        console.print(
+            t(
+                "cmd.farp_spot.spot",
+                x=f"{spot.x:.0f}",
+                y=f"{spot.y:.0f}",
+                distance=f"{spot.distance:.0f}",
+                drop=spot.drop,
+            )
+        )
+    console.print(t("cmd.farp_spot.done", count=len(spots), radius=f"{radius:.0f}", max_drop=max_drop))
 
 
 def _open_survey_session(

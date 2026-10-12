@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · 🔄
+
+A FARP placed in the jungle and on a slope with no warning (Marianas OT v6, seen in game): `add_farp` checks only water; it should check clear ground and slope where the data exists, offer to clear the scenery around the pad (the DCS action the Marianas v5 used by hand), and an in-game finder should list the flat, clear spots near a point. Three tickets, one PR; one unknown to measure in DCS. Ticket 01 done; 02 and 03 coded, waiting for their measurement in DCS.
 
 ## 🧑 Waiting for a human
 

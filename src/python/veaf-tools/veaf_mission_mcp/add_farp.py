@@ -238,7 +238,7 @@ def _check_pad(
         warnings.append(
             f"'{name}' {placement.message}" if placement.dx or placement.dy else f"'{name}': {placement.message}"
         )
-    spot = f"'.\\veaf-tools.exe dcs farp-spot {theatre} {x:.0f} {y:.0f}'"
+    spot = f"'.\\veaf-tools.exe dcs farp-spot {theatre} --at {x:.0f},{y:.0f}'"
     drop = pad_drop(theatre, x, y)
     if drop is None:
         unchecked.append(f"slope (no elevation grid for {theatre or 'this theatre'})")

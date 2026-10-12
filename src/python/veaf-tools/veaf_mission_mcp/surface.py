@@ -30,8 +30,15 @@ def surface_warnings(theatre: str | None, units: Any, *, afloat: bool) -> list[s
     """
     grid = grid_for_theatre(theatre) if theatre else None
     if grid is None:
-        # The same for every placement of the mission: a caller placing several keeps one.
-        warning = f"surface not checked: no elevation grid for {theatre or 'this theatre'}"
+        # The same for every placement of the mission: a caller placing several keeps one. It says what
+        # was not checked and how to check it: « surface not checked » alone left 58 of 97 vehicles of
+        # the Marianas OT in the trees, the buildings or the sea (FIX-OPEN-TRAINING-MARIANAS-FINDINGS 07).
+        name = theatre or "this theatre"
+        warning = (
+            f"surface not checked: no elevation grid for {name}, so nothing says a unit is not in the sea; "
+            "check the built mission in DCS with 'veaf-tools dcs clear-ground-check <mission.miz>' (sea, "
+            f"trees, buildings), or sweep a grid with 'veaf-tools dcs terrain-sweep {name}'"
+        )
         return [warning]
     warnings: list[str] = []
     for unit in indexed(units):

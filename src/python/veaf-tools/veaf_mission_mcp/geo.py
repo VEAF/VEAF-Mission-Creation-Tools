@@ -37,10 +37,11 @@ def _area_for_a_place(query: str, hit: geocoding.GeocodeResult) -> str | None:
     found = hit.display_name.split(",")[0].strip()
     if not is_area or not named or named.casefold() in found.casefold():
         return None
-    return (
+    warning = (
         f"asked for {named!r}, found the {hit.osm_type} {found!r}: the point is that area's centre, not "
         f"{named!r} — search the place another way, or place it from the map"
     )
+    return warning
 
 
 def _within(bounds: geocoding.Bounds, lat: float, lon: float) -> bool:

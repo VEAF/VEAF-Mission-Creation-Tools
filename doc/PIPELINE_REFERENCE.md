@@ -523,7 +523,7 @@ que les catégories qu'il peut garer, et le stock devenu injouable (écrit par u
 est retiré. Cela vaut aussi pour une liste `aircrafts:` explicite — DCS ignorerait de toute façon
 ce qu'il ne peut pas garer. Le filtrage est **silencieux** : aucun avertissement au build.
 
-**Portée.** Les données de parking ne sont embarquées que pour **Caucasus, Persian Gulf et Syria**.
+**Portée.** Les données de parking ne sont embarquées que pour **Caucasus, Persian Gulf, Syria et Sinai**.
 Sur tout autre théâtre — et sur un aérodrome absent des données — rien n'est filtré, le
 comportement est inchangé.
 

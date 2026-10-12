@@ -521,7 +521,7 @@ categories it can park, and stock that has become unplayable (written by an earl
 removed. This applies to an explicit `aircrafts:` list too — DCS would ignore what it cannot park
 anyway. The filtering is **silent**: no build warning.
 
-**Reach.** Parking data ships for **Caucasus, Persian Gulf and Syria** only. On any other theatre —
+**Reach.** Parking data ships for **Caucasus, Persian Gulf, Syria and Sinai** only. On any other theatre —
 and on an airfield absent from the data — nothing is filtered and the behaviour is unchanged.
 
 **How to check it in game.** Start the mission, pick the side, open the slot picker on the airfield

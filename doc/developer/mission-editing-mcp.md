@@ -491,7 +491,7 @@ pas produire et sans laquelle une mission bâtie de zéro n'est pas jouable. Sau
   exige une base configurée pour ça ; laissé actif (comme sur une copie d'un template) le slot existe
   dans le fichier mais n'apparaît **pas** dans la liste des places — le défaut trouvé en jeu le
   2026-08-14.
-- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, aucune donnée runtime),
+- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, aucune donnée runtime ; DCS oriente un départ en vol vers son deuxième point de route, donc le slot en reçoit un à 10 km dans l'axe de `heading_deg` — avec un seul point, il partait plein nord quel que soit le cap, FIX-AIR-SLOT-HEADING),
   `"ground-cold"` ou `"ground-hot"`. Un départ au sol **exige** `parking`, `parking_id` et
   `airdrome_id` ; sans eux il est **refusé** (message nommant la donnée capturée par
   `FEAT-MCP-MUTATION-ACTIONS` ticket 09), jamais deviné. La paire `type`/`action` du premier waypoint

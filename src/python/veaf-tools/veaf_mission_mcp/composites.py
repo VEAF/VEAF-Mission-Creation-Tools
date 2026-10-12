@@ -6,22 +6,18 @@ edits the durable source — the exploded ``src/mission/`` (trigger zones + grou
 is triggered here. See ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`` (wave 8).
 """
 
-import copy
 from pathlib import Path
 from typing import Any
 
-import yaml
 from mission_tools.mission_yaml_editor import append_to_sequence, load_yaml, save_yaml
 from veaf_libs.coordinates import latlon_to_xy
 from veaf_libs.dcs_airdromes import airfields_for_theatre
 from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
-from veaf_libs.mission_table import indexed
-from veaf_libs.shipped_defaults import shipped_default_file
 
 from veaf_mission_mcp.add_air_group import insert_air_group_into_content
 from veaf_mission_mcp.add_group import insert_group_into_content
 from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
-from veaf_mission_mcp.aircraft_payload import resolve_loadout
+from veaf_mission_mcp.aircraft_payload import resolve_flight_loadout
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, mission_yaml_path, save_folder_mission
 
@@ -51,9 +47,10 @@ def create_combat_zone(
         zone_name: The combat zone's trigger-zone name.
         position: The zone centre, `{"x": ..., "y": ...}`.
         radius: The zone radius, in metres.
-        groups: `[{"name", "units": [{"type","count"}], "position"?, "route"?, "patrol"?}, ...]` placed
-            inside the zone. `route` and `patrol` have `add_group`'s shape: a convoy moving through
-            the zone is one of its groups, not a separate `add_group` call.
+        groups: `[{"name", "units": [{"type","count"}], "position"?, "route"?, "patrol"?, "roe"?,
+            "disperse"?}, ...]` placed inside the zone. `route`, `patrol`, `roe` and `disperse` have
+            `add_group`'s shape: a convoy moving through the zone is one of its groups, not a separate
+            `add_group` call, and an inert target is `roe: "weapons_hold"`, `disperse: false`.
         coalition: `"blue"`, `"red"` or `"neutral"` the groups are placed under (runtime-agnostic;
             VEAF respawns them regardless).
         country_id: DCS numeric country id for the groups.
@@ -93,6 +90,8 @@ def create_combat_zone(
             patrol=spec.get("patrol", False),
             warnings=build_warnings,
             keep_position=spec.get("keep_position", False),
+            roe=spec.get("roe"),
+            disperse=spec.get("disperse"),
         )
         created.append(group_name)
         warnings += validate_group_name(group_name, expected_combat_zone=zone_name)["warnings"]
@@ -277,7 +276,7 @@ def create_qra(
     for spec in groups:
         group_name = spec["name"]
         unit_type, count = _single_type(spec["units"])
-        pylons = _loadout(folder_path, content, spec, unit_type)
+        pylons = resolve_flight_loadout(folder_path, content, spec, unit_type)
 
         def insert(start: str, airfield: str | None, spec: dict[str, Any] = spec) -> list[str]:
             _, inserted = insert_air_group_into_content(
@@ -296,6 +295,9 @@ def create_qra(
                 pylons=pylons,
                 start=start,
                 airfield=airfield,
+                # no task on its point, whatever its task: the build defends the zone with a group
+                # whose route carries nothing (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 01)
+                engage_air=False,
             )
             return inserted
 
@@ -440,7 +442,7 @@ def create_cap_mission(
         speed_kt=speed_kt,
         task="CAP",
         late_activation=True,
-        pylons=_loadout(
+        pylons=resolve_flight_loadout(
             folder_path, content, {"pylons": pylons, "payload": payload, "loadout_from": loadout_from}, unit_type
         ),
         route=route,
@@ -513,88 +515,3 @@ def _single_type(units: list[dict[str, Any]]) -> tuple[str, int]:
     if count < 1:
         raise ValueError("an air group needs at least one aircraft")
     return types.pop(), count
-
-
-def _loadout(folder_path: Path, content: dict[str, Any], spec: dict[str, Any], unit_type: str) -> dict[Any, Any] | None:
-    """Resolve a flight's loadout: explicit `pylons`, a DCS `payload` by name, or `loadout_from` a group.
-
-    An interceptor created without weapons is the next silent failure after one created without
-    fuel. The `veafSpawn-*` groups of the aircraft catalogues are a sourced place to take a loadout
-    from, so `loadout_from` looks in the mission first, then in the folder's catalogues, then in the
-    shipped ones.
-
-    Args:
-        folder_path: The mission folder.
-        content: The parsed mission table.
-        spec: A mapping that may carry `pylons`, `payload` and `loadout_from` — one of them at most.
-        unit_type: The flight's aircraft type, to look a named `payload` up.
-
-    Returns:
-        The pylons table, or None when none is given.
-
-    Raises:
-        ValueError: If more than one is given, `payload` is not one of the type's DCS loadouts, or
-            `loadout_from` names a group found nowhere, or one whose aircraft carry no pylons.
-    """
-    given = [key for key in ("pylons", "payload", "loadout_from") if spec.get(key)]
-    if len(given) > 1:
-        raise ValueError(f"give one loadout, not {' and '.join(given)}")
-    if spec.get("pylons") or spec.get("payload"):
-        return resolve_loadout(unit_type, spec.get("pylons"), spec.get("payload"))
-    source = spec.get("loadout_from")
-    if not source:
-        return None
-    group = _find_air_group_in_content(content, source) or _find_air_group_in_catalogues(folder_path, source)
-    if group is None:
-        raise ValueError(f"loadout_from: no aircraft group named {source!r} in the mission or the aircraft catalogues")
-    for unit in indexed(group.get("units")):
-        pylons = ((unit or {}).get("payload") or {}).get("pylons")
-        if pylons:
-            return copy.deepcopy(pylons)
-    raise ValueError(f"loadout_from: the group {source!r} carries no pylons")
-
-
-def _find_air_group_in_content(content: dict[str, Any], name: str) -> dict[str, Any] | None:
-    """Return the plane or helicopter group of the mission table named `name`.
-
-    Args:
-        content: The parsed mission table.
-        name: The exact group name.
-
-    Returns:
-        The group, or None when the mission has none by that name.
-    """
-    for coalition in (content.get("coalition") or {}).values():
-        for country in indexed((coalition or {}).get("country")):
-            for category in ("plane", "helicopter"):
-                for group in indexed(((country or {}).get(category) or {}).get("group")):
-                    if isinstance(group, dict) and group.get("name") == name:
-                        return group
-    return None
-
-
-def _find_air_group_in_catalogues(folder_path: Path, name: str) -> dict[str, Any] | None:
-    """Return the aircraft group named `name` from the aircraft catalogues, the folder's first.
-
-    Looks in `src/spawnables.yaml` then `src/dynamic-slot-templates.yaml`, each in the folder and
-    then in the shipped defaults — the order the build resolves them in.
-
-    Args:
-        folder_path: The mission folder.
-        name: The exact group name.
-
-    Returns:
-        The group, or None when no catalogue has one by that name.
-    """
-    for relative in ("src/spawnables.yaml", "src/dynamic-slot-templates.yaml"):
-        for path in (folder_path / relative, shipped_default_file(folder_path, relative)):
-            if path is None or not path.is_file():
-                continue
-            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-            for family in ("airplanes", "helicopters"):
-                sides = ((data.get(family) or {}).get("coalitions")) or {}
-                for countries in sides.values():
-                    for groups in (countries or {}).values():
-                        if isinstance(groups, dict) and isinstance(groups.get(name), dict):
-                            return groups[name]
-    return None

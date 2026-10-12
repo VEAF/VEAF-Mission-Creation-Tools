@@ -173,6 +173,7 @@
   "cmd.ask.help": "Pose une question sur la documentation VEAF (assistant IA). Sans question, démarre une session interactive.",
   "cmd.ask.opt.question": "La question à poser. Omettez-la pour démarrer une session interactive.",
   "cmd.build.aircraft_validation_failed": "Pipeline : validation YAML des groupes d'aéronefs échouée — ignoré ({path})",
+  "cmd.build.aircraft_unknown_type": "Catalogue d'aéronefs {file} : le template '{group}' utilise le type '{type}', inconnu de la base d'unités DCS (un mod ?) : un pilote qui ne l'a pas aura un slot qu'il ne peut pas piloter",
   "cmd.build.done": "Mission construite avec succès.",
   "cmd.build.folder_not_found": "Le dossier de mission {path} n'existe pas !",
   "cmd.build.help": "Construit un fichier mission DCS (.miz) depuis un dossier de mission VEAF.",

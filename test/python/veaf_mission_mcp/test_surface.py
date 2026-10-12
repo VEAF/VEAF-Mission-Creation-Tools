@@ -56,9 +56,12 @@ class TestSurfaceWarnings:
     def test_a_ship_at_sea_is_silent(self, coast: None) -> None:
         assert surface_warnings("Caucasus", [_unit("Frigate", _SEA)], afloat=True) == []
 
-    def test_no_grid_says_it_was_not_checked(self) -> None:
-        warnings = surface_warnings("Syria", [_unit("Avenger-1", _SEA)], afloat=False)
-        assert warnings == ["surface not checked: no elevation grid for Syria"]
+    def test_no_grid_says_what_was_not_checked_and_how_to_check_it(self) -> None:
+        """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 07: « surface not checked » alone, and 58 of 97
+        vehicles of the Marianas OT stood in the trees, the buildings or the sea."""
+        [warning] = surface_warnings("Syria", [_unit("Avenger-1", _SEA)], afloat=False)
+        assert warning.startswith("surface not checked: no elevation grid for Syria")
+        assert "sea" in warning and "clear-ground-check" in warning and "terrain-sweep Syria" in warning
 
 
 @pytest.fixture
@@ -134,4 +137,5 @@ class TestThroughTheActions:
 def test_without_a_grid_a_farp_says_it_once(sample_miz: Path) -> None:
     """Review of the lot: the pad and its ammunition dump each said 'surface not checked'."""
     result = add_farp(sample_miz, name="FARP X", position=_LAND, coalition="blue", country_id=2, country_name="USA")
-    assert result["warnings"] == ["surface not checked: no elevation grid for Caucasus"]
+    [warning] = result["warnings"]
+    assert warning.startswith("surface not checked: no elevation grid for Caucasus")

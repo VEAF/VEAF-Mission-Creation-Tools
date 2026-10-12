@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-MARIANAS-FINDINGS — what building the Marianas Open Training v6 through the MCP found
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — tickets 01–06 done, 07's code done; its MarianaIslands sweeps are David's
 
 Asked by David on 2026-10-12.
 The Marianas Open Training v6 (`VEAF-Open-Training-Mission-Marianas-v6`) was built from scratch on 2026-10-11 with the Open Training prompt (`.prompts/new-open-training-mission.fr.md`), the `veaf-mission-mcp` actions of `develop` and the 6.29.0 release, then probed in DCS through dcs-bridge on 2026-10-12.
@@ -17,15 +17,15 @@ Then what made the work slower or forced a workaround: the carrier recovery tank
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [create_qra: no automatic EngageTargets on an interceptor](tickets/01-qra-no-engage-task.md) | ⬜ |
-| 02 | [add_carrier_group: the recovery tanker leaves the tanker families to the tankers](tickets/02-carrier-tanker-callsign.md) | ⬜ |
-| 03 | [add_air_group takes loadout_from](tickets/03-air-group-loadout-from.md) | ⬜ |
-| 04 | [Shipped aircraft catalogues: a J-11A with weapons, no mods](tickets/04-shipped-catalogues.md) | ⬜ |
-| 05 | [Read and lookup actions: one parameter name, the group id, a place that is not an island](tickets/05-read-actions.md) | ⬜ |
-| 06 | [A ground group that holds fire and does not disperse](tickets/06-ground-group-roe.md) | ⬜ |
-| 07 | [MarianaIslands terrain data, and a placement warning that says what was not checked](tickets/07-marianas-terrain-data.md) | ⬜ |
+| 01 | [create_qra: no automatic EngageTargets on an interceptor](tickets/01-qra-no-engage-task.md) | ✅ |
+| 02 | [add_carrier_group: the recovery tanker leaves the tanker families to the tankers](tickets/02-carrier-tanker-callsign.md) | ✅ |
+| 03 | [add_air_group takes loadout_from](tickets/03-air-group-loadout-from.md) | ✅ |
+| 04 | [Shipped aircraft catalogues: a J-11A with weapons, no mods](tickets/04-shipped-catalogues.md) | ✅ |
+| 05 | [Read and lookup actions: one parameter name, the group id, a place that is not an island](tickets/05-read-actions.md) | ✅ |
+| 06 | [A ground group that holds fire and does not disperse](tickets/06-ground-group-roe.md) | ✅ |
+| 07 | [MarianaIslands terrain data, and a placement warning that says what was not checked](tickets/07-marianas-terrain-data.md) | 🧑 |
 
-Ticket 07 needs DCS (`veaf-tools dcs terrain-sweep`, `capture-map --parking`, `clear-ground-sweep`): its sweeps are David's, the rest is code.
+Ticket 07 needs DCS (`veaf-tools dcs terrain-sweep`, `capture-map --parking`, `clear-ground-sweep`): its sweeps are David's and **left pending** in this lot (David, 2026-10-12); its code — the placement warning and the known limitation — is done.
 Each ticket that leaves a limitation unfixed adds it to `known-limitations.yaml`; the Open Training prompt loses the workarounds this lot makes unnecessary, in the same lot.
 
 One branch, one PR.

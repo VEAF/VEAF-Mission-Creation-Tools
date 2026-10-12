@@ -39,7 +39,7 @@ from veaf_libs.dcs_units_data import get_unit_attributes, get_unit_deck_categori
 from veaf_libs.mission_table import indexed
 
 from veaf_mission_mcp.aircraft_identity import assign_identities
-from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons, resolve_loadout
+from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons, resolve_flight_loadout
 from veaf_mission_mcp.edit_route import _build_orbit, _build_set_unlimited_fuel
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
@@ -101,6 +101,7 @@ def add_air_group(
     late_activation: bool = False,
     pylons: dict[Any, Any] | None = None,
     payload: str | None = None,
+    loadout_from: str | None = None,
     chaff: int | None = None,
     flare: int | None = None,
     carrier: str | None = None,
@@ -141,6 +142,10 @@ def add_air_group(
         pylons: The loadout, ``{station: {"CLSID": ...}}`` as the mission file stores it.
         payload: A DCS loadout by the name the Mission Editor lists (``list_payloads``) — an
             alternative to ``pylons``, refused when both are given.
+        loadout_from: A group to copy the loadout from: the mission's, then the folder's aircraft
+            catalogues, then the shipped ones (a ``veafSpawn-*`` template) — the only sourced loadout of
+            a module aircraft with no DCS named payload. One of ``pylons``, ``payload`` and
+            ``loadout_from`` at most.
         chaff: Chaff count per aircraft; defaults to the type's Mission Editor default.
         flare: Flare count per aircraft; defaults to the type's Mission Editor default.
         carrier: The ship **unit** name a deck start takes off from.
@@ -195,7 +200,12 @@ def add_air_group(
     aircraft_payload, fuel_warning = build_aircraft_payload(
         unit_type, fuel=fuel, fuel_fraction=fuel_fraction, chaff=chaff, flare=flare
     )
-    loadout = resolve_loadout(unit_type, pylons, payload)
+    loadout = resolve_flight_loadout(
+        target if is_folder else target.parent,
+        content,
+        {"pylons": pylons, "payload": payload, "loadout_from": loadout_from},
+        unit_type,
+    )
     if loadout:
         aircraft_payload["pylons"] = normalize_pylons(loadout)
 
@@ -348,6 +358,7 @@ def insert_air_group_into_content(
     route: list[dict[str, float]] | None = None,
     start: str = "air",
     airfield: str | None = None,
+    engage_air: bool = True,
 ) -> tuple[int, list[str]]:
     """Insert a flight into a parsed mission table, airborne or on a runway; the composites' aircraft builder.
 
@@ -376,6 +387,9 @@ def insert_air_group_into_content(
         start: ``"air"`` at ``position``, or ``"runway"``: a take-off from ``airfield``'s runway, and
             ``position`` is then ignored (a QRA's default since FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 04).
         airfield: The airfield **name** a runway start takes off from.
+        engage_air: Give a ``CAP`` flight the editor's automatic ``EngageTargets``. ``False`` for a QRA
+            interceptor: the build gives a route with no task the ``zone_defense`` role, and flies one
+            that engages air as written (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 01).
 
     Returns:
         ``(group_id, warnings)``.
@@ -412,7 +426,7 @@ def insert_air_group_into_content(
     )
     points = group["route"]["points"]
     first_tasks: list[dict[str, Any]] = []
-    if task == "CAP":
+    if task == "CAP" and engage_air:
         # The editor's CAP task adds this one on its own; without it the template patrols and never
         # engages (ticket 17). First, because a task numbered after an endless orbit is never reached.
         first_tasks.append(_cap_engage_task())

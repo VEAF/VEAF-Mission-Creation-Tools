@@ -779,6 +779,23 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
 - Les sauvegardes d'un fichier de `src/mission/l10n/DEFAULT/` vont dans `.veaf-backups/` (elles restaient
   à côté et partaient dans le `.miz`), et une sauvegarde de dossier réécrit `mapResource` (tickets 15, 16).
 
+### Open Training Mariannes (FIX-OPEN-TRAINING-MARIANAS-FINDINGS)
+
+- `create_qra` : un groupe ne porte **aucune tâche** sur son point, quelle que soit sa `task` (`CAP` comme `Intercept`).
+  Avec `task: "CAP"`, l'`EngageTargets` automatique de l'éditeur faisait voler la route telle quelle : un point, pas d'orbite, et l'intercepteur se posait au lieu de défendre sa zone (ticket 01).
+- `add_carrier_group` : le ravitailleur embarqué prend la famille `Shell` en partant du vol 9 (`Shell91`, puis `Shell81` pour le porte-avions suivant), et `tanker_callsign` (`"Arco 5"`) en impose un ; le résultat le dit dans `tanker_callsign`.
+  Les ravitailleurs nommés `Texaco 1`, `Arco 1` posés ensuite gardent le leur (ticket 02).
+- `add_air_group` prend `loadout_from`, comme les composites : un groupe de la mission, puis des catalogues du dossier, puis des catalogues livrés (un template `veafSpawn-*`).
+  C'est le seul emport sourcé d'un avion de module sans emport DCS nommé (J-11A, F-16C) ; un seul de `pylons`, `payload` et `loadout_from` (ticket 03).
+- Catalogue livré des slots dynamiques : les templates J-11A portent l'emport air-air de l'Open Training Mariannes v5 (`veafSpawn-J-11A - FOX3 - ECM ON - Radar ON - HARD X1`), donc `loadout_from: "J-11A Template Red"` arme un vol.
+  Les templates `A-4E-C`, `OV-10A` et `T-45`, trois mods, en sortent, et le build avertit quand un template nomme un type que la base d'unités DCS ne connaît pas (ticket 04).
+- `describe_mission` lit un dossier de mission ; `describe_units` donne le `group_id` de chaque groupe et le `unit_id` de chaque unité (`edit_route add_task attack_group` prend le premier) ; `terrain_elevation` prend `mission_path` et y lit le théâtre (`theatre` reste possible) (ticket 05).
+- `geocode` avertit quand il rend une île ou une zone pour un lieu qui s'y trouve : « Umatac, Guam » rendait le centre de Guam sans un mot (ticket 05).
+- `add_group` et chaque groupe de `create_combat_zone` prennent `roe` (`weapons_free`, `return_fire`, `weapons_hold`) et `disperse`, écrits sur le premier point comme l'éditeur les écrit (`Option` 0 ; `Option` 8 sans valeur pour « ne se disperse pas »).
+  `roe: "weapons_hold"` et `disperse: false` font une cible inerte (ticket 06).
+- Sans grille d'altitude ou sans catalogue de terrain dégagé, l'avertissement de placement dit ce qui n'a pas été vérifié (la mer, les arbres, les bâtiments) et comment le vérifier : `veaf-tools dcs clear-ground-check` sur la mission construite.
+  Sur MarianaIslands, rien n'est vérifié tant que les balayages n'ont pas été faits (limitation connue `marianas-placement-checks-nothing`, ticket 07).
+
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
 Ce que l'éditeur règle hors de tout groupe, et que GermanyCW-v6 a dû patcher par un sérialiseur Lua.

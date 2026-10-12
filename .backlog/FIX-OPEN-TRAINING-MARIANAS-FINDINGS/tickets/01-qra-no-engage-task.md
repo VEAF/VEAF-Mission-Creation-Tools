@@ -1,6 +1,6 @@
 # 01 — create_qra: no automatic EngageTargets on an interceptor
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/composites.py` (`create_qra`), `veaf_mission_mcp/add_air_group.py` (`_cap_engage_task`, line 418), `veaf_mission_mcp/actions.py` (description), tests.
 
@@ -17,3 +17,7 @@ Worked around with `edit_route clear_tasks` on the twelve groups; the build then
 - A QRA group built by `create_qra` carries no task on its waypoint, whatever its `task` (`CAP` or `Intercept`), so the build gives it the `zone_defense` role.
 - Or, if a CAP group with an engage task must stay possible, `create_qra` warns that such a group flies its route as written; pick one and say which in the description.
 - Tests: a QRA group created with `task: "CAP"` is classed `ROUTE_ZONE_DEFENSE` by `find_deployed_aircraft_routes`.
+
+## Done
+
+Picked the first option (David, 2026-10-12): a group built by `create_qra` carries no task on its point, whatever its `task`; `insert_air_group_into_content` takes `engage_air=False` for it. The action's description says so. Test: a `CAP` and an `Intercept` QRA group are both classed `ROUTE_ZONE_DEFENSE`.

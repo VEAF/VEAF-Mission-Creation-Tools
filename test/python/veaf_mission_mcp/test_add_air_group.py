@@ -602,7 +602,7 @@ class TestDcsPayloadByName:
             self._add(tmp_path, payload="Everything")
 
     def test_both_pylons_and_payload_are_refused(self, tmp_path: Path) -> None:
-        with pytest.raises(ValueError, match="not both"):
+        with pytest.raises(ValueError, match="give one loadout, not pylons and payload"):
             self._add(tmp_path, payload="R-40T*2,R-33*4", pylons={1: {"CLSID": "{X}"}})
 
 
@@ -624,3 +624,48 @@ def test_an_afac_flight_on_the_ramp_gets_no_orbit_and_a_warning(tmp_path: Path) 
     first = _slot_group(read_miz(miz).mission_content or {}, "Reaper 1")["route"]["points"]
     first = (list(first.values()) if isinstance(first, dict) else first)[0]
     assert "task" not in first or "Orbit" not in str(first["task"])
+
+
+class TestLoadoutFrom:
+    """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 03: an escort of a module aircraft with no DCS named
+    payload had no sourced loadout but the catalogue's, which only the composites could copy."""
+
+    _ESCORT = {
+        "coalition": "blue",
+        "country_id": 2,
+        "country_name": "USA",
+        "name": "Escort",
+        "unit_type": "F-15C",
+        "start": "air",
+        "position": {"x": 0.0, "y": 0.0},
+        "task": "Escort",
+    }
+
+    def test_an_escort_is_armed_from_a_template_of_the_shipped_catalogue(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        result = add_air_group(miz, loadout_from="veafSpawn-F-15C - FOX3 - Radar ON - ECM ON - HARD X1", **self._ESCORT)
+        assert "warnings" not in result
+        unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Escort"))[0]
+        assert unit["payload"]["pylons"]
+
+    def test_a_j11a_is_armed_from_its_dynamic_slot_template(self, tmp_path: Path) -> None:
+        """The J-11A has no DCS named payload; its catalogue template was the empty table (ticket 04)."""
+        miz = _caucasus_miz(tmp_path)
+        escort = {
+            **self._ESCORT,
+            "unit_type": "J-11A",
+            "coalition": "red",
+            "country_id": 81,
+            "country_name": "CJTF Red",
+        }
+        add_air_group(miz, loadout_from="J-11A Template Red", **escort)
+        unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Escort"))[0]
+        clsids = {pylon["CLSID"] for pylon in unit["payload"]["pylons"].values()}
+        assert "{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}" in clsids  # stations 5-6 of the v5 Marianas loadout
+
+    def test_two_loadouts_at_once_are_refused(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        with pytest.raises(ValueError, match="give one loadout"):
+            add_air_group(
+                miz, loadout_from="veafSpawn-F-15C - FOX3 - Radar ON - ECM ON - HARD X1", payload="x", **self._ESCORT
+            )

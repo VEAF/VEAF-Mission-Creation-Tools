@@ -236,91 +236,6 @@ airplanes:
               y: 0
           x: 0
           y: 0
-        A-4E-C Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 254
-          groupId: 499
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: A-4E-C Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 2000
-                alt_type: BARO
-                formation_template: ''
-                name: A-4E-C Template
-                speed: 138.88888888889
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                Auto_Catapult_Power: false
-                CBU2ATPP: 0
-                CBU2BATPP: 0
-                CMS_BURSTS: 1
-                CMS_BURST_INTERVAL: 1
-                CMS_SALVOS: 1
-                CMS_SALVO_INTERVAL: 1
-                HideECMPanel: false
-                Night_Vision: false
-              alt: 2000
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 6
-                name: Chevy65
-                3: 5
-              heading: 2.1757446334553
-              livery_id: unmarked
-              name: 'A-4E-C Template #01'
-              onboard_num: '013'
-              payload:
-                ammo_type: 1
-                chaff: 30
-                flare: 30
-                fuel: 2467.5454273299
-                gun: 100
-                pylons: {}
-              psi: -2.2499848619125
-              skill: Client
-              speed: 138.88888888889
-              type: A-4E-C
-              unitId: 583
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         AJS37 Template:
           communication: true
           dynSpawnTemplate: true
@@ -2376,7 +2291,23 @@ airplanes:
                 flare: 96
                 fuel: 9400
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{RKL609_L}'
+                  2:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  3:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  5:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  6:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  8:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  9:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  10:
+                    CLSID: '{RKL609_R}'
               psi: 2.7777975223291
               skill: Client
               speed: 138.88888888889
@@ -3909,91 +3840,6 @@ airplanes:
               y: 0
           x: 0
           y: 0
-        OV-10A Template:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 127.5
-          groupId: 494
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: OV-10A Template
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: OV-10A Template
-                speed: 107.91666666667
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 2
-                              value: true
-                      2:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 2
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 5
-                name: Chevy58
-                3: 8
-              heading: 5.4628805587423
-              livery_id: tass 19th usaf 67-14657
-              name: 'OV-10A Template #01'
-              onboard_num: 018
-              payload:
-                chaff: 0
-                flare: 0
-                fuel: 940
-                gun: 100
-                pylons: {}
-              psi: -5.4628805587423
-              skill: Client
-              speed: 107.91666666667
-              type: Bronco-OV-10A
-              unitId: 578
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         P-47D Template:
           communication: true
           dynSpawnTemplate: true
@@ -4768,82 +4614,6 @@ airplanes:
               y: 0
           x: 0
           y: 0
-        T-45 Template:
-          communication: false
-          dynSpawnTemplate: true
-          frequency: 243
-          groupId: 543
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: T-45 Template
-          radioSet: true
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: T-45 Template
-                speed: 154.16666666667
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                    - auto: true
-                      enabled: true
-                      id: WrappedAction
-                      number: 1
-                      params:
-                        action:
-                          id: Option
-                          params:
-                            name: 35
-                            value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NetCrewControlPriority: -2
-                SoloFlight: false
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 4
-                3: 1
-                name: Chevy41
-              heading: 5.4628805587423
-              livery_id: default
-              name: 'T-45 Template #01'
-              onboard_num: '025'
-              payload:
-                chaff: 0
-                flare: 0
-                fuel: 1317.2338090011
-                gun: 100
-                pylons: {}
-              psi: -5.4628805587423
-              skill: Client
-              speed: 154.16666666667
-              type: T-45
-              unitId: 628
-              x: 0
-              y: 0
-          x: 0
-          y: 0
         TF-51D Template:
           communication: true
           dynSpawnTemplate: true
@@ -5119,91 +4889,6 @@ airplanes:
               speed: 138.88888888889
               type: A-10C_2
               unitId: 303
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        A-4E-C Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 254
-          groupId: 314
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: A-4E-C Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 2000
-                alt_type: BARO
-                formation_template: ''
-                name: A-4E-C Template Red
-                speed: 138.88888888889
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                Auto_Catapult_Power: false
-                CBU2ATPP: 0
-                CBU2BATPP: 0
-                CMS_BURSTS: 1
-                CMS_BURST_INTERVAL: 1
-                CMS_SALVOS: 1
-                CMS_SALVO_INTERVAL: 1
-                HideECMPanel: false
-                Night_Vision: false
-              alt: 2000
-              alt_type: BARO
-              callsign:
-                1: 4
-                2: 2
-                name: Colt25
-                3: 5
-              heading: 2.1757446334553
-              livery_id: community a-4e ii
-              name: 'A-4E-C Template Red #01'
-              onboard_num: '045'
-              payload:
-                ammo_type: 1
-                chaff: 30
-                flare: 30
-                fuel: 2467.5454273299
-                gun: 100
-                pylons: {}
-              psi: -2.2499848619125
-              skill: Client
-              speed: 138.88888888889
-              type: A-4E-C
-              unitId: 216
               x: 0
               y: 0
           x: 0
@@ -7246,7 +6931,23 @@ airplanes:
                 flare: 96
                 fuel: 9400
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{RKL609_L}'
+                  2:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  3:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  5:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  6:
+                    CLSID: '{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}'
+                  8:
+                    CLSID: '{B79C379A-9E87-4E50-A1EE-7F7E29C2E87A}'
+                  9:
+                    CLSID: '{FBC29BFE-3D24-4C64-B81D-941239D12249}'
+                  10:
+                    CLSID: '{RKL609_R}'
               psi: 2.7777975223291
               skill: Client
               speed: 138.88888888889
@@ -8296,7 +7997,21 @@ airplanes:
                 flare: 30
                 fuel: '3376'
                 gun: 100
-                pylons: {}
+                pylons:
+                  1:
+                    CLSID: '{682A481F-0CB5-4693-A382-D00DD4A156D7}'
+                  2:
+                    CLSID: '{682A481F-0CB5-4693-A382-D00DD4A156D7}'
+                  3:
+                    CLSID: '{9B25D316-0434-4954-868F-D51DB1A38DF0}'
+                  4:
+                    CLSID: '{2BEC576B-CDF5-4B7F-961F-B0FA4312B841}'
+                  5:
+                    CLSID: '{9B25D316-0434-4954-868F-D51DB1A38DF0}'
+                  6:
+                    CLSID: '{682A481F-0CB5-4693-A382-D00DD4A156D7}'
+                  7:
+                    CLSID: '{682A481F-0CB5-4693-A382-D00DD4A156D7}'
               psi: 0
               skill: Client
               speed: 138.88888888889
@@ -8761,91 +8476,6 @@ airplanes:
               speed: 113.88888888889
               type: MosquitoFBMkVI
               unitId: 310
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        OV-10A Template Red:
-          communication: true
-          dynSpawnTemplate: true
-          frequency: 127.5
-          groupId: 283
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: OV-10A Template Red
-          radioSet: false
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: OV-10A Template Red
-                speed: 107.91666666667
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                      1:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 1
-                        params:
-                          action:
-                            id: EPLRS
-                            params:
-                              groupId: 9
-                              value: true
-                      2:
-                        auto: true
-                        enabled: true
-                        id: WrappedAction
-                        number: 2
-                        params:
-                          action:
-                            id: Option
-                            params:
-                              name: 35
-                              value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 3
-                2: 6
-                name: Uzi69
-                3: 9
-              heading: 5.4628805587423
-              livery_id: tass 22nd usaf 67-14647wh
-              name: 'OV-10A Template Red #01'
-              onboard_num: '057'
-              payload:
-                chaff: 0
-                flare: 0
-                fuel: 940
-                gun: 100
-                pylons: {}
-              psi: -5.4628805587423
-              skill: Client
-              speed: 107.91666666667
-              type: Bronco-OV-10A
-              unitId: 180
               x: 0
               y: 0
           x: 0
@@ -9640,82 +9270,6 @@ airplanes:
               speed: 138.88888888889
               type: Su-33
               unitId: 627
-              x: 0
-              y: 0
-          x: 0
-          y: 0
-        T-45 Template Red:
-          communication: false
-          dynSpawnTemplate: true
-          frequency: 243
-          groupId: 544
-          hidden: true
-          lateActivation: true
-          modulation: 0
-          name: T-45 Template Red
-          radioSet: true
-          route:
-            points:
-              1:
-                ETA: 0
-                ETA_locked: true
-                action: Turning Point
-                alt: 30
-                alt_type: BARO
-                formation_template: ''
-                name: T-45 Template Red
-                speed: 154.16666666667
-                speed_locked: true
-                task:
-                  id: ComboTask
-                  params:
-                    tasks:
-                    - auto: true
-                      enabled: true
-                      id: WrappedAction
-                      number: 1
-                      params:
-                        action:
-                          id: Option
-                          params:
-                            name: 35
-                            value: true
-                type: Turning Point
-                x: 0
-                y: 0
-          start_time: 0
-          task: Nothing
-          taskSelected: true
-          tasks: {}
-          uncontrollable: false
-          uncontrolled: false
-          units:
-            1:
-              AddPropAircraft:
-                NetCrewControlPriority: -2
-                SoloFlight: false
-              alt: 30
-              alt_type: BARO
-              callsign:
-                1: 7
-                2: 4
-                3: 1
-                name: Chevy41
-              heading: 5.4628805587423
-              livery_id: default
-              name: 'T-45 Template Red #01'
-              onboard_num: '025'
-              payload:
-                chaff: 0
-                flare: 0
-                fuel: 1317.2338090011
-                gun: 100
-                pylons: {}
-              psi: -5.4628805587423
-              skill: Client
-              speed: 154.16666666667
-              type: T-45
-              unitId: 629
               x: 0
               y: 0
           x: 0

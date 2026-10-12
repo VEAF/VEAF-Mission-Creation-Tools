@@ -12,6 +12,8 @@ from typing import Any
 
 from mission_tools.miz_tools import read_miz
 
+from veaf_mission_mcp.mission_folder import load_folder_mission
+
 _GROUP_CATEGORIES: tuple[str, ...] = ("plane", "helicopter", "vehicle", "ship", "static")
 
 
@@ -19,7 +21,8 @@ def describe_mission(miz_path: Path) -> dict[str, Any]:
     """Summarize a mission's current groups and trigger zones.
 
     Args:
-        miz_path: Path to the mission's source `.miz`.
+        miz_path: Path to the mission's source `.miz`, or a mission folder (its `src/mission/`) — every
+            write action takes the folder (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05).
 
     Returns:
         A dict with ``groups`` (name, coalition, country, category) and ``zones``
@@ -28,7 +31,7 @@ def describe_mission(miz_path: Path) -> dict[str, Any]:
     Raises:
         ValueError: If the archive has no `mission` file (not a valid mission archive).
     """
-    mission = read_miz(miz_path)
+    mission = load_folder_mission(miz_path) if miz_path.is_dir() else read_miz(miz_path)
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
     return {

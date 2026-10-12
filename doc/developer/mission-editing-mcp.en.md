@@ -758,6 +758,23 @@ Each one is the matching `veaf-tools campaign` command (`campaign_manager.Campai
 - The backups of a file under `src/mission/l10n/DEFAULT/` go into `.veaf-backups/` (they stayed beside it
   and went into the `.miz`), and a folder save rewrites `mapResource` (tickets 15, 16).
 
+### Marianas Open Training (FIX-OPEN-TRAINING-MARIANAS-FINDINGS)
+
+- `create_qra`: a group carries **no task** on its point, whatever its `task` (`CAP` or `Intercept`).
+  With `task: "CAP"`, the editor's automatic `EngageTargets` made the build fly the route as written: one point, no orbit, and the interceptor landed instead of defending its zone (ticket 01).
+- `add_carrier_group`: the recovery tanker takes the `Shell` family from flight 9 down (`Shell91`, then `Shell81` for the next carrier), and `tanker_callsign` (`"Arco 5"`) imposes one; the result says which in `tanker_callsign`.
+  The tankers named `Texaco 1`, `Arco 1` placed afterwards keep theirs (ticket 02).
+- `add_air_group` takes `loadout_from`, as the composites do: a group of the mission, then of the folder's catalogues, then of the shipped ones (a `veafSpawn-*` template).
+  It is the only sourced loadout of a module aircraft with no DCS named payload (J-11A, F-16C); one of `pylons`, `payload` and `loadout_from` at most (ticket 03).
+- Shipped dynamic-slot catalogue: the J-11A templates carry the air-to-air loadout of the Marianas Open Training v5 (`veafSpawn-J-11A - FOX3 - ECM ON - Radar ON - HARD X1`), so `loadout_from: "J-11A Template Red"` arms a flight.
+  The `A-4E-C`, `OV-10A` and `T-45` templates, three mods, leave it, and the build warns when a template names a type the DCS unit database does not know (ticket 04).
+- `describe_mission` reads a mission folder; `describe_units` gives each group's `group_id` and each unit's `unit_id` (`edit_route add_task attack_group` takes the former); `terrain_elevation` takes `mission_path` and reads the theatre from it (`theatre` still works) (ticket 05).
+- `geocode` warns when it answers an island or an area for a place inside it: « Umatac, Guam » gave the centre of Guam without a word (ticket 05).
+- `add_group` and each group of `create_combat_zone` take `roe` (`weapons_free`, `return_fire`, `weapons_hold`) and `disperse`, written on the first point as the editor writes them (`Option` 0; `Option` 8 with no value for "does not disperse").
+  `roe: "weapons_hold"` and `disperse: false` make an inert target (ticket 06).
+- With no elevation grid or no clear-ground catalogue, the placement warning says what was not checked (the sea, the trees, the buildings) and how to check it: `veaf-tools dcs clear-ground-check` on the built mission.
+  On MarianaIslands nothing is checked until the sweeps are done (known limitation `marianas-placement-checks-nothing`, ticket 07).
+
 ### Mission settings (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
 What the editor sets outside any group, and GermanyCW-v6 had to patch through a Lua serializer. Each

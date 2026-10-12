@@ -1744,6 +1744,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "tanker_tacan_channel": {"type": "integer", "default": 64, "description": "Y mode."},
                     "tanker_tacan_callsign": {"type": "string", "default": "SHL"},
                     "tanker_frequency_mhz": {"type": "number", "default": 290.0},
+                    "tanker_callsign": {
+                        "type": "string",
+                        "description": "The recovery tanker's callsign, a tanker family and a flight ('Arco 5'). "
+                        "Default: Shell from flight 9 down, so the tankers named 'Texaco 1', 'Arco 1' placed "
+                        "later keep theirs; the result's tanker_callsign says which.",
+                    },
                     "rescue_helicopter": {"type": "boolean", "default": True},
                 },
                 "required": ["mission_path", "coalition", "country_id", "country_name", "name", "position"],

@@ -158,3 +158,41 @@ class TestReviewFixes:
         assert result["stands"] == ["1", "2"]
         with pytest.raises(ValueError, match="omit 'parking'"):
             add_air_group(miz, name="More", unit_type="FA-18C_hornet", parking=["5"], **common)
+
+
+class TestTheRecoveryTankerCallsign:
+    """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 02: the S-3B took the tankers' callsign families."""
+
+    @staticmethod
+    def _carrier(miz: Path, name: str, x: float, **extra: Any) -> dict[str, Any]:
+        return add_carrier_group(miz, name=name, position={"x": x, "y": 500000.0}, **_BLUE, **extra)
+
+    @staticmethod
+    def _callsign(miz: Path, group: str) -> str:
+        return str(_groups(miz, "plane")[group]["units"][0]["callsign"]["name"])
+
+    def test_the_tankers_named_after_their_callsign_keep_it(self, miz: Path) -> None:
+        first = self._carrier(miz, "CVN-71", -300000.0)
+        second = self._carrier(miz, "CVN-72", -310000.0)
+        assert (first["tanker_callsign"], second["tanker_callsign"]) == ("Shell91", "Shell81")
+        for name in ("Texaco 1", "Arco 1", "Texaco 2", "Arco 2"):
+            result = add_air_group(
+                miz, name=name, unit_type="KC-135", start="air", position={"x": 0.0, "y": 0.0}, task="Refueling", **_BLUE
+            )
+            assert "warnings" not in result
+        given = [self._callsign(miz, name) for name in ("Texaco 1", "Arco 1", "Texaco 2", "Arco 2")]
+        assert given == ["Texaco11", "Arco11", "Texaco21", "Arco21"]
+        assert self._callsign(miz, "CVN-71 S3B-Tanker") == "Shell91"
+
+    def test_a_callsign_asked_for_is_given(self, miz: Path) -> None:
+        result = self._carrier(miz, "CVN-71", -300000.0, tanker_callsign="Arco 5")
+        assert result["tanker_callsign"] == "Arco51"
+        unit = _groups(miz, "plane")["CVN-71 S3B-Tanker"]["units"][0]
+        assert (unit["callsign"][1], unit["callsign"][2], unit["callsign"][3]) == (2, 5, 1)
+
+    def test_a_callsign_that_is_not_a_tanker_family_or_is_held_is_refused(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="tanker_callsign"):
+            self._carrier(miz, "CVN-71", -300000.0, tanker_callsign="Enfield 1")
+        self._carrier(miz, "CVN-71", -300000.0, tanker_callsign="Shell 5")
+        with pytest.raises(ValueError, match="Shell5"):
+            self._carrier(miz, "CVN-72", -310000.0, tanker_callsign="Shell5")

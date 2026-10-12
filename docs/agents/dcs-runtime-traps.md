@@ -551,6 +551,22 @@ as « not shown free », and look in game before concluding that a place is wood
 *What it cost:* `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
 Neither what it lists nor what it leaves out has been checked by eye yet.
 
+### An air start with a single waypoint flies north, whatever its unit's `heading` {#air-start-flies-toward-its-second-point}
+
+Measured **2026-10-12**.
+
+A player slot, A-10C II, air start, one `Turning Point`, unit `heading` π (south). Taken in single
+player on MarianaIslands, it flew **north**. The Mission Editor never writes that case: in the
+Marianas v5 it saved, every air start with two points or more has its unit `heading` equal to the
+bearing of its second point (13 groups), and every air start with one point has heading 0 (10
+groups). The same slot with a second point 10 km due south appeared with its nose at **180.3°**,
+tracking 180.5° (Caucasus, read through the bridge 10 s after spawning).
+
+**What to do:** Give an air start a second waypoint on the wanted heading; `add_player_slot` does it.
+
+*What it cost:* The A-10 of the FIX-FARP-PLACEMENT test mission started heading away from the FARP it was meant to
+look at, and had to turn back over 40 km.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

@@ -474,7 +474,7 @@ a **folder** (durable) or a `.miz` (transient).
 - **`dynSpawnTemplate` is set to `false`.** That flag marks a dynamic-spawn template, which needs an
   airfield configured for it; left on (as on a copy of a template) the slot sits in the file but does
   **not** appear in the slot list — the defect found in game on 2026-08-14.
-- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, no runtime data),
+- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, no runtime data; DCS orients an air start toward its second waypoint, so the slot gets one 10 km ahead on `heading_deg` — with a single point it flew north whatever the heading, FIX-AIR-SLOT-HEADING),
   `"ground-cold"` or `"ground-hot"`. A ground start **requires** `parking`, `parking_id` and
   `airdrome_id`; without them it is **refused** (the message names the data captured by
   `FEAT-MCP-MUTATION-ACTIONS` ticket 09), never guessed. The first waypoint's `type`/`action` pair is

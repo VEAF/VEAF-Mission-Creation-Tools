@@ -37,6 +37,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Where the clear-ground catalogue covers the place, a pad in trees or buildings now moves with its ammunition dump onto the nearest clear ground within 1 km (`keep_position` refuses the move and only warns); where the elevation grid covers it, more than 3 m of height difference over 40 m around the pad is warned as a slope; where neither does, the warning says what was not checked.
   The new `veaf-tools dcs farp-spot <theatre> --at x,y` finds the flat, clear spots near a point in DCS. Clearing the trees by trigger was tried and left out: DCS's « SCENERY REMOVE OBJECTS ZONE » removed none, on MarianaIslands or Caucasus (known limitation `scenery-remove-objects-zone-leaves-the-forest`).
 
+- **An air-start player slot flies the heading it was given** (FIX-AIR-SLOT-HEADING).
+  `add_player_slot` wrote the heading on the unit only, and DCS orients an air start toward its second waypoint: an A-10 asked for 180° flew north.
+  The slot now gets a second waypoint 10 km ahead on its heading, as the Mission Editor writes it; measured in DCS, 180° asked, 180.5° flown.
+
 ### Added
 
 - **`add_air_group` takes `loadout_from`**, like `create_qra` and `create_cap_mission`: the only sourced loadout of a module aircraft with no DCS named payload (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 03).

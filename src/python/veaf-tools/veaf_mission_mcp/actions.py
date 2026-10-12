@@ -897,7 +897,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "heading_deg": {
                         "type": "number",
                         "default": 0,
-                        "description": "Heading in degrees (mainly meaningful on the ground).",
+                        "description": (
+                            "Heading in degrees. An air start flies it: a second waypoint 10 km ahead carries it, as "
+                            "the Mission Editor writes it. A ground start takes its stand's orientation."
+                        ),
                     },
                     "parking": {
                         "type": "string",

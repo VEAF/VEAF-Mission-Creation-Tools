@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-AIR-SLOT-HEADING](FIX-AIR-SLOT-HEADING/PRD.md) · ✅
+
+An air-start player slot flew north whatever its heading: DCS orients an air start toward its second waypoint, as the Mission Editor's own files show. `add_player_slot` now writes one 10 km ahead on the heading; measured in DCS, a slot asked for 180° flew 180.5°.
+
 ### [FEAT-SINAI-PARKING-DATA](FEAT-SINAI-PARKING-DATA/PRD.md) · ✅
 
 Sinai ships its parking capture: 3 614 stands on 56 airfields, taken in DCS on 2026-10-12 for the Sinai Open Training v6. `add_air_group` and `create_qra` start from the ramp or the runway there, and the build filters Sinai's dynamic-slot stock by what each parking accepts.

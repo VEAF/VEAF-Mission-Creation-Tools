@@ -24,6 +24,15 @@ Nothing in VMCT removes scenery. The Marianas v5 cleared the trees of its Tinian
 - Coded and tested: `clear_scenery_radius`, zone `<FARP> - Clear`, a `triggerOnce` gated on `c_time_after(1)` with `a_remove_scene_objects(zone, 1)`, dispatched from `func` and clearing its own entry — the Marianas v5 shape. On a folder that already holds triggers, it takes the next free index (measured).
 - First unknown answered from the editor's source, not guessed: `objects_mask` is a combo in `MissionEditor\modules\me_trigrules.lua` — 0 « ALL », 1 « TREES ONLY », 2 « OBJECTS ONLY ». The v5 and DCS's own mission generator (`MissionEditor\data\MissionGenerator\FormatTemplates\removeTreesRule.mt`) both write 1. The option removes trees only: a building on the pad stays.
 
+## Measured in DCS, single player, 2026-10-12: nothing is removed
+
+**`clear_scenery_radius` as merged (#1125) does not work.** The trees stay; the option must be fixed or taken out before the next release.
+
+- Marianas (`veaf-test-farp-clear.miz`, FARP Merizo, radius 80): the small Disposition query finds **0 of 24** free points on every ring from 20 to 150 m, inside the zone as outside; the known clear spot 1.2 km away (-23450, -12150) answers 10 of 10, so the probe works. David's screenshot (F12, top view): jungle right up to the edge of the FARP's own grass square.
+- Caucasus (`veaf-test-farp-clear-caucasus.miz`, three FARPs in catalogued woods near Batumi, Sukhumi and Mineralnye Vody, radius 80, no building within 80 m): **0 of 48** free points at 40–70 m inside each zone, 0–1 of 48 at a control point 300 m away. David's F12 screenshot of FARP Batumi: the forest touches the FARP square to the north and east. So it is not a Marianas quirk.
+- `dcs.log`: no error after the mission start.
+- Not known yet: whether the trigger fires at all. Next step: read `mission.trig.func[<index>]` in the server environment through the fiddle hook (`net.dostring_in`, `veaf_libs/dcs_fiddle_client.py`) after the first second — nil means it fired. Then, either way, save the same trigger from the Mission Editor (zone + ONCE + TIME MORE 1 + SCENERY REMOVE OBJECTS ZONE, TREES ONLY) and diff the two `.miz`: the editor's own file is the reference, not the v5's, which nobody has shown to work.
+
 ## Left: the measurement in DCS
 
 - Test mission: `Saved Games\DCS\Missions\veaf-test-farp-clear.miz` — blank MarianaIslands, the bridge, FARP Merizo at its first position (-22300, -12450) with `clear_scenery_radius: 80`, an A-10C II air start 4 km north heading for it at 1 500 ft, a game master slot. Built from `add_farp` itself.

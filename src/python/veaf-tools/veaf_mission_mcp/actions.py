@@ -818,6 +818,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "and buildings, up to 1 km away (combat-zone markers included, sized from their "
                         "#command), and a warning says where it went or why it stayed. Relay that warning.",
                     },
+                    "roe": {
+                        "type": "string",
+                        "enum": ["weapons_free", "return_fire", "weapons_hold"],
+                        "description": "A VEHICLE group's rules of engagement, on its first waypoint as the "
+                        "Mission Editor writes it. weapons_hold + disperse=false is an inert target.",
+                    },
+                    "disperse": {
+                        "type": "boolean",
+                        "description": "false: the group does not disperse under fire (vehicle group). true is "
+                        "DCS's default and writes nothing.",
+                    },
                 },
                 "required": [
                     "target",
@@ -1943,6 +1954,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "default": False,
                                     "description": "As add_group's: the position is the mission maker's own, never move it.",
                                 },
+                                "roe": {
+                                    "type": "string",
+                                    "enum": ["weapons_free", "return_fire", "weapons_hold"],
+                                    "description": "As add_group's: weapons_hold + disperse=false is an inert target.",
+                                },
+                                "disperse": {
+                                    "type": "boolean",
+                                    "description": "As add_group's: false, no dispersal under fire.",
+                                },
                             },
                             "required": ["name", "units"],
                         },
@@ -2830,6 +2850,8 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         late_activation=params.get("late_activation", False),
         as_spawn_template=params.get("as_spawn_template", False),
         keep_position=params.get("keep_position", False),
+        roe=params.get("roe"),
+        disperse=params.get("disperse"),
     )
 
 

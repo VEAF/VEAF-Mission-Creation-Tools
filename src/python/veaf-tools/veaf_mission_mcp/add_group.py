@@ -27,6 +27,11 @@ _UNIT_SPACING_METERS = 20
 # 600 m clears a hull of 300 m, and is the spacing that fixed GermanyCW-v6's Rostock convoy.
 _SHIP_SPACING_METERS = 600
 _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cruise speed
+# A ground group that drives somewhere is a convoy: over the 126 vehicle groups of 14 editor-built missions
+# under D:\dev\_VEAF whose route has an `On Road` leg (2026-10-13), the legs' speed has a median of 16.4 m/s
+# (59 km/h; 5.6 m/s is 11 % of them) and the first point is `On Road` in 85 groups, `Off Road` in 37
+# (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 04). DCS clamps a speed above what the vehicle can do.
+_ROAD_SPEED_MPS = 16.4
 
 #: A ground group's ROE, `Option` 0 on its first waypoint: DCS's ``AI.Option.Ground.val.ROE``, and the
 #: values the Mission Editor writes (2: 9 263, 3: 105, 4: 643 occurrences over 606 missions under
@@ -303,7 +308,7 @@ def _build_group(
         "x": position["x"],
         "y": position["y"],
         "task": "Ground Nothing",
-        "route": _build_route(route or [position], patrol=patrol),
+        "route": _build_route(route or [position], patrol=patrol, speed=_ROAD_SPEED_MPS, road_start=True),
         "units": built_units,
         "visible": False,
         "hidden": False,
@@ -477,23 +482,48 @@ def _build_units(
     return built
 
 
-def _build_route(points: list[dict[str, float]], *, patrol: bool) -> dict[str, Any]:
-    """Build a route from waypoints; loop the last one back to the first if `patrol`."""
-    waypoints = [_build_waypoint(point, is_first=(i == 0)) for i, point in enumerate(points)]
+def _build_route(
+    points: list[dict[str, float]],
+    *,
+    patrol: bool,
+    speed: float = _DEFAULT_SPEED_MPS,
+    road_start: bool = False,
+) -> dict[str, Any]:
+    """Build a route from waypoints; loop the last one back to the first if `patrol`.
+
+    Args:
+        points: The waypoints, the first being the start; each may carry its own ``speed`` (m/s).
+        patrol: Loop the last waypoint back to the first.
+        speed: The speed of a waypoint that carries none, in m/s, from the second point on.
+        road_start: A route with at least two points starts ``On Road`` instead of ``Off Road``, like the
+            legs after it: a convoy that starts off the road is not in column and may leave the road
+            (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 04). A single stationary point stays ``Off Road``.
+
+    Returns:
+        ``{"points": [...]}``.
+    """
+    on_road_start = road_start and len(points) >= 2
+    waypoints = [
+        _build_waypoint(point, is_first=(i == 0), speed=speed, on_road=on_road_start) for i, point in enumerate(points)
+    ]
     if patrol and len(waypoints) >= 2:
         waypoints[-1]["task"] = _patrol_task(first_waypoint_index=1, last_waypoint_index=len(waypoints))
     return {"points": waypoints}
 
 
-def _build_waypoint(point: dict[str, float], *, is_first: bool) -> dict[str, Any]:
+def _build_waypoint(
+    point: dict[str, float], *, is_first: bool, speed: float = _DEFAULT_SPEED_MPS, on_road: bool = False
+) -> dict[str, Any]:
+    # The first point keeps the start speed whatever the route's: it is the speed of the leg that leads to a point.
+    default_speed = _DEFAULT_SPEED_MPS if is_first else speed
     return {
         "x": point["x"],
         "y": point["y"],
         "alt": point.get("alt", 0),
         "alt_type": "BARO",
         "type": "Turning Point",
-        "action": "Off Road" if is_first else "On Road",
-        "speed": point.get("speed", _DEFAULT_SPEED_MPS),
+        "action": "Off Road" if is_first and not on_road else "On Road",
+        "speed": point.get("speed", default_speed),
         "ETA": 0,
         "ETA_locked": is_first,
         "formation_template": "",

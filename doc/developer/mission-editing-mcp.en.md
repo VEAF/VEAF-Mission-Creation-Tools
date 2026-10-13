@@ -238,6 +238,8 @@ do something.
 Refused on any other group and any other waypoint type.
 Every point used to be written `Turning Point`, and the demo mission's convoy drove across fields (FIX-DEMO-MISSION-FINDINGS 07).
 
+**A convoy's route at creation.** A ground group made by `add_group` or `create_combat_zone` with two points or more starts **on the road** (`On Road`, like its legs) and runs at **16.4 m/s** (59 km/h); a point may give its own `speed`, in m/s. Measured 2026-10-13 over the 126 vehicle groups of 14 hand-built missions whose route has an `On Road` leg: first point `On Road` in 85, `Off Road` in 37; the legs' speed has a median of 16.4 m/s, 5.6 m/s in only 11 % (`FIX-OPEN-TRAINING-FALKLANDS-FINDINGS` ticket 04). A single point stays `Off Road`, a ship keeps its `Turning Point` and its speed. That the start stands **on** a road is checked by nothing outside the game (ticket 06).
+
 **The invariant that makes this surgery rather than list editing.** `FIX-WAYPOINTS-ETA-LOCKED`
 established that DCS **refuses to save** a mission whose route has no waypoint with a locked time
 ("Route has no waypoints with locked time!"), and that its own repair is to lock the first. Removing or

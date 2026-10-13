@@ -11,7 +11,7 @@
     "test": "node --test"
   },
   "devDependencies": {
-    "wrangler": "^4.147.0"
+    "wrangler": "^4.149.0"
   },
   "overrides": {
     "sharp": "^0.35.4"

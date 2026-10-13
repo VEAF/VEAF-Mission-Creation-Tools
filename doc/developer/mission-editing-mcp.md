@@ -244,6 +244,8 @@ une opération de liste sur `route.points` ; les **tâches** d'un point de passa
 Refusé sur un autre groupe et sur un autre type de point.
 Tous les points étaient écrits `Turning Point`, et le convoi de la mission de démo coupait à travers champs (FIX-DEMO-MISSION-FINDINGS 07).
 
+**Route d'un convoi à la création.** Un groupe terrestre créé par `add_group` ou `create_combat_zone` avec au moins deux points part **sur la route** (`On Road`, comme ses étapes) et roule à **16,4 m/s** (59 km/h) ; un point peut donner sa propre vitesse (`speed`, en m/s). Mesuré le 2026-10-13 sur les 126 groupes de véhicules de 14 missions faites à la main dont la route a une étape `On Road` : premier point `On Road` dans 85, `Off Road` dans 37 ; vitesse des étapes de médiane 16,4 m/s, 5,6 m/s dans 11 % seulement (`FIX-OPEN-TRAINING-FALKLANDS-FINDINGS` ticket 04). Un point isolé reste `Off Road`, un navire garde ses `Turning Point` et sa vitesse. Que le départ soit **sur** une route n'est vérifié par rien hors du jeu (ticket 06).
+
 **L'invariant qui en fait de la chirurgie et pas de l'édition de liste.**
 `FIX-WAYPOINTS-ETA-LOCKED` a établi que DCS **refuse d'enregistrer** une mission dont une route n'a
 aucun point de passage à heure verrouillée (« Route has no waypoints with locked time! »), et que sa

@@ -57,6 +57,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`validate_mission` warns about a group named for a combat zone but outside its circle** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 05).
   The zone takes a group only if its name starts with the zone's **and** a unit stands in the circle; with none inside, the zone picks up nothing and nothing shows in game.
   The warning names the group and the zone. A group named for no zone is never reported — the runtime leaves it alone wherever it stands.
+- **A convoy made by `add_group` or `create_combat_zone` starts on the road and runs at convoy speed** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 04).
+  A ground route of two points or more was written starting `Off Road` at 5.6 m/s; it now starts `On Road` like its legs and runs at 16.4 m/s (59 km/h), the median of 126 road convoys of 14 hand-built missions (the first point was `On Road` in 85 of them).
+  A route point takes its own `speed`, in m/s. A single stationary point, a ship and an aircraft are unchanged.
+- **Known limitation: no clear-ground catalogue on Falklands** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 07).
+  15 of 176 vehicles of the Falklands Open Training stood in water or blocked; the « surface not checked » warning now also gives the `clear-ground-sweep` command.
 
 ## [6.29.0] — 2026-10-10
 

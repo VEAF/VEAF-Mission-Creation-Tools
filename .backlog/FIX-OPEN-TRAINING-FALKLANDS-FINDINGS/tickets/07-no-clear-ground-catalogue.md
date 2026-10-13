@@ -1,6 +1,6 @@
 # 07 — Ground placement on a theatre with no clear-ground catalogue
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_libs/data/known-limitations.yaml`, `veaf_mission_mcp/surface.py`, tests.
 
@@ -15,3 +15,9 @@ It is the case of `marianas-placement-checks-nothing`, one theatre more.
 - A known-limitation entry for Falklands (`kind: tool`) with the 15/176 measure and the workaround (`clear-ground-sweep Falklands --zones-from <mission>`, then `clear-ground-check`); `docs/agents/dcs-runtime-traps.md` regenerated.
 - The « surface not checked » warning names `clear-ground-sweep` too, not only `terrain-sweep`.
 - Decide with David whether a catalogue around the 27 Falklands airfields is worth shipping.
+
+## Done
+
+Known limitation `falklands-placement-has-no-clear-ground-catalogue` (`kind: tool`) with the 15/176 measure; `dcs-runtime-traps.md` regenerated (unchanged: it lists the `dcs` kind only).
+The « surface not checked » warning now also gives `veaf-tools dcs clear-ground-sweep <theatre> --zones-from <mission>` for the scenery, next to `terrain-sweep` for the sea.
+**Left to David:** whether a catalogue around the 27 Falklands airfields is worth shipping (a sweep per place costs about ten seconds in game; the catalogues shipped today cover Caucasus and GermanyCW only).

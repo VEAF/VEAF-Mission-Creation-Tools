@@ -213,6 +213,26 @@ limitations:
     (about ten seconds a combat zone on Caucasus) — and check a built mission with
     `veaf-tools dcs clear-ground-check`.
 
+- id: falklands-placement-has-no-clear-ground-catalogue
+  kind: tool
+  area: mcp
+  title: "On Falklands, no catalogue says a ground unit is out of the trees, the buildings or fresh water"
+  symptom: |
+    Falklands ships parking and frequency data but no clear-ground catalogue, and its elevation grid is swept
+    per workstation (`terrain-sweep Falklands`), not shipped. The grid knows the sea only: a lake or a river
+    reads as the ground under it. So `add_group`, `create_combat_zone` and `add_farp` write a position as
+    asked there, with a warning saying the surface was not checked (or, with a grid, that the sea was).
+  workaround: |
+    Sweep the places of the mission in DCS — `veaf-tools dcs clear-ground-sweep Falklands --zones-from
+    <mission>` — then check the built mission with `veaf-tools dcs clear-ground-check <mission.miz>` and move
+    what it finds. For a FARP, `veaf-tools dcs farp-spot Falklands --at x,y`.
+  cost: |
+    The Falklands Open Training v6, probed in DCS on 2026-10-13 (`Disposition` small query on the positions
+    the grid had accepted): 15 vehicles out of 176 at fault — 5 in the water (two beacons, two false units of
+    the Ushuaia naval base, a 4x4) and 10 blocked (air defences of Punta Arenas, Schroeders, Natales,
+    Williams, Navarino, the Cape Horn beacon). They were moved by hand, from 25 m to 1 425 m. FARP Torres del
+    Paine had stood in a lake the 250 m grid read as 79 m (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS tickets 03, 07).
+
 - id: marianas-placement-checks-nothing
   kind: tool
   area: mcp

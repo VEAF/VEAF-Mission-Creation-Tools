@@ -51,6 +51,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `scaffold_mission` offers it and its folder carries a blank mission, `terrain-sweep Falklands` runs, and the geocoder is bounded to the map (it answered « San Julian » in Jujuy and « Porvenir » in Chile).
   Read in DCS and shipped: the ATC frequencies of 26 airfields (Cullen has none) with the `airports-falklands` channel collection, and 350 parking stands on 27 airfields, so `add_air_group` takes a ramp or runway start there.
   The elevation grid is not shipped, as for every theatre: sweep it with `terrain-sweep Falklands`.
+- **`add_farp` warns about a tower's frequency and says what no file sees** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 03).
+  A FARP put on the channel of an airfield tower of its theatre (same band: `AM` against `vhf` and `uhf`, `FM` against `fm`) is warned, naming the airfield — FARP Torres del Paine had been put on 128.5, the Franco Bianco tower.
+  The result always carries `surface_check`: neither the elevation grid (it knows the sea only) nor the clear-ground catalogue sees a lake or a river, and it gives the `farp-spot` command that probes the pad's surface in DCS.
+- **`validate_mission` warns about a group named for a combat zone but outside its circle** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 05).
+  The zone takes a group only if its name starts with the zone's **and** a unit stands in the circle; with none inside, the zone picks up nothing and nothing shows in game.
+  The warning names the group and the zone. A group named for no zone is never reported — the runtime leaves it alone wherever it stands.
 
 ## [6.29.0] — 2026-10-10
 

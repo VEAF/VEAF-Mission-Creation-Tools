@@ -205,6 +205,30 @@ class TestValidateMissionContent(unittest.TestCase):
         issues = validate_mission_content(yaml_data, mission)
         self.assertEqual(_levels(issues), [ERROR])
 
+    def test_group_named_for_a_combat_zone_outside_its_circle_is_a_warning(self) -> None:
+        from veaf_libs.mission_validator import validate_mission_content
+
+        yaml_data = {"modules": {"COMBATZONE": {"combat_zones": [{"type": "zone", "zone_name": "CZ-Alpha"}]}}}
+        mission = {
+            "triggers": {"zones": [{"name": "CZ-Alpha", "x": 0.0, "y": 0.0, "radius": 1000.0}]},
+            "coalition": {
+                "red": {
+                    "country": [
+                        {
+                            "name": "Russia",
+                            "vehicle": {
+                                "group": [{"name": "CZ-Alpha-ARMOR", "units": [{"name": "u", "x": 9e3, "y": 0.0}]}]
+                            },
+                        }
+                    ]
+                }
+            },
+        }
+        issues = validate_mission_content(yaml_data, mission)
+        self.assertEqual(_levels(issues), [WARNING])
+        self.assertIn("CZ-Alpha-ARMOR", issues[0].message)
+        self.assertIn("CZ-Alpha", issues[0].message)
+
     def test_airwave_missing_trigger_zone_with_fallback_is_warning(self) -> None:
         from veaf_libs.mission_validator import validate_mission_content
 

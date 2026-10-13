@@ -1,6 +1,6 @@
 # 03 — add_farp: a FARP on a lake, and on a tower frequency
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_mission_mcp/add_farp.py`, `veaf_mission_mcp/surface.py`, `veaf_mission_mcp/actions.py` (schema text), tests.
 
@@ -17,3 +17,9 @@ The same FARP was put on 128.5, the Franco Bianco tower, and nothing warns; `hel
 - Tests: a FARP on 128.5 on Falklands warns naming Franco Bianco; on a free frequency it does not; the lake sentence is in the result.
 
 Whether a later action should set the frequency (finding 9's `fix_farp_freq.py`) is a separate question for David.
+
+## Done
+
+`add_farp` warns, naming the airfield, when its frequency is a tower's of the theatre in the same band (`AM`: `vhf` and `uhf`; `FM`: `fm`; same channel within 0.005 MHz).
+The result always carries `surface_check`, a field apart from `warnings` so a clean FARP stays silent: lakes and rivers are seen by neither the grid nor the catalogue, and the `farp-spot` command probes them in DCS.
+Docs (both languages), the action's description and the authoring skill say so.

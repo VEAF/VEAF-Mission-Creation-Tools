@@ -9,6 +9,7 @@ module surfaces such mismatches as build-time warnings (IMC2-004 / IMC2-004b).
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 #: DCS unit-group categories carried under each country in the mission table.
@@ -307,4 +308,68 @@ def find_undeclared_operation_subzones(mission_yaml: dict[str, Any]) -> list[tup
             for ref in refs:
                 if ref not in declared:
                     issues.append((f"COMBATZONE.operation[{op_name}]", ref, LEVEL_ERROR))
+    return issues
+
+
+def find_combat_zone_groups_outside_their_circle(
+    mission_yaml: dict[str, Any], mission_content: dict[str, Any]
+) -> list[tuple[str, str, str]]:
+    """Return ``(zone, group, "warning")`` for a group named for a combat zone and standing outside its circle.
+
+    The runtime (``VeafCombatZone:findUnitsInCombatZone``) takes a unit of the zone's circle — 2D
+    distance to the centre within the radius, altitude ignored — and keeps its group only when the
+    group's name starts with the zone's (case ignored). A group named for the zone with **no** unit in
+    the circle is picked by nothing: the zone spawns nothing, completes at once and nothing shows in
+    game (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 05). A group that has a unit in any circle it is
+    named for is fine; so is one whose name starts with no zone's.
+
+    Only circular trigger zones are measured; a quad-point zone (type 2) is left to the runtime.
+
+    Args:
+        mission_yaml: The parsed ``mission.yaml``.
+        mission_content: The parsed DCS mission table.
+
+    Returns:
+        One entry per such group, naming the first combat zone whose name it carries.
+    """
+    modules = mission_yaml.get("modules") or {}
+    zone_names = [
+        str(z["zone_name"])
+        for z in _module_cfg(modules, "COMBATZONE").get("combat_zones") or []
+        if isinstance(z, dict) and z.get("type", "zone") != "operation" and z.get("zone_name")
+    ]
+    if not zone_names:
+        return []
+    raw_zones = (mission_content.get("triggers") or {}).get("zones") or []
+    if isinstance(raw_zones, dict):
+        raw_zones = list(raw_zones.values())
+    circles = {
+        str(z["name"]): (float(z["x"]), float(z["y"]), float(z["radius"]))
+        for z in raw_zones
+        if isinstance(z, dict) and z.get("type") != 2 and {"name", "x", "y", "radius"} <= z.keys()
+    }
+    zone_circles = {name: circles[name] for name in zone_names if name in circles}
+    if not zone_circles:
+        return []
+    issues: list[tuple[str, str, str]] = []
+    coalitions = mission_content.get("coalition") or {}
+    for coalition in coalitions.values() if isinstance(coalitions, dict) else []:
+        for country in (coalition.get("country") or []) if isinstance(coalition, dict) else []:
+            for category in _GROUP_CATEGORIES:
+                container = country.get(category) or {} if isinstance(country, dict) else {}
+                for group in container.get("group") or [] if isinstance(container, dict) else []:
+                    if not isinstance(group, dict) or not group.get("name"):
+                        continue
+                    upper = str(group["name"]).upper()
+                    named_for = [n for n in zone_circles if upper.startswith(n.upper())]
+                    units = [u for u in group.get("units") or [] if isinstance(u, dict) and "x" in u and "y" in u]
+                    if not named_for or not units:
+                        continue
+                    if not any(
+                        math.hypot(float(u["x"]) - cx, float(u["y"]) - cy) <= radius
+                        for n in named_for
+                        for cx, cy, radius in [zone_circles[n]]
+                        for u in units
+                    ):
+                        issues.append((named_for[0], str(group["name"]), LEVEL_WARNING))
     return issues

@@ -349,6 +349,8 @@ The corollary runs the other way, and is just as silent: a group that has nothin
 zone, but sits inside the circle **and** is named `CZ-Alpha-…`, is part of it — and will be
 destroyed at mission start along with the rest.
 
+The other silent mistake, a group named `CZ-Alpha-…` that stands **outside** the circle (no unit inside), is caught before the game: `veaf-tools validate` and the build warn, naming the group and the zone. A group named for no zone is never reported, wherever it stands.
+
 ---
 
 ### Groups out of action {#out-of-action}

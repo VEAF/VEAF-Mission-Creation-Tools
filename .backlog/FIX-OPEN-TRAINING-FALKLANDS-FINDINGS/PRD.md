@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-FALKLANDS-FINDINGS — what building the Falklands Open Training v6 found
 
-Status: 🔄 in-progress — tickets 01–02 done, 03–07 ready
+Status: 🔄 in-progress — tickets 01–03 and 05 done, 04 and 06–07 ready
 
 Asked by David on 2026-10-13.
 The Falklands Open Training v6 (`VEAF-Open-Training-Mission-Falklands-v6`) was built with veaf-tools 6.29.0 although the map was not supported end to end; its `tools/retours-vmct.md` lists twelve findings.
@@ -15,9 +15,9 @@ Finding 3 (the v5 coordinates are in a frame that no longer matches the map) con
 |---|--------|--------|
 | 01 | [Falklands is a supported theatre](tickets/01-falklands-supported-theatre.md) | ✅ |
 | 02 | [Falklands data delivered: frequencies, parking, presets](tickets/02-falklands-data.md) | ✅ |
-| 03 | [add_farp: a FARP on a lake, and on a tower frequency](tickets/03-add-farp-surface-and-frequency.md) | ⬜ |
+| 03 | [add_farp: a FARP on a lake, and on a tower frequency](tickets/03-add-farp-surface-and-frequency.md) | ✅ |
 | 04 | [create_combat_zone: a convoy that starts on the road, at a convoy's speed](tickets/04-convoy-on-road.md) | ⬜ |
-| 05 | [validate_mission: a permanent group or a QRA inside a combat zone's circle](tickets/05-validate-combat-zone-overlap.md) | ⬜ |
+| 05 | [validate_mission: what a combat zone circle does with the groups around it](tickets/05-validate-combat-zone-overlap.md) | ✅ |
 | 06 | [A convoy between two places, on the roads](tickets/06-convoy-between-places.md) | ⬜ |
 | 07 | [Ground placement on a theatre with no clear-ground catalogue](tickets/07-no-clear-ground-catalogue.md) | ⬜ |
 

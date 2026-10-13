@@ -249,3 +249,46 @@ class TestThePadIsChecked:
         assert len(unchecked) == 1
         assert "trees" in unchecked[0] and "slope" in unchecked[0]
         assert "veaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450" in unchecked[0]
+
+
+# FIX-OPEN-TRAINING-FALKLANDS-FINDINGS 03: FARP Torres del Paine stood in a lake the 250 m grid could not
+# see, and was put on 128.5, the Franco Bianco tower.
+
+
+def _falklands(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    folder = _folder(tmp_path)
+    (folder / "src" / "mission" / "mission").write_text(
+        _MISSION.replace("mission =\n{\n", 'mission =\n{\n  ["theatre"] = "Falklands",\n', 1), encoding="utf-8"
+    )
+    monkeypatch.setenv("VEAF_HOME", str(tmp_path / "home"))
+    return folder
+
+
+class TestTheFarpIsNotOnATowerFrequency:
+    def test_a_farp_on_a_tower_frequency_names_the_airfield(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        folder = _falklands(tmp_path, monkeypatch)
+        result = _add_at(folder, -100000.0, -330000.0, frequency_mhz=128.5)
+        tower = [w for w in result["warnings"] if "the tower of" in w]
+        assert len(tower) == 1 and "Franco Bianco" in tower[0] and "128.5 AM" in tower[0]
+
+    def test_the_same_number_in_another_modulation_is_another_channel(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        folder = _falklands(tmp_path, monkeypatch)
+        result = _add_at(folder, -100000.0, -330000.0, frequency_mhz=128.5, modulation="FM")
+        assert not [w for w in result.get("warnings", []) if "the tower of" in w]
+
+    def test_a_free_frequency_says_nothing_about_towers(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        folder = _falklands(tmp_path, monkeypatch)
+        result = _add_at(folder, -100000.0, -330000.0, frequency_mhz=129.5)
+        assert not [w for w in result.get("warnings", []) if "the tower of" in w]
+
+
+class TestTheResultSaysWhatNoFileSees:
+    def test_a_clean_farp_still_says_lakes_are_not_checked_and_how_to_check(self, caucasus: Path) -> None:
+        result = _add_at(caucasus, 800.0, 0.0)
+        assert "warnings" not in result
+        assert "lakes and rivers" in result["surface_check"]
+        assert "veaf-tools.exe dcs farp-spot Caucasus --at 800,0" in result["surface_check"]

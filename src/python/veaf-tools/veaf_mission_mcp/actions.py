@@ -1684,7 +1684,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "difference over 40 m around it is warned as on a slope (elevation grid); a pad in the sea "
                 "is warned. Where no catalogue or grid covers the place, the warning says what was not "
                 "checked and gives the 'veaf-tools dcs farp-spot' command that finds a flat, clear spot in "
-                "game. The result's 'position' is where the pad went. Target a FOLDER (durable) or a "
+                "game. A frequency that is an airfield tower's of the theatre (same band) is warned, naming it. "
+                "The result's 'surface_check' says that lakes and rivers are seen by no file and gives the "
+                "same command. The result's 'position' is where the pad went. Target a FOLDER (durable) or a "
                 ".miz; backed up."
             ),
             parameters_schema={

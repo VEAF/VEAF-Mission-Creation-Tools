@@ -30,4 +30,4 @@ The Normandy Open Training placed radars and field guns as native groups of lite
 
 Corrections: `-blue_ewr` and `-dogear` are `blue-ewr` and `dogear` in `veaf-units.yaml`; `-convoy` does follow the era (`spawnConvoy` calls the transport and armour generators), while `-hv_convoy_red` and `-attack_convoy_red` do not.
 
-Not verified in DCS: the six aliases resolve to their unit or group (a test holds that), and `country GERMANY` is read like `country USA`, but none has been spawned in game.
+Not verified in DCS: the six aliases resolve to their unit or group (a test holds that), but none has been spawned in game. They name no country, so they take the coalition of the unit that carries them (`country GERMANY` hit ticket 14's case on a Third Reich mission).

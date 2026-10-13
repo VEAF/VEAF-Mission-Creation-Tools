@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-NORMANDY-FINDINGS — what building the Normandy 1944 Open Training v6 through the MCP found
 
-Status: 🔄 in-progress — tickets 01–06 and 08–14 done, 07 waits for DCS, 15 goes to a later PR
+Status: 🔄 in-progress — tickets 01–06 and 08–14 done, 07 waits for DCS, 15 measured: not a defect
 
 Asked by David on 2026-10-13. The Normandy (WW2, 6 July 1944) Open Training v6 was built from scratch with the Open Training prompt (`.prompts/new-open-training-mission.fr.md`), the `veaf-mission-mcp` actions and the tools of `develop` (6.29.0), in `VEAF-Open-Training-Mission-Normandy-WW2-v6`. The prompt asks for a « Retours pour VMCT » block; this lot is that block. Every finding below was written down from the build; **read again in the code of `develop` before the work, six turned out to be wrong in part** (02, 06, 09, 11, 12, and 01's list of files), and each ticket says what was corrected.
 
@@ -34,7 +34,7 @@ Not filed, already known and only recalled: `create_combat_zone` writes 20 km/h 
 | 12 | [The prompt for eras with no support aircraft](tickets/12-prompt-for-eras-without-support.md) | ✅ |
 | 13 | [`add_air_group` writes 251 MHz: the Mission Editor refuses to save a WW2 player group](tickets/13-air-group-frequency-in-radio-range.md) | ✅ |
 | 14 | [A `country` that belongs to no coalition makes a battery spawn neutral](tickets/14-alias-country-outside-coalition.md) | ✅ |
-| 15 | [A native convoy in a combat zone drives at 5.1 m/s](tickets/15-native-convoy-speed-in-a-zone.md) | ⬜ |
+| 15 | [A native convoy in a combat zone drives at 5.1 m/s](tickets/15-native-convoy-speed-in-a-zone.md) | 🚫 |
 
 Riskier than the rest, said in advance: 01 (new data from the install, two sources), 06 (the packer's band logic), 07 (needs DCS before a line is written).
 
@@ -43,3 +43,5 @@ Left to David: the Normandy elevation grid (1.2 MB) is not delivered, as no thea
 One branch, one PR.
 
 Source: the session that built the mission, `tools/retours-vmct.md` and the build logs of the mission folder.
+
+What the lot changed and could not be run here is in [DCS-CHECKS.md](DCS-CHECKS.md).

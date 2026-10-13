@@ -58,7 +58,8 @@ def validate_limitations(entries: list[dict[str, Any]]) -> None:
     Raises:
         ValueError: A required field is missing or empty, the kind is unknown, a DCS entry has no
             measurement date or claims a ``fixed_in`` (DCS behaviour is not ours to fix, and marking
-            it fixed would hide something still true), or two entries share an id.
+            it fixed would hide something still true), ``theatres`` is not a non-empty list of names, or
+            two entries share an id.
     """
     seen: set[str] = set()
     for entry in entries:
@@ -75,6 +76,11 @@ def validate_limitations(entries: list[dict[str, Any]]) -> None:
                 raise ValueError(f"known limitation {name!r}: a dcs entry cannot have 'fixed_in'")
             if entry["area"] not in _DCS_AREAS:
                 raise ValueError(f"known limitation {name!r}: dcs area must be one of {tuple(_DCS_AREAS)}")
+        theatres = entry.get("theatres")
+        if theatres is not None and not (
+            isinstance(theatres, list) and theatres and all(isinstance(name, str) for name in theatres)
+        ):
+            raise ValueError(f"known limitation {name!r}: 'theatres' must be a non-empty list of theatre names")
         if name in seen:
             raise ValueError(f"known limitation {name!r}: duplicate id")
         seen.add(name)

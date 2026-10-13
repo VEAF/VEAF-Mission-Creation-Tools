@@ -2477,6 +2477,17 @@ class MissionBuilderWorker(BaseWorker):
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
         logger.debug("Writing mission file done")
 
+    def mission_era(self) -> str | None:
+        """The era the mission is built for: ``mission.era`` of ``mission.yaml``, else the one detected.
+
+        Returns:
+            ``WW2``, ``COLD_WAR`` or ``MODERN``, or ``None`` when neither is available.
+        """
+        configured = ((self.mission_yaml or {}).get("mission") or {}).get("era")
+        if configured:
+            return str(configured).upper()
+        return self._detect_era_from_base()
+
     def _detect_era_from_base(self) -> str | None:
         """Auto-detect the mission era from the base mission's units and date.
 

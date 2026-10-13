@@ -144,7 +144,7 @@ class TestNoData:
     """No data means no opinion: the caller must behave exactly as it did before."""
 
     def test_an_uncaptured_theatre_returns_none(self) -> None:
-        assert parkable_kinds("Normandy", 1) is None
+        assert parkable_kinds("Nevada", 1) is None
 
     def test_an_empty_theatre_name_returns_none(self) -> None:
         assert parkable_kinds("", 1) is None

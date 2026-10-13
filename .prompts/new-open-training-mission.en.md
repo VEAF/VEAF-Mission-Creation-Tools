@@ -19,11 +19,13 @@ The pilots do not know the mission: everything they read must be right.
 1. **Load the `veaf-mission-editor:veaf-mission-authoring` skill** and follow it: it is the source of
    truth for the VEAF conventions (reserved names, `#command`, `#veafInterpreter`, zones, QRA).
 2. Call `capabilities` and `list_catalog`: note the `veaf-tools` version and the available actions.
-   Read the **known limitations** (`describe_known_limitations`) and take them into account.
+   Read the **known limitations** (`describe_known_limitations`) and take them into account:
+   the call with no argument returns a **short listing** (the whole text is too long for one result), then read in full the entries of the areas your mission touches (`area`, `theatre`) or a single one (`id`).
 3. **Whatever is missing or does not work in the tools, you report it.** A missing action, a wrong
    result, a doc that says something other than the behaviour: work around it cleanly to move on, and
    write it down in a **"Feedback for VMCT"** block of your final report (what, where, how you saw it,
    what you did instead). That is how the tools get better.
+   The two commands that need a DCS session, `terrain-sweep` and `capture-map --parking`, run **together**, with `dcs-serve` started once: one DCS session, not two.
 4. Answer in English, concisely. Ask your questions **one at a time**, with choices and your
    recommendation.
 
@@ -32,8 +34,10 @@ The pilots do not know the mission: everything they read must be right.
 One at a time:
 
 1. **The map** (a theatre `scaffold_mission` supports).
-2. **The era**: modern, Cold War (give a year) or WW2. It decides the equipment, the active airbases
-   and the mission date. Suggest the one that fits the map.
+2. **The era**: modern, Cold War (give a year) or WW2. It decides the equipment, the active airbases,
+   the mission date and **the template** (next question): ask it before that one.
+   With no tanker, no helicopter or no SAM, section 4.14 says what to leave out.
+   Suggest the one that fits the map.
 3. **The starting template** of `scaffold_mission`. Present it like this:
    - `minimal` — the infrastructure and the core (radio menu, spawn, shortcuts, interpreter,
      security). For a very simple mission or a test bench.
@@ -220,6 +224,7 @@ why.
 - Placed permanently through `#veafInterpreter["-<alias>, country <country>, hdg <heading>"]`.
   **Carrier = a unit of the class spawned** (the alias's launcher), so the editor shows the range
   ring. **Unique unit names**: a suffix after the tag (`… #<base>-01`).
+  **The country is one of the coalition's countries** (`thirdreich` for a Third Reich red side, not `germany`): a country of no coalition spawns neutral, with no Skynet network.
 
 ### 4.6 Training ranges — 3 families of 3 levels
 
@@ -437,6 +442,29 @@ briefing, the theatre map first.
   2026-09-29.
 - **Look at every picture** before handing it over, zooms included: no label may overlap another,
   every zone number must match the briefing's, and a dashed line must stay dashed on small circles.
+
+### 4.14 Eras with no tanker, no helicopter or no SAM
+
+This section applies to **WW2** and, where it differs, to the **Cold War**.
+It replaces the quantities of sections 4.1 to 4.13 that assume modern equipment.
+The rest does not change: the 3 × 3 shape and `includes:`, combat zones, QRA, CAP, scripted missions (a Ju 88 raid, a B-17G escort, a recce interception), F10 drawings and OSM maps.
+
+| What the prompt asks | In WW2 | What you do |
+|---|---|---|
+| At least 2 tankers, at least 1 AWACS (4.3) | 1944 has none, and DCS has no tanker or AWACS of the era | Place none (no E-3, no KC-135), say so in the briefing; the support escorts (4.4) drop out |
+| FARP, CTLD, CSAR, `ctld-config.yaml`, laser drones (4.1, 4.11) | No helicopter of the era | Switch the modules off (`CTLD: false`, `CSAR: false`) rather than leave them on for nobody |
+| "Always two carriers" (4.1) | No carrier of the era in the module list | `CARRIER: false`, no carrier |
+| Skynet and EWR (4.5) | Meaningless | `SKYNET: false`; the Freya and Würzburg radars are native groups of their type, or `-freya` and `-wurzburg` |
+| Short, medium and long range SAM (4.5, 4.6) | Flak (20, 37, 88 mm) | `-aaa`, `-samSR`, `-samLR` and `-samVLR` follow `mission.era`, `-flak88` places an 88 battery |
+| SEAD family (4.6) | No radar to destroy | It becomes the anti-flak family |
+| Helicopter family (4.6) | No helicopter | It becomes close air support (CAS) |
+| Artillery | `-arty` is an M-109 | `-lefh`, `-pak40`, `-wespe` |
+| QRA and CAP loadout (4.8, 4.9) | A gun fighter has no pylon | Neither `pylons` nor `payload`: `add_air_group` does not warn that it is "unarmed". The bombers have their loads in `list_payloads` |
+| Missiles | No 1944 aircraft fires one | A "guns only" arena |
+
+**Place no `post_ww2` alias** (`-ewr`, `-arty`, `-sa6`…): `list_shortcuts` with `era: WW2` gives what fits, and `validate_mission` warns about the others.
+The starting template follows: in WW2, take `standard` and switch off what this table drops, `full` brings Skynet.
+When a question of section 1 has no answer in this table, decide, announce it, and write it down in "Feedback for VMCT".
 
 ## 5. Build order
 

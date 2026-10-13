@@ -3032,6 +3032,30 @@ function veaf.getCoalitionForCountry(countryName, asNumber)
   return result
 end
 
+--- Resolve the side a `country X` spawn belongs to, and the country it is spawned with.
+--- A country that is in no coalition of the mission (`country germany` where the red side holds Third Reich) has no
+--- side: the spawn took the neutral one, no Skynet network matched it, and a whole combat zone stopped on `networkName
+--- nil` (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14). The guide says a fake unit spawns in its own coalition: that
+--- is what it does, with a warning, and with a country of that coalition.
+--- @param countryName string|nil the country asked for
+--- @param carrierSide number|nil the coalition of the unit or marker that runs the command (1 red, 2 blue)
+--- @return number|nil side the side (0, 1 or 2; nil when there is no country and no carrier)
+--- @return string|nil country the country to spawn with
+function veaf.resolveSideAndCountry(countryName, carrierSide)
+  local side = veaf.getCoalitionForCountry(countryName, true)
+  if (side == nil or side == 0) and countryName and (carrierSide == 1 or carrierSide == 2) then
+    local replacement = veaf.getCountryForCoalition(carrierSide)
+    veaf.loggers.get(veaf.Id):warn(
+      "country [%s] is in no coalition of this mission: spawning in the coalition of the command (%s) as [%s]",
+      veaf.p(countryName),
+      veaf.p(carrierSide),
+      veaf.p(replacement)
+    )
+    return carrierSide, replacement
+  end
+  return side, countryName
+end
+
 function veaf.getAirbaseForCoalition(airbase_name, coa)
   local airbase = nil
 

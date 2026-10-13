@@ -27,6 +27,7 @@ absent they are skipped (reported once as a warning).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -124,6 +125,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_static_shapes(mission)
     issues += _check_ctld_names(folder, yaml_data, mission)
     issues += _check_deployed_aircraft_routes(yaml_data, mission)
+    issues += _check_group_frequencies(mission)
+    issues += _check_shortcut_eras(yaml_data, mission)
+    issues += _check_command_countries(mission)
     return issues
 
 
@@ -314,6 +318,159 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
     issues += _check_mission_is_playable(mission)
     issues += _check_waypoint_locks(mission)
 
+    return issues
+
+
+_SHORTCUT_ALIAS = re.compile(r"^\s*(-[\w]+)")
+
+
+def _check_shortcut_eras(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
+    """Warn about a ``#command`` / ``#veafInterpreter`` shortcut whose equipment did not exist in a WW2 mission.
+
+    ``-aaa``, ``-samLR``, ``-armor``… follow ``mission.era``; ``-sa6``, ``-ewr`` or ``-arty`` spawn the same modern
+    equipment whatever it says, and a mission built for 1944 carried them without a word
+    (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 05). Only a shortcut known to spawn post-WW2 equipment is reported:
+    an unknown one is not claimed.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml`` mapping (its ``mission.era`` wins over the detected one).
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per unit or group carrying such a shortcut; nothing in a mission that is not WW2.
+    """
+    from mission_builder.era_detector import detect_era
+
+    from veaf_libs import shortcut_eras
+    from veaf_libs.group_footprint import _TAG_COMMAND, _TAG_INTERPRETER
+
+    configured = (yaml_data.get("mission") or {}).get("era") if isinstance(yaml_data, dict) else None
+    era = str(configured).upper() if configured else detect_era(mission)
+    if era != "WW2":
+        return []
+    issues: list[ValidationIssue] = []
+    for name in _iter_object_names(mission):
+        commands = [m.group(1) for pattern in (_TAG_COMMAND, _TAG_INTERPRETER) for m in pattern.finditer(name)]
+        for command in commands:
+            alias = _SHORTCUT_ALIAS.match(command)
+            if alias and shortcut_eras.era_of_alias(alias.group(1)) == shortcut_eras.POST_WW2:
+                issues.append(
+                    ValidationIssue(WARNING, t("validate.shortcut_wrong_era", name=name, alias=alias.group(1)))
+                )
+    return issues
+
+
+_COMMAND_COUNTRY = re.compile(r"\bcountry\s+([A-Za-z0-9_ ]+?)\s*(?:,|$)")
+
+
+def _check_command_countries(mission: dict) -> list[ValidationIssue]:
+    """Warn about a ``#command`` or ``#veafInterpreter`` whose ``country`` is in no coalition of the mission.
+
+    ``country germany`` is the natural spelling of a German battery, and in a mission whose red side holds
+    ``Third Reich`` it names a country of no coalition: the spawn took the neutral side, no Skynet network matched
+    it and a combat zone stopped on ``networkName nil`` (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14). Nothing at
+    build time said so. Only a mission that carries its ``coalitions`` table is judged.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per carrier, naming the countries the coalitions hold.
+    """
+    from veaf_libs.dcs_countries import country_id_for_command_name, country_name_for_id
+    from veaf_libs.group_footprint import _TAG_COMMAND, _TAG_INTERPRETER
+
+    assigned = mission.get("coalitions") if isinstance(mission, dict) else None
+    if not isinstance(assigned, dict) or not assigned:
+        return []
+    in_a_coalition = {
+        country_id
+        for countries in assigned.values()
+        for country_id in map(_country_id, indexed(countries))
+        if country_id is not None
+    }
+    if not in_a_coalition:
+        return []
+    issues: list[ValidationIssue] = []
+    for name in _iter_object_names(mission):
+        for pattern in (_TAG_COMMAND, _TAG_INTERPRETER):
+            for command in (m.group(1) for m in pattern.finditer(name)):
+                found = _COMMAND_COUNTRY.search(command)
+                country_id = country_id_for_command_name(found.group(1)) if found else None
+                if found and country_id is not None and country_id not in in_a_coalition:
+                    held = ", ".join(
+                        "".join(ch for ch in (country_name_for_id(i) or str(i)).lower() if ch.isalnum())
+                        for i in sorted(in_a_coalition)
+                    )
+                    issues.append(
+                        ValidationIssue(
+                            WARNING,
+                            t("validate.command_country_in_no_coalition", name=name, country=found.group(1), held=held),
+                        )
+                    )
+    return issues
+
+
+def _iter_object_names(mission: dict) -> Iterable[str]:
+    """Yield the name of every group and every unit of the mission table, whatever its category."""
+    coalitions = mission.get("coalition") or {}
+    for coalition in coalitions.values() if isinstance(coalitions, dict) else []:
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            if not isinstance(country, dict):
+                continue
+            for category in CATEGORIES:
+                for group in indexed((country.get(category) or {}).get("group")):
+                    if not isinstance(group, dict):
+                        continue
+                    if isinstance(group.get("name"), str):
+                        yield group["name"]
+                    for unit in indexed(group.get("units")):
+                        if isinstance(unit, dict) and isinstance(unit.get("name"), str):
+                            yield unit["name"]
+
+
+def _check_group_frequencies(mission: dict) -> list[ValidationIssue]:
+    """Warn about an aircraft group whose frequency its airframe cannot tune.
+
+    The Mission Editor refuses to save such a group, and neither the build nor a test ever opens
+    the file in the editor: a P-51D or a Fw 190 written with 251 MHz built cleanly and could not be
+    saved (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 13). A warning, not an error: the build's
+    preset step rewrites the frequency of a player group it gives a plan, so the source table is
+    not always the last word.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per group, naming the first unit type whose range excludes the frequency.
+    """
+    from presets_injector.radio_frequency_validator import get_human_radio
+
+    issues: list[ValidationIssue] = []
+    for group in _iter_groups(mission):
+        frequency = group.get("frequency")
+        if not isinstance(frequency, (int, float)):
+            continue
+        for unit in indexed(group.get("units")):
+            human_radio = get_human_radio(str(unit.get("type"))) if isinstance(unit, dict) else None
+            if human_radio is not None and not human_radio.contains(float(frequency)):
+                issues.append(
+                    ValidationIssue(
+                        WARNING,
+                        t(
+                            "validate.group_frequency_untunable",
+                            group=group.get("name", "?"),
+                            unit_type=unit["type"],
+                            frequency=frequency,
+                            low=human_radio.min_mhz,
+                            high=human_radio.max_mhz,
+                            default=human_radio.default_mhz,
+                        ),
+                    )
+                )
+                break
     return issues
 
 

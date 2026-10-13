@@ -35,6 +35,29 @@ from veaf_libs.dcs_units_data import get_unit_countermeasures, get_unit_fuel_cap
 from veaf_libs.mission_table import indexed
 from veaf_libs.shipped_defaults import shipped_default_file
 
+#: The WW2 fighters, which fight with their guns and carry no pylon; the bombers of the era (A-20G, B-17G,
+#: Ju-88A4) do not, and are not here.
+GUN_FIGHTERS: frozenset[str] = frozenset(
+    {
+        "SpitfireLFMkIX",
+        "SpitfireLFMkIXCW",
+        "P-51D",
+        "P-51D-30-NA",
+        "TF-51D",
+        "P-47D-30",
+        "P-47D-30bl1",
+        "P-47D-40",
+        "Bf-109K-4",
+        "FW-190A8",
+        "FW-190D9",
+        "MosquitoFBMkVI",
+        "I-16",
+        "La-7",
+        "F4U-1D",
+        "F4U-1D_CW",
+    }
+)
+
 
 def build_aircraft_payload(
     unit_type: str,
@@ -152,7 +175,7 @@ def resolve_flight_loadout(
 
     Raises:
         ValueError: If more than one is given, `payload` is not one of the type's DCS loadouts, or
-            `loadout_from` names a group found nowhere, or one whose aircraft carry no pylons.
+            `loadout_from` names a group found nowhere, or one with no aircraft.
     """
     given = [key for key in ("pylons", "payload", "loadout_from") if spec.get(key)]
     if len(given) > 1:
@@ -165,10 +188,16 @@ def resolve_flight_loadout(
     group = _find_air_group_in_content(content, source) or _find_air_group_in_catalogues(folder_path, source)
     if group is None:
         raise ValueError(f"loadout_from: no aircraft group named {source!r} in the mission or the aircraft catalogues")
-    for unit in indexed(group.get("units")):
-        pylons = ((unit or {}).get("payload") or {}).get("pylons")
+    units = [unit for unit in indexed(group.get("units")) if isinstance(unit, dict)]
+    for unit in units:
+        pylons = (unit.get("payload") or {}).get("pylons")
         if pylons:
             return copy.deepcopy(pylons)
+    if units and unit_type in GUN_FIGHTERS:
+        # A gun fighter's template has an empty pylons table on purpose (FIX-OPEN-TRAINING-NORMANDY-FINDINGS
+        # ticket 02): copying "no pylons" is the answer. For any other type it is the defect of an empty
+        # template (the J-11A of FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 04), and stays a refusal.
+        return None
     raise ValueError(f"loadout_from: the group {source!r} carries no pylons")
 
 

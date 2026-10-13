@@ -20,11 +20,13 @@ Les pilotes ne connaissent pas la mission : tout ce qu'ils lisent doit être jus
 1. **Charge le skill `veaf-mission-editor:veaf-mission-authoring`** et suis-le : il est la source de
    vérité pour les conventions VEAF (noms réservés, `#command`, `#veafInterpreter`, zones, QRA).
 2. Appelle `capabilities` et `list_catalog` : note la version de `veaf-tools` et les actions
-   disponibles. Lis les **limitations connues** (`describe_known_limitations`) et tiens-en compte.
+   disponibles. Lis les **limitations connues** (`describe_known_limitations`) et tiens-en compte :
+   l'appel sans argument rend une **liste courte** (le texte entier est trop long pour un résultat), puis lis en entier les entrées des domaines que ta mission touche (`area`, `theatre`) ou une seule (`id`).
 3. **Ce qui manque ou ne marche pas dans les outils, tu le signales.** Une action absente, un
    résultat faux, une doc qui dit autre chose que le comportement : tu contournes proprement pour
    avancer, et tu le notes dans un bloc **« Retours pour VMCT »** de ton rapport final (quoi, où,
    comment tu l'as vu, ce que tu as fait à la place). C'est ainsi qu'on améliore les outils.
+   Les deux commandes qui exigent une session DCS, `terrain-sweep` et `capture-map --parking`, se lancent **ensemble**, avec `dcs-serve` démarré une seule fois : une seule session DCS, pas deux.
 4. Réponds en français, concis. Pose tes questions **une par une**, avec des choix et ta reco.
 
 ## 1. Les questions à poser (et seulement celles-là)
@@ -33,7 +35,9 @@ Une par une :
 
 1. **La carte** (un théâtre supporté par `scaffold_mission`).
 2. **L'époque** : moderne, Guerre froide (précise une année) ou WW2. Elle décide des matériels, des
-   bases actives et de la date de mission. Propose celle qui colle à la carte.
+   bases actives, de la date de mission et **du gabarit** (question suivante) : pose-la avant lui.
+   Sans ravitailleur, sans hélicoptère ou sans SAM, la section 4.14 dit quoi laisser de côté.
+   Propose celle qui colle à la carte.
 3. **Le gabarit de départ** de `scaffold_mission`. Présente-le ainsi :
    - `minimal` — l'infrastructure et le cœur (menu radio, spawn, raccourcis, interpréteur,
      sécurité). Pour une mission très simple ou un banc d'essai.
@@ -223,6 +227,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - Posés en permanent via `#veafInterpreter["-<alias>, country <pays>, hdg <cap>"]`.
   **Porteur = une unité de la classe générée** (le lanceur de l'alias), pour que l'éditeur montre le
   cercle de portée. **Noms d'unités uniques** : suffixe après la balise (`… #<base>-01`).
+  **Le pays est un pays de la coalition** (`thirdreich` pour un rouge Troisième Reich, pas `germany`) : un pays d'aucune coalition fait apparaître le groupe neutre, sans réseau Skynet.
 
 ### 4.6 Zones d'entraînement — 3 familles de 3 niveaux
 
@@ -453,6 +458,29 @@ images dans le briefing de la mission, la carte générale d'abord.
 - **Relis chaque image** avant de la livrer, zooms compris : aucune étiquette ne doit en chevaucher
   une autre, chaque numéro de zone doit correspondre à celui du briefing, et un trait en tirets doit
   rester en tirets sur les petits cercles.
+
+### 4.14 Époques sans ravitailleur, sans hélicoptère ou sans SAM
+
+Cette section vaut pour la **WW2** et, là où elle diffère, pour la **Guerre froide**.
+Elle remplace les quantités des sections 4.1 à 4.13 qui supposent du matériel moderne.
+Le reste ne change pas : la forme 3 × 3 et les `includes:`, les zones de combat, les QRA, les CAP, les missions scénarisées (un raid de Ju 88, une escorte de B-17G, une interception de reconnaissance), les dessins F10 et les cartes OSM.
+
+| Ce que le prompt demande | En WW2 | Ce que tu fais |
+|---|---|---|
+| Au moins 2 ravitailleurs, au moins 1 AWACS (4.3) | 1944 n'en a pas, et DCS n'a ni ravitailleur ni AWACS de l'époque | N'en place aucun (ni E-3 ni KC-135), dis-le dans le briefing ; les escortes de soutien (4.4) tombent |
+| FARP, CTLD, CSAR, `ctld-config.yaml`, drones laser (4.1, 4.11) | Aucun hélicoptère de l'époque | Désactive les modules (`CTLD: false`, `CSAR: false`) plutôt que de les laisser pour personne |
+| « Toujours deux porte-avions » (4.1) | Aucun porte-avions de l'époque dans la liste des modules | `CARRIER: false`, aucun porte-avions |
+| Skynet et EWR (4.5) | N'ont pas de sens | `SKYNET: false` ; les radars Freya et Würzburg se posent en groupes natifs de leur type, ou avec `-freya` et `-wurzburg` |
+| SAM courte, moyenne et longue portée (4.5, 4.6) | La flak (20, 37, 88 mm) | `-aaa`, `-samSR`, `-samLR` et `-samVLR` suivent `mission.era`, `-flak88` pose une batterie de 88 |
+| Famille SEAD (4.6) | Pas de radar à détruire | Elle devient l'antiflak |
+| Famille hélicoptères (4.6) | Aucun hélicoptère | Elle devient l'appui rapproché (CAS) |
+| Artillerie | `-arty` est un M-109 | `-lefh`, `-pak40`, `-wespe` |
+| Emport des QRA et des CAP (4.8, 4.9) | Un chasseur à canons n'a pas de pylône | Ni `pylons`, ni `payload` : `add_air_group` ne l'avertit pas d'être « sans arme ». Les bombardiers ont leurs emports dans `list_payloads` |
+| Missiles | Aucun appareil de 1944 n'en tire | Une arène « canons seulement » |
+
+**Ne pose aucun alias `post_ww2`** (`-ewr`, `-arty`, `-sa6`…) : `list_shortcuts` avec `era: WW2` donne ce qui convient, et `validate_mission` avertit des autres.
+Le gabarit de départ s'en ressent : en WW2, prends `standard` puis désactive ce que ce tableau écarte, `full` apporte Skynet.
+Quand une question de la section 1 n'a pas de réponse dans ce tableau, décide, annonce-le, et note-le dans « Retours pour VMCT ».
 
 ## 5. Ordre de construction
 

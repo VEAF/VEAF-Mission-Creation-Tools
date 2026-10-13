@@ -191,3 +191,16 @@ class TestFuelLoad:
         payload = self._payload(read_miz(sample_miz).mission_content, "plane", "Player Mod")
         assert "fuel" not in payload
         assert any("fuel" in w for w in result["warnings"])
+
+
+class TestSlotFrequency:
+    """FIX-OPEN-TRAINING-NORMANDY-FINDINGS 13: a slot's default frequency is its airframe's, not 251 MHz."""
+
+    @pytest.mark.parametrize(("unit_type", "expected"), [("P-51D", 124.0), ("FW-190A8", 38.4), ("F-16C_50", 251.0)])
+    def test_the_default_is_251_or_the_types_own(self, sample_miz: Path, unit_type: str, expected: float) -> None:
+        add_player_slot(sample_miz, **_common(unit_type=unit_type))
+        assert _slot_group(read_miz(sample_miz).mission_content, "Player Viper")["frequency"] == expected
+
+    def test_an_untunable_frequency_is_refused(self, sample_miz: Path) -> None:
+        with pytest.raises(ValueError, match="refuses to save"):
+            add_player_slot(sample_miz, **_common(unit_type="FW-190A8", frequency_mhz=251.0))

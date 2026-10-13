@@ -74,6 +74,7 @@ def capture_map(
             path=str(parking_out),
         )
     )
+    console.print(t("cmd.capture_map.parking_next_step"))
 
 
 @app.command(name="inject-bridge", no_args_is_help=True, help=t("cmd.inject_bridge.help"))

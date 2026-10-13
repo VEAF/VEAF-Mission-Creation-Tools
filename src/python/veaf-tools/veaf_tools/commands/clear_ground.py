@@ -390,9 +390,10 @@ def _default_survey_mission(theatre: str) -> Path:
 def _wait_for_survey_mission(exec_lua: LuaExec, theatre: str, wait_seconds: int, serve_url: str) -> None:
     """Wait until the survey mission answers, then check it is the empty one on *theatre*.
 
-    "No mission yet" (a refused connection, a 503 or a 504 from ``dcs-serve``) is retried. A mission
-    on another theatre or holding units, a refused key, or anything else answering on the port is
-    refused at once — waiting would not change it.
+    "No mission yet" (a 503 or a 504 from ``dcs-serve``) is retried. A mission on another theatre or
+    holding units, a refused key, anything else answering on the port, or a ``dcs-serve`` that no longer
+    answers at all is refused at once — waiting would not change it (a server that died during a sweep
+    left the command silent for twenty minutes on 2026-10-13: FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 09).
 
     Args:
         exec_lua: The transport.
@@ -402,12 +403,17 @@ def _wait_for_survey_mission(exec_lua: LuaExec, theatre: str, wait_seconds: int,
 
     Raises:
         SurveyError: The mission answered and is not the survey mission.
-        RuntimeError: The key is refused, the port answers with something else, or nothing answered
-            within *wait_seconds*.
+        RuntimeError: The key is refused, the port answers with something else, ``dcs-serve`` is gone,
+            or nothing answered within *wait_seconds*.
     """
     deadline = time.monotonic() + wait_seconds
+    half_time = time.monotonic() + wait_seconds / 2
+    said_half_time = False
     with console.status(t("cmd.clear_ground_sweep.waiting")):
         while True:
+            if not said_half_time and wait_seconds and time.monotonic() >= half_time:
+                said_half_time = True
+                console.print(t("cmd.clear_ground_sweep.half_time", seconds=int(wait_seconds / 2)))
             try:
                 check_survey_mission(exec_lua, theatre)
                 break
@@ -425,6 +431,8 @@ def _wait_for_survey_mission(exec_lua: LuaExec, theatre: str, wait_seconds: int,
                     raise RuntimeError(t("cmd.clear_ground_sweep.gave_up", seconds=wait_seconds, error=str(e))) from e
                 time.sleep(_POLL_SECONDS)
             except RuntimeError as e:
+                if not is_serving(serve_url):
+                    raise RuntimeError(t("cmd.clear_ground_sweep.serve_gone", url=serve_url)) from e
                 if time.monotonic() >= deadline:
                     raise RuntimeError(t("cmd.clear_ground_sweep.gave_up", seconds=wait_seconds, error=str(e))) from e
                 time.sleep(_POLL_SECONDS)

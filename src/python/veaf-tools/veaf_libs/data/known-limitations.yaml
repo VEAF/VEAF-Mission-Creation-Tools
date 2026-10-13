@@ -15,7 +15,9 @@
 # fixes one sets its `fixed_in`; a surprising DCS behaviour, measured, goes here too.
 #
 # Fields: id (unique, kebab-case), kind (tool|dcs), area, title, symptom, workaround, cost (what it
-# broke; optional), measured (YYYY-MM-DD, required for dcs), fixed_in (tool only, optional).
+# broke; optional), measured (YYYY-MM-DD, required for dcs), fixed_in (tool only, optional), theatres
+# (optional list: the theatres the entry concerns — `describe_known_limitations(theatre=…)` drops it for
+# any other; no list means every theatre).
 # `area` groups the entries: spawning, air-defence, players, radio, ground-ai (dcs); mcp, pipeline, runtime (tool).
 # symptom / workaround / cost are Markdown.
 
@@ -237,6 +239,7 @@ limitations:
   kind: tool
   area: mcp
   title: "On MarianaIslands, no placement is checked against the sea, the trees or the buildings"
+  theatres: [MarianaIslands]
   symptom: |
     MarianaIslands has no clear-ground catalogue and no parking data shipped, and an elevation grid
     only once `terrain-sweep` has run on the workstation. Every ground placement there is written as
@@ -435,18 +438,56 @@ limitations:
 - id: no-parking-data-outside-three-theatres
   kind: tool
   area: mcp
-  title: No ramp or runway start through the MCP outside Caucasus, Persian Gulf, Syria, Sinai and Falklands
+  title: No ramp or runway start through the MCP outside Caucasus, Persian Gulf, Syria, Sinai, Falklands and Normandy
+  theatres: [Afghanistan, GermanyCW, Iraq, Kola, MarianaIslands, MarianaIslandsWWII, Nevada, TheChannel]
   symptom: |
     `add_air_group` with a `parking-*` or `runway` start is refused with *"no parking data captured
-    for theatre …"* on every other map (GermanyCW, Nevada, Normandy, Marianas…): only those five
+    for theatre …"* on every other map (GermanyCW, Nevada, Marianas…): only those six
     theatres ship a parking capture in `veaf_libs/data/parking/`. Sinai was captured on 2026-10-12
     for its Open Training v6 (3 614 stands on 56 airfields). Falklands too, for its
-    Open Training v6.
+    Open Training v6, and Normandy on 2026-10-13 (3 716 stands on 90 airfields).
   workaround: |
     Use an air start there, or place the flight in the DCS Mission Editor. The capture itself is a
     session in DCS: `veaf-tools dcs capture-map --parking`, whose raw dump goes to
     `veaf_build/dcs_data/airbase_dumps/parking/` and is slimmed into `veaf_libs/data/parking/` by
     `veaf-build update-dcs-data --parking`.
+
+- id: no-ww2-spawnable-aircraft-templates
+  kind: tool
+  area: pipeline
+  title: The shipped spawnables catalogue holds no WW2 aircraft, so a WW2 mission has no `-cap`, `-escort` or `_spawn` aircraft template
+  symptom: |
+    `src/spawnables.yaml` ships 51 groups, all modern jets (F-15C, F-14A, Mirage F1, MiG-21/23/25, F-4E, F-5E,
+    M-2000C, an MQ-9). Under `mission.era: WW2` the build injects **none** of them, and says so
+    (`pipeline.console.aircraft_no_era`): an empty `src/spawnables.yaml` gives a WW2 mission no aircraft
+    template at all. Under `COLD_WAR` it keeps the jets and drops the MQ-9. Only the shipped fallback is
+    filtered: a `src/spawnables.yaml` the maker wrote is injected as written.
+  workaround: |
+    Write the WW2 templates in the mission's own `src/spawnables.yaml` (a `veafSpawn-<name>` group per
+    template, exported from the Mission Editor so its options are the editor's own), or place the flights
+    natively with `add_air_group` and the loadouts of `list_payloads`. The WW2 player slots are not
+    affected: the shipped dynamic-slot templates have P-51D, P-47D, Spitfire, Bf 109, Fw 190 and Mosquito.
+  cost: |
+    The Normandy Open Training v6 switched the step off and has no spawnable template
+    (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 03). The WW2 set was left out of that lot: a template carries
+    the editor's ROE and reaction options, which cannot be written from a table without a check in DCS.
+
+- id: ww2-slot-templates-carry-gun-zero
+  kind: tool
+  area: runtime
+  title: Ten dynamic-slot templates of WW2 fighters carry `payload.gun = 0`, and nobody has measured what DCS does with it
+  symptom: |
+    Read in the shipped `dynamic-slot-templates.yaml` on 2026-10-13: the `Bf-109K4`, `FW-190A8`, `FW-190D9`,
+    `F4AU-1D` and `TF-51D` templates, on **both** sides (ten groups), carry `gun: 0`, where the other WW2
+    templates (P-47D, P-51D, Spitfire, Mosquito, I-16, La-7) carry `gun: 100` and a group built by
+    `add_air_group` carries `gun: 100` for every type. A dynamic slot is spawned from its template: if `gun`
+    is the gun-ammunition percentage, a player of one of these ten has no cannon ammunition.
+    **Not established:** whether DCS reads `gun` for these types at all (their guns may be set by a
+    `settings` table or the stations), which is why the templates are left as they are.
+  workaround: |
+    Before relying on those slots for a gun-only arena, check in DCS: take a slot from the template, open the
+    loadout screen, and fire. If the ammunition is zero, set `gun: 100` on the template's units in the
+    mission's own `src/dynamic-slot-templates.yaml`.
 
 - id: ctld-jtac-imposed-code-and-radio
   kind: tool

@@ -303,6 +303,19 @@ class TestProcessUnits(unittest.TestCase):
             worker.process_units(self._make_fw190_group(), preset)
         self.assertEqual(worker._skipped_primary_promotions, {"FW-190A8": 134.0})
 
+    def test_the_log_says_which_frequency_the_type_stays_on(self) -> None:
+        """FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 06: it named what a Fw 190 could not take, not what it got."""
+        worker = _make_worker()
+        preset = PresetDefinition("vhf_preset")
+        radio = RadioDefinition("radio_vhf_blue", radio_type="vhf")
+        radio.channels = [Channel(1, freq=134.0)]
+        preset.add_radio(radio)
+        worker.process_units(self._make_fw190_group(), preset)
+        self.assertEqual(
+            worker._describe_skipped_promotion("FW-190A8", 134.0),
+            "FW-190A8 (134.0 MHz, primary limited to 38.4–42.4 MHz, stays on 38.4 MHz)",
+        )
+
 
 class TestProcessGroups(unittest.TestCase):
     def test_process_groups_with_matching_preset(self) -> None:

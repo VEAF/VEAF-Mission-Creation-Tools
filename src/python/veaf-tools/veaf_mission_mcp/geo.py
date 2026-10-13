@@ -67,7 +67,8 @@ def geocode(
 
     Returns:
         ``{query, found, display_name, osm_class, osm_type, theatre, latlon: {lat, lon},
-        xy: {x, y} | None, in_theatre_bounds, warnings}``. ``found`` is ``False`` when the geocoder
+        xy: {x, y} | None, in_theatre_bounds, warnings}``. ``in_theatre_bounds`` is ``None`` — with a
+        warning — when the theatre has no bounding box, since nothing was checked. ``found`` is ``False`` when the geocoder
         returns no hit, or refuses the request (said in ``warnings``); a road or a region is warned
         about (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 07), and so is an island or an area given for a
         place inside it (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05).
@@ -123,9 +124,15 @@ def geocode(
     else:
         warnings.append(f"theatre '{theatre}' has no x/y projection; only lat/lon returned")
 
-    in_bounds = bounds is None or _within(bounds, lat, lon)
-    if bounds is not None and not in_bounds:
-        warnings.append("resolved point is outside the theatre bounds — verify it is the place you meant")
+    in_bounds: bool | None = None
+    if bounds is None:
+        # `True` here told the maker « Omaha Beach » in Iowa was inside Normandy
+        # (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 11): no box means no check, and the answer says so.
+        warnings.append("no bounds for this theatre — the point is not checked")
+    else:
+        in_bounds = _within(bounds, lat, lon)
+        if not in_bounds:
+            warnings.append("resolved point is outside the theatre bounds — verify it is the place you meant")
 
     return {
         "query": query,

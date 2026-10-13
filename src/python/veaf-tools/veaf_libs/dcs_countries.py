@@ -91,6 +91,25 @@ def describe_country_id(country_id: int) -> str:
     return f"{country_id} ({name})" if name else str(country_id)
 
 
+def country_id_for_command_name(name: str) -> int | None:
+    """Return the DCS id of a country as a VEAF command spells it (``thirdreich``, ``germany``), or ``None``.
+
+    The runtime keys countries by their lower-cased name with the spaces dropped (``country.id.THIRDREICH``), where
+    the Mission Editor writes ``Third Reich``.
+
+    Args:
+        name: The country as written after ``country`` in a ``#command``.
+
+    Returns:
+        The DCS ``country.id``, or ``None`` if the name is not in the table.
+    """
+    wanted = "".join(ch for ch in name.lower() if ch.isalnum())
+    for known, country_id in _name_to_id().items():
+        if "".join(ch for ch in known if ch.isalnum()) == wanted:
+            return country_id
+    return None
+
+
 def country_id_for_name(name: str) -> int | None:
     """Return the DCS numeric id for a country name, or ``None`` if unknown.
 

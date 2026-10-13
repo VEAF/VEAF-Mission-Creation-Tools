@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 from mission_tools.mission_yaml_editor import load_yaml
+from veaf_libs import shortcut_eras
 from veaf_libs.build_stamp import _package_version
 from veaf_libs.bundled_data import read_bundled_text
 from veaf_libs.dcs_payloads import payload_names, payload_pylons, payload_types
@@ -147,7 +148,7 @@ def _command_category(aliases: list[str], description: str) -> str:
     return "other"
 
 
-def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
+def list_shortcuts(name_contains: str | None = None, era: str | None = None) -> dict[str, Any]:
     """List the VEAF spawn aliases (the `-shilka`/`-sa8`… vocabulary).
 
     Three families, all part of the VEAF spawn vocabulary:
@@ -158,13 +159,21 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
       `veafShortcuts.buildDefaultList()` (``-samLR``, ``-armor``, random convoys…), scanned from the
       Lua source. These are what a combat-zone fake-unit carries as ``#command="-<alias> …"``.
 
+    Every entry carries an ``era``, read from what it spawns (:mod:`veaf_libs.shortcut_eras`) rather than
+    typed beside it: ``follows_era`` (``-aaa``, ``-samLR``, ``-armor``, ``-infantry``, ``-transport``,
+    ``-combat``, ``-convoy``, ``-cas``: the units come from tables keyed by ``mission.era``), ``ww2``,
+    ``post_ww2`` (a fixed modern or Cold War piece of equipment: ``-sa6``, ``-ewr``, ``-arty``), ``era_free``
+    (spawns no equipment) or ``unknown`` (``-jtac``, ``-afac``, ``-cargo``: not measured, so not claimed).
+
     Args:
         name_contains: Optional case-insensitive substring matched against aliases + target.
+        era: Optional mission era (``WW2``, ``COLD_WAR``, ``MODERN``): keeps what is worth offering in it — in a
+            WW2 mission the ``follows_era``, ``era_free`` and ``ww2`` entries only.
 
     Returns:
-        `{"units": [{"aliases", "unitType"}, ...], "groups": [{"aliases", "groupName",
-        "description"}, ...], "commands": [{"aliases", "description", "veafCommand",
-        "randomParameters", "category"}, ...]}`. ``randomParameters`` maps each parameter drawn at
+        `{"units": [{"aliases", "unitType", "era"}, ...], "groups": [{"aliases", "groupName",
+        "description", "era"}, ...], "commands": [{"aliases", "description", "veafCommand",
+        "randomParameters", "category", "era"}, ...]}`. ``randomParameters`` maps each parameter drawn at
         random on every use to its ``{"min", "max"}`` range — `-samLR` and `-samSR` run the same
         command and differ only by their ``defense`` range. ``category`` is a coarse family
         (SAM/AAA/infantry/armor/artillery/naval/transport/air/ewr/other) so aliases can be
@@ -172,6 +181,11 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
     """
     data = _load_bundled_data_yaml("veaf-units.yaml")
     needle = name_contains.lower() if name_contains else None
+    if era is not None and era not in ("WW2", "COLD_WAR", "MODERN"):
+        raise ValueError(f"era must be WW2, COLD_WAR or MODERN, got {era!r}")
+
+    def _in_era(entry_era: str) -> bool:
+        return era is None or shortcut_eras.fits_era(entry_era, era)
 
     def _matches(aliases: list[str], target: str) -> bool:
         if needle is None:
@@ -179,18 +193,25 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
         return needle in f"{' '.join(aliases)} {target}".lower()
 
     units = [
-        {"aliases": list(e.get("aliases") or []), "unitType": e.get("unitType", "")}
+        {
+            "aliases": list(e.get("aliases") or []),
+            "unitType": e.get("unitType", ""),
+            "era": shortcut_eras.equipment_era([e.get("unitType", "")]),
+        }
         for e in (data.get("units") or [])
         if _matches(list(e.get("aliases") or []), e.get("unitType", ""))
+        and _in_era(shortcut_eras.equipment_era([e.get("unitType", "")]))
     ]
     groups = [
         {
             "aliases": list(e.get("aliases") or []),
             "groupName": e.get("groupName", ""),
             "description": e.get("description", ""),
+            "era": shortcut_eras.equipment_era([u["type"] for u in e.get("units") or [] if "type" in u]),
         }
         for e in (data.get("groups") or [])
         if _matches(list(e.get("aliases") or []), e.get("groupName", ""))
+        and _in_era(shortcut_eras.equipment_era([u["type"] for u in e.get("units") or [] if "type" in u]))
     ]
     commands = [
         {
@@ -199,9 +220,11 @@ def list_shortcuts(name_contains: str | None = None) -> dict[str, Any]:
             "veafCommand": e.get("veafCommand", ""),
             "randomParameters": dict(e.get("randomParameters") or {}),
             "category": _command_category(list(e.get("aliases") or []), e.get("description", "")),
+            "era": shortcut_eras.era_of_command(e.get("veafCommand", "")),
         }
         for e in get_shortcuts()
         if _matches(list(e.get("aliases") or []), f"{e.get('description', '')} {e.get('veafCommand', '')}")
+        and _in_era(shortcut_eras.era_of_command(e.get("veafCommand", "")))
     ]
     return {"units": units, "groups": groups, "commands": commands}
 
@@ -274,23 +297,77 @@ def describe_naming_conventions() -> dict[str, Any]:
     return {"conventions": [dict(convention) for convention in _NAMING_CONVENTIONS]}
 
 
-def describe_known_limitations(kind: str | None = None) -> dict[str, Any]:
+#: What a short listing of the known limitations keeps of an entry: enough to decide which to read.
+_LIMITATION_SUMMARY_FIELDS = ("id", "kind", "area", "title", "theatres")
+
+
+def describe_known_limitations(
+    kind: str | None = None,
+    area: str | None = None,
+    theatre: str | None = None,
+    id: str | list[str] | None = None,  # noqa: A002 - the action's parameter name
+    full: bool = False,
+) -> dict[str, Any]:
     """Return what an author must know before building a mission, for the running version.
 
     Read from the one shipped file ``veaf_libs/data/known-limitations.yaml``: the limitations of
     veaf-tools not yet fixed in this version, and the DCS behaviours that raise no error and are
     wrong anyway (always returned — DCS is not ours to fix).
 
+    With **no** ``kind``, ``area`` or ``id``, and without ``full``, only a short listing comes back —
+    ``id``, ``kind``, ``area`` and ``title`` of each entry: the whole text is about 74 000 characters,
+    more than a tool result can carry, and an author needs a tenth of it
+    (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 10). Naming an ``area``, a ``kind`` or one or more
+    ``id`` returns the entries in full.
+
     Args:
         kind: Optional ``"tool"`` or ``"dcs"`` to return one kind only.
+        area: Optional area (``spawning``, ``air-defence``, ``players``, ``radio``, ``ground-ai``,
+            ``scripting``, ``mcp``, ``pipeline``, ``runtime``).
+        theatre: Optional theatre: drops the entries that concern other theatres only. An entry with
+            no ``theatres`` applies everywhere and is always kept.
+        id: One entry id, or a list of them.
+        full: Return every selected entry in full, whatever the filters.
 
     Returns:
-        `{"veaf_tools_version", "limitations": [{"id", "kind", "area", "title", "symptom",
-        "workaround", "cost"?, "measured"?, "fixed_in"?}, ...]}`.
+        `{"veaf_tools_version", "limitations": [...], "detail": "short"|"full", "areas"?}`. A short
+        entry is `{"id", "kind", "area", "title", "theatres"?}`; a full one adds `"symptom"`,
+        `"workaround"`, `"cost"?`, `"measured"?`, `"fixed_in"?`. A short listing also carries `"areas"`,
+        the entry count of each area.
+
+    Raises:
+        ValueError: An ``id`` names no entry.
     """
     version = _package_version()
     entries = active_limitations(load_known_limitations(), version, kind=kind)
-    return {"veaf_tools_version": version, "limitations": [dict(entry) for entry in entries]}
+    ids = [id] if isinstance(id, str) else list(id or [])
+    if ids:
+        unknown = sorted(set(ids) - {entry["id"] for entry in entries})
+        if unknown:
+            raise ValueError(f"no known limitation with id {unknown}; read the short listing for the ids")
+        entries = [entry for entry in entries if entry["id"] in ids]
+    if area:
+        entries = [entry for entry in entries if entry.get("area") == area]
+    if theatre:
+        wanted = theatre.strip().lower()
+        entries = [
+            entry
+            for entry in entries
+            if not entry.get("theatres") or wanted in {str(name).lower() for name in entry["theatres"]}
+        ]
+    short = not (full or kind or area or ids)
+    result: dict[str, Any] = {"veaf_tools_version": version, "detail": "short" if short else "full"}
+    if short:
+        result["limitations"] = [
+            {key: entry[key] for key in _LIMITATION_SUMMARY_FIELDS if key in entry} for entry in entries
+        ]
+        areas: dict[str, int] = {}
+        for entry in entries:
+            areas[entry["area"]] = areas.get(entry["area"], 0) + 1
+        result["areas"] = areas
+    else:
+        result["limitations"] = [dict(entry) for entry in entries]
+    return result
 
 
 # The skill ships once, in the plugin; the build bundles that file (`_veaf_tools_extra_data`).

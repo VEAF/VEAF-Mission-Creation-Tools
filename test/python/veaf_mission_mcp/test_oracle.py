@@ -1,5 +1,6 @@
 """Tests for the wave-5 domain-knowledge oracle (introspection actions)."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -85,12 +86,53 @@ def test_list_shortcuts_commands_carry_their_random_parameters() -> None:
 
 
 def test_describe_known_limitations_returns_both_kinds_for_the_running_version() -> None:
-    result = describe_known_limitations()
+    result = describe_known_limitations(full=True)
     assert result["veaf_tools_version"]
     kinds = {entry["kind"] for entry in result["limitations"]}
     assert kinds == {"dcs", "tool"}
     entry = result["limitations"][0]
     assert {"id", "kind", "area", "title", "symptom", "workaround"} <= set(entry)
+
+
+class TestKnownLimitationsByArea:
+    """FIX-OPEN-TRAINING-NORMANDY-FINDINGS 10: the whole text, 74 000 characters, overflowed a tool result."""
+
+    def test_the_default_is_a_short_listing_that_fits_a_tool_result(self) -> None:
+        result = describe_known_limitations()
+        assert result["detail"] == "short"
+        assert {"id", "kind", "area", "title"} <= set(result["limitations"][0])
+        assert all("symptom" not in entry and "workaround" not in entry for entry in result["limitations"])
+        assert len(json.dumps(result, ensure_ascii=False)) < 15_000
+        assert sum(result["areas"].values()) == len(result["limitations"])
+
+    def test_the_short_listing_names_every_entry_of_the_full_text(self) -> None:
+        short = {entry["id"] for entry in describe_known_limitations()["limitations"]}
+        assert short == {entry["id"] for entry in describe_known_limitations(full=True)["limitations"]}
+
+    def test_an_area_returns_its_entries_in_full(self) -> None:
+        result = describe_known_limitations(area="radio")
+        assert result["detail"] == "full"
+        assert result["limitations"] and {e["area"] for e in result["limitations"]} == {"radio"}
+        assert all("symptom" in entry and "workaround" in entry for entry in result["limitations"])
+
+    def test_one_or_several_ids_return_those_entries_in_full(self) -> None:
+        first, second = (e["id"] for e in describe_known_limitations()["limitations"][:2])
+        assert [e["id"] for e in describe_known_limitations(id=first)["limitations"]] == [first]
+        assert {e["id"] for e in describe_known_limitations(id=[first, second])["limitations"]} == {first, second}
+
+    def test_an_unknown_id_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="no known limitation"):
+            describe_known_limitations(id="no-such-limitation")
+
+    def test_a_theatre_drops_the_entries_that_concern_other_theatres_only(self) -> None:
+        ids = {e["id"] for e in describe_known_limitations(theatre="Normandy")["limitations"]}
+        assert "no-parking-data-outside-three-theatres" not in ids  # Normandy ships its parking
+        assert "marianas-placement-checks-nothing" not in ids
+        everywhere = {e["id"] for e in describe_known_limitations()["limitations"]}
+        assert "no-parking-data-outside-three-theatres" in {
+            e["id"] for e in describe_known_limitations(theatre="Nevada")["limitations"]
+        }
+        assert ids < everywhere  # an entry with no `theatres` is kept
 
 
 def test_describe_known_limitations_filters_by_kind() -> None:
@@ -204,4 +246,18 @@ class TestListPayloads:
 
     def test_a_type_without_loadouts_is_refused_naming_those_that_have_some(self) -> None:
         with pytest.raises(ValueError, match="MiG-31"):
-            list_payloads("FA-18C_hornet")
+            list_payloads("SpitfireLFMkIX")  # no loadout file in the install, module or not
+
+
+def test_the_action_takes_one_id_or_a_list_of_ids_without_a_oneof_schema() -> None:
+    from veaf_mission_mcp.actions import register_default_actions
+    from veaf_mission_mcp.catalog import ActionCatalog
+
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    first, second = (e["id"] for e in describe_known_limitations()["limitations"][:2])
+    assert [e["id"] for e in catalog.run_action("describe_known_limitations", {"id": first})["limitations"]] == [first]
+    both = catalog.run_action("describe_known_limitations", {"ids": [first, second]})["limitations"]
+    assert {e["id"] for e in both} == {first, second}
+    spec = next(s for s in catalog.list_catalog() if s.name == "describe_known_limitations")
+    assert "oneOf" not in json.dumps(spec.parameters_schema)

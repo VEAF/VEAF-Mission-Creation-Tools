@@ -34,6 +34,23 @@ SPAWNABLES_FILENAME = "spawnables.yaml"
 DYNAMIC_TEMPLATES_FILENAME = "dynamic-slot-templates.yaml"
 
 
+#: The eras an aircraft type of the shipped ``spawnables.yaml`` exists in (``veaf.ERA`` names). A type missing
+#: here is kept in every era: a mod, or an aircraft this table has not been taught, must not vanish from a build.
+#: The sweep test enumerates the shipped catalogue, so a type added there cannot stay missing from here.
+AIRCRAFT_ERAS: dict[str, frozenset[str]] = {
+    "F-15C": frozenset({"COLD_WAR", "MODERN"}),
+    "F-14A-135-GR": frozenset({"COLD_WAR", "MODERN"}),
+    "F-4E": frozenset({"COLD_WAR", "MODERN"}),
+    "F-5E-3": frozenset({"COLD_WAR", "MODERN"}),
+    "M-2000C": frozenset({"COLD_WAR", "MODERN"}),
+    "Mirage-F1EE": frozenset({"COLD_WAR", "MODERN"}),
+    "MiG-21Bis": frozenset({"COLD_WAR", "MODERN"}),
+    "MiG-23MLD": frozenset({"COLD_WAR", "MODERN"}),
+    "MiG-25PD": frozenset({"COLD_WAR", "MODERN"}),
+    "MQ-9 Reaper": frozenset({"MODERN"}),
+}
+
+
 @dataclass(frozen=True, order=True)
 class GroupRef:
     """One group's place in a catalogue."""
@@ -155,6 +172,33 @@ def unknown_unit_types(catalogue: dict[str, Any]) -> list[tuple[str, str]]:
                 seen.add(unit_type)
                 found.append((ref.name, unit_type))
     return found
+
+
+def filter_by_era(catalogue: dict[str, Any], era: str) -> tuple[dict[str, Any], int]:
+    """Drop the groups of a catalogue whose aircraft did not exist in ``era``.
+
+    The shipped ``spawnables.yaml`` is 51 modern jets: a WW2 mission built with an empty file got a
+    F-15C and a MiG-25 in its spawn templates (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 03). A group is
+    judged on the type of its first unit; one whose type :data:`AIRCRAFT_ERAS` does not list is kept.
+
+    Args:
+        catalogue: A parsed catalogue; not modified.
+        era: ``WW2``, ``COLD_WAR`` or ``MODERN``.
+
+    Returns:
+        The catalogue without the groups of another era, and how many groups that removed.
+    """
+    kept = copy.deepcopy(catalogue)
+    removed = 0
+    for ref, group in list(iter_groups(catalogue)):
+        units = group.get("units") if isinstance(group, dict) else None
+        first = next(iter(units.values() if isinstance(units, dict) else units or []), None)
+        unit_type = str(first.get("type") or "") if isinstance(first, dict) else ""
+        eras = AIRCRAFT_ERAS.get(unit_type)
+        if eras is not None and era not in eras:
+            del kept[ref.category]["coalitions"][ref.coalition][ref.country][ref.name]
+            removed += 1
+    return kept, removed
 
 
 def catalogue_file_has_groups(path: Path) -> bool:

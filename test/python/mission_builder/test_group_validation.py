@@ -347,3 +347,58 @@ class TestOperationSubzones:
             }
         }
         assert find_undeclared_operation_subzones(my) == []
+
+
+# ---------------------------------------------------------------------------
+# FIX-OPEN-TRAINING-FALKLANDS-FINDINGS 05 — a group named for a combat zone, outside its circle
+# ---------------------------------------------------------------------------
+from mission_builder.group_validation import find_combat_zone_groups_outside_their_circle  # noqa: E402
+
+
+def _zone_mission(*groups: dict, zone_type: int = 0) -> dict:
+    """A mission with trigger zone `CZ-Alpha` (centre 0,0 radius 1000) and the given vehicle groups."""
+    return {
+        "triggers": {"zones": [{"name": "CZ-Alpha", "x": 0.0, "y": 0.0, "radius": 1000.0, "type": zone_type}]},
+        "coalition": {"red": {"country": [{"name": "Russia", "vehicle": {"group": list(groups)}}]}},
+    }
+
+
+def _group(name: str, *positions: tuple[float, float]) -> dict:
+    return {"name": name, "units": [{"name": f"{name}-{i}", "x": x, "y": y} for i, (x, y) in enumerate(positions)]}
+
+
+_CZ_YAML = {"modules": {"COMBATZONE": {"enabled": True, "combat_zones": [{"type": "zone", "zone_name": "CZ-Alpha"}]}}}
+
+
+class TestCombatZoneGroupsOutsideTheirCircle:
+    def test_a_group_named_for_the_zone_and_outside_it_is_warned(self) -> None:
+        mission = _zone_mission(_group("CZ-Alpha-ARMOR", (5000.0, 0.0)))
+        assert find_combat_zone_groups_outside_their_circle(_CZ_YAML, mission) == [
+            ("CZ-Alpha", "CZ-Alpha-ARMOR", LEVEL_WARNING)
+        ]
+
+    def test_one_unit_inside_is_enough(self) -> None:
+        mission = _zone_mission(_group("CZ-Alpha-ARMOR", (5000.0, 0.0), (900.0, 0.0)))
+        assert find_combat_zone_groups_outside_their_circle(_CZ_YAML, mission) == []
+
+    def test_the_edge_counts_as_inside_and_the_name_ignores_case(self) -> None:
+        mission = _zone_mission(_group("cz-alpha-aaa", (0.0, 1000.0)))
+        assert find_combat_zone_groups_outside_their_circle(_CZ_YAML, mission) == []
+
+    def test_a_group_named_for_no_zone_is_left_alone_wherever_it_stands(self) -> None:
+        # The prefix rule: such a group is never picked up, inside the circle or out of it.
+        mission = _zone_mission(_group("SAM-NORTH", (5000.0, 0.0)), _group("ARMOR-1", (0.0, 0.0)))
+        assert find_combat_zone_groups_outside_their_circle(_CZ_YAML, mission) == []
+
+    def test_a_quad_point_zone_is_not_measured(self) -> None:
+        mission = _zone_mission(_group("CZ-Alpha-ARMOR", (5000.0, 0.0)), zone_type=2)
+        assert find_combat_zone_groups_outside_their_circle(_CZ_YAML, mission) == []
+
+    def test_no_combat_zone_declared_means_nothing_to_check(self) -> None:
+        mission = _zone_mission(_group("CZ-Alpha-ARMOR", (5000.0, 0.0)))
+        assert find_combat_zone_groups_outside_their_circle({"modules": {}}, mission) == []
+
+    def test_an_operation_is_not_a_trigger_zone(self) -> None:
+        yaml_data = {"modules": {"COMBATZONE": {"combat_zones": [{"type": "operation", "zone_name": "CZ-Alpha"}]}}}
+        mission = _zone_mission(_group("CZ-Alpha-ARMOR", (5000.0, 0.0)))
+        assert find_combat_zone_groups_outside_their_circle(yaml_data, mission) == []

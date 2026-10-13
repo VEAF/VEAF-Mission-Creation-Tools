@@ -1131,6 +1131,7 @@
   "validate.source_mission_unreadable": "La table de mission source (src/mission/mission) existe mais n'est pas lisible : {error} — checks groupes / presets / waypoints / TUM ignorés.",
   "validate.tum_zones_missing": "TUM est activé mais aucune zone de territoire {sides} n'a été trouvée — TheUniversalMission s'arrête au démarrage sans elles.",
   "validate.undeclared_subzone": "La sous-zone '{subzone}' référencée par {section} n'est pas déclarée comme entrée combat_zones — l'opération ne pourra pas la résoudre au runtime.",
+  "validate.combat_zone_group_outside_circle": "Le groupe '{group}' porte le nom de la zone de combat '{zone}' mais aucune de ses unités n'est dans le cercle de la zone : la zone ne prend rien et rien ne se voit en jeu. Placez le groupe dans le cercle ou renommez-le.",
   "validate.unknown_airfield": "L'aérodrome '{airfield}' référencé par {section} est inconnu sur ce théâtre — vérifiez l'orthographe par rapport au nom de l'aérodrome dans le Mission Editor.",
   "validate.waypoints_no_aircraft": "waypoints.yaml est configuré mais la mission n'a aucun groupe d'aéronefs où injecter des waypoints.",
   "verifier.in_game.mismatch": "Lu {measured}, attendu {expected} - a verifier",

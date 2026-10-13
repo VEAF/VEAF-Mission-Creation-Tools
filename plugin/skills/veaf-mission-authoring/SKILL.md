@@ -223,6 +223,8 @@ Place a FARP with **`add_farp`**, never `add_group` in `static` (that places the
 - where the clear-ground catalogue covers the place, a pad in trees or buildings is **moved** with its ammunition dump onto the nearest clear ground within 1 km, and the result's `position` says where; pass `keep_position: true` when the user drew the spot themselves (it then only warns);
 - where the elevation grid covers it, a pad with more than 3 m of height difference over 40 m around it is warned as **on a slope** — a helicopter cannot use it;
 - where neither covers it (MarianaIslands, any theatre not swept on this workstation), the warning says the trees and slope were **not checked** and gives the command `veaf-tools dcs farp-spot <theatre> --at x,y`. Relay it: it needs DCS, and lists the flat, clear spots near the point. Do not claim the pad is usable when it was not checked.
+- the result's `surface_check` says that no file sees a lake or a river (the grid knows the sea only): relay it and the `farp-spot` command, a pad has stood in a lake with 79 m on the grid;
+- a frequency that is an airfield tower's of the theatre (same band) is warned with the airfield's name: pick another one.
 
 On a jungle map the clear spot can be more than a kilometre from where the FARP is wanted. **Do not try to clear the trees by trigger**: DCS's « SCENERY REMOVE OBJECTS ZONE » removed none on MarianaIslands or Caucasus (known limitation `scenery-remove-objects-zone-leaves-the-forest`). Move the FARP to clear ground instead, and say how far it went.
 A spot `farp-spot` leaves out is not necessarily wooded (`disposition-small-query-blocks-open-grass`): when it finds nothing near enough, ask the user to look in game before giving up on a place.

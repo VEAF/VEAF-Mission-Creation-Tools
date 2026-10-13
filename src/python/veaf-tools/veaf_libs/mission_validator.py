@@ -281,6 +281,7 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
         Every :class:`ValidationIssue` found, in check order.
     """
     from mission_builder.group_validation import (
+        find_combat_zone_groups_outside_their_circle,
         find_missing_declared_groups,
         find_missing_sanctuary_units,
         find_missing_trigger_zone_refs,
@@ -306,6 +307,9 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
 
     for section, subzone, level in find_undeclared_operation_subzones(yaml_data):
         issues.append(ValidationIssue(level, t("validate.undeclared_subzone", subzone=subzone, section=section)))
+
+    for zone, group, level in find_combat_zone_groups_outside_their_circle(yaml_data, mission):
+        issues.append(ValidationIssue(level, t("validate.combat_zone_group_outside_circle", group=group, zone=zone)))
 
     issues += _check_mission_is_playable(mission)
     issues += _check_waypoint_locks(mission)

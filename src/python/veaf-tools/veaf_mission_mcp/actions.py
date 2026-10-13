@@ -785,10 +785,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "speed": {"type": "number", "description": "Speed on the leg to this point, m/s."},
+                            },
                             "required": ["x", "y"],
                         },
-                        "description": "Optional waypoints; defaults to a single stationary point at `position`.",
+                        "description": (
+                            "Optional waypoints; defaults to a single stationary point at `position`. A ground "
+                            "route with two points or more starts and runs 'On Road' at 16.4 m/s (59 km/h, the "
+                            "median of editor-built road convoys) unless a point gives its own `speed`."
+                        ),
                     },
                     "patrol": {
                         "type": "boolean",
@@ -1966,10 +1974,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "type": "array",
                                     "items": {
                                         "type": "object",
-                                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                                        "properties": {
+                                            "x": {"type": "number"},
+                                            "y": {"type": "number"},
+                                            "speed": {"type": "number", "description": "Speed on the leg, m/s."},
+                                        },
                                         "required": ["x", "y"],
                                     },
-                                    "description": "Optional waypoints, as add_group's; the first is the start.",
+                                    "description": "Optional waypoints, as add_group's (road start, 16.4 m/s legs); the first is the start.",
                                 },
                                 "patrol": {
                                     "type": "boolean",

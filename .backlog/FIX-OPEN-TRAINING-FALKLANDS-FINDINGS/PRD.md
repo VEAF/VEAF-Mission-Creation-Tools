@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-FALKLANDS-FINDINGS — what building the Falklands Open Training v6 found
 
-Status: 🔄 in-progress — tickets 01–03 and 05 done, 04 and 06–07 ready
+Status: 🔄 in-progress — tickets 01–05 and 07 done, 06 ready
 
 Asked by David on 2026-10-13.
 The Falklands Open Training v6 (`VEAF-Open-Training-Mission-Falklands-v6`) was built with veaf-tools 6.29.0 although the map was not supported end to end; its `tools/retours-vmct.md` lists twelve findings.
@@ -16,10 +16,10 @@ Finding 3 (the v5 coordinates are in a frame that no longer matches the map) con
 | 01 | [Falklands is a supported theatre](tickets/01-falklands-supported-theatre.md) | ✅ |
 | 02 | [Falklands data delivered: frequencies, parking, presets](tickets/02-falklands-data.md) | ✅ |
 | 03 | [add_farp: a FARP on a lake, and on a tower frequency](tickets/03-add-farp-surface-and-frequency.md) | ✅ |
-| 04 | [create_combat_zone: a convoy that starts on the road, at a convoy's speed](tickets/04-convoy-on-road.md) | ⬜ |
+| 04 | [create_combat_zone: a convoy that starts on the road, at a convoy's speed](tickets/04-convoy-on-road.md) | ✅ |
 | 05 | [validate_mission: what a combat zone circle does with the groups around it](tickets/05-validate-combat-zone-overlap.md) | ✅ |
 | 06 | [A convoy between two places, on the roads](tickets/06-convoy-between-places.md) | ⬜ |
-| 07 | [Ground placement on a theatre with no clear-ground catalogue](tickets/07-no-clear-ground-catalogue.md) | ⬜ |
+| 07 | [Ground placement on a theatre with no clear-ground catalogue](tickets/07-no-clear-ground-catalogue.md) | ✅ |
 
 Decision left to David: the Falklands elevation grid (`~/.veaf/terrain/Falklands.terrain`, 4.2 MB) is **not delivered** — no theatre ships its grid today, they are swept on each workstation (`terrain-sweep`); see ticket 02.
 

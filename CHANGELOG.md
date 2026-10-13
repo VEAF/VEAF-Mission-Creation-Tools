@@ -86,6 +86,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `validate` warns about a `post_ww2` shortcut in a WW2 mission. Six WW2 shortcuts: `-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40`, `-wespe`.
 - **A primary frequency that was not promoted says what the type got instead** (ticket 06).
   The build log named the channel a Fw 190 could not take as its primary frequency, not the one it stays on.
+- **A convoy made by `add_group` or `create_combat_zone` starts on the road and runs at convoy speed** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 04).
+  A ground route of two points or more was written starting `Off Road` at 5.6 m/s; it now starts `On Road` like its legs and runs at 16.4 m/s (59 km/h), the median of 126 road convoys of 14 hand-built missions (the first point was `On Road` in 85 of them).
+  A route point takes its own `speed`, in m/s. A single stationary point, a ship and an aircraft are unchanged.
+- **Known limitation: no clear-ground catalogue on Falklands** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 07).
+  15 of 176 vehicles of the Falklands Open Training stood in water or blocked; the « surface not checked » warning now also gives the `clear-ground-sweep` command.
 
 ### Documentation
 

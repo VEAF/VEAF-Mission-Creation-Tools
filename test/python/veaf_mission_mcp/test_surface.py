@@ -62,6 +62,7 @@ class TestSurfaceWarnings:
         [warning] = surface_warnings("Syria", [_unit("Avenger-1", _SEA)], afloat=False)
         assert warning.startswith("surface not checked: no elevation grid for Syria")
         assert "sea" in warning and "clear-ground-check" in warning and "terrain-sweep Syria" in warning
+        assert "clear-ground-sweep Syria --zones-from" in warning
 
 
 @pytest.fixture

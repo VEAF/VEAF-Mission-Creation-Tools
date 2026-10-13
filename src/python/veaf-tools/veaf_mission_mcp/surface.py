@@ -38,7 +38,8 @@ def surface_warnings(theatre: str | None, units: Any, *, afloat: bool) -> list[s
         warning = (
             f"surface not checked: no elevation grid for {name}, so nothing says a unit is not in the sea; "
             "check the built mission in DCS with 'veaf-tools dcs clear-ground-check <mission.miz>' (sea, "
-            f"trees, buildings), or sweep a grid with 'veaf-tools dcs terrain-sweep {name}'"
+            f"trees, buildings), sweep a grid with 'veaf-tools dcs terrain-sweep {name}' (the sea), or sweep the "
+            f"places with 'veaf-tools dcs clear-ground-sweep {name} --zones-from <mission>' (the scenery)"
         )
         return [warning]
     warnings: list[str] = []

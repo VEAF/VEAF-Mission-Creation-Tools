@@ -151,3 +151,19 @@ Syria:
     centerY: 33486.211083955
     zoom: 1181538.8329136
   name: Syria
+Falklands:
+  bullseye:
+    blue:
+      x: 0.0
+      y: 0.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: 0.0
+      y: 0.0
+  map:
+    centerX: -100000.0
+    centerY: -330000.0
+    zoom: 2500000.0
+  name: Falklands

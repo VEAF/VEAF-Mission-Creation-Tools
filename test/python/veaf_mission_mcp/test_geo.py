@@ -25,6 +25,16 @@ class TestTheatreBounds:
         assert b is not None
         assert b.min_lat <= 41.65 <= b.max_lat and b.min_lon <= 41.64 <= b.max_lon
 
+    @pytest.mark.parametrize(
+        ("place", "lat", "lon"),
+        [("Port Stanley", -51.69, -57.85), ("Ushuaia", -54.81, -68.31), ("Punta Arenas", -53.16, -70.91)],
+    )
+    def test_falklands_box_contains_its_places(self, place: str, lat: float, lon: float) -> None:
+        # Without a box the geocoder answered « San Julian » in Jujuy and « Porvenir » in Maule.
+        b = geocoding.theatre_bounds("Falklands")
+        assert b is not None, place
+        assert b.min_lat <= lat <= b.max_lat and b.min_lon <= lon <= b.max_lon, place
+
     def test_unknown_theatre_is_none(self) -> None:
         assert geocoding.theatre_bounds("nevada") is None
 

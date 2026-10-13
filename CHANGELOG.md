@@ -47,6 +47,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A ground group that holds fire and does not disperse**: `add_group` and each `create_combat_zone` group take `roe` (`weapons_free`, `return_fire`, `weapons_hold`) and `disperse`, written as the Mission Editor writes them (ticket 06).
 - **Parking data for Sinai** (FEAT-SINAI-PARKING-DATA).
   3 614 stands on 56 airfields, captured in DCS on 2026-10-12 for the Sinai Open Training v6: `add_air_group` and `create_qra` now start a flight from the ramp or the runway on Sinai, and the build's dynamic-slot warehouses offer each Sinai airfield only what its parking accepts.
+- **Falklands is a supported theatre** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS tickets 01–02).
+  `scaffold_mission` offers it and its folder carries a blank mission, `terrain-sweep Falklands` runs, and the geocoder is bounded to the map (it answered « San Julian » in Jujuy and « Porvenir » in Chile).
+  Read in DCS and shipped: the ATC frequencies of 26 airfields (Cullen has none) with the `airports-falklands` channel collection, and 350 parking stands on 27 airfields, so `add_air_group` takes a ramp or runway start there.
+  The elevation grid is not shipped, as for every theatre: sweep it with `terrain-sweep Falklands`.
 
 ## [6.29.0] — 2026-10-10
 

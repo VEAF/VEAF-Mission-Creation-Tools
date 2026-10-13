@@ -1,7 +1,9 @@
 """DCS's default loadouts by name — the list the Mission Editor offers for an AI aircraft.
 
 Read from the shipped ``payloads.yaml``, which ``veaf-build update-dcs-data --payloads`` generates from
-an install's ``MissionEditor/data/scripts/UnitPayloads`` (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 09).
+an install's ``MissionEditor/data/scripts/UnitPayloads`` and its modules' ``CoreMods/**/UnitPayloads``
+(FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 09, FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 01), plus the few
+AI bombers with no such file, written by hand in ``payloads-ai-bombers.yaml``.
 """
 
 from functools import lru_cache
@@ -16,6 +18,10 @@ from veaf_libs.bundled_data import read_bundled_text
 def _payloads() -> dict[str, dict[str, dict[int, str]]]:
     """Load (and cache) unit type -> loadout name -> station -> CLSID."""
     raw = yaml.safe_load(read_bundled_text("veaf_libs", "data", "payloads.yaml")) or {}
+    for unit_type, names in (
+        yaml.safe_load(read_bundled_text("veaf_libs", "data", "payloads-ai-bombers.yaml")) or {}
+    ).items():
+        raw.setdefault(unit_type, {}).update(names)
     return {
         str(unit_type): {
             str(name): {int(k): str(v) for k, v in (pylons or {}).items()} for name, pylons in names.items()
@@ -58,8 +64,8 @@ def payload_pylons(unit_type: str, name: str) -> dict[int, dict[str, Any]]:
     by_name = _payloads().get(unit_type)
     if not by_name:
         raise ValueError(
-            f"payload: DCS has no named loadout for {unit_type!r} (a module aircraft keeps its own); "
-            "use 'pylons' or 'loadout_from' instead"
+            f"payload: DCS has no named loadout for {unit_type!r} (a transport, a tanker, a helicopter with "
+            "none); use 'pylons' or 'loadout_from' instead"
         )
     pylons = by_name.get(name)
     if pylons is None:

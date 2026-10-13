@@ -584,6 +584,8 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "dcsUnits.yaml", "veaf_libs/data"),
             # DCS default loadouts by name, read by the MCP payload parameter and list_payloads.
             (veaf_tools_dir / "veaf_libs" / "data" / "payloads.yaml", "veaf_libs/data"),
+            # The AI bombers with no named loadout, merged into payloads.yaml by dcs_payloads.
+            (veaf_tools_dir / "veaf_libs" / "data" / "payloads-ai-bombers.yaml", "veaf_libs/data"),
             # Per-theatre blank-mission constants, read by prepare --theatre / scaffold_mission.
             (veaf_tools_dir / "veaf_libs" / "data" / "theatre-defaults.yaml", "veaf_libs/data"),
             # Per-theatre projection tables, read by the MCP coordinates/map/geo actions.

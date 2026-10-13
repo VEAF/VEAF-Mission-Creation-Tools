@@ -780,8 +780,11 @@ def update_dcs_data(
 
         from veaf_build.dcs_data import payloads as payloads_provider
 
-        count = payloads_provider.generate(Path(dcs_path))
+        unreadable: list[Path] = []
+        count = payloads_provider.generate(Path(dcs_path), skipped=unreadable)
         console.print(f"[green]✓ {count} loadouts → {payloads_provider.DEFAULT_OUTPUT.name}[/green]")
+        for path in unreadable:
+            console.print(f"  [yellow]skipped {path.name}: real Lua (computed CLSIDs), not readable as data[/yellow]")
 
     if run_all or countries:
         console.print(f"[cyan]Generating DCS country table (datamine@{ref_short})...[/cyan]")

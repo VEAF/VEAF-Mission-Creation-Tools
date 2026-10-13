@@ -1,7 +1,9 @@
 """Generate the DCS default loadouts table (``payloads.yaml``) from a DCS World install.
 
 The Mission Editor offers each AI aircraft its loadouts by name — « R-40T*2,R-33*4 » for a MiG-31 —
-from ``MissionEditor/data/scripts/UnitPayloads/<type>.lua``. The datamine does not carry those files,
+from ``MissionEditor/data/scripts/UnitPayloads/<type>.lua``, and a module aircraft from its own
+``CoreMods/**/UnitPayloads/<type>.lua`` (P-51D, F-16C, FA-18C…: the WW2 module aircraft were missing
+until FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 01). The datamine does not carry those files,
 so they are read from an install, as ``--airfield-freqs`` and ``--cities`` read theirs, and the result
 is committed. The Syria Open Training needed eight types the ``veafSpawn-*`` catalogue has no loadout
 for, and read their pylons from these files by hand (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 09).
@@ -15,6 +17,7 @@ Run via ``veaf-build update-dcs-data --payloads --dcs-path <DCS World install>``
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -24,8 +27,16 @@ import yaml
 #: Where the editor's per-type loadout files live in an install.
 PAYLOADS_SUBDIR = Path("MissionEditor") / "data" / "scripts" / "UnitPayloads"
 
+#: Where a module aircraft's loadout files live in an install, one ``UnitPayloads`` folder per module.
+MODULES_SUBDIR = Path("CoreMods")
+
 #: The committed artifact.
 DEFAULT_OUTPUT = Path(__file__).parent.parent.parent / "src/python/veaf-tools/veaf_libs/data/payloads.yaml"
+
+
+#: A ``tasks`` table, which the loadout does not need and which module files fill with Lua identifiers
+#: (``tasks = { CAP, Escort }``, ``[2] = Ground``) that a data parser cannot read.
+_TASKS_TABLE = re.compile(r'\["tasks"\]\s*=\s*\{[^{}]*\}')
 
 
 def _listed(table: Any) -> list[Any]:
@@ -54,7 +65,11 @@ def parse_payload_file(text: str) -> tuple[str, dict[str, dict[int, str]]] | Non
     """
     if "{" not in text:
         return None
-    table = luadata.unserialize(text[text.index("{") : text.rindex("}") + 1])
+    # Without the tasks, which the loadout does not need and the one place module files write identifiers: what
+    # is left either parses or is a file that computes its CLSIDs (`local` names, concatenation) and cannot be
+    # read as data, which is the caller's to report. Stripped first, not on a retry: luadata prints each failure.
+    body = _TASKS_TABLE.sub('["tasks"] = {}', text[text.index("{") : text.rindex("}") + 1])
+    table = luadata.unserialize(body)
     if not isinstance(table, dict) or not table.get("unitType"):
         return None
     payloads: dict[str, dict[int, str]] = {}
@@ -70,11 +85,16 @@ def parse_payload_file(text: str) -> tuple[str, dict[str, dict[int, str]]] | Non
     return str(table["unitType"]), payloads
 
 
-def extract_payloads(dcs_path: Path) -> dict[str, dict[str, dict[int, str]]]:
+def extract_payloads(dcs_path: Path, skipped: list[Path] | None = None) -> dict[str, dict[str, dict[int, str]]]:
     """Read every loadout file of an install.
+
+    The editor's own folder is read first, then every module's ``UnitPayloads``; a type found in
+    both keeps the loadouts of the first, and gains the names only the second has.
 
     Args:
         dcs_path: The DCS World install folder.
+        skipped: Receives the files that are real Lua rather than data (a CLSID computed from a ``local``
+            name) and could not be read; their types are left out of the table.
 
     Returns:
         Unit type -> payload name -> station -> CLSID; types with no loadout left out.
@@ -85,11 +105,21 @@ def extract_payloads(dcs_path: Path) -> dict[str, dict[str, dict[int, str]]]:
     folder = dcs_path / PAYLOADS_SUBDIR
     if not folder.is_dir():
         raise FileNotFoundError(f"No UnitPayloads folder in {dcs_path} (looked for {folder})")
+    files = sorted(folder.glob("*.lua"))
+    for module_folder in sorted((dcs_path / MODULES_SUBDIR).glob("**/UnitPayloads")):
+        files += sorted(module_folder.glob("*.lua"))
     result: dict[str, dict[str, dict[int, str]]] = {}
-    for path in sorted(folder.glob("*.lua")):
-        parsed = parse_payload_file(path.read_text(encoding="utf-8", errors="replace"))
+    for path in files:
+        try:
+            parsed = parse_payload_file(path.read_text(encoding="utf-8", errors="replace"))
+        except Exception:  # noqa: BLE001 - see parse_payload_file
+            if skipped is None:
+                raise
+            skipped.append(path)
+            continue
         if parsed is not None and parsed[1]:
-            result[parsed[0]] = parsed[1]
+            for name, pylons in parsed[1].items():
+                result.setdefault(parsed[0], {}).setdefault(name, pylons)
     return result
 
 
@@ -109,22 +139,25 @@ def write_payloads_yaml(payloads: dict[str, dict[str, dict[int, str]]], output: 
         f.write(
             "# DCS default loadouts: unit type -> loadout name (as the Mission Editor lists it) -> station -> CLSID.\n"
         )
-        f.write("# Read from a DCS World install, MissionEditor/data/scripts/UnitPayloads/*.lua.\n")
+        f.write(
+            "# Read from a DCS World install, MissionEditor/data/scripts/UnitPayloads/*.lua and CoreMods/**/UnitPayloads/*.lua.\n"
+        )
         f.write("# Regenerate with `veaf-build update-dcs-data --payloads --dcs-path <DCS World install>`.\n")
         f.write("# DO NOT EDIT BY HAND.\n\n")
         yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
 
 
-def generate(dcs_path: Path, output: Path | None = None) -> int:
+def generate(dcs_path: Path, output: Path | None = None, skipped: list[Path] | None = None) -> int:
     """Read an install's loadouts and write ``payloads.yaml``.
 
     Args:
         dcs_path: The DCS World install folder.
         output: The destination; defaults to :data:`DEFAULT_OUTPUT`.
+        skipped: Receives the files that could not be read, see :func:`extract_payloads`.
 
     Returns:
         How many loadouts were written.
     """
-    payloads = extract_payloads(dcs_path)
+    payloads = extract_payloads(dcs_path, skipped)
     write_payloads_yaml(payloads, output or DEFAULT_OUTPUT)
     return sum(len(by_name) for by_name in payloads.values())

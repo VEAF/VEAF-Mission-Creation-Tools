@@ -9,3 +9,4 @@ caucasus: { min_lat: 39.0, max_lat: 48.0, min_lon: 27.0, max_lon: 48.0 }
 syria: { min_lat: 31.0, max_lat: 38.0, min_lon: 31.0, max_lon: 43.0 }
 persiangulf: { min_lat: 21.0, max_lat: 33.0, min_lon: 49.0, max_lon: 65.0 }
 marianaislands: { min_lat: 10.0, max_lat: 22.0, min_lon: 141.0, max_lon: 150.0 }
+falklands: { min_lat: -56.5, max_lat: -48.0, min_lon: -74.0, max_lon: -56.0 }

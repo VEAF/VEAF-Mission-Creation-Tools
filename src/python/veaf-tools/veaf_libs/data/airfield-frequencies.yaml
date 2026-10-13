@@ -117,6 +117,139 @@ theatres:
       fm: 42.4
       vhf: 141.0
       uhf: 270.0
+  Falklands:
+    1:
+      name: Port Stanley
+      fm: 38.85
+      vhf: 118.1
+      uhf: 250.45
+    2:
+      name: Mount Pleasant
+      fm: 39.2
+      vhf: 133.35
+      uhf: 250.8
+      tacan: 59X
+    3:
+      name: San Carlos FOB
+      fm: 39.25
+      vhf: 134.35
+      uhf: 250.85
+    5:
+      name: Rio Gallegos
+      fm: 39.3
+      vhf: 119.1
+      uhf: 250.9
+    6:
+      name: Rio Grande
+      fm: 39.35
+      vhf: 118.3
+      uhf: 250.95
+      tacan: 31X
+    7:
+      name: Ushuaia
+      fm: 39.4
+      vhf: 118.1
+      uhf: 251.0
+    8:
+      name: Ushuaia Helo Port
+      fm: 39.45
+      vhf: 118.5
+      uhf: 251.05
+    9:
+      name: Punta Arenas
+      fm: 39.5
+      vhf: 118.7
+      uhf: 251.1
+    10:
+      name: Pampa Guanaco
+      fm: 38.4
+      vhf: 118.0
+      uhf: 250.0
+    11:
+      name: San Julian
+      fm: 38.45
+      vhf: 118.05
+      uhf: 250.05
+    12:
+      name: Puerto Williams
+      fm: 38.5
+      vhf: 118.5
+      uhf: 250.1
+    13:
+      name: Puerto Natales
+      fm: 38.55
+      vhf: 128.1
+      uhf: 250.15
+    14:
+      name: El Calafate
+      fm: 38.6
+      vhf: 119.95
+      uhf: 250.2
+    15:
+      name: Puerto Santa Cruz
+      fm: 38.65
+      vhf: 118.6
+      uhf: 250.25
+    16:
+      name: Comandante Luis Piedrabuena
+      fm: 38.7
+      vhf: 122.1
+      uhf: 250.3
+    17:
+      name: Tolhuin
+      fm: 38.75
+      vhf: 118.15
+      uhf: 250.35
+    18:
+      name: Porvenir
+      fm: 38.8
+      vhf: 126.7
+      uhf: 250.4
+    19:
+      name: Almirante Schroeders
+      fm: 38.6
+      vhf: 118.25
+      uhf: 229.0
+    20:
+      name: Rio Turbio
+      fm: 38.9
+      vhf: 118.1
+      uhf: 250.5
+    21:
+      name: Rio Chico
+      fm: 38.95
+      vhf: 118.2
+      uhf: 250.55
+    23:
+      name: Franco Bianco
+      fm: 39.0
+      vhf: 128.5
+      uhf: 250.6
+    24:
+      name: Goose Green
+      fm: 39.05
+      vhf: 126.0
+      uhf: 250.65
+    25:
+      name: Hipico Flying Club
+      fm: 39.6
+      vhf: 131.5
+      uhf: 235.0
+    26:
+      name: Gobernador Gregores
+      fm: 39.1
+      vhf: 118.1
+      uhf: 250.7
+    27:
+      name: O'Higgins
+      fm: 39.15
+      vhf: 118.25
+      uhf: 250.75
+    29:
+      name: Gull Point
+      fm: 39.5
+      vhf: 126.5
+      uhf: 234.5
   GermanyCW:
     1:
       name: Wittstock

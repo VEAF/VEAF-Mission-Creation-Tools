@@ -1,0 +1,293 @@
+{
+  "theatre": "Falklands",
+  "airdromes": [
+    {
+      "id": 1,
+      "name": "Port Stanley",
+      "source": "radio",
+      "freqs": [
+        38.85,
+        118.1,
+        250.45,
+        3.975
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Mount Pleasant",
+      "source": "radio",
+      "freqs": [
+        39.2,
+        133.35,
+        250.8,
+        4.15
+      ],
+      "tacan": "59X"
+    },
+    {
+      "id": 3,
+      "name": "San Carlos FOB",
+      "source": "radio",
+      "freqs": [
+        39.25,
+        134.35,
+        250.85,
+        4.175
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Rio Gallegos",
+      "source": "radio",
+      "freqs": [
+        39.3,
+        119.1,
+        250.9,
+        4.2
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Rio Grande",
+      "source": "radio",
+      "freqs": [
+        39.35,
+        118.3,
+        250.95,
+        4.225
+      ],
+      "tacan": "31X"
+    },
+    {
+      "id": 7,
+      "name": "Ushuaia",
+      "source": "radio",
+      "freqs": [
+        39.4,
+        118.1,
+        251.0,
+        4.25
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Ushuaia Helo Port",
+      "source": "radio",
+      "freqs": [
+        39.45,
+        118.5,
+        251.05,
+        4.275
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Punta Arenas",
+      "source": "radio",
+      "freqs": [
+        39.5,
+        118.7,
+        251.1,
+        4.3
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Pampa Guanaco",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        118.0,
+        250.0,
+        3.75
+      ]
+    },
+    {
+      "id": 11,
+      "name": "San Julian",
+      "source": "radio",
+      "freqs": [
+        38.45,
+        118.05,
+        250.05,
+        3.775
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Puerto Williams",
+      "source": "radio",
+      "freqs": [
+        38.5,
+        118.5,
+        250.1,
+        3.8
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Puerto Natales",
+      "source": "radio",
+      "freqs": [
+        38.55,
+        128.1,
+        250.15,
+        3.825
+      ]
+    },
+    {
+      "id": 14,
+      "name": "El Calafate",
+      "source": "radio",
+      "freqs": [
+        38.6,
+        119.95,
+        250.2,
+        3.85
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Puerto Santa Cruz",
+      "source": "radio",
+      "freqs": [
+        38.65,
+        118.6,
+        250.25,
+        3.875
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Comandante Luis Piedrabuena",
+      "source": "radio",
+      "freqs": [
+        38.7,
+        122.1,
+        250.3,
+        3.9
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Tolhuin",
+      "source": "radio",
+      "freqs": [
+        38.75,
+        118.15,
+        250.35,
+        3.925
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Porvenir",
+      "source": "radio",
+      "freqs": [
+        38.8,
+        126.7,
+        250.4,
+        3.95
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Almirante Schroeders",
+      "source": "radio",
+      "freqs": [
+        38.6,
+        118.25,
+        229.0,
+        4.0
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Rio Turbio",
+      "source": "radio",
+      "freqs": [
+        38.9,
+        118.1,
+        250.5,
+        4.0
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Rio Chico",
+      "source": "radio",
+      "freqs": [
+        38.95,
+        118.2,
+        250.55,
+        4.025
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Franco Bianco",
+      "source": "radio",
+      "freqs": [
+        39.0,
+        128.5,
+        250.6,
+        4.05
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Goose Green",
+      "source": "radio",
+      "freqs": [
+        39.05,
+        126.0,
+        250.65,
+        4.075
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Hipico Flying Club",
+      "source": "radio",
+      "freqs": [
+        39.6,
+        131.5,
+        235.0,
+        4.5
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Gobernador Gregores",
+      "source": "radio",
+      "freqs": [
+        39.1,
+        118.1,
+        250.7,
+        4.1
+      ]
+    },
+    {
+      "id": 27,
+      "name": "O'Higgins",
+      "source": "radio",
+      "freqs": [
+        39.15,
+        118.25,
+        250.75,
+        4.125
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Gull Point",
+      "source": "radio",
+      "freqs": [
+        39.5,
+        126.5,
+        234.5,
+        4.45
+      ]
+    }
+  ]
+}

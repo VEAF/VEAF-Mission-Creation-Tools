@@ -360,6 +360,85 @@ channels_collection: # Lists all the radio channels available on the map
       Vaziani:
         title: Vaziani / 22X
         freqs: { uhf: 269.0, vhf: 140.0, fm: 42.2 }
+    airports-falklands:
+      Almirante Schroeders:
+        title: Almirante Schroeders
+        freqs: { uhf: 229.0, vhf: 118.25, fm: 38.6 }
+      Comandante Luis Piedrabuena:
+        title: Comandante Luis Piedrabuena
+        freqs: { uhf: 250.3, vhf: 122.1, fm: 38.7 }
+      El Calafate:
+        title: El Calafate
+        freqs: { uhf: 250.2, vhf: 119.95, fm: 38.6 }
+      Franco Bianco:
+        title: Franco Bianco
+        freqs: { uhf: 250.6, vhf: 128.5, fm: 39.0 }
+      Gobernador Gregores:
+        title: Gobernador Gregores
+        freqs: { uhf: 250.7, vhf: 118.1, fm: 39.1 }
+      Goose Green:
+        title: Goose Green
+        freqs: { uhf: 250.65, vhf: 126.0, fm: 39.05 }
+      Gull Point:
+        title: Gull Point
+        freqs: { uhf: 234.5, vhf: 126.5, fm: 39.5 }
+      Hipico Flying Club:
+        title: Hipico Flying Club
+        freqs: { uhf: 235.0, vhf: 131.5, fm: 39.6 }
+      Mount Pleasant:
+        title: Mount Pleasant / 59X
+        freqs: { uhf: 250.8, vhf: 133.35, fm: 39.2 }
+      O'Higgins:
+        title: O'Higgins
+        freqs: { uhf: 250.75, vhf: 118.25, fm: 39.15 }
+      Pampa Guanaco:
+        title: Pampa Guanaco
+        freqs: { uhf: 250.0, vhf: 118.0, fm: 38.4 }
+      Port Stanley:
+        title: Port Stanley
+        freqs: { uhf: 250.45, vhf: 118.1, fm: 38.85 }
+      Porvenir:
+        title: Porvenir
+        freqs: { uhf: 250.4, vhf: 126.7, fm: 38.8 }
+      Puerto Natales:
+        title: Puerto Natales
+        freqs: { uhf: 250.15, vhf: 128.1, fm: 38.55 }
+      Puerto Santa Cruz:
+        title: Puerto Santa Cruz
+        freqs: { uhf: 250.25, vhf: 118.6, fm: 38.65 }
+      Puerto Williams:
+        title: Puerto Williams
+        freqs: { uhf: 250.1, vhf: 118.5, fm: 38.5 }
+      Punta Arenas:
+        title: Punta Arenas
+        freqs: { uhf: 251.1, vhf: 118.7, fm: 39.5 }
+      Rio Chico:
+        title: Rio Chico
+        freqs: { uhf: 250.55, vhf: 118.2, fm: 38.95 }
+      Rio Gallegos:
+        title: Rio Gallegos
+        freqs: { uhf: 250.9, vhf: 119.1, fm: 39.3 }
+      Rio Grande:
+        title: Rio Grande / 31X
+        freqs: { uhf: 250.95, vhf: 118.3, fm: 39.35 }
+      Rio Turbio:
+        title: Rio Turbio
+        freqs: { uhf: 250.5, vhf: 118.1, fm: 38.9 }
+      San Carlos FOB:
+        title: San Carlos FOB
+        freqs: { uhf: 250.85, vhf: 134.35, fm: 39.25 }
+      San Julian:
+        title: San Julian
+        freqs: { uhf: 250.05, vhf: 118.05, fm: 38.45 }
+      Tolhuin:
+        title: Tolhuin
+        freqs: { uhf: 250.35, vhf: 118.15, fm: 38.75 }
+      Ushuaia:
+        title: Ushuaia
+        freqs: { uhf: 251.0, vhf: 118.1, fm: 39.4 }
+      Ushuaia Helo Port:
+        title: Ushuaia Helo Port
+        freqs: { uhf: 251.05, vhf: 118.5, fm: 39.45 }
     airports-germany-cold-war:
       Adelsheim:
         title: Adelsheim

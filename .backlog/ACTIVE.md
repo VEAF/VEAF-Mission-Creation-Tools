@@ -6,7 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-*None.*
+### [FIX-OPEN-TRAINING-FALKLANDS-FINDINGS](FIX-OPEN-TRAINING-FALKLANDS-FINDINGS/PRD.md) · 🔄
+
+What building the Falklands Open Training v6 found: the map missing from the theatre table (no blank mission, no terrain sweep, no geocoder box) and its frequency and parking data left uncommitted — both delivered — then a FARP on a lake or on a tower frequency, a convoy that starts off road at 5.6 m/s, no warning for a group inside a combat zone's circle, no convoy-on-road action, and ground placement unchecked with no clear-ground catalogue. Seven tickets, one PR.
 
 ## 🧑 Waiting for a human
 

@@ -32,6 +32,34 @@ veafAirfieldFrequencies["Caucasus"] = {
   [31] = { uhf = 269.0, vhf = 140.0, fm = 42.2, tacan = "22X" }, -- Vaziani
   [32] = { uhf = 270.0, vhf = 141.0, fm = 42.4 }, -- Beslan
 }
+veafAirfieldFrequencies["Falklands"] = {
+  [1] = { uhf = 250.45, vhf = 118.1, fm = 38.85 }, -- Port Stanley
+  [2] = { uhf = 250.8, vhf = 133.35, fm = 39.2, tacan = "59X" }, -- Mount Pleasant
+  [3] = { uhf = 250.85, vhf = 134.35, fm = 39.25 }, -- San Carlos FOB
+  [5] = { uhf = 250.9, vhf = 119.1, fm = 39.3 }, -- Rio Gallegos
+  [6] = { uhf = 250.95, vhf = 118.3, fm = 39.35, tacan = "31X" }, -- Rio Grande
+  [7] = { uhf = 251.0, vhf = 118.1, fm = 39.4 }, -- Ushuaia
+  [8] = { uhf = 251.05, vhf = 118.5, fm = 39.45 }, -- Ushuaia Helo Port
+  [9] = { uhf = 251.1, vhf = 118.7, fm = 39.5 }, -- Punta Arenas
+  [10] = { uhf = 250.0, vhf = 118.0, fm = 38.4 }, -- Pampa Guanaco
+  [11] = { uhf = 250.05, vhf = 118.05, fm = 38.45 }, -- San Julian
+  [12] = { uhf = 250.1, vhf = 118.5, fm = 38.5 }, -- Puerto Williams
+  [13] = { uhf = 250.15, vhf = 128.1, fm = 38.55 }, -- Puerto Natales
+  [14] = { uhf = 250.2, vhf = 119.95, fm = 38.6 }, -- El Calafate
+  [15] = { uhf = 250.25, vhf = 118.6, fm = 38.65 }, -- Puerto Santa Cruz
+  [16] = { uhf = 250.3, vhf = 122.1, fm = 38.7 }, -- Comandante Luis Piedrabuena
+  [17] = { uhf = 250.35, vhf = 118.15, fm = 38.75 }, -- Tolhuin
+  [18] = { uhf = 250.4, vhf = 126.7, fm = 38.8 }, -- Porvenir
+  [19] = { uhf = 229.0, vhf = 118.25, fm = 38.6 }, -- Almirante Schroeders
+  [20] = { uhf = 250.5, vhf = 118.1, fm = 38.9 }, -- Rio Turbio
+  [21] = { uhf = 250.55, vhf = 118.2, fm = 38.95 }, -- Rio Chico
+  [23] = { uhf = 250.6, vhf = 128.5, fm = 39.0 }, -- Franco Bianco
+  [24] = { uhf = 250.65, vhf = 126.0, fm = 39.05 }, -- Goose Green
+  [25] = { uhf = 235.0, vhf = 131.5, fm = 39.6 }, -- Hipico Flying Club
+  [26] = { uhf = 250.7, vhf = 118.1, fm = 39.1 }, -- Gobernador Gregores
+  [27] = { uhf = 250.75, vhf = 118.25, fm = 39.15 }, -- O'Higgins
+  [29] = { uhf = 234.5, vhf = 126.5, fm = 39.5 }, -- Gull Point
+}
 veafAirfieldFrequencies["GermanyCW"] = {
   [1] = { uhf = 252.5, vhf = 118.5, fm = 40.9 }, -- Wittstock
   [2] = { uhf = 253.8, vhf = 122.5, fm = 42.2 }, -- Altes Lager

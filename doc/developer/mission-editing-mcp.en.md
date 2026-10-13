@@ -884,6 +884,12 @@ Read-only. The default loadouts the Mission Editor offers an AI aircraft type, b
 `create_qra` and `create_cap_mission`. Without `unit_type`, the types that have some. Read from
 `veaf_libs/data/payloads.yaml`, generated from a DCS install
 (`veaf-build update-dcs-data --payloads --dcs-path <DCS>`): the datamine does not carry these files.
+The generator reads the editor's own `UnitPayloads` folder **and** every module's
+(`CoreMods/**/UnitPayloads`): the module aircraft (P-51D, P-47D, Fw 190, F-16C, FA-18C…) are in. It lists
+the few files that are real Lua rather than data (a CLSID computed from a `local`) and leaves their types
+out — the Spitfire has no file at all in the install. The two AI bombers of a WW2 mission have no file
+either: their default loads (`Ju-88A4` « SC500*2,SC50*10 », `B-17G` « M64*12 ») are written by hand in
+`veaf_libs/data/payloads-ai-bombers.yaml`, read from the install's `db.Units.lua`.
 
 ```json
 {"unit_type": "MiG-31"}
@@ -897,17 +903,32 @@ shortcuts (`-samLR`, `-armor`…) with `randomParameters`: the `{min, max}` rang
 they draw on every use — `-samLR` and `-samSR` run the same command and differ only by their
 `defense` range. Filterable by `name_contains`.
 
+Every entry carries an `era`, read from what it spawns and never typed beside it
+(`veaf_libs/shortcut_eras.py`): `follows_era` (`-aaa`, `-samSR`, `-samLR`, `-samVLR`, `-armor`, `-infantry`,
+`-transport`, `-combat`, `-convoy`, `-cas`: the units come from tables keyed by `mission.era`), `ww2`
+(`-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40`, `-wespe`), `post_ww2` (fixed equipment of a later
+age: `-ewr`, `-arty`, `-sa6`…), `era_free` (spawns nothing) or `unknown` (`-jtac`, `-afac`, `-cargo`: not
+measured, so not claimed). `era` (`WW2`, `COLD_WAR`, `MODERN`) keeps what is worth offering in a mission of
+that era. `validate` warns about a `#command` or `#veafInterpreter` of a `post_ww2` shortcut in a WW2 mission.
+
 ### `describe_known_limitations`
 
 Read-only. For the running veaf-tools version, the entries of
 `veaf_libs/data/known-limitations.yaml`: the tool limitations not yet fixed (`kind: tool`, dropped
 from the version in their `fixed_in`) and the DCS behaviours that raise no error (`kind: dcs`,
 always returned, with the date they were measured). Each entry: `id`, `kind`, `area`, `title`,
-`symptom`, `workaround`, optionally `cost`. Optional `kind` filter. The file is the one source:
+`symptom`, `workaround`, optionally `cost` and `theatres`. The file is the one source:
 `docs/agents/dcs-runtime-traps.md` is generated from it.
 
+The whole text is about 74 000 characters, more than a tool result carries. **With no argument the action
+returns a short listing** — `id`, `kind`, `area`, `title`, about 12 000 characters — and the count of each
+`area`. Read the entries you need in full with `area` (`spawning`, `air-defence`, `players`, `radio`,
+`ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind`, `id` or `ids` (a list). `theatre` drops the
+entries that concern other theatres only (an entry with no `theatres` applies everywhere). `full: true`
+returns everything.
+
 ```json
-{"kind": "dcs"}
+{"area": "radio"}
 ```
 
 ### `describe_authoring_guide` (FEAT-AI-ASSISTANT-ANY-CLIENT lot)

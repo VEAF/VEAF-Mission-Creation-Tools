@@ -33,6 +33,7 @@ from mission_tools.miz_tools import read_miz, write_miz
 
 from veaf_mission_mcp.aircraft_identity import assign_identities
 from veaf_mission_mcp.aircraft_payload import build_aircraft_payload
+from veaf_mission_mcp.aircraft_radio import resolve_group_frequency
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 #: Unit conversions (mission file stores metres and m/s; the caller speaks feet and knots).
@@ -74,7 +75,7 @@ def add_player_slot(
     parking: str | None = None,
     parking_id: str | None = None,
     airdrome_id: int | None = None,
-    frequency_mhz: float = 251.0,
+    frequency_mhz: float | None = None,
     onboard_num: str | None = None,
     task: str = _DEFAULT_TASK,
     fuel: float | None = None,
@@ -101,7 +102,10 @@ def add_player_slot(
         parking_id: The parking id — its `Term_Index` (ground start only), as text.
         airdrome_id: The airfield id the parking belongs to (ground start only).
         frequency_mhz: The group's radio frequency in MHz — written rather than inherited, since an
-            inherited ``communication = false`` was the second defect of the 2026-08-14 slot.
+            inherited ``communication = false`` was the second defect of the 2026-08-14 slot. Defaults
+            to 251, or to the type's own when its airframe cannot tune 251 (124 for a P-51D, 38.4 for a
+            Fw 190); one the airframe cannot tune is refused, since the Mission Editor would refuse to
+            save it.
         onboard_num: The tail number, as text so a leading zero survives. Defaults to one no other
             aircraft of the mission carries; the slot also gets a callsign
             (:mod:`veaf_mission_mcp.aircraft_identity`).
@@ -118,7 +122,8 @@ def add_player_slot(
 
     Raises:
         ValueError: If the target is not a valid mission, `start` is unknown, a ground start is
-            asked for without a full parking spot, or the fuel load cannot be resolved for this type.
+            asked for without a full parking spot, the fuel load cannot be resolved for this type, or
+            the frequency is one its airframe cannot tune.
     """
     if start not in _START_WAYPOINT:
         raise ValueError(f"Unknown start {start!r} (expected one of {tuple(_START_WAYPOINT)})")
@@ -137,6 +142,7 @@ def add_player_slot(
     payload, fuel_warning = build_aircraft_payload(
         unit_type, fuel=fuel, fuel_fraction=fuel_fraction, chaff=chaff, flare=flare
     )
+    frequency, _ = resolve_group_frequency(unit_type, frequency_mhz, skill="Client")
 
     group = _build_slot_group(
         name=name,
@@ -149,7 +155,7 @@ def add_player_slot(
         parking=parking,
         parking_id=parking_id,
         airdrome_id=airdrome_id,
-        frequency_mhz=frequency_mhz,
+        frequency_mhz=frequency,
         onboard_num=onboard_num,
         task=task,
         payload=payload,

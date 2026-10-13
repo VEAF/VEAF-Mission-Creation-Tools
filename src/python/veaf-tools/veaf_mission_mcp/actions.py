@@ -916,8 +916,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "frequency_mhz": {
                         "type": "number",
-                        "default": 251,
-                        "description": "Group radio frequency in MHz (written, not inherited).",
+                        "description": "Group radio frequency in MHz (written, not inherited). Defaults to 251, "
+                        "or to the type's own when its airframe cannot tune 251 (124 for a P-51D, 38.4 for a "
+                        "Fw 190); one the airframe cannot tune is refused: the Mission Editor would refuse to "
+                        "save it.",
                     },
                     "onboard_num": {
                         "type": "string",
@@ -981,7 +983,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the mission carries; a western flight NAMED like its callsign ('Texaco 2', 'Magic 1') gets "
                 "that callsign (Texaco21...) when its family fits the task and the flight is free, else the "
                 "next free one and a warning. A fighting task (Escort, CAP, CAS, SEAD...) with no pylons "
-                "warns for an AI flight. An AWACS or a tanker is called on its frequency_mhz: add that "
+                "warns for an AI flight, except a WW2 gun fighter (P-51D, Spitfire, Bf 109, Fw 190...), "
+                "which fights with its guns and needs none. An AWACS or a tanker is called on its frequency_mhz: add that "
                 "channel to the players' coalition in src/presets.yaml in the same pass, or every radio "
                 "and kneeboard keeps the scaffold's plan and the build lists it as reached by no preset. "
                 "Target a FOLDER (durable) or .miz (transient); backed up first."
@@ -1033,7 +1036,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "default": "High",
                         "description": "AI level, or 'Client'/'Player' for human slots.",
                     },
-                    "frequency_mhz": {"type": "number", "default": 251, "description": "Group radio frequency in MHz."},
+                    "frequency_mhz": {
+                        "type": "number",
+                        "description": "Group radio frequency in MHz. Defaults to 251, or to the type's own "
+                        "when its airframe cannot tune 251 (124 for a P-51D, 38.4 for a Fw 190): the Mission Editor "
+                        "refuses to save a group whose frequency its airframe cannot tune. An explicit one "
+                        "it cannot tune is refused for a Client/Player group, warned about for an AI one.",
+                    },
                     "task": {
                         "type": "string",
                         "default": "CAS",
@@ -2470,7 +2479,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "List the DCS default loadouts of an AI aircraft type by the names the Mission Editor "
                 "offers ('R-40T*2,R-33*4' for a MiG-31), with their pylons -- what add_air_group, "
                 "create_qra and create_cap_mission take as 'payload'. Without a type, the types that "
-                "have loadouts (a module aircraft has none here: give it pylons or loadout_from). "
+                "have loadouts -- the module aircraft (P-51D, F-16C...) and the AI bombers Ju-88A4 and "
+                "B-17G included; a type with none (a transport, the Spitfire) takes pylons or loadout_from. "
                 "Read-only."
             ),
             parameters_schema={
@@ -2489,16 +2499,26 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "List the VEAF spawn aliases (the '-shilka'/'-sa8'… vocabulary) from the "
                 "canonical veaf-units.yaml: unit aliases and composite group aliases, plus the "
                 "'#command' shortcuts ('-samLR', '-armor'…) with the range of each parameter they "
-                "draw at random ('defense', 'armor', 'size'). Read-only."
+                "draw at random ('defense', 'armor', 'size'). Each entry carries an 'era': "
+                "follows_era ('-aaa', '-samLR', '-armor', '-infantry', '-transport', '-convoy': the units "
+                "change with mission.era), ww2, post_ww2 (fixed modern or Cold War equipment: '-sa6', "
+                "'-ewr', '-arty' -- wrong in a WW2 mission), era_free or unknown. Pass 'era' to list what "
+                "is worth offering in a mission of that era. Read-only."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
                     "name_contains": {"type": "string", "description": "Case-insensitive substring on aliases+target."},
+                    "era": {
+                        "type": "string",
+                        "enum": ["WW2", "COLD_WAR", "MODERN"],
+                        "description": "The mission's era: keep what is worth offering in it (in WW2, the "
+                        "follows_era, era_free and ww2 entries only).",
+                    },
                 },
             },
         ),
-        handler=lambda p: list_shortcuts(name_contains=p.get("name_contains")),
+        handler=lambda p: list_shortcuts(name_contains=p.get("name_contains"), era=p.get("era")),
     )
     catalog.register(
         ActionSpec(
@@ -2533,16 +2553,59 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
-                "and what it cost. Read-only."
+                "and what it cost. With no argument it returns a SHORT listing (id, kind, area, title: "
+                "the whole text is too long for one result); then read the entries of the areas your "
+                "mission uses with 'area', or any entry with 'id'. Read-only."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "kind": {"type": "string", "enum": ["tool", "dcs"], "description": "Return one kind only."},
+                    "kind": {
+                        "type": "string",
+                        "enum": ["tool", "dcs"],
+                        "description": "Return one kind only, in full.",
+                    },
+                    "area": {
+                        "type": "string",
+                        "enum": [
+                            "spawning",
+                            "air-defence",
+                            "players",
+                            "radio",
+                            "ground-ai",
+                            "scripting",
+                            "mcp",
+                            "pipeline",
+                            "runtime",
+                        ],
+                        "description": "Return the entries of one area, in full.",
+                    },
+                    "theatre": {
+                        "type": "string",
+                        "description": "A theatre (Normandy, Syria...): drops the entries that concern "
+                        "other theatres only.",
+                    },
+                    "id": {"type": "string", "description": "One entry id, in full."},
+                    "ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Several entry ids, in full.",
+                    },
+                    "full": {
+                        "type": "boolean",
+                        "description": "Return every selected entry in full (about 74 000 characters "
+                        "without a filter).",
+                    },
                 },
             },
         ),
-        handler=lambda p: describe_known_limitations(kind=p.get("kind")),
+        handler=lambda p: describe_known_limitations(
+            kind=p.get("kind"),
+            area=p.get("area"),
+            theatre=p.get("theatre"),
+            id=[*([p["id"]] if p.get("id") else []), *(p.get("ids") or [])] or None,
+            full=bool(p.get("full", False)),
+        ),
     )
     catalog.register(
         ActionSpec(
@@ -2889,7 +2952,7 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
         parking=params.get("parking"),
         parking_id=params.get("parking_id"),
         airdrome_id=params.get("airdrome_id"),
-        frequency_mhz=params.get("frequency_mhz", 251.0),
+        frequency_mhz=params.get("frequency_mhz"),
         onboard_num=params.get("onboard_num"),
         task=params.get("task", "Nothing"),
         fuel=params.get("fuel"),
@@ -2929,7 +2992,7 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         speed_kt=params.get("speed_kt", 250.0),
         heading_deg=params.get("heading_deg", 0.0),
         skill=params.get("skill", "High"),
-        frequency_mhz=params.get("frequency_mhz", 251.0),
+        frequency_mhz=params.get("frequency_mhz"),
         task=params.get("task", "CAS"),
         parking=params.get("parking"),
         fuel=params.get("fuel"),

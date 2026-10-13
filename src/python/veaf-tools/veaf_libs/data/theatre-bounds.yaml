@@ -10,3 +10,14 @@ syria: { min_lat: 31.0, max_lat: 38.0, min_lon: 31.0, max_lon: 43.0 }
 persiangulf: { min_lat: 21.0, max_lat: 33.0, min_lon: 49.0, max_lon: 65.0 }
 marianaislands: { min_lat: 10.0, max_lat: 22.0, min_lon: 141.0, max_lon: 150.0 }
 falklands: { min_lat: -56.5, max_lat: -48.0, min_lon: -74.0, max_lon: -56.0 }
+# The theatres below were derived from the airfield extents of airdrome-positions.yaml, one degree of margin
+# (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 11): a theatre with no box geocoded « Omaha Beach » to Iowa.
+afghanistan: { min_lat: 29.0, max_lat: 37.0, min_lon: 60.0, max_lon: 72.0 }
+germanycw: { min_lat: 48.0, max_lat: 57.0, min_lon: 5.0, max_lon: 16.0 }
+iraq: { min_lat: 28.0, max_lat: 38.0, min_lon: 38.0, max_lon: 52.0 }
+kola: { min_lat: 63.0, max_lat: 72.0, min_lon: 13.0, max_lon: 36.0 }
+marianaislandswwii: { min_lat: 10.0, max_lat: 22.0, min_lon: 141.0, max_lon: 150.0 }
+nevada: { min_lat: 34.0, max_lat: 40.0, min_lon: -120.0, max_lon: -113.0 }
+normandy: { min_lat: 47.0, max_lat: 53.0, min_lon: -4.0, max_lon: 4.0 }
+sinaimap: { min_lat: 25.0, max_lat: 35.0, min_lon: 28.0, max_lon: 38.0 }
+thechannel: { min_lat: 49.0, max_lat: 53.0, min_lon: -1.0, max_lon: 4.0 }

@@ -907,6 +907,13 @@ nom (« R-40T*2,R-33*4 » pour un MiG-31), avec leurs pylônes — ce que prend 
 `add_air_group`, `create_qra` et `create_cap_mission`. Sans `unit_type`, la liste des types qui en ont.
 Lus dans `veaf_libs/data/payloads.yaml`, généré depuis une installation DCS
 (`veaf-build update-dcs-data --payloads --dcs-path <DCS>`) : le datamine n'a pas ces fichiers.
+Le générateur lit le dossier `UnitPayloads` de l'éditeur **et** celui de chaque module
+(`CoreMods/**/UnitPayloads`) : les avions de module (P-51D, P-47D, Fw 190, F-16C, FA-18C…) y sont. Il
+liste les rares fichiers qui sont du vrai Lua et non des données (un CLSID calculé depuis un `local`) et
+laisse leurs types de côté — le Spitfire n'a aucun fichier dans l'installation. Les deux bombardiers IA
+d'une mission WW2 n'en ont pas non plus : leurs emports par défaut (`Ju-88A4` « SC500*2,SC50*10 »,
+`B-17G` « M64*12 ») sont écrits à la main dans `veaf_libs/data/payloads-ai-bombers.yaml`, lus dans le
+`db.Units.lua` de l'installation.
 
 ```json
 {"unit_type": "MiG-31"}
@@ -920,18 +927,33 @@ plus les raccourcis `#command` (`-samLR`, `-armor`…) avec `randomParameters` :
 `{min, max}` de chaque paramètre tiré à chaque usage — `-samLR` et `-samSR` lancent la même
 commande et ne diffèrent que par leur plage `defense`. Filtrable par `name_contains`.
 
+Chaque entrée porte une `era`, lue dans ce qu'elle fait apparaître et jamais saisie à côté
+(`veaf_libs/shortcut_eras.py`) : `follows_era` (`-aaa`, `-samSR`, `-samLR`, `-samVLR`, `-armor`,
+`-infantry`, `-transport`, `-combat`, `-convoy`, `-cas` : les unités viennent de tables indexées par
+`mission.era`), `ww2` (`-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40`, `-wespe`), `post_ww2` (du
+matériel fixe d'une époque postérieure : `-ewr`, `-arty`, `-sa6`…), `era_free` (n'apparaît rien) ou
+`unknown` (`-jtac`, `-afac`, `-cargo` : non mesuré, donc non affirmé). `era` (`WW2`, `COLD_WAR`, `MODERN`)
+garde ce qui vaut d'être proposé dans une mission de cette époque. `validate` avertit d'un `#command` ou
+d'un `#veafInterpreter` à raccourci `post_ww2` dans une mission WW2.
+
 ### `describe_known_limitations`
 
 Lecture seule. Pour la version de veaf-tools en cours, les entrées de
 `veaf_libs/data/known-limitations.yaml` : les limites des outils pas encore corrigées
 (`kind: tool`, retirées à partir de la version de leur `fixed_in`) et les comportements de DCS qui
 ne lèvent aucune erreur (`kind: dcs`, toujours renvoyés, avec la date de leur mesure). Chaque
-entrée : `id`, `kind`, `area`, `title`, `symptom`, `workaround`, éventuellement `cost`. Filtre
-`kind` optionnel. Le fichier est la seule source : `docs/agents/dcs-runtime-traps.md` en est
-généré.
+entrée : `id`, `kind`, `area`, `title`, `symptom`, `workaround`, éventuellement `cost` et `theatres`. Le
+fichier est la seule source : `docs/agents/dcs-runtime-traps.md` en est généré.
+
+Le texte entier fait environ 74 000 caractères, plus qu'un résultat d'outil n'en porte. **Sans argument,
+l'action renvoie une liste courte** — `id`, `kind`, `area`, `title`, environ 12 000 caractères — et le nombre
+d'entrées de chaque `area`. Lisez en entier celles dont vous avez besoin avec `area` (`spawning`,
+`air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind`, `id` ou `ids`
+(une liste). `theatre` écarte les entrées qui ne concernent que d'autres théâtres (une entrée sans
+`theatres` vaut partout). `full: true` renvoie tout.
 
 ```json
-{"kind": "dcs"}
+{"area": "radio"}
 ```
 
 ### `describe_authoring_guide` (lot FEAT-AI-ASSISTANT-ANY-CLIENT)

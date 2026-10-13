@@ -73,6 +73,19 @@ Le niveau tiré est lui-même décalé de ±1 une fois sur cinq dans chaque sens
 | `-dogear` | Radar Dog Ear |
 | `-blue_ewr` | EWR F-117 Domed (US) |
 
+## Matériel de la WW2
+
+Matériel allemand de 1944–45, pour une mission avec `mission.era: WW2`. Les autres alias ci-dessus posent du matériel moderne quelle que soit l'époque (`-ewr` est un 55G6, `-arty` un M-109) : `-aaa`, `-samSR`, `-samLR`, `-samVLR`, `-armor`, `-infantry`, `-transport`, `-combat` et `-convoy` sont ceux qui suivent `mission.era`. L'action MCP `list_shortcuts` donne l'`era` de chaque alias, et `validate` avertit d'un alias moderne dans une mission WW2.
+
+| Alias | Description |
+|-------|-------------|
+| `-freya` | Radar d'alerte avancée Freya (FuMG-401) (DE) |
+| `-wurzburg` | Radar Würzburg-Riese (FuSe-65) (DE) |
+| `-flak88` | Batterie de quatre Flak 36 de 8,8 cm (DE) |
+| `-lefh` | Batterie d'obusiers de campagne leFH 18 de 105 mm (DE) |
+| `-pak40` | Batterie de canons antichars Pak 40 de 75 mm (DE) |
+| `-wespe` | Batterie d'obusiers automoteurs Wespe de 105 mm (DE) |
+
 ## Naval
 
 | Alias | Description |

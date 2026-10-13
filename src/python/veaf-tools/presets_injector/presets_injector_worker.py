@@ -115,6 +115,8 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         # unit_type → channel-1 frequency that was *not* promoted to the group's primary
         # because it falls outside the airframe's HumanRadio range; reported once per type.
         self._skipped_primary_promotions: dict[str, float] = {}
+        # The frequency such a group stays on, so the log says what the type got and not only what it did not.
+        self._kept_primary_frequencies: dict[str, float] = {}
         # AWACS and tankers no injected preset reaches; populated by process_groups().
         self.support_gaps: list[SupportFrequencyGap] = []
         super().__init__(config_file=presets_file, input_mission=input_mission, output_mission=output_mission)
@@ -204,6 +206,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                         unit_type = group.unit_type
                         if unit_type and not fits_human_radio(unit_type, first_freq):
                             self._skipped_primary_promotions[unit_type] = first_freq
+                            kept = group.group_dcs.get("frequency")
+                            if isinstance(kept, (int, float)):
+                                self._kept_primary_frequencies[unit_type] = float(kept)
                         else:
                             group.group_dcs["frequency"] = first_freq
 
@@ -270,6 +275,23 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             return True
         return len(validate_frequencies(group.unit_type, freqs)) < len(freqs)
 
+    def _describe_skipped_promotion(self, unit_type: str, freq: float) -> str:
+        """Say, for a type whose channel 1 could not become its primary frequency, what it got instead.
+
+        Args:
+            unit_type: The aircraft type.
+            freq: The channel 1 frequency that was not promoted, in MHz.
+
+        Returns:
+            ``"<type> (<freq> MHz, primary limited to a–b MHz, stays on <kept> MHz)"``, each part only when known.
+        """
+        parts = [f"{freq} MHz"]
+        if hr := get_human_radio(unit_type):
+            parts.append(f"primary limited to {hr.min_mhz}–{hr.max_mhz} MHz")
+        if (kept := self._kept_primary_frequencies.get(unit_type)) is not None:
+            parts.append(f"stays on {kept} MHz")
+        return f"{unit_type} ({', '.join(parts)})"
+
     def process_groups(self, silent: bool = False) -> None:
         """Inject presets into all human-piloted groups."""
         if not silent:
@@ -320,9 +342,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if not silent and self._skipped_primary_promotions:
             details = ", ".join(
-                f"{unit_type} ({freq} MHz, primary limited to {hr.min_mhz}–{hr.max_mhz} MHz)"
-                if (hr := get_human_radio(unit_type))
-                else f"{unit_type} ({freq} MHz)"
+                self._describe_skipped_promotion(unit_type, freq)
                 for unit_type, freq in sorted(self._skipped_primary_promotions.items())
             )
             logger.detail(t("presets_injector.primary_freq_not_promoted", details=details))

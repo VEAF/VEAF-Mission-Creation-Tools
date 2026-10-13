@@ -27,6 +27,7 @@ absent they are skipped (reported once as a warning).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -124,6 +125,8 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_static_shapes(mission)
     issues += _check_ctld_names(folder, yaml_data, mission)
     issues += _check_deployed_aircraft_routes(yaml_data, mission)
+    issues += _check_group_frequencies(mission)
+    issues += _check_shortcut_eras(yaml_data, mission)
     return issues
 
 
@@ -314,6 +317,108 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
     issues += _check_mission_is_playable(mission)
     issues += _check_waypoint_locks(mission)
 
+    return issues
+
+
+_SHORTCUT_ALIAS = re.compile(r"^\s*(-[\w]+)")
+
+
+def _check_shortcut_eras(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
+    """Warn about a ``#command`` / ``#veafInterpreter`` shortcut whose equipment did not exist in a WW2 mission.
+
+    ``-aaa``, ``-samLR``, ``-armor``… follow ``mission.era``; ``-sa6``, ``-ewr`` or ``-arty`` spawn the same modern
+    equipment whatever it says, and a mission built for 1944 carried them without a word
+    (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 05). Only a shortcut known to spawn post-WW2 equipment is reported:
+    an unknown one is not claimed.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml`` mapping (its ``mission.era`` wins over the detected one).
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per unit or group carrying such a shortcut; nothing in a mission that is not WW2.
+    """
+    from mission_builder.era_detector import detect_era
+
+    from veaf_libs import shortcut_eras
+    from veaf_libs.group_footprint import _TAG_COMMAND, _TAG_INTERPRETER
+
+    configured = (yaml_data.get("mission") or {}).get("era") if isinstance(yaml_data, dict) else None
+    era = str(configured).upper() if configured else detect_era(mission)
+    if era != "WW2":
+        return []
+    issues: list[ValidationIssue] = []
+    for name in _iter_object_names(mission):
+        commands = [m.group(1) for pattern in (_TAG_COMMAND, _TAG_INTERPRETER) for m in pattern.finditer(name)]
+        for command in commands:
+            alias = _SHORTCUT_ALIAS.match(command)
+            if alias and shortcut_eras.era_of_alias(alias.group(1)) == shortcut_eras.POST_WW2:
+                issues.append(
+                    ValidationIssue(WARNING, t("validate.shortcut_wrong_era", name=name, alias=alias.group(1)))
+                )
+    return issues
+
+
+def _iter_object_names(mission: dict) -> Iterable[str]:
+    """Yield the name of every group and every unit of the mission table, whatever its category."""
+    coalitions = mission.get("coalition") or {}
+    for coalition in coalitions.values() if isinstance(coalitions, dict) else []:
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            if not isinstance(country, dict):
+                continue
+            for category in CATEGORIES:
+                for group in indexed((country.get(category) or {}).get("group")):
+                    if not isinstance(group, dict):
+                        continue
+                    if isinstance(group.get("name"), str):
+                        yield group["name"]
+                    for unit in indexed(group.get("units")):
+                        if isinstance(unit, dict) and isinstance(unit.get("name"), str):
+                            yield unit["name"]
+
+
+def _check_group_frequencies(mission: dict) -> list[ValidationIssue]:
+    """Warn about an aircraft group whose frequency its airframe cannot tune.
+
+    The Mission Editor refuses to save such a group, and neither the build nor a test ever opens
+    the file in the editor: a P-51D or a Fw 190 written with 251 MHz built cleanly and could not be
+    saved (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 13). A warning, not an error: the build's
+    preset step rewrites the frequency of a player group it gives a plan, so the source table is
+    not always the last word.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per group, naming the first unit type whose range excludes the frequency.
+    """
+    from presets_injector.radio_frequency_validator import get_human_radio
+
+    issues: list[ValidationIssue] = []
+    for group in _iter_groups(mission):
+        frequency = group.get("frequency")
+        if not isinstance(frequency, (int, float)):
+            continue
+        for unit in indexed(group.get("units")):
+            human_radio = get_human_radio(str(unit.get("type"))) if isinstance(unit, dict) else None
+            if human_radio is not None and not human_radio.contains(float(frequency)):
+                issues.append(
+                    ValidationIssue(
+                        WARNING,
+                        t(
+                            "validate.group_frequency_untunable",
+                            group=group.get("name", "?"),
+                            unit_type=unit["type"],
+                            frequency=frequency,
+                            low=human_radio.min_mhz,
+                            high=human_radio.max_mhz,
+                            default=human_radio.default_mhz,
+                        ),
+                    )
+                )
+                break
     return issues
 
 

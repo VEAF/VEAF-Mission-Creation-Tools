@@ -17,6 +17,10 @@ veaf-tools version, what the tools cannot do yet (with how to do without) and th
 that raise no error and are wrong anyway — a late-activated group visible to scripts, `start_time`
 not delaying an air spawn, a SAM without early-warning radar permanently lit… Take them into account
 throughout; this skill deliberately does not repeat them, since a trap copied here would go stale.
+With no argument it returns a **short listing** (`id`, `kind`, `area`, `title`): the whole text is too
+long for one result. Then read the entries of the areas your mission uses with `area` (`spawning`,
+`air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), or any one
+with `id`; `theatre` drops what concerns other theatres only.
 
 Before naming a group, picking a unit type, or configuring a module, call the read-only oracle
 actions. They read VEAF's canonical, always-current data — your training memory of DCS types or
@@ -25,13 +29,18 @@ VEAF conventions may be stale or wrong.
 - `list_unit_types` — real DCS unit type ids (filter by category / name), with the weapon and sensor
   ranges DCS gives them (`threat_range_m`, `detection_range_m`).
 - `list_payloads` — the loadouts DCS offers an AI aircraft type, by name: what `payload` takes in
-  `add_air_group`, `create_qra` and `create_cap_mission`.
+  `add_air_group`, `create_qra` and `create_cap_mission`. The module aircraft (P-51D, Fw 190, F-16C…)
+  and the WW2 bombers (Ju-88A4, B-17G) are in; a type with none (a transport, the Spitfire) takes
+  `pylons` or `loadout_from`. A WW2 fighter needs neither: it fights with its guns.
 - `list_shortcuts` — VEAF spawn aliases. Three families: `units` (`shilka`, `sa8`), `groups`
   (composite SAM/convoy groups), and `commands` — the `#command` shortcuts (`-samVLR`, `-samLR`,
   `-armor`, random convoys, …), each with its `randomParameters`: the range of every parameter it
   draws on each use (`-samLR` and `-samSR` run the same command and differ only by their `defense`
   range). **This is the authoritative source for the `-<alias>` you put in a combat-zone
-  `#command`** — never guess an alias from memory (there is no `-lrsam`).
+  `#command`** — never guess an alias from memory (there is no `-lrsam`). Each entry carries an `era`:
+  `follows_era` (`-aaa`, `-samLR`, `-armor`, `-infantry`, `-transport`, `-convoy`: the units change
+  with `mission.era`), `ww2`, `post_ww2` (fixed modern equipment — `-ewr`, `-arty`, `-sa6` — wrong in
+  a WW2 mission), `era_free` or `unknown`; pass `era` (`WW2`…) to list only what fits the mission.
 - `describe_naming_conventions` — the reserved naming patterns (below).
 - `describe_module` — is a module real? its doc page? enabled in this mission?
 

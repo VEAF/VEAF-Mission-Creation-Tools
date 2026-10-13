@@ -40,6 +40,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **An air-start player slot flies the heading it was given** (FIX-AIR-SLOT-HEADING).
   `add_player_slot` wrote the heading on the unit only, and DCS orients an air start toward its second waypoint: an A-10 asked for 180° flew north.
   The slot now gets a second waypoint 10 km ahead on its heading, as the Mission Editor writes it; measured in DCS, 180° asked, 180.5° flown.
+- **A new aircraft group is written with a frequency its airframe can tune** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 13).
+  `add_air_group` and `add_player_slot` wrote 251 MHz on every group, and the Mission Editor refuses to save a P-51D (100–156 MHz) or a Fw 190 (38.4–42.4 MHz) written with it: three client groups of the Normandy Open Training could not be saved, and the build, `validate` and the tests never opened the file in the editor.
+  A group keeps 251 where its airframe can tune it, and takes the type's own default (124, 38.4) where it cannot; an explicit frequency it cannot tune is refused for a `Client` or `Player` group and warned about for an AI one. `create_qra` and `create_cap_mission` follow, and `validate` warns about a group already written out of range.
+- **A WW2 gun fighter is not « unarmed »** (ticket 02).
+  `add_air_group` warned about every P-51D, Spitfire, Bf 109 or Fw 190 given a fighting task and no pylons — 25 warnings on the Normandy Open Training, which hid a real one — though it fights with its guns.
+  The warning now spares the WW2 gun fighters; a Ju-88A4 with no bombs and a modern jet with no missiles still get it, and `loadout_from` a gun-only template copies « no pylons » instead of refusing.
+- **`list_payloads` knows the module aircraft and the WW2 bombers** (ticket 01).
+  The loadout table read only the Mission Editor's own files and none of the modules': it went from 45 to 129 types (P-51D, P-47D, Fw 190, Bf 109, F-16C, FA-18C…, 2 164 loadouts), and `Ju-88A4` and `B-17G` carry their raid loads from a small file of their own.
+  Seven module files compute their CLSIDs in real Lua and are listed by the generator rather than lost; the Spitfire has no loadout file at all.
+- **A WW2 mission is not given the 51 modern jets of the shipped spawnables catalogue** (ticket 03).
+  Under `mission.era: WW2` the build injects none of them and says so; under `COLD_WAR` it drops the MQ-9. A `src/spawnables.yaml` the maker wrote is injected as written.
+- **The WW2 tables of `veafCasMission` hold WW2 units** (ticket 04).
+  `-infantry`, `-combat` and the `_spawn infantrygroup` family put an M4-armed modern rifleman, or a Bradley, in front of a Tiger; they now draw `soldier_wwii_us`, `soldier_wwii_br_01`, `soldier_mauser98`, `M8_Greyhound` and `Daimler_AC`. The era sweep checks every WW2 entry against an allow-list.
+- **`geocode` says when it checked nothing** (ticket 11).
+  A theatre with no bounding box answered `in_theatre_bounds: true` — « Omaha Beach » came back from Iowa on Normandy. Nine boxes were added (every theatre of the projection table has one), and a theatre without one answers `null` with a warning.
+- **`describe_known_limitations` fits a tool result** (ticket 10).
+  The whole text is 74 000 characters; with no argument the action now returns a short listing (`id`, `kind`, `area`, `title`, about 12 000 characters), and `area`, `kind`, `id`, `theatre` or `full` return the entries in full.
+- **The sweep names a `dcs-serve` that died** (ticket 09).
+  A server that stopped during a survey session left the command silent until its 15-minute wait ran out; it now stops within a few seconds, naming the server, and says once at half time that the survey mission has not answered.
 
 ### Added
 
@@ -57,6 +76,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`validate_mission` warns about a group named for a combat zone but outside its circle** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 05).
   The zone takes a group only if its name starts with the zone's **and** a unit stands in the circle; with none inside, the zone picks up nothing and nothing shows in game.
   The warning names the group and the zone. A group named for no zone is never reported — the runtime leaves it alone wherever it stands.
+- **Parking data for Normandy** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 08).
+  3 716 stands on 90 airfields, captured in DCS on 2026-10-13: `add_air_group` and `create_qra` start a flight from the ramp or the runway on Normandy. `capture-map --parking` now ends with the command that slims its dump.
+- **`list_shortcuts` says which era a shortcut is correct for** (ticket 05).
+  Each unit, group and command carries an `era` — `follows_era` (`-aaa`, `-samLR`, `-armor`, `-infantry`, `-transport`, `-convoy`), `ww2`, `post_ww2` (`-ewr`, `-arty`, `-sa6`), `era_free` or `unknown` — read from what it spawns, and `era` filters the list.
+  `validate` warns about a `post_ww2` shortcut in a WW2 mission. Six WW2 shortcuts: `-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40`, `-wespe`.
+- **A primary frequency that was not promoted says what the type got instead** (ticket 06).
+  The build log named the channel a Fw 190 could not take as its primary frequency, not the one it stays on.
+
+### Documentation
+
+- **The Open Training prompt has a section for eras with no tanker, no helicopter or no SAM** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 12).
+  A table says what to leave out in WW2, what takes its place and which modules to switch off; the prompt also says the era comes before the template, that the terrain sweep and the parking capture run together, and that the known limitations are read as a short listing first.
 
 ## [6.29.0] — 2026-10-10
 

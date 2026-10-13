@@ -62,6 +62,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **An alias whose `country` is in no coalition no longer stops a combat zone** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14).
   `#command="-samSR, country germany"` in a mission whose red side holds Third Reich spawned neutral, found no Skynet network and stopped the zone on `networkName nil`: the zone's later elements never appeared.
   The spawn now takes the coalition of the unit that carries the command, with a warning, and skips the Skynet declaration with a warning when the side has no network; `validate` warns about the country (`thirdreich`, not `germany`).
+- **The WW2 shortcuts take the coalition of the unit that carries them** (ticket 05).
+  `-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40` and `-wespe` no longer name `country GERMANY`, which a Third Reich mission does not hold.
 
 ### Added
 

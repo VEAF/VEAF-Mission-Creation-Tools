@@ -148,3 +148,35 @@ def test_the_ww2_air_defence_groups_are_ww2() -> None:
     groups = {a: e["era"] for e in list_shortcuts()["groups"] for a in e["aliases"]}
     ww2_groups = {a: era for a, era in groups.items() if "-WW2-" in a}
     assert ww2_groups and set(ww2_groups.values()) == {shortcut_eras.WW2}
+
+
+class TestCommandCountry:
+    """FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14: `country germany` where red holds Third Reich."""
+
+    @staticmethod
+    def _mission(*names: str, red: tuple[int, ...] = (66,)) -> dict:
+        mission = _mission(*names)
+        mission["coalitions"] = {"red": list(red), "blue": [2, 3]}
+        return mission
+
+    def test_a_country_of_no_coalition_is_reported_with_the_ones_that_are(self) -> None:
+        from veaf_libs.mission_validator import _check_command_countries
+
+        issues = _check_command_countries(self._mission('#command="-samSR, country germany"'))
+        assert [i.level for i in issues] == [WARNING]
+        assert "germany" in issues[0].message and "thirdreich" in issues[0].message
+
+    def test_the_runtime_spelling_of_a_country_of_a_coalition_passes(self) -> None:
+        from veaf_libs.mission_validator import _check_command_countries
+
+        assert _check_command_countries(self._mission('#veafInterpreter["-samSR, country thirdreich"]')) == []
+
+    def test_a_command_with_no_country_passes(self) -> None:
+        from veaf_libs.mission_validator import _check_command_countries
+
+        assert _check_command_countries(self._mission('#veafInterpreter["-aaa"]')) == []
+
+    def test_a_mission_without_coalitions_is_not_judged(self) -> None:
+        from veaf_libs.mission_validator import _check_command_countries
+
+        assert _check_command_countries(_mission('#command="-samSR, country germany"')) == []

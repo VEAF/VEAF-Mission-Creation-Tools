@@ -12,7 +12,7 @@ What building the Falklands Open Training v6 found: the map missing from the the
 
 ### [FIX-OPEN-TRAINING-NORMANDY-FINDINGS](FIX-OPEN-TRAINING-NORMANDY-FINDINGS/PRD.md) · 🔄
 
-What building the Normandy 1944 Open Training v6 through the MCP found, the first WW2 mission built this way: the loadout table knew no module aircraft, a WW2 gun fighter was warned about as « unarmed », the shipped catalogue and the CAS tables put modern jets, a Bradley and an M4 rifleman into 1944, `list_shortcuts` said nothing of era, the editor refused to save groups written with 251 MHz, the known limitations overflowed a tool result, and `geocode` put « Omaha Beach » in Iowa. Thirteen tickets, one PR; twelve done, the thirteenth (ticket 07, `gun: 0` on ten slot templates) waits for DCS.
+What building the Normandy 1944 Open Training v6 through the MCP found, the first WW2 mission built this way: the loadout table knew no module aircraft, a WW2 gun fighter was warned about as « unarmed », the shipped catalogue and the CAS tables put modern jets, a Bradley and an M4 rifleman into 1944, `list_shortcuts` said nothing of era, the editor refused to save groups written with 251 MHz, the known limitations overflowed a tool result, and `geocode` put « Omaha Beach » in Iowa. Fifteen tickets; thirteen done in the first PR, ticket 07 (`gun: 0` on ten slot templates) waits for DCS, ticket 15 (a native convoy that drives at 5.1 m/s) goes to a later PR.
 
 ## 🧑 Waiting for a human
 

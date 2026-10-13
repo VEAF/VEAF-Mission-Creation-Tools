@@ -224,6 +224,7 @@ why.
 - Placed permanently through `#veafInterpreter["-<alias>, country <country>, hdg <heading>"]`.
   **Carrier = a unit of the class spawned** (the alias's launcher), so the editor shows the range
   ring. **Unique unit names**: a suffix after the tag (`… #<base>-01`).
+  **The country is one of the coalition's countries** (`thirdreich` for a Third Reich red side, not `germany`): a country of no coalition spawns neutral, with no Skynet network.
 
 ### 4.6 Training ranges — 3 families of 3 levels
 

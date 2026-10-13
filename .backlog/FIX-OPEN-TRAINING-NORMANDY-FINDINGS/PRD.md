@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-NORMANDY-FINDINGS — what building the Normandy 1944 Open Training v6 through the MCP found
 
-Status: 🔄 in-progress — tickets 01–06 and 08–13 done, 07 waits for DCS
+Status: 🔄 in-progress — tickets 01–06 and 08–14 done, 07 waits for DCS, 15 goes to a later PR
 
 Asked by David on 2026-10-13. The Normandy (WW2, 6 July 1944) Open Training v6 was built from scratch with the Open Training prompt (`.prompts/new-open-training-mission.fr.md`), the `veaf-mission-mcp` actions and the tools of `develop` (6.29.0), in `VEAF-Open-Training-Mission-Normandy-WW2-v6`. The prompt asks for a « Retours pour VMCT » block; this lot is that block. Every finding below was written down from the build; **read again in the code of `develop` before the work, six turned out to be wrong in part** (02, 06, 09, 11, 12, and 01's list of files), and each ticket says what was corrected.
 
@@ -13,6 +13,7 @@ Findings first, in the order they did harm:
 - a Fw 190 cannot tune the VHF band the plan gives it (06) and the red slot templates may hold no cannon ammunition (07);
 - the data and the commands around the DCS session: Normandy parking (08), a sweep that waits forever on a dead server (09), a limitations list too big for a tool result (10), a geocoder with no bounds for 8 theatres (11);
 - the prompt itself (12);
+- an alias whose `country` is in no coalition spawns neutral and stops a whole zone on `networkName nil` (14), and a native convoy that drives at 5.1 m/s whatever its route says (15, to measure);
 - a group frequency of 251 MHz that the Mission Editor refuses on a P-51D or a Fw 190 client group, which the build never sees (13).
 
 Not filed, already known and only recalled: `create_combat_zone` writes 20 km/h and an « Off Road » first point on convoy routes (Sinai retours 13; fixed here by editing the table, tools/gen_17_convois.py), the elevation grid being not shipped (Sinai 3), the missing `slim` step after `capture-map --parking` (Sinai 8), « Appuyez sur Entrée pour quitter… » from `inject-bridge` when called by a script (Sinai 10). `land.findPathOnRoads` finds no road from Vire: not VMCT, a property of the Normandy map.
@@ -32,6 +33,8 @@ Not filed, already known and only recalled: `create_combat_zone` writes 20 km/h 
 | 11 | [`theatre-bounds.yaml` covers four theatres](tickets/11-theatre-bounds-missing.md) | ✅ |
 | 12 | [The prompt for eras with no support aircraft](tickets/12-prompt-for-eras-without-support.md) | ✅ |
 | 13 | [`add_air_group` writes 251 MHz: the Mission Editor refuses to save a WW2 player group](tickets/13-air-group-frequency-in-radio-range.md) | ✅ |
+| 14 | [A `country` that belongs to no coalition makes a battery spawn neutral](tickets/14-alias-country-outside-coalition.md) | ✅ |
+| 15 | [A native convoy in a combat zone drives at 5.1 m/s](tickets/15-native-convoy-speed-in-a-zone.md) | ⬜ |
 
 Riskier than the rest, said in advance: 01 (new data from the install, two sources), 06 (the packer's band logic), 07 (needs DCS before a line is written).
 

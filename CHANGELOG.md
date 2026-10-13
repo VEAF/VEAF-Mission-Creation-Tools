@@ -59,6 +59,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The whole text is 74 000 characters; with no argument the action now returns a short listing (`id`, `kind`, `area`, `title`, about 12 000 characters), and `area`, `kind`, `id`, `theatre` or `full` return the entries in full.
 - **The sweep names a `dcs-serve` that died** (ticket 09).
   A server that stopped during a survey session left the command silent until its 15-minute wait ran out; it now stops within a few seconds, naming the server, and says once at half time that the survey mission has not answered.
+- **An alias whose `country` is in no coalition no longer stops a combat zone** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14).
+  `#command="-samSR, country germany"` in a mission whose red side holds Third Reich spawned neutral, found no Skynet network and stopped the zone on `networkName nil`: the zone's later elements never appeared.
+  The spawn now takes the coalition of the unit that carries the command, with a warning, and skips the Skynet declaration with a warning when the side has no network; `validate` warns about the country (`thirdreich`, not `germany`).
 
 ### Added
 

@@ -348,8 +348,8 @@ function veafSpawn.executeCommand(
 
         if not options.side then
           if options.country then
-            -- deduct the side from the country
-            options.side = veaf.getCoalitionForCountry(options.country, true)
+            -- deduct the side from the country (a country in no coalition spawns in the command's own)
+            options.side, options.country = veaf.resolveSideAndCountry(options.country, coalition)
           else
             options.side = coalition
           end
@@ -463,7 +463,13 @@ function veafSpawn.executeCommand(
                 if type(networkName) == "boolean" then --it means options.skynet is true
                   networkName = veafSkynet.defaultIADS[tostring(options.side)]
                 end
-                if options.skynet and not veafSkynet.integratesDynamicSpawns(networkName) then
+                if options.skynet and networkName == nil then
+                  -- no default network for this side: the group is spawned, only its declaration is skipped, so that
+                  -- a zone does not lose its remaining elements to an error (FIX-OPEN-TRAINING-NORMANDY-FINDINGS 14)
+                  veaf.loggers
+                    .get(veafSpawn.Id)
+                    :warn("no default Skynet network for side %s: the group is spawned and not declared to Skynet", veaf.p(options.side))
+                elseif options.skynet and not veafSkynet.integratesDynamicSpawns(networkName) then
                   veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.lp(options.skynet))
                   options.skynet = networkName
                   veaf.loggers.get(veafSpawn.Id):trace("Adding spawned group to skynet, networkName= %s", veaf.lp(networkName))

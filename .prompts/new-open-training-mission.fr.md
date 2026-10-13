@@ -227,6 +227,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - Posés en permanent via `#veafInterpreter["-<alias>, country <pays>, hdg <cap>"]`.
   **Porteur = une unité de la classe générée** (le lanceur de l'alias), pour que l'éditeur montre le
   cercle de portée. **Noms d'unités uniques** : suffixe après la balise (`… #<base>-01`).
+  **Le pays est un pays de la coalition** (`thirdreich` pour un rouge Troisième Reich, pas `germany`) : un pays d'aucune coalition fait apparaître le groupe neutre, sans réseau Skynet.
 
 ### 4.6 Zones d'entraînement — 3 familles de 3 niveaux
 

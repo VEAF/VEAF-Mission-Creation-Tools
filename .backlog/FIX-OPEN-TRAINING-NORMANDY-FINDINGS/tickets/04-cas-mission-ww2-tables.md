@@ -20,3 +20,9 @@ The era sweep (the test that checks every entry against the database) also check
 ## Done
 
 `INFANTRY_TYPES[BLUE|RED][WW2]` are now `soldier_wwii_us` / `soldier_wwii_br_01` and `soldier_mauser98`; `INFANTRY_IFV_TYPES[BLUE][WW2]` tiers 3 to 5 are `M8_Greyhound` and `Daimler_AC`. One correction: tiers 1-2 hold `APC M2A1 Halftrack`, the display name of `M2A1_halftrack` (the lookup takes either). The era sweep gained `test_every_ww2_entry_is_a_type_of_the_era`, with a short allow-list of WW2 types; it was checked to fail against the old tables.
+
+## Also measured: WW2 anti-aircraft guns cannot move
+
+On 2026-10-13, in DCS, `Unit:getDesc().speedMax` of every WW2 anti-aircraft type of the database is **0**: `flak18`, `flak30`, `flak36`, `flak37`, `flak38`, `flak41`, `bofors40`, `QF_37_AA`, `M1_37mm`, `M45_Quadmount` (against `Pz_IV_H` 10.6, `Sd_Kfz_251` 14.7, `Sd_Kfz_7` 13.9, `Sd_Kfz_234_2_Puma` 25, `M2A1_halftrack` 20 m/s). A convoy group holding one ran at 4-5 m/s instead of the 11 m/s written on its route (three convoys, 586 m in 120 s). `generateAirDefenseGroup-*-WW2-*` and any convoy whose `defense` adds air defence therefore build WW2 convoys that crawl; the era tables should give WW2 convoys no AA (or armed light vehicles), and the guide should say so.
+
+Not done in this lot: the DCA of the WW2 convoys (the era tables still give a convoy `defense` pieces that cannot move). It goes with ticket 15, which measures the convoy speed.

@@ -127,6 +127,7 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_deployed_aircraft_routes(yaml_data, mission)
     issues += _check_group_frequencies(mission)
     issues += _check_shortcut_eras(yaml_data, mission)
+    issues += _check_command_countries(mission)
     return issues
 
 
@@ -356,6 +357,57 @@ def _check_shortcut_eras(yaml_data: dict, mission: dict) -> list[ValidationIssue
                 issues.append(
                     ValidationIssue(WARNING, t("validate.shortcut_wrong_era", name=name, alias=alias.group(1)))
                 )
+    return issues
+
+
+_COMMAND_COUNTRY = re.compile(r"\bcountry\s+([A-Za-z0-9_ ]+?)\s*(?:,|$)")
+
+
+def _check_command_countries(mission: dict) -> list[ValidationIssue]:
+    """Warn about a ``#command`` or ``#veafInterpreter`` whose ``country`` is in no coalition of the mission.
+
+    ``country germany`` is the natural spelling of a German battery, and in a mission whose red side holds
+    ``Third Reich`` it names a country of no coalition: the spawn took the neutral side, no Skynet network matched
+    it and a combat zone stopped on ``networkName nil`` (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14). Nothing at
+    build time said so. Only a mission that carries its ``coalitions`` table is judged.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per carrier, naming the countries the coalitions hold.
+    """
+    from veaf_libs.dcs_countries import country_id_for_command_name, country_name_for_id
+    from veaf_libs.group_footprint import _TAG_COMMAND, _TAG_INTERPRETER
+
+    assigned = mission.get("coalitions") if isinstance(mission, dict) else None
+    if not isinstance(assigned, dict) or not assigned:
+        return []
+    in_a_coalition = {
+        country_id
+        for countries in assigned.values()
+        for country_id in map(_country_id, indexed(countries))
+        if country_id is not None
+    }
+    if not in_a_coalition:
+        return []
+    issues: list[ValidationIssue] = []
+    for name in _iter_object_names(mission):
+        for pattern in (_TAG_COMMAND, _TAG_INTERPRETER):
+            for command in (m.group(1) for m in pattern.finditer(name)):
+                found = _COMMAND_COUNTRY.search(command)
+                country_id = country_id_for_command_name(found.group(1)) if found else None
+                if found and country_id is not None and country_id not in in_a_coalition:
+                    held = ", ".join(
+                        "".join(ch for ch in (country_name_for_id(i) or str(i)).lower() if ch.isalnum())
+                        for i in sorted(in_a_coalition)
+                    )
+                    issues.append(
+                        ValidationIssue(
+                            WARNING,
+                            t("validate.command_country_in_no_coalition", name=name, country=found.group(1), held=held),
+                        )
+                    )
     return issues
 
 

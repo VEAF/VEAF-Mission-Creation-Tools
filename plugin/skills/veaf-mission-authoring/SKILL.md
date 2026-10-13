@@ -163,6 +163,9 @@ is not the one playing the zone.
   `#command="-sa6" FuldaGap-sa6`, `#veafInterpreter["-rapier, hdg 90"] #ramstein-01`.
 - **Alias options can be appended inside the tag**: `#veafInterpreter["-rapier, country germany,
   hdg 135"]` — country, heading and the other options of the underlying VEAF command.
+  **The country must be one of the countries of a coalition of the mission** (a Third Reich red side
+  is `country thirdreich`, not `germany`): a country of no coalition spawns neutral, with no Skynet
+  network. `validate_mission` warns about it.
 - **Reading an existing mission, read its UNIT names before judging a group.** A group that looks
   inert in the editor — a lone radar, a lone soldier — is often a carrier whose unit name spawns a
   full battery. Dump unit names (`describe_units`) before calling anything useless or deleting it.

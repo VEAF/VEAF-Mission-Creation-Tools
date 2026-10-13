@@ -1139,6 +1139,7 @@
   "validate.combat_zone_group_outside_circle": "Le groupe '{group}' porte le nom de la zone de combat '{zone}' mais aucune de ses unités n'est dans le cercle de la zone : la zone ne prend rien et rien ne se voit en jeu. Placez le groupe dans le cercle ou renommez-le.",
   "validate.group_frequency_untunable": "Le groupe '{group}' ({unit_type}) est écrit avec {frequency} MHz, que son avion ne peut pas accorder ({low}-{high} MHz) : le Mission Editor de DCS refuse d'enregistrer une mission qui contient un tel groupe. Mettez une fréquence dans la plage (celle du type est {default}), ou un plan de préréglages qui lui en donne une.",
   "validate.shortcut_wrong_era": "'{name}' lance le raccourci '{alias}', qui fait apparaître un équipement inexistant dans une mission WW2 et ne suit pas mission.era. Utilisez list_shortcuts(era=\"WW2\") pour les raccourcis qui conviennent, ou placez l'équipement par son type.",
+  "validate.command_country_in_no_coalition": "'{name}' dit `country {country}`, qui n'est dans aucune coalition de cette mission : le spawn prendrait le camp neutre, sans réseau Skynet. Les pays des coalitions sont : {held}.",
   "validate.unknown_airfield": "L'aérodrome '{airfield}' référencé par {section} est inconnu sur ce théâtre — vérifiez l'orthographe par rapport au nom de l'aérodrome dans le Mission Editor.",
   "validate.waypoints_no_aircraft": "waypoints.yaml est configuré mais la mission n'a aucun groupe d'aéronefs où injecter des waypoints.",
   "verifier.in_game.mismatch": "Lu {measured}, attendu {expected} - a verifier",

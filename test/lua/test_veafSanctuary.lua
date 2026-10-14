@@ -801,6 +801,31 @@ function TestSanctuaryHandleWeapon:test_a_target_already_destroyed_is_ignored()
   luaunit.assertEquals(self.checked, 0)
 end
 
+-- Privé 1, 2026-10-12: `weapon:getTarget()` returned an object with no `isExist` method, twelve times
+-- The object was not measured: what it is gets logged once per mission, so the next server log says it
+function TestSanctuaryHandleWeapon:test_a_target_with_no_isExist_method_is_ignored_and_logged_once()
+  local logger = veaf.loggers.get(veafSanctuary.Id)
+  local originalInfo = logger.info
+  local logged = {}
+  logger.info = function(_, text)
+    table.insert(logged, tostring(text))
+  end
+  veafSanctuary.targetWithNoIsExistLogged = false
+  local target = {
+    _category = Object.Category.SCENERY,
+  }
+  local weapon = _weapon({ launcher = _launcher(1, "Viper 1-1"), target = target })
+  local ok, err = pcall(self.zone.handleWeapon, self.zone, weapon)
+  local okAgain, errAgain = pcall(self.zone.handleWeapon, self.zone, weapon)
+  logger.info = originalInfo
+  veafSanctuary.targetWithNoIsExistLogged = false
+  luaunit.assertTrue(ok, tostring(err))
+  luaunit.assertTrue(okAgain, tostring(errAgain))
+  luaunit.assertEquals(self.checked, 0)
+  luaunit.assertEquals(#logged, 1)
+  luaunit.assertStrContains(logged[1], "Object.getCategory=5")
+end
+
 function TestSanctuaryHandleWeapon:test_a_guided_weapon_still_reaches_the_zone_check()
   local target = {
     isExist = function()

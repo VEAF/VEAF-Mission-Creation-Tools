@@ -72,6 +72,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A preset channel that lacks its list's band is reported** (ticket 05).
   Three UHF-only channels on Syria-v6's VHF `primary_2` list reached no aircraft for eight days while its README advertised them, the injector keeping their names where nothing read them.
   The build warns once per such channel, naming the coalition, the list, the channel and the band it lacks; the presets report lists them and `validate` says the same without building.
+- **The sanctuary no longer raises on a weapon whose target has no `isExist`** (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
+  Twelve player shots of the Sinai Open Training (Privé 1, 2026-10-12) logged `attempt to call method 'isExist' (a nil value)`: `weapon:getTarget()` returned an object without that method.
+  Such a target is now ignored — it is no player to protect — and its category is logged once per mission, since what it is has not been measured yet.
 
 ### Added
 

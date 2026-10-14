@@ -941,6 +941,30 @@ FIX-BUNDLE-LOCAL-LIMIT. In a hand-written `mission-script.lua`, keep state in a 
 *What it cost:* *Kolkhida* mission 1, rebuilt from `develop` the afternoon it was to be flown, loaded no VEAF
 module; no test had ever run the concatenated bundle.
 
+### `weapon:getTarget()` can return an object with no `isExist` method {#weapon-gettarget-object-with-no-isexist}
+
+Measured **2026-10-12**.
+
+On the Sinai Open Training of 2026-10-12 (dcs.veaf.org, Privé 1, VEAF 6.29.0), twelve player shots
+in 18 minutes made `target:isExist()` raise `attempt to call method 'isExist' (a nil value)` on
+the object `weapon:getTarget()` returned — although the scripting API documents `isExist` on every
+`Object`. What the object is was not measured: a scenery object is the hypothesis. A guard written
+`if not target or not target:isExist()` handles a weapon with no target and a target destroyed
+since, and still raises on this one.
+
+Measured on 2026-10-14 (Caucasus, single player, through the fiddle hook): an AI A-10C's four
+AGM-65D on a BTR-80 each got a complete `Unit` (`isExist` a function, `Object.getCategory` 1), at
+the shot and 2 s later. So the defect is not on a guided shot at a unit. The scenery and static
+cases could not be measured by AI: tasked with `AttackMapObject` on a house or `AttackUnit` on a
+static `Hangar A`, AI A-10Cs flew over, fired nothing and dropped their stores.
+
+**What to do:** Ask the object whether it has the method before calling it (`type(target.isExist) == "function"`),
+or call through the class (`Object.getCategory(target)`) inside `pcall`. Never assume
+`getTarget()` returns a unit.
+
+*What it cost:* The sanctuary's missile protection raised in the scheduler on each of those shots, and recorded
+none of them (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
+
 <!-- END GENERATED -->
 
 ## For script developers {#script-developers}

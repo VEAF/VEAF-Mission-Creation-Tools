@@ -54,6 +54,17 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R50. What `weapon:getTarget()` returns that has no `isExist` — **one pilot, or the next Open Training's log**
+
+[`FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST`](.backlog/FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md).
+On the Sinai Open Training of 2026-10-12 (Privé 1), twelve player shots got a target with no `isExist` method; the sanctuary now ignores such a target and logs once per mission `weapon target with no isExist method: Object.getCategory=…, Object.getName=…, type=…`.
+
+- **Without a session**: grep that line in the next server `dcs.log` of a mission built with the fix; the category answers it (5 = scenery, 1 = unit, 3 = static, 4 = base).
+- **Already measured, 2026-10-14**: an AI Maverick on a unit gets a complete `Unit`. AI would not fire on a house or a static, so the rest **needs a pilot**.
+- **In a session (a pilot, ~10 min)**: `Saved Games\DCS\Missions\TEST-getTarget-probe.miz` (blank Caucasus, USA/Russia) with an A-10C II air-start slot over Batumi added, Mavericks + GBU-12 + TGP; through the fiddle hook, run the S_EVENT_SHOT probe from `D:\dev\_VEAF\tmp\dcs-session-2026-10-14-gettarget\` (`fiddle.sh probe_install.lua`, then `probe_read.lua`) (it logs `getTarget()` at the shot and 2 s later, type, metatable, `Object.getCategory`) and spawn a house marker, a static hangar and a vehicle. Fire a Maverick locked on the house, a lased GBU-12 on the house, a Maverick on the hangar.
+  - **Line with category 5**: the scenery hypothesis holds; write the measurement into `weapon-gettarget-object-with-no-isexist` in `known-limitations.yaml`.
+  - **Line with category 1 or 3**: a unit or static came through with no methods — the sanctuary is then skipping real targets, and the guard must ask by `Object.getName` instead of returning; re-open the lot.
+
 ### R49. A dashed F10 drawing, and the game master slot from `mission.yaml` — **no pilot needed**
 
 [`FIX-OPEN-TRAINING-CAUCASUS-FINDINGS`](.backlog/FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md), ticket 03 (and a look at ticket 01 on the way).

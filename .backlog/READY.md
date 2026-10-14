@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST](FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md) · ⬜
-
-12 `attempt to call method 'isExist' (a nil value)` in the Privé 1 log of the Sinai Open Training (2026-10-12): `weapon:getTarget()` returns an object with no `isExist`, the sanctuary guard raises and the shot is not recorded. Measure what the object is, then guard by what it can answer. One ticket.
-
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 
 Broaden the shipped default radio presets, after phase 1 of the radio preset projection.

@@ -433,7 +433,7 @@ briefing, the theatre map first.
   the MCP has no action for it, note it in "Feedback for VMCT".
 - **F10 drawings** (`add_map_drawing`, so they survive the build): the front line, the sanctuaries,
   the support race-tracks, and **every zone with its outline as well as its name** — a circle at the
-  real radius for every combat zone, every training zone and every QRA, plus its label. A zone
+  real radius for every combat zone, every training zone and every QRA, plus its label; the arena dashed (`style: dash`) when the briefing map draws it so. A zone
   reduced to a name set at its centre does not say where it begins: the September 2026 Caucasus Open
   Training had 38 drawings, 10 lines and 28 labels, **not a single outline**. Each on the **layer of
   the side that must see it** (`Blue`, `Red`, or `Common` for what both share).

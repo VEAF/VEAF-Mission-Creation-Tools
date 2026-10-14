@@ -448,7 +448,7 @@ images dans le briefing de la mission, la carte générale d'abord.
 - **Dessins F10** (`add_map_drawing`, pour qu'ils survivent au build) : la ligne de front, les
   sanctuaires, les hippodromes de soutien, et **chaque zone avec son contour autant qu'avec son
   nom** — un cercle au rayon réel pour chaque zone de combat, chaque zone d'entraînement et chaque
-  QRA, plus son étiquette. Une zone réduite à un nom posé au centre ne dit pas où elle commence :
+  QRA, plus son étiquette ; l'arène en pointillés (`style: dash`) si la carte de briefing la dessine ainsi. Une zone réduite à un nom posé au centre ne dit pas où elle commence :
   l'Open Training Caucase de septembre 2026 avait 38 dessins, 10 traits et 28 étiquettes, **pas un
   seul contour**. Chacun sur la **couche du camp qui doit le voir** (`Blue`, `Red`, ou `Common` pour
   ce que les deux partagent).

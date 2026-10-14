@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-CAUCASUS-FINDINGS — what recompiling the Caucasus Open Training v6 in 6.29.0 found
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Asked by David on 2026-10-10.
 The Caucasus Open Training v6 (`VEAF-Open-Training-Mission-Caucasus-v6`, PR #3 there) was recompiled with the 6.29.0 release for the radio-menu measurement of `FEAT-RADIO-MENU-WATCH` ticket 03, then loaded in single player.
@@ -16,7 +16,7 @@ Not filed: the game master's empty VEAF menu, seen in the same session. It is VM
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Unattached roles and vehicle control set from mission.yaml](tickets/01-ground-control-roles.md) | ⬜ |
+| 01 | [Unattached roles and vehicle control set from mission.yaml](tickets/01-ground-control-roles.md) | ✅ |
 | 02 | [validate reports a CTLD catalogue gap, and a command fills it](tickets/02-ctld-catalogue-gap.md) | ⬜ |
 | 03 | [add_map_drawing takes a line style](tickets/03-drawing-line-style.md) | ⬜ |
 | 04 | [The presets report a mission commits names no machine path](tickets/04-presets-report-machine-paths.md) | ⬜ |

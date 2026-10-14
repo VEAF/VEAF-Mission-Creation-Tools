@@ -147,6 +147,7 @@ why.
 - **Language**: `mission.language: fr` and briefing in French — the VEAF servers' language — unless
   told otherwise.
 - `silence_atc_on_all_airbases: true`.
+- **Slots without an aircraft, as in v5**: `mission.ground_control` at 5 per role and per side (`game_master`, `tactical_commander`, `jtac`, `observer`) and `pilot_control_vehicles: true`. Without the block, the mission has no game master slot.
 - **Security on by default**: the mission runs on the VEAF servers. No `security.disabled: true` in
   the base configuration. Ask the user whether password hashes are needed, or whether the server's
   pilot levels are enough. **Never a password in clear**, not even in a comment next to its hash:

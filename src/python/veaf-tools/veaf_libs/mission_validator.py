@@ -20,6 +20,7 @@ Checks:
   9. a QRA / AIRWAVES ``CAP`` or ``Intercept`` group whose written route the runtime replaces (warning)
   10. a QRA definition with both ``simple_groups`` and ``groups_by_enemy_count`` (warning)
   11. an ``opposition:`` block the build would refuse                (error)
+  12. a ``mission.ground_control`` block the build would refuse      (error)
 
 Checks 4-9 read the unpacked source mission table (``src/mission/mission``); when it is
 absent they are skipped (reported once as a warning).
@@ -97,6 +98,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
 
     # 2e. the opposition level the build would refuse (FEAT-OPPOSITION-SCALES-WITH-PLAYERS)
     issues += _check_opposition(yaml_data)
+
+    # 2f. the mission.ground_control block the build would refuse
+    issues += _check_ground_control(yaml_data)
 
     # 3. custom_scripts files exist
     issues += _check_custom_scripts(folder, yaml_data)
@@ -181,6 +185,23 @@ def _check_opposition(yaml_data: dict) -> list[ValidationIssue]:
     except ValueError as error:
         return [ValidationIssue(ERROR, str(error))]
     return []
+
+
+def _check_ground_control(yaml_data: dict) -> list[ValidationIssue]:
+    """Report a ``mission.ground_control`` block the build would refuse, with the build's own messages.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml``.
+
+    Returns:
+        One error per fault (unknown role or side, a count that is not a natural number).
+    """
+    from mission_builder.ground_control import ground_control_errors
+
+    mission_cfg = yaml_data.get("mission")
+    if not isinstance(mission_cfg, dict) or mission_cfg.get("ground_control") is None:
+        return []
+    return [ValidationIssue(ERROR, m) for m in ground_control_errors(mission_cfg["ground_control"])]
 
 
 def _check_deployed_aircraft_routes(yaml_data: dict, mission: dict) -> list[ValidationIssue]:

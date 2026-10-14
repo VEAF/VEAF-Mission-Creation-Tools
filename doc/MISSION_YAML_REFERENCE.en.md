@@ -137,6 +137,8 @@ mission:
   language: fr                # in-game VEAF message language: fr | en (default: the tools' language)
   silence_atc_on_all_airbases: false  # mission-wide option: mute DCS ATC at every airbase
   third_party_mods: []        # third-party DCS mods to make non-blocking (see below)
+  ground_control:             # game master, JTAC… slots and vehicle control (see below)
+    game_master: 5
 ```
 
 | Field | Type | Default | Required | Description |
@@ -147,6 +149,7 @@ mission:
 | `silence_atc_on_all_airbases` | boolean | `false` | No | Mission-wide option: mute DCS ATC at every airbase (emits `veaf.silenceAtcOnAllAirbases()`). `convert-v5` migrates it from an active call and annotates its provenance |
 | `language` | string | *tools' language* | No | Language of in-game VEAF messages (`fr` \| `en`); emitted into `veaf-config.lua` as `veaf.config.language` and read by `veaf.t()`. When omitted, the build uses the tools' language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) |
 | `third_party_mods` | list of strings | `[]` | No | **Third-party** DCS mods (paid/community aircraft) to make **non-blocking**: their ids are removed from the `.miz`'s `requiredModules` table at build, so a pilot who does not own the mod can still **load** the mission (that slot is simply unavailable). The list is **unioned** with a VEAF default list covering the common mods (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — only declare mods not already handled. Not to be confused with VEAF *Modules* (the `modules:` block, which are capabilities, not DCS add-ons) |
+| `ground_control` | mapping | *absent* | No | Slots of the roles that fly no aircraft, and vehicle control — see [below](#ground-control) |
 
 #### The `.miz` file name is an interface — `_ICAO_<code>` and real weather {#icao-naming}
 
@@ -183,6 +186,30 @@ sixteen days, Bagram a day; six airfields have no station at all): either **omit
 RealWeather leaves the mission alone and the authored weather stands, or **take the least bad**
 and know what you are getting. The VEAF Foothold Afghanistan uses `OAIX` (Bagram, about a day
 behind) — a deliberate choice, not an oversight.
+
+#### `ground_control`: game master, JTAC, observer slots, and vehicle control {#ground-control}
+
+DCS keeps in the mission how many players may take each role that does not fly, on each side, and whether a pilot may drive ground vehicles.
+A v6 mission is born with none of these slots: no game master until they are opened.
+The block sets them at every build:
+
+```yaml
+mission:
+  ground_control:
+    game_master: 5             # "Game Master" (instructor in the mission)
+    tactical_commander: 5      # "Tactical Commander" (artillery_commander)
+    jtac: {blue: 5, red: 0}    # "JTAC/Operator" (forward_observer), per side
+    observer: 5                # "Observer"
+    pilot_control_vehicles: true  # a pilot may take control of ground vehicles
+```
+
+- A number applies to both sides; `{blue: n, red: m}` sets them apart.
+- A role, a side or `pilot_control_vehicles` the block does not name keeps the mission's value.
+- **Block absent: the build changes nothing**, a mission set up in the editor keeps its slots.
+- An unknown role or side, a negative number: `validate` reports it and the build stops.
+- Role passwords stay out of reach: written in `mission.yaml`, they would be committed in clear.
+
+The VEAF Open Training missions open 5 slots per role and per side, with vehicle control, as in v5.
 
 ---
 

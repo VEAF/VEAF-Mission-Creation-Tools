@@ -100,6 +100,22 @@ class TestMissionValidator(unittest.TestCase):
         folder = _make_folder("modules:\n  RADIO: true\n", mission_table=_MISSION_WITH_PLAYER)
         self.assertEqual(validate_mission_folder(folder), [])
 
+    def test_an_unknown_ground_control_role_is_an_error(self) -> None:
+        folder = _make_folder(
+            "mission:\n  ground_control:\n    game_master: 5\n    gamemaster: 5\n", mission_table=_MISSION_WITH_PLAYER
+        )
+        errors = [i.message for i in validate_mission_folder(folder) if i.level == ERROR]
+        self.assertEqual(len(errors), 1)
+        self.assertIn("gamemaster", errors[0])
+
+    def test_a_valid_ground_control_block_passes(self) -> None:
+        folder = _make_folder(
+            "mission:\n  ground_control:\n    game_master: 5\n    jtac: {blue: 2, red: 0}\n"
+            "    pilot_control_vehicles: true\n",
+            mission_table=_MISSION_WITH_PLAYER,
+        )
+        self.assertEqual(validate_mission_folder(folder), [])
+
     def test_tum_without_zones_warns(self) -> None:
         folder = _make_folder("modules:\n  TUM: true\n", mission_table=_MISSION_EMPTY)
         msgs = [i.message for i in validate_mission_folder(folder) if i.level == WARNING]

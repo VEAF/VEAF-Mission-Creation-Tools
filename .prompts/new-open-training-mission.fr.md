@@ -148,6 +148,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - `mission.era` et **date de mission** cohérentes avec l'époque.
 - **Langue** : `mission.language: fr` et briefing en français, sauf mention contraire.
 - `silence_atc_on_all_airbases: true`.
+- **Slots sans avion, comme en v5** : `mission.ground_control` à 5 par rôle et par camp (`game_master`, `tactical_commander`, `jtac`, `observer`) et `pilot_control_vehicles: true`. Sans ce bloc, la mission n'a aucun slot game master.
 - **Sécurité active par défaut** : la mission tourne sur les serveurs VEAF. Pas de
   `security.disabled: true` dans la configuration de base. Demande à l'utilisateur s'il faut des
   hachages de mot de passe, ou si le niveau des pilotes du serveur suffit. **Jamais un mot de passe

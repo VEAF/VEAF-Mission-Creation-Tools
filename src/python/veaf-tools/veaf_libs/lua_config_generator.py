@@ -220,6 +220,12 @@ def mission_identity_section(live_name: str | None = None) -> list[str]:
         "#                               # `[r]-<invented name>#<id>` instead of carrying its zone and",
         "#                               # type, so a player cannot read a zone's contents off the F10",
         "#                               # map. Set false while building or debugging a mission.",
+        "#   ground_control:               # slots of the roles that fly no aircraft, set at every build",
+        "#     game_master: 5              # a number applies to both sides; {blue: 5, red: 0} sets them apart",
+        "#     tactical_commander: 5",
+        "#     jtac: 5",
+        "#     observer: 5",
+        "#     pilot_control_vehicles: true  # a pilot may drive ground vehicles",
     ]
     return lines
 

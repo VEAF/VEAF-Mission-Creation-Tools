@@ -254,6 +254,7 @@
   "cmd.ctld_upgrade.opt.mission_folder": "Dossier contenant mission.yaml et ctld-config.yaml.",
   "cmd.ctld_upgrade.removed": "Réglages que le catalogue ne connaît plus, laissés en place (CTLD les ignore) : {keys}",
   "cmd.ctld_upgrade.title": "[bold green]veaf-tools mise à niveau de la configuration CTLD v{version}[/bold green]",
+  "cmd.ctld_upgrade.unreadable": "{file} n'est pas un dictionnaire YAML lisible : corrigez-le dans ctld-tools (validate dit où), rien n'a été modifié.",
   "cmd.ctld_upgrade.unused": "Non ajoutées, car elles changent le jeu — nouvelles clés dans des tables que la mission possède, à ajouter dans ctld-tools si besoin : {keys}",
   "cmd.ctld_upgrade.up_to_date": "[bold green]✓ {file} est déjà à la version du catalogue CTLD livré.[/bold green]",
   "cmd.scenery_objects.help": "Liste les objets de la carte (ponts, bâtiments de la carte elle-même) autour de points, avec l'identifiant DCS que prend le scenery_targets d'une zone de combat. Même déroulé que clear-ground-check : dcs-serve, mission d'arpentage vide, consignes, attente.",

@@ -282,7 +282,9 @@ def _check_ctld_catalogue(folder: Path, yaml_data: dict) -> list[ValidationIssue
         )
     ]
     if gap.removed:
-        issues.append(ValidationIssue(WARNING, t("validate.ctld_catalogue_removed", keys=", ".join(gap.removed), **versions)))
+        issues.append(
+            ValidationIssue(WARNING, t("validate.ctld_catalogue_removed", keys=", ".join(gap.removed), **versions))
+        )
     if gap.unused_features:
         issues.append(
             ValidationIssue(

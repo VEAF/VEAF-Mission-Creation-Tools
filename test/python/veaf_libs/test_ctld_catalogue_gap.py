@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 import yaml
 from ruamel.yaml import YAML
-
 from veaf_libs.ctld_config import (
     apply_veaf_overrides,
     find_catalogue_gap,
@@ -260,3 +259,22 @@ class TestCtldUpgradeCommand:
         result = CliRunner().invoke(app_mod.app, ["ctld-upgrade", str(_mission_folder(tmp_path, None))])
 
         assert result.exit_code == 1
+
+    def test_an_unreadable_configuration_fails_and_is_left_alone(self, tmp_path: Path) -> None:
+        from typer.testing import CliRunner
+        from veaf_tools import app as app_mod
+        from veaf_tools.commands import ctld_upgrade  # noqa: F401
+
+        folder = _mission_folder(tmp_path, "mm_facing: [unclosed\n")
+
+        result = CliRunner().invoke(app_mod.app, ["ctld-upgrade", str(folder)])
+
+        assert result.exit_code == 1
+        assert (folder / "ctld-config.yaml").read_bytes() == b"mm_facing: [unclosed\n"
+
+
+def test_a_catalogue_without_a_version_leaves_the_mission_version_alone() -> None:
+    upgraded = yaml.safe_load(upgrade_to_catalogue(_MISSION, _CATALOGUE.replace('configVersion: "2.2.0"\n', "")))
+
+    assert upgraded["configVersion"] == "2.0.0"
+    assert upgraded["mm_facing"]["newScalar"] is True

@@ -64,6 +64,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The spawn now takes the coalition of the unit that carries the command, with a warning, and skips the Skynet declaration with a warning when the side has no network; `validate` warns about the country (`thirdreich`, not `germany`).
 - **The WW2 shortcuts take the coalition of the unit that carries them** (ticket 05).
   `-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40` and `-wespe` no longer name `country GERMANY`, which a Third Reich mission does not hold.
+- **The committed presets report names no machine path and no day** (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 04).
+  `presets-validation-report.md` carried the build date and two absolute paths, so a build from a worktree, another machine or another day dirtied a committed file with no finding changed; it now names `src/presets.yaml` and the mission's base name, without the `.miz`'s date.
+- **A preset channel that lacks its list's band is reported** (ticket 05).
+  Three UHF-only channels on Syria-v6's VHF `primary_2` list reached no aircraft for eight days while its README advertised them, the injector keeping their names where nothing read them.
+  The build warns once per such channel, naming the coalition, the list, the channel and the band it lacks; the presets report lists them and `validate` says the same without building.
 
 ### Added
 
@@ -93,6 +98,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A route point takes its own `speed`, in m/s. A single stationary point, a ship and an aircraft are unchanged.
 - **Known limitation: no clear-ground catalogue on Falklands** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 07).
   15 of 176 vehicles of the Falklands Open Training stood in water or blocked; the « surface not checked » warning now also gives the `clear-ground-sweep` command.
+- **Game master, tactical commander, JTAC and observer slots from `mission.yaml`** (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 01).
+  A v6 mission was born with none of them and no vehicle control, and only an edit of `src/mission/mission` could change it: the Caucasus and GermanyCW Open Training had no game master slot.
+  `mission.ground_control` sets them at every build (`game_master: 5`, or `{blue: 5, red: 0}`, and `pilot_control_vehicles`); absent, the mission's own settings stay, and `validate` refuses an unknown role.
+- **`validate` reports a CTLD catalogue upgrade, and `veaf-tools mission ctld-upgrade` takes it** (ticket 02).
+  6.29.0 vendors CTLD catalogue 2.2.0, and a `ctld-config.yaml` written against 2.0.0 was only noticed in game, CTLD telling the players three settings were missing.
+  `validate` now lists the settings the file lacks, those the catalogue dropped, and the new keys inside tables the mission holds; the command adds the missing settings at their default and changes no existing value nor any list.
+- **`add_map_drawing` takes a line style** (ticket 03).
+  One of DCS's sixteen (`dash`, `dot`, `dotdash`, `boundry1`…) on every shape but a textbox, `solid` by default: the Caucasus arena, dashed on the briefing map, had to be a solid circle on the F10 map.
 
 ### Documentation
 

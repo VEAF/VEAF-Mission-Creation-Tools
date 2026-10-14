@@ -28,8 +28,8 @@ import pytest
 from mission_tools.miz_tools import read_miz
 from veaf_mission_mcp.map_drawings import (
     _MEASURED_SHAPES,
-    LINE_STYLES,
     _REFUSED_SHAPES,
+    LINE_STYLES,
     add_map_drawing,
     edit_map_drawing,
 )
@@ -578,6 +578,13 @@ class TestLineStyle:
         )
         catalog.run_action(
             "add_map_drawing",
-            {"miz_path": str(miz), "layer": "Blue", "shape": "circle", "name": "X", "style": "dash", **self._SHAPES["circle"]},
+            {
+                "miz_path": str(miz),
+                "layer": "Blue",
+                "shape": "circle",
+                "name": "X",
+                "style": "dash",
+                **self._SHAPES["circle"],
+            },
         )
         assert _objects(miz, "Blue")[-1]["style"] == "dash"

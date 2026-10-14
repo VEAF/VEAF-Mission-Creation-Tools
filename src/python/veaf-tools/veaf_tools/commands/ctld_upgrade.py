@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import typer
+import yaml
 from veaf_libs.paths import resolve_path
 
 from veaf_tools.app import (
@@ -46,6 +47,13 @@ def ctld_upgrade(
     raw = config_path.read_bytes().decode("utf-8")
     newline = "\r\n" if "\r\n" in raw else "\n"
     current = raw.replace("\r\n", "\n")
+    try:
+        readable = isinstance(yaml.safe_load(current), dict)
+    except yaml.YAMLError:
+        readable = False
+    if not readable:
+        console.print(f"[red]✗[/]  {t('cmd.ctld_upgrade.unreadable', file=config_path)}")
+        raise typer.Exit(code=1)
     gap = find_catalogue_gap(current, catalogue)
     if gap is None:
         console.print(t("cmd.ctld_upgrade.up_to_date", file=CTLD_CONFIG_FILENAME))

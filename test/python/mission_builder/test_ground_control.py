@@ -6,7 +6,6 @@ from types import SimpleNamespace
 
 import pytest
 import typer
-
 from mission_builder.ground_control import apply_ground_control, ground_control_errors
 from mission_builder_factory import make_worker
 
@@ -140,4 +139,6 @@ class TestApplyGroundControlWiring:
             self._worker(content, {"mission": {"ground_control": {"game_masters": 5}}}).apply_ground_control()
 
     def test_no_dcs_mission_is_a_noop(self) -> None:
-        make_worker(dcs_mission=None, mission_yaml={"mission": {"ground_control": {"game_master": 5}}}).apply_ground_control()
+        make_worker(
+            dcs_mission=None, mission_yaml={"mission": {"ground_control": {"game_master": 5}}}
+        ).apply_ground_control()

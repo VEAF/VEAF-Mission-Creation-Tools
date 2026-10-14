@@ -96,7 +96,9 @@ class TestParseChannelLists(unittest.TestCase):
         set_language("en")
         manager = PresetsManager()
         manager.channel_lists_dropped = {
-            "blue": {"primary_2": [DroppedChannel("12", "S-3B Stennis", "vhf"), DroppedChannel("14", "Darkstar 1", "vhf")]}
+            "blue": {
+                "primary_2": [DroppedChannel("12", "S-3B Stennis", "vhf"), DroppedChannel("14", "Darkstar 1", "vhf")]
+            }
         }
         warnings = manager.dropped_channel_warnings()
         self.assertEqual(len(warnings), 2)

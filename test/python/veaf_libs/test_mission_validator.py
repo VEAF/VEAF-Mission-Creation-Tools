@@ -398,7 +398,9 @@ channel_lists:
 
     def _warnings(self, presets: str, mission_yaml: str = "modules: {}\n") -> list[str]:
         folder = _make_folder(mission_yaml, _MISSION_WITH_PLAYER, {"src/presets.yaml": presets})
-        return [i.message for i in validate_mission_folder(folder) if i.level == WARNING and "channel_lists" in i.message]
+        return [
+            i.message for i in validate_mission_folder(folder) if i.level == WARNING and "channel_lists" in i.message
+        ]
 
     def test_a_uhf_only_channel_on_primary_2_is_reported(self) -> None:
         warnings = self._warnings(self._PRESETS)

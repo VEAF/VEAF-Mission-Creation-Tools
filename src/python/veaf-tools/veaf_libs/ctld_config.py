@@ -401,11 +401,12 @@ def upgrade_to_catalogue(mission_config: str, catalogue: str) -> str:
         position = list(section).index(preceding[-1]) + 1 if preceding else 0
         section.insert(position, key, reference[section_name][key])
 
-    version = DoubleQuotedScalarString(gap.catalogue_version or "")
-    if "configVersion" in document:
-        document["configVersion"] = version
-    else:
-        document.insert(0, "configVersion", version)
+    if gap.catalogue_version is not None:
+        version = DoubleQuotedScalarString(gap.catalogue_version)
+        if "configVersion" in document:
+            document["configVersion"] = version
+        else:
+            document.insert(0, "configVersion", version)
 
     stream = io.StringIO()
     ruamel.dump(document, stream)

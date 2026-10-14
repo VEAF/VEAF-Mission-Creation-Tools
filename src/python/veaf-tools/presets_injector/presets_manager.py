@@ -848,7 +848,9 @@ def _build_role_list(
     skipped: list[DroppedChannel] = []
     for channel_name, channel_data in (channels_data or {}).items():
         if not radio.add_channel_from_dict(channel_name, channel_data, channel_collections, strict=False):
-            skipped.append(DroppedChannel(str(channel_name), _channel_label(channel_name, channel_data, channel_collections), band))
+            skipped.append(
+                DroppedChannel(str(channel_name), _channel_label(channel_name, channel_data, channel_collections), band)
+            )
     return radio, skipped
 
 

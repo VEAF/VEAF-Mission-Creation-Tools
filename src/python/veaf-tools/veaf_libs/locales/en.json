@@ -254,6 +254,7 @@
   "cmd.ctld_upgrade.opt.mission_folder": "Folder containing mission.yaml and ctld-config.yaml.",
   "cmd.ctld_upgrade.removed": "Settings the catalogue no longer knows, left in place (CTLD ignores them): {keys}",
   "cmd.ctld_upgrade.title": "[bold green]veaf-tools CTLD configuration upgrade v{version}[/bold green]",
+  "cmd.ctld_upgrade.unreadable": "{file} is not a readable YAML mapping: fix it in ctld-tools (validate says where), nothing was changed.",
   "cmd.ctld_upgrade.unused": "Not added, since they change the game — new keys inside tables the mission holds, to add in ctld-tools if wanted: {keys}",
   "cmd.ctld_upgrade.up_to_date": "[bold green]✓ {file} is already at the vendored CTLD catalogue's version.[/bold green]",
   "cmd.scenery_objects.help": "List the map objects (bridges, buildings of the map itself) around points, with the DCS id a combat zone's scenery_targets takes. Same flow as clear-ground-check: dcs-serve, empty survey mission, instructions, waiting.",

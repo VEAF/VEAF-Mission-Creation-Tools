@@ -516,7 +516,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             t("presets_injector.report.title"),
             "",
             f"{t('presets_injector.report.presets_file', path=_report_path(self.presets_file, output_path.parent))}  ",
-            t("presets_injector.report.mission", path=mission_label or _report_path(self.input_mission, output_path.parent)),
+            t(
+                "presets_injector.report.mission",
+                path=mission_label or _report_path(self.input_mission, output_path.parent),
+            ),
             "",
         ]
 

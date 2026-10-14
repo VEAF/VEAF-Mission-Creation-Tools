@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-CAUCASUS-FINDINGS — what recompiling the Caucasus Open Training v6 in 6.29.0 found
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 Asked by David on 2026-10-10.
 The Caucasus Open Training v6 (`VEAF-Open-Training-Mission-Caucasus-v6`, PR #3 there) was recompiled with the 6.29.0 release for the radio-menu measurement of `FEAT-RADIO-MENU-WATCH` ticket 03, then loaded in single player.

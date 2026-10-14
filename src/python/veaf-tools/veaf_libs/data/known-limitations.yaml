@@ -1426,3 +1426,23 @@ limitations:
   cost: |
     The A-10 of the FIX-FARP-PLACEMENT test mission started heading away from the FARP it was meant to
     look at, and had to turn back over 40 km.
+
+- id: weapon-gettarget-object-with-no-isexist
+  kind: dcs
+  area: scripting
+  title: "`weapon:getTarget()` can return an object with no `isExist` method"
+  measured: "2026-10-12"
+  symptom: |
+    On the Sinai Open Training of 2026-10-12 (dcs.veaf.org, Privé 1, VEAF 6.29.0), twelve player shots
+    in 18 minutes made `target:isExist()` raise `attempt to call method 'isExist' (a nil value)` on
+    the object `weapon:getTarget()` returned — although the scripting API documents `isExist` on every
+    `Object`. What the object is was not measured: a scenery object is the hypothesis. A guard written
+    `if not target or not target:isExist()` handles a weapon with no target and a target destroyed
+    since, and still raises on this one.
+  workaround: |
+    Ask the object whether it has the method before calling it (`type(target.isExist) == "function"`),
+    or call through the class (`Object.getCategory(target)`) inside `pcall`. Never assume
+    `getTarget()` returns a unit.
+  cost: |
+    The sanctuary's missile protection raised in the scheduler on each of those shots, and recorded
+    none of them (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).

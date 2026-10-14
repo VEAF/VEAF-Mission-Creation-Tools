@@ -54,6 +54,16 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R48. What `weapon:getTarget()` returns that has no `isExist` — **one pilot, or the next Open Training's log**
+
+[`FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST`](.backlog/FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md).
+On the Sinai Open Training of 2026-10-12 (Privé 1), twelve player shots got a target with no `isExist` method; the sanctuary now ignores such a target and logs once per mission `weapon target with no isExist method: Object.getCategory=…, Object.getName=…, type=…`.
+
+- **Without a session**: grep that line in the next server `dcs.log` of a mission built with the fix; the category answers it (5 = scenery, 1 = unit, 3 = static, 4 = base).
+- **In a session**: a mission with a sanctuary zone (`protectFromMissiles`), a player A-10C of the other coalition, fire a laser-guided bomb on a building, then a Maverick on a vehicle, with the trace on (`veafSanctuary.RecordTraceShooting = true`).
+  - **Line with category 5**: the scenery hypothesis holds; write the measurement into `weapon-gettarget-object-with-no-isexist` in `known-limitations.yaml`.
+  - **Line with category 1 or 3**: a unit or static came through with no methods — the sanctuary is then skipping real targets, and the guard must ask by `Object.getName` instead of returning; re-open the lot.
+
 ### R47. What *Kolkhida* mission 1 found, once fixed — **a pilot for items 1 to 3, two for item 7**
 
 [`FIX-CAMPAIGN-MISSION-1-FINDINGS`](.backlog/FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md), and ticket 02 of [`FIX-CAPTURE-ZONE-MEMBERSHIP`](.backlog/FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md).

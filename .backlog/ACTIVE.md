@@ -16,6 +16,10 @@ What building the Normandy 1944 Open Training v6 through the MCP found, the firs
 
 ## 🧑 Waiting for a human
 
+### [FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST](FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md) · 🧑
+
+12 `attempt to call method 'isExist' (a nil value)` in the Privé 1 log of the Sinai Open Training (2026-10-12): `weapon:getTarget()` returned an object with no `isExist`. The sanctuary now ignores such a target and logs its category once per mission. Left: what the object is, from the next server log or a session (`DCS-SESSION-TODO.md` R48).
+
 ### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · 🧑
 
 A FARP placed in the jungle and on a slope with no warning (Marianas OT v6, seen in game). `add_farp` now checks its pad for trees (moved off them within 1 km, or `keep_position`) and slope (more than 3 m over 40 m) and says what it could not check; `veaf-tools dcs farp-spot` finds a flat, clear spot in DCS (#1125). Clearing the trees by trigger removed nothing in DCS and was taken out (ticket 02, two known limitations). Left: one live `farp-spot` run.

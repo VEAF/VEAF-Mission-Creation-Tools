@@ -1,6 +1,6 @@
 # FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST — a weapon whose target has no `isExist` raises in the sanctuary
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 ## Found
 
@@ -16,10 +16,14 @@ The same log produced two other findings, each in its own repository: Skynet (`V
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-guard-by-what-the-target-answers.md) | Measure the object, then guard by what it can answer | ⬜ |
+| [01](tickets/01-guard-by-what-the-target-answers.md) | Measure the object, then guard by what it can answer | 🧑 |
 
 ## Definition of done
 
 - A Lua test where the mocked target has no `isExist`; the existing test for a target destroyed since stays green.
 - The ticket says what the object was, measured, not assumed.
 - `CHANGELOG.md` entry under `[Unreleased]`.
+
+## Outcome
+
+Code done (ticket 01); what the object is waits for the next server log or `DCS-SESSION-TODO.md` R48.

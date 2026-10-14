@@ -64,6 +64,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The spawn now takes the coalition of the unit that carries the command, with a warning, and skips the Skynet declaration with a warning when the side has no network; `validate` warns about the country (`thirdreich`, not `germany`).
 - **The WW2 shortcuts take the coalition of the unit that carries them** (ticket 05).
   `-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40` and `-wespe` no longer name `country GERMANY`, which a Third Reich mission does not hold.
+- **The sanctuary no longer raises on a weapon whose target has no `isExist`** (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
+  Twelve player shots of the Sinai Open Training (Privé 1, 2026-10-12) logged `attempt to call method 'isExist' (a nil value)`: `weapon:getTarget()` returned an object without that method.
+  Such a target is now ignored — it is no player to protect — and its category is logged once per mission, since what it is has not been measured yet.
 
 ### Added
 

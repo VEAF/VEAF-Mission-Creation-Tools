@@ -40,7 +40,7 @@ from veaf_mission_mcp.edit_veaf_config import (
 from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
-from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
+from veaf_mission_mcp.map_drawings import LINE_STYLES, add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import (
     describe_map,
     list_airfields,
@@ -683,6 +683,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "fill_color": {"type": "string", "description": "Fill colour, same format."},
                     "thickness": {"type": "number"},
                     "font_size": {"type": "integer", "description": "For a textbox."},
+                    "style": {
+                        "type": "string",
+                        "enum": list(LINE_STYLES),
+                        "default": "solid",
+                        "description": (
+                            "Outline style -- 'dash' or 'dot' for a zone that must not read like any other. "
+                            "Every shape but a textbox, which refuses it."
+                        ),
+                    },
                 },
                 "required": ["miz_path", "layer", "shape", "name"],
             },
@@ -2868,6 +2877,7 @@ def _handle_add_map_drawing(params: dict[str, Any]) -> dict[str, Any]:
         fill_color=params.get("fill_color"),
         thickness=params.get("thickness"),
         font_size=params.get("font_size"),
+        style=params.get("style"),
     )
 
 

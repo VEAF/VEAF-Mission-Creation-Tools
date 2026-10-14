@@ -147,6 +147,7 @@ why.
 - **Language**: `mission.language: fr` and briefing in French — the VEAF servers' language — unless
   told otherwise.
 - `silence_atc_on_all_airbases: true`.
+- **Slots without an aircraft, as in v5**: `mission.ground_control` at 5 per role and per side (`game_master`, `tactical_commander`, `jtac`, `observer`) and `pilot_control_vehicles: true`. Without the block, the mission has no game master slot.
 - **Security on by default**: the mission runs on the VEAF servers. No `security.disabled: true` in
   the base configuration. Ask the user whether password hashes are needed, or whether the server's
   pilot levels are enough. **Never a password in clear**, not even in a comment next to its hash:
@@ -432,7 +433,7 @@ briefing, the theatre map first.
   the MCP has no action for it, note it in "Feedback for VMCT".
 - **F10 drawings** (`add_map_drawing`, so they survive the build): the front line, the sanctuaries,
   the support race-tracks, and **every zone with its outline as well as its name** — a circle at the
-  real radius for every combat zone, every training zone and every QRA, plus its label. A zone
+  real radius for every combat zone, every training zone and every QRA, plus its label; the arena dashed (`style: dash`) when the briefing map draws it so. A zone
   reduced to a name set at its centre does not say where it begins: the September 2026 Caucasus Open
   Training had 38 drawings, 10 lines and 28 labels, **not a single outline**. Each on the **layer of
   the side that must see it** (`Blue`, `Red`, or `Common` for what both share).

@@ -371,6 +371,10 @@ needs an in-game round-trip to learn whether DCS recomputes the outline (its own
 needs a `file` from the editor's icon set (e.g. `P91000007.png`), which nothing here enumerates, and an
 unvalidated name renders as nothing. `chevron` was removed — it is not a DCS editor tool.
 
+**Line style** (`style`, FIX-OPEN-TRAINING-CAUCASUS-FINDINGS): one of DCS's sixteen styles — `solid` (default), `solid2`, `dot`, `dot2`, `dotdash`, `dash`, `cross`, `square`, `strongpoint`, `triangle`, `wirefence`, `boundry1` to `boundry5`, DCS's spelling included.
+It applies to every shape but `textbox`, which refuses it; a name outside the list is refused with the list.
+Measured in the editor's `me_draw_panel.lua`: the mission stores the style's name alone, and the editor derives the texture from it on load — an unknown name would make that fail.
+
 The **layer** is a first-class parameter, never a default: a drawing on the wrong layer is invisible to
 the pilots who need it and visible to the ones who should not see it.
 

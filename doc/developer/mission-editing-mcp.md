@@ -384,6 +384,10 @@ ticket) ; un `icon` réclame un `file` du jeu d'icônes de l'éditeur (p. ex. `P
 donnée du dépôt n'énumère, et un nom non validé ne s'affiche pas. `chevron` a été retiré : il n'existe
 pas dans l'éditeur DCS.
 
+**Style de trait** (`style`, FIX-OPEN-TRAINING-CAUCASUS-FINDINGS) : l'un des seize styles de DCS — `solid` (défaut), `solid2`, `dot`, `dot2`, `dotdash`, `dash`, `cross`, `square`, `strongpoint`, `triangle`, `wirefence`, `boundry1` à `boundry5`, orthographe de DCS comprise.
+Il vaut pour toutes les formes sauf `textbox`, qui le refuse ; un nom hors liste est refusé avec la liste.
+Mesuré dans `me_draw_panel.lua` de l'éditeur : la mission ne stocke que le nom du style, l'éditeur en déduit la texture au chargement — un nom inconnu l'y ferait échouer.
+
 La **couche** est un paramètre de première classe, jamais une valeur par défaut : un dessin sur la
 mauvaise couche est invisible pour les pilotes qui en ont besoin et visible pour ceux qui ne devraient
 pas le voir.

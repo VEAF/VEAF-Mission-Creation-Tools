@@ -63,6 +63,24 @@ def _is_valid_primary_frequency_for_unit(unit_type: str | None, freq_mhz: float)
     return is_strict(unit_type) and bool(validate_frequency(unit_type, freq_mhz))
 
 
+def _report_path(path: Path | None, base: Path) -> str:
+    """Name *path* in a committed report: relative to *base* when inside it, absolute otherwise.
+
+    Args:
+        path: The file to name; ``None`` when there is none.
+        base: The report's folder.
+
+    Returns:
+        A POSIX relative path (``src/presets.yaml``), or the path as given when it lies outside *base*.
+    """
+    if path is None:
+        return "—"
+    try:
+        return path.resolve().relative_to(base.resolve()).as_posix()
+    except ValueError:
+        return str(path)
+
+
 @dataclass
 class _PendingFreqWarning:
     """Aggregated data for a deferred radio-frequency warning keyed by unit_type."""
@@ -467,23 +485,29 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         """
         return self._freq_issues
 
-    def generate_validation_report(self, output_path: Path) -> int:
+    def generate_validation_report(self, output_path: Path, mission_label: str | None = None) -> int:
         """Write a Markdown validation report of all radio frequency issues to output_path.
 
         Reports every aircraft type with out-of-range preset frequencies, split into two sections:
         - Critical (dcs_rejects_on_load): DCS will reject the mission at load.
         - Informational: DCS stores but ignores the frequencies.
 
+        Missions commit this report, so it names no machine and no day: no date, and a file inside the
+        report's folder is named relative to it (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 04). The
+        same findings from another worktree, machine or day write the same bytes.
+
         Args:
             output_path: Destination .md file.
+            mission_label: How to name the mission; the build passes its base name, since the ``.miz``
+                carries the build date. ``None`` names the input mission's file.
 
-        Also lists the AWACS and tankers no preset reaches (`support_gaps`).
+        Also lists the AWACS and tankers no preset reaches (`support_gaps`), and each channel a
+        channel list drops for lacking its band.
 
         Returns:
-            Total number of issues found, support gaps included (0 means all presets are valid).
+            Total number of issues found, support gaps and dropped channels included (0 means all
+            presets are valid).
         """
-        from datetime import date
-
         issues = self.collect_freq_issues()
         strict_issues = [i for i in issues if i.strict]
         info_issues = [i for i in issues if not i.strict]
@@ -491,9 +515,11 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         lines: list[str] = [
             t("presets_injector.report.title"),
             "",
-            f"{t('presets_injector.report.generated', date=date.today().isoformat())}  ",
-            f"{t('presets_injector.report.presets_file', path=self.presets_file)}  ",
-            t("presets_injector.report.mission", path=self.input_mission),
+            f"{t('presets_injector.report.presets_file', path=_report_path(self.presets_file, output_path.parent))}  ",
+            t(
+                "presets_injector.report.mission",
+                path=mission_label or _report_path(self.input_mission, output_path.parent),
+            ),
             "",
         ]
 
@@ -555,7 +581,13 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             lines += [f"| `{g.group_name}` | {g.task} | {g.freq_mhz} | {g.coalition} |" for g in self.support_gaps]
             lines.append("")
 
-        total = len(issues) + len(self.support_gaps)
+        dropped = self.presets_manager.dropped_channel_warnings()
+        if dropped:
+            lines += [t("presets_injector.report.section_dropped"), ""]
+            lines += [f"- {message}" for message in dropped]
+            lines.append("")
+
+        total = len(issues) + len(self.support_gaps) + len(dropped)
         if not total:
             lines += [t("presets_injector.report.all_valid"), ""]
 
@@ -580,6 +612,21 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
+    def warn_dropped_channels(self) -> int:
+        """Warn once per channel a channel list drops for lacking its band: it reaches no aircraft.
+
+        The drop was recorded and never read: three UHF-only channels on Syria-v6's VHF ``primary_2``
+        list reached no aircraft for eight days while the README advertised them
+        (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 05).
+
+        Returns:
+            The number of warnings given.
+        """
+        messages = self.presets_manager.dropped_channel_warnings()
+        for message in messages:
+            logger.warning(message)
+        return len(messages)
+
     def work(self, silent: bool = False) -> None:  # type: ignore[override]
         """Main work function."""
         with spinner_context(t("group_injector.spinner.reading", path=self.input_mission), silent=silent):
@@ -591,6 +638,8 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         with spinner_context(t("presets_injector.spinner.processing_groups"), silent=silent):
             self.process_groups(silent)
+
+        self.warn_dropped_channels()
 
         if self.generate_kneeboards:
             with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):

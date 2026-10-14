@@ -767,9 +767,27 @@ class PresetAssignmentCollection:
         )
 
 
+@dataclass(frozen=True)
+class DroppedChannel:
+    """A channel a role's list cannot carry: it has no frequency in that role's band.
+
+    The injector skips it, so no aircraft gets it; it used to be skipped in silence, while the
+    mission's README advertised it (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 05).
+
+    Attributes:
+        key: The channel's key in the list (``"12"``).
+        name: Its alias's title, else the alias, else the key.
+        band: The band the role needs and the channel lacks (``"vhf"``).
+    """
+
+    key: str
+    name: str
+    band: str
+
+
 def parse_channel_lists(
     data: dict[str, Any], channel_collections: dict[str, ChannelCollection]
-) -> tuple[dict[str, dict[str, RadioDefinition]], dict[str, dict[str, list[str]]]]:
+) -> tuple[dict[str, dict[str, RadioDefinition]], dict[str, dict[str, list[DroppedChannel]]]]:
     """Parse the ``channel_lists`` block of ``presets.yaml`` (ADR 0010).
 
     Each channel list is represented as a :class:`RadioDefinition` (same shape as
@@ -784,15 +802,15 @@ def parse_channel_lists(
     Returns:
         A tuple of (channel_lists, dropped): ``channel_lists`` maps
         coalition -> role -> RadioDefinition; ``dropped`` maps
-        coalition -> role -> list of channel names skipped because they had no
+        coalition -> role -> each :class:`DroppedChannel` skipped because it had no
         frequency for that role's band (e.g. a UHF-only channel listed under
         ``primary_2``).
     """
     channel_lists: dict[str, dict[str, RadioDefinition]] = {}
-    dropped: dict[str, dict[str, list[str]]] = {}
+    dropped: dict[str, dict[str, list[DroppedChannel]]] = {}
     for coalition, roles_data in data.items():
         role_lists: dict[str, RadioDefinition] = {}
-        role_dropped: dict[str, list[str]] = {}
+        role_dropped: dict[str, list[DroppedChannel]] = {}
         for role, channels_data in (roles_data or {}).items():
             if role not in ROLE_BANDS:
                 logger.error(
@@ -812,7 +830,7 @@ def parse_channel_lists(
 
 def _build_role_list(
     coalition: str, role: str, channels_data: dict[str, Any] | None, channel_collections: dict[str, ChannelCollection]
-) -> tuple[RadioDefinition, list[str]]:
+) -> tuple[RadioDefinition, list[DroppedChannel]]:
     """Resolve one role's channels into a RadioDefinition, tracking dropped ones.
 
     Args:
@@ -822,16 +840,43 @@ def _build_role_list(
         channel_collections: Used to resolve channel aliases.
 
     Returns:
-        The role's RadioDefinition, and the list of channel names skipped
-        because they lacked a frequency for the role's band.
+        The role's RadioDefinition, and the channels skipped because they lacked a
+        frequency for the role's band.
     """
     band = ROLE_BANDS[role]
     radio = RadioDefinition(name=f"channel_list_{coalition}_{role}", radio_type=band, title=role)
-    skipped: list[str] = []
+    skipped: list[DroppedChannel] = []
     for channel_name, channel_data in (channels_data or {}).items():
-        if not radio.add_channel_from_dict(channel_name, channel_data, channel_collections, strict=False):
-            skipped.append(str(channel_name))
+        # An empty entry is skipped too, but it lacks no band: it is not a drop to report.
+        if (
+            not radio.add_channel_from_dict(channel_name, channel_data, channel_collections, strict=False)
+            and channel_data
+        ):
+            skipped.append(
+                DroppedChannel(str(channel_name), _channel_label(channel_name, channel_data, channel_collections), band)
+            )
     return radio, skipped
+
+
+def _channel_label(channel_name: object, channel_data: Any, channel_collections: dict[str, ChannelCollection]) -> str:
+    """Return how a pilot would know a list entry: its alias's title, else the alias, else its key.
+
+    Args:
+        channel_name: The entry's key in the list.
+        channel_data: The entry: an alias, or a mapping with ``channel`` (and maybe ``title``).
+        channel_collections: Where the alias is defined.
+
+    Returns:
+        The entry's display name.
+    """
+    alias = channel_data if isinstance(channel_data, str) else (channel_data or {}).get("channel")
+    if isinstance(channel_data, dict) and channel_data.get("title"):
+        return str(channel_data["title"])
+    for collection in channel_collections.values():
+        definition = collection.channel_definitions.get(alias) if alias else None
+        if definition is not None and definition.title:
+            return str(definition.title)
+    return str(alias or channel_name)
 
 
 # Per-radio classification thresholds (MHz). Deliberately coarse: many modern
@@ -1792,7 +1837,27 @@ class PresetsManager:
         # ADR 0010: role-based channel lists, parsed from the optional `channel_lists`
         # block, and channels dropped because they lacked a role's band (reporting hook).
         self.channel_lists: dict[str, dict[str, RadioDefinition]] = {}
-        self.channel_lists_dropped: dict[str, dict[str, list[str]]] = {}
+        self.channel_lists_dropped: dict[str, dict[str, list[DroppedChannel]]] = {}
+
+    def dropped_channel_warnings(self) -> list[str]:
+        """Return one warning per channel a list cannot carry, for the build, the report and ``validate``.
+
+        Returns:
+            The localized messages, in file order; empty when every listed channel fits its list.
+        """
+        return [
+            t(
+                "presets.dropped_channel",
+                coalition=coalition,
+                role=role,
+                channel=channel.key,
+                name=channel.name,
+                band=channel.band.upper(),
+            )
+            for coalition, roles in self.channel_lists_dropped.items()
+            for role, channels in roles.items()
+            for channel in channels
+        ]
 
     @staticmethod
     def _check_sections(data: Any) -> None:

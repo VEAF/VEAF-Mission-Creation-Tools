@@ -535,6 +535,7 @@ Le build vous dit combien il en a ajouté.
 | `prepare` | Initialise/rafraîchit un dossier de mission depuis le scaffold par défaut ; `--template minimal\|standard\|full\|custom` génère un `mission.yaml` avec le jeu de modules correspondant (`custom` = choix interactif) ; `--list-templates` pour les lister. `--theatre <nom>` génère aussi une mission vierge synthétique pour cette carte DCS dans `src/mission/` (sans passer par DCS pour démarrer) ; `--list-theatres` pour lister les cartes supportées. Le fichier généré inclut le même préambule documenté que `convert-v5` (guide de syntaxe YAML, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
 | `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz`. Valide au passage les références de `mission.yaml` vers le Mission Editor (zones de déclenchement, groupes, unités, aérodromes) et affiche un **récapitulatif bien visible en fin de build** pour les références absentes — **sans bloquer** (le `.miz` est généré quand même, pour que vous puissiez corriger dans le Mission Editor et itérer). Le `zone_name` d'une **opération** COMBATZONE n'est pas vérifié (ce n'est qu'un libellé, pas une trigger zone requise) |
 | `validate` | Vérifie le dossier de mission **avant** le build — signale les erreurs de config et les risques runtime sans builder (sortie non nulle en cas d'erreur ; `--strict` échoue aussi sur les avertissements) |
+| `ctld-upgrade` | Met `ctld-config.yaml` au niveau du catalogue CTLD livré avec les outils : ajoute les réglages absents à leur valeur par défaut, sans changer les vôtres ni toucher aux listes ([détail](build-messages/modules.md#validate-ctld-catalogue-gap)) |
 | `extract` | Extrait un `.miz` vers un dossier source (à exécuter une fois pour initialiser votre dépôt) |
 | `export` | Exporte un `.miz` en **JSON** (défaut), **YAML** ou **Markdown** (résumé lisible) : `export mission.miz out.json --format json`. L'analyse est **purement Python** (parser `luadata`) et **n'exécute jamais de Lua** — alternative sûre à l'interprétation d'un `.miz` non fiable (risque d'exécution de code). Sans fichier de sortie, écrit sur la sortie standard |
 | `inject-presets` | Injecte des plans de fréquences radio pour tous les cockpits humains |
@@ -821,6 +822,9 @@ vous avertit en clair : la mission démarrera sans aucun point de chargement iss
     CTLD 2 ne fusionne rien. Un réglage simple absent retombe sur la valeur par défaut du moteur (et il vous le dit au démarrage de la mission), mais une **liste** absente — une section de caisses, un groupe de troupes, une zone — est réellement supprimée. C'est ainsi qu'on retire un élément. Partez toujours du fichier existant plutôt que d'en écrire un de zéro.
 
 Si vous montez CTLD de version et que votre fichier a été écrit pour la précédente, `ctld-tools` vous liste ce qui est apparu, ce qui a disparu et ce qui diffère du défaut avant que vous ne réenregistriez.
+
+Les outils livrent leur propre CTLD : une nouvelle version des outils peut donc apporter un catalogue plus récent que celui de votre fichier, sans que vous ayez touché à CTLD.
+`veaf-tools mission validate` le signale ([le message](build-messages/modules.md#validate-ctld-catalogue-gap)), et `veaf-tools mission ctld-upgrade` ajoute les réglages manquants à leur valeur par défaut, sans changer aucune des vôtres ni toucher aux listes.
 
 #### Les aérodromes deviennent des zones logistiques {#ctld-airbase-logistics}
 

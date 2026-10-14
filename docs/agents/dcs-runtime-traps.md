@@ -888,9 +888,17 @@ at 0, and neither `Controller.knowTarget(enemy, true, true)` on each unit nor a 
 on the group made them fire (seven TOW still aboard). Sent forward, they opened fire at ~1.3 km and
 destroyed both in 16 s. Earlier the same day, stationary trucks 1 km from BMPs, in sight by
 `isVisible`, were never engaged in five minutes; at 350 m at once. Vegetation is the likeliest mask.
+900 m is no guarantee either: on 2026-10-10 (Kolkhida mission 1 test copy), a red assault convoy
+given a `Hold` 673-853 m from two Bradleys, its leading BMPT with a line of sight to one of them,
+stood 40 game minutes in place, and no ammunition was spent by either side between two readings
+about 3 game minutes apart.
 
-**What to do:** To make ground units fight an enemy you can see by script, send them closer — `veafGroundAI`'s
-convoy closes in to 900 m.
+**What to do:** To make ground units fight an enemy you can see by script, send them closer, and keep them moving
+while nobody fires — `veafGroundAI`'s convoy closes in to 900 m, then drives onto the nearest enemy
+when no shot has been fired or taken for 2 minutes (FIX-CONVOY-FROZEN-STANDOFF).
+
+*What it cost:* Before that push, the Kolkhida assault convoy stayed frozen at its standoff for good: the enemy in
+sight kept the contact alive, so the quiet minute that relaunches a convoy never came.
 
 ### `world.searchObjects` on a `SPHERE` returns units beyond its radius {#searchobjects-sphere-overshoots-its-radius}
 

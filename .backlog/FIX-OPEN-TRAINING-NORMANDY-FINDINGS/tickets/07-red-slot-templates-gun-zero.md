@@ -1,6 +1,6 @@
 # 07 — The red WW2 dynamic-slot templates carry `gun: 0`
 
-Status: 🧑 waiting for a human — needs a look in DCS
+Status: 🚫 wontfix — closed by David on 2026-10-14 (« on verra bien en jeu »): not measured, templates unchanged; the known limitation `ww2-slot-templates-carry-gun-zero` stays and says what to check
 Type: investigate, then fix
 Files: `src/defaults/mission-folder/src/dynamic-slot-templates.yaml`, the generator of the catalogue
 

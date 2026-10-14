@@ -1,6 +1,6 @@
 # 05 — A channel the presets injector drops is reported
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `presets_injector/presets_manager.py`, `presets_injector/presets_injector_worker.py`, the validator, translations, tests.
 
@@ -19,3 +19,7 @@ The mission was fixed by hand: the three frequencies moved to `primary_1`, three
 - `mission build` prints one warning per dropped channel, naming the coalition, the list, the channel key and its name, and the band it lacks; the presets validation report lists them too.
 - `mission validate` gives the same warning without building.
 - Tests: a UHF-only channel on `primary_2` gives the warning; a channel carrying both bands gives none.
+
+## Done
+
+`parse_channel_lists` now records each drop as a `DroppedChannel` (key, name, the band it lacks) rather than a bare key; the name is the plan entry's `title`, else the alias's title, else the alias. `PresetsManager.dropped_channel_warnings` turns them into one message each, and three places read it: the build (`PresetsInjectorWorker.warn_dropped_channels`, from `work`), the presets validation report (its own section, counted, so a report with only drops is kept), and `validate` (check 14, on `src/presets.yaml` when the presets step is on).

@@ -49,6 +49,13 @@
 #                               # mission loads even for pilots who lack the mod — that
 #                               # slot is simply unavailable. Common mods are covered by
 #                               # default; list here only ones not already handled.
+#   ground_control:             # slots of the roles that fly no aircraft, set at every build
+#     game_master: 5            # a number applies to both sides; {blue: 5, red: 0} sets them apart
+#     tactical_commander: 5
+#     jtac: 5
+#     observer: 5
+#     pilot_control_vehicles: true  # a pilot may drive ground vehicles
+#                               # absent = the mission's own settings (none in a v6 scaffold)
 
 # ── Security ─────────────────────────────────────────────────────────────────
 # security:

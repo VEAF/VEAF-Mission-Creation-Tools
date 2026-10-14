@@ -1,6 +1,6 @@
 # 01 — Unattached roles and vehicle control set from mission.yaml
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_libs/blank_mission.py`, the `mission:` section of the mission.yaml schema and its build step, the shipped `mission.yaml` template, the Open Training prompt (`.prompts/new-open-training-mission.fr.md`), `MISSION_YAML_REFERENCE` FR/EN, tests.
 
@@ -35,3 +35,9 @@ The Open Training prompt and template write the v5 values; `blank_mission.py` ke
 - Absent, a mission's own `groundControl` is unchanged by the build.
 - The Open Training template and prompt carry the v5 values.
 - Tests: both forms, the absent case, an unknown role refused by `validate`.
+
+## Done
+
+`mission_builder/ground_control.py`: `ground_control_errors` checks the block, `apply_ground_control` writes it; `MissionBuilderWorker.apply_ground_control` runs it at every build, right after the third-party mods are stripped, and an invalid block stops the build with every fault named. `validate` reports the same faults (check 12).
+A role, a side or `pilot_control_vehicles` the block does not name keeps the mission's value, and `neutrals` is never set: the ticket asks for both sides, and no VEAF mission opens a neutral role.
+"The Open Training template" is the prompt: there is no separate Open Training `mission.yaml`, and the shipped default keeps the block commented, so every other scaffold keeps its zeros.

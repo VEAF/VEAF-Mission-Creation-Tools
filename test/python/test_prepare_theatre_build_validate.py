@@ -26,6 +26,7 @@ from unittest.mock import patch
 
 import luadata
 import veaf_tools.commands  # noqa: F401  — side effect: registers every command on `app`
+import yaml
 from mission_tools.mission_constants import get_community_script_files
 from typer.testing import CliRunner
 from veaf_libs.mission_table import CATEGORIES, indexed
@@ -126,6 +127,40 @@ class TestPrepareTheatreBuildValidate(unittest.TestCase):
 
             errors = [i.message for i in validate_mission_folder(mission_folder) if i.level == ERROR]
             self.assertEqual(errors, [], f"`validate` reported errors on a freshly scaffolded mission: {errors}")
+
+    def test_ground_control_reaches_the_built_mission(self) -> None:
+        """FIX-OPEN-TRAINING-CAUCASUS-FINDINGS 01, read in the built ``.miz`` rather than on the worker."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            mission_folder = tmp_path / "mission"
+            scripts_root = self._stub_scripts_root(tmp_path / "scripts")
+
+            self._run("prepare", "--template", "minimal", "--theatre", _THEATRE, str(mission_folder))
+            yaml_path = mission_folder / "mission.yaml"
+            config = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+            config.setdefault("mission", {})["ground_control"] = {
+                "game_master": 5,
+                "jtac": {"blue": 2, "red": 0},
+                "pilot_control_vehicles": True,
+            }
+            yaml_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+            self._run("build", "mission.miz", str(mission_folder), "--scripts-path", str(scripts_root))
+
+            built = sorted(mission_folder.glob("*.miz"))
+            self._run("extract", str(built[0]), str(mission_folder))
+            mission = luadata.read(str(mission_folder / "src" / "mission" / "mission"), encoding="utf-8")
+
+            ground_control = mission["groundControl"]
+            self.assertIs(ground_control["isPilotControlVehicles"], True)
+            self.assertEqual(ground_control["roles"]["instructor"]["blue"], 5)
+            self.assertEqual(ground_control["roles"]["instructor"]["red"], 5)
+            self.assertEqual(ground_control["roles"]["forward_observer"]["blue"], 2)
+            self.assertEqual(ground_control["roles"]["forward_observer"]["red"], 0)
+            self.assertEqual(ground_control["roles"]["observer"]["blue"], 0)
+
+            # A freshly scaffolded ctld-config.yaml is at the vendored catalogue's version.
+            gaps = [i.message for i in validate_mission_folder(mission_folder) if "ctld-upgrade" in i.message]
+            self.assertEqual(gaps, [])
 
 
 if __name__ == "__main__":

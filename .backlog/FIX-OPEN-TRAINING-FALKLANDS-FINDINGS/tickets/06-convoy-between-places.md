@@ -1,6 +1,6 @@
 # 06 — A convoy between two places, on the roads
 
-Status: ⬜ ready — the action itself needs the bridge
+Status: 🚫 wontfix — closed by David on 2026-10-14 (« on verra bien en jeu »): the action is not built; it comes back if a mission maker misses it
 
 Files: a new MCP action; the road query through dcs-bridge; `doc/developer/mission-editing-mcp.md` and `.en.md`.
 

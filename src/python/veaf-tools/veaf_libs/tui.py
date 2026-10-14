@@ -262,6 +262,15 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="ctld-upgrade",
+        description=t("tui.cmd.ctld_upgrade.description"),
+        prompts=[
+            ArgPrompt(
+                "mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False, resolve_path=True
+            ),
+        ],
+    ),
+    CommandSpec(
         cli_name="campaign-init",
         description=t("tui.cmd.campaign_init.description"),
         prompts=[

@@ -22,6 +22,7 @@ Checks:
   11. an ``opposition:`` block the build would refuse                (error)
   12. a ``mission.ground_control`` block the build would refuse      (error)
   13. a ``ctld-config.yaml`` written against another CTLD catalogue (warning)
+  14. a ``channel_lists`` channel the presets injector drops for lacking its band (warning)
 
 Checks 4-9 read the unpacked source mission table (``src/mission/mission``); when it is
 absent they are skipped (reported once as a warning).
@@ -114,6 +115,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
 
     # 3d. ctld-config.yaml written against another CTLD catalogue than the vendored one
     issues += _check_ctld_catalogue(folder, yaml_data)
+
+    # 3e. a channel_lists channel lacking its list's band, which the build drops
+    issues += _check_dropped_preset_channels(folder, yaml_data)
 
     # 4-6. checks that need the source mission table
     mission, mission_error = _read_source_mission(folder)
@@ -286,6 +290,32 @@ def _check_ctld_catalogue(folder: Path, yaml_data: dict) -> list[ValidationIssue
             )
         )
     return issues
+
+
+def _check_dropped_preset_channels(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
+    """Warn on each ``channel_lists`` channel that lacks its list's band: the build drops it.
+
+    Same message as the build's (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 05).
+
+    Args:
+        folder: The mission folder, holding ``src/presets.yaml`` when the mission has one.
+        yaml_data: The parsed ``mission.yaml``; a mission that turns the presets step off is not checked.
+
+    Returns:
+        One warning per dropped channel; nothing when the file is absent or cannot be read (the build
+        reports an unreadable presets file itself).
+    """
+    from presets_injector.presets_manager import PresetsManager
+
+    presets_path = folder / "src" / "presets.yaml"
+    if not _pipeline_enabled(yaml_data, "presets") or not presets_path.is_file():
+        return []
+    manager = PresetsManager()
+    try:
+        manager.read_yaml(presets_path)
+    except Exception:  # noqa: BLE001 — the build owns the report of an unreadable file
+        return []
+    return [ValidationIssue(WARNING, message) for message in manager.dropped_channel_warnings()]
 
 
 def _check_ctld_names(folder: Path, yaml_data: dict, mission: dict) -> list[ValidationIssue]:

@@ -376,3 +376,37 @@ class TestQraSimpleGroupsBesideLevels(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDroppedPresetChannels(unittest.TestCase):
+    """FIX-OPEN-TRAINING-CAUCASUS-FINDINGS 05: validate says what the presets injector will drop."""
+
+    _PRESETS = """channels_collection:
+  common:
+    Stennis:
+      title: S-3B Stennis
+      freqs: {uhf: 295.0}
+    Guard:
+      title: Guard
+      freqs: {uhf: 243.0, vhf: 121.5}
+channel_lists:
+  blue:
+    primary_2:
+      "01": Guard
+      "12": Stennis
+"""
+
+    def _warnings(self, presets: str, mission_yaml: str = "modules: {}\n") -> list[str]:
+        folder = _make_folder(mission_yaml, _MISSION_WITH_PLAYER, {"src/presets.yaml": presets})
+        return [i.message for i in validate_mission_folder(folder) if i.level == WARNING and "channel_lists" in i.message]
+
+    def test_a_uhf_only_channel_on_primary_2_is_reported(self) -> None:
+        warnings = self._warnings(self._PRESETS)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("S-3B Stennis", warnings[0])
+
+    def test_a_channel_carrying_both_bands_is_not_reported(self) -> None:
+        self.assertEqual(self._warnings(self._PRESETS.replace('      "12": Stennis\n', "")), [])
+
+    def test_a_mission_that_turns_presets_off_is_not_checked(self) -> None:
+        self.assertEqual(self._warnings(self._PRESETS, "pipeline:\n  presets: false\n"), [])

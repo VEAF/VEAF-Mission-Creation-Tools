@@ -99,6 +99,19 @@ pipeline:
 examiné. Et pour une mission de serveur ou une bibliothèque de modèles, c'est une situation
 parfaitement normale.
 
+## Un canal de préréglage n'a pas la bande de sa liste {#presets-dropped-channel}
+
+> presets : le canal 12 (S-3B Stennis) de channel_lists.blue.primary_2 n'a pas de fréquence VHF, donc
+> aucun avion ne le reçoit. Déplacez-le dans une liste d'une bande qu'il a, ou donnez-lui une
+> fréquence VHF.
+
+**Ce que ça veut dire.** Chaque liste de `channel_lists` sert une bande : `primary_1` l'UHF, `primary_2` la VHF, les listes `fm_*` la FM.
+Un canal qui n'a pas de fréquence dans cette bande est écarté de la liste, et donc d'**aucun** avion.
+`validate` le dit avant le build, le build le redit et le rapport `presets-validation-report.md` le liste.
+
+**Les issues.** Déplacer le canal dans une liste dont il a la bande (un AWACS en UHF va dans `primary_1`), ou ajouter à sa définition une fréquence de la bande qui lui manque.
+Pensez au README ou au briefing de la mission : s'ils annoncent ce canal aux pilotes, ils annoncent un canal qu'aucun avion n'a.
+
 ## Des waypoints sans groupe d'aéronefs {#validate-waypoints-no-aircraft}
 
 > waypoints.yaml est configuré mais la mission n'a aucun groupe d'aéronefs où injecter des

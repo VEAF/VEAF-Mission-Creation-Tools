@@ -501,10 +501,12 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             mission_label: How to name the mission; the build passes its base name, since the ``.miz``
                 carries the build date. ``None`` names the input mission's file.
 
-        Also lists the AWACS and tankers no preset reaches (`support_gaps`).
+        Also lists the AWACS and tankers no preset reaches (`support_gaps`), and each channel a
+        channel list drops for lacking its band.
 
         Returns:
-            Total number of issues found, support gaps included (0 means all presets are valid).
+            Total number of issues found, support gaps and dropped channels included (0 means all
+            presets are valid).
         """
         issues = self.collect_freq_issues()
         strict_issues = [i for i in issues if i.strict]
@@ -576,7 +578,13 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             lines += [f"| `{g.group_name}` | {g.task} | {g.freq_mhz} | {g.coalition} |" for g in self.support_gaps]
             lines.append("")
 
-        total = len(issues) + len(self.support_gaps)
+        dropped = self.presets_manager.dropped_channel_warnings()
+        if dropped:
+            lines += [t("presets_injector.report.section_dropped"), ""]
+            lines += [f"- {message}" for message in dropped]
+            lines.append("")
+
+        total = len(issues) + len(self.support_gaps) + len(dropped)
         if not total:
             lines += [t("presets_injector.report.all_valid"), ""]
 
@@ -601,6 +609,21 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
+    def warn_dropped_channels(self) -> int:
+        """Warn once per channel a channel list drops for lacking its band: it reaches no aircraft.
+
+        The drop was recorded and never read: three UHF-only channels on Syria-v6's VHF ``primary_2``
+        list reached no aircraft for eight days while the README advertised them
+        (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 05).
+
+        Returns:
+            The number of warnings given.
+        """
+        messages = self.presets_manager.dropped_channel_warnings()
+        for message in messages:
+            logger.warning(message)
+        return len(messages)
+
     def work(self, silent: bool = False) -> None:  # type: ignore[override]
         """Main work function."""
         with spinner_context(t("group_injector.spinner.reading", path=self.input_mission), silent=silent):
@@ -612,6 +635,8 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         with spinner_context(t("presets_injector.spinner.processing_groups"), silent=silent):
             self.process_groups(silent)
+
+        self.warn_dropped_channels()
 
         if self.generate_kneeboards:
             with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):

@@ -9,6 +9,7 @@ from presets_injector.presets_manager import (
     ROLE_PRIMARY_1,
     ROLE_PRIMARY_2,
     ChannelCollection,
+    DroppedChannel,
     PresetsManager,
     RadioDefinition,
     parse_channel_lists,
@@ -77,7 +78,30 @@ class TestParseChannelLists(unittest.TestCase):
         radio = channel_lists["blue"]["primary_2"]
         self.assertEqual(len(radio.channels), 1)
         self.assertEqual(radio.channels[0].freq, 131.0)
-        self.assertEqual(dropped, {"blue": {"primary_2": ["01"]}})
+        self.assertEqual(dropped, {"blue": {"primary_2": [DroppedChannel(key="01", name="Overlord", band="vhf")]}})
+
+    def test_a_dropped_channel_is_named_by_its_title_when_it_has_one(self):
+        data = {"blue": {"primary_2": {"12": {"channel": "Overlord"}, "13": {"freq": 283.0, "title": "Darkstar 1"}}}}
+        _, dropped = parse_channel_lists(data, self.channel_collections)
+        self.assertEqual(dropped["blue"]["primary_2"][0], DroppedChannel(key="12", name="Overlord", band="vhf"))
+
+    def test_a_channel_carrying_both_bands_is_not_dropped(self):
+        data = {"blue": {"primary_2": {"01": "Garde"}, "primary_1": {"01": "Garde"}}}
+        _, dropped = parse_channel_lists(data, self.channel_collections)
+        self.assertEqual(dropped, {})
+
+    def test_each_dropped_channel_gives_one_warning_naming_coalition_list_key_name_and_band(self):
+        from veaf_libs.i18n import set_language
+
+        set_language("en")
+        manager = PresetsManager()
+        manager.channel_lists_dropped = {
+            "blue": {"primary_2": [DroppedChannel("12", "S-3B Stennis", "vhf"), DroppedChannel("14", "Darkstar 1", "vhf")]}
+        }
+        warnings = manager.dropped_channel_warnings()
+        self.assertEqual(len(warnings), 2)
+        for part in ("blue", "primary_2", "12", "S-3B Stennis", "VHF"):
+            self.assertIn(part, warnings[0])
 
     def test_literal_frequency_is_never_dropped(self):
         data = {"blue": {"fm_supplement": {"01": 31.5}}}

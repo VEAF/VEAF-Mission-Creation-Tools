@@ -907,3 +907,53 @@ class TestKneeboardsToggle(unittest.TestCase):
 
     def test_work_generates_images_when_enabled(self) -> None:
         self._run_work(True).assert_called_once()
+
+
+class TestDroppedChannels(unittest.TestCase):
+    """FIX-OPEN-TRAINING-CAUCASUS-FINDINGS 05: a channel a list drops is said, at build and in the report."""
+
+    def setUp(self) -> None:
+        from veaf_libs.i18n import set_language
+
+        set_language("en")
+
+    def _worker(self) -> PresetsInjectorWorker:
+        from presets_injector.presets_manager import DroppedChannel
+
+        worker = _make_worker()
+        worker.presets_manager.channel_lists_dropped = {
+            "blue": {"primary_2": [DroppedChannel("12", "S-3B Stennis", "vhf")]}
+        }
+        return worker
+
+    def test_the_build_warns_once_per_dropped_channel(self) -> None:
+        worker = self._worker()
+        with patch("presets_injector.presets_injector_worker.logger") as mock_logger:
+            count = worker.warn_dropped_channels()
+        self.assertEqual(count, 1)
+        message = mock_logger.warning.call_args.args[0]
+        for part in ("blue", "primary_2", "12", "S-3B Stennis", "VHF"):
+            self.assertIn(part, message)
+
+    def test_work_gives_the_warning(self) -> None:
+        worker = self._worker()
+        worker.dcs_mission = MagicMock()
+        worker.dcs_mission.iter_groups.return_value = []
+        with (
+            patch.object(worker, "read_mission"),
+            patch.object(worker, "process_groups"),
+            patch.object(worker, "write_mission"),
+            patch.object(worker, "warn_dropped_channels") as warn,
+        ):
+            worker.generate_kneeboards = False
+            worker.work(silent=True)
+        warn.assert_called_once()
+
+    def test_the_report_lists_it_and_counts_it(self) -> None:
+        worker = self._worker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            count = worker.generate_validation_report(report_path)
+            content = report_path.read_text(encoding="utf-8")
+        self.assertEqual(count, 1)
+        self.assertIn("S-3B Stennis", content)

@@ -1026,6 +1026,7 @@
   "tui.cmd.build.description": "Construire un fichier .miz de mission DCS depuis un dossier de mission VEAF",
   "tui.cmd.convert_other.description": "Adopter un .miz tiers sur la chaîne v6",
   "tui.cmd.convert_v5.description": "Convertir un dossier de mission VEAF v5 au format v6",
+  "tui.cmd.ctld_upgrade.description": "Mettre ctld-config.yaml au niveau du catalogue CTLD livré",
   "tui.cmd.explore_cockpit.description": "Explorer un cockpit et nommer ses contrôles",
   "tui.cmd.doctor.description": "Rassembler les faits qu'un rapport de bug exige",
   "tui.cmd.export.description": "Exporter un .miz en JSON/YAML/Markdown (sans exécuter de Lua)",

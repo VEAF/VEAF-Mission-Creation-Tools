@@ -802,7 +802,7 @@ function TestSanctuaryHandleWeapon:test_a_target_already_destroyed_is_ignored()
 end
 
 -- Privé 1, 2026-10-12: `weapon:getTarget()` returned an object with no `isExist` method, twelve times
--- The object was not measured: what it is gets logged once per mission, so the next server log says
+-- The object was not measured: what it is gets logged once per mission, so the next server log says it
 function TestSanctuaryHandleWeapon:test_a_target_with_no_isExist_method_is_ignored_and_logged_once()
   local logger = veaf.loggers.get(veafSanctuary.Id)
   local originalInfo = logger.info

@@ -134,6 +134,8 @@ Deux messages peuvent l'accompagner, que la commande ne traite pas :
 - **des nouveautés dans des tables que la mission possède** (`capabilitiesByType.UH-1H.crateSpawnSector`, par exemple) : CTLD lit ces tables en entier, sans retomber sur le catalogue, donc la mission garde l'ancien comportement.
   Les ajouter change le jeu ; c'est à vous de le décider, dans `ctld-tools`.
 
+Ces deux listes ne sortent que tant que les versions diffèrent : `ctld-upgrade` les affiche une dernière fois, puis `validate` n'en parle plus. Notez-les avant de lancer la commande si vous comptez y revenir.
+
 ## Des fichiers son manquent {#builder-community-sounds-missing}
 
 > Des fichiers son requis par un module communautaire activé ne sont fournis ni par les outils ni

@@ -64,7 +64,7 @@ def ctld_upgrade(
                 "cmd.ctld_upgrade.done",
                 file=CTLD_CONFIG_FILENAME,
                 mission=gap.mission_version or "?",
-                catalogue=gap.catalogue_version,
+                catalogue=gap.catalogue_version or "?",
                 keys=", ".join(f"{section}.{key}" for section, key in gap.missing) or "—",
             )
         )

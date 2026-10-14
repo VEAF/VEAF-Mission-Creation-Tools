@@ -386,11 +386,19 @@ def upgrade_to_catalogue(mission_config: str, catalogue: str) -> str:
     from ruamel.yaml import YAML
     from ruamel.yaml.comments import CommentedMap
     from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+    from ruamel.yaml.util import load_yaml_guess_indent
 
+    # Dump with the file's own indentation and no line folding: the maker commits this file, and a
+    # reformatted one would bury the few added lines (a list indented `- ` under its key by an editor
+    # came back re-indented, a long string folded at 80 columns).
+    _, mapping_indent, sequence_offset = load_yaml_guess_indent(mission_config)
     ruamel = YAML()
     ruamel.preserve_quotes = True
+    ruamel.width = 4096
+    if mapping_indent is not None and sequence_offset is not None:
+        ruamel.indent(mapping=mapping_indent, sequence=sequence_offset + 2, offset=sequence_offset)
     document = ruamel.load(mission_config)
-    reference = ruamel.load(catalogue)
+    reference = YAML().load(catalogue)
 
     for section_name, key in gap.missing:
         if document.get(section_name) is None:

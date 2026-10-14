@@ -847,7 +847,11 @@ def _build_role_list(
     radio = RadioDefinition(name=f"channel_list_{coalition}_{role}", radio_type=band, title=role)
     skipped: list[DroppedChannel] = []
     for channel_name, channel_data in (channels_data or {}).items():
-        if not radio.add_channel_from_dict(channel_name, channel_data, channel_collections, strict=False):
+        # An empty entry is skipped too, but it lacks no band: it is not a drop to report.
+        if (
+            not radio.add_channel_from_dict(channel_name, channel_data, channel_collections, strict=False)
+            and channel_data
+        ):
             skipped.append(
                 DroppedChannel(str(channel_name), _channel_label(channel_name, channel_data, channel_collections), band)
             )

@@ -278,3 +278,25 @@ def test_a_catalogue_without_a_version_leaves_the_mission_version_alone() -> Non
 
     assert upgraded["configVersion"] == "2.0.0"
     assert upgraded["mm_facing"]["newScalar"] is True
+
+
+def test_a_file_indented_its_own_way_only_gains_lines() -> None:
+    """Review finding: an editor-indented file (`  - item` under its key) was re-indented whole."""
+    long = "x" * 120
+    mission = (
+        'configVersion: "2.0.0"\n'
+        "mm_facing:\n"
+        "    alpha: 7\n"
+        f"    note: {long}\n"
+        "    pickupZones:\n"
+        "      - mine\n"
+        "      - other\n"
+        "advanced:\n"
+        "    beta: 9\n"
+    )
+
+    upgraded = upgrade_to_catalogue(mission, _CATALOGUE)
+
+    removed = [line for line in difflib.ndiff(mission.splitlines(), upgraded.splitlines()) if line.startswith("- ")]
+    assert removed == ['- configVersion: "2.0.0"']
+    assert "    newScalar: true" in upgraded.splitlines()

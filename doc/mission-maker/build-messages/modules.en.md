@@ -130,6 +130,8 @@ Two messages may come with it, which the command leaves to you:
 - **new keys inside tables the mission holds** (`capabilitiesByType.UH-1H.crateSpawnSector`, for example): CTLD reads these tables whole, with no fallback to the catalogue, so the mission keeps the older behaviour.
   Adding them changes the game; that is your call, in `ctld-tools`.
 
+Both lists only show while the versions differ: `ctld-upgrade` prints them one last time, then `validate` says no more about them. Note them before running the command if you mean to come back to them.
+
 ## Sound files are missing {#builder-community-sounds-missing}
 
 > Sound file(s) required by an enabled community module are shipped by neither the tools nor the

@@ -242,3 +242,11 @@ class TestChannelPriorityAndColor(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestEmptyEntryIsNotABandDrop(unittest.TestCase):
+    """Review finding: an empty list entry lacks no band, so it is not reported as one."""
+
+    def test_an_empty_entry_is_not_reported(self):
+        _, dropped = parse_channel_lists({"blue": {"primary_2": {"12": None}}}, {})
+        self.assertEqual(dropped, {})

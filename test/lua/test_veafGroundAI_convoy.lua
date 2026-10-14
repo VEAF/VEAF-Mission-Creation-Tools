@@ -880,6 +880,15 @@ function TestConvoyWatch:test_a_stalemate_in_sight_closes_in_on_the_enemy()
   luaunit.assertEquals(#dcs_mocks.tasksSet, 1)
 end
 
+function TestConvoyWatch:test_the_kolkhida_assault_convoy_far_from_poti_closes_in_too()
+  -- the measured case: an assault convoy more than `OBJECTIVE_PRESS_DISTANCE` from Poti fights like any convoy
+  veafGroundAI.setConvoyObjective("Watched", { x = 0, y = 0, z = 9000 })
+  self:_heldAtStandoff()
+  dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY + 5)
+  local stop = lastRoutePoint("Watched")
+  luaunit.assertEquals({ stop.x, stop.y }, { 800, 0 })
+end
+
 function TestConvoyWatch:test_fire_exchanged_keeps_the_orders()
   local _, enemy = self:_heldAtStandoff()
   dcs_mocks.tasksSet = {}

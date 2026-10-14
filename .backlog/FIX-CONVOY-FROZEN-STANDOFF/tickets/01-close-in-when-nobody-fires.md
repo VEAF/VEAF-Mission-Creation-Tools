@@ -1,8 +1,22 @@
 # 01 — A fighting convoy that exchanges no fire closes in
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — done on the mocks; R48 in game
 
 - Record the last fire exchanged by the convoy: a shot or hit taken (`reportFire`, already there) **and** a shot fired by its own units (`S_EVENT_SHOOTING_START` / `S_EVENT_SHOT` with a convoy unit as initiator).
 - In `watch`, a convoy in `STATE_FIGHTING` whose enemy is still in sight and that has exchanged no fire for `STALEMATE_DELAY` (proposed 120 s, a constant to tune in game) drives toward the nearest living threat (`Off Road`, `ASSAULT_SPEED`), as `pressOn` does for an enemy out of sight; the clock restarts after each push.
 - `STATE_FALLING_BACK` is left alone: a convoy that fled does not walk back into the ambush.
 - Lua tests as in the PRD; the stalemate measured in the PRD as the regression case.
+
+## Done
+
+- `ConvoyUnitHandler.lastFireExchanged`: set when the contact starts (`engage`), on every shot or hit taken (`reportFire`), on every shot fired by one of the convoy's units (`reportOwnFire`, from `S_EVENT_SHOOTING_START` or `S_EVENT_SHOT` with a convoy unit as initiator, whatever it is aimed at), and after each push.
+- `ConvoyUnitHandler:closeIn`, called by `watch` for a convoy in `STATE_FIGHTING` with an enemy in sight and nothing exchanged for `STALEMATE_DELAY`: off road at `ASSAULT_SPEED` onto the nearest enemy in sight, **with no standoff** — stopping 900 m short again is what froze it. Alarm state and ROE were already set by `fight`.
+- The push applies to an assault convoy too: one near its objective is already driving into it, and one that arrived there, or is held because the objective is beyond `OBJECTIVE_PRESS_DISTANCE` (the Kolkhida case), has the same stalemate.
+
+## `STALEMATE_DELAY` = 120 s, and why
+
+The ticket proposed 120 s; kept. It is twice `QUIET_DELAY`, so a pause between two bursts of a fight that is going on is not taken for a stalemate, and short enough that a frozen convoy moves within a player's attention span. A constant like every other delay of the convoy watch: the module exposes none of them in `mission.yaml`, and this one is to be tuned from R48, not by mission makers.
+
+## Tests
+
+`test/lua/test_veafGroundAI_convoy.lua`, through the scheduler and the event handler (the wiring, not only the handler): held at 800 m, the push comes after the delay and not before, onto the enemy, and the next one a whole delay later; the Kolkhida assault convoy far from Poti; own gun fire, own missile launch, and hits taken each keep the orders; a convoy falling back is not pushed. Each guard was mutated out once and its test failed.

@@ -241,6 +241,8 @@ Le rapport, et le journal du build, listent aussi **chaque AWACS et ravitailleur
 <dossier-mission>/presets-validation-report.md
 ```
 
+Le rapport se committe sans bruit : il ne porte ni date ni chemin de la machine. Le fichier de presets y est nommé depuis le dossier de mission (`src/presets.yaml`) et la mission par son nom, sans la date du `.miz` ; deux builds des mêmes presets, depuis deux dossiers ou deux jours différents, écrivent le même fichier.
+
 **Désactiver temporairement l'injection pour un appareil :**
 
 Pendant que vous corrigez les presets, vous pouvez désactiver l'injection pour un type d'appareil en lui affectant la valeur `none` dans `presets_assignments` :

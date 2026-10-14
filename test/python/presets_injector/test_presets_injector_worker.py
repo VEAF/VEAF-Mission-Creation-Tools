@@ -537,6 +537,45 @@ class TestGenerateValidationReport(unittest.TestCase):
             self.assertIn("# Radio Presets Frequency Validation Report", content)
             self.assertIn("MiG-19P", content)
 
+    def _header(self, mission_folder: Path, presets_file: Path, mission: Path, label: str | None = None) -> list[str]:
+        """Return the report's header lines, written into *mission_folder* for those two files."""
+        worker = self._make_worker_with_pending()
+        worker.presets_file = presets_file
+        worker.input_mission = mission
+        report_path = mission_folder / "presets-validation-report.md"
+        worker.generate_validation_report(report_path, mission_label=label)
+        return report_path.read_text(encoding="utf-8").split("\n## ", 1)[0].splitlines()
+
+    def test_a_file_inside_the_mission_folder_is_named_relative_to_it(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            header = "\n".join(self._header(folder, folder / "src" / "presets.yaml", folder / "OT_20261010.miz"))
+        self.assertIn("`src/presets.yaml`", header)
+        self.assertIn("`OT_20261010.miz`", header)
+        self.assertNotIn(tmpdir, header)
+
+    def test_a_file_outside_the_mission_folder_stays_absolute(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as elsewhere:
+            presets = Path(elsewhere) / "presets.yaml"
+            header = "\n".join(self._header(Path(tmpdir), presets, Path(tmpdir) / "m.miz"))
+        self.assertIn(f"`{presets}`", header)
+
+    def test_a_mission_label_replaces_the_dated_file_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            header = "\n".join(self._header(folder, folder / "src" / "presets.yaml", folder / "OT_20261010.miz", "OT"))
+        self.assertIn("`OT`", header)
+        self.assertNotIn("20261010", header)
+
+    def test_two_folders_on_two_days_write_the_same_report(self) -> None:
+        reports = []
+        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+            for tmpdir, day in ((first, "20261010"), (second, "20261014")):
+                folder = Path(tmpdir)
+                self._header(folder, folder / "src" / "presets.yaml", folder / f"OT_{day}.miz", "OT")
+                reports.append((folder / "presets-validation-report.md").read_bytes())
+        self.assertEqual(reports[0], reports[1])
+
     def test_generate_validation_report_empty_when_no_issues(self) -> None:
         worker = _make_worker()
         # No pending warnings → all valid

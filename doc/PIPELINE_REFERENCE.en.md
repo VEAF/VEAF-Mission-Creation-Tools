@@ -240,6 +240,8 @@ The report, and the build's log, also list **every AI AWACS and tanker whose fre
 <mission-folder>/presets-validation-report.md
 ```
 
+The report commits without noise: it carries no date and no machine path. The presets file is named from the mission folder (`src/presets.yaml`) and the mission by its name, without the `.miz`'s date; two builds of the same presets, from two folders or on two days, write the same file.
+
 **Temporarily disabling injection for an aircraft:**
 
 While fixing the presets, you can disable injection for a specific aircraft type by assigning it the value `none` in `presets_assignments`:

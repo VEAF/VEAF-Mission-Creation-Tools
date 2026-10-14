@@ -852,7 +852,6 @@
   "presets_injector.support_gap": "{task} group '{group}' ({coalition}) is on {freq} MHz, which no preset of its coalition carries: its pilots will not find it on their radios nor on their kneeboard. Add a channel for it in src/presets.yaml.",
   "presets_injector.report.section_support": "## ⚠️ AWACS and tankers no preset reaches — add their channel to src/presets.yaml",
   "presets_injector.report.support_header": "| Group | Task | Frequency (MHz) | Coalition |",
-  "presets_injector.report.generated": "Generated: {date}",
   "presets_injector.report.groups": "Groups: {groups}",
   "presets_injector.report.mission": "Mission: `{path}`",
   "presets_injector.report.presets_file": "Presets file: `{path}`",

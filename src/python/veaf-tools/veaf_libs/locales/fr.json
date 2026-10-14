@@ -852,7 +852,6 @@
   "presets_injector.support_gap": "Le groupe {task} « {group} » ({coalition}) est sur {freq} MHz, qu'aucun preset de sa coalition ne porte : ses pilotes ne le trouveront ni sur leurs radios ni sur leur planchette. Ajoutez-lui un canal dans src/presets.yaml.",
   "presets_injector.report.section_support": "## ⚠️ AWACS et ravitailleurs qu'aucun preset n'atteint — ajoutez leur canal dans src/presets.yaml",
   "presets_injector.report.support_header": "| Groupe | Tâche | Fréquence (MHz) | Coalition |",
-  "presets_injector.report.generated": "Généré le : {date}",
   "presets_injector.report.groups": "Groupes : {groups}",
   "presets_injector.report.mission": "Mission : `{path}`",
   "presets_injector.report.presets_file": "Fichier presets : `{path}`",

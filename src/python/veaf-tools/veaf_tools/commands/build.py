@@ -467,7 +467,7 @@ def build(
             )
             presets_worker.work()
             report_path = p_mission_folder / "presets-validation-report.md"
-            issue_count = presets_worker.generate_validation_report(report_path)
+            issue_count = presets_worker.generate_validation_report(report_path, mission_label=variant_base_name)
             if issue_count == 0 and report_path.exists():
                 report_path.unlink()
 

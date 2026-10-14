@@ -64,6 +64,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The spawn now takes the coalition of the unit that carries the command, with a warning, and skips the Skynet declaration with a warning when the side has no network; `validate` warns about the country (`thirdreich`, not `germany`).
 - **The WW2 shortcuts take the coalition of the unit that carries them** (ticket 05).
   `-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40` and `-wespe` no longer name `country GERMANY`, which a Third Reich mission does not hold.
+- **A convoy held in front of an enemy nobody fires at no longer stays there for ever** (FIX-CONVOY-FROZEN-STANDOFF).
+  On the *Kolkhida* test of 2026-10-10 the red assault convoy stood 40 game minutes 700-850 m from two Bradleys in sight, not a round fired by either side: the enemy in sight kept the contact alive, so the quiet minute that relaunches a convoy never came.
+  A fighting convoy halted with an enemy in sight, that fires and takes no shot for 2 minutes, now drives onto the nearest enemy, and again every 2 minutes while nobody fires; a convoy falling back does not.
 - **The committed presets report names no machine path and no day** (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 04).
   `presets-validation-report.md` carried the build date and two absolute paths, so a build from a worktree, another machine or another day dirtied a committed file with no finding changed; it now names `src/presets.yaml` and the mission's base name, without the `.miz`'s date.
 - **A preset channel that lacks its list's band is reported** (ticket 05).

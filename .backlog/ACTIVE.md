@@ -4,21 +4,15 @@
 
 Work started and not finished: in progress, waiting for a human, or deliberately paused.
 
-## 🔄 In progress
-
-### [FIX-OPEN-TRAINING-FALKLANDS-FINDINGS](FIX-OPEN-TRAINING-FALKLANDS-FINDINGS/PRD.md) · 🔄
-
-What building the Falklands Open Training v6 found: the map missing from the theatre table (no blank mission, no terrain sweep, no geocoder box) and its frequency and parking data left uncommitted — both delivered — then a FARP on a lake or on a tower frequency, a convoy that starts off road at 5.6 m/s, no warning for a group inside a combat zone's circle, no convoy-on-road action, and ground placement unchecked with no clear-ground catalogue. Seven tickets, one PR.
-
-### [FIX-OPEN-TRAINING-NORMANDY-FINDINGS](FIX-OPEN-TRAINING-NORMANDY-FINDINGS/PRD.md) · 🔄
-
-What building the Normandy 1944 Open Training v6 through the MCP found, the first WW2 mission built this way: the loadout table knew no module aircraft, a WW2 gun fighter was warned about as « unarmed », the shipped catalogue and the CAS tables put modern jets, a Bradley and an M4 rifleman into 1944, `list_shortcuts` said nothing of era, the editor refused to save groups written with 251 MHz, the known limitations overflowed a tool result, and `geocode` put « Omaha Beach » in Iowa. Fifteen tickets; thirteen done in the first PR, ticket 07 (`gun: 0` on ten slot templates) waits for DCS, ticket 15 (a native convoy that drives at 5.1 m/s) was measured in DCS and is not a defect (the column forms up in three minutes).
-
 ## 🧑 Waiting for a human
 
 ### [FIX-OPEN-TRAINING-CAUCASUS-FINDINGS](FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md) · 🧑
 
-What recompiling the Caucasus Open Training v6 in 6.29.0 found, each fixed by hand in the mission: no game master slot nor vehicle control in any v6 scaffold, a CTLD catalogue upgrade seen only in game, no dashed line on the F10 map, and (found on GermanyCW-v6) a committed presets report that names the machine. Plus (found on Syria-v6) a presets channel dropped without a word. Five tickets, one PR; ticket 03 waits for a look in DCS (R48).
+What recompiling the Caucasus Open Training v6 in 6.29.0 found, each fixed by hand in the mission: no game master slot nor vehicle control in any v6 scaffold, a CTLD catalogue upgrade seen only in game, no dashed line on the F10 map, and (found on GermanyCW-v6) a committed presets report that names the machine. Plus (found on Syria-v6) a presets channel dropped without a word. Five tickets, one PR; ticket 03 waits for a look in DCS (R49).
+
+### [FIX-CONVOY-FROZEN-STANDOFF](FIX-CONVOY-FROZEN-STANDOFF/PRD.md) · 🧑
+
+A convoy held at its standoff in front of an enemy DCS does not make it engage stayed frozen for ever (*Kolkhida* test, 2026-10-10, 40 game minutes without a shot). A fighting convoy with an enemy in sight and no shot fired or taken for 2 minutes now drives onto the nearest enemy. Left: R48 in game.
 
 ### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · 🧑
 

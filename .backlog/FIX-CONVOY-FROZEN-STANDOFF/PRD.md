@@ -1,6 +1,6 @@
 # FIX-CONVOY-FROZEN-STANDOFF — a convoy holding in front of an enemy nobody fires at stays there for ever
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code and Lua tests done; R48 in `DCS-SESSION-TODO.md` checks it in game
 
 ## Found
 
@@ -22,7 +22,7 @@ When no fire has been exchanged for a while although the enemy is in sight, the 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-close-in-when-nobody-fires.md) | A fighting convoy that exchanges no fire closes in | ⬜ |
+| [01](tickets/01-close-in-when-nobody-fires.md) | A fighting convoy that exchanges no fire closes in | 🧑 |
 
 ## Definition of done
 

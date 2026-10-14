@@ -54,7 +54,7 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
-### R48. A dashed F10 drawing, and the game master slot from `mission.yaml` — **no pilot needed**
+### R49. A dashed F10 drawing, and the game master slot from `mission.yaml` — **no pilot needed**
 
 [`FIX-OPEN-TRAINING-CAUCASUS-FINDINGS`](.backlog/FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md), ticket 03 (and a look at ticket 01 on the way).
 The tests check what is written in the mission; what DCS draws from `style = "dash"` is only seen in game.
@@ -69,6 +69,19 @@ The tests check what is written in the mission; what DCS draws from `style = "da
    - **Not verified**: they show solid — DCS needs more than `style` in game; the drawing as the editor re-saves it (step 1, then save) says which field.
 3. Open the slot list.
    - **Verified**: two Game Master slots per side, and a pilot can take a ground vehicle from the F10 map.
+
+### R48. A convoy held in front of an enemy nobody fires at closes in — **no pilot needed**
+
+[`FIX-CONVOY-FROZEN-STANDOFF`](.backlog/FIX-CONVOY-FROZEN-STANDOFF/PRD.md).
+On the mocks: the push after `STALEMATE_DELAY` (120 s) without a shot fired or taken, its restart, and no push while falling back. What the mocks cannot show: whether DCS raises `S_EVENT_SHOOTING_START` / `S_EVENT_SHOT` for the convoy's own guns, and whether the vehicles fire once moving.
+
+**Prepare**: the same ambush as R47 item 4 on 2026-10-10 — a copy of *Kolkhida* mission 1 built from the branch (or `develop` once merged), security off, a game master slot, `rules.assault_seconds: 60`, and two blue M-2 Bradleys put on the road 800 m ahead of the red assault convoy `Senaki - Poti assault` once it is under way (fiddle hook or `_spawn`).
+
+1. Let the convoy meet the Bradleys and watch `dcs.log` (`GROUNDAI`).
+   - **Verified**: `contact with N enemies`, then, if nobody fires, `no fire exchanged for 120 s, closing in on an enemy N m away` about 2 minutes later; the convoy moves (speed > 0) and the fight ends one way or the other within a few minutes.
+   - **Verified too**: the two sides fire at once and the convoy never logs `closing in`: nothing was stuck, and the push stayed out of the way.
+   - **Re-opened, `closing in` every 2 minutes while rounds are flying** (the F10 view shows tracers, ammunition goes down): DCS does not raise a shooting event for the convoy's guns — dump the events with the fiddle hook during the fight and note which ids come with a convoy unit as initiator.
+   - **Re-opened, it drives onto the Bradleys without firing**: moving is not enough on this ground — note the distance at which they pass and the vegetation.
 
 ### R47. What *Kolkhida* mission 1 found, once fixed — **a pilot for items 1 to 3, two for item 7**
 

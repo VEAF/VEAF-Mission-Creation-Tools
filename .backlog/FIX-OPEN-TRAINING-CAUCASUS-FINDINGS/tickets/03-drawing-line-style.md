@@ -25,4 +25,4 @@ The unknown is measured, in the editor's own code rather than a saved mission (`
 
 `map_drawings.LINE_STYLES` holds the sixteen names in the editor's order; `add_map_drawing` takes `style` (default `solid`) on every shape but `textbox`, which refuses an explicit one. The action schema lists the sixteen as an `enum`.
 
-Left for DCS: R48 in `DCS-SESSION-TODO.md` — the dashed circle loads in the editor and shows dashed on the F10 map.
+Left for DCS: R49 in `DCS-SESSION-TODO.md` — the dashed circle loads in the editor and shows dashed on the F10 map.

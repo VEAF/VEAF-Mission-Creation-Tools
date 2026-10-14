@@ -6,6 +6,14 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-OPEN-TRAINING-NORMANDY-FINDINGS](FIX-OPEN-TRAINING-NORMANDY-FINDINGS/PRD.md) · ✅
+
+What building the Normandy 1944 Open Training v6 through the MCP found, the first WW2 mission built this way: loadouts for module aircraft, era in the catalogue, CAS tables and shortcuts, 251 MHz refused by the editor, known limitations by area, theatre bounds — thirteen tickets done (#1136). Ticket 07 (`gun: 0` on ten WW2 slot templates) closed unmeasured by David, the known limitation stays; ticket 15 measured in DCS, not a defect.
+
+### [FIX-OPEN-TRAINING-FALKLANDS-FINDINGS](FIX-OPEN-TRAINING-FALKLANDS-FINDINGS/PRD.md) · ✅
+
+What building the Falklands Open Training v6 found: the map missing from the theatre table and its frequency and parking data left uncommitted, a FARP on a lake or on a tower frequency, a convoy that starts off road at 5.6 m/s, no warning for a group inside a combat zone's circle, ground placement unchecked with no clear-ground catalogue — all delivered. Ticket 06 (a convoy-on-road action through the bridge) closed unbuilt by David: we will see in game.
+
 ### [FIX-AIR-SLOT-HEADING](FIX-AIR-SLOT-HEADING/PRD.md) · ✅
 
 An air-start player slot flew north whatever its heading: DCS orients an air start toward its second waypoint, as the Mission Editor's own files show. `add_player_slot` now writes one 10 km ahead on the heading; measured in DCS, a slot asked for 180° flew 180.5°.

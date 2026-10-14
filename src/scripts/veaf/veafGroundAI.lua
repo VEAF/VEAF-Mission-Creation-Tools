@@ -845,6 +845,15 @@ ConvoyUnitHandler.MERGE_DISTANCE = 300
 --- 2026-10-08 Bradleys driving in opened fire at ~1.3 km; halted at 1.9 km they never did.
 ConvoyUnitHandler.ASSAULT_STANDOFF = 900
 ConvoyUnitHandler.ASSAULT_SPEED = 8
+--- Seconds a fighting convoy with an enemy in sight goes without a shot fired or taken before it drives
+--- onto the nearest one. On Kolkhida, 2026-10-10, a convoy held 673-853 m from two Bradleys in sight for
+--- 40 game minutes and neither side fired (FIX-CONVOY-FROZEN-STANDOFF). Two minutes: twice `QUIET_DELAY`,
+--- so a pause between bursts is not taken for a stalemate; a first value, to be tuned in game.
+ConvoyUnitHandler.STALEMATE_DELAY = 120
+--- Below this speed, in metres per second, every one of its vehicles, the convoy is halted. Only a halted
+--- convoy is pushed: one still driving to its standoff is closing in already, and DCS's vehicles open fire
+--- on the way (~1.3 km on 2026-10-08).
+ConvoyUnitHandler.HALTED_SPEED = 1
 --- An assault convoy in a fight this close to its objective drives into it, in metres; farther, it closes in
 --- on the threat like any convoy. The drive is off road: on 2026-10-08 a column bogged down at 0.6 m/s on a
 --- 9 km line across country. The red assault on Poti stood 2.8 km from the zone's centre.
@@ -949,6 +958,8 @@ function ConvoyUnitHandler.init(object)
   -- one record per enemy unit that was seen or fired: { name, point, typeName, strength, lastSeen }
   object.threats = {}
   object.lastContact = nil
+  -- the last shot fired or taken by the convoy in a fight, or the start of the contact, or its last push
+  object.lastFireExchanged = nil
   object.nextWideWatch = 0
   object.nextSmoke = 0
   -- the route a Mission Editor group was given, kept to drive on after a contact
@@ -1440,6 +1451,13 @@ function ConvoyUnitHandler:watch(now, group)
       if not self:pressOn(now) then
         self:standDown()
       end
+    elseif
+      self.state == ConvoyUnitHandler.STATE_FIGHTING
+      and #seen > 0
+      and now - self.lastFireExchanged >= ConvoyUnitHandler.STALEMATE_DELAY
+      and veafGroundAI.isHalted(units)
+    then
+      self:closeIn(now, seen)
     elseif self.calledForHelp and now >= self.nextSmoke then
       self:markWithSmoke(now)
     end
@@ -1520,9 +1538,18 @@ function ConvoyUnitHandler:reportFire(initiator)
   end
   local now = timer.getTime()
   self:recordThreat(initiator, now, true)
+  self.lastFireExchanged = now
   if not self:isInContact() then
     self:engage(now)
   end
+end
+
+--- A shot fired by one of the convoy's own units, from the event handler: the fight is not stuck.
+function ConvoyUnitHandler:reportOwnFire()
+  if self.status ~= GroundUnitHandler.STATUS_ACTIVE then
+    return
+  end
+  self.lastFireExchanged = timer.getTime()
 end
 
 --- The threats seen lately, nearest first.
@@ -1558,6 +1585,7 @@ function ConvoyUnitHandler:engage(now)
   end
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s: contact with %d enemies", veaf.p(self:getName()), #threats)
   self.lastContact = now
+  self.lastFireExchanged = now
   self:suspendItinerary()
 
   local armed, unarmed, ownStrength = {}, {}, 0
@@ -1915,6 +1943,51 @@ function ConvoyUnitHandler:pressOn(now)
   return true
 end
 
+--- Are all these vehicles standing still, below `HALTED_SPEED`?
+--- @param units table DCS units
+--- @return boolean
+function veafGroundAI.isHalted(units)
+  for _, unit in ipairs(units) do
+    local velocity = unit:getVelocity()
+    if math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z) >= ConvoyUnitHandler.HALTED_SPEED then
+      return false
+    end
+  end
+  return true
+end
+
+--- An enemy in sight, no shot either way for `STALEMATE_DELAY`, and the convoy halted: drive onto the
+--- nearest enemy.
+---
+--- Held at its standoff, a convoy DCS does not make fire stays there for ever, since the enemy in sight
+--- keeps the contact alive and the quiet minute never comes (Kolkhida, 2026-10-10: 40 game minutes, not a
+--- round). Moving is what made DCS's vehicles fire on 2026-10-08 (see `fight`), so the convoy closes in,
+--- with no standoff this time; the clock restarts, and another push follows if nobody fires still.
+--- @param now number
+--- @param seen table the living enemy units in sight
+function ConvoyUnitHandler:closeIn(now, seen)
+  local group = self:getGroup()
+  local from = veaf.getAveragePosition(group)
+  local target, targetDistance = nil, math.huge
+  for _, enemy in ipairs(seen) do
+    local distance = dist2D(from, enemy:getPoint())
+    if distance < targetDistance then
+      target, targetDistance = enemy:getPoint(), distance
+    end
+  end
+  veaf.loggers.get(veafGroundAI.Id):info(
+    "convoy %s: no fire exchanged for %d s, closing in on an enemy %d m away",
+    veaf.p(self:getName()),
+    ConvoyUnitHandler.STALEMATE_DELAY,
+    math.floor(targetDistance)
+  )
+  veaf.goRoute(self.groupName, {
+    routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
+    routePoint(target, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
+  })
+  self.lastFireExchanged = now
+end
+
 --- Nothing in sight and no shot for a while.
 ---
 --- After a fight, the convoy drives on by itself and its unarmed vehicles join it (David, 2026-10-08:
@@ -2267,21 +2340,38 @@ function veafGroundAI.nextConvoyCallsign()
   end
 end
 
---- The DCS events a convoy reacts to: a shot starting at one of its units, a hit on one.
+--- The convoy a DCS unit belongs to, or nil.
+--- @param unit table|nil a DCS unit
+--- @return table|nil the convoy's handler
+function veafGroundAI.convoyOfUnit(unit)
+  if not (unit and unit.getGroup) then
+    return nil
+  end
+  local ok, groupName = pcall(function()
+    return unit:getGroup():getName()
+  end)
+  return ok and veafGroundAI.convoysByGroupName[groupName] or nil
+end
+
+--- The DCS events a convoy reacts to: a shot starting at one of its units, a hit on one, and a shot fired
+--- by one of them (a gun's `S_EVENT_SHOOTING_START`, a missile's `S_EVENT_SHOT`), which tells its fight is
+--- not stuck.
 veafGroundAI.eventHandler = {}
 
 function veafGroundAI.eventHandler:onEvent(event)
-  if not event or (event.id ~= world.event.S_EVENT_SHOOTING_START and event.id ~= world.event.S_EVENT_HIT) then
+  if not event then
     return
   end
-  local target = event.target
-  if not (target and target.getGroup) then
+  if event.id == world.event.S_EVENT_SHOOTING_START or event.id == world.event.S_EVENT_SHOT then
+    local shooter = veafGroundAI.convoyOfUnit(event.initiator)
+    if shooter then
+      veaf.safeCall(shooter.reportOwnFire, shooter)
+    end
+  end
+  if event.id ~= world.event.S_EVENT_SHOOTING_START and event.id ~= world.event.S_EVENT_HIT then
     return
   end
-  local ok, groupName = pcall(function()
-    return target:getGroup():getName()
-  end)
-  local handler = ok and veafGroundAI.convoysByGroupName[groupName]
+  local handler = veafGroundAI.convoyOfUnit(event.target)
   if handler then
     veaf.safeCall(handler.reportFire, handler, event.initiator)
   end

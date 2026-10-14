@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-NORMANDY-FINDINGS — what building the Normandy 1944 Open Training v6 through the MCP found
 
-Status: 🔄 in-progress — tickets 01–06 and 08–14 done, 07 waits for DCS, 15 measured: not a defect
+Status: ✅ done — tickets 01–06 and 08–14 done, 07 closed unmeasured (David, 2026-10-14: « on verra bien en jeu »), 15 measured: not a defect
 
 Asked by David on 2026-10-13. The Normandy (WW2, 6 July 1944) Open Training v6 was built from scratch with the Open Training prompt (`.prompts/new-open-training-mission.fr.md`), the `veaf-mission-mcp` actions and the tools of `develop` (6.29.0), in `VEAF-Open-Training-Mission-Normandy-WW2-v6`. The prompt asks for a « Retours pour VMCT » block; this lot is that block. Every finding below was written down from the build; **read again in the code of `develop` before the work, six turned out to be wrong in part** (02, 06, 09, 11, 12, and 01's list of files), and each ticket says what was corrected.
 
@@ -26,7 +26,7 @@ Not filed, already known and only recalled: `create_combat_zone` writes 20 km/h 
 | 04 | [WW2 tables of `veafCasMission`](tickets/04-cas-mission-ww2-tables.md) | ✅ |
 | 05 | [`list_shortcuts` has no era; WW2 radar and artillery aliases](tickets/05-shortcuts-have-no-era.md) | ✅ |
 | 06 | [A radio role for a Fw 190 (38.4-42.4 MHz only)](tickets/06-fm-only-radio-role.md) | ✅ |
-| 07 | [Red WW2 slot templates carry `gun: 0`](tickets/07-red-slot-templates-gun-zero.md) | 🧑 |
+| 07 | [Red WW2 slot templates carry `gun: 0`](tickets/07-red-slot-templates-gun-zero.md) | 🚫 |
 | 08 | [Ship the Normandy parking capture](tickets/08-normandy-parking-and-terrain-data.md) | ✅ |
 | 09 | [`terrain-sweep` and a dead `dcs-serve`](tickets/09-terrain-sweep-dead-serve.md) | ✅ |
 | 10 | [`describe_known_limitations` by area](tickets/10-known-limitations-by-area.md) | ✅ |

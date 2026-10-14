@@ -846,6 +846,85 @@ function TestConvoyWatch:test_an_order_to_hold_is_never_overridden()
   luaunit.assertEquals(countMessages("back on the road"), 0)
 end
 
+-- FIX-CONVOY-FROZEN-STANDOFF: on Kolkhida, 2026-10-10, the red assault convoy held 673-853 m from two
+-- Bradleys in sight for 40 game minutes, no round fired by either side: the watch kept the contact alive,
+-- so the quiet minute never came. With no fire exchanged, the convoy closes in.
+
+--- A fight held at the standoff: an APC in sight 800 m north, inside `ASSAULT_STANDOFF`, so a `Hold`.
+function TestConvoyWatch:_heldAtStandoff()
+  dcs_mocks.visibilityAnswer = true
+  local enemy = makeUnit("bradley", { side = RED, attributes = APC, point = { x = 800, y = 0, z = 0 } })
+  dcs_mocks.searchObjectsObjects = { enemy }
+  local handler = veafGroundAI.addConvoy("Watched")
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  luaunit.assertEquals(tasksPushedTo("Watched", "Hold"), 1)
+  return handler, enemy
+end
+
+function TestConvoyWatch:test_a_stalemate_in_sight_closes_in_on_the_enemy()
+  local handler = self:_heldAtStandoff()
+  dcs_mocks.tasksSet = {}
+  dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY - 5)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 0, "not before the delay")
+  dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY + 5)
+  local stop = lastRoutePoint("Watched")
+  luaunit.assertEquals({ stop.x, stop.y, stop.action }, { 800, 0, "Off Road" }, "onto the enemy, not to the standoff")
+  luaunit.assertEquals(stop.speed, ConvoyUnitHandler.ASSAULT_SPEED)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
+  luaunit.assertEquals(countMessages("back on the road"), 0)
+  -- the clock restarts after each push: the next one comes a whole delay later, not at every beat
+  dcs_mocks.tasksSet = {}
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY - 5)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 0)
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY + 5)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 1)
+end
+
+function TestConvoyWatch:test_fire_exchanged_keeps_the_orders()
+  local _, enemy = self:_heldAtStandoff()
+  dcs_mocks.tasksSet = {}
+  -- the convoy fires every minute: its own shots count, at whatever they are aimed
+  for minute = 1, 4 do
+    dcs_mocks.runScheduled(minute * 60)
+    veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_SHOOTING_START, initiator = self.units[1], target = enemy })
+  end
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 0, "a convoy shooting is not stuck")
+end
+
+function TestConvoyWatch:test_fire_taken_keeps_the_orders()
+  local _, enemy = self:_heldAtStandoff()
+  dcs_mocks.tasksSet = {}
+  for minute = 1, 4 do
+    dcs_mocks.runScheduled(minute * 60)
+    veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = enemy, target = self.units[1] })
+  end
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 0)
+end
+
+function TestConvoyWatch:test_a_missile_launched_by_the_convoy_counts_as_fire()
+  -- `S_EVENT_SHOT` names no target: the shooter alone says the convoy is firing
+  self:_heldAtStandoff()
+  dcs_mocks.tasksSet = {}
+  for minute = 1, 4 do
+    dcs_mocks.runScheduled(minute * 60)
+    veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_SHOT, initiator = self.units[1] })
+  end
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 0)
+end
+
+function TestConvoyWatch:test_a_convoy_falling_back_does_not_walk_back_into_the_ambush()
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.searchObjectsObjects = {
+    makeUnit("seen-1", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 0 } }),
+    makeUnit("seen-2", { side = RED, attributes = TANK, point = { x = 2500, y = 0, z = 60 } }),
+  }
+  local handler = veafGroundAI.addConvoy("Watched")
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
+  local routes = #dcs_mocks.tasksSet
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY + 5)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, routes, "the enemy in sight, no fire, and still no route toward it")
+end
+
 function TestConvoyWatch:test_the_watch_ends_when_the_convoy_is_gone()
   local handler = veafGroundAI.addConvoy("Watched")
   dcs_mocks.removeGroup("Watched")

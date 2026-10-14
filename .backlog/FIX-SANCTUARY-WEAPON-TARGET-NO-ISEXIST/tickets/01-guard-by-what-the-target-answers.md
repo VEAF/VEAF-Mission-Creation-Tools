@@ -9,7 +9,8 @@ Status: 🧑 waiting-human
 
 ## Done, 2026-10-14
 
-- **Not measured.** DCS was not running on the workstation, and the scripting API schema documents `isExist` on every `Object`, `SceneryObject` included — so it cannot say which object came without it. The scenery hypothesis stays a hypothesis.
+- **Partly measured, 2026-10-14** (Caucasus, single player, fiddle hook): an AI A-10C's four AGM-65D on a BTR-80 each got a complete `Unit` (`isExist` a function, category 1), at the shot and 2 s later — not the failing case. AI A-10Cs tasked on a house (`AttackMapObject`) and on a static `Hangar A` fired nothing and dropped their stores, so the scenery and static cases wait for a pilot (R48).
+- **First pass, not measured.** DCS was not running on the workstation, and the scripting API schema documents `isExist` on every `Object`, `SceneryObject` included — so it cannot say which object came without it. The scenery hypothesis stays a hypothesis.
 - Guarded by capability: a target whose `isExist` is not a function is ignored (no player to protect), before `isExist()` is called. A target destroyed since is still ignored the same way as before.
 - That object is logged once per mission at `info`: `weapon target with no isExist method: Object.getCategory=…, Object.getName=…, type=…`, each call under `pcall`. The next server log of a mission built with the fix says what it is, without a session.
 - The other `getTarget()` caller, `veafMissileGuardian.lua`, never calls `isExist` on the target, only `getName` and, for a protected unit, `getPoint`: not the same defect, left as is.

@@ -944,6 +944,12 @@ the object `weapon:getTarget()` returned — although the scripting API document
 `if not target or not target:isExist()` handles a weapon with no target and a target destroyed
 since, and still raises on this one.
 
+Measured on 2026-10-14 (Caucasus, single player, through the fiddle hook): an AI A-10C's four
+AGM-65D on a BTR-80 each got a complete `Unit` (`isExist` a function, `Object.getCategory` 1), at
+the shot and 2 s later. So the defect is not on a guided shot at a unit. The scenery and static
+cases could not be measured by AI: tasked with `AttackMapObject` on a house or `AttackUnit` on a
+static `Hangar A`, AI A-10Cs flew over, fired nothing and dropped their stores.
+
 **What to do:** Ask the object whether it has the method before calling it (`type(target.isExist) == "function"`),
 or call through the class (`Object.getCategory(target)`) inside `pcall`. Never assume
 `getTarget()` returns a unit.

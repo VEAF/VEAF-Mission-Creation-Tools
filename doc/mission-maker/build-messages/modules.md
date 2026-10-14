@@ -115,6 +115,25 @@ Une mission créée depuis part avec les deux listes vides.
 et les unités (`logisticUnits`) que la mission contient vraiment. Écrire `[]` seul sur sa ligne : le
 lecteur YAML de CTLD lit `extractableGroups: []   # note` comme le texte `"[]   # note"`.
 
+## CTLD : ctld-config.yaml est écrit pour un autre catalogue {#validate-ctld-catalogue-gap}
+
+> ctld-config.yaml est écrit pour le catalogue CTLD 2.0.0, les outils livrent le 2.2.0. Réglages
+> absents, que CTLD prend à leur valeur par défaut : enableParachuteDrop, crateDropExtraDistance,
+> crateSpawnGap. `veaf-tools ctld-upgrade` les ajoute.
+
+**Ce que ça veut dire.** Votre fichier porte la version du catalogue CTLD pour laquelle il a été écrit (`configVersion`), et une version des outils plus récente livre un CTLD plus récent.
+La mission marche : CTLD prend chaque réglage absent à sa valeur par défaut, et l'annonce aux joueurs au démarrage.
+C'est un avertissement, pas une erreur.
+
+**L'issue.** `veaf-tools mission ctld-upgrade` dans le dossier de mission : il ajoute chaque réglage manquant à sa valeur par défaut, dans la section où le catalogue le range, et met `configVersion` à jour.
+Aucune de vos valeurs ne change, et les listes ne sont pas touchées : une liste absente est un retrait voulu.
+
+Deux messages peuvent l'accompagner, que la commande ne traite pas :
+
+- **des réglages que le catalogue ne connaît plus** : CTLD les ignore, vous pouvez les retirer dans `ctld-tools` ;
+- **des nouveautés dans des tables que la mission possède** (`capabilitiesByType.UH-1H.crateSpawnSector`, par exemple) : CTLD lit ces tables en entier, sans retomber sur le catalogue, donc la mission garde l'ancien comportement.
+  Les ajouter change le jeu ; c'est à vous de le décider, dans `ctld-tools`.
+
 ## Des fichiers son manquent {#builder-community-sounds-missing}
 
 > Des fichiers son requis par un module communautaire activé ne sont fournis ni par les outils ni

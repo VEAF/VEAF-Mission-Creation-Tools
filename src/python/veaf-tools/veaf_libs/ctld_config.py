@@ -17,7 +17,10 @@ from __future__ import annotations
 
 import io
 import re
+from dataclasses import dataclass
 from pathlib import Path
+
+import yaml
 
 #: The mission's CTLD 2 configuration: a complete YAML snapshot, authored in
 #: ctld-tools, living beside mission.yaml.
@@ -253,6 +256,180 @@ def logistics_lists_are_empty(catalogue: str) -> bool:
             if section is not None and key in section and section[key]:
                 return False
     return True
+
+
+#: The two sections a configuration splits its settings into. CTLD merges them, so a setting
+#: counts as present whichever one holds it.
+_SECTIONS = ("mm_facing", "advanced")
+
+
+@dataclass(frozen=True)
+class CatalogueGap:
+    """What separates a mission's ``ctld-config.yaml`` from the vendored catalogue.
+
+    Attributes:
+        mission_version: The mission's ``configVersion``, ``None`` when it has none.
+        catalogue_version: The vendored catalogue's ``configVersion``.
+        missing: ``(section, key)`` of each setting the catalogue has and the mission lacks, lists
+            excepted: CTLD runs it on its default, and :func:`upgrade_to_catalogue` writes it in.
+        removed: Each setting the mission has and the catalogue no longer knows: CTLD ignores it.
+        unused_features: Dotted path of each key the catalogue adds inside a table the mission
+            holds (``capabilitiesByType.UH-1H.crateSpawnSector``). CTLD reads such a table whole,
+            with no fallback, so the mission keeps the older behaviour; adding them changes the
+            game, which is the maker's call.
+    """
+
+    mission_version: str | None
+    catalogue_version: str | None
+    missing: tuple[tuple[str, str], ...]
+    removed: tuple[str, ...]
+    unused_features: tuple[str, ...]
+
+
+def _load_mapping(text: str) -> dict | None:
+    """Parse a configuration with the standard reader, ``None`` when it is not a mapping."""
+    try:
+        document = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+    return document if isinstance(document, dict) else None
+
+
+def _settings(document: dict) -> dict[str, tuple[str, object]]:
+    """Return every setting of a configuration, keyed by name, with the section that holds it."""
+    settings: dict[str, tuple[str, object]] = {}
+    for section_name in _SECTIONS:
+        section = document.get(section_name)
+        if isinstance(section, dict):
+            for key, value in section.items():
+                settings.setdefault(str(key), (section_name, value))
+    return settings
+
+
+def _new_keys(mission: dict, catalogue: dict, path: str) -> list[str]:
+    """Return the dotted path of each key *catalogue* has below *path* and *mission* lacks."""
+    found: list[str] = []
+    for key, value in catalogue.items():
+        here = f"{path}.{key}"
+        if key not in mission:
+            found.append(here)
+        elif isinstance(value, dict) and isinstance(mission[key], dict):
+            found += _new_keys(mission[key], value, here)
+    return found
+
+
+def find_catalogue_gap(mission_config: str, catalogue: str) -> CatalogueGap | None:
+    """Compare a mission's configuration with the vendored catalogue, when their versions differ.
+
+    The catalogue a release vendors moves on (2.0.0 → 2.2.0 in 6.29.0), and a mission's file stays
+    at the version it was scaffolded against; CTLD only says so on screen, to the players
+    (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 02). Same version: nothing to report.
+
+    Args:
+        mission_config: The mission's ``ctld-config.yaml`` content.
+        catalogue: The vendored catalogue, as :func:`read_default_config` returns it.
+
+    Returns:
+        The gap, or ``None`` when the versions match or either document is not a mapping.
+    """
+    mission = _load_mapping(mission_config)
+    reference = _load_mapping(catalogue)
+    if mission is None or reference is None:
+        return None
+    mission_version = mission.get("configVersion")
+    catalogue_version = reference.get("configVersion")
+    if mission_version == catalogue_version:
+        return None
+
+    mission_settings = _settings(mission)
+    catalogue_settings = _settings(reference)
+    missing = tuple(
+        (section, key)
+        for key, (section, value) in catalogue_settings.items()
+        if key not in mission_settings and not isinstance(value, list)
+    )
+    removed = tuple(key for key in mission_settings if key not in catalogue_settings)
+    unused: list[str] = []
+    for key, (_, value) in catalogue_settings.items():
+        own = mission_settings.get(key, (None, None))[1]
+        if isinstance(value, dict) and isinstance(own, dict):
+            unused += _new_keys(own, value, key)
+    return CatalogueGap(
+        mission_version=None if mission_version is None else str(mission_version),
+        catalogue_version=None if catalogue_version is None else str(catalogue_version),
+        missing=missing,
+        removed=removed,
+        unused_features=tuple(unused),
+    )
+
+
+def upgrade_to_catalogue(mission_config: str, catalogue: str) -> str:
+    """Write the settings a mission lacks at their catalogue default, and take the catalogue's version.
+
+    Each missing setting (:attr:`CatalogueGap.missing`) goes into the section the catalogue puts it
+    in, after the setting that precedes it there. No existing value changes; lists are not touched
+    (a missing list is an intentional removal) nor are keys inside a table the mission holds
+    (:attr:`CatalogueGap.unused_features`). Round-trips through ruamel, like
+    :func:`apply_veaf_overrides`, so comments and ordering survive.
+
+    Args:
+        mission_config: The mission's ``ctld-config.yaml`` content.
+        catalogue: The vendored catalogue.
+
+    Returns:
+        The upgraded document; *mission_config* unchanged when there is no gap.
+    """
+    gap = find_catalogue_gap(mission_config, catalogue)
+    if gap is None:
+        return mission_config
+
+    from ruamel.yaml import YAML
+    from ruamel.yaml.comments import CommentedMap
+    from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
+    ruamel = YAML()
+    ruamel.preserve_quotes = True
+    document = ruamel.load(mission_config)
+    reference = ruamel.load(catalogue)
+
+    for section_name, key in gap.missing:
+        if document.get(section_name) is None:
+            document[section_name] = CommentedMap()
+        section = document[section_name]
+        catalogue_keys = list(reference[section_name])
+        preceding = [k for k in catalogue_keys[: catalogue_keys.index(key)] if k in section]
+        position = list(section).index(preceding[-1]) + 1 if preceding else 0
+        section.insert(position, key, reference[section_name][key])
+
+    version = DoubleQuotedScalarString(gap.catalogue_version or "")
+    if "configVersion" in document:
+        document["configVersion"] = version
+    else:
+        document.insert(0, "configVersion", version)
+
+    stream = io.StringIO()
+    ruamel.dump(document, stream)
+    return stream.getvalue()
+
+
+def vendored_ctld_lua(mission_folder: Path) -> Path | None:
+    """Return the ``CTLD.lua`` the tools vendor, as seen from a mission folder, or ``None``.
+
+    The same file ``prepare`` scaffolds ``ctld-config.yaml`` from: next to the shipped defaults.
+
+    Args:
+        mission_folder: The mission folder.
+
+    Returns:
+        The vendored engine, or ``None`` when it cannot be found.
+    """
+    from veaf_libs.shipped_defaults import resolve_defaults_source
+
+    defaults = resolve_defaults_source(mission_folder)
+    if defaults is None:
+        return None
+    candidate = defaults.parents[1] / "scripts" / "community" / "CTLD.lua"
+    return candidate if candidate.is_file() else None
 
 
 def apply_veaf_overrides(catalogue: str) -> str:

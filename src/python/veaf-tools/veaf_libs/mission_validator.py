@@ -21,6 +21,7 @@ Checks:
   10. a QRA definition with both ``simple_groups`` and ``groups_by_enemy_count`` (warning)
   11. an ``opposition:`` block the build would refuse                (error)
   12. a ``mission.ground_control`` block the build would refuse      (error)
+  13. a ``ctld-config.yaml`` written against another CTLD catalogue (warning)
 
 Checks 4-9 read the unpacked source mission table (``src/mission/mission``); when it is
 absent they are skipped (reported once as a warning).
@@ -110,6 +111,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
 
     # 3c. radio-menu `action: lua` references resolve to a defined maker function
     issues += _check_radio_lua_functions(folder, yaml_data)
+
+    # 3d. ctld-config.yaml written against another CTLD catalogue than the vendored one
+    issues += _check_ctld_catalogue(folder, yaml_data)
 
     # 4-6. checks that need the source mission table
     mission, mission_error = _read_source_mission(folder)
@@ -227,6 +231,63 @@ def _check_deployed_aircraft_routes(yaml_data: dict, mission: dict) -> list[Vali
     ]
 
 
+def _ctld_turned_off(yaml_data: dict) -> bool:
+    """Return whether ``mission.yaml`` turns CTLD off — only an explicit opt-out: CTLD also runs unnamed."""
+    modules = yaml_data.get("modules") if isinstance(yaml_data, dict) else None
+    ctld = modules.get("CTLD") if isinstance(modules, dict) else None
+    return ctld is False or (isinstance(ctld, dict) and ctld.get("enabled") is False)
+
+
+def _check_ctld_catalogue(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
+    """Warn when ``ctld-config.yaml`` was written against another CTLD catalogue than the vendored one.
+
+    CTLD runs fine on its defaults, so these are warnings: the settings the mission lacks, those the
+    catalogue dropped, and the keys the catalogue added inside a table the mission holds
+    (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 02). Without them the maker learned of a catalogue
+    upgrade from a player, CTLD printing it on screen at mission start.
+
+    Args:
+        folder: The mission folder.
+        yaml_data: The parsed ``mission.yaml``; a mission that turns CTLD off is not checked.
+
+    Returns:
+        Up to three warnings; nothing when the versions match or a file is missing.
+    """
+    from veaf_libs.ctld_config import (
+        CTLD_CONFIG_FILENAME,
+        find_catalogue_gap,
+        read_default_config,
+        vendored_ctld_lua,
+    )
+
+    config_path = folder / CTLD_CONFIG_FILENAME
+    if _ctld_turned_off(yaml_data) or not config_path.is_file():
+        return []
+    engine = vendored_ctld_lua(folder)
+    catalogue = read_default_config(engine) if engine is not None else None
+    if catalogue is None:
+        return []
+    gap = find_catalogue_gap(config_path.read_text(encoding="utf-8"), catalogue)
+    if gap is None:
+        return []
+    versions = {"file": CTLD_CONFIG_FILENAME, "mission": gap.mission_version or "?", "catalogue": gap.catalogue_version}
+    issues = [
+        ValidationIssue(
+            WARNING,
+            t("validate.ctld_catalogue_missing", keys=", ".join(k for _, k in gap.missing) or "—", **versions),
+        )
+    ]
+    if gap.removed:
+        issues.append(ValidationIssue(WARNING, t("validate.ctld_catalogue_removed", keys=", ".join(gap.removed), **versions)))
+    if gap.unused_features:
+        issues.append(
+            ValidationIssue(
+                WARNING, t("validate.ctld_catalogue_unused", keys=", ".join(gap.unused_features), **versions)
+            )
+        )
+    return issues
+
+
 def _check_ctld_names(folder: Path, yaml_data: dict, mission: dict) -> list[ValidationIssue]:
     """Warn on an ``extractableGroups`` / ``logisticUnits`` name the mission does not hold.
 
@@ -244,10 +305,7 @@ def _check_ctld_names(folder: Path, yaml_data: dict, mission: dict) -> list[Vali
     """
     from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME, VEAF_EMPTIED_LISTS
 
-    # Only an explicit opt-out: CTLD also runs when mission.yaml does not name it.
-    modules = yaml_data.get("modules") if isinstance(yaml_data, dict) else None
-    ctld = modules.get("CTLD") if isinstance(modules, dict) else None
-    if ctld is False or (isinstance(ctld, dict) and ctld.get("enabled") is False):
+    if _ctld_turned_off(yaml_data):
         return []
     config_path = folder / CTLD_CONFIG_FILENAME
     if not config_path.is_file() or not isinstance(mission, dict):

@@ -316,8 +316,11 @@ class TestCtldNamesTheMissionDoesNotHold(unittest.TestCase):
 
     def _ctld_warnings(self, ctld_config: str) -> list[str]:
         folder = _make_folder("modules: {}\n", _MISSION_WITH_PLAYER, {"ctld-config.yaml": ctld_config})
+        # These fixtures are partial and carry no configVersion: the catalogue-gap warning is not what is tested here.
         return [
-            i.message for i in validate_mission_folder(folder) if i.level == WARNING and "ctld-config.yaml" in i.message
+            i.message
+            for i in validate_mission_folder(folder)
+            if i.level == WARNING and "ctld-config.yaml" in i.message and "ctld-upgrade" not in i.message
         ]
 
     def test_each_absent_name_is_reported(self) -> None:

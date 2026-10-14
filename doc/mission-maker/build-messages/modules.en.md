@@ -111,6 +111,25 @@ since starts with both lists empty.
 units (`logisticUnits`) the mission actually holds. Write `[]` alone on its line: CTLD's YAML reader
 reads `extractableGroups: []   # note` as the text `"[]   # note"`.
 
+## CTLD: ctld-config.yaml is written against another catalogue {#validate-ctld-catalogue-gap}
+
+> ctld-config.yaml is written against CTLD catalogue 2.0.0, the tools vendor 2.2.0. Settings it
+> lacks, run on CTLD's default: enableParachuteDrop, crateDropExtraDistance, crateSpawnGap.
+> `veaf-tools ctld-upgrade` writes them in.
+
+**What it means.** Your file carries the version of the CTLD catalogue it was written against (`configVersion`), and a newer release of the tools ships a newer CTLD.
+The mission works: CTLD runs each missing setting on its default, and tells the players so at mission start.
+It is a warning, not an error.
+
+**The way out.** `veaf-tools mission ctld-upgrade` in the mission folder: it adds each missing setting at its default, in the section the catalogue puts it in, and updates `configVersion`.
+None of your values changes, and lists are not touched: a missing list is an intentional removal.
+
+Two messages may come with it, which the command leaves to you:
+
+- **settings the catalogue no longer knows**: CTLD ignores them, you may remove them in `ctld-tools`;
+- **new keys inside tables the mission holds** (`capabilitiesByType.UH-1H.crateSpawnSector`, for example): CTLD reads these tables whole, with no fallback to the catalogue, so the mission keeps the older behaviour.
+  Adding them changes the game; that is your call, in `ctld-tools`.
+
 ## Sound files are missing {#builder-community-sounds-missing}
 
 > Sound file(s) required by an enabled community module are shipped by neither the tools nor the

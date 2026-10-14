@@ -1,6 +1,6 @@
 # Référence CLI — `veaf-tools`
 
-Les **37 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
+Les **38 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
 page de référence : elle dit ce que chaque commande accepte, pas comment mener une mission de bout
 en bout. Pour cela, lisez le [guide du créateur de mission](mission-maker/GUIDE.md), qui raconte
 l'enchaînement, et la [référence du pipeline](PIPELINE_REFERENCE.md), qui détaille chaque étape du
@@ -76,6 +76,27 @@ veaf-tools mission build MaMission --profile PROD
 *Alias plat : `veaf-tools build`*
 
 **Voir aussi** : [PIPELINE_REFERENCE.md](PIPELINE_REFERENCE.md)
+
+### `veaf-tools mission ctld-upgrade` {#ctld-upgrade}
+
+Met ctld-config.yaml au niveau du catalogue CTLD livré avec les outils : ajoute les réglages absents à leur valeur par défaut, ne change rien d'autre.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `MISSION_FOLDER` | `str` | non | Dossier contenant mission.yaml et ctld-config.yaml. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+```bash
+veaf-tools mission ctld-upgrade .
+```
+
+*Alias plat : `veaf-tools ctld-upgrade`*
+
+**Voir aussi** : [mission-maker/build-messages/modules.md](mission-maker/build-messages/modules.md#validate-ctld-catalogue-gap)
 
 ### `veaf-tools mission export` {#export}
 

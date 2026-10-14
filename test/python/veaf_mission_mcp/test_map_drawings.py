@@ -29,6 +29,7 @@ from mission_tools.miz_tools import read_miz
 from veaf_mission_mcp.map_drawings import (
     _MEASURED_SHAPES,
     _REFUSED_SHAPES,
+    LINE_STYLES,
     add_map_drawing,
     edit_map_drawing,
 )
@@ -507,3 +508,83 @@ class TestSurvivesAndBacksUp:
         with pytest.raises(ValueError):
             add_map_drawing(miz, layer="Blue", shape="circle", name="X", position={"x": 0.0, "y": 0.0})
         assert miz.read_bytes() == before
+
+
+class TestLineStyle:
+    """FIX-OPEN-TRAINING-CAUCASUS-FINDINGS 03: a dashed line, which every drawing used to lose to `solid`.
+
+    Measured in the editor's `me_draw_panel.lua` (DCS 2.9, 2026-10-14): `lineSave` and the `polygon*Save`
+    functions write `style` and nothing else about it; `lineLoad` rebuilds the texture from
+    `lineStyles_[object.style].file`, so an unknown style indexes nil when the editor loads the mission.
+    """
+
+    _SHAPES = {
+        "line": {"points": [{"x": 0.0, "y": 0.0}, {"x": 1000.0, "y": 0.0}]},
+        "rect": {"position": {"x": 0.0, "y": 0.0}, "width": 100.0, "height": 50.0},
+        "circle": {"position": {"x": 0.0, "y": 0.0}, "radius": 5000.0},
+        "oval": {"position": {"x": 0.0, "y": 0.0}, "r1": 100.0, "r2": 50.0},
+        "free": {"points": [{"x": 0.0, "y": 0.0}, {"x": 1000.0, "y": 0.0}, {"x": 0.0, "y": 1000.0}]},
+    }
+
+    @pytest.mark.parametrize("shape", sorted(_SHAPES))
+    def test_solid_by_default(self, miz: Path, shape: str) -> None:
+        add_map_drawing(miz, layer="Blue", shape=shape, name="X", **self._SHAPES[shape])
+        assert _objects(miz, "Blue")[-1]["style"] == "solid"
+
+    @pytest.mark.parametrize("shape", sorted(_SHAPES))
+    def test_a_style_is_written(self, miz: Path, shape: str) -> None:
+        add_map_drawing(miz, layer="Blue", shape=shape, name="X", style="dash", **self._SHAPES[shape])
+        assert _objects(miz, "Blue")[-1]["style"] == "dash"
+
+    def test_the_sixteen_dcs_styles_are_accepted(self) -> None:
+        assert LINE_STYLES == (
+            "solid",
+            "solid2",
+            "dot",
+            "dot2",
+            "dotdash",
+            "dash",
+            "cross",
+            "square",
+            "strongpoint",
+            "triangle",
+            "wirefence",
+            "boundry1",
+            "boundry2",
+            "boundry3",
+            "boundry4",
+            "boundry5",
+        )
+
+    def test_an_unknown_style_is_refused_with_the_list(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="dashed.*dotdash"):
+            add_map_drawing(miz, layer="Blue", shape="circle", name="X", style="dashed", **self._SHAPES["circle"])
+
+    def test_a_textbox_refuses_a_style(self, miz: Path) -> None:
+        with pytest.raises(ValueError, match="textbox"):
+            add_map_drawing(
+                miz, layer="Blue", shape="textbox", name="X", position={"x": 0.0, "y": 0.0}, text="A", style="dash"
+            )
+
+    def test_the_action_lists_the_styles_and_passes_one_through(self, miz: Path) -> None:
+        from veaf_mission_mcp.actions import register_default_actions
+        from veaf_mission_mcp.catalog import ActionCatalog
+
+        catalog = ActionCatalog()
+        register_default_actions(catalog)
+
+        assert tuple(catalog.describe_action("add_map_drawing").parameters_schema["properties"]["style"]["enum"]) == (
+            LINE_STYLES
+        )
+        catalog.run_action(
+            "add_map_drawing",
+            {
+                "miz_path": str(miz),
+                "layer": "Blue",
+                "shape": "circle",
+                "name": "X",
+                "style": "dash",
+                **self._SHAPES["circle"],
+            },
+        )
+        assert _objects(miz, "Blue")[-1]["style"] == "dash"

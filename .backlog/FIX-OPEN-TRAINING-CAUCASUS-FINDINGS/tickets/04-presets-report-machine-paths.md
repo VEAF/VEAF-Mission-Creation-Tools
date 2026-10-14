@@ -1,6 +1,6 @@
 # 04 — The presets report a mission commits names no machine path
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `presets_injector/presets_injector_worker.py` (`generate_validation_report`), its translations, tests.
 
@@ -15,3 +15,8 @@ Recompiling GermanyCW-v6 in a worktree on 2026-10-10 changed those three lines t
 - The report names the presets file and the mission relative to the mission folder (`src/presets.yaml`, the `.miz` file name), and keeps an absolute path only for a file outside it.
 - Two builds of the same mission from two folders on different days write the same report, byte for byte, when the findings are the same.
 - Tests: a file inside the mission folder is written relative, one outside stays absolute.
+
+## Done
+
+The header no longer carries the date, and names each file relative to the report's folder when it lies inside it (`src/presets.yaml`), absolute otherwise (`_report_path`).
+One departure from the ticket's wording, for its own "different days" criterion: the build's `.miz` is named `<name>_<YYYYMMDD>.miz`, so its file name changes every day. `generate_validation_report` takes a `mission_label`, and the build passes the mission's base name (`OT`, not `OT_20261010.miz`); `inject-presets --validate-report`, which has no base name, keeps the file name.

@@ -1,6 +1,6 @@
 # CLI reference — `veaf-tools`
 
-All **37 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
+All **38 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
 page: it says what each command accepts, not how to take a mission from start to finish. For that,
 read the [mission maker's guide](mission-maker/GUIDE.en.md), which tells the story in order, and the
 [pipeline reference](PIPELINE_REFERENCE.en.md), which details each build step.
@@ -74,6 +74,27 @@ veaf-tools mission build MaMission --profile PROD
 *Flat alias : `veaf-tools build`*
 
 **See also** : [PIPELINE_REFERENCE.md](PIPELINE_REFERENCE.en.md)
+
+### `veaf-tools mission ctld-upgrade` {#ctld-upgrade}
+
+Bring ctld-config.yaml up to the CTLD catalogue the tools vendor: add the settings it lacks at their default, change nothing else.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `MISSION_FOLDER` | `str` | no | Folder containing mission.yaml and ctld-config.yaml. Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
+| `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
+
+```bash
+veaf-tools mission ctld-upgrade .
+```
+
+*Flat alias : `veaf-tools ctld-upgrade`*
+
+**See also** : [mission-maker/build-messages/modules.en.md](mission-maker/build-messages/modules.en.md#validate-ctld-catalogue-gap)
 
 ### `veaf-tools mission export` {#export}
 

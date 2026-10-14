@@ -537,6 +537,45 @@ class TestGenerateValidationReport(unittest.TestCase):
             self.assertIn("# Radio Presets Frequency Validation Report", content)
             self.assertIn("MiG-19P", content)
 
+    def _header(self, mission_folder: Path, presets_file: Path, mission: Path, label: str | None = None) -> list[str]:
+        """Return the report's header lines, written into *mission_folder* for those two files."""
+        worker = self._make_worker_with_pending()
+        worker.presets_file = presets_file
+        worker.input_mission = mission
+        report_path = mission_folder / "presets-validation-report.md"
+        worker.generate_validation_report(report_path, mission_label=label)
+        return report_path.read_text(encoding="utf-8").split("\n## ", 1)[0].splitlines()
+
+    def test_a_file_inside_the_mission_folder_is_named_relative_to_it(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            header = "\n".join(self._header(folder, folder / "src" / "presets.yaml", folder / "OT_20261010.miz"))
+        self.assertIn("`src/presets.yaml`", header)
+        self.assertIn("`OT_20261010.miz`", header)
+        self.assertNotIn(tmpdir, header)
+
+    def test_a_file_outside_the_mission_folder_stays_absolute(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as elsewhere:
+            presets = Path(elsewhere) / "presets.yaml"
+            header = "\n".join(self._header(Path(tmpdir), presets, Path(tmpdir) / "m.miz"))
+        self.assertIn(f"`{presets}`", header)
+
+    def test_a_mission_label_replaces_the_dated_file_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            header = "\n".join(self._header(folder, folder / "src" / "presets.yaml", folder / "OT_20261010.miz", "OT"))
+        self.assertIn("`OT`", header)
+        self.assertNotIn("20261010", header)
+
+    def test_two_folders_on_two_days_write_the_same_report(self) -> None:
+        reports = []
+        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+            for tmpdir, day in ((first, "20261010"), (second, "20261014")):
+                folder = Path(tmpdir)
+                self._header(folder, folder / "src" / "presets.yaml", folder / f"OT_{day}.miz", "OT")
+                reports.append((folder / "presets-validation-report.md").read_bytes())
+        self.assertEqual(reports[0], reports[1])
+
     def test_generate_validation_report_empty_when_no_issues(self) -> None:
         worker = _make_worker()
         # No pending warnings → all valid
@@ -868,3 +907,53 @@ class TestKneeboardsToggle(unittest.TestCase):
 
     def test_work_generates_images_when_enabled(self) -> None:
         self._run_work(True).assert_called_once()
+
+
+class TestDroppedChannels(unittest.TestCase):
+    """FIX-OPEN-TRAINING-CAUCASUS-FINDINGS 05: a channel a list drops is said, at build and in the report."""
+
+    def setUp(self) -> None:
+        from veaf_libs.i18n import set_language
+
+        set_language("en")
+
+    def _worker(self) -> PresetsInjectorWorker:
+        from presets_injector.presets_manager import DroppedChannel
+
+        worker = _make_worker()
+        worker.presets_manager.channel_lists_dropped = {
+            "blue": {"primary_2": [DroppedChannel("12", "S-3B Stennis", "vhf")]}
+        }
+        return worker
+
+    def test_the_build_warns_once_per_dropped_channel(self) -> None:
+        worker = self._worker()
+        with patch("presets_injector.presets_injector_worker.logger") as mock_logger:
+            count = worker.warn_dropped_channels()
+        self.assertEqual(count, 1)
+        message = mock_logger.warning.call_args.args[0]
+        for part in ("blue", "primary_2", "12", "S-3B Stennis", "VHF"):
+            self.assertIn(part, message)
+
+    def test_work_gives_the_warning(self) -> None:
+        worker = self._worker()
+        worker.dcs_mission = MagicMock()
+        worker.dcs_mission.iter_groups.return_value = []
+        with (
+            patch.object(worker, "read_mission"),
+            patch.object(worker, "process_groups"),
+            patch.object(worker, "write_mission"),
+            patch.object(worker, "warn_dropped_channels") as warn,
+        ):
+            worker.generate_kneeboards = False
+            worker.work(silent=True)
+        warn.assert_called_once()
+
+    def test_the_report_lists_it_and_counts_it(self) -> None:
+        worker = self._worker()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            count = worker.generate_validation_report(report_path)
+            content = report_path.read_text(encoding="utf-8")
+        self.assertEqual(count, 1)
+        self.assertIn("S-3B Stennis", content)

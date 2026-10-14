@@ -531,6 +531,7 @@ The build tells you how many it added.
 | `prepare` | Initialises/refreshes a mission folder from the default scaffold; `--template minimal\|standard\|full\|custom` generates a `mission.yaml` with the matching module set (`custom` = pick modules interactively); `--list-templates` to list them. `--theatre <name>` also generates a synthetic blank mission for that DCS map into `src/mission/` (no DCS round-trip needed to start); `--list-theatres` to list the supported maps. The generated file carries the same documented preamble as `convert-v5` (YAML syntax guide, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
 | `build` | Builds the mission from `src/` — injects VEAF triggers, outputs a `.miz`. Also validates the `mission.yaml` references to the Mission Editor (trigger zones, groups, units, airfields) and prints a **prominent end-of-build summary** of any that are missing — **without blocking** (the `.miz` is built anyway, so you can fix them in the Mission Editor and iterate). A COMBATZONE **operation**'s `zone_name` is not checked (it's only a label, not a required trigger zone) |
 | `validate` | Lints the mission folder **before** build — reports config errors and runtime risks without building (exit non-zero on error; `--strict` fails on warnings too) |
+| `ctld-upgrade` | Brings `ctld-config.yaml` up to the CTLD catalogue the tools vendor: adds the missing settings at their default, without changing yours nor touching the lists ([details](build-messages/modules.en.md#validate-ctld-catalogue-gap)) |
 | `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
 | `export` | Exports a `.miz` to **JSON** (default), **YAML** or **Markdown** (readable brief): `export mission.miz out.json --format json`. Parsing is **pure-Python** (the `luadata` parser) and **never executes Lua** — a safe alternative to interpreting an untrusted `.miz` (arbitrary-code-execution risk). Writes to stdout when no output file is given |
 | `inject-presets` | Injects radio frequency plans for all human cockpits |
@@ -817,6 +818,9 @@ no loading point from the editor at all.
     CTLD 2 merges nothing. A plain setting you omit falls back to the engine default (and says so when the mission starts), but a **list** you omit — a crate section, a troop group, a zone — is genuinely removed. That is how you take one out. Always start from the existing file rather than writing one from scratch.
 
 When you upgrade CTLD and your file was written against an earlier version, `ctld-tools` lists what appeared, what disappeared and what differs from the default before you save it again.
+
+The tools ship their own CTLD: a new release of the tools may therefore bring a newer catalogue than your file's, without you touching CTLD.
+`veaf-tools mission validate` reports it ([the message](build-messages/modules.en.md#validate-ctld-catalogue-gap)), and `veaf-tools mission ctld-upgrade` adds the missing settings at their default, without changing any of yours nor touching the lists.
 
 #### Airfields become logistic zones {#ctld-airbase-logistics}
 

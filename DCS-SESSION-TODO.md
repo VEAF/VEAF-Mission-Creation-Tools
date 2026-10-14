@@ -54,6 +54,22 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R49. A dashed F10 drawing, and the game master slot from `mission.yaml` — **no pilot needed**
+
+[`FIX-OPEN-TRAINING-CAUCASUS-FINDINGS`](.backlog/FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md), ticket 03 (and a look at ticket 01 on the way).
+The tests check what is written in the mission; what DCS draws from `style = "dash"` is only seen in game.
+
+**Prepare**: a scratch mission folder built from the lot's branch, with `mission.ground_control: {game_master: 2, pilot_control_vehicles: true}` in `mission.yaml`, and three drawings added to its folder through the MCP `add_map_drawing` on the `Common` layer: a circle `style: dash`, a line `style: dot`, a rect `style: boundry1`.
+
+1. Open the built `.miz` in the Mission Editor.
+   - **Verified**: it loads without a Lua error, the draw panel lists the three drawings, and each shows its style (dashes, dots, boundary marks) on the editor map.
+   - **Not verified**: a Lua error naming `me_draw_panel.lua` on load — the style name is wrong or a field is missing; note the line.
+2. Start the mission and open the F10 map.
+   - **Verified**: the circle is dashed, the line dotted, the rect drawn with boundary marks.
+   - **Not verified**: they show solid — DCS needs more than `style` in game; the drawing as the editor re-saves it (step 1, then save) says which field.
+3. Open the slot list.
+   - **Verified**: two Game Master slots per side, and a pilot can take a ground vehicle from the F10 map.
+
 ### R48. A convoy held in front of an enemy nobody fires at closes in — **no pilot needed**
 
 [`FIX-CONVOY-FROZEN-STANDOFF`](.backlog/FIX-CONVOY-FROZEN-STANDOFF/PRD.md).

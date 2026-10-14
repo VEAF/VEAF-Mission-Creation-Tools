@@ -1,6 +1,6 @@
 # 02 — validate reports a CTLD catalogue gap, and a command fills it
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_libs/ctld_config.py`, the validator, a `mission` subcommand, the CTLD page of the documentation FR/EN, tests.
 
@@ -25,3 +25,13 @@ The build never rewrites `ctld-config.yaml`, on purpose (`mission_builder_worker
 - A setting removed from the catalogue is listed apart: it is ignored, and the maker may want to drop it.
 - An explicit command (for example `mission ctld-upgrade`) adds the missing settings at their catalogue default, in the section the catalogue puts them in, bumps `configVersion`, and changes no existing value. Lists are not touched: a missing list is an intentional removal.
 - Tests: a 2.0.0 snapshot against a 2.2.0 catalogue gives the three settings above; after the command, `validate` is quiet and the existing values are byte for byte the same.
+
+## Done
+
+`veaf_libs/ctld_config.py`: `find_catalogue_gap` compares the mission's file with the catalogue embedded in the vendored `CTLD.lua` when their `configVersion` differ, and returns three lists: the settings the mission lacks (lists excepted), the settings the catalogue dropped, and the keys the catalogue added inside a table the mission holds. `upgrade_to_catalogue` writes the first list in, in the catalogue's section and after the setting that precedes it there, and takes the catalogue's version.
+`validate` gives one warning per non-empty list (check 13); the command is `veaf-tools mission ctld-upgrade` (flat alias `ctld-upgrade`), filed in the `mission` group, and keeps the file's line endings.
+
+Measured against the real catalogues: extracting `ctld.configDefault` from `CTLD.lua` before #1116 (2.0.0) and from `develop` (2.2.0) gives exactly the three settings CTLD printed in game, no removed setting, and twelve nested keys (`crateSpawnSector`/`crateSpawnDistance` on five types, `load.size`/`dynamic.size` in `spawnableCratesModels`).
+The Mi-8MT's `maxVehicleWeight` and `loadableVehiclesBLUE`/`RED`, which the ticket listed, were already in the 2.0.0 catalogue: a mission that lacks them removed them, so they are not reported as new.
+
+Design choices: everything is gated on a version difference, so a file at the vendored version is never reported, even when it lacks nested keys; a file without `configVersion` counts as different. The upgrade round-trips through ruamel like `apply_veaf_overrides`; on a scaffolded file the test checks the diff is the version line plus the three added lines.

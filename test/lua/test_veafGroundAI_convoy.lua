@@ -858,7 +858,31 @@ function TestConvoyWatch:_heldAtStandoff()
   local handler = veafGroundAI.addConvoy("Watched")
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
   luaunit.assertEquals(tasksPushedTo("Watched", "Hold"), 1)
+  self:_setSpeed(0)
   return handler, enemy
+end
+
+function TestConvoyWatch:_setSpeed(speed)
+  self.units[1].getVelocity = function()
+    return { x = speed, y = 0, z = 0 }
+  end
+end
+
+function TestConvoyWatch:test_a_convoy_still_driving_in_is_not_pushed()
+  -- contact at 2.5 km: the drive to the standoff lasts longer than the delay, and DCS's vehicles open fire
+  -- on the way (~1.3 km on 2026-10-08); a push then would drop the 900 m stop for a drive onto the enemy
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.searchObjectsObjects = { makeUnit("seen", { side = RED, attributes = APC, point = { x = 2500, y = 0, z = 0 } }) }
+  veafGroundAI.addConvoy("Watched")
+  self:_setSpeed(ConvoyUnitHandler.ASSAULT_SPEED)
+  dcs_mocks.tasksSet = {}
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 0, "still closing in on its own")
+  -- stopped at the standoff with no shot all the way: pushed at the next beat, the delay long gone
+  self:_setSpeed(0)
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY + ConvoyUnitHandler.CLOSE_WATCH_PERIOD)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 1)
+  luaunit.assertEquals(lastRoutePoint("Watched").x, 2500)
 end
 
 function TestConvoyWatch:test_a_stalemate_in_sight_closes_in_on_the_enemy()

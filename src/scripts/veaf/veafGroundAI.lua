@@ -850,6 +850,10 @@ ConvoyUnitHandler.ASSAULT_SPEED = 8
 --- 40 game minutes and neither side fired (FIX-CONVOY-FROZEN-STANDOFF). Two minutes: twice `QUIET_DELAY`,
 --- so a pause between bursts is not taken for a stalemate; a first value, to be tuned in game.
 ConvoyUnitHandler.STALEMATE_DELAY = 120
+--- Below this speed, in metres per second, every one of its vehicles, the convoy is halted. Only a halted
+--- convoy is pushed: one still driving to its standoff is closing in already, and DCS's vehicles open fire
+--- on the way (~1.3 km on 2026-10-08).
+ConvoyUnitHandler.HALTED_SPEED = 1
 --- An assault convoy in a fight this close to its objective drives into it, in metres; farther, it closes in
 --- on the threat like any convoy. The drive is off road: on 2026-10-08 a column bogged down at 0.6 m/s on a
 --- 9 km line across country. The red assault on Poti stood 2.8 km from the zone's centre.
@@ -1451,6 +1455,7 @@ function ConvoyUnitHandler:watch(now, group)
       self.state == ConvoyUnitHandler.STATE_FIGHTING
       and #seen > 0
       and now - self.lastFireExchanged >= ConvoyUnitHandler.STALEMATE_DELAY
+      and veafGroundAI.isHalted(units)
     then
       self:closeIn(now, seen)
     elseif self.calledForHelp and now >= self.nextSmoke then
@@ -1938,7 +1943,21 @@ function ConvoyUnitHandler:pressOn(now)
   return true
 end
 
---- An enemy in sight and no shot either way for `STALEMATE_DELAY`: drive onto the nearest one.
+--- Are all these vehicles standing still, below `HALTED_SPEED`?
+--- @param units table DCS units
+--- @return boolean
+function veafGroundAI.isHalted(units)
+  for _, unit in ipairs(units) do
+    local velocity = unit:getVelocity()
+    if math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z) >= ConvoyUnitHandler.HALTED_SPEED then
+      return false
+    end
+  end
+  return true
+end
+
+--- An enemy in sight, no shot either way for `STALEMATE_DELAY`, and the convoy halted: drive onto the
+--- nearest enemy.
 ---
 --- Held at its standoff, a convoy DCS does not make fire stays there for ever, since the enemy in sight
 --- keeps the contact alive and the quiet minute never comes (Kolkhida, 2026-10-10: 40 game minutes, not a

@@ -1,4 +1,4 @@
-# [![VEAF-logo]][VEAF website] Mission Creation Tools
+# <a id="en"></a>[![VEAF-logo]][VEAF website] Mission Creation Tools
 
 > 🇫🇷 [Lire ce document en français](#fr)
 
@@ -123,9 +123,9 @@ flowchart LR
 
 ---
 
-# [![VEAF-logo]][VEAF website] Outils de création de missions
+# <a id="fr"></a>[![VEAF-logo]][VEAF website] Outils de création de missions
 
-> 🇫🇷 **Français** | 🇬🇧 [English](#-mission-creation-tools)
+> 🇫🇷 **Français** | 🇬🇧 [English](#en)
 
 ## À propos
 

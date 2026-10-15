@@ -120,6 +120,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **The Open Training prompt has a section for eras with no tanker, no helicopter or no SAM** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 12).
   A table says what to leave out in WW2, what takes its place and which modules to switch off; the prompt also says the era comes before the template, that the terrain sweep and the parking capture run together, and that the known limitations are read as a short listing first.
+- **The README's « Lire ce document en français » link leads to the French half again.**
+  It targeted `#fr`, which nothing defined; both halves now carry an explicit anchor (`#en`, `#fr`) instead of relying on the slug GitHub derives from an image heading.
 
 ## [6.29.0] — 2026-10-10
 

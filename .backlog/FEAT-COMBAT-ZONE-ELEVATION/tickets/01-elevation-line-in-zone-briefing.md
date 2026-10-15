@@ -1,6 +1,6 @@
 # 01 — An elevation line in the zone's position block
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Files: `src/scripts/veaf/veafCombatZone.lua` (`VeafCombatZone:getInformation`), `src/scripts/veaf/veafI18n.lua`, `test/lua/test_veafCombatZone.lua`, the combat zone doc page (FR + EN) if it lists the briefing's lines
 

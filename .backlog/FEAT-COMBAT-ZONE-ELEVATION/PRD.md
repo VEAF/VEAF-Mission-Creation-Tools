@@ -1,6 +1,6 @@
 # FEAT-COMBAT-ZONE-ELEVATION — the zone's ground elevation in a combat zone's briefing
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Asked
 
@@ -17,7 +17,7 @@ A pilot attacking the zone has to read the elevation off the F10 map, or work it
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-elevation-line-in-zone-briefing.md) | An elevation line in the zone's position block | ⬜ |
+| [01](tickets/01-elevation-line-in-zone-briefing.md) | An elevation line in the zone's position block | ✅ |
 
 ## Definition of done
 

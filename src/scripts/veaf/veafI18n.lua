@@ -961,6 +961,10 @@ veaf.i18nCatalog = {
     fr = "DEPUIS BULLSEYE  : %s.\n",
     en = "FROM BULLSEYE    : %s.\n",
   },
+  ["report.elevation"] = {
+    fr = "ÉLÉVATION        : %d ft / %d m.\n",
+    en = "ELEVATION        : %d ft / %d m.\n",
+  },
   ["report.bullseye_value"] = {
     fr = "%03d pour %d km /%d nm",
     en = "%03d for %dkm /%dnm",

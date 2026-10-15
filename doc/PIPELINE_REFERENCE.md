@@ -702,7 +702,7 @@ Ce que `${METAR}` vaut selon la variante :
 | `temperature` | nombre | Température de l'air en °C |
 | `wind_speed` | nombre | Vitesse du vent en m/s |
 | `wind_direction` | nombre | Direction **d'où vient** le vent, en degrés (0 = Nord), comme dans un METAR |
-| `visibility` | nombre | Visibilité en mètres |
+| `visibility` | nombre | Visibilité en mètres ; 9 000 m ou plus s'écrit au maximum de DCS, 80 km — le `9999` d'un METAR, « 10 km ou plus » |
 | `cloud_type` | string | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | nombre | Altitude de la base des nuages en mètres |
 | `fog_enabled` | booléen | Activer l'effet de brouillard |

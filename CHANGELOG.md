@@ -75,6 +75,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The sanctuary no longer raises on a weapon whose target has no `isExist`** (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
   Twelve player shots of the Sinai Open Training (Privé 1, 2026-10-12) logged `attempt to call method 'isExist' (a nil value)`: `weapon:getTarget()` returned an object without that method.
   Such a target is now ignored — it is no player to protect — and its category is logged once per mission, since what it is has not been measured yet.
+- **`campaign next` reports the visibility the mission flies** (FIX-CAMPAIGN-VISIBILITY-MISMATCH).
+  A drawn 10 000 m was reported as such while the mission carried 80 km: the weather converter writes 9 000 m or more as DCS's maximum, the way a METAR's `9999` reads "10 km or more".
+  The report now gives the value written; the convention is documented wherever a visibility in metres is accepted (`set_weather`, `versions.yaml`).
 
 ### Added
 

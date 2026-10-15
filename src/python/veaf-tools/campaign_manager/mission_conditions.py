@@ -62,7 +62,7 @@ class MissionConditions:
     start_time: int
     """Seconds since midnight, on the theatre's clock — the one DCS shows."""
     weather: dict[str, Any]
-    """The drawn weather, in `set_weather`'s vocabulary: wind FROM, as pilots read it."""
+    """The drawn weather, in `set_weather`'s vocabulary: wind FROM, as pilots read it; the visibility as written."""
 
     @property
     def clock(self) -> str:
@@ -237,7 +237,10 @@ def set_conditions(campaign: CampaignDefinition, state: CampaignState, folder: P
     set_mission_date(
         folder, date=on.isoformat(), start_time=f"{start // 3600:02d}:{start % 3600 // 60:02d}:{start % 60:02d}"
     )
-    set_weather(folder, **weather)
+    written = set_weather(folder, **weather)["weather"]
+    # The converter writes 9 km or more as DCS's 80 km, a METAR's 9999: announce what the mission flies
+    # (FIX-CAMPAIGN-VISIBILITY-MISMATCH — a drawn 10 000 m was announced, 80 000 m written).
+    weather["visibility"] = float(written["visibility"]["distance"])
     single_variant(folder)
     return MissionConditions(date=on, start_time=start, weather=weather)
 

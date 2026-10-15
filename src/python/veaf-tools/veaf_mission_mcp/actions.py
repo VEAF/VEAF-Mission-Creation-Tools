@@ -188,7 +188,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "number",
                         "description": "Where the wind comes FROM, degrees (as in a METAR).",
                     },
-                    "visibility": {"type": "number", "description": "Visibility, metres."},
+                    "visibility": {
+                        "type": "number",
+                        "description": "Visibility, metres; 9000 or more is written as DCS's maximum, 80 km "
+                        "(a METAR's 9999).",
+                    },
                     "cloud_type": {
                         "type": "string",
                         "enum": ["clear", "few", "scattered", "broken", "overcast"],

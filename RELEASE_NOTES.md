@@ -51,7 +51,8 @@ Côté campagne, un convoi ne reste plus figé face à un ennemi que personne ne
   Là où le catalogue de terrain dégagé couvre l'endroit, le FARP et son dépôt de munitions se déplacent sur le terrain dégagé le plus proche, à 1 km au plus ; une pente de plus de 3 m sur 40 m est signalée.
   La nouvelle commande `veaf-tools dcs farp-spot <théâtre> --at x,y` trouve dans DCS les emplacements plats et dégagés près d'un point.
   Un FARP posé sur la fréquence d'une tour d'aérodrome est signalé.
-- **Un slot joueur en vol suit le cap demandé** : DCS oriente un départ en vol vers son second waypoint, et un A-10 demandé au 180 partait au nord. Mesuré dans DCS : 180° demandés, 180,5° volés.
+- **Un slot joueur en vol suit le cap demandé** : DCS oriente un départ en vol vers son second waypoint, et un A-10 demandé au 180 partait au nord.
+  Mesuré dans DCS : 180° demandés, 180,5° volés.
 - **Un convoi créé par `add_group` ou `create_combat_zone` part sur la route à vitesse de convoi** (59 km/h, la médiane de 126 convois de 14 missions faites à la main), au lieu de partir en tout-terrain à 20 km/h.
 - **Une QRA créée avec `task: "CAP"` défend sa zone** au lieu d'aller se poser au terrain le plus proche.
 - **Le ravitailleur du porte-avions laisse les indicatifs des ravitailleurs aux ravitailleurs** : le S-3B prend la famille `Shell` depuis le vol 9, et vos `Texaco 1` ou `Arco 1` gardent le leur.

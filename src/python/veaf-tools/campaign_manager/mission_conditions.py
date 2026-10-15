@@ -62,7 +62,7 @@ class MissionConditions:
     start_time: int
     """Seconds since midnight, on the theatre's clock — the one DCS shows."""
     weather: dict[str, Any]
-    """The drawn weather, in `set_weather`'s vocabulary: wind FROM, as pilots read it."""
+    """The drawn weather, in `set_weather`'s vocabulary: wind FROM, as pilots read it; the visibility as written."""
 
     @property
     def clock(self) -> str:

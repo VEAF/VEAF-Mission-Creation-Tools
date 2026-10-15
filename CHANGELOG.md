@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.30.0] — 2026-10-15
+
 ### Fixed
 
 - **The VEAF radio menu no longer opens on a list of "Activate mission" entries** (FIX-COMBATMISSION-MENU-MISSING ticket 02, a 6.29.0 regression).

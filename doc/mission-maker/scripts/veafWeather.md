@@ -43,7 +43,7 @@ La météo est injectée au moment du build (avant le chargement de la mission) 
 ### Exemple versions.yaml
 
 ```yaml
-position:
+position:                    # facultatif : ici une mission en Syrie
   latitude: 33.5
   longitude: 35.5
   timezone: "Asia/Damascus"

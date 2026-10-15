@@ -592,7 +592,8 @@ Also accepted: versions.yaml  (mission root)
 ### Schema
 
 ```yaml
-# ── Geographic position for solar calculations ─────────────────────────────
+# ── Geographic position for solar calculations (optional) ─────────────────
+# Absent: one point per theatre, on the mission's map (near Batumi on the Caucasus…).
 position:
   latitude: 33.5                        # Decimal degrees, -90 to 90
   longitude: 35.5                       # Decimal degrees, -180 to 180

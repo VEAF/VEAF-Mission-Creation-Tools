@@ -1476,3 +1476,33 @@ limitations:
   cost: |
     `campaign next` reported a drawn 10 000 m while the mission carried 80 km
     (FIX-CAMPAIGN-VISIBILITY-MISMATCH, 2026-10-15); its report now gives the value written.
+
+- id: solar-times-at-damascus-by-default
+  kind: tool
+  area: pipeline
+  title: A mission keeping the default `versions.yaml` computed its sunrise and sunset at Damascus, whatever the map
+  fixed_in: "6.30.0"
+  symptom: |
+    The shipped `src/versions.yaml` declared `position: {latitude: 33.5, longitude: 35.5}`. A Caucasus
+    `time: "sunrise"` variant started at 07:48 on 2024-03-15, 24 minutes after sunrise near Kobuleti
+    (50 minutes on 2016-06-01). Without `position`, a solar expression aborted the build.
+  workaround: |
+    Remove `position` from `versions.yaml`: the build computes on the theatre's point. A mission folder
+    created before 6.30.0 still carries the Damascus block, and the build warns when a `position` lies
+    outside the mission's theatre.
+  cost: |
+    Every non-Syria mission built from the default folder with a solar variant (FIX-SOLAR-DEFAULT-POSITION,
+    2026-10-15). `campaign next` was not affected: its missions have no `versions.yaml`.
+
+- id: solar-times-one-point-per-theatre
+  kind: tool
+  area: pipeline
+  title: Without `position`, solar times are computed at one point per theatre, not where the mission flies
+  symptom: |
+    A `versions.yaml` with no `position` takes the theatre's point: the map centre a blank mission of it
+    opens on (near Batumi on the Caucasus, Hama on Syria), else the centre of its bounds (Iraq, Kola,
+    Nevada, The Channel). On a wide map, a mission far from it is a few minutes off — Tbilisi's sunrise
+    is 13 minutes before Batumi's. For Iraq and MarianaIslandsWWII, whose DCS clock offset was never
+    measured, the clock is the nominal zone of that point's longitude (UTC+3, UTC+10).
+  workaround: |
+    Give `position` near the mission in `versions.yaml` when the minute matters.

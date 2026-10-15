@@ -78,6 +78,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`campaign next` reports the visibility the mission flies** (FIX-CAMPAIGN-VISIBILITY-MISMATCH).
   A drawn 10 000 m was reported as such while the mission carried 80 km: the weather converter writes 9 000 m or more as DCS's maximum, the way a METAR's `9999` reads "10 km or more".
   The report now gives the value written; the convention is documented wherever a visibility in metres is accepted (`set_weather`, `versions.yaml`).
+- **Solar times are computed on the mission's map, not at Damascus** (FIX-SOLAR-DEFAULT-POSITION).
+  The shipped `versions.yaml` declared a Damascus `position` whatever the map: a Caucasus `sunrise` variant started at 07:48 on 2024-03-15, 24 minutes after sunrise near Kobuleti (50 in June), and a file without `position` aborted the build on its first solar expression.
+  Without `position`, the build now computes at the theatre's point (near Batumi on the Caucasus, Hama on Syria…) and the shipped file no longer declares one; an explicit `position` still wins, with a warning when it lies outside the mission's theatre — the case of mission folders created before this release, which keep the Damascus block until it is removed.
+  `campaign next` was not affected.
 
 ### Added
 

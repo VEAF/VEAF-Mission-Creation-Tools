@@ -241,7 +241,7 @@ A campaign mission is **one** mission: no weather variants.
 The folder `campaign next` creates has `pipeline.weather: false` as the last block of `mission.yaml` and no `src/versions.yaml`; date, time and weather are **fixed in the mission** itself.
 
 - **The date moves on with the campaign**: mission N+1 takes place the day after mission N, whose date `campaign apply` keeps in the campaign state. The first one takes `start_date` from `campaign.yaml`, or the template's date.
-- **The time serves the mission**: `start_time` from `campaign.yaml`, a clock time (`"06:30"`) or a solar expression (`sunrise+30*60`, the default). The expression is computed for the campaign's ground — the centre of its zones — and the mission's date, on the theatre's clock: sunrise over Colchis, not over Damascus as the shipped `versions.yaml` has it.
+- **The time serves the mission**: `start_time` from `campaign.yaml`, a clock time (`"06:30"`) or a solar expression (`sunrise+30*60`, the default). The expression is computed for the campaign's ground — the centre of its zones — and the mission's date, on the theatre's clock: sunrise over Colchis, not over the Caucasus map's point.
 - **The weather may change from one mission to the next, the ground stays visible**: no clouds, few or scattered, based between 1,500 and 3,500 m, visibility 8 km or more (10 km or more is written as 80 km, DCS's maximum, and that is what `campaign next` reports), neither fog nor rain — CAVOK or nearly. The draw depends on the campaign's name and the mission's number: the same mission draws the same sky again.
 
 DCS rains only under its "rainy" clouds, which are overcast: light rain under a clear sky does not exist, so a campaign's weather never has rain.

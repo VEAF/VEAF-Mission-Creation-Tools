@@ -27,10 +27,10 @@ versions:
 ## Horaires solaires et météo réelle {#solar-and-metar}
 
 ```yaml
-position:                    # requis par les expressions solaires
-  latitude: 33.5
-  longitude: 35.5
-  timezone: "Asia/Damascus"
+position:                    # facultatif : sinon, le point de la carte de la mission
+  latitude: 41.93
+  longitude: 41.86
+  timezone: "Asia/Tbilisi"
 
 base_date: "2024-03-15"
 
@@ -46,6 +46,10 @@ versions:
     metar: "METAR OSDI 151420Z 27015G25KT 9999 BKN025 18/12 Q1018 NOSIG"
 ```
 
+- **`position:`** dit où le lever et le coucher sont calculés.
+  Sans elle, le build les calcule sur la carte de la mission, en un point par théâtre (vers Batoumi sur le Caucase, Hama sur la Syrie…) et le dit dans le journal.
+  Sur une grande carte, une mission loin de ce point se décale de quelques minutes : donnez alors `position:` près de la mission.
+  Une `position:` hors de la carte de la mission (la Damas de l'ancien fichier par défaut, restée dans une mission du Caucase) est signalée par un avertissement.
 - **Heures** : `"HH:MM"`, une expression solaire (`sunrise`, `sunset-30*60`), ou des secondes.
   Toutes sont à l'**heure locale du théâtre**, celle que DCS affiche : chaque théâtre a un décalage
   fixe par rapport à UTC, sans heure d'été (Caucasus UTC+4, Syria UTC+3, GermanyCW UTC+2…). Le
@@ -60,8 +64,9 @@ versions:
 mission produit deux `.miz` sans que vous ayez rien demandé : celui de la racine et
 `missions/…_noon.miz`. Ce n'est pas un doublon — le second porte la météo.
 
-Deuxième piège : une expression solaire sans bloc `position:` est **ignorée en silence**. Si votre
-variante « aube » sort à l'heure de base, c'est là qu'il faut regarder.
+Deuxième piège : jusqu'en 6.29, le `versions.yaml` livré écrivait une `position:` à Damas, quelle que soit la carte.
+Une mission créée avant garde cette position, et son « aube » sur le Caucase arrive 25 à 50 minutes après le lever du soleil.
+Retirez le bloc `position:` de votre `versions.yaml` : le build calcule alors sur la carte de la mission.
 
 Pour couper l'étape entièrement :
 

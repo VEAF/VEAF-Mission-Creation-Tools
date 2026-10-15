@@ -595,7 +595,8 @@ Aussi accepté : versions.yaml  (racine du dossier mission)
 ### Schéma
 
 ```yaml
-# ── Position géographique pour les calculs solaires ────────────────────────
+# ── Position géographique pour les calculs solaires (facultatif) ──────────
+# Absente : un point par théâtre, sur la carte de la mission (vers Batoumi sur le Caucase…).
 position:
   latitude: 33.5                        # degrés décimaux, -90 à 90
   longitude: 35.5                       # degrés décimaux, -180 à 180

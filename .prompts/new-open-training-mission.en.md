@@ -11,19 +11,21 @@ VEAF Mission Creation Tools v6 (`veaf-tools`) and the `veaf-mission-mcp` MCP ser
 
 An Open Training runs on the VEAF servers, open to all: airbases where anyone takes an aircraft
 (dynamic slots), support (tankers, AWACS), graded training ranges, real combat zones spread over the
-theatre, CAPs and QRAs, a credible air defense, and weather in several variants. The pilots do not
-know the mission: everything they read must be right.
+theatre, CAPs and QRAs, a credible air defense, and a plausible base weather (the VEAF server sets the weather and time of each session).
+The pilots do not know the mission: everything they read must be right.
 
 ## 0. First of all
 
 1. **Load the `veaf-mission-editor:veaf-mission-authoring` skill** and follow it: it is the source of
    truth for the VEAF conventions (reserved names, `#command`, `#veafInterpreter`, zones, QRA).
 2. Call `capabilities` and `list_catalog`: note the `veaf-tools` version and the available actions.
-   Read the **known limitations** (`describe_known_limitations`) and take them into account.
+   Read the **known limitations** (`describe_known_limitations`) and take them into account:
+   the call with no argument returns a **short listing** (the whole text is too long for one result), then read in full the entries of the areas your mission touches (`area`, `theatre`) or a single one (`id`).
 3. **Whatever is missing or does not work in the tools, you report it.** A missing action, a wrong
    result, a doc that says something other than the behaviour: work around it cleanly to move on, and
    write it down in a **"Feedback for VMCT"** block of your final report (what, where, how you saw it,
    what you did instead). That is how the tools get better.
+   The two commands that need a DCS session, `terrain-sweep` and `capture-map --parking`, run **together**, with `dcs-serve` started once: one DCS session, not two.
 4. Answer in English, concisely. Ask your questions **one at a time**, with choices and your
    recommendation.
 
@@ -32,8 +34,10 @@ know the mission: everything they read must be right.
 One at a time:
 
 1. **The map** (a theatre `scaffold_mission` supports).
-2. **The era**: modern, Cold War (give a year) or WW2. It decides the equipment, the active airbases
-   and the mission date. Suggest the one that fits the map.
+2. **The era**: modern, Cold War (give a year) or WW2. It decides the equipment, the active airbases,
+   the mission date and **the template** (next question): ask it before that one.
+   With no tanker, no helicopter or no SAM, section 4.14 says what to leave out.
+   Suggest the one that fits the map.
 3. **The starting template** of `scaffold_mission`. Present it like this:
    - `minimal` — the infrastructure and the core (radio menu, spawn, shortcuts, interpreter,
      security). For a very simple mission or a test bench.
@@ -72,7 +76,7 @@ mission follows the rules of this prompt.
 
 - **Read it entirely**: groups **and unit names** (a group that looks inert often carries a
   `#veafInterpreter["…"]` that spawns a whole battery), zones, triggers, drawings, coalitions of all
-  the airfields, slots, bullseye, date, briefing, configuration, presets, weather variants.
+  the airfields, slots, bullseye, date, briefing, configuration, presets, weather.
 - Keep **its intentions**: which bases, which support, which defenses, which zones, what spirit. Take
   over what is intended and good; fix what is inconsistent (and prove it); leave out what serves
   nothing; **report what you do not understand** instead of deleting or copying it.
@@ -96,7 +100,7 @@ why.
 - **Draw the front of the era**: which countries / regions are blue, red, neutral (historical reality
   or the map's usual scenario). One sentence before starting.
 - **Blue bases with dynamic slots** (often 8 to 12). In this order:
-  1. **real military bases of the era**; the main one becomes the "home base" (ICAO weather, rear
+  1. **real military bases of the era**; the main one becomes the "home base" (ICAO name, rear
      tanker);
   2. spread **in depth**: a few forward bases, the rest in the rear;
   3. an **enclave** if history offers one.
@@ -131,6 +135,7 @@ why.
   `src/dynamic-slot-templates.yaml`: templates for the coalitions that have slots, **of the mission's
   era only** — the shipped catalogue also offers WW2 and Cold War aircraft: remove those of another era
   (they clutter the list and their radios do not take the frequency plan).
+  The shipped catalogue offers no mod any more; if the build warns about a template whose type the DCS unit database does not know, it is a mod: remove it (4.2, no mod required).
 
 ### 4.2 Identity and security
 
@@ -138,10 +143,11 @@ why.
   live METAR station** (check
   `https://tgftp.nws.noaa.gov/data/observations/metar/stations/<ICAO>.TXT`, today's day in
   `DDHHMMZ`); otherwise the nearest large airfield of the theatre that has one.
-- `mission.era`, the **mission date** and the `base_date` of `versions.yaml` consistent with the era.
+- `mission.era` and the **mission date** consistent with the era.
 - **Language**: `mission.language: fr` and briefing in French — the VEAF servers' language — unless
   told otherwise.
 - `silence_atc_on_all_airbases: true`.
+- **Slots without an aircraft, as in v5**: `mission.ground_control` at 5 per role and per side (`game_master`, `tactical_commander`, `jtac`, `observer`) and `pilot_control_vehicles: true`. Without the block, the mission has no game master slot.
 - **Security on by default**: the mission runs on the VEAF servers. No `security.disabled: true` in
   the base configuration. Ask the user whether password hashes are needed, or whether the server's
   pilot levels are enough. **Never a password in clear**, not even in a comment next to its hash:
@@ -150,11 +156,14 @@ why.
   A single mod in it locks out of the server every player who does not have it. It fills up
   silently when a mod unit is placed, or when an existing mission is taken over.
 - **Two uses, two configurations** in `mission.yaml`:
-  - **default** = server: security on, `info` logs, all the weather variants;
+  - **default** = server: security on, `info` logs, **no weather variants** (`pipeline.weather: false`).
+    The VEAF server sets the weather and time of each session: an Open Training has no `src/versions.yaml` and no variants (David's decision of 12/10/2026).
   - **`LOCAL_TEST` profile** (`veaf-tools mission build --profile LOCAL_TEST`): security off,
-    `debug` logs, readable group names (`hide_names_from_spawned_groups: false`), no weather variants
-    (`pipeline.weather: false`), and whatever makes a local test faster.
+    `debug` logs, readable group names (`hide_names_from_spawned_groups: false`), and whatever makes a
+    local test faster.
 - **Mission date and time**: `set_mission_date`.
+- **Base weather** (`set_weather`): plausible for the date and place, since it is the only one the mission carries.
+  The scaffold's blank mission has its cloud base on the ground (Preset1 at 0 m): replace it.
 - **Bullseye** (`set_bullseye`): a **landmark the pilots can name**, at the centre of the front, the
   same for both sides, **not on a zone** (it would hide it on the map).
 - **Briefing** (`set_briefing`: title, situation, blue and red tasks): the context in two sentences,
@@ -191,11 +200,13 @@ why.
   **Always two carriers, the Stennis and the Roosevelt** (one `add_carrier_group` each, with distinct
   TACAN, ICLS, Link 4 and frequencies): David's decision of 2026-10-02, for every generated mission
   that has a carrier group.
+  The recovery tanker takes the `Shell` family from flight 9 down (`Shell91`, then `Shell81`), so the tankers `Texaco 1`, `Arco 1` placed afterwards keep their callsign; `tanker_callsign` imposes another.
 
 ### 4.4 Escorts
 
 - Orbit **far from the front** (out of reach of an enemy CAP or QRA): **escort** (a fighter flight
   with the `escort` task towards the escorted group).
+  Arm it with `loadout_from`: a `veafSpawn-*` template of the catalogue, or the type's dynamic-slot template (`J-11A Template Red`) when the aircraft has no DCS named payload (`list_payloads`).
 - Orbit **close to the front**: **ask the user** (question 1.5). An escort protects the asset, but it
   also shoots down the targets players spawn next to it.
 
@@ -214,6 +225,7 @@ why.
 - Placed permanently through `#veafInterpreter["-<alias>, country <country>, hdg <heading>"]`.
   **Carrier = a unit of the class spawned** (the alias's launcher), so the editor shows the range
   ring. **Unique unit names**: a suffix after the tag (`… #<base>-01`).
+  **The country is one of the coalition's countries** (`thirdreich` for a Third Reich red side, not `germany`): a country of no coalition spawns neutral, with no Skynet network.
 
 ### 4.6 Training ranges — 3 families of 3 levels
 
@@ -264,7 +276,9 @@ find the site they learnt. Applies to the real zones too (4.7).
 (no engine, no script warms it) and the laser drone does not designate it. Place each target as a
 one-vehicle group at its exact spot, **hot at start** (`coldAtStart = false`), **weapons hold** and **no
 dispersal under fire**: it stays still and silent, and a pod sees it (checked in game on GermanyCW v6).
-Statics remain for what does not live: buildings, depots, parked aircraft. `training: true`, one radio menu per family.
+Statics remain for what does not live: buildings, depots, parked aircraft.
+`add_group` places it hot at start; give it `roe: "weapons_hold"` and `disperse: false` (the same keys on a `create_combat_zone` group).
+`training: true`, one radio menu per family.
 
 **As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
 beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a
@@ -292,9 +306,10 @@ Rules:
   airbase its base defense, a convoy its own AAA), through the aliases, carriers of the class spawned,
   unique unit names.
 - **Targets**: statics for buildings, bunkers, aircraft on the ground; native groups for what lives;
-  convoys = **one native group** with a road route (points 2+ "On Road"), its air defense in the same
-  group. A **convoy starts on firm ground**, not on a bridge nor in water: VEAF moves a group whose
-  position is on invalid terrain to a random spot.
+  convoys = **one native group** with a road route, its air defense in the same group.
+  **Every point of a convoy, the start included, is on a road**: take the point DCS gives (`land.getClosestPointOnRoads` through the dcs-bridge), and set **all** the points "On Road".
+  Measured on the Persian Gulf OT on 12/10/2026: starts placed by eye were 3 and 7 km from the road, and the first leg, leaving an "Off Road" point, went cross-country; snapped to the road, the three convoys drove on it from the first minute.
+  A **convoy starts on firm ground**, not on a bridge nor in water: VEAF moves a group whose position is on invalid terrain to a random spot.
 - **Ships of one group at least 150 m apart**: packed together they collide and get in each other's way.
 - **Range of the active zones' SAMs**: none may reach a friendly base, a tanker track or a training
   zone. A zone activated at start is a permanent defense: the rule of 4.5 applies to it.
@@ -350,8 +365,8 @@ Rules:
   291.0).
 - **Then check that no frequency appears twice** in one channel list, and that no non-airfield
   channel falls on a tower of the theatre. That check was the one missing.
-- **`src/versions.yaml` to rewrite**: position = home base, timezone, era `base_date`; variants night
-  / dawn / morning / day / evening × real (`airport_icao`) / clear (`clearsky`) / scattered / rain.
+- **No weather variants**: delete `src/versions.yaml` and set `pipeline.weather: false` (4.2).
+  Measured on the Persian Gulf OT on 12/10/2026: a METAR without clouds makes every "clear" variant identical to its real twin, and the server replaces the weather anyway.
 - **`src/waypoints.yaml`**: remove the template's examples; one plan per category and per playable
   side, with the bullseye.
 
@@ -418,7 +433,7 @@ briefing, the theatre map first.
   the MCP has no action for it, note it in "Feedback for VMCT".
 - **F10 drawings** (`add_map_drawing`, so they survive the build): the front line, the sanctuaries,
   the support race-tracks, and **every zone with its outline as well as its name** — a circle at the
-  real radius for every combat zone, every training zone and every QRA, plus its label. A zone
+  real radius for every combat zone, every training zone and every QRA, plus its label; the arena dashed (`style: dash`) when the briefing map draws it so. A zone
   reduced to a name set at its centre does not say where it begins: the September 2026 Caucasus Open
   Training had 38 drawings, 10 lines and 28 labels, **not a single outline**. Each on the **layer of
   the side that must see it** (`Blue`, `Red`, or `Common` for what both share).
@@ -428,6 +443,29 @@ briefing, the theatre map first.
   2026-09-29.
 - **Look at every picture** before handing it over, zooms included: no label may overlap another,
   every zone number must match the briefing's, and a dashed line must stay dashed on small circles.
+
+### 4.14 Eras with no tanker, no helicopter or no SAM
+
+This section applies to **WW2** and, where it differs, to the **Cold War**.
+It replaces the quantities of sections 4.1 to 4.13 that assume modern equipment.
+The rest does not change: the 3 × 3 shape and `includes:`, combat zones, QRA, CAP, scripted missions (a Ju 88 raid, a B-17G escort, a recce interception), F10 drawings and OSM maps.
+
+| What the prompt asks | In WW2 | What you do |
+|---|---|---|
+| At least 2 tankers, at least 1 AWACS (4.3) | 1944 has none, and DCS has no tanker or AWACS of the era | Place none (no E-3, no KC-135), say so in the briefing; the support escorts (4.4) drop out |
+| FARP, CTLD, CSAR, `ctld-config.yaml`, laser drones (4.1, 4.11) | No helicopter of the era | Switch the modules off (`CTLD: false`, `CSAR: false`) rather than leave them on for nobody |
+| "Always two carriers" (4.1) | No carrier of the era in the module list | `CARRIER: false`, no carrier |
+| Skynet and EWR (4.5) | Meaningless | `SKYNET: false`; the Freya and Würzburg radars are native groups of their type, or `-freya` and `-wurzburg` |
+| Short, medium and long range SAM (4.5, 4.6) | Flak (20, 37, 88 mm) | `-aaa`, `-samSR`, `-samLR` and `-samVLR` follow `mission.era`, `-flak88` places an 88 battery |
+| SEAD family (4.6) | No radar to destroy | It becomes the anti-flak family |
+| Helicopter family (4.6) | No helicopter | It becomes close air support (CAS) |
+| Artillery | `-arty` is an M-109 | `-lefh`, `-pak40`, `-wespe` |
+| QRA and CAP loadout (4.8, 4.9) | A gun fighter has no pylon | Neither `pylons` nor `payload`: `add_air_group` does not warn that it is "unarmed". The bombers have their loads in `list_payloads` |
+| Missiles | No 1944 aircraft fires one | A "guns only" arena |
+
+**Place no `post_ww2` alias** (`-ewr`, `-arty`, `-sa6`…): `list_shortcuts` with `era: WW2` gives what fits, and `validate_mission` warns about the others.
+The starting template follows: in WW2, take `standard` and switch off what this table drops, `full` brings Skynet.
+When a question of section 1 has no answer in this table, decide, announce it, and write it down in "Feedback for VMCT".
 
 ## 5. Build order
 
@@ -442,7 +480,7 @@ briefing, the theatre map first.
 8. **`README.md` = the pilots' briefing**, in French, one file, **generated from the mission** by a script
    (like the map), never typed: situation, map, bases (frequencies, TACAN), permanent air defense,
    support, carriers, drones, training by family, combat zones by kind with each one's briefing, scripted
-   missions, QRA, CAP, player-versus-player and arena, blue and red radio plan, weather and times, useful
+   missions, QRA, CAP, player-versus-player and arena, blue and red radio plan, base weather and time, useful
    commands; then "For mission makers": building, files, regenerating this document, known limitations.
 9. **Local test mission** (section 8).
 
@@ -464,7 +502,7 @@ the sides; running DCS.
 ## 8. Checks before saying "it's ready"
 
 - **Read the whole build log**, not just the exit code: presets injected into how many aircraft,
-  waypoints into how many groups, warehouse links, number of variants, warnings. Any zero is suspect.
+  waypoints into how many groups, warehouse links, warnings. Any zero is suspect.
 - **Open the built `.miz`** (a zip; `mission` and `warehouses` are Lua tables) and check:
   - **unique** group and unit names;
   - dynamic slots on the intended bases only;
@@ -478,8 +516,8 @@ the sides; running DCS.
     editor shows the range ring of another weapon);
   - no permanent defense within reach of an enemy base with slots (4.5): the table of distances;
   - `requiredModules` empty (4.2);
-  - two weather variants **different in the fields DCS reads** (`clouds.preset`,
-    `season.temperature`, `wind.atGround`), and a dawn time consistent with sunrise;
+  - a single mission, no weather variant, and a plausible base weather in the fields DCS reads
+    (`clouds`, `season.temperature`, `wind.atGround`): no cloud base on the ground;
   - the `LOCAL_TEST` profile built without security, the default configuration with it;
   - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
     `pictureFileNameN`, `pictureFileNameR` empty (4.13).

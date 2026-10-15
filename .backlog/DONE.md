@@ -6,6 +6,38 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-SOLAR-DEFAULT-POSITION](FIX-SOLAR-DEFAULT-POSITION/PRD.md) · ✅
+
+The shipped `versions.yaml` put every mission's sunrise at Damascus: 24 minutes late on the Caucasus in March, 50 in June. Without `position`, solar times are now computed at the theatre's point; an explicit one still wins, warned when off the map. `campaign next` was not affected.
+
+### [FIX-CONVOY-FROZEN-STANDOFF](FIX-CONVOY-FROZEN-STANDOFF/PRD.md) · ✅
+
+A convoy held at its standoff in front of an enemy DCS does not make it engage stayed frozen for ever (*Kolkhida* test, 2026-10-10). A fighting convoy with an enemy in sight and no shot fired or taken for 2 minutes now drives onto the nearest enemy. R48 in game (2026-10-15): both sides fired at once, no push, the convoy drove on after the fight; the push itself not seen in game.
+
+### [FIX-CAMPAIGN-VISIBILITY-MISMATCH](FIX-CAMPAIGN-VISIBILITY-MISMATCH/PRD.md) · ✅
+
+`campaign next` reported a drawn 10 000 m while the mission carried 80 km: the weather converter writes 9 km or more as DCS's maximum, a METAR's `9999`. The report now gives the value written and the convention is documented; what DCS flies is unchanged (David's option B, 2026-10-15). Kolkhida mission 2 was consistent: only its report was wrong.
+
+### [FEAT-COMBAT-ZONE-ELEVATION](FEAT-COMBAT-ZONE-ELEVATION/PRD.md) · ✅
+
+The zone's ground elevation at its centre in a combat zone's radio briefing, under the bullseye line, in feet and metres, only when the zone shows its position — one ticket done, tested on the mocks.
+
+### [FIX-OPEN-TRAINING-NORMANDY-FINDINGS](FIX-OPEN-TRAINING-NORMANDY-FINDINGS/PRD.md) · ✅
+
+What building the Normandy 1944 Open Training v6 through the MCP found, the first WW2 mission built this way: loadouts for module aircraft, era in the catalogue, CAS tables and shortcuts, 251 MHz refused by the editor, known limitations by area, theatre bounds — thirteen tickets done (#1136). Ticket 07 (`gun: 0` on ten WW2 slot templates) closed unmeasured by David, the known limitation stays; ticket 15 measured in DCS, not a defect.
+
+### [FIX-OPEN-TRAINING-FALKLANDS-FINDINGS](FIX-OPEN-TRAINING-FALKLANDS-FINDINGS/PRD.md) · ✅
+
+What building the Falklands Open Training v6 found: the map missing from the theatre table and its frequency and parking data left uncommitted, a FARP on a lake or on a tower frequency, a convoy that starts off road at 5.6 m/s, no warning for a group inside a combat zone's circle, ground placement unchecked with no clear-ground catalogue — all delivered. Ticket 06 (a convoy-on-road action through the bridge) closed unbuilt by David: we will see in game.
+
+### [FIX-AIR-SLOT-HEADING](FIX-AIR-SLOT-HEADING/PRD.md) · ✅
+
+An air-start player slot flew north whatever its heading: DCS orients an air start toward its second waypoint, as the Mission Editor's own files show. `add_player_slot` now writes one 10 km ahead on the heading; measured in DCS, a slot asked for 180° flew 180.5°.
+
+### [FEAT-SINAI-PARKING-DATA](FEAT-SINAI-PARKING-DATA/PRD.md) · ✅
+
+Sinai ships its parking capture: 3 614 stands on 56 airfields, taken in DCS on 2026-10-12 for the Sinai Open Training v6. `add_air_group` and `create_qra` start from the ramp or the runway there, and the build filters Sinai's dynamic-slot stock by what each parking accepts.
+
 ### [FIX-SECURITY-GROUP-LEVEL](FIX-SECURITY-GROUP-LEVEL/PRD.md) · ✅
 
 Every secured `+` radio command was refused to every pilot whenever security was on, since 6.14.0: the group's level went through `Group.getByID`, which DCS does not have. The occupants now come from `coalition.getPlayers`, and `RADIO` pulls in `SECURITY` so `/secu elevate` exists. Merged in #1120; *Escort me* seen working on `private1` on 2026-10-10 with *Kolkhida* mission 2 rebuilt.

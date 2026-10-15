@@ -48,6 +48,7 @@ class FrequencyRange:
     min_mhz: float
     max_mhz: float
     modulation: str
+    default_mhz: float | None = None
 
     def contains(self, freq_mhz: float) -> bool:
         return self.min_mhz <= freq_mhz <= self.max_mhz
@@ -136,7 +137,12 @@ def get_human_radio(unit_type: str) -> FrequencyRange | None:
     hr = entry.get("human_radio")
     if not hr or "min_mhz" not in hr or "max_mhz" not in hr:
         return None
-    return FrequencyRange(min_mhz=hr["min_mhz"], max_mhz=hr["max_mhz"], modulation=hr.get("modulation", "AM/FM"))
+    return FrequencyRange(
+        min_mhz=hr["min_mhz"],
+        max_mhz=hr["max_mhz"],
+        modulation=hr.get("modulation", "AM/FM"),
+        default_mhz=hr.get("default_mhz"),
+    )
 
 
 def fits_human_radio(unit_type: str | None, freq_mhz: float) -> bool:

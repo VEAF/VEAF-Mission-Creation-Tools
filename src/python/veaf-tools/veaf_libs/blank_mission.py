@@ -72,6 +72,21 @@ def is_theatre_supported(theatre: str) -> bool:
     return _resolve_key(theatre) in _theatre_table()
 
 
+def theatre_map_centre(theatre: str) -> tuple[float, float] | None:
+    """Return the map centre a blank mission of ``theatre`` opens on.
+
+    Args:
+        theatre: A theatre name, any case, or an alias.
+
+    Returns:
+        ``(x, y)`` in the theatre's DCS metres, or ``None`` for a theatre with no entry.
+    """
+    entry = _theatre_table().get(_resolve_key(theatre))
+    if entry is None:
+        return None
+    return float(entry["map"]["centerX"]), float(entry["map"]["centerY"])
+
+
 def _resolve_theatre(theatre: str) -> dict[str, Any]:
     """Return the constants for ``theatre`` (case-insensitive, alias-aware), or raise ``ValueError``."""
     table = _theatre_table()

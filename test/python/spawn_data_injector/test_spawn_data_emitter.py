@@ -85,8 +85,10 @@ def _expected_groups_db(groups: list[dict]) -> list:
 
 def test_load_framework_spawn_data_shape() -> None:
     data = load_framework_spawn_data()
-    assert len(data["units"]) == 21  # 13 + 8 helicopters (FEAT-HELICOPTER-SPAWN)
-    assert len(data["groups"]) == 94  # 78 + 16 air-defense era variants (FIX-SCRATCH-MISSION-FINDINGS 12)
+    assert len(data["units"]) == 23  # 13 + 8 helicopters (FEAT-HELICOPTER-SPAWN) + the Freya and Würzburg radars
+    assert (
+        len(data["groups"]) == 98
+    )  # 78 + 16 air-defense era variants (FIX-SCRATCH-MISSION-FINDINGS 12) + 4 WW2 batteries
     # hidden groups preserved (the generateAirDefenseGroup-* entries)
     hidden = [g for g in data["groups"] if g.get("hidden")]
     assert len(hidden) == 28

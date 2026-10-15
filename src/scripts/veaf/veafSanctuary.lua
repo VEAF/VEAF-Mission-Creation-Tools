@@ -86,6 +86,7 @@ veafSanctuary.spawnedSAMs = {}
 veafSanctuary.humanUnitsToFollow = {}
 veafSanctuary.zonesList = {}
 veafSanctuary.humanUnits = {}
+veafSanctuary.targetWithNoIsExistLogged = false
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -602,7 +603,29 @@ function VeafSanctuaryZone:handleWeapon(weapon)
         local target = weapon:getTarget()
         -- nil for a weapon released with no target object (a CBU-105 on coordinates, a HARM with no
         -- lock): it threatens no one in particular; and a target destroyed since cannot be protected
-        if not target or not target:isExist() then
+        if not target then
+          return
+        end
+        -- some targets have no `isExist` method (Privé 1, 2026-10-12, twelve shots; the object was not
+        -- measured, a scenery object is the hypothesis): they are no player to protect. Logged once per
+        -- mission, so the next server log says what they are
+        if type(target.isExist) ~= "function" then
+          if not veafSanctuary.targetWithNoIsExistLogged then
+            veafSanctuary.targetWithNoIsExistLogged = true
+            local okCategory, category = pcall(Object.getCategory, target)
+            local okName, name = pcall(Object.getName, target)
+            veaf.loggers.get(veafSanctuary.Id):info(
+              string.format(
+                "weapon target with no isExist method: Object.getCategory=%s, Object.getName=%s, type=%s",
+                veaf.p(okCategory and category or "raised"),
+                veaf.p(okName and name or "raised"),
+                type(target)
+              )
+            )
+          end
+          return
+        end
+        if not target:isExist() then
           return
         end
         local targetUnit = Unit.getByName(target:getName())

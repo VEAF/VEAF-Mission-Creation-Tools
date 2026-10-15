@@ -330,12 +330,12 @@ veafCasMission.INFANTRY_TYPES = {
   [coalition.side.BLUE] = {
     [veaf.ERA.MODERN] = { "Soldier RPG", "Soldier M249", "Soldier M4 GRG" },
     [veaf.ERA.COLD_WAR] = { "Soldier RPG", "Soldier M249", "Soldier M4 GRG" },
-    [veaf.ERA.WW2] = { "Soldier RPG", "Soldier M249", "Soldier M4 GRG" },
+    [veaf.ERA.WW2] = { "soldier_wwii_us", "soldier_wwii_br_01" },
   },
   [coalition.side.RED] = {
     [veaf.ERA.MODERN] = { "Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2" },
     [veaf.ERA.COLD_WAR] = { "Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2" },
-    [veaf.ERA.WW2] = { "Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2" },
+    [veaf.ERA.WW2] = { "soldier_mauser98" },
   },
 }
 
@@ -361,9 +361,9 @@ veafCasMission.INFANTRY_IFV_TYPES = {
       [0] = { "Bedford_MWD" },
       [1] = { "APC M2A1 Halftrack" },
       [2] = { "APC M2A1 Halftrack" },
-      [3] = { "M-2 Bradley" },
-      [4] = { "M-2 Bradley" },
-      [5] = { "M-2 Bradley" },
+      [3] = { "M8_Greyhound", "Daimler_AC" },
+      [4] = { "M8_Greyhound", "Daimler_AC" },
+      [5] = { "M8_Greyhound", "Daimler_AC" },
     },
   },
   [coalition.side.RED] = {

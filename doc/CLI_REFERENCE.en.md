@@ -1,6 +1,6 @@
 # CLI reference — `veaf-tools`
 
-All **37 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
+All **38 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
 page: it says what each command accepts, not how to take a mission from start to finish. For that,
 read the [mission maker's guide](mission-maker/GUIDE.en.md), which tells the story in order, and the
 [pipeline reference](PIPELINE_REFERENCE.en.md), which details each build step.
@@ -74,6 +74,27 @@ veaf-tools mission build MaMission --profile PROD
 *Flat alias : `veaf-tools build`*
 
 **See also** : [PIPELINE_REFERENCE.md](PIPELINE_REFERENCE.en.md)
+
+### `veaf-tools mission ctld-upgrade` {#ctld-upgrade}
+
+Bring ctld-config.yaml up to the CTLD catalogue the tools vendor: add the settings it lacks at their default, change nothing else.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `MISSION_FOLDER` | `str` | no | Folder containing mission.yaml and ctld-config.yaml. Default `.`. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
+| `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
+
+```bash
+veaf-tools mission ctld-upgrade .
+```
+
+*Flat alias : `veaf-tools ctld-upgrade`*
+
+**See also** : [mission-maker/build-messages/modules.en.md](mission-maker/build-messages/modules.en.md#validate-ctld-catalogue-gap)
 
 ### `veaf-tools mission export` {#export}
 
@@ -816,6 +837,40 @@ instructions, waiting. Points are in mission coordinates (`x` north, `y` east, m
 ```
 
 *Flat alias : `veaf-tools scenery-objects`*
+
+### `veaf-tools dcs farp-spot` {#farp-spot}
+
+Finds the **flat spots clear of trees and buildings** near a point, where a FARP can go, and lists them nearest first with their distance and height difference. It is what to run when `add_farp` warns that it could not check the trees or the slope (a theatre with no clear-ground catalogue and no elevation grid, such as MarianaIslands), or that the pad is on a slope: the warning gives the command, point included.
+
+A spot is kept when the ground there is earth (not water, road or runway), when DCS finds a free 5 m spot within 20 m at the spot **and** at 8 points 40 m around it, and when the height difference over those 9 points is at most `--max-drop` metres. The search goes over a 50 m grid, in bands of 300 m so that each call to `dcs-serve` stays short. A spot it lists is clear; a spot it leaves out is not necessarily wooded — the DCS query it rests on can say « no room » on open grass (known limitation `disposition-small-query-blocks-open-grass`), so look in game before giving up on a place. Same flow as `clear-ground-check`: `dcs-serve`, empty survey mission, instructions, waiting. The point is in mission coordinates (`x` north, `y` east, metres).
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | yes | The theatre, as DCS spells it (Caucasus, MarianaIslands…). |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--at` | `str` | *(required)* | The point to search around, as `x,y`. |
+| `--radius` | `float` | `1200` | How far from the point to search, in metres. |
+| `--max-drop` | `float` | `3` | The largest height difference accepted over a spot (its centre and the 40 m ring), in metres. |
+| `--limit` | `int` | `10` | How many spots to list. |
+| `--report` | `str` | *(none)* | Also write every spot found as JSON to this file. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<theatre>.miz` | Where to write the survey mission. |
+| `--bridge-lua` | `str` | *(none)* | Local dcs-bridge.lua to embed (default: download). |
+| `--wait` | `int` | `900` | How many seconds to wait for the survey mission to answer. |
+| `--api-key` | `str` | *(none)* | dcs-serve superuser Bearer token (default: read from dcs-serve.yaml). (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | Path of a dcs-serve.yaml / dcs-client.yaml to read the key from. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | dcs-serve base URL. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none is running. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debugging information. |
+
+```bash
+.eaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
+```
+
+The point is given with `--at` rather than as two arguments: a negative number in second position would be read as an option.
+
+*Flat alias : `veaf-tools farp-spot`*
 
 ### `veaf-tools dcs terrain-sweep` {#terrain-sweep}
 

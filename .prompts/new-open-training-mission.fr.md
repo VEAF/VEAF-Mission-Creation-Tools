@@ -12,19 +12,21 @@ VEAF Mission Creation Tools v6 (`veaf-tools`) et le serveur MCP `veaf-mission-mc
 Une Open Training tourne sur les serveurs VEAF, ouverte à tous : des bases où l'on prend un avion
 librement (slots dynamiques), du soutien (ravitailleurs, AWACS), des zones d'entraînement graduées,
 de vraies zones de combat réparties sur le théâtre, des CAP et des QRA, une défense aérienne
-crédible, et une météo déclinée en variantes. Les pilotes ne connaissent pas la mission : tout ce
-qu'ils lisent doit être juste.
+crédible, et une météo de base plausible (le serveur VEAF fixe la météo et l'heure de chaque session).
+Les pilotes ne connaissent pas la mission : tout ce qu'ils lisent doit être juste.
 
 ## 0. Avant tout
 
 1. **Charge le skill `veaf-mission-editor:veaf-mission-authoring`** et suis-le : il est la source de
    vérité pour les conventions VEAF (noms réservés, `#command`, `#veafInterpreter`, zones, QRA).
 2. Appelle `capabilities` et `list_catalog` : note la version de `veaf-tools` et les actions
-   disponibles. Lis les **limitations connues** (`describe_known_limitations`) et tiens-en compte.
+   disponibles. Lis les **limitations connues** (`describe_known_limitations`) et tiens-en compte :
+   l'appel sans argument rend une **liste courte** (le texte entier est trop long pour un résultat), puis lis en entier les entrées des domaines que ta mission touche (`area`, `theatre`) ou une seule (`id`).
 3. **Ce qui manque ou ne marche pas dans les outils, tu le signales.** Une action absente, un
    résultat faux, une doc qui dit autre chose que le comportement : tu contournes proprement pour
    avancer, et tu le notes dans un bloc **« Retours pour VMCT »** de ton rapport final (quoi, où,
    comment tu l'as vu, ce que tu as fait à la place). C'est ainsi qu'on améliore les outils.
+   Les deux commandes qui exigent une session DCS, `terrain-sweep` et `capture-map --parking`, se lancent **ensemble**, avec `dcs-serve` démarré une seule fois : une seule session DCS, pas deux.
 4. Réponds en français, concis. Pose tes questions **une par une**, avec des choix et ta reco.
 
 ## 1. Les questions à poser (et seulement celles-là)
@@ -33,7 +35,9 @@ Une par une :
 
 1. **La carte** (un théâtre supporté par `scaffold_mission`).
 2. **L'époque** : moderne, Guerre froide (précise une année) ou WW2. Elle décide des matériels, des
-   bases actives et de la date de mission. Propose celle qui colle à la carte.
+   bases actives, de la date de mission et **du gabarit** (question suivante) : pose-la avant lui.
+   Sans ravitailleur, sans hélicoptère ou sans SAM, la section 4.14 dit quoi laisser de côté.
+   Propose celle qui colle à la carte.
 3. **Le gabarit de départ** de `scaffold_mission`. Présente-le ainsi :
    - `minimal` — l'infrastructure et le cœur (menu radio, spawn, raccourcis, interpréteur,
      sécurité). Pour une mission très simple ou un banc d'essai.
@@ -72,7 +76,7 @@ accumulation ; la nouvelle mission suit les règles de ce prompt.
 
 - **Lis-la en entier** : groupes **et noms d'unités** (un groupe d'apparence inerte porte souvent un
   `#veafInterpreter["…"]` qui crée une batterie entière), zones, triggers, dessins, coalitions de
-  tous les aérodromes, slots, bullseye, date, briefing, configuration, presets, variantes météo.
+  tous les aérodromes, slots, bullseye, date, briefing, configuration, presets, météo.
 - Retiens-en **les intentions** : quelles bases, quel soutien, quelles défenses, quelles zones, quel
   esprit. Reprends ce qui est voulu et bon ; corrige ce qui est incohérent (et prouve-le) ; laisse ce
   qui ne sert à rien ; **signale ce que tu ne comprends pas** au lieu de l'effacer ou de le copier.
@@ -96,7 +100,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Trace le front de l'époque** : quels pays / régions sont bleus, rouges, neutres (réalité
   historique ou scénario usuel de la carte). Une phrase avant de commencer.
 - **Bases bleues avec slots dynamiques** (souvent 8 à 12). Dans l'ordre :
-  1. bases **militaires réelles de l'époque** ; la principale devient la « base mère » (météo ICAO,
+  1. bases **militaires réelles de l'époque** ; la principale devient la « base mère » (nom ICAO,
      ravitailleur arrière) ;
   2. réparties **en profondeur** : quelques bases avancées, le reste en arrière ;
   3. une **enclave** si l'histoire en offre une.
@@ -133,6 +137,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   `src/dynamic-slot-templates.yaml` : modèles des deux coalitions qui ont des slots, **de l'époque de la
   mission seulement** — le catalogue livré propose aussi des appareils WW2 et Guerre froide : retire ceux
   d'une autre époque (ils encombrent la liste et leurs radios ne prennent pas le plan de fréquences).
+  Le catalogue livré ne propose plus de mod ; si le build avertit d'un template dont le type est inconnu de la base d'unités DCS, c'est un mod : retire-le (4.2, aucun mod exigé).
 
 ### 4.2 Identité et sécurité
 
@@ -140,9 +145,10 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   station METAR vivante** (vérifie
   `https://tgftp.nws.noaa.gov/data/observations/metar/stations/<ICAO>.TXT`, jour du jour dans
   `JJHHMMZ`) ; sinon le grand aérodrome du théâtre le plus proche qui en a une.
-- `mission.era`, **date de mission** et `base_date` de `versions.yaml` cohérentes avec l'époque.
+- `mission.era` et **date de mission** cohérentes avec l'époque.
 - **Langue** : `mission.language: fr` et briefing en français, sauf mention contraire.
 - `silence_atc_on_all_airbases: true`.
+- **Slots sans avion, comme en v5** : `mission.ground_control` à 5 par rôle et par camp (`game_master`, `tactical_commander`, `jtac`, `observer`) et `pilot_control_vehicles: true`. Sans ce bloc, la mission n'a aucun slot game master.
 - **Sécurité active par défaut** : la mission tourne sur les serveurs VEAF. Pas de
   `security.disabled: true` dans la configuration de base. Demande à l'utilisateur s'il faut des
   hachages de mot de passe, ou si le niveau des pilotes du serveur suffit. **Jamais un mot de passe
@@ -151,11 +157,14 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   Un seul mod y suffit à interdire le serveur aux joueurs qui ne l'ont pas. Elle se remplit sans
   bruit quand on pose une unité d'un mod, ou quand on reprend une mission existante.
 - **Deux usages, deux configurations** dans `mission.yaml` :
-  - **par défaut** = serveur : sécurité active, logs `info`, toutes les variantes météo ;
+  - **par défaut** = serveur : sécurité active, logs `info`, **pas de variantes météo** (`pipeline.weather: false`).
+    Le serveur VEAF fixe la météo et l'heure de chaque session : une Open Training n'a ni `src/versions.yaml` ni variantes (décision de David du 12/10/2026).
   - **profil `LOCAL_TEST`** (`veaf-tools mission build --profile LOCAL_TEST`) : sécurité désactivée,
-    logs `debug`, noms des groupes lisibles (`hide_names_from_spawned_groups: false`), pas de
-    variantes météo (`pipeline.weather: false`), et ce qui rend un test local plus rapide.
+    logs `debug`, noms des groupes lisibles (`hide_names_from_spawned_groups: false`), et ce qui rend
+    un test local plus rapide.
 - **Date et heure** de mission : `set_mission_date`.
+- **Météo de base** (`set_weather`) : plausible pour la date et le lieu, puisque c'est la seule que la mission porte.
+  Le squelette du scaffold a sa base de nuages au sol (Preset1 à 0 m) : à remplacer.
 - **Bullseye** (`set_bullseye`) : un **repère que les pilotes peuvent nommer**, au centre du front, le
   même pour les deux camps, **pas sur une zone** (il la masquerait sur la carte).
 - **Briefing** (`set_briefing` : titre, situation, tâches bleue et rouge) : le contexte en deux
@@ -193,11 +202,13 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
   **Toujours deux porte-avions, le Stennis et le Roosevelt** (un `add_carrier_group` chacun, TACAN,
   ICLS, Link 4 et fréquences distincts) : décision de David du 02/10/2026, valable pour toute mission
   générée qui a un groupe aéronaval.
+  Le ravitailleur embarqué prend la famille `Shell` en partant du vol 9 (`Shell91`, puis `Shell81`), donc les ravitailleurs `Texaco 1`, `Arco 1` posés ensuite gardent leur indicatif ; `tanker_callsign` en impose un autre.
 
 ### 4.4 Escortes
 
 - Orbite **loin du front** (hors d'atteinte d'une CAP ou d'une QRA ennemie) : **escorte** (un vol de
   chasse avec la tâche `escort` vers le groupe escorté).
+  Arme-la avec `loadout_from` : un template `veafSpawn-*` du catalogue, ou le template de slot dynamique du type (`J-11A Template Red`) quand l'appareil n'a pas d'emport DCS nommé (`list_payloads`).
 - Orbite **proche du front** : **demande à l'utilisateur** (question 1.5). Une escorte protège l'actif,
   mais elle abat aussi les cibles que les joueurs font apparaître à côté.
 
@@ -217,6 +228,7 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - Posés en permanent via `#veafInterpreter["-<alias>, country <pays>, hdg <cap>"]`.
   **Porteur = une unité de la classe générée** (le lanceur de l'alias), pour que l'éditeur montre le
   cercle de portée. **Noms d'unités uniques** : suffixe après la balise (`… #<base>-01`).
+  **Le pays est un pays de la coalition** (`thirdreich` pour un rouge Troisième Reich, pas `germany`) : un pays d'aucune coalition fait apparaître le groupe neutre, sans réseau Skynet.
 
 ### 4.6 Zones d'entraînement — 3 familles de 3 niveaux
 
@@ -271,6 +283,7 @@ chaque cible comme un groupe d'un seul véhicule, à sa place exacte, **chaud au
 (`coldAtStart = false`), **tir interdit** (ROE `weapon hold`) et **sans dispersion sous le feu** : il
 reste immobile et muet, et un pod le voit (vérifié en jeu sur GermanyCW v6). Les statiques restent pour
 ce qui ne vit pas : bâtiments, dépôts, avions au parking.
+`add_group` le pose chaud au départ ; donne-lui `roe: "weapons_hold"` et `disperse: false` (les mêmes clés sur un groupe de `create_combat_zone`).
 `training: true`, un menu radio par famille.
 
 **En option, une zone hélicoptère hors combat** : navigation ou recherche d'un équipage abattu,
@@ -300,9 +313,10 @@ Règles :
   base aérienne sa défense de base, un convoi sa propre AAA), via les alias, porteurs de la classe
   générée, noms d'unités uniques.
 - **Cibles** : statiques pour bâtiments, bunkers, avions au sol ; groupes natifs pour ce qui vit ;
-  convois = **un groupe natif** avec une route sur route (points 2+ « On Road »), sa défense
-  antiaérienne dans le même groupe. Le **point de départ d'un convoi est sur la terre ferme**, pas sur un
-  pont ni dans l'eau : VEAF replace au hasard un groupe dont la position est sur un terrain invalide.
+  convois = **un groupe natif** avec une route sur route, sa défense antiaérienne dans le même groupe.
+  **Chaque point d'un convoi, départ compris, est sur une route** : prends le point que DCS donne (`land.getClosestPointOnRoads` par le pont dcs-bridge), et mets **tous** les points en « On Road ».
+  Mesuré sur l'OT Golfe Persique le 12/10/2026 : des départs posés à l'œil étaient à 3 et 7 km de la route, et le premier tronçon, parti d'un point « Off Road », se faisait à travers champs ; recalés sur la route, les trois convois y roulaient dès la première minute.
+  Le **point de départ est sur la terre ferme**, pas sur un pont ni dans l'eau : VEAF replace au hasard un groupe dont la position est sur un terrain invalide.
 - **Navires d'un même groupe espacés d'au moins 150 m** : collés, ils s'abordent et se gênent.
 - **Portée des SAM des zones actives** : aucun ne doit atteindre une base amie, une piste de
   ravitailleur ou une zone d'entraînement. Une zone activée au démarrage est une défense permanente :
@@ -363,8 +377,8 @@ Règles :
   mnémonique quand il y en a une (le TACAN 51Y du ravitailleur Arco 1 donne 291.0).
 - **Vérifie ensuite qu'aucune fréquence n'apparaît deux fois** dans une même liste de canaux, et
   qu'aucun canal non-aérodrome ne tombe sur une tour du théâtre. C'est ce contrôle qui manquait.
-- **`src/versions.yaml` à réécrire** : position = base mère, fuseau, `base_date` d'époque ; variantes
-  nuit / aube / matin / jour / soir × réel (`airport_icao`) / dégagé (`clearsky`) / épars / pluie.
+- **Pas de variantes météo** : supprime `src/versions.yaml` et mets `pipeline.weather: false` (4.2).
+  Mesuré sur l'OT Golfe Persique le 12/10/2026 : un METAR sans nuage rend chaque variante « dégagée » identique à sa jumelle réelle, et le serveur remplace de toute façon la météo.
 - **`src/waypoints.yaml`** : retire les exemples du gabarit ; un plan par catégorie et par camp jouable,
   avec le bullseye.
 
@@ -434,7 +448,7 @@ images dans le briefing de la mission, la carte générale d'abord.
 - **Dessins F10** (`add_map_drawing`, pour qu'ils survivent au build) : la ligne de front, les
   sanctuaires, les hippodromes de soutien, et **chaque zone avec son contour autant qu'avec son
   nom** — un cercle au rayon réel pour chaque zone de combat, chaque zone d'entraînement et chaque
-  QRA, plus son étiquette. Une zone réduite à un nom posé au centre ne dit pas où elle commence :
+  QRA, plus son étiquette ; l'arène en pointillés (`style: dash`) si la carte de briefing la dessine ainsi. Une zone réduite à un nom posé au centre ne dit pas où elle commence :
   l'Open Training Caucase de septembre 2026 avait 38 dessins, 10 traits et 28 étiquettes, **pas un
   seul contour**. Chacun sur la **couche du camp qui doit le voir** (`Blue`, `Red`, ou `Common` pour
   ce que les deux partagent).
@@ -445,6 +459,29 @@ images dans le briefing de la mission, la carte générale d'abord.
 - **Relis chaque image** avant de la livrer, zooms compris : aucune étiquette ne doit en chevaucher
   une autre, chaque numéro de zone doit correspondre à celui du briefing, et un trait en tirets doit
   rester en tirets sur les petits cercles.
+
+### 4.14 Époques sans ravitailleur, sans hélicoptère ou sans SAM
+
+Cette section vaut pour la **WW2** et, là où elle diffère, pour la **Guerre froide**.
+Elle remplace les quantités des sections 4.1 à 4.13 qui supposent du matériel moderne.
+Le reste ne change pas : la forme 3 × 3 et les `includes:`, les zones de combat, les QRA, les CAP, les missions scénarisées (un raid de Ju 88, une escorte de B-17G, une interception de reconnaissance), les dessins F10 et les cartes OSM.
+
+| Ce que le prompt demande | En WW2 | Ce que tu fais |
+|---|---|---|
+| Au moins 2 ravitailleurs, au moins 1 AWACS (4.3) | 1944 n'en a pas, et DCS n'a ni ravitailleur ni AWACS de l'époque | N'en place aucun (ni E-3 ni KC-135), dis-le dans le briefing ; les escortes de soutien (4.4) tombent |
+| FARP, CTLD, CSAR, `ctld-config.yaml`, drones laser (4.1, 4.11) | Aucun hélicoptère de l'époque | Désactive les modules (`CTLD: false`, `CSAR: false`) plutôt que de les laisser pour personne |
+| « Toujours deux porte-avions » (4.1) | Aucun porte-avions de l'époque dans la liste des modules | `CARRIER: false`, aucun porte-avions |
+| Skynet et EWR (4.5) | N'ont pas de sens | `SKYNET: false` ; les radars Freya et Würzburg se posent en groupes natifs de leur type, ou avec `-freya` et `-wurzburg` |
+| SAM courte, moyenne et longue portée (4.5, 4.6) | La flak (20, 37, 88 mm) | `-aaa`, `-samSR`, `-samLR` et `-samVLR` suivent `mission.era`, `-flak88` pose une batterie de 88 |
+| Famille SEAD (4.6) | Pas de radar à détruire | Elle devient l'antiflak |
+| Famille hélicoptères (4.6) | Aucun hélicoptère | Elle devient l'appui rapproché (CAS) |
+| Artillerie | `-arty` est un M-109 | `-lefh`, `-pak40`, `-wespe` |
+| Emport des QRA et des CAP (4.8, 4.9) | Un chasseur à canons n'a pas de pylône | Ni `pylons`, ni `payload` : `add_air_group` ne l'avertit pas d'être « sans arme ». Les bombardiers ont leurs emports dans `list_payloads` |
+| Missiles | Aucun appareil de 1944 n'en tire | Une arène « canons seulement » |
+
+**Ne pose aucun alias `post_ww2`** (`-ewr`, `-arty`, `-sa6`…) : `list_shortcuts` avec `era: WW2` donne ce qui convient, et `validate_mission` avertit des autres.
+Le gabarit de départ s'en ressent : en WW2, prends `standard` puis désactive ce que ce tableau écarte, `full` apporte Skynet.
+Quand une question de la section 1 n'a pas de réponse dans ce tableau, décide, annonce-le, et note-le dans « Retours pour VMCT ».
 
 ## 5. Ordre de construction
 
@@ -462,7 +499,7 @@ images dans le briefing de la mission, la carte générale d'abord.
    un script (comme la carte), jamais tapé : situation, carte, bases (fréquences, TACAN), défense
    aérienne permanente, soutien, porte-avions, drones, entraînement par famille, zones de combat par type
    avec le briefing de chacune, missions scénarisées, QRA, CAP, combat entre joueurs et arène, plan radio
-   bleu et rouge, météo et heures, commandes utiles ; puis « Pour les créateurs de mission » :
+   bleu et rouge, météo et heure de base, commandes utiles ; puis « Pour les créateurs de mission » :
    construire, fichiers, régénérer ce document, limites connues.
 9. **Mission de test locale** (section 8).
 
@@ -484,7 +521,7 @@ l'époque ou les camps ; lancer DCS.
 ## 8. Vérification avant de dire « c'est prêt »
 
 - **Lis tout le journal du build**, pas seulement le code de sortie : presets injectés dans combien
-  d'appareils, waypoints dans combien de groupes, liens des warehouses, nombre de variantes,
+  d'appareils, waypoints dans combien de groupes, liens des warehouses,
   avertissements. Tout zéro est suspect.
 - **Ouvre le `.miz` produit** (un zip ; `mission` et `warehouses` sont des tables Lua) et contrôle :
   - noms de groupes et d'unités **uniques** ;
@@ -500,8 +537,8 @@ l'époque ou les camps ; lancer DCS.
   - aucune défense permanente à portée d'une base adverse avec slots (4.5) : le tableau des
     distances ;
   - `requiredModules` vide (4.2) ;
-  - deux variantes météo **différentes dans les champs que DCS lit** (`clouds.preset`,
-    `season.temperature`, `wind.atGround`), et l'heure de l'aube cohérente avec le lever du soleil ;
+  - une seule mission, sans variante météo, et une météo de base plausible dans les champs que DCS
+    lit (`clouds`, `season.temperature`, `wind.atGround`) : pas de nuages au sol ;
   - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec ;
   - les images de briefing présentes dans le `.miz`, listées dans `pictureFileNameB` et
     `pictureFileNameN`, `pictureFileNameR` vide (4.13).

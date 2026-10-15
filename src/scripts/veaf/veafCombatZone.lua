@@ -1740,6 +1740,9 @@ function VeafCombatZone:getInformation(unitName)
       message = message .. veaf.t("report.latlon_dms", veaf.toStringLL(lat, lon, 0, true))
       message = message .. veaf.t("report.mgrs", mgrsString)
       message = message .. veaf.t("report.from_bullseye", fromBullseye)
+      -- land.getHeight takes a vec2 whose y is the easting, i.e. the vec3's z; the centre's own y may not be the ground
+      local elevation = land.getHeight({ x = zoneCenter.x, y = zoneCenter.z })
+      message = message .. veaf.t("report.elevation", veaf.round(veaf.metersToFeet(elevation), 0), veaf.round(elevation, 0))
       message = message .. "\n"
 
       -- get altitude, qfe and wind information

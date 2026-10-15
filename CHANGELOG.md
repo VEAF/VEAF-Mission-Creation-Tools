@@ -17,6 +17,121 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.30.0] — 2026-10-15
+
+### Fixed
+
+- **The VEAF radio menu no longer opens on a list of "Activate mission" entries** (FIX-COMBATMISSION-MENU-MISSING ticket 02, a 6.29.0 regression).
+  A combat mission declared in the mission's own `mission-script.lua` put its commands at the root of the VEAF menu, once per `initialize()` it went through — 25 of them on the Caucasus Open Training.
+  Such a mission now waits for its place under MISSIONS, and the menu is rebuilt once, a second after the script has declared them all.
+- **A QRA interceptor created with `task: "CAP"` defends its zone** (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 01).
+  `create_qra` wrote the editor's automatic `EngageTargets` on such a group, so the build flew its one-point route as written and the interceptors landed at the nearest airfield; a QRA group now carries no task on its point, whatever its task.
+- **The carrier recovery tanker leaves the tanker callsigns to the tankers** (ticket 02).
+  `add_carrier_group` gives the S-3B the `Shell` family from flight 9 down (`Shell91`, `Shell81`), so the tankers named `Texaco 1` or `Arco 1` placed afterwards keep their callsign; `tanker_callsign` imposes another.
+- **The shipped dynamic-slot catalogue offers no mod and arms its J-11A** (ticket 04).
+  The `A-4E-C`, `OV-10A` and `T-45` templates leave it, the J-11A templates carry the Marianas Open Training v5 air-to-air loadout, `Mig-29G Template Red` its blue twin's, and the build warns about a catalogue template whose type the DCS unit database does not know.
+- **The read actions agree with the write actions** (ticket 05).
+  `describe_mission` reads a mission folder, `describe_units` gives each `group_id` and `unit_id`, `terrain_elevation` takes `mission_path`, and `geocode` warns when it answers an island or an area for a place inside it.
+- **A placement warning says what was not checked and how to check it** (ticket 07).
+  On a theatre with no elevation grid or clear-ground catalogue, it names the sea, the trees and the buildings, and `veaf-tools dcs clear-ground-check` on the built mission.
+- **`add_farp` no longer puts a FARP in the trees or on a slope without a word** (FIX-FARP-PLACEMENT tickets 01–03).
+  « FARP Merizo » went into the Marianas jungle, on a slope, with only a warning about the sea.
+  Where the clear-ground catalogue covers the place, a pad in trees or buildings now moves with its ammunition dump onto the nearest clear ground within 1 km (`keep_position` refuses the move and only warns); where the elevation grid covers it, more than 3 m of height difference over 40 m around the pad is warned as a slope; where neither does, the warning says what was not checked.
+  The new `veaf-tools dcs farp-spot <theatre> --at x,y` finds the flat, clear spots near a point in DCS. Clearing the trees by trigger was tried and left out: DCS's « SCENERY REMOVE OBJECTS ZONE » removed none, on MarianaIslands or Caucasus (known limitation `scenery-remove-objects-zone-leaves-the-forest`).
+
+- **An air-start player slot flies the heading it was given** (FIX-AIR-SLOT-HEADING).
+  `add_player_slot` wrote the heading on the unit only, and DCS orients an air start toward its second waypoint: an A-10 asked for 180° flew north.
+  The slot now gets a second waypoint 10 km ahead on its heading, as the Mission Editor writes it; measured in DCS, 180° asked, 180.5° flown.
+- **A new aircraft group is written with a frequency its airframe can tune** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 13).
+  `add_air_group` and `add_player_slot` wrote 251 MHz on every group, and the Mission Editor refuses to save a P-51D (100–156 MHz) or a Fw 190 (38.4–42.4 MHz) written with it: three client groups of the Normandy Open Training could not be saved, and the build, `validate` and the tests never opened the file in the editor.
+  A group keeps 251 where its airframe can tune it, and takes the type's own default (124, 38.4) where it cannot; an explicit frequency it cannot tune is refused for a `Client` or `Player` group and warned about for an AI one. `create_qra` and `create_cap_mission` follow, and `validate` warns about a group already written out of range.
+- **A WW2 gun fighter is not « unarmed »** (ticket 02).
+  `add_air_group` warned about every P-51D, Spitfire, Bf 109 or Fw 190 given a fighting task and no pylons — 25 warnings on the Normandy Open Training, which hid a real one — though it fights with its guns.
+  The warning now spares the WW2 gun fighters; a Ju-88A4 with no bombs and a modern jet with no missiles still get it, and `loadout_from` a gun-only template copies « no pylons » instead of refusing.
+- **`list_payloads` knows the module aircraft and the WW2 bombers** (ticket 01).
+  The loadout table read only the Mission Editor's own files and none of the modules': it went from 45 to 129 types (P-51D, P-47D, Fw 190, Bf 109, F-16C, FA-18C…, 2 164 loadouts), and `Ju-88A4` and `B-17G` carry their raid loads from a small file of their own.
+  Seven module files compute their CLSIDs in real Lua and are listed by the generator rather than lost; the Spitfire has no loadout file at all.
+- **A WW2 mission is not given the 51 modern jets of the shipped spawnables catalogue** (ticket 03).
+  Under `mission.era: WW2` the build injects none of them and says so; under `COLD_WAR` it drops the MQ-9. A `src/spawnables.yaml` the maker wrote is injected as written.
+- **The WW2 tables of `veafCasMission` hold WW2 units** (ticket 04).
+  `-infantry`, `-combat` and the `_spawn infantrygroup` family put an M4-armed modern rifleman, or a Bradley, in front of a Tiger; they now draw `soldier_wwii_us`, `soldier_wwii_br_01`, `soldier_mauser98`, `M8_Greyhound` and `Daimler_AC`. The era sweep checks every WW2 entry against an allow-list.
+- **`geocode` says when it checked nothing** (ticket 11).
+  A theatre with no bounding box answered `in_theatre_bounds: true` — « Omaha Beach » came back from Iowa on Normandy. Nine boxes were added (every theatre of the projection table has one), and a theatre without one answers `null` with a warning.
+- **`describe_known_limitations` fits a tool result** (ticket 10).
+  The whole text is 74 000 characters; with no argument the action now returns a short listing (`id`, `kind`, `area`, `title`, about 12 000 characters), and `area`, `kind`, `id`, `theatre` or `full` return the entries in full.
+- **The sweep names a `dcs-serve` that died** (ticket 09).
+  A server that stopped during a survey session left the command silent until its 15-minute wait ran out; it now stops within a few seconds, naming the server, and says once at half time that the survey mission has not answered.
+- **An alias whose `country` is in no coalition no longer stops a combat zone** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14).
+  `#command="-samSR, country germany"` in a mission whose red side holds Third Reich spawned neutral, found no Skynet network and stopped the zone on `networkName nil`: the zone's later elements never appeared.
+  The spawn now takes the coalition of the unit that carries the command, with a warning, and skips the Skynet declaration with a warning when the side has no network; `validate` warns about the country (`thirdreich`, not `germany`).
+- **The WW2 shortcuts take the coalition of the unit that carries them** (ticket 05).
+  `-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40` and `-wespe` no longer name `country GERMANY`, which a Third Reich mission does not hold.
+- **A convoy held in front of an enemy nobody fires at no longer stays there for ever** (FIX-CONVOY-FROZEN-STANDOFF).
+  On the *Kolkhida* test of 2026-10-10 the red assault convoy stood 40 game minutes 700-850 m from two Bradleys in sight, not a round fired by either side: the enemy in sight kept the contact alive, so the quiet minute that relaunches a convoy never came.
+  A fighting convoy halted with an enemy in sight, that fires and takes no shot for 2 minutes, now drives onto the nearest enemy, and again every 2 minutes while nobody fires; a convoy falling back does not.
+- **The committed presets report names no machine path and no day** (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 04).
+  `presets-validation-report.md` carried the build date and two absolute paths, so a build from a worktree, another machine or another day dirtied a committed file with no finding changed; it now names `src/presets.yaml` and the mission's base name, without the `.miz`'s date.
+- **A preset channel that lacks its list's band is reported** (ticket 05).
+  Three UHF-only channels on Syria-v6's VHF `primary_2` list reached no aircraft for eight days while its README advertised them, the injector keeping their names where nothing read them.
+  The build warns once per such channel, naming the coalition, the list, the channel and the band it lacks; the presets report lists them and `validate` says the same without building.
+- **The sanctuary no longer raises on a weapon whose target has no `isExist`** (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
+  Twelve player shots of the Sinai Open Training (Privé 1, 2026-10-12) logged `attempt to call method 'isExist' (a nil value)`: `weapon:getTarget()` returned an object without that method.
+  Such a target is now ignored — it is no player to protect — and its category is logged once per mission, since what it is has not been measured yet.
+- **`campaign next` reports the visibility the mission flies** (FIX-CAMPAIGN-VISIBILITY-MISMATCH).
+  A drawn 10 000 m was reported as such while the mission carried 80 km: the weather converter writes 9 000 m or more as DCS's maximum, the way a METAR's `9999` reads "10 km or more".
+  The report now gives the value written; the convention is documented wherever a visibility in metres is accepted (`set_weather`, `versions.yaml`).
+- **Solar times are computed on the mission's map, not at Damascus** (FIX-SOLAR-DEFAULT-POSITION).
+  The shipped `versions.yaml` declared a Damascus `position` whatever the map: a Caucasus `sunrise` variant started at 07:48 on 2024-03-15, 24 minutes after sunrise near Kobuleti (50 in June), and a file without `position` aborted the build on its first solar expression.
+  Without `position`, the build now computes at the theatre's point (near Batumi on the Caucasus, Hama on Syria…) and the shipped file no longer declares one; an explicit `position` still wins, with a warning when it lies outside the mission's theatre — the case of mission folders created before this release, which keep the Damascus block until it is removed.
+  `campaign next` was not affected.
+
+### Added
+
+- **`add_air_group` takes `loadout_from`**, like `create_qra` and `create_cap_mission`: the only sourced loadout of a module aircraft with no DCS named payload (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 03).
+- **A ground group that holds fire and does not disperse**: `add_group` and each `create_combat_zone` group take `roe` (`weapons_free`, `return_fire`, `weapons_hold`) and `disperse`, written as the Mission Editor writes them (ticket 06).
+- **Parking data for Sinai** (FEAT-SINAI-PARKING-DATA).
+  3 614 stands on 56 airfields, captured in DCS on 2026-10-12 for the Sinai Open Training v6: `add_air_group` and `create_qra` now start a flight from the ramp or the runway on Sinai, and the build's dynamic-slot warehouses offer each Sinai airfield only what its parking accepts.
+- **Falklands is a supported theatre** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS tickets 01–02).
+  `scaffold_mission` offers it and its folder carries a blank mission, `terrain-sweep Falklands` runs, and the geocoder is bounded to the map (it answered « San Julian » in Jujuy and « Porvenir » in Chile).
+  Read in DCS and shipped: the ATC frequencies of 26 airfields (Cullen has none) with the `airports-falklands` channel collection, and 350 parking stands on 27 airfields, so `add_air_group` takes a ramp or runway start there.
+  The elevation grid is not shipped, as for every theatre: sweep it with `terrain-sweep Falklands`.
+- **`add_farp` warns about a tower's frequency and says what no file sees** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 03).
+  A FARP put on the channel of an airfield tower of its theatre (same band: `AM` against `vhf` and `uhf`, `FM` against `fm`) is warned, naming the airfield — FARP Torres del Paine had been put on 128.5, the Franco Bianco tower.
+  The result always carries `surface_check`: neither the elevation grid (it knows the sea only) nor the clear-ground catalogue sees a lake or a river, and it gives the `farp-spot` command that probes the pad's surface in DCS.
+- **`validate_mission` warns about a group named for a combat zone but outside its circle** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 05).
+  The zone takes a group only if its name starts with the zone's **and** a unit stands in the circle; with none inside, the zone picks up nothing and nothing shows in game.
+  The warning names the group and the zone. A group named for no zone is never reported — the runtime leaves it alone wherever it stands.
+- **Parking data for Normandy** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 08).
+  3 716 stands on 90 airfields, captured in DCS on 2026-10-13: `add_air_group` and `create_qra` start a flight from the ramp or the runway on Normandy. `capture-map --parking` now ends with the command that slims its dump.
+- **`list_shortcuts` says which era a shortcut is correct for** (ticket 05).
+  Each unit, group and command carries an `era` — `follows_era` (`-aaa`, `-samLR`, `-armor`, `-infantry`, `-transport`, `-convoy`), `ww2`, `post_ww2` (`-ewr`, `-arty`, `-sa6`), `era_free` or `unknown` — read from what it spawns, and `era` filters the list.
+  `validate` warns about a `post_ww2` shortcut in a WW2 mission. Six WW2 shortcuts: `-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40`, `-wespe`.
+- **A primary frequency that was not promoted says what the type got instead** (ticket 06).
+  The build log named the channel a Fw 190 could not take as its primary frequency, not the one it stays on.
+- **A convoy made by `add_group` or `create_combat_zone` starts on the road and runs at convoy speed** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 04).
+  A ground route of two points or more was written starting `Off Road` at 5.6 m/s; it now starts `On Road` like its legs and runs at 16.4 m/s (59 km/h), the median of 126 road convoys of 14 hand-built missions (the first point was `On Road` in 85 of them).
+  A route point takes its own `speed`, in m/s. A single stationary point, a ship and an aircraft are unchanged.
+- **Known limitation: no clear-ground catalogue on Falklands** (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 07).
+  15 of 176 vehicles of the Falklands Open Training stood in water or blocked; the « surface not checked » warning now also gives the `clear-ground-sweep` command.
+- **Game master, tactical commander, JTAC and observer slots from `mission.yaml`** (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 01).
+  A v6 mission was born with none of them and no vehicle control, and only an edit of `src/mission/mission` could change it: the Caucasus and GermanyCW Open Training had no game master slot.
+  `mission.ground_control` sets them at every build (`game_master: 5`, or `{blue: 5, red: 0}`, and `pilot_control_vehicles`); absent, the mission's own settings stay, and `validate` refuses an unknown role.
+- **`validate` reports a CTLD catalogue upgrade, and `veaf-tools mission ctld-upgrade` takes it** (ticket 02).
+  6.29.0 vendors CTLD catalogue 2.2.0, and a `ctld-config.yaml` written against 2.0.0 was only noticed in game, CTLD telling the players three settings were missing.
+  `validate` now lists the settings the file lacks, those the catalogue dropped, and the new keys inside tables the mission holds; the command adds the missing settings at their default and changes no existing value nor any list.
+- **`add_map_drawing` takes a line style** (ticket 03).
+  One of DCS's sixteen (`dash`, `dot`, `dotdash`, `boundry1`…) on every shape but a textbox, `solid` by default: the Caucasus arena, dashed on the briefing map, had to be a solid circle on the F10 map.
+- **A combat zone's briefing gives the ground elevation at its centre** (FEAT-COMBAT-ZONE-ELEVATION).
+  Under the bullseye line, `ELEVATION : 1352 ft / 412 m.` (`ÉLÉVATION` in French), read from the terrain at the zone centre: a pilot had to take it off the F10 map or work it out from QNH and QFE.
+  Only when the zone shows its position, like the coordinates it sits with.
+
+### Documentation
+
+- **The Open Training prompt has a section for eras with no tanker, no helicopter or no SAM** (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 12).
+  A table says what to leave out in WW2, what takes its place and which modules to switch off; the prompt also says the era comes before the template, that the terrain sweep and the parking capture run together, and that the known limitations are read as a short listing first.
+- **The README's « Lire ce document en français » link leads to the French half again.**
+  It targeted `#fr`, which nothing defined; both halves now carry an explicit anchor (`#en`, `#fr`) instead of relying on the slug GitHub derives from an image heading.
+
 ## [6.29.0] — 2026-10-10
 
 ### Documentation

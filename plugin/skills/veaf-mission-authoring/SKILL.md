@@ -17,6 +17,10 @@ veaf-tools version, what the tools cannot do yet (with how to do without) and th
 that raise no error and are wrong anyway — a late-activated group visible to scripts, `start_time`
 not delaying an air spawn, a SAM without early-warning radar permanently lit… Take them into account
 throughout; this skill deliberately does not repeat them, since a trap copied here would go stale.
+With no argument it returns a **short listing** (`id`, `kind`, `area`, `title`): the whole text is too
+long for one result. Then read the entries of the areas your mission uses with `area` (`spawning`,
+`air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), or any one
+with `id`; `theatre` drops what concerns other theatres only.
 
 Before naming a group, picking a unit type, or configuring a module, call the read-only oracle
 actions. They read VEAF's canonical, always-current data — your training memory of DCS types or
@@ -25,13 +29,18 @@ VEAF conventions may be stale or wrong.
 - `list_unit_types` — real DCS unit type ids (filter by category / name), with the weapon and sensor
   ranges DCS gives them (`threat_range_m`, `detection_range_m`).
 - `list_payloads` — the loadouts DCS offers an AI aircraft type, by name: what `payload` takes in
-  `add_air_group`, `create_qra` and `create_cap_mission`.
+  `add_air_group`, `create_qra` and `create_cap_mission`. The module aircraft (P-51D, Fw 190, F-16C…)
+  and the WW2 bombers (Ju-88A4, B-17G) are in; a type with none (a transport, the Spitfire) takes
+  `pylons` or `loadout_from`. A WW2 fighter needs neither: it fights with its guns.
 - `list_shortcuts` — VEAF spawn aliases. Three families: `units` (`shilka`, `sa8`), `groups`
   (composite SAM/convoy groups), and `commands` — the `#command` shortcuts (`-samVLR`, `-samLR`,
   `-armor`, random convoys, …), each with its `randomParameters`: the range of every parameter it
   draws on each use (`-samLR` and `-samSR` run the same command and differ only by their `defense`
   range). **This is the authoritative source for the `-<alias>` you put in a combat-zone
-  `#command`** — never guess an alias from memory (there is no `-lrsam`).
+  `#command`** — never guess an alias from memory (there is no `-lrsam`). Each entry carries an `era`:
+  `follows_era` (`-aaa`, `-samLR`, `-armor`, `-infantry`, `-transport`, `-convoy`: the units change
+  with `mission.era`), `ww2`, `post_ww2` (fixed modern equipment — `-ewr`, `-arty`, `-sa6` — wrong in
+  a WW2 mission), `era_free` or `unknown`; pass `era` (`WW2`…) to list only what fits the mission.
 - `describe_naming_conventions` — the reserved naming patterns (below).
 - `describe_module` — is a module real? its doc page? enabled in this mission?
 
@@ -154,6 +163,9 @@ is not the one playing the zone.
   `#command="-sa6" FuldaGap-sa6`, `#veafInterpreter["-rapier, hdg 90"] #ramstein-01`.
 - **Alias options can be appended inside the tag**: `#veafInterpreter["-rapier, country germany,
   hdg 135"]` — country, heading and the other options of the underlying VEAF command.
+  **The country must be one of the countries of a coalition of the mission** (a Third Reich red side
+  is `country thirdreich`, not `germany`): a country of no coalition spawns neutral, with no Skynet
+  network. `validate_mission` warns about it.
 - **Reading an existing mission, read its UNIT names before judging a group.** A group that looks
   inert in the editor — a lone radar, a lone soldier — is often a carrier whose unit name spawns a
   full battery. Dump unit names (`describe_units`) before calling anything useless or deleting it.
@@ -215,6 +227,19 @@ partial or one-off edits, or when there's no folder (a lone `.miz`).
 
 A **combat operation** (zones grouped under one menu; activating it spawns **all** its zones at once, `dependencies` only orders which task is listed as the current objective) is `add_combat_operation`, called **after** its zones exist: it writes `mission.yaml` only, and refuses a task naming a zone the mission does not declare.
 Do not write `type: operation` by hand.
+
+## FARPs — the pad must be flat and clear
+
+Place a FARP with **`add_farp`**, never `add_group` in `static` (that places the object alone, which serves nobody). It checks the pad, and its warnings are for the user, not noise:
+
+- where the clear-ground catalogue covers the place, a pad in trees or buildings is **moved** with its ammunition dump onto the nearest clear ground within 1 km, and the result's `position` says where; pass `keep_position: true` when the user drew the spot themselves (it then only warns);
+- where the elevation grid covers it, a pad with more than 3 m of height difference over 40 m around it is warned as **on a slope** — a helicopter cannot use it;
+- where neither covers it (MarianaIslands, any theatre not swept on this workstation), the warning says the trees and slope were **not checked** and gives the command `veaf-tools dcs farp-spot <theatre> --at x,y`. Relay it: it needs DCS, and lists the flat, clear spots near the point. Do not claim the pad is usable when it was not checked.
+- the result's `surface_check` says that no file sees a lake or a river (the grid knows the sea only): relay it and the `farp-spot` command, a pad has stood in a lake with 79 m on the grid;
+- a frequency that is an airfield tower's of the theatre (same band) is warned with the airfield's name: pick another one.
+
+On a jungle map the clear spot can be more than a kilometre from where the FARP is wanted. **Do not try to clear the trees by trigger**: DCS's « SCENERY REMOVE OBJECTS ZONE » removed none on MarianaIslands or Caucasus (known limitation `scenery-remove-objects-zone-leaves-the-forest`). Move the FARP to clear ground instead, and say how far it went.
+A spot `farp-spot` leaves out is not necessarily wooded (`disposition-small-query-blocks-open-grass`): when it finds nothing near enough, ask the user to look in game before giving up on a place.
 
 ## Coordinates and the map
 

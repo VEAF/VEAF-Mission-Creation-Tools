@@ -70,6 +70,29 @@ _REFUSED_SHAPES: dict[str, str] = {
     ),
 }
 
+#: DCS's sixteen line styles, in the editor's own order (``MissionEditor/data/NewMap/images/draw/lines.lua``),
+#: ``boundry`` spelled as DCS spells it. A mission stores the name alone: the editor rebuilds the texture
+#: from it on load (``lineLoad`` in ``me_draw_panel.lua``), so a name outside this list indexes nil there
+#: (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 03).
+LINE_STYLES: tuple[str, ...] = (
+    "solid",
+    "solid2",
+    "dot",
+    "dot2",
+    "dotdash",
+    "dash",
+    "cross",
+    "square",
+    "strongpoint",
+    "triangle",
+    "wirefence",
+    "boundry1",
+    "boundry2",
+    "boundry3",
+    "boundry4",
+    "boundry5",
+)
+
 #: Defaults taken from real drawings rather than invented.
 _DEFAULT_COLOR = "0xff0000ff"
 _DEFAULT_FILL_COLOR = "0x00000080"
@@ -99,6 +122,7 @@ def add_map_drawing(
     fill_color: str | None = None,
     thickness: float | None = None,
     font_size: int | None = None,
+    style: str | None = None,
 ) -> dict[str, Any]:
     """Add a drawing to one of the mission's F10 map layers, in place, backed up first.
 
@@ -124,16 +148,20 @@ def add_map_drawing(
         fill_color: Fill colour, for a ``rect``, ``textbox``, ``circle``, ``oval`` or ``free`` polygon.
         thickness: Outline thickness.
         font_size: Font size, for a ``textbox``.
+        style: Outline style, one of :data:`LINE_STYLES` (``dash``, ``dot``…); ``solid`` when omitted.
+            Every shape but a ``textbox``, which has no outline style.
 
     Returns:
         ``{layer, name, shape, anchor}``.
 
     Raises:
         ValueError: If the archive is not a valid mission, the layer or shape is unknown, the name is
-            taken on that layer, or the shape's own required parameters are missing.
+            taken on that layer, the style is unknown or given to a textbox, or the shape's own required
+            parameters are missing.
     """
     _check_layer(layer)
     _check_shape(shape)
+    _check_style(shape, style)
 
     mission, content = open_mission(miz_path)
 
@@ -158,6 +186,8 @@ def add_map_drawing(
     else:  # textbox
         drawing, anchor = _build_textbox(name, layer, position, text, angle, color, fill_color, font_size)
 
+    if shape != "textbox":
+        drawing["style"] = style or "solid"
     objects.append(drawing)
 
     durable = commit_mission(mission, miz_path)["durable"]
@@ -262,6 +292,24 @@ def _check_shape(shape: str) -> None:
             f"shape {shape!r} is not available: {_REFUSED_SHAPES[shape]}. Available: {', '.join(_MEASURED_SHAPES)}"
         )
     raise ValueError(f"unknown shape {shape!r}; expected one of {', '.join(_MEASURED_SHAPES)}")
+
+
+def _check_style(shape: str, style: str | None) -> None:
+    """Raise unless `style` is one of DCS's line styles, on a shape that has an outline style.
+
+    Args:
+        shape: The requested shape.
+        style: The requested style, ``None`` for the default.
+
+    Raises:
+        ValueError: If the style is unknown, or given to a textbox.
+    """
+    if style is None:
+        return
+    if shape == "textbox":
+        raise ValueError("a textbox has no line style; 'style' applies to line, rect, circle, oval and free")
+    if style not in LINE_STYLES:
+        raise ValueError(f"unknown line style {style!r}; expected one of {', '.join(LINE_STYLES)}")
 
 
 def _layer_objects(mission_content: dict[str, Any], layer: str) -> list[dict[str, Any]]:
@@ -372,7 +420,6 @@ def _build_line(
             # `segment` for a single leg, `segments` for a polyline — DCS's own spelling, plural.
             "lineMode": "segment" if len(points) == 2 else "segments",
             "closed": closed,
-            "style": "solid",
             "colorString": color or _DEFAULT_COLOR,
             "thickness": thickness if thickness is not None else _DEFAULT_THICKNESS,
             "hiddenOnPlanner": False,
@@ -425,7 +472,6 @@ def _build_rect(
             "width": float(width),
             "height": float(height),
             "angle": angle,
-            "style": "solid",
             "colorString": color or _DEFAULT_COLOR,
             "fillColorString": fill_color or _DEFAULT_FILL_COLOR,
             "thickness": thickness if thickness is not None else _DEFAULT_POLYGON_THICKNESS,
@@ -471,7 +517,6 @@ def _build_circle(
             "primitiveType": "Polygon",
             "polygonMode": "circle",
             "radius": float(radius),
-            "style": "solid",
             "colorString": color or _DEFAULT_COLOR,
             "fillColorString": fill_color or _DEFAULT_FILL_COLOR,
             "thickness": thickness if thickness is not None else _DEFAULT_POLYGON_THICKNESS,
@@ -523,7 +568,6 @@ def _build_oval(
             "r1": float(r1),
             "r2": float(r2),
             "angle": angle,
-            "style": "solid",
             "colorString": color or _DEFAULT_COLOR,
             "fillColorString": fill_color or _DEFAULT_FILL_COLOR,
             "thickness": thickness if thickness is not None else _DEFAULT_POLYGON_THICKNESS,
@@ -571,7 +615,6 @@ def _build_free(
         {
             "primitiveType": "Polygon",
             "polygonMode": "free",
-            "style": "solid",
             "colorString": color or _DEFAULT_COLOR,
             "fillColorString": fill_color or _DEFAULT_FILL_COLOR,
             "thickness": thickness if thickness is not None else _DEFAULT_POLYGON_THICKNESS,

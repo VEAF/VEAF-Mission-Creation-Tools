@@ -40,8 +40,14 @@ from veaf_mission_mcp.edit_veaf_config import (
 from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
-from veaf_mission_mcp.map_drawings import add_map_drawing, edit_map_drawing
-from veaf_mission_mcp.map_tools import describe_map, list_airfields, resolve_coordinates, resolve_coordinates_batch
+from veaf_mission_mcp.map_drawings import LINE_STYLES, add_map_drawing, edit_map_drawing
+from veaf_mission_mcp.map_tools import (
+    describe_map,
+    list_airfields,
+    mission_theatre,
+    resolve_coordinates,
+    resolve_coordinates_batch,
+)
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
@@ -74,12 +80,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="describe_mission",
             description=(
                 "List the groups and trigger zones currently present in a mission's source "
-                ".miz, for situational awareness before an editor-parity write."
+                ".miz or mission FOLDER, for situational awareness before an editor-parity write. "
+                "describe_units gives each group's group_id and each unit's unit_id."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "miz_path": {"type": "string", "description": "Path to the mission's source .miz."},
+                    "miz_path": {"type": "string", "description": "The mission's source .miz, or a mission FOLDER."},
                 },
                 "required": ["miz_path"],
             },
@@ -181,7 +188,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "number",
                         "description": "Where the wind comes FROM, degrees (as in a METAR).",
                     },
-                    "visibility": {"type": "number", "description": "Visibility, metres."},
+                    "visibility": {
+                        "type": "number",
+                        "description": "Visibility, metres; 9000 or more is written as DCS's maximum, 80 km "
+                        "(a METAR's 9999).",
+                    },
                     "cloud_type": {
                         "type": "string",
                         "enum": ["clear", "few", "scattered", "broken", "overcast"],
@@ -676,6 +687,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "fill_color": {"type": "string", "description": "Fill colour, same format."},
                     "thickness": {"type": "number"},
                     "font_size": {"type": "integer", "description": "For a textbox."},
+                    "style": {
+                        "type": "string",
+                        "enum": list(LINE_STYLES),
+                        "default": "solid",
+                        "description": (
+                            "Outline style -- 'dash' or 'dot' for a zone that must not read like any other. "
+                            "Every shape but a textbox, which refuses it."
+                        ),
+                    },
                 },
                 "required": ["miz_path", "layer", "shape", "name"],
             },
@@ -778,10 +798,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "speed": {"type": "number", "description": "Speed on the leg to this point, m/s."},
+                            },
                             "required": ["x", "y"],
                         },
-                        "description": "Optional waypoints; defaults to a single stationary point at `position`.",
+                        "description": (
+                            "Optional waypoints; defaults to a single stationary point at `position`. A ground "
+                            "route with two points or more starts and runs 'On Road' at 16.4 m/s (59 km/h, the "
+                            "median of editor-built road convoys) unless a point gives its own `speed`."
+                        ),
                     },
                     "patrol": {
                         "type": "boolean",
@@ -810,6 +838,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "moved. Otherwise a stationary vehicle group is put on ground measured clear of trees "
                         "and buildings, up to 1 km away (combat-zone markers included, sized from their "
                         "#command), and a warning says where it went or why it stayed. Relay that warning.",
+                    },
+                    "roe": {
+                        "type": "string",
+                        "enum": ["weapons_free", "return_fire", "weapons_hold"],
+                        "description": "A VEHICLE group's rules of engagement, on its first waypoint as the "
+                        "Mission Editor writes it. weapons_hold + disperse=false is an inert target.",
+                    },
+                    "disperse": {
+                        "type": "boolean",
+                        "description": "false: the group does not disperse under fire (vehicle group). true is "
+                        "DCS's default and writes nothing.",
                     },
                 },
                 "required": [
@@ -879,7 +918,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "heading_deg": {
                         "type": "number",
                         "default": 0,
-                        "description": "Heading in degrees (mainly meaningful on the ground).",
+                        "description": (
+                            "Heading in degrees. An air start flies it: a second waypoint 10 km ahead carries it, as "
+                            "the Mission Editor writes it. A ground start takes its stand's orientation."
+                        ),
                     },
                     "parking": {
                         "type": "string",
@@ -895,8 +937,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "frequency_mhz": {
                         "type": "number",
-                        "default": 251,
-                        "description": "Group radio frequency in MHz (written, not inherited).",
+                        "description": "Group radio frequency in MHz (written, not inherited). Defaults to 251, "
+                        "or to the type's own when its airframe cannot tune 251 (124 for a P-51D, 38.4 for a "
+                        "Fw 190); one the airframe cannot tune is refused: the Mission Editor would refuse to "
+                        "save it.",
                     },
                     "onboard_num": {
                         "type": "string",
@@ -960,7 +1004,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the mission carries; a western flight NAMED like its callsign ('Texaco 2', 'Magic 1') gets "
                 "that callsign (Texaco21...) when its family fits the task and the flight is free, else the "
                 "next free one and a warning. A fighting task (Escort, CAP, CAS, SEAD...) with no pylons "
-                "warns for an AI flight. An AWACS or a tanker is called on its frequency_mhz: add that "
+                "warns for an AI flight, except a WW2 gun fighter (P-51D, Spitfire, Bf 109, Fw 190...), "
+                "which fights with its guns and needs none. An AWACS or a tanker is called on its frequency_mhz: add that "
                 "channel to the players' coalition in src/presets.yaml in the same pass, or every radio "
                 "and kneeboard keeps the scaffold's plan and the build lists it as reached by no preset. "
                 "Target a FOLDER (durable) or .miz (transient); backed up first."
@@ -1012,7 +1057,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "default": "High",
                         "description": "AI level, or 'Client'/'Player' for human slots.",
                     },
-                    "frequency_mhz": {"type": "number", "default": 251, "description": "Group radio frequency in MHz."},
+                    "frequency_mhz": {
+                        "type": "number",
+                        "description": "Group radio frequency in MHz. Defaults to 251, or to the type's own "
+                        "when its airframe cannot tune 251 (124 for a P-51D, 38.4 for a Fw 190): the Mission Editor "
+                        "refuses to save a group whose frequency its airframe cannot tune. An explicit one "
+                        "it cannot tune is refused for a Client/Player group, warned about for an AI one.",
+                    },
                     "task": {
                         "type": "string",
                         "default": "CAS",
@@ -1061,6 +1112,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "string",
                         "description": "A DCS loadout by the name the Mission Editor lists (list_payloads gives "
                         "a type's names), instead of 'pylons'.",
+                    },
+                    "loadout_from": {
+                        "type": "string",
+                        "description": "Group to copy the loadout from: the mission's, then the aircraft "
+                        "catalogues' (a veafSpawn-* template) -- the way to arm a module aircraft with no DCS "
+                        "named payload. One of pylons / payload / loadout_from.",
                     },
                 },
                 "required": ["target", "coalition", "country_id", "country_name", "name", "unit_type"],
@@ -1651,8 +1708,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "rearm there, and by default its ammunition dump ('<name> - Ammo', a FARP Ammo Dump "
                 "Coating 120 m east) that CTLD takes as a loading point. add_group with category 'static' "
                 "places the object ALONE, which serves nobody. The build's warehouses.yaml ('farps:') then "
-                "stocks it like any base. Warns when the pad is in the sea (elevation grid). Target a "
-                "FOLDER (durable) or a .miz; backed up."
+                "stocks it like any base. Checks the pad: a pad the clear-ground catalogue finds in trees "
+                "or buildings is MOVED with its dump onto the nearest clear ground within 1 km (warned; "
+                "keep_position refuses the move and only warns); a pad with more than 3 m of height "
+                "difference over 40 m around it is warned as on a slope (elevation grid); a pad in the sea "
+                "is warned. Where no catalogue or grid covers the place, the warning says what was not "
+                "checked and gives the 'veaf-tools dcs farp-spot' command that finds a flat, clear spot in "
+                "game. A frequency that is an airfield tower's of the theatre (same band) is warned, naming it. "
+                "The result's 'surface_check' says that lakes and rivers are seen by no file and gives the "
+                "same command. The result's 'position' is where the pad went. Target a FOLDER (durable) or a "
+                ".miz; backed up."
             ),
             parameters_schema={
                 "type": "object",
@@ -1679,6 +1744,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "default": True,
                         "description": "Place the FARP's ammunition dump (CTLD loading point); false skips it.",
+                    },
+                    "keep_position": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": (
+                            "The position is the mission maker's own: never move the pad off scenery, only warn."
+                        ),
                     },
                 },
                 "required": ["target", "name", "position", "coalition", "country_id", "country_name"],
@@ -1744,6 +1816,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "tanker_tacan_channel": {"type": "integer", "default": 64, "description": "Y mode."},
                     "tanker_tacan_callsign": {"type": "string", "default": "SHL"},
                     "tanker_frequency_mhz": {"type": "number", "default": 290.0},
+                    "tanker_callsign": {
+                        "type": "string",
+                        "description": "The recovery tanker's callsign, a tanker family and a flight ('Arco 5'). "
+                        "Default: Shell from flight 9 down, so the tankers named 'Texaco 1', 'Arco 1' placed "
+                        "later keep theirs; the result's tanker_callsign says which.",
+                    },
                     "rescue_helicopter": {"type": "boolean", "default": True},
                 },
                 "required": ["mission_path", "coalition", "country_id", "country_name", "name", "position"],
@@ -1909,10 +1987,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "type": "array",
                                     "items": {
                                         "type": "object",
-                                        "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                                        "properties": {
+                                            "x": {"type": "number"},
+                                            "y": {"type": "number"},
+                                            "speed": {"type": "number", "description": "Speed on the leg, m/s."},
+                                        },
                                         "required": ["x", "y"],
                                     },
-                                    "description": "Optional waypoints, as add_group's; the first is the start.",
+                                    "description": "Optional waypoints, as add_group's (road start, 16.4 m/s legs); the first is the start.",
                                 },
                                 "patrol": {
                                     "type": "boolean",
@@ -1923,6 +2005,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "type": "boolean",
                                     "default": False,
                                     "description": "As add_group's: the position is the mission maker's own, never move it.",
+                                },
+                                "roe": {
+                                    "type": "string",
+                                    "enum": ["weapons_free", "return_fire", "weapons_hold"],
+                                    "description": "As add_group's: weapons_hold + disperse=false is an inert target.",
+                                },
+                                "disperse": {
+                                    "type": "boolean",
+                                    "description": "As add_group's: false, no dispersal under fire.",
                                 },
                             },
                             "required": ["name", "units"],
@@ -2019,7 +2110,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "with 'payload' (list_payloads), or copy one with "
                 "'loadout_from' (a group of the mission or a veafSpawn-* catalogue template) -- an "
                 "unarmed interceptor intercepts nothing. Each group gets a single waypoint and no task "
-                "on purpose: when it scrambles, the QRA module gives a CAP/Intercept group whose route "
+                "on purpose, whatever its 'task' (CAP or Intercept): when it scrambles, the QRA module gives a CAP/Intercept group whose route "
                 "engages no aircraft its job -- a patrol across the zone and engagement of what enters "
                 "it. Do not add waypoints to such a group without an EngageTargets (Air) task, or that "
                 "route is replaced. SIZE IT TO THE PLAYERS: in 'qra', give groups_by_enemy_count tiers "
@@ -2059,7 +2150,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                 },
                                 "altitude_ft": {"type": "number", "default": 15000},
                                 "speed_kt": {"type": "number", "default": 350},
-                                "task": {"type": "string", "default": "Intercept"},
+                                "task": {
+                                    "type": "string",
+                                    "default": "Intercept",
+                                    "description": "The group's task; CAP or Intercept, its waypoint carries no "
+                                    "task either way, so the QRA module defends the zone with it.",
+                                },
                                 "start": {
                                     "type": "string",
                                     "enum": ["runway", "air"],
@@ -2408,7 +2504,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "List the DCS default loadouts of an AI aircraft type by the names the Mission Editor "
                 "offers ('R-40T*2,R-33*4' for a MiG-31), with their pylons -- what add_air_group, "
                 "create_qra and create_cap_mission take as 'payload'. Without a type, the types that "
-                "have loadouts (a module aircraft has none here: give it pylons or loadout_from). "
+                "have loadouts -- the module aircraft (P-51D, F-16C...) and the AI bombers Ju-88A4 and "
+                "B-17G included; a type with none (a transport, the Spitfire) takes pylons or loadout_from. "
                 "Read-only."
             ),
             parameters_schema={
@@ -2427,16 +2524,26 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "List the VEAF spawn aliases (the '-shilka'/'-sa8'… vocabulary) from the "
                 "canonical veaf-units.yaml: unit aliases and composite group aliases, plus the "
                 "'#command' shortcuts ('-samLR', '-armor'…) with the range of each parameter they "
-                "draw at random ('defense', 'armor', 'size'). Read-only."
+                "draw at random ('defense', 'armor', 'size'). Each entry carries an 'era': "
+                "follows_era ('-aaa', '-samLR', '-armor', '-infantry', '-transport', '-convoy': the units "
+                "change with mission.era), ww2, post_ww2 (fixed modern or Cold War equipment: '-sa6', "
+                "'-ewr', '-arty' -- wrong in a WW2 mission), era_free or unknown. Pass 'era' to list what "
+                "is worth offering in a mission of that era. Read-only."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
                     "name_contains": {"type": "string", "description": "Case-insensitive substring on aliases+target."},
+                    "era": {
+                        "type": "string",
+                        "enum": ["WW2", "COLD_WAR", "MODERN"],
+                        "description": "The mission's era: keep what is worth offering in it (in WW2, the "
+                        "follows_era, era_free and ww2 entries only).",
+                    },
                 },
             },
         ),
-        handler=lambda p: list_shortcuts(name_contains=p.get("name_contains")),
+        handler=lambda p: list_shortcuts(name_contains=p.get("name_contains"), era=p.get("era")),
     )
     catalog.register(
         ActionSpec(
@@ -2471,16 +2578,59 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
-                "and what it cost. Read-only."
+                "and what it cost. With no argument it returns a SHORT listing (id, kind, area, title: "
+                "the whole text is too long for one result); then read the entries of the areas your "
+                "mission uses with 'area', or any entry with 'id'. Read-only."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "kind": {"type": "string", "enum": ["tool", "dcs"], "description": "Return one kind only."},
+                    "kind": {
+                        "type": "string",
+                        "enum": ["tool", "dcs"],
+                        "description": "Return one kind only, in full.",
+                    },
+                    "area": {
+                        "type": "string",
+                        "enum": [
+                            "spawning",
+                            "air-defence",
+                            "players",
+                            "radio",
+                            "ground-ai",
+                            "scripting",
+                            "mcp",
+                            "pipeline",
+                            "runtime",
+                        ],
+                        "description": "Return the entries of one area, in full.",
+                    },
+                    "theatre": {
+                        "type": "string",
+                        "description": "A theatre (Normandy, Syria...): drops the entries that concern "
+                        "other theatres only.",
+                    },
+                    "id": {"type": "string", "description": "One entry id, in full."},
+                    "ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Several entry ids, in full.",
+                    },
+                    "full": {
+                        "type": "boolean",
+                        "description": "Return every selected entry in full (about 74 000 characters "
+                        "without a filter).",
+                    },
                 },
             },
         ),
-        handler=lambda p: describe_known_limitations(kind=p.get("kind")),
+        handler=lambda p: describe_known_limitations(
+            kind=p.get("kind"),
+            area=p.get("area"),
+            theatre=p.get("theatre"),
+            id=[*([p["id"]] if p.get("id") else []), *(p.get("ids") or [])] or None,
+            full=bool(p.get("full", False)),
+        ),
     )
     catalog.register(
         ActionSpec(
@@ -2556,7 +2706,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "theatre": {"type": "string", "description": "The theatre, e.g. 'Caucasus'."},
+                    "mission_path": {
+                        "type": "string",
+                        "description": "A .miz or mission folder whose theatre to read; wins over 'theatre'.",
+                    },
+                    "theatre": {
+                        "type": "string",
+                        "description": "The theatre, e.g. 'Caucasus', when there is no mission.",
+                    },
                     "points": {
                         "type": "array",
                         "description": "Points, mission coordinates (x north, y east), metres.",
@@ -2617,11 +2774,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "required": ["min_x", "min_y", "max_x", "max_y"],
                     },
                 },
-                "required": ["theatre"],
             },
         ),
         handler=lambda p: describe_terrain(
-            p["theatre"],
+            _terrain_theatre(p),
             points=p.get("points"),
             route=p.get("route"),
             observers=p.get("observers"),
@@ -2725,6 +2881,7 @@ def _handle_add_map_drawing(params: dict[str, Any]) -> dict[str, Any]:
         fill_color=params.get("fill_color"),
         thickness=params.get("thickness"),
         font_size=params.get("font_size"),
+        style=params.get("style"),
     )
 
 
@@ -2800,6 +2957,8 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         late_activation=params.get("late_activation", False),
         as_spawn_template=params.get("as_spawn_template", False),
         keep_position=params.get("keep_position", False),
+        roe=params.get("roe"),
+        disperse=params.get("disperse"),
     )
 
 
@@ -2819,7 +2978,7 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
         parking=params.get("parking"),
         parking_id=params.get("parking_id"),
         airdrome_id=params.get("airdrome_id"),
-        frequency_mhz=params.get("frequency_mhz", 251.0),
+        frequency_mhz=params.get("frequency_mhz"),
         onboard_num=params.get("onboard_num"),
         task=params.get("task", "Nothing"),
         fuel=params.get("fuel"),
@@ -2831,6 +2990,16 @@ def _handle_add_player_slot(params: dict[str, Any]) -> dict[str, Any]:
 
 def _handle_remove_group(params: dict[str, Any]) -> dict[str, Any]:
     return remove_group(Path(params["target"]), group_name=params["group_name"], group_id=params.get("group_id"))
+
+
+def _terrain_theatre(params: dict[str, Any]) -> str:
+    """The theatre `terrain_elevation` reads: the mission's, else the one named (ticket 05 of
+    FIX-OPEN-TRAINING-MARIANAS-FINDINGS — every other action takes `mission_path`)."""
+    if params.get("mission_path"):
+        return mission_theatre(Path(params["mission_path"]))
+    if not params.get("theatre"):
+        raise ValueError("terrain_elevation needs mission_path or theatre")
+    return str(params["theatre"])
 
 
 def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
@@ -2849,7 +3018,7 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         speed_kt=params.get("speed_kt", 250.0),
         heading_deg=params.get("heading_deg", 0.0),
         skill=params.get("skill", "High"),
-        frequency_mhz=params.get("frequency_mhz", 251.0),
+        frequency_mhz=params.get("frequency_mhz"),
         task=params.get("task", "CAS"),
         parking=params.get("parking"),
         fuel=params.get("fuel"),
@@ -2857,6 +3026,7 @@ def _handle_add_air_group(params: dict[str, Any]) -> dict[str, Any]:
         late_activation=params.get("late_activation", False),
         pylons=params.get("pylons"),
         payload=params.get("payload"),
+        loadout_from=params.get("loadout_from"),
         chaff=params.get("chaff"),
         flare=params.get("flare"),
         carrier=params.get("carrier"),

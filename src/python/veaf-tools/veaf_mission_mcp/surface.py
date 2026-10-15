@@ -10,6 +10,7 @@ is, and a ship on land only when the whole cell is: within a cell of a shore the
 nothing either way.
 """
 
+import math
 from typing import Any
 
 from veaf_libs.mission_table import indexed
@@ -30,8 +31,16 @@ def surface_warnings(theatre: str | None, units: Any, *, afloat: bool) -> list[s
     """
     grid = grid_for_theatre(theatre) if theatre else None
     if grid is None:
-        # The same for every placement of the mission: a caller placing several keeps one.
-        warning = f"surface not checked: no elevation grid for {theatre or 'this theatre'}"
+        # The same for every placement of the mission: a caller placing several keeps one. It says what
+        # was not checked and how to check it: « surface not checked » alone left 58 of 97 vehicles of
+        # the Marianas OT in the trees, the buildings or the sea (FIX-OPEN-TRAINING-MARIANAS-FINDINGS 07).
+        name = theatre or "this theatre"
+        warning = (
+            f"surface not checked: no elevation grid for {name}, so nothing says a unit is not in the sea; "
+            "check the built mission in DCS with 'veaf-tools dcs clear-ground-check <mission.miz>' (sea, "
+            f"trees, buildings), sweep a grid with 'veaf-tools dcs terrain-sweep {name}' (the sea), or sweep the "
+            f"places with 'veaf-tools dcs clear-ground-sweep {name} --zones-from <mission>' (the scenery)"
+        )
         return [warning]
     warnings: list[str] = []
     for unit in indexed(units):
@@ -47,6 +56,41 @@ def surface_warnings(theatre: str | None, units: Any, *, afloat: bool) -> list[s
         elif not afloat and max(corners) == 0:
             warnings.append(f"{unit.get('name')!r} is in the sea: the ground reads 0 m there")
     return warnings
+
+
+#: A helicopter pad is measured at its centre and on a ring this far around it (FIX-FARP-PLACEMENT).
+PAD_RING_METERS = 40.0
+#: Above this height range over the pad, it is on a slope: the spot accepted for FARP Merizo reads
+#: 2.5 m over 80 m (FIX-FARP-PLACEMENT, 2026-10-12).
+PAD_MAX_DROP_METERS = 3.0
+
+
+def pad_drop(theatre: str | None, x: float, y: float) -> float | None:
+    """Return the ground's height range over a pad: its centre and 8 points on a ring around it.
+
+    The grid is interpolated between samples (250 m apart by default), so this measures the hillside
+    the pad stands on, not a ditch narrower than a cell.
+
+    Args:
+        theatre: The mission's theatre.
+        x: Mission ``x`` (north) of the pad, metres.
+        y: Mission ``y`` (east) of the pad, metres.
+
+    Returns:
+        Highest minus lowest height, in metres; ``None`` when no grid covers the whole ring.
+    """
+    grid = grid_for_theatre(theatre) if theatre else None
+    if grid is None:
+        return None
+    points = [(x, y)] + [
+        (x + PAD_RING_METERS * math.cos(math.pi * k / 4), y + PAD_RING_METERS * math.sin(math.pi * k / 4))
+        for k in range(8)
+    ]
+    heights = [grid.elevation_at(px, py) for px, py in points]
+    known = [h for h in heights if h is not None]
+    if len(known) < len(heights):
+        return None
+    return max(known) - min(known)
 
 
 def _cell_corners(grid: ElevationGrid, x: float, y: float) -> list[int] | None:

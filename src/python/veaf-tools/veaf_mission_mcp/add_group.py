@@ -27,6 +27,16 @@ _UNIT_SPACING_METERS = 20
 # 600 m clears a hull of 300 m, and is the spacing that fixed GermanyCW-v6's Rostock convoy.
 _SHIP_SPACING_METERS = 600
 _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cruise speed
+# A ground group that drives somewhere is a convoy: over the 126 vehicle groups of 14 editor-built missions
+# under D:\dev\_VEAF whose route has an `On Road` leg (2026-10-13), the legs' speed has a median of 16.4 m/s
+# (59 km/h; 5.6 m/s is 11 % of them) and the first point is `On Road` in 85 groups, `Off Road` in 37
+# (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 04). DCS clamps a speed above what the vehicle can do.
+_ROAD_SPEED_MPS = 16.4
+
+#: A ground group's ROE, `Option` 0 on its first waypoint: DCS's ``AI.Option.Ground.val.ROE``, and the
+#: values the Mission Editor writes (2: 9 263, 3: 105, 4: 643 occurrences over 606 missions under
+#: D:\dev\_VEAF, 2026-10-12, air groups' 0 and 1 aside) — FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 06.
+GROUND_ROE: dict[str, int] = {"weapons_free": 2, "return_fire": 3, "weapons_hold": 4}
 
 #: A static unit's `category`, from the unit database's category. Measured over the static groups of
 #: 401 missions under D:\dev\_VEAF on 2026-09-24: the plural forms below, the same name for the rest
@@ -63,6 +73,8 @@ def add_group(
     late_activation: bool = False,
     as_spawn_template: bool = False,
     keep_position: bool = False,
+    roe: str | None = None,
+    disperse: bool | None = None,
 ) -> dict[str, Any]:
     """Add a group to a mission, in place, backed up first.
 
@@ -101,6 +113,10 @@ def add_group(
         keep_position: The position is the mission maker's own (they gave it): never move the group.
             Otherwise a stationary vehicle group is put on ground measured clear, up to 1 km away, and
             a warning says where it went or why it stayed.
+        roe: A vehicle group's rules of engagement: `"weapons_free"`, `"return_fire"` or
+            `"weapons_hold"`, written on its first waypoint as the Mission Editor writes it.
+        disperse: `False` unchecks the editor's « Disperse under fire »; `True` is DCS's own default
+            and writes nothing. With `roe: "weapons_hold"`, an inert target.
 
     Returns:
         `{"group_id": <int>, "name": <resolved name>, "durable": <bool>, "warnings": [...]}` —
@@ -109,7 +125,8 @@ def add_group(
         happens).
 
     Raises:
-        ValueError: If the target is not a valid mission, or `units` yields no units.
+        ValueError: If the target is not a valid mission, `units` yields no units, `roe` is unknown, or
+            `roe` / `disperse` is given for a group that is not a vehicle group.
     """
     is_folder = target.is_dir()
     mission = load_folder_mission(target) if is_folder else read_miz(target)
@@ -132,6 +149,8 @@ def add_group(
         late_activation=late_activation,
         warnings=build_warnings,
         keep_position=keep_position,
+        roe=roe,
+        disperse=disperse,
     )
 
     # A folder has no single `.miz` to scan for the combat-zone capture trap, so validate names-only
@@ -164,6 +183,8 @@ def insert_group_into_content(
     late_activation: bool = False,
     warnings: list[str] | None = None,
     keep_position: bool = False,
+    roe: str | None = None,
+    disperse: bool | None = None,
 ) -> int:
     """Build a group and insert it into `mission_content` in place; return its fresh `groupId`.
 
@@ -188,13 +209,20 @@ def insert_group_into_content(
         keep_position: The position is the mission maker's own: never move the group. By default a
             stationary vehicle group is put on ground the clear-ground catalogue measured clear
             (:mod:`veaf_libs.clear_ground_placement`).
+        roe: A vehicle group's rules of engagement (see :data:`GROUND_ROE`).
+        disperse: ``False`` writes the editor's unchecked « Disperse under fire ».
 
     Returns:
         The fresh ``groupId`` assigned to the inserted group.
 
     Raises:
-        ValueError: If `units` yields no units, or a static is given more than one.
+        ValueError: If `units` yields no units, a static is given more than one, `roe` is unknown, or
+            `roe` / `disperse` is given for a group that is not a vehicle group.
     """
+    if (roe is not None or disperse is not None) and category != "vehicle":
+        raise ValueError(f"roe and disperse are for a vehicle group, not a {category!r} group")
+    if roe is not None and roe not in GROUND_ROE:
+        raise ValueError(f"roe must be one of {', '.join(GROUND_ROE)}, got {roe!r}")
     # Statics and ships used to go through the vehicle builder too (FIX-SCRATCH-MISSION-FINDINGS
     # ticket 06): a static unit without its `category`, a ship on an "Off Road" point.
     if category == "static":
@@ -220,6 +248,8 @@ def insert_group_into_content(
             translate_group(group, placement.dx, placement.dy)
             if placement.message and warnings is not None:
                 warnings.append(placement.message)
+    if category == "vehicle":
+        _apply_ground_options(group, roe=roe, disperse=disperse)
     if warnings is not None and category in ("vehicle", "static", "ship"):
         warnings.extend(surface_warnings(mission_content.get("theatre"), group["units"], afloat=category == "ship"))
     return insert_group(
@@ -230,6 +260,34 @@ def insert_group_into_content(
         category=category,
         group=group,
     )
+
+
+def _apply_ground_options(group: dict[str, Any], *, roe: str | None, disperse: bool | None) -> None:
+    """Write a vehicle group's ROE and dispersal options first on its first waypoint, in place.
+
+    Args:
+        group: The built group.
+        roe: A key of :data:`GROUND_ROE`, or ``None`` to leave DCS's default.
+        disperse: ``False`` for no dispersal under fire; ``True`` or ``None`` leave DCS's default.
+    """
+    options: list[dict[str, Any]] = []
+    if roe is not None:
+        options.append({"name": 0, "value": GROUND_ROE[roe]})
+    if disperse is False:
+        # unchecked, the editor writes the option with no value: the value is the dispersal's delay
+        options.append({"name": 8})
+    if not options:
+        return
+    task = group["route"]["points"][0]["task"]["params"]
+    tasks = [
+        {"id": "WrappedAction", "auto": False, "enabled": True, "params": {"action": {"id": "Option", "params": o}}}
+        for o in options
+    ]
+    tasks += list(task["tasks"].values()) if isinstance(task["tasks"], dict) else list(task["tasks"])
+    for number, entry in enumerate(tasks, start=1):
+        entry["number"] = number
+    # Integer keys: `luadata` renders a string key as ["1"], a different Lua entry DCS ignores.
+    task["tasks"] = dict(enumerate(tasks, start=1))
 
 
 def _build_group(
@@ -250,7 +308,7 @@ def _build_group(
         "x": position["x"],
         "y": position["y"],
         "task": "Ground Nothing",
-        "route": _build_route(route or [position], patrol=patrol),
+        "route": _build_route(route or [position], patrol=patrol, speed=_ROAD_SPEED_MPS, road_start=True),
         "units": built_units,
         "visible": False,
         "hidden": False,
@@ -424,23 +482,48 @@ def _build_units(
     return built
 
 
-def _build_route(points: list[dict[str, float]], *, patrol: bool) -> dict[str, Any]:
-    """Build a route from waypoints; loop the last one back to the first if `patrol`."""
-    waypoints = [_build_waypoint(point, is_first=(i == 0)) for i, point in enumerate(points)]
+def _build_route(
+    points: list[dict[str, float]],
+    *,
+    patrol: bool,
+    speed: float = _DEFAULT_SPEED_MPS,
+    road_start: bool = False,
+) -> dict[str, Any]:
+    """Build a route from waypoints; loop the last one back to the first if `patrol`.
+
+    Args:
+        points: The waypoints, the first being the start; each may carry its own ``speed`` (m/s).
+        patrol: Loop the last waypoint back to the first.
+        speed: The speed of a waypoint that carries none, in m/s, from the second point on.
+        road_start: A route with at least two points starts ``On Road`` instead of ``Off Road``, like the
+            legs after it: a convoy that starts off the road is not in column and may leave the road
+            (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 04). A single stationary point stays ``Off Road``.
+
+    Returns:
+        ``{"points": [...]}``.
+    """
+    on_road_start = road_start and len(points) >= 2
+    waypoints = [
+        _build_waypoint(point, is_first=(i == 0), speed=speed, on_road=on_road_start) for i, point in enumerate(points)
+    ]
     if patrol and len(waypoints) >= 2:
         waypoints[-1]["task"] = _patrol_task(first_waypoint_index=1, last_waypoint_index=len(waypoints))
     return {"points": waypoints}
 
 
-def _build_waypoint(point: dict[str, float], *, is_first: bool) -> dict[str, Any]:
+def _build_waypoint(
+    point: dict[str, float], *, is_first: bool, speed: float = _DEFAULT_SPEED_MPS, on_road: bool = False
+) -> dict[str, Any]:
+    # The first point keeps the start speed whatever the route's: it is the speed of the leg that leads to a point.
+    default_speed = _DEFAULT_SPEED_MPS if is_first else speed
     return {
         "x": point["x"],
         "y": point["y"],
         "alt": point.get("alt", 0),
         "alt_type": "BARO",
         "type": "Turning Point",
-        "action": "Off Road" if is_first else "On Road",
-        "speed": point.get("speed", _DEFAULT_SPEED_MPS),
+        "action": "Off Road" if is_first and not on_road else "On Road",
+        "speed": point.get("speed", default_speed),
         "ETA": 0,
         "ETA_locked": is_first,
         "formation_template": "",

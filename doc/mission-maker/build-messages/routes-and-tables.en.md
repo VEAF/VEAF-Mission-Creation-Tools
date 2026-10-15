@@ -94,6 +94,18 @@ pipeline:
 **What it is not.** Not an error in your `presets.yaml`, whose contents were not even examined. And
 for a server-side mission or a template library, this is a perfectly normal situation.
 
+## A preset channel lacks its list's band {#presets-dropped-channel}
+
+> presets: channel 12 (S-3B Stennis) of channel_lists.blue.primary_2 has no VHF frequency, so no
+> aircraft gets it. Move it to a list of a band it has, or give it a VHF frequency.
+
+**What it means.** Each `channel_lists` list serves one band: `primary_1` UHF, `primary_2` VHF, the `fm_*` lists FM.
+A channel with no frequency in that band is left out of the list, and so of **every** aircraft.
+`validate` says so before the build, the build says it again, and the `presets-validation-report.md` report lists it.
+
+**The ways out.** Move the channel to a list whose band it has (a UHF AWACS goes in `primary_1`), or add the missing band's frequency to its definition.
+Mind the mission's README or briefing: if they announce this channel to the pilots, they announce a channel no aircraft has.
+
 ## Waypoints with no aircraft groups {#validate-waypoints-no-aircraft}
 
 > waypoints.yaml is configured but the mission has no aircraft groups to inject waypoints into.

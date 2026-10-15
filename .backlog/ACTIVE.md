@@ -4,11 +4,23 @@
 
 Work started and not finished: in progress, waiting for a human, or deliberately paused.
 
-## 🔄 In progress
-
-*None.*
-
 ## 🧑 Waiting for a human
+
+### [FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST](FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md) · 🧑
+
+12 `attempt to call method 'isExist' (a nil value)` in the Privé 1 log of the Sinai Open Training (2026-10-12): `weapon:getTarget()` returned an object with no `isExist`. The sanctuary now ignores such a target and logs its category once per mission. Measured: a Maverick on a unit gets a complete `Unit`. Left: the scenery and static cases, which need a pilot (`DCS-SESSION-TODO.md` R50).
+
+### [FIX-OPEN-TRAINING-CAUCASUS-FINDINGS](FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md) · 🧑
+
+What recompiling the Caucasus Open Training v6 in 6.29.0 found, each fixed by hand in the mission: no game master slot nor vehicle control in any v6 scaffold, a CTLD catalogue upgrade seen only in game, no dashed line on the F10 map, and (found on GermanyCW-v6) a committed presets report that names the machine. Plus (found on Syria-v6) a presets channel dropped without a word. Five tickets, one PR; ticket 03 waits for a look in DCS (R49).
+
+### [FIX-FARP-PLACEMENT](FIX-FARP-PLACEMENT/PRD.md) · 🧑
+
+A FARP placed in the jungle and on a slope with no warning (Marianas OT v6, seen in game). `add_farp` now checks its pad for trees (moved off them within 1 km, or `keep_position`) and slope (more than 3 m over 40 m) and says what it could not check; `veaf-tools dcs farp-spot` finds a flat, clear spot in DCS (#1125). Clearing the trees by trigger removed nothing in DCS and was taken out (ticket 02, two known limitations). Left: one live `farp-spot` run.
+
+### [FIX-OPEN-TRAINING-MARIANAS-FINDINGS](FIX-OPEN-TRAINING-MARIANAS-FINDINGS/PRD.md) · 🧑
+
+What building the Marianas Open Training v6 through the MCP found: a QRA group with a CAP task that landed, the carrier tanker taking the tankers' callsigns, no `loadout_from` on `add_air_group`, a weaponless J-11A and three mods in the shipped catalogue, read actions that disagreed, no ROE for a ground group, a placement warning that said nothing useful. Tickets 01–06 and 07's code done; left, ticket 07: the MarianaIslands sweeps in DCS.
 
 ### [FEAT-RADIO-MENU-WATCH](FEAT-RADIO-MENU-WATCH/PRD.md) · 🧑
 
@@ -96,7 +108,7 @@ A campaign flown mission after mission: each mission writes its state file durin
 
 ### [FIX-COMBATMISSION-MENU-MISSING](FIX-COMBATMISSION-MENU-MISSING/PRD.md) · 🧑
 
-The generated config called `veafCombatMission.initialize()` before adding the missions, so the MISSIONS radio menu was never built; `initialize()` now comes after them. Done and tested; waits on its in-game check with the v6 demo mission.
+The generated config called `veafCombatMission.initialize()` before adding the missions, so the MISSIONS radio menu was never built; `initialize()` now comes after them. Done and tested; waits on its in-game check with the v6 demo mission. Ticket 02 fixes the 6.29.0 regression it caused: missions declared in a `mission-script.lua` put their « Activate mission » commands at the VEAF root; they now wait for MISSIONS, rebuilt once after the declarations.
 
 ### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · 🧑
 

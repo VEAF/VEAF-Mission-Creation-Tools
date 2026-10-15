@@ -41,3 +41,15 @@ def test_raises_a_clear_error_when_mission_file_is_missing(tmp_path: Path) -> No
 def test_raises_for_a_missing_file(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         describe_mission(tmp_path / "does-not-exist.miz")
+
+
+def test_a_mission_folder_is_read_like_a_miz(sample_miz: Path, tmp_path: Path) -> None:
+    """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05: a folder died on `PermissionError`, while every
+    write action takes one."""
+    folder = tmp_path / "folder"
+    exploded = folder / "src" / "mission"
+    exploded.mkdir(parents=True)
+    with zipfile.ZipFile(sample_miz) as zf:
+        zf.extractall(exploded)
+    (folder / "mission.yaml").write_text("modules: {}\n", encoding="utf-8")
+    assert describe_mission(folder) == describe_mission(sample_miz)

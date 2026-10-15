@@ -47,6 +47,7 @@ mission = {
                 ["units"] = {
                   [1] = {
                     ["name"] = "Colt 1-1-1",
+                    ["unitId"] = 11,
                     ["type"] = "FA-18C_hornet",
                     ["skill"] = "High",
                     ["livery_id"] = "vfa-106 (grey)",
@@ -437,3 +438,11 @@ def test_a_mission_folder_is_read_like_a_miz(tmp_path: Path) -> None:
     (tmp_path / "mission.yaml").write_text("modules: {}\n", encoding="utf-8")
     result = describe_units(tmp_path)
     assert [group["name"] for group in result["groups"]] == ["Armor"]
+
+
+def test_each_group_and_unit_says_its_id(rich_miz: Path) -> None:
+    """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05: `edit_route add_task attack_group` takes a
+    `group_id`, which the Marianas OT had to read from the mission table."""
+    colt = _group(describe_units(rich_miz), "Colt 1-1")
+    assert colt["group_id"] == 10
+    assert colt["units"][0]["unit_id"] == 11

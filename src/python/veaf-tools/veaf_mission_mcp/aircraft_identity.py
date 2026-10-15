@@ -55,6 +55,10 @@ _ALL_FAMILY_WORDS: frozenset[str] = frozenset(
     word.lower() for words in (*_TASK_FAMILIES.values(), _COMMON_FAMILIES) for word in words
 )
 
+#: The family a carrier's recovery tanker takes by default, from its last flight down: the tankers'
+#: own flights, ``Texaco 1`` and ``Arco 1``, stay theirs (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 02).
+RECOVERY_TANKER_FAMILY = "Shell"
+
 #: A callsign's flight and number are single digits: ``name`` concatenates them.
 _MAX_DIGIT = 9
 
@@ -126,15 +130,7 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
         return None
 
     families = _TASK_FAMILIES.get(task, _COMMON_FAMILIES)
-    taken: dict[str, set[int]] = {word: set() for word in families}
-    for unit in existing:
-        callsign = unit.get("callsign")
-        if not isinstance(callsign, dict):
-            continue
-        name = str(callsign.get("name", ""))
-        word = name.rstrip("0123456789")
-        if word in taken and isinstance(callsign.get(2), int):
-            taken[word].add(callsign[2])
+    taken = _taken_flights(existing, families)
     asked = _callsign_in_name(str(group.get("name", "")), families)
     note: str | None = None
     if asked is not None and asked[1] not in taken[families[asked[0] - 1]]:
@@ -162,6 +158,70 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
             digit = position % _MAX_DIGIT + 1
             unit["callsign"] = {1: family_index, 2: unit_flight, 3: digit, "name": f"{word}{unit_flight}{digit}"}
     return note
+
+
+def recovery_tanker_callsign(content: dict[str, Any], asked: str | None = None) -> dict[Any, Any]:
+    """The callsign of a carrier's recovery tanker, chosen before the flight is inserted.
+
+    Left to :func:`assign_identities`, the S-3B took the first free tanker family, ``Texaco11``, and the
+    tankers placed afterwards, named ``Texaco 1`` and ``Arco 1``, each lost the callsign their name
+    asked for (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 02). By default it takes the
+    :data:`RECOVERY_TANKER_FAMILY` family from flight 9 down, which a tanker named ``Shell 1`` only
+    meets in a mission with eight carriers.
+
+    Args:
+        content: The parsed ``mission`` table, read to avoid the flights already held.
+        asked: A callsign asked for, a tanker family word and a flight digit (``"Arco 5"``,
+            ``"Shell9"``); ``None`` for the default.
+
+    Returns:
+        The unit's ``callsign`` table, ``{1: family, 2: flight, 3: 1, "name"}``.
+
+    Raises:
+        ValueError: When ``asked`` is not a tanker family and a flight, or names a flight already held,
+            or every flight of the default family is held.
+    """
+    families = _TASK_FAMILIES["Refueling"]
+    taken = _taken_flights(_aircraft_units(content), families)
+    if asked is None:
+        word = RECOVERY_TANKER_FAMILY
+        free = [flight for flight in range(_MAX_DIGIT, 0, -1) if flight not in taken[word]]
+        if not free:
+            raise ValueError(f"every {word} flight is held: give tanker_callsign")
+        flight = free[0]
+    else:
+        match = re.fullmatch(r"([A-Za-z]+)[ _-]*([1-9])", asked.strip())
+        lowered = [family.lower() for family in families]
+        if match is None or match.group(1).lower() not in lowered:
+            raise ValueError(
+                f"tanker_callsign must be a tanker family ({', '.join(families)}) and a flight digit, got {asked!r}"
+            )
+        word, flight = families[lowered.index(match.group(1).lower())], int(match.group(2))
+        if flight in taken[word]:
+            raise ValueError(f"tanker_callsign: flight {word}{flight} is already held")
+    return {1: families.index(word) + 1, 2: flight, 3: 1, "name": f"{word}{flight}1"}
+
+
+def _taken_flights(units: list[dict[str, Any]], families: tuple[str, ...]) -> dict[str, set[int]]:
+    """Return, for each family word, the flights of it the units already carry.
+
+    Args:
+        units: The aircraft units of the mission.
+        families: The family words to look for.
+
+    Returns:
+        Family word -> the flights of it in use.
+    """
+    taken: dict[str, set[int]] = {word: set() for word in families}
+    for unit in units:
+        callsign = unit.get("callsign")
+        if not isinstance(callsign, dict):
+            continue
+        name = str(callsign.get("name", ""))
+        word = name.rstrip("0123456789")
+        if word in taken and isinstance(callsign.get(2), int):
+            taken[word].add(callsign[2])
+    return taken
 
 
 def _callsign_in_name(name: str, families: tuple[str, ...]) -> tuple[int, int] | None:

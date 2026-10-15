@@ -13,6 +13,36 @@ from veaf_libs import coordinates, geocoding
 
 from veaf_mission_mcp.map_tools import _load_mission
 
+#: OpenStreetMap ``place`` types that hold many places: given for a query naming one place in them, the
+#: answer is the area's centre, not the place (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05).
+_AREA_PLACES: frozenset[str] = frozenset(
+    {"island", "archipelago", "country", "state", "region", "province", "county", "district", "municipality"}
+)
+
+
+def _area_for_a_place(query: str, hit: geocoding.GeocodeResult) -> str | None:
+    """Warn when the geocoder answered an island or an area for a query naming a place inside it.
+
+    « Umatac, Guam » came back as the centre of Guam (``place``/``island``), with no warning.
+
+    Args:
+        query: The place asked for; its first comma-separated part is the place itself.
+        hit: The geocoder's answer.
+
+    Returns:
+        The warning, or ``None`` when the answer is not an area or is the place asked for.
+    """
+    is_area = hit.osm_class == "boundary" or (hit.osm_class == "place" and hit.osm_type in _AREA_PLACES)
+    named = query.split(",")[0].strip()
+    found = hit.display_name.split(",")[0].strip()
+    if not is_area or not named or named.casefold() in found.casefold():
+        return None
+    warning = (
+        f"asked for {named!r}, found the {hit.osm_type} {found!r}: the point is that area's centre, not "
+        f"{named!r} — search the place another way, or place it from the map"
+    )
+    return warning
+
 
 def _within(bounds: geocoding.Bounds, lat: float, lon: float) -> bool:
     return bounds.min_lat <= lat <= bounds.max_lat and bounds.min_lon <= lon <= bounds.max_lon
@@ -37,9 +67,11 @@ def geocode(
 
     Returns:
         ``{query, found, display_name, osm_class, osm_type, theatre, latlon: {lat, lon},
-        xy: {x, y} | None, in_theatre_bounds, warnings}``. ``found`` is ``False`` when the geocoder
+        xy: {x, y} | None, in_theatre_bounds, warnings}``. ``in_theatre_bounds`` is ``None`` — with a
+        warning — when the theatre has no bounding box, since nothing was checked. ``found`` is ``False`` when the geocoder
         returns no hit, or refuses the request (said in ``warnings``); a road or a region is warned
-        about (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 07).
+        about (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 07), and so is an island or an area given for a
+        place inside it (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05).
 
     Raises:
         ValueError: when the mission has no theatre.
@@ -77,7 +109,10 @@ def geocode(
         lat, lon = coordinates.offset_latlon(lat, lon, bearing, distance_km * 1000.0)
 
     warnings: list[str] = []
-    if hit.is_road_or_region:
+    area_warning = _area_for_a_place(query, hit)
+    if area_warning:
+        warnings.append(area_warning)
+    elif hit.is_road_or_region:
         warnings.append(
             f"the answer is a {hit.osm_class}/{hit.osm_type}, not a named place: a road or an administrative "
             "area — check it is the place you meant, or search a nearby town or landmark"
@@ -89,9 +124,15 @@ def geocode(
     else:
         warnings.append(f"theatre '{theatre}' has no x/y projection; only lat/lon returned")
 
-    in_bounds = bounds is None or _within(bounds, lat, lon)
-    if bounds is not None and not in_bounds:
-        warnings.append("resolved point is outside the theatre bounds — verify it is the place you meant")
+    in_bounds: bool | None = None
+    if bounds is None:
+        # `True` here told the maker « Omaha Beach » in Iowa was inside Normandy
+        # (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 11): no box means no check, and the answer says so.
+        warnings.append("no bounds for this theatre — the point is not checked")
+    else:
+        in_bounds = _within(bounds, lat, lon)
+        if not in_bounds:
+            warnings.append("resolved point is outside the theatre bounds — verify it is the place you meant")
 
     return {
         "query": query,

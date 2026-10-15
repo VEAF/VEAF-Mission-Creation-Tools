@@ -1,6 +1,6 @@
 # Référence CLI — `veaf-tools`
 
-Les **37 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
+Les **38 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
 page de référence : elle dit ce que chaque commande accepte, pas comment mener une mission de bout
 en bout. Pour cela, lisez le [guide du créateur de mission](mission-maker/GUIDE.md), qui raconte
 l'enchaînement, et la [référence du pipeline](PIPELINE_REFERENCE.md), qui détaille chaque étape du
@@ -76,6 +76,27 @@ veaf-tools mission build MaMission --profile PROD
 *Alias plat : `veaf-tools build`*
 
 **Voir aussi** : [PIPELINE_REFERENCE.md](PIPELINE_REFERENCE.md)
+
+### `veaf-tools mission ctld-upgrade` {#ctld-upgrade}
+
+Met ctld-config.yaml au niveau du catalogue CTLD livré avec les outils : ajoute les réglages absents à leur valeur par défaut, ne change rien d'autre.
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `MISSION_FOLDER` | `str` | non | Dossier contenant mission.yaml et ctld-config.yaml. Défaut `.`. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+| `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
+
+```bash
+veaf-tools mission ctld-upgrade .
+```
+
+*Alias plat : `veaf-tools ctld-upgrade`*
+
+**Voir aussi** : [mission-maker/build-messages/modules.md](mission-maker/build-messages/modules.md#validate-ctld-catalogue-gap)
 
 ### `veaf-tools mission export` {#export}
 
@@ -822,6 +843,40 @@ en mètres).
 ```
 
 *Alias plat : `veaf-tools scenery-objects`*
+
+### `veaf-tools dcs farp-spot` {#farp-spot}
+
+Cherche les **places plates et dégagées d'arbres et de bâtiments** près d'un point, où poser un FARP, et les liste de la plus proche à la plus lointaine avec leur distance et leur dénivelé. C'est la commande à lancer quand `add_farp` prévient qu'il n'a pas pu vérifier les arbres ou la pente (un théâtre sans catalogue de sol dégagé ni grille d'altitude, comme MarianaIslands), ou que le pad est en pente : l'avertissement donne la commande, point compris.
+
+Une place est retenue quand le sol y est de la terre (ni eau, ni route, ni piste), quand DCS trouve une place de 5 m libre à 20 m sur la place **et** en 8 points à 40 m autour, et quand le dénivelé entre ces 9 points ne dépasse pas `--max-drop` mètres. La recherche parcourt une grille de 50 m, par bandes de 300 m pour que chaque appel à `dcs-serve` reste court. Une place listée est dégagée ; une place écartée n'est pas forcément boisée — la requête DCS sur laquelle la commande repose peut répondre « pas de place » sur de l'herbe dégagée (limitation connue `disposition-small-query-blocks-open-grass`) : regardez en jeu avant de renoncer à un endroit. Même déroulé que `clear-ground-check` : `dcs-serve`, mission d'arpentage vide, consignes, attente. Le point est en coordonnées de mission (`x` vers le nord, `y` vers l'est, en mètres).
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `THEATRE` | `str` | oui | Le théâtre, tel que DCS l'écrit (Caucasus, MarianaIslands…). |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--at` | `str` | *(obligatoire)* | Le point autour duquel chercher, en `x,y`. |
+| `--radius` | `float` | `1200` | Jusqu'où chercher autour du point, en mètres. |
+| `--max-drop` | `float` | `3` | Le plus grand dénivelé accepté sur une place (son centre et l'anneau de 40 m), en mètres. |
+| `--limit` | `int` | `10` | Combien de places afficher. |
+| `--report` | `str` | *(aucun)* | Écrire aussi toutes les places trouvées en JSON dans ce fichier. |
+| `--survey-mission` | `str` | `<Saved Games>/DCS/Missions/veaf-survey-<théâtre>.miz` | Où écrire la mission d'arpentage. |
+| `--bridge-lua` | `str` | *(aucun)* | dcs-bridge.lua local à embarquer (défaut : téléchargement). |
+| `--wait` | `int` | `900` | Combien de secondes attendre que la mission d'arpentage réponde. |
+| `--api-key` | `str` | *(aucun)* | Jeton Bearer superuser de dcs-serve (par défaut : lu dans dcs-serve.yaml). (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Chemin d'un dcs-serve.yaml / dcs-client.yaml où lire la clé. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à lancer quand aucun ne tourne. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```bash
+.eaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
+```
+
+Le point se donne avec `--at` plutôt qu'en deux arguments : un nombre négatif en deuxième position serait lu comme une option.
+
+*Alias plat : `veaf-tools farp-spot`*
 
 ### `veaf-tools dcs terrain-sweep` {#terrain-sweep}
 

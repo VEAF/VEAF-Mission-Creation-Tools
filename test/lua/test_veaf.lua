@@ -1255,6 +1255,28 @@ function TestVeafCountryCoalition:test_coalitionForCountryUSAAsNumber()
   luaunit.assertEquals(coa, 2)
 end
 
+-- FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14: a country in no coalition of the mission has no side
+function TestVeafCountryCoalition:test_aCountryInNoCoalitionSpawnsInTheCarriersCoalition()
+  local side, country = veaf.resolveSideAndCountry("nowhereland", 1)
+  luaunit.assertEquals(side, 1)
+  luaunit.assertEquals(country:lower(), "russia")
+  side, country = veaf.resolveSideAndCountry("nowhereland", 2)
+  luaunit.assertEquals(side, 2)
+  luaunit.assertEquals(country:lower(), "usa")
+end
+
+function TestVeafCountryCoalition:test_aCountryOfACoalitionKeepsItsSideAndItself()
+  local side, country = veaf.resolveSideAndCountry("usa", 1)
+  luaunit.assertEquals(side, 2)
+  luaunit.assertEquals(country, "usa")
+end
+
+function TestVeafCountryCoalition:test_aCountryInNoCoalitionWithANeutralCarrierStaysNeutral()
+  local side, country = veaf.resolveSideAndCountry("nowhereland", 0)
+  luaunit.assertNil(side)
+  luaunit.assertEquals(country, "nowhereland")
+end
+
 function TestVeafCountryCoalition:test_coalitionForCountryNilReturnsNil()
   local coa = veaf.getCoalitionForCountry(nil, false)
   luaunit.assertNil(coa)

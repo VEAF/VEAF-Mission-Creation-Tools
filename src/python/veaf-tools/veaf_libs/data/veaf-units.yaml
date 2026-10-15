@@ -23,6 +23,8 @@ units:
 - {aliases: [sa15, sa-15], unitType: Tor 9A331}
 - {aliases: [sa18, sa-18, manpad], unitType: SA-18 Igla-S manpad}
 - {aliases: [dogear], unitType: Dog Ear radar}
+- {aliases: [freya], unitType: FuMG-401}
+- {aliases: [wurzburg], unitType: FuSe-65}
 - {aliases: [shilka], unitType: ZSU-23-4 Shilka}
 - {aliases: [tarawa], unitType: LHA_Tarawa}
 - {aliases: [blue-ewr], unitType: FPS-117}
@@ -506,6 +508,31 @@ groups:
   - {type: Ural-375, number: 1}
   description: PLZ05 artillery battery
   groupName: PLZ05 artillery battery
+- aliases: [flak88]
+  disposition: {h: 3, w: 3}
+  units:
+  - {type: flak36, number: 4}
+  description: 8,8 cm Flak 36 battery
+  groupName: 8,8 cm Flak 36 battery
+- aliases: [lefh]
+  disposition: {h: 3, w: 4}
+  units:
+  - {type: LeFH_18-40-105, number: 4}
+  - {type: Blitz_36-6700A, number: 1}
+  description: leFH 18 105 mm field howitzer battery
+  groupName: leFH 18 105 mm field howitzer battery
+- aliases: [pak40]
+  disposition: {h: 2, w: 3}
+  units:
+  - {type: Pak40, number: 3}
+  description: Pak 40 75 mm anti-tank gun battery
+  groupName: Pak 40 75 mm anti-tank gun battery
+- aliases: [wespe]
+  disposition: {h: 2, w: 3}
+  units:
+  - {type: Wespe124, number: 3}
+  description: Wespe 105 mm self-propelled howitzer battery
+  groupName: Wespe 105 mm self-propelled howitzer battery
 - aliases: [Msta]
   disposition: {h: 2, w: 3}
   units:

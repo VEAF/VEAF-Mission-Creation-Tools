@@ -241,8 +241,8 @@ Une mission de campagne est **une** mission : pas de variantes météo.
 Le dossier que `campaign next` crée a `pipeline.weather: false` en dernier bloc de `mission.yaml` et pas de `src/versions.yaml` ; la date, l'heure et la météo sont **fixées dans la mission** elle-même.
 
 - **La date avance avec la campagne** : la mission N+1 a lieu le lendemain de la mission N, dont `campaign apply` garde la date dans l'état de la campagne. La première prend `start_date` de `campaign.yaml`, ou la date du template.
-- **L'heure sert la mission** : `start_time` de `campaign.yaml`, une heure (`"06:30"`) ou une expression solaire (`sunrise+30*60`, la valeur par défaut). L'expression est calculée pour le terrain de la campagne — le centre de ses zones — et la date de la mission, à l'heure du théâtre : le lever du soleil de la Colchide, pas celui de Damas que prend le `versions.yaml` livré.
-- **La météo peut changer d'une mission à l'autre, le sol reste visible** : nuages absents, peu nombreux ou épars, base entre 1 500 et 3 500 m, visibilité de 8 km ou plus, ni brouillard ni pluie — CAVOK ou presque. Le tirage dépend du nom de la campagne et du numéro de la mission : la même mission retire le même ciel.
+- **L'heure sert la mission** : `start_time` de `campaign.yaml`, une heure (`"06:30"`) ou une expression solaire (`sunrise+30*60`, la valeur par défaut). L'expression est calculée pour le terrain de la campagne — le centre de ses zones — et la date de la mission, à l'heure du théâtre : le lever du soleil de la Colchide, pas celui du point de la carte du Caucase.
+- **La météo peut changer d'une mission à l'autre, le sol reste visible** : nuages absents, peu nombreux ou épars, base entre 1 500 et 3 500 m, visibilité de 8 km ou plus (10 km ou plus s'écrit 80 km, le maximum de DCS, et c'est ce que `campaign next` annonce), ni brouillard ni pluie — CAVOK ou presque. Le tirage dépend du nom de la campagne et du numéro de la mission : la même mission retire le même ciel.
 
 DCS ne fait pleuvoir que sous ses nuages « pluvieux », qui sont couvrants : une pluie légère sous un ciel dégagé n'existe pas, donc la météo d'une campagne n'a jamais de pluie.
 

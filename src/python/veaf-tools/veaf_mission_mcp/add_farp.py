@@ -8,15 +8,18 @@ Every value below is measured on the 372 heliports of the missions under D:\\dev
 not assumed: see the constants.
 """
 
+import math
 from pathlib import Path
 from typing import Any
 
 from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.group_insertion import max_ids
+from presets_injector.airfield_channels_manager import load_reference
+from veaf_libs.clear_ground_placement import occupied_by, place_on_clear_ground
 
 from veaf_mission_mcp.add_group import insert_group_into_content
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
-from veaf_mission_mcp.surface import surface_warnings
+from veaf_mission_mcp.surface import PAD_MAX_DROP_METERS, PAD_RING_METERS, pad_drop, surface_warnings
 
 #: Heliport type -> the `shape_name` the editor writes with it (135, 128, 52, 8 and 2 occurrences).
 _SHAPES: dict[str, str] = {
@@ -35,6 +38,11 @@ _AMMO_DUMP_OFFSET_M = 120.0
 #: DCS radio modulation codes.
 _MODULATIONS: dict[str, int] = {"AM": 0, "FM": 1}
 
+#: The bands an airfield tower answers on, per modulation: `fm` is the VHF low band, `vhf` and `uhf` are AM.
+_TOWER_BANDS: dict[str, tuple[str, ...]] = {"AM": ("vhf", "uhf"), "FM": ("fm",)}
+#: Two frequencies closer than this are the same channel (the shipped table has 0.05 MHz steps).
+_SAME_CHANNEL_MHZ = 0.005
+
 
 def add_farp(
     target: Path,
@@ -49,6 +57,7 @@ def add_farp(
     modulation: str = "AM",
     callsign_id: int = 1,
     ammo_dump: bool = True,
+    keep_position: bool = False,
 ) -> dict[str, Any]:
     """Place a heliport with its radio and a warehouse entry, backed up first.
 
@@ -70,10 +79,17 @@ def add_farp(
         ammo_dump: Place a ``FARP Ammo Dump Coating`` static named ``<name> - Ammo``, 120 m east of
             the pad, same coalition and country — CTLD's loading point. Each Syria FARP needed a
             separate call for it (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 05).
+        keep_position: The position is the mission maker's own: never move the pad. By default a pad
+            the clear-ground catalogue finds in trees or buildings is moved, with its dump, onto the
+            nearest clear ground within 1 km (FIX-FARP-PLACEMENT ticket 01); kept, it is only warned
+            about.
 
     Returns:
-        ``{farp, group_id, unit_id, durable, ammo_dump?, warnings?}`` — ``warnings`` when the pad is in the sea
-        or the theatre has no elevation grid to tell.
+        ``{farp, group_id, unit_id, position, surface_check, durable, ammo_dump?, warnings?}`` —
+        ``position`` is where the pad went; ``surface_check`` says what no file can see (lakes and rivers)
+        and how to probe it in DCS; ``warnings`` when the pad was moved off scenery, stands in it, is on a
+        slope, is in the sea, is on an airfield tower's frequency, or when the trees or the slope could
+        not be checked.
 
     Raises:
         ValueError: On an unknown type or modulation, an incomplete position, or a mission with no
@@ -92,6 +108,10 @@ def add_farp(
         raise ValueError(f"the mission has no warehouses table to register the FARP in: {target}")
 
     x, y = float(position["x"]), float(position["y"])
+    theatre = content.get("theatre") or mission.theatre_content
+    dump_name = f"{name} - Ammo"
+    warnings, (x, y) = _check_pad(content, theatre, name, dump_name if ammo_dump else None, x, y, keep_position)
+    warnings += _tower_frequency_warnings(theatre, name, frequency_mhz, modulation.upper())
     unit: dict[str, Any] = {
         "type": farp_type,
         "category": "Heliports",
@@ -136,9 +156,7 @@ def add_farp(
         warehouses["warehouses"] = table
     table[unit_id] = _default_warehouse(coalition.lower())
 
-    theatre = content.get("theatre") or mission.theatre_content
-    warnings = surface_warnings(theatre, [unit], afloat=False)
-    dump_name = f"{name} - Ammo"
+    warnings += surface_warnings(theatre, [unit], afloat=False)
     if ammo_dump:
         insert_group_into_content(
             content,
@@ -152,13 +170,147 @@ def add_farp(
             warnings=warnings,
         )
     durable = commit_mission(mission, target)["durable"]
-    result: dict[str, Any] = {"farp": name, "group_id": group_id, "unit_id": unit_id, "durable": durable}
+    result: dict[str, Any] = {
+        "farp": name,
+        "group_id": group_id,
+        "unit_id": unit_id,
+        "position": {"x": x, "y": y},
+        "surface_check": _surface_check(theatre, x, y),
+        "durable": durable,
+    }
     if ammo_dump:
         result["ammo_dump"] = dump_name
     if warnings:
         # The pad and its dump share a surface verdict when the theatre has no grid: said once.
         result["warnings"] = list(dict.fromkeys(warnings))
     return result
+
+
+def _check_pad(
+    content: dict[str, Any],
+    theatre: str | None,
+    name: str,
+    dump_name: str | None,
+    x: float,
+    y: float,
+    keep_position: bool,
+) -> tuple[list[str], tuple[float, float]]:
+    """Check a pad for trees and slope, and move it off scenery unless its position is kept.
+
+    « FARP Merizo » went into the Marianas jungle, on a slope, with a warning about the sea only
+    (FIX-FARP-PLACEMENT ticket 01).
+
+    Args:
+        content: The parsed ``mission`` table, before the FARP is inserted.
+        theatre: The mission's theatre.
+        name: The FARP's name.
+        dump_name: Its ammunition dump's name, or ``None`` when there is none.
+        x: Mission ``x`` asked for the pad.
+        y: Mission ``y`` asked for the pad.
+        keep_position: Never move the pad.
+
+    Returns:
+        The warnings, and where the pad goes.
+    """
+    footprint = [{"x": x, "y": y, "name": name}]
+    if dump_name:
+        footprint.append({"x": x, "y": y + _AMMO_DUMP_OFFSET_M, "name": dump_name})
+    # The coalition only decides what a `#command` marker may draw, and a FARP carries none.
+    placement = place_on_clear_ground(theatre, footprint, coalition="neutral", occupied=occupied_by(content))
+    warnings: list[str] = []
+    unchecked: list[str] = []
+    if not placement.covered:
+        unchecked.append("trees (no clear-ground catalogue covers this place)")
+    elif (placement.dx or placement.dy) and keep_position:
+        warnings.append(
+            f"'{name}' stands in trees or buildings: the clear-ground catalogue of {theatre} has clear ground "
+            f"{math.hypot(placement.dx, placement.dy):.0f} m away; kept where asked (keep_position)"
+        )
+    elif placement.message:
+        x, y = x + placement.dx, y + placement.dy
+        warnings.append(
+            f"'{name}' {placement.message}" if placement.dx or placement.dy else f"'{name}': {placement.message}"
+        )
+    spot = _farp_spot_command(theatre, x, y)
+    drop = pad_drop(theatre, x, y)
+    if drop is None:
+        unchecked.append(f"slope (no elevation grid for {theatre or 'this theatre'})")
+    elif drop > PAD_MAX_DROP_METERS:
+        warnings.append(
+            f"'{name}' is on a slope: the ground varies by {drop:.1f} m within {PAD_RING_METERS:.0f} m of the pad, "
+            f"more than {PAD_MAX_DROP_METERS:.0f} m; find a flat, clear spot in game with {spot}"
+        )
+    if unchecked:
+        warnings.append(
+            f"{' and '.join(unchecked)} not checked for '{name}'; find a flat, clear spot in game with {spot}"
+        )
+    return warnings, (x, y)
+
+
+def _farp_spot_command(theatre: str | None, x: float, y: float) -> str:
+    """Return the command that finds a flat, clear spot near a point, probed in DCS.
+
+    Args:
+        theatre: The mission's theatre.
+        x: Mission ``x`` of the point.
+        y: Mission ``y`` of the point.
+
+    Returns:
+        The quoted command line.
+    """
+    command = f"'.\\veaf-tools.exe dcs farp-spot {theatre} --at {x:.0f},{y:.0f}'"
+    return command
+
+
+def _surface_check(theatre: str | None, x: float, y: float) -> str:
+    """Say what the files cannot see around a pad, and how to see it.
+
+    The elevation grid knows the sea (0 m) only: a lake or a river reads as the ground under it, and the
+    clear-ground catalogue covers trees and buildings. FARP Torres del Paine of the Falklands Open
+    Training stood in a lake with 79 m on the grid, ``land.getSurfaceType`` 3 in game
+    (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 03).
+
+    Args:
+        theatre: The mission's theatre.
+        x: Mission ``x`` of the pad.
+        y: Mission ``y`` of the pad.
+
+    Returns:
+        One sentence.
+    """
+    sentence = (
+        "lakes and rivers are not seen by the elevation grid or the clear-ground catalogue; "
+        f"probe the pad's surface in DCS with {_farp_spot_command(theatre, x, y)}"
+    )
+    return sentence
+
+
+def _tower_frequency_warnings(theatre: str | None, name: str, frequency_mhz: float, modulation: str) -> list[str]:
+    """Warn when a FARP's radio is the tower of an airfield of the theatre.
+
+    Two stations on one channel talk over each other: FARP Torres del Paine was put on 128.5 AM, the
+    Franco Bianco tower, and nothing said so (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 03).
+
+    Args:
+        theatre: The mission's theatre.
+        name: The FARP's name.
+        frequency_mhz: The heliport's frequency, in MHz.
+        modulation: ``AM`` or ``FM`` (upper case).
+
+    Returns:
+        One warning per airfield on that channel; empty when none, or when the theatre has no table.
+    """
+    bands = _TOWER_BANDS[modulation]
+    towers = [
+        str(entry["name"])
+        for entry in load_reference(theatre or "").values()
+        if any(abs(float(entry[band]) - frequency_mhz) < _SAME_CHANNEL_MHZ for band in bands if band in entry)
+    ]
+    return [
+        f"'{name}' is on {frequency_mhz:g} {modulation}, the tower of {tower}: pick another frequency "
+        "(describe_airfield_channels lists the towers)"
+        for tower in towers
+    ]
 
 
 def _default_warehouse(coalition: str) -> dict[str, Any]:

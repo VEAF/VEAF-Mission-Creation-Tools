@@ -10,6 +10,7 @@ from . import (  # noqa: F401
     config,
     convert_other,
     convert_v5,
+    ctld_upgrade,
     doctor,
     explore_cockpit,
     export,

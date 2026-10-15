@@ -15,7 +15,9 @@
 # fixes one sets its `fixed_in`; a surprising DCS behaviour, measured, goes here too.
 #
 # Fields: id (unique, kebab-case), kind (tool|dcs), area, title, symptom, workaround, cost (what it
-# broke; optional), measured (YYYY-MM-DD, required for dcs), fixed_in (tool only, optional).
+# broke; optional), measured (YYYY-MM-DD, required for dcs), fixed_in (tool only, optional), theatres
+# (optional list: the theatres the entry concerns — `describe_known_limitations(theatre=…)` drops it for
+# any other; no list means every theatre).
 # `area` groups the entries: spawning, air-defence, players, radio, ground-ai (dcs); mcp, pipeline, runtime (tool).
 # symptom / workaround / cost are Markdown.
 
@@ -213,6 +215,47 @@ limitations:
     (about ten seconds a combat zone on Caucasus) — and check a built mission with
     `veaf-tools dcs clear-ground-check`.
 
+- id: falklands-placement-has-no-clear-ground-catalogue
+  kind: tool
+  area: mcp
+  title: "On Falklands, no catalogue says a ground unit is out of the trees, the buildings or fresh water"
+  symptom: |
+    Falklands ships parking and frequency data but no clear-ground catalogue, and its elevation grid is swept
+    per workstation (`terrain-sweep Falklands`), not shipped. The grid knows the sea only: a lake or a river
+    reads as the ground under it. So `add_group`, `create_combat_zone` and `add_farp` write a position as
+    asked there, with a warning saying the surface was not checked (or, with a grid, that the sea was).
+  workaround: |
+    Sweep the places of the mission in DCS — `veaf-tools dcs clear-ground-sweep Falklands --zones-from
+    <mission>` — then check the built mission with `veaf-tools dcs clear-ground-check <mission.miz>` and move
+    what it finds. For a FARP, `veaf-tools dcs farp-spot Falklands --at x,y`.
+  cost: |
+    The Falklands Open Training v6, probed in DCS on 2026-10-13 (`Disposition` small query on the positions
+    the grid had accepted): 15 vehicles out of 176 at fault — 5 in the water (two beacons, two false units of
+    the Ushuaia naval base, a 4x4) and 10 blocked (air defences of Punta Arenas, Schroeders, Natales,
+    Williams, Navarino, the Cape Horn beacon). They were moved by hand, from 25 m to 1 425 m. FARP Torres del
+    Paine had stood in a lake the 250 m grid read as 79 m (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS tickets 03, 07).
+
+- id: marianas-placement-checks-nothing
+  kind: tool
+  area: mcp
+  title: "On MarianaIslands, no placement is checked against the sea, the trees or the buildings"
+  theatres: [MarianaIslands]
+  symptom: |
+    MarianaIslands has no clear-ground catalogue and no parking data shipped, and an elevation grid
+    only once `terrain-sweep` has run on the workstation. Every ground placement there is written as
+    asked, with a warning that says the sea, the trees and the buildings were not checked; every QRA
+    starts in the air (`no-parking-data-outside-three-theatres`).
+  workaround: |
+    Check the built mission in DCS with `veaf-tools dcs clear-ground-check <mission.miz>` and move what
+    it finds. Sweep the theatre on the workstation with `veaf-tools dcs terrain-sweep MarianaIslands`
+    (the sea), and the places of the mission with `veaf-tools dcs clear-ground-sweep MarianaIslands`
+    (the scenery).
+  cost: |
+    The Marianas Open Training v6, probed in DCS on 2026-10-12 (`Disposition.getSimpleZones` small
+    query, `land.getSurfaceType`): 57 of 97 vehicles stood in trees or buildings and one in the sea,
+    though the mission had checked land and sea itself against OpenStreetMap island outlines
+    (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 07).
+
 - id: late-activated-group-is-visible
   kind: dcs
   area: spawning
@@ -395,14 +438,56 @@ limitations:
 - id: no-parking-data-outside-three-theatres
   kind: tool
   area: mcp
-  title: No ramp or runway start through the MCP outside Caucasus, Persian Gulf and Syria
+  title: No ramp or runway start through the MCP outside Caucasus, Persian Gulf, Syria, Sinai, Falklands and Normandy
+  theatres: [Afghanistan, GermanyCW, Iraq, Kola, MarianaIslands, MarianaIslandsWWII, Nevada, TheChannel]
   symptom: |
     `add_air_group` with a `parking-*` or `runway` start is refused with *"no parking data captured
-    for theatre …"* on every other map (GermanyCW, Nevada, Normandy, Sinai…): only those three
-    theatres ship a parking capture in `veaf_libs/data/parking/`.
+    for theatre …"* on every other map (GermanyCW, Nevada, Marianas…): only those six
+    theatres ship a parking capture in `veaf_libs/data/parking/`. Sinai was captured on 2026-10-12
+    for its Open Training v6 (3 614 stands on 56 airfields). Falklands too, for its
+    Open Training v6, and Normandy on 2026-10-13 (3 716 stands on 90 airfields).
   workaround: |
     Use an air start there, or place the flight in the DCS Mission Editor. The capture itself is a
-    session in DCS: `veaf-tools dcs capture-map --parking`.
+    session in DCS: `veaf-tools dcs capture-map --parking`, whose raw dump goes to
+    `veaf_build/dcs_data/airbase_dumps/parking/` and is slimmed into `veaf_libs/data/parking/` by
+    `veaf-build update-dcs-data --parking`.
+
+- id: no-ww2-spawnable-aircraft-templates
+  kind: tool
+  area: pipeline
+  title: The shipped spawnables catalogue holds no WW2 aircraft, so a WW2 mission has no `-cap`, `-escort` or `_spawn` aircraft template
+  symptom: |
+    `src/spawnables.yaml` ships 51 groups, all modern jets (F-15C, F-14A, Mirage F1, MiG-21/23/25, F-4E, F-5E,
+    M-2000C, an MQ-9). Under `mission.era: WW2` the build injects **none** of them, and says so
+    (`pipeline.console.aircraft_no_era`): an empty `src/spawnables.yaml` gives a WW2 mission no aircraft
+    template at all. Under `COLD_WAR` it keeps the jets and drops the MQ-9. Only the shipped fallback is
+    filtered: a `src/spawnables.yaml` the maker wrote is injected as written.
+  workaround: |
+    Write the WW2 templates in the mission's own `src/spawnables.yaml` (a `veafSpawn-<name>` group per
+    template, exported from the Mission Editor so its options are the editor's own), or place the flights
+    natively with `add_air_group` and the loadouts of `list_payloads`. The WW2 player slots are not
+    affected: the shipped dynamic-slot templates have P-51D, P-47D, Spitfire, Bf 109, Fw 190 and Mosquito.
+  cost: |
+    The Normandy Open Training v6 switched the step off and has no spawnable template
+    (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 03). The WW2 set was left out of that lot: a template carries
+    the editor's ROE and reaction options, which cannot be written from a table without a check in DCS.
+
+- id: ww2-slot-templates-carry-gun-zero
+  kind: tool
+  area: runtime
+  title: Ten dynamic-slot templates of WW2 fighters carry `payload.gun = 0`, and nobody has measured what DCS does with it
+  symptom: |
+    Read in the shipped `dynamic-slot-templates.yaml` on 2026-10-13: the `Bf-109K4`, `FW-190A8`, `FW-190D9`,
+    `F4AU-1D` and `TF-51D` templates, on **both** sides (ten groups), carry `gun: 0`, where the other WW2
+    templates (P-47D, P-51D, Spitfire, Mosquito, I-16, La-7) carry `gun: 100` and a group built by
+    `add_air_group` carries `gun: 100` for every type. A dynamic slot is spawned from its template: if `gun`
+    is the gun-ammunition percentage, a player of one of these ten has no cannon ammunition.
+    **Not established:** whether DCS reads `gun` for these types at all (their guns may be set by a
+    `settings` table or the stations), which is why the templates are left as they are.
+  workaround: |
+    Before relying on those slots for a gun-only arena, check in DCS: take a slot from the template, open the
+    loadout screen, and fire. If the ammunition is zero, set `gun: 100` on the template's units in the
+    mission's own `src/dynamic-slot-templates.yaml`.
 
 - id: ctld-jtac-imposed-code-and-radio
   kind: tool
@@ -1104,9 +1189,17 @@ limitations:
     on the group made them fire (seven TOW still aboard). Sent forward, they opened fire at ~1.3 km and
     destroyed both in 16 s. Earlier the same day, stationary trucks 1 km from BMPs, in sight by
     `isVisible`, were never engaged in five minutes; at 350 m at once. Vegetation is the likeliest mask.
+    900 m is no guarantee either: on 2026-10-10 (Kolkhida mission 1 test copy), a red assault convoy
+    given a `Hold` 673-853 m from two Bradleys, its leading BMPT with a line of sight to one of them,
+    stood 40 game minutes in place, and no ammunition was spent by either side between two readings
+    about 3 game minutes apart.
   workaround: |
-    To make ground units fight an enemy you can see by script, send them closer — `veafGroundAI`'s
-    convoy closes in to 900 m.
+    To make ground units fight an enemy you can see by script, send them closer, and keep them moving
+    while nobody fires — `veafGroundAI`'s convoy closes in to 900 m, then drives onto the nearest enemy
+    when no shot has been fired or taken for 2 minutes (FIX-CONVOY-FROZEN-STANDOFF).
+  cost: |
+    Before that push, the Kolkhida assault convoy stayed frozen at its standoff for good: the enemy in
+    sight kept the contact alive, so the quiet minute that relaunches a convoy never came.
 - id: addgroup-with-an-existing-name-replaces-the-group
   kind: dcs
   area: spawning
@@ -1274,3 +1367,142 @@ limitations:
   cost: |
     A CH-47F on Kobuleti's stand 24, the very centre of the field's 250 m CTLD logistic circle, started
     1.2 km outside it: no crate and no troops offered (Kolkhida test mission, R47 item 1).
+
+- id: scenery-remove-objects-zone-leaves-the-forest
+  kind: dcs
+  area: spawning
+  title: "« SCENERY REMOVE OBJECTS ZONE » (`a_remove_scene_objects`) leaves the forest standing"
+  measured: "2026-10-12"
+  symptom: |
+    A zone of 80 m around a FARP in a wood, and the editor's action removing the scene objects in it
+    one second after mission start (`triggerOnce`, `c_time_after(1)`, `objects_mask` 1 « TREES ONLY »,
+    the shape the Marianas v5 used for its Tinian FARP and DCS's own mission generator writes). Single
+    player, looked at from the F12 view:
+
+    | Where | Call | Trees within 80 m |
+    |---|---|---|
+    | MarianaIslands, Merizo (-22300, -12450) | the trigger | still there, up to the FARP's square |
+    | Caucasus, near Batumi (-353825, 620825) | the trigger | still there |
+    | the same | `a_remove_scene_objects(<zoneId>, 0)` (« ALL »), called in the server's mission environment | still there |
+    | the same | `a_remove_scene_objects("<zone name>", 0)` | still there |
+
+    The trigger did fire — its `mission.trig.func` entry cleared itself — the zone was where it should
+    be (`trigger.misc.getZone`: centre and 80 m radius), every call returned without error, and
+    `dcs.log` says nothing. Why the forest is not removed is not known: the action is implemented in
+    the engine, not in Lua.
+  workaround: |
+    Do not count on clearing trees by trigger. Put a FARP on ground that is already clear: `add_farp`
+    moves a pad off scenery where the clear-ground catalogue covers the place, and
+    `veaf-tools dcs farp-spot` lists flat, clear spots near a point in DCS.
+  cost: |
+    `add_farp` gained a `clear_scenery_radius` option built on this action (FIX-FARP-PLACEMENT ticket
+    02, #1125); it removed nothing on two maps and was taken out before any release.
+
+- id: disposition-small-query-blocks-open-grass
+  kind: dcs
+  area: spawning
+  title: "The small `Disposition.getSimpleZones` query can say « no room » on open grass"
+  measured: "2026-10-12"
+  symptom: |
+    The small query — a free 5 m spot within 20 m — was taken as the measure of trees
+    (`disposition-getsimplezones-is-a-lottery`). Near Sukhumi on Caucasus (-223575, 567550), with no
+    unit and no building within 80 m, it found **0 free points of 48** on rings of 40 to 70 m around a
+    FARP, and 0 of 48 at a point 300 m away, while the F12 view showed open grass around the pad. On
+    the same day, on MarianaIslands, it answered 10 of 10 at the spot the Marianas v6 probe had chosen
+    for FARP Merizo.
+  workaround: |
+    A point the small query calls free is free; a point it calls blocked may not be. Treat its « no »
+    as « not shown free », and look in game before concluding that a place is wooded.
+  cost: |
+    `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
+    Neither what it lists nor what it leaves out has been checked by eye yet.
+
+- id: air-start-flies-toward-its-second-point
+  kind: dcs
+  area: spawning
+  title: "An air start with a single waypoint flies north, whatever its unit's `heading`"
+  measured: "2026-10-12"
+  symptom: |
+    A player slot, A-10C II, air start, one `Turning Point`, unit `heading` π (south). Taken in single
+    player on MarianaIslands, it flew **north**. The Mission Editor never writes that case: in the
+    Marianas v5 it saved, every air start with two points or more has its unit `heading` equal to the
+    bearing of its second point (13 groups), and every air start with one point has heading 0 (10
+    groups). The same slot with a second point 10 km due south appeared with its nose at **180.3°**,
+    tracking 180.5° (Caucasus, read through the bridge 10 s after spawning).
+  workaround: |
+    Give an air start a second waypoint on the wanted heading; `add_player_slot` does it.
+  cost: |
+    The A-10 of the FIX-FARP-PLACEMENT test mission started heading away from the FARP it was meant to
+    look at, and had to turn back over 40 km.
+
+- id: weapon-gettarget-object-with-no-isexist
+  kind: dcs
+  area: scripting
+  title: "`weapon:getTarget()` can return an object with no `isExist` method"
+  measured: "2026-10-12"
+  symptom: |
+    On the Sinai Open Training of 2026-10-12 (dcs.veaf.org, Privé 1, VEAF 6.29.0), twelve player shots
+    in 18 minutes made `target:isExist()` raise `attempt to call method 'isExist' (a nil value)` on
+    the object `weapon:getTarget()` returned — although the scripting API documents `isExist` on every
+    `Object`. What the object is was not measured: a scenery object is the hypothesis. A guard written
+    `if not target or not target:isExist()` handles a weapon with no target and a target destroyed
+    since, and still raises on this one.
+
+    Measured on 2026-10-14 (Caucasus, single player, through the fiddle hook): an AI A-10C's four
+    AGM-65D on a BTR-80 each got a complete `Unit` (`isExist` a function, `Object.getCategory` 1), at
+    the shot and 2 s later. So the defect is not on a guided shot at a unit. The scenery and static
+    cases could not be measured by AI: tasked with `AttackMapObject` on a house or `AttackUnit` on a
+    static `Hangar A`, AI A-10Cs flew over, fired nothing and dropped their stores.
+  workaround: |
+    Ask the object whether it has the method before calling it (`type(target.isExist) == "function"`),
+    or call through the class (`Object.getCategory(target)`) inside `pcall`. Never assume
+    `getTarget()` returns a unit.
+  cost: |
+    The sanctuary's missile protection raised in the scheduler on each of those shots, and recorded
+    none of them (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
+
+- id: visibility-nine-km-or-more-is-eighty
+  kind: tool
+  area: mcp
+  title: "A visibility of 9 000 m or more is written as 80 km"
+  symptom: |
+    `set_weather`, a `versions.yaml` variant's `weather.visibility` and `campaign next` all go
+    through one converter, which writes any visibility of 9 000 m or more as DCS's maximum,
+    `80000` — the way a METAR's `9999` reads "10 km or more". Asking for exactly 10 km gives a
+    crystal-clear 80 km sky; below 9 000 m the value is written as given.
+  workaround: |
+    For a hazy sky, give 8 999 m or less. Read back `weather.visibility.distance` from the
+    mission, or the `weather` `set_weather` returns, rather than the value asked for.
+  cost: |
+    `campaign next` reported a drawn 10 000 m while the mission carried 80 km
+    (FIX-CAMPAIGN-VISIBILITY-MISMATCH, 2026-10-15); its report now gives the value written.
+
+- id: solar-times-at-damascus-by-default
+  kind: tool
+  area: pipeline
+  title: A mission keeping the default `versions.yaml` computed its sunrise and sunset at Damascus, whatever the map
+  fixed_in: "6.30.0"
+  symptom: |
+    The shipped `src/versions.yaml` declared `position: {latitude: 33.5, longitude: 35.5}`. A Caucasus
+    `time: "sunrise"` variant started at 07:48 on 2024-03-15, 24 minutes after sunrise near Kobuleti
+    (50 minutes on 2016-06-01). Without `position`, a solar expression aborted the build.
+  workaround: |
+    Remove `position` from `versions.yaml`: the build computes on the theatre's point. A mission folder
+    created before 6.30.0 still carries the Damascus block, and the build warns when a `position` lies
+    outside the mission's theatre.
+  cost: |
+    Every non-Syria mission built from the default folder with a solar variant (FIX-SOLAR-DEFAULT-POSITION,
+    2026-10-15). `campaign next` was not affected: its missions have no `versions.yaml`.
+
+- id: solar-times-one-point-per-theatre
+  kind: tool
+  area: pipeline
+  title: Without `position`, solar times are computed at one point per theatre, not where the mission flies
+  symptom: |
+    A `versions.yaml` with no `position` takes the theatre's point: the map centre a blank mission of it
+    opens on (near Batumi on the Caucasus, Hama on Syria), else the centre of its bounds (Iraq, Kola,
+    Nevada, The Channel). On a wide map, a mission far from it is a few minutes off — Tbilisi's sunrise
+    is 13 minutes before Batumi's. For Iraq and MarianaIslandsWWII, whose DCS clock offset was never
+    measured, the clock is the nominal zone of that point's longitude (UTC+3, UTC+10).
+  workaround: |
+    Give `position` near the mission in `versions.yaml` when the minute matters.

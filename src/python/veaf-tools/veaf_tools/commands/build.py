@@ -1,11 +1,19 @@
 import re
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
 import typer
 import yaml
 from aircrafts_injector import AircraftGroupsInjectorWorker, AircraftGroupsYAMLValidator
-from aircrafts_injector.catalogue import CatalogueUnreadable, catalogue_file_has_groups
+from aircrafts_injector.catalogue import (
+    CatalogueUnreadable,
+    catalogue_file_has_groups,
+    catalogue_has_groups,
+    filter_by_era,
+    load_catalogue,
+    unknown_unit_types,
+)
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
@@ -191,6 +199,57 @@ def resolve_pipeline_step_file(pipeline_cfg: dict, mission_folder: Path, key: st
     return None
 
 
+def warn_unknown_aircraft_types(path: Path) -> list[str]:
+    """Warn about each template of an aircraft catalogue whose type DCS does not know: a mod.
+
+    Args:
+        path: The catalogue being injected.
+
+    Returns:
+        The warnings logged, one per template and type.
+    """
+    try:
+        catalogue = load_catalogue(path)
+    except CatalogueUnreadable:
+        return []  # the validator reports an unreadable file
+    warnings = [
+        t("cmd.build.aircraft_unknown_type", group=group, type=unit_type, file=path.name)
+        for group, unit_type in unknown_unit_types(catalogue)
+    ]
+    for warning in warnings:
+        logger.warning(warning)
+    return warnings
+
+
+def era_filtered_catalogue(path: Path, era: str | None, workdir: Path) -> tuple[Path | None, int]:
+    """The shipped spawnables catalogue, without the aircraft that did not exist in the mission's era.
+
+    Args:
+        path: The shipped catalogue.
+        era: The mission's era (``WW2``, ``COLD_WAR``, ``MODERN``), or ``None`` when unknown.
+        workdir: Where a filtered copy is written, when there is one.
+
+    Returns:
+        ``(path to inject, groups left out)``. The path is *path* itself when nothing is left out (a
+        modern or unknown era, an unreadable file), a copy under *workdir* when some groups are, and
+        ``None`` when none of the catalogue's aircraft existed in that era.
+    """
+    if not era or era == "MODERN":
+        return path, 0
+    try:
+        catalogue = load_catalogue(path)
+    except CatalogueUnreadable:
+        return path, 0  # the validator reports it
+    filtered, removed = filter_by_era(catalogue, era)
+    if not removed:
+        return path, 0
+    if not catalogue_has_groups(filtered):
+        return None, removed
+    copy_path = workdir / path.name
+    copy_path.write_text(yaml.safe_dump(filtered, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return copy_path, removed
+
+
 def resolve_aircraft_catalogue(
     pipeline_cfg: dict, mission_folder: Path, key: str, candidate: str
 ) -> tuple[Path | None, bool]:
@@ -344,6 +403,22 @@ def build(
             path, is_shipped = resolve_aircraft_catalogue(worker.pipeline_cfg, p_mission_folder, step_key, candidate)
             if not path:
                 return
+            with tempfile.TemporaryDirectory() as era_dir:
+                if is_shipped and step_key == "spawnable_aircrafts":
+                    # The shipped catalogue is modern jets: keep out the ones that did not fly in this
+                    # mission's era (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 03). A maker's own file is
+                    # theirs, as written.
+                    era = worker.mission_era()
+                    path, removed = era_filtered_catalogue(path, era, Path(era_dir))
+                    if path is None:
+                        logger.step(t("pipeline.console.aircraft_no_era", file="spawnables.yaml", era=era))
+                        return
+                    if removed:
+                        logger.detail(t("pipeline.console.aircraft_era_filtered", era=era, removed=removed))
+                _inject_aircraft_file(path, is_shipped, step_key)
+
+        def _inject_aircraft_file(path: Path, is_shipped: bool, step_key: str) -> None:
+            """Validate and inject one catalogue file, already chosen and era-filtered."""
             mode = "add"
             step_cfg = worker.pipeline_cfg.get(step_key)
             if isinstance(step_cfg, dict):
@@ -351,6 +426,7 @@ def build(
             validator = AircraftGroupsYAMLValidator(path)
             is_valid, _ = validator.validate()
             if is_valid:
+                warn_unknown_aircraft_types(path)
                 logger.info(t("pipeline.injecting_aircraft_mode", path=path, mode=mode))
                 # Which catalogue, and where it came from: "spawnables.yaml" alone reads the same
                 # whether it is the maker's file or the one shipped with the tool, and the whole
@@ -391,7 +467,7 @@ def build(
             )
             presets_worker.work()
             report_path = p_mission_folder / "presets-validation-report.md"
-            issue_count = presets_worker.generate_validation_report(report_path)
+            issue_count = presets_worker.generate_validation_report(report_path, mission_label=variant_base_name)
             if issue_count == 0 and report_path.exists():
                 report_path.unlink()
 

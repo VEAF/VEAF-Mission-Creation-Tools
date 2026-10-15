@@ -125,7 +125,7 @@ def set_weather(
         temperature: Ground temperature, °C.
         wind_speed: Ground wind speed, m/s.
         wind_direction: Where the wind comes FROM, degrees, as in a METAR.
-        visibility: Visibility, metres.
+        visibility: Visibility, metres; 9 000 m or more is written as DCS's maximum, 80 km (a METAR's 9999).
         cloud_type: One of ``clear``, ``few``, ``scattered``, ``broken``, ``overcast``.
         cloud_height: Cloud base, metres.
         precipitation: Rain.

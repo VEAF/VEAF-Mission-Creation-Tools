@@ -72,6 +72,7 @@ from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_f
 
 from mission_builder.coalition_placeholder import ensure_coalitions_populated
 from mission_builder.era_detector import detect_era
+from mission_builder.ground_control import apply_ground_control, ground_control_errors
 from mission_builder.third_party_mods import strip_third_party_mods
 from mission_builder.warehouses_bootstrap import ensure_airports_populated
 
@@ -1587,6 +1588,30 @@ class MissionBuilderWorker(BaseWorker):
         if removed_mods and not silent:
             logger.detail(t("builder.stripped_third_party_mods", mods=", ".join(removed_mods)))
 
+    def apply_ground_control(self, silent: bool = False) -> None:
+        """Set the mission's unattached roles and vehicle control from ``mission.ground_control``.
+
+        Absent, the mission's own ``groundControl`` is left alone. See
+        :mod:`mission_builder.ground_control`.
+
+        Args:
+            silent: When true, do not log the roles set.
+
+        Raises:
+            typer.Abort: When the block is invalid (the message names each fault).
+        """
+        if not self.dcs_mission or self.dcs_mission.mission_content is None:
+            return
+        block = (self.mission_yaml.get("mission") or {}).get("ground_control")
+        if block is None:
+            return
+        errors = ground_control_errors(block)
+        if errors:
+            logger.error("\n".join(errors))
+        apply_ground_control(self.dcs_mission.mission_content, block)
+        if not silent:
+            logger.detail(t("builder.ground_control_applied", roles=", ".join(f"{k}={v}" for k, v in block.items())))
+
     def clear_veaf_triggers(self) -> None:
         """
         Clears all the VEAF triggers from the current mission
@@ -2477,6 +2502,17 @@ class MissionBuilderWorker(BaseWorker):
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
         logger.debug("Writing mission file done")
 
+    def mission_era(self) -> str | None:
+        """The era the mission is built for: ``mission.era`` of ``mission.yaml``, else the one detected.
+
+        Returns:
+            ``WW2``, ``COLD_WAR`` or ``MODERN``, or ``None`` when neither is available.
+        """
+        configured = ((self.mission_yaml or {}).get("mission") or {}).get("era")
+        if configured:
+            return str(configured).upper()
+        return self._detect_era_from_base()
+
     def _detect_era_from_base(self) -> str | None:
         """Auto-detect the mission era from the base mission's units and date.
 
@@ -2732,6 +2768,9 @@ class MissionBuilderWorker(BaseWorker):
         # Make third-party aircraft mods non-blocking: strip them from requiredModules so a
         # pilot without the mod can still load the mission (the slot is just unavailable).
         self.strip_third_party_mod_requirements(silent=silent)
+
+        # Game master / JTAC / observer slots and vehicle control from mission.ground_control
+        self.apply_ground_control(silent=silent)
 
         # Then, add all the VEAF triggers we need
         if not self.no_veaf_triggers:

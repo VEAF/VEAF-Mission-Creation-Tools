@@ -356,6 +356,8 @@ Le corollaire vaut dans l'autre sens, et il est tout aussi silencieux : un group
 voir avec la zone, mais qui est posé dans le cercle **et** nommé `CZ-Alpha-…`, en fait partie — il
 sera donc détruit au démarrage de la mission avec les autres.
 
+L'autre erreur silencieuse, un groupe nommé `CZ-Alpha-…` posé **hors** du cercle (aucune unité dedans), est signalée avant le jeu : `veaf-tools validate` et le build avertissent, en nommant le groupe et la zone. Un groupe qui porte le nom d'aucune zone n'est jamais signalé, où qu'il soit.
+
 ---
 
 ### Groupes hors de combat {#out-of-action}

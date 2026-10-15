@@ -73,6 +73,15 @@ class TestGenerateBlankMission:
             bullseye = mission.mission_content["coalition"][side]["bullseye"]
             assert isinstance(bullseye["x"], (int, float)) and isinstance(bullseye["y"], (int, float))
 
+    def test_falklands_blank_is_generated_and_listed(self, tmp_path: Path) -> None:
+        # The Falklands map was missing from theatre-defaults.yaml: scaffold_mission's `theatre` enum
+        # (built from supported_theatres) refused it and its folder came out without src/mission/.
+        assert "Falklands" in blank_mission.supported_theatres()
+        folder = _write_folder(tmp_path, blank_mission.generate_blank_mission("falklands"))
+        mission = read_mission_folder(folder)
+        assert mission.theatre_content == "Falklands"
+        assert list(mission.iter_groups()) == []
+
     def test_alias_resolves_for_blank(self) -> None:
         # SinaiMap is the canonical key; the airdromes.yaml-style "Sinai" alias resolves to it.
         assert blank_mission.is_theatre_supported("Sinai")

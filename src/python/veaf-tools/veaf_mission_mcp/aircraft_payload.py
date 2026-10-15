@@ -25,10 +25,38 @@ of the type, and the editor's default is what a mission maker placing the aircra
 A type with no dispenser (a warbird, a tanker) or unknown to the database keeps 0.
 """
 
+import copy
+from pathlib import Path
 from typing import Any
 
+import yaml
 from veaf_libs.dcs_payloads import payload_pylons
 from veaf_libs.dcs_units_data import get_unit_countermeasures, get_unit_fuel_capacity
+from veaf_libs.mission_table import indexed
+from veaf_libs.shipped_defaults import shipped_default_file
+
+#: The WW2 fighters, which fight with their guns and carry no pylon; the bombers of the era (A-20G, B-17G,
+#: Ju-88A4) do not, and are not here.
+GUN_FIGHTERS: frozenset[str] = frozenset(
+    {
+        "SpitfireLFMkIX",
+        "SpitfireLFMkIXCW",
+        "P-51D",
+        "P-51D-30-NA",
+        "TF-51D",
+        "P-47D-30",
+        "P-47D-30bl1",
+        "P-47D-40",
+        "Bf-109K-4",
+        "FW-190A8",
+        "FW-190D9",
+        "MosquitoFBMkVI",
+        "I-16",
+        "La-7",
+        "F4U-1D",
+        "F4U-1D_CW",
+    }
+)
 
 
 def build_aircraft_payload(
@@ -124,6 +152,99 @@ def normalize_pylons(pylons: dict[Any, Any] | list[Any]) -> dict[int, dict[str, 
         _station_number(station): {"CLSID": value} if isinstance(value, str) else value
         for station, value in pylons.items()
     }
+
+
+def resolve_flight_loadout(
+    folder_path: Path, content: dict[str, Any], spec: dict[str, Any], unit_type: str
+) -> dict[Any, Any] | None:
+    """Resolve a flight's loadout: explicit `pylons`, a DCS `payload` by name, or `loadout_from` a group.
+
+    An interceptor created without weapons is the next silent failure after one created without
+    fuel. The `veafSpawn-*` groups of the aircraft catalogues are a sourced place to take a loadout
+    from, so `loadout_from` looks in the mission first, then in the folder's catalogues, then in the
+    shipped ones.
+
+    Args:
+        folder_path: The mission folder.
+        content: The parsed mission table.
+        spec: A mapping that may carry `pylons`, `payload` and `loadout_from` — one of them at most.
+        unit_type: The flight's aircraft type, to look a named `payload` up.
+
+    Returns:
+        The pylons table, or None when none is given.
+
+    Raises:
+        ValueError: If more than one is given, `payload` is not one of the type's DCS loadouts, or
+            `loadout_from` names a group found nowhere, or one with no aircraft.
+    """
+    given = [key for key in ("pylons", "payload", "loadout_from") if spec.get(key)]
+    if len(given) > 1:
+        raise ValueError(f"give one loadout, not {' and '.join(given)}")
+    if spec.get("pylons") or spec.get("payload"):
+        return resolve_loadout(unit_type, spec.get("pylons"), spec.get("payload"))
+    source = spec.get("loadout_from")
+    if not source:
+        return None
+    group = _find_air_group_in_content(content, source) or _find_air_group_in_catalogues(folder_path, source)
+    if group is None:
+        raise ValueError(f"loadout_from: no aircraft group named {source!r} in the mission or the aircraft catalogues")
+    units = [unit for unit in indexed(group.get("units")) if isinstance(unit, dict)]
+    for unit in units:
+        pylons = (unit.get("payload") or {}).get("pylons")
+        if pylons:
+            return copy.deepcopy(pylons)
+    if units and unit_type in GUN_FIGHTERS:
+        # A gun fighter's template has an empty pylons table on purpose (FIX-OPEN-TRAINING-NORMANDY-FINDINGS
+        # ticket 02): copying "no pylons" is the answer. For any other type it is the defect of an empty
+        # template (the J-11A of FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 04), and stays a refusal.
+        return None
+    raise ValueError(f"loadout_from: the group {source!r} carries no pylons")
+
+
+def _find_air_group_in_content(content: dict[str, Any], name: str) -> dict[str, Any] | None:
+    """Return the plane or helicopter group of the mission table named `name`.
+
+    Args:
+        content: The parsed mission table.
+        name: The exact group name.
+
+    Returns:
+        The group, or None when the mission has none by that name.
+    """
+    for coalition in (content.get("coalition") or {}).values():
+        for country in indexed((coalition or {}).get("country")):
+            for category in ("plane", "helicopter"):
+                for group in indexed(((country or {}).get(category) or {}).get("group")):
+                    if isinstance(group, dict) and group.get("name") == name:
+                        return group
+    return None
+
+
+def _find_air_group_in_catalogues(folder_path: Path, name: str) -> dict[str, Any] | None:
+    """Return the aircraft group named `name` from the aircraft catalogues, the folder's first.
+
+    Looks in `src/spawnables.yaml` then `src/dynamic-slot-templates.yaml`, each in the folder and
+    then in the shipped defaults — the order the build resolves them in.
+
+    Args:
+        folder_path: The mission folder.
+        name: The exact group name.
+
+    Returns:
+        The group, or None when no catalogue has one by that name.
+    """
+    for relative in ("src/spawnables.yaml", "src/dynamic-slot-templates.yaml"):
+        for path in (folder_path / relative, shipped_default_file(folder_path, relative)):
+            if path is None or not path.is_file():
+                continue
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            for family in ("airplanes", "helicopters"):
+                sides = ((data.get(family) or {}).get("coalitions")) or {}
+                for countries in sides.values():
+                    for groups in (countries or {}).values():
+                        if isinstance(groups, dict) and isinstance(groups.get(name), dict):
+                            return groups[name]
+    return None
 
 
 def _count(label: str, value: int | None, default: int) -> int:

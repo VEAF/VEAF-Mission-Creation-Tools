@@ -73,6 +73,19 @@ The level drawn is itself shifted by ±1 one time in five each way, and the unit
 | `-dogear` | Dog Ear radar |
 | `-blue_ewr` | F-117 Domed EWR (US) |
 
+## WW2 equipment
+
+German equipment of 1944–45, for a mission with `mission.era: WW2`. The other aliases above place modern equipment whatever the era (`-ewr` is a 55G6, `-arty` an M-109): `-aaa`, `-samSR`, `-samLR`, `-samVLR`, `-armor`, `-infantry`, `-transport`, `-combat` and `-convoy` are the ones that follow `mission.era`. The `list_shortcuts` MCP action gives the `era` of each alias, and `validate` warns about a modern one in a WW2 mission.
+
+| Alias | Description |
+|-------|-------------|
+| `-freya` | Freya (FuMG-401) early-warning radar (DE) |
+| `-wurzburg` | Würzburg-Riese (FuSe-65) radar (DE) |
+| `-flak88` | Battery of four 8,8 cm Flak 36 (DE) |
+| `-lefh` | leFH 18 105 mm field howitzer battery (DE) |
+| `-pak40` | Pak 40 75 mm anti-tank gun battery (DE) |
+| `-wespe` | Wespe 105 mm self-propelled howitzer battery (DE) |
+
 ## Naval
 
 | Alias | Description |

@@ -33,6 +33,7 @@ from mission_tools.miz_tools import read_miz, write_miz
 
 from veaf_mission_mcp.aircraft_identity import assign_identities
 from veaf_mission_mcp.aircraft_payload import build_aircraft_payload
+from veaf_mission_mcp.aircraft_radio import resolve_group_frequency
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
 #: Unit conversions (mission file stores metres and m/s; the caller speaks feet and knots).
@@ -51,6 +52,12 @@ _START_WAYPOINT: dict[str, tuple[str, str]] = {
 }
 _GROUND_MODES = ("ground-cold", "ground-hot")
 
+#: How far ahead of an air start its second point goes. DCS orients an air start toward its second
+#: point, and the Mission Editor writes the unit's `heading` as that bearing: with a single point, an A-10
+#: asked to fly 180° flew north (FIX-AIR-SLOT-HEADING, 2026-10-12). Only the bearing matters; 10 km keeps
+#: the point near the slot on the F10 map.
+_HEADING_POINT_METERS = 10_000.0
+
 
 def add_player_slot(
     target: Path,
@@ -68,7 +75,7 @@ def add_player_slot(
     parking: str | None = None,
     parking_id: str | None = None,
     airdrome_id: int | None = None,
-    frequency_mhz: float = 251.0,
+    frequency_mhz: float | None = None,
     onboard_num: str | None = None,
     task: str = _DEFAULT_TASK,
     fuel: float | None = None,
@@ -89,12 +96,16 @@ def add_player_slot(
         start: ``"air"``, ``"ground-cold"`` or ``"ground-hot"``.
         altitude_ft: Air-start altitude in feet (ignored for a ground start).
         speed_kt: Cruise/first-leg speed in knots.
-        heading_deg: Unit heading in degrees (mainly meaningful on the ground).
+        heading_deg: Heading in degrees. An air start flies it: DCS orients it toward its second
+            waypoint, written 10 km ahead on that heading; a ground start takes its stand's orientation.
         parking: The parking-spot number (ground start only), as text so a leading zero survives.
         parking_id: The parking id — its `Term_Index` (ground start only), as text.
         airdrome_id: The airfield id the parking belongs to (ground start only).
         frequency_mhz: The group's radio frequency in MHz — written rather than inherited, since an
-            inherited ``communication = false`` was the second defect of the 2026-08-14 slot.
+            inherited ``communication = false`` was the second defect of the 2026-08-14 slot. Defaults
+            to 251, or to the type's own when its airframe cannot tune 251 (124 for a P-51D, 38.4 for a
+            Fw 190); one the airframe cannot tune is refused, since the Mission Editor would refuse to
+            save it.
         onboard_num: The tail number, as text so a leading zero survives. Defaults to one no other
             aircraft of the mission carries; the slot also gets a callsign
             (:mod:`veaf_mission_mcp.aircraft_identity`).
@@ -111,7 +122,8 @@ def add_player_slot(
 
     Raises:
         ValueError: If the target is not a valid mission, `start` is unknown, a ground start is
-            asked for without a full parking spot, or the fuel load cannot be resolved for this type.
+            asked for without a full parking spot, the fuel load cannot be resolved for this type, or
+            the frequency is one its airframe cannot tune.
     """
     if start not in _START_WAYPOINT:
         raise ValueError(f"Unknown start {start!r} (expected one of {tuple(_START_WAYPOINT)})")
@@ -130,6 +142,7 @@ def add_player_slot(
     payload, fuel_warning = build_aircraft_payload(
         unit_type, fuel=fuel, fuel_fraction=fuel_fraction, chaff=chaff, flare=flare
     )
+    frequency, _ = resolve_group_frequency(unit_type, frequency_mhz, skill="Client")
 
     group = _build_slot_group(
         name=name,
@@ -142,7 +155,7 @@ def add_player_slot(
         parking=parking,
         parking_id=parking_id,
         airdrome_id=airdrome_id,
-        frequency_mhz=frequency_mhz,
+        frequency_mhz=frequency,
         onboard_num=onboard_num,
         task=task,
         payload=payload,
@@ -211,6 +224,8 @@ def _build_slot_group(
         "alt": alt_m,
         "alt_type": "BARO",
         "heading": heading_rad,
+        # The editor writes `psi` as the opposite of the heading, on every unit it saves.
+        "psi": -heading_rad,
         "speed": speed_mps,
         "skill": "Client",
         "onboard_num": onboard_num,
@@ -237,8 +252,43 @@ def _build_slot_group(
         "uncontrollable": False,
         "start_time": 0,
         "units": [unit],
-        "route": {"points": [_build_first_waypoint(position, start, alt_m, speed_mps, airdrome_id)]},
+        "route": {"points": _build_route(position, start, alt_m, speed_mps, heading_rad, airdrome_id)},
     }
+
+
+def _build_route(
+    position: dict[str, float],
+    start: str,
+    alt_m: float,
+    speed_mps: float,
+    heading_rad: float,
+    airdrome_id: int | None,
+) -> list[dict[str, Any]]:
+    """Build the slot's route: its first waypoint, and for an air start a second one on the heading.
+
+    Args:
+        position: The slot's position.
+        start: The start mode.
+        alt_m: The altitude, metres.
+        speed_mps: The speed, metres per second.
+        heading_rad: The heading, radians from north.
+        airdrome_id: The airfield of a ground start.
+
+    Returns:
+        The route points.
+    """
+    first = _build_first_waypoint(position, start, alt_m, speed_mps, airdrome_id)
+    if start in _GROUND_MODES:
+        return [first]
+    ahead = {
+        "x": position["x"] + _HEADING_POINT_METERS * math.cos(heading_rad),
+        "y": position["y"] + _HEADING_POINT_METERS * math.sin(heading_rad),
+    }
+    second = _build_first_waypoint(ahead, start, alt_m, speed_mps, airdrome_id)
+    # As the editor writes a later point: its ETA is the flying time from the first, and not locked.
+    second["ETA"] = _HEADING_POINT_METERS / speed_mps if speed_mps > 0 else 0
+    second["ETA_locked"] = False
+    return [first, second]
 
 
 def _build_first_waypoint(

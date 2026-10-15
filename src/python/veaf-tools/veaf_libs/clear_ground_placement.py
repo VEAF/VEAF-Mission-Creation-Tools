@@ -38,11 +38,14 @@ class Placement:
         dy: Translation along mission ``y``.
         message: What happened, when there is something to say; ``None`` when the asked position was
             already clear.
+        covered: False when nothing measured the place (no theatre, or no catalogue covers it), so the
+            caller can say what was not checked in its own terms.
     """
 
     dx: float
     dy: float
     message: str | None
+    covered: bool = True
 
 
 def _footprint(units: list[dict[str, Any]], coalition: str) -> tuple[float, float, float | None, str]:
@@ -123,7 +126,7 @@ def place_on_clear_ground(
         The translation to apply to the whole group, and what to say about it.
     """
     if not units or not theatre:
-        return Placement(0.0, 0.0, None)
+        return Placement(0.0, 0.0, None, covered=False)
     cx, cy, required, what = _footprint(units, coalition)
     if required is None:
         return Placement(
@@ -144,8 +147,11 @@ def place_on_clear_ground(
         return Placement(
             0.0,
             0.0,
-            f"no clear-ground catalogue covers this place on {theatre}, so it was placed as requested; "
-            f"sweep it with 'veaf-tools dcs clear-ground-sweep {theatre} --around {cx:.0f},{cy:.0f}'",
+            f"no clear-ground catalogue covers this place on {theatre}, so it was placed as requested and "
+            "nothing says it is not in trees or buildings; check the built mission in DCS with "
+            "'veaf-tools dcs clear-ground-check <mission.miz>', or sweep the place with "
+            f"'veaf-tools dcs clear-ground-sweep {theatre} --around {cx:.0f},{cy:.0f}'",
+            covered=False,
         )
     if answer.status is ClearGroundStatus.NONE_LARGE_ENOUGH:
         return Placement(

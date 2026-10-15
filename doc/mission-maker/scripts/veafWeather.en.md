@@ -44,7 +44,7 @@ Weather is injected at build time (before the mission is loaded) using `veaf-too
 ### versions.yaml example
 
 ```yaml
-position:
+position:                    # optional: a Syria mission here
   latitude: 33.5
   longitude: 35.5
   timezone: "Asia/Damascus"

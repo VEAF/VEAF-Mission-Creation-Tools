@@ -20,6 +20,9 @@ Checks:
   9. a QRA / AIRWAVES ``CAP`` or ``Intercept`` group whose written route the runtime replaces (warning)
   10. a QRA definition with both ``simple_groups`` and ``groups_by_enemy_count`` (warning)
   11. an ``opposition:`` block the build would refuse                (error)
+  12. a ``mission.ground_control`` block the build would refuse      (error)
+  13. a ``ctld-config.yaml`` written against another CTLD catalogue (warning)
+  14. a ``channel_lists`` channel the presets injector drops for lacking its band (warning)
 
 Checks 4-9 read the unpacked source mission table (``src/mission/mission``); when it is
 absent they are skipped (reported once as a warning).
@@ -27,6 +30,7 @@ absent they are skipped (reported once as a warning).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -97,6 +101,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     # 2e. the opposition level the build would refuse (FEAT-OPPOSITION-SCALES-WITH-PLAYERS)
     issues += _check_opposition(yaml_data)
 
+    # 2f. the mission.ground_control block the build would refuse
+    issues += _check_ground_control(yaml_data)
+
     # 3. custom_scripts files exist
     issues += _check_custom_scripts(folder, yaml_data)
 
@@ -105,6 +112,12 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
 
     # 3c. radio-menu `action: lua` references resolve to a defined maker function
     issues += _check_radio_lua_functions(folder, yaml_data)
+
+    # 3d. ctld-config.yaml written against another CTLD catalogue than the vendored one
+    issues += _check_ctld_catalogue(folder, yaml_data)
+
+    # 3e. a channel_lists channel lacking its list's band, which the build drops
+    issues += _check_dropped_preset_channels(folder, yaml_data)
 
     # 4-6. checks that need the source mission table
     mission, mission_error = _read_source_mission(folder)
@@ -124,6 +137,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_static_shapes(mission)
     issues += _check_ctld_names(folder, yaml_data, mission)
     issues += _check_deployed_aircraft_routes(yaml_data, mission)
+    issues += _check_group_frequencies(mission)
+    issues += _check_shortcut_eras(yaml_data, mission)
+    issues += _check_command_countries(mission)
     return issues
 
 
@@ -179,6 +195,23 @@ def _check_opposition(yaml_data: dict) -> list[ValidationIssue]:
     return []
 
 
+def _check_ground_control(yaml_data: dict) -> list[ValidationIssue]:
+    """Report a ``mission.ground_control`` block the build would refuse, with the build's own messages.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml``.
+
+    Returns:
+        One error per fault (unknown role or side, a count that is not a natural number).
+    """
+    from mission_builder.ground_control import ground_control_errors
+
+    mission_cfg = yaml_data.get("mission")
+    if not isinstance(mission_cfg, dict) or mission_cfg.get("ground_control") is None:
+        return []
+    return [ValidationIssue(ERROR, m) for m in ground_control_errors(mission_cfg["ground_control"])]
+
+
 def _check_deployed_aircraft_routes(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
     """Warn on a QRA or AIRWAVES ``CAP`` / ``Intercept`` group whose written route will be replaced.
 
@@ -202,6 +235,91 @@ def _check_deployed_aircraft_routes(yaml_data: dict, mission: dict) -> list[Vali
     ]
 
 
+def _ctld_turned_off(yaml_data: dict) -> bool:
+    """Return whether ``mission.yaml`` turns CTLD off — only an explicit opt-out: CTLD also runs unnamed."""
+    modules = yaml_data.get("modules") if isinstance(yaml_data, dict) else None
+    ctld = modules.get("CTLD") if isinstance(modules, dict) else None
+    return ctld is False or (isinstance(ctld, dict) and ctld.get("enabled") is False)
+
+
+def _check_ctld_catalogue(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
+    """Warn when ``ctld-config.yaml`` was written against another CTLD catalogue than the vendored one.
+
+    CTLD runs fine on its defaults, so these are warnings: the settings the mission lacks, those the
+    catalogue dropped, and the keys the catalogue added inside a table the mission holds
+    (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 02). Without them the maker learned of a catalogue
+    upgrade from a player, CTLD printing it on screen at mission start.
+
+    Args:
+        folder: The mission folder.
+        yaml_data: The parsed ``mission.yaml``; a mission that turns CTLD off is not checked.
+
+    Returns:
+        Up to three warnings; nothing when the versions match or a file is missing.
+    """
+    from veaf_libs.ctld_config import (
+        CTLD_CONFIG_FILENAME,
+        find_catalogue_gap,
+        read_default_config,
+        vendored_ctld_lua,
+    )
+
+    config_path = folder / CTLD_CONFIG_FILENAME
+    if _ctld_turned_off(yaml_data) or not config_path.is_file():
+        return []
+    engine = vendored_ctld_lua(folder)
+    catalogue = read_default_config(engine) if engine is not None else None
+    if catalogue is None:
+        return []
+    gap = find_catalogue_gap(config_path.read_text(encoding="utf-8"), catalogue)
+    if gap is None:
+        return []
+    versions = {"file": CTLD_CONFIG_FILENAME, "mission": gap.mission_version or "?", "catalogue": gap.catalogue_version}
+    issues = [
+        ValidationIssue(
+            WARNING,
+            t("validate.ctld_catalogue_missing", keys=", ".join(k for _, k in gap.missing) or "—", **versions),
+        )
+    ]
+    if gap.removed:
+        issues.append(
+            ValidationIssue(WARNING, t("validate.ctld_catalogue_removed", keys=", ".join(gap.removed), **versions))
+        )
+    if gap.unused_features:
+        issues.append(
+            ValidationIssue(
+                WARNING, t("validate.ctld_catalogue_unused", keys=", ".join(gap.unused_features), **versions)
+            )
+        )
+    return issues
+
+
+def _check_dropped_preset_channels(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
+    """Warn on each ``channel_lists`` channel that lacks its list's band: the build drops it.
+
+    Same message as the build's (FIX-OPEN-TRAINING-CAUCASUS-FINDINGS ticket 05).
+
+    Args:
+        folder: The mission folder, holding ``src/presets.yaml`` when the mission has one.
+        yaml_data: The parsed ``mission.yaml``; a mission that turns the presets step off is not checked.
+
+    Returns:
+        One warning per dropped channel; nothing when the file is absent or cannot be read (the build
+        reports an unreadable presets file itself).
+    """
+    from presets_injector.presets_manager import PresetsManager
+
+    presets_path = folder / "src" / "presets.yaml"
+    if not _pipeline_enabled(yaml_data, "presets") or not presets_path.is_file():
+        return []
+    manager = PresetsManager()
+    try:
+        manager.read_yaml(presets_path)
+    except Exception:  # noqa: BLE001 — the build owns the report of an unreadable file
+        return []
+    return [ValidationIssue(WARNING, message) for message in manager.dropped_channel_warnings()]
+
+
 def _check_ctld_names(folder: Path, yaml_data: dict, mission: dict) -> list[ValidationIssue]:
     """Warn on an ``extractableGroups`` / ``logisticUnits`` name the mission does not hold.
 
@@ -219,10 +337,7 @@ def _check_ctld_names(folder: Path, yaml_data: dict, mission: dict) -> list[Vali
     """
     from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME, VEAF_EMPTIED_LISTS
 
-    # Only an explicit opt-out: CTLD also runs when mission.yaml does not name it.
-    modules = yaml_data.get("modules") if isinstance(yaml_data, dict) else None
-    ctld = modules.get("CTLD") if isinstance(modules, dict) else None
-    if ctld is False or (isinstance(ctld, dict) and ctld.get("enabled") is False):
+    if _ctld_turned_off(yaml_data):
         return []
     config_path = folder / CTLD_CONFIG_FILENAME
     if not config_path.is_file() or not isinstance(mission, dict):
@@ -281,6 +396,7 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
         Every :class:`ValidationIssue` found, in check order.
     """
     from mission_builder.group_validation import (
+        find_combat_zone_groups_outside_their_circle,
         find_missing_declared_groups,
         find_missing_sanctuary_units,
         find_missing_trigger_zone_refs,
@@ -307,9 +423,165 @@ def validate_mission_content(yaml_data: dict, mission: dict) -> list[ValidationI
     for section, subzone, level in find_undeclared_operation_subzones(yaml_data):
         issues.append(ValidationIssue(level, t("validate.undeclared_subzone", subzone=subzone, section=section)))
 
+    for zone, group, level in find_combat_zone_groups_outside_their_circle(yaml_data, mission):
+        issues.append(ValidationIssue(level, t("validate.combat_zone_group_outside_circle", group=group, zone=zone)))
+
     issues += _check_mission_is_playable(mission)
     issues += _check_waypoint_locks(mission)
 
+    return issues
+
+
+_SHORTCUT_ALIAS = re.compile(r"^\s*(-[\w]+)")
+
+
+def _check_shortcut_eras(yaml_data: dict, mission: dict) -> list[ValidationIssue]:
+    """Warn about a ``#command`` / ``#veafInterpreter`` shortcut whose equipment did not exist in a WW2 mission.
+
+    ``-aaa``, ``-samLR``, ``-armor``… follow ``mission.era``; ``-sa6``, ``-ewr`` or ``-arty`` spawn the same modern
+    equipment whatever it says, and a mission built for 1944 carried them without a word
+    (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 05). Only a shortcut known to spawn post-WW2 equipment is reported:
+    an unknown one is not claimed.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml`` mapping (its ``mission.era`` wins over the detected one).
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per unit or group carrying such a shortcut; nothing in a mission that is not WW2.
+    """
+    from mission_builder.era_detector import detect_era
+
+    from veaf_libs import shortcut_eras
+    from veaf_libs.group_footprint import _TAG_COMMAND, _TAG_INTERPRETER
+
+    configured = (yaml_data.get("mission") or {}).get("era") if isinstance(yaml_data, dict) else None
+    era = str(configured).upper() if configured else detect_era(mission)
+    if era != "WW2":
+        return []
+    issues: list[ValidationIssue] = []
+    for name in _iter_object_names(mission):
+        commands = [m.group(1) for pattern in (_TAG_COMMAND, _TAG_INTERPRETER) for m in pattern.finditer(name)]
+        for command in commands:
+            alias = _SHORTCUT_ALIAS.match(command)
+            if alias and shortcut_eras.era_of_alias(alias.group(1)) == shortcut_eras.POST_WW2:
+                issues.append(
+                    ValidationIssue(WARNING, t("validate.shortcut_wrong_era", name=name, alias=alias.group(1)))
+                )
+    return issues
+
+
+_COMMAND_COUNTRY = re.compile(r"\bcountry\s+([A-Za-z0-9_ ]+?)\s*(?:,|$)")
+
+
+def _check_command_countries(mission: dict) -> list[ValidationIssue]:
+    """Warn about a ``#command`` or ``#veafInterpreter`` whose ``country`` is in no coalition of the mission.
+
+    ``country germany`` is the natural spelling of a German battery, and in a mission whose red side holds
+    ``Third Reich`` it names a country of no coalition: the spawn took the neutral side, no Skynet network matched
+    it and a combat zone stopped on ``networkName nil`` (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 14). Nothing at
+    build time said so. Only a mission that carries its ``coalitions`` table is judged.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per carrier, naming the countries the coalitions hold.
+    """
+    from veaf_libs.dcs_countries import country_id_for_command_name, country_name_for_id
+    from veaf_libs.group_footprint import _TAG_COMMAND, _TAG_INTERPRETER
+
+    assigned = mission.get("coalitions") if isinstance(mission, dict) else None
+    if not isinstance(assigned, dict) or not assigned:
+        return []
+    in_a_coalition = {
+        country_id
+        for countries in assigned.values()
+        for country_id in map(_country_id, indexed(countries))
+        if country_id is not None
+    }
+    if not in_a_coalition:
+        return []
+    issues: list[ValidationIssue] = []
+    for name in _iter_object_names(mission):
+        for pattern in (_TAG_COMMAND, _TAG_INTERPRETER):
+            for command in (m.group(1) for m in pattern.finditer(name)):
+                found = _COMMAND_COUNTRY.search(command)
+                country_id = country_id_for_command_name(found.group(1)) if found else None
+                if found and country_id is not None and country_id not in in_a_coalition:
+                    held = ", ".join(
+                        "".join(ch for ch in (country_name_for_id(i) or str(i)).lower() if ch.isalnum())
+                        for i in sorted(in_a_coalition)
+                    )
+                    issues.append(
+                        ValidationIssue(
+                            WARNING,
+                            t("validate.command_country_in_no_coalition", name=name, country=found.group(1), held=held),
+                        )
+                    )
+    return issues
+
+
+def _iter_object_names(mission: dict) -> Iterable[str]:
+    """Yield the name of every group and every unit of the mission table, whatever its category."""
+    coalitions = mission.get("coalition") or {}
+    for coalition in coalitions.values() if isinstance(coalitions, dict) else []:
+        if not isinstance(coalition, dict):
+            continue
+        for country in indexed(coalition.get("country")):
+            if not isinstance(country, dict):
+                continue
+            for category in CATEGORIES:
+                for group in indexed((country.get(category) or {}).get("group")):
+                    if not isinstance(group, dict):
+                        continue
+                    if isinstance(group.get("name"), str):
+                        yield group["name"]
+                    for unit in indexed(group.get("units")):
+                        if isinstance(unit, dict) and isinstance(unit.get("name"), str):
+                            yield unit["name"]
+
+
+def _check_group_frequencies(mission: dict) -> list[ValidationIssue]:
+    """Warn about an aircraft group whose frequency its airframe cannot tune.
+
+    The Mission Editor refuses to save such a group, and neither the build nor a test ever opens
+    the file in the editor: a P-51D or a Fw 190 written with 251 MHz built cleanly and could not be
+    saved (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 13). A warning, not an error: the build's
+    preset step rewrites the frequency of a player group it gives a plan, so the source table is
+    not always the last word.
+
+    Args:
+        mission: The parsed DCS mission table.
+
+    Returns:
+        One warning per group, naming the first unit type whose range excludes the frequency.
+    """
+    from presets_injector.radio_frequency_validator import get_human_radio
+
+    issues: list[ValidationIssue] = []
+    for group in _iter_groups(mission):
+        frequency = group.get("frequency")
+        if not isinstance(frequency, (int, float)):
+            continue
+        for unit in indexed(group.get("units")):
+            human_radio = get_human_radio(str(unit.get("type"))) if isinstance(unit, dict) else None
+            if human_radio is not None and not human_radio.contains(float(frequency)):
+                issues.append(
+                    ValidationIssue(
+                        WARNING,
+                        t(
+                            "validate.group_frequency_untunable",
+                            group=group.get("name", "?"),
+                            unit_type=unit["type"],
+                            frequency=frequency,
+                            low=human_radio.min_mhz,
+                            high=human_radio.max_mhz,
+                            default=human_radio.default_mhz,
+                        ),
+                    )
+                )
+                break
     return issues
 
 

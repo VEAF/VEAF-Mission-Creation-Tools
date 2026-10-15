@@ -1347,6 +1347,54 @@ function TestVeafCombatZoneGetInformation:test_getInformation_counts_the_scenery
   veafMissionDb.destroyedScenery = {}
 end
 
+-- FEAT-COMBAT-ZONE-ELEVATION: the position block gives the terrain height at the zone centre.
+-- `land.getHeight` takes a vec2 whose `y` is the easting, i.e. the centre's vec3 `z`
+-- (docs/agents/dcs-coordinates.md): the stub records what it was asked so a swapped axis fails.
+local function _withTerrainHeight(height, test)
+  local previous = land.getHeight
+  local previousBullseye = veaf.getBullseye
+  local asked = {}
+  land.getHeight = function(vec2)
+    table.insert(asked, vec2)
+    return height
+  end
+  local previousWeatherData, previousWeatherUnitSystem = veafWeatherData, veafWeatherUnitSystem
+  -- the mocked env.mission has no bullseye, and veafWeatherData is not loaded here: the position block needs both
+  veaf.getBullseye = function()
+    return { x = 0, y = 0 }
+  end
+  veafWeatherData = {
+    getWeatherString = function()
+      return ""
+    end,
+  }
+  veafWeatherUnitSystem = { Systems = { Full = "full" } }
+  local ok, err = pcall(test, asked)
+  land.getHeight = previous
+  veaf.getBullseye = previousBullseye
+  veafWeatherData, veafWeatherUnitSystem = previousWeatherData, previousWeatherUnitSystem
+  if not ok then
+    error(err, 0)
+  end
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_gives_the_elevation_at_the_zone_centre()
+  self.z:setShowZonePositionInfo(true)
+  self.z.zoneCenter = { x = 1000, y = 7, z = 2000 }
+  _withTerrainHeight(412, function(asked)
+    local info = self.z:getInformation(nil)
+    luaunit.assertStrContains(info, "ELEVATION        : 1352 ft / 412 m.\n")
+    luaunit.assertEquals(asked[#asked], { x = 1000, y = 2000 })
+  end)
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_gives_no_elevation_when_position_is_hidden()
+  self.z.zoneCenter = { x = 1000, y = 7, z = 2000 }
+  _withTerrainHeight(412, function()
+    luaunit.assertNotStrContains(self.z:getInformation(nil), "ELEVATION")
+  end)
+end
+
 -- ============================================================================
 -- TestVeafCombatZoneEnemyCoalition (FEAT-COMBATZONE-RED-SIDE)
 -- ============================================================================

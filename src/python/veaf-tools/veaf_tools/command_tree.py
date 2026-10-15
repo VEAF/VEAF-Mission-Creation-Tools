@@ -57,7 +57,7 @@ class CommandGroup:
 #: constraint a reader must know **before** choosing, not a theme, which is why it earns a group of
 #: its own in an otherwise subject-based tree.
 COMMAND_GROUPS: tuple[CommandGroup, ...] = (
-    CommandGroup("mission", ("prepare", "validate", "build", "extract", "export")),
+    CommandGroup("mission", ("prepare", "validate", "build", "ctld-upgrade", "extract", "export")),
     CommandGroup("convert", ("convert-v5", "convert-other", "migrate-config", "generate-config")),
     CommandGroup(
         "content",
@@ -85,6 +85,7 @@ COMMAND_GROUPS: tuple[CommandGroup, ...] = (
             "clear-ground-sweep",
             "clear-ground-check",
             "scenery-objects",
+            "farp-spot",
             "terrain-sweep",
         ),
     ),

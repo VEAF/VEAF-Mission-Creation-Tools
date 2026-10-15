@@ -177,6 +177,26 @@ class TestTheMissionFolder:
             content["weather"]["wind"]["atGround"]["dir"] == (report.conditions.weather["wind_direction"] + 180) % 360
         )
 
+    def test_the_announced_weather_is_the_one_written(self, tmp_path: Path) -> None:
+        # FIX-CAMPAIGN-VISIBILITY-MISMATCH: a drawn 10 000 m was announced while the mission flew 80 km.
+        mission_template(tmp_path)
+        campaign = _campaign(start_date="2016-06-01")
+        state = initial_state(campaign)
+        distances = set()
+        for mission in range(6):
+            state.mission = mission
+            report = prepare_next_mission(campaign, state, tmp_path, tmp_path / f"m{mission}")
+            assert report.conditions is not None
+            announced = report.conditions.weather
+            _, content = open_mission(tmp_path / f"m{mission}")
+            written = content["weather"]
+            distances.add(written["visibility"]["distance"])
+            assert announced["visibility"] == written["visibility"]["distance"], mission
+            assert announced["cloud_height"] == written["clouds"]["base"], mission
+            assert announced["temperature"] == written["season"]["temperature"], mission
+            assert announced["wind_speed"] == written["wind"]["atGround"]["speed"], mission
+        assert 80000 in distances, distances  # the draw this test guards was made at least once
+
     def test_it_builds_one_mission_and_no_variant(self, tmp_path: Path) -> None:
         mission_template(tmp_path)
         assert (tmp_path / "template" / "src" / "versions.yaml").is_file()

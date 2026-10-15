@@ -54,6 +54,33 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R50. What `weapon:getTarget()` returns that has no `isExist` — **one pilot, or the next Open Training's log**
+
+[`FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST`](.backlog/FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md).
+On the Sinai Open Training of 2026-10-12 (Privé 1), twelve player shots got a target with no `isExist` method; the sanctuary now ignores such a target and logs once per mission `weapon target with no isExist method: Object.getCategory=…, Object.getName=…, type=…`.
+
+- **Without a session**: grep that line in the next server `dcs.log` of a mission built with the fix; the category answers it (5 = scenery, 1 = unit, 3 = static, 4 = base).
+- **Already measured, 2026-10-14**: an AI Maverick on a unit gets a complete `Unit`. AI would not fire on a house or a static, so the rest **needs a pilot**.
+- **In a session (a pilot, ~10 min)**: `Saved Games\DCS\Missions\TEST-getTarget-probe.miz` (blank Caucasus, USA/Russia) with an A-10C II air-start slot over Batumi added, Mavericks + GBU-12 + TGP; through the fiddle hook, run the S_EVENT_SHOT probe from `D:\dev\_VEAF\tmp\dcs-session-2026-10-14-gettarget\` (`fiddle.sh probe_install.lua`, then `probe_read.lua`) (it logs `getTarget()` at the shot and 2 s later, type, metatable, `Object.getCategory`) and spawn a house marker, a static hangar and a vehicle. Fire a Maverick locked on the house, a lased GBU-12 on the house, a Maverick on the hangar.
+  - **Line with category 5**: the scenery hypothesis holds; write the measurement into `weapon-gettarget-object-with-no-isexist` in `known-limitations.yaml`.
+  - **Line with category 1 or 3**: a unit or static came through with no methods — the sanctuary is then skipping real targets, and the guard must ask by `Object.getName` instead of returning; re-open the lot.
+
+### R49. A dashed F10 drawing, and the game master slot from `mission.yaml` — **no pilot needed**
+
+[`FIX-OPEN-TRAINING-CAUCASUS-FINDINGS`](.backlog/FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md), ticket 03 (and a look at ticket 01 on the way).
+The tests check what is written in the mission; what DCS draws from `style = "dash"` is only seen in game.
+
+**Prepare**: a scratch mission folder built from the lot's branch, with `mission.ground_control: {game_master: 2, pilot_control_vehicles: true}` in `mission.yaml`, and three drawings added to its folder through the MCP `add_map_drawing` on the `Common` layer: a circle `style: dash`, a line `style: dot`, a rect `style: boundry1`.
+
+1. Open the built `.miz` in the Mission Editor.
+   - **Verified**: it loads without a Lua error, the draw panel lists the three drawings, and each shows its style (dashes, dots, boundary marks) on the editor map.
+   - **Not verified**: a Lua error naming `me_draw_panel.lua` on load — the style name is wrong or a field is missing; note the line.
+2. Start the mission and open the F10 map.
+   - **Verified**: the circle is dashed, the line dotted, the rect drawn with boundary marks.
+   - **Not verified**: they show solid — DCS needs more than `style` in game; the drawing as the editor re-saves it (step 1, then save) says which field.
+3. Open the slot list.
+   - **Verified**: two Game Master slots per side, and a pilot can take a ground vehicle from the F10 map.
+
 ### R47. What *Kolkhida* mission 1 found, once fixed — **a pilot for items 1 to 3, two for item 7**
 
 [`FIX-CAMPAIGN-MISSION-1-FINDINGS`](.backlog/FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md), and ticket 02 of [`FIX-CAPTURE-ZONE-MEMBERSHIP`](.backlog/FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md).

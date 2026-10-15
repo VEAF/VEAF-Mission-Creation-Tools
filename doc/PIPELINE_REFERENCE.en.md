@@ -240,6 +240,8 @@ The report, and the build's log, also list **every AI AWACS and tanker whose fre
 <mission-folder>/presets-validation-report.md
 ```
 
+The report commits without noise: it carries no date and no machine path. The presets file is named from the mission folder (`src/presets.yaml`) and the mission by its name, without the `.miz`'s date; two builds of the same presets, from two folders or on two days, write the same file.
+
 **Temporarily disabling injection for an aircraft:**
 
 While fixing the presets, you can disable injection for a specific aircraft type by assigning it the value `none` in `presets_assignments`:
@@ -521,7 +523,7 @@ categories it can park, and stock that has become unplayable (written by an earl
 removed. This applies to an explicit `aircrafts:` list too — DCS would ignore what it cannot park
 anyway. The filtering is **silent**: no build warning.
 
-**Reach.** Parking data ships for **Caucasus, Persian Gulf and Syria** only. On any other theatre —
+**Reach.** Parking data ships for **Caucasus, Persian Gulf, Syria and Sinai** only. On any other theatre —
 and on an airfield absent from the data — nothing is filtered and the behaviour is unchanged.
 
 **How to check it in game.** Start the mission, pick the side, open the slot picker on the airfield
@@ -590,7 +592,8 @@ Also accepted: versions.yaml  (mission root)
 ### Schema
 
 ```yaml
-# ── Geographic position for solar calculations ─────────────────────────────
+# ── Geographic position for solar calculations (optional) ─────────────────
+# Absent: one point per theatre, on the mission's map (near Batumi on the Caucasus…).
 position:
   latitude: 33.5                        # Decimal degrees, -90 to 90
   longitude: 35.5                       # Decimal degrees, -180 to 180
@@ -677,8 +680,8 @@ What `${METAR}` resolves to, per variant:
 | Format | Example | Meaning |
 |--------|---------|---------|
 | `HH:MM` | `14:30` | Absolute time (14:30 local) |
-| `sunrise` | `sunrise` | Sunrise time (requires `position:`) |
-| `sunset` | `sunset` | Sunset time (requires `position:`) |
+| `sunrise` | `sunrise` | Sunrise time (at `position:`, else at the theatre's point) |
+| `sunset` | `sunset` | Sunset time (at `position:`, else at the theatre's point) |
 | Expression | `sunrise+30*60` | Arithmetic — seconds offset |
 | Seconds | `54000` | Raw seconds since midnight |
 
@@ -697,7 +700,7 @@ What `${METAR}` resolves to, per variant:
 | `temperature` | number | — | Air temperature in °C |
 | `wind_speed` | number | — | Wind speed in m/s |
 | `wind_direction` | number | — | Direction the wind **comes from**, in degrees (0 = North), as in a METAR |
-| `visibility` | number | — | Visibility in metres |
+| `visibility` | number | — | Visibility in metres; 9,000 m or more is written as DCS's maximum, 80 km — a METAR's `9999`, "10 km or more" |
 | `cloud_type` | string | — | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | number | — | Cloud base altitude in metres |
 | `fog_enabled` | boolean | `false` | Enable fog effect |

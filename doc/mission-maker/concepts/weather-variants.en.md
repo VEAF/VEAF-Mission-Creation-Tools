@@ -27,10 +27,10 @@ versions:
 ## Solar times and real weather {#solar-and-metar}
 
 ```yaml
-position:                    # required by solar expressions
-  latitude: 33.5
-  longitude: 35.5
-  timezone: "Asia/Damascus"
+position:                    # optional: otherwise, the point of the mission's map
+  latitude: 41.93
+  longitude: 41.86
+  timezone: "Asia/Tbilisi"
 
 base_date: "2024-03-15"
 
@@ -46,6 +46,10 @@ versions:
     metar: "METAR OSDI 151420Z 27015G25KT 9999 BKN025 18/12 Q1018 NOSIG"
 ```
 
+- **`position:`** says where sunrise and sunset are computed.
+  Without it, the build computes them on the mission's map, at one point per theatre (near Batumi on the Caucasus, Hama on Syria…), and says so in the log.
+  On a wide map, a mission far from that point is a few minutes off: give `position:` near the mission then.
+  A `position:` outside the mission's map (the Damascus of the former default file, left in a Caucasus mission) gets a warning.
 - **Times**: `"HH:MM"`, a solar expression (`sunrise`, `sunset-30*60`), or seconds.
   All of them are on the **theatre's local clock**, the one DCS shows: each theatre has a fixed
   offset from UTC, with no daylight saving time (Caucasus UTC+4, Syria UTC+3, GermanyCW UTC+2…).
@@ -60,8 +64,9 @@ versions:
 two `.miz` files without you asking: the one at the root and `missions/…_noon.miz`. Not a duplicate —
 the second carries the weather.
 
-Second gotcha: a solar expression with no `position:` block is **skipped silently**. If your "dawn"
-variant comes out at the base time, that is where to look.
+Second gotcha: up to 6.29, the shipped `versions.yaml` wrote a `position:` at Damascus, whatever the map.
+A mission created before keeps that position, and its "dawn" on the Caucasus comes 25 to 50 minutes after sunrise.
+Remove the `position:` block from your `versions.yaml`: the build then computes on the mission's map.
 
 To switch the step off entirely:
 

@@ -158,7 +158,7 @@ def test_a_combat_zone_group_can_follow_a_route(tmp_path: Path) -> None:
 
     points = _points(_group(read_mission_folder(folder).mission_content or {}, "CZ-North-convoy"))
     assert [(p["x"], p["y"]) for p in points] == [(p["x"], p["y"]) for p in route]
-    assert [p["action"] for p in points] == ["Off Road", "On Road", "On Road"]
+    assert [p["action"] for p in points] == ["On Road", "On Road", "On Road"]
     last_tasks = points[-1]["task"]["params"]["tasks"]
     last_task = next(iter(last_tasks.values())) if isinstance(last_tasks, dict) else last_tasks[0]
     assert last_task["id"] == "GoToWaypoint"

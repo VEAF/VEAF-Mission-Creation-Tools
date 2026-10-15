@@ -506,6 +506,67 @@ stand start, read the unit's position back rather than trusting the stand.
 *What it cost:* A CH-47F on Kobuleti's stand 24, the very centre of the field's 250 m CTLD logistic circle, started
 1.2 km outside it: no crate and no troops offered (Kolkhida test mission, R47 item 1).
 
+### « SCENERY REMOVE OBJECTS ZONE » (`a_remove_scene_objects`) leaves the forest standing {#scenery-remove-objects-zone-leaves-the-forest}
+
+Measured **2026-10-12**.
+
+A zone of 80 m around a FARP in a wood, and the editor's action removing the scene objects in it
+one second after mission start (`triggerOnce`, `c_time_after(1)`, `objects_mask` 1 « TREES ONLY »,
+the shape the Marianas v5 used for its Tinian FARP and DCS's own mission generator writes). Single
+player, looked at from the F12 view:
+
+| Where | Call | Trees within 80 m |
+|---|---|---|
+| MarianaIslands, Merizo (-22300, -12450) | the trigger | still there, up to the FARP's square |
+| Caucasus, near Batumi (-353825, 620825) | the trigger | still there |
+| the same | `a_remove_scene_objects(<zoneId>, 0)` (« ALL »), called in the server's mission environment | still there |
+| the same | `a_remove_scene_objects("<zone name>", 0)` | still there |
+
+The trigger did fire — its `mission.trig.func` entry cleared itself — the zone was where it should
+be (`trigger.misc.getZone`: centre and 80 m radius), every call returned without error, and
+`dcs.log` says nothing. Why the forest is not removed is not known: the action is implemented in
+the engine, not in Lua.
+
+**What to do:** Do not count on clearing trees by trigger. Put a FARP on ground that is already clear: `add_farp`
+moves a pad off scenery where the clear-ground catalogue covers the place, and
+`veaf-tools dcs farp-spot` lists flat, clear spots near a point in DCS.
+
+*What it cost:* `add_farp` gained a `clear_scenery_radius` option built on this action (FIX-FARP-PLACEMENT ticket
+02, #1125); it removed nothing on two maps and was taken out before any release.
+
+### The small `Disposition.getSimpleZones` query can say « no room » on open grass {#disposition-small-query-blocks-open-grass}
+
+Measured **2026-10-12**.
+
+The small query — a free 5 m spot within 20 m — was taken as the measure of trees
+(`disposition-getsimplezones-is-a-lottery`). Near Sukhumi on Caucasus (-223575, 567550), with no
+unit and no building within 80 m, it found **0 free points of 48** on rings of 40 to 70 m around a
+FARP, and 0 of 48 at a point 300 m away, while the F12 view showed open grass around the pad. On
+the same day, on MarianaIslands, it answered 10 of 10 at the spot the Marianas v6 probe had chosen
+for FARP Merizo.
+
+**What to do:** A point the small query calls free is free; a point it calls blocked may not be. Treat its « no »
+as « not shown free », and look in game before concluding that a place is wooded.
+
+*What it cost:* `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
+Neither what it lists nor what it leaves out has been checked by eye yet.
+
+### An air start with a single waypoint flies north, whatever its unit's `heading` {#air-start-flies-toward-its-second-point}
+
+Measured **2026-10-12**.
+
+A player slot, A-10C II, air start, one `Turning Point`, unit `heading` π (south). Taken in single
+player on MarianaIslands, it flew **north**. The Mission Editor never writes that case: in the
+Marianas v5 it saved, every air start with two points or more has its unit `heading` equal to the
+bearing of its second point (13 groups), and every air start with one point has heading 0 (10
+groups). The same slot with a second point 10 km due south appeared with its nose at **180.3°**,
+tracking 180.5° (Caucasus, read through the bridge 10 s after spawning).
+
+**What to do:** Give an air start a second waypoint on the wanted heading; `add_player_slot` does it.
+
+*What it cost:* The A-10 of the FIX-FARP-PLACEMENT test mission started heading away from the FARP it was meant to
+look at, and had to turn back over 40 km.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}
@@ -827,9 +888,17 @@ at 0, and neither `Controller.knowTarget(enemy, true, true)` on each unit nor a 
 on the group made them fire (seven TOW still aboard). Sent forward, they opened fire at ~1.3 km and
 destroyed both in 16 s. Earlier the same day, stationary trucks 1 km from BMPs, in sight by
 `isVisible`, were never engaged in five minutes; at 350 m at once. Vegetation is the likeliest mask.
+900 m is no guarantee either: on 2026-10-10 (Kolkhida mission 1 test copy), a red assault convoy
+given a `Hold` 673-853 m from two Bradleys, its leading BMPT with a line of sight to one of them,
+stood 40 game minutes in place, and no ammunition was spent by either side between two readings
+about 3 game minutes apart.
 
-**What to do:** To make ground units fight an enemy you can see by script, send them closer — `veafGroundAI`'s
-convoy closes in to 900 m.
+**What to do:** To make ground units fight an enemy you can see by script, send them closer, and keep them moving
+while nobody fires — `veafGroundAI`'s convoy closes in to 900 m, then drives onto the nearest enemy
+when no shot has been fired or taken for 2 minutes (FIX-CONVOY-FROZEN-STANDOFF).
+
+*What it cost:* Before that push, the Kolkhida assault convoy stayed frozen at its standoff for good: the enemy in
+sight kept the contact alive, so the quiet minute that relaunches a convoy never came.
 
 ### `world.searchObjects` on a `SPHERE` returns units beyond its radius {#searchobjects-sphere-overshoots-its-radius}
 
@@ -871,6 +940,30 @@ FIX-BUNDLE-LOCAL-LIMIT. In a hand-written `mission-script.lua`, keep state in a 
 
 *What it cost:* *Kolkhida* mission 1, rebuilt from `develop` the afternoon it was to be flown, loaded no VEAF
 module; no test had ever run the concatenated bundle.
+
+### `weapon:getTarget()` can return an object with no `isExist` method {#weapon-gettarget-object-with-no-isexist}
+
+Measured **2026-10-12**.
+
+On the Sinai Open Training of 2026-10-12 (dcs.veaf.org, Privé 1, VEAF 6.29.0), twelve player shots
+in 18 minutes made `target:isExist()` raise `attempt to call method 'isExist' (a nil value)` on
+the object `weapon:getTarget()` returned — although the scripting API documents `isExist` on every
+`Object`. What the object is was not measured: a scenery object is the hypothesis. A guard written
+`if not target or not target:isExist()` handles a weapon with no target and a target destroyed
+since, and still raises on this one.
+
+Measured on 2026-10-14 (Caucasus, single player, through the fiddle hook): an AI A-10C's four
+AGM-65D on a BTR-80 each got a complete `Unit` (`isExist` a function, `Object.getCategory` 1), at
+the shot and 2 s later. So the defect is not on a guided shot at a unit. The scenery and static
+cases could not be measured by AI: tasked with `AttackMapObject` on a house or `AttackUnit` on a
+static `Hangar A`, AI A-10Cs flew over, fired nothing and dropped their stores.
+
+**What to do:** Ask the object whether it has the method before calling it (`type(target.isExist) == "function"`),
+or call through the class (`Object.getCategory(target)`) inside `pcall`. Never assume
+`getTarget()` returns a unit.
+
+*What it cost:* The sanctuary's missile protection raised in the scheduler on each of those shots, and recorded
+none of them (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
 
 <!-- END GENERATED -->
 

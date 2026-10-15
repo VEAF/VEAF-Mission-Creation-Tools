@@ -415,6 +415,71 @@ function TestVeafCasMissionTypesExist:test_every_type_in_every_table_is_known_to
   luaunit.assertEquals(missing, {}, "types no unit database knows:\n  " .. table.concat(missing, "\n  "))
 end
 
+-- FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 04: the WW2 tables of the infantry and the IFV were the modern ones (a
+-- `Soldier M4 GRG`, a `M-2 Bradley` in front of a Tiger), and the sweep above only asks whether a type EXISTS, so it
+-- let them through. A WW2 entry must now be a type of the era: this list is the allow-list, and it is short on purpose,
+-- so a unit added to a WW2 table has to be named here by someone who knows it flew before 1946.
+local WW2_ALLOWED = {
+  -- trucks and cars
+  "Blitz_36-6700A",
+  "Horch_901_typ_40_kfz_21",
+  "Kubelwagen_82",
+  "Sd_Kfz_7",
+  "Sd_Kfz_2",
+  "Bedford_MWD",
+  "CCKW_353",
+  "Willys_MB",
+  -- armour, half-tracks, armoured cars
+  "Sd_Kfz_251",
+  "Sd_Kfz_234_2_Puma",
+  "Elefant_SdKfz_184",
+  "Pz_IV_H",
+  "Tiger_I",
+  "Tiger_II_H",
+  "Stug_III",
+  "Stug_IV",
+  "JagdPz_IV",
+  "Jagdpanther_G1",
+  "Pz_V_Panther_G",
+  "M30_CC",
+  "M10_GMC",
+  "Centaur_IV",
+  "Churchill_VII",
+  "Cromwell_IV",
+  "M4_Sherman",
+  "M4A4_Sherman_FF",
+  "M2A1_halftrack",
+  "M8_Greyhound",
+  "Daimler_AC",
+  -- infantry
+  "soldier_wwii_us",
+  "soldier_wwii_br_01",
+  "soldier_mauser98",
+}
+
+function TestVeafCasMissionTypesExist:test_every_ww2_entry_is_a_type_of_the_era()
+  local allowed = {}
+  for _, typeName in ipairs(WW2_ALLOWED) do
+    allowed[typeName] = true
+  end
+  local anachronisms = {}
+  local checked = 0
+  for tableName, tbl in pairs(TYPE_TABLES) do
+    for side, byEra in pairs(tbl) do
+      walkTypes(byEra[veaf.ERA.WW2], tableName .. "[" .. tostring(side) .. "][WW2]", function(typeName, path)
+        checked = checked + 1
+        local unit = veafUnits.findDcsUnit(typeName)
+        if not (unit and allowed[unit.type]) then
+          table.insert(anachronisms, path .. " = " .. typeName)
+        end
+      end)
+    end
+  end
+  table.sort(anachronisms)
+  luaunit.assertTrue(checked > 40, "the sweep found only " .. checked .. " WW2 entries; it is not reaching the tables")
+  luaunit.assertEquals(anachronisms, {}, "WW2 entries that are not types of the era:\n  " .. table.concat(anachronisms, "\n  "))
+end
+
 -- The units #296 asked for, named rather than assumed present: this is what the lot promised.
 function TestVeafCasMissionTypesExist:test_the_units_296_asked_for_can_be_spawned()
   local wanted = { "CHAP_T84OplotM", "CHAP_T90M", "CHAP_BMPT" }

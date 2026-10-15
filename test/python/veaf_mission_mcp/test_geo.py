@@ -4,7 +4,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from veaf_libs import coordinates, geocoding
+from veaf_libs.bundled_data import read_bundled_text
 from veaf_libs.geocoding import Bounds, GeocodeResult
 from veaf_mission_mcp import geo
 
@@ -25,8 +27,50 @@ class TestTheatreBounds:
         assert b is not None
         assert b.min_lat <= 41.65 <= b.max_lat and b.min_lon <= 41.64 <= b.max_lon
 
+    @pytest.mark.parametrize(
+        ("place", "lat", "lon"),
+        [("Port Stanley", -51.69, -57.85), ("Ushuaia", -54.81, -68.31), ("Punta Arenas", -53.16, -70.91)],
+    )
+    def test_falklands_box_contains_its_places(self, place: str, lat: float, lon: float) -> None:
+        # Without a box the geocoder answered « San Julian » in Jujuy and « Porvenir » in Maule.
+        b = geocoding.theatre_bounds("Falklands")
+        assert b is not None, place
+        assert b.min_lat <= lat <= b.max_lat and b.min_lon <= lon <= b.max_lon, place
+
     def test_unknown_theatre_is_none(self) -> None:
-        assert geocoding.theatre_bounds("nevada") is None
+        assert geocoding.theatre_bounds("no-such-theatre") is None
+
+    def test_every_theatre_of_the_projection_table_has_a_box(self) -> None:
+        """FIX-OPEN-TRAINING-NORMANDY-FINDINGS 11: a theatre with no box checks nothing, and said it was fine."""
+        theatres = yaml.safe_load(read_bundled_text("veaf_libs", "data", "dcs-maps.yaml"))
+        assert [name for name in theatres if geocoding.theatre_bounds(name) is None] == []
+
+    @pytest.mark.parametrize(
+        ("place", "lat", "lon"),
+        [("Omaha Beach", 49.37, -0.87), ("Tangmere", 50.85, -0.71), ("Evreux", 49.03, 1.22)],
+    )
+    def test_normandy_box_contains_its_places(self, place: str, lat: float, lon: float) -> None:
+        b = geocoding.theatre_bounds("Normandy")
+        assert b is not None
+        assert b.min_lat <= lat <= b.max_lat and b.min_lon <= lon <= b.max_lon, place
+
+    def test_normandy_box_excludes_the_omaha_beach_of_iowa(self) -> None:
+        b = geocoding.theatre_bounds("Normandy")
+        assert b is not None
+        assert not (b.min_lat <= 43.37 <= b.max_lat and b.min_lon <= -95.15 <= b.max_lon)
+
+    def test_every_theatre_box_holds_the_airfield_it_was_derived_from(self) -> None:
+        positions = yaml.safe_load(read_bundled_text("veaf_libs", "data", "airdrome-positions.yaml"))["theatres"]
+        outside = []
+        for theatre in ("Afghanistan", "GermanyCW", "Iraq", "Kola", "Nevada", "Normandy", "SinaiMap", "TheChannel"):
+            box = geocoding.theatre_bounds(theatre)
+            assert box is not None, theatre
+            outside += [
+                f"{theatre}/{a['name']}"
+                for a in positions[theatre]
+                if not (box.min_lat <= a["lat"] <= box.max_lat and box.min_lon <= a["lon"] <= box.max_lon)
+            ]
+        assert outside == []
 
 
 class TestGeocode:
@@ -43,6 +87,18 @@ class TestGeocode:
         assert result["in_theatre_bounds"] is True
         # The Caucasus bounding box was passed to the geocoder to disambiguate.
         assert fake.bounds_seen is not None
+
+    def test_a_theatre_with_no_box_checks_nothing_and_says_so(
+        self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _FakeGeocoder(GeocodeResult(43.37, -95.15, "Omaha Beach, Okoboji, Iowa"))
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: fake)
+        monkeypatch.setattr(geocoding, "theatre_bounds", lambda theatre: None)
+
+        result = geo.geocode(sample_miz, "Omaha Beach")
+
+        assert result["in_theatre_bounds"] is None
+        assert any("no bounds for this theatre" in w for w in result["warnings"])
 
     def test_bearing_distance_offsets_result(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         fake = _FakeGeocoder(GeocodeResult(42.0, 41.0, "somewhere"))
@@ -100,6 +156,30 @@ class TestRoadsRegionsAndRefusals:
         result = geo.geocode(sample_miz, "Al-Kiswah")
         assert (result["osm_class"], result["osm_type"]) == ("highway", "residential")
         assert any("not a named place" in w for w in result["warnings"])
+
+    @pytest.mark.parametrize(
+        ("query", "display_name"),
+        [("Umatac, Guam", "Guam, United States"), ("San Jose, Tinian", "Tinian, Northern Mariana Islands")],
+    )
+    def test_an_island_given_for_a_village_is_warned_about(
+        self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch, query: str, display_name: str
+    ) -> None:
+        """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05: a village asked, the island's centre given, no word."""
+        island = GeocodeResult(13.4, 144.7, display_name, "place", "island")
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(island))
+        warnings = geo.geocode(sample_miz, query)["warnings"]
+        named, found = query.split(",")[0], display_name.split(",")[0]
+        assert any(named in w and found in w and "island" in w for w in warnings), warnings
+
+    def test_the_island_asked_for_is_not_warned_about(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        island = GeocodeResult(13.4, 144.7, "Guam, United States", "place", "island")
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(island))
+        assert not [w for w in geo.geocode(sample_miz, "Guam")["warnings"] if "island" in w]
+
+    def test_the_village_found_is_not_warned_about(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        village = GeocodeResult(13.3, 144.66, "Umatac, Guam, United States", "place", "village")
+        monkeypatch.setattr(geocoding, "get_geocoder", lambda api_key=None: _FakeGeocoder(village))
+        assert not [w for w in geo.geocode(sample_miz, "Umatac, Guam")["warnings"] if "Umatac" in w]
 
     def test_a_refusal_is_a_miss_that_says_why(self, sample_miz: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         class _Refusing:

@@ -4,6 +4,7 @@ The assertions here are the three that would have caught the 2026-08-14 slot Dav
 `skill: Client`, `dynSpawnTemplate` cleared, and a group frequency rather than an inherited silence.
 """
 
+import math
 from pathlib import Path
 
 import pytest
@@ -66,6 +67,28 @@ class TestAirStart:
         assert (wp["type"], wp["action"]) == ("Turning Point", "Turning Point")
         assert "airdromeId" not in wp  # an air start references no airfield
 
+    @pytest.mark.parametrize("heading", [0.0, 90.0, 180.0, 300.0])
+    def test_the_heading_is_carried_by_a_second_point_as_the_editor_writes_it(
+        self, sample_miz: Path, heading: float
+    ) -> None:
+        """An air start flies toward its second point: with one point, an A-10 asked to fly 180° went north.
+
+        Measured on the Marianas v5, saved by the Mission Editor: 13 air starts with two points or more,
+        each with its unit `heading` equal to the bearing of its second point and `psi` its opposite;
+        10 with a single point, every one at heading 0 (FIX-AIR-SLOT-HEADING, 2026-10-12).
+        """
+        add_player_slot(sample_miz, **_common(heading_deg=heading, altitude_ft=10000, speed_kt=300))
+        group = _slot_group(read_miz(sample_miz).mission_content, "Player Viper")
+        first, second = group["route"]["points"]
+        bearing = math.degrees(math.atan2(second["y"] - first["y"], second["x"] - first["x"])) % 360
+        assert (bearing - heading + 180) % 360 - 180 == pytest.approx(0, abs=1e-6)
+        assert (second["ETA_locked"], second["ETA"]) == (False, pytest.approx(10_000 / first["speed"]))
+        assert (second["type"], second["action"]) == ("Turning Point", "Turning Point")
+        assert (second["alt"], second["speed"]) == (first["alt"], first["speed"])
+        unit = group["units"][0]
+        assert math.cos(unit["psi"]) == pytest.approx(math.cos(math.radians(heading)))
+        assert math.sin(unit["psi"]) == pytest.approx(-math.sin(math.radians(heading)))
+
     def test_altitude_and_speed_are_converted(self, sample_miz: Path) -> None:
         add_player_slot(sample_miz, **_common(altitude_ft=10000, speed_kt=300))
         unit = _slot_group(read_miz(sample_miz).mission_content, "Player Viper")["units"][0]
@@ -80,6 +103,7 @@ class TestGroundStart:
         wp = group["route"]["points"][0]
         assert (wp["type"], wp["action"]) == ("TakeOffParking", "From Parking Area")
         assert wp["airdromeId"] == 24
+        assert len(group["route"]["points"]) == 1  # the stand orients a ground start, not a route
         assert (group["units"][0]["parking"], group["units"][0]["parking_id"]) == ("43", "16")
 
     def test_hot_writes_the_hot_waypoint_pair(self, sample_miz: Path) -> None:
@@ -167,3 +191,16 @@ class TestFuelLoad:
         payload = self._payload(read_miz(sample_miz).mission_content, "plane", "Player Mod")
         assert "fuel" not in payload
         assert any("fuel" in w for w in result["warnings"])
+
+
+class TestSlotFrequency:
+    """FIX-OPEN-TRAINING-NORMANDY-FINDINGS 13: a slot's default frequency is its airframe's, not 251 MHz."""
+
+    @pytest.mark.parametrize(("unit_type", "expected"), [("P-51D", 124.0), ("FW-190A8", 38.4), ("F-16C_50", 251.0)])
+    def test_the_default_is_251_or_the_types_own(self, sample_miz: Path, unit_type: str, expected: float) -> None:
+        add_player_slot(sample_miz, **_common(unit_type=unit_type))
+        assert _slot_group(read_miz(sample_miz).mission_content, "Player Viper")["frequency"] == expected
+
+    def test_an_untunable_frequency_is_refused(self, sample_miz: Path) -> None:
+        with pytest.raises(ValueError, match="refuses to save"):
+            add_player_slot(sample_miz, **_common(unit_type="FW-190A8", frequency_mhz=251.0))

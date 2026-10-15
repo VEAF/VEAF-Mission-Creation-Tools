@@ -115,6 +115,14 @@ def test_veaf_tools_extra_data_bundles_known_limitations(tmp_path: Path) -> None
     assert "known-limitations.yaml" in sources
 
 
+def test_veaf_tools_extra_data_bundles_both_payload_files(tmp_path: Path) -> None:
+    """dcs_payloads reads both: a frozen build missing the bombers' file fails on the first `list_payloads`."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    sources = [src.name for src, _dest in worker._veaf_tools_extra_data(None)]
+    assert "payloads.yaml" in sources
+    assert "payloads-ai-bombers.yaml" in sources
+
+
 def test_veaf_tools_extra_data_bundles_the_authoring_skill(tmp_path: Path) -> None:
     """The MCP describe_authoring_guide action reads it: the skill lives in plugin/, outside the package."""
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)

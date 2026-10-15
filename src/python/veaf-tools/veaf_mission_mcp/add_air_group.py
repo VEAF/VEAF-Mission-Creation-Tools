@@ -39,7 +39,13 @@ from veaf_libs.dcs_units_data import get_unit_attributes, get_unit_deck_categori
 from veaf_libs.mission_table import indexed
 
 from veaf_mission_mcp.aircraft_identity import assign_identities
-from veaf_mission_mcp.aircraft_payload import build_aircraft_payload, normalize_pylons, resolve_loadout
+from veaf_mission_mcp.aircraft_payload import (
+    GUN_FIGHTERS,
+    build_aircraft_payload,
+    normalize_pylons,
+    resolve_flight_loadout,
+)
+from veaf_mission_mcp.aircraft_radio import resolve_group_frequency
 from veaf_mission_mcp.edit_route import _build_orbit, _build_set_unlimited_fuel
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
@@ -93,7 +99,7 @@ def add_air_group(
     speed_kt: float = 250.0,
     heading_deg: float = 0.0,
     skill: str = "High",
-    frequency_mhz: float = 251.0,
+    frequency_mhz: float | None = None,
     task: str = "CAS",
     parking: list[str] | None = None,
     fuel: float | None = None,
@@ -101,6 +107,7 @@ def add_air_group(
     late_activation: bool = False,
     pylons: dict[Any, Any] | None = None,
     payload: str | None = None,
+    loadout_from: str | None = None,
     chaff: int | None = None,
     flare: int | None = None,
     carrier: str | None = None,
@@ -128,7 +135,10 @@ def add_air_group(
         heading_deg: Unit heading in degrees.
         skill: AI level (``"Average"``…``"Excellent"``/``"Random"``), or ``"Client"``/``"Player"`` for
             human slots. Defaults to ``"High"`` — a flight on the ramp is AI unless asked otherwise.
-        frequency_mhz: The group's radio frequency in MHz.
+        frequency_mhz: The group's radio frequency in MHz. Defaults to 251, or to the type's own
+            when its airframe cannot tune 251 (124 for a P-51D, 38.4 for a Fw 190): the Mission Editor
+            refuses to save a group whose frequency its airframe cannot tune. Asking for one it cannot tune is refused for
+            a ``Client``/``Player`` group, warned about for an AI one.
         task: The aircraft-group task (default ``"CAS"``).
         parking: Optional explicit stand numbers (one per aircraft) overriding automatic selection.
             When given, it also **sets the flight size** — one aircraft per stand — so it can never
@@ -141,6 +151,10 @@ def add_air_group(
         pylons: The loadout, ``{station: {"CLSID": ...}}`` as the mission file stores it.
         payload: A DCS loadout by the name the Mission Editor lists (``list_payloads``) — an
             alternative to ``pylons``, refused when both are given.
+        loadout_from: A group to copy the loadout from: the mission's, then the folder's aircraft
+            catalogues, then the shipped ones (a ``veafSpawn-*`` template) — the only sourced loadout of
+            a module aircraft with no DCS named payload. One of ``pylons``, ``payload`` and
+            ``loadout_from`` at most.
         chaff: Chaff count per aircraft; defaults to the type's Mission Editor default.
         flare: Flare count per aircraft; defaults to the type's Mission Editor default.
         carrier: The ship **unit** name a deck start takes off from.
@@ -192,10 +206,16 @@ def add_air_group(
 
     # Resolved once for the flight -- every aircraft is the same type -- and before the stands are
     # committed, so a bad explicit value fails without having half-written the mission.
+    frequency, frequency_warning = resolve_group_frequency(unit_type, frequency_mhz, skill=skill)
     aircraft_payload, fuel_warning = build_aircraft_payload(
         unit_type, fuel=fuel, fuel_fraction=fuel_fraction, chaff=chaff, flare=flare
     )
-    loadout = resolve_loadout(unit_type, pylons, payload)
+    loadout = resolve_flight_loadout(
+        target if is_folder else target.parent,
+        content,
+        {"pylons": pylons, "payload": payload, "loadout_from": loadout_from},
+        unit_type,
+    )
     if loadout:
         aircraft_payload["pylons"] = normalize_pylons(loadout)
 
@@ -211,7 +231,7 @@ def add_air_group(
         speed_kt=speed_kt,
         heading_deg=heading_deg,
         skill=skill,
-        frequency_mhz=frequency_mhz,
+        frequency_mhz=frequency,
         task=task,
         payload=aircraft_payload,
         late_activation=late_activation,
@@ -256,14 +276,14 @@ def add_air_group(
         "airdrome_id": airdrome_id,
         "stands": deck[1] if deck is not None else [s.parking for s in stands],
     }
-    unarmed = unarmed_warning(name, task, skill, aircraft_payload)
-    warnings = [w for w in (category_warning, fuel_warning, callsign_note, unarmed, afac_note) if w]
+    unarmed = unarmed_warning(name, task, skill, aircraft_payload, unit_type)
+    warnings = [w for w in (category_warning, fuel_warning, frequency_warning, callsign_note, unarmed, afac_note) if w]
     if warnings:
         result["warnings"] = warnings
     return result
 
 
-def unarmed_warning(name: str, task: str, skill: str, payload: dict[str, Any]) -> str | None:
+def unarmed_warning(name: str, task: str, skill: str, payload: dict[str, Any], unit_type: str) -> str | None:
     """Warn about an AI flight given a fighting task and no weapons.
 
     Eight Syria escort pairs were created with an empty ``pylons`` table and escorted nothing
@@ -275,11 +295,16 @@ def unarmed_warning(name: str, task: str, skill: str, payload: dict[str, Any]) -
         task: The group's task.
         skill: The group's skill.
         payload: The payload the units carry.
+        unit_type: The aircraft type: a WW2 fighter fights with its guns, and carries no pylon to say so.
 
     Returns:
         The warning, or ``None``.
     """
     if task not in FIGHTING_TASKS or skill in ("Client", "Player") or payload.get("pylons"):
+        return None
+    # Every aircraft is written with `gun = 100`, so the gun alone cannot tell a P-51D from an F-15C
+    # given no missiles: the type does (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 02).
+    if unit_type in GUN_FIGHTERS and payload.get("gun"):
         return None
     warning = f"group {name!r} has task {task!r} and no weapons: it will not fight without a loadout"
     return warning
@@ -348,6 +373,7 @@ def insert_air_group_into_content(
     route: list[dict[str, float]] | None = None,
     start: str = "air",
     airfield: str | None = None,
+    engage_air: bool = True,
 ) -> tuple[int, list[str]]:
     """Insert a flight into a parsed mission table, airborne or on a runway; the composites' aircraft builder.
 
@@ -376,6 +402,9 @@ def insert_air_group_into_content(
         start: ``"air"`` at ``position``, or ``"runway"``: a take-off from ``airfield``'s runway, and
             ``position`` is then ignored (a QRA's default since FIX-CAMPAIGN-MISSION-1-FINDINGS ticket 04).
         airfield: The airfield **name** a runway start takes off from.
+        engage_air: Give a ``CAP`` flight the editor's automatic ``EngageTargets``. ``False`` for a QRA
+            interceptor: the build gives a route with no task the ``zone_defense`` role, and flies one
+            that engages air as written (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 01).
 
     Returns:
         ``(group_id, warnings)``.
@@ -393,6 +422,7 @@ def insert_air_group_into_content(
     payload, fuel_warning = build_aircraft_payload(unit_type)
     if pylons:
         payload["pylons"] = normalize_pylons(pylons)
+    frequency, _ = resolve_group_frequency(unit_type, None, skill=skill)
     group = _build_air_group(
         name=name,
         unit_type=unit_type,
@@ -405,14 +435,14 @@ def insert_air_group_into_content(
         speed_kt=speed_kt,
         heading_deg=0.0,
         skill=skill,
-        frequency_mhz=251.0,
+        frequency_mhz=frequency,
         task=task,
         payload=payload,
         late_activation=late_activation,
     )
     points = group["route"]["points"]
     first_tasks: list[dict[str, Any]] = []
-    if task == "CAP":
+    if task == "CAP" and engage_air:
         # The editor's CAP task adds this one on its own; without it the template patrols and never
         # engages (ticket 17). First, because a task numbered after an endless orbit is never reached.
         first_tasks.append(_cap_engage_task())
@@ -446,7 +476,7 @@ def insert_air_group_into_content(
         category=category,
         group=group,
     )
-    unarmed = unarmed_warning(name, task, skill, payload)
+    unarmed = unarmed_warning(name, task, skill, payload, unit_type)
     return group_id, [w for w in (category_warning, fuel_warning, callsign_note, unarmed) if w]
 
 

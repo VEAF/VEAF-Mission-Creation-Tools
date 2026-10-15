@@ -1,0 +1,21 @@
+# Default loadouts of the AI bombers the Mission Editor gives no named loadout (FIX-OPEN-TRAINING-NORMANDY-FINDINGS
+# ticket 01): Ju-88A4 and B-17G have no `UnitPayloads/*.lua`, only stations in the install's db.Units.lua.
+# Same shape as payloads.yaml, merged into it by `veaf_libs.dcs_payloads`; the names follow the editor's own
+# convention (`<bomb>*<count>`).
+#
+# Written by hand, read in db.Units.lua of the DCS World install on 2026-10-13:
+#   Ju-88A4  Pylons[1] and [3] (the wings) offer SC_501_SC500 among ten bombs, Pylons[2] (the bay) offers only
+#            {JU88A4TORP_10xSC50_on_InvCountedAttachmentPoints}.
+#   B-17G    Pylons[1] offers only {12xM64}.
+# These are the loads the Normandy Open Training flew its raids with. Other loads of the Ju-88A4 (SC 250, SD 250,
+# AB 250...) are in db.Units.lua; add one here when a mission needs it.
+
+Ju-88A4:
+  SC500*2,SC50*10:
+    1: SC_501_SC500
+    2: '{JU88A4TORP_10xSC50_on_InvCountedAttachmentPoints}'
+    3: SC_501_SC500
+
+B-17G:
+  M64*12:
+    1: '{12xM64}'

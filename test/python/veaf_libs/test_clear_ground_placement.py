@@ -57,6 +57,8 @@ def test_not_covered_and_nothing_large_enough_both_place_as_asked_and_say_which(
     uncovered = placement.place_on_clear_ground("Caucasus-nowhere", _units(0, 0), coalition="red")
     assert (uncovered.dx, uncovered.dy) == (0.0, 0.0)
     assert "no clear-ground catalogue covers" in uncovered.message and "clear-ground-sweep" in uncovered.message
+    # what was not checked, and how to check it (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 07)
+    assert "trees" in uncovered.message and "clear-ground-check" in uncovered.message
 
     too_big = placement.place_on_clear_ground(
         "TestTheatre", [{"x": -300, "y": 0, "name": '#command="-samVLR" #spawnradius=800'}], coalition="red"

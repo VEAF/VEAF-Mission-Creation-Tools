@@ -249,3 +249,39 @@ def test_something_else_on_the_port_stops_at_once(app, monkeypatch, tmp_path) ->
     assert result.exit_code == 1
     assert calls["n"] == 1
     assert "404" in result.output
+
+
+def test_farp_spot_lists_the_spots_nearest_first_and_says_dcs_can_close(app, monkeypatch, tmp_path) -> None:
+    """FIX-FARP-PLACEMENT 03: the survey flow, then the bands, then the list — a negative point included."""
+    from veaf_tools.commands import clear_ground
+
+    dcs = FakeDcs(theatre="MarianaIslands")
+    bands: list[str] = []
+
+    def exec_over_bridge(_url, _key, code, timeout):
+        if "survey:farp-spot" not in code:
+            return dcs(code)
+        bands.append(code)
+        return "-21150\t-12400\t2.5\n-22250\t-12450\t1.0" if len(bands) == 1 else ""
+
+    monkeypatch.setattr(clear_ground, "exec_over_bridge", exec_over_bridge)
+    bridge = tmp_path / "dcs-bridge.lua"
+    bridge.write_text("--", encoding="utf-8")
+    report = tmp_path / "spots.json"
+    result = CliRunner().invoke(
+        app,
+        ["farp-spot", "marianaislands", "--at", "-22300,-12450", "--radius", "500", "--bridge-lua", str(bridge)]
+        + ["--api-key", "k", "--report", str(report)],
+    )
+    assert result.exit_code == 0, result.output
+    assert len(bands) == 4
+    lines = [line for line in result.output.splitlines() if "x=" in line]
+    assert "x=-22250 y=-12450" in lines[0] and "x=-21150 y=-12400" in lines[1]
+    assert '"drop": 1.0' in report.read_text(encoding="utf-8")
+    assert "DCS" in result.output.strip().splitlines()[-1]
+
+
+def test_farp_spot_refuses_a_malformed_point(app, tmp_path) -> None:
+    result = CliRunner().invoke(app, ["farp-spot", "MarianaIslands", "--at", "12", "--api-key", "k"])
+    assert result.exit_code == 1
+    assert "x,y" in result.output

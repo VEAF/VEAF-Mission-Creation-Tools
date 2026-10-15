@@ -101,3 +101,20 @@ def test_an_unknown_airfield_named_is_refused_not_put_in_the_air(tmp_path: Path)
     folder = _folder(tmp_path)
     with pytest.raises(ValueError, match="Senakii"):
         _qra(folder, airfield="Senakii")
+
+
+@pytest.mark.parametrize("task", ["CAP", "Intercept"])
+def test_a_qra_group_carries_no_task_whatever_its_task_so_it_defends_its_zone(tmp_path: Path, task: str) -> None:
+    """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 01: `task: "CAP"` wrote the editor's `EngageTargets`,
+    and the build flew the one-point route as written instead of giving the group its zone."""
+    from mission_builder.aircraft_roles import ROUTE_ZONE_DEFENSE, find_deployed_aircraft_routes
+
+    folder = _folder(tmp_path)
+    _qra(folder, task=task)
+    group = _group(folder, "QRA Senaki MiG-29")
+    assert group["task"] == task
+    first = _items(group["route"]["points"])[0]
+    assert not _items(first["task"]["params"]["tasks"])
+    mission_yaml = {"modules": {"QRA": {"definitions": [{"simple_groups": ["QRA Senaki MiG-29"]}]}}}
+    content = read_mission_folder(folder).mission_content or {}
+    assert find_deployed_aircraft_routes(mission_yaml, content) == [("QRA", "QRA Senaki MiG-29", ROUTE_ZONE_DEFENSE)]

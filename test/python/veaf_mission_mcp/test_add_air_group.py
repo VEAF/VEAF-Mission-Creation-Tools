@@ -602,7 +602,7 @@ class TestDcsPayloadByName:
             self._add(tmp_path, payload="Everything")
 
     def test_both_pylons_and_payload_are_refused(self, tmp_path: Path) -> None:
-        with pytest.raises(ValueError, match="not both"):
+        with pytest.raises(ValueError, match="give one loadout, not pylons and payload"):
             self._add(tmp_path, payload="R-40T*2,R-33*4", pylons={1: {"CLSID": "{X}"}})
 
 
@@ -624,3 +624,160 @@ def test_an_afac_flight_on_the_ramp_gets_no_orbit_and_a_warning(tmp_path: Path) 
     first = _slot_group(read_miz(miz).mission_content or {}, "Reaper 1")["route"]["points"]
     first = (list(first.values()) if isinstance(first, dict) else first)[0]
     assert "task" not in first or "Orbit" not in str(first["task"])
+
+
+class TestLoadoutFrom:
+    """FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 03: an escort of a module aircraft with no DCS named
+    payload had no sourced loadout but the catalogue's, which only the composites could copy."""
+
+    _ESCORT = {
+        "coalition": "blue",
+        "country_id": 2,
+        "country_name": "USA",
+        "name": "Escort",
+        "unit_type": "F-15C",
+        "start": "air",
+        "position": {"x": 0.0, "y": 0.0},
+        "task": "Escort",
+    }
+
+    def test_an_escort_is_armed_from_a_template_of_the_shipped_catalogue(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        result = add_air_group(miz, loadout_from="veafSpawn-F-15C - FOX3 - Radar ON - ECM ON - HARD X1", **self._ESCORT)
+        assert "warnings" not in result
+        unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Escort"))[0]
+        assert unit["payload"]["pylons"]
+
+    def test_a_j11a_is_armed_from_its_dynamic_slot_template(self, tmp_path: Path) -> None:
+        """The J-11A has no DCS named payload; its catalogue template was the empty table (ticket 04)."""
+        miz = _caucasus_miz(tmp_path)
+        escort = {
+            **self._ESCORT,
+            "unit_type": "J-11A",
+            "coalition": "red",
+            "country_id": 81,
+            "country_name": "CJTF Red",
+        }
+        add_air_group(miz, loadout_from="J-11A Template Red", **escort)
+        unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Escort"))[0]
+        clsids = {pylon["CLSID"] for pylon in unit["payload"]["pylons"].values()}
+        assert "{B4C01D60-A8A3-4237-BD72-CA7655BC0FE9}" in clsids  # stations 5-6 of the v5 Marianas loadout
+
+    def test_two_loadouts_at_once_are_refused(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        with pytest.raises(ValueError, match="give one loadout"):
+            add_air_group(
+                miz, loadout_from="veafSpawn-F-15C - FOX3 - Radar ON - ECM ON - HARD X1", payload="x", **self._ESCORT
+            )
+
+
+class TestGunFighters:
+    """FIX-OPEN-TRAINING-NORMANDY-FINDINGS 02: a WW2 fighter fights with its guns, and has no pylons to say so."""
+
+    _FLIGHT = {
+        "coalition": "blue",
+        "country_id": 2,
+        "country_name": "USA",
+        "name": "Mustangs",
+        "unit_type": "P-51D",
+        "start": "air",
+        "position": {"x": 0.0, "y": 0.0},
+        "task": "CAP",
+    }
+
+    @pytest.mark.parametrize(
+        "unit_type", ["P-51D", "SpitfireLFMkIX", "Bf-109K-4", "FW-190A8", "FW-190D9", "P-47D-30", "MosquitoFBMkVI"]
+    )
+    def test_a_gun_fighter_on_cap_does_not_warn(self, tmp_path: Path, unit_type: str) -> None:
+        result = add_air_group(_caucasus_miz(tmp_path), **{**self._FLIGHT, "unit_type": unit_type})
+        assert not any("no weapons" in w for w in result.get("warnings", []))
+
+    def test_a_ww2_bomber_without_bombs_still_warns(self, tmp_path: Path) -> None:
+        result = add_air_group(
+            _caucasus_miz(tmp_path), **{**self._FLIGHT, "unit_type": "Ju-88A4", "task": "Ground Attack"}
+        )
+        assert any("no weapons" in w for w in result["warnings"])
+
+    def test_a_modern_jet_without_missiles_still_warns(self, tmp_path: Path) -> None:
+        """Every aircraft is written with `gun = 100`, so the gun alone must not count as armed."""
+        result = add_air_group(_caucasus_miz(tmp_path), **{**self._FLIGHT, "unit_type": "F-15C"})
+        assert any("no weapons" in w for w in result["warnings"])
+
+    def test_loadout_from_a_gun_only_template_copies_no_pylons(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        add_air_group(miz, **{**self._FLIGHT, "name": "P-51D Template"})
+        result = add_air_group(miz, loadout_from="P-51D Template", **self._FLIGHT)
+        assert not any("no weapons" in w for w in result.get("warnings", []))
+        unit = _units(_slot_group(read_miz(miz).mission_content or {}, "Mustangs"))[0]
+        assert not unit["payload"]["pylons"]
+        assert unit["payload"]["gun"] == 100
+
+    def test_loadout_from_a_group_found_nowhere_is_still_refused(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="no aircraft group named"):
+            add_air_group(_caucasus_miz(tmp_path), loadout_from="No Such Template", **self._FLIGHT)
+
+
+class TestGroupFrequency:
+    """FIX-OPEN-TRAINING-NORMANDY-FINDINGS 13: 251 MHz is not tunable by a P-51D or a Fw 190, and the
+    Mission Editor refuses to save a group written with it."""
+
+    _FLIGHT = {
+        "coalition": "blue",
+        "country_id": 2,
+        "country_name": "USA",
+        "name": "Flight",
+        "start": "air",
+        "position": {"x": 0.0, "y": 0.0},
+        "task": "CAP",
+    }
+
+    def _frequency(self, tmp_path: Path, **over: object) -> float:
+        miz = _caucasus_miz(tmp_path)
+        add_air_group(miz, **{**self._FLIGHT, **over})
+        return _slot_group(read_miz(miz).mission_content or {}, "Flight")["frequency"]
+
+    @pytest.mark.parametrize(
+        ("unit_type", "expected"),
+        [("P-51D", 124.0), ("FW-190A8", 38.4), ("FW-190D9", 38.4), ("Bf-109K-4", 40.0), ("F-15C", 251.0)],
+    )
+    def test_the_default_is_251_or_the_types_own(self, tmp_path: Path, unit_type: str, expected: float) -> None:
+        assert self._frequency(tmp_path, unit_type=unit_type, skill="Client") == expected
+
+    def test_a_type_with_no_radio_spec_keeps_251(self, tmp_path: Path) -> None:
+        assert self._frequency(tmp_path, unit_type="NoSuchModType") == 251.0
+
+    def test_an_explicit_frequency_the_airframe_can_tune_is_kept(self, tmp_path: Path) -> None:
+        assert self._frequency(tmp_path, unit_type="P-51D", frequency_mhz=131.5) == 131.5
+
+    def test_a_client_group_asking_for_an_untunable_frequency_is_refused_before_the_file_is_touched(
+        self, tmp_path: Path
+    ) -> None:
+        miz = _caucasus_miz(tmp_path)
+        before = miz.read_bytes()
+        with pytest.raises(ValueError, match="refuses to save"):
+            add_air_group(miz, **{**self._FLIGHT, "unit_type": "FW-190A8", "skill": "Client", "frequency_mhz": 251.0})
+        assert miz.read_bytes() == before
+
+    def test_an_ai_group_asking_for_an_untunable_frequency_is_warned(self, tmp_path: Path) -> None:
+        result = add_air_group(
+            _caucasus_miz(tmp_path), **{**self._FLIGHT, "unit_type": "P-51D", "frequency_mhz": 251.0}
+        )
+        assert any("251.0 MHz is outside P-51D" in w for w in result["warnings"])
+
+
+class TestEmptyTemplateLoadout:
+    def test_an_empty_template_of_a_modern_type_is_still_refused(self, tmp_path: Path) -> None:
+        """Only a gun fighter's template is legitimately empty: the J-11A one was a defect, and stays a refusal."""
+        miz = _caucasus_miz(tmp_path)
+        flight = {
+            "coalition": "blue",
+            "country_id": 2,
+            "country_name": "USA",
+            "unit_type": "F-15C",
+            "start": "air",
+            "position": {"x": 0.0, "y": 0.0},
+            "task": "CAP",
+        }
+        add_air_group(miz, name="Empty Template", **flight)
+        with pytest.raises(ValueError, match="carries no pylons"):
+            add_air_group(miz, name="Flight", loadout_from="Empty Template", **flight)

@@ -11,6 +11,7 @@ import yaml
 from mission_tools import DcsMission, read_miz, write_miz
 from veaf_libs import briefing_variables
 from veaf_libs.base_worker import BaseWorker
+from veaf_libs.geocoding import theatre_bounds
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.progress import progress_context
@@ -18,6 +19,7 @@ from veaf_libs.progress import progress_context
 from .models import MissionConfig, VersionConfig
 from .utils import SolarCalculator, TimeExpressionParser
 from .utils.theatre_offsets import theatre_utc_offset
+from .utils.theatre_position import theatre_position
 from .weather import DCSWeatherConverter
 from .weather.dcs_weather_converter import (
     _extract_metar_values,
@@ -88,7 +90,7 @@ class WeatherInjectorWorker(BaseWorker):
     1. Load configuration from YAML file
     2. For each version config:
        a. Load base mission
-       b. Calculate solar times if position specified
+       b. Calculate solar times at the declared position, else the theatre's
        c. Parse and apply time/date modifications
        d. Apply weather modifications
        e. Write output mission file
@@ -141,7 +143,7 @@ class WeatherInjectorWorker(BaseWorker):
 
         logger.info(tn("weather.config_loaded", len(self.config.versions)))
 
-        # Calculate solar times if position specified
+        self._settle_position()
         if self.config.position:
             self._calculate_solar_times()
 
@@ -183,6 +185,43 @@ class WeatherInjectorWorker(BaseWorker):
         except Exception as e:
             logger.error(t("weather.error.load_config", error=str(e)))
             return None
+
+    def _settle_position(self) -> None:
+        """Decide where solar times are computed (FIX-SOLAR-DEFAULT-POSITION).
+
+        No ``position``: the theatre's point (:func:`theatre_position`), which the shipped
+        ``versions.yaml`` used to set to Damascus whatever the map. A declared one wins, with a warning
+        when it lies outside the theatre's bounds — the Damascus default left in a Caucasus mission.
+        """
+        if not self.config:
+            return
+        theatre = self._read_theatre()
+        position = self.config.position
+        if position is None:
+            self.config.position = theatre_position(theatre)
+            if self.config.position:
+                logger.info(
+                    t(
+                        "weather.position.theatre_default",
+                        theatre=theatre,
+                        latitude=round(self.config.position.latitude, 2),
+                        longitude=round(self.config.position.longitude, 2),
+                    )
+                )
+            return
+        bounds = theatre_bounds(theatre) if theatre else None
+        if bounds and not (
+            bounds.min_lat <= position.latitude <= bounds.max_lat
+            and bounds.min_lon <= position.longitude <= bounds.max_lon
+        ):
+            logger.warning(
+                t(
+                    "weather.position.outside_theatre",
+                    theatre=theatre,
+                    latitude=position.latitude,
+                    longitude=position.longitude,
+                )
+            )
 
     def _calculate_solar_times(self) -> None:
         """Calculate sunrise/sunset for the configuration position."""

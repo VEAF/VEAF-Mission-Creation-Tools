@@ -28,10 +28,12 @@ from typing import Any
 
 from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.group_insertion import max_ids
+from veaf_libs.dcs_countries import country_name_for_id
 from veaf_libs.dcs_units_data import get_unit_attributes
 
 from veaf_mission_mcp.add_air_group import insert_air_group_into_content
 from veaf_mission_mcp.add_farp import _default_warehouse
+from veaf_mission_mcp.aircraft_identity import NUMERIC_CALLSIGN_COUNTRIES, recovery_tanker_callsign
 from veaf_mission_mcp.edit_route import (
     _TACAN_SYSTEM_AIR,
     _TACAN_SYSTEM_SHIP,
@@ -91,6 +93,7 @@ def add_carrier_group(
     tanker_tacan_channel: int = 64,
     tanker_tacan_callsign: str = "SHL",
     tanker_frequency_mhz: float = 290.0,
+    tanker_callsign: str | None = None,
     rescue_helicopter: bool = True,
 ) -> dict[str, Any]:
     """Place a carrier group with its ATC, tanker, rescue helicopter and warehouse, backed up first.
@@ -118,10 +121,14 @@ def add_carrier_group(
         tanker_tacan_channel: The tanker's TACAN channel, Y mode.
         tanker_tacan_callsign: Its TACAN identifier.
         tanker_frequency_mhz: Its radio, in MHz.
+        tanker_callsign: Its callsign, a tanker family and a flight (``"Arco 5"``); by default the
+            ``Shell`` family from flight 9 down, so the tankers named ``Texaco 1`` or ``Arco 1`` placed
+            later keep theirs. Ignored for a country whose aircraft carry a numeric callsign.
         rescue_helicopter: Add the ``<carrier> Pedro`` group.
 
     Returns:
-        ``{group, group_id, carrier, carrier_unit_id, tanker, pedro, durable, warnings}``.
+        ``{group, group_id, carrier, carrier_unit_id, tanker, tanker_callsign, pedro, durable, warnings}``
+        — ``tanker_callsign`` is the callsign's name (``"Shell91"``), or ``None``.
 
     Raises:
         ValueError: On an unknown carrier type, a channel or callsign DCS would refuse, an incomplete
@@ -222,9 +229,12 @@ def add_carrier_group(
         warehouses["warehouses"] = table
     table[carrier_unit_id] = _default_warehouse(coalition.lower())
 
-    tanker_name = pedro_name = None
+    tanker_name = pedro_name = tanker_callsign_name = None
     if recovery_tanker:
         tanker_name = f"{unit_name} S3B-Tanker"
+        western = country_name_for_id(country_id) not in NUMERIC_CALLSIGN_COUNTRIES
+        # chosen before the tanker is in the mission, which would otherwise hold its own flight
+        callsign = recovery_tanker_callsign(content, tanker_callsign) if western else None
         aft = {"x": x - math.cos(heading) * 5 * _M_PER_NM, "y": y - math.sin(heading) * 5 * _M_PER_NM}
         _add_support(
             content,
@@ -241,7 +251,11 @@ def add_carrier_group(
         )
         tanker = find_group(content, tanker_name)
         tanker["frequency"] = float(tanker_frequency_mhz)
-        tanker_unit_id = indexed(tanker["units"])[0]["unitId"]
+        tanker_unit = indexed(tanker["units"])[0]
+        if callsign is not None:
+            tanker_unit["callsign"] = callsign
+            tanker_callsign_name = callsign["name"]
+        tanker_unit_id = tanker_unit["unitId"]
         points = indexed(tanker["route"]["points"])
         points[0]["task"] = {
             "id": "ComboTask",
@@ -281,6 +295,7 @@ def add_carrier_group(
         "carrier": unit_name,
         "carrier_unit_id": carrier_unit_id,
         "tanker": tanker_name,
+        "tanker_callsign": tanker_callsign_name,
         "pedro": pedro_name,
         "durable": durable,
         "warnings": warnings,

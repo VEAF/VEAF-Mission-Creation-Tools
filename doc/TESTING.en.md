@@ -164,6 +164,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafWeather.lua` | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | Unit data export utilities |
 | `test_veafCombatMission.lua` | Base combat mission lifecycle |
+| `test_veafCombatMission_menu.lua` | MISSIONS radio menu: missions declared after `initialize()`, deferred rebuild |
 | `test_veafAirbases.lua` | Airbase data lookup |
 | `test_veafCombatZone.lua` | Zone activation, scoring, state machine |
 | `test_veafCombatZone_displacement.lua` | Spawn anchor of a widely spread group: it keeps its shape |

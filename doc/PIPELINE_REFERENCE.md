@@ -241,6 +241,8 @@ Le rapport, et le journal du build, listent aussi **chaque AWACS et ravitailleur
 <dossier-mission>/presets-validation-report.md
 ```
 
+Le rapport se committe sans bruit : il ne porte ni date ni chemin de la machine. Le fichier de presets y est nommé depuis le dossier de mission (`src/presets.yaml`) et la mission par son nom, sans la date du `.miz` ; deux builds des mêmes presets, depuis deux dossiers ou deux jours différents, écrivent le même fichier.
+
 **Désactiver temporairement l'injection pour un appareil :**
 
 Pendant que vous corrigez les presets, vous pouvez désactiver l'injection pour un type d'appareil en lui affectant la valeur `none` dans `presets_assignments` :
@@ -523,7 +525,7 @@ que les catégories qu'il peut garer, et le stock devenu injouable (écrit par u
 est retiré. Cela vaut aussi pour une liste `aircrafts:` explicite — DCS ignorerait de toute façon
 ce qu'il ne peut pas garer. Le filtrage est **silencieux** : aucun avertissement au build.
 
-**Portée.** Les données de parking ne sont embarquées que pour **Caucasus, Persian Gulf et Syria**.
+**Portée.** Les données de parking ne sont embarquées que pour **Caucasus, Persian Gulf, Syria et Sinai**.
 Sur tout autre théâtre — et sur un aérodrome absent des données — rien n'est filtré, le
 comportement est inchangé.
 
@@ -593,7 +595,8 @@ Aussi accepté : versions.yaml  (racine du dossier mission)
 ### Schéma
 
 ```yaml
-# ── Position géographique pour les calculs solaires ────────────────────────
+# ── Position géographique pour les calculs solaires (facultatif) ──────────
+# Absente : un point par théâtre, sur la carte de la mission (vers Batoumi sur le Caucase…).
 position:
   latitude: 33.5                        # degrés décimaux, -90 à 90
   longitude: 35.5                       # degrés décimaux, -180 à 180
@@ -680,8 +683,8 @@ Ce que `${METAR}` vaut selon la variante :
 | Format | Exemple | Signification |
 |--------|---------|--------------|
 | `HH:MM` | `14:30` | Heure absolue (14h30 heure locale) |
-| `sunrise` | `sunrise` | Heure du lever du soleil (nécessite `position:`) |
-| `sunset` | `sunset` | Heure du coucher du soleil (nécessite `position:`) |
+| `sunrise` | `sunrise` | Heure du lever du soleil (à `position:`, sinon au point du théâtre) |
+| `sunset` | `sunset` | Heure du coucher du soleil (à `position:`, sinon au point du théâtre) |
 | Expression | `sunrise+30*60` | Arithmétique — décalage en secondes |
 | Secondes | `54000` | Secondes brutes depuis minuit |
 
@@ -700,7 +703,7 @@ Ce que `${METAR}` vaut selon la variante :
 | `temperature` | nombre | Température de l'air en °C |
 | `wind_speed` | nombre | Vitesse du vent en m/s |
 | `wind_direction` | nombre | Direction **d'où vient** le vent, en degrés (0 = Nord), comme dans un METAR |
-| `visibility` | nombre | Visibilité en mètres |
+| `visibility` | nombre | Visibilité en mètres ; 9 000 m ou plus s'écrit au maximum de DCS, 80 km — le `9999` d'un METAR, « 10 km ou plus » |
 | `cloud_type` | string | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | nombre | Altitude de la base des nuages en mètres |
 | `fog_enabled` | booléen | Activer l'effet de brouillard |

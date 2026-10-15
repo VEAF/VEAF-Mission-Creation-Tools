@@ -164,6 +164,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafWeather.lua` | Parsing météo, calculs QNH/vent |
 | `test_dcsDataExport.lua` | Utilitaires d'export de données unités |
 | `test_veafCombatMission.lua` | Cycle de vie d'une mission de combat |
+| `test_veafCombatMission_menu.lua` | Menu radio MISSIONS : missions déclarées après `initialize()`, reconstruction différée |
 | `test_veafAirbases.lua` | Recherche de données aérodromes |
 | `test_veafCombatZone.lua` | Activation de zone, scoring, machine à états |
 | `test_veafCombatZone_displacement.lua` | Ancrage du spawn d'un groupe très étalé : il garde sa forme |

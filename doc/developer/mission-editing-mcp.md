@@ -244,6 +244,8 @@ une opération de liste sur `route.points` ; les **tâches** d'un point de passa
 Refusé sur un autre groupe et sur un autre type de point.
 Tous les points étaient écrits `Turning Point`, et le convoi de la mission de démo coupait à travers champs (FIX-DEMO-MISSION-FINDINGS 07).
 
+**Route d'un convoi à la création.** Un groupe terrestre créé par `add_group` ou `create_combat_zone` avec au moins deux points part **sur la route** (`On Road`, comme ses étapes) et roule à **16,4 m/s** (59 km/h) ; un point peut donner sa propre vitesse (`speed`, en m/s). Mesuré le 2026-10-13 sur les 126 groupes de véhicules de 14 missions faites à la main dont la route a une étape `On Road` : premier point `On Road` dans 85, `Off Road` dans 37 ; vitesse des étapes de médiane 16,4 m/s, 5,6 m/s dans 11 % seulement (`FIX-OPEN-TRAINING-FALKLANDS-FINDINGS` ticket 04). Un point isolé reste `Off Road`, un navire garde ses `Turning Point` et sa vitesse. Que le départ soit **sur** une route n'est vérifié par rien hors du jeu (ticket 06).
+
 **L'invariant qui en fait de la chirurgie et pas de l'édition de liste.**
 `FIX-WAYPOINTS-ETA-LOCKED` a établi que DCS **refuse d'enregistrer** une mission dont une route n'a
 aucun point de passage à heure verrouillée (« Route has no waypoints with locked time! »), et que sa
@@ -382,6 +384,10 @@ ticket) ; un `icon` réclame un `file` du jeu d'icônes de l'éditeur (p. ex. `P
 donnée du dépôt n'énumère, et un nom non validé ne s'affiche pas. `chevron` a été retiré : il n'existe
 pas dans l'éditeur DCS.
 
+**Style de trait** (`style`, FIX-OPEN-TRAINING-CAUCASUS-FINDINGS) : l'un des seize styles de DCS — `solid` (défaut), `solid2`, `dot`, `dot2`, `dotdash`, `dash`, `cross`, `square`, `strongpoint`, `triangle`, `wirefence`, `boundry1` à `boundry5`, orthographe de DCS comprise.
+Il vaut pour toutes les formes sauf `textbox`, qui le refuse ; un nom hors liste est refusé avec la liste.
+Mesuré dans `me_draw_panel.lua` de l'éditeur : la mission ne stocke que le nom du style, l'éditeur en déduit la texture au chargement — un nom inconnu l'y ferait échouer.
+
 La **couche** est un paramètre de première classe, jamais une valeur par défaut : un dessin sur la
 mauvaise couche est invisible pour les pilotes qui en ont besoin et visible pour ceux qui ne devraient
 pas le voir.
@@ -491,7 +497,7 @@ pas produire et sans laquelle une mission bâtie de zéro n'est pas jouable. Sau
   exige une base configurée pour ça ; laissé actif (comme sur une copie d'un template) le slot existe
   dans le fichier mais n'apparaît **pas** dans la liste des places — le défaut trouvé en jeu le
   2026-08-14.
-- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, aucune donnée runtime),
+- `start` — `"air"` (position + `altitude_ft` + `speed_kt` + `heading_deg`, aucune donnée runtime ; DCS oriente un départ en vol vers son deuxième point de route, donc le slot en reçoit un à 10 km dans l'axe de `heading_deg` — avec un seul point, il partait plein nord quel que soit le cap, FIX-AIR-SLOT-HEADING),
   `"ground-cold"` ou `"ground-hot"`. Un départ au sol **exige** `parking`, `parking_id` et
   `airdrome_id` ; sans eux il est **refusé** (message nommant la donnée capturée par
   `FEAT-MCP-MUTATION-ACTIONS` ticket 09), jamais deviné. La paire `type`/`action` du premier waypoint
@@ -712,7 +718,8 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
 ### FARP
 
 - `add_farp(target, name, position, coalition, country_id, country_name, farp_type="FARP",
-  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True)` — un FARP **complet** : le statique
+  frequency_mhz=127.5, modulation="AM", callsign_id=1, ammo_dump=True, keep_position=False)` — un
+  FARP **complet** : le statique
   d'héliport (`category = "Heliports"`, `shape_name` du type), sa radio et son indicatif, et l'entrée
   d'entrepôt `warehouses.warehouses[<unitId>]` qui permet de s'y ravitailler. `add_group` en `static`
   ne posait que l'objet (ticket 19). Forme mesurée sur les 372 héliports des missions de
@@ -721,6 +728,10 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
   `Fortifications` / `SetkaKP` comme les 68 des missions OT) que CTLD prend comme point de chargement ;
   `ammo_dump=False` s'en passe (`FIX-OPEN-TRAINING-SYRIA-FINDINGS` ticket 05). Un héliport en mer
   (sol à 0 m sur la grille d'altitude) est signalé (ticket 04).
+  Le pad est vérifié (`FIX-FARP-PLACEMENT` ticket 01) : là où le catalogue de sol dégagé couvre l'endroit, un pad dans les arbres ou les bâtiments est déplacé avec son dépôt sur le sol dégagé le plus proche, à 1 km au plus (`keep_position=True` refuse le déplacement et se contente d'avertir) ; là où la grille d'altitude le couvre, plus de 3 m de dénivelé entre le centre et un anneau à 40 m est signalé comme une pente.
+  Là où ni l'un ni l'autre ne couvre l'endroit, l'avertissement dit ce qui n'a pas été vérifié et donne la commande [`veaf-tools dcs farp-spot`](../CLI_REFERENCE.md#farp-spot), qui cherche dans DCS une place plate et dégagée ; `position` dans le résultat dit où le pad est allé.
+  Ni la grille ni le catalogue ne voient un lac ou une rivière (la grille ne connaît que la mer) : le résultat porte toujours `surface_check`, qui le dit et redonne cette commande (`FIX-OPEN-TRAINING-FALKLANDS-FINDINGS` ticket 03). Une fréquence qui est celle d'une tour d'un aérodrome du théâtre, dans la même bande (`AM` : `vhf` et `uhf` ; `FM` : `fm`), est signalée avec le nom de l'aérodrome.
+  Retirer les arbres autour du pad par un trigger (ticket 02) a été essayé puis retiré : l'action DCS « SCENERY REMOVE OBJECTS ZONE » n'a enlevé aucun arbre, ni sur MarianaIslands ni sur Caucasus (limitation connue `scenery-remove-objects-zone-leaves-the-forest`).
 
 ### Groupe aéronaval, slots sur le pont, sons (FIX-OPEN-TRAINING-PROMPT-FINDINGS)
 
@@ -778,6 +789,23 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
   n'écrit rien s'il n'y a rien à compléter. Le message de `validate` le nomme (ticket 17).
 - Les sauvegardes d'un fichier de `src/mission/l10n/DEFAULT/` vont dans `.veaf-backups/` (elles restaient
   à côté et partaient dans le `.miz`), et une sauvegarde de dossier réécrit `mapResource` (tickets 15, 16).
+
+### Open Training Mariannes (FIX-OPEN-TRAINING-MARIANAS-FINDINGS)
+
+- `create_qra` : un groupe ne porte **aucune tâche** sur son point, quelle que soit sa `task` (`CAP` comme `Intercept`).
+  Avec `task: "CAP"`, l'`EngageTargets` automatique de l'éditeur faisait voler la route telle quelle : un point, pas d'orbite, et l'intercepteur se posait au lieu de défendre sa zone (ticket 01).
+- `add_carrier_group` : le ravitailleur embarqué prend la famille `Shell` en partant du vol 9 (`Shell91`, puis `Shell81` pour le porte-avions suivant), et `tanker_callsign` (`"Arco 5"`) en impose un ; le résultat le dit dans `tanker_callsign`.
+  Les ravitailleurs nommés `Texaco 1`, `Arco 1` posés ensuite gardent le leur (ticket 02).
+- `add_air_group` prend `loadout_from`, comme les composites : un groupe de la mission, puis des catalogues du dossier, puis des catalogues livrés (un template `veafSpawn-*`).
+  C'est le seul emport sourcé d'un avion de module sans emport DCS nommé (J-11A, F-16C) ; un seul de `pylons`, `payload` et `loadout_from` (ticket 03).
+- Catalogue livré des slots dynamiques : les templates J-11A portent l'emport air-air de l'Open Training Mariannes v5 (`veafSpawn-J-11A - FOX3 - ECM ON - Radar ON - HARD X1`), donc `loadout_from: "J-11A Template Red"` arme un vol.
+  Les templates `A-4E-C`, `OV-10A` et `T-45`, trois mods, en sortent, et le build avertit quand un template nomme un type que la base d'unités DCS ne connaît pas (ticket 04).
+- `describe_mission` lit un dossier de mission ; `describe_units` donne le `group_id` de chaque groupe et le `unit_id` de chaque unité (`edit_route add_task attack_group` prend le premier) ; `terrain_elevation` prend `mission_path` et y lit le théâtre (`theatre` reste possible) (ticket 05).
+- `geocode` avertit quand il rend une île ou une zone pour un lieu qui s'y trouve : « Umatac, Guam » rendait le centre de Guam sans un mot (ticket 05).
+- `add_group` et chaque groupe de `create_combat_zone` prennent `roe` (`weapons_free`, `return_fire`, `weapons_hold`) et `disperse`, écrits sur le premier point comme l'éditeur les écrit (`Option` 0 ; `Option` 8 sans valeur pour « ne se disperse pas »).
+  `roe: "weapons_hold"` et `disperse: false` font une cible inerte (ticket 06).
+- Sans grille d'altitude ou sans catalogue de terrain dégagé, l'avertissement de placement dit ce qui n'a pas été vérifié (la mer, les arbres, les bâtiments) et comment le vérifier : `veaf-tools dcs clear-ground-check` sur la mission construite.
+  Sur MarianaIslands, rien n'est vérifié tant que les balayages n'ont pas été faits (limitation connue `marianas-placement-checks-nothing`, ticket 07).
 
 ### Réglages de la mission (FIX-SCRATCH-MISSION-FINDINGS ticket 07)
 
@@ -885,6 +913,13 @@ nom (« R-40T*2,R-33*4 » pour un MiG-31), avec leurs pylônes — ce que prend 
 `add_air_group`, `create_qra` et `create_cap_mission`. Sans `unit_type`, la liste des types qui en ont.
 Lus dans `veaf_libs/data/payloads.yaml`, généré depuis une installation DCS
 (`veaf-build update-dcs-data --payloads --dcs-path <DCS>`) : le datamine n'a pas ces fichiers.
+Le générateur lit le dossier `UnitPayloads` de l'éditeur **et** celui de chaque module
+(`CoreMods/**/UnitPayloads`) : les avions de module (P-51D, P-47D, Fw 190, F-16C, FA-18C…) y sont. Il
+liste les rares fichiers qui sont du vrai Lua et non des données (un CLSID calculé depuis un `local`) et
+laisse leurs types de côté — le Spitfire n'a aucun fichier dans l'installation. Les deux bombardiers IA
+d'une mission WW2 n'en ont pas non plus : leurs emports par défaut (`Ju-88A4` « SC500*2,SC50*10 »,
+`B-17G` « M64*12 ») sont écrits à la main dans `veaf_libs/data/payloads-ai-bombers.yaml`, lus dans le
+`db.Units.lua` de l'installation.
 
 ```json
 {"unit_type": "MiG-31"}
@@ -898,18 +933,33 @@ plus les raccourcis `#command` (`-samLR`, `-armor`…) avec `randomParameters` :
 `{min, max}` de chaque paramètre tiré à chaque usage — `-samLR` et `-samSR` lancent la même
 commande et ne diffèrent que par leur plage `defense`. Filtrable par `name_contains`.
 
+Chaque entrée porte une `era`, lue dans ce qu'elle fait apparaître et jamais saisie à côté
+(`veaf_libs/shortcut_eras.py`) : `follows_era` (`-aaa`, `-samSR`, `-samLR`, `-samVLR`, `-armor`,
+`-infantry`, `-transport`, `-combat`, `-convoy`, `-cas` : les unités viennent de tables indexées par
+`mission.era`), `ww2` (`-freya`, `-wurzburg`, `-flak88`, `-lefh`, `-pak40`, `-wespe`), `post_ww2` (du
+matériel fixe d'une époque postérieure : `-ewr`, `-arty`, `-sa6`…), `era_free` (n'apparaît rien) ou
+`unknown` (`-jtac`, `-afac`, `-cargo` : non mesuré, donc non affirmé). `era` (`WW2`, `COLD_WAR`, `MODERN`)
+garde ce qui vaut d'être proposé dans une mission de cette époque. `validate` avertit d'un `#command` ou
+d'un `#veafInterpreter` à raccourci `post_ww2` dans une mission WW2.
+
 ### `describe_known_limitations`
 
 Lecture seule. Pour la version de veaf-tools en cours, les entrées de
 `veaf_libs/data/known-limitations.yaml` : les limites des outils pas encore corrigées
 (`kind: tool`, retirées à partir de la version de leur `fixed_in`) et les comportements de DCS qui
 ne lèvent aucune erreur (`kind: dcs`, toujours renvoyés, avec la date de leur mesure). Chaque
-entrée : `id`, `kind`, `area`, `title`, `symptom`, `workaround`, éventuellement `cost`. Filtre
-`kind` optionnel. Le fichier est la seule source : `docs/agents/dcs-runtime-traps.md` en est
-généré.
+entrée : `id`, `kind`, `area`, `title`, `symptom`, `workaround`, éventuellement `cost` et `theatres`. Le
+fichier est la seule source : `docs/agents/dcs-runtime-traps.md` en est généré.
+
+Le texte entier fait environ 74 000 caractères, plus qu'un résultat d'outil n'en porte. **Sans argument,
+l'action renvoie une liste courte** — `id`, `kind`, `area`, `title`, environ 12 000 caractères — et le nombre
+d'entrées de chaque `area`. Lisez en entier celles dont vous avez besoin avec `area` (`spawning`,
+`air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind`, `id` ou `ids`
+(une liste). `theatre` écarte les entrées qui ne concernent que d'autres théâtres (une entrée sans
+`theatres` vaut partout). `full: true` renvoie tout.
 
 ```json
-{"kind": "dcs"}
+{"area": "radio"}
 ```
 
 ### `describe_authoring_guide` (lot FEAT-AI-ASSISTANT-ANY-CLIENT)

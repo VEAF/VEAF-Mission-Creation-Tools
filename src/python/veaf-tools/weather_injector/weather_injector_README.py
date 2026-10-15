@@ -21,7 +21,7 @@ Create multiple versions of a DCS mission with different weather conditions and 
 Create `versions.yaml`:
 
 ```yaml
-# Geographic position for solar calculations
+# Geographic position for solar calculations (optional: else one point per theatre)
 position:
   latitude: 33.5
   longitude: 35.5
@@ -78,7 +78,7 @@ This will:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `position` | object | No | Geographic position for solar calculations |
+| `position` | object | No | Geographic position for solar calculations (default: the theatre's point) |
 | `base_date` | string | No | Base date for all versions (defaults to today) |
 | `versions` | array | Yes | List of version configurations |
 
@@ -107,7 +107,7 @@ This will:
 | `temperature` | number | -50 to 50 | Air temperature in Celsius |
 | `wind_speed` | number | 0+ | Wind speed in m/s |
 | `wind_direction` | number | 0-359 | Direction the wind comes FROM, in degrees (0=North), as in a METAR |
-| `visibility` | number | 0+ | Visibility in meters |
+| `visibility` | number | 0+ | Visibility in meters; 9000 or more is written as DCS's maximum, 80 km (a METAR's 9999) |
 | `cloud_type` | string | clear, few, scattered, broken, overcast | Cloud coverage type |
 | `cloud_height` | number | 0+ | Cloud base altitude in meters |
 | `fog_enabled` | boolean | true/false | Enable fog effect |
@@ -120,7 +120,7 @@ Time expressions are parsed into seconds since midnight (0-86400).
 ### Formats
 
 - **Absolute Time**: `HH:MM` → `14:30` = 52200 seconds
-- **Solar References**: `sunrise`, `sunset` (requires `position` in config)
+- **Solar References**: `sunrise`, `sunset` (at `position`, else at the theatre's point)
 - **Mathematical Expressions**: `sunrise+30*60`, `sunset-10*60` → add/subtract seconds
 - **Direct Numbers**: `54000` → exact seconds since midnight
 
@@ -265,7 +265,7 @@ weatherAndTime = {
 
 ### "Solar times not calculated"
 
-**Problem**: Using time expressions like `sunrise` without a `position` in config.
+**Problem**: Using time expressions like `sunrise` without a `position` in config, on a mission whose theatre the tool has no point for.
 
 **Solution**: Add `position` object with latitude, longitude, and timezone.
 

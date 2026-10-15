@@ -1,6 +1,6 @@
 # 01 — A fighting convoy that exchanges no fire closes in
 
-Status: 🧑 waiting-human — done on the mocks; R48 in game
+Status: ✅ done — Measured in game on 2026-10-15 (R48, *Kolkhida* mission 1 test copy built from `develop`): two blue M-2 Bradleys on the red assault convoy's road 800 m ahead of it, 6 km from any other red unit; at contact both sides fired at once (red ammunition 23 511 → 20 387, one red vehicle and both Bradleys lost), no `closing in` was logged, and the convoy drove on 60 s after the fight. The push itself was not exercised in game, since fire was exchanged at once.
 
 - Record the last fire exchanged by the convoy: a shot or hit taken (`reportFire`, already there) **and** a shot fired by its own units (`S_EVENT_SHOOTING_START` / `S_EVENT_SHOT` with a convoy unit as initiator).
 - In `watch`, a convoy in `STATE_FIGHTING` whose enemy is still in sight and that has exchanged no fire for `STALEMATE_DELAY` (proposed 120 s, a constant to tune in game) drives toward the nearest living threat (`Off Road`, `ASSAULT_SPEED`), as `pressOn` does for an enemy out of sight; the clock restarts after each push.

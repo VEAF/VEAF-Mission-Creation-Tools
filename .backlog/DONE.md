@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-CONVOY-FROZEN-STANDOFF](FIX-CONVOY-FROZEN-STANDOFF/PRD.md) · ✅
+
+A convoy held at its standoff in front of an enemy DCS does not make it engage stayed frozen for ever (*Kolkhida* test, 2026-10-10). A fighting convoy with an enemy in sight and no shot fired or taken for 2 minutes now drives onto the nearest enemy. R48 in game (2026-10-15): both sides fired at once, no push, the convoy drove on after the fight; the push itself not seen in game.
+
 ### [FIX-CAMPAIGN-VISIBILITY-MISMATCH](FIX-CAMPAIGN-VISIBILITY-MISMATCH/PRD.md) · ✅
 
 `campaign next` reported a drawn 10 000 m while the mission carried 80 km: the weather converter writes 9 km or more as DCS's maximum, a METAR's `9999`. The report now gives the value written and the convention is documented; what DCS flies is unchanged (David's option B, 2026-10-15). Kolkhida mission 2 was consistent: only its report was wrong.

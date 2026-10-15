@@ -1,6 +1,6 @@
 # FIX-CONVOY-FROZEN-STANDOFF — a convoy holding in front of an enemy nobody fires at stays there for ever
 
-Status: 🧑 waiting-human — code and Lua tests done; R48 in `DCS-SESSION-TODO.md` checks it in game
+Status: ✅ done — Measured in game on 2026-10-15 (R48, *Kolkhida* mission 1 test copy built from `develop`): two blue M-2 Bradleys on the red assault convoy's road 800 m ahead of it, 6 km from any other red unit; at contact both sides fired at once (red ammunition 23 511 → 20 387, one red vehicle and both Bradleys lost), no `closing in` was logged, and the convoy drove on 60 s after the fight. The push itself was not exercised in game, since fire was exchanged at once.
 
 ## Found
 
@@ -22,7 +22,7 @@ When no fire has been exchanged for a while although the enemy is in sight, the 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-close-in-when-nobody-fires.md) | A fighting convoy that exchanges no fire closes in | 🧑 |
+| [01](tickets/01-close-in-when-nobody-fires.md) | A fighting convoy that exchanges no fire closes in | ✅ |
 
 ## Definition of done
 

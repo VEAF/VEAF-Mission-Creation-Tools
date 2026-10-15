@@ -7,13 +7,14 @@
 #
 # Times: "HH:MM", a solar expression ("sunrise", "sunset-30*60"), or seconds (0-86400).
 # Dates:  "YYYY-MM-DD", "today", "tomorrow", "+N" / "-N" days.
-# Solar expressions need `position` set (below); without it they are skipped.
+# Solar expressions are computed on the mission's map, at one point per theatre (near Batumi on the
+# Caucasus, Hama on Syria…). Set `position` (below) to compute them exactly where the mission flies.
 
-# Geographic position for automatic solar calculations (sunrise, sunset).
-position:
-  latitude: 33.5
-  longitude: 35.5
-  timezone: "Asia/Damascus"
+# Geographic position for solar calculations (sunrise, sunset) — optional, overrides the map's point.
+# position:
+#   latitude: 41.93
+#   longitude: 41.86
+#   timezone: "Asia/Tbilisi"
 
 # Base date for all versions (optional; defaults to today).
 base_date: "2024-03-15"
@@ -33,7 +34,7 @@ versions:
 # ── Want several variants? Uncomment any of these and they build alongside `noon`. ──────────────
 # Each `- name:` under `versions:` becomes its own `<mission>_<name>.miz`.
 #
-#   # Solar time expression — needs `position` above.
+#   # Solar time expression, on the map's point or `position` above.
 #   - name: dawn-auto
 #     time: "sunrise"
 #     date: "2024-03-15"

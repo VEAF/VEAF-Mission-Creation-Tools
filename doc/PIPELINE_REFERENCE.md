@@ -595,7 +595,8 @@ Aussi accepté : versions.yaml  (racine du dossier mission)
 ### Schéma
 
 ```yaml
-# ── Position géographique pour les calculs solaires ────────────────────────
+# ── Position géographique pour les calculs solaires (facultatif) ──────────
+# Absente : un point par théâtre, sur la carte de la mission (vers Batoumi sur le Caucase…).
 position:
   latitude: 33.5                        # degrés décimaux, -90 à 90
   longitude: 35.5                       # degrés décimaux, -180 à 180
@@ -682,8 +683,8 @@ Ce que `${METAR}` vaut selon la variante :
 | Format | Exemple | Signification |
 |--------|---------|--------------|
 | `HH:MM` | `14:30` | Heure absolue (14h30 heure locale) |
-| `sunrise` | `sunrise` | Heure du lever du soleil (nécessite `position:`) |
-| `sunset` | `sunset` | Heure du coucher du soleil (nécessite `position:`) |
+| `sunrise` | `sunrise` | Heure du lever du soleil (à `position:`, sinon au point du théâtre) |
+| `sunset` | `sunset` | Heure du coucher du soleil (à `position:`, sinon au point du théâtre) |
 | Expression | `sunrise+30*60` | Arithmétique — décalage en secondes |
 | Secondes | `54000` | Secondes brutes depuis minuit |
 

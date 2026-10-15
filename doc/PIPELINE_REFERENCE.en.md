@@ -592,7 +592,8 @@ Also accepted: versions.yaml  (mission root)
 ### Schema
 
 ```yaml
-# ── Geographic position for solar calculations ─────────────────────────────
+# ── Geographic position for solar calculations (optional) ─────────────────
+# Absent: one point per theatre, on the mission's map (near Batumi on the Caucasus…).
 position:
   latitude: 33.5                        # Decimal degrees, -90 to 90
   longitude: 35.5                       # Decimal degrees, -180 to 180
@@ -679,8 +680,8 @@ What `${METAR}` resolves to, per variant:
 | Format | Example | Meaning |
 |--------|---------|---------|
 | `HH:MM` | `14:30` | Absolute time (14:30 local) |
-| `sunrise` | `sunrise` | Sunrise time (requires `position:`) |
-| `sunset` | `sunset` | Sunset time (requires `position:`) |
+| `sunrise` | `sunrise` | Sunrise time (at `position:`, else at the theatre's point) |
+| `sunset` | `sunset` | Sunset time (at `position:`, else at the theatre's point) |
 | Expression | `sunrise+30*60` | Arithmetic — seconds offset |
 | Seconds | `54000` | Raw seconds since midnight |
 

@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-SOLAR-DEFAULT-POSITION](FIX-SOLAR-DEFAULT-POSITION/PRD.md) · ✅
+
+The shipped `versions.yaml` put every mission's sunrise at Damascus: 24 minutes late on the Caucasus in March, 50 in June. Without `position`, solar times are now computed at the theatre's point; an explicit one still wins, warned when off the map. `campaign next` was not affected.
+
 ### [FIX-CONVOY-FROZEN-STANDOFF](FIX-CONVOY-FROZEN-STANDOFF/PRD.md) · ✅
 
 A convoy held at its standoff in front of an enemy DCS does not make it engage stayed frozen for ever (*Kolkhida* test, 2026-10-10). A fighting convoy with an enemy in sight and no shot fired or taken for 2 minutes now drives onto the nearest enemy. R48 in game (2026-10-15): both sides fired at once, no push, the convoy drove on after the fight; the push itself not seen in game.

@@ -1460,3 +1460,19 @@ limitations:
   cost: |
     The sanctuary's missile protection raised in the scheduler on each of those shots, and recorded
     none of them (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
+
+- id: visibility-nine-km-or-more-is-eighty
+  kind: tool
+  area: mcp
+  title: "A visibility of 9 000 m or more is written as 80 km"
+  symptom: |
+    `set_weather`, a `versions.yaml` variant's `weather.visibility` and `campaign next` all go
+    through one converter, which writes any visibility of 9 000 m or more as DCS's maximum,
+    `80000` — the way a METAR's `9999` reads "10 km or more". Asking for exactly 10 km gives a
+    crystal-clear 80 km sky; below 9 000 m the value is written as given.
+  workaround: |
+    For a hazy sky, give 8 999 m or less. Read back `weather.visibility.distance` from the
+    mission, or the `weather` `set_weather` returns, rather than the value asked for.
+  cost: |
+    `campaign next` reported a drawn 10 000 m while the mission carried 80 km
+    (FIX-CAMPAIGN-VISIBILITY-MISMATCH, 2026-10-15); its report now gives the value written.

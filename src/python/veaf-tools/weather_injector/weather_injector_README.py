@@ -107,7 +107,7 @@ This will:
 | `temperature` | number | -50 to 50 | Air temperature in Celsius |
 | `wind_speed` | number | 0+ | Wind speed in m/s |
 | `wind_direction` | number | 0-359 | Direction the wind comes FROM, in degrees (0=North), as in a METAR |
-| `visibility` | number | 0+ | Visibility in meters |
+| `visibility` | number | 0+ | Visibility in meters; 9000 or more is written as DCS's maximum, 80 km (a METAR's 9999) |
 | `cloud_type` | string | clear, few, scattered, broken, overcast | Cloud coverage type |
 | `cloud_height` | number | 0+ | Cloud base altitude in meters |
 | `fog_enabled` | boolean | true/false | Enable fog effect |

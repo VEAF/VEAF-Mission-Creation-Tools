@@ -699,7 +699,7 @@ What `${METAR}` resolves to, per variant:
 | `temperature` | number | — | Air temperature in °C |
 | `wind_speed` | number | — | Wind speed in m/s |
 | `wind_direction` | number | — | Direction the wind **comes from**, in degrees (0 = North), as in a METAR |
-| `visibility` | number | — | Visibility in metres |
+| `visibility` | number | — | Visibility in metres; 9,000 m or more is written as DCS's maximum, 80 km — a METAR's `9999`, "10 km or more" |
 | `cloud_type` | string | — | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | number | — | Cloud base altitude in metres |
 | `fog_enabled` | boolean | `false` | Enable fog effect |

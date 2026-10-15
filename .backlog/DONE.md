@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-CAMPAIGN-VISIBILITY-MISMATCH](FIX-CAMPAIGN-VISIBILITY-MISMATCH/PRD.md) · ✅
+
+`campaign next` reported a drawn 10 000 m while the mission carried 80 km: the weather converter writes 9 km or more as DCS's maximum, a METAR's `9999`. The report now gives the value written and the convention is documented; what DCS flies is unchanged (David's option B, 2026-10-15). Kolkhida mission 2 was consistent: only its report was wrong.
+
 ### [FEAT-COMBAT-ZONE-ELEVATION](FEAT-COMBAT-ZONE-ELEVATION/PRD.md) · ✅
 
 The zone's ground elevation at its centre in a combat zone's radio briefing, under the bullseye line, in feet and metres, only when the zone shows its position — one ticket done, tested on the mocks.

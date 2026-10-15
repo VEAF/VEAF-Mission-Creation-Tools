@@ -683,8 +683,8 @@ Ce que `${METAR}` vaut selon la variante :
 | Format | Exemple | Signification |
 |--------|---------|--------------|
 | `HH:MM` | `14:30` | Heure absolue (14h30 heure locale) |
-| `sunrise` | `sunrise` | Heure du lever du soleil (nécessite `position:`) |
-| `sunset` | `sunset` | Heure du coucher du soleil (nécessite `position:`) |
+| `sunrise` | `sunrise` | Heure du lever du soleil (à `position:`, sinon au point du théâtre) |
+| `sunset` | `sunset` | Heure du coucher du soleil (à `position:`, sinon au point du théâtre) |
 | Expression | `sunrise+30*60` | Arithmétique — décalage en secondes |
 | Secondes | `54000` | Secondes brutes depuis minuit |
 

@@ -112,6 +112,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `validate` now lists the settings the file lacks, those the catalogue dropped, and the new keys inside tables the mission holds; the command adds the missing settings at their default and changes no existing value nor any list.
 - **`add_map_drawing` takes a line style** (ticket 03).
   One of DCS's sixteen (`dash`, `dot`, `dotdash`, `boundry1`…) on every shape but a textbox, `solid` by default: the Caucasus arena, dashed on the briefing map, had to be a solid circle on the F10 map.
+- **A combat zone's briefing gives the ground elevation at its centre** (FEAT-COMBAT-ZONE-ELEVATION).
+  Under the bullseye line, `ELEVATION : 1352 ft / 412 m.` (`ÉLÉVATION` in French), read from the terrain at the zone centre: a pilot had to take it off the F10 map or work it out from QNH and QFE.
+  Only when the zone shows its position, like the coordinates it sits with.
 
 ### Documentation
 

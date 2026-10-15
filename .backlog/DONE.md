@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-COMBAT-ZONE-ELEVATION](FEAT-COMBAT-ZONE-ELEVATION/PRD.md) · ✅
+
+The zone's ground elevation at its centre in a combat zone's radio briefing, under the bullseye line, in feet and metres, only when the zone shows its position — one ticket done, tested on the mocks.
+
 ### [FIX-OPEN-TRAINING-NORMANDY-FINDINGS](FIX-OPEN-TRAINING-NORMANDY-FINDINGS/PRD.md) · ✅
 
 What building the Normandy 1944 Open Training v6 through the MCP found, the first WW2 mission built this way: loadouts for module aircraft, era in the catalogue, CAS tables and shortcuts, 251 MHz refused by the editor, known limitations by area, theatre bounds — thirteen tickets done (#1136). Ticket 07 (`gun: 0` on ten WW2 slot templates) closed unmeasured by David, the known limitation stays; ticket 15 measured in DCS, not a defect.

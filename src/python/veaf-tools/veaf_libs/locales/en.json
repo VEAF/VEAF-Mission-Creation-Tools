@@ -1242,6 +1242,8 @@
   "weather.lua_converter.error_parsing": "Error parsing Lua configuration: {error}",
   "weather.lua_converter.file_not_found": "Lua configuration file not found: {path}",
   "weather.lua_converter.parse_failed": "Failed to parse Lua configuration",
+  "weather.position.outside_theatre": "The position {latitude}, {longitude} in versions.yaml is outside the {theatre} map: solar times (sunrise, sunset) are computed there. Remove `position` to use the map's own point, or set it near the mission.",
+  "weather.position.theatre_default": "No position in versions.yaml: solar times computed on the {theatre} map at {latitude}, {longitude}.",
   "weather.theatre_offset.fallback": "Theatre '{theatre}' has no known DCS clock offset: solar times use the timezone {timezone} (UTC{hours:+g}). Check the result in DCS.",
   "weather.solar_calculator.failed": "Failed to calculate solar times: {error}",
   "weather.time_parser.eval_failed": "Failed to evaluate time expression '{expression}': {error}",

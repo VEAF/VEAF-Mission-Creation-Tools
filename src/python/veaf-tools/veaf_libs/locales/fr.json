@@ -1242,6 +1242,8 @@
   "weather.lua_converter.error_parsing": "Erreur lors de l'analyse de la configuration Lua : {error}",
   "weather.lua_converter.file_not_found": "Fichier de configuration Lua introuvable : {path}",
   "weather.lua_converter.parse_failed": "Échec de l'analyse de la configuration Lua",
+  "weather.position.outside_theatre": "La position {latitude}, {longitude} de versions.yaml est hors de la carte {theatre} : les heures solaires (lever, coucher) y sont calculées. Retirez `position` pour utiliser le point de la carte, ou placez-la près de la mission.",
+  "weather.position.theatre_default": "Pas de position dans versions.yaml : heures solaires calculées sur la carte {theatre} en {latitude}, {longitude}.",
   "weather.theatre_offset.fallback": "Le théâtre « {theatre} » n'a pas de décalage horaire DCS connu : les heures solaires utilisent le fuseau {timezone} (UTC{hours:+g}). Vérifiez le résultat dans DCS.",
   "weather.solar_calculator.failed": "Échec du calcul des heures solaires : {error}",
   "weather.time_parser.eval_failed": "Échec de l'évaluation de l'expression temporelle '{expression}' : {error}",

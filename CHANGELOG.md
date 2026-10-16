@@ -20,6 +20,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **Authoring guide — campaign missions**: every campaign mission puts the Stennis, the Roosevelt and the Tarawa at sea for the players' side, and the guide reminds that `campaign next` starts from the campaign's template, so what a previous mission added by hand is to be redone.
+- **Radio presets — a mission is not ready while the build lists an asset no preset carries**: the campaign page, the authoring guide and the mission prompts say so, and that a campaign template's `src/presets.yaml` is the frequency plan every mission inherits (*Kolkhida* missions 1 and 2 flew on the Open Training plan the scaffold ships).
 
 ### Added
 

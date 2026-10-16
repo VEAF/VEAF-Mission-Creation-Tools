@@ -347,6 +347,8 @@ Rules:
 
 ### 4.10 Radio, weather, waypoints
 
+- **Complete presets**: the build lists every AWACS, tanker or carrier no preset carries (its log and
+  `presets-validation-report.md`); the mission is not ready until that list is empty.
 - **`src/presets.yaml` to rewrite for the map** (the template is not made for it): UHF = Guard,
   bases, AWACS, flights, tankers; VHF = Guard + flights; FM 30-59; a red plan if red flies. **Base
   channels carry the frequencies DCS gives the airfield**, even with ATC silenced: they are what the

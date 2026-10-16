@@ -398,6 +398,9 @@ validé un scénario, pas un à-peu-près.
   sur une autre carte, il garde des aérodromes du Caucase (Batumi, Beslan…). Relis les préréglages
   réellement injectés dans le `.miz`, appareil par appareil. Le SA342 Gazelle n'en reçoit aucun
   (seule sa radio FM se règle par préréglage) : dis au briefing que ses radios se règlent à la main.
+  Le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun préréglage ne porte (journal et
+  `presets-validation-report.md`) : la mission n'est pas prête tant que cette liste n'est pas vide.
+  *Kolkhida* a volé deux missions sur le plan d'Open Training du gabarit, l'avertissement affiché.
 - **`src/waypoints.yaml`** : retire les exemples du gabarit.
 - **Carte du briefing** : générée depuis les données de la mission par un script (x/y → lat/lon via
   `resolve_coordinates` ou `veaf_libs.coordinates`), jamais dessinée à la main. Une carte générale

@@ -51,6 +51,11 @@ Caucase/
 `template/` se prépare une fois, comme n'importe quel dossier de mission (`.\veaf-tools.exe prepare`, ou l'action MCP `scaffold_mission`) : la carte, les slots, les presets, les scripts.
 Chaque mission de la campagne commence comme une copie de ce dossier.
 
+Son `src/presets.yaml` est donc le plan de fréquences de **toute** la campagne : chaque mission en hérite.
+Écrivez-le pour les moyens réels de la campagne — AWACS, ravitailleurs, navires, aérodromes —, sous les noms que donne le briefing, et mettez à jour le template dès qu'une mission ajoute un moyen.
+Le plan livré par `prepare` est celui d'un Open Training (Magic 282.2, Arco-1 290.5…) : laissé tel quel, toutes les radios et toutes les planchettes de la campagne le suivent, et pas la mission.
+Le build liste chaque AWACS, ravitailleur ou navire qu'aucun preset ne porte, dans son journal et dans `presets-validation-report.md` : une mission n'est pas prête tant que cette liste n'est pas vide.
+
 L'historique est gardé en entier : pour annuler une fusion, remettez `campaign-state.before.yaml` à la place de `campaign-state.yaml`.
 
 ## Déclarer une campagne {#declare}

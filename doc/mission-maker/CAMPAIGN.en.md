@@ -51,6 +51,11 @@ Caucasus/
 `template/` is prepared once, like any mission folder (`.\veaf-tools.exe prepare`, or the MCP action `scaffold_mission`): the map, the slots, the presets, the scripts.
 Every mission of the campaign starts as a copy of it.
 
+Its `src/presets.yaml` is therefore the frequency plan of the **whole** campaign: every mission inherits it.
+Write it for the campaign's real assets — AWACS, tankers, ships, airfields — under the names the briefing uses, and update the template as soon as a mission adds an asset.
+The plan `prepare` ships is an Open Training's (Magic 282.2, Arco-1 290.5…): left as it is, every radio and every kneeboard of the campaign follows it, not the mission.
+The build lists every AWACS, tanker or ship no preset carries, in its log and in `presets-validation-report.md`: a mission is not ready until that list is empty.
+
 The history is kept whole: to undo a merge, put `campaign-state.before.yaml` back in place of `campaign-state.yaml`.
 
 ## Declaring a campaign {#declare}

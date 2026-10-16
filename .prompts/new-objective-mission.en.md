@@ -393,6 +393,9 @@ approximation of it.
   (Batumi, Beslan…). Re-read the presets actually injected in the `.miz`, aircraft by aircraft. The
   SA342 Gazelle gets none (only its FM radio takes presets): say in the briefing that its radios are
   set by hand.
+  The build lists every AWACS, tanker or carrier no preset carries (its log and
+  `presets-validation-report.md`): the mission is not ready until that list is empty. *Kolkhida*
+  flew two missions on the template's Open Training plan, the warning on screen.
 - **`src/waypoints.yaml`**: remove the template's examples.
 - **Briefing map**: generated from the mission's data by a script (x/y → lat/lon through
   `resolve_coordinates` or `veaf_libs.coordinates`), never hand-drawn. An overview map (departure,

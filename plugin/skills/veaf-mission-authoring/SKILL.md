@@ -311,6 +311,12 @@ or a red base with slots nobody asked for, is an inconsistency.
   ICLS channel, its channel in `src/presets.yaml`, and its line in the briefing; keep their tracks apart.
 - `campaign_next` copies the campaign's `template/`, not the previous mission: what was added to a
   mission by hand (the QRA, the ships, the support tracks) is to be redone, or carried into the template.
+- **The template's `src/presets.yaml` is the campaign's frequency plan**, and every mission inherits
+  it. Write it once for the campaign's real assets (its AWACS, tankers, ships, airfields), under the
+  names the briefing uses, and update the template whenever a mission adds an asset. *Kolkhida* flew
+  missions 1 and 2 on the Open Training plan the scaffold ships (Magic 282.2 where the AWACS was
+  Overlord on 251): the build said so both times, and the second time it was read as "already the case
+  in mission 1". A preset warning carried over from a previous mission is still an error to fix.
 
 **Combat content.**
 - A **training range close to a blue base** (Kobuleti next to Batumi on Caucasus): three nested

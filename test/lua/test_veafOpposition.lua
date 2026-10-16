@@ -256,6 +256,74 @@ function TestVeafOpposition:test_a_level_from_the_menu_is_fixed_in_one_click()
   luaunit.assertEquals(veafOpposition.follow, veafOpposition.FOLLOW_OFF)
 end
 
+-- FEAT-OPPOSITION-ZERO-AIRCRAFT: a level of 0 chosen by hand sends no aircraft at all
+
+function TestVeafOpposition:test_zero_from_the_menu_sends_no_aircraft()
+  _flights({})
+  veafOpposition.configure({ level = 6, follow = veafOpposition.FOLLOW_AIR_TO_AIR })
+  veafOpposition.radioSetLevel(0)
+  luaunit.assertEquals(veafOpposition.getLevel(), 0)
+  luaunit.assertEquals(veafOpposition.follow, veafOpposition.FOLLOW_OFF)
+  luaunit.assertTrue(veafOpposition.isNoAircraft())
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("no enemy fighters (fixed)"), 1, "said to everybody")
+end
+
+function TestVeafOpposition:test_zero_from_the_marker_sends_no_aircraft()
+  veafOpposition.configure({ level = 3 })
+  luaunit.assertTrue(veafOpposition.handleMarker(nil, { text = "_opposition 0" }))
+  luaunit.assertTrue(veafOpposition.isNoAircraft())
+end
+
+function TestVeafOpposition:test_a_followed_level_fixed_at_zero_still_says_it()
+  -- the level is already 0, followed: fixing it changes no number, but switches the fighters off
+  _flights({})
+  veafOpposition.configure({ follow = veafOpposition.FOLLOW_AIR_TO_AIR })
+  veafOpposition.setFollow(veafOpposition.FOLLOW_AIR_TO_AIR)
+  luaunit.assertEquals(veafOpposition.getLevel(), 0)
+  luaunit.assertFalse(veafOpposition.isNoAircraft(), "followed down to 0: the zone tiers answer")
+  veafOpposition.radioSetLevel(0)
+  luaunit.assertTrue(veafOpposition.isNoAircraft())
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("no enemy fighters (fixed)"), 1)
+end
+
+function TestVeafOpposition:test_a_level_above_zero_sends_them_again()
+  veafOpposition.configure({})
+  veafOpposition.radioSetLevel(0)
+  veafOpposition.radioSetLevel(2)
+  luaunit.assertFalse(veafOpposition.isNoAircraft())
+  luaunit.assertEquals(veafOpposition.getLevel(), 2)
+end
+
+function TestVeafOpposition:test_a_follow_mode_sends_them_again()
+  _flights({})
+  veafOpposition.configure({})
+  veafOpposition.radioSetLevel(0)
+  veafOpposition.radioFollow(veafOpposition.FOLLOW_AIR_TO_AIR)
+  luaunit.assertFalse(veafOpposition.isNoAircraft())
+end
+
+function TestVeafOpposition:test_mode_fixed_keeps_the_fighters_switched_off()
+  veafOpposition.configure({})
+  veafOpposition.radioSetLevel(0)
+  veafOpposition.radioFollow(veafOpposition.FOLLOW_OFF)
+  luaunit.assertTrue(veafOpposition.isNoAircraft())
+end
+
+function TestVeafOpposition:test_a_followed_level_freezing_at_zero_is_not_a_switch_off()
+  -- « Mode → fixe » while the CAP count sits at 0 freezes a count: it must not ground the enemy air
+  _flights({})
+  veafOpposition.configure({ follow = veafOpposition.FOLLOW_AIR_TO_AIR })
+  veafOpposition.setFollow(veafOpposition.FOLLOW_AIR_TO_AIR)
+  veafOpposition.radioFollow(veafOpposition.FOLLOW_OFF)
+  luaunit.assertEquals(veafOpposition.getLevel(), 0)
+  luaunit.assertFalse(veafOpposition.isNoAircraft())
+end
+
+function TestVeafOpposition:test_a_level_of_zero_at_generation_is_a_count()
+  veafOpposition.configure({ level = 0 })
+  luaunit.assertFalse(veafOpposition.isNoAircraft())
+end
+
 function TestVeafOpposition:test_the_menu_offers_one_entry_per_level_and_every_mode()
   local commands, menus = {}, {}
   local savedRadio = veafRadio
@@ -285,7 +353,8 @@ function TestVeafOpposition:test_the_menu_offers_one_entry_per_level_and_every_m
       table.insert(modes, command.parameters)
     end
   end
-  luaunit.assertEquals(levels, { 1, 2, 3, 4, 5, 6, 7, 8 })
+  luaunit.assertEquals(levels, { 0, 1, 2, 3, 4, 5, 6, 7, 8 })
+  luaunit.assertEquals(commands[1].title, "0 aircraft", "« 0 avion » first, a switch-off rather than a count")
   luaunit.assertEquals(modes, veafOpposition.FOLLOW_MODES)
   luaunit.assertEquals(#modes, 4)
 end

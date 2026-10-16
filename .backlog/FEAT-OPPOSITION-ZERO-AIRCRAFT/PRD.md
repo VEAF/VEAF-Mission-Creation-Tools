@@ -1,6 +1,6 @@
 # FEAT-OPPOSITION-ZERO-AIRCRAFT — an opposition level that sends no aircraft
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — done on the mocks; R51 in `DCS-SESSION-TODO.md` checks it in game
 
 ## Found
 
@@ -17,7 +17,7 @@ Reading of the request, written here so the session that implements it does not 
 
 | # | Ticket | Status |
 |---|---|---|
-| [01](tickets/01-zero-aircraft-level.md) | *Niveau → 0 avion*: the QRA that scale with the opposition stay on the ground | ⬜ |
+| [01](tickets/01-zero-aircraft-level.md) | *Niveau → 0 avion*: the QRA that scale with the opposition stay on the ground | ✅ on the mocks, R51 in game |
 
 ## Related
 

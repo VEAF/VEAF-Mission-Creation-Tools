@@ -54,6 +54,23 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R51. *Opposition → Niveau → 0 avion* keeps the QRA on the ground — **one pilot**
+
+[`FEAT-OPPOSITION-ZERO-AIRCRAFT`](.backlog/FEAT-OPPOSITION-ZERO-AIRCRAFT/PRD.md).
+On the mocks: the menu entry and the marker reach the QRA's decision, a followed 0 still lets the zone tiers answer, a QRA without `scale_with_opposition` is untouched. What the mocks cannot show: the menu as DCS draws it, and a real QRA staying down with a player in its zone.
+
+**Prepare**: *Kolkhida* mission 2 (or a copy of the campaign's current mission, never the live one) rebuilt from the lot's branch, security off, a game master slot, a blue A-10C air-start slot a few minutes from Senaki; Senaki's QRA has `scale_with_opposition: true`.
+
+1. F10 → **Opposition** → *Niveau* → **0 avion**, then *Niveau actuel*.
+   - **Verified**: « aucune chasse adverse (fixe) » shows to everybody, « 0 avion » being the first entry of *Niveau*.
+   - **Re-opened, no « 0 avion » entry**: the mission was built with older scripts — `dcs.log`, the VEAF build stamp.
+2. Fly the A-10C into Senaki's QRA zone and stay there two minutes.
+   - **Verified**: no MiG-29 rolls, no scramble message.
+   - **Re-opened, they scramble**: `dcs.log` with the QRA trace level — `opposition fixed at 0 aircraft, no scramble` should be there; if not, the QRA is not marked `scale_with_opposition` in the built `veaf-config.lua`.
+3. Still in the zone, F10 → **Opposition** → *Niveau* → « 2 joueur(s) en CAP ».
+   - **Verified**: Senaki's QRA scrambles within its usual delay, with the tier of 2.
+   - **Re-opened, still nothing**: the QRA left its `ready` state while switched off — note its status in the QRA radio menu.
+
 ### R50. What `weapon:getTarget()` returns that has no `isExist` — **one pilot, or the next Open Training's log**
 
 [`FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST`](.backlog/FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md).

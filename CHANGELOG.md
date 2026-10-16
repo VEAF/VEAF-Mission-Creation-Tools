@@ -21,6 +21,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Authoring guide — campaign missions**: every campaign mission puts the Stennis, the Roosevelt and the Tarawa at sea for the players' side, and the guide reminds that `campaign next` starts from the campaign's template, so what a previous mission added by hand is to be redone.
 
+### Added
+
+- **« 0 avion » switches the enemy fighters off** (FEAT-OPPOSITION-ZERO-AIRCRAFT).
+  *Opposition → Niveau → 0 avion*, or the `_opposition 0` marker, keeps every QRA marked `scale_with_opposition: true` on the ground, whatever enters its zone, until the level is fixed above 0 or a follow mode is chosen again; *Niveau actuel* says « aucune chasse adverse (fixe) ».
+  A level a follow mode lowers to 0, or `level: 0` in `mission.yaml`, stays a count: the zone's tiers still answer.
+
 ## [6.30.0] — 2026-10-15
 
 ### Fixed

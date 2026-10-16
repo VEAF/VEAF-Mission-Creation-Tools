@@ -168,11 +168,17 @@ opposition:                 # a root block of mission.yaml, beside modules:
 
 The block also adds, in game:
 
-- an **Opposition** radio menu: *Current level* (for everyone), *Level* → "1 player(s) on CAP" … "8 player(s) on CAP", which sets the level in one click and stops following, and *Mode* → the follow mode (secured commands);
-- an **`_opposition`** marker, for the *SENIOR_PILOT* security level: `_opposition 6` sets the level (and stops following), `_opposition air_to_air` / `_opposition players` / `_opposition airborne` / `_opposition off` changes the mode, `_opposition` alone announces it;
+- an **Opposition** radio menu: *Current level* (for everyone), *Level* → "0 aircraft", "1 player(s) on CAP" … "8 player(s) on CAP", which sets the level in one click and stops following, and *Mode* → the follow mode (secured commands);
+- an **`_opposition`** marker, for the *SENIOR_PILOT* security level: `_opposition 6` sets the level (and stops following), `_opposition 0` switches the enemy fighters off, `_opposition air_to_air` / `_opposition players` / `_opposition airborne` / `_opposition off` changes the mode, `_opposition` alone announces it;
 - in the [combat missions](veafCombatMission.en.md) menu, under each skill, an **Auto scale** entry that activates the scale of one enemy group per two players (rounded up), within the scales offered.
 
 Every change of level is announced to everybody.
+
+**Zero aircraft.** "0 aircraft" in the menu, or `_opposition 0`, **switches the enemy fighters off**: a QRA set to `scale_with_opposition: true` stays ready but does not take off, whatever enters its zone, until a level above 0 is set or a follow mode is chosen again (*Mode* → *fixed* leaves it off).
+*Current level* then shows "no enemy fighters (fixed)".
+A 0 not chosen by hand stays a **count**: the level a follow mode lowers to 0 (nobody on CAP), or `level: 0` in `mission.yaml`, lets the zone's tiers answer — otherwise a quiet minute would switch the enemy fighters off without anybody seeing it.
+A QRA already airborne when "0 aircraft" is chosen is not recalled: the switch-off applies to the next scrambles.
+A QRA without `scale_with_opposition` is never switched off.
 
 **How to choose.** Write the tiers up to the package size you expect: for 5 to 7 players, for instance `1` → a pair, `3` → two pairs, `5` → three. Never a single fixed pair against 5 players or more. Then:
 

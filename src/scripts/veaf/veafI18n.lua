@@ -2029,6 +2029,10 @@ veaf.i18nCatalog = {
     fr = "Opposition aérienne : aucun niveau, chaque QRA répond aux avions dans sa zone",
     en = "Air opposition: no level, each QRA answers the aircraft in its zone",
   },
+  ["opposition.no_aircraft"] = {
+    fr = "Opposition aérienne : aucune chasse adverse (fixe)",
+    en = "Air opposition: no enemy fighters (fixed)",
+  },
   ["opposition.follow.players"] = { fr = "suit les joueurs connectés", en = "follows the players connected" },
   ["opposition.follow.airborne"] = { fr = "suit les joueurs en vol", en = "follows the players airborne" },
   ["opposition.follow.air_to_air"] = {
@@ -2043,6 +2047,7 @@ veaf.i18nCatalog = {
   ["menu.opposition.root"] = { fr = "Opposition", en = "Opposition" },
   ["menu.opposition.show"] = { fr = "Niveau actuel", en = "Current level" },
   ["menu.opposition.level"] = { fr = "Niveau", en = "Level" },
+  ["menu.opposition.level_zero"] = { fr = "0 avion", en = "0 aircraft" },
   ["menu.opposition.level_entry"] = { fr = "%d joueur(s) en CAP", en = "%d player(s) on CAP" },
   ["menu.opposition.mode"] = { fr = "Mode", en = "Mode" },
   ["menu.combatmission.scale_auto"] = {

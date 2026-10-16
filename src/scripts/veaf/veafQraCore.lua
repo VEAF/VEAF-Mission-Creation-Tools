@@ -1019,6 +1019,12 @@ end
 function VeafQRACore:deploy(nbUnitsInZone)
   veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:deploy()", veaf.lp(self.name))
   veaf.loggers.get(veafQraManager.Id):trace("nbUnitsInZone=[%s]", veaf.lp(nbUnitsInZone))
+  -- « 0 avion » fixed by a mission master: no enemy fighters, whatever is in the zone; the QRA stays
+  -- ready and answers again once the level is raised (FEAT-OPPOSITION-ZERO-AIRCRAFT)
+  if self.scaleWithOpposition and veafOpposition and veafOpposition.isNoAircraft and veafOpposition.isNoAircraft() then
+    veaf.loggers.get(veafQraManager.Id):trace("opposition fixed at 0 aircraft, no scramble")
+    return
+  end
   -- the gate counts what the tier is chosen from: a QRA scaling with the opposition whose lowest tier is
   -- 3 still answers a pair when the mission is sized for six
   if self.minimumNbEnemyPlanes ~= -1 and self.minimumNbEnemyPlanes > self:tierCount(nbUnitsInZone) then

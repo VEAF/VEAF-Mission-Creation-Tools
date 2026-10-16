@@ -168,11 +168,17 @@ opposition:                 # bloc racine de mission.yaml, à côté de modules:
 
 Le bloc ajoute aussi, en jeu :
 
-- un menu radio **Opposition** : *Niveau actuel* (pour tous), *Niveau* → « 1 joueur(s) en CAP » … « 8 joueur(s) en CAP », qui fixe le niveau en un clic et arrête le suivi, et *Mode* → le mode de suivi (commandes sécurisées) ;
-- un marqueur **`_opposition`**, réservé au niveau de sécurité *SENIOR_PILOT* : `_opposition 6` fixe le niveau (et arrête le suivi), `_opposition air_to_air` / `_opposition players` / `_opposition airborne` / `_opposition off` change de mode, `_opposition` seul l'annonce ;
+- un menu radio **Opposition** : *Niveau actuel* (pour tous), *Niveau* → « 0 avion », « 1 joueur(s) en CAP » … « 8 joueur(s) en CAP », qui fixe le niveau en un clic et arrête le suivi, et *Mode* → le mode de suivi (commandes sécurisées) ;
+- un marqueur **`_opposition`**, réservé au niveau de sécurité *SENIOR_PILOT* : `_opposition 6` fixe le niveau (et arrête le suivi), `_opposition 0` coupe la chasse adverse, `_opposition air_to_air` / `_opposition players` / `_opposition airborne` / `_opposition off` change de mode, `_opposition` seul l'annonce ;
 - dans le menu des [combat missions](veafCombatMission.md), sous chaque niveau de compétence, une entrée **Taille auto** qui active le *scale* d'un groupe ennemi par deux joueurs (arrondi au-dessus), dans la limite des *scales* proposés.
 
 Chaque changement de niveau est annoncé à tout le monde.
+
+**Zéro avion.** « 0 avion » dans le menu, ou `_opposition 0`, **coupe** la chasse adverse : une QRA marquée `scale_with_opposition: true` reste prête mais ne décolle pas, quoi qu'il entre dans sa zone, jusqu'à ce qu'on fixe un niveau au-dessus de 0 ou qu'on rechoisisse un mode de suivi (*Mode* → *fixe* la laisse coupée).
+*Niveau actuel* affiche alors « aucune chasse adverse (fixe) ».
+Un 0 qui n'est pas choisi à la main reste un **compte** : le niveau qu'un mode de suivi fait descendre à 0 (personne en CAP), ou `level: 0` dans `mission.yaml`, laisse les paliers de la zone répondre — sinon une minute creuse éteindrait la chasse adverse sans que personne le voie.
+Une QRA déjà en l'air au moment du « 0 avion » n'est pas rappelée : la coupure vaut pour les prochains décollages.
+Une QRA sans `scale_with_opposition` n'est jamais coupée.
 
 **Comment choisir.** Écrivez les paliers jusqu'à la taille attendue du dispositif : pour un groupe de 5 à 7 joueurs, par exemple `1` → une paire, `3` → deux paires, `5` → trois. Jamais une seule paire fixe face à 5 joueurs ou plus. Ensuite :
 

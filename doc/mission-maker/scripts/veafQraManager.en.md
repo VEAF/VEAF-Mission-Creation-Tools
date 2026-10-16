@@ -177,6 +177,7 @@ Every change of level is announced to everybody.
 **Zero aircraft.** "0 aircraft" in the menu, or `_opposition 0`, **switches the enemy fighters off**: a QRA set to `scale_with_opposition: true` stays ready but does not take off, whatever enters its zone, until a level above 0 is set or a follow mode is chosen again (*Mode* → *fixed* leaves it off).
 *Current level* then shows "no enemy fighters (fixed)".
 A 0 not chosen by hand stays a **count**: the level a follow mode lowers to 0 (nobody on CAP), or `level: 0` in `mission.yaml`, lets the zone's tiers answer — otherwise a quiet minute would switch the enemy fighters off without anybody seeing it.
+A QRA already airborne when "0 aircraft" is chosen is not recalled: the switch-off applies to the next scrambles.
 A QRA without `scale_with_opposition` is never switched off.
 
 **How to choose.** Write the tiers up to the package size you expect: for 5 to 7 players, for instance `1` → a pair, `3` → two pairs, `5` → three. Never a single fixed pair against 5 players or more. Then:

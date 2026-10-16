@@ -304,6 +304,14 @@ or a red base with slots nobody asked for, is an inconsistency.
   unless a group says `start: air`, which only the user asks for. Nothing of its side may stand on
   that runway.
 
+**A campaign mission** (one `campaign_next` prepared) also follows these, every campaign alike:
+- **Three ships at sea for the players' side**: the Stennis (`Stennis`), the Roosevelt (`CVN_71`)
+  and the Tarawa (`LHA_Tarawa`), each with `add_carrier_group` and its deck slots — not the Stennis
+  alone (David, 2026-10-15, after *Kolkhida* mission 2). Each gets its own tower frequency, TACAN and
+  ICLS channel, its channel in `src/presets.yaml`, and its line in the briefing; keep their tracks apart.
+- `campaign_next` copies the campaign's `template/`, not the previous mission: what was added to a
+  mission by hand (the QRA, the ships, the support tracks) is to be redone, or carried into the template.
+
 **Combat content.**
 - A **training range close to a blue base** (Kobuleti next to Batumi on Caucasus): three nested
   levels through `includes:` — inert statics, light AAA, realistic short-range defense.

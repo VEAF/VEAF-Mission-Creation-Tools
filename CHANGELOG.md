@@ -17,6 +17,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Authoring guide — campaign missions**: every campaign mission puts the Stennis, the Roosevelt and the Tarawa at sea for the players' side, and the guide reminds that `campaign next` starts from the campaign's template, so what a previous mission added by hand is to be redone.
+
 ## [6.30.0] — 2026-10-15
 
 ### Fixed

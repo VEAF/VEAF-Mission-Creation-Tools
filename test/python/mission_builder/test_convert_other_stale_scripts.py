@@ -10,12 +10,14 @@ The hard half is telling that script apart from one the mission maker wrote them
 in ``src/scripts/``, both are listed in ``custom_scripts:``, and neither is in the fresh upstream
 set — the three tests the ticket proposed as the distinction. What separates them is whether the
 *previous* release shipped the file, which nothing recorded, so the converter now writes down what
-each release loads. A folder converted before that manifest existed deletes nothing: the tests
-below pin that too, since a wrong deletion eats somebody's work.
+each release loads. A folder converted before that manifest existed reads it from the
+``mapResource`` of the base the previous release left, and deletes nothing when neither exists:
+the tests below pin that too, since a wrong deletion eats somebody's work.
 """
 
 from __future__ import annotations
 
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -65,17 +67,16 @@ class TestStaleUpstreamScriptIsRemoved(unittest.TestCase):
         # Removing a file silently would be its own version of this lot's defect.
         self.assertIn("footholdSyriaSetup.lua", self._refresh().to_markdown())
 
-    def test_validate_now_fails_instead_of_passing(self) -> None:
-        # `mission.yaml` is preserved, so it still lists the script that just went away. That is
-        # the point: a red validate is what the 2026-08-25 refresh needed and did not get.
+    def test_custom_scripts_loads_the_replacement_instead(self) -> None:
+        # The entry used to stay and fail `validate`, leaving the swap to a human. 5.3.0 renamed
+        # `zoneCommander.lua` on all ten maps (FIX-FOOTHOLD-5-3-0-INTAKE): the converter swaps it.
         self._refresh()
 
+        listed = (self.mission / "mission.yaml").read_text(encoding="utf-8")
+        self.assertIn("src/scripts/footholdSyriaSetupv2.lua", listed)
+        self.assertNotIn("src/scripts/footholdSyriaSetup.lua", listed)
         errors = [i for i in validate_mission_folder(self.mission) if i.level == ERROR]
-
-        self.assertTrue(
-            any("footholdSyriaSetup.lua" in i.message for i in errors),
-            f"validate must name the dangling custom_scripts entry, got {[i.message for i in errors]}",
-        )
+        self.assertEqual([], [i.message for i in errors if "footholdSyriaSetup" in i.message])
 
 
 class TestTheMissionMakersOwnScriptIsLeftAlone(unittest.TestCase):
@@ -107,29 +108,51 @@ class TestTheMissionMakersOwnScriptIsLeftAlone(unittest.TestCase):
 
         self.assertTrue(self.mine.is_file(), "a script upstream never shipped is the maker's, not ours to delete")
         self.assertEqual(self.mine.read_text(encoding="utf-8"), "-- mine\n", "and its content is untouched")
+        self.assertIn("src/scripts/myOwnStuff.lua", (self.mission / "mission.yaml").read_text(encoding="utf-8"))
 
 
-class TestAFolderWithoutAManifestIsNotTouched(unittest.TestCase):
-    """Every mission adopted before this change has no record of what upstream used to load."""
+class TestAFolderWithoutAManifest(unittest.TestCase):
+    """Every mission adopted before the manifest has no record of what upstream used to load."""
 
-    def test_nothing_is_deleted_when_the_previous_release_is_unknown(self) -> None:
+    def setUp(self) -> None:
         root = Path(tempfile.mkdtemp())
-        mission = root / "VEAF-Foothold-Syria"
-        converter = OtherMissionConverter(version="test")
-        converter.convert(make_upstream_miz(RELEASE_4_6, folder=root / "4.6.0"), mission, profile_name="foothold")
-
+        self.root = root
+        self.mission = root / "VEAF-Foothold-Syria"
+        self.converter = OtherMissionConverter(version="test")
+        self.converter.convert(
+            make_upstream_miz(RELEASE_4_6, folder=root / "4.6.0"), self.mission, profile_name="foothold"
+        )
         # Simulate a folder converted by an older version of the tool: the scripts are there, the
         # record of where they came from is not.
-        state = mission / "convert-other-state.yaml"
+        state = self.mission / "convert-other-state.yaml"
         self.assertTrue(state.is_file(), "the adoption records what this release loads")
         state.unlink()
 
-        report = converter.convert(
-            make_upstream_miz(RELEASE_4_7, folder=root / "4.7.0"), mission, profile_name="foothold", update=True
+    def _refresh(self):
+        return self.converter.convert(
+            make_upstream_miz(RELEASE_4_7, folder=self.root / "4.7.0"),
+            self.mission,
+            profile_name="foothold",
+            update=True,
         )
 
-        survivor = mission / "src" / "scripts" / "footholdSyriaSetup.lua"
-        self.assertTrue(survivor.is_file(), "with no manifest the tool cannot know, so it must not guess")
+    def test_the_previous_release_is_read_from_the_base_it_left(self) -> None:
+        # The exploded mapResource names what 4.6 embedded — how the ten VEAF Foothold missions,
+        # all adopted before the manifest, got their first 5.3.0 refresh right.
+        self._refresh()
+
+        self.assertFalse((self.mission / "src" / "scripts" / "footholdSyriaSetup.lua").exists())
+        self.assertIn(
+            "src/scripts/footholdSyriaSetupv2.lua", (self.mission / "mission.yaml").read_text(encoding="utf-8")
+        )
+
+    def test_nothing_is_deleted_when_the_previous_release_is_unknown(self) -> None:
+        shutil.rmtree(self.mission / "src" / "mission" / "l10n")
+
+        report = self._refresh()
+
+        survivor = self.mission / "src" / "scripts" / "footholdSyriaSetup.lua"
+        self.assertTrue(survivor.is_file(), "with neither record the tool cannot know, so it must not guess")
         self.assertIn("footholdSyriaSetup.lua", report.to_markdown(), "but it must still say so")
 
 

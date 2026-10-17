@@ -51,6 +51,11 @@ ignore le reste. Pas besoin de dézipper à la main.
 > apparie chaque archive au dossier **de la même carte** (il lit le théâtre des deux
 > côtés), donc `Foothold_CA_4.7.0_Multi_Language….zip` rafraîchit bien
 > `VEAF-Foothold-Caucasus`. Il annonce pour chaque mission le dossier retenu et pourquoi.
+>
+> Seuls comptent les dossiers adoptés par `convert-other` (ceux qui ont un `convert-other-state.yaml`) : le dossier de sortie peut donc contenir d'autres missions sur les mêmes cartes, comme les Open Training.
+> Exception : Sinaï et Sinaï Nord sont deux missions Foothold sur la même carte.
+> Copiez leurs archives sous le nom de leur dossier (`VEAF-Foothold-Sinai.zip`, `VEAF-Foothold-SinaiNorth.zip`) : un dossier qui porte le nom de l'archive passe en premier.
+> De même pour toutes les cartes lors de la première mise à jour d'une mission adoptée avant l'apparition de `convert-other-state.yaml`.
 
 ### Quel profil pour quelle carte
 
@@ -281,20 +286,12 @@ veaf-tools convert other <nouvelle_release.zip> <dossier-mission> --profile foot
 `mission.yaml` réglé**, et normalise les noms versionnés (`Moose_<date>.lua` → `Moose.lua`,
 `Splash_Damage_<version>_leka.lua` → `Splash_Damage.lua`).
 
-Il **aligne aussi les `delay_seconds:` sur l'étalement de la nouvelle version** et
-**supprime les scripts que Lekaa ne fournit plus** — c'est le cas du renommage du setup
-Syrie en 4.7.0 (`footholdSyriaSetup.lua` → `footholdSyriaSetupv2.lua`), où l'ancien
-fichier restait sur disque et se retrouvait embarqué à la place du nouveau. L'entrée
-correspondante reste dans `custom_scripts:`, donc **`validate` échoue** jusqu'à ce que
-vous l'ôtiez : c'est le signal, pas un défaut.
+Il **aligne aussi les `delay_seconds:` sur l'étalement de la nouvelle version**, **supprime les scripts que Lekaa ne fournit plus** et **réécrit `custom_scripts:` sur ce que charge la nouvelle version**, dans son ordre de chargement.
+C'est ce qui couvre un renommage amont : en 5.3.0, `zoneCommander.lua` devient `zoneCommanderv2.lua` sur les dix cartes, et l'ancienne liste aurait chargé l'ancien moteur avec la nouvelle config.
+Vos propres scripts restent dans la liste, après ceux de Lekaa.
 
-Le rapport (`convert-other-report.md`) énumère tout : scripts ajoutés, mis à jour,
-supprimés, et chaque délai écrit. Relisez-le, ajoutez les scripts nouveaux à
-`custom_scripts:`, puis revalidez et reconstruisez. Voir
-[CONVERT_OTHER](CONVERT_OTHER.md).
-
-> Un **nouveau script** amont n'est pas ajouté à `custom_scripts:` à votre place :
-> sa position dans l'ordre de chargement est une décision qui revient à un humain.
+Le rapport (`convert-other-report.md`) énumère tout : scripts ajoutés, mis à jour, supprimés, entrées de `custom_scripts:` ajoutées ou retirées, et chaque délai écrit.
+Relisez-le, puis revalidez et reconstruisez. Voir [CONVERT_OTHER](CONVERT_OTHER.md).
 
 > `convert-other-state.yaml` apparaît dans le dossier de mission : c'est la liste des
 > scripts que la version amont charge, et c'est elle qui permet de distinguer un script

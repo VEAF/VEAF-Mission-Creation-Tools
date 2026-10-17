@@ -1506,3 +1506,17 @@ limitations:
     measured, the clock is the nominal zone of that point's longitude (UTC+3, UTC+10).
   workaround: |
     Give `position` near the mission in `versions.yaml` when the minute matters.
+
+- id: foothold-batch-two-missions-on-one-map
+  kind: tool
+  area: pipeline
+  title: "`Convert-FootholdBatch -Update` cannot tell two Foothold missions on the same map apart"
+  symptom: |
+    The batch matches a Lekaa release archive to the adopted folder of the same theatre. Sinai and Sinai
+    North are two Foothold missions on `SinaiMap`, so both archives are ambiguous and, unmatched, start a
+    fresh adoption in a new folder named after the archive. The same happens on every map for a mission
+    adopted before `convert-other-state.yaml` existed: only folders carrying it are candidates
+    (FIX-FOOTHOLD-5-3-0-INTAKE, 2026-10-17).
+  workaround: |
+    Copy those archives under their folder names (`VEAF-Foothold-Sinai.zip`, `VEAF-Foothold-SinaiNorth.zip`)
+    before running the batch: a folder named after the archive is picked first.

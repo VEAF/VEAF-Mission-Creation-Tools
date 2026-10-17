@@ -157,19 +157,18 @@ En mode mise à jour, `convert-other` :
   `custom_scripts:` restent stables d'une version à l'autre (p. ex.
   `Moose_<nouvelle-date>.lua` → `Moose.lua`) ;
 - **préserve votre `mission.yaml` réglé** — il n'est jamais régénéré, donc vos
-  modules, votre `config_override` et vos `custom_scripts` survivent ;
+  modules, votre `config_override` et vos propres `custom_scripts` survivent ;
 - **supprime les scripts que la nouvelle version ne fournit plus**, à condition
-  qu'ils viennent bien de l'amont (voir ci-dessous) ; leur entrée reste dans
-  `custom_scripts:`, donc `validate` échoue jusqu'à ce que vous l'ôtiez — c'est
-  voulu : sans ça, le build embarquait la copie de la version précédente ;
+  qu'ils viennent bien de l'amont (voir ci-dessous) ;
+- **réécrit la liste `custom_scripts:` sur ce que charge la version amont**, dans son ordre de chargement : un script qu'elle ne charge plus en sort, un script qu'elle charge pour la première fois y entre avec son délai.
+  Vos propres scripts restent, après ceux de l'amont et dans leur ordre.
+  C'est ce qui couvre un renommage amont (`zoneCommander.lua` → `zoneCommanderv2.lua` en 5.3.0) : sans ça, le build chargeait l'ancien moteur avec la nouvelle config ;
 - **aligne `delay_seconds:` sur l'étalement de la version amont** — voir
   [Étalement du chargement](#load-staging) ;
 - **rapporte tout ce qu'il a fait** : scripts ajoutés, mis à jour, supprimés, et
   chaque délai écrit.
 
-Relisez le rapport, ajoutez au besoin les scripts nouveaux à `custom_scripts:` (leur
-position dans l'ordre de chargement est une décision humaine), puis reconstruisez et
-testez dans DCS.
+Relisez le rapport, vérifiez la place de vos propres scripts dans `custom_scripts:`, puis reconstruisez et testez dans DCS.
 
 ### Ce qui vous appartient, et ce qui appartient à l'amont {#ownership}
 
@@ -183,8 +182,8 @@ jour suivante, un script absent de la nouvelle version *et* présent dans cette 
 un script amont abandonné (supprimé) ; tout le reste est à vous (laissé strictement
 intact).
 
-Un dossier converti avant l'apparition de ce fichier n'a pas cette liste : rien n'y est
-supprimé, tout est signalé, exactement comme avant.
+Un dossier converti avant l'apparition de ce fichier n'a pas cette liste.
+Les scripts de la version précédente y sont alors lus dans la base de mission qu'elle a laissée : le `mapResource` de `src/mission/` nomme chaque script qu'elle embarquait.
 
 ### Étalement du chargement {#load-staging}
 

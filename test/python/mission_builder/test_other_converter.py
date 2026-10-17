@@ -506,3 +506,171 @@ class TestUpdateReportsAStagingChange(unittest.TestCase):
         from mission_builder.other_converter import apply_upstream_delays
 
         self.assertEqual([], apply_upstream_delays(None, [DetectedLoader("AIEN.lua", 5, "AIEN", 12.0)]))
+
+
+class TestUpdateReconcilesTheScriptList(unittest.TestCase):
+    """`--update` rewrites `custom_scripts:` to what the release loads.
+
+    Foothold 5.3.0 renamed `zoneCommander.lua` to `zoneCommanderv2.lua` on all ten maps. The
+    preserved `mission.yaml` kept loading the old file — still on disk, so `validate` passed — and
+    the new one was never loaded: a build would have run the previous campaign engine against the
+    new config (2026-10-17).
+    """
+
+    _DECLARED = textwrap.dedent("""\
+        # head comment
+        custom_scripts:
+          scripts:
+            - path: src/scripts/Moose.lua
+            - path: src/scripts/zoneCommander.lua
+            - path: src/scripts/Mine.lua
+              delay_seconds: 30
+            - path: "src/scripts/Foothold CTLD.lua"
+              delay_seconds: 3
+
+        # Native load triggers detected in the source .miz.
+        strip_native_triggers:
+          - "ScriptLoader 1"
+        """)
+
+    _RELEASE = [
+        DetectedLoader("Moose.lua", 1, "ScriptLoader 1"),
+        DetectedLoader("zoneCommanderv2.lua", 1, "ScriptLoader 1"),
+        DetectedLoader("Foothold CTLD.lua", 2, "ScriptLoader 2", 3.0),
+    ]
+    _WAS = frozenset({"Moose.lua", "zoneCommander.lua", "Foothold CTLD.lua"})
+
+    def _reconcile(self, declared: str, loaders, was_upstream=_WAS):
+        from mission_builder.other_converter import reconcile_custom_scripts
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "mission.yaml"
+            path.write_bytes(declared.encode("utf-8"))
+            changes = reconcile_custom_scripts(path, loaders, set(was_upstream))
+            return changes, path.read_bytes().decode("utf-8")
+
+    @staticmethod
+    def _paths(text: str) -> list[str]:
+        block = text.split("custom_scripts:")[1].split("strip_native_triggers:")[0]
+        return [line.split("path:")[1].strip().strip('"') for line in block.splitlines() if "path:" in line]
+
+    def test_a_renamed_script_replaces_the_old_entry_in_upstream_order(self):
+        _, text = self._reconcile(self._DECLARED, self._RELEASE)
+        self.assertEqual(
+            [
+                "src/scripts/Moose.lua",
+                "src/scripts/zoneCommanderv2.lua",
+                "src/scripts/Foothold CTLD.lua",
+                "src/scripts/Mine.lua",
+            ],
+            self._paths(text),
+        )
+
+    def test_the_makers_script_keeps_its_own_delay(self):
+        _, text = self._reconcile(self._DECLARED, self._RELEASE)
+        self.assertIn("    - path: src/scripts/Mine.lua\n      delay_seconds: 30\n", text)
+
+    def test_an_added_script_gets_its_upstream_delay(self):
+        release = [*self._RELEASE, DetectedLoader("AIEN.lua", 4, "AIEN", 12.0)]
+        _, text = self._reconcile(self._DECLARED, release)
+        self.assertIn("    - path: src/scripts/AIEN.lua\n      delay_seconds: 12\n", text)
+
+    def test_a_path_with_a_space_stays_quoted(self):
+        _, text = self._reconcile(self._DECLARED, self._RELEASE)
+        self.assertIn('- path: "src/scripts/Foothold CTLD.lua"', text)
+
+    def test_the_rest_of_the_file_is_untouched(self):
+        _, text = self._reconcile(self._DECLARED, self._RELEASE)
+        self.assertTrue(text.startswith("# head comment\ncustom_scripts:\n  scripts:\n"))
+        self.assertIn(
+            '\n\n# Native load triggers detected in the source .miz.\nstrip_native_triggers:\n  - "ScriptLoader 1"\n',
+            text,
+        )
+
+    def test_every_change_is_reported(self):
+        changes, _ = self._reconcile(self._DECLARED, self._RELEASE)
+        joined = "\n".join(changes)
+        self.assertIn("zoneCommanderv2.lua", joined)
+        self.assertIn("zoneCommander.lua", joined)
+        self.assertNotIn("Mine.lua", joined)
+
+    _ALIGNED = textwrap.dedent("""\
+        custom_scripts:
+          scripts:
+            - path: src/scripts/Moose.lua
+            - path: src/scripts/zoneCommanderv2.lua
+            - path: "src/scripts/Foothold CTLD.lua"
+              delay_seconds: 3
+        """)
+
+    def test_an_already_aligned_list_is_left_alone(self):
+        changes, text = self._reconcile(self._ALIGNED, self._RELEASE)
+        self.assertEqual([], changes)
+        self.assertEqual(self._ALIGNED, text)
+
+    def test_a_reordered_release_is_reported(self):
+        release = [self._RELEASE[1], self._RELEASE[0], self._RELEASE[2]]
+        changes, text = self._reconcile(self._ALIGNED, release)
+        self.assertEqual(1, len(changes))
+        self.assertEqual(
+            ["src/scripts/zoneCommanderv2.lua", "src/scripts/Moose.lua", "src/scripts/Foothold CTLD.lua"],
+            self._paths(text),
+        )
+
+    def test_crlf_line_endings_survive(self):
+        _, text = self._reconcile(self._DECLARED.replace("\n", "\r\n"), self._RELEASE)
+        self.assertNotIn("\n", text.replace("\r\n", ""))
+
+    def test_a_missing_yaml_reports_nothing(self):
+        from mission_builder.other_converter import reconcile_custom_scripts
+
+        self.assertEqual([], reconcile_custom_scripts(None, self._RELEASE, set(self._WAS)))
+
+
+class TestPreviousUpstreamScripts(unittest.TestCase):
+    """Without `convert-other-state.yaml` the previous release's scripts are read from the base it left.
+
+    Every Foothold mission was adopted before the state file existed, so on their first refresh the
+    converter could not tell `zoneCommander.lua` (the previous release's) from a maker's script.
+    The exploded mission still says it: its `mapResource` lists what that release embedded.
+    """
+
+    _MAP = (
+        "mapResource = \n{\n"
+        '    ["ResKey_A"] = "zoneCommander.lua",\n'
+        '    ["ResKey_B"] = "Moose_2026-06-14.lua",\n'
+        '    ["ResKey_C"] = "intro.ogg",\n'
+        "} -- end of mapResource\n"
+    )
+
+    @staticmethod
+    def _folder(tmp: str, map_resource: str | None, state: str | None = None) -> Path:
+        folder = Path(tmp)
+        if map_resource is not None:
+            target = folder / "src" / "mission" / "l10n" / "DEFAULT"
+            target.mkdir(parents=True)
+            (target / "mapResource").write_text(map_resource, encoding="utf-8")
+        if state is not None:
+            (folder / "convert-other-state.yaml").write_text(state, encoding="utf-8")
+        return folder
+
+    def test_the_map_resource_names_the_previous_scripts_normalised(self):
+        from mission_builder.other_converter import read_previous_upstream_scripts
+        from veaf_libs.conversion_profile import load_profile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            scripts = read_previous_upstream_scripts(self._folder(tmp, self._MAP), load_profile("foothold"))
+        self.assertEqual({"zoneCommander.lua", "Moose.lua"}, scripts)
+
+    def test_the_state_file_wins_when_present(self):
+        from mission_builder.other_converter import read_previous_upstream_scripts
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = self._folder(tmp, self._MAP, "upstream_scripts:\n  - Other.lua\n")
+            self.assertEqual({"Other.lua"}, read_previous_upstream_scripts(folder, None))
+
+    def test_a_folder_with_neither_knows_nothing(self):
+        from mission_builder.other_converter import read_previous_upstream_scripts
+
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(set(), read_previous_upstream_scripts(self._folder(tmp, None), None))

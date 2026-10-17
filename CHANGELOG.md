@@ -28,6 +28,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   *Opposition → Niveau → 0 avion*, or the `_opposition 0` marker, keeps every QRA marked `scale_with_opposition: true` on the ground, whatever enters its zone, until the level is fixed above 0 or a follow mode is chosen again; *Niveau actuel* says « aucune chasse adverse (fixe) ».
   A level a follow mode lowers to 0, or `level: 0` in `mission.yaml`, stays a count: the zone's tiers still answer.
 
+### Fixed
+
+- **Refreshing the Foothold missions to a new Lekaa release** (FIX-FOOTHOLD-5-3-0-INTAKE).
+  `convert-other --update` now rewrites `custom_scripts:` to what the release loads, in its load order: in 5.3.0 `zoneCommander.lua` became `zoneCommanderv2.lua` on every map, and the preserved list kept loading the previous engine against the new config. Your own scripts stay, after the upstream ones.
+  `Convert-FootholdBatch.ps1` finds the adopted folders again (it read the theatre in one key form only) and ignores the other missions on the same map, such as the Open Training ones.
+  `validate` reports a withdrawn module such as `hercules` as a warning instead of failing on it.
+  The batch no longer turns an LF `mission.yaml` into CRLF when it removes `build.scripts_path` after a build.
+
 ## [6.30.0] — 2026-10-15
 
 ### Fixed

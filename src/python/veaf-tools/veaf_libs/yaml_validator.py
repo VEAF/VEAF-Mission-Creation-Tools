@@ -11,6 +11,10 @@ from veaf_libs.logger import logger
 #: Legacy top-level sections removed by MODULES-UNIFY (hard break).
 _REMOVED_SECTIONS: tuple[str, ...] = ("external_modules", "qra")
 
+#: ``modules:`` keys that existed and were withdrawn, with the release that withdrew them. A
+#: mission written before keeps the line; telling its maker the line is dead beats failing on it.
+_RETIRED_MODULES: dict[str, str] = {"HERCULES": "6.18.0"}
+
 
 def _hint_key(problem: str) -> str:
     """Return the i18n hint key that best matches the PyYAML error problem string.
@@ -207,6 +211,9 @@ def collect_module_issues(yaml_data: dict) -> tuple[list[str], list[str]]:
     if isinstance(modules, dict):
         known = _known_module_keys()
         for key, cfg in modules.items():
+            if key.upper() in _RETIRED_MODULES:
+                warnings.append(t("yaml.semantic.retired_module", module=key, version=_RETIRED_MODULES[key.upper()]))
+                continue
             if key.upper() not in known:
                 errors.append(t("yaml.semantic.unknown_module", module=key))
                 continue

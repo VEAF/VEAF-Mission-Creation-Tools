@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-FOOTHOLD-5-3-0-INTAKE](FIX-FOOTHOLD-5-3-0-INTAKE/PRD.md) · ✅
+
+Refreshing the ten Foothold missions to Lekaa 5.3.0 (2026-10-17) found four defects: the batch matched no folder (theatre read in one key form only, and the Open Training missions on the same maps counted as candidates), `--update` kept `zoneCommander.lua` in `custom_scripts:` when the release renamed it `zoneCommanderv2.lua`, `validate` failed on the `hercules: false` left after #843, and the batch turned an LF `mission.yaml` into CRLF. All fixed (#1147); the ten missions refreshed, built and committed on their `main`.
+
 ### [FIX-SOLAR-DEFAULT-POSITION](FIX-SOLAR-DEFAULT-POSITION/PRD.md) · ✅
 
 The shipped `versions.yaml` put every mission's sunrise at Damascus: 24 minutes late on the Caucasus in March, 50 in June. Without `position`, solar times are now computed at the theatre's point; an explicit one still wins, warned when off the map. `campaign next` was not affected.

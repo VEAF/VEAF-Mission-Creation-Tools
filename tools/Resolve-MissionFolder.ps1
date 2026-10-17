@@ -24,14 +24,15 @@
 Set-StrictMode -Version Latest
 
 function Get-MissionTheatre {
-    <#  Return the `["theatre"]` a mission table declares, or $null.
+    <#  Return the theatre a mission table declares, or $null.
 
         Takes the file's text rather than a path: the caller has it as a stream from inside a
-        zip in one case, and as a file in the other.  #>
+        zip in one case, and as a file in the other. Both key forms are read: DCS writes
+        `["theatre"] = "…"` inside a `.miz`, an adopted folder's exploded table has `theatre = "…"`.  #>
     param([string] $MissionText)
 
     if (-not $MissionText) { return $null }
-    $match = [regex]::Match($MissionText, '\["theatre"\]\s*=\s*"([^"]+)"')
+    $match = [regex]::Match($MissionText, '(?m)^\s*(?:\["theatre"\]|theatre)\s*=\s*"([^"]+)"')
     if ($match.Success) { return $match.Groups[1].Value }
     return $null
 }
@@ -126,11 +127,15 @@ function Resolve-MissionFolder {
         return [PSCustomObject]@{ Path = $default; Matched = $false; Reason = 'théâtre illisible — adoption' }
     }
 
+    # Only folders `convert-other` adopted are candidates — it leaves `convert-other-state.yaml`.
+    # The mission folder is often shared with VEAF's own missions on the same maps (Open Training,
+    # demos), and counting them made 7 archives of 10 ambiguous.
     $candidates = @()
     if (Test-Path -LiteralPath $OutputFolder) {
         $candidates = @(
             Get-ChildItem -LiteralPath $OutputFolder -Directory |
                 Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'mission.yaml') } |
+                Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'convert-other-state.yaml') } |
                 Where-Object { (Get-MissionFolderTheatre -MissionFolder $_.FullName) -eq $theatre }
         )
     }

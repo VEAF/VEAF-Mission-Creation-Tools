@@ -151,18 +151,18 @@ In update mode `convert-other`:
 - **re-applies versioned-name normalisation** so `custom_scripts:` paths stay
   stable across versions (e.g. `Moose_<new-date>.lua` → `Moose.lua`);
 - **preserves your tuned `mission.yaml`** — it is never regenerated, so your
-  modules, `config_override`, and `custom_scripts` edits survive;
+  modules, `config_override`, and your own `custom_scripts` survive;
 - **deletes the scripts the new release no longer ships**, provided they came from
-  upstream in the first place (see below). Their `custom_scripts:` entry stays, so
-  `validate` fails until you remove it — deliberately: without that, the build
-  embedded the previous release's copy;
+  upstream in the first place (see below);
+- **rewrites the `custom_scripts:` list to what the upstream release loads**, in its load order: a script it no longer loads leaves, a script it loads for the first time enters with its delay.
+  Your own scripts stay, after the upstream ones and in their order.
+  That is what covers an upstream rename (`zoneCommander.lua` → `zoneCommanderv2.lua` in 5.3.0): without it, the build loaded the previous engine against the new config;
 - **reconciles `delay_seconds:` with the upstream staging** — see
   [Load staging](#load-staging);
 - **reports everything it did**: scripts added, updated, deleted, and every delay
   written.
 
-Review the report, add any new script to `custom_scripts:` (where it belongs in the
-load order is a human decision), then rebuild and test in DCS.
+Review the report, check where your own scripts sit in `custom_scripts:`, then rebuild and test in DCS.
 
 ### What is yours and what is upstream's {#ownership}
 
@@ -174,8 +174,8 @@ scripts the upstream release loads. **Commit it with the mission.** On the next 
 script missing from the new release *and* present in that list is an upstream script that
 was dropped (deleted); anything else is yours (left strictly alone).
 
-A folder converted before that file existed has no such list: nothing is deleted there,
-everything is reported, exactly as before.
+A folder converted before that file existed has no such list.
+There, the previous release's scripts are read from the mission base it left: the `mapResource` of `src/mission/` names every script that release embedded.
 
 ### Load staging {#load-staging}
 

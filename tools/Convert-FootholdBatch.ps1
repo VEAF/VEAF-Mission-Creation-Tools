@@ -15,6 +15,11 @@
     folders on the same map) is reported rather than guessed. Anything unmatched is a fresh
     adoption into a folder named after the archive, as before.
 
+    Only folders `convert-other` adopted count — they carry `convert-other-state.yaml` — so
+    -OutputFolder may also hold other missions on the same maps. Sinai and Sinai North are two
+    Foothold missions on one map: copy their archives under their folder names
+    (`VEAF-Foothold-Sinai.zip`, `VEAF-Foothold-SinaiNorth.zip`) so the name rule picks them.
+
     The conversion profile is picked per mission by looking INSIDE the archive's `.miz`: a
     mission carrying "Foothold Config WW2.lua" is a WWII Foothold and gets `foothold-ww2`,
     everything else gets `foothold`. Detection is by content, not by filename, so a future
@@ -208,10 +213,16 @@ function Read-Utf8Lines {
 }
 
 function Write-Utf8Lines {
-    <#  Write lines back as UTF-8 without BOM, preserving what Read-Utf8Lines read.  #>
+    <#  Write lines back as UTF-8 without BOM, preserving what Read-Utf8Lines read.
+
+        The line ending is the file's own, read before writing. `WriteAllLines` ends every line
+        with the platform's, so on Windows it turned an LF `mission.yaml` into CRLF — a diff on
+        every line of `VEAF-Foothold-Caucasus/mission.yaml`, whose repository keeps files
+        byte-for-byte (`* -text`), for the one key it removed (2026-10-17).  #>
     param([string] $Path, [string[]] $Lines)
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllLines($Path, $Lines, $utf8NoBom)
+    $newLine = if ([System.IO.File]::ReadAllText($Path, $utf8NoBom).Contains("`r`n")) { "`r`n" } else { "`n" }
+    [System.IO.File]::WriteAllText($Path, (($Lines -join $newLine) + $newLine), $utf8NoBom)
 }
 
 function Get-PreBuildWarnings {

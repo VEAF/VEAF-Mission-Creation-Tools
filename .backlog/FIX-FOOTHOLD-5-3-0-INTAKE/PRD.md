@@ -1,6 +1,6 @@
 # FIX-FOOTHOLD-5-3-0-INTAKE — what refreshing the ten Foothold missions to Lekaa 5.3.0 found
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Asked by David on 2026-10-17: update every Foothold mission VEAF uses to [Lekaa's 5.3.0 release](https://github.com/leka1986/Lekas-Foothold/releases/tag/v5.3.0) (10 archives, one per map, published 2026-10-10).
 The documented procedure is `tools/Convert-FootholdBatch.ps1 -Update -Build`, run against `D:\dev\_VEAF`, where the ten `VEAF-Foothold-*` repositories live beside the Open Training and demo missions.

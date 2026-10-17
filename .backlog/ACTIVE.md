@@ -4,12 +4,6 @@
 
 Work started and not finished: in progress, waiting for a human, or deliberately paused.
 
-## 🔄 In progress
-
-### [FIX-FOOTHOLD-5-3-0-INTAKE](FIX-FOOTHOLD-5-3-0-INTAKE/PRD.md) · 🔄
-
-Refreshing the ten Foothold missions to Lekaa 5.3.0 (2026-10-17) found three defects: the batch matched no folder (theatre read in one key form only, and the Open Training missions on the same maps counted as candidates), `--update` kept `zoneCommander.lua` in `custom_scripts:` when the release renamed it `zoneCommanderv2.lua`, and `validate` failed on the `hercules: false` left after #843. Fixed in one PR; ticket 04 refreshes and rebuilds the ten missions.
-
 ## 🧑 Waiting for a human
 
 ### [FEAT-OPPOSITION-ZERO-AIRCRAFT](FEAT-OPPOSITION-ZERO-AIRCRAFT/PRD.md) · 🧑

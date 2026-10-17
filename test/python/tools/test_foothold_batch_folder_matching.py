@@ -34,14 +34,17 @@ RESOLVER = REPO_ROOT / "tools" / "Resolve-MissionFolder.ps1"
 PWSH = shutil.which("pwsh")
 
 
-def _mission_folder(root: Path, name: str, theatre: str) -> Path:
-    """Create a mission folder that looks adopted: a mission.yaml and an exploded mission table."""
+def _mission_folder(root: Path, name: str, theatre: str, adopted: bool = True) -> Path:
+    """Create a mission folder: a mission.yaml, an exploded mission table and, when *adopted*,
+    the state file `convert-other` leaves behind."""
     folder = root / name
     (folder / "src" / "mission").mkdir(parents=True)
     (folder / "mission.yaml").write_text("custom_scripts:\n  scripts: []\n", encoding="utf-8")
     (folder / "src" / "mission" / "mission").write_text(
         f'mission =\n{{\n    ["theatre"] = "{theatre}",\n}}\n', encoding="utf-8"
     )
+    if adopted:
+        (folder / "convert-other-state.yaml").write_text("upstream_scripts: []\n", encoding="utf-8")
     return folder
 
 
@@ -80,6 +83,34 @@ class TestResolveMissionFolder(unittest.TestCase):
 
         self.assertEqual(Path(result["Path"]), expected)
         self.assertTrue(result["Matched"], "the batch must know it matched, so -Update can engage")
+
+    def test_a_folder_written_in_the_normalized_form_is_matched(self) -> None:
+        # The exploded `src/mission/mission` of an adopted folder is written with bare keys
+        # (`theatre = "Caucasus"`), not DCS's `["theatre"] = "Caucasus"`. Reading only the DCS form
+        # matched none of the ten real folders and started ten fresh adoptions (2026-10-17).
+        expected = self.output / "VEAF-Foothold-Caucasus"
+        (expected / "src" / "mission").mkdir(parents=True)
+        (expected / "mission.yaml").write_text("custom_scripts:\n  scripts: []\n", encoding="utf-8")
+        (expected / "convert-other-state.yaml").write_text("upstream_scripts: []\n", encoding="utf-8")
+        (expected / "src" / "mission" / "mission").write_text(
+            'mission = {\n  theatre = "Caucasus",\n}\n', encoding="utf-8"
+        )
+
+        result = self._resolve(self._release(theatre="Caucasus", name="Foothold_CA_5.3.0_Multi_Language.zip"))
+
+        self.assertEqual(Path(result["Path"]), expected)
+        self.assertTrue(result["Matched"])
+
+    def test_a_mission_not_adopted_by_convert_other_is_not_a_candidate(self) -> None:
+        # The Foothold folders sit in D:\dev\_VEAF beside the Open Training and demo missions,
+        # which share their maps: 7 archives of 10 came out ambiguous (2026-10-17).
+        expected = _mission_folder(self.output, "VEAF-Foothold-Caucasus", "Caucasus")
+        _mission_folder(self.output, "VEAF-Open-Training-Mission-Caucasus-v6", "Caucasus", adopted=False)
+
+        result = self._resolve(self._release(theatre="Caucasus", name="Foothold_CA_5.3.0_Multi_Language.zip"))
+
+        self.assertEqual(Path(result["Path"]), expected)
+        self.assertTrue(result["Matched"])
 
     def test_a_theatre_with_no_folder_falls_back_to_the_archive_name(self) -> None:
         _mission_folder(self.output, "VEAF-Foothold-Caucasus", "Caucasus")

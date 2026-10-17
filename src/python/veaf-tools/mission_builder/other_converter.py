@@ -341,6 +341,150 @@ def apply_upstream_delays(mission_yaml_path: Path | None, loaders: list[Detected
     return changes
 
 
+#: A ``.lua`` filename assigned in an exploded ``mapResource`` table.
+_MAP_RESOURCE_LUA = re.compile(r'=\s*"([^"]+\.lua)"', re.IGNORECASE)
+
+
+def read_previous_upstream_scripts(mission_folder: Path, profile: ConversionProfile | None) -> set[str]:
+    """Return the scripts the release this folder was last refreshed from loaded.
+
+    The manifest says it when present. Every mission adopted before the manifest existed has
+    none, and on its first refresh could not tell a script the previous release shipped from one
+    the mission maker added — so a renamed upstream script was kept as the maker's. The exploded
+    mission base still names them: its ``mapResource`` lists the scripts that release embedded.
+    Read it **before** the extraction overwrites it.
+
+    Args:
+        mission_folder: The mission folder.
+        profile: The conversion profile, whose name normalisation the recorded names went through.
+
+    Returns:
+        The script base names, normalised as ``custom_scripts`` writes them; empty when neither
+        the manifest nor an exploded ``mapResource`` exists.
+    """
+    recorded = read_upstream_manifest(mission_folder)
+    if recorded:
+        return recorded
+    map_resource = mission_folder / "src" / "mission" / "l10n" / "DEFAULT" / "mapResource"
+    try:
+        text = map_resource.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return set()
+    names = {Path(match).name for match in _MAP_RESOURCE_LUA.findall(text)}
+    if profile is not None:
+        names = {profile.normalize_script_name(name) for name in names}
+    return names
+
+
+@dataclass
+class _ScriptEntry:
+    """One ``- path:`` item of the ``custom_scripts:`` list, with the lines that belong to it."""
+
+    script: str
+    lines: list[str]
+
+
+def reconcile_custom_scripts(
+    mission_yaml_path: Path | None, loaders: list[DetectedLoader], was_upstream: set[str]
+) -> list[str]:
+    """Make a preserved ``custom_scripts:`` list load what the upstream release loads, in place.
+
+    The upstream entries are rewritten in the release's load order: a script it no longer loads
+    and the previous release did is dropped, a script it newly loads is added (with its upstream
+    ``delay_seconds``). Anything else is the mission maker's and is kept, after the upstream
+    entries and in its own order, with its lines untouched. Foothold 5.3.0 renamed
+    ``zoneCommander.lua`` to ``zoneCommanderv2.lua`` on all ten maps; preserving the list as it was
+    kept the old engine loaded beside the new config.
+
+    Edited as text, like :func:`apply_upstream_delays`, so comments, quoting and line endings
+    survive. Delays of entries already present are left to :func:`apply_upstream_delays`.
+
+    Args:
+        mission_yaml_path: The preserved ``mission.yaml``.
+        loaders: The loaders detected in the fresh upstream mission, in load order.
+        was_upstream: The scripts the previous release loaded (see
+            :func:`read_previous_upstream_scripts`).
+
+    Returns:
+        One human-readable line per kind of change, in a stable order. Empty when the list already
+        matched — in which case the file is not rewritten.
+    """
+    if mission_yaml_path is None or not mission_yaml_path.is_file():
+        return []
+    try:
+        raw = mission_yaml_path.read_text(encoding="utf-8", newline="")
+    except OSError:
+        return []
+
+    lines = raw.splitlines(keepends=True)
+    # The `custom_scripts:` block runs until the next column-0 line, comments included: the
+    # comment above `strip_native_triggers:` belongs to that block, not to this one.
+    start = next((i for i, line in enumerate(lines) if line.rstrip("\r\n") == "custom_scripts:"), None)
+    if start is None:
+        return []
+    end = next(
+        (i for i in range(start + 1, len(lines)) if lines[i][:1] not in (" ", "\t") and lines[i].strip()),
+        len(lines),
+    )
+    while end > start + 1 and not lines[end - 1].strip():
+        end -= 1  # trailing blank lines stay outside the rewritten region
+
+    header: list[str] = []
+    entries: list[_ScriptEntry] = []
+    pending: list[str] = []
+    item_indent = ""
+    for line in lines[start + 1 : end]:
+        bare = line.rstrip("\r\n")
+        match = _PATH_LINE.match(bare)
+        if match is not None:
+            item_indent = match.group("indent")
+            entries.append(_ScriptEntry(Path(_unquote(match.group("value"))).name, [*pending, line]))
+            pending = []
+        elif entries and bare.strip() and len(bare) - len(bare.lstrip()) > len(item_indent):
+            entries[-1].lines.append(line)
+        elif entries:
+            pending.append(line)
+        else:
+            header.append(line)
+    if not entries:
+        return []
+
+    eol = "\r\n" if raw.count("\r\n") * 2 > raw.count("\n") else "\n"
+    upstream = [loader for loader in dict((loader.script, loader) for loader in loaders).values()]
+    upstream_names = {loader.script for loader in upstream}
+    existing = {entry.script: entry for entry in entries}
+
+    rebuilt: list[_ScriptEntry] = []
+    added: list[str] = []
+    for loader in upstream:
+        if loader.script in existing:
+            rebuilt.append(existing[loader.script])
+            continue
+        new_lines = [f"{item_indent}- path: {_yaml_path(f'src/scripts/{loader.script}')}{eol}"]
+        if loader.delay_seconds is not None:
+            new_lines.append(f"{item_indent}  delay_seconds: {format_delay_seconds(loader.delay_seconds)}{eol}")
+        rebuilt.append(_ScriptEntry(loader.script, new_lines))
+        added.append(loader.script)
+    dropped = [e.script for e in entries if e.script not in upstream_names and e.script in was_upstream]
+    rebuilt += [e for e in entries if e.script not in upstream_names and e.script not in was_upstream]
+
+    result = [*lines[: start + 1], *header, *(line for entry in rebuilt for line in entry.lines), *pending]
+    result += lines[end:]
+    if result == lines:
+        return []
+
+    changes: list[str] = []
+    if added:
+        changes.append(tn("convert_other.update.scripts_listed", len(added), names=", ".join(added)))
+    if dropped:
+        changes.append(tn("convert_other.update.scripts_unlisted", len(dropped), names=", ".join(dropped)))
+    if not added and not dropped:
+        changes.append(t("convert_other.update.scripts_reordered"))
+    with open(mission_yaml_path, "w", encoding="utf-8", newline="") as handle:
+        handle.write("".join(result))
+    return changes
+
+
 def _trigrule_delay_seconds(trigrule: dict) -> float | None:
     """Return a loader trigger's ``c_time_after`` delay in seconds, or ``None``.
 
@@ -606,8 +750,10 @@ class OtherMissionConverter:
         profile = load_profile(profile_name) if profile_name else None
         scripts_dir = output_mission_folder / "src" / "scripts"
 
-        # In update mode, snapshot the existing scripts before the refresh overwrites them.
+        # In update mode, snapshot the existing scripts — and what the previous release loaded,
+        # which the exploded base still names — before the refresh overwrites them.
         before = snapshot_scripts(scripts_dir) if update else {}
+        was_upstream = read_previous_upstream_scripts(output_mission_folder, profile) if update else set()
 
         # 1. Extract the .miz (scripts land in src/scripts/). Update refreshes in place.
         MissionExtractorWorker(
@@ -629,7 +775,7 @@ class OtherMissionConverter:
             loaders = self._normalize_script_names(loaders, profile, scripts_dir, overwrite=update)
 
         if update:
-            self._report_update(report, scripts_dir, before, loaders, output_mission_folder)
+            self._report_update(report, scripts_dir, before, loaders, output_mission_folder, was_upstream)
         else:
             self._scaffold_mission_yaml(report, output_mission_folder, loaders, strip_triggers, profile, force, backup)
 
@@ -679,6 +825,7 @@ class OtherMissionConverter:
         before: dict[str, str],
         loaders: list[DetectedLoader],
         mission_folder: Path,
+        was_upstream: set[str],
     ) -> None:
         """Preserve the tuned ``mission.yaml`` and report the upstream script diff.
 
@@ -687,15 +834,14 @@ class OtherMissionConverter:
             scripts_dir: Where the extracted scripts landed.
             before: Script fingerprints taken before the extraction.
             loaders: The upstream loaders detected in this version.
-            mission_folder: The mission folder, holding the preserved ``mission.yaml`` (read to
-                compare its declared ``delay_seconds`` against upstream's) and the manifest of
-                what the previous release loaded.
+            mission_folder: The mission folder, holding the preserved ``mission.yaml`` (its
+                ``custom_scripts`` list and ``delay_seconds`` are reconciled with upstream's).
+            was_upstream: The scripts the previous release loaded, read before the extraction.
         """
         mission_yaml_path = mission_folder / "mission.yaml"
         after = snapshot_scripts(scripts_dir)
         upstream = {loader.script for loader in loaders}
         diff = diff_scripts(before, after, upstream)
-        was_upstream = read_upstream_manifest(mission_folder)
 
         report.mission_yaml_existed = True
         report.mission_yaml_skipped_reason = t("convert_other.update.yaml_preserved")
@@ -710,19 +856,20 @@ class OtherMissionConverter:
         # A script the *previous* release shipped and this one does not is stale: leaving it on
         # disk is what made `validate` pass while the build embedded the old version of a renamed
         # script. Anything else the upstream never shipped is the mission maker's, and is only
-        # reported — the manifest is absent for every mission adopted before it existed, so that
-        # branch is the common one for now and must stay harmless.
+        # reported.
         stale = tuple(name for name in diff.removed if name in was_upstream)
         theirs = tuple(name for name in diff.removed if name not in was_upstream)
         for name in stale:
             (scripts_dir / name).unlink(missing_ok=True)
         if stale:
             report.actions.append(tn("convert_other.update.removed_stale", len(stale), names=", ".join(stale)))
-            report.manual_review.append(
-                tn("convert_other.update.removed_stale_review", len(stale), names=", ".join(stale))
-            )
         if theirs:
             report.manual_review.append(tn("convert_other.update.removed", len(theirs), names=", ".join(theirs)))
+
+        # The list itself is upstream's too: a script the release renamed must leave custom_scripts
+        # and its successor enter it, or the build loads the previous engine beside the new config.
+        for change in reconcile_custom_scripts(mission_yaml_path, loaders, was_upstream):
+            report.actions.append(change)
 
         # A staging change is as much an upstream change as an added script, and it is the one
         # nothing else would reveal: the tuned mission.yaml is preserved, so an upstream delay

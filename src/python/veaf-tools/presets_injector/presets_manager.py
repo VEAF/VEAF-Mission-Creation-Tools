@@ -2330,7 +2330,11 @@ def _draw_header(draw: ImageDraw.ImageDraw, fonts: dict[str, FreeTypeFont], titl
 
 
 def _encode(image: Image.Image) -> io.BytesIO:
-    """Encode a page as an optimised PNG.
+    """Encode a page as an optimised 256-colour PNG.
+
+    In full colour the Caucasus OT's 95 pages weighed 17 MB, which doubled its ``.miz`` (2026-10-18);
+    the page holds flat fills and anti-aliased text, and a 256-colour palette brings it from 230 kB
+    to 97 kB with no visible change.
 
     Args:
         image: The page.
@@ -2339,7 +2343,7 @@ def _encode(image: Image.Image) -> io.BytesIO:
         The PNG buffer, rewound.
     """
     buffer = io.BytesIO()
-    image.save(buffer, format="PNG", optimize=True)
+    image.quantize(colors=256, method=Image.Quantize.MEDIANCUT).save(buffer, format="PNG", optimize=True)
     buffer.seek(0)
     return buffer
 

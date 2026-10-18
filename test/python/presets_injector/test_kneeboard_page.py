@@ -86,6 +86,14 @@ class TestPageSize(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(_open(buffer).size, KNEEBOARD_PAGE_SIZE)
 
+    def test_pages_are_palette_pngs(self) -> None:
+        # 2026-10-18: in full colour the Caucasus OT's 95 pages weighed 17 MB and the .miz went from 10 to 19 MB;
+        # a 256-colour palette brought a page from 230 kB to 97 kB with no visible change.
+        images = RadioPresetsImageGenerator({}).generate_type_images({("blue", "UH-1H"): _preset(_filled("r", 20))})
+        (buffer,) = images.values()
+        self.assertEqual(_open(buffer).mode, "P")
+        self.assertEqual(_open(render_calibration_page()).mode, "P")
+
     def test_the_calibration_page_has_that_size(self) -> None:
         self.assertEqual(_open(render_calibration_page()).size, KNEEBOARD_PAGE_SIZE)
 

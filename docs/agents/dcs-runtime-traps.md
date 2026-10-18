@@ -779,9 +779,14 @@ it never keeps the image's proportions, and nothing in the log says so. The cock
 in game it read squashed to about 60 % of its width. The 2D window can be resized, and a resized
 window distorts any page again, ED's own 768 × 1024 ones included.
 
+The window also draws its own controls over the page. On a 2:3 page 1536 px wide (A-10C II,
+2026-10-18), the chapter tabs and their close cross cover the top-left corner up to x = 111 and
+y = 129..177 page pixels, and the UP/DN buttons the bottom-right from x = 1463 and y = 2174: a
+subtitle and a page number drawn there were cut.
+
 **What to do:** Draw kneeboard pages at 2:3 (veaf-tools draws 1536 × 2304). A pilot who resized the window puts it
 back with the calibration page veaf-tools adds, `KNEEBOARD/IMAGES/00-veaf-calibration.png`: its
-circles are round only at 2:3.
+circles are round only at 2:3. Keep text out of the top-left and bottom-right corners.
 
 ## Radio and frequencies {#radio}
 

@@ -259,6 +259,54 @@ class TestCalibrationPage(unittest.TestCase):
         self.assertEqual(self._manager_images({("blue", "UH-1H"): _preset(_radio("empty"))}), {})
 
 
+class TestClearOfTheWindowControls(unittest.TestCase):
+    """The kneeboard window draws its own controls over the page; no text may sit under them.
+
+    Measured on David's A-10C II screenshot (2026-10-18): the chapter tabs cover the top-left corner
+    up to x = 111 page pixels, the UP/DN buttons the bottom-right from x = 1463 and y = 2174.
+    """
+
+    TABS_RIGHT_X = 111
+    BUTTONS_LEFT_X = 1463
+    BUTTONS_TOP_Y = 2174
+
+    def _positions(self, render) -> dict[str, tuple[float, float]]:
+        positions: dict[str, tuple[float, float]] = {}
+        real_text = ImageDraw.ImageDraw.text
+
+        def spy(self, xy, text, *args, **kwargs):
+            positions[text] = xy
+            return real_text(self, xy, text, *args, **kwargs)
+
+        with mock.patch.object(ImageDraw.ImageDraw, "text", spy):
+            render()
+        return positions
+
+    def setUp(self) -> None:
+        set_language("en")
+
+    def test_the_header_texts_start_after_the_tabs(self) -> None:
+        positions = self._positions(
+            lambda: RadioPresetsImageGenerator({}).generate_type_images({("blue", "A-10C_2"): _preset(_filled("r", 2))})
+        )
+        for text in ("A-10C II", "Radio presets"):
+            with self.subTest(text=text):
+                self.assertGreater(positions[text][0], self.TABS_RIGHT_X)
+
+    def test_the_calibration_header_starts_after_the_tabs(self) -> None:
+        positions = self._positions(render_calibration_page)
+        self.assertGreater(positions["Kneeboard setup"][0], self.TABS_RIGHT_X)
+        self.assertGreater(positions["VEAF test pattern"][0], self.TABS_RIGHT_X)
+
+    def test_the_page_footer_ends_before_the_buttons(self) -> None:
+        positions = self._positions(
+            lambda: RadioPresetsImageGenerator({}).generate_type_images({("blue", "A-10C_2"): _preset(_filled("r", 2))})
+        )
+        x, y = positions["A-10C_2  ·  page 1/1"]  # right-anchored: x is where the text ends
+        self.assertGreater(y, self.BUTTONS_TOP_Y)  # it is level with the buttons...
+        self.assertLess(x, self.BUTTONS_LEFT_X)  # ...so it must end before them
+
+
 class TestPageTexts(unittest.TestCase):
     """The page's words follow the tool's language."""
 

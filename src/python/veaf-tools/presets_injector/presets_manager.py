@@ -2014,6 +2014,12 @@ _CH_W = 92
 _MOD_W = 70
 # A block does not start at the foot of a column with fewer rows than this.
 _MIN_ROWS_AT_FOOT = 4
+# The kneeboard window draws its own controls over the page (David's A-10C II screenshot, 2026-10-18,
+# page shown 830 px wide): the chapter tabs and their close cross cover the top-left corner up to
+# x = 111 and y = 129..177 page pixels, and the UP/DN buttons the bottom-right from x = 1463 and y = 2174.
+# The header texts start after the tabs and the footer ends before the buttons.
+_HEADER_TEXT_X = 150
+_FOOTER_RIGHT_X = _PAGE_W - 130
 
 _PAPER = (252, 251, 246)
 _INK = (20, 22, 26)
@@ -2319,8 +2325,8 @@ def _draw_header(draw: ImageDraw.ImageDraw, fonts: dict[str, FreeTypeFont], titl
         subtitle: The line under it.
     """
     draw.rectangle([0, 0, _PAGE_W, _MARGIN + _HEADER_H - 20], fill=_HEADER_BG)
-    draw.text((_MARGIN, _MARGIN + 10), title, font=fonts["title"], fill="white", anchor="lt")
-    draw.text((_MARGIN, _MARGIN + 90), subtitle, font=fonts["subtitle"], fill=_HEADER_SUBTITLE, anchor="lt")
+    draw.text((_HEADER_TEXT_X, _MARGIN + 10), title, font=fonts["title"], fill="white", anchor="lt")
+    draw.text((_HEADER_TEXT_X, _MARGIN + 90), subtitle, font=fonts["subtitle"], fill=_HEADER_SUBTITLE, anchor="lt")
 
 
 def _encode(image: Image.Image) -> io.BytesIO:
@@ -2472,7 +2478,7 @@ class RadioPresetsImageGenerator:
             legend = t("presets_injector.kneeboard.priority_legend")
             draw.text((_MARGIN, _PAGE_H - _MARGIN), legend, font=fonts["footer"], fill=_MUTED, anchor="lb")
         footer = t("presets_injector.kneeboard.page", unit_type=unit_type, page=page_number, count=page_count)
-        draw.text((_PAGE_W - _MARGIN, _PAGE_H - _MARGIN), footer, font=fonts["footer"], fill=_MUTED, anchor="rb")
+        draw.text((_FOOTER_RIGHT_X, _PAGE_H - _MARGIN), footer, font=fonts["footer"], fill=_MUTED, anchor="rb")
         return image
 
     def _draw_segment(self, draw: ImageDraw.ImageDraw, x: int, y: int, segment: KneeboardSegment) -> int:

@@ -8,7 +8,7 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ### [FEAT-KNEEBOARD-PRESETS-REDESIGN](FEAT-KNEEBOARD-PRESETS-REDESIGN/PRD.md) · ✅
 
-The radio presets kneeboard page redrawn for the 2:3 window DCS stretches every image into: cockpit radio names, no empty rows, two columns, a shared calibration page, header and footer clear of the window's own controls, 256-colour PNGs (#1148, #1149). Seen right in game by David on 2026-10-18; demo step added (VEAF-Demo-Mission-v6 #10); the eight v6 OT and the eight foothold2 Foothold missions rebuilt the same day, all deployed but Foothold Syria, locked while foothold2 runs it.
+The radio presets kneeboard page redrawn for the 2:3 window DCS stretches every image into: cockpit radio names, no empty rows, two columns, a shared calibration page, header and footer clear of the window's own controls, 256-colour PNGs (#1148, #1149). Seen right in game by David on 2026-10-18; demo step added (VEAF-Demo-Mission-v6 #10); the eight v6 OT and the eight foothold2 Foothold missions rebuilt the same day, and deployed (Foothold Syria by stopping foothold2 while empty).
 
 ### [FIX-FOOTHOLD-5-3-0-INTAKE](FIX-FOOTHOLD-5-3-0-INTAKE/PRD.md) · ✅
 

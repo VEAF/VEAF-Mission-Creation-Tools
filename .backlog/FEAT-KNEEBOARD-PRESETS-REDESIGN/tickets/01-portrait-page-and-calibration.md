@@ -1,6 +1,6 @@
 # FEAT-KNEEBOARD-PRESETS-REDESIGN-01 — portrait presets page and calibration page
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: feat
 Files: `presets_injector/presets_manager.py`, `presets_injector/presets_injector_worker.py`, `presets_injector/radio_frequency_validator.py`, `presets_injector/data/dcs-radio-layouts.yaml`, `veaf_libs/locales/*.json`, `doc/`
 

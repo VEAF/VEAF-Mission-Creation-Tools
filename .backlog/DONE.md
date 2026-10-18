@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-KNEEBOARD-PRESETS-REDESIGN](FEAT-KNEEBOARD-PRESETS-REDESIGN/PRD.md) · ✅
+
+The radio presets kneeboard page redrawn for the 2:3 window DCS stretches every image into: cockpit radio names, no empty rows, two columns, a shared calibration page, header and footer clear of the window's own controls, 256-colour PNGs (#1148, #1149). Seen right in game by David on 2026-10-18; demo step added (VEAF-Demo-Mission-v6 #10); the eight v6 OT and the eight foothold2 Foothold missions rebuilt the same day, all deployed but Foothold Syria, locked while foothold2 runs it.
+
 ### [FIX-FOOTHOLD-5-3-0-INTAKE](FIX-FOOTHOLD-5-3-0-INTAKE/PRD.md) · ✅
 
 Refreshing the ten Foothold missions to Lekaa 5.3.0 (2026-10-17) found four defects: the batch matched no folder (theatre read in one key form only, and the Open Training missions on the same maps counted as candidates), `--update` kept `zoneCommander.lua` in `custom_scripts:` when the release renamed it `zoneCommanderv2.lua`, `validate` failed on the `hercules: false` left after #843, and the batch turned an LF `mission.yaml` into CRLF. All fixed (#1147); the ten missions refreshed, built and committed on their `main`.

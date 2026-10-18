@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🧑 Waiting for a human
 
-### [FEAT-KNEEBOARD-PRESETS-REDESIGN](FEAT-KNEEBOARD-PRESETS-REDESIGN/PRD.md) · 🧑
-
-The presets kneeboard page redrawn for the 2:3 portrait window DCS stretches every image into: cockpit radio names, no empty rows, two columns, and a shared calibration page for pilots who resized the window. Mock-up validated by David on 2026-10-18, merged in #1148; seen right in game by David the same day (the header and footer then moved clear of the kneeboard window's own controls). Left: the demo mission step.
-
 ### [FEAT-OPPOSITION-ZERO-AIRCRAFT](FEAT-OPPOSITION-ZERO-AIRCRAFT/PRD.md) · 🧑
 
 An opposition level that sends no aircraft: *Opposition → Niveau → 0 avion* (or `_opposition 0`) keeps the QRA that scale with the opposition on the ground until the level is raised; a level followed down to 0 stays a count. Asked by David after *Kolkhida* mission 2. Done on the mocks; left: seeing Senaki's QRA stay down in game (`DCS-SESSION-TODO.md` R51).

@@ -1,6 +1,6 @@
 # Lot FEAT-KNEEBOARD-PRESETS-REDESIGN — a radio presets kneeboard page DCS shows undistorted
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Branch: feature/kneeboard-presets-redesign → PR → develop
 
 ## Problem Statement

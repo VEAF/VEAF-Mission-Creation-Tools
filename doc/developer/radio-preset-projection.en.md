@@ -130,10 +130,13 @@ Two optional attributes the mission-maker sets on a plan entry (`channel_lists`)
 The build renders **one kneeboard per injected `(coalition, type)`**, dropped in
 that type's DCS folder: `KNEEBOARD/<type>/IMAGES/presets.png` (coalition-suffixed
 only when the same type flies for both sides). This replaces the old generic
-`KNEEBOARD/IMAGES/` folder. The title is the concrete type. Radio header bars are
-**grey** (the old red/green/orange coding is gone). For the AJS-37, the CH column
-shows **pilot labels** (`100`-`139` then `Sp1/Sp2/Sp3/E/F/G/H`) and its 47-slot
-radio is **split across two columns**.
+`KNEEBOARD/IMAGES/` folder.
+
+The page is always **1536 × 2304**, a 2:3: DCS stretches the image to fill the kneeboard window (`KNEEBOARD/indicator/init.lua`, texture coordinates 0..1), and the cockpit kneeboard measures 0.142 × 0.214.
+The title is the type's readable name (the specs `name`). Each radio is a block titled with its position and the specs set (`COMM 1: ARC-210` reads `1. COMM 1 · ARC-210`); `kneeboard_title` in `dcs-radio-layouts.yaml` replaces it (the AJS-37: `FR22 / FR24`).
+A block stops at its last slot, labels included, and the blocks flow into two columns (`_paginate_blocks`): a block moves whole to the next column when it fits there, only a block taller than a column is split, and what overflows goes to `presets_2.png`.
+For the AJS-37, the CH column shows **pilot labels** (`100`-`139` then `Sp1/Sp2/Sp3/E/F/G/H`).
+Every mission with kneeboards also gets `KNEEBOARD/IMAGES/00-veaf-calibration.png`, the test pattern that puts a resized window back to 2:3.
 
 ## Adding or fixing a type
 

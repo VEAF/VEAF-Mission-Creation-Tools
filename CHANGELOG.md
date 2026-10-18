@@ -21,6 +21,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Authoring guide — campaign missions**: every campaign mission puts the Stennis, the Roosevelt and the Tarawa at sea for the players' side, and the guide reminds that `campaign next` starts from the campaign's template, so what a previous mission added by hand is to be redone.
 - **Radio presets — a mission is not ready while the build lists an asset no preset carries**: the campaign page, the authoring guide and the mission prompts say so, and that a campaign template's `src/presets.yaml` is the frequency plan every mission inherits (*Kolkhida* missions 1 and 2 flew on the Open Training plan the scaffold ships).
+- **The radio presets kneeboard page, redrawn for the window DCS shows it in** (FEAT-KNEEBOARD-PRESETS-REDESIGN).
+  DCS stretches a kneeboard image to fill the kneeboard window, so the old landscape page read squashed to about 60 % of its width; the page is now a fixed 1536 × 2304 portrait, the 2:3 of the kneeboard.
+  Each radio is titled with its cockpit set (`1. COMM 1 · ARC-210`, the Viggen's `FR22 / FR24`) and its band, stops at its last channel, and shows AM/FM when it carries both; blocks flow into two columns and onto `presets_2.png` when one page is not enough.
+  Every mission with presets pages also gets `KNEEBOARD/IMAGES/00-veaf-calibration.png`, a calibration page for pilots who resized the window; the page texts follow the tool's language.
 
 ### Added
 

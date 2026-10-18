@@ -643,7 +643,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if self.generate_kneeboards:
             with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):
-                self.presets_manager.generate_type_images(self._injected_presets, width=1200, height=None)
+                self.presets_manager.generate_type_images(self._injected_presets)
 
         with spinner_context(t("group_injector.spinner.writing"), silent=silent):
             self.write_mission(silent)

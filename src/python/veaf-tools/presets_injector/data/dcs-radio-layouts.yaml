@@ -71,6 +71,10 @@
 #       - `head_labels: [<text>, ...]` — what the cockpit shows on each
 #         reserved head slot, in order (`[M]`, `[C, M]`): the kneeboard prints
 #         them on those slots and numbers the presets after them from 01.
+#       - `kneeboard_title: <text>` — the radio's heading on the kneeboard,
+#         replacing the set's name from dcs-radio-specs.yaml when that name says
+#         nothing to a pilot (the AJS-37's "Radio frequencies" -> "FR22 / FR24").
+#         Presentation only: the specs name stays what `add_ranges` refers to.
 #       - `capacity: <int>` — slot capacity. The maximum number of channel
 #         slots this radio physically holds. When the radio's final composed
 #         channel count (after every other primitive above has run) exceeds
@@ -134,6 +138,7 @@ AJS37:
     # (slot 1 is now primary_2[20], not a dummy).
     1:
       role: primary_1
+      kneeboard_title: FR22 / FR24
       keyed_groups:
         block_size: 40
         bases:

@@ -1,13 +1,15 @@
-"""Kneeboard rendering tests (ADR 0012): priority highlight, colour, grey headers.
+"""Kneeboard rendering tests (ADR 0012): priority highlight, colour, neutral headers.
 
 The rendering assertions inspect the rendered image for the presence/absence of
 specific solid fill colours (highlight orange, a channel colour, the grey header),
 which is robust to the exact table geometry.
 """
 
+import io
 import unittest
 from unittest.mock import patch
 
+from PIL import Image
 from presets_injector.presets_manager import (
     _PRIORITY_HIGHLIGHT,
     _RADIO_TITLE_BG,
@@ -30,11 +32,9 @@ def _preset(*channels: Channel) -> PresetDefinition:
 
 
 def _rendered_colors(preset: PresetDefinition) -> set[tuple[int, int, int]]:
-    generator = RadioPresetsImageGenerator(preset_collections={})
-    generator.radio_count = len(preset.radios)
-    generator.draw_preset_image(preset)
-    generator.draw_radios_in_preset_image(preset)
-    return set(generator.image.get_flattened_data())
+    images = RadioPresetsImageGenerator(preset_collections={}).generate_type_images({("blue", "UH-1H"): preset})
+    (buffer,) = images.values()
+    return set(Image.open(io.BytesIO(buffer.getvalue())).convert("RGB").get_flattened_data())
 
 
 class TestColorHelpers(unittest.TestCase):
@@ -70,9 +70,9 @@ class TestKneeboardRendering(unittest.TestCase):
         colors = _rendered_colors(_preset(Channel(1, 251.0, title="Alpha", color="green")))
         self.assertIn((0, 128, 0), colors)
 
-    def test_radio_headers_are_grey_not_red_or_orange(self):
+    def test_radio_headers_are_slate_not_red_or_orange(self):
         colors = _rendered_colors(_preset(Channel(1, 251.0, title="Alpha")))
-        self.assertIn(_RADIO_TITLE_BG, colors)  # grey header present
+        self.assertIn(_RADIO_TITLE_BG, colors)  # one neutral colour for every radio header
         self.assertNotIn((255, 0, 0), colors)  # old red coding gone
         self.assertNotIn((255, 165, 0), colors)  # old orange coding gone
 

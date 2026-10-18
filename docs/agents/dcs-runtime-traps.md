@@ -767,6 +767,22 @@ that id (`veafSecurity.getGroupOccupantUnitNames`). For any group, keep its name
 *What it cost:* Every secured `+` radio command refused to every pilot from 6.14.0 on
 (`secured-radio-commands-refused-to-everybody`).
 
+### A kneeboard image is stretched to fill the kneeboard window, whatever its proportions {#kneeboard-image-stretched-to-the-window}
+
+Measured **2026-10-18**.
+
+DCS maps a mission's kneeboard image onto the whole kneeboard window with texture coordinates
+0..1 (`Scripts/Aircrafts/_Common/Cockpit/KNEEBOARD/indicator/init.lua`, `image_page_template`):
+it never keeps the image's proportions, and nothing in the log says so. The cockpit kneeboard is
+0.142 × 0.214 (`declare_kneeboard_device.lua`), a 2:3 portrait, and the default 2D window measured
+2:3 too on David's screenshot. The presets page used to be 1200 px wide and 665 to 1085 px high:
+in game it read squashed to about 60 % of its width. The 2D window can be resized, and a resized
+window distorts any page again, ED's own 768 × 1024 ones included.
+
+**What to do:** Draw kneeboard pages at 2:3 (veaf-tools draws 1536 × 2304). A pilot who resized the window puts it
+back with the calibration page veaf-tools adds, `KNEEBOARD/IMAGES/00-veaf-calibration.png`: its
+circles are round only at 2:3.
+
 ## Radio and frequencies {#radio}
 
 ### The text of `Radio.lua` is not the airfield frequencies DCS uses — DCS completes the missing bands {#radio-lua-is-not-what-the-f10-view-shows}

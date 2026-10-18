@@ -602,8 +602,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         additional_files = {}
         if self.presets_manager.presets_images:
-            # ADR 0012: keys are full per-type kneeboard paths
-            # (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png).
+            # ADR 0012: keys are full kneeboard paths — per-type pages
+            # (KNEEBOARD/<type>/IMAGES/presets[-<coalition>][_<n>].png) and the shared
+            # calibration page (KNEEBOARD/IMAGES/00-veaf-calibration.png).
             for kneeboard_path, image in self.presets_manager.presets_images.items():
                 additional_files[kneeboard_path] = image.getvalue()
             if not silent:

@@ -2175,7 +2175,14 @@ def _radio_heading(
 
 
 def _radio_band(spec: RadioSpec | None) -> str:
-    """The band a radio tunes, from its lowest to its highest frequency (``225–399.975 MHz``), or ""."""
+    """The band a radio tunes, from its lowest to its highest frequency.
+
+    Args:
+        spec: The radio's specs entry, if known.
+
+    Returns:
+        ``225–399.975 MHz``, or "" when the specs give no range.
+    """
     if spec is None or not spec.ranges:
         return ""
     low = min(frequency_range.min_mhz for frequency_range in spec.ranges)
@@ -2255,6 +2262,14 @@ def _page_path(unit_type: str, suffix: str, page: int) -> str:
     """The kneeboard path of one page: ``presets[-<coalition>].png``, then ``…_<n>.png`` for the next ones.
 
     ``_`` sorts after ``.``, so ``presets_2.png`` comes after ``presets.png`` in a name-ordered folder.
+
+    Args:
+        unit_type: The DCS unit type, ``/`` and ``\\`` replaced to make a folder name.
+        suffix: ``-<coalition>`` when the type flies for both sides, else "".
+        page: The 1-based page number.
+
+    Returns:
+        The path inside the ``.miz``.
     """
     safe_type = unit_type.replace("/", "_").replace("\\", "_")
     page_suffix = "" if page == 1 else f"_{page}"
@@ -2262,7 +2277,11 @@ def _page_path(unit_type: str, suffix: str, page: int) -> str:
 
 
 def _load_fonts() -> dict[str, FreeTypeFont]:
-    """Load the page fonts: Arial, or Pillow's embedded font (which has the accented letters) without it."""
+    """Load the page fonts: Arial, or Pillow's embedded font (which has the accented letters) without it.
+
+    Returns:
+        The fonts by role, at the sizes of :data:`_FONT_SIZES`.
+    """
     fonts: dict[str, FreeTypeFont] = {}
     for role, size in _FONT_SIZES.items():
         try:
@@ -2273,7 +2292,15 @@ def _load_fonts() -> dict[str, FreeTypeFont]:
 
 
 def _draw_target(draw: ImageDraw.ImageDraw, center: tuple[float, float], size: float, ink: Any, width: int) -> None:
-    """Draw a circle inscribed in a square, with its cross: both read true only in a 2:3 window."""
+    """Draw a circle inscribed in a square, with its cross: both read true only in a 2:3 window.
+
+    Args:
+        draw: The page being drawn.
+        center: The target's centre, in pixels.
+        size: The square's side, in pixels.
+        ink: The line colour.
+        width: The line width, in pixels.
+    """
     x, y = center
     half = size / 2
     draw.rectangle([x - half, y - half, x + half, y + half], outline=ink, width=width)
@@ -2283,13 +2310,28 @@ def _draw_target(draw: ImageDraw.ImageDraw, center: tuple[float, float], size: f
 
 
 def _draw_header(draw: ImageDraw.ImageDraw, fonts: dict[str, FreeTypeFont], title: str, subtitle: str) -> None:
-    """Draw the dark band at the top of a page, with its title and subtitle."""
+    """Draw the dark band at the top of a page, with its title and subtitle.
+
+    Args:
+        draw: The page being drawn.
+        fonts: The page fonts by role.
+        title: The large text (the aircraft's name).
+        subtitle: The line under it.
+    """
     draw.rectangle([0, 0, _PAGE_W, _MARGIN + _HEADER_H - 20], fill=_HEADER_BG)
     draw.text((_MARGIN, _MARGIN + 10), title, font=fonts["title"], fill="white", anchor="lt")
     draw.text((_MARGIN, _MARGIN + 90), subtitle, font=fonts["subtitle"], fill=_HEADER_SUBTITLE, anchor="lt")
 
 
 def _encode(image: Image.Image) -> io.BytesIO:
+    """Encode a page as an optimised PNG.
+
+    Args:
+        image: The page.
+
+    Returns:
+        The PNG buffer, rewound.
+    """
     buffer = io.BytesIO()
     image.save(buffer, format="PNG", optimize=True)
     buffer.seek(0)
@@ -2338,12 +2380,16 @@ def render_calibration_page() -> io.BytesIO:
 class RadioPresetsImageGenerator:
     """Render the presets kneeboard pages of the injected (coalition, type) pairs."""
 
-    def __init__(self, preset_collections: dict[str, PresetCollection]):
+    def __init__(self, preset_collections: dict[str, PresetCollection]) -> None:
         self.preset_collections = preset_collections
         self._fonts: dict[str, FreeTypeFont] | None = None
 
     def get_fonts(self) -> dict[str, FreeTypeFont]:
-        """The page fonts by role, loaded once."""
+        """The page fonts by role, loaded once.
+
+        Returns:
+            The fonts by role.
+        """
         if self._fonts is None:
             self._fonts = _load_fonts()
         return self._fonts
@@ -2389,7 +2435,19 @@ class RadioPresetsImageGenerator:
         page_count: int,
         has_priority: bool,
     ) -> Image.Image:
-        """Draw one presets page: header, the two columns of radio blocks, footer."""
+        """Draw one presets page: header, the two columns of radio blocks, footer.
+
+        Args:
+            unit_type: The DCS unit type the page is for.
+            coalition: The coalition it was injected for.
+            columns: The page's two columns of segments.
+            page_number: This page's 1-based number.
+            page_count: How many pages the preset takes.
+            has_priority: Whether a channel of the preset has a priority, which brings the legend.
+
+        Returns:
+            The page.
+        """
         fonts = self.get_fonts()
         image = Image.new("RGB", KNEEBOARD_PAGE_SIZE, _PAPER)
         draw = ImageDraw.Draw(image)
@@ -2418,7 +2476,17 @@ class RadioPresetsImageGenerator:
         return image
 
     def _draw_segment(self, draw: ImageDraw.ImageDraw, x: int, y: int, segment: KneeboardSegment) -> int:
-        """Draw one segment of a radio block at (x, y) and return the y where the next one starts."""
+        """Draw one segment of a radio block at (x, y).
+
+        Args:
+            draw: The page being drawn.
+            x: The column's left edge.
+            y: The segment's top.
+            segment: The segment to draw.
+
+        Returns:
+            The y where the next segment starts.
+        """
         fonts = self.get_fonts()
         block = segment.block
         right = x + _COLUMN_W
@@ -2455,7 +2523,16 @@ class RadioPresetsImageGenerator:
         return y + _BLOCK_GAP
 
     def _draw_row(self, draw: ImageDraw.ImageDraw, x: int, y: int, row: KneeboardRow, shaded: bool, mod_w: int) -> None:
-        """Draw one channel row: CH cell (filled with the channel's colour), name, frequency, modulation."""
+        """Draw one channel row: CH cell (filled with the channel's colour), name, frequency, modulation.
+
+        Args:
+            draw: The page being drawn.
+            x: The column's left edge.
+            y: The row's top.
+            row: The row to draw.
+            shaded: Whether the row gets the zebra background.
+            mod_w: The width of the modulation column, 0 when the radio has none.
+        """
         fonts = self.get_fonts()
         right = x + _COLUMN_W
         name_x = x + _CH_W

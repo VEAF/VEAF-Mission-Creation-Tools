@@ -4,13 +4,11 @@
 
 Work started and not finished: in progress, waiting for a human, or deliberately paused.
 
-## 🔄 In progress
-
-### [FEAT-KNEEBOARD-PRESETS-REDESIGN](FEAT-KNEEBOARD-PRESETS-REDESIGN/PRD.md) · 🔄
-
-The presets kneeboard page redrawn for the 2:3 portrait window DCS stretches every image into: cockpit radio names, no empty rows, two columns, and a shared calibration page for pilots who resized the window. Mock-up validated by David on 2026-10-18.
-
 ## 🧑 Waiting for a human
+
+### [FEAT-KNEEBOARD-PRESETS-REDESIGN](FEAT-KNEEBOARD-PRESETS-REDESIGN/PRD.md) · 🧑
+
+The presets kneeboard page redrawn for the 2:3 portrait window DCS stretches every image into: cockpit radio names, no empty rows, two columns, and a shared calibration page for pilots who resized the window. Mock-up validated by David on 2026-10-18, merged in #1148. Left: the in-game check and the demo mission step.
 
 ### [FEAT-OPPOSITION-ZERO-AIRCRAFT](FEAT-OPPOSITION-ZERO-AIRCRAFT/PRD.md) · 🧑
 

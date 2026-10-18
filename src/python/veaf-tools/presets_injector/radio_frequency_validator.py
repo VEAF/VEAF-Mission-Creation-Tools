@@ -185,6 +185,19 @@ def is_strict(unit_type: str) -> bool:
     return bool(entry and entry.get("dcs_rejects_on_load", False))
 
 
+def get_aircraft_name(unit_type: str) -> str | None:
+    """Return the aircraft's readable name from the specs (``A-10C II`` for ``A-10C_2``).
+
+    Args:
+        unit_type: DCS unit type string.
+
+    Returns:
+        The specs ``name``, or None when the unit type is unknown or has none.
+    """
+    entry = _load_specs().get(_canonical_type(unit_type))
+    return (entry or {}).get("name") or None
+
+
 def is_kneeboard_only(unit_type: str) -> bool:
     """Whether this airframe's declared bands describe a kneeboard, not hardware DCS can set.
 

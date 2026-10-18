@@ -59,6 +59,15 @@ stays empty on the radio. A literal frequency, on the other hand, is never dropp
 The symptom to watch for: `presets-validation-report.md` appearing at the root of the mission folder
 after a build. It is only written when something is wrong, and deleted once nothing is.
 
+## The kneeboard {#kneeboard}
+
+Each aircraft type gets its page `KNEEBOARD/<type>/IMAGES/presets.png`: one column per radio, titled with the cockpit set (`1. COMM 1 · ARC-210`) and its band, then the channel number, the name and the frequency.
+A radio stops at its last channel; a page that is not enough continues on `presets_2.png`.
+
+DCS **stretches the image to fill the kneeboard window**, whatever its proportions.
+The pages are drawn at 2:3, the shape of the cockpit kneeboard and of the default window.
+A pilot who resized the window sees the pages distorted: the `00-veaf-calibration.png` page, added to every mission that has kneeboards, is the test pattern — resize the window until its circles are round.
+
 ## Going further {#more}
 
 - An explicit per-type assignment under `presets_assignments:` **always wins** over the automatic

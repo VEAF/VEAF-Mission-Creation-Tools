@@ -224,7 +224,16 @@ It was measured on 2026-10-10, in single player, by parking up to 50,000 command
 Nothing is measurable: neither DCS memory, whose noise is about 100 MB, so under 2 KB per command; nor the frame rate; nor the speed of ordinary operations, which do not slow down as the menu grows.
 The mission's Lua memory went from 46 to 66 MB, at most 0.4 KB per command, garbage included.
 A long mission should park a few thousand ids at most: that is an estimate, not a measurement, but it stays ten times under the level tested.
-There is no reason to bound the pool.
+
+This single-player test cannot see a ceiling that exists in multiplayer, read on 2026-10-19 in `bin/wRadio.dll`, which DCS 2.9.30 ships in the clear.
+When DCS sends a menu to a client, it writes three counts for each node: its commands, its submenus, and the list that sets their display order.
+Past 8191, it writes a `MissionCommandMenu %s, commandCount enormous %d` message to `dcs.log` (or `subMenuCount`, `itemsCount`) and brings the count back to 8192 when reading: the node is truncated.
+The ceiling applies per node, not to the whole menu, and the "Other..." pagination does not change it, since it only concerns display.
+A command parked with a `nil` parent goes to the root of group 999999's menu: the whole pool sits in a single node, capped at about 8191 commands.
+Single player cannot see it, because this code only runs when a menu is sent to a client.
+The remedy is to store parked commands in submenus of group 999999, a thousand each for instance, so that no node comes near the ceiling.
+Creating a submenu takes an id too, which is precisely the point.
+Reusing the oldest parked command does not work: it has to be removed, which frees an id and reopens the hole parking closes.
 
 ### 5.3 Entry order
 
@@ -397,7 +406,8 @@ As of 2026-10-10, the in-game check of a CTLD mission is still to do.
 - **VMCT has an option to measure in multiplayer**: `RADIO.menu_stats: true` in `mission.yaml` writes to `dcs.log`, on every refresh, the menu's size and what changed. It is how the previous point gets measured on a real mission.
 - **Coalition menus were not measured.** The single id pool makes the same behaviour very likely.
 - **The exact order of reuse is inferred**, not measured directly. The fix does not depend on that order.
-- **Inert commands pile up** with no bound during a mission. Up to 50,000, their cost is not measurable in single player (section 5.2); in multiplayer, what the server sends clients for a group with no members was not measured.
+- **Inert commands pile up** with no bound during a mission. Up to 50,000, their cost is not measurable in single player (section 5.2); in multiplayer, a menu node is capped at 8191 entries when DCS sends it to a client (section 5.2).
+- **What the server sends for a group with no members is still to be measured.** The binary shows that a joining client receives menus beyond its own group; if it receives group 999999's, parked commands also weigh on every connection. The part of DCS that picks recipients is protected and was not opened.
 
 ## References
 

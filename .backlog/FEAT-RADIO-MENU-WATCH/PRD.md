@@ -22,11 +22,20 @@ What a server sends its clients.
 David has seen sync problems with large radio menus in the past, with static slots; parked commands, if DCS sends a group's menu to clients outside the group, would grow the menu every client receives.
 Nobody knows how big the VEAF menu gets in a real evening, nor how much it changes.
 
+## What the DCS binary adds — read 2026-10-19
+
+DCS's `bin/wRadio.dll` (shipped in the clear) has a group-menu serialiser that caps each node's command, submenu and item counts at **8191**: past it DCS logs `... Count enormous %d` and clamps to 8192 on read, truncating the node over the network.
+If DCS keeps group 999999's menu, parked commands all sit in its **root node**, and the pool hits that ceiling around 8191.
+The single-player test above could not see this: the cap lives in the network serialiser, which single player never runs.
+Whether DCS keeps that menu is not settled: `wRadio.dll` keeps a group command only for coalition 0, 1 or 2, and the coalition of a group that does not exist is chosen in the protected `Scripting.dll`.
+An in-game check settles it; the check and the fix it would call for are in [ticket 04](tickets/04-parking-ceiling.md).
+
 ## What the lot delivers
 
 1. **`RADIO.menu_stats`** (ticket 01): a `mission.yaml` option, off by default, that logs to `dcs.log` on every refresh what the menu added and removed, its live size by audience (everyone, coalitions, groups) and the parked total. Turned on temporarily on an OT or another real mission.
 2. **Whitepaper** (ticket 02): the DCS behaviour and the generic fix, FR and EN, in `docs/whitepapers/`, with the single-player cost measurement.
 3. **The real-mission measurement** (ticket 03): a mission flown with the option on, the server's network output sampled meanwhile; the result goes into the whitepapers.
+4. **Check the 8191 node ceiling on the parked pool** (ticket 04): an in-game check first; only if it shows the ceiling, spread parked commands across bounded submenus of group 999999.
 
 ## Decided (David, 2026-10-10)
 
@@ -36,4 +45,7 @@ Nobody knows how big the VEAF menu gets in a real evening, nor how much it chang
 
 ## Out of scope
 
-- Bounding or recycling parked ids: no measured cost calls for it.
+- Recycling or purging parked ids (reuse the oldest, bulk purge): rejected in [ticket 04](tickets/04-parking-ceiling.md) — reuse re-opens the recycling hole, and DCS never signals when a screen is closed.
+
+Bounding the pool is no longer out of scope by principle: the DCS binary shows an 8191-per-node ceiling that may apply to it.
+Per decision a), it is done only if ticket 04's in-game check shows the ceiling.

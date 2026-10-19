@@ -54,6 +54,44 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R52. Enforced options, the F10 view per role, the deck lights, and three editor actions — **one pilot for items 2 and 3**
+
+[`FEAT-FORCED-MISSION-OPTIONS`](.backlog/FEAT-FORCED-MISSION-OPTIONS/PRD.md), ticket 06.
+The tests check what is written in the mission; what DCS applies is only seen in game.
+The shape of the F10 view per role comes from the editor's code: no saved mission used it.
+
+**Prepare**: a scratch mission folder built from the lot's branch, on Caucasus, with a carrier group (`add_carrier_group`, the Stennis), a blue F/A-18C air-start slot 20 nm from it, `mission.ground_control: {game_master: 1, observer: 1}`, `modules.CARRIER: true`, and in `mission.yaml`:
+
+```yaml
+mission:
+  forced_options:
+    labels: none
+    external_views: false
+    f10_view_by_role:
+      pilot: {view: fog_of_war, hide: [enemies_ground]}
+      observer: map_only
+```
+
+Plus three triggers set by hand in the editor (ticket 06's editor half), each on its own F10 radio item: *SCENERY DESTRUCTION ZONE* at 100 % on a zone over Gudauta's buildings, *(dev) ZONE_INCREMENT_SIZE* of 2000 m on a 500 m zone named `grow`, and an IL-76MD AI group with a *Paratroopers drop* task on its route. DCS's public build may hide that task from the editor (`me_action_db.lua:4262`, the *Airborne* list): if the editor does not offer it, note that and drop the last check of item 5 — VMCT cannot write that task yet.
+
+1. Open the built `.miz` in the editor, *Mission options*.
+   - **Verified**: labels *NO LABELS* and external views unticked, both enforced; *F10 View Options* on *Extended*, and its window shows the pilot on *FOG OF WAR* with *Enemies / Ground* unticked, the observer on *MAP ONLY*, the others on *ALL*.
+   - **Not verified, a Lua error on load** naming `me_extendedF10ViewOptions`: the table shape is wrong — re-save from the editor and compare its `optionsViewExtended` with ours.
+   - **Not verified, the roles are shuffled**: the role numbers are wrong — note which role shows which view.
+2. Fly the F/A-18C slot, open F10.
+   - **Verified**: no labels; F2 refuses the external view; the map shows friendly units and the enemy air, not enemy ground.
+   - **Not verified, enemy ground shown**: DCS does not read the mask, or the bit order is wrong — try `hide: [allies_ground]` and see which layer goes.
+3. Still in the slot: F10 → **CARRIER OPS** → start air operations on the Stennis, fly to it, look at the deck; then *End air operations*.
+   - **Verified**: the deck goes to recovery lighting at start and back at the end; `dcs.log` has `deck lights of … set to 2`, then `to -1`.
+   - **Not verified, `deck lights … not set`** in `dcs.log`: the action refused the arguments — note the message; the unit id may need to be the mission's, not `getID()`.
+   - **Not verified, nothing logged and nothing changes**: `net` is missing on this install — `deck lights left to DCS` should be logged.
+4. Take the observer slot (no pilot needed for this one), open F10.
+   - **Verified**: map only, no unit.
+5. The three editor actions, each from its radio item, watched from the F10 map and the F12 view.
+   - Gudauta buildings destroyed: **works** → the tips page says so; still standing → write the measurement in `known-limitations.yaml` like `a_remove_scene_objects`.
+   - Zone `grow`, read by the fiddle hook (`trigger.misc.getZone("grow").radius`) before and after: 2500 → **works**; 500 → it does nothing in game.
+   - The transport over its drop point: paratroopers come out → the editor offers the task and it works; none → note it in the tips page and in `known-limitations.yaml`.
+
 ### R51. *Opposition → Niveau → 0 avion* keeps the QRA on the ground — **one pilot**
 
 [`FEAT-OPPOSITION-ZERO-AIRCRAFT`](.backlog/FEAT-OPPOSITION-ZERO-AIRCRAFT/PRD.md).

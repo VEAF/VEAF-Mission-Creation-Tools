@@ -33,6 +33,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **« 0 avion » switches the enemy fighters off** (FEAT-OPPOSITION-ZERO-AIRCRAFT).
   *Opposition → Niveau → 0 avion*, or the `_opposition 0` marker, keeps every QRA marked `scale_with_opposition: true` on the ground, whatever enters its zone, until the level is fixed above 0 or a follow mode is chosen again; *Niveau actuel* says « aucune chasse adverse (fixe) ».
   A level a follow mode lowers to 0, or `level: 0` in `mission.yaml`, stays a count: the zone's tiers still answer.
+- **The mission options enforced on every player, from `mission.yaml`** (FEAT-FORCED-MISSION-OPTIONS).
+  `mission.forced_options` sets, at every build, what the editor's *Mission options* panel enforces: labels, F10 view, external views, F10 marks, wake turbulence, G-effects, civil traffic and the rest, in names that follow the editor's labels (`labels: none`, `f10_view: fog_of_war`); absent, the mission's own options are kept.
+  `f10_view_by_role` sets the F10 map of each role (pilot, JTAC, tactical commander, observer, spectator, Airboss), with the unit layers to hide.
+  `validate` reports an unknown option or value, and the MCP action `set_forced_options` writes the block.
+- **Carrier deck lights follow VEAF air operations** (FEAT-FORCED-MISSION-OPTIONS): recovery lights when they start, back to DCS when they stop, through the editor's *SET CARRIER LIGHTING MODE*; without `net`, the lights stay as DCS sets them and a warning says so.
+- **Mission Editor tips page**: editor trigger actions VMCT does not wrap and that are worth knowing — a failure on demand, a group only the game master commands, a model animation, the briefing changed mid-mission — with what is read in the editor and what is measured.
 
 ### Fixed
 

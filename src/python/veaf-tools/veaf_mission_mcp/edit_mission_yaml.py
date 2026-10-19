@@ -13,6 +13,7 @@ way it owns unit types for ``add_group`` (see ``.backlog/archive/FEAT-MCP-MISSIO
 from pathlib import Path
 from typing import Any
 
+from mission_builder.forced_options import forced_options_errors
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
 
 _LOG_LEVELS = ("error", "warning", "info", "debug", "trace")
@@ -207,3 +208,47 @@ def set_mission_setting(mission_yaml_path: Path, key: str, value: Any) -> dict[s
     settings[key] = value
     backup = save_yaml(mission_yaml_path, data)
     return {"key": key, "inserted": inserted, "backup": str(backup)}
+
+
+def set_forced_options(mission_yaml_path: Path, options: dict[str, Any]) -> dict[str, Any]:
+    """Merge enforced mission options into ``mission.forced_options`` of the source ``mission.yaml``.
+
+    The build writes the block into the mission's ``forcedOptions`` (labels, F10 view, external
+    views…); see :mod:`mission_builder.forced_options`. The options given replace those of the same
+    name and the others are kept; the result is checked with the build's own rules before writing,
+    so a block the build would refuse is never written.
+
+    Args:
+        mission_yaml_path: Path to the mission's source ``mission.yaml``.
+        options: The options to set, by their ``mission.yaml`` names (``{"labels": "none"}``).
+
+    Returns:
+        `{"forced_options": {...}, "backup": <backup path as str>}`, the whole block after the merge.
+
+    Raises:
+        ValueError: If the document is not a mapping, or the merged block would be refused (the
+            message names each fault).
+    """
+    data = _load_document(mission_yaml_path)
+    mission = data.get("mission")
+    if not hasattr(mission, "__setitem__"):
+        mission = {}
+        data["mission"] = mission
+    block = mission.get("forced_options")
+    merged = {**(dict(block) if hasattr(block, "items") else {}), **options}
+    if "f10_view_by_role" in options:
+        merged.pop("f10_view", None)
+    elif "f10_view" in options:
+        merged.pop("f10_view_by_role", None)
+    errors = forced_options_errors(merged)
+    if errors:
+        raise ValueError("\n".join(errors))
+    if hasattr(block, "__setitem__"):
+        for key in list(block):
+            if key not in merged:
+                del block[key]
+        block.update(merged)
+    else:
+        mission["forced_options"] = merged
+    backup = save_yaml(mission_yaml_path, data)
+    return {"forced_options": dict(mission["forced_options"]), "backup": str(backup)}

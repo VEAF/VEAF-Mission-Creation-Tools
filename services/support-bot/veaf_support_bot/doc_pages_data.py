@@ -36,6 +36,7 @@ PAGES_BY_TITLE: Final[dict[str, dict[str, str]]] = {
         "install the ai mission-editing assistant": "mission-maker/AI_ASSISTANT_INSTALL.en.md",
         "migrating a mission to veaf mct v6": "mission-maker/MIGRATION_GUIDE.en.md",
         "missing references": "mission-maker/build-messages/missing-references.en.md",
+        "mission editor tips": "mission-maker/EDITOR_TIPS.en.md",
         "mission maker guide": "mission-maker/README.en.md",
         "mission maker guide — veaf mission creation tools": "mission-maker/GUIDE.en.md",
         "mission.yaml reference": "MISSION_YAML_REFERENCE.en.md",
@@ -99,6 +100,7 @@ PAGES_BY_TITLE: Final[dict[str, dict[str, str]]] = {
     "fr": {
         "adopter une mission foothold sur la chaîne v6 (la « moulinette": "mission-maker/FOOTHOLD.md",
         "assistant ia d'édition de mission — catalogue des actions": "mission-maker/AI_ASSISTANT_CATALOG.md",
+        "astuces de l'éditeur de mission": "mission-maker/EDITOR_TIPS.md",
         "campagne multi-missions": "mission-maker/CAMPAIGN.md",
         "coalitions et pays": "mission-maker/build-messages/coalitions.md",
         "convert-other` — adopter une mission tierce sur la v6": "mission-maker/CONVERT_OTHER.md",

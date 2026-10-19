@@ -1392,6 +1392,13 @@ _triggerEnv.a_out_picture_stop = function()
   return true
 end
 
+--- The editor's SET CARRIER LIGHTING MODE (me_trigrules.lua): a carrier unit id and a mode,
+--- OFF -2, AUTO -1, NAVIGATION 0, LAUNCH 1, RECOVERY 2. Recorded with the cockpit calls.
+_triggerEnv.a_set_carrier_illumination_mode = function(unitId, mode)
+  _recordCockpitCall("a_set_carrier_illumination_mode", unitId, mode)
+  return true
+end
+
 --- Resolve an embedded resource key. The real one maps the key to the file the
 --- build embedded; here the key is its own resolution, which is enough to assert
 --- that the right state was displayed.

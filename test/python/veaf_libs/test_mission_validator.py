@@ -116,6 +116,23 @@ class TestMissionValidator(unittest.TestCase):
         )
         self.assertEqual(validate_mission_folder(folder), [])
 
+    def test_an_unknown_forced_option_is_an_error(self) -> None:
+        folder = _make_folder(
+            "mission:\n  forced_options:\n    labels: none\n    external_view: false\n",
+            mission_table=_MISSION_WITH_PLAYER,
+        )
+        errors = [i.message for i in validate_mission_folder(folder) if i.level == ERROR]
+        self.assertEqual(len(errors), 1)
+        self.assertIn("external_view", errors[0])
+
+    def test_a_valid_forced_options_block_passes(self) -> None:
+        folder = _make_folder(
+            "mission:\n  forced_options:\n    labels: none\n    external_views: false\n"
+            "    f10_view_by_role:\n      pilot: {view: all, hide: [enemies_weapons]}\n",
+            mission_table=_MISSION_WITH_PLAYER,
+        )
+        self.assertEqual(validate_mission_folder(folder), [])
+
     def test_tum_without_zones_warns(self) -> None:
         folder = _make_folder("modules:\n  TUM: true\n", mission_table=_MISSION_EMPTY)
         msgs = [i.message for i in validate_mission_folder(folder) if i.level == WARNING]

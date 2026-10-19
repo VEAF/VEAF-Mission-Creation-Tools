@@ -879,6 +879,7 @@ Chaque réglage éditable sur le `veaf-config.lua` construit (vague 3) a son pen
 | Sécurité | `set_mission_security` → bloc `security:` (**+ hash de mots de passe**) | `set_security_disabled` |
 | Paramètre arbitraire | `set_mission_setting` → `settings.<clé>` | `set_veaf_config` → `veaf.config.<clé>` |
 | Activation de module | `set_mission_module` (vague 4) | `set_module_enabled` |
+| Options imposées aux joueurs | `set_forced_options` → `mission.forced_options` | — (le build les écrit dans `forcedOptions` de la mission) |
 
 ## Oracle de connaissance métier (vague 5)
 

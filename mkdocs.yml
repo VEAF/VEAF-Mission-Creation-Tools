@@ -89,6 +89,7 @@ plugins:
             Adopt a third-party mission: Adopter une mission tierce
             Foothold moulinette: Moulinette Foothold
             Read the DCS logs: Lire les journaux de DCS
+            Editor tips: Astuces de l'éditeur
             Concepts: Les fiches
             The mission folder: Le dossier de mission
             mission.yaml and its modules: mission.yaml et ses modules
@@ -170,6 +171,7 @@ nav:
     - Foothold moulinette: mission-maker/FOOTHOLD.md
     - Multi-mission campaign: mission-maker/CAMPAIGN.md
     - Read the DCS logs: mission-maker/LOGS.md
+    - Editor tips: mission-maker/EDITOR_TIPS.md
     - Aliases: ALIASES.md
     - Scripts:
       - Overview: mission-maker/scripts/README.md

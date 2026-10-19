@@ -25,6 +25,7 @@ from veaf_mission_mcp.describe_mission import describe_mission
 from veaf_mission_mcp.describe_units import describe_units
 from veaf_mission_mcp.edit_mission_yaml import (
     describe_mission_config,
+    set_forced_options,
     set_mission_log_level,
     set_mission_module,
     set_mission_security,
@@ -1477,6 +1478,43 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_mission_setting(Path(p["mission_yaml_path"]), p["key"], p["value"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_forced_options",
+            description=(
+                "Set the mission options DCS ENFORCES on every player whatever their own settings -- the "
+                "Mission Editor's 'Mission options' panel: labels, F10 map view, external views, F10 marks, "
+                "wake turbulence, G-effects, civil traffic... Merges into mission.forced_options of the "
+                "source mission.yaml (the build writes them into the mission's forcedOptions); options not "
+                "given are kept. Names and values (DCS key in brackets): labels full|abbreviated|"
+                "symbol_only|dot_neutral|none, spotting_dot off|auto|one_pixel|two_pixels, f10_view "
+                "all|fog_of_war|allies_only|map_only|my_aircraft, g_effects none|reduced|realistic, "
+                "civil_traffic off|low|medium|high, birds 0-1000; booleans: f10_marks, external_views, "
+                "padlock, permit_crash, easy_flight, easy_communication, radio_assist, mini_hud, "
+                "cockpit_visual_recon_mode, cockpit_status_bar, battle_damage_assessment, unlimited_fuel, "
+                "unlimited_weapons, immortal, g_warm_up, wake_turbulence, unrestricted_satnav, "
+                "random_failures. f10_view_by_role sets the F10 view of each role instead of one for all: "
+                "{pilot|jtac|tactical_commander|observer|spectator|airboss: <view> or {view, hide: "
+                "[<allies|enemies|neutral>_<planes|helicopters|ground|naval|weapons>]}}; roles not named "
+                "see everything. Refuses what the build would refuse."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_yaml_path": {
+                        "type": "string",
+                        "description": "Path to the mission's source mission.yaml.",
+                    },
+                    "options": {
+                        "type": "object",
+                        "description": 'The options to set, by name, e.g. {"labels": "none", "f10_view": "fog_of_war"}.',
+                    },
+                },
+                "required": ["mission_yaml_path", "options"],
+            },
+        ),
+        handler=lambda p: set_forced_options(Path(p["mission_yaml_path"]), p["options"]),
     )
     _campaign_folder = {
         "type": "string",

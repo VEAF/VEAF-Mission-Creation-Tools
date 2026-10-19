@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from veaf_mission_mcp.edit_mission_yaml import describe_mission_config, set_mission_module
+from veaf_mission_mcp.edit_mission_yaml import describe_mission_config, set_forced_options, set_mission_module
 
 SAMPLE = """\
 # VEAF mission config
@@ -66,3 +66,56 @@ def test_missing_modules_block_raises(tmp_path: Path) -> None:
     path.write_text("theatre: Caucasus\n", encoding="utf-8")
     with pytest.raises(ValueError, match="modules"):
         set_mission_module(path, "CTLD", True)
+
+
+FORCED_SAMPLE = """\
+mission:
+  name: Test # the mission name
+  forced_options:
+    labels: none
+    f10_view: all
+"""
+
+
+def _write_forced_sample(tmp_path: Path) -> Path:
+    path = tmp_path / "mission.yaml"
+    path.write_text(FORCED_SAMPLE, encoding="utf-8")
+    return path
+
+
+def test_set_forced_options_merges_and_keeps_the_rest(tmp_path: Path) -> None:
+    path = _write_forced_sample(tmp_path)
+
+    result = set_forced_options(path, {"external_views": False, "labels": "full"})
+
+    assert result["forced_options"] == {"labels": "full", "f10_view": "all", "external_views": False}
+    out = path.read_text(encoding="utf-8")
+    assert "# the mission name" in out
+    assert "external_views: false" in out
+
+
+def test_set_forced_options_creates_the_block(tmp_path: Path) -> None:
+    path = tmp_path / "mission.yaml"
+    path.write_text("modules:\n  RADIO: true\n", encoding="utf-8")
+
+    set_forced_options(path, {"wake_turbulence": True})
+
+    assert "forced_options:\n    wake_turbulence: true" in path.read_text(encoding="utf-8")
+
+
+def test_set_forced_options_by_role_replaces_the_single_view(tmp_path: Path) -> None:
+    path = _write_forced_sample(tmp_path)
+
+    result = set_forced_options(path, {"f10_view_by_role": {"pilot": "fog_of_war"}})
+
+    assert result["forced_options"] == {"labels": "none", "f10_view_by_role": {"pilot": "fog_of_war"}}
+
+
+def test_set_forced_options_refuses_what_the_build_refuses(tmp_path: Path) -> None:
+    path = _write_forced_sample(tmp_path)
+    before = path.read_text(encoding="utf-8")
+
+    with pytest.raises(ValueError, match="external_view"):
+        set_forced_options(path, {"external_view": False})
+
+    assert path.read_text(encoding="utf-8") == before

@@ -105,6 +105,14 @@ Si un groupe est absent, le module l'ignore et journalise un avertissement — `
 
 ---
 
+## Éclairage du pont {#deck-lights}
+
+Au démarrage des opérations aériennes, le module passe l'éclairage du porte-avions en mode **récupération** (*AC RECOVERY* de l'éditeur) ; à leur arrêt, il le rend à DCS (*AUTO*).
+Il passe par l'action de déclencheur de l'éditeur *SET CARRIER LIGHTING MODE*, que les scripts de mission n'ont pas : elle n'est joignable que par `net.dostring_in`.
+Sur un serveur dont le `MissionScripting.lua` retire `net`, l'éclairage reste celui de DCS, un avertissement le dit dans `dcs.log`, et les opérations se déroulent comme avant.
+
+---
+
 ## Menu radio F10
 
 Le menu de premier niveau **CARRIER OPS** contient un sous-menu **CARRIER OPS - BLUE** et un sous-menu **CARRIER OPS - RED**, chacun avec un sous-menu par porte-avions (nommé d'après le groupe porte-avions). Lorsque les opérations sont arrêtées, chaque sous-menu de porte-avions propose :

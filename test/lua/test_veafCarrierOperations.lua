@@ -662,4 +662,62 @@ function TestVeafCarrierStartMenuLanguage:test_an_english_mission_keeps_its_word
   luaunit.assertTrue(contains(self.titles, expected), "got: " .. table.concat(self.titles, " | "))
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafCarrierDeckLights — FEAT-FORCED-MISSION-OPTIONS ticket 04
+-- ---------------------------------------------------------------------------
+TestVeafCarrierDeckLights = {}
+
+function TestVeafCarrierDeckLights:setUp()
+  setupMockCarrier()
+  dcs_mocks.cockpitCalls = {}
+  veafCarrierOperations.deckLightsUnavailableLogged = nil
+end
+
+function TestVeafCarrierDeckLights:tearDown()
+  dcs_mocks.restoreTriggerGlobals()
+end
+
+local function lightCalls()
+  local modes = {}
+  for _, call in ipairs(dcs_mocks.cockpitCallsTo("a_set_carrier_illumination_mode")) do
+    table.insert(modes, { call.args[1], call.args[2] })
+  end
+  return modes
+end
+
+function TestVeafCarrierDeckLights:test_starting_air_operations_turns_the_recovery_lights_on()
+  veafCarrierOperations.startCarrierOperations({ { CARRIER_NAME, 30 } })
+
+  luaunit.assertEquals(lightCalls(), { { 1, 2 } })
+end
+
+function TestVeafCarrierDeckLights:test_stopping_air_operations_gives_the_lights_back_to_dcs()
+  veafCarrierOperations.stopCarrierOperations(CARRIER_NAME)
+
+  luaunit.assertEquals(lightCalls(), { { 1, -1 } })
+end
+
+function TestVeafCarrierDeckLights:test_a_vanished_carrier_unit_sets_nothing()
+  luaunit.assertFalse(veafCarrierOperations.setDeckLights("NoSuchUnit", 2))
+  luaunit.assertEquals(lightCalls(), {})
+end
+
+function TestVeafCarrierDeckLights:test_without_net_operations_still_start()
+  local savedNet = net
+  net = nil
+  local ok, err = pcall(veafCarrierOperations.startCarrierOperations, { { CARRIER_NAME, 30 } })
+  net = savedNet
+
+  luaunit.assertTrue(ok, tostring(err))
+  luaunit.assertTrue(veafCarrierOperations.carriers[CARRIER_NAME].conductingAirOperations)
+  luaunit.assertTrue(veafCarrierOperations.deckLightsUnavailableLogged)
+  luaunit.assertEquals(lightCalls(), {})
+end
+
+function TestVeafCarrierDeckLights:test_an_action_missing_from_the_trigger_environment_is_not_fatal()
+  dcs_mocks.setTriggerGlobal("a_set_carrier_illumination_mode", nil)
+
+  luaunit.assertFalse(veafCarrierOperations.setDeckLights(CARRIER_UNIT_NAME, 2))
+end
+
 os.exit(luaunit.LuaUnit.run())

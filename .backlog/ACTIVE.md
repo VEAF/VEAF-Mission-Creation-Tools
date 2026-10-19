@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🧑 Waiting for a human
 
+### [FEAT-FORCED-MISSION-OPTIONS](FEAT-FORCED-MISSION-OPTIONS/PRD.md) · 🧑
+
+The mission options a mission maker sets by hand in the editor — labels, F10 view, external views… — from `mission.forced_options` in `mission.yaml`, the F10 view per role, an MCP action, and the carrier deck lights following VEAF air operations. From the `dcs-re` study of the editor's Lua (2026-10-19), with a page of editor tips. Done on the tests; left: what DCS applies in game, and three editor actions (`DCS-SESSION-TODO.md` R52).
+
 ### [FEAT-OPPOSITION-ZERO-AIRCRAFT](FEAT-OPPOSITION-ZERO-AIRCRAFT/PRD.md) · 🧑
 
 An opposition level that sends no aircraft: *Opposition → Niveau → 0 avion* (or `_opposition 0`) keeps the QRA that scale with the opposition on the ground until the level is raised; a level followed down to 0 stays a count. Asked by David after *Kolkhida* mission 2. Done on the mocks; left: seeing Senaki's QRA stay down in game (`DCS-SESSION-TODO.md` R51).

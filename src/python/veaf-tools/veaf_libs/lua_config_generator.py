@@ -226,6 +226,10 @@ def mission_identity_section(live_name: str | None = None) -> list[str]:
         "#     jtac: 5",
         "#     observer: 5",
         "#     pilot_control_vehicles: true  # a pilot may drive ground vehicles",
+        "#   forced_options:               # options enforced on every player, set at every build",
+        "#     labels: none                # full | abbreviated | symbol_only | dot_neutral | none",
+        "#     f10_view: fog_of_war        # all | fog_of_war | allies_only | map_only | my_aircraft",
+        "#     external_views: false       # full list: doc MISSION_YAML_REFERENCE, forced_options",
     ]
     return lines
 

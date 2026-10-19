@@ -139,6 +139,8 @@ mission:
   third_party_mods: []        # mods DCS tiers à rendre non bloquants (voir ci-dessous)
   ground_control:             # slots game master, JTAC… et conduite des véhicules (voir ci-dessous)
     game_master: 5
+  forced_options:             # options imposées à tous les joueurs (voir ci-dessous)
+    labels: none
 ```
 
 | Champ | Type | Défaut | Requis | Description |
@@ -150,6 +152,7 @@ mission:
 | `language` | string | *langue des outils* | Non | Langue des messages VEAF affichés en jeu (`fr` \| `en`) ; émise dans `veaf-config.lua` comme `veaf.config.language` et lue par `veaf.t()`. Si absent, le build utilise la langue des outils (`--lang` > `VEAF_LANG` > config utilisateur > locale OS > `en`) |
 | `third_party_mods` | liste de strings | `[]` | Non | Mods DCS **tiers** (avions payants/communautaires) à rendre **non bloquants** : leurs identifiants sont retirés de la table `requiredModules` du `.miz` au build, si bien qu'un pilote qui ne possède pas le mod peut quand même **charger** la mission (le slot correspondant est simplement indisponible). La liste est **unie** à une liste VEAF par défaut couvrant les mods courants (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — n'y déclarer que les mods non déjà pris en charge. À ne pas confondre avec les *Modules* VEAF (bloc `modules:`, qui sont des capacités, pas des add-ons DCS) |
 | `ground_control` | dictionnaire | *absent* | Non | Slots des rôles sans avion et conduite des véhicules — voir [ci-dessous](#ground-control) |
+| `forced_options` | dictionnaire | *absent* | Non | Options imposées à tous les joueurs (étiquettes, vue F10…) — voir [ci-dessous](#forced-options) |
 
 #### Le nom du `.miz` est une interface — `_ICAO_<code>` et la météo réelle {#icao-naming}
 
@@ -212,6 +215,71 @@ mission:
 - Les mots de passe des rôles restent hors de portée : écrits dans `mission.yaml`, ils seraient committés en clair.
 
 Les Open Training VEAF ouvrent 5 slots par rôle et par camp, véhicules pilotables, comme en v5.
+
+#### `forced_options` : les options imposées à tous les joueurs {#forced-options}
+
+Le panneau *Options de mission* de l'éditeur impose à chaque joueur certaines options, quels que soient ses propres réglages : étiquettes, vue de la carte F10, vues externes, turbulence de sillage…
+Le bloc les fixe à chaque build, dans la table `forcedOptions` de la mission :
+
+```yaml
+mission:
+  forced_options:
+    labels: none               # full | abbreviated | symbol_only | dot_neutral | none
+    f10_view: fog_of_war       # all | fog_of_war | allies_only | map_only | my_aircraft
+    external_views: false
+    f10_marks: true            # marques F10 des joueurs (les commandes VEAF par marqueur en ont besoin)
+    wake_turbulence: true
+    civil_traffic: off         # off | low | medium | high
+```
+
+| Nom | Libellé de l'éditeur | Valeurs |
+|-----|----------------------|---------|
+| `labels` | Labels | `full`, `abbreviated`, `symbol_only`, `dot_neutral`, `none` |
+| `spotting_dot` | Spotting dot | `off`, `auto`, `one_pixel`, `two_pixels` |
+| `f10_view` | F10 View Options | `all`, `fog_of_war`, `allies_only`, `map_only`, `my_aircraft` |
+| `f10_view_by_role` | F10 View Options → Extended | voir ci-dessous |
+| `f10_marks` | F10 Map User Marks | `true` / `false` |
+| `external_views` | External views | `true` / `false` |
+| `padlock` | Padlock | `true` / `false` |
+| `permit_crash` | Permit crash recovery | `true` / `false` |
+| `easy_flight` | Easy flight | `true` / `false` |
+| `easy_communication` | Easy communication | `true` / `false` |
+| `radio_assist` | Radio assist | `true` / `false` |
+| `mini_hud` | Mini HUD | `true` / `false` |
+| `cockpit_visual_recon_mode` | Cockpit visual recon mode | `true` / `false` |
+| `cockpit_status_bar` | Cockpit Status Bar | `true` / `false` |
+| `battle_damage_assessment` | Battle Damage Assessment | `true` / `false` |
+| `unlimited_fuel` | Unlimited fuel | `true` / `false` |
+| `unlimited_weapons` | Unlimited weapons | `true` / `false` |
+| `immortal` | Immortal | `true` / `false` |
+| `g_effects` | G-effect | `none`, `reduced`, `realistic` |
+| `g_warm_up` | G warm up in air | `true` / `false` |
+| `wake_turbulence` | Wake turbulence | `true` / `false` |
+| `unrestricted_satnav` | Unrestricted SATNAV | `true` / `false` |
+| `birds` | Birds | nombre de 0 à 1000 |
+| `civil_traffic` | Civ traffic | `off`, `low`, `medium`, `high` |
+| `random_failures` | Random System Failures | `true` / `false` |
+
+- Une option absente du bloc garde la valeur de la mission ; le bloc n'en retire jamais. Pour ne plus imposer une option, décochez-la dans l'éditeur.
+- **Bloc absent : le build ne touche à rien**, une mission réglée dans l'éditeur garde ses options.
+- Une option ou une valeur inconnue : `validate` le signale et le build s'arrête.
+- DCS n'applique pas les options imposées à un joueur qui a coché le preset global de l'onglet GAMEPLAY de ses options (note du panneau de l'éditeur).
+- En campagne, mettez le bloc dans le `mission.yaml` du dossier `template/` : `campaign next` le recopie dans chaque mission.
+
+**La vue F10 par rôle.** `f10_view_by_role` remplace `f10_view` (les deux ensemble sont refusés) et règle la carte de chaque rôle :
+
+```yaml
+mission:
+  forced_options:
+    f10_view_by_role:
+      pilot: {view: fog_of_war, hide: [enemies_weapons]}
+      jtac: all
+      spectator: all
+```
+
+- Rôles : `pilot`, `jtac`, `tactical_commander`, `observer`, `spectator`, `airboss` ; un rôle absent voit tout.
+- Une vue seule, ou `{view: …, hide: […]}` avec les couches à masquer : `<camp>_<catégorie>`, camp `allies`, `enemies` ou `neutral`, catégorie `planes`, `helicopters`, `ground`, `naval` ou `weapons`.
+- Ce que DCS en fait en jeu n'a pas encore été vu : la forme vient du code de l'éditeur, aucune mission enregistrée ne l'utilisait.
 
 ---
 

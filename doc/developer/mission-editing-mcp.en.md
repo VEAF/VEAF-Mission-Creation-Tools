@@ -857,6 +857,7 @@ on the `mission_yaml_editor` brick:
 | Security | `set_mission_security` → `security:` block (**+ password hashes**) | `set_security_disabled` |
 | Arbitrary setting | `set_mission_setting` → `settings.<key>` | `set_veaf_config` → `veaf.config.<key>` |
 | Module enable | `set_mission_module` (wave 4) | `set_module_enabled` |
+| Options enforced on players | `set_forced_options` → `mission.forced_options` | — (the build writes them into the mission's `forcedOptions`) |
 
 ## Domain-knowledge oracle (wave 5)
 

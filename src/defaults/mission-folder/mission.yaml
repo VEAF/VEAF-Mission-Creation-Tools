@@ -56,6 +56,11 @@
 #     observer: 5
 #     pilot_control_vehicles: true  # a pilot may drive ground vehicles
 #                               # absent = the mission's own settings (none in a v6 scaffold)
+#   forced_options:             # options enforced on every player, set at every build
+#     labels: none              # full | abbreviated | symbol_only | dot_neutral | none
+#     f10_view: fog_of_war      # all | fog_of_war | allies_only | map_only | my_aircraft
+#     external_views: false     # full list: doc MISSION_YAML_REFERENCE, forced_options
+#                               # absent = the mission's own options
 
 # ── Security ─────────────────────────────────────────────────────────────────
 # security:

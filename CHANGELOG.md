@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.31.0] — 2026-10-20
+
 ### Changed
 
 - **Authoring guide — campaign missions**: every campaign mission puts the Stennis, the Roosevelt and the Tarawa at sea for the players' side, and the guide reminds that `campaign next` starts from the campaign's template, so what a previous mission added by hand is to be redone.
@@ -55,6 +57,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Every new mission, however small, now starts with the guide's "right after `scaffold_mission`" checklist: the presets plan (and never `none` to quiet its report), `versions.yaml`, the example waypoints, the slot catalogue's coalitions, and `SKYNET` for a mission with air defence — a test mission on 6.30.0 kept the scaffold's defaults until the user asked about each.
 - **Four entries added to the known limitations**: a hole left in a numbered table of `src/mission/mission` breaks the build; a second `convert-v5 --force` replaces `mission.yaml` with a minimal one; a slot for a disabled or missing module shows but cannot be taken; the briefing maps and documents of the mission prompts are scripts, which an assistant without a shell (Claude Desktop in chat mode) cannot run.
 - **`build_mission_briefing`: a mission's VEAF briefing with no script** (FEAT-MCP-MISSION-BRIEFING): an assistant with no shell — Claude Desktop in chat mode — now produces it too. It passes the scenario's words; the executable reads the built mission and writes `docs/briefing.pptx` (the objective-mission template's nine pages, in the mission's language), an overview map and one zoom per objective in `docs/maps/`, and puts the maps into the DCS briefing, in the folder and the built `.miz`, first for blue and neutral. The frequency plan is the presets injected into the cockpits; the target coordinates are those of the placed objects. `basemap: topo` draws on OpenTopoMap, for a desert.
+- **TheChannel is a supported theatre** (FEAT-TERRAIN-DATA-DOWNLOAD): `terrain-sweep TheChannel` answered "Unsupported theatre", so its elevation grid could not be swept; a blank mission is now generated for it, centred on its airfields.
+
 ### Fixed
 
 - **Refreshing the Foothold missions to a new Lekaa release** (FIX-FOOTHOLD-5-3-0-INTAKE).
@@ -83,7 +87,6 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The Claude Code plugin and the Gemini CLI extension** (`plugin/`, the `veaf` marketplace) (FEAT-AI-ZERO-SETUP): `veaf-tools ai-setup`, the server's own updates and the guide it serves replace them.
   Remove an installed plugin with `claude plugin uninstall veaf-mission-editor@veaf`, or the extension with `gemini extensions uninstall veaf-mission-editor`, then run `ai-setup`.
   The version now lives in `pyproject.toml` alone.
-- **TheChannel is a supported theatre** (FEAT-TERRAIN-DATA-DOWNLOAD): `terrain-sweep TheChannel` answered "Unsupported theatre", so its elevation grid could not be swept; a blank mission is now generated for it, centred on its airfields.
 
 ## [6.30.0] — 2026-10-15
 

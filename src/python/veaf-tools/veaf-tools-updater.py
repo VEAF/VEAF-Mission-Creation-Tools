@@ -43,6 +43,7 @@ from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 from veaf_libs.safe_zip import safe_extract_all
+from veaf_libs.staged_update import running_copies, staged_path
 from veaf_tools.helpers import pause_before_exit, should_auto_pause
 
 # Parse --lang early from sys.argv so that --help is also rendered in the
@@ -77,6 +78,7 @@ TOKEN_HELP: str = t("updater.opt.token")
 MISSION_FOLDER_HELP: str = t("updater.opt.mission_folder")
 NO_VERIFY_HELP: str = t("updater.opt.no_verify_checksum")
 ZIP_FILE_HELP: str = t("updater.opt.zip_file")
+STAGE_HELP: str = t("updater.opt.stage")
 
 # String constants
 WORK_DONE_MESSAGE: str = t("msg.work_done")
@@ -218,8 +220,14 @@ class UpdateWorker:
         verify_checksum: bool = True,
         verbose: bool = False,
         zip_file_path: str | None = None,
+        stage: bool = False,
     ):
-        """Initialize the update worker."""
+        """Initialize the update worker.
+
+        ``stage`` is the MCP server's own update (FIX-OPENCODE-TEST-FINDINGS 01): the new
+        ``veaf-tools`` is left beside the installed one as ``veaf-tools.exe.staged``, and a server
+        start puts it in place when no other process runs from it (:mod:`veaf_libs.staged_update`).
+        """
         self.mission_folder = mission_folder
         self.tag = tag or GITHUB_PUBLISHED_LATEST_TAG
         self.token = token
@@ -227,6 +235,7 @@ class UpdateWorker:
         self.verify_checksum = verify_checksum
         self.verbose = verbose
         self.zip_file_path = zip_file_path
+        self.stage = stage
 
         logger.set_verbose(verbose)
 
@@ -538,6 +547,10 @@ class UpdateWorker:
             for filename in ["veaf-tools.exe", VEAF_TOOLS_EXE]:
                 source_file = published_dir / filename
                 if source_file.exists():
+                    if self.stage and filename == "veaf-tools.exe":
+                        atomic_replace(source_file, staged_path(Path.cwd() / filename))
+                        logger.info(t("updater.staged", name=filename))
+                        continue
                     _install_beside_running_exe(source_file, Path.cwd() / filename)
                     logger.info(t("updater.moved", name=filename))
                 else:
@@ -567,8 +580,9 @@ class UpdateWorker:
 
         # Attempt both binaries independently: a missing/failed one must not skip the other.
         with spinner_context(t("updater.installing")):
+            tools_dest = Path.cwd() / platform_assets.veaf_tools_binary_name()
             self._download_binary_asset(
-                release_assets, tools_asset, Path.cwd() / platform_assets.veaf_tools_binary_name()
+                release_assets, tools_asset, staged_path(tools_dest) if self.stage else tools_dest
             )
             self._download_binary_asset(
                 release_assets, updater_asset, Path.cwd() / platform_assets.updater_binary_name()
@@ -607,6 +621,30 @@ class UpdateWorker:
         logger.info(t("updater.moved", name=dest.name))
         return True
 
+    def _land_staged_exe(self) -> None:
+        """Before a run by the user: warn when veaf-tools is running, and put a staged update in place.
+
+        A running ``veaf-tools`` reads its modules from its file by path; replacing the file breaks its
+        next first-time import (FIX-OPENCODE-TEST-FINDINGS 01). The user's run still replaces it, as
+        it always did, but says so. An update the MCP server staged is put in place here too:
+        ``published/`` already carries its version, so the version check would never install it.
+        """
+        exe = Path.cwd() / platform_assets.veaf_tools_binary_name()
+        try:
+            running = running_copies(exe, set())
+        except OSError:
+            running = None
+        if running:
+            logger.warning(t("updater.warn.exe_running", name=exe.name, count=len(running)))
+        staged = staged_path(exe)
+        if not staged.is_file():
+            return
+        if platform_assets.is_windows():
+            _install_beside_running_exe(staged, exe)
+        else:
+            atomic_replace(staged, exe)
+        logger.info(t("updater.moved", name=exe.name))
+
     def _install_defaults(self, mission_folder: Path, is_first_install: bool) -> None:
         """Display first-install guidance after a fresh install."""
         if not is_first_install:
@@ -628,6 +666,13 @@ class UpdateWorker:
 
         # Resolve mission folder
         p_mission_folder = resolve_path(path=self.mission_folder, default_path=str(Path.cwd()), should_exist=True)
+
+        if not self.stage:
+            try:
+                self._land_staged_exe()
+            except OSError as e:
+                logger.error(t("updater.err.install", error=str(e)))
+                return False
 
         # If zip file path is provided, load from local file instead of GitHub
         if self.zip_file_path:
@@ -750,6 +795,7 @@ def main(
     no_verify_checksum: bool = typer.Option(False, help=NO_VERIFY_HELP),
     zip_file: str | None = typer.Option(None, help=ZIP_FILE_HELP),
     lang: str | None = typer.Option(None, help=t("help.lang")),
+    stage: bool = typer.Option(False, help=STAGE_HELP, hidden=True),
 ) -> None:
     """placeholder"""
     logger.set_verbose(verbose)
@@ -776,6 +822,7 @@ def main(
         verify_checksum=verify_checksum,
         verbose=verbose,
         zip_file_path=zip_file,
+        stage=stage,
     )
 
     success = worker.run()

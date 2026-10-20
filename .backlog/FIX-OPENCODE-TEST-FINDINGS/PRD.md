@@ -1,6 +1,6 @@
 # FIX-OPENCODE-TEST-FINDINGS — what an AI with nothing but veaf-tools met, end to end
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Origin: David's end-to-end test on 6.31.1, 2026-10-20 — OpenCode with MiniMax M3.1 Flash (free), on a Windows sandbox set up like any user's, "crée une mission DCS".
 David stopped it after 161 minutes: 312 turns, 378 tool calls of which 162 in a shell, 188 million cache-read tokens (one tool call per turn, the whole context sent back each time), a compaction at 158 minutes, and a mission still not finished.

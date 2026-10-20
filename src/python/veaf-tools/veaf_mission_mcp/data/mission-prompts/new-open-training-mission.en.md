@@ -20,7 +20,7 @@ The pilots do not know the mission: everything they read must be right.
    truth for the VEAF conventions (reserved names, `#command`, `#veafInterpreter`, zones, QRA).
 2. Call `capabilities` and `list_catalog`: note the `veaf-tools` version and the available actions.
    Read the **known limitations** (`describe_known_limitations`) and take them into account:
-   the call with no argument returns a **short listing** (the whole text is too long for one result), then read in full the entries of the areas your mission touches (`area`, `theatre`) or a single one (`id`).
+   the call with no argument returns a **short listing** (the whole text is too long for one result), `area` and `theatre` narrow that listing to what your mission touches; then read in full, with `id` or `ids`, only the entries your mission actually meets.
 3. **Whatever is missing or does not work in the tools, you report it.** A missing action, a wrong
    result, a doc that says something other than the behaviour: work around it cleanly to move on, and
    write it down in a **"Feedback for VMCT"** block of your final report (what, where, how you saw it,
@@ -505,7 +505,8 @@ the sides; running DCS.
 
 - **Read the whole build log**, not just the exit code: presets injected into how many aircraft,
   waypoints into how many groups, warehouse links, warnings. Any zero is suspect.
-- **Open the built `.miz`** (a zip; `mission` and `warehouses` are Lua tables) and check:
+- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
+  What no action reads, you report as not checked. Check:
   - **unique** group and unit names;
   - dynamic slots on the intended bases only;
   - the tankers' and AWACS' tasks;

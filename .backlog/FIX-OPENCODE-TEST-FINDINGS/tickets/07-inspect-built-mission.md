@@ -1,6 +1,6 @@
-# 01 — `inspect_built_mission`
+# 07 — `inspect_built_mission`
 
-Status: ⬜ ready
+Status: ✅ done
 
 A read-only MCP action on a built `.miz` (or a mission folder, which it resolves to its built `.miz`) that returns what the guide's post-build check needs, and nothing more:
 
@@ -18,3 +18,9 @@ Done when:
 - the action is in the catalogue, with tests on a built test mission covering each section and an absent section;
 - the MCP action catalogue page (`doc/`) lists it, in both languages;
 - an answer on the shipped default mission stays under a size the test asserts.
+
+## Done (2026-10-20)
+
+`veaf_mission_mcp/inspect_built.py`, tested on the built demo mission and on a bare copy (every section `absent`); catalogue page in both languages.
+Compact by grouping: the template types once per side, each base "every blue template linked (61)" rather than the list again, presets grouped by radio layout.
+Measured: the shipped default mission built (standard, Syria, FARP) reads 5 169 characters; listing each base's types made 40 245.

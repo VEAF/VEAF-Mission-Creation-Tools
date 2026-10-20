@@ -31,7 +31,7 @@ def _install_default_file(source_file: Path, dest_file: Path, relative_path: Pat
             catalogue — the file name alone would also match one sitting anywhere else.
     """
     if relative_path.parent == Path("src") and relative_path.name in SKELETON_CATALOGUES:
-        dest_file.write_text(empty_catalogue_yaml(relative_path.name), encoding="utf-8")
+        dest_file.write_text(empty_catalogue_yaml(relative_path.name), encoding="utf-8", newline="\n")
         return
     shutil.copy2(source_file, dest_file)
 
@@ -64,7 +64,7 @@ def _scaffold_ctld_config(mission_folder: Path, defaults_source_path: Path) -> N
         logger.warning(t("cmd.prepare.ctld_config_unavailable", file=CTLD_CONFIG_FILENAME))
         return
 
-    destination.write_text(apply_veaf_overrides(catalogue), encoding="utf-8")
+    destination.write_text(apply_veaf_overrides(catalogue), encoding="utf-8", newline="\n")
     console.print(t("cmd.prepare.ctld_config_created", file=CTLD_CONFIG_FILENAME))
 
 
@@ -294,7 +294,11 @@ def prepare(
         elif enabled_modules is not None:
             from veaf_libs.mission_template import generate_mission_yaml
 
-            (p_mission_folder / "mission.yaml").write_text(generate_mission_yaml(enabled_modules), encoding="utf-8")
+            # LF like the shipped scaffold it replaces: in text mode Windows wrote CRLF, and the AI's
+            # multi-line edits of the file missed (FIX-OPENCODE-TEST-FINDINGS 02).
+            (p_mission_folder / "mission.yaml").write_text(
+                generate_mission_yaml(enabled_modules), encoding="utf-8", newline="\n"
+            )
             console.print(tn("cmd.prepare.template_applied", len(enabled_modules), template=template))
 
             # A template that enables CTLD gets the matching ctld-config.yaml, seeded from

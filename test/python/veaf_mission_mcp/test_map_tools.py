@@ -100,12 +100,12 @@ class TestListAirfields:
     def test_lists_the_mission_theatre_with_both_coordinates(self, sample_miz: Path) -> None:
         from veaf_mission_mcp.map_tools import list_airfields
 
-        result = list_airfields(mission_path=sample_miz)
+        result = list_airfields(mission_path=sample_miz, details=True)
         assert result["theatre"] == "Caucasus"
         batumi = next(a for a in result["airfields"] if a["name"] == "Batumi")
         assert batumi["id"] == 22
         assert (batumi["x"], batumi["y"]) == pytest.approx(
-            coordinates.latlon_to_xy("Caucasus", batumi["lat"], batumi["lon"])
+            coordinates.latlon_to_xy("Caucasus", batumi["lat"], batumi["lon"]), abs=1
         )
 
     def test_a_theatre_can_be_named_without_a_mission(self) -> None:
@@ -119,3 +119,79 @@ class TestListAirfields:
 
         with pytest.raises(ValueError, match="Atlantis"):
             list_airfields(theatre="Atlantis")
+
+
+class TestListAirfieldsWeight:
+    """FIX-OPENCODE-TEST-FINDINGS 03 and 06: 37k characters for Syria, kept to the end of the session."""
+
+    def test_the_default_answer_is_name_id_and_position_only(self) -> None:
+        from veaf_mission_mcp.map_tools import list_airfields
+
+        airfields = list_airfields(theatre="Syria")["airfields"]
+        assert {tuple(sorted(a)) for a in airfields} == {("id", "name", "x", "y")}
+        assert all(isinstance(a["x"], int) and isinstance(a["y"], int) for a in airfields)
+
+    def test_the_default_answer_on_syria_stays_small(self) -> None:
+        """Measured as a client receives it, indented JSON: 36 732 characters before, 20 605 after."""
+        import json
+
+        from veaf_mission_mcp.map_tools import list_airfields
+
+        assert len(json.dumps(list_airfields(theatre="Syria"), indent=2)) < 22_000
+
+    def test_details_give_parking_and_atc_frequencies_with_no_mission(self) -> None:
+        """The AI read parking/Syria.json and airfield-frequencies.yaml in the exe's own files."""
+        from veaf_mission_mcp.map_tools import list_airfields
+
+        incirlik = list_airfields(theatre="Syria", details=True, name_contains="incirlik")["airfields"]
+        assert [a["name"] for a in incirlik] == ["Incirlik"]
+        assert incirlik[0]["atc"]["vhf"] == 122.1
+        assert incirlik[0]["parking"]["planes"] > 0
+        assert {"lat", "lon"} <= set(incirlik[0])
+
+    def test_name_contains_filters(self) -> None:
+        from veaf_mission_mcp.map_tools import list_airfields
+
+        names = [a["name"] for a in list_airfields(theatre="Syria", name_contains="HAT")["airfields"]]
+        assert "Hatay" in names
+        assert all("hat" in name.lower() for name in names)
+
+    def test_a_mission_gives_each_airfield_its_coalition(self, sample_miz: Path) -> None:
+        from veaf_mission_mcp.map_tools import list_airfields
+
+        airfields = list_airfields(mission_path=sample_miz)["airfields"]
+        assert {a["coalition"] for a in airfields} <= {"red", "blue", "neutral"}
+
+
+class TestCoordinatesWithoutAMission:
+    """FIX-OPENCODE-TEST-FINDINGS 03: with no mission folder the AI fitted its own model, 5 km off."""
+
+    def test_resolve_coordinates_takes_a_theatre(self) -> None:
+        result = resolve_coordinates(None, {"lat": 37.0, "lon": 35.4}, theatre="syria")
+
+        assert result["theatre"] == "Syria"
+        assert (result["xy"]["x"], result["xy"]["y"]) == pytest.approx(coordinates.latlon_to_xy("Syria", 37.0, 35.4))
+
+    def test_the_batch_takes_a_theatre(self) -> None:
+        result = resolve_coordinates_batch(None, [{"x": 0.0, "y": 0.0}], theatre="Syria")
+
+        assert result["theatre"] == "Syria" and len(result["points"]) == 1
+
+    def test_neither_a_mission_nor_a_theatre_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="theatre"):
+            resolve_coordinates(None, {"x": 0.0, "y": 0.0})
+
+    def test_the_action_takes_a_theatre(self) -> None:
+        from veaf_mission_mcp.server import CATALOG
+
+        result = CATALOG.run_action("resolve_coordinates", {"theatre": "Syria", "position": {"x": 0.0, "y": 0.0}})
+        assert result["theatre"] == "Syria"
+
+
+def test_list_airfields_details_do_not_depend_on_the_theatre_s_case() -> None:
+    """`syria` gave every base an empty `atc`: the frequency table is keyed in DCS spelling (review finding)."""
+    from veaf_mission_mcp.map_tools import list_airfields
+
+    result = list_airfields(theatre="syria", details=True, name_contains="incirlik")
+    assert result["theatre"] == "Syria"
+    assert result["airfields"][0]["atc"]["vhf"] == 122.1

@@ -34,10 +34,9 @@ Le travail a **deux phases**, et la frontière entre les deux est stricte :
    avancer, et tu le notes dans un bloc **« Retours pour VMCT »** de ton rapport final (quoi, où,
    comment tu l'as vu, ce que tu as fait à la place). C'est ainsi qu'on améliore les outils.
 4. Réponds en français, concis. Pose tes questions **une par une**, avec des choix et ta reco.
-5. **Lire sans dossier de mission.** En phase 1 le dossier est vide, et `geocode` comme
-   `resolve_coordinates` exigent un `mission_path` (ils ne prennent pas de théâtre). Pointe-les, en
-   lecture seule, sur une mission existante du même théâtre (une Open Training, par exemple) ; ne
-   crée rien pour ça.
+5. **Lire sans dossier de mission.** En phase 1 le dossier est vide, et chaque lecture dont tu as besoin prend un `theatre` à la place d'un `mission_path` : `list_airfields`, `geocode`, `resolve_coordinates`, `terrain_elevation`.
+   `list_countries` donne les identifiants de pays DCS, et `read_mission_file` sans `mission_path` lit le gabarit que `scaffold_mission` posera (le plan de presets, les templates de slots dynamiques).
+   Ne lis jamais les fichiers de données des outils : ce qu'aucune action ne te dit, tu dis que tu n'as pas pu le vérifier.
 
 ## 1. Les questions de départ (et seulement celles-là)
 
@@ -60,8 +59,7 @@ alors, et tu le dis.
 Tout le reste — lieu, objectifs, menace, heure, météo, soutien — c'est **toi** qui le proposes, dans
 le scénario.
 
-**L'ATO nomme ses vols avec les indicatifs standard VEAF.** Leur fréquence est dans le catalogue des
-outils (`presets_injector/freq_alias.py`, et `presets.yaml` du gabarit) ; leur appareil n'y est pas.
+**L'ATO nomme ses vols avec les indicatifs standard VEAF.** Leur fréquence est dans le plan de presets du gabarit (`read_mission_file` sur `src/presets.yaml`, sans `mission_path`) ; leur appareil n'y est pas.
 Ceux qu'on connaît :
 
 | Indicatif | Appareil |
@@ -90,10 +88,8 @@ pas.
   est une **estimation** : dis-la comme telle.
 - **Faisable avec les outils** : tout ce que le scénario promet doit pouvoir se construire (section
   4). Ce qui dépend d'un réglage que tu n'as pas vérifié se dit « à vérifier », pas « prévu ».
-- **Des bases qui accueillent le public.** Compte les places de parking de chaque base de départ
-  dans `veaf_libs/data/parking/<théâtre>.json` (champ `t` de chaque place : de mémoire de l'API DCS
-  `Airbase.getParking`, 68 abri durci, 72 avion, 104 plein air, 40 hélicoptère, 16 piste — à
-  confirmer) et compare-les au nombre de pilotes. Une base trop petite refuse les slots dynamiques en
+- **Des bases qui accueillent le public.** `list_airfields` avec `details: true` (et `name_contains` pour une base) donne les places de parking de chaque base, `parking.planes` et `parking.helicopters`.
+  Compare-les au nombre de pilotes. Une base trop petite refuse les slots dynamiques en
   silence côté joueur (« Can't create dynamic group, no suitable parking was found » dans le journal
   serveur) : mesuré sur Syria, At Tanf n'a que **2 hélisurfaces** et H4 environ 13 places avions.
   Prévois une FARP (`add_farp`) pour les hélicoptères ou une seconde base pour les jets.
@@ -107,7 +103,7 @@ pas.
 - **Lisible en un coup d'œil** : un pitch qui se raconte en deux phrases.
 
 Les actions de lecture (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`,
-`list_unit_types`, `resolve_coordinates`, `terrain_elevation`, `describe_known_limitations`) sont
+`list_unit_types`, `list_countries`, `resolve_coordinates`, `terrain_elevation`, `read_mission_file`, `describe_known_limitations`) sont
 permises en phase 1.
 **Aucune action qui écrit** : ni `scaffold_mission`, ni fichier, ni dossier.
 
@@ -215,6 +211,9 @@ toute la largeur et devient illisible.
 9. **Coordonnées cibles** — le format annoncé en tête (« Lat Long secondes, précis »), puis une ligne
    par cible : `<nom> : N34°33'37.31" E38°18'48.77" <altitude> ft`.
 
+**La suite de ce prompt est la construction** : une fois un scénario approuvé par l'utilisateur, charge-la avec `describe_mission_prompt` (`kind: objective`, `part: build`) et suis-la à partir de la section 4.
+
+<!-- part: build -->
 ## 4. Phase 2 — conception de la mission
 
 Avant de construire, rends **le plan en une liste** (dossier, gabarit, slots, objectifs, menaces,
@@ -285,7 +284,7 @@ validé un scénario, pas un à-peu-près.
   « Armement libre » (les pilotes le changent au sol).
 - **Plan de vol dans l'appareil** : il **est** le plan de vol du briefing, dans le même ordre et sous
   les mêmes noms. Dans DCS le point 0 est le départ : `W1` du briefing est le point d'index 1.
-  Vérifie-le dans le `.miz`. Avec des slots nommés, c'est la route du groupe (`edit_route`) ou
+  Vérifie-le dans le `.miz` construit (`describe_units` avec `include_route`). Avec des slots nommés, c'est la route du groupe (`edit_route`) ou
   `src/waypoints.yaml` ; avec des slots dynamiques, **seulement `src/waypoints.yaml`** : le build
   ajoute ses points après le départ de chaque gabarit joueur (un plan par catégorie et coalition, un
   pour les jets, un pour les hélicoptères), puis un BULLSEYE.
@@ -396,7 +395,7 @@ validé un scénario, pas un à-peu-près.
   DCS donne à l'aérodrome** : `describe_airfield_channels` puis `set_airfield_channels`, jamais une
   fréquence d'aérodrome tapée à la main. Réécris **toutes** les listes `channel_lists` du gabarit :
   sur une autre carte, il garde des aérodromes du Caucase (Batumi, Beslan…). Relis les préréglages
-  réellement injectés dans le `.miz`, appareil par appareil. Le SA342 Gazelle n'en reçoit aucun
+  réellement injectés, appareil par appareil (`inspect_built_mission`). Le SA342 Gazelle n'en reçoit aucun
   (seule sa radio FM se règle par préréglage) : dis au briefing que ses radios se règlent à la main.
   Le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun préréglage ne porte (journal et
   `presets-validation-report.md`) : la mission n'est pas prête tant que cette liste n'est pas vide.
@@ -472,7 +471,8 @@ Ce qui revient à l'utilisateur : commit, push, publication, lancer DCS.
   d'appareils, waypoints injectés dans combien de groupes, liens des warehouses, avertissements. Tout
   zéro est suspect. Lance les builds **l'entrée standard fermée** (`< /dev/null`, ou
   `stdin=DEVNULL`) : un build est resté bloqué dix minutes à attendre une saisie, sans rien afficher.
-- **Ouvre le `.miz` produit** (un zip ; `mission` et `warehouses` sont des tables Lua) et contrôle :
+- **Contrôle la mission construite par les actions, jamais en la dézippant** : `inspect_built_mission` (slots, presets, bullseye, météo, soutien, compteurs), `describe_mission` et `describe_units` sur le `.miz` construit (noms, routes, unités), `read_mission_file` (les sources).
+  Ce qu'aucune action ne lit, tu le signales comme non vérifié. Contrôle :
   - noms de groupes et d'unités **uniques** ;
   - slots nommés : un groupe par vol de l'ATO, le bon nombre de slots `Client`, au bon départ, avec
     un emport, et aucun slot dynamique ; slots dynamiques : seulement sur les bases prévues, et aucun

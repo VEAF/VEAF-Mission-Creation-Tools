@@ -2,8 +2,10 @@
 
 The Claude Code plugin's start-up hook used to do it, for Claude Code only. The server does it now, for
 every client: at start-up, at most once every 4 hours, it asks GitHub for the latest release and, when
-it is newer, starts the updater in the background, in its own folder. The updater sets the running
-``veaf-tools.exe`` aside and installs the new one, used from the client's next start.
+it is newer, starts the updater in the background, in its own folder, with ``--stage``: the new
+``veaf-tools.exe`` waits beside the installed one, and the next server start puts it in place when no
+other process runs from it (:mod:`veaf_libs.staged_update`). Putting it in place straight away broke
+every server still running (FIX-OPENCODE-TEST-FINDINGS 01).
 """
 
 import os
@@ -120,5 +122,5 @@ def start_update_if_due(
     updater = exe.parent / platform_assets.updater_binary_name()
     if not updater.is_file():
         return "no_updater"
-    launch([str(updater), "--tag", PUBLISHED_LATEST_TAG], exe.parent)
+    launch([str(updater), "--tag", PUBLISHED_LATEST_TAG, "--stage"], exe.parent)
     return "started"

@@ -138,3 +138,62 @@ def test_lines_are_counted_on_line_feeds_only(folder: Path) -> None:
     result = read_mission_file(folder, "src/versions.yaml", start_line=2, line_count=1)
 
     assert (result["content"], result["total_lines"]) == ("b: 2\n", 2)
+
+
+def _crlf(folder: Path) -> Path:
+    path = folder / "mission.yaml"
+    path.write_bytes(MISSION_YAML.replace("\n", "\r\n").encode("utf-8"))
+    return path
+
+
+def test_read_returns_line_feeds_from_a_crlf_file(folder: Path) -> None:
+    """What the AI copies back is what it read: `\r\n` in, a `\n` passage out (FIX-OPENCODE-TEST-FINDINGS 02)."""
+    _crlf(folder)
+
+    result = read_mission_file(folder, "mission.yaml")
+
+    assert (result["content"], result["total_lines"]) == (MISSION_YAML, 5)
+
+
+def test_edit_matches_a_multi_line_passage_in_a_crlf_file_and_keeps_crlf(folder: Path) -> None:
+    """Sent with `\n`, the passage was "not found" and the AI rewrote presets.yaml with PowerShell."""
+    path = _crlf(folder)
+
+    edit_mission_file(folder, "mission.yaml", search="  era: MODERN\nmodules:\n", replace="  era: COLDWAR\nmodules:\n")
+
+    assert path.read_bytes() == MISSION_YAML.replace("MODERN", "COLDWAR").replace("\n", "\r\n").encode("utf-8")
+
+
+def test_edit_matches_a_crlf_passage_in_an_lf_file_and_keeps_lf(folder: Path) -> None:
+    edit_mission_file(
+        folder, "mission.yaml", search="  era: MODERN\r\nmodules:\r\n", replace="  era: WW2\r\nmodules:\r\n"
+    )
+
+    assert (folder / "mission.yaml").read_bytes() == MISSION_YAML.replace("MODERN", "WW2").encode("utf-8")
+
+
+def test_with_no_mission_folder_read_serves_the_shipped_scaffold() -> None:
+    """Before scaffold_mission, the AI read the shipped templates out of published/ by hand (FIX-OPENCODE-TEST-FINDINGS 03)."""
+    from veaf_libs.shipped_defaults import resolve_defaults_source
+
+    result = read_mission_file(None, "src/dynamic-slot-templates.yaml", line_count=5)
+
+    shipped = resolve_defaults_source(Path("nowhere"))
+    assert shipped is not None
+    expected = (shipped / "src" / "dynamic-slot-templates.yaml").read_text(encoding="utf-8").split("\n")[:5]
+    assert result["content"] == "\n".join(expected) + "\n"
+    assert result["shipped"] is True
+
+
+def test_the_action_reads_the_shipped_scaffold_without_mission_path() -> None:
+    from veaf_mission_mcp.server import CATALOG
+
+    result = CATALOG.run_action("read_mission_file", {"file": "mission.yaml", "line_count": 3})
+    assert result["shipped"] is True and result["first_line"] == 1
+
+
+def test_edit_still_needs_a_mission_folder() -> None:
+    from veaf_mission_mcp.server import CATALOG
+
+    with pytest.raises(ValueError, match="mission_path"):
+        CATALOG.run_action("edit_mission_file", {"file": "mission.yaml", "search": "a", "replace": "b"})

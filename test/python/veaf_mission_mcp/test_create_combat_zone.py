@@ -196,3 +196,17 @@ def test_a_mission_wide_surface_warning_is_said_once(tmp_path: Path) -> None:
     )
     texts = [w["warning"] for w in result["warnings"] if "surface not checked" in str(w.get("warning"))]
     assert len(texts) == 1
+
+
+def test_every_combat_zone_key_the_schema_lists_is_one_the_build_reads() -> None:
+    """The schema lists the keys so the AI stops grepping the scripts for them (FIX-OPENCODE-TEST-FINDINGS 03).
+
+    A key listed there and read nowhere would be a setting that silently does nothing.
+    """
+    from veaf_libs import lua_config_generator
+    from veaf_mission_mcp.server import CATALOG
+
+    schema = CATALOG.describe_action("create_combat_zone").parameters_schema["properties"]["combat_zone"]
+    source = Path(lua_config_generator.__file__).read_text(encoding="utf-8")
+    assert "chained_zones" in schema["properties"]
+    assert [key for key in schema["properties"] if f'"{key}"' not in source] == []

@@ -891,6 +891,16 @@ Read-only. DCS unit types from the generated database, filterable by `category` 
 {"category": "Plane", "name_contains": "su-27"}
 ```
 
+### `list_countries` (FIX-OPENCODE-TEST-FINDINGS lot)
+
+Read-only, no mission needed. The DCS countries as `{id, name, short?}`, in id order, from `veaf_libs/data/dcs-countries.yaml`: the `country_id` and `country_name` that `add_group`, `add_air_group`, `add_farp` and the composites take.
+`name_contains` matches the name, the Mission Editor's name and the short code.
+An assistant with no such action read the file out of the executable's unpacked folder.
+
+```json
+{"name_contains": "turk"}
+```
+
 ### `list_payloads`
 
 Read-only. The default loadouts the Mission Editor offers an AI aircraft type, by name
@@ -936,13 +946,13 @@ always returned, with the date they were measured). Each entry: `id`, `kind`, `a
 
 The whole text is about 74 000 characters, more than a tool result carries. **With no argument the action
 returns a short listing** — `id`, `kind`, `area` and `theatres` when set, no title, about 7 000 characters — and the count of each
-`area`. Read the entries you need in full with `area` (`spawning`, `air-defence`, `players`, `radio`,
-`ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind`, `id` or `ids` (a list). `theatre` drops the
-entries that concern other theatres only (an entry with no `theatres` applies everywhere). `full: true`
-returns everything.
+`area`. `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind` and
+`theatre` narrow that listing and keep it short; `theatre` drops the entries that concern other theatres only (an entry with no
+`theatres` applies everywhere). Read the entries you need in full with `id` or `ids` (a list); `full: true` returns everything selected.
+An area used to come back in full: three of them were 46 000 characters in one call, carried to the end of the session (FIX-OPENCODE-TEST-FINDINGS).
 
 ```json
-{"area": "radio"}
+{"ids": ["no-parking-data-outside-three-theatres"]}
 ```
 
 ### `describe_authoring_guide` (FEAT-AI-ASSISTANT-ANY-CLIENT lot)
@@ -963,7 +973,10 @@ Not every client honours them; [the install page](../mission-maker/AI_ASSISTANT_
 A mission folder's YAML sources — `mission.yaml` and `src/*.yaml`, nothing else, no `..`, no absolute path — for an assistant with no direct file access.
 In Claude Desktop's chat mode, an assistant asked to rename a mission answered that no action could; `mission.name`, `mission.era` and the `src/*.yaml` files the guide's checklist asks it to adapt had no action at all.
 `read_mission_file` returns `{file, first_line, last_line, total_lines, content}`, 400 lines by default (`start_line`, `line_count`): the slot catalogue runs to 11 000.
-`edit_mission_file` replaces one exact passage (`search` / `replace`), refused when it occurs zero or several times or when the result no longer reads as YAML; backed up first, line endings kept.
+Its lines end in `\n` whatever the file uses.
+Without `mission_path` it reads the scaffold shipped with the tools — what `scaffold_mission` lays down: the dynamic-slot templates, the presets plan, `mission.yaml` with each module's commented example — and says `shipped: true`, so a plan can be checked before any folder exists.
+`edit_mission_file` replaces one exact passage (`search` / `replace`), refused when it occurs zero or several times or when the result no longer reads as YAML; backed up first.
+Line ends are compared normalised, and the file keeps its own: a passage copied back with `\n` from a CRLF file was "not found" (FIX-OPENCODE-TEST-FINDINGS).
 Implementation: `veaf_mission_mcp/mission_files.py`.
 
 ```json
@@ -976,6 +989,8 @@ Read-only. Returns `{"kind", "lang", "prompt"}`: the instructions that build one
 `kind` is `objective` (a mission played once, in one session) or `open-training` (a VEAF training mission on a whole map); `lang` is `en` (default) or `fr`.
 The prompts live in `veaf_mission_mcp/data/mission-prompts/`, bundled with the guide; they used to sit in the repository's `.prompts/`, for the user to paste.
 The authoring guide sends a user who asks for a new mission here, so "create a mission" is enough.
+The objective prompt comes in two parts, cut at a `<!-- part: build -->` line: `part: scenario` (the default, about 13 000 characters, which ends by saying how to load the rest) and `part: build`, once the user has approved a scenario; `part: all` returns both.
+Sections 4 to 9, 21 000 of its 34 000 characters, serve only after approval, and were carried through every turn of the scenario discussion (FIX-OPENCODE-TEST-FINDINGS).
 
 ```json
 {"kind": "objective", "lang": "fr"}
@@ -1149,14 +1164,16 @@ Each zone carries its `x`/`y`/`radius`, each group its `x`/`y` and its number of
 
 ### `list_airfields`
 
-Read-only. Lists a theatre's airbases — name, DCS airdrome id, lat/lon, and DCS `x`/`y` when the
-theatre's projection is known — from the data shipped with the tools
+Read-only. Lists a theatre's airbases — name, DCS airdrome id, and DCS `x`/`y` in whole metres when the
+theatre's projection is known (`lat`/`lon` otherwise), plus each base's `coalition` with a mission — from the data shipped with the tools
 (`veaf_libs/data/airdrome-positions.yaml`, generated with `airdromes.yaml` from the `dcs-world-schema` reference database by
 `veaf-build update-dcs-data --airdromes`). The position is the airbase's reference point, the runways' centre. With `mission_path`, the mission's theatre; without a
 mission, `theatre`.
+`name_contains` keeps the bases whose name holds a text; `details: true` adds `lat`/`lon`, `parking` (the stands usable by `planes` and by `helicopters`) and `atc` (`uhf`, `vhf`, `fm` MHz and `tacan`, as DCS gives them).
+Short by default: every field for Syria was 37 000 characters, 21 000 now (FIX-OPENCODE-TEST-FINDINGS).
 
 ```json
-{"theatre": "GermanyCW"}
+{"theatre": "Syria", "name_contains": "incirlik", "details": true}
 ```
 
 ### `describe_airfield_channels`
@@ -1187,7 +1204,8 @@ channels no `channel_lists` entry uses yet. Idempotent.
 ### `resolve_coordinates`
 
 Utility. Converts a position between `{x, y}` (DCS local) and `{lat, lon}` (decimal degrees) for the
-mission's theatre (read from the mission — the caller never supplies projection parameters).
+mission's theatre (read from the mission — the caller never supplies projection parameters), or for a `theatre` named
+before there is a mission.
 
 ```json
 {"mission_path": "…", "position": {"lat": 42.18, "lon": 41.68}}
@@ -1203,7 +1221,7 @@ mission's theatre — DCS theatres being the real world projected. **Pluggable**
 Nominatim by default (free, no key; © OpenStreetMap attribution required), Google Maps when
 `GOOGLE_MAPS_API_KEY` is set. Optional `bearing`+`distance_km` ("10 km north of X"). Returns
 `{found, display_name, latlon, xy, in_theatre_bounds, warnings}` — approximate, confirm visually;
-named places work, vague terrain does not.
+named places work, vague terrain does not. Without a mission, `theatre` names the map.
 
 ```json
 {"mission_path": "…", "query": "Kobuleti", "bearing": 0, "distance_km": 10}
@@ -1223,6 +1241,19 @@ Read-only. Lints a **folder** before build: reuses `veaf_libs.mission_validator`
 
 ```json
 {"folder_path": "path/to/mission-folder"}
+```
+
+### `inspect_built_mission` (FIX-OPENCODE-TEST-FINDINGS lot)
+
+Read-only. What a **built** mission holds, for the post-build check, compactly — one line per item, never a raw table:
+`dynamic_slot_templates` (the template types of each side, once), `airbases` and `farps_and_ships` (side, dynamic slots, hot start, the templates linked — "every blue template linked (61)" rather than the list again — and how many types are stocked with no template), `presets` (per side and radio layout, the types that carry it, or `no presets`), `bullseye`, `weather` (time, sky, ground wind and visibility of the mission and of each variant in `missions/`), `support` (tankers and AWACS, frequency, TACAN, late activation) and `counters` (`presets_injected`, `routes_on_player_groups`, `warehouse_links`, `dead_links`, `variants`), so a zero shows.
+A section the mission lacks reads `absent`. `mission_path` is the folder (its latest build) or a `.miz`.
+The guide used to ask to "open the built `.miz` and check": with only the actions, an assistant unzipped it and parsed its Lua tables in PowerShell.
+The shipped default mission, built, reads about 5 000 characters.
+Implementation: `veaf_mission_mcp/inspect_built.py`.
+
+```json
+{"mission_path": "path/to/mission-folder"}
 ```
 
 ### `build_mission`

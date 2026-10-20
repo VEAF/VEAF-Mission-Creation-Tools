@@ -1,0 +1,128 @@
+"""Publish the swept elevation grids as the ``terrain-data`` release (FEAT-TERRAIN-DATA-DOWNLOAD).
+
+veaf-tools downloads a theatre's grid from that release when the workstation has none
+(``veaf_libs.terrain_data``). The release is separate from the tools' releases and created **not
+latest**, so GitHub's "Latest" badge stays on the tools' release; its assets are replaced in place (``--clobber``).
+See ``doc/developer/terrain-data.md``.
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from veaf_libs.terrain_data import MANIFEST_NAME, RELEASE_TAG, build_manifest  # type: ignore[import-not-found]
+
+REPOSITORY = "VEAF/VEAF-Mission-Creation-Tools"
+
+Runner = Callable[..., subprocess.CompletedProcess]
+
+
+def prepare(grid_dir: Path, out_dir: Path) -> tuple[list[Path], Path]:
+    """Check every grid of a folder and write the manifest describing them.
+
+    Args:
+        grid_dir: The folder holding the ``<Theatre>.terrain`` files (sweep folders are ignored).
+        out_dir: Where ``terrain-data.json`` is written.
+
+    Returns:
+        The grids, sorted, and the manifest's path.
+
+    Raises:
+        ValueError: If the folder holds no grid, or a grid fails :func:`build_manifest`'s checks.
+    """
+    files = sorted(grid_dir.glob("*.terrain"))
+    if not files:
+        raise ValueError(f"no .terrain file in {grid_dir}")
+    manifest = build_manifest(files)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = out_dir / MANIFEST_NAME
+    manifest_path.write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return files, manifest_path
+
+
+def dropped_theatres(manifest_path: Path, run: Runner = subprocess.run) -> list[str]:
+    """Return the theatres published now that this manifest would no longer name.
+
+    Every grid of the folder goes out at each publication and the manifest is replaced, so publishing
+    from a folder missing a theatre would withdraw it.
+
+    Args:
+        manifest_path: The manifest about to be published.
+        run: ``subprocess.run``, or a test double.
+
+    Returns:
+        The theatres dropped, sorted; empty when the release does not exist yet.
+
+    Raises:
+        RuntimeError: If ``gh`` fails for any other reason than a missing release: the guard must not
+            pass for lack of an answer.
+    """
+    view = run(["gh", "release", "view", RELEASE_TAG, "--repo", REPOSITORY], capture_output=True)
+    if view.returncode != 0:
+        if b"not found" in (view.stderr or b"").lower():
+            return []
+        raise RuntimeError(f"gh release view {RELEASE_TAG}: {(view.stderr or b'').decode(errors='replace').strip()}")
+    answer = run(
+        ["gh", "release", "download", RELEASE_TAG, "--pattern", MANIFEST_NAME, "--output", "-", "--repo", REPOSITORY],
+        capture_output=True,
+    )
+    if answer.returncode != 0:
+        raise RuntimeError(
+            f"cannot read the published {MANIFEST_NAME}: {(answer.stderr or b'').decode(errors='replace').strip()}"
+        )
+    published = json.loads(answer.stdout)["grids"]
+    kept = json.loads(manifest_path.read_text(encoding="utf-8"))["grids"]
+    return sorted(set(published) - set(kept))
+
+
+def publish(files: list[Path], manifest_path: Path, run: Runner = subprocess.run) -> None:
+    """Create the release when missing, then upload the grids and, last, the manifest.
+
+    The manifest goes last so it never names a grid not uploaded yet.
+
+    Args:
+        files: The grids.
+        manifest_path: The manifest written by :func:`prepare`.
+        run: ``subprocess.run``, or a test double.
+
+    Raises:
+        subprocess.CalledProcessError: If a ``gh`` command fails.
+    """
+    repo = ["--repo", REPOSITORY]
+    exists = run(["gh", "release", "view", RELEASE_TAG, *repo], capture_output=True).returncode == 0
+    if not exists:
+        run(
+            [
+                "gh",
+                "release",
+                "create",
+                RELEASE_TAG,
+                *repo,
+                "--latest=false",
+                "--title",
+                "Terrain data",
+                "--notes",
+                "Ground elevation grids swept in DCS, downloaded by veaf-tools when a theatre has none. "
+                "Not a tools release.",
+            ],
+            check=True,
+        )
+    run(["gh", "release", "upload", RELEASE_TAG, *[str(f) for f in files], *repo, "--clobber"], check=True)
+    run(["gh", "release", "upload", RELEASE_TAG, str(manifest_path), *repo, "--clobber"], check=True)
+
+
+def describe(manifest_path: Path) -> list[dict[str, Any]]:
+    """Return one row per grid of a manifest, for the summary table.
+
+    Args:
+        manifest_path: The manifest.
+
+    Returns:
+        ``{"theatre", "file", "bytes"}`` per grid, in the manifest's order.
+    """
+    grids = json.loads(manifest_path.read_text(encoding="utf-8"))["grids"]
+    return [{"theatre": name, "file": entry["file"], "bytes": entry["bytes"]} for name, entry in grids.items()]

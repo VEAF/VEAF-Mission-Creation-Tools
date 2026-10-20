@@ -272,9 +272,9 @@ work; vague terrain ("the woods") does not.
 the briefing), the **highest ground** along each leg of a route (the floor of a low-level ingress),
 **how much of each leg a SAM sees** over the terrain, and the top of each 10 km square of the F10
 grid. **Terrain only**: no buildings, pylons or trees, and a measured margin to add, which the AI
-reminds you of. The theatre must first be swept **once** in DCS
-(`.\veaf-tools.exe dcs terrain-sweep Syria`, under three minutes); without it, the AI offers you the
-command.
+reminds you of.
+The grids of the theatres VEAF has swept are downloaded on first use, with no DCS ([list](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)).
+Another theatre must first be swept **once** in DCS (`.\veaf-tools.exe dcs terrain-sweep Caucasus`, under three minutes); without it, the AI offers you the command.
 
 > 💬 *"Does my low-level route stay under the Damascus SA-6's coverage?"*
 

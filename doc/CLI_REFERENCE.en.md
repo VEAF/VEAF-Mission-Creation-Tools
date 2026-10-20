@@ -882,6 +882,10 @@ instructions, waiting; an interrupted sweep resumes where it stopped. The extent
 asked to DCS; when it does not give it, the airfields' plus 50 km, and the command says so. **Terrain
 only**: no buildings, pylons or trees.
 
+A theatre VEAF has already swept needs no sweep: its grid is published on GitHub (release [`terrain-data`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)), and veaf-tools downloads it on first use, into the same folder.
+A grid already there — swept here or downloaded — is used as is.
+Sweep a theatre when it is not published, or to replace a downloaded grid.
+
 | Name | Type | Required | Description |
 |---|---|---|---|
 | `THEATRE` | `str` | yes | The theatre, as DCS spells it (Caucasus, Syria…). |

@@ -423,7 +423,7 @@ def _coordinates_page(campaign: CampaignDefinition, zones: list[CampaignZone]) -
     for zone in zones:
         lat, lon = zone_position(campaign, zone)
         height = grid.elevation_at(*_zone_xy(campaign, zone)) if grid else None
-        # no swept terrain on this workstation: nothing rather than "unknown"
+        # no grid on this workstation, swept or downloaded: nothing rather than "unknown"
         elevation = f" — {metres_to_feet(height):.0f} ft" if height is not None else ""
         lines.append(_line(zone.label, f"{to_dms(lat, lon)}{elevation}"))
     lines.append(t("campaign.mission_deck.positions_in_flight"))

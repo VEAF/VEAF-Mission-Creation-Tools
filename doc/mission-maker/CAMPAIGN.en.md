@@ -366,7 +366,7 @@ Run `campaign briefing` again after every change to the mission.
 | Mission flow | objectives, air opposition, air defences, other information (refuelling, diversion fields, rescue) |
 | Frequency plan | UHF then VHF, guard first |
 | Navigation plan | the waypoints the players' planes then helicopters carry after their departure, `BULLSEYE` included: name, DMS position, altitude and its reference (`BARO`, or `AGL` above the ground); the aircraft types when a category carries several routes |
-| Objective coordinates | each zone's centre in DMS, and its elevation when a terrain grid has been swept (`terrain-sweep`) |
+| Objective coordinates | each zone's centre in DMS, and its elevation when the theatre has a terrain grid (swept by `terrain-sweep`, or downloaded when published) |
 
 The objectives are the zones the mission's task titles name in `briefing.yaml` ("Frapper le dépôt de Khobi" names the zone *Dépôt de Khobi*), or else the campaign's objectives.
 The flights are the players': neither the dynamic-slot templates nor the VEAF spawn templates are flights; a support aircraft appears once, by its task; the wind is said from where it comes, as a pilot reads it.

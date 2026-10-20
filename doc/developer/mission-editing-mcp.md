@@ -1034,7 +1034,7 @@ Rayon par défaut : 150 m.
 ### `terrain_elevation` (lot FEAT-TERRAIN-ELEVATION)
 
 Lecture seule, **sans DCS** : répond depuis la grille d'altitudes du théâtre, relevée une fois par
-[`veaf-tools dcs terrain-sweep`](../CLI_REFERENCE.md#terrain-sweep). Quatre questions, combinables
+[`veaf-tools dcs terrain-sweep`](../CLI_REFERENCE.md#terrain-sweep) ou téléchargée parmi les grilles publiées au premier usage ([données de terrain](terrain-data.md)). Quatre questions, combinables
 dans un même appel :
 
 - `points` — l'altitude du sol en chaque point, en mètres et en pieds (l'altitude d'une cible) ;

@@ -788,7 +788,7 @@ subtitle and a page number drawn there were cut.
 back with the calibration page veaf-tools adds, `KNEEBOARD/IMAGES/00-veaf-calibration.png`: its
 circles are round only at 2:3. Keep text out of the top-left and bottom-right corners.
 
-### A slot for an aircraft the player does not have, or has disabled, shows but cannot be taken {#slot-of-a-disabled-module-cannot-be-taken}
+### A slot for a module the player lacks or disabled shows but cannot be taken {#slot-of-a-disabled-module-cannot-be-taken}
 
 Measured **2026-08-18**.
 

@@ -16,7 +16,7 @@ The pilots do not know the mission: everything they read must be right.
 
 ## 0. First of all
 
-1. **Load the `veaf-mission-editor:veaf-mission-authoring` skill** and follow it: it is the source of
+1. **Read the VEAF authoring guide** (`describe_authoring_guide`) and follow it: it is the source of
    truth for the VEAF conventions (reserved names, `#command`, `#veafInterpreter`, zones, QRA).
 2. Call `capabilities` and `list_catalog`: note the `veaf-tools` version and the available actions.
    Read the **known limitations** (`describe_known_limitations`) and take them into account:

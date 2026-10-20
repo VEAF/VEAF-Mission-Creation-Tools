@@ -24,7 +24,7 @@ Le travail a **deux phases**, et la frontière entre les deux est stricte :
 
 ## 0. Avant tout
 
-1. **Charge le skill `veaf-mission-editor:veaf-mission-authoring`** et suis-le : il est la source de
+1. **Lis le guide de création VEAF** (`describe_authoring_guide`) et suis-le : il est la source de
    vérité pour les conventions VEAF (noms réservés, `#command`, `#veafInterpreter`, zones, QRA).
 2. Appelle `capabilities` et `list_catalog` : note la version de `veaf-tools` et les actions
    disponibles. Lis les **limitations connues** (`describe_known_limitations`) et tiens-en compte

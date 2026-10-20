@@ -131,7 +131,9 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
 
     families = _TASK_FAMILIES.get(task, _COMMON_FAMILIES)
     taken = _taken_flights(existing, families)
-    asked = _callsign_in_name(str(group.get("name", "")), families)
+    asked = _callsign_in_name(str(group.get("name", "")), families) or _family_word_in_name(
+        str(group.get("name", "")), families, taken
+    )
     note: str | None = None
     if asked is not None and asked[1] not in taken[families[asked[0] - 1]]:
         family_index, flight = asked
@@ -242,6 +244,30 @@ def _callsign_in_name(name: str, families: tuple[str, ...]) -> tuple[int, int] |
     if match.group(1).lower() not in lowered:
         return None
     return lowered.index(match.group(1).lower()) + 1, int(match.group(2))
+
+
+def _family_word_in_name(name: str, families: tuple[str, ...], taken: dict[str, set[int]]) -> tuple[int, int] | None:
+    """Read a family a group's name asks for without a flight digit: ``Magic`` or ``Magic AWACS``.
+
+    An AWACS named ``Magic`` used to become ``Overlord11`` without a word: only a word followed by a
+    digit read as a callsign (FEAT-AI-ZERO-SETUP, sandbox demo 2026-10-20).
+
+    Args:
+        name: The group's name.
+        families: The family words of the group's task, index 1 first.
+        taken: Family word -> the flights of it already used in the mission.
+
+    Returns:
+        ``(family index, first free flight)`` when the name's first word is one of ``families`` and a
+        flight of it is free, else ``None``.
+    """
+    match = re.match(r"([A-Za-z]+)(?:$|[ _-]+\D)", name.strip())
+    lowered = [word.lower() for word in families]
+    if match is None or match.group(1).lower() not in lowered:
+        return None
+    index = lowered.index(match.group(1).lower())
+    free = [flight for flight in range(1, _MAX_DIGIT + 1) if flight not in taken[families[index]]]
+    return (index + 1, free[0]) if free else None
 
 
 def _free_family_and_flight(families: tuple[str, ...], taken: dict[str, set[int]]) -> tuple[int, int]:

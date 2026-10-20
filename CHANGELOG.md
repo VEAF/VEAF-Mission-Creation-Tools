@@ -66,6 +66,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A test now fails on any package data file the build does not ship, unless it is declared build- or test-only.
 - **`edit_route` `set` moves a waypoint** (FEAT-AI-ZERO-SETUP): it accepted `position` and dropped it without a word, so an assistant read the route back unchanged and rebuilt the waypoint by hand. Waypoint 1, the group's own position, is refused with a pointer to `set_group_properties` `move_to`; an operation that takes no position now refuses one.
 - **The presets report no longer suggests `none` for a frequency DCS ignores anyway** (FEAT-AI-ZERO-SETUP): under each informational entry (a warbird losing the UHF channels, an L-39 those above 390 MHz) `presets-validation-report.md` said to set the type to `none`, which removes all its presets, the working ones too; two assistants stripped 11 aircraft types that way. It now says there is nothing to do; the `none` hint stays for the frequencies DCS rejects at load.
+- **A flight named after a callsign family gets it, digit or not** (FEAT-AI-ZERO-SETUP): an AWACS named `Magic` became `Overlord11` without a word, since only `Magic 1` or `Magic1` read as a callsign; `Magic` and `Magic AWACS` now give the family's first free flight.
+- **The mission prompts no longer ask for a skill that does not ship** (FEAT-AI-ZERO-SETUP): they told the assistant to load `veaf-mission-editor:veaf-mission-authoring`, gone with the plugin; they now point at `describe_authoring_guide`.
 
 ### Removed
 

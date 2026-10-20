@@ -322,3 +322,12 @@ def test_the_guide_has_every_new_mission_adapt_the_scaffold_first() -> None:
     checklist = guide[section : guide.index("## Always ground yourself in the oracle")]
     for item in ("presets.yaml", "versions.yaml", "waypoints.yaml", "dynamic-slot-templates.yaml", "SKYNET"):
         assert item in checklist, item
+
+
+@pytest.mark.parametrize("kind", ["objective", "open-training"])
+@pytest.mark.parametrize("lang", ["fr", "en"])
+def test_a_mission_prompt_names_no_skill_that_does_not_ship(kind: str, lang: str) -> None:
+    """The plugin and its skill are gone: a prompt asking to load it sends the assistant nowhere."""
+    prompt = describe_mission_prompt(kind, lang)["prompt"]
+    assert "veaf-mission-editor:" not in prompt
+    assert "describe_authoring_guide" in prompt

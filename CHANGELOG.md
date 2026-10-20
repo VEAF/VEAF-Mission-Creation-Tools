@@ -12,7 +12,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 >
 > That is the failure mode this section exists to prevent. **A pull request adds its entry under
 > `[Unreleased]` and does not touch the version**; the release commit renames the heading and moves
-> `pyproject.toml` with both agent manifests. Add new entries at the **end** of the section: two PRs
+> `pyproject.toml`. Add new entries at the **end** of the section: two PRs
 > appending merge cleanly far more often than two PRs prepending.
 
 ## [Unreleased]
@@ -40,6 +40,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Carrier deck lights follow VEAF air operations** (FEAT-FORCED-MISSION-OPTIONS): recovery lights when they start, back to DCS when they stop, through the editor's *SET CARRIER LIGHTING MODE*; without `net`, the lights stay as DCS sets them and a warning says so.
 - **Mission Editor tips page**: editor trigger actions VMCT does not wrap and that are worth knowing — a failure on demand, a group only the game master commands, a model animation, the briefing changed mid-mission — with what is read in the editor and what is measured.
 
+- **Install the tools, connect the AI, ask for a mission** (FEAT-AI-ZERO-SETUP).
+  `veaf-tools ai-setup` declares the MCP server in every AI assistant found on the PC — Claude Desktop, Claude Code, Gemini CLI — merging into their settings; the updater suggests it after a first install, and the wizard lists it.
+  The two mission prompts, objective mission and Open Training, ship in the executable with the authoring guide: the new action `describe_mission_prompt` serves them, and the guide sends a user who asks for a mission there, so "create a mission" is enough — nothing to paste from the repository any more.
+  The server updates itself: at start-up, at most once every 4 hours and only when `check_updates` is on, it starts the updater in its own folder when a newer release is out.
+  The install page and the repository README open with the commands that install everything, for a person or for the assistant itself.
+- **Three traps added to the known limitations**: a hole left in a numbered table of `src/mission/mission` breaks the build; a second `convert-v5 --force` replaces `mission.yaml` with a minimal one; a slot for a disabled or missing module shows but cannot be taken.
 ### Fixed
 
 - **Refreshing the Foothold missions to a new Lekaa release** (FIX-FOOTHOLD-5-3-0-INTAKE).
@@ -47,6 +53,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Convert-FootholdBatch.ps1` finds the adopted folders again (it read the theatre in one key form only) and ignores the other missions on the same map, such as the Open Training ones.
   `validate` reports a withdrawn module such as `hercules` as a warning instead of failing on it.
   The batch no longer turns an LF `mission.yaml` into CRLF when it removes `build.scripts_path` after a build.
+- **The updater installs `veaf-tools.exe` while an MCP server runs it** (FEAT-AI-ZERO-SETUP).
+  Windows refuses to overwrite a running executable, and the install failed in a window nobody saw: an MCP server stayed on 6.22.1 for five weeks while 6.30.0 sat in `published/`.
+  The running copy is now renamed aside, which Windows allows, and deleted at the next update.
+- **The new-version notice did not appear** (FEAT-AI-ZERO-SETUP, measured 2026-10-20): the check read the version from the release's tag, `published-latest`, which holds none; it now reads it from the release name, as the updater does.
+
+### Removed
+
+- **The Claude Code plugin and the Gemini CLI extension** (`plugin/`, the `veaf` marketplace) (FEAT-AI-ZERO-SETUP): `veaf-tools ai-setup`, the server's own updates and the guide it serves replace them.
+  Remove an installed plugin with `claude plugin uninstall veaf-mission-editor@veaf`, or the extension with `gemini extensions uninstall veaf-mission-editor`, then run `ai-setup`.
+  The version now lives in `pyproject.toml` alone.
 
 ## [6.30.0] — 2026-10-15
 

@@ -94,6 +94,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 49 | [Appliquer une mission de campagne jouée](#campaign-apply) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 50 | [Préparer la mission suivante d'une campagne](#campaign-next) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 51 | [Écrire le briefing de campagne](#campaign-briefing) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
+| 52 | [Construire une mission complète, de la question au briefing](#build-whole-mission) | 🏗️ Démarrage | Dossier | ⭐ |
 
 ---
 
@@ -187,6 +188,19 @@ carte directement, prête à recevoir des combat zones / QRA — **sans passer p
 
 > 💬 *« Crée-moi une nouvelle mission VEAF sur Caucasus dans ce dossier. »* (l'IA demande le
 > template + le théâtre, puis installe et génère tout)
+
+### Construire une mission complète, de la question au briefing {#build-whole-mission}
+
+*Dossier · ⭐* — Il suffit de dire « crée une mission ».
+L'IA demande laquelle des deux sortes vous voulez, puis charge les consignes VEAF qui la décrivent de bout en bout : les questions à poser, les règles de conception, l'ordre de construction.
+
+- **Mission à objectifs, jouée en une séance** — un package, des objectifs, une menace, un retour.
+  L'IA propose un scénario, en propose d'autres tant que vous voulez, et n'écrit rien avant que vous en ayez validé un ; puis elle construit la mission et son briefing.
+- **Open Training** — une mission d'entraînement VEAF sur une carte entière : bases, soutien, défense aérienne, zones d'entraînement graduées, zones de combat, QRA.
+
+Ces consignes sont livrées avec les outils : rien à coller, rien à aller chercher.
+
+> 💬 *« Crée une mission. »* · *« Crée une Open Training sur la Syrie. »* · *« Une mission à objectifs pour quatre F-16 sur le Caucase, une heure de jeu. »*
 
 ## 🎖️ Campagne multi-missions
 

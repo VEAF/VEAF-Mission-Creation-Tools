@@ -153,7 +153,7 @@
   "cmd.about.veaf_desc": "The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World.",
   "cmd.about.website": "Website: {url}",
   "cmd.ai_setup.help": "Connect the AI assistants installed on this PC (Claude Desktop, Claude Code, Gemini CLI) to the VEAF tools.",
-  "cmd.ai_setup.none_found": "No AI assistant found on this PC. Install Claude Desktop, Claude Code or Gemini CLI, then run this command again — or declare the server by hand: AI_ASSISTANT_INSTALL, https://veaf.github.io/documentation/dev/mission-maker/AI_ASSISTANT_INSTALL/",
+  "cmd.ai_setup.none_found": "No AI assistant found on this PC. Install Claude Desktop, Claude Code or Gemini CLI, then run this command again — or declare the server by hand: AI_ASSISTANT_INSTALL, https://veaf.github.io/documentation/latest/en/mission-maker/AI_ASSISTANT_INSTALL/",
   "cmd.ai_setup.not_frozen": "ai-setup declares the executable that runs it: run it from veaf-tools.exe, not from a Python environment.",
   "cmd.ai_setup.restart": "Quit the AI assistant completely and start it again: it reads its servers at start-up. Then just ask it to create a mission.",
   "cmd.ai_setup.server": "VEAF MCP server: {exe}",

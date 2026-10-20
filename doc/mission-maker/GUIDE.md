@@ -566,7 +566,8 @@ Le build vous dit combien il en a ajouté.
 | `explore-cockpit` | Explorer un cockpit : nommez un contrôle pour le voir, ou bougez-en un pour le faire nommer. |
 | `generate-config` | Génère un modèle mission.yaml documenté pour un dossier de mission. |
 | `inject-bridge` | Injecte le dcs-bridge + un trigger de démarrage dans un .miz (mission-pont). |
-| `mcp` | Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Utilisé par le plugin Claude veaf-mission-editor. |
+| `ai-setup` | Branche les assistants IA du PC (Claude Desktop, Claude Code, Gemini CLI) sur les outils VEAF — voir [Créer avec une IA](AI_ASSISTANT_INSTALL.md). |
+| `mcp` | Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Déclaré dans votre assistant IA par `ai-setup`. |
 | `migrate-config` | Migre un fichier missionConfig.lua au format v6 (mission-script.lua). |
 | `resolve-checklist` | Complète les champs techniques d'une checklist guidée écrite en langage courant. |
 | `smoke-test` | Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle. |

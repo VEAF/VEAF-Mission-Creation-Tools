@@ -93,6 +93,7 @@ The AI can act in two places, and it changes what "survives":
 | 49 | [Apply a flown campaign mission](#campaign-apply) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 50 | [Prepare a campaign's next mission](#campaign-next) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 51 | [Write the campaign briefing](#campaign-briefing) | 🎖️ Campaign | Campaign (folder) | ⭐ |
+| 52 | [Build a whole mission, from the questions to the briefing](#build-whole-mission) | 🏗️ Getting started | Folder | ⭐ |
 
 ---
 
@@ -185,6 +186,19 @@ directly, ready for combat zones / QRAs — **with no DCS round-trip**.
 
 > 💬 *"Create a new VEAF mission on Caucasus in this folder."* (the AI asks for the template +
 > theatre, then installs and generates everything)
+
+### Build a whole mission, from the questions to the briefing {#build-whole-mission}
+
+*Folder · ⭐* — Saying "create a mission" is enough.
+The AI asks which of the two kinds you want, then loads the VEAF instructions that describe it end to end: the questions to ask, the design rules, the build order.
+
+- **Objective mission, played in one session** — a package, objectives, a threat, a way home.
+  The AI proposes a scenario, proposes others as long as you want, and writes nothing before you have approved one; then it builds the mission and its briefing.
+- **Open Training** — a VEAF training mission on a whole map: airfields, support, air defence, graded training zones, combat zones, QRA.
+
+These instructions ship with the tools: nothing to paste, nothing to fetch.
+
+> 💬 *"Create a mission."* · *"Create an Open Training on Syria."* · *"An objective mission for four F-16s on the Caucasus, one hour of play."*
 
 ## 🎖️ Multi-mission campaign
 

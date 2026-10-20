@@ -206,8 +206,8 @@ def test_install_windows_binaries_replaces_the_running_updater_too(
 ) -> None:
     """The updater sets itself aside the same way (FEAT-AI-ZERO-SETUP).
 
-    The deferred `.cmd` script it used before never put the new updater in place (measured
-    2026-10-20): `veaf-tools-updater.exe` stayed on the old version after every update.
+    Run without a console window, the deferred `.cmd` script it used before did not put the new
+    updater in place (measured 2026-10-20): `veaf-tools-updater.exe` stayed on the old version.
     """
     worker = _worker(updater_mod)
     monkeypatch.chdir(tmp_path)

@@ -59,7 +59,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The updater installs `veaf-tools.exe` while an MCP server runs it** (FEAT-AI-ZERO-SETUP).
   Windows refuses to overwrite a running executable, and the install failed in a window nobody saw: an MCP server stayed on 6.22.1 for five weeks while 6.30.0 sat in `published/`.
   The running copy is now renamed aside, which Windows allows, and deleted at the next update.
-  The updater replaces itself the same way: the `.cmd` script it used to leave behind never put the new updater in place (measured 2026-10-20), and is gone.
+  The updater replaces itself the same way: the `.cmd` script it used to leave behind did not put the new updater in place when the updater ran without a console window — from a terminal tool, and so from the server's own update (measured 2026-10-20) — and is gone.
 - **`veaf-tools mcp` no longer prints the version banner on stdout**, whose first line was not JSON-RPC (FEAT-AI-ZERO-SETUP).
 - **The new-version notice did not appear** (FEAT-AI-ZERO-SETUP, measured 2026-10-20): the check read the version from the release's tag, `published-latest`, which holds none; it now reads it from the release name, as the updater does.
 - **The executable ships the parking captures** (FEAT-AI-ZERO-SETUP): `veaf_libs/data/parking/` was never bundled, so an air group starting on a ramp or a runway failed with "no parking data captured" from the executable, while it worked from the repository.

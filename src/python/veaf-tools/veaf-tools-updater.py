@@ -139,8 +139,9 @@ def _install_beside_running_exe(source: Path, dest: Path) -> None:
     (Measured 2026-10-20: overwriting failed with ``WinError 5``, renaming worked.)
 
     The updater replaces itself the same way. It used to hand the job to a ``.cmd`` script that
-    waited with ``timeout /t 2`` and then renamed; the new updater never took its place (measured
-    2026-10-20, run from a terminal and from the MCP server alike) and the script deleted it anyway.
+    waited with ``timeout /t 2`` and then renamed. Run without a console window — from a terminal
+    tool, and so from the MCP server's own update — the new updater did not take its place and the
+    script deleted it anyway (measured 2026-10-20); a double-click run was not measured.
 
     Args:
         source: The new executable, extracted under ``published/``.

@@ -16,6 +16,7 @@ from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigg
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.briefing_picture import set_briefing_picture
+from veaf_mission_mcp.build_briefing import build_briefing
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.campaign import campaign_apply, campaign_briefing, campaign_next, campaign_status
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
@@ -25,6 +26,7 @@ from veaf_mission_mcp.describe_mission import describe_mission
 from veaf_mission_mcp.describe_units import describe_units
 from veaf_mission_mcp.edit_mission_yaml import (
     describe_mission_config,
+    set_forced_options,
     set_mission_log_level,
     set_mission_module,
     set_mission_security,
@@ -48,11 +50,15 @@ from veaf_mission_mcp.map_tools import (
     resolve_coordinates,
     resolve_coordinates_batch,
 )
+from veaf_mission_mcp.mission_files import DEFAULT_LINE_COUNT, edit_mission_file, read_mission_file
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
+    MISSION_PROMPT_KINDS,
+    MISSION_PROMPT_LANGS,
     describe_authoring_guide,
     describe_known_limitations,
+    describe_mission_prompt,
     describe_module,
     describe_naming_conventions,
     list_payloads,
@@ -380,7 +386,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "refused unless you acknowledge it -- naming a group after a combat zone's trigger "
                 "zone makes the runtime despawn it at start. Unit names are never renamed with the "
                 "group. A moved ground group or static that lands in the sea (ground 0 m), or a ship "
-                "that lands on land, is warned about where the theatre has a swept elevation grid "
+                "that lands on land, is warned about where the theatre has an elevation grid (swept, or downloaded when published) "
                 "(terrain_elevation); without one the warning says the surface was not checked. "
                 "Mutates in place, backed up first."
             ),
@@ -445,7 +451,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="edit_route",
             description=(
                 "EDIT a group's waypoints and what the flight DOES at them. Operations: add (append), "
-                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked/road), "
+                "insert (at a 1-based index), remove, reorder, set (position/name/altitude/speed/type/eta_locked/road; waypoint 1 is the group's own position, moved with set_group_properties move_to), "
                 "add_task, clear_tasks. Call describe_units first to see the route you are editing -- the "
                 "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
                 "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
@@ -485,7 +491,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "object",
                         "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                         "required": ["x", "y"],
-                        "description": "Coordinates, for 'add' / 'insert'.",
+                        "description": "Coordinates, for 'add' / 'insert' / 'set'.",
                     },
                     "name": {"type": "string", "description": "Waypoint name."},
                     "altitude_ft": {"type": "number", "description": "Altitude in FEET."},
@@ -1478,6 +1484,107 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ),
         handler=lambda p: set_mission_setting(Path(p["mission_yaml_path"]), p["key"], p["value"]),
     )
+    _mission_file_param = {
+        "type": "string",
+        "description": "'mission.yaml' or 'src/<name>.yaml' (presets, versions, waypoints, warehouses, "
+        "spawnables, dynamic-slot-templates…), relative to the mission folder; nothing else is reachable.",
+    }
+    catalog.register(
+        ActionSpec(
+            name="read_mission_file",
+            description=(
+                "READ one of a mission folder's YAML sources -- mission.yaml or a src/*.yaml -- by slices of "
+                "lines. For an assistant with no direct file access (Claude Desktop in chat mode): the way to "
+                "see mission.name, the presets plan, versions.yaml, the example waypoints before changing "
+                "them with edit_mission_file. Read on from last_line + 1 while it is below total_lines. "
+                "Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission folder."},
+                    "file": _mission_file_param,
+                    "start_line": {"type": "integer", "minimum": 1, "description": "First line, 1-based."},
+                    "line_count": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": f"Lines to return, {DEFAULT_LINE_COUNT} by default.",
+                    },
+                },
+                "required": ["mission_path", "file"],
+            },
+        ),
+        handler=lambda p: read_mission_file(
+            Path(p["mission_path"]),
+            p["file"],
+            start_line=p.get("start_line", 1),
+            line_count=p.get("line_count", DEFAULT_LINE_COUNT),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_mission_file",
+            description=(
+                "EDIT one of a mission folder's YAML sources -- mission.yaml or a src/*.yaml -- by replacing "
+                "one exact passage (read it first with read_mission_file and copy it, indentation included; "
+                "add surrounding lines until it is unique). For what no dedicated action covers, e.g. "
+                "mission.name or mission.era in mission.yaml, versions.yaml, waypoints.yaml, the presets plan. "
+                "Refused when the passage is missing or repeated, or when the result is no longer YAML: "
+                "nothing is written then. Backed up first. Prefer a dedicated action when one exists "
+                "(set_mission_module, set_mission_setting, set_forced_options…)."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission folder."},
+                    "file": _mission_file_param,
+                    "search": {"type": "string", "description": "The exact text to replace."},
+                    "replace": {"type": "string", "description": "Its replacement."},
+                },
+                "required": ["mission_path", "file", "search", "replace"],
+            },
+        ),
+        handler=lambda p: edit_mission_file(
+            Path(p["mission_path"]), p["file"], search=p["search"], replace=p["replace"]
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_forced_options",
+            description=(
+                "Set the mission options DCS ENFORCES on every player whatever their own settings -- the "
+                "Mission Editor's 'Mission options' panel: labels, F10 map view, external views, F10 marks, "
+                "wake turbulence, G-effects, civil traffic... Merges into mission.forced_options of the "
+                "source mission.yaml (the build writes them into the mission's forcedOptions); options not "
+                "given are kept. Names and values (DCS key in brackets): labels full|abbreviated|"
+                "symbol_only|dot_neutral|none, spotting_dot off|auto|one_pixel|two_pixels, f10_view "
+                "all|fog_of_war|allies_only|map_only|my_aircraft, g_effects none|reduced|realistic, "
+                "civil_traffic off|low|medium|high, birds 0-1000; booleans: f10_marks, external_views, "
+                "padlock, permit_crash, easy_flight, easy_communication, radio_assist, mini_hud, "
+                "cockpit_visual_recon_mode, cockpit_status_bar, battle_damage_assessment, unlimited_fuel, "
+                "unlimited_weapons, immortal, g_warm_up, wake_turbulence, unrestricted_satnav, "
+                "random_failures. f10_view_by_role sets the F10 view of each role instead of one for all: "
+                "{pilot|jtac|tactical_commander|observer|spectator|airboss: <view> or {view, hide: "
+                "[<allies|enemies|neutral>_<planes|helicopters|ground|naval|weapons>]}}; roles not named "
+                "see everything. Refuses what the build would refuse."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_yaml_path": {
+                        "type": "string",
+                        "description": "Path to the mission's source mission.yaml.",
+                    },
+                    "options": {
+                        "type": "object",
+                        "description": 'The options to set, by name, e.g. {"labels": "none", "f10_view": "fog_of_war"}.',
+                    },
+                },
+                "required": ["mission_yaml_path", "options"],
+            },
+        ),
+        handler=lambda p: set_forced_options(Path(p["mission_yaml_path"]), p["options"]),
+    )
     _campaign_folder = {
         "type": "string",
         "description": "Path to the campaign folder (campaign.yaml, campaign-state.yaml, template/, missions/).",
@@ -1889,6 +1996,88 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         handler=lambda p: set_briefing_picture(
             Path(p["mission_path"]), source_path=p["source_path"], side=p["side"], resource_name=p.get("resource_name")
         ),
+    )
+    _lines = {"type": "array", "items": {"type": "string"}}
+    catalog.register(
+        ActionSpec(
+            name="build_mission_briefing",
+            description=(
+                "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/briefing.pptx (the objective "
+                "mission template, page for page, in the mission's language; Drive imports it into Google "
+                "Slides), docs/maps/ (an overview and one zoom per objective, on OpenStreetMap or OpenTopoMap "
+                "tiles), and the same maps as the DCS BRIEFING PICTURES, in the folder AND the built .miz, "
+                "first for the players' side and neutral (the other side left alone). BUILD FIRST (build_mission): every figure is "
+                "read from the built .miz -- date, time, weather, bullseye, flights, support, carriers, QRA, "
+                "flight plan, the presets injected into the cockpits, each objective's targets and their "
+                "coordinates. You pass only the scenario's WORDS: title, context, mission_bullets, objectives (combat "
+                "zone + title + task), threats (the group where it stands, its family, ranges only with their "
+                "source), air opposition, air defences, other information, pilots and loadouts by flight "
+                "group. Call it again after any change and a rebuild: it replaces its own pictures. No PDF: "
+                "the user exports one from PowerPoint or Slides. map_offline = no tiles could be downloaded."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER, built."},
+                    "title": {"type": "string", "description": "The mission's title, on the cover."},
+                    "context": {**_lines, "description": "The why, two or three sentences."},
+                    "mission_bullets": {
+                        **_lines,
+                        "description": "The Mission heading: three to five bullets in the infinitive.",
+                    },
+                    "objectives": {
+                        "type": "array",
+                        "description": "In the order of the operation; one zoom page each.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "zone": {"type": "string", "description": "The combat zone's trigger-zone name."},
+                                "title": {"type": "string"},
+                                "task": {**_lines, "description": "What to do there."},
+                            },
+                            "required": ["zone", "title"],
+                        },
+                    },
+                    "threats": {
+                        "type": "array",
+                        "description": "What intelligence knows; a surprise the scenario plans stays out.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "As the map and the briefing say it."},
+                                "group": {"type": "string", "description": "The group that stands there."},
+                                "family": {"type": "string", "description": "SA-6, AAA..."},
+                                "engagement_nm": {"type": "number", "description": "Drawn as a plain circle."},
+                                "detection_nm": {"type": "number", "description": "Drawn as a dashed circle."},
+                                "source": {"type": "string", "description": "Where the ranges come from."},
+                            },
+                            "required": ["name", "group"],
+                        },
+                    },
+                    "air_opposition": {**_lines, "description": "What may take off, and when."},
+                    "air_defences": {**_lines, "description": "How the route avoids them."},
+                    "other": {**_lines, "description": "Attack mode, refuelling, divert..."},
+                    "pilots": {
+                        "type": "object",
+                        "description": "Pilots' names by flight GROUP name; empty cells otherwise.",
+                        "additionalProperties": _lines,
+                    },
+                    "loadouts": {
+                        "type": "object",
+                        "description": "Imposed loadout by flight GROUP name; 'free loadout' otherwise.",
+                        "additionalProperties": {"type": "string"},
+                    },
+                    "basemap": {
+                        "type": "string",
+                        "enum": ["osm", "topo"],
+                        "description": "osm (default); topo = OpenTopoMap, for a desert.",
+                    },
+                    "side": {"type": "string", "enum": ["blue", "red"], "description": "The players' side."},
+                },
+                "required": ["mission_path", "title"],
+            },
+        ),
+        handler=build_briefing,
     )
     catalog.register(
         ActionSpec(
@@ -2561,8 +2750,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="describe_authoring_guide",
             description=(
-                "Read this first, before any other action, unless you have the veaf-mission-authoring "
-                "skill: load that instead, it is the same text. Returns the VEAF mission authoring guide: the "
+                "Read this first, before any other action. Returns the VEAF mission authoring guide: the "
                 "order of work, the reserved naming conventions, combat zone vs QRA groups, and which "
                 "actions to consult instead of guessing. Read-only."
             ),
@@ -2572,13 +2760,38 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="describe_mission_prompt",
+            description=(
+                "When a user asks for a new mission, read the prompt for its kind and follow it: it holds "
+                "the questions to ask, the design rules and the build order. 'objective': a mission a group "
+                "plays once, in one session (a package, objectives, a threat, a briefing). 'open-training': "
+                "a VEAF training mission on a whole map (airfields, support, training and combat zones, "
+                "QRA). Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string", "enum": list(MISSION_PROMPT_KINDS)},
+                    "lang": {
+                        "type": "string",
+                        "enum": list(MISSION_PROMPT_LANGS),
+                        "description": "The prompt's language: the user's, 'en' by default.",
+                    },
+                },
+                "required": ["kind"],
+            },
+        ),
+        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en")),
+    )
+    catalog.register(
+        ActionSpec(
             name="describe_known_limitations",
             description=(
                 "Read this before building a mission. Returns, for the running veaf-tools version, "
                 "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
-                "and what it cost. With no argument it returns a SHORT listing (id, kind, area, title: "
+                "and what it cost. With no argument it returns a SHORT listing (id, kind, area -- each id reads as a phrase: "
                 "the whole text is too long for one result); then read the entries of the areas your "
                 "mission uses with 'area', or any entry with 'id'. Read-only."
             ),
@@ -2694,7 +2907,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="terrain_elevation",
             description=(
-                "Ground heights from the theatre's swept elevation grid, with no DCS running. Read-only. "
+                "Ground heights from the theatre's elevation grid (swept in DCS, or downloaded on first use when published), with no DCS running. Read-only. "
                 "Ask any of: `points` — the ground height at each (target altitudes for a briefing); "
                 "`route` — the highest ground along each leg (the floor of a low-level route); `route` + "
                 "`observers` — how many metres of each leg each radar or SAM sees over the terrain, within "

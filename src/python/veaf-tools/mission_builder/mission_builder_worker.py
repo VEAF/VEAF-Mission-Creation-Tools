@@ -72,6 +72,7 @@ from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_f
 
 from mission_builder.coalition_placeholder import ensure_coalitions_populated
 from mission_builder.era_detector import detect_era
+from mission_builder.forced_options import apply_forced_options, forced_options_errors
 from mission_builder.ground_control import apply_ground_control, ground_control_errors
 from mission_builder.third_party_mods import strip_third_party_mods
 from mission_builder.warehouses_bootstrap import ensure_airports_populated
@@ -1612,6 +1613,30 @@ class MissionBuilderWorker(BaseWorker):
         if not silent:
             logger.detail(t("builder.ground_control_applied", roles=", ".join(f"{k}={v}" for k, v in block.items())))
 
+    def apply_forced_options(self, silent: bool = False) -> None:
+        """Set the mission's enforced options from ``mission.forced_options``.
+
+        Absent, the mission's own ``forcedOptions`` is left alone. See
+        :mod:`mission_builder.forced_options`.
+
+        Args:
+            silent: When true, do not log the options set.
+
+        Raises:
+            typer.Abort: When the block is invalid (the message names each fault).
+        """
+        if not self.dcs_mission or self.dcs_mission.mission_content is None:
+            return
+        block = (self.mission_yaml.get("mission") or {}).get("forced_options")
+        if block is None:
+            return
+        errors = forced_options_errors(block)
+        if errors:
+            logger.error("\n".join(errors))
+        apply_forced_options(self.dcs_mission.mission_content, block)
+        if not silent:
+            logger.detail(t("builder.forced_options_applied", options=", ".join(block)))
+
     def clear_veaf_triggers(self) -> None:
         """
         Clears all the VEAF triggers from the current mission
@@ -2771,6 +2796,8 @@ class MissionBuilderWorker(BaseWorker):
 
         # Game master / JTAC / observer slots and vehicle control from mission.ground_control
         self.apply_ground_control(silent=silent)
+        # Enforced mission options (labels, F10 view…) from mission.forced_options
+        self.apply_forced_options(silent=silent)
 
         # Then, add all the VEAF triggers we need
         if not self.no_veaf_triggers:

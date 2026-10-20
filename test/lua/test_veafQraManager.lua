@@ -1470,6 +1470,75 @@ function TestVeafQraTiers:test_without_the_level_the_lowest_tier_still_gates()
   luaunit.assertFalse(chosen)
 end
 
+-- FEAT-OPPOSITION-ZERO-AIRCRAFT: « 0 avion » keeps the QRA scaling with the opposition on the ground,
+-- driven through the real module — the marker and the menu, not a stub of the level
+
+--- A QRA with tiers 1 and 3 whose `chooseGroupsToDeploy` records the count it is asked for.
+local function _recordingQra(scales)
+  local q = VeafQRA:new():setGroupsToDeployByEnemyQuantity(1, { "T1" }):setGroupsToDeployByEnemyQuantity(3, { "T3" })
+  if scales then
+    q:setScaleWithOpposition()
+  end
+  q.chosenFrom = nil
+  q.chooseGroupsToDeploy = function(self, count)
+    self.chosenFrom = count
+    return nil
+  end
+  return q
+end
+
+local function _loadOpposition()
+  dofile(src .. "/veafOpposition.lua")
+  coalition.getPlayers = function()
+    return {}
+  end
+  veafOpposition.configure({ level = 4 })
+end
+
+function TestVeafQraTiers:test_zero_aircraft_from_the_marker_keeps_the_qra_on_the_ground()
+  local savedGetPlayers = coalition.getPlayers
+  _loadOpposition()
+  veafOpposition.handleMarker(nil, { text = "_opposition 0" })
+  local q = _recordingQra(true)
+  q:deploy(4)
+  coalition.getPlayers = savedGetPlayers
+  luaunit.assertNil(q.chosenFrom, "four intruders in the zone, and nobody takes off")
+end
+
+function TestVeafQraTiers:test_raised_to_two_from_the_menu_the_qra_scrambles_again()
+  local savedGetPlayers = coalition.getPlayers
+  _loadOpposition()
+  veafOpposition.radioSetLevel(0)
+  veafOpposition.radioSetLevel(2)
+  local q = _recordingQra(true)
+  q:deploy(1)
+  coalition.getPlayers = savedGetPlayers
+  luaunit.assertEquals(q.chosenFrom, 2, "the tier of two")
+end
+
+function TestVeafQraTiers:test_a_level_followed_down_to_zero_leaves_the_zone_tiers()
+  local savedGetPlayers = coalition.getPlayers
+  _loadOpposition()
+  veafOpposition.radioFollow(veafOpposition.FOLLOW_AIR_TO_AIR)
+  veafOpposition.follows(0, 0)
+  veafOpposition.follows(0, veafOpposition.lowerAfter)
+  luaunit.assertEquals(veafOpposition.getLevel(), 0)
+  local q = _recordingQra(true)
+  q:deploy(2)
+  coalition.getPlayers = savedGetPlayers
+  luaunit.assertEquals(q.chosenFrom, 2, "nobody on CAP, a pair in the zone: the tier of a pair")
+end
+
+function TestVeafQraTiers:test_zero_aircraft_leaves_a_qra_that_does_not_scale_alone()
+  local savedGetPlayers = coalition.getPlayers
+  _loadOpposition()
+  veafOpposition.radioSetLevel(0)
+  local q = _recordingQra(false)
+  q:deploy(2)
+  coalition.getPlayers = savedGetPlayers
+  luaunit.assertEquals(q.chosenFrom, 2)
+end
+
 function TestVeafQraTiers:test_a_dead_qra_rearms_with_the_zone_occupied_when_asked()
   local q = VeafQRA:new():setNoNeedToLeaveZoneBeforeRearming()
   luaunit.assertTrue(q.noNeedToLeaveZoneBeforeRearming)

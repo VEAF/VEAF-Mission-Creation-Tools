@@ -65,6 +65,9 @@ _MAX_DIGIT = 9
 #: A group name that reads as a callsign: a word, then a flight digit (``Texaco 2``, ``Magic1``).
 _NAME_CALLSIGN = re.compile(r"^([A-Za-z]+)[ _-]*([1-9])")
 
+#: A group name that is a family word with no flight digit (``Magic``, ``Magic AWACS``).
+_BARE_FAMILY_WORD = re.compile(r"([A-Za-z]+)(?:$|[ _-]+\D)")
+
 #: First numeric callsign handed out when the mission has none yet.
 _FIRST_NUMERIC_CALLSIGN = 101
 
@@ -131,7 +134,9 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
 
     families = _TASK_FAMILIES.get(task, _COMMON_FAMILIES)
     taken = _taken_flights(existing, families)
-    asked = _callsign_in_name(str(group.get("name", "")), families)
+    asked = _callsign_in_name(str(group.get("name", "")), families) or _family_word_in_name(
+        str(group.get("name", "")), families, taken
+    )
     note: str | None = None
     if asked is not None and asked[1] not in taken[families[asked[0] - 1]]:
         family_index, flight = asked
@@ -139,9 +144,13 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
         family_index, flight = _free_family_and_flight(families, taken)
     word = families[family_index - 1]
     if asked is None:
-        spoken = _NAME_CALLSIGN.match(str(group.get("name", "")))
+        name = str(group.get("name", ""))
+        spoken = _NAME_CALLSIGN.match(name) or _BARE_FAMILY_WORD.match(name.strip())
+        if spoken is not None and spoken.group(1).lower() in (family.lower() for family in families):
+            # Only a bare family word of this very task gets here: all nine of its flights are held.
+            note = f"group {name!r}: every flight of {spoken.group(1)!r} is already held; given {word}{flight}1"
         # Only a word that is some task's family reads as a callsign asked for: "MiG29" or "SA-6" do not.
-        if spoken is not None and spoken.group(1).lower() in _ALL_FAMILY_WORDS:
+        elif spoken is not None and spoken.group(1).lower() in _ALL_FAMILY_WORDS:
             note = (
                 f"group {group.get('name')!r}: {spoken.group(1)!r} is not a callsign family of task {task!r} "
                 f"({', '.join(families)}); given {word}{flight}1"
@@ -242,6 +251,30 @@ def _callsign_in_name(name: str, families: tuple[str, ...]) -> tuple[int, int] |
     if match.group(1).lower() not in lowered:
         return None
     return lowered.index(match.group(1).lower()) + 1, int(match.group(2))
+
+
+def _family_word_in_name(name: str, families: tuple[str, ...], taken: dict[str, set[int]]) -> tuple[int, int] | None:
+    """Read a family a group's name asks for without a flight digit: ``Magic`` or ``Magic AWACS``.
+
+    An AWACS named ``Magic`` used to become ``Overlord11`` without a word: only a word followed by a
+    digit read as a callsign (FEAT-AI-ZERO-SETUP, sandbox demo 2026-10-20).
+
+    Args:
+        name: The group's name.
+        families: The family words of the group's task, index 1 first.
+        taken: Family word -> the flights of it already used in the mission.
+
+    Returns:
+        ``(family index, first free flight)`` when the name's first word is one of ``families`` and a
+        flight of it is free, else ``None``.
+    """
+    match = _BARE_FAMILY_WORD.match(name.strip())
+    lowered = [word.lower() for word in families]
+    if match is None or match.group(1).lower() not in lowered:
+        return None
+    index = lowered.index(match.group(1).lower())
+    free = [flight for flight in range(1, _MAX_DIGIT + 1) if flight not in taken[families[index]]]
+    return (index + 1, free[0]) if free else None
 
 
 def _free_family_and_flight(families: tuple[str, ...], taken: dict[str, set[int]]) -> tuple[int, int]:

@@ -59,6 +59,15 @@ vide sur la radio. Une fréquence littérale, elle, n'est jamais retirée.
 Symptôme à surveiller : `presets-validation-report.md` apparaît à la racine du dossier de mission
 après un build. Il n'est écrit que s'il y a un problème, et supprimé quand il n'y en a plus.
 
+## La planchette {#kneeboard}
+
+Chaque type d'appareil reçoit sa page `KNEEBOARD/<type>/IMAGES/presets.png` : une colonne par radio, titrée avec le poste du cockpit (`1. COMM 1 · ARC-210`) et sa bande, puis le numéro de canal, le nom et la fréquence.
+Une radio s'arrête à son dernier canal ; une page qui ne suffit pas continue sur `presets_2.png`.
+
+DCS **étire l'image pour remplir la fenêtre de la planchette**, quelles que soient ses proportions.
+Les pages sont dessinées au format 2:3, celui de la planchette du cockpit et de la fenêtre par défaut.
+Un pilote qui a redimensionné sa fenêtre voit les pages déformées : la page `00-veaf-calibration.png`, ajoutée à toute mission qui a des planchettes, lui sert de mire — il ajuste la fenêtre jusqu'à ce que ses cercles soient ronds.
+
 ## Aller plus loin {#more}
 
 - Une affectation explicite par type d'appareil, dans `presets_assignments:`, **gagne toujours**

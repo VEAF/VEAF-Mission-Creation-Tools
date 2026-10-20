@@ -94,6 +94,9 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 49 | [Appliquer une mission de campagne jouée](#campaign-apply) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 50 | [Préparer la mission suivante d'une campagne](#campaign-next) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 51 | [Écrire le briefing de campagne](#campaign-briefing) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
+| 52 | [Construire une mission complète, de la question au briefing](#build-whole-mission) | 🏗️ Démarrage | Dossier | ⭐ |
+| 53 | [Lire et modifier les fichiers du dossier de mission](#mission-files) | Modules & réglages | Recette | ⭐ |
+| 54 | [Fabriquer le briefing d'une mission (PPTX, cartes, images DCS)](#mission-briefing) | 🕰️ Réglages de la mission | Dossier (construit) | ⭐ |
 
 ---
 
@@ -188,6 +191,19 @@ carte directement, prête à recevoir des combat zones / QRA — **sans passer p
 > 💬 *« Crée-moi une nouvelle mission VEAF sur Caucasus dans ce dossier. »* (l'IA demande le
 > template + le théâtre, puis installe et génère tout)
 
+### Construire une mission complète, de la question au briefing {#build-whole-mission}
+
+*Dossier · ⭐* — Il suffit de dire « crée une mission ».
+L'IA demande laquelle des deux sortes vous voulez, puis charge les consignes VEAF qui la décrivent de bout en bout : les questions à poser, les règles de conception, l'ordre de construction.
+
+- **Mission à objectifs, jouée en une séance** — un package, des objectifs, une menace, un retour.
+  L'IA propose un scénario, en propose d'autres tant que vous voulez, et n'écrit rien avant que vous en ayez validé un ; puis elle construit la mission et son briefing.
+- **Open Training** — une mission d'entraînement VEAF sur une carte entière : bases, soutien, défense aérienne, zones d'entraînement graduées, zones de combat, QRA.
+
+Ces consignes sont livrées avec les outils : rien à coller, rien à aller chercher.
+
+> 💬 *« Crée une mission. »* · *« Crée une Open Training sur la Syrie. »* · *« Une mission à objectifs pour quatre F-16 sur le Caucase, une heure de jeu. »*
+
 ## 🎖️ Campagne multi-missions
 
 *Une [campagne](CAMPAIGN.md) jouée mission après mission, chaque mission partant de ce que la précédente a laissé.
@@ -260,9 +276,9 @@ tu le valides. Les lieux **nommés** marchent ; le terrain vague (« les bois »
 briefing), le **sol le plus haut** le long de chaque branche d'une route (le plancher d'une
 pénétration basse altitude), **combien de chaque branche un SAM voit** au-dessus du relief, et le
 point culminant de chaque carré de 10 km de la grille F10. **Relief seul** : ni bâtiments, ni
-pylônes, ni arbres, et une marge mesurée à ajouter, que l'IA te rappelle. Il faut d'abord relever le
-théâtre **une fois** dans DCS (`.\veaf-tools.exe dcs terrain-sweep Syria`, moins de trois minutes) ;
-sans ce relevé, l'IA te propose la commande.
+pylônes, ni arbres, et une marge mesurée à ajouter, que l'IA te rappelle.
+Les grilles des théâtres déjà relevés par la VEAF se téléchargent au premier usage, sans DCS ([liste](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)).
+Un autre théâtre se relève d'abord **une fois** dans DCS (`.\veaf-tools.exe dcs terrain-sweep Caucasus`, moins de trois minutes) ; sans ce relevé, l'IA te propose la commande.
 
 > 💬 *« Ma route basse altitude passe-t-elle sous la couverture du SA-6 de Damas ? »*
 
@@ -655,6 +671,14 @@ partie de la recette.
 
 ## ⭐ Modules & réglages VEAF
 
+### Lire et modifier les fichiers du dossier de mission {#mission-files}
+
+*Recette · ⭐* — Pour une IA qui n'a pas accès à tes fichiers (Claude Desktop en mode chat) : elle lit et modifie `mission.yaml` et les fichiers `src/*.yaml` (presets, variantes météo et horaires, waypoints, slots…) du dossier de mission, et rien d'autre.
+Elle remplace un passage précis, après une sauvegarde ; une modification qui rendrait le fichier illisible est refusée, et le fichier reste intact.
+C'est ce qui lui permet de renommer la mission ou de changer son époque.
+
+> 💬 *« Renomme la mission helico_convoi_Montagnes. »*
+
 ### Activer / désactiver / configurer un module — recette {#configure-a-module-recipe}
 
 *Recette · ⭐* — L'IA modifie la config source : elle active ou coupe un module (interrupteur
@@ -733,6 +757,16 @@ deux fois le même fichier réutilise le premier.
 Évite de mettre la même image aux deux camps : un joueur dont le camp n'est pas connu du briefing (slot dynamique, par exemple) la verrait deux fois.
 
 > 💬 *« Mets carte.jpg dans le briefing bleu. »*
+
+### Fabriquer le briefing d'une mission {#mission-briefing}
+
+*Dossier (construit) · ⭐* — L'IA écrit les mots du scénario (titre, contexte, objectifs, menaces connues, déroulement) ; l'outil lit tout le reste dans la mission construite — date, météo, bullseye, flights, soutien, plan de vol, presets des cockpits, coordonnées de chaque cible — et produit `docs/briefing.pptx` au gabarit VEAF, une carte de situation et un zoom par objectif dans `docs/maps/`, et met ces cartes dans le briefing DCS (bleu et neutre).
+Aucun script : une IA sans accès à ton PC en ligne de commande (Claude Desktop en mode discussion) le fait aussi.
+Construis la mission d'abord, et relance-le après chaque changement : il remplace ses propres images.
+Le PPTX s'importe dans Google Slides ; le PDF s'exporte depuis PowerPoint ou Slides.
+Fond de carte OpenStreetMap, ou OpenTopoMap (relief) pour un désert ; sans réseau, les cartes sont dessinées sur un fond uni.
+
+> 💬 *« Fais le briefing de la mission, fond topo. »*
 
 ---
 

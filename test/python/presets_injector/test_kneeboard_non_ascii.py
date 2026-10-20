@@ -11,6 +11,7 @@ from unittest import mock
 
 from PIL import Image, ImageDraw, ImageFont
 from presets_injector.presets_manager import (
+    _FONT_SIZES,
     Channel,
     PresetDefinition,
     RadioDefinition,
@@ -57,15 +58,15 @@ class TestFallbackFont(unittest.TestCase):
 
         def no_arial(font, *args, **kwargs):
             # load_default() goes through truetype() too, with its embedded font: refuse only Arial.
-            if font == "arial.ttf":
+            if font in ("arial.ttf", "arialbd.ttf"):
                 raise OSError("cannot open resource")
             return real_truetype(font, *args, **kwargs)
 
         with mock.patch.object(ImageFont, "truetype", no_arial):
-            return RadioPresetsImageGenerator(preset_collections={}).get_fonts()
+            return tuple(RadioPresetsImageGenerator(preset_collections={}).get_fonts().values())
 
     def test_the_fallback_keeps_the_layout_sizes(self) -> None:
-        self.assertEqual([font.size for font in self._fallback_fonts()], [18, 30, 40])
+        self.assertEqual([font.size for font in self._fallback_fonts()], list(_FONT_SIZES.values()))
 
     def test_the_fallback_draws_the_umlaut(self) -> None:
         for font in self._fallback_fonts():

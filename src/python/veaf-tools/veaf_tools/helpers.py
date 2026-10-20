@@ -202,7 +202,7 @@ def should_auto_pause() -> bool:
 
     True only for a genuine double-click launch (see :func:`_is_double_clicked`), and **never**
     when :data:`NO_PAUSE_ENV_VAR` (``VEAF_UPDATER_NO_PAUSE``) is set to a truthy value
-    (``1``/``true``/``yes``/``on``). A programmatic caller — the plugin's SessionStart bootstrap
+    (``1``/``true``/``yes``/``on``). A programmatic caller — the MCP server's self-update
     or ``scaffold_mission`` — exports it as ``"1"`` so the tool never blocks on an interactive
     ``input()`` prompt with no one to press a key (the cause of the plugin bootstrap hang). Any
     other value (including ``"0"``/unset) leaves the double-click behaviour unchanged.

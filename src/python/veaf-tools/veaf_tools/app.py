@@ -45,6 +45,24 @@ def main_callback(
         check_for_updates(VERSION, console)
 
 
+def is_mcp_invocation(args: list[str]) -> bool:
+    """Return whether the command line starts the MCP server, whose stdout must stay pure JSON-RPC.
+
+    Args:
+        args: The command line after the program name.
+
+    Returns:
+        True when the first argument that is not an option (or an option's value) is ``mcp``.
+    """
+    rest = iter(args)
+    for arg in rest:
+        if arg == "--lang":
+            next(rest, None)
+        elif not arg.startswith("-"):
+            return arg == "mcp"
+    return False
+
+
 def main() -> None:
     """Run the CLI. **The** implementation: both entry points end up here.
 
@@ -71,7 +89,10 @@ def main() -> None:
     build_cli_tree(app)
     from veaf_tools.helpers import pause_before_exit, should_auto_pause
 
-    console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
+    # Not before `mcp`: its stdout is the JSON-RPC stream, and the banner was its first line,
+    # which no client can parse (measured 2026-10-20 on 6.22.1 and 6.29.9).
+    if not is_mcp_invocation(sys.argv[1:]):
+        console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
 
     # CLI ↔ TUI bridge (CLI-TUI-BRIDGE): a bare invocation, `--tui`, or a command
     # invoked without a required option drops into the wizard — pre-filled with the

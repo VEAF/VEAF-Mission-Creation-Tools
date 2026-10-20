@@ -89,6 +89,7 @@ plugins:
             Adopt a third-party mission: Adopter une mission tierce
             Foothold moulinette: Moulinette Foothold
             Read the DCS logs: Lire les journaux de DCS
+            Editor tips: Astuces de l'éditeur
             Concepts: Les fiches
             The mission folder: Le dossier de mission
             mission.yaml and its modules: mission.yaml et ses modules
@@ -109,6 +110,7 @@ plugins:
             Scripts: Scripts
             Developer: Développeur
             Capture a map's airbases: Récupérer les aérodromes d'une carte
+            Publish the terrain data: Publier les données de terrain
             References: Références
             CLI Reference: Référence CLI
             Updater & release tools: Mise à jour & publication
@@ -170,6 +172,7 @@ nav:
     - Foothold moulinette: mission-maker/FOOTHOLD.md
     - Multi-mission campaign: mission-maker/CAMPAIGN.md
     - Read the DCS logs: mission-maker/LOGS.md
+    - Editor tips: mission-maker/EDITOR_TIPS.md
     - Aliases: ALIASES.md
     - Scripts:
       - Overview: mission-maker/scripts/README.md
@@ -206,6 +209,7 @@ nav:
     - Guide: developer/GUIDE.md
     - DCS data generators: developer/dcs-data.md
     - Capture a map's airbases: developer/capture-airbases.md
+    - Publish the terrain data: developer/terrain-data.md
     - Mission editing MCP: developer/mission-editing-mcp.md
     - Radio preset projection: developer/radio-preset-projection.md
     - Export JSON contract: developer/export-json-contract.md

@@ -106,6 +106,14 @@ If a group is missing, the module ignores it and logs a warning — `No Pedro gr
 
 ---
 
+## Deck lights {#deck-lights}
+
+When air operations start, the module sets the carrier's lights to **recovery** (the editor's *AC RECOVERY*); when they stop, it gives them back to DCS (*AUTO*).
+It goes through the editor's trigger action *SET CARRIER LIGHTING MODE*, which mission scripts do not have: it can only be reached through `net.dostring_in`.
+On a server whose `MissionScripting.lua` removes `net`, the lights stay as DCS sets them, a warning in `dcs.log` says so, and operations run as before.
+
+---
+
 ## F10 Radio Menu
 
 The top-level **CARRIER OPS** menu holds a **CARRIER OPS - BLUE** and a **CARRIER OPS - RED** submenu, each containing one submenu per carrier (named after the carrier group). When operations are stopped, each carrier submenu offers:

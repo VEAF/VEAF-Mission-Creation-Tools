@@ -85,6 +85,46 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Start carrier operations ; changes the radio menu item to END and make the carrier move
+--- Deck lighting modes of the editor's SET CARRIER LIGHTING MODE trigger action
+--- (MissionEditor/modules/me_trigrules.lua, `lightsModes`): OFF -2, AUTO -1, NAVIGATION 0, LAUNCH 1, RECOVERY 2.
+veafCarrierOperations.DECK_LIGHTS_AUTO = -1
+veafCarrierOperations.DECK_LIGHTS_RECOVERY = 2
+
+--- Set a carrier's deck lights, through the editor's `a_set_carrier_illumination_mode`.
+---
+--- That action has no scripting API counterpart: it lives in the trigger environment, which a
+--- mission script reaches only through `net.dostring_in("mission", …)` (measured by veafAssist).
+--- Without `net` (a stock MissionScripting.lua), the lights stay as DCS sets them and one warning
+--- says so; air operations run as before.
+--- @param unitName string the carrier unit
+--- @param mode number one of the DECK_LIGHTS_* modes
+--- @return boolean whether the action was called
+function veafCarrierOperations.setDeckLights(unitName, mode)
+  local unit = unitName and Unit.getByName(unitName)
+  if not unit then
+    return false
+  end
+  if type(net) ~= "table" or type(net.dostring_in) ~= "function" then
+    if not veafCarrierOperations.deckLightsUnavailableLogged then
+      veafCarrierOperations.deckLightsUnavailableLogged = true
+      veaf.loggers
+        .get(veafCarrierOperations.Id)
+        :warn("deck lights left to DCS: the trigger environment is out of reach (no net.dostring_in)")
+    end
+    return false
+  end
+  local code = string.format("a_set_carrier_illumination_mode(%d, %d) return 'done'", unit:getID(), mode)
+  local ok, result = pcall(net.dostring_in, "mission", code)
+  if not ok or result ~= "done" then
+    veaf.loggers
+      .get(veafCarrierOperations.Id)
+      :warn(string.format("deck lights of %s not set to %d: %s", veaf.p(unitName), mode, veaf.p(result)))
+    return false
+  end
+  veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("deck lights of %s set to %d", veaf.p(unitName), mode))
+  return true
+end
+
 function veafCarrierOperations.startCarrierOperations(parameters)
   veaf.loggers.get(veafCarrierOperations.Id):debug("startCarrierOperations()")
   veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("Parameters for this command are : %s", veaf.p(parameters)))
@@ -135,6 +175,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
 
   carrier.conductingAirOperations = true
   carrier.airOperationsStartedAt = timer.getTime()
+  veafCarrierOperations.setDeckLights(carrier.carrierUnitName, veafCarrierOperations.DECK_LIGHTS_RECOVERY)
   carrier.airOperationsEndAt = carrier.airOperationsStartedAt + duration * 60
 
   veafCarrierOperations.continueCarrierOperations(groupName) -- will update the *carrier* structure
@@ -785,6 +826,7 @@ function veafCarrierOperations.stopCarrierOperations(parameters)
   veaf.outTextForGroup(userUnitName, veaf.t("carrier.stopped", groupName), 5)
   carrier.conductingAirOperations = false
   carrier.stoppedAirOperations = true
+  veafCarrierOperations.setDeckLights(carrier.carrierUnitName, veafCarrierOperations.DECK_LIGHTS_AUTO)
 
   -- change the menu
   veaf.loggers.get(veafCarrierOperations.Id):trace("change the menu")

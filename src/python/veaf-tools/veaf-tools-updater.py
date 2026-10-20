@@ -18,21 +18,26 @@ import hashlib
 import json
 import re
 import shutil
-import subprocess
 import sys
+import time
 import zipfile
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin, urlparse
 
 import requests
 import typer
 import yaml
 from veaf_libs import platform_assets
 from veaf_libs.atomic_replace import atomic_replace
+from veaf_libs.github_download import (
+    MAX_DOWNLOAD_REDIRECTS,
+    GithubDownloadError,
+    fetch_github_asset,
+    is_trusted_download_url,
+)
 from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
@@ -88,17 +93,11 @@ VEAF_TOOLS_EXE = "veaf-tools-updater.exe"
 BUILD_SCRIPTS_DIR = "build-scripts"
 PACKAGE_JSON_FILE = "package.json"
 CONFIG_FILE = "veaf-tools-config.yaml"
-UPDATE_PENDING_DIR = ".veaf-update-pending"
 
-#: Hosts a release asset may legitimately come from (SECREV-2 / VMR-037). GitHub serves
-#: `browser_download_url` from github.com and redirects to its object storage; both are named so a
-#: redirect chain that leaves GitHub entirely is refused.
-_TRUSTED_DOWNLOAD_HOSTS = frozenset({"github.com", "www.github.com", "api.github.com"})
-_TRUSTED_DOWNLOAD_HOST_SUFFIX = ".githubusercontent.com"
-
-#: How many redirects to follow while checking each hop. GitHub uses one (asset -> object storage);
-#: a few more costs nothing and a bounded walk cannot loop.
-_MAX_DOWNLOAD_REDIRECTS = 5
+#: The trusted-host check and its redirect bound live in `veaf_libs.github_download`, shared with the
+#: terrain download (FEAT-TERRAIN-DATA-DOWNLOAD); the names stay here for the updater's tests.
+_is_trusted_download_url = is_trusted_download_url
+_MAX_DOWNLOAD_REDIRECTS = MAX_DOWNLOAD_REDIRECTS
 
 #: Upper bound on a downloaded release asset (SECREV-2 ticket 04, the network half of its integrity
 #: findings). `response.content` read whatever answered straight into memory, so a reply with no
@@ -109,25 +108,42 @@ _MAX_DOWNLOAD_REDIRECTS = 5
 _MAX_ASSET_BYTES = 256 * 1024 * 1024
 
 
-def _is_trusted_download_url(url: str | None) -> bool:
-    """Whether *url* is an https URL on a GitHub host we are willing to download from.
+def _install_beside_running_exe(source: Path, dest: Path) -> None:
+    """Move ``source`` to ``dest``, even when ``dest`` is an executable a process is running.
 
-    The updater installs and then runs what it downloads, so the URL handed back by the GitHub API
-    is worth checking rather than trusting outright (SECREV-2 / VMR-037).
+    An MCP server keeps ``veaf-tools.exe`` open for as long as its AI client runs. Windows refuses to
+    overwrite or delete a running exe, but lets it be renamed: the running copy is set aside as
+    ``<name>.<n>.old`` and the new one takes its name, used from the next start. Copies set aside by
+    an earlier update are deleted here; one still running stays for the next update.
+    (Measured 2026-10-20: overwriting failed with ``WinError 5``, renaming worked.)
+
+    The updater replaces itself the same way. It used to hand the job to a ``.cmd`` script that
+    waited with ``timeout /t 2`` and then renamed. Run without a console window — from a terminal
+    tool, and so from the MCP server's own update — the new updater did not take its place and the
+    script deleted it anyway (measured 2026-10-20); a double-click run was not measured.
 
     Args:
-        url: The candidate URL, as returned by the GitHub API (may be missing).
+        source: The new executable, extracted under ``published/``.
+        dest: Where it is installed, possibly running.
 
-    Returns:
-        True when the URL uses https and its host is GitHub's.
+    Raises:
+        OSError: The new executable could not be moved in; the old one is back under its name.
     """
-    if not url:
-        return False
-    parsed = urlparse(url)
-    if parsed.scheme != "https":
-        return False
-    host = (parsed.hostname or "").lower()
-    return host in _TRUSTED_DOWNLOAD_HOSTS or host.endswith(_TRUSTED_DOWNLOAD_HOST_SUFFIX)
+    for leftover in dest.parent.glob(f"{dest.name}.*.old"):
+        try:
+            leftover.unlink()
+        except OSError:
+            pass  # still running: the next update deletes it
+    aside = None
+    if dest.exists():
+        aside = dest.with_name(f"{dest.name}.{time.time_ns()}.old")
+        dest.rename(aside)
+    try:
+        shutil.move(str(source), str(dest))
+    except OSError:
+        if aside is not None and not dest.exists():
+            aside.rename(dest)  # never leave the folder without the executable
+        raise
 
 
 def load_config() -> dict[str, Any]:
@@ -399,184 +415,34 @@ class UpdateWorker:
         """Download an asset from a GitHub release, refusing any hop off GitHub.
 
         The URL comes from the GitHub API response, not from us, and what we do with the bytes is
-        install and then *run* an executable (SECREV-2 / VMR-037). Checking only the URL we were
-        handed would not be enough: ``requests`` follows redirects to any host by default, and GitHub
-        does redirect release assets to its object storage. So the redirect chain is walked here, one
-        hop at a time, and every hop has to pass the same check.
+        install and then *run* an executable (SECREV-2 / VMR-037). The redirect chain is walked one
+        checked hop at a time and the body is capped at ``_MAX_ASSET_BYTES``, by
+        :func:`veaf_libs.github_download.fetch_github_asset`.
 
         Args:
             asset_url: The asset URL from the release payload.
             asset_name: The asset's name, for the progress and error messages.
 
         Returns:
-            The asset's bytes, or None when a hop is untrusted, the chain is too long, or GitHub
-            answered with an error.
-        """
-        url = asset_url
-        origin_host = (urlparse(asset_url or "").hostname or "").lower()
-
-        with spinner_context(t("updater.downloading", name=asset_name)):
-            for _ in range(_MAX_DOWNLOAD_REDIRECTS + 1):
-                if not _is_trusted_download_url(url):
-                    logger.error(t("updater.err.untrusted_url", url=url, name=asset_name), exception_type=None)
-                    return None
-
-                headers = dict(self.headers)
-                if (urlparse(url).hostname or "").lower() != origin_host:
-                    # `requests` drops Authorization itself when a redirect changes host; walking the
-                    # chain by hand means doing it here, or the user's GitHub token would be handed to
-                    # whichever host the redirect names.
-                    headers.pop("Authorization", None)
-
-                # `stream=True` so the body is not pulled into memory before its size is known.
-                response = requests.get(url, headers=headers, allow_redirects=False, stream=True)
-                if not response.is_redirect and not response.is_permanent_redirect:
-                    break
-
-                # A Location may be relative, so resolve it against the URL that produced it.
-                url = urljoin(url, response.headers.get("Location", ""))
-            else:
-                logger.error(t("updater.err.too_many_redirects", url=asset_url, name=asset_name), exception_type=None)
-                return None
-
-        if not self.check_github_response(response, t("updater.action.download", name=asset_name)):
-            return None
-
-        return self._read_capped(response, asset_name)
-
-    def _read_capped(self, response: requests.Response, asset_name: str) -> bytes | None:
-        """Read a response body, refusing anything past ``_MAX_ASSET_BYTES``.
-
-        The declared length is checked first because it is free; the stream is then counted while it
-        is read, which is what actually holds — a reply may declare nothing and never end.
-
-        Args:
-            response: The streaming response to read — only ``headers``, ``iter_content`` and
-                ``close`` are used, so a test double needs no more than those three.
-            asset_name: The asset's name, for the error message.
-
-        Returns:
-            The asset's bytes, or None when it is over the cap.
-        """
-        declared = response.headers.get("Content-Length")
-        if declared and declared.isdigit() and int(declared) > _MAX_ASSET_BYTES:
-            logger.error(
-                t("updater.err.asset_too_large", name=asset_name, size=int(declared), limit=_MAX_ASSET_BYTES),
-                exception_type=None,
-            )
-            return None
-
-        chunks: list[bytes] = []
-        total = 0
-        for chunk in response.iter_content(chunk_size=64 * 1024):
-            if not chunk:
-                continue
-            total += len(chunk)
-            if total > _MAX_ASSET_BYTES:
-                response.close()
-                logger.error(
-                    t("updater.err.asset_too_large", name=asset_name, size=total, limit=_MAX_ASSET_BYTES),
-                    exception_type=None,
-                )
-                return None
-            chunks.append(chunk)
-        return b"".join(chunks)
-
-    def _launch_deferred_update(self, pending_dir: Path, pending_exe: Path) -> None:
-        """
-        Launch a deferred update script that will replace the updater executable.
-
-        This avoids file locking issues by:
-        1. Copying the new exe to a pending directory
-        2. Creating a batch script that will execute after this process exits
-        3. The batch script waits, then replaces the old exe with the new one
+            The asset's bytes, or None when a hop is untrusted, the chain is too long, GitHub
+            answered with an error, or the asset is over the cap.
         """
         try:
-            # Create the update script
-            update_script = pending_dir / "apply-update.cmd"
-
-            # Get absolute paths for the script
-            current_dir = Path.cwd()
-            new_exe_path = pending_exe.resolve()
-            backup_exe_path = current_dir / f"{VEAF_TOOLS_EXE}.old"
-
-            script_content = f"""@echo off
-REM Auto-generated update script for veaf-tools-updater.exe
-REM This script is run after the updater process exits to avoid file locking issues
-
-REM This script lives in the mission folder's {UPDATE_PENDING_DIR}, and cmd resolves %~dp0 itself: the
-REM mission path is never written here. Written, it was garbled -- cmd reads a batch file in the
-REM console code page, not the one Python writes -- and an accented folder aborted the update.
-REM Every rename and delete below is relative, so a failed cd used to run them against whatever
-REM directory the script started in (SECREV-2 / VMR-036): bail out on a failed cd, whatever the cause.
-REM Delayed expansion, needed for !errorlevel! below, starts after the cd: it would eat a ! in the path.
-cd /d "%~dp0.."
-if errorlevel 1 (
-    echo ERROR: cannot enter the mission folder -- aborting the update
-    exit /b 1
-)
-setlocal enabledelayedexpansion
-
-REM Wait for the updater process to finish
-timeout /t 2 /nobreak >nul 2>&1
-
-REM Remove old backup if it exists
-if exist "{backup_exe_path.name}" (
-    del /f /q "{backup_exe_path.name}" 2>nul
-)
-
-REM Replace the executable
-if exist "{new_exe_path.name}" (
-    REM Rename current executable to .old
-    ren "{VEAF_TOOLS_EXE}" "{backup_exe_path.name}" 2>nul
-
-    if !errorlevel! equ 0 (
-        REM Rename pending exe to active name
-        ren "{new_exe_path.name}" "{VEAF_TOOLS_EXE}" 2>nul
-
-        if !errorlevel! equ 0 (
-            echo Update successful: veaf-tools-updater.exe has been updated
-            REM Clean up backup
-            del /f /q "{backup_exe_path.name}" 2>nul
-        ) else (
-            echo ERROR: Failed to rename new exe
-            REM Restore old exe if rename failed
-            ren "{backup_exe_path.name}" "{VEAF_TOOLS_EXE}" 2>nul
-        )
-    ) else (
-        echo ERROR: Failed to backup current exe
-    )
-)
-
-REM Clean up pending directory
-if exist ".\\{UPDATE_PENDING_DIR}" (
-    rmdir /s /q ".\\{UPDATE_PENDING_DIR}" 2>nul
-)
-
-exit /b 0
-"""
-
-            # ASCII by construction (no path inside): reads the same in every console code page.
-            update_script.write_text(script_content, encoding="ascii")
-            logger.debug(f"Created update script: {update_script}")
-
-            # Launch the script in background
-            import os
-
-            subprocess.Popen(
-                str(update_script),
-                shell=True,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                cwd=str(current_dir),
-            )
-            logger.info(t("updater.deferred_launched"))
-            logger.info(t("updater.deferred_pending"))
-
-        except Exception as e:
-            logger.warning(t("updater.err.deferred_failed", error=str(e)))
-            logger.warning(t("updater.err.deferred_next_run"))
+            with spinner_context(t("updater.downloading", name=asset_name)):
+                return fetch_github_asset(asset_url, headers=self.headers, max_bytes=_MAX_ASSET_BYTES)
+        except GithubDownloadError as e:
+            if e.kind == "untrusted_url":
+                logger.error(t("updater.err.untrusted_url", url=e.url, name=asset_name), exception_type=None)
+            elif e.kind == "too_many_redirects":
+                logger.error(t("updater.err.too_many_redirects", url=asset_url, name=asset_name), exception_type=None)
+            elif e.kind == "too_large":
+                logger.error(
+                    t("updater.err.asset_too_large", name=asset_name, size=e.size, limit=_MAX_ASSET_BYTES),
+                    exception_type=None,
+                )
+            else:
+                self.check_github_response(e.response, t("updater.action.download", name=asset_name))
+            return None
 
     def extract_and_install(
         self,
@@ -640,11 +506,11 @@ exit /b 0
             logger.info(t("updater.extracted", version=release_version, dir=PUBLISHED_DIR))
 
             # Step 2: Install the platform binaries. On Windows they ship inside
-            # published.zip (moved out here, with the deferred self-update dance to
-            # dodge the running-exe lock). On Unix they ship as separate release
+            # published.zip (moved out here, each running copy set aside rather than
+            # overwritten). On Unix they ship as separate release
             # assets, downloaded and made executable by _install_unix_binaries.
             if platform_assets.is_windows():
-                self._install_windows_binaries(published_dir, has_locked_exe)
+                self._install_windows_binaries(published_dir)
             else:
                 self._install_unix_binaries(release_assets)
 
@@ -659,41 +525,23 @@ exit /b 0
             logger.error(t("updater.err.install", error=str(e)))
             return False
 
-    def _install_windows_binaries(self, published_dir: Path, has_locked_exe: bool) -> None:
+    def _install_windows_binaries(self, published_dir: Path) -> None:
         """Move the Windows binaries out of published/ into the mission folder.
 
         README.md is intentionally NOT moved (IMC2-002): its relative links are dead in
         the mission folder and it would overwrite the user's own README — it stays under
-        /published/; the online docs are the source. The updater replaces itself through
-        a deferred .cmd script to dodge the Windows lock on the running exe.
+        /published/; the online docs are the source. Both executables may be running — the
+        updater is, and an MCP server may run veaf-tools.exe — so each is set aside, not
+        overwritten (:func:`_install_beside_running_exe`).
         """
         with spinner_context(t("updater.installing")):
-            for filename in ["veaf-tools.exe"]:
+            for filename in ["veaf-tools.exe", VEAF_TOOLS_EXE]:
                 source_file = published_dir / filename
                 if source_file.exists():
-                    shutil.move(str(source_file), str(Path.cwd() / filename))
+                    _install_beside_running_exe(source_file, Path.cwd() / filename)
                     logger.info(t("updater.moved", name=filename))
                 else:
                     logger.warning(t("updater.err.file_not_found", name=filename))
-
-            # Handle veaf-tools-updater.exe with deferred update mechanism
-            updater_exe = published_dir / "veaf-tools-updater.exe"
-            if updater_exe.exists():
-                if has_locked_exe:
-                    # Use deferred update mechanism to avoid file locking
-                    pending_dir = Path.cwd() / UPDATE_PENDING_DIR
-                    pending_dir.mkdir(exist_ok=True)
-
-                    pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
-                    shutil.move(str(updater_exe), str(pending_exe))
-                    logger.info(t("updater.deferred_prepared", name=VEAF_TOOLS_EXE))
-
-                    # Launch the deferred update script
-                    self._launch_deferred_update(pending_dir, pending_exe)
-                else:
-                    # No file locking issue, move directly
-                    shutil.move(str(updater_exe), str(Path.cwd() / VEAF_TOOLS_EXE))
-                    logger.info(t("updater.moved", name=VEAF_TOOLS_EXE))
 
     def _install_unix_binaries(self, release_assets: list[dict] | None) -> None:
         """Install the Linux/macOS binaries from the release's standalone assets.
@@ -765,6 +613,7 @@ exit /b 0
             return
 
         console.print(t("updater.first_install"))
+        console.print(t("updater.ai_setup_tip"))
         console.print(
             t(
                 "updater.lang_tip",

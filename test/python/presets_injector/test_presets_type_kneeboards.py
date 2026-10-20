@@ -10,7 +10,6 @@ from presets_injector.presets_manager import (
     RadioPresetsImageGenerator,
     _ch_label,
     _radio_max_slot,
-    _split_radio_into_columns,
     pack_preset_for_type,
     parse_channel_lists,
 )
@@ -61,55 +60,12 @@ class TestGenerateTypeImagePaths(unittest.TestCase):
         self.assertEqual(paths, {"KNEEBOARD/F_A-18C/IMAGES/presets.png"})
 
 
-class TestColumnSplit(unittest.TestCase):
+class TestMaxSlot(unittest.TestCase):
     def test_max_slot_counts_labelled_empty_slots(self):
         radio = RadioDefinition(name="r")
         radio.add_channel(Channel(1, 251.0))
         radio.display_labels = {slot: str(99 + slot) for slot in range(1, 41)}
         self.assertEqual(_radio_max_slot(radio), 40)
-
-    def test_split_renumbers_locally_and_carries_labels(self):
-        radio = RadioDefinition(name="r", radio_type="uhf", title="V/UHF")
-        for slot in range(1, 48):
-            radio.add_channel(Channel(slot, 200.0 + slot))
-            radio.display_labels[slot] = f"L{slot}"
-        columns = _split_radio_into_columns(radio, num_columns=2)
-        self.assertEqual(len(columns), 2)
-        # 47 slots over 2 columns -> 24 + 23.
-        self.assertEqual(len(columns[0].channels), 24)
-        self.assertEqual(len(columns[1].channels), 23)
-        # Second column's first channel is real slot 25, renumbered to local slot 1,
-        # keeping its real pilot label.
-        self.assertEqual(columns[1].channels[0].number, 1)
-        self.assertEqual(columns[1].channels[0].freq, 225.0)
-        self.assertEqual(columns[1].display_labels[1], "L25")
-
-    def test_split_preserves_gaps(self):
-        radio = RadioDefinition(name="r")
-        radio.add_channel(Channel(1, 201.0))
-        radio.add_channel(Channel(3, 203.0))
-        radio.display_labels = {slot: f"L{slot}" for slot in range(1, 31)}
-        columns = _split_radio_into_columns(radio, num_columns=2)
-        # Local slot 2 (real slot 2) is an empty gap: labelled but no channel.
-        self.assertNotIn(2, [c.number for c in columns[0].channels])
-        self.assertEqual(columns[0].display_labels[2], "L2")
-
-
-class TestPreparedRenderPreset(unittest.TestCase):
-    def test_tall_single_radio_is_split_into_two_columns(self):
-        radio = RadioDefinition(name="r")
-        for slot in range(1, 48):
-            radio.add_channel(Channel(slot, 200.0 + slot))
-        preset = PresetDefinition(name="p")
-        preset.add_radio(radio)
-        render = _generator()._prepare_render_preset(preset, title="AJS37 (blue)")
-        self.assertEqual(len(render.radios), 2)
-        self.assertEqual(render.title, "AJS37 (blue)")
-
-    def test_short_preset_keeps_its_radios(self):
-        preset = _preset(Channel(1, 251.0), Channel(2, 252.0))
-        render = _generator()._prepare_render_preset(preset, title="A-10C (blue)")
-        self.assertEqual(len(render.radios), 1)
 
 
 class TestAjs37DisplayLabels(unittest.TestCase):

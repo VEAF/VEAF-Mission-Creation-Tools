@@ -538,6 +538,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 block.append(
                     f"| {ch.channel} | {ch.channel_title or '—'} | {ch.freq_mhz} | {ch.radio_collection} | {ch.radio_key} |"
                 )
+            if not issue.strict:
+                # `none` would strip every preset of the type, the ones in range too, to quiet a
+                # frequency DCS ignores anyway: two assistants did just that (FEAT-AI-ZERO-SETUP).
+                return [*block, "", t("presets_injector.report.info_no_action"), ""]
             block += [
                 "",
                 t("presets_injector.report.silence_hint"),
@@ -602,8 +606,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         additional_files = {}
         if self.presets_manager.presets_images:
-            # ADR 0012: keys are full per-type kneeboard paths
-            # (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png).
+            # ADR 0012: keys are full kneeboard paths — per-type pages
+            # (KNEEBOARD/<type>/IMAGES/presets[-<coalition>][_<n>].png) and the shared
+            # calibration page (KNEEBOARD/IMAGES/00-veaf-calibration.png).
             for kneeboard_path, image in self.presets_manager.presets_images.items():
                 additional_files[kneeboard_path] = image.getvalue()
             if not silent:
@@ -643,7 +648,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if self.generate_kneeboards:
             with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):
-                self.presets_manager.generate_type_images(self._injected_presets, width=1200, height=None)
+                self.presets_manager.generate_type_images(self._injected_presets)
 
         with spinner_context(t("group_injector.spinner.writing"), silent=silent):
             self.write_mission(silent)

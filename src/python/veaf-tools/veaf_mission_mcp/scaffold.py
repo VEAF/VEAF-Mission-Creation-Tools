@@ -17,6 +17,8 @@ import requests
 from veaf_libs import platform_assets
 from veaf_tools.helpers import NO_PAUSE_ENV_VAR
 
+from veaf_mission_mcp.self_update import PINNED_TAG_ENV_VAR
+
 #: GitHub repository the release assets are fetched from.
 _GITHUB_OWNER = "VEAF"
 _GITHUB_REPO = "VEAF-Mission-Creation-Tools"
@@ -27,7 +29,7 @@ _DEFAULT_TAG = "published-latest"
 #: the chantier isn't on ``published-latest`` yet; once released, the default suffices. The same
 #: name is read by the plugin's ``bootstrap.ps1`` (which can't import this constant — keep the two
 #: in sync). An explicit ``tag`` argument still wins over it.
-_TAG_ENV_VAR = "VEAF_MCP_UPDATER_TAG"
+_TAG_ENV_VAR = PINNED_TAG_ENV_VAR
 #: Templates accepted here. ``custom`` is excluded: it opens an interactive TUI picker with no TTY
 #: under a subprocess. The template question is the calling LLM's job (a required parameter).
 _TEMPLATES = ("minimal", "standard", "full")

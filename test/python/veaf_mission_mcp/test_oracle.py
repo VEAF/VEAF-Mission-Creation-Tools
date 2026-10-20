@@ -8,6 +8,7 @@ from veaf_mission_mcp.oracle import (
     _command_category,
     describe_authoring_guide,
     describe_known_limitations,
+    describe_mission_prompt,
     describe_module,
     describe_naming_conventions,
     list_payloads,
@@ -100,8 +101,10 @@ class TestKnownLimitationsByArea:
     def test_the_default_is_a_short_listing_that_fits_a_tool_result(self) -> None:
         result = describe_known_limitations()
         assert result["detail"] == "short"
-        assert {"id", "kind", "area", "title"} <= set(result["limitations"][0])
-        assert all("symptom" not in entry and "workaround" not in entry for entry in result["limitations"])
+        assert {"id", "kind", "area"} <= set(result["limitations"][0])
+        # No title since FIX-LIMITATIONS-SHORT-LISTING: with them the listing reached 14 988 of its 15 000
+        # characters; the ids already say what an entry is about.
+        assert all(set(entry) <= {"id", "kind", "area", "theatres"} for entry in result["limitations"])
         assert len(json.dumps(result, ensure_ascii=False)) < 15_000
         assert sum(result["areas"].values()) == len(result["limitations"])
 
@@ -149,17 +152,20 @@ def test_describe_known_limitations_is_in_the_catalogue() -> None:
     assert catalog.run_action("describe_known_limitations", {"kind": "tool"})["limitations"]
 
 
-def test_describe_authoring_guide_returns_the_plugin_skill_verbatim() -> None:
-    """FEAT-AI-ASSISTANT-ANY-CLIENT: one copy of the guidance, the plugin's, served to any MCP client."""
-    skill = Path(__file__).parents[3] / "plugin" / "skills" / "veaf-mission-authoring" / "SKILL.md"
-    assert describe_authoring_guide() == {"guide": skill.read_text(encoding="utf-8")}
+_MCP_DATA = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_mission_mcp" / "data"
+
+
+def test_describe_authoring_guide_returns_the_package_guide_verbatim() -> None:
+    """FEAT-AI-ZERO-SETUP: the guide lives in the package it is served from, one copy."""
+    guide = _MCP_DATA / "authoring-guide.md"
+    assert describe_authoring_guide() == {"guide": guide.read_text(encoding="utf-8")}
 
 
 def test_describe_authoring_guide_reads_the_bundled_copy_in_the_executable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """In the exe there is no plugin/ folder: the copy the build bundles is the one read."""
-    bundled = tmp_path / "veaf_mission_mcp" / "data" / "SKILL.md"
+    """In the exe, the copy the build bundles is the one read."""
+    bundled = tmp_path / "veaf_mission_mcp" / "data" / "authoring-guide.md"
     bundled.parent.mkdir(parents=True)
     bundled.write_text("bundled guide", encoding="utf-8")
     monkeypatch.setattr("sys._MEIPASS", str(tmp_path), raising=False)
@@ -172,7 +178,50 @@ def test_describe_authoring_guide_is_in_the_catalogue() -> None:
 
     catalog = ActionCatalog()
     register_default_actions(catalog)
-    assert "veaf-mission-authoring" in catalog.run_action("describe_authoring_guide", {})["guide"]
+    assert "Authoring VEAF missions" in catalog.run_action("describe_authoring_guide", {})["guide"]
+
+
+def test_the_authoring_guide_sends_a_mission_request_to_the_mission_prompts() -> None:
+    """A user who only says "create a mission" must reach the prompts without naming them."""
+    guide = describe_authoring_guide()["guide"]
+    assert "describe_mission_prompt" in guide
+    assert "objective" in guide and "open-training" in guide
+
+
+@pytest.mark.parametrize("kind", ["objective", "open-training"])
+@pytest.mark.parametrize("lang", ["fr", "en"])
+def test_describe_mission_prompt_returns_each_shipped_prompt(kind: str, lang: str) -> None:
+    expected = (_MCP_DATA / "mission-prompts" / f"new-{kind}-mission.{lang}.md").read_text(encoding="utf-8")
+    assert describe_mission_prompt(kind, lang) == {"kind": kind, "lang": lang, "prompt": expected}
+
+
+def test_describe_mission_prompt_defaults_to_english() -> None:
+    assert describe_mission_prompt("objective")["lang"] == "en"
+
+
+def test_describe_mission_prompt_refuses_an_unknown_kind() -> None:
+    with pytest.raises(ValueError, match="objective, open-training"):
+        describe_mission_prompt("campaign", "en")
+
+
+def test_describe_mission_prompt_reads_the_bundled_copy_in_the_executable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundled = tmp_path / "veaf_mission_mcp" / "data" / "mission-prompts" / "new-objective-mission.fr.md"
+    bundled.parent.mkdir(parents=True)
+    bundled.write_text("prompt embarqué", encoding="utf-8")
+    monkeypatch.setattr("sys._MEIPASS", str(tmp_path), raising=False)
+    assert describe_mission_prompt("objective", "fr")["prompt"] == "prompt embarqué"
+
+
+def test_describe_mission_prompt_is_in_the_catalogue() -> None:
+    from veaf_mission_mcp.actions import register_default_actions
+    from veaf_mission_mcp.catalog import ActionCatalog
+
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    result = catalog.run_action("describe_mission_prompt", {"kind": "open-training", "lang": "fr"})
+    assert result["prompt"].startswith("# Prompt — construire une mission VEAF Open Training")
 
 
 def test_describe_naming_conventions_lists_the_reserved_patterns() -> None:
@@ -261,3 +310,26 @@ def test_the_action_takes_one_id_or_a_list_of_ids_without_a_oneof_schema() -> No
     assert {e["id"] for e in both} == {first, second}
     spec = next(s for s in catalog.list_catalog() if s.name == "describe_known_limitations")
     assert "oneOf" not in json.dumps(spec.parameters_schema)
+
+
+def test_the_guide_has_every_new_mission_adapt_the_scaffold_first() -> None:
+    """A 6.30.0 test mission kept the scaffold's presets, date, waypoints, warbirds and SKYNET: false.
+
+    The checklist was in the guide, deep under a section written for an Open Training; it now comes
+    right after the routing and names each file, Skynet included (FEAT-AI-ZERO-SETUP).
+    """
+    guide = describe_authoring_guide()["guide"]
+    section = guide.index("## Right after `scaffold_mission` — every new mission")
+    assert section < guide.index("## Always ground yourself in the oracle")
+    checklist = guide[section : guide.index("## Always ground yourself in the oracle")]
+    for item in ("presets.yaml", "versions.yaml", "waypoints.yaml", "dynamic-slot-templates.yaml", "SKYNET"):
+        assert item in checklist, item
+
+
+@pytest.mark.parametrize("kind", ["objective", "open-training"])
+@pytest.mark.parametrize("lang", ["fr", "en"])
+def test_a_mission_prompt_names_no_skill_that_does_not_ship(kind: str, lang: str) -> None:
+    """The plugin and its skill are gone: a prompt asking to load it sends the assistant nowhere."""
+    prompt = describe_mission_prompt(kind, lang)["prompt"]
+    assert "veaf-mission-editor:" not in prompt
+    assert "describe_authoring_guide" in prompt

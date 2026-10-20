@@ -767,6 +767,46 @@ that id (`veafSecurity.getGroupOccupantUnitNames`). For any group, keep its name
 *What it cost:* Every secured `+` radio command refused to every pilot from 6.14.0 on
 (`secured-radio-commands-refused-to-everybody`).
 
+### A kneeboard image is stretched to fill the kneeboard window, whatever its proportions {#kneeboard-image-stretched-to-the-window}
+
+Measured **2026-10-18**.
+
+DCS maps a mission's kneeboard image onto the whole kneeboard window with texture coordinates
+0..1 (`Scripts/Aircrafts/_Common/Cockpit/KNEEBOARD/indicator/init.lua`, `image_page_template`):
+it never keeps the image's proportions, and nothing in the log says so. The cockpit kneeboard is
+0.142 × 0.214 (`declare_kneeboard_device.lua`), a 2:3 portrait, and the default 2D window measured
+2:3 too on David's screenshot. The presets page used to be 1200 px wide and 665 to 1085 px high:
+in game it read squashed to about 60 % of its width. The 2D window can be resized, and a resized
+window distorts any page again, ED's own 768 × 1024 ones included.
+
+The window also draws its own controls over the page. On a 2:3 page 1536 px wide (A-10C II,
+2026-10-18), the chapter tabs and their close cross cover the top-left corner up to x = 111 and
+y = 129..177 page pixels, and the UP/DN buttons the bottom-right from x = 1463 and y = 2174: a
+subtitle and a page number drawn there were cut.
+
+**What to do:** Draw kneeboard pages at 2:3 (veaf-tools draws 1536 × 2304). A pilot who resized the window puts it
+back with the calibration page veaf-tools adds, `KNEEBOARD/IMAGES/00-veaf-calibration.png`: its
+circles are round only at 2:3. Keep text out of the top-left and bottom-right corners.
+
+### A slot for a module the player lacks or disabled shows but cannot be taken {#slot-of-a-disabled-module-cannot-be-taken}
+
+Measured **2026-08-18**.
+
+DCS lists the slot in the role selection whatever the player owns. Choosing it leaves the player
+on the map view, with no message. Free does not mean available: a player can disable any module
+in the module manager, the free Su-25T and TF-51D included, and `dcs.log` then says
+`plugin: SKIPPED 'Su-25T by Eagle Dynamics': disabled by user`. The list of loaded plugins does not
+prove ownership either: `C-101 Aviojet by AvioDev` is loaded for the AI variant on a PC without
+the module.
+
+**What to do:** Ask the player which aircraft they fly before placing a slot for them, or reuse one they already
+flew in a previous mission. On their PC, `plugin: SKIPPED … disabled by user` in
+`Saved Games\DCS\Logs\dcs.log` lists what is disabled. The A-10C II is a safe default on both
+sides; a red slot goes under the generic country CJTF Red, which accepts any aircraft.
+
+*What it cost:* A test mission on 2026-08-18 put the player in a Su-25T slot they had disabled: "I can pick it but I
+do not slot, I stay on the map view."
+
 ## Radio and frequencies {#radio}
 
 ### The text of `Radio.lua` is not the airfield frequencies DCS uses — DCS completes the missing bands {#radio-lua-is-not-what-the-f10-view-shows}

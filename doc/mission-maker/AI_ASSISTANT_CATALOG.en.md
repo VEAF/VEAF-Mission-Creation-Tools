@@ -93,6 +93,9 @@ The AI can act in two places, and it changes what "survives":
 | 49 | [Apply a flown campaign mission](#campaign-apply) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 50 | [Prepare a campaign's next mission](#campaign-next) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 51 | [Write the campaign briefing](#campaign-briefing) | 🎖️ Campaign | Campaign (folder) | ⭐ |
+| 52 | [Build a whole mission, from the questions to the briefing](#build-whole-mission) | 🏗️ Getting started | Folder | ⭐ |
+| 53 | [Read and edit the mission folder's files](#mission-files) | Modules & settings | Recipe | ⭐ |
+| 54 | [Make a mission's briefing (PPTX, maps, DCS pictures)](#mission-briefing) | 🕰️ Mission settings | Folder (built) | ⭐ |
 
 ---
 
@@ -186,6 +189,19 @@ directly, ready for combat zones / QRAs — **with no DCS round-trip**.
 > 💬 *"Create a new VEAF mission on Caucasus in this folder."* (the AI asks for the template +
 > theatre, then installs and generates everything)
 
+### Build a whole mission, from the questions to the briefing {#build-whole-mission}
+
+*Folder · ⭐* — Saying "create a mission" is enough.
+The AI asks which of the two kinds you want, then loads the VEAF instructions that describe it end to end: the questions to ask, the design rules, the build order.
+
+- **Objective mission, played in one session** — a package, objectives, a threat, a way home.
+  The AI proposes a scenario, proposes others as long as you want, and writes nothing before you have approved one; then it builds the mission and its briefing.
+- **Open Training** — a VEAF training mission on a whole map: airfields, support, air defence, graded training zones, combat zones, QRA.
+
+These instructions ship with the tools: nothing to paste, nothing to fetch.
+
+> 💬 *"Create a mission."* · *"Create an Open Training on Syria."* · *"An objective mission for four F-16s on the Caucasus, one hour of play."*
+
 ## 🎖️ Multi-mission campaign
 
 *A [campaign](CAMPAIGN.en.md) flown mission after mission, each mission starting from what the last one left.
@@ -257,9 +273,9 @@ work; vague terrain ("the woods") does not.
 the briefing), the **highest ground** along each leg of a route (the floor of a low-level ingress),
 **how much of each leg a SAM sees** over the terrain, and the top of each 10 km square of the F10
 grid. **Terrain only**: no buildings, pylons or trees, and a measured margin to add, which the AI
-reminds you of. The theatre must first be swept **once** in DCS
-(`.\veaf-tools.exe dcs terrain-sweep Syria`, under three minutes); without it, the AI offers you the
-command.
+reminds you of.
+The grids of the theatres VEAF has swept are downloaded on first use, with no DCS ([list](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)).
+Another theatre must first be swept **once** in DCS (`.\veaf-tools.exe dcs terrain-sweep Caucasus`, under three minutes); without it, the AI offers you the command.
 
 > 💬 *"Does my low-level route stay under the Damascus SA-6's coverage?"*
 
@@ -638,6 +654,14 @@ rebuilt from its folder, while one the AI places is part of the recipe.
 
 ## ⭐ Modules & settings
 
+### Read and edit the mission folder's files {#mission-files}
+
+*Recipe · ⭐* — For an AI with no access to your files (Claude Desktop in chat mode): it reads and edits `mission.yaml` and the `src/*.yaml` files (presets, weather and time variants, waypoints, slots…) of the mission folder, and nothing else.
+It replaces one exact passage, after a backup; an edit that would leave the file unreadable is refused, and the file stays as it was.
+That is how it renames the mission or changes its era.
+
+> 💬 *"Rename the mission helico_convoi_Montagnes."*
+
 ### Enable / disable / configure a module — recipe {#configure-a-module-recipe}
 
 *Recipe · ⭐* — The AI edits the source config: it enables or disables a module (simple toggle),
@@ -711,6 +735,16 @@ beacon of a helicopter zone, a distress signal. Embedding the same file twice re
 Avoid putting the same picture on both sides: a player whose side the briefing does not know (a dynamic slot, for instance) would see it twice.
 
 > 💬 *"Put map.jpg in the blue briefing."*
+
+### Make a mission's briefing {#mission-briefing}
+
+*Folder (built) · ⭐* — The AI writes the scenario's words (title, context, objectives, known threats, flow); the tool reads everything else in the built mission — date, weather, bullseye, flights, support, flight plan, the presets in the cockpits, each target's coordinates — and writes `docs/briefing.pptx` on the VEAF template, an overview map and one zoom per objective in `docs/maps/`, and puts those maps in the DCS briefing (blue and neutral).
+No script: an AI with no command line on your PC (Claude Desktop in chat mode) does it too.
+Build the mission first, and run it again after every change: it replaces its own pictures.
+The PPTX imports into Google Slides; the PDF is exported from PowerPoint or Slides.
+OpenStreetMap background, or OpenTopoMap (relief) for a desert; without the network, the maps are drawn on a plain background.
+
+> 💬 *"Make the mission's briefing, topo background."*
 
 ---
 

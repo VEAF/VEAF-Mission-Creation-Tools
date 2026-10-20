@@ -62,6 +62,9 @@ veafOpposition.level = nil
 veafOpposition.follow = veafOpposition.FOLLOW_OFF
 veafOpposition.lowerAfter = veafOpposition.DEFAULT_lowerAfter
 veafOpposition.playersCoalition = coalition.side.BLUE
+--- true when a mission master fixed the level at 0 by hand: the QRA scaling with the opposition then
+--- send no aircraft at all (FEAT-OPPOSITION-ZERO-AIRCRAFT). A level followed down to 0 is a count.
+veafOpposition.noAircraft = false
 --- when the followed count first went below the level, nil while it is not below
 veafOpposition.lowerSince = nil
 veafOpposition.rootPath = nil
@@ -83,6 +86,12 @@ function veafOpposition.getLevel()
   return veafOpposition.level
 end
 
+--- Whether the enemy fighters are switched off: the level fixed at 0 from the menu or the marker.
+---@return boolean
+function veafOpposition.isNoAircraft()
+  return veafOpposition.noAircraft
+end
+
 local function _followName(mode)
   if mode == veafOpposition.FOLLOW_PLAYERS then
     return veaf.t("opposition.follow.players")
@@ -96,7 +105,9 @@ end
 
 --- Tell everybody what the opposition is sized for now.
 function veafOpposition.announce()
-  if veafOpposition.level then
+  if veafOpposition.noAircraft then
+    trigger.action.outText(veaf.t("opposition.no_aircraft"), 15)
+  elseif veafOpposition.level then
     trigger.action.outText(veaf.t("opposition.level", veafOpposition.level, _followName(veafOpposition.follow)), 15)
   else
     trigger.action.outText(veaf.t("opposition.no_level"), 15)
@@ -252,6 +263,7 @@ function veafOpposition.setFollow(mode)
   veafOpposition.follow = mode
   veafOpposition.lowerSince = nil
   if mode ~= veafOpposition.FOLLOW_OFF then
+    veafOpposition.noAircraft = false
     -- a fresh count right away rather than after a whole beat, through the hysteresis all the same:
     -- a server still empty when the mission starts must not undo the level it was generated with
     local count = veafOpposition.measure()
@@ -270,6 +282,16 @@ end
 -- Commands: the marker and the radio menu
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Fix the level by hand and stop following: 0 switches the enemy fighters off, more sends them again.
+--- Said to everybody, even when the number does not change (a followed 0 becoming a switch-off).
+---@param level number a count of player aircraft
+function veafOpposition.fixLevel(level)
+  veafOpposition.setFollow(veafOpposition.FOLLOW_OFF)
+  veafOpposition.setLevel(level, true)
+  veafOpposition.noAircraft = veafOpposition.level == 0
+  veafOpposition.announce()
+end
+
 --- Apply one `_opposition` argument: a number fixes the level, a follow mode follows, nothing says it.
 ---@param argument string|nil
 ---@return boolean whether the argument was understood
@@ -281,10 +303,7 @@ function veafOpposition.command(argument)
   end
   local level = tonumber(argument)
   if level then
-    veafOpposition.setFollow(veafOpposition.FOLLOW_OFF)
-    if not veafOpposition.setLevel(level) then
-      veafOpposition.announce()
-    end
+    veafOpposition.fixLevel(level)
     return true
   end
   if veafOpposition.setFollow(argument) then
@@ -311,10 +330,7 @@ end
 
 --- Radio command: a fixed level, in one click — the players actually on CAP tonight.
 function veafOpposition.radioSetLevel(level)
-  veafOpposition.setFollow(veafOpposition.FOLLOW_OFF)
-  if not veafOpposition.setLevel(level) then
-    veafOpposition.announce()
-  end
+  veafOpposition.fixLevel(level)
 end
 
 function veafOpposition.radioFollow(mode)
@@ -332,9 +348,9 @@ function veafOpposition.buildRadioMenu()
     veafRadio.USAGE_ForAll
   )
   local levelPath = veafRadio.addSubMenu(veaf.t("menu.opposition.level"), veafOpposition.rootPath)
-  for level = 1, veafOpposition.MENU_LEVELS do
+  for level = 0, veafOpposition.MENU_LEVELS do
     veafRadio.addSecuredCommandToSubmenu(
-      veaf.t("menu.opposition.level_entry", level),
+      level == 0 and veaf.t("menu.opposition.level_zero") or veaf.t("menu.opposition.level_entry", level),
       levelPath,
       veafOpposition.radioSetLevel,
       level,
@@ -360,6 +376,7 @@ function veafOpposition.configure(config)
   veafOpposition.enabled = true
   veafOpposition.level = nil
   veafOpposition.lowerSince = nil
+  veafOpposition.noAircraft = false
   if config.level ~= nil then
     veafOpposition.setLevel(config.level, true)
   end

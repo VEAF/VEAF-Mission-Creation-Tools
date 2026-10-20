@@ -148,10 +148,12 @@ class TestShippedDefaultMigration(unittest.TestCase):
         preset = self.manager.get_radios_for("blue", "plane", "F-16C_50")
         self.assertIsNotNone(preset)
         result = preset.to_dict()
-        self.assertEqual(result[1]["channels"][1], 243.0)  # Guard/UHF
-        self.assertEqual(result[1]["channels"][2], 390.0)  # Archer
-        self.assertEqual(result[2]["channels"][1], 121.5)  # Guard/VHF
-        self.assertEqual(result[2]["channels"][2], 131.0)  # Batumi
+        # No Guard preset since FEAT-AI-ZERO-SETUP (David, 2026-10-20): every aircraft reaches Guard on
+        # its own, and channel 1 is what the build promotes to the group's frequency.
+        self.assertEqual(result[1]["channels"][1], 390.0)  # Archer
+        self.assertEqual(result[2]["channels"][1], 131.0)  # Batumi
+        self.assertNotIn(243.0, result[1]["channels"].values())
+        self.assertNotIn(121.5, result[2]["channels"].values())
         self.assertNotIn(3, result)  # F-16 has no 3rd (FM) radio
 
     def test_a10c2_is_resolved_by_the_packer_default_without_an_override(self):
@@ -161,8 +163,8 @@ class TestShippedDefaultMigration(unittest.TestCase):
         preset = self.manager.get_radios_for("blue", "plane", "A-10C_2")
         self.assertIsNotNone(preset)
         result = preset.to_dict()
-        self.assertEqual(result[1]["channels"][2], 131.0)  # VHF (Batumi) on radio 1
-        self.assertEqual(result[2]["channels"][2], 390.0)  # UHF (Archer) on radio 2
+        self.assertEqual(result[1]["channels"][1], 131.0)  # VHF (Batumi) on radio 1
+        self.assertEqual(result[2]["channels"][1], 390.0)  # UHF (Archer) on radio 2
         self.assertEqual(result[3]["channels"][1], 30)  # FM on radio 3
 
     def test_ch47_keeps_its_explicit_fm_uhf_override(self):
@@ -173,7 +175,7 @@ class TestShippedDefaultMigration(unittest.TestCase):
         self.assertIsNotNone(preset)
         result = preset.to_dict()
         self.assertEqual(result[1]["channels"][1], 30)  # FM
-        self.assertEqual(result[2]["channels"][1], 243.0)  # UHF (Guard)
+        self.assertEqual(result[2]["channels"][1], 390.0)  # UHF (Archer, channel 1 since Guard left the plan)
         self.assertNotIn(3, result)
 
     def test_mi8mt_keeps_its_explicit_none_override(self):

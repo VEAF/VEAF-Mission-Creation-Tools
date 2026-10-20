@@ -1,5 +1,6 @@
 from . import (  # noqa: F401
     about,
+    ai_setup,
     aircraft_groups,
     airfield_channels,
     ask,

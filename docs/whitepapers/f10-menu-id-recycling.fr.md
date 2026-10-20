@@ -224,7 +224,18 @@ Il a été mesuré le 2026-10-10, en solo, en garant jusqu'à 50 000 commandes d
 Rien n'est mesurable : ni la mémoire de DCS, dont le bruit est d'environ 100 Mo, soit moins de 2 Ko par commande ; ni les images par seconde ; ni la vitesse des opérations ordinaires, qui ne ralentissent pas quand le menu grossit.
 La mémoire Lua de la mission est passée de 46 à 66 Mo, soit au plus 0,4 Ko par commande, ramasse-miettes compris.
 Une longue mission devrait garer quelques milliers de numéros au plus : c'est une estimation, non mesurée, mais elle reste dix fois sous le palier testé.
-Il n'y a pas lieu de borner le stock.
+
+Ce test solo ne voit pas un plafond qui existe en multijoueur, lu le 2026-10-19 dans `bin/wRadio.dll`, que DCS 2.9.30 livre en clair.
+Quand DCS envoie un menu à un client, il écrit pour chaque nœud trois compteurs : ses commandes, ses sous-menus et la liste qui fixe leur ordre d'affichage.
+Au-delà de 8191, il écrit dans `dcs.log` un message `MissionCommandMenu %s, commandCount enormous %d` (ou `subMenuCount`, `itemsCount`) et ramène le compte à 8192 à la lecture : le nœud est tronqué.
+Le plafond vaut par nœud, pas pour tout le menu, et la pagination « Other... » n'y change rien, elle ne concerne que l'affichage.
+Le solo ne le voit pas parce que ce code ne tourne que pour envoyer un menu à un client ou lire celui qu'on reçoit.
+Une commande garée avec un parent `nil` va à la racine du menu du groupe 999999 : si DCS garde ce menu, tout le stock tient dans un seul nœud, plafonné vers 8191 commandes.
+Ce n'est pas établi : `wRadio.dll` ne garde une commande de groupe que pour la coalition 0, 1 ou 2, et la coalition d'un groupe qui n'existe pas est choisie dans `Scripting.dll`, qui est protégée et n'a pas été ouverte.
+Le contrôle se fait en jeu, et sur le serveur, puisque DCS vérifie aussi le compte à l'écriture : garer 9 000 commandes en multijoueur, faire rejoindre un client, chercher `commandCount enormous` dans le `dcs.log` du serveur.
+Si le plafond s'applique, la parade est de ranger les commandes garées dans des sous-menus du groupe 999999, un millier chacun par exemple, pour qu'aucun nœud ne s'en approche.
+Créer un sous-menu prend lui aussi un identifiant, ce qui est justement le but.
+Réutiliser la plus ancienne commande garée ne marche pas : il faut la supprimer, ce qui libère un identifiant et rouvre le trou que le garage bouche.
 
 ### 5.3 L'ordre des entrées
 
@@ -397,7 +408,8 @@ Au 2026-10-10, la vérification en jeu d'une mission CTLD reste à faire.
 - **VMCT a une option pour mesurer en multijoueur** : `RADIO.menu_stats: true` dans le `mission.yaml` écrit dans `dcs.log`, à chaque rafraîchissement, la taille du menu et ce qui a changé. Elle sert à mesurer le point précédent sur une vraie mission.
 - **Les menus de coalition n'ont pas été mesurés.** Le stock unique d'identifiants rend le même comportement très probable.
 - **L'ordre exact de réutilisation est déduit**, pas mesuré directement. Le correctif ne dépend pas de cet ordre.
-- **Les commandes inertes s'accumulent** sans borne pendant une mission. Jusqu'à 50 000, leur coût n'est pas mesurable en solo (section 5.2) ; en multijoueur, ce que le serveur transmet aux clients pour un groupe sans membres n'a pas été mesuré.
+- **Les commandes inertes s'accumulent** sans borne pendant une mission. Jusqu'à 50 000, leur coût n'est pas mesurable en solo (section 5.2) ; en multijoueur, un nœud de menu est plafonné à 8191 entrées quand DCS l'envoie à un client, et le stock de garage peut l'atteindre (section 5.2).
+- **Reste à vérifier en jeu si DCS garde le menu du groupe 999999.** S'il le garde, le stock est plafonné et un client qui rejoint le reçoit avec les autres ; sinon, chaque commande garée ne coûte qu'un message réseau. Le contrôle est décrit en section 5.2.
 
 ## Références
 

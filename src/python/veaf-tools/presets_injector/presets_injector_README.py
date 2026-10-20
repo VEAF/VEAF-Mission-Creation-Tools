@@ -125,7 +125,7 @@ presets_assignments:
 ## Output
 
 - Modified .miz file with injected radio presets
-- Kneeboard images (if presets are used) saved as `KNEEBOARD/IMAGES/presets-{preset_name}.png` within the mission file
+- Kneeboard pages (if presets are used) saved as `KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png` within the mission file, plus the calibration page `KNEEBOARD/IMAGES/00-veaf-calibration.png`
 - Console output showing processing progress and number of units updated
 
 ## Troubleshooting

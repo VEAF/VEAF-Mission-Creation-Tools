@@ -106,6 +106,16 @@ class TestValidateModulesSemantics(unittest.TestCase):
             fn({"modules": {"FOOBAR": True}})
         self.assertIn("FOOBAR", mock_log.error.call_args[0][0])
 
+    def test_a_retired_module_is_a_warning_naming_the_release(self) -> None:
+        # HERCULES left in 6.18.0 while `hercules: false` sat in every Foothold mission.yaml: as an
+        # unknown key it failed `validate` on all ten, for a line that switched nothing on.
+        mock_log, fn = self._patched()
+        fn({"modules": {"hercules": False}})
+        mock_log.error.assert_not_called()
+        warning = mock_log.warning.call_args[0][0]
+        self.assertIn("hercules", warning)
+        self.assertIn("6.18.0", warning)
+
     def test_removed_external_modules_section_is_error(self) -> None:
         mock_log, fn = self._patched()
         with self.assertRaises(typer.Abort):

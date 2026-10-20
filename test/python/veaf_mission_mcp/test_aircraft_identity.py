@@ -107,6 +107,23 @@ class TestCallsignFromTheGroupName:
         assert group["units"][0]["callsign"]["name"] == "Arco11"
         assert note is not None and "already" in note
 
+    def test_a_bare_family_word_is_that_family(self) -> None:
+        """An AWACS named ``Magic`` became ``Overlord11`` without a word (sandbox demo, 2026-10-20)."""
+        group = dict(_flight(1), name="Magic")
+        assert assign_identities(_content_with(), group, country_id=2, task="AWACS") is None
+        assert group["units"][0]["callsign"] == {1: 2, 2: 1, 3: 1, "name": "Magic11"}
+
+    def test_a_family_word_then_more_words_is_that_family(self) -> None:
+        group = dict(_flight(1), name="Magic AWACS")
+        assign_identities(_content_with(), group, country_id=2, task="AWACS")
+        assert group["units"][0]["callsign"]["name"] == "Magic11"
+
+    def test_a_bare_family_word_takes_its_first_free_flight(self) -> None:
+        content = _content_with(("USA", "AWACS", _placed({1: 2, 2: 1, 3: 1, "name": "Magic11"}, "010")))
+        group = dict(_flight(1), name="Magic")
+        assign_identities(content, group, country_id=2, task="AWACS")
+        assert group["units"][0]["callsign"]["name"] == "Magic21"
+
     def test_a_name_that_is_not_a_callsign_says_nothing(self) -> None:
         group = dict(_flight(1), name="Tanker")
         assert assign_identities(_content_with(), group, country_id=2, task="Refueling") is None
@@ -229,3 +246,14 @@ def test_a_tenth_aircraft_continues_on_the_next_flight() -> None:
     names = [u["callsign"]["name"] for u in group["units"]]
     assert names[8:] == ["Enfield19", "Enfield21"]
     assert len(set(names)) == 10
+
+
+def test_a_bare_family_word_whose_flights_are_all_held_says_so() -> None:
+    placed = [
+        ("USA", "AWACS", _placed({1: 2, 2: flight, 3: 1, "name": f"Magic{flight}1"}, f"{flight:03d}"))
+        for flight in range(1, 10)
+    ]
+    group = dict(_flight(1), name="Magic")
+    note = assign_identities(_content_with(*placed), group, country_id=2, task="AWACS")
+    assert group["units"][0]["callsign"]["name"] != "Magic11"
+    assert note is not None and "Magic" in note

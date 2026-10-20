@@ -51,6 +51,11 @@ Caucase/
 `template/` se prépare une fois, comme n'importe quel dossier de mission (`.\veaf-tools.exe prepare`, ou l'action MCP `scaffold_mission`) : la carte, les slots, les presets, les scripts.
 Chaque mission de la campagne commence comme une copie de ce dossier.
 
+Son `src/presets.yaml` est donc le plan de fréquences de **toute** la campagne : chaque mission en hérite.
+Écrivez-le pour les moyens réels de la campagne — AWACS, ravitailleurs, navires, aérodromes —, sous les noms que donne le briefing, et mettez à jour le template dès qu'une mission ajoute un moyen.
+Le plan livré par `prepare` est celui d'un Open Training (Magic 282.2, Arco-1 290.5…) : laissé tel quel, toutes les radios et toutes les planchettes de la campagne le suivent, et pas la mission.
+Le build liste chaque AWACS, ravitailleur ou navire qu'aucun preset ne porte, dans son journal et dans `presets-validation-report.md` : une mission n'est pas prête tant que cette liste n'est pas vide.
+
 L'historique est gardé en entier : pour annuler une fusion, remettez `campaign-state.before.yaml` à la place de `campaign-state.yaml`.
 
 ## Déclarer une campagne {#declare}
@@ -361,7 +366,7 @@ Relancez `campaign briefing` après chaque modification de la mission.
 | Déroulement mission | objectifs, opposition aérienne, défenses antiaériennes, autres informations (ravitaillement, dégagements, sauvetage) |
 | Plan de fréquences | UHF puis VHF, la garde en tête |
 | Plan de navigation | les waypoints que portent les avions puis les hélicoptères des joueurs après leur point de départ, `BULLSEYE` compris : nom, position en DMS, altitude et sa référence (`BARO`, ou `AGL` au-dessus du sol) ; les types d'appareil quand une catégorie porte plusieurs routes |
-| Coordonnées des objectifs | le centre de chaque zone en DMS, et son altitude quand une grille de terrain a été relevée (`terrain-sweep`) |
+| Coordonnées des objectifs | le centre de chaque zone en DMS, et son altitude quand le théâtre a une grille de terrain (relevée par `terrain-sweep`, ou téléchargée si elle est publiée) |
 
 Les objectifs sont les zones que nomment les titres des tâches de la mission dans `briefing.yaml` (« Frapper le dépôt de Khobi » nomme la zone *Dépôt de Khobi*), à défaut les objectifs de la campagne.
 Les vols sont ceux des joueurs : ni les gabarits de slots dynamiques ni les modèles de spawn VEAF n'en sont ; un avion de soutien n'apparaît qu'une fois, selon sa tâche ; le vent se dit d'où il vient, comme le lit un pilote.

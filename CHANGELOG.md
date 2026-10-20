@@ -12,10 +12,81 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 >
 > That is the failure mode this section exists to prevent. **A pull request adds its entry under
 > `[Unreleased]` and does not touch the version**; the release commit renames the heading and moves
-> `pyproject.toml` with both agent manifests. Add new entries at the **end** of the section: two PRs
+> `pyproject.toml`. Add new entries at the **end** of the section: two PRs
 > appending merge cleanly far more often than two PRs prepending.
 
 ## [Unreleased]
+
+## [6.31.0] — 2026-10-20
+
+### Changed
+
+- **Authoring guide — campaign missions**: every campaign mission puts the Stennis, the Roosevelt and the Tarawa at sea for the players' side, and the guide reminds that `campaign next` starts from the campaign's template, so what a previous mission added by hand is to be redone.
+- **Radio presets — a mission is not ready while the build lists an asset no preset carries**: the campaign page, the authoring guide and the mission prompts say so, and that a campaign template's `src/presets.yaml` is the frequency plan every mission inherits (*Kolkhida* missions 1 and 2 flew on the Open Training plan the scaffold ships).
+- **The radio presets kneeboard page, redrawn for the window DCS shows it in** (FEAT-KNEEBOARD-PRESETS-REDESIGN).
+  DCS stretches a kneeboard image to fill the kneeboard window, so the old landscape page read squashed to about 60 % of its width; the page is now a fixed 1536 × 2304 portrait, the 2:3 of the kneeboard.
+  Each radio is titled with its cockpit set (`1. COMM 1 · ARC-210`, the Viggen's `FR22 / FR24`) and its band, stops at its last channel, and shows AM/FM when it carries both; blocks flow into two columns and onto `presets_2.png` when one page is not enough.
+  Every mission with presets pages also gets `KNEEBOARD/IMAGES/00-veaf-calibration.png`, a calibration page for pilots who resized the window; the page texts follow the tool's language.
+  The header texts start after the kneeboard's chapter tabs and the page footer ends before its UP/DN buttons, both drawn by DCS over the page (seen in game on 2026-10-18).
+  Pages are written as 256-colour PNGs: in full colour the Caucasus OT's 95 pages doubled its `.miz` to 19 MB, and a page drops from 230 kB to 97 kB with no visible change.
+- **The campaign mission briefing no longer prints a Guard line** in its frequency plan (FEAT-MCP-MISSION-BRIEFING), like the shipped presets plan: every aircraft reaches Guard with its own control.
+
+### Added
+
+- **« 0 avion » switches the enemy fighters off** (FEAT-OPPOSITION-ZERO-AIRCRAFT).
+  *Opposition → Niveau → 0 avion*, or the `_opposition 0` marker, keeps every QRA marked `scale_with_opposition: true` on the ground, whatever enters its zone, until the level is fixed above 0 or a follow mode is chosen again; *Niveau actuel* says « aucune chasse adverse (fixe) ».
+  A level a follow mode lowers to 0, or `level: 0` in `mission.yaml`, stays a count: the zone's tiers still answer.
+- **The mission options enforced on every player, from `mission.yaml`** (FEAT-FORCED-MISSION-OPTIONS).
+  `mission.forced_options` sets, at every build, what the editor's *Mission options* panel enforces: labels, F10 view, external views, F10 marks, wake turbulence, G-effects, civil traffic and the rest, in names that follow the editor's labels (`labels: none`, `f10_view: fog_of_war`); absent, the mission's own options are kept.
+  `f10_view_by_role` sets the F10 map of each role (pilot, JTAC, tactical commander, observer, spectator, Airboss), with the unit layers to hide.
+  `validate` reports an unknown option or value, and the MCP action `set_forced_options` writes the block.
+- **Carrier deck lights follow VEAF air operations** (FEAT-FORCED-MISSION-OPTIONS): recovery lights when they start, back to DCS when they stop, through the editor's *SET CARRIER LIGHTING MODE*; without `net`, the lights stay as DCS sets them and a warning says so.
+- **Mission Editor tips page**: editor trigger actions VMCT does not wrap and that are worth knowing — a failure on demand, a group only the game master commands, a model animation, the briefing changed mid-mission — with what is read in the editor and what is measured.
+- **Elevation grids downloaded when the PC has none** (FEAT-TERRAIN-DATA-DOWNLOAD).
+  The AI assistant answers terrain questions (`terrain_elevation`, `describe_terrain`, the surface checks of a placement) on a PC with no DCS: a theatre with no local grid gets the one published in the GitHub release [`terrain-data`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data) on first use, size and SHA-256 checked.
+  A grid swept on the PC keeps priority; offline, the answer stays "sweep it in DCS".
+  Maintainers publish the swept grids with `veaf-build terrain-data --publish`.
+
+- **Install the tools, connect the AI, ask for a mission** (FEAT-AI-ZERO-SETUP).
+  `veaf-tools ai-setup` declares the MCP server in every AI assistant found on the PC — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode — merging into their settings; the updater suggests it after a first install, and the wizard lists it.
+  The two mission prompts, objective mission and Open Training, ship in the executable with the authoring guide: the new action `describe_mission_prompt` serves them, and the guide sends a user who asks for a mission there, so "create a mission" is enough — nothing to paste from the repository any more.
+  The server updates itself: at start-up, at most once every 4 hours and only when `check_updates` is on, it starts the updater in its own folder when a newer release is out.
+  The install page and the repository README open with the commands that install everything, for a person or for the assistant itself.
+  The install page opens with which AI to choose, free offers included (October 2026): Codex (in ChatGPT Desktop, `~/.codex/config.toml`) and Antigravity (`~/.gemini/config/mcp_config.json`) are connected by `ai-setup` too; Gemini CLI, which no longer serves free Google accounts, is only connected when its `settings.json` exists, so an Antigravity install is no longer taken for it.
+  Two new actions, `read_mission_file` and `edit_mission_file`, read and edit a mission folder's YAML sources (`mission.yaml`, `src/*.yaml`) for an assistant with no file access: in Claude Desktop's chat mode, an assistant could not rename a mission.
+  Every new mission, however small, now starts with the guide's "right after `scaffold_mission`" checklist: the presets plan (and never `none` to quiet its report), `versions.yaml`, the example waypoints, the slot catalogue's coalitions, and `SKYNET` for a mission with air defence — a test mission on 6.30.0 kept the scaffold's defaults until the user asked about each.
+- **Four entries added to the known limitations**: a hole left in a numbered table of `src/mission/mission` breaks the build; a second `convert-v5 --force` replaces `mission.yaml` with a minimal one; a slot for a disabled or missing module shows but cannot be taken; the briefing maps and documents of the mission prompts are scripts, which an assistant without a shell (Claude Desktop in chat mode) cannot run.
+- **`build_mission_briefing`: a mission's VEAF briefing with no script** (FEAT-MCP-MISSION-BRIEFING): an assistant with no shell — Claude Desktop in chat mode — now produces it too. It passes the scenario's words; the executable reads the built mission and writes `docs/briefing.pptx` (the objective-mission template's nine pages, in the mission's language), an overview map and one zoom per objective in `docs/maps/`, and puts the maps into the DCS briefing, in the folder and the built `.miz`, first for blue and neutral. The frequency plan is the presets injected into the cockpits; the target coordinates are those of the placed objects. `basemap: topo` draws on OpenTopoMap, for a desert.
+- **TheChannel is a supported theatre** (FEAT-TERRAIN-DATA-DOWNLOAD): `terrain-sweep TheChannel` answered "Unsupported theatre", so its elevation grid could not be swept; a blank mission is now generated for it, centred on its airfields.
+
+### Fixed
+
+- **Refreshing the Foothold missions to a new Lekaa release** (FIX-FOOTHOLD-5-3-0-INTAKE).
+  `convert-other --update` now rewrites `custom_scripts:` to what the release loads, in its load order: in 5.3.0 `zoneCommander.lua` became `zoneCommanderv2.lua` on every map, and the preserved list kept loading the previous engine against the new config. Your own scripts stay, after the upstream ones.
+  `Convert-FootholdBatch.ps1` finds the adopted folders again (it read the theatre in one key form only) and ignores the other missions on the same map, such as the Open Training ones.
+  `validate` reports a withdrawn module such as `hercules` as a warning instead of failing on it.
+  The batch no longer turns an LF `mission.yaml` into CRLF when it removes `build.scripts_path` after a build.
+- **The updater installs `veaf-tools.exe` while an MCP server runs it** (FEAT-AI-ZERO-SETUP).
+  Windows refuses to overwrite a running executable, and the install failed in a window nobody saw: an MCP server stayed on 6.22.1 for five weeks while 6.30.0 sat in `published/`.
+  The running copy is now renamed aside, which Windows allows, and deleted at the next update.
+  The updater replaces itself the same way: the `.cmd` script it used to leave behind did not put the new updater in place when the updater ran without a console window — from a terminal tool, and so from the server's own update (measured 2026-10-20) — and is gone.
+- **`veaf-tools mcp` no longer prints the version banner on stdout**, whose first line was not JSON-RPC (FEAT-AI-ZERO-SETUP).
+- **The new-version notice did not appear** (FEAT-AI-ZERO-SETUP, measured 2026-10-20): the check read the version from the release's tag, `published-latest`, which holds none; it now reads it from the release name, as the updater does.
+- **The executable ships the parking captures** (FEAT-AI-ZERO-SETUP): `veaf_libs/data/parking/` was never bundled, so an air group starting on a ramp or a runway failed with "no parking data captured" from the executable, while it worked from the repository.
+  A test now fails on any package data file the build does not ship, unless it is declared build- or test-only.
+- **`edit_route` `set` moves a waypoint** (FEAT-AI-ZERO-SETUP): it accepted `position` and dropped it without a word, so an assistant read the route back unchanged and rebuilt the waypoint by hand. Waypoint 1, the group's own position, is refused with a pointer to `set_group_properties` `move_to`; an operation that takes no position now refuses one.
+- **The presets report no longer suggests `none` for a frequency DCS ignores anyway** (FEAT-AI-ZERO-SETUP): under each informational entry (a warbird losing the UHF channels, an L-39 those above 390 MHz) `presets-validation-report.md` said to set the type to `none`, which removes all its presets, the working ones too; two assistants stripped 11 aircraft types that way. It now says there is nothing to do; the `none` hint stays for the frequencies DCS rejects at load.
+- **A flight named after a callsign family gets it, digit or not** (FEAT-AI-ZERO-SETUP): an AWACS named `Magic` became `Overlord11` without a word, since only `Magic 1` or `Magic1` read as a callsign; `Magic` and `Magic AWACS` now give the family's first free flight.
+- **The mission prompts no longer ask for a skill that does not ship** (FEAT-AI-ZERO-SETUP): they told the assistant to load `veaf-mission-editor:veaf-mission-authoring`, gone with the plugin; they now point at `describe_authoring_guide`.
+- **The shipped presets plan has no Guard channel any more** (FEAT-AI-ZERO-SETUP, David's decision): channel 1 was Guard, and the build gives a group the frequency of its first radio's channel 1, so every flight started on the distress frequency (243 MHz, 121.5 MHz for a VHF-first aircraft). Every aircraft reaches Guard with its own control; the channels move down one (Archer is channel 1, Batumi channel 1 of the second radio). Existing missions keep their own `presets.yaml`.
+- **The short listing of `describe_known_limitations` drops the titles** (FIX-LIMITATIONS-SHORT-LISTING): it had reached 14 988 of the 15 000 characters a tool result holds, and the next limitation would have spilled it into several pieces; it keeps `id`, `kind`, `area` and `theatres`, about 7 000 characters. An entry read with `area` or `id` still comes in full.
+- **`build_mission_briefing` deletes only the pictures it wrote** (security review, 6.31.0): the stale pictures of an earlier run were read from the mission's `mapResource`, and a name there could climb out of `l10n/DEFAULT/`; only a `briefing-*.jpg` inside that folder is deleted now.
+
+### Removed
+
+- **The Claude Code plugin and the Gemini CLI extension** (`plugin/`, the `veaf` marketplace) (FEAT-AI-ZERO-SETUP): `veaf-tools ai-setup`, the server's own updates and the guide it serves replace them.
+  Remove an installed plugin with `claude plugin uninstall veaf-mission-editor@veaf`, or the extension with `gemini extensions uninstall veaf-mission-editor`, then run `ai-setup`.
+  The version now lives in `pyproject.toml` alone.
 
 ## [6.30.0] — 2026-10-15
 

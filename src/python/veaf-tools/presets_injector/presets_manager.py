@@ -19,7 +19,6 @@ This module provides classes to manage radio presets.
 
 import difflib
 import io
-import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -32,7 +31,7 @@ from veaf_libs.bundled_data import read_bundled_text
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 
-from .radio_frequency_validator import FrequencyRange, RadioSpec, get_radios
+from .radio_frequency_validator import FrequencyRange, RadioSpec, get_aircraft_name, get_radios
 
 # ── Radio roles (ADR 0010: per-type radio-preset projection) ────────────────
 # A Radio role is the functional slot a Channel list plays across all aircraft,
@@ -1063,6 +1062,9 @@ class RadioLayoutRadio:
             is already an exact fit; Tripack itself truncated its VHF list to
             fit 47 slots — see the exploration doc §7/§8.4). ``None`` (the
             default) means unbounded.
+        kneeboard_title: The radio's heading on the kneeboard, replacing the
+            set's name from the specs (the AJS-37's ``FR22 / FR24``). ``None``
+            keeps the specs name.
     """
 
     role: str
@@ -1072,6 +1074,7 @@ class RadioLayoutRadio:
     reserved_head_slots: list[int] = field(default_factory=list)
     capacity: int | None = None
     head_labels: list[str] = field(default_factory=list)
+    kneeboard_title: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1129,6 +1132,7 @@ def parse_radio_layouts(data: dict[str, Any]) -> dict[str, RadioLayoutEntry]:
                 reserved_head_slots=reserved_head_slots,
                 capacity=_parse_capacity(radio_data.get("capacity"), index, unit_type_key),
                 head_labels=[str(label) for label in radio_data.get("head_labels") or []],
+                kneeboard_title=str(radio_data["kneeboard_title"]) if radio_data.get("kneeboard_title") else None,
             )
         layouts[unit_type_key] = RadioLayoutEntry(radios=radios)
     return layouts
@@ -1969,23 +1973,111 @@ class PresetsManager:
             return preset_assignment.preset_definition
         return pack_preset_for_type(self.channel_lists, coalition, unit_type)
 
-    def generate_type_images(
-        self, injected: dict[tuple[str, str], "PresetDefinition"], width: int = 1200, height: int | None = None
-    ):
-        """Render per-type kneeboard images for the injected presets (ADR 0012)."""
-        generator = RadioPresetsImageGenerator(self.preset_collections, width=width, height=height)
-        self.presets_images = generator.generate_type_images(injected)
+    def generate_type_images(self, injected: dict[tuple[str, str], "PresetDefinition"]) -> None:
+        """Render per-type kneeboard pages for the injected presets, plus the shared calibration page.
+
+        The calibration page is added only when at least one presets page is: a mission with no
+        kneeboard gets no page telling the pilot how to set one up.
+
+        Args:
+            injected: The presets actually injected, keyed by (coalition, concrete unit_type).
+        """
+        images = RadioPresetsImageGenerator(self.preset_collections).generate_type_images(injected)
+        if images:
+            images[KNEEBOARD_CALIBRATION_PATH] = render_calibration_page()
+        self.presets_images = images
 
 
-# ── Kneeboard rendering constants (ADR 0012) ────────────────────────────────
-# All radio title bars are neutral grey (the red/green/orange per-radio coding
-# is dropped); a channel's `priority` highlights its Name/Freq cells in orange
-# (a "P<n>" marker in the Name cell); its `color` fills the CH cell.
-_RADIO_TITLE_BG = (128, 128, 128)
-_PRIORITY_HIGHLIGHT = (255, 165, 0)  # orange "highlighter"
-# A single-radio preset taller than this many slots is split across columns so
-# the page stays legible (the AJS-37's 47-slot radio → two columns).
-_COLUMN_SPLIT_THRESHOLD = 25
+# ── Kneeboard rendering (ADR 0012, FEAT-KNEEBOARD-PRESETS-REDESIGN) ──────────
+# DCS maps a kneeboard image onto the whole kneeboard window, never keeping its proportions
+# (`KNEEBOARD/indicator/init.lua`, `image_page_template`: texture coordinates 0..1 on the full quad).
+# The cockpit kneeboard is 0.142 x 0.214 (`declare_kneeboard_device.lua`) and the default 2D window
+# measured 2:3 too (2026-10-18), so every page is drawn at 2:3 — twice ED's 768 px width, for VR.
+KNEEBOARD_PAGE_SIZE = (1536, 2304)
+# One page for the whole mission, in the folder every aircraft shows.
+KNEEBOARD_CALIBRATION_PATH = "KNEEBOARD/IMAGES/00-veaf-calibration.png"
+
+_PAGE_W, _PAGE_H = KNEEBOARD_PAGE_SIZE
+_MARGIN = 56
+_GUTTER = 36
+_HEADER_H = 150
+_FOOTER_H = 50
+_BLOCK_TITLE_H = 72
+_COL_HEAD_H = 44
+_BLOCK_HEAD_H = _BLOCK_TITLE_H + _COL_HEAD_H
+_ROW_H = 52
+_BLOCK_GAP = 28
+_BODY_TOP = _MARGIN + _HEADER_H + 10
+_COLUMN_H = _PAGE_H - _MARGIN - _HEADER_H - 30 - _FOOTER_H - _MARGIN
+_COLUMN_W = (_PAGE_W - 2 * _MARGIN - _GUTTER) // 2
+_CH_W = 92
+_MOD_W = 70
+# A block does not start at the foot of a column with fewer rows than this.
+_MIN_ROWS_AT_FOOT = 4
+# The kneeboard window draws its own controls over the page (David's A-10C II screenshot, 2026-10-18,
+# page shown 830 px wide): the chapter tabs and their close cross cover the top-left corner up to
+# x = 111 and y = 129..177 page pixels, and the UP/DN buttons the bottom-right from x = 1463 and y = 2174.
+# The header texts start after the tabs and the footer ends before the buttons.
+_HEADER_TEXT_X = 150
+_FOOTER_RIGHT_X = _PAGE_W - 130
+
+_PAPER = (252, 251, 246)
+_INK = (20, 22, 26)
+_MUTED = (110, 114, 122)
+_HEADER_BG = (34, 45, 58)
+_HEADER_SUBTITLE = (190, 200, 212)
+_RADIO_TITLE_BG = (66, 78, 92)
+_RADIO_BAND_TEXT = (205, 212, 220)
+_COLUMN_HEAD_BG = (222, 225, 230)
+_ZEBRA = (240, 241, 236)
+_RULE = (190, 193, 198)
+# A channel's `priority` highlights its row from the name cell on; its `color` fills the CH cell.
+_PRIORITY_HIGHLIGHT = (255, 196, 70)
+_COALITION_BG = {"blue": (40, 96, 196), "red": (196, 46, 46)}
+
+_FONT_SIZES = {
+    "title": 64,
+    "subtitle": 30,
+    "badge": 30,
+    "radio": 36,
+    "band": 26,
+    "column": 22,
+    "ch": 30,
+    "name": 30,
+    "freq": 32,
+    "mod": 24,
+    "footer": 22,
+    "calibration": 40,
+    "calibration_lead": 40,
+}
+_BOLD_FONTS = {"title", "badge", "radio", "column", "ch", "freq", "calibration_lead"}
+
+
+@dataclass(frozen=True)
+class KneeboardRow:
+    """One row of a radio block: the CH cell's text and the channel on that slot, if any."""
+
+    label: str
+    channel: Channel | None
+
+
+@dataclass(frozen=True)
+class KneeboardBlock:
+    """One radio on the page: its heading, its band and its rows."""
+
+    title: str
+    band: str
+    show_mod: bool
+    rows: list[KneeboardRow]
+
+
+@dataclass(frozen=True)
+class KneeboardSegment:
+    """The part of a block drawn in one column; ``continued`` when the block began in an earlier one."""
+
+    block: KneeboardBlock
+    rows: list[KneeboardRow]
+    continued: bool
 
 
 def _radio_max_slot(radio: RadioDefinition) -> int:
@@ -1995,41 +2087,12 @@ def _radio_max_slot(radio: RadioDefinition) -> int:
     return max(slots, default=0)
 
 
-def _split_radio_into_columns(radio: RadioDefinition, num_columns: int) -> list[RadioDefinition]:
-    """Split one tall radio into *num_columns* side-by-side columns (ADR 0012).
-
-    Each column is a RadioDefinition covering a contiguous slot range, its
-    channels renumbered to column-local slots 1..N with ``display_labels`` carrying
-    the real pilot label (Group number / special name), so gaps and labels render
-    correctly. Reuses the normal multi-radio rendering path.
-    """
-    max_slot = _radio_max_slot(radio)
-    rows_per_column = math.ceil(max_slot / num_columns)
-    channel_by_slot = {channel.number: channel for channel in radio.channels}
-    columns: list[RadioDefinition] = []
-    for column_index in range(num_columns):
-        first_slot = column_index * rows_per_column + 1
-        last_slot = min(max_slot, (column_index + 1) * rows_per_column)
-        if first_slot > last_slot:
-            break
-        column = RadioDefinition(
-            name=f"{radio.name}_col{column_index + 1}", radio_type=radio.radio_type, title=radio.title
-        )
-        for real_slot in range(first_slot, last_slot + 1):
-            local_slot = real_slot - first_slot + 1
-            column.display_labels[local_slot] = _ch_label(radio, real_slot)
-            if real_slot in channel_by_slot:
-                column.add_channel(_clone_channel(channel_by_slot[real_slot], local_slot))
-        columns.append(column)
-    return columns
-
-
 def _ch_label(radio: RadioDefinition, slot: int) -> str:
     """The text of a kneeboard row's CH cell: the radio's pilot label for *slot*, else the slot number.
 
     A radio that carries labels (the AJS-37's Groups, the Mi-24P's channel 0, the OH-58D's "M") gets an empty
-    cell past its labelled slots: the page draws as many rows as its tallest radio, and printing the DCS slot
-    there ("21" right after "19" on the OH-58D) would read as one more preset.
+    cell past its labelled slots: printing the DCS slot there ("21" right after "19" on the OH-58D) would read
+    as one more preset.
 
     Args:
         radio: The radio the row belongs to.
@@ -2064,279 +2127,292 @@ def _contrast_text_color(background: tuple[int, int, int]) -> str:
     return "black" if luminance >= 128 else "white"
 
 
+def _format_freq(freq: float) -> str:
+    """Format a frequency in MHz with two decimals, three when the third one is set (8.33 kHz channels).
+
+    Args:
+        freq: The frequency, in MHz.
+
+    Returns:
+        ``121.50`` for 121.5, ``127.525`` for 127.525.
+    """
+    text = f"{freq:.3f}"
+    return text[:-1] if text.endswith("0") else text
+
+
+def _kneeboard_rows(radio: RadioDefinition) -> list[KneeboardRow]:
+    """The rows of one radio, up to its last channel or labelled slot; the gaps before it stay.
+
+    Args:
+        radio: The radio to lay out.
+
+    Returns:
+        One row per slot from 1 to the radio's highest slot.
+    """
+    by_slot = {channel.number: channel for channel in radio.channels}
+    return [KneeboardRow(_ch_label(radio, slot), by_slot.get(slot)) for slot in range(1, _radio_max_slot(radio) + 1)]
+
+
+def _radio_heading(
+    index: int, spec: RadioSpec | None, layout_radio: RadioLayoutRadio | None, radio: RadioDefinition
+) -> str:
+    """The heading of a radio block: its position, then the cockpit set's name.
+
+    The layout's ``kneeboard_title`` wins, then the specs name (``COMM 1: ARC-210`` reads
+    ``COMM 1 · ARC-210``), then the radio's own title for a type the specs do not know.
+
+    Args:
+        index: The radio's 1-based physical position.
+        spec: The specs entry for that position, if known.
+        layout_radio: The layout entry for that position, if any.
+        radio: The radio itself.
+
+    Returns:
+        The heading, e.g. ``1. COMM 1 · ARC-210``.
+    """
+    if layout_radio is not None and layout_radio.kneeboard_title:
+        name = layout_radio.kneeboard_title
+    elif spec is not None and spec.name:
+        set_name, _, model = spec.name.partition(":")
+        name = f"{set_name.strip()} · {model.strip()}" if model.strip() else set_name.strip()
+    else:
+        name = radio.title or radio.name
+    return f"{index}. {name}"
+
+
+def _radio_band(spec: RadioSpec | None) -> str:
+    """The band a radio tunes, from its lowest to its highest frequency.
+
+    Args:
+        spec: The radio's specs entry, if known.
+
+    Returns:
+        ``225–399.975 MHz``, or "" when the specs give no range.
+    """
+    if spec is None or not spec.ranges:
+        return ""
+    low = min(frequency_range.min_mhz for frequency_range in spec.ranges)
+    high = max(frequency_range.max_mhz for frequency_range in spec.ranges)
+    return f"{low:g}–{high:g} MHz"
+
+
+def _kneeboard_blocks(unit_type: str, preset: PresetDefinition) -> list[KneeboardBlock]:
+    """The radio blocks of a preset, in the physical order the injector writes them.
+
+    Args:
+        unit_type: The concrete DCS unit type the preset was injected into.
+        preset: The injected preset.
+
+    Returns:
+        One block per radio that has at least one row.
+    """
+    specs = get_radios(unit_type) or []
+    layout = get_radio_layout(_load_radio_layouts(), unit_type)
+    blocks: list[KneeboardBlock] = []
+    for index, radio in enumerate(preset.radios.values(), start=1):
+        rows = _kneeboard_rows(radio)
+        if not rows:
+            continue
+        spec = specs[index - 1] if index <= len(specs) else None
+        layout_radio = layout.radios.get(index) if layout is not None else None
+        blocks.append(
+            KneeboardBlock(
+                title=_radio_heading(index, spec, layout_radio, radio),
+                band=_radio_band(spec),
+                show_mod=len({channel.mod or 0 for channel in radio.channels}) > 1,
+                rows=rows,
+            )
+        )
+    return blocks
+
+
+def _paginate_blocks(
+    blocks: list[KneeboardBlock], column_height: int = _COLUMN_H
+) -> list[list[list[KneeboardSegment]]]:
+    """Flow radio blocks into pages of two columns.
+
+    A block that does not fit in what is left of a column moves whole to the next one when it fits
+    there; only a block taller than a column is split, its next segment marked ``continued``. A
+    block never starts at the foot of a column with fewer than :data:`_MIN_ROWS_AT_FOOT` rows.
+
+    Args:
+        blocks: The blocks, in order.
+        column_height: The height of a column, in pixels.
+
+    Returns:
+        Pages, each a list of two columns, each a list of segments.
+    """
+    full_column = (column_height - _BLOCK_HEAD_H) // _ROW_H
+    pages: list[list[list[KneeboardSegment]]] = [[[], []]]
+    column, used = 0, 0
+    for block in blocks:
+        rows = list(block.rows)
+        continued = False
+        while rows:
+            room = (column_height - used - _BLOCK_HEAD_H) // _ROW_H
+            fits_elsewhere = used > 0 and len(rows) <= full_column
+            if room < min(_MIN_ROWS_AT_FOOT, len(rows)) or (room < len(rows) and fits_elsewhere):
+                column, used = column + 1, 0
+                if column == 2:
+                    pages.append([[], []])
+                    column = 0
+                continue
+            taken, rows = rows[:room], rows[room:]
+            pages[-1][column].append(KneeboardSegment(block, taken, continued))
+            used += _BLOCK_HEAD_H + len(taken) * _ROW_H + _BLOCK_GAP
+            continued = True
+    return pages
+
+
+def _page_path(unit_type: str, suffix: str, page: int) -> str:
+    """The kneeboard path of one page: ``presets[-<coalition>].png``, then ``…_<n>.png`` for the next ones.
+
+    ``_`` sorts after ``.``, so ``presets_2.png`` comes after ``presets.png`` in a name-ordered folder.
+
+    Args:
+        unit_type: The DCS unit type, ``/`` and ``\\`` replaced to make a folder name.
+        suffix: ``-<coalition>`` when the type flies for both sides, else "".
+        page: The 1-based page number.
+
+    Returns:
+        The path inside the ``.miz``.
+    """
+    safe_type = unit_type.replace("/", "_").replace("\\", "_")
+    page_suffix = "" if page == 1 else f"_{page}"
+    return f"KNEEBOARD/{safe_type}/IMAGES/presets{suffix}{page_suffix}.png"
+
+
+def _load_fonts() -> dict[str, FreeTypeFont]:
+    """Load the page fonts: Arial, or Pillow's embedded font (which has the accented letters) without it.
+
+    Returns:
+        The fonts by role, at the sizes of :data:`_FONT_SIZES`.
+    """
+    fonts: dict[str, FreeTypeFont] = {}
+    for role, size in _FONT_SIZES.items():
+        try:
+            fonts[role] = ImageFont.truetype("arialbd.ttf" if role in _BOLD_FONTS else "arial.ttf", size)
+        except OSError:
+            fonts[role] = cast(FreeTypeFont, ImageFont.load_default(size))
+    return fonts
+
+
+def _draw_target(draw: ImageDraw.ImageDraw, center: tuple[float, float], size: float, ink: Any, width: int) -> None:
+    """Draw a circle inscribed in a square, with its cross: both read true only in a 2:3 window.
+
+    Args:
+        draw: The page being drawn.
+        center: The target's centre, in pixels.
+        size: The square's side, in pixels.
+        ink: The line colour.
+        width: The line width, in pixels.
+    """
+    x, y = center
+    half = size / 2
+    draw.rectangle([x - half, y - half, x + half, y + half], outline=ink, width=width)
+    draw.ellipse([x - half, y - half, x + half, y + half], outline=ink, width=width)
+    draw.line([x - half, y, x + half, y], fill=ink, width=max(1, width // 2))
+    draw.line([x, y - half, x, y + half], fill=ink, width=max(1, width // 2))
+
+
+def _draw_header(draw: ImageDraw.ImageDraw, fonts: dict[str, FreeTypeFont], title: str, subtitle: str) -> None:
+    """Draw the dark band at the top of a page, with its title and subtitle.
+
+    Args:
+        draw: The page being drawn.
+        fonts: The page fonts by role.
+        title: The large text (the aircraft's name).
+        subtitle: The line under it.
+    """
+    draw.rectangle([0, 0, _PAGE_W, _MARGIN + _HEADER_H - 20], fill=_HEADER_BG)
+    draw.text((_HEADER_TEXT_X, _MARGIN + 10), title, font=fonts["title"], fill="white", anchor="lt")
+    draw.text((_HEADER_TEXT_X, _MARGIN + 90), subtitle, font=fonts["subtitle"], fill=_HEADER_SUBTITLE, anchor="lt")
+
+
+def _encode(image: Image.Image) -> io.BytesIO:
+    """Encode a page as an optimised 256-colour PNG.
+
+    In full colour the Caucasus OT's 95 pages weighed 17 MB, which doubled its ``.miz`` (2026-10-18);
+    the page holds flat fills and anti-aliased text, and a 256-colour palette brings it from 230 kB
+    to 97 kB with no visible change.
+
+    Args:
+        image: The page.
+
+    Returns:
+        The PNG buffer, rewound.
+    """
+    buffer = io.BytesIO()
+    image.quantize(colors=256, method=Image.Quantize.MEDIANCUT).save(buffer, format="PNG", optimize=True)
+    buffer.seek(0)
+    return buffer
+
+
+def render_calibration_page() -> io.BytesIO:
+    """Render the shared calibration page: a square grid and three targets the pilot makes round.
+
+    Returns:
+        The PNG buffer.
+    """
+    fonts = _load_fonts()
+    image = Image.new("RGB", KNEEBOARD_PAGE_SIZE, _PAPER)
+    draw = ImageDraw.Draw(image)
+    _draw_header(
+        draw,
+        fonts,
+        t("presets_injector.kneeboard.calibration.title"),
+        t("presets_injector.kneeboard.calibration.subtitle"),
+    )
+    cell = 128
+    left = (_PAGE_W - (_PAGE_W - 2 * _MARGIN) // cell * cell) // 2
+    top = _BODY_TOP + 30
+    bottom = top + (_PAGE_H - 420 - top) // cell * cell
+    for x in range(left, _PAGE_W - left + 1, cell):
+        draw.line([x, top, x, bottom], fill=_RULE, width=2)
+    for y in range(top, bottom + 1, cell):
+        draw.line([left, y, _PAGE_W - left, y], fill=_RULE, width=2)
+    for size in (1024, 640, 256):
+        _draw_target(draw, (_PAGE_W // 2, (top + bottom) // 2), size, _INK, width=6)
+    for line_index, key in enumerate(("line1", "line2", "line3")):
+        text = t(f"presets_injector.kneeboard.calibration.{key}")
+        font = fonts["calibration"] if line_index else fonts["calibration_lead"]
+        draw.text((_PAGE_W // 2, bottom + 60 + line_index * 56), text, font=font, fill=_INK, anchor="mt")
+    draw.text(
+        (_PAGE_W // 2, _PAGE_H - _MARGIN),
+        t("presets_injector.kneeboard.calibration.footer"),
+        font=fonts["footer"],
+        fill=_MUTED,
+        anchor="mb",
+    )
+    return _encode(image)
+
+
 class RadioPresetsImageGenerator:
-    def __init__(self, preset_collections: dict[str, PresetCollection], width: int = 1200, height: int | None = None):
-        self.width = width
-        self.height = height
+    """Render the presets kneeboard pages of the injected (coalition, type) pairs."""
+
+    def __init__(self, preset_collections: dict[str, PresetCollection]) -> None:
         self.preset_collections = preset_collections
-        self._cached_fonts: tuple[FreeTypeFont, FreeTypeFont, FreeTypeFont] | None = None
-        # Layout state shared between draw_* methods (set in draw_preset_image /
-        # draw_radios_in_preset_image, read in draw_channels_in_preset_image).
-        self.table_x: float = 0
-        self.header_y: float = 0
-        self.column_width_channel: float = 0
-        self.column_width_name: float = 0
+        self._fonts: dict[str, FreeTypeFont] | None = None
 
-    def get_fonts(self) -> tuple[FreeTypeFont, FreeTypeFont, FreeTypeFont]:
-        if not self._cached_fonts:
-            try:
-                ARIAL = "arial.ttf"
-                preset_font = ImageFont.truetype(ARIAL, 18)
-                title_font = ImageFont.truetype(ARIAL, 30)
-                collection_title_font = ImageFont.truetype(ARIAL, 40)
-            except Exception:
-                # Pillow's embedded FreeType font, which has the accented letters; without a size it is 10 px.
-                preset_font = cast(FreeTypeFont, ImageFont.load_default(18))
-                title_font = cast(FreeTypeFont, ImageFont.load_default(30))
-                collection_title_font = cast(FreeTypeFont, ImageFont.load_default(40))
+    def get_fonts(self) -> dict[str, FreeTypeFont]:
+        """The page fonts by role, loaded once.
 
-            self._cached_fonts = (preset_font, title_font, collection_title_font)
-
-        assert self._cached_fonts is not None
-        return self._cached_fonts
-
-    def get_preset_font(self) -> FreeTypeFont:
-        return self.get_fonts()[0]
-
-    def get_title_font(self) -> FreeTypeFont:
-        return self.get_fonts()[1]
-
-    def get_collection_title_font(self) -> FreeTypeFont:
-        return self.get_fonts()[2]
-
-    def draw_channels_in_preset_image(self, radio_definition: RadioDefinition):
-        # Draw channels with alternating backgrounds
-        for j in range(self.max_channels):
-            # Skip empty rows if radio has fewer channels
-            channel_index = 0
-            while True:
-                channel = (
-                    radio_definition.channels[channel_index] if channel_index < len(radio_definition.channels) else None
-                )
-                channel_index += 1
-                if not channel or channel.number == j + 1:
-                    break
-            # ADR 0012: the CH cell shows the type's pilot label when one exists
-            # (the AJS-37's Group 100-139 / Sp1-H), else the plain slot number.
-            channel_number = _ch_label(radio_definition, j + 1)
-            channel_name = channel.title if channel is not None else ""
-            channel_frequency = f"{channel.freq:.2f}" if channel is not None else ""
-            priority = channel.priority if channel is not None else None
-            color = channel.color if channel is not None else None
-
-            row_y = self.header_y + self.row_height + j * self.row_height
-            ch_col_x = self.table_x + self.column_width_channel
-            name_col_x = ch_col_x + self.column_width_name
-
-            # Alternate background colors (light gray and white)
-            bg_color = (240, 240, 240) if j % 2 == 0 else (255, 255, 255)  # Light gray and white
-            self.draw.rectangle(
-                [self.table_x, row_y, self.table_x + self.table_width, row_y + self.row_height], fill=bg_color
-            )
-
-            # ADR 0012: `color` fills the CH cell (channel-number text auto-contrasted);
-            # `priority` highlights the Name & Freq cells orange (a "P<n>" marker below).
-            number_text_color = "black"
-            if color and (rgb := _resolve_kneeboard_color(color)) is not None:
-                self.draw.rectangle([self.table_x, row_y, ch_col_x, row_y + self.row_height], fill=rgb)
-                number_text_color = _contrast_text_color(rgb)
-            if priority is not None:
-                self.draw.rectangle(
-                    [ch_col_x, row_y, self.table_x + self.table_width, row_y + self.row_height],
-                    fill=_PRIORITY_HIGHLIGHT,
-                )
-
-            # Draw vertical lines between columns
-            self.draw.line(
-                [
-                    self.table_x + self.column_width_channel,
-                    row_y,
-                    self.table_x + self.column_width_channel,
-                    row_y + self.row_height,
-                ],
-                fill="black",
-            )
-            self.draw.line(
-                [
-                    self.table_x + self.column_width_channel + self.column_width_name,
-                    row_y,
-                    self.table_x + self.column_width_channel + self.column_width_name,
-                    row_y + self.row_height,
-                ],
-                fill="black",
-            )
-
-            # Draw channel number
-            self.draw.text(
-                (self.table_x + 10, row_y + 5), channel_number, fill=number_text_color, font=self.get_preset_font()
-            )
-
-            # Draw channel name
-            self.draw.text(
-                (self.table_x + self.column_width_channel + 10, row_y + 5),
-                channel_name or "",
-                fill="black",
-                font=self.get_preset_font(),
-            )
-
-            # ADR 0012: priority marker "P<n>", right-aligned in the Name cell.
-            if priority is not None:
-                marker = f"P{priority}"
-                marker_width = self.draw.textlength(marker, font=self.get_preset_font())
-                self.draw.text(
-                    (name_col_x - marker_width - 10, row_y + 5), marker, fill="black", font=self.get_preset_font()
-                )
-
-            # Draw frequency
-            self.draw.text(
-                (self.table_x + self.column_width_channel + self.column_width_name + 10, row_y + 5),
-                channel_frequency,
-                fill="black",
-                font=self.get_preset_font(),
-            )
-
-            # Draw horizontal line at bottom of row
-            self.draw.line(
-                [self.table_x, row_y + self.row_height, self.table_x + self.table_width, row_y + self.row_height],
-                fill="black",
-            )
-
-    def draw_radios_in_preset_image(self, preset_definition: PresetDefinition):
-        # Draw each radio as a table
-        for i, radio in enumerate(preset_definition.radios.values()):
-            if i >= 3:
-                # Only draw up to 3 radios
-                break
-
-            # Calculate table position with margins
-            self.table_x = self.side_margin + i * (self.table_width + self.margin_between_tables)
-            table_y = self.top_margin  # Space for collection title
-
-            # Define column widths
-            self.column_width_channel = self.table_width * 0.13
-            self.column_width_name = self.table_width * 0.67
-
-            # Draw table background (optional, for better visibility)
-            table_height = self.header_height + len(radio.channels) * self.row_height + 10
-            self.draw.rectangle(
-                [self.table_x, table_y, self.table_x + self.table_width, table_y + table_height], outline="black"
-            )
-
-            # Draw title row (grey for every radio — ADR 0012 drops the old
-            # red/green/orange per-radio colour coding).
-            self.draw.rectangle(
-                [self.table_x, table_y, self.table_x + self.table_width, table_y + self.header_height],
-                fill=_RADIO_TITLE_BG,
-            )
-
-            # Draw radio title (merged columns)
-            radio_title = radio.title or radio.name
-            title_bbox = self.draw.textbbox((0, 0), radio_title, font=self.get_title_font())
-            title_width = title_bbox[2] - title_bbox[0]
-            title_x_pos = self.table_x + (self.table_width - title_width) // 2
-            title_y_pos = table_y + (self.header_height - (title_bbox[3] - title_bbox[1])) // 2
-            self.draw.text((title_x_pos, title_y_pos), radio_title, fill="white", font=self.get_title_font())
-
-            # Draw column headers
-            self.header_y = table_y + self.header_height
-            self.draw.rectangle(
-                [self.table_x, self.header_y, self.table_x + self.table_width, self.header_y + self.row_height],
-                fill=(200, 200, 200),
-            )  # Gray header
-            self.draw.line(
-                [
-                    self.table_x + self.column_width_channel,
-                    self.header_y,
-                    self.table_x + self.column_width_channel,
-                    self.header_y + self.row_height,
-                ],
-                fill="black",
-            )  # Vertical line
-            self.draw.line(
-                [
-                    self.table_x + self.column_width_channel + self.column_width_name,
-                    self.header_y,
-                    self.table_x + self.column_width_channel + self.column_width_name,
-                    self.header_y + self.row_height,
-                ],
-                fill="black",
-            )  # Vertical line
-            self.draw.text((self.table_x + 10, self.header_y + 5), "CH", fill="black", font=self.get_preset_font())
-            self.draw.text(
-                (self.table_x + self.column_width_channel + 10, self.header_y + 5),
-                "Name",
-                fill="black",
-                font=self.get_preset_font(),
-            )
-            self.draw.text(
-                (self.table_x + self.column_width_channel + self.column_width_name + 10, self.header_y + 5),
-                "Freq.",
-                fill="black",
-                font=self.get_preset_font(),
-            )
-            self.draw.line(
-                [
-                    self.table_x,
-                    self.header_y + self.row_height,
-                    self.table_x + self.table_width,
-                    self.header_y + self.row_height,
-                ],
-                fill="black",
-            )  # Bottom line
-
-            # Draw channels
-            self.draw_channels_in_preset_image(radio_definition=radio)
-
-    def draw_preset_image(self, preset_definition: PresetDefinition):
-        # Calculate dimensions based on content
-        self.row_height = 30
-        self.header_height = 55
-        self.margin_between_tables = 30  # Margin between tables
-        self.side_margin = 50  # Margin on sides
-        self.top_margin = 80  # Space for collection title
-        bottom_margin = 50  # Margin at bottom
-
-        # Compute the highest slot across all radios — including labelled-but-empty
-        # slots (ADR 0012: the AJS-37 shows its full Group range even where a
-        # channel is unset), so every labelled row is rendered.
-        self.max_channels = 0
-        for radio in preset_definition.radios.values():
-            slots = [channel.number for channel in radio.channels if channel.number]
-            slots += list(radio.display_labels.keys())
-            self.max_channels = max([self.max_channels, *slots])
-
-        # Find the radio with the most channels to determine image height
-        image_height = self.top_margin + self.header_height + self.max_channels * self.row_height + bottom_margin
-        image_height = self.height if self.height is not None else image_height
-
-        # Calculate table widths and positions with margins
-        image_width = self.width
-        available_width = image_width - 2 * self.side_margin - (self.radio_count - 1) * self.margin_between_tables
-        self.table_width = available_width // self.radio_count if self.radio_count > 0 else 400
-
-        # Create image with light yellow background (like old paper)
-        self.image = Image.new("RGB", (image_width, image_height), color=(255, 255, 224))  # Light yellow
-        self.draw = ImageDraw.Draw(self.image)
-
-        # Draw collection title
-        # Get text dimensions for centering
-        title_bbox = self.draw.textbbox((0, 0), preset_definition.title, font=self.get_collection_title_font())
-        title_width = title_bbox[2] - title_bbox[0]
-        title_x = (image_width - title_width) // 2
-        self.draw.text((title_x, 20), preset_definition.title, fill="black", font=self.get_collection_title_font())
+        Returns:
+            The fonts by role.
+        """
+        if self._fonts is None:
+            self._fonts = _load_fonts()
+        return self._fonts
 
     def generate_type_images(self, injected: dict[tuple[str, str], PresetDefinition]) -> dict[str, io.BytesIO]:
-        """Render one kneeboard PNG per injected (coalition, aircraft type) (ADR 0012).
+        """Render the kneeboard pages of each injected (coalition, aircraft type) (ADR 0012).
 
-        Each image is keyed by its DCS kneeboard path
-        ``KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png`` — coalition-suffixed
-        only when the same type is injected for both coalitions (so the two pages
-        do not collide in the shared per-type folder). A single-radio preset with
-        many channels (the AJS-37's 47) is split across columns for legibility.
+        Pages go in the type's DCS folder, ``KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png``,
+        coalition-suffixed only when the same type is injected for both coalitions; a preset that
+        overflows one page continues on ``presets[-<coalition>]_2.png``.
 
         Args:
-            injected: The presets actually injected, keyed by (coalition, concrete
-                unit_type). Built by the worker during ``process_groups``.
+            injected: The presets actually injected, keyed by (coalition, concrete unit_type).
 
         Returns:
             Mapping of kneeboard-relative path -> PNG buffer.
@@ -2347,33 +2423,160 @@ class RadioPresetsImageGenerator:
 
         images: dict[str, io.BytesIO] = {}
         for (coalition, unit_type), preset in injected.items():
-            if not preset.radios:
+            blocks = _kneeboard_blocks(unit_type, preset)
+            if not blocks:
                 continue
-            render_preset = self._prepare_render_preset(preset, title=f"{unit_type} ({coalition})")
-            self.radio_count = len(render_preset.radios)
-            self.draw_preset_image(render_preset)
-            self.draw_radios_in_preset_image(render_preset)
-            img_buffer = io.BytesIO()
-            self.image.save(img_buffer, format="PNG", optimize=True)
-            img_buffer.seek(0)
-            safe_type = unit_type.replace("/", "_").replace("\\", "_")
+            pages = _paginate_blocks(blocks)
+            has_priority = any(
+                row.channel is not None and row.channel.priority is not None for block in blocks for row in block.rows
+            )
             suffix = f"-{coalition}" if len(coalitions_by_type[unit_type]) > 1 else ""
-            images[f"KNEEBOARD/{safe_type}/IMAGES/presets{suffix}.png"] = img_buffer
+            for page_number, columns in enumerate(pages, start=1):
+                image = self._draw_page(unit_type, coalition, columns, page_number, len(pages), has_priority)
+                images[_page_path(unit_type, suffix, page_number)] = _encode(image)
         return images
 
-    def _prepare_render_preset(self, preset: PresetDefinition, title: str) -> PresetDefinition:
-        """Return a render-ready copy of *preset* with the given *title*.
+    def _draw_page(
+        self,
+        unit_type: str,
+        coalition: str,
+        columns: list[list[KneeboardSegment]],
+        page_number: int,
+        page_count: int,
+        has_priority: bool,
+    ) -> Image.Image:
+        """Draw one presets page: header, the two columns of radio blocks, footer.
 
-        A single-radio preset taller than :data:`_COLUMN_SPLIT_THRESHOLD` slots is
-        split into side-by-side columns (the AJS-37's 47-slot radio); everything
-        else keeps its radios as the columns.
+        Args:
+            unit_type: The DCS unit type the page is for.
+            coalition: The coalition it was injected for.
+            columns: The page's two columns of segments.
+            page_number: This page's 1-based number.
+            page_count: How many pages the preset takes.
+            has_priority: Whether a channel of the preset has a priority, which brings the legend.
+
+        Returns:
+            The page.
         """
-        render = PresetDefinition(name=preset.name, title=title)
-        radios = list(preset.radios.values())
-        if len(radios) == 1 and _radio_max_slot(radios[0]) > _COLUMN_SPLIT_THRESHOLD:
-            for column in _split_radio_into_columns(radios[0], num_columns=2):
-                render.add_radio(column)
-        else:
-            for radio in radios:
-                render.add_radio(radio)
-        return render
+        fonts = self.get_fonts()
+        image = Image.new("RGB", KNEEBOARD_PAGE_SIZE, _PAPER)
+        draw = ImageDraw.Draw(image)
+        _draw_header(draw, fonts, get_aircraft_name(unit_type) or unit_type, t("presets_injector.kneeboard.subtitle"))
+        badge = coalition.upper()
+        badge_w = draw.textlength(badge, font=fonts["badge"]) + 48
+        badge_x = _PAGE_W - _MARGIN - badge_w
+        draw.rounded_rectangle(
+            [badge_x, _MARGIN + 14, _PAGE_W - _MARGIN, _MARGIN + 70],
+            radius=28,
+            fill=_COALITION_BG.get(coalition, _MUTED),
+        )
+        draw.text((badge_x + badge_w / 2, _MARGIN + 42), badge, font=fonts["badge"], fill="white", anchor="mm")
+
+        for column_index, segments in enumerate(columns):
+            x = _MARGIN + column_index * (_COLUMN_W + _GUTTER)
+            y = _BODY_TOP
+            for segment in segments:
+                y = self._draw_segment(draw, x, y, segment)
+
+        if has_priority:
+            legend = t("presets_injector.kneeboard.priority_legend")
+            draw.text((_MARGIN, _PAGE_H - _MARGIN), legend, font=fonts["footer"], fill=_MUTED, anchor="lb")
+        footer = t("presets_injector.kneeboard.page", unit_type=unit_type, page=page_number, count=page_count)
+        draw.text((_FOOTER_RIGHT_X, _PAGE_H - _MARGIN), footer, font=fonts["footer"], fill=_MUTED, anchor="rb")
+        return image
+
+    def _draw_segment(self, draw: ImageDraw.ImageDraw, x: int, y: int, segment: KneeboardSegment) -> int:
+        """Draw one segment of a radio block at (x, y).
+
+        Args:
+            draw: The page being drawn.
+            x: The column's left edge.
+            y: The segment's top.
+            segment: The segment to draw.
+
+        Returns:
+            The y where the next segment starts.
+        """
+        fonts = self.get_fonts()
+        block = segment.block
+        right = x + _COLUMN_W
+        draw.rounded_rectangle([x, y, right, y + _BLOCK_TITLE_H], radius=10, fill=_RADIO_TITLE_BG)
+        draw.rectangle([x, y + _BLOCK_TITLE_H - 10, right, y + _BLOCK_TITLE_H], fill=_RADIO_TITLE_BG)
+        title = block.title
+        if segment.continued:
+            title = f"{title}  {t('presets_injector.kneeboard.continued')}"
+        middle = y + _BLOCK_TITLE_H // 2
+        draw.text((x + 20, middle), title, font=fonts["radio"], fill="white", anchor="lm")
+        if block.band and not segment.continued:
+            draw.text((right - 20, middle), block.band, font=fonts["band"], fill=_RADIO_BAND_TEXT, anchor="rm")
+        y += _BLOCK_TITLE_H
+
+        mod_w = _MOD_W if block.show_mod else 0
+        name_x = x + _CH_W
+        freq_right = right - mod_w - 18
+        middle = y + _COL_HEAD_H // 2
+        draw.rectangle([x, y, right, y + _COL_HEAD_H], fill=_COLUMN_HEAD_BG)
+        draw.text((x + _CH_W // 2, middle), "CH", font=fonts["column"], fill=_MUTED, anchor="mm")
+        name_header = t("presets_injector.kneeboard.column.name")
+        draw.text((name_x + 16, middle), name_header, font=fonts["column"], fill=_MUTED, anchor="lm")
+        draw.text((freq_right, middle), "MHz", font=fonts["column"], fill=_MUTED, anchor="rm")
+        if block.show_mod:
+            draw.text((right - mod_w // 2, middle), "MOD", font=fonts["column"], fill=_MUTED, anchor="mm")
+        rows_top = y
+        y += _COL_HEAD_H
+
+        for row_index, row in enumerate(segment.rows):
+            self._draw_row(draw, x, y, row, row_index % 2 == 1, mod_w)
+            y += _ROW_H
+            draw.line([x, y, right, y], fill=_RULE)
+        draw.line([name_x, rows_top, name_x, y], fill=_RULE)
+        return y + _BLOCK_GAP
+
+    def _draw_row(self, draw: ImageDraw.ImageDraw, x: int, y: int, row: KneeboardRow, shaded: bool, mod_w: int) -> None:
+        """Draw one channel row: CH cell (filled with the channel's colour), name, frequency, modulation.
+
+        Args:
+            draw: The page being drawn.
+            x: The column's left edge.
+            y: The row's top.
+            row: The row to draw.
+            shaded: Whether the row gets the zebra background.
+            mod_w: The width of the modulation column, 0 when the radio has none.
+        """
+        fonts = self.get_fonts()
+        right = x + _COLUMN_W
+        name_x = x + _CH_W
+        freq_right = right - mod_w - 18
+        freq_w = draw.textlength("399.975", font=fonts["freq"])
+        middle = y + _ROW_H // 2
+        channel = row.channel
+        if shaded:
+            draw.rectangle([x, y, right, y + _ROW_H], fill=_ZEBRA)
+        if channel is None:
+            draw.text((x + _CH_W // 2, middle), row.label, font=fonts["ch"], fill=_MUTED, anchor="mm")
+            draw.text((name_x + 16, middle), "—", font=fonts["name"], fill=_RULE, anchor="lm")
+            return
+        if channel.priority is not None:
+            draw.rectangle([name_x, y, right, y + _ROW_H], fill=_PRIORITY_HIGHLIGHT)
+        ch_text_color: Any = _INK
+        if channel.color and (rgb := _resolve_kneeboard_color(channel.color)) is not None:
+            draw.rectangle([x, y, name_x, y + _ROW_H], fill=rgb)
+            ch_text_color = _contrast_text_color(rgb)
+        draw.text((x + _CH_W // 2, middle), row.label, font=fonts["ch"], fill=ch_text_color, anchor="mm")
+
+        marker_w = 0.0
+        if channel.priority is not None:
+            marker = f"P{channel.priority}"
+            marker_w = draw.textlength(marker, font=fonts["column"]) + 16
+            draw.text((freq_right - freq_w - 16, middle), marker, font=fonts["column"], fill=_INK, anchor="rm")
+        name = channel.title or ""
+        max_name_w = freq_right - freq_w - marker_w - name_x - 40
+        if draw.textlength(name, font=fonts["name"]) > max_name_w:
+            while name and draw.textlength(f"{name}…", font=fonts["name"]) > max_name_w:
+                name = name[:-1]
+            name = f"{name}…"
+        draw.text((name_x + 16, middle), name, font=fonts["name"], fill=_INK, anchor="lm")
+        draw.text((freq_right, middle), _format_freq(channel.freq), font=fonts["freq"], fill=_INK, anchor="rm")
+        if mod_w:
+            modulation = "FM" if channel.mod == 1 else "AM"
+            draw.text((right - mod_w // 2, middle), modulation, font=fonts["mod"], fill=_MUTED, anchor="mm")

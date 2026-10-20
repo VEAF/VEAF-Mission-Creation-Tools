@@ -132,10 +132,13 @@ Deux attributs facultatifs, posés par le mission-maker sur une entrée du plan
 Le build génère **une planchette par `(coalition, type)` réellement injecté**,
 déposée dans le dossier DCS du type : `KNEEBOARD/<type>/IMAGES/presets.png`
 (suffixée `-<coalition>` seulement si le même type vole dans les deux camps).
-Remplace l'ancien dossier générique `KNEEBOARD/IMAGES/`. Le titre est le type
-concret. Les bandeaux radio sont **gris** (fini le codage rouge/vert/orange).
-Pour l'AJS-37, la colonne CH affiche les **libellés pilote** (`100`-`139` puis
-`Sp1/Sp2/Sp3/E/F/G/H`) et la radio (47 slots) est **répartie sur deux colonnes**.
+Remplace l'ancien dossier générique `KNEEBOARD/IMAGES/`.
+
+La page fait toujours **1536 × 2304**, du 2:3 : DCS étire l'image pour remplir la fenêtre de la planchette (`KNEEBOARD/indicator/init.lua`, coordonnées de texture 0..1), et la planchette du cockpit mesure 0,142 × 0,214.
+Le titre est le nom lisible du type (`name` des specs). Chaque radio est un bloc titré par sa position et le poste des specs (`COMM 1: ARC-210` devient `1. COMM 1 · ARC-210`) ; `kneeboard_title` dans `dcs-radio-layouts.yaml` le remplace (l'AJS-37 : `FR22 / FR24`).
+Un bloc s'arrête à son dernier slot, libellés compris, et les blocs s'écoulent en deux colonnes (`_paginate_blocks`) : un bloc passe entier à la colonne suivante quand il y tient, seul un bloc plus haut qu'une colonne est coupé, et le surplus va sur `presets_2.png`.
+Pour l'AJS-37, la colonne CH affiche les **libellés pilote** (`100`-`139` puis `Sp1/Sp2/Sp3/E/F/G/H`).
+Toute mission qui a des planchettes reçoit aussi `KNEEBOARD/IMAGES/00-veaf-calibration.png`, la mire qui sert à remettre une fenêtre redimensionnée au 2:3.
 
 ## Ajouter ou corriger un type
 

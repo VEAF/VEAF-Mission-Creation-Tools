@@ -1,6 +1,6 @@
 # CLI reference — `veaf-tools`
 
-All **38 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
+All **39 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
 page: it says what each command accepts, not how to take a mission from start to finish. For that,
 read the [mission maker's guide](mission-maker/GUIDE.en.md), which tells the story in order, and the
 [pipeline reference](PIPELINE_REFERENCE.en.md), which details each build step.
@@ -882,6 +882,10 @@ instructions, waiting; an interrupted sweep resumes where it stopped. The extent
 asked to DCS; when it does not give it, the airfields' plus 50 km, and the command says so. **Terrain
 only**: no buildings, pylons or trees.
 
+A theatre VEAF has already swept needs no sweep: its grid is published on GitHub (release [`terrain-data`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)), and veaf-tools downloads it on first use, into the same folder.
+A grid already there — swept here or downloaded — is used as is.
+Sweep a theatre when it is not published, or to replace a downloaded grid.
+
 | Name | Type | Required | Description |
 |---|---|---|---|
 | `THEATRE` | `str` | yes | The theatre, as DCS spells it (Caucasus, Syria…). |
@@ -988,9 +992,24 @@ The assistant runs on a free allowance shared with the website chatbot: on a bus
 out, and the command says so plainly when it does. See
 [the documentation assistant](SUPPORT.en.md#assistant).
 
+### `veaf-tools ai-setup` {#ai-setup}
+
+Connects the AI assistants installed on this PC to the VEAF tools: **Claude Desktop**, **Claude Code**, **Codex** (ChatGPT Desktop), **Antigravity**, **Gemini CLI** and **OpenCode**.
+The command declares the executable that runs it as the `veaf-mission-editor` MCP server in each one's configuration, without touching their other settings, and says for each whether it is connected, absent or failed.
+It can be run again safely, for instance after moving the tools folder.
+
+```powershell
+.\veaf-tools.exe ai-setup
+```
+
+It takes no option. Then quit the AI assistant completely and start it again: it reads its servers only at start-up.
+It exits with an error (code 1) when no assistant is found or a setting could not be written, leaving the file in question untouched.
+
+**See also**: [Create with an AI](mission-maker/AI_ASSISTANT_INSTALL.en.md)
+
 ### `veaf-tools mcp` {#mcp}
 
-Start the LLM-assisted mission-editing MCP server (stdio). Used by the veaf-mission-editor Claude plugin.
+Start the LLM-assisted mission-editing MCP server (stdio). Declared in your AI assistant by [`ai-setup`](#ai-setup).
 
 ```bash
 veaf-tools mcp

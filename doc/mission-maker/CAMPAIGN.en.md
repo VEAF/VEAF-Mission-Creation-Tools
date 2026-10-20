@@ -51,6 +51,11 @@ Caucasus/
 `template/` is prepared once, like any mission folder (`.\veaf-tools.exe prepare`, or the MCP action `scaffold_mission`): the map, the slots, the presets, the scripts.
 Every mission of the campaign starts as a copy of it.
 
+Its `src/presets.yaml` is therefore the frequency plan of the **whole** campaign: every mission inherits it.
+Write it for the campaign's real assets — AWACS, tankers, ships, airfields — under the names the briefing uses, and update the template as soon as a mission adds an asset.
+The plan `prepare` ships is an Open Training's (Magic 282.2, Arco-1 290.5…): left as it is, every radio and every kneeboard of the campaign follows it, not the mission.
+The build lists every AWACS, tanker or ship no preset carries, in its log and in `presets-validation-report.md`: a mission is not ready until that list is empty.
+
 The history is kept whole: to undo a merge, put `campaign-state.before.yaml` back in place of `campaign-state.yaml`.
 
 ## Declaring a campaign {#declare}
@@ -361,7 +366,7 @@ Run `campaign briefing` again after every change to the mission.
 | Mission flow | objectives, air opposition, air defences, other information (refuelling, diversion fields, rescue) |
 | Frequency plan | UHF then VHF, guard first |
 | Navigation plan | the waypoints the players' planes then helicopters carry after their departure, `BULLSEYE` included: name, DMS position, altitude and its reference (`BARO`, or `AGL` above the ground); the aircraft types when a category carries several routes |
-| Objective coordinates | each zone's centre in DMS, and its elevation when a terrain grid has been swept (`terrain-sweep`) |
+| Objective coordinates | each zone's centre in DMS, and its elevation when the theatre has a terrain grid (swept by `terrain-sweep`, or downloaded when published) |
 
 The objectives are the zones the mission's task titles name in `briefing.yaml` ("Frapper le dépôt de Khobi" names the zone *Dépôt de Khobi*), or else the campaign's objectives.
 The flights are the players': neither the dynamic-slot templates nor the VEAF spawn templates are flights; a support aircraft appears once, by its task; the wind is said from where it comes, as a pilot reads it.

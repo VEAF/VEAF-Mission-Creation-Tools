@@ -128,6 +128,8 @@ channel_lists:
 
 Le build assigne automatiquement chaque radio physique de chaque type d'aéronef au rôle qui lui correspond (déduit de ses plages de fréquences matérielles), puis y projette la liste de canaux déclarée pour ce rôle. Un canal qui n'a pas de fréquence pour la bande du rôle est ignoré silencieusement (signalé par `validate`).
 
+Le **canal 1** de la première radio devient aussi la fréquence du groupe : c'est sur lui que le vol démarre. Le plan livré ne met donc pas Guard en canal 1, ni ailleurs : chaque appareil atteint Guard par sa propre commande, et un vol démarrait sur la fréquence de détresse.
+
 ### Schéma — format historique (surcharge manuelle)
 
 ```yaml

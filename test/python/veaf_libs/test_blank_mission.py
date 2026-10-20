@@ -82,6 +82,15 @@ class TestGenerateBlankMission:
         assert mission.theatre_content == "Falklands"
         assert list(mission.iter_groups()) == []
 
+    def test_thechannel_blank_is_generated_so_its_terrain_can_be_swept(self, tmp_path: Path) -> None:
+        # TheChannel was missing from theatre-defaults.yaml: terrain-sweep answered "Unsupported theatre"
+        # and no elevation grid could be published for it (FEAT-TERRAIN-DATA-DOWNLOAD).
+        assert "TheChannel" in blank_mission.supported_theatres()
+        folder = _write_folder(tmp_path, blank_mission.generate_blank_mission("thechannel"))
+        mission = read_mission_folder(folder)
+        assert mission.theatre_content == "TheChannel"
+        assert list(mission.iter_groups()) == []
+
     def test_alias_resolves_for_blank(self) -> None:
         # SinaiMap is the canonical key; the airdromes.yaml-style "Sinai" alias resolves to it.
         assert blank_mission.is_theatre_supported("Sinai")

@@ -50,6 +50,11 @@ rest. No need to unzip by hand.
 > to the folder **of the same map** (it reads the theatre on both sides), so
 > `Foothold_CA_4.7.0_Multi_Language….zip` does refresh `VEAF-Foothold-Caucasus`. It prints
 > the folder it picked, and why, for each mission.
+>
+> Only folders `convert-other` adopted count (those with a `convert-other-state.yaml`), so the output folder may also hold other missions on the same maps, such as the Open Training ones.
+> One exception: Sinai and Sinai North are two Foothold missions on one map.
+> Copy their archives under their folder names (`VEAF-Foothold-Sinai.zip`, `VEAF-Foothold-SinaiNorth.zip`): a folder named after the archive comes first.
+> The same goes for every map on the first refresh of a mission adopted before `convert-other-state.yaml` existed.
 
 ### Which profile for which map
 
@@ -278,18 +283,12 @@ veaf-tools convert other <new_release.zip> <mission-folder> --profile foothold -
 tuned `mission.yaml`**, and normalises versioned names (`Moose_<date>.lua` → `Moose.lua`,
 `Splash_Damage_<version>_leka.lua` → `Splash_Damage.lua`).
 
-It also **reconciles `delay_seconds:` with the new release's staging** and **deletes the
-scripts Lekaa no longer ships** — as with the 4.7.0 Syria setup rename
-(`footholdSyriaSetup.lua` → `footholdSyriaSetupv2.lua`), where the old file stayed on disk
-and got embedded instead of the new one. Its `custom_scripts:` entry stays, so **`validate`
-fails** until you remove it: that is the signal, not a defect.
+It also **reconciles `delay_seconds:` with the new release's staging**, **deletes the scripts Lekaa no longer ships**, and **rewrites `custom_scripts:` to what the new release loads**, in its load order.
+That is what covers an upstream rename: in 5.3.0, `zoneCommander.lua` becomes `zoneCommanderv2.lua` on all ten maps, and the old list would have loaded the previous engine against the new config.
+Your own scripts stay in the list, after Lekaa's.
 
-The report (`convert-other-report.md`) lists all of it: scripts added, updated, deleted,
-and every delay written. Review it, add any new script to `custom_scripts:`, then
-re-validate and rebuild. See [CONVERT_OTHER](CONVERT_OTHER.en.md).
-
-> A **new upstream script** is not added to `custom_scripts:` for you: its position in the
-> load order is a decision only a human can make.
+The report (`convert-other-report.md`) lists all of it: scripts added, updated, deleted, `custom_scripts:` entries added or removed, and every delay written.
+Review it, then re-validate and rebuild. See [CONVERT_OTHER](CONVERT_OTHER.en.md).
 
 > `convert-other-state.yaml` appears in the mission folder: it is the list of scripts the
 > upstream release loads, and it is what tells a script Lekaa dropped from one you added

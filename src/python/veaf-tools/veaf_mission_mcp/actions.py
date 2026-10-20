@@ -449,7 +449,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="edit_route",
             description=(
                 "EDIT a group's waypoints and what the flight DOES at them. Operations: add (append), "
-                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked/road), "
+                "insert (at a 1-based index), remove, reorder, set (position/name/altitude/speed/type/eta_locked/road; waypoint 1 is the group's own position, moved with set_group_properties move_to), "
                 "add_task, clear_tasks. Call describe_units first to see the route you are editing -- the "
                 "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
                 "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
@@ -489,7 +489,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "object",
                         "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                         "required": ["x", "y"],
-                        "description": "Coordinates, for 'add' / 'insert'.",
+                        "description": "Coordinates, for 'add' / 'insert' / 'set'.",
                     },
                     "name": {"type": "string", "description": "Waypoint name."},
                     "altitude_ft": {"type": "number", "description": "Altitude in FEET."},

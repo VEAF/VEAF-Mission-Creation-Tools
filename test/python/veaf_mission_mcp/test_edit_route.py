@@ -761,3 +761,46 @@ class TestTransmitMessage:
                 task="transmit_message",
                 task_params={"sound": "nowhere.ogg"},
             )
+
+
+class TestSetMovesAWaypoint:
+    """`set` used to drop `position` without a word (FEAT-AI-ZERO-SETUP, seen in a sandbox demo 2026-10-20).
+
+    The assistant set a waypoint's position, read back the route, found it unchanged, and fell back on
+    remove + insert.
+    """
+
+    def test_set_moves_a_waypoint(self, miz: Path) -> None:
+        result = edit_route(
+            miz, group_name="Moving Convoy", operation="set", index=2, position={"x": 1234.5, "y": -678.0}
+        )
+
+        point = _points(miz, "Moving Convoy")[1]
+        assert (point["x"], point["y"]) == (1234.5, -678.0)
+        assert result["changed"]["position"]["to"] == {"x": 1234.5, "y": -678.0}
+
+    def test_set_moves_and_renames_together(self, miz: Path) -> None:
+        edit_route(
+            miz, group_name="Moving Convoy", operation="set", index=2, name="IP", position={"x": 10.0, "y": 20.0}
+        )
+
+        point = _points(miz, "Moving Convoy")[1]
+        assert (point["name"], point["x"], point["y"]) == ("IP", 10.0, 20.0)
+
+    def test_set_refuses_to_move_the_first_waypoint(self, miz: Path) -> None:
+        """Waypoint 1 is the group's own position: moving it alone would leave the units behind."""
+        with pytest.raises(ValueError, match="set_group_properties"):
+            edit_route(miz, group_name="Moving Convoy", operation="set", index=1, position={"x": 1.0, "y": 2.0})
+
+    @pytest.mark.parametrize("operation", ["remove", "reorder", "add_task", "clear_tasks"])
+    def test_an_operation_that_takes_no_position_refuses_one(self, miz: Path, operation: str) -> None:
+        with pytest.raises(ValueError, match="position"):
+            edit_route(
+                miz,
+                group_name="Moving Convoy",
+                operation=operation,
+                index=2,
+                to_index=1,
+                task="orbit",
+                position={"x": 1.0, "y": 2.0},
+            )

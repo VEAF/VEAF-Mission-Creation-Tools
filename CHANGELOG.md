@@ -62,6 +62,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The new-version notice did not appear** (FEAT-AI-ZERO-SETUP, measured 2026-10-20): the check read the version from the release's tag, `published-latest`, which holds none; it now reads it from the release name, as the updater does.
 - **The executable ships the parking captures** (FEAT-AI-ZERO-SETUP): `veaf_libs/data/parking/` was never bundled, so an air group starting on a ramp or a runway failed with "no parking data captured" from the executable, while it worked from the repository.
   A test now fails on any package data file the build does not ship, unless it is declared build- or test-only.
+- **`edit_route` `set` moves a waypoint** (FEAT-AI-ZERO-SETUP): it accepted `position` and dropped it without a word, so an assistant read the route back unchanged and rebuilt the waypoint by hand. Waypoint 1, the group's own position, is refused with a pointer to `set_group_properties` `move_to`; an operation that takes no position now refuses one.
 
 ### Removed
 

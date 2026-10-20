@@ -10,7 +10,7 @@ Three gaps surfaced driving a real Syria mission through the MCP (David):
 
 1. **The generator hand-places literal units where a VEAF alias exists.** Asked for a long-range
    SAM, it placed a literal Patriot instead of a `#veafInterpreter["-samLR"]` carrier. The skill
-   only states an alias preference for *combat-zone* content ([SKILL.md:70](../../plugin/skills/veaf-mission-authoring/SKILL.md)); it is not
+   only states an alias preference for *combat-zone* content ([SKILL.md:70](../../src/python/veaf-tools/veaf_mission_mcp/data/authoring-guide.md)); it is not
    generalized to permanent assets, and the armor example presents "literal units **or** alias" as
    equals. The oracle `list_shortcuts` has no structured category, so discovering "all the SAM
    aliases" is substring guesswork.

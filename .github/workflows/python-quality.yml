@@ -20,7 +20,6 @@ on:
       #   .backlog/**    test_backlog_status_consistency, test_docs_check
       #   src/scripts/** ~15 tests (bundle manifest, module scanner, defaults, CTLD config, …)
       #   doc/**         test_documented_lua_defaults, test_v5_converter, test_docs_check
-      #   plugin/**      test_plugin_version (the version lockstep)
       #   *.md           test_changelog_process
       #   support-bot-ci.yml  test_ci_trigger_paths, which now guards that workflow's own filter
       # Measured 2026-09-01: #877, #875 and #866 each merged without ever running pytest, ruff or
@@ -29,7 +28,6 @@ on:
       - ".backlog/**"
       - "src/scripts/**"
       - "doc/**"
-      - "plugin/**"
       - "*.md"
       - ".github/workflows/support-bot-ci.yml"
   # Every pull request, with no `paths:` filter: these checks are *required* on `develop`, and a
@@ -65,7 +63,6 @@ jobs:
             .backlog/**
             src/scripts/**
             doc/**
-            plugin/**
             *.md
             .github/workflows/support-bot-ci.yml
         run: |

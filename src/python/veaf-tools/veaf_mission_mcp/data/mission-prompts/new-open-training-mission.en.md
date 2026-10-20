@@ -1,7 +1,7 @@
 # Prompt — build a VEAF Open Training mission on a DCS map
 
-> Paste as is at the start of a new Claude Code session, in an **empty folder** that will be the
-> mission folder.
+> Served by the `describe_mission_prompt` action when a user asks for a mission.
+> The mission is built in an **empty folder**: the session's folder if it is empty, otherwise ask the user where to create it (for example `Documents\VEAF\Missions\<name>`).
 
 ---
 
@@ -16,7 +16,7 @@ The pilots do not know the mission: everything they read must be right.
 
 ## 0. First of all
 
-1. **Load the `veaf-mission-editor:veaf-mission-authoring` skill** and follow it: it is the source of
+1. **Read the VEAF authoring guide** (`describe_authoring_guide`) and follow it: it is the source of
    truth for the VEAF conventions (reserved names, `#command`, `#veafInterpreter`, zones, QRA).
 2. Call `capabilities` and `list_catalog`: note the `veaf-tools` version and the available actions.
    Read the **known limitations** (`describe_known_limitations`) and take them into account:
@@ -349,8 +349,8 @@ Rules:
 
 - **Complete presets**: the build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`); the mission is not ready until that list is empty.
-- **`src/presets.yaml` to rewrite for the map** (the template is not made for it): UHF = Guard,
-  bases, AWACS, flights, tankers; VHF = Guard + flights; FM 30-59; a red plan if red flies. **Base
+- **`src/presets.yaml` to rewrite for the map** (the template is not made for it): UHF = bases,
+  AWACS, flights, tankers; VHF = flights; no Guard (channel 1 is the flight's starting frequency); FM 30-59; a red plan if red flies. **Base
   channels carry the frequencies DCS gives the airfield**, even with ATC silenced: they are what the
   pilot reads on the F10 view, and an invented series misleads them. Never type an airfield frequency:
   `describe_airfield_channels` lists the mission's bases with their DCS frequencies, propose them to

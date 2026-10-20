@@ -29,14 +29,20 @@ Two action families, deliberately kept apart:
 ```bash
 poetry install
 poetry run veaf-mission-mcp   # in dev
-# or, from the shipped binary (what the Claude plugin invokes):
+# or, from the shipped binary (what `veaf-tools ai-setup` declares in the AI clients):
 veaf-tools mcp
 ```
 
 Starts an MCP server over `stdio` (the `mcp` SDK's default transport). No configuration: every
 action receives the `.miz` path to edit as a parameter. The `veaf-tools mcp` subcommand embeds the
-server in the already-shipped `veaf-tools` binary (no separate binary to build) — this is what the
-Claude plugin declares in its `.mcp.json`.
+server in the already-shipped `veaf-tools` binary (no separate binary to build) — this is what
+`veaf-tools ai-setup` declares in Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI and OpenCode.
+
+Started from the shipped binary, the server also **updates itself**: in a background thread, at most once every
+4 hours, only when `check_updates` is on and no pre-release is pinned (`VEAF_MCP_UPDATER_TAG`), it compares its version with the `published-latest` release and,
+when that is newer, starts `veaf-tools-updater` in its own folder, in a hidden console
+(`veaf_mission_mcp/self_update.py`). The updater sets the running `veaf-tools.exe` aside rather than overwriting
+it, which Windows refuses; the new version is used from the client's next start.
 
 ## Action catalog (v1)
 
@@ -871,9 +877,9 @@ read from the **canonical sources** the build already uses, so they **cannot dri
 - vendored artifacts (`vendored.yaml`, `check-vendored`);
 - upstream datamining repos (provenance).
 
-Implementation: `veaf_mission_mcp/oracle.py`. The "prose / how to reason" half lives in the
-`veaf-mission-authoring` Claude skill (`plugin/skills/veaf-mission-authoring/SKILL.md`, bundled by
-`bfr-claude-plugins`) — the plugin = MCP hands + skill brain.
+Implementation: `veaf_mission_mcp/oracle.py`. The "prose / how to reason" half is the authoring guide,
+`veaf_mission_mcp/data/authoring-guide.md`, served by `describe_authoring_guide` — the server = hands, the guide =
+brain.
 
 ### `list_unit_types`
 
@@ -940,16 +946,38 @@ returns everything.
 
 ### `describe_authoring_guide` (FEAT-AI-ASSISTANT-ANY-CLIENT lot)
 
-Read-only, no parameter. Returns `{"guide": …}`: the text of the plugin's `veaf-mission-authoring` skill, verbatim.
-Claude Code and Gemini CLI load that skill from the plugin; another MCP client has no plugin, and reads it here.
-The file exists once, `plugin/skills/veaf-mission-authoring/SKILL.md`: the build bundles it into the exe under `veaf_mission_mcp/data/`, and in development the action reads it from the repository.
+Read-only, no parameter. Returns `{"guide": …}`: the authoring guide, `veaf_mission_mcp/data/authoring-guide.md`, verbatim.
+The build bundles the whole `veaf_mission_mcp/data/` folder into the exe; in development the action reads the package's file.
 
-The **server instructions** (the MCP protocol's `instructions`, sent to the client on connection) ask it to read this guide first — by loading the skill if the client has it, by calling this action otherwise.
-They are a few lines on purpose: Claude Code puts them in every session's prompt, where the plugin's skill already is.
+The **server instructions** (the MCP protocol's `instructions`, sent to the client on connection) ask it to call this action first, then `describe_known_limitations`.
+They are a few lines on purpose: a client puts them in every session's prompt, so they point at the guide rather than carry it.
 Not every client honours them; [the install page](../mission-maker/AI_ASSISTANT_INSTALL.en.md#other-mcp-client) therefore opens the conversation with the explicit request.
 
 ```json
 {}
+```
+
+### `read_mission_file` / `edit_mission_file` (FEAT-AI-ZERO-SETUP lot)
+
+A mission folder's YAML sources — `mission.yaml` and `src/*.yaml`, nothing else, no `..`, no absolute path — for an assistant with no direct file access.
+In Claude Desktop's chat mode, an assistant asked to rename a mission answered that no action could; `mission.name`, `mission.era` and the `src/*.yaml` files the guide's checklist asks it to adapt had no action at all.
+`read_mission_file` returns `{file, first_line, last_line, total_lines, content}`, 400 lines by default (`start_line`, `line_count`): the slot catalogue runs to 11 000.
+`edit_mission_file` replaces one exact passage (`search` / `replace`), refused when it occurs zero or several times or when the result no longer reads as YAML; backed up first, line endings kept.
+Implementation: `veaf_mission_mcp/mission_files.py`.
+
+```json
+{"mission_path": "C:/VEAF/missions/convoi", "file": "mission.yaml", "search": "name: My-Mission", "replace": "name: helico_convoi_Montagnes"}
+```
+
+### `describe_mission_prompt` (FEAT-AI-ZERO-SETUP lot)
+
+Read-only. Returns `{"kind", "lang", "prompt"}`: the instructions that build one kind of mission end to end — the questions to ask, the design rules, the build order.
+`kind` is `objective` (a mission played once, in one session) or `open-training` (a VEAF training mission on a whole map); `lang` is `en` (default) or `fr`.
+The prompts live in `veaf_mission_mcp/data/mission-prompts/`, bundled with the guide; they used to sit in the repository's `.prompts/`, for the user to paste.
+The authoring guide sends a user who asks for a new mission here, so "create a mission" is enough.
+
+```json
+{"kind": "objective", "lang": "fr"}
 ```
 
 ### `offer_clear_ground_check` (FEAT-CLEAR-GROUND-AT-AUTHORING lot)

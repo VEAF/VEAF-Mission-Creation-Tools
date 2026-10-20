@@ -1,7 +1,7 @@
 # Prompt — construire une mission VEAF Open Training sur une carte DCS
 
-> À coller tel quel au début d'une nouvelle session Claude Code, dans un **dossier vide** qui sera
-> le dossier de la mission.
+> Servi par l'action `describe_mission_prompt` quand un utilisateur demande une mission.
+> La mission se construit dans un **dossier vide** : celui de la session s'il est vide, sinon demander à l'utilisateur où la créer (par exemple `Documents\VEAF\Missions\<nom>`).
 
 ---
 
@@ -17,7 +17,7 @@ Les pilotes ne connaissent pas la mission : tout ce qu'ils lisent doit être jus
 
 ## 0. Avant tout
 
-1. **Charge le skill `veaf-mission-editor:veaf-mission-authoring`** et suis-le : il est la source de
+1. **Lis le guide de création VEAF** (`describe_authoring_guide`) et suis-le : il est la source de
    vérité pour les conventions VEAF (noms réservés, `#command`, `#veafInterpreter`, zones, QRA).
 2. Appelle `capabilities` et `list_catalog` : note la version de `veaf-tools` et les actions
    disponibles. Lis les **limitations connues** (`describe_known_limitations`) et tiens-en compte :
@@ -361,8 +361,8 @@ Règles :
 - **Préréglages complets** : le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun
   préréglage ne porte (journal et `presets-validation-report.md`) ; la mission n'est pas prête tant que
   cette liste n'est pas vide.
-- **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle) : UHF = Guard,
-  bases, AWACS, patrouilles, ravitailleurs ; VHF = Guard + patrouilles ; FM 30-59 ; plan rouge si le
+- **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle) : UHF = bases,
+  AWACS, patrouilles, ravitailleurs ; VHF = patrouilles ; pas de Guard (le canal 1 est la fréquence de départ du vol) ; FM 30-59 ; plan rouge si le
   rouge vole. **Les canaux de base portent les fréquences que DCS donne à l'aérodrome**, même ATC
   coupé : ce sont celles que le pilote lit sur la vue F10, et une série inventée le trompe. Ne tape
   jamais une fréquence d'aérodrome : `describe_airfield_channels` liste les bases de la mission avec

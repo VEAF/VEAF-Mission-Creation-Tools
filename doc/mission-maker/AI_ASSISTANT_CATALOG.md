@@ -94,6 +94,8 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 49 | [Appliquer une mission de campagne jouée](#campaign-apply) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 50 | [Préparer la mission suivante d'une campagne](#campaign-next) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 51 | [Écrire le briefing de campagne](#campaign-briefing) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
+| 52 | [Construire une mission complète, de la question au briefing](#build-whole-mission) | 🏗️ Démarrage | Dossier | ⭐ |
+| 53 | [Lire et modifier les fichiers du dossier de mission](#mission-files) | Modules & réglages | Recette | ⭐ |
 
 ---
 
@@ -187,6 +189,19 @@ carte directement, prête à recevoir des combat zones / QRA — **sans passer p
 
 > 💬 *« Crée-moi une nouvelle mission VEAF sur Caucasus dans ce dossier. »* (l'IA demande le
 > template + le théâtre, puis installe et génère tout)
+
+### Construire une mission complète, de la question au briefing {#build-whole-mission}
+
+*Dossier · ⭐* — Il suffit de dire « crée une mission ».
+L'IA demande laquelle des deux sortes vous voulez, puis charge les consignes VEAF qui la décrivent de bout en bout : les questions à poser, les règles de conception, l'ordre de construction.
+
+- **Mission à objectifs, jouée en une séance** — un package, des objectifs, une menace, un retour.
+  L'IA propose un scénario, en propose d'autres tant que vous voulez, et n'écrit rien avant que vous en ayez validé un ; puis elle construit la mission et son briefing.
+- **Open Training** — une mission d'entraînement VEAF sur une carte entière : bases, soutien, défense aérienne, zones d'entraînement graduées, zones de combat, QRA.
+
+Ces consignes sont livrées avec les outils : rien à coller, rien à aller chercher.
+
+> 💬 *« Crée une mission. »* · *« Crée une Open Training sur la Syrie. »* · *« Une mission à objectifs pour quatre F-16 sur le Caucase, une heure de jeu. »*
 
 ## 🎖️ Campagne multi-missions
 
@@ -654,6 +669,14 @@ partie de la recette.
 ---
 
 ## ⭐ Modules & réglages VEAF
+
+### Lire et modifier les fichiers du dossier de mission {#mission-files}
+
+*Recette · ⭐* — Pour une IA qui n'a pas accès à tes fichiers (Claude Desktop en mode chat) : elle lit et modifie `mission.yaml` et les fichiers `src/*.yaml` (presets, variantes météo et horaires, waypoints, slots…) du dossier de mission, et rien d'autre.
+Elle remplace un passage précis, après une sauvegarde ; une modification qui rendrait le fichier illisible est refusée, et le fichier reste intact.
+C'est ce qui lui permet de renommer la mission ou de changer son époque.
+
+> 💬 *« Renomme la mission helico_convoi_Montagnes. »*
 
 ### Activer / désactiver / configurer un module — recette {#configure-a-module-recipe}
 

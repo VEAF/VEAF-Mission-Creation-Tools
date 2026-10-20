@@ -49,11 +49,15 @@ from veaf_mission_mcp.map_tools import (
     resolve_coordinates,
     resolve_coordinates_batch,
 )
+from veaf_mission_mcp.mission_files import DEFAULT_LINE_COUNT, edit_mission_file, read_mission_file
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
+    MISSION_PROMPT_KINDS,
+    MISSION_PROMPT_LANGS,
     describe_authoring_guide,
     describe_known_limitations,
+    describe_mission_prompt,
     describe_module,
     describe_naming_conventions,
     list_payloads,
@@ -446,7 +450,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="edit_route",
             description=(
                 "EDIT a group's waypoints and what the flight DOES at them. Operations: add (append), "
-                "insert (at a 1-based index), remove, reorder, set (name/altitude/speed/type/eta_locked/road), "
+                "insert (at a 1-based index), remove, reorder, set (position/name/altitude/speed/type/eta_locked/road; waypoint 1 is the group's own position, moved with set_group_properties move_to), "
                 "add_task, clear_tasks. Call describe_units first to see the route you are editing -- the "
                 "result also returns the resulting route so you can check it. UNITS: altitude in FEET and "
                 "speed in KNOTS (the mission file holds metres and m/s; the conversion is done for you). "
@@ -486,7 +490,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "object",
                         "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
                         "required": ["x", "y"],
-                        "description": "Coordinates, for 'add' / 'insert'.",
+                        "description": "Coordinates, for 'add' / 'insert' / 'set'.",
                     },
                     "name": {"type": "string", "description": "Waypoint name."},
                     "altitude_ft": {"type": "number", "description": "Altitude in FEET."},
@@ -1478,6 +1482,70 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_mission_setting(Path(p["mission_yaml_path"]), p["key"], p["value"]),
+    )
+    _mission_file_param = {
+        "type": "string",
+        "description": "'mission.yaml' or 'src/<name>.yaml' (presets, versions, waypoints, warehouses, "
+        "spawnables, dynamic-slot-templates…), relative to the mission folder; nothing else is reachable.",
+    }
+    catalog.register(
+        ActionSpec(
+            name="read_mission_file",
+            description=(
+                "READ one of a mission folder's YAML sources -- mission.yaml or a src/*.yaml -- by slices of "
+                "lines. For an assistant with no direct file access (Claude Desktop in chat mode): the way to "
+                "see mission.name, the presets plan, versions.yaml, the example waypoints before changing "
+                "them with edit_mission_file. Read on from last_line + 1 while it is below total_lines. "
+                "Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission folder."},
+                    "file": _mission_file_param,
+                    "start_line": {"type": "integer", "minimum": 1, "description": "First line, 1-based."},
+                    "line_count": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": f"Lines to return, {DEFAULT_LINE_COUNT} by default.",
+                    },
+                },
+                "required": ["mission_path", "file"],
+            },
+        ),
+        handler=lambda p: read_mission_file(
+            Path(p["mission_path"]),
+            p["file"],
+            start_line=p.get("start_line", 1),
+            line_count=p.get("line_count", DEFAULT_LINE_COUNT),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_mission_file",
+            description=(
+                "EDIT one of a mission folder's YAML sources -- mission.yaml or a src/*.yaml -- by replacing "
+                "one exact passage (read it first with read_mission_file and copy it, indentation included; "
+                "add surrounding lines until it is unique). For what no dedicated action covers, e.g. "
+                "mission.name or mission.era in mission.yaml, versions.yaml, waypoints.yaml, the presets plan. "
+                "Refused when the passage is missing or repeated, or when the result is no longer YAML: "
+                "nothing is written then. Backed up first. Prefer a dedicated action when one exists "
+                "(set_mission_module, set_mission_setting, set_forced_options…)."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission folder."},
+                    "file": _mission_file_param,
+                    "search": {"type": "string", "description": "The exact text to replace."},
+                    "replace": {"type": "string", "description": "Its replacement."},
+                },
+                "required": ["mission_path", "file", "search", "replace"],
+            },
+        ),
+        handler=lambda p: edit_mission_file(
+            Path(p["mission_path"]), p["file"], search=p["search"], replace=p["replace"]
+        ),
     )
     catalog.register(
         ActionSpec(
@@ -2599,14 +2667,38 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="describe_authoring_guide",
             description=(
-                "Read this first, before any other action, unless you have the veaf-mission-authoring "
-                "skill: load that instead, it is the same text. Returns the VEAF mission authoring guide: the "
+                "Read this first, before any other action. Returns the VEAF mission authoring guide: the "
                 "order of work, the reserved naming conventions, combat zone vs QRA groups, and which "
                 "actions to consult instead of guessing. Read-only."
             ),
             parameters_schema={"type": "object", "properties": {}},
         ),
         handler=lambda _p: describe_authoring_guide(),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_mission_prompt",
+            description=(
+                "When a user asks for a new mission, read the prompt for its kind and follow it: it holds "
+                "the questions to ask, the design rules and the build order. 'objective': a mission a group "
+                "plays once, in one session (a package, objectives, a threat, a briefing). 'open-training': "
+                "a VEAF training mission on a whole map (airfields, support, training and combat zones, "
+                "QRA). Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string", "enum": list(MISSION_PROMPT_KINDS)},
+                    "lang": {
+                        "type": "string",
+                        "enum": list(MISSION_PROMPT_LANGS),
+                        "description": "The prompt's language: the user's, 'en' by default.",
+                    },
+                },
+                "required": ["kind"],
+            },
+        ),
+        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en")),
     )
     catalog.register(
         ActionSpec(

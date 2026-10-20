@@ -4,6 +4,12 @@
 
 Work started and not finished: in progress, waiting for a human, or deliberately paused.
 
+## 🔄 In progress
+
+### [FEAT-AI-ZERO-SETUP](FEAT-AI-ZERO-SETUP/PRD.md) · 🔄
+
+Installing veaf-tools is all an AI needs: `veaf-tools ai-setup` declares the MCP server in Claude Desktop, Claude Code and Gemini CLI, the server updates itself, the authoring guide and the two mission prompts ship in the executable, and the plugin is removed. Asked by David on 2026-10-20 after a demo in a clean sandbox behaved unlike his PC; found on the way: the plugin's binary had been stuck on 6.22.1 since September.
+
 ## 🧑 Waiting for a human
 
 ### [FEAT-TERRAIN-DATA-DOWNLOAD](FEAT-TERRAIN-DATA-DOWNLOAD/PRD.md) · 🧑

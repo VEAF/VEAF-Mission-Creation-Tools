@@ -11,6 +11,24 @@ Complete toolkit for creating dynamic [DCS World][DCS] missions using VEAF Lua s
 
 ---
 
+## With an AI assistant
+
+Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI or OpenCode can build and edit VEAF missions for you.
+To install the tools and connect the assistant, run in PowerShell — or let Codex, OpenCode, Antigravity or Claude Code run it; Claude Desktop in chat mode cannot:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\tools" | Out-Null
+Set-Location "$env:USERPROFILE\VEAF\tools"
+Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe -UseBasicParsing
+.\veaf-tools-updater.exe
+.\veaf-tools.exe ai-setup
+```
+
+Then restart the assistant and ask it to "create a mission": everything it needs ships with the tools.
+Details: [Install the AI assistant](doc/mission-maker/AI_ASSISTANT_INSTALL.en.md).
+
+---
+
 ## Documentation
 
 Choose the guide that matches your role:
@@ -126,6 +144,22 @@ flowchart LR
 # <a id="fr"></a>[![VEAF-logo]][VEAF website] Outils de création de missions
 
 > 🇫🇷 **Français** | 🇬🇧 [English](#en)
+
+## Avec un assistant IA
+
+Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI ou OpenCode peuvent construire et modifier des missions VEAF pour vous.
+Pour installer les outils et brancher l'assistant, lancez dans PowerShell — ou laissez Codex, OpenCode, Antigravity ou Claude Code le faire ; Claude Desktop en mode chat ne le peut pas :
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\outils" | Out-Null
+Set-Location "$env:USERPROFILE\VEAF\outils"
+Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe -UseBasicParsing
+.\veaf-tools-updater.exe
+.\veaf-tools.exe ai-setup
+```
+
+Relancez ensuite l'assistant et demandez-lui de « créer une mission » : tout ce dont il a besoin est livré avec les outils.
+Détails : [Installer l'assistant IA](doc/mission-maker/AI_ASSISTANT_INSTALL.md).
 
 ## À propos
 

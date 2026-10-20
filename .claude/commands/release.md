@@ -65,17 +65,15 @@ Once `RELEASE_NOTES.md` is validated by the developer, apply these changes:
    then **re-open an empty `## [Unreleased]` section above it**. Pull requests write there and never
    create a version heading, so a release that forgets to re-open it leaves the next PR nowhere to
    write — that is exactly how the section disappeared after 6.15.0. A test guards it.
-3. **Version bump — all three files, together**: `pyproject.toml` **and** both agent manifests,
-   `plugin/.claude-plugin/plugin.json` and `plugin/gemini-extension.json`. This release commit is the
-   **only** place the version moves; `test_plugin_version.py` fails if the three drift apart.
+3. **Version bump**: `pyproject.toml`. This release commit is the **only** place the version moves.
 4. **Roadmap Update**: Modify `doc/ROADMAP.md` to move processed tickets to the "Completed" section if applicable.
 
 ## Step 5: Git Operations
 
 Execute the following autonomously:
 1. Create branch `release/x.y.z` from `develop`
-2. Commit all modified files (`RELEASE_NOTES.md`, `CHANGELOG.md`, `pyproject.toml`, the plugin
-   manifest — kept in lockstep — and `doc/ROADMAP.md` if applicable)
+2. Commit all modified files (`RELEASE_NOTES.md`, `CHANGELOG.md`, `pyproject.toml` and
+   `doc/ROADMAP.md` if applicable)
 3. Push the branch and open a PR `release/x.y.z` → **`master`**
 
 Tell the developer explicitly that this PR must be merged with a **merge commit, not a

@@ -1,6 +1,6 @@
 """The coming campaign mission's own briefing, as a PPTX (FEAT-CAMPAIGN-MISSION-BRIEFING ticket 04).
 
-The VEAF mission briefing (`.prompts/new-objective-mission.fr.md` §3 and §6), page for page as far as
+The VEAF mission briefing (`veaf_mission_mcp/data/mission-prompts/new-objective-mission.fr.md` §3 and §6), page for page as far as
 a campaign mission allows, next to the campaign's strategic one and written with its helpers — the
 VEAF template, pagination by the font's metrics, the military register.
 

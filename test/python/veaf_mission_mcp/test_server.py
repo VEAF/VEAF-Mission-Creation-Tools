@@ -103,15 +103,16 @@ def test_the_server_registers_the_four_discovery_tools() -> None:
 
 
 def test_the_server_tells_any_client_to_read_the_authoring_guide_first() -> None:
-    """FEAT-AI-ASSISTANT-ANY-CLIENT: a client without the plugin gets the tools, not the skill.
+    """FEAT-AI-ASSISTANT-ANY-CLIENT, FEAT-AI-ZERO-SETUP: every client is pointed at the guide.
 
-    The instructions stay short on purpose: Claude Code puts them in every session's prompt, where
-    the plugin's skill already is, so they point at the guide instead of carrying its 21 KB.
+    The instructions stay short on purpose: a client puts them in every session's prompt, so they
+    point at the guide instead of carrying it.
     """
     instructions = server.mcp.instructions or ""
 
     assert "describe_authoring_guide" in instructions
-    assert "veaf-mission-authoring" in instructions
+    assert "describe_known_limitations" in instructions
+    assert "skill" not in instructions
     assert len(instructions) < 1000
 
 
@@ -120,3 +121,54 @@ def test_calling_a_tool_through_the_server_returns_its_value() -> None:
 
     assert not result.is_error
     assert result.structured_content == {"name": "veaf-mission-mcp", "version": server.VERSION}
+
+
+def test_self_update_stays_out_of_a_development_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    """From `poetry run`, sys.executable is python.exe: there is no installed veaf-tools to update."""
+    monkeypatch.delattr("sys.frozen", raising=False)
+    monkeypatch.setattr(server, "start_update_if_due", lambda *_a, **_k: pytest.fail("must not check"))
+
+    assert server.self_update() == "not_frozen"
+
+
+def test_self_update_respects_check_updates_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setattr("veaf_libs.user_config.get_check_updates", lambda: False)
+    monkeypatch.setattr(server, "start_update_if_due", lambda *_a, **_k: pytest.fail("must not check"))
+
+    assert server.self_update() == "disabled"
+
+
+def test_self_update_checks_the_running_executable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    exe = tmp_path / "veaf-tools.exe"
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setattr("sys.executable", str(exe))
+    monkeypatch.setattr("veaf_libs.user_config.get_check_updates", lambda: True)
+    monkeypatch.setenv("VEAF_HOME", str(tmp_path / "home"))
+    seen: list = []
+    monkeypatch.setattr(server, "start_update_if_due", lambda *a, **_k: seen.append(a) or "started")
+
+    assert server.self_update() == "started"
+    assert seen == [(server.VERSION, exe.resolve(), tmp_path / "home")]
+
+
+def test_self_update_never_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An update is not worth a server that does not start."""
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setattr("veaf_libs.user_config.get_check_updates", lambda: True)
+
+    def boom(*_a: object, **_k: object) -> str:
+        raise RuntimeError("disk on fire")
+
+    monkeypatch.setattr(server, "start_update_if_due", boom)
+
+    assert server.self_update() == "failed"
+
+
+def test_self_update_leaves_a_pinned_pre_release_alone(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Testing a pre-release: the server must stay on the version the scaffolded missions get."""
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setenv("VEAF_MCP_UPDATER_TAG", "published-v6.31.0-rc1")
+    monkeypatch.setattr(server, "start_update_if_due", lambda *_a, **_k: pytest.fail("must not check"))
+
+    assert server.self_update() == "pinned"

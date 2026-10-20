@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 from mission_tools import Group
 from presets_injector.presets_injector_worker import PresetsInjectorWorker
 from presets_injector.presets_manager import Channel, PresetDefinition, RadioDefinition
+from veaf_libs.i18n import t
 
 
 def _make_worker(presets_file: Path | None = None) -> PresetsInjectorWorker:
@@ -536,6 +537,22 @@ class TestGenerateValidationReport(unittest.TestCase):
             content = report_path.read_text(encoding="utf-8")
             self.assertIn("# Radio Presets Frequency Validation Report", content)
             self.assertIn("MiG-19P", content)
+
+    def test_only_a_rejected_frequency_suggests_none(self) -> None:
+        """`none` removes every preset of a type, the working ones too (FEAT-AI-ZERO-SETUP).
+
+        Suggested under the informational entries — a warbird losing its UHF channels, which DCS would
+        ignore anyway — it led two assistants to strip all the presets of 11 aircraft types.
+        """
+        worker = self._make_worker_with_pending()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            worker.generate_validation_report(report_path)
+            content = report_path.read_text(encoding="utf-8")
+        critical, info = content.split("\n### Ka-50", 1)
+        self.assertIn("MiG-19P: none", critical)
+        self.assertNotIn(": none", info)
+        self.assertIn(t("presets_injector.report.info_no_action"), info)
 
     def _header(self, mission_folder: Path, presets_file: Path, mission: Path, label: str | None = None) -> list[str]:
         """Return the report's header lines, written into *mission_folder* for those two files."""

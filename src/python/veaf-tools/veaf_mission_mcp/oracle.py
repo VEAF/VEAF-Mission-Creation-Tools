@@ -342,11 +342,12 @@ def describe_known_limitations(
     veaf-tools not yet fixed in this version, and the DCS behaviours that raise no error and are
     wrong anyway (always returned — DCS is not ours to fix).
 
-    With **no** ``kind``, ``area`` or ``id``, and without ``full``, only a short listing comes back —
-    ``id``, ``kind``, ``area`` and ``title`` of each entry: the whole text is about 74 000 characters,
-    more than a tool result can carry, and an author needs a tenth of it
-    (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 10). Naming an ``area``, a ``kind`` or one or more
-    ``id`` returns the entries in full.
+    Without ``id`` or ``full``, only a short listing comes back — ``id``, ``kind``, ``area`` of each
+    entry: the whole text is about 74 000 characters, more than a tool result can carry, and an author
+    needs a tenth of it (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 10). ``kind``, ``area`` and
+    ``theatre`` narrow the listing and keep it short: three areas in full were 46 000 characters in
+    one call, sent back with every later turn of the session (FIX-OPENCODE-TEST-FINDINGS 06). One or
+    more ``id`` return those entries in full.
 
     Args:
         kind: Optional ``"tool"`` or ``"dcs"`` to return one kind only.
@@ -383,7 +384,7 @@ def describe_known_limitations(
             for entry in entries
             if not entry.get("theatres") or wanted in {str(name).lower() for name in entry["theatres"]}
         ]
-    short = not (full or kind or area or ids)
+    short = not (full or ids)
     result: dict[str, Any] = {"veaf_tools_version": version, "detail": "short" if short else "full"}
     if short:
         result["limitations"] = [
@@ -412,29 +413,51 @@ def describe_authoring_guide() -> dict[str, Any]:
     return {"guide": read_bundled_text("veaf_mission_mcp", "data", "authoring-guide.md")}
 
 
-def describe_mission_prompt(kind: str, lang: str = "en") -> dict[str, Any]:
+#: Where a mission prompt's part read after the user's approval starts (FIX-OPENCODE-TEST-FINDINGS 06).
+_BUILD_PART_MARKER = "<!-- part: build -->\n"
+#: The parts `describe_mission_prompt` takes; `all` is the whole text.
+MISSION_PROMPT_PARTS: tuple[str, ...] = ("scenario", "build", "all")
+
+
+def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None) -> dict[str, Any]:
     """Return the prompt that builds one kind of VEAF mission, end to end.
 
     They used to live in the repository's `.prompts/`, for the user to paste; shipped in the
     executable, a user only has to ask for a mission (FEAT-AI-ZERO-SETUP).
 
+    A prompt whose design and build serve only once the user has approved a scenario is cut in two
+    at a ``<!-- part: build -->`` line, and comes by default in its first part: sections 4-9 of the
+    objective prompt, 21 000 of its 34 000 characters, were carried through every turn of the
+    scenario discussion (FIX-OPENCODE-TEST-FINDINGS 06). The first part ends by saying how to load
+    the second.
+
     Args:
         kind: `objective` (a mission played once, in one session) or `open-training` (a VEAF
             training mission on a whole map).
         lang: `en` or `fr`, the language the prompt is written in.
+        part: `scenario` (the default for a prompt in two parts), `build`, or `all`.
 
     Returns:
-        `{"kind", "lang", "prompt": <markdown text>}`.
+        `{"kind", "lang", "prompt": <markdown text>}`; for one part of a prompt in two, `"part"` too,
+        and `"next_part"` after the first.
 
     Raises:
-        ValueError: An unknown kind or language.
+        ValueError: An unknown kind, language or part.
     """
     if kind not in MISSION_PROMPT_KINDS:
         raise ValueError(f"Unknown mission kind {kind!r}: expected one of {', '.join(MISSION_PROMPT_KINDS)}.")
     if lang not in MISSION_PROMPT_LANGS:
         raise ValueError(f"Unknown language {lang!r}: expected one of {', '.join(MISSION_PROMPT_LANGS)}.")
+    if part is not None and part not in MISSION_PROMPT_PARTS:
+        raise ValueError(f"Unknown part {part!r}: expected one of {', '.join(MISSION_PROMPT_PARTS)}.")
     prompt = read_bundled_text("veaf_mission_mcp", "data", "mission-prompts", f"new-{kind}-mission.{lang}.md")
-    return {"kind": kind, "lang": lang, "prompt": prompt}
+    result: dict[str, Any] = {"kind": kind, "lang": lang, "prompt": prompt}
+    if part == "all" or _BUILD_PART_MARKER not in prompt:
+        return result
+    scenario, build = prompt.split(_BUILD_PART_MARKER, 1)
+    if part == "build":
+        return {**result, "prompt": build, "part": "build"}
+    return {**result, "prompt": scenario, "part": "scenario", "next_part": "build"}
 
 
 def _module_enabled(mission_yaml_path: Path, module_id: str) -> bool | None:

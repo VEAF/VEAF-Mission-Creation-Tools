@@ -112,11 +112,23 @@ class TestKnownLimitationsByArea:
         short = {entry["id"] for entry in describe_known_limitations()["limitations"]}
         assert short == {entry["id"] for entry in describe_known_limitations(full=True)["limitations"]}
 
-    def test_an_area_returns_its_entries_in_full(self) -> None:
+    def test_an_area_returns_its_entries_short(self) -> None:
+        """Three areas in full were 46k characters in one call (FIX-OPENCODE-TEST-FINDINGS 06)."""
         result = describe_known_limitations(area="radio")
-        assert result["detail"] == "full"
+        assert result["detail"] == "short"
         assert result["limitations"] and {e["area"] for e in result["limitations"]} == {"radio"}
+        assert all("symptom" not in entry for entry in result["limitations"])
+
+    def test_an_area_in_full_on_request(self) -> None:
+        result = describe_known_limitations(area="radio", full=True)
+        assert result["detail"] == "full"
         assert all("symptom" in entry and "workaround" in entry for entry in result["limitations"])
+
+    def test_the_three_largest_areas_read_short_stay_small(self) -> None:
+        areas = describe_known_limitations()["areas"]
+        largest = sorted(areas, key=areas.get, reverse=True)[:3]
+        size = sum(len(json.dumps(describe_known_limitations(area=a), indent=2)) for a in largest)
+        assert size < 8_000
 
     def test_one_or_several_ids_return_those_entries_in_full(self) -> None:
         first, second = (e["id"] for e in describe_known_limitations()["limitations"][:2])
@@ -192,7 +204,38 @@ def test_the_authoring_guide_sends_a_mission_request_to_the_mission_prompts() ->
 @pytest.mark.parametrize("lang", ["fr", "en"])
 def test_describe_mission_prompt_returns_each_shipped_prompt(kind: str, lang: str) -> None:
     expected = (_MCP_DATA / "mission-prompts" / f"new-{kind}-mission.{lang}.md").read_text(encoding="utf-8")
-    assert describe_mission_prompt(kind, lang) == {"kind": kind, "lang": lang, "prompt": expected}
+    assert describe_mission_prompt(kind, lang, part="all") == {"kind": kind, "lang": lang, "prompt": expected}
+
+
+class TestMissionPromptParts:
+    """FIX-OPENCODE-TEST-FINDINGS 06: sections 4-9 of the objective prompt, 21k of its 34k, serve only after approval.
+
+    Read up front, they were carried through every turn of the scenario discussion.
+    """
+
+    @pytest.mark.parametrize("lang", ["fr", "en"])
+    def test_the_objective_prompt_starts_with_the_scenario_part(self, lang: str) -> None:
+        result = describe_mission_prompt("objective", lang)
+        assert result["part"] == "scenario" and result["next_part"] == "build"
+        assert "## 2." in result["prompt"] and "## 4." not in result["prompt"]
+        assert "part: build" in result["prompt"], "the scenario part says how to load the rest"
+        assert len(result["prompt"]) < 15_000
+
+    @pytest.mark.parametrize("lang", ["fr", "en"])
+    def test_the_build_part_is_the_rest(self, lang: str) -> None:
+        whole = describe_mission_prompt("objective", lang, part="all")["prompt"]
+        scenario = describe_mission_prompt("objective", lang)["prompt"]
+        build = describe_mission_prompt("objective", lang, part="build")
+        assert build["prompt"].startswith("## 4.")
+        assert scenario + "<!-- part: build -->\n" + build["prompt"] == whole
+
+    def test_a_prompt_with_no_parts_comes_whole(self) -> None:
+        result = describe_mission_prompt("open-training", "en")
+        assert "part" not in result and "## 8." in result["prompt"]
+
+    def test_an_unknown_part_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="part"):
+            describe_mission_prompt("objective", "en", part="epilogue")
 
 
 def test_describe_mission_prompt_defaults_to_english() -> None:

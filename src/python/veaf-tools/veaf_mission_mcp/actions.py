@@ -56,6 +56,7 @@ from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
     MISSION_PROMPT_KINDS,
     MISSION_PROMPT_LANGS,
+    MISSION_PROMPT_PARTS,
     describe_authoring_guide,
     describe_known_limitations,
     describe_mission_prompt,
@@ -2859,7 +2860,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the questions to ask, the design rules and the build order. 'objective': a mission a group "
                 "plays once, in one session (a package, objectives, a threat, a briefing). 'open-training': "
                 "a VEAF training mission on a whole map (airfields, support, training and combat zones, "
-                "QRA). Read-only."
+                "QRA). Load ONE prompt, the kind the user chose -- never both. The objective prompt comes "
+                "in two parts: the scenario first; its build part ('part': 'build') once the user has "
+                "approved a scenario. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -2870,11 +2873,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "enum": list(MISSION_PROMPT_LANGS),
                         "description": "The prompt's language: the user's, 'en' by default.",
                     },
+                    "part": {
+                        "type": "string",
+                        "enum": list(MISSION_PROMPT_PARTS),
+                        "description": "'scenario' by default; 'build' after approval; 'all' for both.",
+                    },
                 },
                 "required": ["kind"],
             },
         ),
-        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en")),
+        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en"), p.get("part")),
     )
     catalog.register(
         ActionSpec(
@@ -2885,8 +2893,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
                 "and what it cost. With no argument it returns a SHORT listing (id, kind, area -- each id reads as a phrase: "
-                "the whole text is too long for one result); then read the entries of the areas your "
-                "mission uses with 'area', or any entry with 'id'. Read-only."
+                "the whole text is too long for one result); 'area', 'kind' and 'theatre' narrow that "
+                "listing. Then read in full only the entries your mission meets, with 'id' or 'ids' -- "
+                "what you read stays in your context to the end. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -2894,7 +2903,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "kind": {
                         "type": "string",
                         "enum": ["tool", "dcs"],
-                        "description": "Return one kind only, in full.",
+                        "description": "List one kind only.",
                     },
                     "area": {
                         "type": "string",
@@ -2909,7 +2918,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "pipeline",
                             "runtime",
                         ],
-                        "description": "Return the entries of one area, in full.",
+                        "description": "List the entries of one area.",
                     },
                     "theatre": {
                         "type": "string",

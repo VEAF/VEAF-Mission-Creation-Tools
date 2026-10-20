@@ -212,6 +212,9 @@ The briefing is written in French, like the mission: the headings above are the 
 ones (*Situation générale*, *Déroulement mission*, *Plan de vol*, *Plan de fréquences*, *Coordonnées
 cibles*…).
 
+**The rest of this prompt is the build**: once the user has approved a scenario, load it with `describe_mission_prompt` (`kind: objective`, `part: build`) and follow it from section 4.
+
+<!-- part: build -->
 ## 4. Phase 2 — designing the mission
 
 Before building, give **the plan as a list** (folder, template, slots, objectives, threats, support,

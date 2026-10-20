@@ -59,9 +59,8 @@ that raise no error and are wrong anyway — a late-activated group visible to s
 not delaying an air spawn, a SAM without early-warning radar permanently lit… Take them into account
 throughout; this guide deliberately does not repeat them, since a trap copied here would go stale.
 With no argument it returns a **short listing** (`id`, `kind`, `area`; each id reads as a phrase): the whole text is too
-long for one result. Then read the entries of the areas your mission uses with `area` (`spawning`,
-`air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), or any one
-with `id`; `theatre` drops what concerns other theatres only.
+long for one result. `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind` and `theatre` narrow that listing and keep it short.
+Read in full, with `id` or `ids`, only the entries your mission actually meets: everything you read stays in your context to the end of the session and is sent again with every turn.
 
 Before naming a group, picking a unit type, or configuring a module, call the read-only oracle
 actions. They read VEAF's canonical, always-current data — your training memory of DCS types or
@@ -85,7 +84,7 @@ VEAF conventions may be stale or wrong.
 - `describe_naming_conventions` — the reserved naming patterns (below).
 - `describe_module` — is a module real? its doc page? enabled in this mission?
 
-For an action's exact parameters, call `describe_action(name)`.
+For an action's exact parameters, call `describe_action(name)` **just before you use it**, one action at a time — not every action you might need up front: ten described in one batch are ten schemas carried to the end of the session.
 
 **These oracle actions plus this guide are the authoritative source for VEAF-framework facts** —
 naming conventions, spawn aliases, marker/`#command`/`#veafInterpreter` formats, module config.
@@ -95,6 +94,10 @@ source (a mission maker's machine has neither): if a fact seems missing, re-quer
 than sourcing it elsewhere or guessing. This scoping is **only** about VEAF-framework knowledge —
 keep using your other tools normally for everything else (geocoding, reading/writing files,
 building, etc.).
+
+**Every read of a mission goes through an action — never through a shell.**
+Never unzip, grep or parse a `.miz`, a mission file or the tools' own data files in a shell or a script of your own: `describe_mission`, `describe_map`, `read_mission_file` and `inspect_built_mission` read them, and the reference data has its own actions (`list_airfields`, `list_countries`, `list_unit_types`…).
+When no action answers a question, tell the user what you could not check instead of improvising a parser: a guess built from raw tables reads as a fact and is often wrong.
 
 ## The two editing worlds
 

@@ -211,6 +211,9 @@ toute la largeur et devient illisible.
 9. **Coordonnées cibles** — le format annoncé en tête (« Lat Long secondes, précis »), puis une ligne
    par cible : `<nom> : N34°33'37.31" E38°18'48.77" <altitude> ft`.
 
+**La suite de ce prompt est la construction** : une fois un scénario approuvé par l'utilisateur, charge-la avec `describe_mission_prompt` (`kind: objective`, `part: build`) et suis-la à partir de la section 4.
+
+<!-- part: build -->
 ## 4. Phase 2 — conception de la mission
 
 Avant de construire, rends **le plan en une liste** (dossier, gabarit, slots, objectifs, menaces,

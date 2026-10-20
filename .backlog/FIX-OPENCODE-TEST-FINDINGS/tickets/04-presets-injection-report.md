@@ -1,6 +1,6 @@
 # 04 — Presets: 4 aircraft injected, a report that is not there
 
-Status: ⬜ ready
+Status: ✅ done
 
 On the sandbox mission (5 dynamic-slot templates pulled: A-10C II, F-15C, F-16CM, AH-64D, UH-1H; `set_airfield_channels` for Incirlik and Hatay):
 - every build said "injected presets into 4 aircraft" for 59 aircraft groups;

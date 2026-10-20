@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-OPENCODE-TEST-FINDINGS](FIX-OPENCODE-TEST-FINDINGS/PRD.md) · 🔄
+
+What David's end-to-end OpenCode test on 6.31.1 met (2026-10-20, 161 minutes, 162 shell calls): the self-update replacing the exe under running servers, `edit_mission_file` failing on CRLF, reference data only readable inside the exe, presets and FARP slots to investigate, heavy reads, and no action to check a built `.miz`. One lot, one PR, released as 6.31.2; absorbs FEAT-INSPECT-BUILT-MISSION.
+
 ### [FIX-LIMITATIONS-SHORT-LISTING](FIX-LIMITATIONS-SHORT-LISTING/PRD.md) · 🔄
 
 The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20.

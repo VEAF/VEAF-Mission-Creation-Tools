@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FIX-OPENCODE-TEST-FINDINGS](FIX-OPENCODE-TEST-FINDINGS/PRD.md) · ⬜
-
-What David's end-to-end OpenCode test on 6.31.1 met (2026-10-20, 161 minutes, 162 shell calls): the self-update replacing the exe under running servers, `edit_mission_file` failing on CRLF, reference data only readable inside the exe, presets and FARP slots to investigate, heavy reads, and no action to check a built `.miz`. One lot, one PR, released as 6.31.2; absorbs FEAT-INSPECT-BUILT-MISSION.
-
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 
 Broaden the shipped default radio presets, after phase 1 of the radio preset projection.

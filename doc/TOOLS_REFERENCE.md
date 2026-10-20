@@ -645,11 +645,14 @@ Options:
   --force                        Ignore version check and install anyway
   --no-verify-checksum           Skip checksum verification (not recommended)
   --zip-file TEXT                Path to a local published.zip file (for testing, skips GitHub)
+  --stage                        Leave the new veaf-tools beside the installed one (the AI server's own update)
   --lang TEXT                    Force interface language (en, fr); overrides OS locale and ~/veafmct.yaml
   --verbose                      Show detailed debug output
   --pause                        Wait for user input before exiting
   --help                         Show help message
 ```
+
+**Note :** `--stage` est ce que lance la mise à jour automatique du serveur de l'IA : il laisse le nouveau `veaf-tools.exe` à côté de celui installé, sous le nom `veaf-tools.exe.staged`, pour que le prochain démarrage d'un serveur de l'IA le mette en place quand plus aucun autre `veaf-tools.exe` ne tourne. Un lancement à la main met en place une version en attente, et prévient quand un `veaf-tools.exe` tourne : le remplacer casse un serveur d'IA en marche.
 
 **Note :** les réglages de `veaf-tools-config.yaml` sont utilisés automatiquement. Les options en ligne de commande priment sur les valeurs du fichier de configuration.
 

@@ -17,6 +17,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **What an AI met building a mission with nothing but veaf-tools** (FIX-OPENCODE-TEST-FINDINGS, an OpenCode session of 161 minutes on 6.31.1):
+  - **The self-update no longer breaks the AI servers that are running.** It replaced `veaf-tools.exe` under them, and their next actions failed with `Error -3 while decompressing data`. The new version now waits beside the installed one and takes over at the next start of an assistant, once no other `veaf-tools.exe` runs; the updater run by hand warns when one does. A server older than 6.31.2 still updates the old way, once.
+  - **`edit_mission_file` finds a multi-line passage in a CRLF file**, and `read_mission_file` returns `\n` line ends. `prepare` writes `mission.yaml`, `ctld-config.yaml` and the skeleton catalogues in LF, like the rest of the scaffold.
+  - **A FARP that is the mission's only one gets its dynamic slots**: the build reported "0 ships/FARPs" because the warehouse table of a lone unit 1 reads back as a list.
+
+### Added
+
+- **Reference data before a mission folder exists**: `list_airfields`, `resolve_coordinates` and `geocode` take a `theatre`; `list_airfields` with `details` gives each base's parking and ATC frequencies; `list_countries` gives the DCS country ids; `read_mission_file` without a mission reads the scaffold `scaffold_mission` lays down. The objective prompt no longer sends the AI to the tools' data files.
+- **`inspect_built_mission`** reports what a built `.miz` holds — slots and templates per base, presets per aircraft type, bullseyes, weather per variant, tankers and AWACS, counters — and the guide and the prompts check a build through it, never by unzipping the `.miz`.
+
+### Changed
+
+- **Lighter reads for an AI**: `list_airfields` is short by default (21 000 characters for Syria instead of 37 000), `describe_known_limitations` keeps an area short and gives the full text by id, the objective prompt comes in two parts (the build part once a scenario is approved), and the guide asks to describe an action just before using it.
+
 ## [6.31.1] — 2026-10-20
 
 ### Fixed

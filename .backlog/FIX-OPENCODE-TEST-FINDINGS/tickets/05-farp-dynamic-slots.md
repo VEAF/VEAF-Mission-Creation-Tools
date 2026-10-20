@@ -1,6 +1,6 @@
 # 05 — The FARP's dynamic slots
 
-Status: ⬜ ready
+Status: ✅ done
 
 `add_farp` placed "FARP Azaz" (blue, Turkey, `farp_type: FARP`); `src/warehouses.yaml` named it under `farps:`; every build said "configured 10 airports, 0 ships/FARPs" and later "Ship/FARP '1' not found in the mission (farps); skipping it".
 The mission's warehouses table held the FARP under `warehouses` (id 1, `dynamicSpawn = false`, no aircraft), not under `farps`.

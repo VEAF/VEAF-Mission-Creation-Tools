@@ -101,6 +101,16 @@ class TestNormalizeWarehousesAirports:
         normalize_warehouses_airports(content)
         assert content["airports"] == {1: {"coalition": "RED"}, 2: {"coalition": "BLUE"}}
 
+    def test_the_ships_and_farps_table_is_normalised_too(self) -> None:
+        """`warehouses.warehouses` is keyed by unit id: a lone FARP is unit 1 (FIX-OPENCODE-TEST-FINDINGS 05).
+
+        Parsed as a list, the build looked for unit 1 in a list of dicts, found nothing, and said
+        "0 ships/FARPs" and "Ship/FARP '1' not found".
+        """
+        content = {"warehouses": [{"coalition": "BLUE"}]}
+        normalize_warehouses_airports(content)
+        assert content["warehouses"] == {1: {"coalition": "BLUE"}}
+
     def test_a_dict_is_left_alone(self) -> None:
         airports = {42: {"coalition": "BLUE"}}
         content = {"airports": airports}

@@ -37,12 +37,13 @@ def _run(install: Path, home: Path, latest: str = "6.31.0", now: datetime = NOW)
     return outcome, launched
 
 
-def test_a_newer_release_starts_the_updater_in_the_server_folder(install: Path, tmp_path: Path) -> None:
+def test_a_newer_release_starts_the_updater_in_the_server_folder_to_stage_it(install: Path, tmp_path: Path) -> None:
+    """Staged, never installed under the running servers (FIX-OPENCODE-TEST-FINDINGS 01)."""
     outcome, launched = _run(install, tmp_path)
 
     assert outcome == "started"
     updater = install.parent / platform_assets.updater_binary_name()
-    assert launched == [([str(updater), "--tag", "published-latest"], install.parent)]
+    assert launched == [([str(updater), "--tag", "published-latest", "--stage"], install.parent)]
 
 
 def test_the_same_release_starts_nothing(install: Path, tmp_path: Path) -> None:

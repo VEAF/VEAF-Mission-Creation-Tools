@@ -190,3 +190,14 @@ class TestRoadsRegionsAndRefusals:
         result = geo.geocode(sample_miz, "Al-Kiswah")
         assert result["found"] is False
         assert result["warnings"] == ["Nominatim refused the request (HTTP 429)"]
+
+
+def test_geocode_takes_a_theatre_with_no_mission(monkeypatch: pytest.MonkeyPatch) -> None:
+    """FIX-OPENCODE-TEST-FINDINGS 03: phase 1 of a mission prompt runs before any folder exists."""
+    fake = _FakeGeocoder(GeocodeResult(lat=36.59, lon=37.04, display_name="Azaz, Syria"))
+    monkeypatch.setattr(geocoding, "get_geocoder", lambda _key=None: fake)
+
+    result = geo.geocode(None, "Azaz", theatre="Syria")
+
+    assert result["found"] is True and result["theatre"] == "Syria"
+    assert (result["xy"]["x"], result["xy"]["y"]) == pytest.approx(coordinates.latlon_to_xy("Syria", 36.59, 37.04))

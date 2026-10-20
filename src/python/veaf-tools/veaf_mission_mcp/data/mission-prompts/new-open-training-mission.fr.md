@@ -21,7 +21,7 @@ Les pilotes ne connaissent pas la mission : tout ce qu'ils lisent doit être jus
    vérité pour les conventions VEAF (noms réservés, `#command`, `#veafInterpreter`, zones, QRA).
 2. Appelle `capabilities` et `list_catalog` : note la version de `veaf-tools` et les actions
    disponibles. Lis les **limitations connues** (`describe_known_limitations`) et tiens-en compte :
-   l'appel sans argument rend une **liste courte** (le texte entier est trop long pour un résultat), puis lis en entier les entrées des domaines que ta mission touche (`area`, `theatre`) ou une seule (`id`).
+   l'appel sans argument rend une **liste courte** (le texte entier est trop long pour un résultat), `area` et `theatre` resserrent cette liste sur ce que ta mission touche ; lis ensuite en entier, avec `id` ou `ids`, les seules entrées que ta mission rencontre vraiment.
 3. **Ce qui manque ou ne marche pas dans les outils, tu le signales.** Une action absente, un
    résultat faux, une doc qui dit autre chose que le comportement : tu contournes proprement pour
    avancer, et tu le notes dans un bloc **« Retours pour VMCT »** de ton rapport final (quoi, où,
@@ -526,7 +526,8 @@ l'époque ou les camps ; lancer DCS.
 - **Lis tout le journal du build**, pas seulement le code de sortie : presets injectés dans combien
   d'appareils, waypoints dans combien de groupes, liens des warehouses,
   avertissements. Tout zéro est suspect.
-- **Ouvre le `.miz` produit** (un zip ; `mission` et `warehouses` sont des tables Lua) et contrôle :
+- **Contrôle la mission construite par les actions, jamais en la dézippant** : `inspect_built_mission` (slots, presets, bullseye, météo, soutien, compteurs), `describe_mission` et `describe_units` sur le `.miz` construit (noms, routes, unités), `read_mission_file` (les sources).
+  Ce qu'aucune action ne lit, tu le signales comme non vérifié. Contrôle :
   - noms de groupes et d'unités **uniques** ;
   - slots dynamiques sur les seules bases voulues ;
   - tâches des ravitailleurs et des AWACS ;

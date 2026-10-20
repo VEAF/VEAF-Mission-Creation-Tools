@@ -36,9 +36,9 @@ The work has **two phases**, and the line between them is strict:
 4. Answer in English, concisely, but write the mission and its briefing in French — the VEAF servers'
    language — unless told otherwise. Ask your questions **one at a time**, with options and your
    recommendation.
-5. **Reading without a mission folder.** In phase 1 the folder is empty, and `geocode` as well as
-   `resolve_coordinates` require a `mission_path` (they take no theatre). Point them, read-only, at an
-   existing mission on the same theatre (an Open Training, for example); create nothing for it.
+5. **Reading without a mission folder.** In phase 1 the folder is empty, and every read you need takes a `theatre` instead of a `mission_path`: `list_airfields`, `geocode`, `resolve_coordinates`, `terrain_elevation`.
+   `list_countries` gives the DCS country ids, and `read_mission_file` without a `mission_path` reads the scaffold `scaffold_mission` will lay down (the presets plan, the dynamic-slot templates).
+   Never read the tools' own data files: what no action answers, you say you could not check.
 
 ## 1. The opening questions (and only those)
 
@@ -60,9 +60,8 @@ say so.
 Everything else — place, objectives, threat, time, weather, support — **you** propose, in the
 scenario.
 
-**The ATO names its flights with the VEAF standard callsigns.** Their frequency is in the tools'
-catalogue (`presets_injector/freq_alias.py`, and the template's `presets.yaml`); their aircraft is
-not. The known ones:
+**The ATO names its flights with the VEAF standard callsigns.** Their frequency is in the template's presets plan (`read_mission_file` on `src/presets.yaml`, no `mission_path` needed); their aircraft is not.
+The known ones:
 
 | Callsign | Aircraft |
 |---|---|
@@ -90,10 +89,8 @@ guess it.
   **estimate**: say so.
 - **Buildable with the tools**: everything the scenario promises must be buildable (section 4).
   Whatever depends on a setting you have not checked is "to be checked", not "planned".
-- **Bases that can take the audience.** Count each departure base's parking spots in
-  `veaf_libs/data/parking/<theatre>.json` (each spot's `t` field: from memory of the DCS
-  `Airbase.getParking` API, 68 hardened shelter, 72 airplane, 104 open air, 40 helicopter, 16 runway —
-  to be confirmed) and compare them with the number of pilots. A base too small refuses dynamic slots
+- **Bases that can take the audience.** `list_airfields` with `details: true` (and `name_contains` for one base) gives each base's parking stands, `parking.planes` and `parking.helicopters`.
+  Compare them with the number of pilots. A base too small refuses dynamic slots
   silently on the player's side ("Can't create dynamic group, no suitable parking was found" in the
   server log): measured on Syria, At Tanf has only **2 helipads** and H4 about 13 airplane spots.
   Plan a FARP (`add_farp`) for the helicopters or a second base for the jets.
@@ -107,7 +104,7 @@ guess it.
 - **Readable at a glance**: a pitch that tells in two sentences.
 
 Read-only actions (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`, `list_unit_types`,
-`resolve_coordinates`, `terrain_elevation`, `describe_known_limitations`) are allowed in phase 1.
+`list_countries`, `resolve_coordinates`, `terrain_elevation`, `read_mission_file`, `describe_known_limitations`) are allowed in phase 1.
 **No action that writes**: no `scaffold_mission`, no file, no folder.
 
 ### 2.2 The scenario sheet
@@ -215,6 +212,9 @@ The briefing is written in French, like the mission: the headings above are the 
 ones (*Situation générale*, *Déroulement mission*, *Plan de vol*, *Plan de fréquences*, *Coordonnées
 cibles*…).
 
+**The rest of this prompt is the build**: once the user has approved a scenario, load it with `describe_mission_prompt` (`kind: objective`, `part: build`) and follow it from section 4.
+
+<!-- part: build -->
 ## 4. Phase 2 — designing the mission
 
 Before building, give **the plan as a list** (folder, template, slots, objectives, threats, support,
@@ -284,7 +284,7 @@ approximation of it.
   (pilots change it on the ground).
 - **Flight plan in the aircraft**: it **is** the briefing's flight plan, in the same order and under
   the same names. In DCS point 0 is the departure: the briefing's `W1` is the point with index 1.
-  Check it in the `.miz`. With named slots, it is the group's route (`edit_route`) or
+  Check it in the built `.miz` (`describe_units` with `include_route`). With named slots, it is the group's route (`edit_route`) or
   `src/waypoints.yaml`; with dynamic slots, **only `src/waypoints.yaml`**: the build appends its
   points after the departure of every player template (one plan per category and coalition, one for
   the jets, one for the helicopters), then a BULLSEYE.
@@ -390,7 +390,7 @@ approximation of it.
   AWACS, tankers, package frequency. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.
   Rewrite **all** the template's `channel_lists`: on another map, it keeps Caucasus airfields
-  (Batumi, Beslan…). Re-read the presets actually injected in the `.miz`, aircraft by aircraft. The
+  (Batumi, Beslan…). Re-read the presets actually injected, aircraft by aircraft (`inspect_built_mission`). The
   SA342 Gazelle gets none (only its FM radio takes presets): say in the briefing that its radios are
   set by hand.
   The build lists every AWACS, tanker or carrier no preset carries (its log and
@@ -467,7 +467,8 @@ What belongs to the user: commit, push, publishing, launching DCS.
   waypoints injected into how many groups, warehouse links, warnings. All zeros is suspicious. Run
   the builds **with standard input closed** (`< /dev/null`, or `stdin=DEVNULL`): a build sat for ten
   minutes waiting for input, without printing anything.
-- **Open the produced `.miz`** (a zip; `mission` and `warehouses` are Lua tables) and check:
+- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
+  What no action reads, you report as not checked. Check:
   - **unique** group and unit names;
   - named slots: one group per ATO flight, the right number of `Client` slots, at the right
     departure, with a loadout, and no dynamic slot; dynamic slots: only on the planned bases, and no

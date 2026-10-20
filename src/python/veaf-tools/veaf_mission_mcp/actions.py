@@ -42,6 +42,7 @@ from veaf_mission_mcp.edit_veaf_config import (
 from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
+from veaf_mission_mcp.inspect_built import inspect_built_mission
 from veaf_mission_mcp.map_drawings import LINE_STYLES, add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import (
     describe_map,
@@ -56,11 +57,13 @@ from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
     MISSION_PROMPT_KINDS,
     MISSION_PROMPT_LANGS,
+    MISSION_PROMPT_PARTS,
     describe_authoring_guide,
     describe_known_limitations,
     describe_mission_prompt,
     describe_module,
     describe_naming_conventions,
+    list_countries,
     list_payloads,
     list_shortcuts,
     list_unit_types,
@@ -774,6 +777,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "category": {
                         "type": "string",
                         "enum": ["vehicle", "plane", "helicopter", "ship", "static"],
+                        "description": (
+                            "'static' places one object of ANY type list_unit_types gives -- a parked "
+                            "aircraft (e.g. 'Su-24M') included; the action sets its static category."
+                        ),
                     },
                     "name": {"type": "string", "description": "The group's name."},
                     "position": {
@@ -1497,12 +1504,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "lines. For an assistant with no direct file access (Claude Desktop in chat mode): the way to "
                 "see mission.name, the presets plan, versions.yaml, the example waypoints before changing "
                 "them with edit_mission_file. Read on from last_line + 1 while it is below total_lines. "
-                "Read-only."
+                "Line ends come back as \\n whatever the file uses. Without mission_path, reads the "
+                "scaffold shipped with the tools -- what scaffold_mission will lay down: the dynamic-slot "
+                "templates (types, frequencies), the presets plan, mission.yaml with each module's "
+                "commented example -- so a plan can be checked before any folder exists. Read-only."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "mission_path": {"type": "string", "description": "The mission folder."},
+                    "mission_path": {
+                        "type": "string",
+                        "description": "The mission folder; omit it to read the shipped scaffold.",
+                    },
                     "file": _mission_file_param,
                     "start_line": {"type": "integer", "minimum": 1, "description": "First line, 1-based."},
                     "line_count": {
@@ -1511,11 +1524,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": f"Lines to return, {DEFAULT_LINE_COUNT} by default.",
                     },
                 },
-                "required": ["mission_path", "file"],
+                "required": ["file"],
             },
         ),
         handler=lambda p: read_mission_file(
-            Path(p["mission_path"]),
+            Path(p["mission_path"]) if p.get("mission_path") else None,
             p["file"],
             start_line=p.get("start_line", 1),
             line_count=p.get("line_count", DEFAULT_LINE_COUNT),
@@ -1529,6 +1542,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "one exact passage (read it first with read_mission_file and copy it, indentation included; "
                 "add surrounding lines until it is unique). For what no dedicated action covers, e.g. "
                 "mission.name or mission.era in mission.yaml, versions.yaml, waypoints.yaml, the presets plan. "
+                "Line ends are compared normalised (\\n or \\r\\n both match) and the file keeps its own. "
                 "Refused when the passage is missing or repeated, or when the result is no longer YAML: "
                 "nothing is written then. Backed up first. Prefer a dedicated action when one exists "
                 "(set_mission_module, set_mission_setting, set_forced_options…)."
@@ -1765,6 +1779,32 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             github_token=p.get("github_token"),
             tag=p.get("tag"),
         ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="inspect_built_mission",
+            description=(
+                "CHECK a BUILT mission: what the .miz holds after the build, compactly -- each airbase, "
+                "FARP and ship with its side, whether it offers dynamic slots and the aircraft types linked "
+                "to a template (and those that are not); per aircraft type, the preset channels on each "
+                "radio, or none; the bullseyes; the time and weather of the mission and of each weather "
+                "variant; the tankers and AWACS with their frequency and TACAN; and counters (presets "
+                "injected, routes, warehouse links, dead links, variants) so a zero shows. A section the "
+                "mission lacks reads 'absent'. Pass the mission folder (its latest build) or a .miz. "
+                "The way to check a build: never unzip or parse a .miz yourself. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "The mission folder (its latest built .miz) or a built .miz.",
+                    },
+                },
+                "required": ["mission_path"],
+            },
+        ),
+        handler=lambda p: inspect_built_mission(Path(p["mission_path"])),
     )
     catalog.register(
         ActionSpec(
@@ -2213,7 +2253,47 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "country_id": {"type": "integer"},
                     "country_name": {"type": "string"},
                     "category": {"type": "string", "default": "vehicle"},
-                    "combat_zone": {"type": "object", "description": "Optional extra combat_zones[] keys."},
+                    "combat_zone": {
+                        "type": "object",
+                        "description": "Optional extra combat_zones[] keys, the ones the build reads.",
+                        # The AI grepped veaf-scripts.lua for `chained_zones` (FIX-OPENCODE-TEST-FINDINGS 03):
+                        # the keys of `lua_config_generator`, described as doc/…/veafCombatZone.md does.
+                        "properties": {
+                            "friendly_name": {"type": "string", "description": "Label in the F10 menu."},
+                            "briefing": {"type": "string", "description": "Text shown to the players."},
+                            "active_at_start": {"type": "boolean", "description": "Activate at mission start."},
+                            "training": {"type": "boolean", "description": "Training: no security, verbose."},
+                            "completable": {"type": "boolean", "description": "false: never completes."},
+                            "chained_zones": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Zones activated when this one completes (one at random).",
+                            },
+                            "chained_delay": {"type": "integer", "description": "Seconds before they activate."},
+                            "includes": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Zones whose groups this one activates with it.",
+                            },
+                            "scenery_targets": {
+                                "type": "array",
+                                "items": {"type": "integer"},
+                                "description": "Map object ids that must also be destroyed.",
+                            },
+                            "enemy_coalition": {"type": "string", "enum": ["RED", "BLUE"]},
+                            "radio_menu_coalition": {"type": "string", "enum": ["RED", "BLUE", "ALL"]},
+                            "radio_group_name": {"type": "string", "description": "Shared F10 submenu."},
+                            "radio_menu_prefix": {"type": "string", "description": "Prefix before the label."},
+                            "radio_menu_disabled": {"type": "boolean"},
+                            "user_activation_disabled": {"type": "boolean"},
+                            "rename_units_sequentially": {"type": "boolean"},
+                            "show_units_list": {"type": "boolean"},
+                            "show_zone_position_info": {"type": "boolean"},
+                            "smoke_and_flare": {"type": "boolean"},
+                            "default_spawn_radius": {"type": "integer", "description": "Metres, this zone only."},
+                            "default_spawn_radius_statics": {"type": "integer", "description": "Same, statics."},
+                        },
+                    },
                 },
                 "required": [
                     "folder_path",
@@ -2502,11 +2582,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="list_airfields",
             description=(
-                "List a theatre's airbases -- name, DCS airdrome id, lat/lon, and DCS x/y when the "
-                "theatre's projection is known -- from the data shipped with the tools. Read-only. "
+                "List a theatre's airbases -- name, DCS airdrome id and DCS x/y (lat/lon when the "
+                "theatre has no projection), plus each base's coalition when a mission is given -- from "
+                "the data shipped with the tools. Read-only. "
                 "Use it to choose bases for set_airbase_coalition and to place things near a base, "
                 "instead of guessing names or reading data files. Pass the mission, or a theatre name "
-                "before there is one."
+                "before there is one. details: true adds lat/lon, the parking stands (planes, "
+                "helicopters) and the ATC frequencies and TACAN DCS gives each base -- narrow it with "
+                "name_contains."
             ),
             parameters_schema={
                 "type": "object",
@@ -2516,12 +2599,22 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "A .miz or mission folder whose theatre to list (wins over theatre).",
                     },
                     "theatre": {"type": "string", "description": "A DCS theatre name, e.g. 'GermanyCW'."},
+                    "name_contains": {
+                        "type": "string",
+                        "description": "Keep only the bases whose name holds this text (any case).",
+                    },
+                    "details": {
+                        "type": "boolean",
+                        "description": "Add lat/lon, parking stands and ATC frequencies (default false).",
+                    },
                 },
             },
         ),
         handler=lambda p: list_airfields(
             mission_path=Path(p["mission_path"]) if p.get("mission_path") else None,
             theatre=p.get("theatre"),
+            name_contains=p.get("name_contains"),
+            details=bool(p.get("details", False)),
         ),
     )
     catalog.register(
@@ -2592,7 +2685,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="resolve_coordinates",
             description=(
                 "Convert a position between DCS local x/y and geographic lat/lon for the mission's "
-                "theatre (read from the mission, so no projection parameters needed). Pass a "
+                "theatre (read from the mission, so no projection parameters needed), or for a theatre "
+                "named before there is a mission. Pass a "
                 "position as {x, y} or {lat, lon}; returns both representations. To convert several "
                 "points in one call, pass 'positions' (a list) instead: returns {theatre, points}."
             ),
@@ -2602,6 +2696,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "mission_path": {
                         "type": "string",
                         "description": "Path to the mission's .miz or folder (its theatre drives the projection).",
+                    },
+                    "theatre": {
+                        "type": "string",
+                        "description": "The theatre, e.g. 'Syria', when there is no mission yet.",
                     },
                     "position": {
                         "type": "object",
@@ -2621,7 +2719,6 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "Pass this OR 'position'.",
                     },
                 },
-                "required": ["mission_path"],
             },
         ),
         handler=_handle_resolve_coordinates,
@@ -2631,7 +2728,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="geocode",
             description=(
                 "Resolve a real-world place name (optionally offset by a bearing + distance) to DCS "
-                "coordinates for the mission's theatre — DCS maps are the real world projected. "
+                "coordinates for the mission's theatre, or for a theatre named before there is a mission "
+                "— DCS maps are the real world projected. "
                 "Returns lat/lon + x/y; results are approximate (confirm visually). Read-only. "
                 "Uses OSM Nominatim by default (or Google if a key is configured). Nominatim takes one "
                 "request a second (paced for you; a refusal comes back as found=false saying so), and "
@@ -2646,6 +2744,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "string",
                         "description": "Path to the mission's .miz or folder (its theatre drives the projection).",
                     },
+                    "theatre": {
+                        "type": "string",
+                        "description": "The theatre, e.g. 'Syria', when there is no mission yet.",
+                    },
                     "query": {"type": "string", "description": "Real place name, e.g. 'Batumi', 'Kobuleti airport'."},
                     "bearing": {
                         "type": "number",
@@ -2656,12 +2758,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "Optional distance (km) along `bearing`, e.g. '10 km north of X'.",
                     },
                 },
-                "required": ["mission_path", "query"],
+                "required": ["query"],
             },
         ),
         handler=lambda p: geocode(
-            Path(p["mission_path"]),
+            Path(p["mission_path"]) if p.get("mission_path") else None,
             p["query"],
+            theatre=p.get("theatre"),
             bearing=p.get("bearing"),
             distance_km=p.get("distance_km"),
         ),
@@ -2685,6 +2788,24 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: list_unit_types(category=p.get("category"), name_contains=p.get("name_contains")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="list_countries",
+            description=(
+                "List the DCS countries -- the numeric country_id and the country_name add_group, "
+                "add_air_group, add_farp and the create_* composites take -- from the data shipped with "
+                "the tools, no mission needed. Read-only. Filter with name_contains (name, Mission "
+                "Editor name or short code, e.g. 'turk', 'USA')."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "name_contains": {"type": "string", "description": "Case-insensitive text to match."},
+                },
+            },
+        ),
+        handler=lambda p: list_countries(name_contains=p.get("name_contains")),
     )
     catalog.register(
         ActionSpec(
@@ -2766,7 +2887,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the questions to ask, the design rules and the build order. 'objective': a mission a group "
                 "plays once, in one session (a package, objectives, a threat, a briefing). 'open-training': "
                 "a VEAF training mission on a whole map (airfields, support, training and combat zones, "
-                "QRA). Read-only."
+                "QRA). Load ONE prompt, the kind the user chose -- never both. The objective prompt comes "
+                "in two parts: the scenario first; its build part ('part': 'build') once the user has "
+                "approved a scenario. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -2777,11 +2900,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "enum": list(MISSION_PROMPT_LANGS),
                         "description": "The prompt's language: the user's, 'en' by default.",
                     },
+                    "part": {
+                        "type": "string",
+                        "enum": list(MISSION_PROMPT_PARTS),
+                        "description": "'scenario' by default; 'build' after approval; 'all' for both.",
+                    },
                 },
                 "required": ["kind"],
             },
         ),
-        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en")),
+        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en"), p.get("part")),
     )
     catalog.register(
         ActionSpec(
@@ -2792,8 +2920,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
                 "and what it cost. With no argument it returns a SHORT listing (id, kind, area -- each id reads as a phrase: "
-                "the whole text is too long for one result); then read the entries of the areas your "
-                "mission uses with 'area', or any entry with 'id'. Read-only."
+                "the whole text is too long for one result); 'area', 'kind' and 'theatre' narrow that "
+                "listing. Then read in full only the entries your mission meets, with 'id' or 'ids' -- "
+                "what you read stays in your context to the end. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -2801,7 +2930,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "kind": {
                         "type": "string",
                         "enum": ["tool", "dcs"],
-                        "description": "Return one kind only, in full.",
+                        "description": "List one kind only.",
                     },
                     "area": {
                         "type": "string",
@@ -2816,7 +2945,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "pipeline",
                             "runtime",
                         ],
-                        "description": "Return the entries of one area, in full.",
+                        "description": "List the entries of one area.",
                     },
                     "theatre": {
                         "type": "string",
@@ -3260,9 +3389,10 @@ def _handle_resolve_coordinates(p: dict[str, Any]) -> dict[str, Any]:
     """
     if ("position" in p) == ("positions" in p):
         raise ValueError("resolve_coordinates takes 'position' or 'positions', exactly one of them")
+    mission = Path(p["mission_path"]) if p.get("mission_path") else None
     if "positions" in p:
-        return resolve_coordinates_batch(Path(p["mission_path"]), p["positions"])
-    return resolve_coordinates(Path(p["mission_path"]), p["position"])
+        return resolve_coordinates_batch(mission, p["positions"], theatre=p.get("theatre"))
+    return resolve_coordinates(mission, p["position"], theatre=p.get("theatre"))
 
 
 def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:

@@ -244,3 +244,88 @@ def test_a_failed_move_puts_the_running_executable_back(
 
     assert dest.read_bytes() == b"running"
     assert list(tmp_path.glob("veaf-tools.exe.*.old")) == []
+
+
+def test_stage_mode_leaves_the_running_veaf_tools_untouched(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The MCP server's own update stages veaf-tools (FIX-OPENCODE-TEST-FINDINGS 01).
+
+    Swapping it under four running servers broke their next first-time import, measured 2026-10-20.
+    """
+    worker = updater_mod.UpdateWorker(mission_folder=".", verify_checksum=False, stage=True)
+    monkeypatch.chdir(tmp_path)
+    published = tmp_path / "published"
+    published.mkdir()
+    (published / "veaf-tools.exe").write_bytes(b"new tools")
+    (published / "veaf-tools-updater.exe").write_bytes(b"new updater")
+    (tmp_path / "veaf-tools.exe").write_bytes(b"running")
+    (tmp_path / "veaf-tools.exe.staged").write_bytes(b"an older staged one")
+
+    worker._install_windows_binaries(published)
+
+    assert (tmp_path / "veaf-tools.exe").read_bytes() == b"running"
+    assert (tmp_path / "veaf-tools.exe.staged").read_bytes() == b"new tools"
+    assert list(tmp_path.glob("veaf-tools.exe.*.old")) == []
+    assert (tmp_path / "veaf-tools-updater.exe").read_bytes() == b"new updater"
+
+
+def test_stage_mode_on_unix_downloads_beside_the_binary(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    worker = updater_mod.UpdateWorker(mission_folder=".", verify_checksum=False, stage=True)
+    _force_linux(updater_mod, monkeypatch)
+    monkeypatch.setattr(worker, "download_asset", lambda url, name: b"BINARY:" + name.encode())
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "veaf-tools").write_bytes(b"running")
+
+    worker._install_unix_binaries(
+        [
+            {"name": "veaf-tools-linux-x86_64", "browser_download_url": "http://x/tools"},
+            {"name": "veaf-tools-updater-linux-x86_64", "browser_download_url": "http://x/updater"},
+        ]
+    )
+
+    assert (tmp_path / "veaf-tools").read_bytes() == b"running"
+    assert (tmp_path / "veaf-tools.staged").read_bytes() == b"BINARY:veaf-tools-linux-x86_64"
+
+
+def test_a_run_by_the_user_puts_a_staged_update_in_place_and_warns_when_it_runs(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`published/` already carries the staged version: the version check alone would never install it."""
+    worker = _worker(updater_mod)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(updater_mod.platform_assets, "is_windows", lambda system=None: True)
+    monkeypatch.setattr(updater_mod.platform_assets, "veaf_tools_binary_name", lambda *a, **k: "veaf-tools.exe")
+    monkeypatch.setattr(updater_mod, "running_copies", lambda exe, own: [4242])
+    warnings: list[str] = []
+    monkeypatch.setattr(updater_mod.logger, "warning", lambda message, *a, **k: warnings.append(message))
+    (tmp_path / "veaf-tools.exe").write_bytes(b"running")
+    (tmp_path / "veaf-tools.exe.staged").write_bytes(b"staged")
+
+    worker._land_staged_exe()
+
+    assert (tmp_path / "veaf-tools.exe").read_bytes() == b"staged"
+    assert not (tmp_path / "veaf-tools.exe.staged").exists()
+    assert len(warnings) == 1 and "veaf-tools.exe" in warnings[0]
+
+
+def test_a_run_by_the_user_with_nothing_staged_and_nothing_running_says_nothing(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    worker = _worker(updater_mod)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(updater_mod, "running_copies", lambda exe, own: [])
+    warnings: list[str] = []
+    monkeypatch.setattr(updater_mod.logger, "warning", lambda message, *a, **k: warnings.append(message))
+    (tmp_path / _tools_binary_name(updater_mod)).write_bytes(b"installed")
+
+    worker._land_staged_exe()
+
+    assert warnings == []
+    assert (tmp_path / _tools_binary_name(updater_mod)).read_bytes() == b"installed"
+
+
+def _tools_binary_name(updater_mod: types.ModuleType) -> str:
+    return updater_mod.platform_assets.veaf_tools_binary_name()

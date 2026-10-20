@@ -72,6 +72,23 @@ class TestPrepareTemplates(unittest.TestCase):
             self.assertIn("Stennis", parsed["mm_facing"]["logisticUnitTypes"])
             self.assertIn("CVN_71", parsed["mm_facing"]["troopZoneShipTypes"])
 
+    def test_every_scaffolded_yaml_has_lf_line_ends(self) -> None:
+        """LF like the repository and the shipped scaffold (FIX-OPENCODE-TEST-FINDINGS 02).
+
+        Written in text mode, mission.yaml came out CRLF on Windows, and an AI's multi-line edit
+        sent with `\\n` was "passage not found".
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            result = _runner.invoke(app, ["prepare", "--template", "standard", str(folder), "--force"])
+            self.assertEqual(result.exit_code, 0, result.output)
+            crlf = [
+                str(path.relative_to(folder))
+                for path in [*folder.glob("*.yaml"), *(folder / "src").glob("*.yaml")]
+                if b"\r\n" in path.read_bytes()
+            ]
+            self.assertEqual(crlf, [])
+
     def test_the_scaffolded_mission_yaml_shows_the_manage_logistics_flag(self) -> None:
         """Visible in the file, not merely defaulted in code (FEAT-CTLD-AUTO-LOGISTICS).
 

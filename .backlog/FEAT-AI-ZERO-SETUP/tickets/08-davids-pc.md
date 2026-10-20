@@ -1,6 +1,6 @@
 # 08 — David's PC
 
-Status: 🧑 waiting-human — set up on 6.31.0 except Claude Desktop, which `ai-setup` does not find
+Status: ✅ done
 
 Once a release ships `ai-setup`: remove the `poetry` `veaf-mission-mcp` server from `~/.claude.json` and uninstall the `veaf-mission-editor@veaf` plugin, then install with the updater and run `ai-setup`, as any user would.
 
@@ -22,3 +22,5 @@ Once a release ships `ai-setup`: remove the `poetry` `veaf-mission-mcp` server f
 ## Left: Claude Desktop
 
 The Store install (3.1623, `userDataOutsidePackageAnswer: true` in its settings) keeps its files in `%LOCALAPPDATA%\Claude-Data\claude_pzs8sxrjxfjjc\`, `claude_desktop_config.json` included. Outside the package, `%APPDATA%\Claude` does not exist, so `setup_claude_desktop` answers `not_found`. Inside the package, a process sees a virtualized `%APPDATA%\Claude` that holds only a `.user-data-left.claude_pzs8sxrjxfjjc` marker. The docstring's "a link to that folder (measured 2026-10-20)" holds for another layout, not this one.
+
+Fixed by FIX-AI-SETUP-STORE-DESKTOP (#1160), released in 6.31.1. Updated with the updater (it replaced the running `veaf-tools.exe`), then `ai-setup` run again with Claude Desktop quit: `veaf-mission-editor` → `C:\Users\David\VEAF\outils\veaf-tools.exe mcp` in `Claude-Data\claude_pzs8sxrjxfjjc\claude_desktop_config.json`, and the Store `Claude.exe` starts the server.

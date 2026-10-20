@@ -1633,3 +1633,25 @@ limitations:
     With a shell, the scripts run: a PC without Python takes a portable one in the user's folder
     (python-pptx, Pillow), as the sandbox demo of 2026-10-20 did — a missing Python is no reason to
     skip the briefing.
+
+- id: self-update-broke-running-servers
+  kind: tool
+  area: mcp
+  title: "The MCP server's self-update replaced veaf-tools.exe under the servers still running, which then failed"
+  fixed_in: 6.31.2
+  symptom: |
+    A PyInstaller onefile executable reads its Python modules from its own file, by path, the first
+    time each is imported. Up to 6.31.1 the self-update renamed the running `veaf-tools.exe` aside and
+    moved the new one in, while other `veaf-tools.exe mcp` servers ran from it (one per AI session):
+    their next first-time import read the new file at the old offsets. Reproduced on 2026-10-20 with a
+    6.31.0 server swapped for 6.31.1 on disk: `set_airbase_coalition` answered
+    `Error -3 while decompressing data: incorrect header check`, `validate_mission`
+    `unknown compression method`, an action already imported still worked.
+  workaround: |
+    From 6.31.2 the update is staged as `veaf-tools.exe.staged` and put in place at the start of a
+    server when no other `veaf-tools.exe` runs. A server older than 6.31.2 that shows these errors:
+    close every AI client, start one again.
+  cost: |
+    An OpenCode session on 2026-10-20 met it when 6.31.1 was published mid-session, and spent about
+    80 minutes hunting a corrupt file: it edited `warehouses` by hand, broke the build, and truncated
+    `presets.yaml` with PowerShell.

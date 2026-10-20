@@ -79,9 +79,11 @@ L'assistant place les éléments, valide et construit le `.miz` sans que vous qu
 ## Mises à jour {#updates}
 
 Le serveur se met à jour tout seul : au démarrage de l'assistant, au plus une fois toutes les 4 heures, il regarde si une version plus récente est sortie et lance alors l'updater en arrière-plan, dans son dossier.
-La nouvelle version sert au démarrage suivant de l'assistant.
+L'updater ne fait que la télécharger : la nouvelle version attend à côté de celle installée, sous le nom `veaf-tools.exe.staged`, et prend le relais au démarrage suivant d'un assistant, quand plus aucun autre `veaf-tools.exe` ne tourne.
+D'ici là, chaque assistant ouvert continue de fonctionner sur sa version : remplacer l'exécutable sous un serveur en marche cassait ses actions suivantes (`Error -3 while decompressing data`), et jusqu'à la 6.31.1 la mise à jour faisait exactement ça.
+Si vous gardez un assistant ouvert plusieurs jours, fermez-les tous puis relancez-en un pour prendre la mise à jour.
 Pour couper ce comportement, le même réglage coupe aussi l'annonce des nouvelles versions dans le terminal : `.\veaf-tools.exe user-config --set check_updates=false`.
-On peut toujours mettre à jour à la main, en relançant `.\veaf-tools-updater.exe` dans le dossier des outils.
+On peut toujours mettre à jour à la main, en relançant `.\veaf-tools-updater.exe` dans le dossier des outils : il met aussi en place une version en attente, et prévient quand un `veaf-tools.exe` tourne — fermez d'abord les assistants.
 
 Si vous déplacez le dossier des outils, relancez `.\veaf-tools.exe ai-setup` depuis son nouvel emplacement : l'assistant lance l'exécutable par son chemin complet.
 

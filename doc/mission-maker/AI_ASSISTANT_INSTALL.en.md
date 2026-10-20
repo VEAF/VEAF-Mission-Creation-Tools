@@ -79,9 +79,11 @@ The assistant places the elements, validates and builds the `.miz` without you l
 ## Updates {#updates}
 
 The server updates itself: when the assistant starts, at most once every 4 hours, it checks whether a newer version is out and then starts the updater in the background, in its folder.
-The new version is used from the assistant's next start.
+The updater only downloads it: the new version waits beside the installed one, as `veaf-tools.exe.staged`, and takes over at the next start of an assistant, once no other `veaf-tools.exe` is running.
+Until then every running assistant keeps working on its version: replacing the executable under a running server broke its next actions (`Error -3 while decompressing data`), and up to 6.31.1 the update did exactly that.
+If you keep an assistant open for days, close them all and start one again to take the update.
 To turn this off, the same setting also turns off the new-version notice in the terminal: `.\veaf-tools.exe user-config --set check_updates=false`.
-You can always update by hand, by running `.\veaf-tools-updater.exe` again in the tools folder.
+You can always update by hand, by running `.\veaf-tools-updater.exe` again in the tools folder: it puts a waiting version in place too, and warns you when a `veaf-tools.exe` is running — close the assistants first.
 
 If you move the tools folder, run `.\veaf-tools.exe ai-setup` again from its new place: the assistant starts the executable by its full path.
 

@@ -14,6 +14,10 @@ when they sat in this file. The ``exe-smoke`` CI job builds this and runs the tr
 what actually proves it.
 """
 
+import os
+import sys
+from pathlib import Path
+
 from veaf_libs.i18n import set_language_from_argv
 
 # Before importing anything that translates: `help=` strings are `t()` calls evaluated at
@@ -21,7 +25,18 @@ from veaf_libs.i18n import set_language_from_argv
 # applies it again, harmlessly — but by then `veaf_tools.app` has already been imported.
 set_language_from_argv()
 
+from veaf_libs.staged_update import take_staged_update  # noqa: E402
+from veaf_tools import app as cli  # noqa: E402
 from veaf_tools.app import main  # noqa: E402  — must follow the language setup above
 
 if __name__ == "__main__":
+    # A staged update lands at a server's start, when no other process runs from this file
+    # (FIX-OPENCODE-TEST-FINDINGS 01). Once swapped, this process imports nothing more: it only waits
+    # for the new executable and exits with its code.
+    if getattr(sys, "frozen", False) and cli.is_mcp_invocation(sys.argv[1:]):
+        exit_code = take_staged_update(
+            Path(sys.executable).resolve(), sys.argv[1:], own_pids={os.getpid(), os.getppid()}
+        )
+        if exit_code is not None:
+            os._exit(exit_code)
     main()

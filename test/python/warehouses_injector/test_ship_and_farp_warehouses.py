@@ -234,3 +234,32 @@ class TestResult:
         assert result.airports_configured == 0
         assert result.objects_configured == 3, "the Stennis, the Perry and the FARP; not the tanker"
         assert result.templates_linked > 0
+
+
+def test_a_lone_farp_read_back_from_a_miz_gets_its_dynamic_slots(tmp_path: Path) -> None:
+    """The sandbox mission's FARP, unit 1, the only one (FIX-OPENCODE-TEST-FINDINGS 05).
+
+    Its warehouse table is keyed `[1]`, which the Lua parser reads back as a list: every build said
+    "configured 10 airports, 0 ships/FARPs" and the FARP offered no slot.
+    """
+    from mission_tools.miz_tools import create_miz, read_miz, write_miz
+
+    miz = create_miz(
+        tmp_path / "farp.miz",
+        {"mission": b"mission = {}\n", "options": b"options = {}\n", "warehouses": b"warehouses = {}\n"},
+    )
+    lone = _mission(warehouses={1: {"coalition": "BLUE", "dynamicSpawn": False, "aircrafts": {}}})
+    blue = (lone.mission_content or {})["coalition"]["blue"]["country"][0]
+    blue["static"] = {"group": [_carrier(1, "FARP Azaz", "FARP")]}
+    del blue["ship"]
+    lone.file_path = miz
+    lone.options_content = {}
+    write_miz(lone, miz)
+
+    mission = read_miz(miz)
+    result = apply_warehouses(mission, {"blue": {"defaults": {}}})
+
+    assert result.objects_configured == 1
+    entry = (mission.warehouses_content or {})["warehouses"][1]
+    assert entry["dynamicSpawn"] is True
+    assert "helicopters" in entry["aircrafts"]

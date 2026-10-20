@@ -645,11 +645,14 @@ Options:
   --force                        Ignore version check and install anyway
   --no-verify-checksum           Skip checksum verification (not recommended)
   --zip-file TEXT                Path to a local published.zip file (for testing, skips GitHub)
+  --stage                        Leave the new veaf-tools beside the installed one (the AI server's own update)
   --lang TEXT                    Force interface language (en, fr); overrides OS locale and ~/veafmct.yaml
   --verbose                      Show detailed debug output
   --pause                        Wait for user input before exiting
   --help                         Show help message
 ```
+
+**Note:** `--stage` is what the AI server's own update runs: it leaves the new `veaf-tools.exe` beside the installed one as `veaf-tools.exe.staged`, for the next start of an AI server to put in place when no other `veaf-tools.exe` is running. A run by hand puts a staged version in place, and warns when a `veaf-tools.exe` is running: replacing it breaks a running AI server.
 
 **Note:** Settings from `veaf-tools-config.yaml` are used automatically. Command-line options override config file values.
 

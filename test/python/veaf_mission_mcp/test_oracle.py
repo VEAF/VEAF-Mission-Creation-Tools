@@ -101,8 +101,10 @@ class TestKnownLimitationsByArea:
     def test_the_default_is_a_short_listing_that_fits_a_tool_result(self) -> None:
         result = describe_known_limitations()
         assert result["detail"] == "short"
-        assert {"id", "kind", "area", "title"} <= set(result["limitations"][0])
-        assert all("symptom" not in entry and "workaround" not in entry for entry in result["limitations"])
+        assert {"id", "kind", "area"} <= set(result["limitations"][0])
+        # No title since FIX-LIMITATIONS-SHORT-LISTING: with them the listing reached 14 988 of its 15 000
+        # characters; the ids already say what an entry is about.
+        assert all(set(entry) <= {"id", "kind", "area", "theatres"} for entry in result["limitations"])
         assert len(json.dumps(result, ensure_ascii=False)) < 15_000
         assert sum(result["areas"].values()) == len(result["limitations"])
 

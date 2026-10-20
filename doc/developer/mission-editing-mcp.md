@@ -959,7 +959,7 @@ entrée : `id`, `kind`, `area`, `title`, `symptom`, `workaround`, éventuellemen
 fichier est la seule source : `docs/agents/dcs-runtime-traps.md` en est généré.
 
 Le texte entier fait environ 74 000 caractères, plus qu'un résultat d'outil n'en porte. **Sans argument,
-l'action renvoie une liste courte** — `id`, `kind`, `area`, `title`, environ 12 000 caractères — et le nombre
+l'action renvoie une liste courte** — `id`, `kind`, `area` et `theatres` s'il y en a, sans titre, environ 7 000 caractères — et le nombre
 d'entrées de chaque `area`. Lisez en entier celles dont vous avez besoin avec `area` (`spawning`,
 `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind`, `id` ou `ids`
 (une liste). `theatre` écarte les entrées qui ne concernent que d'autres théâtres (une entrée sans

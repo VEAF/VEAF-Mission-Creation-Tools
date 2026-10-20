@@ -57,7 +57,7 @@ veaf-tools version, what the tools cannot do yet (with how to do without) and th
 that raise no error and are wrong anyway — a late-activated group visible to scripts, `start_time`
 not delaying an air spawn, a SAM without early-warning radar permanently lit… Take them into account
 throughout; this guide deliberately does not repeat them, since a trap copied here would go stale.
-With no argument it returns a **short listing** (`id`, `kind`, `area`, `title`): the whole text is too
+With no argument it returns a **short listing** (`id`, `kind`, `area`; each id reads as a phrase): the whole text is too
 long for one result. Then read the entries of the areas your mission uses with `area` (`spawning`,
 `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), or any one
 with `id`; `theatre` drops what concerns other theatres only.

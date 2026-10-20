@@ -77,7 +77,16 @@ def merge_server_into_json(config_path: Path, exe: Path) -> None:
 
 
 def _merge_result(client: str, config_path: Path, exe: Path) -> ClientResult:
-    """Merge the server into `config_path` and say how it went."""
+    """Merge the server into `config_path` and say how it went.
+
+    Args:
+        client: The client's name, for the result.
+        config_path: Its settings file.
+        exe: The `veaf-tools` executable that runs the server.
+
+    Returns:
+        `configured` with the file written, or `failed` with the reason; the file is then untouched.
+    """
     try:
         merge_server_into_json(config_path, exe)
     except (OSError, ValueError) as e:
@@ -156,7 +165,8 @@ def setup_claude_code(
 
     Claude Code rewrites `~/.claude.json` while it runs — and the AI that runs `ai-setup` may well be
     Claude Code itself — so its own `claude mcp` command does it when it is on the PATH. Without it
-    (the Code tab of the Claude application installs none), the file is edited directly.
+    (the Code tab of the Claude application installs none), or when it fails after removing the old
+    declaration, the file is edited directly: a failed run never leaves Claude Code without the server.
 
     Args:
         exe: The `veaf-tools` executable that runs the server.
@@ -167,22 +177,24 @@ def setup_claude_code(
     Returns:
         The outcome; `not_found` when there is neither a `claude` command nor a `~/.claude.json`.
     """
+    config = home / ".claude.json"
     cli = which()
     if cli:
         options: dict[str, Any] = {"capture_output": True, "text": True, "timeout": 60, "check": False}
-        # Re-running must replace an older declaration, and `add-json` refuses an existing name.
-        run([cli, "mcp", "remove", "--scope", "user", SERVER_KEY], **options)
         try:
+            # Re-running must replace an older declaration, and `add-json` refuses an existing name.
+            run([cli, "mcp", "remove", "--scope", "user", SERVER_KEY], **options)
             added = run(
                 [cli, "mcp", "add-json", "--scope", "user", SERVER_KEY, json.dumps(server_entry(exe))], **options
             )
+            error = "" if added.returncode == 0 else (added.stderr or added.stdout or "").strip()
         except (OSError, subprocess.SubprocessError) as e:
-            return ClientResult("Claude Code", "failed", str(e))
-        if added.returncode != 0:
-            return ClientResult("Claude Code", "failed", (added.stderr or added.stdout or "").strip())
-        return ClientResult("Claude Code", "configured", f"{cli} mcp add-json --scope user")
-    config = home / ".claude.json"
-    if not config.is_file():
+            error = str(e)
+        if not error:
+            return ClientResult("Claude Code", "configured", f"{cli} mcp add-json --scope user")
+        if not config.is_file():
+            return ClientResult("Claude Code", "failed", error)
+    elif not config.is_file():
         return ClientResult("Claude Code", "not_found")
     return _merge_result("Claude Code", config, exe)
 

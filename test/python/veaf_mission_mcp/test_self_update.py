@@ -5,9 +5,13 @@ from pathlib import Path
 
 import pytest
 from veaf_libs import platform_assets
-from veaf_mission_mcp.self_update import STAMP_FILE, start_update_if_due
+from veaf_mission_mcp.self_update import CLAIM_PREFIX, THROTTLE, start_update_if_due
 
-NOW = datetime(2026, 10, 20, 12, 0)
+#: One minute into a 4-hour window, whatever the time zone the tests run in.
+WINDOW_START = datetime.fromtimestamp(
+    (datetime(2026, 10, 20, 12).timestamp() // THROTTLE.total_seconds()) * THROTTLE.total_seconds()
+)
+NOW = WINDOW_START + timedelta(minutes=1)
 
 
 @pytest.fixture
@@ -53,26 +57,23 @@ def test_an_unknown_latest_version_starts_nothing(install: Path, tmp_path: Path)
     assert (outcome, launched) == ("up_to_date", [])
 
 
-def test_a_check_within_four_hours_of_the_last_one_does_nothing(install: Path, tmp_path: Path) -> None:
+def test_a_second_check_in_the_same_window_does_nothing(install: Path, tmp_path: Path) -> None:
+    """Two servers started together — Claude Desktop and Claude Code — must not run two updaters."""
+    first, _ = _run(install, tmp_path)
+
+    second, launched = _run(install, tmp_path, now=NOW + THROTTLE - timedelta(minutes=2))
+
+    assert first == "started"
+    assert (second, launched) == ("throttled", [])
+
+
+def test_the_next_window_checks_again_and_drops_the_old_claim(install: Path, tmp_path: Path) -> None:
     _run(install, tmp_path, latest="6.30.0")
 
-    outcome, launched = _run(install, tmp_path, now=NOW + timedelta(hours=3, minutes=59))
-
-    assert (outcome, launched) == ("throttled", [])
-
-
-def test_a_check_after_four_hours_runs_again(install: Path, tmp_path: Path) -> None:
-    _run(install, tmp_path, latest="6.30.0")
-
-    outcome, _launched = _run(install, tmp_path, now=NOW + timedelta(hours=4, minutes=1))
+    outcome, _launched = _run(install, tmp_path, now=NOW + THROTTLE)
 
     assert outcome == "started"
-
-
-def test_an_unreadable_stamp_counts_as_no_check(install: Path, tmp_path: Path) -> None:
-    (tmp_path / STAMP_FILE).write_text("garbage", encoding="utf-8")
-
-    assert _run(install, tmp_path)[0] == "started"
+    assert len(list(tmp_path.glob(f"{CLAIM_PREFIX}*"))) == 1
 
 
 def test_offline_is_silent_and_waits_for_the_next_window(install: Path, tmp_path: Path) -> None:

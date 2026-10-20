@@ -482,7 +482,7 @@ After updating, users have:
 ```
 Current Directory (mission folder):
 ├── veaf-tools.exe                    (main executable, moved out of published/)
-└── veaf-tools-updater.exe            (the updater itself, replaced via deferred update when running)
+└── veaf-tools-updater.exe            (the updater itself; a running copy is renamed `*.old`, then deleted)
 
 └── published/                        (the rest of the extracted package)
     ├── README.md                     (deliberately kept here — the online docs are the source)

@@ -45,7 +45,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The two mission prompts, objective mission and Open Training, ship in the executable with the authoring guide: the new action `describe_mission_prompt` serves them, and the guide sends a user who asks for a mission there, so "create a mission" is enough — nothing to paste from the repository any more.
   The server updates itself: at start-up, at most once every 4 hours and only when `check_updates` is on, it starts the updater in its own folder when a newer release is out.
   The install page and the repository README open with the commands that install everything, for a person or for the assistant itself.
-- **Three traps added to the known limitations**: a hole left in a numbered table of `src/mission/mission` breaks the build; a second `convert-v5 --force` replaces `mission.yaml` with a minimal one; a slot for a disabled or missing module shows but cannot be taken.
+- **Four entries added to the known limitations**: a hole left in a numbered table of `src/mission/mission` breaks the build; a second `convert-v5 --force` replaces `mission.yaml` with a minimal one; a slot for a disabled or missing module shows but cannot be taken; the briefing maps and documents of the mission prompts are scripts, which an assistant without a shell (Claude Desktop in chat mode) cannot run.
 ### Fixed
 
 - **Refreshing the Foothold missions to a new Lekaa release** (FIX-FOOTHOLD-5-3-0-INTAKE).
@@ -56,6 +56,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The updater installs `veaf-tools.exe` while an MCP server runs it** (FEAT-AI-ZERO-SETUP).
   Windows refuses to overwrite a running executable, and the install failed in a window nobody saw: an MCP server stayed on 6.22.1 for five weeks while 6.30.0 sat in `published/`.
   The running copy is now renamed aside, which Windows allows, and deleted at the next update.
+  The updater replaces itself the same way: the `.cmd` script it used to leave behind never put the new updater in place (measured 2026-10-20), and is gone.
+- **`veaf-tools mcp` no longer prints the version banner on stdout**, whose first line was not JSON-RPC (FEAT-AI-ZERO-SETUP).
 - **The new-version notice did not appear** (FEAT-AI-ZERO-SETUP, measured 2026-10-20): the check read the version from the release's tag, `published-latest`, which holds none; it now reads it from the release name, as the updater does.
 
 ### Removed

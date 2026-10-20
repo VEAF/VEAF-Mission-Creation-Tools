@@ -18,7 +18,6 @@ import hashlib
 import json
 import re
 import shutil
-import subprocess
 import sys
 import time
 import zipfile
@@ -89,7 +88,6 @@ VEAF_TOOLS_EXE = "veaf-tools-updater.exe"
 BUILD_SCRIPTS_DIR = "build-scripts"
 PACKAGE_JSON_FILE = "package.json"
 CONFIG_FILE = "veaf-tools-config.yaml"
-UPDATE_PENDING_DIR = ".veaf-update-pending"
 
 #: Hosts a release asset may legitimately come from (SECREV-2 / VMR-037). GitHub serves
 #: `browser_download_url` from github.com and redirects to its object storage; both are named so a
@@ -140,18 +138,32 @@ def _install_beside_running_exe(source: Path, dest: Path) -> None:
     an earlier update are deleted here; one still running stays for the next update.
     (Measured 2026-10-20: overwriting failed with ``WinError 5``, renaming worked.)
 
+    The updater replaces itself the same way. It used to hand the job to a ``.cmd`` script that
+    waited with ``timeout /t 2`` and then renamed; the new updater never took its place (measured
+    2026-10-20, run from a terminal and from the MCP server alike) and the script deleted it anyway.
+
     Args:
         source: The new executable, extracted under ``published/``.
         dest: Where it is installed, possibly running.
+
+    Raises:
+        OSError: The new executable could not be moved in; the old one is back under its name.
     """
     for leftover in dest.parent.glob(f"{dest.name}.*.old"):
         try:
             leftover.unlink()
         except OSError:
             pass  # still running: the next update deletes it
+    aside = None
     if dest.exists():
-        dest.rename(dest.with_name(f"{dest.name}.{time.time_ns()}.old"))
-    shutil.move(str(source), str(dest))
+        aside = dest.with_name(f"{dest.name}.{time.time_ns()}.old")
+        dest.rename(aside)
+    try:
+        shutil.move(str(source), str(dest))
+    except OSError:
+        if aside is not None and not dest.exists():
+            aside.rename(dest)  # never leave the folder without the executable
+        raise
 
 
 def load_config() -> dict[str, Any]:
@@ -506,102 +518,6 @@ class UpdateWorker:
             chunks.append(chunk)
         return b"".join(chunks)
 
-    def _launch_deferred_update(self, pending_dir: Path, pending_exe: Path) -> None:
-        """
-        Launch a deferred update script that will replace the updater executable.
-
-        This avoids file locking issues by:
-        1. Copying the new exe to a pending directory
-        2. Creating a batch script that will execute after this process exits
-        3. The batch script waits, then replaces the old exe with the new one
-        """
-        try:
-            # Create the update script
-            update_script = pending_dir / "apply-update.cmd"
-
-            # Get absolute paths for the script
-            current_dir = Path.cwd()
-            new_exe_path = pending_exe.resolve()
-            backup_exe_path = current_dir / f"{VEAF_TOOLS_EXE}.old"
-
-            script_content = f"""@echo off
-REM Auto-generated update script for veaf-tools-updater.exe
-REM This script is run after the updater process exits to avoid file locking issues
-
-REM This script lives in the mission folder's {UPDATE_PENDING_DIR}, and cmd resolves %~dp0 itself: the
-REM mission path is never written here. Written, it was garbled -- cmd reads a batch file in the
-REM console code page, not the one Python writes -- and an accented folder aborted the update.
-REM Every rename and delete below is relative, so a failed cd used to run them against whatever
-REM directory the script started in (SECREV-2 / VMR-036): bail out on a failed cd, whatever the cause.
-REM Delayed expansion, needed for !errorlevel! below, starts after the cd: it would eat a ! in the path.
-cd /d "%~dp0.."
-if errorlevel 1 (
-    echo ERROR: cannot enter the mission folder -- aborting the update
-    exit /b 1
-)
-setlocal enabledelayedexpansion
-
-REM Wait for the updater process to finish
-timeout /t 2 /nobreak >nul 2>&1
-
-REM Remove old backup if it exists
-if exist "{backup_exe_path.name}" (
-    del /f /q "{backup_exe_path.name}" 2>nul
-)
-
-REM Replace the executable
-if exist "{new_exe_path.name}" (
-    REM Rename current executable to .old
-    ren "{VEAF_TOOLS_EXE}" "{backup_exe_path.name}" 2>nul
-
-    if !errorlevel! equ 0 (
-        REM Rename pending exe to active name
-        ren "{new_exe_path.name}" "{VEAF_TOOLS_EXE}" 2>nul
-
-        if !errorlevel! equ 0 (
-            echo Update successful: veaf-tools-updater.exe has been updated
-            REM Clean up backup
-            del /f /q "{backup_exe_path.name}" 2>nul
-        ) else (
-            echo ERROR: Failed to rename new exe
-            REM Restore old exe if rename failed
-            ren "{backup_exe_path.name}" "{VEAF_TOOLS_EXE}" 2>nul
-        )
-    ) else (
-        echo ERROR: Failed to backup current exe
-    )
-)
-
-REM Clean up pending directory
-if exist ".\\{UPDATE_PENDING_DIR}" (
-    rmdir /s /q ".\\{UPDATE_PENDING_DIR}" 2>nul
-)
-
-exit /b 0
-"""
-
-            # ASCII by construction (no path inside): reads the same in every console code page.
-            update_script.write_text(script_content, encoding="ascii")
-            logger.debug(f"Created update script: {update_script}")
-
-            # Launch the script in background
-            import os
-
-            subprocess.Popen(
-                str(update_script),
-                shell=True,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                cwd=str(current_dir),
-            )
-            logger.info(t("updater.deferred_launched"))
-            logger.info(t("updater.deferred_pending"))
-
-        except Exception as e:
-            logger.warning(t("updater.err.deferred_failed", error=str(e)))
-            logger.warning(t("updater.err.deferred_next_run"))
-
     def extract_and_install(
         self,
         zip_content: bytes,
@@ -664,11 +580,11 @@ exit /b 0
             logger.info(t("updater.extracted", version=release_version, dir=PUBLISHED_DIR))
 
             # Step 2: Install the platform binaries. On Windows they ship inside
-            # published.zip (moved out here, with the deferred self-update dance to
-            # dodge the running-exe lock). On Unix they ship as separate release
+            # published.zip (moved out here, each running copy set aside rather than
+            # overwritten). On Unix they ship as separate release
             # assets, downloaded and made executable by _install_unix_binaries.
             if platform_assets.is_windows():
-                self._install_windows_binaries(published_dir, has_locked_exe)
+                self._install_windows_binaries(published_dir)
             else:
                 self._install_unix_binaries(release_assets)
 
@@ -683,41 +599,23 @@ exit /b 0
             logger.error(t("updater.err.install", error=str(e)))
             return False
 
-    def _install_windows_binaries(self, published_dir: Path, has_locked_exe: bool) -> None:
+    def _install_windows_binaries(self, published_dir: Path) -> None:
         """Move the Windows binaries out of published/ into the mission folder.
 
         README.md is intentionally NOT moved (IMC2-002): its relative links are dead in
         the mission folder and it would overwrite the user's own README — it stays under
-        /published/; the online docs are the source. The updater replaces itself through
-        a deferred .cmd script to dodge the Windows lock on the running exe.
+        /published/; the online docs are the source. Both executables may be running — the
+        updater is, and an MCP server may run veaf-tools.exe — so each is set aside, not
+        overwritten (:func:`_install_beside_running_exe`).
         """
         with spinner_context(t("updater.installing")):
-            for filename in ["veaf-tools.exe"]:
+            for filename in ["veaf-tools.exe", VEAF_TOOLS_EXE]:
                 source_file = published_dir / filename
                 if source_file.exists():
                     _install_beside_running_exe(source_file, Path.cwd() / filename)
                     logger.info(t("updater.moved", name=filename))
                 else:
                     logger.warning(t("updater.err.file_not_found", name=filename))
-
-            # Handle veaf-tools-updater.exe with deferred update mechanism
-            updater_exe = published_dir / "veaf-tools-updater.exe"
-            if updater_exe.exists():
-                if has_locked_exe:
-                    # Use deferred update mechanism to avoid file locking
-                    pending_dir = Path.cwd() / UPDATE_PENDING_DIR
-                    pending_dir.mkdir(exist_ok=True)
-
-                    pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
-                    shutil.move(str(updater_exe), str(pending_exe))
-                    logger.info(t("updater.deferred_prepared", name=VEAF_TOOLS_EXE))
-
-                    # Launch the deferred update script
-                    self._launch_deferred_update(pending_dir, pending_exe)
-                else:
-                    # No file locking issue, move directly
-                    shutil.move(str(updater_exe), str(Path.cwd() / VEAF_TOOLS_EXE))
-                    logger.info(t("updater.moved", name=VEAF_TOOLS_EXE))
 
     def _install_unix_binaries(self, release_assets: list[dict] | None) -> None:
         """Install the Linux/macOS binaries from the release's standalone assets.

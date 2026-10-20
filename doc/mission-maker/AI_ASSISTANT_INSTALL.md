@@ -9,7 +9,8 @@ Le catalogue de ce que vous pouvez lui demander est dans [AI_ASSISTANT_CATALOG.m
 ## Pour un assistant IA : tout installer {#for-an-ai-assistant}
 
 Cette section se lit aussi par l'IA elle-même : dites-lui « installe les outils VEAF en suivant https://veaf.github.io/documentation/latest/mission-maker/AI_ASSISTANT_INSTALL/ » et elle fait ce qui suit.
-Vous pouvez tout aussi bien taper ces commandes vous-même, dans PowerShell :
+Il faut pour cela une IA qui sait lancer des commandes sur votre PC, comme Claude Code ou Gemini CLI.
+**Claude Desktop en mode chat ne le peut pas** : tapez alors ces commandes vous-même, dans PowerShell (menu Démarrer → « PowerShell ») :
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\outils" | Out-Null
@@ -43,6 +44,7 @@ Pour une nouvelle mission, « crée une mission » suffit : l'assistant vous dem
   L'assistant ne pose que quatre ou cinq questions : la carte, l'époque, le gabarit, une éventuelle mission dont s'inspirer, les escortes.
 
 Il vous demande aussi où créer le dossier de la mission, s'il n'en a pas déjà un.
+Les cartes et le document de briefing sont produits par des scripts : une IA sans accès à votre PC, comme Claude Desktop en mode chat, construit la mission complète mais vous dit ce qu'elle n'a pas pu produire.
 Pour modifier une mission existante, donnez-lui le chemin de son dossier et décrivez ce que vous voulez :
 
 > « Dans ma mission `Documents\VEAF\Missions\Syrie`, ajoute une combat zone de SAM longue portée au nord de Damas. »
@@ -100,4 +102,4 @@ Pour éprouver une **pré-release**, installez-la à la place de la version stab
 ```
 
 Les missions que l'assistant crée ensuite reçoivent la même version si la variable `VEAF_MCP_UPDATER_TAG` porte ce tag au démarrage de l'assistant : `$env:VEAF_MCP_UPDATER_TAG = "published-v6.9.21-rc1"`.
-Le serveur, lui, passe à la version stable dès qu'elle est plus récente que la pré-release : coupez la mise à jour automatique (`check_updates=false`) le temps de l'essai.
+Tant que cette variable est posée, le serveur ne se met pas à jour tout seul : il reste sur la pré-release que reçoivent les missions.

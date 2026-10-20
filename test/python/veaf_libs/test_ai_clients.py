@@ -183,3 +183,25 @@ def test_merge_reads_a_file_notepad_saved_with_a_bom(tmp_path: Path) -> None:
     merge_server_into_json(config, EXE)
 
     assert _read(config) == {"preferences": {}, "mcpServers": {SERVER_KEY: ENTRY}}
+
+
+def test_claude_code_cli_failure_falls_back_to_its_file(tmp_path: Path) -> None:
+    """`remove` ran, `add-json` failed: the file still gets the server, rather than nothing."""
+    (tmp_path / ".claude.json").write_text(json.dumps({"numStartups": 3}), encoding="utf-8")
+
+    def run(cmd: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(cmd, 1 if "add-json" in cmd else 0, "", "unknown command")
+
+    result = setup_claude_code(EXE, home=tmp_path, which=lambda: "claude", run=run)
+
+    assert result.status == "configured"
+    assert _read(tmp_path / ".claude.json")["mcpServers"][SERVER_KEY] == ENTRY
+
+
+def test_claude_code_cli_that_cannot_start_falls_back_too(tmp_path: Path) -> None:
+    (tmp_path / ".claude.json").write_text("{}", encoding="utf-8")
+
+    def run(cmd: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        raise OSError("not a valid Win32 application")
+
+    assert setup_claude_code(EXE, home=tmp_path, which=lambda: "claude", run=run).status == "configured"

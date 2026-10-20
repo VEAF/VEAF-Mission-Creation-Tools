@@ -1602,3 +1602,18 @@ limitations:
   cost: |
     A test mission on 2026-08-18 put the player in a Su-25T slot they had disabled: "I can pick it but I
     do not slot, I stay on the map view."
+
+- id: mission-prompt-scripts-need-a-shell
+  kind: tool
+  area: mcp
+  title: "The mission prompts' briefing maps, pictures and documents are made by scripts: an assistant without a shell cannot make them"
+  symptom: |
+    The two mission prompts (`describe_mission_prompt`) build the mission through the MCP actions,
+    but have a script produce what no action does: the briefing maps, the DCS briefing pictures
+    (`mapResource`, `pictureFileNameB`/`N`), the briefing as PPTX or PDF, and the Open Training's
+    `README.md`. An assistant that cannot run a program on the PC — Claude Desktop in chat mode — has
+    no way to run them.
+  workaround: |
+    Without a shell, build the mission with the actions, write the briefing text with `set_briefing`,
+    and tell the user plainly which documents were not produced and that Claude Code or Gemini CLI
+    can make them in the same folder later. Do not pretend to have produced a file.

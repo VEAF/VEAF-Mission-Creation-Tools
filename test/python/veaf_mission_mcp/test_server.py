@@ -163,3 +163,12 @@ def test_self_update_never_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(server, "start_update_if_due", boom)
 
     assert server.self_update() == "failed"
+
+
+def test_self_update_leaves_a_pinned_pre_release_alone(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Testing a pre-release: the server must stay on the version the scaffolded missions get."""
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setenv("VEAF_MCP_UPDATER_TAG", "published-v6.31.0-rc1")
+    monkeypatch.setattr(server, "start_update_if_due", lambda *_a, **_k: pytest.fail("must not check"))
+
+    assert server.self_update() == "pinned"

@@ -169,7 +169,7 @@ def test_install_windows_binaries_sets_a_running_veaf_tools_aside(
     (tmp_path / "veaf-tools.exe").write_bytes(b"running")
     (tmp_path / "veaf-tools.exe.1.old").write_bytes(b"left by an earlier update")
 
-    worker._install_windows_binaries(published, has_locked_exe=False)
+    worker._install_windows_binaries(published)
 
     assert (tmp_path / "veaf-tools.exe").read_bytes() == b"new"
     set_aside = list(tmp_path.glob("veaf-tools.exe.*.old"))
@@ -195,7 +195,52 @@ def test_install_windows_binaries_keeps_a_leftover_it_cannot_delete(
 
     monkeypatch.setattr(Path, "unlink", locked_unlink)
 
-    worker._install_windows_binaries(published, has_locked_exe=False)
+    worker._install_windows_binaries(published)
 
     assert (tmp_path / "veaf-tools.exe").read_bytes() == b"new"
     assert (tmp_path / "veaf-tools.exe.1.old").exists()
+
+
+def test_install_windows_binaries_replaces_the_running_updater_too(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The updater sets itself aside the same way (FEAT-AI-ZERO-SETUP).
+
+    The deferred `.cmd` script it used before never put the new updater in place (measured
+    2026-10-20): `veaf-tools-updater.exe` stayed on the old version after every update.
+    """
+    worker = _worker(updater_mod)
+    monkeypatch.chdir(tmp_path)
+    published = tmp_path / "published"
+    published.mkdir()
+    (published / "veaf-tools.exe").write_bytes(b"new tools")
+    (published / "veaf-tools-updater.exe").write_bytes(b"new updater")
+    (tmp_path / "veaf-tools-updater.exe").write_bytes(b"running updater")
+
+    worker._install_windows_binaries(published)
+
+    assert (tmp_path / "veaf-tools-updater.exe").read_bytes() == b"new updater"
+    assert [p.read_bytes() for p in tmp_path.glob("veaf-tools-updater.exe.*.old")] == [b"running updater"]
+    assert not (tmp_path / ".veaf-update-pending").exists()
+
+
+def test_a_failed_move_puts_the_running_executable_back(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Never leave the folder without veaf-tools.exe: every AI client would fail to start the server."""
+    published = tmp_path / "published"
+    published.mkdir()
+    (published / "veaf-tools.exe").write_bytes(b"new")
+    dest = tmp_path / "veaf-tools.exe"
+    dest.write_bytes(b"running")
+
+    def locked_move(*_args: object) -> None:
+        raise PermissionError(13, "held by a virus scanner")
+
+    monkeypatch.setattr(updater_mod.shutil, "move", locked_move)
+
+    with pytest.raises(PermissionError):
+        updater_mod._install_beside_running_exe(published / "veaf-tools.exe", dest)
+
+    assert dest.read_bytes() == b"running"
+    assert list(tmp_path.glob("veaf-tools.exe.*.old")) == []

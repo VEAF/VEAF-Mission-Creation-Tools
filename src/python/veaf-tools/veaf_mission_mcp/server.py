@@ -6,6 +6,7 @@ action, mirroring the existing ``dcs-bridge`` MCP tool's shape. Concrete actions
 registered by :func:`veaf_mission_mcp.actions.register_default_actions`.
 """
 
+import os
 import sys
 import threading
 from pathlib import Path
@@ -20,7 +21,7 @@ from veaf_tools.app import VERSION
 
 from veaf_mission_mcp.actions import register_default_actions
 from veaf_mission_mcp.catalog import ActionCatalog, summary
-from veaf_mission_mcp.self_update import start_update_if_due
+from veaf_mission_mcp.self_update import PINNED_TAG_ENV_VAR, start_update_if_due
 
 SERVER_NAME = "veaf-mission-mcp"
 
@@ -110,15 +111,18 @@ def run_action(name: str, params: dict[str, Any] | None = None) -> Any:
 def self_update() -> str:
     """Start the updater when this executable is out of date (FEAT-AI-ZERO-SETUP).
 
-    Only from the installed executable, and only when the user left update checks on (`check_updates`
-    in the user configuration). Never raises: an update is not worth a server that does not start.
+    Only from the installed executable, only when the user left update checks on (`check_updates` in
+    the user configuration), and never while a pre-release is pinned (`VEAF_MCP_UPDATER_TAG`): the
+    server would leave the version the missions it scaffolds use. Never raises: an update is not worth a server that does not start.
 
     Returns:
-        What happened, for the log: `not_frozen`, `disabled`, `failed`, or what
+        What happened, for the log: `not_frozen`, `pinned`, `disabled`, `failed`, or what
         :func:`start_update_if_due` answered.
     """
     if not getattr(sys, "frozen", False):
         return "not_frozen"
+    if os.environ.get(PINNED_TAG_ENV_VAR):
+        return "pinned"
     try:
         from veaf_libs.user_config import get_check_updates
         from veaf_libs.veaf_home import get_veaf_home

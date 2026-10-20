@@ -90,6 +90,25 @@ def _version_tuple(v: str) -> tuple[int, ...]:
         return _UNPARSEABLE_VERSION
 
 
+def is_newer(latest: str, current: str) -> bool:
+    """Return whether `latest` is a newer release than `current`.
+
+    An unreadable `current` is never called old: `_version_tuple` would rank it below every release
+    (SECREV-2 / VMR-063).
+
+    Args:
+        latest: The latest release's version; empty when unknown.
+        current: The running version.
+
+    Returns:
+        True only when both are readable and `latest` sorts above `current`.
+    """
+    current_tuple = _version_tuple(current)
+    if current_tuple == _UNPARSEABLE_VERSION or not latest:
+        return False
+    return _version_tuple(latest) > current_tuple
+
+
 def _load_cache(veaf_home: Path) -> dict:
     try:
         cache_file = veaf_home / _CACHE_FILE

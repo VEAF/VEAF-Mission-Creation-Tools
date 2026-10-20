@@ -15,7 +15,9 @@ then load its prompt with `describe_mission_prompt` and follow it from its first
 - `open-training` — a VEAF training mission on a whole map: airfields, support, air defence, graded
   training zones, combat zones, QRA.
 
-Pass `lang: fr` to a user who writes in French. A request that fits neither (editing an existing mission,
+Pass `lang: fr` to a user who writes in French. Some steps of the prompts are scripts (briefing maps and
+pictures, the briefing document): without a shell, read `describe_known_limitations` entry
+`mission-prompt-scripts-need-a-shell` and say what you could not produce. A request that fits neither (editing an existing mission,
 one combat zone) needs no prompt: this guide is enough.
 
 ## Always ground yourself in the oracle — never from memory

@@ -9,7 +9,8 @@ What you can ask it is listed in [AI_ASSISTANT_CATALOG.md](AI_ASSISTANT_CATALOG.
 ## For an AI assistant: installing everything {#for-an-ai-assistant}
 
 This section is also read by the AI itself: tell it "install the VEAF tools following https://veaf.github.io/documentation/latest/en/mission-maker/AI_ASSISTANT_INSTALL/" and it does what follows.
-You can just as well type these commands yourself, in PowerShell:
+That takes an AI that can run commands on your PC, such as Claude Code or Gemini CLI.
+**Claude Desktop in chat mode cannot**: then type these commands yourself, in PowerShell (Start menu → "PowerShell"):
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\tools" | Out-Null
@@ -43,6 +44,7 @@ For a new mission, "create a mission" is enough: the assistant asks which of the
   The assistant asks only four or five questions: the map, the era, the template, a mission to take after if any, the escorts.
 
 It also asks where to create the mission folder, if it has none yet.
+The briefing maps and document are produced by scripts: an AI without access to your PC, such as Claude Desktop in chat mode, builds the whole mission but tells you what it could not produce.
 To change an existing mission, give it the path of its folder and describe what you want:
 
 > "In my mission `Documents\VEAF\Missions\Syria`, add a long-range SAM combat zone north of Damascus."
@@ -100,4 +102,4 @@ To try a **pre-release**, install it instead of the stable version by passing it
 ```
 
 The missions the assistant creates afterwards get the same version if the `VEAF_MCP_UPDATER_TAG` variable holds that tag when the assistant starts: `$env:VEAF_MCP_UPDATER_TAG = "published-v6.9.21-rc1"`.
-The server itself moves to the stable version as soon as it is newer than the pre-release: turn the automatic update off (`check_updates=false`) for the time of the trial.
+As long as this variable is set, the server does not update itself: it stays on the pre-release the missions get.

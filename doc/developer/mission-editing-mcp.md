@@ -40,7 +40,7 @@ embarque le serveur dans le binaire `veaf-tools` déjà livré (pas de binaire s
 elle que `veaf-tools ai-setup` déclare dans Claude Desktop, Claude Code et Gemini CLI.
 
 Lancé depuis le binaire livré, le serveur **se met aussi à jour tout seul** : dans un thread d'arrière-plan, au plus
-une fois toutes les 4 heures et seulement si `check_updates` est actif, il compare sa version à la release
+une fois toutes les 4 heures, seulement si `check_updates` est actif et qu'aucune pré-release n'est épinglée (`VEAF_MCP_UPDATER_TAG`), il compare sa version à la release
 `published-latest` et, quand elle est plus récente, lance `veaf-tools-updater` dans son propre dossier, dans une
 console cachée (`veaf_mission_mcp/self_update.py`). L'updater met de côté le `veaf-tools.exe` en cours
 d'exécution au lieu de l'écraser, ce que Windows refuse ; la nouvelle version sert au démarrage suivant du client.

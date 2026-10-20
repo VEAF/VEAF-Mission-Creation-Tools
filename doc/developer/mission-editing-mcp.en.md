@@ -39,7 +39,7 @@ server in the already-shipped `veaf-tools` binary (no separate binary to build) 
 `veaf-tools ai-setup` declares in Claude Desktop, Claude Code and Gemini CLI.
 
 Started from the shipped binary, the server also **updates itself**: in a background thread, at most once every
-4 hours and only when `check_updates` is on, it compares its version with the `published-latest` release and,
+4 hours, only when `check_updates` is on and no pre-release is pinned (`VEAF_MCP_UPDATER_TAG`), it compares its version with the `published-latest` release and,
 when that is newer, starts `veaf-tools-updater` in its own folder, in a hidden console
 (`veaf_mission_mcp/self_update.py`). The updater sets the running `veaf-tools.exe` aside rather than overwriting
 it, which Windows refuses; the new version is used from the client's next start.

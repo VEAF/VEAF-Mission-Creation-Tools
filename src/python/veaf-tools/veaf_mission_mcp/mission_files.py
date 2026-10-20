@@ -7,6 +7,7 @@ folder's YAML sources, and only those: `mission.yaml` and `src/*.yaml`. An edit 
 passage, backed up first, and is refused when the file would no longer read as YAML.
 """
 
+import re
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -19,6 +20,9 @@ from veaf_mission_mcp.mission_folder import mission_yaml_path
 DEFAULT_LINE_COUNT = 400
 
 _REACHABLE = "only mission.yaml and the src/*.yaml files of the mission folder are reachable"
+
+#: A `src/` file name the actions accept: no drive, no separator, no `..`.
+_SAFE_YAML_NAME = re.compile(r"[A-Za-z0-9_-][A-Za-z0-9_.-]*\.ya?ml")
 
 
 def _resolve(folder: Path, file: str) -> Path:
@@ -36,14 +40,19 @@ def _resolve(folder: Path, file: str) -> Path:
         ValueError: `file` is absolute, climbs out, or is not `mission.yaml` or a `src/*.yaml`.
     """
     mission_yaml_path(folder)
-    relative = PurePosixPath(file.replace("\\", "/"))
-    parts = relative.parts
+    parts = PurePosixPath(file.replace("\\", "/")).parts
+    # A strict name, so no drive (`C:x.yaml`), no `..`, no separator survives into the join; then the
+    # resolved path must still sit where it was aimed, so a symbolic link cannot lead out.
     allowed = parts == ("mission.yaml",) or (
-        len(parts) == 2 and parts[0] == "src" and relative.suffix in (".yaml", ".yml")
+        len(parts) == 2 and parts[0] == "src" and _SAFE_YAML_NAME.fullmatch(parts[1]) is not None
     )
-    if relative.is_absolute() or Path(file).is_absolute() or ".." in parts or not allowed:
+    if not allowed:
         raise ValueError(f"{file!r}: {_REACHABLE}")
-    path = folder.joinpath(*parts)
+    root = folder.resolve()
+    path = root.joinpath(*parts).resolve()
+    expected_parent = root if parts == ("mission.yaml",) else root / "src"
+    if path.parent != expected_parent:
+        raise ValueError(f"{file!r}: {_REACHABLE}")
     if not path.is_file():
         raise FileNotFoundError(f"{file!r} does not exist in the mission folder {folder}")
     return path

@@ -75,7 +75,16 @@ def test_edit_refuses_a_result_that_is_no_longer_yaml_and_leaves_the_file(folder
 
 @pytest.mark.parametrize(
     "file",
-    ["../mission.yaml", "src/../../x.yaml", "src/scripts/x.lua", "src/mission/mission", "README.md", "src/sub/x.yaml"],
+    [
+        "../mission.yaml",
+        "src/../../x.yaml",
+        "src/scripts/x.lua",
+        "src/mission/mission",
+        "README.md",
+        "src/sub/x.yaml",
+        "src/C:evil.yaml",
+        "src/..yaml",
+    ],
 )
 def test_only_mission_yaml_and_src_yaml_files_are_reachable(folder: Path, file: str) -> None:
     with pytest.raises(ValueError, match="mission.yaml"):
@@ -106,3 +115,17 @@ def test_both_actions_are_in_the_catalogue(folder: Path) -> None:
     )
     read = catalog.run_action("read_mission_file", {"mission_path": str(folder), "file": "mission.yaml"})
     assert "era: WW2" in read["content"]
+
+
+def test_a_symbolic_link_out_of_the_folder_is_refused(folder: Path, tmp_path_factory: pytest.TempPathFactory) -> None:
+    outside = tmp_path_factory.mktemp("outside") / "target.yaml"
+    outside.write_text("secret: 1\n", encoding="utf-8")
+    link = folder / "src" / "link.yaml"
+    try:
+        link.symlink_to(outside)
+    except OSError:
+        pytest.skip("creating a symbolic link needs a privilege this account lacks")
+
+    with pytest.raises(ValueError, match="mission.yaml"):
+        edit_mission_file(folder, "src/link.yaml", search="secret: 1", replace="secret: 2")
+    assert outside.read_text(encoding="utf-8") == "secret: 1\n"

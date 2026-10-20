@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FEAT-INSPECT-BUILT-MISSION](FEAT-INSPECT-BUILT-MISSION/PRD.md) · ⬜
+
+A read-only action that reports what a built `.miz` holds — dynamic slots per airbase, injected presets, bullseye, weather variants, tanker and AWACS tasks — and a guide that checks through it instead of sending the AI to unzip the mission in a shell. From David's OpenCode test on 6.31.1, 2026-10-20.
+
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 
 Broaden the shipped default radio presets, after phase 1 of the radio preset projection.

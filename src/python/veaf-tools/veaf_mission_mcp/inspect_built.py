@@ -172,10 +172,12 @@ def _weather_line(label: str, content: dict[str, Any]) -> str:
     ground = weather.winds["ground"]
     sky = weather.cover if weather.cover == "clear" else f"{weather.cover} at {round(weather.cloud_base)} m"
     extras = "".join(f", {name}" for name, on in (("rain", weather.rain), ("fog", weather.fog)) if on)
-    return (
+    # An answer to the AI, in English like every action of the catalogue, not a message for the user.
+    line = (
         f"{label}: {seconds // 3600:02d}:{seconds % 3600 // 60:02d}, {sky}, wind {ground.origin:03d}°/"
         f"{ground.knots} kt at the ground, visibility {round(weather.visibility / 1000)} km{extras}"
     )
+    return line
 
 
 def _support(content: dict[str, Any]) -> list[str] | str:

@@ -1,6 +1,6 @@
 # 05 — The MCP action and its documentation
 
-Status: ⬜ ready
+Status: ✅ done
 
 `build_mission_briefing` in the catalogue; `AI_ASSISTANT_CATALOG` and `mission-editing-mcp` in French and English; CHANGELOG.
 

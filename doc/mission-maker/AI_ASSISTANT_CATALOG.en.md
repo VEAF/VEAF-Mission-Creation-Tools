@@ -95,6 +95,7 @@ The AI can act in two places, and it changes what "survives":
 | 51 | [Write the campaign briefing](#campaign-briefing) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 52 | [Build a whole mission, from the questions to the briefing](#build-whole-mission) | 🏗️ Getting started | Folder | ⭐ |
 | 53 | [Read and edit the mission folder's files](#mission-files) | Modules & settings | Recipe | ⭐ |
+| 54 | [Make a mission's briefing (PPTX, maps, DCS pictures)](#mission-briefing) | 🕰️ Mission settings | Folder (built) | ⭐ |
 
 ---
 
@@ -734,6 +735,16 @@ beacon of a helicopter zone, a distress signal. Embedding the same file twice re
 Avoid putting the same picture on both sides: a player whose side the briefing does not know (a dynamic slot, for instance) would see it twice.
 
 > 💬 *"Put map.jpg in the blue briefing."*
+
+### Make a mission's briefing {#mission-briefing}
+
+*Folder (built) · ⭐* — The AI writes the scenario's words (title, context, objectives, known threats, flow); the tool reads everything else in the built mission — date, weather, bullseye, flights, support, flight plan, the presets in the cockpits, each target's coordinates — and writes `docs/briefing.pptx` on the VEAF template, an overview map and one zoom per objective in `docs/maps/`, and puts those maps in the DCS briefing (blue and neutral).
+No script: an AI with no command line on your PC (Claude Desktop in chat mode) does it too.
+Build the mission first, and run it again after every change: it replaces its own pictures.
+The PPTX imports into Google Slides; the PDF is exported from PowerPoint or Slides.
+OpenStreetMap background, or OpenTopoMap (relief) for a desert; without the network, the maps are drawn on a plain background.
+
+> 💬 *"Make the mission's briefing, topo background."*
 
 ---
 

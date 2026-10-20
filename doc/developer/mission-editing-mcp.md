@@ -759,6 +759,7 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
   le déclare dans `mapResource` sous `MCP_Sound_<nom>` ; `edit_route` `transmit_message` le diffuse
   (`TransmitMessage` enveloppé, `file` = la clé, `loop`, `duration`, `subtitle` écrit au dictionnaire).
 - `set_briefing_picture(mission_path, source_path, side, resource_name)` — copie un `.png`/`.jpg` dans `l10n/DEFAULT`, le déclare dans `mapResource` sous `MCP_Picture_<nom>` et ajoute la clé au `pictureFileNameB` / `R` / `N` du camp, en gardant les images qu'il avait (FIX-DEMO-MISSION-FINDINGS 07).
+- `build_mission_briefing(mission_path, title, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, pilots, loadouts, basemap, side)` — le briefing VEAF d'une mission à objectifs, sans script (FEAT-MCP-MISSION-BRIEFING) : `docs/briefing.pptx`, `docs/maps/` et les images de briefing DCS, dans le dossier **et** le `.miz` construit, en tête de `pictureFileNameB` / `N` sous des clés `MCP_Briefing_*` remplacées à chaque appel. L'assistant passe les mots ; le reste est lu dans le `.miz` construit (`mission_briefing/`), dont les presets injectés (`Radio[n].channelsNames`) pour le plan de fréquences. `basemap: topo` prend les tuiles OpenTopoMap, avec leur crédit et leur dossier de cache.
 
 ### Open Training Syrie (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 

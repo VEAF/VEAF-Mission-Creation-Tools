@@ -16,6 +16,7 @@ from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigg
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.briefing_picture import set_briefing_picture
+from veaf_mission_mcp.build_briefing import build_briefing
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.campaign import campaign_apply, campaign_briefing, campaign_next, campaign_status
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
@@ -1995,6 +1996,88 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         handler=lambda p: set_briefing_picture(
             Path(p["mission_path"]), source_path=p["source_path"], side=p["side"], resource_name=p.get("resource_name")
         ),
+    )
+    _lines = {"type": "array", "items": {"type": "string"}}
+    catalog.register(
+        ActionSpec(
+            name="build_mission_briefing",
+            description=(
+                "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/briefing.pptx (the objective "
+                "mission template, page for page, in the mission's language; Drive imports it into Google "
+                "Slides), docs/maps/ (an overview and one zoom per objective, on OpenStreetMap or OpenTopoMap "
+                "tiles), and the same maps as the DCS BRIEFING PICTURES, in the folder AND the built .miz, "
+                "first for blue and neutral (red left alone). BUILD FIRST (build_mission): every figure is "
+                "read from the built .miz -- date, time, weather, bullseye, flights, support, carriers, QRA, "
+                "flight plan, the presets injected into the cockpits, each objective's targets and their "
+                "coordinates. You pass only the scenario's WORDS: title, context, mission_bullets, objectives (combat "
+                "zone + title + task), threats (the group where it stands, its family, ranges only with their "
+                "source), air opposition, air defences, other information, pilots and loadouts by flight "
+                "group. Call it again after any change and a rebuild: it replaces its own pictures. No PDF: "
+                "the user exports one from PowerPoint or Slides. map_offline = no tiles could be downloaded."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER, built."},
+                    "title": {"type": "string", "description": "The mission's title, on the cover."},
+                    "context": {**_lines, "description": "The why, two or three sentences."},
+                    "mission_bullets": {
+                        **_lines,
+                        "description": "The Mission heading: three to five bullets in the infinitive.",
+                    },
+                    "objectives": {
+                        "type": "array",
+                        "description": "In the order of the operation; one zoom page each.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "zone": {"type": "string", "description": "The combat zone's trigger-zone name."},
+                                "title": {"type": "string"},
+                                "task": {**_lines, "description": "What to do there."},
+                            },
+                            "required": ["zone", "title"],
+                        },
+                    },
+                    "threats": {
+                        "type": "array",
+                        "description": "What intelligence knows; a surprise the scenario plans stays out.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "As the map and the briefing say it."},
+                                "group": {"type": "string", "description": "The group that stands there."},
+                                "family": {"type": "string", "description": "SA-6, AAA..."},
+                                "engagement_nm": {"type": "number", "description": "Drawn as a plain circle."},
+                                "detection_nm": {"type": "number", "description": "Drawn as a dashed circle."},
+                                "source": {"type": "string", "description": "Where the ranges come from."},
+                            },
+                            "required": ["name", "group"],
+                        },
+                    },
+                    "air_opposition": {**_lines, "description": "What may take off, and when."},
+                    "air_defences": {**_lines, "description": "How the route avoids them."},
+                    "other": {**_lines, "description": "Attack mode, refuelling, divert..."},
+                    "pilots": {
+                        "type": "object",
+                        "description": "Pilots' names by flight GROUP name; empty cells otherwise.",
+                        "additionalProperties": _lines,
+                    },
+                    "loadouts": {
+                        "type": "object",
+                        "description": "Imposed loadout by flight GROUP name; 'free loadout' otherwise.",
+                        "additionalProperties": {"type": "string"},
+                    },
+                    "basemap": {
+                        "type": "string",
+                        "enum": ["osm", "topo"],
+                        "description": "osm (default); topo = OpenTopoMap, for a desert.",
+                    },
+                    "side": {"type": "string", "enum": ["blue", "red"], "description": "The players' side."},
+                },
+                "required": ["mission_path", "title"],
+            },
+        ),
+        handler=build_briefing,
     )
     catalog.register(
         ActionSpec(

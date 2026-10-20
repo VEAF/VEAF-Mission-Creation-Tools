@@ -95,6 +95,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 50 | [Préparer la mission suivante d'une campagne](#campaign-next) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 51 | [Écrire le briefing de campagne](#campaign-briefing) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 52 | [Construire une mission complète, de la question au briefing](#build-whole-mission) | 🏗️ Démarrage | Dossier | ⭐ |
+| 53 | [Lire et modifier les fichiers du dossier de mission](#mission-files) | Modules & réglages | Recette | ⭐ |
 
 ---
 
@@ -668,6 +669,14 @@ partie de la recette.
 ---
 
 ## ⭐ Modules & réglages VEAF
+
+### Lire et modifier les fichiers du dossier de mission {#mission-files}
+
+*Recette · ⭐* — Pour une IA qui n'a pas accès à tes fichiers (Claude Desktop en mode chat) : elle lit et modifie `mission.yaml` et les fichiers `src/*.yaml` (presets, variantes météo et horaires, waypoints, slots…) du dossier de mission, et rien d'autre.
+Elle remplace un passage précis, après une sauvegarde ; une modification qui rendrait le fichier illisible est refusée, et le fichier reste intact.
+C'est ce qui lui permet de renommer la mission ou de changer son époque.
+
+> 💬 *« Renomme la mission helico_convoi_Montagnes. »*
 
 ### Activer / désactiver / configurer un module — recette {#configure-a-module-recipe}
 

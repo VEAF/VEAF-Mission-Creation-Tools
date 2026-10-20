@@ -94,6 +94,7 @@ The AI can act in two places, and it changes what "survives":
 | 50 | [Prepare a campaign's next mission](#campaign-next) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 51 | [Write the campaign briefing](#campaign-briefing) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 52 | [Build a whole mission, from the questions to the briefing](#build-whole-mission) | 🏗️ Getting started | Folder | ⭐ |
+| 53 | [Read and edit the mission folder's files](#mission-files) | Modules & settings | Recipe | ⭐ |
 
 ---
 
@@ -651,6 +652,14 @@ rebuilt from its folder, while one the AI places is part of the recipe.
 ---
 
 ## ⭐ Modules & settings
+
+### Read and edit the mission folder's files {#mission-files}
+
+*Recipe · ⭐* — For an AI with no access to your files (Claude Desktop in chat mode): it reads and edits `mission.yaml` and the `src/*.yaml` files (presets, weather and time variants, waypoints, slots…) of the mission folder, and nothing else.
+It replaces one exact passage, after a backup; an edit that would leave the file unreadable is refused, and the file stays as it was.
+That is how it renames the mission or changes its era.
+
+> 💬 *"Rename the mission helico_convoi_Montagnes."*
 
 ### Enable / disable / configure a module — recipe {#configure-a-module-recipe}
 

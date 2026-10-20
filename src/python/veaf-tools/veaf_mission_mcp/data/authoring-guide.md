@@ -27,6 +27,9 @@ The scaffold is a generic skeleton, not a mission for this request. Left as it i
 date, example waypoints and aircraft that have nothing to do with what the user asked: a test mission built on
 6.30.0 (2026-10-19) kept every one of them until the user asked about each in turn. Before placing anything:
 
+(With no direct file access — Claude Desktop in chat mode — read these files with `read_mission_file` and change
+them with `edit_mission_file`; the same goes for `mission.name` and `mission.era` in `mission.yaml`.)
+
 1. `src/presets.yaml` — a channel plan for modern two-radio aircraft on the Caucasus (Batumi, carriers…), which
    the build projects onto every aircraft type. Rewrite it for the theatre and the aircraft flown, or reduce it
    to flight channels. The build drops, per aircraft, the channels its radios cannot tune and lists them in

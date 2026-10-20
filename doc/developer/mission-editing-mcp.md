@@ -982,6 +982,18 @@ Tous les clients n'en tiennent pas compte ; [la page d'installation](../mission-
 {}
 ```
 
+### `read_mission_file` / `edit_mission_file` (lot FEAT-AI-ZERO-SETUP)
+
+Les sources YAML d'un dossier de mission — `mission.yaml` et `src/*.yaml`, rien d'autre, ni `..` ni chemin absolu — pour une IA sans accès direct aux fichiers.
+En mode chat de Claude Desktop, une IA à qui l'on demandait de renommer une mission a répondu qu'aucune action ne le pouvait ; `mission.name`, `mission.era` et les fichiers `src/*.yaml` que la liste du guide lui demande d'adapter n'avaient aucune action.
+`read_mission_file` renvoie `{file, first_line, last_line, total_lines, content}`, 400 lignes par défaut (`start_line`, `line_count`) : le catalogue de slots en compte 11 000.
+`edit_mission_file` remplace un passage exact (`search` / `replace`), refusé s'il apparaît zéro ou plusieurs fois, ou si le résultat ne se relit plus en YAML ; sauvegarde avant écriture, fins de ligne conservées.
+Implémentation : `veaf_mission_mcp/mission_files.py`.
+
+```json
+{"mission_path": "C:/VEAF/missions/convoi", "file": "mission.yaml", "search": "name: My-Mission", "replace": "name: helico_convoi_Montagnes"}
+```
+
 ### `describe_mission_prompt` (lot FEAT-AI-ZERO-SETUP)
 
 Lecture seule. Renvoie `{"kind", "lang", "prompt"}` : les consignes qui construisent une sorte de mission de bout en bout — les questions à poser, les règles de conception, l'ordre de construction.

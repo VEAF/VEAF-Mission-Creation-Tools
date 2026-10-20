@@ -49,6 +49,7 @@ from veaf_mission_mcp.map_tools import (
     resolve_coordinates,
     resolve_coordinates_batch,
 )
+from veaf_mission_mcp.mission_files import DEFAULT_LINE_COUNT, edit_mission_file, read_mission_file
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
@@ -1481,6 +1482,70 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_mission_setting(Path(p["mission_yaml_path"]), p["key"], p["value"]),
+    )
+    _mission_file_param = {
+        "type": "string",
+        "description": "'mission.yaml' or 'src/<name>.yaml' (presets, versions, waypoints, warehouses, "
+        "spawnables, dynamic-slot-templates…), relative to the mission folder; nothing else is reachable.",
+    }
+    catalog.register(
+        ActionSpec(
+            name="read_mission_file",
+            description=(
+                "READ one of a mission folder's YAML sources -- mission.yaml or a src/*.yaml -- by slices of "
+                "lines. For an assistant with no direct file access (Claude Desktop in chat mode): the way to "
+                "see mission.name, the presets plan, versions.yaml, the example waypoints before changing "
+                "them with edit_mission_file. Read on from last_line + 1 while it is below total_lines. "
+                "Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission folder."},
+                    "file": _mission_file_param,
+                    "start_line": {"type": "integer", "minimum": 1, "description": "First line, 1-based."},
+                    "line_count": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": f"Lines to return, {DEFAULT_LINE_COUNT} by default.",
+                    },
+                },
+                "required": ["mission_path", "file"],
+            },
+        ),
+        handler=lambda p: read_mission_file(
+            Path(p["mission_path"]),
+            p["file"],
+            start_line=p.get("start_line", 1),
+            line_count=p.get("line_count", DEFAULT_LINE_COUNT),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="edit_mission_file",
+            description=(
+                "EDIT one of a mission folder's YAML sources -- mission.yaml or a src/*.yaml -- by replacing "
+                "one exact passage (read it first with read_mission_file and copy it, indentation included; "
+                "add surrounding lines until it is unique). For what no dedicated action covers, e.g. "
+                "mission.name or mission.era in mission.yaml, versions.yaml, waypoints.yaml, the presets plan. "
+                "Refused when the passage is missing or repeated, or when the result is no longer YAML: "
+                "nothing is written then. Backed up first. Prefer a dedicated action when one exists "
+                "(set_mission_module, set_mission_setting, set_forced_options…)."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission folder."},
+                    "file": _mission_file_param,
+                    "search": {"type": "string", "description": "The exact text to replace."},
+                    "replace": {"type": "string", "description": "Its replacement."},
+                },
+                "required": ["mission_path", "file", "search", "replace"],
+            },
+        ),
+        handler=lambda p: edit_mission_file(
+            Path(p["mission_path"]), p["file"], search=p["search"], replace=p["replace"]
+        ),
     )
     catalog.register(
         ActionSpec(

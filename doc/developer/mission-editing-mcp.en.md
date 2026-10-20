@@ -957,6 +957,18 @@ Not every client honours them; [the install page](../mission-maker/AI_ASSISTANT_
 {}
 ```
 
+### `read_mission_file` / `edit_mission_file` (FEAT-AI-ZERO-SETUP lot)
+
+A mission folder's YAML sources — `mission.yaml` and `src/*.yaml`, nothing else, no `..`, no absolute path — for an assistant with no direct file access.
+In Claude Desktop's chat mode, an assistant asked to rename a mission answered that no action could; `mission.name`, `mission.era` and the `src/*.yaml` files the guide's checklist asks it to adapt had no action at all.
+`read_mission_file` returns `{file, first_line, last_line, total_lines, content}`, 400 lines by default (`start_line`, `line_count`): the slot catalogue runs to 11 000.
+`edit_mission_file` replaces one exact passage (`search` / `replace`), refused when it occurs zero or several times or when the result no longer reads as YAML; backed up first, line endings kept.
+Implementation: `veaf_mission_mcp/mission_files.py`.
+
+```json
+{"mission_path": "C:/VEAF/missions/convoi", "file": "mission.yaml", "search": "name: My-Mission", "replace": "name: helico_convoi_Montagnes"}
+```
+
 ### `describe_mission_prompt` (FEAT-AI-ZERO-SETUP lot)
 
 Read-only. Returns `{"kind", "lang", "prompt"}`: the instructions that build one kind of mission end to end — the questions to ask, the design rules, the build order.

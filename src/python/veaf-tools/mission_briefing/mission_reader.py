@@ -34,6 +34,13 @@ def _groups(content: dict[str, Any], side: str | None = None) -> Iterator[tuple[
                         yield category, group
 
 
+def _numbered(container: Any) -> list[tuple[int, Any]]:
+    """A Lua array as ``(index, value)``, from 1: luadata reads a sequence as a list, a sparse one as a dict."""
+    if isinstance(container, dict):
+        return sorted((int(key), value) for key, value in container.items())
+    return list(enumerate(container or [], 1))
+
+
 def _readable(name: str, zone: str) -> str:
     """A member's name without the zone's prefix nor its markers: ``Khobi-SA8 #spawnradius=0`` → ``SA8``."""
     bare = name.split("#")[0].strip()
@@ -125,14 +132,14 @@ def radio_plans(content: dict[str, Any], side: str) -> list[RadioPlan]:
         if not players and not group.get("dynSpawnTemplate"):
             continue
         label = str(group.get("name")) if players else str(units[0].get("type"))
-        for number, radio in (units[0].get("Radio") or {}).items():
-            names = radio.get("channelsNames") or {}
+        for number, radio in _numbered(units[0].get("Radio")):
+            names = dict(_numbered(radio.get("channelsNames")))
             channels = tuple(
-                (int(channel), str(names.get(channel, "")), float(freq))
-                for channel, freq in sorted((radio.get("channels") or {}).items(), key=lambda item: int(item[0]))
+                (channel, str(names.get(channel, "")), float(freq))
+                for channel, freq in _numbered(radio.get("channels"))
             )
             if channels:
-                listed = found.setdefault((int(number), channels), [])
+                listed = found.setdefault((number, channels), [])
                 if label not in listed:
                     listed.append(label)
     return [

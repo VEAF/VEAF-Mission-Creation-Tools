@@ -15,7 +15,7 @@ from typing import Any
 
 import luadata
 from campaign_fixture import built_mission
-from veaf_libs.blank_mission import _serialize
+from veaf_libs.blank_mission import _serialize, generate_blank_mission
 
 #: The objective's combat zone, mission x/y and radius.
 KHOBI_ZONE = ("Khobi", -274838.0, 634185.0, 2500.0)
@@ -35,7 +35,7 @@ def _unit(name: str, kind: str, x: float, y: float, **extra: Any) -> dict[str, A
 
 
 def objective_mission(folder: Path) -> Path:
-    """Write the built objective mission and its `mission.yaml` into a mission folder.
+    """Write the built objective mission, its `mission.yaml` (in French) and a blank `src/mission/`.
 
     Args:
         folder: The mission folder; the `.miz` goes into its `build/`.
@@ -43,8 +43,14 @@ def objective_mission(folder: Path) -> Path:
     Returns:
         The `.miz`.
     """
+    for relative, data in generate_blank_mission("Caucasus").items():
+        path = folder / "src" / "mission" / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
     built = built_mission(folder / "build")
     (folder / "build" / "mission.yaml").replace(folder / "mission.yaml")
+    with (folder / "mission.yaml").open("a", encoding="utf-8") as yaml_file:
+        yaml_file.write("mission:\n  language: fr\n")
     with zipfile.ZipFile(built) as archive:
         files = {name: archive.read(name) for name in archive.namelist()}
     mission = luadata.unserialize(files["mission"].decode("utf-8").split("=", 1)[1], encoding="utf-8")

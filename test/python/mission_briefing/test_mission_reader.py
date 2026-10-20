@@ -73,6 +73,13 @@ class TestGroupPosition:
 
 
 class TestRadioPlans:
+    def test_lua_arrays_read_back_as_lists(self) -> None:
+        # luadata turns a Lua sequence into a list: that is how a built .miz hands the presets back
+        radio = {"channels": [251.0, 390.0], "channelsNames": ["Magic", "Archer"]}
+        unit = _unit("a1", 0, 0, type="A-10C_2", skill="Client", Radio=[radio])
+        plans = radio_plans(_content(blue={"plane": [_group("ARCHER", unit)]}, red={}), "blue")
+        assert [(plan.radio, plan.channels) for plan in plans] == [(1, ((1, "Magic", 251.0), (2, "Archer", 390.0)))]
+
     def test_the_presets_injected_into_the_players_first_aircraft(self) -> None:
         uhf = _radio((390.0, "Archer"), (251.0, "Magic"))
         vhf = _radio((124.0, None))

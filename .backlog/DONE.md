@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-OPENCODE-TEST-FINDINGS](FIX-OPENCODE-TEST-FINDINGS/PRD.md) · ✅
+
+What David's end-to-end OpenCode test on 6.31.1 met, fixed in 6.31.2 (PR #1162): the self-update stages the new exe and swaps it in only at a lone server start; `edit_mission_file` across CRLF and an LF scaffold; reference data with no mission folder (`theatre`, `list_countries`, the shipped scaffold); a lone FARP's dynamic slots; lighter reads; `inspect_built_mission`, and a guide that never parses a `.miz` in a shell. Ticket 04 (presets) measured as not a defect.
+
 ### [FEAT-AI-ZERO-SETUP](FEAT-AI-ZERO-SETUP/PRD.md) · ✅
 
 Installing veaf-tools is all an AI needs: `veaf-tools ai-setup` declares the MCP server in Claude Desktop, Claude Code and Gemini CLI, the server updates itself, the authoring guide and the two mission prompts ship in the executable, and the plugin is removed. Asked by David on 2026-10-20 after a demo in a clean sandbox behaved unlike his PC; found on the way: the plugin's binary had been stuck on 6.22.1 since September. Merged in #1155, released in 6.31.0; David's PC set up on 2026-10-20 with 6.31.1, Claude Desktop from the Store included (#1160).

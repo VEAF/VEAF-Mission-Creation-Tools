@@ -298,7 +298,9 @@ def describe_naming_conventions() -> dict[str, Any]:
 
 
 #: What a short listing of the known limitations keeps of an entry: enough to decide which to read.
-_LIMITATION_SUMMARY_FIELDS = ("id", "kind", "area", "title", "theatres")
+#: What the short listing keeps of an entry. No title (FIX-LIMITATIONS-SHORT-LISTING): with titles the listing
+#: reached 14 988 of the 15 000 characters a tool result holds; the kebab-case ids say what an entry is about.
+_LIMITATION_SUMMARY_FIELDS = ("id", "kind", "area", "theatres")
 
 
 def describe_known_limitations(

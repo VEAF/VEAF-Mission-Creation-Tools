@@ -934,7 +934,7 @@ always returned, with the date they were measured). Each entry: `id`, `kind`, `a
 `docs/agents/dcs-runtime-traps.md` is generated from it.
 
 The whole text is about 74 000 characters, more than a tool result carries. **With no argument the action
-returns a short listing** — `id`, `kind`, `area`, `title`, about 12 000 characters — and the count of each
+returns a short listing** — `id`, `kind`, `area` and `theatres` when set, no title, about 7 000 characters — and the count of each
 `area`. Read the entries you need in full with `area` (`spawning`, `air-defence`, `players`, `radio`,
 `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind`, `id` or `ids` (a list). `theatre` drops the
 entries that concern other theatres only (an entry with no `theatres` applies everywhere). `full: true`

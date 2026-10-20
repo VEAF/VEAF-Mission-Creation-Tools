@@ -2708,7 +2708,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
-                "and what it cost. With no argument it returns a SHORT listing (id, kind, area, title: "
+                "and what it cost. With no argument it returns a SHORT listing (id, kind, area -- each id reads as a phrase: "
                 "the whole text is too long for one result); then read the entries of the areas your "
                 "mission uses with 'area', or any entry with 'id'. Read-only."
             ),

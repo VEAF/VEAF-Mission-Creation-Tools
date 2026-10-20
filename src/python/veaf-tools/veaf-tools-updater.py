@@ -789,6 +789,7 @@ exit /b 0
             return
 
         console.print(t("updater.first_install"))
+        console.print(t("updater.ai_setup_tip"))
         console.print(
             t(
                 "updater.lang_tip",

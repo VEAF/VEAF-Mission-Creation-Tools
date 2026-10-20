@@ -123,11 +123,13 @@ def test_veaf_tools_extra_data_bundles_both_payload_files(tmp_path: Path) -> Non
     assert "payloads-ai-bombers.yaml" in sources
 
 
-def test_veaf_tools_extra_data_bundles_the_authoring_skill(tmp_path: Path) -> None:
-    """The MCP describe_authoring_guide action reads it: the skill lives in plugin/, outside the package."""
+def test_veaf_tools_extra_data_bundles_the_guide_and_the_mission_prompts(tmp_path: Path) -> None:
+    """The MCP describe_authoring_guide and describe_mission_prompt actions read this folder."""
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
-    bundled = worker._veaf_tools_extra_data(None)
-    assert any(src.name == "SKILL.md" and dest == "veaf_mission_mcp/data" for src, dest in bundled)
+    bundled = dict((dest, src) for src, dest in worker._veaf_tools_extra_data(None))
+    data = bundled["veaf_mission_mcp/data"]
+    assert (data / "authoring-guide.md").is_file()
+    assert len(list((data / "mission-prompts").glob("new-*-mission.*.md"))) == 4
 
 
 def test_veaf_tools_extra_data_bundles_airfield_frequencies(tmp_path: Path) -> None:

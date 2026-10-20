@@ -1,7 +1,7 @@
 # Prompt — build a VEAF Open Training mission on a DCS map
 
-> Paste as is at the start of a new Claude Code session, in an **empty folder** that will be the
-> mission folder.
+> Served by the `describe_mission_prompt` action when a user asks for a mission.
+> The mission is built in an **empty folder**: the session's folder if it is empty, otherwise ask the user where to create it (for example `Documents\VEAF\Missions\<name>`).
 
 ---
 

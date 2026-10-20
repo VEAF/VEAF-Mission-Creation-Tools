@@ -52,8 +52,11 @@ from veaf_mission_mcp.map_tools import (
 from veaf_mission_mcp.mission_settings import set_briefing, set_bullseye, set_mission_date, set_weather
 from veaf_mission_mcp.models import ActionSpec
 from veaf_mission_mcp.oracle import (
+    MISSION_PROMPT_KINDS,
+    MISSION_PROMPT_LANGS,
     describe_authoring_guide,
     describe_known_limitations,
+    describe_mission_prompt,
     describe_module,
     describe_naming_conventions,
     list_payloads,
@@ -2599,14 +2602,38 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="describe_authoring_guide",
             description=(
-                "Read this first, before any other action, unless you have the veaf-mission-authoring "
-                "skill: load that instead, it is the same text. Returns the VEAF mission authoring guide: the "
+                "Read this first, before any other action. Returns the VEAF mission authoring guide: the "
                 "order of work, the reserved naming conventions, combat zone vs QRA groups, and which "
                 "actions to consult instead of guessing. Read-only."
             ),
             parameters_schema={"type": "object", "properties": {}},
         ),
         handler=lambda _p: describe_authoring_guide(),
+    )
+    catalog.register(
+        ActionSpec(
+            name="describe_mission_prompt",
+            description=(
+                "When a user asks for a new mission, read the prompt for its kind and follow it: it holds "
+                "the questions to ask, the design rules and the build order. 'objective': a mission a group "
+                "plays once, in one session (a package, objectives, a threat, a briefing). 'open-training': "
+                "a VEAF training mission on a whole map (airfields, support, training and combat zones, "
+                "QRA). Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string", "enum": list(MISSION_PROMPT_KINDS)},
+                    "lang": {
+                        "type": "string",
+                        "enum": list(MISSION_PROMPT_LANGS),
+                        "description": "The prompt's language: the user's, 'en' by default.",
+                    },
+                },
+                "required": ["kind"],
+            },
+        ),
+        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en")),
     )
     catalog.register(
         ActionSpec(

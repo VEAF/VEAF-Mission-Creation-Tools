@@ -103,15 +103,16 @@ def test_the_server_registers_the_four_discovery_tools() -> None:
 
 
 def test_the_server_tells_any_client_to_read_the_authoring_guide_first() -> None:
-    """FEAT-AI-ASSISTANT-ANY-CLIENT: a client without the plugin gets the tools, not the skill.
+    """FEAT-AI-ASSISTANT-ANY-CLIENT, FEAT-AI-ZERO-SETUP: every client is pointed at the guide.
 
-    The instructions stay short on purpose: Claude Code puts them in every session's prompt, where
-    the plugin's skill already is, so they point at the guide instead of carrying its 21 KB.
+    The instructions stay short on purpose: a client puts them in every session's prompt, so they
+    point at the guide instead of carrying it.
     """
     instructions = server.mcp.instructions or ""
 
     assert "describe_authoring_guide" in instructions
-    assert "veaf-mission-authoring" in instructions
+    assert "describe_known_limitations" in instructions
+    assert "skill" not in instructions
     assert len(instructions) < 1000
 
 

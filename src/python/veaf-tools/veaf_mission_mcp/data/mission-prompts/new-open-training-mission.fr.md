@@ -1,7 +1,7 @@
 # Prompt — construire une mission VEAF Open Training sur une carte DCS
 
-> À coller tel quel au début d'une nouvelle session Claude Code, dans un **dossier vide** qui sera
-> le dossier de la mission.
+> Servi par l'action `describe_mission_prompt` quand un utilisateur demande une mission.
+> La mission se construit dans un **dossier vide** : celui de la session s'il est vide, sinon demander à l'utilisateur où la créer (par exemple `Documents\VEAF\Missions\<nom>`).
 
 ---
 

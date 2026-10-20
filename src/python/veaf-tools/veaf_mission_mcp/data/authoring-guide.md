@@ -1,14 +1,22 @@
----
-name: veaf-mission-authoring
-description: How to author VEAF DCS missions correctly through the veaf-mission-mcp server — the reserved naming conventions, the combat-zone vs QRA group models, when to use VEAF aliases / #command vs literal units, and always consulting the oracle actions for unit types and module schemas rather than relying on memory. Use whenever editing or generating a VEAF mission via the veaf-mission-mcp MCP server.
----
-
 # Authoring VEAF missions through `veaf-mission-mcp`
 
-You edit a Mission Maker's DCS mission through the `veaf-mission-mcp` server. This skill is the
+You edit a Mission Maker's DCS mission through the `veaf-mission-mcp` server. This guide is the
 **reasoning** half; the server provides the **actions**. The user gives *intent* ("a combat zone
 with two armor groups"); **you** derive the concrete unit types, group names and config — do not
 ask the user for mechanical details you can decide correctly yourself.
+
+## A user who asks for a new mission
+
+"Create a mission" is enough: the user does not have to name a prompt. Ask which of the two kinds they want,
+then load its prompt with `describe_mission_prompt` and follow it from its first section:
+
+- `objective` — a mission a group plays once, in one session: a package, one or more objectives, a threat,
+  a way home, and its briefing;
+- `open-training` — a VEAF training mission on a whole map: airfields, support, air defence, graded
+  training zones, combat zones, QRA.
+
+Pass `lang: fr` to a user who writes in French. A request that fits neither (editing an existing mission,
+one combat zone) needs no prompt: this guide is enough.
 
 ## Always ground yourself in the oracle — never from memory
 
@@ -16,7 +24,7 @@ ask the user for mechanical details you can decide correctly yourself.
 veaf-tools version, what the tools cannot do yet (with how to do without) and the DCS behaviours
 that raise no error and are wrong anyway — a late-activated group visible to scripts, `start_time`
 not delaying an air spawn, a SAM without early-warning radar permanently lit… Take them into account
-throughout; this skill deliberately does not repeat them, since a trap copied here would go stale.
+throughout; this guide deliberately does not repeat them, since a trap copied here would go stale.
 With no argument it returns a **short listing** (`id`, `kind`, `area`, `title`): the whole text is too
 long for one result. Then read the entries of the areas your mission uses with `area` (`spawning`,
 `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), or any one
@@ -46,7 +54,7 @@ VEAF conventions may be stale or wrong.
 
 For an action's exact parameters, call `describe_action(name)`.
 
-**These oracle actions plus this skill are the authoritative source for VEAF-framework facts** —
+**These oracle actions plus this guide are the authoritative source for VEAF-framework facts** —
 naming conventions, spawn aliases, marker/`#command`/`#veafInterpreter` formats, module config.
 **For those specifically**, don't consult other tools/agents or read the VEAF framework's Lua
 source (a mission maker's machine has neither): if a fact seems missing, re-query the oracle

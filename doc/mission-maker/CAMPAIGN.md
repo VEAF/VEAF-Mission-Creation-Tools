@@ -366,7 +366,7 @@ Relancez `campaign briefing` après chaque modification de la mission.
 | Déroulement mission | objectifs, opposition aérienne, défenses antiaériennes, autres informations (ravitaillement, dégagements, sauvetage) |
 | Plan de fréquences | UHF puis VHF, la garde en tête |
 | Plan de navigation | les waypoints que portent les avions puis les hélicoptères des joueurs après leur point de départ, `BULLSEYE` compris : nom, position en DMS, altitude et sa référence (`BARO`, ou `AGL` au-dessus du sol) ; les types d'appareil quand une catégorie porte plusieurs routes |
-| Coordonnées des objectifs | le centre de chaque zone en DMS, et son altitude quand une grille de terrain a été relevée (`terrain-sweep`) |
+| Coordonnées des objectifs | le centre de chaque zone en DMS, et son altitude quand le théâtre a une grille de terrain (relevée par `terrain-sweep`, ou téléchargée si elle est publiée) |
 
 Les objectifs sont les zones que nomment les titres des tâches de la mission dans `briefing.yaml` (« Frapper le dépôt de Khobi » nomme la zone *Dépôt de Khobi*), à défaut les objectifs de la campagne.
 Les vols sont ceux des joueurs : ni les gabarits de slots dynamiques ni les modèles de spawn VEAF n'en sont ; un avion de soutien n'apparaît qu'une fois, selon sa tâche ; le vent se dit d'où il vient, comme le lit un pilote.

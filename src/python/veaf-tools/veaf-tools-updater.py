@@ -26,13 +26,18 @@ from importlib.metadata import version as _pkg_version
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin, urlparse
 
 import requests
 import typer
 import yaml
 from veaf_libs import platform_assets
 from veaf_libs.atomic_replace import atomic_replace
+from veaf_libs.github_download import (
+    MAX_DOWNLOAD_REDIRECTS,
+    GithubDownloadError,
+    fetch_github_asset,
+    is_trusted_download_url,
+)
 from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
@@ -90,15 +95,10 @@ PACKAGE_JSON_FILE = "package.json"
 CONFIG_FILE = "veaf-tools-config.yaml"
 UPDATE_PENDING_DIR = ".veaf-update-pending"
 
-#: Hosts a release asset may legitimately come from (SECREV-2 / VMR-037). GitHub serves
-#: `browser_download_url` from github.com and redirects to its object storage; both are named so a
-#: redirect chain that leaves GitHub entirely is refused.
-_TRUSTED_DOWNLOAD_HOSTS = frozenset({"github.com", "www.github.com", "api.github.com"})
-_TRUSTED_DOWNLOAD_HOST_SUFFIX = ".githubusercontent.com"
-
-#: How many redirects to follow while checking each hop. GitHub uses one (asset -> object storage);
-#: a few more costs nothing and a bounded walk cannot loop.
-_MAX_DOWNLOAD_REDIRECTS = 5
+#: The trusted-host check and its redirect bound live in `veaf_libs.github_download`, shared with the
+#: terrain download (FEAT-TERRAIN-DATA-DOWNLOAD); the names stay here for the updater's tests.
+_is_trusted_download_url = is_trusted_download_url
+_MAX_DOWNLOAD_REDIRECTS = MAX_DOWNLOAD_REDIRECTS
 
 #: Upper bound on a downloaded release asset (SECREV-2 ticket 04, the network half of its integrity
 #: findings). `response.content` read whatever answered straight into memory, so a reply with no
@@ -107,27 +107,6 @@ _MAX_DOWNLOAD_REDIRECTS = 5
 #: the published release), and the same number as `safe_zip.MAX_MEMBER_UNCOMPRESSED_BYTES` so the
 #: two bounds in the codebase agree.
 _MAX_ASSET_BYTES = 256 * 1024 * 1024
-
-
-def _is_trusted_download_url(url: str | None) -> bool:
-    """Whether *url* is an https URL on a GitHub host we are willing to download from.
-
-    The updater installs and then runs what it downloads, so the URL handed back by the GitHub API
-    is worth checking rather than trusting outright (SECREV-2 / VMR-037).
-
-    Args:
-        url: The candidate URL, as returned by the GitHub API (may be missing).
-
-    Returns:
-        True when the URL uses https and its host is GitHub's.
-    """
-    if not url:
-        return False
-    parsed = urlparse(url)
-    if parsed.scheme != "https":
-        return False
-    host = (parsed.hostname or "").lower()
-    return host in _TRUSTED_DOWNLOAD_HOSTS or host.endswith(_TRUSTED_DOWNLOAD_HOST_SUFFIX)
 
 
 def load_config() -> dict[str, Any]:
@@ -399,88 +378,34 @@ class UpdateWorker:
         """Download an asset from a GitHub release, refusing any hop off GitHub.
 
         The URL comes from the GitHub API response, not from us, and what we do with the bytes is
-        install and then *run* an executable (SECREV-2 / VMR-037). Checking only the URL we were
-        handed would not be enough: ``requests`` follows redirects to any host by default, and GitHub
-        does redirect release assets to its object storage. So the redirect chain is walked here, one
-        hop at a time, and every hop has to pass the same check.
+        install and then *run* an executable (SECREV-2 / VMR-037). The redirect chain is walked one
+        checked hop at a time and the body is capped at ``_MAX_ASSET_BYTES``, by
+        :func:`veaf_libs.github_download.fetch_github_asset`.
 
         Args:
             asset_url: The asset URL from the release payload.
             asset_name: The asset's name, for the progress and error messages.
 
         Returns:
-            The asset's bytes, or None when a hop is untrusted, the chain is too long, or GitHub
-            answered with an error.
+            The asset's bytes, or None when a hop is untrusted, the chain is too long, GitHub
+            answered with an error, or the asset is over the cap.
         """
-        url = asset_url
-        origin_host = (urlparse(asset_url or "").hostname or "").lower()
-
-        with spinner_context(t("updater.downloading", name=asset_name)):
-            for _ in range(_MAX_DOWNLOAD_REDIRECTS + 1):
-                if not _is_trusted_download_url(url):
-                    logger.error(t("updater.err.untrusted_url", url=url, name=asset_name), exception_type=None)
-                    return None
-
-                headers = dict(self.headers)
-                if (urlparse(url).hostname or "").lower() != origin_host:
-                    # `requests` drops Authorization itself when a redirect changes host; walking the
-                    # chain by hand means doing it here, or the user's GitHub token would be handed to
-                    # whichever host the redirect names.
-                    headers.pop("Authorization", None)
-
-                # `stream=True` so the body is not pulled into memory before its size is known.
-                response = requests.get(url, headers=headers, allow_redirects=False, stream=True)
-                if not response.is_redirect and not response.is_permanent_redirect:
-                    break
-
-                # A Location may be relative, so resolve it against the URL that produced it.
-                url = urljoin(url, response.headers.get("Location", ""))
-            else:
+        try:
+            with spinner_context(t("updater.downloading", name=asset_name)):
+                return fetch_github_asset(asset_url, headers=self.headers, max_bytes=_MAX_ASSET_BYTES)
+        except GithubDownloadError as e:
+            if e.kind == "untrusted_url":
+                logger.error(t("updater.err.untrusted_url", url=e.url, name=asset_name), exception_type=None)
+            elif e.kind == "too_many_redirects":
                 logger.error(t("updater.err.too_many_redirects", url=asset_url, name=asset_name), exception_type=None)
-                return None
-
-        if not self.check_github_response(response, t("updater.action.download", name=asset_name)):
-            return None
-
-        return self._read_capped(response, asset_name)
-
-    def _read_capped(self, response: requests.Response, asset_name: str) -> bytes | None:
-        """Read a response body, refusing anything past ``_MAX_ASSET_BYTES``.
-
-        The declared length is checked first because it is free; the stream is then counted while it
-        is read, which is what actually holds — a reply may declare nothing and never end.
-
-        Args:
-            response: The streaming response to read — only ``headers``, ``iter_content`` and
-                ``close`` are used, so a test double needs no more than those three.
-            asset_name: The asset's name, for the error message.
-
-        Returns:
-            The asset's bytes, or None when it is over the cap.
-        """
-        declared = response.headers.get("Content-Length")
-        if declared and declared.isdigit() and int(declared) > _MAX_ASSET_BYTES:
-            logger.error(
-                t("updater.err.asset_too_large", name=asset_name, size=int(declared), limit=_MAX_ASSET_BYTES),
-                exception_type=None,
-            )
-            return None
-
-        chunks: list[bytes] = []
-        total = 0
-        for chunk in response.iter_content(chunk_size=64 * 1024):
-            if not chunk:
-                continue
-            total += len(chunk)
-            if total > _MAX_ASSET_BYTES:
-                response.close()
+            elif e.kind == "too_large":
                 logger.error(
-                    t("updater.err.asset_too_large", name=asset_name, size=total, limit=_MAX_ASSET_BYTES),
+                    t("updater.err.asset_too_large", name=asset_name, size=e.size, limit=_MAX_ASSET_BYTES),
                     exception_type=None,
                 )
-                return None
-            chunks.append(chunk)
-        return b"".join(chunks)
+            else:
+                self.check_github_response(e.response, t("updater.action.download", name=asset_name))
+            return None
 
     def _launch_deferred_update(self, pending_dir: Path, pending_exe: Path) -> None:
         """

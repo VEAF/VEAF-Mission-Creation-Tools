@@ -220,8 +220,8 @@ limitations:
   area: mcp
   title: "On Falklands, no catalogue says a ground unit is out of the trees, the buildings or fresh water"
   symptom: |
-    Falklands ships parking and frequency data but no clear-ground catalogue, and its elevation grid is swept
-    per workstation (`terrain-sweep Falklands`), not shipped. The grid knows the sea only: a lake or a river
+    Falklands ships parking and frequency data but no clear-ground catalogue; its elevation grid is downloaded
+    from the `terrain-data` release on first use (or swept on the workstation). The grid knows the sea only: a lake or a river
     reads as the ground under it. So `add_group`, `create_combat_zone` and `add_farp` write a position as
     asked there, with a warning saying the surface was not checked (or, with a grid, that the sea was).
   workaround: |
@@ -235,6 +235,18 @@ limitations:
     Williams, Navarino, the Cape Horn beacon). They were moved by hand, from 25 m to 1 425 m. FARP Torres del
     Paine had stood in a lake the 250 m grid read as 79 m (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS tickets 03, 07).
 
+- id: downloaded-terrain-grid-never-refreshed
+  kind: tool
+  area: mcp
+  title: "A theatre's elevation grid, once downloaded, is never refreshed"
+  symptom: |
+    A theatre with no grid on the workstation gets the one published in the `terrain-data` GitHub release,
+    on first use, and keeps it: a grid re-published later (after a DCS map update, a finer sweep) does not
+    reach a workstation that already has the old one. A theatre not published has no grid at all until it
+    is swept in DCS, and with no network the download is tried once per run and the answer stays "sweep it".
+  workaround: |
+    Delete `<VEAF home>/terrain/<Theatre>.terrain` to download the published grid again, or sweep the
+    theatre with `veaf-tools dcs terrain-sweep <Theatre>`, which replaces the file.
 - id: marianas-placement-checks-nothing
   kind: tool
   area: mcp
@@ -242,7 +254,8 @@ limitations:
   theatres: [MarianaIslands]
   symptom: |
     MarianaIslands has no clear-ground catalogue and no parking data shipped, and an elevation grid
-    only once `terrain-sweep` has run on the workstation. Every ground placement there is written as
+    only once `terrain-sweep` has run on the workstation or once its grid is published in the
+    `terrain-data` release (not yet on 2026-10-20). Every ground placement there is written as
     asked, with a warning that says the sea, the trees and the buildings were not checked; every QRA
     starts in the air (`no-parking-data-outside-three-theatres`).
   workaround: |

@@ -130,7 +130,8 @@ def describe_terrain(
             "theatre": theatre,
             "available": False,
             "how": (
-                f"No elevation grid for {theatre}. One is swept in DCS with "
+                f"No elevation grid for {theatre}: none was swept on this PC, and none could be downloaded "
+                "(not published for this theatre, or no network). One is swept in DCS with "
                 f"`.\\veaf-tools.exe dcs terrain-sweep {theatre}` (it needs DCS; offer it to the user). "
                 "Until then, ground heights stay an open point to check in game."
             ),

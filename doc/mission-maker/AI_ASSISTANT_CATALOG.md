@@ -260,9 +260,9 @@ tu le valides. Les lieux **nommés** marchent ; le terrain vague (« les bois »
 briefing), le **sol le plus haut** le long de chaque branche d'une route (le plancher d'une
 pénétration basse altitude), **combien de chaque branche un SAM voit** au-dessus du relief, et le
 point culminant de chaque carré de 10 km de la grille F10. **Relief seul** : ni bâtiments, ni
-pylônes, ni arbres, et une marge mesurée à ajouter, que l'IA te rappelle. Il faut d'abord relever le
-théâtre **une fois** dans DCS (`.\veaf-tools.exe dcs terrain-sweep Syria`, moins de trois minutes) ;
-sans ce relevé, l'IA te propose la commande.
+pylônes, ni arbres, et une marge mesurée à ajouter, que l'IA te rappelle.
+Les grilles des théâtres déjà relevés par la VEAF se téléchargent au premier usage, sans DCS ([liste](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)).
+Un autre théâtre se relève d'abord **une fois** dans DCS (`.\veaf-tools.exe dcs terrain-sweep Caucasus`, moins de trois minutes) ; sans ce relevé, l'IA te propose la commande.
 
 > 💬 *« Ma route basse altitude passe-t-elle sous la couverture du SA-6 de Damas ? »*
 

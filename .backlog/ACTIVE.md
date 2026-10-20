@@ -4,6 +4,12 @@
 
 Work started and not finished: in progress, waiting for a human, or deliberately paused.
 
+## 🔄 In progress
+
+### [FEAT-TERRAIN-DATA-DOWNLOAD](FEAT-TERRAIN-DATA-DOWNLOAD/PRD.md) · 🔄
+
+Terrain data an AI can use without DCS: the elevation grids swept in DCS are published as a `terrain-data` GitHub release of their own, and veaf-tools downloads a missing theatre on first use, checksum verified; a grid swept locally keeps priority, and offline the answer stays "sweep it in DCS". Decided by David on 2026-10-20.
+
 ## 🧑 Waiting for a human
 
 ### [FEAT-FORCED-MISSION-OPTIONS](FEAT-FORCED-MISSION-OPTIONS/PRD.md) · 🧑

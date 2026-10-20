@@ -690,6 +690,7 @@ Options:
 - `update-dcs-data [--countries --units --radio --airdromes --airfield-freqs --cockpit-controls --aircraft --dcs-path --inject-bridge --capture --serve-url --api-key --bridge-lua --all]` - regenerate committed DCS reference data; the first six flags pick the table, `--dcs-path` targets a DCS install for the tables that need one, and `--inject-bridge` / `--capture` / `--serve-url` / `--api-key` / `--bridge-lua` drive capture from a running DCS (see [DCS data generators](developer/dcs-data.en.md))
 - `build-standalone [--version --output --with-updater --verbose --pause]` - build the current platform's binaries without going through the release flow (used by the Linux/macOS runners)
 - `build-kit [--version --exe --bridge-zip --bridge-lua --output --verbose]` - assemble the capture kit handed to a map's operator (executable + bridge mission)
+- `terrain-data [<folder> --output --publish --verbose]` - check the swept elevation grids and, with `--publish`, publish them as the `terrain-data` release (see [publish the terrain data](developer/terrain-data.en.md))
 - `about` - information about the build system
 
 **Examples:**

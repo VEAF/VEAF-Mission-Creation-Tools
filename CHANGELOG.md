@@ -39,6 +39,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `validate` reports an unknown option or value, and the MCP action `set_forced_options` writes the block.
 - **Carrier deck lights follow VEAF air operations** (FEAT-FORCED-MISSION-OPTIONS): recovery lights when they start, back to DCS when they stop, through the editor's *SET CARRIER LIGHTING MODE*; without `net`, the lights stay as DCS sets them and a warning says so.
 - **Mission Editor tips page**: editor trigger actions VMCT does not wrap and that are worth knowing — a failure on demand, a group only the game master commands, a model animation, the briefing changed mid-mission — with what is read in the editor and what is measured.
+- **Elevation grids downloaded when the PC has none** (FEAT-TERRAIN-DATA-DOWNLOAD).
+  The AI assistant answers terrain questions (`terrain_elevation`, `describe_terrain`, the surface checks of a placement) on a PC with no DCS: a theatre with no local grid gets the one published in the GitHub release [`terrain-data`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data) on first use, size and SHA-256 checked.
+  A grid swept on the PC keeps priority; offline, the answer stays "sweep it in DCS".
+  Maintainers publish the swept grids with `veaf-build terrain-data --publish`.
 
 ### Fixed
 

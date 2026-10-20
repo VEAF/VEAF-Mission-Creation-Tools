@@ -980,7 +980,7 @@ their id, type and distance. Default radius: 150 m.
 ### `terrain_elevation` (lot FEAT-TERRAIN-ELEVATION)
 
 Read-only, **no DCS**: answers from the theatre's elevation grid, swept once by
-[`veaf-tools dcs terrain-sweep`](../CLI_REFERENCE.en.md#terrain-sweep). Four questions, combinable in
+[`veaf-tools dcs terrain-sweep`](../CLI_REFERENCE.en.md#terrain-sweep) or downloaded from the published ones on first use ([terrain data](terrain-data.en.md)). Four questions, combinable in
 one call:
 
 - `points` — the ground height at each point, in metres and feet (a target's altitude);

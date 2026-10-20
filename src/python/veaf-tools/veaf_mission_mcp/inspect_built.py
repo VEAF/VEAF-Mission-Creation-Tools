@@ -157,7 +157,7 @@ def _presets(players: list[tuple[str, dict[str, Any]]]) -> list[str] | str:
     return lines or _ABSENT
 
 
-def _bullseyes(content: dict[str, Any]) -> dict[str, dict[str, float]] | str:
+def _bullseyes(content: dict[str, Any]) -> dict[str, dict[str, int]] | str:
     found = {
         str(side): {"x": round(float(b["x"])), "y": round(float(b["y"]))}
         for side, coalition in (content.get("coalition") or {}).items()

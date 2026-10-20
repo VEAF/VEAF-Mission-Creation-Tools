@@ -890,7 +890,7 @@ et la commande le dit. **Relief seul** : ni bâtiments, ni pylônes, ni arbres.
 
 Un théâtre déjà relevé par la VEAF n'a pas besoin de relevé : sa grille est publiée sur GitHub (release [`terrain-data`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)), et veaf-tools la télécharge au premier usage, dans le même dossier.
 Une grille déjà présente — relevée ici ou téléchargée — est utilisée telle quelle.
-Relève un théâtre non publié, ou pour remplacer une grille téléchargée.
+Relève un théâtre quand il n'est pas publié, ou pour remplacer une grille téléchargée.
 
 | Nom | Type | Obligatoire | Description |
 |---|---|---|---|

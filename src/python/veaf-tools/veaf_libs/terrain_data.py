@@ -69,7 +69,12 @@ def build_manifest(paths: list[Path]) -> dict[str, Any]:
 
 @cache
 def _published() -> dict[str, Any] | None:
-    """Return the published grids, from the release's manifest; ``None`` when it cannot be read."""
+    """Read the published grids from the release's manifest, once per process.
+
+    Returns:
+        ``{theatre: {"file", "bytes", "sha256"}}``, or ``None`` when the manifest cannot be fetched or
+        is of an unknown format (cached too: one failed fetch is enough for the whole process).
+    """
     try:
         manifest = json.loads(
             fetch_github_asset(DOWNLOAD_URL + MANIFEST_NAME, max_bytes=_MAX_MANIFEST_BYTES, timeout=_TIMEOUT_SECONDS)

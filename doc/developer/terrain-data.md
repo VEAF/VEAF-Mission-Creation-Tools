@@ -8,8 +8,10 @@ Un PC sans DCS ouvert — une sandbox de démo, le poste d'un autre mission make
 - Les grilles sont les assets de la release GitHub [`terrain-data`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data), une par théâtre (`<Theatre>.terrain`), avec un manifeste `terrain-data.json` qui donne pour chacune sa taille et son SHA-256.
 - Cette release est **à part** des releases des outils : les quelque 26 Mo ne sont pas republiés à chaque version, et elle est créée **non latest**, pour que le badge « Latest » reste sur la release des outils.
 - Quand un théâtre n'a pas de grille dans `<VEAF home>/terrain/`, veaf-tools télécharge la sienne au premier usage, vérifie sa taille, son SHA-256 et qu'elle se charge bien comme la grille de ce théâtre, puis l'écrit à côté des grilles relevées.
-- Une grille déjà présente — relevée sur le poste ou téléchargée avant — est utilisée telle quelle, jamais remplacée. Pour reprendre une grille republiée, on supprime le fichier.
-- Hors ligne, ou si un contrôle échoue, la réponse reste celle d'avant : « relève-la dans DCS ». Un seul essai par processus, pour ne pas payer un délai d'attente à chaque placement ; la raison est écrite dans le journal de veaf-tools.
+- Une grille déjà présente — relevée sur le poste ou téléchargée avant — est utilisée telle quelle, jamais remplacée.
+  Pour reprendre une grille republiée, on supprime le fichier.
+- Hors ligne, ou si un contrôle échoue, la réponse reste celle d'avant : « relève-la dans DCS ».
+  Un seul essai par processus, pour ne pas payer un délai d'attente à chaque placement ; la raison est écrite dans le journal de veaf-tools.
 - Le téléchargement passe par les mêmes contrôles que l'updater (`veaf_libs/github_download.py`) : https sur un hôte GitHub seulement, chaque redirection vérifiée, taille plafonnée.
 
 ## Publier {#publish}
@@ -21,7 +23,8 @@ Un PC sans DCS ouvert — une sandbox de démo, le poste d'un autre mission make
    poetry run veaf-build terrain-data
    ```
 
-   La commande charge chaque `*.terrain` de `<VEAF home>/terrain/` (ou du dossier passé en argument), refuse un fichier dont la grille est celle d'un autre théâtre, écrit `dist/terrain-data.json` et liste les fichiers avec leur taille. Rien ne part.
+   La commande charge chaque `*.terrain` de `<VEAF home>/terrain/` (ou du dossier passé en argument), refuse un fichier dont la grille est celle d'un autre théâtre, écrit `dist/terrain-data.json` et liste les fichiers avec leur taille.
+   Rien ne part.
 3. Publie :
 
    ```powershell

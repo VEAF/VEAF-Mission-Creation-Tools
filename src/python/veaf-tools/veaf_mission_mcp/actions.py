@@ -381,7 +381,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "refused unless you acknowledge it -- naming a group after a combat zone's trigger "
                 "zone makes the runtime despawn it at start. Unit names are never renamed with the "
                 "group. A moved ground group or static that lands in the sea (ground 0 m), or a ship "
-                "that lands on land, is warned about where the theatre has a swept elevation grid "
+                "that lands on land, is warned about where the theatre has an elevation grid (swept, or downloaded when published) "
                 "(terrain_elevation); without one the warning says the surface was not checked. "
                 "Mutates in place, backed up first."
             ),
@@ -2732,7 +2732,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="terrain_elevation",
             description=(
-                "Ground heights from the theatre's swept elevation grid, with no DCS running. Read-only. "
+                "Ground heights from the theatre's elevation grid (swept in DCS, or downloaded on first use when published), with no DCS running. Read-only. "
                 "Ask any of: `points` — the ground height at each (target altitudes for a briefing); "
                 "`route` — the highest ground along each leg (the floor of a low-level route); `route` + "
                 "`observers` — how many metres of each leg each radar or SAM sees over the terrain, within "

@@ -262,7 +262,7 @@ pénétration basse altitude), **combien de chaque branche un SAM voit** au-dess
 point culminant de chaque carré de 10 km de la grille F10. **Relief seul** : ni bâtiments, ni
 pylônes, ni arbres, et une marge mesurée à ajouter, que l'IA te rappelle.
 Les grilles des théâtres déjà relevés par la VEAF se téléchargent au premier usage, sans DCS ([liste](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)).
-Un autre théâtre se relève d'abord **une fois** dans DCS (`.\veaf-tools.exe dcs terrain-sweep Syria`, moins de trois minutes) ; sans ce relevé, l'IA te propose la commande.
+Un autre théâtre se relève d'abord **une fois** dans DCS (`.\veaf-tools.exe dcs terrain-sweep Caucasus`, moins de trois minutes) ; sans ce relevé, l'IA te propose la commande.
 
 > 💬 *« Ma route basse altitude passe-t-elle sous la couverture du SA-6 de Damas ? »*
 

@@ -104,21 +104,27 @@ def _merge_result(client: str, config_path: Path, exe: Path, **shape: Any) -> Cl
     return ClientResult(client, "configured", str(config_path))
 
 
-def setup_claude_desktop(exe: Path, *, appdata: Path) -> ClientResult:
+def setup_claude_desktop(exe: Path, *, appdata: Path, localappdata: Path | None = None) -> ClientResult:
     """Declare the server in Claude Desktop, the Claude application in chat mode.
 
     `%APPDATA%\\Claude\\claude_desktop_config.json` is the file its *Edit Config* opens. The Store
     install keeps its files under `Packages\\Claude_…\\LocalCache`, and `%APPDATA%\\Claude` is a link
     to that folder (measured 2026-10-20), so the one path serves both installs.
 
+    A Store install that moved its data out of the package keeps them, that file included, in
+    `%LOCALAPPDATA%\\Claude-Data\\claude_<package id>`, and `%APPDATA%\\Claude` then does not exist
+    outside the package (measured on version 3.1623, 2026-10-20). That folder wins when it exists.
+
     Args:
         exe: The `veaf-tools` executable that runs the server.
         appdata: The user's `%APPDATA%` folder.
+        localappdata: The user's `%LOCALAPPDATA%` folder.
 
     Returns:
-        The outcome; `not_found` when `%APPDATA%\\Claude` does not exist.
+        The outcome; `not_found` when neither folder exists.
     """
-    folder = appdata / "Claude"
+    data = sorted(p for p in (localappdata / "Claude-Data").glob("claude_*") if p.is_dir()) if localappdata else []
+    folder = data[0] if data else appdata / "Claude"
     if not folder.is_dir():
         return ClientResult("Claude Desktop", "not_found")
     return _merge_result("Claude Desktop", folder / "claude_desktop_config.json", exe)
@@ -320,19 +326,20 @@ def setup_claude_code(
     return _merge_result("Claude Code", config, exe)
 
 
-def setup_all(exe: Path, *, home: Path, appdata: Path) -> list[ClientResult]:
+def setup_all(exe: Path, *, home: Path, appdata: Path, localappdata: Path) -> list[ClientResult]:
     """Declare the server in every supported client.
 
     Args:
         exe: The `veaf-tools` executable that runs the server.
         home: The user's home folder.
         appdata: The user's `%APPDATA%` folder.
+        localappdata: The user's `%LOCALAPPDATA%` folder.
 
     Returns:
         One result per client, in a fixed order.
     """
     return [
-        setup_claude_desktop(exe, appdata=appdata),
+        setup_claude_desktop(exe, appdata=appdata, localappdata=localappdata),
         setup_claude_code(exe, home=home),
         setup_gemini(exe, home=home),
         setup_antigravity(exe, home=home),

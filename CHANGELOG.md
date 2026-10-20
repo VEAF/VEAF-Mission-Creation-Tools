@@ -17,6 +17,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`veaf-tools ai-setup` finds Claude Desktop installed from the Microsoft Store** when it keeps its data in `%LOCALAPPDATA%\Claude-Data\` (FIX-AI-SETUP-STORE-DESKTOP): it answered `not_found` there and Claude Desktop got no VEAF server. The updater's first-install message names the mission folder for `prepare`, instead of `prepare .` in the folder the tools were installed in.
+
 ## [6.31.0] — 2026-10-20
 
 ### Changed

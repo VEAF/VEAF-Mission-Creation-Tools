@@ -28,7 +28,8 @@ def ai_setup() -> None:
         logger.error(t("cmd.ai_setup.not_frozen"))
     exe = Path(sys.executable).resolve()
     appdata = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
-    results = setup_all(exe, home=Path.home(), appdata=appdata)
+    localappdata = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    results = setup_all(exe, home=Path.home(), appdata=appdata, localappdata=localappdata)
 
     console.print(t("cmd.ai_setup.server", exe=str(exe)))
     for result in results:

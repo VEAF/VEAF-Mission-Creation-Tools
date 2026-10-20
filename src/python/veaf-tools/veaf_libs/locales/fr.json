@@ -1124,7 +1124,7 @@
   "updater.extracted": "Release version {version} extraite avec succès dans le dossier '{dir}'",
   "updater.extracting": "Extraction de published.zip (version {version})...",
   "updater.fetching_release": "Récupération des informations pour le tag '{tag}'...",
-  "updater.first_install": "\n[bold cyan]Première installation détectée.[/bold cyan] Lancez [bold]veaf-tools.exe prepare .[/bold] pour initialiser votre dossier de mission avec les fichiers par défaut (mission.yaml, modèles src/, etc.).",
+  "updater.first_install": "\n[bold cyan]Première installation détectée.[/bold cyan] Pour initialiser un dossier de mission avec les fichiers par défaut (mission.yaml, modèles src/, etc.), lancez [bold].\u000beaf-tools.exe prepare <dossier de la mission>[/bold] — [bold].[/bold] si ce dossier-ci est celui de la mission.",
   "updater.ai_setup_tip": "Pour construire des missions avec un assistant IA (Claude, Gemini), lancez [bold].\\veaf-tools.exe ai-setup[/bold].",
   "updater.force_update": "Indicateur 'force' activé, mise à jour forcée",
   "updater.found_version": "Version de la release trouvée : {version}",

@@ -10,6 +10,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20.
 
+### [FIX-AI-SETUP-STORE-DESKTOP](FIX-AI-SETUP-STORE-DESKTOP/PRD.md) · 🔄
+
+`veaf-tools ai-setup` finds Claude Desktop when its Store install keeps its data in `%LOCALAPPDATA%\Claude-Data\`, as on David's PC, where it answered `not_found`; and the updater's first-install message stops sending the AI install page's users to run `prepare .` in their tools folder. Found by FEAT-AI-ZERO-SETUP ticket 08 on 2026-10-20.
+
 
 ## 🧑 Waiting for a human
 

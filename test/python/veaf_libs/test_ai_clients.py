@@ -89,6 +89,38 @@ def test_claude_desktop_absent_is_not_found(tmp_path: Path) -> None:
     assert not (tmp_path / "Claude").exists()
 
 
+def test_claude_desktop_store_install_with_its_data_outside_the_package_is_configured_there(tmp_path: Path) -> None:
+    # Measured on David's PC, 2026-10-20: Store install 3.1623, no %APPDATA%\Claude outside the package.
+    data = tmp_path / "Local" / "Claude-Data" / "claude_pzs8sxrjxfjjc"
+    data.mkdir(parents=True)
+
+    result = setup_claude_desktop(EXE, appdata=tmp_path / "Roaming", localappdata=tmp_path / "Local")
+
+    assert result.status == "configured"
+    assert result.detail == str(data / "claude_desktop_config.json")
+    assert _read(data / "claude_desktop_config.json")["mcpServers"][SERVER_KEY] == ENTRY
+
+
+def test_claude_desktop_data_outside_the_package_wins_over_the_appdata_folder(tmp_path: Path) -> None:
+    data = tmp_path / "Local" / "Claude-Data" / "claude_pzs8sxrjxfjjc"
+    data.mkdir(parents=True)
+    (tmp_path / "Roaming" / "Claude").mkdir(parents=True)
+
+    result = setup_claude_desktop(EXE, appdata=tmp_path / "Roaming", localappdata=tmp_path / "Local")
+
+    assert result.status == "configured"
+    assert (data / "claude_desktop_config.json").is_file()
+    assert not (tmp_path / "Roaming" / "Claude" / "claude_desktop_config.json").exists()
+
+
+def test_claude_desktop_without_either_folder_is_not_found(tmp_path: Path) -> None:
+    (tmp_path / "Local" / "Claude-Data").mkdir(parents=True)
+
+    result = setup_claude_desktop(EXE, appdata=tmp_path / "Roaming", localappdata=tmp_path / "Local")
+
+    assert result.status == "not_found"
+
+
 def test_claude_desktop_with_an_unreadable_config_fails_without_touching_it(tmp_path: Path) -> None:
     (tmp_path / "Claude").mkdir()
     (tmp_path / "Claude" / "claude_desktop_config.json").write_text("{", encoding="utf-8")

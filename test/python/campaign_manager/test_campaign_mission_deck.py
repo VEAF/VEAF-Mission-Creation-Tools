@@ -13,7 +13,8 @@ from campaign_fixture import PROSE, VALID, built_mission, mission_template
 from campaign_manager.briefing_prose import BriefingProse, parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.campaign_worker import CampaignWorker
-from campaign_manager.mission_deck import MISSION_DECK_FILE, _altitude, mission_deck, objective_zones
+from campaign_manager.mission_deck import MISSION_DECK_FILE, mission_deck, objective_zones
+from campaign_manager.mission_pages import altitude as _altitude
 from campaign_manager.mission_picture import MissionPicture, Waypoint, read_mission_picture
 from campaign_manager.models import CampaignDefinition
 from campaign_manager.tactical_map import render_objective_map, render_tactical_map
@@ -228,7 +229,7 @@ class TestTheDeck:
         (page,) = [slide for slide in _deck(tmp_path) if slide[0] == "7. Plan de fréquences"]
         text = page[1]
         uhf, vhf = text.split("\nVHF\n")
-        assert uhf.startswith("UHF\nGarde : 243.0 MHz")
+        assert uhf.startswith("UHF\nOverlord 1-1") and "243" not in uhf  # no Guard, as the plan
         assert "127.5" not in uhf and "Stennis (tour) : 127.5 MHz, TACAN 74X, ICLS 1, Link 4 336.0 MHz" in vhf
         assert "Kobuleti : 262.0 MHz — TACAN 67X" in uhf and "Kobuleti : 133.0 MHz (FM 40.8 MHz)" in vhf
 

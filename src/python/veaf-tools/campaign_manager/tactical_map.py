@@ -9,20 +9,18 @@ does not know is drawn: no garrison unit — a garrison is drawn when the missio
 
 from __future__ import annotations
 
-import math
 import re
-from dataclasses import dataclass, field
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
 from veaf_libs.coordinates import xy_to_latlon
 from veaf_libs.i18n import t
-from veaf_libs.map_labels import Box, LabelPlacer
-from veaf_libs.map_tiles import CREDIT, BaseMap, Fetch, metres_per_pixel, render_base_map
+from veaf_libs.map_labels import Box
+from veaf_libs.map_tiles import Fetch
 
+from campaign_manager.map_canvas import BLACK, MapCanvas, TacticalMapReport
 from campaign_manager.mission_picture import NM, MissionPicture
 from campaign_manager.models import CampaignDefinition, CampaignState, CampaignZone
-from campaign_manager.strategic_map import OWNER_COLOURS, _dashed, _font, zone_position
+from campaign_manager.strategic_map import OWNER_COLOURS, _dashed, zone_position
 
 #: The tactical map, in the mission's sub-folder (`missions/mission-NN/`).
 TACTICAL_MAP_FILE = "carte-tactique.png"
@@ -35,21 +33,6 @@ _TACTICAL_MARGIN = 30_000
 
 #: A zoom shows its zone and this much of its radius around it.
 _ZOOM_MARGIN = 2.2
-
-_BLACK = (0, 0, 0, 255)
-
-
-@dataclass(frozen=True)
-class TacticalMapReport:
-    """What rendering a map produced."""
-
-    path: Path
-    offline: bool
-    """Whether tiles were missing and the map stands on a plain background."""
-    symbols: dict[str, tuple[float, float]] = field(default_factory=dict)
-    """Where each thing named was drawn, in pixels: zones by name, ``carrier``, ``bullseye``…"""
-    labels: list[Box] = field(default_factory=list)
-    """Every label's box, in pixels."""
 
 
 def zoom_file(zone: CampaignZone) -> str:
@@ -64,104 +47,8 @@ def zoom_file(zone: CampaignZone) -> str:
     return f"zoom-{re.sub(r'[^a-z0-9]+', '-', zone.name.lower()).strip('-')}.png"
 
 
-class _Canvas:
-    """A base map and the overlay drawn on it, with the labels' placer."""
-
-    def __init__(
-        self,
-        theatre: str,
-        points: list[tuple[float, float]],
-        margin: float,
-        cache_dir: Path | None,
-        fetch: Fetch | None,
-    ) -> None:
-        lats = [p[0] for p in points]
-        lons = [p[1] for p in points]
-        dlat = margin / 111_000
-        dlon = margin / (111_000 * math.cos(math.radians(sum(lats) / len(lats))))
-        self.theatre = theatre
-        self.lat = sum(lats) / len(lats)
-        self.base: BaseMap = render_base_map(
-            max(lats) + dlat, min(lons) - dlon, min(lats) - dlat, max(lons) + dlon, cache_dir=cache_dir, fetch=fetch
-        )
-        self.background = Image.blend(self.base.image, Image.new("RGB", self.base.image.size, (255, 255, 255)), 0.3)
-        self.overlay = Image.new("RGBA", self.background.size, (0, 0, 0, 0))
-        self.draw = ImageDraw.Draw(self.overlay)
-        self.placer = LabelPlacer(*self.background.size)
-        self.symbols: dict[str, tuple[float, float]] = {}
-        self.big, self.small, self.number = _font(22, bold=True), _font(16), _font(18, bold=True)
-
-    def at(self, lat: float, lon: float) -> tuple[float, float]:
-        return self.base.pixel(lat, lon)
-
-    def at_xy(self, x: float, y: float) -> tuple[float, float]:
-        return self.base.pixel(*xy_to_latlon(self.theatre, x, y))
-
-    def pixels(self, metres: float) -> float:
-        return metres / metres_per_pixel(self.lat, self.base.zoom)
-
-    def label(
-        self, anchor: Box, text: str, font: ImageFont.FreeTypeFont | ImageFont.ImageFont, colour: tuple[int, ...]
-    ) -> None:
-        left, top, right, bottom = self.draw.textbbox((0, 0), text, font=font)
-        x, y = self.placer.place(anchor, (right - left + 8, bottom - top + 4))
-        self.draw.rectangle((x, y, x + right - left + 8, y + bottom - top + 4), fill=(255, 255, 255, 220))
-        self.draw.text((x + 4 - left, y + 2 - top), text, font=font, fill=colour)
-
-    def mark(self, name: str, centre: tuple[float, float], half: float) -> Box:
-        """Record a symbol's place, keep it clear of labels, and return its box."""
-        self.symbols[name] = centre
-        box = (centre[0] - half, centre[1] - half, centre[0] + half, centre[1] + half)
-        self.placer.reserve(box)
-        return box
-
-    def circle(
-        self, centre: tuple[float, float], radius: float, colour: tuple[int, int, int], *, dashed: bool, width: int = 3
-    ) -> None:
-        cx, cy = centre
-        if not dashed:
-            self.draw.ellipse(
-                (cx - radius, cy - radius, cx + radius, cy + radius),
-                fill=(*colour, 70),
-                outline=(*colour, 255),
-                width=width,
-            )
-            return
-        for step in range(0, 72, 2):
-            a0, a1 = math.radians(step * 5), math.radians((step + 1) * 5)
-            self.draw.line(
-                (
-                    cx + radius * math.sin(a0),
-                    cy - radius * math.cos(a0),
-                    cx + radius * math.sin(a1),
-                    cy - radius * math.cos(a1),
-                ),
-                fill=(*colour, 230),
-                width=width,
-            )
-
-    def scale(self, metres: float, text: str) -> None:
-        width, height = self.background.size
-        bar = self.pixels(metres)
-        x0, y0 = 20, height - 40
-        self.draw.rectangle((x0 - 6, y0 - 16, x0 + bar + 80, y0 + 14), fill=(255, 255, 255, 220))
-        self.draw.line((x0, y0, x0 + bar, y0), fill=_BLACK, width=4)
-        self.draw.text((x0 + bar + 8, y0 - 10), text, font=self.small, fill=_BLACK)
-        self.placer.reserve((x0 - 6, y0 - 16, x0 + bar + 80, y0 + 14))
-        box = self.draw.textbbox((0, 0), CREDIT, font=self.small)
-        at = (width - box[2] - 10, height - box[3] - 8)
-        self.draw.rectangle((at[0] - 4, at[1] - 2, at[0] + box[2] + 4, at[1] + box[3] + 2), fill=(255, 255, 255, 220))
-        self.draw.text(at, CREDIT, font=self.small, fill=_BLACK)
-        self.placer.reserve((at[0] - 4, at[1] - 2, at[0] + box[2] + 4, at[1] + box[3] + 2))
-
-    def save(self, out: Path) -> TacticalMapReport:
-        out.parent.mkdir(parents=True, exist_ok=True)
-        Image.alpha_composite(self.background.convert("RGBA"), self.overlay).convert("RGB").save(out)
-        return TacticalMapReport(out, self.base.offline, dict(self.symbols), list(self.placer.labels))
-
-
 def _zone(
-    canvas: _Canvas, campaign: CampaignDefinition, state: CampaignState, zone: CampaignZone, *, focus: bool
+    canvas: MapCanvas, campaign: CampaignDefinition, state: CampaignState, zone: CampaignZone, *, focus: bool
 ) -> Box:
     """Draw a zone's circle, keep its centre clear; return the circle's box for its label."""
     cx, cy = canvas.at(*zone_position(campaign, zone))
@@ -205,7 +92,7 @@ def render_tactical_map(
             if str(index) not in listed:
                 listed.append(str(index))
     points += [xy_to_latlon(theatre, x, y) for x, y in numbers]
-    canvas = _Canvas(theatre, points, _TACTICAL_MARGIN, cache_dir, fetch)
+    canvas = MapCanvas(theatre, points, _TACTICAL_MARGIN, cache_dir, fetch)
     blue = OWNER_COLOURS[campaign.player_side]
     enemy = OWNER_COLOURS["red" if campaign.player_side == "blue" else "blue"]
 
@@ -243,15 +130,15 @@ def render_tactical_map(
         support_boxes.append((support, canvas.mark(support.callsign, start, 6)))
     bx, by = canvas.at_xy(*picture.bullseye)
     for r in (8, 16):
-        canvas.draw.ellipse((bx - r, by - r, bx + r, by + r), outline=_BLACK, width=2)
-    canvas.draw.line((bx - 22, by, bx + 22, by), fill=_BLACK, width=2)
-    canvas.draw.line((bx, by - 22, bx, by + 22), fill=_BLACK, width=2)
+        canvas.draw.ellipse((bx - r, by - r, bx + r, by + r), outline=BLACK, width=2)
+    canvas.draw.line((bx - 22, by, bx + 22, by), fill=BLACK, width=2)
+    canvas.draw.line((bx, by - 22, bx, by + 22), fill=BLACK, width=2)
     bullseye_box = canvas.mark("bullseye", (bx, by), 22)
     waypoint_boxes = []
     for (x, y), listed in numbers.items():
         wx, wy = canvas.at_xy(x, y)
         if (x, y) != picture.bullseye:  # the bullseye has its own symbol
-            canvas.draw.ellipse((wx - 5, wy - 5, wx + 5, wy + 5), fill=_BLACK, outline=(255, 255, 255, 255), width=2)
+            canvas.draw.ellipse((wx - 5, wy - 5, wx + 5, wy + 5), fill=BLACK, outline=(255, 255, 255, 255), width=2)
         waypoint_boxes.append(("/".join(listed), canvas.mark(f"waypoint {'/'.join(listed)}", (wx, wy), 6)))
     canvas.scale(20 * NM, "20 nm")
 
@@ -263,9 +150,9 @@ def render_tactical_map(
         canvas.label(box, carrier.name, canvas.small, (*blue, 255))
     for support, box in support_boxes:
         canvas.label(box, support.callsign, canvas.small, (*blue, 255))
-    canvas.label(bullseye_box, "Bullseye", canvas.small, _BLACK)
+    canvas.label(bullseye_box, "Bullseye", canvas.small, BLACK)
     for text, box in waypoint_boxes:
-        canvas.label(box, text, canvas.number, _BLACK)
+        canvas.label(box, text, canvas.number, BLACK)
     return canvas.save(out)
 
 
@@ -291,7 +178,7 @@ def render_objective_map(
     Returns:
         Where the map is, and where its zone and label went.
     """
-    canvas = _Canvas(campaign.theatre, [zone_position(campaign, zone)], zone.radius * _ZOOM_MARGIN, cache_dir, fetch)
+    canvas = MapCanvas(campaign.theatre, [zone_position(campaign, zone)], zone.radius * _ZOOM_MARGIN, cache_dir, fetch)
     box = _zone(canvas, campaign, state, zone, focus=True)
     kilometres = 1 if zone.radius < 2000 else 2
     canvas.scale(kilometres * 1000, f"{kilometres} km")

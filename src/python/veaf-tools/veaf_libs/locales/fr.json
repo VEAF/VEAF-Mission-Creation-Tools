@@ -1617,7 +1617,6 @@
   "campaign.mission_deck.role.carrier_tanker": "ravitailleur embarqué",
   "campaign.mission_deck.carrier": "{carrier} (tour) : {channels}",
   "campaign.mission_deck.airfield": "{airfield} : {uhf} / {vhf} MHz, TACAN {tacan}",
-  "campaign.mission_deck.guard": "Garde : {frequency} MHz",
   "campaign.mission_deck.coordinates_format": "Format : lat long, degrés minutes secondes, centre de chaque zone.",
   "campaign.mission_deck.positions_in_flight": "Les unités ennemies sont dispersées dans la zone : leurs positions exactes se relèvent en vol.",
   "campaign.mission_deck.zone_ours": "Tenu par nos forces.",

@@ -17,7 +17,6 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image
 from pptx import Presentation
 from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
@@ -38,14 +37,22 @@ from campaign_manager.briefing_deck import (
     _frame,
     _join,
     _run,
-    _titled_slide,
     _write_page,
     _zone_line,
     paginate,
 )
 from campaign_manager.briefing_prose import BriefingProse, MissionPage
 from campaign_manager.intelligence import enemy_picture
-from campaign_manager.mission_picture import NM, Carrier, MissionPicture, Waypoint
+from campaign_manager.mission_pages import (
+    ato_page,
+    clock,
+    frequencies_page,
+    line,
+    navigation_page,
+    picture_page,
+    weather_lines,
+)
+from campaign_manager.mission_picture import NM, MissionPicture
 from campaign_manager.models import CampaignDefinition, CampaignState, CampaignZone
 from campaign_manager.strategic_map import zone_position
 from campaign_manager.tactical_map import TACTICAL_MAP_FILE, render_objective_map, render_tactical_map, zoom_file
@@ -53,12 +60,6 @@ from campaign_manager.turn_manager import enemy_of
 
 #: The deck, in the mission's sub-folder (`missions/mission-NN/`).
 MISSION_DECK_FILE = "briefing-mission.pptx"
-
-#: The guard frequency every flight monitors, MHz.
-_GUARD = 243.0
-
-#: hPa per mmHg.
-_HPA = 1.33322
 
 
 @dataclass(frozen=True)
@@ -101,19 +102,6 @@ def objective_zones(campaign: CampaignDefinition, page: MissionPage | None) -> l
     return found
 
 
-def _line(name: str, text: str) -> str:
-    """``name: text``, punctuated as the language wants it."""
-    return t("campaign.mission_deck.line", name=name, text=text)
-
-
-def _clock(seconds: int) -> str:
-    return f"{seconds // 3600:02d}h{seconds % 3600 // 60:02d}"
-
-
-def _mhz(value: float | None) -> str:
-    return "?" if value is None else f"{value:.3f}".rstrip("0").rstrip(".") if value % 1 else f"{value:.1f}"
-
-
 def _zone_xy(campaign: CampaignDefinition, zone: CampaignZone) -> tuple[float, float]:
     return latlon_to_xy(campaign.theatre, *zone_position(campaign, zone))
 
@@ -140,44 +128,6 @@ def _status(campaign: CampaignDefinition, state: CampaignState, zone: CampaignZo
     if owner == "neutral":
         return t("campaign.mission_deck.zone_neutral")
     return enemy_picture(campaign, state, zone)
-
-
-def _weather_lines(picture: MissionPicture) -> tuple[str, ...]:
-    weather = picture.weather
-    sky = (
-        t("campaign.mission_deck.sky_clear")
-        if weather.cover == "clear"
-        else t(
-            "campaign.mission_deck.sky_clouds",
-            cover=t(f"campaign.mission_deck.cover.{weather.cover}"),
-            base=round(metres_to_feet(weather.cloud_base), -2),
-        )
-    )
-    visibility = (
-        t("campaign.mission_deck.visibility_10")
-        if weather.visibility >= 9000
-        else t("campaign.mission_deck.visibility_km", km=round(weather.visibility / 1000))
-    )
-    extras = [t("campaign.mission_deck.rain")] if weather.rain else []
-    extras += [t("campaign.mission_deck.fog")] if weather.fog else []
-    winds = weather.winds
-    return (
-        t(
-            "campaign.mission_deck.weather",
-            sky=sky,
-            visibility=visibility,
-            temperature=round(weather.temperature),
-            qnh=round(weather.qnh),
-            hpa=round(weather.qnh * _HPA),
-        ),
-        t(
-            "campaign.mission_deck.wind",
-            ground=f"{winds['ground'].origin:03d}° / {winds['ground'].knots} kt",
-            at2000=f"{winds['2000'].origin:03d}° / {winds['2000'].knots} kt",
-            at8000=f"{winds['8000'].origin:03d}° / {winds['8000'].knots} kt",
-        ),
-        *extras,
-    )
 
 
 def _qra_line(campaign: CampaignDefinition, picture: MissionPicture) -> str | None:
@@ -263,77 +213,15 @@ def _situation_page(
         threats.append(f"– {counter_attack}")
     if threats:
         blocks.append(Block(t("campaign.mission_deck.heading.threat"), tuple(threats)))
-    blocks.append(Block(t("campaign.mission_deck.heading.weather"), _weather_lines(picture)))
+    blocks.append(Block(t("campaign.mission_deck.heading.weather"), weather_lines(picture)))
     date = t("campaign.mission_deck.date", day=picture.date.day, month=picture.date.month, year=picture.date.year)
     blocks.append(
         Block(
             t("campaign.mission_deck.heading.time"),
-            (t("campaign.mission_deck.time", date=date, time=_clock(picture.start_time)),),
+            (t("campaign.mission_deck.time", date=date, time=clock(picture.start_time)),),
         )
     )
     return Page(t("campaign.mission_deck.title.situation"), blocks)
-
-
-def _ato_page(picture: MissionPicture) -> Page:
-    package = []
-    for flight in picture.flights:
-        package.append(
-            t(
-                "campaign.mission_deck.flight",
-                callsign=flight.callsign,
-                name=flight.name,
-                count=flight.count,
-                aircraft=flight.aircraft,
-            )
-        )
-        package.append(
-            t("campaign.mission_deck.flight_base", base=flight.base)
-            if flight.base
-            else t("campaign.mission_deck.flight_air_start")
-        )
-        package.append(
-            "  ".join(f"{n}. ______" for n in range(1, flight.count + 1))
-            + "    "
-            + t("campaign.mission_deck.free_loadout")
-        )
-    for airfield in picture.airfields:
-        package.append(t("campaign.mission_deck.dynamic_slots", airfield=airfield.name))
-        package.append("1. ______  2. ______  3. ______  4. ______    " + t("campaign.mission_deck.free_loadout"))
-    blocks = [Block(t("campaign.mission_deck.heading.package"), tuple(package))] if package else []
-    support = []
-    for aircraft in picture.support:
-        tacan = f", TACAN {aircraft.tacan}" if aircraft.tacan else ""
-        support.append(
-            t(
-                "campaign.mission_deck.support",
-                callsign=aircraft.callsign,
-                role=t(f"campaign.mission_deck.role.{aircraft.role}"),
-                aircraft=aircraft.aircraft,
-                frequency=_mhz(aircraft.frequency),
-                tacan=tacan,
-            )
-        )
-    if support:
-        blocks.append(Block(t("campaign.mission_deck.heading.support"), tuple(support)))
-    control = [_carrier_line(carrier) for carrier in picture.carriers]
-    control += [
-        t("campaign.mission_deck.airfield", airfield=a.name, uhf=_mhz(a.uhf), vhf=_mhz(a.vhf), tacan=a.tacan or "—")
-        for a in picture.airfields
-    ]
-    if control:
-        blocks.append(Block(t("campaign.mission_deck.heading.control"), tuple(control)))
-    return Page(t("campaign.mission_deck.title.ato"), blocks)
-
-
-def _carrier_line(carrier: Carrier) -> str:
-    parts = [f"{_mhz(carrier.tower)} MHz"]
-    if carrier.tacan:
-        parts.append(f"TACAN {carrier.tacan}")
-    if carrier.icls is not None:
-        parts.append(f"ICLS {carrier.icls}")
-    if carrier.link4 is not None:
-        parts.append(f"Link 4 {_mhz(carrier.link4)} MHz")
-    return t("campaign.mission_deck.carrier", carrier=carrier.name, channels=", ".join(parts))
 
 
 def _flow_page(
@@ -351,7 +239,7 @@ def _flow_page(
     blocks.append(Block(t("campaign.mission_deck.heading.air"), (qra or t("campaign.mission_deck.no_air"),)))
     enemy = enemy_of(campaign.player_side)
     defences = [
-        _line(zone.label, _after_colon(enemy_picture(campaign, state, zone)))
+        line(zone.label, _after_colon(enemy_picture(campaign, state, zone)))
         for zone in campaign.zones
         if state.zones[zone.name].owner == enemy and campaign.size_classes[zone.size].long_range_sam
     ]
@@ -373,50 +261,6 @@ def _flow_page(
     return Page(t("campaign.mission_deck.title.flow"), blocks)
 
 
-def _frequencies_page(picture: MissionPicture) -> Page:
-    uhf = [t("campaign.mission_deck.guard", frequency=_mhz(_GUARD))]
-    uhf += [
-        _line(s.callsign, f"{_mhz(s.frequency)} MHz" + (f" — TACAN {s.tacan}" if s.tacan else ""))
-        for s in picture.support
-    ]
-    uhf += [_line(a.name, f"{_mhz(a.uhf)} MHz" + (f" — TACAN {a.tacan}" if a.tacan else "")) for a in picture.airfields]
-    vhf = [_carrier_line(carrier) for carrier in picture.carriers]
-    vhf += [
-        _line(a.name, f"{_mhz(a.vhf)} MHz" + (f" (FM {_mhz(a.fm)} MHz)" if a.fm else "")) for a in picture.airfields
-    ]
-    blocks = [Block("UHF", tuple(uhf))]
-    if vhf:
-        blocks.append(Block("VHF", tuple(vhf)))
-    return Page(t("campaign.mission_deck.title.frequencies"), blocks)
-
-
-def _altitude(waypoint: Waypoint) -> str:
-    """``10 000 ft BARO``, ``500 ft AGL`` or ``ground``, to the ten feet, never broken across two lines."""
-    if waypoint.alt_type == "RADIO" and waypoint.alt == 0:
-        return t("campaign.mission_deck.altitude.ground")
-    feet = f"{round(metres_to_feet(waypoint.alt), -1):,.0f}".replace(",", "\u00a0")
-    return t(f"campaign.mission_deck.altitude.{'agl' if waypoint.alt_type == 'RADIO' else 'baro'}", feet=feet)
-
-
-def _navigation_page(campaign: CampaignDefinition, picture: MissionPicture) -> Page | None:
-    """The players' waypoints after their departure, one block per route: planes, then helicopters.
-
-    Numbered as the mission editor numbers them, the departure being 0; a category carrying several
-    routes names the types that fly each.
-    """
-    blocks = []
-    for plan in picture.flight_plans:
-        heading = t(f"campaign.mission_deck.heading.{plan.category}s")
-        if sum(1 for other in picture.flight_plans if other.category == plan.category) > 1:
-            heading = f"{heading} — {', '.join(plan.aircraft)}"
-        lines = tuple(
-            f"{index}. " + _line(wp.name, f"{to_dms(*xy_to_latlon(campaign.theatre, wp.x, wp.y))} — {_altitude(wp)}")
-            for index, wp in enumerate(plan.waypoints, 1)
-        )
-        blocks.append(Block(heading, lines))
-    return Page(t("campaign.mission_deck.title.navigation"), blocks) if blocks else None
-
-
 def _coordinates_page(campaign: CampaignDefinition, zones: list[CampaignZone]) -> Page:
     grid = grid_for_theatre(campaign.theatre)
     lines = [t("campaign.mission_deck.coordinates_format")]
@@ -425,24 +269,9 @@ def _coordinates_page(campaign: CampaignDefinition, zones: list[CampaignZone]) -
         height = grid.elevation_at(*_zone_xy(campaign, zone)) if grid else None
         # no grid on this workstation, swept or downloaded: nothing rather than "unknown"
         elevation = f" — {metres_to_feet(height):.0f} ft" if height is not None else ""
-        lines.append(_line(zone.label, f"{to_dms(lat, lon)}{elevation}"))
+        lines.append(line(zone.label, f"{to_dms(lat, lon)}{elevation}"))
     lines.append(t("campaign.mission_deck.positions_in_flight"))
     return Page(t("campaign.mission_deck.title.coordinates"), [Block(None, tuple(lines))])
-
-
-def _picture_page(deck: PresentationType, title: str, image: Path, notes: list[tuple[str, bool]]) -> None:
-    """A map on the left, its notes on the right; a note is ``(text, is_heading)``."""
-    slide = _titled_slide(deck, title)
-    with Image.open(image) as opened:
-        ratio = opened.width / opened.height
-    height = _HEIGHT - Emu(1250000)
-    width = min(int(height * ratio), Emu(8000000))
-    height = int(width / ratio)
-    slide.shapes.add_picture(str(image), _MARGIN, Emu(1050000), width=Emu(width), height=Emu(height))
-    frame = _frame(slide, _MARGIN + width + Emu(250000), Emu(1150000), _WIDTH - width - 3 * _MARGIN, Emu(5000000))
-    for index, (text, heading) in enumerate(notes):
-        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
-        _run(paragraph, text, 15 if heading else 13, bold=heading)
 
 
 def _write_cover(
@@ -469,7 +298,7 @@ def _write_cover(
     date = t("campaign.mission_deck.date", day=picture.date.day, month=picture.date.month, year=picture.date.year)
     _run(
         frame.add_paragraph(),
-        f"{date} — {t('campaign.mission_deck.local', time=_clock(picture.start_time))}",
+        f"{date} — {t('campaign.mission_deck.local', time=clock(picture.start_time))}",
         16,
         italic=True,
         colour=_GREY,
@@ -517,10 +346,10 @@ def mission_deck(
     ]
 
     situation = _situation_page(campaign, state, prose, page, picture, mission)
-    ato = _ato_page(picture)
+    ato = ato_page(picture)
     flow = _flow_page(campaign, state, page, picture)
-    frequencies = _frequencies_page(picture)
-    navigation = _navigation_page(campaign, picture)
+    frequencies = frequencies_page(picture)
+    navigation = navigation_page(campaign.theatre, picture)
     coordinates = _coordinates_page(campaign, zones)
     closing = [flow, frequencies, *([navigation] if navigation else []), coordinates]
     titles = [
@@ -550,7 +379,7 @@ def mission_deck(
         (t("campaign.mission_deck.legend.remember"), True),
         (t("campaign.mission_deck.positions_in_flight"), False),
     ]
-    _picture_page(deck, numbered[2], tactical.path, legend)
+    picture_page(deck, numbered[2], tactical.path, legend)
     for title, zone, zoom in zip(numbered[3 : 3 + len(zones)], zones, zooms, strict=True):
         notes = [
             (zone.label, True),
@@ -561,7 +390,7 @@ def mission_deck(
         if task:
             notes += [(t("campaign.mission_deck.heading.task"), True), (task.title, False)]
             notes += [(text, False) for text in task.text]
-        _picture_page(deck, title, zoom.path, notes)
+        picture_page(deck, title, zoom.path, notes)
     for part in [part for closing_page in closing for part in paginate(closing_page)]:
         _write_page(deck, part)
     out = folder / MISSION_DECK_FILE

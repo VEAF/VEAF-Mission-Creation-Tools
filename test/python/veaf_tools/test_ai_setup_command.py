@@ -84,3 +84,21 @@ def test_ai_setup_refuses_to_declare_a_python_interpreter(app: Any, monkeypatch:
 
     assert result.exit_code != 0
     assert called == []
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (["mcp"], True),
+        (["--lang", "fr", "mcp"], True),
+        (["--lang=fr", "mcp"], True),
+        (["about"], False),
+        (["mission", "build"], False),
+        ([], False),
+    ],
+)
+def test_is_mcp_invocation(args: list[str], expected: bool) -> None:
+    """`veaf-tools mcp` prints no banner: its stdout is the JSON-RPC stream (FEAT-AI-ZERO-SETUP)."""
+    from veaf_tools.app import is_mcp_invocation
+
+    assert is_mcp_invocation(args) is expected

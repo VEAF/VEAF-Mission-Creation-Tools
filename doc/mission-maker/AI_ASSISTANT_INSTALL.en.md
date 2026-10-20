@@ -9,7 +9,7 @@ What you can ask it is listed in [AI_ASSISTANT_CATALOG.md](AI_ASSISTANT_CATALOG.
 ## For an AI assistant: installing everything {#for-an-ai-assistant}
 
 This section is also read by the AI itself: tell it "install the VEAF tools following https://veaf.github.io/documentation/latest/en/mission-maker/AI_ASSISTANT_INSTALL/" and it does what follows.
-That takes an AI that can run commands on your PC, such as Claude Code or Gemini CLI.
+That takes an AI that can run commands on your PC, such as Claude Code, Gemini CLI or OpenCode.
 **Claude Desktop in chat mode cannot**: then type these commands yourself, in PowerShell (Start menu → "PowerShell"):
 
 ```powershell
@@ -22,7 +22,7 @@ Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/d
 
 1. The `%USERPROFILE%\VEAF\tools` folder receives the tools: it is their permanent place, apart from your missions.
 2. `veaf-tools-updater.exe` downloads the latest version and installs `veaf-tools.exe` next to it.
-3. `veaf-tools.exe ai-setup` connects the server to every AI assistant installed on the PC — Claude Desktop, Claude Code, Gemini CLI — and says for each what it did.
+3. `veaf-tools.exe ai-setup` connects the server to every AI assistant installed on the PC — Claude Desktop, Claude Code, Gemini CLI, OpenCode — and says for each what it did.
 
 Then **quit the AI assistant completely and start it again**: it reads its servers only at start-up.
 
@@ -62,7 +62,7 @@ If you move the tools folder, run `.\veaf-tools.exe ai-setup` again from its new
 
 ## Another MCP-capable AI {#other-mcp-client}
 
-`ai-setup` knows Claude Desktop, Claude Code and Gemini CLI.
+`ai-setup` knows Claude Desktop, Claude Code, Gemini CLI and OpenCode.
 The VEAF server is a standard program: any other AI that can start a **local MCP server** can use it, once declared by hand.
 All of them ask for the same two facts: the **command** (the full path of `veaf-tools.exe`) and its **arguments** (`mcp`).
 Most read them from a JSON file of this shape:

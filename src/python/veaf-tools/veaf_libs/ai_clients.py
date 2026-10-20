@@ -48,15 +48,23 @@ def server_entry(exe: Path) -> dict[str, Any]:
     return {"command": str(exe), "args": ["mcp"]}
 
 
-def merge_server_into_json(config_path: Path, exe: Path) -> None:
+def merge_server_into_json(
+    config_path: Path,
+    exe: Path,
+    *,
+    servers_key: str = "mcpServers",
+    entry: dict[str, Any] | None = None,
+) -> None:
     """Declare the server in a client's JSON settings file, keeping everything else in it.
 
     Args:
         config_path: The settings file; created if missing.
         exe: The `veaf-tools` executable that runs the server.
+        servers_key: The key the client keeps its servers under.
+        entry: The declaration in the client's own shape; :func:`server_entry` by default.
 
     Raises:
-        ValueError: The file is not a JSON object, or its `mcpServers` is not one. It is left as it is.
+        ValueError: The file is not a JSON object, or its servers key is not one. It is left as it is.
     """
     # utf-8-sig: Notepad, which the manual install had users edit this file with, may write a BOM.
     text = config_path.read_text(encoding="utf-8-sig") if config_path.exists() else ""
@@ -66,29 +74,30 @@ def merge_server_into_json(config_path: Path, exe: Path) -> None:
         raise ValueError(f"{config_path} is not valid JSON: {e}") from e
     if not isinstance(data, dict):
         raise ValueError(f"{config_path} does not hold a JSON object")
-    servers = data.setdefault("mcpServers", {})
+    servers = data.setdefault(servers_key, {})
     if not isinstance(servers, dict):
-        raise ValueError(f"{config_path}: 'mcpServers' is not a JSON object")
-    servers[SERVER_KEY] = server_entry(exe)
+        raise ValueError(f"{config_path}: '{servers_key}' is not a JSON object")
+    servers[SERVER_KEY] = entry if entry is not None else server_entry(exe)
     config_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = config_path.with_name(f"{config_path.name}.veaf-tmp")
     tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     atomic_replace(tmp, config_path)
 
 
-def _merge_result(client: str, config_path: Path, exe: Path) -> ClientResult:
+def _merge_result(client: str, config_path: Path, exe: Path, **shape: Any) -> ClientResult:
     """Merge the server into `config_path` and say how it went.
 
     Args:
         client: The client's name, for the result.
         config_path: Its settings file.
         exe: The `veaf-tools` executable that runs the server.
+        **shape: `servers_key` and `entry` for a client whose file differs from Claude's.
 
     Returns:
         `configured` with the file written, or `failed` with the reason; the file is then untouched.
     """
     try:
-        merge_server_into_json(config_path, exe)
+        merge_server_into_json(config_path, exe, **shape)
     except (OSError, ValueError) as e:
         return ClientResult(client, "failed", str(e))
     return ClientResult(client, "configured", str(config_path))
@@ -128,6 +137,32 @@ def setup_gemini(exe: Path, *, home: Path) -> ClientResult:
     if not folder.is_dir():
         return ClientResult("Gemini CLI", "not_found")
     return _merge_result("Gemini CLI", folder / "settings.json", exe)
+
+
+def setup_opencode(exe: Path, *, home: Path) -> ClientResult:
+    """Declare the server in OpenCode's global config, `~/.config/opencode/opencode.json`.
+
+    OpenCode keeps its servers under `mcp`, each `{"type": "local", "command": [...]}` with the
+    command and its arguments in one list (opencode.ai/docs/mcp-servers, read 2026-10-20). It is
+    taken as installed when either its config or its data folder exists: a first run creates the
+    data folder, not always the config one. A user who keeps a commented `opencode.jsonc` gets a
+    `failed` rather than a rewrite that would drop the comments.
+
+    Args:
+        exe: The `veaf-tools` executable that runs the server.
+        home: The user's home folder.
+
+    Returns:
+        The outcome; `not_found` when neither OpenCode folder exists.
+    """
+    folder = home / ".config" / "opencode"
+    if not folder.is_dir() and not (home / ".local" / "share" / "opencode").is_dir():
+        return ClientResult("OpenCode", "not_found")
+    config = folder / "opencode.json"
+    if not config.exists() and (folder / "opencode.jsonc").exists():
+        config = folder / "opencode.jsonc"
+    entry = {"type": "local", "command": [str(exe), "mcp"], "enabled": True}
+    return _merge_result("OpenCode", config, exe, servers_key="mcp", entry=entry)
 
 
 def find_claude_cli(path_env: str | None = None) -> str | None:
@@ -214,4 +249,5 @@ def setup_all(exe: Path, *, home: Path, appdata: Path) -> list[ClientResult]:
         setup_claude_desktop(exe, appdata=appdata),
         setup_claude_code(exe, home=home),
         setup_gemini(exe, home=home),
+        setup_opencode(exe, home=home),
     ]

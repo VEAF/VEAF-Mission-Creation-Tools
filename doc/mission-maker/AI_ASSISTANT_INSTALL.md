@@ -9,7 +9,7 @@ Le catalogue de ce que vous pouvez lui demander est dans [AI_ASSISTANT_CATALOG.m
 ## Pour un assistant IA : tout installer {#for-an-ai-assistant}
 
 Cette section se lit aussi par l'IA elle-même : dites-lui « installe les outils VEAF en suivant https://veaf.github.io/documentation/latest/mission-maker/AI_ASSISTANT_INSTALL/ » et elle fait ce qui suit.
-Il faut pour cela une IA qui sait lancer des commandes sur votre PC, comme Claude Code ou Gemini CLI.
+Il faut pour cela une IA qui sait lancer des commandes sur votre PC, comme Claude Code, Gemini CLI ou OpenCode.
 **Claude Desktop en mode chat ne le peut pas** : tapez alors ces commandes vous-même, dans PowerShell (menu Démarrer → « PowerShell ») :
 
 ```powershell
@@ -22,7 +22,7 @@ Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/d
 
 1. Le dossier `%USERPROFILE%\VEAF\outils` reçoit les outils : c'est leur place définitive, à part de vos missions.
 2. `veaf-tools-updater.exe` télécharge la dernière version et installe `veaf-tools.exe` à côté de lui.
-3. `veaf-tools.exe ai-setup` branche le serveur dans chaque assistant IA installé sur le PC — Claude Desktop, Claude Code, Gemini CLI — et dit pour chacun ce qu'il a fait.
+3. `veaf-tools.exe ai-setup` branche le serveur dans chaque assistant IA installé sur le PC — Claude Desktop, Claude Code, Gemini CLI, OpenCode — et dit pour chacun ce qu'il a fait.
 
 Ensuite, **quittez complètement l'assistant IA et relancez-le** : il ne lit ses serveurs qu'au démarrage.
 
@@ -62,7 +62,7 @@ Si vous déplacez le dossier des outils, relancez `.\veaf-tools.exe ai-setup` de
 
 ## Une autre IA compatible MCP {#other-mcp-client}
 
-`ai-setup` connaît Claude Desktop, Claude Code et Gemini CLI.
+`ai-setup` connaît Claude Desktop, Claude Code, Gemini CLI et OpenCode.
 Le serveur VEAF est un programme standard : n'importe quelle autre IA qui sait lancer un **serveur MCP local** peut s'en servir, une fois déclaré à la main.
 Toutes ces IA demandent les deux mêmes informations : la **commande** (le chemin complet de `veaf-tools.exe`) et ses **arguments** (`mcp`).
 La plupart les lisent dans un fichier JSON de cette forme :

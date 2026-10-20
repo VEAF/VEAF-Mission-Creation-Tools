@@ -41,7 +41,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Mission Editor tips page**: editor trigger actions VMCT does not wrap and that are worth knowing — a failure on demand, a group only the game master commands, a model animation, the briefing changed mid-mission — with what is read in the editor and what is measured.
 
 - **Install the tools, connect the AI, ask for a mission** (FEAT-AI-ZERO-SETUP).
-  `veaf-tools ai-setup` declares the MCP server in every AI assistant found on the PC — Claude Desktop, Claude Code, Gemini CLI — merging into their settings; the updater suggests it after a first install, and the wizard lists it.
+  `veaf-tools ai-setup` declares the MCP server in every AI assistant found on the PC — Claude Desktop, Claude Code, Gemini CLI, OpenCode — merging into their settings; the updater suggests it after a first install, and the wizard lists it.
   The two mission prompts, objective mission and Open Training, ship in the executable with the authoring guide: the new action `describe_mission_prompt` serves them, and the guide sends a user who asks for a mission there, so "create a mission" is enough — nothing to paste from the repository any more.
   The server updates itself: at start-up, at most once every 4 hours and only when `check_updates` is on, it starts the updater in its own folder when a newer release is out.
   The install page and the repository README open with the commands that install everything, for a person or for the assistant itself.

@@ -990,7 +990,7 @@ out, and the command says so plainly when it does. See
 
 ### `veaf-tools ai-setup` {#ai-setup}
 
-Connects the AI assistants installed on this PC to the VEAF tools: **Claude Desktop**, **Claude Code** and **Gemini CLI**.
+Connects the AI assistants installed on this PC to the VEAF tools: **Claude Desktop**, **Claude Code**, **Gemini CLI** and **OpenCode**.
 The command declares the executable that runs it as the `veaf-mission-editor` MCP server in each one's configuration, without touching their other settings, and says for each whether it is connected, absent or failed.
 It can be run again safely, for instance after moving the tools folder.
 

@@ -14,6 +14,7 @@ from veaf_libs.ai_clients import (
     setup_claude_code,
     setup_claude_desktop,
     setup_gemini,
+    setup_opencode,
 )
 
 EXE = Path(r"C:\VEAF\outils\veaf-tools.exe")
@@ -205,3 +206,47 @@ def test_claude_code_cli_that_cannot_start_falls_back_too(tmp_path: Path) -> Non
         raise OSError("not a valid Win32 application")
 
     assert setup_claude_code(EXE, home=tmp_path, which=lambda: "claude", run=run).status == "configured"
+
+
+OPENCODE_ENTRY = {"type": "local", "command": [str(EXE), "mcp"], "enabled": True}
+
+
+def test_opencode_is_configured_in_its_global_config(tmp_path: Path) -> None:
+    """OpenCode's own shape: servers under `mcp`, the command as a list (opencode.ai/docs/mcp-servers)."""
+    folder = tmp_path / ".config" / "opencode"
+    folder.mkdir(parents=True)
+    (folder / "opencode.json").write_text(json.dumps({"$schema": "https://opencode.ai/config.json"}), encoding="utf-8")
+
+    result = setup_opencode(EXE, home=tmp_path)
+
+    assert result.status == "configured"
+    assert _read(folder / "opencode.json") == {
+        "$schema": "https://opencode.ai/config.json",
+        "mcp": {SERVER_KEY: OPENCODE_ENTRY},
+    }
+
+
+def test_opencode_run_once_but_never_configured_gets_a_config(tmp_path: Path) -> None:
+    """A first run creates its data folder, not always its config folder."""
+    (tmp_path / ".local" / "share" / "opencode").mkdir(parents=True)
+
+    result = setup_opencode(EXE, home=tmp_path)
+
+    assert result.status == "configured"
+    assert _read(tmp_path / ".config" / "opencode" / "opencode.json") == {"mcp": {SERVER_KEY: OPENCODE_ENTRY}}
+
+
+def test_opencode_with_a_commented_jsonc_config_is_left_alone(tmp_path: Path) -> None:
+    folder = tmp_path / ".config" / "opencode"
+    folder.mkdir(parents=True)
+    (folder / "opencode.jsonc").write_text('{\n  // mine\n  "theme": "x"\n}\n', encoding="utf-8")
+
+    result = setup_opencode(EXE, home=tmp_path)
+
+    assert result.status == "failed"
+    assert (folder / "opencode.jsonc").read_text(encoding="utf-8") == '{\n  // mine\n  "theme": "x"\n}\n'
+    assert not (folder / "opencode.json").exists()
+
+
+def test_opencode_absent_is_not_found(tmp_path: Path) -> None:
+    assert setup_opencode(EXE, home=tmp_path).status == "not_found"

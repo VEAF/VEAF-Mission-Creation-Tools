@@ -6,6 +6,15 @@ The VEAF tools hold everything the assistant needs: the MCP server that acts on 
 Nothing to fetch elsewhere, neither on GitHub nor in the documentation: once the tools are installed and the assistant connected, just ask it to "create a mission".
 What you can ask it is listed in [AI_ASSISTANT_CATALOG.md](AI_ASSISTANT_CATALOG.en.md).
 
+> **In five steps**
+>
+> 1. Choose an AI in the table [Which AI to choose?](#which-ai), OpenCode for instance.
+> 2. Install it on your PC, and open an account with it if it asks for one.
+> 3. Start it and tell it: "install the VEAF AI tools: https://veaf.github.io/documentation/latest/en/mission-maker/AI_ASSISTANT_INSTALL/".
+>    With Claude Desktop in chat mode, which runs no command, type [the five commands](#for-an-ai-assistant) in PowerShell yourself instead.
+> 4. When it tells you to, quit it completely and start it again: it reads its tools only at start-up.
+> 5. Tell it: "create a DCS mission".
+
 ## Which AI to choose? {#which-ai}
 
 It takes an application that can start an MCP server **on your PC**: chats in the browser (ChatGPT web, Le Chat, the Gemini app) cannot.
@@ -13,7 +22,7 @@ Free offers change often; this table dates from October 2026, and no vendor publ
 
 | Application | Free | What it does with VMCT |
 |---|---|---|
-| **Claude Desktop** (chat mode) | free plan, limited quota; Anthropic does not say whether that plan takes a local server (to be checked) | the simplest to start with: it builds and edits the mission with the VEAF actions, but runs no program on your PC (neither the install nor the scripts that draw the briefing maps and document) |
+| **Claude Desktop** (chat mode) | free plan, limited quota; Anthropic does not say whether that plan takes a local server (to be checked) | the simplest to start with: it builds the mission and its briefing with the VEAF actions, but runs no program on your PC — neither the install nor an Open Training's maps and README |
 | **ChatGPT Desktop, Codex tab** | included in the free plan, limited quota | everything, install included; a developer-oriented interface |
 | **OpenCode** | free models offered for a limited time | everything, install included; used in a terminal |
 | **Antigravity** (Google) | free, weekly quotas | everything, install included; it is a code editor |
@@ -60,7 +69,7 @@ For a new mission, "create a mission" is enough: the assistant asks which of the
   The assistant asks only four or five questions: the map, the era, the template, a mission to take after if any, the escorts.
 
 It also asks where to create the mission folder, if it has none yet.
-The briefing maps and document are produced by scripts: an AI without access to your PC, such as Claude Desktop in chat mode, builds the whole mission but tells you what it could not produce.
+An objective mission's briefing — document, maps, DCS briefing pictures — is produced by the tools themselves, even with Claude Desktop in chat mode; an Open Training's maps and README, and the PDF, still take an AI that runs programs, and one that cannot tells you what it could not produce.
 To change an existing mission, give it the path of its folder and describe what you want:
 
 > "In my mission `Documents\VEAF\Missions\Syria`, add a long-range SAM combat zone north of Damascus."

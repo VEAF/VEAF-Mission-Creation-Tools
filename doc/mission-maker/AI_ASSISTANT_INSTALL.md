@@ -6,6 +6,15 @@ Les outils VEAF contiennent tout ce dont l'assistant a besoin : le serveur MCP q
 Rien à chercher ailleurs, ni sur GitHub ni dans la documentation : une fois les outils installés et l'assistant branché, demandez-lui simplement « crée une mission ».
 Le catalogue de ce que vous pouvez lui demander est dans [AI_ASSISTANT_CATALOG.md](AI_ASSISTANT_CATALOG.md).
 
+> **En cinq étapes**
+>
+> 1. Choisissez une IA dans le tableau [Quelle IA choisir ?](#which-ai), par exemple OpenCode.
+> 2. Installez-la sur votre PC, et ouvrez-y un compte si elle en demande un.
+> 3. Lancez-la et dites-lui : « installe les outils IA VEAF : https://veaf.github.io/documentation/latest/mission-maker/AI_ASSISTANT_INSTALL/ ».
+>    Avec Claude Desktop en mode chat, qui ne lance pas de commande, tapez plutôt vous-même [les cinq commandes](#for-an-ai-assistant) dans PowerShell.
+> 4. Quand elle vous le demande, quittez-la complètement et relancez-la : elle ne lit ses outils qu'au démarrage.
+> 5. Dites-lui : « crée une mission DCS ».
+
 ## Quelle IA choisir ? {#which-ai}
 
 Il faut une application qui sait lancer un serveur MCP **sur votre PC** : les chats dans le navigateur (ChatGPT web, Le Chat, l'appli Gemini) ne le peuvent pas.
@@ -13,7 +22,7 @@ Les offres gratuites changent souvent ; ce tableau date d'octobre 2026, et aucun
 
 | Application | Gratuit | Ce qu'elle fait avec VMCT |
 |---|---|---|
-| **Claude Desktop** (mode chat) | plan gratuit, quota limité ; Anthropic ne dit pas si ce plan accepte un serveur local (à vérifier) | la plus simple pour commencer : elle construit et modifie la mission avec les actions VEAF, mais ne lance aucun programme sur votre PC (ni l'installation, ni les scripts qui dessinent les cartes et le document de briefing) |
+| **Claude Desktop** (mode chat) | plan gratuit, quota limité ; Anthropic ne dit pas si ce plan accepte un serveur local (à vérifier) | la plus simple pour commencer : elle construit la mission et son briefing avec les actions VEAF, mais ne lance aucun programme sur votre PC — ni l'installation, ni les cartes et le README d'une Open Training |
 | **ChatGPT Desktop, onglet Codex** | inclus dans le plan gratuit, quota limité | tout, installation comprise ; interface orientée développeurs |
 | **OpenCode** | modèles gratuits proposés pour une durée limitée | tout, installation comprise ; s'utilise dans un terminal |
 | **Antigravity** (Google) | gratuit, quotas hebdomadaires | tout, installation comprise ; c'est un éditeur de code |
@@ -60,7 +69,7 @@ Pour une nouvelle mission, « crée une mission » suffit : l'assistant vous dem
   L'assistant ne pose que quatre ou cinq questions : la carte, l'époque, le gabarit, une éventuelle mission dont s'inspirer, les escortes.
 
 Il vous demande aussi où créer le dossier de la mission, s'il n'en a pas déjà un.
-Les cartes et le document de briefing sont produits par des scripts : une IA sans accès à votre PC, comme Claude Desktop en mode chat, construit la mission complète mais vous dit ce qu'elle n'a pas pu produire.
+Le briefing d'une mission à objectifs — document, cartes, images du briefing DCS — est produit par les outils eux-mêmes, même avec Claude Desktop en mode chat ; les cartes et le README d'une Open Training, et le PDF, demandent encore une IA qui lance des programmes, et une IA qui ne le peut pas vous dit ce qu'elle n'a pas pu produire.
 Pour modifier une mission existante, donnez-lui le chemin de son dossier et décrivez ce que vous voulez :
 
 > « Dans ma mission `Documents\VEAF\Missions\Syrie`, ajoute une combat zone de SAM longue portée au nord de Damas. »

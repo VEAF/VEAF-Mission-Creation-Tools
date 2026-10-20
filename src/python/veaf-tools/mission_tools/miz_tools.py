@@ -42,15 +42,20 @@ def normalize_warehouses_airports(warehouses_content: dict[str, Any] | None) -> 
     what gets written: a dict keyed ``1..N`` and the list it came from serialise **identically**
     under the build's settings (``always_provide_keyname=True``), both as ``[n] = {...}``.
 
+    The ships' and FARPs' table, ``warehouses.warehouses``, is keyed by **unit id** and has the same
+    accident: a mission whose only FARP is unit 1 reads it as a list, and the build reported
+    "0 ships/FARPs" and left the FARP without a slot (FIX-OPENCODE-TEST-FINDINGS 05).
+
     Args:
         warehouses_content: A parsed ``warehouses`` table, mutated in place. ``None`` — a mission
             carrying no such member, which is legal — is left alone rather than treated as an error.
     """
     if not isinstance(warehouses_content, dict):
         return
-    airports = warehouses_content.get("airports")
-    if isinstance(airports, list):
-        warehouses_content["airports"] = dict(enumerate(airports, start=1))
+    for table in ("airports", "warehouses"):
+        entries = warehouses_content.get(table)
+        if isinstance(entries, list):
+            warehouses_content[table] = dict(enumerate(entries, start=1))
 
 
 @dataclass
@@ -71,7 +76,8 @@ class DcsMission:
     """Class representing a DCS mission.
 
     **Contract on `warehouses_content`**: whatever produced it, its ``airports`` table is a dict
-    keyed by airdrome id — never the list the Lua parser hands back for contiguous ``1..N`` keys.
+    keyed by airdrome id, and its ``warehouses`` table (ships, FARPs) a dict keyed by unit id —
+    never the list the Lua parser hands back for contiguous ``1..N`` keys.
     :func:`read_miz` and :func:`read_mission_folder` guarantee it by calling
     :func:`normalize_warehouses_airports`, so downstream code may index it by id without checking.
 

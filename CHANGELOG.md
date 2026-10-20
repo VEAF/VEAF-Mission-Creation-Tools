@@ -45,6 +45,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The two mission prompts, objective mission and Open Training, ship in the executable with the authoring guide: the new action `describe_mission_prompt` serves them, and the guide sends a user who asks for a mission there, so "create a mission" is enough — nothing to paste from the repository any more.
   The server updates itself: at start-up, at most once every 4 hours and only when `check_updates` is on, it starts the updater in its own folder when a newer release is out.
   The install page and the repository README open with the commands that install everything, for a person or for the assistant itself.
+  Every new mission, however small, now starts with the guide's "right after `scaffold_mission`" checklist: the presets plan, `versions.yaml`, the example waypoints, the slot catalogue's era, and `SKYNET` for a mission with air defence — a test mission on 6.30.0 kept all five until the user asked about each.
 - **Four entries added to the known limitations**: a hole left in a numbered table of `src/mission/mission` breaks the build; a second `convert-v5 --force` replaces `mission.yaml` with a minimal one; a slot for a disabled or missing module shows but cannot be taken; the briefing maps and documents of the mission prompts are scripts, which an assistant without a shell (Claude Desktop in chat mode) cannot run.
 ### Fixed
 

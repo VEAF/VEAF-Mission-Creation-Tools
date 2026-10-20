@@ -308,3 +308,17 @@ def test_the_action_takes_one_id_or_a_list_of_ids_without_a_oneof_schema() -> No
     assert {e["id"] for e in both} == {first, second}
     spec = next(s for s in catalog.list_catalog() if s.name == "describe_known_limitations")
     assert "oneOf" not in json.dumps(spec.parameters_schema)
+
+
+def test_the_guide_has_every_new_mission_adapt_the_scaffold_first() -> None:
+    """A 6.30.0 test mission kept the scaffold's presets, date, waypoints, warbirds and SKYNET: false.
+
+    The checklist was in the guide, deep under a section written for an Open Training; it now comes
+    right after the routing and names each file, Skynet included (FEAT-AI-ZERO-SETUP).
+    """
+    guide = describe_authoring_guide()["guide"]
+    section = guide.index("## Right after `scaffold_mission` — every new mission")
+    assert section < guide.index("## Always ground yourself in the oracle")
+    checklist = guide[section : guide.index("## Always ground yourself in the oracle")]
+    for item in ("presets.yaml", "versions.yaml", "waypoints.yaml", "dynamic-slot-templates.yaml", "SKYNET"):
+        assert item in checklist, item

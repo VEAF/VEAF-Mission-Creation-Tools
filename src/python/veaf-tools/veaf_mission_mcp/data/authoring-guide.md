@@ -7,8 +7,9 @@ ask the user for mechanical details you can decide correctly yourself.
 
 ## A user who asks for a new mission
 
-"Create a mission" is enough: the user does not have to name a prompt. Ask which of the two kinds they want,
-then load its prompt with `describe_mission_prompt` and follow it from its first section:
+"Create a mission" is enough: the user does not have to name a prompt. Every new mission, however small, starts
+with this question — which kind do they want? — then load its prompt with `describe_mission_prompt` and follow it
+from its first section:
 
 - `objective` — a mission a group plays once, in one session: a package, one or more objectives, a threat,
   a way home, and its briefing;
@@ -17,8 +18,30 @@ then load its prompt with `describe_mission_prompt` and follow it from its first
 
 Pass `lang: fr` to a user who writes in French. Some steps of the prompts are scripts (briefing maps and
 pictures, the briefing document): without a shell, read `describe_known_limitations` entry
-`mission-prompt-scripts-need-a-shell` and say what you could not produce. A request that fits neither (editing an existing mission,
-one combat zone) needs no prompt: this guide is enough.
+`mission-prompt-scripts-need-a-shell` and say what you could not produce. A user who wants no more than what they described (a test mission with one SAM zone) gets no prompt, but still
+the next section. Only a change to an existing mission skips both.
+
+## Right after `scaffold_mission` — every new mission
+
+The scaffold is a generic skeleton, not a mission for this request. Left as it is, it ships a channel plan, a
+date, example waypoints and aircraft that have nothing to do with what the user asked: a test mission built on
+6.30.0 (2026-10-19) kept every one of them until the user asked about each in turn. Before placing anything:
+
+1. `src/presets.yaml` — a channel plan for modern two-radio aircraft on the Caucasus (Batumi, carriers…), which
+   the build projects onto every aircraft type. Rewrite it for the theatre and the aircraft flown, or reduce it
+   to flight channels; the build reports the types whose radios cannot take a channel.
+2. `src/versions.yaml` — one variant, `noon`, and `base_date: "2024-03-15"`. Name the variant and set its time
+   for the mission, make `base_date` agree with `mission.era` and the mission date, and set `position` to where
+   the mission flies (it is commented out).
+3. `src/waypoints.yaml` — example points that point at nothing, injected into every slot. Replace them with the
+   mission's route, or empty the file.
+4. `src/dynamic-slot-templates.yaml` — the shipped catalogue covers every era, WW2 warbirds included, for both
+   coalitions. Keep only the aircraft of the mission's era and the coalitions that get dynamic slots.
+5. `mission.yaml` `modules` — the `standard` template ships `SKYNET: false`. A mission with a SAM or an EWR zone
+   needs it on: without it there is no integrated air defence at all, the EWR feeds no battery, and each SAM is
+   left to the plain DCS AI (`describe_module SKYNET`; then `describe_known_limitations`, area `air-defence`).
+
+Tell the user in one line what you changed.
 
 ## Always ground yourself in the oracle — never from memory
 
@@ -265,11 +288,7 @@ resolved point so the user can sanity-check it (DCS terrain approximates the rea
 Learned rebuilding the Open Training Germany Cold War from an empty folder. Each item is a thing
 that was wrong at least once.
 
-**Adapt what the scaffold ships — it is not written for your theatre.** The default
-`src/presets.yaml` carries a Caucasus channel plan (Batumi, carriers…), `src/versions.yaml` a Syria
-position and timezone, `src/waypoints.yaml` example points that point at nothing and are injected into
-every slot. Rewrite the three for the mission's theatre; keep in `dynamic-slot-templates.yaml` only
-the coalitions that actually get dynamic slots.
+**Adapt what the scaffold ships** — done right after `scaffold_mission` (see that section above).
 
 **Identity.**
 - `mission.name` ending in `_ICAO_<code>`: an airfield **of the theatre** whose METAR station is

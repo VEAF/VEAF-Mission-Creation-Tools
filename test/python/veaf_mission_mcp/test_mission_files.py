@@ -138,3 +138,35 @@ def test_lines_are_counted_on_line_feeds_only(folder: Path) -> None:
     result = read_mission_file(folder, "src/versions.yaml", start_line=2, line_count=1)
 
     assert (result["content"], result["total_lines"]) == ("b: 2\n", 2)
+
+
+def _crlf(folder: Path) -> Path:
+    path = folder / "mission.yaml"
+    path.write_bytes(MISSION_YAML.replace("\n", "\r\n").encode("utf-8"))
+    return path
+
+
+def test_read_returns_line_feeds_from_a_crlf_file(folder: Path) -> None:
+    """What the AI copies back is what it read: `\r\n` in, a `\n` passage out (FIX-OPENCODE-TEST-FINDINGS 02)."""
+    _crlf(folder)
+
+    result = read_mission_file(folder, "mission.yaml")
+
+    assert (result["content"], result["total_lines"]) == (MISSION_YAML, 5)
+
+
+def test_edit_matches_a_multi_line_passage_in_a_crlf_file_and_keeps_crlf(folder: Path) -> None:
+    """Sent with `\n`, the passage was "not found" and the AI rewrote presets.yaml with PowerShell."""
+    path = _crlf(folder)
+
+    edit_mission_file(folder, "mission.yaml", search="  era: MODERN\nmodules:\n", replace="  era: COLDWAR\nmodules:\n")
+
+    assert path.read_bytes() == MISSION_YAML.replace("MODERN", "COLDWAR").replace("\n", "\r\n").encode("utf-8")
+
+
+def test_edit_matches_a_crlf_passage_in_an_lf_file_and_keeps_lf(folder: Path) -> None:
+    edit_mission_file(
+        folder, "mission.yaml", search="  era: MODERN\r\nmodules:\r\n", replace="  era: WW2\r\nmodules:\r\n"
+    )
+
+    assert (folder / "mission.yaml").read_bytes() == MISSION_YAML.replace("MODERN", "WW2").encode("utf-8")

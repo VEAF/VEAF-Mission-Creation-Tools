@@ -1497,7 +1497,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "lines. For an assistant with no direct file access (Claude Desktop in chat mode): the way to "
                 "see mission.name, the presets plan, versions.yaml, the example waypoints before changing "
                 "them with edit_mission_file. Read on from last_line + 1 while it is below total_lines. "
-                "Read-only."
+                "Line ends come back as \\n whatever the file uses. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -1529,6 +1529,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "one exact passage (read it first with read_mission_file and copy it, indentation included; "
                 "add surrounding lines until it is unique). For what no dedicated action covers, e.g. "
                 "mission.name or mission.era in mission.yaml, versions.yaml, waypoints.yaml, the presets plan. "
+                "Line ends are compared normalised (\\n or \\r\\n both match) and the file keeps its own. "
                 "Refused when the passage is missing or repeated, or when the result is no longer YAML: "
                 "nothing is written then. Backed up first. Prefer a dedicated action when one exists "
                 "(set_mission_module, set_mission_setting, set_forced_options…)."

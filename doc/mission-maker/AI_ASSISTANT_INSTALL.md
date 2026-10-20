@@ -30,7 +30,7 @@ Il faut pour cela une IA qui sait lancer des commandes sur votre PC, comme Codex
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\outils" | Out-Null
 Set-Location "$env:USERPROFILE\VEAF\outils"
-Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe
+Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe -UseBasicParsing
 .\veaf-tools-updater.exe
 .\veaf-tools.exe ai-setup
 ```
@@ -40,6 +40,7 @@ Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/d
 3. `veaf-tools.exe ai-setup` branche le serveur dans chaque assistant IA installé sur le PC — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode — et dit pour chacun ce qu'il a fait.
 
 Ensuite, **quittez complètement l'assistant IA et relancez-le** : il ne lit ses serveurs qu'au démarrage.
+Si vous tapez les commandes vous-même pour Claude Desktop, quittez-le **avant** `ai-setup` : il garde ses réglages dans le même fichier, et pourrait réécrire sa propre copie par-dessus.
 
 > **Sécurité Windows** : si Windows bloque un `.exe` téléchargé, clic droit → **Propriétés** → cochez **Débloquer** → **OK**.
 

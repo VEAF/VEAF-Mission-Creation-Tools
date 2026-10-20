@@ -19,7 +19,7 @@ To install the tools and connect the assistant, run in PowerShell — or let Cod
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\tools" | Out-Null
 Set-Location "$env:USERPROFILE\VEAF\tools"
-Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe
+Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe -UseBasicParsing
 .\veaf-tools-updater.exe
 .\veaf-tools.exe ai-setup
 ```
@@ -153,7 +153,7 @@ Pour installer les outils et brancher l'assistant, lancez dans PowerShell — ou
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\outils" | Out-Null
 Set-Location "$env:USERPROFILE\VEAF\outils"
-Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe
+Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe -UseBasicParsing
 .\veaf-tools-updater.exe
 .\veaf-tools.exe ai-setup
 ```

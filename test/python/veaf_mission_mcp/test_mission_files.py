@@ -129,3 +129,12 @@ def test_a_symbolic_link_out_of_the_folder_is_refused(folder: Path, tmp_path_fac
     with pytest.raises(ValueError, match="mission.yaml"):
         edit_mission_file(folder, "src/link.yaml", search="secret: 1", replace="secret: 2")
     assert outside.read_text(encoding="utf-8") == "secret: 1\n"
+
+
+def test_lines_are_counted_on_line_feeds_only(folder: Path) -> None:
+    """`str.splitlines` also splits on U+2028 and form feeds: the slices would drift from the file."""
+    (folder / "src" / "versions.yaml").write_text("a: 1  # x\u2028y\nb: 2\n", encoding="utf-8", newline="\n")
+
+    result = read_mission_file(folder, "src/versions.yaml", start_line=2, line_count=1)
+
+    assert (result["content"], result["total_lines"]) == ("b: 2\n", 2)

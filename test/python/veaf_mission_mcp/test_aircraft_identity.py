@@ -246,3 +246,14 @@ def test_a_tenth_aircraft_continues_on_the_next_flight() -> None:
     names = [u["callsign"]["name"] for u in group["units"]]
     assert names[8:] == ["Enfield19", "Enfield21"]
     assert len(set(names)) == 10
+
+
+def test_a_bare_family_word_whose_flights_are_all_held_says_so() -> None:
+    placed = [
+        ("USA", "AWACS", _placed({1: 2, 2: flight, 3: 1, "name": f"Magic{flight}1"}, f"{flight:03d}"))
+        for flight in range(1, 10)
+    ]
+    group = dict(_flight(1), name="Magic")
+    note = assign_identities(_content_with(*placed), group, country_id=2, task="AWACS")
+    assert group["units"][0]["callsign"]["name"] != "Magic11"
+    assert note is not None and "Magic" in note

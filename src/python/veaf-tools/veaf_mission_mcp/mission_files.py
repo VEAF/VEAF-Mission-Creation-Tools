@@ -80,7 +80,11 @@ def read_mission_file(
     if start_line < 1 or line_count < 1:
         raise ValueError("start_line and line_count must be 1 or more")
     path = _resolve(folder, file)
-    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    # Line feeds only: `splitlines` also breaks on form feeds and U+2028, and the slices would drift
+    # from the lines an editor shows.
+    with path.open(encoding="utf-8", newline="") as handle:
+        lines = handle.read().split("\n")
+    lines = [line + "\n" for line in lines[:-1]] + ([lines[-1]] if lines[-1] else [])
     chunk = lines[start_line - 1 : start_line - 1 + line_count]
     return {
         "file": file,

@@ -65,6 +65,9 @@ _MAX_DIGIT = 9
 #: A group name that reads as a callsign: a word, then a flight digit (``Texaco 2``, ``Magic1``).
 _NAME_CALLSIGN = re.compile(r"^([A-Za-z]+)[ _-]*([1-9])")
 
+#: A group name that is a family word with no flight digit (``Magic``, ``Magic AWACS``).
+_BARE_FAMILY_WORD = re.compile(r"([A-Za-z]+)(?:$|[ _-]+\D)")
+
 #: First numeric callsign handed out when the mission has none yet.
 _FIRST_NUMERIC_CALLSIGN = 101
 
@@ -141,9 +144,13 @@ def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country
         family_index, flight = _free_family_and_flight(families, taken)
     word = families[family_index - 1]
     if asked is None:
-        spoken = _NAME_CALLSIGN.match(str(group.get("name", "")))
+        name = str(group.get("name", ""))
+        spoken = _NAME_CALLSIGN.match(name) or _BARE_FAMILY_WORD.match(name.strip())
+        if spoken is not None and spoken.group(1).lower() in (family.lower() for family in families):
+            # Only a bare family word of this very task gets here: all nine of its flights are held.
+            note = f"group {name!r}: every flight of {spoken.group(1)!r} is already held; given {word}{flight}1"
         # Only a word that is some task's family reads as a callsign asked for: "MiG29" or "SA-6" do not.
-        if spoken is not None and spoken.group(1).lower() in _ALL_FAMILY_WORDS:
+        elif spoken is not None and spoken.group(1).lower() in _ALL_FAMILY_WORDS:
             note = (
                 f"group {group.get('name')!r}: {spoken.group(1)!r} is not a callsign family of task {task!r} "
                 f"({', '.join(families)}); given {word}{flight}1"
@@ -261,7 +268,7 @@ def _family_word_in_name(name: str, families: tuple[str, ...], taken: dict[str, 
         ``(family index, first free flight)`` when the name's first word is one of ``families`` and a
         flight of it is free, else ``None``.
     """
-    match = re.match(r"([A-Za-z]+)(?:$|[ _-]+\D)", name.strip())
+    match = _BARE_FAMILY_WORD.match(name.strip())
     lowered = [word.lower() for word in families]
     if match is None or match.group(1).lower() not in lowered:
         return None

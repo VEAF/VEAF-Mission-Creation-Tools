@@ -30,7 +30,7 @@ That takes an AI that can run commands on your PC, such as Codex, OpenCode, Anti
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\tools" | Out-Null
 Set-Location "$env:USERPROFILE\VEAF\tools"
-Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe
+Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/download/published-latest/veaf-tools-updater.exe -OutFile veaf-tools-updater.exe -UseBasicParsing
 .\veaf-tools-updater.exe
 .\veaf-tools.exe ai-setup
 ```
@@ -40,6 +40,7 @@ Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/d
 3. `veaf-tools.exe ai-setup` connects the server to every AI assistant installed on the PC — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode — and says for each what it did.
 
 Then **quit the AI assistant completely and start it again**: it reads its servers only at start-up.
+If you type the commands yourself for Claude Desktop, quit it **before** `ai-setup`: it keeps its settings in the same file, and could write its own copy back over it.
 
 > **Windows security**: if Windows blocks a downloaded `.exe`, right-click → **Properties** → tick **Unblock** → **OK**.
 

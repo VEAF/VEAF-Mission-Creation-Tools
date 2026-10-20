@@ -170,3 +170,30 @@ def test_edit_matches_a_crlf_passage_in_an_lf_file_and_keeps_lf(folder: Path) ->
     )
 
     assert (folder / "mission.yaml").read_bytes() == MISSION_YAML.replace("MODERN", "WW2").encode("utf-8")
+
+
+def test_with_no_mission_folder_read_serves_the_shipped_scaffold() -> None:
+    """Before scaffold_mission, the AI read the shipped templates out of published/ by hand (FIX-OPENCODE-TEST-FINDINGS 03)."""
+    from veaf_libs.shipped_defaults import resolve_defaults_source
+
+    result = read_mission_file(None, "src/dynamic-slot-templates.yaml", line_count=5)
+
+    shipped = resolve_defaults_source(Path("nowhere"))
+    assert shipped is not None
+    expected = (shipped / "src" / "dynamic-slot-templates.yaml").read_text(encoding="utf-8").split("\n")[:5]
+    assert result["content"] == "\n".join(expected) + "\n"
+    assert result["shipped"] is True
+
+
+def test_the_action_reads_the_shipped_scaffold_without_mission_path() -> None:
+    from veaf_mission_mcp.server import CATALOG
+
+    result = CATALOG.run_action("read_mission_file", {"file": "mission.yaml", "line_count": 3})
+    assert result["shipped"] is True and result["first_line"] == 1
+
+
+def test_edit_still_needs_a_mission_folder() -> None:
+    from veaf_mission_mcp.server import CATALOG
+
+    with pytest.raises(ValueError, match="mission_path"):
+        CATALOG.run_action("edit_mission_file", {"file": "mission.yaml", "search": "a", "replace": "b"})

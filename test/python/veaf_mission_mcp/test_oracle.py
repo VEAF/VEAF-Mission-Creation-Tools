@@ -333,3 +333,25 @@ def test_a_mission_prompt_names_no_skill_that_does_not_ship(kind: str, lang: str
     prompt = describe_mission_prompt(kind, lang)["prompt"]
     assert "veaf-mission-editor:" not in prompt
     assert "describe_authoring_guide" in prompt
+
+
+class TestListCountries:
+    """FIX-OPENCODE-TEST-FINDINGS 03: the AI read dcs-countries.yaml out of the exe's unpacked files."""
+
+    def test_finds_a_country_by_name_or_short_code(self) -> None:
+        from veaf_mission_mcp.oracle import list_countries
+
+        turkey = list_countries(name_contains="turk")["countries"]
+        assert [(c["id"], c["name"]) for c in turkey] == [(3, "Turkey")]
+        assert any(c["name"] == "USA" for c in list_countries(name_contains="usa")["countries"])
+
+    def test_lists_them_all_in_id_order(self) -> None:
+        from veaf_mission_mcp.oracle import list_countries
+
+        ids = [c["id"] for c in list_countries()["countries"]]
+        assert ids == sorted(ids) and len(ids) > 80
+
+    def test_the_action_is_in_the_catalogue(self) -> None:
+        from veaf_mission_mcp.server import CATALOG
+
+        assert CATALOG.run_action("list_countries", {"name_contains": "syria"})["countries"][0]["name"] == "Syria"

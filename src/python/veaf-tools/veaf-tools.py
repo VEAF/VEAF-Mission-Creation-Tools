@@ -26,13 +26,14 @@ from veaf_libs.i18n import set_language_from_argv
 set_language_from_argv()
 
 from veaf_libs.staged_update import take_staged_update  # noqa: E402
-from veaf_tools.app import is_mcp_invocation, main  # noqa: E402  — must follow the language setup above
+from veaf_tools import app as cli  # noqa: E402
+from veaf_tools.app import main  # noqa: E402  — must follow the language setup above
 
 if __name__ == "__main__":
     # A staged update lands at a server's start, when no other process runs from this file
     # (FIX-OPENCODE-TEST-FINDINGS 01). Once swapped, this process imports nothing more: it only waits
     # for the new executable and exits with its code.
-    if getattr(sys, "frozen", False) and is_mcp_invocation(sys.argv[1:]):
+    if getattr(sys, "frozen", False) and cli.is_mcp_invocation(sys.argv[1:]):
         exit_code = take_staged_update(
             Path(sys.executable).resolve(), sys.argv[1:], own_pids={os.getpid(), os.getppid()}
         )

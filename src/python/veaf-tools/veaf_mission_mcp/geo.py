@@ -11,7 +11,7 @@ from typing import Any
 
 from veaf_libs import coordinates, geocoding
 
-from veaf_mission_mcp.map_tools import _load_mission
+from veaf_mission_mcp.map_tools import theatre_of
 
 #: OpenStreetMap ``place`` types that hold many places: given for a query naming one place in them, the
 #: answer is the area's centre, not the place (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05).
@@ -49,9 +49,10 @@ def _within(bounds: geocoding.Bounds, lat: float, lon: float) -> bool:
 
 
 def geocode(
-    mission_path: Path,
+    mission_path: Path | None,
     query: str,
     *,
+    theatre: str | None = None,
     bearing: float | None = None,
     distance_km: float | None = None,
     api_key: str | None = None,
@@ -59,8 +60,10 @@ def geocode(
     """Resolve ``query`` to coordinates for the mission's theatre.
 
     Args:
-        mission_path: A `.miz` or mission folder (its theatre drives the projection + bounds).
+        mission_path: A `.miz` or mission folder (its theatre drives the projection + bounds); None
+            before there is one.
         query: A real-world place name ("Batumi", "Kobuleti airport").
+        theatre: The theatre, when there is no mission (FIX-OPENCODE-TEST-FINDINGS 03).
         bearing: Optional bearing in degrees (clockwise from north) for a relative offset.
         distance_km: Optional distance in kilometres, applied along ``bearing``.
         api_key: Optional Google Maps key (else OSM Nominatim).
@@ -74,12 +77,9 @@ def geocode(
         place inside it (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 05).
 
     Raises:
-        ValueError: when the mission has no theatre.
+        ValueError: when there is neither a mission nor a theatre, or the mission has no theatre.
     """
-    mission = _load_mission(mission_path)
-    theatre = mission.theatre_content
-    if not theatre:
-        raise ValueError(f"Mission has no theatre, cannot geocode: {mission_path}")
+    theatre = theatre_of(mission_path, theatre)
     if (bearing is None) != (distance_km is None):
         raise ValueError("bearing and distance_km must be given together (or neither).")
 

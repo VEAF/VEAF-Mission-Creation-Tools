@@ -61,6 +61,7 @@ from veaf_mission_mcp.oracle import (
     describe_mission_prompt,
     describe_module,
     describe_naming_conventions,
+    list_countries,
     list_payloads,
     list_shortcuts,
     list_unit_types,
@@ -774,6 +775,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "category": {
                         "type": "string",
                         "enum": ["vehicle", "plane", "helicopter", "ship", "static"],
+                        "description": (
+                            "'static' places one object of ANY type list_unit_types gives -- a parked "
+                            "aircraft (e.g. 'Su-24M') included; the action sets its static category."
+                        ),
                     },
                     "name": {"type": "string", "description": "The group's name."},
                     "position": {
@@ -1497,12 +1502,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "lines. For an assistant with no direct file access (Claude Desktop in chat mode): the way to "
                 "see mission.name, the presets plan, versions.yaml, the example waypoints before changing "
                 "them with edit_mission_file. Read on from last_line + 1 while it is below total_lines. "
-                "Line ends come back as \\n whatever the file uses. Read-only."
+                "Line ends come back as \\n whatever the file uses. Without mission_path, reads the "
+                "scaffold shipped with the tools -- what scaffold_mission will lay down: the dynamic-slot "
+                "templates (types, frequencies), the presets plan, mission.yaml with each module's "
+                "commented example -- so a plan can be checked before any folder exists. Read-only."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "mission_path": {"type": "string", "description": "The mission folder."},
+                    "mission_path": {
+                        "type": "string",
+                        "description": "The mission folder; omit it to read the shipped scaffold.",
+                    },
                     "file": _mission_file_param,
                     "start_line": {"type": "integer", "minimum": 1, "description": "First line, 1-based."},
                     "line_count": {
@@ -1511,11 +1522,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": f"Lines to return, {DEFAULT_LINE_COUNT} by default.",
                     },
                 },
-                "required": ["mission_path", "file"],
+                "required": ["file"],
             },
         ),
         handler=lambda p: read_mission_file(
-            Path(p["mission_path"]),
+            Path(p["mission_path"]) if p.get("mission_path") else None,
             p["file"],
             start_line=p.get("start_line", 1),
             line_count=p.get("line_count", DEFAULT_LINE_COUNT),
@@ -2214,7 +2225,47 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "country_id": {"type": "integer"},
                     "country_name": {"type": "string"},
                     "category": {"type": "string", "default": "vehicle"},
-                    "combat_zone": {"type": "object", "description": "Optional extra combat_zones[] keys."},
+                    "combat_zone": {
+                        "type": "object",
+                        "description": "Optional extra combat_zones[] keys, the ones the build reads.",
+                        # The AI grepped veaf-scripts.lua for `chained_zones` (FIX-OPENCODE-TEST-FINDINGS 03):
+                        # the keys of `lua_config_generator`, described as doc/…/veafCombatZone.md does.
+                        "properties": {
+                            "friendly_name": {"type": "string", "description": "Label in the F10 menu."},
+                            "briefing": {"type": "string", "description": "Text shown to the players."},
+                            "active_at_start": {"type": "boolean", "description": "Activate at mission start."},
+                            "training": {"type": "boolean", "description": "Training: no security, verbose."},
+                            "completable": {"type": "boolean", "description": "false: never completes."},
+                            "chained_zones": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Zones activated when this one completes (one at random).",
+                            },
+                            "chained_delay": {"type": "integer", "description": "Seconds before they activate."},
+                            "includes": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Zones whose groups this one activates with it.",
+                            },
+                            "scenery_targets": {
+                                "type": "array",
+                                "items": {"type": "integer"},
+                                "description": "Map object ids that must also be destroyed.",
+                            },
+                            "enemy_coalition": {"type": "string", "enum": ["RED", "BLUE"]},
+                            "radio_menu_coalition": {"type": "string", "enum": ["RED", "BLUE", "ALL"]},
+                            "radio_group_name": {"type": "string", "description": "Shared F10 submenu."},
+                            "radio_menu_prefix": {"type": "string", "description": "Prefix before the label."},
+                            "radio_menu_disabled": {"type": "boolean"},
+                            "user_activation_disabled": {"type": "boolean"},
+                            "rename_units_sequentially": {"type": "boolean"},
+                            "show_units_list": {"type": "boolean"},
+                            "show_zone_position_info": {"type": "boolean"},
+                            "smoke_and_flare": {"type": "boolean"},
+                            "default_spawn_radius": {"type": "integer", "description": "Metres, this zone only."},
+                            "default_spawn_radius_statics": {"type": "integer", "description": "Same, statics."},
+                        },
+                    },
                 },
                 "required": [
                     "folder_path",
@@ -2503,11 +2554,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="list_airfields",
             description=(
-                "List a theatre's airbases -- name, DCS airdrome id, lat/lon, and DCS x/y when the "
-                "theatre's projection is known -- from the data shipped with the tools. Read-only. "
+                "List a theatre's airbases -- name, DCS airdrome id and DCS x/y (lat/lon when the "
+                "theatre has no projection), plus each base's coalition when a mission is given -- from "
+                "the data shipped with the tools. Read-only. "
                 "Use it to choose bases for set_airbase_coalition and to place things near a base, "
                 "instead of guessing names or reading data files. Pass the mission, or a theatre name "
-                "before there is one."
+                "before there is one. details: true adds lat/lon, the parking stands (planes, "
+                "helicopters) and the ATC frequencies and TACAN DCS gives each base -- narrow it with "
+                "name_contains."
             ),
             parameters_schema={
                 "type": "object",
@@ -2517,12 +2571,22 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "A .miz or mission folder whose theatre to list (wins over theatre).",
                     },
                     "theatre": {"type": "string", "description": "A DCS theatre name, e.g. 'GermanyCW'."},
+                    "name_contains": {
+                        "type": "string",
+                        "description": "Keep only the bases whose name holds this text (any case).",
+                    },
+                    "details": {
+                        "type": "boolean",
+                        "description": "Add lat/lon, parking stands and ATC frequencies (default false).",
+                    },
                 },
             },
         ),
         handler=lambda p: list_airfields(
             mission_path=Path(p["mission_path"]) if p.get("mission_path") else None,
             theatre=p.get("theatre"),
+            name_contains=p.get("name_contains"),
+            details=bool(p.get("details", False)),
         ),
     )
     catalog.register(
@@ -2593,7 +2657,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="resolve_coordinates",
             description=(
                 "Convert a position between DCS local x/y and geographic lat/lon for the mission's "
-                "theatre (read from the mission, so no projection parameters needed). Pass a "
+                "theatre (read from the mission, so no projection parameters needed), or for a theatre "
+                "named before there is a mission. Pass a "
                 "position as {x, y} or {lat, lon}; returns both representations. To convert several "
                 "points in one call, pass 'positions' (a list) instead: returns {theatre, points}."
             ),
@@ -2603,6 +2668,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "mission_path": {
                         "type": "string",
                         "description": "Path to the mission's .miz or folder (its theatre drives the projection).",
+                    },
+                    "theatre": {
+                        "type": "string",
+                        "description": "The theatre, e.g. 'Syria', when there is no mission yet.",
                     },
                     "position": {
                         "type": "object",
@@ -2622,7 +2691,6 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "Pass this OR 'position'.",
                     },
                 },
-                "required": ["mission_path"],
             },
         ),
         handler=_handle_resolve_coordinates,
@@ -2632,7 +2700,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             name="geocode",
             description=(
                 "Resolve a real-world place name (optionally offset by a bearing + distance) to DCS "
-                "coordinates for the mission's theatre — DCS maps are the real world projected. "
+                "coordinates for the mission's theatre, or for a theatre named before there is a mission "
+                "— DCS maps are the real world projected. "
                 "Returns lat/lon + x/y; results are approximate (confirm visually). Read-only. "
                 "Uses OSM Nominatim by default (or Google if a key is configured). Nominatim takes one "
                 "request a second (paced for you; a refusal comes back as found=false saying so), and "
@@ -2647,6 +2716,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "string",
                         "description": "Path to the mission's .miz or folder (its theatre drives the projection).",
                     },
+                    "theatre": {
+                        "type": "string",
+                        "description": "The theatre, e.g. 'Syria', when there is no mission yet.",
+                    },
                     "query": {"type": "string", "description": "Real place name, e.g. 'Batumi', 'Kobuleti airport'."},
                     "bearing": {
                         "type": "number",
@@ -2657,12 +2730,13 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "description": "Optional distance (km) along `bearing`, e.g. '10 km north of X'.",
                     },
                 },
-                "required": ["mission_path", "query"],
+                "required": ["query"],
             },
         ),
         handler=lambda p: geocode(
-            Path(p["mission_path"]),
+            Path(p["mission_path"]) if p.get("mission_path") else None,
             p["query"],
+            theatre=p.get("theatre"),
             bearing=p.get("bearing"),
             distance_km=p.get("distance_km"),
         ),
@@ -2686,6 +2760,24 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: list_unit_types(category=p.get("category"), name_contains=p.get("name_contains")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="list_countries",
+            description=(
+                "List the DCS countries -- the numeric country_id and the country_name add_group, "
+                "add_air_group, add_farp and the create_* composites take -- from the data shipped with "
+                "the tools, no mission needed. Read-only. Filter with name_contains (name, Mission "
+                "Editor name or short code, e.g. 'turk', 'USA')."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "name_contains": {"type": "string", "description": "Case-insensitive text to match."},
+                },
+            },
+        ),
+        handler=lambda p: list_countries(name_contains=p.get("name_contains")),
     )
     catalog.register(
         ActionSpec(
@@ -3261,9 +3353,10 @@ def _handle_resolve_coordinates(p: dict[str, Any]) -> dict[str, Any]:
     """
     if ("position" in p) == ("positions" in p):
         raise ValueError("resolve_coordinates takes 'position' or 'positions', exactly one of them")
+    mission = Path(p["mission_path"]) if p.get("mission_path") else None
     if "positions" in p:
-        return resolve_coordinates_batch(Path(p["mission_path"]), p["positions"])
-    return resolve_coordinates(Path(p["mission_path"]), p["position"])
+        return resolve_coordinates_batch(mission, p["positions"], theatre=p.get("theatre"))
+    return resolve_coordinates(mission, p["position"], theatre=p.get("theatre"))
 
 
 def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:

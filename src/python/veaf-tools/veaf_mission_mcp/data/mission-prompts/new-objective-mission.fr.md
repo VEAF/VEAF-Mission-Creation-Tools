@@ -34,10 +34,9 @@ Le travail a **deux phases**, et la frontière entre les deux est stricte :
    avancer, et tu le notes dans un bloc **« Retours pour VMCT »** de ton rapport final (quoi, où,
    comment tu l'as vu, ce que tu as fait à la place). C'est ainsi qu'on améliore les outils.
 4. Réponds en français, concis. Pose tes questions **une par une**, avec des choix et ta reco.
-5. **Lire sans dossier de mission.** En phase 1 le dossier est vide, et `geocode` comme
-   `resolve_coordinates` exigent un `mission_path` (ils ne prennent pas de théâtre). Pointe-les, en
-   lecture seule, sur une mission existante du même théâtre (une Open Training, par exemple) ; ne
-   crée rien pour ça.
+5. **Lire sans dossier de mission.** En phase 1 le dossier est vide, et chaque lecture dont tu as besoin prend un `theatre` à la place d'un `mission_path` : `list_airfields`, `geocode`, `resolve_coordinates`, `terrain_elevation`.
+   `list_countries` donne les identifiants de pays DCS, et `read_mission_file` sans `mission_path` lit le gabarit que `scaffold_mission` posera (le plan de presets, les templates de slots dynamiques).
+   Ne lis jamais les fichiers de données des outils : ce qu'aucune action ne te dit, tu dis que tu n'as pas pu le vérifier.
 
 ## 1. Les questions de départ (et seulement celles-là)
 
@@ -60,8 +59,7 @@ alors, et tu le dis.
 Tout le reste — lieu, objectifs, menace, heure, météo, soutien — c'est **toi** qui le proposes, dans
 le scénario.
 
-**L'ATO nomme ses vols avec les indicatifs standard VEAF.** Leur fréquence est dans le catalogue des
-outils (`presets_injector/freq_alias.py`, et `presets.yaml` du gabarit) ; leur appareil n'y est pas.
+**L'ATO nomme ses vols avec les indicatifs standard VEAF.** Leur fréquence est dans le plan de presets du gabarit (`read_mission_file` sur `src/presets.yaml`, sans `mission_path`) ; leur appareil n'y est pas.
 Ceux qu'on connaît :
 
 | Indicatif | Appareil |
@@ -90,10 +88,8 @@ pas.
   est une **estimation** : dis-la comme telle.
 - **Faisable avec les outils** : tout ce que le scénario promet doit pouvoir se construire (section
   4). Ce qui dépend d'un réglage que tu n'as pas vérifié se dit « à vérifier », pas « prévu ».
-- **Des bases qui accueillent le public.** Compte les places de parking de chaque base de départ
-  dans `veaf_libs/data/parking/<théâtre>.json` (champ `t` de chaque place : de mémoire de l'API DCS
-  `Airbase.getParking`, 68 abri durci, 72 avion, 104 plein air, 40 hélicoptère, 16 piste — à
-  confirmer) et compare-les au nombre de pilotes. Une base trop petite refuse les slots dynamiques en
+- **Des bases qui accueillent le public.** `list_airfields` avec `details: true` (et `name_contains` pour une base) donne les places de parking de chaque base, `parking.planes` et `parking.helicopters`.
+  Compare-les au nombre de pilotes. Une base trop petite refuse les slots dynamiques en
   silence côté joueur (« Can't create dynamic group, no suitable parking was found » dans le journal
   serveur) : mesuré sur Syria, At Tanf n'a que **2 hélisurfaces** et H4 environ 13 places avions.
   Prévois une FARP (`add_farp`) pour les hélicoptères ou une seconde base pour les jets.
@@ -107,7 +103,7 @@ pas.
 - **Lisible en un coup d'œil** : un pitch qui se raconte en deux phrases.
 
 Les actions de lecture (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`,
-`list_unit_types`, `resolve_coordinates`, `terrain_elevation`, `describe_known_limitations`) sont
+`list_unit_types`, `list_countries`, `resolve_coordinates`, `terrain_elevation`, `read_mission_file`, `describe_known_limitations`) sont
 permises en phase 1.
 **Aucune action qui écrit** : ni `scaffold_mission`, ni fichier, ni dossier.
 

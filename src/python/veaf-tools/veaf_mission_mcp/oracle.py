@@ -70,6 +70,32 @@ def list_unit_types(
     return {"units": units}
 
 
+def list_countries(name_contains: str | None = None) -> dict[str, Any]:
+    """List the DCS countries a group can belong to, with the id `add_group` and its siblings take.
+
+    The AI read `dcs-countries.yaml` out of the exe's unpacked files for Turkey, Syria, Russia and
+    the USA (FIX-OPENCODE-TEST-FINDINGS 03).
+
+    Args:
+        name_contains: Optional case-insensitive text matched against the name, the Mission Editor's
+            name and the short code.
+
+    Returns:
+        `{"countries": [{"id", "name", "short"?}, ...]}`, in id order.
+    """
+    needle = name_contains.lower() if name_contains else None
+    countries: list[dict[str, Any]] = []
+    for entry in _load_bundled_data_yaml("dcs-countries.yaml").get("countries") or []:
+        spellings = " ".join(str(entry.get(key) or "") for key in ("name", "international", "short")).lower()
+        if needle is not None and needle not in spellings:
+            continue
+        country: dict[str, Any] = {"id": int(entry["id"]), "name": entry["name"]}
+        if entry.get("short"):
+            country["short"] = entry["short"]
+        countries.append(country)
+    return {"countries": sorted(countries, key=lambda c: c["id"])}
+
+
 def list_payloads(unit_type: str | None = None) -> dict[str, Any]:
     """List DCS's default loadouts for an aircraft type, by the names the Mission Editor offers.
 

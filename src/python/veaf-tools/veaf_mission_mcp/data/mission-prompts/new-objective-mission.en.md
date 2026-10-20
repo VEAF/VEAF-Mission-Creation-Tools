@@ -36,9 +36,9 @@ The work has **two phases**, and the line between them is strict:
 4. Answer in English, concisely, but write the mission and its briefing in French — the VEAF servers'
    language — unless told otherwise. Ask your questions **one at a time**, with options and your
    recommendation.
-5. **Reading without a mission folder.** In phase 1 the folder is empty, and `geocode` as well as
-   `resolve_coordinates` require a `mission_path` (they take no theatre). Point them, read-only, at an
-   existing mission on the same theatre (an Open Training, for example); create nothing for it.
+5. **Reading without a mission folder.** In phase 1 the folder is empty, and every read you need takes a `theatre` instead of a `mission_path`: `list_airfields`, `geocode`, `resolve_coordinates`, `terrain_elevation`.
+   `list_countries` gives the DCS country ids, and `read_mission_file` without a `mission_path` reads the scaffold `scaffold_mission` will lay down (the presets plan, the dynamic-slot templates).
+   Never read the tools' own data files: what no action answers, you say you could not check.
 
 ## 1. The opening questions (and only those)
 
@@ -60,9 +60,8 @@ say so.
 Everything else — place, objectives, threat, time, weather, support — **you** propose, in the
 scenario.
 
-**The ATO names its flights with the VEAF standard callsigns.** Their frequency is in the tools'
-catalogue (`presets_injector/freq_alias.py`, and the template's `presets.yaml`); their aircraft is
-not. The known ones:
+**The ATO names its flights with the VEAF standard callsigns.** Their frequency is in the template's presets plan (`read_mission_file` on `src/presets.yaml`, no `mission_path` needed); their aircraft is not.
+The known ones:
 
 | Callsign | Aircraft |
 |---|---|
@@ -90,10 +89,8 @@ guess it.
   **estimate**: say so.
 - **Buildable with the tools**: everything the scenario promises must be buildable (section 4).
   Whatever depends on a setting you have not checked is "to be checked", not "planned".
-- **Bases that can take the audience.** Count each departure base's parking spots in
-  `veaf_libs/data/parking/<theatre>.json` (each spot's `t` field: from memory of the DCS
-  `Airbase.getParking` API, 68 hardened shelter, 72 airplane, 104 open air, 40 helicopter, 16 runway —
-  to be confirmed) and compare them with the number of pilots. A base too small refuses dynamic slots
+- **Bases that can take the audience.** `list_airfields` with `details: true` (and `name_contains` for one base) gives each base's parking stands, `parking.planes` and `parking.helicopters`.
+  Compare them with the number of pilots. A base too small refuses dynamic slots
   silently on the player's side ("Can't create dynamic group, no suitable parking was found" in the
   server log): measured on Syria, At Tanf has only **2 helipads** and H4 about 13 airplane spots.
   Plan a FARP (`add_farp`) for the helicopters or a second base for the jets.
@@ -107,7 +104,7 @@ guess it.
 - **Readable at a glance**: a pitch that tells in two sentences.
 
 Read-only actions (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`, `list_unit_types`,
-`resolve_coordinates`, `terrain_elevation`, `describe_known_limitations`) are allowed in phase 1.
+`list_countries`, `resolve_coordinates`, `terrain_elevation`, `read_mission_file`, `describe_known_limitations`) are allowed in phase 1.
 **No action that writes**: no `scaffold_mission`, no file, no folder.
 
 ### 2.2 The scenario sheet

@@ -211,7 +211,7 @@ toute la largeur et devient illisible.
    dégagement).
 7. **Plan de vol** — un waypoint par ligne avec son rôle : `W1 : Hold`, `W2 : Insertion TBA`, …,
    `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`.
-8. **Plan de fréquences** — UHF puis VHF : `<nom> Ch. <n> : <fréquence> MHz`, Garde en tête.
+8. **Plan de fréquences** — UHF puis VHF : `<nom> Ch. <n> : <fréquence> MHz`, sans Garde (chaque appareil l'atteint par sa propre commande).
 9. **Coordonnées cibles** — le format annoncé en tête (« Lat Long secondes, précis »), puis une ligne
    par cible : `<nom> : N34°33'37.31" E38°18'48.77" <altitude> ft`.
 
@@ -391,7 +391,7 @@ validé un scénario, pas un à-peu-près.
   Stennis et le Roosevelt** (un `add_carrier_group` chacun, TACAN, ICLS, Link 4 et fréquences
   distincts) : décision de David du 02/10/2026, valable pour toute mission générée qui a un groupe
   aéronaval.
-- **`src/presets.yaml` = le plan de fréquences du briefing**, canal pour canal : Garde, bases, porte-
+- **`src/presets.yaml` = le plan de fréquences du briefing**, canal pour canal, sans Garde (le canal 1 est la fréquence de départ du vol) : bases, porte-
   avions, AWACS, ravitailleurs, fréquence de package. Les **canaux de base portent les fréquences que
   DCS donne à l'aérodrome** : `describe_airfield_channels` puis `set_airfield_channels`, jamais une
   fréquence d'aérodrome tapée à la main. Réécris **toutes** les listes `channel_lists` du gabarit :

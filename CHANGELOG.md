@@ -68,6 +68,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The presets report no longer suggests `none` for a frequency DCS ignores anyway** (FEAT-AI-ZERO-SETUP): under each informational entry (a warbird losing the UHF channels, an L-39 those above 390 MHz) `presets-validation-report.md` said to set the type to `none`, which removes all its presets, the working ones too; two assistants stripped 11 aircraft types that way. It now says there is nothing to do; the `none` hint stays for the frequencies DCS rejects at load.
 - **A flight named after a callsign family gets it, digit or not** (FEAT-AI-ZERO-SETUP): an AWACS named `Magic` became `Overlord11` without a word, since only `Magic 1` or `Magic1` read as a callsign; `Magic` and `Magic AWACS` now give the family's first free flight.
 - **The mission prompts no longer ask for a skill that does not ship** (FEAT-AI-ZERO-SETUP): they told the assistant to load `veaf-mission-editor:veaf-mission-authoring`, gone with the plugin; they now point at `describe_authoring_guide`.
+- **The shipped presets plan has no Guard channel any more** (FEAT-AI-ZERO-SETUP, David's decision): channel 1 was Guard, and the build gives a group the frequency of its first radio's channel 1, so every flight started on the distress frequency (243 MHz, 121.5 MHz for a VHF-first aircraft). Every aircraft reaches Guard with its own control; the channels move down one (Archer is channel 1, Batumi channel 1 of the second radio). Existing missions keep their own `presets.yaml`.
 
 ### Removed
 

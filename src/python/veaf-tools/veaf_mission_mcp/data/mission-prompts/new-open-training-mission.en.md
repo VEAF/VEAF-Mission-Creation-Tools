@@ -349,8 +349,8 @@ Rules:
 
 - **Complete presets**: the build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`); the mission is not ready until that list is empty.
-- **`src/presets.yaml` to rewrite for the map** (the template is not made for it): UHF = Guard,
-  bases, AWACS, flights, tankers; VHF = Guard + flights; FM 30-59; a red plan if red flies. **Base
+- **`src/presets.yaml` to rewrite for the map** (the template is not made for it): UHF = bases,
+  AWACS, flights, tankers; VHF = flights; no Guard (channel 1 is the flight's starting frequency); FM 30-59; a red plan if red flies. **Base
   channels carry the frequencies DCS gives the airfield**, even with ATC silenced: they are what the
   pilot reads on the F10 view, and an invented series misleads them. Never type an airfield frequency:
   `describe_airfield_channels` lists the mission's bases with their DCS frequencies, propose them to

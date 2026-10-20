@@ -207,7 +207,7 @@ and becomes unreadable.
    attack mode, refuelling on the way home, divert field).
 7. **Flight plan** — one waypoint per line with its role: `W1 : Hold`, `W2 : Insertion TBA`, …,
    `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`.
-8. **Frequency plan** — UHF then VHF: `<name> Ch. <n> : <frequency> MHz`, Guard first.
+8. **Frequency plan** — UHF then VHF: `<name> Ch. <n> : <frequency> MHz`, no Guard (every aircraft reaches it with its own control).
 9. **Target coordinates** — the format stated first ("Lat Long seconds, precise"), then one line per
    target: `<name> : N34°33'37.31" E38°18'48.77" <altitude> ft`.
 
@@ -386,7 +386,7 @@ approximation of it.
   rescue helicopter, warehouse), `CARRIER` module. **Always two carriers, the Stennis and the
   Roosevelt** (one `add_carrier_group` each, with distinct TACAN, ICLS, Link 4 and frequencies):
   David's decision of 2026-10-02, for every generated mission that has a carrier group.
-- **`src/presets.yaml` = the briefing's frequency plan**, channel by channel: Guard, bases, carrier,
+- **`src/presets.yaml` = the briefing's frequency plan**, channel by channel, no Guard (channel 1 is the flight's starting frequency): bases, carrier,
   AWACS, tankers, package frequency. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.
   Rewrite **all** the template's `channel_lists`: on another map, it keeps Caucasus airfields

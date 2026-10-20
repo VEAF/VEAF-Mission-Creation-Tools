@@ -361,8 +361,8 @@ Règles :
 - **Préréglages complets** : le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun
   préréglage ne porte (journal et `presets-validation-report.md`) ; la mission n'est pas prête tant que
   cette liste n'est pas vide.
-- **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle) : UHF = Guard,
-  bases, AWACS, patrouilles, ravitailleurs ; VHF = Guard + patrouilles ; FM 30-59 ; plan rouge si le
+- **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle) : UHF = bases,
+  AWACS, patrouilles, ravitailleurs ; VHF = patrouilles ; pas de Guard (le canal 1 est la fréquence de départ du vol) ; FM 30-59 ; plan rouge si le
   rouge vole. **Les canaux de base portent les fréquences que DCS donne à l'aérodrome**, même ATC
   coupé : ce sont celles que le pilote lit sur la vue F10, et une série inventée le trompe. Ne tape
   jamais une fréquence d'aérodrome : `describe_airfield_channels` liste les bases de la mission avec

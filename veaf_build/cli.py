@@ -591,6 +591,46 @@ def _capture_airfield_freqs(
     console.print("[bold green]All maps captured — you can leave the mission and close DCS.[/bold green]")
 
 
+@app.command(name="terrain-data")
+def terrain_data(
+    grid_dir: str | None = typer.Argument(
+        None, help="Folder holding the <Theatre>.terrain grids (default: <VEAF home>/terrain)."
+    ),
+    output: str = typer.Option("dist", "--output", help="Directory the terrain-data.json manifest is written to."),
+    do_publish: bool = typer.Option(
+        False, "--publish", help="Upload to the terrain-data GitHub release (created, not latest, when missing)."
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+) -> None:
+    """Check the swept elevation grids and publish them as the terrain-data release.
+
+    Without --publish, only checks each grid, writes the manifest and lists what would be uploaded.
+    veaf-tools downloads a theatre's grid from that release when the workstation has none. See
+    doc/developer/terrain-data.md.
+    """
+    logger.set_verbose(verbose)
+    from veaf_libs.terrain_elevation import local_grid_dir  # type: ignore[import-not-found]
+
+    from veaf_build import terrain_data_publish
+
+    source = Path(grid_dir) if grid_dir else local_grid_dir()
+    try:
+        files, manifest_path = terrain_data_publish.prepare(source, Path(output))
+    except ValueError as e:
+        logger.error(str(e))
+        return
+    rows = terrain_data_publish.describe(manifest_path)
+    for row in rows:
+        console.print(f"  {row['file']:<28} {row['bytes'] / 1e6:6.1f} MB")
+    console.print(f"  {manifest_path.name:<28} {manifest_path.stat().st_size / 1e3:6.1f} kB -> {manifest_path}")
+    console.print(f"[bold]{len(rows)} grids, {sum(r['bytes'] for r in rows) / 1e6:.1f} MB[/bold]")
+    if not do_publish:
+        console.print("[yellow]Nothing uploaded: add --publish to update the terrain-data release.[/yellow]")
+        return
+    terrain_data_publish.publish(files, manifest_path)
+    console.print(f"[green]OK[/green] https://github.com/{terrain_data_publish.REPOSITORY}/releases/tag/terrain-data")
+
+
 @app.command(name="update-dcs-data")
 def update_dcs_data(
     countries: bool = typer.Option(False, "--countries", help="Regenerate the DCS country name->id table."),

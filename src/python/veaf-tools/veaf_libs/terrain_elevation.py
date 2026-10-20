@@ -209,21 +209,24 @@ def _load_cached(path: str, mtime: float) -> ElevationGrid:
 
 
 def grid_for_theatre(theatre: str) -> ElevationGrid | None:
-    """Return the grid swept on this workstation for a theatre.
+    """Return a theatre's grid: swept on this workstation, else downloaded from the published ones.
 
-    None is shipped with the tools: a theatre weighs some 5.5 MB at 250 m, a mission maker has DCS at
-    hand and sweeps one in under three minutes (David, 2026-10-01).
+    None is shipped inside the tools (some 5.5 MB a theatre at 250 m): the grids swept by the
+    maintainers are published on GitHub and fetched on first use (:mod:`veaf_libs.terrain_data`). A
+    grid already on the workstation is used as is.
 
     Args:
         theatre: The theatre, any case or alias: ``terrain-sweep`` saves it under DCS's spelling.
 
     Returns:
-        The grid, or ``None`` when none was swept.
+        The grid, or ``None`` when none was swept and none could be downloaded.
     """
+    from veaf_libs import terrain_data  # noqa: PLC0415
     from veaf_libs.blank_mission import canonical_theatre_name  # noqa: PLC0415
 
-    path = local_grid_dir() / grid_file_name(canonical_theatre_name(theatre))
-    if not path.is_file():
+    name = canonical_theatre_name(theatre)
+    path = local_grid_dir() / grid_file_name(name)
+    if not path.is_file() and not terrain_data.download_grid(name, path):
         return None
     return _load_cached(str(path), path.stat().st_mtime)
 

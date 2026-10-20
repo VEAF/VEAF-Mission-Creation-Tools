@@ -2006,7 +2006,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "mission template, page for page, in the mission's language; Drive imports it into Google "
                 "Slides), docs/maps/ (an overview and one zoom per objective, on OpenStreetMap or OpenTopoMap "
                 "tiles), and the same maps as the DCS BRIEFING PICTURES, in the folder AND the built .miz, "
-                "first for blue and neutral (red left alone). BUILD FIRST (build_mission): every figure is "
+                "first for the players' side and neutral (the other side left alone). BUILD FIRST (build_mission): every figure is "
                 "read from the built .miz -- date, time, weather, bullseye, flights, support, carriers, QRA, "
                 "flight plan, the presets injected into the cockpits, each objective's targets and their "
                 "coordinates. You pass only the scenario's WORDS: title, context, mission_bullets, objectives (combat "

@@ -152,3 +152,13 @@ class TestTheFrequencyPlan:
             page = _frequencies_page(picture, [plan])
         (block,) = [b for b in page.blocks if b.heading and b.heading.startswith("Radio")]
         assert block.paragraphs == ("Ch. 1 — Archer: 390.0 MHz", "Ch. 2: 30.0 MHz · Ch. 3: 31.0 MHz")
+
+    def test_red_players_get_them_in_the_red_and_neutral_lists(self, tmp_path: Path) -> None:
+        from mission_briefing.mission_briefing_worker import _list_pictures
+
+        mission = read_miz(objective_mission(tmp_path))
+        other = _list_pictures(mission, {"MCP_Briefing_overview": "briefing-overview.jpg"}, "red")
+        content = mission.mission_content or {}
+        assert _side_pictures(content, "R") == ["MCP_Briefing_overview"]
+        assert _side_pictures(content, "N") == ["MCP_Briefing_overview"]
+        assert _side_pictures(content, "B") == [] and other == []

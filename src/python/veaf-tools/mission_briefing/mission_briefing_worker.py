@@ -4,8 +4,8 @@ The objective-mission prompt's §3, page for page, in the mission's language: wh
 (title, context, mission, objectives, threats, flow) around what the **built** `.miz` holds — date,
 time, weather, bullseye, flights, support, carriers, QRA, flight plan, the presets in the cockpits,
 each target where it stands. Then the maps become the DCS briefing pictures, in the mission folder
-(durable) and in the built `.miz` (no rebuild needed), listed first for blue and neutral; red is left
-alone (`briefing-pictures-red-then-blue`). The pictures this writes carry :data:`PICTURE_PREFIX` keys
+(durable) and in the built `.miz` (no rebuild needed), listed first for the players' side and neutral; the
+other side is left alone (`briefing-pictures-red-then-blue`). The pictures this writes carry :data:`PICTURE_PREFIX` keys
 and are replaced on every run.
 """
 
@@ -82,8 +82,8 @@ PICTURE_PREFIX = "MCP_Briefing_"
 #: The width a DCS briefing picture is brought down to, pixels.
 _PICTURE_WIDTH = 1600
 
-#: The mission-table keys of the sides the pictures are shown to: blue, then the slots of no side.
-_PICTURE_SIDES = ("pictureFileNameB", "pictureFileNameN")
+#: The mission-table key of each side's briefing pictures; the slots of no side get them too, as ``neutral``.
+_PICTURE_KEYS = {"blue": "pictureFileNameB", "red": "pictureFileNameR", "neutral": "pictureFileNameN"}
 
 
 def _mission_language(folder: Path) -> str:
@@ -273,32 +273,33 @@ def _jpeg(png: Path) -> bytes:
     return buffer.getvalue()
 
 
-def _list_pictures(mission: DcsMission, pictures: dict[str, str]) -> list[str]:
-    """Replace this tool's pictures in the mission's tables; return its own red list, untouched."""
+def _list_pictures(mission: DcsMission, pictures: dict[str, str], side: str) -> list[str]:
+    """Replace this tool's pictures in the players' side's and the neutral lists; return the other side's list."""
     content = mission.mission_content
     if content is None:
         raise ValueError("Not a valid DCS mission (missing 'mission' content)")
     resources = {k: v for k, v in (mission.map_resource_content or {}).items() if not str(k).startswith(PICTURE_PREFIX)}
     resources.update(pictures)
     mission.map_resource_content = resources
-    for key in _PICTURE_SIDES:
+    for key in (_PICTURE_KEYS[side], _PICTURE_KEYS["neutral"]):
         kept = [str(entry) for entry in indexed(content.get(key)) if not str(entry).startswith(PICTURE_PREFIX)]
         content[key] = [*pictures, *kept]
-    return [str(entry) for entry in indexed(content.get("pictureFileNameR"))]
+    other = _PICTURE_KEYS["red" if side == "blue" else "blue"]
+    return [str(entry) for entry in indexed(content.get(other))]
 
 
-def _write_pictures(folder: Path, miz: Path, maps: list[Path]) -> tuple[list[str], list[str]]:
+def _write_pictures(folder: Path, miz: Path, maps: list[Path], side: str) -> tuple[list[str], list[str]]:
     """Put the maps in the mission folder and the built `.miz`, both backed up first.
 
     Returns:
-        The resource keys, in display order, and the red pictures found.
+        The resource keys, in display order, and the other side's pictures found.
     """
     files = {f"briefing-{path.stem}.jpg": _jpeg(path) for path in maps}
     pictures = {f"{PICTURE_PREFIX}{path.stem}": f"briefing-{path.stem}.jpg" for path in maps}
 
     mission = load_folder_mission(folder)
     previous = {str(v) for k, v in (mission.map_resource_content or {}).items() if str(k).startswith(PICTURE_PREFIX)}
-    red = _list_pictures(mission, pictures)
+    other = _list_pictures(mission, pictures, side)
     l10n = _folder_l10n(folder)
     l10n.mkdir(parents=True, exist_ok=True)
     for name in previous - set(files):
@@ -308,7 +309,7 @@ def _write_pictures(folder: Path, miz: Path, maps: list[Path]) -> tuple[list[str
     save_folder_mission(mission, folder)
 
     built = read_miz(miz)
-    _list_pictures(built, pictures)
+    _list_pictures(built, pictures, side)
     additional: dict[str, Any] = {f"{DEFAULT_SCRIPTS_LOCATION}/{name}": data for name, data in files.items()}
     if f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
         # `write_miz` rewrites a `mapResource` member the archive has; one it lacks has to be supplied
@@ -320,7 +321,7 @@ def _write_pictures(folder: Path, miz: Path, maps: list[Path]) -> tuple[list[str
         ).encode()
     backup_before_write(miz)
     write_miz(built, miz, additional_files=additional)
-    return list(pictures), red
+    return list(pictures), other
 
 
 def build_mission_briefing(
@@ -439,11 +440,11 @@ def _build(
     deck.save(str(out))
 
     maps = [overview.path, *(zoom.path for zoom in zooms)]
-    keys, red = _write_pictures(folder, miz, maps)
-    if red:
+    keys, other = _write_pictures(folder, miz, maps, side)
+    if other:
         warnings.append(
-            f"pictureFileNameR holds {len(red)} picture(s): a player of no side sees red's then blue's "
-            "(known limitation briefing-pictures-red-then-blue). Left as they are."
+            f"{_PICTURE_KEYS['red' if side == 'blue' else 'blue']} holds {len(other)} picture(s): a player of no "
+            "side sees red's then blue's (known limitation briefing-pictures-red-then-blue). Left as they are."
         )
     offline = overview.offline or any(zoom.offline for zoom in zooms)
     if offline:

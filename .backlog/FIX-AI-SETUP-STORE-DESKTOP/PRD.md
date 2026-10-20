@@ -1,6 +1,6 @@
 # FIX-AI-SETUP-STORE-DESKTOP — `ai-setup` finds Claude Desktop when its data left the Store package
 
-Status: 🔄 in-progress
+Status: ✅ done (#1160)
 
 Origin: FEAT-AI-ZERO-SETUP ticket 08, 2026-10-20. Set up like any user's, David's PC got the server in every client but Claude Desktop, the one the install page calls the simplest to start with.
 

@@ -6,6 +6,9 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-AI-SETUP-STORE-DESKTOP](FIX-AI-SETUP-STORE-DESKTOP/PRD.md) · ✅
+
+`veaf-tools ai-setup` finds Claude Desktop when its Store install keeps its data in `%LOCALAPPDATA%\Claude-Data\`, as on David's PC, where it answered `not_found`; and the updater's first-install message stops sending the AI install page's users to run `prepare .` in their tools folder. Merged in #1160. Found by FEAT-AI-ZERO-SETUP ticket 08 on 2026-10-20.
 ### [FEAT-MCP-MISSION-BRIEFING](FEAT-MCP-MISSION-BRIEFING/PRD.md) · ✅
 
 An MCP action that builds the VEAF mission briefing — PPTX, maps, DCS briefing pictures — from the built mission and the content the assistant passes, so an assistant with no shell (Claude Desktop in chat mode) produces it too. The builder exists for campaign missions (`campaign_manager/mission_deck.py`). Asked by David on 2026-10-20.

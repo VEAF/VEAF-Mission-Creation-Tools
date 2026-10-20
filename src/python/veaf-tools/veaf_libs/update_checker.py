@@ -10,18 +10,65 @@ is not a TTY (scripted / piped use).
 """
 
 import json
+import re
 import sys
 import urllib.request
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from rich.console import Console
 
-_GITHUB_RELEASES_URL = "https://api.github.com/repos/VEAF/VEAF-Mission-Creation-Tools/releases/latest"
+#: The release the updater installs by default. `releases/latest` answers the same release.
+_GITHUB_RELEASES_URL = "https://api.github.com/repos/VEAF/VEAF-Mission-Creation-Tools/releases/tags/published-latest"
 _CHECK_TIMEOUT = 2  # seconds — do not block offline users
 _CACHE_FILE = "update_check_cache.json"
+
+#: "VEAF Tools Latest (v6.30.0)": where `published-latest` carries its version.
+_VERSION_IN_NAME = re.compile(r"\(v?(\d+(?:\.\d+)+)\)")
+
+
+def release_version(payload: dict[str, Any]) -> str:
+    """Return the version a GitHub release carries.
+
+    A `vX.Y.Z` tag is the version. `published-latest`, the release the updater installs and the one
+    the API calls latest, has none in its tag: it is in its name. Read from the tag, it was
+    unparseable, and the check never announced a new version (FEAT-AI-ZERO-SETUP).
+
+    Args:
+        payload: The release, as the GitHub API returns it.
+
+    Returns:
+        The version, e.g. `6.30.0`, or an empty string when the release carries none.
+    """
+    tag = str(payload.get("tag_name", "")).lstrip("v")
+    if _version_tuple(tag) != _UNPARSEABLE_VERSION:
+        return tag
+    match = _VERSION_IN_NAME.search(str(payload.get("name", "")))
+    return match.group(1) if match else ""
+
+
+def fetch_latest_version(current_version: str, timeout: float = _CHECK_TIMEOUT) -> str:
+    """Ask GitHub for the version of the latest published release.
+
+    Args:
+        current_version: The running version, sent in the User-Agent.
+        timeout: Seconds before giving up.
+
+    Returns:
+        The version, or an empty string when the release carries none.
+
+    Raises:
+        OSError: The network failed (`urllib.error.URLError` is one).
+        ValueError: The answer is not JSON.
+    """
+    req = urllib.request.Request(
+        _GITHUB_RELEASES_URL,
+        headers={"Accept": "application/vnd.github.v3+json", "User-Agent": f"veaf-tools/{current_version}"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return release_version(json.loads(resp.read().decode("utf-8")))
 
 
 #: What `_version_tuple` returns for a string it cannot read. Callers must recognise it rather than
@@ -86,16 +133,7 @@ def check_for_updates(current_version: str, console: "Console") -> None:
             # Use cached result — no network call needed today
             latest = cache.get("latest", "")
         else:
-            req = urllib.request.Request(
-                _GITHUB_RELEASES_URL,
-                headers={
-                    "Accept": "application/vnd.github.v3+json",
-                    "User-Agent": f"veaf-tools/{current_version}",
-                },
-            )
-            with urllib.request.urlopen(req, timeout=_CHECK_TIMEOUT) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            latest = data.get("tag_name", "").lstrip("v")
+            latest = fetch_latest_version(current_version)
             _save_cache(veaf_home, latest)
 
         # A version we cannot parse must not be treated as "very old". `_version_tuple` falls back to

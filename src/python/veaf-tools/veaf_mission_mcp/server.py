@@ -6,6 +6,9 @@ action, mirroring the existing ``dcs-bridge`` MCP tool's shape. Concrete actions
 registered by :func:`veaf_mission_mcp.actions.register_default_actions`.
 """
 
+import sys
+import threading
+from pathlib import Path
 from typing import Any
 
 from mcp.server import MCPServer
@@ -17,6 +20,7 @@ from veaf_tools.app import VERSION
 
 from veaf_mission_mcp.actions import register_default_actions
 from veaf_mission_mcp.catalog import ActionCatalog, summary
+from veaf_mission_mcp.self_update import start_update_if_due
 
 SERVER_NAME = "veaf-mission-mcp"
 
@@ -103,6 +107,32 @@ def run_action(name: str, params: dict[str, Any] | None = None) -> Any:
         raise ToolError(f"{type(exc).__name__}: {exc}") from exc
 
 
+def self_update() -> str:
+    """Start the updater when this executable is out of date (FEAT-AI-ZERO-SETUP).
+
+    Only from the installed executable, and only when the user left update checks on (`check_updates`
+    in the user configuration). Never raises: an update is not worth a server that does not start.
+
+    Returns:
+        What happened, for the log: `not_frozen`, `disabled`, `failed`, or what
+        :func:`start_update_if_due` answered.
+    """
+    if not getattr(sys, "frozen", False):
+        return "not_frozen"
+    try:
+        from veaf_libs.user_config import get_check_updates
+        from veaf_libs.veaf_home import get_veaf_home
+
+        if not get_check_updates():
+            return "disabled"
+        outcome = start_update_if_due(VERSION, Path(sys.executable).resolve(), get_veaf_home())
+    except Exception as exc:  # noqa: BLE001 — see the docstring
+        logger.warning(f"{SERVER_NAME} self-update failed: {type(exc).__name__}: {exc}")
+        return "failed"
+    logger.info(f"{SERVER_NAME} self-update: {outcome}")
+    return outcome
+
+
 def main() -> None:
     """Start the MCP server over stdio."""
     # stdout carries the MCP JSON-RPC stream — silence the Rich console so no log line ever
@@ -110,6 +140,8 @@ def main() -> None:
     # file / logging handlers (stderr).
     logger.mute_console()
     logger.info(f"Starting {SERVER_NAME} v{VERSION}")
+    # In the background: a slow GitHub must never delay the client's handshake.
+    threading.Thread(target=self_update, name="self-update", daemon=True).start()
     mcp.run()
 
 

@@ -121,3 +121,45 @@ def test_calling_a_tool_through_the_server_returns_its_value() -> None:
 
     assert not result.is_error
     assert result.structured_content == {"name": "veaf-mission-mcp", "version": server.VERSION}
+
+
+def test_self_update_stays_out_of_a_development_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    """From `poetry run`, sys.executable is python.exe: there is no installed veaf-tools to update."""
+    monkeypatch.delattr("sys.frozen", raising=False)
+    monkeypatch.setattr(server, "start_update_if_due", lambda *_a, **_k: pytest.fail("must not check"))
+
+    assert server.self_update() == "not_frozen"
+
+
+def test_self_update_respects_check_updates_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setattr("veaf_libs.user_config.get_check_updates", lambda: False)
+    monkeypatch.setattr(server, "start_update_if_due", lambda *_a, **_k: pytest.fail("must not check"))
+
+    assert server.self_update() == "disabled"
+
+
+def test_self_update_checks_the_running_executable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    exe = tmp_path / "veaf-tools.exe"
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setattr("sys.executable", str(exe))
+    monkeypatch.setattr("veaf_libs.user_config.get_check_updates", lambda: True)
+    monkeypatch.setenv("VEAF_HOME", str(tmp_path / "home"))
+    seen: list = []
+    monkeypatch.setattr(server, "start_update_if_due", lambda *a, **_k: seen.append(a) or "started")
+
+    assert server.self_update() == "started"
+    assert seen == [(server.VERSION, exe.resolve(), tmp_path / "home")]
+
+
+def test_self_update_never_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An update is not worth a server that does not start."""
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setattr("veaf_libs.user_config.get_check_updates", lambda: True)
+
+    def boom(*_a: object, **_k: object) -> str:
+        raise RuntimeError("disk on fire")
+
+    monkeypatch.setattr(server, "start_update_if_due", boom)
+
+    assert server.self_update() == "failed"

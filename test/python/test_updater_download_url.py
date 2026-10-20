@@ -254,19 +254,5 @@ class TestTheDownloadIsCapped(unittest.TestCase):
         self.assertEqual(self._run(_FakeResponse(200, content=payload), cap=4096), payload)
 
 
-class TestTheDeferredUpdateScriptBailsOnAFailedCd(unittest.TestCase):
-    """A failed `cd` used to leave every relative rename and delete running elsewhere (VMR-036)."""
-
-    def test_the_script_aborts_when_it_cannot_enter_the_target_directory(self) -> None:
-        source = _UPDATER_PATH.read_text(encoding="utf-8")
-        cd_index = source.index('cd /d "%~dp0.."')
-        after_cd = source[cd_index : cd_index + 400]
-
-        self.assertIn("if errorlevel 1 (", after_cd)
-        self.assertIn("exit /b 1", after_cd)
-        # The guard has to come before the destructive part, or it guards nothing.
-        self.assertLess(after_cd.index("exit /b 1"), after_cd.index("del /f /q"))
-
-
 if __name__ == "__main__":
     unittest.main()

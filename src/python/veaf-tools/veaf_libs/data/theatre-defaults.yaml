@@ -167,3 +167,22 @@ Falklands:
     centerY: -330000.0
     zoom: 2500000.0
   name: Falklands
+# No dcs-maps calibration mission for TheChannel: the map centre is the middle of its 12 airfields'
+# extent (airdrome-positions.yaml, converted with the theatre's projection), bullseyes at the origin
+# as for Falklands (FEAT-TERRAIN-DATA-DOWNLOAD, 2026-10-20).
+TheChannel:
+  bullseye:
+    blue:
+      x: 0.0
+      y: 0.0
+    neutrals:
+      x: 0.0
+      y: 0.0
+    red:
+      x: 0.0
+      y: 0.0
+  map:
+    centerX: -11187.0
+    centerY: -16539.0
+    zoom: 1000000.0
+  name: TheChannel

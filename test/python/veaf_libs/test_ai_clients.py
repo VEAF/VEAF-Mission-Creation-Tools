@@ -1,6 +1,7 @@
 """Tests for veaf_libs.ai_clients — declaring the MCP server in the AI clients (FEAT-AI-ZERO-SETUP)."""
 
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -8,6 +9,7 @@ from typing import Any
 import pytest
 from veaf_libs.ai_clients import (
     SERVER_KEY,
+    find_claude_cli,
     merge_server_into_json,
     setup_claude_code,
     setup_claude_desktop,
@@ -116,7 +118,7 @@ def test_claude_code_goes_through_its_cli_when_there_is_one(tmp_path: Path) -> N
         calls.append(cmd)
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
-    result = setup_claude_code(EXE, home=tmp_path, which=lambda _name: "claude", run=run)
+    result = setup_claude_code(EXE, home=tmp_path, which=lambda: "claude", run=run)
 
     assert result.status == "configured"
     assert calls == [
@@ -130,7 +132,7 @@ def test_claude_code_cli_failure_is_reported(tmp_path: Path) -> None:
     def run(cmd: list[str], **_kwargs: Any) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(cmd, 1 if "add-json" in cmd else 0, "", "boom")
 
-    result = setup_claude_code(EXE, home=tmp_path, which=lambda _name: "claude", run=run)
+    result = setup_claude_code(EXE, home=tmp_path, which=lambda: "claude", run=run)
 
     assert result.status == "failed"
     assert "boom" in result.detail
@@ -139,11 +141,33 @@ def test_claude_code_cli_failure_is_reported(tmp_path: Path) -> None:
 def test_claude_code_without_its_cli_is_configured_in_its_file(tmp_path: Path) -> None:
     (tmp_path / ".claude.json").write_text(json.dumps({"numStartups": 3}), encoding="utf-8")
 
-    result = setup_claude_code(EXE, home=tmp_path, which=lambda _name: None)
+    result = setup_claude_code(EXE, home=tmp_path, which=lambda: None)
 
     assert result.status == "configured"
     assert _read(tmp_path / ".claude.json") == {"numStartups": 3, "mcpServers": {SERVER_KEY: ENTRY}}
 
 
 def test_claude_code_absent_is_not_found(tmp_path: Path) -> None:
-    assert setup_claude_code(EXE, home=tmp_path, which=lambda _name: None).status == "not_found"
+    assert setup_claude_code(EXE, home=tmp_path, which=lambda: None).status == "not_found"
+
+
+def test_find_claude_cli_searches_the_path_folders_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A `claude` executable in the current folder is not Claude Code: never run it."""
+    name = "claude.exe" if os.name == "nt" else "claude"
+    planted, on_path = tmp_path / "tools", tmp_path / "bin"
+    planted.mkdir()
+    on_path.mkdir()
+    (planted / name).write_bytes(b"")
+    monkeypatch.chdir(planted)
+
+    assert find_claude_cli(path_env=os.pathsep.join(["", ".", str(tmp_path / "missing")])) is None
+
+    (on_path / name).write_bytes(b"")
+    assert find_claude_cli(path_env=os.pathsep.join([".", f'"{on_path}"'])) == str(on_path / name)
+
+
+def test_find_claude_cli_ignores_a_batch_shim(tmp_path: Path) -> None:
+    """`cmd.exe` would re-read the JSON argument: a `claude.cmd` falls back to editing the file."""
+    (tmp_path / "claude.cmd").write_text("@echo off", encoding="utf-8")
+
+    assert find_claude_cli(path_env=str(tmp_path)) is None

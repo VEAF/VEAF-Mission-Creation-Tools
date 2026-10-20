@@ -6,7 +6,7 @@ backslashes; this module writes them, merging into whatever the file already hol
 """
 
 import json
-import shutil
+import os
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -120,11 +120,35 @@ def setup_gemini(exe: Path, *, home: Path) -> ClientResult:
     return _merge_result("Gemini CLI", folder / "settings.json", exe)
 
 
+def find_claude_cli(path_env: str | None = None) -> str | None:
+    """Find Claude Code's own executable in the PATH folders, and only there.
+
+    `shutil.which` also looks in the current folder on Windows, even given an explicit path (measured
+    2026-10-20 with Python 3.13): a `claude.exe` dropped next to `veaf-tools.exe` would run. A
+    `claude.cmd` (an npm install) is not taken either: `cmd.exe` would re-read the JSON passed to it.
+
+    Args:
+        path_env: The PATH to search; the process's own by default.
+
+    Returns:
+        The executable's path, or `None`.
+    """
+    name = "claude.exe" if os.name == "nt" else "claude"
+    for folder in (os.environ.get("PATH", "") if path_env is None else path_env).split(os.pathsep):
+        folder = folder.strip().strip('"')
+        if not folder or folder == ".":
+            continue
+        candidate = Path(folder) / name
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
 def setup_claude_code(
     exe: Path,
     *,
     home: Path,
-    which: Callable[[str], str | None] = shutil.which,
+    which: Callable[[], str | None] = find_claude_cli,
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> ClientResult:
     """Declare the server in Claude Code, for every folder (its *user* scope).
@@ -136,13 +160,13 @@ def setup_claude_code(
     Args:
         exe: The `veaf-tools` executable that runs the server.
         home: The user's home folder.
-        which: Finds a command on the PATH (injected for tests).
+        which: Finds Claude Code's executable (injected for tests).
         run: Runs a command (injected for tests).
 
     Returns:
         The outcome; `not_found` when there is neither a `claude` command nor a `~/.claude.json`.
     """
-    cli = which("claude")
+    cli = which()
     if cli:
         options: dict[str, Any] = {"capture_output": True, "text": True, "timeout": 60, "check": False}
         # Re-running must replace an older declaration, and `add-json` refuses an existing name.

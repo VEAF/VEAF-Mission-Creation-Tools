@@ -41,6 +41,17 @@ def _numbered(container: Any) -> list[tuple[int, Any]]:
     return list(enumerate(container or [], 1))
 
 
+def _cockpit(group: dict[str, Any], units: list[Any], templates: bool) -> str | None:
+    """How a group the players fly is named, ``None`` for one they do not fly.
+
+    A dynamic-slot template counts only with ``templates``, under its aircraft type: its units are
+    ``Client`` too, and the scaffold ships one per type whether a base offers dynamic slots or not.
+    """
+    if group.get("dynSpawnTemplate"):
+        return str(units[0].get("type")) if templates else None
+    return str(group.get("name")) if any(unit.get("skill") in ("Client", "Player") for unit in units) else None
+
+
 def _readable(name: str, zone: str) -> str:
     """A member's name without the zone's prefix nor its markers: ``Khobi-SA8 #spawnradius=0`` → ``SA8``."""
     bare = name.split("#")[0].strip()
@@ -85,7 +96,9 @@ def group_position(content: dict[str, Any], name: str) -> tuple[float, float] | 
     return None
 
 
-def departures(content: dict[str, Any], side: str, theatre: str) -> list[tuple[str, float, float]]:
+def departures(
+    content: dict[str, Any], side: str, theatre: str, *, templates: bool = True
+) -> list[tuple[str, float, float]]:
     """The airfields the players take off from, each once: ``(name, x, y)`` where the flight starts.
 
     A flight from a carrier is left out (the carrier has its own symbol), and so is an air start.
@@ -94,6 +107,7 @@ def departures(content: dict[str, Any], side: str, theatre: str) -> list[tuple[s
         content: The built mission's ``mission`` table.
         side: The players' side.
         theatre: The mission's theatre, to name the airfields.
+        templates: Whether the dynamic-slot templates' airfields count, as for :func:`radio_plans`.
 
     Returns:
         The departures, in the order the flights appear.
@@ -103,8 +117,7 @@ def departures(content: dict[str, Any], side: str, theatre: str) -> list[tuple[s
     for category, group in _groups(content, side):
         if category not in ("plane", "helicopter"):
             continue
-        units = indexed(group["units"])
-        if not (any(unit.get("skill") in ("Client", "Player") for unit in units) or group.get("dynSpawnTemplate")):
+        if _cockpit(group, indexed(group["units"]), templates) is None:
             continue
         start = (indexed((group.get("route") or {}).get("points")) or [{}])[0]
         name = names.get(int(start["airdromeId"])) if start.get("airdromeId") is not None else None
@@ -113,12 +126,14 @@ def departures(content: dict[str, Any], side: str, theatre: str) -> list[tuple[s
     return list(found.values())
 
 
-def radio_plans(content: dict[str, Any], side: str) -> list[RadioPlan]:
+def radio_plans(content: dict[str, Any], side: str, *, templates: bool = True) -> list[RadioPlan]:
     """The presets in the players' aircraft, one entry per radio and per distinct channel list.
 
     Args:
         content: The built mission's ``mission`` table.
         side: The players' side.
+        templates: Whether the dynamic-slot templates count: only where a base offers dynamic slots, since
+            the scaffold ships one per type and a mission of named slots flies none of them.
 
     Returns:
         By radio, then in the order the flights appear; flights carrying the same channels share an entry.
@@ -128,10 +143,9 @@ def radio_plans(content: dict[str, Any], side: str) -> list[RadioPlan]:
         if category not in ("plane", "helicopter"):
             continue
         units = indexed(group["units"])
-        players = any(unit.get("skill") in ("Client", "Player") for unit in units)
-        if not players and not group.get("dynSpawnTemplate"):
+        label = _cockpit(group, units, templates)
+        if label is None:
             continue
-        label = str(group.get("name")) if players else str(units[0].get("type"))
         for number, radio in _numbered(units[0].get("Radio")):
             names = dict(_numbered(radio.get("channelsNames")))
             channels = tuple(

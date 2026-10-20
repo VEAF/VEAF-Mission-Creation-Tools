@@ -110,3 +110,23 @@ class TestTheZoom:
             assert not intersects(a, b), (a, b)
         width, _ = Image.open(report.path).size
         assert width >= 600  # framed 3 km at least around the zone: the base map still shows
+
+
+class TestTheRoute:
+    def test_it_leaves_from_the_departure(self, tmp_path: Path) -> None:
+        inputs = _inputs(tmp_path)
+        report = render_overview_map(**inputs, out=tmp_path / "overview.png", cache_dir=tmp_path, fetch=_white)
+        (x0, y0), (x1, y1) = report.symbols["Kobuleti"], report.symbols["waypoint 1"]
+        image = Image.open(report.path).convert("RGB")
+        red, green, blue = image.getpixel((int(x0 + (x1 - x0) * 0.4), int(y0 + (y1 - y0) * 0.4)))
+        assert max(red, green, blue) < 120  # the dark route line, on a white background
+
+    def test_it_crosses_a_threat_circle_visible(self, tmp_path: Path) -> None:
+        # POTI → KHOBI runs inside the SA-6's 13 nm: a fill drawn after the route used to erase it there
+        report = render_overview_map(
+            **_inputs(tmp_path), out=tmp_path / "overview.png", cache_dir=tmp_path, fetch=_white
+        )
+        (x0, y0), (x1, y1) = report.symbols["waypoint 1"], report.symbols["waypoint 2"]
+        image = Image.open(report.path).convert("RGB")
+        red, green, blue = image.getpixel((int(x0 + (x1 - x0) * 0.6), int(y0 + (y1 - y0) * 0.6)))
+        assert max(red, green, blue) < 120

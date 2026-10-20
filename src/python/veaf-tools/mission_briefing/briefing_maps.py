@@ -9,6 +9,7 @@ Labels never overlap (`veaf_libs/map_labels.py`); without tiles the map stands o
 
 from __future__ import annotations
 
+import math
 import re
 from pathlib import Path
 
@@ -126,13 +127,17 @@ def render_overview_map(
         theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], _OVERVIEW_MARGIN, cache_dir, fetch, source
     )
 
-    for plan in picture.flight_plans:
-        route = [canvas.at_xy(wp.x, wp.y) for wp in plan.waypoints]
-        for a, b in zip(route, route[1:], strict=False):
-            canvas.draw.line((*a, *b), fill=(*BLACK[:3], 140), width=2)
     # every symbol first, so that no label is set on one drawn after it
     labels = [_objective(canvas, area, enemy, focus=False) for _, area in objectives]
     labels += [_threat(canvas, threat, position, enemy) for threat, position in threats]
+    # after the filled circles: a fill drawn later replaces the overlay's pixels, it does not blend
+    for plan in picture.flight_plans:
+        route = [(wp.x, wp.y) for wp in plan.waypoints]
+        if departures and route:  # the route leaves from the departure nearest its first point
+            route.insert(0, min(((x, y) for _, x, y in departures), key=lambda xy: math.dist(xy, route[0])))
+        pixels = [canvas.at_xy(x, y) for x, y in route]
+        for a, b in zip(pixels, pixels[1:], strict=False):
+            canvas.draw.line((*a, *b), fill=(60, 60, 60, 220), width=3)
     for name, x, y in departures:
         dx, dy = canvas.at_xy(x, y)
         canvas.draw.rectangle((dx - 7, dy - 7, dx + 7, dy + 7), fill=(*friend, 255))

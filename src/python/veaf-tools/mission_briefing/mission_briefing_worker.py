@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import io
 import math
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +43,13 @@ from campaign_manager.mission_pages import (
     picture_page,
     weather_lines,
 )
-from campaign_manager.mission_picture import NM, MissionPicture, find_built_mission, read_mission_picture
+from campaign_manager.mission_picture import (
+    NM,
+    MissionPicture,
+    _flight_plans,
+    find_built_mission,
+    read_mission_picture,
+)
 from mission_tools.mission_constants import DEFAULT_SCRIPTS_LOCATION
 from mission_tools.mission_yaml_editor import load_yaml
 from mission_tools.miz_backup import backup_before_write
@@ -196,13 +203,22 @@ def _frequencies_page(picture: MissionPicture, plans: list[RadioPlan]) -> Page:
         return frequencies_page(picture)
     blocks = []
     for plan in plans:
-        lines = tuple(
+        lines = [
             t("mission_briefing.channel", channel=channel, name=name, frequency=mhz(freq))
-            if name
-            else t("mission_briefing.channel_unnamed", channel=channel, frequency=mhz(freq))
             for channel, name, freq in plan.channels
+            if name
+        ]
+        # a channel with no name is a bare frequency (an FM radio's thirty): one line for all of them
+        unnamed = [
+            t("mission_briefing.channel_unnamed", channel=channel, frequency=mhz(freq))
+            for channel, name, freq in plan.channels
+            if not name
+        ]
+        if unnamed:
+            lines.append(" · ".join(unnamed))
+        blocks.append(
+            Block(t("mission_briefing.radio", radio=plan.radio, flights=", ".join(plan.flights)), tuple(lines))
         )
-        blocks.append(Block(t("mission_briefing.radio", radio=plan.radio, flights=", ".join(plan.flights)), lines))
     control = [carrier_line(carrier) for carrier in picture.carriers]
     if control:
         blocks.append(Block(t("campaign.mission_deck.heading.control"), tuple(control)))
@@ -350,6 +366,9 @@ def _build(
 ) -> BriefingReport:
     table = read_miz(miz).mission_content or {}
     picture = read_mission_picture(miz, side, folder)
+    dynamic = bool(picture.airfields)
+    if not dynamic:  # the scaffold's dynamic-slot templates are nobody's cockpit here
+        picture = replace(picture, flight_plans=_flight_plans(table, side, templates=False))
     theatre = picture.theatre
     enemy = "red" if side == "blue" else "blue"
     warnings: list[str] = []
@@ -361,7 +380,7 @@ def _build(
             warnings.append(f"Threat {threat.name!r}: no group named {threat.group!r} in the built mission, not drawn.")
         else:
             threats.append((threat, position))
-    starts = departures(table, side, theatre)
+    starts = departures(table, side, theatre, templates=dynamic)
 
     maps_folder = folder / MAPS_FOLDER
     tiles: dict[str, Any] = {"cache_dir": cache_dir, "fetch": fetch, "source": source, "side": side}
@@ -377,7 +396,7 @@ def _build(
     navigation = navigation_page(theatre, picture)
     if navigation:
         navigation.title = t("mission_briefing.title.flight_plan")
-    frequencies = _frequencies_page(picture, radio_plans(table, side))
+    frequencies = _frequencies_page(picture, radio_plans(table, side, templates=dynamic))
     targets = _targets_page(theatre, areas, warnings)
     closing = [flow, *([navigation] if navigation else []), frequencies, targets]
     titles = [

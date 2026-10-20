@@ -272,11 +272,13 @@ def _groups(content: dict[str, Any], side: str) -> list[tuple[str, dict[str, Any
     return found
 
 
-def _flight_plans(content: dict[str, Any], side: str) -> list[FlightPlan]:
+def _flight_plans(content: dict[str, Any], side: str, *, templates: bool = True) -> list[FlightPlan]:
     """The routes the players' aircraft carry after their departure: client flights and dynamic-slot templates.
 
     The dynamic-slot templates are where a campaign's players fly from, and the waypoints injector gives
-    them their plan like any client flight; a route carried by several groups is listed once.
+    them their plan like any client flight; a route carried by several groups is listed once. A one-shot
+    mission of named slots passes ``templates=False``: the scaffold ships a template per type, flown by
+    nobody there (FEAT-MCP-MISSION-BRIEFING).
     """
     found: dict[tuple[str, tuple[Waypoint, ...]], list[str]] = {}
     for country in indexed(((content.get("coalition") or {}).get(side) or {}).get("country")):
@@ -285,6 +287,8 @@ def _flight_plans(content: dict[str, Any], side: str) -> list[FlightPlan]:
                 units = indexed(group.get("units"))
                 players = any(unit.get("skill") in ("Client", "Player") for unit in units)
                 if not units or not (players or group.get("dynSpawnTemplate")):
+                    continue
+                if group.get("dynSpawnTemplate") and not templates:
                     continue
                 if str(group.get("name", "")).startswith(_SPAWN_TEMPLATE_PREFIX):
                     continue

@@ -14,6 +14,7 @@ from objective_mission_fixture import KHOBI_ZONE, objective_mission
 from PIL import Image
 from pptx import Presentation
 from veaf_libs.coordinates import to_dms, xy_to_latlon
+from veaf_libs.i18n import language
 from veaf_mission_mcp.mission_folder import load_folder_mission
 from veaf_mission_mcp.mission_table import indexed
 
@@ -137,3 +138,17 @@ class TestTheDcsPictures:
         report = _build(tmp_path)
         assert _side_pictures(load_folder_mission(tmp_path).mission_content or {}, "R") == ["RedMap"]
         assert any("pictureFileNameR" in warning for warning in report.warnings)
+
+
+class TestTheFrequencyPlan:
+    def test_named_channels_one_a_line_bare_frequencies_together(self, tmp_path: Path) -> None:
+        from campaign_manager.mission_picture import read_mission_picture
+        from mission_briefing.mission_briefing_worker import _frequencies_page
+        from mission_briefing.models import RadioPlan
+
+        picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
+        plan = RadioPlan(3, ("ARCHER",), ((1, "Archer", 390.0), (2, "", 30.0), (3, "", 31.0)))
+        with language("en"):
+            page = _frequencies_page(picture, [plan])
+        (block,) = [b for b in page.blocks if b.heading and b.heading.startswith("Radio")]
+        assert block.paragraphs == ("Ch. 1 — Archer: 390.0 MHz", "Ch. 2: 30.0 MHz · Ch. 3: 31.0 MHz")

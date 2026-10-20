@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from campaign_manager.mission_picture import _flight_plans
 from mission_briefing.mission_reader import group_position, objective_area, radio_plans
 
 
@@ -73,6 +74,18 @@ class TestGroupPosition:
 
 
 class TestRadioPlans:
+    def test_templates_count_only_where_slots_are_dynamic(self) -> None:
+        # the scaffold ships a template per blue type: with named slots only, they are nobody's cockpit
+        template = _group(
+            "F-16CM Template",
+            _unit("t", 0, 0, type="F-16C_50", skill="Client", Radio=[_radio((305.0, "Range"))]),
+            dynSpawnTemplate=True,
+        )
+        flight = _group("ARCHER", _unit("a", 0, 0, type="A-10C_2", skill="Client", Radio=[_radio((390.0, "Archer"))]))
+        content = _content(blue={"plane": [flight, template]}, red={})
+        assert [plan.flights for plan in radio_plans(content, "blue", templates=False)] == [("ARCHER",)]
+        assert len(radio_plans(content, "blue")) == 2
+
     def test_lua_arrays_read_back_as_lists(self) -> None:
         # luadata turns a Lua sequence into a list: that is how a built .miz hands the presets back
         radio = {"channels": [251.0, 390.0], "channelsNames": ["Magic", "Archer"]}
@@ -104,3 +117,15 @@ class TestRadioPlans:
             (1, ("FA-18C_hornet",), ((1, "Range", 305.0),)),
             (2, ("ARCHER",), ((1, "", 124.0),)),
         ]
+
+
+class TestFlightPlansOfNamedSlots:
+    def test_a_template_route_is_left_out_where_no_slot_is_dynamic(self) -> None:
+        point = {"x": 0.0, "y": 0.0}
+        flight = _group("ARCHER", _unit("a", 0, 0, type="A-10C_2", skill="Client"))
+        flight["route"] = {"points": [point, {"name": "POTI", "x": 1.0, "y": 2.0, "alt": 100}]}
+        template = _group("F-16CM Template", _unit("t", 0, 0, type="F-16C_50", skill="Client"), dynSpawnTemplate=True)
+        template["route"] = {"points": [point, {"name": "TARGET", "x": 9.0, "y": 9.0, "alt": 100}]}
+        content = _content(blue={"plane": [flight, template]}, red={})
+        assert [plan.aircraft for plan in _flight_plans(content, "blue", templates=False)] == [("A-10C_2",)]
+        assert len(_flight_plans(content, "blue")) == 2

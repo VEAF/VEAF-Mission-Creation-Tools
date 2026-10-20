@@ -160,7 +160,9 @@ def test_find_claude_cli_searches_the_path_folders_only(tmp_path: Path, monkeypa
     (planted / name).write_bytes(b"")
     monkeypatch.chdir(planted)
 
-    assert find_claude_cli(path_env=os.pathsep.join(["", ".", str(tmp_path / "missing")])) is None
+    (planted / "sub").mkdir()
+    (planted / "sub" / name).write_bytes(b"")
+    assert find_claude_cli(path_env=os.pathsep.join(["", ".", "sub", str(tmp_path / "missing")])) is None
 
     (on_path / name).write_bytes(b"")
     assert find_claude_cli(path_env=os.pathsep.join([".", f'"{on_path}"'])) == str(on_path / name)
@@ -171,3 +173,13 @@ def test_find_claude_cli_ignores_a_batch_shim(tmp_path: Path) -> None:
     (tmp_path / "claude.cmd").write_text("@echo off", encoding="utf-8")
 
     assert find_claude_cli(path_env=str(tmp_path)) is None
+
+
+def test_merge_reads_a_file_notepad_saved_with_a_bom(tmp_path: Path) -> None:
+    """The manual install had users edit this file in Notepad, which may write a BOM."""
+    config = tmp_path / "claude_desktop_config.json"
+    config.write_bytes(b"\xef\xbb\xbf" + json.dumps({"preferences": {}}).encode("utf-8"))
+
+    merge_server_into_json(config, EXE)
+
+    assert _read(config) == {"preferences": {}, "mcpServers": {SERVER_KEY: ENTRY}}

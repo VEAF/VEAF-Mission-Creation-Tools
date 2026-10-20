@@ -58,7 +58,8 @@ def merge_server_into_json(config_path: Path, exe: Path) -> None:
     Raises:
         ValueError: The file is not a JSON object, or its `mcpServers` is not one. It is left as it is.
     """
-    text = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    # utf-8-sig: Notepad, which the manual install had users edit this file with, may write a BOM.
+    text = config_path.read_text(encoding="utf-8-sig") if config_path.exists() else ""
     try:
         data = json.loads(text) if text.strip() else {}
     except json.JSONDecodeError as e:
@@ -136,8 +137,8 @@ def find_claude_cli(path_env: str | None = None) -> str | None:
     name = "claude.exe" if os.name == "nt" else "claude"
     for folder in (os.environ.get("PATH", "") if path_env is None else path_env).split(os.pathsep):
         folder = folder.strip().strip('"')
-        if not folder or folder == ".":
-            continue
+        if not folder or not Path(folder).is_absolute():
+            continue  # empty, ".", or relative: all of them resolve against the current folder
         candidate = Path(folder) / name
         if candidate.is_file():
             return str(candidate)

@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-BRIEFING — the mission briefing built by the server, for an AI with no shell
 
-Status: 🔄 in progress
+Status: ✅ done (PR #1158, 2026-10-20)
 
 Origin: David, 2026-10-20: "could we do something for the briefing generation, so that non-agentic AIs (Claude in free mode for instance) can generate the briefs?"
 

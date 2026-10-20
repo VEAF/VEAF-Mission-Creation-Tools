@@ -2,7 +2,7 @@
 
 veaf-tools downloads a theatre's grid from that release when the workstation has none
 (``veaf_libs.terrain_data``). The release is separate from the tools' releases and created **not
-latest**, so GitHub's page keeps showing the tools; its assets are replaced in place (``--clobber``).
+latest**, so GitHub's "Latest" badge stays on the tools' release; its assets are replaced in place (``--clobber``).
 See ``doc/developer/terrain-data.md``.
 """
 
@@ -56,13 +56,24 @@ def dropped_theatres(manifest_path: Path, run: Runner = subprocess.run) -> list[
 
     Returns:
         The theatres dropped, sorted; empty when the release does not exist yet.
+
+    Raises:
+        RuntimeError: If ``gh`` fails for any other reason than a missing release: the guard must not
+            pass for lack of an answer.
     """
+    view = run(["gh", "release", "view", RELEASE_TAG, "--repo", REPOSITORY], capture_output=True)
+    if view.returncode != 0:
+        if b"not found" in (view.stderr or b"").lower():
+            return []
+        raise RuntimeError(f"gh release view {RELEASE_TAG}: {(view.stderr or b'').decode(errors='replace').strip()}")
     answer = run(
         ["gh", "release", "download", RELEASE_TAG, "--pattern", MANIFEST_NAME, "--output", "-", "--repo", REPOSITORY],
         capture_output=True,
     )
     if answer.returncode != 0:
-        return []
+        raise RuntimeError(
+            f"cannot read the published {MANIFEST_NAME}: {(answer.stderr or b'').decode(errors='replace').strip()}"
+        )
     published = json.loads(answer.stdout)["grids"]
     kept = json.loads(manifest_path.read_text(encoding="utf-8"))["grids"]
     return sorted(set(published) - set(kept))

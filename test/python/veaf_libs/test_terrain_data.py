@@ -164,3 +164,32 @@ def test_the_manifest_refuses_a_file_named_after_another_theatre(tmp_path: Path)
 
     with pytest.raises(ValueError, match="Normandy"):
         build_manifest([wrong])
+
+
+def test_a_grid_swept_while_downloading_is_kept(tmp_path: Path, release: dict, monkeypatch: pytest.MonkeyPatch) -> None:
+    data = _grid_bytes(tmp_path, "Syria")
+    release[MANIFEST_NAME] = _manifest({"Syria": data})
+    release["Syria.terrain"] = data
+    swept = ElevationGrid("Syria", GridSpec(0.0, 0.0, 100.0, 2, 2), array("h", [1, 2, 3, 4]))
+    fetch = terrain_data.fetch_github_asset
+
+    def sweep_meanwhile(url: str, **kwargs):  # noqa: ANN202, ANN003
+        if url.endswith("Syria.terrain"):
+            save_grid(swept, _home_grid(tmp_path, "Syria"))
+        return fetch(url, **kwargs)
+
+    monkeypatch.setattr(terrain_data, "fetch_github_asset", sweep_meanwhile)
+
+    grid = grid_for_theatre("Syria")
+
+    assert grid is not None and grid.grid.rows == 2, "the grid swept on the workstation wins"
+    assert not list(_home_grid(tmp_path, "Syria").parent.glob("*.part"))
+
+
+def test_a_grid_that_fails_to_download_answers_none(tmp_path: Path, release: dict) -> None:
+    data = _grid_bytes(tmp_path, "Syria")
+    release[MANIFEST_NAME] = _manifest({"Syria": data})
+    release["Syria.terrain"] = requests.Timeout("read timed out")
+
+    assert grid_for_theatre("Syria") is None
+    assert not _home_grid(tmp_path, "Syria").exists()

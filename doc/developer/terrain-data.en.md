@@ -6,7 +6,7 @@ A PC with no DCS open — a demo sandbox, another mission maker's workstation �
 ## How veaf-tools uses them {#download}
 
 - The grids are the assets of the GitHub release [`terrain-data`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data), one per theatre (`<Theatre>.terrain`), with a manifest `terrain-data.json` giving each one's size and SHA-256.
-- That release is **separate** from the tools' releases: some 26 MB is not re-published with every version, and it is created **not latest**, so the releases page keeps showing the tools first.
+- That release is **separate** from the tools' releases: some 26 MB is not re-published with every version, and it is created **not latest**, so the "Latest" badge stays on the tools' release.
 - When a theatre has no grid in `<VEAF home>/terrain/`, veaf-tools downloads its own on first use, checks its size, its SHA-256 and that it loads as that theatre's grid, then writes it next to the swept grids.
 - A grid already there — swept on the workstation or downloaded before — is used as is, never replaced. To get a re-published grid, delete the file.
 - Offline, or when a check fails, the answer stays what it was: "sweep it in DCS". One attempt per process, so a placement does not wait for a timeout each time; the reason is written to veaf-tools' log.

@@ -127,6 +127,9 @@ def download_grid(theatre: str, target: Path) -> bool:
         loaded = load_grid(Path(temporary)).theatre
         if loaded != theatre:
             raise ValueError(f"the file holds the grid of {loaded}")
+        if target.exists():
+            # Swept on the workstation while this downloaded: the local grid wins.
+            return True
         atomic_replace(temporary, target)
         temporary = None
     except (requests.RequestException, GithubDownloadError, ValueError, KeyError, TypeError, OSError) as e:

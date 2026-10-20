@@ -627,7 +627,11 @@ def terrain_data(
     if not do_publish:
         console.print("[yellow]Nothing uploaded: add --publish to update the terrain-data release.[/yellow]")
         return
-    dropped = terrain_data_publish.dropped_theatres(manifest_path)
+    try:
+        dropped = terrain_data_publish.dropped_theatres(manifest_path)
+    except RuntimeError as e:
+        logger.error(str(e))
+        return
     if dropped:
         logger.error(
             f"{', '.join(dropped)} published but not in {source}: publishing would withdraw them. "

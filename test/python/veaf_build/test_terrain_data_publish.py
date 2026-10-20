@@ -76,13 +76,18 @@ def test_an_existing_release_is_not_created_again(tmp_path: Path) -> None:
     assert not [c for c in gh.calls if c[:3] == ["gh", "release", "create"]]
 
 
-def _published(grids: list[str]):  # noqa: ANN202
+def _published(grids: list[str] | None, *, view_error: bytes = b"release not found", download_fails: bool = False):  # noqa: ANN202
+    """A fake `gh`: `grids` is the published manifest, or None when `release view` fails with `view_error`."""
+
     def run(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:  # noqa: ARG001
-        if not grids:
-            return subprocess.CompletedProcess(args, 1, stdout=b"")
-        return subprocess.CompletedProcess(
-            args, 0, stdout=json.dumps({"format": 1, "grids": dict.fromkeys(grids, {})}).encode()
-        )
+        if args[2] == "view":
+            return subprocess.CompletedProcess(
+                args, 1 if grids is None else 0, stderr=view_error if grids is None else b""
+            )
+        if download_fails:
+            return subprocess.CompletedProcess(args, 1, stdout=b"", stderr=b"HTTP 502")
+        manifest = {"format": 1, "grids": dict.fromkeys(grids or [], {})}
+        return subprocess.CompletedProcess(args, 0, stdout=json.dumps(manifest).encode())
 
     return run
 
@@ -93,4 +98,17 @@ def test_publishing_from_a_folder_missing_a_published_theatre_is_caught(tmp_path
 
     assert publish.dropped_theatres(manifest, run=_published(["Normandy", "Syria"])) == ["Normandy"]
     assert publish.dropped_theatres(manifest, run=_published(["Syria"])) == []
-    assert publish.dropped_theatres(manifest, run=_published([])) == [], "no release yet drops nothing"
+    assert publish.dropped_theatres(manifest, run=_published(None)) == [], "no release yet drops nothing"
+
+
+@pytest.mark.parametrize(
+    "gh",
+    [_published(None, view_error=b"HTTP 401: Bad credentials"), _published(["Syria"], download_fails=True)],
+    ids=["gh-not-signed-in", "manifest-unreadable"],
+)
+def test_the_guard_fails_loudly_when_gh_cannot_answer(tmp_path: Path, gh) -> None:  # noqa: ANN001
+    _grid(tmp_path / "terrain", "Syria")
+    _files, manifest = publish.prepare(tmp_path / "terrain", tmp_path / "dist")
+
+    with pytest.raises(RuntimeError):
+        publish.dropped_theatres(manifest, run=gh)

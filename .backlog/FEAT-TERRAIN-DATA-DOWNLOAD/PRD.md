@@ -1,6 +1,6 @@
 # FEAT-TERRAIN-DATA-DOWNLOAD — terrain data an AI can use without DCS
 
-Status: 🔄 in progress
+Status: 🧑 waiting-human — merged 2026-10-20 (#1154); the `terrain-data` release holds Falklands, Normandy, PersianGulf, SinaiMap and Syria. Left: sweep Caucasus and the other installed theatres in DCS, then republish (ticket 04).
 
 ## Origin
 

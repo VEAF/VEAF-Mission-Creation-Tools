@@ -1,6 +1,6 @@
 # FEAT-MCP-MISSION-BRIEFING — the mission briefing built by the server, for an AI with no shell
 
-Status: ⬜ ready
+Status: 🔄 in progress
 
 Origin: David, 2026-10-20: "could we do something for the briefing generation, so that non-agentic AIs (Claude in free mode for instance) can generate the briefs?"
 
@@ -16,12 +16,19 @@ An MCP action, `build_mission_briefing`: the assistant passes the content it own
 
 Out of scope: the PDF. Converting PPTX to PDF needs PowerPoint or LibreOffice, which the executable does not have.
 
-## Open questions
+## Decisions (David, 2026-10-20)
 
-1. Which pages of the prompt's §3 the action covers, and which stay with the assistant.
-2. Map tiles: the executable fetches OpenTopoMap tiles (network, identifiable User-Agent, cache); what it does offline.
-3. Whether `mission_deck.py` is generalised (campaign and one-shot missions share one builder) or wrapped.
+1. **Pages.** The action covers the nine pages of the prompt's §3. From the built `.miz`: date, time, weather, bullseye and its bearing from the departure, departure, flights, support, control, QRA, flight plan, the presets **injected** into each flight's first aircraft (no Guard), the objectives' zones and the enemy units inside them (target coordinates in DMS, ground altitude in feet). From the assistant: title, context, mission bullets, objectives (combat zone + title + task), threats (group + family + engagement/detection radii when sourced), air opposition, air defences, other information, pilots and loadouts. Left to the assistant: the PDF, the Drive upload, `set_briefing`, the F10 drawings; looking at the rendered pages stays with a user whose assistant has no shell.
+2. **Tiles.** Offline, a missing tile leaves a plain background, the map is drawn anyway and `map_offline` says so. A `basemap: osm | topo` parameter adds OpenTopoMap, with its credit and its own cache folder (the prompt asks for it in a desert). The PRD said the executable fetched OpenTopoMap: it fetched OpenStreetMap only.
+3. **Builder.** Extract what is campaign-free (the ATO, frequency and navigation pages, the weather, the map canvas, the picture page) and compose a one-shot builder from it; the campaign deck keeps its own situation, flow and coordinates pages. The campaign deck loses its Guard line too, as the plan did in f1a26a4e.
+4. The DCS briefing pictures go into the folder **and** the built `.miz`, so no rebuild is needed; the action owns the `MCP_Briefing_*` keys and replaces them on each run.
+5. No step in the demo mission.
 
 ## Tickets
 
-To write once the open questions are settled.
+- [01 — Extract the campaign-free pieces](tickets/01-extract-shared.md)
+- [02 — Read objectives, targets and presets from the built mission](tickets/02-read-mission.md)
+- [03 — Maps of a one-shot mission](tickets/03-maps.md)
+- [04 — The deck and the DCS briefing pictures](tickets/04-deck-and-pictures.md)
+- [05 — The MCP action and its documentation](tickets/05-action.md)
+- [06 — Prompts, guide, known limitation](tickets/06-prompts.md)

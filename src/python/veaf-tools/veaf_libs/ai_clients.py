@@ -8,6 +8,7 @@ backslashes; this module writes them, merging into whatever the file already hol
 import json
 import os
 import subprocess
+import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -131,12 +132,97 @@ def setup_gemini(exe: Path, *, home: Path) -> ClientResult:
         home: The user's home folder.
 
     Returns:
-        The outcome; `not_found` when `~/.gemini` does not exist.
+        The outcome; `not_found` without a `~/.gemini/settings.json` — Antigravity keeps its own files
+        under `~/.gemini` too, so the folder alone does not mean Gemini CLI.
     """
-    folder = home / ".gemini"
-    if not folder.is_dir():
+    settings = home / ".gemini" / "settings.json"
+    if not settings.is_file():
         return ClientResult("Gemini CLI", "not_found")
-    return _merge_result("Gemini CLI", folder / "settings.json", exe)
+    return _merge_result("Gemini CLI", settings, exe)
+
+
+def setup_antigravity(exe: Path, *, home: Path) -> ClientResult:
+    """Declare the server in Antigravity, Google's agent, `~/.gemini/config/mcp_config.json`.
+
+    Same `mcpServers` shape as Claude's (antigravity.google/docs/mcp, read 2026-10-20); the CLI and the
+    IDE list the same path. Taken as installed when its `config` or `antigravity-cli` folder exists.
+
+    Args:
+        exe: The `veaf-tools` executable that runs the server.
+        home: The user's home folder.
+
+    Returns:
+        The outcome; `not_found` when neither Antigravity folder exists.
+    """
+    gemini = home / ".gemini"
+    if not (gemini / "config").is_dir() and not (gemini / "antigravity-cli").is_dir():
+        return ClientResult("Antigravity", "not_found")
+    return _merge_result("Antigravity", gemini / "config" / "mcp_config.json", exe)
+
+
+def merge_server_into_codex_toml(config_path: Path, exe: Path) -> None:
+    """Declare the server in Codex's `config.toml`, keeping every other line of it.
+
+    No TOML writer ships with veaf-tools, so the server's own `[mcp_servers.<name>]` section is
+    replaced in place, or appended; the result must read back as TOML before anything is written.
+
+    Args:
+        config_path: Codex's `config.toml`; created if missing.
+        exe: The `veaf-tools` executable that runs the server.
+
+    Raises:
+        ValueError: The file, or the result, does not read as TOML. The file is left as it is.
+    """
+    text = config_path.read_text(encoding="utf-8-sig") if config_path.exists() else ""
+    try:
+        tomllib.loads(text)
+    except tomllib.TOMLDecodeError as e:
+        raise ValueError(f"{config_path} is not valid TOML: {e}") from e
+    header = f"[mcp_servers.{SERVER_KEY}]"
+    # json.dumps writes a TOML basic string: backslashes and non-ASCII characters escaped alike.
+    section = f'{header}\ncommand = {json.dumps(str(exe))}\nargs = ["mcp"]\n'
+    lines = text.splitlines(keepends=True)
+    start = next((i for i, line in enumerate(lines) if line.strip() == header), None)
+    if start is None:
+        separator = "" if not text else ("\n" if text.endswith("\n") else "\n\n")
+        edited = text + separator + section
+    else:
+        end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
+        edited = "".join(lines[:start]) + section + ("\n" if end < len(lines) else "") + "".join(lines[end:])
+    try:
+        written = tomllib.loads(edited)["mcp_servers"][SERVER_KEY]
+    except (tomllib.TOMLDecodeError, KeyError) as e:
+        raise ValueError(f"declaring the server would break {config_path}: {e}") from e
+    if written.get("command") != str(exe):
+        raise ValueError(f"declaring the server would break {config_path}")
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = config_path.with_name(f"{config_path.name}.veaf-tmp")
+    tmp.write_text(edited, encoding="utf-8", newline="\n")
+    atomic_replace(tmp, config_path)
+
+
+def setup_codex(exe: Path, *, home: Path) -> ClientResult:
+    """Declare the server in Codex, `~/.codex/config.toml`.
+
+    The ChatGPT desktop app, the Codex CLI and its IDE extension share that file
+    (learn.chatgpt.com/docs/extend/mcp, read 2026-10-20).
+
+    Args:
+        exe: The `veaf-tools` executable that runs the server.
+        home: The user's home folder.
+
+    Returns:
+        The outcome; `not_found` when `~/.codex` does not exist.
+    """
+    folder = home / ".codex"
+    if not folder.is_dir():
+        return ClientResult("Codex", "not_found")
+    config = folder / "config.toml"
+    try:
+        merge_server_into_codex_toml(config, exe)
+    except (OSError, ValueError) as e:
+        return ClientResult("Codex", "failed", str(e))
+    return ClientResult("Codex", "configured", str(config))
 
 
 def setup_opencode(exe: Path, *, home: Path) -> ClientResult:
@@ -249,5 +335,7 @@ def setup_all(exe: Path, *, home: Path, appdata: Path) -> list[ClientResult]:
         setup_claude_desktop(exe, appdata=appdata),
         setup_claude_code(exe, home=home),
         setup_gemini(exe, home=home),
+        setup_antigravity(exe, home=home),
+        setup_codex(exe, home=home),
         setup_opencode(exe, home=home),
     ]

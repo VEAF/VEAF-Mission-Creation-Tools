@@ -1615,5 +1615,5 @@ limitations:
     no way to run them.
   workaround: |
     Without a shell, build the mission with the actions, write the briefing text with `set_briefing`,
-    and tell the user plainly which documents were not produced and that Claude Code, Gemini CLI or OpenCode
+    and tell the user plainly which documents were not produced and that Codex, OpenCode, Antigravity or Claude Code
     can make them in the same folder later. Do not pretend to have produced a file.

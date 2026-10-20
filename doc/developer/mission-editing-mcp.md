@@ -37,7 +37,7 @@ veaf-tools mcp
 Démarre un serveur MCP sur `stdio` (transport par défaut du SDK `mcp`). Aucune configuration :
 chaque action reçoit le chemin du `.miz` à éditer en paramètre. La sous-commande `veaf-tools mcp`
 embarque le serveur dans le binaire `veaf-tools` déjà livré (pas de binaire séparé à builder) — c'est
-elle que `veaf-tools ai-setup` déclare dans Claude Desktop, Claude Code, Gemini CLI et OpenCode.
+elle que `veaf-tools ai-setup` déclare dans Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI et OpenCode.
 
 Lancé depuis le binaire livré, le serveur **se met aussi à jour tout seul** : dans un thread d'arrière-plan, au plus
 une fois toutes les 4 heures, seulement si `check_updates` est actif et qu'aucune pré-release n'est épinglée (`VEAF_MCP_UPDATER_TAG`), il compare sa version à la release

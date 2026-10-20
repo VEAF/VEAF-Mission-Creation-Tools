@@ -13,7 +13,7 @@ Allow an hour, half of it inside DCS.
 > **You have Claude, Gemini or another AI?**
 > It can walk this whole path for you: you describe the mission in plain language, it creates the folder, places the groups, validates and builds.
 > This tutorial is still useful to understand what it does and to check what it produces.
-> To wire it to VMCT — Claude Desktop, Claude Code, Gemini CLI, OpenCode, another MCP-capable AI, or a chat AI that can only advise — see [Install the AI assistant](AI_ASSISTANT_INSTALL.en.md): once the tools are installed, one command, `.\veaf-tools.exe ai-setup`, is enough.
+> To wire it to VMCT — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode, another MCP-capable AI, or a chat AI that can only advise — see [Install the AI assistant](AI_ASSISTANT_INSTALL.en.md): once the tools are installed, one command, `.\veaf-tools.exe ai-setup`, is enough.
 
 ---
 

@@ -13,8 +13,8 @@ Complete toolkit for creating dynamic [DCS World][DCS] missions using VEAF Lua s
 
 ## With an AI assistant
 
-Claude Desktop, Claude Code, Gemini CLI or OpenCode can build and edit VEAF missions for you.
-To install the tools and connect the assistant, run in PowerShell — or let Claude Code, Gemini CLI or OpenCode run it; Claude Desktop in chat mode cannot:
+Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI or OpenCode can build and edit VEAF missions for you.
+To install the tools and connect the assistant, run in PowerShell — or let Codex, OpenCode, Antigravity or Claude Code run it; Claude Desktop in chat mode cannot:
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\tools" | Out-Null
@@ -147,8 +147,8 @@ flowchart LR
 
 ## Avec un assistant IA
 
-Claude Desktop, Claude Code, Gemini CLI ou OpenCode peuvent construire et modifier des missions VEAF pour vous.
-Pour installer les outils et brancher l'assistant, lancez dans PowerShell — ou laissez Claude Code, Gemini CLI ou OpenCode le faire ; Claude Desktop en mode chat ne le peut pas :
+Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI ou OpenCode peuvent construire et modifier des missions VEAF pour vous.
+Pour installer les outils et brancher l'assistant, lancez dans PowerShell — ou laissez Codex, OpenCode, Antigravity ou Claude Code le faire ; Claude Desktop en mode chat ne le peut pas :
 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\VEAF\outils" | Out-Null

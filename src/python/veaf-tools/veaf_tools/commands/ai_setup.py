@@ -18,7 +18,7 @@ _STATUS_STYLE = {"configured": "green", "not_found": "dim", "failed": "red"}
 
 @app.command(name="ai-setup", help=t("cmd.ai_setup.help"))
 def ai_setup() -> None:
-    """Declare this executable's MCP server in Claude Desktop, Claude Code, Gemini CLI and OpenCode.
+    """Declare this executable's MCP server in Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI and OpenCode.
 
     Raises:
         typer.Exit: Exit code 1 when no client was found or one could not be configured.

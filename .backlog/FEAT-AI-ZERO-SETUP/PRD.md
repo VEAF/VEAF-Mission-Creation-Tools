@@ -17,7 +17,7 @@ Origin: David, 2026-10-20, recording a demo video in a clean Windows sandbox. Th
 ## Decisions (David, 2026-10-20)
 
 - **The plugin and the Gemini extension are removed.** David is their only user; one install path for every client is worth breaking his.
-- **`veaf-tools ai-setup`** declares the MCP server in every AI client found on the PC: Claude Desktop, Claude Code, Gemini CLI, OpenCode. A separate command the updater suggests at the end of a first install, so it can be re-run.
+- **`veaf-tools ai-setup`** declares the MCP server in every AI client found on the PC: Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode. A separate command the updater suggests at the end of a first install, so it can be re-run.
 - **The server updates itself**: at start-up, at most once every 4 hours, if a newer release exists it launches the updater in the background, in its own folder. This was the plugin's `SessionStart` hook, which only Claude Code had.
 - **The two mission prompts ship in the executable**, served by an action, and the authoring guide sends the AI to them when the user asks for a mission. Named *mission prompts*: *recipe* is FEAT-MISSION-RECIPES, closed.
 - **The authoring guide leaves `plugin/`** for the package data, next to what serves it.

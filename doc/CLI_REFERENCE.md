@@ -996,7 +996,7 @@ elle peut s'épuiser, et la commande le dit alors clairement. Voir
 
 ### `veaf-tools ai-setup` {#ai-setup}
 
-Branche sur les outils VEAF les assistants IA installés sur ce PC : **Claude Desktop**, **Claude Code**, **Gemini CLI** et **OpenCode**.
+Branche sur les outils VEAF les assistants IA installés sur ce PC : **Claude Desktop**, **Claude Code**, **Codex** (ChatGPT Desktop), **Antigravity**, **Gemini CLI** et **OpenCode**.
 La commande déclare l'exécutable qui la lance comme serveur MCP `veaf-mission-editor` dans la configuration de chacun, sans toucher à leurs autres réglages, et dit pour chacun s'il est branché, absent ou en échec.
 On peut la relancer sans risque, par exemple après avoir déplacé le dossier des outils.
 

@@ -11,8 +11,10 @@ from veaf_libs.ai_clients import (
     SERVER_KEY,
     find_claude_cli,
     merge_server_into_json,
+    setup_antigravity,
     setup_claude_code,
     setup_claude_desktop,
+    setup_codex,
     setup_gemini,
     setup_opencode,
 )
@@ -250,3 +252,76 @@ def test_opencode_with_a_commented_jsonc_config_is_left_alone(tmp_path: Path) ->
 
 def test_opencode_absent_is_not_found(tmp_path: Path) -> None:
     assert setup_opencode(EXE, home=tmp_path).status == "not_found"
+
+
+def _toml(path: Path) -> Any:
+    import tomllib
+
+    return tomllib.loads(path.read_text(encoding="utf-8"))
+
+
+def test_codex_gets_its_own_toml_section(tmp_path: Path) -> None:
+    """Codex: `[mcp_servers.<name>]` in ~/.codex/config.toml, shared by the ChatGPT desktop app and the CLI."""
+    (tmp_path / ".codex").mkdir()
+    config = tmp_path / ".codex" / "config.toml"
+    config.write_text('model = "gpt-5"\n\n[mcp_servers.other]\ncommand = "x"\n', encoding="utf-8")
+
+    result = setup_codex(EXE, home=tmp_path)
+
+    assert result.status == "configured"
+    data = _toml(config)
+    assert data["model"] == "gpt-5"
+    assert data["mcp_servers"]["other"] == {"command": "x"}
+    assert data["mcp_servers"][SERVER_KEY] == {"command": str(EXE), "args": ["mcp"]}
+
+
+def test_codex_twice_replaces_its_section(tmp_path: Path) -> None:
+    (tmp_path / ".codex").mkdir()
+    setup_codex(Path(r"C:\old\veaf-tools.exe"), home=tmp_path)
+    (tmp_path / ".codex" / "config.toml").write_text(
+        (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8") + '\n[profiles.x]\nmodel = "y"\n',
+        encoding="utf-8",
+    )
+
+    setup_codex(EXE, home=tmp_path)
+
+    text = (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8")
+    assert text.count(f"[mcp_servers.{SERVER_KEY}]") == 1
+    data = _toml(tmp_path / ".codex" / "config.toml")
+    assert data["mcp_servers"][SERVER_KEY]["command"] == str(EXE)
+    assert data["profiles"]["x"] == {"model": "y"}
+
+
+def test_codex_with_an_unreadable_config_is_left_alone(tmp_path: Path) -> None:
+    (tmp_path / ".codex").mkdir()
+    (tmp_path / ".codex" / "config.toml").write_text("model = \n", encoding="utf-8")
+
+    assert setup_codex(EXE, home=tmp_path).status == "failed"
+    assert (tmp_path / ".codex" / "config.toml").read_text(encoding="utf-8") == "model = \n"
+
+
+def test_codex_absent_is_not_found(tmp_path: Path) -> None:
+    assert setup_codex(EXE, home=tmp_path).status == "not_found"
+
+
+def test_antigravity_is_configured_in_its_mcp_config(tmp_path: Path) -> None:
+    """Antigravity: `mcpServers` in ~/.gemini/config/mcp_config.json (antigravity.google/docs/mcp)."""
+    (tmp_path / ".gemini" / "antigravity-cli").mkdir(parents=True)
+
+    result = setup_antigravity(EXE, home=tmp_path)
+
+    assert result.status == "configured"
+    assert _read(tmp_path / ".gemini" / "config" / "mcp_config.json") == {"mcpServers": {SERVER_KEY: ENTRY}}
+
+
+def test_antigravity_absent_is_not_found(tmp_path: Path) -> None:
+    (tmp_path / ".gemini").mkdir()
+
+    assert setup_antigravity(EXE, home=tmp_path).status == "not_found"
+
+
+def test_an_antigravity_folder_is_not_gemini_cli(tmp_path: Path) -> None:
+    """Both live under ~/.gemini: Gemini CLI is the one with a settings.json."""
+    (tmp_path / ".gemini" / "config").mkdir(parents=True)
+
+    assert setup_gemini(EXE, home=tmp_path).status == "not_found"

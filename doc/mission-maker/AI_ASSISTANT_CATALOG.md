@@ -96,6 +96,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 51 | [Écrire le briefing de campagne](#campaign-briefing) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 52 | [Construire une mission complète, de la question au briefing](#build-whole-mission) | 🏗️ Démarrage | Dossier | ⭐ |
 | 53 | [Lire et modifier les fichiers du dossier de mission](#mission-files) | Modules & réglages | Recette | ⭐ |
+| 54 | [Fabriquer le briefing d'une mission (PPTX, cartes, images DCS)](#mission-briefing) | 🕰️ Réglages de la mission | Dossier (construit) | ⭐ |
 
 ---
 
@@ -756,6 +757,16 @@ deux fois le même fichier réutilise le premier.
 Évite de mettre la même image aux deux camps : un joueur dont le camp n'est pas connu du briefing (slot dynamique, par exemple) la verrait deux fois.
 
 > 💬 *« Mets carte.jpg dans le briefing bleu. »*
+
+### Fabriquer le briefing d'une mission {#mission-briefing}
+
+*Dossier (construit) · ⭐* — L'IA écrit les mots du scénario (titre, contexte, objectifs, menaces connues, déroulement) ; l'outil lit tout le reste dans la mission construite — date, météo, bullseye, flights, soutien, plan de vol, presets des cockpits, coordonnées de chaque cible — et produit `docs/briefing.pptx` au gabarit VEAF, une carte de situation et un zoom par objectif dans `docs/maps/`, et met ces cartes dans le briefing DCS (bleu et neutre).
+Aucun script : une IA sans accès à ton PC en ligne de commande (Claude Desktop en mode discussion) le fait aussi.
+Construis la mission d'abord, et relance-le après chaque changement : il remplace ses propres images.
+Le PPTX s'importe dans Google Slides ; le PDF s'exporte depuis PowerPoint ou Slides.
+Fond de carte OpenStreetMap, ou OpenTopoMap (relief) pour un désert ; sans réseau, les cartes sont dessinées sur un fond uni.
+
+> 💬 *« Fais le briefing de la mission, fond topo. »*
 
 ---
 

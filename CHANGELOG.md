@@ -27,6 +27,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Every mission with presets pages also gets `KNEEBOARD/IMAGES/00-veaf-calibration.png`, a calibration page for pilots who resized the window; the page texts follow the tool's language.
   The header texts start after the kneeboard's chapter tabs and the page footer ends before its UP/DN buttons, both drawn by DCS over the page (seen in game on 2026-10-18).
   Pages are written as 256-colour PNGs: in full colour the Caucasus OT's 95 pages doubled its `.miz` to 19 MB, and a page drops from 230 kB to 97 kB with no visible change.
+- **The campaign mission briefing no longer prints a Guard line** in its frequency plan (FEAT-MCP-MISSION-BRIEFING), like the shipped presets plan: every aircraft reaches Guard with its own control.
 
 ### Added
 
@@ -53,6 +54,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Two new actions, `read_mission_file` and `edit_mission_file`, read and edit a mission folder's YAML sources (`mission.yaml`, `src/*.yaml`) for an assistant with no file access: in Claude Desktop's chat mode, an assistant could not rename a mission.
   Every new mission, however small, now starts with the guide's "right after `scaffold_mission`" checklist: the presets plan (and never `none` to quiet its report), `versions.yaml`, the example waypoints, the slot catalogue's coalitions, and `SKYNET` for a mission with air defence — a test mission on 6.30.0 kept the scaffold's defaults until the user asked about each.
 - **Four entries added to the known limitations**: a hole left in a numbered table of `src/mission/mission` breaks the build; a second `convert-v5 --force` replaces `mission.yaml` with a minimal one; a slot for a disabled or missing module shows but cannot be taken; the briefing maps and documents of the mission prompts are scripts, which an assistant without a shell (Claude Desktop in chat mode) cannot run.
+- **`build_mission_briefing`: a mission's VEAF briefing with no script** (FEAT-MCP-MISSION-BRIEFING): an assistant with no shell — Claude Desktop in chat mode — now produces it too. It passes the scenario's words; the executable reads the built mission and writes `docs/briefing.pptx` (the objective-mission template's nine pages, in the mission's language), an overview map and one zoom per objective in `docs/maps/`, and puts the maps into the DCS briefing, in the folder and the built `.miz`, first for blue and neutral. The frequency plan is the presets injected into the cockpits; the target coordinates are those of the placed objects. `basemap: topo` draws on OpenTopoMap, for a desert.
 ### Fixed
 
 - **Refreshing the Foothold missions to a new Lekaa release** (FIX-FOOTHOLD-5-3-0-INTAKE).

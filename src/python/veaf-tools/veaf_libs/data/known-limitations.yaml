@@ -1617,16 +1617,18 @@ limitations:
 - id: mission-prompt-scripts-need-a-shell
   kind: tool
   area: mcp
-  title: "Without a shell, the briefing maps, pictures and documents of the mission prompts cannot be made"
+  title: "Without a shell, the Open Training's maps and README, a briefing's PDF and a look at its pages cannot be made"
   symptom: |
-    The two mission prompts (`describe_mission_prompt`) build the mission through the MCP actions,
-    but have a script produce what no action does: the briefing maps, the DCS briefing pictures
-    (`mapResource`, `pictureFileNameB`/`N`), the briefing as PPTX or PDF, and the Open Training's
-    `README.md`. An assistant that cannot run a program on the PC — Claude Desktop in chat mode — has
-    no way to run them.
+    An objective mission's briefing — the PPTX, its maps and the DCS briefing pictures — is one action,
+    `build_mission_briefing`, since FEAT-MCP-MISSION-BRIEFING. What the prompts (`describe_mission_prompt`)
+    still have a script do: the Open Training's maps and briefing pictures and its `README.md`, a
+    briefing's PDF, and turning the PPTX into images to look at its pages. An assistant that cannot run
+    a program on the PC — Claude Desktop in chat mode — has no way to run them.
   workaround: |
     Without a shell, build the mission with the actions, write the briefing text with `set_briefing`,
-    and tell the user plainly which documents were not produced and that Codex, OpenCode, Antigravity or Claude Code
+    make an objective mission's briefing with `build_mission_briefing`, ask the user to open the PPTX
+    and look at it (and to export the PDF from PowerPoint or Slides if one is wanted), and tell the user
+    plainly which documents were not produced and that Codex, OpenCode, Antigravity or Claude Code
     can make them in the same folder later. Do not pretend to have produced a file.
     With a shell, the scripts run: a PC without Python takes a portable one in the user's folder
     (python-pptx, Pillow), as the sandbox demo of 2026-10-20 did — a missing Python is no reason to

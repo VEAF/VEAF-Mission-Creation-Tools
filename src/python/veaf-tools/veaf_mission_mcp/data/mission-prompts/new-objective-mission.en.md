@@ -171,7 +171,7 @@ Phase 2 starts only on an **explicit approval** of an identified scenario: "I ap
 what is still missing:
 
 - the **briefing format**: in practice, VEAF shares it as **Google Slides in a Google Drive**. The
-  script generates a PPTX, which Drive converts to Slides on import; if a Google Drive connector is
+  `build_mission_briefing` generates a PPTX, which Drive converts to Slides on import; if a Google Drive connector is
   available, offer to upload it there, converted, into the folder the user names (that is publishing:
   ask for their agreement). A PDF on top if a frozen file is to be handed out;
 - the **pilots' names** for the ATO, if they have them (otherwise the cells stay empty, as in the
@@ -397,28 +397,19 @@ approximation of it.
   `presets-validation-report.md`): the mission is not ready until that list is empty. *Kolkhida*
   flew two missions on the template's Open Training plan, the warning on screen.
 - **`src/waypoints.yaml`**: remove the template's examples.
-- **Briefing map**: generated from the mission's data by a script (x/y → lat/lon through
-  `resolve_coordinates` or `veaf_libs.coordinates`), never hand-drawn. An overview map (departure,
-  route and named points, objectives, known threats at their radius, support, bullseye, legend, scale
-  in nautical miles) and **one zoom per objective**, framed by the list of objects to show.
-  OpenStreetMap tiles with a `User-Agent` that identifies the tool by its URL (**never personal
-  data**), tiles cached locally, "© OpenStreetMap contributors" on the image. **Show only what
-  intelligence is supposed to know**: a surprise threat the scenario plans is not on the map.
-  - **In a desert, the standard OSM basemap is nearly empty**: use OpenTopoMap
-    (`tile.opentopomap.org`, hillshade and contour lines, attribution "© OpenStreetMap contributors,
-    SRTM | style © OpenTopoMap (CC-BY-SA)").
-  - **Frame the zooms wide** (3 to 10 km, so that a road or a relief serves as a landmark) with an
-    **inset** detailing the units one by one; a zoom on 300 m has no basemap left.
-  - **A very tall overview map is unreadable on a 16:9 page**: add a landscape map of the area of
-    operations, and keep the overview as the big picture.
-  - **Look at every rendered map**: no label may overlap another, point at the wrong spot, or leave
-    the frame.
-- **DCS briefing pictures**: the same maps as JPEG about 1600 px wide, copied into
-  `src/mission/l10n/DEFAULT/`, declared in `mapResource`, listed overview first in `pictureFileNameB`
-  and `pictureFileNameN`; `pictureFileNameR` empty (`describe_known_limitations`,
-  `briefing-pictures-red-then-blue`). No action does it: a script that loads and writes back the
-  tables (`mission_tools.miz_tools.read_mission_folder` / `write_mission_folder`, and
-  `luadata.serialize` for `mapResource`), to be noted in the VMCT feedback.
+- **Briefing maps and DCS briefing pictures**: `build_mission_briefing` (section 6) makes them from
+  the built mission, never by hand: an overview map (departure, route and numbered waypoints,
+  objectives, known threats with their engagement circle plain and their detection circle dashed,
+  support, bullseye, scale in nautical miles, the tiles' credit) and **one zoom per objective**, framed
+  3 km wide at least with each of its targets. It puts them in the DCS briefing, overview first in
+  `pictureFileNameB` and `pictureFileNameN`, leaving `pictureFileNameR` alone
+  (`briefing-pictures-red-then-blue`).
+  - **Pass only what intelligence is supposed to know** in `threats`: a surprise threat the scenario
+    plans is not in it. A range goes in only with its source.
+  - **In a desert, the standard OSM basemap is nearly empty**: `basemap: topo` (OpenTopoMap,
+    hillshade and contour lines).
+  - **Look at every rendered map** if you can: no label may point at the wrong spot. With no way to
+    see an image, ask the user to look at them (`docs/maps/`).
 - **F10 drawings** (`add_map_drawing`) on the `Blue` layer: the route and its named points, the known
   threats with their outline. Each label with an **opaque, light** `fill_color`, otherwise the default
   background (half-transparent black) makes it unreadable.
@@ -431,9 +422,9 @@ approximation of it.
 3. Airfields (`set_airbase_coalition`), carrier, player flights (4.3).
 4. Objectives (4.4), threat (4.5), and the site to defend if there is one (2.1).
 5. Support, radio, waypoints (4.6); date, weather, bullseye.
-6. Briefing map, pictures, F10 drawings, `set_briefing`.
+6. F10 drawings, `set_briefing`.
 7. `validate_mission`, `build_mission` (and the `LOCAL_TEST` profile), then section 8.
-8. The briefing file (section 6).
+8. The briefing: `build_mission_briefing` (section 6).
 9. `README.md`: the scenario, how to build, the files, the known limitations.
 
 Brief status after each step: what is done, not what you are about to do.
@@ -444,19 +435,21 @@ Brief status after each step: what is done, not what you are about to do.
   template, page for page; the PPTX is the source of the **Google Slides** version (Drive import).
   Keep fonts Slides knows (Calibri, Cambria, Arial), and look at the converted render if it is
   uploaded.
-- **Generated by a script** that reads the built mission, like the map, so it can be regenerated after
-  a change. For the PPTX, the presentation skill if available, otherwise `python-pptx`; for the PDF,
-  the PPTX export or a direct generation, with the same pages.
-- **Figures come from the mission, not from the scenario**: target coordinates read back from the
-  placed objects (DMS to the hundredth of a second), frequency plan read back from `presets.yaml`,
-  flight plan read back from the group's route or from `src/waypoints.yaml`, callsigns read back from
-  the groups. A target's
-  altitude is the ground's under the placed object, read by `terrain_elevation` (`points`), in feet;
-  with no grid for the theatre, the column stays empty and it is an open point.
-- **Re-read every rendered page** (convert it to an image and look at it): nothing overflows, no map
-  label overlaps another, every waypoint number matches the route. Without LibreOffice, PowerPoint
-  renders through COM (`Presentations.Open` then `Slide.Export` to PNG) — it is the readers' software
-  anyway.
+- **Generated by `build_mission_briefing`**, once the mission is built, and run again after every
+  change and every build. You pass it the scenario's **words**: `title`, `context`, `mission_bullets`,
+  `objectives` (the combat zone, its title, its task), `threats` (the group where it stands, its
+  family, its sourced ranges), `air_opposition`, `air_defences`, `other`, and the `pilots` /
+  `loadouts` by group name.
+- **Figures come from the mission, not from the scenario**, and the action reads them in the built
+  `.miz`: date, time, weather, bullseye, flights, support, flight plan, the presets injected into the
+  cockpits (the frequency plan), each placed target's coordinates and the ground's altitude under it —
+  with no elevation grid for the theatre, the column stays empty and the action says so: it is an
+  open point. Read its `warnings`.
+- **The PDF** is not produced: the user exports it from PowerPoint or Slides. With a shell,
+  PowerPoint does it through COM (`Presentations.Open` then `SaveAs`, format 32).
+- **Re-read every rendered page** if you can convert the PPTX to images (PowerPoint through COM:
+  `Presentations.Open` then `Slide.Export` to PNG): nothing overflows, every waypoint number matches
+  the route. Otherwise ask the user to open it and look.
 
 ## 7. What you hand over at the end
 

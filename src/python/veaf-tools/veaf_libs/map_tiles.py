@@ -31,6 +31,12 @@ TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 #: The credit the tile policy asks to show on the map.
 CREDIT = "© OpenStreetMap contributors"
 
+#: OpenTopoMap's tiles: hillshade and contour lines, where the standard map of a desert is nearly empty.
+TOPO_URL = "https://tile.opentopomap.org/{z}/{x}/{y}.png"
+
+#: The credit OpenTopoMap asks to show on the map.
+TOPO_CREDIT = "© OpenStreetMap contributors, SRTM | style © OpenTopoMap (CC-BY-SA)"
+
 #: The side of a tile, in pixels.
 TILE_SIZE = 256
 
@@ -42,6 +48,26 @@ _TIMEOUT = 20
 
 #: Gets the bytes at a URL, or ``None`` when it cannot.
 Fetch = Callable[[str], bytes | None]
+
+
+@dataclass(frozen=True)
+class TileSource:
+    """Where tiles come from, the credit they ask for, and the cache folder that keeps them apart."""
+
+    url: str
+    credit: str
+    folder: str
+    """Under the cache directory; empty for OpenStreetMap, whose tiles were cached at the root first."""
+
+
+#: The standard OpenStreetMap map.
+OSM = TileSource(TILE_URL, CREDIT, "")
+
+#: OpenTopoMap (FEAT-MCP-MISSION-BRIEFING ticket 03).
+TOPO = TileSource(TOPO_URL, TOPO_CREDIT, "opentopomap")
+
+#: The sources by the name a caller gives.
+TILE_SOURCES: dict[str, TileSource] = {"osm": OSM, "topo": TOPO}
 
 
 def http_fetch(url: str) -> bytes | None:
@@ -131,6 +157,8 @@ class BaseMap:
     """The world pixel of the image's top-left corner."""
     offline: bool
     """Whether at least one tile was missing, and the plain background shows instead."""
+    credit: str = CREDIT
+    """What the tiles ask to show on the map."""
 
     def pixel(self, lat: float, lon: float) -> tuple[float, float]:
         """The pixel of a point in this image.
@@ -146,13 +174,13 @@ class BaseMap:
         return x - self.origin[0], y - self.origin[1]
 
 
-def _tile(zoom: int, x: int, y: int, cache_dir: Path, fetch: Fetch) -> Image.Image | None:
+def _tile(zoom: int, x: int, y: int, cache_dir: Path, fetch: Fetch, url: str = TILE_URL) -> Image.Image | None:
     """One tile, from the cache or downloaded into it; ``None`` when it cannot be had."""
     path = cache_dir / str(zoom) / str(x) / f"{y}.png"
     if path.is_file():
         data: bytes | None = path.read_bytes()
     else:
-        data = fetch(TILE_URL.format(z=zoom, x=x, y=y))
+        data = fetch(url.format(z=zoom, x=x, y=y))
         if data:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
@@ -173,6 +201,7 @@ def render_base_map(
     max_pixels: int = 1400,
     cache_dir: Path | None = None,
     fetch: Fetch | None = None,
+    source: TileSource = OSM,
 ) -> BaseMap:
     """Assemble the background of a box from tiles.
 
@@ -184,12 +213,13 @@ def render_base_map(
         max_pixels: The longer side of the image at most; the zoom is chosen to fit.
         cache_dir: Where tiles are kept; :func:`default_cache_dir` when omitted.
         fetch: How a tile is downloaded; :func:`http_fetch` when omitted.
+        source: Where the tiles come from; OpenStreetMap when omitted.
 
     Returns:
         The background, cropped to the box.
     """
     zoom = choose_zoom(north, west, south, east, max_pixels)
-    cache_dir = cache_dir or default_cache_dir()
+    cache_dir = (cache_dir or default_cache_dir()) / source.folder
     fetch = fetch or http_fetch
     x0, y0 = world_pixel(north, west, zoom)
     x1, y1 = world_pixel(south, east, zoom)
@@ -198,11 +228,11 @@ def render_base_map(
     offline = False
     for tx in range(tx0, tx1 + 1):
         for ty in range(ty0, ty1 + 1):
-            tile = _tile(zoom, tx, ty, cache_dir, fetch)
+            tile = _tile(zoom, tx, ty, cache_dir, fetch, source.url)
             if tile is None:
                 offline = True
             else:
                 canvas.paste(tile, ((tx - tx0) * TILE_SIZE, (ty - ty0) * TILE_SIZE))
     left, top = x0 - tx0 * TILE_SIZE, y0 - ty0 * TILE_SIZE
     image = canvas.crop((int(left), int(top), int(left + x1 - x0), int(top + y1 - y0)))
-    return BaseMap(image=image, zoom=zoom, origin=(int(x0), int(y0)), offline=offline)
+    return BaseMap(image=image, zoom=zoom, origin=(int(x0), int(y0)), offline=offline, credit=source.credit)

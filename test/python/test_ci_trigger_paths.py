@@ -30,7 +30,6 @@ PATHS_THE_PYTHON_SUITE_READS = (
     ".backlog/**",
     "src/scripts/**",
     "doc/**",
-    "plugin/**",
     "*.md",
     # This very test reads the Support Bot workflow, so a change confined to that file must run the
     # Python gate — otherwise the assertions below never fire on the change they exist to catch.

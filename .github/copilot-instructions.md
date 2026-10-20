@@ -38,7 +38,7 @@ For each task or fix, rigorously apply these steps in order:
 1. Make code changes and write associated unit tests according to TDD rules.
 2. Run all quality validation tools specific to the impacted language (Python or Lua).
 3. Manually update `CHANGELOG.md` under the `[Unreleased]` section (one clear entry per fix or feature), **appended at the end** of that section — appending conflicts far less than prepending when two pull requests land together.
-4. **Do not touch the version.** `pyproject.toml` and both agent manifests (`plugin/.claude-plugin/plugin.json`, `plugin/gemini-extension.json`) move only in a release commit, together; `test_plugin_version.py` enforces the match. This step used to say the opposite — bump the PATCH on every change — which made any two concurrent pull requests conflict by construction on files carrying no engineering content. See `CLAUDE.md` §9.5 for the measurements behind the change.
+4. **Do not touch the version.** `pyproject.toml` moves only in a release commit. This step used to say the opposite — bump the PATCH on every change — which made any two concurrent pull requests conflict by construction on files carrying no engineering content. See `CLAUDE.md` §9.5 for the measurements behind the change.
 5. Run the `poetry install` command to update the development environment.
 
 ## PULL REQUEST PROCESS

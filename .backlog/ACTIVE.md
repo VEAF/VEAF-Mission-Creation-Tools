@@ -6,11 +6,15 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FEAT-AI-ZERO-SETUP](FEAT-AI-ZERO-SETUP/PRD.md) · 🔄
+### [FIX-LIMITATIONS-SHORT-LISTING](FIX-LIMITATIONS-SHORT-LISTING/PRD.md) · 🔄
 
-Installing veaf-tools is all an AI needs: `veaf-tools ai-setup` declares the MCP server in Claude Desktop, Claude Code and Gemini CLI, the server updates itself, the authoring guide and the two mission prompts ship in the executable, and the plugin is removed. Asked by David on 2026-10-20 after a demo in a clean sandbox behaved unlike his PC; found on the way: the plugin's binary had been stuck on 6.22.1 since September.
+The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20.
 
 ## 🧑 Waiting for a human
+
+### [FEAT-AI-ZERO-SETUP](FEAT-AI-ZERO-SETUP/PRD.md) · 🧑
+
+Installing veaf-tools is all an AI needs: `veaf-tools ai-setup` declares the MCP server in Claude Desktop, Claude Code and Gemini CLI, the server updates itself, the authoring guide and the two mission prompts ship in the executable, and the plugin is removed. Asked by David on 2026-10-20 after a demo in a clean sandbox behaved unlike his PC; found on the way: the plugin's binary had been stuck on 6.22.1 since September. Merged in #1155; left: ticket 08, David's PC set up by `ai-setup` once a release ships it.
 
 ### [FEAT-FORCED-MISSION-OPTIONS](FEAT-FORCED-MISSION-OPTIONS/PRD.md) · 🧑
 

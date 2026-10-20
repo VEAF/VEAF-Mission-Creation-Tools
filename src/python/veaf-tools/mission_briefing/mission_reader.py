@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any
 
+from presets_injector.airfield_channels_manager import load_reference
 from veaf_libs.mission_table import indexed
 
 from mission_briefing.models import ObjectiveArea, RadioPlan, Target
@@ -75,6 +76,34 @@ def group_position(content: dict[str, Any], name: str) -> tuple[float, float] | 
             first = indexed(group["units"])[0]
             return float(first["x"]), float(first["y"])
     return None
+
+
+def departures(content: dict[str, Any], side: str, theatre: str) -> list[tuple[str, float, float]]:
+    """The airfields the players take off from, each once: ``(name, x, y)`` where the flight starts.
+
+    A flight from a carrier is left out (the carrier has its own symbol), and so is an air start.
+
+    Args:
+        content: The built mission's ``mission`` table.
+        side: The players' side.
+        theatre: The mission's theatre, to name the airfields.
+
+    Returns:
+        The departures, in the order the flights appear.
+    """
+    names = {airdrome_id: str(entry["name"]) for airdrome_id, entry in load_reference(theatre).items()}
+    found: dict[str, tuple[str, float, float]] = {}
+    for category, group in _groups(content, side):
+        if category not in ("plane", "helicopter"):
+            continue
+        units = indexed(group["units"])
+        if not (any(unit.get("skill") in ("Client", "Player") for unit in units) or group.get("dynSpawnTemplate")):
+            continue
+        start = (indexed((group.get("route") or {}).get("points")) or [{}])[0]
+        name = names.get(int(start["airdromeId"])) if start.get("airdromeId") is not None else None
+        if name and name not in found:
+            found[name] = (name, float(start["x"]), float(start["y"]))
+    return list(found.values())
 
 
 def radio_plans(content: dict[str, Any], side: str) -> list[RadioPlan]:

@@ -127,9 +127,9 @@ def self_update() -> str:
             return "disabled"
         outcome = start_update_if_due(VERSION, Path(sys.executable).resolve(), get_veaf_home())
     except Exception as exc:  # noqa: BLE001 — see the docstring
-        logger.warning(f"{SERVER_NAME} self-update failed: {type(exc).__name__}: {exc}")
+        logger.warning(t("mcp.self_update_failed", error=f"{type(exc).__name__}: {exc}"))
         return "failed"
-    logger.info(f"{SERVER_NAME} self-update: {outcome}")
+    logger.info(t("mcp.self_update", outcome=outcome))
     return outcome
 
 

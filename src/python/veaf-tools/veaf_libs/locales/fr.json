@@ -1181,6 +1181,8 @@
   "validate.ctld_name_not_in_mission": "'{name}' dans {setting} de {file} n'est pas dans la mission : CTLD l'ignorera avec un avertissement « not found » au démarrage. Le retirer (dans ctld-tools), ou le placer dans l'éditeur de mission.",
   "validate.static_without_shape": "Le static '{unit}' ({type}) n'a pas de shape_name : DCS peut le refuser au chargement de la mission (« unknown static shape_name ») et l'objet n'existera pas. Écrire shape_name = \"{shape}\" sur l'unité, comme le fait l'éditeur de mission. L'action MCP repair_static_shapes les complète toutes.",
   "mcp.run_action_failed": "échec de run_action {name} : {error}",
+  "mcp.self_update": "mise à jour automatique de veaf-mission-mcp : {outcome}",
+  "mcp.self_update_failed": "échec de la mise à jour automatique de veaf-mission-mcp : {error}",
   "validate.no_source_mission": "Table de mission source (src/mission/mission) introuvable — checks groupes / presets / waypoints / TUM ignorés.",
   "validate.presets_no_aircraft": "presets.yaml est configuré mais la mission n'a aucun aéronef joueur auquel appliquer les préréglages radio.",
   "validate.radio_lua_function_missing": "Menu radio : la fonction Lua '{function}' référencée est introuvable dans les scripts de la mission (à définir dans mission-script.lua).",

@@ -186,3 +186,12 @@ class TestCoordinatesWithoutAMission:
 
         result = CATALOG.run_action("resolve_coordinates", {"theatre": "Syria", "position": {"x": 0.0, "y": 0.0}})
         assert result["theatre"] == "Syria"
+
+
+def test_list_airfields_details_do_not_depend_on_the_theatre_s_case() -> None:
+    """`syria` gave every base an empty `atc`: the frequency table is keyed in DCS spelling (review finding)."""
+    from veaf_mission_mcp.map_tools import list_airfields
+
+    result = list_airfields(theatre="syria", details=True, name_contains="incirlik")
+    assert result["theatre"] == "Syria"
+    assert result["airfields"][0]["atc"]["vhf"] == 122.1

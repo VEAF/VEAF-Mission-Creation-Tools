@@ -1,4 +1,4 @@
-# 02 — The guide checks through the action, never through a shell
+# 08 — The guide checks through the action, never through a shell
 
 Status: ✅ done
 

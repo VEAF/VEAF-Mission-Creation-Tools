@@ -211,6 +211,8 @@ def list_airfields(
         }
     if not theatre:
         raise ValueError("list_airfields needs mission_path or theatre")
+    # DCS spelling: the frequency table is keyed by it, and `syria` gave every base an empty `atc`.
+    theatre = theatre_of(None, theatre)
     airfields = dcs_airdromes.airfields_for_theatre(theatre)
     if not airfields:
         raise ValueError(f"No airbase data for theatre {theatre!r}")

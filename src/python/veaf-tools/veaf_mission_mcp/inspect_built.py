@@ -158,6 +158,7 @@ def _presets(players: list[tuple[str, dict[str, Any]]]) -> list[str] | str:
 
 
 def _bullseyes(content: dict[str, Any]) -> dict[str, dict[str, int]] | str:
+    """Each side's bullseye in whole DCS metres, or ``"absent"`` when no side has one."""
     found = {
         str(side): {"x": round(float(b["x"])), "y": round(float(b["y"]))}
         for side, coalition in (content.get("coalition") or {}).items()
@@ -167,6 +168,7 @@ def _bullseyes(content: dict[str, Any]) -> dict[str, dict[str, int]] | str:
 
 
 def _weather_line(label: str, content: dict[str, Any]) -> str:
+    """One mission's start time and weather as pilots read it: sky, wind FROM at the ground, visibility."""
     seconds = int(content.get("start_time") or 0)
     weather = _weather(content.get("weather") or {})
     ground = weather.winds["ground"]

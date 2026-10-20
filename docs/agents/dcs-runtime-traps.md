@@ -788,6 +788,25 @@ subtitle and a page number drawn there were cut.
 back with the calibration page veaf-tools adds, `KNEEBOARD/IMAGES/00-veaf-calibration.png`: its
 circles are round only at 2:3. Keep text out of the top-left and bottom-right corners.
 
+### A slot for an aircraft the player does not have, or has disabled, shows but cannot be taken {#slot-of-a-disabled-module-cannot-be-taken}
+
+Measured **2026-08-18**.
+
+DCS lists the slot in the role selection whatever the player owns. Choosing it leaves the player
+on the map view, with no message. Free does not mean available: a player can disable any module
+in the module manager, the free Su-25T and TF-51D included, and `dcs.log` then says
+`plugin: SKIPPED 'Su-25T by Eagle Dynamics': disabled by user`. The list of loaded plugins does not
+prove ownership either: `C-101 Aviojet by AvioDev` is loaded for the AI variant on a PC without
+the module.
+
+**What to do:** Ask the player which aircraft they fly before placing a slot for them, or reuse one they already
+flew in a previous mission. On their PC, `plugin: SKIPPED … disabled by user` in
+`Saved Games\DCS\Logs\dcs.log` lists what is disabled. The A-10C II is a safe default on both
+sides; a red slot goes under the generic country CJTF Red, which accepts any aircraft.
+
+*What it cost:* A test mission on 2026-08-18 put the player in a Su-25T slot they had disabled: "I can pick it but I
+do not slot, I stay on the map view."
+
 ## Radio and frequencies {#radio}
 
 ### The text of `Radio.lua` is not the airfield frequencies DCS uses — DCS completes the missing bands {#radio-lua-is-not-what-the-f10-view-shows}

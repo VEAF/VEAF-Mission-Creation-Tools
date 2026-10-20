@@ -1617,3 +1617,6 @@ limitations:
     Without a shell, build the mission with the actions, write the briefing text with `set_briefing`,
     and tell the user plainly which documents were not produced and that Codex, OpenCode, Antigravity or Claude Code
     can make them in the same folder later. Do not pretend to have produced a file.
+    With a shell, the scripts run: a PC without Python takes a portable one in the user's folder
+    (python-pptx, Pillow), as the sandbox demo of 2026-10-20 did — a missing Python is no reason to
+    skip the briefing.

@@ -892,6 +892,7 @@
   "presets_injector.report.presets_file": "Presets file: `{path}`",
   "presets_injector.report.section_critical": "## ⚠️ Out of range — dropped from the injected radio (DCS would reject these at mission load)",
   "presets_injector.report.section_info": "## ℹ️ Out of range — dropped from the injected radio (DCS would store but ignore these)",
+  "presets_injector.report.info_no_action": "**Nothing to do:** the channels in range stay on this aircraft's radios; DCS would have ignored these. Do not set the type to `none` — it removes all its presets.",
   "presets_injector.report.silence_hint": "**To silence:** add to `presets.yaml`:",
   "presets_injector.report.table_header": "| Channel | Title | Frequency (MHz) | Collection | Radio |",
   "presets_injector.report.title": "# Radio Presets Frequency Validation Report",

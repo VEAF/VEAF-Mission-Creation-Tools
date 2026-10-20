@@ -538,6 +538,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 block.append(
                     f"| {ch.channel} | {ch.channel_title or '—'} | {ch.freq_mhz} | {ch.radio_collection} | {ch.radio_key} |"
                 )
+            if not issue.strict:
+                # `none` would strip every preset of the type, the ones in range too, to quiet a
+                # frequency DCS ignores anyway: two assistants did just that (FEAT-AI-ZERO-SETUP).
+                return [*block, "", t("presets_injector.report.info_no_action"), ""]
             block += [
                 "",
                 t("presets_injector.report.silence_hint"),

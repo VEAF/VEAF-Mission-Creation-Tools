@@ -63,6 +63,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The executable ships the parking captures** (FEAT-AI-ZERO-SETUP): `veaf_libs/data/parking/` was never bundled, so an air group starting on a ramp or a runway failed with "no parking data captured" from the executable, while it worked from the repository.
   A test now fails on any package data file the build does not ship, unless it is declared build- or test-only.
 - **`edit_route` `set` moves a waypoint** (FEAT-AI-ZERO-SETUP): it accepted `position` and dropped it without a word, so an assistant read the route back unchanged and rebuilt the waypoint by hand. Waypoint 1, the group's own position, is refused with a pointer to `set_group_properties` `move_to`; an operation that takes no position now refuses one.
+- **The presets report no longer suggests `none` for a frequency DCS ignores anyway** (FEAT-AI-ZERO-SETUP): under each informational entry (a warbird losing the UHF channels, an L-39 those above 390 MHz) `presets-validation-report.md` said to set the type to `none`, which removes all its presets, the working ones too; two assistants stripped 11 aircraft types that way. It now says there is nothing to do; the `none` hint stays for the frequencies DCS rejects at load.
 
 ### Removed
 

@@ -892,6 +892,7 @@
   "presets_injector.report.presets_file": "Fichier presets : `{path}`",
   "presets_injector.report.section_critical": "## ⚠️ Hors plage — retirées de la radio injectée (DCS rejetterait ces fréquences au chargement)",
   "presets_injector.report.section_info": "## ℹ️ Hors plage — retirées de la radio injectée (DCS les stockerait mais les ignorerait)",
+  "presets_injector.report.info_no_action": "**Rien à faire :** les canaux à portée restent sur les radios de cet avion ; DCS aurait ignoré ceux-ci. Ne passez pas le type à `none` — cela retire tous ses presets.",
   "presets_injector.report.silence_hint": "**Pour masquer :** ajouter dans `presets.yaml` :",
   "presets_injector.report.table_header": "| Canal | Titre | Fréquence (MHz) | Collection | Radio |",
   "presets_injector.report.title": "# Rapport de validation des fréquences radio",

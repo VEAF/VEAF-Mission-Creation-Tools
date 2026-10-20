@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-TERRAIN-DATA-DOWNLOAD](FEAT-TERRAIN-DATA-DOWNLOAD/PRD.md) · ✅
+
+Terrain data an AI can use without DCS: the elevation grids swept in DCS are published as the `terrain-data` GitHub release, and veaf-tools downloads a missing theatre on first use, checksum verified; a local grid keeps priority, offline the answer stays "sweep it in DCS" (#1154). 11 theatres published on 2026-10-20, TheChannel made sweepable on the way.
+
 ### [FEAT-KNEEBOARD-PRESETS-REDESIGN](FEAT-KNEEBOARD-PRESETS-REDESIGN/PRD.md) · ✅
 
 The radio presets kneeboard page redrawn for the 2:3 window DCS stretches every image into: cockpit radio names, no empty rows, two columns, a shared calibration page, header and footer clear of the window's own controls, 256-colour PNGs (#1148, #1149). Seen right in game by David on 2026-10-18; demo step added (VEAF-Demo-Mission-v6 #10); the eight v6 OT and the eight foothold2 Foothold missions rebuilt the same day, and deployed (Foothold Syria by stopping foothold2 while empty).

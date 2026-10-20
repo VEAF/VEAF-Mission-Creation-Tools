@@ -51,6 +51,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Convert-FootholdBatch.ps1` finds the adopted folders again (it read the theatre in one key form only) and ignores the other missions on the same map, such as the Open Training ones.
   `validate` reports a withdrawn module such as `hercules` as a warning instead of failing on it.
   The batch no longer turns an LF `mission.yaml` into CRLF when it removes `build.scripts_path` after a build.
+- **TheChannel is a supported theatre** (FEAT-TERRAIN-DATA-DOWNLOAD): `terrain-sweep TheChannel` answered "Unsupported theatre", so its elevation grid could not be swept; a blank mission is now generated for it, centred on its airfields.
 
 ## [6.30.0] — 2026-10-15
 

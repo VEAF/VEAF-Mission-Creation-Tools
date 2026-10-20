@@ -60,6 +60,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The updater replaces itself the same way: the `.cmd` script it used to leave behind never put the new updater in place (measured 2026-10-20), and is gone.
 - **`veaf-tools mcp` no longer prints the version banner on stdout**, whose first line was not JSON-RPC (FEAT-AI-ZERO-SETUP).
 - **The new-version notice did not appear** (FEAT-AI-ZERO-SETUP, measured 2026-10-20): the check read the version from the release's tag, `published-latest`, which holds none; it now reads it from the release name, as the updater does.
+- **The executable ships the parking captures** (FEAT-AI-ZERO-SETUP): `veaf_libs/data/parking/` was never bundled, so an air group starting on a ramp or a runway failed with "no parking data captured" from the executable, while it worked from the repository.
+  A test now fails on any package data file the build does not ship, unless it is declared build- or test-only.
 
 ### Removed
 

@@ -312,3 +312,33 @@ def test_pyinstaller_command_passes_collect_data(tmp_path: Path, monkeypatch: py
 
     cmd = recorded[0]
     assert cmd[cmd.index("--collect-data") + 1] == "avwx"
+
+
+#: Package data the executable does not need: read by the build or the tests only.
+_NOT_SHIPPED_DATA = {
+    "veaf_libs/data/dcs-schema",  # the DCS API schema, read by the DCS mocks' audit
+    "presets_injector/data/dcs-radio-specs-overrides.yaml",  # merged into the specs by veaf-build
+}
+
+
+def test_every_runtime_data_file_ships_in_the_executable(tmp_path: Path) -> None:
+    """A data file the build forgets works from a checkout and fails in the exe only.
+
+    The parking captures were never bundled (measured on a 6.31.0 build, 2026-10-20): an AI on a
+    mission maker's PC got "no parking data captured for theatre 'Caucasus'" for a runway start,
+    while the same request worked from the repository.
+    """
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    bundled = [Path(src).resolve() for src, _dest in worker._veaf_tools_extra_data(None)]
+    tools = worker.src_dir / "python" / "veaf-tools"
+    missing = []
+    for path in tools.glob("*/data/**/*"):
+        if not path.is_file() or path.suffix == ".py" or "__pycache__" in path.parts:
+            continue
+        rel = path.relative_to(tools).as_posix()
+        if any(rel == skip or rel.startswith(f"{skip}/") for skip in _NOT_SHIPPED_DATA):
+            continue
+        resolved = path.resolve()
+        if not any(resolved == src or src in resolved.parents for src in bundled):
+            missing.append(rel)
+    assert missing == []

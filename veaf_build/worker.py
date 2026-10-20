@@ -569,6 +569,11 @@ class BuildAndReleaseWorker:
         clear_ground_dir = veaf_tools_dir / "veaf_libs" / "data" / "clear-ground"
         if clear_ground_dir.is_dir():
             extra.append((clear_ground_dir, "veaf_libs/data/clear-ground"))
+        # Parking captures — one per theatre, read by add_air_group for a ramp or runway start.
+        # Never bundled until FEAT-AI-ZERO-SETUP: the exe answered "no parking data captured".
+        parking_dir = veaf_tools_dir / "veaf_libs" / "data" / "parking"
+        if parking_dir.is_dir():
+            extra.append((parking_dir, "veaf_libs/data/parking"))
         bundled_data = [
             # DCS country name->id table, read by the aircraft injector at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),

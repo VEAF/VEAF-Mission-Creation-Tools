@@ -27,10 +27,11 @@ def test_ai_setup_declares_the_running_exe_and_reports_each_client(
     exe = tmp_path / "veaf-tools.exe"
     _frozen(monkeypatch, exe)
     monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
     seen: dict[str, Any] = {}
 
-    def setup_all(exe_arg: Path, *, home: Path, appdata: Path) -> list[ClientResult]:
-        seen.update(exe=exe_arg, appdata=appdata)
+    def setup_all(exe_arg: Path, *, home: Path, appdata: Path, localappdata: Path) -> list[ClientResult]:
+        seen.update(exe=exe_arg, appdata=appdata, localappdata=localappdata)
         return [
             ClientResult("Claude Desktop", "configured", "x.json"),
             ClientResult("Claude Code", "not_found"),
@@ -42,7 +43,7 @@ def test_ai_setup_declares_the_running_exe_and_reports_each_client(
     result = CliRunner().invoke(app, ["ai-setup"])
 
     assert result.exit_code == 0, result.output
-    assert seen == {"exe": exe.resolve(), "appdata": tmp_path / "Roaming"}
+    assert seen == {"exe": exe.resolve(), "appdata": tmp_path / "Roaming", "localappdata": tmp_path / "Local"}
     assert "Claude Desktop" in result.output and "Gemini CLI" in result.output
 
 

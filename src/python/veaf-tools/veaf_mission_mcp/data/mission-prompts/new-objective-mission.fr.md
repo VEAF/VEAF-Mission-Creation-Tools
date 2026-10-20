@@ -174,7 +174,7 @@ La phase 2 ne commence que sur une **validation explicite** d'un scénario ident
 validation. Au moment de valider, demande seulement ce qui manque encore :
 
 - le **format du briefing** : en pratique, VEAF le partage en **Google Slides dans un Google Drive**.
-  Le script génère un PPTX, que Drive convertit en Slides à l'import ; s'il y a un connecteur Google
+  `build_mission_briefing` génère un PPTX, que Drive convertit en Slides à l'import ; s'il y a un connecteur Google
   Drive, propose de l'y déposer, converti, dans le dossier que l'utilisateur indique (c'est une
   publication : demande son accord). Un PDF en plus si on veut diffuser un fichier figé ;
 - les **noms des pilotes** pour l'ATO, s'il les a (sinon les cases restent vides, comme dans le
@@ -402,29 +402,19 @@ validé un scénario, pas un à-peu-près.
   `presets-validation-report.md`) : la mission n'est pas prête tant que cette liste n'est pas vide.
   *Kolkhida* a volé deux missions sur le plan d'Open Training du gabarit, l'avertissement affiché.
 - **`src/waypoints.yaml`** : retire les exemples du gabarit.
-- **Carte du briefing** : générée depuis les données de la mission par un script (x/y → lat/lon via
-  `resolve_coordinates` ou `veaf_libs.coordinates`), jamais dessinée à la main. Une carte générale
-  (départ, itinéraire et points nommés, objectifs, menaces connues à leur rayon, soutien, bullseye,
-  légende, échelle en nautiques) et **un zoom par objectif**, cadré par la liste des objets à montrer.
-  Fond OpenStreetMap avec un `User-Agent` qui identifie l'outil par son URL (**jamais une donnée
-  personnelle**), tuiles en cache local, mention « © OpenStreetMap contributors ». **Ne montre que ce
-  que le renseignement est censé connaître** : une menace surprise prévue par le scénario n'est pas
-  sur la carte.
-  - **Dans un désert, le fond OSM standard est presque vide** : prends OpenTopoMap
-    (`tile.opentopomap.org`, relief ombré et courbes de niveau, attribution « © OpenStreetMap
-    contributors, SRTM | style © OpenTopoMap (CC-BY-SA) »).
-  - **Les zooms se cadrent large** (3 à 10 km, pour qu'une route ou un relief serve de repère) avec un
-    **encart** qui détaille les unités une par une ; un zoom sur 300 m n'a plus de fond.
-  - **Une carte générale très haute est illisible sur une page 16:9** : ajoute une carte paysage de
-    la zone d'opérations, et garde la générale comme vue d'ensemble.
-  - **Regarde chaque carte rendue** : aucune étiquette ne doit en chevaucher une autre, ni désigner le
-    mauvais point, ni sortir du cadre.
-- **Images de briefing DCS** : les mêmes cartes en JPEG d'environ 1600 px, copiées dans
-  `src/mission/l10n/DEFAULT/`, déclarées dans `mapResource`, listées carte générale en tête dans
-  `pictureFileNameB` et `pictureFileNameN` ; `pictureFileNameR` vide (`describe_known_limitations`,
-  `briefing-pictures-red-then-blue`). Aucune action ne le fait : script qui charge et réécrit les
-  tables (`mission_tools.miz_tools.read_mission_folder` / `write_mission_folder`, et
-  `luadata.serialize` pour `mapResource`), à noter aux retours VMCT.
+- **Cartes et images de briefing DCS** : `build_mission_briefing` (section 6) les fait depuis la
+  mission construite, jamais à la main : une carte générale (départ, itinéraire et waypoints numérotés,
+  objectifs, menaces connues avec leur cercle d'engagement plein et de détection en pointillés, soutien,
+  bullseye, échelle en nautiques, crédit des tuiles) et **un zoom par objectif**, cadré à 3 km au moins
+  avec chacune de ses cibles. Il les met dans le briefing DCS, carte générale en tête de
+  `pictureFileNameB` et `pictureFileNameN`, sans toucher `pictureFileNameR`
+  (`briefing-pictures-red-then-blue`).
+  - **Ne passe que ce que le renseignement est censé connaître** dans `threats` : une menace surprise
+    prévue par le scénario n'y est pas. Une portée n'y figure qu'avec sa source.
+  - **Dans un désert, le fond OSM standard est presque vide** : `basemap: topo` (OpenTopoMap, relief
+    ombré et courbes de niveau).
+  - **Regarde chaque carte rendue** si tu le peux : aucune étiquette ne doit désigner le mauvais point.
+    Sans moyen de voir une image, dis à l'utilisateur de les regarder (`docs/maps/`).
 - **Dessins F10** (`add_map_drawing`) sur la couche `Blue` : l'itinéraire et ses points nommés, les
   menaces connues avec leur contour. Chaque étiquette avec un `fill_color` **opaque et clair**, sinon
   le fond par défaut (noir à moitié transparent) la rend illisible.
@@ -437,9 +427,9 @@ validé un scénario, pas un à-peu-près.
 3. Aérodromes (`set_airbase_coalition`), porte-avions, vols joueurs (4.3).
 4. Objectifs (4.4), menace (4.5), et la zone à défendre s'il y en a une (2.1).
 5. Soutien, radio, waypoints (4.6) ; date, météo, bullseye.
-6. Carte du briefing, images, dessins F10, `set_briefing`.
+6. Dessins F10, `set_briefing`.
 7. `validate_mission`, `build_mission` (et le profil `LOCAL_TEST`), puis la section 8.
-8. Le fichier de briefing (section 6).
+8. Le briefing : `build_mission_briefing` (section 6).
 9. `README.md` : le scénario, comment construire, les fichiers, les limites connues.
 
 Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'apprêtes à faire.
@@ -450,18 +440,21 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
   de la section 3, page pour page ; le PPTX est la source de la version **Google Slides** (import dans
   Drive). Garde des polices que Slides connaît (Calibri, Cambria, Arial), et regarde le rendu converti
   s'il est déposé.
-- **Généré par un script** qui lit la mission construite, comme la carte, pour qu'on le régénère
-  après un changement. Pour le PPTX, le skill de présentations s'il est disponible, sinon
-  `python-pptx` ; pour le PDF, l'export du PPTX ou une génération directe, avec les mêmes pages.
-- **Les chiffres viennent de la mission, pas du scénario** : coordonnées des cibles relues sur les
-  objets posés (DMS au centième de seconde), plan de fréquences relu dans `presets.yaml`, plan de vol
-  relu sur la route du groupe ou dans `src/waypoints.yaml`, indicatifs relus sur les groupes. L'altitude d'une cible est celle du
-  sol sous l'objet posé, lue par `terrain_elevation` (`points`), en pieds ; sans grille pour le
-  théâtre, la colonne reste vide et c'est un point ouvert.
-- **Relis chaque page rendue** (convertis-la en image et regarde-la) : rien ne déborde, aucune
-  étiquette de carte n'en chevauche une autre, chaque numéro de waypoint correspond à la route. Sans
-  LibreOffice, PowerPoint fait le rendu par COM (`Presentations.Open` puis `Slide.Export` en PNG) —
-  c'est d'ailleurs le logiciel des lecteurs.
+- **Généré par `build_mission_briefing`**, une fois la mission construite, et relancé après chaque
+  changement et chaque build. Tu lui passes les **mots** du scénario : `title`, `context`,
+  `mission_bullets`, `objectives` (la combat zone, son titre, sa tâche), `threats` (le groupe où elle
+  se tient, sa famille, ses portées sourcées), `air_opposition`, `air_defences`, `other`, et les
+  `pilots` / `loadouts` par nom de groupe.
+- **Les chiffres viennent de la mission, pas du scénario**, et c'est l'action qui les lit dans le
+  `.miz` construit : date, heure, météo, bullseye, flights, soutien, plan de vol, presets injectés dans
+  les cockpits (le plan de fréquences), coordonnées de chaque cible posée et altitude du sol dessous —
+  sans grille d'altitude pour le théâtre, la colonne reste vide et l'action le signale : c'est un
+  point ouvert. Lis ses `warnings`.
+- **Le PDF** n'est pas produit : l'utilisateur l'exporte depuis PowerPoint ou Slides. Avec un shell,
+  PowerPoint le fait par COM (`Presentations.Open` puis `SaveAs`, format 32).
+- **Relis chaque page rendue** si tu peux convertir le PPTX en images (PowerPoint par COM :
+  `Presentations.Open` puis `Slide.Export` en PNG) : rien ne déborde, chaque numéro de waypoint
+  correspond à la route. Sinon, demande à l'utilisateur de l'ouvrir et de le regarder.
 
 ## 7. Ce que tu rends à la fin
 

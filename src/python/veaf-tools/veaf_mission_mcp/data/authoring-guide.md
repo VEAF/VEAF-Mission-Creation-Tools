@@ -16,9 +16,10 @@ from its first section:
 - `open-training` — a VEAF training mission on a whole map: airfields, support, air defence, graded
   training zones, combat zones, QRA.
 
-Pass `lang: fr` to a user who writes in French. Some steps of the prompts are scripts (briefing maps and
-pictures, the briefing document): without a shell, read `describe_known_limitations` entry
-`mission-prompt-scripts-need-a-shell` and say what you could not produce. A user who wants no more than what they described (a test mission with one SAM zone) gets no prompt, but still
+Pass `lang: fr` to a user who writes in French. An objective mission's briefing — the PPTX, its maps and
+the DCS briefing pictures — is one action, `build_mission_briefing`, once the mission is built. A few steps
+are still scripts (the PDF, the Open Training's `README.md`): without a shell, read `describe_known_limitations`
+entry `mission-prompt-scripts-need-a-shell` and say what you could not produce. A user who wants no more than what they described (a test mission with one SAM zone) gets no prompt, but still
 the next section. Only a change to an existing mission skips both.
 
 ## Right after `scaffold_mission` — every new mission
@@ -310,7 +311,8 @@ that was wrong at least once.
   scenario says otherwise. The blank mission's bullseyes are arbitrary.
 - A briefing (`set_briefing`: `sortie`, situation, blue task) that lists bases, support frequencies,
   zones and rules.
-  A briefing **picture** (a map, a target photo) is `set_briefing_picture`, per side — not the same picture on both sides: a player whose side the briefing does not know sees red then blue, so sees it twice.
+  An objective mission's maps and briefing document come from `build_mission_briefing`, which puts the maps in the DCS briefing itself.
+  Any other briefing **picture** (a target photo) is `set_briefing_picture`, per side — not the same picture on both sides: a player whose side the briefing does not know sees red then blue, so sees it twice.
 
 **Airbases.** Colour every airfield of each side (`set_airbase_coalition`), not a sample: the
 front line must read on the map. Decide which bases offer slots; a neutral base with dynamic slots,

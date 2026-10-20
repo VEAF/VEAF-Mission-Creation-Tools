@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.31.2] — 2026-10-20
+
 ### Fixed
 
 - **What an AI met building a mission with nothing but veaf-tools** (FIX-OPENCODE-TEST-FINDINGS, an OpenCode session of 161 minutes on 6.31.1):

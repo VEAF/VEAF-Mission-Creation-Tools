@@ -1,6 +1,6 @@
 # FEAT-AI-ZERO-SETUP — installing veaf-tools is all an AI needs
 
-Status: 🧑 waiting-human — merged in #1155; ticket 08 (David's PC) waits for a release that ships `ai-setup`.
+Status: 🧑 waiting-human — merged in #1155, released in 6.31.0; ticket 08: David's PC is set up, except Claude Desktop, whose Store install `ai-setup` does not find.
 
 Origin: David, 2026-10-20, recording a demo video in a clean Windows sandbox. The assistant there did not behave as it does on his PC, and the question was what the PC had that the sandbox did not. Goal, in his words: a very short prompt — "install the VEAF tools", then "create a mission" — and nothing the AI has to fetch from the repository or the Internet.
 

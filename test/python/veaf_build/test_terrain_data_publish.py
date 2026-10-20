@@ -74,3 +74,23 @@ def test_an_existing_release_is_not_created_again(tmp_path: Path) -> None:
     publish.publish([_grid(tmp_path, "Syria")], manifest, run=gh)
 
     assert not [c for c in gh.calls if c[:3] == ["gh", "release", "create"]]
+
+
+def _published(grids: list[str]):  # noqa: ANN202
+    def run(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:  # noqa: ARG001
+        if not grids:
+            return subprocess.CompletedProcess(args, 1, stdout=b"")
+        return subprocess.CompletedProcess(
+            args, 0, stdout=json.dumps({"format": 1, "grids": dict.fromkeys(grids, {})}).encode()
+        )
+
+    return run
+
+
+def test_publishing_from_a_folder_missing_a_published_theatre_is_caught(tmp_path: Path) -> None:
+    _grid(tmp_path / "terrain", "Syria")
+    _files, manifest = publish.prepare(tmp_path / "terrain", tmp_path / "dist")
+
+    assert publish.dropped_theatres(manifest, run=_published(["Normandy", "Syria"])) == ["Normandy"]
+    assert publish.dropped_theatres(manifest, run=_published(["Syria"])) == []
+    assert publish.dropped_theatres(manifest, run=_published([])) == [], "no release yet drops nothing"

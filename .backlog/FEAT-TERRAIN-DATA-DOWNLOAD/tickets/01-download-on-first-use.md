@@ -1,6 +1,6 @@
 # 01 — download a missing grid on first use
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_libs/github_download.py` (new: trusted-host check and redirect walk, out of `veaf-tools-updater.py`), `veaf-tools-updater.py` (imports them), `veaf_libs/terrain_elevation.py`, `veaf_mission_mcp/terrain.py` and `surface.py` (the "no grid" message), tests.
 

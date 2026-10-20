@@ -627,6 +627,13 @@ def terrain_data(
     if not do_publish:
         console.print("[yellow]Nothing uploaded: add --publish to update the terrain-data release.[/yellow]")
         return
+    dropped = terrain_data_publish.dropped_theatres(manifest_path)
+    if dropped:
+        logger.error(
+            f"{', '.join(dropped)} published but not in {source}: publishing would withdraw them. "
+            "Publish from a folder holding every published grid."
+        )
+        return
     terrain_data_publish.publish(files, manifest_path)
     console.print(f"[green]OK[/green] https://github.com/{terrain_data_publish.REPOSITORY}/releases/tag/terrain-data")
 

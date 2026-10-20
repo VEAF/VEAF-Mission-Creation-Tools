@@ -44,6 +44,30 @@ def prepare(grid_dir: Path, out_dir: Path) -> tuple[list[Path], Path]:
     return files, manifest_path
 
 
+def dropped_theatres(manifest_path: Path, run: Runner = subprocess.run) -> list[str]:
+    """Return the theatres published now that this manifest would no longer name.
+
+    Every grid of the folder goes out at each publication and the manifest is replaced, so publishing
+    from a folder missing a theatre would withdraw it.
+
+    Args:
+        manifest_path: The manifest about to be published.
+        run: ``subprocess.run``, or a test double.
+
+    Returns:
+        The theatres dropped, sorted; empty when the release does not exist yet.
+    """
+    answer = run(
+        ["gh", "release", "download", RELEASE_TAG, "--pattern", MANIFEST_NAME, "--output", "-", "--repo", REPOSITORY],
+        capture_output=True,
+    )
+    if answer.returncode != 0:
+        return []
+    published = json.loads(answer.stdout)["grids"]
+    kept = json.loads(manifest_path.read_text(encoding="utf-8"))["grids"]
+    return sorted(set(published) - set(kept))
+
+
 def publish(files: list[Path], manifest_path: Path, run: Runner = subprocess.run) -> None:
     """Create the release when missing, then upload the grids and, last, the manifest.
 

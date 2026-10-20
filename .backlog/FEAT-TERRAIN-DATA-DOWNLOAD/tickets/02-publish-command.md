@@ -1,6 +1,6 @@
 # 02 — `veaf-build terrain-data`: publish the grids
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `veaf_build/cli.py` (the subcommand), a small module for the manifest, tests, `doc/developer/` (a new page, fr + en, in the `nav`).
 

@@ -110,6 +110,7 @@ plugins:
             Scripts: Scripts
             Developer: Développeur
             Capture a map's airbases: Récupérer les aérodromes d'une carte
+            Publish the terrain data: Publier les données de terrain
             References: Références
             CLI Reference: Référence CLI
             Updater & release tools: Mise à jour & publication
@@ -208,6 +209,7 @@ nav:
     - Guide: developer/GUIDE.md
     - DCS data generators: developer/dcs-data.md
     - Capture a map's airbases: developer/capture-airbases.md
+    - Publish the terrain data: developer/terrain-data.md
     - Mission editing MCP: developer/mission-editing-mcp.md
     - Radio preset projection: developer/radio-preset-projection.md
     - Export JSON contract: developer/export-json-contract.md

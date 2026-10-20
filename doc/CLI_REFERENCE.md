@@ -888,6 +888,10 @@ d'arpentage vide, consignes, attente ; un relevé interrompu reprend où il s'es
 relevée est celle de la carte, demandée à DCS ; s'il ne la donne pas, celle des aérodromes plus 50 km,
 et la commande le dit. **Relief seul** : ni bâtiments, ni pylônes, ni arbres.
 
+La plupart des théâtres n'ont pas besoin de relevé : les grilles relevées par la VEAF sont publiées sur GitHub (release [`terrain-data`](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/terrain-data)), et veaf-tools télécharge celle d'un théâtre au premier usage, dans le même dossier.
+Une grille déjà présente — relevée ici ou téléchargée — est utilisée telle quelle.
+Relève un théâtre non publié, ou pour remplacer une grille téléchargée.
+
 | Nom | Type | Obligatoire | Description |
 |---|---|---|---|
 | `THEATRE` | `str` | oui | Le théâtre, tel que DCS l'écrit (Caucasus, Syria…). |

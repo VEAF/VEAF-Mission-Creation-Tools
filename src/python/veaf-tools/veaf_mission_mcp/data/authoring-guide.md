@@ -385,10 +385,8 @@ scaffold → edit → validate → build → play flow.
 
 **A build that exits 0 is not a mission that works.** Read the build's counters — presets injected
 into how many aircraft, waypoints into how many groups, warehouse template links, weather variants —
-and question any zero. Then open the built `.miz` and check what the mission is about: the weather of
-two variants differs, the dynamic slots carry presets and a BULLSEYE, the tanker has its tasks, the
-combat-zone carriers and statics are what you meant. Say what you checked, and what you could not
-(anything that needs DCS running).
+and question any zero. Then call `inspect_built_mission` on the folder and check what the mission is about: the weather of two variants differs, the dynamic slots carry presets and a BULLSEYE, the tanker has its tasks and frequency; `describe_units` on the built `.miz` shows the routes and the combat-zone carriers and statics.
+Say what you checked, and what you could not (anything that needs DCS running, anything no action reads).
 
 ## Report back clearly
 

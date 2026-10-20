@@ -42,6 +42,7 @@ from veaf_mission_mcp.edit_veaf_config import (
 from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
+from veaf_mission_mcp.inspect_built import inspect_built_mission
 from veaf_mission_mcp.map_drawings import LINE_STYLES, add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import (
     describe_map,
@@ -1778,6 +1779,32 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             github_token=p.get("github_token"),
             tag=p.get("tag"),
         ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="inspect_built_mission",
+            description=(
+                "CHECK a BUILT mission: what the .miz holds after the build, compactly -- each airbase, "
+                "FARP and ship with its side, whether it offers dynamic slots and the aircraft types linked "
+                "to a template (and those that are not); per aircraft type, the preset channels on each "
+                "radio, or none; the bullseyes; the time and weather of the mission and of each weather "
+                "variant; the tankers and AWACS with their frequency and TACAN; and counters (presets "
+                "injected, routes, warehouse links, dead links, variants) so a zero shows. A section the "
+                "mission lacks reads 'absent'. Pass the mission folder (its latest build) or a .miz. "
+                "The way to check a build: never unzip or parse a .miz yourself. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "The mission folder (its latest built .miz) or a built .miz.",
+                    },
+                },
+                "required": ["mission_path"],
+            },
+        ),
+        handler=lambda p: inspect_built_mission(Path(p["mission_path"])),
     )
     catalog.register(
         ActionSpec(

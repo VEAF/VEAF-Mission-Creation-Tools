@@ -526,7 +526,8 @@ l'époque ou les camps ; lancer DCS.
 - **Lis tout le journal du build**, pas seulement le code de sortie : presets injectés dans combien
   d'appareils, waypoints dans combien de groupes, liens des warehouses,
   avertissements. Tout zéro est suspect.
-- **Ouvre le `.miz` produit** (un zip ; `mission` et `warehouses` sont des tables Lua) et contrôle :
+- **Contrôle la mission construite par les actions, jamais en la dézippant** : `inspect_built_mission` (slots, presets, bullseye, météo, soutien, compteurs), `describe_mission` et `describe_units` sur le `.miz` construit (noms, routes, unités), `read_mission_file` (les sources).
+  Ce qu'aucune action ne lit, tu le signales comme non vérifié. Contrôle :
   - noms de groupes et d'unités **uniques** ;
   - slots dynamiques sur les seules bases voulues ;
   - tâches des ravitailleurs et des AWACS ;

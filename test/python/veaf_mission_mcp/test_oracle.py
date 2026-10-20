@@ -398,3 +398,28 @@ class TestListCountries:
         from veaf_mission_mcp.server import CATALOG
 
         assert CATALOG.run_action("list_countries", {"name_contains": "syria"})["countries"][0]["name"] == "Syria"
+
+
+class TestNoShellParsing:
+    """FIX-OPENCODE-TEST-FINDINGS 08: "open the built .miz and check" sent the AI to unzip it in PowerShell."""
+
+    def test_the_guide_forbids_reading_a_mission_through_a_shell(self) -> None:
+        guide = describe_authoring_guide()["guide"]
+        assert "never through a shell" in guide
+        assert "inspect_built_mission" in guide
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "authoring-guide.md",
+            "mission-prompts/new-objective-mission.en.md",
+            "mission-prompts/new-objective-mission.fr.md",
+            "mission-prompts/new-open-training-mission.en.md",
+            "mission-prompts/new-open-training-mission.fr.md",
+        ],
+    )
+    def test_nothing_asks_to_open_a_miz_by_hand(self, name: str) -> None:
+        text = (_MCP_DATA / name).read_text(encoding="utf-8").lower()
+        for phrase in ("open the built `.miz`", "open the produced `.miz`", "ouvre le `.miz`", "veaf_libs/data/"):
+            assert phrase not in text, phrase
+        assert "inspect_built_mission" in text

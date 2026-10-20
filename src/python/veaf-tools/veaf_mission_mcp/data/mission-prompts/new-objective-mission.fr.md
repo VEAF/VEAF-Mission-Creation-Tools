@@ -284,7 +284,7 @@ validé un scénario, pas un à-peu-près.
   « Armement libre » (les pilotes le changent au sol).
 - **Plan de vol dans l'appareil** : il **est** le plan de vol du briefing, dans le même ordre et sous
   les mêmes noms. Dans DCS le point 0 est le départ : `W1` du briefing est le point d'index 1.
-  Vérifie-le dans le `.miz`. Avec des slots nommés, c'est la route du groupe (`edit_route`) ou
+  Vérifie-le dans le `.miz` construit (`describe_units` avec `include_route`). Avec des slots nommés, c'est la route du groupe (`edit_route`) ou
   `src/waypoints.yaml` ; avec des slots dynamiques, **seulement `src/waypoints.yaml`** : le build
   ajoute ses points après le départ de chaque gabarit joueur (un plan par catégorie et coalition, un
   pour les jets, un pour les hélicoptères), puis un BULLSEYE.
@@ -395,7 +395,7 @@ validé un scénario, pas un à-peu-près.
   DCS donne à l'aérodrome** : `describe_airfield_channels` puis `set_airfield_channels`, jamais une
   fréquence d'aérodrome tapée à la main. Réécris **toutes** les listes `channel_lists` du gabarit :
   sur une autre carte, il garde des aérodromes du Caucase (Batumi, Beslan…). Relis les préréglages
-  réellement injectés dans le `.miz`, appareil par appareil. Le SA342 Gazelle n'en reçoit aucun
+  réellement injectés, appareil par appareil (`inspect_built_mission`). Le SA342 Gazelle n'en reçoit aucun
   (seule sa radio FM se règle par préréglage) : dis au briefing que ses radios se règlent à la main.
   Le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun préréglage ne porte (journal et
   `presets-validation-report.md`) : la mission n'est pas prête tant que cette liste n'est pas vide.
@@ -471,7 +471,8 @@ Ce qui revient à l'utilisateur : commit, push, publication, lancer DCS.
   d'appareils, waypoints injectés dans combien de groupes, liens des warehouses, avertissements. Tout
   zéro est suspect. Lance les builds **l'entrée standard fermée** (`< /dev/null`, ou
   `stdin=DEVNULL`) : un build est resté bloqué dix minutes à attendre une saisie, sans rien afficher.
-- **Ouvre le `.miz` produit** (un zip ; `mission` et `warehouses` sont des tables Lua) et contrôle :
+- **Contrôle la mission construite par les actions, jamais en la dézippant** : `inspect_built_mission` (slots, presets, bullseye, météo, soutien, compteurs), `describe_mission` et `describe_units` sur le `.miz` construit (noms, routes, unités), `read_mission_file` (les sources).
+  Ce qu'aucune action ne lit, tu le signales comme non vérifié. Contrôle :
   - noms de groupes et d'unités **uniques** ;
   - slots nommés : un groupe par vol de l'ATO, le bon nombre de slots `Client`, au bon départ, avec
     un emport, et aucun slot dynamique ; slots dynamiques : seulement sur les bases prévues, et aucun

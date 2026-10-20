@@ -284,7 +284,7 @@ approximation of it.
   (pilots change it on the ground).
 - **Flight plan in the aircraft**: it **is** the briefing's flight plan, in the same order and under
   the same names. In DCS point 0 is the departure: the briefing's `W1` is the point with index 1.
-  Check it in the `.miz`. With named slots, it is the group's route (`edit_route`) or
+  Check it in the built `.miz` (`describe_units` with `include_route`). With named slots, it is the group's route (`edit_route`) or
   `src/waypoints.yaml`; with dynamic slots, **only `src/waypoints.yaml`**: the build appends its
   points after the departure of every player template (one plan per category and coalition, one for
   the jets, one for the helicopters), then a BULLSEYE.
@@ -390,7 +390,7 @@ approximation of it.
   AWACS, tankers, package frequency. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.
   Rewrite **all** the template's `channel_lists`: on another map, it keeps Caucasus airfields
-  (Batumi, Beslan…). Re-read the presets actually injected in the `.miz`, aircraft by aircraft. The
+  (Batumi, Beslan…). Re-read the presets actually injected, aircraft by aircraft (`inspect_built_mission`). The
   SA342 Gazelle gets none (only its FM radio takes presets): say in the briefing that its radios are
   set by hand.
   The build lists every AWACS, tanker or carrier no preset carries (its log and
@@ -467,7 +467,8 @@ What belongs to the user: commit, push, publishing, launching DCS.
   waypoints injected into how many groups, warehouse links, warnings. All zeros is suspicious. Run
   the builds **with standard input closed** (`< /dev/null`, or `stdin=DEVNULL`): a build sat for ten
   minutes waiting for input, without printing anything.
-- **Open the produced `.miz`** (a zip; `mission` and `warehouses` are Lua tables) and check:
+- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
+  What no action reads, you report as not checked. Check:
   - **unique** group and unit names;
   - named slots: one group per ATO flight, the right number of `Client` slots, at the right
     departure, with a loadout, and no dynamic slot; dynamic slots: only on the planned bases, and no

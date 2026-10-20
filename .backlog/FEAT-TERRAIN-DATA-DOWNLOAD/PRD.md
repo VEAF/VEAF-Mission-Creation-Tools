@@ -1,6 +1,6 @@
 # FEAT-TERRAIN-DATA-DOWNLOAD — terrain data an AI can use without DCS
 
-Status: 🧑 waiting-human — merged 2026-10-20 (#1154); the `terrain-data` release holds Falklands, Normandy, PersianGulf, SinaiMap and Syria. Left: sweep Caucasus and the other installed theatres in DCS, then republish (ticket 04).
+Status: ✅ done — merged 2026-10-20 (#1154 and the TheChannel follow-up); the `terrain-data` release holds 11 theatres: Afghanistan, Caucasus, Falklands, GermanyCW, MarianaIslands, MarianaIslandsWWII, Normandy, PersianGulf, SinaiMap, Syria, TheChannel. Kola, Iraq and Nevada are not installed on David's PC.
 
 ## Origin
 
@@ -44,4 +44,5 @@ The local clear-ground folder holds the same two catalogues as the exe, nothing 
 1. [01 — download a missing grid on first use](tickets/01-download-on-first-use.md)
 2. [02 — `veaf-build terrain-data`: publish the grids](tickets/02-publish-command.md)
 3. [03 — docs, known limitations, changelog](tickets/03-docs.md)
-4. [04 — sweep the missing theatres and publish the release](tickets/04-sweep-and-publish.md) · 🧑 David runs DCS and gives the go to publish
+4. [04 — sweep the missing theatres and publish the release](tickets/04-sweep-and-publish.md)
+5. [05 — TheChannel can be swept](tickets/05-thechannel-supported.md)

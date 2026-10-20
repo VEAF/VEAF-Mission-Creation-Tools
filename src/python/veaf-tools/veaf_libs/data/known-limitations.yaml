@@ -250,18 +250,16 @@ limitations:
 - id: marianas-placement-checks-nothing
   kind: tool
   area: mcp
-  title: "On MarianaIslands, no placement is checked against the sea, the trees or the buildings"
+  title: "On MarianaIslands, no placement is checked against the trees or the buildings"
   theatres: [MarianaIslands]
   symptom: |
-    MarianaIslands has no clear-ground catalogue and no parking data shipped, and an elevation grid
-    only once `terrain-sweep` has run on the workstation or once its grid is published in the
-    `terrain-data` release (not yet on 2026-10-20). Every ground placement there is written as
-    asked, with a warning that says the sea, the trees and the buildings were not checked; every QRA
-    starts in the air (`no-parking-data-outside-three-theatres`).
+    MarianaIslands has no clear-ground catalogue and no parking data shipped. Its elevation grid,
+    published in the `terrain-data` release since 2026-10-20, is downloaded on first use and checks the
+    sea only. Every ground placement there is written as asked, with a warning that says the trees and
+    the buildings were not checked; every QRA starts in the air (`no-parking-data-outside-three-theatres`).
   workaround: |
     Check the built mission in DCS with `veaf-tools dcs clear-ground-check <mission.miz>` and move what
-    it finds. Sweep the theatre on the workstation with `veaf-tools dcs terrain-sweep MarianaIslands`
-    (the sea), and the places of the mission with `veaf-tools dcs clear-ground-sweep MarianaIslands`
+    it finds. Sweep the places of the mission with `veaf-tools dcs clear-ground-sweep MarianaIslands`
     (the scenery).
   cost: |
     The Marianas Open Training v6, probed in DCS on 2026-10-12 (`Disposition.getSimpleZones` small

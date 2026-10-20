@@ -82,6 +82,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The Claude Code plugin and the Gemini CLI extension** (`plugin/`, the `veaf` marketplace) (FEAT-AI-ZERO-SETUP): `veaf-tools ai-setup`, the server's own updates and the guide it serves replace them.
   Remove an installed plugin with `claude plugin uninstall veaf-mission-editor@veaf`, or the extension with `gemini extensions uninstall veaf-mission-editor`, then run `ai-setup`.
   The version now lives in `pyproject.toml` alone.
+- **TheChannel is a supported theatre** (FEAT-TERRAIN-DATA-DOWNLOAD): `terrain-sweep TheChannel` answered "Unsupported theatre", so its elevation grid could not be swept; a blank mission is now generated for it, centred on its airfields.
 
 ## [6.30.0] — 2026-10-15
 

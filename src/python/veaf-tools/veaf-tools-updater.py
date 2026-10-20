@@ -20,6 +20,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
@@ -128,6 +129,29 @@ def _is_trusted_download_url(url: str | None) -> bool:
         return False
     host = (parsed.hostname or "").lower()
     return host in _TRUSTED_DOWNLOAD_HOSTS or host.endswith(_TRUSTED_DOWNLOAD_HOST_SUFFIX)
+
+
+def _install_beside_running_exe(source: Path, dest: Path) -> None:
+    """Move ``source`` to ``dest``, even when ``dest`` is an executable a process is running.
+
+    An MCP server keeps ``veaf-tools.exe`` open for as long as its AI client runs. Windows refuses to
+    overwrite or delete a running exe, but lets it be renamed: the running copy is set aside as
+    ``<name>.<n>.old`` and the new one takes its name, used from the next start. Copies set aside by
+    an earlier update are deleted here; one still running stays for the next update.
+    (Measured 2026-10-20: overwriting failed with ``WinError 5``, renaming worked.)
+
+    Args:
+        source: The new executable, extracted under ``published/``.
+        dest: Where it is installed, possibly running.
+    """
+    for leftover in dest.parent.glob(f"{dest.name}.*.old"):
+        try:
+            leftover.unlink()
+        except OSError:
+            pass  # still running: the next update deletes it
+    if dest.exists():
+        dest.rename(dest.with_name(f"{dest.name}.{time.time_ns()}.old"))
+    shutil.move(str(source), str(dest))
 
 
 def load_config() -> dict[str, Any]:
@@ -671,7 +695,7 @@ exit /b 0
             for filename in ["veaf-tools.exe"]:
                 source_file = published_dir / filename
                 if source_file.exists():
-                    shutil.move(str(source_file), str(Path.cwd() / filename))
+                    _install_beside_running_exe(source_file, Path.cwd() / filename)
                     logger.info(t("updater.moved", name=filename))
                 else:
                     logger.warning(t("updater.err.file_not_found", name=filename))

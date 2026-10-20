@@ -150,3 +150,52 @@ def test_extract_and_install_routes_windows(
 
     assert ok is True
     assert "win" in called and "unix" not in called
+
+
+def test_install_windows_binaries_sets_a_running_veaf_tools_aside(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The installed veaf-tools.exe is renamed aside rather than overwritten (FEAT-AI-ZERO-SETUP 01).
+
+    An MCP server keeps veaf-tools.exe open for as long as its client runs, and Windows refuses to
+    overwrite a running exe but lets it be renamed: overwriting is what left a server on 6.22.1 for
+    five weeks while 6.30.0 sat unused in published/.
+    """
+    worker = _worker(updater_mod)
+    monkeypatch.chdir(tmp_path)
+    published = tmp_path / "published"
+    published.mkdir()
+    (published / "veaf-tools.exe").write_bytes(b"new")
+    (tmp_path / "veaf-tools.exe").write_bytes(b"running")
+    (tmp_path / "veaf-tools.exe.1.old").write_bytes(b"left by an earlier update")
+
+    worker._install_windows_binaries(published, has_locked_exe=False)
+
+    assert (tmp_path / "veaf-tools.exe").read_bytes() == b"new"
+    set_aside = list(tmp_path.glob("veaf-tools.exe.*.old"))
+    assert [p.read_bytes() for p in set_aside] == [b"running"]
+
+
+def test_install_windows_binaries_keeps_a_leftover_it_cannot_delete(
+    updater_mod: types.ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A copy set aside earlier and still running cannot be deleted: the install goes on regardless."""
+    worker = _worker(updater_mod)
+    monkeypatch.chdir(tmp_path)
+    published = tmp_path / "published"
+    published.mkdir()
+    (published / "veaf-tools.exe").write_bytes(b"new")
+    (tmp_path / "veaf-tools.exe.1.old").write_bytes(b"still running")
+    real_unlink = Path.unlink
+
+    def locked_unlink(self: Path, missing_ok: bool = False) -> None:
+        if self.name.endswith(".old"):
+            raise PermissionError(13, "Access is denied")
+        real_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", locked_unlink)
+
+    worker._install_windows_binaries(published, has_locked_exe=False)
+
+    assert (tmp_path / "veaf-tools.exe").read_bytes() == b"new"
+    assert (tmp_path / "veaf-tools.exe.1.old").exists()

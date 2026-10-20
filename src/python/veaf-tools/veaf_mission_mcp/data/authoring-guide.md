@@ -29,14 +29,18 @@ date, example waypoints and aircraft that have nothing to do with what the user 
 
 1. `src/presets.yaml` — a channel plan for modern two-radio aircraft on the Caucasus (Batumi, carriers…), which
    the build projects onto every aircraft type. Rewrite it for the theatre and the aircraft flown, or reduce it
-   to flight channels; the build reports the types whose radios cannot take a channel.
+   to flight channels. The build drops, per aircraft, the channels its radios cannot tune and lists them in
+   `presets-validation-report.md`: an `ℹ️` entry (a warbird losing the UHF channels, an L-39 the ones above
+   390 MHz) needs no action — the channels in range are kept. Never set a type to `none` to quiet the report:
+   `none` removes all its presets, the working ones too.
 2. `src/versions.yaml` — one variant, `noon`, and `base_date: "2024-03-15"`. Name the variant and set its time
    for the mission, make `base_date` agree with `mission.era` and the mission date, and set `position` to where
    the mission flies (it is commented out).
 3. `src/waypoints.yaml` — example points that point at nothing, injected into every slot. Replace them with the
    mission's route, or empty the file.
-4. `src/dynamic-slot-templates.yaml` — the shipped catalogue covers every era, WW2 warbirds included, for both
-   coalitions. Keep only the aircraft of the mission's era and the coalitions that get dynamic slots.
+4. `src/dynamic-slot-templates.yaml` — the shipped catalogue covers both coalitions and every era. Keep only the
+   coalitions that get dynamic slots; keep the other eras' aircraft, a warbird included, unless the user asks
+   otherwise: a player who wants one in a modern mission may take it (David, 2026-10-20).
 5. `mission.yaml` `modules` — the `standard` template ships `SKYNET: false`. A mission with a SAM or an EWR zone
    needs it on: without it there is no integrated air defence at all, the EWR feeds no battery, and each SAM is
    left to the plain DCS AI (`describe_module SKYNET`; then `describe_known_limitations`, area `air-defence`).

@@ -13,10 +13,6 @@ The short listing of `describe_known_limitations` drops the titles (ids, kinds, 
 
 ## 🧑 Waiting for a human
 
-### [FEAT-AI-ZERO-SETUP](FEAT-AI-ZERO-SETUP/PRD.md) · 🧑
-
-Installing veaf-tools is all an AI needs: `veaf-tools ai-setup` declares the MCP server in Claude Desktop, Claude Code and Gemini CLI, the server updates itself, the authoring guide and the two mission prompts ship in the executable, and the plugin is removed. Asked by David on 2026-10-20 after a demo in a clean sandbox behaved unlike his PC; found on the way: the plugin's binary had been stuck on 6.22.1 since September. Merged in #1155, released in 6.31.0. David's PC set up on 2026-10-20 (ticket 08); left: Claude Desktop, whose Store install keeps its config in `%LOCALAPPDATA%\Claude-Data\`, where `ai-setup` does not look.
-
 ### [FEAT-FORCED-MISSION-OPTIONS](FEAT-FORCED-MISSION-OPTIONS/PRD.md) · 🧑
 
 The mission options a mission maker sets by hand in the editor — labels, F10 view, external views… — from `mission.forced_options` in `mission.yaml`, the F10 view per role, an MCP action, and the carrier deck lights following VEAF air operations. From the `dcs-re` study of the editor's Lua (2026-10-19), with a page of editor tips. Done on the tests; left: what DCS applies in game, and three editor actions (`DCS-SESSION-TODO.md` R52).

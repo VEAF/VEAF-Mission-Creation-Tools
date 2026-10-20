@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import io
 import math
+import re
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -288,6 +289,35 @@ def _list_pictures(mission: DcsMission, pictures: dict[str, str], side: str) -> 
     return [str(entry) for entry in indexed(content.get(other))]
 
 
+#: A picture file this tool writes: what it may delete on a later run, and nothing else.
+_GENERATED_PICTURE = re.compile(r"briefing-[A-Za-z0-9._-]+\.jpg")
+
+
+def _stale_pictures(l10n: Path, previous: set[str], kept: set[str]) -> list[Path]:
+    """Return the pictures an earlier run wrote and this one no longer writes, safe to delete.
+
+    The names come from the mission's `mapResource`, and a mission may come from anywhere: only a
+    name this tool generates, resolved inside `l10n/DEFAULT/`, is returned (security review, 6.31.0).
+
+    Args:
+        l10n: The mission folder's `l10n/DEFAULT/`.
+        previous: The file names the `MCP_Briefing_` resources pointed at.
+        kept: The file names this run writes.
+
+    Returns:
+        The files to delete, sorted.
+    """
+    root = l10n.resolve()
+    stale = []
+    for name in sorted(previous - kept):
+        if _GENERATED_PICTURE.fullmatch(name) is None:
+            continue
+        path = (root / name).resolve()
+        if path.parent == root:
+            stale.append(path)
+    return stale
+
+
 def _write_pictures(folder: Path, miz: Path, maps: list[Path], side: str) -> tuple[list[str], list[str]]:
     """Put the maps in the mission folder and the built `.miz`, both backed up first.
 
@@ -302,8 +332,8 @@ def _write_pictures(folder: Path, miz: Path, maps: list[Path], side: str) -> tup
     other = _list_pictures(mission, pictures, side)
     l10n = _folder_l10n(folder)
     l10n.mkdir(parents=True, exist_ok=True)
-    for name in previous - set(files):
-        (l10n / name).unlink(missing_ok=True)
+    for stale in _stale_pictures(l10n, previous, set(files)):
+        stale.unlink(missing_ok=True)
     for name, data in files.items():
         (l10n / name).write_bytes(data)
     save_folder_mission(mission, folder)

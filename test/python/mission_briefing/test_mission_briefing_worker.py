@@ -162,3 +162,18 @@ class TestTheFrequencyPlan:
         assert _side_pictures(content, "R") == ["MCP_Briefing_overview"]
         assert _side_pictures(content, "N") == ["MCP_Briefing_overview"]
         assert _side_pictures(content, "B") == [] and other == []
+
+
+def test_only_pictures_the_tool_wrote_are_deleted(tmp_path: Path) -> None:
+    """`mapResource` comes from the mission, which may come from anywhere: a name under an
+    `MCP_Briefing_` key that climbs out of `l10n/DEFAULT/` must not be deleted (security review, 6.31.0).
+    """
+    from mission_briefing.mission_briefing_worker import _stale_pictures
+
+    l10n = tmp_path / "l10n" / "DEFAULT"
+    l10n.mkdir(parents=True)
+    previous = {"briefing-old.jpg", "briefing-kept.jpg", "../../mission.yaml", r"..\..\x.jpg", "notes.txt"}
+
+    stale = _stale_pictures(l10n, previous, kept={"briefing-kept.jpg"})
+
+    assert stale == [(l10n / "briefing-old.jpg").resolve()]

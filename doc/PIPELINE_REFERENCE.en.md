@@ -128,6 +128,8 @@ channel_lists:
 
 The build automatically assigns each aircraft type's physical radios to the role they match (deduced from their hardware frequency ranges), then projects that role's declared channel list onto it. A channel lacking a frequency for the role's band is silently dropped (reported under `validate`).
 
+Channel **1** of the first radio also becomes the group's frequency: the flight starts on it. The shipped plan therefore puts no Guard on channel 1, nor anywhere: every aircraft reaches Guard with its own control, and a flight used to start on the distress frequency.
+
 ### Schema — legacy format (manual override)
 
 ```yaml

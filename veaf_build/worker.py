@@ -569,6 +569,11 @@ class BuildAndReleaseWorker:
         clear_ground_dir = veaf_tools_dir / "veaf_libs" / "data" / "clear-ground"
         if clear_ground_dir.is_dir():
             extra.append((clear_ground_dir, "veaf_libs/data/clear-ground"))
+        # Parking captures — one per theatre, read by add_air_group for a ramp or runway start.
+        # Never bundled until FEAT-AI-ZERO-SETUP: the exe answered "no parking data captured".
+        parking_dir = veaf_tools_dir / "veaf_libs" / "data" / "parking"
+        if parking_dir.is_dir():
+            extra.append((parking_dir, "veaf_libs/data/parking"))
         bundled_data = [
             # DCS country name->id table, read by the aircraft injector at runtime.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-countries.yaml", "veaf_libs/data"),
@@ -592,11 +597,9 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-maps.yaml", "veaf_libs/data"),
             # Known limitations and DCS traps, read by the MCP describe_known_limitations action.
             (veaf_tools_dir / "veaf_libs" / "data" / "known-limitations.yaml", "veaf_libs/data"),
-            # The plugin's authoring skill, read by the MCP describe_authoring_guide action.
-            (
-                self.script_root / "plugin" / "skills" / "veaf-mission-authoring" / "SKILL.md",
-                "veaf_mission_mcp/data",
-            ),
+            # The authoring guide and the mission prompts, read by the MCP describe_authoring_guide and
+            # describe_mission_prompt actions.
+            (veaf_tools_dir / "veaf_mission_mcp" / "data", "veaf_mission_mcp/data"),
             # Per-theatre bounding boxes, read by the MCP geocode action.
             (veaf_tools_dir / "veaf_libs" / "data" / "theatre-bounds.yaml", "veaf_libs/data"),
             # Hidden placeholder ground groups, injected into empty coalitions at build.

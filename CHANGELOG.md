@@ -12,7 +12,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 >
 > That is the failure mode this section exists to prevent. **A pull request adds its entry under
 > `[Unreleased]` and does not touch the version**; the release commit renames the heading and moves
-> `pyproject.toml` with both agent manifests. Add new entries at the **end** of the section: two PRs
+> `pyproject.toml`. Add new entries at the **end** of the section: two PRs
 > appending merge cleanly far more often than two PRs prepending.
 
 ## [Unreleased]
@@ -44,6 +44,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A grid swept on the PC keeps priority; offline, the answer stays "sweep it in DCS".
   Maintainers publish the swept grids with `veaf-build terrain-data --publish`.
 
+- **Install the tools, connect the AI, ask for a mission** (FEAT-AI-ZERO-SETUP).
+  `veaf-tools ai-setup` declares the MCP server in every AI assistant found on the PC — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode — merging into their settings; the updater suggests it after a first install, and the wizard lists it.
+  The two mission prompts, objective mission and Open Training, ship in the executable with the authoring guide: the new action `describe_mission_prompt` serves them, and the guide sends a user who asks for a mission there, so "create a mission" is enough — nothing to paste from the repository any more.
+  The server updates itself: at start-up, at most once every 4 hours and only when `check_updates` is on, it starts the updater in its own folder when a newer release is out.
+  The install page and the repository README open with the commands that install everything, for a person or for the assistant itself.
+  The install page opens with which AI to choose, free offers included (October 2026): Codex (in ChatGPT Desktop, `~/.codex/config.toml`) and Antigravity (`~/.gemini/config/mcp_config.json`) are connected by `ai-setup` too; Gemini CLI, which no longer serves free Google accounts, is only connected when its `settings.json` exists, so an Antigravity install is no longer taken for it.
+  Two new actions, `read_mission_file` and `edit_mission_file`, read and edit a mission folder's YAML sources (`mission.yaml`, `src/*.yaml`) for an assistant with no file access: in Claude Desktop's chat mode, an assistant could not rename a mission.
+  Every new mission, however small, now starts with the guide's "right after `scaffold_mission`" checklist: the presets plan (and never `none` to quiet its report), `versions.yaml`, the example waypoints, the slot catalogue's coalitions, and `SKYNET` for a mission with air defence — a test mission on 6.30.0 kept the scaffold's defaults until the user asked about each.
+- **Four entries added to the known limitations**: a hole left in a numbered table of `src/mission/mission` breaks the build; a second `convert-v5 --force` replaces `mission.yaml` with a minimal one; a slot for a disabled or missing module shows but cannot be taken; the briefing maps and documents of the mission prompts are scripts, which an assistant without a shell (Claude Desktop in chat mode) cannot run.
 ### Fixed
 
 - **Refreshing the Foothold missions to a new Lekaa release** (FIX-FOOTHOLD-5-3-0-INTAKE).
@@ -51,6 +60,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Convert-FootholdBatch.ps1` finds the adopted folders again (it read the theatre in one key form only) and ignores the other missions on the same map, such as the Open Training ones.
   `validate` reports a withdrawn module such as `hercules` as a warning instead of failing on it.
   The batch no longer turns an LF `mission.yaml` into CRLF when it removes `build.scripts_path` after a build.
+- **The updater installs `veaf-tools.exe` while an MCP server runs it** (FEAT-AI-ZERO-SETUP).
+  Windows refuses to overwrite a running executable, and the install failed in a window nobody saw: an MCP server stayed on 6.22.1 for five weeks while 6.30.0 sat in `published/`.
+  The running copy is now renamed aside, which Windows allows, and deleted at the next update.
+  The updater replaces itself the same way: the `.cmd` script it used to leave behind did not put the new updater in place when the updater ran without a console window — from a terminal tool, and so from the server's own update (measured 2026-10-20) — and is gone.
+- **`veaf-tools mcp` no longer prints the version banner on stdout**, whose first line was not JSON-RPC (FEAT-AI-ZERO-SETUP).
+- **The new-version notice did not appear** (FEAT-AI-ZERO-SETUP, measured 2026-10-20): the check read the version from the release's tag, `published-latest`, which holds none; it now reads it from the release name, as the updater does.
+- **The executable ships the parking captures** (FEAT-AI-ZERO-SETUP): `veaf_libs/data/parking/` was never bundled, so an air group starting on a ramp or a runway failed with "no parking data captured" from the executable, while it worked from the repository.
+  A test now fails on any package data file the build does not ship, unless it is declared build- or test-only.
+- **`edit_route` `set` moves a waypoint** (FEAT-AI-ZERO-SETUP): it accepted `position` and dropped it without a word, so an assistant read the route back unchanged and rebuilt the waypoint by hand. Waypoint 1, the group's own position, is refused with a pointer to `set_group_properties` `move_to`; an operation that takes no position now refuses one.
+- **The presets report no longer suggests `none` for a frequency DCS ignores anyway** (FEAT-AI-ZERO-SETUP): under each informational entry (a warbird losing the UHF channels, an L-39 those above 390 MHz) `presets-validation-report.md` said to set the type to `none`, which removes all its presets, the working ones too; two assistants stripped 11 aircraft types that way. It now says there is nothing to do; the `none` hint stays for the frequencies DCS rejects at load.
+- **A flight named after a callsign family gets it, digit or not** (FEAT-AI-ZERO-SETUP): an AWACS named `Magic` became `Overlord11` without a word, since only `Magic 1` or `Magic1` read as a callsign; `Magic` and `Magic AWACS` now give the family's first free flight.
+- **The mission prompts no longer ask for a skill that does not ship** (FEAT-AI-ZERO-SETUP): they told the assistant to load `veaf-mission-editor:veaf-mission-authoring`, gone with the plugin; they now point at `describe_authoring_guide`.
+- **The shipped presets plan has no Guard channel any more** (FEAT-AI-ZERO-SETUP, David's decision): channel 1 was Guard, and the build gives a group the frequency of its first radio's channel 1, so every flight started on the distress frequency (243 MHz, 121.5 MHz for a VHF-first aircraft). Every aircraft reaches Guard with its own control; the channels move down one (Archer is channel 1, Batumi channel 1 of the second radio). Existing missions keep their own `presets.yaml`.
+
+### Removed
+
+- **The Claude Code plugin and the Gemini CLI extension** (`plugin/`, the `veaf` marketplace) (FEAT-AI-ZERO-SETUP): `veaf-tools ai-setup`, the server's own updates and the guide it serves replace them.
+  Remove an installed plugin with `claude plugin uninstall veaf-mission-editor@veaf`, or the extension with `gemini extensions uninstall veaf-mission-editor`, then run `ai-setup`.
+  The version now lives in `pyproject.toml` alone.
 - **TheChannel is a supported theatre** (FEAT-TERRAIN-DATA-DOWNLOAD): `terrain-sweep TheChannel` answered "Unsupported theatre", so its elevation grid could not be swept; a blank mission is now generated for it, centred on its airfields.
 
 ## [6.30.0] — 2026-10-15

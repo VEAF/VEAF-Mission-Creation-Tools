@@ -2,8 +2,8 @@
 
 Status: 🧑 waiting-human
 
-Files: `.prompts/new-open-training-mission.fr.md`, `.prompts/new-open-training-mission.en.md`,
-`.prompts/new-objective-mission.fr.md`, `.prompts/new-objective-mission.en.md`, `CHANGELOG.md`.
+Files: `src/python/veaf-tools/veaf_mission_mcp/data/mission-prompts/new-open-training-mission.fr.md`, `src/python/veaf-tools/veaf_mission_mcp/data/mission-prompts/new-open-training-mission.en.md`,
+`src/python/veaf-tools/veaf_mission_mcp/data/mission-prompts/new-objective-mission.fr.md`, `src/python/veaf-tools/veaf_mission_mcp/data/mission-prompts/new-objective-mission.en.md`, `CHANGELOG.md`.
 
 ## Done when
 

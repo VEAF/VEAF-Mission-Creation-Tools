@@ -1,6 +1,6 @@
 # Référence CLI — `veaf-tools`
 
-Les **38 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
+Les **39 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
 page de référence : elle dit ce que chaque commande accepte, pas comment mener une mission de bout
 en bout. Pour cela, lisez le [guide du créateur de mission](mission-maker/GUIDE.md), qui raconte
 l'enchaînement, et la [référence du pipeline](PIPELINE_REFERENCE.md), qui détaille chaque étape du
@@ -998,9 +998,24 @@ L'assistant tourne sur une allocation gratuite partagée avec le chatbot du site
 elle peut s'épuiser, et la commande le dit alors clairement. Voir
 [l'assistant de documentation](SUPPORT.md#assistant).
 
+### `veaf-tools ai-setup` {#ai-setup}
+
+Branche sur les outils VEAF les assistants IA installés sur ce PC : **Claude Desktop**, **Claude Code**, **Codex** (ChatGPT Desktop), **Antigravity**, **Gemini CLI** et **OpenCode**.
+La commande déclare l'exécutable qui la lance comme serveur MCP `veaf-mission-editor` dans la configuration de chacun, sans toucher à leurs autres réglages, et dit pour chacun s'il est branché, absent ou en échec.
+On peut la relancer sans risque, par exemple après avoir déplacé le dossier des outils.
+
+```powershell
+.\veaf-tools.exe ai-setup
+```
+
+Elle n'a pas d'option. Quittez ensuite complètement l'assistant IA et relancez-le : il ne lit ses serveurs qu'au démarrage.
+Elle sort en erreur (code 1) quand aucun assistant n'est trouvé ou qu'un réglage n'a pas pu être écrit, sans rien modifier dans le fichier en cause.
+
+**Voir aussi** : [Créer avec une IA](mission-maker/AI_ASSISTANT_INSTALL.md)
+
 ### `veaf-tools mcp` {#mcp}
 
-Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Utilisé par le plugin Claude veaf-mission-editor.
+Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Déclaré dans votre assistant IA par [`ai-setup`](#ai-setup).
 
 ```bash
 veaf-tools mcp

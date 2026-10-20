@@ -482,7 +482,7 @@ Après mise à jour, les utilisateurs ont :
 ```
 Répertoire courant (dossier mission) :
 ├── veaf-tools.exe                    (exécutable principal, déplacé depuis published/)
-└── veaf-tools-updater.exe            (l'updater lui-même, remplacé en différé s'il tourne)
+└── veaf-tools-updater.exe            (l'updater lui-même ; une copie en cours d'exécution est renommée `*.old`, puis supprimée)
 
 └── published/                        (le reste du paquet extrait)
     ├── README.md                     (reste ici volontairement — la doc en ligne fait foi)

@@ -107,7 +107,7 @@ def edit_route(
             ``clear_tasks``.
         index: The 1-based waypoint the operation acts on (every operation but ``add`` needs one).
         to_index: Destination index, for ``reorder``.
-        position: ``{"x": ..., "y": ...}`` for ``add`` / ``insert``.
+        position: ``{"x": ..., "y": ...}`` for ``add`` / ``insert`` / ``set`` (not waypoint 1 with ``set``).
         name: A waypoint name, for ``add``, ``insert`` or ``set``.
         altitude_ft: Altitude in **feet**; stored as metres.
         speed_kt: Speed in **knots**; stored as metres per second.
@@ -135,6 +135,10 @@ def edit_route(
     """
     if operation not in _OPERATIONS:
         raise ValueError(f"unknown operation {operation!r}; expected one of {', '.join(_OPERATIONS)}")
+    # Dropped in silence, a position reads as applied: an assistant set one, found the route unchanged,
+    # and rebuilt the waypoint by hand (FEAT-AI-ZERO-SETUP).
+    if position is not None and operation not in ("add", "insert", "set"):
+        raise ValueError(f"position applies to add, insert and set, not to {operation!r}")
 
     mission, content = open_mission(miz_path)
 
@@ -159,8 +163,12 @@ def edit_route(
     elif operation == "reorder":
         _reorder(points, _checked_index(index, points), _checked_index(to_index, points, field="to_index"), changed)
     elif operation == "set":
+        at = _checked_index(index, points)
+        if position is not None:
+            _move_point(points[at - 1], at, position, changed)
         _set_fields(
-            points[_checked_index(index, points) - 1],
+            points[at - 1],
+            moved=position is not None,
             name=name,
             altitude_ft=altitude_ft,
             speed_kt=speed_kt,
@@ -333,9 +341,35 @@ def _reorder(points: list[dict[str, Any]], index: int, to_index: int, changed: d
     changed["reordered"] = {"from": index, "to": to_index, "name": point.get("name")}
 
 
+def _move_point(point: dict[str, Any], index: int, position: dict[str, float], changed: dict[str, Any]) -> None:
+    """Move a waypoint to new coordinates.
+
+    Args:
+        point: The waypoint to mutate.
+        index: Its 1-based index in the route.
+        position: The new ``{"x", "y"}``.
+        changed: The report to record the move in.
+
+    Raises:
+        ValueError: If ``position`` lacks ``x`` or ``y``, or the waypoint is the first one: that one is
+            the group's own position, and moving it alone would leave the units behind.
+    """
+    if not isinstance(position, dict) or "x" not in position or "y" not in position:
+        raise ValueError("position needs both 'x' and 'y'")
+    if index == 1:
+        raise ValueError(
+            "waypoint 1 is the group's own position: move the whole group with set_group_properties "
+            "move_to, which takes its units and route along"
+        )
+    target = {"x": float(position["x"]), "y": float(position["y"])}
+    changed["position"] = {"from": {"x": point.get("x"), "y": point.get("y")}, "to": target}
+    point["x"], point["y"] = target["x"], target["y"]
+
+
 def _set_fields(
     point: dict[str, Any],
     *,
+    moved: bool = False,
     name: str | None,
     altitude_ft: float | None,
     speed_kt: float | None,
@@ -348,6 +382,7 @@ def _set_fields(
 
     Args:
         point: The waypoint to mutate.
+        moved: Whether the caller already moved the waypoint, which counts as a field given.
         name: A new name.
         altitude_ft: Altitude in feet.
         speed_kt: Speed in knots.
@@ -360,9 +395,10 @@ def _set_fields(
         ValueError: If nothing was given, the waypoint type is unknown, or ``road`` meets a waypoint
             that is not a ``Turning Point``.
     """
-    if all(value is None for value in (name, altitude_ft, speed_kt, waypoint_type, eta_locked, road)):
+    if not moved and all(value is None for value in (name, altitude_ft, speed_kt, waypoint_type, eta_locked, road)):
         raise ValueError(
-            "no field given — pass at least one of name, altitude_ft, speed_kt, waypoint_type, eta_locked, road"
+            "no field given — pass at least one of position, name, altitude_ft, speed_kt, waypoint_type, "
+            "eta_locked, road"
         )
     if name is not None:
         changed["name"] = {"from": point.get("name"), "to": name}

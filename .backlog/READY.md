@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FEAT-MCP-MISSION-BRIEFING](FEAT-MCP-MISSION-BRIEFING/PRD.md) · ⬜
+
+An MCP action that builds the VEAF mission briefing — PPTX, maps, DCS briefing pictures — from the built mission and the content the assistant passes, so an assistant with no shell (Claude Desktop in chat mode) produces it too. The builder exists for campaign missions (`campaign_manager/mission_deck.py`). Asked by David on 2026-10-20.
+
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 
 Broaden the shipped default radio presets, after phase 1 of the radio preset projection.

@@ -370,28 +370,43 @@ def describe_known_limitations(
     return result
 
 
-# The skill ships once, in the plugin; the build bundles that file (`_veaf_tools_extra_data`).
-_AUTHORING_GUIDE_IN_REPO = ("plugin", "skills", "veaf-mission-authoring", "SKILL.md")
+#: The mission prompts shipped in `data/mission-prompts/`, by the `kind` the action takes.
+MISSION_PROMPT_KINDS: tuple[str, ...] = ("objective", "open-training")
+MISSION_PROMPT_LANGS: tuple[str, ...] = ("en", "fr")
 
 
 def describe_authoring_guide() -> dict[str, Any]:
-    """Return the VEAF mission authoring guide, for an MCP client that has no plugin.
-
-    The text is the plugin's ``veaf-mission-authoring`` skill, verbatim: Claude Code and Gemini CLI
-    load it from the plugin, any other client reads it here, and both read the same file.
+    """Return the VEAF mission authoring guide, the first thing an MCP client reads.
 
     Returns:
         `{"guide": <markdown text>}`.
+    """
+    return {"guide": read_bundled_text("veaf_mission_mcp", "data", "authoring-guide.md")}
+
+
+def describe_mission_prompt(kind: str, lang: str = "en") -> dict[str, Any]:
+    """Return the prompt that builds one kind of VEAF mission, end to end.
+
+    They used to live in the repository's `.prompts/`, for the user to paste; shipped in the
+    executable, a user only has to ask for a mission (FEAT-AI-ZERO-SETUP).
+
+    Args:
+        kind: `objective` (a mission played once, in one session) or `open-training` (a VEAF
+            training mission on a whole map).
+        lang: `en` or `fr`, the language the prompt is written in.
+
+    Returns:
+        `{"kind", "lang", "prompt": <markdown text>}`.
 
     Raises:
-        FileNotFoundError: Neither the bundled copy nor the repository's plugin file exists.
+        ValueError: An unknown kind or language.
     """
-    try:
-        return {"guide": read_bundled_text("veaf_mission_mcp", "data", "SKILL.md")}
-    except FileNotFoundError:
-        # Resolved here, not at import: a frozen module's path can be too short for parents[4].
-        repo_root = Path(__file__).resolve().parents[4]
-        return {"guide": repo_root.joinpath(*_AUTHORING_GUIDE_IN_REPO).read_text(encoding="utf-8")}
+    if kind not in MISSION_PROMPT_KINDS:
+        raise ValueError(f"Unknown mission kind {kind!r}: expected one of {', '.join(MISSION_PROMPT_KINDS)}.")
+    if lang not in MISSION_PROMPT_LANGS:
+        raise ValueError(f"Unknown language {lang!r}: expected one of {', '.join(MISSION_PROMPT_LANGS)}.")
+    prompt = read_bundled_text("veaf_mission_mcp", "data", "mission-prompts", f"new-{kind}-mission.{lang}.md")
+    return {"kind": kind, "lang": lang, "prompt": prompt}
 
 
 def _module_enabled(mission_yaml_path: Path, module_id: str) -> bool | None:

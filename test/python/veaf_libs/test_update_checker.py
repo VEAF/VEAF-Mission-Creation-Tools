@@ -136,3 +136,28 @@ class TestAnUnreadableCurrentVersionSaysNothing(unittest.TestCase):
 
         self.assertTrue(printed, "a genuinely older version must still be told about the update")
         self.assertTrue(any("6.20.0" in line for line in printed), printed)
+
+
+class TestReleaseVersion(unittest.TestCase):
+    """FEAT-AI-ZERO-SETUP — the release the API calls latest is tagged `published-latest`.
+
+    Read from its tag, the version was unparseable, sorted below every release, and the check never
+    announced anything (measured 2026-10-20: `releases/latest` answered `published-latest`). The
+    version is in the release's name.
+    """
+
+    def test_published_latest_carries_its_version_in_its_name(self) -> None:
+        from veaf_libs.update_checker import release_version
+
+        payload = {"tag_name": "published-latest", "name": "VEAF Tools Latest (v6.30.0)"}
+        self.assertEqual(release_version(payload), "6.30.0")
+
+    def test_a_versioned_tag_is_read_from_the_tag(self) -> None:
+        from veaf_libs.update_checker import release_version
+
+        self.assertEqual(release_version({"tag_name": "v6.2.0", "name": "whatever"}), "6.2.0")
+
+    def test_a_release_with_no_version_anywhere_gives_nothing(self) -> None:
+        from veaf_libs.update_checker import release_version
+
+        self.assertEqual(release_version({"tag_name": "published-latest", "name": "VEAF Tools Latest"}), "")

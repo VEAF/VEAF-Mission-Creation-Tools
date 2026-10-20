@@ -1554,3 +1554,80 @@ limitations:
     Draw kneeboard pages at 2:3 (veaf-tools draws 1536 × 2304). A pilot who resized the window puts it
     back with the calibration page veaf-tools adds, `KNEEBOARD/IMAGES/00-veaf-calibration.png`: its
     circles are round only at 2:3. Keep text out of the top-left and bottom-right corners.
+
+- id: hole-in-a-numbered-mission-table-breaks-the-build
+  kind: tool
+  area: pipeline
+  title: "A hole in a numbered table of `src/mission/mission` breaks the build"
+  symptom: |
+    Deleting a `[n] = { … }` block by hand in `src/mission/mission` leaves a numbered table counting
+    `1, 3, 4`. DCS and Lua load it without a word, but veaf-tools reads a table as a list only when its
+    keys are exactly `1..n`; otherwise it is a dictionary, and walking it walks the keys. The build
+    fails with `AttributeError: 'int' object has no attribute 'get'`, an error that never names the
+    table, and that moves on to the next hole once one is fixed (`group_insertion.max_ids`, then
+    `waypoints_injector`). A renumbering written as a pattern on the indentation creates new holes in
+    `units` and `route.points`.
+  workaround: |
+    Remove groups with the `remove_group` action, never by hand. After any hand edit of the mission
+    file, look for holes before building, down to `route.points` (nine levels deep): load the file
+    with `lua -e 'dofile([[<mission>/src/mission/mission]])'` and walk every table whose keys are all
+    numbers, reporting the ones whose count differs from their largest key. Renumber by matching the
+    braces of the parent block, not with a pattern on the indentation.
+  cost: |
+    A test mission on 2026-08-18: three successive build errors in three different modules, for one
+    group deleted by hand.
+
+- id: convert-v5-force-twice-loses-the-configuration
+  kind: tool
+  area: pipeline
+  title: "A second `convert-v5 --force` replaces `mission.yaml` with a minimal one"
+  symptom: |
+    `convert-v5` finds the VEAF modules of a v5 mission in its `missionConfig.lua`, then replaces that
+    file. A second run with `--force` finds no v5 signal left and writes a minimal `mission.yaml`
+    (infrastructure, airbases, community scripts) over the full one, losing the QRA, assets, carrier,
+    spawn and shortcut sections. In game, the marker and shortcut commands (`-farp`, `_spawn`…) reach
+    the VEAF command handler and nothing answers them, without an error.
+  workaround: |
+    Run `convert-v5` once, on a copy of the v5 `src/`, after the tools are installed in the folder.
+    To start again, start from a fresh copy of the v5 sources rather than from the converted folder.
+  cost: |
+    Measured 2026-07-11: a converted mission whose spawn and shortcut commands all did nothing.
+
+- id: slot-of-a-disabled-module-cannot-be-taken
+  kind: dcs
+  area: players
+  title: "A slot for a module the player lacks or disabled shows but cannot be taken"
+  measured: "2026-08-18"
+  symptom: |
+    DCS lists the slot in the role selection whatever the player owns. Choosing it leaves the player
+    on the map view, with no message. Free does not mean available: a player can disable any module
+    in the module manager, the free Su-25T and TF-51D included, and `dcs.log` then says
+    `plugin: SKIPPED 'Su-25T by Eagle Dynamics': disabled by user`. The list of loaded plugins does not
+    prove ownership either: `C-101 Aviojet by AvioDev` is loaded for the AI variant on a PC without
+    the module.
+  workaround: |
+    Ask the player which aircraft they fly before placing a slot for them, or reuse one they already
+    flew in a previous mission. On their PC, `plugin: SKIPPED … disabled by user` in
+    `Saved Games\DCS\Logs\dcs.log` lists what is disabled. The A-10C II is a safe default on both
+    sides; a red slot goes under the generic country CJTF Red, which accepts any aircraft.
+  cost: |
+    A test mission on 2026-08-18 put the player in a Su-25T slot they had disabled: "I can pick it but I
+    do not slot, I stay on the map view."
+
+- id: mission-prompt-scripts-need-a-shell
+  kind: tool
+  area: mcp
+  title: "Without a shell, the briefing maps, pictures and documents of the mission prompts cannot be made"
+  symptom: |
+    The two mission prompts (`describe_mission_prompt`) build the mission through the MCP actions,
+    but have a script produce what no action does: the briefing maps, the DCS briefing pictures
+    (`mapResource`, `pictureFileNameB`/`N`), the briefing as PPTX or PDF, and the Open Training's
+    `README.md`. An assistant that cannot run a program on the PC — Claude Desktop in chat mode — has
+    no way to run them.
+  workaround: |
+    Without a shell, build the mission with the actions, write the briefing text with `set_briefing`,
+    and tell the user plainly which documents were not produced and that Codex, OpenCode, Antigravity or Claude Code
+    can make them in the same folder later. Do not pretend to have produced a file.
+    With a shell, the scripts run: a PC without Python takes a portable one in the user's folder
+    (python-pptx, Pillow), as the sandbox demo of 2026-10-20 did — a missing Python is no reason to
+    skip the briefing.

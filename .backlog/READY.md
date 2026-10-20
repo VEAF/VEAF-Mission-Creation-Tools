@@ -4,9 +4,9 @@
 
 Lots written up and ready to take.
 
-### [FEAT-INSPECT-BUILT-MISSION](FEAT-INSPECT-BUILT-MISSION/PRD.md) · ⬜
+### [FIX-OPENCODE-TEST-FINDINGS](FIX-OPENCODE-TEST-FINDINGS/PRD.md) · ⬜
 
-A read-only action that reports what a built `.miz` holds — dynamic slots per airbase, injected presets, bullseye, weather variants, tanker and AWACS tasks — and a guide that checks through it instead of sending the AI to unzip the mission in a shell. From David's OpenCode test on 6.31.1, 2026-10-20.
+What David's end-to-end OpenCode test on 6.31.1 met (2026-10-20, 161 minutes, 162 shell calls): the self-update replacing the exe under running servers, `edit_mission_file` failing on CRLF, reference data only readable inside the exe, presets and FARP slots to investigate, heavy reads, and no action to check a built `.miz`. One lot, one PR, released as 6.31.2; absorbs FEAT-INSPECT-BUILT-MISSION.
 
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 

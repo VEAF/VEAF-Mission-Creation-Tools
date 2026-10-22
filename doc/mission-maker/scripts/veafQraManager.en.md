@@ -179,6 +179,7 @@ Every change of level is announced to everybody.
 A 0 not chosen by hand stays a **count**: the level a follow mode lowers to 0 (nobody on CAP), or `level: 0` in `mission.yaml`, lets the zone's tiers answer — otherwise a quiet minute would switch the enemy fighters off without anybody seeing it.
 A QRA already airborne when "0 aircraft" is chosen is not recalled: the switch-off applies to the next scrambles.
 A QRA without `scale_with_opposition` is never switched off.
+Combat missions too: "Auto scale (opposition level)" then starts no mission and tells whoever asked; a scale chosen by hand always starts.
 
 **How to choose.** Write the tiers up to the package size you expect: for 5 to 7 players, for instance `1` → a pair, `3` → two pairs, `5` → three. Never a single fixed pair against 5 players or more. Then:
 

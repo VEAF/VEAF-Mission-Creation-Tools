@@ -378,6 +378,17 @@ def test_a_mission_prompt_names_no_skill_that_does_not_ship(kind: str, lang: str
     assert "describe_authoring_guide" in prompt
 
 
+@pytest.mark.parametrize("kind", ["objective", "open-training"])
+def test_an_english_prompt_builds_an_english_mission(kind: str) -> None:
+    """FIX-MISSION-LANGUAGE-FOLLOWS-USER: the English prompts told the assistant to write the mission, its
+    briefing and its README in French, and an English-speaking user got a French mission.
+    """
+    prompt = describe_mission_prompt(kind, "en", part="all")["prompt"]
+    assert "mission.language: fr" not in prompt
+    assert "in French" not in prompt
+    assert "mission.language: en" in prompt
+
+
 class TestListCountries:
     """FIX-OPENCODE-TEST-FINDINGS 03: the AI read dcs-countries.yaml out of the exe's unpacked files."""
 

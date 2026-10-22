@@ -1425,8 +1425,13 @@ function veafCampaign.writeState()
       veaf.loggers.get(veafCampaign.Id):error("cannot write the campaign state to %s: %s", target, tostring(openError))
       return false
     end
-    file:write(content)
-    file:close()
+    -- buffered: a full disk often shows up only at close, so both answers count (issue #1146)
+    local written, writeError = file:write(content)
+    local closed, closeError = file:close()
+    if not (written and closed) then
+      veaf.loggers.get(veafCampaign.Id):error("cannot write the campaign state to %s: %s", target, tostring(writeError or closeError))
+      return false
+    end
     return true
   end
   if not writeTo(temp) then

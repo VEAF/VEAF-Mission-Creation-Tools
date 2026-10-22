@@ -179,6 +179,7 @@ Chaque changement de niveau est annoncé à tout le monde.
 Un 0 qui n'est pas choisi à la main reste un **compte** : le niveau qu'un mode de suivi fait descendre à 0 (personne en CAP), ou `level: 0` dans `mission.yaml`, laisse les paliers de la zone répondre — sinon une minute creuse éteindrait la chasse adverse sans que personne le voie.
 Une QRA déjà en l'air au moment du « 0 avion » n'est pas rappelée : la coupure vaut pour les prochains décollages.
 Une QRA sans `scale_with_opposition` n'est jamais coupée.
+Les combat missions aussi : « Taille auto (niveau d'opposition) » ne lance alors aucune mission et le dit à celui qui l'a demandée ; une taille choisie à la main se lance toujours.
 
 **Comment choisir.** Écrivez les paliers jusqu'à la taille attendue du dispositif : pour un groupe de 5 à 7 joueurs, par exemple `1` → une paire, `3` → deux paires, `5` → trois. Jamais une seule paire fixe face à 5 joueurs ou plus. Ensuite :
 

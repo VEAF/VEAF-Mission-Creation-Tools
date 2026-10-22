@@ -686,14 +686,25 @@ local function fakeFileSystem(self, options)
         return nil, "Permission denied"
       end
       local chunks = {}
-      return {
-        write = function(_, text)
-          table.insert(chunks, text)
-        end,
-        close = function()
-          this.files[path] = table.concat(chunks)
-        end,
-      }
+      local file = {}
+      -- the real Lua 5.1 contract: write returns the file and close returns true, both nil and a message on failure
+      file.write = function(_, text)
+        if options.writeFails then
+          return nil, "No space left on device"
+        end
+        table.insert(chunks, text)
+        return file
+      end
+      file.close = function()
+        this.files[path] = table.concat(chunks)
+        if options.closeFails then
+          -- buffered: a full disk shows up at close, with what was flushed left behind
+          this.files[path] = table.concat(chunks):sub(1, 10)
+          return nil, "No space left on device"
+        end
+        return true
+      end
+      return file
     end,
   }
   local fakeLfs = {
@@ -809,6 +820,32 @@ function TestVeafCampaignStateFile:test_a_file_that_cannot_be_opened_keeps_the_p
   luaunit.assertFalse(veafCampaign.writeState())
   luaunit.assertEquals(self.removed, {})
   luaunit.assertEquals(self.renames, {})
+end
+
+-- issue #1146: a write cut short must never replace the previous state
+local PREVIOUS_STATE = "return { previous = true }"
+
+function TestVeafCampaignStateFile:test_a_failed_write_keeps_the_previous_state()
+  fakeFileSystem(self, { writeFails = true })
+  self.files[PATH] = PREVIOUS_STATE
+  luaunit.assertFalse(veafCampaign.writeState())
+  luaunit.assertEquals(self.removed, {})
+  luaunit.assertEquals(self.renames, {})
+  luaunit.assertEquals(self.files[PATH], PREVIOUS_STATE)
+end
+
+function TestVeafCampaignStateFile:test_a_failed_close_keeps_the_previous_state()
+  fakeFileSystem(self, { closeFails = true })
+  self.files[PATH] = PREVIOUS_STATE
+  luaunit.assertFalse(veafCampaign.writeState())
+  luaunit.assertEquals(self.removed, {})
+  luaunit.assertEquals(self.renames, {})
+  luaunit.assertEquals(self.files[PATH], PREVIOUS_STATE)
+end
+
+function TestVeafCampaignStateFile:test_without_os_a_failed_close_is_reported()
+  fakeFileSystem(self, { withoutOs = true, closeFails = true })
+  luaunit.assertFalse(veafCampaign.writeState())
 end
 
 function TestVeafCampaignStateFile:test_a_sanitized_install_is_reported_once_and_never_crashes()

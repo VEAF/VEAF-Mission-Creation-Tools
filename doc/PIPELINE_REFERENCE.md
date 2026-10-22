@@ -527,9 +527,8 @@ que les catégories qu'il peut garer, et le stock devenu injouable (écrit par u
 est retiré. Cela vaut aussi pour une liste `aircrafts:` explicite — DCS ignorerait de toute façon
 ce qu'il ne peut pas garer. Le filtrage est **silencieux** : aucun avertissement au build.
 
-**Portée.** Les données de parking ne sont embarquées que pour **Caucasus, Persian Gulf, Syria et Sinai**.
-Sur tout autre théâtre — et sur un aérodrome absent des données — rien n'est filtré, le
-comportement est inchangé.
+**Portée.** Les données de parking sont embarquées pour toutes les cartes sauf **Iraq, Kola et Nevada**.
+Sur ces trois théâtres — et sur un aérodrome absent des données — rien n'est filtré, le comportement est inchangé.
 
 **Comment le vérifier en jeu.** Lancez la mission, choisissez le camp, ouvrez le sélecteur de slot
 sur l'aérodrome concerné : la liste proposée est celle que DCS peut réellement faire apparaître. Si

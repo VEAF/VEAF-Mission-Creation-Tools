@@ -253,10 +253,11 @@ limitations:
   title: "On MarianaIslands, no placement is checked against the trees or the buildings"
   theatres: [MarianaIslands]
   symptom: |
-    MarianaIslands has no clear-ground catalogue and no parking data shipped. Its elevation grid,
+    MarianaIslands has no clear-ground catalogue. Its elevation grid,
     published in the `terrain-data` release since 2026-10-20, is downloaded on first use and checks the
     sea only. Every ground placement there is written as asked, with a warning that says the trees and
-    the buildings were not checked; every QRA starts in the air (`no-parking-data-outside-three-theatres`).
+    the buildings were not checked. Its parking was captured on 2026-10-22 (282 stands on 8 airfields),
+    so a flight or a QRA can start on the ground there since 6.31.3.
   workaround: |
     Check the built mission in DCS with `veaf-tools dcs clear-ground-check <mission.miz>` and move what
     it finds. Sweep the places of the mission with `veaf-tools dcs clear-ground-sweep MarianaIslands`
@@ -446,17 +447,25 @@ limitations:
   cost: 4 objectives of GermanyCW-v6, placed by the MCP before it wrote the field, missing in game; a
     combat zone drew 4 elements from 3.
 
-- id: no-parking-data-outside-three-theatres
+- id: ai-ground-start-needs-a-parking-capture
   kind: tool
   area: mcp
-  title: No ramp or runway start through the MCP outside Caucasus, Persian Gulf, Syria, Sinai, Falklands and Normandy
-  theatres: [Afghanistan, GermanyCW, Iraq, Kola, MarianaIslands, MarianaIslandsWWII, Nevada, TheChannel]
+  title: No ramp or runway start for a flight the MCP places on Iraq, Kola or Nevada; dynamic slots are not concerned
+  theatres: [Iraq, Kola, Nevada]
   symptom: |
     `add_air_group` with a `parking-*` or `runway` start is refused with *"no parking data captured
-    for theatre …"* on every other map (GermanyCW, Nevada, Marianas…): only those six
-    theatres ship a parking capture in `veaf_libs/data/parking/`. Sinai was captured on 2026-10-12
-    for its Open Training v6 (3 614 stands on 56 airfields). Falklands too, for its
-    Open Training v6, and Normandy on 2026-10-13 (3 716 stands on 90 airfields).
+    for theatre …"* on a map with no parking capture in `veaf_libs/data/parking/`: Iraq, Kola and
+    Nevada, which nobody who captures owns. Eleven maps ship one: Caucasus, Persian Gulf, Syria;
+    Sinai (2026-10-12, 3 614 stands on 56 airfields), Falklands, Normandy (2026-10-13, 3 716 stands on
+    90 airfields); and since 6.31.3 Afghanistan (1 435 stands on 26 airfields), GermanyCW (7 035 on
+    227), MarianaIslands (282 on 8), MarianaIslandsWWII (534 on 11) and TheChannel (616 on 12),
+    captured on 2026-10-22.
+    Dynamic slots work on every map: DCS places those players on the airfield itself, with no capture.
+    The capture only lets the build trim a field's dynamic-slot stock to what it can park, and
+    `list_airfields` count its stands; on these three maps neither happens.
+    This entry was called `no-parking-data-outside-three-theatres` until 6.31.3; listed by that id
+    alone, it made an AI tell a user on 2026-10-22 that GermanyCW had "no parking places for the
+    dynamic slots".
   workaround: |
     Use an air start there, or place the flight in the DCS Mission Editor. The capture itself is a
     session in DCS: `veaf-tools dcs capture-map --parking`, whose raw dump goes to

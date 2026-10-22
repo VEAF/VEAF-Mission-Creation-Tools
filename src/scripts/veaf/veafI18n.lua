@@ -2033,6 +2033,10 @@ veaf.i18nCatalog = {
     fr = "Opposition aérienne : aucune chasse adverse (fixe)",
     en = "Air opposition: no enemy fighters (fixed)",
   },
+  ["combatmission.no_aircraft"] = {
+    fr = "Opposition aérienne fixée à 0 avion : aucune mission lancée en taille auto",
+    en = "Air opposition fixed at 0 aircraft: no mission started at auto scale",
+  },
   ["opposition.follow.players"] = { fr = "suit les joueurs connectés", en = "follows the players connected" },
   ["opposition.follow.airborne"] = { fr = "suit les joueurs en vol", en = "follows the players airborne" },
   ["opposition.follow.air_to_air"] = {

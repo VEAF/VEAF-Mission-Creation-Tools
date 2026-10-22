@@ -1,0 +1,6189 @@
+{
+  "theatre": "TheChannel",
+  "parking_by_airbase": {
+    "1": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "3023.6730957031",
+        "vTerminalPos.x": "-80798.8046875",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "16778.943359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2615.7744140625",
+        "vTerminalPos.x": "-80717.234375",
+        "vTerminalPos.y": "56.028053283691",
+        "vTerminalPos.z": "17166.173828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2716.1750488281",
+        "vTerminalPos.x": "-80718.4921875",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17059.05859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3498.2758789062",
+        "vTerminalPos.x": "-80843.6640625",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18428.873046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3406.7971191406",
+        "vTerminalPos.x": "-80920.09375",
+        "vTerminalPos.y": "56.028060913086",
+        "vTerminalPos.z": "18382.9296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3289.5170898438",
+        "vTerminalPos.x": "-80966.4453125",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18286.35546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "3238.40234375",
+        "vTerminalPos.x": "-80939.0234375",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18224.556640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "3086.0229492188",
+        "vTerminalPos.x": "-80921.890625",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18065.88671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2965.5031738281",
+        "vTerminalPos.x": "-80914.4921875",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17947.568359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2871.4299316406",
+        "vTerminalPos.x": "-80916.1171875",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17871.734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2749.7473144531",
+        "vTerminalPos.x": "-80876.828125",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17769.578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2622.1508789062",
+        "vTerminalPos.x": "-80849.515625",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17666.310546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2746.5759277344",
+        "vTerminalPos.x": "-80780.75",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17636.404296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2728.1958007812",
+        "vTerminalPos.x": "-80770.890625",
+        "vTerminalPos.y": "56.028060913086",
+        "vTerminalPos.z": "17580.666015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2725.9401855469",
+        "vTerminalPos.x": "-80796.953125",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17540.17578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2677.4353027344",
+        "vTerminalPos.x": "-80572.734375",
+        "vTerminalPos.y": "56.028053283691",
+        "vTerminalPos.z": "17265.576171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2673.1101074219",
+        "vTerminalPos.x": "-80539.515625",
+        "vTerminalPos.y": "56.028060913086",
+        "vTerminalPos.z": "17308.9140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2644.703125",
+        "vTerminalPos.x": "-80611.53125",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17394.251953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1120.2274169922",
+        "vTerminalPos.x": "-82156.6171875",
+        "vTerminalPos.y": "56.028053283691",
+        "vTerminalPos.z": "18166.736328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1153.7143554688",
+        "vTerminalPos.x": "-82177.9140625",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18076.76953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "980.29516601562",
+        "vTerminalPos.x": "-82251.1328125",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17997.052734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "933.84332275391",
+        "vTerminalPos.x": "-82129.5390625",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18024.455078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "988.72845458984",
+        "vTerminalPos.x": "-82104.96875",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18073.689453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1038.966796875",
+        "vTerminalPos.x": "-82036.9921875",
+        "vTerminalPos.y": "56.028053283691",
+        "vTerminalPos.z": "18140.03125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1091.5280761719",
+        "vTerminalPos.x": "-81981.75",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18186.1328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1154.2803955078",
+        "vTerminalPos.x": "-81904.96875",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "18212.265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-82671.4921875",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "17629.08984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-82671.3125",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "16141.98046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2856.2839355469",
+        "vTerminalPos.x": "-80735.7109375",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "16925.8671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-82338.5703125",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "15622.319335938"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-80972.375",
+        "vTerminalPos.y": "56.028057098389",
+        "vTerminalPos.z": "16208.435546875"
+      }
+    ],
+    "2": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "54",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2035.4895019531",
+        "vTerminalPos.x": "-28471.21484375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74431.3828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "53",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1839.9278564453",
+        "vTerminalPos.x": "-28288.466796875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74516.046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "52",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1934.751953125",
+        "vTerminalPos.x": "-28364.326171875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74477.671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "51",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1273.8940429688",
+        "vTerminalPos.x": "-28159.310546875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75042.046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "50",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1604.6145019531",
+        "vTerminalPos.x": "-28232.845703125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74755.5703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "49",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1502.8686523438",
+        "vTerminalPos.x": "-28173.2109375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74809.265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "48",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1142.6949462891",
+        "vTerminalPos.x": "-28206.3671875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75119.6953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "47",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "641.04425048828",
+        "vTerminalPos.x": "-28598.283203125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75266.203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "46",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2648.5749511719",
+        "vTerminalPos.x": "-28935.875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74419.4375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "45",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2574.3435058594",
+        "vTerminalPos.x": "-28857.173828125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74415.3046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "44",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2185.5",
+        "vTerminalPos.x": "-29242.759765625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73983.4140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "43",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2326.4916992188",
+        "vTerminalPos.x": "-29082.73828125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73966.484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "42",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2622.2622070312",
+        "vTerminalPos.x": "-28910.328125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74256.125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "41",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2532.4226074219",
+        "vTerminalPos.x": "-28830.900390625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74257.90625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "40",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2507.7780761719",
+        "vTerminalPos.x": "-28927.521484375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73916.0546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "39",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2787.01953125",
+        "vTerminalPos.x": "-28778.828125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73885.3046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "38",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2266.6982421875",
+        "vTerminalPos.x": "-28577.380859375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74225.6796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "37",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2447.1669921875",
+        "vTerminalPos.x": "-28593.265625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74030.6953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "36",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2387.6337890625",
+        "vTerminalPos.x": "-28596.15625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74105.7734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "35",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2688.8520507812",
+        "vTerminalPos.x": "-28642.923828125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73809.171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "34",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2608.65234375",
+        "vTerminalPos.x": "-28627.083984375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73883.8984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2877.3249511719",
+        "vTerminalPos.x": "-28682.921875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73653.6953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "422.12347412109",
+        "vTerminalPos.x": "-29274.0078125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75466.9609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "344.19805908203",
+        "vTerminalPos.x": "-29141.765625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75508.0546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "876.85382080078",
+        "vTerminalPos.x": "-29417.6015625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75047.2265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "580.98901367188",
+        "vTerminalPos.x": "-29184.376953125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75394.4765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "676.42864990234",
+        "vTerminalPos.x": "-29211.056640625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75280.2734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "739.64379882812",
+        "vTerminalPos.x": "-29279.302734375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75141.3359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "660.36688232422",
+        "vTerminalPos.x": "-29246.328125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75229.8046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1090.6733398438",
+        "vTerminalPos.x": "-29472.564453125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74847.2109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1144.6469726562",
+        "vTerminalPos.x": "-29480.94921875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74775.1796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1516.7943115234",
+        "vTerminalPos.x": "-29364.515625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74574.8359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1440.2058105469",
+        "vTerminalPos.x": "-29433.521484375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74578.59375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1746.412109375",
+        "vTerminalPos.x": "-29681.333984375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74391.25"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1983.9915771484",
+        "vTerminalPos.x": "-29805.9609375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74031.8046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2144.7521972656",
+        "vTerminalPos.x": "-29847.107421875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73914.5390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2222.2331542969",
+        "vTerminalPos.x": "-29946.806640625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73854.9453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2327.2749023438",
+        "vTerminalPos.x": "-30036.9140625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73773.2109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2458.9060058594",
+        "vTerminalPos.x": "-30146.1328125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73685.8203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2575.4916992188",
+        "vTerminalPos.x": "-30246.47265625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73603.7421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2670.4460449219",
+        "vTerminalPos.x": "-30336.9765625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73543.0234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2802.2536621094",
+        "vTerminalPos.x": "-30436.255859375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73461.734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2891.88671875",
+        "vTerminalPos.x": "-30525.65625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73410.4765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2207.4089355469",
+        "vTerminalPos.x": "-28544.865234375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74317.703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "260.2912902832",
+        "vTerminalPos.x": "-29206.53515625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75607.125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "548.63128662109",
+        "vTerminalPos.x": "-29328.765625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75363.4609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "547.43438720703",
+        "vTerminalPos.x": "-29296.046875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75429.5859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1427.7684326172",
+        "vTerminalPos.x": "-29518.63671875",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74474.890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1271.2650146484",
+        "vTerminalPos.x": "-29512.830078125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74632.171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1450.2047119141",
+        "vTerminalPos.x": "-29605.87109375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74482.9921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1347.0837402344",
+        "vTerminalPos.x": "-29541.197265625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74560.453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-29301.00390625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74254.3984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-29019.00390625",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "75585.8671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-28861.146484375",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "73389.1953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-29762.283203125",
+        "vTerminalPos.y": "16.000015258789",
+        "vTerminalPos.z": "74164.296875"
+      }
+    ],
+    "3": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "38",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "871.75317382812",
+        "vTerminalPos.x": "-16886.607421875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44808.1796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "37",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "808.78338623047",
+        "vTerminalPos.x": "-16825.92578125",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44795.36328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "36",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "838.60107421875",
+        "vTerminalPos.x": "-16854.869140625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44801.81640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "35",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "388.15777587891",
+        "vTerminalPos.x": "-16827.734375",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45737.41015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "34",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "193.26985168457",
+        "vTerminalPos.x": "-16818.4609375",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45376.74609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "213.30618286133",
+        "vTerminalPos.x": "-16818.9921875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45350.8984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "238.55108642578",
+        "vTerminalPos.x": "-16818.4609375",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45326.1328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "263.8037109375",
+        "vTerminalPos.x": "-16819.244140625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45299.265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "289.24960327148",
+        "vTerminalPos.x": "-16819.59765625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45274.015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "316.77719116211",
+        "vTerminalPos.x": "-16820.3125",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45247.28125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "343.17044067383",
+        "vTerminalPos.x": "-16821.212890625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45220.6796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "373.9944152832",
+        "vTerminalPos.x": "-16821.943359375",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45192.65625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1263.3627929688",
+        "vTerminalPos.x": "-17215.724609375",
+        "vTerminalPos.y": "67.089370727539",
+        "vTerminalPos.z": "44984.875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "435.56103515625",
+        "vTerminalPos.x": "-16818.837890625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45140.3046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "477.3293762207",
+        "vTerminalPos.x": "-16809.5078125",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45117.296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "504.42190551758",
+        "vTerminalPos.x": "-16793.97265625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45099.703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "539.29388427734",
+        "vTerminalPos.x": "-16774.31640625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45083.71484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "265.00595092773",
+        "vTerminalPos.x": "-16821.287109375",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45690.41015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "249.26860046387",
+        "vTerminalPos.x": "-16811.2890625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45671.34765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "377.67681884766",
+        "vTerminalPos.x": "-16865.859375",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45763.0859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "138.05656433105",
+        "vTerminalPos.x": "-16803.26171875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45494.9609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "140.05271911621",
+        "vTerminalPos.x": "-16804.998046875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45454.98046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "631.56976318359",
+        "vTerminalPos.x": "-16676.357421875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44994.4765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "840.31695556641",
+        "vTerminalPos.x": "-16668.583984375",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44920.390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "888.17602539062",
+        "vTerminalPos.x": "-16627.873046875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44935.3671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "938.24755859375",
+        "vTerminalPos.x": "-16593.216796875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44964.09765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "939.37438964844",
+        "vTerminalPos.x": "-16553.66015625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44920.3515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "891.11749267578",
+        "vTerminalPos.x": "-16595.658203125",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44887.25"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "835.32275390625",
+        "vTerminalPos.x": "-16652.298828125",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44860.90234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "873.98931884766",
+        "vTerminalPos.x": "-16689.876953125",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44806.828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "859.03204345703",
+        "vTerminalPos.x": "-16722.392578125",
+        "vTerminalPos.y": "66.772285461426",
+        "vTerminalPos.z": "44772.96875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1101.0343017578",
+        "vTerminalPos.x": "-16877.046875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44750.45703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1134.8231201172",
+        "vTerminalPos.x": "-16854.392578125",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44729.21875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1169.4107666016",
+        "vTerminalPos.x": "-16827.4296875",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44712.18359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1310.3704833984",
+        "vTerminalPos.x": "-16855.115234375",
+        "vTerminalPos.y": "65.027740478516",
+        "vTerminalPos.z": "44527.1484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1467.4809570312",
+        "vTerminalPos.x": "-16685.8984375",
+        "vTerminalPos.y": "66.526527404785",
+        "vTerminalPos.z": "44518.21484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1245.4910888672",
+        "vTerminalPos.x": "-16750.32421875",
+        "vTerminalPos.y": "65.578903198242",
+        "vTerminalPos.z": "44658.95703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-16969.62890625",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "44863.18359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "-16933.755859375",
+        "vTerminalPos.y": "67.000068664551",
+        "vTerminalPos.z": "45472.1953125"
+      }
+    ],
+    "4": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "190.68586730957",
+        "vTerminalPos.x": "16643.55078125",
+        "vTerminalPos.y": "5.0000047683716",
+        "vTerminalPos.z": "47155.42578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "924.4521484375",
+        "vTerminalPos.x": "16002.551757812",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "47291.11328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1621.6096191406",
+        "vTerminalPos.x": "17033.4609375",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "48436.95703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "721.31140136719",
+        "vTerminalPos.x": "16137.262695312",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "46960.53125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "507.51513671875",
+        "vTerminalPos.x": "16124.993164062",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "47287.0078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1079.9398193359",
+        "vTerminalPos.x": "16002.684570312",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "47140.2578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1016.2373046875",
+        "vTerminalPos.x": "16003.302734375",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "47201.85546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "829.45513916016",
+        "vTerminalPos.x": "16001.8515625",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "47390.39453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1013.3805541992",
+        "vTerminalPos.x": "15870.676757812",
+        "vTerminalPos.y": "5.0000047683716",
+        "vTerminalPos.z": "47370.9140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1974.505859375",
+        "vTerminalPos.x": "16758.31640625",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "48566.203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1678.5255126953",
+        "vTerminalPos.x": "17087.908203125",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "48255.24609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1655.8135986328",
+        "vTerminalPos.x": "17104.76171875",
+        "vTerminalPos.y": "4.9955477714539",
+        "vTerminalPos.z": "48412.56640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1698.9821777344",
+        "vTerminalPos.x": "17111.234375",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "48471.1015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1711.8123779297",
+        "vTerminalPos.x": "17033.396484375",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "48517.35546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1758.5245361328",
+        "vTerminalPos.x": "17037.724609375",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "48569.19921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1741.0871582031",
+        "vTerminalPos.x": "16976.068359375",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "48551.44921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1684.6812744141",
+        "vTerminalPos.x": "16972.494140625",
+        "vTerminalPos.y": "4.9955472946167",
+        "vTerminalPos.z": "48500.3828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "864.49572753906",
+        "vTerminalPos.x": "16787.392578125",
+        "vTerminalPos.y": "5.0000047683716",
+        "vTerminalPos.z": "47593.80078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "301.60168457031",
+        "vTerminalPos.x": "16624.708984375",
+        "vTerminalPos.y": "5.0000047683716",
+        "vTerminalPos.z": "47046.2421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "16539.798828125",
+        "vTerminalPos.y": "5.0000047683716",
+        "vTerminalPos.z": "47231.328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "16452.279296875",
+        "vTerminalPos.y": "5.0000047683716",
+        "vTerminalPos.z": "46677.3828125"
+      }
+    ],
+    "5": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "73",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "52603.96875",
+        "vTerminalPos.y": "49.000232696533",
+        "vTerminalPos.z": "-17062.3046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "72",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "52053.3359375",
+        "vTerminalPos.y": "49.100830078125",
+        "vTerminalPos.z": "-14537.8359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "71",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "53383.0703125",
+        "vTerminalPos.y": "48.878612518311",
+        "vTerminalPos.z": "-14676.524414062"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "70",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2541.5310058594",
+        "vTerminalPos.x": "52830.265625",
+        "vTerminalPos.y": "49.000015258789",
+        "vTerminalPos.z": "-15896.120117188"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "69",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2318.2568359375",
+        "vTerminalPos.x": "52595.66015625",
+        "vTerminalPos.y": "48.753322601318",
+        "vTerminalPos.z": "-16437.552734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "68",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2730.7604980469",
+        "vTerminalPos.x": "52695.4140625",
+        "vTerminalPos.y": "49.031658172607",
+        "vTerminalPos.z": "-16824.546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "67",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2440.8083496094",
+        "vTerminalPos.x": "52629.30859375",
+        "vTerminalPos.y": "48.714733123779",
+        "vTerminalPos.z": "-16542.48046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "66",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2376.7119140625",
+        "vTerminalPos.x": "52609.57421875",
+        "vTerminalPos.y": "48.746295928955",
+        "vTerminalPos.z": "-16492.3203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "65",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2524.6940917969",
+        "vTerminalPos.x": "52626.27734375",
+        "vTerminalPos.y": "48.902481079102",
+        "vTerminalPos.z": "-16660.509765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "64",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2494.3630371094",
+        "vTerminalPos.x": "52640.7265625",
+        "vTerminalPos.y": "48.767803192139",
+        "vTerminalPos.z": "-16595.228515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "63",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3420.3950195312",
+        "vTerminalPos.x": "53272.7421875",
+        "vTerminalPos.y": "48.870082855225",
+        "vTerminalPos.z": "-15174.521484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "62",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3378.7160644531",
+        "vTerminalPos.x": "53248.34765625",
+        "vTerminalPos.y": "48.871124267578",
+        "vTerminalPos.z": "-15219.1875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "61",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3039.3386230469",
+        "vTerminalPos.x": "53160.6640625",
+        "vTerminalPos.y": "48.467575073242",
+        "vTerminalPos.z": "-15522.41015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "60",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "3134.2316894531",
+        "vTerminalPos.x": "53163.234375",
+        "vTerminalPos.y": "49.00023651123",
+        "vTerminalPos.z": "-15388.57421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "59",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2962.4040527344",
+        "vTerminalPos.x": "53114.578125",
+        "vTerminalPos.y": "49.000087738037",
+        "vTerminalPos.z": "-15567.078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "58",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2940.8891601562",
+        "vTerminalPos.x": "53106.57421875",
+        "vTerminalPos.y": "48.289066314697",
+        "vTerminalPos.z": "-15625.419921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "57",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3078.1704101562",
+        "vTerminalPos.x": "53171.796875",
+        "vTerminalPos.y": "47.964092254639",
+        "vTerminalPos.z": "-15473.270507812"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "56",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2870.6372070312",
+        "vTerminalPos.x": "53049.45703125",
+        "vTerminalPos.y": "49.00004196167",
+        "vTerminalPos.z": "-15662.073242188"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "55",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2847.3374023438",
+        "vTerminalPos.x": "53036.6796875",
+        "vTerminalPos.y": "48.631847381592",
+        "vTerminalPos.z": "-15700.38671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "54",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2663.4431152344",
+        "vTerminalPos.x": "52675.8046875",
+        "vTerminalPos.y": "48.835559844971",
+        "vTerminalPos.z": "-16769.03125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "53",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2597.154296875",
+        "vTerminalPos.x": "52658.59375",
+        "vTerminalPos.y": "48.858089447021",
+        "vTerminalPos.z": "-16704.193359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "52",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3286.2036132812",
+        "vTerminalPos.x": "52965.09375",
+        "vTerminalPos.y": "48.356479644775",
+        "vTerminalPos.z": "-17099.177734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "51",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3360.8024902344",
+        "vTerminalPos.x": "53021.33203125",
+        "vTerminalPos.y": "48.426273345947",
+        "vTerminalPos.z": "-17115.607421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "50",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3411.8825683594",
+        "vTerminalPos.x": "53074.36328125",
+        "vTerminalPos.y": "48.227863311768",
+        "vTerminalPos.z": "-17093.529296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "49",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3416.8825683594",
+        "vTerminalPos.x": "53099.953125",
+        "vTerminalPos.y": "47.82007598877",
+        "vTerminalPos.z": "-17040.63671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "48",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3259.5515136719",
+        "vTerminalPos.x": "52896.27734375",
+        "vTerminalPos.y": "48.925800323486",
+        "vTerminalPos.z": "-17170.6484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "47",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3292.9870605469",
+        "vTerminalPos.x": "52929.875",
+        "vTerminalPos.y": "48.855625152588",
+        "vTerminalPos.z": "-17177.169921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "46",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3327.0502929688",
+        "vTerminalPos.x": "52964.078125",
+        "vTerminalPos.y": "48.838027954102",
+        "vTerminalPos.z": "-17183.408203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "45",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3363.8312988281",
+        "vTerminalPos.x": "53000.06640625",
+        "vTerminalPos.y": "48.848064422607",
+        "vTerminalPos.z": "-17189.9296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "44",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3399.5122070312",
+        "vTerminalPos.x": "53035.56640625",
+        "vTerminalPos.y": "48.847347259521",
+        "vTerminalPos.z": "-17195.953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "43",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3433.2058105469",
+        "vTerminalPos.x": "53069.45703125",
+        "vTerminalPos.y": "48.843463897705",
+        "vTerminalPos.z": "-17202.203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "42",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3468.8986816406",
+        "vTerminalPos.x": "53105.46484375",
+        "vTerminalPos.y": "48.832748413086",
+        "vTerminalPos.z": "-17209.236328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "41",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3505.1879882812",
+        "vTerminalPos.x": "53140.9453125",
+        "vTerminalPos.y": "48.837154388428",
+        "vTerminalPos.z": "-17216.03515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "40",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3537.9509277344",
+        "vTerminalPos.x": "53174.73046875",
+        "vTerminalPos.y": "48.850067138672",
+        "vTerminalPos.z": "-17222.40625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "39",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3574.3610839844",
+        "vTerminalPos.x": "53210.1875",
+        "vTerminalPos.y": "48.835494995117",
+        "vTerminalPos.z": "-17228.744140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "38",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3610.2263183594",
+        "vTerminalPos.x": "53244.83203125",
+        "vTerminalPos.y": "48.989650726318",
+        "vTerminalPos.z": "-17234.908203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "37",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3643.1140136719",
+        "vTerminalPos.x": "53277.5703125",
+        "vTerminalPos.y": "49.000049591064",
+        "vTerminalPos.z": "-17240.890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "36",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3691.9743652344",
+        "vTerminalPos.x": "53325.62109375",
+        "vTerminalPos.y": "49.000049591064",
+        "vTerminalPos.z": "-17248.12890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "35",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3722.212890625",
+        "vTerminalPos.x": "53354.6015625",
+        "vTerminalPos.y": "49.000049591064",
+        "vTerminalPos.z": "-17253.74609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "34",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "3751.5083007812",
+        "vTerminalPos.x": "53383.01171875",
+        "vTerminalPos.y": "49.000049591064",
+        "vTerminalPos.z": "-17257.74609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2201.3132324219",
+        "vTerminalPos.x": "52529.28515625",
+        "vTerminalPos.y": "48.99991607666",
+        "vTerminalPos.z": "-16093.950195312"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2343.6040039062",
+        "vTerminalPos.x": "52691.0078125",
+        "vTerminalPos.y": "49.00004196167",
+        "vTerminalPos.z": "-16067.978515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2297.8774414062",
+        "vTerminalPos.x": "52605.93359375",
+        "vTerminalPos.y": "48.740299224854",
+        "vTerminalPos.z": "-16330.698242188"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2331.8188476562",
+        "vTerminalPos.x": "52632.6640625",
+        "vTerminalPos.y": "48.674404144287",
+        "vTerminalPos.z": "-16309.176757812"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2369.66796875",
+        "vTerminalPos.x": "52660.27734375",
+        "vTerminalPos.y": "48.606700897217",
+        "vTerminalPos.z": "-16286.13671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2407.412109375",
+        "vTerminalPos.x": "52685.48828125",
+        "vTerminalPos.y": "48.545406341553",
+        "vTerminalPos.z": "-16263.958984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2444.1740722656",
+        "vTerminalPos.x": "52710.4765625",
+        "vTerminalPos.y": "48.41756439209",
+        "vTerminalPos.z": "-16243.318359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2471.7248535156",
+        "vTerminalPos.x": "52734.7890625",
+        "vTerminalPos.y": "48.240406036377",
+        "vTerminalPos.z": "-16222.828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2560.6848144531",
+        "vTerminalPos.x": "52859.27734375",
+        "vTerminalPos.y": "49.000049591064",
+        "vTerminalPos.z": "-15963.576171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2664.2358398438",
+        "vTerminalPos.x": "52871.875",
+        "vTerminalPos.y": "49.000114440918",
+        "vTerminalPos.z": "-15943.881835938"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2674.7475585938",
+        "vTerminalPos.x": "52924.890625",
+        "vTerminalPos.y": "49.000247955322",
+        "vTerminalPos.z": "-15874.98046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2702.6208496094",
+        "vTerminalPos.x": "52943.33203125",
+        "vTerminalPos.y": "49.000247955322",
+        "vTerminalPos.z": "-15855.364257812"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "251.96084594727",
+        "vTerminalPos.x": "51806.7734375",
+        "vTerminalPos.y": "48.767372131348",
+        "vTerminalPos.z": "-14491.458984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "460.95788574219",
+        "vTerminalPos.x": "51853.65625",
+        "vTerminalPos.y": "48.380882263184",
+        "vTerminalPos.z": "-14719.455078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "721.40850830078",
+        "vTerminalPos.x": "51907.2421875",
+        "vTerminalPos.y": "48.448047637939",
+        "vTerminalPos.z": "-14972.000976562"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1064.7589111328",
+        "vTerminalPos.x": "51978.41796875",
+        "vTerminalPos.y": "48.363689422607",
+        "vTerminalPos.z": "-15306.775390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1218.1055908203",
+        "vTerminalPos.x": "52014.1015625",
+        "vTerminalPos.y": "48.373722076416",
+        "vTerminalPos.z": "-15459.830078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1384.8444824219",
+        "vTerminalPos.x": "52052.79296875",
+        "vTerminalPos.y": "48.697200775146",
+        "vTerminalPos.z": "-15624.427734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1552.2263183594",
+        "vTerminalPos.x": "52086.734375",
+        "vTerminalPos.y": "49.000057220459",
+        "vTerminalPos.z": "-15785.474609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1715.939453125",
+        "vTerminalPos.x": "52121.296875",
+        "vTerminalPos.y": "49.000026702881",
+        "vTerminalPos.z": "-15947.27734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1875.7257080078",
+        "vTerminalPos.x": "52156.890625",
+        "vTerminalPos.y": "49.000022888184",
+        "vTerminalPos.z": "-16102.396484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2486.9936523438",
+        "vTerminalPos.x": "52283.64453125",
+        "vTerminalPos.y": "49.000026702881",
+        "vTerminalPos.z": "-16696.306640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2668.203125",
+        "vTerminalPos.x": "52323.21875",
+        "vTerminalPos.y": "49.000019073486",
+        "vTerminalPos.z": "-16874.927734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2848.0910644531",
+        "vTerminalPos.x": "52365.48046875",
+        "vTerminalPos.y": "49.000049591064",
+        "vTerminalPos.z": "-17052.736328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "3675.2648925781",
+        "vTerminalPos.x": "53312.4921875",
+        "vTerminalPos.y": "49.000049591064",
+        "vTerminalPos.z": "-17081.89453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "3488.2275390625",
+        "vTerminalPos.x": "53156.59765625",
+        "vTerminalPos.y": "47.846790313721",
+        "vTerminalPos.z": "-17053.43359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2427.5676269531",
+        "vTerminalPos.x": "52754.10546875",
+        "vTerminalPos.y": "49.000015258789",
+        "vTerminalPos.z": "-15981.358398438"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2698.9699707031",
+        "vTerminalPos.x": "52852.21875",
+        "vTerminalPos.y": "49.000019073486",
+        "vTerminalPos.z": "-15721.616210938"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2739.0739746094",
+        "vTerminalPos.x": "52890",
+        "vTerminalPos.y": "49.000030517578",
+        "vTerminalPos.z": "-15691.54296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "3309.64453125",
+        "vTerminalPos.x": "53203.453125",
+        "vTerminalPos.y": "49.000267028809",
+        "vTerminalPos.z": "-15266.77734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "3657.4985351562",
+        "vTerminalPos.x": "53415.3984375",
+        "vTerminalPos.y": "49.000270843506",
+        "vTerminalPos.z": "-15004.037109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "52494.109375",
+        "vTerminalPos.y": "48.999893188477",
+        "vTerminalPos.z": "-16021.1953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "52539.49609375",
+        "vTerminalPos.y": "49.000270843506",
+        "vTerminalPos.z": "-17079.611328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "51990.18359375",
+        "vTerminalPos.y": "49.030616760254",
+        "vTerminalPos.z": "-14552.223632812"
+      }
+    ],
+    "6": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "57",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "735.01727294922",
+        "vTerminalPos.x": "27181.697265625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29829.951171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "56",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "657.57116699219",
+        "vTerminalPos.x": "26966.16796875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-28886.486328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "55",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "630.21173095703",
+        "vTerminalPos.x": "27001.947265625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-28899.04296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "54",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "228.16864013672",
+        "vTerminalPos.x": "27342.568359375",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29106.74609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "53",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1265.0308837891",
+        "vTerminalPos.x": "26763.990234375",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-30167.96875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "52",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1242.7575683594",
+        "vTerminalPos.x": "26789.36328125",
+        "vTerminalPos.y": "159.99220275879",
+        "vTerminalPos.z": "-30187.06640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "51",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1670.0067138672",
+        "vTerminalPos.x": "26489.955078125",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29680.798828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "50",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1612.5230712891",
+        "vTerminalPos.x": "26513.47265625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29585.626953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "49",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "678.16430664062",
+        "vTerminalPos.x": "27223.623046875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29789.421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "48",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "533.55755615234",
+        "vTerminalPos.x": "27329.08984375",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29678.390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "47",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "506.43597412109",
+        "vTerminalPos.x": "27345.609375",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29654.310546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "46",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "513.72528076172",
+        "vTerminalPos.x": "27381.044921875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29650.357421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "45",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "466.8053894043",
+        "vTerminalPos.x": "27374.65234375",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29615.662109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "44",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "431.98348999023",
+        "vTerminalPos.x": "27383.046875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29586.01953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "43",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "413.43981933594",
+        "vTerminalPos.x": "27404.31640625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29563.7109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "42",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1190.505859375",
+        "vTerminalPos.x": "26911.962890625",
+        "vTerminalPos.y": "159.83929443359",
+        "vTerminalPos.z": "-30159.12890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "41",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1171.1710205078",
+        "vTerminalPos.x": "27082.14453125",
+        "vTerminalPos.y": "160.08203125",
+        "vTerminalPos.z": "-30071.181640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "40",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1142.2390136719",
+        "vTerminalPos.x": "26991.353515625",
+        "vTerminalPos.y": "161.13804626465",
+        "vTerminalPos.z": "-30124.662109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "39",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1118.1005859375",
+        "vTerminalPos.x": "26974.486328125",
+        "vTerminalPos.y": "160.71806335449",
+        "vTerminalPos.z": "-30104.859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "38",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1251.4079589844",
+        "vTerminalPos.x": "26848.85546875",
+        "vTerminalPos.y": "159.90539550781",
+        "vTerminalPos.z": "-30205.373046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "37",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "882.66479492188",
+        "vTerminalPos.x": "27246.8046875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29859.53125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "36",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "892.0673828125",
+        "vTerminalPos.x": "27016.212890625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29844.482421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "35",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "858.48419189453",
+        "vTerminalPos.x": "27038.9921875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29821.41796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "34",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "843.80242919922",
+        "vTerminalPos.x": "27139.408203125",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29908.642578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "903.94854736328",
+        "vTerminalPos.x": "27253.416015625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29920.201171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "862.63092041016",
+        "vTerminalPos.x": "27156.98828125",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29927.494140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1069.1715087891",
+        "vTerminalPos.x": "26879.0390625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29974.01953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1089.9230957031",
+        "vTerminalPos.x": "27026.259765625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-30009.81640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1145.7327880859",
+        "vTerminalPos.x": "27064.361328125",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-30053.30859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "897.52423095703",
+        "vTerminalPos.x": "27178.4375",
+        "vTerminalPos.y": "160.0001373291",
+        "vTerminalPos.z": "-29950.841796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "923.21466064453",
+        "vTerminalPos.x": "27194.357421875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29970.08984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1635.0473632812",
+        "vTerminalPos.x": "26497.099609375",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29644.234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1112.9339599609",
+        "vTerminalPos.x": "27041.607421875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-30030.57421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "536.76055908203",
+        "vTerminalPos.x": "27071.71875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-28954.021484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "737.24066162109",
+        "vTerminalPos.x": "26856.09765625",
+        "vTerminalPos.y": "159.98815917969",
+        "vTerminalPos.z": "-28859.921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "759.15161132812",
+        "vTerminalPos.x": "26838.416015625",
+        "vTerminalPos.y": "159.98921203613",
+        "vTerminalPos.z": "-28883.8828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "813.69573974609",
+        "vTerminalPos.x": "26818.9296875",
+        "vTerminalPos.y": "159.99436950684",
+        "vTerminalPos.z": "-28946.75"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "845.99432373047",
+        "vTerminalPos.x": "26802.208984375",
+        "vTerminalPos.y": "159.99104309082",
+        "vTerminalPos.z": "-28970.296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "938.30792236328",
+        "vTerminalPos.x": "26744.146484375",
+        "vTerminalPos.y": "159.98858642578",
+        "vTerminalPos.z": "-29028.115234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "910.58569335938",
+        "vTerminalPos.x": "26763.896484375",
+        "vTerminalPos.y": "159.98852539062",
+        "vTerminalPos.z": "-29007.41796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1400.166015625",
+        "vTerminalPos.x": "26699.8125",
+        "vTerminalPos.y": "159.99749755859",
+        "vTerminalPos.z": "-30192.97265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1413.1376953125",
+        "vTerminalPos.x": "26724.162109375",
+        "vTerminalPos.y": "159.99465942383",
+        "vTerminalPos.z": "-30207.951171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1408.1999511719",
+        "vTerminalPos.x": "26631.279296875",
+        "vTerminalPos.y": "159.99261474609",
+        "vTerminalPos.z": "-30108.376953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1413.4645996094",
+        "vTerminalPos.x": "26647.76953125",
+        "vTerminalPos.y": "159.99291992188",
+        "vTerminalPos.z": "-30132.56640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1496.3914794922",
+        "vTerminalPos.x": "26573.296875",
+        "vTerminalPos.y": "160.11502075195",
+        "vTerminalPos.z": "-30068.29296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1496.076171875",
+        "vTerminalPos.x": "26591.955078125",
+        "vTerminalPos.y": "160.03567504883",
+        "vTerminalPos.z": "-30091.296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "453.03082275391",
+        "vTerminalPos.x": "27140.70703125",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29001"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1309.4195556641",
+        "vTerminalPos.x": "26932.279296875",
+        "vTerminalPos.y": "159.78805541992",
+        "vTerminalPos.z": "-30194.19140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "145.25260925293",
+        "vTerminalPos.x": "27420.703125",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29182.853515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "27341.310546875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29295.609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "26664.6953125",
+        "vTerminalPos.y": "160.0048828125",
+        "vTerminalPos.z": "-29847.193359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "369.53005981445",
+        "vTerminalPos.x": "27211.73046875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29041.603515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "336.01696777344",
+        "vTerminalPos.x": "27244.27734375",
+        "vTerminalPos.y": "160.0001373291",
+        "vTerminalPos.z": "-29057.19140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "299.53656005859",
+        "vTerminalPos.x": "27276.8046875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29072.44140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "266.93872070312",
+        "vTerminalPos.x": "27308.404296875",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29087.119140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1021.3243408203",
+        "vTerminalPos.x": "26914.8359375",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29944.03515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "27346.080078125",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29401.5859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "26633.791015625",
+        "vTerminalPos.y": "160.00015258789",
+        "vTerminalPos.z": "-29403.568359375"
+      }
+    ],
+    "7": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1406.2836914062",
+        "vTerminalPos.x": "23894.693359375",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39896.2265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1364.5987548828",
+        "vTerminalPos.x": "23863.69140625",
+        "vTerminalPos.y": "107.00009918213",
+        "vTerminalPos.z": "-39868.34375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1311.0184326172",
+        "vTerminalPos.x": "23823.888671875",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39832.48828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "270.69741821289",
+        "vTerminalPos.x": "23232.0390625",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39281.43359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "300.9521484375",
+        "vTerminalPos.x": "23234.56640625",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39312.13671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "331.22116088867",
+        "vTerminalPos.x": "23236.888671875",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39342.328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "361.6203918457",
+        "vTerminalPos.x": "23239.392578125",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39372.625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "391.69720458984",
+        "vTerminalPos.x": "23241.810546875",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39402.59375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "421.35494995117",
+        "vTerminalPos.x": "23244.22265625",
+        "vTerminalPos.y": "107.00006103516",
+        "vTerminalPos.z": "-39432.1640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "451.11810302734",
+        "vTerminalPos.x": "23246.7109375",
+        "vTerminalPos.y": "106.99967956543",
+        "vTerminalPos.z": "-39461.828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "479.90994262695",
+        "vTerminalPos.x": "23251.603515625",
+        "vTerminalPos.y": "106.99933624268",
+        "vTerminalPos.z": "-39492.6484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "510.80828857422",
+        "vTerminalPos.x": "23255.8984375",
+        "vTerminalPos.y": "106.9992980957",
+        "vTerminalPos.z": "-39531.75390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "546.94366455078",
+        "vTerminalPos.x": "23254.3515625",
+        "vTerminalPos.y": "106.9992980957",
+        "vTerminalPos.z": "-39557.33203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "824.95825195312",
+        "vTerminalPos.x": "23471.8828125",
+        "vTerminalPos.y": "107.00000762939",
+        "vTerminalPos.z": "-39712.62890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "871.75842285156",
+        "vTerminalPos.x": "23516.357421875",
+        "vTerminalPos.y": "107.00006866455",
+        "vTerminalPos.z": "-39700.6015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "948.55755615234",
+        "vTerminalPos.x": "23591.3515625",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39682"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1004.0772705078",
+        "vTerminalPos.x": "23644.4921875",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39668.9140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1122.4786376953",
+        "vTerminalPos.x": "23686.919921875",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39705.8515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1211.2995605469",
+        "vTerminalPos.x": "23748.3203125",
+        "vTerminalPos.y": "107.00011444092",
+        "vTerminalPos.z": "-39728.65234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1256.8693847656",
+        "vTerminalPos.x": "23783.634765625",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39796.25390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "24100.17578125",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39854.44921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "23452.9296875",
+        "vTerminalPos.y": "107.00011444092",
+        "vTerminalPos.z": "-39185.3671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "424.91098022461",
+        "vTerminalPos.x": "23201.7421875",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39010.74609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "162.83372497559",
+        "vTerminalPos.x": "23345.6953125",
+        "vTerminalPos.y": "107.00010681152",
+        "vTerminalPos.z": "-39134.62890625"
+      }
+    ],
+    "8": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "193.19496154785",
+        "vTerminalPos.x": "49953.9296875",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67380.2578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "209.49822998047",
+        "vTerminalPos.x": "49883.68359375",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67357.640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1140.5308837891",
+        "vTerminalPos.x": "49911.7578125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-68345.140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1101.9254150391",
+        "vTerminalPos.x": "49941.1796875",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-68323.3203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1064.5333251953",
+        "vTerminalPos.x": "49971.34765625",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-68298.5234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1021.5408325195",
+        "vTerminalPos.x": "50001.88671875",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-68273.53125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "987.72772216797",
+        "vTerminalPos.x": "50028.765625",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-68251.046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "950.92742919922",
+        "vTerminalPos.x": "50058.234375",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-68227.9140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "279.48443603516",
+        "vTerminalPos.x": "49847.52734375",
+        "vTerminalPos.y": "190.00019836426",
+        "vTerminalPos.z": "-67549.40625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "259.27478027344",
+        "vTerminalPos.x": "49864.43359375",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67539.1953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "236.2839050293",
+        "vTerminalPos.x": "49884.2734375",
+        "vTerminalPos.y": "190.00019836426",
+        "vTerminalPos.z": "-67527.0859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "179.60195922852",
+        "vTerminalPos.x": "49883.03515625",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67414.9609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "203.14840698242",
+        "vTerminalPos.x": "49863.71484375",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67428.390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "572.06378173828",
+        "vTerminalPos.x": "50125.22265625",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67921.8671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "614.73809814453",
+        "vTerminalPos.x": "50149.26171875",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67943.8828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "591.00091552734",
+        "vTerminalPos.x": "50070.89453125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-68005.3125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "573.41833496094",
+        "vTerminalPos.x": "50030.0390625",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67979.1015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "553.31231689453",
+        "vTerminalPos.x": "50019.6015625",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67962.171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "534.31579589844",
+        "vTerminalPos.x": "50008.125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67945.4609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "511.5290222168",
+        "vTerminalPos.x": "49997.42578125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67926.4375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "489.76510620117",
+        "vTerminalPos.x": "49986.20703125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67907.109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "122.24490356445",
+        "vTerminalPos.x": "49988.23046875",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67435.2734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "107.47179412842",
+        "vTerminalPos.x": "50046.703125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67538.7578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "132.76591491699",
+        "vTerminalPos.x": "50061.109375",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67560.125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "174.99203491211",
+        "vTerminalPos.x": "50083.76953125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67595.625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "272.87701416016",
+        "vTerminalPos.x": "49988.578125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67680.0625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "306.3586730957",
+        "vTerminalPos.x": "49974.75",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67717.578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "338.26702880859",
+        "vTerminalPos.x": "49965.953125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67758.3125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "374.43350219727",
+        "vTerminalPos.x": "49966.2109375",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67798.328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "399.71636962891",
+        "vTerminalPos.x": "49976.59375",
+        "vTerminalPos.y": "190.00019836426",
+        "vTerminalPos.z": "-67835.890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "436.29174804688",
+        "vTerminalPos.x": "49994.61328125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67868.7890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "491.38458251953",
+        "vTerminalPos.x": "50092",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67870.7734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "49229.6328125",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-68308.8828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "49958.84765625",
+        "vTerminalPos.y": "190.00018310547",
+        "vTerminalPos.z": "-67537.7265625"
+      }
+    ],
+    "10": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "45",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "890.74243164062",
+        "vTerminalPos.x": "58185.4765625",
+        "vTerminalPos.y": "9.8475513458252",
+        "vTerminalPos.z": "-50464.6484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "44",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1595.1452636719",
+        "vTerminalPos.x": "58810.1328125",
+        "vTerminalPos.y": "13.242677688599",
+        "vTerminalPos.z": "-50233.35546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "43",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1633.6530761719",
+        "vTerminalPos.x": "58775.671875",
+        "vTerminalPos.y": "13.254655838013",
+        "vTerminalPos.z": "-50247.453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "42",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1834.7572021484",
+        "vTerminalPos.x": "58596.54296875",
+        "vTerminalPos.y": "11.53844833374",
+        "vTerminalPos.z": "-50296.82421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "41",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1229.5634765625",
+        "vTerminalPos.x": "59086.578125",
+        "vTerminalPos.y": "11.162599563599",
+        "vTerminalPos.z": "-50058.98046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "40",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1248.0489501953",
+        "vTerminalPos.x": "59136.66015625",
+        "vTerminalPos.y": "9.5673522949219",
+        "vTerminalPos.z": "-50031.296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "39",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1222.1689453125",
+        "vTerminalPos.x": "59118.29296875",
+        "vTerminalPos.y": "9.8226833343506",
+        "vTerminalPos.z": "-50010.59765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "38",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1258.603515625",
+        "vTerminalPos.x": "58976.32421875",
+        "vTerminalPos.y": "11.872831344604",
+        "vTerminalPos.z": "-49964.11328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "37",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1283.8663330078",
+        "vTerminalPos.x": "59022.98828125",
+        "vTerminalPos.y": "12.558913230896",
+        "vTerminalPos.z": "-50065.3046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "36",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1411.8099365234",
+        "vTerminalPos.x": "58920.5078125",
+        "vTerminalPos.y": "13.010946273804",
+        "vTerminalPos.z": "-50122.99609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "35",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1421.6168212891",
+        "vTerminalPos.x": "58966.6015625",
+        "vTerminalPos.y": "12.976414680481",
+        "vTerminalPos.z": "-50093.58984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "34",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1395.9759521484",
+        "vTerminalPos.x": "58948.54296875",
+        "vTerminalPos.y": "12.860953330994",
+        "vTerminalPos.z": "-50073.00390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1473.2395019531",
+        "vTerminalPos.x": "58846.61328125",
+        "vTerminalPos.y": "12.873660087585",
+        "vTerminalPos.z": "-50133.51953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1559.7202148438",
+        "vTerminalPos.x": "58682.375",
+        "vTerminalPos.y": "11.872783660889",
+        "vTerminalPos.z": "-50094.12109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1506.4095458984",
+        "vTerminalPos.x": "58732.515625",
+        "vTerminalPos.y": "11.887405395508",
+        "vTerminalPos.z": "-50070.37109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1617.6405029297",
+        "vTerminalPos.x": "58625.15625",
+        "vTerminalPos.y": "11.694580078125",
+        "vTerminalPos.z": "-50121.26171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1627.3518066406",
+        "vTerminalPos.x": "58740.3046875",
+        "vTerminalPos.y": "12.815270423889",
+        "vTerminalPos.z": "-50171.0859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "861.98431396484",
+        "vTerminalPos.x": "58300.6640625",
+        "vTerminalPos.y": "10.124808311462",
+        "vTerminalPos.z": "-50411.23828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "941.36029052734",
+        "vTerminalPos.x": "58323.35546875",
+        "vTerminalPos.y": "10.228645324707",
+        "vTerminalPos.z": "-50505.48828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1082.3380126953",
+        "vTerminalPos.x": "58396.90234375",
+        "vTerminalPos.y": "10.591673851013",
+        "vTerminalPos.z": "-50609.53125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1313.9956054688",
+        "vTerminalPos.x": "58473.2109375",
+        "vTerminalPos.y": "11.192366600037",
+        "vTerminalPos.z": "-50840.1171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1211.0703125",
+        "vTerminalPos.x": "58395.48828125",
+        "vTerminalPos.y": "10.638486862183",
+        "vTerminalPos.z": "-50756.08203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1072.5501708984",
+        "vTerminalPos.x": "58310.1953125",
+        "vTerminalPos.y": "10.276900291443",
+        "vTerminalPos.z": "-50641.140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "997.9111328125",
+        "vTerminalPos.x": "58277.6171875",
+        "vTerminalPos.y": "10.24817943573",
+        "vTerminalPos.z": "-50580.76953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "945.15173339844",
+        "vTerminalPos.x": "58242.15234375",
+        "vTerminalPos.y": "10.031985282898",
+        "vTerminalPos.z": "-50528.56640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "893.3525390625",
+        "vTerminalPos.x": "58238.94140625",
+        "vTerminalPos.y": "9.9990549087524",
+        "vTerminalPos.z": "-50488.421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1816.2835693359",
+        "vTerminalPos.x": "58630.65234375",
+        "vTerminalPos.y": "12.265305519104",
+        "vTerminalPos.z": "-50641.98828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1881.9942626953",
+        "vTerminalPos.x": "58644.7734375",
+        "vTerminalPos.y": "12.38022518158",
+        "vTerminalPos.z": "-50594.171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1921.4797363281",
+        "vTerminalPos.x": "58631.078125",
+        "vTerminalPos.y": "12.178612709045",
+        "vTerminalPos.z": "-50548.1015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1945.9807128906",
+        "vTerminalPos.x": "58612.9140625",
+        "vTerminalPos.y": "11.933537483215",
+        "vTerminalPos.z": "-50509.88671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1712.2897949219",
+        "vTerminalPos.x": "58534.7265625",
+        "vTerminalPos.y": "10.727796554565",
+        "vTerminalPos.z": "-50190.765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1463.2347412109",
+        "vTerminalPos.x": "58777.375",
+        "vTerminalPos.y": "12.081732749939",
+        "vTerminalPos.z": "-50058.6953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1416.2171630859",
+        "vTerminalPos.x": "58820.7734375",
+        "vTerminalPos.y": "12.000227928162",
+        "vTerminalPos.z": "-50037.09375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1377.4045410156",
+        "vTerminalPos.x": "58858.05859375",
+        "vTerminalPos.y": "12.015452384949",
+        "vTerminalPos.z": "-50022.609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1319.611328125",
+        "vTerminalPos.x": "58910.453125",
+        "vTerminalPos.y": "12.131793022156",
+        "vTerminalPos.z": "-50006.6640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1299.5860595703",
+        "vTerminalPos.x": "58934.90625",
+        "vTerminalPos.y": "11.914558410645",
+        "vTerminalPos.z": "-49983.4921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1204.0205078125",
+        "vTerminalPos.x": "59017.5",
+        "vTerminalPos.y": "11.645888328552",
+        "vTerminalPos.z": "-49964.63671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1160.7164306641",
+        "vTerminalPos.x": "59066.22265625",
+        "vTerminalPos.y": "10.736603736877",
+        "vTerminalPos.z": "-49934.18359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1294.2169189453",
+        "vTerminalPos.x": "59269.0078125",
+        "vTerminalPos.y": "9.3501300811768",
+        "vTerminalPos.z": "-49972.0625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1262.1524658203",
+        "vTerminalPos.x": "59233.54296875",
+        "vTerminalPos.y": "9.3501300811768",
+        "vTerminalPos.z": "-49983.76953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1081.2972412109",
+        "vTerminalPos.x": "59178.59765625",
+        "vTerminalPos.y": "9.3501300811768",
+        "vTerminalPos.z": "-49945.33203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "970.01684570312",
+        "vTerminalPos.x": "59137.21484375",
+        "vTerminalPos.y": "9.3501300811768",
+        "vTerminalPos.z": "-49839.74609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "59009.4765625",
+        "vTerminalPos.y": "9.395712852478",
+        "vTerminalPos.z": "-49773.5078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "58180.2109375",
+        "vTerminalPos.y": "9.4272937774658",
+        "vTerminalPos.z": "-50121.0390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "58463.17578125",
+        "vTerminalPos.y": "9.7026700973511",
+        "vTerminalPos.z": "-49976.9375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "58580.76171875",
+        "vTerminalPos.y": "11.925397872925",
+        "vTerminalPos.z": "-50878.71484375"
+      }
+    ],
+    "12": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "82",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "604.90710449219",
+        "vTerminalPos.x": "28843.9296875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61891.1875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "81",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1251.4348144531",
+        "vTerminalPos.x": "29693.302734375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61115.03125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "80",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1099.2407226562",
+        "vTerminalPos.x": "29559.1640625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61222.90234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "79",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "968.46484375",
+        "vTerminalPos.x": "29452.681640625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61262.62109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "78",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "796.94134521484",
+        "vTerminalPos.x": "29295.35546875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61403.2421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "77",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "633.44165039062",
+        "vTerminalPos.x": "29159.44140625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61465.6171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "76",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "625.58435058594",
+        "vTerminalPos.x": "29103.5546875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61489.796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "75",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "779.63922119141",
+        "vTerminalPos.x": "29232.9765625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61422.91796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "74",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "985.40844726562",
+        "vTerminalPos.x": "29421.974609375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61303.3828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "73",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1099.5859375",
+        "vTerminalPos.x": "29509.04296875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61253.921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "72",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1271.6644287109",
+        "vTerminalPos.x": "29665.083984375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61155.9296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "71",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1392.7297363281",
+        "vTerminalPos.x": "29808.2578125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61030.83984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "70",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1345.3601074219",
+        "vTerminalPos.x": "29767.576171875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61057.1953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "69",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1279.3509521484",
+        "vTerminalPos.x": "29694.53125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61159.4375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "68",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1100.9709472656",
+        "vTerminalPos.x": "29558.8828125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61184.20703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "67",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1101.5581054688",
+        "vTerminalPos.x": "29541.740234375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61253.56640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "66",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "995.20086669922",
+        "vTerminalPos.x": "29452.28515625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61308.94140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "65",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "881.96411132812",
+        "vTerminalPos.x": "29371.642578125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61296.38671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "64",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "767.65063476562",
+        "vTerminalPos.x": "29274.08984375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61357.28515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "63",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "794.04553222656",
+        "vTerminalPos.x": "29274.083984375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61432.140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "62",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "648.39660644531",
+        "vTerminalPos.x": "29170.9296875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61417.140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "61",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "633.58312988281",
+        "vTerminalPos.x": "29141.060546875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61494.5390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "60",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "525.88836669922",
+        "vTerminalPos.x": "29067.1328125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61482.41015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "59",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1121.8298339844",
+        "vTerminalPos.x": "29528.36328125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60885.8125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "58",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "872.34606933594",
+        "vTerminalPos.x": "29314.0703125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61015.54296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "57",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "616.35443115234",
+        "vTerminalPos.x": "29032.884765625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61167.2734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "56",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "611.79113769531",
+        "vTerminalPos.x": "29106.796875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61105.578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "55",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "674.76910400391",
+        "vTerminalPos.x": "29202.431640625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61084.3984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "54",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "856.84747314453",
+        "vTerminalPos.x": "29370.615234375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60994.66015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "53",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1109.6099853516",
+        "vTerminalPos.x": "29585.64453125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60863.24609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "52",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1126.203125",
+        "vTerminalPos.x": "29622.61328125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60869.8828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "51",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1121.2404785156",
+        "vTerminalPos.x": "29547.189453125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60855.51171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "50",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1005.5115356445",
+        "vTerminalPos.x": "29519.58203125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60932.99609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "49",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "976.00988769531",
+        "vTerminalPos.x": "29485.2109375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60947.83203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "48",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "915.70343017578",
+        "vTerminalPos.x": "29441.05078125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60979.4296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "47",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "866.48565673828",
+        "vTerminalPos.x": "29338.08203125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60988.76171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "46",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "764.0283203125",
+        "vTerminalPos.x": "29314.697265625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61058.89453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "45",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "592.10034179688",
+        "vTerminalPos.x": "29160.419921875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61149.453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "44",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "729.15380859375",
+        "vTerminalPos.x": "29278.326171875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61078.83203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "43",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "677.94750976562",
+        "vTerminalPos.x": "29235.744140625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61101.48828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "42",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "675.80297851562",
+        "vTerminalPos.x": "29169.44140625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61086.8203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "41",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "601.77661132812",
+        "vTerminalPos.x": "29075.994140625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61118.15625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "40",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "434.42907714844",
+        "vTerminalPos.x": "29027.24609375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61227.625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "39",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "391.03939819336",
+        "vTerminalPos.x": "28994.453125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61251.44921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "38",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "340.35177612305",
+        "vTerminalPos.x": "28948.283203125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61277.34375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "37",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1285.9235839844",
+        "vTerminalPos.x": "28931.21875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62540.421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "36",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1130.8988037109",
+        "vTerminalPos.x": "28927.146484375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62403.66015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "35",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1007.8984375",
+        "vTerminalPos.x": "28898.876953125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62282.71484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "34",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1287.6706542969",
+        "vTerminalPos.x": "28912.578125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62477.828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1174.1793212891",
+        "vTerminalPos.x": "28872.94140625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62354.12109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1049.5205078125",
+        "vTerminalPos.x": "28845.29296875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62229.8203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "960.30883789062",
+        "vTerminalPos.x": "28828.00390625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62143.65625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1288.4914550781",
+        "vTerminalPos.x": "28904.9375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62515.3671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1159.9619140625",
+        "vTerminalPos.x": "28959.255859375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62436.02734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1171.7923583984",
+        "vTerminalPos.x": "28866.806640625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62387.125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1031.0114746094",
+        "vTerminalPos.x": "28929.705078125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62308.16796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1049.1964111328",
+        "vTerminalPos.x": "28837.1171875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62263.390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "962.60345458984",
+        "vTerminalPos.x": "28817.33984375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62177.421875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "844.54766845703",
+        "vTerminalPos.x": "28891.017578125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62125.796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "869.28448486328",
+        "vTerminalPos.x": "28830.427734375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62064.52734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "866.49212646484",
+        "vTerminalPos.x": "28823.474609375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62100.96875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "745.81164550781",
+        "vTerminalPos.x": "28873.474609375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62033.328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "711.71813964844",
+        "vTerminalPos.x": "28820.255859375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61968.77734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "627.58770751953",
+        "vTerminalPos.x": "28849.556640625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61917.1328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "717.35028076172",
+        "vTerminalPos.x": "28868.09375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62005.765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "581.27069091797",
+        "vTerminalPos.x": "28773.7265625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61829.39453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "491.13372802734",
+        "vTerminalPos.x": "28818.27734375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61779.9921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "321.3076171875",
+        "vTerminalPos.x": "28769.376953125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61631.80078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "290.93041992188",
+        "vTerminalPos.x": "28907.931640625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61307.63671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1272.9449462891",
+        "vTerminalPos.x": "29004.22265625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62554.953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1382.6145019531",
+        "vTerminalPos.x": "29006.94140625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62611.44921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1384.7596435547",
+        "vTerminalPos.x": "29066.05859375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62638.70703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1382.1804199219",
+        "vTerminalPos.x": "29030.201171875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62638.83984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "424.6950378418",
+        "vTerminalPos.x": "28801.919921875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61717.6640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "387.25036621094",
+        "vTerminalPos.x": "28797.9296875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61688.60546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "352.70831298828",
+        "vTerminalPos.x": "28669.796875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61436.4375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1512.537109375",
+        "vTerminalPos.x": "29920.908203125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61047.296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1502.6918945312",
+        "vTerminalPos.x": "29906.59375",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60952.17578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1484.0072021484",
+        "vTerminalPos.x": "29893.033203125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60978.265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "29817.578125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-60884.61328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "28893.4921875",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61569.390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "28958.3125",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-61405.21875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "29091.041015625",
+        "vTerminalPos.y": "32.000030517578",
+        "vTerminalPos.z": "-62470.8203125"
+      }
+    ],
+    "13": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "80",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1155.2331542969",
+        "vTerminalPos.x": "36223.28125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62033.59375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "79",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1251.3616943359",
+        "vTerminalPos.x": "36303.14453125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62001.36328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "78",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1250.2814941406",
+        "vTerminalPos.x": "36258.4375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61990.0078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "77",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1154.5013427734",
+        "vTerminalPos.x": "36191.67578125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62001.8515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "76",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1169.9552001953",
+        "vTerminalPos.x": "36157.40625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61980.0703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "75",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1061.4213867188",
+        "vTerminalPos.x": "36117.81640625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62045.65625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "74",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1022.2987670898",
+        "vTerminalPos.x": "36068.796875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62030.29296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "73",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1044.5487060547",
+        "vTerminalPos.x": "36040.078125",
+        "vTerminalPos.y": "35.000038146973",
+        "vTerminalPos.z": "-61992.24609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "72",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1042.6650390625",
+        "vTerminalPos.x": "36010.83203125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62006.390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "71",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "914.63208007812",
+        "vTerminalPos.x": "35972.2734375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62076.25"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "70",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "769.24383544922",
+        "vTerminalPos.x": "35950.8125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61925.98046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "69",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "498.22109985352",
+        "vTerminalPos.x": "35938.96484375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61658.8671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "68",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "498.48129272461",
+        "vTerminalPos.x": "35940.75",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61741.4921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "67",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "768.47381591797",
+        "vTerminalPos.x": "35953.375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62010.7109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "66",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "744.75775146484",
+        "vTerminalPos.x": "35900.52734375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62023.1328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "65",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "756.11712646484",
+        "vTerminalPos.x": "35960.453125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61968.1953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "64",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "624.638671875",
+        "vTerminalPos.x": "35894.5",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61903.875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "63",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "529.16851806641",
+        "vTerminalPos.x": "35901.578125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61795.85546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "62",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "473.30023193359",
+        "vTerminalPos.x": "35886.87890625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61753.46875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "61",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "486.29656982422",
+        "vTerminalPos.x": "35948.85546875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61700.0859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "60",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "360.83483886719",
+        "vTerminalPos.x": "35882.99609375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61640.53515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "59",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "336.70358276367",
+        "vTerminalPos.x": "35893.19921875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61603.4453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "58",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "280.7243347168",
+        "vTerminalPos.x": "35878.1015625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61561.41796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "57",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "248.83160400391",
+        "vTerminalPos.x": "35885.9453125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61518.53515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "56",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "223.56871032715",
+        "vTerminalPos.x": "35635.29296875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61443.8515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "55",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "236.9818572998",
+        "vTerminalPos.x": "35632.046875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61521.52734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "54",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "478.27340698242",
+        "vTerminalPos.x": "35601.80859375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61750.453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "53",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "459.55581665039",
+        "vTerminalPos.x": "35619.88671875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61688.796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "52",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "796.37060546875",
+        "vTerminalPos.x": "35573.8125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61932.62109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "51",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "800.63092041016",
+        "vTerminalPos.x": "35574.8359375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62053.21875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "50",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "303.57302856445",
+        "vTerminalPos.x": "35640.7578125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61605.5"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "49",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "335.58651733398",
+        "vTerminalPos.x": "35643.078125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61637.8359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "48",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "534.41827392578",
+        "vTerminalPos.x": "35530.87109375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61723.5390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "47",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "563.32098388672",
+        "vTerminalPos.x": "35651.4453125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61861.34765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "46",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "610.20599365234",
+        "vTerminalPos.x": "35647.95703125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61903.53515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "45",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "644.48474121094",
+        "vTerminalPos.x": "35658.8203125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61945.91796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "44",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "743.4775390625",
+        "vTerminalPos.x": "35663.3984375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62044.8046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "43",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "776.08294677734",
+        "vTerminalPos.x": "35663.83984375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62076.09375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "42",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1091.7980957031",
+        "vTerminalPos.x": "35514.140625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62150.33203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "41",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1114.9571533203",
+        "vTerminalPos.x": "35447.5234375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62143.23046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "40",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1356.6760253906",
+        "vTerminalPos.x": "35210.9453125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62195.87109375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "39",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1332.1091308594",
+        "vTerminalPos.x": "35274.4453125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62205.3046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "38",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1240.2293701172",
+        "vTerminalPos.x": "35414.5",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62140.98046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "37",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "944.55822753906",
+        "vTerminalPos.x": "35590.1875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62167.1953125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "36",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "976.72210693359",
+        "vTerminalPos.x": "35559.33203125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62172.875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "35",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1112.0173339844",
+        "vTerminalPos.x": "35476.33984375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62122.9140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "34",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1228.2862548828",
+        "vTerminalPos.x": "35368.10546875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62140.765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1204.8043212891",
+        "vTerminalPos.x": "35339.140625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62217.453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1359.0491943359",
+        "vTerminalPos.x": "35237.6484375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62172.46875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1495.5836181641",
+        "vTerminalPos.x": "35059.1953125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62248.30859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2352.3239746094",
+        "vTerminalPos.x": "35658.6640625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62782.59765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2334.4814453125",
+        "vTerminalPos.x": "35704.34375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62784.01171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2354.2844238281",
+        "vTerminalPos.x": "35647.0234375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62751.80859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2349.0187988281",
+        "vTerminalPos.x": "35650.234375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62559.296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2401.4448242188",
+        "vTerminalPos.x": "35625.0859375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62646.21875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2402.83984375",
+        "vTerminalPos.x": "35609.828125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62678.9140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2423.1303710938",
+        "vTerminalPos.x": "35668.56640625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62632.02734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2369.5344238281",
+        "vTerminalPos.x": "35678.1015625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62588.015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2382.6025390625",
+        "vTerminalPos.x": "35601.19921875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62530.4921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2247.1242675781",
+        "vTerminalPos.x": "35673.171875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62465.078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2158.6040039062",
+        "vTerminalPos.x": "35652.01171875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62415.6875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2052.0537109375",
+        "vTerminalPos.x": "35579.71875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62444.1484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2089.4248046875",
+        "vTerminalPos.x": "35524.73828125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62493.62890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2085.1342773438",
+        "vTerminalPos.x": "35559.17578125",
+        "vTerminalPos.y": "35.000030517578",
+        "vTerminalPos.z": "-62497.80859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1958.9645996094",
+        "vTerminalPos.x": "35497.328125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62431.28125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1972.8958740234",
+        "vTerminalPos.x": "35452.2890625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62522.24609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1948.4995117188",
+        "vTerminalPos.x": "35412.953125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62491.046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1968.5235595703",
+        "vTerminalPos.x": "35478.015625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62497.9140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1835.3959960938",
+        "vTerminalPos.x": "35320.90625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62547.6875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1836.0474853516",
+        "vTerminalPos.x": "35348.09765625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62526.79296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1576.1693115234",
+        "vTerminalPos.x": "35097.9296875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62458.89453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1815.5278320312",
+        "vTerminalPos.x": "35282.8203125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62520.06640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1723.8055419922",
+        "vTerminalPos.x": "35223.7734375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62550.8125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1702.296875",
+        "vTerminalPos.x": "35161.4609375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62526.95703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1719.4343261719",
+        "vTerminalPos.x": "35190.78125",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62560.9921875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1663.2009277344",
+        "vTerminalPos.x": "35088.3984375",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62531.63671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1662.0599365234",
+        "vTerminalPos.x": "35068.98046875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62497.76171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "36189.7890625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62153"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "35174.0546875",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62377.06640625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "35755.66015625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-61544.0859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "35805.9765625",
+        "vTerminalPos.y": "35.000034332275",
+        "vTerminalPos.z": "-62664.72265625"
+      }
+    ],
+    "14": [
+      {
+        "TO_AC": "false",
+        "Term_Index": "69",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1750.5173339844",
+        "vTerminalPos.x": "54223.81640625",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107027.578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "68",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2249.6313476562",
+        "vTerminalPos.x": "54391.71484375",
+        "vTerminalPos.y": "168.0771484375",
+        "vTerminalPos.z": "-107227.078125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "67",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "800.82965087891",
+        "vTerminalPos.x": "52973.4921875",
+        "vTerminalPos.y": "168.41767883301",
+        "vTerminalPos.z": "-107469.796875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "66",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "951.57977294922",
+        "vTerminalPos.x": "53015.05078125",
+        "vTerminalPos.y": "168.41767883301",
+        "vTerminalPos.z": "-107606.5859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "65",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "825.94342041016",
+        "vTerminalPos.x": "53322.46484375",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107141.984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "64",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "878.98107910156",
+        "vTerminalPos.x": "53374.57421875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107145.140625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "63",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "671.81854248047",
+        "vTerminalPos.x": "53244.03515625",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107133.2265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "62",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "319.87387084961",
+        "vTerminalPos.x": "52631.46484375",
+        "vTerminalPos.y": "168.41717529297",
+        "vTerminalPos.z": "-106913.5625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "61",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2402.7087402344",
+        "vTerminalPos.x": "54132.3671875",
+        "vTerminalPos.y": "168.41711425781",
+        "vTerminalPos.z": "-107499.78125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "60",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2255.2163085938",
+        "vTerminalPos.x": "53999.68359375",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107565.203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "59",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "694.9365234375",
+        "vTerminalPos.x": "52899.70703125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107369.734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "58",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "403.64685058594",
+        "vTerminalPos.x": "53058.6328125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-106998.546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "57",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "462.24276733398",
+        "vTerminalPos.x": "52742.14453125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107165.1171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "56",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "307.90618896484",
+        "vTerminalPos.x": "52666.796875",
+        "vTerminalPos.y": "168.4171295166",
+        "vTerminalPos.z": "-107026.859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "55",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "337.45941162109",
+        "vTerminalPos.x": "52656.13671875",
+        "vTerminalPos.y": "168.4171295166",
+        "vTerminalPos.z": "-107057"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "54",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "246.31968688965",
+        "vTerminalPos.x": "52757.96875",
+        "vTerminalPos.y": "168.41725158691",
+        "vTerminalPos.z": "-106800.5859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "53",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "324.12033081055",
+        "vTerminalPos.x": "53055.27734375",
+        "vTerminalPos.y": "168.41722106934",
+        "vTerminalPos.z": "-106860.4609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "52",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "429.37185668945",
+        "vTerminalPos.x": "53157.9375",
+        "vTerminalPos.y": "168.4171295166",
+        "vTerminalPos.z": "-106899.6484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "51",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "712.72241210938",
+        "vTerminalPos.x": "53220.88671875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107263.8359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "50",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1954.9315185547",
+        "vTerminalPos.x": "53713.90625",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107669.8203125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "49",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1911.7458496094",
+        "vTerminalPos.x": "53676.69921875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107701.96875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "48",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1856.3796386719",
+        "vTerminalPos.x": "53631.1171875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107724.4765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "47",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1429.5440673828",
+        "vTerminalPos.x": "53916.00390625",
+        "vTerminalPos.y": "168.4171295166",
+        "vTerminalPos.z": "-107055.3515625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "46",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1553.4802246094",
+        "vTerminalPos.x": "54075.34765625",
+        "vTerminalPos.y": "168.4171295166",
+        "vTerminalPos.z": "-107057.21875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "45",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "762.58038330078",
+        "vTerminalPos.x": "52882.66796875",
+        "vTerminalPos.y": "168.41709899902",
+        "vTerminalPos.z": "-107405.03125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "44",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "820.83215332031",
+        "vTerminalPos.x": "52874.7421875",
+        "vTerminalPos.y": "168.41711425781",
+        "vTerminalPos.z": "-107434.1328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "43",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1541.7819824219",
+        "vTerminalPos.x": "53832.47265625",
+        "vTerminalPos.y": "168.41752624512",
+        "vTerminalPos.z": "-106918.734375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "42",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1407.6827392578",
+        "vTerminalPos.x": "53723.73828125",
+        "vTerminalPos.y": "168.41761779785",
+        "vTerminalPos.z": "-107013.8828125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "41",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2596.9304199219",
+        "vTerminalPos.x": "54244.64453125",
+        "vTerminalPos.y": "168.41812133789",
+        "vTerminalPos.z": "-107460.859375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "40",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "2463.2614746094",
+        "vTerminalPos.x": "54100.828125",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107400.328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "39",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2450.0573730469",
+        "vTerminalPos.x": "54142.328125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107575.0390625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "38",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2337.6057128906",
+        "vTerminalPos.x": "54070.74609375",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107558.71875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "37",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "2276.1333007812",
+        "vTerminalPos.x": "53936.65234375",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107688.78125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "36",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1450.6171875",
+        "vTerminalPos.x": "53330.44140625",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107930.75"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "35",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1474.8348388672",
+        "vTerminalPos.x": "53348.58203125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107941.0625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "34",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1414.8525390625",
+        "vTerminalPos.x": "53285.17578125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107925.40625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "33",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1397.4147949219",
+        "vTerminalPos.x": "53256.671875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107926.234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "32",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1313.7514648438",
+        "vTerminalPos.x": "53217.63671875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107886.9609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "31",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1073.4576416016",
+        "vTerminalPos.x": "52991.13671875",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107763.4296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "30",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "1059.4549560547",
+        "vTerminalPos.x": "52969.55859375",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107750.0234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "29",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "870.06854248047",
+        "vTerminalPos.x": "52926.2578125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107530.546875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "28",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "976.82379150391",
+        "vTerminalPos.x": "52893.7109375",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107573.7265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "27",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "848.00445556641",
+        "vTerminalPos.x": "52987.12890625",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107512.9453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "26",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "901.75024414062",
+        "vTerminalPos.x": "53002.25",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107561.4296875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "25",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "540.59375",
+        "vTerminalPos.x": "52879.5390625",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107215.7265625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "24",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "473.82965087891",
+        "vTerminalPos.x": "52831.6171875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107163.328125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "23",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "511.5632019043",
+        "vTerminalPos.x": "52858.6171875",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107186.3046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "22",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "415.5471496582",
+        "vTerminalPos.x": "52802.4140625",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107115.046875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "21",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "386.37127685547",
+        "vTerminalPos.x": "52794.7109375",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107075.8359375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "20",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "319.30252075195",
+        "vTerminalPos.x": "52766.015625",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107054.578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "19",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "293.10443115234",
+        "vTerminalPos.x": "52783",
+        "vTerminalPos.y": "168.41767883301",
+        "vTerminalPos.z": "-107024.78125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "18",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "226.7227935791",
+        "vTerminalPos.x": "52775.16015625",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-106991.0625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "17",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "181.16928100586",
+        "vTerminalPos.x": "52791.15234375",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-106958.9375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "16",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "665.65795898438",
+        "vTerminalPos.x": "52856.89453125",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107356.2890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "15",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "443.41375732422",
+        "vTerminalPos.x": "52772.70703125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107204.0234375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "14",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "481.51876831055",
+        "vTerminalPos.x": "52626.96484375",
+        "vTerminalPos.y": "168.41752624512",
+        "vTerminalPos.z": "-107212.5703125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "13",
+        "Term_Index_0": "-1",
+        "Term_Type": "104",
+        "fDistToRW": "297.93786621094",
+        "vTerminalPos.x": "52660.72265625",
+        "vTerminalPos.y": "168.41738891602",
+        "vTerminalPos.z": "-106970.1171875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "12",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "275.79974365234",
+        "vTerminalPos.x": "52972.7578125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-106789.1015625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "11",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "566.63629150391",
+        "vTerminalPos.x": "53255.79296875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-106984.46875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "10",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "793.61279296875",
+        "vTerminalPos.x": "53481.3203125",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-106855.9765625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "9",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "818.42059326172",
+        "vTerminalPos.x": "53523.70703125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-106909.8671875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "8",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "54403.75390625",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107080.2578125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "7",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "53339.92578125",
+        "vTerminalPos.y": "168.41764831543",
+        "vTerminalPos.z": "-107645.984375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "6",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "696.01861572266",
+        "vTerminalPos.x": "53395.125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-106989.4609375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "5",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "195.30424499512",
+        "vTerminalPos.x": "52866.27734375",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-106806.453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "4",
+        "Term_Index_0": "-1",
+        "Term_Type": "72",
+        "fDistToRW": "1788.0789794922",
+        "vTerminalPos.x": "53541.765625",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107856.4453125"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "3",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "52848.16796875",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-106970.875"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "2",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "53057.05078125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107622.2890625"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "1",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "53253.5078125",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107687.1484375"
+      },
+      {
+        "TO_AC": "false",
+        "Term_Index": "0",
+        "Term_Index_0": "-1",
+        "Term_Type": "16",
+        "fDistToRW": "0",
+        "vTerminalPos.x": "53655.5625",
+        "vTerminalPos.y": "168.41766357422",
+        "vTerminalPos.z": "-107240.09375"
+      }
+    ]
+  }
+}

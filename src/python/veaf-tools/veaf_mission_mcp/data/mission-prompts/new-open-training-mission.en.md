@@ -144,8 +144,7 @@ why.
   `https://tgftp.nws.noaa.gov/data/observations/metar/stations/<ICAO>.TXT`, today's day in
   `DDHHMMZ`); otherwise the nearest large airfield of the theatre that has one.
 - `mission.era` and the **mission date** consistent with the era.
-- **Language**: `mission.language: fr` and briefing in French — the VEAF servers' language — unless
-  told otherwise.
+- **Language**: `mission.language: en` and an English briefing, unless told otherwise.
 - `silence_atc_on_all_airbases: true`.
 - **Slots without an aircraft, as in v5**: `mission.ground_control` at 5 per role and per side (`game_master`, `tactical_commander`, `jtac`, `observer`) and `pilot_control_vehicles: true`. Without the block, the mission has no game master slot.
 - **Security on by default**: the mission runs on the VEAF servers. No `security.disabled: true` in
@@ -479,7 +478,7 @@ When a question of section 1 has no answer in this table, decide, announce it, a
 5. Training zones (4.6), real zones (4.7), QRA (4.8), CAP (4.9), scripted missions (4.12).
 6. Radio, weather, waypoints (4.10); date, bullseye, briefing; briefing map and F10 drawings (4.13).
 7. `validate_mission`, `build_mission` (and the `LOCAL_TEST` profile), then section 8.
-8. **`README.md` = the pilots' briefing**, in French, one file, **generated from the mission** by a script
+8. **`README.md` = the pilots' briefing**, in the mission's language, one file, **generated from the mission** by a script
    (like the map), never typed: situation, map, bases (frequencies, TACAN), permanent air defense,
    support, carriers, drones, training by family, combat zones by kind with each one's briefing, scripted
    missions, QRA, CAP, player-versus-player and arena, blue and red radio plan, base weather and time, useful

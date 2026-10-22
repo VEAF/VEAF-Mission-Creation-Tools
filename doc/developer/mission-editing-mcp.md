@@ -977,7 +977,7 @@ d'entrées de chaque `area`. `area` (`spawning`, `air-defence`, `players`, `radi
 tout ce qui est retenu. Une `area` revenait en entier : trois d'entre elles faisaient 46 000 caractères en un appel, portés jusqu'à la fin de la session (FIX-OPENCODE-TEST-FINDINGS).
 
 ```json
-{"ids": ["no-parking-data-outside-three-theatres"]}
+{"ids": ["ai-ground-start-needs-a-parking-capture"]}
 ```
 
 ### `describe_authoring_guide` (lot FEAT-AI-ASSISTANT-ANY-CLIENT)

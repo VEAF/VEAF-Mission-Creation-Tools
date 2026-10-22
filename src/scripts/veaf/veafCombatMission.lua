@@ -1236,6 +1236,11 @@ end
 ---@param parameters table { baseName, skill }
 function veafCombatMission.ActivateMissionAtOppositionLevel(parameters, unitName)
   local baseName, skill = parameters[1], parameters[2]
+  -- "0 aircraft" fixed by hand switches the enemy fighters off: a level 0 counted from the players is not that
+  if veafOpposition and veafOpposition.isNoAircraft and veafOpposition.isNoAircraft() then
+    veaf.outTextForUnit(unitName, veaf.t("combatmission.no_aircraft"), 10)
+    return
+  end
   local prefix = (baseName .. "/" .. skill .. "/"):lower()
   local scales = {}
   for name, _ in pairs(veafCombatMission.missionsDict) do

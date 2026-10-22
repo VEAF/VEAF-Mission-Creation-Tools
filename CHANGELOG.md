@@ -17,6 +17,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.31.3] — 2026-10-22
+
+### Fixed
+
+- **An English-speaking user gets an English mission** (FIX-MISSION-LANGUAGE-FOLLOWS-USER): the English mission prompts told the AI to write the mission, its briefing and its README in French; the mission now takes the language the user speaks — `mission.language`, the briefing, its maps, the README — unless they ask for another.
+- **The parking limitation no longer denies dynamic slots**: listed by its id alone, `no-parking-data-outside-three-theatres` made an AI tell a user GermanyCW had no parking places for dynamic slots; DCS places those players itself, and the capture only serves the ground starts of the flights the tools place. The entry is now `ai-ground-start-needs-a-parking-capture` and says so in its title.
+- **Five more maps ship their parking**: Afghanistan, GermanyCW, Mariana Islands, Mariana Islands WWII and The Channel, captured in DCS on 2026-10-22. A flight or a QRA can start on a stand or the runway there, and the build trims each field's dynamic-slot stock to what it can park. Only Iraq, Kola and Nevada remain without.
+- **"0 aircraft" also stops the combat missions' auto scale** (#1151): fixed from the Opposition menu, it silenced the QRAs but a combat mission started at "Auto scale" still took off; it now starts nothing and says so. A scale chosen by hand always starts.
+- **A campaign state write cut short keeps the previous state** (#1146): the mission now checks what writing and closing the state file answer, and never moves a truncated file over the previous one.
+- **Pillow 13.0.0 and certifi 2026.10.19**: 15 Dependabot alerts, two of them critical (a heap overflow decoding JPEG; root certificates whose intermediate keys were compromised).
+
 ## [6.31.2] — 2026-10-20
 
 ### Fixed

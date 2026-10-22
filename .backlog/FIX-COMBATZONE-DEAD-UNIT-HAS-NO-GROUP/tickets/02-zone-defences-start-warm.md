@@ -66,3 +66,12 @@ it will reach convoys and lone vehicles too.
       other behaviour (`veafSpawn` `#warm-start`, combat zone `#static-targets`)
 - [x] `poetry run test-lua` green, `stylua --check` clean (`luacheck` by the CI)
 - [x] `CHANGELOG.md` entry under `[Unreleased]`
+
+## 2026-10-22 — two field reports from the *Kolkhida* campaign
+
+Garrisons are spawned through `veaf.addGroup` = `veafDcsSpawner.addGroup`, so they get `coldAtStart = false` like any other ground group — and two pilots still found nothing on their pod:
+
+- 2026-10-15, mission 2: Griffin (F/A-18C, TGP) did not see Senaki's S-300 site, though he looked in the right zone and found it on the F10 view; the site existed and fired that evening (`missions/mission-02/dcs-private1-2026-10-15.log`).
+- 2026-10-22, mission 3: nobody found a target at Zugdidi with an IR pod. Its garrison existed: 22 units, all alive in the final state file, 980 to 2 137 m from the zone's centre (Zugdidi is not an objective, so no waypoint). David: the pilots swept the whole 2 km circle, not only its centre.
+
+**Test mission kept for this**, at David's request: `D:\dev\_VEAF\_campaigns\campaign-kolkhida\missions\mission-03\mission\Campaign_Kolkhida_Mission_03_Senaki-C-est-a-nous_NoMizedit_20261016.miz` (SHA-256 `82880669b597…`) — Zugdidi's garrison spawns at its recorded positions at start. The campaign is finished: run it as a plain mission, never `campaign apply` its state. A pod in white-hot on Zugdidi's units says which way R35 goes.

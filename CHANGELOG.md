@@ -17,6 +17,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Campaign missions place their AWACS and tankers for the threat of the day**: `CAMPAIGN.md` and the authoring guide say the support positions are chosen again at every mission from the campaign's state — a destroyed or blinded long-range SAM lets them come closer — and the briefing says where they moved and why.
+
 ## [6.31.4] — 2026-10-22
 
 ### Changed

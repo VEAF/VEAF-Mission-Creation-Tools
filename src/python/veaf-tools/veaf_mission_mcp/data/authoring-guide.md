@@ -359,6 +359,10 @@ or a red base with slots nobody asked for, is an inconsistency.
   missions 1 and 2 on the Open Training plan the scaffold ships (Magic 282.2 where the AWACS was
   Overlord on 251): the build said so both times, and the second time it was read as "already the case
   in mission 1". A preset warning carried over from a previous mission is still an error to fix.
+- **Place the AWACS and the tankers for this mission's threat**, read from the campaign's state —
+  never copied from the previous mission. A long-range SAM alive keeps them far; destroyed or with no
+  search radar left, they come closer (David, 2026-10-22: *Kolkhida* mission 3 kept them 135 nm from a
+  blind S-300). The briefing says where they are and why they moved.
 
 **Combat content.**
 - A **training range close to a blue base** (Kobuleti next to Batumi on Caucasus): three nested

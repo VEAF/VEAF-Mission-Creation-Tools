@@ -56,6 +56,11 @@ Write it for the campaign's real assets — AWACS, tankers, ships, airfields —
 The plan `prepare` ships is an Open Training's (Magic 282.2, Arco-1 290.5…): left as it is, every radio and every kneeboard of the campaign follows it, not the mission.
 The build lists every AWACS, tanker or ship no preset carries, in its log and in `presets-validation-report.md`: a mission is not ready until that list is empty.
 
+The frequencies stay, but **the AWACS's and the tankers' positions are chosen again for every mission**, from the threat the campaign's state leaves.
+A long-range air defence still alive keeps them far; destroyed or blinded, it lets them come closer and shortens the transits.
+*Kolkhida* kept them more than 135 nm from Senaki for all three missions, the last one included, when the S-300 had no search radar left.
+The briefing gives their new position, and why it changed.
+
 The history is kept whole: to undo a merge, put `campaign-state.before.yaml` back in place of `campaign-state.yaml`.
 
 ## Declaring a campaign {#declare}

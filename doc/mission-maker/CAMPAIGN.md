@@ -56,6 +56,11 @@ Son `src/presets.yaml` est donc le plan de fréquences de **toute** la campagne 
 Le plan livré par `prepare` est celui d'un Open Training (Magic 282.2, Arco-1 290.5…) : laissé tel quel, toutes les radios et toutes les planchettes de la campagne le suivent, et pas la mission.
 Le build liste chaque AWACS, ravitailleur ou navire qu'aucun preset ne porte, dans son journal et dans `presets-validation-report.md` : une mission n'est pas prête tant que cette liste n'est pas vide.
 
+Les fréquences restent, mais **la position de l'AWACS et des ravitailleurs se choisit à chaque mission**, d'après la menace que l'état de la campagne laisse.
+Une défense aérienne longue portée en vie les tient loin ; détruite ou aveuglée, elle les laisse approcher et raccourcit les transits.
+*Kolkhida* les a tenus à plus de 135 nm de Senaki pendant trois missions, y compris la dernière, alors que le S-300 n'avait plus aucun radar de veille.
+Le briefing donne leur nouvelle position, et la raison du changement.
+
 L'historique est gardé en entier : pour annuler une fusion, remettez `campaign-state.before.yaml` à la place de `campaign-state.yaml`.
 
 ## Déclarer une campagne {#declare}

@@ -9,7 +9,7 @@ Le catalogue de ce que vous pouvez lui demander est dans [AI_ASSISTANT_CATALOG.m
 > **En cinq étapes**
 >
 > 1. Choisissez une IA dans le tableau [Quelle IA choisir ?](#which-ai), par exemple OpenCode.
-> 2. Installez-la sur votre PC, et ouvrez-y un compte si elle en demande un.
+> 2. Installez-la sur votre PC, ouvrez-y un compte si elle en demande un, et [choisissez-y un modèle](#which-model) : c'est lui qui fait le travail.
 > 3. Lancez-la et dites-lui : « installe les outils IA VEAF : https://veaf.github.io/documentation/latest/mission-maker/AI_ASSISTANT_INSTALL/ ».
 >    Avec Claude Desktop en mode chat, qui ne lance pas de commande, tapez plutôt vous-même [les cinq commandes](#for-an-ai-assistant) dans PowerShell.
 > 4. Quand elle vous le demande, quittez-la complètement et relancez-la : elle ne lit ses outils qu'au démarrage.
@@ -24,11 +24,25 @@ Les offres gratuites changent souvent ; ce tableau date d'octobre 2026, et aucun
 |---|---|---|
 | **Claude Desktop** (mode chat) | plan gratuit, quota limité ; Anthropic ne dit pas si ce plan accepte un serveur local (à vérifier) | la plus simple pour commencer : elle construit la mission et son briefing avec les actions VEAF, mais ne lance aucun programme sur votre PC — ni l'installation, ni les cartes et le README d'une Open Training |
 | **ChatGPT Desktop, onglet Codex** | inclus dans le plan gratuit, quota limité | tout, installation comprise ; interface orientée développeurs |
-| **OpenCode** | modèles gratuits proposés pour une durée limitée | tout, installation comprise ; s'utilise dans un terminal |
+| **OpenCode** | modèles gratuits proposés pour une durée limitée | tout, installation comprise, avec un modèle [bien choisi](#which-model) ; s'utilise dans un terminal |
 | **Antigravity** (Google) | gratuit, quotas hebdomadaires | tout, installation comprise ; c'est un éditeur de code |
 | **Claude Code** | abonnement Claude payant | tout ; c'est l'outil avec lequel VMCT est développé |
 
 **Gemini CLI** reste branché par `ai-setup`, mais il ne sert plus les comptes Google gratuits depuis juin 2026 : Google le remplace par Antigravity.
+
+### Choisir le modèle {#which-model}
+
+Dans OpenCode, Codex ou Antigravity, l'application sait lancer des commandes, mais c'est le **modèle** choisi dedans qui décide s'il s'en sert bien : comprendre la consigne, prendre le bon outil, tenir le fil sur une vingtaine d'étapes.
+Deux modèles gratuits du même OpenCode, avec les mêmes outils, ont donné l'un une installation réussie en trois minutes, l'autre rien au bout de sept.
+Rien dans la fiche d'un modèle ne dit lequel réussira ; trois règles suffisent :
+
+1. **L'installation sert de test.** Si, après cinq minutes, l'IA n'a pas lancé le programme de mise à jour des outils VEAF, elle n'y arrivera pas : arrêtez-la, changez de modèle et recommencez.
+   Une IA qui ouvre la page dans un navigateur et la parcourt au lieu de lancer les commandes est mal partie.
+2. **Préférez un modèle qui ne garde pas vos données.** OpenCode l'indique pour chacun de ses modèles gratuits ; certains servent, pendant leur période gratuite, à améliorer le modèle avec ce que vous lui envoyez.
+3. **Un modèle qui a réussi l'installation réussit en général la mission** : c'est le même travail, plus long.
+
+Dans nos essais d'octobre 2026, sur OpenCode, **DeepSeek v4.1 Flash** (gratuit, sans conservation des données) a installé les outils en deux à trois minutes puis créé une mission complète ; **Big Pickle**, le modèle proposé par défaut, n'a pas réussi l'installation.
+Un seul essai chacun, et la liste des modèles gratuits change souvent : prenez-le comme un point de départ, et la règle 1 comme juge.
 
 ## Pour un assistant IA : tout installer {#for-an-ai-assistant}
 

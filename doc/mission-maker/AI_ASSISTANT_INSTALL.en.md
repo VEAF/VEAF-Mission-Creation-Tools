@@ -9,7 +9,7 @@ What you can ask it is listed in [AI_ASSISTANT_CATALOG.md](AI_ASSISTANT_CATALOG.
 > **In five steps**
 >
 > 1. Choose an AI in the table [Which AI to choose?](#which-ai), OpenCode for instance.
-> 2. Install it on your PC, and open an account with it if it asks for one.
+> 2. Install it on your PC, open an account with it if it asks for one, and [choose a model in it](#which-model): the model does the work.
 > 3. Start it and tell it: "install the VEAF AI tools: https://veaf.github.io/documentation/latest/en/mission-maker/AI_ASSISTANT_INSTALL/".
 >    With Claude Desktop in chat mode, which runs no command, type [the five commands](#for-an-ai-assistant) in PowerShell yourself instead.
 > 4. When it tells you to, quit it completely and start it again: it reads its tools only at start-up.
@@ -24,11 +24,25 @@ Free offers change often; this table dates from October 2026, and no vendor publ
 |---|---|---|
 | **Claude Desktop** (chat mode) | free plan, limited quota; Anthropic does not say whether that plan takes a local server (to be checked) | the simplest to start with: it builds the mission and its briefing with the VEAF actions, but runs no program on your PC — neither the install nor an Open Training's maps and README |
 | **ChatGPT Desktop, Codex tab** | included in the free plan, limited quota | everything, install included; a developer-oriented interface |
-| **OpenCode** | free models offered for a limited time | everything, install included; used in a terminal |
+| **OpenCode** | free models offered for a limited time | everything, install included, with a [well-chosen](#which-model) model; used in a terminal |
 | **Antigravity** (Google) | free, weekly quotas | everything, install included; it is a code editor |
 | **Claude Code** | paid Claude subscription | everything; the tool VMCT is developed with |
 
 **Gemini CLI** is still connected by `ai-setup`, but it no longer serves free Google accounts since June 2026: Google replaces it with Antigravity.
+
+### Choosing the model {#which-model}
+
+In OpenCode, Codex or Antigravity the application can run commands, but the **model** chosen in it decides whether it uses them well: understanding the instruction, picking the right tool, keeping track over twenty steps or so.
+Two free models of the same OpenCode, with the same tools, gave one a successful install in three minutes and the other nothing after seven.
+Nothing in a model's description says which will succeed; three rules are enough:
+
+1. **The install is the test.** If after five minutes the AI has not run the VEAF tools' updater, it will not get there: stop it, change the model and start again.
+   An AI that opens the page in a browser and scrolls through it instead of running the commands is off to a bad start.
+2. **Prefer a model that does not keep your data.** OpenCode says so for each of its free models; during their free period, some are improved with what you send them.
+3. **A model that managed the install usually manages the mission**: it is the same work, longer.
+
+In our tests of October 2026, on OpenCode, **DeepSeek v4.1 Flash** (free, no data retention) installed the tools in two to three minutes and then built a complete mission; **Big Pickle**, the model offered by default, did not manage the install.
+One test each, and the list of free models changes often: take it as a starting point, and rule 1 as the judge.
 
 ## For an AI assistant: installing everything {#for-an-ai-assistant}
 

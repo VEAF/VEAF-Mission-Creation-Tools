@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [DOC-AI-MODEL-CHOICE](DOC-AI-MODEL-CHOICE/PRD.md) · ✅
+
+The install page says how to choose the model in OpenCode, Codex or Antigravity: the install is the test, prefer a model that keeps no data, and the models tested in October 2026 (DeepSeek v4.1 Flash succeeded, Big Pickle did not). From David's demo tests.
+
 ### [FIX-MISSION-LANGUAGE-FOLLOWS-USER](FIX-MISSION-LANGUAGE-FOLLOWS-USER/PRD.md) · ✅
 
 The English mission prompts told the AI to write the mission, its briefing and README in French; an English-speaking user now gets `mission.language: en` and English documents. The parking limitation, whose id made an AI deny dynamic slots on GermanyCW, is now `ai-ground-start-needs-a-parking-capture`. Afghanistan, GermanyCW, both Marianas and TheChannel now ship their parking capture. Also Pillow 13 and certifi (15 Dependabot alerts), "0 aircraft" stopping the combat missions' auto scale (#1151) and a checked campaign state write (#1146). From David's OpenCode test on 6.31.2, fixed in 6.31.3.

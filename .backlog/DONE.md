@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [DOC-DEMO-VIDEO](DOC-DEMO-VIDEO/PRD.md) · ✅
+
+The demo video (a free AI installs the VEAF tools and builds a mission with its briefing) embedded under the five-step box of "Create with an AI", with subtitles forced in the page's language, and linked from the home page card.
+
 ### [DOC-AI-MODEL-CHOICE](DOC-AI-MODEL-CHOICE/PRD.md) · ✅
 
 The install page says how to choose the model in OpenCode, Codex or Antigravity: the install is the test, prefer a model that keeps no data, and the models tested in October 2026 (DeepSeek v4.1 Flash succeeded, Big Pickle did not). From David's demo tests.

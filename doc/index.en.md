@@ -42,6 +42,8 @@ Complete toolkit for creating dynamic [DCS World](https://www.digitalcombatsimul
 
     [:octicons-arrow-right-24: Install the AI assistant](mission-maker/AI_ASSISTANT_INSTALL.en.md)
 
+    [:octicons-video-24: The demo video (6 min)](mission-maker/AI_ASSISTANT_INSTALL.en.md#demo-video)
+
 -   :material-file-restore-outline:{ .lg .middle } **Take over a mission**
 
     ---

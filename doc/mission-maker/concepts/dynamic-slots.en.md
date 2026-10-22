@@ -169,9 +169,7 @@ read for this mission. That is the intent — your payloads are your payloads �
     **DCS only offers what the airfield can park**, and the build takes that into account: the stock
     is filled only with what the field's parking actually accepts. An airfield with helicopter-only
     spots is no longer given 149 aircraft types that will never appear. The build says nothing about
-    it — this is not an error, it is the stock becoming accurate. The filter only applies on
-    **Caucasus, Persian Gulf, Syria and Sinai**, the only maps for which parking data exists; everywhere
-    else the behaviour is unchanged.
+    it — this is not an error, it is the stock becoming accurate. The filter applies on every map whose parking data ships, that is all of them but **Iraq, Kola and Nevada**; on those three the behaviour is unchanged.
 
 ## Going further {#more}
 

@@ -33,8 +33,8 @@ The work has **two phases**, and the line between them is strict:
    that says something other than the behaviour: work around it cleanly to keep going, and record it
    in a **"Feedback for VMCT"** block of your final report (what, where, how you saw it, what you did
    instead). That is how the tools get better.
-4. Answer in English, concisely, but write the mission and its briefing in French — the VEAF servers'
-   language — unless told otherwise. Ask your questions **one at a time**, with options and your
+4. Answer in English, concisely, and write the mission and its briefing in English too, unless told
+   otherwise. Ask your questions **one at a time**, with options and your
    recommendation.
 5. **Reading without a mission folder.** In phase 1 the folder is empty, and every read you need takes a `theatre` instead of a `mission_path`: `list_airfields`, `geocode`, `resolve_coordinates`, `terrain_elevation`.
    `list_countries` gives the DCS country ids, and `read_mission_file` without a `mission_path` reads the scaffold `scaffold_mission` will lay down (the presets plan, the dynamic-slot templates).
@@ -193,7 +193,7 @@ and becomes unreadable.
    - **Time**: the mission time.
 3. **ATO** — under the heading **PACKAGE**, one box per flight: callsign (in blue), flight name,
    aircraft type; the base in italics below; four lines numbered 1 to 4 for the pilots; a loadout
-   column ("Armement libre" or the imposed loadout). On the right, the **support assets** (callsign in
+   column ("Free loadout" or the imposed loadout). On the right, the **support assets** (callsign in
    burgundy, role, type: tankers, AWACS) and **control** (GCI / ATC).
 4. **Tactical situation** — the overview map: departure, route, named points (START, INGRESS,
    EGRESS), objectives, known threats with their circle.
@@ -208,9 +208,9 @@ and becomes unreadable.
 9. **Target coordinates** — the format stated first ("Lat Long seconds, precise"), then one line per
    target: `<name> : N34°33'37.31" E38°18'48.77" <altitude> ft`.
 
-The briefing is written in French, like the mission: the headings above are the template's French
-ones (*Situation générale*, *Déroulement mission*, *Plan de vol*, *Plan de fréquences*, *Coordonnées
-cibles*…).
+The briefing is written in the mission's language: the headings above are the template's, which
+`build_mission_briefing` writes in that language (*General situation*, *Mission flow*, *Flight plan*,
+*Frequency plan*, *Target coordinates*…).
 
 **The rest of this prompt is the build**: once the user has approved a scenario, load it with `describe_mission_prompt` (`kind: objective`, `part: build`) and follow it from section 4.
 
@@ -252,7 +252,7 @@ approximation of it.
   remove `src/versions.yaml`, which the build reports as orphaned), or a `src/versions.yaml` with a
   single version. A visibility **≥ 9,000 m is written as 80 km** (the METAR "9999" rule): for haze,
   ask for 8,000 m at most.
-- **Language**: `mission.language: fr` and a French briefing, unless told otherwise.
+- **Language**: `mission.language: en` and an English briefing, unless told otherwise.
 - `silence_atc_on_all_airbases: true`.
 - **Security on by default** (the mission runs on the VEAF servers); ask whether password hashes are
   needed. **Never a clear-text password**, not even in a comment. A **`LOCAL_TEST` profile**: security

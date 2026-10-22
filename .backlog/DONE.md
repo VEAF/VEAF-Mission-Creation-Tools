@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-MISSION-LANGUAGE-FOLLOWS-USER](FIX-MISSION-LANGUAGE-FOLLOWS-USER/PRD.md) · ✅
+
+The English mission prompts told the AI to write the mission, its briefing and README in French; an English-speaking user now gets `mission.language: en` and English documents. The parking limitation, whose id made an AI deny dynamic slots on GermanyCW, is now `ai-ground-start-needs-a-parking-capture`. Afghanistan, GermanyCW, both Marianas and TheChannel now ship their parking capture. Also Pillow 13 and certifi (15 Dependabot alerts), "0 aircraft" stopping the combat missions' auto scale (#1151) and a checked campaign state write (#1146). From David's OpenCode test on 6.31.2, fixed in 6.31.3.
+
 ### [FIX-OPENCODE-TEST-FINDINGS](FIX-OPENCODE-TEST-FINDINGS/PRD.md) · ✅
 
 What David's end-to-end OpenCode test on 6.31.1 met, fixed in 6.31.2 (PR #1162): the self-update stages the new exe and swaps it in only at a lone server start; `edit_mission_file` across CRLF and an LF scaffold; reference data with no mission folder (`theatre`, `list_countries`, the shipped scaffold); a lone FARP's dynamic slots; lighter reads; `inspect_built_mission`, and a guide that never parses a `.miz` in a shell. Ticket 04 (presets) measured as not a defect.

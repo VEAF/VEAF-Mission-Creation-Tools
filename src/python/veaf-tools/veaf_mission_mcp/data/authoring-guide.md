@@ -16,7 +16,8 @@ from its first section:
 - `open-training` — a VEAF training mission on a whole map: airfields, support, air defence, graded
   training zones, combat zones, QRA.
 
-Pass `lang: fr` to a user who writes in French. An objective mission's briefing — the PPTX, its maps and
+Pass `lang: fr` to a user who writes in French. The mission takes the user's language too —
+`mission.language`, its briefing, its maps and its README — unless they ask for another. An objective mission's briefing — the PPTX, its maps and
 the DCS briefing pictures — is one action, `build_mission_briefing`, once the mission is built. A few steps
 are still scripts (the PDF, the Open Training's `README.md`): without a shell, read `describe_known_limitations`
 entry `mission-prompt-scripts-need-a-shell` and say what you could not produce. A user who wants no more than what they described (a test mission with one SAM zone) gets no prompt, but still

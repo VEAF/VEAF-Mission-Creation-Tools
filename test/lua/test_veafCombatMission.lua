@@ -1416,4 +1416,30 @@ function TestCombatMissionOppositionScale:test_activates_the_copy_of_the_level()
   luaunit.assertEquals(activated, "CAP/Good/3")
 end
 
+-- issue #1151: "0 aircraft" fixed from the menu announces no enemy fighters; "Auto size" must not take off anyway
+function TestCombatMissionOppositionScale:test_no_aircraft_fixed_activates_nothing_and_says_so()
+  local savedDict, savedActivate, savedOut = veafCombatMission.missionsDict, veafCombatMission.ActivateMission, veaf.outTextForUnit
+  veafCombatMission.missionsDict = { ["cap/good/1"] = {}, ["cap/good/2"] = {} }
+  local activated, told = nil, nil
+  veafCombatMission.ActivateMission = function(name)
+    activated = name
+  end
+  veaf.outTextForUnit = function(_, text)
+    told = text
+  end
+  veafOpposition = {
+    getLevel = function()
+      return 0
+    end,
+    isNoAircraft = function()
+      return true
+    end,
+  }
+  veafCombatMission.ActivateMissionAtOppositionLevel({ "CAP", "Good" }, "player-1")
+  veafCombatMission.missionsDict, veafCombatMission.ActivateMission, veaf.outTextForUnit, veafOpposition =
+    savedDict, savedActivate, savedOut, nil
+  luaunit.assertNil(activated)
+  luaunit.assertEquals(told, veaf.t("combatmission.no_aircraft"))
+end
+
 os.exit(luaunit.LuaUnit.run())

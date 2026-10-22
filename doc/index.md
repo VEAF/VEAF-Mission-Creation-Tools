@@ -42,6 +42,8 @@ Ensemble complet d'outils pour créer des missions [DCS World](https://www.digit
 
     [:octicons-arrow-right-24: Installer l'assistant IA](mission-maker/AI_ASSISTANT_INSTALL.md)
 
+    [:octicons-video-24: La démo en vidéo (6 min)](mission-maker/AI_ASSISTANT_INSTALL.md#demo-video)
+
 -   :material-file-restore-outline:{ .lg .middle } **Reprendre une mission**
 
     ---

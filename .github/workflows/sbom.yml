@@ -13,6 +13,7 @@ jobs:
   sbom:
     name: Generate SBOM
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write   # needed to upload to GitHub Release
 

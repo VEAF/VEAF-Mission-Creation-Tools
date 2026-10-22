@@ -17,6 +17,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Every CI job has a timeout** (CHORE-CI-JOB-TIMEOUTS): a `python-quality` job hung four hours in `apt-get update`; jobs now stop at about three times their longest measured run, apt-get steps after 10 minutes, and a test keeps new workflows from coming without one.
+
 ## [6.31.4] — 2026-10-22
 
 ### Changed

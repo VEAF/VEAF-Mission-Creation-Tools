@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [CHORE-CI-JOB-TIMEOUTS](CHORE-CI-JOB-TIMEOUTS/PRD.md) · ✅
+
+Every CI job and every apt-get step carries a timeout, after a `python-quality` job hung four hours in `apt-get update`; a test keeps new workflows from coming without one.
+
 ### [DOC-DEMO-VIDEO](DOC-DEMO-VIDEO/PRD.md) · ✅
 
 The demo video (a free AI installs the VEAF tools and builds a mission with its briefing) embedded under the five-step box of "Create with an AI", with subtitles forced in the page's language, and linked from the home page card.

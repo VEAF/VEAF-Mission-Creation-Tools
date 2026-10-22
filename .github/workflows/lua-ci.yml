@@ -12,11 +12,13 @@ jobs:
   lua-unit-tests:
     name: Lua Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Install Lua 5.1
+        timeout-minutes: 10
         run: |
           sudo apt-get update -q
           sudo apt-get install -y lua5.1
@@ -43,11 +45,13 @@ jobs:
   luacheck:
     name: Luacheck
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Install Lua 5.1 + luacheck (via LuaRocks)
+        timeout-minutes: 10
         run: |
           sudo apt-get update -q
           sudo apt-get install -y lua5.1 liblua5.1-dev luarocks
@@ -60,6 +64,7 @@ jobs:
   stylua-check:
     name: StyLua Formatting
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -85,6 +90,7 @@ jobs:
   lua-coverage:
     name: Lua Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -94,6 +100,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install Lua 5.1 + luacov (via LuaRocks)
+        timeout-minutes: 10
         run: |
           sudo apt-get update -q
           sudo apt-get install -y lua5.1 liblua5.1-dev luarocks

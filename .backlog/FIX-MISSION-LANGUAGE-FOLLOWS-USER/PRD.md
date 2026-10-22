@@ -24,6 +24,11 @@ The AI did announce "Mission and briefing will be written in French … unless y
 The mission takes the language the user speaks — `mission.language`, the briefing, its maps, the README — unless they ask for another.
 The English prompts say English; the French prompts already said French; the authoring guide says the rule once, since it is what picks the prompt's language.
 
+## Also in this lot
+
+The same test showed the AI telling the user GermanyCW had no parking places for dynamic slots, misled by the id of a known limitation (ticket 02).
+
 ## Tickets
 
 - [01 — The English prompts build an English mission](tickets/01-english-prompts.md)
+- [02 — The parking limitation says what it concerns](tickets/02-parking-limitation-id.md)

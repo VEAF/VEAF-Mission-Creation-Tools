@@ -8,7 +8,7 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ### [FIX-MISSION-LANGUAGE-FOLLOWS-USER](FIX-MISSION-LANGUAGE-FOLLOWS-USER/PRD.md) · ✅
 
-The English mission prompts told the AI to write the mission, its briefing and README in French; an English-speaking user now gets `mission.language: en` and English documents. From David's OpenCode test on 6.31.2, fixed in 6.31.3.
+The English mission prompts told the AI to write the mission, its briefing and README in French; an English-speaking user now gets `mission.language: en` and English documents. The parking limitation, whose id made an AI deny dynamic slots on GermanyCW, is now `ai-ground-start-needs-a-parking-capture`. From David's OpenCode test on 6.31.2, fixed in 6.31.3.
 
 ### [FIX-OPENCODE-TEST-FINDINGS](FIX-OPENCODE-TEST-FINDINGS/PRD.md) · ✅
 

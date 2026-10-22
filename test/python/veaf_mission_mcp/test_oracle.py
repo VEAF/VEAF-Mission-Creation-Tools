@@ -141,10 +141,10 @@ class TestKnownLimitationsByArea:
 
     def test_a_theatre_drops_the_entries_that_concern_other_theatres_only(self) -> None:
         ids = {e["id"] for e in describe_known_limitations(theatre="Normandy")["limitations"]}
-        assert "no-parking-data-outside-three-theatres" not in ids  # Normandy ships its parking
+        assert "ai-ground-start-needs-a-parking-capture" not in ids  # Normandy ships its parking
         assert "marianas-placement-checks-nothing" not in ids
         everywhere = {e["id"] for e in describe_known_limitations()["limitations"]}
-        assert "no-parking-data-outside-three-theatres" in {
+        assert "ai-ground-start-needs-a-parking-capture" in {
             e["id"] for e in describe_known_limitations(theatre="Nevada")["limitations"]
         }
         assert ids < everywhere  # an entry with no `theatres` is kept
@@ -376,6 +376,15 @@ def test_a_mission_prompt_names_no_skill_that_does_not_ship(kind: str, lang: str
     prompt = describe_mission_prompt(kind, lang)["prompt"]
     assert "veaf-mission-editor:" not in prompt
     assert "describe_authoring_guide" in prompt
+
+
+def test_the_parking_limitation_says_dynamic_slots_are_not_concerned() -> None:
+    """FIX-MISSION-LANGUAGE-FOLLOWS-USER 02: listed by its id alone, `no-parking-data-outside-three-theatres`
+    made an AI tell the user GermanyCW had "no parking places for the dynamic slots" — DCS places those
+    players itself; the capture only serves the ground and runway starts of the flights the tools place.
+    """
+    entry = describe_known_limitations(id="ai-ground-start-needs-a-parking-capture")["limitations"][0]
+    assert "dynamic slots" in entry["title"].lower()
 
 
 @pytest.mark.parametrize("kind", ["objective", "open-training"])

@@ -952,7 +952,7 @@ returns a short listing** — `id`, `kind`, `area` and `theatres` when set, no t
 An area used to come back in full: three of them were 46 000 characters in one call, carried to the end of the session (FIX-OPENCODE-TEST-FINDINGS).
 
 ```json
-{"ids": ["no-parking-data-outside-three-theatres"]}
+{"ids": ["ai-ground-start-needs-a-parking-capture"]}
 ```
 
 ### `describe_authoring_guide` (FEAT-AI-ASSISTANT-ANY-CLIENT lot)

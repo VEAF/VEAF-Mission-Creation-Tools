@@ -256,7 +256,7 @@ limitations:
     MarianaIslands has no clear-ground catalogue and no parking data shipped. Its elevation grid,
     published in the `terrain-data` release since 2026-10-20, is downloaded on first use and checks the
     sea only. Every ground placement there is written as asked, with a warning that says the trees and
-    the buildings were not checked; every QRA starts in the air (`no-parking-data-outside-three-theatres`).
+    the buildings were not checked; every QRA starts in the air (`ai-ground-start-needs-a-parking-capture`).
   workaround: |
     Check the built mission in DCS with `veaf-tools dcs clear-ground-check <mission.miz>` and move what
     it finds. Sweep the places of the mission with `veaf-tools dcs clear-ground-sweep MarianaIslands`
@@ -446,10 +446,10 @@ limitations:
   cost: 4 objectives of GermanyCW-v6, placed by the MCP before it wrote the field, missing in game; a
     combat zone drew 4 elements from 3.
 
-- id: no-parking-data-outside-three-theatres
+- id: ai-ground-start-needs-a-parking-capture
   kind: tool
   area: mcp
-  title: No ramp or runway start through the MCP outside Caucasus, Persian Gulf, Syria, Sinai, Falklands and Normandy
+  title: No ramp or runway start for a flight the MCP places outside Caucasus, Persian Gulf, Syria, Sinai, Falklands and Normandy; dynamic slots are not concerned
   theatres: [Afghanistan, GermanyCW, Iraq, Kola, MarianaIslands, MarianaIslandsWWII, Nevada, TheChannel]
   symptom: |
     `add_air_group` with a `parking-*` or `runway` start is refused with *"no parking data captured
@@ -457,6 +457,10 @@ limitations:
     theatres ship a parking capture in `veaf_libs/data/parking/`. Sinai was captured on 2026-10-12
     for its Open Training v6 (3 614 stands on 56 airfields). Falklands too, for its
     Open Training v6, and Normandy on 2026-10-13 (3 716 stands on 90 airfields).
+    Dynamic slots work on every map: DCS places those players on the airfield itself, with no capture.
+    This entry was called `no-parking-data-outside-three-theatres` until 6.31.3; listed by that id
+    alone, it made an AI tell a user on 2026-10-22 that GermanyCW had "no parking places for the
+    dynamic slots".
   workaround: |
     Use an air start there, or place the flight in the DCS Mission Editor. The capture itself is a
     session in DCS: `veaf-tools dcs capture-map --parking`, whose raw dump goes to

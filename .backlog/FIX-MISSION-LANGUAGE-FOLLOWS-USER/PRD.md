@@ -28,9 +28,13 @@ The English prompts say English; the French prompts already said French; the aut
 
 The same test showed the AI telling the user GermanyCW had no parking places for dynamic slots, misled by the id of a known limitation (ticket 02).
 David then captured the parking of the five maps he owns that had none, so they ship in the same release (ticket 03).
+Before the release, David asked for the open Dependabot alerts (ticket 04) and the two findings the security-audits quality pass still held open (tickets 05 and 06) in the same PR.
 
 ## Tickets
 
 - [01 — The English prompts build an English mission](tickets/01-english-prompts.md)
 - [02 — The parking limitation says what it concerns](tickets/02-parking-limitation-id.md)
 - [03 — Five more maps ship their parking](tickets/03-five-parking-captures.md)
+- [04 — Pillow 13 and certifi 2026.10.19](tickets/04-pillow-certifi.md)
+- [05 — "0 aircraft" also stops the combat missions' auto scale (issue #1151)](tickets/05-no-aircraft-auto-scale.md)
+- [06 — The campaign state write is checked (issue #1146)](tickets/06-campaign-state-write-checked.md)

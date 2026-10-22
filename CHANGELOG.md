@@ -17,6 +17,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The install page says how to choose the model** (DOC-AI-MODEL-CHOICE): in OpenCode, the default free model did not manage the install where another succeeded in three minutes. The page now says the install is the test (no updater run after five minutes, change the model), to prefer a model that keeps no data, and which models worked in our tests of October 2026.
+
 ## [6.31.3] — 2026-10-22
 
 ### Fixed

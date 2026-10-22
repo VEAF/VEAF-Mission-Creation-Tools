@@ -20,6 +20,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **The install page says how to choose the model** (DOC-AI-MODEL-CHOICE): in OpenCode, the default free model did not manage the install where another succeeded in three minutes. The page now says the install is the test (no updater run after five minutes, change the model), to prefer a model that keeps no data, and which models worked in our tests of October 2026.
+- **The demo video is on the documentation** (DOC-DEMO-VIDEO): a free AI installs the VEAF tools on an empty PC and builds a mission with its briefing, in six minutes. Embedded under the five steps of "Create with an AI", with subtitles in the page's language, and linked from the home page.
 
 ## [6.31.3] — 2026-10-22
 

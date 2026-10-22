@@ -15,6 +15,13 @@ Le catalogue de ce que vous pouvez lui demander est dans [AI_ASSISTANT_CATALOG.m
 > 4. Quand elle vous le demande, quittez-la complètement et relancez-la : elle ne lit ses outils qu'au démarrage.
 > 5. Dites-lui : « crée une mission DCS ».
 
+## La démo en vidéo {#demo-video}
+
+Les cinq étapes, faites sur un PC Windows vide avec une IA gratuite : l'installation, puis une mission complète avec son briefing.
+Six minutes, en anglais avec les sous-titres français ; la construction de la mission, une demi-heure en réalité, y est accélérée.
+
+<iframe src="https://www.youtube-nocookie.com/embed/X3tJr130jSU?cc_load_policy=1&cc_lang_pref=fr&hl=fr" title="Créer une mission DCS World avec une IA gratuite" style="width:100%;aspect-ratio:4/3;border:0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
+
 ## Quelle IA choisir ? {#which-ai}
 
 Il faut une application qui sait lancer un serveur MCP **sur votre PC** : les chats dans le navigateur (ChatGPT web, Le Chat, l'appli Gemini) ne le peuvent pas.

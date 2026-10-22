@@ -15,6 +15,13 @@ What you can ask it is listed in [AI_ASSISTANT_CATALOG.md](AI_ASSISTANT_CATALOG.
 > 4. When it tells you to, quit it completely and start it again: it reads its tools only at start-up.
 > 5. Tell it: "create a DCS mission".
 
+## The demo video {#demo-video}
+
+The five steps, done on an empty Windows PC with a free AI: the install, then a complete mission with its briefing.
+Six minutes; building the mission, half an hour in reality, is sped up.
+
+<iframe src="https://www.youtube-nocookie.com/embed/X3tJr130jSU?cc_load_policy=1&cc_lang_pref=en" title="Create a DCS World mission with a free AI" style="width:100%;aspect-ratio:4/3;border:0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen loading="lazy"></iframe>
+
 ## Which AI to choose? {#which-ai}
 
 It takes an application that can start an MCP server **on your PC**: chats in the browser (ChatGPT web, Le Chat, the Gemini app) cannot.

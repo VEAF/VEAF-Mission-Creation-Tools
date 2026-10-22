@@ -30,6 +30,7 @@ jobs:
   worker-tests:
     name: Worker unit tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     defaults:
@@ -60,6 +61,7 @@ jobs:
     needs: worker-tests
     if: github.repository == 'VEAF/VEAF-Mission-Creation-Tools' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     # Never two deploys at once, and never cancel one in flight: a half-applied deploy is worse

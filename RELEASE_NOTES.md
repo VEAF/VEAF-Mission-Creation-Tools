@@ -1,38 +1,44 @@
-# VEAF Mission Creation Tools — 6.31.2
+# VEAF Mission Creation Tools — 6.31.3
 
-**Une version corrective de la 6.31.x, pour une IA qui construit une mission avec les seuls outils VEAF.**
-Nous avons laissé une IA gratuite (OpenCode) créer une mission de bout en bout sur un PC neuf, avec rien d'autre que `veaf-tools`.
-Elle a buté sur une mise à jour qui cassait les serveurs en marche, sur des fichiers qu'elle ne savait pas modifier, et sur des informations qu'elle devait aller fouiller dans l'exécutable : cette version corrige tout cela, et ajoute de quoi vérifier une mission construite.
-
-> ### ⚠️ Ce qui change pour vous
->
-> **Si vous utilisez une IA avec les outils VEAF** (Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode) : quand la 6.31.2 arrive, **fermez toutes vos IA, puis relancez-les**.
-> Une IA en 6.31.0 ou 6.31.1 se met à jour une dernière fois « à l'ancienne », en remplaçant l'exécutable sous ses pieds ; si elle répond `Error -3 while decompressing data`, c'est ça : fermez-la et relancez-la.
->
-> À partir de la 6.31.2, une mise à jour ne casse plus rien : elle attend à côté et prend le relais **au prochain démarrage d'une IA**, quand plus aucune autre ne tourne.
-> Si vous gardez une IA ouverte plusieurs jours, fermez-les toutes de temps en temps pour prendre les mises à jour.
+**Une version corrective de la 6.31.x : une IA qui vous parle anglais fait une mission en anglais, cinq cartes de plus ont leurs places de parking, et deux défauts en jeu sont corrigés.**
 
 ---
 
-## 🛠️ Corrections
+## 🤖 Créer une mission avec une IA
 
-- **La mise à jour automatique ne casse plus les IA ouvertes.**
-  Elle remplaçait `veaf-tools.exe` pendant que d'autres sessions s'en servaient, et leurs actions suivantes échouaient (`Error -3 while decompressing data`) ; l'IA du test a passé 80 minutes à chercher un fichier corrompu qui n'existait pas.
-  La nouvelle version est maintenant téléchargée à côté (`veaf-tools.exe.staged`) et mise en place au démarrage suivant, seulement quand aucun autre `veaf-tools.exe` ne tourne.
-  Relancer l'updater à la main reste possible : il vous prévient si un `veaf-tools.exe` tourne encore.
-- **Une FARP seule dans sa mission reçoit enfin ses slots dynamiques.**
-  Le build annonçait « 0 ships/FARPs » et la FARP restait sans hélicoptère à prendre ; c'était un piège de lecture de la table des entrepôts quand la mission n'a qu'une FARP.
-- **Le dossier de mission créé par `prepare` est entièrement en fins de ligne Unix (LF)**, comme le reste du gabarit, et une IA modifie désormais un passage de plusieurs lignes même dans un fichier en fins de ligne Windows.
+- **Une mission dans la langue de celui qui la demande.**
+  Les prompts de mission anglais imposaient une mission, un briefing et un README en français, « la langue des serveurs VEAF » : un utilisateur qui parlait anglais à son IA recevait des documents en français.
+  La mission prend maintenant la langue dans laquelle vous parlez à l'IA, sauf si vous en demandez une autre.
+- **Les slots dynamiques ne dépendent pas des données de parking.**
+  Une IA a écrit qu'il n'y avait « pas de places de parking pour les slots dynamiques » sur GermanyCW, trompée par le nom d'une limitation connue.
+  C'est DCS qui place les joueurs des slots dynamiques, sur toutes les cartes ; la limitation dit maintenant ce qu'elle concerne vraiment : les départs au sol des vols que placent les outils.
 
-## ✨ Nouveautés pour les IA
+## 🗺️ Cinq cartes de plus avec leurs places de parking
 
-- **`inspect_built_mission`** : après le build, l'IA vérifie ce que contient vraiment le `.miz` — slots dynamiques et templates de chaque base, FARP et navire, préréglages radio par appareil, bullseyes, météo de chaque variante, ravitailleurs et AWACS — sans jamais ouvrir l'archive à la main.
-  Le guide et les prompts de mission lui disent de passer par là, et plus jamais par un shell.
-- **Préparer un scénario avant qu'un dossier existe** : les places de parking et les fréquences ATC des aérodromes, les pays DCS, la conversion de coordonnées et la recherche d'un lieu réel se demandent maintenant pour une carte, sans mission ; l'IA peut aussi lire le gabarit que posera `scaffold_mission` (préréglages, templates de slots dynamiques).
+Afghanistan, GermanyCW, Mariana Islands, Mariana Islands WWII et The Channel, relevées dans DCS le 22 octobre :
 
-## 🪶 Plus léger pour l'IA
+| Carte | Aérodromes | Places |
+|---|---|---|
+| Afghanistan | 26 | 1 435 |
+| GermanyCW | 227 | 7 035 |
+| Mariana Islands | 8 | 282 |
+| Mariana Islands WWII | 11 | 534 |
+| The Channel | 12 | 616 |
 
-Ce qu'une IA lit reste dans sa mémoire jusqu'à la fin de la session et lui est renvoyé à chaque tour : la liste des aérodromes de Syrie est presque deux fois plus courte, les limitations connues se lisent en liste courte puis une par une, et le prompt de mission « objectif » arrive en deux parties (le scénario d'abord, la construction une fois le scénario approuvé).
+Un vol ou une QRA peut y démarrer sur une place de parking ou en bout de piste, et le build ne propose en slot dynamique, sur chaque aérodrome, que ce qu'il peut garer.
+Seules Iraq, Kola et Nevada restent sans.
+
+## ✈️ En jeu
+
+- **« 0 avion » arrête aussi la « Taille auto » des combat missions.**
+  Choisi dans le menu *Opposition*, « 0 avion » faisait taire les QRA, mais une combat mission lancée en *Taille auto (niveau d'opposition)* décollait quand même ; elle ne lance plus rien, et le dit à celui qui l'a demandée.
+  Une taille choisie à la main se lance toujours.
+- **Une écriture ratée n'efface plus l'état d'une campagne.**
+  Disque plein, quota atteint : la mission ne vérifiait pas l'écriture de son fichier d'état, et un fichier tronqué pouvait remplacer le bon ; elle vérifie maintenant, et l'état précédent reste intact.
+
+## 🔒 Sécurité
+
+- **Pillow 13.0.0** (les images des cartes de briefing et de la planchette) et **certifi 2026.10.19** (les certificats qui sécurisent les téléchargements des outils) : 15 alertes de sécurité corrigées, dont deux critiques.
 
 ---
 

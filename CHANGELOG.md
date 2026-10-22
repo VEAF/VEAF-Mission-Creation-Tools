@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.31.3] — 2026-10-22
+
 ### Fixed
 
 - **An English-speaking user gets an English mission** (FIX-MISSION-LANGUAGE-FOLLOWS-USER): the English mission prompts told the AI to write the mission, its briefing and its README in French; the mission now takes the language the user speaks — `mission.language`, the briefing, its maps, the README — unless they ask for another.

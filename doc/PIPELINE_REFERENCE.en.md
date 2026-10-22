@@ -525,8 +525,8 @@ categories it can park, and stock that has become unplayable (written by an earl
 removed. This applies to an explicit `aircrafts:` list too — DCS would ignore what it cannot park
 anyway. The filtering is **silent**: no build warning.
 
-**Reach.** Parking data ships for **Caucasus, Persian Gulf, Syria and Sinai** only. On any other theatre —
-and on an airfield absent from the data — nothing is filtered and the behaviour is unchanged.
+**Reach.** Parking data ships for every map but **Iraq, Kola and Nevada**.
+On those three theatres — and on an airfield absent from the data — nothing is filtered and the behaviour is unchanged.
 
 **How to check it in game.** Start the mission, pick the side, open the slot picker on the airfield
 in question: the list shown is what DCS can actually spawn. If a plane is missing on a field that

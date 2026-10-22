@@ -172,8 +172,7 @@ consulté pour cette mission. C'est voulu — vos emports sont vos emports — e
     n'est rempli qu'avec ce que le parking de l'aérodrome accepte réellement. Un terrain qui n'a que
     des emplacements hélicoptères ne se voit plus attribuer 149 types d'avions qui n'apparaîtront
     jamais. Le build ne dit rien à ce sujet — ce n'est pas une erreur, c'est le stock qui devient
-    juste. Ce filtrage ne s'applique que sur **Caucase, Golfe Persique, Syrie et Sinaï**, les seules cartes
-    pour lesquelles les données de parking existent ; partout ailleurs le comportement est inchangé.
+    juste. Ce filtrage s'applique sur toutes les cartes dont les données de parking sont embarquées, c'est-à-dire toutes sauf **Iraq, Kola et Nevada** ; sur ces trois-là le comportement est inchangé.
 
 ## Pour aller plus loin {#more}
 

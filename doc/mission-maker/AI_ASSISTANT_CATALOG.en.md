@@ -741,7 +741,7 @@ Avoid putting the same picture on both sides: a player whose side the briefing d
 *Folder (built) · ⭐* — The AI writes the scenario's words (title, context, objectives, known threats, flow); the tool reads everything else in the built mission — date, weather, bullseye, flights, support, flight plan, the presets in the cockpits, each target's coordinates — and writes `docs/briefing.pptx` on the VEAF template, an overview map and one zoom per objective in `docs/maps/`, and puts those maps in the DCS briefing (blue and neutral).
 No script: an AI with no command line on your PC (Claude Desktop in chat mode) does it too.
 Build the mission first, and run it again after every change: it replaces its own pictures.
-The PPTX imports into Google Slides; the PDF is exported from PowerPoint or Slides.
+The PPTX imports into Google Slides. `docs/briefing.pdf` is written beside it — the same pages, maps and words with a layout of its own, no PowerPoint or other program needed on your PC. The tool also warns the AI when a waypoint number of its text does not match the route, and when its French text lacks its accents.
 OpenStreetMap background, or OpenTopoMap (relief) for a desert; without the network, the maps are drawn on a plain background.
 
 > 💬 *"Make the mission's briefing, topo background."*

@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from campaign_manager.mission_picture import _tacan, _weather, callsign, find_built_mission, megahertz
-from mission_tools.miz_tools import DcsMission, read_miz
+from mission_tools.mission_constants import DEFAULT_SCRIPTS_LOCATION
+from mission_tools.miz_tools import DcsMission, list_members, read_miz
 from presets_injector.airfield_channels_manager import load_reference
 from veaf_libs.mission_table import indexed
 
@@ -170,13 +171,19 @@ def _bullseyes(content: dict[str, Any]) -> dict[str, dict[str, int]] | str:
 def _weather_line(label: str, content: dict[str, Any]) -> str:
     """One mission's start time and weather as pilots read it: sky, wind FROM at the ground, visibility."""
     seconds = int(content.get("start_time") or 0)
+    stored = content.get("date") or {}
+    date = (
+        f"{int(stored['Year']):04d}-{int(stored['Month']):02d}-{int(stored['Day']):02d} "
+        if all(key in stored for key in ("Year", "Month", "Day"))
+        else ""
+    )
     weather = _weather(content.get("weather") or {})
     ground = weather.winds["ground"]
     sky = weather.cover if weather.cover == "clear" else f"{weather.cover} at {round(weather.cloud_base)} m"
     extras = "".join(f", {name}" for name, on in (("rain", weather.rain), ("fog", weather.fog)) if on)
     # An answer to the AI, in English like every action of the catalogue, not a message for the user.
     line = (
-        f"{label}: {seconds // 3600:02d}:{seconds % 3600 // 60:02d}, {sky}, wind {ground.origin:03d}°/"
+        f"{label}: {date}{seconds // 3600:02d}:{seconds % 3600 // 60:02d}, {sky}, wind {ground.origin:03d}°/"
         f"{ground.knots} kt at the ground, visibility {round(weather.visibility / 1000)} km{extras}"
     )
     return line
@@ -199,6 +206,36 @@ def _support(content: dict[str, Any]) -> list[str] | str:
                 line += f", TACAN {tacan}" if tacan else ""
                 line += ", late activation" if group.get("lateActivation") else ""
                 lines.append(line)
+    return lines or _ABSENT
+
+
+#: The mission-table key of each side's briefing pictures, and the side it names.
+_PICTURE_SIDES = {"pictureFileNameB": "blue", "pictureFileNameR": "red", "pictureFileNameN": "neutral"}
+
+
+def _briefing_pictures(mission: DcsMission, miz: Path) -> list[str] | str:
+    """The briefing pictures the players see: resource, file, whether the archive holds it, for which sides.
+
+    The AI opened the archive with a shell to find out whether `build_mission_briefing`'s pictures were in
+    (FIX-DEMO-VIDEO-FINDINGS 14).
+    """
+    content = mission.mission_content or {}
+    resources = mission.map_resource_content or {}
+    sides: dict[str, list[str]] = {}
+    for key, side in _PICTURE_SIDES.items():
+        for resource in indexed(content.get(key)):
+            sides.setdefault(str(resource), []).append(side)
+    members = set(list_members(miz))
+    lines = []
+    for resource, listed in sides.items():
+        file = resources.get(resource)
+        if file is None:
+            lines.append(f"{resource}: no file in mapResource, listed for {', '.join(listed)}")
+            continue
+        held = f"{DEFAULT_SCRIPTS_LOCATION}/{file}" in members
+        lines.append(
+            f"{resource} -> {file}: {'in the archive' if held else 'MISSING from the archive'}, for {', '.join(listed)}"
+        )
     return lines or _ABSENT
 
 
@@ -226,7 +263,7 @@ def inspect_built_mission(mission_path: Path) -> dict[str, Any]:
 
     Returns:
         ``{miz, theatre, dynamic_slot_templates, airbases, farps_and_ships, presets, bullseye,
-        weather, support, counters}``: the template types once per side; one line per airbase, FARP
+        weather, briefing_pictures, support, counters}``: the template types once per side; one line per airbase, FARP
         or ship, radio layout, variant and support aircraft; ``"absent"`` for a section the mission
         does not have. ``counters`` gives ``presets_injected`` (player groups
         whose aircraft carry presets), ``routes_on_player_groups``, ``warehouse_links``, ``dead_links``
@@ -253,6 +290,7 @@ def inspect_built_mission(mission_path: Path) -> dict[str, Any]:
         "presets": _presets(players),
         "bullseye": _bullseyes(content),
         "weather": weather,
+        "briefing_pictures": _briefing_pictures(mission, miz),
         "support": _support(content),
         "counters": {
             "presets_injected": sum(

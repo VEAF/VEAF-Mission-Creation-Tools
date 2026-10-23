@@ -504,7 +504,7 @@ the sides; running DCS.
 
 - **Read the whole build log**, not just the exit code: presets injected into how many aircraft,
   waypoints into how many groups, warehouse links, warnings. Any zero is suspect.
-- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
+- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather and date, briefing pictures, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
   What no action reads, you report as not checked. Check:
   - **unique** group and unit names;
   - dynamic slots on the intended bases only;

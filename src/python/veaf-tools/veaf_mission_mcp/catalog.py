@@ -123,6 +123,7 @@ class ActionCatalog:
             raise ActionNotFoundError(name) from None
         schema = self._specs[name].parameters_schema or {}
         params = _published_mission_key(name, params, schema)
+        params = _published_file_key(name, params, schema)
         _check_parameters(name, schema, params)
         native = self._mission_keys.get(name)
         if native is not None and native != MISSION_PARAMETER and MISSION_PARAMETER in params:
@@ -184,6 +185,32 @@ def _published_mission_key(name: str, params: dict[str, Any], schema: dict[str, 
     result = {key: item for key, item in params.items() if key not in names}
     result[published] = value
     return result
+
+
+def _published_file_key(name: str, params: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    """Read ``path`` as ``file`` on an action that publishes ``file`` and no ``path``.
+
+    A model reaches for ``path`` first (its own file tools take one): ``read_mission_file`` called with it
+    lost a turn to "unknown parameter(s) path" (FIX-DEMO-VIDEO-FINDINGS 09).
+
+    Args:
+        name: The action's name, for the message.
+        params: The parameters received.
+        schema: The action's published parameter JSON Schema.
+
+    Returns:
+        ``params`` with the file under ``file``; unchanged when the action publishes ``path`` itself or
+        the caller sent no ``path``.
+
+    Raises:
+        ValueError: If both are given with different values.
+    """
+    properties = schema.get("properties") or {}
+    if "file" not in properties or "path" in properties or "path" not in params:
+        return params
+    if "file" in params and str(params["file"]) != str(params["path"]):
+        raise ValueError(f"{name}: the file is given twice with different values (file, path)")
+    return {**{key: item for key, item in params.items() if key != "path"}, "file": params["path"]}
 
 
 def _check_parameters(name: str, schema: dict[str, Any], params: dict[str, Any]) -> None:

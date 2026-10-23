@@ -1083,7 +1083,7 @@ def _check_presets_waypoints(
     Coarse on purpose: the exact per-type/typePattern matching lives in the injectors. This
     catches the common failure (a config file present with no relevant aircraft); a fine-grained
     per-aircraft match would be a follow-up. The dynamic-slot templates are player aircraft too: the
-    presets step fills them.
+    presets step fills them, and the waypoints injector gives them their route (FIX-DEMO-VIDEO-FINDINGS 11).
     """
     issues: list[ValidationIssue] = []
     groups, players = _aircraft_counts(mission)
@@ -1094,7 +1094,12 @@ def _check_presets_waypoints(
         and not dynamic_slots
     ):
         issues.append(ValidationIssue(WARNING, t("validate.presets_no_aircraft")))
-    if _pipeline_enabled(yaml_data, "waypoints") and (folder / "src" / "waypoints.yaml").is_file() and groups == 0:
+    if (
+        _pipeline_enabled(yaml_data, "waypoints")
+        and (folder / "src" / "waypoints.yaml").is_file()
+        and groups == 0
+        and not dynamic_slots
+    ):
         issues.append(ValidationIssue(WARNING, t("validate.waypoints_no_aircraft")))
     return issues
 

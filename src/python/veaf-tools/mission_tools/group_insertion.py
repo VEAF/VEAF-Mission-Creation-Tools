@@ -240,7 +240,7 @@ def add_group(
 
     Args:
         mission_content: The parsed DCS `mission` table (mutated in place).
-        coalition: `"blue"`, `"red"` or `"neutral"`.
+        coalition: `"blue"`, `"red"` or `"neutrals"` (`"neutral"` is read as that: the mission table's key).
         country_id: The DCS numeric country id (e.g. 0 for Russia).
         country_name: The DCS country name (e.g. `"Russia"`), used only if the
             country does not exist yet in this coalition.
@@ -260,8 +260,12 @@ def add_group(
     if category not in GROUP_CATEGORIES:
         raise ValueError(f"Unknown group category: {category!r} (expected one of {GROUP_CATEGORIES})")
     coalitions = mission_content.get("coalition") or {}
+    coalition = "neutrals" if coalition == "neutral" else coalition  # the mission table's key is `neutrals`
     if coalition not in coalitions or not isinstance(coalitions[coalition], dict):
-        raise KeyError(f"Unknown coalition: {coalition!r}")
+        held = ", ".join(sorted(side for side, table in coalitions.items() if isinstance(table, dict)))
+        raise KeyError(
+            f"Unknown coalition: {coalition!r} (this mission holds: {held or 'none'}; 'neutral' is read as 'neutrals')"
+        )
     _refuse_names_in_use(mission_content, group)
     coalition_dict = coalitions[coalition]
 

@@ -90,7 +90,7 @@ For a new mission, "create a mission" is enough: the assistant asks which of the
   The assistant asks only four or five questions: the map, the era, the template, a mission to take after if any, the escorts.
 
 It also asks where to create the mission folder, if it has none yet.
-An objective mission's briefing — document, maps, DCS briefing pictures — is produced by the tools themselves, even with Claude Desktop in chat mode; an Open Training's maps and README, and the PDF, still take an AI that runs programs, and one that cannot tells you what it could not produce.
+An objective mission's briefing — document and its PDF, maps, DCS briefing pictures — is produced by the tools themselves, even with Claude Desktop in chat mode; an Open Training's maps and README still take an AI that runs programs, and one that cannot tells you what it could not produce.
 To change an existing mission, give it the path of its folder and describe what you want:
 
 > "In my mission `Documents\VEAF\Missions\Syria`, add a long-range SAM combat zone north of Damascus."

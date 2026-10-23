@@ -15,6 +15,7 @@ from typing import Any
 from mission_tools.group_insertion import add_group as insert_group
 from mission_tools.group_insertion import max_ids
 from presets_injector.airfield_channels_manager import load_reference
+from veaf_libs.clear_ground_catalogue import catalogue_for_theatre, coverage_summary
 from veaf_libs.clear_ground_placement import occupied_by, place_on_clear_ground
 
 from veaf_mission_mcp.add_group import insert_group_into_content
@@ -220,7 +221,10 @@ def _check_pad(
     warnings: list[str] = []
     unchecked: list[str] = []
     if not placement.covered:
-        unchecked.append("trees (no clear-ground catalogue covers this place)")
+        unchecked.append(
+            f"trees (no clear-ground catalogue covers this place: "
+            f"{coverage_summary(catalogue_for_theatre(theatre) if theatre else None, theatre or 'this theatre')})"
+        )
     elif (placement.dx or placement.dy) and keep_position:
         warnings.append(
             f"'{name}' stands in trees or buildings: the clear-ground catalogue of {theatre} has clear ground "

@@ -113,6 +113,20 @@ class TestSetBriefing:
         content = read_mission_folder(folder).mission_content or {}
         assert content["descriptionText"] == "old situation"
 
+    def test_accents_are_stored_as_written(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        result = set_briefing(folder, situation="Le nœud logistique, détruit avant l'arrivée : Éviter le village.")
+        content = read_mission_folder(folder).mission_content or {}
+        assert content["descriptionText"] == "Le nœud logistique, détruit avant l'arrivée : Éviter le village."
+        assert "warnings" not in result
+
+    def test_a_french_text_without_its_accents_is_warned_not_refused(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        text = "La colonne blindee a force le defile et elle est arretee faute de carburant, pres du noeud."
+        result = set_briefing(folder, situation=text)
+        assert any("situation" in w and "accent" in w for w in result["warnings"])
+        assert (read_mission_folder(folder).mission_content or {})["descriptionText"] == text
+
     def test_nothing_to_set_is_refused(self, tmp_path: Path) -> None:
         with pytest.raises(ValueError):
             set_briefing(_folder(tmp_path))

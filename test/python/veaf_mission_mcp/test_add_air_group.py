@@ -781,3 +781,29 @@ class TestEmptyTemplateLoadout:
         add_air_group(miz, name="Empty Template", **flight)
         with pytest.raises(ValueError, match="carries no pylons"):
             add_air_group(miz, name="Flight", loadout_from="Empty Template", **flight)
+
+
+class TestTankerTaskAlias:
+    """FIX-DEMO-VIDEO-FINDINGS 01 and 04: a tanker added with the task ``Tanker`` — the word the AI reaches for —
+    was stored under that task, which has no Texaco family and which no reader of the mission knows as a tanker."""
+
+    _TANKER = {
+        "coalition": "blue",
+        "country_id": 2,
+        "country_name": "USA",
+        "unit_type": "KC-135",
+        "start": "air",
+        "position": {"x": 1000.0, "y": 2000.0},
+    }
+
+    def test_the_task_tanker_is_stored_as_refueling_and_named_texaco(self, tmp_path: Path) -> None:
+        miz = _caucasus_miz(tmp_path)
+        result = add_air_group(miz, name="Texaco 1", task="Tanker", **self._TANKER)
+        group = _slot_group(read_miz(miz).mission_content, "Texaco 1")
+        assert group["task"] == "Refueling"
+        assert _units(group)[0]["callsign"]["name"].startswith("Texaco")
+        assert any("'Tanker' is read as 'Refueling'" in w for w in result["warnings"])
+
+    def test_the_canonical_task_says_nothing(self, tmp_path: Path) -> None:
+        result = add_air_group(_caucasus_miz(tmp_path), name="Texaco 1", task="Refueling", **self._TANKER)
+        assert "warnings" not in result

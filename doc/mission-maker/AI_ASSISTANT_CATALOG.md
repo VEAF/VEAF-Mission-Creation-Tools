@@ -763,7 +763,7 @@ deux fois le même fichier réutilise le premier.
 *Dossier (construit) · ⭐* — L'IA écrit les mots du scénario (titre, contexte, objectifs, menaces connues, déroulement) ; l'outil lit tout le reste dans la mission construite — date, météo, bullseye, flights, soutien, plan de vol, presets des cockpits, coordonnées de chaque cible — et produit `docs/briefing.pptx` au gabarit VEAF, une carte de situation et un zoom par objectif dans `docs/maps/`, et met ces cartes dans le briefing DCS (bleu et neutre).
 Aucun script : une IA sans accès à ton PC en ligne de commande (Claude Desktop en mode discussion) le fait aussi.
 Construis la mission d'abord, et relance-le après chaque changement : il remplace ses propres images.
-Le PPTX s'importe dans Google Slides ; le PDF s'exporte depuis PowerPoint ou Slides.
+Le PPTX s'importe dans Google Slides. `docs/briefing.pdf` est écrit à côté : mêmes pages, mêmes cartes, mêmes mots, avec sa propre mise en page, sans PowerPoint ni autre programme sur ton PC. L'outil prévient aussi l'IA quand un numéro de waypoint de son texte ne correspond pas à la route, et quand son texte français n'a pas ses accents.
 Fond de carte OpenStreetMap, ou OpenTopoMap (relief) pour un désert ; sans réseau, les cartes sont dessinées sur un fond uni.
 
 > 💬 *« Fais le briefing de la mission, fond topo. »*

@@ -172,9 +172,24 @@ class TestAddGroup:
     def test_raises_for_an_unknown_coalition(self) -> None:
         mission = _mission()
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="holds: blue, red"):
             add_group(
-                mission, coalition="neutral", country_id=0, country_name="Russia", category="vehicle", group=_group()
+                mission, coalition="green", country_id=0, country_name="Russia", category="vehicle", group=_group()
+            )
+
+    def test_neutral_is_read_as_the_neutrals_the_mission_table_holds(self) -> None:
+        """FIX-DEMO-VIDEO-FINDINGS 10: the village of a mission, placed under no side."""
+        mission = _mission({"blue": {"country": []}, "red": {"country": []}, "neutrals": {"country": []}})
+
+        add_group(mission, coalition="neutral", country_id=0, country_name="Russia", category="static", group=_group())
+
+        assert mission["coalition"]["neutrals"]["country"], "the country lands under neutrals"
+        assert mission["coalitions"]["neutrals"] == [0]
+
+    def test_neutral_in_a_mission_with_no_neutrals_names_what_it_holds(self) -> None:
+        with pytest.raises(KeyError, match="'neutral' is read as 'neutrals'"):
+            add_group(
+                _mission(), coalition="neutral", country_id=0, country_name="Russia", category="vehicle", group=_group()
             )
 
 

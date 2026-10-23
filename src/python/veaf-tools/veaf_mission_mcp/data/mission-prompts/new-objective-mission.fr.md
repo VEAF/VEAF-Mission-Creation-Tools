@@ -242,7 +242,11 @@ validé un scénario, pas un à-peu-près.
   plus grand terrain d'où partent les transports — 1 100 m pour une grande base comme Ramstein, où un
   C-130 se gare à 997 m du point de chargement.
 - **Nom** : `VEAF_<Carte>_<Titre>` (titre en PascalCase sans accents, ex.
-  `VEAF_Syria_DeepStrikePalmyra`).
+  `VEAF_Syria_DeepStrikePalmyra`). C'est le **seul** texte sans accents : les noms de zone, de groupe et
+  les indicatifs aussi sont en ASCII, mais tout ce que lisent les joueurs (briefing, titres et tâches des
+  objectifs, menaces, notes, README) s'écrit **avec ses accents**, y compris dans l'appel d'un outil
+  (`set_briefing`, `build_mission_briefing`, `create_combat_zone`) : un accent n'est jamais un risque pour
+  un outil, et un briefing sans accents se lit comme une faute.
 - `mission.era`, **date** et **heure** (`set_mission_date`) cohérentes avec le scénario. Si le
   scénario dit « pleine lune » ou « nuit sans lune », **choisis la date d'après une éphéméride
   sourcée**, pas de mémoire.
@@ -293,7 +297,11 @@ validé un scénario, pas un à-peu-près.
 - **Les waypoints sont au sol** : altitude `BARO` = sol DCS sous le point, lue par `terrain_elevation`
   (`points`), pour que chaque steerpoint porte les coordonnées du terrain. Déclare le **BULLSEYE**
   dans `waypoints.yaml`, au sol lui aussi : sinon le build en injecte un à 20 000 ft (un point déclaré
-  sous ce nom remplace le sien). L'altitude de vol se dit au briefing, pas dans les points.
+  sous ce nom remplace le sien). Place-le **en dernier** de la liste, comme le build le fait : en tête ou
+  au milieu, il décale d'un rang tous les points qui le suivent, et chaque `W<n>` déjà écrit au
+  briefing et sur les étiquettes F10 devient faux (mesuré : NŒUD, COLONNE et OVDA annoncés W3, W4,
+  W6 pour une route où ils sont W4, W5, W7). Dans les textes, cite un point par son **nom** (« le
+  nœud logistique, W4 ») plutôt que par son seul numéro. L'altitude de vol se dit au briefing, pas dans les points.
 - **Profil bas (TBA)**, si le scénario en a un : `terrain_elevation` avec la `route` donne le sol le
   plus haut de chaque branche ; le briefing donne une altitude de branche au-dessus de ce maximum.
   Sol seulement — ni bâtiments, ni pylônes, ni arbres : garde une marge, et dis laquelle. Si le
@@ -435,7 +443,7 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
 
 ## 6. Le fichier de briefing
 
-- **PPTX (et PDF si demandé)** dans `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), le modèle
+- **PPTX et PDF** dans `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), le modèle
   de la section 3, page pour page ; le PPTX est la source de la version **Google Slides** (import dans
   Drive). Garde des polices que Slides connaît (Calibri, Cambria, Arial), et regarde le rendu converti
   s'il est déposé.
@@ -449,11 +457,16 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
   les cockpits (le plan de fréquences), coordonnées de chaque cible posée et altitude du sol dessous —
   sans grille d'altitude pour le théâtre, la colonne reste vide et l'action le signale : c'est un
   point ouvert. Lis ses `warnings`.
-- **Le PDF** n'est pas produit : l'utilisateur l'exporte depuis PowerPoint ou Slides. Avec un shell,
-  PowerPoint le fait par COM (`Presentations.Open` puis `SaveAs`, format 32).
-- **Relis chaque page rendue** si tu peux convertir le PPTX en images (PowerPoint par COM :
-  `Presentations.Open` puis `Slide.Export` en PNG) : rien ne déborde, chaque numéro de waypoint
-  correspond à la route. Sinon, demande à l'utilisateur de l'ouvrir et de le regarder.
+- **Le PDF** (`docs/briefing.pdf`) est écrit par la même action, avec les pages, les cartes et les mots
+  du deck, quoi que le PC contienne : n'installe rien et n'écris aucun convertisseur (une IA qui a
+  installé LibreOffice par `winget` a perdu quinze minutes et laissé une installation à moitié faite).
+  Sa mise en page est la sienne (DejaVu Sans, pas Calibri) et une page dont le texte déborde en fait une
+  de plus : `pdf_pages` le dit. Qui veut l'aspect exact du deck l'exporte depuis PowerPoint ou Slides.
+- **Les numéros de waypoint sont vérifiés pour toi** : un `W<n>` de tes mots que la route ne porte pas,
+  ou que sa propre phrase contredit (`KHOBI (W3)` quand KHOBI est W2), revient dans les `warnings`.
+  Corrige le mot et relance. Relire les pages rendues (PowerPoint par COM : `Presentations.Open` puis
+  `Slide.Export` en PNG) reste utile pour ce qui déborde ; sans cela, demande à l'utilisateur de
+  l'ouvrir et de regarder.
 
 ## 7. Ce que tu rends à la fin
 
@@ -471,7 +484,7 @@ Ce qui revient à l'utilisateur : commit, push, publication, lancer DCS.
   d'appareils, waypoints injectés dans combien de groupes, liens des warehouses, avertissements. Tout
   zéro est suspect. Lance les builds **l'entrée standard fermée** (`< /dev/null`, ou
   `stdin=DEVNULL`) : un build est resté bloqué dix minutes à attendre une saisie, sans rien afficher.
-- **Contrôle la mission construite par les actions, jamais en la dézippant** : `inspect_built_mission` (slots, presets, bullseye, météo, soutien, compteurs), `describe_mission` et `describe_units` sur le `.miz` construit (noms, routes, unités), `read_mission_file` (les sources).
+- **Contrôle la mission construite par les actions, jamais en la dézippant** : `inspect_built_mission` (slots, presets, bullseye, météo et date, images du briefing, soutien, compteurs), `describe_mission` et `describe_units` sur le `.miz` construit (noms, routes, unités), `read_mission_file` (les sources).
   Ce qu'aucune action ne lit, tu le signales comme non vérifié. Contrôle :
   - noms de groupes et d'unités **uniques** ;
   - slots nommés : un groupe par vol de l'ATO, le bon nombre de slots `Client`, au bon départ, avec

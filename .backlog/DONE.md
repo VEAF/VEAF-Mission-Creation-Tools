@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-DEMO-VIDEO-FINDINGS](FIX-DEMO-VIDEO-FINDINGS/PRD.md) · ✅
+
+What the AI worked around while building missions with the VEAF tools, from David's demo video and Martinho's session (2026-10-22): Texaco refused for a tanker, 123.5 MHz on the UH-1H, an empty ATO with dynamic slots, the tanker missing from the briefing, accents lost in what the AI writes, waypoint numbers that no longer match the route, a PDF of the briefing from the executable, and six smaller frictions of the actions. Each measured first.
+
 ### [DOC-DEMO-VIDEO](DOC-DEMO-VIDEO/PRD.md) · ✅
 
 The demo video (a free AI installs the VEAF tools and builds a mission with its briefing) embedded under the five-step box of "Create with an AI", with subtitles forced in the page's language, and linked from the home page card.

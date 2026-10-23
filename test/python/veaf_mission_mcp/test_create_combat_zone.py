@@ -3,9 +3,10 @@
 from pathlib import Path
 from typing import Any
 
+import pytest
 from mission_tools.mission_yaml_editor import load_yaml
 from mission_tools.miz_tools import read_mission_folder
-from veaf_mission_mcp.composites import create_combat_zone
+from veaf_mission_mcp.composites import add_combat_operation, create_combat_zone
 
 _MISSION = """\
 mission =
@@ -210,3 +211,74 @@ def test_every_combat_zone_key_the_schema_lists_is_one_the_build_reads() -> None
     source = Path(lua_config_generator.__file__).read_text(encoding="utf-8")
     assert "chained_zones" in schema["properties"]
     assert [key for key in schema["properties"] if f'"{key}"' not in source] == []
+
+
+_ZONE = {
+    "zone_name": "CZ-Depot",
+    "position": {"x": 1000.0, "y": 2000.0},
+    "radius": 900,
+    "coalition": "red",
+    "country_id": 0,
+    "country_name": "Russia",
+}
+
+
+def test_one_call_makes_a_zone_of_vehicles_and_statics(tmp_path: Path) -> None:
+    """FIX-DEMO-VIDEO-FINDINGS 13: a group's own `category` overrides the call's."""
+    folder = _folder(tmp_path)
+    result = create_combat_zone(
+        folder,
+        groups=[
+            {"name": "guard", "units": [{"type": "ZSU-23-4 Shilka", "count": 1}]},
+            {"name": "bunker", "units": [{"type": ".Command Center"}], "category": "static"},
+        ],
+        **_ZONE,
+    )
+    assert result["groups"] == ["CZ-Depot-guard", "CZ-Depot-bunker"]
+    content = read_mission_folder(folder).mission_content or {}
+    countries = content["coalition"]["red"]["country"]
+    country = next(iter(countries.values())) if isinstance(countries, dict) else countries[0]
+    assert {"vehicle", "static"} <= set(country)
+
+
+def test_a_refused_group_leaves_the_mission_untouched(tmp_path: Path) -> None:
+    folder = _folder(tmp_path)
+    files = [folder / "src" / "mission" / "mission", folder / "mission.yaml"]
+    before = [path.read_bytes() for path in files]
+    with pytest.raises(ValueError, match="bunker"):
+        create_combat_zone(
+            folder,
+            groups=[
+                {"name": "guard", "units": [{"type": "ZSU-23-4 Shilka", "count": 1}]},
+                {"name": "bunker", "units": [{"type": ".Command Center", "count": 2}], "category": "static"},
+            ],
+            **_ZONE,
+        )
+    assert [path.read_bytes() for path in files] == before
+
+
+def test_a_zone_title_without_its_accents_is_warned(tmp_path: Path) -> None:
+    """FIX-DEMO-VIDEO-FINDINGS 06: the title and briefing a player reads keep their accents."""
+    result = create_combat_zone(
+        _folder(tmp_path),
+        groups=[{"name": "guard", "units": [{"type": "ZSU-23-4 Shilka", "count": 1}]}],
+        combat_zone={
+            "friendly_name": "Noeud logistique",
+            "briefing": "Detruire les stockages et la garde du noeud, avant l'arret des vehicules.",
+        },
+        **_ZONE,
+    )
+    assert any("briefing" in w["warning"] and "accent" in w["warning"] for w in result["warnings"])
+    assert not any("friendly_name" in w["warning"] for w in result["warnings"]), "too short to judge"
+
+
+def test_an_operation_text_without_its_accents_is_warned(tmp_path: Path) -> None:
+    folder = _folder(tmp_path)
+    create_combat_zone(folder, groups=[{"name": "guard", "units": [{"type": "ZSU-23-4 Shilka"}]}], **_ZONE)
+    result = add_combat_operation(
+        folder,
+        zone_name="OperationA",
+        tasking_orders=[{"zone_name": "CZ-Depot"}],
+        briefing="Detruire le noeud logistique, puis la colonne blindee immobilisee faute de carburant.",
+    )
+    assert any("operation OperationA" in w for w in result["warnings"])

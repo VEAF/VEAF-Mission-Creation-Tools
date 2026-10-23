@@ -244,7 +244,11 @@ approximation of it.
   airfield the transports start from — 1,100 m for a major air base such as Ramstein, where a C-130
   parks 997 m from the loading point.
 - **Name**: `VEAF_<Map>_<Title>` (title in PascalCase without accents, e.g.
-  `VEAF_Syria_DeepStrikePalmyra`).
+  `VEAF_Syria_DeepStrikePalmyra`). That is the **only** text without accents: zone and group names and
+  callsigns are ASCII too, but whatever a player reads (briefing, objective titles and tasks, threats,
+  notes, README) keeps its language's accents, **also inside a tool call** (`set_briefing`,
+  `build_mission_briefing`, `create_combat_zone`): an accent is never a risk for a tool, and an unaccented
+  French briefing reads as a mistake.
 - `mission.era`, **date** and **time** (`set_mission_date`) consistent with the scenario. If the
   scenario says "full moon" or "moonless night", **pick the date from a sourced ephemeris**, not from
   memory.
@@ -293,7 +297,11 @@ approximation of it.
 - **Waypoints are on the ground**: `BARO` altitude = DCS ground under the point, read by
   `terrain_elevation` (`points`), so that each steerpoint carries the terrain's coordinates. Declare
   the **BULLSEYE** in `waypoints.yaml`, on the ground too: otherwise the build injects one at 20,000 ft
-  (a point declared under that name replaces its own). The flight altitude goes in the briefing, not
+  (a point declared under that name replaces its own). Put it **last** in the list, as the build does:
+  first or in the middle, it shifts every point after it by one, and each `W<n>` already written in the
+  briefing and on the F10 labels turns false (measured: the node, the column and the home field called
+  W3, W4, W6 on a route where they are W4, W5, W7). In the texts, cite a point by its **name** ("the
+  logistics node, W4") rather than by its number alone. The flight altitude goes in the briefing, not
   in the points.
 - **Low-level profile**, if the scenario has one: `terrain_elevation` with the `route` gives the
   highest ground of each leg; the briefing gives a leg altitude above that maximum. Terrain only — no
@@ -431,7 +439,7 @@ Brief status after each step: what is done, not what you are about to do.
 
 ## 6. The briefing file
 
-- **PPTX (and PDF if asked)** in `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), the section 3
+- **PPTX and PDF** in `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), the section 3
   template, page for page; the PPTX is the source of the **Google Slides** version (Drive import).
   Keep fonts Slides knows (Calibri, Cambria, Arial), and look at the converted render if it is
   uploaded.
@@ -445,11 +453,16 @@ Brief status after each step: what is done, not what you are about to do.
   cockpits (the frequency plan), each placed target's coordinates and the ground's altitude under it —
   with no elevation grid for the theatre, the column stays empty and the action says so: it is an
   open point. Read its `warnings`.
-- **The PDF** is not produced: the user exports it from PowerPoint or Slides. With a shell,
-  PowerPoint does it through COM (`Presentations.Open` then `SaveAs`, format 32).
-- **Re-read every rendered page** if you can convert the PPTX to images (PowerPoint through COM:
-  `Presentations.Open` then `Slide.Export` to PNG): nothing overflows, every waypoint number matches
-  the route. Otherwise ask the user to open it and look.
+- **The PDF** (`docs/briefing.pdf`) is written by the same action, with the deck's pages, maps and
+  words, whatever the PC holds: install nothing and write no converter (an AI that installed LibreOffice
+  by `winget` lost fifteen minutes and left a half install). Its layout is its own (DejaVu Sans, not
+  Calibri) and a page whose text runs on makes a page more: the result's `pdf_pages` says. Someone who
+  wants the deck's exact look exports it from PowerPoint or Slides.
+- **The waypoint numbers are checked for you**: a `W<n>` of your words that the route does not carry,
+  or that its own sentence contradicts (`KHOBI (W3)` when KHOBI is W2), comes back in the `warnings`.
+  Fix the word and run it again. Re-reading the rendered pages (PowerPoint through COM:
+  `Presentations.Open` then `Slide.Export` to PNG) is still worth it for what overflows; without it,
+  ask the user to open the deck and look.
 
 ## 7. What you hand over at the end
 
@@ -467,7 +480,7 @@ What belongs to the user: commit, push, publishing, launching DCS.
   waypoints injected into how many groups, warehouse links, warnings. All zeros is suspicious. Run
   the builds **with standard input closed** (`< /dev/null`, or `stdin=DEVNULL`): a build sat for ten
   minutes waiting for input, without printing anything.
-- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
+- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather and date, briefing pictures, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
   What no action reads, you report as not checked. Check:
   - **unique** group and unit names;
   - named slots: one group per ATO flight, the right number of `Client` slots, at the right

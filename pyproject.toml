@@ -42,6 +42,7 @@ PySide6-Essentials = { version = ">=6.6", optional = true, python = "<3.15" }
 # d'autre dans veaf-tools ne s'en sert.
 paramiko = { version = ">=3.4,<6", optional = true }
 python-pptx = ">=1.0,<2"
+fpdf2 = ">=2.8,<3"
 
 [tool.poetry.extras]
 logs = ["PySide6-Essentials", "paramiko"]
@@ -65,6 +66,7 @@ mypy = ">=1.8"
 pytest = ">=8.0"
 pytest-cov = ">=5.0"
 types-PyYAML = ">=6.0"
+pypdf = ">=6,<7"
 
 [tool.poetry.group.build.dependencies]
 # Build tools — not needed for the quality gate, only for creating the .exe

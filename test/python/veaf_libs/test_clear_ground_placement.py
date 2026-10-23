@@ -59,6 +59,7 @@ def test_not_covered_and_nothing_large_enough_both_place_as_asked_and_say_which(
     assert "no clear-ground catalogue covers" in uncovered.message and "clear-ground-sweep" in uncovered.message
     # what was not checked, and how to check it (FIX-OPEN-TRAINING-MARIANAS-FINDINGS ticket 07)
     assert "trees" in uncovered.message and "clear-ground-check" in uncovered.message
+    assert "has no clear-ground catalogue" in uncovered.message  # what it covers, said in the same breath
 
     too_big = placement.place_on_clear_ground(
         "TestTheatre", [{"x": -300, "y": 0, "name": '#command="-samVLR" #spawnradius=800'}], coalition="red"
@@ -221,3 +222,12 @@ def test_occupied_lists_every_ground_unit_and_sizes_markers(tmp_path: Path) -> N
     taken = placement.occupied_by(read_miz(miz).mission_content)
     assert len(taken) == 4
     assert max(radius for _x, _y, radius in taken) == pytest.approx(214, abs=1)
+
+
+def test_a_theatre_with_a_catalogue_says_what_it_holds_and_names_some_places(field) -> None:
+    """FIX-DEMO-VIDEO-FINDINGS 12: two AI runs read \"no catalogue covers this place\" as \"no catalogue\"."""
+    summary = cgc.coverage_summary(field, "TestTheatre")
+    assert summary == "the TestTheatre catalogue holds 1 surveyed place(s) only (test)"
+    many = Catalogue("T", [Layer(f"airfield:Base{n}", field.layers[0].grid, field.layers[0].states) for n in range(9)])
+    assert cgc.coverage_summary(many, "T").endswith("(Base0, Base1, Base2, Base3, Base4, Base5, …)")
+    assert cgc.coverage_summary(None, "SinaiMap") == "SinaiMap has no clear-ground catalogue"

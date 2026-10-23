@@ -12,6 +12,8 @@ from mission_briefing.mission_briefing_worker import build_mission_briefing
 from mission_briefing.models import BriefingContent, Objective, Threat
 from veaf_libs.map_tiles import TILE_SOURCES
 
+from veaf_mission_mcp.accents import missing_accents_warnings
+
 
 def _lines(value: Any) -> tuple[str, ...]:
     """A list of lines, or one string as a single line."""
@@ -27,7 +29,7 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         params: The action's parameters, as the schema declares them.
 
     Returns:
-        ``{deck, pages, maps, pictures, miz, map_offline, warnings}``.
+        ``{deck, pages, pdf, pdf_pages, maps, pictures, miz, map_offline, warnings}``.
 
     Raises:
         ValueError: An unknown basemap, an unbuilt mission, or an objective naming no zone of the mission.
@@ -66,9 +68,26 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
     return {
         "deck": str(report.deck),
         "pages": report.pages,
+        "pdf": str(report.pdf) if report.pdf else None,
+        "pdf_pages": report.pdf_pages,
         "maps": [str(path) for path in report.maps],
         "pictures": report.pictures,
         "miz": str(report.miz),
         "map_offline": report.offline,
-        "warnings": report.warnings,
+        "warnings": [*report.warnings, *missing_accents_warnings(_texts(content))],
     }
+
+
+def _texts(content: BriefingContent) -> dict[str, str]:
+    """The words the assistant passed, one text per field, to look for missing accents."""
+    fields = {
+        "title": [content.title],
+        "context": content.context,
+        "mission_bullets": content.mission,
+        "air_opposition": content.air_opposition,
+        "air_defences": content.air_defences,
+        "other": content.other,
+    }
+    for objective in content.objectives:
+        fields[f"objective {objective.zone}"] = [objective.title, *objective.task]
+    return {label: " ".join(lines) for label, lines in fields.items()}

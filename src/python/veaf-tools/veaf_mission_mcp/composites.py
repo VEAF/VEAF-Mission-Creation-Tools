@@ -14,6 +14,7 @@ from veaf_libs.coordinates import latlon_to_xy
 from veaf_libs.dcs_airdromes import airfields_for_theatre
 from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
 
+from veaf_mission_mcp.accents import missing_accents_warnings
 from veaf_mission_mcp.add_air_group import insert_air_group_into_content
 from veaf_mission_mcp.add_group import insert_group_into_content
 from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
@@ -47,8 +48,9 @@ def create_combat_zone(
         zone_name: The combat zone's trigger-zone name.
         position: The zone centre, `{"x": ..., "y": ...}`.
         radius: The zone radius, in metres.
-        groups: `[{"name", "units": [{"type","count"}], "position"?, "route"?, "patrol"?, "roe"?,
-            "disperse"?}, ...]` placed inside the zone. `route`, `patrol`, `roe` and `disperse` have
+        groups: `[{"name", "units": [{"type","count"}], "category"?, "position"?, "route"?, "patrol"?, "roe"?,
+            "disperse"?}, ...]` placed inside the zone. A group's `category` (`"vehicle"`, `"static"`, `"ship"`…)
+            overrides the call's, so one call makes a zone of vehicles **and** statics. `route`, `patrol`, `roe` and `disperse` have
             `add_group`'s shape: a convoy moving through the zone is one of its groups, not a separate
             `add_group` call, and an inert target is `roe: "weapons_hold"`, `disperse: false`.
         coalition: `"blue"`, `"red"` or `"neutral"` the groups are placed under (runtime-agnostic;
@@ -77,22 +79,25 @@ def create_combat_zone(
     for spec in groups:
         group_name = resolve_group_name(spec["name"], for_combat_zone=zone_name)
         build_warnings: list[str] = []
-        insert_group_into_content(
-            content,
-            coalition=coalition,
-            country_id=country_id,
-            country_name=country_name,
-            category=category,
-            name=group_name,
-            position=spec.get("position", position),
-            units=spec["units"],
-            route=spec.get("route"),
-            patrol=spec.get("patrol", False),
-            warnings=build_warnings,
-            keep_position=spec.get("keep_position", False),
-            roe=spec.get("roe"),
-            disperse=spec.get("disperse"),
-        )
+        try:
+            insert_group_into_content(
+                content,
+                coalition=coalition,
+                country_id=country_id,
+                country_name=country_name,
+                category=spec.get("category", category),
+                name=group_name,
+                position=spec.get("position", position),
+                units=spec["units"],
+                route=spec.get("route"),
+                patrol=spec.get("patrol", False),
+                warnings=build_warnings,
+                keep_position=spec.get("keep_position", False),
+                roe=spec.get("roe"),
+                disperse=spec.get("disperse"),
+            )
+        except ValueError as exc:
+            raise ValueError(f"group {group_name!r}: {exc}") from exc
         created.append(group_name)
         warnings += validate_group_name(group_name, expected_combat_zone=zone_name)["warnings"]
         # A warning about the whole mission ("surface not checked: no elevation grid") once, not per group.
@@ -101,6 +106,8 @@ def create_combat_zone(
 
     save_folder_mission(mission, folder_path)
     _append_combat_zone(mission_yaml_path(folder_path), zone_name, combat_zone)
+    texts = {f"combat zone {zone_name}, {key}": (combat_zone or {}).get(key) for key in ("friendly_name", "briefing")}
+    warnings += [{"warning": warning} for warning in missing_accents_warnings(texts)]
 
     return {"zone_name": zone_name, "zone_id": zone_id, "groups": created, "warnings": warnings}
 
@@ -155,7 +162,8 @@ def add_combat_operation(
         active_at_start: Activate the operation when the mission starts; written only when given.
 
     Returns:
-        ``{"zone_name", "tasking_orders": [<zone names>]}``.
+        ``{"zone_name", "tasking_orders": [<zone names>]}``, and ``warnings`` when a text reads as French
+        written without its accents.
 
     Raises:
         FileNotFoundError: When the folder has no ``mission.yaml``.
@@ -205,7 +213,11 @@ def add_combat_operation(
         operation["active_at_start"] = bool(active_at_start)
     operation["tasking_orders"] = orders
     _append_combat_zone(yaml_path, zone_name, operation)
-    return {"zone_name": zone_name, "tasking_orders": [order["zone_name"] for order in orders]}
+    result: dict[str, Any] = {"zone_name": zone_name, "tasking_orders": [order["zone_name"] for order in orders]}
+    texts = {f"operation {zone_name}, {key}": operation.get(key) for key in ("friendly_name", "briefing")}
+    if warnings := missing_accents_warnings(texts):
+        result["warnings"] = warnings
+    return result
 
 
 #: How a QRA interceptor starts when its spec does not say: from its airfield's runway, then climbed to

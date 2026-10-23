@@ -170,3 +170,58 @@ def test_no_shipped_action_introduces_another_name_for_the_mission() -> None:
         if (key.endswith("_path") or key in ("target", "miz", "folder", "mission")) and key not in allowed
     }
     assert offenders == set()
+
+
+def _file_catalog() -> tuple[ActionCatalog, dict[str, object]]:
+    received: dict[str, object] = {}
+    catalog = ActionCatalog()
+    catalog.register(
+        ActionSpec(
+            name="read_mission_file",
+            description="Read a file.",
+            parameters_schema={
+                "type": "object",
+                "properties": {"mission_path": {"type": "string"}, "file": {"type": "string"}},
+                "required": ["file"],
+            },
+        ),
+        handler=lambda params: received.update(params),
+    )
+    return catalog, received
+
+
+def test_path_is_read_as_file() -> None:
+    """FIX-DEMO-VIDEO-FINDINGS 09: a model reaches for `path`; the action publishes `file`."""
+    catalog, received = _file_catalog()
+    catalog.run_action("read_mission_file", {"mission_path": "m", "path": "mission.yaml"})
+    assert received == {"mission_path": "m", "file": "mission.yaml"}
+
+
+def test_file_and_path_with_the_same_value_are_one_file() -> None:
+    catalog, received = _file_catalog()
+    catalog.run_action("read_mission_file", {"file": "mission.yaml", "path": "mission.yaml"})
+    assert received == {"file": "mission.yaml"}
+
+
+def test_file_and_path_with_two_values_are_refused() -> None:
+    catalog, _ = _file_catalog()
+    with pytest.raises(ValueError, match="given twice"):
+        catalog.run_action("read_mission_file", {"file": "mission.yaml", "path": "src/presets.yaml"})
+
+
+def test_an_action_publishing_path_itself_keeps_it() -> None:
+    catalog = ActionCatalog()
+    received: dict[str, object] = {}
+    catalog.register(
+        ActionSpec(
+            name="take_path",
+            description="Takes a path.",
+            parameters_schema={
+                "type": "object",
+                "properties": {"file": {"type": "string"}, "path": {"type": "string"}},
+            },
+        ),
+        handler=lambda params: received.update(params),
+    )
+    catalog.run_action("take_path", {"file": "a", "path": "b"})
+    assert received == {"file": "a", "path": "b"}

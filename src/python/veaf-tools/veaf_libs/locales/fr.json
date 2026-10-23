@@ -1640,6 +1640,7 @@
   "mission_briefing.radio": "Radio {radio} — {flights}",
   "mission_briefing.channel": "Ch. {channel} — {name} : {frequency} MHz",
   "mission_briefing.channel_unnamed": "Ch. {channel} : {frequency} MHz",
+  "mission_briefing.slot_flight": "{aircraft} — {callsign} : {frequency} MHz",
   "mission_briefing.targets_format": "Format : lat long, degrés minutes secondes, position de chaque objet placé ; altitude du sol sous l'objet.",
   "mission_briefing.no_target": "Aucune unité ennemie dans la zone.",
   "mission_briefing.legend.objectives": "Cercles rouges pleins : zones d'objectif",

@@ -17,9 +17,12 @@ from its first section:
   training zones, combat zones, QRA.
 
 Pass `lang: fr` to a user who writes in French. The mission takes the user's language too —
-`mission.language`, its briefing, its maps and its README — unless they ask for another. An objective mission's briefing — the PPTX, its maps and
+`mission.language`, its briefing, its maps and its README — unless they ask for another. **Whatever a human reads
+keeps its language's accents, also inside a tool call** (a briefing, a zone's title and briefing, a note); only
+identifiers — the mission name, trigger-zone and group names, callsigns — are ASCII. Measured twice, on two free
+models' runs: accented French in the reasoning, then unaccented in the JavaScript passed to `execute`. An objective mission's briefing — the PPTX, its maps and
 the DCS briefing pictures — is one action, `build_mission_briefing`, once the mission is built. A few steps
-are still scripts (the PDF, the Open Training's `README.md`): without a shell, read `describe_known_limitations`
+are still scripts (the Open Training's `README.md`, a look at the PPTX's pages): without a shell, read `describe_known_limitations`
 entry `mission-prompt-scripts-need-a-shell` and say what you could not produce. A user who wants no more than what they described (a test mission with one SAM zone) gets no prompt, but still
 the next section. Only a change to an existing mission skips both.
 
@@ -38,6 +41,9 @@ them with `edit_mission_file`; the same goes for `mission.name` and `mission.era
    `presets-validation-report.md`: an `ℹ️` entry (a warbird losing the UHF channels, an L-39 the ones above
    390 MHz) needs no action — the channels in range are kept. Never set a type to `none` to quiet the report:
    `none` removes all its presets, the working ones too.
+   Pick a flight's channel **inside the band of its aircraft's preset radio**: the UH-1H's only preset radio is its
+   UHF (225–399.975 MHz), so a VHF channel such as 123.5 MHz is dropped for it, with the ranges that are valid
+   in the message — give a Huey flight a UHF channel (two runs ended on 250.700), and say so in the briefing.
 2. `src/versions.yaml` — one variant, `noon`, and `base_date: "2024-03-15"`. Name the variant and set its time
    for the mission, make `base_date` agree with `mission.era` and the mission date, and set `position` to where
    the mission flies (it is commented out).

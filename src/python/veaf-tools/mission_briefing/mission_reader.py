@@ -13,10 +13,11 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any
 
+from mission_tools.miz_tools import DcsMission
 from presets_injector.airfield_channels_manager import load_reference
 from veaf_libs.mission_table import indexed
 
-from mission_briefing.models import ObjectiveArea, RadioPlan, Target
+from mission_briefing.models import ObjectiveArea, RadioPlan, SlotFlight, Target
 
 #: The categories a group can belong to, in a coalition's country.
 _CATEGORIES = ("plane", "helicopter", "vehicle", "ship", "static")
@@ -160,3 +161,54 @@ def radio_plans(content: dict[str, Any], side: str, *, templates: bool = True) -
         RadioPlan(radio, tuple(flights), channels)
         for (radio, channels), flights in sorted(found.items(), key=lambda item: item[0][0])
     ]
+
+
+def slot_flights(mission: DcsMission, side: str, theatre: str) -> dict[str, list[SlotFlight]]:
+    """What each base of a side offers in dynamic slots: the types linked to a template, and their first channel.
+
+    A mission of dynamic slots has no flight to list in its ATO (FIX-DEMO-VIDEO-FINDINGS 03): the flights
+    are the aircraft types its bases offer, each on the channel its preset plan puts first.
+
+    Args:
+        mission: The built mission.
+        side: The players' side.
+        theatre: The mission's theatre, to name the airfields.
+
+    Returns:
+        By airfield name, the types linked to one of the side's templates, sorted; a base linking none is absent.
+    """
+    content = mission.mission_content or {}
+    templates = {
+        int(group["groupId"]): str(indexed(group["units"])[0].get("type"))
+        for category, group in _groups(content, side)
+        if category in ("plane", "helicopter")
+        and group.get("dynSpawnTemplate")
+        and isinstance(group.get("groupId"), int)
+    }
+    first: dict[str, tuple[str, float]] = {}
+    for plan in radio_plans(content, side, templates=True):  # radio 1 first
+        named = next(((name, freq) for _, name, freq in plan.channels if name), None) or (
+            ("", plan.channels[0][2]) if plan.channels else None
+        )
+        for aircraft in plan.flights:
+            if named is not None:
+                first.setdefault(aircraft, named)
+    names = {airdrome_id: str(entry["name"]) for airdrome_id, entry in load_reference(theatre).items()}
+    found: dict[str, list[SlotFlight]] = {}
+    for airdrome_id, entry in ((mission.warehouses_content or {}).get("airports") or {}).items():
+        if (
+            not isinstance(entry, dict)
+            or str(entry.get("coalition", "")).lower() != side
+            or not entry.get("dynamicSpawn")
+        ):
+            continue
+        linked = {
+            str(aircraft)
+            for kind in ("planes", "helicopters")
+            for aircraft, stock in ((entry.get("aircrafts") or {}).get(kind) or {}).items()
+            if isinstance(stock, dict) and stock.get("linkDynTempl") in templates
+        }
+        name = names.get(int(airdrome_id))
+        if name and linked:
+            found[name] = [SlotFlight(aircraft, *(first.get(aircraft, ("", None)))) for aircraft in sorted(linked)]
+    return found

@@ -21,6 +21,24 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Campaign missions place their AWACS and tankers for the threat of the day**: `CAMPAIGN.md` and the authoring guide say the support positions are chosen again at every mission from the campaign's state — a destroyed or blinded long-range SAM lets them come closer — and the briefing says where they moved and why.
 
+### Added
+
+- **The briefing's PDF, written by the executable** (FIX-DEMO-VIDEO-FINDINGS 08): `build_mission_briefing` writes `docs/briefing.pdf` beside the deck — the same pages, maps and words, drawn with `fpdf2` and a bundled DejaVu Sans, so no PowerPoint, Edge or LibreOffice is needed. Two runs had improvised one: an Edge HTML print, and a `winget` install of LibreOffice that failed after fifteen minutes.
+- **A dynamic-slot mission's ATO lists its flights** (FIX-DEMO-VIDEO-FINDINGS 03): under each airfield, the aircraft types it offers with the first channel of their preset plan (`A-10C_2 — Archer : 390.0 MHz`), before the empty pilot boxes. An AI had written a script to fill that page after every briefing.
+- **`inspect_built_mission` shows the date and the briefing pictures** (FIX-DEMO-VIDEO-FINDINGS 14): the AI no longer opens the `.miz` with a shell to find out.
+- **`create_combat_zone` takes statics and vehicles in one call** (FIX-DEMO-VIDEO-FINDINGS 13): a group's own `category` overrides the call's, and a group that cannot be built is named in the refusal, with nothing written.
+
+### Fixed
+
+- **A tanker added with the task `Tanker` is a tanker** (FIX-DEMO-VIDEO-FINDINGS 01, 04): `add_air_group` read the word as is, so the group got no Texaco/Arco/Shell family and the briefing's support line, its map and `inspect_built_mission` did not know it. `Tanker` is now stored as DCS's `Refueling`, with a note.
+- **French text written without accents is warned** (FIX-DEMO-VIDEO-FINDINGS 06): free models wrote accented French in their reasoning and unaccented French in the JavaScript they passed to the tools. `set_briefing`, `build_mission_briefing`, `create_combat_zone` and `add_combat_operation` warn, and the guide and the objective prompt say what a player reads keeps its accents.
+- **Waypoint numbers that no longer match the route are warned** (FIX-DEMO-VIDEO-FINDINGS 07): the briefing and the F10 labels said W3, W4, W6 for points that were W4, W5, W7 once the BULLSEYE sat third. `build_mission_briefing` compares them with the route, and the guide says to declare the BULLSEYE last.
+- **`validate_mission` no longer says a dynamic-slot mission has no aircraft to inject waypoints into** (FIX-DEMO-VIDEO-FINDINGS 11).
+- **`read_mission_file` and `edit_mission_file` read `path` as `file`** (FIX-DEMO-VIDEO-FINDINGS 09).
+- **`add_group` accepts the coalition `neutral`** (FIX-DEMO-VIDEO-FINDINGS 10), and an unknown one names what the mission holds instead of a bare `KeyError`.
+- **"No clear-ground catalogue covers this place" says what the catalogue covers** (FIX-DEMO-VIDEO-FINDINGS 12): two AI runs read it as "this theatre has no catalogue".
+- **The guide says the UH-1H's only preset radio is UHF** (FIX-DEMO-VIDEO-FINDINGS 02): a VHF channel such as 123.5 MHz is dropped for it, as the packer's message says.
+
 ## [6.31.4] — 2026-10-22
 
 ### Changed

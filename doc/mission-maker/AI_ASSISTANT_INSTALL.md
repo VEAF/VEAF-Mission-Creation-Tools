@@ -90,7 +90,7 @@ Pour une nouvelle mission, « crée une mission » suffit : l'assistant vous dem
   L'assistant ne pose que quatre ou cinq questions : la carte, l'époque, le gabarit, une éventuelle mission dont s'inspirer, les escortes.
 
 Il vous demande aussi où créer le dossier de la mission, s'il n'en a pas déjà un.
-Le briefing d'une mission à objectifs — document, cartes, images du briefing DCS — est produit par les outils eux-mêmes, même avec Claude Desktop en mode chat ; les cartes et le README d'une Open Training, et le PDF, demandent encore une IA qui lance des programmes, et une IA qui ne le peut pas vous dit ce qu'elle n'a pas pu produire.
+Le briefing d'une mission à objectifs — document et son PDF, cartes, images du briefing DCS — est produit par les outils eux-mêmes, même avec Claude Desktop en mode chat ; les cartes et le README d'une Open Training demandent encore une IA qui lance des programmes, et une IA qui ne le peut pas vous dit ce qu'elle n'a pas pu produire.
 Pour modifier une mission existante, donnez-lui le chemin de son dossier et décrivez ce que vous voulez :
 
 > « Dans ma mission `Documents\VEAF\Missions\Syrie`, ajoute une combat zone de SAM longue portée au nord de Damas. »

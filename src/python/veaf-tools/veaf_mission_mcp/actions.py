@@ -1494,7 +1494,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     _mission_file_param = {
         "type": "string",
         "description": "'mission.yaml' or 'src/<name>.yaml' (presets, versions, waypoints, warehouses, "
-        "spawnables, dynamic-slot-templates…), relative to the mission folder; nothing else is reachable.",
+        "spawnables, dynamic-slot-templates…), relative to the mission folder; nothing else is reachable. `path` is read as an alias.",
     }
     catalog.register(
         ActionSpec(
@@ -2052,8 +2052,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "coordinates. You pass only the scenario's WORDS: title, context, mission_bullets, objectives (combat "
                 "zone + title + task), threats (the group where it stands, its family, ranges only with their "
                 "source), air opposition, air defences, other information, pilots and loadouts by flight "
-                "group. Call it again after any change and a rebuild: it replaces its own pictures. No PDF: "
-                "the user exports one from PowerPoint or Slides. map_offline = no tiles could be downloaded."
+                "group. Call it again after any change and a rebuild: it replaces its own pictures. It writes "
+                "docs/briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
+                "and warns about a W<n> the route does not carry, and about French text written without its "
+                "accents. map_offline = no tiles could be downloaded."
             ),
             parameters_schema={
                 "type": "object",
@@ -2208,6 +2210,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "properties": {
                                 "name": {"type": "string"},
                                 "units": {"type": "array", "items": {"type": "object"}},
+                                "category": {
+                                    "type": "string",
+                                    "description": "This group's category (vehicle, static, ship...), over the call's: one call makes a zone of vehicles and statics.",
+                                },
                                 "position": {
                                     "type": "object",
                                     "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
@@ -2252,7 +2258,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
                     "country_id": {"type": "integer"},
                     "country_name": {"type": "string"},
-                    "category": {"type": "string", "default": "vehicle"},
+                    "category": {
+                        "type": "string",
+                        "default": "vehicle",
+                        "description": "The groups' category unless one names its own.",
+                    },
                     "combat_zone": {
                         "type": "object",
                         "description": "Optional extra combat_zones[] keys, the ones the build reads.",

@@ -569,6 +569,11 @@ class BuildAndReleaseWorker:
         clear_ground_dir = veaf_tools_dir / "veaf_libs" / "data" / "clear-ground"
         if clear_ground_dir.is_dir():
             extra.append((clear_ground_dir, "veaf_libs/data/clear-ground"))
+        # The briefing PDF's font (DejaVu Sans, with its licence): drawn by the executable itself, so a mission
+        # maker with neither Office nor Edge still gets a PDF (FIX-DEMO-VIDEO-FINDINGS 08).
+        fonts_dir = veaf_tools_dir / "veaf_libs" / "data" / "fonts"
+        if fonts_dir.is_dir():
+            extra.append((fonts_dir, "veaf_libs/data/fonts"))
         # Parking captures — one per theatre, read by add_air_group for a ramp or runway start.
         # Never bundled until FEAT-AI-ZERO-SETUP: the exe answered "no parking data captured".
         parking_dir = veaf_tools_dir / "veaf_libs" / "data" / "parking"

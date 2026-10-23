@@ -4,9 +4,9 @@
 
 Lots written up and ready to take.
 
-### [FIX-DEMO-VIDEO-FINDINGS](FIX-DEMO-VIDEO-FINDINGS/PRD.md) · ⬜
+### [FEAT-CLEAR-GROUND-COVERAGE](FEAT-CLEAR-GROUND-COVERAGE/PRD.md) · ⬜
 
-What the AI worked around while building the demo video's mission on 6.31.3 (2026-10-22): Texaco refused for a tanker, 123.5 MHz refused on the UH-1H, an empty ATO page with dynamic slots, the tanker missing from the briefing's support and from `inspect_built_mission`, and briefing pictures lost on rebuild. Each measured first.
+Widen the shipped clear-ground catalogues to the places missions are built — round airfields, towns, road axes — under a weight ceiling per theatre. Needs a survey flown in DCS, so David's time; split from FIX-DEMO-VIDEO-FINDINGS (2026-10-23).
 
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 

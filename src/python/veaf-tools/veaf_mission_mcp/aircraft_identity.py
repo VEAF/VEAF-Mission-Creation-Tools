@@ -48,6 +48,15 @@ _TASK_FAMILIES: dict[str, tuple[str, ...]] = {
     "Refueling": ("Texaco", "Arco", "Shell"),
     "AWACS": ("Overlord", "Magic", "Wizard", "Focus", "Darkstar"),
 }
+#: The words an assistant reaches for instead of the DCS group task, lower case: DCS knows a tanker as ``Refueling``,
+#: and every reader of the mission (callsign families, support lines, `inspect_built_mission`) goes by that name.
+_TASK_ALIASES: dict[str, str] = {
+    "tanker": "Refueling",
+    "refuel": "Refueling",
+    "refuelling": "Refueling",
+    "aew&c": "AWACS",
+}
+
 _COMMON_FAMILIES: tuple[str, ...] = ("Enfield", "Springfield", "Uzi", "Colt", "Dodge", "Ford", "Chevy", "Pontiac")
 
 #: Every family word of every task, lower case.
@@ -89,6 +98,25 @@ def _aircraft_units(content: dict[str, Any]) -> list[dict[str, Any]]:
                     if isinstance(group, dict):
                         units.extend(u for u in indexed(group.get("units")) if isinstance(u, dict))
     return units
+
+
+def canonical_task(task: str) -> tuple[str, str | None]:
+    """Read a group task as DCS names it.
+
+    Args:
+        task: The task as the caller wrote it.
+
+    Returns:
+        The task to store, and a note saying what was read as what when the caller's word was an alias
+        (``Tanker`` for ``Refueling``); the task as is, with no note, otherwise.
+    """
+    known = _TASK_ALIASES.get(task.strip().lower())
+    if known is None:
+        return task, None
+    return (
+        known,
+        f"task {task!r} is read as {known!r}, the name DCS and the mission readers know (callsign family, support lines)",
+    )
 
 
 def assign_identities(content: dict[str, Any], group: dict[str, Any], *, country_id: int, task: str) -> str | None:

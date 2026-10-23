@@ -87,6 +87,18 @@ class RadioPlan:
 
 
 @dataclass(frozen=True)
+class SlotFlight:
+    """An aircraft type a base offers in dynamic slots, with the channel its pilots find first."""
+
+    aircraft: str
+    """The DCS type."""
+    callsign: str
+    """The name of the first channel of its first radio: the flight's callsign on the package plan, or empty."""
+    frequency: float | None
+    """That channel's MHz, ``None`` when the aircraft carries no preset."""
+
+
+@dataclass(frozen=True)
 class BriefingReport:
     """What building the briefing produced."""
 
@@ -99,3 +111,7 @@ class BriefingReport:
     offline: bool
     """Whether a map had to do without its background."""
     warnings: list[str] = field(default_factory=list)
+    pdf: Path | None = None
+    """The same pages as a PDF, drawn by the executable."""
+    pdf_pages: int = 0
+    """Its page count: the deck's, or more when a page's text runs on."""

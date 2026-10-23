@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from mission_briefing.mission_briefing_worker import PICTURE_PREFIX, build_mission_briefing
 from mission_briefing.models import BriefingContent, Objective, Threat
-from mission_tools.miz_tools import read_miz
+from mission_tools.miz_tools import read_miz, write_miz
 from objective_mission_fixture import KHOBI_ZONE, objective_mission
 from PIL import Image
 from pptx import Presentation
@@ -46,6 +46,10 @@ def _slides(deck: Path) -> list[list[str]]:
         [shape.text_frame.text for shape in slide.shapes if shape.has_text_frame]
         for slide in Presentation(str(deck)).slides
     ]
+
+
+def _deck_text(deck: Path) -> str:
+    return chr(10).join(chr(10).join(slide) for slide in _slides(deck))
 
 
 def _side_pictures(content: dict, side: str) -> list[str]:
@@ -177,3 +181,67 @@ def test_only_pictures_the_tool_wrote_are_deleted(tmp_path: Path) -> None:
     stale = _stale_pictures(l10n, previous, kept={"briefing-kept.jpg"})
 
     assert stale == [(l10n / "briefing-old.jpg").resolve()]
+
+
+class TestWaypointNumbers:
+    """FIX-DEMO-VIDEO-FINDINGS 07: the route had BULLSEYE third, the texts had written W3 for the target.
+
+    The fixture's route is POTI (W1), KHOBI (W2), BULLSEYE (W3).
+    """
+
+    @staticmethod
+    def _warnings(tmp_path: Path, *lines: str) -> list[str]:
+        objective_mission(tmp_path)
+        report = _build(tmp_path, BriefingContent(title="T", mission=lines))
+        return [warning for warning in report.warnings if "waypoint" in warning.lower()]
+
+    def test_a_number_that_names_another_point_is_warned(self, tmp_path: Path) -> None:
+        warnings = self._warnings(tmp_path, "Détruire le dépôt de Khobi (W3).")
+        assert len(warnings) == 1
+        assert "W3" in warnings[0] and "KHOBI" in warnings[0] and "W2" in warnings[0]
+
+    def test_a_number_past_the_end_of_the_route_is_warned(self, tmp_path: Path) -> None:
+        warnings = self._warnings(tmp_path, "Rentrer par W7.")
+        assert len(warnings) == 1 and "W7" in warnings[0] and "3 point" in warnings[0]
+
+    def test_numbers_that_match_the_route_say_nothing(self, tmp_path: Path) -> None:
+        assert self._warnings(tmp_path, "Rejoindre POTI (W1), puis KHOBI (W2) et le bullseye (W3).") == []
+
+    def test_a_text_with_no_waypoint_number_says_nothing(self, tmp_path: Path) -> None:
+        assert self._warnings(tmp_path, "Détruire le dépôt de Khobi.") == []
+
+
+class TestDynamicSlotAto:
+    """FIX-DEMO-VIDEO-FINDINGS 03: with dynamic slots the ATO listed no flight; an AI wrote a script to fill it."""
+
+    @staticmethod
+    def _link_the_template(miz: Path) -> None:
+        """Link the fixture's F-16C template to Kobuleti, and give the template its preset channel."""
+        mission = read_miz(miz)
+        content = mission.mission_content or {}
+        template = next(
+            group
+            for country in indexed(content["coalition"]["blue"]["country"])
+            for group in indexed((country.get("plane") or {}).get("group"))
+            if group.get("dynSpawnTemplate")
+        )
+        template["groupId"] = 9001  # the fixture's templates carry none; the warehouse links a template by it
+        unit = indexed(template["units"])[0]
+        unit["Radio"] = {1: {"channels": {1: 390.5, 2: 282.2}, "channelsNames": {1: "Ninja", 2: "Magic"}}}
+        airports = (mission.warehouses_content or {})["airports"]
+        entry = next(iter(airports.values()))
+        entry["aircrafts"] = {"planes": {"F-16C_50": {"initialAmount": 4, "linkDynTempl": 9001}}}
+        write_miz(mission, miz)
+
+    def test_the_dynamic_airfield_lists_the_types_it_offers_with_their_first_channel(self, tmp_path: Path) -> None:
+        miz = objective_mission(tmp_path)
+        self._link_the_template(miz)
+        text = _deck_text(_build(tmp_path).deck)
+        assert "Slots dynamiques — Kobuleti" in text
+        assert "F-16C_50 — Ninja : 390.5 MHz" in text
+
+    def test_a_base_linking_no_template_lists_no_type(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        text = _deck_text(_build(tmp_path).deck)
+        assert "Slots dynamiques — Kobuleti" in text
+        assert "F-16C_50 —" not in text

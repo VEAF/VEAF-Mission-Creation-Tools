@@ -89,6 +89,15 @@ def _no_preset_target() -> str:
     return t("validate.presets_no_aircraft")
 
 
+def _no_waypoint_target() -> str:
+    return t("validate.waypoints_no_aircraft")
+
+
+def _with_waypoints(folder: Path) -> Path:
+    (folder / "src" / "waypoints.yaml").write_text("waypoints: {}\n", encoding="utf-8")
+    return folder
+
+
 class TestDynamicSlotsCount:
     def test_a_base_open_to_dynamic_slots_is_a_player_slot(self, tmp_path: Path) -> None:
         messages = _warnings(_folder(tmp_path, warehouses=_warehouses(True)))
@@ -102,6 +111,11 @@ class TestDynamicSlotsCount:
         assert _no_slot() not in messages
         assert _no_preset_target() not in messages
 
+    def test_the_waypoints_go_to_the_dynamic_slot_templates(self, tmp_path: Path) -> None:
+        """FIX-DEMO-VIDEO-FINDINGS 11: two runs reported this warning on a mission whose template got the route."""
+        folder = _with_waypoints(_folder(tmp_path, warehouses=_warehouses(True)))
+        assert _no_waypoint_target() not in _warnings(folder)
+
     def test_static_slots_alone_still_count(self, tmp_path: Path) -> None:
         assert _no_slot() not in _warnings(_folder(tmp_path, mission=_WITH_CLIENT))
 
@@ -111,6 +125,10 @@ class TestStillWarned:
         messages = _warnings(_folder(tmp_path, warehouses=_warehouses(False)))
         assert _no_slot() in messages
         assert _no_preset_target() in messages
+
+    def test_waypoints_with_no_aircraft_at_all_are_still_warned(self, tmp_path: Path) -> None:
+        folder = _with_waypoints(_folder(tmp_path, warehouses=_warehouses(False)))
+        assert _no_waypoint_target() in _warnings(folder)
 
     def test_a_neutral_base_offers_no_slot(self, tmp_path: Path) -> None:
         folder = _folder(tmp_path, warehouses=_warehouses(True, coalition="NEUTRAL"))

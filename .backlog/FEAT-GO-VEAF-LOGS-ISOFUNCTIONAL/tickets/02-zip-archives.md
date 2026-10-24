@@ -1,6 +1,6 @@
 # 02 — DCS crash archives (`.zip`) in the Go core
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Milestone J1, toolkit-free.
 `tailer.py` opens a log inside a `.zip` (inventory O2); the Go core has no archive support.

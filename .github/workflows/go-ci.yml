@@ -1,0 +1,95 @@
+name: Go CI
+
+# The Go rewrite of veaf-logs (FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL) is proven equal to the Python viewer
+# by parity tests against goldens the Python writes. Until 2026-10-24 nothing ran them: the corpus
+# was caught by the root `*.log` ignore rule and no workflow called `go test`, so the parity was
+# checked by whoever regenerated it, and by nobody else.
+#
+# The shape is the one `test_ci_trigger_paths.py` enforces on the required checks — every pull
+# request starts the workflow, a `changes` job filters it — so this check can be made required on
+# `develop` without ever blocking a merge as "Expected".
+on:
+  push:
+    branches: [develop, master]
+    paths:
+      - "src/go/veaf-logs/**"
+      # The goldens are written by the Python reference: a change to it must prove the Go still agrees.
+      - "src/python/veaf-tools/veaf_logs/**"
+      - ".github/workflows/go-ci.yml"
+  pull_request:
+
+jobs:
+  # Its dependents skip only on an explicit `run=false`: a gate that fails runs the checks instead of
+  # skipping them, since a skipped job reads as a pass to a required check.
+  changes:
+    name: Go CI — changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # GitHub Actions does not resolve YAML anchors, so this list duplicates `on.push.paths` on
+      # purpose; the two are kept identical by `test_ci_trigger_paths.py`.
+      - id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GATE_PATHS: |
+            src/go/veaf-logs/**
+            src/python/veaf-tools/veaf_logs/**
+            .github/workflows/go-ci.yml
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git fetch --no-tags --depth=1 origin "$BASE"
+          python3 veaf_build/ci_path_gate.py "$BASE" "$GITHUB_SHA"
+
+  go-test:
+    name: Go vet, tests and parity
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/go/veaf-logs
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/go/veaf-logs/go.mod
+          cache-dependency-path: src/go/veaf-logs/go.sum
+
+      # The window (Gio) needs the X11/Wayland headers to compile, even for `go vet`.
+      - name: Install the Gio build dependencies
+        run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libffi-dev libxcursor-dev libvulkan-dev
+
+      - name: Format (gofmt)
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Tests, parity with the Python reference included
+        run: go test ./...
+
+  goldens:
+    name: Goldens match the Python reference
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # gen_golden.py imports only the standard library through veaf_logs' core (StrEnum: 3.11+).
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      # A change to the Python viewer without regenerating would leave the Go compared with a past
+      # reference, every test green.
+      - name: Regenerate and compare
+        run: |
+          python src/go/veaf-logs/testdata/gen_golden.py
+          git status --porcelain src/go/veaf-logs/testdata
+          test -z "$(git status --porcelain src/go/veaf-logs/testdata)" || { echo "::error::goldens are stale: run gen_golden.py and commit"; git diff --stat src/go/veaf-logs/testdata; exit 1; }

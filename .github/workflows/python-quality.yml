@@ -22,6 +22,7 @@ on:
       #   doc/**         test_documented_lua_defaults, test_v5_converter, test_docs_check
       #   *.md           test_changelog_process
       #   support-bot-ci.yml  test_ci_trigger_paths, which now guards that workflow's own filter
+      #   go-ci.yml           test_ci_trigger_paths, likewise
       # Measured 2026-09-01: #877, #875 and #866 each merged without ever running pytest, ruff or
       # mypy, and #877 carried a stale scope table that turned `develop` red on the very test meant
       # to catch it. `test_ci_trigger_paths.py` now keeps this list honest.
@@ -30,6 +31,7 @@ on:
       - "doc/**"
       - "*.md"
       - ".github/workflows/support-bot-ci.yml"
+      - ".github/workflows/go-ci.yml"
   # Every pull request, with no `paths:` filter: these checks are *required* on `develop`, and a
   # required check whose workflow never starts stays "Expected" for ever and blocks the merge. The
   # filter lives in the `changes` job below instead, and a job it skips reports "Skipped", which a
@@ -65,6 +67,7 @@ jobs:
             doc/**
             *.md
             .github/workflows/support-bot-ci.yml
+            .github/workflows/go-ci.yml
         run: |
           if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           git fetch --no-tags --depth=1 origin "$BASE"

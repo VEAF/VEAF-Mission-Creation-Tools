@@ -34,6 +34,16 @@ PATHS_THE_PYTHON_SUITE_READS = (
     # This very test reads the Support Bot workflow, so a change confined to that file must run the
     # Python gate — otherwise the assertions below never fire on the change they exist to catch.
     ".github/workflows/support-bot-ci.yml",
+    # Same for the Go workflow, checked below.
+    ".github/workflows/go-ci.yml",
+)
+
+# The Go parity tests compare the Go core with goldens the Python `veaf_logs` writes, so a change to
+# the Python reference must run them too — and the goldens job, which fails when they are stale.
+PATHS_THE_GO_PARITY_READS = (
+    "src/go/veaf-logs/**",
+    "src/python/veaf-tools/veaf_logs/**",
+    ".github/workflows/go-ci.yml",
 )
 
 # `services/support-bot/tests/test_packaging.py` asserts on two files that live outside the service
@@ -195,6 +205,13 @@ class TestTheDocsGateRunsForWhatItChecks(_GateFilterAssertions, unittest.TestCas
 
     workflow = "docs-check.yml"
     expected = PATHS_THE_DOCS_CHECK_READS
+
+
+class TestTheGoGateRunsForWhatItChecks(_GateFilterAssertions, unittest.TestCase):
+    """`Go CI` — the parity of the Go veaf-logs with the Python reference."""
+
+    workflow = "go-ci.yml"
+    expected = PATHS_THE_GO_PARITY_READS
 
 
 if __name__ == "__main__":

@@ -13,15 +13,33 @@ import (
 
 // fakeRemote is an in-memory SFTP server for one file.
 type fakeRemote struct {
-	data    []byte
-	missing bool
-	broken  bool // every call fails, like a dead connection
-	opens   int
+	data     []byte
+	missing  bool
+	broken   bool // every call fails, like a dead connection
+	failRead bool // the download breaks after the head was read
+	opens    int
 }
 
-type fakeFile struct{ *bytes.Reader }
+// fakeFile fails its reads once positioned (after the head fingerprint was read), when asked to.
+type fakeFile struct {
+	*bytes.Reader
+	fail   bool
+	seeked bool
+}
 
 func (fakeFile) Close() error { return nil }
+
+func (f *fakeFile) Seek(off int64, whence int) (int64, error) {
+	f.seeked = true
+	return f.Reader.Seek(off, whence)
+}
+
+func (f *fakeFile) Read(p []byte) (int, error) {
+	if f.fail && f.seeked {
+		return 0, errors.New("connection reset")
+	}
+	return f.Reader.Read(p)
+}
 
 func (f *fakeRemote) Size(string) (int64, error) {
 	if f.broken {
@@ -41,7 +59,7 @@ func (f *fakeRemote) Open(string) (RemoteFile, error) {
 	if f.missing {
 		return nil, fs.ErrNotExist
 	}
-	return fakeFile{bytes.NewReader(append([]byte(nil), f.data...))}, nil
+	return &fakeFile{Reader: bytes.NewReader(append([]byte(nil), f.data...)), fail: f.failRead}, nil
 }
 
 type fakeConn struct{ closed int }
@@ -223,5 +241,29 @@ func TestRemoteConnectFailureIsRetriedLater(t *testing.T) {
 	src.Poll(store, 0)
 	if calls != 1 {
 		t.Fatalf("connect called %d times within the retry delay, want 1", calls)
+	}
+}
+
+// A rotation seen by a sync that then fails mid-download has already truncated
+// the mirror: the next successful sync must still report it, or the index would
+// keep entries whose offsets point into another file.
+func TestRotationSeenByAFailedSyncIsNotLost(t *testing.T) {
+	remote := &fakeRemote{data: []byte(lines(3, "old"))}
+	src, store, _, clock := newRemote(t, remote)
+	src.Poll(store, 0)
+
+	remote.data = []byte(lines(5, "new"))
+	remote.failRead = true
+	if _, _, err := src.Poll(store, 0); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("err = %v", err)
+	}
+	remote.failRead = false
+	*clock = clock.Add(retryDelay + time.Second)
+	_, rotated, err := src.Poll(store, 0)
+	if err != nil || !rotated {
+		t.Fatalf("rotated=%v err=%v: the rotation was lost", rotated, err)
+	}
+	if store.Len() != 5 || store.Entry(0).Message != "new 0" {
+		t.Fatalf("the index still holds the old file: len=%d first=%q", store.Len(), store.Entry(0).Message)
 	}
 }

@@ -79,6 +79,9 @@ type MirrorBuffer struct {
 	remote string
 	path   string
 	head   []byte
+	// replaced remembers a rotation seen by a Sync that then failed: the mirror
+	// was truncated, so the index must start over whatever the next Sync sees.
+	replaced bool
 	// size and remoteSize are read by the window while Sync writes them.
 	size atomic.Int64
 	// remoteSize is the size seen at the last sync, to know what remains to fetch.
@@ -131,7 +134,7 @@ func (m *MirrorBuffer) Sync(max int64) (rotated bool, err error) {
 	}
 	m.remoteSize.Store(remoteSize)
 	if remoteSize == m.size.Load() && m.size.Load() > 0 {
-		return false, nil
+		return m.takeReplaced(), nil
 	}
 	h, err := m.client.Open(m.remote)
 	if err != nil {
@@ -144,13 +147,13 @@ func (m *MirrorBuffer) Sync(max int64) (rotated bool, err error) {
 		return false, wrapRemote(m.remote, err)
 	}
 	head = head[:n]
-	rotated = remoteSize < m.size.Load() || headChanged(head, m.head)
-	if rotated {
+	if remoteSize < m.size.Load() || headChanged(head, m.head) {
 		if err := os.Truncate(m.path, 0); err != nil {
 			return false, err
 		}
 		m.size.Store(0)
 		m.head = nil
+		m.replaced = true
 	}
 	if remoteSize > m.size.Load() {
 		want := remoteSize - m.size.Load()
@@ -158,14 +161,21 @@ func (m *MirrorBuffer) Sync(max int64) (rotated bool, err error) {
 			want = max
 		}
 		if _, err := h.Seek(m.size.Load(), io.SeekStart); err != nil {
-			return rotated, wrapRemote(m.remote, err)
+			return false, wrapRemote(m.remote, err)
 		}
 		if err := m.appendFrom(h, want); err != nil {
-			return rotated, wrapRemote(m.remote, err)
+			return false, wrapRemote(m.remote, err)
 		}
 	}
 	m.head = m.Slice(0, headBytes)
-	return rotated, nil
+	return m.takeReplaced(), nil
+}
+
+// takeReplaced reports, once, that the mirror was started over.
+func (m *MirrorBuffer) takeReplaced() bool {
+	r := m.replaced
+	m.replaced = false
+	return r
 }
 
 func (m *MirrorBuffer) appendFrom(h io.Reader, want int64) error {

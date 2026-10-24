@@ -25,6 +25,7 @@ Without a path it reopens the last session, else `Saved Games\DCS\Logs\dcs.log` 
 Profiles and session are the Python viewer's own files, `%APPDATA%\veaf_logs\profiles.json` and `session.json`: to try the Go viewer without touching yours, point `APPDATA` at an empty folder first (`$env:APPDATA = "C:\tmp\appdata"`).
 `--smoke` skips the session.
 `--smoke` opens the paths, waits for their index, prints `window=… indexed=… entries=…` and the closing time, then exits: build without `-H windowsgui` to see it, as the CI does.
+It also checks the filters panel's layout and exits with code 4 when a group is not laid out at the height of its title and rows — the defect of a journal with few categories, which `testdata/smoke/short.log` reproduces.
 
 ## Keeping the Go and Python sides equal
 
@@ -32,7 +33,7 @@ Profiles and session are the Python viewer's own files, `%APPDATA%\veaf_logs\pro
 - The header formats of `internal/logcore/formats.go` are a copy of `veaf_logs/parser.py` (they are not in `rules.json`). The parity test is what catches a drift: after changing the Python formats or `rules.json`, regenerate the corpus and the goldens, then run the Go tests.
 - `internal/logcore/filters.go` is a port of `veaf_logs/filters.py`, checked the same way: `gen_golden.py` also writes `golden/*.filters.jsonl`, the visible entries of every enumerated filter case as the Python `evaluate` returns them. Where Go's regexp and Python's `re` cannot agree, `TestKnownDivergencesFromPython` pins the difference.
 - `internal/analysis` is checked the same way: `gen_golden.py` calls `gen_analysis_golden.py`, which writes `analysis/*.jsonl` — redactions, normalised messages and proposals, analysis texts, report blocks and doctor pieces as the Python produces them, with a fixed account name (`Jean Dupont`, `dpierron`) and a frozen clock. Python's `re` is Unicode and has lookarounds where Go's regexp has neither: `internal/analysis/pyre.go` holds the emulation, and these references are what proves it.
-- The `Go CI` workflow runs `gofmt`, `go vet`, `go test` and the executable in `--smoke` mode on Windows, and regenerates the goldens to fail when they are stale. The corpus is committed (`.gitattributes` keeps its bytes as they are: it holds carriage returns and invalid UTF-8 on purpose).
+- The `Go CI` workflow runs `gofmt`, `go vet`, `go test` and the executable in `--smoke` mode on Windows (on `mixed.log` and `short.log`), and regenerates the goldens to fail when they are stale. The corpus is committed (`.gitattributes` keeps its bytes as they are: it holds carriage returns and invalid UTF-8 on purpose).
 - `VEAF_LOGS_BIG=<journal> go test ./internal/logcore -run BigJournal -v` and `poetry run python src/go/veaf-logs/testdata/time_filters.py <journal>` time the filters on a real journal on both sides, and print a digest of the visible entries to compare.
 
 ```powershell

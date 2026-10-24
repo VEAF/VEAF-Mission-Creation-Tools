@@ -1,6 +1,7 @@
 package logview
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -246,4 +247,68 @@ func TestStatusTexts(t *testing.T) {
 	if (Status{Indexed: 25, Size: 100}).Percent() != 25 || (Status{}).Percent() != 100 {
 		t.Error("percent")
 	}
+}
+
+// rulesWithSource is the embedded catalogue plus a source recognising messages
+// that start with `prefix`: what a user adds to rules.json before pressing F5.
+func rulesWithSource(t *testing.T, id, prefix string) *logcore.Rules {
+	t.Helper()
+	var raw map[string]any
+	if err := json.Unmarshal(logcore.EmbeddedRules(), &raw); err != nil {
+		t.Fatal(err)
+	}
+	raw["sources"] = append([]any{map[string]any{"id": id, "label": id, "color": "#ff8800", "match": "^" + prefix}}, raw["sources"].([]any)...)
+	data, _ := json.Marshal(raw)
+	r, err := logcore.ParseRules(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+// F5: the journal is indexed again with the new catalogue, even when its
+// goroutine was over — an archive, an interrupted indexing — and the filters stay.
+func TestReclassifyReindexesWithTheNewCatalogue(t *testing.T) {
+	src := &countingSource{BytesBuffer: &logcore.BytesBuffer{Data: []byte(lineA + lineB + lineC)}}
+	archive := NewDoc(rules(t), src, false)
+	defer archive.Close()
+	archive.Start()
+	waitFor(t, "archive indexed", func() bool { return archive.Status().Total == 3 && !archive.Status().Indexing })
+	f := logcore.NewFilterSet()
+	f.TextFilters = []logcore.TextFilter{{Pattern: "beta", Invert: true}}
+	archive.SetFilters(f)
+
+	cancelled, _ := localDoc(t, strings.Repeat(lineA, 200_000))
+	cancelled.Cancel()
+	cancelled.Start()
+	waitFor(t, "cancelled", func() bool { return !cancelled.Status().Indexing })
+
+	newRules := rulesWithSource(t, "alphasrc", "alpha")
+	for name, d := range map[string]*Doc{"archive": archive, "cancelled": cancelled} {
+		resets := d.Resets()
+		d.Reclassify(newRules)
+		waitFor(t, name+" reindexed", func() bool { s := d.Status(); return !s.Indexing && s.Indexed == s.Size })
+		if d.Rules != newRules || d.Counts().Sources["alphasrc"] == 0 || d.Status().Cancelled || d.Resets() == resets {
+			t.Errorf("%s: not reclassified: sources=%v status=%+v", name, d.Counts().Sources, d.Status())
+		}
+	}
+	if f := archive.Filters(); archive.Rows() != 2 || f.IsEmpty() {
+		t.Errorf("the filters in force must apply to the new index: %d rows", archive.Rows())
+	}
+}
+
+// A journal whose last line has no newline yet (DCS mid-write, a log cut by a
+// crash) keeps that line for later: the indexing is over all the same. It used
+// to stay "indexing" forever, its goroutine polling every millisecond — 18 % of
+// a core per such tab, measured 2026-10-24.
+func TestAnIncompleteLastLineEndsTheIndexing(t *testing.T) {
+	d, path := localDoc(t, lineA+"2026-08-31 11:50:41.000 INFO    APP (Main): no newline")
+	d.Start()
+	waitFor(t, "indexing over", func() bool { s := d.Status(); return s.Total == 1 && !s.Indexing })
+
+	// The line completes: it arrives as the follow polls.
+	f, _ := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
+	f.WriteString("\n")
+	f.Close()
+	waitFor(t, "completed line", func() bool { return d.Status().Total == 2 })
 }

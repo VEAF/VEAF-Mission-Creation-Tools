@@ -25,8 +25,9 @@ type logPane struct {
 	doc      *logview.Doc
 	title    string
 	location string
-	path     string // for the session
+	path     string // for the session; the remote path for a remote journal
 	member   string // archive member, "" for a plain file
+	remote   string // `server/instance` of a remote journal, "" for a local one
 
 	root        *walk.Composite
 	tv          *walk.TableView

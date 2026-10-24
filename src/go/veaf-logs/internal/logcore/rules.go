@@ -201,3 +201,6 @@ var embeddedRules []byte
 // DefaultRules loads the catalogue embedded in the executable. rules.json here
 // is a copy of the Python one, kept identical by TestEmbeddedRulesAreThePythonOnes.
 func DefaultRules() (*Rules, error) { return ParseRules(embeddedRules) }
+
+// EmbeddedRules is the text of the embedded catalogue, to write it where the user can edit it.
+func EmbeddedRules() []byte { return append([]byte(nil), embeddedRules...) }

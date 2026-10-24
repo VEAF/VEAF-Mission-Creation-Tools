@@ -34,6 +34,7 @@ type Doc struct {
 	visible     []int // nil: every entry
 	cache       map[int]logcore.Entry
 	indexing    bool
+	running     bool // a poll goroutine is at work; false once it decided to stop
 	cancelled   bool
 	unavailable bool
 	rotations   int
@@ -50,7 +51,12 @@ func NewDoc(rules *logcore.Rules, src logcore.Follower, followable bool) *Doc {
 }
 
 // Start indexes the journal in the background, then follows it if it can be followed.
-func (d *Doc) Start() { go d.poll() }
+func (d *Doc) Start() {
+	d.mu.Lock()
+	d.running = true
+	d.mu.Unlock()
+	go d.poll()
+}
 
 // Close stops the polling and releases the source (connection, mirror file).
 func (d *Doc) Close() {
@@ -88,6 +94,7 @@ func (d *Doc) poll() {
 		d.mu.Lock()
 		if d.cancelled {
 			d.indexing = false
+			d.running = false
 			d.mu.Unlock()
 			d.dirty.Store(true)
 			return
@@ -121,9 +128,15 @@ func (d *Doc) poll() {
 		if grew || rotated {
 			d.refilter()
 		}
-		behind := err == nil && (d.store.IndexedBytes() < d.src.Buffer().Size() || d.src.Pending())
+		// Behind only while a slice still makes progress: an incomplete last line
+		// stays unindexed until its newline, and is no reason to poll in a loop.
+		behind := err == nil && ((grew && d.store.IndexedBytes() < d.src.Buffer().Size()) || d.src.Pending())
 		changed := grew || rotated || err != nil || d.indexing != behind
 		d.indexing = behind
+		if !behind && !d.Followable {
+			// Decided under the lock, so that Reclassify knows it must start another.
+			d.running = false
+		}
 		d.mu.Unlock()
 		if changed {
 			d.dirty.Store(true)
@@ -178,6 +191,29 @@ func (d *Doc) SetFilters(f logcore.FilterSet) error {
 	d.mu.Unlock()
 	d.dirty.Store(true)
 	return nil
+}
+
+// Reclassify indexes the journal again with a new catalogue (`LogStore.reclassify`,
+// the Règles menu's F5); the filters in force apply to the new index. The
+// Python indexes it whole on the window's thread; here the poll goroutine does,
+// in slices, and one is started again when the previous one was over (an
+// archive, an interrupted indexing, which this resumes to the end).
+func (d *Doc) Reclassify(rules *logcore.Rules) {
+	d.mu.Lock()
+	d.Rules = rules
+	d.store = logcore.NewStore(rules, d.src.Buffer())
+	d.cache = map[int]logcore.Entry{}
+	d.cancelled = false
+	d.indexing = true
+	d.resets++
+	d.refilter()
+	restart := !d.running
+	d.running = true
+	d.mu.Unlock()
+	d.dirty.Store(true)
+	if restart {
+		go d.poll()
+	}
 }
 
 // Filters is the filter set in force.

@@ -33,6 +33,20 @@ func darkenDialog(dlg *walk.Dialog) {
 	}
 }
 
+// paragraphs keeps a label's blank lines: walk measures a label line by line
+// and an empty line measures zero high, so the last lines of a text with
+// paragraphs fell outside the box. A no-break space has a height, and walk does
+// not trim it as it trims spaces.
+func paragraphs(text string) string {
+	lines := strings.Split(text, "\n")
+	for i, l := range lines {
+		if strings.TrimSpace(l) == "" {
+			lines[i] = "\u00a0"
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 // Message shows a dark message box with an OK button. A warning or an error
 // is said in its title, as the Python boxes do.
 func Message(owner walk.Form, title, text string) {
@@ -43,7 +57,7 @@ func Message(owner walk.Form, title, text string) {
 		MinSize: Size{Width: 360}, Background: SolidColorBrush{Color: dark.Window},
 		Layout: VBox{Margins: Margins{Left: 16, Top: 16, Right: 16, Bottom: 12}},
 		Children: []Widget{
-			Label{Text: text, TextColor: dark.Text},
+			Label{Text: paragraphs(text), TextColor: dark.Text},
 			Composite{Layout: HBox{MarginsZero: true}, Children: []Widget{
 				HSpacer{},
 				PushButton{AssignTo: &ok, Text: "OK", OnClicked: func() { dlg.Accept() }},
@@ -88,7 +102,9 @@ func Prompt(owner walk.Form, title, label, initial string) (string, bool) {
 	return edit.Text(), true
 }
 
-// Confirm asks yes or no, no being the default.
+// Confirm asks yes or no, no being the default and holding the keyboard: the
+// box can come to the front while the user types elsewhere, and a stray Enter
+// or Space must not answer yes — not to a host key above all.
 func Confirm(owner walk.Form, title, text string) bool {
 	var dlg *walk.Dialog
 	var yes, no *walk.PushButton
@@ -97,7 +113,7 @@ func Confirm(owner walk.Form, title, text string) bool {
 		MinSize: Size{Width: 360}, Background: SolidColorBrush{Color: dark.Window},
 		Layout: VBox{Margins: Margins{Left: 16, Top: 16, Right: 16, Bottom: 12}},
 		Children: []Widget{
-			Label{Text: text, TextColor: dark.Text},
+			Label{Text: paragraphs(text), TextColor: dark.Text},
 			Composite{Layout: HBox{MarginsZero: true}, Children: []Widget{
 				HSpacer{},
 				PushButton{AssignTo: &yes, Text: "Oui", OnClicked: func() { dlg.Accept() }},
@@ -109,6 +125,9 @@ func Confirm(owner walk.Form, title, text string) bool {
 		return false
 	}
 	darkenDialog(dlg)
+	// walk focuses the first tab stop in z-order once laid out: put Non first,
+	// where it stands on screen does not change.
+	win.SetWindowPos(no.Handle(), win.HWND_TOP, 0, 0, 0, 0, win.SWP_NOMOVE|win.SWP_NOSIZE|win.SWP_NOACTIVATE)
 	return dlg.Run() == walk.DlgCmdOK
 }
 

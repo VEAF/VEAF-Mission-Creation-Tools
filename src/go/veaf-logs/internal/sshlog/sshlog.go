@@ -30,9 +30,9 @@ import (
 )
 
 // connectTimeout bounds each step of the connection (TCP, SSH banner and key
-// exchange, authentication): it happens on a goroutine of the window, and a
-// server that accepts the connection and then says nothing must not freeze it.
-const connectTimeout = 5 * time.Second
+// exchange, authentication, SFTP channel): a server that accepts the connection
+// and then says nothing must not hold a tab forever. A variable for the tests.
+var connectTimeout = 5 * time.Second
 
 // Server is a DCS server reachable over SSH with the logs it hosts: `Logs` maps
 // an instance name (`private1`) to the remote path of its dcs.log.
@@ -61,20 +61,34 @@ func ConfigPaths() []string {
 	return []string{filepath.Join(home, "veafmct.yaml"), filepath.Join(veafHome, "config.yaml")}
 }
 
-// LoadServers reads the `servers` block of the first configuration file found.
-// None found, or no block: an empty list.
-func LoadServers(paths ...string) ([]Server, error) {
+// DefaultConfigPath is where a new configuration goes (`default_config_path`).
+func DefaultConfigPath() string { return ConfigPaths()[0] }
+
+// FindConfig is the configuration file in use, "" when there is none (`config_file_path`).
+func FindConfig(paths ...string) string {
 	if len(paths) == 0 {
 		paths = ConfigPaths()
 	}
 	for _, p := range paths {
-		data, err := os.ReadFile(p)
-		if err != nil {
-			continue
+		if info, err := os.Stat(p); err == nil && !info.IsDir() {
+			return p
 		}
-		return ParseServers(data)
 	}
-	return nil, nil
+	return ""
+}
+
+// LoadServers reads the `servers` block of the first configuration file found.
+// None found, or no block: an empty list.
+func LoadServers(paths ...string) ([]Server, error) {
+	path := FindConfig(paths...)
+	if path == "" {
+		return nil, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return ParseServers(data)
 }
 
 // ParseServers reads the `servers` block of a configuration, with the checks of
@@ -160,10 +174,19 @@ func expandHome(p string) string {
 	return p
 }
 
+// AskHostKey asks whether to trust a server whose key is not in known_hosts:
+// the host as known_hosts writes it, and the key's fingerprint.
+type AskHostKey func(host, fingerprint string) bool
+
 // Options of Connect. The zero value is the normal behaviour.
 type Options struct {
-	// HostKey verifies the server. nil: ~/.ssh/known_hosts, and an unknown host is refused.
+	// HostKey verifies the server. nil: known_hosts, see KnownHosts and Ask.
 	HostKey ssh.HostKeyCallback
+	// KnownHosts is the known_hosts file; "" is ~/.ssh/known_hosts.
+	KnownHosts string
+	// Ask is called for a server absent from known_hosts; yes appends its key
+	// there. nil refuses: accepting silently would not check the server at all.
+	Ask AskHostKey
 	// Agent is the address of an SSH agent socket; "" uses SSH_AUTH_SOCK.
 	Agent string
 	// NoDefaultKeys skips ~/.ssh/id_* (tests).
@@ -199,17 +222,31 @@ func (c *Client) Close() error {
 
 // Connect opens the SSH session of a server and its SFTP channel.
 func Connect(s Server, o Options) (*Client, error) {
-	hostKey := o.HostKey
-	if hostKey == nil {
-		cb, err := knownHostsCallback()
-		if err != nil {
-			return nil, err
-		}
-		hostKey = cb
-	}
 	signers, err := loadSigners(s, o)
 	if err != nil {
 		return nil, err
+	}
+	addr := net.JoinHostPort(s.Host, strconv.Itoa(s.Port))
+	conn, err := net.DialTimeout("tcp", addr, connectTimeout)
+	if err != nil {
+		return nil, err
+	}
+	hostKey := o.HostKey
+	if hostKey == nil {
+		// The question waits for a person: the deadline stops while it is asked.
+		ask := o.Ask
+		if ask != nil {
+			ask = func(host, fingerprint string) bool {
+				conn.SetDeadline(time.Time{})
+				ok := o.Ask(host, fingerprint)
+				conn.SetDeadline(time.Now().Add(connectTimeout)) // counted from the answer
+				return ok
+			}
+		}
+		if hostKey, err = knownHostsCallback(o.KnownHosts, ask); err != nil {
+			conn.Close()
+			return nil, err
+		}
 	}
 	cfg := &ssh.ClientConfig{
 		User:            s.User,
@@ -217,19 +254,13 @@ func Connect(s Server, o Options) (*Client, error) {
 		HostKeyCallback: hostKey,
 		Timeout:         connectTimeout,
 	}
-	addr := net.JoinHostPort(s.Host, strconv.Itoa(s.Port))
-	conn, err := net.DialTimeout("tcp", addr, connectTimeout)
-	if err != nil {
-		return nil, err
-	}
-	// The deadline bounds the SSH handshake and the authentication.
+	// The deadline bounds the SSH handshake, the authentication and the SFTP channel.
 	conn.SetDeadline(time.Now().Add(connectTimeout))
 	sconn, chans, reqs, err := ssh.NewClientConn(conn, addr, cfg)
 	if err != nil {
 		conn.Close()
 		return nil, err
 	}
-	conn.SetDeadline(time.Time{})
 	client := ssh.NewClient(sconn, chans, reqs)
 	sc, err := sftp.NewClient(client)
 	if err != nil {
@@ -237,6 +268,7 @@ func Connect(s Server, o Options) (*Client, error) {
 		client.Close()
 		return nil, err
 	}
+	conn.SetDeadline(time.Time{})
 	return &Client{ssh: client, sftp: sc}, nil
 }
 
@@ -251,24 +283,69 @@ func Connector(s Server, o Options) logcore.Connector {
 	}
 }
 
-func knownHostsCallback() (ssh.HostKeyCallback, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
+// knownHostsCallback checks the server against known_hosts. A server absent
+// from it is asked about (`accept_host_key`); a known server whose key changed is
+// refused without asking, as OpenSSH does. No file yet is a file with no server.
+func knownHostsCallback(path string, ask AskHostKey) (ssh.HostKeyCallback, error) {
+	if path == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+		path = filepath.Join(home, ".ssh", "known_hosts")
 	}
-	path := filepath.Join(home, ".ssh", "known_hosts")
-	cb, err := knownhosts.New(path)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w — connect once with `ssh` to trust the server", path, err)
+	var cb ssh.HostKeyCallback
+	if _, err := os.Stat(path); err == nil {
+		if cb, err = knownhosts.New(path); err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
 	}
 	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-		err := cb(hostname, remote, key)
-		var ke *knownhosts.KeyError
-		if errors.As(err, &ke) && len(ke.Want) == 0 {
-			return fmt.Errorf("host key of %s is unknown (%s): connect once with `ssh` to trust it", hostname, Fingerprint(key))
+		if cb != nil {
+			err := cb(hostname, remote, key)
+			var ke *knownhosts.KeyError
+			if !errors.As(err, &ke) || sameType(ke.Want, key) {
+				return err // known (nil), or known with another key of this type
+			}
 		}
-		return err
+		host, fingerprint := knownhosts.Normalize(hostname), Fingerprint(key)
+		if ask == nil || !ask(host, fingerprint) {
+			return fmt.Errorf("host key of %s refused (%s)", host, fingerprint)
+		}
+		return rememberHostKey(path, host, key)
 	}, nil
+}
+
+// sameType tells that known_hosts holds a key of the presented key's type: only
+// then is a different key a changed one. Known under other types only, the
+// server is asked about, as paramiko does.
+func sameType(known []knownhosts.KnownKey, key ssh.PublicKey) bool {
+	for _, k := range known {
+		if k.Key.Type() == key.Type() {
+			return true
+		}
+	}
+	return false
+}
+
+// rememberHostKey appends one line to known_hosts, leaving the rest of it alone.
+func rememberHostKey(path, host string, key ssh.PublicKey) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	line := knownhosts.Line([]string{host}, key) + "\n"
+	if data, err := os.ReadFile(path); err == nil && len(data) > 0 && data[len(data)-1] != '\n' {
+		line = "\n" + line // a last line with no newline would swallow ours
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	_, err = f.WriteString(line)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 // Fingerprint is the SHA256 fingerprint of a key, as OpenSSH prints it.

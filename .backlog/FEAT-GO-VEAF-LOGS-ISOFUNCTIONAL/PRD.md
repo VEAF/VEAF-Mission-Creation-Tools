@@ -1,6 +1,6 @@
 # FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL — rewrite veaf-logs in Go, the same program
 
-Status: 🔄 in-progress — J1 merged (#1176), walk chosen (ADR 0022), J2 the window and J3 the filters done; J4 next
+Status: 🔄 in-progress — J1 merged (#1176), walk chosen (ADR 0022), J2 the window, J3 the filters and J4 the remote journals done; J5 next
 
 Origin: David, 2026-10-24.
 The first Go proof of concept (POC-GO-VEAF-LOGS, #1173 and #1174) delivered a Go core identical to the Python one, plus a minimal Gio window that is only a tail with a search.
@@ -263,6 +263,32 @@ The UI above needs, whatever the toolkit:
 | 04 | [Compare the toolkits on the 21 needs, and choose](tickets/04-toolkit-comparison.md) | before J2 | ✅ |
 | 05 | [J2: the window, on walk](tickets/05-window.md) | J2 | ✅ |
 | 06 | [J3: filters panel, search, chips, profiles, session](tickets/06-filters-profiles-session.md) | J3 | ✅ |
+| 07 | [J4: remote journals, their session restore, the Règles menu](tickets/07-remote-and-rules.md) | J4 | ✅ |
+
+## J4 — remote journals and the Règles menu
+
+*Ouvrir un journal distant…*, the host key question, the session's remote tabs and the *Règles* menu.
+The restore's order and messages are a port of `_restore`, `_reopen_next_remote` and `_capture`, in `internal/logview/restore.go`, tested in plain Go with the Python's own cases.
+
+Checked on screen against a local SSH server, from captures of the window alone: the host key question, *Oui* writing `known_hosts` and reopening the session's tabs in order with the session's active tab in front, *Non* reopening none and writing nothing, the unreachable server tried once, the session saved back with its remote tabs.
+Not checked on screen: the Ctrl+Shift+O list (the same chooser as the archives') and the *Règles* menu (`Doc.Reclassify` is tested, the menu only calls it).
+
+Decided differently from the Python, on purpose:
+
+- **The connection runs off the window's thread.** The Python connects on it, frozen up to 5 s per unreachable server; here a goroutine connects and mirrors the first 8 MB, then hands the source to the window, which only then makes the tab, placed where it belongs at that moment.
+- **The tab being connected when the window closes stays in the saved session.** The Python had taken it out of its pending list before connecting.
+- **The connection's 5 s deadline also covers the SFTP channel**, and stops while the host key question waits for an answer.
+- **F5 indexes in slices, off the window's thread**, where the Python indexes every journal whole on it; an archive or an interrupted indexing is resumed to the end.
+- **`rules.json` is a temporary copy of the embedded catalogue**, written the first time the menu opens it and removed at exit: what the shipped Python does with its copy unpacked by PyInstaller. Edits do not survive the session on either side.
+
+Found and fixed on the way, in this lot's own code:
+
+- **The yes/no box gave the keyboard to *Oui*.** It comes to the front while the user types elsewhere: during the check, a stray key accepted an unknown host key twice, with nobody clicking. *Non* now holds the focus, as in the Python.
+- **A box cut its last lines** when its text had blank lines: walk measures a label line by line and an empty one measures zero high, so the host key question lost *L'accepter et la mémoriser ?*.
+- **A server known under another key type only was refused without a question** (an old `ssh-rsa` line, the server now presenting `ed25519`): paramiko compares keys of the same type only and asks; the Go side now does the same.
+- **A journal whose last line had no newline stayed "indexing" forever**, its goroutine polling every millisecond — 18 % of a core per such tab, 0.2 % after; a `dcs.log` cut by a crash is one. The incomplete line waits for its newline, as before.
+
+Found, not fixed here: with a short journal (few categories), the side panel stretches its *tout / contexte / rien* buttons and its rows over the whole height — the same on `develop`, a J3 layout defect.
 
 ## J3 — filters, profiles, session
 
@@ -280,7 +306,7 @@ Decided differently from the Python, on purpose or by the toolkit:
 - **The tri-state rows and the `≠` / `Aa` toggles are painted widgets**: a Win32 check box writes black text in dark mode, and a walk `Label` swallows clicks.
 - **A category's own span shows `±0 (n)` when it follows the common value**, where the Python's spin box shows its special text: walk's `NumberEdit` has none.
 - **The profile list has no separator** between the built-in profiles and the user's: a Win32 combo box has none either.
-- The *Règles* menu goes with the remote journals in J4.
+- The *Règles* menu went with the remote journals in J4.
 
 ## J2 — the window, measured
 
@@ -302,7 +328,7 @@ Decided differently from the Python, on purpose:
 - **Interrupting the indexing stops it.** The Python's `LogTab.poll` calls an unbounded `index_new()` as soon as its indexer stopped, so its button pauses for a fraction of a second; here the tab keeps what it indexed and stops following, and its status says so.
 - **The fixed columns are sized in characters of the journal's font**, not in pixels: the Python's widths cut the time and the level as soon as the font grows.
 - **A stack trace that arrives after its error line reaches the row already shown.** Growth is measured in bytes; the Python's `poll` stops at `if not added`, since a trace adds no entry, and the row waits for another repaint. A fourth defect of the Python viewer, after the three below, not fixed there.
-- `--remote` of the proof of concept goes until the remote journals come back with their menu in J4.
+- `--remote` of the proof of concept goes; the remote journals came back with their menu in J4.
 
 ## J1 — what was measured
 

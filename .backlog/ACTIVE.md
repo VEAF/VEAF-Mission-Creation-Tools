@@ -12,7 +12,7 @@ The short listing of `describe_known_limitations` drops the titles (ids, kinds, 
 
 ### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · 🔄
 
-Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, analysis — after the tail-only proof of concept missed the point. Inventory and decisions merged (#1175), J1 merged (#1176: the filter engine and the crash archives in the Go core, equal to the Python, Go tests in CI). Toolkit chosen: walk, native Win32 with a dark theme of our own (ADR 0022). J2, the window, comes next.
+Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, analysis — after the tail-only proof of concept missed the point. Inventory and decisions merged (#1175), J1 merged (#1176: the filter engine and the crash archives in the Go core, equal to the Python, Go tests in CI). Toolkit chosen: walk, native Win32 with a dark theme of our own (ADR 0022). J2 the window and J3 the filters, profiles and session merged (#1181); J4 the remote journals and the Règles menu done; J5, the analysis and the report, comes next.
 
 
 ## 🧑 Waiting for a human

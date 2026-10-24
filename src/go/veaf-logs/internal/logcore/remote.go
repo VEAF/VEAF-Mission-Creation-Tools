@@ -261,6 +261,14 @@ func (r *RemoteSource) Pending() bool               { return r.mirror.Pending() 
 func (r *RemoteSource) PollInterval() time.Duration { return remotePollInterval }
 func (r *RemoteSource) Close()                      { r.drop(); r.mirror.Close() }
 
+// Open connects and mirrors the first bytes, so that opening a tab tells at
+// once whether the journal can be reached (`RemoteLogSource.open`). It touches
+// the network: never call it from the window's thread.
+func (r *RemoteSource) Open() error {
+	_, err := r.Fetch(0)
+	return err
+}
+
 // Fetch brings back what is new (bounded) and detects a rotation.
 func (r *RemoteSource) Fetch(indexed int64) (bool, error) {
 	if err := r.ensureConnected(); err != nil {

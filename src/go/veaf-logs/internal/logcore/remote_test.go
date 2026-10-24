@@ -267,3 +267,40 @@ func TestRotationSeenByAFailedSyncIsNotLost(t *testing.T) {
 		t.Fatalf("the index still holds the old file: len=%d first=%q", store.Len(), store.Entry(0).Message)
 	}
 }
+
+// Open is what the window waits for before showing a tab: connected, and the
+// first bytes mirrored; the polls that follow index them without a rotation.
+func TestRemoteOpenConnectsAndMirrorsBeforeTheFirstPoll(t *testing.T) {
+	remote := &fakeRemote{data: []byte(lines(3, "a"))}
+	src, store, _, _ := newRemote(t, remote)
+	if err := src.Open(); err != nil {
+		t.Fatal(err)
+	}
+	if src.Buffer().Size() != int64(len(remote.data)) {
+		t.Fatalf("mirror holds %d of %d bytes after Open", src.Buffer().Size(), len(remote.data))
+	}
+	added, rotated, err := src.Poll(store, 0)
+	if err != nil || rotated || added != 3 {
+		t.Fatalf("first poll after Open: added=%d rotated=%v err=%v", added, rotated, err)
+	}
+}
+
+func TestRemoteOpenReportsWhatFails(t *testing.T) {
+	src, _, conn, _ := newRemote(t, &fakeRemote{missing: true})
+	if err := src.Open(); !errors.Is(err, ErrRemoteFileMissing) {
+		t.Fatalf("missing file: err = %v", err)
+	}
+	if conn.closed != 0 {
+		t.Fatal("a missing file is not a dead connection")
+	}
+	refused, err := NewRemoteSource("/x", "u@h:/x", func() (SFTPClient, io.Closer, error) {
+		return nil, nil, errors.New("connection refused")
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer refused.Close()
+	if err := refused.Open(); !errors.Is(err, ErrUnavailable) || !strings.Contains(err.Error(), "u@h:/x") {
+		t.Fatalf("refused: err = %v, want the location and ErrUnavailable", err)
+	}
+}

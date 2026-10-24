@@ -84,6 +84,23 @@ func TestBlankSessionWhenUnusable(t *testing.T) {
 	}
 }
 
+// The Python's `payload.pop("files", [])` returns None for a null, and its
+// start fails on it — at every launch, since it never rewrites the file.
+func TestNoTabIsAnEmptyListNotNull(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "session.json")
+	if err := NewSession().Save(path); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(path)
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if string(payload["files"]) != "[]" {
+		t.Errorf("files = %s", payload["files"])
+	}
+}
+
 func TestCorruptedFiltersAreNoFilters(t *testing.T) {
 	s := NewSession()
 	s.Filters = json.RawMessage(`{"context_lines": "beaucoup"}`)

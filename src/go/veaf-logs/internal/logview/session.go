@@ -85,6 +85,9 @@ func LoadSession(path string) Session {
 // Save writes the session atomically.
 func (s Session) Save(path string) error {
 	s.Version = sessionVersion
+	if s.Files == nil {
+		s.Files = []OpenFile{} // a null stops the Python's start
+	}
 	if len(s.Filters) == 0 {
 		s.Filters = json.RawMessage("{}")
 	}

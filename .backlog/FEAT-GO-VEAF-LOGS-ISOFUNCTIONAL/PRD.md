@@ -1,6 +1,6 @@
 # FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL — rewrite veaf-logs in Go, the same program
 
-Status: 🔄 in-progress — J1 merged (#1176), walk chosen (ADR 0022), J2 the window done; J3 next
+Status: 🔄 in-progress — J1 merged (#1176), walk chosen (ADR 0022), J2 the window and J3 the filters done; J4 next
 
 Origin: David, 2026-10-24.
 The first Go proof of concept (POC-GO-VEAF-LOGS, #1173 and #1174) delivered a Go core identical to the Python one, plus a minimal Gio window that is only a tail with a search.
@@ -262,6 +262,25 @@ The UI above needs, whatever the toolkit:
 | 03 | [The Go parity tests run in CI, on a checkout that has the corpus](tickets/03-go-tests-in-ci.md) | J1 | ✅ |
 | 04 | [Compare the toolkits on the 21 needs, and choose](tickets/04-toolkit-comparison.md) | before J2 | ✅ |
 | 05 | [J2: the window, on walk](tickets/05-window.md) | J2 | ✅ |
+| 06 | [J3: filters panel, search, chips, profiles, session](tickets/06-filters-profiles-session.md) | J3 | ✅ |
+
+## J3 — filters, profiles, session
+
+The side panel, the search bar, the chips, the profile bar and the session, in the same pull request as J2.
+The model lives in `internal/logview` (`profiles.go`, `session.go`, `panel.go`) and is tested in plain Go; the window only shows and edits it.
+Profiles and session are the Python's own files, `%APPDATA%\veaf_logs\profiles.json` (version 1) and `session.json` (version 2), read and written in its format, so either viewer picks up where the other left off.
+The session keeps the remote tabs and the Python's Qt geometry untouched; the Go window's place goes in a `go_window` key the Python ignores.
+
+Same journal as J2: executable 7.7 MB, window 0.09 s, indexing 2.5 s.
+Checked on screen from captures of the window alone: the panel with its coloured categories and live counts, a click cycling a category to context and filtering the table, the session restoring the tab and its filters.
+Not checked on screen: typing in the search field (a posted click cannot give the keyboard focus to another process's window) and the profile save and delete dialogs.
+
+Decided differently from the Python, on purpose or by the toolkit:
+
+- **The tri-state rows and the `≠` / `Aa` toggles are painted widgets**: a Win32 check box writes black text in dark mode, and a walk `Label` swallows clicks.
+- **A category's own span shows `±0 (n)` when it follows the common value**, where the Python's spin box shows its special text: walk's `NumberEdit` has none.
+- **The profile list has no separator** between the built-in profiles and the user's: a Win32 combo box has none either.
+- The *Règles* menu goes with the remote journals in J4.
 
 ## J2 — the window, measured
 

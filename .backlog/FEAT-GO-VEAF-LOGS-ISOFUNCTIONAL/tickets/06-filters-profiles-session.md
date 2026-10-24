@@ -1,6 +1,6 @@
 # 06 — J3: filters panel, search, chips, profiles, session
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-10-24
 
 Milestone J3, in the same pull request as J2 (#1181): David tested J2 — "the dark mode is OK, but the UI is not isofunctional at all, the filters panel is missing" — and asked to go on with J3 before merging.
 

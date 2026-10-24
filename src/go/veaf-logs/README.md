@@ -5,7 +5,7 @@ Nothing here is shipped yet; see [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../../.bac
 
 - `internal/logcore`: the core without UI (rule catalogue, header formats, compact index, search, filters, tail with rotation detection, crash archives). A port of `veaf_logs` (Python), which remains the reference.
 - `internal/sshlog`: SSH + SFTP connection (key, agent, `known_hosts`) and the `servers` block of `~/veafmct.yaml`; the window uses it again from J4.
-- `internal/logview`: what the window shows, without the window — the document behind a tab, the cells, the copied text, the tab strip's logic. Plain Go, tested.
+- `internal/logview`: what the window shows, without the window — the document behind a tab, the cells, the copied text, the tab strip's logic, the side panel's categories and states, the profiles and the session. Plain Go, tested.
 - `internal/ui`: the window, on [walk](https://github.com/tailscale/walk) (native Win32), and `internal/ui/dark` its dark theme. Windows only.
 - `cmd/veaf-logs`: the executable; `rsrc_windows_amd64.syso` holds its manifest and icon (`go generate ./cmd/veaf-logs` rebuilds it).
 - `cmd/logdump`: indexes a journal and writes the parity dump.
@@ -18,7 +18,9 @@ go build -ldflags "-s -w -H windowsgui" -o veaf-logs.exe ./cmd/veaf-logs
 .\veaf-logs.exe C:\path\to\dcs.log
 ```
 
-Without a path it opens `Saved Games\DCS\Logs\dcs.log`, if there is one.
+Without a path it reopens the last session, else `Saved Games\DCS\Logs\dcs.log` if there is one.
+Profiles and session are the Python viewer's own files, `%APPDATA%\veaf_logs\profiles.json` and `session.json`: to try the Go viewer without touching yours, point `APPDATA` at an empty folder first (`$env:APPDATA = "C:\tmp\appdata"`).
+`--smoke` skips the session.
 `--smoke` opens the paths, waits for their index, prints `window=… indexed=… entries=…` and the closing time, then exits: build without `-H windowsgui` to see it, as the CI does.
 
 ## Keeping the Go and Python sides equal

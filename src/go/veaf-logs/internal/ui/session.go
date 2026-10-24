@@ -12,9 +12,10 @@ import (
 	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/logview"
 )
 
-// restore reopens the session's tabs, then the command line's files, which
-// keep the foreground; the local journal by default only when neither opened anything.
-func (w *window) restore() {
+// restoreSession reopens the session's local tabs at once and its remote ones
+// one at a time in the background, then the command line's files, which keep
+// the foreground (`_restore`).
+func (w *window) restoreSession() {
 	if g := w.session.GoWindow; g != nil && g.Width > 200 && g.Height > 150 {
 		w.mw.SetBoundsPixels(walk.Rectangle{X: g.X, Y: g.Y, Width: g.Width, Height: g.Height})
 		if g.Maximized {
@@ -24,42 +25,42 @@ func (w *window) restore() {
 	if !w.opts.Smoke {
 		for position, f := range w.session.ExistingFiles() {
 			if f.Remote != nil {
-				// Remote journals come back in J4; the entry is kept for the next save.
-				w.pendingRemotes = append(w.pendingRemotes, pendingRemote{position: position, file: f})
+				w.restore.Defer(position, f)
 				continue
 			}
 			member := ""
 			if f.ArchiveMember != nil {
 				member = *f.ArchiveMember
 			}
-			w.openPath(f.Path, member)
-		}
-		if a := w.session.Active - w.remotesBefore(w.session.Active); a >= 0 && a < len(w.strip.Items) && len(w.opts.Paths) == 0 {
-			w.strip.Active = a
-			w.tabChanged()
+			if p := w.openPath(f.Path, member); p != nil {
+				w.restore.Opened(position)
+				w.restored[p] = true
+			}
 		}
 	}
 	for _, p := range w.opts.Paths {
 		w.openPath(p, "")
+	}
+	w.applyFilters()
+	w.refreshStatus()
+	w.reopenNextRemote()
+}
+
+// finishRestore brings the session's active tab to the front, unless another
+// was chosen meanwhile (a file of the command line, one opened by the user);
+// with no tab at all, the local journal by default (`_finish_restore`).
+func (w *window) finishRestore() {
+	front := w.current()
+	chosenElsewhere := front != nil && !w.restored[front]
+	if a := w.session.Active; len(w.session.Files) > 0 && a >= 0 && a < len(w.strip.Items) && !chosenElsewhere {
+		w.strip.Active = a
+		w.tabChanged()
 	}
 	if len(w.strip.Items) == 0 && len(w.opts.Paths) == 0 && !w.opts.Smoke {
 		if p := currentDCSLog(); fileExists(p) {
 			w.openPath(p, "")
 		}
 	}
-	w.applyFilters()
-	w.refreshStatus()
-}
-
-// remotesBefore counts the pending remote tabs placed before a session position.
-func (w *window) remotesBefore(position int) int {
-	n := 0
-	for _, r := range w.pendingRemotes {
-		if r.position < position {
-			n++
-		}
-	}
-	return n
 }
 
 var getWindowPlacement = windows.NewLazySystemDLL("user32.dll").NewProc("GetWindowPlacement")
@@ -76,25 +77,21 @@ func (w *window) saveSession() {
 		return
 	}
 	s := w.session
-	s.Files = nil
+	var files []logview.OpenFile
 	for _, p := range w.strip.Items {
 		f := logview.OpenFile{Path: p.path}
 		if p.member != "" {
 			member := p.member
 			f.ArchiveMember = &member
 		}
-		s.Files = append(s.Files, f)
-	}
-	active := max(0, w.strip.Active)
-	// Not reopened yet: they take their place back in the session's order.
-	for _, r := range w.pendingRemotes {
-		at := min(r.position, len(s.Files))
-		s.Files = append(s.Files[:at], append([]logview.OpenFile{r.file}, s.Files[at:]...)...)
-		if len(w.strip.Items) > 0 && at <= active {
-			active++
+		if p.remote != "" {
+			remote := p.remote
+			f.Remote = &remote
 		}
+		files = append(files, f)
 	}
-	s.Active = active
+	// Not reopened yet: they take their place back in the session's order.
+	s.Files, s.Active = w.restore.Merge(files, max(0, w.strip.Active))
 	s.Profile = w.currentProfile()
 	s.SetFilterSet(w.filters)
 	s.FontFamily, s.FontSize = w.fontFamily, w.fontSize

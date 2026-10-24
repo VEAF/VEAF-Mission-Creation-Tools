@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -72,20 +73,26 @@ type window struct {
 	fontSize      int
 	detailEnabled bool
 
-	session        logview.Session
-	pendingRemotes []pendingRemote // tabs of the session reopened in J4, kept for the next save
-	panelAt        time.Time
+	session  logview.Session
+	restore  *logview.Restore  // the session's remote tabs, reopened one at a time once the window shows
+	restored map[*logPane]bool // tabs the restore opened: another one in front was chosen, and keeps the front
+	panelAt  time.Time
+
+	// rulesFile is the catalogue the Règles menu opens and F5 reloads, "" until opened.
+	rulesFile string
+
+	// connMu guards what the remote connections hand back to the window: a
+	// source opened while the window closes must still be closed by someone.
+	connMu    sync.Mutex
+	closed    bool
+	unclaimed map[*logcore.RemoteSource]bool
+	done      chan struct{} // closed once the window is gone: a pending host key question gives up
 
 	opts       Options
 	smokeDone  bool
 	closing    time.Time // when the smoke mode asked the window to close
 	shownAt    time.Duration
 	msgVersion int
-}
-
-type pendingRemote struct {
-	position int
-	file     logview.OpenFile
 }
 
 // Run opens the window and returns the process exit code.
@@ -101,7 +108,10 @@ func Run(opts Options) int {
 		fmt.Fprintln(os.Stderr, "veaf-logs:", err)
 		return 1
 	}
-	w := &window{rules: rules, strip: logview.NewStrip[*logPane](), opts: opts, session: logview.NewSession()}
+	w := &window{
+		rules: rules, strip: logview.NewStrip[*logPane](), opts: opts, session: logview.NewSession(),
+		restore: logview.NewRestore(), restored: map[*logPane]bool{}, unclaimed: map[*logcore.RemoteSource]bool{}, done: make(chan struct{}),
+	}
 	if !opts.Smoke {
 		w.session = logview.LoadSession(logview.SessionPath())
 	}
@@ -113,7 +123,7 @@ func Run(opts Options) int {
 		return 1
 	}
 	w.shownAt = time.Since(opts.Start)
-	w.restore()
+	w.restoreSession()
 
 	exit := 0
 	stop := make(chan struct{})
@@ -134,8 +144,12 @@ func Run(opts Options) int {
 		fmt.Printf("closed=%.3fs\n", time.Since(w.closing).Seconds())
 	}
 	close(stop)
+	close(w.done)
 	for _, p := range w.strip.Items {
 		p.doc.Close()
+	}
+	if w.rulesFile != "" {
+		os.Remove(w.rulesFile)
 	}
 	return exit
 }
@@ -158,6 +172,7 @@ func (w *window) create() error {
 			Menu{Text: "&Fichier", Items: []MenuItem{
 				Action{Text: "Ouvrir le journal DCS courant", Shortcut: shortcut(walk.ModControl, walk.KeyD), OnTriggered: w.openCurrentDCSLog},
 				Action{Text: "Ouvrir un fichier…", Shortcut: shortcut(walk.ModControl, walk.KeyO), OnTriggered: w.openDialog},
+				Action{Text: "Ouvrir un journal distant…", Shortcut: shortcut(walk.ModControl|walk.ModShift, walk.KeyO), OnTriggered: w.openRemoteDialog},
 				Separator{},
 				Action{Text: "Fermer l'onglet", Shortcut: shortcut(walk.ModControl, walk.KeyW), OnTriggered: func() { w.closeTab(w.strip.Active) }},
 				Action{Text: "Quitter", Shortcut: shortcut(walk.ModControl, walk.KeyQ), OnTriggered: func() { w.mw.Close() }},
@@ -185,6 +200,10 @@ func (w *window) create() error {
 			Menu{Text: "&Profils", Items: []MenuItem{
 				Action{Text: "Enregistrer sous…", Shortcut: shortcut(walk.ModControl, walk.KeyS), OnTriggered: w.saveProfile},
 				Action{Text: "Supprimer le profil courant", OnTriggered: w.deleteProfile},
+			}},
+			Menu{Text: "&Règles", Items: []MenuItem{
+				Action{Text: "Recharger le catalogue", Shortcut: shortcut(0, walk.KeyF5), OnTriggered: w.reloadRules},
+				Action{Text: "Ouvrir rules.json", OnTriggered: w.openRulesFile},
 			}},
 		},
 		Children: []Widget{
@@ -251,7 +270,11 @@ func (w *window) create() error {
 	w.side.Apply()
 	w.chips.Refresh(w.filters.TextFilters)
 	w.setFiltersPanel(w.session.FiltersVisible)
-	w.mw.Closing().Attach(func(*bool, walk.CloseReason) { w.saveSession() })
+	w.mw.Closing().Attach(func(*bool, walk.CloseReason) {
+		w.saveSession()
+		w.closeConnections()
+		w.restore.Abandon()
+	})
 	return nil
 }
 
@@ -323,22 +346,40 @@ func (w *window) openPath(path, member string) *logPane {
 		Message(w.mw, "Ouverture impossible", err.Error())
 		return nil
 	}
-	doc := logview.NewDoc(w.rules, src, followable)
-	pane, err := newLogPane(w.stack, doc, title, path, w.font(), w.detailEnabled)
+	pane, err := w.addPane(src, followable, title, path, -1, true)
 	if err != nil {
-		doc.Close()
 		Message(w.mw, "Ouverture impossible", err.Error())
 		return nil
 	}
 	pane.path, pane.member = path, member
+	return pane
+}
+
+// addPane shows a journal in a new tab at `at` (-1: at the end). In front
+// unless `foreground` is false and a tab is already looked at.
+func (w *window) addPane(src logcore.Follower, followable bool, title, location string, at int, foreground bool) (*logPane, error) {
+	doc := logview.NewDoc(w.rules, src, followable)
+	pane, err := newLogPane(w.stack, doc, title, location, w.font(), w.detailEnabled)
+	if err != nil {
+		doc.Close()
+		return nil, err
+	}
 	pane.onZoom = w.zoom
 	pane.onCopy = func(messageOnly bool) { w.reportCopy(pane.Copy(messageOnly)) }
 	pane.onChange = w.refreshStatus
-	w.strip.Insert(pane, -1)
+	front := w.current()
+	w.strip.Insert(pane, at)
+	if !foreground && front != nil {
+		for i, p := range w.strip.Items {
+			if p == front {
+				w.strip.Active = i
+			}
+		}
+	}
 	w.applyFiltersTo(pane)
 	doc.Start()
 	w.tabChanged()
-	return pane
+	return pane, nil
 }
 
 func (w *window) closeTab(i int) {
@@ -347,6 +388,7 @@ func (w *window) closeTab(i int) {
 		return
 	}
 	pane.Close()
+	delete(w.restored, pane)
 	w.tabChanged()
 }
 

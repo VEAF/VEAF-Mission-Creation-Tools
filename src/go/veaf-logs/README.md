@@ -4,8 +4,8 @@ The DCS journal viewer rewritten in Go as the same program as the Python one —
 Nothing here is shipped yet; see [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../../.backlog/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) and, for the window, [ADR 0022](../../../docs/adr/0022-ui-toolkit-for-the-go-veaf-logs.md).
 
 - `internal/logcore`: the core without UI (rule catalogue, header formats, compact index, search, filters, tail with rotation detection, crash archives). A port of `veaf_logs` (Python), which remains the reference.
-- `internal/sshlog`: SSH + SFTP connection (key, agent, `known_hosts`) and the `servers` block of `~/veafmct.yaml`; the window uses it again from J4.
-- `internal/logview`: what the window shows, without the window — the document behind a tab, the cells, the copied text, the tab strip's logic, the side panel's categories and states, the profiles and the session. Plain Go, tested.
+- `internal/sshlog`: SSH + SFTP connection (key, agent, `known_hosts`) and the `servers` block of `~/veafmct.yaml`; the window's remote journals, with the host key question.
+- `internal/logview`: what the window shows, without the window — the document behind a tab, the cells, the copied text, the tab strip's logic, the side panel's categories and states, the profiles, the session and the order in which its remote tabs come back. Plain Go, tested.
 - `internal/ui`: the window, on [walk](https://github.com/tailscale/walk) (native Win32), and `internal/ui/dark` its dark theme. Windows only.
 - `cmd/veaf-logs`: the executable; `rsrc_windows_amd64.syso` holds its manifest and icon (`go generate ./cmd/veaf-logs` rebuilds it).
 - `cmd/logdump`: indexes a journal and writes the parity dump.

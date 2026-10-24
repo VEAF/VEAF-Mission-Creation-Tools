@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -338,4 +341,144 @@ func TestLoadServersTakesTheFirstFileFound(t *testing.T) {
 	if s, err := LoadServers(missing); err != nil || s != nil {
 		t.Fatalf("no file: %v %v", s, err)
 	}
+}
+
+// knownOpts checks the server against a known_hosts file of the test, asking `ask`.
+func knownOpts(path string, ask AskHostKey) Options {
+	return Options{KnownHosts: path, Ask: ask, Agent: "-", NoDefaultKeys: true}
+}
+
+// An unknown server is asked about once: yes trusts it and writes its key,
+// after which it is known without asking; the rest of known_hosts is kept.
+func TestUnknownHostIsAskedThenRemembered(t *testing.T) {
+	keyPath, pub := writeKey(t)
+	srv := startServer(t, pub)
+	known := filepath.Join(t.TempDir(), ".ssh", "known_hosts")
+	os.MkdirAll(filepath.Dir(known), 0o700)
+	os.WriteFile(known, []byte("other.example ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBxVlI8oiaKSrPwXaPEVWN2xsGy1i4SdTzN9OJ+OWXrQ"), 0o600) // no final newline
+
+	var asked []string
+	c, err := Connect(serverFor(srv, keyPath), knownOpts(known, func(host, fp string) bool {
+		asked = append(asked, host+" "+fp)
+		return true
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Close()
+	want := "[127.0.0.1]:" + strconv.Itoa(srv.port) + " " + Fingerprint(srv.hostKey)
+	if len(asked) != 1 || asked[0] != want {
+		t.Fatalf("asked %q, want once %q", asked, want)
+	}
+	data, _ := os.ReadFile(known)
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "other.example ") || !strings.HasPrefix(lines[1], "[127.0.0.1]:") {
+		t.Fatalf("known_hosts =\n%s", data)
+	}
+
+	c, err = Connect(serverFor(srv, keyPath), knownOpts(known, func(string, string) bool {
+		t.Error("a remembered server must not be asked again")
+		return false
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Close()
+}
+
+func TestUnknownHostRefusedLeavesKnownHostsAlone(t *testing.T) {
+	keyPath, pub := writeKey(t)
+	srv := startServer(t, pub)
+	known := filepath.Join(t.TempDir(), "absent", "known_hosts")
+
+	_, err := Connect(serverFor(srv, keyPath), knownOpts(known, func(string, string) bool { return false }))
+	if err == nil || !strings.Contains(err.Error(), "refused") {
+		t.Fatalf("err = %v, want a refusal", err)
+	}
+	// No question at all (no window): refused too, never accepted silently.
+	if _, err := Connect(serverFor(srv, keyPath), knownOpts(known, nil)); err == nil {
+		t.Fatal("an unknown server with nobody to ask must be refused")
+	}
+	if _, err := os.Stat(known); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("known_hosts written after a refusal: %v", err)
+	}
+}
+
+// A known server presenting another key is refused without asking, as OpenSSH does.
+func TestChangedHostKeyIsRefusedWithoutAsking(t *testing.T) {
+	keyPath, pub := writeKey(t)
+	srv := startServer(t, pub)
+	otherPub, _, _ := ed25519.GenerateKey(rand.Reader)
+	wrong, _ := ssh.NewPublicKey(otherPub)
+	known := filepath.Join(t.TempDir(), "known_hosts")
+	os.WriteFile(known, []byte(knownhostsLine(srv.port, wrong)), 0o600)
+
+	_, err := Connect(serverFor(srv, keyPath), knownOpts(known, func(string, string) bool {
+		t.Error("a changed key must not be asked about")
+		return true
+	}))
+	if err == nil {
+		t.Fatal("a changed host key must be refused")
+	}
+}
+
+// The question waits for a person: an answer slower than the connection's
+// deadline must not make the connection fail.
+func TestAnswerSlowerThanTheDeadline(t *testing.T) {
+	saved := connectTimeout
+	connectTimeout = 300 * time.Millisecond
+	t.Cleanup(func() { connectTimeout = saved })
+	keyPath, pub := writeKey(t)
+	srv := startServer(t, pub)
+	known := filepath.Join(t.TempDir(), "known_hosts")
+
+	c, err := Connect(serverFor(srv, keyPath), knownOpts(known, func(string, string) bool {
+		time.Sleep(3 * connectTimeout)
+		return true
+	}))
+	if err != nil {
+		t.Fatalf("a slow answer broke the connection: %v", err)
+	}
+	c.Close()
+}
+
+func knownhostsLine(port int, key ssh.PublicKey) string {
+	return "[127.0.0.1]:" + strconv.Itoa(port) + " " + key.Type() + " " + base64.StdEncoding.EncodeToString(key.Marshal()) + "\n"
+}
+
+func TestFindConfig(t *testing.T) {
+	dir := t.TempDir()
+	first, second := filepath.Join(dir, "a.yaml"), filepath.Join(dir, "b.yaml")
+	if got := FindConfig(first, second); got != "" {
+		t.Fatalf("no file: %q", got)
+	}
+	os.WriteFile(second, []byte("servers:\n"), 0o644)
+	if got := FindConfig(first, second); got != second {
+		t.Fatalf("got %q, want %q", got, second)
+	}
+	if !strings.HasSuffix(DefaultConfigPath(), "veafmct.yaml") {
+		t.Fatalf("default config %q", DefaultConfigPath())
+	}
+}
+
+// A server known only under another key type (an old ssh-rsa line, the server
+// now presenting ed25519) is asked about, as paramiko does: it compares keys of
+// the same type only. Refusing would lock the viewer out with no question.
+func TestHostKnownUnderAnotherTypeIsAsked(t *testing.T) {
+	keyPath, pub := writeKey(t)
+	srv := startServer(t, pub)
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, _ := ssh.NewPublicKey(&rsaKey.PublicKey)
+	known := filepath.Join(t.TempDir(), "known_hosts")
+	os.WriteFile(known, []byte(knownhostsLine(srv.port, other)), 0o600)
+
+	asked := 0
+	c, err := Connect(serverFor(srv, keyPath), knownOpts(known, func(string, string) bool { asked++; return true }))
+	if err != nil || asked != 1 {
+		t.Fatalf("err=%v asked=%d, want a question then a connection", err, asked)
+	}
+	c.Close()
 }

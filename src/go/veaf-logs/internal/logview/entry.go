@@ -6,6 +6,8 @@ package logview
 
 import (
 	"fmt"
+	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/logcore"
@@ -24,8 +26,13 @@ const (
 // Headers are the column titles.
 var Headers = [ColumnCount]string{"Ligne", "Heure", "Niveau", "Source", "Message"}
 
-// Fixed widths of the four first columns, in pixels at 96 DPI; the message takes the rest.
+// Fixed widths of the four first columns, in pixels at 96 DPI, before the font is known.
 var FixedWidths = [ColMessage]int{68, 92, 78, 130}
+
+// FixedChars are the same columns in characters of the journal's font: a line
+// number, `11:55:01.930`, `ERROR_ONCE`, a source label with its module. They
+// follow the font, where the Python's pixel widths cut the text once it grows.
+var FixedChars = [ColMessage]int{7, 12, 10, 16}
 
 // GreyColumn is the colour of the line and time columns.
 const GreyColumn = "#6e7681"
@@ -86,6 +93,30 @@ func CellColor(rules *logcore.Rules, e logcore.Entry, col int) string {
 		return GreyColumn
 	}
 	return rules.LevelStyle(e.Level).Color
+}
+
+// HighlightSpans are the byte ranges of a text matched by any of the patterns,
+// sorted and with overlapping ranges fused (ui/delegate.py, _mark); empty
+// matches are ignored.
+func HighlightSpans(text string, patterns []*regexp.Regexp) [][2]int {
+	var spans [][2]int
+	for _, p := range patterns {
+		for _, m := range p.FindAllStringIndex(text, -1) {
+			if m[1] > m[0] {
+				spans = append(spans, [2]int{m[0], m[1]})
+			}
+		}
+	}
+	sort.Slice(spans, func(i, j int) bool { return spans[i][0] < spans[j][0] })
+	var fused [][2]int
+	for _, s := range spans {
+		if n := len(fused); n > 0 && s[0] <= fused[n-1][1] {
+			fused[n-1][1] = max(fused[n-1][1], s[1])
+		} else {
+			fused = append(fused, s)
+		}
+	}
+	return fused
 }
 
 // CopyText is what the clipboard receives for the given entries: each one

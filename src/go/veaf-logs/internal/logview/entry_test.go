@@ -1,6 +1,8 @@
 package logview
 
 import (
+	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/logcore"
@@ -77,6 +79,21 @@ func TestCellColours(t *testing.T) {
 	}
 	if CellColor(rules, veafLine, ColSource) != rules.SourceColor("veaf") {
 		t.Error("source takes the source colour")
+	}
+}
+
+func TestHighlightSpans(t *testing.T) {
+	zone := regexp.MustCompile("(?i)zone")
+	one := regexp.MustCompile("one int")
+	empty := regexp.MustCompile("x*")
+	got := HighlightSpans("VEAF zone introuvable, zone", []*regexp.Regexp{zone, one, empty})
+	// "zone" at 5–9 and "one int" at 6–13 overlap and fuse; the second "zone" stands alone.
+	want := [][2]int{{5, 13}, {23, 27}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("spans %v, want %v", got, want)
+	}
+	if HighlightSpans("nothing", []*regexp.Regexp{zone}) != nil {
+		t.Error("no match, no span")
 	}
 }
 

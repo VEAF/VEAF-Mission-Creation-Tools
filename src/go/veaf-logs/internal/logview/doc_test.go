@@ -104,6 +104,30 @@ func TestLateStackTraceReachesTheShownRow(t *testing.T) {
 	waitFor(t, "trace attached", func() bool { e, _ := d.Entry(0); return len(e.Continuation) == 2 })
 }
 
+// The table appends when rows are appended and reloads when they are replaced.
+func TestResetsCountReplacementsNotAppends(t *testing.T) {
+	d, path := localDoc(t, lineA)
+	d.Start()
+	waitFor(t, "first entry", func() bool { return d.Status().Total == 1 })
+	file, _ := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
+	file.WriteString(lineB)
+	file.Close()
+	waitFor(t, "appended", func() bool { return d.Rows() == 2 })
+	if d.Resets() != 0 {
+		t.Fatalf("an append is no reset: %d", d.Resets())
+	}
+	f := logcore.NewFilterSet()
+	f.Levels = map[string]logcore.State{"INFO": logcore.StateOff}
+	d.SetFilters(f)
+	if d.Resets() != 1 || d.Rows() != 1 {
+		t.Fatalf("new filters reload: resets %d, rows %d", d.Resets(), d.Rows())
+	}
+	d.SetFilters(logcore.NewFilterSet())
+	if d.Resets() != 2 || d.Rows() != 2 {
+		t.Fatalf("filters removed reload: resets %d, rows %d", d.Resets(), d.Rows())
+	}
+}
+
 func TestDirtyIsReportedOnce(t *testing.T) {
 	d, _ := localDoc(t, lineA)
 	d.Start()

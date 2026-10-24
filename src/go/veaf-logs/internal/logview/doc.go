@@ -37,6 +37,7 @@ type Doc struct {
 	cancelled   bool
 	unavailable bool
 	rotations   int
+	resets      int // rows replaced rather than appended: rotation, new filters, refilter
 }
 
 // NewDoc prepares the document of a journal; Start begins indexing it.
@@ -98,6 +99,7 @@ func (d *Doc) poll() {
 		last := d.store.Len() - 1
 		if rotated {
 			d.rotations++
+			d.resets++
 			d.cache = map[int]logcore.Entry{}
 			last = -1
 		}
@@ -146,6 +148,9 @@ func (d *Doc) poll() {
 // refilter recomputes the visible rows; the caller holds the lock.
 func (d *Doc) refilter() {
 	if d.filters.IsEmpty() {
+		if d.visible != nil {
+			d.resets++ // the filters were just removed: every row comes back
+		}
 		d.visible = nil
 		return
 	}
@@ -157,6 +162,7 @@ func (d *Doc) refilter() {
 		visible = []int{}
 	}
 	d.visible = visible
+	d.resets++
 }
 
 // SetFilters applies a filter set; an invalid pattern is returned and nothing changes.
@@ -251,6 +257,14 @@ func (d *Doc) Entries(rows []int) []logcore.Entry {
 		}
 	}
 	return out
+}
+
+// Resets counts the times the rows were replaced rather than appended (a
+// rotation, new filters): the table then reloads instead of appending.
+func (d *Doc) Resets() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.resets
 }
 
 // MaxMessageLength is the longest message seen, in bytes: it sizes the message column.

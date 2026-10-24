@@ -652,6 +652,9 @@ func (w *window) chooseFont() {
 
 // -- smoke mode ----------------------------------------------------------------------------
 
+// layoutSettle is how long the smoke mode waits for the side panel's layout.
+const layoutSettle = 5 * time.Second
+
 func (w *window) smokeCheck(exit *int) {
 	if w.smokeDone {
 		return // closing: the ticks queued meanwhile must not report again
@@ -679,8 +682,12 @@ func (w *window) smokeCheck(exit *int) {
 		entries += st.Total
 	}
 	if w.indexedAt == 0 {
-		// walk applies a layout by a posted message: let the panel's last refresh land before checking it
 		w.indexedAt = elapsed
+	}
+	// walk lays out in the background and applies the result by a posted
+	// message: on the CI runner the panel's last refresh had not landed one tick
+	// after the indexing (a group at its header's height). Wait for it, a while.
+	if w.side.layoutError() != nil && elapsed-w.indexedAt < layoutSettle {
 		return
 	}
 	fmt.Printf("window=%.3fs indexed=%.3fs entries=%d tabs=%d\n", w.shownAt.Seconds(), w.indexedAt.Seconds(), entries, len(w.strip.Items))

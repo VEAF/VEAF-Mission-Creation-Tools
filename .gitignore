@@ -45,6 +45,8 @@ test/veaf-tools/groups.json
 test/veaf-tools/*.miz
 dist/
 *.log
+# The Go veaf-logs executables, built in the module as its README says.
+src/go/veaf-logs/*.exe
 # The Go veaf-logs parity corpus is synthetic (gen_golden.py: no player name, no path) and the tests need it.
 !src/go/veaf-logs/testdata/corpus/*.log
 test/veaf-tools/mission-builder/built

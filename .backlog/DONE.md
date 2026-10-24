@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-VEAF-LOGS-VIEWER-DEFECTS](FIX-VEAF-LOGS-VIEWER-DEFECTS/PRD.md) · ✅
+
+Three defects of the Python `veaf-logs` found by the Go port: *Aller à la fin* had no shortcut, `^` and `$` bound to the 8 MB search block instead of the line (Go follows), and a glob starting with `*` froze the window for a minute on a 130 MB journal. Split from FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL; merged in #1177, 2026-10-24.
+
 ### [POC-GO-VEAF-LOGS](POC-GO-VEAF-LOGS/PRD.md) · ✅
 
 Proof of concept: veaf-logs rewritten in Go in an isolated module (`src/go/veaf-logs/`). Same classification as the Python viewer on every entry tested, 9.5 MB instead of 47.2 MB, window in 0.3 s instead of 2.1 s, a 130 MB journal indexed in 2.4 s instead of 13.3 s; Gio chosen for the UI (ADR 0021); remote journals over SFTP included. Memory is the one figure where Go loses. The follow-up decision is David's. Done 2026-10-24.

@@ -1,6 +1,8 @@
 # FIX-VEAF-LOGS-VIEWER-DEFECTS — three defects of the Python log viewer found by the Go port
 
-Status: 🔄 in-progress
+Status: ✅ done
+
+Merged in #1177 on 2026-10-24.
 
 Origin: measuring parity between the Python `veaf-logs` and its Go rewrite ([FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md), J1, "Found in the Python viewer, not fixed here") surfaced three user-visible defects of the shipped Python viewer, 2026-10-24.
 

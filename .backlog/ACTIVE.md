@@ -15,7 +15,7 @@ The short listing of `describe_known_limitations` drops the titles (ids, kinds, 
 
 ### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · 🧑
 
-Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, analysis — after the tail-only proof of concept missed the point. Inventory and decisions merged (#1175), J1 merged (#1176: the filter engine and the crash archives in the Go core, equal to the Python, Go tests in CI). Waiting on David's choice of toolkit, which turns on whether the dark theme must stay (ADR 0022: walk if not, Gio or miqt if so).
+Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, analysis — after the tail-only proof of concept missed the point. Inventory and decisions merged (#1175), J1 merged (#1176: the filter engine and the crash archives in the Go core, equal to the Python, Go tests in CI). Waiting on David's choice of toolkit; the dark theme is required, and walk reaches it (ADR 0022 recommends walk).
 
 ### [FEAT-FORCED-MISSION-OPTIONS](FEAT-FORCED-MISSION-OPTIONS/PRD.md) · 🧑
 

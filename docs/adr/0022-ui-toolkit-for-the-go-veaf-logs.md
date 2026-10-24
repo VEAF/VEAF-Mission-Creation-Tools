@@ -36,15 +36,40 @@ Versions: Gio v0.10.3 and `gioui.org/x` v0.10.3, Fyne v2.8.2, `tailscale/walk` 2
 | 13 | Custom modal dialog | ✓ | ◐ modal layer | ✓ | ✓ |
 | 14–16 | Clipboard, open with the default application, timers and background work | ✓ | ✓ / ◐ / ✓ | ✓ | ✓ |
 | 17 | Ctrl + mouse wheel | ◐ to confirm | ✓ | ◐ | ✓ |
-| 18 | **Dark theme** | **✗ measured**: dark title bar only; menu bar, tab strip and table header stay light, even with Windows 11's dark-mode calls; dark everywhere means owner-drawing them, the menu bar through undocumented messages | ✓ our own palette | ✓ built in | ✓ the Fusion palette of today |
+| 18 | **Dark theme** | **◐ measured, all but two dialogs**: see *Dark theme on walk* below — the whole window goes dark, partly through undocumented Windows entry points; the message box and the font chooser stay light and are to be replaced by dialogs of our own | ✓ our own palette | ✓ built in | ✓ the Fusion palette of today |
 | 19–20 | Icon and geometry; fonts chosen at runtime, metrics | ✓ GDI fonts, system fonts | ◐ / ✓ system fonts (to confirm) | ◐ fonts must be bundled TTF (to confirm) | ✓ |
 | 21 | Windows | ✓ (Windows only) | ✓ | ✓ | ✓ |
+
+## Dark theme on walk
+
+A first spike concluded the dark theme was out of reach: it only switched the title bar and set the app mode *after* creating the window.
+David questioned it; the second spike applies the whole recipe Win32 applications use (the technique of the `win32-darkmode` and dark menu bar sample projects; not re-verified against their code here), measured on Windows 11 26H2 with the system in dark mode:
+
+| Element | Result | How |
+|---|---|---|
+| Title bar | ✓ | `DwmSetWindowAttribute(DWMWA_USE_IMMERSIVE_DARK_MODE)` |
+| Drop-down menus, context menus | ✓ | `SetPreferredAppMode(ForceDark)` and `FlushMenuThemes`, **undocumented** `uxtheme` ordinals 135 and 136, called before any window exists |
+| Menu bar | ✓ | painted by us on the **undocumented** `WM_UAHDRAWMENU` / `WM_UAHDRAWMENUITEM` messages, plus the one-pixel line under it on `WM_NCPAINT` |
+| Table rows, area past the last column, scroll bars | ✓ | cell style, `LVM_SETBKCOLOR`, `DarkMode_Explorer` theme |
+| Table header | ✓ | painted by us on `WM_PAINT` (its themes keep their own text colour, and its custom-draw notifications never reached the list view's subclass: counted 0) |
+| Tabs | ✓ | a tab strip of our own, which the closable and reorderable tabs need anyway |
+| Search field, mode combo box and its drop-down list, spin box, push button | ✓ | walk's own colours, `DarkMode_CFD` / `DarkMode_Explorer`, `WM_CTLCOLORLISTBOX` for the list |
+| Detail panel, scroll panel, labels, status line | ✓ | walk's colours, `DarkMode_Explorer` for the scroll bars |
+| Progress bar | ✓ | theme removed, then `PBM_SETBARCOLOR` / `PBM_SETBKCOLOR` |
+| Open-file dialog | ✓ here | it follows the **system** theme: dark on this machine; on a Windows left in light mode it would be light (to confirm) |
+| Message box, font chooser | ✗ | light even with Windows in dark mode: replaced by dialogs of our own (a text and buttons; a list of monospaced fonts and sizes) |
+| Group box caption, the square where two scroll bars meet | ✗ small | a label instead of the group box caption; the square to paint (non-client area) |
+| Tooltips | not tested | |
+
+The dark-mode code of the spike is about 270 lines, a dead end included.
+The undocumented parts degrade, they do not break: a missing ordinal leaves the light theme, an unhandled UAH message leaves Windows' own menu bar.
+Found on the way: `GetOpenFileName` changes the process's current directory unless `OFN_NOCHANGEDIR` is passed — the spike's relative paths landed in `Documents`; the application must use absolute paths or pass the flag.
 
 ## Weight and speed
 
 | | Executable | Build | Window | Source |
 |---|---|---|---|---|
-| walk | **6.4 MB** with menus, tabs and the 1 M-row table | 1 s, incremental (cold not measured) | created 54 ms after `main` starts (not the first painted frame) | spike, 2026-10-24 |
+| walk | **6.4 MB** with menus, tabs and the 1 M-row table; **6.8 MB** with the dark theme, a detail panel, a progress bar and the side panel | 1 s, incremental (cold not measured) | created 54 ms after `main` starts (not the first painted frame) | spikes, 2026-10-24 |
 | Gio | 8.5 MB (one list); 12.3 MB for the proof-of-concept window with SFTP | 7.5 s | 0.27 s warm to a top-level window | ADR 0021 |
 | Fyne | 23.7 MB (one list) | 4 min 05 s, cgo | 0.25 s warm | ADR 0021 |
 | miqt | **at least 26.6 MB of Qt DLLs** beside the executable (`Qt6Core`, `Qt6Gui`, `Qt6Widgets`, the `qwindows` platform and a style, measured on PySide6's Qt 6, an MSVC build); one file only with a Qt rebuilt static with MinGW | not built | not measured | PySide6 install |
@@ -56,16 +81,14 @@ The window times are not measured the same way and only order the candidates rou
 
 - **Fyne is dominated.** It is neither native (it draws its own widgets) nor small (23.7 MB, a four-minute cgo build), and it misses multi-row selection, a native or multi-file open dialog, a spin box, a font chooser and tab reordering.
 - **miqt is the shortest port and the least risk**: the same widgets as the Python, so `ui/` translates almost line for line and the look is unchanged. It gives up most of the size the rewrite is for (Qt comes back: 26.6 MB of DLLs at least, a folder rather than one file unless Qt is rebuilt static), and it brings a Qt-for-MinGW toolchain to the machine and to CI.
-- **walk is the smallest and the most native**: real Windows controls, 6.4 MB with the hardest widgets in, pure Go. Its cost is the dark theme — not available for the menu bar, the tabs and the header without owner drawing, part of it through undocumented messages — and the tab close and reorder to build.
+- **walk is the smallest and the most native**: real Windows controls, 6.8 MB with the hardest widgets and the dark theme in, pure Go. Its costs: the dark theme rests partly on undocumented Windows entry points (they degrade to the light theme if they ever go), two dialogs to write ourselves, and a tab strip of our own.
 - **Gio gives full control and a dark theme for free**, at 9–12 MB, but every standard widget — menu bar, tabs, combo box, spin box, dialogs, column headers, selection — is ours to build, keyboard navigation and accessibility included. It is the largest piece of work by far.
 
 ## Decision
 
-Pending: the choice belongs to David, and it turns on one question the code cannot answer — **must the Go viewer keep the dark theme?**
-The application sets a fixed dark palette today (inventory A3); a native Windows look would follow the system's light theme instead.
-
-- If a native light look is acceptable: **walk**.
-- If the dark theme is required: **Gio** for a small binary at the price of the largest UI work, or **miqt** for the shortest port at the price of Qt's weight and toolchain.
+Pending David's choice. He set the condition on 2026-10-24: **the dark theme is required.**
+With the second spike, walk meets it, so the recommendation is **walk**: the smallest and most native binary, the dark theme measured on everything but two dialogs we write ourselves.
+The alternatives keep their price: **Gio** builds every standard widget itself; **miqt** brings Qt's weight and toolchain back.
 
 ## Consequences
 

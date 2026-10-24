@@ -10,12 +10,12 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20.
 
-### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · 🔄
-
-Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, analysis — after the tail-only proof of concept missed the point. Inventory and decisions merged (#1175, 2026-10-24); J1, toolkit-free, brings the filter engine and the crash archives to the Go core with parity against the Python reference, and runs the Go tests in CI. The toolkit (Gio, Fyne, miqt, walk) is compared next.
-
 
 ## 🧑 Waiting for a human
+
+### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · 🧑
+
+Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, analysis — after the tail-only proof of concept missed the point. Inventory and decisions merged (#1175), J1 merged (#1176: the filter engine and the crash archives in the Go core, equal to the Python, Go tests in CI). Waiting on David's choice of toolkit, which turns on whether the dark theme must stay (ADR 0022: walk if not, Gio or miqt if so).
 
 ### [FEAT-FORCED-MISSION-OPTIONS](FEAT-FORCED-MISSION-OPTIONS/PRD.md) · 🧑
 

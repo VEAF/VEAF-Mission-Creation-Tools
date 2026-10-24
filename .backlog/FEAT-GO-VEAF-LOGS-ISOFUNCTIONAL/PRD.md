@@ -1,6 +1,6 @@
 # FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL — rewrite veaf-logs in Go, the same program
 
-Status: 🔄 in-progress — J1 (filter engine, archives, Go tests in CI) under review
+Status: 🧑 waiting-human — J1 merged (#1176); David chooses the toolkit (ADR 0022)
 
 Origin: David, 2026-10-24.
 The first Go proof of concept (POC-GO-VEAF-LOGS, #1173 and #1174) delivered a Go core identical to the Python one, plus a minimal Gio window that is only a tail with a search.
@@ -257,9 +257,10 @@ The UI above needs, whatever the toolkit:
 
 | # | Ticket | Milestone | Status |
 |---|--------|-----------|--------|
-| 01 | [The filter engine of `filters.py`, in the Go core](tickets/01-filter-engine.md) | J1 | 🔄 |
-| 02 | [DCS crash archives (`.zip`) in the Go core](tickets/02-zip-archives.md) | J1 | 🔄 |
-| 03 | [The Go parity tests run in CI, on a checkout that has the corpus](tickets/03-go-tests-in-ci.md) | J1 | 🔄 |
+| 01 | [The filter engine of `filters.py`, in the Go core](tickets/01-filter-engine.md) | J1 | ✅ |
+| 02 | [DCS crash archives (`.zip`) in the Go core](tickets/02-zip-archives.md) | J1 | ✅ |
+| 03 | [The Go parity tests run in CI, on a checkout that has the corpus](tickets/03-go-tests-in-ci.md) | J1 | ✅ |
+| 04 | [Compare the toolkits on the 21 needs, and choose](tickets/04-toolkit-comparison.md) | before J2 | 🧑 |
 
 ## J1 — what was measured
 

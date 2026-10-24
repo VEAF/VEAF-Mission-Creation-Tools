@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-LOGS-SEARCH-REDACTION](FIX-LOGS-SEARCH-REDACTION/PRD.md) · ✅
+
+The search criteria the excerpt's header repeats went to the VEAF Worker as typed, unredacted, when *Analyser en ligne* was pressed: they are now redacted like the records. Found by a security review of the Go port's J5, fixed on both sides.
+
 ### [FIX-VEAF-LOGS-VIEWER-DEFECTS](FIX-VEAF-LOGS-VIEWER-DEFECTS/PRD.md) · ✅
 
 Three defects of the Python `veaf-logs` found by the Go port: *Aller à la fin* had no shortcut, `^` and `$` bound to the 8 MB search block instead of the line (Go follows), and a glob starting with `*` froze the window for a minute on a 130 MB journal. Split from FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL; merged in #1177, 2026-10-24.

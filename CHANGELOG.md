@@ -45,6 +45,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **"No clear-ground catalogue covers this place" says what the catalogue covers** (FIX-DEMO-VIDEO-FINDINGS 12): two AI runs read it as "this theatre has no catalogue".
 - **The guide says the UH-1H's only preset radio is UHF** (FIX-DEMO-VIDEO-FINDINGS 02): a VHF channel such as 123.5 MHz is dropped for it, as the packer's message says.
 - **`veaf-logs`: three defects found by the Go port** (FIX-VEAF-LOGS-VIEWER-DEFECTS): *Aller à la fin* gets its Ctrl+End shortcut (the code declared `Ctrl+Fin`, which Qt does not read); in a regex, `^` and `$` bind to each line instead of the 8 MB block the search scans, so `^2026` no longer keeps only the first entry of each block — the Go engine follows; a glob starting with `*` no longer freezes the window, `*error*lua*` going from 61 s to 1 s on a 130 MB journal for the same entries.
+- **The search sent to the online analysis is redacted** (FIX-LOGS-SEARCH-REDACTION): `veaf-logs` repeated the search criteria in the excerpt's header as typed, and *Analyser en ligne* sent that header to the VEAF Worker as it stood — an address or a path typed in the search field left the machine in clear. The `/bug` report was not affected.
 
 ## [6.31.4] — 2026-10-22
 

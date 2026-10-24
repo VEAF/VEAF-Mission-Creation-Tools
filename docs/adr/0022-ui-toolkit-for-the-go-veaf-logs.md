@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # The UI toolkit of the Go `veaf-logs`, chosen on what the application needs
@@ -86,10 +86,16 @@ The window times are not measured the same way and only order the candidates rou
 
 ## Decision
 
-Pending David's choice. He set the condition on 2026-10-24: **the dark theme is required.**
-With the second spike, walk meets it, so the recommendation is **walk**: the smallest and most native binary, the dark theme measured on everything but two dialogs we write ourselves.
-The alternatives keep their price: **Gio** builds every standard widget itself; **miqt** brings Qt's weight and toolchain back.
+**walk** (`tailscale/walk`), decided by David on 2026-10-24 after running the second spike: "the concept looks proven" — the spike's layout was rough, the dark theme was what it had to show.
+He had set the condition first: the dark theme is required. walk meets it, with the smallest and most native binary; **Gio** would build every standard widget itself, **miqt** would bring Qt's weight and toolchain back.
+This supersedes [ADR 0021](0021-gio-for-the-go-veaf-logs-proof-of-concept.md).
 
 ## Consequences
 
-To be written with the decision.
+- **Windows only, and so is its CI.** walk builds on Windows alone, so the window's packages carry no other target and the `Go CI` job that compiles them runs on a Windows runner; the core (`internal/logcore`, `internal/sshlog`) stays portable and keeps its tests wherever they run today.
+- **The Gio window of the proof of concept goes.** `cmd/veaf-logs` is rewritten on walk, and the Gio dependencies and their Linux build packages leave the module and the workflow.
+- **A dark-theme layer of our own**, in one place: the app mode set before any window, the dark title bar, the themes per control, the menu bar on the UAH messages, the header painted on `WM_PAINT`, the combo box list on `WM_CTLCOLORLISTBOX`. Every undocumented entry point is looked up at run time and skipped when absent, so a Windows that drops one shows the light theme rather than failing.
+- **Widgets of our own** where Win32 has none or cannot be darkened: the tab strip (closable, reorderable), the three-state category buttons, the message box, the font chooser, the text prompt and the list chooser.
+- **Absolute paths everywhere**, or `OFN_NOCHANGEDIR` on the open dialog: `GetOpenFileName` otherwise moves the process's current directory.
+- **The manifest resource** (`rsrc.syso`, common controls v6 and DPI awareness) is generated and committed with the window: walk needs it to start.
+- **Not settled by the spikes, to check in J2:** tooltips in dark, the square where two scroll bars meet, and the open dialog on a Windows left in light mode.

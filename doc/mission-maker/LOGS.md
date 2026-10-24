@@ -135,6 +135,8 @@ Trois modes, au choix dans la liste déroulante :
 | Jokers | littéral | jokers | `No taxiroad*Batumi*` |
 | Regex | joker | quantificateurs | `VEAF\|[WE]\|` |
 
+En regex, `^` et `$` désignent le début et la fin d'une ligne.
+
 `≠` inverse le critère, `Aa` respecte la casse. **Ajouter au filtre** empile le
 critère courant : les filtres se cumulent et s'affichent en pastilles retirables
 d'un clic.
@@ -349,6 +351,7 @@ reste utilisable.
 | `Ctrl+Maj+C` | copier sans l'en-tête DCS |
 | `Ctrl+A` | tout sélectionner |
 | `F` | suivre la fin du fichier / mettre en pause |
+| `Ctrl+Fin` | aller à la fin |
 | `Ctrl+R` | tout afficher |
 | `Ctrl+S` | enregistrer le profil |
 | `Ctrl++` / `Ctrl+-` | agrandir / réduire la police |

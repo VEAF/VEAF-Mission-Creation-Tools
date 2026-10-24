@@ -204,8 +204,8 @@ def main() -> None:
 
 
 # Patterns chosen against the corpus: literals, wildcards, classes, alternation,
-# the anchors (`^` binds to the start of a search block, `$` also matches before
-# the block's final newline), and an invalid regex. ASCII only: on non-ASCII
+# the anchors (`^` and `$` bind to each line, not to the search block), and an
+# invalid regex. ASCII only: on non-ASCII
 # text Python's bytes IGNORECASE and Go's (?i) do not fold the same way, a
 # divergence pinned by a test of its own rather than hidden in the parity.
 TEXT_CASES = [
@@ -217,6 +217,7 @@ TEXT_CASES = [
     ("[CTLD]", "plain"),
     ("VEAF*W*", "glob"),
     ("*.lua", "glob"),
+    ("*error*lua*", "glob"),
     ("?ission", "glob"),
     ("CSAR.lua", "glob"),
     (r"VEAF\|[WE]\|", "regex"),
@@ -227,7 +228,7 @@ TEXT_CASES = [
     ("^=== Log", "regex"),
     (r"\.$", "regex"),
     ("2$", "regex"),
-    # Always matches the block's last line in Python: the case that proves the `$` rewrite is needed.
+    # Every line that is not empty: `$` binds to each line end, not only to the block's last one.
     (".$", "regex"),
     ("x*", "regex"),
     # Across a line inside an entry, and across two entries: a match the line-by-line shortcut cannot see.

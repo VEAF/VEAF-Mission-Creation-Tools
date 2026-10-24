@@ -116,11 +116,21 @@ def pattern_source(pattern: str, mode: Mode) -> str:
     return pattern
 
 
+def _flags(case_sensitive: bool) -> int:
+    """`^` et `$` designent le debut et la fin d'une ligne.
+
+    Sans `MULTILINE`, la recherche — qui balaie le journal par blocs de
+    plusieurs megaoctets — ancrait `^` au debut du bloc : seule la premiere
+    entree de chaque bloc pouvait correspondre.
+    """
+    return re.MULTILINE if case_sensitive else re.MULTILINE | re.IGNORECASE
+
+
 def compile_pattern(pattern: str, mode: Mode, case_sensitive: bool = False) -> re.Pattern | None:
     """Compile un motif selon le mode. Rend None si le motif est vide."""
     if not pattern:
         return None
-    flags = 0 if case_sensitive else re.IGNORECASE
+    flags = _flags(case_sensitive)
     try:
         return re.compile(pattern_source(pattern, mode), flags)
     except re.error as exc:
@@ -132,10 +142,19 @@ def compile_pattern_bytes(pattern: str, mode: Mode, case_sensitive: bool = False
 
     Les journaux DCS sont de l'ASCII ; `IGNORECASE` ne vaut donc que pour
     l'ASCII, ce qui est sans consequence ici.
+
+    Les `*` de tete et de queue d'un motif a jokers sont retires : un motif a
+    jokers n'a pas d'ancre et `.*` ne franchit pas une fin de ligne, donc il
+    retient les memes lignes, et partant les memes entrees. Un `.*` de tete,
+    lui, est retente depuis chaque position de chaque ligne : `*error*lua*`
+    figeait la fenetre pres d'une minute sur un journal de 130 Mo. Le
+    surlignage, qui passe par `compile_pattern`, n'est pas touche.
     """
     if not pattern:
         return None
-    flags = 0 if case_sensitive else re.IGNORECASE
+    if Mode(mode) is Mode.GLOB:
+        pattern = pattern.strip("*") or pattern
+    flags = _flags(case_sensitive)
     try:
         return re.compile(pattern_source(pattern, mode).encode("utf-8"), flags)
     except (re.error, UnicodeEncodeError) as exc:

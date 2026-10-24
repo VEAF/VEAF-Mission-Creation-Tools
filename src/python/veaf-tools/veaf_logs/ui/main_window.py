@@ -586,7 +586,7 @@ class MainWindow(QMainWindow):
         view = self.menuBar().addMenu("&Affichage")
         self.action_follow = self._action(view, "Suivre la fin du fichier", "F", self.toggle_follow, checkable=True)
         self.action_follow.setChecked(True)
-        self._action(view, "Aller a la fin", "Ctrl+Fin", self.scroll_to_end)
+        self._action(view, "Aller a la fin", "Ctrl+End", self.scroll_to_end)
         view.addSeparator()
         self._action(view, "Police…", None, self.choose_font)
         agrandir = self._action(view, "Agrandir", QKeySequence.StandardKey.ZoomIn, lambda: self.zoom(1))

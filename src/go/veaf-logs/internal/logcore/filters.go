@@ -120,29 +120,13 @@ func CompilePattern(pattern string, mode Mode, caseSensitive bool) (*regexp.Rege
 	return re, nil
 }
 
+// flagged adds the flags Python compiles with: `^` and `$` bind to lines,
+// not to the block being scanned, and case is ignored unless asked otherwise.
 func flagged(expr string, caseSensitive bool) string {
 	if caseSensitive {
-		return expr
+		return "(?m)" + expr
 	}
-	return "(?i)" + expr
-}
-
-// pythonDollar rewrites a regex to run over a block of the journal the way
-// Python runs a bytes pattern over the block: a `$` outside multi-line mode
-// also matches before the block's final newline. The rewrite only lets the
-// match consume that newline; where it starts, which is what decides the entry,
-// does not move.
-func pythonDollar(re *syntax.Regexp) *syntax.Regexp {
-	if re.Op == syntax.OpEndText && re.Flags&syntax.WasDollar != 0 {
-		newline := &syntax.Regexp{Op: syntax.OpLiteral, Rune: []rune{'\n'}, Flags: re.Flags &^ syntax.WasDollar}
-		optional := &syntax.Regexp{Op: syntax.OpQuest, Sub: []*syntax.Regexp{newline}, Flags: re.Flags &^ syntax.WasDollar}
-		end := &syntax.Regexp{Op: syntax.OpEndText, Flags: re.Flags &^ syntax.WasDollar}
-		return &syntax.Regexp{Op: syntax.OpConcat, Sub: []*syntax.Regexp{optional, end}, Flags: re.Flags &^ syntax.WasDollar}
-	}
-	for i, sub := range re.Sub {
-		re.Sub[i] = pythonDollar(sub)
-	}
-	return re
+	return "(?mi)" + expr
 }
 
 // TextFilter is one text criterion.
@@ -656,10 +640,9 @@ func stateOf(table map[string]State, key string) State {
 }
 
 // applyText narrows kept to the entries satisfying one criterion. The journal
-// is scanned in the same blocks as Python's `iter_blocks` — a `^` anchors to
-// the start of a block on both sides — and each match is brought back to its
-// entry: entries cover the file without gaps, so a match inside a stack trace
-// designates the error that carries it.
+// is scanned in the same blocks as Python's `iter_blocks` and each match is
+// brought back to its entry: entries cover the file without gaps, so a match
+// inside a stack trace designates the error that carries it.
 func applyText(store *Store, kept []bool, t TextFilter) error {
 	m, err := newTextMatcher(t)
 	if err != nil {
@@ -723,7 +706,7 @@ func newTextMatcher(t TextFilter) (*textMatcher, error) {
 			return &textMatcher{fold: fold, lits: lits, line: line}, nil
 		}
 	}
-	stream, err := newPattern(pythonDollar(tree).String())
+	stream, err := newPattern(source)
 	if err != nil {
 		return nil, &PatternError{Msg: err.Error()}
 	}

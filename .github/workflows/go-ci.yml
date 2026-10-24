@@ -48,9 +48,12 @@ jobs:
     name: Go vet, tests and parity
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
-    runs-on: ubuntu-latest
+    # The window is walk, native Win32 (ADR 0022): it builds on Windows only, so the whole module is
+    # vetted and tested there; the core is portable and loses nothing by it.
+    runs-on: windows-latest
     defaults:
       run:
+        shell: bash
         working-directory: src/go/veaf-logs
     steps:
       - uses: actions/checkout@v5
@@ -60,11 +63,7 @@ jobs:
           go-version-file: src/go/veaf-logs/go.mod
           cache-dependency-path: src/go/veaf-logs/go.sum
 
-      # The window (Gio) needs the X11/Wayland and GL headers to compile, even for `go vet`. Gio's own
-      # list names libgles2-mesa-dev and libegl1-mesa-dev, transitional packages; these are their targets.
-      - name: Install the Gio build dependencies
-        run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev libgles-dev libegl-dev libffi-dev libxcursor-dev libvulkan-dev
-
+      # `.gitattributes` checks the sources out with LF on Windows too, so gofmt sees what it wrote.
       - name: Format (gofmt)
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
 
@@ -73,6 +72,13 @@ jobs:
 
       - name: Tests, parity with the Python reference included
         run: go test ./...
+
+      # The built executable opens a journal, waits for its index and exits: the window starts, the
+      # dark theme and the manifest resource included. A console build, so its timings reach the log.
+      - name: Smoke test of the window
+        run: |
+          go build -o veaf-logs-smoke.exe ./cmd/veaf-logs
+          timeout 120 ./veaf-logs-smoke.exe --smoke testdata/corpus/mixed.log
 
   goldens:
     name: Goldens match the Python reference

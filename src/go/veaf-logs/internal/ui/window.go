@@ -55,6 +55,8 @@ type window struct {
 	detailEnabled bool
 
 	opts       Options
+	smokeDone  bool
+	closing    time.Time // when the smoke mode asked the window to close
 	shownAt    time.Duration
 	msgVersion int
 }
@@ -109,6 +111,9 @@ func Run(opts Options) int {
 		}
 	}()
 	app.Run()
+	if !w.closing.IsZero() {
+		fmt.Printf("closed=%.3fs\n", time.Since(w.closing).Seconds())
+	}
 	close(stop)
 	for _, p := range w.strip.Items {
 		p.doc.Close()
@@ -448,6 +453,9 @@ func (w *window) chooseFont() {
 // -- smoke mode ----------------------------------------------------------------------------
 
 func (w *window) smokeCheck(exit *int) {
+	if w.smokeDone {
+		return // closing: the ticks queued meanwhile must not report again
+	}
 	elapsed := time.Since(w.opts.Start)
 	if len(w.strip.Items) == 0 {
 		fmt.Fprintln(os.Stderr, "smoke: no tab opened")
@@ -469,5 +477,6 @@ func (w *window) smokeCheck(exit *int) {
 		entries += st.Total
 	}
 	fmt.Printf("window=%.3fs indexed=%.3fs entries=%d tabs=%d\n", w.shownAt.Seconds(), elapsed.Seconds(), entries, len(w.strip.Items))
+	w.smokeDone, w.closing = true, time.Now()
 	w.mw.Close()
 }

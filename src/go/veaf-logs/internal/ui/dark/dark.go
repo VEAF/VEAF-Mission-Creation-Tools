@@ -341,8 +341,9 @@ func headerProc(font func() win.HFONT) Proc {
 
 // -- other controls ------------------------------------------------------------------
 
-// ListColors answers WM_CTLCOLORLISTBOX for a window: a combo box (its
-// drop-down list asks through it) or a dialog holding a list box.
+// ListColors answers WM_CTLCOLORLISTBOX for a combo box: its drop-down list
+// asks through it (measured in the spike). A walk list box's own request never
+// reached a subclass of its parent, so the dialogs use a table instead.
 func ListColors(hwnd win.HWND) {
 	Subclass(hwnd, func(_ win.HWND, msg uint32, wp, _ uintptr) (uintptr, bool) {
 		if msg == 0x0134 { // WM_CTLCOLORLISTBOX

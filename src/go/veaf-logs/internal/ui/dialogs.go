@@ -29,12 +29,6 @@ func darkenDialog(dlg *walk.Dialog) {
 			dark.Theme(h, "DarkMode_Explorer")
 		case "Edit":
 			dark.Theme(h, "DarkMode_CFD")
-		case "ComboBox":
-			dark.Theme(h, "DarkMode_CFD")
-			dark.ListColors(h)
-		case "ListBox":
-			dark.Theme(h, "DarkMode_Explorer")
-			dark.ListColors(win.GetParent(h))
 		}
 	}
 }
@@ -63,19 +57,62 @@ func Message(owner walk.Form, title, text string) {
 	dlg.Run()
 }
 
+// darkList is a one-column list for the dialogs. A Win32 list box would not
+// take its colours (its WM_CTLCOLORLISTBOX never reached our subclass), so it
+// is a table without header, darkened like the journal's.
+type darkList struct {
+	walk.TableModelBase
+	items     []string
+	tv        *walk.TableView
+	listViews []win.HWND
+}
+
+func (l *darkList) RowCount() int                { return len(l.items) }
+func (l *darkList) Value(row, _ int) interface{} { return l.items[row] }
+func (l *darkList) declare(onChange, onActivate func()) TableView {
+	return TableView{
+		AssignTo: &l.tv, Model: l, HeaderHidden: true, LastColumnStretched: true,
+		Columns: []TableViewColumn{{Title: ""}},
+		StyleCell: func(s *walk.CellStyle) {
+			s.BackgroundColor, s.TextColor = dark.Alternate, dark.Text
+			if len(l.listViews) > 0 && win.SendMessage(l.listViews[0], win.LVM_GETITEMSTATE, uintptr(s.Row()), win.LVIS_SELECTED)&win.LVIS_SELECTED != 0 {
+				s.BackgroundColor, s.TextColor = dark.Highlight, walk.RGB(0xff, 0xff, 0xff)
+			}
+		},
+		OnCurrentIndexChanged: onChange,
+		OnItemActivated:       onActivate,
+	}
+}
+
+// darken finishes the list once created, and selects `current`.
+func (l *darkList) darken(current int) {
+	dark.Table(l.tv.Handle(), nil)
+	dark.NoEdge(l.tv.Handle())
+	for _, h := range dark.Children(l.tv.Handle()) {
+		if dark.ClassName(h) == "SysListView32" {
+			l.listViews = append(l.listViews, h)
+			win.SendMessage(h, 0x1001 /* LVM_SETBKCOLOR */, 0, uintptr(dark.Alternate))
+		}
+	}
+	if current >= 0 && current < len(l.items) {
+		l.tv.SetCurrentIndex(current)
+		l.tv.EnsureItemVisible(current)
+	}
+}
+
 // ChooseItem asks for one item of a list; false when cancelled. It is how an
 // archive holding several logs asks which one to open.
 func ChooseItem(owner walk.Form, title, label string, items []string) (int, bool) {
 	var dlg *walk.Dialog
-	var list *walk.ListBox
 	var ok, cancel *walk.PushButton
+	list := &darkList{items: items}
 	err := Dialog{
 		AssignTo: &dlg, Title: title, DefaultButton: &ok, CancelButton: &cancel,
 		MinSize: Size{Width: 420, Height: 260}, Background: SolidColorBrush{Color: dark.Window},
 		Layout: VBox{Margins: Margins{Left: 12, Top: 12, Right: 12, Bottom: 12}},
 		Children: []Widget{
 			Label{Text: label, TextColor: dark.Text},
-			ListBox{AssignTo: &list, Model: items, CurrentIndex: 0, OnItemActivated: func() { dlg.Accept() }},
+			list.declare(nil, func() { dlg.Accept() }),
 			Composite{Layout: HBox{MarginsZero: true}, Children: []Widget{
 				HSpacer{},
 				PushButton{AssignTo: &ok, Text: "OK", OnClicked: func() { dlg.Accept() }},
@@ -87,39 +124,43 @@ func ChooseItem(owner walk.Form, title, label string, items []string) (int, bool
 		return 0, false
 	}
 	darkenDialog(dlg)
-	if dlg.Run() != walk.DlgCmdOK || list.CurrentIndex() < 0 {
+	list.darken(0)
+	if dlg.Run() != walk.DlgCmdOK || list.tv.CurrentIndex() < 0 {
 		return 0, false
 	}
-	return list.CurrentIndex(), true
+	return list.tv.CurrentIndex(), true
 }
 
 // ChooseFont asks for a monospaced font and a size; false when cancelled.
 func ChooseFont(owner walk.Form, family string, size int) (string, int, bool) {
 	families := monospacedFamilies()
+	if len(families) == 0 {
+		return family, size, false
+	}
 	current := sort.SearchStrings(families, family)
 	if current >= len(families) || families[current] != family {
 		current = 0
 	}
 	var dlg *walk.Dialog
-	var list *walk.ListBox
 	var sizeEdit *walk.NumberEdit
 	var sample *walk.Label
 	var ok, cancel *walk.PushButton
+	list := &darkList{items: families}
 	update := func() {
-		if list == nil || sizeEdit == nil || sample == nil || list.CurrentIndex() < 0 {
+		if list.tv == nil || sizeEdit == nil || sample == nil || list.tv.CurrentIndex() < 0 {
 			return
 		}
-		if f, err := walk.NewFont(families[list.CurrentIndex()], int(sizeEdit.Value()), 0); err == nil {
+		if f, err := walk.NewFont(families[list.tv.CurrentIndex()], int(sizeEdit.Value()), 0); err == nil {
 			sample.SetFont(f)
 		}
 	}
 	err := Dialog{
 		AssignTo: &dlg, Title: "Police du journal", DefaultButton: &ok, CancelButton: &cancel,
-		MinSize: Size{Width: 460, Height: 420}, Background: SolidColorBrush{Color: dark.Window},
+		MinSize: Size{Width: 460, Height: 440}, Background: SolidColorBrush{Color: dark.Window},
 		Layout: VBox{Margins: Margins{Left: 12, Top: 12, Right: 12, Bottom: 12}},
 		Children: []Widget{
 			Label{Text: "Police (à chasse fixe) :", TextColor: dark.Text},
-			ListBox{AssignTo: &list, Model: families, CurrentIndex: current, OnCurrentIndexChanged: update, OnItemActivated: func() { dlg.Accept() }},
+			list.declare(update, func() { dlg.Accept() }),
 			Composite{Layout: HBox{MarginsZero: true}, Children: []Widget{
 				Label{Text: "Taille :", TextColor: dark.Text},
 				NumberEdit{AssignTo: &sizeEdit, Value: float64(size), MinValue: logview.MinFontSize, MaxValue: logview.MaxFontSize, Suffix: " pt", OnValueChanged: update, TextColor: dark.Text},
@@ -133,16 +174,17 @@ func ChooseFont(owner walk.Form, family string, size int) (string, int, bool) {
 			}},
 		},
 	}.Create(owner)
-	if err != nil || len(families) == 0 {
+	if err != nil {
 		return family, size, false
 	}
 	sizeEdit.SetBackground(dark.WalkBrush(dark.Alternate))
 	darkenDialog(dlg)
+	list.darken(current)
 	update()
-	if dlg.Run() != walk.DlgCmdOK || list.CurrentIndex() < 0 {
+	if dlg.Run() != walk.DlgCmdOK || list.tv.CurrentIndex() < 0 {
 		return family, size, false
 	}
-	return families[list.CurrentIndex()], logview.ClampFontSize(int(sizeEdit.Value())), true
+	return families[list.tv.CurrentIndex()], logview.ClampFontSize(int(sizeEdit.Value())), true
 }
 
 // -- the monospaced fonts installed ---------------------------------------------

@@ -220,11 +220,17 @@ func (v *viewer) startSearch(needle string) {
 		v.mu.Lock()
 		snap := v.store.Snapshot()
 		v.mu.Unlock()
+		upTo := snap.Len()
 		hits := snap.Search(needle, func() bool { return v.searchGen.Load() != gen })
-		if v.searchGen.Load() != gen {
+		v.mu.Lock()
+		if v.searchGen.Load() != gen || upTo > v.store.Len() {
+			// Superseded by a newer search, or the file rotated meanwhile.
+			v.mu.Unlock()
 			return
 		}
-		v.mu.Lock()
+		// The journal kept growing while the snapshot was searched, and
+		// extendSearch skips while a search runs: take the entries added since.
+		hits = append(hits, v.store.SearchFrom(needle, upTo, nil)...)
 		v.view, v.filtered, v.searching, v.searchTook = hits, true, false, time.Since(t0)
 		v.cache = map[int]logcore.Entry{}
 		v.mu.Unlock()
@@ -236,7 +242,7 @@ func (v *viewer) startSearch(needle string) {
 func (v *viewer) extendSearch(needle string, from int) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	if !v.filtered {
+	if !v.filtered || v.searching {
 		return
 	}
 	v.view = append(v.view, v.store.SearchFrom(needle, from, nil)...)

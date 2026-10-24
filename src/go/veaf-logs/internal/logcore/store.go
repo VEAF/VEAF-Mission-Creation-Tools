@@ -89,6 +89,7 @@ func (s *Store) IndexNew(maxBytes int64) int {
 	if size <= s.cursor {
 		return 0
 	}
+	total := size
 	if maxBytes > 0 && size > s.cursor+maxBytes {
 		size = s.cursor + maxBytes
 	}
@@ -101,6 +102,16 @@ func (s *Store) IndexNew(maxBytes int64) int {
 		}
 		data := s.buffer.Slice(base, n)
 		cut := bytes.LastIndexByte(data, '\n')
+		if cut < 0 && base+n < total {
+			// A line longer than the slice: maxBytes bounds the work of a call, it
+			// must not stop a long line from being read (up to one chunk, as in Python).
+			n = total - base
+			if n > indexChunk {
+				n = indexChunk
+			}
+			data = s.buffer.Slice(base, n)
+			cut = bytes.LastIndexByte(data, '\n')
+		}
 		if cut < 0 {
 			break
 		}

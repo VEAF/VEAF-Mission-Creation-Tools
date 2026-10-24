@@ -6,10 +6,14 @@ import (
 )
 
 // Snapshot returns a read-only view of the entries indexed so far, usable by
-// Search while the live store keeps growing: the parallel arrays are
-// append-only, so a copy of their headers does not see later appends.
+// Search while the live store keeps growing. The offsets never change once
+// appended, but the length of the last entry grows in place when a continuation
+// line arrives: it is copied, or the search would read it while the indexer writes it.
 func (s *Store) Snapshot() *Store {
-	return &Store{buffer: s.buffer, offset: s.offset[:len(s.offset):len(s.offset)], length: s.length[:len(s.length):len(s.length)]}
+	n := len(s.offset)
+	length := make([]uint32, n)
+	copy(length, s.length)
+	return &Store{buffer: s.buffer, offset: s.offset[:n:n], length: length}
 }
 
 const searchChunk = 8 << 20

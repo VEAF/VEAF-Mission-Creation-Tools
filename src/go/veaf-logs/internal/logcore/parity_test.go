@@ -139,3 +139,41 @@ func TestEmbeddedRulesAreThePythonOnes(t *testing.T) {
 		t.Fatal("internal/logcore/rules.json differs from veaf_logs/rules.json: copy it again")
 	}
 }
+
+// maxBytes bounds the work of one call, not what it can read: a line longer
+// than the slice must still be indexed (the viewer indexes in 1 MB slices, the
+// Python reads 8 MB chunks).
+func TestIndexNewReadsALineLongerThanTheSlice(t *testing.T) {
+	rules := loadRules(t)
+	long := "2026-08-31 11:50:40.872 INFO    APP (Main): " + strings.Repeat("x", 3<<20) + "\n"
+	buf := &BytesBuffer{Data: []byte(long + "2026-08-31 11:50:41.000 INFO    APP (Main): after\n")}
+	store := NewStore(rules, buf)
+	for i := 0; i < 20 && store.IndexedBytes() < buf.Size(); i++ {
+		store.IndexNew(1 << 20)
+	}
+	if store.Len() != 2 || store.IndexedBytes() != buf.Size() {
+		t.Fatalf("entries=%d indexed=%d of %d: indexing stalled on the long line", store.Len(), store.IndexedBytes(), buf.Size())
+	}
+}
+
+// A snapshot must not see a continuation line added to the last entry later:
+// the live index grows that entry in place while a search reads the snapshot.
+func TestSnapshotIsIsolatedFromLaterContinuations(t *testing.T) {
+	rules := loadRules(t)
+	buf := &BytesBuffer{Data: []byte("2026-08-31 11:50:40.872 ERROR   APP (Main): head\nfirst\n")}
+	store := NewStore(rules, buf)
+	store.IndexNew(0)
+	snap := store.Snapshot()
+	before := snap.length[0]
+	buf.Data = append(buf.Data, []byte("stack traceback:\n")...)
+	store.IndexNew(0)
+	if store.length[0] == before {
+		t.Fatal("test premise: the live entry should have grown")
+	}
+	if snap.length[0] != before {
+		t.Fatalf("snapshot length changed from %d to %d", before, snap.length[0])
+	}
+	if got := snap.Search("traceback", nil); len(got) != 0 {
+		t.Fatalf("the snapshot found text added after it was taken: %v", got)
+	}
+}

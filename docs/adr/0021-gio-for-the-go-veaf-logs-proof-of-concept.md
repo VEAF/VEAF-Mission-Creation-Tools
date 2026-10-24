@@ -27,7 +27,7 @@ Each toolkit got the same minimal program: a window with a virtualised list of 1
 Limits of this table, stated so that nobody reads more into it than it holds:
 
 - "Window visible" is the moment the process owns a top-level window, not the first painted frame; it is comparable between Gio and Fyne, not with WebView2.
-- Fyne scrolling and a real Wails build were not measured: Fyne because the size and the cgo build already ruled it out for a binary meant to be built in CI on three platforms, Wails because it needs the frontend toolchain (node) and a second language.
+- Fyne scrolling and a real Wails build were not measured: Fyne because its size and its four-minute cgo build were enough to rule it out for this use, Wails because it needs the frontend toolchain (node) and a second language.
 - Gio's figure comes from the spike; the real window (below) scrolls at 0.7 ms/frame including the GPU frame.
 
 ## Decision
@@ -62,11 +62,11 @@ Memory is the one figure where Go loses; its cause was not investigated.
 - **Gio pitfall:** scrolling a list before its first layout made the first frame take over ten seconds at 100 000 rows (measured; cause not investigated).
   The application never scrolls before the first layout; `ScrollToEnd` is safe.
 - **`rules.json` stays the single source.** The Go module embeds a copy, and `TestEmbeddedRulesAreThePythonOnes` fails as soon as the two differ.
-- **Nothing ships.** The module is not built by `release.yml` and the Python viewer is untouched.
+- **Nothing ships, and nothing runs it.** The module is not built by `release.yml`, the Python viewer is untouched, and no workflow runs the Go tests yet: the guard on the `rules.json` copy and the parity test only protect anyone who runs `go test`. A CI job (path-filtered, like the others) is part of any follow-up that keeps the module.
 - **Not done by the proof of concept:** remote journals over SFTP, `analysis`, `report`, `proposals`, `excerpt`, the filters beyond a plain text search (glob and regex modes, tri-state categories, context lines), Linux and macOS builds of the window.
 
 ## Alternatives considered
 
 - **Fyne:** works, but 23.7 MB, a four-minute cgo build, and no advantage for this use.
-- **Wails:** the smallest binary, and the only option with a native-feeling text rendering for free, but it makes the project two-language and relies on an installed runtime.
+- **Wails:** the smallest binary of the three (3.1 MB for the stand-in), but it makes the project two-language and relies on an installed runtime.
 - **Not doing it:** a valid outcome; the numbers above are what it would give up.

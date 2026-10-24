@@ -267,6 +267,21 @@ func (d *Doc) Resets() int {
 	return d.resets
 }
 
+// Counts are the side panel's counters for this journal.
+type Counts struct {
+	Levels      map[string]int
+	Sources     map[string]int
+	SourceOrder []string // first appearance: breaks ties between equal counts
+	Noise       map[string]int
+}
+
+// Counts reads the counters per level, source and noise family.
+func (d *Doc) Counts() Counts {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return Counts{Levels: d.store.CountsByLevel(), Sources: d.store.CountsBySource(), SourceOrder: d.store.SourceOrder(), Noise: d.store.CountsByNoise()}
+}
+
 // MaxMessageLength is the longest message seen, in bytes: it sizes the message column.
 func (d *Doc) MaxMessageLength() int {
 	d.mu.Lock()

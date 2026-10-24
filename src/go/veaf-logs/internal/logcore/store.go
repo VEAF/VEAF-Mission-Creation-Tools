@@ -59,6 +59,9 @@ type Store struct {
 	byLevel  map[string]int
 	bySource map[string]int
 	byNoise  map[string]int
+	// sourceOrder is the order sources first appeared in: the Python's counts
+	// are a dict, and the side panel breaks ties between equal counts by it.
+	sourceOrder []string
 }
 
 // NewStore creates an empty index over a buffer.
@@ -79,6 +82,7 @@ func (s *Store) Clear() {
 	s.moduleIndex = map[string]uint16{"": 0}
 	s.cursor, s.linesSeen, s.maxMessage = 0, 0, 0
 	s.byLevel, s.bySource, s.byNoise = map[string]int{}, map[string]int{}, map[string]int{}
+	s.sourceOrder = nil
 }
 
 // IndexNew indexes what was written since the last call (maxBytes <= 0: no
@@ -228,7 +232,11 @@ func (s *Store) addLine(offset int64, line []byte, rawLength uint32) {
 
 func (s *Store) tally(level, source uint8, mask uint64) {
 	s.byLevel[Levels[level]]++
-	s.bySource[s.m.sourceIDs[source]]++
+	id := s.m.sourceIDs[source]
+	if _, seen := s.bySource[id]; !seen {
+		s.sourceOrder = append(s.sourceOrder, id)
+	}
+	s.bySource[id]++
 	if mask != 0 {
 		s.countNoise(mask)
 	}
@@ -307,6 +315,9 @@ func (s *Store) IndexedBytes() int64 { return s.cursor }
 func (s *Store) CountsByLevel() map[string]int  { return copyCounts(s.byLevel) }
 func (s *Store) CountsBySource() map[string]int { return copyCounts(s.bySource) }
 func (s *Store) CountsByNoise() map[string]int  { return copyCounts(s.byNoise) }
+
+// SourceOrder lists the sources in the order they first appeared.
+func (s *Store) SourceOrder() []string { return append([]string(nil), s.sourceOrder...) }
 
 func copyCounts(m map[string]int) map[string]int {
 	out := make(map[string]int, len(m))

@@ -104,7 +104,7 @@ Tests: `test/python/veaf_logs/` holds 4 780 lines, of which `test_ui.py` 959 and
 | M7 | Edition | Copier sans l'en-tête | Ctrl+Shift+C | Selected entries, message only (no timestamp/level/source header). |
 | M8 | Edition | Tout sélectionner | Ctrl+A | Text field with focus, else every row of the table. |
 | M9 | Affichage | Suivre la fin du fichier (checkable, on) | F | Per tab; scrolls to the bottom when switched on; disabled for archives. |
-| M10 | Affichage | Aller à la fin | Ctrl+End | Scrolls to the last row. |
+| M10 | Affichage | Aller à la fin | none in practice | Scrolls to the last row. The code declares `"Ctrl+Fin"`, which Qt does not parse (measured 2026-10-24: `QKeySequence("Ctrl+Fin")` is empty), so the menu entry has no shortcut; the intent is Ctrl+End, which the Go version should give. |
 | M11 | Affichage | Police… | — | Font dialog restricted to monospaced fonts. |
 | M12 | Affichage | Agrandir / Réduire / Taille par défaut | Ctrl++ and Ctrl+= / Ctrl+- / Ctrl+0 | Zoom in 1-pt steps, bounded 6–36 pt; default Cascadia Mono 9. Ctrl+= exists because Ctrl++ needs Shift on a French keyboard. |
 | M13 | Affichage | Panneau de détail (checkable) | Ctrl+I | Shows/hides the detail panel in every tab. |
@@ -225,13 +225,13 @@ All menu shortcuts are window-wide (`addAction` on the window).
 | B3 | Dialog: "Préparer un rapport" | Builds a block for the Discord `/bug` command — `veaf-tools doctor` diagnostic, excerpt, catalogue, what is unexplained — bounded to a Discord message and saying what it dropped; puts it on the clipboard; status "Rapport copié (N caractères)". A diagnostic that cannot be collected costs that section only. | `report.py`, `veaf_libs.diagnostics` |
 | B4 | Dialog: "Fermer" | Closes. | |
 
-`report.parse_report_block` (the reader half of the report contract) is used by the support bot's intake side, not by the viewer.
+`report.parse_report_block` (the reader half of the report contract) has no caller outside `veaf_logs` and its tests; the support bot reads the `doctor` block inside the report with `veaf_libs.diagnostics.parse_block` (`services/support-bot/veaf_support_bot/toolkit.py`).
 
 ## What each toolkit must provide
 
 The UI above needs, whatever the toolkit:
 
-1. **Menu bar** with mnemonics (`&Fichier`), separators, checkable entries, shortcuts displayed in the menus, window-wide shortcuts (Ctrl+D/O/W/Q/C/A/F/B/I/E/R/S, Ctrl+Shift+O/C, Ctrl+End, Ctrl+0, Ctrl++ and Ctrl+=, F, F5), working on a French keyboard.
+1. **Menu bar** with mnemonics (`&Fichier`), separators, checkable entries, shortcuts displayed in the menus, window-wide shortcuts (Ctrl+D/O/W/Q/C/A/F/B/I/E/R/S, Ctrl+Shift+O/C, Ctrl+End (see M10), Ctrl+0, Ctrl++ and Ctrl+=, F, F5), working on a French keyboard.
 2. **Tabs**: closable (× per tab), reorderable by drag, tooltip per tab, programmatic insertion at a given index.
 3. **Virtualised table** for millions of rows: 5 columns, resizable column headers, per-cell colour/background/bold, multi-row selection (click, Shift, Ctrl), keyboard navigation, horizontal scroll per pixel, scroll-to-bottom, row height derived from the font, per-row tooltip, right-click context menu.
 4. **Rich cell rendering**: highlight several sub-ranges of the Message cell in another colour.
@@ -266,7 +266,7 @@ Taken by David on 2026-10-24, unless marked *default* (a recommendation he did n
 
 1. **Analysis in scope, entirely** — the program must be isofunctional, so *Explain* (B1–B4) is ported with the excerpt, the catalogue, the proposals, the online layer and the `/bug` report.
    The report carries the `veaf-tools doctor` block, so its collectors come too: `veaf_libs.diagnostics` (590 lines: tool version, machine, DCS install and version, VEAF home, recent errors of `veaf-tools.log`), `veaf_libs.redaction` (274) and the Lua module count of `veaf_libs.lua_module_scanner` (434).
-   The block format must stay identical: the support bot's intake parses it (`report.parse_report_block`, `diagnostics.parse_block`).
+   The block format must stay identical: the support bot parses the `doctor` block with `diagnostics.parse_block`, and `report.parse_report_block` defines the report's own contract.
 2. *Default* — milestones in this order: J1 filter engine in the Go core (modes, tri-state, both contexts, cumulative criteria, `.zip` archives), proven identical to the Python with the existing parity harness; J2 window, tabs, table, menus, detail, copy; J3 side panel, search bar, chips, profiles, session; J4 remote logs and session restore; J5 analysis and report.
    J1 needs no toolkit, so it can start before decision 3 is settled.
 3. **Pure GUI toolkits only, no web view** — Wails and anything embedding a browser engine are out.

@@ -516,6 +516,9 @@ func pythonInt(value any) (int, error) {
 // can only bring back what the categories allowed before the text criteria
 // narrowed, and its additions are not anchors themselves; the category context
 // then runs over the widened set.
+//
+// It reads the store's category arrays, which Snapshot does not carry: while
+// an indexer may write to the store, the caller holds the store's lock.
 func Evaluate(store *Store, f *FilterSet) ([]int, error) {
 	total := store.Len()
 	if total == 0 {

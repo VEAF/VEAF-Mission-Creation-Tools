@@ -57,6 +57,61 @@ func Message(owner walk.Form, title, text string) {
 	dlg.Run()
 }
 
+// Prompt asks for a line of text (a profile's name); false when cancelled.
+func Prompt(owner walk.Form, title, label, initial string) (string, bool) {
+	var dlg *walk.Dialog
+	var edit *walk.LineEdit
+	var ok, cancel *walk.PushButton
+	err := Dialog{
+		AssignTo: &dlg, Title: title, DefaultButton: &ok, CancelButton: &cancel,
+		MinSize: Size{Width: 380}, Background: SolidColorBrush{Color: dark.Window},
+		Layout: VBox{Margins: Margins{Left: 12, Top: 12, Right: 12, Bottom: 12}},
+		Children: []Widget{
+			Label{Text: label, TextColor: dark.Text},
+			LineEdit{AssignTo: &edit, Text: initial, TextColor: dark.Text},
+			Composite{Layout: HBox{MarginsZero: true}, Children: []Widget{
+				HSpacer{},
+				PushButton{AssignTo: &ok, Text: "OK", OnClicked: func() { dlg.Accept() }},
+				PushButton{AssignTo: &cancel, Text: "Annuler", OnClicked: func() { dlg.Cancel() }},
+			}},
+		},
+	}.Create(owner)
+	if err != nil {
+		return "", false
+	}
+	edit.SetBackground(dark.WalkBrush(dark.Alternate))
+	darkenDialog(dlg)
+	edit.SetFocus()
+	if dlg.Run() != walk.DlgCmdOK {
+		return "", false
+	}
+	return edit.Text(), true
+}
+
+// Confirm asks yes or no, no being the default.
+func Confirm(owner walk.Form, title, text string) bool {
+	var dlg *walk.Dialog
+	var yes, no *walk.PushButton
+	err := Dialog{
+		AssignTo: &dlg, Title: title, DefaultButton: &no, CancelButton: &no,
+		MinSize: Size{Width: 360}, Background: SolidColorBrush{Color: dark.Window},
+		Layout: VBox{Margins: Margins{Left: 16, Top: 16, Right: 16, Bottom: 12}},
+		Children: []Widget{
+			Label{Text: text, TextColor: dark.Text},
+			Composite{Layout: HBox{MarginsZero: true}, Children: []Widget{
+				HSpacer{},
+				PushButton{AssignTo: &yes, Text: "Oui", OnClicked: func() { dlg.Accept() }},
+				PushButton{AssignTo: &no, Text: "Non", OnClicked: func() { dlg.Cancel() }},
+			}},
+		},
+	}.Create(owner)
+	if err != nil {
+		return false
+	}
+	darkenDialog(dlg)
+	return dlg.Run() == walk.DlgCmdOK
+}
+
 // darkList is a one-column list for the dialogs. A Win32 list box would not
 // take its colours (its WM_CTLCOLORLISTBOX never reached our subclass), so it
 // is a table without header, darkened like the journal's.

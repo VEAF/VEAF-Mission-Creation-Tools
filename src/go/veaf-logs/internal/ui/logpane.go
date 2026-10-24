@@ -25,6 +25,8 @@ type logPane struct {
 	doc      *logview.Doc
 	title    string
 	location string
+	path     string // for the session
+	member   string // archive member, "" for a plain file
 
 	root        *walk.Composite
 	tv          *walk.TableView
@@ -125,6 +127,7 @@ func newLogPane(parent walk.Container, doc *logview.Doc, title, location string,
 	dark.Theme(p.detail.Handle(), "DarkMode_Explorer")
 	dark.NoEdge(p.detail.Handle())
 	p.detail.SetVisible(false) // shown once a row is selected
+	dark.SplitterHandles(p.root.Handle())
 	dark.ProgressBar(p.progress.Handle())
 	for _, h := range dark.Children(p.progressRow.Handle()) {
 		if dark.ClassName(h) == "Button" {

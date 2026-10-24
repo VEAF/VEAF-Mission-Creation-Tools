@@ -26,14 +26,19 @@ import (
 // goroutines index and follow, the window only redraws what changed.
 const refreshEvery = 100 * time.Millisecond
 
+// panelRefreshEvery spaces the side panel's rebuilds while a big journal is
+// indexed: rebuilding at every slice costs more than the indexing (PANEL_REFRESH_MS).
+const panelRefreshEvery = 400 * time.Millisecond
+
 // dialogFilter is the open dialog's filter (DIALOG_FILTER in the Python).
 const dialogFilter = "Journaux DCS (*.log;*.log.old;*.zip)|*.log;*.log.old;*.zip|Tous les fichiers (*.*)|*.*"
 
 // Options are what the command line asks.
 type Options struct {
 	Paths []string
-	// Smoke opens the paths, waits for their index, prints the timings and exits:
-	// the CI's proof that the executable starts, and the measurement of J2.
+	// Smoke opens the paths, waits for their index, prints the timings and
+	// exits, leaving the user's session alone: the CI's proof that the
+	// executable starts, and the measurements.
 	Smoke bool
 	Start time.Time
 }
@@ -44,21 +49,43 @@ type window struct {
 	strip  *logview.Strip[*logPane]
 	tabs   *tabStrip
 	stack  *walk.Composite
+	side   *sidePanel
+	search *searchBar
+	chips  *chipRow
 	msg    *walk.Label
 	counts *walk.Label
 	follow *walk.Label
 
-	actFollow, actDetail *walk.Action
+	profileBox     *walk.ComboBox
+	profileDelete  *walk.PushButton
+	filtersToggle  painted
+	zoomOut        painted
+	zoomIn         painted
+	profiles       *logview.ProfileStore
+	profileChoices []string
 
+	actFollow, actDetail, actFilters *walk.Action
+
+	// filters are the saved filters in force; the live search criterion is added on top.
+	filters       logcore.FilterSet
 	fontFamily    string
 	fontSize      int
 	detailEnabled bool
+
+	session        logview.Session
+	pendingRemotes []pendingRemote // tabs of the session reopened in J4, kept for the next save
+	panelAt        time.Time
 
 	opts       Options
 	smokeDone  bool
 	closing    time.Time // when the smoke mode asked the window to close
 	shownAt    time.Duration
 	msgVersion int
+}
+
+type pendingRemote struct {
+	position int
+	file     logview.OpenFile
 }
 
 // Run opens the window and returns the process exit code.
@@ -74,27 +101,19 @@ func Run(opts Options) int {
 		fmt.Fprintln(os.Stderr, "veaf-logs:", err)
 		return 1
 	}
-	w := &window{
-		rules: rules, strip: logview.NewStrip[*logPane](), opts: opts,
-		fontFamily: logview.DefaultFontFamily, fontSize: logview.DefaultFontSize, detailEnabled: true,
+	w := &window{rules: rules, strip: logview.NewStrip[*logPane](), opts: opts, session: logview.NewSession()}
+	if !opts.Smoke {
+		w.session = logview.LoadSession(logview.SessionPath())
 	}
+	w.filters = w.session.FilterSet()
+	w.fontFamily, w.fontSize, w.detailEnabled = w.session.FontFamily, w.session.FontSize, w.session.DetailVisible
+	w.profiles = logview.NewProfileStore(rules, "")
 	if err := w.create(); err != nil {
 		fmt.Fprintln(os.Stderr, "veaf-logs:", err)
 		return 1
 	}
 	w.shownAt = time.Since(opts.Start)
-
-	paths := opts.Paths
-	if len(paths) == 0 && !opts.Smoke {
-		// The local journal by default, when the command line opens nothing.
-		if p := currentDCSLog(); fileExists(p) {
-			paths = []string{p}
-		}
-	}
-	for _, p := range paths {
-		w.openPath(p)
-	}
-	w.refreshStatus()
+	w.restore()
 
 	exit := 0
 	stop := make(chan struct{})
@@ -124,6 +143,13 @@ func Run(opts Options) int {
 func (w *window) create() error {
 	shortcut := func(mod walk.Modifiers, key walk.Key) Shortcut { return Shortcut{Modifiers: mod, Key: key} }
 	var stripWidget *walk.CustomWidget
+	w.side = newSidePanel(w.rules, &w.filters, w.sideChanged)
+	w.search = &searchBar{changed: w.applyFilters, addRequested: w.addCurrentFilter}
+	w.chips = &chipRow{remove: w.removeFilter}
+	w.filtersToggle = painted{text: "☰ Filtres", color: dark.Text, back: dark.Button, center: true, onClick: func() { w.setFiltersPanel(!w.side.root.Visible()) }}
+	w.zoomOut = painted{text: "A−", color: dark.Text, back: dark.Button, center: true, onClick: func() { w.zoom(-1) }}
+	w.zoomIn = painted{text: "A+", color: dark.Text, back: dark.Button, center: true, onClick: func() { w.zoom(1) }}
+
 	err := MainWindow{
 		AssignTo: &w.mw, Title: "veaf-logs — journaux DCS", Size: Size{Width: 1500, Height: 900},
 		Background: SolidColorBrush{Color: dark.Window},
@@ -150,14 +176,36 @@ func (w *window) create() error {
 				Action{Text: "Agrandir", Shortcut: shortcut(walk.ModControl, walk.KeyOEMPlus), OnTriggered: func() { w.zoom(1) }},
 				Action{Text: "Réduire", Shortcut: shortcut(walk.ModControl, walk.KeyOEMMinus), OnTriggered: func() { w.zoom(-1) }},
 				Action{Text: "Taille par défaut", Shortcut: shortcut(walk.ModControl, walk.Key0), OnTriggered: w.resetFont},
-				Action{AssignTo: &w.actDetail, Text: "Panneau de détail", Checkable: true, Checked: true, Shortcut: shortcut(walk.ModControl, walk.KeyI), OnTriggered: w.toggleDetail},
+				Action{AssignTo: &w.actDetail, Text: "Panneau de détail", Checkable: true, Checked: w.detailEnabled, Shortcut: shortcut(walk.ModControl, walk.KeyI), OnTriggered: w.toggleDetail},
+				Action{AssignTo: &w.actFilters, Text: "Panneau des filtres", Checkable: true, Checked: w.session.FiltersVisible, Shortcut: shortcut(walk.ModControl, walk.KeyB), OnTriggered: func() { w.setFiltersPanel(w.actFilters.Checked()) }},
+				Separator{},
+				Action{Text: "Tout afficher (réinitialiser les filtres)", Shortcut: shortcut(walk.ModControl, walk.KeyR), OnTriggered: w.resetFilters},
+				Action{Text: "Chercher", Shortcut: shortcut(walk.ModControl, walk.KeyF), OnTriggered: func() { w.search.field.SetFocus() }},
+			}},
+			Menu{Text: "&Profils", Items: []MenuItem{
+				Action{Text: "Enregistrer sous…", Shortcut: shortcut(walk.ModControl, walk.KeyS), OnTriggered: w.saveProfile},
+				Action{Text: "Supprimer le profil courant", OnTriggered: w.deleteProfile},
 			}},
 		},
 		Children: []Widget{
-			tabStripWidget(&stripWidget, &w.tabs),
-			Composite{
-				AssignTo: &w.stack, AlwaysConsumeSpace: true, StretchFactor: 1000, // custom widgets are greedy: the strip must not share the room
-				Layout: VBox{MarginsZero: true, SpacingZero: true}, Background: SolidColorBrush{Color: dark.Window},
+			HSplitter{
+				Background: SolidColorBrush{Color: dark.Window}, StretchFactor: 1000,
+				Children: []Widget{
+					w.side.declare(),
+					Composite{
+						Layout: VBox{MarginsZero: true, SpacingZero: true}, Background: SolidColorBrush{Color: dark.Window}, StretchFactor: 4,
+						Children: []Widget{
+							w.profileBar(),
+							w.search.declare(),
+							w.chips.declare(),
+							tabStripWidget(&stripWidget, &w.tabs),
+							Composite{
+								AssignTo: &w.stack, AlwaysConsumeSpace: true, StretchFactor: 1000, // custom widgets are greedy: the strip must not share the room
+								Layout: VBox{MarginsZero: true, SpacingZero: true}, Background: SolidColorBrush{Color: dark.Window},
+							},
+						},
+					},
+				},
 			},
 			Composite{
 				Layout: HBox{Margins: Margins{Left: 6, Top: 2, Right: 6, Bottom: 2}}, Background: SolidColorBrush{Color: dark.Alternate},
@@ -196,6 +244,14 @@ func (w *window) create() error {
 	}
 	dark.TitleBar(w.mw.Handle())
 	dark.MenuBar(w.mw.Handle())
+	w.search.finish()
+	w.side.finish()
+	dark.SplitterHandles(w.mw.Handle())
+	w.finishProfileBar()
+	w.side.Apply()
+	w.chips.Refresh(w.filters.TextFilters)
+	w.setFiltersPanel(w.session.FiltersVisible)
+	w.mw.Closing().Attach(func(*bool, walk.CloseReason) { w.saveSession() })
 	return nil
 }
 
@@ -217,7 +273,7 @@ func (w *window) openCurrentDCSLog() {
 		Message(w.mw, "Journal introuvable", "Aucun fichier à "+path+".\nUtilise « Ouvrir un fichier… ».")
 		return
 	}
-	w.openPath(path)
+	w.openPath(path, "")
 }
 
 func (w *window) openDialog() {
@@ -232,30 +288,29 @@ func (w *window) openDialog() {
 		return
 	}
 	for _, p := range dlg.FilePaths {
-		w.openPath(p)
+		w.openPath(p, "")
 	}
 }
 
 // openPath opens a journal in a new tab; an archive first asks which of its
-// logs, when it holds several.
-func (w *window) openPath(path string) {
+// logs, when it holds several and no member is given.
+func (w *window) openPath(path, member string) *logPane {
 	path, _ = filepath.Abs(path)
-	member := ""
-	if logcore.IsArchive(path) {
+	if logcore.IsArchive(path) && member == "" {
 		members, err := logcore.ArchiveMembers(path)
 		switch {
 		case err != nil:
 			Message(w.mw, "Archive illisible", err.Error())
-			return
+			return nil
 		case len(members) == 0:
 			Message(w.mw, "Archive", "Aucun journal dans "+filepath.Base(path)+".")
-			return
+			return nil
 		case len(members) == 1:
 			member = members[0]
 		default:
 			i, ok := ChooseItem(w.mw, "Contenu de l'archive", filepath.Base(path)+" contient plusieurs fichiers :", members)
 			if !ok {
-				return
+				return nil
 			}
 			member = members[i]
 		}
@@ -266,21 +321,24 @@ func (w *window) openPath(path string) {
 			err = fmt.Errorf("%s : fichier introuvable", path)
 		}
 		Message(w.mw, "Ouverture impossible", err.Error())
-		return
+		return nil
 	}
 	doc := logview.NewDoc(w.rules, src, followable)
 	pane, err := newLogPane(w.stack, doc, title, path, w.font(), w.detailEnabled)
 	if err != nil {
 		doc.Close()
 		Message(w.mw, "Ouverture impossible", err.Error())
-		return
+		return nil
 	}
+	pane.path, pane.member = path, member
 	pane.onZoom = w.zoom
 	pane.onCopy = func(messageOnly bool) { w.reportCopy(pane.Copy(messageOnly)) }
 	pane.onChange = w.refreshStatus
 	w.strip.Insert(pane, -1)
+	w.applyFiltersTo(pane)
 	doc.Start()
 	w.tabChanged()
+	return pane
 }
 
 func (w *window) closeTab(i int) {
@@ -290,6 +348,83 @@ func (w *window) closeTab(i int) {
 	}
 	pane.Close()
 	w.tabChanged()
+}
+
+// -- filters -------------------------------------------------------------------------------
+
+// effective is the saved filters plus the criterion being typed.
+func (w *window) effective() logcore.FilterSet {
+	f := w.filters.Copy()
+	if live := w.search.Current(); live.Pattern != "" {
+		f.TextFilters = append(f.TextFilters, live)
+	}
+	return f
+}
+
+func (w *window) applyFiltersTo(p *logPane) {
+	f := w.effective()
+	if p.doc.SetFilters(f) == nil {
+		p.SetPatterns(logcore.HighlightPatterns(&f))
+	}
+}
+
+// applyFilters applies the effective filters to every tab.
+func (w *window) applyFilters() {
+	for _, p := range w.strip.Items {
+		w.applyFiltersTo(p)
+		p.Refresh()
+	}
+	w.search.SetCommonContext(w.filters.SearchContextLines)
+	w.refreshStatus()
+}
+
+// sideChanged follows a change made in the side panel.
+func (w *window) sideChanged() {
+	w.markModified()
+	w.applyFilters()
+}
+
+func (w *window) addCurrentFilter() {
+	live := w.search.Current()
+	if live.Pattern == "" {
+		return
+	}
+	w.filters.TextFilters = append(w.filters.TextFilters, live)
+	w.search.Clear()
+	w.markModified()
+	w.chips.Refresh(w.filters.TextFilters)
+	w.applyFilters()
+}
+
+func (w *window) removeFilter(i int) {
+	if i < 0 || i >= len(w.filters.TextFilters) {
+		return
+	}
+	w.filters.TextFilters = append(w.filters.TextFilters[:i], w.filters.TextFilters[i+1:]...)
+	w.markModified()
+	w.chips.Refresh(w.filters.TextFilters)
+	w.applyFilters()
+}
+
+func (w *window) resetFilters() {
+	w.filters = logcore.NewFilterSet()
+	w.search.Clear()
+	w.markModified()
+	w.side.Apply()
+	w.chips.Refresh(w.filters.TextFilters)
+	w.applyFilters()
+}
+
+// setFiltersPanel hides the side panel or shows it again. Hidden, it is not
+// disabled: its filters still apply, and the status bar says how many lines they hide.
+func (w *window) setFiltersPanel(on bool) {
+	w.actFilters.SetChecked(on)
+	w.side.root.SetVisible(on)
+	if on {
+		w.filtersToggle.SetBack(dark.Highlight)
+	} else {
+		w.filtersToggle.SetBack(dark.Button)
+	}
 }
 
 // -- the current tab -----------------------------------------------------------------------
@@ -308,6 +443,8 @@ func (w *window) tabChanged() {
 		w.actFollow.SetChecked(current.follow)
 		w.actFollow.SetEnabled(current.doc.Followable)
 		current.Refresh()
+		w.side.Refresh(current.doc.Counts())
+		w.panelAt = time.Now()
 	}
 	w.tabs.Refresh()
 	w.refreshStatus()
@@ -315,11 +452,19 @@ func (w *window) tabChanged() {
 
 func (w *window) tick(exit *int) {
 	for _, p := range w.strip.Items {
-		if p.doc.Dirty() {
-			p.Refresh()
-			if p == w.current() {
-				w.refreshStatus()
-			}
+		if !p.doc.Dirty() {
+			continue
+		}
+		p.Refresh()
+		if p != w.current() {
+			continue
+		}
+		w.refreshStatus()
+		// While a big journal is indexed, rebuilding the panel at every slice
+		// costs more than the indexing: spaced, then once more at the end.
+		if !p.doc.Status().Indexing || time.Since(w.panelAt) > panelRefreshEvery {
+			w.side.Refresh(p.doc.Counts())
+			w.panelAt = time.Now()
 		}
 	}
 	if w.opts.Smoke {
@@ -355,21 +500,22 @@ func (w *window) showMessage(text string, d time.Duration) {
 
 // -- menu actions ---------------------------------------------------------------------------
 
-// copy copies what is selected where the user is looking: text selected in
-// the detail panel stays a text copy, as in the Python; otherwise the rows.
+// focusInEdit tells that the keyboard is in a text field.
+func focusInEdit() bool { return dark.ClassName(win.GetFocus()) == "Edit" }
+
+// copy copies what is selected where the user is looking: text selected in a
+// field or in the detail panel stays a text copy, as in the Python; otherwise the rows.
 func (w *window) copy(messageOnly bool) {
-	p := w.current()
-	if p == nil {
+	if !messageOnly && focusInEdit() {
+		win.SendMessage(win.GetFocus(), win.WM_COPY, 0, 0)
+		if p := w.current(); p != nil && win.GetFocus() == p.detail.Handle() {
+			w.showMessage("Sélection copiée.", 2*time.Second)
+		}
 		return
 	}
-	if !messageOnly && win.GetFocus() == p.detail.Handle() {
-		if start, end := p.detail.TextSelection(); end > start {
-			win.SendMessage(p.detail.Handle(), win.WM_COPY, 0, 0)
-			w.showMessage("Sélection copiée.", 2*time.Second)
-			return
-		}
+	if p := w.current(); p != nil {
+		w.reportCopy(p.Copy(messageOnly))
 	}
-	w.reportCopy(p.Copy(messageOnly))
 }
 
 func (w *window) reportCopy(count int) {
@@ -377,12 +523,12 @@ func (w *window) reportCopy(count int) {
 }
 
 func (w *window) selectAll() {
-	p := w.current()
-	if p == nil {
+	if focusInEdit() {
+		win.SendMessage(win.GetFocus(), win.EM_SETSEL, 0, ^uintptr(0))
 		return
 	}
-	if win.GetFocus() == p.detail.Handle() {
-		p.detail.SetTextSelection(0, -1)
+	p := w.current()
+	if p == nil {
 		return
 	}
 	for _, lv := range p.listViews {
@@ -391,7 +537,14 @@ func (w *window) selectAll() {
 	}
 }
 
+// toggleFollow is the F key. Typed in a text field, F is a letter: the menu's
+// shortcut would steal it, so it is given back to the field.
 func (w *window) toggleFollow() {
+	if focusInEdit() {
+		w.actFollow.SetChecked(!w.actFollow.Checked()) // undo the toggle the shortcut made
+		win.SendMessage(win.GetFocus(), win.WM_CHAR, 'f', 0)
+		return
+	}
 	if p := w.current(); p != nil {
 		p.SetFollow(w.actFollow.Checked())
 	}
@@ -460,6 +613,7 @@ func (w *window) smokeCheck(exit *int) {
 	if len(w.strip.Items) == 0 {
 		fmt.Fprintln(os.Stderr, "smoke: no tab opened")
 		*exit = 2
+		w.smokeDone = true
 		w.mw.Close()
 		return
 	}
@@ -470,6 +624,7 @@ func (w *window) smokeCheck(exit *int) {
 			if elapsed > 5*time.Minute {
 				fmt.Fprintln(os.Stderr, "smoke: indexing timed out")
 				*exit = 3
+				w.smokeDone = true
 				w.mw.Close()
 			}
 			return

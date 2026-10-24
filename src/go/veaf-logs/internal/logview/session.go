@@ -26,8 +26,11 @@ type OpenFile struct {
 // WindowPlace is the Go viewer's window position. The Python's `geometry` is
 // Qt's own blob, kept untouched for it.
 type WindowPlace struct {
-	X, Y, Width, Height int
-	Maximized           bool
+	X         int  `json:"x"`
+	Y         int  `json:"y"`
+	Width     int  `json:"width"`
+	Height    int  `json:"height"`
+	Maximized bool `json:"maximized"`
 }
 
 // Session is session.json.

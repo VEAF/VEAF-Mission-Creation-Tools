@@ -362,6 +362,35 @@ func ListColors(hwnd win.HWND) {
 	})
 }
 
+// SplitterHandles paints the handles of every walk splitter under a window:
+// walk gives them a null brush, so they show whatever is behind, light.
+func SplitterHandles(root win.HWND) {
+	for _, h := range Children(root) {
+		if ClassName(h) != `\o/ Walk_SplitterHandle_Class \o/` {
+			continue
+		}
+		if _, done := procs[h]; done {
+			continue
+		}
+		Subclass(h, func(hwnd win.HWND, msg uint32, _, _ uintptr) (uintptr, bool) {
+			switch msg {
+			case win.WM_ERASEBKGND:
+				return 1, true
+			case win.WM_PAINT:
+				var ps win.PAINTSTRUCT
+				hdc := win.BeginPaint(hwnd, &ps)
+				var r win.RECT
+				win.GetClientRect(hwnd, &r)
+				win.FillRect(hdc, &r, Brush(Border))
+				win.EndPaint(hwnd, &ps)
+				return 0, true
+			}
+			return 0, false
+		})
+		win.InvalidateRect(h, nil, true)
+	}
+}
+
 // ProgressBar colours a progress bar, which has no dark visual style.
 func ProgressBar(hwnd win.HWND) {
 	NoTheme(hwnd)

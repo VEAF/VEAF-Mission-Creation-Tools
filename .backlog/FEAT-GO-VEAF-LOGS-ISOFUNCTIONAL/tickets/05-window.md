@@ -1,6 +1,6 @@
 # 05 — J2: the window, on walk
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-10-24
 
 Milestone J2 (ADR 0022: walk, dark theme required).
 Plan validated by David on 2026-10-24 with the recommendations a–d: only the menus that work, logic in pure Go packages plus a Windows smoke test, one PR, the Go CI on Windows.

@@ -35,17 +35,18 @@ var (
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
 	dwmapi   = windows.NewLazySystemDLL("dwmapi.dll")
 
-	setWindowTheme    = uxtheme.NewProc("SetWindowTheme")
-	setWindowSubclass = comctl32.NewProc("SetWindowSubclass")
-	defSubclassProc   = comctl32.NewProc("DefSubclassProc")
-	getMenuBarInfo    = user32.NewProc("GetMenuBarInfo")
-	getMenuStringW    = user32.NewProc("GetMenuStringW")
-	mapWindowPoints   = user32.NewProc("MapWindowPoints")
-	getWindowDC       = user32.NewProc("GetWindowDC")
-	enumChildWindows  = user32.NewProc("EnumChildWindows")
-	getClassNameW     = user32.NewProc("GetClassNameW")
-	createSolidBrush  = gdi32.NewProc("CreateSolidBrush")
-	dwmSetAttribute   = dwmapi.NewProc("DwmSetWindowAttribute")
+	setWindowTheme       = uxtheme.NewProc("SetWindowTheme")
+	setWindowSubclass    = comctl32.NewProc("SetWindowSubclass")
+	removeWindowSubclass = comctl32.NewProc("RemoveWindowSubclass")
+	defSubclassProc      = comctl32.NewProc("DefSubclassProc")
+	getMenuBarInfo       = user32.NewProc("GetMenuBarInfo")
+	getMenuStringW       = user32.NewProc("GetMenuStringW")
+	mapWindowPoints      = user32.NewProc("MapWindowPoints")
+	getWindowDC          = user32.NewProc("GetWindowDC")
+	enumChildWindows     = user32.NewProc("EnumChildWindows")
+	getClassNameW        = user32.NewProc("GetClassNameW")
+	createSolidBrush     = gdi32.NewProc("CreateSolidBrush")
+	dwmSetAttribute      = dwmapi.NewProc("DwmSetWindowAttribute")
 
 	allowDarkModeForWindow uintptr
 )
@@ -136,6 +137,10 @@ type Proc func(hwnd win.HWND, msg uint32, wp, lp uintptr) (result uintptr, handl
 
 var (
 	procs    = map[win.HWND][]Proc{}
+	callback uintptr // set by init: it names itself to remove the subclass
+)
+
+func init() {
 	callback = syscall.NewCallback(func(hwnd win.HWND, msg uint32, wp, lp, _, _ uintptr) uintptr {
 		for _, p := range procs[hwnd] {
 			if r, done := p(hwnd, msg, wp, lp); done {
@@ -143,12 +148,14 @@ var (
 			}
 		}
 		if msg == win.WM_NCDESTROY {
+			// comctl32 asks for the subclass to be removed before the window goes.
 			delete(procs, hwnd)
+			removeWindowSubclass.Call(uintptr(hwnd), callback, 1)
 		}
 		r, _, _ := defSubclassProc.Call(uintptr(hwnd), uintptr(msg), wp, lp)
 		return r
 	})
-)
+}
 
 // Subclass adds a message handler to a window, before its own procedure.
 func Subclass(hwnd win.HWND, p Proc) {

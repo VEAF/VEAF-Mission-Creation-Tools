@@ -1,6 +1,6 @@
 # FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL — rewrite veaf-logs in Go, the same program
 
-Status: 🔄 in-progress — J1 merged (#1176); toolkit chosen: walk (ADR 0022); J2 next
+Status: 🔄 in-progress — J1 merged (#1176), walk chosen (ADR 0022), J2 the window done; J3 next
 
 Origin: David, 2026-10-24.
 The first Go proof of concept (POC-GO-VEAF-LOGS, #1173 and #1174) delivered a Go core identical to the Python one, plus a minimal Gio window that is only a tail with a search.
@@ -261,6 +261,29 @@ The UI above needs, whatever the toolkit:
 | 02 | [DCS crash archives (`.zip`) in the Go core](tickets/02-zip-archives.md) | J1 | ✅ |
 | 03 | [The Go parity tests run in CI, on a checkout that has the corpus](tickets/03-go-tests-in-ci.md) | J1 | ✅ |
 | 04 | [Compare the toolkits on the 21 needs, and choose](tickets/04-toolkit-comparison.md) | before J2 | ✅ |
+| 05 | [J2: the window, on walk](tickets/05-window.md) | J2 | ✅ |
+
+## J2 — the window, measured
+
+Same machine, same 130 MB / 954 086-entry journal as J1, the executable built as shipped (`-s -w -H windowsgui`):
+
+| | Python (reference) | Go, J2 |
+|---|---:|---:|
+| Executable | 47.2 MB | 7.5 MB |
+| Window | 2.1 s, visible after launch | 0.04 s, created after `main` starts (not the first painted frame: the two are not measured the same way) |
+| Indexing the journal | 13.2–13.6 s | 2.3–2.4 s over 3 runs, window usable meanwhile |
+| Memory, journal open | 166 MB (ADR 0021) | 116 MB working set |
+| Closing | — | 12–20 ms |
+
+Checked on screen from captures of the window alone: tab strip (close, drag to reorder), table colours, folded traces `[+N]`, selection, detail panel, Ctrl + wheel zoom, status bar, the archive chooser and the message box, all dark.
+Not checked: tooltips in dark, the square where two scroll bars meet, the open dialog on a Windows left in light mode, the font chooser on screen (built, not captured).
+
+Decided differently from the Python, on purpose:
+
+- **Interrupting the indexing stops it.** The Python's `LogTab.poll` calls an unbounded `index_new()` as soon as its indexer stopped, so its button pauses for a fraction of a second; here the tab keeps what it indexed and stops following, and its status says so.
+- **The fixed columns are sized in characters of the journal's font**, not in pixels: the Python's widths cut the time and the level as soon as the font grows.
+- **A stack trace that arrives after its error line reaches the row already shown.** Growth is measured in bytes; the Python's `poll` stops at `if not added`, since a trace adds no entry, and the row waits for another repaint. A fourth defect of the Python viewer, after the three below, not fixed there.
+- `--remote` of the proof of concept goes until the remote journals come back with their menu in J4.
 
 ## J1 — what was measured
 

@@ -1,0 +1,225 @@
+package logview
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/logcore"
+)
+
+const (
+	lineA = "2026-08-31 11:50:40.872 ERROR   APP (Main): alpha\n"
+	lineB = "2026-08-31 11:50:41.000 INFO    APP (Main): beta\n"
+	lineC = "2026-08-31 11:50:42.000 INFO    APP (Main): gamma\n"
+)
+
+func waitFor(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if cond() {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("timeout waiting for %s", what)
+}
+
+func rules(t *testing.T) *logcore.Rules {
+	t.Helper()
+	r, err := logcore.DefaultRules()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+func localDoc(t *testing.T, content string) (*Doc, string) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "dcs.log")
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tailer, err := logcore.OpenTailer(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := NewDoc(rules(t), tailer, true)
+	t.Cleanup(d.Close)
+	return d, path
+}
+
+// The poll loop wires the file to the window: appended lines arrive, a filter
+// in force applies to them, and a rotation starts over on the new file.
+func TestFollowsAppendsAndRotation(t *testing.T) {
+	d, path := localDoc(t, lineA)
+	d.Start()
+	waitFor(t, "first entry", func() bool { return d.Status().Total == 1 })
+
+	f := logcore.NewFilterSet()
+	f.TextFilters = []logcore.TextFilter{{Pattern: "gamma"}}
+	if err := d.SetFilters(f); err != nil {
+		t.Fatal(err)
+	}
+	if d.Rows() != 0 {
+		t.Fatalf("no gamma yet, %d rows", d.Rows())
+	}
+
+	file, _ := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
+	file.WriteString(lineB + lineC)
+	file.Close()
+	waitFor(t, "appended entries", func() bool { return d.Status().Total == 3 })
+	waitFor(t, "the filter applies to them", func() bool { return d.Rows() == 1 })
+	if e, _ := d.Entry(0); e.Message != "gamma" {
+		t.Fatalf("filtered row: %q", e.Message)
+	}
+
+	if err := os.Rename(path, path+".old"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(lineB), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "rotation", func() bool { s := d.Status(); return s.Rotations == 1 && s.Total == 1 })
+	if d.Rows() != 0 {
+		t.Errorf("after rotation, no gamma: %d rows", d.Rows())
+	}
+}
+
+// A stack trace that arrives after its error line must reach the row already shown.
+func TestLateStackTraceReachesTheShownRow(t *testing.T) {
+	d, path := localDoc(t, "2026-08-31 11:55:01.930 ERROR   SCRIPTING (Main): Mission script error\n")
+	d.Start()
+	waitFor(t, "error line", func() bool { return d.Rows() == 1 })
+	if e, _ := d.Entry(0); len(e.Continuation) != 0 {
+		t.Fatal("no trace yet")
+	}
+	file, _ := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
+	file.WriteString("stack traceback:\n\t[C]: in function 'x'\n")
+	file.Close()
+	waitFor(t, "trace attached", func() bool { e, _ := d.Entry(0); return len(e.Continuation) == 2 })
+}
+
+func TestDirtyIsReportedOnce(t *testing.T) {
+	d, _ := localDoc(t, lineA)
+	d.Start()
+	waitFor(t, "dirty", d.Dirty)
+	waitFor(t, "indexed", func() bool { return !d.Status().Indexing })
+	d.Dirty()
+	time.Sleep(50 * time.Millisecond)
+	if d.Dirty() {
+		t.Error("nothing changed, nothing to redraw")
+	}
+}
+
+func TestInvalidPatternChangesNothing(t *testing.T) {
+	d, _ := localDoc(t, lineA)
+	f := logcore.NewFilterSet()
+	f.TextFilters = []logcore.TextFilter{{Pattern: "[non fermee", Mode: logcore.ModeRegex}}
+	if err := d.SetFilters(f); err == nil {
+		t.Fatal("an invalid regex must be refused")
+	}
+	if f := d.Filters(); !f.IsEmpty() {
+		t.Error("the filters in force are unchanged")
+	}
+}
+
+func TestCancelStopsIndexingAndFollowing(t *testing.T) {
+	d, _ := localDoc(t, strings.Repeat(lineA, 200_000)) // ~10 MB: several slices
+	d.Cancel()
+	d.Start()
+	waitFor(t, "stopped", func() bool { return !d.Status().Indexing })
+	s := d.Status()
+	if !s.Cancelled || s.Indexed >= s.Size {
+		t.Errorf("cancelled before the end: %+v", s)
+	}
+	if FollowText(true, true, s) != "indexation interrompue (pas de suivi)" {
+		t.Error(FollowText(true, true, s))
+	}
+}
+
+func TestArchiveIsIndexedThenLeftAlone(t *testing.T) {
+	src := &countingSource{BytesBuffer: &logcore.BytesBuffer{Data: []byte(lineA + lineB)}}
+	d := NewDoc(rules(t), src, false)
+	defer d.Close()
+	d.Start()
+	waitFor(t, "indexed", func() bool { return d.Status().Total == 2 && !d.Status().Indexing })
+	before := src.fetches.Load()
+	time.Sleep(50 * time.Millisecond)
+	if src.fetches.Load() != before {
+		t.Error("an archive is not polled once indexed")
+	}
+}
+
+// countingSource is an in-memory journal that counts how often it is polled.
+type countingSource struct {
+	*logcore.BytesBuffer
+	fetches atomic.Int64
+}
+
+func (s *countingSource) Buffer() logcore.Buffer                       { return s.BytesBuffer }
+func (s *countingSource) Fetch(int64) (bool, error)                    { s.fetches.Add(1); return false, nil }
+func (s *countingSource) Pending() bool                                { return false }
+func (s *countingSource) PollInterval() time.Duration                  { return time.Millisecond }
+func (s *countingSource) Close()                                       {}
+func (s *countingSource) Index(st *logcore.Store, _ bool, n int64) int { return st.IndexNew(n) }
+
+// slowSource blocks in Fetch, like a remote journal waiting for the network.
+type slowSource struct {
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (s *slowSource) Buffer() logcore.Buffer { return &logcore.BytesBuffer{} }
+func (s *slowSource) Fetch(int64) (bool, error) {
+	select {
+	case s.entered <- struct{}{}:
+	default:
+	}
+	<-s.release
+	return false, nil
+}
+func (s *slowSource) Index(*logcore.Store, bool, int64) int { return 0 }
+func (s *slowSource) Pending() bool                         { return false }
+func (s *slowSource) PollInterval() time.Duration           { return 10 * time.Millisecond }
+func (s *slowSource) Close()                                {}
+
+// The window takes the document's lock for every visible row: a remote fetch
+// (connection, download) must never hold it, or the window freezes with the network.
+func TestTheNetworkDoesNotHoldTheLock(t *testing.T) {
+	src := &slowSource{entered: make(chan struct{}, 1), release: make(chan struct{})}
+	defer close(src.release)
+	d := NewDoc(rules(t), src, true)
+	d.Start()
+	select {
+	case <-src.entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Fetch was never called")
+	}
+	done := make(chan struct{})
+	go func() { d.Rows(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("the lock is held while Fetch waits for the network")
+	}
+}
+
+func TestStatusTexts(t *testing.T) {
+	if got := (Status{Total: 10, Shown: 10}).CountsText(); got != "10 lignes affichées sur 10" {
+		t.Error(got)
+	}
+	if got := (Status{Total: 10, Shown: 4}).CountsText(); got != "4 lignes affichées sur 10   —   6 masquées par les filtres" {
+		t.Error(got)
+	}
+	if FollowText(false, true, Status{}) != "archive (pas de suivi)" || FollowText(true, true, Status{}) != "suivi actif" || FollowText(true, false, Status{}) != "suivi en pause" {
+		t.Error("follow texts")
+	}
+	if (Status{Indexed: 25, Size: 100}).Percent() != 25 || (Status{}).Percent() != 100 {
+		t.Error("percent")
+	}
+}

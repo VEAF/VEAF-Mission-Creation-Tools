@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-GO-VEAF-LOGS-UI](FIX-GO-VEAF-LOGS-UI/PRD.md) · ✅
+
+The Go `veaf-logs` window brought level with the Python one. The filters panel no longer spreads three groups over its whole height on a short journal (a walk custom widget is greedy; each group is now pinned to its content, checked by the smoke test). Then seven of the nine differences found by comparing the two windows side by side: flat buttons and fields, compact number fields, the panel's toggle, the bars' height, the panel's width, the table's empty area, the font dialog. Merged in #1185.
+
 ### [FIX-LOGS-SEARCH-REDACTION](FIX-LOGS-SEARCH-REDACTION/PRD.md) · ✅
 
 The search criteria the excerpt's header repeats went to the VEAF Worker as typed, unredacted, when *Analyser en ligne* was pressed: they are now redacted like the records. Found by a security review of the Go port's J5, fixed on both sides.

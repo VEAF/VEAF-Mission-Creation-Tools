@@ -1,6 +1,6 @@
 # FIX-GO-VEAF-LOGS-UI — the Go veaf-logs window, brought level with the Python one
 
-Status: 🔄 in-progress
+Status: ✅ done — 2026-10-24 (#1185)
 
 Origin: David, 2026-10-24, on a capture of the Go viewer opening a 59-line `dcs.log`: the filters panel spread its three groups over the whole height, the *tout / contexte / rien* buttons a hundred pixels tall and each category floating in an empty band.
 The defect has been on `develop` since J3 (#1181); a journal with many categories fills the panel and hides it.

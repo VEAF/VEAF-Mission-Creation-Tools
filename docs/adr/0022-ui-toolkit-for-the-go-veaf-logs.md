@@ -80,21 +80,26 @@ The window times are not measured the same way and only order the candidates rou
 ## Reading
 
 - **Fyne is dominated.** It is neither native (it draws its own widgets) nor small (23.7 MB, a four-minute cgo build), and it misses multi-row selection, a native or multi-file open dialog, a spin box, a font chooser and tab reordering.
-- **miqt is the shortest port and the least risk**: the same widgets as the Python, so `ui/` translates almost line for line and the look is unchanged. It gives up most of the size the rewrite is for (Qt comes back: 26.6 MB of DLLs at least, a folder rather than one file unless Qt is rebuilt static), and it brings a Qt-for-MinGW toolchain to the machine and to CI.
-- **walk is the smallest and the most native**: real Windows controls, 6.8 MB with the hardest widgets and the dark theme in, pure Go. Its costs: the dark theme rests partly on undocumented Windows entry points (they degrade to the light theme if they ever go), two dialogs to write ourselves, and a tab strip of our own.
-- **Gio gives full control and a dark theme for free**, at 9–12 MB, but every standard widget — menu bar, tabs, combo box, spin box, dialogs, column headers, selection — is ours to build, keyboard navigation and accessibility included. It is the largest piece of work by far.
+- **miqt is the shortest port and the least risk**: the same widgets as the Python, so `ui/` translates almost line for line and the look is unchanged.
+  It gives up most of the size the rewrite is for (Qt comes back: 26.6 MB of DLLs at least, a folder rather than one file unless Qt is rebuilt static), and it brings a Qt-for-MinGW toolchain to the machine and to CI.
+- **walk is the smallest and the most native**: real Windows controls, 6.8 MB with the hardest widgets and the dark theme in, pure Go.
+  Its costs: the dark theme rests partly on undocumented Windows entry points (they degrade to the light theme if they ever go), two dialogs to write ourselves, and a tab strip of our own.
+- **Gio gives full control and a dark theme for free**, at 9–12 MB, but every standard widget — menu bar, tabs, combo box, spin box, dialogs, column headers, selection — is ours to build, keyboard navigation and accessibility included.
+  It is the largest piece of work by far.
 
 ## Decision
 
 **walk** (`tailscale/walk`), decided by David on 2026-10-24 after running the second spike: "the concept looks proven" — the spike's layout was rough, the dark theme was what it had to show.
-He had set the condition first: the dark theme is required. walk meets it, with the smallest and most native binary; **Gio** would build every standard widget itself, **miqt** would bring Qt's weight and toolchain back.
+He had set the condition first: the dark theme is required.
+walk meets it, with the smallest and most native binary; **Gio** would build every standard widget itself, **miqt** would bring Qt's weight and toolchain back.
 This supersedes [ADR 0021](0021-gio-for-the-go-veaf-logs-proof-of-concept.md).
 
 ## Consequences
 
 - **Windows only, and so is its CI.** walk builds on Windows alone, so the window's packages carry no other target and the `Go CI` job that compiles them runs on a Windows runner; the core (`internal/logcore`, `internal/sshlog`) stays portable and keeps its tests wherever they run today.
 - **The Gio window of the proof of concept goes.** `cmd/veaf-logs` is rewritten on walk, and the Gio dependencies and their Linux build packages leave the module and the workflow.
-- **A dark-theme layer of our own**, in one place: the app mode set before any window, the dark title bar, the themes per control, the menu bar on the UAH messages, the header painted on `WM_PAINT`, the combo box list on `WM_CTLCOLORLISTBOX`. Every undocumented entry point is looked up at run time and skipped when absent, so a Windows that drops one shows the light theme rather than failing.
+- **A dark-theme layer of our own**, in one place: the app mode set before any window, the dark title bar, the themes per control, the menu bar on the UAH messages, the header painted on `WM_PAINT`, the combo box list on `WM_CTLCOLORLISTBOX`.
+  Every undocumented entry point is looked up at run time and skipped when absent, so a Windows that drops one shows the light theme rather than failing.
 - **Widgets of our own** where Win32 has none or cannot be darkened: the tab strip (closable, reorderable), the three-state category buttons, the message box, the font chooser, the text prompt and the list chooser.
 - **Absolute paths everywhere**, or `OFN_NOCHANGEDIR` on the open dialog: `GetOpenFileName` otherwise moves the process's current directory.
 - **The manifest resource** (`rsrc.syso`, common controls v6 and DPI awareness) is generated and committed with the window: walk needs it to start.

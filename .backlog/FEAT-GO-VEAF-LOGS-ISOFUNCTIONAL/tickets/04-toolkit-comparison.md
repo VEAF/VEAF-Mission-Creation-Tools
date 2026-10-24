@@ -12,9 +12,13 @@ Between J1 and J2: the window cannot be started before the toolkit is chosen, an
 
 ## Done so far (2026-10-24)
 
-- The grid and the measurements are in ADR 0022. A first walk spike (menus, tabs, a 1 M-row table with highlighted ranges) settled needs 3 and 4.
-- Its dark-theme verdict was wrong: it applied a fraction of the recipe. David asked to dig; a second spike applies the whole of it and darkens the whole window, the standard message box and font chooser excepted (ADR 0022, *Dark theme on walk*).
-- David set the condition: the dark theme is required. The recommendation is walk.
+- The grid and the measurements are in ADR 0022.
+  A first walk spike (menus, tabs, a 1 M-row table with highlighted ranges) settled needs 3 and 4.
+- Its dark-theme verdict was wrong: it applied a fraction of the recipe.
+  David asked to dig; a second spike applies the whole of it and darkens the whole window, the standard message box and font chooser excepted (ADR 0022, *Dark theme on walk*).
+- David set the condition: the dark theme is required.
+  The recommendation is walk.
 - David ran the second spike — "the UI is not well made, but the concept looks proven" — and walk was chosen.
-- miqt was not built: Qt for MinGW is not installed. Its weight is bounded from below by PySide6's Qt DLLs (26.6 MB).
+- miqt was not built: Qt for MinGW is not installed.
+  Its weight is bounded from below by PySide6's Qt DLLs (26.6 MB).
 - In the first spike's captures the Win32 tab strip showed no tab; irrelevant now, the tab strip is ours.

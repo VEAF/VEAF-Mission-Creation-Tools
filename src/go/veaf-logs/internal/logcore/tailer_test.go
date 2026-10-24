@@ -26,7 +26,7 @@ func newTailed(t *testing.T, content string) (*Tailer, *Store, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := NewStore(loadRules(t), tailer.Buffer)
+	store := NewStore(loadRules(t), tailer.Buffer())
 	store.IndexNew(0)
 	return tailer, store, path
 }

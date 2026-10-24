@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"time"
 )
 
 // headBytes is the fingerprint of the start of the file, re-read at each poll
@@ -20,10 +21,10 @@ var ErrUnavailable = errors.New("log momentarily unavailable")
 // it to .old and starts a new file. The tailer reports when everything must be
 // read again: file replaced, shorter than what was indexed, or rewritten.
 type Tailer struct {
-	Path   string
-	info   os.FileInfo
-	head   []byte
-	Buffer *FileBuffer
+	Path string
+	info os.FileInfo
+	head []byte
+	buf  *FileBuffer
 }
 
 // OpenTailer starts following a file.
@@ -42,7 +43,7 @@ func (t *Tailer) open() error {
 	}
 	t.info = info
 	t.head = t.readHead()
-	t.Buffer = NewFileBuffer(t.Path)
+	t.buf = NewFileBuffer(t.Path)
 	return nil
 }
 
@@ -90,14 +91,29 @@ func headChanged(head, previous []byte) bool {
 // number of entries added and whether a rotation happened. `maxBytes` bounds
 // the work of one call (0: unbounded), so that a big file indexes in slices.
 func (t *Tailer) Poll(store *Store, maxBytes int64) (added int, rotated bool, err error) {
-	rotated, err = t.CheckRotation(store.IndexedBytes())
-	if err != nil {
-		return 0, false, err
-	}
+	return poll(t, store, maxBytes)
+}
+
+// Fetch is the rotation check: a local file is read where it is, there is
+// nothing to bring back.
+func (t *Tailer) Fetch(indexed int64) (bool, error) { return t.CheckRotation(indexed) }
+
+// Index indexes what is new; after a rotation the store is emptied and the new
+// file read from the start.
+func (t *Tailer) Index(store *Store, rotated bool, maxBytes int64) int {
 	if rotated {
 		store.Clear()
-		t.Buffer = NewFileBuffer(t.Path)
-		store.buffer = t.Buffer
+		t.buf = NewFileBuffer(t.Path)
+		store.buffer = t.buf
 	}
-	return store.IndexNew(maxBytes), rotated, nil
+	return store.IndexNew(maxBytes)
 }
+
+// Buffer is the file, read on demand.
+func (t *Tailer) Buffer() Buffer { return t.buf }
+
+// Pending is always false: a local file is read where it is.
+func (t *Tailer) Pending() bool { return false }
+
+// PollInterval is how often a local file is polled.
+func (t *Tailer) PollInterval() time.Duration { return 300 * time.Millisecond }

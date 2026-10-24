@@ -11,10 +11,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20.
 
 
-### [POC-GO-VEAF-LOGS](POC-GO-VEAF-LOGS/PRD.md) · 🔄
-
-Proof of concept: veaf-logs rewritten in Go in an isolated module, to see whether a native binary is smaller, starts faster and classifies exactly like the Python viewer. Core, parity proof and UI done; SFTP and the conclusion remain. Requested by David 2026-10-23.
-
 ## 🧑 Waiting for a human
 
 ### [FEAT-FORCED-MISSION-OPTIONS](FEAT-FORCED-MISSION-OPTIONS/PRD.md) · 🧑

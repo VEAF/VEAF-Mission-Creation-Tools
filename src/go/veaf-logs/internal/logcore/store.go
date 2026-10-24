@@ -297,6 +297,17 @@ func (s *Store) Entry(index int) Entry {
 	return e
 }
 
+// TimeOnly is the time without the date, as the table's column shows it.
+func (e Entry) TimeOnly() string {
+	if utf8.RuneCountInString(e.Timestamp) > 11 {
+		return sliceRunes(e.Timestamp, 11)
+	}
+	return e.Timestamp
+}
+
+// NoiseOf returns the noise families of an entry without building it.
+func (s *Store) NoiseOf(i int) []string { return s.m.noiseNames(s.noise[i]) }
+
 // LevelOf returns the level name of an entry without building it.
 func (s *Store) LevelOf(i int) string { return Levels[s.level[i]] }
 
@@ -537,7 +548,9 @@ func allDigits(r []rune) bool {
 
 // -- text helpers ------------------------------------------------------------
 
-// toValidUTF8 decodes like Python's `decode("utf-8", "replace")`, one U+FFFD per bad byte.
+// toValidUTF8 decodes like Python's `decode("utf-8", "replace")`: one U+FFFD
+// per maximal subpart of an ill-formed sequence — a truncated multi-byte
+// sequence is one replacement, a byte that cannot start or continue one is one.
 func toValidUTF8(b []byte) string {
 	if utf8.Valid(b) {
 		return string(b)
@@ -545,14 +558,50 @@ func toValidUTF8(b []byte) string {
 	var sb strings.Builder
 	for len(b) > 0 {
 		r, n := utf8.DecodeRune(b)
-		if r == utf8.RuneError && n == 1 {
-			sb.WriteRune(utf8.RuneError)
-		} else {
+		if r != utf8.RuneError || n != 1 {
 			sb.Write(b[:n])
+			b = b[n:]
+			continue
 		}
-		b = b[n:]
+		sb.WriteRune(utf8.RuneError)
+		b = b[maximalSubpart(b):]
 	}
 	return sb.String()
+}
+
+// DecodeUTF8 decodes bytes as Python's `decode("utf-8", "replace")` does.
+func DecodeUTF8(b []byte) string { return toValidUTF8(b) }
+
+// maximalSubpart is how many bytes of an ill-formed sequence one replacement
+// covers: the lead byte and the continuation bytes still valid after it.
+func maximalSubpart(b []byte) int {
+	lo, hi, need := byte(0x80), byte(0xBF), 0
+	switch c := b[0]; {
+	case c >= 0xC2 && c <= 0xDF:
+		need = 1
+	case c == 0xE0:
+		lo, need = 0xA0, 2
+	case c >= 0xE1 && c <= 0xEC, c == 0xEE, c == 0xEF:
+		need = 2
+	case c == 0xED:
+		hi, need = 0x9F, 2
+	case c == 0xF0:
+		lo, need = 0x90, 3
+	case c >= 0xF1 && c <= 0xF3:
+		need = 3
+	case c == 0xF4:
+		hi, need = 0x8F, 3
+	default:
+		return 1
+	}
+	n := 1
+	for ; n <= need && n < len(b); n++ {
+		if b[n] < lo || b[n] > hi {
+			break
+		}
+		lo, hi = 0x80, 0xBF // only the first continuation byte has a narrower range
+	}
+	return n
 }
 
 func sliceRunes(s string, from int) string {

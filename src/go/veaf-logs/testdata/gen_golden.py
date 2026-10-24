@@ -202,6 +202,11 @@ def main() -> None:
         write_filter_golden(store, HERE / "golden" / f"{name}.filters.jsonl")
         print(f"{name}: {len(store)} entries")
 
+    # *Explain* and the `/bug` report: their references come from the same corpus.
+    import gen_analysis_golden
+
+    gen_analysis_golden.main(rules)
+
 
 # Patterns chosen against the corpus: literals, wildcards, classes, alternation,
 # the anchors (`^` and `$` bind to each line, not to the search block), and an

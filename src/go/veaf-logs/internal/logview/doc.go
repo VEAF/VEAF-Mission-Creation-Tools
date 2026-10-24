@@ -216,6 +216,14 @@ func (d *Doc) Reclassify(rules *logcore.Rules) {
 	}
 }
 
+// Read runs f with the store, the filters in force and the rows shown (nil:
+// every entry), under the document's lock: *Explain* reads the view as it is.
+func (d *Doc) Read(f func(store *logcore.Store, filters logcore.FilterSet, visible []int)) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	f(d.store, d.filters, d.visible)
+}
+
 // Filters is the filter set in force.
 func (d *Doc) Filters() logcore.FilterSet {
 	d.mu.Lock()

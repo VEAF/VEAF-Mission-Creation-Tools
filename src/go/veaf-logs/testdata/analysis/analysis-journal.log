@@ -1,0 +1,44 @@
+2026-10-24 10:00:00.000 INFO    APP (Main): fooDCS/1.2.3 is not the banner
+2026-10-24 10:00:00.001 INFO    APP (Main): DCS/2.9.29.27278 (x86_64; MT; Windows NT 10.0.26200)
+2026-10-24 10:00:00.002 WARNING EDCORE (Main): Can't load model 'Ural-375_p_0' for '1L13 EWR' at C:\Users\Jean Dupont\x0.edm
+2026-10-24 10:00:00.003 ERROR   NET (Main): connection to 192.168.1.10:10308 lost after 0.5 s
+2026-10-24 10:00:00.004 INFO    SCRIPTING (Main): More out of memory in SharedBuffer for 100 bytes
+2026-10-24 10:00:00.005 WARNING SOUND (Main): can't play sound [radio_0] token=secret0
+2026-10-24 10:00:00.006 ERROR   TERRAIN (Main): object 0x00000000DEADBEEF not found in /textures/sub/0.dds
+2026-10-24 10:00:00.007 WARNING EDCORE (Main): Can't load model 'Ural-375_p_1' for '1L13 EWR' at C:\Users\Jean Dupont\x1.edm
+2026-10-24 10:00:00.008 ERROR   NET (Main): connection to 192.168.1.11:10308 lost after 3.5 s
+2026-10-24 10:00:00.009 INFO    SCRIPTING (Main): More out of memory in SharedBuffer for 1000 bytes
+2026-10-24 10:00:00.010 WARNING SOUND (Main): can't play sound [radio_1] token=secret1
+2026-10-24 10:00:00.011 ERROR   TERRAIN (Main): object 0x00000001DEADBEEF not found in /textures/sub/1.dds
+2026-10-24 10:00:00.012 WARNING EDCORE (Main): Can't load model 'Ural-375_p_2' for '1L13 EWR' at C:\Users\Jean Dupont\x2.edm
+2026-10-24 10:00:00.013 ERROR   NET (Main): connection to 192.168.1.12:10308 lost after 6.5 s
+2026-10-24 10:00:00.014 INFO    SCRIPTING (Main): More out of memory in SharedBuffer for 10000 bytes
+2026-10-24 10:00:00.015 WARNING SOUND (Main): can't play sound [radio_2] token=secret2
+2026-10-24 10:00:00.016 ERROR   TERRAIN (Main): object 0x00000002DEADBEEF not found in /textures/sub/2.dds
+2026-10-24 10:00:00.017 WARNING EDCORE (Main): Can't load model 'Ural-375_p_3' for '1L13 EWR' at C:\Users\Jean Dupont\x3.edm
+2026-10-24 10:00:00.018 ERROR   NET (Main): connection to 192.168.1.13:10308 lost after 9.5 s
+2026-10-24 10:00:00.019 INFO    SCRIPTING (Main): More out of memory in SharedBuffer for 100000 bytes
+2026-10-24 10:00:00.020 WARNING SOUND (Main): can't play sound [radio_3] token=secret3
+2026-10-24 10:00:00.021 ERROR   TERRAIN (Main): object 0x00000003DEADBEEF not found in /textures/sub/3.dds
+2026-10-24 10:00:00.022 WARNING EDCORE (Main): Can't load model 'Ural-375_p_4' for '1L13 EWR' at C:\Users\Jean Dupont\x4.edm
+2026-10-24 10:00:00.023 ERROR   NET (Main): connection to 192.168.1.14:10308 lost after 12.5 s
+2026-10-24 10:00:00.024 INFO    SCRIPTING (Main): More out of memory in SharedBuffer for 1000000 bytes
+2026-10-24 10:00:00.025 WARNING SOUND (Main): can't play sound [radio_4] token=secret4
+2026-10-24 10:00:00.026 ERROR   TERRAIN (Main): object 0x00000004DEADBEEF not found in /textures/sub/4.dds
+2026-10-24 10:00:00.027 ERROR   SCRIPTING (Main): Mission script error: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+stack traceback:
+	[string "C:\Users\dpierron\veaf0.lua"]:0: in function 'f0'
+	[string "C:\Users\dpierron\veaf1.lua"]:1: in function 'f1'
+	[string "C:\Users\dpierron\veaf2.lua"]:2: in function 'f2'
+	[string "C:\Users\dpierron\veaf3.lua"]:3: in function 'f3'
+	[string "C:\Users\dpierron\veaf4.lua"]:4: in function 'f4'
+	[string "C:\Users\dpierron\veaf5.lua"]:5: in function 'f5'
+	[string "C:\Users\dpierron\veaf6.lua"]:6: in function 'f6'
+	[string "C:\Users\dpierron\veaf7.lua"]:7: in function 'f7'
+	[string "C:\Users\dpierron\veaf8.lua"]:8: in function 'f8'
+	[string "C:\Users\dpierron\veaf9.lua"]:9: in function 'f9'
+	[string "C:\Users\dpierron\veaf10.lua"]:10: in function 'f10'
+	[string "C:\Users\dpierron\veaf11.lua"]:11: in function 'f11'
+2026-10-24 10:00:00.028 INFO    SCRIPTING (Main): VEAF|I|log|1: mail de jean@example.org, ip ::ffff:10.0.0.1
+2026-10-24 10:00:00.029 WARNING APP (Main): can't open ‘fichier’ "quoted value" don't panic [bracket] 1.2.3
+2026-10-24 10:00:00.030 INFO    DX11BACKEND (Main): unicode ½ ① ٣ 𝟙 élan insécablefin

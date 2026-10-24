@@ -5,11 +5,13 @@
 package logcore
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 )
 
 // Native source: a DCS subsystem that is not in the catalogue's `sources`.
@@ -65,6 +67,14 @@ type Rules struct {
 	Sources []Source
 	Noise   []NoiseFamily
 	Levels  map[string]LevelStyle
+	// SubsystemFamilies groups the native DCS subsystems, in the file's order.
+	SubsystemFamilies []SubsystemFamily
+}
+
+// SubsystemFamily is one family of native DCS subsystems (`Moteur`, `Graphismes`…).
+type SubsystemFamily struct {
+	Name    string
+	Members []string
 }
 
 type rawRules struct {
@@ -94,6 +104,7 @@ type rawRules struct {
 		Weight     *int    `json:"weight"`
 		Order      *int    `json:"order"`
 	} `json:"levels"`
+	SubsystemFamilies json.RawMessage `json:"subsystem_families"`
 }
 
 // LoadRules reads and compiles a `rules.json` (the Python one, unchanged).
@@ -165,8 +176,73 @@ func ParseRules(data []byte) (*Rules, error) {
 		}
 		r.Levels[name] = st
 	}
+	families, err := subsystemFamilies(raw.SubsystemFamilies)
+	if err != nil {
+		return nil, fmt.Errorf("subsystem_families: %w", err)
+	}
+	r.SubsystemFamilies = families
 	return r, nil
 }
+
+// subsystemFamilies reads the families in the file's order (a JSON object, which
+// a Go map would shuffle); keys starting with `$` are comments, as in the Python.
+func subsystemFamilies(raw json.RawMessage) ([]SubsystemFamily, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
+		return nil, fmt.Errorf("expected an object")
+	}
+	var out []SubsystemFamily
+	for dec.More() {
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		name, _ := t.(string)
+		var value json.RawMessage
+		if err := dec.Decode(&value); err != nil {
+			return nil, err
+		}
+		if strings.HasPrefix(name, "$") {
+			continue
+		}
+		var members []string
+		if err := json.Unmarshal(value, &members); err != nil {
+			return nil, fmt.Errorf("%s: %w", name, err)
+		}
+		out = append(out, SubsystemFamily{Name: name, Members: members})
+	}
+	return out, nil
+}
+
+// SubsystemFamily names the family of a native subsystem, "" when the catalogue does not list it.
+func (r *Rules) SubsystemFamily(subsystem string) string {
+	if subsystem == "" {
+		return ""
+	}
+	for _, f := range r.SubsystemFamilies {
+		if contains(f.Members, subsystem) {
+			return f.Name
+		}
+	}
+	return ""
+}
+
+// SourceLabels maps every source id to its label, the native one included.
+func (r *Rules) SourceLabels() map[string]string {
+	labels := map[string]string{}
+	for _, s := range r.Sources {
+		labels[s.ID] = s.Label
+	}
+	labels[NativeSource] = NativeLabel
+	return labels
+}
+
+// HasPattern tells that a source is recognised by a pattern of its own, not by
+// the log it was read from.
+func (s Source) HasPattern() bool { return s.pattern != nil }
 
 // LevelStyle returns the style of a level, grey when unknown.
 func (r *Rules) LevelStyle(level string) LevelStyle {

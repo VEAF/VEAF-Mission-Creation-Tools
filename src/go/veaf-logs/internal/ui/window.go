@@ -205,6 +205,9 @@ func (w *window) create() error {
 				Action{Text: "Recharger le catalogue", Shortcut: shortcut(0, walk.KeyF5), OnTriggered: w.reloadRules},
 				Action{Text: "Ouvrir rules.json", OnTriggered: w.openRulesFile},
 			}},
+			Menu{Text: "&Analyse", Items: []MenuItem{
+				Action{Text: "Expliquer ce qui est affiché…", Shortcut: shortcut(walk.ModControl, walk.KeyE), OnTriggered: w.explain},
+			}},
 		},
 		Children: []Widget{
 			HSplitter{

@@ -43,6 +43,8 @@ PATHS_THE_PYTHON_SUITE_READS = (
 PATHS_THE_GO_PARITY_READS = (
     "src/go/veaf-logs/**",
     "src/python/veaf-tools/veaf_logs/**",
+    "src/python/veaf-tools/veaf_libs/redaction.py",
+    "src/python/veaf-tools/veaf_libs/diagnostics.py",
     ".github/workflows/go-ci.yml",
 )
 

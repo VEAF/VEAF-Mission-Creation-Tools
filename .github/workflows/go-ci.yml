@@ -15,6 +15,9 @@ on:
       - "src/go/veaf-logs/**"
       # The goldens are written by the Python reference: a change to it must prove the Go still agrees.
       - "src/python/veaf-tools/veaf_logs/**"
+      # The redaction and the doctor block are what the analysis references hold too.
+      - "src/python/veaf-tools/veaf_libs/redaction.py"
+      - "src/python/veaf-tools/veaf_libs/diagnostics.py"
       - ".github/workflows/go-ci.yml"
   pull_request:
 
@@ -38,6 +41,8 @@ jobs:
           GATE_PATHS: |
             src/go/veaf-logs/**
             src/python/veaf-tools/veaf_logs/**
+            src/python/veaf-tools/veaf_libs/redaction.py
+            src/python/veaf-tools/veaf_libs/diagnostics.py
             .github/workflows/go-ci.yml
         run: |
           if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
@@ -88,7 +93,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # gen_golden.py imports only the standard library through veaf_logs' core (StrEnum: 3.11+).
+      # gen_golden.py imports only the standard library through veaf_logs and veaf_libs' redaction and
+      # doctor block (StrEnum: 3.11+); `requests`, which the analysis only imports, is stubbed when absent.
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"

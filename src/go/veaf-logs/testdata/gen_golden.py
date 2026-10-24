@@ -22,6 +22,7 @@ ROOT = HERE.parents[3]
 sys.path.insert(0, str(ROOT / "src" / "python" / "veaf-tools"))
 
 from veaf_logs.buffer import BytesBuffer  # noqa: E402
+from veaf_logs.filters import FilterSet, Mode, PatternError, State, TextFilter, evaluate  # noqa: E402
 from veaf_logs.rules import Rules  # noqa: E402
 from veaf_logs.store import LogStore  # noqa: E402
 
@@ -51,7 +52,7 @@ DCS = [
     b"2026-08-31 11:55:01.930 ERROR   SCRIPTING (Main): Mission script error: CSAR.lua:2213",
     b"stack traceback:",
     b"\t[C]: in function 'getUnitRecordById'",
-    b"\t[string \"C:/x.lua\"]:12: in main chunk",
+    b'\t[string "C:/x.lua"]:12: in main chunk',
     b"2026-08-31 11:55:10.095 WARNING FLIGHT (Main): No taxiroad found on Batumi from 1 to 2",
     b"2026-08-31 11:55:10.096 WARNING MissionScripting::initialize (12345): scoped subsystem",
     b"2026-08-31 11:55:10.097 ALERT   (Main): empty subsystem",
@@ -86,9 +87,9 @@ OTHERS = [
     b"2026-09-29 18:02:42.798 INFO\tDCSServerBot v3.0.4.22 starting up ...",
     b"2026-09-29 18:02:44.490 WARNING\tNew update for DCSServerBot available!",
     b"Use /node upgrade or enable autoupdate to apply it.",
-    b'2026-09-29 18:09:52.501 DEBUG\tHOST->' + SERVER.encode() + b': {"command": "getMissionUpdate"}',
-    b'2026-09-29 18:09:52.502 DEBUG\t' + SERVER.encode() + b'->HOST: {"command": "onMissionEvent", "x": 1}',
-    b'2026-09-29 18:09:52.503 DEBUG\t' + SERVER.encode() + b'->HOST: {"command": "perfmon"}',
+    b"2026-09-29 18:09:52.501 DEBUG\tHOST->" + SERVER.encode() + b': {"command": "getMissionUpdate"}',
+    b"2026-09-29 18:09:52.502 DEBUG\t" + SERVER.encode() + b'->HOST: {"command": "onMissionEvent", "x": 1}',
+    b"2026-09-29 18:09:52.503 DEBUG\t" + SERVER.encode() + b'->HOST: {"command": "perfmon"}',
     b"2026-09-29 18:09:52.504 INFO\tnode registered with the cloud.",
     b"2026-09-29 18:03:38,541\tINFO\t4.80s\tServerImpl.apply_mission_changes()",
     b"2026-09-29 18:02:44.490 CRITICAL\tboom",
@@ -198,7 +199,136 @@ def main() -> None:
             "noise": store.counts_by_noise(),
         }
         (HERE / "golden" / f"{name}.counts.json").write_text(json.dumps(counts, sort_keys=True), encoding="utf-8")
+        write_filter_golden(store, HERE / "golden" / f"{name}.filters.jsonl")
         print(f"{name}: {len(store)} entries")
+
+
+# Patterns chosen against the corpus: literals, wildcards, classes, alternation,
+# the anchors (`^` binds to the start of a search block, `$` also matches before
+# the block's final newline), and an invalid regex. ASCII only: on non-ASCII
+# text Python's bytes IGNORECASE and Go's (?i) do not fold the same way, a
+# divergence pinned by a test of its own rather than hidden in the parity.
+TEXT_CASES = [
+    ("VEAF", "plain"),
+    ("veaf", "plain"),
+    ("zone introuvable", "plain"),
+    ("stack traceback", "plain"),
+    ("a.b", "plain"),
+    ("[CTLD]", "plain"),
+    ("VEAF*W*", "glob"),
+    ("*.lua", "glob"),
+    ("?ission", "glob"),
+    ("CSAR.lua", "glob"),
+    (r"VEAF\|[WE]\|", "regex"),
+    (r"\d{4}-\d\d-\d\d", "regex"),
+    (r"[a-z]+\.lua:\d+", "regex"),
+    ("Error|WARNING", "regex"),
+    ("^2026", "regex"),
+    ("^=== Log", "regex"),
+    (r"\.$", "regex"),
+    ("2$", "regex"),
+    # Always matches the block's last line in Python: the case that proves the `$` rewrite is needed.
+    (".$", "regex"),
+    ("x*", "regex"),
+    # Across a line inside an entry, and across two entries: a match the line-by-line shortcut cannot see.
+    (r"traceback:\s+\S", "regex"),
+    (r"\n2026", "regex"),
+    ("[non fermee", "regex"),
+]
+
+
+def filter_cases(store: LogStore) -> list[tuple[str, FilterSet]]:
+    """Every filter case, enumerated from what the journal holds rather than sampled."""
+    cases: list[tuple[str, FilterSet]] = [("empty", FilterSet())]
+    families = [
+        ("levels", sorted(store.counts_by_level())),
+        ("sources", sorted(store.counts_by_source())),
+        ("noise", sorted(store.counts_by_noise())),
+    ]
+    for kind, keys in families:
+        for key in keys:
+            off = FilterSet()
+            off.set_state(kind, key, State.OFF)
+            cases.append((f"{kind}:{key}=off", off))
+            for lines in (0, 1, 3):
+                context = FilterSet(context_lines=lines)
+                context.set_state(kind, key, State.CONTEXT)
+                cases.append((f"{kind}:{key}=context±{lines}", context))
+    for pattern, mode in TEXT_CASES:
+        for case_sensitive in (False, True):
+            for invert in (False, True):
+                for search in (0, 2):
+                    criterion = TextFilter(
+                        pattern=pattern, mode=Mode(mode), case_sensitive=case_sensitive, invert=invert
+                    )
+                    label = f"{mode}:{pattern} case={case_sensitive} invert={invert} search±{search}"
+                    cases.append((label, FilterSet(text_filters=[criterion], search_context_lines=search)))
+    # The categories and the text together: the diagnostic profile, a search
+    # inside it, a search context that must not reopen hidden lines, per-criterion
+    # and per-category spans, two cumulative criteria.
+    diagnostic = {"INFO": State.CONTEXT, "DEBUG": State.CONTEXT, "TRACE": State.CONTEXT}
+    cases.append(("diagnostic", FilterSet(levels=dict(diagnostic), context_lines=3)))
+    cases.append(
+        (
+            "diagnostic+search",
+            FilterSet(
+                levels=dict(diagnostic),
+                text_filters=[TextFilter(pattern="lua")],
+                context_lines=2,
+                search_context_lines=1,
+            ),
+        )
+    )
+    cases.append(
+        (
+            "info hidden+search±3",
+            FilterSet(levels={"INFO": State.OFF}, text_filters=[TextFilter(pattern="VEAF")], search_context_lines=3),
+        )
+    )
+    spans = FilterSet(levels={"INFO": State.CONTEXT, "WARNING": State.CONTEXT}, context_lines=0)
+    spans.set_span("levels", "INFO", 2)
+    cases.append(("per-category span", spans))
+    cases.append(
+        (
+            "two criteria, own span",
+            FilterSet(
+                text_filters=[
+                    TextFilter(pattern="SCRIPTING"),
+                    TextFilter(pattern="VEAF", mode=Mode.GLOB, context_lines=4),
+                ],
+                search_context_lines=1,
+            ),
+        )
+    )
+    cases.append(
+        (
+            "disabled criterion",
+            FilterSet(text_filters=[TextFilter(pattern="VEAF", enabled=False)], levels={"ERROR": State.OFF}),
+        )
+    )
+    return cases
+
+
+def ranges(indices: list[int]) -> list[list[int]]:
+    """Visible indices as `[first, last]` runs: compact, and still readable in a diff."""
+    out: list[list[int]] = []
+    for index in indices:
+        if out and out[-1][1] == index - 1:
+            out[-1][1] = index
+        else:
+            out.append([index, index])
+    return out
+
+
+def write_filter_golden(store: LogStore, path: Path) -> None:
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        for label, filters in filter_cases(store):
+            record: dict[str, object] = {"case": label, "filters": filters.to_dict()}
+            try:
+                record["visible"] = ranges(evaluate(store, filters))
+            except PatternError:
+                record["error"] = True
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 if __name__ == "__main__":

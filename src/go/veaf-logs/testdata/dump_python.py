@@ -1,5 +1,8 @@
 """Dump the Python index of a log as JSON lines, for the Go parity test."""
-import json, sys, time
+import json
+import sys
+import time
+
 sys.path.insert(0, "src/python/veaf-tools")
 from veaf_logs.buffer import FileBuffer
 from veaf_logs.rules import Rules

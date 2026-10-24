@@ -1,6 +1,6 @@
 # 03 — The Go parity tests run in CI, on a checkout that has the corpus
 
-Status: 🔄 in-progress
+Status: ✅ done — #1176, 2026-10-24
 
 Found 2026-10-24 while starting J1: the synthetic parity corpus `src/go/veaf-logs/testdata/corpus/*.log` is caught by the root `.gitignore` rule `*.log`, so a fresh checkout fails `go test` with "no corpus found", and no workflow runs `go test` at all.
 The parity of the proof of concept is therefore checked by nobody but the person who regenerates the corpus.

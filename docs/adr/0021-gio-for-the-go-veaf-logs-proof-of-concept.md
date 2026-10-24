@@ -1,8 +1,10 @@
 ---
-status: proposed
+status: superseded by ADR 0022
 ---
 
 # Gio as the UI toolkit of the Go `veaf-logs` proof of concept
+
+> Superseded 2026-10-24 by [ADR 0022](0022-ui-toolkit-for-the-go-veaf-logs.md): this choice rested on scrolling one list, not on what the whole application needs; compared on those needs, walk was chosen.
 
 Lot: [POC-GO-VEAF-LOGS](../../.backlog/POC-GO-VEAF-LOGS/PRD.md).
 Measured on DAVID-BUREAU (Windows 11), 2026-10-23 and 24, Go 1.27.3, gcc (MinGW) 16.2.
@@ -44,7 +46,7 @@ Use Gio for the proof of concept.
 
 | | Python | Go |
 |---|---|---|
-| Executable | 47.2 MB | 9.5 MB |
+| Executable | 47.2 MB | 9.5 MB without SFTP, 12.3 MB with it |
 | Window visible | 2.1 s | 0.3 s |
 | Index the journal | 13.2–13.6 s | 2.3–2.5 s (window usable after 0.35 s, indexing in the background) |
 | Search "ctld" / "error" (same hits: 187 082 / 128 478) | 0.71 / 0.72 s | 0.08 / 0.11 s |

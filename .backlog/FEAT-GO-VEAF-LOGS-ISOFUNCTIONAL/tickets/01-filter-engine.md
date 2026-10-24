@@ -1,6 +1,6 @@
 # 01 — The filter engine of `filters.py`, in the Go core
 
-Status: 🔄 in-progress
+Status: ✅ done — #1176, 2026-10-24
 
 Milestone J1, toolkit-free.
 `internal/logcore` has a case-insensitive plain search and nothing else; the viewer filters with `filters.py` (512 lines).

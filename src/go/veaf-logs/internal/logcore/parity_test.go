@@ -2,6 +2,7 @@ package logcore
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -124,5 +125,17 @@ func TestIndexIsIncremental(t *testing.T) {
 	}
 	if got := len(store.Entry(1).Continuation); got != 1 {
 		t.Fatalf("continuations of entry 1: %d, want 1", got)
+	}
+}
+
+// The embedded catalogue is a copy: the Python file stays the single source and
+// this test fails as soon as the two drift apart.
+func TestEmbeddedRulesAreThePythonOnes(t *testing.T) {
+	python, err := os.ReadFile(rulesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(python, embeddedRules) {
+		t.Fatal("internal/logcore/rules.json differs from veaf_logs/rules.json: copy it again")
 	}
 }

@@ -5,6 +5,7 @@
 package logcore
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -193,3 +194,10 @@ func contains(list []string, id string) bool {
 	}
 	return false
 }
+
+//go:embed rules.json
+var embeddedRules []byte
+
+// DefaultRules loads the catalogue embedded in the executable. rules.json here
+// is a copy of the Python one, kept identical by TestEmbeddedRulesAreThePythonOnes.
+func DefaultRules() (*Rules, error) { return ParseRules(embeddedRules) }

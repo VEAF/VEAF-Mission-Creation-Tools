@@ -1,6 +1,6 @@
 # 02 — Go core and parity proof
 
-Status: ⬜ ready
+Status: ✅ done — 2026-10-23
 Type: feature
 
 Port `rules`, the header formats, the compact index (`store`) and the file buffer (read by offset, never held open) to Go in `src/go/veaf-logs/`, loading the unchanged `rules.json`.

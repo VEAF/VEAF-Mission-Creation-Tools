@@ -1,6 +1,6 @@
 # POC-GO-VEAF-LOGS — can a Go rewrite of veaf-logs keep the promise of a small, fast native binary?
 
-Status: ⬜ ready
+Status: 🔄 in progress
 
 Origin: David, 2026-10-23.
 He wants a real native binary for VMCT.
@@ -38,6 +38,6 @@ The UI toolkit decides the binary weight: it is decided by measurement and recor
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Baseline measurements of the Python viewer](tickets/01-baseline.md) | ✅ |
-| 02 | [Go core and parity proof](tickets/02-core-and-parity.md) | ⬜ |
-| 03 | [Minimal UI and toolkit ADR](tickets/03-ui-and-adr.md) | ⬜ |
+| 02 | [Go core and parity proof](tickets/02-core-and-parity.md) | ✅ |
+| 03 | [Minimal UI and toolkit ADR](tickets/03-ui-and-adr.md) | ✅ |
 | 04 | [Remote journal over SFTP (if time allows)](tickets/04-sftp.md) | ⬜ |

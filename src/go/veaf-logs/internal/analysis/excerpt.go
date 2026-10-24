@@ -310,7 +310,10 @@ func BuildExcerpt(r *Redactor, store *logcore.Store, f *logcore.FilterSet, visib
 	}
 	for _, t := range f.TextFilters {
 		if !t.Disabled && t.Pattern != "" {
-			x.Searches = append(x.Searches, t.Describe())
+			// Typed by the user, so it may carry a name or an address: redacted like
+			// the records, since the header travels to the Worker as it stands. The
+			// Python does not (its report is redacted whole, its Worker excerpt is not).
+			x.Searches = append(x.Searches, r.Redact(t.Describe()))
 		}
 	}
 	at := func(i int) ExcerptEntry { return toExcerptEntry(r, store.Entry(allowed[i])) }

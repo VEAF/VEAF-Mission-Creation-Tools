@@ -27,7 +27,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A dynamic-slot mission's ATO lists its flights** (FIX-DEMO-VIDEO-FINDINGS 03): under each airfield, the aircraft types it offers with the first channel of their preset plan (`A-10C_2 — Archer : 390.0 MHz`), before the empty pilot boxes. An AI had written a script to fill that page after every briefing.
 - **`inspect_built_mission` shows the date and the briefing pictures** (FIX-DEMO-VIDEO-FINDINGS 14): the AI no longer opens the `.miz` with a shell to find out.
 - **`create_combat_zone` takes statics and vehicles in one call** (FIX-DEMO-VIDEO-FINDINGS 13): a group's own `category` overrides the call's, and a group that cannot be built is named in the refusal, with nothing written.
-- **Proof of concept: `veaf-logs` rewritten in Go** (POC-GO-VEAF-LOGS), in the isolated module `src/go/veaf-logs/` — nothing shipped, the Python viewer and the release pipeline are untouched. The Go core gives the same classification as the Python one on every entry of the test corpora and indexes a 1 M-line journal in 2.5 s instead of 13 s.
+- **Proof of concept: `veaf-logs` rewritten in Go** (POC-GO-VEAF-LOGS), in the isolated module `src/go/veaf-logs/` — nothing shipped, the Python viewer and the release pipeline are untouched. The Go core gives the same classification as the Python one on every entry of the test corpora and indexes a 1 M-line journal in 2.5 s instead of 13 s. It also opens the journals of the configured servers over SFTP (`--remote SERVER/INSTANCE`).
 
 ### Fixed
 

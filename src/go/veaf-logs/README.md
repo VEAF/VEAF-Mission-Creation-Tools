@@ -4,6 +4,7 @@ A rewrite of the DCS journal viewer in Go, to find out whether a native binary k
 Nothing here is shipped; see [POC-GO-VEAF-LOGS](../../../.backlog/POC-GO-VEAF-LOGS/PRD.md) and [ADR 0021](../../../docs/adr/0021-gio-for-the-go-veaf-logs-proof-of-concept.md).
 
 - `internal/logcore`: the core without UI (rule catalogue, header formats, compact index, search, tail with rotation detection). A port of `veaf_logs` (Python), which remains the reference.
+- `internal/sshlog`: SSH + SFTP connection (key, agent, `known_hosts`) and the `servers` block of `~/veafmct.yaml`.
 - `cmd/veaf-logs`: the window ([Gio](https://gioui.org)).
 - `cmd/logdump`: indexes a journal and writes the parity dump.
 - `testdata`: the synthetic parity corpus and the golden dumps written by the Python implementation.
@@ -16,6 +17,7 @@ go build -ldflags "-s -w -H windowsgui" -o veaf-logs.exe ./cmd/veaf-logs
 ```
 
 Without a path it opens `Saved Games\DCS\Logs\dcs.log`.
+`--servers` lists the servers of `~/veafmct.yaml`; `--remote SERVER/INSTANCE` opens one of their journals over SFTP (key authentication; an unknown host must first be trusted with `ssh`, a key with a passphrase must be in an SSH agent).
 `--png out.png [--query TEXT]` renders the window off screen into a PNG; `--bench` prints the time to the first frame and to the end of indexing.
 
 ## Keeping the Go and Python sides equal

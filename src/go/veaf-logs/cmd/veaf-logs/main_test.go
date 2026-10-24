@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/logcore"
 )
 
 const (
@@ -70,4 +72,52 @@ func TestPollFollowsAppendsAndRotation(t *testing.T) {
 		defer v.mu.Unlock()
 		return v.filtered && !v.searching && len(v.view) == 0
 	})
+}
+
+// slowSource blocks in Fetch, like a remote journal waiting for the network.
+type slowSource struct {
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (s *slowSource) Buffer() logcore.Buffer { return &logcore.BytesBuffer{} }
+func (s *slowSource) Fetch(int64) (bool, error) {
+	select {
+	case s.entered <- struct{}{}:
+	default:
+	}
+	<-s.release
+	return false, nil
+}
+func (s *slowSource) Index(*logcore.Store, bool, int64) int { return 0 }
+func (s *slowSource) Pending() bool                         { return false }
+func (s *slowSource) PollInterval() time.Duration           { return 10 * time.Millisecond }
+func (s *slowSource) Close()                                {}
+
+// The window takes the viewer's lock for every visible row: a remote fetch
+// (connection, download) must never hold it, or the window freezes with the network.
+func TestTheNetworkDoesNotHoldTheWindowsLock(t *testing.T) {
+	rules, err := logcore.DefaultRules()
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := &slowSource{entered: make(chan struct{}, 1), release: make(chan struct{})}
+	defer close(src.release)
+	v, err := newViewerFor(rules, src, "slow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go v.poll()
+	select {
+	case <-src.entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Fetch was never called")
+	}
+	locked := make(chan struct{})
+	go func() { v.mu.Lock(); v.mu.Unlock(); close(locked) }()
+	select {
+	case <-locked:
+	case <-time.After(time.Second):
+		t.Fatal("the lock is held while Fetch waits for the network")
+	}
 }

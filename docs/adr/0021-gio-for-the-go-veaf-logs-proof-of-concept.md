@@ -63,7 +63,8 @@ Memory is the one figure where Go loses; its cause was not investigated.
   The application never scrolls before the first layout; `ScrollToEnd` is safe.
 - **`rules.json` stays the single source.** The Go module embeds a copy, and `TestEmbeddedRulesAreThePythonOnes` fails as soon as the two differ.
 - **Nothing ships, and nothing runs it.** The module is not built by `release.yml`, the Python viewer is untouched, and no workflow runs the Go tests yet: the guard on the `rules.json` copy and the parity test only protect anyone who runs `go test`. A CI job (path-filtered, like the others) is part of any follow-up that keeps the module.
-- **Not done by the proof of concept:** remote journals over SFTP, `analysis`, `report`, `proposals`, `excerpt`, the filters beyond a plain text search (glob and regex modes, tri-state categories, context lines), Linux and macOS builds of the window.
+- **Remote journals** work (SSH + SFTP, mirror and rotation as in `remote.py`), checked against an in-process server and, read-only, against dcs.veaf.org. Not handled: a host-key prompt (an unknown host is refused), the Windows OpenSSH agent pipe, keys protected by a passphrase outside an agent.
+- **Not done by the proof of concept:** `analysis`, `report`, `proposals`, `excerpt`, the filters beyond a plain text search (glob and regex modes, tri-state categories, context lines), Linux and macOS builds of the window.
 
 ## Alternatives considered
 

@@ -33,6 +33,7 @@ import (
 	"gioui.org/widget/material"
 
 	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/logcore"
+	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/sshlog"
 )
 
 // indexSlice bounds the work done under the lock in one go, so that the window
@@ -40,11 +41,11 @@ import (
 const indexSlice = 1 << 20
 
 type viewer struct {
-	win    *app.Window
-	th     *material.Theme
-	rules  *logcore.Rules
-	tailer *logcore.Tailer
-	path   string
+	win   *app.Window
+	th    *material.Theme
+	rules *logcore.Rules
+	src   logcore.Follower
+	path  string
 
 	mu       sync.Mutex // guards store, view, cache, status fields
 	store    *logcore.Store
@@ -68,7 +69,7 @@ type viewer struct {
 }
 
 func main() {
-	bench, path, pngOut, query := false, "", "", ""
+	bench, path, pngOut, query, remote, listServers := false, "", "", "", "", false
 	args := os.Args[1:]
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
@@ -77,6 +78,11 @@ func main() {
 		case "--png":
 			i++
 			pngOut = args[i]
+		case "--remote":
+			i++
+			remote = args[i]
+		case "--servers":
+			listServers = true
 		case "--query":
 			i++
 			query = args[i]
@@ -84,13 +90,26 @@ func main() {
 			path = args[i]
 		}
 	}
-	if path == "" {
-		path = defaultLog()
+	if listServers {
+		printServers()
+		return
 	}
-	v, err := newViewer(path)
+	var v *viewer
+	var err error
+	switch {
+	case remote != "":
+		v, err = newRemoteViewer(remote)
+		path = remote
+	default:
+		if path == "" {
+			path = defaultLog()
+		}
+		v, err = newViewer(path)
+	}
 	if err != nil {
 		fatal(err)
 	}
+	defer v.src.Close() // deletes the mirror of a remote journal
 
 	if pngOut != "" {
 		go v.poll()
@@ -102,15 +121,64 @@ func main() {
 	start := time.Now()
 	go func() {
 		w := new(app.Window)
-		w.Option(app.Title("veaf-logs (Go) — "+filepath.Base(path)), app.Size(unit.Dp(1100), unit.Dp(700)))
+		w.Option(app.Title("veaf-logs (Go) — "+windowName(path)), app.Size(unit.Dp(1100), unit.Dp(700)))
 		v.win = w
 		go v.poll()
 		if err := v.run(w, bench, start); err != nil {
 			fatal(err)
 		}
+		v.src.Close()
 		os.Exit(0)
 	}()
 	app.Main()
+}
+
+// newRemoteViewer opens `SERVER/INSTANCE` of the configured servers (~/veafmct.yaml).
+func newRemoteViewer(spec string) (*viewer, error) {
+	name, instance, ok := strings.Cut(spec, "/")
+	if !ok {
+		return nil, fmt.Errorf("--remote %q: expected SERVER/INSTANCE (see --servers)", spec)
+	}
+	servers, err := sshlog.LoadServers()
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range servers {
+		if s.Name != name {
+			continue
+		}
+		path, ok := s.Logs[instance]
+		if !ok {
+			return nil, fmt.Errorf("%s has no instance %q (it has: %s)", name, instance, strings.Join(s.Instances(), ", "))
+		}
+		rules, err := logcore.DefaultRules()
+		if err != nil {
+			return nil, err
+		}
+		location := fmt.Sprintf("%s@%s:%s", s.User, s.Host, path)
+		src, err := logcore.NewRemoteSource(path, location, sshlog.Connector(s, sshlog.Options{}))
+		if err != nil {
+			return nil, err
+		}
+		return newViewerFor(rules, src, name+":"+instance)
+	}
+	return nil, fmt.Errorf("no server %q in the configuration (see --servers)", name)
+}
+
+func printServers() {
+	servers, err := sshlog.LoadServers()
+	if err != nil {
+		fatal(err)
+	}
+	if len(servers) == 0 {
+		fmt.Println("no server configured (the `servers` block of ~/veafmct.yaml)")
+		return
+	}
+	for _, s := range servers {
+		for _, inst := range s.Instances() {
+			fmt.Printf("%s/%s\t%s@%s\t%s\n", s.Name, inst, s.User, s.Host, s.Logs[inst])
+		}
+	}
 }
 
 func newViewer(path string) (*viewer, error) {
@@ -122,8 +190,13 @@ func newViewer(path string) (*viewer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	v := &viewer{rules: rules, tailer: tailer, path: path, cache: map[int]logcore.Entry{}, indexing: true}
-	v.store = logcore.NewStore(rules, tailer.Buffer)
+	return newViewerFor(rules, tailer, path)
+}
+
+// newViewerFor builds the viewer of any followable journal, local or remote.
+func newViewerFor(rules *logcore.Rules, src logcore.Follower, title string) (*viewer, error) {
+	v := &viewer{rules: rules, src: src, path: title, cache: map[int]logcore.Entry{}, indexing: true}
+	v.store = logcore.NewStore(rules, src.Buffer())
 	v.th = material.NewTheme()
 	v.th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 	v.th.Palette = material.Palette{Fg: colText, Bg: colBackground, ContrastBg: color.NRGBA{R: 0x1f, G: 0x6f, B: 0xeb, A: 0xff}, ContrastFg: color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}}
@@ -137,6 +210,13 @@ func (v *viewer) invalidate() {
 	if v.win != nil {
 		v.win.Invalidate()
 	}
+}
+
+func windowName(path string) string {
+	if strings.Contains(path, "/") && !strings.ContainsAny(path, `:\`) {
+		return path // SERVER/INSTANCE
+	}
+	return filepath.Base(path)
 }
 
 func fatal(err error) {
@@ -161,10 +241,18 @@ func (v *viewer) poll() {
 	v.indexStart = time.Now()
 	v.mu.Unlock()
 	for {
+		// The network (Fetch) must not hold the lock the window needs for every row.
 		v.mu.Lock()
-		from := v.store.Len()
-		added, rotated, err := v.tailer.Poll(v.store, indexSlice)
+		indexed := v.store.IndexedBytes()
+		v.mu.Unlock()
+		rotated, err := v.src.Fetch(indexed)
+
+		v.mu.Lock()
+		from, added := v.store.Len(), 0
 		v.unavailable = err != nil
+		if err != nil {
+			rotated = false
+		}
 		if rotated {
 			v.rotations++
 			v.cache = map[int]logcore.Entry{}
@@ -173,7 +261,10 @@ func (v *viewer) poll() {
 			v.indexStart = time.Now()
 			v.indexTook = 0
 		}
-		behind := err == nil && v.store.IndexedBytes() < v.tailer.Buffer.Size()
+		if err == nil {
+			added = v.src.Index(v.store, rotated, indexSlice)
+		}
+		behind := err == nil && (v.store.IndexedBytes() < v.src.Buffer().Size() || v.src.Pending())
 		finished := v.indexing && !behind
 		v.indexing = behind
 		if finished && v.indexTook == 0 {
@@ -195,7 +286,7 @@ func (v *viewer) poll() {
 			// for every visible row, and a lock hogged by the indexer starves it.
 			time.Sleep(time.Millisecond)
 		} else {
-			time.Sleep(300 * time.Millisecond)
+			time.Sleep(v.src.PollInterval())
 		}
 	}
 }
@@ -339,7 +430,7 @@ func (v *viewer) status() string {
 		s += " · searching…"
 	}
 	if v.indexing {
-		total := v.tailer.Buffer.Size()
+		total := v.src.Buffer().Size()
 		if total > 0 {
 			s += fmt.Sprintf(" · indexing %d%%", v.store.IndexedBytes()*100/total)
 		}

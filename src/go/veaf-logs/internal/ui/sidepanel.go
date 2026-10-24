@@ -3,6 +3,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/tailscale/walk"
 	. "github.com/tailscale/walk/declarative"
 
@@ -11,9 +13,22 @@ import (
 	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/ui/dark"
 )
 
-// sideWidth is the panel's width at start, and when shown again after being
-// collapsed by its handle (SIDE_WIDTH in the Python).
+// sideWidth is the panel's width (SIDE_WIDTH in the Python), kept when the
+// window is resized. The scroll view is HorizontalFixed — walk then reserves its
+// vertical scroll bar, and lays it out at its content's width — so the width is
+// given to the content, through the legend.
 const sideWidth = 320
+
+// Heights of a group's parts, at 96 DPI. A walk CustomWidget is greedy in both
+// directions and walk ignores a maximum across a box, so a group made of them
+// would share the panel's whole height with its neighbours: fit pins each group
+// to the sum of these, and the spacer under the groups takes what is left.
+const (
+	groupTop    = 8  // gap above a group
+	titleHeight = 20 // a group's title
+	headHeight  = 22 // its three buttons
+	rowHeight   = 22 // a category
+)
 
 // offColor is the colour of a hidden category.
 var offColor = walk.RGB(0x5a, 0x61, 0x69)
@@ -37,6 +52,7 @@ type stateGroup struct {
 	panel *sidePanel
 	kind  string
 	title string
+	comp  *walk.Composite
 	box   *walk.Composite
 	rows  map[string]*catRow
 	order []string
@@ -66,13 +82,13 @@ func (p *sidePanel) declare() ScrollView {
 			Layout: HBox{MarginsZero: true}, Background: SolidColorBrush{Color: dark.Window},
 			Children: []Widget{
 				Label{Text: label, TextColor: dark.Text},
-				NumberEdit{AssignTo: assign, MinValue: 0, MaxValue: 200, Suffix: " lignes", ToolTipText: hint, TextColor: dark.Text, MinSize: Size{Width: 110}, MaxSize: Size{Width: 110}, OnValueChanged: onChange},
+				NumberEdit{AssignTo: assign, MinValue: 0, MaxValue: 200, Suffix: " lignes", ToolTipText: hint, TextColor: dark.Text, MinSize: Size{Width: 80}, MaxSize: Size{Width: 80}, OnValueChanged: onChange},
 				HSpacer{},
 			},
 		}
 	}
 	children := []Widget{
-		Label{Text: logview.Legend, TextColor: dark.Dim},
+		Label{Text: logview.Legend, TextColor: dark.Dim, MinSize: Size{Width: sideWidth - 12}}, // 12: the margins
 		// Two distinct contexts, named so they are not confused: the categories in ◐ on one side, the search results on the other.
 		span(&p.contextLines, "Contexte des catégories : ±",
 			"Nombre de lignes gardées de part et d'autre d'une ligne retenue,\npour les catégories en mode contexte (◐).", p.contextChanged),
@@ -82,7 +98,7 @@ func (p *sidePanel) declare() ScrollView {
 	for _, g := range p.groups {
 		children = append(children, g.declare())
 	}
-	children = append(children, VSpacer{StretchFactor: 1000}) // custom widgets are greedy: the rows must not share the room
+	children = append(children, VSpacer{}) // the room the groups leave, at the bottom (see fit)
 	return ScrollView{
 		AssignTo: &p.root, HorizontalFixed: true, MinSize: Size{Width: 300},
 		Background: SolidColorBrush{Color: dark.Window},
@@ -92,19 +108,25 @@ func (p *sidePanel) declare() ScrollView {
 }
 
 func (g *stateGroup) declare() Composite {
-	buttons := []Widget{Label{Text: g.title, TextColor: dark.Text, Font: Font{Bold: true}}, HSpacer{StretchFactor: 1000}}
+	// As in the Python: the title on its own line, the three buttons at their width on the left.
+	var buttons []Widget
 	for i, s := range []struct {
 		label string
+		width int
 		state logcore.State
-	}{{"tout", logcore.StateOn}, {"contexte", logcore.StateContext}, {"rien", logcore.StateOff}} {
+	}{{"tout", 40, logcore.StateOn}, {"contexte", 64, logcore.StateContext}, {"rien", 40, logcore.StateOff}} {
 		state := s.state
-		g.all[i] = painted{text: s.label, color: dark.Text, back: dark.Button, center: true, onClick: func() { g.setAll(state) }}
-		buttons = append(buttons, declarePainted(&g.all[i], 64, 20))
+		g.all[i] = painted{text: s.label, color: dark.Text, back: dark.Button, center: true, frame: true, onClick: func() { g.setAll(state) }}
+		buttons = append(buttons, declarePainted(&g.all[i], s.width, headHeight))
 	}
+	buttons = append(buttons, HSpacer{})
+	head := groupTop + titleHeight + headHeight
 	return Composite{
-		Layout: VBox{Margins: Margins{Top: 6}, Spacing: 0}, Background: SolidColorBrush{Color: dark.Window},
+		AssignTo: &g.comp, MinSize: Size{Height: head}, MaxSize: Size{Height: head},
+		Layout: VBox{Margins: Margins{Top: groupTop}, SpacingZero: true}, Background: SolidColorBrush{Color: dark.Window},
 		Children: []Widget{
-			Composite{Layout: HBox{MarginsZero: true}, Background: SolidColorBrush{Color: dark.Window}, Children: buttons},
+			Label{Text: g.title, TextColor: dark.Text, MinSize: Size{Height: titleHeight}, MaxSize: Size{Height: titleHeight}},
+			Composite{Layout: HBox{MarginsZero: true, Spacing: 2}, MaxSize: Size{Height: headHeight}, Background: SolidColorBrush{Color: dark.Window}, Children: buttons},
 			Composite{AssignTo: &g.box, Layout: VBox{MarginsZero: true, SpacingZero: true}, Background: SolidColorBrush{Color: dark.Window}},
 		},
 	}
@@ -137,12 +159,12 @@ func (g *stateGroup) refresh(cats []logview.Category) {
 		row := &catRow{group: g, cat: c}
 		row.button.onClick = row.cycle
 		err := Composite{
-			AssignTo: &row.comp, Layout: HBox{MarginsZero: true, Spacing: 4}, MaxSize: Size{Height: 22},
+			AssignTo: &row.comp, Layout: HBox{MarginsZero: true, Spacing: 4}, MaxSize: Size{Height: rowHeight},
 			Background: SolidColorBrush{Color: dark.Window},
 			Children: []Widget{
-				declarePainted(&row.button, 0, 22),
+				declarePainted(&row.button, 0, rowHeight),
 				NumberEdit{
-					AssignTo: &row.span, Prefix: "±", MinValue: 0, MaxValue: 999, MinSize: Size{Width: 90}, MaxSize: Size{Width: 90}, Visible: false,
+					AssignTo: &row.span, Prefix: "±", MinValue: 0, MaxValue: 999, MinSize: Size{Width: 72}, MaxSize: Size{Width: 72}, Visible: false,
 					TextColor: dark.Text, OnValueChanged: row.spanChanged,
 					ToolTipText: "Lignes gardées de part et d'autre, pour cette catégorie.\nÀ zéro, elle suit la valeur commune.",
 				},
@@ -152,6 +174,7 @@ func (g *stateGroup) refresh(cats []logview.Category) {
 			continue
 		}
 		row.span.SetBackground(dark.WalkBrush(dark.Alternate))
+		dark.Controls(row.comp.Handle())
 		g.rows[c.Key] = row
 		g.order = append(g.order, c.Key)
 	}
@@ -165,6 +188,31 @@ func (g *stateGroup) refresh(cats []logview.Category) {
 		delete(g.rows, key)
 	}
 	g.order = kept
+	g.fit()
+}
+
+// fit pins the group to the height of its title, buttons and rows (see groupTop).
+func (g *stateGroup) fit() {
+	rows := len(g.order) * rowHeight
+	g.box.SetVisible(rows > 0)
+	if rows > 0 {
+		_ = g.box.SetMinMaxSize(walk.Size{Height: rows}, walk.Size{Height: rows})
+	}
+	total := groupTop + titleHeight + headHeight + rows
+	_ = g.comp.SetMinMaxSize(walk.Size{Height: total}, walk.Size{Height: total})
+}
+
+// layoutError reports a group that walk did not lay out at the height fit gave
+// it: taller, a short journal spreads its few categories over the whole panel;
+// shorter, its last rows are cut off. The smoke mode checks it.
+func (p *sidePanel) layoutError() error {
+	for _, g := range p.groups {
+		want := walk.IntFrom96DPI(groupTop+titleHeight+headHeight+len(g.order)*rowHeight, g.comp.DPI())
+		if got := g.comp.HeightPixels(); got < want-1 || got > want+1 {
+			return fmt.Errorf("side panel: group %s is %d px high for %d px of content", g.title, got, want)
+		}
+	}
+	return nil
 }
 
 // Apply shows the filter set's states and spans, without echoing them back.

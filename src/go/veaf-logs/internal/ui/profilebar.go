@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tailscale/walk"
 	. "github.com/tailscale/walk/declarative"
 
 	"github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs/internal/logview"
@@ -15,20 +16,33 @@ import (
 // The profile bar (main_window.py, _build_profile_bar): the filters panel's
 // button, the profile chooser, save and delete, and the zoom at mouse reach.
 
+// barHeight is the height of the profile and search bars' controls, at 96 DPI:
+// 28 px at 120 DPI, as the Python's buttons. The bars are capped to it: drawn
+// buttons are greedy (sidepanel.go) and grew as tall as the bar.
+const barHeight = 22
+
+// barButton is a push button at the bars' height: walk keeps a push button at
+// its ideal height (36 px at 120 DPI) unless it may shrink and has a maximum.
+func barButton(pb PushButton) PushButton {
+	pb.MaxSize.Height = barHeight
+	pb.UseLayoutFlags, pb.LayoutFlags = true, walk.GrowableHorz|walk.ShrinkableVert|walk.GrowableVert
+	return pb
+}
+
 var profileSyncing bool // true while the window sets the chooser itself
 
 func (w *window) profileBar() Composite {
 	return Composite{
-		Layout: HBox{Margins: Margins{Left: 6, Top: 4, Right: 6, Bottom: 2}}, Background: SolidColorBrush{Color: dark.Window},
+		Layout: HBox{Margins: Margins{Left: 6, Top: 4, Right: 6, Bottom: 2}}, MaxSize: Size{Height: barHeight + 6}, Background: SolidColorBrush{Color: dark.Window},
 		Children: []Widget{
-			declarePainted(&w.filtersToggle, 90, 24),
+			declarePainted(&w.filtersToggle, 130, barHeight),
 			Label{Text: "Profil :", TextColor: dark.Text},
 			ComboBox{AssignTo: &w.profileBox, MinSize: Size{Width: 250}, ToolTipText: "Jeu de filtres enregistré", OnCurrentIndexChanged: w.profileChosen},
-			PushButton{Text: "Enregistrer…", ToolTipText: "Enregistrer les filtres courants sous un nom", OnClicked: w.saveProfile},
-			PushButton{AssignTo: &w.profileDelete, Text: "Supprimer", OnClicked: w.deleteProfile},
+			barButton(PushButton{Text: "Enregistrer…", ToolTipText: "Enregistrer les filtres courants sous un nom", OnClicked: w.saveProfile}),
+			barButton(PushButton{AssignTo: &w.profileDelete, Text: "Supprimer", OnClicked: w.deleteProfile}),
 			HSpacer{StretchFactor: 1000},
-			declarePainted(&w.zoomOut, 32, 24),
-			declarePainted(&w.zoomIn, 32, 24),
+			declarePainted(&w.zoomOut, 32, barHeight),
+			declarePainted(&w.zoomIn, 32, barHeight),
 		},
 	}
 }
@@ -36,11 +50,6 @@ func (w *window) profileBar() Composite {
 func (w *window) finishProfileBar() {
 	dark.Theme(w.profileBox.Handle(), "DarkMode_CFD")
 	dark.ListColors(w.profileBox.Handle())
-	for _, h := range dark.Children(w.profileBox.Parent().Handle()) {
-		if dark.ClassName(h) == "Button" {
-			dark.Theme(h, "DarkMode_Explorer")
-		}
-	}
 	w.filtersToggle.widget.SetToolTipText("Masquer ou afficher les filtres de gauche  (Ctrl+B)")
 	w.zoomOut.widget.SetToolTipText("Réduire la police  (Ctrl+-, ou Ctrl+molette)")
 	w.zoomIn.widget.SetToolTipText("Agrandir la police  (Ctrl++, ou Ctrl+molette)")

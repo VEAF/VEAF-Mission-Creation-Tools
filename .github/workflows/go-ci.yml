@@ -84,6 +84,8 @@ jobs:
         run: |
           go build -o veaf-logs-smoke.exe ./cmd/veaf-logs
           timeout 120 ./veaf-logs-smoke.exe --smoke testdata/corpus/mixed.log
+          # A journal with few categories: the side panel must keep its groups at their height.
+          timeout 120 ./veaf-logs-smoke.exe --smoke testdata/smoke/short.log
 
   goldens:
     name: Goldens match the Python reference

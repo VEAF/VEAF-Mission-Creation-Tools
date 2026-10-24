@@ -150,6 +150,7 @@ func init() {
 		if msg == win.WM_NCDESTROY {
 			// comctl32 asks for the subclass to be removed before the window goes.
 			delete(procs, hwnd)
+			delete(flat, hwnd)
 			removeWindowSubclass.Call(uintptr(hwnd), callback, 1)
 		}
 		r, _, _ := defSubclassProc.Call(uintptr(hwnd), uintptr(msg), wp, lp)
@@ -300,6 +301,7 @@ func Table(tableView win.HWND, font func() win.HFONT) {
 		case "SysListView32":
 			Theme(h, "DarkMode_Explorer")
 			win.SendMessage(h, 0x1001 /* LVM_SETBKCOLOR */, 0, uintptr(Window))
+			EmptyArea(h)
 		case "SysHeader32":
 			Subclass(h, headerProc(font))
 		}
@@ -389,6 +391,201 @@ func SplitterHandles(root win.HWND) {
 		})
 		win.InvalidateRect(h, nil, true)
 	}
+}
+
+// Controls flattens the push buttons and one-line edit fields under a window
+// (FlatButton, FlatEdit), each once; a number field's value goes on the left,
+// as in the Python viewer's spin boxes.
+func Controls(root win.HWND) {
+	for _, h := range Children(root) {
+		if flat[h] {
+			continue
+		}
+		style := win.GetWindowLong(h, win.GWL_STYLE)
+		switch ClassName(h) {
+		case "Button":
+			if style&0x0F > 1 { // not BS_PUSHBUTTON nor BS_DEFPUSHBUTTON
+				continue
+			}
+			FlatButton(h)
+		case "Edit":
+			if style&0x0004 != 0 { // ES_MULTILINE
+				continue
+			}
+			if ClassName(win.GetParent(h)) == `\o/ Walk_NumberEdit_Class \o/` {
+				win.SetWindowLong(h, win.GWL_STYLE, style&^0x0002 /* ES_RIGHT */)
+			}
+			Theme(h, "DarkMode_CFD")
+			FlatEdit(h)
+		default:
+			continue
+		}
+		flat[h] = true
+	}
+}
+
+var flat = map[win.HWND]bool{} // forgotten at WM_NCDESTROY: a handle is reused
+
+// FlatButton paints a push button flat, as the Python viewer's: the button
+// colour, a one-pixel border, lighter under the mouse. The dark visual style
+// frames a button in white.
+func FlatButton(hwnd win.HWND) {
+	Theme(hwnd, "DarkMode_Explorer") // keeps the hot state tracked
+	Subclass(hwnd, func(hwnd win.HWND, msg uint32, wp, lp uintptr) (uintptr, bool) {
+		switch msg {
+		case win.WM_ERASEBKGND:
+			return 1, true
+		case win.WM_PAINT:
+			var ps win.PAINTSTRUCT
+			hdc := win.BeginPaint(hwnd, &ps)
+			paintButton(hwnd, hdc)
+			win.EndPaint(hwnd, &ps)
+			return 0, true
+		case win.WM_PRINTCLIENT:
+			paintButton(hwnd, win.HDC(wp))
+			return 0, true
+		case 0x00F3, 0x00F4, win.WM_SETFOCUS, win.WM_KILLFOCUS, win.WM_ENABLE, win.WM_SETTEXT,
+			win.WM_MOUSEMOVE, 0x02A3, win.WM_LBUTTONDOWN, win.WM_LBUTTONUP, win.WM_UPDATEUISTATE:
+			// BM_SETSTATE, BM_SETSTYLE, mouse leave…: the button may draw itself
+			// at once, outside WM_PAINT; paint ours over it.
+			r := Default(hwnd, msg, wp, lp)
+			win.InvalidateRect(hwnd, nil, false)
+			return r, true
+		}
+		return 0, false
+	})
+	win.InvalidateRect(hwnd, nil, true)
+}
+
+func paintButton(hwnd win.HWND, hdc win.HDC) {
+	var r win.RECT
+	win.GetClientRect(hwnd, &r)
+	state := win.SendMessage(hwnd, 0x00F2 /* BM_GETSTATE */, 0, 0)
+	back, frame, text := Button, Border, Text
+	if state&(0x0004|0x0200) != 0 { // pushed, hot
+		back = Border
+	}
+	if state&0x0008 != 0 { // focus
+		frame = Highlight
+	}
+	if !win.IsWindowEnabled(hwnd) {
+		text = walk.RGB(0x5a, 0x61, 0x69)
+	}
+	win.FillRect(hdc, &r, Brush(frame))
+	inner := win.RECT{Left: r.Left + 1, Top: r.Top + 1, Right: r.Right - 1, Bottom: r.Bottom - 1}
+	win.FillRect(hdc, &inner, Brush(back))
+	if f := win.HFONT(win.SendMessage(hwnd, win.WM_GETFONT, 0, 0)); f != 0 {
+		win.SelectObject(hdc, win.HGDIOBJ(f))
+	}
+	n := win.SendMessage(hwnd, win.WM_GETTEXTLENGTH, 0, 0)
+	label := make([]uint16, n+1)
+	win.SendMessage(hwnd, win.WM_GETTEXT, n+1, uintptr(unsafe.Pointer(&label[0])))
+	win.SetBkMode(hdc, win.TRANSPARENT)
+	win.SetTextColor(hdc, win.COLORREF(text))
+	win.DrawTextEx(hdc, &label[0], -1, &inner, win.DT_CENTER|win.DT_SINGLELINE|win.DT_VCENTER|win.DT_NOPREFIX, nil)
+}
+
+// FlatEdit frames an edit field with a one-pixel dark border, blue while it has
+// the keyboard, instead of the light sunken edge Windows draws.
+func FlatEdit(hwnd win.HWND) {
+	ex := win.GetWindowLong(hwnd, win.GWL_EXSTYLE)
+	win.SetWindowLong(hwnd, win.GWL_EXSTYLE, ex&^win.WS_EX_CLIENTEDGE)
+	style := win.GetWindowLong(hwnd, win.GWL_STYLE)
+	win.SetWindowLong(hwnd, win.GWL_STYLE, style|win.WS_BORDER)
+	Subclass(hwnd, func(hwnd win.HWND, msg uint32, wp, lp uintptr) (uintptr, bool) {
+		switch msg {
+		case win.WM_NCPAINT:
+			raw, _, _ := getWindowDC.Call(uintptr(hwnd))
+			hdc := win.HDC(raw)
+			var w win.RECT
+			win.GetWindowRect(hwnd, &w)
+			r := win.RECT{Right: w.Right - w.Left, Bottom: w.Bottom - w.Top}
+			frame := Border
+			if win.GetFocus() == hwnd {
+				frame = Highlight
+			}
+			frameRect.Call(uintptr(hdc), uintptr(unsafe.Pointer(&r)), uintptr(Brush(frame)))
+			win.ReleaseDC(hwnd, hdc)
+			return 0, true
+		case win.WM_SETFOCUS, win.WM_KILLFOCUS:
+			redrawWindow.Call(uintptr(hwnd), 0, 0, 0x0400|0x0001 /* RDW_FRAME|RDW_INVALIDATE: painted once the message is handled */)
+		}
+		return 0, false
+	})
+	win.SetWindowPos(hwnd, 0, 0, 0, 0, 0, win.SWP_FRAMECHANGED|win.SWP_NOMOVE|win.SWP_NOSIZE|win.SWP_NOZORDER|win.SWP_NOACTIVATE)
+}
+
+// Overlay shows another text in an edit field while it does not have the
+// keyboard, when `text` returns one: Qt's specialValueText, which shows "(2)"
+// rather than "±0" in a span left at zero.
+func Overlay(hwnd win.HWND, text func() string) {
+	Subclass(hwnd, func(hwnd win.HWND, msg uint32, wp, lp uintptr) (uintptr, bool) {
+		switch msg {
+		case win.WM_PAINT:
+			t := text()
+			if t == "" || win.GetFocus() == hwnd {
+				return 0, false
+			}
+			var ps win.PAINTSTRUCT
+			hdc := win.BeginPaint(hwnd, &ps)
+			var r win.RECT
+			win.GetClientRect(hwnd, &r)
+			win.FillRect(hdc, &r, Brush(Alternate))
+			if f := win.HFONT(win.SendMessage(hwnd, win.WM_GETFONT, 0, 0)); f != 0 {
+				win.SelectObject(hdc, win.HGDIOBJ(f))
+			}
+			win.SetBkMode(hdc, win.TRANSPARENT)
+			win.SetTextColor(hdc, win.COLORREF(Text))
+			r.Left += 2
+			label, _ := syscall.UTF16FromString(t)
+			win.DrawTextEx(hdc, &label[0], -1, &r, win.DT_LEFT|win.DT_SINGLELINE|win.DT_VCENTER|win.DT_NOPREFIX, nil)
+			win.EndPaint(hwnd, &ps)
+			return 0, true
+		case win.WM_SETFOCUS, win.WM_KILLFOCUS, win.WM_SETTEXT:
+			win.InvalidateRect(hwnd, nil, true) // painted once the message is handled
+		}
+		return 0, false
+	})
+}
+
+var (
+	frameRect    = user32.NewProc("FrameRect")
+	redrawWindow = user32.NewProc("RedrawWindow")
+)
+
+// EmptyArea paints the part of a list view under its last row in the window
+// colour: the dark visual style draws the column separators down to the bottom.
+func EmptyArea(hwnd win.HWND) {
+	Subclass(hwnd, func(hwnd win.HWND, msg uint32, wp, lp uintptr) (uintptr, bool) {
+		if msg != win.WM_PAINT {
+			return 0, false
+		}
+		r := Default(hwnd, msg, wp, lp)
+		var client win.RECT
+		win.GetClientRect(hwnd, &client)
+		top := client.Top
+		if header := win.HWND(win.SendMessage(hwnd, 0x101F /* LVM_GETHEADER */, 0, 0)); header != 0 && win.IsWindowVisible(header) {
+			var h win.RECT
+			win.GetWindowRect(header, &h)
+			top = h.Bottom - h.Top
+		}
+		if count := int(win.SendMessage(hwnd, 0x1004 /* LVM_GETITEMCOUNT */, 0, 0)); count > 0 {
+			last := int(win.SendMessage(hwnd, 0x1027 /* LVM_GETTOPINDEX */, 0, 0)) + int(win.SendMessage(hwnd, 0x1028 /* LVM_GETCOUNTPERPAGE */, 0, 0))
+			last = min(last, count-1)
+			item := win.RECT{Left: 0 /* LVIR_BOUNDS */}
+			if win.SendMessage(hwnd, 0x100E /* LVM_GETITEMRECT */, uintptr(last), uintptr(unsafe.Pointer(&item))) != 0 {
+				top = max(top, item.Bottom)
+			}
+		}
+		if top < client.Bottom {
+			hdc := win.GetDC(hwnd)
+			below := win.RECT{Left: client.Left, Top: top, Right: client.Right, Bottom: client.Bottom}
+			bk := win.SendMessage(hwnd, 0x1000 /* LVM_GETBKCOLOR */, 0, 0)
+			win.FillRect(hdc, &below, Brush(walk.Color(bk)))
+			win.ReleaseDC(hwnd, hdc)
+		}
+		return r, true
+	})
 }
 
 // ProgressBar colours a progress bar, which has no dark visual style.

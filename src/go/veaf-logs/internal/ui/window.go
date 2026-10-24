@@ -90,7 +90,8 @@ type window struct {
 
 	opts       Options
 	smokeDone  bool
-	closing    time.Time // when the smoke mode asked the window to close
+	indexedAt  time.Duration // when the smoke mode saw every tab indexed
+	closing    time.Time     // when the smoke mode asked the window to close
 	shownAt    time.Duration
 	msgVersion int
 }
@@ -160,9 +161,9 @@ func (w *window) create() error {
 	w.side = newSidePanel(w.rules, &w.filters, w.sideChanged)
 	w.search = &searchBar{changed: w.applyFilters, addRequested: w.addCurrentFilter}
 	w.chips = &chipRow{remove: w.removeFilter}
-	w.filtersToggle = painted{text: "☰ Filtres", color: dark.Text, back: dark.Button, center: true, onClick: func() { w.setFiltersPanel(!w.side.root.Visible()) }}
-	w.zoomOut = painted{text: "A−", color: dark.Text, back: dark.Button, center: true, onClick: func() { w.zoom(-1) }}
-	w.zoomIn = painted{text: "A+", color: dark.Text, back: dark.Button, center: true, onClick: func() { w.zoom(1) }}
+	w.filtersToggle = painted{text: "Panneau des filtres", color: dark.Text, back: dark.Button, center: true, frame: true, onClick: func() { w.setFiltersPanel(!w.side.root.Visible()) }}
+	w.zoomOut = painted{text: "A−", color: dark.Text, back: dark.Button, center: true, frame: true, onClick: func() { w.zoom(-1) }}
+	w.zoomIn = painted{text: "A+", color: dark.Text, back: dark.Button, center: true, frame: true, onClick: func() { w.zoom(1) }}
 
 	err := MainWindow{
 		AssignTo: &w.mw, Title: "veaf-logs — journaux DCS", Size: Size{Width: 1500, Height: 900},
@@ -270,6 +271,7 @@ func (w *window) create() error {
 	w.side.finish()
 	dark.SplitterHandles(w.mw.Handle())
 	w.finishProfileBar()
+	dark.Controls(w.mw.Handle()) // the buttons and fields of the bars and the panel
 	w.side.Apply()
 	w.chips.Refresh(w.filters.TextFilters)
 	w.setFiltersPanel(w.session.FiltersVisible)
@@ -466,7 +468,7 @@ func (w *window) setFiltersPanel(on bool) {
 	w.actFilters.SetChecked(on)
 	w.side.root.SetVisible(on)
 	if on {
-		w.filtersToggle.SetBack(dark.Highlight)
+		w.filtersToggle.SetBack(dark.Window) // pressed, discreet as the Python's checked button
 	} else {
 		w.filtersToggle.SetBack(dark.Button)
 	}
@@ -676,7 +678,16 @@ func (w *window) smokeCheck(exit *int) {
 		}
 		entries += st.Total
 	}
-	fmt.Printf("window=%.3fs indexed=%.3fs entries=%d tabs=%d\n", w.shownAt.Seconds(), elapsed.Seconds(), entries, len(w.strip.Items))
+	if w.indexedAt == 0 {
+		// walk applies a layout by a posted message: let the panel's last refresh land before checking it
+		w.indexedAt = elapsed
+		return
+	}
+	fmt.Printf("window=%.3fs indexed=%.3fs entries=%d tabs=%d\n", w.shownAt.Seconds(), w.indexedAt.Seconds(), entries, len(w.strip.Items))
+	if err := w.side.layoutError(); err != nil {
+		fmt.Fprintln(os.Stderr, "smoke:", err)
+		*exit = 4
+	}
 	w.smokeDone, w.closing = true, time.Now()
 	w.mw.Close()
 }

@@ -23,14 +23,7 @@ import (
 // darkenDialog applies the dark theme to a dialog built by walk.
 func darkenDialog(dlg *walk.Dialog) {
 	dark.TitleBar(dlg.Handle())
-	for _, h := range dark.Children(dlg.Handle()) {
-		switch dark.ClassName(h) {
-		case "Button":
-			dark.Theme(h, "DarkMode_Explorer")
-		case "Edit":
-			dark.Theme(h, "DarkMode_CFD")
-		}
-	}
+	dark.Controls(dlg.Handle())
 }
 
 // paragraphs keeps a label's blank lines: walk measures a label line by line
@@ -170,7 +163,15 @@ func (l *darkList) darken(current int) {
 	}
 	if current >= 0 && current < len(l.items) {
 		l.tv.SetCurrentIndex(current)
+		// Scrolled now, before the list is laid out, the current font ended
+		// out of view: again once the list has its size.
 		l.tv.EnsureItemVisible(current)
+		// Once: a later resize must not undo the user's scrolling.
+		l.tv.SizeChanged().Once(func() {
+			if i := l.tv.CurrentIndex(); i >= 0 {
+				l.tv.EnsureItemVisible(i)
+			}
+		})
 	}
 }
 

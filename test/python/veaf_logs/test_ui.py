@@ -83,6 +83,14 @@ class TestChargement:
         assert entry.source_label == "APP"
 
 
+class TestRaccourcis:
+    def test_aller_a_la_fin_a_un_raccourci(self, window):
+        """Qt ne lit pas `Ctrl+Fin` : l'action se retrouvait sans raccourci."""
+        action = next(action for action in window.actions() if action.text() == "Aller a la fin")
+        assert not action.shortcut().isEmpty()
+        assert action.shortcut().toString() == "Ctrl+End"
+
+
 class TestRecherche:
     def test_texte(self, window):
         window.search.field.setText("zone introuvable")

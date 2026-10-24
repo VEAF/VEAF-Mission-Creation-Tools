@@ -126,6 +126,8 @@ Three modes, chosen from the dropdown:
 | Jokers | literal | wildcards | `No taxiroad*Batumi*` |
 | Regex | wildcard | quantifiers | `VEAF\|[WE]\|` |
 
+In regex mode, `^` and `$` mean the start and end of a line.
+
 `≠` inverts the criterion, `Aa` makes it case-sensitive. **Ajouter au filtre**
 stacks the current criterion: filters combine, and show up as chips you can
 remove with one click.
@@ -328,6 +330,7 @@ button to stop it — whatever is already indexed stays usable.
 | `Ctrl+Shift+C` | copy without the DCS header |
 | `Ctrl+A` | select everything |
 | `F` | follow the end of the file / pause |
+| `Ctrl+End` | go to the end |
 | `Ctrl+R` | show everything |
 | `Ctrl+S` | save the profile |
 | `Ctrl++` / `Ctrl+-` | grow / shrink the font |

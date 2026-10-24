@@ -76,8 +76,9 @@ func (s *Store) SearchFrom(needle string, from int, cancel func() bool) []int32 
 
 // iterBlocks walks the journal in blocks of at most searchChunk bytes, cut on
 // entry boundaries exactly as Python's `LogStore.iter_blocks`: the filters run
-// a pattern over each block, and a `^` anchors to the start of a block on both
-// sides only if both cut the journal in the same places.
+// a pattern over each block, and a pattern that sees the edges of a block (`\A`,
+// `\z`, a match across a newline) finds the same entries on both sides only if
+// both cut the journal in the same places.
 func (s *Store) iterBlocks(fn func(first int, base int64, data []byte)) {
 	total := len(s.offset)
 	for start := 0; start < total; {

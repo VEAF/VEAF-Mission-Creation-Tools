@@ -289,9 +289,9 @@ Each shortcut is proven to give the same entries by the parity, and the parity i
 | Lookahead `(?=…)`, backreference `\1`, `\Z` | accepted | refused, shown as an invalid pattern |
 | Class `[é]` on a lone byte `0xA9` | match: the class is encoded to bytes | no match: classes hold characters |
 
-A `$` outside multi-line mode also matches before the block's final newline in Python; Go's regex is rewritten to do the same, and a case of the parity fails without the rewrite.
+A `$` outside multi-line mode also matches before the block's final newline in Python; Go's regex was rewritten to do the same, until [FIX-VEAF-LOGS-VIEWER-DEFECTS](../FIX-VEAF-LOGS-VIEWER-DEFECTS/PRD.md) made `^` and `$` bind to lines on both sides.
 
-**Found in the Python viewer, not fixed here** (the lot does not touch the Python code; they belong to a fix of their own):
+**Found in the Python viewer, not fixed here** (the lot does not touch the Python code; all three are fixed by [FIX-VEAF-LOGS-VIEWER-DEFECTS](../FIX-VEAF-LOGS-VIEWER-DEFECTS/PRD.md)):
 
 1. *Aller à la fin* has no shortcut: the code declares `"Ctrl+Fin"`, which Qt does not parse (M10).
 2. A regex starting with `^` matches only the first entry of each 8 MB search block: the pattern runs over the block without `MULTILINE`. The Go engine reproduces it for parity; fixing it means fixing both sides together.

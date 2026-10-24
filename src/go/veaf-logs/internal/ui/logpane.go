@@ -130,11 +130,7 @@ func newLogPane(parent walk.Container, doc *logview.Doc, title, location string,
 	p.detail.SetVisible(false) // shown once a row is selected
 	dark.SplitterHandles(p.root.Handle())
 	dark.ProgressBar(p.progress.Handle())
-	for _, h := range dark.Children(p.progressRow.Handle()) {
-		if dark.ClassName(h) == "Button" {
-			dark.Theme(h, "DarkMode_Explorer")
-		}
-	}
+	dark.Controls(p.progressRow.Handle())
 	p.buildContextMenu()
 	p.SetFont(font)
 	return p, nil

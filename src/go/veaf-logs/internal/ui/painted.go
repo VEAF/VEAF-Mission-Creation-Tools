@@ -25,6 +25,7 @@ type painted struct {
 	bold    bool
 	italic  bool
 	center  bool
+	frame   bool // a one-pixel border, as the flat push buttons (dark.FlatButton)
 	hover   bool
 	onClick func()
 }
@@ -64,8 +65,17 @@ func (p *painted) paint(c *walk.Canvas) error {
 		if p.back != 0 {
 			back = p.back
 		}
+		if p.frame && back != dark.Highlight {
+			back = dark.Border
+		}
 	}
-	win.FillRect(hdc, &r, dark.Brush(back))
+	if p.frame {
+		win.FillRect(hdc, &r, dark.Brush(dark.Border))
+		inner := win.RECT{Left: 1, Top: 1, Right: r.Right - 1, Bottom: r.Bottom - 1}
+		win.FillRect(hdc, &inner, dark.Brush(back))
+	} else {
+		win.FillRect(hdc, &r, dark.Brush(back))
+	}
 	style := walk.FontStyle(0)
 	if p.bold {
 		style |= walk.FontBold

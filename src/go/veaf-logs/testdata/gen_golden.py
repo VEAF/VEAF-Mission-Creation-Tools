@@ -231,6 +231,9 @@ TEXT_CASES = [
     # Every line that is not empty: `$` binds to each line end, not only to the block's last one.
     (".$", "regex"),
     ("x*", "regex"),
+    # No empty line in the corpus: must keep nothing, though it matches past the block's final newline.
+    ("^$", "regex"),
+    ("$", "regex"),
     # Across a line inside an entry, and across two entries: a match the line-by-line shortcut cannot see.
     (r"traceback:\s+\S", "regex"),
     (r"\n2026", "regex"),

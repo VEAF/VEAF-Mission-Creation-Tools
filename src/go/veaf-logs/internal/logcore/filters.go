@@ -788,7 +788,17 @@ func (m *textMatcher) scan(data []byte, entryAt func(int) int, hit func(int)) {
 		if !m.stream.possible(data) {
 			return
 		}
+		// Past the block's final newline, the empty position belongs to none of
+		// its lines: `^$` would match there with no empty line, and designate
+		// the next entry.
+		pastEnd := -1
+		if len(data) > 0 && data[len(data)-1] == '\n' {
+			pastEnd = len(data)
+		}
 		for _, loc := range m.stream.re.FindAllIndex(data, -1) {
+			if loc[0] == pastEnd {
+				continue
+			}
 			if index := entryAt(loc[0]); index >= 0 {
 				hit(index)
 			}

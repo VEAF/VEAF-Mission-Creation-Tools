@@ -456,7 +456,13 @@ def _apply_text(store, kept: bytearray, text_filter: TextFilter) -> None:
     found = bytearray(len(kept))
     offsets = store.offsets
     for first, base, data in store.iter_blocks():
+        # Apres le dernier saut de ligne du bloc, la position vide n'appartient
+        # a aucune de ses lignes : `^$` y correspondrait sans qu'il y ait de
+        # ligne vide, et designerait l'entree suivante.
+        past_end = len(data) if data[-1:] == b"\n" else -1
         for match in pattern.finditer(data):
+            if match.start() == past_end:
+                continue
             index = bisect_right(offsets, base + match.start(), first) - 1
             if index >= 0:
                 found[index] = 1

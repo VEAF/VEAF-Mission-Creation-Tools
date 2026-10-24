@@ -139,6 +139,11 @@ class TestAncres:
         fs = FilterSet(text_filters=[TextFilter(pattern="introuvable$", mode=Mode.REGEX)])
         assert visible(store, fs) == [2]
 
+    def test_ligne_vide_absente(self, store):
+        """Apres le dernier saut de ligne, `^$` ne doit pas retenir l'entree finale."""
+        fs = FilterSet(text_filters=[TextFilter(pattern="^$", mode=Mode.REGEX)])
+        assert visible(store, fs) == []
+
     def test_surlignage_ancre_par_ligne(self):
         assert compile_pattern("^stack", Mode.REGEX).search("error\nstack traceback:")
 

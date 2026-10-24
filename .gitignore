@@ -49,6 +49,8 @@ dist/
 src/go/veaf-logs/*.exe
 # The Go veaf-logs parity corpus is synthetic (gen_golden.py: no player name, no path) and the tests need it.
 !src/go/veaf-logs/testdata/corpus/*.log
+# Same for the journals of the analysis references (gen_analysis_golden.py).
+!src/go/veaf-logs/testdata/analysis/*.log
 test/veaf-tools/mission-builder/built
 test/veaf-tools/mission-extractor/extracted
 test/veaf-tools/demo-mission/veaf-demo-mission_*.miz

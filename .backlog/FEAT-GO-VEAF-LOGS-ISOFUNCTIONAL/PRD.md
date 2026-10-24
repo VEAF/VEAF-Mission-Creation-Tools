@@ -1,6 +1,6 @@
 # FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL — rewrite veaf-logs in Go, the same program
 
-Status: 🔄 in-progress — J1 merged (#1176), walk chosen (ADR 0022), J2 the window, J3 the filters and J4 the remote journals done; J5 next
+Status: 🧑 waiting-human — the five milestones done (J1 #1176, J2–J3 #1181, J4 #1182, J5 the analysis); David tries J3–J5 on his machine and decides whether the Go viewer replaces the Python one (decision 5), which is a lot of its own
 
 Origin: David, 2026-10-24.
 The first Go proof of concept (POC-GO-VEAF-LOGS, #1173 and #1174) delivered a Go core identical to the Python one, plus a minimal Gio window that is only a tail with a search.
@@ -264,6 +264,43 @@ The UI above needs, whatever the toolkit:
 | 05 | [J2: the window, on walk](tickets/05-window.md) | J2 | ✅ |
 | 06 | [J3: filters panel, search, chips, profiles, session](tickets/06-filters-profiles-session.md) | J3 | ✅ |
 | 07 | [J4: remote journals, their session restore, the Règles menu](tickets/07-remote-and-rules.md) | J4 | ✅ |
+| 08 | [J5: *Explain* and the `/bug` report](tickets/08-analysis-and-report.md) | J5 | ✅ |
+
+## J5 — *Explain* and the `/bug` report
+
+`internal/analysis` ports `veaf_logs.analysis`, `excerpt`, `catalogue`, `proposals`, `report` and `worker_client`, with `veaf_libs.redaction`, `veaf_libs.diagnostics` and the Lua module count; the window adds the *Analyse* menu and its dialog.
+
+**Parity.** Python's `re` on str is Unicode and has lookarounds, Go's regexp is ASCII and has none, and Python counts code points where Go counts bytes: the port emulates each lookaround by hand (`pyre.go`) and counts in code points everywhere.
+`testdata/gen_analysis_golden.py`, called by `gen_golden.py` so the CI regenerates and compares it, writes what the Go must reproduce character for character:
+
+| Reference | Cases |
+|---|---:|
+| `redact`, over every text the Python tests hand it (harvested once) and Unicode edge cases | 1 946 |
+| `normalise`, `pattern_from`, `validate_pattern`, over every message | 2 488 |
+| The analysis text: corpus and a journal written for it × 5 views × 4 excerpt ceilings | 156 |
+| The report block: 3 journals × 3 views × commentary × doctor × 2–5 sizes | 159 |
+| The doctor block and its pieces (ages, sizes, variants, DCS version, recent errors) | 31 |
+
+All equal.
+Each emulated lookaround was checked able to fail: removing the version rule turns `DCS/2.9.10.1` into `DCS/<ip>`, the IPv6 lookbehind changes `::ffff:<ip>`, the contraction rule bakes `'Ural-375_p_0'` into a proposal, the plain-digits lookahead turns a GUID's number into `<hex>`, the wildcard merge leaves `\[[^\]]*\]\[[^\]]*\]`, the drop order swaps `proposals, analysis` — each fails the references.
+On this machine the Go doctor block carries exactly the fields `veaf-tools doctor` writes (`machine.*`, `dcs.*`, `veaf.*`, the three recent errors, 41 Lua modules from a checkout), `tool.*` aside.
+
+Executable: 14.1 MB, of which 2.5 MB for HTTPS to the Worker (J4: 11.6 MB; Python: 47.2 MB).
+Checked on screen: the dialog at 1000×700, dark, with the redacted analysis.
+Not checked on screen: « Analyser en ligne » (it would send an excerpt to the production Worker; tested against a local fake one) and « Préparer un rapport » (it would overwrite the clipboard; the block is the references').
+
+Decided differently from the Python, on purpose:
+
+- **The excerpt builds only the records it keeps.** The Python converts and redacts every visible line before taking a few from both ends; the Go builds them on demand from the ends, so a view of a million lines costs the records that fit. Same output: the references prove it.
+- **An empty answer from the Worker says so** (« Le service n'a rien renvoyé… »), as the Python's `analyse()` does; the Python dialog showed « Analyse en ligne non demandée. » for it.
+- **The dialog's text is monospaced**, so the excerpt's columns line up.
+- **The doctor block's `tool.*`** say what runs: `tool.python` is the Go version, `tool.packaging` is `frozen`, `tool.version` is stamped at build time (`-ldflags "-X …/internal/analysis.Version=6.31.4"`) and `unknown` otherwise — the release pipeline is out of this lot's scope.
+- **The reader half of the report** (`parse_report_block`) is not ported: nothing outside the Python's tests calls it.
+
+Found and fixed on the way, in this lot's own code:
+
+- **A truncated UTF-8 sequence showed one `�` per byte** in the Go viewer, where the Python shows one: Python replaces each *maximal subpart* (`e2 82` is one replacement, `ed a0 80` three). J1's parity compared messages and continuation counts, never continuation text, so nothing caught it; the decoder now does what the Python does, pinned by a test of measured values.
+- The Lua module count climbed nothing from a relative path (`filepath.Dir(".")` is `"."`): caught by its own test.
 
 ## J4 — remote journals and the Règles menu
 

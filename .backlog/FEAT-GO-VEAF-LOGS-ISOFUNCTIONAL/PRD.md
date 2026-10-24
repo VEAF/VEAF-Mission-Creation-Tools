@@ -1,6 +1,6 @@
 # FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL — rewrite veaf-logs in Go, the same program
 
-Status: ⬜ ready
+Status: 🔄 in-progress — J1 (filter engine, archives, Go tests in CI) under review
 
 Origin: David, 2026-10-24.
 The first Go proof of concept (POC-GO-VEAF-LOGS, #1173 and #1174) delivered a Go core identical to the Python one, plus a minimal Gio window that is only a tail with a search.
@@ -252,6 +252,52 @@ The UI above needs, whatever the toolkit:
 19. **Window**: application icon (window, taskbar, executable), save and restore of the geometry.
 20. **Fonts**: choose family and size at runtime, monospaced, metrics (character width for the Message column, line height).
 21. **Windows**: `release.yml` publishes `veaf-logs.exe` from its Windows job only, while `veaf-tools` also ships Linux and macOS arm64 binaries; whether a Go veaf-logs must follow them is a decision, not a requirement found in the code.
+
+## Tickets
+
+| # | Ticket | Milestone | Status |
+|---|--------|-----------|--------|
+| 01 | [The filter engine of `filters.py`, in the Go core](tickets/01-filter-engine.md) | J1 | 🔄 |
+| 02 | [DCS crash archives (`.zip`) in the Go core](tickets/02-zip-archives.md) | J1 | 🔄 |
+| 03 | [The Go parity tests run in CI, on a checkout that has the corpus](tickets/03-go-tests-in-ci.md) | J1 | 🔄 |
+
+## J1 — what was measured
+
+**Parity.** `gen_golden.py` writes, per corpus file, an enumerated set of filter cases — every category present set to OFF and to CONTEXT ±0/1/3, 23 patterns across the three modes × case × inversion × search context, and combinations — evaluated by the Python `evaluate` (2 053 cases over the seven corpus files).
+The Go engine reads each case through its `FilterSet` JSON reader and returns the same visible entries for all of them.
+On the 130 MB / 954 086-entry journal of the proof of concept, five filter sets give the same entries on both sides (equal SHA-1 of the visible indices).
+
+**Speed**, same journal, same visible entries, `Evaluate` alone:
+
+| Filter set | Python | Go |
+|---|---:|---:|
+| Diagnostic profile (INFO/DEBUG/TRACE in context ±3) | 0.69 s | 0.02 s |
+| Plain "SCRIPTING", case ignored | 0.97 s | 0.08 s |
+| Regex `VEAF\|[WE]\|` | 0.76 s | 0.44 s |
+| Glob `*error*lua*` + search context ±2 | 56.93 s | 0.64 s |
+| Plain "INFO", case-sensitive, inverted | 0.48 s | 0.04 s |
+
+A straight port was **slower** than Python on case-insensitive searches (3.1 s plain, 2.2 s regex): Go's `(?i)` defeats the literal prefilter and is slow by itself.
+Plain text now runs a byte search over an ASCII-lowered block — exactly Python's `IGNORECASE` on bytes — and a regex with no anchor that cannot cross a line runs only on the lines holding one of its required literals; anything else is scanned whole, as Python does.
+Each shortcut is proven to give the same entries by the parity, and the parity is proven able to fail on it (a mutation disabling the guard fails the cross-line cases).
+
+**Where Go and Python cannot agree** — pinned by `TestKnownDivergencesFromPython`, measured on the Python side 2026-10-24:
+
+| Pattern | Python (`re` on bytes) | Go (RE2) |
+|---|---|---|
+| Regex `é`, case ignored, on `É` | no match: bytes `IGNORECASE` folds ASCII only | match: `(?i)` folds Unicode (plain mode does fold like Python) |
+| Lookahead `(?=…)`, backreference `\1`, `\Z` | accepted | refused, shown as an invalid pattern |
+| Class `[é]` on a lone byte `0xA9` | match: the class is encoded to bytes | no match: classes hold characters |
+
+A `$` outside multi-line mode also matches before the block's final newline in Python; Go's regex is rewritten to do the same, and a case of the parity fails without the rewrite.
+
+**Found in the Python viewer, not fixed here** (the lot does not touch the Python code; they belong to a fix of their own):
+
+1. *Aller à la fin* has no shortcut: the code declares `"Ctrl+Fin"`, which Qt does not parse (M10).
+2. A regex starting with `^` matches only the first entry of each 8 MB search block: the pattern runs over the block without `MULTILINE`. The Go engine reproduces it for parity; fixing it means fixing both sides together.
+3. A glob starting with `*` freezes the window for about a minute on a 130 MB journal (56.9 s measured): the leading `.*` is retried from every position of every line. Dropping the leading and trailing `*` of an unanchored glob matches the same entries.
+
+None of the three goes into `known-limitations.yaml`: that file is what an agent must know to build a mission, served as is by the MCP, and a log viewer's defects would only be noise there.
 
 ## Lessons carried over from the proof of concept
 

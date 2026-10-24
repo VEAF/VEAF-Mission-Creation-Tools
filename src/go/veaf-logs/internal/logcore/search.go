@@ -74,6 +74,27 @@ func (s *Store) SearchFrom(needle string, from int, cancel func() bool) []int32 
 	return hits
 }
 
+// iterBlocks walks the journal in blocks of at most searchChunk bytes, cut on
+// entry boundaries exactly as Python's `LogStore.iter_blocks`: the filters run
+// a pattern over each block, and a `^` anchors to the start of a block on both
+// sides only if both cut the journal in the same places.
+func (s *Store) iterBlocks(fn func(first int, base int64, data []byte)) {
+	total := len(s.offset)
+	for start := 0; start < total; {
+		base := s.offset[start]
+		stop := start
+		for stop < total && s.offset[stop]+int64(s.length[stop])-base <= searchChunk {
+			stop++
+		}
+		if stop == start {
+			stop = start + 1 // an entry bigger than the block is handled alone
+		}
+		end := s.offset[stop-1] + int64(s.length[stop-1])
+		fn(start, base, s.buffer.Slice(base, end-base))
+		start = stop
+	}
+}
+
 // asciiLower lowers ASCII letters in place of a copy, byte for byte: Unicode
 // lowering can change the length of the text and so shift every offset.
 func asciiLower(b []byte) []byte {

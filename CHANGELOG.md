@@ -28,6 +28,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`inspect_built_mission` shows the date and the briefing pictures** (FIX-DEMO-VIDEO-FINDINGS 14): the AI no longer opens the `.miz` with a shell to find out.
 - **`create_combat_zone` takes statics and vehicles in one call** (FIX-DEMO-VIDEO-FINDINGS 13): a group's own `category` overrides the call's, and a group that cannot be built is named in the refusal, with nothing written.
 - **Proof of concept: `veaf-logs` rewritten in Go** (POC-GO-VEAF-LOGS), in the isolated module `src/go/veaf-logs/` — nothing shipped, the Python viewer and the release pipeline are untouched. The Go core gives the same classification as the Python one on every entry of the test corpora and indexes a 1 M-line journal in 2.5 s instead of 13 s. It also opens the journals of the configured servers over SFTP (`--remote SERVER/INSTANCE`).
+- **Go `veaf-logs`: the filters and the crash archives** (FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL, J1) — still nothing shipped. The Go core now filters like the Python viewer: the three search modes, the three category states with their contexts, cumulative criteria, and the same JSON for profiles and sessions; on 2 053 enumerated cases it shows the same lines as the Python, and on a 130 MB journal a search takes 0.08 s instead of 0.97 s. It opens DCS crash archives (`.zip`) on their log. A `Go CI` workflow runs these tests and fails when the Python reference changed without the comparison data being regenerated.
 
 ### Fixed
 

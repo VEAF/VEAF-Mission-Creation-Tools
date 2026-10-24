@@ -1,0 +1,91 @@
+=== Log opened UTC 2026-08-31 09:50:40
+2026-08-31 11:50:40.872 ERROR   APP (Main): Error: Unit [F-14B]: Corrupt damage model.
+2026-08-31 11:50:41.000 INFO    SCRIPTING (Main): VEAF|I|5390: Loading version 6.16.5
+2026-08-31 11:50:41.001 INFO    SCRIPTING (Main): VEAF-GRASS|W|log|123: zone introuvable
+2026-08-31 11:50:41.002 INFO    SCRIPTING (Main): VEAF|D|log|1: debug detail
+2026-08-31 11:50:41.003 INFO    SCRIPTING (Main): VEAF-DYNAMICLOADER: loading
+2026-08-31 11:50:43.000 INFO    SCRIPTING (Main): [CTLD][INFO] scene registered
+2026-08-31 11:50:43.001 INFO    SCRIPTING (Main): [CTLD][WARNING] low fuel
+2026-08-31 11:50:43.002 INFO    SCRIPTING (Main): [CTLD][BOGUS] unknown level token
+2026-08-31 11:50:43.003 INFO    SCRIPTING (Main):   E - CSAR - pilot lost
+2026-08-31 11:50:43.004 INFO    SCRIPTING (Main): AIEN|T|trace line
+2026-08-31 11:50:43.005 INFO    SCRIPTING (Main): something SKYNET related
+2026-08-31 11:50:43.006 INFO    SCRIPTING (Main): Slmod: loaded
+2026-08-31 11:50:43.007 INFO    SCRIPTING (Main): uses MIST helpers
+2026-08-31 11:50:43.008 INFO    SCRIPTING (Main): MOOSE framework
+2026-08-31 11:50:43.009 INFO    SCRIPTING (Main): [dcs-bridge] started
+2026-08-31 11:50:43.010 INFO    SCRIPTING (Main): DCS-gRPC listening
+2026-08-31 11:50:43.011 INFO    SCRIPTING (Main): SRS: connected
+2026-08-31 11:50:43.012 INFO    SCRIPTING (Main): STTS ready
+2026-08-31 11:50:43.013 INFO    SCRIPTING (Main): SRSX is not SRS
+2026-09-29 18:02:42.798 INFO	DCSServerBot v3.0.4.22 starting up ...
+2026-09-29 18:02:44.490 WARNING	New update for DCSServerBot available!
+Use /node upgrade or enable autoupdate to apply it.
+2026-09-29 18:09:52.501 DEBUG	HOST->VEAF (www.veaf.org) [fr] - Public 1: {"command": "getMissionUpdate"}
+2026-09-29 18:09:52.502 DEBUG	VEAF (www.veaf.org) [fr] - Public 1->HOST: {"command": "onMissionEvent", "x": 1}
+2026-09-29 18:09:52.503 DEBUG	VEAF (www.veaf.org) [fr] - Public 1->HOST: {"command": "perfmon"}
+2026-09-29 18:09:52.504 INFO	node registered with the cloud.
+2026-09-29 18:03:38,541	INFO	4.80s	ServerImpl.apply_mission_changes()
+2026-09-29 18:02:44.490 CRITICAL	boom
+2026-09-29 18:04:38.123 DEBUG	SRS: is NOT running (process)
+2026-09-29 18:04:38.124 DEBUG	VEAF|I|not a script here
+2026-09-29 18:04:38.125 BOGUS	unknown level
+2026-09-29T20:03:44.385+0200	WARN	no suitable weather preset for code=FEW and base=6561
+2026-09-29T20:04:38.522+0200	FATAL	no weather data received
+2026-09-29T20:04:38.523+0200	PANIC	p
+2026-09-29T20:04:38.524-0100	DPANIC	dp
+2026-09-29T20:04:38.525+0200	INFO	using real weather v2.5.0
+[2026-09-29 20:05:21 +02:00] [W] [clienthandler] Client deleted
+[2026-09-29 20:05:21 +02:00] [I] [clienthandler] Init
+[2026-09-29 20:05:21 +02:00] [I] [clienthandler] Init extra
+2026-08-31 11:55:01.930 ERROR   SCRIPTING (Main): Mission script error: CSAR.lua:2213
+stack traceback:
+	[C]: in function 'getUnitRecordById'
+	[string "C:/x.lua"]:12: in main chunk
+2026-08-31 11:55:10.095 WARNING FLIGHT (Main): No taxiroad found on Batumi from 1 to 2
+2026-08-31 11:55:10.096 WARNING MissionScripting::initialize (12345): scoped subsystem
+2026-08-31 11:55:10.097 ALERT   (Main): empty subsystem
+2026-08-31 11:55:10.098 ERROR_ONCE APP (Main): once only
+2026-08-31 11:55:10.099 TRACE   APP (7788): tracing
+2026-08-31 11:55:10.100 DEBUG   APP (Main):
+2026-08-31 11:55:10.101 WEIRD   APP (Main): level the catalogue does not know
+2026-08-31 11:55:11.000 INFO    EDCORE (Main): Need to reprocess [DDS] image x
+2026-08-31 11:55:11.001 INFO    EDCORE (Main): hypervisor is active
+2026-08-31 11:55:11.002 WARNING EDCORE (Main): Can't open file: /textures/a.dds
+2026-08-31 11:55:11.003 WARNING EDCORE (Main): Can't load lod abc Reason: nope
+2026-08-31 11:55:11.004 WARNING EDCORE (Main): Scene was removed with 12 alive objects
+2026-08-31 11:55:11.005 WARNING EDCORE (Main): texture 'x.dds' not found
+2026-08-31 11:55:11.006 WARNING EDCORE (Main): Texture [abc] not found
+2026-08-31 11:55:11.007 INFO    EDCORE (Main): duplicate message(s) skipped.
+2026-08-31 11:55:11.008 INFO    SCRIPTING (Main): negative weight of payload and Corrupt damage model.
+2026-08-31 11:55:12.000 INFO    SCRIPTING (Main): VEAF|I|log|1: zone Â« Bastogne Â» crÃ©Ã©e
+2026-08-31 11:55:12.001 INFO    SCRIPTING (Main): ligne avec â€¨ separateur
+2026-08-31 11:55:12.002 INFO    SCRIPTING (Main): formfeed in a line
+2026-08-31 11:55:12.003 INFO    SCRIPTING (Main): bad byte ÿþ in a line
+2026-08-31 11:55:12.004 INFO    SCRIPTING (Main): CRLF ending
+continuation after CRLF
+
+   leading spaces continuation
+=== Log closed UTC 2026-08-31 09:57:00
+=== Log opened UTC 2026-08-31 10:00:00
+2026-08-31 12:00:00.000 INFO    APP (Main): after a reopen
+[2026-09-29 20:05:22 +02:00] [I] [NetServer] Incoming connection from x
+[2026-09-29 20:05:23 +02:00] [I] [clientserver]  - "key" : value
+[2026-09-29 20:05:24 +02:00] [I] [clientserver] Airport: 12 "Batumi" MapObject::COALITION_BLUE
+[2026-07-23 22:00:55 +02:00] [I] --------------------
+[2026-07-23 22:00:56 +02:00] [E] [a.b:c] error with component
+[2026-07-23 22:00:57 +02:00] [X] unknown letter
+2026-05-26T00:47:56.023909: Task exception was never retrieved
+Traceback (most recent call last):
+TimeoutError
+==================================================
+2026-05-26T07:33:56.307607: Task exception was never retrieved
+[]  INFO    SCRIPTING: VEAF|W|log|9: bracket format script line
+[12:00:01]  ERROR   SCRIPTING: [CTLD][ERROR] bracket ctld
+[]  INFO    SCRIPTING:
+[]  INFO    SRS: bracket srs
+just some text with no header
+another line of text
+2026-08-31 broken header, starts with a date
+2026-08-31 11:50:40.872 ERROR no thread parens here
+â‚

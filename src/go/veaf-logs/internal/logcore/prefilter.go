@@ -24,7 +24,7 @@ func newPattern(expr string) (*pattern, error) {
 	}
 	p := &pattern{re: re}
 	if tree, err := syntax.Parse(expr, syntax.Perl); err == nil {
-		if lits, ok := requiredLiterals(tree); ok {
+		if lits, ok := requiredLiterals(tree, false); ok {
 			p.lits = lits
 		}
 	}
@@ -58,24 +58,42 @@ func (p *pattern) SubexpIndex(name string) int { return p.re.SubexpIndex(name) }
 
 // requiredLiterals returns literals such that every match of the expression
 // contains at least one of them, or false when none can be established.
-func requiredLiterals(re *syntax.Regexp) ([][]byte, bool) {
+//
+// With `folded`, the literals are for a text whose ASCII letters were lowered:
+// a case-folded literal is lowered too, and refused when it holds a non-ASCII
+// letter, whose folding lowering ASCII does not reproduce.
+func requiredLiterals(re *syntax.Regexp, folded bool) ([][]byte, bool) {
 	switch re.Op {
 	case syntax.OpLiteral:
-		if re.Flags&syntax.FoldCase != 0 || len(re.Rune) == 0 {
+		if len(re.Rune) == 0 {
 			return nil, false
 		}
-		return [][]byte{[]byte(string(re.Rune))}, true
+		if re.Flags&syntax.FoldCase == 0 {
+			if folded {
+				return [][]byte{asciiLower([]byte(string(re.Rune)))}, true
+			}
+			return [][]byte{[]byte(string(re.Rune))}, true
+		}
+		if !folded {
+			return nil, false
+		}
+		for _, r := range re.Rune {
+			if r >= 0x80 {
+				return nil, false
+			}
+		}
+		return [][]byte{asciiLower([]byte(string(re.Rune)))}, true
 	case syntax.OpCapture, syntax.OpPlus:
-		return requiredLiterals(re.Sub[0])
+		return requiredLiterals(re.Sub[0], folded)
 	case syntax.OpRepeat:
 		if re.Min >= 1 {
-			return requiredLiterals(re.Sub[0])
+			return requiredLiterals(re.Sub[0], folded)
 		}
 	case syntax.OpConcat:
 		var best [][]byte
 		bestLen := 0
 		for _, sub := range re.Sub {
-			lits, ok := requiredLiterals(sub)
+			lits, ok := requiredLiterals(sub, folded)
 			if !ok {
 				continue
 			}
@@ -93,7 +111,7 @@ func requiredLiterals(re *syntax.Regexp) ([][]byte, bool) {
 	case syntax.OpAlternate:
 		var all [][]byte
 		for _, sub := range re.Sub {
-			lits, ok := requiredLiterals(sub)
+			lits, ok := requiredLiterals(sub, folded)
 			if !ok {
 				return nil, false
 			}

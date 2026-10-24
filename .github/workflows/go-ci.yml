@@ -60,9 +60,10 @@ jobs:
           go-version-file: src/go/veaf-logs/go.mod
           cache-dependency-path: src/go/veaf-logs/go.sum
 
-      # The window (Gio) needs the X11/Wayland headers to compile, even for `go vet`.
+      # The window (Gio) needs the X11/Wayland and GL headers to compile, even for `go vet`. Gio's own
+      # list names libgles2-mesa-dev and libegl1-mesa-dev, transitional packages; these are their targets.
       - name: Install the Gio build dependencies
-        run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libffi-dev libxcursor-dev libvulkan-dev
+        run: sudo apt-get update && sudo apt-get install -y gcc pkg-config libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev libgles-dev libegl-dev libffi-dev libxcursor-dev libvulkan-dev
 
       - name: Format (gofmt)
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }

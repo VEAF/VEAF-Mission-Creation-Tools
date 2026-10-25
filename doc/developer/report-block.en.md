@@ -19,6 +19,7 @@ versioned, that neither the producer nor the consumers can change alone.
 The implementation lives in `src/python/veaf-tools/veaf_logs/report.py`, producer (`build_report`)
 and reader (`parse_report_block`) in the same module — so they cannot drift apart — and the
 round-trip test is in `test/python/veaf_logs/test_report.py`.
+That module is the reference: the shipped `veaf-logs.exe`, written in Go, produces the block with `src/go/veaf-logs/internal/analysis/report.go`, and its parity tests require it to be identical, character for character, to the Python module's.
 
 ## Structure {#structure}
 

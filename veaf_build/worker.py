@@ -27,6 +27,8 @@ _VERSION_PY_STUB = _VERSION_PY_HEADER + '__version__ = "unknown"\n__commit__ = "
 
 # Project root: two levels up from this file (veaf_build/ → project root)
 _PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+#: The Go module of `veaf-logs` (`src/go/veaf-logs/go.mod`), the prefix of the variables `-X` sets.
+_VEAF_LOGS_GO_MODULE = "github.com/VEAF/VEAF-Mission-Creation-Tools/src/go/veaf-logs"
 
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 PAUSE_MESSAGE: str = "Press Enter to exit..."
@@ -667,39 +669,43 @@ class BuildAndReleaseWorker:
             self._restore_version_py(version_py_path)
 
     def build_veaf_logs(self) -> Path:
-        """Build ``veaf-logs`` from its own recipe, with the build version stamped in.
+        """Build ``veaf-logs`` from its Go module, with the build version stamped in.
 
-        The log viewer's report reads its version from ``veaf_tools._version``, which only
-        holds a real value while ``veaf-build`` has it stamped: built after ``veaf-build build``
-        restored the stub, every shipped report said ``tool.version: unknown``
-        (FIX-LOGS-EXE-STARTUP-AND-VERSION). ``dist/`` is left alone, since the release builds
-        ``veaf-tools`` into it first.
+        The shipped viewer is ``src/go/veaf-logs/`` (ADR 0023). Its report reads the version from
+        ``internal/analysis.Version``, which the linker sets: without it every report says
+        ``tool.version: unknown``. The window is native Win32, so the Windows executable is built
+        wherever this runs. ``dist/`` is left alone, since the release builds ``veaf-tools`` into it first.
 
         Returns:
-            Path to the executable in ``dist/`` (``veaf-logs.exe`` on Windows).
+            Path to ``dist/veaf-logs.exe``.
 
         Raises:
-            typer.Abort: PyInstaller is missing or the build failed (``_version.py`` is restored first).
+            typer.Abort: the Go toolchain is missing or the build failed.
         """
         if not self.version:
             self.version = self.resolve_auto_version()
             logger.info(f"Version not specified, auto-computed: {self.version}")
-        version_py_path = self._version_py_path
+        self.dist_dir.mkdir(exist_ok=True)
+        exe_path = self.dist_dir / "veaf-logs.exe"
+        ldflags = f"-s -w -H windowsgui -X {_VEAF_LOGS_GO_MODULE}/internal/analysis.Version={self.version}"
+        cmd = ["go", "build", "-trimpath", "-ldflags", ldflags, "-o", str(exe_path), "./cmd/veaf-logs"]
+        env = {**os.environ, "GOOS": "windows", "GOARCH": "amd64"}
+        logger.debug(f"Running: {' '.join(cmd)}")
         try:
-            self._write_version_py(version_py_path)
-            cmd = ["pyinstaller", "veaf-logs.spec", "--noconfirm"]
-            logger.debug(f"Running PyInstaller: {' '.join(cmd)}")
-            try:
-                with spinner_context("Building veaf-logs executable..."):
-                    result = subprocess.run(cmd, cwd=str(self.script_root), capture_output=True, text=True)
-            except FileNotFoundError:
-                logger.error("PyInstaller not found: install the build group (`poetry install --with build`)")
-            if result.returncode != 0:
-                logger.debug(f"PyInstaller stderr:\n{result.stderr}")
-                logger.error(f"PyInstaller build failed for veaf-logs with exit code {result.returncode}")
-        finally:
-            self._restore_version_py(version_py_path)
-        return self.dist_dir / ("veaf-logs.exe" if sys.platform == "win32" else "veaf-logs")
+            with spinner_context("Building veaf-logs executable..."):
+                result = subprocess.run(
+                    cmd,
+                    cwd=str(self.script_root / "src" / "go" / "veaf-logs"),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+        except FileNotFoundError:
+            logger.error("Go not found: install the toolchain named in src/go/veaf-logs/go.mod")
+        if result.returncode != 0:
+            # Go's errors are a few lines: in the message, so a failed release shows why.
+            logger.error(f"go build failed for veaf-logs with exit code {result.returncode}:\n{result.stderr}")
+        return exe_path
 
     def _build_pyinstaller_executable(  # sourcery skip: extract-method
         self,

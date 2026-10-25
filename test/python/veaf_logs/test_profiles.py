@@ -1,4 +1,4 @@
-"""Tests des profils et de la session."""
+"""Tests des profils."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import json
 import pytest
 from veaf_logs.filters import FilterSet, Mode, State, TextFilter
 from veaf_logs.profiles import PROFILES_VERSION, ProfileStore, default_profiles_path
-from veaf_logs.session import SESSION_VERSION, OpenFile, Session, default_session_path
 
 
 @pytest.fixture
@@ -106,88 +105,6 @@ class TestProfilsUtilisateur:
         assert ProfileStore(rules, path).user == {}
 
 
-class TestSession:
-    def test_aller_retour(self, tmp_path):
-        path = tmp_path / "session.json"
-        session = Session(
-            files=[OpenFile("C:/dcs.log"), OpenFile("C:/a.zip", "dcs.log")],
-            active=1,
-            profile="Mon profil",
-        )
-        session.set_filters(
-            FilterSet(
-                levels={"INFO": State.CONTEXT},
-                text_filters=[TextFilter(pattern="x", invert=True)],
-                context_lines=4,
-            )
-        )
-        session.save(path)
-
-        relue = Session.load(path)
-        assert relue.active == 1
-        assert relue.profile == "Mon profil"
-        assert relue.files[1].archive_member == "dcs.log"
-        filtres = relue.get_filters()
-        assert filtres.levels == {"INFO": State.CONTEXT}
-        assert filtres.context_lines == 4
-        assert filtres.text_filters[0].invert
-
-    def test_les_tests_n_ecrivent_pas_dans_la_session_de_l_utilisateur(self, tmp_path):
-        """Fermer une fenetre sauve la session : en test, jamais dans le vrai `%APPDATA%`."""
-        assert default_session_path().is_relative_to(tmp_path)
-        assert default_profiles_path().is_relative_to(tmp_path)
-
-    def test_session_absente(self, tmp_path):
-        assert Session.load(tmp_path / "rien.json").files == []
-
-    def test_session_illisible(self, tmp_path):
-        path = tmp_path / "session.json"
-        path.write_text("{ pas du json", encoding="utf-8")
-        assert Session.load(path).files == []
-
-    def test_version_incompatible(self, tmp_path):
-        path = tmp_path / "session.json"
-        path.write_text(json.dumps({"version": SESSION_VERSION + 1, "active": 3}), encoding="utf-8")
-        assert Session.load(path).active == 0
-
-    def test_champ_inconnu_ignore(self, tmp_path):
-        path = tmp_path / "session.json"
-        path.write_text(
-            json.dumps({"version": SESSION_VERSION, "active": 2, "nouveaute": 42}),
-            encoding="utf-8",
-        )
-        assert Session.load(path).active == 2
-
-    def test_filtres_corrompus(self, tmp_path):
-        path = tmp_path / "session.json"
-        path.write_text(json.dumps({"version": SESSION_VERSION, "filters": "pas un objet"}), encoding="utf-8")
-        assert Session.load(path).get_filters().is_empty
-
-    def test_fichiers_disparus_ecartes(self, tmp_path):
-        present = tmp_path / "present.log"
-        present.write_text("x", encoding="utf-8")
-        session = Session(files=[OpenFile(str(present)), OpenFile(str(tmp_path / "parti.log"))])
-        assert [item.path for item in session.existing_files()] == [str(present)]
-
-    def test_ecriture_atomique(self, tmp_path):
-        path = tmp_path / "session.json"
-        Session(active=1).save(path)
-        assert not path.with_suffix(".tmp").exists()
-        assert Session.load(path).active == 1
-
-
-class TestSessionDistante:
-    def test_entree_distante_survit_a_la_session(self, tmp_path):
-        chemin = tmp_path / "session.json"
-        distant = OpenFile("C:/Users/veaf/Saved Games/private1_server/Logs/dcs.log", remote="veaf/private1")
-        Session(files=[distant]).save(chemin)
-        rechargee = Session.load(chemin)
-        assert rechargee.files == [distant]
-        # Le chemin n'existe pas ici : c'est le serveur qui le sait.
-        assert rechargee.existing_files() == [distant]
-
-    def test_session_sans_champ_remote_reste_lisible(self, tmp_path):
-        """Une session ecrite avant ce champ se recharge sans lui."""
-        chemin = tmp_path / "session.json"
-        chemin.write_text('{"version": 2, "files": [{"path": "C:/dcs.log", "archive_member": null}]}', encoding="utf-8")
-        assert Session.load(chemin).files == [OpenFile("C:/dcs.log")]
+def test_les_tests_n_ecrivent_pas_dans_les_profils_de_l_utilisateur(tmp_path):
+    """En test, jamais dans le vrai `%APPDATA%`."""
+    assert default_profiles_path().is_relative_to(tmp_path)

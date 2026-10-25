@@ -222,7 +222,7 @@ def warn_unknown_aircraft_types(path: Path) -> list[str]:
 
 
 def era_filtered_catalogue(path: Path, era: str | None, workdir: Path) -> tuple[Path | None, int]:
-    """The shipped spawnables catalogue, without the aircraft that did not exist in the mission's era.
+    """A shipped aircraft catalogue, without the aircraft that did not exist in the mission's era.
 
     Args:
         path: The shipped catalogue.
@@ -404,14 +404,15 @@ def build(
             if not path:
                 return
             with tempfile.TemporaryDirectory() as era_dir:
-                if is_shipped and step_key == "spawnable_aircrafts":
-                    # The shipped catalogue is modern jets: keep out the ones that did not fly in this
-                    # mission's era (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 03). A maker's own file is
-                    # theirs, as written.
+                if is_shipped:
+                    # The shipped catalogues span every era: keep out the aircraft that did not fly in this
+                    # mission's (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 03 for the spawnables; a 1987
+                    # mission offered F-16C and Apaches on its dynamic slots, FIX-COWORK-SESSION-FINDINGS 05).
+                    # A maker's own file is theirs, as written.
                     era = worker.mission_era()
                     path, removed = era_filtered_catalogue(path, era, Path(era_dir))
                     if path is None:
-                        logger.step(t("pipeline.console.aircraft_no_era", file="spawnables.yaml", era=era))
+                        logger.step(t("pipeline.console.aircraft_no_era", file=Path(candidate).name, era=era))
                         return
                     if removed:
                         logger.detail(t("pipeline.console.aircraft_era_filtered", era=era, removed=removed))

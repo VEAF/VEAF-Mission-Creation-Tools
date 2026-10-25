@@ -34,20 +34,90 @@ SPAWNABLES_FILENAME = "spawnables.yaml"
 DYNAMIC_TEMPLATES_FILENAME = "dynamic-slot-templates.yaml"
 
 
-#: The eras an aircraft type of the shipped ``spawnables.yaml`` exists in (``veaf.ERA`` names). A type missing
-#: here is kept in every era: a mod, or an aircraft this table has not been taught, must not vanish from a build.
-#: The sweep test enumerates the shipped catalogue, so a type added there cannot stay missing from here.
+_WW2 = frozenset({"WW2"})
+_KOREA = frozenset({"WW2", "COLD_WAR"})
+_EARLY_JET = frozenset({"COLD_WAR"})
+_COLD_WAR_ON = frozenset({"COLD_WAR", "MODERN"})
+_MODERN = frozenset({"MODERN"})
+
+#: The eras an aircraft type of the shipped catalogues — ``spawnables.yaml`` and ``dynamic-slot-templates.yaml``
+#: — exists in (``veaf.ERA`` names). ``COLD_WAR`` means the variant DCS models was in service before 1991: an
+#: F-16C Block 50 or an AH-64D Longbow is not, an F-14B or a MiG-29A is. Service dates are estimates, not sourced.
+#: A type missing here is kept in every era: a mod, or an aircraft this table has not been taught, must not vanish
+#: from a build. The sweep tests enumerate both catalogues, so a type added there cannot stay missing from here
+#: unless :data:`ERA_LEFT_OUT` says why.
 AIRCRAFT_ERAS: dict[str, frozenset[str]] = {
-    "F-15C": frozenset({"COLD_WAR", "MODERN"}),
-    "F-14A-135-GR": frozenset({"COLD_WAR", "MODERN"}),
-    "F-4E": frozenset({"COLD_WAR", "MODERN"}),
-    "F-5E-3": frozenset({"COLD_WAR", "MODERN"}),
-    "M-2000C": frozenset({"COLD_WAR", "MODERN"}),
-    "Mirage-F1EE": frozenset({"COLD_WAR", "MODERN"}),
-    "MiG-21Bis": frozenset({"COLD_WAR", "MODERN"}),
-    "MiG-23MLD": frozenset({"COLD_WAR", "MODERN"}),
-    "MiG-25PD": frozenset({"COLD_WAR", "MODERN"}),
-    "MQ-9 Reaper": frozenset({"MODERN"}),
+    "F-15C": _COLD_WAR_ON,
+    "F-14A-135-GR": _COLD_WAR_ON,
+    "F-4E": _COLD_WAR_ON,
+    "F-5E-3": _COLD_WAR_ON,
+    "M-2000C": _COLD_WAR_ON,
+    "Mirage-F1EE": _COLD_WAR_ON,
+    "MiG-21Bis": _COLD_WAR_ON,
+    "MiG-23MLD": _COLD_WAR_ON,
+    "MiG-25PD": _COLD_WAR_ON,
+    "MQ-9 Reaper": _MODERN,
+    # the dynamic-slot templates (FIX-COWORK-SESSION-FINDINGS 05): a 1987 mission offered F-16C and Apaches
+    "Bf-109K-4": _WW2,
+    "FW-190A8": _WW2,
+    "FW-190D9": _WW2,
+    "I-16": _WW2,
+    "La-7": _WW2,
+    "P-47D-30": _WW2,
+    "P-47D-40": _WW2,
+    "SpitfireLFMkIX": _WW2,
+    "MosquitoFBMkVI": _WW2,
+    "F4U-1D": _WW2,
+    "P-51D": _KOREA,
+    "P-51D-30-NA": _KOREA,
+    "F4U-1D_CW": _EARLY_JET,
+    "F-86F Sabre": _EARLY_JET,
+    "MiG-15bis": _EARLY_JET,
+    "MiG-19P": _EARLY_JET,
+    "F-100D": _EARLY_JET,
+    "AJS37": _COLD_WAR_ON,
+    "AV8BNA": _COLD_WAR_ON,
+    "C-101CC": _COLD_WAR_ON,
+    "F-14B": _COLD_WAR_ON,
+    "F-15ESE": _COLD_WAR_ON,
+    "F-4E-45MC": _COLD_WAR_ON,
+    "L-39C": _COLD_WAR_ON,
+    "L-39ZA": _COLD_WAR_ON,
+    "MB-339APAN": _COLD_WAR_ON,
+    "Mi-24P": _COLD_WAR_ON,
+    "Mi-8MT": _COLD_WAR_ON,
+    "MiG-29 Fulcrum": _COLD_WAR_ON,
+    "MiG-29A": _COLD_WAR_ON,
+    "MiG-29S": _COLD_WAR_ON,
+    "Mirage-F1BE": _COLD_WAR_ON,
+    "Mirage-F1CE": _COLD_WAR_ON,
+    "OH58D": _COLD_WAR_ON,
+    "SA342L": _COLD_WAR_ON,
+    "SA342M": _COLD_WAR_ON,
+    "SA342Minigun": _COLD_WAR_ON,
+    "Su-25": _COLD_WAR_ON,
+    "Su-27": _COLD_WAR_ON,
+    "UH-1H": _COLD_WAR_ON,
+    "Yak-52": _COLD_WAR_ON,
+    "A-10C_2": _MODERN,
+    "AH-64D_BLK_II": _MODERN,
+    "C-130J-30": _MODERN,
+    "CH-47Fbl1": _MODERN,
+    "F-14BU": _MODERN,
+    "F-16C_50": _MODERN,
+    "J-11A": _MODERN,
+    "JF-17": _MODERN,
+    "Ka-50": _MODERN,
+    "Ka-50_3": _MODERN,
+    "MiG-29G": _MODERN,
+    "Su-25T": _MODERN,
+    "Su-33": _MODERN,
+}
+
+#: Types of the shipped catalogues deliberately kept in every era, and why.
+ERA_LEFT_OUT: dict[str, str] = {
+    "FA-18C_hornet": "the F/A-18C flew from 1987, but DCS models a 2000s lot: neither era is right alone",
+    "TF-51D": "a civilian trainer, at home in any era",
 }
 
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import yaml
-from aircrafts_injector.catalogue import AIRCRAFT_ERAS, filter_by_era, iter_groups, load_catalogue
+from aircrafts_injector.catalogue import AIRCRAFT_ERAS, ERA_LEFT_OUT, filter_by_era, iter_groups, load_catalogue
 from veaf_tools.commands.build import era_filtered_catalogue
 
 SHIPPED = Path(__file__).parents[3] / "src" / "defaults" / "mission-folder" / "src" / "spawnables.yaml"
@@ -83,4 +83,34 @@ class TestEraFilteredCatalogue:
     def test_only_the_shipped_catalogue_is_ever_filtered(self) -> None:
         """`resolve_aircraft_catalogue` reports a maker's own file as not shipped, and the build leaves it as written."""
         build = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_tools" / "commands" / "build.py"
-        assert 'if is_shipped and step_key == "spawnable_aircrafts":' in build.read_text(encoding="utf-8")
+        assert "                if is_shipped:\n" in build.read_text(encoding="utf-8")
+
+
+DYNAMIC = SHIPPED.with_name("dynamic-slot-templates.yaml")
+
+
+class TestShippedDynamicSlotTemplates:
+    """FIX-COWORK-SESSION-FINDINGS 05: a COLD_WAR 1987 mission offered F-16C, F/A-18C and Apaches on its slots."""
+
+    def test_every_type_has_its_eras_or_a_reason_to_be_kept(self) -> None:
+        types = _types(load_catalogue(DYNAMIC))
+        assert types - set(AIRCRAFT_ERAS) <= set(ERA_LEFT_OUT)
+        assert not set(AIRCRAFT_ERAS) & set(ERA_LEFT_OUT)
+
+    def test_the_cold_war_drops_the_modern_types_and_the_warbirds(self) -> None:
+        filtered, removed = filter_by_era(load_catalogue(DYNAMIC), "COLD_WAR")
+        kept = _types(filtered)
+        assert not {"F-16C_50", "AH-64D_BLK_II", "JF-17", "Su-33", "Bf-109K-4", "SpitfireLFMkIX"} & kept
+        assert {"AJS37", "MiG-21Bis", "F-5E-3", "F-14B", "Su-27", "UH-1H", "F-86F Sabre"} <= kept
+        assert removed > 0
+
+    def test_ww2_keeps_the_warbirds_only(self) -> None:
+        kept = _types(filter_by_era(load_catalogue(DYNAMIC), "WW2")[0])
+        assert {"Bf-109K-4", "P-51D", "SpitfireLFMkIX"} <= kept
+        assert not {"AJS37", "F-86F Sabre", "F-16C_50"} & kept
+        assert set(ERA_LEFT_OUT) & _types(load_catalogue(DYNAMIC)) <= kept
+
+    def test_a_modern_mission_drops_nothing(self) -> None:
+        """Warbirds and early jets stay on a modern mission's slots: the build never filters MODERN."""
+        with TemporaryDirectory() as tmp:
+            assert era_filtered_catalogue(DYNAMIC, "MODERN", Path(tmp)) == (DYNAMIC, 0)

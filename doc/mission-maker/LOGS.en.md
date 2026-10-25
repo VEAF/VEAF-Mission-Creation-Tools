@@ -17,15 +17,8 @@ With no argument it reopens the last session's files, falling back to the curren
 `dcs.log` (`Saved Games\DCS\Logs\dcs.log`). You can also pass it a path, or drop a
 file onto it.
 
-From the sources:
-
-```
-poetry install --all-extras
-poetry run veaf-logs
-```
-
-The window needs PySide6, declared as an optional dependency (`--all-extras`, or
-`--extras logs`). Nothing else in `veaf-tools` requires it.
+`veaf-logs.exe` is a standalone Windows program written in Go: one file of about fifteen megabytes, with no Python or anything else to install.
+Its sources are in `src/go/veaf-logs/`, whose `README.md` says how to build it.
 
 ## A remote server's log {#remote}
 
@@ -306,14 +299,13 @@ To follow one of these logs remotely, declare it like a `dcs.log` under `logs:`
 ## Large logs
 
 The text is not held in memory: only a compact index is, and lines are decoded as
-they are displayed. On a 119 MB server log (991,392 lines):
+they are displayed. On a 130 MB server log (954,086 entries):
 
 | | |
 |---|---|
-| First lines readable | 0.3 s |
-| Full indexing | 8.6 s, in the background |
-| Memory | 37 MB |
-| Search | 0.65 s |
+| Window shown | 0.04 s |
+| Full indexing | 2.4 s, in the background |
+| Memory, log open | 116 MB |
 
 Indexing carries on while you read and filter; a progress bar shows up with a
 button to stop it — whatever is already indexed stays usable.
@@ -342,9 +334,9 @@ button to stop it — whatever is already indexed stays usable.
 
 ## Adding your own rules
 
-Recognised sources, colours and noise families all live in one file,
-`veaf_logs/rules.json`, which the **Règles** menu opens and reloads (`F5`)
-without leaving the application.
+Recognised sources, colours and noise families all live in one catalogue, `rules.json`, built into the executable.
+The **Règles** menu opens an editable copy of it, which `F5` reloads without leaving the application.
+That copy only lasts for the current session: a rule meant to stay goes into the repository's `src/python/veaf-tools/veaf_logs/rules.json`, and ships with the next release.
 
 A script of your own takes one entry:
 
@@ -383,7 +375,7 @@ log's lines only. Source prefixes (`match`) apply to `dcs.log` lines only.
 
 | | |
 |---|---|
-| Session (open files, filters, geometry, font, panels shown) | `%APPDATA%\veaf-logs\session.json` |
-| Profiles | `%APPDATA%\veaf-logs\profiles.json` |
+| Session (open files, filters, geometry, font, panels shown) | `%APPDATA%\veaf_logs\session.json` |
+| Profiles | `%APPDATA%\veaf_logs\profiles.json` |
 | Remote servers (`servers:`) | `~\veafmct.yaml` |
 | Local mirror of a remote log | `%TEMP%\veaf-logs-*.log`, removed when the tab closes |

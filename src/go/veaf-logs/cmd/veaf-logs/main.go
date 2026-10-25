@@ -9,7 +9,7 @@
 // --smoke opens the paths, waits for their index, prints the timings and exits.
 package main
 
-//go:generate go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -manifest veaf-logs.manifest -ico ../../../../python/veaf-tools/veaf_logs/veaf-logs.ico -o rsrc_windows_amd64.syso
+//go:generate go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -manifest veaf-logs.manifest -ico veaf-logs.ico -o rsrc_windows_amd64.syso
 
 import (
 	"os"

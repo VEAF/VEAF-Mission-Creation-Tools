@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-GO-VEAF-LOGS-SHIP](FEAT-GO-VEAF-LOGS-SHIP/PRD.md) · ✅
+
+The release builds and publishes the Go `veaf-logs.exe` (`veaf-build build-logs` runs `go build`, version stamped), the PySide6 window and the `logs` extra leave, the windowless Python core stays for the support bot and the parity goldens (ADR 0023). Closed 2026-10-25.
+
 ### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · ✅
 
 Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, remote journals, *Explain* and the `/bug` report — in five milestones (#1176, #1181, #1182, J5), equal to the Python on every reference case. Decided 2026-10-25: the Go viewer replaces the Python one, the rest of the tools stay in Python (ADR 0023); shipping it is FEAT-GO-VEAF-LOGS-SHIP.

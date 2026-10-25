@@ -59,12 +59,14 @@ jobs:
       - name: Build release package
         run: poetry run veaf-build build --version ${{ steps.version.outputs.version }}
 
-      # veaf-logs has its own recipe: it bundles Qt and nothing of the mission
-      # build chain, and keeping it out of veaf-tools.exe spares that binary
-      # some forty megabytes for a window most of its users never open.
-      # Through veaf-build rather than a bare pyinstaller call: the log viewer's report
-      # reads veaf_tools._version, which only holds the release version while veaf-build
-      # has it stamped (FIX-LOGS-EXE-STARTUP-AND-VERSION).
+      # veaf-logs is the Go viewer of src/go/veaf-logs (ADR 0023), not a Python build.
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/go/veaf-logs/go.mod
+          cache-dependency-path: src/go/veaf-logs/go.sum
+
+      # Through veaf-build rather than a bare go build: it stamps the release version the
+      # viewer's report states, which an unstamped build gives as `unknown`.
       - name: Build the veaf-logs executable
         run: poetry run veaf-build build-logs --version ${{ steps.version.outputs.version }}
 

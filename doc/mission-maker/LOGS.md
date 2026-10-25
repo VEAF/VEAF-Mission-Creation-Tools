@@ -18,15 +18,8 @@ Sans argument, il rouvre les fichiers de la dernière session ; à défaut, le
 `dcs.log` courant (`Saved Games\DCS\Logs\dcs.log`). On peut aussi lui passer un
 chemin, ou faire glisser un fichier dessus.
 
-Depuis les sources :
-
-```
-poetry install --all-extras
-poetry run veaf-logs
-```
-
-L'interface graphique demande PySide6, déclaré en dépendance optionnelle
-(`--all-extras`, ou `--extras logs`). Le reste de `veaf-tools` n'en a pas besoin.
+`veaf-logs.exe` est un programme Windows autonome, écrit en Go : un seul fichier d'une quinzaine de Mo, sans Python ni rien d'autre à installer.
+Ses sources sont dans `src/go/veaf-logs/`, dont le `README.md` dit comment le construire.
 
 ## Journal d'un serveur distant {#remote}
 
@@ -326,14 +319,13 @@ Pour suivre l'un de ces journaux à distance, on le déclare comme un `dcs.log` 
 ## Gros journaux
 
 Le texte n'est pas chargé en mémoire : seul un index compact l'est, et les lignes
-sont décodées à l'affichage. Sur un journal de serveur de 119 Mo (991 392 lignes) :
+sont décodées à l'affichage. Sur un journal de serveur de 130 Mo (954 086 entrées) :
 
 | | |
 |---|---|
-| Premières lignes lisibles | 0,3 s |
-| Indexation complète | 8,6 s, en tâche de fond |
-| Mémoire | 37 Mo |
-| Recherche | 0,65 s |
+| Fenêtre affichée | 0,04 s |
+| Indexation complète | 2,4 s, en tâche de fond |
+| Mémoire, journal ouvert | 116 Mo |
 
 L'indexation se poursuit pendant qu'on lit et qu'on filtre ; une barre de
 progression apparaît, avec un bouton pour l'interrompre — ce qui est déjà indexé
@@ -363,9 +355,9 @@ reste utilisable.
 
 ## Ajouter ses propres règles
 
-Les sources reconnues, les couleurs et les familles de bruit vivent dans un seul
-fichier, `veaf_logs/rules.json`, que le menu **Règles** ouvre et recharge (`F5`)
-sans quitter l'application.
+Les sources reconnues, les couleurs et les familles de bruit vivent dans un seul catalogue, `rules.json`, intégré à l'exécutable.
+Le menu **Règles** en ouvre une copie modifiable, que `F5` recharge sans quitter l'application.
+Cette copie ne vaut que pour la session en cours : une règle qui doit durer va dans `src/python/veaf-tools/veaf_logs/rules.json` du dépôt, et arrive avec la release suivante.
 
 Un script maison tient en une entrée :
 
@@ -405,7 +397,7 @@ eux, qu'aux lignes de `dcs.log`.
 
 | | |
 |---|---|
-| Session (fichiers ouverts, filtres, géométrie, police, panneaux affichés) | `%APPDATA%\veaf-logs\session.json` |
-| Profils | `%APPDATA%\veaf-logs\profiles.json` |
+| Session (fichiers ouverts, filtres, géométrie, police, panneaux affichés) | `%APPDATA%\veaf_logs\session.json` |
+| Profils | `%APPDATA%\veaf_logs\profiles.json` |
 | Serveurs distants (`servers:`) | `~\veafmct.yaml` |
 | Miroir local d'un journal distant | `%TEMP%\veaf-logs-*.log`, supprimé à la fermeture de l'onglet |

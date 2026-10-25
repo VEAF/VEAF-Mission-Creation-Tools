@@ -43,9 +43,8 @@ TOOLS_ROOT = REPO_ROOT / "src" / "python" / "veaf-tools"
 #: a process can only have one checkout — which is exactly the production situation.
 _COPIED_PACKAGES = ("veaf_libs", "veaf_logs", "mission_tools", "luadata")
 
-#: Never copied. ``veaf_logs/ui`` needs PySide6, and compiled caches are noise the caller search
-#: would have to walk.
-_NOT_COPIED = shutil.ignore_patterns("ui", "__pycache__", "*.pyc")
+#: Never copied. Compiled caches are noise the caller search would have to walk.
+_NOT_COPIED = shutil.ignore_patterns("__pycache__", "*.pyc")
 
 #: A Python module the trace fixtures point at, with a function called from two other files.
 SAMPLE_MODULE = '''"""A module the trace fixtures name."""

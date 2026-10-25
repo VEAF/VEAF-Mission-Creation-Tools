@@ -172,9 +172,9 @@ def build_logs(
     ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
-    """Build the `veaf-logs` executable from `veaf-logs.spec`, with the version stamped in.
+    """Build the `veaf-logs` executable from its Go module, with the version stamped in.
 
-    Produces `dist/veaf-logs` (`veaf-logs.exe` on Windows). Leaves the rest of `dist/` alone.
+    Needs the Go toolchain. Produces `dist/veaf-logs.exe`. Leaves the rest of `dist/` alone.
     """
     logger.set_verbose(verbose)
     console.print("[bold green]VEAF Logs Build[/bold green]")

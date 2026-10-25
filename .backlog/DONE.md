@@ -8,7 +8,7 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ### [FEAT-GO-VEAF-LOGS-SHIP](FEAT-GO-VEAF-LOGS-SHIP/PRD.md) · ✅
 
-The release builds and publishes the Go `veaf-logs.exe` (`veaf-build build-logs` runs `go build`, version stamped), the PySide6 window and the `logs` extra leave, the windowless Python core stays for the support bot and the parity goldens (ADR 0023). Closed 2026-10-25.
+The release builds and publishes the Go `veaf-logs.exe` (`veaf-build build-logs` runs `go build`, version stamped), the PySide6 window and the `logs` extra leave, the windowless Python core stays for the support bot and the parity goldens (ADR 0023). Merged in #1190 (2026-10-25).
 
 ### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · ✅
 

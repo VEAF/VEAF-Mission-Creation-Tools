@@ -1,6 +1,6 @@
 # FEAT-GO-VEAF-LOGS-SHIP — the Go `veaf-logs` becomes the shipped one
 
-Status: ✅ done — 2026-10-25
+Status: ✅ done — 2026-10-25 (#1190)
 
 Origin: David, 2026-10-25, closing [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md): "veaf-logs reste en Go, mais le reste continue en Python (trop lourd de convertir)".
 Recorded in [ADR 0023](../../docs/adr/0023-veaf-logs-in-go-the-rest-in-python.md).

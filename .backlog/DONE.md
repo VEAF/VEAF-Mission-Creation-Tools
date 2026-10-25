@@ -6,6 +6,14 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · ✅
+
+Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, remote journals, *Explain* and the `/bug` report — in five milestones (#1176, #1181, #1182, J5), equal to the Python on every reference case. Decided 2026-10-25: the Go viewer replaces the Python one, the rest of the tools stay in Python (ADR 0023); shipping it is FEAT-GO-VEAF-LOGS-SHIP.
+
+### [FIX-LIMITATIONS-SHORT-LISTING](FIX-LIMITATIONS-SHORT-LISTING/PRD.md) · ✅
+
+The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20. Merged in #1156 (2026-10-20).
+
 ### [CHORE-CI-JOB-TIMEOUTS](CHORE-CI-JOB-TIMEOUTS/PRD.md) · ✅
 
 Every CI job and every apt-get step carries a timeout, after a `python-quality` job hung four hours in `apt-get update`; a test keeps new workflows from coming without one.

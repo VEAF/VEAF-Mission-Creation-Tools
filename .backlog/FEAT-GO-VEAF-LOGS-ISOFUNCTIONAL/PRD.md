@@ -1,6 +1,6 @@
 # FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL — rewrite veaf-logs in Go, the same program
 
-Status: 🧑 waiting-human — the five milestones done (J1 #1176, J2–J3 #1181, J4 #1182, J5 the analysis); David tries J3–J5 on his machine and decides whether the Go viewer replaces the Python one (decision 5), which is a lot of its own
+Status: ✅ done — the five milestones merged (J1 #1176, J2–J3 #1181, J4 #1182, J5); David decided on 2026-10-25 that the Go viewer replaces the Python one (decision 6), shipped by FEAT-GO-VEAF-LOGS-SHIP
 
 Origin: David, 2026-10-24.
 The first Go proof of concept (POC-GO-VEAF-LOGS, #1173 and #1174) delivered a Go core identical to the Python one, plus a minimal Gio window that is only a tail with a search.
@@ -425,3 +425,5 @@ Taken by David on 2026-10-24, unless marked *default* (a recommendation he did n
    Candidates to compare on the 21 needs above: Gio, Fyne, miqt (Qt bindings: native Qt widgets, but the Qt runtime comes back into the executable size) and walk (native Win32 controls, Windows only — consistent with decision 4).
 4. *Default* — Windows only, as `release.yml` ships `veaf-logs.exe` today.
 5. *Default* — success is measured on the **complete** application against the Python reference (47.2 MB, 2.1 s, 13.3 s, 0.7 s); "we do not ship it" remains a valid outcome.
+6. **The Go viewer replaces the Python one; nothing else moves to Go** (David, 2026-10-25: "veaf-logs reste en Go, mais le reste continue en Python (trop lourd de convertir)").
+   Recorded in [ADR 0023](../../docs/adr/0023-veaf-logs-in-go-the-rest-in-python.md); shipping it is [FEAT-GO-VEAF-LOGS-SHIP](../FEAT-GO-VEAF-LOGS-SHIP/PRD.md).

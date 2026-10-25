@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FEAT-GO-VEAF-LOGS-SHIP](FEAT-GO-VEAF-LOGS-SHIP/PRD.md) · ⬜
+
+The release builds and publishes the Go `veaf-logs.exe` in place of the PySide6 one, which leaves; the Python core the support bot imports stays. Three tickets; first question: which Python stays and which side is the parity reference (ADR 0023).
+
 ### [FEAT-CLEAR-GROUND-COVERAGE](FEAT-CLEAR-GROUND-COVERAGE/PRD.md) · ⬜
 
 Widen the shipped clear-ground catalogues to the places missions are built — round airfields, towns, road axes — under a weight ceiling per theatre. Needs a survey flown in DCS, so David's time; split from FIX-DEMO-VIDEO-FINDINGS (2026-10-23).

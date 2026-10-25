@@ -272,7 +272,7 @@ def _situation_page(
     return Page(t("campaign.mission_deck.title.situation"), blocks)
 
 
-def _flow_page(content: BriefingContent, picture: MissionPicture) -> Page:
+def _flow_page(content: BriefingContent, picture: MissionPicture, starts: list[tuple[str, float, float]]) -> Page:
     blocks = []
     if content.objectives:
         blocks.append(
@@ -290,7 +290,15 @@ def _flow_page(content: BriefingContent, picture: MissionPicture) -> Page:
     tankers = [s.callsign for s in picture.support if s.role != "awacs"]
     if tankers:
         others.append(t("campaign.mission_deck.refuelling", tankers=_join(tankers)))
-    diversions = [a.name for a in picture.airfields] + [c.name for c in picture.carriers]
+    # the departure is no diversion: the deck said "Diversion fields: Senaki" for a flight leaving
+    # Senaki (FIX-COWORK-SESSION-FINDINGS 04); the assistant may name them instead
+    departed = {name for name, _, _ in starts}
+    diversions = (
+        list(content.diversions)
+        if content.diversions is not None
+        else [a.name for a in picture.airfields if a.name not in departed]
+        + [c.name for c in picture.carriers if c.name not in departed]
+    )
     if diversions:
         others.append(t("campaign.mission_deck.diversion", fields=_join(diversions)))
     if picture.plane_guard:
@@ -599,7 +607,7 @@ def _build(
 
     situation = _situation_page(content, picture, starts)
     ato = ato_page(picture, content.pilots, content.loadouts, _slot_lines(slot_flights(built, side, theatre)))
-    flow = _flow_page(content, picture)
+    flow = _flow_page(content, picture, starts)
     navigation = navigation_page(theatre, picture)
     if navigation:
         navigation.title = t("mission_briefing.title.flight_plan")

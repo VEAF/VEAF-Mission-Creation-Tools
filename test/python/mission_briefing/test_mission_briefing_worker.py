@@ -287,3 +287,32 @@ class TestDynamicSlotAto:
         text = _deck_text(_build(tmp_path).deck)
         assert "Slots dynamiques — Kobuleti" in text
         assert "F-16C_50 —" not in text
+
+
+class TestDiversionFields:
+    """FIX-COWORK-SESSION-FINDINGS 04: the deck named the departure itself as the diversion field."""
+
+    @staticmethod
+    def _flow(tmp_path: Path, content: BriefingContent) -> str:
+        from dataclasses import replace
+
+        from campaign_manager.mission_picture import Airfield, read_mission_picture
+        from mission_briefing.mission_briefing_worker import _flow_page
+
+        miz = objective_mission(tmp_path)
+        picture = read_mission_picture(miz, "blue", tmp_path)
+        fields = (Airfield("Senaki-Kolkhi", None, None, None, None), Airfield("Kutaisi", None, None, None, None))
+        picture = replace(picture, airfields=fields)
+        with language("en"):
+            page = _flow_page(content, picture, [("Senaki-Kolkhi", 0.0, 0.0)])
+        return "\n".join(text for block in page.blocks for text in block.paragraphs)
+
+    def test_the_departure_is_left_out(self, tmp_path: Path) -> None:
+        text = self._flow(tmp_path, CONTENT)
+        assert "Diversion fields: Kutaisi and Stennis." in text  # the fixture's carrier too
+
+    def test_the_assistants_list_replaces_it(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        text = self._flow(tmp_path, replace(CONTENT, diversions=("Batumi", "Kobuleti")))
+        assert "Diversion fields: Batumi" in text and "Kutaisi" not in text

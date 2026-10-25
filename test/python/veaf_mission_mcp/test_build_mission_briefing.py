@@ -76,3 +76,24 @@ def test_the_inspection_shows_the_date_and_the_briefing_pictures(catalog: Action
         line.startswith("MCP_Briefing_overview -> briefing-overview.jpg: in the archive, for blue, neutral")
         for line in after["briefing_pictures"]
     )
+
+
+def test_diversions_are_spelt_as_dcs_and_an_unknown_one_is_refused(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FIX-COWORK-SESSION-FINDINGS 04: the assistant names the diversion fields, checked against the map."""
+    objective_mission(tmp_path)
+    result = catalog.run_action(
+        "build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "diversions": ["kutaisi"]}
+    )
+    assert Path(result["deck"]).is_file()
+    with pytest.raises(ValueError, match="no airfield named Atlantis"):
+        catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "diversions": ["Atlantis"]})
+
+
+def test_the_kneeboard_and_the_archives_are_reported(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FIX-COWORK-SESSION-FINDINGS 01 and 08."""
+    miz = objective_mission(tmp_path)
+    result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS})
+    assert result["archives"] == [str(miz)]
+    assert result["kneeboard"][0] == "01-briefing-overview.jpg"
+    result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "kneeboard": False})
+    assert result["kneeboard"] == []

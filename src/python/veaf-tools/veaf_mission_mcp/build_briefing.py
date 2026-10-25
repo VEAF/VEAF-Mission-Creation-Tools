@@ -13,6 +13,7 @@ from mission_briefing.models import BriefingContent, Objective, Threat
 from veaf_libs.map_tiles import TILE_SOURCES
 
 from veaf_mission_mcp.accents import missing_accents_warnings
+from veaf_mission_mcp.map_tools import list_airfields
 
 
 def _lines(value: Any) -> tuple[str, ...]:
@@ -22,6 +23,24 @@ def _lines(value: Any) -> tuple[str, ...]:
     return (str(value),) if isinstance(value, str) else tuple(str(item) for item in value)
 
 
+def _diversions(folder: Path, given: Any) -> tuple[str, ...] | None:
+    """The diversion fields the assistant names, spelt as DCS spells them; ``None`` when it names none.
+
+    Raises:
+        ValueError: A name that is no airfield of the mission's theatre.
+    """
+    if given is None:
+        return None
+    names = _lines(given)
+    known = {str(a["name"]).lower(): str(a["name"]) for a in list_airfields(mission_path=folder)["airfields"]}
+    unknown = [name for name in names if name.lower() not in known]
+    if unknown:
+        raise ValueError(
+            f"diversions: no airfield named {', '.join(unknown)} on this map; list_airfields gives the names"
+        )
+    return tuple(known[name.lower()] for name in names)
+
+
 def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
     """Run the action from its parameters.
 
@@ -29,10 +48,11 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         params: The action's parameters, as the schema declares them.
 
     Returns:
-        ``{deck, pages, pdf, pdf_pages, maps, pictures, miz, map_offline, warnings}``.
+        ``{deck, pages, pdf, pdf_pages, maps, pictures, miz, archives, kneeboard, map_offline, warnings}``.
 
     Raises:
-        ValueError: An unknown basemap, an unbuilt mission, or an objective naming no zone of the mission.
+        ValueError: An unknown basemap or diversion field, an unbuilt mission, or an objective naming no zone
+            of the mission.
     """
     basemap = str(params.get("basemap") or "osm")
     if basemap not in TILE_SOURCES:
@@ -61,9 +81,14 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         other=_lines(params.get("other")),
         pilots={str(k): [str(name) for name in v] for k, v in (params.get("pilots") or {}).items()},
         loadouts={str(k): str(v) for k, v in (params.get("loadouts") or {}).items()},
+        diversions=_diversions(Path(params["mission_path"]), params.get("diversions")),
     )
     report = build_mission_briefing(
-        Path(params["mission_path"]), content, side=str(params.get("side") or "blue"), source=TILE_SOURCES[basemap]
+        Path(params["mission_path"]),
+        content,
+        side=str(params.get("side") or "blue"),
+        source=TILE_SOURCES[basemap],
+        kneeboard=params.get("kneeboard") is not False,
     )
     return {
         "deck": str(report.deck),
@@ -73,6 +98,8 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         "maps": [str(path) for path in report.maps],
         "pictures": report.pictures,
         "miz": str(report.miz),
+        "archives": [str(path) for path in report.archives],
+        "kneeboard": report.kneeboard,
         "map_offline": report.offline,
         "warnings": [*report.warnings, *missing_accents_warnings(_texts(content))],
     }

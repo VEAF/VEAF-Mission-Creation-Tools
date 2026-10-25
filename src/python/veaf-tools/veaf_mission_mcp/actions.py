@@ -2045,8 +2045,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/briefing.pptx (the objective "
                 "mission template, page for page, in the mission's language; Drive imports it into Google "
                 "Slides), docs/maps/ (an overview and one zoom per objective, on OpenStreetMap or OpenTopoMap "
-                "tiles), and the same maps as the DCS BRIEFING PICTURES, in the folder AND the built .miz, "
-                "first for the players' side and neutral (the other side left alone). BUILD FIRST (build_mission): every figure is "
+                "tiles), and the same maps as the DCS BRIEFING PICTURES, in the folder AND every built .miz -- the "
+                "build's own and each weather variant of missions/ (archives) -- first for the players' side and "
+                "neutral (the other side left alone). With kneeboard (default true) it also writes KNEEBOARD pages "
+                "for every aircraft, 2:3 JPEG: the overview and the zooms drawn for the page, a flight card (each "
+                "point, heading and distance of its leg, highest ground, the radios) and the targets. BUILD FIRST (build_mission): every figure is "
                 "read from the built .miz -- date, time, weather, bullseye, flights, support, carriers, QRA, "
                 "flight plan, the presets injected into the cockpits, each objective's targets and their "
                 "coordinates. You pass only the scenario's WORDS: title, context, mission_bullets, objectives (combat "
@@ -2098,7 +2101,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "air_opposition": {**_lines, "description": "What may take off, and when."},
                     "air_defences": {**_lines, "description": "How the route avoids them."},
-                    "other": {**_lines, "description": "Attack mode, refuelling, divert..."},
+                    "other": {**_lines, "description": "Attack mode, refuelling..."},
+                    "diversions": {
+                        **_lines,
+                        "description": (
+                            "The diversion fields the deck names, DCS airfield names (list_airfields). Omitted: the "
+                            "players' side's other airfields and carriers, the departure left out."
+                        ),
+                    },
+                    "kneeboard": {
+                        "type": "boolean",
+                        "description": "Write the kneeboard pages too (default true).",
+                    },
                     "pilots": {
                         "type": "object",
                         "description": "Pilots' names by flight GROUP name; empty cells otherwise.",
@@ -2112,7 +2126,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "basemap": {
                         "type": "string",
                         "enum": ["osm", "topo"],
-                        "description": "osm (default); topo = OpenTopoMap, for a desert.",
+                        "description": (
+                            "osm (default); topo = OpenTopoMap, hillshade and contour lines: for a desert and for any "
+                            "low-level or terrain-dependent mission."
+                        ),
                     },
                     "side": {"type": "string", "enum": ["blue", "red"], "description": "The players' side."},
                 },

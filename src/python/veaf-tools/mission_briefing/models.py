@@ -53,6 +53,8 @@ class BriefingContent:
     """Pilots' names by flight group name."""
     loadouts: dict[str, str] = field(default_factory=dict)
     """Imposed loadout by flight group name."""
+    diversions: tuple[str, ...] | None = None
+    """The diversion fields the briefing names; ``None`` lists the side's other airfields."""
 
 
 @dataclass(frozen=True)

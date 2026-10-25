@@ -1,7 +1,8 @@
 # veaf-logs (Go)
 
-The DCS journal viewer rewritten in Go as the same program as the Python one — tabs, menus, panels, profiles, filters, analysis — milestone by milestone.
-Nothing here is shipped yet; see [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../../.backlog/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) and, for the window, [ADR 0022](../../../docs/adr/0022-ui-toolkit-for-the-go-veaf-logs.md).
+The DCS journal viewer, rewritten in Go as the same program as the former Python one — tabs, menus, panels, profiles, filters, analysis ([FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../../.backlog/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md); the window: [ADR 0022](../../../docs/adr/0022-ui-toolkit-for-the-go-veaf-logs.md)).
+It is the `veaf-logs.exe` every release ships ([ADR 0023](../../../docs/adr/0023-veaf-logs-in-go-the-rest-in-python.md)): the release builds it with `poetry run veaf-build build-logs --version x.y.z`, which runs `go build` with the version stamped in.
+The Python `veaf_logs` package keeps its windowless core, for the support bot and as the reference of the parity tests below.
 
 - `internal/logcore`: the core without UI (rule catalogue, header formats, compact index, search, filters, tail with rotation detection, crash archives). A port of `veaf_logs` (Python), which remains the reference.
 - `internal/sshlog`: SSH + SFTP connection (key, agent, `known_hosts`) and the `servers` block of `~/veafmct.yaml`; the window's remote journals, with the host key question.
@@ -22,7 +23,7 @@ go build -ldflags "-s -w -H windowsgui -X github.com/VEAF/VEAF-Mission-Creation-
 ```
 
 Without a path it reopens the last session, else `Saved Games\DCS\Logs\dcs.log` if there is one.
-Profiles and session are the Python viewer's own files, `%APPDATA%\veaf_logs\profiles.json` and `session.json`: to try the Go viewer without touching yours, point `APPDATA` at an empty folder first (`$env:APPDATA = "C:\tmp\appdata"`).
+Profiles and session are `%APPDATA%\veaf_logs\profiles.json` and `session.json`, the files the Python viewer wrote, read as they are: to try a build without touching yours, point `APPDATA` at an empty folder first (`$env:APPDATA = "C:\tmp\appdata"`).
 `--smoke` skips the session.
 `--smoke` opens the paths, waits for their index, prints `window=… indexed=… entries=…` and the closing time, then exits: build without `-H windowsgui` to see it, as the CI does.
 It also checks the filters panel's layout and exits with code 4 when a group is not laid out at the height of its title and rows — the defect of a journal with few categories, which `testdata/smoke/short.log` reproduces.

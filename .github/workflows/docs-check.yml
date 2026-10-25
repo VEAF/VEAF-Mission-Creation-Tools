@@ -23,6 +23,7 @@ jobs:
   changes:
     name: Docs Check — changed paths
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       run: ${{ steps.gate.outputs.run }}
     steps:
@@ -61,6 +62,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v5

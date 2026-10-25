@@ -44,6 +44,7 @@ jobs:
   changes:
     name: Python Quality — changed paths
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       run: ${{ steps.gate.outputs.run }}
     steps:
@@ -77,6 +78,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
 
@@ -93,6 +95,7 @@ jobs:
       # reference evaluated at load time, or an error that stops the rest of a file, only shows when
       # the code runs. Without it those tests fail here rather than skip.
       - name: Install the Qt runtime libraries and Lua 5.1
+        timeout-minutes: 10
         run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3 lua5.1
 
       - name: Install dependencies
@@ -141,6 +144,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -201,6 +205,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -209,6 +214,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install the Qt runtime libraries
+        timeout-minutes: 10
         run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3
 
       - name: Install Poetry

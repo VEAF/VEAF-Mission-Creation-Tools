@@ -20,6 +20,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **Campaign missions place their AWACS and tankers for the threat of the day**: `CAMPAIGN.md` and the authoring guide say the support positions are chosen again at every mission from the campaign's state — a destroyed or blinded long-range SAM lets them come closer — and the briefing says where they moved and why.
+- **Every CI job has a timeout** (CHORE-CI-JOB-TIMEOUTS): a `python-quality` job hung four hours in `apt-get update`; jobs now stop at about three times their longest measured run, apt-get steps after 10 minutes, and a test keeps new workflows from coming without one.
 
 ### Added
 

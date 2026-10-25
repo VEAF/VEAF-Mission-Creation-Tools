@@ -27,6 +27,7 @@ jobs:
   changes:
     name: Go CI — changed paths
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       run: ${{ steps.gate.outputs.run }}
     steps:
@@ -56,6 +57,7 @@ jobs:
     # The window is walk, native Win32 (ADR 0022): it builds on Windows only, so the whole module is
     # vetted and tested there; the core is portable and loses nothing by it.
     runs-on: windows-latest
+    timeout-minutes: 10
     defaults:
       run:
         shell: bash
@@ -92,6 +94,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 

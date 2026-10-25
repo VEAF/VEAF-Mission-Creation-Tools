@@ -146,6 +146,7 @@ def set_route(
     keys = CommentedSeq([point["key"] for point in resolved])
     selector["waypoints"] = keys
     settings[plan] = selector
+    warnings += _shadowing_plans(settings, plan)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     backup = save_yaml(path, data) if path.is_file() else _first_write(path, data)
@@ -169,6 +170,37 @@ def set_route(
         "legs": legs,
         "warnings": warnings,
     }
+
+
+_CRITERIA = ("coalition", "category", "type", "country")
+
+
+def _shadowing_plans(settings: CommentedMap, plan: str) -> list[str]:
+    """Name the plans that take this plan's aircraft from it: as specific or more, and declared first on a tie.
+
+    The injector gives an aircraft the most specific matching plan, the first declared on a tie
+    (`WaypointsManager.get_flight_plan_for`): the template's ``all_blue_planes`` beats a plan written after
+    it with the same coalition and category.
+
+    Returns:
+        One warning per such plan.
+    """
+    ours = {key: settings[plan].get(key) for key in _CRITERIA if settings[plan].get(key)}
+    names = list(settings)
+    warnings = []
+    for name in names:
+        other = settings[name]
+        if name == plan or not isinstance(other, dict):
+            continue
+        theirs = {key: other.get(key) for key in _CRITERIA if other.get(key)}
+        if any(ours.get(key) not in (None, value) for key, value in theirs.items()):
+            continue  # their criteria exclude some of our aircraft
+        if len(theirs) > len(ours) or (len(theirs) == len(ours) and names.index(name) < names.index(plan)):
+            warnings.append(
+                f"plan '{name}' matches the same aircraft and wins over '{plan}' (as specific or more, declared "
+                f"first): remove it from src/waypoints.yaml, or give '{plan}' an aircraft_type"
+            )
+    return warnings
 
 
 def _first_write(path: Path, data: CommentedMap) -> None:

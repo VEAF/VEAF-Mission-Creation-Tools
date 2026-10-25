@@ -443,3 +443,16 @@ class TestNoShellParsing:
         for phrase in ("open the built `.miz`", "open the produced `.miz`", "ouvre le `.miz`", "veaf_libs/data/"):
             assert phrase not in text, phrase
         assert "inspect_built_mission" in text
+
+
+@pytest.mark.parametrize(
+    ("lang", "doctrine", "level"),
+    [("en", "Flown as the aircraft is flown", "The level of the opposition"), ("fr", "Volé comme l'appareil se vole", "Le niveau de l'opposition")],
+)
+def test_the_objective_prompt_plans_the_route_and_asks_the_level(lang: str, doctrine: str, level: str) -> None:
+    """FIX-COWORK-SESSION-FINDINGS 09 and 10: the route designed after the aircraft, two candidates measured."""
+    scenario = describe_mission_prompt("objective", lang)["prompt"]
+    assert doctrine in scenario and level in scenario
+    assert "**two**" in scenario or "**deux**" in scenario
+    build = describe_mission_prompt("objective", lang, part="build")["prompt"]
+    assert "set_route" in build and "`basemap: topo`" in build and "password-hash" in build

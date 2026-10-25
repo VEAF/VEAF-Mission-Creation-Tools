@@ -56,6 +56,9 @@ say so.
 4. **The kind of mission**, if they have a preference: deep strike, close air support, SEAD / DEAD,
    anti-ship, escort, intercept, air assault / CSAR, or a mix. And the **era** if it does not follow
    from the aircraft.
+5. **The level of the opposition**: `Average`, `Good`, `High`, `Excellent`, or `Random` (DCS draws one per unit).
+   It goes on every enemy aircraft and ground unit you create (`skill` of `add_air_group`, `add_group`, `create_combat_zone`).
+   Say that a battery placed by a `#veafInterpreter` marker keeps DCS's own level, and that Skynet, not the level, decides when a SAM site lights up.
 
 Everything else — place, objectives, threat, time, weather, support — **you** propose, in the
 scenario.
@@ -101,6 +104,10 @@ guess it.
   friendly units there: enough to make one want to defend it, **too few for it to hold alone** against
   the attacker (no tank against tanks, for example). And the attacker's route must **reach the
   contact**, not stop out of range.
+- **Flown as the aircraft is flown.** A low-level or terrain-dependent sortie gets the route that aircraft and era would fly: terrain masking through valleys, a pop-up from the sea, a run along a ridge.
+  Say which, and why.
+  Measure the exposure of **two** candidate routes against the known batteries with `terrain_elevation` (`route` + `observers`, on an altitude profile you state as assumed), and give the comparison in the scenario: the shorter route over the sea is not the obvious choice when the hills hide the flight.
+  When the user approves a scenario, ask how they want the sortie flown: their answer wins over your doctrine.
 - **Readable at a glance**: a pitch that tells in two sentences.
 
 Read-only actions (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`, `list_unit_types`,
@@ -289,14 +296,14 @@ approximation of it.
     airfield.
   - *Dynamic*: `set_airbase_coalition` opens the departure bases' slots (close the enemy bases' with
     `dynamic_spawn: false`), the ATO keeps the callsigns with empty pilot cells. The shipped catalogue
-    offers **every** blue type, warbirds included: say so, and offer to restrict it
-    (`content pull-aircraft-groups`) if the era matters. Check the bases' capacity (section 2.1).
+    offers the types of the mission's era (`mission.era` filters it; the F/A-18C stays in every era, and a `MODERN` mission keeps the warbirds): say so, and offer to restrict it further
+    (`content pull-aircraft-groups`) if needed. Check the bases' capacity (section 2.1).
 - **Loadout**: the scenario's, or a basic loadout fitting the mission if the ATO says "Armement libre"
   (pilots change it on the ground).
 - **Flight plan in the aircraft**: it **is** the briefing's flight plan, in the same order and under
   the same names. In DCS point 0 is the departure: the briefing's `W1` is the point with index 1.
   Check it in the built `.miz` (`describe_units` with `include_route`). With named slots, it is the group's route (`edit_route`) or
-  `src/waypoints.yaml`; with dynamic slots, **only `src/waypoints.yaml`**: the build appends its
+  `src/waypoints.yaml`; with dynamic slots, **only `src/waypoints.yaml`**, written with `set_route` (one call: the points in order, each set on the ground, names checked, each leg's heading and distance returned): the build appends its
   points after the departure of every player template (one plan per category and coalition, one for
   the jets, one for the helicopters), then a BULLSEYE.
 - **One point per objective**, the start of a convoy included (`COLONNE`), on the flight's way. When
@@ -411,7 +418,7 @@ approximation of it.
   The build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`): the mission is not ready until that list is empty. *Kolkhida*
   flew two missions on the template's Open Training plan, the warning on screen.
-- **`src/waypoints.yaml`**: remove the template's examples.
+- **`src/waypoints.yaml`**: remove the template's examples; `set_route` names any example plan that would still win over yours.
 - **Briefing maps and DCS briefing pictures**: `build_mission_briefing` (section 6) makes them from
   the built mission, never by hand: an overview map (departure, route and numbered waypoints,
   objectives, known threats with their engagement circle plain and their detection circle dashed,
@@ -421,8 +428,7 @@ approximation of it.
   (`briefing-pictures-red-then-blue`).
   - **Pass only what intelligence is supposed to know** in `threats`: a surprise threat the scenario
     plans is not in it. A range goes in only with its source.
-  - **In a desert, the standard OSM basemap is nearly empty**: `basemap: topo` (OpenTopoMap,
-    hillshade and contour lines).
+  - **`basemap: topo`** (OpenTopoMap, hillshade and contour lines) for any low-level or terrain-dependent mission, and in a desert, where the standard OSM basemap is nearly empty.
   - **Look at every rendered map** if you can: no label may point at the wrong spot. With no way to
     see an image, ask the user to look at them (`docs/maps/`).
 - **F10 drawings** (`add_map_drawing`) on the `Blue` layer: the route and its named points, the known
@@ -453,8 +459,10 @@ Brief status after each step: what is done, not what you are about to do.
 - **Generated by `build_mission_briefing`**, once the mission is built, and run again after every
   change and every build. You pass it the scenario's **words**: `title`, `context`, `mission_bullets`,
   `objectives` (the combat zone, its title, its task), `threats` (the group where it stands, its
-  family, its sourced ranges), `air_opposition`, `air_defences`, `other`, and the `pilots` /
-  `loadouts` by group name.
+  family, its sourced ranges), `air_opposition`, `air_defences`, `other`, the `pilots` /
+  `loadouts` by group name, and the `diversions` (DCS airfield names) when the scenario names its own; left out, the deck lists the side's other airfields, the departure excluded.
+- **Every built `.miz` gets the pictures**: the build's own and each weather variant of `missions/` (`archives` in the result).
+- **The kneeboard** (`kneeboard`, on by default): the overview and the zooms drawn for the 2:3 page, a flight card (each point, the heading and distance of its leg, the highest ground on it, the radios) and the targets, in every aircraft's kneeboard. Its channel numbers are DCS slots: on the AJS-37 they are not the cockpit's (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
 - **Figures come from the mission, not from the scenario**, and the action reads them in the built
   `.miz`: date, time, weather, bullseye, flights, support, flight plan, the presets injected into the
   cockpits (the frequency plan), each placed target's coordinates and the ground's altitude under it —

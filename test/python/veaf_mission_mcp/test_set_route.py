@@ -108,6 +108,20 @@ def test_no_grid_writes_sea_level_and_says_so(folder: Path, monkeypatch) -> None
     assert any("elevation grid" in warning for warning in result["warnings"])
 
 
+def test_a_template_plan_declared_first_that_would_win_is_named(folder: Path) -> None:
+    """`all_blue_planes`, declared first with the same criteria, would give the aircraft its own route."""
+    path = folder / "src" / "waypoints.yaml"
+    path.write_text(
+        path.read_text(encoding="utf-8")
+        + "  all_blue_planes:\n    category: plane\n    coalition: blue\n    waypoints:\n      - KEEP\n",
+        encoding="utf-8",
+    )
+    result = set_route(folder, plan="lion", points=[PUSH])
+    assert any("'all_blue_planes'" in warning for warning in result["warnings"])
+    typed = set_route(folder, plan="lion", points=[PUSH], aircraft_type="AJS37")
+    assert not any("all_blue_planes" in warning for warning in typed["warnings"])
+
+
 def test_the_action_runs_through_the_catalog(folder: Path) -> None:
     catalog = ActionCatalog()
     register_default_actions(catalog)

@@ -408,3 +408,48 @@ class TestHowAPlanNamesItsWaypoints(unittest.TestCase):
         self.assertEqual([wp.alt for wp in manager.flight_plans["helos"].waypoints], [3048.0])
         self.assertEqual(len(warnings), 1)
         self.assertIn("POTI_LOW", warnings[0])
+
+
+class TestDuplicateCockpitNames(unittest.TestCase):
+    """Two waypoints of one plan with the same cockpit name: one replaced the other (FIX-COWORK-SESSION-FINDINGS 02)."""
+
+    _DATA = {
+        "waypoints": {
+            "COAST_OUT": {"type": "Turning Point", "action": "Turning Point", "alt": 0, "x": 1, "y": 2, "name": "COAST"},
+            "PUSH": {"type": "Turning Point", "action": "Turning Point", "alt": 0, "x": 3, "y": 4},
+            "COAST_IN": {"type": "Turning Point", "action": "Turning Point", "alt": 0, "x": 1, "y": 2, "name": "COAST"},
+        },
+        "settings": {"blue": {"coalition": "blue", "waypoints": ["COAST_OUT", "PUSH", "COAST_IN"]}},
+    }
+
+    def test_finds_the_duplicate_with_both_keys(self) -> None:
+        from waypoints_injector.waypoints_manager import duplicate_cockpit_names
+
+        self.assertEqual(duplicate_cockpit_names(self._DATA), [("blue", "COAST", ["COAST_OUT", "COAST_IN"])])
+
+    def test_the_key_stands_for_a_missing_name(self) -> None:
+        from waypoints_injector.waypoints_manager import duplicate_cockpit_names
+
+        data = {
+            "waypoints": {"PUSH": {"alt": 0}, "OTHER": {"alt": 0, "name": "PUSH"}},
+            "settings": {"p": {"waypoints": ["PUSH", "OTHER"]}},
+        }
+        self.assertEqual(duplicate_cockpit_names(data), [("p", "PUSH", ["PUSH", "OTHER"])])
+
+    def test_unique_names_and_two_plans_sharing_a_point_are_fine(self) -> None:
+        from waypoints_injector.waypoints_manager import duplicate_cockpit_names
+
+        data = {
+            "waypoints": {"A": {"alt": 0}, "B": {"alt": 0}},
+            "settings": {"one": {"waypoints": ["A", "B"]}, "two": {"waypoints": {"A": None}}},
+        }
+        self.assertEqual(duplicate_cockpit_names(data), [])
+
+    def test_read_yaml_refuses_the_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "waypoints.yaml"
+            path.write_text(yaml.safe_dump(self._DATA), encoding="utf-8")
+            manager = WaypointsManager()
+            with self.assertRaises(Exception) as caught:
+                manager.read_yaml(path)
+            self.assertNotIsInstance(caught.exception, AssertionError)

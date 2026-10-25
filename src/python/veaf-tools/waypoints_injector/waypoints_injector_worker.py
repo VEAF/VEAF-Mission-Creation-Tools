@@ -219,8 +219,10 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
         """Inject waypoints into a group's route, preserving its existing route.
 
         Each injected waypoint is **appended** to the end of the group's current
-        route, *except* when a waypoint with the same ``name`` already exists — in
-        which case it replaces that one in place. The group's existing points
+        route, *except* when a waypoint with the same ``name`` was already in the
+        route before this injection — in which case it replaces that one in place.
+        Two injected points sharing a name are both kept: the second used to replace
+        the first, and the route lost a point (FIX-COWORK-SESSION-FINDINGS 02). The group's existing points
         (notably its takeoff-from-parking / landing points) are never wiped, so a
         human-piloted slot keeps a valid departure (otherwise DCS reports
         "your flight is delayed to start" and the slot cannot be taken).
@@ -237,10 +239,8 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             wp_dict = waypoint.to_dict()
             name = wp_dict.get("name")
             if name and name in index_by_name:
-                points[index_by_name[name]] = wp_dict  # replace the same-named waypoint in place
+                points[index_by_name.pop(name)] = wp_dict  # replace the same-named waypoint in place, once
             else:
-                if name:
-                    index_by_name[name] = len(points)
                 points.append(wp_dict)  # append at the end
 
         # Renumber sequentially (DCS expects 1-based contiguous `num`).

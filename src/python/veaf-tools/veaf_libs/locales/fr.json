@@ -1215,6 +1215,7 @@
   "warehouses.object_not_found": "Navire/FARP '{object}' introuvable dans la mission ({kind}) ; ignoré",
   "warehouses.template_not_found": "Modèle dynamic-slot « {template} » introuvable pour le type d'aéronef « {type} » ; linkDynTempl non posé.",
   "warehouses.unknown_category": "Impossible de classer le type d'aéronef « {type} » (avion ou hélicoptère) ; « planes » par défaut. Le modèle dynamic-slot peut ne pas se lier.",
+  "waypoints.plan_duplicate_name": "Le plan '{plan}' liste deux waypoints nommés tous deux '{name}' ({keys}) : le second remplacerait le premier et la route perdrait un point. Donnez à chacun son propre nom.",
   "waypoints.plan_load_failed": "Échec du chargement du plan de vol {plan} : {error}",
   "waypoints.plan_waypoint_not_found": "Waypoint '{name}' référencé dans le plan '{plan}' introuvable",
   "waypoints.plan_value_ignored": "Plan '{plan}' : c'est le waypoint '{name}' qui est pris, pas '{value}' — un plan prend ses waypoints par clé, la valeur n'est pas lue",

@@ -225,3 +225,23 @@ def test_an_action_publishing_path_itself_keeps_it() -> None:
     )
     catalog.run_action("take_path", {"file": "a", "path": "b"})
     assert received == {"file": "a", "path": "b"}
+
+
+@pytest.mark.parametrize("given", ["mission_path", "target_folder", "folder_path", "source_path"])
+def test_a_tilde_in_a_path_is_expanded(given: str) -> None:
+    """FIX-COWORK-SESSION-FINDINGS 03: `~/Documents/...` failed with FileNotFoundError, the tilde kept."""
+    from pathlib import Path
+
+    catalog = ActionCatalog()
+    received: dict[str, object] = {}
+    catalog.register(
+        ActionSpec(
+            name="take",
+            description="Takes a path.",
+            parameters_schema={"type": "object", "properties": {given: {"type": "string"}, "text": {"type": "string"}}},
+        ),
+        handler=received.update,
+    )
+    catalog.run_action("take", {given: "~/Documents/VEAF", "text": "~/not a path"})
+    assert received[given] == str(Path("~/Documents/VEAF").expanduser())
+    assert received["text"] == "~/not a path"

@@ -249,6 +249,17 @@ class TestInjectPreservesExistingRoute(unittest.TestCase):
         self.assertEqual(points[1]["name"], "BULLSEYE")
         self.assertEqual(points[1]["alt"], 6096.0)
 
+    def test_two_injected_points_with_one_name_are_both_kept(self) -> None:
+        """Only a point already in the route is replaced: the second COAST no longer eats the first."""
+        worker = WaypointsInjectorWorker(waypoints_file=None, input_mission=None, output_mission=None)
+        group = self._group_with_route()
+        out = WaypointDefinition(type="Turning Point", action="Turning Point", alt=0.0, x=1.0, name="COAST")
+        back = WaypointDefinition(type="Turning Point", action="Turning Point", alt=0.0, x=2.0, name="COAST")
+        worker._inject_waypoints_into_group(group, [out, back])
+        points = group.group_dcs["route"]["points"]
+        self.assertEqual([p.get("name") for p in points], ["", "BULLSEYE", "COAST", "COAST"])
+        self.assertEqual([p.get("x") for p in points[2:]], [1.0, 2.0])
+
 
 class TestProcessGroups(unittest.TestCase):
     def _worker_with_human_group(self) -> WaypointsInjectorWorker:

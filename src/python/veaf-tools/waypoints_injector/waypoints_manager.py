@@ -143,6 +143,33 @@ class FlightPlanDefinition:
         }
 
 
+def duplicate_cockpit_names(data: dict[str, Any]) -> list[tuple[str, str, list[str]]]:
+    """Find the flight plans listing two waypoints that show the same name in the cockpit.
+
+    A waypoint's cockpit name is its ``name:``, or its key when it has none. The injector replaces a
+    same-named point of the route in place, so two such points in one plan leave only the second.
+
+    Args:
+        data: The parsed ``waypoints.yaml``.
+
+    Returns:
+        ``(plan, name, keys)`` for each name a plan lists more than once, keys in plan order.
+    """
+    waypoints = data.get("waypoints") if isinstance(data.get("waypoints"), dict) else {}
+    settings = data.get("settings") if isinstance(data.get("settings"), dict) else {}
+    found: list[tuple[str, str, list[str]]] = []
+    for plan_name, plan_data in settings.items():
+        listed = (plan_data or {}).get("waypoints") if isinstance(plan_data, dict) else None
+        keys_by_name: dict[str, list[str]] = {}
+        for key in listed or []:
+            definition = waypoints.get(key)
+            if not isinstance(definition, dict):
+                continue
+            keys_by_name.setdefault(str(definition.get("name") or key), []).append(str(key))
+        found += [(str(plan_name), name, keys) for name, keys in keys_by_name.items() if len(keys) > 1]
+    return found
+
+
 class WaypointsManager:
     """
     Manager class for handling waypoint definitions.
@@ -180,6 +207,17 @@ class WaypointsManager:
             # Load flight plan settings
             if "settings" in data:
                 self._load_flight_plan_settings(data["settings"])
+
+            # Two points of one plan showing the same name: the injector would replace the first with the
+            # second, and the route would lose a point without a word (FIX-COWORK-SESSION-FINDINGS 02).
+            duplicates = duplicate_cockpit_names(data)
+            if duplicates:
+                raise ValueError(
+                    "; ".join(
+                        t("waypoints.plan_duplicate_name", plan=plan, name=name, keys=", ".join(keys))
+                        for plan, name, keys in duplicates
+                    )
+                )
 
             logger.info(
                 t(

@@ -53,6 +53,8 @@ class BriefingContent:
     """Pilots' names by flight group name."""
     loadouts: dict[str, str] = field(default_factory=dict)
     """Imposed loadout by flight group name."""
+    diversions: tuple[str, ...] | None = None
+    """The diversion fields the briefing names; ``None`` lists the side's other airfields."""
 
 
 @dataclass(frozen=True)
@@ -115,3 +117,7 @@ class BriefingReport:
     """The same pages as a PDF, drawn by the executable."""
     pdf_pages: int = 0
     """Its page count: the deck's, or more when a page's text runs on."""
+    archives: list[Path] = field(default_factory=list)
+    """Every built `.miz` the pictures went into: the build's own, then each weather variant."""
+    kneeboard: list[str] = field(default_factory=list)
+    """The kneeboard pages written, in the order the kneeboard shows them."""

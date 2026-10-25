@@ -408,8 +408,17 @@ def create_miz(miz_file_path: Path, files: dict[str, bytes]) -> Path:
     return miz_file_path
 
 
-def write_miz(mission: DcsMission, miz_file_path: Path | None, additional_files: dict | None = None) -> DcsMission:
-    """Update an existing mission in a .miz file with new data (zip it)."""
+def write_miz(
+    mission: DcsMission,
+    miz_file_path: Path | None,
+    additional_files: dict | None = None,
+    removed_files: set[str] | None = None,
+) -> DcsMission:
+    """Update an existing mission in a .miz file with new data (zip it).
+
+    ``removed_files`` names members not to copy over: a page a tool wrote on an earlier run and no
+    longer writes would otherwise stay in the archive for ever.
+    """
 
     def serialize(zip_file: zipfile.ZipFile, content: Any, file_name: str, variable_name: str | None = None) -> None:
         lua_content = luadata.serialize(content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)  # type: ignore[arg-type]
@@ -502,8 +511,8 @@ def write_miz(mission: DcsMission, miz_file_path: Path | None, additional_files:
                                 )
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))
-                        elif file_name in additional_files:
-                            # Skip it - will be added from additional_files
+                        elif file_name in additional_files or file_name in (removed_files or ()):
+                            # Skip it - will be added from additional_files, or is dropped
                             pass
                         else:
                             # Copy existing file as-is

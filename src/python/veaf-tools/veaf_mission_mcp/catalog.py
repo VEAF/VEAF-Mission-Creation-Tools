@@ -1,5 +1,6 @@
 """Registry of MCP actions exposed by the mission-editing server."""
 
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -122,6 +123,7 @@ class ActionCatalog:
         except KeyError:
             raise ActionNotFoundError(name) from None
         schema = self._specs[name].parameters_schema or {}
+        params = _expand_user_paths(params)
         params = _published_mission_key(name, params, schema)
         params = _published_file_key(name, params, schema)
         _check_parameters(name, schema, params)
@@ -185,6 +187,30 @@ def _published_mission_key(name: str, params: dict[str, Any], schema: dict[str, 
     result = {key: item for key, item in params.items() if key not in names}
     result[published] = value
     return result
+
+
+#: The parameter names that hold a path on the local disk: ``mission_path``, ``target_folder``, ``target``…
+_PATH_PARAMETER = re.compile(r"(^|_)(path|folder|target)$")
+
+
+def _expand_user_paths(params: dict[str, Any]) -> dict[str, Any]:
+    """Expand a leading ``~`` in the path parameters, once for every action.
+
+    ``mission_path: ~/Documents/...`` reached the handlers as is and failed with
+    ``FileNotFoundError: '~\\Documents\\...'`` (FIX-COWORK-SESSION-FINDINGS 03).
+
+    Args:
+        params: The parameters received.
+
+    Returns:
+        ``params`` with each top-level path parameter starting with ``~`` expanded; the others untouched.
+    """
+    return {
+        key: str(Path(value).expanduser())
+        if isinstance(value, str) and value.startswith("~") and _PATH_PARAMETER.search(key)
+        else value
+        for key, value in params.items()
+    }
 
 
 def _published_file_key(name: str, params: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:

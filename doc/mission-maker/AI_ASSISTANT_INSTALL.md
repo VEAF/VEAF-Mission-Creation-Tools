@@ -33,6 +33,7 @@ Les offres gratuites changent souvent ; ce tableau date d'octobre 2026, et aucun
 | **ChatGPT Desktop, onglet Codex** | inclus dans le plan gratuit, quota limité | tout, installation comprise ; interface orientée développeurs |
 | **OpenCode** | modèles gratuits proposés pour une durée limitée | tout, installation comprise, avec un modèle [bien choisi](#which-model) ; s'utilise dans un terminal |
 | **Antigravity** (Google) | gratuit, quotas hebdomadaires | tout, installation comprise ; c'est un éditeur de code |
+| **Claude Cowork** (dans Claude Desktop) | plan Claude payant, Pro et au-delà d'après des guides tiers d'octobre 2026 (à vérifier sur la page de tarifs d'Anthropic) | tout, sauf lancer DCS ; l'assistant tourne dans le cloud et les outils VEAF sur votre PC : voir [Claude Cowork](#cowork) |
 | **Claude Code** | abonnement Claude payant | tout ; c'est l'outil avec lequel VMCT est développé |
 
 **Gemini CLI** reste branché par `ai-setup`, mais il ne sert plus les comptes Google gratuits depuis juin 2026 : Google le remplace par Antigravity.
@@ -96,6 +97,22 @@ Pour modifier une mission existante, donnez-lui le chemin de son dossier et déc
 > « Dans ma mission `Documents\VEAF\Missions\Syrie`, ajoute une combat zone de SAM longue portée au nord de Damas. »
 
 L'assistant place les éléments, valide et construit le `.miz` sans que vous quittiez la conversation.
+
+Deux conseils valent pour toutes les IA :
+
+- **Dites comment la sortie doit se voler.** Si vous avez une idée du profil (« suivi de terrain dans les vallées », « pop-up depuis la mer »), dites-la quand vous choisissez le scénario : l'assistant apporte des connaissances générales, vous apportez l'œil du pilote.
+- **Vérifiez le résultat dans DCS avant de le partager.** L'assistant ne lance pas DCS : la liste qu'il vous donne à la fin est la liste à vérifier en jeu.
+
+### Claude Cowork {#cowork}
+
+Dans Cowork, l'assistant tourne dans le cloud, et rejoint votre PC par l'application Claude Desktop : les outils VEAF, eux, tournent sur votre PC, sous votre compte Windows.
+`ai-setup` les déclare à Claude Desktop, et Cowork s'en sert tels quels : dans une session Cowork, les actions VEAF apparaissent sous le nom `veaf-mission-editor`.
+Ça marche, à condition de savoir comment les deux moitiés se parlent :
+
+1. **Connectez le dossier de vos missions avant de demander une mission.** Bouton « Add folder » de Claude Desktop, puis un dossier vide, par exemple `Documents\VEAF\Missions` : l'assistant ne voit que les fichiers des dossiers connectés.
+2. **Donnez-lui le chemin complet où créer la mission.** Sinon il devine : dans la session qui a servi d'exemple, il a visé le profil d'un autre compte Windows du PC et a reçu « Access denied ».
+3. **Un dossier doit être connecté et accessible en écriture à votre compte.** Le connecter le rend lisible par l'assistant ; les outils VEAF y écrivent avec vos propres droits Windows.
+4. **Il n'y a pas de commande `/export` dans Cowork**, mais demander à l'assistant d'exporter la session en JSON fonctionne : c'est ce qu'il faut nous envoyer quand quelque chose ne va pas.
 
 ## Mises à jour {#updates}
 

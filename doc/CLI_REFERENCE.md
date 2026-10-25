@@ -144,6 +144,22 @@ veaf-tools mission extract MaMission.miz ./src/mission
 
 *Alias plat : `veaf-tools extract`*
 
+### `veaf-tools mission password-hash` {#password-hash}
+
+Transforme un mot de passe en hash SHA-1, la forme que `security.password_hashes` attend dans `mission.yaml`.
+Elle demande le mot de passe deux fois, en saisie masquée, et n'affiche que le hash : le mot de passe n'est jamais affiché ni écrit.
+Lancez-la vous-même, et donnez le hash, jamais le mot de passe, à un assistant IA qui écrit `mission.yaml`.
+`password_hashes` reçoit le mot de passe SENIOR_PILOT (qui ouvre aussi KNOWN_PILOT), `password_mm_hashes` celui du Mission Master.
+Ni argument, ni option.
+
+```powershell
+.\veaf-tools.exe mission password-hash
+```
+
+*Alias plat : `veaf-tools password-hash`*
+
+**Voir aussi** : [veafSecurity](mission-maker/scripts/veafSecurity.md)
+
 ### `veaf-tools mission prepare` {#prepare}
 
 Initialise un dossier de mission VEAF avec les modèles par défaut.

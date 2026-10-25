@@ -824,6 +824,12 @@ Chaque action vise un dossier de mission (durable) ou un `.miz`, sauvegardé ava
   les deux.
 - `set_bullseye(target, coalition, position)` — `mission.coalition.<camp>.bullseye`, d'où vient le
   waypoint BULLSEYE de chaque plan de vol.
+- `set_route(mission_path, plan, points, coalition?, category?, aircraft_type?, country?)` — un plan
+  de vol des joueurs dans le `src/waypoints.yaml` du dossier : les points dans l'ordre (x/y ou lat/lon),
+  chacun posé au sol depuis la grille du théâtre, un nom répété refusé, le plan remplacé avec ses
+  anciens points ; les commentaires du fichier sont gardés. Rend le cap et la distance de chaque branche,
+  et nomme un plan qui l'emporterait encore (`WaypointsManager.get_flight_plan_for` : le plus
+  spécifique, puis le premier déclaré).
 - `set_briefing(target, sortie?, situation?, blue_task?, red_task?, neutrals_task?)` — les textes du
   briefing. Quand la table de mission porte une référence `DictKey_…`, le texte va dans
   `l10n/DEFAULT/dictionary` derrière elle, et la référence reste valide ; `write_mission_folder`

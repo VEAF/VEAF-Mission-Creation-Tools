@@ -802,6 +802,11 @@ targets a mission folder (durable) or a `.miz`, backed up first.
   `mission.start_time` (`HH:MM[:SS]`, the theatre's clock). The weather variants still override both.
 - `set_bullseye(target, coalition, position)` — `mission.coalition.<side>.bullseye`, the source of
   every flight plan's BULLSEYE waypoint.
+- `set_route(mission_path, plan, points, coalition?, category?, aircraft_type?, country?)` — a players'
+  flight plan in the folder's `src/waypoints.yaml`: the points in order (x/y or lat/lon), each set on
+  the ground from the theatre's grid, a repeated name refused, the plan replaced with its old points;
+  the file's comments are kept. Returns each leg's heading and distance, and names a plan that would
+  still win over it (`WaypointsManager.get_flight_plan_for`: the most specific, then the first declared).
 - `set_briefing(target, sortie?, situation?, blue_task?, red_task?, neutrals_task?)` — the briefing
   texts. Where the mission table holds a `DictKey_…` reference, the text goes into
   `l10n/DEFAULT/dictionary` behind it, so the reference stays valid; `write_mission_folder` now

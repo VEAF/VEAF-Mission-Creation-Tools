@@ -68,6 +68,16 @@ from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 from veaf_mission_mcp.add_sound import _folder_l10n
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
+from mission_briefing.briefing_kneeboard import (
+    KNEEBOARD_FOLDER,
+    MAP_ASPECT,
+    flight_card_blocks,
+    is_kneeboard_page,
+    map_page,
+    page_name,
+    targets_blocks,
+    text_pages,
+)
 from mission_briefing.briefing_maps import OVERVIEW_FILE, render_objective_zoom, render_overview_map, zoom_file
 from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
 from mission_briefing.mission_reader import departures, group_position, objective_area, radio_plans, slot_flights
@@ -89,6 +99,9 @@ PDF_FILE = Path("docs") / "briefing.pdf"
 
 #: The maps, in the mission folder.
 MAPS_FOLDER = Path("docs") / "maps"
+
+#: The folder the build writes the weather variants into, beside its own `.miz`.
+VARIANTS_FOLDER = "missions"
 
 #: The resource keys of the pictures this writes; anything else in the briefing is left alone.
 PICTURE_PREFIX = "MCP_Briefing_"
@@ -408,8 +421,39 @@ def _stale_pictures(l10n: Path, previous: set[str], kept: set[str]) -> list[Path
     return stale
 
 
-def _write_pictures(folder: Path, miz: Path, maps: list[Path], side: str) -> tuple[list[str], list[str]]:
-    """Put the maps in the mission folder and the built `.miz`, both backed up first.
+def built_archives(folder: Path, miz: Path) -> list[Path]:
+    """The build's own `.miz`, then each weather variant the build wrote into `missions/`.
+
+    The players fly a variant, not the build's own archive: pictures written into the latter only
+    reached them after a rebuild (FIX-COWORK-SESSION-FINDINGS 01).
+
+    Args:
+        folder: The mission folder.
+        miz: The build's own `.miz` (`find_built_mission`).
+
+    Returns:
+        Every archive the briefing goes into, the build's own first.
+    """
+    return [miz, *sorted((folder / VARIANTS_FOLDER).glob("*.miz"))]
+
+
+def _write_kneeboard_folder(folder: Path, pages: dict[str, bytes]) -> None:
+    """Put the kneeboard pages in the mission folder, so a rebuild carries them; drop the ones no longer written."""
+    target = _folder_l10n(folder).parent.parent / KNEEBOARD_FOLDER
+    if target.is_dir():
+        for stale in target.iterdir():
+            if is_kneeboard_page(stale.name) and stale.name not in pages:
+                stale.unlink(missing_ok=True)
+    if pages:
+        target.mkdir(parents=True, exist_ok=True)
+    for name, data in pages.items():
+        (target / name).write_bytes(data)
+
+
+def _write_pictures(
+    folder: Path, archives: list[Path], maps: list[Path], side: str, kneeboard: dict[str, bytes]
+) -> tuple[list[str], list[str]]:
+    """Put the maps and the kneeboard pages in the mission folder and every built `.miz`, backed up first.
 
     Returns:
         The resource keys, in display order, and the other side's pictures found.
@@ -427,21 +471,59 @@ def _write_pictures(folder: Path, miz: Path, maps: list[Path], side: str) -> tup
     for name, data in files.items():
         (l10n / name).write_bytes(data)
     save_folder_mission(mission, folder)
+    _write_kneeboard_folder(folder, kneeboard)
 
-    built = read_miz(miz)
-    _list_pictures(built, pictures, side)
-    additional: dict[str, Any] = {f"{DEFAULT_SCRIPTS_LOCATION}/{name}": data for name, data in files.items()}
-    if f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
-        # `write_miz` rewrites a `mapResource` member the archive has; one it lacks has to be supplied
-        additional[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = (
-            "mapResource = \n"
-            + luadata.serialize(
-                built.map_resource_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-            )
-        ).encode()
-    backup_before_write(miz)
-    write_miz(built, miz, additional_files=additional)
+    for miz in archives:
+        built = read_miz(miz)
+        _list_pictures(built, pictures, side)
+        additional: dict[str, Any] = {f"{DEFAULT_SCRIPTS_LOCATION}/{name}": data for name, data in files.items()}
+        additional.update({f"{KNEEBOARD_FOLDER}/{name}": data for name, data in kneeboard.items()})
+        if f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
+            # `write_miz` rewrites a `mapResource` member the archive has; one it lacks has to be supplied
+            additional[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = (
+                "mapResource = \n"
+                + luadata.serialize(
+                    built.map_resource_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
+                )
+            ).encode()
+        backup_before_write(miz)
+        write_miz(built, miz, additional_files=additional)
     return list(pictures), other
+
+
+def _kneeboard_pages(
+    folder: Path,
+    picture: MissionPicture,
+    areas: list[tuple[Objective, ObjectiveArea]],
+    threats: list[tuple[Threat, tuple[float, float]]],
+    starts: list[tuple[str, float, float]],
+    radios: list[RadioPlan],
+    tiles: dict[str, Any],
+) -> dict[str, bytes]:
+    """The briefing for the knee: the maps drawn for the 2:3 page, the flight card, the targets.
+
+    Returns:
+        Page file name -> JPEG, in the order the kneeboard shows them.
+    """
+    theatre = picture.theatre
+    maps_folder = folder / MAPS_FOLDER / "kneeboard"
+    overview = render_overview_map(
+        picture, areas, threats, starts, maps_folder / OVERVIEW_FILE, aspect=MAP_ASPECT, **tiles
+    )
+    sheets: list[tuple[str, bytes]] = [("overview", map_page(t("campaign.mission_deck.title.tactical"), overview.path))]
+    for objective, area in areas:
+        zoom = render_objective_zoom(
+            theatre, objective, area, threats, maps_folder / zoom_file(area.zone), aspect=MAP_ASPECT, **tiles
+        )
+        title = t("campaign.mission_deck.title.zoom", zone=area.zone)
+        sheets.append((Path(zoom_file(area.zone)).stem, map_page(title, zoom.path)))
+    card_blocks = flight_card_blocks(theatre, list(picture.flight_plans), starts, radios)
+    card = text_pages(t("mission_briefing.kneeboard.flight_card"), card_blocks) if card_blocks else []
+    target_blocks = targets_blocks(theatre, [(objective.title, area) for objective, area in areas])
+    targets = text_pages(t("mission_briefing.title.targets"), target_blocks) if target_blocks else []
+    for slug, pages in (("flight-card", card), ("targets", targets)):
+        sheets += [(slug if n == 1 else f"{slug}-{n}", page) for n, page in enumerate(pages, 1)]
+    return {page_name(n, slug): data for n, (slug, data) in enumerate(sheets, 1)}
 
 
 def build_mission_briefing(
@@ -452,6 +534,7 @@ def build_mission_briefing(
     source: TileSource = OSM,
     cache_dir: Path | None = None,
     fetch: Fetch | None = None,
+    kneeboard: bool = True,
 ) -> BriefingReport:
     """Write a one-shot mission's briefing deck and maps, and put the maps in its DCS briefing.
 
@@ -462,6 +545,7 @@ def build_mission_briefing(
         source: Where the map tiles come from.
         cache_dir: Where map tiles are kept between runs.
         fetch: How a map tile is downloaded (tests pass their own).
+        kneeboard: Whether the maps, a flight card and the targets also go into every aircraft's kneeboard.
 
     Returns:
         The deck, its page count, the maps, the pictures' keys, the `.miz` read, and the warnings.
@@ -473,7 +557,7 @@ def build_mission_briefing(
     if miz is None:
         raise ValueError(f"No built mission in {folder}: run build_mission first, the briefing reads the built .miz.")
     with language(_mission_language(folder)):
-        return _build(folder, miz, content, side, source, cache_dir, fetch)
+        return _build(folder, miz, content, side, source, cache_dir, fetch, kneeboard)
 
 
 def _build(
@@ -484,6 +568,7 @@ def _build(
     source: TileSource,
     cache_dir: Path | None,
     fetch: Fetch | None,
+    kneeboard: bool,
 ) -> BriefingReport:
     built = read_miz(miz)
     table = built.mission_content or {}
@@ -518,7 +603,8 @@ def _build(
     navigation = navigation_page(theatre, picture)
     if navigation:
         navigation.title = t("mission_briefing.title.flight_plan")
-    frequencies = _frequencies_page(picture, radio_plans(table, side, templates=dynamic))
+    radios = radio_plans(table, side, templates=dynamic)
+    frequencies = _frequencies_page(picture, radios)
     targets = _targets_page(theatre, areas, warnings)
     closing = [flow, *([navigation] if navigation else []), frequencies, targets]
     titles = [
@@ -575,7 +661,9 @@ def _build(
     pdf_pages = write_pdf(pdf, cover, sheets)
 
     maps = [overview.path, *(zoom.path for zoom in zooms)]
-    keys, other = _write_pictures(folder, miz, maps, side)
+    pages = _kneeboard_pages(folder, picture, areas, threats, starts, radios, tiles) if kneeboard else {}
+    archives = built_archives(folder, miz)
+    keys, other = _write_pictures(folder, archives, maps, side, pages)
     if other:
         warnings.append(
             f"{_PICTURE_KEYS['red' if side == 'blue' else 'blue']} holds {len(other)} picture(s): a player of no "
@@ -584,4 +672,6 @@ def _build(
     offline = overview.offline or any(zoom.offline for zoom in zooms)
     if offline:
         warnings.append("Map tiles could not be downloaded: the maps stand on a plain background.")
-    return BriefingReport(out, len(deck.slides), maps, keys, miz, offline, warnings, pdf, pdf_pages)
+    return BriefingReport(
+        out, len(deck.slides), maps, keys, miz, offline, warnings, pdf, pdf_pages, archives, list(pages)
+    )

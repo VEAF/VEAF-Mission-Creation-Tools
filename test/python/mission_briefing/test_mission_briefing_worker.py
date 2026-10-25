@@ -120,6 +120,48 @@ class TestTheDcsPictures:
             data = archive.read("l10n/DEFAULT/briefing-overview.jpg")
         assert Image.open(io.BytesIO(data)).format == "JPEG"
 
+    def test_every_weather_variant_gets_the_maps_too(self, tmp_path: Path) -> None:
+        """FIX-COWORK-SESSION-FINDINGS 01: the players fly `missions/<name>_<variant>.miz`, not the root one."""
+        import shutil
+
+        miz = objective_mission(tmp_path)
+        variants = tmp_path / "missions"
+        variants.mkdir()
+        dawn, dusk = variants / "m_dawn.miz", variants / "m_dusk.miz"
+        shutil.copy(miz, dawn)
+        shutil.copy(miz, dusk)
+        report = _build(tmp_path)
+        assert report.archives == [miz, dawn, dusk]
+        for archive_path in (dawn, dusk):
+            content = read_miz(archive_path).mission_content or {}
+            assert _side_pictures(content, "B")[:2] == report.pictures
+            with zipfile.ZipFile(archive_path) as archive:
+                assert "l10n/DEFAULT/briefing-overview.jpg" in archive.namelist()
+
+    def test_the_kneeboard_pages_go_into_the_folder_and_every_archive(self, tmp_path: Path) -> None:
+        """FIX-COWORK-SESSION-FINDINGS 08: maps, flight card and targets, 2:3 JPEG, in KNEEBOARD/IMAGES/."""
+        miz = objective_mission(tmp_path)
+        report = _build(tmp_path)
+        assert report.kneeboard[0] == "01-briefing-overview.jpg"
+        assert "02-briefing-objective-khobi.jpg" in report.kneeboard
+        assert any(name.endswith("-briefing-targets.jpg") for name in report.kneeboard)
+        folder_pages = tmp_path / "src" / "mission" / "KNEEBOARD" / "IMAGES"
+        assert sorted(path.name for path in folder_pages.iterdir()) == sorted(report.kneeboard)
+        with zipfile.ZipFile(miz) as archive:
+            data = archive.read(f"KNEEBOARD/IMAGES/{report.kneeboard[0]}")
+        with Image.open(io.BytesIO(data)) as page:
+            assert page.format == "JPEG"
+            assert page.size == (1536, 2304)
+
+    def test_no_kneeboard_writes_none_and_removes_the_previous_pages(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        _build(tmp_path)
+        folder_pages = tmp_path / "src" / "mission" / "KNEEBOARD" / "IMAGES"
+        (folder_pages / "mine.png").write_bytes(b"kept")
+        report = build_mission_briefing(tmp_path, CONTENT, cache_dir=tmp_path / "tiles", fetch=_white, kneeboard=False)
+        assert report.kneeboard == []
+        assert [path.name for path in folder_pages.iterdir()] == ["mine.png"]
+
     def test_a_second_run_replaces_its_own_pictures_and_keeps_the_others(self, tmp_path: Path) -> None:
         objective_mission(tmp_path)
         folder = load_folder_mission(tmp_path)

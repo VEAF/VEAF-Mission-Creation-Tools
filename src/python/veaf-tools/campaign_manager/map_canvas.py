@@ -53,18 +53,31 @@ class MapCanvas:
         cache_dir: Path | None,
         fetch: Fetch | None,
         source: TileSource = OSM,
+        aspect: float | None = None,
     ) -> None:
         lats = [p[0] for p in points]
         lons = [p[1] for p in points]
+        cos_lat = math.cos(math.radians(sum(lats) / len(lats)))
         dlat = margin / 111_000
-        dlon = margin / (111_000 * math.cos(math.radians(sum(lats) / len(lats))))
+        dlon = margin / (111_000 * cos_lat)
+        north, south = max(lats) + dlat, min(lats) - dlat
+        west, east = min(lons) - dlon, max(lons) + dlon
+        if aspect:
+            # widen the short side so the frame is `aspect` wide for 1 high: a kneeboard page is 2:3
+            width, height = (east - west) * cos_lat, north - south
+            if width / height < aspect:
+                grow = (height * aspect / cos_lat - (east - west)) / 2
+                west, east = west - grow, east + grow
+            else:
+                grow = (width / aspect - height) / 2
+                north, south = north + grow, south - grow
         self.theatre = theatre
         self.lat = sum(lats) / len(lats)
         self.base: BaseMap = render_base_map(
-            max(lats) + dlat,
-            min(lons) - dlon,
-            min(lats) - dlat,
-            max(lons) + dlon,
+            north,
+            west,
+            south,
+            east,
             cache_dir=cache_dir,
             fetch=fetch,
             source=source,

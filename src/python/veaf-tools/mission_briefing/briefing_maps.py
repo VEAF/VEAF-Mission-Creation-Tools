@@ -97,6 +97,7 @@ def render_overview_map(
     cache_dir: Path | None = None,
     fetch: Fetch | None = None,
     source: TileSource = OSM,
+    aspect: float | None = None,
 ) -> TacticalMapReport:
     """Render the mission's overview, framed to hold everything it shows and the threats' engagement.
 
@@ -110,6 +111,7 @@ def render_overview_map(
         cache_dir: Where map tiles are kept between runs.
         fetch: How a tile is downloaded (tests pass their own).
         source: Where the tiles come from.
+        aspect: The frame's width over its height (a kneeboard page's 2:3); ``None`` frames the content.
 
     Returns:
         Where the map is, and where its symbols and labels went.
@@ -124,7 +126,7 @@ def render_overview_map(
     spots += [(c.x, c.y) for c in picture.carriers] + [s.route[0] for s in picture.support if s.route]
     spots += [(x, y) for _, x, y in departures] + list(numbers) + [picture.bullseye]
     canvas = MapCanvas(
-        theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], _OVERVIEW_MARGIN, cache_dir, fetch, source
+        theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], _OVERVIEW_MARGIN, cache_dir, fetch, source, aspect
     )
 
     # every symbol first, so that no label is set on one drawn after it
@@ -161,6 +163,7 @@ def render_objective_zoom(
     cache_dir: Path | None = None,
     fetch: Fetch | None = None,
     source: TileSource = OSM,
+    aspect: float | None = None,
 ) -> TacticalMapReport:
     """Render one objective: its zone, each of its targets, the threats that stand in the frame.
 
@@ -174,6 +177,7 @@ def render_objective_zoom(
         cache_dir: Where map tiles are kept between runs.
         fetch: How a tile is downloaded (tests pass their own).
         source: Where the tiles come from.
+        aspect: The frame's width over its height (a kneeboard page's 2:3); ``None`` frames the content.
 
     Returns:
         Where the map is, and where its symbols and labels went.
@@ -181,7 +185,9 @@ def render_objective_zoom(
     _, enemy = _sides(side)
     half = max(area.radius * _ZOOM_MARGIN, _ZOOM_MIN)
     spots = [(area.x, area.y)] + [(target.x, target.y) for target in area.targets]
-    canvas = MapCanvas(theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], half, cache_dir, fetch, source)
+    canvas = MapCanvas(
+        theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], half, cache_dir, fetch, source, aspect
+    )
     labels = [_objective(canvas, area, enemy, focus=True)]
     width, height = canvas.background.size
     for threat, position in threats:

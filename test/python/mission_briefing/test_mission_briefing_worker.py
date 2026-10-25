@@ -161,6 +161,8 @@ class TestTheDcsPictures:
         report = build_mission_briefing(tmp_path, CONTENT, cache_dir=tmp_path / "tiles", fetch=_white, kneeboard=False)
         assert report.kneeboard == []
         assert [path.name for path in folder_pages.iterdir()] == ["mine.png"]
+        with zipfile.ZipFile(report.miz) as archive:
+            assert not [name for name in archive.namelist() if "-briefing-" in name and name.startswith("KNEEBOARD/")]
 
     def test_a_second_run_replaces_its_own_pictures_and_keeps_the_others(self, tmp_path: Path) -> None:
         objective_mission(tmp_path)

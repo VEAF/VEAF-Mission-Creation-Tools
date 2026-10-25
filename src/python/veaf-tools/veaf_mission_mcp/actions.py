@@ -258,7 +258,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "ordered points (name + x/y or lat/lon, as geocode / resolve_coordinates give them), each set "
                 "on the ground from the theatre's elevation grid (the flight altitude belongs to the briefing, "
                 "not the points), and the plan that gives them to the chosen aircraft. Refuses two points with "
-                "one name -- the second would replace the first in the route. A plan of the same name is "
+                "one name -- nobody could tell them apart in the cockpit or the briefing. A plan of the same name is "
                 "replaced and its old points dropped; the rest of the file and its comments are kept; backed "
                 "up. Returns each leg's heading and distance, for the briefing and the F10 labels. Use it "
                 "instead of edit_mission_file for a route; the build adds the BULLSEYE point last."

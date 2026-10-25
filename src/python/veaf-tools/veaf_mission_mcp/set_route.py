@@ -86,8 +86,8 @@ def set_route(
     for name in names:
         if _slug(name) in seen:
             raise ValueError(
-                f"two points named {seen[_slug(name)]!r} and {name!r}: the second would replace the first "
-                "in the route; give each its own name (FEET WET and FEET DRY rather than COAST twice)"
+                f"two points named {seen[_slug(name)]!r} and {name!r}: the cockpit and the briefing "
+                "could not tell them apart; give each its own name (FEET WET and FEET DRY rather than COAST twice)"
             )
         seen[_slug(name)] = name
 

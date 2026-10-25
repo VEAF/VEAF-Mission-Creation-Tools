@@ -452,11 +452,22 @@ class TestDuplicateCockpitNames(unittest.TestCase):
         }
         self.assertEqual(duplicate_cockpit_names(data), [])
 
-    def test_read_yaml_refuses_the_plan(self) -> None:
+    def test_the_same_key_listed_twice_is_one_point_flown_twice(self) -> None:
+        from waypoints_injector.waypoints_manager import duplicate_cockpit_names
+
+        data = {
+            "waypoints": {"HOME": {"alt": 0}, "IP": {"alt": 0}},
+            "settings": {"p": {"waypoints": ["HOME", "IP", "HOME"]}},
+        }
+        self.assertEqual(duplicate_cockpit_names(data), [])
+
+    def test_read_yaml_warns_and_keeps_both_points(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "waypoints.yaml"
             path.write_text(yaml.safe_dump(self._DATA), encoding="utf-8")
             manager = WaypointsManager()
-            with self.assertRaises(Exception) as caught:
+            with patch("waypoints_injector.waypoints_manager.logger") as log:
                 manager.read_yaml(path)
-            self.assertNotIsInstance(caught.exception, AssertionError)
+            warned = [call.args[0] for call in log.warning.call_args_list]
+            self.assertTrue(any("COAST_OUT" in text and "COAST_IN" in text for text in warned))
+            self.assertEqual(len(manager.flight_plans["blue"].waypoints), 3)

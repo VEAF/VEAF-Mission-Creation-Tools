@@ -116,9 +116,9 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
                 waypoints = list(flight_plan.waypoints or [])
 
                 # The mission's own bullseye, appended unless the flight plan already names one. The
-                # mission maker's declaration wins: `_inject_waypoints_into_group` REPLACES a same-named
-                # waypoint in place, so adding ours unconditionally would silently overwrite his — which
-                # satisfies "not given a second one" while doing the opposite of what it means.
+                # mission maker's declaration wins: adding ours unconditionally would give the route two
+                # BULLSEYE points (two injected points with one name are both kept since
+                # FIX-COWORK-SESSION-FINDINGS 02; before, ours silently overwrote his).
                 # A plan declaring no waypoint gets it too: `waypoints: {}` is how a mission maker asks for
                 # "just the bullseye", and it used to get nothing (FIX-SCRATCH-MISSION-FINDINGS ticket 05).
                 if self.inject_bullseye and not any(wp.name == self.BULLSEYE_NAME for wp in waypoints):

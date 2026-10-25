@@ -494,8 +494,17 @@ def _write_pictures(
                     built.map_resource_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
                 )
             ).encode()
+        # a page an earlier run wrote and this one does not (one objective less, kneeboard off) leaves
+        # the archive too, not only the folder
+        stale_pages = {
+            member
+            for member in list_members(miz)
+            if member.startswith(f"{KNEEBOARD_FOLDER}/")
+            and is_kneeboard_page(member.rsplit("/", 1)[-1])
+            and member.rsplit("/", 1)[-1] not in kneeboard
+        }
         backup_before_write(miz)
-        write_miz(built, miz, additional_files=additional)
+        write_miz(built, miz, additional_files=additional, removed_files=stale_pages)
     return list(pictures), other
 
 

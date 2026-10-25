@@ -12,5 +12,6 @@ Done when: a plan with two same-named points fails the build and the validation 
 
 ## Result
 
-Fix: `duplicate_cockpit_names` finds the plans listing two waypoints with one cockpit name (the `name:`, or the key); `WaypointsManager.read_yaml` refuses such a plan (the build stops with the plan, the name and both keys) and `validate` reports it as an error. The injector only replaces a point that was already in the route, once: two injected points sharing a name are both kept.
+Fix: `duplicate_cockpit_names` finds the plans listing two waypoints with one cockpit name (the `name:`, or the key); the injector only replaces a point that was already in the route, once: two injected points sharing a name are both kept, which is the fix of the loss.
+Changed after the review of #1189: the first version also refused such a plan at build time. With the injector fixed nothing is lost any more, and the refusal would have broken a legitimate plan such as `[HOME, IP, TGT, HOME]`; so `read_yaml` and `validate` now **warn** (two points nobody can tell apart in the cockpit or the briefing), the same key listed twice is not reported, and only `set_route` still refuses a repeated name.
 Tests: `TestDuplicateCockpitNames`, `test_validate_waypoint_names.py`, `test_two_injected_points_with_one_name_are_both_kept`.

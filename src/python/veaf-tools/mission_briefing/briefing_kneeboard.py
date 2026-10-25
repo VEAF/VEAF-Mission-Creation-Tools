@@ -120,7 +120,7 @@ def text_pages(title: str, blocks: list[TextBlock]) -> list[bytes]:
     rows: list[tuple[str, bool]] = []
     for heading, lines in blocks:
         if heading:
-            rows.append((heading, True))
+            rows += [(part, True) for part in _wrap(heading, heading_font, usable)]
         rows += [(part, False) for text in lines for part in _wrap(text, text_font, usable)]
         rows.append(("", False))
     pages: list[bytes] = []

@@ -422,7 +422,7 @@ from it, and the VEAF scripts announce positions relative to it: place it early,
 
 ### Write the players' flight plan {#set-route}
 
-*Recipe (folder) · ⭐* — The route the players' aircraft carry, in one call: the points in order (place or coordinates), each set on the ground, the names checked — two points with one name would leave only the second in the cockpit — and the plan that gives them to the chosen aircraft.
+*Recipe (folder) · ⭐* — The route the players' aircraft carry, in one call: the points in order (place or coordinates), each set on the ground, the names checked — two points with one name cannot be told apart in the cockpit or the briefing — and the plan that gives them to the chosen aircraft.
 It returns each leg's heading and distance, for the briefing and the F10 labels, and names any plan of the file that would still win over it.
 
 > 💬 *"Lion's route: feet wet off Anaklia, push, IP, the depot, egress, feet dry."*

@@ -313,9 +313,9 @@ def _static_clear_ground(mission_content: dict[str, Any], group: dict[str, Any],
         The warning, or none when the place is clear.
     """
     theatre = mission_content.get("theatre")
-    placement = place_on_clear_ground(
-        theatre, group["units"], coalition=coalition, occupied=occupied_by(mission_content)
-    )
+    # the scenery only: the other statics of a depot stand 20 m apart on purpose, and counting them as
+    # occupied ground warned about every tank after the first
+    placement = place_on_clear_ground(theatre, group["units"], coalition=coalition)
     if placement.dx or placement.dy:
         unit = group["units"][0]
         x, y = float(unit["x"]) + placement.dx, float(unit["y"]) + placement.dy

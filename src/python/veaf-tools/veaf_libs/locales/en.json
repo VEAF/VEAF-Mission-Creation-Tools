@@ -1225,7 +1225,7 @@
   "warehouses.object_not_found": "Ship/FARP '{object}' not found in the mission ({kind}); skipping it",
   "warehouses.template_not_found": "Dynamic-slot template '{template}' not found for aircraft type '{type}'; no linkDynTempl set.",
   "warehouses.unknown_category": "Cannot classify aircraft type '{type}' as plane or helicopter; defaulting to 'planes'. Dynamic-slot template may not bind.",
-  "waypoints.plan_duplicate_name": "Plan '{plan}' lists two waypoints both named '{name}' ({keys}): the second would replace the first and the route would lose a point. Give each its own name.",
+  "waypoints.plan_duplicate_name": "Plan '{plan}' lists two waypoints both named '{name}' ({keys}): both are flown, but the cockpit, the briefing and the F10 labels cannot tell them apart. Give each its own name (FEET WET and FEET DRY rather than COAST twice).",
   "waypoints.plan_load_failed": "Failed to load flight plan {plan}: {error}",
   "waypoints.plan_waypoint_not_found": "Waypoint '{name}' referenced in plan '{plan}' not found",
   "waypoints.plan_value_ignored": "Plan '{plan}': waypoint '{name}' is used, not '{value}' — a plan takes its waypoints by key, the value is not read",

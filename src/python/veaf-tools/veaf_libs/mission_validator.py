@@ -123,7 +123,7 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     # 3e. a channel_lists channel lacking its list's band, which the build drops
     issues += _check_dropped_preset_channels(folder, yaml_data)
 
-    # 3f. a flight plan listing two waypoints with one cockpit name, which the build refuses
+    # 3f. a flight plan listing two waypoints with one cockpit name, which nobody can tell apart
     issues += _check_duplicate_waypoint_names(folder)
 
     # 4-6. checks that need the source mission table
@@ -1108,15 +1108,15 @@ def _check_presets_waypoints(
 
 
 def _check_duplicate_waypoint_names(folder: Path) -> list[ValidationIssue]:
-    """Refuse a flight plan of ``src/waypoints.yaml`` listing two waypoints with one cockpit name.
+    """Warn about a flight plan of ``src/waypoints.yaml`` listing two waypoints with one cockpit name.
 
-    The build refuses it too (``WaypointsManager.read_yaml``); saying it here spares a build.
+    Both are injected, but the cockpit, the briefing and the F10 labels cannot tell them apart.
 
     Args:
         folder: The mission folder.
 
     Returns:
-        One error per duplicated name and plan; none when the file is absent or unreadable.
+        One warning per duplicated name and plan; none when the file is absent or unreadable.
     """
     from waypoints_injector.waypoints_manager import duplicate_cockpit_names
 
@@ -1130,7 +1130,7 @@ def _check_duplicate_waypoint_names(folder: Path) -> list[ValidationIssue]:
     if not isinstance(data, dict):
         return []
     return [
-        ValidationIssue(ERROR, t("waypoints.plan_duplicate_name", plan=plan, name=name, keys=", ".join(keys)))
+        ValidationIssue(WARNING, t("waypoints.plan_duplicate_name", plan=plan, name=name, keys=", ".join(keys)))
         for plan, name, keys in duplicate_cockpit_names(data)
     ]
 

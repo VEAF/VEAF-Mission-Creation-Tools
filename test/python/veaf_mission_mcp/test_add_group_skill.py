@@ -112,6 +112,23 @@ def test_a_static_on_ground_not_clear_is_warned_and_not_moved(tmp_path: Path, mo
     assert (statics[0]["x"], statics[0]["y"]) == (-280000.0, 640000.0)
 
 
+def test_the_other_statics_of_a_depot_are_not_scenery(tmp_path: Path, monkeypatch) -> None:
+    """Six tanks 20 m apart: only the scenery decides, or every tank after the first was warned."""
+    import veaf_mission_mcp.add_group as module
+
+    seen: list[Any] = []
+
+    def placement(*args: Any, **kwargs: Any) -> Placement:
+        seen.append(kwargs.get("occupied"))
+        return Placement(0.0, 0.0, None)
+
+    monkeypatch.setattr(module, "place_on_clear_ground", placement)
+    folder = _folder(tmp_path)
+    for n in (1, 2):
+        _add(folder, category="static", name=f"Tank{n}", units=[{"type": "Tank", "name": f"Depot Tank {n}"}])
+    assert seen == [None, None]
+
+
 def test_a_static_where_no_catalogue_looks_says_so(tmp_path: Path, monkeypatch) -> None:
     import veaf_mission_mcp.add_group as module
 

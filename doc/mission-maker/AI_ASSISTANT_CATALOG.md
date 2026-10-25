@@ -429,7 +429,7 @@ un repère connu.
 
 ### Écrire le plan de vol des joueurs {#set-route}
 
-*Recette (dossier) · ⭐* — La route que portent les avions des joueurs, en un appel : les points dans l'ordre (lieu ou coordonnées), chacun posé au sol, les noms vérifiés — deux points du même nom ne laisseraient que le second dans le cockpit — et le plan qui les donne aux appareils choisis.
+*Recette (dossier) · ⭐* — La route que portent les avions des joueurs, en un appel : les points dans l'ordre (lieu ou coordonnées), chacun posé au sol, les noms vérifiés — deux points du même nom ne se distinguent ni dans le cockpit ni au briefing — et le plan qui les donne aux appareils choisis.
 Il rend le cap et la distance de chaque branche, pour le briefing et les étiquettes F10, et nomme tout plan du fichier qui l'emporterait encore sur lui.
 
 > 💬 *« La route de Lion : feet wet au large d'Anaklia, push, IP, le dépôt, egress, feet dry. »*

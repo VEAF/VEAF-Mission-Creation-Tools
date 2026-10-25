@@ -144,10 +144,12 @@ class FlightPlanDefinition:
 
 
 def duplicate_cockpit_names(data: dict[str, Any]) -> list[tuple[str, str, list[str]]]:
-    """Find the flight plans listing two waypoints that show the same name in the cockpit.
+    """Find the flight plans listing two different waypoints that show the same name in the cockpit.
 
-    A waypoint's cockpit name is its ``name:``, or its key when it has none. The injector replaces a
-    same-named point of the route in place, so two such points in one plan leave only the second.
+    A waypoint's cockpit name is its ``name:``, or its key when it has none. Until
+    FIX-COWORK-SESSION-FINDINGS 02 the injector kept only the second of two such points; it keeps both
+    now, but the cockpit, the briefing and the F10 labels cannot tell them apart by name. The same key
+    listed twice (a return to the departure point) is one waypoint flown twice, and not reported.
 
     Args:
         data: The parsed ``waypoints.yaml``.
@@ -166,7 +168,9 @@ def duplicate_cockpit_names(data: dict[str, Any]) -> list[tuple[str, str, list[s
             definition = waypoints.get(key)
             if not isinstance(definition, dict):
                 continue
-            keys_by_name.setdefault(str(definition.get("name") or key), []).append(str(key))
+            keys = keys_by_name.setdefault(str(definition.get("name") or key), [])
+            if str(key) not in keys:
+                keys.append(str(key))
         found += [(str(plan_name), name, keys) for name, keys in keys_by_name.items() if len(keys) > 1]
     return found
 
@@ -209,16 +213,10 @@ class WaypointsManager:
             if "settings" in data:
                 self._load_flight_plan_settings(data["settings"])
 
-            # Two points of one plan showing the same name: the injector would replace the first with the
-            # second, and the route would lose a point without a word (FIX-COWORK-SESSION-FINDINGS 02).
-            duplicates = duplicate_cockpit_names(data)
-            if duplicates:
-                raise ValueError(
-                    "; ".join(
-                        t("waypoints.plan_duplicate_name", plan=plan, name=name, keys=", ".join(keys))
-                        for plan, name, keys in duplicates
-                    )
-                )
+            # Two points of one plan showing the same name are both injected, but nobody can tell them
+            # apart in the cockpit or the briefing (FIX-COWORK-SESSION-FINDINGS 02).
+            for plan, name, keys in duplicate_cockpit_names(data):
+                logger.warning(t("waypoints.plan_duplicate_name", plan=plan, name=name, keys=", ".join(keys)))
 
             logger.info(
                 t(

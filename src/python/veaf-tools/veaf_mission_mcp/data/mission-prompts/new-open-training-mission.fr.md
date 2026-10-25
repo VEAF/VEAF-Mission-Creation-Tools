@@ -151,8 +151,13 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Slots sans avion, comme en v5** : `mission.ground_control` à 5 par rôle et par camp (`game_master`, `tactical_commander`, `jtac`, `observer`) et `pilot_control_vehicles: true`. Sans ce bloc, la mission n'a aucun slot game master.
 - **Sécurité active par défaut** : la mission tourne sur les serveurs VEAF. Pas de
   `security.disabled: true` dans la configuration de base. Demande à l'utilisateur s'il faut des
-  hachages de mot de passe, ou si le niveau des pilotes du serveur suffit. **Jamais un mot de passe
-  en clair**, même en commentaire à côté de son hachage : les sources se publient.
+  hash de mot de passe, ou si le niveau des pilotes du serveur suffit, en expliquant ce que ça veut dire :
+  Elle verrouille les commandes F10 et par marqueur sensibles : spawn, téléportation, destruction.
+  Sur les serveurs VEAF, les pilotes que le serveur connaît passent sans mot de passe ; sur tout autre serveur personne n'est connu, donc seul un mot de passe les ouvre.
+  Le mot de passe livré avec les outils est public : « active, sans hash » ne protège rien hors des serveurs VEAF.
+  Un mot de passe devient un hash avec `.\veaf-tools.exe password-hash`, que **l'utilisateur lance** dans PowerShell (la saisie est masquée) et dont il te donne le hash : ne demande jamais le mot de passe lui-même.
+  `password_hashes` reçoit celui du niveau SENIOR_PILOT (spawn, marqueurs), `password_mm_hashes` celui du Mission Master.
+  **Jamais un mot de passe en clair** dans un fichier, même en commentaire à côté de son hash : les sources se publient.
 - **Aucun mod exigé** : la table `requiredModules` de la mission reste vide, sauf demande explicite.
   Un seul mod y suffit à interdire le serveur aux joueurs qui ne l'ont pas. Elle se remplit sans
   bruit quand on pose une unité d'un mod, ou quand on reprend une mission existante.

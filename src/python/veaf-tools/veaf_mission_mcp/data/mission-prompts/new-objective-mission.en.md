@@ -258,8 +258,15 @@ approximation of it.
   ask for 8,000 m at most.
 - **Language**: `mission.language: en` and an English briefing, unless told otherwise.
 - `silence_atc_on_all_airbases: true`.
-- **Security on by default** (the mission runs on the VEAF servers); ask whether password hashes are
-  needed. **Never a clear-text password**, not even in a comment. A **`LOCAL_TEST` profile**: security
+- **Security**: explain it before asking, the user cannot choose without it.
+  It locks the sensitive F10 and map-marker commands: spawning, teleporting, destroying.
+  On the VEAF servers, the pilots the server lists pass without a password; on any other server nobody is listed, so only a password opens them.
+  The password shipped with the tools is public: "on, without hashes" protects nothing outside the VEAF servers.
+  A password becomes a hash with `.\veaf-tools.exe password-hash`, which **the user runs** in PowerShell (the input is hidden) and whose hash they give you: never ask for the password itself.
+  `password_hashes` holds the SENIOR_PILOT one (spawning, markers), `password_mm_hashes` the Mission Master's.
+  **Never a clear-text password** in a file, not even in a comment next to its hash: the sources get published.
+  So: for the VEAF servers, security on, hashes optional; for any other server, `security: disabled: true` (recommended for a mission among friends) or the user's own passwords.
+  A **`LOCAL_TEST` profile**: security
   off, `debug` logs, readable group names (`hide_names_from_spawned_groups: false`). Both profiles
   write **the same `.miz` name**: rename the first before building the second, or use a build script.
 - **Game Master slot** if asked for: `groundControl.roles.instructor` in the mission table (no action

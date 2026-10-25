@@ -240,7 +240,8 @@ def security_section() -> list[str]:
         *_yaml_comment("generated.mission_yaml.section.security"),
         "# security:",
         "#   disabled: true                # true = no password required (default: false — security is active)",
-        "#   password_hashes:              # add SHA-1 hashes to restrict access (sha1.hex of the password)",
+        "#   password_hashes:              # SHA-1 of the SENIOR_PILOT password (also opens KNOWN_PILOT): "
+        ".\\veaf-tools.exe password-hash",
         '#     - "<SHA-1 hash>"',
     ]
 

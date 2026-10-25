@@ -256,8 +256,15 @@ validé un scénario, pas un à-peu-près.
   « 9999 » METAR) : pour une brume, demande 8 000 m au plus.
 - **Langue** : `mission.language: fr` et briefing en français, sauf mention contraire.
 - `silence_atc_on_all_airbases: true`.
-- **Sécurité active par défaut** (la mission tourne sur les serveurs VEAF) ; demande s'il faut des
-  hachages de mot de passe. **Jamais un mot de passe en clair**, même en commentaire. Un **profil
+- **Sécurité** : explique-la avant de demander, l'utilisateur ne peut pas choisir sans.
+  Elle verrouille les commandes F10 et par marqueur sensibles : spawn, téléportation, destruction.
+  Sur les serveurs VEAF, les pilotes que le serveur connaît passent sans mot de passe ; sur tout autre serveur personne n'est connu, donc seul un mot de passe les ouvre.
+  Le mot de passe livré avec les outils est public : « active, sans hash » ne protège rien hors des serveurs VEAF.
+  Un mot de passe devient un hash avec `.\veaf-tools.exe password-hash`, que **l'utilisateur lance** dans PowerShell (la saisie est masquée) et dont il te donne le hash : ne demande jamais le mot de passe lui-même.
+  `password_hashes` reçoit celui du niveau SENIOR_PILOT (spawn, marqueurs), `password_mm_hashes` celui du Mission Master.
+  **Jamais un mot de passe en clair** dans un fichier, même en commentaire à côté de son hash : les sources se publient.
+  Donc : pour les serveurs VEAF, sécurité active, hash au choix ; pour tout autre serveur, `security: disabled: true` (recommandé pour une mission entre amis) ou ses propres mots de passe.
+  Un **profil
   `LOCAL_TEST`** : sécurité désactivée, logs `debug`, noms de groupes lisibles
   (`hide_names_from_spawned_groups: false`). Les deux profils écrivent **le même nom de `.miz`** :
   renomme le premier avant de construire le second, ou passe par un script de build.

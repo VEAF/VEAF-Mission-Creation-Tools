@@ -35,6 +35,7 @@ def create_combat_zone(
     country_name: str,
     category: str = "vehicle",
     combat_zone: dict[str, Any] | None = None,
+    skill: str | None = None,
 ) -> dict[str, Any]:
     """Create a complete VEAF combat zone in a mission folder, in one pass, both worlds.
 
@@ -59,6 +60,7 @@ def create_combat_zone(
         country_name: DCS country name for the groups.
         category: Group category (default `"vehicle"`).
         combat_zone: Optional extra `combat_zones[]` keys (e.g. `friendly_name`, `training`).
+        skill: The AI skill of the zone's units; a group's own `skill` wins, and a static group takes none.
 
     Returns:
         `{"zone_name", "zone_id", "groups": [<resolved names>], "warnings": [...]}`.
@@ -79,13 +81,14 @@ def create_combat_zone(
     for spec in groups:
         group_name = resolve_group_name(spec["name"], for_combat_zone=zone_name)
         build_warnings: list[str] = []
+        group_category = spec.get("category", category)
         try:
             insert_group_into_content(
                 content,
                 coalition=coalition,
                 country_id=country_id,
                 country_name=country_name,
-                category=spec.get("category", category),
+                category=group_category,
                 name=group_name,
                 position=spec.get("position", position),
                 units=spec["units"],
@@ -95,6 +98,7 @@ def create_combat_zone(
                 keep_position=spec.get("keep_position", False),
                 roe=spec.get("roe"),
                 disperse=spec.get("disperse"),
+                skill=spec.get("skill", None if group_category == "static" else skill),
             )
         except ValueError as exc:
             raise ValueError(f"group {group_name!r}: {exc}") from exc

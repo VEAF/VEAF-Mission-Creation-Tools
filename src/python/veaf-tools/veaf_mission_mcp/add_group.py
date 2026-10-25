@@ -8,6 +8,7 @@ types (this server does not curate a unit catalog — see
 in the DCS Mission Editor, except that a name the mission already holds is refused rather than duplicated.
 """
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,7 @@ from veaf_libs.dcs_units_data import get_unit_category, get_unit_shape_name
 
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
+from veaf_mission_mcp.set_unit_properties import AI_SKILLS
 from veaf_mission_mcp.surface import surface_warnings
 
 _UNIT_SPACING_METERS = 20
@@ -75,6 +77,7 @@ def add_group(
     keep_position: bool = False,
     roe: str | None = None,
     disperse: bool | None = None,
+    skill: str | None = None,
 ) -> dict[str, Any]:
     """Add a group to a mission, in place, backed up first.
 
@@ -117,6 +120,8 @@ def add_group(
             `"weapons_hold"`, written on its first waypoint as the Mission Editor writes it.
         disperse: `False` unchecks the editor's « Disperse under fire »; `True` is DCS's own default
             and writes nothing. With `roe: "weapons_hold"`, an inert target.
+        skill: The AI skill of every unit (`Average`, `Good`, `High`, `Excellent`, `Random`); a unit's
+            own `skill` in `units` wins. `Average` when neither is given. Not for a static.
 
     Returns:
         `{"group_id": <int>, "name": <resolved name>, "durable": <bool>, "warnings": [...]}` —
@@ -125,8 +130,9 @@ def add_group(
         happens).
 
     Raises:
-        ValueError: If the target is not a valid mission, `units` yields no units, `roe` is unknown, or
-            `roe` / `disperse` is given for a group that is not a vehicle group.
+        ValueError: If the target is not a valid mission, `units` yields no units, `roe` or `skill` is
+            unknown, `roe` / `disperse` is given for a group that is not a vehicle group, or `skill` for
+            a static.
     """
     is_folder = target.is_dir()
     mission = load_folder_mission(target) if is_folder else read_miz(target)
@@ -151,6 +157,7 @@ def add_group(
         keep_position=keep_position,
         roe=roe,
         disperse=disperse,
+        skill=skill,
     )
 
     # A folder has no single `.miz` to scan for the combat-zone capture trap, so validate names-only
@@ -185,6 +192,7 @@ def insert_group_into_content(
     keep_position: bool = False,
     roe: str | None = None,
     disperse: bool | None = None,
+    skill: str | None = None,
 ) -> int:
     """Build a group and insert it into `mission_content` in place; return its fresh `groupId`.
 
@@ -211,29 +219,46 @@ def insert_group_into_content(
             (:mod:`veaf_libs.clear_ground_placement`).
         roe: A vehicle group's rules of engagement (see :data:`GROUND_ROE`).
         disperse: ``False`` writes the editor's unchecked « Disperse under fire ».
+        skill: The AI skill of every unit; a unit's own ``skill`` in ``units`` wins; ``Average`` otherwise.
 
     Returns:
         The fresh ``groupId`` assigned to the inserted group.
 
     Raises:
-        ValueError: If `units` yields no units, a static is given more than one, `roe` is unknown, or
-            `roe` / `disperse` is given for a group that is not a vehicle group.
+        ValueError: If `units` yields no units, a static is given more than one, `roe` or a skill is
+            unknown, `roe` / `disperse` is given for a group that is not a vehicle group, or a skill for a
+            static.
     """
     if (roe is not None or disperse is not None) and category != "vehicle":
         raise ValueError(f"roe and disperse are for a vehicle group, not a {category!r} group")
     if roe is not None and roe not in GROUND_ROE:
         raise ValueError(f"roe must be one of {', '.join(GROUND_ROE)}, got {roe!r}")
+    _check_skills(category, skill, units)
     # Statics and ships used to go through the vehicle builder too (FIX-SCRATCH-MISSION-FINDINGS
     # ticket 06): a static unit without its `category`, a ship on an "Off Road" point.
     if category == "static":
         group = _build_static_group(name=name, position=position, units=units, warnings=warnings)
+        if warnings is not None:
+            warnings.extend(_static_clear_ground(mission_content, group, coalition))
     elif category == "ship":
         group = _build_ship_group(
-            name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
+            name=name,
+            position=position,
+            units=units,
+            route=route,
+            patrol=patrol,
+            late_activation=late_activation,
+            skill=skill,
         )
     else:
         group = _build_group(
-            name=name, position=position, units=units, route=route, patrol=patrol, late_activation=late_activation
+            name=name,
+            position=position,
+            units=units,
+            route=route,
+            patrol=patrol,
+            late_activation=late_activation,
+            skill=skill,
         )
         # The tools chose this position, so they put it on ground measured clear — unless the caller
         # says the position is the mission maker's own. Only a stationary group: a route is a path the
@@ -260,6 +285,47 @@ def insert_group_into_content(
         category=category,
         group=group,
     )
+
+
+def _check_skills(category: str, skill: str | None, units: list[dict[str, Any]]) -> None:
+    """Refuse an unknown AI skill, and any skill on a static, which has none.
+
+    Raises:
+        ValueError: On a skill outside :data:`AI_SKILLS` (``Client``/``Player`` make a slot, not a skill),
+            or a skill given for a static.
+    """
+    given = [value for value in (skill, *(spec.get("skill") for spec in units)) if value is not None]
+    if given and category == "static":
+        raise ValueError("a static has no AI skill: give skill for a vehicle, plane, helicopter or ship group")
+    for value in given:
+        if value not in AI_SKILLS:
+            raise ValueError(f"skill must be one of {', '.join(AI_SKILLS)}, got {value!r}")
+
+
+def _static_clear_ground(mission_content: dict[str, Any], group: dict[str, Any], coalition: str) -> list[str]:
+    """Say when a static stands where the clear-ground catalogue measures no room for it; never move it.
+
+    A static's position is the maker's (it often sits on a building or a parking on purpose), so it is
+    not moved like a vehicle group. Without this, nothing said the six fuel tanks an assistant placed
+    stood in a wood; it probed with a throw-away vehicle group instead (FIX-COWORK-SESSION-FINDINGS 12).
+
+    Returns:
+        The warning, or none when the place is clear.
+    """
+    theatre = mission_content.get("theatre")
+    placement = place_on_clear_ground(
+        theatre, group["units"], coalition=coalition, occupied=occupied_by(mission_content)
+    )
+    if placement.dx or placement.dy:
+        unit = group["units"][0]
+        x, y = float(unit["x"]) + placement.dx, float(unit["y"]) + placement.dy
+        return [
+            f"static '{unit['name']}' stands where the clear-ground catalogue of {theatre} measures no room "
+            f"for it; the nearest clear spot is {math.hypot(placement.dx, placement.dy):.0f} m away, at "
+            f"x={x:.0f}, y={y:.0f}. Not moved: a static's position is the maker's - move it "
+            "(set_group_properties) unless it is meant to sit on that scenery"
+        ]
+    return [placement.message] if placement.message and not placement.covered else []
 
 
 def _apply_ground_options(group: dict[str, Any], *, roe: str | None, disperse: bool | None) -> None:
@@ -298,9 +364,10 @@ def _build_group(
     route: list[dict[str, float]] | None,
     patrol: bool,
     late_activation: bool = False,
+    skill: str | None = None,
 ) -> dict[str, Any]:
     """Build a DCS group dict ready for `mission_tools.group_insertion.add_group`."""
-    built_units = _build_units(units, position=position, group_name=name)
+    built_units = _build_units(units, position=position, group_name=name, skill=skill)
     if not built_units:
         raise ValueError("add_group requires at least one unit")
     return {
@@ -399,6 +466,7 @@ def _build_ship_group(
     route: list[dict[str, float]] | None,
     patrol: bool = False,
     late_activation: bool = False,
+    skill: str | None = None,
 ) -> dict[str, Any]:
     """Build a ship group in the shape the Mission Editor writes.
 
@@ -413,6 +481,7 @@ def _build_ship_group(
         route: Optional further waypoints.
         patrol: Loop the last waypoint back to the first.
         late_activation: Mark the group late-activation.
+        skill: The AI skill of every unit; a unit's own ``skill`` wins.
 
     Returns:
         The group dict.
@@ -423,7 +492,9 @@ def _build_ship_group(
     built = [
         {k: v for k, v in unit.items() if k not in ("playerCanDrive", "coldAtStart")}
         | {"frequency": 127500000, "modulation": 0}
-        for unit in _build_units(units, position=position, group_name=name, spacing=_SHIP_SPACING_METERS)
+        for unit in _build_units(
+            units, position=position, group_name=name, spacing=_SHIP_SPACING_METERS, skill=skill
+        )
     ]
     if not built:
         raise ValueError("add_group requires at least one unit")
@@ -451,6 +522,7 @@ def _build_units(
     position: dict[str, float],
     group_name: str,
     spacing: float = _UNIT_SPACING_METERS,
+    skill: str | None = None,
 ) -> list[dict[str, Any]]:
     """Expand `[{"type", "count", "name"?}, ...]` into individual, spaced-out unit dicts.
 
@@ -473,7 +545,7 @@ def _build_units(
                     "type": spec["type"],
                     "x": position["x"] + len(built) * spacing,
                     "y": position["y"],
-                    "skill": "Average",
+                    "skill": spec.get("skill") or skill or "Average",
                     "heading": 0,
                     "playerCanDrive": True,
                     "coldAtStart": False,

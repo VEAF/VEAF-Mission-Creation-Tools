@@ -802,6 +802,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "combat-zone marker here, e.g. '#command=\"-armor ...\"' for a spawn "
                                     "fake-unit (#command/#spawngroup/#spawnradius/#spawncount/#spawnchance/#spawndelay/#alarm).",
                                 },
+                                "skill": {
+                                    "type": "string",
+                                    "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                                    "description": "This unit's AI skill; wins over the group's.",
+                                },
                             },
                             "required": ["type"],
                         },
@@ -862,6 +867,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "description": "false: the group does not disperse under fire (vehicle group). true is "
                         "DCS's default and writes nothing.",
+                    },
+                    "skill": {
+                        "type": "string",
+                        "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                        "description": "The AI skill of every unit (vehicle, plane, helicopter, ship; not a static), "
+                        "default Average: the level of the opposition the user chose. Random = DCS draws one per unit.",
                     },
                 },
                 "required": [
@@ -2267,6 +2278,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "type": "boolean",
                                     "description": "As add_group's: false, no dispersal under fire.",
                                 },
+                                "skill": {
+                                    "type": "string",
+                                    "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                                    "description": "This group's AI skill; wins over the call's.",
+                                },
                             },
                             "required": ["name", "units"],
                         },
@@ -2279,6 +2295,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "string",
                         "default": "vehicle",
                         "description": "The groups' category unless one names its own.",
+                    },
+                    "skill": {
+                        "type": "string",
+                        "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                        "description": "The AI skill of the zone's units (statics have none), default Average: the "
+                        "level of the opposition the user chose.",
                     },
                     "combat_zone": {
                         "type": "object",
@@ -3328,6 +3350,7 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         keep_position=params.get("keep_position", False),
         roe=params.get("roe"),
         disperse=params.get("disperse"),
+        skill=params.get("skill"),
     )
 
 
@@ -3434,6 +3457,7 @@ def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:
         country_name=params["country_name"],
         category=params.get("category", "vehicle"),
         combat_zone=params.get("combat_zone"),
+        skill=params.get("skill"),
     )
 
 

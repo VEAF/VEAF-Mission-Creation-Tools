@@ -101,12 +101,20 @@ def set_route(
         ]
     )
     prefix = _slug(plan)
-    resolved = []
+    resolved: list[dict[str, Any]] = []
     for name, point in zip(names, points, strict=True):
         x, y = _position(theatre, point)
         ground = grid.elevation_at(x, y) if grid else None
-        resolved.append({"key": f"{prefix}_{_slug(name)}", "name": name, "x": round(x), "y": round(y),
-                         "alt_m": round(ground or 0.0), "speed_kt": point.get("speed_kt")})
+        resolved.append(
+            {
+                "key": f"{prefix}_{_slug(name)}",
+                "name": name,
+                "x": round(x),
+                "y": round(y),
+                "alt_m": round(ground or 0.0),
+                "speed_kt": point.get("speed_kt"),
+            }
+        )
 
     path = folder / WAYPOINTS_FILE
     data = load_yaml(path) if path.is_file() else CommentedMap()
@@ -149,7 +157,11 @@ def set_route(
     warnings += _shadowing_plans(settings, plan)
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    backup = save_yaml(path, data) if path.is_file() else _first_write(path, data)
+    backup: Path | None = None
+    if path.is_file():
+        backup = save_yaml(path, data)
+    else:
+        _first_write(path, data)
 
     legs = []
     for a, b in zip(resolved, resolved[1:], strict=False):

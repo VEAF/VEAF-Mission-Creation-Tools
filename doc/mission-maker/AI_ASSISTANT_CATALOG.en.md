@@ -96,6 +96,7 @@ The AI can act in two places, and it changes what "survives":
 | 52 | [Build a whole mission, from the questions to the briefing](#build-whole-mission) | 🏗️ Getting started | Folder | ⭐ |
 | 53 | [Read and edit the mission folder's files](#mission-files) | Modules & settings | Recipe | ⭐ |
 | 54 | [Make a mission's briefing (PPTX, maps, DCS pictures)](#mission-briefing) | 🕰️ Mission settings | Folder (built) | ⭐ |
+| 55 | [Write the players' flight plan](#set-route) | 🕰️ Mission settings | Recipe (folder) | ⭐ |
 
 ---
 
@@ -419,6 +420,13 @@ from it, and the VEAF scripts announce positions relative to it: place it early,
 
 > 💬 *"Put the blue bullseye on Point Alpha, in the Fulda Gap."*
 
+### Write the players' flight plan {#set-route}
+
+*Recipe (folder) · ⭐* — The route the players' aircraft carry, in one call: the points in order (place or coordinates), each set on the ground, the names checked — two points with one name would leave only the second in the cockpit — and the plan that gives them to the chosen aircraft.
+It returns each leg's heading and distance, for the briefing and the F10 labels, and names any plan of the file that would still win over it.
+
+> 💬 *"Lion's route: feet wet off Anaklia, push, IP, the depot, egress, feet dry."*
+
 ### Write the briefing {#set-briefing}
 
 *Recipe + built · ⭐* — The mission's name, the situation and each coalition's task; only the texts
@@ -488,6 +496,8 @@ many), a position, and optionally a route (with a looping patrol). Adding twice 
 groups — like two placements in the editor. The AI **names the group correctly itself** from your
 intent: attached to a combat zone (zone-name prefix), **Late Activation** for a QRA, or a spawn
 template (`veafSpawn-`).
+It also sets the **AI skill** of the units (Average to Excellent, or Random), the level of the opposition you chose; a combat zone takes it too.
+A static placed where the clear-ground data says the ground is not clear is not moved, but the AI is told where the nearest clear spot is.
 
 > 💬 *"Add a section of 3 T-72s patrolling around this point."*
 > 💬 *"Put two armor groups in the North combat zone."*
@@ -690,6 +700,8 @@ the **recipe** (durable) or the **built mission** (fast, overwritten on rebuild)
 *Recipe + built · ◽* — Enables or disables the VEAF security flag (the password required for
 protected commands). On the **recipe** it also handles the **password hashes** (JTF / Mission
 Master) — which the built mission does not.
+You make a hash yourself, never the AI: `.\veaf-tools.exe password-hash` asks for the password with the input hidden and prints the hash to give it.
+Outside the VEAF servers no pilot is known to the mission, so only a password opens the protected commands, and the one shipped with the tools is public: turn security off for a mission among friends, or set your own.
 
 > 💬 *"Turn off password security on this test mission."*
 
@@ -742,7 +754,8 @@ Avoid putting the same picture on both sides: a player whose side the briefing d
 No script: an AI with no command line on your PC (Claude Desktop in chat mode) does it too.
 Build the mission first, and run it again after every change: it replaces its own pictures.
 The PPTX imports into Google Slides. `docs/briefing.pdf` is written beside it — the same pages, maps and words with a layout of its own, no PowerPoint or other program needed on your PC. The tool also warns the AI when a waypoint number of its text does not match the route, and when its French text lacks its accents.
-OpenStreetMap background, or OpenTopoMap (relief) for a desert; without the network, the maps are drawn on a plain background.
+OpenStreetMap background, or OpenTopoMap (relief) for a desert or a low-level mission; without the network, the maps are drawn on a plain background.
+The pictures go into every built `.miz`, each weather variant included, and the **kneeboard** of every aircraft gets the maps drawn for its page, a flight card (points, heading and distance of each leg, highest ground, radios) and the targets.
 
 > 💬 *"Make the mission's briefing, topo background."*
 

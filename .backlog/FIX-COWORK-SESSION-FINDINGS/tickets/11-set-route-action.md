@@ -1,6 +1,6 @@
 # 11 — `set_route`: write a flight plan in one action
 
-Status: ⬜ ready
+Status: ✅ done
 
 The assistant wrote the route by replacing the template's example points in `src/waypoints.yaml` with `edit_mission_file`: a 2 kB search-and-replace, the altitudes computed by hand from `terrain_elevation`, the plan edited in a second call, and the same-named points of ticket 02.
 Trakdah's assistant proposed an action that takes a list of points and writes the plan.
@@ -15,3 +15,9 @@ Trakdah's assistant proposed an action that takes a list of points and writes th
 - returns, per leg, heading and distance, so the briefing and the F10 labels are written from it.
 
 Done when: the action exists with its tests, its entry in the catalogue page (FR and EN, MCP action catalogue lockstep), and the objective prompt uses it instead of `edit_mission_file` for the route.
+
+## Result
+
+`set_route` takes points as x/y or lat/lon; a place name goes through `geocode` first, as everywhere else, rather than a second geocoder inside this action. With no elevation grid the points are written at sea level, with a warning.
+Found while writing it: a plan without an aircraft type ties with the template's `all_blue_planes`, declared first, which then wins (`get_flight_plan_for`). `set_route` names any plan that would win over the one it wrote.
+Tests: `test_set_route.py`. The catalogue page (FR and EN) and `mission-editing-mcp` list it; the objective prompt uses it.

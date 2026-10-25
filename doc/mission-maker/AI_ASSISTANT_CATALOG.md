@@ -97,6 +97,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 52 | [Construire une mission complète, de la question au briefing](#build-whole-mission) | 🏗️ Démarrage | Dossier | ⭐ |
 | 53 | [Lire et modifier les fichiers du dossier de mission](#mission-files) | Modules & réglages | Recette | ⭐ |
 | 54 | [Fabriquer le briefing d'une mission (PPTX, cartes, images DCS)](#mission-briefing) | 🕰️ Réglages de la mission | Dossier (construit) | ⭐ |
+| 55 | [Écrire le plan de vol des joueurs](#set-route) | 🕰️ Réglages de mission | Recette (dossier) | ⭐ |
 
 ---
 
@@ -426,6 +427,13 @@ un repère connu.
 
 > 💬 *« Mets le bullseye bleu sur Point Alpha, dans la trouée de Fulda. »*
 
+### Écrire le plan de vol des joueurs {#set-route}
+
+*Recette (dossier) · ⭐* — La route que portent les avions des joueurs, en un appel : les points dans l'ordre (lieu ou coordonnées), chacun posé au sol, les noms vérifiés — deux points du même nom ne laisseraient que le second dans le cockpit — et le plan qui les donne aux appareils choisis.
+Il rend le cap et la distance de chaque branche, pour le briefing et les étiquettes F10, et nomme tout plan du fichier qui l'emporterait encore sur lui.
+
+> 💬 *« La route de Lion : feet wet au large d'Anaklia, push, IP, le dépôt, egress, feet dry. »*
+
 ### Écrire le briefing {#set-briefing}
 
 *Recette + construite · ⭐* — Le nom de la mission, la situation et la tâche de chaque coalition ;
@@ -496,6 +504,8 @@ quoi et combien), une position, et éventuellement un itinéraire (avec patrouil
 Ajouter deux fois crée deux groupes — comme deux placements dans l'éditeur. L'IA **nomme le
 groupe correctement elle-même** selon ton intention : rattaché à une combat zone (préfixe de la
 zone), en **Late Activation** pour une QRA, ou template de spawn (`veafSpawn-`).
+Elle règle aussi le **niveau de l'IA** des unités (Average à Excellent, ou Random), le niveau d'opposition que tu as choisi ; une combat zone le prend aussi.
+Un statique posé là où les données de sol dégagé disent que le sol ne l'est pas n'est pas déplacé, mais l'IA apprend où est le point dégagé le plus proche.
 
 > 💬 *« Ajoute une section de 3 T-72 en patrouille autour de ce point. »*
 > 💬 *« Mets deux groupes de blindés dans la combat zone North. »*
@@ -710,6 +720,8 @@ info / debug / trace). Faisable sur la **recette** (durable) ou sur la **mission
 *Recette + construite · ◽* — Active ou coupe le drapeau de sécurité VEAF (mot de passe requis
 pour les commandes protégées). Côté **recette**, gère aussi les **hash de mots de passe**
 (JTF / Mission Master) — ce que la mission construite ne fait pas.
+C'est toi qui fabriques un hash, jamais l'IA : `.\veaf-tools.exe password-hash` demande le mot de passe en saisie masquée et affiche le hash à lui donner.
+Hors des serveurs VEAF, aucun pilote n'est connu de la mission, donc seul un mot de passe ouvre les commandes protégées, et celui livré avec les outils est public : coupe la sécurité pour une mission entre amis, ou mets tes propres mots de passe.
 
 > 💬 *« Coupe la sécurité mot de passe sur cette mission de test. »*
 
@@ -764,7 +776,8 @@ deux fois le même fichier réutilise le premier.
 Aucun script : une IA sans accès à ton PC en ligne de commande (Claude Desktop en mode discussion) le fait aussi.
 Construis la mission d'abord, et relance-le après chaque changement : il remplace ses propres images.
 Le PPTX s'importe dans Google Slides. `docs/briefing.pdf` est écrit à côté : mêmes pages, mêmes cartes, mêmes mots, avec sa propre mise en page, sans PowerPoint ni autre programme sur ton PC. L'outil prévient aussi l'IA quand un numéro de waypoint de son texte ne correspond pas à la route, et quand son texte français n'a pas ses accents.
-Fond de carte OpenStreetMap, ou OpenTopoMap (relief) pour un désert ; sans réseau, les cartes sont dessinées sur un fond uni.
+Fond de carte OpenStreetMap, ou OpenTopoMap (relief) pour un désert ou une mission à basse altitude ; sans réseau, les cartes sont dessinées sur un fond uni.
+Les images vont dans chaque `.miz` construit, variantes météo comprises, et le **kneeboard** de chaque appareil reçoit les cartes dessinées pour sa page, une carte de vol (points, cap et distance de chaque branche, relief le plus haut, radios) et les cibles.
 
 > 💬 *« Fais le briefing de la mission, fond topo. »*
 

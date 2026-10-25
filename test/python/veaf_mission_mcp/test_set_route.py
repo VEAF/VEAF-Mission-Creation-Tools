@@ -129,3 +129,10 @@ def test_the_action_runs_through_the_catalog(folder: Path) -> None:
         "set_route", {"mission_path": str(folder), "plan": "lion", "points": [SENAKI_COAST, PUSH]}
     )
     assert result["plan"] == "lion" and len(result["points"]) == 2
+
+
+def test_a_folder_without_waypoints_yaml_gets_one(folder: Path) -> None:
+    (folder / "src" / "waypoints.yaml").unlink()
+    result = set_route(folder, plan="lion", points=[PUSH])
+    assert result["backup"] is None
+    assert _file(folder)["settings"]["lion"]["waypoints"] == ["LION_PUSH"]

@@ -1,6 +1,6 @@
 # FIX-COWORK-SESSION-FINDINGS — what a Cowork session taught us about building an objective mission
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 Origin: Trakdah's Claude Cowork session of 2026-10-25 (VMCT 6.31.4, Caucasus, "Fire at Adler", two AJS-37 on dynamic slots, Cold War low-level strike), read from his JSON export, plus the post-mortem his assistant wrote afterwards on the route, and three requests from David.
 Cowork runs the assistant in the cloud and reaches the VEAF MCP server on the user's PC through the Claude desktop app's device bridge: the first session of that kind we could read end to end.
@@ -45,6 +45,8 @@ Not a defect: the scaffold's "Access denied" on `Documents` — the assistant ta
 - [13 — Cowork in the AI assistant documentation](tickets/13-cowork-documentation.md)
 
 ## Needs David's DCS
+
+Everything else is done; the lot waits on these two checks.
 
 Tickets 08 (the kneeboard pages shown, JPEG read) and 09 (what a ground unit's skill changes, the skill a `#veafInterpreter` battery gets) end with a measurement in game.
 

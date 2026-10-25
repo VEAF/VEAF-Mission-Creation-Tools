@@ -1,6 +1,6 @@
 # 13 — Cowork in the AI assistant documentation
 
-Status: ⬜ ready
+Status: ✅ done
 
 `doc/mission-maker/AI_ASSISTANT_INSTALL.md` / `.en.md` never mention Claude Cowork, which Trakdah used.
 In Cowork the assistant runs in the cloud and reaches the PC through the Claude desktop app: the VEAF server runs on the PC, under the user's Windows account; the assistant sees only the folders connected with "Add folder", and copies files to and from its cloud sandbox to read them.
@@ -18,3 +18,8 @@ To do: a row in "Which AI to choose?" (free or not, to be checked on Anthropic's
 Advice 4 and 5 that hold for every assistant go in "Using the assistant", not under Cowork.
 
 Done when: both pages carry it, `poetry run docs-check` passes, and the support bot's page index is refreshed if a title changed.
+
+## Result
+
+`AI_ASSISTANT_INSTALL` (FR and EN): a Claude Cowork row in "Which AI to choose?" — paid plans from Pro, according to third-party guides of October 2026, to be checked on Anthropic's pricing page — and a `Claude Cowork {#cowork}` section. `ai-setup` needs nothing more: the export shows the actions under `remote-devices__veaf-mission-editor`, the server Claude Desktop declares. The two pieces of advice that hold for every AI went into "Using the assistant".
+`docs-check` passes; no page title changed, and the support bot's index refresh shows no drift.

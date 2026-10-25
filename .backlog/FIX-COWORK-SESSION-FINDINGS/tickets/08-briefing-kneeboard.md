@@ -1,6 +1,6 @@
 # 08 — The briefing in the kneeboard
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David: the briefing should also be in the kneeboard, as JPEG, the maps at least.
 
@@ -20,3 +20,10 @@ The pages are kept in the mission folder so a rebuild carries them into every `.
 Measure in DCS (David): the pages show in the kneeboard of a dynamic-slot AJS-37 and of one other type, in that order, readable; a JPEG page is read like the PNG ones.
 
 Done when: the pages are written and carried over, with tests on the page sizes, the names and the presence in each variant; the DCS check is reported here; the catalogue page and the objective prompt mention the kneeboard.
+
+## Result
+
+Done in the code: `mission_briefing/briefing_kneeboard.py` draws the pages at 1536 × 2304 (the presets' measured 2:3), the maps rendered for the portrait frame (`MapCanvas` `aspect`) and fitted, never stretched; flight card and targets as text pages, running on as needed. Named `01-briefing-overview.jpg`… in `KNEEBOARD/IMAGES/`, written into `src/mission/KNEEBOARD/IMAGES/` (the build carries `src/mission/**`) and into every built archive; a page this tool no longer writes is removed from the folder.
+Known gap: an archive keeps a page a previous run wrote and this one no longer writes, until the next build.
+Tests: `test_briefing_kneeboard.py`, `test_the_kneeboard_pages_go_into_the_folder_and_every_archive`, `test_no_kneeboard_writes_none_and_removes_the_previous_pages`.
+Left: the check in DCS (David) — the pages show in a dynamic-slot AJS-37's kneeboard and one other type's, in order, readable, JPEG read like PNG.

@@ -172,16 +172,16 @@ def flight_card_blocks(
                 continue
             px, py = points[position - 1][1:]
             heading = round(math.degrees(math.atan2(y - py, x - px))) % 360 or 360
-            leg = t("mission_briefing.kneeboard.leg", heading=f"{heading:03d}", nm=round(math.dist((px, py), (x, y)) / NM))
+            leg = t(
+                "mission_briefing.kneeboard.leg", heading=f"{heading:03d}", nm=round(math.dist((px, py), (x, y)) / NM)
+            )
             highest = legs[position - 1].highest if legs else None
             if highest is not None:
                 leg += " — " + t("mission_briefing.kneeboard.floor", feet=round(metres_to_feet(highest)))
             lines.append(f"      {leg}")
         blocks.append((", ".join(plan.aircraft) or None, lines))
     for radio in radios:
-        lines = [
-            f"{channel:>2}  {name or '—'}  {mhz(frequency)}" for channel, name, frequency in radio.channels
-        ]
+        lines = [f"{channel:>2}  {name or '—'}  {mhz(frequency)}" for channel, name, frequency in radio.channels]
         blocks.append((t("mission_briefing.radio", radio=radio.radio, flights=", ".join(radio.flights)), lines))
     return blocks
 
@@ -206,4 +206,3 @@ def targets_blocks(theatre: str, objectives: list[tuple[str, ObjectiveArea]]) ->
             lines.append(line(target.name, f"{to_dms(*xy_to_latlon(theatre, target.x, target.y))}{elevation}"))
         blocks.append((title, lines or [t("mission_briefing.no_target")]))
     return blocks
-

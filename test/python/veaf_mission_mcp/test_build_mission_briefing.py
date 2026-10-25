@@ -86,7 +86,9 @@ def test_diversions_are_spelt_as_dcs_and_an_unknown_one_is_refused(catalog: Acti
     )
     assert Path(result["deck"]).is_file()
     with pytest.raises(ValueError, match="no airfield named Atlantis"):
-        catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "diversions": ["Atlantis"]})
+        catalog.run_action(
+            "build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "diversions": ["Atlantis"]}
+        )
 
 
 def test_the_kneeboard_and_the_archives_are_reported(catalog: ActionCatalog, tmp_path: Path) -> None:

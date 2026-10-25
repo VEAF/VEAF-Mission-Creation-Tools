@@ -415,7 +415,14 @@ class TestDuplicateCockpitNames(unittest.TestCase):
 
     _DATA = {
         "waypoints": {
-            "COAST_OUT": {"type": "Turning Point", "action": "Turning Point", "alt": 0, "x": 1, "y": 2, "name": "COAST"},
+            "COAST_OUT": {
+                "type": "Turning Point",
+                "action": "Turning Point",
+                "alt": 0,
+                "x": 1,
+                "y": 2,
+                "name": "COAST",
+            },
             "PUSH": {"type": "Turning Point", "action": "Turning Point", "alt": 0, "x": 3, "y": 4},
             "COAST_IN": {"type": "Turning Point", "action": "Turning Point", "alt": 0, "x": 1, "y": 2, "name": "COAST"},
         },

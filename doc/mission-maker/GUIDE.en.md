@@ -534,6 +534,7 @@ The build tells you how many it added.
 | `ctld-upgrade` | Brings `ctld-config.yaml` up to the CTLD catalogue the tools vendor: adds the missing settings at their default, without changing yours nor touching the lists ([details](build-messages/modules.en.md#validate-ctld-catalogue-gap)) |
 | `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
 | `export` | Exports a `.miz` to **JSON** (default), **YAML** or **Markdown** (readable brief): `export mission.miz out.json --format json`. Parsing is **pure-Python** (the `luadata` parser) and **never executes Lua** — a safe alternative to interpreting an untrusted `.miz` (arbitrary-code-execution risk). Writes to stdout when no output file is given |
+| `password-hash` | Turns a password into the SHA-1 hash `security.password_hashes` takes, the input hidden; only the hash is printed ([reference](../CLI_REFERENCE.en.md#password-hash)) |
 | `inject-presets` | Injects radio frequency plans for all human cockpits |
 | `inject-weather` | Creates weather/time variants from a YAML config |
 | `inject-aircraft-groups` | Injects aircraft group templates |

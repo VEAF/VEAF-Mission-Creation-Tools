@@ -155,8 +155,9 @@ def duplicate_cockpit_names(data: dict[str, Any]) -> list[tuple[str, str, list[s
     Returns:
         ``(plan, name, keys)`` for each name a plan lists more than once, keys in plan order.
     """
-    waypoints = data.get("waypoints") if isinstance(data.get("waypoints"), dict) else {}
-    settings = data.get("settings") if isinstance(data.get("settings"), dict) else {}
+    raw_waypoints, raw_settings = data.get("waypoints"), data.get("settings")
+    waypoints: dict[str, Any] = raw_waypoints if isinstance(raw_waypoints, dict) else {}
+    settings: dict[str, Any] = raw_settings if isinstance(raw_settings, dict) else {}
     found: list[tuple[str, str, list[str]]] = []
     for plan_name, plan_data in settings.items():
         listed = (plan_data or {}).get("waypoints") if isinstance(plan_data, dict) else None

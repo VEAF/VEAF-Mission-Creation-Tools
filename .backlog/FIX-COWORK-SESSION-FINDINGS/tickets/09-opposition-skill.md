@@ -1,6 +1,6 @@
 # 09 — The opposition's skill
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David: let the user choose the level of the enemy AI — for AI pilots, and for ground units if DCS allows it.
 
@@ -17,3 +17,9 @@ To do:
 Not in this lot: a skill option of the interpreter (`#veafInterpreter["-sa3, skill excellent"]`), Lua — only if the measurement shows the default matters.
 
 Done when: the question is in the prompt; `add_group` and `create_combat_zone` take `skill`, with tests; the measurement is reported here.
+
+## Result
+
+Done in the code: the objective prompt asks "The level of the opposition" (EN and FR); `add_group` and `create_combat_zone` take `skill`, group-wide with a per-unit override, refused on a static, `Average` by default (`AI_SKILLS`, now public in `set_unit_properties`).
+Tests: `test_add_group_skill.py`.
+Left: the measurement in DCS (David) — the skill a `#veafInterpreter` battery gets, and whether a ZSU-23-4 at Excellent shoots visibly better than at Average.

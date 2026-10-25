@@ -1,6 +1,6 @@
 # 10 — Route planning in the objective prompt
 
-Status: ⬜ ready
+Status: ✅ done
 
 Two Viggens on a low-level strike flew out over the sea at wave-top height, 260 nm, where the aircraft's doctrine would use the valleys and the hills.
 The prompt (section 4.5) has the assistant measure, with `terrain_elevation` and the batteries as `observers`, what each battery sees of **the chosen route**; nothing in phase 1 asks it to design the route after how the aircraft is flown, or to compare candidates.
@@ -14,3 +14,8 @@ To do, in the objective prompt (EN and FR):
 3. The user is asked how they want the sortie flown when the scenario is chosen, and their answer overrides the assistant's doctrine.
 
 Done when: the prompt carries the three rules in both languages; the prompt tests (the ones that check what the served prompt says) cover them.
+
+## Result
+
+The objective prompt (EN and FR) has the three rules: a route after the aircraft's doctrine with two candidates measured, the user's say on how it is flown, and `basemap: topo` for any low-level or terrain-dependent mission (the action's description too).
+Test: `test_the_objective_prompt_plans_the_route_and_asks_the_level`, both languages.

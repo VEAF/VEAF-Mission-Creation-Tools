@@ -492,9 +492,7 @@ def _build_ship_group(
     built = [
         {k: v for k, v in unit.items() if k not in ("playerCanDrive", "coldAtStart")}
         | {"frequency": 127500000, "modulation": 0}
-        for unit in _build_units(
-            units, position=position, group_name=name, spacing=_SHIP_SPACING_METERS, skill=skill
-        )
+        for unit in _build_units(units, position=position, group_name=name, spacing=_SHIP_SPACING_METERS, skill=skill)
     ]
     if not built:
         raise ValueError("add_group requires at least one unit")

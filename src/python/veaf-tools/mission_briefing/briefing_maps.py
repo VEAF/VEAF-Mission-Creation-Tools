@@ -185,9 +185,7 @@ def render_objective_zoom(
     _, enemy = _sides(side)
     half = max(area.radius * _ZOOM_MARGIN, _ZOOM_MIN)
     spots = [(area.x, area.y)] + [(target.x, target.y) for target in area.targets]
-    canvas = MapCanvas(
-        theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], half, cache_dir, fetch, source, aspect
-    )
+    canvas = MapCanvas(theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], half, cache_dir, fetch, source, aspect)
     labels = [_objective(canvas, area, enemy, focus=True)]
     width, height = canvas.background.size
     for threat, position in threats:

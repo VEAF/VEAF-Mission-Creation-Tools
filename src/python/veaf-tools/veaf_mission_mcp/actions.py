@@ -74,6 +74,7 @@ from veaf_mission_mcp.repair_static_shapes import repair_static_shapes
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
 from veaf_mission_mcp.set_group_properties import set_group_properties
+from veaf_mission_mcp.set_route import set_route
 from veaf_mission_mcp.set_unit_properties import set_unit_properties
 from veaf_mission_mcp.terrain import describe_terrain
 
@@ -248,6 +249,61 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_bullseye(Path(p["target"]), coalition=p["coalition"], position=p["position"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_route",
+            description=(
+                "WRITE the players' FLIGHT PLAN into a mission FOLDER's src/waypoints.yaml in one call: the "
+                "ordered points (name + x/y or lat/lon, as geocode / resolve_coordinates give them), each set "
+                "on the ground from the theatre's elevation grid (the flight altitude belongs to the briefing, "
+                "not the points), and the plan that gives them to the chosen aircraft. Refuses two points with "
+                "one name -- the second would replace the first in the route. A plan of the same name is "
+                "replaced and its old points dropped; the rest of the file and its comments are kept; backed "
+                "up. Returns each leg's heading and distance, for the briefing and the F10 labels. Use it "
+                "instead of edit_mission_file for a route; the build adds the BULLSEYE point last."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER."},
+                    "plan": {"type": "string", "description": "The plan's name, e.g. the flight's callsign."},
+                    "points": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "As the cockpit shows it, unique."},
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "lat": {"type": "number"},
+                                "lon": {"type": "number"},
+                                "speed_kt": {"type": "number", "description": "Optional TAS on the leg."},
+                            },
+                            "required": ["name"],
+                        },
+                        "description": "In flight order, after the departure.",
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red"], "description": "Default blue."},
+                    "category": {"type": "string", "enum": ["plane", "helicopter"], "description": "Default plane."},
+                    "aircraft_type": {
+                        "type": "string",
+                        "description": "Give the plan to this DCS type only; it then wins over a plan without one.",
+                    },
+                    "country": {"type": "string", "description": "Narrow the plan to one country."},
+                },
+                "required": ["mission_path", "plan", "points"],
+            },
+        ),
+        handler=lambda p: set_route(
+            Path(p["mission_path"]),
+            plan=p["plan"],
+            points=p["points"],
+            coalition=p.get("coalition") or "blue",
+            category=p.get("category") or "plane",
+            aircraft_type=p.get("aircraft_type"),
+            country=p.get("country"),
+        ),
     )
     catalog.register(
         ActionSpec(

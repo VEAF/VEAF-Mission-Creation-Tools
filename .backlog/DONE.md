@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-VEAF-LOGS-REST-API](FEAT-VEAF-LOGS-REST-API/PRD.md) · ✅
+
+`veaf-logs` follows a server's `dcs.log` and the bot's log through DCSServerBot's RestAPI, with an API key and no SSH account: `logcore.APISource` mirrors the API's entries written back as lines (identical to the original files, measured on real logs), `api:` servers in `~/veafmct.yaml` with their logs discovered, older files openable, the reason a log cannot be read in the status bar. Checked by David on dcs.veaf.org with the technician key, across a server restart. Merged in #1198 (2026-10-26).
+
 ### [FEAT-GO-VEAF-LOGS-SHIP](FEAT-GO-VEAF-LOGS-SHIP/PRD.md) · ✅
 
 The release builds and publishes the Go `veaf-logs.exe` (`veaf-build build-logs` runs `go build`, version stamped), the PySide6 window and the `logs` extra leave, the windowless Python core stays for the support bot and the parity goldens (ADR 0023). Merged in #1190 (2026-10-25).

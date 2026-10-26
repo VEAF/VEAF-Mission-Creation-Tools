@@ -1,6 +1,6 @@
 # FEAT-VEAF-LOGS-REST-API — `veaf-logs` reads a server's logs through DCSServerBot's RestAPI
 
-Status: 🧑 waiting-human
+Status: ✅ done
 
 David, 2026-10-26.
 On 2026-10-18, finding out why a dcs.veaf.org server would not restart took about twenty throwaway PowerShell scripts over SSH, to read the instances' `dcs.log`, the bot's log and their rotated copies.
@@ -101,6 +101,12 @@ This lot is therefore Go work in `src/go/veaf-logs/`, and touches no Python.
 - Not seen: a tab following a mission restart (the rotation), which needs an instance restarted while a tab is open — David's call on a live server; the rotation is covered by the unit tests and by the bot's own cursor tests.
   Privé 1 had no older `dcs-*.log` that day: the older-file path was checked on the bot's rotated log.
 
+## Results — David's check from the internet, 2026-10-26
+
+- The log routes opened in the server's Caddy, to the technician key only (VEAF/VEAF-Servers#20); the bot's own key and no key get a 404 without a body there, which the viewer now reports as an authentication refused (#1198).
+- David opened Privé 1 through `https://dcs.veaf.org/serverapi` with the technician key, then restarted the whole Privé 1 server from Discord: the tab followed the new `dcs.log`.
+- Merged in #1198 (2026-10-26).
+
 ## Tickets
 
 | # | Ticket | Status |
@@ -109,7 +115,7 @@ This lot is therefore Go work in `src/go/veaf-logs/`, and touches no Python.
 | 02 | [`api:` servers in `~/veafmct.yaml`, instances discovered](tickets/02-config-and-discovery.md) | ✅ |
 | 03 | [The window opens API logs and their older files](tickets/03-window.md) | ✅ |
 | 04 | [`LOGS.md` / `LOGS.en.md`: reading a server's logs through its RestAPI](tickets/04-docs.md) | ✅ |
-| 05 | [Check on dcs.veaf.org](tickets/05-live-check.md) | 🧑 |
+| 05 | [Check on dcs.veaf.org](tickets/05-live-check.md) | ✅ |
 
 One branch and one PR for the lot.
 

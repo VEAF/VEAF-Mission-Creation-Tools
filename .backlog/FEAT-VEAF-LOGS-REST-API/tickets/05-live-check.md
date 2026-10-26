@@ -1,6 +1,6 @@
 # 05 — Check on dcs.veaf.org
 
-Status: 🧑 waiting-human (two points of three seen 2026-10-26, see the PRD)
+Status: ✅ done (2026-10-26, see the PRD)
 
 Blocked until the log routes run on dcs.veaf.org: [VEAF/DCSServerBot#3](https://github.com/VEAF/DCSServerBot/pull/3) merged into our `veaf` branch and deployed (David's call), or DCSServerBot 3.0.5 with #1.
 Read-only; David, or a session with his go.

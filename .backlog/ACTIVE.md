@@ -8,10 +8,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🧑 Waiting for a human
 
-### [FEAT-VEAF-LOGS-REST-API](FEAT-VEAF-LOGS-REST-API/PRD.md) · 🧑
-
-`veaf-logs` follows a server's `dcs.log` and the bot's log through DCSServerBot's RestAPI, with an API key and no SSH account: `logcore.APISource` mirrors the API's entries written back as lines (measured identical to the original on four real logs, 2026-10-26), `api:` servers in `~/veafmct.yaml` with their logs discovered, older files openable, the reason a log cannot be read in the status bar. Checked against dcs.veaf.org through an SSH tunnel (the server's Caddy keeps the log routes off the internet on purpose); left: a tab followed across a mission restart, David's call.
-
 ### [FIX-COWORK-SESSION-FINDINGS](FIX-COWORK-SESSION-FINDINGS/PRD.md) · 🧑
 
 What Trakdah's Claude Cowork session of 2026-10-25 ("Fire at Adler") taught us: five defects (briefing pictures, same-named waypoints, `~`, diversion fields, slots by era), security explained, the briefing in the kneeboard, the opposition's skill, route planning and a `set_route` action, Cowork in the docs. Thirteen tickets, done in the code; waits on two checks in David's DCS (the kneeboard pages, the ground units' skill).

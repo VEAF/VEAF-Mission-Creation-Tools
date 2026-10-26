@@ -310,6 +310,14 @@
       "regex": true
     },
     {
+      "id": "server_no_assets",
+      "label": "Textures absentes du serveur dedie",
+      "help": "Un serveur dedie tourne sans rendu et sans textures : DCS signale chaque archive qu'il ne peut monter, des milliers au lancement. Sans effet.",
+      "default_hidden": true,
+      "match": "No suitable driver found to mount ",
+      "regex": true
+    },
+    {
       "id": "verbose_veaf_debug",
       "label": "Traces DEBUG des scripts VEAF",
       "help": "VEAF-SHORTCUTS et VEAF-RADIO en DEBUG representent l'essentiel du volume.",

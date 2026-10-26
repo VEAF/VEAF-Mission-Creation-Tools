@@ -190,6 +190,8 @@ class TestBruit:
                 "ERROR   DXGUI_EDGE_RENDER (Main): Texture [dxgui/skins/skinme/images/x.png] not found!",
                 "ui_texture",
             ),
+            # The dedicated server of dcs.veaf.org, 2 761 lines in one dcs.log (2026-10-26).
+            ("ERROR   EDCORE (Main): No suitable driver found to mount bazar/textures/c-130", "server_no_assets"),
             (
                 'ERROR   ED_SOUND (20376): can\'t load wave: "effects/ambient/field_night1.ogg"',
                 "sound_source",

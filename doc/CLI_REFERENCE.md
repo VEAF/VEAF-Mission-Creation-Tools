@@ -887,7 +887,7 @@ Une place est retenue quand le sol y est de la terre (ni eau, ni route, ni piste
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
 ```bash
-.eaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
+.\veaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
 ```
 
 Le point se donne avec `--at` plutôt qu'en deux arguments : un nombre négatif en deuxième position serait lu comme une option.

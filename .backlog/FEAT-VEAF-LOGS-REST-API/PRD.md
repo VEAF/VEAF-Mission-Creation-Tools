@@ -30,7 +30,7 @@ This lot is therefore Go work in `src/go/veaf-logs/`, and touches no Python.
   A remote file that shrank is a rotation: the mirror starts over and the index restarts.
 - The user doc is `doc/mission-maker/LOGS.md` and `LOGS.en.md`, section *Journal d'un serveur distant* (`#remote`): it asks for the Windows OpenSSH server and an administrator key on the server.
 
-**The RestAPI routes** ([VEAF/DCSServerBot#1](https://github.com/VEAF/DCSServerBot/pull/1), to be proposed to SpecialK upstream).
+**The RestAPI routes**, not merged yet: [VEAF/DCSServerBot#1](https://github.com/VEAF/DCSServerBot/pull/1) on the fork's `development` (the version to propose to SpecialK for 3.0.5), and [VEAF/DCSServerBot#3](https://github.com/VEAF/DCSServerBot/pull/3), the same routes for our `veaf` branch (3.0.4.27, local node only), which is how they reach dcs.veaf.org before 3.0.5 (David, 2026-10-26).
 
 | Route | What |
 |---|---|
@@ -44,8 +44,10 @@ This lot is therefore Go work in `src/go/veaf-logs/`, and touches no Python.
 - Each answer carries a `cursor`; passed back, it returns only what was written since.
   Through a rotation it returns the end of the old file, then the new file, with `rotated: true` and `new_file_at` (the index in `lines` where the new file starts); `gap: true` if the old file is gone.
 - Bounds: 16 MiB read and 1 MiB returned per request; `more: true` when a limit is hit.
-- Auth: at least an API key (`X-API-Key`), even on the loopback; from the internet the bot asks a JWT by default, so the server's `restapi.yaml` must allow `api_key` on these endpoints (`endpoints.<path>.security.remote: api_key`).
-- The routes are on DCSServerBot's `development` branch (3.0.5); **dcs.veaf.org runs 3.0.4.27**: they reach it when SpecialK releases 3.0.5, or earlier through a backport on our `veaf` branch.
+- Auth, on the `veaf` version (#3): the `api_key` of `restapi.yaml` protects every route, the log routes exist only when it is set, and the key is all a client needs.
+  On 3.0.5 (#1): the log routes need at least an API key, even on the loopback, but every route asks a JWT from the internet by default, so the server's `restapi.yaml` must allow `api_key` from there (`endpoints.<path>.security.remote: api_key`) on the log routes **and on `/servers`**, which the discovery reads.
+- Errors: 400 for a bad parameter or cursor; 404 for an unknown server, node or file name, **or** a log not written yet (the `detail` text tells which); 501 on the `veaf` version for a server or bot log on another node; 503 for an inactive node and 504 for a node that does not answer, on 3.0.5.
+  At a shutdown the bot **copies** `dcs.log` (`dcs-YYYYMMDD-HHMMSS.log`), it does not move it: a stopped instance still has its `dcs.log`, and a 404 does not mean "instance stopped".
 
 ## What the lot delivers
 
@@ -67,7 +69,7 @@ This lot is therefore Go work in `src/go/veaf-logs/`, and touches no Python.
    *Default*: discovered: `/servers` gives the servers, `/node/logs` the bot log of the API's node; an optional `logs:` list in the config narrows or renames them.
 3. **How much history a tab opens with.**
    The API does not page backwards: a tail read gives the last entries, a cursor goes forward.
-   *Default*: the last 2000 entries at opening (`tail=true&lines=2000`), then the cursor; *Fichier › Ouvrir un ancien journal* reads a whole older file forward, chunk by chunk, up to the 2 GB the viewer already accepts.
+   *Default*: the last 2000 entries at opening (`tail=true&lines=2000`), then the cursor; *Fichier › Ouvrir un ancien journal* reads a whole older file forward, chunk by chunk.
 4. **Where the key lives.**
    *Default*: `api_key_file` in the server's block (a file only the user can read); never the key itself in `veafmct.yaml`, never in `session.json`, never in a message or the `/bug` report.
 

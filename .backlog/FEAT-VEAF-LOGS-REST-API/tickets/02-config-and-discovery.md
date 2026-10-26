@@ -19,7 +19,7 @@ servers:
 - A server has either `host` (SSH) or `api`, never both; the error says which.
 - Without `logs:`, the instances come from `/servers` and the bot log from `/node/logs` (the API's own node).
 - The key is read from `api_key_file` when the connection opens and kept in memory only: not in `session.json`, not in an error, not in the `/bug` report (a test greps for it).
-- A 403 says what to change on the server: an API key accepted on these endpoints from where the viewer connects (`endpoints.<path>.security.remote: api_key` in `restapi.yaml`).
+- A 403 says what to change on the server: the right key; and on DCSServerBot 3.0.5, an API key accepted from where the viewer connects on the log routes **and on `servers`**, which the discovery reads (`endpoints.<path>.security.remote: api_key` in `restapi.yaml`).
 - `http://` is accepted for `127.0.0.1` and `localhost` only (an SSH tunnel); any other host needs `https://`.
 
 ## Done when

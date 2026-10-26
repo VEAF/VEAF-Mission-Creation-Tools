@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-GO-VEAF-LOGS-TABS](FEAT-GO-VEAF-LOGS-TABS/PRD.md) · ✅
+
+The `veaf-logs` tab strip scrolls past the window's width (wheel, ‹ › arrows), a ≡ button lists the tabs from two on, and a tab can be renamed: its alias lives in `~/veafmct.yaml` (a server's `aliases:`, `log_aliases:` for a local file), written by *Renommer l'onglet…* or by hand; an API's discovered logs lose the prefix all its servers share. Asked by David 2026-10-26 after opening seven API tabs. Checked by hand by David the same day.
+
 ### [FEAT-VEAF-LOGS-REST-API](FEAT-VEAF-LOGS-REST-API/PRD.md) · ✅
 
 `veaf-logs` follows a server's `dcs.log` and the bot's log through DCSServerBot's RestAPI, with an API key and no SSH account: `logcore.APISource` mirrors the API's entries written back as lines (identical to the original files, measured on real logs), `api:` servers in `~/veafmct.yaml` with their logs discovered, older files openable, the reason a log cannot be read in the status bar. Checked by David on dcs.veaf.org with the technician key, across a server restart. Merged in #1198 (2026-10-26).

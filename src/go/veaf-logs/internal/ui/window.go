@@ -86,7 +86,8 @@ type window struct {
 	connMu    sync.Mutex
 	closed    bool
 	unclaimed map[remoteSource]bool
-	done      chan struct{} // closed once the window is gone: a pending host key question gives up
+	apiNames  map[string][]string // the logs each API server listed, for their shortened titles; under connMu
+	done      chan struct{}       // closed once the window is gone: a pending host key question gives up
 
 	opts       Options
 	smokeDone  bool
@@ -111,7 +112,7 @@ func Run(opts Options) int {
 	}
 	w := &window{
 		rules: rules, strip: logview.NewStrip[*logPane](), opts: opts, session: logview.NewSession(),
-		restore: logview.NewRestore(), restored: map[*logPane]bool{}, unclaimed: map[remoteSource]bool{}, done: make(chan struct{}),
+		restore: logview.NewRestore(), restored: map[*logPane]bool{}, unclaimed: map[remoteSource]bool{}, apiNames: map[string][]string{}, done: make(chan struct{}),
 	}
 	if !opts.Smoke {
 		w.session = logview.LoadSession(logview.SessionPath())
@@ -248,6 +249,8 @@ func (w *window) create() error {
 	w.tabs = newTabStrip(stripWidget, w.strip)
 	w.tabs.onSelect = w.tabChanged
 	w.tabs.onClose = w.closeTab
+	w.tabs.onList = w.chooseTab
+	w.tabs.onMenu = w.tabMenu
 
 	// Ctrl+= zooms in too: Ctrl++ needs Shift on a French keyboard. And the
 	// numeric keypad's + and -.
@@ -358,6 +361,8 @@ func (w *window) openPath(path, member string) *logPane {
 		return nil
 	}
 	pane.path, pane.member = path, member
+	pane.name, pane.alias = title, aliasTarget{local: localAliasKey(path, member)}
+	w.applyAlias(pane)
 	return pane
 }
 

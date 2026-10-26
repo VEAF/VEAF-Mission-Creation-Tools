@@ -33,7 +33,7 @@ from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 from veaf_mission_mcp.mission_table import find_group, group_category, indexed, listed, unit_names
 
 #: The AI competence levels. `Random` is one of them: DCS picks a level at mission start.
-_AI_SKILLS: tuple[str, ...] = ("Average", "Good", "High", "Excellent", "Random")
+AI_SKILLS: tuple[str, ...] = ("Average", "Good", "High", "Excellent", "Random")
 
 #: Not skills at all — a unit carrying one of these is a slot a human can take.
 _HUMAN_SKILLS: tuple[str, ...] = ("Client", "Player")
@@ -265,10 +265,10 @@ def _apply_skill(unit: dict[str, Any], skill: str, changed: dict[str, Any]) -> N
     if skill in _HUMAN_SKILLS:
         raise ValueError(
             f"{skill!r} is a human slot, not a skill level: setting it would add this unit to the "
-            f"multiplayer slot list. Valid skills: {', '.join(_AI_SKILLS)}"
+            f"multiplayer slot list. Valid skills: {', '.join(AI_SKILLS)}"
         )
-    if skill not in _AI_SKILLS:
-        raise ValueError(f"Unknown skill {skill!r}. Valid skills: {', '.join(_AI_SKILLS)}")
+    if skill not in AI_SKILLS:
+        raise ValueError(f"Unknown skill {skill!r}. Valid skills: {', '.join(AI_SKILLS)}")
     if current in _HUMAN_SKILLS:
         raise ValueError(
             f"unit is a human slot (skill {current!r}): giving it an AI skill would remove it from "

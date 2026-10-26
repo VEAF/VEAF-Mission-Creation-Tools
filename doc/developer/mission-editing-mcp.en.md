@@ -739,7 +739,7 @@ Each one is the matching `veaf-tools campaign` command (`campaign_manager.Campai
   wrapped `TransmitMessage`, `file` = the key, `loop`, `duration`, `subtitle` written to the
   dictionary).
 - `set_briefing_picture(mission_path, source_path, side, resource_name)` — copies a `.png`/`.jpg` into `l10n/DEFAULT`, declares it in `mapResource` as `MCP_Picture_<name>` and appends the key to the side's `pictureFileNameB` / `R` / `N`, keeping the pictures it had (FIX-DEMO-MISSION-FINDINGS 07).
-- `build_mission_briefing(mission_path, title, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, pilots, loadouts, basemap, side)` — an objective mission's VEAF briefing with no script (FEAT-MCP-MISSION-BRIEFING): `docs/briefing.pptx`, `docs/maps/` and the DCS briefing pictures, in the folder **and** the built `.miz`, first in `pictureFileNameB` / `N` under `MCP_Briefing_*` keys replaced on every call. The assistant passes the words; the rest is read from the built `.miz` (`mission_briefing/`), the injected presets (`Radio[n].channelsNames`) included for the frequency plan. `basemap: topo` takes OpenTopoMap tiles, with their credit and their own cache folder.
+- `build_mission_briefing(mission_path, title, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, pilots, loadouts, basemap, side)` — an objective mission's VEAF briefing with no script (FEAT-MCP-MISSION-BRIEFING): `docs/briefing.pptx`, its PDF `docs/briefing.pdf` (drawn by `fpdf2` with the bundled DejaVu font: the same pages and words, a layout of its own, no Office needed; `pdf_pages` in the result), `docs/maps/` and the DCS briefing pictures, in the folder **and** the built `.miz`, first in `pictureFileNameB` / `N` under `MCP_Briefing_*` keys replaced on every call. The assistant passes the words; the rest is read from the built `.miz` (`mission_briefing/`), the injected presets (`Radio[n].channelsNames`) included for the frequency plan. `basemap: topo` takes OpenTopoMap tiles, with their credit and their own cache folder.
 
 ### Syria Open Training (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 
@@ -802,6 +802,11 @@ targets a mission folder (durable) or a `.miz`, backed up first.
   `mission.start_time` (`HH:MM[:SS]`, the theatre's clock). The weather variants still override both.
 - `set_bullseye(target, coalition, position)` — `mission.coalition.<side>.bullseye`, the source of
   every flight plan's BULLSEYE waypoint.
+- `set_route(mission_path, plan, points, coalition?, category?, aircraft_type?, country?)` — a players'
+  flight plan in the folder's `src/waypoints.yaml`: the points in order (x/y or lat/lon), each set on
+  the ground from the theatre's grid, a repeated name refused, the plan replaced with its old points;
+  the file's comments are kept. Returns each leg's heading and distance, and names a plan that would
+  still win over it (`WaypointsManager.get_flight_plan_for`: the most specific, then the first declared).
 - `set_briefing(target, sortie?, situation?, blue_task?, red_task?, neutrals_task?)` — the briefing
   texts. Where the mission table holds a `DictKey_…` reference, the text goes into
   `l10n/DEFAULT/dictionary` behind it, so the reference stays valid; `write_mission_folder` now

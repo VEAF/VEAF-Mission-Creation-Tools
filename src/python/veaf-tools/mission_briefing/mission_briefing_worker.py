@@ -14,6 +14,7 @@ from __future__ import annotations
 import io
 import math
 import re
+import unicodedata
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -67,15 +68,40 @@ from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 from veaf_mission_mcp.add_sound import _folder_l10n
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
+from mission_briefing.briefing_kneeboard import (
+    KNEEBOARD_FOLDER,
+    MAP_ASPECT,
+    flight_card_blocks,
+    is_kneeboard_page,
+    map_page,
+    page_name,
+    targets_blocks,
+    text_pages,
+)
 from mission_briefing.briefing_maps import OVERVIEW_FILE, render_objective_zoom, render_overview_map, zoom_file
-from mission_briefing.mission_reader import departures, group_position, objective_area, radio_plans
-from mission_briefing.models import BriefingContent, BriefingReport, Objective, ObjectiveArea, RadioPlan, Threat
+from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
+from mission_briefing.mission_reader import departures, group_position, objective_area, radio_plans, slot_flights
+from mission_briefing.models import (
+    BriefingContent,
+    BriefingReport,
+    Objective,
+    ObjectiveArea,
+    RadioPlan,
+    SlotFlight,
+    Threat,
+)
 
 #: The deck, in the mission folder.
 DECK_FILE = Path("docs") / "briefing.pptx"
 
+#: The PDF of the same pages, in the mission folder.
+PDF_FILE = Path("docs") / "briefing.pdf"
+
 #: The maps, in the mission folder.
 MAPS_FOLDER = Path("docs") / "maps"
+
+#: The folder the build writes the weather variants into, beside its own `.miz`.
+VARIANTS_FOLDER = "missions"
 
 #: The resource keys of the pictures this writes; anything else in the briefing is left alone.
 PICTURE_PREFIX = "MCP_Briefing_"
@@ -125,6 +151,84 @@ def _threat_line(threat: Threat) -> str:
     return line(name, ", ".join(ranges) + source)
 
 
+#: A waypoint number as the texts write it: ``W3``, ``WP3``, ``W 3``.
+_WAYPOINT_REFERENCE = re.compile(r"\bW(?:P)?\s?(\d{1,2})\b")
+
+
+def _folded(text: str) -> str:
+    """Lower case, accents removed: ``Nœud`` and ``noeud`` compare equal."""
+    return (
+        unicodedata.normalize("NFKD", text.replace("œ", "oe").replace("Œ", "OE"))
+        .encode("ascii", "ignore")
+        .decode()
+        .lower()
+    )
+
+
+def _waypoint_warnings(content: BriefingContent, picture: MissionPicture) -> list[str]:
+    """Compare the ``W<n>`` of the assistant's words with the route the built mission carries.
+
+    A route gains a point (the build's BULLSEYE, one more objective) after the texts were written, and
+    every number after it is false: measured on a run whose briefing and F10 labels said W3, W4, W6 for
+    points that were W4, W5, W7 (FIX-DEMO-VIDEO-FINDINGS 07). Nobody without PowerPoint can re-read the
+    rendered pages, so the numbers are checked here: one past the end of the longest route, or one the
+    same line contradicts by naming another point of the first route.
+
+    Args:
+        content: What the assistant wrote.
+        picture: What the built mission says.
+
+    Returns:
+        One warning per number that does not fit; none when the mission has no route.
+    """
+    if not picture.flight_plans:
+        return []
+    longest = max(len(plan.waypoints) for plan in picture.flight_plans)
+    names = [wp.name for wp in picture.flight_plans[0].waypoints]
+    lines = [
+        *content.context,
+        *content.mission,
+        *content.air_opposition,
+        *content.air_defences,
+        *content.other,
+        *(text for objective in content.objectives for text in (objective.title, *objective.task)),
+    ]
+    warnings = []
+    for text in lines:
+        numbers = {int(found) for found in _WAYPOINT_REFERENCE.findall(text)}
+        for number in sorted(numbers):
+            if number > longest:
+                warnings.append(
+                    f"Waypoint W{number} in {text!r}: the route has {longest} point(s) after the departure "
+                    "(counting the BULLSEYE the build adds); numbers past it point at nothing."
+                )
+        if len(numbers) == 1:
+            number = next(iter(numbers))
+            for index, name in enumerate(names, 1):
+                if index != number and re.search(rf"\b{re.escape(_folded(name))}\b", _folded(text)):
+                    warnings.append(
+                        f"Waypoint {name} is W{index} on the route, not W{number} as {text!r} says: "
+                        "numbers shift when a point (the BULLSEYE) is declared before the one named."
+                    )
+    return warnings
+
+
+def _slot_lines(flights: dict[str, list[SlotFlight]]) -> dict[str, list[str]]:
+    """The ATO's lines for what each base offers in dynamic slots: ``A-10C_2 — Archer : 390.0 MHz``."""
+    return {
+        airfield: [
+            t(
+                "mission_briefing.slot_flight",
+                aircraft=flight.aircraft,
+                callsign=flight.callsign or "—",
+                frequency=mhz(flight.frequency) if flight.frequency else "—",
+            )
+            for flight in found
+        ]
+        for airfield, found in flights.items()
+    }
+
+
 def _situation_page(
     content: BriefingContent,
     picture: MissionPicture,
@@ -168,7 +272,7 @@ def _situation_page(
     return Page(t("campaign.mission_deck.title.situation"), blocks)
 
 
-def _flow_page(content: BriefingContent, picture: MissionPicture) -> Page:
+def _flow_page(content: BriefingContent, picture: MissionPicture, starts: list[tuple[str, float, float]]) -> Page:
     blocks = []
     if content.objectives:
         blocks.append(
@@ -186,7 +290,15 @@ def _flow_page(content: BriefingContent, picture: MissionPicture) -> Page:
     tankers = [s.callsign for s in picture.support if s.role != "awacs"]
     if tankers:
         others.append(t("campaign.mission_deck.refuelling", tankers=_join(tankers)))
-    diversions = [a.name for a in picture.airfields] + [c.name for c in picture.carriers]
+    # the departure is no diversion: the deck said "Diversion fields: Senaki" for a flight leaving
+    # Senaki (FIX-COWORK-SESSION-FINDINGS 04); the assistant may name them instead
+    departed = {name for name, _, _ in starts}
+    diversions = (
+        list(content.diversions)
+        if content.diversions is not None
+        else [a.name for a in picture.airfields if a.name not in departed]
+        + [c.name for c in picture.carriers if c.name not in departed]
+    )
     if diversions:
         others.append(t("campaign.mission_deck.diversion", fields=_join(diversions)))
     if picture.plane_guard:
@@ -244,19 +356,18 @@ def _targets_page(theatre: str, areas: list[tuple[Objective, ObjectiveArea]], wa
     return Page(t("mission_briefing.title.targets"), blocks)
 
 
+def _cover_date_line(picture: MissionPicture) -> str:
+    """The cover's line under the subtitle: ``13 octobre 2015 — 06h15 locale``."""
+    date = t("campaign.mission_deck.date", day=picture.date.day, month=picture.date.month, year=picture.date.year)
+    return f"{date} — {t('campaign.mission_deck.local', time=clock(picture.start_time))}"
+
+
 def _write_cover(deck: PresentationType, title: str, picture: MissionPicture, contents: list[str]) -> None:
     slide = deck.slides.add_slide(deck.slide_layouts[6])
     frame = _frame(slide, _MARGIN, Emu(1700000), Emu(6800000), Emu(3200000))
     _run(frame.paragraphs[0], title, 54, bold=True, colour=_BLUE)
     _run(frame.add_paragraph(), t("campaign.mission_deck.subtitle"), 22, colour=_GREY)
-    date = t("campaign.mission_deck.date", day=picture.date.day, month=picture.date.month, year=picture.date.year)
-    _run(
-        frame.add_paragraph(),
-        f"{date} — {t('campaign.mission_deck.local', time=clock(picture.start_time))}",
-        16,
-        italic=True,
-        colour=_GREY,
-    )
+    _run(frame.add_paragraph(), _cover_date_line(picture), 16, italic=True, colour=_GREY)
     toc = _frame(slide, Emu(7900000), Emu(1500000), Emu(3900000), Emu(4600000))
     _run(toc.paragraphs[0], t("campaign.deck.contents"), 20, bold=True)
     for item in contents:
@@ -318,8 +429,39 @@ def _stale_pictures(l10n: Path, previous: set[str], kept: set[str]) -> list[Path
     return stale
 
 
-def _write_pictures(folder: Path, miz: Path, maps: list[Path], side: str) -> tuple[list[str], list[str]]:
-    """Put the maps in the mission folder and the built `.miz`, both backed up first.
+def built_archives(folder: Path, miz: Path) -> list[Path]:
+    """The build's own `.miz`, then each weather variant the build wrote into `missions/`.
+
+    The players fly a variant, not the build's own archive: pictures written into the latter only
+    reached them after a rebuild (FIX-COWORK-SESSION-FINDINGS 01).
+
+    Args:
+        folder: The mission folder.
+        miz: The build's own `.miz` (`find_built_mission`).
+
+    Returns:
+        Every archive the briefing goes into, the build's own first.
+    """
+    return [miz, *sorted((folder / VARIANTS_FOLDER).glob("*.miz"))]
+
+
+def _write_kneeboard_folder(folder: Path, pages: dict[str, bytes]) -> None:
+    """Put the kneeboard pages in the mission folder, so a rebuild carries them; drop the ones no longer written."""
+    target = _folder_l10n(folder).parent.parent / KNEEBOARD_FOLDER
+    if target.is_dir():
+        for stale in target.iterdir():
+            if is_kneeboard_page(stale.name) and stale.name not in pages:
+                stale.unlink(missing_ok=True)
+    if pages:
+        target.mkdir(parents=True, exist_ok=True)
+    for name, data in pages.items():
+        (target / name).write_bytes(data)
+
+
+def _write_pictures(
+    folder: Path, archives: list[Path], maps: list[Path], side: str, kneeboard: dict[str, bytes]
+) -> tuple[list[str], list[str]]:
+    """Put the maps and the kneeboard pages in the mission folder and every built `.miz`, backed up first.
 
     Returns:
         The resource keys, in display order, and the other side's pictures found.
@@ -337,21 +479,68 @@ def _write_pictures(folder: Path, miz: Path, maps: list[Path], side: str) -> tup
     for name, data in files.items():
         (l10n / name).write_bytes(data)
     save_folder_mission(mission, folder)
+    _write_kneeboard_folder(folder, kneeboard)
 
-    built = read_miz(miz)
-    _list_pictures(built, pictures, side)
-    additional: dict[str, Any] = {f"{DEFAULT_SCRIPTS_LOCATION}/{name}": data for name, data in files.items()}
-    if f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
-        # `write_miz` rewrites a `mapResource` member the archive has; one it lacks has to be supplied
-        additional[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = (
-            "mapResource = \n"
-            + luadata.serialize(
-                built.map_resource_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-            )
-        ).encode()
-    backup_before_write(miz)
-    write_miz(built, miz, additional_files=additional)
+    for miz in archives:
+        built = read_miz(miz)
+        _list_pictures(built, pictures, side)
+        additional: dict[str, Any] = {f"{DEFAULT_SCRIPTS_LOCATION}/{name}": data for name, data in files.items()}
+        additional.update({f"{KNEEBOARD_FOLDER}/{name}": data for name, data in kneeboard.items()})
+        if f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
+            # `write_miz` rewrites a `mapResource` member the archive has; one it lacks has to be supplied
+            additional[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = (
+                "mapResource = \n"
+                + luadata.serialize(
+                    built.map_resource_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
+                )
+            ).encode()
+        # a page an earlier run wrote and this one does not (one objective less, kneeboard off) leaves
+        # the archive too, not only the folder
+        stale_pages = {
+            member
+            for member in list_members(miz)
+            if member.startswith(f"{KNEEBOARD_FOLDER}/")
+            and is_kneeboard_page(member.rsplit("/", 1)[-1])
+            and member.rsplit("/", 1)[-1] not in kneeboard
+        }
+        backup_before_write(miz)
+        write_miz(built, miz, additional_files=additional, removed_files=stale_pages)
     return list(pictures), other
+
+
+def _kneeboard_pages(
+    folder: Path,
+    picture: MissionPicture,
+    areas: list[tuple[Objective, ObjectiveArea]],
+    threats: list[tuple[Threat, tuple[float, float]]],
+    starts: list[tuple[str, float, float]],
+    radios: list[RadioPlan],
+    tiles: dict[str, Any],
+) -> dict[str, bytes]:
+    """The briefing for the knee: the maps drawn for the 2:3 page, the flight card, the targets.
+
+    Returns:
+        Page file name -> JPEG, in the order the kneeboard shows them.
+    """
+    theatre = picture.theatre
+    maps_folder = folder / MAPS_FOLDER / "kneeboard"
+    overview = render_overview_map(
+        picture, areas, threats, starts, maps_folder / OVERVIEW_FILE, aspect=MAP_ASPECT, **tiles
+    )
+    sheets: list[tuple[str, bytes]] = [("overview", map_page(t("campaign.mission_deck.title.tactical"), overview.path))]
+    for objective, area in areas:
+        zoom = render_objective_zoom(
+            theatre, objective, area, threats, maps_folder / zoom_file(area.zone), aspect=MAP_ASPECT, **tiles
+        )
+        title = t("campaign.mission_deck.title.zoom", zone=area.zone)
+        sheets.append((Path(zoom_file(area.zone)).stem, map_page(title, zoom.path)))
+    card_blocks = flight_card_blocks(theatre, list(picture.flight_plans), starts, radios)
+    card = text_pages(t("mission_briefing.kneeboard.flight_card"), card_blocks) if card_blocks else []
+    target_blocks = targets_blocks(theatre, [(objective.title, area) for objective, area in areas])
+    targets = text_pages(t("mission_briefing.title.targets"), target_blocks) if target_blocks else []
+    for slug, pages in (("flight-card", card), ("targets", targets)):
+        sheets += [(slug if n == 1 else f"{slug}-{n}", page) for n, page in enumerate(pages, 1)]
+    return {page_name(n, slug): data for n, (slug, data) in enumerate(sheets, 1)}
 
 
 def build_mission_briefing(
@@ -362,6 +551,7 @@ def build_mission_briefing(
     source: TileSource = OSM,
     cache_dir: Path | None = None,
     fetch: Fetch | None = None,
+    kneeboard: bool = True,
 ) -> BriefingReport:
     """Write a one-shot mission's briefing deck and maps, and put the maps in its DCS briefing.
 
@@ -372,6 +562,7 @@ def build_mission_briefing(
         source: Where the map tiles come from.
         cache_dir: Where map tiles are kept between runs.
         fetch: How a map tile is downloaded (tests pass their own).
+        kneeboard: Whether the maps, a flight card and the targets also go into every aircraft's kneeboard.
 
     Returns:
         The deck, its page count, the maps, the pictures' keys, the `.miz` read, and the warnings.
@@ -383,7 +574,7 @@ def build_mission_briefing(
     if miz is None:
         raise ValueError(f"No built mission in {folder}: run build_mission first, the briefing reads the built .miz.")
     with language(_mission_language(folder)):
-        return _build(folder, miz, content, side, source, cache_dir, fetch)
+        return _build(folder, miz, content, side, source, cache_dir, fetch, kneeboard)
 
 
 def _build(
@@ -394,15 +585,17 @@ def _build(
     source: TileSource,
     cache_dir: Path | None,
     fetch: Fetch | None,
+    kneeboard: bool,
 ) -> BriefingReport:
-    table = read_miz(miz).mission_content or {}
+    built = read_miz(miz)
+    table = built.mission_content or {}
     picture = read_mission_picture(miz, side, folder)
     dynamic = bool(picture.airfields)
     if not dynamic:  # the scaffold's dynamic-slot templates are nobody's cockpit here
         picture = replace(picture, flight_plans=_flight_plans(table, side, templates=False))
     theatre = picture.theatre
     enemy = "red" if side == "blue" else "blue"
-    warnings: list[str] = []
+    warnings: list[str] = _waypoint_warnings(content, picture)
     areas = [(objective, objective_area(table, objective.zone, enemy)) for objective in content.objectives]
     threats = []
     for threat in content.threats:
@@ -422,12 +615,13 @@ def _build(
     ]
 
     situation = _situation_page(content, picture, starts)
-    ato = ato_page(picture, content.pilots, content.loadouts)
-    flow = _flow_page(content, picture)
+    ato = ato_page(picture, content.pilots, content.loadouts, _slot_lines(slot_flights(built, side, theatre)))
+    flow = _flow_page(content, picture, starts)
     navigation = navigation_page(theatre, picture)
     if navigation:
         navigation.title = t("mission_briefing.title.flight_plan")
-    frequencies = _frequencies_page(picture, radio_plans(table, side, templates=dynamic))
+    radios = radio_plans(table, side, templates=dynamic)
+    frequencies = _frequencies_page(picture, radios)
     targets = _targets_page(theatre, areas, warnings)
     closing = [flow, *([navigation] if navigation else []), frequencies, targets]
     titles = [
@@ -445,8 +639,10 @@ def _build(
     deck = Presentation()
     deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
     _write_cover(deck, content.title, picture, numbered)
+    sheets: list[Page | MapSheet] = []
     for part in [*paginate(situation), *paginate(ato)]:
         _write_page(deck, part)
+        sheets.append(part)
     legend = [
         (t("campaign.deck.legend"), True),
         (t("mission_briefing.legend.objectives"), False),
@@ -458,19 +654,33 @@ def _build(
         *([(t("campaign.mission_deck.legend.waypoints"), False)] if navigation else []),
     ]
     picture_page(deck, numbered[2], overview.path, legend)
+    sheets.append(MapSheet(numbered[2], overview.path, legend))
     for title, (objective, area), zoom in zip(numbered[3 : 3 + len(areas)], areas, zooms, strict=True):
         notes = [(objective.title, True), *[(text, False) for text in objective.task]]
         if area.targets:
             notes += [(t("mission_briefing.heading.targets"), True), (_join([x.name for x in area.targets]), False)]
         picture_page(deck, title, zoom.path, notes)
+        sheets.append(MapSheet(title, zoom.path, notes))
     for part in [part for page in closing for part in paginate(page)]:
         _write_page(deck, part)
+        sheets.append(part)
     out = folder / DECK_FILE
     out.parent.mkdir(parents=True, exist_ok=True)
     deck.save(str(out))
+    pdf = folder / PDF_FILE
+    cover = Cover(
+        content.title,
+        t("campaign.mission_deck.subtitle"),
+        _cover_date_line(picture),
+        t("campaign.deck.contents"),
+        numbered,
+    )
+    pdf_pages = write_pdf(pdf, cover, sheets)
 
     maps = [overview.path, *(zoom.path for zoom in zooms)]
-    keys, other = _write_pictures(folder, miz, maps, side)
+    pages = _kneeboard_pages(folder, picture, areas, threats, starts, radios, tiles) if kneeboard else {}
+    archives = built_archives(folder, miz)
+    keys, other = _write_pictures(folder, archives, maps, side, pages)
     if other:
         warnings.append(
             f"{_PICTURE_KEYS['red' if side == 'blue' else 'blue']} holds {len(other)} picture(s): a player of no "
@@ -479,4 +689,6 @@ def _build(
     offline = overview.offline or any(zoom.offline for zoom in zooms)
     if offline:
         warnings.append("Map tiles could not be downloaded: the maps stand on a plain background.")
-    return BriefingReport(out, len(deck.slides), maps, keys, miz, offline, warnings)
+    return BriefingReport(
+        out, len(deck.slides), maps, keys, miz, offline, warnings, pdf, pdf_pages, archives, list(pages)
+    )

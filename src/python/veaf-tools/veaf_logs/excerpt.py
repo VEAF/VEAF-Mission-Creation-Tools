@@ -434,6 +434,8 @@ def build_excerpt(
         selected=len(entries),
         excluded=excluded_keys(filters),
         context_only=context_keys(filters),
-        searches=[item.describe() for item in filters.text_filters if item.enabled and item.pattern],
+        # Typed by the user, so it may carry a name or an address, and the header travels to the
+        # Worker as it stands: redacted like the records.
+        searches=[redact(item.describe()) for item in filters.text_filters if item.enabled and item.pattern],
     )
     return _bound(excerpt, entries, max_chars)

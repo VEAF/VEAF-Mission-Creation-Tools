@@ -18,15 +18,8 @@ Sans argument, il rouvre les fichiers de la dernière session ; à défaut, le
 `dcs.log` courant (`Saved Games\DCS\Logs\dcs.log`). On peut aussi lui passer un
 chemin, ou faire glisser un fichier dessus.
 
-Depuis les sources :
-
-```
-poetry install --all-extras
-poetry run veaf-logs
-```
-
-L'interface graphique demande PySide6, déclaré en dépendance optionnelle
-(`--all-extras`, ou `--extras logs`). Le reste de `veaf-tools` n'en a pas besoin.
+`veaf-logs.exe` est un programme Windows autonome, écrit en Go : un seul fichier d'une quinzaine de Mo, sans Python ni rien d'autre à installer.
+Ses sources sont dans `src/go/veaf-logs/`, dont le `README.md` dit comment le construire.
 
 ## Journal d'un serveur distant {#remote}
 
@@ -77,6 +70,75 @@ compte **administrateur**, la clé publique va dans
 `SYSTEM` et `Administrators`.
 
 `veaf-tools.exe` n'embarque pas cette fonction : elle vit dans `veaf-logs`.
+
+### Par l'API de DCSServerBot, sans compte SSH {#remote-api}
+
+Un serveur qui fait tourner DCSServerBot avec son plugin RestAPI se lit aussi sans compte sur la machine : une clé API suffit, et le bot ne fait que lire.
+On déclare l'API à la place de `host` (un serveur a l'un ou l'autre, jamais les deux) :
+
+```yaml
+servers:
+  veaf-api:
+    api:
+      url: https://dcs.veaf.org/serverapi       # l'API, préfixe compris s'il y en a un
+      api_key_file: ~/.veaf/dcssb-api-key       # un fichier qui ne contient que la clé
+    # logs:                                     # facultatif : restreindre ou renommer
+    #   private1: {instance: VEAF Private 1}    # le nom du serveur côté bot
+    #   bot: {node: dcs-veaf-org}               # le journal du bot d'un nœud
+```
+
+Sans `logs:`, le menu demande à l'API ce qu'elle a : chaque serveur DCS qu'elle connaît (`veaf-api › VEAF Private 1`…) et le journal du bot (`veaf-api › bot`).
+Les onglets se rouvrent au lancement comme ceux d'un serveur SSH.
+
+**Sur dcs.veaf.org**, l'adresse est `https://dcs.veaf.org/serverapi`, et le fichier de clé contient la **clé technicien que donne David**, pas celle du bot : depuis Internet, seule la clé technicien passe.
+Une autre clé y reçoit la même réponse qu'une route absente ; l'outil la présente comme une authentification refusée.
+
+`Fichier › Ouvrir un ancien journal…`, sur un onglet ouvert par l'API, liste les fichiers de ce journal avec leur taille et leur date : `dcs.log.old`, les copies `dcs-AAAAMMJJ-HHMMSS.log` que le bot fait à chaque arrêt, ou les `dcssb-<nœud>.log.1` à `.5` du bot.
+Le fichier choisi s'ouvre dans un onglet en lecture seule, chargé du début à la fin par morceaux ; il n'est pas rouvert au lancement suivant.
+
+Ce qui change par rapport à SSH :
+
+- un onglet s'ouvre sur les 2 000 dernières entrées du journal, puis suit ce qui s'écrit ; pour remonter plus loin, ouvrir le fichier par `Ouvrir un ancien journal…` ;
+- l'API rend des entrées, que l'outil réécrit en lignes : seuls l'alignement du niveau (les espaces après `INFO`) et une ligne de plus de 8 Kio (coupée par le bot) diffèrent du fichier d'origine, et aucune règle ne les lit ;
+- quand le journal redémarre et que le bot ne retrouve plus la fin de l'ancien fichier, la barre d'état le dit : des lignes ont été perdues ;
+- la barre d'état dit aussi pourquoi un journal ne se lit pas : clé refusée, pas encore de journal, serveur ou fichier inconnu, journal sur un autre nœud, serveur injoignable.
+
+Côté serveur, il faut :
+
+- DCSServerBot avec les routes de lecture des journaux (`/instance/logs`, `/instance/log`, `/node/logs`, `/node/log`) : la branche `veaf` de [VEAF/DCSServerBot](https://github.com/VEAF/DCSServerBot), en attendant la version de DCSServerBot qui les publiera ;
+- le plugin RestAPI avec une `api_key` dans son `restapi.yaml` : sans clé, ces routes n'existent pas ;
+- un *reverse proxy* en HTTPS devant l'API (Caddy, nginx, IIS), le service web du bot n'écoutant que sur `127.0.0.1` ;
+- à partir de la version 3.0.5 de DCSServerBot, qui demande par défaut un JWT aux connexions venues d'Internet : autoriser la clé API sur les routes de journaux **et** sur `servers`, que le menu interroge (`endpoints.<route>.security.remote: api_key` dans `restapi.yaml`).
+
+Sécurité :
+
+- la clé vit dans un fichier lisible par toi seul, jamais dans `veafmct.yaml` ; l'outil la lit à l'ouverture d'un onglet et ne l'écrit nulle part, ni dans la session, ni dans un message, ni dans le rapport `/bug` ;
+- l'outil refuse une URL en `http://` sauf vers `127.0.0.1` ou `localhost` (le bout d'un tunnel SSH) : la clé et les journaux traversent le réseau ;
+- les journaux contiennent des noms de joueurs et des adresses IP : une clé se donne à qui administre le serveur.
+
+## Onglets {#tabs}
+
+Quand les onglets dépassent la largeur de la fenêtre, la barre défile : à la molette au-dessus d'elle, ou par les flèches ‹ › qui apparaissent alors à sa droite.
+L'onglet courant est toujours ramené dans la partie visible.
+À partir de deux onglets, le bouton ≡ à gauche de la barre les liste tous ; un clic sur un titre y va.
+
+Un clic droit sur un onglet propose de le fermer ou de le renommer.
+*Renommer l'onglet…* écrit son alias dans `~\veafmct.yaml`, et l'alias se retrouve au lancement suivant ; un nom vide rend à l'onglet son nom d'origine.
+On peut aussi l'écrire à la main :
+
+```yaml
+log_aliases:                       # les fichiers locaux, par leur chemin
+  'C:\Users\moi\Saved Games\DCS\Logs\dcs.log': Mon jeu
+servers:
+  veaf-api:
+    api: {url: https://dcs.veaf.org/serverapi, api_key_file: ~/.veaf/dcssb-api-key}
+    aliases:                       # les journaux d'un serveur, SSH ou API, par leur nom
+      VEAF (www.veaf.org) [fr] - Privé 1: P1
+```
+
+L'outil réécrit le fichier en gardant son contenu et ses commentaires, mais pas toujours leur alignement.
+Sans alias, les journaux qu'une API découvre perdent les mots que tous ses serveurs partagent : `veaf-api:Privé 1` plutôt que `veaf-api:VEAF (www.veaf.org) [fr] - Privé 1`.
+Le nom complet reste dans l'info-bulle de l'onglet.
 
 ## Les trois états
 
@@ -134,6 +196,8 @@ Trois modes, au choix dans la liste déroulante :
 | Texte | littéral | littéraux | `CSAR.lua` |
 | Jokers | littéral | jokers | `No taxiroad*Batumi*` |
 | Regex | joker | quantificateurs | `VEAF\|[WE]\|` |
+
+En regex, `^` et `$` désignent le début et la fin d'une ligne.
 
 `≠` inverse le critère, `Aa` respecte la casse. **Ajouter au filtre** empile le
 critère courant : les filtres se cumulent et s'affichent en pastilles retirables
@@ -324,14 +388,13 @@ Pour suivre l'un de ces journaux à distance, on le déclare comme un `dcs.log` 
 ## Gros journaux
 
 Le texte n'est pas chargé en mémoire : seul un index compact l'est, et les lignes
-sont décodées à l'affichage. Sur un journal de serveur de 119 Mo (991 392 lignes) :
+sont décodées à l'affichage. Sur un journal de serveur de 130 Mo (954 086 entrées) :
 
 | | |
 |---|---|
-| Premières lignes lisibles | 0,3 s |
-| Indexation complète | 8,6 s, en tâche de fond |
-| Mémoire | 37 Mo |
-| Recherche | 0,65 s |
+| Fenêtre affichée | 0,04 s |
+| Indexation complète | 2,4 s, en tâche de fond |
+| Mémoire, journal ouvert | 116 Mo |
 
 L'indexation se poursuit pendant qu'on lit et qu'on filtre ; une barre de
 progression apparaît, avec un bouton pour l'interrompre — ce qui est déjà indexé
@@ -349,6 +412,7 @@ reste utilisable.
 | `Ctrl+Maj+C` | copier sans l'en-tête DCS |
 | `Ctrl+A` | tout sélectionner |
 | `F` | suivre la fin du fichier / mettre en pause |
+| `Ctrl+Fin` | aller à la fin |
 | `Ctrl+R` | tout afficher |
 | `Ctrl+S` | enregistrer le profil |
 | `Ctrl++` / `Ctrl+-` | agrandir / réduire la police |
@@ -360,9 +424,9 @@ reste utilisable.
 
 ## Ajouter ses propres règles
 
-Les sources reconnues, les couleurs et les familles de bruit vivent dans un seul
-fichier, `veaf_logs/rules.json`, que le menu **Règles** ouvre et recharge (`F5`)
-sans quitter l'application.
+Les sources reconnues, les couleurs et les familles de bruit vivent dans un seul catalogue, `rules.json`, intégré à l'exécutable.
+Le menu **Règles** en ouvre une copie modifiable, que `F5` recharge sans quitter l'application.
+Cette copie ne vaut que pour la session en cours : une règle qui doit durer va dans `src/python/veaf-tools/veaf_logs/rules.json` du dépôt, et arrive avec la release suivante.
 
 Un script maison tient en une entrée :
 
@@ -402,7 +466,9 @@ eux, qu'aux lignes de `dcs.log`.
 
 | | |
 |---|---|
-| Session (fichiers ouverts, filtres, géométrie, police, panneaux affichés) | `%APPDATA%\veaf-logs\session.json` |
-| Profils | `%APPDATA%\veaf-logs\profiles.json` |
+| Session (fichiers ouverts, filtres, géométrie, police, panneaux affichés) | `%APPDATA%\veaf_logs\session.json` |
+| Profils | `%APPDATA%\veaf_logs\profiles.json` |
 | Serveurs distants (`servers:`) | `~\veafmct.yaml` |
+| Clé de l'API d'un serveur | le fichier de son `api_key_file` |
+| Alias des onglets | `~\veafmct.yaml` (`log_aliases:`, et `aliases:` de chaque serveur) |
 | Miroir local d'un journal distant | `%TEMP%\veaf-logs-*.log`, supprimé à la fermeture de l'onglet |

@@ -1,0 +1,40 @@
+2026-09-29 18:02:42.798 INFO	DCSServerBot v3.0.4.22 starting up ...
+2026-09-29 18:02:44.490 WARNING	New update for DCSServerBot available!
+Use /node upgrade or enable autoupdate to apply it.
+2026-09-29 18:09:52.501 DEBUG	HOST->VEAF (www.veaf.org) [fr] - Public 1: {"command": "getMissionUpdate"}
+2026-09-29 18:09:52.502 DEBUG	VEAF (www.veaf.org) [fr] - Public 1->HOST: {"command": "onMissionEvent", "x": 1}
+2026-09-29 18:09:52.503 DEBUG	VEAF (www.veaf.org) [fr] - Public 1->HOST: {"command": "perfmon"}
+2026-09-29 18:09:52.504 INFO	node registered with the cloud.
+2026-09-29 18:03:38,541	INFO	4.80s	ServerImpl.apply_mission_changes()
+2026-09-29 18:02:44.490 CRITICAL	boom
+2026-09-29 18:04:38.123 DEBUG	SRS: is NOT running (process)
+2026-09-29 18:04:38.124 DEBUG	VEAF|I|not a script here
+2026-09-29 18:04:38.125 BOGUS	unknown level
+2026-09-29T20:03:44.385+0200	WARN	no suitable weather preset for code=FEW and base=6561
+2026-09-29T20:04:38.522+0200	FATAL	no weather data received
+2026-09-29T20:04:38.523+0200	PANIC	p
+2026-09-29T20:04:38.524-0100	DPANIC	dp
+2026-09-29T20:04:38.525+0200	INFO	using real weather v2.5.0
+[2026-09-29 20:05:21 +02:00] [W] [clienthandler] Client deleted
+[2026-09-29 20:05:21 +02:00] [I] [clienthandler] Init
+[2026-09-29 20:05:21 +02:00] [I] [clienthandler] Init extra
+[2026-09-29 20:05:22 +02:00] [I] [NetServer] Incoming connection from x
+[2026-09-29 20:05:23 +02:00] [I] [clientserver]  - "key" : value
+[2026-09-29 20:05:24 +02:00] [I] [clientserver] Airport: 12 "Batumi" MapObject::COALITION_BLUE
+[2026-07-23 22:00:55 +02:00] [I] --------------------
+[2026-07-23 22:00:56 +02:00] [E] [a.b:c] error with component
+[2026-07-23 22:00:57 +02:00] [X] unknown letter
+2026-05-26T00:47:56.023909: Task exception was never retrieved
+Traceback (most recent call last):
+TimeoutError
+==================================================
+2026-05-26T07:33:56.307607: Task exception was never retrieved
+[]  INFO    SCRIPTING: VEAF|W|log|9: bracket format script line
+[12:00:01]  ERROR   SCRIPTING: [CTLD][ERROR] bracket ctld
+[]  INFO    SCRIPTING:
+[]  INFO    SRS: bracket srs
+just some text with no header
+another line of text
+2026-08-31 broken header, starts with a date
+2026-08-31 11:50:40.872 ERROR no thread parens here
+â‚

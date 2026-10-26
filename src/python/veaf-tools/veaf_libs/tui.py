@@ -367,6 +367,11 @@ COMMANDS: list[CommandSpec] = [
         prompts=[],
     ),
     CommandSpec(
+        cli_name="password-hash",
+        description=t("tui.cmd.password_hash.description"),
+        prompts=[],
+    ),
+    CommandSpec(
         cli_name="about",
         description=t("tui.cmd.about.description"),
         prompts=[],

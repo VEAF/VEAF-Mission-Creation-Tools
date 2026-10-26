@@ -1,0 +1,51 @@
+=== Log opened UTC 2026-08-31 09:50:40
+2026-08-31 11:50:40.872 ERROR   APP (Main): Error: Unit [F-14B]: Corrupt damage model.
+2026-08-31 11:50:41.000 INFO    SCRIPTING (Main): VEAF|I|5390: Loading version 6.16.5
+2026-08-31 11:50:41.001 INFO    SCRIPTING (Main): VEAF-GRASS|W|log|123: zone introuvable
+2026-08-31 11:50:41.002 INFO    SCRIPTING (Main): VEAF|D|log|1: debug detail
+2026-08-31 11:50:41.003 INFO    SCRIPTING (Main): VEAF-DYNAMICLOADER: loading
+2026-08-31 11:50:43.000 INFO    SCRIPTING (Main): [CTLD][INFO] scene registered
+2026-08-31 11:50:43.001 INFO    SCRIPTING (Main): [CTLD][WARNING] low fuel
+2026-08-31 11:50:43.002 INFO    SCRIPTING (Main): [CTLD][BOGUS] unknown level token
+2026-08-31 11:50:43.003 INFO    SCRIPTING (Main):   E - CSAR - pilot lost
+2026-08-31 11:50:43.004 INFO    SCRIPTING (Main): AIEN|T|trace line
+2026-08-31 11:50:43.005 INFO    SCRIPTING (Main): something SKYNET related
+2026-08-31 11:50:43.006 INFO    SCRIPTING (Main): Slmod: loaded
+2026-08-31 11:50:43.007 INFO    SCRIPTING (Main): uses MIST helpers
+2026-08-31 11:50:43.008 INFO    SCRIPTING (Main): MOOSE framework
+2026-08-31 11:50:43.009 INFO    SCRIPTING (Main): [dcs-bridge] started
+2026-08-31 11:50:43.010 INFO    SCRIPTING (Main): DCS-gRPC listening
+2026-08-31 11:50:43.011 INFO    SCRIPTING (Main): SRS: connected
+2026-08-31 11:50:43.012 INFO    SCRIPTING (Main): STTS ready
+2026-08-31 11:50:43.013 INFO    SCRIPTING (Main): SRSX is not SRS
+2026-08-31 11:55:01.930 ERROR   SCRIPTING (Main): Mission script error: CSAR.lua:2213
+stack traceback:
+	[C]: in function 'getUnitRecordById'
+	[string "C:/x.lua"]:12: in main chunk
+2026-08-31 11:55:10.095 WARNING FLIGHT (Main): No taxiroad found on Batumi from 1 to 2
+2026-08-31 11:55:10.096 WARNING MissionScripting::initialize (12345): scoped subsystem
+2026-08-31 11:55:10.097 ALERT   (Main): empty subsystem
+2026-08-31 11:55:10.098 ERROR_ONCE APP (Main): once only
+2026-08-31 11:55:10.099 TRACE   APP (7788): tracing
+2026-08-31 11:55:10.100 DEBUG   APP (Main):
+2026-08-31 11:55:10.101 WEIRD   APP (Main): level the catalogue does not know
+2026-08-31 11:55:11.000 INFO    EDCORE (Main): Need to reprocess [DDS] image x
+2026-08-31 11:55:11.001 INFO    EDCORE (Main): hypervisor is active
+2026-08-31 11:55:11.002 WARNING EDCORE (Main): Can't open file: /textures/a.dds
+2026-08-31 11:55:11.003 WARNING EDCORE (Main): Can't load lod abc Reason: nope
+2026-08-31 11:55:11.004 WARNING EDCORE (Main): Scene was removed with 12 alive objects
+2026-08-31 11:55:11.005 WARNING EDCORE (Main): texture 'x.dds' not found
+2026-08-31 11:55:11.006 WARNING EDCORE (Main): Texture [abc] not found
+2026-08-31 11:55:11.007 INFO    EDCORE (Main): duplicate message(s) skipped.
+2026-08-31 11:55:11.008 INFO    SCRIPTING (Main): negative weight of payload and Corrupt damage model.
+2026-08-31 11:55:12.000 INFO    SCRIPTING (Main): VEAF|I|log|1: zone « Bastogne » créée
+2026-08-31 11:55:12.001 INFO    SCRIPTING (Main): ligne avec   separateur
+2026-08-31 11:55:12.002 INFO    SCRIPTING (Main): formfeed in a line
+2026-08-31 11:55:12.003 INFO    SCRIPTING (Main): bad byte �� in a line
+2026-08-31 11:55:12.004 INFO    SCRIPTING (Main): CRLF ending
+continuation after CRLF
+
+   leading spaces continuation
+=== Log closed UTC 2026-08-31 09:57:00
+=== Log opened UTC 2026-08-31 10:00:00
+2026-08-31 12:00:00.000 INFO    APP (Main): after a reopen

@@ -149,8 +149,13 @@ why.
 - **Slots without an aircraft, as in v5**: `mission.ground_control` at 5 per role and per side (`game_master`, `tactical_commander`, `jtac`, `observer`) and `pilot_control_vehicles: true`. Without the block, the mission has no game master slot.
 - **Security on by default**: the mission runs on the VEAF servers. No `security.disabled: true` in
   the base configuration. Ask the user whether password hashes are needed, or whether the server's
-  pilot levels are enough. **Never a password in clear**, not even in a comment next to its hash:
-  the sources get published.
+  pilot levels are enough, and explain what that means:
+  It locks the sensitive F10 and map-marker commands: spawning, teleporting, destroying.
+  On the VEAF servers, the pilots the server lists pass without a password; on any other server nobody is listed, so only a password opens them.
+  The password shipped with the tools is public: "on, without hashes" protects nothing outside the VEAF servers.
+  A password becomes a hash with `.\veaf-tools.exe password-hash`, which **the user runs** in PowerShell (the input is hidden) and whose hash they give you: never ask for the password itself.
+  `password_hashes` holds the SENIOR_PILOT one (spawning, markers), `password_mm_hashes` the Mission Master's.
+  **Never a clear-text password** in a file, not even in a comment next to its hash: the sources get published.
 - **No required mod**: the mission's `requiredModules` table stays empty unless explicitly asked.
   A single mod in it locks out of the server every player who does not have it. It fills up
   silently when a mod unit is placed, or when an existing mission is taken over.
@@ -504,7 +509,7 @@ the sides; running DCS.
 
 - **Read the whole build log**, not just the exit code: presets injected into how many aircraft,
   waypoints into how many groups, warehouse links, warnings. Any zero is suspect.
-- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
+- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather and date, briefing pictures, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
   What no action reads, you report as not checked. Check:
   - **unique** group and unit names;
   - dynamic slots on the intended bases only;

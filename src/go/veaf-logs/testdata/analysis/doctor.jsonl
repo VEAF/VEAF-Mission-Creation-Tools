@@ -1,0 +1,37 @@
+{"kind": "block", "name": "fields", "fields": {"schema": "veaf-tools-doctor/1", "generated": "2026-10-24T12:00:00Z", "tool.version": "6.31.4", "tool.packaging": "unknown", "tool.executable": "C:\\Users\\<user>\\VEAF\\veaf-logs.exe", "tool.python": "unknown", "machine.os": "Windows-11-10.0.26300-SP0", "machine.locale": "unknown", "machine.free_space": "unknown", "dcs.detected": "yes", "dcs.version": "2.9.29.27278", "dcs.variant": "unknown", "dcs.write_dir": "unknown", "dcs.log_age": "unknown", "veaf.home": "unknown", "veaf.log": "unknown", "veaf.lua_modules": "57"}, "errors": [], "out": "=== VEAF-TOOLS DOCTOR BEGIN ===\nschema: veaf-tools-doctor/1\ngenerated: 2026-10-24T12:00:00Z\ntool.version: 6.31.4\ntool.packaging: unknown\ntool.executable: C:\\Users\\<user>\\VEAF\\veaf-logs.exe\ntool.python: unknown\nmachine.os: Windows-11-10.0.26300-SP0\nmachine.locale: unknown\nmachine.free_space: unknown\ndcs.detected: yes\ndcs.version: 2.9.29.27278\ndcs.variant: unknown\ndcs.write_dir: unknown\ndcs.log_age: unknown\nveaf.home: unknown\nveaf.log: unknown\nveaf.lua_modules: 57\n=== VEAF-TOOLS DOCTOR END ==="}
+{"kind": "block", "name": "errors", "fields": {"schema": "veaf-tools-doctor/1", "generated": "2026-10-24T12:00:00Z", "tool.version": "6.31.4", "tool.packaging": "unknown", "tool.executable": "C:\\Users\\<user>\\VEAF\\veaf-logs.exe", "tool.python": "unknown", "machine.os": "Windows-11-10.0.26300-SP0", "machine.locale": "unknown", "machine.free_space": "unknown", "dcs.detected": "yes", "dcs.version": "2.9.29.27278", "dcs.variant": "unknown", "dcs.write_dir": "unknown", "dcs.log_age": "unknown", "veaf.home": "unknown", "veaf.log": "unknown", "veaf.lua_modules": "57"}, "errors": ["2026-10-24 11:00:00,000 - veaf-tools - ERROR - boom at C:\\Users\\Jean Dupont\\x\nTraceback (most recent call last):\n  File \"x.py\", line 1\nValueError: ```nope```", "2026-10-24 11:00:01,000 - veaf-tools - CRITICAL - yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", "2026-10-24 11:00:02,000 - veaf-tools - ERROR - token=abc and 10.0.0.7"], "out": "=== VEAF-TOOLS DOCTOR BEGIN ===\nschema: veaf-tools-doctor/1\ngenerated: 2026-10-24T12:00:00Z\ntool.version: 6.31.4\ntool.packaging: unknown\ntool.executable: C:\\Users\\<user>\\VEAF\\veaf-logs.exe\ntool.python: unknown\nmachine.os: Windows-11-10.0.26300-SP0\nmachine.locale: unknown\nmachine.free_space: unknown\ndcs.detected: yes\ndcs.version: 2.9.29.27278\ndcs.variant: unknown\ndcs.write_dir: unknown\ndcs.log_age: unknown\nveaf.home: unknown\nveaf.log: unknown\nveaf.lua_modules: 57\n--- recent-errors ---\n2026-10-24 11:00:00,000 - veaf-tools - ERROR - boom at C:\\Users\\Jean Dupont\\x\nTraceback (most recent call last):\n  File \"x.py\", line 1\nValueError: ```nope```\n2026-10-24 11:00:01,000 - veaf-tools - CRITICAL - yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\n2026-10-24 11:00:02,000 - veaf-tools - ERROR - token=abc and 10.0.0.7\n--- recent-errors end ---\n=== VEAF-TOOLS DOCTOR END ==="}
+{"kind": "age", "in": 0, "out": "0 s"}
+{"kind": "age", "in": 59.9, "out": "59 s"}
+{"kind": "age", "in": 60, "out": "1 min"}
+{"kind": "age", "in": 3599, "out": "59 min"}
+{"kind": "age", "in": 3600, "out": "1 h"}
+{"kind": "age", "in": 86399, "out": "23 h"}
+{"kind": "age", "in": 86400, "out": "1 d"}
+{"kind": "age", "in": 10000000, "out": "115 d"}
+{"kind": "size", "in": 0, "out": "0 B"}
+{"kind": "size", "in": 1023, "out": "1023 B"}
+{"kind": "size", "in": 1024, "out": "1 KB"}
+{"kind": "size", "in": 1535, "out": "1 KB"}
+{"kind": "size", "in": 1536, "out": "2 KB"}
+{"kind": "size", "in": 2559, "out": "2 KB"}
+{"kind": "size", "in": 1048575, "out": "1024 KB"}
+{"kind": "size", "in": 1048576, "out": "1.0 MB"}
+{"kind": "size", "in": 5295309, "out": "5.1 MB"}
+{"kind": "variant", "in": "DCS", "out": "stable"}
+{"kind": "variant", "in": "DCS.openbeta", "out": "openbeta"}
+{"kind": "variant", "in": "DCS_F14", "out": "f14"}
+{"kind": "variant", "in": "DCS-Server", "out": "server"}
+{"kind": "variant", "in": "DCS.._x", "out": "x"}
+{"kind": "variant", "in": "dcs.OpenBeta", "out": "openbeta"}
+{"kind": "dcs_version", "in": "dcs-handwritten.log", "out": "unknown"}
+{"kind": "dcs_version", "in": "empty.log", "out": "unknown"}
+{"kind": "dcs_version", "in": "fuzz-1.log", "out": "unknown"}
+{"kind": "dcs_version", "in": "fuzz-2.log", "out": "unknown"}
+{"kind": "dcs_version", "in": "mixed.log", "out": "unknown"}
+{"kind": "dcs_version", "in": "no-final-newline.log", "out": "unknown"}
+{"kind": "dcs_version", "in": "other-formats.log", "out": "unknown"}
+{"kind": "dcs_version", "in": "analysis-journal.log", "out": "2.9.29.27278"}
+{"kind": "recent_errors", "in": 0, "out": []}
+{"kind": "recent_errors", "in": 1, "out": ["2026-10-24 09:00:01,000 - veaf-tools - ERROR - recent failure for <user>\n  continuation line"]}
+{"kind": "recent_errors", "in": 3, "out": ["2026-10-20 09:00:03,000 - veaf-tools - CRITICAL - zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz […]", "2026-10-20 09:00:04,000 - veaf-tools - ERROR - mail <email> token=<redacted> <ip>", "2026-10-24 09:00:01,000 - veaf-tools - ERROR - recent failure for <user>\n  continuation line"]}
+{"kind": "recent_errors", "in": 5, "out": ["2026-10-20 09:00:01,000 - veaf-tools - ERROR - old failure in C:\\Users\\<user>\\mission.miz\nTraceback (most recent call last):\n  File \"frame0.py\", line 0, in f0\n  File \"frame1.py\", line 1, in f1\n  File \"frame2.py\", line 2, in f2\n  File \"frame3.py\", line 3, in f3\n  File \"frame4.py\", line 4, in f4\n  File \"frame5.py\", line 5, in f5\n  File \"frame6.py\", line 6, in f6\n  File \"frame7.py\", line 7, in f7\n  File \"frame8.py\", line 8, in f8\n  File \"frame9.py\", line 9, in f9\n  File \"frame10.py\", line 10, in f10\n  File \"frame11.py\", line 11, in f11\n  File \"frame12.py\", line 12, in f12\n  File \"frame13.py\", line 13, in f13\n  File \"frame14.py\", line 14, in f14\n  File \"frame15.py\", line 15, in f15\n  File \"frame16.py\", line 16, in f16\n  File \"frame17.py\", line 17, in f17\n  File \"frame18.py\", line 18, in f18\n  File \"frame19.py\", line 19, in f19\n  File \"frame20.py\", line 20, in f20\n  File \"frame21.py\", line 21, in f21\n  File \"frame22.py\", line 22, in f22", "2026-10-20 09:00:03,000 - veaf-tools - CRITICAL - zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz […]", "2026-10-20 09:00:04,000 - veaf-tools - ERROR - mail <email> token=<redacted> <ip>", "2026-10-24 09:00:01,000 - veaf-tools - ERROR - recent failure for <user>\n  continuation line"]}

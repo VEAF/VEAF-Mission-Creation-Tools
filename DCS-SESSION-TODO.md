@@ -318,6 +318,8 @@ The ATIS records once an hour per field, so clear it first: `veafWeatherAtis.Lis
 
 ### R35. Combat-zone ground units start warm — the thermal look
 
+**Field reports, 2026-10-15 and 10-22** (*Kolkhida*): an F/A-18C TGP found nothing on Senaki's S-300 site, and no IR pod found anything at Zugdidi, whose 22 garrison units were alive and swept for. A ready test mission: *Kolkhida* mission 3 (`D:\dev\_VEAF\_campaigns\campaign-kolkhida\missions\mission-03\mission\`, kept for this), Zugdidi's units — see the ticket.
+
 [`FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP`](.backlog/FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/tickets/02-zone-defences-start-warm.md)
 ticket 02. **The script half passed on 2026-10-03**: the five vehicles `combatZone_WahnerHeide_Easy`
 handed DCS all carried `coldAtStart = false`. What DCS makes of it cannot be read by a script.

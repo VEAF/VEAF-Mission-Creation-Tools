@@ -142,6 +142,22 @@ veaf-tools mission extract MaMission.miz ./src/mission
 
 *Flat alias : `veaf-tools extract`*
 
+### `veaf-tools mission password-hash` {#password-hash}
+
+Turn a password into the SHA-1 hash `security.password_hashes` takes in `mission.yaml`.
+It asks for the password twice, the input hidden, and prints only the hash: the password is never shown nor written.
+Run it yourself, and give the hash, never the password, to an AI assistant that writes `mission.yaml`.
+`password_hashes` holds the SENIOR_PILOT password (it also opens KNOWN_PILOT), `password_mm_hashes` the Mission Master's.
+No argument, no option.
+
+```powershell
+.\veaf-tools.exe mission password-hash
+```
+
+*Flat alias : `veaf-tools password-hash`*
+
+**See also** : [veafSecurity](mission-maker/scripts/veafSecurity.en.md)
+
 ### `veaf-tools mission prepare` {#prepare}
 
 Initialize a VEAF mission folder with default templates.
@@ -865,7 +881,7 @@ A spot is kept when the ground there is earth (not water, road or runway), when 
 | `--verbose` | `boolean` | `false` | If enabled, prints detailed debugging information. |
 
 ```bash
-.eaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
+.\veaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
 ```
 
 The point is given with `--at` rather than as two arguments: a negative number in second position would be read as an option.

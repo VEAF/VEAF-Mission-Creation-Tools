@@ -14,6 +14,7 @@ from datetime import date as dt_date
 from pathlib import Path
 from typing import Any
 
+from veaf_mission_mcp.accents import missing_accents_warnings
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
 
 #: The coalitions a mission table holds a bullseye for.
@@ -215,7 +216,8 @@ def set_briefing(target: Path, **texts: str | None) -> dict[str, Any]:
             ``blue_task``, ``red_task``, ``neutrals_task``.
 
     Returns:
-        ``{written: {field: "dictionary" | "mission"}, durable}``.
+        ``{written: {field: "dictionary" | "mission"}, durable}``, and ``warnings`` when a text reads as French
+        written without its accents.
 
     Raises:
         ValueError: If a field is unknown, or none is given.
@@ -239,4 +241,7 @@ def set_briefing(target: Path, **texts: str | None) -> dict[str, Any]:
             content[key] = text
             written[field] = "mission"
     durable = commit_mission(mission, target)["durable"]
-    return {"written": written, "durable": durable}
+    result: dict[str, Any] = {"written": written, "durable": durable}
+    if warnings := missing_accents_warnings(wanted):
+        result["warnings"] = warnings
+    return result

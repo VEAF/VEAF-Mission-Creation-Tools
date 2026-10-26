@@ -74,6 +74,7 @@ from veaf_mission_mcp.repair_static_shapes import repair_static_shapes
 from veaf_mission_mcp.replace_in_files import replace_in_mission_files
 from veaf_mission_mcp.scaffold import scaffold_mission
 from veaf_mission_mcp.set_group_properties import set_group_properties
+from veaf_mission_mcp.set_route import set_route
 from veaf_mission_mcp.set_unit_properties import set_unit_properties
 from veaf_mission_mcp.terrain import describe_terrain
 
@@ -248,6 +249,61 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: set_bullseye(Path(p["target"]), coalition=p["coalition"], position=p["position"]),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_route",
+            description=(
+                "WRITE the players' FLIGHT PLAN into a mission FOLDER's src/waypoints.yaml in one call: the "
+                "ordered points (name + x/y or lat/lon, as geocode / resolve_coordinates give them), each set "
+                "on the ground from the theatre's elevation grid (the flight altitude belongs to the briefing, "
+                "not the points), and the plan that gives them to the chosen aircraft. Refuses two points with "
+                "one name -- nobody could tell them apart in the cockpit or the briefing. A plan of the same name is "
+                "replaced and its old points dropped; the rest of the file and its comments are kept; backed "
+                "up. Returns each leg's heading and distance, for the briefing and the F10 labels. Use it "
+                "instead of edit_mission_file for a route; the build adds the BULLSEYE point last."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER."},
+                    "plan": {"type": "string", "description": "The plan's name, e.g. the flight's callsign."},
+                    "points": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "As the cockpit shows it, unique."},
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "lat": {"type": "number"},
+                                "lon": {"type": "number"},
+                                "speed_kt": {"type": "number", "description": "Optional TAS on the leg."},
+                            },
+                            "required": ["name"],
+                        },
+                        "description": "In flight order, after the departure.",
+                    },
+                    "coalition": {"type": "string", "enum": ["blue", "red"], "description": "Default blue."},
+                    "category": {"type": "string", "enum": ["plane", "helicopter"], "description": "Default plane."},
+                    "aircraft_type": {
+                        "type": "string",
+                        "description": "Give the plan to this DCS type only; it then wins over a plan without one.",
+                    },
+                    "country": {"type": "string", "description": "Narrow the plan to one country."},
+                },
+                "required": ["mission_path", "plan", "points"],
+            },
+        ),
+        handler=lambda p: set_route(
+            Path(p["mission_path"]),
+            plan=p["plan"],
+            points=p["points"],
+            coalition=p.get("coalition") or "blue",
+            category=p.get("category") or "plane",
+            aircraft_type=p.get("aircraft_type"),
+            country=p.get("country"),
+        ),
     )
     catalog.register(
         ActionSpec(
@@ -802,6 +858,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "combat-zone marker here, e.g. '#command=\"-armor ...\"' for a spawn "
                                     "fake-unit (#command/#spawngroup/#spawnradius/#spawncount/#spawnchance/#spawndelay/#alarm).",
                                 },
+                                "skill": {
+                                    "type": "string",
+                                    "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                                    "description": "This unit's AI skill; wins over the group's.",
+                                },
                             },
                             "required": ["type"],
                         },
@@ -862,6 +923,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "description": "false: the group does not disperse under fire (vehicle group). true is "
                         "DCS's default and writes nothing.",
+                    },
+                    "skill": {
+                        "type": "string",
+                        "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                        "description": "The AI skill of every unit (vehicle, plane, helicopter, ship; not a static), "
+                        "default Average: the level of the opposition the user chose. Random = DCS draws one per unit.",
                     },
                 },
                 "required": [
@@ -1494,7 +1561,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     _mission_file_param = {
         "type": "string",
         "description": "'mission.yaml' or 'src/<name>.yaml' (presets, versions, waypoints, warehouses, "
-        "spawnables, dynamic-slot-templates…), relative to the mission folder; nothing else is reachable.",
+        "spawnables, dynamic-slot-templates…), relative to the mission folder; nothing else is reachable. `path` is read as an alias.",
     }
     catalog.register(
         ActionSpec(
@@ -2045,15 +2112,20 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/briefing.pptx (the objective "
                 "mission template, page for page, in the mission's language; Drive imports it into Google "
                 "Slides), docs/maps/ (an overview and one zoom per objective, on OpenStreetMap or OpenTopoMap "
-                "tiles), and the same maps as the DCS BRIEFING PICTURES, in the folder AND the built .miz, "
-                "first for the players' side and neutral (the other side left alone). BUILD FIRST (build_mission): every figure is "
+                "tiles), and the same maps as the DCS BRIEFING PICTURES, in the folder AND every built .miz -- the "
+                "build's own and each weather variant of missions/ (archives) -- first for the players' side and "
+                "neutral (the other side left alone). With kneeboard (default true) it also writes KNEEBOARD pages "
+                "for every aircraft, 2:3 JPEG: the overview and the zooms drawn for the page, a flight card (each "
+                "point, heading and distance of its leg, highest ground, the radios) and the targets. BUILD FIRST (build_mission): every figure is "
                 "read from the built .miz -- date, time, weather, bullseye, flights, support, carriers, QRA, "
                 "flight plan, the presets injected into the cockpits, each objective's targets and their "
                 "coordinates. You pass only the scenario's WORDS: title, context, mission_bullets, objectives (combat "
                 "zone + title + task), threats (the group where it stands, its family, ranges only with their "
                 "source), air opposition, air defences, other information, pilots and loadouts by flight "
-                "group. Call it again after any change and a rebuild: it replaces its own pictures. No PDF: "
-                "the user exports one from PowerPoint or Slides. map_offline = no tiles could be downloaded."
+                "group. Call it again after any change and a rebuild: it replaces its own pictures. It writes "
+                "docs/briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
+                "and warns about a W<n> the route does not carry, and about French text written without its "
+                "accents. map_offline = no tiles could be downloaded."
             ),
             parameters_schema={
                 "type": "object",
@@ -2096,7 +2168,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     },
                     "air_opposition": {**_lines, "description": "What may take off, and when."},
                     "air_defences": {**_lines, "description": "How the route avoids them."},
-                    "other": {**_lines, "description": "Attack mode, refuelling, divert..."},
+                    "other": {**_lines, "description": "Attack mode, refuelling..."},
+                    "diversions": {
+                        **_lines,
+                        "description": (
+                            "The diversion fields the deck names, DCS airfield names (list_airfields). Omitted: the "
+                            "players' side's other airfields and carriers, the departure left out."
+                        ),
+                    },
+                    "kneeboard": {
+                        "type": "boolean",
+                        "description": "Write the kneeboard pages too (default true).",
+                    },
                     "pilots": {
                         "type": "object",
                         "description": "Pilots' names by flight GROUP name; empty cells otherwise.",
@@ -2110,7 +2193,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "basemap": {
                         "type": "string",
                         "enum": ["osm", "topo"],
-                        "description": "osm (default); topo = OpenTopoMap, for a desert.",
+                        "description": (
+                            "osm (default); topo = OpenTopoMap, hillshade and contour lines: for a desert and for any "
+                            "low-level or terrain-dependent mission."
+                        ),
                     },
                     "side": {"type": "string", "enum": ["blue", "red"], "description": "The players' side."},
                 },
@@ -2208,6 +2294,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "properties": {
                                 "name": {"type": "string"},
                                 "units": {"type": "array", "items": {"type": "object"}},
+                                "category": {
+                                    "type": "string",
+                                    "description": "This group's category (vehicle, static, ship...), over the call's: one call makes a zone of vehicles and statics.",
+                                },
                                 "position": {
                                     "type": "object",
                                     "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
@@ -2244,6 +2334,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "type": "boolean",
                                     "description": "As add_group's: false, no dispersal under fire.",
                                 },
+                                "skill": {
+                                    "type": "string",
+                                    "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                                    "description": "This group's AI skill; wins over the call's.",
+                                },
                             },
                             "required": ["name", "units"],
                         },
@@ -2252,7 +2347,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "coalition": {"type": "string", "enum": ["blue", "red", "neutral"]},
                     "country_id": {"type": "integer"},
                     "country_name": {"type": "string"},
-                    "category": {"type": "string", "default": "vehicle"},
+                    "category": {
+                        "type": "string",
+                        "default": "vehicle",
+                        "description": "The groups' category unless one names its own.",
+                    },
+                    "skill": {
+                        "type": "string",
+                        "enum": ["Average", "Good", "High", "Excellent", "Random"],
+                        "description": "The AI skill of the zone's units (statics have none), default Average: the "
+                        "level of the opposition the user chose.",
+                    },
                     "combat_zone": {
                         "type": "object",
                         "description": "Optional extra combat_zones[] keys, the ones the build reads.",
@@ -3301,6 +3406,7 @@ def _handle_add_group(params: dict[str, Any]) -> dict[str, Any]:
         keep_position=params.get("keep_position", False),
         roe=params.get("roe"),
         disperse=params.get("disperse"),
+        skill=params.get("skill"),
     )
 
 
@@ -3407,6 +3513,7 @@ def _handle_create_combat_zone(params: dict[str, Any]) -> dict[str, Any]:
         country_name=params["country_name"],
         category=params.get("category", "vehicle"),
         combat_zone=params.get("combat_zone"),
+        skill=params.get("skill"),
     )
 
 

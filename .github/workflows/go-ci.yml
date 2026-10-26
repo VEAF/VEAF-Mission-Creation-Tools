@@ -1,0 +1,113 @@
+name: Go CI
+
+# The Go rewrite of veaf-logs (FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL) is proven equal to the Python viewer
+# by parity tests against goldens the Python writes. Until 2026-10-24 nothing ran them: the corpus
+# was caught by the root `*.log` ignore rule and no workflow called `go test`, so the parity was
+# checked by whoever regenerated it, and by nobody else.
+#
+# The shape is the one `test_ci_trigger_paths.py` enforces on the required checks — every pull
+# request starts the workflow, a `changes` job filters it — so this check can be made required on
+# `develop` without ever blocking a merge as "Expected".
+on:
+  push:
+    branches: [develop, master]
+    paths:
+      - "src/go/veaf-logs/**"
+      # The goldens are written by the Python reference: a change to it must prove the Go still agrees.
+      - "src/python/veaf-tools/veaf_logs/**"
+      # The redaction and the doctor block are what the analysis references hold too.
+      - "src/python/veaf-tools/veaf_libs/redaction.py"
+      - "src/python/veaf-tools/veaf_libs/diagnostics.py"
+      - ".github/workflows/go-ci.yml"
+  pull_request:
+
+jobs:
+  # Its dependents skip only on an explicit `run=false`: a gate that fails runs the checks instead of
+  # skipping them, since a skipped job reads as a pass to a required check.
+  changes:
+    name: Go CI — changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # GitHub Actions does not resolve YAML anchors, so this list duplicates `on.push.paths` on
+      # purpose; the two are kept identical by `test_ci_trigger_paths.py`.
+      - id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GATE_PATHS: |
+            src/go/veaf-logs/**
+            src/python/veaf-tools/veaf_logs/**
+            src/python/veaf-tools/veaf_libs/redaction.py
+            src/python/veaf-tools/veaf_libs/diagnostics.py
+            .github/workflows/go-ci.yml
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git fetch --no-tags --depth=1 origin "$BASE"
+          python3 veaf_build/ci_path_gate.py "$BASE" "$GITHUB_SHA"
+
+  go-test:
+    name: Go vet, tests and parity
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
+    # The window is walk, native Win32 (ADR 0022): it builds on Windows only, so the whole module is
+    # vetted and tested there; the core is portable and loses nothing by it.
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: src/go/veaf-logs
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/go/veaf-logs/go.mod
+          cache-dependency-path: src/go/veaf-logs/go.sum
+
+      # `.gitattributes` checks the sources out with LF on Windows too, so gofmt sees what it wrote.
+      - name: Format (gofmt)
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Tests, parity with the Python reference included
+        run: go test ./...
+
+      # The built executable opens a journal, waits for its index and exits: the window starts, the
+      # dark theme and the manifest resource included. A console build, so its timings reach the log.
+      - name: Smoke test of the window
+        run: |
+          go build -o veaf-logs-smoke.exe ./cmd/veaf-logs
+          timeout 120 ./veaf-logs-smoke.exe --smoke testdata/corpus/mixed.log
+          # A journal with few categories: the side panel must keep its groups at their height.
+          timeout 120 ./veaf-logs-smoke.exe --smoke testdata/smoke/short.log
+
+  goldens:
+    name: Goldens match the Python reference
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      # gen_golden.py imports only the standard library through veaf_logs and veaf_libs' redaction and
+      # doctor block (StrEnum: 3.11+); `requests`, which the analysis only imports, is stubbed when absent.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      # A change to the Python viewer without regenerating would leave the Go compared with a past
+      # reference, every test green.
+      - name: Regenerate and compare
+        run: |
+          python src/go/veaf-logs/testdata/gen_golden.py
+          git status --porcelain src/go/veaf-logs/testdata
+          test -z "$(git status --porcelain src/go/veaf-logs/testdata)" || { echo "::error::goldens are stale: run gen_golden.py and commit"; git diff --stat src/go/veaf-logs/testdata; exit 1; }

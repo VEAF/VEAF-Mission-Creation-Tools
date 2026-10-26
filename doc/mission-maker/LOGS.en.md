@@ -17,15 +17,8 @@ With no argument it reopens the last session's files, falling back to the curren
 `dcs.log` (`Saved Games\DCS\Logs\dcs.log`). You can also pass it a path, or drop a
 file onto it.
 
-From the sources:
-
-```
-poetry install --all-extras
-poetry run veaf-logs
-```
-
-The window needs PySide6, declared as an optional dependency (`--all-extras`, or
-`--extras logs`). Nothing else in `veaf-tools` requires it.
+`veaf-logs.exe` is a standalone Windows program written in Go: one file of about fifteen megabytes, with no Python or anything else to install.
+Its sources are in `src/go/veaf-logs/`, whose `README.md` says how to build it.
 
 ## A remote server's log {#remote}
 
@@ -71,6 +64,75 @@ goes to `C:\ProgramData\ssh\administrators_authorized_keys`, not to
 `Administrators`.
 
 `veaf-tools.exe` does not carry this feature: it lives in `veaf-logs`.
+
+### Through DCSServerBot's API, without an SSH account {#remote-api}
+
+A server running DCSServerBot with its RestAPI plugin can also be read without an account on the machine: an API key is enough, and the bot only reads.
+Declare the API instead of `host` (a server has one or the other, never both):
+
+```yaml
+servers:
+  veaf-api:
+    api:
+      url: https://dcs.veaf.org/serverapi       # the API, with its prefix if it has one
+      api_key_file: ~/.veaf/dcssb-api-key       # a file holding the key alone
+    # logs:                                     # optional: narrow or rename
+    #   private1: {instance: VEAF Private 1}    # the server's name in the bot
+    #   bot: {node: dcs-veaf-org}               # a node's bot log
+```
+
+Without `logs:`, the menu asks the API what it has: every DCS server it knows (`veaf-api › VEAF Private 1`…) and the bot's log (`veaf-api › bot`).
+The tabs are reopened at launch like those of an SSH server.
+
+**On dcs.veaf.org**, the address is `https://dcs.veaf.org/serverapi`, and the key file holds the **technician key David hands out**, not the bot's key: from the internet, only the technician key gets through.
+Any other key gets the same answer as a missing route there; the tool shows it as an authentication refused.
+
+`File › Open an older log…` (`Fichier › Ouvrir un ancien journal…`), on a tab opened through the API, lists that log's files with their size and date: `dcs.log.old`, the `dcs-YYYYMMDD-HHMMSS.log` copies the bot makes at each shutdown, or the bot's `dcssb-<node>.log.1` to `.5`.
+The chosen file opens read-only in a tab, loaded from start to end in chunks; it is not reopened at the next launch.
+
+What differs from SSH:
+
+- a tab opens on the last 2,000 entries of the log, then follows what is written; to go further back, open the file through `Open an older log…`;
+- the API returns entries, which the tool writes back as lines: only the level's padding (the spaces after `INFO`) and a line longer than 8 KiB (cut by the bot) differ from the original file, and no rule reads them;
+- when the log restarts and the bot can no longer find the end of the old file, the status bar says so: lines were lost;
+- the status bar also says why a log cannot be read: key refused, no log yet, unknown server or file, log on another node, server unreachable.
+
+On the server side you need:
+
+- DCSServerBot with the log reading routes (`/instance/logs`, `/instance/log`, `/node/logs`, `/node/log`): the `veaf` branch of [VEAF/DCSServerBot](https://github.com/VEAF/DCSServerBot), until the DCSServerBot release that publishes them;
+- the RestAPI plugin with an `api_key` in its `restapi.yaml`: without a key these routes do not exist;
+- an HTTPS reverse proxy in front of the API (Caddy, nginx, IIS), the bot's web service listening on `127.0.0.1` only;
+- from DCSServerBot 3.0.5 on, which asks connections from the internet for a JWT by default: allow the API key on the log routes **and** on `servers`, which the menu reads (`endpoints.<route>.security.remote: api_key` in `restapi.yaml`).
+
+Security:
+
+- the key lives in a file only you can read, never in `veafmct.yaml`; the tool reads it when a tab opens and writes it nowhere, not in the session, not in a message, not in the `/bug` report;
+- the tool refuses an `http://` URL except to `127.0.0.1` or `localhost` (the end of an SSH tunnel): the key and the logs cross the network;
+- the logs hold player names and IP addresses: give a key to whoever administers the server.
+
+## Tabs {#tabs}
+
+When the tabs are wider than the window, the strip scrolls: with the mouse wheel over it, or with the ‹ › arrows that then show at its right.
+The current tab is always brought into view.
+From two tabs on, the ≡ button at the strip's left lists them all; a click on a title goes there.
+
+A right click on a tab offers to close it or to rename it.
+*Rename the tab…* (`Renommer l'onglet…`) writes its alias into `~\veafmct.yaml`, and the alias is back at the next launch; an empty name gives the tab its own name back.
+It can be written by hand too:
+
+```yaml
+log_aliases:                       # local files, by their path
+  'C:\Users\me\Saved Games\DCS\Logs\dcs.log': My game
+servers:
+  veaf-api:
+    api: {url: https://dcs.veaf.org/serverapi, api_key_file: ~/.veaf/dcssb-api-key}
+    aliases:                       # a server's logs, SSH or API, by their name
+      VEAF (www.veaf.org) [fr] - Privé 1: P1
+```
+
+The tool rewrites the file keeping its content and its comments, though not always their alignment.
+Without an alias, the logs an API discovers lose the words all its servers share: `veaf-api:Privé 1` rather than `veaf-api:VEAF (www.veaf.org) [fr] - Privé 1`.
+The full name stays in the tab's tooltip.
 
 ## The three states
 
@@ -125,6 +187,8 @@ Three modes, chosen from the dropdown:
 | Texte | literal | literal | `CSAR.lua` |
 | Jokers | literal | wildcards | `No taxiroad*Batumi*` |
 | Regex | wildcard | quantifiers | `VEAF\|[WE]\|` |
+
+In regex mode, `^` and `$` mean the start and end of a line.
 
 `≠` inverts the criterion, `Aa` makes it case-sensitive. **Ajouter au filtre**
 stacks the current criterion: filters combine, and show up as chips you can
@@ -304,14 +368,13 @@ To follow one of these logs remotely, declare it like a `dcs.log` under `logs:`
 ## Large logs
 
 The text is not held in memory: only a compact index is, and lines are decoded as
-they are displayed. On a 119 MB server log (991,392 lines):
+they are displayed. On a 130 MB server log (954,086 entries):
 
 | | |
 |---|---|
-| First lines readable | 0.3 s |
-| Full indexing | 8.6 s, in the background |
-| Memory | 37 MB |
-| Search | 0.65 s |
+| Window shown | 0.04 s |
+| Full indexing | 2.4 s, in the background |
+| Memory, log open | 116 MB |
 
 Indexing carries on while you read and filter; a progress bar shows up with a
 button to stop it — whatever is already indexed stays usable.
@@ -328,6 +391,7 @@ button to stop it — whatever is already indexed stays usable.
 | `Ctrl+Shift+C` | copy without the DCS header |
 | `Ctrl+A` | select everything |
 | `F` | follow the end of the file / pause |
+| `Ctrl+End` | go to the end |
 | `Ctrl+R` | show everything |
 | `Ctrl+S` | save the profile |
 | `Ctrl++` / `Ctrl+-` | grow / shrink the font |
@@ -339,9 +403,9 @@ button to stop it — whatever is already indexed stays usable.
 
 ## Adding your own rules
 
-Recognised sources, colours and noise families all live in one file,
-`veaf_logs/rules.json`, which the **Règles** menu opens and reloads (`F5`)
-without leaving the application.
+Recognised sources, colours and noise families all live in one catalogue, `rules.json`, built into the executable.
+The **Règles** menu opens an editable copy of it, which `F5` reloads without leaving the application.
+That copy only lasts for the current session: a rule meant to stay goes into the repository's `src/python/veaf-tools/veaf_logs/rules.json`, and ships with the next release.
 
 A script of your own takes one entry:
 
@@ -380,7 +444,9 @@ log's lines only. Source prefixes (`match`) apply to `dcs.log` lines only.
 
 | | |
 |---|---|
-| Session (open files, filters, geometry, font, panels shown) | `%APPDATA%\veaf-logs\session.json` |
-| Profiles | `%APPDATA%\veaf-logs\profiles.json` |
+| Session (open files, filters, geometry, font, panels shown) | `%APPDATA%\veaf_logs\session.json` |
+| Profiles | `%APPDATA%\veaf_logs\profiles.json` |
 | Remote servers (`servers:`) | `~\veafmct.yaml` |
+| A server's API key | the file of its `api_key_file` |
+| Tab aliases | `~\veafmct.yaml` (`log_aliases:`, and each server's `aliases:`) |
 | Local mirror of a remote log | `%TEMP%\veaf-logs-*.log`, removed when the tab closes |

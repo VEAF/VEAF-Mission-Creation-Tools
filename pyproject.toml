@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.31.4"
+version = "6.32.0"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -17,7 +17,6 @@ packages = [
 include = [
     # Le catalogue de regles de veaf-logs est une donnee du package, pas du code.
     { path = "src/python/veaf-tools/veaf_logs/rules.json", format = ["sdist", "wheel"] },
-    { path = "src/python/veaf-tools/veaf_logs/veaf-logs.ico", format = ["sdist", "wheel"] },
 ]
 
 [tool.poetry.dependencies]
@@ -33,18 +32,8 @@ InquirerPy = ">=0.3,<1"
 requests = ">=2.28,<3"
 mcp = "^2.0.0"
 "ruamel.yaml" = ">=0.18,<1.0"
-# Interface graphique de veaf-logs uniquement. Optionnelle : elle pese plus de
-# 200 Mo installee, et rien d'autre dans veaf-tools n'en depend.
-# python = "<3.15" : la borne haute que le paquet declare lui-meme. Sans elle,
-# la resolution echoue, `^3.11` allant jusqu'a 4.0. Meme raison que pyinstaller.
-PySide6-Essentials = { version = ">=6.6", optional = true, python = "<3.15" }
-# Client SSH/SFTP de veaf-logs (journaux distants). Meme extra que Qt : rien
-# d'autre dans veaf-tools ne s'en sert.
-paramiko = { version = ">=3.4,<6", optional = true }
 python-pptx = ">=1.0,<2"
-
-[tool.poetry.extras]
-logs = ["PySide6-Essentials", "paramiko"]
+fpdf2 = ">=2.8,<3"
 
 [tool.poetry.scripts]
 veaf-build = "veaf_build:main"
@@ -57,7 +46,6 @@ check-vendored = "veaf_build.vendored_check_cli:main"
 docs-check = "veaf_build.docs_check:main"
 docs-stamp-version = "veaf_build.docs_version_stamp:main"
 veaf-mission-mcp = "veaf_mission_mcp.server:main"
-veaf-logs = "veaf_logs.ui.main_window:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"
@@ -65,6 +53,7 @@ mypy = ">=1.8"
 pytest = ">=8.0"
 pytest-cov = ">=5.0"
 types-PyYAML = ">=6.0"
+pypdf = ">=6,<7"
 
 [tool.poetry.group.build.dependencies]
 # Build tools — not needed for the quality gate, only for creating the .exe

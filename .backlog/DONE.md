@@ -6,6 +6,50 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-GO-VEAF-LOGS-TABS](FEAT-GO-VEAF-LOGS-TABS/PRD.md) · ✅
+
+The `veaf-logs` tab strip scrolls past the window's width (wheel, ‹ › arrows), a ≡ button lists the tabs from two on, and a tab can be renamed: its alias lives in `~/veafmct.yaml` (a server's `aliases:`, `log_aliases:` for a local file), written by *Renommer l'onglet…* or by hand; an API's discovered logs lose the prefix all its servers share. Asked by David 2026-10-26 after opening seven API tabs. Checked by hand by David the same day.
+
+### [FEAT-VEAF-LOGS-REST-API](FEAT-VEAF-LOGS-REST-API/PRD.md) · ✅
+
+`veaf-logs` follows a server's `dcs.log` and the bot's log through DCSServerBot's RestAPI, with an API key and no SSH account: `logcore.APISource` mirrors the API's entries written back as lines (identical to the original files, measured on real logs), `api:` servers in `~/veafmct.yaml` with their logs discovered, older files openable, the reason a log cannot be read in the status bar. Checked by David on dcs.veaf.org with the technician key, across a server restart. Merged in #1198 (2026-10-26).
+
+### [FEAT-GO-VEAF-LOGS-SHIP](FEAT-GO-VEAF-LOGS-SHIP/PRD.md) · ✅
+
+The release builds and publishes the Go `veaf-logs.exe` (`veaf-build build-logs` runs `go build`, version stamped), the PySide6 window and the `logs` extra leave, the windowless Python core stays for the support bot and the parity goldens (ADR 0023). Merged in #1190 (2026-10-25).
+
+### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · ✅
+
+Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, remote journals, *Explain* and the `/bug` report — in five milestones (#1176, #1181, #1182, J5), equal to the Python on every reference case. Decided 2026-10-25: the Go viewer replaces the Python one, the rest of the tools stay in Python (ADR 0023); shipping it is FEAT-GO-VEAF-LOGS-SHIP.
+
+### [FIX-LIMITATIONS-SHORT-LISTING](FIX-LIMITATIONS-SHORT-LISTING/PRD.md) · ✅
+
+The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20. Merged in #1156 (2026-10-20).
+
+### [CHORE-CI-JOB-TIMEOUTS](CHORE-CI-JOB-TIMEOUTS/PRD.md) · ✅
+
+Every CI job and every apt-get step carries a timeout, after a `python-quality` job hung four hours in `apt-get update`; a test keeps new workflows from coming without one.
+
+### [FIX-GO-VEAF-LOGS-UI](FIX-GO-VEAF-LOGS-UI/PRD.md) · ✅
+
+The Go `veaf-logs` window brought level with the Python one. The filters panel no longer spreads three groups over its whole height on a short journal (a walk custom widget is greedy; each group is now pinned to its content, checked by the smoke test). Then seven of the nine differences found by comparing the two windows side by side: flat buttons and fields, compact number fields, the panel's toggle, the bars' height, the panel's width, the table's empty area, the font dialog. Merged in #1185.
+
+### [FIX-LOGS-SEARCH-REDACTION](FIX-LOGS-SEARCH-REDACTION/PRD.md) · ✅
+
+The search criteria the excerpt's header repeats went to the VEAF Worker as typed, unredacted, when *Analyser en ligne* was pressed: they are now redacted like the records. Found by a security review of the Go port's J5, fixed on both sides.
+
+### [FIX-VEAF-LOGS-VIEWER-DEFECTS](FIX-VEAF-LOGS-VIEWER-DEFECTS/PRD.md) · ✅
+
+Three defects of the Python `veaf-logs` found by the Go port: *Aller à la fin* had no shortcut, `^` and `$` bound to the 8 MB search block instead of the line (Go follows), and a glob starting with `*` froze the window for a minute on a 130 MB journal. Split from FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL; merged in #1177, 2026-10-24.
+
+### [POC-GO-VEAF-LOGS](POC-GO-VEAF-LOGS/PRD.md) · ✅
+
+Proof of concept: veaf-logs rewritten in Go in an isolated module (`src/go/veaf-logs/`). Same classification as the Python viewer on every entry tested, 9.5 MB instead of 47.2 MB, window in 0.3 s instead of 2.1 s, a 130 MB journal indexed in 2.4 s instead of 13.3 s; Gio chosen for the UI (ADR 0021); remote journals over SFTP included. Memory is the one figure where Go loses. The follow-up decision is David's. Done 2026-10-24.
+
+### [FIX-DEMO-VIDEO-FINDINGS](FIX-DEMO-VIDEO-FINDINGS/PRD.md) · ✅
+
+What the AI worked around while building missions with the VEAF tools, from David's demo video and Martinho's session (2026-10-22): Texaco refused for a tanker, 123.5 MHz on the UH-1H, an empty ATO with dynamic slots, the tanker missing from the briefing, accents lost in what the AI writes, waypoint numbers that no longer match the route, a PDF of the briefing from the executable, and six smaller frictions of the actions. Each measured first.
+
 ### [DOC-DEMO-VIDEO](DOC-DEMO-VIDEO/PRD.md) · ✅
 
 The demo video (a free AI installs the VEAF tools and builds a mission with its briefing) embedded under the five-step box of "Create with an AI", with subtitles forced in the page's language, and linked from the home page card.

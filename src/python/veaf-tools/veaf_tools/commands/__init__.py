@@ -18,6 +18,7 @@ from . import (  # noqa: F401
     extract,
     inject_presets,
     mcp,
+    password_hash,
     prepare,
     resolve_checklist,
     smoke_test,

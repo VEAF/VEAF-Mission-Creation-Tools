@@ -93,6 +93,16 @@ class TestCaviardage:
         assert "Alphonse Dupont" not in excerpt.to_text()
         assert excerpt.entries[0].continuations
 
+    def test_la_recherche_tapee_aussi(self, sensible):
+        """L'en-tete recopie la recherche, et part tel quel a l'analyse en ligne : une adresse ou un
+        chemin tape dans le champ de recherche ne doit pas y passer en clair."""
+        filtres = FilterSet(text_filters=[TextFilter(pattern=f"{ADRESSE} {CHEMIN}")])
+        en_tete = build_excerpt(sensible, filtres).header_lines()
+        recherche = next(ligne for ligne in en_tete if ligne.startswith("recherche : "))
+        assert ADRESSE not in recherche
+        assert "Alphonse Dupont" not in recherche
+        assert "<ip>" in recherche
+
 
 class TestCategoriesExclues:
     """Le lecteur doit savoir ce qui manque : un journal filtre n'est pas un journal propre."""

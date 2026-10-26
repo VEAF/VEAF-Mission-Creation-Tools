@@ -466,6 +466,29 @@ def _load_cached(path: str, mtime: float) -> Catalogue:
     return load_catalogue(Path(path))
 
 
+def coverage_summary(catalogue: Catalogue | None, theatre: str, *, names: int = 6) -> str:
+    """Say what a theatre's catalogue covers, for a warning that says a place is not in it.
+
+    A catalogue is a set of surveyed places (airfields, Open Training zones), not a map: two AI runs read
+    "no catalogue covers this place" as "this theatre has no catalogue" (FIX-DEMO-VIDEO-FINDINGS 12).
+
+    Args:
+        catalogue: The theatre's catalogue, ``None`` when it has none.
+        theatre: The theatre's name.
+        names: How many of the surveyed places to name.
+
+    Returns:
+        ``"<theatre> has no clear-ground catalogue"``, or what it holds: a count, then some of the places.
+    """
+    # An answer to the AI, in English like every action of the catalogue, not a message for the user.
+    summary = f"{theatre} has no clear-ground catalogue"
+    if catalogue is not None and catalogue.layers:
+        places = [layer.name.split(":", 1)[-1].removeprefix("combatZone_") for layer in catalogue.layers]
+        shown = ", ".join(places[:names]) + (", …" if len(places) > names else "")
+        summary = f"the {theatre} catalogue holds {len(places)} surveyed place(s) only ({shown})"
+    return summary
+
+
 def catalogue_for_theatre(theatre: str) -> Catalogue | None:
     """Return the catalogue for a theatre: swept locally if there is one, else the versioned one.
 

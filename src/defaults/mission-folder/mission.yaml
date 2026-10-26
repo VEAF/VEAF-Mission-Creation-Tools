@@ -65,9 +65,9 @@
 # ── Security ─────────────────────────────────────────────────────────────────
 # security:
 #   disabled: true              # true = no password required (default: false — security is active)
-#   password_hashes:            # SHA-1 hashes to restrict JTF/admin access (sha1.hex of the password)
+#   password_hashes:            # SHA-1 of the SENIOR_PILOT password (also opens KNOWN_PILOT): .\veaf-tools.exe password-hash
 #     - "<SHA-1 hash>"
-#   password_mm_hashes:         # SHA-1 hashes to restrict Mission Master access
+#   password_mm_hashes:         # SHA-1 of the Mission Master password: .\veaf-tools.exe password-hash
 #     - "<SHA-1 hash>"
 
 # ── Module configuration ──────────────────────────────────────────────────────

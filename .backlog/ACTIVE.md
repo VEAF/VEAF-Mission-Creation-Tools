@@ -6,12 +6,11 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-LIMITATIONS-SHORT-LISTING](FIX-LIMITATIONS-SHORT-LISTING/PRD.md) · 🔄
-
-The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20.
-
-
 ## 🧑 Waiting for a human
+
+### [FIX-COWORK-SESSION-FINDINGS](FIX-COWORK-SESSION-FINDINGS/PRD.md) · 🧑
+
+What Trakdah's Claude Cowork session of 2026-10-25 ("Fire at Adler") taught us: five defects (briefing pictures, same-named waypoints, `~`, diversion fields, slots by era), security explained, the briefing in the kneeboard, the opposition's skill, route planning and a `set_route` action, Cowork in the docs. Thirteen tickets, done in the code; waits on two checks in David's DCS (the kneeboard pages, the ground units' skill).
 
 ### [FEAT-FORCED-MISSION-OPTIONS](FEAT-FORCED-MISSION-OPTIONS/PRD.md) · 🧑
 

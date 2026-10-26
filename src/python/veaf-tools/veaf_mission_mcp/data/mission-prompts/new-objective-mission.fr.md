@@ -55,6 +55,9 @@ alors, et tu le dis.
 4. **Le genre de mission**, s'il en a une envie : frappe dans la profondeur, appui feu (CAS), SEAD /
    DEAD, antinavire, escorte, interception, héliportage / CSAR, ou un mélange. Et l'**époque** si elle
    ne découle pas des appareils.
+5. **Le niveau de l'opposition** : `Average`, `Good`, `High`, `Excellent`, ou `Random` (DCS en tire un par unité).
+   Il va sur chaque avion et chaque unité au sol ennemis que tu crées (`skill` de `add_air_group`, `add_group`, `create_combat_zone`).
+   Dis qu'une batterie posée par un marqueur `#veafInterpreter` garde le niveau par défaut de DCS, et que c'est Skynet, pas le niveau, qui décide quand un site SAM s'allume.
 
 Tout le reste — lieu, objectifs, menace, heure, météo, soutien — c'est **toi** qui le proposes, dans
 le scénario.
@@ -88,6 +91,10 @@ pas.
   est une **estimation** : dis-la comme telle.
 - **Faisable avec les outils** : tout ce que le scénario promet doit pouvoir se construire (section
   4). Ce qui dépend d'un réglage que tu n'as pas vérifié se dit « à vérifier », pas « prévu ».
+- **Volé comme l'appareil se vole.** Une sortie à basse altitude ou qui dépend du relief reçoit la route que cet appareil et cette époque voleraient : suivi de terrain dans les vallées, pop-up depuis la mer, course le long d'une crête.
+  Dis laquelle, et pourquoi.
+  Mesure l'exposition de **deux** routes candidates face aux batteries connues avec `terrain_elevation` (`route` + `observers`, sur un profil d'altitude que tu dis supposé), et donne la comparaison dans le scénario : la route la plus courte au-dessus de la mer n'est pas le choix évident quand le relief cache le vol.
+  Quand l'utilisateur valide un scénario, demande-lui comment il veut voler la sortie : sa réponse l'emporte sur ta doctrine.
 - **Des bases qui accueillent le public.** `list_airfields` avec `details: true` (et `name_contains` pour une base) donne les places de parking de chaque base, `parking.planes` et `parking.helicopters`.
   Compare-les au nombre de pilotes. Une base trop petite refuse les slots dynamiques en
   silence côté joueur (« Can't create dynamic group, no suitable parking was found » dans le journal
@@ -242,7 +249,11 @@ validé un scénario, pas un à-peu-près.
   plus grand terrain d'où partent les transports — 1 100 m pour une grande base comme Ramstein, où un
   C-130 se gare à 997 m du point de chargement.
 - **Nom** : `VEAF_<Carte>_<Titre>` (titre en PascalCase sans accents, ex.
-  `VEAF_Syria_DeepStrikePalmyra`).
+  `VEAF_Syria_DeepStrikePalmyra`). C'est le **seul** texte sans accents : les noms de zone, de groupe et
+  les indicatifs aussi sont en ASCII, mais tout ce que lisent les joueurs (briefing, titres et tâches des
+  objectifs, menaces, notes, README) s'écrit **avec ses accents**, y compris dans l'appel d'un outil
+  (`set_briefing`, `build_mission_briefing`, `create_combat_zone`) : un accent n'est jamais un risque pour
+  un outil, et un briefing sans accents se lit comme une faute.
 - `mission.era`, **date** et **heure** (`set_mission_date`) cohérentes avec le scénario. Si le
   scénario dit « pleine lune » ou « nuit sans lune », **choisis la date d'après une éphéméride
   sourcée**, pas de mémoire.
@@ -252,8 +263,15 @@ validé un scénario, pas un à-peu-près.
   « 9999 » METAR) : pour une brume, demande 8 000 m au plus.
 - **Langue** : `mission.language: fr` et briefing en français, sauf mention contraire.
 - `silence_atc_on_all_airbases: true`.
-- **Sécurité active par défaut** (la mission tourne sur les serveurs VEAF) ; demande s'il faut des
-  hachages de mot de passe. **Jamais un mot de passe en clair**, même en commentaire. Un **profil
+- **Sécurité** : explique-la avant de demander, l'utilisateur ne peut pas choisir sans.
+  Elle verrouille les commandes F10 et par marqueur sensibles : spawn, téléportation, destruction.
+  Sur les serveurs VEAF, les pilotes que le serveur connaît passent sans mot de passe ; sur tout autre serveur personne n'est connu, donc seul un mot de passe les ouvre.
+  Le mot de passe livré avec les outils est public : « active, sans hash » ne protège rien hors des serveurs VEAF.
+  Un mot de passe devient un hash avec `.\veaf-tools.exe password-hash`, que **l'utilisateur lance** dans PowerShell (la saisie est masquée) et dont il te donne le hash : ne demande jamais le mot de passe lui-même.
+  `password_hashes` reçoit celui du niveau SENIOR_PILOT (spawn, marqueurs), `password_mm_hashes` celui du Mission Master.
+  **Jamais un mot de passe en clair** dans un fichier, même en commentaire à côté de son hash : les sources se publient.
+  Donc : pour les serveurs VEAF, sécurité active, hash au choix ; pour tout autre serveur, `security: disabled: true` (recommandé pour une mission entre amis) ou ses propres mots de passe.
+  Un **profil
   `LOCAL_TEST`** : sécurité désactivée, logs `debug`, noms de groupes lisibles
   (`hide_names_from_spawned_groups: false`). Les deux profils écrivent **le même nom de `.miz`** :
   renomme le premier avant de construire le second, ou passe par un script de build.
@@ -277,15 +295,15 @@ validé un scénario, pas un à-peu-près.
     aérodrome.
   - *Dynamiques* : `set_airbase_coalition` ouvre les slots des bases de départ (ferme ceux des bases
     ennemies avec `dynamic_spawn: false`), l'ATO garde les indicatifs avec des cases pilotes vides.
-    Le catalogue livré offre **tous** les types bleus, warbirds compris : dis-le, et propose de le
-    restreindre (`content pull-aircraft-groups`) si l'époque compte. Vérifie la capacité des bases
+    Le catalogue livré offre les types de l'époque de la mission (`mission.era` le filtre ; le F/A-18C reste dans toutes les époques, et une mission `MODERN` garde les warbirds) : dis-le, et propose de le
+    restreindre davantage (`content pull-aircraft-groups`) si besoin. Vérifie la capacité des bases
     (section 2.1).
 - **Emport** : celui du scénario, ou un emport de base cohérent avec la mission si l'ATO dit
   « Armement libre » (les pilotes le changent au sol).
 - **Plan de vol dans l'appareil** : il **est** le plan de vol du briefing, dans le même ordre et sous
   les mêmes noms. Dans DCS le point 0 est le départ : `W1` du briefing est le point d'index 1.
   Vérifie-le dans le `.miz` construit (`describe_units` avec `include_route`). Avec des slots nommés, c'est la route du groupe (`edit_route`) ou
-  `src/waypoints.yaml` ; avec des slots dynamiques, **seulement `src/waypoints.yaml`** : le build
+  `src/waypoints.yaml` ; avec des slots dynamiques, **seulement `src/waypoints.yaml`**, écrit avec `set_route` (un appel : les points dans l'ordre, chacun posé au sol, les noms vérifiés, le cap et la distance de chaque branche rendus) : le build
   ajoute ses points après le départ de chaque gabarit joueur (un plan par catégorie et coalition, un
   pour les jets, un pour les hélicoptères), puis un BULLSEYE.
 - **Un point par objectif**, y compris le départ d'un convoi (`COLONNE`), sur le chemin du vol.
@@ -293,7 +311,11 @@ validé un scénario, pas un à-peu-près.
 - **Les waypoints sont au sol** : altitude `BARO` = sol DCS sous le point, lue par `terrain_elevation`
   (`points`), pour que chaque steerpoint porte les coordonnées du terrain. Déclare le **BULLSEYE**
   dans `waypoints.yaml`, au sol lui aussi : sinon le build en injecte un à 20 000 ft (un point déclaré
-  sous ce nom remplace le sien). L'altitude de vol se dit au briefing, pas dans les points.
+  sous ce nom remplace le sien). Place-le **en dernier** de la liste, comme le build le fait : en tête ou
+  au milieu, il décale d'un rang tous les points qui le suivent, et chaque `W<n>` déjà écrit au
+  briefing et sur les étiquettes F10 devient faux (mesuré : NŒUD, COLONNE et OVDA annoncés W3, W4,
+  W6 pour une route où ils sont W4, W5, W7). Dans les textes, cite un point par son **nom** (« le
+  nœud logistique, W4 ») plutôt que par son seul numéro. L'altitude de vol se dit au briefing, pas dans les points.
 - **Profil bas (TBA)**, si le scénario en a un : `terrain_elevation` avec la `route` donne le sol le
   plus haut de chaque branche ; le briefing donne une altitude de branche au-dessus de ce maximum.
   Sol seulement — ni bâtiments, ni pylônes, ni arbres : garde une marge, et dis laquelle. Si le
@@ -400,7 +422,7 @@ validé un scénario, pas un à-peu-près.
   Le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun préréglage ne porte (journal et
   `presets-validation-report.md`) : la mission n'est pas prête tant que cette liste n'est pas vide.
   *Kolkhida* a volé deux missions sur le plan d'Open Training du gabarit, l'avertissement affiché.
-- **`src/waypoints.yaml`** : retire les exemples du gabarit.
+- **`src/waypoints.yaml`** : retire les exemples du gabarit ; `set_route` nomme tout plan d'exemple qui l'emporterait encore sur le tien.
 - **Cartes et images de briefing DCS** : `build_mission_briefing` (section 6) les fait depuis la
   mission construite, jamais à la main : une carte générale (départ, itinéraire et waypoints numérotés,
   objectifs, menaces connues avec leur cercle d'engagement plein et de détection en pointillés, soutien,
@@ -410,8 +432,7 @@ validé un scénario, pas un à-peu-près.
   (`briefing-pictures-red-then-blue`).
   - **Ne passe que ce que le renseignement est censé connaître** dans `threats` : une menace surprise
     prévue par le scénario n'y est pas. Une portée n'y figure qu'avec sa source.
-  - **Dans un désert, le fond OSM standard est presque vide** : `basemap: topo` (OpenTopoMap, relief
-    ombré et courbes de niveau).
+  - **`basemap: topo`** (OpenTopoMap, relief ombré et courbes de niveau) pour toute mission à basse altitude ou qui dépend du relief, et dans un désert, où le fond OSM standard est presque vide.
   - **Regarde chaque carte rendue** si tu le peux : aucune étiquette ne doit désigner le mauvais point.
     Sans moyen de voir une image, dis à l'utilisateur de les regarder (`docs/maps/`).
 - **Dessins F10** (`add_map_drawing`) sur la couche `Blue` : l'itinéraire et ses points nommés, les
@@ -435,25 +456,32 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
 
 ## 6. Le fichier de briefing
 
-- **PPTX (et PDF si demandé)** dans `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), le modèle
+- **PPTX et PDF** dans `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), le modèle
   de la section 3, page pour page ; le PPTX est la source de la version **Google Slides** (import dans
   Drive). Garde des polices que Slides connaît (Calibri, Cambria, Arial), et regarde le rendu converti
   s'il est déposé.
 - **Généré par `build_mission_briefing`**, une fois la mission construite, et relancé après chaque
   changement et chaque build. Tu lui passes les **mots** du scénario : `title`, `context`,
   `mission_bullets`, `objectives` (la combat zone, son titre, sa tâche), `threats` (le groupe où elle
-  se tient, sa famille, ses portées sourcées), `air_opposition`, `air_defences`, `other`, et les
-  `pilots` / `loadouts` par nom de groupe.
+  se tient, sa famille, ses portées sourcées), `air_opposition`, `air_defences`, `other`, les
+  `pilots` / `loadouts` par nom de groupe, et les `diversions` (noms DCS des aérodromes) quand le scénario nomme les siens ; sans elles, le deck liste les autres aérodromes du camp, départ exclu.
+- **Chaque `.miz` construit reçoit les images** : celui du build et chaque variante météo de `missions/` (`archives` dans le résultat).
+- **Le kneeboard** (`kneeboard`, actif par défaut) : la carte générale et les zooms dessinés pour la page 2:3, une carte de vol (chaque point, le cap et la distance de sa branche, le relief le plus haut dessus, les radios) et les cibles, dans le kneeboard de chaque appareil. Ses numéros de canal sont des slots DCS : sur l'AJS-37, ce ne sont pas ceux du cockpit (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
 - **Les chiffres viennent de la mission, pas du scénario**, et c'est l'action qui les lit dans le
   `.miz` construit : date, heure, météo, bullseye, flights, soutien, plan de vol, presets injectés dans
   les cockpits (le plan de fréquences), coordonnées de chaque cible posée et altitude du sol dessous —
   sans grille d'altitude pour le théâtre, la colonne reste vide et l'action le signale : c'est un
   point ouvert. Lis ses `warnings`.
-- **Le PDF** n'est pas produit : l'utilisateur l'exporte depuis PowerPoint ou Slides. Avec un shell,
-  PowerPoint le fait par COM (`Presentations.Open` puis `SaveAs`, format 32).
-- **Relis chaque page rendue** si tu peux convertir le PPTX en images (PowerPoint par COM :
-  `Presentations.Open` puis `Slide.Export` en PNG) : rien ne déborde, chaque numéro de waypoint
-  correspond à la route. Sinon, demande à l'utilisateur de l'ouvrir et de le regarder.
+- **Le PDF** (`docs/briefing.pdf`) est écrit par la même action, avec les pages, les cartes et les mots
+  du deck, quoi que le PC contienne : n'installe rien et n'écris aucun convertisseur (une IA qui a
+  installé LibreOffice par `winget` a perdu quinze minutes et laissé une installation à moitié faite).
+  Sa mise en page est la sienne (DejaVu Sans, pas Calibri) et une page dont le texte déborde en fait une
+  de plus : `pdf_pages` le dit. Qui veut l'aspect exact du deck l'exporte depuis PowerPoint ou Slides.
+- **Les numéros de waypoint sont vérifiés pour toi** : un `W<n>` de tes mots que la route ne porte pas,
+  ou que sa propre phrase contredit (`KHOBI (W3)` quand KHOBI est W2), revient dans les `warnings`.
+  Corrige le mot et relance. Relire les pages rendues (PowerPoint par COM : `Presentations.Open` puis
+  `Slide.Export` en PNG) reste utile pour ce qui déborde ; sans cela, demande à l'utilisateur de
+  l'ouvrir et de regarder.
 
 ## 7. Ce que tu rends à la fin
 
@@ -471,7 +499,7 @@ Ce qui revient à l'utilisateur : commit, push, publication, lancer DCS.
   d'appareils, waypoints injectés dans combien de groupes, liens des warehouses, avertissements. Tout
   zéro est suspect. Lance les builds **l'entrée standard fermée** (`< /dev/null`, ou
   `stdin=DEVNULL`) : un build est resté bloqué dix minutes à attendre une saisie, sans rien afficher.
-- **Contrôle la mission construite par les actions, jamais en la dézippant** : `inspect_built_mission` (slots, presets, bullseye, météo, soutien, compteurs), `describe_mission` et `describe_units` sur le `.miz` construit (noms, routes, unités), `read_mission_file` (les sources).
+- **Contrôle la mission construite par les actions, jamais en la dézippant** : `inspect_built_mission` (slots, presets, bullseye, météo et date, images du briefing, soutien, compteurs), `describe_mission` et `describe_units` sur le `.miz` construit (noms, routes, unités), `read_mission_file` (les sources).
   Ce qu'aucune action ne lit, tu le signales comme non vérifié. Contrôle :
   - noms de groupes et d'unités **uniques** ;
   - slots nommés : un groupe par vol de l'ATO, le bon nombre de slots `Client`, au bon départ, avec

@@ -56,6 +56,9 @@ say so.
 4. **The kind of mission**, if they have a preference: deep strike, close air support, SEAD / DEAD,
    anti-ship, escort, intercept, air assault / CSAR, or a mix. And the **era** if it does not follow
    from the aircraft.
+5. **The level of the opposition**: `Average`, `Good`, `High`, `Excellent`, or `Random` (DCS draws one per unit).
+   It goes on every enemy aircraft and ground unit you create (`skill` of `add_air_group`, `add_group`, `create_combat_zone`).
+   Say that a battery placed by a `#veafInterpreter` marker keeps DCS's own level, and that Skynet, not the level, decides when a SAM site lights up.
 
 Everything else — place, objectives, threat, time, weather, support — **you** propose, in the
 scenario.
@@ -101,6 +104,10 @@ guess it.
   friendly units there: enough to make one want to defend it, **too few for it to hold alone** against
   the attacker (no tank against tanks, for example). And the attacker's route must **reach the
   contact**, not stop out of range.
+- **Flown as the aircraft is flown.** A low-level or terrain-dependent sortie gets the route that aircraft and era would fly: terrain masking through valleys, a pop-up from the sea, a run along a ridge.
+  Say which, and why.
+  Measure the exposure of **two** candidate routes against the known batteries with `terrain_elevation` (`route` + `observers`, on an altitude profile you state as assumed), and give the comparison in the scenario: the shorter route over the sea is not the obvious choice when the hills hide the flight.
+  When the user approves a scenario, ask how they want the sortie flown: their answer wins over your doctrine.
 - **Readable at a glance**: a pitch that tells in two sentences.
 
 Read-only actions (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`, `list_unit_types`,
@@ -244,7 +251,11 @@ approximation of it.
   airfield the transports start from — 1,100 m for a major air base such as Ramstein, where a C-130
   parks 997 m from the loading point.
 - **Name**: `VEAF_<Map>_<Title>` (title in PascalCase without accents, e.g.
-  `VEAF_Syria_DeepStrikePalmyra`).
+  `VEAF_Syria_DeepStrikePalmyra`). That is the **only** text without accents: zone and group names and
+  callsigns are ASCII too, but whatever a player reads (briefing, objective titles and tasks, threats,
+  notes, README) keeps its language's accents, **also inside a tool call** (`set_briefing`,
+  `build_mission_briefing`, `create_combat_zone`): an accent is never a risk for a tool, and an unaccented
+  French briefing reads as a mistake.
 - `mission.era`, **date** and **time** (`set_mission_date`) consistent with the scenario. If the
   scenario says "full moon" or "moonless night", **pick the date from a sourced ephemeris**, not from
   memory.
@@ -254,8 +265,15 @@ approximation of it.
   ask for 8,000 m at most.
 - **Language**: `mission.language: en` and an English briefing, unless told otherwise.
 - `silence_atc_on_all_airbases: true`.
-- **Security on by default** (the mission runs on the VEAF servers); ask whether password hashes are
-  needed. **Never a clear-text password**, not even in a comment. A **`LOCAL_TEST` profile**: security
+- **Security**: explain it before asking, the user cannot choose without it.
+  It locks the sensitive F10 and map-marker commands: spawning, teleporting, destroying.
+  On the VEAF servers, the pilots the server lists pass without a password; on any other server nobody is listed, so only a password opens them.
+  The password shipped with the tools is public: "on, without hashes" protects nothing outside the VEAF servers.
+  A password becomes a hash with `.\veaf-tools.exe password-hash`, which **the user runs** in PowerShell (the input is hidden) and whose hash they give you: never ask for the password itself.
+  `password_hashes` holds the SENIOR_PILOT one (spawning, markers), `password_mm_hashes` the Mission Master's.
+  **Never a clear-text password** in a file, not even in a comment next to its hash: the sources get published.
+  So: for the VEAF servers, security on, hashes optional; for any other server, `security: disabled: true` (recommended for a mission among friends) or the user's own passwords.
+  A **`LOCAL_TEST` profile**: security
   off, `debug` logs, readable group names (`hide_names_from_spawned_groups: false`). Both profiles
   write **the same `.miz` name**: rename the first before building the second, or use a build script.
 - **Game Master slot** if asked for: `groundControl.roles.instructor` in the mission table (no action
@@ -278,14 +296,14 @@ approximation of it.
     airfield.
   - *Dynamic*: `set_airbase_coalition` opens the departure bases' slots (close the enemy bases' with
     `dynamic_spawn: false`), the ATO keeps the callsigns with empty pilot cells. The shipped catalogue
-    offers **every** blue type, warbirds included: say so, and offer to restrict it
-    (`content pull-aircraft-groups`) if the era matters. Check the bases' capacity (section 2.1).
+    offers the types of the mission's era (`mission.era` filters it; the F/A-18C stays in every era, and a `MODERN` mission keeps the warbirds): say so, and offer to restrict it further
+    (`content pull-aircraft-groups`) if needed. Check the bases' capacity (section 2.1).
 - **Loadout**: the scenario's, or a basic loadout fitting the mission if the ATO says "Armement libre"
   (pilots change it on the ground).
 - **Flight plan in the aircraft**: it **is** the briefing's flight plan, in the same order and under
   the same names. In DCS point 0 is the departure: the briefing's `W1` is the point with index 1.
   Check it in the built `.miz` (`describe_units` with `include_route`). With named slots, it is the group's route (`edit_route`) or
-  `src/waypoints.yaml`; with dynamic slots, **only `src/waypoints.yaml`**: the build appends its
+  `src/waypoints.yaml`; with dynamic slots, **only `src/waypoints.yaml`**, written with `set_route` (one call: the points in order, each set on the ground, names checked, each leg's heading and distance returned): the build appends its
   points after the departure of every player template (one plan per category and coalition, one for
   the jets, one for the helicopters), then a BULLSEYE.
 - **One point per objective**, the start of a convoy included (`COLONNE`), on the flight's way. When
@@ -293,7 +311,11 @@ approximation of it.
 - **Waypoints are on the ground**: `BARO` altitude = DCS ground under the point, read by
   `terrain_elevation` (`points`), so that each steerpoint carries the terrain's coordinates. Declare
   the **BULLSEYE** in `waypoints.yaml`, on the ground too: otherwise the build injects one at 20,000 ft
-  (a point declared under that name replaces its own). The flight altitude goes in the briefing, not
+  (a point declared under that name replaces its own). Put it **last** in the list, as the build does:
+  first or in the middle, it shifts every point after it by one, and each `W<n>` already written in the
+  briefing and on the F10 labels turns false (measured: the node, the column and the home field called
+  W3, W4, W6 on a route where they are W4, W5, W7). In the texts, cite a point by its **name** ("the
+  logistics node, W4") rather than by its number alone. The flight altitude goes in the briefing, not
   in the points.
 - **Low-level profile**, if the scenario has one: `terrain_elevation` with the `route` gives the
   highest ground of each leg; the briefing gives a leg altitude above that maximum. Terrain only — no
@@ -396,7 +418,7 @@ approximation of it.
   The build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`): the mission is not ready until that list is empty. *Kolkhida*
   flew two missions on the template's Open Training plan, the warning on screen.
-- **`src/waypoints.yaml`**: remove the template's examples.
+- **`src/waypoints.yaml`**: remove the template's examples; `set_route` names any example plan that would still win over yours.
 - **Briefing maps and DCS briefing pictures**: `build_mission_briefing` (section 6) makes them from
   the built mission, never by hand: an overview map (departure, route and numbered waypoints,
   objectives, known threats with their engagement circle plain and their detection circle dashed,
@@ -406,8 +428,7 @@ approximation of it.
   (`briefing-pictures-red-then-blue`).
   - **Pass only what intelligence is supposed to know** in `threats`: a surprise threat the scenario
     plans is not in it. A range goes in only with its source.
-  - **In a desert, the standard OSM basemap is nearly empty**: `basemap: topo` (OpenTopoMap,
-    hillshade and contour lines).
+  - **`basemap: topo`** (OpenTopoMap, hillshade and contour lines) for any low-level or terrain-dependent mission, and in a desert, where the standard OSM basemap is nearly empty.
   - **Look at every rendered map** if you can: no label may point at the wrong spot. With no way to
     see an image, ask the user to look at them (`docs/maps/`).
 - **F10 drawings** (`add_map_drawing`) on the `Blue` layer: the route and its named points, the known
@@ -431,25 +452,32 @@ Brief status after each step: what is done, not what you are about to do.
 
 ## 6. The briefing file
 
-- **PPTX (and PDF if asked)** in `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), the section 3
+- **PPTX and PDF** in `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), the section 3
   template, page for page; the PPTX is the source of the **Google Slides** version (Drive import).
   Keep fonts Slides knows (Calibri, Cambria, Arial), and look at the converted render if it is
   uploaded.
 - **Generated by `build_mission_briefing`**, once the mission is built, and run again after every
   change and every build. You pass it the scenario's **words**: `title`, `context`, `mission_bullets`,
   `objectives` (the combat zone, its title, its task), `threats` (the group where it stands, its
-  family, its sourced ranges), `air_opposition`, `air_defences`, `other`, and the `pilots` /
-  `loadouts` by group name.
+  family, its sourced ranges), `air_opposition`, `air_defences`, `other`, the `pilots` /
+  `loadouts` by group name, and the `diversions` (DCS airfield names) when the scenario names its own; left out, the deck lists the side's other airfields, the departure excluded.
+- **Every built `.miz` gets the pictures**: the build's own and each weather variant of `missions/` (`archives` in the result).
+- **The kneeboard** (`kneeboard`, on by default): the overview and the zooms drawn for the 2:3 page, a flight card (each point, the heading and distance of its leg, the highest ground on it, the radios) and the targets, in every aircraft's kneeboard. Its channel numbers are DCS slots: on the AJS-37 they are not the cockpit's (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
 - **Figures come from the mission, not from the scenario**, and the action reads them in the built
   `.miz`: date, time, weather, bullseye, flights, support, flight plan, the presets injected into the
   cockpits (the frequency plan), each placed target's coordinates and the ground's altitude under it —
   with no elevation grid for the theatre, the column stays empty and the action says so: it is an
   open point. Read its `warnings`.
-- **The PDF** is not produced: the user exports it from PowerPoint or Slides. With a shell,
-  PowerPoint does it through COM (`Presentations.Open` then `SaveAs`, format 32).
-- **Re-read every rendered page** if you can convert the PPTX to images (PowerPoint through COM:
-  `Presentations.Open` then `Slide.Export` to PNG): nothing overflows, every waypoint number matches
-  the route. Otherwise ask the user to open it and look.
+- **The PDF** (`docs/briefing.pdf`) is written by the same action, with the deck's pages, maps and
+  words, whatever the PC holds: install nothing and write no converter (an AI that installed LibreOffice
+  by `winget` lost fifteen minutes and left a half install). Its layout is its own (DejaVu Sans, not
+  Calibri) and a page whose text runs on makes a page more: the result's `pdf_pages` says. Someone who
+  wants the deck's exact look exports it from PowerPoint or Slides.
+- **The waypoint numbers are checked for you**: a `W<n>` of your words that the route does not carry,
+  or that its own sentence contradicts (`KHOBI (W3)` when KHOBI is W2), comes back in the `warnings`.
+  Fix the word and run it again. Re-reading the rendered pages (PowerPoint through COM:
+  `Presentations.Open` then `Slide.Export` to PNG) is still worth it for what overflows; without it,
+  ask the user to open the deck and look.
 
 ## 7. What you hand over at the end
 
@@ -467,7 +495,7 @@ What belongs to the user: commit, push, publishing, launching DCS.
   waypoints injected into how many groups, warehouse links, warnings. All zeros is suspicious. Run
   the builds **with standard input closed** (`< /dev/null`, or `stdin=DEVNULL`): a build sat for ten
   minutes waiting for input, without printing anything.
-- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
+- **Check the built mission through the actions, never by unzipping it**: `inspect_built_mission` (slots, presets, bullseye, weather and date, briefing pictures, support, counters), `describe_mission` and `describe_units` on the built `.miz` (names, routes, units), `read_mission_file` (the sources).
   What no action reads, you report as not checked. Check:
   - **unique** group and unit names;
   - named slots: one group per ATO flight, the right number of `Client` slots, at the right

@@ -1,5 +1,6 @@
 """Registry of MCP actions exposed by the mission-editing server."""
 
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -122,7 +123,9 @@ class ActionCatalog:
         except KeyError:
             raise ActionNotFoundError(name) from None
         schema = self._specs[name].parameters_schema or {}
+        params = _expand_user_paths(params)
         params = _published_mission_key(name, params, schema)
+        params = _published_file_key(name, params, schema)
         _check_parameters(name, schema, params)
         native = self._mission_keys.get(name)
         if native is not None and native != MISSION_PARAMETER and MISSION_PARAMETER in params:
@@ -184,6 +187,56 @@ def _published_mission_key(name: str, params: dict[str, Any], schema: dict[str, 
     result = {key: item for key, item in params.items() if key not in names}
     result[published] = value
     return result
+
+
+#: The parameter names that hold a path on the local disk: ``mission_path``, ``target_folder``, ``target``…
+_PATH_PARAMETER = re.compile(r"(^|_)(path|folder|target)$")
+
+
+def _expand_user_paths(params: dict[str, Any]) -> dict[str, Any]:
+    """Expand a leading ``~`` in the path parameters, once for every action.
+
+    ``mission_path: ~/Documents/...`` reached the handlers as is and failed with
+    ``FileNotFoundError: '~\\Documents\\...'`` (FIX-COWORK-SESSION-FINDINGS 03).
+
+    Args:
+        params: The parameters received.
+
+    Returns:
+        ``params`` with each top-level path parameter starting with ``~`` expanded; the others untouched.
+    """
+    return {
+        key: str(Path(value).expanduser())
+        if isinstance(value, str) and value.startswith("~") and _PATH_PARAMETER.search(key)
+        else value
+        for key, value in params.items()
+    }
+
+
+def _published_file_key(name: str, params: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    """Read ``path`` as ``file`` on an action that publishes ``file`` and no ``path``.
+
+    A model reaches for ``path`` first (its own file tools take one): ``read_mission_file`` called with it
+    lost a turn to "unknown parameter(s) path" (FIX-DEMO-VIDEO-FINDINGS 09).
+
+    Args:
+        name: The action's name, for the message.
+        params: The parameters received.
+        schema: The action's published parameter JSON Schema.
+
+    Returns:
+        ``params`` with the file under ``file``; unchanged when the action publishes ``path`` itself or
+        the caller sent no ``path``.
+
+    Raises:
+        ValueError: If both are given with different values.
+    """
+    properties = schema.get("properties") or {}
+    if "file" not in properties or "path" in properties or "path" not in params:
+        return params
+    if "file" in params and str(params["file"]) != str(params["path"]):
+        raise ValueError(f"{name}: the file is given twice with different values (file, path)")
+    return {**{key: item for key, item in params.items() if key != "path"}, "file": params["path"]}
 
 
 def _check_parameters(name: str, schema: dict[str, Any], params: dict[str, Any]) -> None:

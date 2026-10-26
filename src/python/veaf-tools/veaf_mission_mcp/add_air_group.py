@@ -38,7 +38,7 @@ from veaf_libs.dcs_parking import ParkingStand, aircraft_stands_for_airbase, has
 from veaf_libs.dcs_units_data import get_unit_attributes, get_unit_deck_categories
 from veaf_libs.mission_table import indexed
 
-from veaf_mission_mcp.aircraft_identity import assign_identities
+from veaf_mission_mcp.aircraft_identity import assign_identities, canonical_task
 from veaf_mission_mcp.aircraft_payload import (
     GUN_FIGHTERS,
     build_aircraft_payload,
@@ -173,6 +173,7 @@ def add_air_group(
     if count < 1:
         raise ValueError(f"count must be at least 1, got {count}")
 
+    task, task_note = canonical_task(task)
     is_folder = target.is_dir()
     mission = load_folder_mission(target) if is_folder else read_miz(target)
     if mission.mission_content is None:
@@ -277,7 +278,11 @@ def add_air_group(
         "stands": deck[1] if deck is not None else [s.parking for s in stands],
     }
     unarmed = unarmed_warning(name, task, skill, aircraft_payload, unit_type)
-    warnings = [w for w in (category_warning, fuel_warning, frequency_warning, callsign_note, unarmed, afac_note) if w]
+    warnings = [
+        w
+        for w in (task_note, category_warning, fuel_warning, frequency_warning, callsign_note, unarmed, afac_note)
+        if w
+    ]
     if warnings:
         result["warnings"] = warnings
     return result

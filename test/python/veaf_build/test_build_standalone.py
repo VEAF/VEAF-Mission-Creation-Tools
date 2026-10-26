@@ -188,6 +188,15 @@ def test_veaf_tools_extra_data_bundles_the_clear_ground_catalogues(tmp_path: Pat
     assert "Caucasus.clear-ground" in {p.stem for p in catalogues.glob("*.json")}
 
 
+def test_veaf_tools_extra_data_bundles_the_briefing_pdf_font(tmp_path: Path) -> None:
+    """The briefing PDF is drawn by the executable, with a bundled font that has the accents and its licence
+    (FIX-DEMO-VIDEO-FINDINGS 08): a core font would drop `œ` and the dashes."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    bundled = worker._veaf_tools_extra_data(None)
+    fonts = next(src for src, dest in bundled if dest == "veaf_libs/data/fonts")
+    assert {"DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVu-LICENSE.txt"} <= {p.name for p in fonts.iterdir()}
+
+
 def test_veaf_tools_extra_data_bundles_third_party_mods(tmp_path: Path) -> None:
     """Regression guard: third_party_mods.json must ship so the build's requiredModules
     stripping works in the packaged executable (FEAT-THIRD-PARTY-MODS)."""

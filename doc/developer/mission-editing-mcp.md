@@ -759,7 +759,7 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
   le déclare dans `mapResource` sous `MCP_Sound_<nom>` ; `edit_route` `transmit_message` le diffuse
   (`TransmitMessage` enveloppé, `file` = la clé, `loop`, `duration`, `subtitle` écrit au dictionnaire).
 - `set_briefing_picture(mission_path, source_path, side, resource_name)` — copie un `.png`/`.jpg` dans `l10n/DEFAULT`, le déclare dans `mapResource` sous `MCP_Picture_<nom>` et ajoute la clé au `pictureFileNameB` / `R` / `N` du camp, en gardant les images qu'il avait (FIX-DEMO-MISSION-FINDINGS 07).
-- `build_mission_briefing(mission_path, title, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, pilots, loadouts, basemap, side)` — le briefing VEAF d'une mission à objectifs, sans script (FEAT-MCP-MISSION-BRIEFING) : `docs/briefing.pptx`, `docs/maps/` et les images de briefing DCS, dans le dossier **et** le `.miz` construit, en tête de `pictureFileNameB` / `N` sous des clés `MCP_Briefing_*` remplacées à chaque appel. L'assistant passe les mots ; le reste est lu dans le `.miz` construit (`mission_briefing/`), dont les presets injectés (`Radio[n].channelsNames`) pour le plan de fréquences. `basemap: topo` prend les tuiles OpenTopoMap, avec leur crédit et leur dossier de cache.
+- `build_mission_briefing(mission_path, title, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, pilots, loadouts, basemap, side)` — le briefing VEAF d'une mission à objectifs, sans script (FEAT-MCP-MISSION-BRIEFING) : `docs/briefing.pptx`, son PDF `docs/briefing.pdf` (dessiné par `fpdf2` avec la police DejaVu embarquée : mêmes pages et mêmes mots, mise en page propre, aucun Office requis ; `pdf_pages` dans le résultat), `docs/maps/` et les images de briefing DCS, dans le dossier **et** le `.miz` construit, en tête de `pictureFileNameB` / `N` sous des clés `MCP_Briefing_*` remplacées à chaque appel. L'assistant passe les mots ; le reste est lu dans le `.miz` construit (`mission_briefing/`), dont les presets injectés (`Radio[n].channelsNames`) pour le plan de fréquences. `basemap: topo` prend les tuiles OpenTopoMap, avec leur crédit et leur dossier de cache.
 
 ### Open Training Syrie (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 
@@ -824,6 +824,12 @@ Chaque action vise un dossier de mission (durable) ou un `.miz`, sauvegardé ava
   les deux.
 - `set_bullseye(target, coalition, position)` — `mission.coalition.<camp>.bullseye`, d'où vient le
   waypoint BULLSEYE de chaque plan de vol.
+- `set_route(mission_path, plan, points, coalition?, category?, aircraft_type?, country?)` — un plan
+  de vol des joueurs dans le `src/waypoints.yaml` du dossier : les points dans l'ordre (x/y ou lat/lon),
+  chacun posé au sol depuis la grille du théâtre, un nom répété refusé, le plan remplacé avec ses
+  anciens points ; les commentaires du fichier sont gardés. Rend le cap et la distance de chaque branche,
+  et nomme un plan qui l'emporterait encore (`WaypointsManager.get_flight_plan_for` : le plus
+  spécifique, puis le premier déclaré).
 - `set_briefing(target, sortie?, situation?, blue_task?, red_task?, neutrals_task?)` — les textes du
   briefing. Quand la table de mission porte une référence `DictKey_…`, le texte va dans
   `l10n/DEFAULT/dictionary` derrière elle, et la référence reste valide ; `write_mission_folder`

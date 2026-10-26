@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from veaf_logs.buffer import BytesBuffer
 from veaf_logs.filters import (
@@ -11,6 +13,7 @@ from veaf_logs.filters import (
     State,
     TextFilter,
     compile_pattern,
+    compile_pattern_bytes,
     evaluate,
     glob_to_regex,
     highlight_patterns,
@@ -115,6 +118,73 @@ class TestRechercheTextuelle:
     def test_motifs_surlignes_excluent_les_inverses(self):
         fs = FilterSet(text_filters=[TextFilter(pattern="VEAF"), TextFilter(pattern="x", invert=True)])
         assert len(highlight_patterns(fs)) == 1
+
+
+class TestAncres:
+    """`^` et `$` designent une ligne, pas le bloc que la recherche balaie.
+
+    Le journal de reference tient en un seul bloc : sans `MULTILINE`, `^`
+    ne retenait que la premiere entree, et `$` que la derniere ligne.
+    """
+
+    def test_debut_de_ligne_dans_chaque_entree(self, store):
+        fs = FilterSet(text_filters=[TextFilter(pattern="^2026", mode=Mode.REGEX)])
+        assert visible(store, fs) == list(range(len(store)))
+
+    def test_debut_de_ligne_dans_une_trace_rattachee(self, store):
+        fs = FilterSet(text_filters=[TextFilter(pattern="^stack traceback", mode=Mode.REGEX)])
+        assert visible(store, fs) == [4]
+
+    def test_fin_de_ligne(self, store):
+        fs = FilterSet(text_filters=[TextFilter(pattern="introuvable$", mode=Mode.REGEX)])
+        assert visible(store, fs) == [2]
+
+    def test_ligne_vide_absente(self, store):
+        """Apres le dernier saut de ligne, `^$` ne doit pas retenir l'entree finale."""
+        fs = FilterSet(text_filters=[TextFilter(pattern="^$", mode=Mode.REGEX)])
+        assert visible(store, fs) == []
+
+    def test_surlignage_ancre_par_ligne(self):
+        assert compile_pattern("^stack", Mode.REGEX).search("error\nstack traceback:")
+
+
+class TestJokersEnTeteEtEnQueue:
+    """Retirer les `*` de tete et de queue retient les memes entrees.
+
+    Compare au motif d'origine, passe tel quel en regex, sur le journal de
+    reference et sur le corpus partage avec la reecriture en Go.
+    """
+
+    PATTERNS = ["*error*lua*", "*.lua", "VEAF*", "*VEAF|?|*", "**zone**", "*", "*?ission*"]
+    CORPUS = Path(__file__).resolve().parents[3] / "src" / "go" / "veaf-logs" / "testdata" / "corpus"
+
+    @staticmethod
+    def _stores(rules, store) -> list[LogStore]:
+        stores = [store]
+        for path in sorted(TestJokersEnTeteEtEnQueue.CORPUS.glob("*.log")):
+            other = LogStore(rules, BytesBuffer(path.read_bytes()))
+            other.index_new()
+            stores.append(other)
+        return stores
+
+    @pytest.mark.parametrize("invert", [False, True])
+    @pytest.mark.parametrize("pattern", PATTERNS)
+    def test_memes_entrees(self, rules, store, pattern, invert):
+        stores = self._stores(rules, store)
+        assert len(stores) > 1, "le corpus partage est introuvable"
+        for current in stores:
+            glob = FilterSet(text_filters=[TextFilter(pattern=pattern, mode=Mode.GLOB, invert=invert)])
+            raw = FilterSet(text_filters=[TextFilter(pattern=glob_to_regex(pattern), mode=Mode.REGEX, invert=invert)])
+            assert visible(current, glob) == visible(current, raw)
+
+    def test_le_surlignage_garde_le_motif_entier(self):
+        assert compile_pattern("*zone*", Mode.GLOB).pattern == ".*zone.*"
+
+    def test_la_recherche_retire_les_etoiles(self):
+        assert compile_pattern_bytes("*zone*", Mode.GLOB).pattern == b"zone"
+
+    def test_un_joker_seul_reste_entier(self):
+        assert compile_pattern_bytes("**", Mode.GLOB).pattern == b".*.*"
 
 
 class TestEtatsDesCategories:

@@ -4,9 +4,13 @@
 
 Lots written up and ready to take.
 
-### [FIX-DEMO-VIDEO-FINDINGS](FIX-DEMO-VIDEO-FINDINGS/PRD.md) · ⬜
+### [FEAT-BRIEFING-PER-LANGUAGE](FEAT-BRIEFING-PER-LANGUAGE/PRD.md) · ⬜
 
-What the AI worked around while building the demo video's mission on 6.31.3 (2026-10-22): Texaco refused for a tanker, 123.5 MHz refused on the UH-1H, an empty ATO page with dynamic slots, the tanker missing from the briefing's support and from `inspect_built_mission`, and briefing pictures lost on rebuild. Each measured first.
+A `language` parameter for `build_mission_briefing`, writing only the archives of that language, so a bilingual mission (the demo's `_FR` and `_EN`) gets its briefing and kneeboard pages in each language. One ticket; asked from the demo's kneeboard step (2026-10-26).
+
+### [FEAT-CLEAR-GROUND-COVERAGE](FEAT-CLEAR-GROUND-COVERAGE/PRD.md) · ⬜
+
+Widen the shipped clear-ground catalogues to the places missions are built — round airfields, towns, road axes — under a weight ceiling per theatre. Needs a survey flown in DCS, so David's time; split from FIX-DEMO-VIDEO-FINDINGS (2026-10-23).
 
 ### [ENRICH-DEFAULT-PRESETS](ENRICH-DEFAULT-PRESETS/PRD.md) · ⬜
 

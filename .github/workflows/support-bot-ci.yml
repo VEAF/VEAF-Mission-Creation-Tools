@@ -42,6 +42,7 @@ jobs:
   changes:
     name: Support Bot — changed paths
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: .
@@ -71,6 +72,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -111,6 +113,7 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -316,6 +319,7 @@ jobs:
     needs: [quality, container]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       # The workflow's own token, so there is no personal access token to place or rotate. The

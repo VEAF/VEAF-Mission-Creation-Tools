@@ -1,7 +1,7 @@
 """What ``rules.json`` already knows, said out loud.
 
 The catalogue is not a filter. It carries **16 recognised sources** (13 script prefixes, 3 logs of
-their own), **7 families of native DCS subsystems** and **27 known-noise patterns**, and every noise
+their own), **7 families of native DCS subsystems** and **36 known-noise patterns**, and every noise
 family holds a ``help`` string written
 for a user — *"Modules tiers dont le modèle de dégâts n'est pas au format attendu. Cosmétique."*
 Until now that text only drove colouring and hiding; nobody was ever shown it as an answer.

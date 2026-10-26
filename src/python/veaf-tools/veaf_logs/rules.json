@@ -311,10 +311,74 @@
     },
     {
       "id": "server_no_assets",
-      "label": "Textures absentes du serveur dedie",
-      "help": "Un serveur dedie tourne sans rendu et sans textures : DCS signale chaque archive qu'il ne peut monter, des milliers au lancement. Sans effet.",
+      "label": "Fichiers graphiques absents du serveur dedie",
+      "help": "Un serveur dedie tourne sans rendu, sans textures ni modeles 3D : DCS signale chaque archive qu'il ne peut monter et chaque modele qu'il ne trouve pas, des milliers au lancement. Sans effet.",
       "default_hidden": true,
-      "match": "No suitable driver found to mount ",
+      "match": "(No suitable driver found to mount |Can't open model |can't load destroyed model |RENDERERSTUB \\([^)]*\\): Static mode not implemented)",
+      "regex": true
+    },
+    {
+      "id": "mission_task_left",
+      "label": "Taches de la mission precedente pas encore dechargees",
+      "help": "DCS charge une mission alors que les taches de la precedente (Mission, ComboTask, EngageUnit...) ne sont pas toutes dechargees : courant sur un serveur qui enchaine les missions. Sans effet.",
+      "default_hidden": true,
+      "match": "APP \\([^)]*\\): task (state for )?\"[^\"]*\" still exists",
+      "regex": true
+    },
+    {
+      "id": "invalid_atc",
+      "label": "Controle aerien absent des cartes",
+      "help": "Heliports et terrains des cartes ED declares sans controle aerien. Donnees de la carte, sans effet sur la mission.",
+      "default_hidden": true,
+      "match": "FLIGHT \\([^)]*\\): INVALID ATC ",
+      "regex": true
+    },
+    {
+      "id": "track_recording_off",
+      "label": "Enregistrement des tracks coupe",
+      "help": "Le serveur n'enregistre pas les tracks : un reglage, pas une panne.",
+      "default_hidden": true,
+      "match": "Track Recording Disabled",
+      "regex": true
+    },
+    {
+      "id": "ed_assert",
+      "label": "Assertions internes d'ED",
+      "help": "Verifications internes du moteur de DCS (precision des flottants). Sans effet visible.",
+      "default_hidden": true,
+      "match": "(Severe precision loss! Half-float|Failed assert `fabsf\\(f\\) < 1024`)",
+      "regex": true
+    },
+    {
+      "id": "map_beacon",
+      "label": "Balises mal decrites dans les cartes",
+      "help": "Balises radio des cartes ED sans frequence ou introuvables. Donnees de la carte, sans effet sur la mission.",
+      "default_hidden": true,
+      "match": "(Invalid DME frequency or missing channel|Unable to find beacon with ID)",
+      "regex": true
+    },
+    {
+      "id": "model_defect",
+      "label": "Defauts des modeles ED",
+      "help": "Points d'attache ou os d'animation absents d'un modele livre par ED. Sans effet sur la mission.",
+      "default_hidden": true,
+      "match": "(Invalid connector name \\(|node '[^']*' not found in skeleton)",
+      "regex": true
+    },
+    {
+      "id": "radio_speech",
+      "label": "Phrases radio d'ED en erreur",
+      "help": "Le module qui compose les messages radio des IA trebuche sur une phrase (bug d'ED). Le message manque, la mission continue.",
+      "default_hidden": true,
+      "match": "wMessage::buildSpeech\\(\\)",
+      "regex": true
+    },
+    {
+      "id": "empty_error_once",
+      "label": "Lignes d'erreur vides",
+      "help": "Une ligne ERROR_ONCE sans message, que DCS ecrit au demarrage. Rien a lire.",
+      "default_hidden": true,
+      "match": " ERROR_ONCE +\\(\\): *$",
       "regex": true
     },
     {

@@ -192,6 +192,35 @@ class TestBruit:
             ),
             # The dedicated server of dcs.veaf.org, 2 761 lines in one dcs.log (2026-10-26).
             ("ERROR   EDCORE (Main): No suitable driver found to mount bazar/textures/c-130", "server_no_assets"),
+            ("ERROR   GRAPHICSVISTA (Main): Can't open model Ural-375_p_1.", "server_no_assets"),
+            ("ERROR   woCar (Main): can't load destroyed model 'Ural-375_p_1' for '55G6 EWR'", "server_no_assets"),
+            ("WARNING RENDERERSTUB (4812): Static mode not implemented yet for structured buffer", "server_no_assets"),
+            ('WARNING APP (Main): task "Mission" still exists', "mission_task_left"),
+            ('WARNING APP (Main): task state for "Mission" still exists', "mission_task_left"),
+            ('WARNING APP (Main): task "ComboTask" still exists', "mission_task_left"),
+            ('WARNING APP (Main): task state for "EngageUnit" still exists', "mission_task_left"),
+            ("ERROR   FLIGHT (Main): INVALID ATC H FRG 01", "invalid_atc"),
+            ("WARNING Dispatcher (Main): Track Recording Disabled !!!", "track_recording_off"),
+            ("ERROR   EDCORE (Main): Severe precision loss! Half-float has 10-bit mantissa.", "ed_assert"),
+            ("ERROR   EDCORE (Main): Failed assert `fabsf(f) < 1024`", "ed_assert"),
+            (
+                "ERROR   WRADIO (Main): Invalid DME frequency or missing channel to determine DME frequency. "
+                'Can\'t load beacon "BH BuHasa"',
+                "map_beacon",
+            ),
+            ("ERROR   FLIGHT (Main): Unable to find beacon with ID: airfield18_2", "map_beacon"),
+            (
+                "ERROR   WEAPONS (Main): Invalid connector name (Gun_Point_lha_02): unit type = LHA_Tarawa, "
+                "ws id=4, ln id=1, br id=1",
+                "model_defect",
+            ),
+            ("ERROR   ANIMATOR (4812): node 'index_metacarpal' not found in skeleton", "model_defect"),
+            (
+                "ALERT   WRADIO (Main): Error in wMessage::buildSpeech(), event = wMsgFlightOnStation:: "
+                '[string "./Scripts/Speech/phrase.lua"]:349: assertion failed!',
+                "radio_speech",
+            ),
+            ("ERROR_ONCE  (): ", "empty_error_once"),
             (
                 'ERROR   ED_SOUND (20376): can\'t load wave: "effects/ambient/field_night1.ogg"',
                 "sound_source",

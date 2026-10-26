@@ -2,6 +2,8 @@ package logview
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -311,4 +313,73 @@ func TestAnIncompleteLastLineEndsTheIndexing(t *testing.T) {
 	f.WriteString("\n")
 	f.Close()
 	waitFor(t, "completed line", func() bool { return d.Status().Total == 2 })
+}
+
+// failingSource fails every Fetch with err, and counts gaps like an API source.
+type failingSource struct {
+	slowSource
+	err  error
+	gaps int
+}
+
+func (s *failingSource) Fetch(int64) (bool, error) { return false, s.err }
+func (s *failingSource) Gaps() int                 { return s.gaps }
+
+func TestStatusSaysWhatWentWrong(t *testing.T) {
+	src := &failingSource{err: fmt.Errorf("HTTP 403: Invalid API Key: %w", logcore.ErrAPIAuth), gaps: 1}
+	d := NewDoc(rules(t), src, true)
+	t.Cleanup(d.Close)
+	d.Start()
+	waitFor(t, "the error", func() bool { return d.Status().Problem != nil })
+	st := d.Status()
+	if st.Gaps != 1 {
+		t.Fatalf("gaps = %d", st.Gaps)
+	}
+	text := FollowText(true, true, st)
+	if !strings.HasPrefix(text, "authentification refusée") || !strings.Contains(text, "lignes ont été perdues") {
+		t.Fatalf("follow text = %q", text)
+	}
+}
+
+func TestProblemTexts(t *testing.T) {
+	cases := map[string]error{
+		"pas encore de journal":      fmt.Errorf("x: %w", logcore.ErrRemoteFileMissing),
+		"inconnu du serveur":         fmt.Errorf("x: %w", logcore.ErrAPIUnknownLog),
+		"autre nœud":                 fmt.Errorf("x: %w", logcore.ErrAPIOtherNode),
+		"serveur injoignable":        fmt.Errorf("x: %w", logcore.ErrUnavailable),
+		"momentanément indisponible": logcore.ErrUnavailable,
+		"restapi.yaml":               fmt.Errorf("x: %w", logcore.ErrAPIAuth),
+		"HTTP 418: I'm a teapot":     errors.New("HTTP 418: I'm a teapot"),
+	}
+	for want, err := range cases {
+		if got := ProblemText(err); !strings.Contains(got, want) {
+			t.Errorf("%v: %q, want %q in it", err, got, want)
+		}
+	}
+}
+
+// flakySource is an older file of an API log: its first fetches fail, then it delivers.
+type flakySource struct {
+	slowSource
+	fails atomic.Int32
+	buf   logcore.BytesBuffer
+}
+
+func (s *flakySource) Buffer() logcore.Buffer { return &s.buf }
+func (s *flakySource) Fetch(int64) (bool, error) {
+	if s.fails.Add(-1) >= 0 {
+		return false, fmt.Errorf("503: %w", logcore.ErrUnavailable)
+	}
+	s.buf.Data = []byte(lineA + lineB)
+	return false, nil
+}
+func (s *flakySource) Index(store *logcore.Store, _ bool, max int64) int { return store.IndexNew(max) }
+
+func TestAnUnfollowedSourceThatFailedKeepsTrying(t *testing.T) {
+	src := &flakySource{}
+	src.fails.Store(2)
+	d := NewDoc(rules(t), src, false)
+	t.Cleanup(d.Close)
+	d.Start()
+	waitFor(t, "the file after the failures", func() bool { return d.Status().Total == 2 })
 }

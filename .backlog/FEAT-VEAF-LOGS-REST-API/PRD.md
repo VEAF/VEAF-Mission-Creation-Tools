@@ -1,6 +1,6 @@
 # FEAT-VEAF-LOGS-REST-API — `veaf-logs` reads a server's logs through DCSServerBot's RestAPI
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-10-26.
 On 2026-10-18, finding out why a dcs.veaf.org server would not restart took about twenty throwaway PowerShell scripts over SSH, to read the instances' `dcs.log`, the bot's log and their rotated copies.
@@ -73,15 +73,43 @@ This lot is therefore Go work in `src/go/veaf-logs/`, and touches no Python.
 4. **Where the key lives.**
    *Default*: `api_key_file` in the server's block (a file only the user can read); never the key itself in `veafmct.yaml`, never in `session.json`, never in a message or the `/bug` report.
 
+## Results — tickets 01 to 04, 2026-10-26
+
+- **Open question 1 settled: the lines written back hold.**
+  Four real logs read through DCSServerBot's own `logreader.py` (the merged code of VEAF/DCSServerBot#3), forward by 2000 entries as `APISource` reads, written back, then `cmd/logdump` on the original and on the copy, compared record by record with `testdata/compare_dumps.py`: private1's `dcs.log` of dcs.veaf.org (9 MB, 33 requests, 63 156 entries), a local `dcs.log` (1 959), two bot logs with 40 and 12 tracebacks (1 795 and 519).
+  **0 records differ.**
+  No raw mode is needed on the DCSServerBot side.
+- Questions 2 to 4 went as recommended: discovered logs (`/servers`, then `/node/logs` for the bot log, which also tells a bot without the log routes), the last 2000 entries at opening, the key in `api_key_file` only.
+- **Different from ticket 02's sketch**: no `prefix:` key, the URL carries it (`url: https://dcs.veaf.org/serverapi`): one key less to explain.
+- **500 is "retry later"**, like 503 and 504: the bot answers it for any failure while reading, and a permanent error would have stopped the tab for good.
+  A 404 "disappeared while it was read" is retried too.
+- **The reason a log cannot be read now shows in the status bar for every tab**, SSH and local included: until now an SSH tab whose connection dropped still said *suivi actif*.
+  A local file being rotated by DCS shows *journal momentanément indisponible* for the instant it lasts.
+- Found while checking the window by hand against a stand-in bot built on the real `logreader.py`: a key file of several lines made an invalid HTTP header, reported as *serveur injoignable*; such a file is now refused when the tab opens, saying the key must be alone on one line.
+- The window part was checked by hand: discovery listing `fake-api › VEAF Private 1`, `VEAF Public 1`, `bot`; the bot tab showing 519 lines out of 519, as `logdump` counts them.
+
+## Results — ticket 05 on dcs.veaf.org, 2026-10-26
+
+- **The log routes are not reachable from the internet, on purpose.**
+  The machine's Caddy (`C:/Users/veaf/caddy/Caddyfile`) lets out only the routes the web site reads, and only to the site's address (116.202.81.5); `https://dcs.veaf.org/serverapi/...` answers 404 to anyone else.
+  Opening `/serverapi/instance/log*`, `/serverapi/node/log*` and `/serverapi/servers` to the viewer's users is a decision on the server (VEAF-Servers, `docs/PARE-FEU.md`), not part of this lot.
+- Checked instead through an SSH tunnel to the bot's `127.0.0.1:9876` (`url: http://127.0.0.1:<port>/serverapi`, the case the configuration allows plain http for), with the key of the server's `restapi.yaml`, read-only:
+  - discovery lists the six servers (`VEAF (www.veaf.org) [fr] - Privé 1`…) and `bot`;
+  - opening Privé 1's live `dcs.log` (the last 2000 entries, 218 KB) takes 0.25 s, the bot log 0.12 s, a cursor read then brings nothing new;
+  - read whole through the API, forward, Privé 1's `dcs.log` (9 MB, 33 requests, 1.5 s) and the bot's `dcssb-dcs-veaf-org.log.1` give, through `cmd/logdump`, the same records as the same files downloaded over SFTP: 63 156 and 1 795 records, **0 differ**;
+  - an unknown server, a bad cursor and a wrong key come back as `ErrAPIUnknownLog`, `ErrCursorRefused` and `ErrAPIAuth`.
+- Not seen: a tab following a mission restart (the rotation), which needs an instance restarted while a tab is open — David's call on a live server; the rotation is covered by the unit tests and by the bot's own cursor tests.
+  Privé 1 had no older `dcs-*.log` that day: the older-file path was checked on the bot's rotated log.
+
 ## Tickets
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [`logcore.APISource`: a Follower fed by the RestAPI](tickets/01-api-source.md) | ⬜ |
-| 02 | [`api:` servers in `~/veafmct.yaml`, instances discovered](tickets/02-config-and-discovery.md) | ⬜ |
-| 03 | [The window opens API logs and their older files](tickets/03-window.md) | ⬜ |
-| 04 | [`LOGS.md` / `LOGS.en.md`: reading a server's logs through its RestAPI](tickets/04-docs.md) | ⬜ |
-| 05 | [Check on dcs.veaf.org](tickets/05-live-check.md) | ⬜ |
+| 01 | [`logcore.APISource`: a Follower fed by the RestAPI](tickets/01-api-source.md) | ✅ |
+| 02 | [`api:` servers in `~/veafmct.yaml`, instances discovered](tickets/02-config-and-discovery.md) | ✅ |
+| 03 | [The window opens API logs and their older files](tickets/03-window.md) | ✅ |
+| 04 | [`LOGS.md` / `LOGS.en.md`: reading a server's logs through its RestAPI](tickets/04-docs.md) | ✅ |
+| 05 | [Check on dcs.veaf.org](tickets/05-live-check.md) | 🧑 |
 
 One branch and one PR for the lot.
 

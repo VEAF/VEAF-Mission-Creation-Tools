@@ -1,6 +1,6 @@
 # 03 — The window opens API logs and their older files
 
-Status: ⬜ ready
+Status: ✅ done
 
 - `Fichier › Ouvrir un journal distant…` lists the API servers beside the SSH ones, with their discovered instances and bot log; a tab is `veaf-api:private1`, reopened at the next launch as the SSH tabs are (`internal/logview` session order).
 - `Fichier › Ouvrir un ancien journal…` on an API tab lists `/instance/logs` (or `/node/logs`) with sizes and dates, and opens the chosen file read-only: `file=<name>&tail=false`, then the cursor, chunk by chunk, with the progress the window already shows for a big local file.

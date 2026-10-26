@@ -78,7 +78,15 @@ func (w *window) saveSession() {
 	}
 	s := w.session
 	var files []logview.OpenFile
-	for _, p := range w.strip.Items {
+	active := max(0, w.strip.Active)
+	for i, p := range w.strip.Items {
+		if p.path == "" && p.remote == "" {
+			// An older file of an API log: opened on demand, not reopened.
+			if i < w.strip.Active {
+				active--
+			}
+			continue
+		}
 		f := logview.OpenFile{Path: p.path}
 		if p.member != "" {
 			member := p.member
@@ -91,7 +99,7 @@ func (w *window) saveSession() {
 		files = append(files, f)
 	}
 	// Not reopened yet: they take their place back in the session's order.
-	s.Files, s.Active = w.restore.Merge(files, max(0, w.strip.Active))
+	s.Files, s.Active = w.restore.Merge(files, max(0, active))
 	s.Profile = w.currentProfile()
 	s.SetFilterSet(w.filters)
 	s.FontFamily, s.FontSize = w.fontFamily, w.fontSize

@@ -115,17 +115,26 @@ func (r *Restore) Resolve(remote string, servers []sshlog.Server) (server sshlog
 		if _, found := s.Logs[instance]; found && s.Name == name {
 			return s, instance, "", true
 		}
+		if _, found := s.APITarget(instance); found && s.Name == name {
+			return s, instance, "", true
+		}
 	}
 	return sshlog.Server{}, "", remote + " n'est plus dans la configuration, onglet non rouvert", false
 }
 
 // Failed is the message of a remote tab that could not be reopened. A server
 // that did not answer is not tried again for its other instances: each attempt
-// costs the connection's delay. A missing journal is not the server's fault.
+// costs the connection's delay. A missing or unknown journal, or one on another
+// node, is not the server's fault.
 func (r *Restore) Failed(remote string, err error) string {
-	if !errors.Is(err, logcore.ErrRemoteFileMissing) {
+	if !errors.Is(err, logcore.ErrRemoteFileMissing) && !errors.Is(err, logcore.ErrAPIUnknownLog) && !errors.Is(err, logcore.ErrAPIOtherNode) {
 		name, _, _ := strings.Cut(remote, "/")
 		r.unreachable[name] = true
 	}
 	return fmt.Sprintf("%s non rouvert : %v", remote, err)
+}
+
+// RemoteTab is the title of a remote journal's tab and its name in the session.
+func RemoteTab(server, log string) (title, remote string) {
+	return server + ":" + log, server + "/" + log
 }

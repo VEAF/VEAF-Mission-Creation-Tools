@@ -1,6 +1,6 @@
 # 01 — `logcore.APISource`: a Follower fed by the RestAPI
 
-Status: ⬜ ready
+Status: ✅ done
 
 In `src/go/veaf-logs/internal/logcore/`, beside `RemoteSource`: a `Follower` whose buffer is a local mirror file, filled from the RestAPI's `/instance/log` or `/node/log` answers instead of SFTP reads.
 The HTTP client lives outside `logcore` (an interface, as `SFTPClient` is), so `logcore` stays without network.

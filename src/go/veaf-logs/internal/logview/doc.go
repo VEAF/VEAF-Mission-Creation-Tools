@@ -37,6 +37,7 @@ type Doc struct {
 	running     bool // a poll goroutine is at work; false once it decided to stop
 	cancelled   bool
 	unavailable bool
+	problem     error // the last Fetch's failure, nil once it succeeds
 	rotations   int
 	resets      int // rows replaced rather than appended: rotation, new filters, refilter
 }
@@ -100,6 +101,7 @@ func (d *Doc) poll() {
 			return
 		}
 		d.unavailable = err != nil
+		d.problem = err
 		if err != nil {
 			rotated = false
 		}
@@ -133,7 +135,8 @@ func (d *Doc) poll() {
 		behind := err == nil && ((grew && d.store.IndexedBytes() < d.src.Buffer().Size()) || d.src.Pending())
 		changed := grew || rotated || err != nil || d.indexing != behind
 		d.indexing = behind
-		if !behind && !d.Followable {
+		// An older file of an API log that failed midway keeps trying: it is not complete.
+		if !behind && !d.Followable && err == nil {
 			// Decided under the lock, so that Reclassify knows it must start another.
 			d.running = false
 		}
@@ -148,7 +151,7 @@ func (d *Doc) poll() {
 			if !d.sleep(time.Millisecond) {
 				return
 			}
-		case !d.Followable:
+		case !d.Followable && err == nil:
 			return // an archive is a snapshot: nothing will be added
 		default:
 			if !d.sleep(d.src.PollInterval()) {
@@ -341,7 +344,12 @@ type Status struct {
 	Cancelled     bool
 	Unavailable   bool
 	Rotations     int
+	Problem       error // why the journal cannot be read now
+	Gaps          int   // rotations after which lines were lost (an API log)
 }
+
+// gapCounter is a source that can lose lines at a rotation (logcore.APISource).
+type gapCounter interface{ Gaps() int }
 
 // Status reads the document's state.
 func (d *Doc) Status() Status {
@@ -349,7 +357,10 @@ func (d *Doc) Status() Status {
 	defer d.mu.Unlock()
 	s := Status{
 		Total: d.store.Len(), Indexing: d.indexing, Indexed: d.store.IndexedBytes(), Size: d.src.Buffer().Size(),
-		Cancelled: d.cancelled, Unavailable: d.unavailable, Rotations: d.rotations,
+		Cancelled: d.cancelled, Unavailable: d.unavailable, Rotations: d.rotations, Problem: d.problem,
+	}
+	if g, ok := d.src.(gapCounter); ok {
+		s.Gaps = g.Gaps()
 	}
 	s.Shown = s.Total
 	if d.visible != nil {
@@ -375,8 +386,20 @@ func (s Status) CountsText() string {
 	return text
 }
 
-// FollowText is the right part of the status bar.
+// FollowText is the right part of the status bar: what went wrong first, then
+// the follow mode.
 func FollowText(followable, follow bool, s Status) string {
+	text := followMode(followable, follow, s)
+	if s.Problem != nil {
+		text = ProblemText(s.Problem)
+	}
+	if s.Gaps > 0 {
+		text += "   —   le journal a redémarré, des lignes ont été perdues"
+	}
+	return text
+}
+
+func followMode(followable, follow bool, s Status) string {
 	switch {
 	case !followable:
 		return "archive (pas de suivi)"

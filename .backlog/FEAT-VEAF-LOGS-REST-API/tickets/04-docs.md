@@ -1,6 +1,6 @@
 # 04 — `LOGS.md` / `LOGS.en.md`: reading a server's logs through its RestAPI
 
-Status: ⬜ ready
+Status: ✅ done
 
 The `#remote` section of `doc/mission-maker/LOGS.md` and `LOGS.en.md` gains the API way, FR and EN, beside SSH:
 

@@ -65,6 +65,48 @@ goes to `C:\ProgramData\ssh\administrators_authorized_keys`, not to
 
 `veaf-tools.exe` does not carry this feature: it lives in `veaf-logs`.
 
+### Through DCSServerBot's API, without an SSH account {#remote-api}
+
+A server running DCSServerBot with its RestAPI plugin can also be read without an account on the machine: an API key is enough, and the bot only reads.
+Declare the API instead of `host` (a server has one or the other, never both):
+
+```yaml
+servers:
+  veaf-api:
+    api:
+      url: https://dcs.veaf.org/serverapi       # the API, with its prefix if it has one
+      api_key_file: ~/.veaf/dcssb-api-key       # a file holding the key alone
+    # logs:                                     # optional: narrow or rename
+    #   private1: {instance: VEAF Private 1}    # the server's name in the bot
+    #   bot: {node: dcs-veaf-org}               # a node's bot log
+```
+
+Without `logs:`, the menu asks the API what it has: every DCS server it knows (`veaf-api › VEAF Private 1`…) and the bot's log (`veaf-api › bot`).
+The tabs are reopened at launch like those of an SSH server.
+
+`File › Open an older log…` (`Fichier › Ouvrir un ancien journal…`), on a tab opened through the API, lists that log's files with their size and date: `dcs.log.old`, the `dcs-YYYYMMDD-HHMMSS.log` copies the bot makes at each shutdown, or the bot's `dcssb-<node>.log.1` to `.5`.
+The chosen file opens read-only in a tab, loaded from start to end in chunks; it is not reopened at the next launch.
+
+What differs from SSH:
+
+- a tab opens on the last 2,000 entries of the log, then follows what is written; to go further back, open the file through `Open an older log…`;
+- the API returns entries, which the tool writes back as lines: only the level's padding (the spaces after `INFO`) and a line longer than 8 KiB (cut by the bot) differ from the original file, and no rule reads them;
+- when the log restarts and the bot can no longer find the end of the old file, the status bar says so: lines were lost;
+- the status bar also says why a log cannot be read: key refused, no log yet, unknown server or file, log on another node, server unreachable.
+
+On the server side you need:
+
+- DCSServerBot with the log reading routes (`/instance/logs`, `/instance/log`, `/node/logs`, `/node/log`): the `veaf` branch of [VEAF/DCSServerBot](https://github.com/VEAF/DCSServerBot), until the DCSServerBot release that publishes them;
+- the RestAPI plugin with an `api_key` in its `restapi.yaml`: without a key these routes do not exist;
+- an HTTPS reverse proxy in front of the API (Caddy, nginx, IIS), the bot's web service listening on `127.0.0.1` only;
+- from DCSServerBot 3.0.5 on, which asks connections from the internet for a JWT by default: allow the API key on the log routes **and** on `servers`, which the menu reads (`endpoints.<route>.security.remote: api_key` in `restapi.yaml`).
+
+Security:
+
+- the key lives in a file only you can read, never in `veafmct.yaml`; the tool reads it when a tab opens and writes it nowhere, not in the session, not in a message, not in the `/bug` report;
+- the tool refuses an `http://` URL except to `127.0.0.1` or `localhost` (the end of an SSH tunnel): the key and the logs cross the network;
+- the logs hold player names and IP addresses: give a key to whoever administers the server.
+
 ## The three states
 
 Every level, source and noise family cycles through three states on click:
@@ -378,4 +420,5 @@ log's lines only. Source prefixes (`match`) apply to `dcs.log` lines only.
 | Session (open files, filters, geometry, font, panels shown) | `%APPDATA%\veaf_logs\session.json` |
 | Profiles | `%APPDATA%\veaf_logs\profiles.json` |
 | Remote servers (`servers:`) | `~\veafmct.yaml` |
+| A server's API key | the file of its `api_key_file` |
 | Local mirror of a remote log | `%TEMP%\veaf-logs-*.log`, removed when the tab closes |

@@ -47,7 +47,7 @@ func (w *window) openRemoteDialog() {
 	}
 	w.showMessage("Recherche des journaux distants…", 2*time.Minute) // cleared when the answers arrive
 	go func() {
-		choices, problems := remoteChoices(servers)
+		choices, problems := w.remoteChoices(servers)
 		w.synchronize(func() {
 			w.showMessage("", 0)
 			if len(choices) == 0 {
@@ -76,7 +76,7 @@ func (w *window) openRemoteDialog() {
 
 // remoteChoices lists the logs of every server, asking the APIs that have no
 // `logs:`; what could not be asked is said in `problems`. It touches the network.
-func remoteChoices(servers []sshlog.Server) (choices []remoteLog, problems []string) {
+func (w *window) remoteChoices(servers []sshlog.Server) (choices []remoteLog, problems []string) {
 	for _, s := range servers {
 		if s.API == nil {
 			for _, instance := range s.Instances() {
@@ -100,6 +100,7 @@ func remoteChoices(servers []sshlog.Server) (choices []remoteLog, problems []str
 		for _, l := range logs {
 			choices = append(choices, remoteLog{s, l.Name})
 		}
+		w.rememberNames(s, logs)
 	}
 	return choices, problems
 }
@@ -146,6 +147,7 @@ func (w *window) openRemote(s sshlog.Server, log, file string, at func() int, fo
 	}
 	go func() {
 		err := src.Open()
+		short := w.shortName(s, log)
 		if !w.handOver(src) {
 			return
 		}
@@ -158,16 +160,21 @@ func (w *window) openRemote(s sshlog.Server, log, file string, at func() int, fo
 				done(nil, err)
 				return
 			}
-			title, remote := logview.RemoteTab(s.Name, log)
+			_, remote := logview.RemoteTab(s.Name, log)
+			name := logview.TabTitle(s.Name, log, short, "")
+			title := logview.TabTitle(s.Name, log, short, s.Aliases[log])
+			target := aliasTarget{server: s.Name, log: log}
 			if file != "" {
-				title, remote = title+" › "+file, ""
+				// An older file is opened on demand: not kept in the session, not renamed.
+				title, remote, target = title+" › "+file, "", aliasTarget{}
+				name = title
 			}
 			pane, err := w.addPane(src, file == "", title, location, at(), foreground)
 			if err != nil {
 				done(nil, err)
 				return
 			}
-			pane.remote = remote
+			pane.remote, pane.name, pane.alias = remote, name, target
 			if s.API == nil {
 				pane.path = s.Logs[log]
 			} else {

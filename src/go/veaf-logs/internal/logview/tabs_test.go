@@ -96,3 +96,66 @@ func TestLayoutAndHits(t *testing.T) {
 		t.Error("drop index")
 	}
 }
+
+func TestScrollOffset(t *testing.T) {
+	spans := LayoutTabs([]int{80, 80, 80, 80}, 0, 2, 10, 14) // each tab 114 wide, 116 apart
+	total := ContentWidth(spans)
+	if total != 4*114+3*2 {
+		t.Fatalf("content width %d", total)
+	}
+	if ClampOffset(total, 1000, 300) != 0 {
+		t.Error("no overflow, no scroll")
+	}
+	if got := ClampOffset(total, 200, 999); got != total-200 {
+		t.Errorf("clamped to the overflow: %d", got)
+	}
+	if ClampOffset(total, 200, -5) != 0 {
+		t.Error("never before the first tab")
+	}
+	// The last tab brought into a 200-px view: its right edge at the view's right.
+	if got := ScrollIntoView(spans[3], 200, 0); got != spans[3].X+spans[3].Width-200 {
+		t.Errorf("into view from the left: %d", got)
+	}
+	// The first tab from far right: its left edge at the view's left.
+	if got := ScrollIntoView(spans[0], 200, 300); got != 0 {
+		t.Errorf("into view from the right: %d", got)
+	}
+	// Already visible: the offset does not move.
+	if got := ScrollIntoView(spans[1], 300, 50); got != 50 {
+		t.Errorf("visible tab moved the strip: %d", got)
+	}
+	if ListButtonShown(1) || !ListButtonShown(2) {
+		t.Error("the list button shows from two tabs on")
+	}
+}
+
+func TestShortNames(t *testing.T) {
+	veaf := []string{"VEAF (www.veaf.org) [fr] - Privé 1", "VEAF (www.veaf.org) [fr] - Privé 2", "VEAF (www.veaf.org) [fr] - Public Foothold 1"}
+	if got := ShortNames(veaf); !reflect.DeepEqual(got, []string{"Privé 1", "Privé 2", "Public Foothold 1"}) {
+		t.Errorf("veaf: %q", got)
+	}
+	cases := map[string][]string{
+		"a single name is kept":            {"VEAF (www.veaf.org) [fr] - Privé 1"},
+		"no shared word":                   {"alpha", "beta"},
+		"cut only at a word boundary":      {"Training", "Trainer"},
+		"a name would be left empty":       {"VEAF", "VEAF Private"},
+		"nothing shared but a single word": {"VEAF A", "VEAFB"},
+	}
+	for name, in := range cases {
+		if got := ShortNames(in); !reflect.DeepEqual(got, in) {
+			t.Errorf("%s: %q", name, got)
+		}
+	}
+}
+
+func TestTabTitle(t *testing.T) {
+	if got := TabTitle("veaf-api", "VEAF - Privé 1", "Privé 1", ""); got != "veaf-api:Privé 1" {
+		t.Error(got)
+	}
+	if got := TabTitle("veaf-api", "VEAF - Privé 1", "", ""); got != "veaf-api:VEAF - Privé 1" {
+		t.Error(got)
+	}
+	if got := TabTitle("veaf-api", "VEAF - Privé 1", "Privé 1", "P1"); got != "P1" {
+		t.Error("an alias is the whole title:", got)
+	}
+}

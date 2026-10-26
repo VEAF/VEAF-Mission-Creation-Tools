@@ -25,10 +25,12 @@ type logPane struct {
 	doc      *logview.Doc
 	title    string
 	location string
-	path     string     // for the session; the remote path for a remote journal
-	member   string     // archive member, "" for a plain file
-	remote   string     // `server/instance` of a remote journal, "" for a local one
-	api      *remoteLog // the log of an API server, for its older files; nil otherwise
+	path     string      // for the session; the remote path for a remote journal
+	member   string      // archive member, "" for a plain file
+	remote   string      // `server/instance` of a remote journal, "" for a local one
+	api      *remoteLog  // the log of an API server, for its older files; nil otherwise
+	name     string      // the title without an alias
+	alias    aliasTarget // where the tab's alias lives in the configuration
 
 	root        *walk.Composite
 	tv          *walk.TableView

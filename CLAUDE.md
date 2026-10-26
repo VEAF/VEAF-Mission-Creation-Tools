@@ -88,7 +88,10 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 - **Architecture**: Strictly respect the Worker (`*_worker.py`), Manager (`*_manager.py`), and Data Models (`models.py`) structural pattern.
 - **Layers: tools, commands, interfaces** (David, 2026-08-08). Logic lives in the tool bricks — workers, managers, and the action functions of `veaf_mission_mcp/` — and every entry point is a thin adapter over them: a CLI command (`veaf_tools/commands/`), an MCP action handler (`veaf_mission_mcp/actions.py`), the TUI wizard, any future web or Mission Editor interface.
   An adapter maps its arguments and formats the result; it never decides anything a second entry point would have to repeat.
-  **A CLI command exists because a mission maker will type it, not because an MCP action exists.** Most actions take JSON-shaped parameters an agent fills in, for jobs the Mission Editor does better by hand. Measured 2026-10-26: 70 actions, 10 of them with a CLI command on the same code, and all 18 hand-written handlers pure argument mapping. 60 twin commands nobody would type were weighed and turned down.
+  **A CLI command exists because a mission maker will type it, not because an MCP action exists.**
+  Most actions take JSON-shaped parameters an agent fills in, for jobs the Mission Editor does better by hand.
+  Measured 2026-10-26: 70 actions, 10 of them with a CLI command on the same code, and all 18 hand-written handlers pure argument mapping.
+  60 twin commands nobody would type were weighed and turned down.
   When an action does something the Mission Editor cannot — a VEAF composite, a report on the built `.miz` — and mission makers ask for it without an AI, give it a CLI command that calls the same function.
 - **Environment Management**: Dependencies are managed via Poetry. Activate the virtual environment using `poetry shell`.
 - **Logger**: Only use the logger from `veaf_libs.logger`. Absolute prohibition of using the native `print()` function.

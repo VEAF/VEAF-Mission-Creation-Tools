@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FEAT-VEAF-LOGS-REST-API](FEAT-VEAF-LOGS-REST-API/PRD.md) · ⬜
-
-`veaf-logs` follows a server's `dcs.log` and the bot's log through DCSServerBot's RestAPI (the log routes of VEAF/DCSServerBot#1, and #3 for our 3.0.4.27), with an API key and no SSH account: a second kind of remote source in the Go viewer, `api:` servers in `~/veafmct.yaml`, older files openable. Written up 2026-10-26; its last ticket waits for the routes deployed on dcs.veaf.org.
-
 ### [FEAT-BRIEFING-PER-LANGUAGE](FEAT-BRIEFING-PER-LANGUAGE/PRD.md) · ⬜
 
 A `language` parameter for `build_mission_briefing`, writing only the archives of that language, so a bilingual mission (the demo's `_FR` and `_EN`) gets its briefing and kneeboard pages in each language. One ticket; asked from the demo's kneeboard step (2026-10-26).

@@ -132,3 +132,39 @@ func TestResolveAndFailureMessages(t *testing.T) {
 		t.Fatalf("unreachable: %q", msg)
 	}
 }
+
+func TestResolveAPIServers(t *testing.T) {
+	servers, err := sshlog.ParseServers([]byte("servers:\n" +
+		"  veaf-api:\n    api: {url: 'https://dcs.veaf.org', api_key_file: k}\n" +
+		"  narrow:\n    api: {url: 'https://h', api_key_file: k}\n    logs: {p1: {instance: VEAF Private 1}}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewRestore()
+	// Discovered logs are not in the configuration: any name is reopened, the API says whether it still exists.
+	if s, log, _, ok := r.Resolve("veaf-api/VEAF Private 1", servers); !ok || s.Name != "veaf-api" || log != "VEAF Private 1" {
+		t.Fatalf("discovered: %v %q %v", s.Name, log, ok)
+	}
+	if _, log, _, ok := r.Resolve("veaf-api/bot", servers); !ok || log != "bot" {
+		t.Fatalf("bot: %q %v", log, ok)
+	}
+	if _, _, _, ok := r.Resolve("narrow/p1", servers); !ok {
+		t.Fatal("narrow/p1 is in `logs:`")
+	}
+	if _, _, msg, ok := r.Resolve("narrow/p2", servers); ok || msg == "" {
+		t.Fatalf("narrow/p2 is not in `logs:`: %q", msg)
+	}
+	// An unknown log, or one on another node, says nothing about the server's other logs.
+	for _, cause := range []error{logcore.ErrAPIUnknownLog, logcore.ErrAPIOtherNode} {
+		r.Failed("veaf-api/gone", fmt.Errorf("HTTP 404: %w", cause))
+		if _, _, _, ok := r.Resolve("veaf-api/bot", servers); !ok {
+			t.Fatalf("%v marked the server unreachable", cause)
+		}
+	}
+}
+
+func TestRemoteTabNames(t *testing.T) {
+	if title, remote := RemoteTab("veaf-api", "VEAF Private 1"); title != "veaf-api:VEAF Private 1" || remote != "veaf-api/VEAF Private 1" {
+		t.Fatalf("%q %q", title, remote)
+	}
+}

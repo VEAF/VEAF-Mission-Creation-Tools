@@ -71,6 +71,51 @@ compte **administrateur**, la clé publique va dans
 
 `veaf-tools.exe` n'embarque pas cette fonction : elle vit dans `veaf-logs`.
 
+### Par l'API de DCSServerBot, sans compte SSH {#remote-api}
+
+Un serveur qui fait tourner DCSServerBot avec son plugin RestAPI se lit aussi sans compte sur la machine : une clé API suffit, et le bot ne fait que lire.
+On déclare l'API à la place de `host` (un serveur a l'un ou l'autre, jamais les deux) :
+
+```yaml
+servers:
+  veaf-api:
+    api:
+      url: https://dcs.veaf.org/serverapi       # l'API, préfixe compris s'il y en a un
+      api_key_file: ~/.veaf/dcssb-api-key       # un fichier qui ne contient que la clé
+    # logs:                                     # facultatif : restreindre ou renommer
+    #   private1: {instance: VEAF Private 1}    # le nom du serveur côté bot
+    #   bot: {node: dcs-veaf-org}               # le journal du bot d'un nœud
+```
+
+Sans `logs:`, le menu demande à l'API ce qu'elle a : chaque serveur DCS qu'elle connaît (`veaf-api › VEAF Private 1`…) et le journal du bot (`veaf-api › bot`).
+Les onglets se rouvrent au lancement comme ceux d'un serveur SSH.
+
+**Sur dcs.veaf.org**, l'adresse est `https://dcs.veaf.org/serverapi`, et le fichier de clé contient la **clé technicien que donne David**, pas celle du bot : depuis Internet, seule la clé technicien passe.
+Une autre clé y reçoit la même réponse qu'une route absente ; l'outil la présente comme une authentification refusée.
+
+`Fichier › Ouvrir un ancien journal…`, sur un onglet ouvert par l'API, liste les fichiers de ce journal avec leur taille et leur date : `dcs.log.old`, les copies `dcs-AAAAMMJJ-HHMMSS.log` que le bot fait à chaque arrêt, ou les `dcssb-<nœud>.log.1` à `.5` du bot.
+Le fichier choisi s'ouvre dans un onglet en lecture seule, chargé du début à la fin par morceaux ; il n'est pas rouvert au lancement suivant.
+
+Ce qui change par rapport à SSH :
+
+- un onglet s'ouvre sur les 2 000 dernières entrées du journal, puis suit ce qui s'écrit ; pour remonter plus loin, ouvrir le fichier par `Ouvrir un ancien journal…` ;
+- l'API rend des entrées, que l'outil réécrit en lignes : seuls l'alignement du niveau (les espaces après `INFO`) et une ligne de plus de 8 Kio (coupée par le bot) diffèrent du fichier d'origine, et aucune règle ne les lit ;
+- quand le journal redémarre et que le bot ne retrouve plus la fin de l'ancien fichier, la barre d'état le dit : des lignes ont été perdues ;
+- la barre d'état dit aussi pourquoi un journal ne se lit pas : clé refusée, pas encore de journal, serveur ou fichier inconnu, journal sur un autre nœud, serveur injoignable.
+
+Côté serveur, il faut :
+
+- DCSServerBot avec les routes de lecture des journaux (`/instance/logs`, `/instance/log`, `/node/logs`, `/node/log`) : la branche `veaf` de [VEAF/DCSServerBot](https://github.com/VEAF/DCSServerBot), en attendant la version de DCSServerBot qui les publiera ;
+- le plugin RestAPI avec une `api_key` dans son `restapi.yaml` : sans clé, ces routes n'existent pas ;
+- un *reverse proxy* en HTTPS devant l'API (Caddy, nginx, IIS), le service web du bot n'écoutant que sur `127.0.0.1` ;
+- à partir de la version 3.0.5 de DCSServerBot, qui demande par défaut un JWT aux connexions venues d'Internet : autoriser la clé API sur les routes de journaux **et** sur `servers`, que le menu interroge (`endpoints.<route>.security.remote: api_key` dans `restapi.yaml`).
+
+Sécurité :
+
+- la clé vit dans un fichier lisible par toi seul, jamais dans `veafmct.yaml` ; l'outil la lit à l'ouverture d'un onglet et ne l'écrit nulle part, ni dans la session, ni dans un message, ni dans le rapport `/bug` ;
+- l'outil refuse une URL en `http://` sauf vers `127.0.0.1` ou `localhost` (le bout d'un tunnel SSH) : la clé et les journaux traversent le réseau ;
+- les journaux contiennent des noms de joueurs et des adresses IP : une clé se donne à qui administre le serveur.
+
 ## Les trois états
 
 Chaque niveau, chaque source et chaque famille de bruit se règle d'un clic, en
@@ -400,4 +445,5 @@ eux, qu'aux lignes de `dcs.log`.
 | Session (fichiers ouverts, filtres, géométrie, police, panneaux affichés) | `%APPDATA%\veaf_logs\session.json` |
 | Profils | `%APPDATA%\veaf_logs\profiles.json` |
 | Serveurs distants (`servers:`) | `~\veafmct.yaml` |
+| Clé de l'API d'un serveur | le fichier de son `api_key_file` |
 | Miroir local d'un journal distant | `%TEMP%\veaf-logs-*.log`, supprimé à la fermeture de l'onglet |

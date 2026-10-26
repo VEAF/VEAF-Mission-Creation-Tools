@@ -35,7 +35,8 @@ import (
 var connectTimeout = 5 * time.Second
 
 // Server is a DCS server reachable over SSH with the logs it hosts: `Logs` maps
-// an instance name (`private1`) to the remote path of its dcs.log.
+// an instance name (`private1`) to the remote path of its dcs.log. With API set,
+// it is read through DCSServerBot's RestAPI instead (api.go).
 type Server struct {
 	Name string
 	Host string
@@ -43,6 +44,7 @@ type Server struct {
 	Port int
 	Key  string
 	Logs map[string]string
+	API  *API
 	// logOrder keeps the declaration order of the instances.
 	logOrder []string
 }
@@ -122,6 +124,9 @@ func ParseServers(data []byte) ([]Server, error) {
 func parseServer(name string, n *yaml.Node) (Server, error) {
 	if n.Kind != yaml.MappingNode {
 		return Server{}, fmt.Errorf("servers.%s: expected a mapping (host, user, logs…)", name)
+	}
+	if mappingHas(n, "api") {
+		return parseAPIServer(name, n)
 	}
 	s := Server{Name: name, Port: 22, Logs: map[string]string{}}
 	for i := 0; i+1 < len(n.Content); i += 2 {

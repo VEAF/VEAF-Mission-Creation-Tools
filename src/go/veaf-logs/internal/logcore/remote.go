@@ -148,11 +148,9 @@ func (m *MirrorBuffer) Sync(max int64) (rotated bool, err error) {
 	}
 	head = head[:n]
 	if remoteSize < m.size.Load() || headChanged(head, m.head) {
-		if err := os.Truncate(m.path, 0); err != nil {
+		if err := m.reset(); err != nil {
 			return false, err
 		}
-		m.size.Store(0)
-		m.head = nil
 		m.replaced = true
 	}
 	if remoteSize > m.size.Load() {
@@ -169,6 +167,16 @@ func (m *MirrorBuffer) Sync(max int64) (rotated bool, err error) {
 	}
 	m.head = m.Slice(0, headBytes)
 	return m.takeReplaced(), nil
+}
+
+// reset empties the mirror, to start over on a new file.
+func (m *MirrorBuffer) reset() error {
+	if err := os.Truncate(m.path, 0); err != nil {
+		return err
+	}
+	m.size.Store(0)
+	m.head = nil
+	return nil
 }
 
 // takeReplaced reports, once, that the mirror was started over.

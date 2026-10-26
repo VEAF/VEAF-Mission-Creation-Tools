@@ -6,6 +6,7 @@ The Python `veaf_logs` package keeps its windowless core, for the support bot an
 
 - `internal/logcore`: the core without UI (rule catalogue, header formats, compact index, search, filters, tail with rotation detection, crash archives). A port of `veaf_logs` (Python), which remains the reference.
 - `internal/sshlog`: SSH + SFTP connection (key, agent, `known_hosts`) and the `servers` block of `~/veafmct.yaml`; the window's remote journals, with the host key question.
+- `internal/apilog`: a server's logs through DCSServerBot's RestAPI (FEAT-VEAF-LOGS-REST-API) — the HTTP client of `logcore.APISource`, its errors sorted by what the source does about them, and the discovery of a server's logs.
 - `internal/logview`: what the window shows, without the window — the document behind a tab, the cells, the copied text, the tab strip's logic, the side panel's categories and states, the profiles, the session and the order in which its remote tabs come back. Plain Go, tested.
 - `internal/analysis`: *Explain* and the `/bug` report — the bounded, redacted excerpt, the catalogue's wording, the proposed rules, the `veaf-tools doctor` block, the report block, the Worker's client. A port of `veaf_logs.analysis` and its neighbours, with `veaf_libs.redaction` and `veaf_libs.diagnostics`, equal to them character for character.
 - `internal/ui`: the window, on [walk](https://github.com/tailscale/walk) (native Win32), and `internal/ui/dark` its dark theme. Windows only.

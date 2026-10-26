@@ -85,7 +85,7 @@ type window struct {
 	// source opened while the window closes must still be closed by someone.
 	connMu    sync.Mutex
 	closed    bool
-	unclaimed map[*logcore.RemoteSource]bool
+	unclaimed map[remoteSource]bool
 	done      chan struct{} // closed once the window is gone: a pending host key question gives up
 
 	opts       Options
@@ -111,7 +111,7 @@ func Run(opts Options) int {
 	}
 	w := &window{
 		rules: rules, strip: logview.NewStrip[*logPane](), opts: opts, session: logview.NewSession(),
-		restore: logview.NewRestore(), restored: map[*logPane]bool{}, unclaimed: map[*logcore.RemoteSource]bool{}, done: make(chan struct{}),
+		restore: logview.NewRestore(), restored: map[*logPane]bool{}, unclaimed: map[remoteSource]bool{}, done: make(chan struct{}),
 	}
 	if !opts.Smoke {
 		w.session = logview.LoadSession(logview.SessionPath())
@@ -174,6 +174,7 @@ func (w *window) create() error {
 				Action{Text: "Ouvrir le journal DCS courant", Shortcut: shortcut(walk.ModControl, walk.KeyD), OnTriggered: w.openCurrentDCSLog},
 				Action{Text: "Ouvrir un fichier…", Shortcut: shortcut(walk.ModControl, walk.KeyO), OnTriggered: w.openDialog},
 				Action{Text: "Ouvrir un journal distant…", Shortcut: shortcut(walk.ModControl|walk.ModShift, walk.KeyO), OnTriggered: w.openRemoteDialog},
+				Action{Text: "Ouvrir un ancien journal…", OnTriggered: w.openOlderDialog},
 				Separator{},
 				Action{Text: "Fermer l'onglet", Shortcut: shortcut(walk.ModControl, walk.KeyW), OnTriggered: func() { w.closeTab(w.strip.Active) }},
 				Action{Text: "Quitter", Shortcut: shortcut(walk.ModControl, walk.KeyQ), OnTriggered: func() { w.mw.Close() }},

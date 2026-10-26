@@ -1,6 +1,6 @@
 # 02 — `api:` servers in `~/veafmct.yaml`, instances discovered
 
-Status: ⬜ ready
+Status: ✅ done
 
 The `servers` block (`internal/sshlog`, `ConfigPaths`, the parser and its tests) takes a second kind of server:
 

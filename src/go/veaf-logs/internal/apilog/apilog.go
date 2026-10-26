@@ -108,6 +108,10 @@ func classify(status int, detail string, cursor bool) error {
 		return fmt.Errorf("HTTP %d: %s", status, detail) // the file's rights on the server, not the key
 	case status == http.StatusUnauthorized || status == http.StatusForbidden:
 		kind = logcore.ErrAPIAuth
+	case status == http.StatusNotFound && detail == "":
+		// Not the bot, which always says why: a reverse proxy refusing the request. dcs.veaf.org's
+		// Caddy answers so to a key that is not the technician key (VEAF/VEAF-Servers#20).
+		kind = logcore.ErrAPIAuth
 	case status == http.StatusNotFound && detail == "Not Found":
 		kind = ErrNoLogRoutes // FastAPI's own answer to a route it does not have
 	case status == http.StatusNotFound && strings.HasPrefix(detail, "No log file yet"):

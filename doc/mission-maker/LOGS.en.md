@@ -84,6 +84,9 @@ servers:
 Without `logs:`, the menu asks the API what it has: every DCS server it knows (`veaf-api › VEAF Private 1`…) and the bot's log (`veaf-api › bot`).
 The tabs are reopened at launch like those of an SSH server.
 
+**On dcs.veaf.org**, the address is `https://dcs.veaf.org/serverapi`, and the key file holds the **technician key David hands out**, not the bot's key: from the internet, only the technician key gets through.
+Any other key gets the same answer as a missing route there; the tool shows it as an authentication refused.
+
 `File › Open an older log…` (`Fichier › Ouvrir un ancien journal…`), on a tab opened through the API, lists that log's files with their size and date: `dcs.log.old`, the `dcs-YYYYMMDD-HHMMSS.log` copies the bot makes at each shutdown, or the bot's `dcssb-<node>.log.1` to `.5`.
 The chosen file opens read-only in a tab, loaded from start to end in chunks; it is not reopened at the next launch.
 

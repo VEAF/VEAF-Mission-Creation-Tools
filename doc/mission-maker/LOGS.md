@@ -90,6 +90,9 @@ servers:
 Sans `logs:`, le menu demande à l'API ce qu'elle a : chaque serveur DCS qu'elle connaît (`veaf-api › VEAF Private 1`…) et le journal du bot (`veaf-api › bot`).
 Les onglets se rouvrent au lancement comme ceux d'un serveur SSH.
 
+**Sur dcs.veaf.org**, l'adresse est `https://dcs.veaf.org/serverapi`, et le fichier de clé contient la **clé technicien que donne David**, pas celle du bot : depuis Internet, seule la clé technicien passe.
+Une autre clé y reçoit la même réponse qu'une route absente ; l'outil la présente comme une authentification refusée.
+
 `Fichier › Ouvrir un ancien journal…`, sur un onglet ouvert par l'API, liste les fichiers de ce journal avec leur taille et leur date : `dcs.log.old`, les copies `dcs-AAAAMMJJ-HHMMSS.log` que le bot fait à chaque arrêt, ou les `dcssb-<nœud>.log.1` à `.5` du bot.
 Le fichier choisi s'ouvre dans un onglet en lecture seule, chargé du début à la fin par morceaux ; il n'est pas rouvert au lancement suivant.
 

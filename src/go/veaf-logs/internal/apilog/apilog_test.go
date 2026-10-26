@@ -63,7 +63,9 @@ func startBot(t *testing.T) *fakeBot {
 func fail(w http.ResponseWriter, status int, detail string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"detail": detail})
+	if detail != "" { // a reverse proxy's refusal has no body at all
+		json.NewEncoder(w).Encode(map[string]string{"detail": detail})
+	}
 }
 
 func (b *fakeBot) server(t *testing.T, key string, logs map[string]sshlog.APILog) sshlog.Server {
@@ -125,6 +127,7 @@ func TestErrorsAreClassified(t *testing.T) {
 		{400, "Invalid cursor (unknown cursor version).", true, logcore.ErrCursorRefused},
 		{400, "This cursor belongs to another log.", true, logcore.ErrCursorRefused},
 		{401, "Not authenticated", false, logcore.ErrAPIAuth},
+		{404, "", false, logcore.ErrAPIAuth}, // a reverse proxy refusing the key, with no body
 		{403, "Invalid API Key", false, logcore.ErrAPIAuth},
 		{501, "Server 'x' runs on node 'y'", false, logcore.ErrAPIOtherNode},
 		{503, "Node inactive", false, logcore.ErrUnavailable},

@@ -21,7 +21,7 @@ func ProblemText(err error) string {
 func problemKind(err error) string {
 	switch {
 	case errors.Is(err, logcore.ErrAPIAuth):
-		return "authentification refusée : vérifie la clé API ; sur DCSServerBot 3.0.5, le restapi.yaml du serveur doit accepter une clé API d'où tu te connectes, sur les routes de logs et sur servers"
+		return "authentification refusée : vérifie la clé API (à la VEAF, la clé technicien que donne David) ; sur DCSServerBot 3.0.5, le restapi.yaml du serveur doit accepter une clé API d'où tu te connectes, sur les routes de logs et sur servers"
 	case errors.Is(err, apilog.ErrNoLogRoutes):
 		return "ce DCSServerBot n'a pas les routes de logs (version trop ancienne, ou pas d'api_key)"
 	case errors.Is(err, logcore.ErrRemoteFileMissing):

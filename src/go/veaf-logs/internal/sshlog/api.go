@@ -62,6 +62,12 @@ func parseAPIServer(name string, n *yaml.Node) (Server, error) {
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		key, val := n.Content[i].Value, n.Content[i+1]
 		switch key {
+		case "aliases":
+			aliases, err := parseAliases("servers."+name+".aliases", val)
+			if err != nil {
+				return Server{}, err
+			}
+			s.Aliases = aliases
 		case "host", "user", "port", "key":
 			return Server{}, fmt.Errorf("servers.%s: either `host` (SSH) or `api` (RestAPI), not both", name)
 		case "api":

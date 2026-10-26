@@ -116,6 +116,30 @@ Sécurité :
 - l'outil refuse une URL en `http://` sauf vers `127.0.0.1` ou `localhost` (le bout d'un tunnel SSH) : la clé et les journaux traversent le réseau ;
 - les journaux contiennent des noms de joueurs et des adresses IP : une clé se donne à qui administre le serveur.
 
+## Onglets {#tabs}
+
+Quand les onglets dépassent la largeur de la fenêtre, la barre défile : à la molette au-dessus d'elle, ou par les flèches ‹ › qui apparaissent alors à sa droite.
+L'onglet courant est toujours ramené dans la partie visible.
+À partir de deux onglets, le bouton ≡ à gauche de la barre les liste tous ; un clic sur un titre y va.
+
+Un clic droit sur un onglet propose de le fermer ou de le renommer.
+*Renommer l'onglet…* écrit son alias dans `~\veafmct.yaml`, et l'alias se retrouve au lancement suivant ; un nom vide rend à l'onglet son nom d'origine.
+On peut aussi l'écrire à la main :
+
+```yaml
+log_aliases:                       # les fichiers locaux, par leur chemin
+  'C:\Users\moi\Saved Games\DCS\Logs\dcs.log': Mon jeu
+servers:
+  veaf-api:
+    api: {url: https://dcs.veaf.org/serverapi, api_key_file: ~/.veaf/dcssb-api-key}
+    aliases:                       # les journaux d'un serveur, SSH ou API, par leur nom
+      VEAF (www.veaf.org) [fr] - Privé 1: P1
+```
+
+L'outil réécrit le fichier en gardant son contenu et ses commentaires, mais pas toujours leur alignement.
+Sans alias, les journaux qu'une API découvre perdent les mots que tous ses serveurs partagent : `veaf-api:Privé 1` plutôt que `veaf-api:VEAF (www.veaf.org) [fr] - Privé 1`.
+Le nom complet reste dans l'info-bulle de l'onglet.
+
 ## Les trois états
 
 Chaque niveau, chaque source et chaque famille de bruit se règle d'un clic, en
@@ -446,4 +470,5 @@ eux, qu'aux lignes de `dcs.log`.
 | Profils | `%APPDATA%\veaf_logs\profiles.json` |
 | Serveurs distants (`servers:`) | `~\veafmct.yaml` |
 | Clé de l'API d'un serveur | le fichier de son `api_key_file` |
+| Alias des onglets | `~\veafmct.yaml` (`log_aliases:`, et `aliases:` de chaque serveur) |
 | Miroir local d'un journal distant | `%TEMP%\veaf-logs-*.log`, supprimé à la fermeture de l'onglet |

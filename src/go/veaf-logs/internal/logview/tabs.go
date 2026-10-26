@@ -1,5 +1,7 @@
 package logview
 
+import "strings"
+
 // Strip is the model of the tab strip: which tabs, in which order, which one
 // is current. The Win32 tab control can neither close nor reorder a tab and
 // cannot be darkened (ADR 0022), so the strip is drawn by us and this is its logic.
@@ -121,4 +123,75 @@ func DropIndex(spans []Span, x int) int {
 		return 0
 	}
 	return len(spans) - 1
+}
+
+// ContentWidth is the width of the laid out tabs, from the first one's left edge.
+func ContentWidth(spans []Span) int {
+	if len(spans) == 0 {
+		return 0
+	}
+	last := spans[len(spans)-1]
+	return last.X + last.Width - spans[0].X
+}
+
+// ClampOffset keeps a scroll offset between the first tab and the last one's
+// right edge at the view's right: no scroll at all when the tabs fit.
+func ClampOffset(content, view, offset int) int {
+	return max(0, min(offset, content-view))
+}
+
+// ScrollIntoView is the offset that shows span s whole in a view of `view`
+// pixels, moving the strip as little as possible.
+func ScrollIntoView(s Span, view, offset int) int {
+	switch {
+	case s.X < offset:
+		return s.X
+	case s.X+s.Width > offset+view:
+		return s.X + s.Width - view
+	}
+	return offset
+}
+
+// ListButtonShown tells whether the strip shows its list of tabs: from two tabs on.
+func ListButtonShown(tabs int) bool { return tabs >= 2 }
+
+// ShortNames removes the words every name starts with — the discovered servers
+// of one API all read `VEAF (www.veaf.org) [fr] - …`. The prefix is cut after a
+// space only, and only when there are several names and each keeps something.
+func ShortNames(names []string) []string {
+	if len(names) < 2 {
+		return names
+	}
+	prefix := names[0]
+	for _, n := range names[1:] {
+		i := 0
+		for i < len(prefix) && i < len(n) && prefix[i] == n[i] {
+			i++
+		}
+		prefix = prefix[:i]
+	}
+	cut := strings.LastIndexByte(prefix, ' ') + 1
+	if cut == 0 {
+		return names
+	}
+	out := make([]string, len(names))
+	for i, n := range names {
+		out[i] = strings.TrimSpace(n[cut:])
+		if out[i] == "" {
+			return names
+		}
+	}
+	return out
+}
+
+// TabTitle is a remote tab's title: its alias alone, else `server:name` with
+// the shortened name when there is one.
+func TabTitle(server, name, short, alias string) string {
+	if alias != "" {
+		return alias
+	}
+	if short != "" {
+		name = short
+	}
+	return server + ":" + name
 }

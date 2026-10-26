@@ -110,6 +110,30 @@ Security:
 - the tool refuses an `http://` URL except to `127.0.0.1` or `localhost` (the end of an SSH tunnel): the key and the logs cross the network;
 - the logs hold player names and IP addresses: give a key to whoever administers the server.
 
+## Tabs {#tabs}
+
+When the tabs are wider than the window, the strip scrolls: with the mouse wheel over it, or with the ‹ › arrows that then show at its right.
+The current tab is always brought into view.
+From two tabs on, the ≡ button at the strip's left lists them all; a click on a title goes there.
+
+A right click on a tab offers to close it or to rename it.
+*Rename the tab…* (`Renommer l'onglet…`) writes its alias into `~\veafmct.yaml`, and the alias is back at the next launch; an empty name gives the tab its own name back.
+It can be written by hand too:
+
+```yaml
+log_aliases:                       # local files, by their path
+  'C:\Users\me\Saved Games\DCS\Logs\dcs.log': My game
+servers:
+  veaf-api:
+    api: {url: https://dcs.veaf.org/serverapi, api_key_file: ~/.veaf/dcssb-api-key}
+    aliases:                       # a server's logs, SSH or API, by their name
+      VEAF (www.veaf.org) [fr] - Privé 1: P1
+```
+
+The tool rewrites the file keeping its content and its comments, though not always their alignment.
+Without an alias, the logs an API discovers lose the words all its servers share: `veaf-api:Privé 1` rather than `veaf-api:VEAF (www.veaf.org) [fr] - Privé 1`.
+The full name stays in the tab's tooltip.
+
 ## The three states
 
 Every level, source and noise family cycles through three states on click:
@@ -424,4 +448,5 @@ log's lines only. Source prefixes (`match`) apply to `dcs.log` lines only.
 | Profiles | `%APPDATA%\veaf_logs\profiles.json` |
 | Remote servers (`servers:`) | `~\veafmct.yaml` |
 | A server's API key | the file of its `api_key_file` |
+| Tab aliases | `~\veafmct.yaml` (`log_aliases:`, and each server's `aliases:`) |
 | Local mirror of a remote log | `%TEMP%\veaf-logs-*.log`, removed when the tab closes |

@@ -45,6 +45,8 @@ type Server struct {
 	Key  string
 	Logs map[string]string
 	API  *API
+	// Aliases are the tabs' titles chosen for some logs (aliases.go).
+	Aliases map[string]string
 	// logOrder keeps the declaration order of the instances.
 	logOrder []string
 }
@@ -147,6 +149,12 @@ func parseServer(name string, n *yaml.Node) (Server, error) {
 				return Server{}, fmt.Errorf("servers.%s.key: expected a path", name)
 			}
 			s.Key = expandHome(strings.TrimSpace(val.Value))
+		case "aliases":
+			aliases, err := parseAliases("servers."+name+".aliases", val)
+			if err != nil {
+				return Server{}, err
+			}
+			s.Aliases = aliases
 		case "logs":
 			if val.Kind != yaml.MappingNode || len(val.Content) == 0 {
 				return Server{}, fmt.Errorf("servers.%s.logs: expected a non-empty mapping of instance name to log path", name)

@@ -881,7 +881,7 @@ A spot is kept when the ground there is earth (not water, road or runway), when 
 | `--verbose` | `boolean` | `false` | If enabled, prints detailed debugging information. |
 
 ```bash
-.eaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
+.\veaf-tools.exe dcs farp-spot MarianaIslands --at -22300,-12450
 ```
 
 The point is given with `--at` rather than as two arguments: a negative number in second position would be read as an option.

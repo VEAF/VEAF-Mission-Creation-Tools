@@ -17,3 +17,4 @@ Origin: the evening server run of CTLD's Fat Cow (VEAF/CTLD#273, Privé 1, 2026-
 ## Tickets
 
 - [01 — GRASS skips CTLD FARPs, CH-47F in CSAR](tickets/01-grass-skips-ctld-farps.md)
+- [02 — The Fat Cow in the demo mission, before the next release](tickets/02-demo-mission-step.md)

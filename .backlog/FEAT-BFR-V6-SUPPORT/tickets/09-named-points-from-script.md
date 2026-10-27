@@ -1,6 +1,6 @@
 # 09 — Named points declared from a script
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

@@ -224,4 +224,70 @@ function TestVeafNamedPoints:test_addCities_on_a_theatre_without_list_adds_nothi
 end
 
 -- ============================================================================
+-- ============================================================================
+-- Named points declared from a mission script (FEAT-BFR-V6-SUPPORT ticket 09). `veafNamedPoints.Points = {…}`
+-- is gone in v6, where points are declared in mission.yaml; a mission layer that builds its own (BFR, with the
+-- airfields' TACAN) declares them with `declarePoints`, before or after `initialize()`.
+-- ============================================================================
+TestNamedPointsFromScript = {}
+
+function TestNamedPointsFromScript:setUp()
+  dcs_mocks.reset()
+  self.saved = {
+    namedPoints = veafNamedPoints.namedPoints,
+    scriptPoints = veafNamedPoints.scriptPoints,
+    addCities = veafNamedPoints.addCities,
+    addAirbases = veafNamedPoints.addAirbases,
+    buildRadioMenu = veafNamedPoints.buildRadioMenu,
+  }
+  veafNamedPoints.namedPoints = {}
+  veafNamedPoints.scriptPoints = {}
+  veafNamedPoints.addCities = function() end
+  veafNamedPoints.addAirbases = function() end
+  veafNamedPoints.buildRadioMenu = function() end
+  self.hadCommands, self.hadRemote = veafCommands, veafRemote
+  veafCommands = veafCommands or { PRIORITY_NAMEDPOINTS = 0 }
+  self.savedRegister = veafCommands.registerCommandHandler
+  veafCommands.registerCommandHandler = function() end
+  veafRemote = veafRemote or {}
+  self.savedRemote = veafRemote.registerRemoteModule
+  veafRemote.registerRemoteModule = function() end
+end
+
+function TestNamedPointsFromScript:tearDown()
+  for name, value in pairs(self.saved) do
+    veafNamedPoints[name] = value
+  end
+  veafCommands.registerCommandHandler = self.savedRegister
+  veafRemote.registerRemoteModule = self.savedRemote
+  veafCommands, veafRemote = self.hadCommands, self.hadRemote
+end
+
+local BATCH = {
+  { name = "Kobuleti", point = { x = -317000, y = 0, z = 635000, tacan = "67X" } },
+  { name = "Senaki", point = { x = -281000, y = 0, z = 648000 } },
+}
+
+function TestNamedPointsFromScript:test_points_declared_before_initialize_survive_it()
+  veafNamedPoints.declarePoints(BATCH)
+  veafNamedPoints.initialize({ { name = "Custom", point = { x = 1, y = 0, z = 2 } } })
+  luaunit.assertNotNil(veafNamedPoints.getPoint("Kobuleti"))
+  luaunit.assertNotNil(veafNamedPoints.getPoint("senaki"))
+  luaunit.assertNotNil(veafNamedPoints.getPoint("Custom"))
+  luaunit.assertEquals(veafNamedPoints.getPoint("KOBULETI").tacan, "67X")
+end
+
+function TestNamedPointsFromScript:test_points_declared_after_initialize_are_there_at_once()
+  veafNamedPoints.initialize({})
+  veafNamedPoints.declarePoints(BATCH)
+  luaunit.assertNotNil(veafNamedPoints.getPoint("Kobuleti"))
+end
+
+function TestNamedPointsFromScript:test_an_entry_without_a_name_or_a_point_is_skipped_and_logged()
+  veafNamedPoints.declarePoints({ { name = "No point" }, { point = { x = 0, y = 0, z = 0 } }, BATCH[2] })
+  luaunit.assertNil(veafNamedPoints.getPoint("No point"))
+  luaunit.assertNotNil(veafNamedPoints.getPoint("Senaki"))
+  luaunit.assertEquals(#dcs_mocks.findLog("declarePoints"), 2)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -136,6 +136,41 @@ Most aliases respect the security system (`veafSecurity`). **Nine** utility alia
 available to every player: `-smoke`, `-longsmoke`, `-signal`, `-light`, `-point`, `-tacan`, `-jtac`,
 `-afac`, `-beacon`.
 
+### What may follow a security-bypassing alias {#bypass-options}
+
+After such an alias, a player's marker admits only the options that **tune** its effect, each in a strict form:
+
+| Alias | Admitted options |
+|---|---|
+| `-smoke`, `-longsmoke`, `-signal` | `color` (red, green, orange, blue, white) |
+| `-light` | `alt`, `radius` (integers) |
+| `-jtac` | `laser` (4 digits), `freq` (MHz), `mod` (am, fm) |
+| `-afac` | `laser`, `freq`, `mod`, `alt`, `speed`, `hdg` / `heading` (integers), `immortal` |
+| `-tacan` | `channel` (1 to 3 digits), `band` (x, y), `code` (1 to 4 letters or digits), `radius` (0 to 999 m) |
+| `-point` | a name, without a comma |
+| `-beacon` | none |
+
+Anything else refuses the marker **whole**: nothing runs, and only the marker's author gets a message saying what the alias accepts.
+A VEAF command keyword (`_spawn`, `_cas`…) is refused anywhere after these aliases.
+The refused text is never written to the log: it may carry a password.
+
+Unchanged: the bare alias, `#…` coordinates and the `!N` delay, aliases run by a script (alias batches, combat zones), and a mission with security disabled.
+
+A security-bypassing alias of your own admits nothing after it, unless it declares its options in `mission-script.lua`:
+
+```lua
+veafShortcuts.AddAlias(
+  VeafAlias:new()
+    :setName("-mysmoke")
+    :setVeafCommand("_spawn smoke")
+    :setBypassSecurity(true)
+    :setAllowedOptions({ color = "color", shells = "^[1-3]$" })
+)
+```
+
+A form is the name of a `veafShortcuts.OptionForms` form (`color`, `laser`, `frequency`, `modulation`, `integer`, `tacanChannel`, `tacanBand`, `morseCode`, `radius999`, `flag`), or an anchored Lua pattern.
+An alias declared in `mission.yaml` with `bypass_security: true` admits nothing after it.
+
 **Skipping the password does not mean keeping quiet.** Those two ideas were the same setting in the code
 for a long time, and it showed: a pilot who dropped a `-tacan` marker got *no* confirmation at all — no
 channel, no band. Silence now depends on one thing only: **who asked**.

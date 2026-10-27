@@ -39,6 +39,131 @@ veafShortcuts.aliases = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- What a player may type after a security-bypassing alias (FEAT-BFR-V6-SUPPORT ticket 01)
+--
+-- An alias that bypasses security appends whatever follows it to its own command, and the whole goes down the module
+-- chain with the bypass flag. So the trailing text must only TUNE the alias's effect, never change its nature: each
+-- bypassing alias declares the options it admits (`VeafAlias:setAllowedOptions`), each with a strict value form, and
+-- anything else refuses the marker whole. Ported from BFR's `veafPatches.lua` (Sharko), where it ran on VMCT 5.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Value forms an admitted option can take: an anchored Lua pattern, or the set of admitted values (lower case).
+--- `setAllowedOptions` names one of these, or gives a pattern of its own.
+veafShortcuts.OptionForms = {
+  color = { red = true, green = true, orange = true, blue = true, white = true },
+  laser = "^%d%d%d%d$",
+  frequency = "^%d+%.?%d*$",
+  modulation = { am = true, fm = true },
+  integer = "^%d+$",
+  tacanChannel = "^%d%d?%d?$",
+  -- metres around the marker, 0 to 999: no sign, no decimal, no random "1-5" form
+  radius999 = "^%d%d?%d?$",
+  tacanBand = { x = true, y = true },
+  morseCode = "^%w%w?%w?%w?$",
+  flag = "^$",
+}
+
+--- Allowed-options value meaning "a free name without a comma" (`-point`).
+veafShortcuts.ALLOW_NAME = "name"
+
+--- The VEAF command keywords, derived at each call from every global table's `*Keyphrase` fields, so that a keyword a
+--- module adds later is refused without touching this list.
+function veafShortcuts.commandKeywords()
+  local keywords = {}
+  for tableName, t in pairs(_G) do
+    if type(tableName) == "string" and type(t) == "table" then
+      for field, value in pairs(t) do
+        if type(field) == "string" and type(value) == "string" and value ~= "" and field:sub(-9) == "Keyphrase" then
+          keywords[value:lower()] = true
+        end
+      end
+    end
+  end
+  return keywords
+end
+
+--- Why the text typed after a bypassing alias is refused, or nil when it is admitted.
+--- @return string|nil reason a FIXED reason, never a piece of the typed text (it may carry a password)
+--- @return string|nil message the message for the player
+function veafShortcuts.refusedRemainder(alias, remainder)
+  if type(remainder) ~= "string" or not remainder:find("[^%s,]") then
+    return nil
+  end
+  local name = alias:getName()
+  local lower = remainder:lower()
+  for keyword, _ in pairs(veafShortcuts.commandKeywords()) do
+    if lower:find(keyword, 1, true) then
+      return "command keyword", veaf.t("shortcuts.refused_keyword", name)
+    end
+  end
+  local allowed = alias:getAllowedOptions()
+  if allowed == veafShortcuts.ALLOW_NAME then
+    if remainder:find(",", 1, true) then
+      return "comma in a name", veaf.t("shortcuts.refused_name_comma", name)
+    end
+    return nil
+  end
+  if type(allowed) ~= "table" then
+    return "no option admitted", veaf.t("shortcuts.refused_no_option", name)
+  end
+  -- Split like the spawn parser: segments separated by ",", key = first word, value = the rest of the segment.
+  for segment in remainder:gmatch("[^,]+") do
+    local s = segment:match("^%s*(.-)%s*$")
+    if s ~= "" then
+      local key, value = s:match("^(%S+)%s+(.*)$")
+      if not key then
+        key, value = s, ""
+      end
+      local form = allowed[key:lower()]
+      if type(form) == "string" and veafShortcuts.OptionForms[form] then
+        form = veafShortcuts.OptionForms[form]
+      end
+      local admitted
+      if type(form) == "table" then
+        admitted = form[value:lower()] == true
+      elseif type(form) == "string" then
+        admitted = value:find(form) ~= nil
+      end
+      if not admitted then
+        local options = {}
+        for option, _ in pairs(allowed) do
+          table.insert(options, option)
+        end
+        table.sort(options)
+        return "option or value not admitted", veaf.t("shortcuts.refused_options", name, table.concat(options, ", "))
+      end
+    end
+  end
+  return nil
+end
+
+--- Tell the author of marker `markId`, and him only. Never a global message: the coalition the alias chain carries is
+--- the ENEMY of the author's (a marker spawns for the other side). Returns true when a message left.
+function veafShortcuts.tellMarkerAuthor(markId, text)
+  local ok, panels = pcall(world.getMarkPanels)
+  if ok and type(panels) == "table" then
+    for _, panel in pairs(panels) do
+      if type(panel) == "table" and panel.idx ~= nil and panel.idx == markId then
+        if panel.initiator then
+          local okId, unitId = pcall(function()
+            return panel.initiator:getID()
+          end)
+          if okId and unitId then
+            return pcall(trigger.action.outTextForUnit, unitId, text, 10)
+          end
+        end
+        local groupId = tonumber(panel.groupID)
+        if groupId and groupId > 0 then
+          return pcall(trigger.action.outTextForGroup, groupId, text, 10)
+        end
+      end
+    end
+  end
+  veaf.loggers.get(veafShortcuts.Id):warn("cannot tell the author of marker %s that it was refused", veaf.p(markId))
+  return false
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafAlias object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 VeafAlias = {}
@@ -65,6 +190,8 @@ function VeafAlias:new(objectToCopy)
   objectToCreate.randomParameters = {}
   -- if TRUE, security is bypassed
   objectToCreate.bypassSecurity = false
+  -- what a player may type after a bypassing alias: { [option] = form }, veafShortcuts.ALLOW_NAME, or nil (nothing)
+  objectToCreate.allowedOptions = nil
   -- if set, the alias will actually be a batch of aliases to execute in order
   objectToCreate.batchAliases = nil
   -- if set, the alias is password protected with a specific password
@@ -147,6 +274,18 @@ function VeafAlias:isBypassSecurity()
   return self.bypassSecurity
 end
 
+--- Declare what a player may type after this alias when it bypasses security.
+--- @param value table|string `{ [option] = form }`, a form being a `veafShortcuts.OptionForms` name, a set of values or
+---        an anchored Lua pattern; or `veafShortcuts.ALLOW_NAME` for a free name without a comma
+function VeafAlias:setAllowedOptions(value)
+  self.allowedOptions = value
+  return self
+end
+
+function VeafAlias:getAllowedOptions()
+  return self.allowedOptions
+end
+
 function VeafAlias:setHidden(value)
   veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setHidden([%s])", veaf.p(self.name), tostring(value) or ""))
   self.hidden = value
@@ -202,6 +341,17 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
   end
 
   veaf.loggers.get(veafShortcuts.Id):trace(string.format("markId=[%s]", veaf.p(markId)))
+
+  -- A player's marker behind a bypassing alias: only the options this alias admits (FEAT-BFR-V6-SUPPORT ticket 01).
+  -- Not for a script (`bypassSecurity`: design-time text), nor when the mission switched security off.
+  if not bypassSecurity and self:isBypassSecurity() and not veafSecurity.isSecurityDisabled() then
+    local reason, message = veafShortcuts.refusedRemainder(self, remainingCommand)
+    if reason then
+      veaf.loggers.get(veafShortcuts.Id):warn("alias [%s] refused (%s)", veaf.p(self:getName()), reason)
+      veafShortcuts.tellMarkerAuthor(markId, message)
+      return false
+    end
+  end
 
   local command = self:getVeafCommand()
   for _, parameter in pairs(self:getRandomParameters()) do
@@ -1175,7 +1325,8 @@ function veafShortcuts.buildDefaultList()
     :setDescription("Name a point on the map")
     :setVeafCommand("_name point")
     :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the point name
-    :setBypassSecurity(true))
+    :setBypassSecurity(true)
+    :setAllowedOptions(veafShortcuts.ALLOW_NAME))
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-destroy")
@@ -1389,10 +1540,29 @@ function veafShortcuts.buildDefaultList()
       :setBypassSecurity(false)
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new():setName("-jtac"):setDescription("JTAC humvee"):setVeafCommand("_spawn jtac"):setBypassSecurity(true)
+    VeafAlias:new()
+      :setName("-jtac")
+      :setDescription("JTAC humvee")
+      :setVeafCommand("_spawn jtac")
+      :setBypassSecurity(true)
+      :setAllowedOptions({ laser = "laser", freq = "frequency", mod = "modulation" })
   )
   veafShortcuts.AddAlias(
-    VeafAlias:new():setName("-afac"):setDescription("AFAC MQ-9 Reaper"):setVeafCommand("_spawn afac"):setBypassSecurity(true)
+    VeafAlias:new()
+      :setName("-afac")
+      :setDescription("AFAC MQ-9 Reaper")
+      :setVeafCommand("_spawn afac")
+      :setBypassSecurity(true)
+      :setAllowedOptions({
+        laser = "laser",
+        freq = "frequency",
+        mod = "modulation",
+        alt = "integer",
+        speed = "integer",
+        hdg = "integer",
+        heading = "integer",
+        immortal = "flag",
+      })
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
@@ -1561,6 +1731,7 @@ function veafShortcuts.buildDefaultList()
       :setVeafCommand("_spawn flare, radius 1500")
       :addRandomParameter("shells", 10, 15)
       :setBypassSecurity(true)
+      :setAllowedOptions({ alt = "integer", radius = "integer" })
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
@@ -1568,6 +1739,7 @@ function veafShortcuts.buildDefaultList()
       :setDescription("Spawn a single white smoke")
       :setVeafCommand("_spawn smoke, color white, shells 1, radius 1")
       :setBypassSecurity(true)
+      :setAllowedOptions({ color = "color" })
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
@@ -1575,6 +1747,7 @@ function veafShortcuts.buildDefaultList()
       :setDescription("Spawn a single white smoke, renewed every 5 minutes for 30 minutes")
       :setVeafCommand("_spawn smoke, color white, shells 1, radius 1, repeat 5, delay 300")
       :setBypassSecurity(true)
+      :setAllowedOptions({ color = "color" })
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
@@ -1582,6 +1755,7 @@ function veafShortcuts.buildDefaultList()
       :setDescription("Spawn a single signal flare")
       :setVeafCommand("_spawn signal, color green, shells 1, radius 1")
       :setBypassSecurity(true)
+      :setAllowedOptions({ color = "color" })
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
@@ -1614,6 +1788,7 @@ function veafShortcuts.buildDefaultList()
       :setDescription("create a portable TACAN beacon")
       :setVeafCommand("_spawn tacan, band X, channel 99")
       :setBypassSecurity(true)
+      :setAllowedOptions({ channel = "tacanChannel", band = "tacanBand", code = "morseCode", radius = "radius999" })
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()

@@ -1,6 +1,6 @@
 # 01 — Whitelist of the text typed after a security-bypassing shortcut
 
-Status: ⬜ ready
+Status: 🧑 waiting-human (code done; checked on a server with real markers)
 
 Some marker shortcuts are usable without the mission password (`-jtac`, `-afac`, `-light`, `-smoke`, `-longsmoke`, `-signal`, `-tacan`).
 The text a player types after them must only tune that shortcut's effect.

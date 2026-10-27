@@ -1,6 +1,6 @@
 # 04 — Submenu reserved to some groups
 
-Status: ⬜ ready
+Status: 🧑 waiting-human (code done; checked in game with two players in one group)
 
 `groupFilter` exists per command only.
 

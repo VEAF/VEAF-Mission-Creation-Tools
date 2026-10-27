@@ -2702,6 +2702,10 @@ function veaf.outTextForUnit(unitName, message, duration, forAllGroup)
     trigger.action.outTextForUnit(unitId, message, duration)
   elseif groupId then
     trigger.action.outTextForGroup(groupId, message, duration)
+  elseif unitName then
+    -- A unit was named and is gone (its pilot left, died, ejected): the answer was for him, never for
+    -- every player on the server (FEAT-BFR-V6-SUPPORT ticket 03).
+    veaf.loggers.get(veaf.Id):debug("outTextForUnit: unit %s is gone, message not shown", veaf.p(unitName))
   else
     trigger.action.outText(message, duration)
   end

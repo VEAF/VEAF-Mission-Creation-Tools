@@ -1,6 +1,6 @@
 # 03 — F10 menu in multiplayer: commands bound to a live pilot
 
-Status: ⬜ ready
+Status: 🧑 waiting-human (code done; checked in game with two players in one group)
 
 `humanUnits[x].spawned` is never reset and nothing handles a pilot leaving: when the first pilot of a group leaves, the clicks of the others stop answering.
 `veaf.outTextForGroup` falls back to `trigger.action.outText`, i.e. to every player.

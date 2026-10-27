@@ -1,8 +1,9 @@
 # 05 — Submenu per pilot in multi-slot groups
 
-Status: ⬜ ready
+Status: 🧑 waiting-human (code done; checked in game with two players in one group)
 
 ## Done when
 
-- A command can be declared per pilot: in a group, each present pilot gets it under a submenu with his player name, and the answer goes to the group with the clicking pilot named (DCS has no per-unit message for a multi-slot group's menu).
-- Lua tests; a step in the demo mission; checked in game with two players in one group.
+- `veafRadio.addSubMenuPerPilot`: in a group, each present pilot gets the menu's entries under a submenu with his player name, bound to his unit, so the answer can go to him alone (`veaf.outTextForUnit`); a pilot alone gets them directly.
+- Lua tests; checked in game with two players in one group.
+- A demo mission step needs a mission script calling `addSubMenuPerPilot`: left to a follow-up in VEAF-Demo-Mission-v6.

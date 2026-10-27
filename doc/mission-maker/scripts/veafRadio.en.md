@@ -237,6 +237,50 @@ still sees the parent, simply without that entry.
 
 ---
 
+## Menus reserved to some groups, menus per pilot {#group-and-pilot-menus}
+
+### A submenu reserved to some groups
+
+`addSubMenuForGroups` shows a submenu, and everything under it, only to the groups with a pilot who passes the filter `filter(unitName, groupId)`:
+
+```lua
+local function carrierAircraft(unitName)
+  local unit = Unit.getByName(unitName)
+  return unit ~= nil and unit:getTypeName() == "FA-18C_hornet"
+end
+local carrierMenu = veafRadio.addSubMenuForGroups("Carrier", nil, carrierAircraft)
+veafRadio.addCommandToSubmenu("Deck status", carrierMenu, deckStatus, "CVN-74")
+```
+
+The `USAGE_ForAll` commands under it are posted for each of those groups, with their parameters unchanged.
+A filter that raises hides the menu and leaves a line in the log; it does not stop the rebuild.
+A fourth argument restricts the menu to one coalition as well.
+
+### A submenu per pilot
+
+In a multi-slot group, a `USAGE_ForGroup` command is seen by every pilot of the group, and knows only the first one.
+`addSubMenuPerPilot` gives each pilot present his own submenu, named after him, under which `USAGE_ForGroup` and `USAGE_ForUnit` commands receive **his** unit name:
+
+```lua
+local menu = veafRadio.addSubMenuPerPilot("Recovery", nil)
+veafRadio.addCommandToSubmenu("Request my pass", menu, requestPass, nil, veafRadio.USAGE_ForGroup)
+
+function requestPass(unitName)
+  veaf.outTextForUnit(unitName, "Pass noted", 10) -- to the pilot who clicked only
+end
+```
+
+A pilot alone in his group gets the commands directly, without the level named after him.
+The menu takes the same group filter as `addSubMenuForGroups`.
+
+### Commands follow the pilots present
+
+A per-group command is bound to a pilot **still in his unit**.
+When a pilot leaves his slot, dies, ejects or crashes, he is forgotten, the menu is rebuilt and his wingmen get the group's commands back; when he returns, he is registered again.
+A message addressed to a unit that no longer exists is shown to nobody, instead of going to every player.
+
+---
+
 ## Low-level API
 
 For finer control, build the menu tree directly:

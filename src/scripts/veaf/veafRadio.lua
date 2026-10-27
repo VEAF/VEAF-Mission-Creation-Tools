@@ -124,6 +124,8 @@ function veafRadio.onBirthEvent(event)
         -- dynamic slot: get player name via DCS API
         callsign = event.initiator:getPlayerName()
       end
+      -- `units[callsign]` below cannot take a nil index.
+      callsign = callsign or unitName
       local unitObject = { name = unitName, spawned = true, groupId = groupId, callsign = callsign }
       veafRadio.humanUnits[unitName] = {}
       veafRadio.humanUnits[unitName].spawned = true
@@ -157,6 +159,42 @@ function veafRadio.onBirthEvent(event)
         :debug("refreshRadioMenu() following event %s of human unit %s", event.type and event.type.name, unitName)
       veafRadio.refreshRadioMenu()
     end
+  end
+end
+
+--- Forget a human unit whose pilot is gone, so that its group's commands bind to a pilot still there
+--- (FEAT-BFR-V6-SUPPORT ticket 03). `spawned` was never reset and nothing handled a departure: when the
+--- first pilot of a group left, the group's commands stayed bound to his unit and his wingmen's clicks went
+--- nowhere. His return is a new birth, which registers him again.
+--- @return boolean true when the unit was known
+function veafRadio.forgetHumanUnit(unitName)
+  local unitObject = unitName and veafRadio.humanUnits[unitName]
+  if not unitObject then
+    return false
+  end
+  veafRadio.humanUnits[unitName] = nil
+  local groupData = veafRadio.humanGroups[unitObject.groupId]
+  if groupData then
+    for index = #groupData.callsigns, 1, -1 do
+      local callsign = groupData.callsigns[index]
+      if groupData.units[callsign] == unitObject then
+        table.remove(groupData.callsigns, index)
+        groupData.units[callsign] = nil
+      end
+    end
+    if #groupData.callsigns == 0 then
+      veafRadio.humanGroups[unitObject.groupId] = nil
+    end
+  end
+  return true
+end
+
+--- A pilot left his unit: left the slot, died, crashed or ejected.
+function veafRadio.onLeaveEvent(event)
+  local unitName = veafEventHandler.unitNameFromEvent(event)
+  if veafRadio.forgetHumanUnit(unitName) then
+    veaf.loggers.get(veafRadio.Id):debug("refreshRadioMenu() following event %s of human unit %s", event.type and event.type.name, unitName)
+    veafRadio.refreshRadioMenu()
   end
 end
 
@@ -403,7 +441,9 @@ end
 function veafRadio.RadioMenuBuilder:rebuild()
   self._seen = {}
   self._seenNodes = {}
+  self._alive = {}
   self:build()
+  self._alive = nil
   local seen = self._seen
   self._seen = nil
   -- forget the pages of the menus no longer rendered
@@ -529,7 +569,9 @@ function veafRadio.RadioMenuBuilder:_render(kind, groupId, coalitionSide, label,
 
   local path
   if kind == "menu" then
-    if coalitionSide then
+    if groupId then
+      path = missionCommands.addSubMenuForGroup(groupId, label, parentPath)
+    elseif coalitionSide then
       path = missionCommands.addSubMenuForCoalition(coalitionSide, label, parentPath)
     else
       path = missionCommands.addSubMenu(label, parentPath)
@@ -615,6 +657,56 @@ function veafRadio.RadioMenuBuilder:_hasForUnit(node)
   return false
 end
 
+--- (internal) True when the unit of a registered human is still in the game. Looked up once per unit
+--- and per rebuild, whatever the number of commands placed for it (FEAT-BFR-V6-SUPPORT ticket 03).
+function veafRadio.RadioMenuBuilder:_isAlive(unitName)
+  local cache = self._alive
+  if cache and cache[unitName] ~= nil then
+    return cache[unitName]
+  end
+  local unit = Unit.getByName(unitName)
+  local alive = unit ~= nil and unit:isExist() == true
+  if cache then
+    cache[unitName] = alive
+  end
+  return alive
+end
+
+--- (internal) The pilots of a group still in their unit, in callsign order: `{ { callsign, unitName } }`.
+function veafRadio.RadioMenuBuilder:_livePilots(groupData)
+  local pilots = {}
+  for _, callsign in ipairs(groupData and groupData.callsigns or {}) do
+    local unitData = groupData.units[callsign]
+    local unitName = unitData and unitData.name
+    local humanUnit = unitName and veafRadio.humanUnits[unitName]
+    if humanUnit and humanUnit.spawned and self:_isAlive(unitName) then
+      table.insert(pilots, { callsign = callsign, unitName = unitName })
+    end
+  end
+  return pilots
+end
+
+--- (internal) Runs a `groupFilter(unitName, groupId)`. One that throws counts as false and is logged: it
+--- must not take the whole menu rebuild down with it.
+local function passesGroupFilter(filter, unitName, groupId, title)
+  if not filter then
+    return true
+  end
+  local ok, result = pcall(filter, unitName, groupId)
+  if not ok then
+    veaf.loggers.get(veafRadio.Id):warn("groupFilter for %s failed: %s", veaf.p(title), veaf.p(result))
+  end
+  return ok and result == true
+end
+
+--- (internal) A per-group or per-unit command's parameters: the registered ones, then the unit name.
+local function withUnitName(parameters, unitName)
+  if parameters == nil then
+    return unitName
+  end
+  return { parameters, unitName }
+end
+
 --- (internal) Places a single logical command onto the given DCS menu, handling
 --- the ForAll (global) and per-group / per-unit dispatch. Extracted from
 --- _buildSubtree so pagination can target a specific page's DCS menu.
@@ -626,12 +718,28 @@ end
 --- answers "nothing for you" (veafAssist). Only per-group / per-unit commands are
 --- filtered: a ForAll command has no unit to decide on.
 ---
+--- A per-group or per-unit command is bound to a pilot still in his unit (FEAT-BFR-V6-SUPPORT ticket 03).
+---
 --- `label`, when given, is shown instead of `command.title` (the first level's capitals).
-function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide, label)
+--- `scope`, under a menu reserved to some groups or split per pilot, is `{ groupId [, unitName] }`: the
+--- command is placed for that group only — a ForAll one too — and, with a unit name, bound to that pilot.
+function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalitionSide, label, scope)
   label = label or command.title
   veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
   if not command.usage then
     command.usage = veafRadio.USAGE_ForAll
+  end
+  -- Under a pilot's own menu (FEAT-BFR-V6-SUPPORT ticket 05): once, for his group, with his unit name. No
+  -- callsign prefix for a ForUnit command: the menu above already names him.
+  if scope and scope.unitName then
+    if passesGroupFilter(command.groupFilter, scope.unitName, scope.groupId, command.title) then
+      local parameters = command.parameters
+      if command.usage ~= veafRadio.USAGE_ForAll then
+        parameters = withUnitName(command.parameters, scope.unitName)
+      end
+      self:_addDcsCommand(scope.groupId, label, dcsMenu, command, parameters, coalitionSide)
+    end
+    return
   end
   -- A secured command needs a group: it is the only identity `_proxyMethod` will ever receive
   -- (see _addDcsCommand). Posted for all, it refused every click while security was on — no
@@ -639,8 +747,7 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
   -- command goes out once per group, like ForGroup. With security disabled `_proxyMethod` runs
   -- anything, and posting for all keeps it within reach of a game master, who has no group.
   local securedForAll = command.usage == veafRadio.USAGE_ForAll and command.isSecured and not veaf.SecurityDisabled
-  if command.usage ~= veafRadio.USAGE_ForAll or securedForAll then
-    local alreadyDoneGroups = {}
+  if command.usage ~= veafRadio.USAGE_ForAll or securedForAll or scope then
     for groupId, groupData in pairs(veafRadio.humanGroups) do
       veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
       -- In a coalition-scoped subtree, a per-group command must not be attached for a group
@@ -649,49 +756,62 @@ function veafRadio.RadioMenuBuilder:_placeCommandOnMenu(command, dcsMenu, coalit
       -- Skip the whole group rather than iterate an empty table: this runs for every human
       -- group on every menu rebuild.
       local onThisSide = coalitionSide == nil or groupData.coalition == nil or groupData.coalition == coalitionSide
-      if onThisSide then
-        for _, callsign in pairs(groupData.callsigns) do
-          veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
-          local unitData = groupData.units[callsign]
-          local unitName = unitData.name
-          veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
-          local humanUnit = veafRadio.humanUnits[unitName]
-          veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
-          local passesFilter = true
-          if command.groupFilter then
-            local ok, result = pcall(command.groupFilter, unitName, groupId)
-            -- A filter that throws must not take the whole menu rebuild down with it.
-            passesFilter = ok and result == true
-            if not ok then
-              veaf.loggers.get(veafRadio.Id):warn("groupFilter for command %s failed: %s", veaf.p(command.title), veaf.p(result))
-            end
-          end
-          if humanUnit and humanUnit.spawned and passesFilter then
-            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
+      if onThisSide and (scope == nil or groupId == scope.groupId) then
+        local placed = false
+        for _, pilot in ipairs(self:_livePilots(groupData)) do
+          if passesGroupFilter(command.groupFilter, pilot.unitName, groupId, command.title) then
+            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(pilot.unitName)))
+            -- A ForAll method takes its parameters as registered: no unit name appended.
             local parameters = command.parameters
-            if securedForAll then
-              -- A ForAll method takes its parameters as registered: no unit name appended.
-              parameters = command.parameters
-            elseif parameters == nil then
-              parameters = unitName
-            else
-              parameters = { command.parameters }
-              table.insert(parameters, unitName)
+            if command.usage ~= veafRadio.USAGE_ForAll then
+              parameters = withUnitName(command.parameters, pilot.unitName)
             end
             local _title = label
             if command.usage == veafRadio.USAGE_ForUnit then
-              _title = callsign .. " - " .. label
+              _title = pilot.callsign .. " - " .. label
             end
-            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+            if not placed or command.usage == veafRadio.USAGE_ForUnit then
               self:_addDcsCommand(groupId, _title, dcsMenu, command, parameters, coalitionSide)
             end
-            alreadyDoneGroups[groupId] = true
+            placed = true
           end
         end
       end
     end
   else
     self:_addDcsCommand(nil, label, dcsMenu, command, command.parameters, coalitionSide)
+  end
+end
+
+--- (internal) Renders a menu reserved to some groups, or split per pilot, once for each group that may
+--- see it: a group of the menu's side with a pilot in his unit who passes the menu's `groupFilter`
+--- (FEAT-BFR-V6-SUPPORT tickets 04 and 05).
+function veafRadio.RadioMenuBuilder:_buildSubtreeForGroups(parentNode, node, coalitionSide)
+  local groupIds = {}
+  for groupId in pairs(veafRadio.humanGroups) do
+    table.insert(groupIds, groupId)
+  end
+  table.sort(groupIds)
+  for _, groupId in ipairs(groupIds) do
+    local groupData = veafRadio.humanGroups[groupId]
+    local onThisSide = coalitionSide == nil or groupData.coalition == nil or groupData.coalition == coalitionSide
+    local visible = false
+    if onThisSide then
+      for _, pilot in ipairs(self:_livePilots(groupData)) do
+        if passesGroupFilter(node.groupFilter, pilot.unitName, groupId, node.title) then
+          visible = true
+          break
+        end
+      end
+    end
+    if visible then
+      self:_buildSubtree({
+        dcsRadioMenu = parentNode and parentNode.dcsRadioMenu,
+        coalition = coalitionSide,
+        isRoot = parentNode and (parentNode.isRoot or parentNode == self._root),
+        scope = { groupId = groupId },
+      }, node)
+    end
   end
 end
 
@@ -712,6 +832,12 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   -- A coalition-scoped node scopes everything below it: a global child under a scoped
   -- parent has no coherent meaning in DCS (FEAT-COMBATZONE-MENU-COALITION).
   local coalitionSide = node.coalition or (parentNode and parentNode.coalition)
+  -- Under a menu reserved to some groups or split per pilot, everything is rendered for one group.
+  local scope = parentNode and parentNode.scope
+  if (node.groupFilter or node.perPilot) and not scope then
+    self:_buildSubtreeForGroups(parentNode, node, coalitionSide)
+    return
+  end
 
   local parentDcsMenu = parentNode and parentNode.dcsRadioMenu
   local label = node.title
@@ -719,8 +845,29 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   if parentNode and (parentNode.isRoot or parentNode == self._root) then
     label = veafRadio.toUpperCase(label)
   end
-  node.dcsRadioMenu = self:_render("menu", nil, coalitionSide, label, parentDcsMenu)
+  node.dcsRadioMenu = self:_render("menu", scope and scope.groupId, coalitionSide, label, parentDcsMenu)
 
+  -- One submenu per pilot of the group, named after him, each holding the menu's entries bound to him
+  -- (FEAT-BFR-V6-SUPPORT ticket 05). A pilot alone in his group gets the entries directly.
+  if node.perPilot and scope and not scope.unitName then
+    local nodeMenu = node.dcsRadioMenu
+    local pilots = self:_livePilots(veafRadio.humanGroups[scope.groupId])
+    if #pilots == 1 then
+      self:_buildChildren(node, nodeMenu, coalitionSide, { groupId = scope.groupId, unitName = pilots[1].unitName })
+    else
+      for _, pilot in ipairs(pilots) do
+        local pilotMenu = self:_render("menu", scope.groupId, coalitionSide, pilot.callsign, nodeMenu)
+        self:_buildChildren(node, pilotMenu, coalitionSide, { groupId = scope.groupId, unitName = pilot.unitName })
+      end
+    end
+    return
+  end
+
+  self:_buildChildren(node, node.dcsRadioMenu, coalitionSide, scope)
+end
+
+--- (internal) Builds the entries of `node` under the DCS menu `dcsMenu`.
+function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide, scope)
   -- Entries render in alphabetical order, which is the right default when a menu is a
   -- list to browse. A module whose entries have an intended sequence — veafAssist's
   -- "confirm the step" before "skip the step" — sets `sortKey` on them instead, so the
@@ -774,7 +921,7 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   -- the old page would lose it; worse, an entry added on page 1 would land after its "Next page".
   -- A full page holds (MENU_PAGE_SIZE - 1) items plus the "Next page" entry.
   self._pagesByNode = self._pagesByNode or {}
-  local nodeKey = node.dcsRadioMenu and self._keysByPath[node.dcsRadioMenu] or tostring(node.title)
+  local nodeKey = dcsMenu and self._keysByPath[dcsMenu] or tostring(node.title)
   -- A menu back under the page size goes back to a single page.
   local previousPages = paginate and self._pagesByNode[nodeKey] or {}
   local capacity = paginate and (veafRadio.MENU_PAGE_SIZE - 1) or math.huge
@@ -818,20 +965,26 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   -- and on whichever page it lands; the logical titles are left as written, since modules
   -- find their entries again by title (delCommand, delSubmenu).
   local isRoot = node == self._root
-  local currentDcsMenu = node.dcsRadioMenu
+  local currentDcsMenu = dcsMenu
   for page = 1, lastPage do
     for _, item in ipairs(items) do
       if pageOf[item.id] == page then
         if item.kind == "command" then
-          self:_placeCommandOnMenu(item.child, currentDcsMenu, coalitionSide, isRoot and veafRadio.toUpperCase(item.child.title) or nil)
+          self:_placeCommandOnMenu(
+            item.child,
+            currentDcsMenu,
+            coalitionSide,
+            isRoot and veafRadio.toUpperCase(item.child.title) or nil,
+            scope
+          )
         else
-          self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide, isRoot = isRoot }, item.child)
+          self:_buildSubtree({ dcsRadioMenu = currentDcsMenu, coalition = coalitionSide, isRoot = isRoot, scope = scope }, item.child)
         end
       end
     end
     if page < lastPage then
       -- A page of a scoped menu must be scoped too, or the overflow would be world-visible.
-      currentDcsMenu = self:_render("menu", nil, coalitionSide, veaf.t("radio.next_page"), currentDcsMenu)
+      currentDcsMenu = self:_render("menu", scope and scope.groupId, coalitionSide, veaf.t("radio.next_page"), currentDcsMenu)
     end
   end
 end
@@ -959,6 +1112,26 @@ end
 
 function veafRadio.addMenu(title)
   return veafRadio.addSubMenu(title, nil)
+end
+
+--- Adds a submenu reserved to some groups (FEAT-BFR-V6-SUPPORT ticket 04): it and everything under it are
+--- shown only to the groups with a pilot for whom `groupFilter(unitName, groupId)` is true — the carrier
+--- menu to the pilots of carrier aircraft. Its ForAll commands are posted for each of those groups.
+--- `coalitionSide` restricts it further to one side.
+function veafRadio.addSubMenuForGroups(title, radioMenu, groupFilter, coalitionSide)
+  local subMenu = veafRadio._builder:addMenu(title, radioMenu, coalitionSide)
+  subMenu.groupFilter = groupFilter
+  return subMenu
+end
+
+--- Adds a submenu split per pilot (FEAT-BFR-V6-SUPPORT ticket 05): in each group, one submenu per pilot,
+--- named after him, holding the menu's entries; a per-group or per-unit command under it gets that
+--- pilot's unit name, so its answer can go to him alone (`veaf.outTextForUnit`). A pilot alone in his
+--- group gets the entries directly. `groupFilter`, optional, reserves it to some groups as above.
+function veafRadio.addSubMenuPerPilot(title, radioMenu, groupFilter, coalitionSide)
+  local subMenu = veafRadio.addSubMenuForGroups(title, radioMenu, groupFilter, coalitionSide)
+  subMenu.perPilot = true
+  return subMenu
 end
 
 --- Adds a submenu. When coalitionSide is set (coalition.side.RED / BLUE), the submenu and
@@ -1509,6 +1682,14 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
 
   -- add human birth event handler
   veafEventHandler.addCallback("veafRadio.eventHandler", { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" }, veafRadio.onBirthEvent)
+  veafEventHandler.addCallback("veafRadio.leaveHandler", {
+    "S_EVENT_PLAYER_LEAVE_UNIT",
+    "S_EVENT_PILOT_DEAD",
+    "S_EVENT_EJECTION",
+    "S_EVENT_CRASH",
+    "S_EVENT_DEAD",
+    "S_EVENT_UNIT_LOST",
+  }, veafRadio.onLeaveEvent)
 
   -- start the beacons
   veafRadio._runBeacons()

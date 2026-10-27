@@ -297,7 +297,9 @@ class TestCarrierOperationsScheduler(unittest.TestCase):
     """
 
     def test_false_is_passed_as_the_second_argument(self) -> None:
-        lua = generate_config_lua({"lua_modules": {"CARRIER": {"enable": True, "init": {"operations_scheduler": False}}}})
+        lua = generate_config_lua(
+            {"lua_modules": {"CARRIER": {"enable": True, "init": {"operations_scheduler": False}}}}
+        )
         self.assertIn("veafCarrierOperations.initialize(true, false)", lua)
 
     def test_omitting_it_keeps_the_previous_output(self) -> None:

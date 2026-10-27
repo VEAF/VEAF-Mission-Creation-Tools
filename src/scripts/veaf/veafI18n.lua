@@ -137,6 +137,22 @@ veaf.i18nCatalog = {
     fr = "impossible de décoder les coordonnées [%s]",
     en = "unable to decode coordinates [%s]",
   },
+  ["shortcuts.refused_keyword"] = {
+    fr = "Marqueur refusé : pas de mot-clé de commande après %s.",
+    en = "Marker refused: no command keyword after %s.",
+  },
+  ["shortcuts.refused_name_comma"] = {
+    fr = "Marqueur refusé : %s attend un nom sans virgule.",
+    en = "Marker refused: %s expects a name without a comma.",
+  },
+  ["shortcuts.refused_no_option"] = {
+    fr = "Marqueur refusé : %s s'utilise sans option.",
+    en = "Marker refused: %s takes no option.",
+  },
+  ["shortcuts.refused_options"] = {
+    fr = "Marqueur refusé : %s accepte seulement %s.",
+    en = "Marker refused: %s only accepts %s.",
+  },
 
   -- veafCarrierOperations
   ["carrier.not_found"] = {
@@ -1044,10 +1060,6 @@ veaf.i18nCatalog = {
   ["combatzone.not_active"] = {
     fr = "la zone n'est pas encore active.",
     en = "zone is not yet active.",
-  },
-  ["combatzone.zone_not_found"] = {
-    fr = "VeafCombatZone [%s] introuvable !",
-    en = "VeafCombatZone [%s] was not found !",
   },
   ["combatzone.help"] = {
     fr = "Les zones de combat sont définies par le créateur de mission\n"

@@ -1218,10 +1218,17 @@ end
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafCarrierOperations.initialize()
+--- @param includeRadioMenu boolean|nil false builds no carrier menu (`init.include_carrier_operations_radio`)
+--- @param runOperationsScheduler boolean|nil false does not start the 60 s operations loop, for a mission that
+---        drives its carriers itself (`init.operations_scheduler`, FEAT-BFR-V6-SUPPORT ticket 07)
+function veafCarrierOperations.initialize(includeRadioMenu, runOperationsScheduler)
   veafCarrierOperations.initializeCarrierGroups()
-  veafCarrierOperations.buildRadioMenu()
-  veafCarrierOperations.operationsScheduler()
+  if includeRadioMenu ~= false then
+    veafCarrierOperations.buildRadioMenu()
+  end
+  if runOperationsScheduler ~= false then
+    veafCarrierOperations.operationsScheduler()
+  end
   veafRemote.registerRemoteModule("carrier", veafCarrierOperations.executeCommandFromRemote)
 end
 

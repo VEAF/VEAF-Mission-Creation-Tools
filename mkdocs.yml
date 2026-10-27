@@ -87,6 +87,7 @@ plugins:
             Create with an AI: Créer avec une IA
             What to ask the AI: Ce qu'on peut demander à l'IA
             Adopt a third-party mission: Adopter une mission tierce
+            Porting a mission with its own script layer: Porter une mission à couche de scripts maison
             Foothold moulinette: Moulinette Foothold
             Read the DCS logs: Lire les journaux de DCS
             Editor tips: Astuces de l'éditeur
@@ -169,6 +170,7 @@ nav:
     - Guide: mission-maker/GUIDE.md
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
     - Adopt a third-party mission: mission-maker/CONVERT_OTHER.md
+    - Porting a mission with its own script layer: mission-maker/custom-script-layer.md
     - Foothold moulinette: mission-maker/FOOTHOLD.md
     - Multi-mission campaign: mission-maker/CAMPAIGN.md
     - Read the DCS logs: mission-maker/LOGS.md

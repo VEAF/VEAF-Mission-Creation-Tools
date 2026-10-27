@@ -13,6 +13,7 @@ from veaf_libs.ctld_config import (
     apply_veaf_overrides,
     find_catalogue_gap,
     read_default_config,
+    read_list_since,
     upgrade_to_catalogue,
 )
 
@@ -176,7 +177,7 @@ class TestAgainstTheVendoredCatalogue:
         assert sorted(changed) == sorted(
             [
                 '-configVersion: "2.0.0"',
-                '+configVersion: "2.2.0"',
+                '+configVersion: "2.3.0"',
                 "+  enableParachuteDrop: true",
                 "+  crateDropExtraDistance: 2",
                 "+  crateSpawnGap: 0.5",
@@ -300,3 +301,68 @@ def test_a_file_indented_its_own_way_only_gains_lines() -> None:
     removed = [line for line in difflib.ndiff(mission.splitlines(), upgraded.splitlines()) if line.startswith("- ")]
     assert removed == ['- configVersion: "2.0.0"']
     assert "    newScalar: true" in upgraded.splitlines()
+
+
+_FAT_COW_LISTS = ("fatCowAICows", "fatCowCrates", "fatCowLoadouts", "fatCowTypes")
+
+
+def _vendored_since() -> dict[str, str]:
+    return read_list_since(Path(__file__).resolve().parents[3] / "src" / "scripts" / "community" / "CTLD.lua")
+
+
+def _as_2_2_0(catalogue: str) -> str:
+    """The vendored catalogue as a mission scaffolded against 2.2.0 holds it: no Fat Cow at all."""
+    ruamel = YAML()
+    ruamel.preserve_quotes = True
+    document = ruamel.load(apply_veaf_overrides(catalogue))
+    document["configVersion"] = "2.2.0"
+    for key in [k for k in document["mm_facing"] if str(k).startswith("fatCow")]:
+        del document["mm_facing"][key]
+    stream = io.StringIO()
+    ruamel.dump(document, stream)
+    return stream.getvalue()
+
+
+class TestListsNewerThanTheMission:
+    """A list the catalogue gained after the mission's version is missing, not removed (CTLD ADR 0011 Addendum 3)."""
+
+    def test_the_vendored_engine_dates_the_fat_cow_lists(self) -> None:
+        since = _vendored_since()
+        for key in _FAT_COW_LISTS:
+            assert since[key] == "2.3.0"
+
+    def test_a_2_2_0_file_misses_the_fat_cow_lists(self) -> None:
+        catalogue = _vendored_catalogue()
+        gap = find_catalogue_gap(_as_2_2_0(catalogue), catalogue, _vendored_since())
+        assert gap is not None
+        assert {key for _, key in gap.missing} >= set(_FAT_COW_LISTS)
+
+    def test_the_upgrade_writes_the_lists_and_closes_the_gap(self) -> None:
+        catalogue = _vendored_catalogue()
+        since = _vendored_since()
+        upgraded = upgrade_to_catalogue(_as_2_2_0(catalogue), catalogue, since)
+        document = yaml.safe_load(upgraded)
+        assert document["configVersion"] == "2.3.0"
+        assert document["mm_facing"]["fatCowLoadouts"] == yaml.safe_load(catalogue)["mm_facing"]["fatCowLoadouts"]
+        assert find_catalogue_gap(upgraded, catalogue, since) is None
+
+    def test_a_list_removed_at_its_own_version_stays_removed(self) -> None:
+        catalogue = _vendored_catalogue()
+        ruamel = YAML()
+        document = ruamel.load(catalogue)
+        del document["mm_facing"]["fatCowLoadouts"]
+        document["advanced"]["crateSpawnGap"] = 0.7  # keep the file distinct from the catalogue
+        stream = io.StringIO()
+        ruamel.dump(document, stream)
+        assert find_catalogue_gap(stream.getvalue(), catalogue, _vendored_since()) is None
+
+    def test_without_the_table_no_list_is_missing(self) -> None:
+        catalogue = _vendored_catalogue()
+        gap = find_catalogue_gap(_as_2_2_0(catalogue), catalogue)
+        assert gap is not None
+        assert not {key for _, key in gap.missing} & set(_FAT_COW_LISTS)
+
+    def test_an_engine_without_the_table_reads_empty(self, tmp_path: Path) -> None:
+        engine = tmp_path / "CTLD.lua"
+        engine.write_text('ctld = {}\nctld.VERSION = "2.0.0-rc13"\n', encoding="utf-8")
+        assert read_list_since(engine) == {}

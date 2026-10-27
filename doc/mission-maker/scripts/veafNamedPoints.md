@@ -96,6 +96,20 @@ veafNamedPoints.addDataToPoint(point, {
 
 `addAirbases()` ajoute en bloc toutes les bases aériennes de la carte (appelée automatiquement par `initialize()`) ; il n'existe pas de fonction d'ajout par base aérienne. `addCities()` ajoute de la même façon les villes du théâtre, en points cachés : un nom de ville sert alors de destination à un convoi, de position à un raccourci ou de départ à une mission de transport, et la météo « au point le plus proche » les connaît. Les listes viennent des fichiers du jeu (voir [Les villes des théâtres](../../developer/dcs-data.md#cities)) ; un théâtre qui n'en a pas encore (Kola, Iraq) le signale dans `dcs.log` au démarrage.
 
+### Un lot de points déclaré par un script {#declare-points}
+
+`addPoint` écrit dans la table des points, que `initialize()` vide avant de la remplir : un point ajouté avant `initialize()` est perdu.
+Une mission qui construit ses propres points depuis ses données (BFR, avec les TACAN de ses terrains) les déclare plutôt en lot, avant ou après `initialize()` :
+
+```lua
+veafNamedPoints.declarePoints({
+  { name = "Kobuleti", point = veafNamedPoints.addDataToPoint(coord.LLtoLO(41.93, 41.86), { tacan = "67X KBL" }) },
+  { name = "Senaki", point = { x = -281000, y = 0, z = 648000 } },
+})
+```
+
+Chaque entrée a la forme de `initialize(customPoints)` ; une entrée sans nom ou sans position est sautée, avec une ligne dans le journal.
+
 ---
 
 ## Commande de marqueur joueur

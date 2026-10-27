@@ -43,6 +43,7 @@ modules:
     logLevel: info        # optional log level override
     init:
       include_carrier_operations_radio: true  # add carrier menu to F10 (default: true)
+      operations_scheduler: true              # run VEAF's operations loop, every 60 s (default: true)
 ```
 
 | Field | Type | Default | Required | Description |
@@ -50,6 +51,7 @@ modules:
 | `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
 | `init.include_carrier_operations_radio` | boolean | `true` | No | Add the carrier operations menu to the F10 radio tree |
+| `init.operations_scheduler` | boolean | `true` | No | `false` initializes the carriers and their menu without starting VEAF's loop that restarts their operations every 60 s: for a mission that drives its carriers itself |
 
 ### Minimal example
 

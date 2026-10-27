@@ -63,7 +63,7 @@ artifacts:
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc13"
+    pinned: "2.0.0-rc15"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
@@ -71,7 +71,7 @@ artifacts:
       - {
           kind: github-release,
           repo: VEAF/CTLD,
-          pinned: "published-v2.0.0-rc13",
+          pinned: "published-v2.0.0-rc15",
           prereleases: true,
           tag_pattern: "^published-v",
         }
@@ -82,7 +82,7 @@ artifacts:
     pinned: "2024.07.11.01-VEAF"
     vendoring: adapted
     path: src/scripts/community/CSAR.lua
-    manual_steps: "Pull the latest ciribob CSAR.lua, re-apply the VEAF adaptations + the '-VEAF' version suffix, then copy in. The adaptations now include REFACTOR-CSAR-WITHOUT-MIST (2026-08-28): every mist.* call was rewritten onto veaf.* equivalents and the MiST load assertion replaced by a VEAF one. Re-applying them is not optional -- a straight copy from upstream puts MiST back and makes CSAR refuse to start in a mission that no longer injects it. FIX-USER-REPORTS-985-989 (2026-10-02): csar.getGroupId reads the live group (_unit:getGroup():getID()) rather than the editor snapshot, which knows no dynamic slot (#989)."
+    manual_steps: "Pull the latest ciribob CSAR.lua, re-apply the VEAF adaptations + the '-VEAF' version suffix, then copy in. The adaptations now include REFACTOR-CSAR-WITHOUT-MIST (2026-08-28): every mist.* call was rewritten onto veaf.* equivalents and the MiST load assertion replaced by a VEAF one. Re-applying them is not optional -- a straight copy from upstream puts MiST back and makes CSAR refuse to start in a mission that no longer injects it. FIX-USER-REPORTS-985-989 (2026-10-02): csar.getGroupId reads the live group (_unit:getGroup():getID()) rather than the editor snapshot, which knows no dynamic slot (#989). FIX-FATCOW-CTLD-FARPS (2026-10-27): csar.aircraftType[\"CH-47Fbl1\"] = 24."
     watch:
       - { kind: github-file, repo: VEAF/DCS-CSAR, ref: master, pinned: "dd9eaa3aa245" }
       - { kind: github-release, repo: ciribob/DCS-CSAR, pinned: "1.9.1", role: upstream-ref }
@@ -179,7 +179,7 @@ artifacts:
     pinned: "0.4.1"
     vendoring: adapted
     path: src/scripts/community/DCS-SimpleTextToSpeech.lua
-    manual_steps: "Re-fetch DCS-SimpleTextToSpeech.lua from ciribob HEAD and re-apply any VEAF tweaks (repo has no releases, so track the file on master)."
+    manual_steps: "Re-fetch DCS-SimpleTextToSpeech.lua from ciribob HEAD and re-apply the VEAF tweaks (repo has no releases, so track the file on master): the shell-safety block before STTS.getSpeechTime (STTS.validArguments, STTS.shellSafeText) and its calls at the top of STTS.TextToSpeech and STTS.PlayMP3 (FEAT-BFR-V6-SUPPORT ticket 02, test/lua/test_stts.lua)."
     watch:
       - { kind: github-file, repo: ciribob/DCS-SimpleTextToSpeech, ref: master, pinned: "aada1c312827" }
 

@@ -42,6 +42,7 @@ modules:
     logLevel: info        # surcharge optionnelle du niveau de log
     init:
       include_carrier_operations_radio: true  # ajouter le menu carrier au F10 (défaut : true)
+      operations_scheduler: true              # lancer la boucle VEAF des opérations, toutes les 60 s (défaut : true)
 ```
 
 | Champ | Type | Défaut | Requis | Description |
@@ -49,6 +50,7 @@ modules:
 | `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
 | `init.include_carrier_operations_radio` | booléen | `true` | Non | Ajouter le menu des opérations porte-avions au menu radio F10 |
+| `init.operations_scheduler` | booléen | `true` | Non | `false` initialise les porte-avions et leur menu sans lancer la boucle VEAF qui relance leurs opérations toutes les 60 s : pour une mission qui pilote ses porte-avions elle-même |
 
 ### Exemple minimal
 

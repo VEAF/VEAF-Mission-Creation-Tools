@@ -1039,6 +1039,8 @@ function TestVeafRadioCoalitionMenus:_addHumanGroup(groupId, side, unitName)
     coalition = side,
   }
   veafRadio.humanUnits[unitName] = { name = unitName, spawned = true }
+  -- a pilot in his unit: the menu binds commands to live pilots only (FEAT-BFR-V6-SUPPORT ticket 03)
+  dcs_mocks.addUnit(unitName)
 end
 
 function TestVeafRadioCoalitionMenus:test_unscoped_node_uses_global_api()
@@ -1248,6 +1250,8 @@ end
 function TestVeafRadioIncrementalRender:_addHumanGroup(groupId, unitName)
   veafRadio.humanGroups[groupId] = { callsigns = { unitName }, units = { [unitName] = { name = unitName } } }
   veafRadio.humanUnits[unitName] = { name = unitName, spawned = true }
+  -- a pilot in his unit: the menu binds commands to live pilots only (FEAT-BFR-V6-SUPPORT ticket 03)
+  dcs_mocks.addUnit(unitName)
 end
 
 --- The kinds of the DCS calls since the last reset, a parked id shown as "park".

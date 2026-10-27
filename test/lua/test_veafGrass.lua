@@ -1510,4 +1510,36 @@ function TestVeafGrassBuildFarpEscort:test_anything_else_on_the_escort_spot_stil
   luaunit.assertNotAlmostEquals(self:_escortBearingBeside("Ural parked here"), 0, 0.001)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafGrassFillAllSkipsCtldFarps — a CTLD Fat Cow FARP holds its cow's stock
+-- ---------------------------------------------------------------------------
+TestVeafGrassFillAllSkipsCtldFarps = {}
+
+function TestVeafGrassFillAllSkipsCtldFarps:test_a_ctld_farp_is_never_refilled()
+  local function base(name)
+    return {
+      getName = function()
+        return name
+      end,
+      getTypeName = function()
+        return "Invisible FARP"
+      end,
+    }
+  end
+  local savedGet, savedFill, savedType = world.getAirbases, veafGrass.fillFarpWarehouse, veafGrass.isFarpPlatformType
+  local filled = {}
+  world.getAirbases = function()
+    return { base("FARP Alpha"), base("CTLD_FatCow_FARP_1") }
+  end
+  veafGrass.isFarpPlatformType = function()
+    return true
+  end
+  veafGrass.fillFarpWarehouse = function(b)
+    filled[#filled + 1] = b:getName()
+  end
+  veafGrass.fillAllFarpWarehouses()
+  world.getAirbases, veafGrass.fillFarpWarehouse, veafGrass.isFarpPlatformType = savedGet, savedFill, savedType
+  luaunit.assertEquals(filled, { "FARP Alpha" })
+end
+
 os.exit(luaunit.LuaUnit.run())

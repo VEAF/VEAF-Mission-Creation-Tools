@@ -26,6 +26,7 @@ def ctld_upgrade(
         CTLD_CONFIG_FILENAME,
         find_catalogue_gap,
         read_default_config,
+        read_list_since,
         upgrade_to_catalogue,
         vendored_ctld_lua,
     )
@@ -54,11 +55,12 @@ def ctld_upgrade(
     if not readable:
         console.print(f"[red]✗[/]  {t('cmd.ctld_upgrade.unreadable', file=config_path)}")
         raise typer.Exit(code=1)
-    gap = find_catalogue_gap(current, catalogue)
+    since = read_list_since(engine)
+    gap = find_catalogue_gap(current, catalogue, since)
     if gap is None:
         console.print(t("cmd.ctld_upgrade.up_to_date", file=CTLD_CONFIG_FILENAME))
     else:
-        config_path.write_bytes(upgrade_to_catalogue(current, catalogue).replace("\n", newline).encode("utf-8"))
+        config_path.write_bytes(upgrade_to_catalogue(current, catalogue, since).replace("\n", newline).encode("utf-8"))
         console.print(
             t(
                 "cmd.ctld_upgrade.done",

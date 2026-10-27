@@ -127,6 +127,7 @@ C'est un avertissement, pas une erreur.
 
 **L'issue.** `veaf-tools mission ctld-upgrade` dans le dossier de mission : il ajoute chaque réglage manquant à sa valeur par défaut, dans la section où le catalogue le range, et met `configVersion` à jour.
 Aucune de vos valeurs ne change, et les listes ne sont pas touchées : une liste absente est un retrait voulu.
+Seule exception : une liste que CTLD a ajoutée après la version de votre fichier (les caisses et chargements de la Fat Cow sont arrivés avec le catalogue `2.3.0`). Vous ne pouvez pas l'avoir retirée : la commande l'écrit, et `validate` la compte parmi les réglages manquants.
 
 Deux messages peuvent l'accompagner, que la commande ne traite pas :
 

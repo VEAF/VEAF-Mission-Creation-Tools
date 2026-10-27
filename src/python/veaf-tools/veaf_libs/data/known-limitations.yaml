@@ -1682,3 +1682,31 @@ limitations:
     An OpenCode session on 2026-10-20 met it when 6.31.1 was published mid-session, and spent about
     80 minutes hunting a corrupt file: it edited `warehouses` by hand, broke the build, and truncated
     `presets.yaml` with PowerShell.
+
+- id: yaml-bypass-shortcut-takes-no-options
+  kind: tool
+  area: scripting
+  title: "A security-bypassing shortcut declared in mission.yaml admits no text after it"
+  symptom: |
+    Since FEAT-BFR-V6-SUPPORT, what a player types after a shortcut that bypasses security must be one
+    of the options the shortcut declares (`VeafAlias:setAllowedOptions`). `mission.yaml`'s
+    `SHORTCUTS.shortcuts[].bypass_security: true` has no field to declare them, so such a shortcut is
+    usable bare only: `-myjtac, laser 1511` is refused whole.
+  workaround: |
+    Declare the shortcut in `mission-script.lua` with `VeafAlias:new()…:setBypassSecurity(true)
+    :setAllowedOptions({ laser = "laser" })`, or leave it under the password.
+
+- id: convert-v5-reads-module-starts-by-name
+  kind: tool
+  area: pipeline
+  title: "convert v5 finds the modules a mission's own scripts start by the text `veafXxx.initialize(`"
+  symptom: |
+    `convert v5` reads every script of `src/scripts` and hands a module to the mission
+    (`initialized_by_mission: true`) when one of them writes `veafXxx.initialize(` (or the carrier's
+    `initializeCarrierGroups(`). A start through a variable or `_G` is not seen, and the module is then
+    started twice. Any call counts, even one made on the way by another function: measured on
+    SeaShepherd part 1 (2026-10-27), BFR's `veafPatches.lua` redefines `getNearestAirbaseList`, which
+    calls `veafAirbases.initialize()`, and AIRBASES was handed to the mission.
+  workaround: |
+    Read the `modules:` block `convert v5` writes and set `initialized_by_mission` by hand where its
+    guess is wrong; the conversion report lists the modules it handed to the mission.

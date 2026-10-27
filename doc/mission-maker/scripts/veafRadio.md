@@ -237,6 +237,50 @@ l'autre camp continue de voir le parent, simplement vide de cette entrée.
 
 ---
 
+## Menus réservés à des groupes, menus par pilote {#group-and-pilot-menus}
+
+### Un sous-menu réservé à certains groupes
+
+`addSubMenuForGroups` montre un sous-menu, et tout ce qu'il contient, aux seuls groupes dont un pilote passe le filtre `filtre(nomUnité, idGroupe)` :
+
+```lua
+local function avionEmbarque(unitName)
+  local unit = Unit.getByName(unitName)
+  return unit ~= nil and unit:getTypeName() == "FA-18C_hornet"
+end
+local menuPA = veafRadio.addSubMenuForGroups("Porte-avions", nil, avionEmbarque)
+veafRadio.addCommandToSubmenu("État du pont", menuPA, etatDuPont, "CVN-74")
+```
+
+Les commandes `USAGE_ForAll` qu'il contient sont posées pour chacun de ces groupes, avec leurs paramètres inchangés.
+Un filtre qui lève une erreur cache le menu et laisse une ligne dans le journal ; il n'interrompt pas la reconstruction.
+Un quatrième argument restreint en plus le menu à une coalition.
+
+### Un sous-menu par pilote
+
+Dans un groupe à plusieurs places, une commande `USAGE_ForGroup` est vue par tous les pilotes du groupe, et ne connaît que le premier.
+`addSubMenuPerPilot` donne à chaque pilote présent son propre sous-menu, à son nom, sous lequel les commandes `USAGE_ForGroup` et `USAGE_ForUnit` reçoivent **son** nom d'unité :
+
+```lua
+local menu = veafRadio.addSubMenuPerPilot("Appontage", nil)
+veafRadio.addCommandToSubmenu("Demander mon passage", menu, demanderPassage, nil, veafRadio.USAGE_ForGroup)
+
+function demanderPassage(unitName)
+  veaf.outTextForUnit(unitName, "Passage noté", 10) -- au seul pilote qui a cliqué
+end
+```
+
+Un pilote seul dans son groupe reçoit les commandes directement, sans le niveau à son nom.
+Le menu accepte le même filtre de groupes que `addSubMenuForGroups`.
+
+### Les commandes suivent les pilotes présents
+
+Une commande par groupe est liée à un pilote **encore dans son unité**.
+Quand un pilote quitte son slot, meurt, s'éjecte ou s'écrase, il est oublié, le menu est reconstruit et ses équipiers retrouvent les commandes du groupe ; à son retour, il est réinscrit.
+Un message adressé à une unité qui n'existe plus n'est montré à personne, au lieu de partir vers tous les joueurs.
+
+---
+
 ## API bas niveau
 
 Pour un contrôle plus fin, construire l'arbre de menus directement :

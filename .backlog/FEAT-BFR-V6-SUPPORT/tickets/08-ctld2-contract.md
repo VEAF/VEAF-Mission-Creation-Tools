@@ -1,6 +1,6 @@
 # 08 — CTLD 2: document what BFR needs
 
-Status: ⬜ ready
+Status: ✅ done
 
 BFR reads CTLD v1 internals (`ctld.builtFOBS`, `pickupZones`, `logisticUnits`, `completeAASystems`, `ctld.addCallback`).
 

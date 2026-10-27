@@ -142,7 +142,8 @@ After such an alias, a player's marker admits only the options that **tune** its
 
 | Alias | Admitted options |
 |---|---|
-| `-smoke`, `-longsmoke`, `-signal` | `color` (red, green, orange, blue, white) |
+| `-smoke`, `-longsmoke` | `color` (red, green, orange, blue, white) |
+| `-signal` | `color` (red, green, white, yellow) |
 | `-light` | `alt`, `radius` (integers) |
 | `-jtac` | `laser` (4 digits), `freq` (MHz), `mod` (am, fm) |
 | `-afac` | `laser`, `freq`, `mod`, `alt`, `speed`, `hdg` / `heading` (integers), `immortal` |
@@ -168,7 +169,7 @@ veafShortcuts.AddAlias(
 )
 ```
 
-A form is the name of a `veafShortcuts.OptionForms` form (`color`, `laser`, `frequency`, `modulation`, `integer`, `tacanChannel`, `tacanBand`, `morseCode`, `radius999`, `flag`), or an anchored Lua pattern.
+A form is the name of a `veafShortcuts.OptionForms` form (`color`, `flareColor`, `laser`, `frequency`, `modulation`, `integer`, `tacanChannel`, `tacanBand`, `morseCode`, `radius999`, `flag`), or an anchored Lua pattern.
 An alias declared in `mission.yaml` with `bypass_security: true` admits nothing after it.
 
 **Skipping the password does not mean keeping quiet.** Those two ideas were the same setting in the code

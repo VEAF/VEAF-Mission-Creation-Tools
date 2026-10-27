@@ -51,6 +51,8 @@ veafShortcuts.aliases = {}
 --- `setAllowedOptions` names one of these, or gives a pattern of its own.
 veafShortcuts.OptionForms = {
   color = { red = true, green = true, orange = true, blue = true, white = true },
+  -- a signal flare's colours, not a smoke's (veafSpawnEffects)
+  flareColor = { red = true, green = true, white = true, yellow = true },
   laser = "^%d%d%d%d$",
   frequency = "^%d+%.?%d*$",
   modulation = { am = true, fm = true },
@@ -1755,7 +1757,7 @@ function veafShortcuts.buildDefaultList()
       :setDescription("Spawn a single signal flare")
       :setVeafCommand("_spawn signal, color green, shells 1, radius 1")
       :setBypassSecurity(true)
-      :setAllowedOptions({ color = "color" })
+      :setAllowedOptions({ color = "flareColor" })
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()

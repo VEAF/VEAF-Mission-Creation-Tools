@@ -192,6 +192,13 @@ end
 --- A pilot left his unit: left the slot, died, crashed or ejected.
 function veafRadio.onLeaveEvent(event)
   local unitName = veafEventHandler.unitNameFromEvent(event)
+  -- An event about an older object of the same name says nothing of the pilot in that slot now: the aircraft a
+  -- pilot ejected from crashes after he took the slot again, and its crash carries the slot's unit name.
+  local current = unitName and Unit.getByName(unitName)
+  local eventObject = event and event.dcsInitiator
+  if current and eventObject and current.id_ and eventObject.id_ and current.id_ ~= eventObject.id_ then
+    return
+  end
   if veafRadio.forgetHumanUnit(unitName) then
     veaf.loggers.get(veafRadio.Id):debug("refreshRadioMenu() following event %s of human unit %s", event.type and event.type.name, unitName)
     veafRadio.refreshRadioMenu()

@@ -150,6 +150,14 @@ function TestBypassShortcuts:test_smoke_colour_is_admitted()
   self:assertReached("_spawn smoke, color white, shells 1, radius 1, , color red")
 end
 
+function TestBypassShortcuts:test_signal_takes_a_flare_colour_not_a_smoke_one()
+  marker("-signal, color yellow")
+  luaunit.assertEquals(#self.reached, 1)
+  self.reached = {}
+  marker("-signal, color orange")
+  luaunit.assertEquals(#self.reached, 0)
+end
+
 function TestBypassShortcuts:test_tacan_settings_are_admitted()
   marker("-tacan, channel 37, band Y, code TST, radius 200")
   self:assertReached("_spawn tacan, band X, channel 99, , channel 37, band Y, code TST, radius 200")

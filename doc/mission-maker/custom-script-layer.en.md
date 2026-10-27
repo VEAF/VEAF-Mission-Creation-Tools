@@ -41,6 +41,7 @@ modules:
 ```
 
 It works for any module of `modules:`, and for `SKYNET`, `CTLD` and `CSAR`.
+For `CTLD`, your scripts must then call `veaf.ctld_initialize()`, not CTLD v1's `ctld.initialize()`: it is what starts CTLD 2 with its menu and the airbase logistics; `convert v5` therefore never hands CTLD to the mission.
 `veaf.initialize()` skips such a module too, if your layer uses it.
 
 ## Functions a layer of your own can use {#functions}

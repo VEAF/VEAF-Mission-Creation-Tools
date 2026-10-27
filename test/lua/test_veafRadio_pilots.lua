@@ -165,6 +165,28 @@ function TestRadioPilots:test_a_returning_pilot_is_registered_again()
   luaunit.assertEquals(veafRadio.humanGroups[1].callsigns, { "Alpha" })
 end
 
+function TestRadioPilots:test_the_late_crash_of_an_abandoned_aircraft_spares_the_pilot_back_in_the_slot()
+  birth("unit A", 1, "Alpha")
+  Unit.getByName("unit A").id_ = 2 -- the aircraft he took again
+  veafRadio.onLeaveEvent({
+    type = { id = world.event.S_EVENT_CRASH, name = "S_EVENT_CRASH" },
+    initiator = { unitName = "unit A" },
+    dcsInitiator = { id_ = 1 }, -- the one he ejected from
+  })
+  luaunit.assertNotNil(veafRadio.humanUnits["unit A"])
+end
+
+function TestRadioPilots:test_the_death_of_the_aircraft_in_the_slot_forgets_its_pilot()
+  birth("unit A", 1, "Alpha")
+  Unit.getByName("unit A").id_ = 2
+  veafRadio.onLeaveEvent({
+    type = { id = world.event.S_EVENT_DEAD, name = "S_EVENT_DEAD" },
+    initiator = { unitName = "unit A" },
+    dcsInitiator = { id_ = 2 },
+  })
+  luaunit.assertNil(veafRadio.humanUnits["unit A"])
+end
+
 function TestRadioPilots:test_leaving_an_unknown_unit_does_nothing()
   local refreshed = false
   veafRadio.refreshRadioMenu = function()

@@ -142,7 +142,8 @@ Derrière un tel alias, un marqueur de joueur n'admet que les options qui **règ
 
 | Alias | Options admises |
 |---|---|
-| `-smoke`, `-longsmoke`, `-signal` | `color` (red, green, orange, blue, white) |
+| `-smoke`, `-longsmoke` | `color` (red, green, orange, blue, white) |
+| `-signal` | `color` (red, green, white, yellow) |
 | `-light` | `alt`, `radius` (entiers) |
 | `-jtac` | `laser` (4 chiffres), `freq` (MHz), `mod` (am, fm) |
 | `-afac` | `laser`, `freq`, `mod`, `alt`, `speed`, `hdg` / `heading` (entiers), `immortal` |
@@ -168,7 +169,7 @@ veafShortcuts.AddAlias(
 )
 ```
 
-Une forme est le nom d'une forme de `veafShortcuts.OptionForms` (`color`, `laser`, `frequency`, `modulation`, `integer`, `tacanChannel`, `tacanBand`, `morseCode`, `radius999`, `flag`), ou un motif Lua ancré.
+Une forme est le nom d'une forme de `veafShortcuts.OptionForms` (`color`, `flareColor`, `laser`, `frequency`, `modulation`, `integer`, `tacanChannel`, `tacanBand`, `morseCode`, `radius999`, `flag`), ou un motif Lua ancré.
 Un alias déclaré dans `mission.yaml` avec `bypass_security: true` n'admet rien derrière lui.
 
 **Contourner le mot de passe ne veut pas dire se taire.** Ces deux notions ont longtemps été le même

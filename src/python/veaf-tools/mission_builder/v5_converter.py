@@ -57,7 +57,9 @@ _NOT_LAYER_SCRIPTS = frozenset({"missionConfig.lua", "veafDynamicConfig.lua", "m
 #: Community scripts a mission's own layer uses, and starts: ``id -> (use, start)``. A use enables the script; a
 #: start hands its ``initialize()`` to the mission (FEAT-BFR-V6-SUPPORT ticket 10).
 _COMMUNITY_USE: dict[str, tuple[re.Pattern[str], re.Pattern[str]]] = {
-    "ctld": (re.compile(r"\bctld\.\w"), re.compile(r"\bctld\.initialize\s*\(")),
+    # Never handed over: `ctld.initialize(callback)` is CTLD v1's, gone in CTLD 2, and VEAF's own start
+    # (`veaf.ctld_initialize()`: menu, airbase logistics) is what a v6 mission needs.
+    "ctld": (re.compile(r"\bctld\.\w"), re.compile(r"(?!)")),
     "csar": (re.compile(r"\bcsar\.\w"), re.compile(r"\bcsar\.initialize\s*\(")),
     "skynet": (re.compile(r"\b(?:SkynetIADS|veafSkynet)\b"), re.compile(r"\bveafSkynet\.initialize\s*\(")),
     "stts": (re.compile(r"\bSTTS\.\w"), re.compile(r"(?!)")),

@@ -121,10 +121,11 @@ class TestModulesStartedByTheMissionScripts:
         assert data["modules"]["SKYNET"]["enabled"] is True
         assert data["modules"]["SKYNET"]["initialized_by_mission"] is True
 
-    def test_a_community_script_the_layer_starts_is_enabled_and_handed_over(self, tmp_path: Path) -> None:
+    def test_ctld_v1_started_by_the_layer_is_enabled_but_left_to_veaf(self, tmp_path: Path) -> None:
+        # `ctld.initialize(callback)` is CTLD v1's; CTLD 2 is started by `veaf.ctld_initialize()`, which also
+        # builds its menu and the airbase logistics: handing it to the mission would leave CTLD 2 unstarted.
         data, _ = _convert(tmp_path)
-        assert data["modules"]["CTLD"]["enabled"] is True
-        assert data["modules"]["CTLD"]["initialized_by_mission"] is True
+        assert data["modules"]["CTLD"] is True
 
     def test_a_community_script_the_layer_only_reads_is_enabled(self, tmp_path: Path) -> None:
         data, _ = _convert(tmp_path)

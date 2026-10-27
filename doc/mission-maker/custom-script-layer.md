@@ -41,6 +41,7 @@ modules:
 ```
 
 Elle vaut pour tout module de `modules:`, et pour `SKYNET`, `CTLD` et `CSAR`.
+Pour `CTLD`, vos scripts doivent alors appeler `veaf.ctld_initialize()`, pas le `ctld.initialize()` de CTLD v1 : c'est lui qui démarre CTLD 2 avec son menu et la logistique des aérodromes ; `convert v5` ne confie donc jamais CTLD à la mission.
 `veaf.initialize()` saute aussi un tel module, si votre couche s'en sert.
 
 ## Les fonctions qui servent à une couche maison {#functions}

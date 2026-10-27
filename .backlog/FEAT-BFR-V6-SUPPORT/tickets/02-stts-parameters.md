@@ -1,6 +1,6 @@
 # 02 — Validate the SRS text-to-speech parameters before the system command
 
-Status: ⬜ ready
+Status: ✅ done
 
 `STTS.TextToSpeech` builds a Windows command line from `freqs`, `modulations` and `name`.
 

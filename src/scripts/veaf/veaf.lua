@@ -6321,7 +6321,10 @@ function veaf.initialize()
 
   -- Initialize each enabled module.
   for _, module in ipairs(orderedModules) do
-    if veaf.isEnabled(module.id) then
+    -- `initialized_by_mission: true` in mission.yaml: the mission's own scripts start it (FEAT-BFR-V6-SUPPORT ticket 12).
+    if veaf.getConfig(module.id).initializedByMission then
+      veaf.loggers.get(veaf.Id):info(string.format("Module [%s] is initialized by the mission - skipping initialization", module.id))
+    elseif veaf.isEnabled(module.id) then
       veaf.loggers.get(veaf.Id):info(string.format("Initializing module [%s]", module.id))
       local ok, err = pcall(module.initFn)
       if not ok then

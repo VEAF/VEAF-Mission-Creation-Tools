@@ -485,6 +485,7 @@ modules:
 |-------|------|---------|-------------|
 | `enabled` | boolean | `true` | Enable or disable this module *(optional modules only — not allowed on Infrastructure modules)* |
 | `logLevel` | string | *(global)* | Override log level for this module only |
+| `initialized_by_mission` | boolean | `false` | `true`: the module's script is loaded and its configuration applied, but the build does not call its `initialize()` — your own scripts do. For a mission that starts a module itself (otherwise it is initialized twice); also accepted under `SKYNET`, `CTLD` and `CSAR`, for which `false` would drop the script. See [Porting a mission with its own script layer](mission-maker/custom-script-layer.en.md#initialized-by-mission) |
 
 Additional `init:` or data fields are module-specific — see each module's documentation page.
 

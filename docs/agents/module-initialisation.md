@@ -27,6 +27,11 @@ stale. When the test fails, fix the code or update the table — do not delete t
    both do it, deliberately, and say why in place. Both are then initialised a second time by
    mechanism 2; `veafEventHandler` guards its `world.addEventHandler` against exactly that.
 
+`initialized_by_mission: true` on a module's `mission.yaml` entry turns mechanism 2 off for that module — the
+generated file writes its configuration and `veaf.setConfig(<ID>, "initializedByMission", true)`, and no
+`initialize()` call — and mechanism 1 too: `veaf.initialize()` skips a module carrying that setting. For a
+mission whose own scripts start the module (FEAT-BFR-V6-SUPPORT ticket 12).
+
 A fourth thing looks like a module and is not: **CTLD**. `veaf.lua` registers it
 (`veaf.registerModule(veaf.ctldId, veaf.ctld_initialize, …, 50)`) but it is a community script, not
 a VEAF module — the generator starts it from its own block, before the module block. See

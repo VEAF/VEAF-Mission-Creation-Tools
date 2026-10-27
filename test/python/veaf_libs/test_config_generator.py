@@ -322,6 +322,50 @@ class TestWeatherWelcomeBrief(unittest.TestCase):
         self.assertLess(setting, lua.index("veafWeather.initialize()"))
 
 
+class TestInitializedByMission(unittest.TestCase):
+    """`initialized_by_mission: true` keeps a module's script and configuration, without its `initialize()` call.
+
+    A mission layer that initializes a module itself (BFR: Skynet, shortcuts, security, carriers) got it twice
+    from a `modules:` entry, and `false` drops SKYNET's and CTLD's script with them (FEAT-BFR-V6-SUPPORT
+    ticket 12). The key also tells `veaf.initialize()`, the registry's path, to skip the module.
+    """
+
+    def test_a_veaf_module_gets_its_settings_and_no_initialize(self) -> None:
+        lua = generate_config_lua(
+            {"lua_modules": {"SHORTCUTS": {"enabled": True, "initialized_by_mission": True, "logLevel": "debug"}}}
+        )
+        self.assertNotIn("veafShortcuts.initialize(", lua)
+        self.assertIn('veaf.setConfig("SHORTCUTS", "logLevel", "debug")', lua)
+        self.assertIn('veaf.setConfig("SHORTCUTS", "initializedByMission", true)', lua)
+        self.assertNotIn('"initialized_by_mission"', lua)
+
+    def test_false_is_today_s_output(self) -> None:
+        lua = generate_config_lua({"lua_modules": {"SHORTCUTS": {"enabled": True, "initialized_by_mission": False}}})
+        self.assertIn("veafShortcuts.initialize()", lua)
+        self.assertNotIn("initializedByMission", lua)
+
+    def test_skynet_keeps_its_settings_without_initialize(self) -> None:
+        lua = generate_config_lua(
+            {"external_modules": {"skynet": {"enabled": True, "initialized_by_mission": True, "dynamic_spawn": True}}}
+        )
+        self.assertIn("veafSkynet.DynamicSpawn = true", lua)
+        self.assertNotIn("veafSkynet.initialize(", lua)
+        self.assertIn('veaf.setConfig("SKYNET", "initializedByMission", true)', lua)
+
+    def test_ctld_is_loaded_but_not_started(self) -> None:
+        lua = generate_config_lua({"community_scripts": {"ctld": {"enabled": True, "initialized_by_mission": True}}})
+        self.assertNotIn("veaf.ctld_initialize()", lua)
+        self.assertIn('veaf.setConfig("ctld", "initializedByMission", true)', lua)
+
+    def test_csar_keeps_its_settings_without_initialize(self) -> None:
+        lua = generate_config_lua(
+            {"external_modules": {"csar": {"enabled": True, "initialized_by_mission": True, "maxLives": 3}}}
+        )
+        self.assertIn("csar.maxLives = 3", lua)
+        self.assertNotIn("csar.initialize()", lua)
+        self.assertNotIn("csar.initialized_by_mission", lua)
+
+
 class TestSettings(unittest.TestCase):
     def test_string_setting(self) -> None:
         lua = generate_config_lua({"settings": {"MY_KEY": "val"}})

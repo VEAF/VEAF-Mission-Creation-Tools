@@ -110,11 +110,41 @@ _MODULE_INIT_PARAMS: dict[str, list[tuple[str, object]]] = {
 #: wants, the Lua says what the function takes.
 _NEGATED_INIT_KEYS: frozenset[str] = frozenset({"create_menus"})
 
+#: The key that keeps a module's script and configuration but leaves its ``initialize()`` to the mission's
+#: own scripts (FEAT-BFR-V6-SUPPORT ticket 12). A mission layer that starts a module itself got it twice from
+#: a ``modules:`` entry, and ``false`` is no way out for SKYNET and CTLD: it drops their script too.
+INITIALIZED_BY_MISSION_KEY = "initialized_by_mission"
+
+
+def _initialized_by_mission(cfg: object) -> bool:
+    """Whether a module's configuration hands its ``initialize()`` call to the mission's own scripts.
+
+    Args:
+        cfg: The module's configuration, a dict or anything else.
+
+    Returns:
+        True when ``initialized_by_mission: true`` is set.
+    """
+    return isinstance(cfg, dict) and cfg.get(INITIALIZED_BY_MISSION_KEY) is True
+
+
+def _emit_initialized_by_mission(lines: list[str], config_id: str) -> None:
+    """Tell the runtime the mission initializes this module, so ``veaf.initialize()`` skips it too.
+
+    Args:
+        lines: The generated Lua, appended to.
+        config_id: The module's ``veaf.config`` key (its ``Id``).
+    """
+    lines.append(f'veaf.setConfig("{config_id}", "initializedByMission", true)')
+    lines.append(f"-- {config_id}: initialized by the mission's own scripts ({INITIALIZED_BY_MISSION_KEY})")
+
+
 #: YAML keys that are NOT forwarded as ``veaf.setConfig()`` calls.
 _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
     {
         "enable",
         "enabled",
+        INITIALIZED_BY_MISSION_KEY,
         "logLevel",
         "init",
         "assets",
@@ -2339,7 +2369,10 @@ def generate_config_lua(
                     lines.append(
                         f"veaf.config.{setting_key} = {_to_lua_scalar(ctld_cfg[setting_key], f'veaf.config.{setting_key}')}"
                     )
-        _emit_guarded_init(lines, "CTLD", ["if ctld then", "    veaf.ctld_initialize()", "end"])
+        if _initialized_by_mission(ctld_cfg):
+            _emit_initialized_by_mission(lines, "ctld")
+        else:
+            _emit_guarded_init(lines, "CTLD", ["if ctld then", "    veaf.ctld_initialize()", "end"])
         lines.append("")
 
     opposition_block = mission_yaml.get("opposition")
@@ -2416,6 +2449,11 @@ def generate_config_lua(
                 lines.append(
                     f'veaf.setConfig("{mod_id}", {_lua_text(key)}, {_to_lua_scalar(value, f"{mod_id}.{key}")})'
                 )
+
+            if _initialized_by_mission(mod_cfg):
+                _emit_initialized_by_mission(lines, mod_id)
+                lines.append("")
+                continue
 
             var_name = id_to_var.get(mod_id)
             if not var_name:
@@ -2532,7 +2570,10 @@ def generate_config_lua(
             skynet_block.append(
                 f"    veafSkynet.CoverageRefreshInterval = {_to_lua_scalar(_whole_if_it_can_be(coverage_s))}"
             )
-        skynet_block.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
+        if _initialized_by_mission(skynet_cfg):
+            _emit_initialized_by_mission(lines, "SKYNET")
+        else:
+            skynet_block.append(f"    veafSkynet.initialize({r}, {dr}, {b}, {db})")
         skynet_block.append("end")
         _emit_guarded_init(lines, "SKYNET", skynet_block)
         lines.append("")
@@ -2547,10 +2588,13 @@ def generate_config_lua(
         lines.append("-- ── CSAR configuration ───────────────────────────────────────────────────────")
         lines.append("-- Note: CSAR.lua must be loaded by mission-script.lua before this block.")
         csar_block = ["if csar then"]
-        csar_props = {k: v for k, v in csar_cfg.items() if k != "enabled"}
+        csar_props = {k: v for k, v in csar_cfg.items() if k not in ("enabled", INITIALIZED_BY_MISSION_KEY)}
         for key, value in csar_props.items():
             csar_block.append(f"    csar.{key} = {_to_lua_scalar(value, f'csar.{key}')}")
-        csar_block.append("    csar.initialize()")
+        if _initialized_by_mission(csar_cfg):
+            _emit_initialized_by_mission(lines, "CSAR")
+        else:
+            csar_block.append("    csar.initialize()")
         csar_block.append("end")
         _emit_guarded_init(lines, "CSAR", csar_block)
         lines.append("")

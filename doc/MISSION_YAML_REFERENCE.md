@@ -487,6 +487,7 @@ modules:
 |-------|------|--------|-------------|
 | `enabled` | booléen | `true` | Activer ou désactiver ce module *(modules optionnels uniquement — interdit sur les modules d'infrastructure)* |
 | `logLevel` | string | *(global)* | Surcharger le niveau de log pour ce module uniquement |
+| `initialized_by_mission` | booléen | `false` | `true` : le script du module est chargé et sa configuration appliquée, mais le build n'appelle pas son `initialize()` — vos propres scripts le font. Pour une mission qui démarre elle-même un module (sinon il est initialisé deux fois) ; accepté aussi sous `SKYNET`, `CTLD` et `CSAR`, pour qui `false` retirerait le script. Voir [Porter une mission à couche de scripts maison](mission-maker/custom-script-layer.md#initialized-by-mission) |
 
 Les champs supplémentaires `init:` ou de données sont spécifiques à chaque module — voir la page de documentation de chaque module.
 

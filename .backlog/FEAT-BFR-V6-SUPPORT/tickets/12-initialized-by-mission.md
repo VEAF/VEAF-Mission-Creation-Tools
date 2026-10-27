@@ -1,6 +1,6 @@
 # 12 — Module loaded and configured, initialized by the mission
 
-Status: ⬜ ready
+Status: 🧑 waiting-human (code done; checked on a converted BFR part)
 
 A module active in `modules:` is initialized by the generated `veaf-config.lua`; a mission layer that initializes it too gets it twice.
 `false` is no answer for SKYNET and CTLD: it also drops the community script.

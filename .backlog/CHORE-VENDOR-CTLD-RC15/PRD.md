@@ -1,6 +1,6 @@
 # CHORE-VENDOR-CTLD-RC15 — take CTLD 2.0.0-rc15
 
-Status: ✅ done — 2026-10-27 (PR pending)
+Status: ✅ done — 2026-10-27 (PR #1204)
 
 `published-v2.0.0-rc15` shipped on 2026-10-27, cut so that VMCT can ship the Fat Cow in its next release.
 A verbatim sync, done the way `CHORE-VENDOR-CTLD-RC12` did it, plus the catalogue-gap change rc15 calls for.

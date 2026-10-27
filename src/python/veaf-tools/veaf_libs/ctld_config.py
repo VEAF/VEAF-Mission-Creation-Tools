@@ -100,6 +100,35 @@ def read_default_config(ctld_lua_path: Path) -> str | None:
     return extract_default_config(ctld_lua_path.read_text(encoding="utf-8", errors="replace"))
 
 
+def read_list_since(ctld_lua_path: Path) -> dict[str, str]:
+    """Return the catalogue version each list appeared in, from a ``CTLD.lua`` file.
+
+    CTLD 2.0.0-rc15 embeds ``ctld.configListSince`` (VEAF/CTLD ADR 0011 Addendum 3): a list a mission's
+    configuration omits is a removal, unless the catalogue gained it after the configuration's version.
+
+    Args:
+        ctld_lua_path: Path to the vendored CTLD deliverable.
+
+    Returns:
+        ``{list: version}``; empty when the file is missing or predates the table.
+    """
+    if not ctld_lua_path.is_file():
+        return {}
+    text = ctld_lua_path.read_text(encoding="utf-8", errors="replace")
+    block = re.search(r"ctld\.configListSince\s*=\s*\{(.*?)\n\}", text, re.S)
+    if block is None:
+        return {}
+    return dict(re.findall(r'\["([^"]+)"\]\s*=\s*"([^"]+)"', block.group(1)))
+
+
+def _version(value: object) -> tuple[int, ...]:
+    """``"2.2.0"`` -> ``(2, 2, 0)``; a missing or unreadable version is older than any."""
+    try:
+        return tuple(int(part) for part in str(value).strip().split("."))
+    except ValueError:
+        return (0,)
+
+
 def manage_logistics_enabled(mission_yaml: dict) -> bool:
     """Return whether the build should merge the VEAF logistic types in at injection time.
 
@@ -271,7 +300,8 @@ class CatalogueGap:
         mission_version: The mission's ``configVersion``, ``None`` when it has none.
         catalogue_version: The vendored catalogue's ``configVersion``.
         missing: ``(section, key)`` of each setting the catalogue has and the mission lacks, lists
-            excepted: CTLD runs it on its default, and :func:`upgrade_to_catalogue` writes it in.
+            excepted unless newer than the mission's version: CTLD runs it on its default, and
+            :func:`upgrade_to_catalogue` writes it in.
         removed: Each setting the mission has and the catalogue no longer knows: CTLD ignores it.
         unused_features: Dotted path of each key the catalogue adds inside a table the mission
             holds (``capabilitiesByType.UH-1H.crateSpawnSector``). CTLD reads such a table whole,
@@ -318,7 +348,7 @@ def _new_keys(mission: dict, catalogue: dict, path: str) -> list[str]:
     return found
 
 
-def find_catalogue_gap(mission_config: str, catalogue: str) -> CatalogueGap | None:
+def find_catalogue_gap(mission_config: str, catalogue: str, since: dict[str, str] | None = None) -> CatalogueGap | None:
     """Compare a mission's configuration with the vendored catalogue, when their versions differ.
 
     The catalogue a release vendors moves on (2.0.0 → 2.2.0 in 6.29.0), and a mission's file stays
@@ -328,6 +358,8 @@ def find_catalogue_gap(mission_config: str, catalogue: str) -> CatalogueGap | No
     Args:
         mission_config: The mission's ``ctld-config.yaml`` content.
         catalogue: The vendored catalogue, as :func:`read_default_config` returns it.
+        since: The version each list appeared in (:func:`read_list_since`): a list newer than the
+            mission's version is missing, not removed.
 
     Returns:
         The gap, or ``None`` when the versions match or either document is not a mapping.
@@ -343,10 +375,12 @@ def find_catalogue_gap(mission_config: str, catalogue: str) -> CatalogueGap | No
 
     mission_settings = _settings(mission)
     catalogue_settings = _settings(reference)
+    since = since or {}
     missing = tuple(
         (section, key)
         for key, (section, value) in catalogue_settings.items()
-        if key not in mission_settings and not isinstance(value, list)
+        if key not in mission_settings
+        and (not isinstance(value, list) or (key in since and _version(mission_version) < _version(since[key])))
     )
     removed = tuple(key for key in mission_settings if key not in catalogue_settings)
     unused: list[str] = []
@@ -363,23 +397,25 @@ def find_catalogue_gap(mission_config: str, catalogue: str) -> CatalogueGap | No
     )
 
 
-def upgrade_to_catalogue(mission_config: str, catalogue: str) -> str:
+def upgrade_to_catalogue(mission_config: str, catalogue: str, since: dict[str, str] | None = None) -> str:
     """Write the settings a mission lacks at their catalogue default, and take the catalogue's version.
 
     Each missing setting (:attr:`CatalogueGap.missing`) goes into the section the catalogue puts it
     in, after the setting that precedes it there. No existing value changes; lists are not touched
-    (a missing list is an intentional removal) nor are keys inside a table the mission holds
+    (a missing list is an intentional removal), except a list newer than the mission's version
+    (*since*, :func:`read_list_since`), nor are keys inside a table the mission holds
     (:attr:`CatalogueGap.unused_features`). Round-trips through ruamel, like
     :func:`apply_veaf_overrides`, so comments and ordering survive.
 
     Args:
         mission_config: The mission's ``ctld-config.yaml`` content.
         catalogue: The vendored catalogue.
+        since: The version each list appeared in (:func:`read_list_since`).
 
     Returns:
         The upgraded document; *mission_config* unchanged when there is no gap.
     """
-    gap = find_catalogue_gap(mission_config, catalogue)
+    gap = find_catalogue_gap(mission_config, catalogue, since)
     if gap is None:
         return mission_config
 

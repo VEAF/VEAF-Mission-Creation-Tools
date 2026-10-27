@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [CHORE-VENDOR-CTLD-RC15](CHORE-VENDOR-CTLD-RC15/PRD.md) · ✅
+
+CTLD `2.0.0-rc15` vendored: the Fat Cow (VEAF/CTLD#273), catalogue `2.3.0`; a list newer than the mission's configuration takes its default (VEAF/CTLD#275), and `validate` / `ctld-upgrade` treat it as missing, not removed.
+
 ### [FEAT-GO-VEAF-LOGS-TABS](FEAT-GO-VEAF-LOGS-TABS/PRD.md) · ✅
 
 The `veaf-logs` tab strip scrolls past the window's width (wheel, ‹ › arrows), a ≡ button lists the tabs from two on, and a tab can be renamed: its alias lives in `~/veafmct.yaml` (a server's `aliases:`, `log_aliases:` for a local file), written by *Renommer l'onglet…* or by hand; an API's discovered logs lose the prefix all its servers share. Asked by David 2026-10-26 after opening seven API tabs. Checked by hand by David the same day.

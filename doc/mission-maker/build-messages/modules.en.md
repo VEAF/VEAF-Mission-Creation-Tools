@@ -123,6 +123,7 @@ It is a warning, not an error.
 
 **The way out.** `veaf-tools mission ctld-upgrade` in the mission folder: it adds each missing setting at its default, in the section the catalogue puts it in, and updates `configVersion`.
 None of your values changes, and lists are not touched: a missing list is an intentional removal.
+The one exception is a list CTLD added after your file's version (the Fat Cow's crates and loadouts arrived in catalogue `2.3.0`): you cannot have removed it, so the command writes it in, and `validate` counts it among the missing settings.
 
 Two messages may come with it, which the command leaves to you:
 

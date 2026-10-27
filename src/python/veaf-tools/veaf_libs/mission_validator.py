@@ -285,6 +285,7 @@ def _check_ctld_catalogue(folder: Path, yaml_data: dict) -> list[ValidationIssue
         CTLD_CONFIG_FILENAME,
         find_catalogue_gap,
         read_default_config,
+        read_list_since,
         vendored_ctld_lua,
     )
 
@@ -295,7 +296,7 @@ def _check_ctld_catalogue(folder: Path, yaml_data: dict) -> list[ValidationIssue
     catalogue = read_default_config(engine) if engine is not None else None
     if catalogue is None:
         return []
-    gap = find_catalogue_gap(config_path.read_text(encoding="utf-8"), catalogue)
+    gap = find_catalogue_gap(config_path.read_text(encoding="utf-8"), catalogue, read_list_since(engine))
     if gap is None:
         return []
     versions = {"file": CTLD_CONFIG_FILENAME, "mission": gap.mission_version or "?", "catalogue": gap.catalogue_version}

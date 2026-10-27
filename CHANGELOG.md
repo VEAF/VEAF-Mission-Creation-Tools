@@ -39,6 +39,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Page "Port a mission with its own script layer"** (FEAT-BFR-V6-SUPPORT 08, 11), FR + EN, with BFR as the example and the CTLD 2 events that replace CTLD v1's internals.
 - **`poetry run test-lua` uses the Lua 5.1 shipped with DCS** (FEAT-BFR-V6-SUPPORT 14) when no other is found, through the registry.
 
+### Changed
+
+- **Vendored CTLD `2.0.0-rc15`** (was `rc13`), the release of the Fat Cow: a CH-47 that lands in the field and becomes a forward refuel and rearm point for helicopters, player-flown or AI, with Apache, Russian and Mixed loadouts (VEAF/CTLD#273). Its catalogue moves to `2.3.0`, and a list CTLD added after a mission's configuration takes its default instead of reading as removed (VEAF/CTLD#275): a mission whose `ctld-config.yaml` dates from `2.2.0` has the Fat Cow too. `validate` names the lists among the missing settings and `ctld-upgrade` writes them in, where it used to leave every list out (CHORE-VENDOR-CTLD-RC15).
+
 ## [6.32.0] — 2026-10-26
 
 ### Changed

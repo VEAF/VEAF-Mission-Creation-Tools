@@ -1061,10 +1061,6 @@ veaf.i18nCatalog = {
     fr = "la zone n'est pas encore active.",
     en = "zone is not yet active.",
   },
-  ["combatzone.zone_not_found"] = {
-    fr = "VeafCombatZone [%s] introuvable !",
-    en = "VeafCombatZone [%s] was not found !",
-  },
   ["combatzone.help"] = {
     fr = "Les zones de combat sont définies par le créateur de mission\n"
       .. "Vous pouvez les activer et les désactiver à volonté,\n"

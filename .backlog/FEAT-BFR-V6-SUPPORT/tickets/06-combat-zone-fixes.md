@@ -1,6 +1,6 @@
 # 06 — Combat zones: unknown name, menu rebuilt without duplicates
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

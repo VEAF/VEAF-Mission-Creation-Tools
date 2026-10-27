@@ -2970,9 +2970,10 @@ function veafCombatZone.GetZone(zoneName)
   if zoneName then
     local zone = veafCombatZone.zonesDict[zoneName:lower()]
     if not zone then
-      local message = string.format("VeafCombatZone [%s] was not found !", zoneName)
-      veaf.loggers.get(veafCombatZone.Id):error(message)
-      trigger.action.outText(veaf.t("combatzone.zone_not_found", zoneName), 5)
+      -- The log only: a mission script asking for its zones on a timer turned a typo in its data into a
+      -- message to every player, repeated forever (FEAT-BFR-V6-SUPPORT ticket 06). A player typing a zone
+      -- name gets his own answer from the shortcut that asked.
+      veaf.loggers.get(veafCombatZone.Id):error(string.format("VeafCombatZone [%s] was not found !", zoneName))
     end
     return zone
   else
@@ -3163,6 +3164,11 @@ function veafCombatZone.buildRadioMenu()
     return
   end
 
+  -- Built again (a mission adding zones after initialize), it replaces its menu instead of adding one more
+  -- (FEAT-BFR-V6-SUPPORT ticket 06).
+  if veafCombatZone.rootPath then
+    veafRadio.delSubmenu(veafCombatZone.rootPath)
+  end
   veafCombatZone.rootPath = veafRadio.addMenu(veaf.t(veafCombatZone.RadioMenuName))
   veafCombatZone.combatZoneRootPath = veafCombatZone.rootPath
 

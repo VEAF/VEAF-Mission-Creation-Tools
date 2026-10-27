@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.33.0] — 2026-10-27
+
 ### Security
 
 - **Security-bypassing shortcuts admit only the options that tune them** (FEAT-BFR-V6-SUPPORT 01): after `-jtac`, `-afac`, `-smoke`, `-longsmoke`, `-signal`, `-light`, `-tacan`, `-point` and `-beacon`, a player's marker admits only the options each shortcut declares (`VeafAlias:setAllowedOptions`), in a strict form — `-jtac, laser 1511`, `-smoke, color red`, `-tacan, channel 37` still work. Anything else refuses the marker whole, tells its author only, and is never logged. A mission's own bypassing shortcut admits nothing after it unless it declares its options. Ported from BFR's `veafPatches.lua` (Sharko).

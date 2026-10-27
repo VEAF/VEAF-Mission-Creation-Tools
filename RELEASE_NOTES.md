@@ -1,83 +1,48 @@
-# VEAF Mission Creation Tools — 6.32.0
+# VEAF Mission Creation Tools — 6.33.0
 
-**Deux chantiers dans cette version : un nouveau `veaf-logs`, réécrit de zéro, et tout ce que nos missions construites par une IA nous ont appris.**
+**Deux chantiers dans cette version : la Fat Cow de CTLD, et ce qu'il faut à une mission qui apporte ses propres scripts (BFR).**
 
 ---
 
-## 📜 Le nouveau veaf-logs
+## 🐄 La Fat Cow
 
-### Plus léger, plus rapide
+### Un CH-47 qui devient un point de ravitaillement
 
-`veaf-logs.exe` garde son nom, ses menus et ses habitudes, mais c'est une nouvelle application : environ 14 Mo au lieu de 47, une fenêtre qui s'ouvre instantanément, un journal de 130 Mo indexé en 2,4 s au lieu de 13.
-Mêmes filtres, mêmes profils, même session, mêmes journaux distants, même *Expliquer ce qui est affiché* et même rapport `/bug`.
-Vos profils et votre session (`%APPDATA%\veaf_logs`) sont relus tels quels : rien à refaire.
+VMCT embarque maintenant CTLD `2.0.0-rc15`, qui apporte la Fat Cow : un CH-47 qui se pose en campagne et devient une FARP où les hélicoptères refont le plein et réarment, sur ce qu'il transporte.
+Un pilote de CH-47F charge un lot tout prêt dans une zone logistique (F10 → CTLD → Fat Cow → **Charger**), se pose et déploie sa FARP.
+N'importe quel pilote peut aussi **demander une Fat Cow IA**, en choisissant son lot : elle suit la patrouille et se pose à la demande.
+Les lots ont tous deux réservoirs de 800 gallons : Apache en tête (40 ou 60 Hellfire, laser et radar, et des obus de 30 mm), puis des sous-menus **Russes** (Ka-50, Mi-24P) et **Mixtes**.
 
-Au passage, trois défauts de l'ancien lecteur sont corrigés : *Aller à la fin* répond enfin à Ctrl+Fin, une recherche par expression régulière avec `^` ou `$` ne rate plus des lignes, et un filtre commençant par `*` ne fige plus la fenêtre (une minute auparavant sur un gros journal, une seconde maintenant).
+### Ce que VMCT a changé pour elle
 
-### Les journaux d'un serveur sans compte SSH
+- **GRASS ne remplit plus les FARP de CTLD** : il remplissait toutes les FARP à chaque arrivée d'un joueur, ce qui rendait une Fat Cow inépuisable.
+- **Le CH-47F a le menu CSAR.**
+- **Une mission existante a la Fat Cow sans rien faire** : son `ctld-config.yaml`, écrit pour un CTLD plus ancien, n'a pas les listes de la Fat Cow, et CTLD prend désormais celles par défaut.
+  `veaf-tools mission validate` le signale, et `veaf-tools mission ctld-upgrade` les écrit dans le fichier.
 
-`veaf-logs` sait lire les journaux d'un serveur à travers l'API REST de DCSServerBot : on déclare l'adresse de l'API et le fichier de sa clé dans `~/veafmct.yaml`, et *Ouvrir un journal distant…* liste les serveurs DCS que le bot connaît, plus le journal du bot lui-même.
-*Fichier › Ouvrir un ancien journal…* ouvre les fichiers plus anciens : `dcs.log.old`, les copies faites à l'arrêt, les journaux tournés du bot.
+---
 
-La barre d'état dit maintenant **pourquoi** un journal distant ne se lit pas — clé refusée, pas encore de journal, serveur inconnu ou injoignable, lignes perdues au redémarrage —, y compris pour les onglets SSH, qui affichaient *suivi actif* sur une connexion coupée.
+## 🧩 Les missions qui apportent leurs propres scripts
 
-### Des onglets qu'on retrouve
+Étudié sur les missions BFR de Sharko, pour qu'elles puissent passer en v6 :
 
-Au-delà de la largeur de la fenêtre, les onglets défilent (molette ou flèches ‹ ›) et l'onglet courant reste visible ; un bouton ≡ les liste tous.
-*Renommer l'onglet…*, dans le menu du clic droit, donne un alias durable à un serveur ou à un fichier.
-
-### Moins de bruit ED
-
-Neuf nouvelles familles de messages sans intérêt pour un mission maker sont masquées par défaut : ce qu'un serveur dédié ne charge pas (textures, modèles 3D), les restes de la mission précédente, les héliports et balises incomplets des cartes, les assertions internes d'ED…
-Sur un `dcs.log` réel de Privé 1, il reste 208 erreurs et avertissements non reconnus au lieu de 3 031 : ce qui reste affiché, c'est ce sur quoi on peut agir.
-
-## 🤖 Les missions construites par une IA
-
-La vidéo de démo et une session complète dans Claude Cowork nous ont montré où une IA bricolait faute d'outil adapté. Voici ce qui en sort.
-
-### Le briefing, partout où on en a besoin
-
-- **Le PDF du briefing**, écrit directement par l'exécutable à côté du diaporama : mêmes pages, mêmes cartes, sans PowerPoint, Edge ni LibreOffice.
-- **Le briefing dans le kneeboard** de chaque appareil : la vue d'ensemble, un zoom par objectif, une fiche de vol (cap et distance de chaque branche, point le plus haut du relief, radios) et les cibles. `kneeboard: false` le désactive.
-- **L'ATO d'une mission à slots dynamiques liste ses vols** : sous chaque terrain, les appareils proposés et le premier canal de leur plan radio.
-- Les images du briefing vont dans **toutes** les variantes météo de `missions/`, pas seulement dans le `.miz` du build.
-
-### De nouveaux outils pour l'IA
-
-- **`set_route`** écrit le plan de vol des joueurs en une seule action, en donnant le cap et la distance de chaque branche.
-- **Le niveau de l'opposition** : `add_group` et `create_combat_zone` acceptent `skill` (de Average à Excellent, ou Random), pour tout le groupe ou unité par unité ; le prompt d'objectif demande le niveau à la conception.
-- **`create_combat_zone`** pose statiques et véhicules en un seul appel.
-- **Le prompt d'objectif prépare la route selon l'appareil** : une mission basse altitude reçoit la route que son appareil et son époque voleraient, avec deux variantes comparées.
-- **Les missions de campagne replacent AWACS et ravitailleurs** selon la menace du jour, et le briefing dit où ils sont et pourquoi.
-
-### Des erreurs qui ne passent plus
-
-- Un ravitailleur créé avec la tâche `Tanker` est enfin un vrai ravitailleur (indicatif Texaco/Arco/Shell, ligne de soutien du briefing, carte).
-- Un texte français écrit sans accents est signalé : ce que lit un joueur garde ses accents.
-- Des numéros de waypoints qui ne correspondent plus à la route sont signalés.
-- Deux points du plan de vol portant le même nom sont injectés tous les deux, au lieu que le second remplace le premier en silence.
-- Un statique posé sur un terrain encombré est signalé avec le point dégagé le plus proche.
-
-### La sécurité de la mission, sans passer par l'IA
-
-**`veaf-tools password-hash`** transforme un mot de passe en l'empreinte qu'attend `security.password_hashes`, saisie masquée : le mot de passe ne passe jamais par une conversation avec une IA.
-Les prompts expliquent maintenant ce que la sécurité verrouille, et rappellent que le mot de passe livré par défaut est public.
-
-### Claude Cowork
-
-La documentation de l'assistant IA explique comment Claude Cowork, l'assistant dans le cloud, rejoint les outils VEAF installés sur le PC, et quoi faire en premier.
+- **Sécurité** : après un raccourci qui contourne la sécurité (`-jtac`, `-smoke`, `-tacan`…), un marqueur n'accepte plus que les options de ce raccourci ; la synthèse vocale SRS refuse des arguments malformés.
+- **Menu F10 en multijoueur** : les commandes suivent les pilotes présents (les ailiers d'un leader parti cliquaient dans le vide) ; une mission peut réserver un sous-menu à certains groupes, ou en faire un par pilote.
+- **Modules lancés par la mission** : `initialized_by_mission: true` laisse à la mission le soin d'appeler `initialize()`, pour n'importe quel module, CTLD, CSAR et Skynet compris.
+- **Porte-avions sans la boucle VEAF** (`operations_scheduler: false`), **points nommés déclarés par script**, **`WEATHER.welcomeBrief: false`** qui marche enfin.
+- **`convert v5`** reprend la couche de scripts d'une mission v5, et une nouvelle page explique comment porter une telle mission, avec BFR comme exemple.
 
 ---
 
 ## ⚠️ Points d'attention
 
-- **Lecture via l'API REST** : elle demande une version de DCSServerBot qui expose les routes de journaux — pour l'instant, la branche `veaf` de VEAF. Voir la page *Journaux*.
-- **Missions COLD_WAR** : leurs slots dynamiques ne proposent plus de F-16C, d'Apache ni de warbirds (le catalogue livré est filtré par époque, le F/A-18C est conservé). Une mission existante peut donc perdre ces slots au prochain build.
+- **La Fat Cow est activée par défaut** dans toute mission qui a CTLD. Pour la retirer : `fatCowEnabled: false` dans `ctld-config.yaml`.
+- **CTLD `2.0.0-rc15` est une version candidate** : la Fat Cow a été testée en jeu le 26 octobre, et les corrections qui ont suivi tournent sur les Open Training depuis le 27 au soir. Vos retours sont les bienvenus.
 
 ## 🙏 Merci
 
-Merci à Martinho, Trakdah, et à tous les autres testeurs pour leurs retours et leurs tests.
+Merci à Sharko pour les missions BFR, et aux pilotes de la soirée Fat Cow du 26 octobre pour leurs retours.
 
 ---
 
-📖 [veaf-logs — lire les journaux de DCS](https://veaf.github.io/documentation/latest/mission-maker/LOGS/) · [Créer avec une IA](https://veaf.github.io/documentation/latest/mission-maker/AI_ASSISTANT_INSTALL/)
+📖 [Porter une mission qui a ses propres scripts](https://veaf.github.io/documentation/latest/mission-maker/custom-script-layer/) · [CTLD — la Fat Cow](https://veaf.github.io/CTLD/2.0.0-rc15/pilot/)

@@ -48,7 +48,7 @@ a VEAF module — the generator starts it from its own block, before the module 
 | `ASSIST` | `veafAssist` | 145 | 21 | -- | `initialize()` |
 | `CACHE` | `veafCacheManager` | 3 | 24 | -- | `initialize()` |
 | `CAMPAIGN` | `veafCampaign` | 240 | 27 | -- | `initialize()` |
-| `CARRIER` | `veafCarrierOperations` | 80 | 5 | -- | `initialize()` |
+| `CARRIER` | `veafCarrierOperations` | 80 | 5 | -- | `initialize(includeRadioMenu, runOperationsScheduler)` |
 | `CASMISSION` | `veafCasMission` | 90 | 6 | -- | `initialize()` |
 | `COMBATMISSION` | `veafCombatMission` | 100 | 8 | -- | `initialize()` |
 | `COMBATZONE` | `veafCombatZone` | 110 | 9 | -- | `initialize()` |

@@ -505,6 +505,13 @@ modules:
       create_menus: false       # pas de menu radio VEAF ; commandes via marqueurs
 ```
 
+**Champs `init:` du module `CARRIER` :**
+
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `include_carrier_operations_radio` | booléen | `true` | `false` : pas de menu porte-avions au F10 |
+| `operations_scheduler` | booléen | `true` | `false` : pas de boucle VEAF des opérations (toutes les 60 s), pour une mission qui pilote ses porte-avions — voir [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
+
 **Option de diagnostic du module `RADIO`** (hors `init:`) : `menu_stats: true` écrit dans `dcs.log`, à chaque rafraîchissement, la taille du menu F10 et ce qui a changé. À activer temporairement sur une mission réelle pour surveiller le menu en multijoueur — voir [Surveiller le menu F10](mission-maker/scripts/veafRadio.md#menu-stats).
 
 **Les scripts communautaires** se déclarent dans le même bloc, via leurs IDs (la casse est indifférente : `CTLD:` et `ctld:` sont équivalents). Lorsqu'un script est absent de `modules:`, il garde son état par défaut — inclus pour les scripts *opt-out*, exclu pour les deux *opt-in* (`MIST` et `TUM`, voir plus bas). Mettez un script à `false` pour l'exclure :

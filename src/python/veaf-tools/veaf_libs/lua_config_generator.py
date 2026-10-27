@@ -102,7 +102,7 @@ _MODULE_INIT_ORDER: list[str] = [
 #: existed. That is how ``RADIO.create_menus`` stays additive.
 _MODULE_INIT_PARAMS: dict[str, list[tuple[str, object]]] = {
     "RADIO": [("help_menus", True), ("create_menus", None)],
-    "CARRIER": [("include_carrier_operations_radio", True)],
+    "CARRIER": [("include_carrier_operations_radio", True), ("operations_scheduler", None)],
 }
 
 #: Init keys whose YAML meaning is the negation of the Lua parameter they feed.

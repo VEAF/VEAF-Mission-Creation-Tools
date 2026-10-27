@@ -503,6 +503,13 @@ modules:
       create_menus: false       # no VEAF radio menu; commands via markers only
 ```
 
+**`CARRIER` `init:` fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `include_carrier_operations_radio` | boolean | `true` | `false`: no carrier menu in F10 |
+| `operations_scheduler` | boolean | `true` | `false`: no VEAF operations loop (every 60 s), for a mission that drives its carriers — see [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.en.md) |
+
 **`RADIO` diagnostic option** (outside `init:`): `menu_stats: true` writes to `dcs.log`, on every refresh, the F10 menu's size and what changed. Turn it on temporarily in a real mission to watch the menu in multiplayer — see [Watching the F10 menu](mission-maker/scripts/veafRadio.en.md#menu-stats).
 
 **Community scripts** are listed in the same block, using their IDs (case does not matter: `CTLD:` and `ctld:` are equivalent). When a script is absent from `modules:`, it keeps its default state — included for the *opt-out* scripts, excluded for the two *opt-in* ones (`MIST` and `TUM`, see below). Set a script to `false` to exclude it:

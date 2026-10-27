@@ -289,6 +289,37 @@ class TestRadioCreateMenus(unittest.TestCase):
         self.assertNotIn("veafRadio.initialize(true,", lua)
 
 
+class TestCarrierOperationsScheduler(unittest.TestCase):
+    """`CARRIER.init.operations_scheduler: false` keeps the carriers and their menu, without VEAF's 60 s loop.
+
+    A mission that drives its carriers itself (BFR, every 45 s) had the loop running twice; it copied
+    `initialize()` without its last line instead (FEAT-BFR-V6-SUPPORT ticket 07).
+    """
+
+    def test_false_is_passed_as_the_second_argument(self) -> None:
+        lua = generate_config_lua({"lua_modules": {"CARRIER": {"enable": True, "init": {"operations_scheduler": False}}}})
+        self.assertIn("veafCarrierOperations.initialize(true, false)", lua)
+
+    def test_omitting_it_keeps_the_previous_output(self) -> None:
+        lua = generate_config_lua({"lua_modules": {"CARRIER": {"enable": True}}})
+        self.assertIn("veafCarrierOperations.initialize(true)", lua)
+        self.assertNotIn("veafCarrierOperations.initialize(true,", lua)
+
+
+class TestWeatherWelcomeBrief(unittest.TestCase):
+    """`WEATHER.welcomeBrief: false`, the documented switch, reaches the Lua before `initialize()` reads it.
+
+    It was written as a `veaf.setConfig` and never read: `veafWeather.initialize()` only looked at its
+    argument, which the build never passes (FEAT-BFR-V6-SUPPORT ticket 13; the Lua side is tested in
+    `test_veafWeather.lua`).
+    """
+
+    def test_the_setting_is_written_before_initialize(self) -> None:
+        lua = generate_config_lua({"lua_modules": {"WEATHER": {"enabled": True, "welcomeBrief": False}}})
+        setting = lua.index('veaf.setConfig("WEATHER", "welcomeBrief", false)')
+        self.assertLess(setting, lua.index("veafWeather.initialize()"))
+
+
 class TestSettings(unittest.TestCase):
     def test_string_setting(self) -> None:
         lua = generate_config_lua({"settings": {"MY_KEY": "val"}})

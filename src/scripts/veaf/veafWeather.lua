@@ -2130,6 +2130,12 @@ function veafWeather.initialize(bWelcomeBrief)
 
   -- Off by an explicit setting rather than by absence: a mission maker running his own briefing script
   -- needs to silence this, and #301 asked for the behaviour by default.
+  -- Without an argument, the mission's `WEATHER.welcomeBrief` setting decides: the generated configuration
+  -- writes it with `veaf.setConfig` and calls `initialize()` bare, so the documented switch was never read
+  -- (FEAT-BFR-V6-SUPPORT ticket 13).
+  if bWelcomeBrief == nil then
+    bWelcomeBrief = veaf.getConfig(veafWeather.Id).welcomeBrief
+  end
   veafWeather.welcomeBriefEnabled = bWelcomeBrief ~= false
   if veafWeather.welcomeBriefEnabled then
     veafWeather.briefedUnits = {}

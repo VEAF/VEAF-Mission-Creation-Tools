@@ -85,6 +85,8 @@ modules:
   EVENTS:
   MARKERS:
   COMMANDS:
+  # Any module also takes, in its extended form, `initialized_by_mission: true`: configured by the build but
+  # started by your own scripts, for a mission that has a script layer of its own (custom-script-layer page).
   # ── Core ─────────────────────────────────────────────────────────────────
   SECURITY: true   # the /secu verbs (elevate, …); turn the level check off with `security: disabled: true`
   RADIO: true               # the VEAF F10 radio menu

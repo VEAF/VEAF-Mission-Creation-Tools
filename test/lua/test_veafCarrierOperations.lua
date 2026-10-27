@@ -720,4 +720,48 @@ function TestVeafCarrierDeckLights:test_an_action_missing_from_the_trigger_envir
   luaunit.assertFalse(veafCarrierOperations.setDeckLights(CARRIER_UNIT_NAME, 2))
 end
 
+-- ============================================================================
+-- initialize(includeRadioMenu, runOperationsScheduler) — FEAT-BFR-V6-SUPPORT ticket 07: a mission that drives
+-- its carriers itself keeps the carriers and their menu without VEAF's 60 s loop.
+-- ============================================================================
+TestCarrierInitializeOptions = {}
+
+function TestCarrierInitializeOptions:setUp()
+  self.saved = {
+    initializeCarrierGroups = veafCarrierOperations.initializeCarrierGroups,
+    buildRadioMenu = veafCarrierOperations.buildRadioMenu,
+    operationsScheduler = veafCarrierOperations.operationsScheduler,
+  }
+  self.savedRemote = veafRemote
+  veafRemote = { registerRemoteModule = function() end }
+  self.called = {}
+  for name in pairs(self.saved) do
+    veafCarrierOperations[name] = function()
+      self.called[name] = true
+    end
+  end
+end
+
+function TestCarrierInitializeOptions:tearDown()
+  veafRemote = self.savedRemote
+  for name, fn in pairs(self.saved) do
+    veafCarrierOperations[name] = fn
+  end
+end
+
+function TestCarrierInitializeOptions:test_no_argument_starts_everything()
+  veafCarrierOperations.initialize()
+  luaunit.assertEquals(self.called, { initializeCarrierGroups = true, buildRadioMenu = true, operationsScheduler = true })
+end
+
+function TestCarrierInitializeOptions:test_the_loop_can_be_left_off()
+  veafCarrierOperations.initialize(true, false)
+  luaunit.assertEquals(self.called, { initializeCarrierGroups = true, buildRadioMenu = true })
+end
+
+function TestCarrierInitializeOptions:test_the_menu_can_be_left_off()
+  veafCarrierOperations.initialize(false)
+  luaunit.assertEquals(self.called, { initializeCarrierGroups = true, operationsScheduler = true })
+end
+
 os.exit(luaunit.LuaUnit.run())

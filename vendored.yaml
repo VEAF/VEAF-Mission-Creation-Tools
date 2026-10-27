@@ -179,7 +179,7 @@ artifacts:
     pinned: "0.4.1"
     vendoring: adapted
     path: src/scripts/community/DCS-SimpleTextToSpeech.lua
-    manual_steps: "Re-fetch DCS-SimpleTextToSpeech.lua from ciribob HEAD and re-apply any VEAF tweaks (repo has no releases, so track the file on master)."
+    manual_steps: "Re-fetch DCS-SimpleTextToSpeech.lua from ciribob HEAD and re-apply the VEAF tweaks (repo has no releases, so track the file on master): the shell-safety block before STTS.getSpeechTime (STTS.validArguments, STTS.shellSafeText) and its calls at the top of STTS.TextToSpeech and STTS.PlayMP3 (FEAT-BFR-V6-SUPPORT ticket 02, test/lua/test_stts.lua)."
     watch:
       - { kind: github-file, repo: ciribob/DCS-SimpleTextToSpeech, ref: master, pinned: "aada1c312827" }
 

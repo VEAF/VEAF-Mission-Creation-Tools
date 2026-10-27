@@ -33,6 +33,10 @@ class MigrationResult:
     enabled_modules: list[str] = field(default_factory=list)
     """Module IDs whose ``initialize()`` call was found (in a guard or bare)."""
 
+    not_migrated_computed: list[str] = field(default_factory=list)
+    """The ``not_migrated`` lines whose value the script computes (read from data, a call) rather than writes as a
+    literal: no extractor can carry those, whatever key it knows (FEAT-BFR-V6-SUPPORT ticket 10)."""
+
     removed_dofiles: list[str] = field(default_factory=list)
     """Human-readable descriptions of each ``doFile`` call that was commented out."""
 
@@ -563,6 +567,7 @@ class ConfigMigrator:
             password_mm_hashes=partial.password_mm_hashes,
             callback_hints=partial.callback_hints,
             not_migrated=partial.not_migrated,
+            not_migrated_computed=partial.not_migrated_computed,
             module_settings=partial.module_settings,
             password_hashes=partial.password_hashes,
         )
@@ -799,6 +804,51 @@ class ConfigMigrator:
             line = content[line_start : line_end if line_end != -1 else len(content)].strip()
             if line and line not in result.not_migrated:
                 result.not_migrated.append(line)
+                value = code[m.end() : line_end if line_end != -1 else len(code)]
+                if not self._LITERAL_VALUE_RE.match(value):
+                    result.not_migrated_computed.append(line)
+
+    #: A value written as a literal, the only kind a conversion can carry as it stands.
+    _LITERAL_VALUE_RE = re.compile(r"""\s*(?:"[^"]*"|'[^']*'|-?\d+(?:\.\d+)?|true|false|nil)\s*$""")
+
+    #: A module's ``initialize()`` called anywhere in a script, inside a function or after ``return``; and the
+    #: carrier's own initialization copied without its scheduler, which BFR does (FEAT-BFR-V6-SUPPORT ticket 10).
+    _ANY_INIT_RE = re.compile(r"\b(veaf\w+)\.initialize\s*\(")
+    _CARRIER_COPY_RE = re.compile(r"\bveafCarrierOperations\.initializeCarrierGroups\s*\(")
+
+    _MODULE_USE_RE = re.compile(r"\b(veaf\w+)\.\w")
+
+    def modules_used_in(self, source: str) -> set[str]:
+        """Return the IDs of the VEAF modules a mission script calls into, so the build enables them.
+
+        Args:
+            source: The Lua source of one of the mission's own scripts.
+
+        Returns:
+            The module IDs, mapped from the module variables.
+        """
+        known = set(self._var_to_id)
+        return {
+            self._var_to_id[var] for var in self._MODULE_USE_RE.findall(_strip_lua_comments(source)) if var in known
+        }
+
+    def modules_initialized_in(self, source: str) -> set[str]:
+        """Return the IDs of the VEAF modules a mission script starts itself.
+
+        A presence check (``if veafRadio then``) or a mere call into a module is not a start: only its
+        ``initialize()`` is, wherever it sits — BFR wraps every one in a function of its own.
+
+        Args:
+            source: The Lua source of one of the mission's own scripts.
+
+        Returns:
+            The module IDs, mapped from the module variables.
+        """
+        code = _strip_lua_comments(source)
+        found = {self._var_to_id.get(var, var) for var in self._ANY_INIT_RE.findall(code)}
+        if self._CARRIER_COPY_RE.search(code):
+            found.add(self._var_to_id.get("veafCarrierOperations", "CARRIER"))
+        return {module_id for module_id in found if module_id in set(self._var_to_id.values())}
 
     # ── identity / security / global_log_level ──────────────────────────────
 

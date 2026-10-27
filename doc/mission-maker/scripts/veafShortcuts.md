@@ -136,6 +136,42 @@ La plupart des aliases respectent le système de sécurité (`veafSecurity`). **
 le contournent et restent toujours disponibles pour tous les joueurs : `-smoke`, `-longsmoke`, `-signal`,
 `-light`, `-point`, `-tacan`, `-jtac`, `-afac`, `-beacon`.
 
+### Ce qu'on peut taper après un alias qui contourne la sécurité {#bypass-options}
+
+Derrière un tel alias, un marqueur de joueur n'admet que les options qui **règlent** son effet, chacune sous une forme stricte :
+
+| Alias | Options admises |
+|---|---|
+| `-smoke`, `-longsmoke` | `color` (red, green, orange, blue, white) |
+| `-signal` | `color` (red, green, white, yellow) |
+| `-light` | `alt`, `radius` (entiers) |
+| `-jtac` | `laser` (4 chiffres), `freq` (MHz), `mod` (am, fm) |
+| `-afac` | `laser`, `freq`, `mod`, `alt`, `speed`, `hdg` / `heading` (entiers), `immortal` |
+| `-tacan` | `channel` (1 à 3 chiffres), `band` (x, y), `code` (1 à 4 lettres ou chiffres), `radius` (0 à 999 m) |
+| `-point` | un nom, sans virgule |
+| `-beacon` | aucune |
+
+Tout le reste refuse le marqueur **en entier** : rien n'est exécuté, et seul l'auteur du marqueur reçoit un message qui dit ce que l'alias accepte.
+Un mot-clé de commande VEAF (`_spawn`, `_cas`…) est refusé partout derrière ces alias.
+Le texte refusé n'est jamais écrit dans le journal : il peut contenir un mot de passe.
+
+Ne changent pas : l'alias seul, les coordonnées `#…` et le délai `!N`, les alias lancés par un script (lots d'alias, zones de combat), et une mission où la sécurité est désactivée.
+
+Un alias de votre mission qui contourne la sécurité n'admet rien derrière lui, sauf s'il le déclare dans `mission-script.lua` :
+
+```lua
+veafShortcuts.AddAlias(
+  VeafAlias:new()
+    :setName("-mafumee")
+    :setVeafCommand("_spawn smoke")
+    :setBypassSecurity(true)
+    :setAllowedOptions({ color = "color", shells = "^[1-3]$" })
+)
+```
+
+Une forme est le nom d'une forme de `veafShortcuts.OptionForms` (`color`, `flareColor`, `laser`, `frequency`, `modulation`, `integer`, `tacanChannel`, `tacanBand`, `morseCode`, `radius999`, `flag`), ou un motif Lua ancré.
+Un alias déclaré dans `mission.yaml` avec `bypass_security: true` n'admet rien derrière lui.
+
 **Contourner le mot de passe ne veut pas dire se taire.** Ces deux notions ont longtemps été le même
 réglage dans le code, et ça se voyait : un pilote qui posait un marqueur `-tacan` n'obtenait *aucune*
 confirmation — ni canal, ni bande. Le silence ne dépend plus que d'une chose : **qui a demandé**.

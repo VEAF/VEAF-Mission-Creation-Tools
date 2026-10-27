@@ -47,6 +47,8 @@ lua test/lua/test_veafSpawn.lua
 
 - `poetry install` must have been run once
 - Lua 5.1 on PATH (`lua5.1`, `lua51` or `lua`, or `C:\Program Files (x86)\Lua\5.1\lua.exe` on Windows)
+- or, failing that, DCS installed: on Windows, `test-lua` reads its install folder in the registry (`HKCU\Software\Eagle Dynamics\DCS World`, then `DCS World OpenBeta`) and uses the Lua 5.1.5 it ships, `bin\luae.exe`.
+  Coverage (`--coverage`) also needs luacov to be found by that interpreter (`LUA_PATH`).
 - No other dependencies (luaunit is bundled in `test/lua/luaunit.lua`)
 
 Version **5.1** is verified: every candidate is queried with `lua -v`, and a 5.2+ interpreter is
@@ -154,6 +156,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafDcsSpawner.lua` | Runtime static creation: country, ids, shapes, random heading |
 | `test_csar_init.lua` | CSAR initialisation, in a real mission's load order (CSAR before VEAF): one event handler whatever happens |
 | `test_community_scripts_load.lua` | Every vendored community script loads without raising, against the DCS mocks alone — the gate that was missing when CTLD rc8 shipped a file that did not load (#957). TUM is excluded and says so: it auto-initializes and requires territory zones |
+| `test_stts.lua` | SRS text-to-speech validates its arguments before the system command |
 | `test_veafInterpreter.lua` | Mark text tokenizer |
 | `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
 | `test_veafSecurity.lua` | Security levels, admin management |
@@ -161,6 +164,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafNamedPoints.lua` | Point registration, lookup, ATC helpers |
 | `test_veafOpposition.lua` | Opposition level: counted from the players connected or airborne, hysteresis (an immediate rise, a delayed drop), the `_opposition` marker and its security level |
 | `test_veafShortcuts.lua` | Shortcut registration and resolution |
+| `test_veafShortcuts_bypass.lua` | What a player may type after a security-bypassing shortcut |
 | `test_veafWeather.lua` | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | Unit data export utilities |
 | `test_veafCombatMission.lua` | Base combat mission lifecycle |
@@ -181,6 +185,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafGroundAI.lua` | Ground AI behavior flags |
 | `test_veafGroundAI_convoy.lua` | Convoy under fire: the watch, the split, fight or fall back, the call for help, the `_gc` orders |
 | `test_veafRadio.lua` | Radio menu tree construction |
+| `test_veafRadio_pilots.lua` | F10 menu in multiplayer: commands bound to pilots present, group-reserved menus, per-pilot menus |
 | `test_veafQraManager.lua` | QRA state machine, zone management |
 | `test_veafAirWaves.lua` | Wave scheduling, group assignment |
 | `test_veafReactiveZone.lua` | Base shared by QRA and AirWaves: zone, mobile zone, spawn, links, deferred spawns |
@@ -285,7 +290,7 @@ The GitHub Actions workflow (`.github/workflows/lua-ci.yml`) runs on every push 
 **`lua-coverage`** — Ubuntu latest
 1. Checkout repository
 2. Install `lua5.1` + `luacov` via LuaRocks, then Poetry and dependencies
-3. Run `poetry run test-lua --cov-fail-under 81` (luacov line coverage)
+3. Run `poetry run test-lua --cov-fail-under 83.0` (luacov line coverage)
 4. Fail if coverage drops below the ratchet floor (the number only ever goes up)
 
 ### Running StyLua Locally

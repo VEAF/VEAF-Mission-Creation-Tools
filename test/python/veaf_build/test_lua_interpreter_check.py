@@ -43,8 +43,9 @@ def _fake_run(banners: dict[str, str]) -> object:
 
 @pytest.fixture(autouse=True)
 def _no_windows_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Neutralise the hardcoded Windows fallback so tests are platform-agnostic."""
+    """Neutralise the Windows fallbacks (fixed path, DCS install) so tests are platform-agnostic."""
     monkeypatch.setattr(lua_tests, "_WINDOWS_LUA_FALLBACK", tmp_path / "absent" / "lua.exe")
+    monkeypatch.setattr(lua_tests, "_dcs_install_dirs", lambda: [])
 
 
 def test_accepts_a_lua_51_interpreter(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -117,3 +118,54 @@ def test_an_unrunnable_candidate_is_rejected_not_crashed_on(monkeypatch: pytest.
         lua_tests._find_lua()
 
     assert "not a usable Lua interpreter" in str(excinfo.value)
+
+
+def test_falls_back_on_the_lua_shipped_with_dcs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # DCS ships a genuine Lua 5.1.5 as bin/luae.exe (FEAT-BFR-V6-SUPPORT ticket 14): on a mission
+    # maker's machine that is the one 5.1 interpreter certainly there.
+    luae = tmp_path / "DCS World" / "bin" / "luae.exe"
+    luae.parent.mkdir(parents=True)
+    luae.write_text("", encoding="utf-8")
+    monkeypatch.setattr(lua_tests.sys, "platform", "win32")
+    monkeypatch.setattr(lua_tests, "_dcs_install_dirs", lambda: [tmp_path / "absent", tmp_path / "DCS World"])
+    monkeypatch.setattr(lua_tests.shutil, "which", _fake_which({}))
+    monkeypatch.setattr(lua_tests.subprocess, "run", _fake_run({str(luae): _BANNER_51}))
+
+    assert lua_tests._find_lua() == str(luae)
+
+
+def test_a_lua_on_path_wins_over_the_dcs_one(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    luae = tmp_path / "bin" / "luae.exe"
+    luae.parent.mkdir(parents=True)
+    luae.write_text("", encoding="utf-8")
+    monkeypatch.setattr(lua_tests.sys, "platform", "win32")
+    monkeypatch.setattr(lua_tests, "_dcs_install_dirs", lambda: [tmp_path])
+    monkeypatch.setattr(lua_tests.shutil, "which", _fake_which({"lua51": "/scoop/shims/lua51"}))
+    monkeypatch.setattr(lua_tests.subprocess, "run", _fake_run({"lua51": _BANNER_51, str(luae): _BANNER_51}))
+
+    assert lua_tests._find_lua() == "lua51"
+
+
+def test_the_help_names_the_dcs_interpreter(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lua_tests.shutil, "which", _fake_which({}))
+
+    with pytest.raises(typer.BadParameter) as excinfo:
+        lua_tests._find_lua()
+
+    assert "luae.exe" in str(excinfo.value)
+
+
+def test_dcs_install_dirs_reads_the_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.undo()  # the autouse fixture stubs the function under test
+    monkeypatch.setattr(lua_tests.sys, "platform", "win32")
+    paths = {r"Software\Eagle Dynamics\DCS World OpenBeta": r"D:\DCS OpenBeta"}
+    monkeypatch.setattr(lua_tests, "_read_registry_path", paths.get)
+
+    assert lua_tests._dcs_install_dirs() == [Path(r"D:\DCS OpenBeta")]
+
+
+def test_dcs_install_dirs_is_empty_off_windows(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.undo()
+    monkeypatch.setattr(lua_tests.sys, "platform", "linux")
+
+    assert lua_tests._dcs_install_dirs() == []

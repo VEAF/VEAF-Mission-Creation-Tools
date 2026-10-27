@@ -2079,4 +2079,54 @@ function TestVeafWeatherAtcVanishedUnit:test_the_warning_names_the_unit()
   luaunit.assertTrue(named, "the warning must name the unit that could not be found")
 end
 
+-- ============================================================================
+-- The documented `WEATHER.welcomeBrief: false` (FEAT-BFR-V6-SUPPORT ticket 13): the generated configuration writes
+-- it with veaf.setConfig and calls initialize() without an argument, which used to ignore it.
+-- ============================================================================
+TestVeafWeatherWelcomeBriefSetting = {}
+
+function TestVeafWeatherWelcomeBriefSetting:setUp()
+  self.saved = {
+    buildRadioMenu = veafWeather.buildRadioMenu,
+    airbases = veafAirbases.initialize,
+    setting = veaf.getConfig(veafWeather.Id).welcomeBrief,
+    enabled = veafWeather.welcomeBriefEnabled,
+  }
+  self.hadRemote = veafRemote ~= nil
+  veafRemote = veafRemote or {}
+  self.savedRemote = veafRemote.registerRemoteModule
+  veafRemote.registerRemoteModule = function() end
+  veafWeather.buildRadioMenu = function() end
+  veafAirbases.initialize = function() end
+end
+
+function TestVeafWeatherWelcomeBriefSetting:tearDown()
+  veafWeather.buildRadioMenu = self.saved.buildRadioMenu
+  veafAirbases.initialize = self.saved.airbases
+  veaf.setConfig(veafWeather.Id, "welcomeBrief", self.saved.setting)
+  veafWeather.welcomeBriefEnabled = self.saved.enabled
+  veafRemote.registerRemoteModule = self.savedRemote
+  if not self.hadRemote then
+    veafRemote = nil
+  end
+end
+
+function TestVeafWeatherWelcomeBriefSetting:test_the_mission_setting_switches_it_off()
+  veaf.setConfig(veafWeather.Id, "welcomeBrief", false)
+  veafWeather.initialize()
+  luaunit.assertFalse(veafWeather.welcomeBriefEnabled)
+end
+
+function TestVeafWeatherWelcomeBriefSetting:test_without_a_setting_it_stays_on()
+  veaf.setConfig(veafWeather.Id, "welcomeBrief", nil)
+  veafWeather.initialize()
+  luaunit.assertTrue(veafWeather.welcomeBriefEnabled)
+end
+
+function TestVeafWeatherWelcomeBriefSetting:test_an_argument_wins_over_the_setting()
+  veaf.setConfig(veafWeather.Id, "welcomeBrief", false)
+  veafWeather.initialize(true)
+  luaunit.assertTrue(veafWeather.welcomeBriefEnabled)
+end
+
 os.exit(luaunit.LuaUnit.run())

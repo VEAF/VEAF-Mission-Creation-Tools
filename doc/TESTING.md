@@ -156,6 +156,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafDcsSpawner.lua` | Création de statiques à l'exécution : pays, identifiants, formes, cap aléatoire |
 | `test_csar_init.lua` | Initialisation de CSAR, dans l'ordre de chargement d'une vraie mission (CSAR avant VEAF) : un seul gestionnaire d'événements quoi qu'il arrive |
 | `test_community_scripts_load.lua` | Chaque script communautaire vendorisé se charge sans lever, avec les seuls mocks DCS — la porte qui manquait quand CTLD rc8 a livré un fichier qui ne se chargeait pas (#957). TUM en est exclu et le dit : il s'auto-initialise et exige des zones de territoire |
+| `test_stts.lua` | La synthèse vocale SRS valide ses paramètres avant la commande système |
 | `test_veafInterpreter.lua` | Tokeniseur de texte marqueur |
 | `test_veafTime.lua` | Parsing de temps, formatage, helpers temps DCS |
 | `test_veafSecurity.lua` | Niveaux de sécurité, gestion des admins |
@@ -163,6 +164,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafNamedPoints.lua` | Enregistrement de points, recherche, helpers ATC |
 | `test_veafOpposition.lua` | Niveau d'opposition : compté sur les joueurs connectés ou en vol, hystérésis (hausse immédiate, baisse après un délai), marqueur `_opposition` et son niveau de sécurité |
 | `test_veafShortcuts.lua` | Enregistrement et résolution des raccourcis |
+| `test_veafShortcuts_bypass.lua` | Ce qu'un joueur peut taper après un raccourci qui contourne la sécurité |
 | `test_veafWeather.lua` | Parsing météo, calculs QNH/vent |
 | `test_dcsDataExport.lua` | Utilitaires d'export de données unités |
 | `test_veafCombatMission.lua` | Cycle de vie d'une mission de combat |
@@ -183,6 +185,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafGroundAI.lua` | Flags de comportement IA sol |
 | `test_veafGroundAI_convoy.lua` | Convoi sous le feu : veille, scission, combat ou repli, appel à l'aide, ordres `_gc` |
 | `test_veafRadio.lua` | Construction de l'arbre de menus radio |
+| `test_veafRadio_pilots.lua` | Menu F10 en multijoueur : commandes liées aux pilotes présents, menus réservés à des groupes, menus par pilote |
 | `test_veafQraManager.lua` | Machine à états QRA, gestion de zones |
 | `test_veafAirWaves.lua` | Planification de waves, assignation de groupes |
 | `test_veafReactiveZone.lua` | Base commune QRA / AirWaves : zone, zone mobile, spawn, liens, spawns différés |

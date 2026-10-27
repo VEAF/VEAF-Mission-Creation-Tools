@@ -32,6 +32,9 @@ veafNamedPoints.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veafNamedPoints.namedPoints = {}
+
+--- Points declared by a mission script (`declarePoints`), added again by every `initialize()`.
+veafNamedPoints.scriptPoints = {}
 veafNamedPoints.rootPath = nil
 veafNamedPoints.markid = 1270000 --- Initial Marker id.
 
@@ -299,6 +302,7 @@ function veafNamedPoints.initialize(customPoints)
   veafNamedPoints.addCities()
   veafNamedPoints.addAirbases()
   veafNamedPoints.addCustomPoints(customPoints)
+  veafNamedPoints.addCustomPoints(veafNamedPoints.scriptPoints)
 
   veafNamedPoints.buildRadioMenu()
   -- OPEN: naming a point is informational and has no side effect, so it stays available to
@@ -378,6 +382,22 @@ function veafNamedPoints.addAirbases()
   end
 
   return nil
+end
+
+--- Declare a batch of named points from a mission script (FEAT-BFR-V6-SUPPORT ticket 09), before or after
+--- `initialize()`: `veafNamedPoints.Points = {…}` is gone in v6, where mission.yaml declares the points, and a
+--- mission layer that builds its own (BFR, with the airfields' TACAN) had no other door.
+--- @param points table `{ { name = "Kobuleti", point = {x, y, z}, … } }`, the shape of `initialize(customPoints)`;
+---        what else the point carries (`tacan`, `atc`, `runways`…) is kept, as `addDataToPoint` does
+function veafNamedPoints.declarePoints(points)
+  for _, declared in ipairs(points or {}) do
+    if declared.name and declared.point then
+      table.insert(veafNamedPoints.scriptPoints, declared)
+      veafNamedPoints.addPoint(declared.name, declared.point)
+    else
+      veaf.loggers.get(veafNamedPoints.Id):warn("declarePoints: skipping a point without a name or a position (%s)", veaf.p(declared.name))
+    end
+  end
 end
 
 function veafNamedPoints.addCustomPoints(customPoints)

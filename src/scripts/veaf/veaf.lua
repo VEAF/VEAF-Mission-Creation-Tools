@@ -2702,6 +2702,10 @@ function veaf.outTextForUnit(unitName, message, duration, forAllGroup)
     trigger.action.outTextForUnit(unitId, message, duration)
   elseif groupId then
     trigger.action.outTextForGroup(groupId, message, duration)
+  elseif unitName then
+    -- A unit was named and is gone (its pilot left, died, ejected): the answer was for him, never for
+    -- every player on the server (FEAT-BFR-V6-SUPPORT ticket 03).
+    veaf.loggers.get(veaf.Id):debug("outTextForUnit: unit %s is gone, message not shown", veaf.p(unitName))
   else
     trigger.action.outText(message, duration)
   end
@@ -6317,7 +6321,10 @@ function veaf.initialize()
 
   -- Initialize each enabled module.
   for _, module in ipairs(orderedModules) do
-    if veaf.isEnabled(module.id) then
+    -- `initialized_by_mission: true` in mission.yaml: the mission's own scripts start it (FEAT-BFR-V6-SUPPORT ticket 12).
+    if veaf.getConfig(module.id).initializedByMission then
+      veaf.loggers.get(veaf.Id):info(string.format("Module [%s] is initialized by the mission - skipping initialization", module.id))
+    elseif veaf.isEnabled(module.id) then
       veaf.loggers.get(veaf.Id):info(string.format("Initializing module [%s]", module.id))
       local ok, err = pcall(module.initFn)
       if not ok then

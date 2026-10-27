@@ -158,6 +158,16 @@ git commit -m "feat: migration de ma-mission vers VEAF MCT v6"
 
 Ajoutez `published/` et `*.miz` à `.gitignore` — ce sont des artefacts de build.
 
+#### Une mission avec sa propre couche de scripts {#own-script-layer}
+
+Quand votre mission v5 charge ses propres scripts par la liste `scriptsToLoad` de `veafDynamicConfig.lua`, `convert v5` en plus :
+
+- reporte cette liste dans `custom_scripts:`, dans le même ordre (sauf `missionConfig.lua`, qui est migré) ;
+- lit tous les scripts de `src/scripts`, pas seulement `missionConfig.lua` : un module que l'un d'eux appelle est activé, et un module que l'un d'eux **démarre** (`veafXxx.initialize(…)`, ou `initializeCarrierGroups` du porte-avions) est activé avec `initialized_by_mission: true`, pour que le build ne le démarre pas une seconde fois — CSAR et Skynet compris (CTLD est seulement activé : son démarrage v6 reste à VEAF) ;
+- distingue, parmi les réglages qu'il ne peut pas reporter, ceux que votre script **calcule** (lus dans des données, par un appel) au lieu de les écrire comme une valeur.
+
+La méthode complète est dans [Porter une mission à couche de scripts maison](custom-script-layer.md).
+
 ---
 
 ## Intégration de VEAF MCT dans une mission DCS vanilla

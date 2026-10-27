@@ -487,6 +487,7 @@ modules:
 |-------|------|--------|-------------|
 | `enabled` | booléen | `true` | Activer ou désactiver ce module *(modules optionnels uniquement — interdit sur les modules d'infrastructure)* |
 | `logLevel` | string | *(global)* | Surcharger le niveau de log pour ce module uniquement |
+| `initialized_by_mission` | booléen | `false` | `true` : le script du module est chargé et sa configuration appliquée, mais le build n'appelle pas son `initialize()` — vos propres scripts le font. Pour une mission qui démarre elle-même un module (sinon il est initialisé deux fois) ; accepté aussi sous `SKYNET`, `CTLD` et `CSAR`, pour qui `false` retirerait le script. Voir [Porter une mission à couche de scripts maison](mission-maker/custom-script-layer.md#initialized-by-mission) |
 
 Les champs supplémentaires `init:` ou de données sont spécifiques à chaque module — voir la page de documentation de chaque module.
 
@@ -504,6 +505,13 @@ modules:
     init:
       create_menus: false       # pas de menu radio VEAF ; commandes via marqueurs
 ```
+
+**Champs `init:` du module `CARRIER` :**
+
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `include_carrier_operations_radio` | booléen | `true` | `false` : pas de menu porte-avions au F10 |
+| `operations_scheduler` | booléen | `true` | `false` : pas de boucle VEAF des opérations (toutes les 60 s), pour une mission qui pilote ses porte-avions — voir [veafCarrierOperations](mission-maker/scripts/veafCarrierOperations.md) |
 
 **Option de diagnostic du module `RADIO`** (hors `init:`) : `menu_stats: true` écrit dans `dcs.log`, à chaque rafraîchissement, la taille du menu F10 et ce qui a changé. À activer temporairement sur une mission réelle pour surveiller le menu en multijoueur — voir [Surveiller le menu F10](mission-maker/scripts/veafRadio.md#menu-stats).
 

@@ -4979,4 +4979,47 @@ function TestPerModuleLogLevel:test_the_global_level_still_reaches_the_other_mod
   luaunit.assertEquals(#_lines("LOGLVLB|T|"), 1)
 end
 
+-- ============================================================================
+-- veaf.initialize() skips a module the mission initializes itself (FEAT-BFR-V6-SUPPORT ticket 12): the build
+-- writes `initializedByMission` for `initialized_by_mission: true`, and the registry is the second path that
+-- would otherwise start the module a second time.
+-- ============================================================================
+TestVeafInitializeSkipsMissionModules = {}
+
+function TestVeafInitializeSkipsMissionModules:setUp()
+  self.saved = {
+    modules = veaf.modules,
+    initialized = veaf._initialized,
+    loadMissionConfig = veaf.loadMissionConfig,
+    config = { MINE = veaf.config.MINE, THEIRS = veaf.config.THEIRS },
+    commands = veafCommands,
+  }
+  veaf.modules = {}
+  veaf._initialized = nil
+  veaf.loadMissionConfig = function() end
+  veafCommands = veafCommands or {}
+  self.started = {}
+  veaf.registerModule("MINE", function()
+    table.insert(self.started, "MINE")
+  end, { enable = true }, 1)
+  veaf.registerModule("THEIRS", function()
+    table.insert(self.started, "THEIRS")
+  end, { enable = true }, 2)
+end
+
+function TestVeafInitializeSkipsMissionModules:tearDown()
+  veaf.modules = self.saved.modules
+  veaf._initialized = self.saved.initialized
+  veaf.loadMissionConfig = self.saved.loadMissionConfig
+  veaf.config.MINE = self.saved.config.MINE
+  veaf.config.THEIRS = self.saved.config.THEIRS
+  veafCommands = self.saved.commands
+end
+
+function TestVeafInitializeSkipsMissionModules:test_a_module_initialized_by_the_mission_is_skipped()
+  veaf.setConfig("THEIRS", "initializedByMission", true)
+  veaf.initialize()
+  luaunit.assertEquals(self.started, { "MINE" })
+end
+
 os.exit(luaunit.LuaUnit.run())

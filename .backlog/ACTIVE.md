@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FEAT-BFR-V6-SUPPORT](FEAT-BFR-V6-SUPPORT/PRD.md) · 🔄
+
+What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the study of Bluestorm V2 and SeaShepherd V2 (2026-10-27): two security fixes, the F10 menu in multiplayer (live pilot, group submenus, per-pilot submenus), combat zone fixes, a carrier option, modules initialized by the mission, the weather welcome switch, named points from a script, the v5 converter, and a page on porting a mission with its own script layer. Fourteen tickets, one PR.
+
 ## 🧑 Waiting for a human
 
 ### [FIX-COWORK-SESSION-FINDINGS](FIX-COWORK-SESSION-FINDINGS/PRD.md) · 🧑

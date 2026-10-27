@@ -4522,4 +4522,62 @@ function TestCombatOperationActivationMenu:test_no_command_when_user_activation_
   luaunit.assertNil(self:_find("menu.combatzone.deactivate"))
 end
 
+-- ============================================================================
+-- FEAT-BFR-V6-SUPPORT ticket 06, from BFR's `veafPatches.lua`: an unknown zone name is a line in the log, not a
+-- message to every player (BFR asks for its zones every 45 s: a typo was a global message repeated forever), and
+-- building the radio menu again replaces the menu instead of adding one (1 -> 4 -> 7 submenus, measured by Sharko).
+-- ============================================================================
+TestCombatZoneBfrFixes = {}
+
+function TestCombatZoneBfrFixes:setUp()
+  dcs_mocks.reset()
+  self.saved = {
+    zonesDict = veafCombatZone.zonesDict,
+    zonesList = veafCombatZone.zonesList,
+    rootPath = veafCombatZone.rootPath,
+    addMenu = veafRadio.addMenu,
+    delSubmenu = veafRadio.delSubmenu,
+  }
+  veafCombatZone.zonesDict = {}
+  veafCombatZone.zonesList = {}
+  veafCombatZone.rootPath = nil
+  -- the menus under the VEAF root, as veafRadio would hold them
+  self.rootMenus = {}
+  veafRadio.addMenu = function(title)
+    local menu = { title = title, subMenus = {}, commands = {} }
+    table.insert(self.rootMenus, menu)
+    return menu
+  end
+  veafRadio.delSubmenu = function(menu)
+    for index, candidate in ipairs(self.rootMenus) do
+      if candidate == menu then
+        table.remove(self.rootMenus, index)
+      end
+    end
+  end
+end
+
+function TestCombatZoneBfrFixes:tearDown()
+  veafCombatZone.zonesDict = self.saved.zonesDict
+  veafCombatZone.zonesList = self.saved.zonesList
+  veafCombatZone.rootPath = self.saved.rootPath
+  veafRadio.addMenu = self.saved.addMenu
+  veafRadio.delSubmenu = self.saved.delSubmenu
+end
+
+function TestCombatZoneBfrFixes:test_an_unknown_zone_name_shows_nothing_to_the_players()
+  luaunit.assertNil(veafCombatZone.GetZone("Typo"))
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+  luaunit.assertTrue(#dcs_mocks.findLog("Typo") > 0)
+end
+
+function TestCombatZoneBfrFixes:test_building_the_radio_menu_twice_leaves_one_menu()
+  local zone = VeafCombatZone:new():setMissionEditorZoneName("Zone_A"):setFriendlyName("Zone A")
+  veafCombatZone.zonesDict["zone_a"] = zone
+  veafCombatZone.buildRadioMenu()
+  veafCombatZone.buildRadioMenu()
+  veafCombatZone.buildRadioMenu()
+  luaunit.assertEquals(#self.rootMenus, 1)
+end
+
 os.exit(luaunit.LuaUnit.run())

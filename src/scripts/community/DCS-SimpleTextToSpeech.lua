@@ -123,6 +123,44 @@ function STTS.round(x, n)
   return x / n
 end
 
+-- VEAF (FEAT-BFR-V6-SUPPORT ticket 02): every value below reaches the Windows shell through os.execute, and some
+-- come from players (a JTAC placed from a marker carries the frequency typed after it). Values with a small legal
+-- shape (frequencies, modulations, volume, coalition) are validated, and nothing runs when one is wrong; free text
+-- (message, name, file path) loses the characters that leave a quoted cmd argument or chain a command — the same set
+-- veafRadio._shellSafeText strips.
+STTS.SHELL_UNSAFE_CHARACTERS = '[%c"&|<>%^%%]'
+
+function STTS.shellSafeText(value)
+  return (tostring(value or ""):gsub(STTS.SHELL_UNSAFE_CHARACTERS, " "))
+end
+
+local function isListOf(value, elementPattern)
+  local text = tostring(value or "")
+  if text == "" then
+    return false
+  end
+  for element in (text .. ","):gmatch("([^,]*),") do
+    if not element:match(elementPattern) then
+      return false
+    end
+  end
+  return true
+end
+
+--- true when the command-line values are what they claim to be; otherwise false, with a log line.
+function STTS.validArguments(freqs, modulations, volume, coalition)
+  if
+    isListOf(freqs, "^%d+%.?%d*$")
+    and isListOf(modulations, "^[AaFf][Mm]$")
+    and tostring(volume or ""):match("^%d+%.?%d*$")
+    and tostring(coalition or ""):match("^%d$")
+  then
+    return true
+  end
+  env.info("[DCS-STTS] refusing a transmission whose frequencies, modulations, volume or coalition are malformed")
+  return false
+end
+
 function STTS.getSpeechTime(length, speed, isGoogle)
   -- Function returns estimated speech time in seconds
 
@@ -169,12 +207,17 @@ function STTS.TextToSpeech(message, freqs, modulations, volume, name, coalition,
     return
   end
 
+  if not STTS.validArguments(freqs, modulations, volume, coalition) then
+    return
+  end
+
   speed = speed or 1
   gender = gender or "female"
   culture = culture or ""
   voice = voice or ""
 
-  message = message:gsub('"', '\\"')
+  message = STTS.shellSafeText(message)
+  name = STTS.shellSafeText(name)
 
   local cmd = string.format(
     'start /min "" /d "%s" /b "%s" -f %s -m %s -c %s -p %s -n "%s" -h',
@@ -246,6 +289,11 @@ function STTS.PlayMP3(pathToMP3, freqs, modulations, volume, name, coalition, po
   if not STTS.isConfiguredAndInstalled() then
     return
   end
+  if not STTS.validArguments(freqs, modulations, volume, coalition) then
+    return
+  end
+  pathToMP3 = STTS.shellSafeText(pathToMP3)
+  name = STTS.shellSafeText(name)
 
   local cmd = string.format(
     'start "" /d "%s" /b /min "%s" -i "%s" -f %s -m %s -c %s -p %s -n "%s" -v %s -h',

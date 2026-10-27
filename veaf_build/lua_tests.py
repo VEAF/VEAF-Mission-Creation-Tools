@@ -31,6 +31,11 @@ _LUA_51_RE = re.compile(r"\bLua 5\.1(\.\d+)?\b")
 _LUA_CANDIDATES = ["lua5.1", "lua51", "lua"]
 _WINDOWS_LUA_FALLBACK = Path(r"C:\Program Files (x86)\Lua\5.1\lua.exe")
 
+# DCS ships a genuine Lua 5.1.5 as `<install>\bin\luae.exe` (measured 2026-10-27: the whole suite
+# passes with it). Its install path is in the registry, under the release or the beta key.
+_DCS_REGISTRY_KEYS = (r"Software\Eagle Dynamics\DCS World", r"Software\Eagle Dynamics\DCS World OpenBeta")
+_DCS_LUA = Path("bin") / "luae.exe"
+
 _LUA_INSTALL_HELP = (
     "DCS runs Lua 5.1 and the VEAF scripts target it and nothing else.\n"
     "A 5.2+ interpreter dropped `unpack` and made string.format('%d')\n"
@@ -45,6 +50,9 @@ _LUA_INSTALL_HELP = (
     "           extracted to\n"
     "           " + str(_WINDOWS_LUA_FALLBACK) + "\n"
     "           which this command finds even when it is not on PATH.\n"
+    "           With DCS installed there is nothing to install: its own\n"
+    "           Lua 5.1, <DCS install>\\bin\\luae.exe, is found through\n"
+    "           the registry.\n"
     "  Linux    apt install lua5.1\n"
     "  macOS    brew install lua@5.1"
 )
@@ -73,6 +81,36 @@ def _lua_version_banner(executable: str) -> str:
     return f"{result.stdout}\n{result.stderr}".strip()
 
 
+def _read_registry_path(key_path: str) -> str | None:
+    """Return the ``Path`` value of an ``HKEY_CURRENT_USER`` key.
+
+    Args:
+        key_path: Key under ``HKEY_CURRENT_USER``.
+
+    Returns:
+        The value, or None when the key or the value does not exist.
+    """
+    import winreg  # noqa: PLC0415 — Windows-only module
+
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+            return str(winreg.QueryValueEx(key, "Path")[0])
+    except OSError:
+        return None
+
+
+def _dcs_install_dirs() -> list[Path]:
+    """Return the DCS install folders the registry knows, release first.
+
+    Returns:
+        The folders found; empty off Windows or without DCS.
+    """
+    if sys.platform != "win32":
+        return []
+    found = (_read_registry_path(key) for key in _DCS_REGISTRY_KEYS)
+    return [Path(path) for path in found if path]
+
+
 def _find_lua() -> str:
     """Return the path to a Lua **5.1** interpreter, or raise if none is found.
 
@@ -90,6 +128,7 @@ def _find_lua() -> str:
     candidates = [c for c in _LUA_CANDIDATES if shutil.which(c)]
     if sys.platform == "win32" and _WINDOWS_LUA_FALLBACK.exists():
         candidates.append(str(_WINDOWS_LUA_FALLBACK))
+    candidates.extend(str(d / _DCS_LUA) for d in _dcs_install_dirs() if (d / _DCS_LUA).exists())
 
     rejected: list[str] = []
     for candidate in candidates:
@@ -266,7 +305,7 @@ def run(
     for test_file in test_files:
         console.print(f"\n[cyan]--- {test_file.name} ---[/cyan]")
         # Audited, not injectable: `lua` is one of the fixed `_LUA_CANDIDATES` (or the fixed
-        # Windows fallback path) and `test_file` comes from globbing `test/lua/`. No shell is
+        # Windows fallback path, or DCS's own bin\luae.exe) and `test_file` comes from globbing `test/lua/`. No shell is
         # involved either — this is an argv list, so nothing is re-parsed as a command.
         result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
             [*lua_cmd, str(test_file)], cwd=_PROJECT_ROOT

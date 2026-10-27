@@ -1,6 +1,6 @@
 # 14 — `test-lua` finds the Lua 5.1 shipped with DCS
 
-Status: ⬜ ready
+Status: ✅ done
 
 DCS ships a real Lua 5.1.5 as `<DCS install>\bin\luae.exe`; the runner only looked on PATH and in `C:\Program Files (x86)\Lua\5.1`.
 

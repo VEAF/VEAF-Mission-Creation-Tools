@@ -47,6 +47,8 @@ lua test/lua/test_veafSpawn.lua
 
 - `poetry install` must have been run once
 - Lua 5.1 on PATH (`lua5.1`, `lua51` or `lua`, or `C:\Program Files (x86)\Lua\5.1\lua.exe` on Windows)
+- or, failing that, DCS installed: on Windows, `test-lua` reads its install folder in the registry (`HKCU\Software\Eagle Dynamics\DCS World`, then `DCS World OpenBeta`) and uses the Lua 5.1.5 it ships, `bin\luae.exe`.
+  Coverage (`--coverage`) also needs luacov to be found by that interpreter (`LUA_PATH`).
 - No other dependencies (luaunit is bundled in `test/lua/luaunit.lua`)
 
 Version **5.1** is verified: every candidate is queried with `lua -v`, and a 5.2+ interpreter is

@@ -36,6 +36,7 @@ from mission_tools.mission_constants import (
 )
 from veaf_libs.i18n import current_language, t, tn
 from veaf_libs.lua_config_generator import (
+    INITIALIZED_BY_MISSION_KEY,
     MANDATORY_MODULES,
     MODULE_CATEGORIES,
     resolve_module_dependencies,
@@ -44,10 +45,42 @@ from veaf_libs.lua_config_generator import (
 )
 from veaf_libs.lua_module_scanner import get_modules
 
-from mission_builder.config_migrator import ConfigMigrator, MigrationResult
+from mission_builder.config_migrator import ConfigMigrator, MigrationResult, _strip_lua_comments
 from mission_builder.presets_schema_migrator import is_v5_schema as _presets_is_v5_schema
 from mission_builder.presets_schema_migrator import migrate as migrate_presets_schema
 from mission_builder.v5_pipeline_converters import convert_pipeline_file
+
+#: Scripts of ``src/scripts`` that are not part of a mission's own layer: the v5 configuration (migrated), the
+#: loader v6 regenerates, and the file convert-v5 writes.
+_NOT_LAYER_SCRIPTS = frozenset({"missionConfig.lua", "veafDynamicConfig.lua", "mission-script.lua"})
+
+#: Community scripts a mission's own layer uses, and starts: ``id -> (use, start)``. A use enables the script; a
+#: start hands its ``initialize()`` to the mission (FEAT-BFR-V6-SUPPORT ticket 10).
+_COMMUNITY_USE: dict[str, tuple[re.Pattern[str], re.Pattern[str]]] = {
+    "ctld": (re.compile(r"\bctld\.\w"), re.compile(r"\bctld\.initialize\s*\(")),
+    "csar": (re.compile(r"\bcsar\.\w"), re.compile(r"\bcsar\.initialize\s*\(")),
+    "skynet": (re.compile(r"\b(?:SkynetIADS|veafSkynet)\b"), re.compile(r"\bveafSkynet\.initialize\s*\(")),
+    "stts": (re.compile(r"\bSTTS\.\w"), re.compile(r"(?!)")),
+}
+
+#: The ``scriptsToLoad = { … }`` table of a v5 ``veafDynamicConfig.lua``.
+_SCRIPTS_TO_LOAD_RE = re.compile(r"\bscriptsToLoad\s*=\s*\{(?P<body>[^}]*)\}")
+
+
+def _scripts_to_load(dynamic_config: str) -> list[str]:
+    """Return the script names a v5 ``veafDynamicConfig.lua`` loads, in order, ``missionConfig.lua`` excepted.
+
+    Args:
+        dynamic_config: The file's Lua source.
+
+    Returns:
+        The names as listed, commented entries left out; empty when the file has no such list.
+    """
+    m = _SCRIPTS_TO_LOAD_RE.search(_strip_lua_comments(dynamic_config))
+    if not m:
+        return []
+    names = re.findall(r"""["']([^"']+\.lua)["']""", m.group("body"))
+    return [name for name in names if name != "missionConfig.lua"]
 
 
 def _holds_v5_schema(step: str, path: Path) -> bool:
@@ -249,6 +282,12 @@ class ConversionReport:
     pipeline_files: list[PipelineFile] = field(default_factory=list)
     """Pipeline config files detected under ``src/``."""
     detected_community_script_ids: set[str] = field(default_factory=set)
+    custom_scripts: list[str] = field(default_factory=list)
+    """The mission's own scripts, in the order ``veafDynamicConfig.lua``'s ``scriptsToLoad`` loads them."""
+    mission_initialized: set[str] = field(default_factory=set)
+    """Module and community-script IDs (upper case) the mission's own scripts start themselves."""
+    mission_used: set[str] = field(default_factory=set)
+    """Module IDs the mission's own scripts call into: enabled, and started by the build."""
     #: Mission scripts found calling MiST, so the conversion can keep it enabled for them.
     mist_callers: list[str] = field(default_factory=list)
     """IDs of community scripts found in ``published/src/scripts/community/``."""
@@ -855,6 +894,7 @@ class V5Converter:
 
         # Step 1 — Scan
         self._scan(report)
+        self._scan_script_layer(report)
 
         # Step 1.5 — Convert v5 pipeline files (before mission.yaml generation)
         if convert_pipeline:
@@ -1138,6 +1178,46 @@ class V5Converter:
                         )
                         break
 
+    def _scan_script_layer(self, report: ConversionReport) -> None:
+        """Read a mission's own script layer: its load order, the modules it starts, the community scripts it uses.
+
+        v5 loaded such a layer through the ``scriptsToLoad`` list of ``veafDynamicConfig.lua``, which v6 generates
+        from ``custom_scripts:`` instead; and its scripts start VEAF modules themselves, which v6's build would
+        start a second time (FEAT-BFR-V6-SUPPORT ticket 10).
+
+        Args:
+            report: Filled in place: ``custom_scripts``, ``mission_initialized``, ``detected_community_script_ids``,
+                and a warning for a listed script that is missing.
+        """
+        scripts_dir = report.mission_folder / "src" / "scripts"
+        dynamic_config = scripts_dir / "veafDynamicConfig.lua"
+        if dynamic_config.is_file():
+            for name in _scripts_to_load(dynamic_config.read_text(encoding="utf-8", errors="ignore")):
+                if (scripts_dir / name).is_file():
+                    report.custom_scripts.append(f"src/scripts/{name}")
+                else:
+                    report.warnings.append(t("convert_v5.warning.script_to_load_missing", script=name))
+        if not scripts_dir.is_dir():
+            return
+        for lua_file in sorted(scripts_dir.glob("*.lua")):
+            if lua_file.name in _NOT_LAYER_SCRIPTS:
+                continue
+            source = lua_file.read_text(encoding="utf-8", errors="ignore")
+            report.mission_initialized |= self._migrator.modules_initialized_in(source)
+            report.mission_used |= self._migrator.modules_used_in(source)
+            code = _strip_lua_comments(source)
+            for community_id, (used, started) in _COMMUNITY_USE.items():
+                if used.search(code):
+                    report.detected_community_script_ids.add(community_id)
+                if started.search(code):
+                    report.mission_initialized.add(community_id.upper())
+        if report.mission_initialized:
+            report.actions.append(
+                t("convert_v5.action.initialized_by_mission", modules=", ".join(sorted(report.mission_initialized)))
+            )
+        if report.custom_scripts:
+            report.actions.append(t("convert_v5.action.custom_scripts", count=len(report.custom_scripts)))
+
     def _migrate_config(self, report: ConversionReport, backup: bool) -> None:
         """Run ConfigMigrator on missionConfig.lua and write the result.
 
@@ -1238,6 +1318,15 @@ class V5Converter:
                     "convert_v5.warning.settings_not_migrated",
                     count=len(result.not_migrated),
                     settings=", ".join(result.not_migrated),
+                )
+            )
+        # Why those cannot be carried, said apart: the script computes them (FEAT-BFR-V6-SUPPORT ticket 10).
+        if result.not_migrated_computed:
+            report.warnings.append(
+                t(
+                    "convert_v5.warning.settings_computed",
+                    count=len(result.not_migrated_computed),
+                    settings=", ".join(result.not_migrated_computed),
                 )
             )
 
@@ -1446,6 +1535,10 @@ class V5Converter:
 
         enabled_modules = mr.enabled_modules if mr else []
         enabled_set = set(enabled_modules) | _BASE_ALWAYS_ON
+        # A module the mission's own scripts start is enabled, and handed to them (FEAT-BFR-V6-SUPPORT ticket 10).
+        enabled_set |= {
+            mid for mid in report.mission_initialized | report.mission_used if mid in {m["id"] for m in get_modules()}
+        }
         # QRA config now lives under modules.QRA, so the module must be enabled
         # whenever QRA definitions were extracted (MODULES-UNIFY).
         if mr and mr.qra_definitions:
@@ -1485,8 +1578,11 @@ class V5Converter:
                     or (mid == "COMBATZONE" and mr and (mr.combat_zone_settings_extracted or mr.combat_zones_extracted))
                     or (mid == "AIRWAVES" and mr and mr.airwave_zones_extracted)
                     or (mid == "QRA" and mr and mr.qra_definitions)
+                    or mid in report.mission_initialized
                 )
                 lines.extend(yaml_module_entry(yaml_key, mid, has_config=has_config))
+                if mid in report.mission_initialized:
+                    lines.append(f"    {INITIALIZED_BY_MISSION_KEY}: true")
                 # Inject extracted config under the module entry
                 if mid == "ASSETS" and mr and mr.assets_extracted:
                     lines.append("    assets:")
@@ -1555,12 +1651,21 @@ class V5Converter:
                     lines.append(f"    debug_red: {'true' if sc.get('debug_red') else 'false'}")
                     lines.append(f"    include_blue_in_radio: {'true' if sc.get('include_blue_in_radio') else 'false'}")
                     lines.append(f"    debug_blue: {'true' if sc.get('debug_blue') else 'false'}")
+                    if upper in report.mission_initialized:
+                        lines.append(f"    {INITIALIZED_BY_MISSION_KEY}: true")
                 elif upper in ("CTLD", "CSAR") and detected and mr and _ctld_csar_settings(mr, upper):
                     lines.append(f"  {upper}:")
                     lines.append("    enabled: true")
+                    if upper in report.mission_initialized:
+                        lines.append(f"    {INITIALIZED_BY_MISSION_KEY}: true")
                     lines.append("    settings:")
                     for key, value in _ctld_csar_settings(mr, upper).items():
                         lines.append(f"      {key}: {_yaml_scalar(value)}")
+                elif upper in report.mission_initialized:
+                    # Started by the mission's own scripts: the script is loaded, its start left to them.
+                    lines.append(f"  {upper}:")
+                    lines.append("    enabled: true")
+                    lines.append(f"    {INITIALIZED_BY_MISSION_KEY}: true")
                 elif sid == "mist":
                     # MiST is opt-in like TUM, but for the opposite reason: TUM must not start on
                     # its own because it imposes a mission-design contract, whereas MiST is simply
@@ -1624,6 +1729,17 @@ class V5Converter:
                             for g in gs:
                                 lines.append(f"          - {g}")
                         lines.append(f"        scalable: {'true' if elem.get('scalable', True) else 'false'}")
+            lines.append("")
+
+        # ── The mission's own scripts, in their v5 load order ──────────────
+        if report.custom_scripts:
+            lines.append(t("converter.yaml.header.custom_scripts"))
+            lines.append(t("converter.yaml.custom_scripts.desc"))
+            lines.append(f"# Doc: {_DOC_BASE}#custom-scripts")
+            lines.append("custom_scripts:")
+            lines.append("  scripts:")
+            for path in report.custom_scripts:
+                lines.append(f"    - path: {_yaml_str(path)}")
             lines.append("")
 
         # Pipeline section

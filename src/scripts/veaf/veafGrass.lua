@@ -835,6 +835,7 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
 end
 
 ---Browse all the FARP-type units and refill their warehouses
+---A FARP named "CTLD_..." is CTLD's (a Fat Cow FARP, whose stock is what its cow carries): never refilled.
 function veafGrass.fillAllFarpWarehouses()
   veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillAllFarpWarehouses()")
   local farpBases = {}
@@ -843,19 +844,23 @@ function veafGrass.fillAllFarpWarehouses()
   for _, base in pairs(bases) do
     local name = base:getName()
     veaf.loggers.get(veafGrass.Id):trace("fillAllFarpWarehouse: testing %s", veaf.lp(name))
-    local status, typeName = pcall(base.getTypeName, base) -- test cautiously if the base is a valid airbase, since DCS will either fail the getTypeName call or even crash when the airbase has been "moved" (e.g., by creating a new FARP with the same name)
-    if status then
-      if name:upper():find("GRASS_RUNWAY") then
-        grassBases[name] = base
-        veaf.loggers.get(veafGrass.Id):trace("found grassBase [%s]", veaf.lp(name))
-      end
-      --first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
-      if veafGrass.isFarpPlatformType(typeName) then
-        farpBases[name] = base
-        veaf.loggers.get(veafGrass.Id):trace("found farpBase [%s]", veaf.lp(name))
-      end
+    if name:find("^CTLD_") then
+      veaf.loggers.get(veafGrass.Id):trace("skipping CTLD FARP [%s]", veaf.lp(name))
     else
-      veaf.loggers.get(veafGrass.Id):warn("Airbase is not a valid object - getTypeName crashed - [%s]", veaf.p(name))
+      local status, typeName = pcall(base.getTypeName, base) -- test cautiously if the base is a valid airbase, since DCS will either fail the getTypeName call or even crash when the airbase has been "moved" (e.g., by creating a new FARP with the same name)
+      if status then
+        if name:upper():find("GRASS_RUNWAY") then
+          grassBases[name] = base
+          veaf.loggers.get(veafGrass.Id):trace("found grassBase [%s]", veaf.lp(name))
+        end
+        --first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
+        if veafGrass.isFarpPlatformType(typeName) then
+          farpBases[name] = base
+          veaf.loggers.get(veafGrass.Id):trace("found farpBase [%s]", veaf.lp(name))
+        end
+      else
+        veaf.loggers.get(veafGrass.Id):warn("Airbase is not a valid object - getTypeName crashed - [%s]", veaf.p(name))
+      end
     end
   end
 

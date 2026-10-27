@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-FATCOW-CTLD-FARPS](FIX-FATCOW-CTLD-FARPS/PRD.md) · 🔄
+
+GRASS refilled CTLD's Fat Cow FARPs on every birth, making a cow unlimited, and CSAR gave the CH-47F no menu: GRASS now skips `CTLD_` FARPs and `csar.aircraftType` lists `CH-47Fbl1` (24). From the Fat Cow server run of 2026-10-26 (VEAF/CTLD#273).
+
 ## 🧑 Waiting for a human
 
 ### [FIX-COWORK-SESSION-FINDINGS](FIX-COWORK-SESSION-FINDINGS/PRD.md) · 🧑

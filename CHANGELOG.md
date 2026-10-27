@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- **GRASS leaves CTLD's Fat Cow FARPs alone, and the CH-47F gets CSAR** (FIX-FATCOW-CTLD-FARPS): the refill of every FARP on each player birth skipped no FARP, so a CTLD Fat Cow, whose FARP holds what the cow carries, came back full each time; airbases named `CTLD_…` are now skipped. `csar.aircraftType` lists `CH-47Fbl1` (24 places), so the Chinook has the CSAR menu.
+
 ## [6.32.0] — 2026-10-26
 
 ### Changed

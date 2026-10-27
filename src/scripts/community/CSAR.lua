@@ -26,6 +26,7 @@ csar.aircraftType["SA342M"] = 2
 csar.aircraftType["UH-1H"] = 8
 csar.aircraftType["Mi-8MT"] = 16
 csar.aircraftType["Mi-24P"] = 8
+csar.aircraftType["CH-47Fbl1"] = 24 -- VEAF: the CH-47F, CSAR helicopter of the Fat Cow lot (FIX-FATCOW-CTLD-FARPS)
 
 -- Prefix Settings - Only For helicopters
 csar.useprefix = true -- Use the Prefixed defined below, Requires Unit have the Prefix defined below

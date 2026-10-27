@@ -27,6 +27,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **F10 commands follow the pilots present** (FEAT-BFR-V6-SUPPORT 03): when the first pilot of a group left his slot, his wingmen's clicks went nowhere; a pilot who leaves, dies, ejects or crashes is now forgotten and the menu rebuilt, and a message for a unit that is gone is no longer shown to every player.
 - **Combat zones** (FEAT-BFR-V6-SUPPORT 06): an unknown zone name is a line in the log, not a message to every player; building the radio menu again no longer adds a duplicate menu.
 - **`WEATHER.welcomeBrief: false` works** (FEAT-BFR-V6-SUPPORT 13): documented, it was written to the configuration and never read; `CARRIER.init.include_carrier_operations_radio: false` was ignored the same way and now leaves the carrier menu out.
+- **GRASS leaves CTLD's Fat Cow FARPs alone, and the CH-47F gets CSAR** (FIX-FATCOW-CTLD-FARPS): the refill of every FARP on each player birth skipped no FARP, so a CTLD Fat Cow, whose FARP holds what the cow carries, came back full each time; airbases named `CTLD_…` are now skipped. `csar.aircraftType` lists `CH-47Fbl1` (24 places), so the Chinook has the CSAR menu.
 
 ### Added
 

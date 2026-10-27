@@ -100,19 +100,19 @@ def read_default_config(ctld_lua_path: Path) -> str | None:
     return extract_default_config(ctld_lua_path.read_text(encoding="utf-8", errors="replace"))
 
 
-def read_list_since(ctld_lua_path: Path) -> dict[str, str]:
+def read_list_since(ctld_lua_path: Path | None) -> dict[str, str]:
     """Return the catalogue version each list appeared in, from a ``CTLD.lua`` file.
 
     CTLD 2.0.0-rc15 embeds ``ctld.configListSince`` (VEAF/CTLD ADR 0011 Addendum 3): a list a mission's
     configuration omits is a removal, unless the catalogue gained it after the configuration's version.
 
     Args:
-        ctld_lua_path: Path to the vendored CTLD deliverable.
+        ctld_lua_path: Path to the vendored CTLD deliverable, ``None`` when there is none.
 
     Returns:
         ``{list: version}``; empty when the file is missing or predates the table.
     """
-    if not ctld_lua_path.is_file():
+    if ctld_lua_path is None or not ctld_lua_path.is_file():
         return {}
     text = ctld_lua_path.read_text(encoding="utf-8", errors="replace")
     block = re.search(r"ctld\.configListSince\s*=\s*\{(.*?)\n\}", text, re.S)

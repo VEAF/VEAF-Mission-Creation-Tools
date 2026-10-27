@@ -17,6 +17,27 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- **Security-bypassing shortcuts admit only the options that tune them** (FEAT-BFR-V6-SUPPORT 01): after `-jtac`, `-afac`, `-smoke`, `-longsmoke`, `-signal`, `-light`, `-tacan`, `-point` and `-beacon`, a player's marker admits only the options each shortcut declares (`VeafAlias:setAllowedOptions`), in a strict form — `-jtac, laser 1511`, `-smoke, color red`, `-tacan, channel 37` still work. Anything else refuses the marker whole, tells its author only, and is never logged. A mission's own bypassing shortcut admits nothing after it unless it declares its options. Ported from BFR's `veafPatches.lua` (Sharko).
+- **SRS text-to-speech validates its arguments** (FEAT-BFR-V6-SUPPORT 02): `STTS.TextToSpeech` and `STTS.PlayMP3` run nothing when a frequency, modulation, volume or coalition is malformed, and strip shell characters from the message and the name.
+
+### Fixed
+
+- **F10 commands follow the pilots present** (FEAT-BFR-V6-SUPPORT 03): when the first pilot of a group left his slot, his wingmen's clicks went nowhere; a pilot who leaves, dies, ejects or crashes is now forgotten and the menu rebuilt, and a message for a unit that is gone is no longer shown to every player.
+- **Combat zones** (FEAT-BFR-V6-SUPPORT 06): an unknown zone name is a line in the log, not a message to every player; building the radio menu again no longer adds a duplicate menu.
+- **`WEATHER.welcomeBrief: false` works** (FEAT-BFR-V6-SUPPORT 13): documented, it was written to the configuration and never read; `CARRIER.init.include_carrier_operations_radio: false` was ignored the same way and now leaves the carrier menu out.
+
+### Added
+
+- **F10 submenus reserved to some groups, and split per pilot** (FEAT-BFR-V6-SUPPORT 04, 05): `veafRadio.addSubMenuForGroups(title, parent, filter)` and `veafRadio.addSubMenuPerPilot(title, parent)`, for a mission script — the carrier menu for carrier aircraft only, a command answering the pilot who clicked.
+- **Carriers without VEAF's 60 s loop** (FEAT-BFR-V6-SUPPORT 07): `CARRIER.init.operations_scheduler: false`, for a mission that drives its carriers itself.
+- **Named points declared from a script** (FEAT-BFR-V6-SUPPORT 09): `veafNamedPoints.declarePoints(points)`, before or after `initialize()`.
+- **`initialized_by_mission: true`** (FEAT-BFR-V6-SUPPORT 12): a module keeps its script and its configuration, and its `initialize()` is left to the mission's own scripts — under any `modules:` entry, `SKYNET`, `CTLD` and `CSAR` included; `veaf.initialize()` skips it too.
+- **`convert v5` carries a mission's own script layer** (FEAT-BFR-V6-SUPPORT 10): `scriptsToLoad` of `veafDynamicConfig.lua` becomes `custom_scripts:` in order, every script of `src/scripts` is read for the modules it uses and starts (CTLD, CSAR and Skynet included), and settings the script computes are reported apart. Measured on BFR's SeaShepherd part 1: the `modules:` block went from 8 enabled entries to 17, 8 of them handed to the mission, and 36 scripts are declared.
+- **Page "Port a mission with its own script layer"** (FEAT-BFR-V6-SUPPORT 08, 11), FR + EN, with BFR as the example and the CTLD 2 events that replace CTLD v1's internals.
+- **`poetry run test-lua` uses the Lua 5.1 shipped with DCS** (FEAT-BFR-V6-SUPPORT 14) when no other is found, through the registry.
+
 ## [6.32.0] — 2026-10-26
 
 ### Changed

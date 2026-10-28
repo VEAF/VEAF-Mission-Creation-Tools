@@ -44,8 +44,9 @@ ENV_EXPORT = "export"
 #: Horizontal field of view of the DCS window, degrees. Measured, see the module docstring.
 HFOV_DEGREES = 80.0
 
-#: Height of the F11 information bar at the bottom of the window, cut off every shot.
-INFO_BAR_PX = 26
+#: Height of the F11 information bar at the bottom of the window, cut off every shot. Measured on a
+#: 2650 x 1634 client area (2026-10-28): the bar starts 36 px above the bottom.
+INFO_BAR_PX = 40
 
 #: Coalition ids as ``coalition.getGroups`` takes them.
 COALITIONS = {"red": 1, "blue": 2}

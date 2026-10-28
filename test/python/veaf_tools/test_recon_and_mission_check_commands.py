@@ -119,7 +119,8 @@ def test_shoot_moves_the_camera_from_export_and_writes_the_raw_shot(
     app: Any, tmp_path: Path, fake_hook: list[tuple[str, str]], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "veaf_libs.dcs_window_capture.grab_dcs", lambda retry: (Image.new("RGB", (640, 360), (80, 80, 80)), (640, 360))
+        "veaf_libs.dcs_window_capture.grab_dcs",
+        lambda retry, **kw: (Image.new("RGB", (640, 360), (80, 80, 80)), (640, 360)),
     )
     monkeypatch.setattr("time.sleep", lambda seconds: None)
     raw = tmp_path / "raw"
@@ -142,7 +143,8 @@ def test_render_makes_the_photos_and_the_index(
     app: Any, tmp_path: Path, fake_hook: list[tuple[str, str]], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "veaf_libs.dcs_window_capture.grab_dcs", lambda retry: (Image.new("RGB", (640, 360), (80, 80, 80)), (640, 360))
+        "veaf_libs.dcs_window_capture.grab_dcs",
+        lambda retry, **kw: (Image.new("RGB", (640, 360), (80, 80, 80)), (640, 360)),
     )
     monkeypatch.setattr("time.sleep", lambda seconds: None)
     shots, raw, out = _shots(tmp_path), tmp_path / "raw", tmp_path / "recon"

@@ -87,6 +87,7 @@ def grab_dcs(
     retry: Callable[[], None],
     attempts: int = 8,
     pause: float = 2.0,
+    ignore_bottom: int = 0,
 ) -> tuple[Image.Image, tuple[int, int]]:  # pragma: no cover - needs the DCS window
     """Grab the DCS client area from the primary screen, retrying while it is black.
 
@@ -95,6 +96,9 @@ def grab_dcs(
             DCS into drawing the frame.
         attempts: How many grabs before giving up.
         pause: Seconds between attempts.
+        ignore_bottom: Pixels at the bottom left out of the blackness test — the F11 bar, whose text
+            is drawn over a frame that is otherwise still black (measured: four shots of eleven came out
+            entirely black once the bar was cut off).
 
     Returns:
         The grab and the client area's ``(width, height)``.
@@ -108,7 +112,7 @@ def grab_dcs(
     size = (box[2] - box[0], box[3] - box[1])
     for _ in range(attempts):
         image = ImageGrab.grab().crop(box)
-        if not is_black(image):
+        if not is_black(image.crop((0, 0, image.width, image.height - ignore_bottom))):
             return image, size
         time.sleep(pause)
         retry()

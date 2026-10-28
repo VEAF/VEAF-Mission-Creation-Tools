@@ -1710,3 +1710,25 @@ limitations:
   workaround: |
     Read the `modules:` block `convert v5` writes and set `initialized_by_mission` by hand where its
     guess is wrong; the conversion report lists the modules it handed to the mission.
+
+- id: on-road-route-with-no-path-stands-still
+  kind: dcs
+  area: ground-ai
+  title: "A ground group ordered \"On Road\" where no road leads stands still, with no message"
+  measured: "2026-10-28"
+  symptom: |
+    DCS looks for a road path between two points of an "On Road" leg. When there is none — the road
+    network does not cross that line — the group does not drive off-road instead: it stays where it
+    is, its route accepted, and nothing in `dcs.log` says why.
+
+    Measured on Syria for "Marteau du Golan": an allied column spawned in front of Quneitra and
+    ordered On Road towards Khan Arnabah, across the Purple Line, stood still for 80 s. The same route
+    with its first two points Off Road (to the town, then onto the road) left at once and took the
+    road from there.
+  workaround: |
+    Make the legs that leave from open ground, or cross a border, a ceasefire line or a river,
+    "Off Road", and switch to "On Road" from a point already on the road beyond. Watch a column's first
+    minute in game on the F10 map: a column that has a route and does not move is this, not a script
+    error.
+  cost: |
+    The allied push of "Marteau du Golan" (2026-10-28) did not move during its first test.

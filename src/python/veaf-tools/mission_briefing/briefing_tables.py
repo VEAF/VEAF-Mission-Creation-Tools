@@ -21,15 +21,18 @@ from pptx.util import Emu, Pt
 #: The deck's text sizes in a table, points.
 _HEADER_SIZE, _CELL_SIZE = 12, 11
 
-#: The room a table page has for its rows, in lines of :data:`_CELL_SIZE` text: the body's 419 points at
-#: some 13 points a line.
-_PAGE_LINES = 32
+#: The room a table page has under its title, EMU: from :data:`_TOP` to the slide's foot margin. Paginated on
+#: the heights :func:`write_table_page` draws, so that a page never runs off the slide (pr-code-review of #1210).
+_ROOM = 6858000 - 1050000 - 300000
 
 #: How many characters of :data:`_CELL_SIZE` text a full-width line holds, on the deck's body.
 _LINE_CHARS = 160
 
 _TOP = Emu(1050000)
 _LINE_EMU = Emu(190000)
+_ROW_PAD = 60000
+_HEADING_EMU = 380000
+_GAP_EMU = 200000
 _HEADER_FILL = RGBColor(0x1F, 0x4E, 0xA8)
 _STRIPE_FILL = RGBColor(0xF2, 0xF4, 0xF8)
 _WHITE = RGBColor(0xFF, 0xFF, 0xFF)
@@ -64,9 +67,20 @@ def row_lines(table: Table, row: tuple[str, ...]) -> int:
     return tallest
 
 
-def _block_lines(block: Block) -> int:
+def row_height(table: Table, row: tuple[str, ...]) -> int:
+    """A row's height on the slide, EMU: its lines and its cell margins."""
+    return row_lines(table, row) * int(_LINE_EMU) + _ROW_PAD
+
+
+def _header_height(table: Table) -> int:
+    """A table's heading and header row, and the gap after it, EMU."""
+    return (_HEADING_EMU if table.heading else 0) + int(_LINE_EMU) + _ROW_PAD + _GAP_EMU
+
+
+def _block_height(block: Block) -> int:
     lines = 2 if block.heading else 0
-    return lines + sum(max(1, math.ceil(len(text) / _LINE_CHARS)) for text in block.paragraphs)
+    lines += sum(max(1, math.ceil(len(text) / _LINE_CHARS)) for text in block.paragraphs)
+    return lines * int(_LINE_EMU)
 
 
 def paginate_tables(page: TablePage) -> list[TablePage]:
@@ -83,10 +97,10 @@ def paginate_tables(page: TablePage) -> list[TablePage]:
     used = 0
     for table in page.tables:
         rows: list[tuple[str, ...]] = []
-        header = 1 + (2 if table.heading else 0)
+        header = _header_height(table)
         for row in table.rows:
-            lines = row_lines(table, row)
-            if used + header + sum(row_lines(table, r) for r in rows) + lines > _PAGE_LINES and (rows or used):
+            height = row_height(table, row)
+            if used + header + sum(row_height(table, r) for r in rows) + height > _ROOM and (rows or used):
                 # the rows so far stay on this page; a table whose first row does not fit starts the next one
                 if rows:
                     pages[-1].tables.append(Table(table.heading, table.columns, table.widths, tuple(rows)))
@@ -95,14 +109,14 @@ def paginate_tables(page: TablePage) -> list[TablePage]:
             rows.append(row)
         if rows:
             pages[-1].tables.append(Table(table.heading, table.columns, table.widths, tuple(rows)))
-            used += header + sum(row_lines(table, r) for r in rows) + 1
+            used += header + sum(row_height(table, r) for r in rows)
     for block in page.after:
-        lines = _block_lines(block)
-        if used and used + lines > _PAGE_LINES:
+        height = _block_height(block)
+        if used and used + height > _ROOM:
             pages.append(TablePage(page.title, []))
             used = 0
         pages[-1].after.append(block)
-        used += lines
+        used += height
     return pages
 
 
@@ -157,10 +171,8 @@ def write_table_page(deck: PresentationType, page: TablePage) -> None:
     for table in page.tables:
         if table.heading:
             _run(_frame(slide, _MARGIN, top, width, Emu(330000)).paragraphs[0], table.heading, 16, bold=True)
-            top += int(Emu(380000))
-        heights = [int(_LINE_EMU) + int(Emu(60000))] + [
-            row_lines(table, row) * int(_LINE_EMU) + int(Emu(60000)) for row in table.rows
-        ]
+            top += _HEADING_EMU
+        heights = [int(_LINE_EMU) + _ROW_PAD] + [row_height(table, row) for row in table.rows]
         total = sum(heights, 0)
         shape = slide.shapes.add_table(
             len(table.rows) + 1, len(table.columns), Emu(_MARGIN), Emu(top), Emu(width), Emu(total)
@@ -181,7 +193,7 @@ def write_table_page(deck: PresentationType, page: TablePage) -> None:
                 cell.fill.solid()
                 cell.fill.fore_color.rgb = _STRIPE_FILL if number % 2 == 0 else _WHITE
                 _cell(cell, text, _CELL_SIZE, bold=column == 0)
-        top += total + int(Emu(200000))
+        top += total + _GAP_EMU
     if page.after:
         frame = _frame(slide, _MARGIN, top, width, max(int(Emu(400000)), int(_HEIGHT) - top - int(Emu(300000))))
         first = True

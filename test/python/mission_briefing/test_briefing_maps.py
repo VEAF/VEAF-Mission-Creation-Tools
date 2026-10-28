@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import itertools
 from pathlib import Path
+from typing import Any
 
 from campaign_manager.mission_picture import read_mission_picture
 from mission_briefing.briefing_maps import render_objective_zoom, render_overview_map, threat_circles
@@ -40,6 +41,17 @@ def _inputs(tmp_path: Path) -> dict:
     }
 
 
+def _waypoint(report: Any, number: int) -> tuple[float, float]:
+    """Where the route's waypoint ``number`` was drawn: its symbol is named by its label, ``waypoint W1 POTI``."""
+    found = [
+        xy
+        for name, xy in report.symbols.items()
+        if name.startswith(f"waypoint W{number}") and name[len(f"waypoint W{number}")] in " /"
+    ]
+    assert found, sorted(report.symbols)
+    return found[0]
+
+
 class TestTheThreatCircles:
     def test_engagement_plain_detection_dashed_nothing_without_a_range(self) -> None:
         assert threat_circles(SA6) == [(13.0 * 1852, False), (30.0 * 1852, True)]
@@ -59,9 +71,8 @@ class TestTheOverview:
             **_inputs(tmp_path), out=tmp_path / "overview.png", cache_dir=tmp_path, fetch=_white
         )
         assert report.path.is_file() and not report.offline
-        assert {"Khobi", "SA-6 Gori", "bullseye", "carrier", "Kobuleti", "Overlord 1-1", "waypoint 1"} <= set(
-            report.symbols
-        )
+        assert {"Khobi", "SA-6 Gori", "bullseye", "carrier", "Kobuleti", "Overlord 1-1"} <= set(report.symbols)
+        assert _waypoint(report, 1)
         for a, b in itertools.combinations(report.labels, 2):
             assert not intersects(a, b), (a, b)
 
@@ -116,7 +127,7 @@ class TestTheRoute:
     def test_it_leaves_from_the_departure(self, tmp_path: Path) -> None:
         inputs = _inputs(tmp_path)
         report = render_overview_map(**inputs, out=tmp_path / "overview.png", cache_dir=tmp_path, fetch=_white)
-        (x0, y0), (x1, y1) = report.symbols["Kobuleti"], report.symbols["waypoint 1"]
+        (x0, y0), (x1, y1) = report.symbols["Kobuleti"], _waypoint(report, 1)
         image = Image.open(report.path).convert("RGB")
         red, green, blue = image.getpixel((int(x0 + (x1 - x0) * 0.4), int(y0 + (y1 - y0) * 0.4)))
         assert max(red, green, blue) < 120  # the dark route line, on a white background
@@ -126,7 +137,7 @@ class TestTheRoute:
         report = render_overview_map(
             **_inputs(tmp_path), out=tmp_path / "overview.png", cache_dir=tmp_path, fetch=_white
         )
-        (x0, y0), (x1, y1) = report.symbols["waypoint 1"], report.symbols["waypoint 2"]
+        (x0, y0), (x1, y1) = _waypoint(report, 1), _waypoint(report, 2)
         image = Image.open(report.path).convert("RGB")
         red, green, blue = image.getpixel((int(x0 + (x1 - x0) * 0.6), int(y0 + (y1 - y0) * 0.6)))
         assert max(red, green, blue) < 120
@@ -144,7 +155,9 @@ class TestTheReadableOverview:
         assert abs(width / height - 2.0) < 0.02
         assert report.metres_per_pixel > 0
 
-    def test_the_frame_holds_the_route_and_leaves_the_support_out(self, tmp_path: Path) -> None:
+    def test_the_frame_holds_the_route_and_the_support(self, tmp_path: Path) -> None:
+        # the support was left out (FEAT-OBJECTIVE-BRIEFING-QUALITY 02); the theatre is the overview's since
+        # FIX-BRIEFING-PARITY-MARTEAU 02: the tankers and the AWACS are where the package refuels
         from dataclasses import replace
 
         inputs = _inputs(tmp_path)
@@ -160,8 +173,7 @@ class TestTheReadableOverview:
             x, y = report.symbols[name]
             return 0 <= x < width and 0 <= y < height
 
-        assert all(inside(name) for name in ("Khobi", "SA-6 Gori", "Kobuleti", "waypoint 1", "bullseye"))
-        assert not inside("Overlord 1-1")
+        assert all(inside(name) for name in ("Khobi", "SA-6 Gori", "Kobuleti", "bullseye", "Overlord 1-1"))
 
     def test_the_key_is_drawn_into_the_map_and_no_label_overlaps_it(self, tmp_path: Path) -> None:
         report = render_overview_map(
@@ -179,7 +191,7 @@ class TestTheReadableOverview:
         waypoint = inputs["picture"].flight_plans[0].waypoints[0]
         assert report.locate is not None
         x, y = report.locate(waypoint.x, waypoint.y)
-        wx, wy = report.symbols["waypoint 1"]
+        wx, wy = _waypoint(report, 1)
         assert abs(x - wx) < 2 and abs(y - wy) < 2
 
 
@@ -272,8 +284,15 @@ class TestTheReviewFindings:
         picture = inputs["picture"]
         far = tuple(replace(s, route=tuple((x - 150_000, y) for x, y in s.route)) for s in picture.support)
         inputs["picture"] = replace(picture, support=far)
+        # the combat area frames the fight alone: the support it leaves out is out of its key too
         report = render_overview_map(
-            **inputs, out=tmp_path / "o.png", cache_dir=tmp_path, fetch=_white, aspect=2.0, width=1200
+            **inputs,
+            out=tmp_path / "o.png",
+            cache_dir=tmp_path,
+            fetch=_white,
+            aspect=2.0,
+            width=1200,
+            combat_area=True,
         )
         assert "key objective" in report.symbols
         assert "key awacs" not in report.symbols

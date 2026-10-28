@@ -191,6 +191,14 @@ def _objective(
     return ((cx - radius, cy - radius, cx + radius, cy + radius), text or area.name, canvas.big, (*enemy, 255))
 
 
+#: How far from an objective or a threat a friendly unit still frames the combat map, metres.
+_FIGHT_REACH = 30_000
+
+
+def _near(spots: list[tuple[float, float]], x: float, y: float) -> bool:
+    return any(math.dist(spot, (x, y)) <= _FIGHT_REACH for spot in spots)
+
+
 def _dashed(
     canvas: MapCanvas, points: list[tuple[float, float]], colour: tuple[int, ...], width: int, dash: int = 18
 ) -> None:
@@ -434,7 +442,8 @@ def render_overview_map(
     """Render the mission's overview, framed on the theatre: the routes, the departures, the objectives, the
     threats, the tankers and the AWACS, the QRA zones' centres, the drawn lines.
 
-    With ``combat_area``, the same map framed on the objectives, the threats and the friendly ground units:
+    With ``combat_area``, the same map framed on the objectives, the threats and the friendly ground units
+    within 30 km of them:
     the fighting takes a quarter of an overview that holds the departures and the tankers
     (FEAT-OBJECTIVE-MISSION-V2 02); its objectives carry their titles, the overview's the flight plan's names.
 
@@ -451,7 +460,7 @@ def render_overview_map(
         aspect: The frame's width over its height (a kneeboard page's 2:3); ``None`` frames the content.
         width: The map's width at least, pixels: framed, turned when that holds it tighter, a north arrow.
             ``None`` fits the frame north up in 1400 pixels.
-        combat_area: Frame the objectives and the threats only.
+        combat_area: Frame the objectives, the threats and the friendly units at the fight.
         rotation: The turn, degrees anticlockwise (:func:`attack_axis_rotation`); ``None`` lets a framed map
             find the tightest. Needs ``width``.
         ground: The friendly units, JTACs, axes and drawn lines (:func:`ground_picture`); the combat map shows
@@ -466,7 +475,10 @@ def render_overview_map(
     ground = ground or GroundPicture()
     spots = [(area.x, area.y) for _, area in objectives] + [position for _, position in threats]
     if combat_area and spots:
-        spots += list(ground.friendlies) + [(x, y) for _, x, y in ground.jtacs]
+        # the friendlies at the fight, not a FARP's statics 150 nm away (pr-code-review of #1210)
+        fight = list(spots)
+        near = [(x, y) for x, y in [*ground.friendlies, *((x, y) for _, x, y in ground.jtacs)] if _near(fight, x, y)]
+        spots += near
     else:
         spots += [(c.x, c.y) for c in picture.carriers] + [(x, y) for _, x, y in departures]
         spots += list(numbers) + [picture.bullseye]
@@ -491,7 +503,8 @@ def render_overview_map(
         _drawn_line(canvas, line)
     if combat_area:
         labels += _ground(canvas, ground, side, friend, enemy)
-    for plan in picture.flight_plans:
+    # the helicopters' dashes first: where both routes share a leg, the planes' line stays whole
+    for plan in sorted(picture.flight_plans, key=lambda plan: plan.category != "helicopter"):
         route = [(wp.x, wp.y) for wp in plan.waypoints]
         if departures and route:  # the route leaves from the departure nearest its first point
             route.insert(0, min(((x, y) for _, x, y in departures), key=lambda xy: math.dist(xy, route[0])))

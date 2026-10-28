@@ -64,6 +64,8 @@ def _cockpit(group: dict[str, Any], units: list[Any], templates: bool) -> str | 
 def _readable(name: str, zone: str) -> str:
     """A member's name without the zone's prefix nor its markers: ``Khobi-SA8 #spawnradius=0`` → ``SA8``."""
     bare = name.split("#")[0].strip()
+    if not bare.lower().startswith(zone.lower()):  # a unit's own name may not carry its zone's
+        return bare
     rest = bare[len(zone) :].strip(" -_.")
     return rest or bare
 

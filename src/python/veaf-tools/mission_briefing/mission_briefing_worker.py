@@ -340,7 +340,7 @@ def _package_rows(content: BriefingContent, picture: MissionPicture, warnings: l
         boxes = _boxes(content.pilots.get(flight.callsign, []), flight.count)
         rows.append((flight.callsign, aircraft, where, flight.task, boxes, content.loadouts.get(flight.callsign, free)))
     for airfield in picture.airfields:
-        if airfield.name not in used and not any(flight.base == airfield.name for flight in picture.flights):
+        if airfield.name not in used:
             rows.append((t("mission_briefing.ato.open_slots"), "", airfield.name, "", _boxes([], 4), free))
     return rows
 
@@ -581,21 +581,29 @@ def _flown(flights: tuple[PackageFlight, ...], types: list[str]) -> dict[str, li
     return found
 
 
-def _ato_plans(plans: list[RadioPlan], flights: tuple[PackageFlight, ...]) -> list[RadioPlan] | None:
+def _ato_plans(
+    plans: list[RadioPlan], flights: tuple[PackageFlight, ...], groups: frozenset[str] = frozenset()
+) -> list[RadioPlan] | None:
     """The radio plans of the types the ATO flies, one per distinct channel list, named by their flights.
 
     A base offering dynamic slots carries the presets of every type it offers: 61 on a Syria base made a
     frequency plan of seven pages, each type's radios listed (FIX-BRIEFING-PARITY-MARTEAU 06). A plan
     with no named channel (an FM radio's thirty bare frequencies) says nothing a pilot needs.
 
+    A flight group the mission places (``groups``, by name) keeps its plans under its own name: a mission
+    may mix named slots and dynamic ones (pr-code-review of #1210).
+
     Returns:
         The plans, ``None`` when the ATO names no flight or none of its aircraft is a type of the plans.
     """
     if not flights:
         return None
-    flown = _flown(flights, list(dict.fromkeys(name for plan in plans for name in plan.flights)))
+    flown = _flown(
+        flights, [name for name in dict.fromkeys(n for plan in plans for n in plan.flights) if name not in groups]
+    )
     if not flown:
         return None
+    flown.update({name: [name] for plan in plans for name in plan.flights if name in groups})
     merged: dict[tuple[tuple[int, str, float], ...], tuple[list[int], list[str]]] = {}
     for plan in plans:
         carriers = [name for name in plan.flights if name in flown]
@@ -606,7 +614,7 @@ def _ato_plans(plans: list[RadioPlan], flights: tuple[PackageFlight, ...]) -> li
             radios.append(plan.radio)
         for name in carriers:
             callsigns += [callsign for callsign in flown[name] if callsign not in callsigns]
-    order = [flight.callsign for flight in flights]
+    order = [flight.callsign for flight in flights] + sorted(groups)
     return [
         RadioPlan(radios[0], tuple(sorted(callsigns, key=order.index)), channels, tuple(radios))
         for channels, (radios, callsigns) in merged.items()
@@ -620,7 +628,7 @@ def _frequencies_page(picture: MissionPicture, plans: list[RadioPlan], flights: 
     """
     if not plans:
         return frequencies_page(picture)
-    plans = _ato_plans(plans, flights) or plans
+    plans = _ato_plans(plans, flights, frozenset(flight.name for flight in picture.flights)) or plans
     blocks = []
     for plan in plans:
         lines = [

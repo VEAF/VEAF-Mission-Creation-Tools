@@ -482,3 +482,58 @@ class TestTheaterMaps:
         assert ground.jtacs == (("JTAC AbuNada", 1.0, 2.0),)
         assert ground.axes == (("red", ((0.0, 0.0), (5.0, 5.0))),)
         assert ground.lines == (MapLine("Ligne de contact", (204, 0, 0), 4, False, ((100.0, 200.0), (110.0, 195.0))),)
+
+
+class TestTheReviewFindings:
+    """pr-code-review of #1210: four defects the regeneration did not show."""
+
+    def test_a_long_table_never_runs_off_the_slide(self, tmp_path: Path) -> None:
+        from mission_briefing.briefing_tables import write_table_page
+        from pptx.util import Emu
+
+        rows = tuple((f"Vol {n}", "4 × F-16C", "Ramat David", "SEAD") for n in range(40))
+        page = TablePage("ATO", [Table("Package", ("Vol", "Avions", "Base", "Tâche"), (0.25, 0.25, 0.25, 0.25), rows)])
+        deck = Presentation()
+        deck.slide_width, deck.slide_height = Emu(12192000), Emu(6858000)
+        for part in paginate_tables(page):
+            write_table_page(deck, part)
+        for slide in deck.slides:
+            for shape in slide.shapes:
+                if shape.has_table:
+                    assert shape.top + sum(row.height for row in shape.table.rows) <= deck.slide_height
+
+    def test_a_unit_named_without_its_zone_keeps_its_whole_name(self) -> None:
+        battery = _group(
+            "SA6Sasa-battery", _unit("SA-6 Straight Flush", "Kub 1S91 str"), _unit("SA-6 Launcher 1", "Kub 2P25 ln")
+        )
+        targets = objective_area(_table([battery]), "SA6Sasa", "red").targets
+        assert [target.name for target in targets] == ["SA-6 Straight Flush", "SA-6 Launcher 1"]
+
+    def test_a_mixed_mission_keeps_its_flight_groups_radios(self) -> None:
+        plans = [
+            RadioPlan(1, ("F-16C_50",), ((1, "Package", 291.0),)),
+            RadioPlan(1, ("Enfield",), ((1, "Enfield own", 250.0),)),
+        ]
+        found = _ato_plans(plans, (PackageFlight("Ninja", aircraft="F-16C"),), frozenset({"Enfield"})) or []
+        assert [(plan.flights, plan.channels[0][1]) for plan in found] == [
+            (("Ninja",), "Package"),
+            (("Enfield",), "Enfield own"),
+        ]
+
+    def test_a_far_friendly_does_not_widen_the_combat_map(self, tmp_path: Path) -> None:
+        picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
+        name, x, y, radius = KHOBI_ZONE
+        area = ObjectiveArea(name, x, y, radius)
+        far = GroundPicture(friendlies=((x - 3000, y), (x + 280_000, y)))
+        report = render_overview_map(
+            picture,
+            [(Objective(name, "T"), area)],
+            [],
+            [],
+            tmp_path / "c.png",
+            cache_dir=tmp_path / "tiles",
+            fetch=_white,
+            combat_area=True,
+            ground=far,
+        )
+        assert report.metres_per_pixel * Image.open(report.path).size[0] < 100_000

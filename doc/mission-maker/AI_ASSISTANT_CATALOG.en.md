@@ -759,6 +759,8 @@ The pictures go into every built `.miz`, each weather variant included, and the 
 The overview takes the page's whole width, framed on the route, the objectives and the threats, turned when that holds it tighter (an arrow shows north), its key drawn inside; each zoom carries an inset placing it on the overview.
 The targets and the flight plan's steps are sheets, six to a page: name, what it is, coordinates in DMS and DDM, elevation, a thumbnail of the map — and for a step, the heading and distance that reach it and what is done there.
 The AI can add a **strategic situation** page and a **deployment and coordination** page, in prose; with dynamic slots, the ATO says "dynamic slot" and lists the package's flights under their base, not the dozens of types it offers.
+A second map, the **combat area**, follows the situation map, framed on the objectives and the threats; on the kneeboard every map is turned so that the attack axis (from the base to the objectives) runs up the page.
+The AI can also give the package's **code words** (a page in the deck and on the kneeboard), and the briefing takes the **recon photos** left in `docs/recon/` (a JPEG photo and its JSON sheet: zone, title, heading, pitch, position), two to a page after their objective's zoom.
 
 > 💬 *"Make the mission's briefing, topo background."*
 

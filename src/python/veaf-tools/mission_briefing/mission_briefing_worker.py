@@ -81,19 +81,23 @@ from mission_briefing.briefing_kneeboard import (
     leg_text,
     map_page,
     page_name,
+    photo_page,
     route_steps,
     targets_blocks,
     text_pages,
 )
 from mission_briefing.briefing_maps import (
+    COMBAT_AREA_FILE,
     OVERVIEW_FILE,
     Inset,
+    attack_axis_rotation,
     render_objective_zoom,
     render_overview_map,
     zoom_file,
     zoom_half,
 )
-from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
+from mission_briefing.briefing_pdf import Cover, MapSheet, PhotoSheet, write_pdf
+from mission_briefing.briefing_recon import RECON_FOLDER, caption, load_recon
 from mission_briefing.mission_reader import departures, group_position, objective_area, radio_plans
 from mission_briefing.models import (
     BriefingContent,
@@ -102,6 +106,7 @@ from mission_briefing.models import (
     ObjectiveArea,
     PackageFlight,
     RadioPlan,
+    ReconPhoto,
     Threat,
 )
 
@@ -341,6 +346,39 @@ def _prose_page(title: str, paragraphs: tuple[str, ...]) -> Page | None:
     return Page(title, [Block(None, paragraphs)]) if paragraphs else None
 
 
+def _coordination_page(content: BriefingContent) -> Page | None:
+    """The package's code words, each with who acts on it; ``None`` when there is none (FEAT-OBJECTIVE-MISSION-V2 03)."""
+    lines: list[str] = []
+    for code in content.code_words:
+        lines.append(t("mission_briefing.code_word", word=code.word, meaning=code.meaning))
+        if code.who:
+            lines.append(t("mission_briefing.code_word_who", who=code.who))
+    return Page(t("mission_briefing.title.coordination"), [Block(None, tuple(lines))]) if lines else None
+
+
+def _code_word_blocks(content: BriefingContent) -> list[tuple[str | None, list[str]]]:
+    """The code words as the kneeboard writes them: the word as a heading, its meaning and who acts under it."""
+    return [(code.word, [code.meaning, *([f"→ {code.who}"] if code.who else [])]) for code in content.code_words]
+
+
+def _attack_origin(picture: MissionPicture, starts: list[tuple[str, float, float]]) -> tuple[float, float] | None:
+    """Where the players come from: their departure, their carrier, or the first point of their route."""
+    if starts:
+        return starts[0][1], starts[0][2]
+    if picture.carriers:
+        return picture.carriers[0].x, picture.carriers[0].y
+    if picture.flight_plans and picture.flight_plans[0].waypoints:
+        first = picture.flight_plans[0].waypoints[0]
+        return first.x, first.y
+    return None
+
+
+def _pairs(theatre: str, photos: list[ReconPhoto]) -> list[list[tuple[Path, str]]]:
+    """The photos two by two, each with its caption: what a slide or a kneeboard page holds."""
+    captioned = [(photo.image, caption(theatre, photo)) for photo in photos]
+    return [captioned[i : i + 2] for i in range(0, len(captioned), 2)]
+
+
 def _flow_page(content: BriefingContent, picture: MissionPicture, starts: list[tuple[str, float, float]]) -> Page:
     blocks = []
     if content.objectives:
@@ -516,6 +554,24 @@ def _wide_picture_page(deck: PresentationType, title: str, image: Path) -> None:
     slide.shapes.add_picture(str(image), Emu(left), top, width=Emu(width), height=Emu(height))
 
 
+def _photo_slide(deck: PresentationType, title: str, photos: list[tuple[Path, str]]) -> None:
+    """One or two recon photos side by side under the title, each with its caption under it."""
+    slide = _titled_slide(deck, title)
+    gap = Emu(200000)
+    top = Emu(1000000)
+    caption_h = Emu(700000)
+    room_w = (_WIDTH - 2 * _MARGIN - (len(photos) - 1) * gap) // len(photos)
+    room_h = _HEIGHT - top - caption_h - Emu(200000)
+    for index, (image, text) in enumerate(photos):
+        with Image.open(image) as opened:
+            ratio = opened.width / opened.height
+        width = min(room_w, int(room_h * ratio))
+        height = int(width / ratio)
+        left = _MARGIN + index * (room_w + gap) + (room_w - width) // 2
+        slide.shapes.add_picture(str(image), Emu(left), top, width=Emu(width), height=Emu(height))
+        _run(_frame(slide, left, top + height + Emu(50000), width, caption_h).paragraphs[0], text, 12, colour=_GREY)
+
+
 def _jpeg(png: Path) -> bytes:
     """A map as a DCS briefing picture: JPEG, brought down to :data:`_PICTURE_WIDTH` when wider."""
     with Image.open(png) as image:
@@ -665,18 +721,52 @@ def _kneeboard_pages(
     threats: list[tuple[Threat, tuple[float, float]]],
     starts: list[tuple[str, float, float]],
     tiles: dict[str, Any],
+    content: BriefingContent,
+    recon: dict[str, list[ReconPhoto]],
 ) -> dict[str, bytes]:
     """The briefing for the knee: the maps drawn for the 2:3 page, the flight card, the targets.
+
+    The maps are turned so that the attack axis, from the players' departure to the objectives, points
+    up, as the maps of "Marteau du Golan" were by hand; a north arrow says where north is. The combat
+    area follows the overview, each objective's recon photos its zoom, and the code words close the set
+    (FEAT-OBJECTIVE-MISSION-V2 02 to 04).
 
     Returns:
         Page file name -> JPEG, in the order the kneeboard shows them.
     """
     theatre = picture.theatre
     maps_folder = folder / MAPS_FOLDER / "kneeboard"
+    origin = _attack_origin(picture, starts)
+    turn = attack_axis_rotation(
+        xy_to_latlon(theatre, *origin) if origin else None,
+        [xy_to_latlon(theatre, area.x, area.y) for _, area in areas],
+    )
     overview = render_overview_map(
-        picture, areas, threats, starts, maps_folder / OVERVIEW_FILE, aspect=MAP_ASPECT, width=_KNEEBOARD_MAP, **tiles
+        picture,
+        areas,
+        threats,
+        starts,
+        maps_folder / OVERVIEW_FILE,
+        aspect=MAP_ASPECT,
+        width=_KNEEBOARD_MAP,
+        rotation=turn,
+        **tiles,
     )
     sheets: list[tuple[str, bytes]] = [("overview", map_page(t("campaign.mission_deck.title.tactical"), overview.path))]
+    if areas or threats:
+        combat = render_overview_map(
+            picture,
+            areas,
+            threats,
+            starts,
+            maps_folder / COMBAT_AREA_FILE,
+            aspect=MAP_ASPECT,
+            width=_KNEEBOARD_MAP,
+            combat_area=True,
+            rotation=turn,
+            **tiles,
+        )
+        sheets.append(("combat-area", map_page(t("mission_briefing.title.combat_area"), combat.path)))
     for objective, area in areas:
         zoom = render_objective_zoom(
             theatre,
@@ -687,15 +777,22 @@ def _kneeboard_pages(
             aspect=MAP_ASPECT,
             width=_KNEEBOARD_MAP,
             inset=_inset(overview, area),
+            rotation=turn or 0.0,
             **tiles,
         )
         title = t("campaign.mission_deck.title.zoom", zone=area.zone)
-        sheets.append((Path(zoom_file(area.zone)).stem, map_page(title, zoom.path)))
+        stem = Path(zoom_file(area.zone)).stem
+        sheets.append((stem, map_page(title, zoom.path)))
+        recon_title = t("mission_briefing.title.recon", zone=area.zone)
+        for n, pair in enumerate(_pairs(theatre, recon.get(area.zone, [])), 1):
+            sheets.append((f"{stem}-recon-{n}", photo_page(recon_title, pair)))
     card_blocks = flight_card_blocks(theatre, list(picture.flight_plans), starts)
     card = text_pages(t("mission_briefing.kneeboard.flight_card"), card_blocks) if card_blocks else []
     target_blocks = targets_blocks(theatre, [(objective.title, area) for objective, area in areas])
     targets = text_pages(t("mission_briefing.title.targets"), target_blocks) if target_blocks else []
-    for slug, pages in (("flight-card", card), ("targets", targets)):
+    blocks = _code_word_blocks(content)
+    codes = text_pages(t("mission_briefing.title.coordination"), blocks) if blocks else []
+    for slug, pages in (("flight-card", card), ("targets", targets), ("code-words", codes)):
         sheets += [(slug if n == 1 else f"{slug}-{n}", page) for n, page in enumerate(pages, 1)]
     return {page_name(n, slug): data for n, (slug, data) in enumerate(sheets, 1)}
 
@@ -709,6 +806,7 @@ def build_mission_briefing(
     cache_dir: Path | None = None,
     fetch: Fetch | None = None,
     kneeboard: bool = True,
+    recon_folder: Path | None = None,
 ) -> BriefingReport:
     """Write a one-shot mission's briefing deck and maps, and put the maps in its DCS briefing.
 
@@ -720,6 +818,8 @@ def build_mission_briefing(
         cache_dir: Where map tiles are kept between runs.
         fetch: How a map tile is downloaded (tests pass their own).
         kneeboard: Whether the maps, a flight card and the targets also go into every aircraft's kneeboard.
+        recon_folder: The objectives' recon photos and their sidecars (`briefing_recon`), relative to the
+            folder or absolute; the folder's `docs/recon/` when omitted, nothing when that does not exist.
 
     Returns:
         The deck, its page count, the maps, the pictures' keys, the `.miz` read, and the warnings.
@@ -731,7 +831,8 @@ def build_mission_briefing(
     if miz is None:
         raise ValueError(f"No built mission in {folder}: run build_mission first, the briefing reads the built .miz.")
     with language(_mission_language(folder)):
-        return _build(folder, miz, content, side, source, cache_dir, fetch, kneeboard)
+        recon = folder / (recon_folder if recon_folder is not None else RECON_FOLDER)
+        return _build(folder, miz, content, side, source, cache_dir, fetch, kneeboard, recon)
 
 
 def _slide_jpeg(png: Path, scratch: Path) -> Path:
@@ -758,25 +859,37 @@ def _write_deck_and_pdf(
     overview: TacticalMapReport,
     zooms: list[TacticalMapReport],
     scratch: Path,
+    combat: TacticalMapReport | None = None,
+    recon: dict[str, list[ReconPhoto]] | None = None,
 ) -> tuple[int, int]:
     """Write the deck and the PDF of the same pages; return their page counts."""
     deck = Presentation()
     deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
     _write_cover(deck, content.title, picture, numbered)
-    sheets: list[Page | MapSheet | CardPage] = []
+    sheets: list[Page | MapSheet | CardPage | PhotoSheet] = []
     for part in [part for page in opening for part in paginate(page)]:
         _write_page(deck, part)
         sheets.append(part)
     # the key is drawn into the map: the slide gives the map its whole width
     _wide_picture_page(deck, numbered[maps_at], _slide_jpeg(overview.path, scratch))
     sheets.append(MapSheet(numbered[maps_at], _slide_jpeg(overview.path, scratch), []))
-    zoom_titles = numbered[maps_at + 1 : maps_at + 1 + len(areas)]
+    first_zoom = maps_at + 1
+    if combat is not None:
+        _wide_picture_page(deck, numbered[first_zoom], _slide_jpeg(combat.path, scratch))
+        sheets.append(MapSheet(numbered[first_zoom], _slide_jpeg(combat.path, scratch), []))
+        first_zoom += 1
+    zoom_titles = numbered[first_zoom : first_zoom + len(areas)]
     for title, (objective, area), zoom in zip(zoom_titles, areas, zooms, strict=True):
         notes = [(objective.title, True), *[(text, False) for text in objective.task]]
         if area.targets:
             notes += [(t("mission_briefing.heading.targets"), True), (_join([x.name for x in area.targets]), False)]
         picture_page(deck, title, _slide_jpeg(zoom.path, scratch), notes)
         sheets.append(MapSheet(title, _slide_jpeg(zoom.path, scratch), notes))
+        # its recon photos after the zoom, two to a slide, unnumbered (FEAT-OBJECTIVE-MISSION-V2 04)
+        recon_title = t("mission_briefing.title.recon", zone=area.zone)
+        for pair in _pairs(picture.theatre, (recon or {}).get(area.zone, [])):
+            _photo_slide(deck, recon_title, pair)
+            sheets.append(PhotoSheet(recon_title, pair))
     for item in closing:
         if isinstance(item, CardSection):
             for card_page in item.pages():
@@ -809,6 +922,7 @@ def _build(
     cache_dir: Path | None,
     fetch: Fetch | None,
     kneeboard: bool,
+    recon_folder: Path,
 ) -> BriefingReport:
     built = read_miz(miz)
     table = built.mission_content or {}
@@ -847,6 +961,23 @@ def _build(
         )
         for objective, area in areas
     ]
+    combat = (
+        render_overview_map(
+            picture,
+            areas,
+            threats,
+            starts,
+            maps_folder / COMBAT_AREA_FILE,
+            aspect=_OVERVIEW_ASPECT,
+            width=_OVERVIEW,
+            combat_area=True,
+            **tiles,
+        )
+        if areas or threats
+        else None
+    )
+    recon, recon_warnings = load_recon(recon_folder, [area.zone for _, area in areas])
+    warnings += recon_warnings
 
     strategic = _prose_page(t("mission_briefing.title.strategic"), content.strategic_situation)
     situation = _situation_page(content, picture, starts)
@@ -858,12 +989,14 @@ def _build(
     radios = radio_plans(table, side, templates=dynamic)
     frequencies = _frequencies_page(picture, radios)
     deployment = _prose_page(t("mission_briefing.title.deployment"), content.deployment)
+    coordination = _coordination_page(content)
     steps = _step_sheets(content, picture, starts, overview, warnings)
     targets = _target_sheets(theatre, areas, zooms, warnings)
     opening = [*([strategic] if strategic else []), situation, ato]
     closing: list[Page | CardSection] = [
         flow,
         *([deployment] if deployment else []),
+        *([coordination] if coordination else []),
         *([navigation] if navigation else []),
         *([steps] if steps else []),
         frequencies,
@@ -872,6 +1005,7 @@ def _build(
     titles = [
         *[page.title for page in opening],
         t("campaign.mission_deck.title.tactical"),
+        *([t("mission_briefing.title.combat_area")] if combat else []),
         *[t("campaign.mission_deck.title.zoom", zone=area.zone) for _, area in areas],
         *[page.title for page in closing],
     ]
@@ -884,13 +1018,25 @@ def _build(
 
     with tempfile.TemporaryDirectory() as scratch:
         deck_pages, pdf_pages = _write_deck_and_pdf(
-            folder, content, picture, numbered, opening, closing, maps_at, areas, overview, zooms, Path(scratch)
+            folder,
+            content,
+            picture,
+            numbered,
+            opening,
+            closing,
+            maps_at,
+            areas,
+            overview,
+            zooms,
+            Path(scratch),
+            combat,
+            recon,
         )
     out = folder / DECK_FILE
     pdf = folder / PDF_FILE
 
-    maps = [overview.path, *(zoom.path for zoom in zooms)]
-    pages = _kneeboard_pages(folder, picture, areas, threats, starts, tiles) if kneeboard else {}
+    maps = [overview.path, *([combat.path] if combat else []), *(zoom.path for zoom in zooms)]
+    pages = _kneeboard_pages(folder, picture, areas, threats, starts, tiles, content, recon) if kneeboard else {}
     archives = built_archives(folder, miz)
     keys, other = _write_pictures(folder, archives, maps, side, pages)
     if other:
@@ -898,7 +1044,10 @@ def _build(
             f"{_PICTURE_KEYS['red' if side == 'blue' else 'blue']} holds {len(other)} picture(s): a player of no "
             "side sees red's then blue's (known limitation briefing-pictures-red-then-blue). Left as they are."
         )
-    offline = overview.offline or any(zoom.offline for zoom in zooms)
+    offline = overview.offline or bool(combat and combat.offline) or any(zoom.offline for zoom in zooms)
     if offline:
         warnings.append("Map tiles could not be downloaded: the maps stand on a plain background.")
-    return BriefingReport(out, deck_pages, maps, keys, miz, offline, warnings, pdf, pdf_pages, archives, list(pages))
+    photos = [photo.image for photos in recon.values() for photo in photos]
+    return BriefingReport(
+        out, deck_pages, maps, keys, miz, offline, warnings, pdf, pdf_pages, archives, list(pages), photos
+    )

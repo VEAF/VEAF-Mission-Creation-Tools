@@ -106,6 +106,35 @@ def map_page(title: str, png: Path) -> bytes:
     return _jpeg(page)
 
 
+def photo_page(title: str, photos: list[tuple[Path, str]]) -> bytes:
+    """One or two photos one above the other, each with its caption, fitted into the page.
+
+    Args:
+        title: The page's title.
+        photos: Each photo and its caption.
+
+    Returns:
+        The page, JPEG.
+    """
+    page, draw, top = _blank(title)
+    font = _font(_TEXT_SIZE)
+    usable = KNEEBOARD_PAGE[0] - 2 * _MARGIN
+    room = (KNEEBOARD_PAGE[1] - top - _MARGIN) // max(1, len(photos))
+    for index, (image, text) in enumerate(photos):
+        lines = _wrap(text, font, usable)
+        y = top + index * room
+        height = room - len(lines) * int(_TEXT_SIZE * 1.35) - 40
+        with Image.open(image) as opened:
+            scale = min(usable / opened.width, height / opened.height)
+            fitted = opened.convert("RGB").resize((round(opened.width * scale), round(opened.height * scale)))
+        page.paste(fitted, (_MARGIN + (usable - fitted.width) // 2, y))
+        y += fitted.height + 16
+        for text_line in lines:
+            draw.text((_MARGIN, y), text_line, font=font, fill=(0, 0, 0))
+            y += int(_TEXT_SIZE * 1.35)
+    return _jpeg(page)
+
+
 def text_pages(title: str, blocks: list[TextBlock]) -> list[bytes]:
     """Blocks of text on as many pages as they need, the title repeated on each.
 

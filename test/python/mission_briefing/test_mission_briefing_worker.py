@@ -68,13 +68,14 @@ class TestTheDeck:
             "1. Situation générale",
             "2. ATO",
             "3. Situation tactique",
-            "4. Situation tactique — Khobi",
-            "5. Déroulement mission",
-            "6. Plan de vol",
-            "7. Plan de vol — étape par étape",
-            "7. Plan de vol — étape par étape (suite)",  # the helicopters' route, on a slide of its own
-            "8. Plan de fréquences",
-            "9. Coordonnées cibles",
+            "4. Zone des combats",
+            "5. Situation tactique — Khobi",
+            "6. Déroulement mission",
+            "7. Plan de vol",
+            "8. Plan de vol — étape par étape",
+            "8. Plan de vol — étape par étape (suite)",  # the helicopters' route, on a slide of its own
+            "9. Plan de fréquences",
+            "10. Coordonnées cibles",
         ]
         assert report.pages == len(slides)
 
@@ -184,12 +185,16 @@ class TestTheDcsPictures:
     def test_the_maps_go_into_the_folder_and_the_built_mission_blue_and_neutral(self, tmp_path: Path) -> None:
         miz = objective_mission(tmp_path)
         report = _build(tmp_path)
-        assert report.pictures == [f"{PICTURE_PREFIX}overview", f"{PICTURE_PREFIX}objective-khobi"]
+        assert report.pictures == [
+            f"{PICTURE_PREFIX}overview",
+            f"{PICTURE_PREFIX}combat-area",
+            f"{PICTURE_PREFIX}objective-khobi",
+        ]
         folder = load_folder_mission(tmp_path)
         for mission in (folder, read_miz(miz)):
             content = mission.mission_content or {}
-            assert _side_pictures(content, "B")[:2] == report.pictures
-            assert _side_pictures(content, "N")[:2] == report.pictures
+            assert _side_pictures(content, "B")[:3] == report.pictures
+            assert _side_pictures(content, "N")[:3] == report.pictures
             assert _side_pictures(content, "R") == []
             assert (mission.map_resource_content or {})[report.pictures[0]] == "briefing-overview.jpg"
         assert (tmp_path / "src" / "mission" / "l10n" / "DEFAULT" / "briefing-overview.jpg").is_file()
@@ -211,7 +216,7 @@ class TestTheDcsPictures:
         assert report.archives == [miz, dawn, dusk]
         for archive_path in (dawn, dusk):
             content = read_miz(archive_path).mission_content or {}
-            assert _side_pictures(content, "B")[:2] == report.pictures
+            assert _side_pictures(content, "B")[:3] == report.pictures
             with zipfile.ZipFile(archive_path) as archive:
                 assert "l10n/DEFAULT/briefing-overview.jpg" in archive.namelist()
 
@@ -220,7 +225,7 @@ class TestTheDcsPictures:
         miz = objective_mission(tmp_path)
         report = _build(tmp_path)
         assert report.kneeboard[0] == "01-briefing-overview.jpg"
-        assert "02-briefing-objective-khobi.jpg" in report.kneeboard
+        assert "03-briefing-objective-khobi.jpg" in report.kneeboard
         assert any(name.endswith("-briefing-targets.jpg") for name in report.kneeboard)
         folder_pages = tmp_path / "src" / "mission" / "KNEEBOARD" / "IMAGES"
         assert sorted(path.name for path in folder_pages.iterdir()) == sorted(report.kneeboard)

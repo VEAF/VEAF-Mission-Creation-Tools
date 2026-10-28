@@ -781,6 +781,8 @@ Les images vont dans chaque `.miz` construit, variantes météo comprises, et le
 La carte de situation prend toute la largeur de la page, cadrée sur la route, les objectifs et les menaces, tournée quand elle y gagne (une flèche indique le nord), sa légende dessinée dedans ; chaque zoom porte un encart qui le situe sur elle.
 Les cibles et les étapes du plan de vol sont des fiches, six par page : nom, ce que c'est, coordonnées en DMS et en DDM, altitude, vignette de la carte — et pour une étape, le cap et la distance qui y mènent et ce qu'on y fait.
 L'IA peut ajouter une page de **situation stratégique** et une page de **déploiement et coordination**, en prose ; en slots dynamiques, l'ATO dit « slot dyn » et liste les vols du package sous leur base, pas les dizaines de types qu'elle offre.
+Une seconde carte, la **zone des combats**, suit la carte de situation, cadrée sur les objectifs et les menaces ; dans le kneeboard, toutes les cartes sont tournées pour que l'axe d'attaque (de la base aux objectifs) monte vers le haut de la page.
+L'IA peut aussi donner les **mots-codes** du package (une page dans le deck et dans le kneeboard), et le briefing prend les **photos de reconnaissance** déposées dans `docs/recon/` (une photo JPEG et sa fiche JSON : zone, titre, cap, piqué, position), deux par page après le zoom de leur objectif.
 
 > 💬 *« Fais le briefing de la mission, fond topo. »*
 

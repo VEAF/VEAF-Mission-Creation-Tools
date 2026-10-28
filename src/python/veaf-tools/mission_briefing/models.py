@@ -56,6 +56,33 @@ class PackageFlight:
 
 
 @dataclass(frozen=True)
+class CodeWord:
+    """A code word of the package: what it means, who acts on it (FEAT-OBJECTIVE-MISSION-V2 03)."""
+
+    word: str
+    meaning: str
+    who: str = ""
+
+
+@dataclass(frozen=True)
+class ReconPhoto:
+    """A recon photo of an objective and what its sidecar says (FEAT-OBJECTIVE-MISSION-V2 04)."""
+
+    image: Path
+    zone: str
+    title: str
+    heading: float | None = None
+    """Camera heading, degrees true: the axis the photo looks along."""
+    pitch: float | None = None
+    """Camera pitch, degrees, negative looking down."""
+    x: float | None = None
+    y: float | None = None
+    """The camera's position, mission coordinates."""
+    altitude_m: float | None = None
+    order: float = 0.0
+
+
+@dataclass(frozen=True)
 class BriefingContent:
     """What the assistant passes: the scenario's words, never a figure the mission holds."""
 
@@ -83,6 +110,8 @@ class BriefingContent:
     """What is done at a waypoint, by its name: on the flight plan's step sheets."""
     flights: tuple[PackageFlight, ...] = ()
     """The package's flights on dynamic slots; ``pilots`` and ``loadouts`` name them by callsign."""
+    code_words: tuple[CodeWord, ...] = ()
+    """The package's code words: a coordination page in the deck and on the kneeboard, left out when empty."""
 
 
 @dataclass(frozen=True)
@@ -139,3 +168,5 @@ class BriefingReport:
     """Every built `.miz` the pictures went into: the build's own, then each weather variant."""
     kneeboard: list[str] = field(default_factory=list)
     """The kneeboard pages written, in the order the kneeboard shows them."""
+    recon: list[Path] = field(default_factory=list)
+    """The recon photos the briefing shows."""

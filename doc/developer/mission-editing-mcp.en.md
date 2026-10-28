@@ -739,9 +739,23 @@ Each one is the matching `veaf-tools campaign` command (`campaign_manager.Campai
   wrapped `TransmitMessage`, `file` = the key, `loop`, `duration`, `subtitle` written to the
   dictionary).
 - `set_briefing_picture(mission_path, source_path, side, resource_name)` — copies a `.png`/`.jpg` into `l10n/DEFAULT`, declares it in `mapResource` as `MCP_Picture_<name>` and appends the key to the side's `pictureFileNameB` / `R` / `N`, keeping the pictures it had (FIX-DEMO-MISSION-FINDINGS 07).
-- `build_mission_briefing(mission_path, title, strategic_situation, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, deployment, waypoint_notes, flights, diversions, kneeboard, pilots, loadouts, basemap, side)` — an objective mission's VEAF briefing with no script (FEAT-MCP-MISSION-BRIEFING): `docs/briefing.pptx`, its PDF `docs/briefing.pdf` (drawn by `fpdf2` with the bundled DejaVu font: the same pages and words, a layout of its own, no Office needed; `pdf_pages` in the result), `docs/maps/` and the DCS briefing pictures, in the folder **and** the built `.miz`, first in `pictureFileNameB` / `N` under `MCP_Briefing_*` keys replaced on every call. The assistant passes the words; the rest is read from the built `.miz` (`mission_briefing/`), the injected presets (`Radio[n].channelsNames`) included for the frequency plan. `basemap: topo` takes OpenTopoMap tiles, with their credit and their own cache folder.
+- `build_mission_briefing(mission_path, title, strategic_situation, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, deployment, waypoint_notes, flights, code_words, recon_folder, diversions, kneeboard, pilots, loadouts, basemap, side)` — an objective mission's VEAF briefing with no script (FEAT-MCP-MISSION-BRIEFING): `docs/briefing.pptx`, its PDF `docs/briefing.pdf` (drawn by `fpdf2` with the bundled DejaVu font: the same pages and words, a layout of its own, no Office needed; `pdf_pages` in the result), `docs/maps/` and the DCS briefing pictures, in the folder **and** the built `.miz`, first in `pictureFileNameB` / `N` under `MCP_Briefing_*` keys replaced on every call. The assistant passes the words; the rest is read from the built `.miz` (`mission_briefing/`), the injected presets (`Radio[n].channelsNames`) included for the frequency plan. `basemap: topo` takes OpenTopoMap tiles, with their credit and their own cache folder.
   FEAT-OBJECTIVE-BRIEFING-QUALITY: `strategic_situation` and `deployment` make a page each, left out when empty; a string is prose, its paragraphs separated by a blank line (`mission_bullets` as a string loses its dashes); `flights` names a dynamic-slot package's flights, listed under their base instead of the types it offers; `waypoint_notes` (by waypoint name) goes on the flight plan's step-by-step sheets.
   The overview is framed by `MapCanvas(width=…, rotation=…)`: 2000 px at least, symbols in proportion, turned by `best_rotation` when the 2:1 frame gains 15 %, a north arrow, its key drawn inside; the zooms carry an inset (`Inset`). The targets and the steps are `CardSection`s (`mission_briefing/briefing_cards.py`), drawn in the deck and the PDF; the deck and the PDF embed the maps as JPEG.
+  FEAT-OBJECTIVE-MISSION-V2: a "combat area" map (`render_overview_map(combat_area=True)`, `docs/maps/combat-area.png`, a DCS briefing picture too) follows the overview; the kneeboard maps are turned attack axis up (`attack_axis_rotation`, true bearing from the base to the objectives), a north arrow on each; `code_words` (`word`, `meaning`, `who`) makes a "Code words" page after the deployment, and a kneeboard page.
+  **Recon photos** (`mission_briefing/briefing_recon.py`) — the interface the in-game lot fills: a folder (`recon_folder`, relative to the mission folder or absolute; `docs/recon/` by default, ignored when absent) of pairs `<stem>.jpg` (or `.jpeg`) + `<stem>.json`, UTF-8:
+
+  | key | required | meaning |
+  |---|---|---|
+  | `zone` | yes | the objective's combat zone, as `objectives[].zone` (case-insensitive) |
+  | `title` | yes | the caption, in the mission's language |
+  | `heading` | no | camera heading, degrees true: the photo's axis |
+  | `pitch` | no | camera pitch, degrees, negative looking down |
+  | `x`, `y` | no | camera position, DCS map coordinates (x north, y east); printed as DMS |
+  | `altitude_m` | no | camera altitude, metres; printed in feet |
+  | `order` | no | sorting within the zone (then file name), default 0 |
+
+  After each objective's zoom, its photos two to a slide (deck and PDF) and two to a kneeboard page, captioned "title — heading 095°, pitch -12°, from <DMS>, <ft>" with what the sidecar gives. A photo with no sidecar, a sidecar with no photo, no `zone` or `title`, or a zone that is no objective: skipped, in `warnings`. The result lists the photos used in `recon`.
 
 ### Syria Open Training (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 

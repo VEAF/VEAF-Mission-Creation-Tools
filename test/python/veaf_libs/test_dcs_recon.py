@@ -169,6 +169,12 @@ class TestShots:
         assert zone_of("Poussee [b] column#1") == "Poussee"
         assert zone_of("Bunker 2") == "Bunker 2"
 
+    def test_a_spawned_group_with_nothing_after_its_marker_is_of_its_zone(self) -> None:
+        # "Sasa [r]" was its own zone, and the briefing dropped the photos of Sa'sa' (FIX-BRIEFING-PARITY-MARTEAU 01)
+        assert zone_of("Sasa [r]") == "Sasa"
+        assert zone_of("Kiswah [r]#12") == "Kiswah"
+        assert zone_of("Kiswah [b]") == "Kiswah"
+
     def test_a_starter_plan_has_one_shot_per_zone(self) -> None:
         plan = plan_from_units(UNITS, 1, "Marteau du Golan")
         assert plan["operation"] == "Marteau du Golan"
@@ -250,6 +256,20 @@ class TestShots:
             "altitude_m": round(cam.position[1]),
             "order": 3,
         }
+
+    def test_a_shot_taken_with_a_bare_marker_zone_is_read_again(self) -> None:
+        # the raw shots of "Marteau du Golan" carry "Sasa [r]": re-rendering them gives the briefing "Sasa"
+        cam = camera_for(200, 300, 810, 90, 30, 1000)
+        meta = shot_metadata(
+            Shot("10-sasa", "Sasa", ["Sasa [r]"], 90),
+            cam,
+            UNITS[:2],
+            (200, 300, 810),
+            MissionInfo("Syria", "2011-04-16", 41460),
+            (2560, 1440),
+            None,
+        )
+        assert briefing_sidecar({**meta, "zone": "Sasa [r]"}, 1)["zone"] == "Sasa"
 
 
 class TestShootPlan:

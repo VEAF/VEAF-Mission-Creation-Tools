@@ -47,6 +47,29 @@ def _diversions(folder: Path, given: Any) -> tuple[str, ...] | None:
     return tuple(known[name.lower()] for name in names)
 
 
+#: The keys of `waypoint_notes` that hold one plan's notes, and the plan's category.
+_PLANS = {"plane": "plane", "planes": "plane", "jets": "plane", "helicopter": "helicopter", "helicopters": "helicopter"}
+
+
+def _plan_notes(notes: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """The notes of `waypoint_notes` given for one plan: ``{"helicopter": {"KHAN": "…"}}`` (FIX-BRIEFING-PARITY-MARTEAU 08).
+
+    Raises:
+        ValueError: A map under a key that names no plan.
+    """
+    found: dict[str, dict[str, str]] = {}
+    for key, value in notes.items():
+        if not isinstance(value, dict):
+            continue
+        category = _PLANS.get(str(key).lower())
+        if category is None:
+            raise ValueError(
+                f"waypoint_notes: {key!r} holds a map but names no plan; use 'plane' or 'helicopter', or a string"
+            )
+        found.setdefault(category, {}).update({str(name): str(text) for name, text in value.items()})
+    return found
+
+
 def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
     """Run the action from its parameters.
 
@@ -70,9 +93,12 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         mission_prose=isinstance(params.get("mission_bullets"), str),
         strategic_situation=_lines(params.get("strategic_situation")),
         deployment=_lines(params.get("deployment")),
-        waypoint_notes={str(k): str(v) for k, v in (params.get("waypoint_notes") or {}).items()},
+        waypoint_notes={
+            str(k): str(v) for k, v in (params.get("waypoint_notes") or {}).items() if not isinstance(v, dict)
+        },
+        plan_notes=_plan_notes(params.get("waypoint_notes") or {}),
         objectives=tuple(
-            Objective(str(o["zone"]), str(o.get("title") or o["zone"]), _lines(o.get("task")))
+            Objective(str(o["zone"]), str(o.get("title") or o["zone"]), _lines(o.get("task")), _lines(o.get("flights")))
             for o in params.get("objectives") or []
         ),
         threats=tuple(
@@ -114,6 +140,7 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         source=TILE_SOURCES[basemap],
         kneeboard=params.get("kneeboard") is not False,
         recon_folder=Path(params["recon_folder"]) if params.get("recon_folder") else None,
+        kneeboard_replace=params.get("kneeboard_replace") is True,
     )
     return {
         "deck": str(report.deck),
@@ -140,7 +167,10 @@ def _texts(content: BriefingContent) -> dict[str, str]:
         "strategic_situation": content.strategic_situation,
         "deployment": content.deployment,
         "code_words": tuple(f"{c.word} {c.meaning} {c.who}" for c in content.code_words),
-        "waypoint_notes": tuple(content.waypoint_notes.values()),
+        "waypoint_notes": (
+            *content.waypoint_notes.values(),
+            *(text for notes in content.plan_notes.values() for text in notes.values()),
+        ),
         "air_opposition": content.air_opposition,
         "air_defences": content.air_defences,
         "other": content.other,

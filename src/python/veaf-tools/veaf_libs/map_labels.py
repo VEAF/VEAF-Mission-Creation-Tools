@@ -18,7 +18,9 @@ Box = tuple[float, float, float, float]
 _SIDES: tuple[tuple[float, float], ...] = ((1, 0), (-1, 0), (0, -1), (0, 1), (1, -1), (-1, -1), (1, 1), (-1, 1))
 
 #: How far from its anchor a label may go, in multiples of the gap, before it settles for the least overlap.
-_DISTANCES: tuple[int, ...] = (1, 3, 6, 10)
+# 15 and 22 since FIX-BRIEFING-PARITY-MARTEAU: an overview framing the whole theatre is denser, and two labels
+# overlapped on the CI's fonts where 10 was the last try
+_DISTANCES: tuple[int, ...] = (1, 3, 6, 10, 15, 22)
 
 
 def intersects(a: Box, b: Box) -> bool:

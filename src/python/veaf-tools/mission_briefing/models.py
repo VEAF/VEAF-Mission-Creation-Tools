@@ -20,6 +20,8 @@ class Objective:
     title: str
     task: tuple[str, ...] = ()
     """What to do there, one line each."""
+    flights: tuple[str, ...] = ()
+    """The flights it is for, by callsign: "Pour : Ninja" on its page (FIX-BRIEFING-PARITY-MARTEAU 04)."""
 
 
 @dataclass(frozen=True)
@@ -108,6 +110,9 @@ class BriefingContent:
     """Who goes first, the slots, the rendezvous, how the flights coordinate: its own page, left out when empty."""
     waypoint_notes: dict[str, str] = field(default_factory=dict)
     """What is done at a waypoint, by its name: on the flight plan's step sheets."""
+    plan_notes: dict[str, dict[str, str]] = field(default_factory=dict)
+    """What is done at a waypoint of one plan, by category (``plane``, ``helicopter``) then name: jets and
+    helicopters share a point's name with different roles; it wins over ``waypoint_notes`` (FIX-BRIEFING-PARITY-MARTEAU 08)."""
     flights: tuple[PackageFlight, ...] = ()
     """The package's flights on dynamic slots; ``pilots`` and ``loadouts`` name them by callsign."""
     code_words: tuple[CodeWord, ...] = ()
@@ -123,6 +128,10 @@ class Target:
     y: float
     kind: str = ""
     """What it is, its units' DCS types counted: ``4 × T-72B, 2 × BMP-2``."""
+    role: str = ""
+    """What it does, read from its DCS type's attributes: ``lanceur de la batterie``, ``char``."""
+    spawned: bool = False
+    """A VEAF spawn command, drawn when its zone is activated: its nature varies from one game to the next."""
 
 
 @dataclass(frozen=True)
@@ -134,6 +143,41 @@ class ObjectiveArea:
     y: float
     radius: float
     targets: tuple[Target, ...] = ()
+    label: str = ""
+    """How the maps and the pages name it: the flight plan's waypoint on it (``KHAN``), its zone otherwise."""
+    secondary: bool = False
+    """Outside the mission's operation: a secondary objective (FIX-BRIEFING-PARITY-MARTEAU 05)."""
+
+    @property
+    def name(self) -> str:
+        """Its label, its zone when it has none."""
+        return self.label or self.zone
+
+
+@dataclass(frozen=True)
+class MapLine:
+    """A line the author drew on the mission's map (the front line), as the briefing's maps redraw it."""
+
+    name: str
+    colour: tuple[int, int, int]
+    width: int
+    dashed: bool
+    points: tuple[tuple[float, float], ...]
+    """Mission ``x``/``y``."""
+
+
+@dataclass(frozen=True)
+class GroundPicture:
+    """What the maps show on the ground besides the objectives (FIX-BRIEFING-PARITY-MARTEAU 02)."""
+
+    friendlies: tuple[tuple[float, float], ...] = ()
+    """Where the players' side's ground groups stand."""
+    jtacs: tuple[tuple[str, float, float], ...] = ()
+    """The players' JTACs: a group named ``JTAC…``, ``(name, x, y)``."""
+    axes: tuple[tuple[str, tuple[tuple[float, float], ...]], ...] = ()
+    """The ground groups' routes, ``(side, points)``: the pushes and the counter-attacks."""
+    lines: tuple[MapLine, ...] = ()
+    """The lines drawn on the players' side's and the common layers."""
 
 
 @dataclass(frozen=True)
@@ -145,6 +189,8 @@ class RadioPlan:
     """Flight group names; a dynamic-slot template is named by its aircraft type."""
     channels: tuple[tuple[int, str, float], ...]
     """``(channel, name, MHz)``; the name is empty when the preset has none."""
+    radios: tuple[int, ...] = ()
+    """Every radio number carrying these channels, when the same list is on several (FIX-BRIEFING-PARITY-MARTEAU 06)."""
 
 
 @dataclass(frozen=True)

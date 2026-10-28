@@ -134,9 +134,14 @@ def test_the_kneeboard_and_the_archives_are_reported(catalog: ActionCatalog, tmp
 def _deck_text(deck: str) -> str:
     from pptx import Presentation
 
-    return "\n".join(
-        shape.text_frame.text for slide in Presentation(deck).slides for shape in slide.shapes if shape.has_text_frame
-    )
+    texts = []
+    for slide in Presentation(deck).slides:
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                texts.append(shape.text_frame.text)
+            if shape.has_table:
+                texts += [cell.text for row in shape.table.rows for cell in row.cells]
+    return "\n".join(texts)
 
 
 def test_the_flights_on_dynamic_slots_reach_the_ato(catalog: ActionCatalog, tmp_path: Path) -> None:
@@ -144,7 +149,7 @@ def test_the_flights_on_dynamic_slots_reach_the_ato(catalog: ActionCatalog, tmp_
     objective_mission(tmp_path)
     flights = [{"callsign": "Ninja", "base": "Kobuleti", "aircraft": "F-16C", "count": 2, "task": "SEAD"}]
     result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "flights": flights})
-    assert "Ninja — 2 × F-16C — SEAD (slot dyn)" in _deck_text(result["deck"])
+    assert "Ninja\n2 × F-16C\nKobuleti (slot dyn)\nSEAD" in _deck_text(result["deck"])
 
 
 def test_a_text_given_as_one_string_is_split_into_paragraphs_and_a_mission_string_is_prose(

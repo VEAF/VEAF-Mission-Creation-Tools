@@ -59,8 +59,10 @@ def _build(folder: Path, content: BriefingContent = CONTENT, **extra):
 
 
 def _slides(deck: Path) -> list[list[str]]:
+    """Each slide's texts: its text boxes, then each cell of its tables."""
     return [
         [shape.text_frame.text for shape in slide.shapes if shape.has_text_frame]
+        + [cell.text for shape in slide.shapes if shape.has_table for row in shape.table.rows for cell in row.cells]
         for slide in Presentation(str(deck)).slides
     ]
 
@@ -129,8 +131,8 @@ class TestTheCodeWords:
         objective_mission(tmp_path)
         report = _build(tmp_path, BriefingContent(**{**CONTENT.__dict__, "code_words": CODES}))
         text = "\n".join("\n".join(slide) for slide in _slides(report.deck))
-        assert "PORTE OUVERTE — Le SA-6 de Sa'sa' est détruit." in text
-        assert "→ Blade franchit le col." in text
+        # a table since FIX-BRIEFING-PARITY-MARTEAU 07: the word, what it means, who acts on it
+        assert "PORTE OUVERTE\nLe SA-6 de Sa'sa' est détruit.\nBlade franchit le col." in text
         assert report.kneeboard[-1].endswith("-briefing-code-words.jpg")
 
     def test_none_no_page(self, tmp_path: Path) -> None:
@@ -180,8 +182,8 @@ class TestTheReconPhotos:
         assert [path.name for path in report.recon] == ["a.jpg", "b.jpg", "c.jpg"]
         slides = _slides(report.deck)
         titles = [slide[0] for slide in slides]
-        zoom = titles.index("5. Situation tactique — Khobi")
-        assert titles[zoom + 1 : zoom + 3] == ["Reconnaissance — Khobi"] * 2
+        zoom = titles.index("5. KHOBI — Détruire le dépôt de Khobi")
+        assert titles[zoom + 1 : zoom + 3] == ["Reconnaissance — KHOBI"] * 2
         assert any("cap 095°" in text for text in slides[zoom + 1])
         assert report.pages == plain.pages + 2
         assert report.pdf_pages == plain.pdf_pages + 2

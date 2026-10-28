@@ -12,6 +12,7 @@ Calibri) and the page breaks follow the PDF's text, not the deck's.
 
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,6 +20,8 @@ from campaign_manager.briefing_deck import Block, Page
 from fpdf import FPDF
 from PIL import Image
 from veaf_libs.bundled_data import bundled_dir
+
+from mission_briefing.briefing_cards import COLUMNS, ROWS, CardPage
 
 #: The deck's slide size, 16:9 (13.333 x 7.5 in), in millimetres: a page the deck's proportions.
 _PAGE_MM = (190.5, 338.67)
@@ -121,6 +124,10 @@ def _map_page(pdf: _Pdf, sheet: MapSheet) -> None:
     with Image.open(sheet.image) as opened:
         ratio = opened.width / opened.height
     height = _PAGE_MM[0] - _BODY_TOP - _BODY_BOTTOM
+    if not sheet.notes:  # a map that carries its own key takes the whole page (FEAT-OBJECTIVE-BRIEFING-QUALITY 02)
+        width = min((height + 4) * ratio, _PAGE_MM[1] - 2 * _MARGIN)
+        pdf.image(str(sheet.image), x=(_PAGE_MM[1] - width) / 2, y=_BODY_TOP - 4, w=width, h=width / ratio)
+        return
     width = min(height * ratio, _PAGE_MM[1] * 0.6)
     pdf.image(str(sheet.image), x=_MARGIN, y=_BODY_TOP - 4, w=width, h=width / ratio)
     left = _MARGIN + width + 8
@@ -129,6 +136,40 @@ def _map_page(pdf: _Pdf, sheet: MapSheet) -> None:
     for text, heading in sheet.notes:
         pdf.say(text, _HEADING_SIZE if heading else _BODY_SIZE * 0.95, bold=heading)
     pdf.set_left_margin(_MARGIN)
+
+
+def _card_page(pdf: _Pdf, page: CardPage) -> None:
+    """The deck's slide of cards, the same grid: a thumbnail on the left of each card, its lines beside it."""
+    pdf.add_page()
+    pdf.headline(page.title)
+    top = _BODY_TOP
+    if page.heading:
+        pdf.set_xy(_MARGIN, _BODY_TOP - 3)
+        pdf.say(page.heading, _HEADING_SIZE, bold=True, colour=_BLUE)
+        top = pdf.get_y() + 2
+    gap, pad = 4.0, 2.0
+    width = (_PAGE_MM[1] - 2 * _MARGIN - (COLUMNS - 1) * gap) / COLUMNS
+    height = (_PAGE_MM[0] - _BODY_BOTTOM - top - (ROWS - 1) * gap) / ROWS
+    pdf.set_auto_page_break(False)
+    for index, card in enumerate(page.cards):
+        left = _MARGIN + (index % COLUMNS) * (width + gap)
+        y = top + (index // COLUMNS) * (height + gap)
+        pdf.set_draw_color(0xB0, 0xB0, 0xB0)
+        pdf.rect(left, y, width, height)
+        text_left = left + pad
+        if card.thumbnail:
+            side = height - 2 * pad
+            pdf.image(io.BytesIO(card.thumbnail), x=left + pad, y=y + pad, w=side, h=side)
+            text_left += side + pad
+        pdf.set_left_margin(text_left)
+        pdf.set_right_margin(_PAGE_MM[1] - left - width + pad)
+        pdf.set_xy(text_left, y + pad)
+        pdf.say(card.title, _BODY_SIZE, bold=True)
+        for text in card.lines:
+            pdf.say(text, _NOTE_SIZE)
+    pdf.set_left_margin(_MARGIN)
+    pdf.set_right_margin(_MARGIN)
+    pdf.set_auto_page_break(True, margin=_BODY_BOTTOM)
 
 
 def _cover_page(pdf: _Pdf, cover: Cover) -> None:
@@ -148,7 +189,7 @@ def _cover_page(pdf: _Pdf, cover: Cover) -> None:
     pdf.set_left_margin(_MARGIN)
 
 
-def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet]) -> int:
+def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage]) -> int:
     """Write the briefing's PDF: the cover, then each sheet in the deck's order.
 
     Args:
@@ -164,6 +205,8 @@ def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet]) -> int:
     for sheet in sheets:
         if isinstance(sheet, MapSheet):
             _map_page(pdf, sheet)
+        elif isinstance(sheet, CardPage):
+            _card_page(pdf, sheet)
         else:
             _text_page(pdf, sheet)
     out.parent.mkdir(parents=True, exist_ok=True)

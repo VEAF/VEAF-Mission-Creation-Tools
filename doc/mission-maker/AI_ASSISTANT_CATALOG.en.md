@@ -755,7 +755,10 @@ No script: an AI with no command line on your PC (Claude Desktop in chat mode) d
 Build the mission first, and run it again after every change: it replaces its own pictures.
 The PPTX imports into Google Slides. `docs/briefing.pdf` is written beside it — the same pages, maps and words with a layout of its own, no PowerPoint or other program needed on your PC. The tool also warns the AI when a waypoint number of its text does not match the route, and when its French text lacks its accents.
 OpenStreetMap background, or OpenTopoMap (relief) for a desert or a low-level mission; without the network, the maps are drawn on a plain background.
-The pictures go into every built `.miz`, each weather variant included, and the **kneeboard** of every aircraft gets the maps drawn for its page, a flight card (points, heading and distance of each leg, highest ground, radios) and the targets.
+The pictures go into every built `.miz`, each weather variant included, and the **kneeboard** of every aircraft gets the maps drawn for its page, a flight card (points, heading and distance of each leg, highest ground; not the frequencies, already in the cockpits' presets) and the targets.
+The overview takes the page's whole width, framed on the route, the objectives and the threats, turned when that holds it tighter (an arrow shows north), its key drawn inside; each zoom carries an inset placing it on the overview.
+The targets and the flight plan's steps are sheets, six to a page: name, what it is, coordinates in DMS and DDM, elevation, a thumbnail of the map — and for a step, the heading and distance that reach it and what is done there.
+The AI can add a **strategic situation** page and a **deployment and coordination** page, in prose; with dynamic slots, the ATO says "dynamic slot" and lists the package's flights under their base, not the dozens of types it offers.
 
 > 💬 *"Make the mission's briefing, topo background."*
 

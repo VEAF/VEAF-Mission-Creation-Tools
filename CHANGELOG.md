@@ -17,6 +17,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **An objective mission's briefing a squadron can brief from** (FEAT-OBJECTIVE-BRIEFING-QUALITY, David's six points on the "Marteau du Golan" briefing).
+  With dynamic slots the ATO said every type a base offers — 61 on Ramat David, six slides for two bases: it now says "dynamic slot" and lists the package's flights a new `flights` parameter names (callsign, base, aircraft, count, task).
+  The overview was 715 × 628 px beside a legend taking half the slide: it is framed on the route, the departures, the objectives and the threats, turned when that holds it tighter (north arrow), 2000 px wide and more with every symbol in proportion, its key drawn inside, across the slide's whole width; each objective zoom carries an inset placing it on the overview.
+  The target coordinates and the flight plan become sheets, six to a slide, a thumbnail each: name, what it is, DMS and DDM, elevation; for a step, the heading and distance that reach it, the highest ground, and what is done there (`waypoint_notes`).
+  New optional `strategic_situation` and `deployment` texts make a page each; a text passed as one string is prose, its paragraphs split on blank lines.
+  The kneeboard flight cards drop the radio plan: the presets are already in the cockpits. The PDF follows the deck; the deck and the PDF embed the maps as JPEG.
+
 ## [6.33.0] — 2026-10-27
 
 ### Security

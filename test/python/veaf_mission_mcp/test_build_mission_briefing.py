@@ -31,7 +31,7 @@ def test_the_action_runs_through_the_catalog(catalog: ActionCatalog, tmp_path: P
     objective_mission(tmp_path)
     result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS})
     assert Path(result["deck"]) == tmp_path / "docs" / "briefing.pptx" and Path(result["deck"]).is_file()
-    assert result["pages"] == 9
+    assert result["pages"] == 11  # with the flight plan's two step sheets (FEAT-OBJECTIVE-BRIEFING-QUALITY 05)
     assert [Path(path).name for path in result["maps"]] == ["overview.png", "objective-khobi.png"]
     assert result["pictures"] == ["MCP_Briefing_overview", "MCP_Briefing_objective-khobi"]
     assert result["map_offline"] is True  # no network in the tests
@@ -99,3 +99,50 @@ def test_the_kneeboard_and_the_archives_are_reported(catalog: ActionCatalog, tmp
     assert result["kneeboard"][0] == "01-briefing-overview.jpg"
     result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "kneeboard": False})
     assert result["kneeboard"] == []
+
+
+def _deck_text(deck: str) -> str:
+    from pptx import Presentation
+
+    return "\n".join(
+        shape.text_frame.text for slide in Presentation(deck).slides for shape in slide.shapes if shape.has_text_frame
+    )
+
+
+def test_the_flights_on_dynamic_slots_reach_the_ato(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 01: the callsigns, never the base's every type."""
+    objective_mission(tmp_path)
+    flights = [{"callsign": "Ninja", "base": "Kobuleti", "aircraft": "F-16C", "count": 2, "task": "SEAD"}]
+    result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "flights": flights})
+    assert "Ninja — 2 × F-16C — SEAD (slot dyn)" in _deck_text(result["deck"])
+
+
+def test_a_text_given_as_one_string_is_split_into_paragraphs_and_a_mission_string_is_prose(
+    catalog: ActionCatalog, tmp_path: Path
+) -> None:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 04: prose, one paragraph per blank-line-separated block."""
+    objective_mission(tmp_path)
+    params = {
+        **PARAMS,
+        "strategic_situation": "Le front est figé.\n\nLa coalition frappe en profondeur.",
+        "mission_bullets": "Aveugler la défense, puis frapper le PC.",
+    }
+    result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **params})
+    text = _deck_text(result["deck"])
+    assert "Le front est figé.\nLa coalition frappe en profondeur." in text
+    assert "Aveugler la défense" in text and "– Aveugler" not in text
+
+
+def test_the_deployment_and_the_waypoint_notes_reach_the_deck(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 05; a note for a waypoint the route lacks is warned."""
+    objective_mission(tmp_path)
+    params = {
+        **PARAMS,
+        "deployment": "Viper décolle le premier.",
+        "waypoint_notes": {"KHOBI": "Largage sur le dépôt.", "NOWHERE": "x"},
+    }
+    result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **params})
+    text = _deck_text(result["deck"])
+    assert "Déploiement et coordination" in text and "Viper décolle le premier." in text
+    assert "Largage sur le dépôt." in text
+    assert any("NOWHERE" in warning for warning in result["warnings"])

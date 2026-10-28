@@ -2105,6 +2105,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ),
     )
     _lines = {"type": "array", "items": {"type": "string"}}
+    # a list is one item a line; one string is prose, its paragraphs separated by blank lines
+    _prose = {"type": ["string", "array"], "items": {"type": "string"}}
     catalog.register(
         ActionSpec(
             name="build_mission_briefing",
@@ -2116,13 +2118,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "build's own and each weather variant of missions/ (archives) -- first for the players' side and "
                 "neutral (the other side left alone). With kneeboard (default true) it also writes KNEEBOARD pages "
                 "for every aircraft, 2:3 JPEG: the overview and the zooms drawn for the page, a flight card (each "
-                "point, heading and distance of its leg, highest ground, the radios) and the targets. BUILD FIRST (build_mission): every figure is "
+                "point, heading and distance of its leg, highest ground; no radio plan, the presets are in the "
+                "cockpits) and the targets. BUILD FIRST (build_mission): every figure is "
                 "read from the built .miz -- date, time, weather, bullseye, flights, support, carriers, QRA, "
                 "flight plan, the presets injected into the cockpits, each objective's targets and their "
                 "coordinates. You pass only the scenario's WORDS: title, context, mission_bullets, objectives (combat "
                 "zone + title + task), threats (the group where it stands, its family, ranges only with their "
                 "source), air opposition, air defences, other information, pilots and loadouts by flight "
-                "group. Call it again after any change and a rebuild: it replaces its own pictures. It writes "
+                "group; optionally a strategic_situation and a deployment page (prose: one string, paragraphs "
+                "split on blank lines), waypoint_notes for the flight plan's step sheets, and with dynamic slots "
+                "the package's flights. Call it again after any change and a rebuild: it replaces its own pictures. It writes "
                 "docs/briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
                 "and warns about a W<n> the route does not carry, and about French text written without its "
                 "accents. map_offline = no tiles could be downloaded."
@@ -2132,10 +2137,20 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "properties": {
                     "mission_path": {"type": "string", "description": "The mission FOLDER, built."},
                     "title": {"type": "string", "description": "The mission's title, on the cover."},
-                    "context": {**_lines, "description": "The why, two or three sentences."},
+                    "strategic_situation": {
+                        **_prose,
+                        "description": (
+                            "Its own page after the cover, prose: the political context, why we are there, what is at "
+                            "stake. One string, paragraphs separated by a blank line. Omitted: no page."
+                        ),
+                    },
+                    "context": {**_prose, "description": "The why, two or three sentences."},
                     "mission_bullets": {
-                        **_lines,
-                        "description": "The Mission heading: three to five bullets in the infinitive.",
+                        **_prose,
+                        "description": (
+                            "The Mission heading: three to five bullets in the infinitive (a list), or prose (one "
+                            "string, no dashes)."
+                        ),
                     },
                     "objectives": {
                         "type": "array",
@@ -2166,9 +2181,24 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "required": ["name", "group"],
                         },
                     },
-                    "air_opposition": {**_lines, "description": "What may take off, and when."},
-                    "air_defences": {**_lines, "description": "How the route avoids them."},
-                    "other": {**_lines, "description": "Attack mode, refuelling..."},
+                    "air_opposition": {**_prose, "description": "What may take off, and when."},
+                    "air_defences": {**_prose, "description": "How the route avoids them."},
+                    "other": {**_prose, "description": "Attack mode, refuelling..."},
+                    "deployment": {
+                        **_prose,
+                        "description": (
+                            "A 'deployment and coordination' page after the flow: who takes off first, the slots, "
+                            "the rendezvous, how the flights coordinate. Prose; omitted: no page."
+                        ),
+                    },
+                    "waypoint_notes": {
+                        "type": "object",
+                        "description": (
+                            "What is done at a waypoint, by its NAME on the route (PUSH, IP...): shown on its step "
+                            "sheet of the flight plan. A name the route lacks is warned."
+                        ),
+                        "additionalProperties": {"type": "string"},
+                    },
                     "diversions": {
                         **_lines,
                         "description": (
@@ -2180,14 +2210,32 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "description": "Write the kneeboard pages too (default true).",
                     },
+                    "flights": {
+                        "type": "array",
+                        "description": (
+                            "The package's flights when the players take DYNAMIC SLOTS (no flight group to read): "
+                            "the ATO lists them under their base, 'dynamic slot', never the types the base offers."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "callsign": {"type": "string", "description": "The key of pilots and loadouts."},
+                                "base": {"type": "string", "description": "DCS airfield name; omitted: any base."},
+                                "aircraft": {"type": "string", "description": "As the briefing says it: F-16C."},
+                                "count": {"type": "integer", "description": "Aircraft; omitted: four pilot boxes."},
+                                "task": {"type": "string", "description": "SEAD, CAS..."},
+                            },
+                            "required": ["callsign"],
+                        },
+                    },
                     "pilots": {
                         "type": "object",
-                        "description": "Pilots' names by flight GROUP name; empty cells otherwise.",
+                        "description": "Pilots' names by flight GROUP name (or flights callsign); empty cells otherwise.",
                         "additionalProperties": _lines,
                     },
                     "loadouts": {
                         "type": "object",
-                        "description": "Imposed loadout by flight GROUP name; 'free loadout' otherwise.",
+                        "description": "Imposed loadout by flight GROUP name (or flights callsign); 'free loadout' otherwise.",
                         "additionalProperties": {"type": "string"},
                     },
                     "basemap": {

@@ -1,8 +1,8 @@
 """A one-shot mission's briefing as kneeboard pages (FIX-COWORK-SESSION-FINDINGS ticket 08).
 
 What a pilot wants on the knee rather than in the deck: the overview, one zoom per objective, a flight
-card (each point, the heading and distance to reach it, the highest ground on the way, the frequencies)
-and the targets' coordinates. JPEG, in the folder every aircraft shows (``KNEEBOARD/IMAGES/``).
+card (each point, the heading and distance to reach it, the highest ground on the way) and the targets'
+coordinates. No radio plan: the build already put the presets in the cockpits (FEAT-OBJECTIVE-BRIEFING-QUALITY 06). JPEG, in the folder every aircraft shows (``KNEEBOARD/IMAGES/``).
 
 DCS stretches a kneeboard image onto the whole page without keeping its proportions, and the page is
 2:3 (`presets_manager.KNEEBOARD_PAGE_SIZE`, measured 2026-10-18): every page is drawn at exactly that
@@ -14,10 +14,11 @@ from __future__ import annotations
 import io
 import math
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
-from campaign_manager.mission_pages import line, mhz
-from campaign_manager.mission_picture import NM, FlightPlan
+from campaign_manager.mission_pages import line
+from campaign_manager.mission_picture import NM, FlightPlan, Waypoint
 from campaign_manager.strategic_map import _font
 from PIL import Image, ImageDraw, ImageFont
 from presets_injector.presets_manager import KNEEBOARD_PAGE_SIZE
@@ -25,7 +26,7 @@ from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import t
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet, profile
 
-from mission_briefing.models import ObjectiveArea, RadioPlan
+from mission_briefing.models import ObjectiveArea
 
 #: The page, pixels: the kneeboard's 2:3, twice ED's 768 px width.
 KNEEBOARD_PAGE = KNEEBOARD_PAGE_SIZE
@@ -138,51 +139,94 @@ def text_pages(title: str, blocks: list[TextBlock]) -> list[bytes]:
     return pages
 
 
+@dataclass(frozen=True)
+class RouteStep:
+    """A point of a route and the leg that reaches it."""
+
+    number: int
+    """Its waypoint number, the departure being 0."""
+    name: str
+    x: float
+    y: float
+    heading: int | None
+    """Degrees, from the previous point; ``None`` for the first point of a route with no departure."""
+    nm: int | None
+    highest_ft: int | None
+    """The highest ground on the leg, when the theatre has an elevation grid."""
+    waypoint: Waypoint | None
+    """``None`` for the departure."""
+    origin: str = ""
+    """The previous point's name."""
+
+
+def route_steps(theatre: str, plan: FlightPlan, departures: list[tuple[str, float, float]]) -> list[RouteStep]:
+    """A route's points, its departure first when there is one, each with the leg that reaches it.
+
+    Args:
+        theatre: The mission's theatre.
+        plan: The route, as the built mission carries it.
+        departures: The airfields the players take off from, ``(name, x, y)``; a route leaves from the one
+            nearest its first point.
+
+    Returns:
+        The departure (number 0) then every waypoint.
+    """
+    points: list[tuple[str, float, float, Waypoint | None]] = [(wp.name, wp.x, wp.y, wp) for wp in plan.waypoints]
+    if departures and points:
+        name, x, y = min(departures, key=lambda d: math.dist(d[1:], points[0][1:3]))
+        points.insert(0, (name, x, y, None))
+    grid = grid_for_theatre(theatre)
+    legs = profile(grid, [(x, y) for _, x, y, _ in points]) if grid and len(points) > 1 else []
+    offset = 0 if departures else 1
+    steps = []
+    for position, (name, x, y, waypoint) in enumerate(points):
+        heading = nm = highest = None
+        origin = ""
+        if position:
+            origin, px, py, _ = points[position - 1]
+            heading = round(math.degrees(math.atan2(y - py, x - px))) % 360 or 360
+            nm = round(math.dist((px, py), (x, y)) / NM)
+            height = legs[position - 1].highest if legs else None
+            highest = round(metres_to_feet(height)) if height is not None else None
+        steps.append(RouteStep(position + offset, name, x, y, heading, nm, highest, waypoint, origin))
+    return steps
+
+
+def leg_text(step: RouteStep) -> str:
+    """``cap 287°, 25 nm — relief le plus haut 3 120 ft``, with what is known."""
+    if step.heading is None or step.nm is None:
+        return ""
+    leg = t("mission_briefing.kneeboard.leg", heading=f"{step.heading:03d}", nm=step.nm)
+    if step.highest_ft is not None:
+        leg += " — " + t("mission_briefing.kneeboard.floor", feet=step.highest_ft)
+    return leg
+
+
 def flight_card_blocks(
     theatre: str,
     plans: list[FlightPlan],
     departures: list[tuple[str, float, float]],
-    radios: list[RadioPlan],
 ) -> list[TextBlock]:
-    """The flight card: each route's points with the leg that reaches them, then the radios.
+    """The flight card: each route's points with the leg that reaches them.
 
     Args:
         theatre: The mission's theatre.
         plans: The players' routes, as the built mission carries them.
         departures: The airfields the players take off from, ``(name, x, y)``; a route leaves from the
             one nearest its first point.
-        radios: The presets in the cockpits.
 
     Returns:
-        One block per route, one per radio.
+        One block per route.
     """
-    grid = grid_for_theatre(theatre)
     blocks: list[TextBlock] = []
     for plan in plans:
-        points = [(wp.name, wp.x, wp.y) for wp in plan.waypoints]
-        if departures and points:
-            points.insert(0, min(departures, key=lambda d: math.dist(d[1:], points[0][1:])))
-        legs = profile(grid, [(x, y) for _, x, y in points]) if grid and len(points) > 1 else []
-        lines = [line(points[0][0], to_dms(*xy_to_latlon(theatre, *points[0][1:])))] if departures else []
-        offset = 1 if departures else 0
-        for index, (name, x, y) in enumerate(points[offset:], 1):
-            lines.append(f"W{index}. " + line(name, to_dms(*xy_to_latlon(theatre, x, y))))
-            position = index - 1 + offset
-            if position == 0:
-                continue
-            px, py = points[position - 1][1:]
-            heading = round(math.degrees(math.atan2(y - py, x - px))) % 360 or 360
-            leg = t(
-                "mission_briefing.kneeboard.leg", heading=f"{heading:03d}", nm=round(math.dist((px, py), (x, y)) / NM)
-            )
-            highest = legs[position - 1].highest if legs else None
-            if highest is not None:
-                leg += " — " + t("mission_briefing.kneeboard.floor", feet=round(metres_to_feet(highest)))
-            lines.append(f"      {leg}")
+        lines = []
+        for step in route_steps(theatre, plan, departures):
+            position = line(step.name, to_dms(*xy_to_latlon(theatre, step.x, step.y)))
+            lines.append(position if step.waypoint is None else f"W{step.number}. {position}")
+            if step.waypoint is not None and step.heading is not None:
+                lines.append(f"      {leg_text(step)}")
         blocks.append((", ".join(plan.aircraft) or None, lines))
-    for radio in radios:
-        lines = [f"{channel:>2}  {name or '—'}  {mhz(frequency)}" for channel, name, frequency in radio.channels]
-        blocks.append((t("mission_briefing.radio", radio=radio.radio, flights=", ".join(radio.flights)), lines))
     return blocks
 
 

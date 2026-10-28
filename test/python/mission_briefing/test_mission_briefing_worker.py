@@ -71,8 +71,10 @@ class TestTheDeck:
             "4. Situation tactique — Khobi",
             "5. Déroulement mission",
             "6. Plan de vol",
-            "7. Plan de fréquences",
-            "8. Coordonnées cibles",
+            "7. Plan de vol — étape par étape",
+            "7. Plan de vol — étape par étape (suite)",  # the helicopters' route, on a slide of its own
+            "8. Plan de fréquences",
+            "9. Coordonnées cibles",
         ]
         assert report.pages == len(slides)
 
@@ -85,7 +87,7 @@ class TestTheDeck:
         assert "Ch. 1 — Ninja : 390.5 MHz" in text and "243" not in text
         assert "1. Zip  2. Couz" in text
         _, zx, zy, _ = KHOBI_ZONE
-        assert f"SA8 : {to_dms(*xy_to_latlon('Caucasus', zx + 300, zy + 200))}" in text
+        assert f"SA8{chr(10)}Osa 9A33 ln{chr(10)}DMS {to_dms(*xy_to_latlon('Caucasus', zx + 300, zy + 200))}" in text
         assert "Patrol" not in text  # near the zone, not one of its members
 
     def test_a_threat_whose_group_is_missing_is_a_warning(self, tmp_path: Path) -> None:
@@ -101,6 +103,81 @@ class TestTheDeck:
         objective_mission(tmp_path)
         with pytest.raises(ValueError, match="Nowhere"):
             _build(tmp_path, BriefingContent(title="T", objectives=(Objective("Nowhere", "x"),)))
+
+
+class TestProse:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 04: a strategic situation page, and prose where bullets were."""
+
+    def test_the_strategic_situation_is_the_first_page_after_the_cover(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        objective_mission(tmp_path)
+        text = ("Le front s'est figé sur la Purple Line.", "La coalition frappe en profondeur avant la négociation.")
+        slides = _slides(_build(tmp_path, replace(CONTENT, strategic_situation=text)).deck)
+        assert slides[1][0] == "1. Situation stratégique"
+        assert slides[1][1] == chr(10).join(text)
+        assert slides[2][0] == "2. Situation générale"
+        assert "1. Situation stratégique" in slides[0][-1]
+
+    def test_no_strategic_situation_no_page(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        assert "Situation stratégique" not in _deck_text(_build(tmp_path).deck)
+
+    def test_a_mission_written_as_prose_keeps_no_dash(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        objective_mission(tmp_path)
+        content = replace(CONTENT, mission=("Aveugler la défense, puis frapper le PC.",), mission_prose=True)
+        text = _deck_text(_build(tmp_path, content).deck)
+        assert "Aveugler la défense, puis frapper le PC." in text
+        assert "– Aveugler" not in text
+
+
+class TestTheSheets:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 03 and 05: target sheets, the flight plan step by step, the deployment."""
+
+    @staticmethod
+    def _content() -> BriefingContent:
+        from dataclasses import replace
+
+        return replace(
+            CONTENT,
+            deployment=("Viper décolle le premier, à H-10.", "Coordination sur la fréquence package."),
+            waypoint_notes={"KHOBI": "Largage sur le dépôt, sortie par le sud."},
+        )
+
+    def test_the_targets_are_sheets_with_their_kind_coordinates_and_thumbnail(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        deck = Presentation(str(_build(tmp_path, self._content()).deck))
+        (slide,) = [s for s in deck.slides if "Coordonnées cibles" in s.shapes[0].text_frame.text]
+        text = chr(10).join(shape.text_frame.text for shape in slide.shapes if shape.has_text_frame)
+        assert "Détruire le dépôt de Khobi" in text  # the objective the sheets belong to
+        assert "SA8" in text and "Osa 9A33 ln" in text  # the target, and what it is
+        assert "DDM N4" in text and "DMS N4" in text
+        assert sum(1 for shape in slide.shapes if shape.shape_type == 13) >= 2  # a thumbnail each
+
+    def test_the_flight_plan_step_by_step_with_what_is_done_there(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        slides = _slides(_build(tmp_path, self._content()).deck)
+        steps = [slide for slide in slides if "étape par étape" in slide[0]]
+        assert steps
+        text = chr(10).join(chr(10).join(slide) for slide in steps)
+        assert "W2 — KHOBI" in text
+        assert "Largage sur le dépôt, sortie par le sud." in text
+        assert "cap " in text and " nm" in text
+
+    def test_the_deployment_page_follows_the_flow_and_is_left_out_when_empty(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        titles = [slide[0] for slide in _slides(_build(tmp_path, self._content()).deck)[1:]]
+        flow = next(i for i, title in enumerate(titles) if title.endswith("Déroulement mission"))
+        assert titles[flow + 1].endswith("Déploiement et coordination")
+        assert "Déploiement" not in _deck_text(_build(tmp_path).deck)
+
+    def test_the_pdf_carries_the_sheets_too(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        plain = _build(tmp_path)
+        report = _build(tmp_path, self._content())
+        assert report.pdf_pages > plain.pdf_pages  # the deployment page
 
 
 class TestTheDcsPictures:
@@ -256,11 +333,15 @@ class TestWaypointNumbers:
 
 
 class TestDynamicSlotAto:
-    """FIX-DEMO-VIDEO-FINDINGS 03: with dynamic slots the ATO listed no flight; an AI wrote a script to fill it."""
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 01: a base listed the 61 types it offers, six slides for two bases.
+
+    (FIX-DEMO-VIDEO-FINDINGS 03 had listed them so that the ATO was not empty.) A dynamic-slot base now says
+    so, then the flights the assistant names; never the types.
+    """
 
     @staticmethod
     def _link_the_template(miz: Path) -> None:
-        """Link the fixture's F-16C template to Kobuleti, and give the template its preset channel."""
+        """Link the fixture's F-16C template to Kobuleti, as a base offering it would."""
         mission = read_miz(miz)
         content = mission.mission_content or {}
         template = next(
@@ -269,26 +350,49 @@ class TestDynamicSlotAto:
             for group in indexed((country.get("plane") or {}).get("group"))
             if group.get("dynSpawnTemplate")
         )
-        template["groupId"] = 9001  # the fixture's templates carry none; the warehouse links a template by it
-        unit = indexed(template["units"])[0]
-        unit["Radio"] = {1: {"channels": {1: 390.5, 2: 282.2}, "channelsNames": {1: "Ninja", 2: "Magic"}}}
+        template["groupId"] = 9001
         airports = (mission.warehouses_content or {})["airports"]
         entry = next(iter(airports.values()))
         entry["aircrafts"] = {"planes": {"F-16C_50": {"initialAmount": 4, "linkDynTempl": 9001}}}
         write_miz(mission, miz)
 
-    def test_the_dynamic_airfield_lists_the_types_it_offers_with_their_first_channel(self, tmp_path: Path) -> None:
-        miz = objective_mission(tmp_path)
-        self._link_the_template(miz)
-        text = _deck_text(_build(tmp_path).deck)
-        assert "Slots dynamiques — Kobuleti" in text
-        assert "F-16C_50 — Ninja : 390.5 MHz" in text
+    @staticmethod
+    def _ato(deck: Path) -> str:
+        return chr(10).join(
+            chr(10).join(slide) for slide in _slides(deck) if slide and slide[0].split(". ", 1)[-1].startswith("ATO")
+        )
 
-    def test_a_base_linking_no_template_lists_no_type(self, tmp_path: Path) -> None:
+    def test_a_dynamic_base_says_so_and_lists_no_type(self, tmp_path: Path) -> None:
+        self._link_the_template(objective_mission(tmp_path))
+        ato = self._ato(_build(tmp_path).deck)
+        assert "Slots dynamiques — Kobuleti" in ato
+        assert "F-16C_50 —" not in ato  # the fixture's own Viper flight is an F-16C_50 too
+        assert "1. ______  2. ______  3. ______  4. ______" in ato
+
+    def test_the_flights_named_are_listed_under_their_base_with_their_pilots(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        from mission_briefing.models import PackageFlight
+
+        self._link_the_template(objective_mission(tmp_path))
+        flights = (PackageFlight("Ninja", base="Kobuleti", aircraft="F-16C", count=2, task="SEAD"),)
+        content = replace(CONTENT, flights=flights, pilots={"Ninja": ["Zip"]}, loadouts={"Ninja": "2 HARM"})
+        ato = self._ato(_build(tmp_path, content).deck)
+        assert "Ninja — 2 × F-16C — SEAD (slot dyn)" in ato
+        assert "1. Zip  2. ______    2 HARM" in ato
+
+    def test_a_flight_from_no_dynamic_base_is_listed_apart_and_warned(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        from mission_briefing.models import PackageFlight
+
         objective_mission(tmp_path)
-        text = _deck_text(_build(tmp_path).deck)
-        assert "Slots dynamiques — Kobuleti" in text
-        assert "F-16C_50 —" not in text
+        content = replace(CONTENT, flights=(PackageFlight("Jedi", base="Nowhere"), PackageFlight("Arctic")))
+        report = _build(tmp_path, content)
+        ato = self._ato(report.deck)
+        assert "Slots dynamiques — base au choix" in ato
+        assert "Jedi (slot dyn)" in ato and "Arctic (slot dyn)" in ato
+        assert any("Jedi" in warning and "Nowhere" in warning for warning in report.warnings)
 
 
 class TestDiversionFields:

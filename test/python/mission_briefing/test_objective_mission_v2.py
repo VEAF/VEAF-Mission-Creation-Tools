@@ -10,6 +10,7 @@ import io
 import json
 import math
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
 from campaign_manager.mission_picture import read_mission_picture
@@ -17,9 +18,10 @@ from mission_briefing.briefing_maps import attack_axis_rotation, render_overview
 from mission_briefing.briefing_recon import caption, load_recon
 from mission_briefing.mission_briefing_worker import PICTURE_PREFIX, build_mission_briefing
 from mission_briefing.mission_reader import departures, objective_area
-from mission_briefing.models import BriefingContent, CodeWord, Objective, ReconPhoto
+from mission_briefing.models import BriefingContent, BriefingReport, CodeWord, Objective, ReconPhoto
 from mission_tools.miz_tools import read_miz
 from objective_mission_fixture import KHOBI_ZONE, objective_mission
+from offline import offline
 from PIL import Image
 from pptx import Presentation
 from veaf_libs.coordinates import xy_to_latlon
@@ -56,6 +58,20 @@ CODES = (
 
 def _build(folder: Path, content: BriefingContent = CONTENT, **extra):
     return build_mission_briefing(folder, content, cache_dir=folder / "tiles", fetch=_white, **extra)
+
+
+class Built(NamedTuple):
+    folder: Path
+    report: BriefingReport
+
+
+@pytest.fixture(scope="module")
+def built(tmp_path_factory: pytest.TempPathFactory) -> Built:
+    """`CONTENT`'s briefing, built once for the tests that only read it: a build takes seconds."""
+    folder = tmp_path_factory.mktemp("briefing")
+    with offline(folder):
+        objective_mission(folder)
+        return Built(folder, _build(folder))
 
 
 def _slides(deck: Path) -> list[list[str]]:
@@ -115,13 +131,12 @@ class TestTheCombatArea:
         assert combat.metres_per_pixel < overview.metres_per_pixel
         assert "Khobi" in combat.symbols
 
-    def test_its_page_follows_the_overview_and_it_is_a_dcs_picture(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        report = _build(tmp_path)
+    def test_its_page_follows_the_overview_and_it_is_a_dcs_picture(self, built: Built) -> None:
+        report = built.report
         titles = [slide[0] for slide in _slides(report.deck)[1:]]
         tactical = titles.index("3. Situation tactique")
         assert titles[tactical + 1] == "4. Zone des combats"
-        assert (tmp_path / "docs" / "maps" / "combat-area.png").is_file()
+        assert (built.folder / "docs" / "maps" / "combat-area.png").is_file()
         assert f"{PICTURE_PREFIX}combat-area" in report.pictures
         assert report.kneeboard[1] == "02-briefing-combat-area.jpg"
 
@@ -135,9 +150,8 @@ class TestTheCodeWords:
         assert "PORTE OUVERTE\nLe SA-6 de Sa'sa' est détruit.\nBlade franchit le col." in text
         assert report.kneeboard[-1].endswith("-briefing-code-words.jpg")
 
-    def test_none_no_page(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        report = _build(tmp_path)
+    def test_none_no_page(self, built: Built) -> None:
+        report = built.report
         assert not any("Mots-codes" in slide[0] for slide in _slides(report.deck))
         assert not any("code-words" in name for name in report.kneeboard)
 
@@ -173,9 +187,9 @@ class TestTheReconPhotos:
         assert "005°" in with_all and "-12°" in with_all and "3 281 ft" in with_all and "N" in with_all
         assert caption("Caucasus", ReconPhoto(Path("a.jpg"), "Khobi", "Dépôt")) == "Dépôt"
 
-    def test_they_follow_their_zoom_two_to_a_slide_and_a_kneeboard_page(self, tmp_path: Path) -> None:
+    def test_they_follow_their_zoom_two_to_a_slide_and_a_kneeboard_page(self, tmp_path: Path, built: Built) -> None:
         objective_mission(tmp_path)
-        plain = _build(tmp_path)
+        plain = built.report
         for stem in ("a", "b", "c"):
             _photo(tmp_path / "docs" / "recon", stem, self._SIDE)
         report = _build(tmp_path)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,7 @@ from mission_briefing.mission_promotion import (
 )
 from mission_briefing.models import BriefingContent, Objective
 from objective_mission_fixture import objective_mission
+from offline import offline
 from PIL import Image
 from veaf_mission_mcp.build_promotion import build_promotion
 
@@ -46,16 +48,32 @@ def _briefed(folder: Path) -> Path:
     return folder
 
 
-def test_the_poster_and_the_banner_at_their_sizes(tmp_path: Path) -> None:
-    report = build_mission_promotion(_briefed(tmp_path), CONTENT)
+@pytest.fixture(scope="module")
+def briefed_once(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """One briefing for the module, since a build takes seconds; never promoted itself."""
+    folder = tmp_path_factory.mktemp("briefed")
+    with offline(folder):
+        return _briefed(folder)
+
+
+@pytest.fixture
+def briefed(briefed_once: Path, tmp_path: Path) -> Path:
+    """A copy of the briefed folder: promoting writes into it, and a test may add recon photos."""
+    folder = tmp_path / "m"
+    shutil.copytree(briefed_once, folder, ignore=shutil.ignore_patterns("tiles"))
+    return folder
+
+
+def test_the_poster_and_the_banner_at_their_sizes(briefed: Path) -> None:
+    report = build_mission_promotion(briefed, CONTENT)
     assert Image.open(report.poster).size == POSTER_SIZE
     width, height = Image.open(report.banner).size
     assert (width, height) == BANNER_SIZE
     assert width / height == pytest.approx(5.55, abs=0.01)  # what the VEAF calendar shows uncropped
 
 
-def test_the_post_carries_the_words_the_mission_and_the_links(tmp_path: Path) -> None:
-    report = build_mission_promotion(_briefed(tmp_path), CONTENT)
+def test_the_post_carries_the_words_the_mission_and_the_links(briefed: Path) -> None:
+    report = build_mission_promotion(briefed, CONTENT)
     post = report.discord.read_text(encoding="utf-8")
     assert post.startswith("# Marteau de Khobi — jeudi 29 octobre · 21 h\n")
     assert "Le dépôt de Khobi ravitaille le front." in post
@@ -68,9 +86,9 @@ def test_the_post_carries_the_words_the_mission_and_the_links(tmp_path: Path) ->
     assert report.warnings == ["No recon photo: the poster and the banner stand on the map alone."]
 
 
-def test_no_event_no_date_anywhere_and_said(tmp_path: Path) -> None:
+def test_no_event_no_date_anywhere_and_said(briefed: Path) -> None:
     content = PromotionContent(title="Marteau de Khobi")
-    report = build_mission_promotion(_briefed(tmp_path), content)
+    report = build_mission_promotion(briefed, content)
     post = report.discord.read_text(encoding="utf-8")
     assert post.startswith("# Marteau de Khobi\n")
     assert "Inscription" not in post and "Briefing" not in post
@@ -78,10 +96,10 @@ def test_no_event_no_date_anywhere_and_said(tmp_path: Path) -> None:
     assert "never invent" in joined and "calendar_url" in joined and "briefing_url" in joined
 
 
-def test_a_post_longer_than_discord_takes_is_refused(tmp_path: Path) -> None:
+def test_a_post_longer_than_discord_takes_is_refused(briefed: Path) -> None:
     content = PromotionContent(title="T", pitch=("x" * 2100,))
     with pytest.raises(ValueError, match="2000"):
-        build_mission_promotion(_briefed(tmp_path), content)
+        build_mission_promotion(briefed, content)
 
 
 def test_without_the_briefing_s_maps_it_says_so(tmp_path: Path) -> None:
@@ -91,8 +109,8 @@ def test_without_the_briefing_s_maps_it_says_so(tmp_path: Path) -> None:
     assert any("build_mission_briefing" in warning for warning in report.warnings)
 
 
-def test_a_recon_photo_is_pinned(tmp_path: Path) -> None:
-    folder = _briefed(tmp_path)
+def test_a_recon_photo_is_pinned(briefed: Path) -> None:
+    folder = briefed
     recon = folder / "docs" / "recon"
     recon.mkdir(parents=True)
     Image.new("RGB", (1600, 900), (90, 110, 70)).save(recon / "a.jpg")
@@ -106,8 +124,8 @@ def test_an_unbuilt_mission_is_refused(tmp_path: Path) -> None:
         build_mission_promotion(tmp_path, CONTENT)
 
 
-def test_the_action_hands_the_post_back(tmp_path: Path) -> None:
-    folder = _briefed(tmp_path)
+def test_the_action_hands_the_post_back(briefed: Path) -> None:
+    folder = briefed
     result = build_promotion(
         {"mission_path": str(folder), "title": "Marteau de Khobi", "tagline": ["Percer le front."]}
     )

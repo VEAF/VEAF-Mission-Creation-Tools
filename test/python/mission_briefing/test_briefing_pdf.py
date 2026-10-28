@@ -15,6 +15,7 @@ from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
 from mission_briefing.mission_briefing_worker import build_mission_briefing
 from mission_briefing.models import BriefingContent, Objective, Threat
 from objective_mission_fixture import objective_mission
+from offline import offline
 from PIL import Image
 from pptx import Presentation
 from pypdf import PdfReader
@@ -53,14 +54,21 @@ def _deck_text(deck: Path) -> str:
     )
 
 
-@pytest.fixture
-def report(tmp_path: Path):
-    objective_mission(tmp_path)
-    return build_mission_briefing(tmp_path, CONTENT, cache_dir=tmp_path / "tiles", fetch=_white)
+@pytest.fixture(scope="module")
+def folder(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return tmp_path_factory.mktemp("briefing")
 
 
-def test_the_briefing_gives_a_pdf_beside_the_deck(report, tmp_path: Path) -> None:
-    assert report.pdf == tmp_path / "docs" / "briefing.pdf"
+@pytest.fixture(scope="module")
+def report(folder: Path):
+    """One briefing for the module: the tests below only read it, and a build takes seconds."""
+    with offline(folder):
+        objective_mission(folder)
+        return build_mission_briefing(folder, CONTENT, cache_dir=folder / "tiles", fetch=_white)
+
+
+def test_the_briefing_gives_a_pdf_beside_the_deck(report, folder: Path) -> None:
+    assert report.pdf == folder / "docs" / "briefing.pdf"
     assert report.pdf.read_bytes().startswith(b"%PDF")
     assert report.pdf_pages >= report.pages
     assert len(PdfReader(str(report.pdf)).pages) == report.pdf_pages

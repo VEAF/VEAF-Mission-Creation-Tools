@@ -95,24 +95,18 @@ pas.
   Dis laquelle, et pourquoi.
   Mesure l'exposition de **deux** routes candidates face aux batteries connues avec `terrain_elevation` (`route` + `observers`, sur un profil d'altitude que tu dis supposé), et donne la comparaison dans le scénario : la route la plus courte au-dessus de la mer n'est pas le choix évident quand le relief cache le vol.
   Quand l'utilisateur valide un scénario, demande-lui comment il veut voler la sortie : sa réponse l'emporte sur ta doctrine.
-- **Des bases qui accueillent le public.** `list_airfields` avec `details: true` (et `name_contains` pour une base) donne les places de parking de chaque base, `parking.planes` et `parking.helicopters`.
-  Compare-les au nombre de pilotes. Une base trop petite refuse les slots dynamiques en
-  silence côté joueur (« Can't create dynamic group, no suitable parking was found » dans le journal
-  serveur) : mesuré sur Syria, At Tanf n'a que **2 hélisurfaces** et H4 environ 13 places avions.
-  Prévois une FARP (`add_farp`) pour les hélicoptères ou une seconde base pour les jets.
+- **Des bases qui accueillent le public** : compare les places de parking (`list_airfields`, `details: true`) au nombre de pilotes. Une base trop petite refuse les slots dynamiques en silence (At Tanf, Syria : 2 hélisurfaces) : une FARP (`add_farp`) ou une seconde base.
 - **Un convoi sur une vraie route.** Pose son départ et ses points **sur** la route, vérifiée sur le
   fond de carte : un convoi posé à côté va d'abord chercher la route la plus proche. Sa durée de
   trajet (longueur ÷ vitesse) doit tenir dans la séance.
-- **Une zone à défendre, peuplée.** Si l'enjeu est un site ami (une garnison, une ville), pose-y des
-  unités amies : assez pour qu'on ait envie de le défendre, **trop peu pour qu'il tienne seul** face à
-  l'attaquant (pas de char face à des chars, par exemple). Et la route de l'attaquant doit **arriver
-  au contact**, pas s'arrêter hors de portée.
+- **Une zone à défendre, peuplée** d'unités amies : assez pour qu'on ait envie de la défendre, **trop peu pour qu'elle tienne seule**, et la route de l'attaquant **arrive au contact**.
+- **Ce qui est scripté se dit comme un renseignement** : « le renseignement s'attend à une contre-attaque », jamais « quand Khan tombe, une colonne part » ; les pilotes ne lisent pas le script.
+- **Des voies de dégagement, dès le scénario**, pour une soirée à peu de pilotes : une CAP alliée IA à la demande (`create_cap_mission`) si personne ne tient le ciel ; SAM et objectifs secondaires **hors de l'opération**, pour que le Mission Maker les coupe un par un (une zone d'opération n'a pas sa propre commande « Désactiver ») et que l'opération se termine sans eux.
+- **Des mots-codes et « qui parle à qui »** : un mot-code par événement dont un autre vol dépend (« PORTE OUVERTE » : le SA-6 est tombé), une fréquence par public.
+- **Le Mission Maker n'est pas un pilote** : ses commandes, les incertitudes et ce qui reste à vérifier vont dans sa fiche (section 6), jamais dans le briefing des pilotes.
 - **Lisible en un coup d'œil** : un pitch qui se raconte en deux phrases.
 
-Les actions de lecture (`geocode`, `list_airfields`, `describe_map`, `list_shortcuts`,
-`list_unit_types`, `list_countries`, `resolve_coordinates`, `terrain_elevation`, `read_mission_file`, `describe_known_limitations`) sont
-permises en phase 1.
-**Aucune action qui écrit** : ni `scaffold_mission`, ni fichier, ni dossier.
+Phase 1 : les actions de lecture seulement. **Aucune action qui écrit** : ni `scaffold_mission`, ni fichier, ni dossier.
 
 ### 2.2 La fiche de scénario
 
@@ -145,6 +139,8 @@ formaté, sans image :
 
 **Ce qui fait l'intérêt** : <la difficulté, le choix tactique, ce que le groupe va devoir faire>
 
+**Si peu de pilotes** : <CAP IA, ce que le Mission Maker coupe, quand l'opération se termine>
+
 **À vérifier** : <ce qui dépend des outils ou de DCS et que tu n'as pas pu confirmer> (omis si rien)
 ```
 
@@ -161,11 +157,8 @@ Termine par une ligne : « Un autre scénario, des détails, le pré-briefing, o
 
 ### 2.4 Le pré-briefing, sur demande
 
-Quand l'utilisateur le demande, tu rédiges **dans la conversation** (pas de fichier) le briefing du
-scénario, dans la structure du modèle VEAF de la section 3. Mêmes rubriques, même ordre, en Markdown :
-titres, tableaux pour l'ATO et le plan de fréquences, listes à puces. **Pas d'image** : la rubrique
-« Situation tactique » devient une description de la géographie, un élément par ligne, avec son
-relèvement et sa distance depuis le bullseye.
+Sur demande, tu rédiges **dans la conversation** (pas de fichier) le briefing du scénario, rubriques et ordre de la section 3, en Markdown.
+**Pas d'image** : la « Situation tactique » décrit la géographie, un élément par ligne, relèvement et distance depuis le bullseye.
 
 Les **coordonnées** des cibles et les **fréquences** y sont **provisoires** (calculées depuis
 `geocode`) et marquées comme telles : les vraies viennent de la mission construite (section 6).
@@ -176,19 +169,13 @@ La phase 2 ne commence que sur une **validation explicite** d'un scénario ident
 3 », « go pour le 2 bis ». Une question, un « pas mal » ou un pré-briefing demandé ne valent pas
 validation. Au moment de valider, demande seulement ce qui manque encore :
 
-- le **format du briefing** : en pratique, VEAF le partage en **Google Slides dans un Google Drive**.
-  `build_mission_briefing` génère un PPTX, que Drive convertit en Slides à l'import ; s'il y a un connecteur Google
-  Drive, propose de l'y déposer, converti, dans le dossier que l'utilisateur indique (c'est une
-  publication : demande son accord). Un PDF en plus si on veut diffuser un fichier figé ;
+- le **format du briefing** : VEAF le partage en **Google Slides** ; le PPTX de `build_mission_briefing` s'y convertit à l'import (avec un connecteur Drive, propose de l'y déposer : c'est une publication, demande son accord), et un PDF est écrit à côté ;
 - les **noms des pilotes** pour l'ATO, s'il les a (sinon les cases restent vides, comme dans le
   modèle).
 
 ## 3. Le modèle de briefing VEAF
 
-C'est le format des briefings de mission VEAF (référence : *Deep Strike Palmyra*). Une page par
-rubrique, en 16:9, fond blanc, **titre en gras en haut à gauche**, texte aligné à gauche — **jamais
-justifié** : dans le modèle, une ligne justifiée étale « Départ : USS Truman, Case 1, Beyrouth » sur
-toute la largeur et devient illisible.
+Le format des briefings VEAF (référence : *Deep Strike Palmyra*) : une page par rubrique, 16:9, fond blanc, titre en gras en haut à gauche, texte aligné à gauche, **jamais justifié**.
 
 1. **Couverture** — le titre de la mission en très gros à gauche ; à droite, le sommaire (Situation
    générale, ATO, Situation tactique, Plan de vol), liens vers les pages.
@@ -207,6 +194,7 @@ toute la largeur et devient illisible.
    (indicatif en bordeaux, rôle, type : ravitailleurs, AWACS) et le **contrôle** (GCI / ATC).
 4. **Situation tactique** — la carte générale : départ, itinéraire, points nommés (START, INGRESS,
    EGRESS), objectifs, menaces connues avec leur cercle. Pleine largeur, cadrée sur la zone utile, tournée si besoin (flèche nord), légende incluse.
+   - **Zone des combats** — la même carte, cadrée sur les objectifs et les menaces.
 5. **Situation tactique WPn** — une page par objectif, un zoom de plus en plus serré sur la cible : le
    site, ses bâtiments, ses défenses proches ; un encart le situe.
 6. **Déroulement mission** — **Objectifs principaux** (liste), **Opposition aérienne** (ce qu'on sait,
@@ -215,7 +203,7 @@ toute la largeur et devient illisible.
    dégagement).
 7. **Plan de vol** — un waypoint par ligne avec son rôle : `W1 : Hold`, `W2 : Insertion TBA`, …,
    `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`. Puis **étape par étape** : une fiche par point (cap, distance, relief, ce qu'on y fait).
-   - **Déploiement et coordination** (facultative) — qui part en premier, créneaux, rendez-vous.
+   - **Déploiement et coordination** (facultative) — qui part en premier, créneaux, rendez-vous ; puis les **mots-codes**.
 8. **Plan de fréquences** — UHF puis VHF : `<nom> Ch. <n> : <fréquence> MHz`, sans Garde (chaque appareil l'atteint par sa propre commande).
 9. **Coordonnées cibles** — une fiche par cible : nom, nature, DMS et DDM, altitude, vignette.
 
@@ -274,8 +262,7 @@ validé un scénario, pas un à-peu-près.
   Donc : pour les serveurs VEAF, sécurité active, hash au choix ; pour tout autre serveur, `security: disabled: true` (recommandé pour une mission entre amis) ou ses propres mots de passe.
   Un **profil
   `LOCAL_TEST`** : sécurité désactivée, logs `debug`, noms de groupes lisibles
-  (`hide_names_from_spawned_groups: false`). Les deux profils écrivent **le même nom de `.miz`** :
-  renomme le premier avant de construire le second, ou passe par un script de build.
+  (`hide_names_from_spawned_groups: false`). `build_mission` avec `profile: LOCAL_TEST` écrit son propre `.miz`, suffixé `_LOCAL_TEST`, à côté de celui du serveur.
 - **Slot Game Master** s'il est demandé : `groundControl.roles.instructor` de la table de mission
   (aucune action ne le règle : script qui charge et réécrit la table, à noter aux retours VMCT ;
   qu'il apparaisse sans Combined Arms est à vérifier en jeu). Un **slot de test** fixe (un appareil
@@ -333,6 +320,9 @@ validé un scénario, pas un à-peu-près.
   elle annonce « L'opération … est terminée » à tous : c'est le message de fin de mission, sans une
   ligne de Lua. Son menu F10 liste les objectifs qui restent. `dependencies` ordonne les tâches
   (« la tour après le radar ») : la suivante n'est donnée qu'une fois la précédente terminée.
+- **Une zone d'opération n'a pas sa propre commande « Désactiver »** : le Mission Maker ne peut couper que l'opération entière.
+  Ce qu'il doit pouvoir couper selon l'effectif (une batterie SAM, un objectif secondaire) est une zone **hors de l'opération**, `active_at_start: true` sur elle : elle a sa commande, et l'opération se termine sans elle.
+  Une commande réservée au Mission Maker (lancer une poussée alliée) : une zone `completable: false`, `active_at_start: false`, dans un sous-menu (`radio_group_name: Mission Maker`).
 - **Un objectif qui ne doit exister qu'après un autre** (renfort qui arrive, phase 2 révélée par la
   phase 1) : activer l'opération fait apparaître **toutes** ses zones d'un coup, les dépendances n'y
   changent rien. Cet objectif-là est un `chained_zones` de la zone qui le déclenche, avec
@@ -359,6 +349,7 @@ validé un scénario, pas un à-peu-près.
 - **Un convoi se crée avec sa route** (`create_combat_zone` ou `add_group` avec `route`, points 2+
   « On Road »). `edit_route` ajoute un point de véhicule en « Turning Point » et ne sait pas écrire
   « On Road » : pour changer la route, `remove_group` puis recrée le groupe.
+  Une branche « On Road » sans chemin routier (franchir une ligne de front, une frontière) laisse la colonne **immobile, sans message** : ses premiers points depuis le terrain libre sont « Off Road » (`on-road-route-with-no-path-stands-still`).
 
 ### 4.5 La menace
 
@@ -396,6 +387,7 @@ validé un scénario, pas un à-peu-près.
   déjà en vol = un groupe natif en orbite, pas une CAP à la demande. `delay_before_activating` compte
   **depuis le début de la mission**, pas depuis l'intrusion : la QRA décolle dès l'intrusion une fois
   en ligne. Écris-le ainsi au briefing (« en place à H+15 min »).
+- **CAP alliée IA à la demande** (la voie de dégagement du scénario) : `create_cap_mission` avec `menu_name` (le nom du menu F10, ex. « CAP alliée (2 F-15C, MASADA) ») et `briefing`, un `route` pour l'hippodrome, hors de portée des SAM.
 - **Radars d'alerte (EWR)** si le scénario parle d'être détecté, et **Skynet** si la défense doit
   réagir en réseau.
 
@@ -436,6 +428,7 @@ validé un scénario, pas un à-peu-près.
   - **`basemap: topo`** (OpenTopoMap, relief ombré et courbes de niveau) pour toute mission à basse altitude ou qui dépend du relief, et dans un désert, où le fond OSM standard est presque vide.
   - **Regarde chaque carte rendue** si tu le peux : aucune étiquette ne doit désigner le mauvais point.
     Sans moyen de voir une image, dis à l'utilisateur de les regarder (`docs/maps/`).
+  - **Relis chaque zoom pour les unités posées dans le bâti** quand le théâtre n'a pas de catalogue de terrain dégagé (Syria, entre autres : les actions de placement le disent) : un véhicule dans un village ou un bois s'y voit, et se déplace avec `set_unit_properties`. Ce qu'un zoom ne montre pas reste à vérifier en jeu (`veaf-tools dcs clear-ground-check`, qui demande DCS).
 - **Dessins F10** (`add_map_drawing`) sur la couche `Blue` : l'itinéraire et ses points nommés, les
   menaces connues avec leur contour. Chaque étiquette avec un `fill_color` **opaque et clair**, sinon
   le fond par défaut (noir à moitié transparent) la rend illisible.
@@ -450,12 +443,20 @@ validé un scénario, pas un à-peu-près.
 5. Soutien, radio, waypoints (4.6) ; date, météo, bullseye.
 6. Dessins F10, `set_briefing`.
 7. `validate_mission`, `build_mission` (et le profil `LOCAL_TEST`), puis la section 8.
-8. Le briefing : `build_mission_briefing` (section 6).
+8. Le **contenu du briefing en prose** (`docs/briefing-contenu.md`), validé par l'utilisateur, puis `build_mission_briefing` (section 6) et la **fiche Mission Maker**.
 9. `README.md` : le scénario, comment construire, les fichiers, les limites connues.
+10. L'**annonce**, si l'utilisateur la demande : `build_mission_promotion` (affiche, bandeau du calendrier, message Discord). Demande-lui la date et l'heure locale de la soirée et les liens ; ne les invente jamais.
 
 Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'apprêtes à faire.
 
 ## 6. Le fichier de briefing
+
+- **Le fond d'abord, la mise en page ensuite.** Écris le contenu du briefing en prose dans `docs/briefing-contenu.md` : la situation stratégique, l'opération en quelques phrases, les objectifs un par un (ce que c'est, pourquoi il compte, ce qui en dépend), le plan de vol étape par étape, le déploiement (qui part quand), les mots-codes et « qui parle à qui ».
+  Les distances et caps viennent de la mission construite ; une durée est une estimation, dite comme telle.
+  **Fais-le valider par l'utilisateur avant d'appeler `build_mission_briefing`** : corriger un texte coûte un message, corriger un deck en coûte dix.
+  Termine-le par une section **« Notes pour le Mission Maker »**, hors briefing : les incertitudes (une fréquence déduite, un placement non vérifié) n'ont rien à faire sous les yeux des pilotes.
+- **La fiche Mission Maker** (`docs/fiche-mission-maker.md`), séparée du briefing : ce que la mission fait toute seule ; chaque commande F10 qui lui revient avec son **chemin exact** (« VEAF > ZONES DE COMBAT > Batterie SA-6 > Désactiver la zone ») et son effet ; un tableau « selon qui est là » (personne en BARCAP, personne en SEAD, moins de 6 pilotes, beaucoup de pilotes) ; ce qu'il faut vérifier avant la soirée.
+  Ne présente une commande comme vérifiée que si elle l'a été en jeu.
 
 - **PPTX et PDF** dans `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), le modèle
   de la section 3, page pour page ; le PPTX est la source de la version **Google Slides** (import dans
@@ -468,9 +469,11 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
   `pilots` / `loadouts` par nom de groupe, et les `diversions` (noms DCS des aérodromes) quand le scénario nomme les siens ; sans elles, le deck liste les autres aérodromes du camp, départ exclu.
   En slots dynamiques, `flights` nomme les vols du package (indicatif, base, appareil, nombre, tâche) : l'ATO les liste sous leur base, et `pilots` / `loadouts` les désignent par leur indicatif.
   Trois textes facultatifs : `strategic_situation` et `deployment` ont chacun leur page, omise s'ils sont vides ; `waypoint_notes` dit, par nom de waypoint, ce qu'on y fait, sur sa fiche du plan de vol.
+  `code_words` (`word`, `meaning`, `who`) fait une page « Mots-codes » dans le deck et dans le kneeboard. Ces textes reprennent le contenu validé, sans ses notes Mission Maker.
+  **Photos de reconnaissance** : chaque `<nom>.jpg` de `docs/recon/` (ou `recon_folder`) avec son `<nom>.json` (`zone`, `title`, et `heading`, `pitch`, `x`, `y`, `altitude_m`, `order` s'ils sont connus) suit le zoom de son objectif, deux par page ; elles se prennent dans DCS (le cap d'engagement de chaque cible).
   Un texte passé en **une chaîne** est de la prose, ses paragraphes séparés par une ligne vide ; `mission_bullets` en chaîne perd ses tirets. Une liste reste une ligne par élément.
 - **Chaque `.miz` construit reçoit les images** : celui du build et chaque variante météo de `missions/` (`archives` dans le résultat).
-- **Le kneeboard** (`kneeboard`, actif par défaut) : la carte générale et les zooms dessinés pour la page 2:3, une carte de vol (chaque point, le cap et la distance de sa branche, le relief le plus haut dessus ; pas de plan radio, les presets sont déjà dans les cockpits) et les cibles, dans le kneeboard de chaque appareil. Ses numéros de canal sont des slots DCS : sur l'AJS-37, ce ne sont pas ceux du cockpit (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
+- **Le kneeboard** (`kneeboard`, actif par défaut) : la carte générale, la zone des combats et les zooms dessinés pour la page 2:3 et tournés axe d'attaque vers le haut (flèche nord), les photos de reco, une carte de vol (chaque point, le cap et la distance de sa branche, le relief le plus haut dessus ; pas de plan radio, les presets sont déjà dans les cockpits) et les cibles, dans le kneeboard de chaque appareil. Ses numéros de canal sont des slots DCS : sur l'AJS-37, ce ne sont pas ceux du cockpit (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
 - **Les chiffres viennent de la mission, pas du scénario**, et c'est l'action qui les lit dans le
   `.miz` construit : date, heure, météo, bullseye, flights, soutien, plan de vol, presets injectés dans
   les cockpits (le plan de fréquences), coordonnées de chaque cible posée et altitude du sol dessous —
@@ -490,7 +493,7 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
 ## 7. Ce que tu rends à la fin
 
 - Le scénario tel que construit, en cinq lignes, et **chaque écart avec le scénario validé**.
-- Les chemins du `.miz`, du briefing et des cartes.
+- Les chemins du `.miz`, du briefing, des cartes, du contenu validé et de la fiche Mission Maker.
 - **Ce que tu as vérifié, et ce que tu n'as pas pu vérifier** (tout ce qui demande DCS).
 - Le bloc **« Retours pour VMCT »**.
 - Des **points ouverts numérotés**, avec ta reco pour chacun.

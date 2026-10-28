@@ -25,6 +25,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The target coordinates and the flight plan become sheets, six to a slide, a thumbnail each: name, what it is, DMS and DDM, elevation; for a step, the heading and distance that reach it, the highest ground, and what is done there (`waypoint_notes`).
   New optional `strategic_situation` and `deployment` texts make a page each; a text passed as one string is prose, its paragraphs split on blank lines.
   The kneeboard flight cards drop the radio plan: the presets are already in the cockpits. The PDF follows the deck; the deck and the PDF embed the maps as JPEG.
+- **What "Marteau du Golan" did by hand, in the tools** (FEAT-OBJECTIVE-MISSION-V2).
+  The objective prompt asks for the briefing's prose in a file, approved before any layout, a separate Mission Maker sheet (F10 commands with their exact path, what to do by turnout), a scripted event told as intelligence, ways out for few pilots from the scenario on (an AI CAP on demand, SAMs and secondary objectives outside the operation), code words and who talks to whom, and every zoom re-read for units in buildings.
+  `build_mission_briefing` adds a combat-area map after the overview, turns the kneeboard maps attack axis up, makes a code-words page (`code_words`), and puts the objectives' recon photos (`recon_folder`, `docs/recon/` by default: JPEG photos with JSON sidecars) after their zoom, in the deck, the PDF and the kneeboard.
+  New `build_mission_promotion`: a 16:9 poster, a calendar banner at the VEAF calendar's 5.55:1 and a Discord post under 2,000 characters, from the built mission; the evening's date, hour and links are parameters, never invented.
+
+### Fixed
+
+- **Tool fixes from "Marteau du Golan"** (FEAT-OBJECTIVE-MISSION-V2).
+  `create_cap_mission` takes `menu_name` and `briefing`, and a CAP without a menu name shows its group name: an empty one made a blank F10 entry whose Infos failed.
+  `validate_mission` warns on a `cap_missions` key the build does not read (`friendly_name`).
+  `build --profile LOCAL_TEST` writes `<mission>_LOCAL_TEST.miz` instead of overwriting the plain build, and the briefing passes over a profile's archive.
+  `describe_module` knows the community scripts (CTLD, CSAR, AIEN, STTS, TUM, MIST).
+  The build no longer injects the dynamic-slot templates of a side with no base offering slots (`pipeline.dynamic_slot_templates.all_sides: true` keeps them).
+  The authoring guide says a zone of an operation has no Deactivate command of its own; a new known limitation says an On Road route with no path leaves a column still, silently.
 
 ### Fixed
 

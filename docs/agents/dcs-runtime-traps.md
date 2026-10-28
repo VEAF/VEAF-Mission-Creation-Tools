@@ -957,6 +957,26 @@ the latter (`VeafCampaignZone:groundHolders`). Expect a few percent of slack bey
 distance: the convoy took Poti, was not found in it, and a 24-unit garrison was drawn from blue's
 reserve under it (`a-captured-zone-may-draw-a-garrison-under-its-convoy`).
 
+### A ground group ordered "On Road" where no road leads stands still, with no message {#on-road-route-with-no-path-stands-still}
+
+Measured **2026-10-28**.
+
+DCS looks for a road path between two points of an "On Road" leg. When there is none — the road
+network does not cross that line — the group does not drive off-road instead: it stays where it
+is, its route accepted, and nothing in `dcs.log` says why.
+
+Measured on Syria for "Marteau du Golan": an allied column spawned in front of Quneitra and
+ordered On Road towards Khan Arnabah, across the Purple Line, stood still for 80 s. The same route
+with its first two points Off Road (to the town, then onto the road) left at once and took the
+road from there.
+
+**What to do:** Make the legs that leave from open ground, or cross a border, a ceasefire line or a river,
+"Off Road", and switch to "On Road" from a point already on the road beyond. Watch a column's first
+minute in game on the F10 map: a column that has a route and does not move is this, not a script
+error.
+
+*What it cost:* The allied push of "Marteau du Golan" (2026-10-28) did not move during its first test.
+
 ## Mission scripting {#scripting}
 
 ### A Lua file with more than 200 top-level locals is refused whole {#lua-chunk-over-200-locals-is-refused}

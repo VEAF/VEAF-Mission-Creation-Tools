@@ -662,6 +662,8 @@ profiles:
 
 Profile keys **deep-merge** onto the base config: only the keys you specify are overridden, everything else stays as defined at the top of `mission.yaml`. Passing an unknown profile name emits a warning and falls back to the base config.
 
+A build with `--profile` writes a `.miz` of its own, suffixed with the profile's name (`MyMission_20261028_TEST.miz`): it no longer overwrites the build without a profile.
+
 See [`profiles:` in the YAML Reference](../MISSION_YAML_REFERENCE.en.md#profiles) for the full field description.
 
 ---

@@ -666,6 +666,8 @@ profiles:
 
 Les clés du profil **fusionnent en profondeur** sur la config de base : seules les clés que vous spécifiez sont surchargées, tout le reste reste tel que défini en haut de `mission.yaml`. Passer un nom de profil inconnu émet un avertissement et revient à la config de base.
 
+Un build avec `--profile` écrit son propre `.miz`, suffixé du nom du profil (`MaMission_20261028_TEST.miz`) : il n'écrase plus le build sans profil.
+
 Voir [`profiles:` dans la référence YAML](../MISSION_YAML_REFERENCE.md#profiles) pour la description complète.
 
 ---

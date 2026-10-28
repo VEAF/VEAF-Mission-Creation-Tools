@@ -261,7 +261,7 @@ variant: untouched upstream config → small `veaf-config-override.lua` reassign
 `Era` (loaded between config and setup) → native triggers stripped →
 `custom_scripts` loaded in declaration order → VEAF spawns/data injected.
 
-> For `--profile <X>` alone (a single variant, unsuffixed) or build options, see
+> For `--profile <X>` alone (a single variant, suffixed with its name) or build options, see
 > the [mission.yaml reference](../MISSION_YAML_REFERENCE.en.md).
 
 ## 5. Test in DCS

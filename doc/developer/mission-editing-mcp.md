@@ -759,9 +759,24 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
   le déclare dans `mapResource` sous `MCP_Sound_<nom>` ; `edit_route` `transmit_message` le diffuse
   (`TransmitMessage` enveloppé, `file` = la clé, `loop`, `duration`, `subtitle` écrit au dictionnaire).
 - `set_briefing_picture(mission_path, source_path, side, resource_name)` — copie un `.png`/`.jpg` dans `l10n/DEFAULT`, le déclare dans `mapResource` sous `MCP_Picture_<nom>` et ajoute la clé au `pictureFileNameB` / `R` / `N` du camp, en gardant les images qu'il avait (FIX-DEMO-MISSION-FINDINGS 07).
-- `build_mission_briefing(mission_path, title, strategic_situation, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, deployment, waypoint_notes, flights, diversions, kneeboard, pilots, loadouts, basemap, side)` — le briefing VEAF d'une mission à objectifs, sans script (FEAT-MCP-MISSION-BRIEFING) : `docs/briefing.pptx`, son PDF `docs/briefing.pdf` (dessiné par `fpdf2` avec la police DejaVu embarquée : mêmes pages et mêmes mots, mise en page propre, aucun Office requis ; `pdf_pages` dans le résultat), `docs/maps/` et les images de briefing DCS, dans le dossier **et** le `.miz` construit, en tête de `pictureFileNameB` / `N` sous des clés `MCP_Briefing_*` remplacées à chaque appel. L'assistant passe les mots ; le reste est lu dans le `.miz` construit (`mission_briefing/`), dont les presets injectés (`Radio[n].channelsNames`) pour le plan de fréquences. `basemap: topo` prend les tuiles OpenTopoMap, avec leur crédit et leur dossier de cache.
+- `build_mission_briefing(mission_path, title, strategic_situation, context, mission_bullets, objectives, threats, air_opposition, air_defences, other, deployment, waypoint_notes, flights, code_words, recon_folder, diversions, kneeboard, pilots, loadouts, basemap, side)` — le briefing VEAF d'une mission à objectifs, sans script (FEAT-MCP-MISSION-BRIEFING) : `docs/briefing.pptx`, son PDF `docs/briefing.pdf` (dessiné par `fpdf2` avec la police DejaVu embarquée : mêmes pages et mêmes mots, mise en page propre, aucun Office requis ; `pdf_pages` dans le résultat), `docs/maps/` et les images de briefing DCS, dans le dossier **et** le `.miz` construit, en tête de `pictureFileNameB` / `N` sous des clés `MCP_Briefing_*` remplacées à chaque appel. L'assistant passe les mots ; le reste est lu dans le `.miz` construit (`mission_briefing/`), dont les presets injectés (`Radio[n].channelsNames`) pour le plan de fréquences. `basemap: topo` prend les tuiles OpenTopoMap, avec leur crédit et leur dossier de cache.
   FEAT-OBJECTIVE-BRIEFING-QUALITY : `strategic_situation` et `deployment` font chacun leur page, omise vide ; une chaîne est de la prose, ses paragraphes séparés par une ligne vide (`mission_bullets` en chaîne perd ses tirets) ; `flights` nomme les vols d'un package en slots dynamiques, listés sous leur base au lieu des types qu'elle offre ; `waypoint_notes` (par nom de waypoint) va sur les fiches « étape par étape » du plan de vol.
   La carte générale est cadrée par `MapCanvas(width=…, rotation=…)` : au moins 2000 px, symboles à l'échelle, tournée par `best_rotation` quand le cadre 2:1 y gagne 15 %, flèche nord, clé dessinée dans la carte ; les zooms portent un encart (`Inset`). Les cibles et les étapes sont des `CardSection` (`mission_briefing/briefing_cards.py`), dessinées dans le deck et le PDF ; le deck et le PDF embarquent les cartes en JPEG.
+  FEAT-OBJECTIVE-MISSION-V2 : une carte « zone des combats » (`render_overview_map(combat_area=True)`, `docs/maps/combat-area.png`, aussi image de briefing DCS) suit la carte générale ; les cartes du kneeboard sont tournées axe d'attaque vers le haut (`attack_axis_rotation`, cap vrai de la base aux objectifs), flèche nord sur chacune ; `code_words` (`word`, `meaning`, `who`) fait une page « Mots-codes » après le déploiement, et une page de kneeboard.
+  **Photos de reconnaissance** (`mission_briefing/briefing_recon.py`) — l'interface que le lot en jeu remplit : un dossier (`recon_folder`, relatif au dossier de mission ou absolu ; `docs/recon/` par défaut, ignoré s'il n'existe pas) de paires `<stem>.jpg` (ou `.jpeg`) + `<stem>.json`, UTF-8 :
+- `build_mission_promotion(mission_path, title, event, tagline, pitch, program, practical, aircraft, closing, calendar_url, briefing_url, recon_folder, side)` — l'annonce d'une mission construite (FEAT-OBJECTIVE-MISSION-V2) : `docs/poster.jpg` (1920 × 1080), `docs/calendar-banner.jpg` (2400 × 432, le 5,55:1 du calendrier VEAF) et `docs/discord-post.md`, refusé au-delà des 2 000 caractères de Discord (`mission_briefing/mission_promotion.py`). Fond : la première photo de reco (par `order`) étalonnée, ou la carte ; la carte « zone des combats » de `build_mission_briefing` et la photo épinglées. Les lignes pratiques du message viennent du `.miz` construit (théâtre, moment de la journée, ciel, bases à slots dynamiques ou vols). `event` (date et heure locales) et les liens sont des paramètres, jamais inventés : absents, c'est dit dans `warnings`. Le résultat rend le texte (`discord_post`, `discord_chars`).
+
+  | clé | requise | sens |
+  |---|---|---|
+  | `zone` | oui | la zone de combat de l'objectif, comme `objectives[].zone` (casse ignorée) |
+  | `title` | oui | la légende, dans la langue de la mission |
+  | `heading` | non | cap de la caméra, degrés vrais : l'axe de la photo |
+  | `pitch` | non | inclinaison, degrés, négative vers le bas |
+  | `x`, `y` | non | position de la caméra, coordonnées carte DCS (x nord, y est) ; imprimée en DMS |
+  | `altitude_m` | non | altitude de la caméra, mètres ; imprimée en pieds |
+  | `order` | non | tri dans la zone (puis nom de fichier), 0 par défaut |
+
+  Après le zoom de chaque objectif, ses photos deux par diapositive (deck et PDF) et deux par page de kneeboard, légendées « titre — cap 095°, piqué -12°, depuis <DMS>, <ft> » selon ce que la fiche donne. L'index `recon.json` que `veaf-tools dcs recon-render` écrit à côté est ignoré. Une photo sans fiche, une fiche sans photo, sans `zone` ou `title`, ou d'une zone qui n'est pas un objectif : ignorée, dans `warnings`. Le résultat liste les photos prises dans `recon`.
 
 ### Open Training Syrie (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 
@@ -1093,6 +1108,7 @@ un `add_group`.
 Lecture seule. **Localisateur** (pas un validateur de schéma) : vérifie qu'un module VEAF existe
 (via la liste canonique `lua_module_scanner`), renvoie sa page de doc, et — si `mission_yaml_path`
 est fourni — son état activé. Les clés de config de chaque module vivent dans sa page de doc.
+Il connaît aussi les scripts communautaires que le build embarque (CTLD, CSAR, AIEN, STTS, TUM, MIST) : `kind` vaut `veaf` ou `community`.
 
 ```json
 {"module_id": "QRA", "mission_yaml_path": "chemin/vers/mission.yaml"}
@@ -1137,6 +1153,9 @@ Groupe template **Late Activation** nommé `OnDemand-<nom>` + entrée `cap_missi
 (`group_name: <nom>`, sans préfixe — le build résout vers le groupe `OnDemand-`). Le premier point
 porte la tâche `EngageTargets` (cibles `Air`) que l'éditeur ajoute de lui-même à une tâche CAP, numérotée
 **avant** l'orbite : sans elle, le vol patrouille et n'engage jamais.
+
+`menu_name` est le nom que montre le menu F10 MISSIONS (le nom de la mission s'il est omis : un nom vide donnait une entrée blanche dont les « Infos » plantaient), `briefing` ce qu'en disent les Infos.
+Une clé de `cap` que le build ne lit pas (`friendly_name`, le mot des zones de combat) est signalée dans `warnings`, et `validate_mission` la signale aussi.
 
 ## Scaffolding d'un dossier de mission (vague 9)
 

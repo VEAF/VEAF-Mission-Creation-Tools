@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_briefing.mission_briefing_worker import build_mission_briefing
-from mission_briefing.models import BriefingContent, Objective, PackageFlight, Threat
+from mission_briefing.models import BriefingContent, CodeWord, Objective, PackageFlight, Threat
 from veaf_libs.map_tiles import TILE_SOURCES
 
 from veaf_mission_mcp.accents import missing_accents_warnings
@@ -54,7 +54,7 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         params: The action's parameters, as the schema declares them.
 
     Returns:
-        ``{deck, pages, pdf, pdf_pages, maps, pictures, miz, archives, kneeboard, map_offline, warnings}``.
+        ``{deck, pages, pdf, pdf_pages, maps, pictures, miz, archives, kneeboard, recon, map_offline, warnings}``.
 
     Raises:
         ValueError: An unknown basemap or diversion field, an unbuilt mission, or an objective naming no zone
@@ -102,6 +102,10 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
             )
             for f in params.get("flights") or []
         ),
+        code_words=tuple(
+            CodeWord(word=str(c["word"]), meaning=str(c.get("meaning") or ""), who=str(c.get("who") or ""))
+            for c in params.get("code_words") or []
+        ),
     )
     report = build_mission_briefing(
         Path(params["mission_path"]),
@@ -109,6 +113,7 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         side=str(params.get("side") or "blue"),
         source=TILE_SOURCES[basemap],
         kneeboard=params.get("kneeboard") is not False,
+        recon_folder=Path(params["recon_folder"]) if params.get("recon_folder") else None,
     )
     return {
         "deck": str(report.deck),
@@ -120,6 +125,7 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         "miz": str(report.miz),
         "archives": [str(path) for path in report.archives],
         "kneeboard": report.kneeboard,
+        "recon": [str(path) for path in report.recon],
         "map_offline": report.offline,
         "warnings": [*report.warnings, *missing_accents_warnings(_texts(content))],
     }
@@ -133,6 +139,7 @@ def _texts(content: BriefingContent) -> dict[str, str]:
         "mission_bullets": content.mission,
         "strategic_situation": content.strategic_situation,
         "deployment": content.deployment,
+        "code_words": tuple(f"{c.word} {c.meaning} {c.who}" for c in content.code_words),
         "waypoint_notes": tuple(content.waypoint_notes.values()),
         "air_opposition": content.air_opposition,
         "air_defences": content.air_defences,

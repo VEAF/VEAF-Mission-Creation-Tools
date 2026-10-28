@@ -27,3 +27,10 @@ def _cap_call(cap: dict) -> str:
 def test_default_is_secured_and_activated_is_the_radio_menu(cap: dict, secured: str, radio_menu_enabled: str) -> None:
     call = _cap_call({"group_name": "CAP-North", "menu_name": "North", "briefing": "b", **cap})
     assert call.endswith(f", {secured}, {radio_menu_enabled})")
+
+
+@pytest.mark.parametrize("cap", [{}, {"menu_name": ""}, {"menu_name": None}])
+def test_a_cap_without_a_menu_name_shows_its_group_name(cap: dict) -> None:
+    """FEAT-OBJECTIVE-MISSION-V2 05: an empty name made a blank F10 entry whose "Infos" failed."""
+    call = _cap_call({"group_name": "CAP-North", **cap})
+    assert call.startswith('veafCombatMission.addCapMission("CAP-North", "CAP-North",')

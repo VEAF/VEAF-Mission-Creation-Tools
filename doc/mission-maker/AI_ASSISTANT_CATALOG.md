@@ -98,6 +98,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 53 | [Lire et modifier les fichiers du dossier de mission](#mission-files) | Modules & réglages | Recette | ⭐ |
 | 54 | [Fabriquer le briefing d'une mission (PPTX, cartes, images DCS)](#mission-briefing) | 🕰️ Réglages de la mission | Dossier (construit) | ⭐ |
 | 55 | [Écrire le plan de vol des joueurs](#set-route) | 🕰️ Réglages de mission | Recette (dossier) | ⭐ |
+| 56 | [Annoncer la mission (affiche, bandeau du calendrier, message Discord)](#mission-promotion) | 🕰️ Réglages de la mission | Dossier (construit) | ⭐ |
 
 ---
 
@@ -781,8 +782,19 @@ Les images vont dans chaque `.miz` construit, variantes météo comprises, et le
 La carte de situation prend toute la largeur de la page, cadrée sur la route, les objectifs et les menaces, tournée quand elle y gagne (une flèche indique le nord), sa légende dessinée dedans ; chaque zoom porte un encart qui le situe sur elle.
 Les cibles et les étapes du plan de vol sont des fiches, six par page : nom, ce que c'est, coordonnées en DMS et en DDM, altitude, vignette de la carte — et pour une étape, le cap et la distance qui y mènent et ce qu'on y fait.
 L'IA peut ajouter une page de **situation stratégique** et une page de **déploiement et coordination**, en prose ; en slots dynamiques, l'ATO dit « slot dyn » et liste les vols du package sous leur base, pas les dizaines de types qu'elle offre.
+Une seconde carte, la **zone des combats**, suit la carte de situation, cadrée sur les objectifs et les menaces ; dans le kneeboard, toutes les cartes sont tournées pour que l'axe d'attaque (de la base aux objectifs) monte vers le haut de la page.
+L'IA peut aussi donner les **mots-codes** du package (une page dans le deck et dans le kneeboard), et le briefing prend les **photos de reconnaissance** déposées dans `docs/recon/` (une photo JPEG et sa fiche JSON : zone, titre, cap, piqué, position), deux par page après le zoom de leur objectif.
 
 > 💬 *« Fais le briefing de la mission, fond topo. »*
+
+### Annoncer la mission {#mission-promotion}
+
+*Dossier (construit) · ⭐* — Une fois le briefing fait, l'outil fabrique l'annonce de la soirée : une **affiche** 16:9 (`docs/poster.jpg`), un **bandeau** pour le calendrier VEAF (`docs/calendar-banner.jpg`, 2400 × 432, le rapport 5,55:1 que le calendrier montre sans recadrer) et un **message Discord** de moins de 2 000 caractères (`docs/discord-post.md`).
+Le fond est une photo de reconnaissance étalonnée en lumière du soir (ou la carte), avec la carte de la zone des combats et la photo épinglées dessus, le titre et deux ou trois lignes d'accroche.
+Le message prend dans la mission la carte, le moment de la journée, le ciel et les bases de départ ; l'IA écrit le reste (pitch, programme par rôle, infos pratiques).
+**La date et l'heure de la soirée, et les liens** (inscription au calendrier, briefing partagé) **sont à toi de les donner** : l'outil ne les invente jamais, et sans elles rien ne porte de date.
+
+> 💬 *« Fais l'affiche et l'annonce Discord : jeudi 29 octobre, 21 h, inscription https://www.veaf.org/calendar/1423. »*
 
 ---
 

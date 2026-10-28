@@ -59,6 +59,14 @@ class MapSheet:
 
 
 @dataclass(frozen=True)
+class PhotoSheet:
+    """A page of one or two photos side by side, each with its caption (FEAT-OBJECTIVE-MISSION-V2 04)."""
+
+    title: str
+    photos: list[tuple[Path, str]]
+
+
+@dataclass(frozen=True)
 class Cover:
     """The first page: the mission's title, its subtitle and date line, and the contents."""
 
@@ -138,6 +146,30 @@ def _map_page(pdf: _Pdf, sheet: MapSheet) -> None:
     pdf.set_left_margin(_MARGIN)
 
 
+def _photo_page(pdf: _Pdf, sheet: PhotoSheet) -> None:
+    """The deck's photo slide: the photos side by side, as large as half the page holds them, captions under."""
+    pdf.add_page()
+    pdf.headline(sheet.title)
+    gap = 6.0
+    count = max(1, len(sheet.photos))
+    room_w = (_PAGE_MM[1] - 2 * _MARGIN - (count - 1) * gap) / count
+    room_h = _PAGE_MM[0] - _BODY_TOP - _BODY_BOTTOM - 14
+    pdf.set_auto_page_break(False)
+    for index, (image, text) in enumerate(sheet.photos):
+        with Image.open(image) as opened:
+            ratio = opened.width / opened.height
+        width = min(room_w, room_h * ratio)
+        left = _MARGIN + index * (room_w + gap) + (room_w - width) / 2
+        pdf.image(str(image), x=left, y=_BODY_TOP - 4, w=width, h=width / ratio)
+        pdf.set_left_margin(left)
+        pdf.set_right_margin(_PAGE_MM[1] - left - width)
+        pdf.set_xy(left, _BODY_TOP - 2 + width / ratio)
+        pdf.say(text, _NOTE_SIZE)
+    pdf.set_left_margin(_MARGIN)
+    pdf.set_right_margin(_MARGIN)
+    pdf.set_auto_page_break(True, margin=_BODY_BOTTOM)
+
+
 def _card_page(pdf: _Pdf, page: CardPage) -> None:
     """The deck's slide of cards, the same grid: a thumbnail on the left of each card, its lines beside it."""
     pdf.add_page()
@@ -189,7 +221,7 @@ def _cover_page(pdf: _Pdf, cover: Cover) -> None:
     pdf.set_left_margin(_MARGIN)
 
 
-def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage]) -> int:
+def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage | PhotoSheet]) -> int:
     """Write the briefing's PDF: the cover, then each sheet in the deck's order.
 
     Args:
@@ -207,6 +239,8 @@ def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage])
             _map_page(pdf, sheet)
         elif isinstance(sheet, CardPage):
             _card_page(pdf, sheet)
+        elif isinstance(sheet, PhotoSheet):
+            _photo_page(pdf, sheet)
         else:
             _text_page(pdf, sheet)
     out.parent.mkdir(parents=True, exist_ok=True)

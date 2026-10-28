@@ -43,8 +43,14 @@ from mission_briefing.models import Objective, ObjectiveArea, Threat
 #: The overview map, in `docs/maps/`.
 OVERVIEW_FILE = "overview.png"
 
+#: The combat-area map, in `docs/maps/` (FEAT-OBJECTIVE-MISSION-V2 02).
+COMBAT_AREA_FILE = "combat-area.png"
+
 #: Margin around what the overview holds, in metres.
 _OVERVIEW_MARGIN = 15_000
+
+#: Margin around the objectives and threats the combat-area map holds, in metres.
+_COMBAT_MARGIN = 6_000
 
 #: A zoom shows its zone and this much of its radius around it…
 _ZOOM_MARGIN = 2.2
@@ -71,6 +77,33 @@ class Inset:
     """Pixels on the overview."""
     radius: float
     """The zoom's half width, in the overview's pixels."""
+
+
+def attack_axis_rotation(origin: tuple[float, float] | None, targets: list[tuple[float, float]]) -> float | None:
+    """The turn, degrees anticlockwise, that puts the attack axis up: from ``origin`` to the targets' centre.
+
+    A kneeboard map is read in the cockpit along the way in: Marteau du Golan's were turned by hand so
+    that the axis from Ramat David to the Golan pointed up (FEAT-OBJECTIVE-MISSION-V2 03). The bearing is
+    true, taken on ``(lat, lon)``: the maps are drawn true north up, and a bearing on the mission's grid
+    is off by the meridian convergence (6 degrees at Kobuleti, measured by the test).
+
+    Args:
+        origin: Where the players come from, ``(lat, lon)``; ``None`` when unknown.
+        targets: The objectives, ``(lat, lon)``.
+
+    Returns:
+        A turn in ``(-180, 180]``, or ``None`` when there is no axis (no origin, no target, or on it).
+    """
+    if origin is None or not targets:
+        return None
+    lat = sum(p[0] for p in targets) / len(targets)
+    lon = sum(p[1] for p in targets) / len(targets)
+    north = lat - origin[0]
+    east = (lon - origin[1]) * math.cos(math.radians((lat + origin[0]) / 2))
+    if math.hypot(north, east) < 1e-5:
+        return None
+    bearing = math.degrees(math.atan2(east, north)) % 360
+    return bearing - 360 if bearing > 180 else bearing
 
 
 def zoom_file(zone: str) -> str:
@@ -229,8 +262,13 @@ def render_overview_map(
     source: TileSource = OSM,
     aspect: float | None = None,
     width: int | None = None,
+    combat_area: bool = False,
+    rotation: float | None = None,
 ) -> TacticalMapReport:
     """Render the mission's overview, framed on the route, the departures, the objectives and the threats.
+
+    With ``combat_area``, the same map framed on the objectives and the threats alone: the fighting
+    takes a quarter of an overview that holds the departures and the tankers (FEAT-OBJECTIVE-MISSION-V2 02).
 
     Args:
         picture: What the built mission says.
@@ -245,6 +283,9 @@ def render_overview_map(
         aspect: The frame's width over its height (a kneeboard page's 2:3); ``None`` frames the content.
         width: The map's width at least, pixels: framed, turned when that holds it tighter, a north arrow.
             ``None`` fits the frame north up in 1400 pixels.
+        combat_area: Frame the objectives and the threats only.
+        rotation: The turn, degrees anticlockwise (:func:`attack_axis_rotation`); ``None`` lets a framed map
+            find the tightest. Needs ``width``.
 
     Returns:
         Where the map is, and where its symbols and labels went.
@@ -253,13 +294,14 @@ def render_overview_map(
     friend, enemy = _sides(side)
     numbers = waypoint_numbers(picture)
     spots = [(area.x, area.y) for _, area in objectives] + [position for _, position in threats]
-    spots += [(c.x, c.y) for c in picture.carriers] + [(x, y) for _, x, y in departures]
-    spots += list(numbers) + [picture.bullseye]
+    if not combat_area or not spots:
+        spots += [(c.x, c.y) for c in picture.carriers] + [(x, y) for _, x, y in departures]
+        spots += list(numbers) + [picture.bullseye]
+    margin = _COMBAT_MARGIN if combat_area else _OVERVIEW_MARGIN
     points = [xy_to_latlon(theatre, x, y) for x, y in spots]
-    rotation = best_rotation(points, _OVERVIEW_MARGIN, aspect) if width is not None and aspect else 0.0
-    canvas = MapCanvas(
-        theatre, points, _OVERVIEW_MARGIN, cache_dir, fetch, source, aspect, width=width, rotation=rotation
-    )
+    if rotation is None or width is None:
+        rotation = best_rotation(points, margin, aspect) if width is not None and aspect else 0.0
+    canvas = MapCanvas(theatre, points, margin, cache_dir, fetch, source, aspect, width=width, rotation=rotation)
 
     # every symbol first, so that no label is set on one drawn after it
     labels = [_objective(canvas, area, enemy, focus=False) for _, area in objectives]
@@ -325,6 +367,7 @@ def render_objective_zoom(
     aspect: float | None = None,
     width: int | None = None,
     inset: Inset | None = None,
+    rotation: float = 0.0,
 ) -> TacticalMapReport:
     """Render one objective: its zone, each of its targets, the threats that stand in the frame.
 
@@ -341,6 +384,7 @@ def render_objective_zoom(
         aspect: The frame's width over its height (a kneeboard page's 2:3); ``None`` frames the content.
         width: The map's width at least, pixels, every symbol in proportion; ``None`` fits 1400 pixels.
         inset: The overview to show in a corner, the zoom's place marked on it.
+        rotation: The turn, degrees anticlockwise; a turned zoom carries a north arrow.
 
     Returns:
         Where the map is, and where its symbols and labels went.
@@ -349,7 +393,15 @@ def render_objective_zoom(
     half = zoom_half(area)
     spots = [(area.x, area.y)] + [(target.x, target.y) for target in area.targets]
     canvas = MapCanvas(
-        theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], half, cache_dir, fetch, source, aspect, width=width
+        theatre,
+        [xy_to_latlon(theatre, x, y) for x, y in spots],
+        half,
+        cache_dir,
+        fetch,
+        source,
+        aspect,
+        width=width,
+        rotation=rotation,
     )
     labels = [_objective(canvas, area, enemy, focus=True)]
     for threat, position in threats:
@@ -369,6 +421,8 @@ def render_objective_zoom(
     canvas.scale(bar * 1000, f"{bar} km")
     if inset is not None:
         _paste_inset(canvas, inset)
+    if rotation:
+        canvas.north_arrow()
     for box, text, font, colour in labels:
         canvas.label(box, text, font, colour)
     return canvas.save(out)

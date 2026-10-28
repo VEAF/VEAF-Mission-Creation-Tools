@@ -855,7 +855,8 @@ def _emit_module_body(
     elif mod_id == "COMBATMISSION":
         for cap in cap_missions:
             g = cap.get("group_name", "")
-            m = cap.get("menu_name", "")
+            # an empty name made a blank F10 entry whose "Infos" failed (FEAT-OBJECTIVE-MISSION-V2 05)
+            m = cap.get("menu_name") or g
             b = cap.get("briefing", "")
             d = "true" if cap.get("default", False) else "false"
             a = "true" if cap.get("activated", True) else "false"
@@ -1433,6 +1434,11 @@ QRA_DEFINITION_KEYS: frozenset[str] = frozenset(
         "logistics",
     }
 )
+
+#: Every key a ``cap_missions[]`` entry may carry, each one read for ``addCapMission``. `validate` warns on
+#: any other: ``friendly_name`` (the combat zones' word) was written for a CAP's menu name and silently
+#: did nothing (FEAT-OBJECTIVE-MISSION-V2 06).
+CAP_MISSION_KEYS: frozenset[str] = frozenset({"group_name", "menu_name", "briefing", "default", "activated"})
 
 #: The keys of a QRA's ``logistics:`` block, each with the setter it emits (ticket 08 of
 #: FEAT-AIRWAVES-QRA-MERGE). Until then the stock and resupply chain was reachable from hand-written

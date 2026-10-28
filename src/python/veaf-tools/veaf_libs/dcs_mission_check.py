@@ -624,9 +624,9 @@ def run_checks(
     if routed:
         _judge_moving(report, say, "mission", watch_moving(run, routed, sleep))
 
-    # A zone an operation lists is registered twice — `addTaskingOrder` calls `AddZone` on a zone
-    # already added (measured 2026-10-28 on "Marteau du Golan": four zones listed twice) — so each
-    # name is checked once.
+    # Before 6.34.0 a zone an operation lists was registered twice — `addTaskingOrder` called `AddZone`
+    # on a zone already added (measured 2026-10-28 on "Marteau du Golan": four zones listed twice) —
+    # and a mission built with older scripts still is, so each name is checked once.
     seen: set[tuple[str, str]] = set()
     for entity in parse_inventory(run(INVENTORY_LUA)):
         if (only and entity.name not in only) or (entity.kind, entity.name) in seen:

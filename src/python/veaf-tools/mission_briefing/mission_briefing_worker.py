@@ -514,7 +514,6 @@ def _kneeboard_pages(
     areas: list[tuple[Objective, ObjectiveArea]],
     threats: list[tuple[Threat, tuple[float, float]]],
     starts: list[tuple[str, float, float]],
-    radios: list[RadioPlan],
     tiles: dict[str, Any],
 ) -> dict[str, bytes]:
     """The briefing for the knee: the maps drawn for the 2:3 page, the flight card, the targets.
@@ -534,7 +533,7 @@ def _kneeboard_pages(
         )
         title = t("campaign.mission_deck.title.zoom", zone=area.zone)
         sheets.append((Path(zoom_file(area.zone)).stem, map_page(title, zoom.path)))
-    card_blocks = flight_card_blocks(theatre, list(picture.flight_plans), starts, radios)
+    card_blocks = flight_card_blocks(theatre, list(picture.flight_plans), starts)
     card = text_pages(t("mission_briefing.kneeboard.flight_card"), card_blocks) if card_blocks else []
     target_blocks = targets_blocks(theatre, [(objective.title, area) for objective, area in areas])
     targets = text_pages(t("mission_briefing.title.targets"), target_blocks) if target_blocks else []
@@ -678,7 +677,7 @@ def _build(
     pdf_pages = write_pdf(pdf, cover, sheets)
 
     maps = [overview.path, *(zoom.path for zoom in zooms)]
-    pages = _kneeboard_pages(folder, picture, areas, threats, starts, radios, tiles) if kneeboard else {}
+    pages = _kneeboard_pages(folder, picture, areas, threats, starts, tiles) if kneeboard else {}
     archives = built_archives(folder, miz)
     keys, other = _write_pictures(folder, archives, maps, side, pages)
     if other:

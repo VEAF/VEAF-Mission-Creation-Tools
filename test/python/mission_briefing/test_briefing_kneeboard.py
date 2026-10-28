@@ -19,7 +19,7 @@ from mission_briefing.briefing_kneeboard import (
     targets_blocks,
     text_pages,
 )
-from mission_briefing.models import ObjectiveArea, RadioPlan, Target
+from mission_briefing.models import ObjectiveArea, Target
 from PIL import Image
 from presets_injector.presets_manager import KNEEBOARD_PAGE_SIZE
 
@@ -53,7 +53,8 @@ def test_a_long_text_runs_on_several_pages() -> None:
     assert all(_jpeg_size(page) == KNEEBOARD_PAGE for page in pages)
 
 
-def test_the_flight_card_gives_heading_distance_and_frequencies() -> None:
+def test_the_flight_card_gives_heading_and_distance_and_no_radio_plan() -> None:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 06: the presets are already in the cockpits, the card keeps the route."""
     plan = FlightPlan(
         "plane",
         ("AJS37",),
@@ -62,14 +63,14 @@ def test_the_flight_card_gives_heading_distance_and_frequencies() -> None:
             Waypoint("PUSH", -200000, 450000, 0, "BARO"),
         ),
     )
-    radios = [RadioPlan(1, ("AJS37",), ((1, "Lion", 251.0), (2, "Senaki", 261.0)))]
-    blocks = flight_card_blocks("Caucasus", [plan], [("Senaki-Kolkhi", -281782, 647280)], radios)
+    blocks = flight_card_blocks("Caucasus", [plan], [("Senaki-Kolkhi", -281782, 647280)])
     text = "\n".join(line for _, lines in blocks for line in lines)
     assert "FEET WET" in text and "PUSH" in text
     # Senaki -> FEET WET: 287°, 25 nm; FEET WET -> PUSH: 294°, 90 nm (measured on the session's figures)
     assert "287°" in text and "25 nm" in text
     assert "294°" in text and "90 nm" in text
-    assert "Lion" in text and "251.0" in text
+    assert len(blocks) == 1 and all("Radio" not in (heading or "") for heading, _ in blocks)
+    assert "MHz" not in text
 
 
 def test_the_targets_page_lists_each_target_with_its_coordinates() -> None:

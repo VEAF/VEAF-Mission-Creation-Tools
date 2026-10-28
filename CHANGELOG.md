@@ -75,6 +75,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   An objective takes a `status` (`main`, `secondary`, `prerequisite`) that wins over the operation: the SA-6 the helicopters wait for is a prerequisite.
   The kneeboard flight card is a table, with each point's altitude.
   The ATO gives each tanker's flight level, and the new optional `support` lists what the mission has no group for (a JTAC, the fat cow, a GCI): the known limitation `briefing-ato-lacks-levels-jtac-and-control` is fixed.
+
+### Changed
+
+- **The Python suite runs in parallel, and builds a briefing once per test module** (CHORE-CI-PYTHON-SPEED).
+  `poetry run pytest` now spreads the tests over one `pytest-xdist` worker per CPU (`-n0` runs them serially, for `--pdb`).
+  The briefing tests built a whole briefing for each test; the ones that only read it now share one per module.
+  Every test starts in English and gets its language back, which a test calling `set_language("fr")` used to leak to the next one.
+
 ## [6.33.0] — 2026-10-27
 
 ### Security

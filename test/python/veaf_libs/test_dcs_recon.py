@@ -349,6 +349,8 @@ class TestShootingMission:
         assert config.index("HideNamesFromSpawnedGroups = false") < config.index("veafCombatZone.initialize()")
         assert config.index("veafCombatZone.initialize()") < config.index("ActivateZone(")
         assert "taskingOrderDict" in config  # operations are left alone
+        # later, once per name, never a zone already active: an immediate loop spawned every zone twice or thrice
+        assert "timer.scheduleFunction" in config and "done[name]" in config and "zone:isActive()" in config
         with zipfile.ZipFile(out) as archive:
             assert archive.namelist().count("l10n/DEFAULT/veaf-config.lua") == 1
 

@@ -565,14 +565,25 @@ _SHOW_NAMES_LUA = "-- recon-prepare: spawned groups keep their zone's name, for 
 
 #: Appended to ``veaf-config.lua``, after the zones are initialised: every combat zone up. An operation
 #: is left alone — activating one activates its zones anyway, and it would start its watchdog.
+#:
+#: Five seconds later, once per name, and only a zone not already active. Measured on "Marteau du
+#: Golan" (2026-10-28) with an immediate loop: every zone on the map two or three times over.
+#: ``ActivateZone`` marks a zone active only when its scheduled activation runs a second later, so the
+#: zones started by ``active_at_start`` and by the operation still read inactive; and a zone an
+#: operation lists is in ``zonesList`` twice.
 _ACTIVATE_ALL_LUA = """
 -- recon-prepare: every combat zone active at start, for the reconnaissance photos
 if veafCombatZone then
-    for _, zone in ipairs(veafCombatZone.zonesList) do
-        if not zone.taskingOrderDict then
-            veafCombatZone.ActivateZone(zone:getMissionEditorZoneName(), true)
+    timer.scheduleFunction(function()
+        local done = {}
+        for _, zone in ipairs(veafCombatZone.zonesList) do
+            local name = zone:getMissionEditorZoneName()
+            if not zone.taskingOrderDict and not done[name] and not zone:isActive() then
+                done[name] = true
+                veafCombatZone.ActivateZone(name, true)
+            end
         end
-    end
+    end, nil, timer.getTime() + 5)
 end
 """
 

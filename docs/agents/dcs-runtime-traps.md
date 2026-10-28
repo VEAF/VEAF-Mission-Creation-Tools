@@ -1005,6 +1005,23 @@ or call through the class (`Object.getCategory(target)`) inside `pcall`. Never a
 *What it cost:* The sanctuary's missile protection raised in the scheduler on each of those shots, and recorded
 none of them (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
 
+### `LoSetCameraPosition` moves the F11 camera only from the export state {#camera-moves-only-from-the-export-state}
+
+Measured **2026-10-28**.
+
+Sent from the GUI state (the dcs-fiddle hook's own environment, port 12081 `env=default`),
+`LoSetCameraPosition` returns without an error and the camera does not move; in the F10 view it pans
+the map instead. Sent through `net.dostring_in("export", …)` (`env=export`) with the free camera
+(F11) on, it puts the camera exactly where asked. The basis it takes is x forward, y up, z right and
+p the position, in world axes: x north, y altitude, z east.
+
+**What to do:** Send the camera order to the `export` state, in F11, and send it twice with a pause of a few seconds:
+the first frames after a jump can be black while the scenery loads. `veaf-tools dcs recon-shoot` does
+both.
+
+*What it cost:* The first reconnaissance shots of "Marteau du Golan" (Syria, 2026-10-28) left the camera where it was,
+then moved the F10 map, before the export route was found.
+
 <!-- END GENERATED -->
 
 ## For script developers {#script-developers}

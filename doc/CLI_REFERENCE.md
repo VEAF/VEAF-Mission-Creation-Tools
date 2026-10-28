@@ -1,6 +1,6 @@
 # Référence CLI — `veaf-tools`
 
-Les **39 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
+Les **44 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
 page de référence : elle dit ce que chaque commande accepte, pas comment mener une mission de bout
 en bout. Pour cela, lisez le [guide du créateur de mission](mission-maker/GUIDE.md), qui raconte
 l'enchaînement, et la [référence du pipeline](PIPELINE_REFERENCE.md), qui détaille chaque étape du
@@ -960,6 +960,118 @@ veaf-tools dcs smoke-test
 *Alias plat : `veaf-tools smoke-test`*
 
 **Voir aussi** : [developer/smoke-harness.md](developer/smoke-harness.md)
+
+### `veaf-tools dcs mission-check` {#mission-check}
+
+Vérifie la mission **lancée dans DCS** (la version de test, que vous avez lancée vous-même), par le hook dcs-fiddle, et écrit une ligne par vérification puis un verdict :
+
+- **menus F10** : chaque entrée du menu radio VEAF a un libellé ; une entrée vide est signalée avec son chemin (`VEAF > Zones > ∅`) ;
+- **zones et missions de combat** : chacune est activée puis désactivée, ses unités comptées à chaque fois, et elle est **laissée comme elle était** ; une CAP est vérifiée sous chacun de ses noms de variante (`<nom>/<niveau>/<échelle>`) ; une *opération* est signalée mais pas basculée (elle entraînerait ses zones) ;
+- **colonnes** : chaque groupe au sol qui a une route de plus d'un point — de la mission ou tiré par une zone — doit rouler dans les 60 secondes. C'est ce contrôle qui trouve une colonne figée par un tronçon « On Road » sans route à suivre.
+
+Laissez DCS tourner **sans pause** pendant la vérification : en pause, rien n'apparaît et rien ne roule. Compter quelques minutes (la commande l'annonce). Code de sortie 1 si une vérification échoue.
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--only` | `str` | *(toutes)* | Nom d'une zone ou mission de combat à vérifier ; répétez pour plusieurs. Les menus et les colonnes de la mission sont vérifiés dans tous les cas. |
+| `--url` | `str` | `http://127.0.0.1:12080` | URL du serveur fiddle lancé dans l'environnement de script de la mission, là où vivent les modules VEAF. |
+| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook (défaut : lu dans `%USERPROFILE%\dcs-fiddle-token.txt`, ou `$env:DCS_FIDDLE_TOKEN`). |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```powershell
+.\veaf-tools.exe dcs mission-check
+```
+
+*Alias plat : `veaf-tools mission-check`*
+
+### Photos de reconnaissance — `recon-prepare`, `recon-plan`, `recon-shoot`, `recon-render` {#recon-photos}
+
+Quatre commandes, une par étape, parce que vous intervenez entre chacune : elles produisent une photo de reco par objectif, prise **dans DCS** dans l'axe d'engagement prévu, au rendu « photo de reconnaissance » (noir et blanc contrasté, grain, bandeau, rose de cap) avec les cibles entourées **au feutre rouge**. Les unités sont placées là où DCS les a vraiment mises, tirages au hasard des zones compris. Le résultat (JPEG + JSON par prise, et un index `recon.json`) s'intègre au briefing.
+
+Le déroulé complet :
+
+1. `.\veaf-tools.exe dcs recon-prepare MaMission.miz` écrit `MaMission_RECON.miz` à côté : ciel dégagé, heure choisie, toutes les zones de combat actives au démarrage, noms de groupes lisibles. La mission d'origine n'est pas touchée.
+2. Dans DCS : ouvrez `MaMission_RECON.miz`, prenez un slot **spectateur**, appuyez sur **F11** (caméra libre). Laissez la fenêtre DCS sur l'**écran principal**.
+3. `.\veaf-tools.exe dcs recon-plan --operation "Marteau du Golan"` écrit `shots.yaml` : une prise par zone, avec les noms des groupes présents.
+4. Complétez `shots.yaml` : pour chaque prise, le `heading` d'engagement (la direction dans laquelle regarde l'attaquant), et si besoin `pitch` (degrés sous l'horizon), `slant` (distance en mètres), `mark: units` pour entourer chaque véhicule, `labels` pour nommer les cibles.
+5. `.\veaf-tools.exe dcs recon-shoot` : la commande place la caméra sur chaque prise et capture la fenêtre. Ne touchez ni la souris ni le clavier avant la fin.
+6. `.\veaf-tools.exe dcs recon-render` écrit les photos dans `docs\recon\`, là où le briefing (`build_mission_briefing`) les cherche.
+
+Lancez les commandes depuis le dossier de la mission : les prises brutes vont dans `docs\build\recon\raw\`, les photos finies dans `docs\recon\`.
+
+Un `shots.yaml` complété :
+
+```yaml
+operation: Marteau du Golan
+coalition: red
+shots:
+  - name: 03-sa11
+    title: Batterie SA-11 de Kiswah
+    groups: [SA11Kiswah]
+    heading: 70
+    pitch: 30
+    slant: 1100
+    mark: units
+    labels: {"SA-11 Buk SR": "RADAR 9S18", "SA-11 Buk LN": "TEL"}
+```
+
+La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus de l'horizon, en regardant au cap `heading`. Les marques sont posées par projection avec un champ horizontal de 80°, mesuré : les six véhicules d'un SA-11 tombent à quelques pixels de leur projection.
+
+#### `veaf-tools dcs recon-prepare` {#recon-prepare}
+
+| Arguments | Type | Description |
+|---|---|---|
+| `MISSION` | `Path` | La mission construite (.miz) ; elle n'est pas modifiée. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--time` | `str` | `11:30` | Heure des photos, HH:MM à l'heure du théâtre. |
+| `--out` | `Path` | *(à côté, suffixe `_RECON`)* | Où écrire la copie. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+*Alias plat : `veaf-tools recon-prepare`*
+
+#### `veaf-tools dcs recon-plan` {#recon-plan}
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--out` | `Path` | `shots.yaml` | Le fichier de prises à écrire. |
+| `--coalition` | `str` | `red` | Le camp à photographier : `red` ou `blue`. |
+| `--operation` | `str` | *(aucun)* | Le nom de l'opération, imprimé sur chaque photo. |
+| `--force` | `boolean` | `false` | Écrase un fichier de prises existant. |
+| `--url` | `str` | `http://127.0.0.1:12081` | URL de base du port GUI du hook dcs-fiddle-server.lua. |
+| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+*Alias plat : `veaf-tools recon-plan`*
+
+#### `veaf-tools dcs recon-shoot` {#recon-shoot}
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--shots` | `Path` | `shots.yaml` | Le fichier de prises. |
+| `--raw-dir` | `Path` | `docs\build\recon\raw` | Dossier des prises brutes (PNG + JSON). |
+| `--only` | `str` | *(toutes)* | Nom d'une prise à faire ; répétez pour plusieurs. |
+| `--url` | `str` | `http://127.0.0.1:12081` | URL de base du port GUI du hook dcs-fiddle-server.lua. |
+| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+La fenêtre DCS doit être sur l'écran principal et visible : une capture de tous les écrans rend la fenêtre DirectX noire, et une image noire est recommencée jusqu'à huit fois.
+
+*Alias plat : `veaf-tools recon-shoot`*
+
+#### `veaf-tools dcs recon-render` {#recon-render}
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--shots` | `Path` | `shots.yaml` | Le fichier de prises (l'ordre et le nom de l'opération). |
+| `--raw-dir` | `Path` | `docs\build\recon\raw` | Dossier des prises brutes. |
+| `--out-dir` | `Path` | `docs\recon` | Dossier des photos finies. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+Écrit `<prise>.jpg`, `<prise>.json` et `recon.json`, la liste ordonnée des prises. Le JSON porte ce que le briefing lit — `zone` (la zone de combat de l'objectif : la clé `zone` de la prise, sinon celle du premier préfixe de `groups`), `title`, `heading`, `pitch` (négatif vers le bas), `x`/`y` et `altitude_m` (la caméra, en coordonnées de mission), `order` — puis le reste de la prise : caméra, cible en coordonnées DCS, latitude/longitude et DMS, heure, unités.
+
+*Alias plat : `veaf-tools recon-render`*
 
 ## L'outil lui-même
 

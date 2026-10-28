@@ -1,6 +1,6 @@
 # CLI reference — `veaf-tools`
 
-All **39 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
+All **44 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
 page: it says what each command accepts, not how to take a mission from start to finish. For that,
 read the [mission maker's guide](mission-maker/GUIDE.en.md), which tells the story in order, and the
 [pipeline reference](PIPELINE_REFERENCE.en.md), which details each build step.
@@ -954,6 +954,118 @@ veaf-tools dcs smoke-test
 *Flat alias : `veaf-tools smoke-test`*
 
 **See also** : [developer/smoke-harness.md](developer/smoke-harness.en.md)
+
+### `veaf-tools dcs mission-check` {#mission-check}
+
+Checks the mission **running in DCS** (the test build, which you launched yourself) through the dcs-fiddle hook, and prints one line per check and a verdict:
+
+- **F10 menus**: every entry of the VEAF radio menu has a label; an empty one is reported with its path (`VEAF > Zones > ∅`);
+- **combat zones and missions**: each one is switched on then off, its units counted each time, and it is **left as it was found**; a CAP is checked under each of its variant names (`<name>/<skill>/<scale>`); an *operation* is reported but not toggled (it would take its zones with it);
+- **columns**: every ground group with a route of more than one waypoint — from the mission or spawned by a zone — must drive within 60 seconds. This is the check that finds a column frozen by an "On Road" leg with no road to follow.
+
+Keep DCS running **unpaused** during the check: paused, nothing spawns and nothing drives. Expect a few minutes (the command says how many). Exit code 1 when a check fails.
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--only` | `str` | *(all)* | Zone or combat mission name to check; repeat for several. The menus and the mission's own columns are checked either way. |
+| `--url` | `str` | `http://127.0.0.1:12080` | URL of the fiddle server started inside the mission scripting environment, where the VEAF modules live. |
+| `--fiddle-token` | `str` | *(none)* | The hook's per-session Basic password (default: read from `%USERPROFILE%\dcs-fiddle-token.txt`, or `$env:DCS_FIDDLE_TOKEN`). |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+```powershell
+.\veaf-tools.exe dcs mission-check
+```
+
+*Flat alias : `veaf-tools mission-check`*
+
+### Reconnaissance photos — `recon-prepare`, `recon-plan`, `recon-shoot`, `recon-render` {#recon-photos}
+
+Four commands, one per step, because you act between each: they produce one reconnaissance photo per objective, taken **in DCS** along the planned engagement axis, with the look of a reconnaissance print (contrasted black and white, grain, banner, heading rose) and the targets circled **in red felt pen**. Units are drawn where DCS actually put them, the zones' random draws included. The result (a JPEG + JSON per shot, and a `recon.json` index) goes into the briefing.
+
+The whole sequence:
+
+1. `.\veaf-tools.exe dcs recon-prepare MyMission.miz` writes `MyMission_RECON.miz` beside it: clear sky, chosen time, every combat zone active at start, readable group names. The original mission is not touched.
+2. In DCS: open `MyMission_RECON.miz`, take a **spectator** slot, press **F11** (free camera). Keep the DCS window on the **primary screen**.
+3. `.\veaf-tools.exe dcs recon-plan --operation "Golan Hammer"` writes `shots.yaml`: one shot per zone, with the names of the groups found.
+4. Complete `shots.yaml`: for each shot, the engagement `heading` (the direction the attacker looks), and if needed `pitch` (degrees below the horizon), `slant` (distance in metres), `mark: units` to circle each vehicle, `labels` to name the targets.
+5. `.\veaf-tools.exe dcs recon-shoot`: the command puts the camera on each shot and grabs the window. Do not touch the mouse or the keyboard until it is done.
+6. `.\veaf-tools.exe dcs recon-render` writes the photos into `docs\recon\`, where the briefing (`build_mission_briefing`) looks for them.
+
+Run the commands from the mission folder: the raw shots go to `docs\build\recon\raw\`, the finished photos to `docs\recon\`.
+
+A completed `shots.yaml`:
+
+```yaml
+operation: Golan Hammer
+coalition: red
+shots:
+  - name: 03-sa11
+    title: Kiswah SA-11 battery
+    groups: [SA11Kiswah]
+    heading: 70
+    pitch: 30
+    slant: 1100
+    mark: units
+    labels: {"SA-11 Buk SR": "RADAR 9S18", "SA-11 Buk LN": "TEL"}
+```
+
+The camera stands `slant` metres from the target, `pitch` degrees above the horizon, looking along `heading`. The marks are placed by projection with an 80° horizontal field, measured: the six vehicles of an SA-11 fall within a few pixels of their projection.
+
+#### `veaf-tools dcs recon-prepare` {#recon-prepare}
+
+| Arguments | Type | Description |
+|---|---|---|
+| `MISSION` | `Path` | The built mission (.miz); it is not modified. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--time` | `str` | `11:30` | Time of day of the photos, HH:MM on the theatre's clock. |
+| `--out` | `Path` | *(beside it, `_RECON` appended)* | Where to write the copy. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+*Flat alias : `veaf-tools recon-prepare`*
+
+#### `veaf-tools dcs recon-plan` {#recon-plan}
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--out` | `Path` | `shots.yaml` | The shots file to write. |
+| `--coalition` | `str` | `red` | The side to photograph: `red` or `blue`. |
+| `--operation` | `str` | *(none)* | The operation's name, printed on every photo. |
+| `--force` | `boolean` | `false` | Overwrite an existing shots file. |
+| `--url` | `str` | `http://127.0.0.1:12081` | Base URL of the dcs-fiddle-server.lua hook's GUI port. |
+| `--fiddle-token` | `str` | *(none)* | The hook's per-session Basic password. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+*Flat alias : `veaf-tools recon-plan`*
+
+#### `veaf-tools dcs recon-shoot` {#recon-shoot}
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--shots` | `Path` | `shots.yaml` | The shots file. |
+| `--raw-dir` | `Path` | `docs\build\recon\raw` | Folder of the raw shots (PNG + JSON). |
+| `--only` | `str` | *(all)* | Shot name to take; repeat for several. |
+| `--url` | `str` | `http://127.0.0.1:12081` | Base URL of the dcs-fiddle-server.lua hook's GUI port. |
+| `--fiddle-token` | `str` | *(none)* | The hook's per-session Basic password. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+The DCS window must be on the primary screen and visible: a grab of all screens returns the DirectX window black, and a black grab is retried up to eight times.
+
+*Flat alias : `veaf-tools recon-shoot`*
+
+#### `veaf-tools dcs recon-render` {#recon-render}
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--shots` | `Path` | `shots.yaml` | The shots file (the order and the operation's name). |
+| `--raw-dir` | `Path` | `docs\build\recon\raw` | Folder of the raw shots. |
+| `--out-dir` | `Path` | `docs\recon` | Folder of the finished photos. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+Writes `<shot>.jpg`, `<shot>.json` and `recon.json`, the ordered list of shots. The JSON carries what the briefing reads — `zone` (the objective's combat zone: the shot's `zone` key, otherwise the one of the first `groups` prefix), `title`, `heading`, `pitch` (negative looking down), `x`/`y` and `altitude_m` (the camera, in mission coordinates), `order` — then the rest of the shot: camera, target in DCS coordinates, latitude/longitude and DMS, time, units.
+
+*Flat alias : `veaf-tools recon-render`*
 
 ## The tool itself
 

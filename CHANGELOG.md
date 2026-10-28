@@ -32,6 +32,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The configuration adds an operation's member zone, then the operation adds it again: `veafCombatZone.zonesList` held it twice, and anything walking that list — BFR, a loop activating every zone — met it twice ("Marteau du Golan", 2026-10-28: four zones, spawned twice).
   `veafCombatZone.AddZone` now registers a name once; a different zone under a name already taken is logged as an error and the first one is kept.
 
+### Added
+
+- **Reconnaissance photos and an in-game mission check, from a running DCS** (FEAT-DCS-RECON-AND-MISSION-CHECK, from the "Marteau du Golan" session).
+  `dcs recon-prepare` writes a shooting copy of a built mission (clear sky, chosen time, every combat zone active at start); `dcs recon-plan` lists the units on the map into a shots file; `dcs recon-shoot` puts the F11 camera on each objective's engagement axis and grabs the window; `dcs recon-render` makes reconnaissance prints — contrasted black and white, banner, heading rose, targets circled in red felt pen where their live positions project — with the sidecar `build_mission_briefing` reads, in `docs/recon/`.
+  `dcs mission-check` checks the mission running in DCS: every F10 label, every combat zone and combat mission (CAP variants included) switched on and off and counted then left as found, every ground group with a route seen moving within 60 s; one line per check, a verdict, exit code 1 on a failure.
+
 ## [6.33.0] — 2026-10-27
 
 ### Security

@@ -121,6 +121,10 @@ def _map_page(pdf: _Pdf, sheet: MapSheet) -> None:
     with Image.open(sheet.image) as opened:
         ratio = opened.width / opened.height
     height = _PAGE_MM[0] - _BODY_TOP - _BODY_BOTTOM
+    if not sheet.notes:  # a map that carries its own key takes the whole page (FEAT-OBJECTIVE-BRIEFING-QUALITY 02)
+        width = min((height + 4) * ratio, _PAGE_MM[1] - 2 * _MARGIN)
+        pdf.image(str(sheet.image), x=(_PAGE_MM[1] - width) / 2, y=_BODY_TOP - 4, w=width, h=width / ratio)
+        return
     width = min(height * ratio, _PAGE_MM[1] * 0.6)
     pdf.image(str(sheet.image), x=_MARGIN, y=_BODY_TOP - 4, w=width, h=width / ratio)
     left = _MARGIN + width + 8

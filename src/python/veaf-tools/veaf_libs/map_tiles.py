@@ -202,6 +202,7 @@ def render_base_map(
     cache_dir: Path | None = None,
     fetch: Fetch | None = None,
     source: TileSource = OSM,
+    zoom: int | None = None,
 ) -> BaseMap:
     """Assemble the background of a box from tiles.
 
@@ -214,11 +215,13 @@ def render_base_map(
         cache_dir: Where tiles are kept; :func:`default_cache_dir` when omitted.
         fetch: How a tile is downloaded; :func:`http_fetch` when omitted.
         source: Where the tiles come from; OpenStreetMap when omitted.
+        zoom: The tile zoom to use, in place of the one ``max_pixels`` chooses.
 
     Returns:
         The background, cropped to the box.
     """
-    zoom = choose_zoom(north, west, south, east, max_pixels)
+    if zoom is None:
+        zoom = choose_zoom(north, west, south, east, max_pixels)
     cache_dir = (cache_dir or default_cache_dir()) / source.folder
     fetch = fetch or http_fetch
     x0, y0 = world_pixel(north, west, zoom)

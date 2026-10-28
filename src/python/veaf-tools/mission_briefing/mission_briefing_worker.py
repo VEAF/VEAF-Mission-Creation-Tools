@@ -31,9 +31,11 @@ from campaign_manager.briefing_deck import (
     _frame,
     _join,
     _run,
+    _titled_slide,
     _write_page,
     paginate,
 )
+from campaign_manager.map_canvas import TacticalMapReport
 from campaign_manager.mission_pages import (
     ato_page,
     carrier_line,
@@ -78,7 +80,14 @@ from mission_briefing.briefing_kneeboard import (
     targets_blocks,
     text_pages,
 )
-from mission_briefing.briefing_maps import OVERVIEW_FILE, render_objective_zoom, render_overview_map, zoom_file
+from mission_briefing.briefing_maps import (
+    OVERVIEW_FILE,
+    Inset,
+    render_objective_zoom,
+    render_overview_map,
+    zoom_file,
+    zoom_half,
+)
 from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
 from mission_briefing.mission_reader import departures, group_position, objective_area, radio_plans
 from mission_briefing.models import (
@@ -108,6 +117,17 @@ PICTURE_PREFIX = "MCP_Briefing_"
 
 #: The width a DCS briefing picture is brought down to, pixels.
 _PICTURE_WIDTH = 1600
+
+#: The overview's width, pixels, and its aspect: the slide's body, under the title, the whole width
+#: (FEAT-OBJECTIVE-BRIEFING-QUALITY 02: 715 px beside a legend taking half the slide could not be read).
+_OVERVIEW = 2000
+_OVERVIEW_ASPECT = 2.0
+
+#: An objective zoom's width, pixels.
+_ZOOM = 1600
+
+#: A kneeboard map's width, pixels: the page's, inside its margins.
+_KNEEBOARD_MAP = 1392
 
 #: The mission-table key of each side's briefing pictures; the slots of no side get them too, as ``neutral``.
 _PICTURE_KEYS = {"blue": "pictureFileNameB", "red": "pictureFileNameR", "neutral": "pictureFileNameN"}
@@ -418,6 +438,19 @@ def _write_cover(deck: PresentationType, title: str, picture: MissionPicture, co
         _run(toc.add_paragraph(), item, 14)
 
 
+def _wide_picture_page(deck: PresentationType, title: str, image: Path) -> None:
+    """A map under its title, as large as the slide's body holds it, centred."""
+    slide = _titled_slide(deck, title)
+    with Image.open(image) as opened:
+        ratio = opened.width / opened.height
+    top = Emu(1000000)
+    room_w, room_h = _WIDTH - 2 * _MARGIN, _HEIGHT - top - Emu(200000)
+    width = min(room_w, int(room_h * ratio))
+    height = int(width / ratio)
+    left = _MARGIN + (room_w - width) // 2
+    slide.shapes.add_picture(str(image), Emu(left), top, width=Emu(width), height=Emu(height))
+
+
 def _jpeg(png: Path) -> bytes:
     """A map as a DCS briefing picture: JPEG, brought down to :data:`_PICTURE_WIDTH` when wider."""
     with Image.open(png) as image:
@@ -552,6 +585,14 @@ def _write_pictures(
     return list(pictures), other
 
 
+def _inset(overview: TacticalMapReport, area: ObjectiveArea) -> Inset | None:
+    """The overview as a zoom's inset, the zoom's place marked; ``None`` when the overview cannot place it."""
+    if overview.locate is None or not overview.metres_per_pixel:
+        return None
+    radius = zoom_half(area) / overview.metres_per_pixel
+    return Inset(overview.path, overview.locate(area.x, area.y), radius)
+
+
 def _kneeboard_pages(
     folder: Path,
     picture: MissionPicture,
@@ -568,12 +609,20 @@ def _kneeboard_pages(
     theatre = picture.theatre
     maps_folder = folder / MAPS_FOLDER / "kneeboard"
     overview = render_overview_map(
-        picture, areas, threats, starts, maps_folder / OVERVIEW_FILE, aspect=MAP_ASPECT, **tiles
+        picture, areas, threats, starts, maps_folder / OVERVIEW_FILE, aspect=MAP_ASPECT, width=_KNEEBOARD_MAP, **tiles
     )
     sheets: list[tuple[str, bytes]] = [("overview", map_page(t("campaign.mission_deck.title.tactical"), overview.path))]
     for objective, area in areas:
         zoom = render_objective_zoom(
-            theatre, objective, area, threats, maps_folder / zoom_file(area.zone), aspect=MAP_ASPECT, **tiles
+            theatre,
+            objective,
+            area,
+            threats,
+            maps_folder / zoom_file(area.zone),
+            aspect=MAP_ASPECT,
+            width=_KNEEBOARD_MAP,
+            inset=_inset(overview, area),
+            **tiles,
         )
         title = t("campaign.mission_deck.title.zoom", zone=area.zone)
         sheets.append((Path(zoom_file(area.zone)).stem, map_page(title, zoom.path)))
@@ -651,9 +700,20 @@ def _build(
 
     maps_folder = folder / MAPS_FOLDER
     tiles: dict[str, Any] = {"cache_dir": cache_dir, "fetch": fetch, "source": source, "side": side}
-    overview = render_overview_map(picture, areas, threats, starts, maps_folder / OVERVIEW_FILE, **tiles)
+    overview = render_overview_map(
+        picture, areas, threats, starts, maps_folder / OVERVIEW_FILE, aspect=_OVERVIEW_ASPECT, width=_OVERVIEW, **tiles
+    )
     zooms = [
-        render_objective_zoom(theatre, objective, area, threats, maps_folder / zoom_file(area.zone), **tiles)
+        render_objective_zoom(
+            theatre,
+            objective,
+            area,
+            threats,
+            maps_folder / zoom_file(area.zone),
+            width=_ZOOM,
+            inset=_inset(overview, area),
+            **tiles,
+        )
         for objective, area in areas
     ]
 
@@ -689,18 +749,9 @@ def _build(
     for part in [part for page in opening for part in paginate(page)]:
         _write_page(deck, part)
         sheets.append(part)
-    legend = [
-        (t("campaign.deck.legend"), True),
-        (t("mission_briefing.legend.objectives"), False),
-        *([(t("mission_briefing.legend.threats"), False)] if threats else []),
-        *([(t("mission_briefing.legend.departures"), False)] if starts else []),
-        *([(t("campaign.mission_deck.legend.qra"), False)] if picture.qra_zones else []),
-        *([(t("campaign.mission_deck.legend.carrier"), False)] if picture.carriers else []),
-        *([(t("campaign.mission_deck.legend.support"), False)] if picture.support else []),
-        *([(t("campaign.mission_deck.legend.waypoints"), False)] if navigation else []),
-    ]
-    picture_page(deck, numbered[maps_at], overview.path, legend)
-    sheets.append(MapSheet(numbered[maps_at], overview.path, legend))
+    # the key is drawn into the map: the slide gives the map its whole width
+    _wide_picture_page(deck, numbered[maps_at], overview.path)
+    sheets.append(MapSheet(numbered[maps_at], overview.path, []))
     zoom_titles = numbered[maps_at + 1 : maps_at + 1 + len(areas)]
     for title, (objective, area), zoom in zip(zoom_titles, areas, zooms, strict=True):
         notes = [(objective.title, True), *[(text, False) for text in objective.task]]

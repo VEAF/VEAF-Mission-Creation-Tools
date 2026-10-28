@@ -5,18 +5,36 @@ waypoints, objectives, known threats with their engagement circle (plain) and de
 (dashed), support, carrier, QRA, bullseye, scale and the tiles' credit. Only what intelligence knows:
 a threat is drawn because the assistant names it, a range because it gives one, with its source.
 Labels never overlap (`veaf_libs/map_labels.py`); without tiles the map stands on a plain background.
+
+Given a ``width`` (FEAT-OBJECTIVE-BRIEFING-QUALITY 02), the overview is framed on what the players fly —
+the route, the departures, the objectives, the threats where they stand — and not on the threats' full
+reach nor the tankers' tracks, which made the route a corner of a 715-pixel map. It is turned when that
+holds it tighter (a north arrow says where north is), drawn at that width with every symbol in
+proportion, and carries its own key, so that the slide gives it its whole width. A zoom given an
+``inset`` carries the overview in a corner, its own place marked on it.
 """
 
 from __future__ import annotations
 
 import math
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
-from campaign_manager.map_canvas import BLACK, Label, MapCanvas, TacticalMapReport, draw_mission, waypoint_numbers
+from campaign_manager.map_canvas import (
+    BLACK,
+    Label,
+    MapCanvas,
+    TacticalMapReport,
+    best_rotation,
+    draw_mission,
+    waypoint_numbers,
+)
 from campaign_manager.mission_picture import NM, MissionPicture
 from campaign_manager.strategic_map import OWNER_COLOURS
+from PIL import Image
 from veaf_libs.coordinates import xy_to_latlon
+from veaf_libs.i18n import t
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
 
 from mission_briefing.models import Objective, ObjectiveArea, Threat
@@ -36,6 +54,22 @@ _ZOOM_MIN = 3_000
 #: The scale bars a map may carry, nautical miles for the overview, kilometres for a zoom.
 _NM_BARS = (5, 10, 20, 50, 100)
 _KM_BARS = (1, 2, 5)
+
+#: The inset's width, as a share of the zoom's.
+_INSET_SHARE = 0.3
+
+_ROUTE = (60, 60, 60, 220)
+
+
+@dataclass(frozen=True)
+class Inset:
+    """The overview, to show in a corner of a zoom: the image, and where the zoom's centre stands on it."""
+
+    image: Path
+    centre: tuple[float, float]
+    """Pixels on the overview."""
+    radius: float
+    """The zoom's half width, in the overview's pixels."""
 
 
 def zoom_file(zone: str) -> str:
@@ -63,27 +97,101 @@ def _bar(canvas: MapCanvas, unit: float, bars: tuple[int, ...]) -> int:
     return fitting[-1] if fitting else bars[0]
 
 
+def _diamond(canvas: MapCanvas, centre: tuple[float, float], half: int, colour: tuple[int, ...]) -> None:
+    cx, cy = centre
+    canvas.draw.polygon([(cx, cy - half), (cx + half, cy), (cx, cy + half), (cx - half, cy)], fill=colour)
+
+
 def _threat(canvas: MapCanvas, threat: Threat, position: tuple[float, float], enemy: tuple[int, int, int]) -> Label:
     """Draw a threat's circles and its diamond; return its label."""
     centre = canvas.at_xy(*position)
     for metres, dashed in threat_circles(threat):
-        canvas.circle(centre, canvas.pixels(metres), enemy, dashed=dashed, width=2 if dashed else 3)
-    cx, cy = centre
-    canvas.draw.polygon([(cx, cy - 9), (cx + 9, cy), (cx, cy + 9), (cx - 9, cy)], fill=(*enemy, 255))
-    return (canvas.mark(threat.name, centre, 9), threat.name, canvas.small, (*enemy, 255))
+        width = canvas.px(2) if dashed else canvas.px(3)
+        canvas.circle(centre, canvas.pixels(metres), enemy, dashed=dashed, width=width)
+    _diamond(canvas, centre, canvas.px(9), (*enemy, 255))
+    return (canvas.mark(threat.name, centre, canvas.px(9)), threat.name, canvas.small, (*enemy, 255))
 
 
 def _objective(canvas: MapCanvas, area: ObjectiveArea, enemy: tuple[int, int, int], *, focus: bool) -> Label:
     """Draw an objective's zone; return its label, set on the circle."""
     cx, cy = canvas.at_xy(area.x, area.y)
-    radius = max(canvas.pixels(area.radius), 8)
-    canvas.circle((cx, cy), radius, enemy, dashed=False, width=4 if focus else 3)
-    canvas.mark(area.zone, (cx, cy), min(radius, 6))
+    radius = max(canvas.pixels(area.radius), canvas.px(8))
+    canvas.circle((cx, cy), radius, enemy, dashed=False, width=canvas.px(4 if focus else 3))
+    canvas.mark(area.zone, (cx, cy), min(radius, canvas.px(6)))
     return ((cx - radius, cy - radius, cx + radius, cy + radius), area.zone, canvas.big, (*enemy, 255))
 
 
 def _sides(side: str) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
     return OWNER_COLOURS[side], OWNER_COLOURS["red" if side == "blue" else "blue"]
+
+
+def _key_rows(
+    picture: MissionPicture,
+    objectives: list[tuple[Objective, ObjectiveArea]],
+    threats: list[tuple[Threat, tuple[float, float]]],
+    departures: list[tuple[str, float, float]],
+) -> list[str]:
+    """What the overview's key explains, in its order: only what the map shows."""
+    ranges = [circle for threat, _ in threats for circle in threat_circles(threat)]
+    roles = {support.role for support in picture.support if support.route}
+    rows = ["objective"] if objectives else []
+    rows += ["threat"] if threats else []
+    rows += ["engagement"] if any(not dashed for _, dashed in ranges) else []
+    rows += ["detection"] if any(dashed for _, dashed in ranges) else []
+    rows += ["departure"] if departures else []
+    rows += ["route"] if picture.flight_plans else []
+    rows += ["qra"] if picture.qra_zones else []
+    rows += ["carrier"] if picture.carriers else []
+    rows += ["awacs"] if "awacs" in roles else []
+    rows += ["tanker"] if roles - {"awacs"} else []
+    return [*rows, "bullseye"]
+
+
+def _key_symbol(
+    canvas: MapCanvas, row: str, centre: tuple[float, float], friend: tuple[int, int, int], enemy: tuple[int, int, int]
+) -> None:
+    """One row's symbol, drawn as the map draws it, in a cell ``px(30)`` wide."""
+    px, draw = canvas.px, canvas.draw
+    cx, cy = centre
+    half = px(11)
+    if row == "objective":
+        canvas.circle(centre, half, enemy, dashed=False, width=px(3))
+    elif row == "threat":
+        _diamond(canvas, centre, px(9), (*enemy, 255))
+    elif row in ("engagement", "qra", "detection"):
+        canvas.circle(centre, half, enemy, dashed=row != "engagement", width=px(2))
+    elif row == "departure":
+        draw.rectangle((cx - px(7), cy - px(7), cx + px(7), cy + px(7)), fill=(*friend, 255))
+    elif row == "route":
+        draw.line((cx - px(14), cy, cx + px(14), cy), fill=_ROUTE, width=px(3))
+        draw.ellipse((cx - px(5), cy - px(5), cx + px(5), cy + px(5)), fill=BLACK, outline=(255, 255, 255, 255))
+    elif row == "carrier":
+        draw.polygon([(cx, cy - px(11)), (cx - px(9), cy + px(9)), (cx + px(9), cy + px(9))], fill=(*friend, 255))
+    elif row == "awacs":
+        canvas.circle(centre, half, friend, dashed=True, width=px(2))
+    elif row == "tanker":
+        draw.line((cx - px(14), cy, cx + px(14), cy), fill=(*friend, 255), width=px(5))
+    else:  # bullseye
+        for r in (px(5), px(10)):
+            draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=BLACK, width=px(2))
+        draw.line((cx - px(14), cy, cx + px(14), cy), fill=BLACK, width=px(2))
+        draw.line((cx, cy - px(14), cx, cy + px(14)), fill=BLACK, width=px(2))
+
+
+def _draw_key(canvas: MapCanvas, rows: list[str], friend: tuple[int, int, int], enemy: tuple[int, int, int]) -> None:
+    """The map's key, one symbol and a few words a row, in the corner the fewest symbols stand in."""
+    texts = [t(f"mission_briefing.key.{row}") for row in rows]
+    font, px = canvas.small, canvas.px
+    line = px(28)
+    widest = max(canvas.draw.textlength(text, font=font) for text in texts)
+    width, height = px(16) + px(30) + px(8) + widest, px(12) + line * len(rows)
+    left, top, right, bottom = canvas.free_corner((width, height))
+    canvas.draw.rectangle((left, top, right, bottom), fill=(255, 255, 255, 225), outline=(*BLACK[:3], 120))
+    for index, (row, text) in enumerate(zip(rows, texts, strict=True)):
+        cy = top + px(6) + line * index + line / 2
+        _key_symbol(canvas, row, (left + px(8) + px(15), cy), friend, enemy)
+        canvas.draw.text((left + px(8) + px(30) + px(8), cy), text, font=font, fill=BLACK, anchor="lm")
+    canvas.symbols["key"] = ((left + right) / 2, (top + bottom) / 2)
 
 
 def render_overview_map(
@@ -98,8 +206,9 @@ def render_overview_map(
     fetch: Fetch | None = None,
     source: TileSource = OSM,
     aspect: float | None = None,
+    width: int | None = None,
 ) -> TacticalMapReport:
-    """Render the mission's overview, framed to hold everything it shows and the threats' engagement.
+    """Render the mission's overview, framed on the route, the departures, the objectives and the threats.
 
     Args:
         picture: What the built mission says.
@@ -112,6 +221,8 @@ def render_overview_map(
         fetch: How a tile is downloaded (tests pass their own).
         source: Where the tiles come from.
         aspect: The frame's width over its height (a kneeboard page's 2:3); ``None`` frames the content.
+        width: The map's width at least, pixels: framed, turned when that holds it tighter, a north arrow.
+            ``None`` fits the frame north up in 1400 pixels.
 
     Returns:
         Where the map is, and where its symbols and labels went.
@@ -119,14 +230,13 @@ def render_overview_map(
     theatre = picture.theatre
     friend, enemy = _sides(side)
     numbers = waypoint_numbers(picture)
-    spots = [(area.x, area.y) for _, area in objectives]
-    for threat, (x, y) in threats:
-        reach = max((metres for metres, dashed in threat_circles(threat) if not dashed), default=0.0)
-        spots += [(x + reach, y), (x - reach, y), (x, y + reach), (x, y - reach)]
-    spots += [(c.x, c.y) for c in picture.carriers] + [s.route[0] for s in picture.support if s.route]
-    spots += [(x, y) for _, x, y in departures] + list(numbers) + [picture.bullseye]
+    spots = [(area.x, area.y) for _, area in objectives] + [position for _, position in threats]
+    spots += [(c.x, c.y) for c in picture.carriers] + [(x, y) for _, x, y in departures]
+    spots += list(numbers) + [picture.bullseye]
+    points = [xy_to_latlon(theatre, x, y) for x, y in spots]
+    rotation = best_rotation(points, _OVERVIEW_MARGIN, aspect) if width is not None and aspect else 0.0
     canvas = MapCanvas(
-        theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], _OVERVIEW_MARGIN, cache_dir, fetch, source, aspect
+        theatre, points, _OVERVIEW_MARGIN, cache_dir, fetch, source, aspect, width=width, rotation=rotation
     )
 
     # every symbol first, so that no label is set on one drawn after it
@@ -139,17 +249,44 @@ def render_overview_map(
             route.insert(0, min(((x, y) for _, x, y in departures), key=lambda xy: math.dist(xy, route[0])))
         pixels = [canvas.at_xy(x, y) for x, y in route]
         for a, b in zip(pixels, pixels[1:], strict=False):
-            canvas.draw.line((*a, *b), fill=(60, 60, 60, 220), width=3)
+            canvas.draw.line((*a, *b), fill=_ROUTE, width=canvas.px(3))
     for name, x, y in departures:
         dx, dy = canvas.at_xy(x, y)
-        canvas.draw.rectangle((dx - 7, dy - 7, dx + 7, dy + 7), fill=(*friend, 255))
-        labels.append((canvas.mark(name, (dx, dy), 7), name, canvas.small, (*friend, 255)))
+        half = canvas.px(7)
+        canvas.draw.rectangle((dx - half, dy - half, dx + half, dy + half), fill=(*friend, 255))
+        labels.append((canvas.mark(name, (dx, dy), half), name, canvas.small, (*friend, 255)))
     labels += draw_mission(canvas, picture, friend, enemy, numbers)
+    canvas.turn()
     bar = _bar(canvas, NM, _NM_BARS)
     canvas.scale(bar * NM, f"{bar} nm")
+    _draw_key(canvas, _key_rows(picture, objectives, threats, departures), friend, enemy)
+    if width is not None:
+        canvas.north_arrow()
     for box, text, font, colour in labels:
         canvas.label(box, text, font, colour)
     return canvas.save(out)
+
+
+def _paste_inset(canvas: MapCanvas, inset: Inset) -> None:
+    """The overview, shrunk into the corner the fewest symbols stand in, the zoom's place circled on it."""
+    width = canvas.background.size[0] * _INSET_SHARE
+    with Image.open(inset.image) as opened:
+        scale = width / opened.width
+        thumb = opened.convert("RGBA").resize((round(opened.width * scale), round(opened.height * scale)))
+    left, top, right, bottom = canvas.free_corner(thumb.size)
+    canvas.overlay.paste(thumb, (round(left), round(top)))
+    border = canvas.px(2)
+    canvas.draw.rectangle((left, top, left + thumb.width, top + thumb.height), outline=BLACK, width=border)
+    cx, cy = left + inset.centre[0] * scale, top + inset.centre[1] * scale
+    radius = max(inset.radius * scale, canvas.px(6))
+    red = (*OWNER_COLOURS["red"], 255)
+    canvas.draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), outline=red, width=canvas.px(3))
+    canvas.symbols["inset"] = ((left + right) / 2, (top + bottom) / 2)
+
+
+def zoom_half(area: ObjectiveArea) -> float:
+    """How far a zoom shows around its zone's centre, metres, before its frame is widened to an aspect."""
+    return max(area.radius * _ZOOM_MARGIN, _ZOOM_MIN)
 
 
 def render_objective_zoom(
@@ -164,6 +301,8 @@ def render_objective_zoom(
     fetch: Fetch | None = None,
     source: TileSource = OSM,
     aspect: float | None = None,
+    width: int | None = None,
+    inset: Inset | None = None,
 ) -> TacticalMapReport:
     """Render one objective: its zone, each of its targets, the threats that stand in the frame.
 
@@ -178,26 +317,36 @@ def render_objective_zoom(
         fetch: How a tile is downloaded (tests pass their own).
         source: Where the tiles come from.
         aspect: The frame's width over its height (a kneeboard page's 2:3); ``None`` frames the content.
+        width: The map's width at least, pixels, every symbol in proportion; ``None`` fits 1400 pixels.
+        inset: The overview to show in a corner, the zoom's place marked on it.
 
     Returns:
         Where the map is, and where its symbols and labels went.
     """
     _, enemy = _sides(side)
-    half = max(area.radius * _ZOOM_MARGIN, _ZOOM_MIN)
+    half = zoom_half(area)
     spots = [(area.x, area.y)] + [(target.x, target.y) for target in area.targets]
-    canvas = MapCanvas(theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], half, cache_dir, fetch, source, aspect)
+    canvas = MapCanvas(
+        theatre, [xy_to_latlon(theatre, x, y) for x, y in spots], half, cache_dir, fetch, source, aspect, width=width
+    )
     labels = [_objective(canvas, area, enemy, focus=True)]
-    width, height = canvas.background.size
     for threat, position in threats:
-        x, y = canvas.at_xy(*position)
-        if 0 <= x < width and 0 <= y < height:
+        x, y = canvas.turned(canvas.at_xy(*position))
+        frame_w, frame_h = canvas.frame_size
+        if 0 <= x < frame_w and 0 <= y < frame_h:
             labels.append(_threat(canvas, threat, position, enemy))
     for target in area.targets:
         tx, ty = canvas.at_xy(target.x, target.y)
-        canvas.draw.rectangle((tx - 5, ty - 5, tx + 5, ty + 5), fill=(*enemy, 255), outline=(255, 255, 255, 255))
-        labels.append((canvas.mark(f"target {target.name}", (tx, ty), 6), target.name, canvas.small, BLACK))
+        size = canvas.px(5)
+        canvas.draw.rectangle(
+            (tx - size, ty - size, tx + size, ty + size), fill=(*enemy, 255), outline=(255, 255, 255, 255)
+        )
+        labels.append((canvas.mark(f"target {target.name}", (tx, ty), canvas.px(6)), target.name, canvas.small, BLACK))
+    canvas.turn()
     bar = _bar(canvas, 1000, _KM_BARS)
     canvas.scale(bar * 1000, f"{bar} km")
+    if inset is not None:
+        _paste_inset(canvas, inset)
     for box, text, font, colour in labels:
         canvas.label(box, text, font, colour)
     return canvas.save(out)

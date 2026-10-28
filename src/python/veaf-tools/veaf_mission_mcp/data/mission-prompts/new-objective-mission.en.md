@@ -451,6 +451,7 @@ approximation of it.
 7. `validate_mission`, `build_mission` (and the `LOCAL_TEST` profile), then section 8.
 8. The **briefing's content in prose** (`docs/briefing-contenu.md`), approved by the user, then `build_mission_briefing` (section 6) and the **Mission Maker sheet**.
 9. `README.md`: the scenario, how to build, the files, the known limitations.
+10. The **announcement**, if the user asks for it: `build_mission_promotion` (poster, calendar banner, Discord post). Ask them for the evening's date and local hour and the links; never invent them.
 
 Brief status after each step: what is done, not what you are about to do.
 

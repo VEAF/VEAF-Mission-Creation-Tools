@@ -97,6 +97,7 @@ The AI can act in two places, and it changes what "survives":
 | 53 | [Read and edit the mission folder's files](#mission-files) | Modules & settings | Recipe | ⭐ |
 | 54 | [Make a mission's briefing (PPTX, maps, DCS pictures)](#mission-briefing) | 🕰️ Mission settings | Folder (built) | ⭐ |
 | 55 | [Write the players' flight plan](#set-route) | 🕰️ Mission settings | Recipe (folder) | ⭐ |
+| 56 | [Announce the mission (poster, calendar banner, Discord post)](#mission-promotion) | 🕰️ Mission settings | Folder (built) | ⭐ |
 
 ---
 
@@ -763,6 +764,15 @@ A second map, the **combat area**, follows the situation map, framed on the obje
 The AI can also give the package's **code words** (a page in the deck and on the kneeboard), and the briefing takes the **recon photos** left in `docs/recon/` (a JPEG photo and its JSON sheet: zone, title, heading, pitch, position), two to a page after their objective's zoom.
 
 > 💬 *"Make the mission's briefing, topo background."*
+
+### Announce the mission {#mission-promotion}
+
+*Folder (built) · ⭐* — Once the briefing is made, the tool makes the evening's announcement: a 16:9 **poster** (`docs/poster.jpg`), a **banner** for the VEAF calendar (`docs/calendar-banner.jpg`, 2400 × 432, the 5.55:1 the calendar shows uncropped) and a **Discord post** under 2,000 characters (`docs/discord-post.md`).
+The background is a recon photo graded in evening light (or the map), with the combat-area map and the photo pinned on it, the title and two or three tagline lines.
+The post takes the map, the time of day, the sky and the departure bases from the mission; the AI writes the rest (pitch, programme by role, practical lines).
+**The evening's date and hour, and the links** (calendar sign-up, shared briefing) **are yours to give**: the tool never invents them, and without them nothing carries a date.
+
+> 💬 *"Make the poster and the Discord post: Thursday 29 October, 21:00, sign-up https://www.veaf.org/calendar/1423."*
 
 ---
 

@@ -31,11 +31,41 @@ def test_the_action_runs_through_the_catalog(catalog: ActionCatalog, tmp_path: P
     objective_mission(tmp_path)
     result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS})
     assert Path(result["deck"]) == tmp_path / "docs" / "briefing.pptx" and Path(result["deck"]).is_file()
-    assert result["pages"] == 11  # with the flight plan's two step sheets (FEAT-OBJECTIVE-BRIEFING-QUALITY 05)
-    assert [Path(path).name for path in result["maps"]] == ["overview.png", "objective-khobi.png"]
-    assert result["pictures"] == ["MCP_Briefing_overview", "MCP_Briefing_objective-khobi"]
+    # with the flight plan's two step sheets (FEAT-OBJECTIVE-BRIEFING-QUALITY 05) and the combat area
+    assert result["pages"] == 12
+    assert [Path(path).name for path in result["maps"]] == ["overview.png", "combat-area.png", "objective-khobi.png"]
+    assert result["pictures"] == [
+        "MCP_Briefing_overview",
+        "MCP_Briefing_combat-area",
+        "MCP_Briefing_objective-khobi",
+    ]
     assert result["map_offline"] is True  # no network in the tests
     assert any("plain background" in warning for warning in result["warnings"])
+
+
+def test_code_words_and_recon_photos_reach_the_briefing(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FEAT-OBJECTIVE-MISSION-V2 03-04, through the catalog: the parameters the assistant passes."""
+    import json
+
+    from PIL import Image
+
+    objective_mission(tmp_path / "m")
+    photos = tmp_path / "photos"
+    photos.mkdir()
+    Image.new("RGB", (800, 450), (90, 110, 70)).save(photos / "a.jpg")
+    (photos / "a.json").write_text(json.dumps({"zone": "Khobi", "title": "Le dépôt", "heading": 95}), "utf-8")
+    result = catalog.run_action(
+        "build_mission_briefing",
+        {
+            "mission_path": str(tmp_path / "m"),
+            **PARAMS,
+            "code_words": [{"word": "PORTE OUVERTE", "meaning": "Le SA-6 est détruit.", "who": "Blade"}],
+            "recon_folder": str(photos),
+        },
+    )
+    assert [Path(path).name for path in result["recon"]] == ["a.jpg"]
+    assert any("code-words" in name for name in result["kneeboard"])
+    assert any("recon" in name for name in result["kneeboard"])
 
 
 def test_topo_is_a_basemap_and_anything_else_is_refused(catalog: ActionCatalog, tmp_path: Path) -> None:

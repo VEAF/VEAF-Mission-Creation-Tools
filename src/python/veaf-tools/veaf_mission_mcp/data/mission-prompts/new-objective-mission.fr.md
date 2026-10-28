@@ -445,6 +445,7 @@ validé un scénario, pas un à-peu-près.
 7. `validate_mission`, `build_mission` (et le profil `LOCAL_TEST`), puis la section 8.
 8. Le **contenu du briefing en prose** (`docs/briefing-contenu.md`), validé par l'utilisateur, puis `build_mission_briefing` (section 6) et la **fiche Mission Maker**.
 9. `README.md` : le scénario, comment construire, les fichiers, les limites connues.
+10. L'**annonce**, si l'utilisateur la demande : `build_mission_promotion` (affiche, bandeau du calendrier, message Discord). Demande-lui la date et l'heure locale de la soirée et les liens ; ne les invente jamais.
 
 Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'apprêtes à faire.
 

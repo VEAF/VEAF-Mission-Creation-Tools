@@ -190,7 +190,7 @@ and becomes unreadable.
 
 1. **Cover** — the mission title, very large, on the left; on the right, the table of contents
    (General situation, ATO, Tactical situation, Flight plan), linked to the pages.
-   - **Strategic situation** (optional) — prose, a page right after the cover: the political context, why we are there, what is at stake.
+   - **Strategic situation** (optional) — prose: political context, why we are there, what is at stake.
 2. **General situation** — headings in bold, each followed by its text:
    - **Context**: the why, in two or three sentences, and the idea of the route;
    - **Mission**: three to five bullets in the infinitive (infiltrate, destroy, exfiltrate…), or a paragraph of prose;
@@ -201,20 +201,20 @@ and becomes unreadable.
    - **Time**: the mission time.
 3. **ATO** — under the heading **PACKAGE**, one box per flight: callsign (in blue), flight name,
    aircraft type; the base in italics below; four lines numbered 1 to 4 for the pilots; a loadout
-   column ("Free loadout" or the imposed loadout). With dynamic slots, each base says "dynamic slot" and lists the package's flights, never the types it offers. On the right, the **support assets** (callsign in
+   column ("Free loadout" or the imposed loadout). With dynamic slots: "dynamic slot" and the flights, not the types. On the right, the **support assets** (callsign in
    burgundy, role, type: tankers, AWACS) and **control** (GCI / ATC).
 4. **Tactical situation** — the overview map: departure, route, named points (START, INGRESS,
-   EGRESS), objectives, known threats with their circle. The page's whole width, framed on the useful area, turned when that holds it tighter (an arrow shows north), its key inside the map.
+   EGRESS), objectives, known threats with their circle. Full width, framed on the useful area, turned if needed (north arrow), key included.
 5. **Tactical situation WPn** — one page per objective, an ever tighter zoom on the target: the site,
-   its buildings, its close defences; an inset places the zoom on the overview.
+   its buildings, its close defences; an inset places it.
 6. **Mission flow** — **Primary objectives** (list), **Air opposition** (what is known, what may take
    off and when), **Air defences** (and how the route avoids them), **Other information** (suggested
    attack mode, refuelling on the way home, divert field).
 7. **Flight plan** — one waypoint per line with its role: `W1 : Hold`, `W2 : Insertion TBA`, …,
-   `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`. Then **step by step**, as the DCS kneeboard shows it: one sheet per point, the heading and distance that reach it, the ground, what is done there.
-   - **Deployment and coordination** (optional, right after the flow) — prose: who goes first, the slots, the rendezvous, how the flights coordinate.
+   `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`. Then **step by step**: one sheet per point (heading, distance, ground, what is done there).
+   - **Deployment and coordination** (optional, after the flow) — who goes first, slots, rendezvous.
 8. **Frequency plan** — UHF then VHF: `<name> Ch. <n> : <frequency> MHz`, no Guard (every aircraft reaches it with its own control).
-9. **Target coordinates** — one sheet per target, grouped by objective: its name, what it is, its coordinates in DMS (`N34°33'37.31" E38°18'48.77"`) and DDM, its elevation, a thumbnail of the zoom.
+9. **Target coordinates** — one sheet per target: name, kind, DMS and DDM, elevation, thumbnail.
 
 The briefing is written in the mission's language: the headings above are the template's, which
 `build_mission_briefing` writes in that language (*General situation*, *Mission flow*, *Flight plan*,

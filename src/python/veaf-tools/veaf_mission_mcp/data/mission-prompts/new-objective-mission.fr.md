@@ -192,10 +192,10 @@ toute la largeur et devient illisible.
 
 1. **Couverture** — le titre de la mission en très gros à gauche ; à droite, le sommaire (Situation
    générale, ATO, Situation tactique, Plan de vol), liens vers les pages.
-   - **Situation stratégique** (facultative) — en prose, une page juste après la couverture : le contexte politique, pourquoi on est là, les enjeux.
+   - **Situation stratégique** (facultative) — en prose : contexte politique, pourquoi on est là, enjeux.
 2. **Situation générale** — rubriques en gras, chacune suivie de son texte :
    - **Contexte** : le pourquoi, en deux ou trois phrases, et le principe de l'itinéraire ;
-   - **Mission** : trois à cinq puces à l'infinitif (s'infiltrer, détruire, s'exfiltrer…), ou un paragraphe de prose ;
+   - **Mission** : trois à cinq puces à l'infinitif (s'infiltrer, détruire, s'exfiltrer…) ou de la prose ;
    - **Bullseye** : où il est (un point que les pilotes peuvent nommer, ou un waypoint) ;
    - **Départ** : base ou porte-avions, type de départ (Case I, moteur froid…) ;
    - **Menace** : les familles de défenses (AAA, SA-8, SA-15…) ;
@@ -203,21 +203,21 @@ toute la largeur et devient illisible.
    - **Horaire** : l'heure de mission.
 3. **ATO** — sous le titre **PACKAGE**, un cadre par vol : indicatif (en bleu), nom de vol, type
    d'appareil ; la base en italique dessous ; quatre lignes numérotées 1 à 4 pour les pilotes ; une
-   colonne d'emport (« Armement libre » ou l'emport imposé). En slots dynamiques, chaque base dit « slot dyn » et liste les vols du package, jamais les types qu'elle offre. À droite, les **moyens de soutien**
+   colonne d'emport (« Armement libre » ou l'emport imposé). En slots dynamiques : « slot dyn » et les vols, pas les types. À droite, les **moyens de soutien**
    (indicatif en bordeaux, rôle, type : ravitailleurs, AWACS) et le **contrôle** (GCI / ATC).
 4. **Situation tactique** — la carte générale : départ, itinéraire, points nommés (START, INGRESS,
-   EGRESS), objectifs, menaces connues avec leur cercle. Sur toute la largeur de la page, cadrée sur la zone utile, tournée si elle y gagne (une flèche indique le nord), sa légende dans la carte.
+   EGRESS), objectifs, menaces connues avec leur cercle. Pleine largeur, cadrée sur la zone utile, tournée si besoin (flèche nord), légende incluse.
 5. **Situation tactique WPn** — une page par objectif, un zoom de plus en plus serré sur la cible : le
-   site, ses bâtiments, ses défenses proches ; un encart situe le zoom dans la carte générale.
+   site, ses bâtiments, ses défenses proches ; un encart le situe.
 6. **Déroulement mission** — **Objectifs principaux** (liste), **Opposition aérienne** (ce qu'on sait,
    ce qui peut décoller et quand), **Défenses antiaériennes** (et comment l'itinéraire les évite),
    **Autres informations** (mode d'attaque conseillé, ravitaillement au retour, terrain de
    dégagement).
 7. **Plan de vol** — un waypoint par ligne avec son rôle : `W1 : Hold`, `W2 : Insertion TBA`, …,
-   `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`. Puis **étape par étape**, comme le kneeboard DCS : une fiche par point, le cap et la distance qui y mènent, le relief, ce qu'on y fait.
-   - **Déploiement et coordination** (facultative, juste après le déroulement) — en prose : qui part en premier, les créneaux, les rendez-vous, comment les vols se coordonnent.
+   `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`. Puis **étape par étape** : une fiche par point (cap, distance, relief, ce qu'on y fait).
+   - **Déploiement et coordination** (facultative) — qui part en premier, créneaux, rendez-vous.
 8. **Plan de fréquences** — UHF puis VHF : `<nom> Ch. <n> : <fréquence> MHz`, sans Garde (chaque appareil l'atteint par sa propre commande).
-9. **Coordonnées cibles** — une fiche par cible, regroupées par objectif : son nom, ce qu'elle est, ses coordonnées en DMS (`N34°33'37.31" E38°18'48.77"`) et en DDM, son altitude, une vignette du zoom.
+9. **Coordonnées cibles** — une fiche par cible : nom, nature, DMS et DDM, altitude, vignette.
 
 **La suite de ce prompt est la construction** : une fois un scénario approuvé par l'utilisateur, charge-la avec `describe_mission_prompt` (`kind: objective`, `part: build`) et suis-la à partir de la section 4.
 

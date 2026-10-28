@@ -23,8 +23,8 @@ from mission_briefing.mission_briefing_worker import (
     _named_plan,
     _objective_blocks,
     _step_sheets,
-    bullseye_text,
     build_mission_briefing,
+    bullseye_text,
     flies,
     objective_notes,
     objective_waypoint,
@@ -164,7 +164,9 @@ class TestMainAndSecondary:
             "      - type: zone\n        zone_name: Counter\n",
         ]
         if operation:
-            zones.append("      - type: operation\n        zone_name: Op\n        tasking_orders:\n          - zone_name: Khan\n")
+            zones.append(
+                "      - type: operation\n        zone_name: Op\n        tasking_orders:\n          - zone_name: Khan\n"
+            )
         (folder / "mission.yaml").write_text(
             "modules:\n  COMBATZONE:\n    enabled: true\n    combat_zones:\n" + "".join(zones), encoding="utf-8"
         )
@@ -189,7 +191,10 @@ class TestMainAndSecondary:
         ]
 
     def test_without_an_operation_every_objective_is_listed(self) -> None:
-        areas = [(Objective("A", "Un"), ObjectiveArea("A", 0, 0, 1)), (Objective("B", "Deux"), ObjectiveArea("B", 0, 0, 1))]
+        areas = [
+            (Objective("A", "Un"), ObjectiveArea("A", 0, 0, 1)),
+            (Objective("B", "Deux"), ObjectiveArea("B", 0, 0, 1)),
+        ]
         with language("fr"):
             (block,) = _objective_blocks(areas, set())
         assert block.paragraphs == ("1. Un", "2. Deux")
@@ -296,13 +301,21 @@ class TestNotesPerPlan:
         picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
         point = Waypoint("KHAN", 1000.0, 2000.0, 3000.0, "BARO")
         picture = replace(
-            picture, flight_plans=[FlightPlan("plane", ("F-16C_50",), (point,)), FlightPlan("helicopter", ("AH-64D",), (point,))]
+            picture,
+            flight_plans=[
+                FlightPlan("plane", ("F-16C_50",), (point,)),
+                FlightPlan("helicopter", ("AH-64D",), (point,)),
+            ],
         )
         content = BriefingContent(
-            title="T", waypoint_notes={"KHAN": "Au contact."}, plan_notes={"helicopter": {"KHAN": "Retour par la route."}}
+            title="T",
+            waypoint_notes={"KHAN": "Au contact."},
+            plan_notes={"helicopter": {"KHAN": "Retour par la route."}},
         )
         warnings: list[str] = []
-        overview = render_overview_map(picture, [], [], [], tmp_path / "o.png", cache_dir=tmp_path / "tiles", fetch=_white)
+        overview = render_overview_map(
+            picture, [], [], [], tmp_path / "o.png", cache_dir=tmp_path / "tiles", fetch=_white
+        )
         with language("fr"):
             section = _step_sheets(content, picture, [], overview, warnings)
         assert section is not None
@@ -327,6 +340,7 @@ class TestKneeboardReplace:
         pages.mkdir(parents=True, exist_ok=True)
         (pages / "01-sitac-generale.jpg").write_bytes(b"hand")
         (pages / "notes.txt").write_text("not a page", encoding="utf-8")
+        (pages / "00-veaf-calibration.png").write_bytes(b"build")
         mission = read_miz(miz)
         write_miz(mission, miz, additional_files={"KNEEBOARD/IMAGES/01-sitac-generale.jpg": b"hand"})
         return pages
@@ -346,6 +360,7 @@ class TestKneeboardReplace:
         )
         assert not (pages / "01-sitac-generale.jpg").exists()
         assert (pages / "notes.txt").is_file()  # not a picture: not the tool's to move
+        assert (pages / "00-veaf-calibration.png").is_file()  # the build's own page, the presets' calibration
         assert list(tmp_path.glob(".veaf-backups/kneeboard-*/01-sitac-generale.jpg"))
         names = zipfile.ZipFile(miz).namelist()
         assert "KNEEBOARD/IMAGES/01-sitac-generale.jpg" not in names
@@ -360,8 +375,12 @@ class TestTheaterMaps:
     def _picture(tmp_path: Path) -> Any:
         picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
         _, x, y, _ = KHOBI_ZONE
-        helicopter = FlightPlan("helicopter", ("AH-64D_BLK_II",), (Waypoint("MASADA", x - 8000, y - 4000, 300, "RADIO"),))
-        tanker = Support("Texaco 1-1", "tanker", "KC-135", 290.1, None, ((x - 60_000, y - 30_000), (x - 70_000, y - 30_000)))
+        helicopter = FlightPlan(
+            "helicopter", ("AH-64D_BLK_II",), (Waypoint("MASADA", x - 8000, y - 4000, 300, "RADIO"),)
+        )
+        tanker = Support(
+            "Texaco 1-1", "tanker", "KC-135", 290.1, None, ((x - 60_000, y - 30_000), (x - 70_000, y - 30_000))
+        )
         return replace(picture, flight_plans=[*picture.flight_plans, helicopter], support=[*picture.support, tanker])
 
     @staticmethod
@@ -403,7 +422,9 @@ class TestTheaterMaps:
         picture = replace(self._picture(tmp_path), qra_zones=[], flight_plans=[], support=[], carriers=[])
         _, x, y, _ = KHOBI_ZONE
         threat = (Threat("SA-11", "SA-6 Site", "SA-11", engagement_nm=25), (x, y))
-        report = render_overview_map(picture, [], [threat], [], tmp_path / "o.png", cache_dir=tmp_path / "tiles", fetch=_white)
+        report = render_overview_map(
+            picture, [], [threat], [], tmp_path / "o.png", cache_dir=tmp_path / "tiles", fetch=_white
+        )
         assert report.locate is not None
         px, py = report.locate(x + 6000, y + 6000)  # inside the circle, away from its centre and its label
         red, green, _ = Image.open(report.path).convert("RGB").getpixel((round(px), round(py)))
@@ -431,7 +452,10 @@ class TestTheaterMaps:
     def test_the_ground_is_read_from_the_mission(self) -> None:
         table = _table(
             red=[_group("Counter", _unit("c", "T-72B"), route={"points": {1: {"x": 0, "y": 0}, 2: {"x": 5, "y": 5}}})],
-            blue=[_group("JTAC-AbuNada", _unit("j", "Hummer", 1, 2)), _group("Brigade", _unit("b", "Merkava_Mk4", 3, 4))],
+            blue=[
+                _group("JTAC-AbuNada", _unit("j", "Hummer", 1, 2)),
+                _group("Brigade", _unit("b", "Merkava_Mk4", 3, 4)),
+            ],
             drawings={
                 "layers": {
                     1: {

@@ -66,6 +66,7 @@ from PIL import Image
 from pptx import Presentation
 from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
+from presets_injector.presets_manager import KNEEBOARD_CALIBRATION_PATH
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import current_language, language, t
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
@@ -886,9 +887,15 @@ _KNEEBOARD_PICTURE = re.compile(r".+\.(?:jpe?g|png)", re.IGNORECASE)
 _KNEEBOARD_BACKUP = Path(".veaf-backups")
 
 
+#: The build's own kneeboard page, the presets' calibration: not a hand-made page, never taken away.
+_CALIBRATION = KNEEBOARD_CALIBRATION_PATH.rsplit("/", 1)[-1]
+
+
 def _foreign_page(name: str, pages: dict[str, bytes]) -> bool:
-    """A picture of the common kneeboard this tool did not write: what ``kneeboard_replace`` takes away."""
-    return _KNEEBOARD_PICTURE.fullmatch(name) is not None and not is_kneeboard_page(name) and name not in pages
+    """A picture of the common kneeboard neither this tool nor the build wrote: what ``kneeboard_replace`` takes away."""
+    if name == _CALIBRATION or name in pages or is_kneeboard_page(name):
+        return False
+    return _KNEEBOARD_PICTURE.fullmatch(name) is not None
 
 
 def _named_plan(plan: FlightPlan, flights: tuple[PackageFlight, ...]) -> FlightPlan:

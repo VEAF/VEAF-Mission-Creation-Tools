@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [CHORE-CI-PYTHON-SPEED](CHORE-CI-PYTHON-SPEED/PRD.md) · ✅
+
+The `pytest` step of `python-quality` grew from 5 to 21–25 min in two weeks, for 4 % more tests: the briefing tests built a whole briefing per test. One build per module, and the suite in parallel with `pytest-xdist` (2026-10-28). Shipped in #1213: 20 min 47 s → 7 min 58 s in CI.
+
 ### [FIX-DOC-LATEST-LINKS](FIX-DOC-LATEST-LINKS/PRD.md) · ✅
 
 A link copied from the published docs should follow the newest release: the landing page's featured card and the version selector open `/latest/` instead of the release number (2026-10-28). Shipped in #1211.

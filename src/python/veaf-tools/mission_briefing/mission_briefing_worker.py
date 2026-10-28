@@ -80,14 +80,14 @@ from mission_briefing.briefing_kneeboard import (
 )
 from mission_briefing.briefing_maps import OVERVIEW_FILE, render_objective_zoom, render_overview_map, zoom_file
 from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
-from mission_briefing.mission_reader import departures, group_position, objective_area, radio_plans, slot_flights
+from mission_briefing.mission_reader import departures, group_position, objective_area, radio_plans
 from mission_briefing.models import (
     BriefingContent,
     BriefingReport,
     Objective,
     ObjectiveArea,
+    PackageFlight,
     RadioPlan,
-    SlotFlight,
     Threat,
 )
 
@@ -213,20 +213,58 @@ def _waypoint_warnings(content: BriefingContent, picture: MissionPicture) -> lis
     return warnings
 
 
-def _slot_lines(flights: dict[str, list[SlotFlight]]) -> dict[str, list[str]]:
-    """The ATO's lines for what each base offers in dynamic slots: ``A-10C_2 — Archer : 390.0 MHz``."""
-    return {
-        airfield: [
-            t(
-                "mission_briefing.slot_flight",
-                aircraft=flight.aircraft,
-                callsign=flight.callsign or "—",
-                frequency=mhz(flight.frequency) if flight.frequency else "—",
+def _flight_lines(content: BriefingContent, flight: PackageFlight) -> list[str]:
+    """A flight on dynamic slots: ``Ninja — 2 × F-16C — SEAD (slot dyn)``, then its pilot boxes and loadout."""
+    aircraft = f"{flight.count} × {flight.aircraft}" if flight.count and flight.aircraft else flight.aircraft
+    name = " — ".join(part for part in (flight.callsign, aircraft, flight.task) if part)
+    names = content.pilots.get(flight.callsign, [])
+    boxes = "  ".join(
+        f"{n}. {names[n - 1] if n <= len(names) else '______'}" for n in range(1, (flight.count or 4) + 1)
+    )
+    loadout = content.loadouts.get(flight.callsign, t("campaign.mission_deck.free_loadout"))
+    return [t("mission_briefing.slot_flight", flight=name), f"  {boxes}    {loadout}"]
+
+
+def _slot_lines(
+    content: BriefingContent, picture: MissionPicture, warnings: list[str]
+) -> tuple[dict[str, list[str]], list[str]]:
+    """The ATO's flights on dynamic slots, by base, and those of no base offering slots.
+
+    A base lists the flights the assistant names, never the types it offers: 61 on a Syria base made six
+    slides of ATO for two bases (FEAT-OBJECTIVE-BRIEFING-QUALITY 01).
+
+    Returns:
+        The lines by airfield name, and the lines of the flights whose base offers no slot or is not given.
+    """
+    bases = {airfield.name.lower(): airfield.name for airfield in picture.airfields}
+    by_base: dict[str, list[str]] = {}
+    unbased: list[str] = []
+    for flight in content.flights:
+        base = bases.get(flight.base.lower())
+        if flight.base and base is None:
+            warnings.append(
+                f"Flight {flight.callsign!r}: {flight.base!r} offers no dynamic slot to the players' side; "
+                "listed under any base."
             )
-            for flight in found
-        ]
-        for airfield, found in flights.items()
-    }
+        if base is None:
+            unbased += _flight_lines(content, flight)
+        else:
+            by_base.setdefault(base, []).extend(_flight_lines(content, flight))
+    return by_base, unbased
+
+
+def _ato_page(content: BriefingContent, picture: MissionPicture, warnings: list[str]) -> Page:
+    """The ATO: the mission's flights and the dynamic slots' flights, support, control."""
+    by_base, unbased = _slot_lines(content, picture, warnings)
+    page = ato_page(picture, content.pilots, content.loadouts, by_base)
+    if unbased:
+        lines = (t("mission_briefing.flights_any_base"), *(f"  {text}" for text in unbased))
+        heading = t("campaign.mission_deck.heading.package")
+        if page.blocks and page.blocks[0].heading == heading:
+            page.blocks[0] = Block(heading, (*page.blocks[0].paragraphs, *lines))
+        else:
+            page.blocks.insert(0, Block(heading, lines))
+    return page
 
 
 def _situation_page(
@@ -614,7 +652,7 @@ def _build(
     ]
 
     situation = _situation_page(content, picture, starts)
-    ato = ato_page(picture, content.pilots, content.loadouts, _slot_lines(slot_flights(built, side, theatre)))
+    ato = _ato_page(content, picture, warnings)
     flow = _flow_page(content, picture, starts)
     navigation = navigation_page(theatre, picture)
     if navigation:

@@ -99,3 +99,19 @@ def test_the_kneeboard_and_the_archives_are_reported(catalog: ActionCatalog, tmp
     assert result["kneeboard"][0] == "01-briefing-overview.jpg"
     result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "kneeboard": False})
     assert result["kneeboard"] == []
+
+
+def _deck_text(deck: str) -> str:
+    from pptx import Presentation
+
+    return "\n".join(
+        shape.text_frame.text for slide in Presentation(deck).slides for shape in slide.shapes if shape.has_text_frame
+    )
+
+
+def test_the_flights_on_dynamic_slots_reach_the_ato(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 01: the callsigns, never the base's every type."""
+    objective_mission(tmp_path)
+    flights = [{"callsign": "Ninja", "base": "Kobuleti", "aircraft": "F-16C", "count": 2, "task": "SEAD"}]
+    result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "flights": flights})
+    assert "Ninja — 2 × F-16C — SEAD (slot dyn)" in _deck_text(result["deck"])

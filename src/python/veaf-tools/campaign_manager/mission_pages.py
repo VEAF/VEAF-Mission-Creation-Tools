@@ -101,9 +101,9 @@ def ato_page(
         picture: What the built mission says.
         pilots: The pilots' names by flight group name; empty cells otherwise.
         loadouts: The imposed loadout by flight group name; "free loadout" otherwise.
-        slot_flights: By airfield name, the lines naming what its dynamic slots offer (aircraft, callsign,
-            frequency), listed under the airfield before its empty pilot boxes: a mission of dynamic slots has
-            no flight to list (FIX-DEMO-VIDEO-FINDINGS 03).
+        slot_flights: By airfield name, the lines of the flights taking its dynamic slots, their pilot boxes
+            included: a mission of dynamic slots has no flight group to list (FIX-DEMO-VIDEO-FINDINGS 03). An
+            airfield given none gets one row of empty pilot boxes.
 
     Returns:
         The page.
@@ -133,8 +133,11 @@ def ato_page(
         )
     for airfield in picture.airfields:
         package.append(t("campaign.mission_deck.dynamic_slots", airfield=airfield.name))
-        package.extend(f"  {text}" for text in (slot_flights or {}).get(airfield.name, ()))
-        package.append("1. ______  2. ______  3. ______  4. ______    " + t("campaign.mission_deck.free_loadout"))
+        lines = (slot_flights or {}).get(airfield.name)
+        if lines:
+            package.extend(f"  {text}" for text in lines)
+        else:
+            package.append("1. ______  2. ______  3. ______  4. ______    " + t("campaign.mission_deck.free_loadout"))
     blocks = [Block(t("campaign.mission_deck.heading.package"), tuple(package))] if package else []
     support = []
     for aircraft in picture.support:

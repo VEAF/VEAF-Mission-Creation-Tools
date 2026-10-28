@@ -2180,14 +2180,32 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "description": "Write the kneeboard pages too (default true).",
                     },
+                    "flights": {
+                        "type": "array",
+                        "description": (
+                            "The package's flights when the players take DYNAMIC SLOTS (no flight group to read): "
+                            "the ATO lists them under their base, 'dynamic slot', never the types the base offers."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "callsign": {"type": "string", "description": "The key of pilots and loadouts."},
+                                "base": {"type": "string", "description": "DCS airfield name; omitted: any base."},
+                                "aircraft": {"type": "string", "description": "As the briefing says it: F-16C."},
+                                "count": {"type": "integer", "description": "Aircraft; omitted: four pilot boxes."},
+                                "task": {"type": "string", "description": "SEAD, CAS..."},
+                            },
+                            "required": ["callsign"],
+                        },
+                    },
                     "pilots": {
                         "type": "object",
-                        "description": "Pilots' names by flight GROUP name; empty cells otherwise.",
+                        "description": "Pilots' names by flight GROUP name (or flights callsign); empty cells otherwise.",
                         "additionalProperties": _lines,
                     },
                     "loadouts": {
                         "type": "object",
-                        "description": "Imposed loadout by flight GROUP name; 'free loadout' otherwise.",
+                        "description": "Imposed loadout by flight GROUP name (or flights callsign); 'free loadout' otherwise.",
                         "additionalProperties": {"type": "string"},
                     },
                     "basemap": {

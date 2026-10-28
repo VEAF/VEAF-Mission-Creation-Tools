@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_briefing.mission_briefing_worker import build_mission_briefing
-from mission_briefing.models import BriefingContent, Objective, Threat
+from mission_briefing.models import BriefingContent, Objective, PackageFlight, Threat
 from veaf_libs.map_tiles import TILE_SOURCES
 
 from veaf_mission_mcp.accents import missing_accents_warnings
@@ -82,6 +82,16 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         pilots={str(k): [str(name) for name in v] for k, v in (params.get("pilots") or {}).items()},
         loadouts={str(k): str(v) for k, v in (params.get("loadouts") or {}).items()},
         diversions=_diversions(Path(params["mission_path"]), params.get("diversions")),
+        flights=tuple(
+            PackageFlight(
+                callsign=str(f["callsign"]),
+                base=str(f.get("base") or ""),
+                aircraft=str(f.get("aircraft") or ""),
+                count=int(f.get("count") or 0),
+                task=str(f.get("task") or ""),
+            )
+            for f in params.get("flights") or []
+        ),
     )
     report = build_mission_briefing(
         Path(params["mission_path"]),

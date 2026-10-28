@@ -256,11 +256,15 @@ class TestWaypointNumbers:
 
 
 class TestDynamicSlotAto:
-    """FIX-DEMO-VIDEO-FINDINGS 03: with dynamic slots the ATO listed no flight; an AI wrote a script to fill it."""
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 01: a base listed the 61 types it offers, six slides for two bases.
+
+    (FIX-DEMO-VIDEO-FINDINGS 03 had listed them so that the ATO was not empty.) A dynamic-slot base now says
+    so, then the flights the assistant names; never the types.
+    """
 
     @staticmethod
     def _link_the_template(miz: Path) -> None:
-        """Link the fixture's F-16C template to Kobuleti, and give the template its preset channel."""
+        """Link the fixture's F-16C template to Kobuleti, as a base offering it would."""
         mission = read_miz(miz)
         content = mission.mission_content or {}
         template = next(
@@ -269,26 +273,49 @@ class TestDynamicSlotAto:
             for group in indexed((country.get("plane") or {}).get("group"))
             if group.get("dynSpawnTemplate")
         )
-        template["groupId"] = 9001  # the fixture's templates carry none; the warehouse links a template by it
-        unit = indexed(template["units"])[0]
-        unit["Radio"] = {1: {"channels": {1: 390.5, 2: 282.2}, "channelsNames": {1: "Ninja", 2: "Magic"}}}
+        template["groupId"] = 9001
         airports = (mission.warehouses_content or {})["airports"]
         entry = next(iter(airports.values()))
         entry["aircrafts"] = {"planes": {"F-16C_50": {"initialAmount": 4, "linkDynTempl": 9001}}}
         write_miz(mission, miz)
 
-    def test_the_dynamic_airfield_lists_the_types_it_offers_with_their_first_channel(self, tmp_path: Path) -> None:
-        miz = objective_mission(tmp_path)
-        self._link_the_template(miz)
-        text = _deck_text(_build(tmp_path).deck)
-        assert "Slots dynamiques — Kobuleti" in text
-        assert "F-16C_50 — Ninja : 390.5 MHz" in text
+    @staticmethod
+    def _ato(deck: Path) -> str:
+        return chr(10).join(
+            chr(10).join(slide) for slide in _slides(deck) if slide and slide[0].split(". ", 1)[-1].startswith("ATO")
+        )
 
-    def test_a_base_linking_no_template_lists_no_type(self, tmp_path: Path) -> None:
+    def test_a_dynamic_base_says_so_and_lists_no_type(self, tmp_path: Path) -> None:
+        self._link_the_template(objective_mission(tmp_path))
+        ato = self._ato(_build(tmp_path).deck)
+        assert "Slots dynamiques — Kobuleti" in ato
+        assert "F-16C_50 —" not in ato  # the fixture's own Viper flight is an F-16C_50 too
+        assert "1. ______  2. ______  3. ______  4. ______" in ato
+
+    def test_the_flights_named_are_listed_under_their_base_with_their_pilots(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        from mission_briefing.models import PackageFlight
+
+        self._link_the_template(objective_mission(tmp_path))
+        flights = (PackageFlight("Ninja", base="Kobuleti", aircraft="F-16C", count=2, task="SEAD"),)
+        content = replace(CONTENT, flights=flights, pilots={"Ninja": ["Zip"]}, loadouts={"Ninja": "2 HARM"})
+        ato = self._ato(_build(tmp_path, content).deck)
+        assert "Ninja — 2 × F-16C — SEAD (slot dyn)" in ato
+        assert "1. Zip  2. ______    2 HARM" in ato
+
+    def test_a_flight_from_no_dynamic_base_is_listed_apart_and_warned(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        from mission_briefing.models import PackageFlight
+
         objective_mission(tmp_path)
-        text = _deck_text(_build(tmp_path).deck)
-        assert "Slots dynamiques — Kobuleti" in text
-        assert "F-16C_50 —" not in text
+        content = replace(CONTENT, flights=(PackageFlight("Jedi", base="Nowhere"), PackageFlight("Arctic")))
+        report = _build(tmp_path, content)
+        ato = self._ato(report.deck)
+        assert "Slots dynamiques — base au choix" in ato
+        assert "Jedi (slot dyn)" in ato and "Arctic (slot dyn)" in ato
+        assert any("Jedi" in warning and "Nowhere" in warning for warning in report.warnings)
 
 
 class TestDiversionFields:

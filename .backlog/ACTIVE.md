@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FEAT-DCS-RECON-AND-MISSION-CHECK](FEAT-DCS-RECON-AND-MISSION-CHECK/PRD.md) · 🔄
+
+Two commands against a running DCS, through the `dcs-fiddle` hook, from the "Marteau du Golan" session (2026-10-28): `dcs recon-photos` (a shooting copy of the mission, the F11 camera on each objective's engagement axis, reconnaissance-look JPEGs with felt-pen marks) and `dcs mission-check` (F10 labels, every combat zone and mission toggled and counted, every routed group seen moving). One PR.
+
 ### [FEAT-OBJECTIVE-BRIEFING-QUALITY](FEAT-OBJECTIVE-BRIEFING-QUALITY/PRD.md) · 🔄
 
 David's six points on the briefing `build_mission_briefing` wrote for "Marteau du Golan" (2026-10-28): the ATO of dynamic slots, a readable overview, an inset on the zooms and target sheets, strategic situation and prose, a step-by-step flight plan and a deployment page, kneeboard flight cards without the radio plan. Six tickets, one PR.

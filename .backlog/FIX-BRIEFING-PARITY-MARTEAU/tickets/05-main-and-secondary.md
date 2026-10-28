@@ -1,6 +1,6 @@
 # D5 — Main objectives are the operation's
 
-Status: 🔄 in progress
+Status: ✅ done
 
 "Objectifs principaux" listed every objective passed, the SA-11, Kiswah and the counter-attack included. Expected: the operation's tasks (`mission.yaml`) are the main objectives, the other objectives the secondary ones, a chained zone in neither list.
 

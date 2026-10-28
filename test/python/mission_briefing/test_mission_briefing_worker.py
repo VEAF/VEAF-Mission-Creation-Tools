@@ -5,12 +5,14 @@ from __future__ import annotations
 import io
 import zipfile
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
 from mission_briefing.mission_briefing_worker import PICTURE_PREFIX, build_mission_briefing
-from mission_briefing.models import BriefingContent, Objective, Threat
+from mission_briefing.models import BriefingContent, BriefingReport, Objective, Threat
 from mission_tools.miz_tools import read_miz, write_miz
 from objective_mission_fixture import KHOBI_ZONE, objective_mission
+from offline import offline
 from PIL import Image
 from pptx import Presentation
 from veaf_libs.coordinates import to_dms, xy_to_latlon
@@ -58,11 +60,32 @@ def _side_pictures(content: dict, side: str) -> list[str]:
     return [str(key) for key in indexed(content.get(f"pictureFileName{side}"))]
 
 
+class Built(NamedTuple):
+    folder: Path
+    miz: Path
+    report: BriefingReport
+
+
+def _built_once(tmp_path_factory: pytest.TempPathFactory, content: BriefingContent) -> Built:
+    folder = tmp_path_factory.mktemp("briefing")
+    with offline(folder):
+        miz = objective_mission(folder)
+        return Built(folder, miz, _build(folder, content))
+
+
+@pytest.fixture(scope="module")
+def built(tmp_path_factory: pytest.TempPathFactory) -> Built:
+    """`CONTENT`'s briefing, built once for the tests that only read it: a build takes seconds.
+
+    A test that writes into the folder, or builds it again, makes its own.
+    """
+    return _built_once(tmp_path_factory, CONTENT)
+
+
 class TestTheDeck:
-    def test_the_nine_pages_of_the_template_in_the_missions_language(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        report = _build(tmp_path)
-        assert report.deck == tmp_path / "docs" / "briefing.pptx"
+    def test_the_nine_pages_of_the_template_in_the_missions_language(self, built: Built) -> None:
+        report = built.report
+        assert report.deck == built.folder / "docs" / "briefing.pptx"
         slides = _slides(report.deck)
         assert "Marteau de Khobi" in slides[0][0] or "Marteau de Khobi" in "\n".join(slides[0])
         titles = [slide[0] for slide in slides[1:]]
@@ -81,9 +104,8 @@ class TestTheDeck:
         ]
         assert report.pages == len(slides)
 
-    def test_the_figures_are_the_missions(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        text = "\n".join("\n".join(slide) for slide in _slides(_build(tmp_path).deck))
+    def test_the_figures_are_the_missions(self, built: Built) -> None:
+        text = "\n".join("\n".join(slide) for slide in _slides(built.report.deck))
         assert "Les dépôts de Khobi ravitaillent le front." in text
         assert "– Détruire le dépôt" in text
         assert "SA-6 Gori — SA-6 : engagement ≈ 13 nm, détection ≈ 30 nm (mesuré en jeu)" in text
@@ -123,9 +145,8 @@ class TestProse:
         assert slides[2][0] == "2. Situation générale"
         assert "1. Situation stratégique" in slides[0][-1]
 
-    def test_no_strategic_situation_no_page(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        assert "Situation stratégique" not in _deck_text(_build(tmp_path).deck)
+    def test_no_strategic_situation_no_page(self, built: Built) -> None:
+        assert "Situation stratégique" not in _deck_text(built.report.deck)
 
     def test_a_mission_written_as_prose_keeps_no_dash(self, tmp_path: Path) -> None:
         from dataclasses import replace
@@ -135,6 +156,12 @@ class TestProse:
         text = _deck_text(_build(tmp_path, content).deck)
         assert "Aveugler la défense, puis frapper le PC." in text
         assert "– Aveugler" not in text
+
+
+@pytest.fixture(scope="module")
+def sheets(tmp_path_factory: pytest.TempPathFactory) -> BriefingReport:
+    """`TestTheSheets._content()`'s briefing, built once: its tests only read it."""
+    return _built_once(tmp_path_factory, TestTheSheets._content()).report
 
 
 class TestTheSheets:
@@ -150,9 +177,8 @@ class TestTheSheets:
             waypoint_notes={"KHOBI": "Largage sur le dépôt, sortie par le sud."},
         )
 
-    def test_the_targets_are_sheets_with_their_kind_coordinates_and_thumbnail(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        deck = Presentation(str(_build(tmp_path, self._content()).deck))
+    def test_the_targets_are_sheets_with_their_kind_coordinates_and_thumbnail(self, sheets: BriefingReport) -> None:
+        deck = Presentation(str(sheets.deck))
         (slide,) = [s for s in deck.slides if "Coordonnées cibles" in s.shapes[0].text_frame.text]
         text = chr(10).join(shape.text_frame.text for shape in slide.shapes if shape.has_text_frame)
         assert "Détruire le dépôt de Khobi" in text  # the objective the sheets belong to
@@ -160,9 +186,8 @@ class TestTheSheets:
         assert "DDM N4" in text and "DMS N4" in text
         assert sum(1 for shape in slide.shapes if shape.shape_type == 13) >= 2  # a thumbnail each
 
-    def test_the_flight_plan_step_by_step_with_what_is_done_there(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        slides = _slides(_build(tmp_path, self._content()).deck)
+    def test_the_flight_plan_step_by_step_with_what_is_done_there(self, sheets: BriefingReport) -> None:
+        slides = _slides(sheets.deck)
         steps = [slide for slide in slides if "étape par étape" in slide[0]]
         assert steps
         text = chr(10).join(chr(10).join(slide) for slide in steps)
@@ -170,24 +195,21 @@ class TestTheSheets:
         assert "Largage sur le dépôt, sortie par le sud." in text
         assert "cap " in text and " nm" in text
 
-    def test_the_deployment_page_follows_the_flow_and_is_left_out_when_empty(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        titles = [slide[0] for slide in _slides(_build(tmp_path, self._content()).deck)[1:]]
+    def test_the_deployment_page_follows_the_flow_and_is_left_out_when_empty(
+        self, sheets: BriefingReport, built: Built
+    ) -> None:
+        titles = [slide[0] for slide in _slides(sheets.deck)[1:]]
         flow = next(i for i, title in enumerate(titles) if title.endswith("Déroulement mission"))
         assert titles[flow + 1].endswith("Déploiement et coordination")
-        assert "Déploiement" not in _deck_text(_build(tmp_path).deck)
+        assert "Déploiement" not in _deck_text(built.report.deck)
 
-    def test_the_pdf_carries_the_sheets_too(self, tmp_path: Path) -> None:
-        objective_mission(tmp_path)
-        plain = _build(tmp_path)
-        report = _build(tmp_path, self._content())
-        assert report.pdf_pages > plain.pdf_pages  # the deployment page
+    def test_the_pdf_carries_the_sheets_too(self, sheets: BriefingReport, built: Built) -> None:
+        assert sheets.pdf_pages > built.report.pdf_pages  # the deployment page
 
 
 class TestTheDcsPictures:
-    def test_the_maps_go_into_the_folder_and_the_built_mission_blue_and_neutral(self, tmp_path: Path) -> None:
-        miz = objective_mission(tmp_path)
-        report = _build(tmp_path)
+    def test_the_maps_go_into_the_folder_and_the_built_mission_blue_and_neutral(self, built: Built) -> None:
+        tmp_path, miz, report = built
         assert report.pictures == [
             f"{PICTURE_PREFIX}overview",
             f"{PICTURE_PREFIX}combat-area",
@@ -223,10 +245,9 @@ class TestTheDcsPictures:
             with zipfile.ZipFile(archive_path) as archive:
                 assert "l10n/DEFAULT/briefing-overview.jpg" in archive.namelist()
 
-    def test_the_kneeboard_pages_go_into_the_folder_and_every_archive(self, tmp_path: Path) -> None:
+    def test_the_kneeboard_pages_go_into_the_folder_and_every_archive(self, built: Built) -> None:
         """FIX-COWORK-SESSION-FINDINGS 08: maps, flight card and targets, 2:3 JPEG, in KNEEBOARD/IMAGES/."""
-        miz = objective_mission(tmp_path)
-        report = _build(tmp_path)
+        tmp_path, miz, report = built
         assert report.kneeboard[0] == "01-briefing-overview.jpg"
         assert "03-briefing-objective-khobi.jpg" in report.kneeboard
         assert any(name.endswith("-briefing-targets.jpg") for name in report.kneeboard)

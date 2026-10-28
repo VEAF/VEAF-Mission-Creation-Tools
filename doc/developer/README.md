@@ -74,8 +74,10 @@ git checkout develop
 poetry install
 
 poetry run test-lua   # doit afficher "OK" pour toutes les suites
-poetry run pytest     # doit afficher "passed" sans échec
+poetry run pytest     # doit afficher "passed" sans échec ; en parallèle, un worker par cœur
 ```
+
+`pytest` répartit les tests sur un worker `pytest-xdist` par cœur ; `poetry run pytest -n0` les lance en série, ce qu'exige `--pdb`.
 
 ---
 

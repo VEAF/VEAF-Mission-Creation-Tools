@@ -74,8 +74,10 @@ git checkout develop
 poetry install
 
 poetry run test-lua   # should show "OK" for every suite
-poetry run pytest     # should show "passed" with no failures
+poetry run pytest     # should show "passed" with no failures; in parallel, one worker per core
 ```
+
+`pytest` spreads the tests over one `pytest-xdist` worker per core; `poetry run pytest -n0` runs them serially, which `--pdb` needs.
 
 ---
 

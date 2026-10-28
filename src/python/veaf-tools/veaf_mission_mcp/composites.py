@@ -12,7 +12,7 @@ from typing import Any
 from mission_tools.mission_yaml_editor import append_to_sequence, load_yaml, save_yaml
 from veaf_libs.coordinates import latlon_to_xy
 from veaf_libs.dcs_airdromes import airfields_for_theatre
-from veaf_libs.lua_config_generator import QRA_DEFINITION_KEYS
+from veaf_libs.lua_config_generator import CAP_MISSION_KEYS, QRA_DEFINITION_KEYS
 
 from veaf_mission_mcp.accents import missing_accents_warnings
 from veaf_mission_mcp.add_air_group import insert_air_group_into_content
@@ -404,6 +404,8 @@ def create_cap_mission(
     pylons: dict[Any, Any] | None = None,
     loadout_from: str | None = None,
     payload: str | None = None,
+    menu_name: str | None = None,
+    briefing: str | None = None,
 ) -> dict[str, Any]:
     """Create an on-demand CAP mission in a mission folder, in one pass, both worlds.
 
@@ -430,6 +432,9 @@ def create_cap_mission(
         loadout_from: A group to copy the loadout from (in the mission or the aircraft catalogues).
         payload: A DCS loadout by the name the Mission Editor lists (`list_payloads`). One of
             `pylons`, `payload` and `loadout_from` at most.
+        menu_name: The name the F10 menu shows; the mission name when omitted (an empty one made a
+            blank entry whose "Infos" failed, FEAT-OBJECTIVE-MISSION-V2 05).
+        briefing: What the F10 "Infos" says.
 
     Returns:
         `{"cap_mission", "group": <OnDemand- name>, "warnings": [...]}`.
@@ -465,9 +470,20 @@ def create_cap_mission(
     )
     save_folder_mission(mission, folder_path)
 
-    entry: dict[str, Any] = {"group_name": mission_name}
+    entry: dict[str, Any] = {"group_name": mission_name, "menu_name": menu_name or mission_name}
+    if briefing:
+        entry["briefing"] = briefing
     if cap:
         entry.update(cap)
+        # written anyway, as asked, but said: a key the build does not read does nothing
+        air_warnings = [
+            *air_warnings,
+            *(
+                {"key": key, "warning": f"'{key}' is not a cap_missions key the build reads, so it does nothing"}
+                for key in cap
+                if key not in CAP_MISSION_KEYS
+            ),
+        ]
     _append_cap_mission(mission_yaml_path(folder_path), entry)
 
     return {"cap_mission": mission_name, "group": group_name, "warnings": air_warnings}

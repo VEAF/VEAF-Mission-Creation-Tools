@@ -1138,6 +1138,9 @@ Groupe template **Late Activation** nommé `OnDemand-<nom>` + entrée `cap_missi
 porte la tâche `EngageTargets` (cibles `Air`) que l'éditeur ajoute de lui-même à une tâche CAP, numérotée
 **avant** l'orbite : sans elle, le vol patrouille et n'engage jamais.
 
+`menu_name` est le nom que montre le menu F10 MISSIONS (le nom de la mission s'il est omis : un nom vide donnait une entrée blanche dont les « Infos » plantaient), `briefing` ce qu'en disent les Infos.
+Une clé de `cap` que le build ne lit pas (`friendly_name`, le mot des zones de combat) est signalée dans `warnings`, et `validate_mission` la signale aussi.
+
 ## Scaffolding d'un dossier de mission (vague 9)
 
 Toutes les actions ci-dessus supposent qu'un dossier de mission **existe déjà**. La vague 9 fournit

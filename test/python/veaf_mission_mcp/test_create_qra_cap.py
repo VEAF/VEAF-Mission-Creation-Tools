@@ -126,6 +126,42 @@ def test_create_cap_mission_lays_down_both_worlds(tmp_path: Path) -> None:
     assert any(c["group_name"] == "Escort" for c in caps)  # yaml references the un-prefixed name
 
 
+def _cap(folder: Path, **extra: Any) -> dict[str, Any]:
+    return create_cap_mission(
+        folder,
+        mission_name="Escort",
+        units=[{"type": "F-15C", "count": 2}],
+        coalition="blue",
+        country_id=2,
+        country_name="USA",
+        position={"x": 1.0, "y": 2.0},
+        **extra,
+    )
+
+
+def test_create_cap_mission_names_its_menu_after_the_mission_by_default(tmp_path: Path) -> None:
+    """FEAT-OBJECTIVE-MISSION-V2 05: with no menu name the F10 entry was blank and its Infos failed."""
+    folder = _folder(tmp_path)
+    _cap(folder)
+    (cap,) = load_yaml(folder / "mission.yaml")["cap_missions"]
+    assert cap["menu_name"] == "Escort"
+
+
+def test_create_cap_mission_takes_a_menu_name_and_a_briefing(tmp_path: Path) -> None:
+    folder = _folder(tmp_path)
+    result = _cap(folder, menu_name="CAP alliée (2 F-15C, MASADA)", briefing="Deux F-15C au FL250.")
+    (cap,) = load_yaml(folder / "mission.yaml")["cap_missions"]
+    assert cap["menu_name"] == "CAP alliée (2 F-15C, MASADA)"
+    assert cap["briefing"] == "Deux F-15C au FL250."
+    assert not [w for w in result["warnings"] if isinstance(w, dict) and "key" in w]
+
+
+def test_create_cap_mission_warns_on_a_key_the_build_does_not_read(tmp_path: Path) -> None:
+    result = _cap(_folder(tmp_path), cap={"friendly_name": "North", "default": True})
+    keys = [w["key"] for w in result["warnings"] if isinstance(w, dict) and "key" in w]
+    assert keys == ["friendly_name"]
+
+
 def test_create_qra_with_levels_writes_no_simple_groups(tmp_path: Path) -> None:
     """FIX-OPEN-TRAINING-SYRIA-FINDINGS 03: simple_groups beside scramble levels never deploy."""
     folder = _folder(tmp_path)

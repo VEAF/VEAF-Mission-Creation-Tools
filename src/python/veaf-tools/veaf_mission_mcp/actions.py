@@ -2642,7 +2642,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml. The "
                 "template is built AIRBORNE at 'position' and fuelled; give a 'route' point and it "
                 "flies a race-track between the two (without one it orbits nowhere), and a loadout "
-                "with 'pylons', 'payload' (a DCS loadout by name, list_payloads) or 'loadout_from'."
+                "with 'pylons', 'payload' (a DCS loadout by name, list_payloads) or 'loadout_from'. "
+                "'menu_name' is what the F10 MISSIONS menu shows (the mission name when omitted), "
+                "'briefing' what its Infos say."
             ),
             parameters_schema={
                 "type": "object",
@@ -2666,7 +2668,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "default": "plane",
                         "description": "Ignored: the category comes from the aircraft type.",
                     },
-                    "cap": {"type": "object", "description": "Optional extra cap_missions[] keys."},
+                    "menu_name": {
+                        "type": "string",
+                        "description": "The F10 menu's name for it, e.g. 'CAP alliée (2 F-15C, MASADA)'; "
+                        "the mission name when omitted.",
+                    },
+                    "briefing": {"type": "string", "description": "What the F10 Infos say about it."},
+                    "cap": {
+                        "type": "object",
+                        "description": "Optional extra cap_missions[] keys (default, activated); "
+                        "an unknown key is warned.",
+                    },
                     "route": {
                         "type": "array",
                         "items": {
@@ -3604,6 +3616,8 @@ def _handle_create_cap_mission(params: dict[str, Any]) -> dict[str, Any]:
         position=params["position"],
         category=params.get("category", "plane"),
         cap=params.get("cap"),
+        menu_name=params.get("menu_name"),
+        briefing=params.get("briefing"),
         route=params.get("route"),
         altitude_ft=params.get("altitude_ft", 20000.0),
         speed_kt=params.get("speed_kt", 350.0),

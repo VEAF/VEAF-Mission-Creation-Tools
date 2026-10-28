@@ -1108,6 +1108,9 @@ A **Late-Activation** template group named `OnDemand-<name>` + a `cap_missions[]
 carries the `EngageTargets` task (`Air` targets) the editor adds on its own to a CAP task, numbered
 **before** the orbit: without it the flight patrols and never engages.
 
+`menu_name` is the name the F10 MISSIONS menu shows (the mission name when omitted: an empty one made a blank entry whose "Infos" failed), `briefing` what its Infos say.
+A `cap` key the build does not read (`friendly_name`, the combat zones' word) comes back in `warnings`, and `validate_mission` warns about it too.
+
 ## Scaffolding a mission folder (wave 9)
 
 Every action above assumes a mission folder **already exists**. Wave 9 provides the upstream piece:

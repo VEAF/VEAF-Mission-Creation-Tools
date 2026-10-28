@@ -52,6 +52,17 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `dcs recon-prepare` writes a shooting copy of a built mission (clear sky, chosen time, every combat zone active at start); `dcs recon-plan` lists the units on the map into a shots file; `dcs recon-shoot` puts the F11 camera on each objective's engagement axis and grabs the window; `dcs recon-render` makes reconnaissance prints — contrasted black and white, banner, heading rose, targets circled in red felt pen where their live positions project — with the sidecar `build_mission_briefing` reads, in `docs/recon/`.
   `dcs mission-check` checks the mission running in DCS: every F10 label, every combat zone and combat mission (CAP variants included) switched on and off and counted then left as found, every ground group with a route seen moving within 60 s; one line per check, a verdict, exit code 1 on a failure.
 
+### Fixed
+
+- **The generated briefing at the level of "Marteau du Golan"'s hand-made one** (FIX-BRIEFING-PARITY-MARTEAU, a regeneration test of the mission's briefing found nine defects).
+  `dcs recon-render` gave a shot of `Sasa [r]` the zone `Sasa [r]`, and the briefing dropped the photos of Sa'sa' and Kiswah: the zone is `Sasa`, shots already taken included.
+  The overview frames the theatre (bases, tankers, AWACS, QRA, the front line drawn on the map), outlines the QRA zones dashed in orange and a long-range SAM's reach on a faint tint instead of filling them, names an objective as the flight plan does (`KHAN`, not `KhanArnabah`), and draws the helicopters' route green and dashed; the combat-area map adds the friendly ground units, the JTAC, the ground axes and each threat's range.
+  A target is a unit when its units carry their own names (the SA-6's radar and launchers 1 to 4), otherwise named by its type (`T-72B3`, not `t72`) or its VEAF spawn family (`Blindés 1`); each sheet says its role and its bullseye bearing and range, as each flight-plan step does; an objective's page says for whom (new optional `objectives[].flights`), its bullseye and its point.
+  With an operation in `mission.yaml`, its tasks are the main objectives, the other objectives secondary, a chained zone in neither list.
+  With `flights`, the frequency plan and the kneeboard flight card follow the aircraft the flights fly, one block per radio plan, instead of the 61 dynamic-slot types.
+  The PDF is left-aligned, never justified; the ATO, the deployment and the code words are tables in the deck and the PDF.
+  `waypoint_notes` takes a `plane` and a `helicopter` map for points the two routes share with different roles; the new optional `kneeboard_replace` takes the hand-made kneeboard pages out of the folder (kept in `.veaf-backups/`) and of every built `.miz`.
+
 ## [6.33.0] — 2026-10-27
 
 ### Security

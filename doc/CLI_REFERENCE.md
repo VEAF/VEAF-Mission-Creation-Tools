@@ -996,6 +996,7 @@ Le déroulé complet :
 4. Complétez `shots.yaml` : pour chaque prise, le `heading` d'engagement (la direction dans laquelle regarde l'attaquant), et si besoin `pitch` (degrés sous l'horizon), `slant` (distance en mètres), `mark: units` pour entourer chaque véhicule, `labels` pour nommer les cibles.
 5. `.\veaf-tools.exe dcs recon-shoot` : la commande place la caméra sur chaque prise et capture la fenêtre. Ne touchez ni la souris ni le clavier avant la fin.
 6. `.\veaf-tools.exe dcs recon-render` écrit les photos dans `docs\recon\`, là où le briefing (`build_mission_briefing`) les cherche.
+   Une prise rattachée à un préfixe de groupe nu (`Sasa [r]`) rejoint sa zone (`Sasa`) quand on relance `recon-render` : inutile de la refaire.
 
 Lancez les commandes depuis le dossier de la mission : les prises brutes vont dans `docs\build\recon\raw\`, les photos finies dans `docs\recon\`.
 

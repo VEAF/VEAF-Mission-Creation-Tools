@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FEAT-OBJECTIVE-BRIEFING-QUALITY](FEAT-OBJECTIVE-BRIEFING-QUALITY/PRD.md) · 🔄
+
+David's six points on the briefing `build_mission_briefing` wrote for "Marteau du Golan" (2026-10-28): the ATO of dynamic slots, a readable overview, an inset on the zooms and target sheets, strategic situation and prose, a step-by-step flight plan and a deployment page, kneeboard flight cards without the radio plan. Six tickets, one PR.
+
 ### [FIX-FATCOW-CTLD-FARPS](FIX-FATCOW-CTLD-FARPS/PRD.md) · 🔄
 
 GRASS refilled CTLD's Fat Cow FARPs on every birth, making a cow unlimited, and CSAR gave the CH-47F no menu: GRASS now skips `CTLD_` FARPs and `csar.aircraftType` lists `CH-47Fbl1` (24). From the Fat Cow server run of 2026-10-26 (VEAF/CTLD#273).

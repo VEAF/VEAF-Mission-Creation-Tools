@@ -226,7 +226,12 @@ class TestBuildPlan(unittest.TestCase):
 
     def test_explicit_profile_overrides_variants_to_single_build(self) -> None:
         plan = self._plan({"build_variants": ["MODERN", "COLD_WAR"]}, "MODERN")
-        self.assertEqual(plan, [("MODERN", Path("/m/Foothold_20260618.miz"), "Foothold")])
+        self.assertEqual(plan, [("MODERN", Path("/m/Foothold_20260618_MODERN.miz"), "Foothold_MODERN")])
+
+    def test_an_explicit_profile_writes_a_miz_of_its_own(self) -> None:
+        """FEAT-OBJECTIVE-MISSION-V2 09: `--profile LOCAL_TEST` overwrote the server build of the same name."""
+        plan = self._plan({"profiles": {"LOCAL_TEST": {"global_log_level": "debug"}}}, "local_test", "Golan")
+        self.assertEqual(plan, [("local_test", Path("/m/Golan_20260618_LOCAL_TEST.miz"), "Golan_LOCAL_TEST")])
 
     def test_variant_name_is_canonicalized_from_profiles(self) -> None:
         """A lower-case build_variants entry resolves to the profile's canonical name,

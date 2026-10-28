@@ -1905,7 +1905,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "profile": {
                         "type": "string",
                         "description": "Optional build profile, passed as 'veaf-tools build --profile' "
-                        "(e.g. LOCAL_TEST for a local test build). Omitted: the mission's own profiles.",
+                        "(e.g. LOCAL_TEST for a local test build); its .miz is suffixed with the profile's "
+                        "name (<mission>_<date>_LOCAL_TEST.miz) and leaves the plain build alone. Omitted: "
+                        "the mission's own profiles.",
                     },
                 },
                 "required": ["folder_path"],

@@ -148,6 +148,8 @@ def _build_plan(
     A single entry (the unsuffixed output) for an ordinary build; one entry per
     declared ``build_variants:`` profile — each with a variant-suffixed output —
     for a multi-variant build (FOOTHOLD-V6-006). See :func:`_resolve_build_variants`.
+    An explicit ``--profile`` is one build, suffixed like a variant: ``--profile LOCAL_TEST`` wrote the
+    plain build's name, and one overwrote the other (FEAT-OBJECTIVE-MISSION-V2 09).
 
     Args:
         yaml_data: The parsed ``mission.yaml`` mapping.
@@ -159,6 +161,9 @@ def _build_plan(
         The build plan — at least one entry.
     """
     variants = _resolve_build_variants(yaml_data, explicit_profile)
+    if explicit_profile is not None:
+        canonical = canonical_profile_name(yaml_data, explicit_profile) or explicit_profile
+        return [(explicit_profile, *_variant_output_mission(base_output, base_name, canonical))]
     if not variants:
         return [(explicit_profile, base_output, base_name)]
     # Use each profile's canonical (declared-case) name for both the build and the

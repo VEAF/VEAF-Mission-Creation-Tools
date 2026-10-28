@@ -191,6 +191,10 @@ class MissionPicture:
 def find_built_mission(folder: Path) -> Path | None:
     """The most recently built `.miz` of a mission folder, at its root or in `build/`.
 
+    A build with ``--profile`` suffixes its archive with the profile's name (FEAT-OBJECTIVE-MISSION-V2
+    09): a `LOCAL_TEST` build made after the server one is not the mission, and is passed over while
+    an archive without such a suffix exists.
+
     Args:
         folder: The mission folder.
 
@@ -198,7 +202,11 @@ def find_built_mission(folder: Path) -> Path | None:
         The archive, or ``None`` when the mission has not been built.
     """
     found = [*folder.glob("*.miz"), *(folder / "build").glob("*.miz")]
-    return max(found, key=lambda path: path.stat().st_mtime) if found else None
+    yaml_path = folder / "mission.yaml"
+    profiles = (load_yaml(yaml_path).get("profiles") if yaml_path.is_file() else None) or {}
+    suffixes = tuple(f"_{name}".lower() for name in profiles) if isinstance(profiles, dict) else ()
+    plain = [path for path in found if not path.stem.lower().endswith(suffixes)] if suffixes else found
+    return max(plain or found, key=lambda path: path.stat().st_mtime) if found else None
 
 
 def megahertz(value: Any) -> float | None:

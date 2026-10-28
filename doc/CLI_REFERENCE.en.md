@@ -62,7 +62,7 @@ Build a DCS mission (.miz) from a VEAF mission folder.
 | `--dynamic-mode` | `boolean` | *(none)* | If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders). |
 | `--dev-mode` | `boolean` | *(none)* | Resolve VEAF scripts from a local dev repo (build/veaf-scripts.lua) instead of published/. Requires --scripts-path pointing to the VEAF-Mission-Creation-Tools repo root. This setting is persisted in mission.yaml (build.dev_mode). |
 | `--scripts-path` | `str` | *(none)* | Path to the VEAF and community scripts. Persisted in mission.yaml (build.scripts_path). |
-| `--profile` / `-p` | `str` | *(none)* | Apply a named build profile from mission.yaml (e.g. TEST or SERVER). Profile keys deep-merge onto the base config. |
+| `--profile` / `-p` | `str` | *(none)* | Apply a named build profile from mission.yaml (e.g. TEST or SERVER). Profile keys deep-merge onto the base config. The `.miz` is suffixed with the profile's name (`_TEST`). |
 | `--migrate-from-v5` | `boolean` | `true` | If set, the builder will parse the mission for old v5 triggers and remove them. |
 | `--log-modules` | `str` | *(none)* | Comma-separated list of module IDs to keep at full log level. All other modules are silenced to 'error' level. Example: --log-modules 'SPAWN,RADIO' |
 | `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |

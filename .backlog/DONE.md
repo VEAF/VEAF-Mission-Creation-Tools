@@ -10,6 +10,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 A link copied from the published docs should follow the newest release: the landing page's featured card and the version selector open `/latest/` instead of the release number (2026-10-28). Shipped in #1211.
 
+### [FIX-BRIEFING-PARITY-MARTEAU](FIX-BRIEFING-PARITY-MARTEAU/PRD.md) · ✅
+
+The briefing generator at the level of "Marteau du Golan"'s hand-made deck (2026-10-28): nine defects a regeneration test found — recon zone of a bare spawned group, theatre and combat maps, unit-level targets with readable names, bullseye and flights on every sheet, main and secondary objectives from the operation, frequencies by radio plan for the ATO's flights, a left-aligned PDF with tables, waypoint notes per plan, kneeboard replacement. One PR.
+
 ### [CHORE-VENDOR-CTLD-RC15](CHORE-VENDOR-CTLD-RC15/PRD.md) · ✅
 
 CTLD `2.0.0-rc15` vendored: the Fat Cow (VEAF/CTLD#273), catalogue `2.3.0`; a list newer than the mission's configuration takes its default (VEAF/CTLD#275), and `validate` / `ctld-upgrade` treat it as missing, not removed (#1204).

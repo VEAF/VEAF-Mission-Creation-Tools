@@ -80,6 +80,8 @@ class FlightPlan:
     """``plane`` or ``helicopter``."""
     aircraft: tuple[str, ...]
     waypoints: tuple[Waypoint, ...]
+    departure: str = ""
+    """The airfield it leaves from, when known; the departure nearest its first point otherwise."""
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,8 @@ class Support:
     tacan: str | None
     route: tuple[tuple[float, float], ...]
     """The route's points, mission ``x``/``y``."""
+    altitude: float = 0.0
+    """Its first point's altitude, metres: a tanker's level, which the receivers fly to."""
 
 
 @dataclass(frozen=True)
@@ -324,6 +328,18 @@ def _flight_plans(content: dict[str, Any], side: str, *, templates: bool = True)
     return sorted(plans, key=lambda plan: (plan.category != "plane", -counts[(plan.category, plan.waypoints)]))
 
 
+def _cruise_altitude(group: dict[str, Any]) -> float:
+    """The altitude of a route's first point in the air, metres; 0 when it has none.
+
+    A tanker leaving its parking has the field's elevation on its first point: its level was announced as
+    ``FL000`` (pr-code-review of #1212).
+    """
+    for point in indexed((group.get("route") or {}).get("points")):
+        if not str(point.get("type") or "").startswith(("TakeOff", "Land")):
+            return float(point.get("alt") or 0.0)
+    return 0.0
+
+
 def _route(group: dict[str, Any]) -> tuple[tuple[float, float], ...]:
     return tuple((float(p["x"]), float(p["y"])) for p in indexed((group.get("route") or {}).get("points")))
 
@@ -477,6 +493,7 @@ def read_mission_picture(miz: Path, player_side: str, folder: Path | None = None
                     frequency=megahertz(group.get("frequency")) or 0.0,
                     tacan=_tacan(group),
                     route=_route(group),
+                    altitude=_cruise_altitude(group),
                 )
             )
         elif category == "helicopter" and start and carriers:

@@ -30,6 +30,7 @@ from pathlib import Path
 from campaign_manager.map_canvas import (
     _AWACS_ORBIT,
     BLACK,
+    Box,
     Label,
     MapCanvas,
     TacticalMapReport,
@@ -199,6 +200,31 @@ def _near(spots: list[tuple[float, float]], x: float, y: float) -> bool:
     return any(math.dist(spot, (x, y)) <= _FIGHT_REACH for spot in spots)
 
 
+#: How close to a route every point of a drawn line lies when it only retraces that route, metres.
+_RETRACED = 3_000
+
+
+def _to_segment(point: tuple[float, float], a: tuple[float, float], b: tuple[float, float]) -> float:
+    """The distance from a point to a segment, metres."""
+    (px, py), (ax, ay), (bx, by) = point, a, b
+    length = (bx - ax) ** 2 + (by - ay) ** 2
+    share = 0.0 if not length else max(0.0, min(1.0, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / length))
+    return math.dist(point, (ax + share * (bx - ax), ay + share * (by - ay)))
+
+
+def retraces(line: MapLine, routes: list[list[tuple[float, float]]]) -> bool:
+    """Whether a drawn line only retraces a route the map already draws: every point near one of its legs.
+
+    "Marteau du Golan" drew its helicopters' route by hand, and the overview showed it twice, blue and
+    green, with two rows in the key (FIX-BRIEFING-PARITY-MARTEAU-2 01).
+    """
+    for route in routes:
+        legs = list(zip(route, route[1:], strict=False))
+        if legs and all(min(_to_segment(point, a, b) for a, b in legs) <= _RETRACED for point in line.points):
+            return True
+    return False
+
+
 def _dashed(
     canvas: MapCanvas, points: list[tuple[float, float]], colour: tuple[int, ...], width: int, dash: int = 18
 ) -> None:
@@ -314,7 +340,9 @@ def _key_rows(
     rows += ["threat"] if threats else []
     rows += ["engagement"] if any(not dashed for _, dashed in ranges) else []
     rows += ["detection"] if any(dashed for _, dashed in ranges) else []
-    rows += ["departure"] if departures else []
+    rows += ["departure"] if any(_in_frame(canvas, x, y) for _, x, y in departures) else []
+    if ground is not None and any(_in_frame(canvas, x, y) for _, x, y in ground.enemy_bases):
+        rows.append("enemy_base")
     rows += ["route"] if any(plan.category != "helicopter" for plan in picture.flight_plans) else []
     rows += ["helicopter_route"] if any(plan.category == "helicopter" for plan in picture.flight_plans) else []
     if ground is not None:
@@ -362,6 +390,8 @@ def _key_symbol(
         canvas.circle(centre, half, _QRA, dashed=True, width=px(2))
     elif row == "helicopter_route":
         _dashed(canvas, [(cx - px(14), cy), (cx + px(14), cy)], (*_HELICOPTER, 255), px(3), dash=8)
+    elif row == "enemy_base":
+        draw.rectangle((cx - px(7), cy - px(7), cx + px(7), cy + px(7)), fill=(*enemy, 255))
     elif row == "friendly":
         draw.rectangle((cx - px(5), cy - px(5), cx + px(5), cy + px(5)), fill=(*friend, 255))
     elif row == "jtac":
@@ -399,8 +429,14 @@ def _draw_key(
     friend: tuple[int, int, int],
     enemy: tuple[int, int, int],
     ground: GroundPicture | None = None,
+    avoid: list[Box] | None = None,
 ) -> None:
-    """The map's key, one symbol and a few words a row, in the corner the fewest symbols stand in."""
+    """The map's key, one symbol and a few words a row, in the corner the fewest symbols and labels stand in.
+
+    Taller than 40 % of the map, it takes two columns: on "Marteau du Golan" a 15-row key took three quarters
+    of the overview's height and hid a departure base; on the combat map it covered SA11 and W8, the labels
+    still to set being nowhere in the corner's count (FIX-BRIEFING-PARITY-MARTEAU-2 01, 02).
+    """
     texts = [
         ground.lines[int(row.split()[1])].name
         if row.startswith("line ") and ground is not None
@@ -409,17 +445,20 @@ def _draw_key(
     ]
     font, px = canvas.small, canvas.px
     line = px(28)
-    widest = max(canvas.draw.textlength(text, font=font) for text in texts)
-    width, height = px(16) + px(30) + px(8) + widest, px(12) + line * len(rows)
-    left, top, right, bottom = canvas.free_corner((width, height))
+    columns = 2 if px(12) + line * len(rows) > 0.4 * canvas.background.size[1] else 1
+    per_column = math.ceil(len(rows) / columns)
+    cell = px(16) + px(30) + px(8) + max(canvas.draw.textlength(text, font=font) for text in texts)
+    width, height = cell * columns, px(12) + line * per_column
+    left, top, right, bottom = canvas.free_corner((width, height), avoid or [])
     canvas.draw.rectangle((left, top, right, bottom), fill=(255, 255, 255, 225), outline=(*BLACK[:3], 120))
     for index, (row, text) in enumerate(zip(rows, texts, strict=True)):
-        cy = top + px(6) + line * index + line / 2
-        _key_symbol(canvas, row, (left + px(8) + px(15), cy), friend, enemy, ground)
-        canvas.draw.text((left + px(8) + px(30) + px(8), cy), text, font=font, fill=BLACK, anchor="lm")
+        column, place = divmod(index, per_column)
+        x0 = left + column * cell
+        cy = top + px(6) + line * place + line / 2
+        _key_symbol(canvas, row, (x0 + px(8) + px(15), cy), friend, enemy, ground)
+        canvas.draw.text((x0 + px(8) + px(30) + px(8), cy), text, font=font, fill=BLACK, anchor="lm")
+        canvas.symbols[f"key {row}"] = (x0 + px(23), cy)
     canvas.symbols["key"] = ((left + right) / 2, (top + bottom) / 2)
-    for index, row in enumerate(rows):
-        canvas.symbols[f"key {row}"] = (left + px(23), top + px(6) + line * index + line / 2)
 
 
 def render_overview_map(
@@ -473,6 +512,19 @@ def render_overview_map(
     friend, enemy = _sides(side)
     numbers = waypoint_numbers(picture)
     ground = ground or GroundPicture()
+    routes = []
+    for plan in picture.flight_plans:
+        route = [(wp.x, wp.y) for wp in plan.waypoints]
+        if departures and route:  # the route leaves from its own departure, or the one nearest its first point
+            named = [(x, y) for name, x, y in departures if name.lower() == plan.departure.lower()]
+            route.insert(
+                0,
+                named[0] if named else min(((x, y) for _, x, y in departures), key=lambda xy: math.dist(xy, route[0])),
+            )
+        routes.append((plan, route))
+    ground = replace(ground, lines=tuple(line for line in ground.lines if not retraces(line, [r for _, r in routes])))
+    if combat_area:  # the QRA watch the theatre, not the fight: their arcs only cut the combat map up
+        picture = replace(picture, qra_zones=[])
     spots = [(area.x, area.y) for _, area in objectives] + [position for _, position in threats]
     if combat_area and spots:
         # the friendlies at the fight, not a FARP's statics 150 nm away (pr-code-review of #1210)
@@ -485,6 +537,7 @@ def render_overview_map(
         # the theatre, not only the route: where the tankers and the AWACS fly, where the QRA wait, the front
         spots += [point for support in picture.support for point in support.route[:2]]
         spots += [(zone.x, zone.y) for zone in picture.qra_zones]
+        spots += [(x, y) for _, x, y in ground.enemy_bases]
         spots += [point for line in ground.lines for point in line.points]
     margin = _COMBAT_MARGIN if combat_area else _OVERVIEW_MARGIN
     points = [xy_to_latlon(theatre, x, y) for x, y in spots]
@@ -493,10 +546,8 @@ def render_overview_map(
     canvas = MapCanvas(theatre, points, margin, cache_dir, fetch, source, aspect, width=width, rotation=rotation)
 
     # every symbol first, so that no label is set on one drawn after it
-    labels = [
-        _objective(canvas, area, enemy, focus=False, text=objective.title if combat_area else None, fill=_ZONE_FILL)
-        for objective, area in objectives
-    ]
+    # named as the flight plan names them on both maps: the titles were long and ran into one another
+    labels = [_objective(canvas, area, enemy, focus=False, fill=_ZONE_FILL) for _, area in objectives]
     labels += [_threat(canvas, threat, position, enemy, fill=_REACH_FILL) for threat, position in threats]
     # after the filled circles: a fill drawn later replaces the overlay's pixels, it does not blend
     for line in ground.lines:
@@ -504,29 +555,27 @@ def render_overview_map(
     if combat_area:
         labels += _ground(canvas, ground, side, friend, enemy)
     # the helicopters' dashes first: where both routes share a leg, the planes' line stays whole
-    for plan in sorted(picture.flight_plans, key=lambda plan: plan.category != "helicopter"):
-        route = [(wp.x, wp.y) for wp in plan.waypoints]
-        if departures and route:  # the route leaves from the departure nearest its first point
-            route.insert(0, min(((x, y) for _, x, y in departures), key=lambda xy: math.dist(xy, route[0])))
+    for plan, route in sorted(routes, key=lambda item: item[0].category != "helicopter"):
         pixels = [canvas.at_xy(x, y) for x, y in route]
         if plan.category == "helicopter":
             _dashed(canvas, pixels, (*_HELICOPTER, 255), canvas.px(4))
             continue
         for a, b in zip(pixels, pixels[1:], strict=False):
             canvas.draw.line((*a, *b), fill=_ROUTE, width=canvas.px(3))
-    for name, x, y in departures:
-        dx, dy = canvas.at_xy(x, y)
-        half = canvas.px(7)
-        canvas.draw.rectangle((dx - half, dy - half, dx + half, dy + half), fill=(*friend, 255))
-        labels.append((canvas.mark(name, (dx, dy), half), name, canvas.small, (*friend, 255)))
+    for bases, tint in ((departures, friend), ([] if combat_area else ground.enemy_bases, enemy)):
+        for name, x, y in bases:
+            dx, dy = canvas.at_xy(x, y)
+            half = canvas.px(7)
+            canvas.draw.rectangle((dx - half, dy - half, dx + half, dy + half), fill=(*tint, 255))
+            labels.append((canvas.mark(name, (dx, dy), half), name, canvas.small, (*tint, 255)))
     labels += draw_mission(canvas, picture, friend, enemy, {}, qra_colour=_QRA)
     labels += _waypoints(canvas, picture, {area.label.lower() for _, area in objectives if area.label})
     canvas.turn()
     bar = _bar(canvas, NM, _NM_BARS)
     canvas.scale(bar * NM, f"{bar} nm")
-    shown = ground if combat_area else replace(ground, friendlies=(), jtacs=(), axes=())
+    shown = replace(ground, enemy_bases=()) if combat_area else replace(ground, friendlies=(), jtacs=(), axes=())
     rows = _key_rows(canvas, picture, objectives, threats, departures, shown, side)
-    _draw_key(canvas, rows, friend, enemy, ground)
+    _draw_key(canvas, rows, friend, enemy, ground, [canvas.turned_box(box) for box, _, _, _ in labels])
     if width is not None:
         canvas.north_arrow()
     for box, text, font, colour in labels:

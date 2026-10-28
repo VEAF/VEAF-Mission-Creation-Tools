@@ -145,6 +145,8 @@ class MapCanvas:
         self._turned = False
         self._reserved: list[Box] = []
         self._corners: list[Box] = []
+        self._foot = 0.0
+        """How high the scale and the tiles' credit stand at the map's foot: a bottom corner sits above them."""
         if width is None and not rotation:
             self.lat, self.base = self._fitted(points, margin, aspect, cache_dir, fetch, source)
         else:
@@ -251,6 +253,10 @@ class MapCanvas:
         dx, dy = point[0] - cx, point[1] - cy
         return dx * cos + dy * sin + width / 2, -dx * sin + dy * cos + height / 2
 
+    def turned_box(self, box: Box) -> Box:
+        """Where a box of the background drawn north up stands on the framed, turned map."""
+        return self._turned_box(box) if self._turned else box
+
     def _turned_box(self, box: Box) -> Box:
         corners = [self.turned((x, y)) for x in (box[0], box[2]) for y in (box[1], box[3])]
         xs, ys = [c[0] for c in corners], [c[1] for c in corners]
@@ -297,11 +303,12 @@ class MapCanvas:
         self._reserved.append(box)
         self.placer.reserve(box)
 
-    def free_corner(self, size: tuple[float, float]) -> Box:
+    def free_corner(self, size: tuple[float, float], avoid: list[Box] | None = None) -> Box:
         """The corner box of that size the fewest symbols stand in: where a key or an inset goes.
 
         Args:
             size: Its width and height, pixels.
+            avoid: More boxes to count, on the saved map: the anchors of the labels still to set.
 
         Returns:
             The box, ``(left, top, right, bottom)``, kept clear of labels from now on.
@@ -309,15 +316,19 @@ class MapCanvas:
         width, height = self.background.size
         gap = self.px(12)
         w, h = size
+        foot = (
+            height - gap - self._foot
+        )  # a key at the bottom covered the tiles' credit (FIX-BRIEFING-PARITY-MARTEAU-2)
         corners = [
             (gap, gap, gap + w, gap + h),
             (width - gap - w, gap, width - gap, gap + h),
-            (gap, height - gap - h, gap + w, height - gap),
-            (width - gap - w, height - gap - h, width - gap, height - gap),
+            (gap, foot - h, gap + w, foot),
+            (width - gap - w, foot - h, width - gap, foot),
         ]
 
         def crowding(box: Box) -> int:
-            return sum(1 for r in self._reserved if r[0] < box[2] and box[0] < r[2] and r[1] < box[3] and box[1] < r[3])
+            boxes = [*self._reserved, *(avoid or [])]
+            return sum(1 for r in boxes if r[0] < box[2] and box[0] < r[2] and r[1] < box[3] and box[1] < r[3])
 
         # a corner handed out once is never handed out again: the north arrow landed on the key on a tie
         best = min((c for c in corners if c not in self._corners), key=crowding)
@@ -399,6 +410,7 @@ class MapCanvas:
         self.draw.rectangle(credit_box, fill=(255, 255, 255, 220))
         self.draw.text(at, self.base.credit, font=self.small, fill=BLACK)
         self.reserve(credit_box)
+        self._foot = height - min(box[1], credit_box[1])
 
     def north_arrow(self) -> None:
         """An arrow pointing north, with its N, in the corner the fewest symbols stand in."""
@@ -434,6 +446,11 @@ class MapCanvas:
             metres_per_pixel(self.lat, self.base.zoom),
             locate,
         )
+
+
+def flight_level(metres: float) -> str:
+    """``FL185``: an altitude in metres as a flight level, to the nearest five levels (500 ft)."""
+    return f"FL{round(metres / 0.3048 / 500) * 5:03d}"
 
 
 def waypoint_numbers(picture: MissionPicture) -> dict[tuple[float, float], list[str]]:
@@ -504,7 +521,9 @@ def draw_mission(
             canvas.draw.line((*start, *canvas.at_xy(*support.route[1])), fill=(*friend, 255), width=px(5))
         dot = px(5)
         canvas.draw.ellipse((start[0] - dot, start[1] - dot, start[0] + dot, start[1] + dot), fill=(*friend, 255))
-        labels.append((canvas.mark(support.callsign, start, px(6)), support.callsign, canvas.small, (*friend, 255)))
+        # a tanker's level beside its callsign: what a receiver climbs to (FIX-BRIEFING-PARITY-MARTEAU-2 01)
+        text = f"{support.callsign} {flight_level(support.altitude)}" if support.altitude > 0 else support.callsign
+        labels.append((canvas.mark(support.callsign, start, px(6)), text, canvas.small, (*friend, 255)))
     bx, by = canvas.at_xy(*picture.bullseye)
     for r in (px(8), px(16)):
         canvas.draw.ellipse((bx - r, by - r, bx + r, by + r), outline=BLACK, width=px(2))

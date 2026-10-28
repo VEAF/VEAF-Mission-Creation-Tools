@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from campaign_manager.mission_pages import line
+from campaign_manager.mission_pages import altitude, line
 from campaign_manager.mission_picture import NM, FlightPlan, Waypoint
 from campaign_manager.strategic_map import _font
 from PIL import Image, ImageDraw, ImageFont
@@ -202,7 +202,8 @@ def route_steps(theatre: str, plan: FlightPlan, departures: list[tuple[str, floa
     """
     points: list[tuple[str, float, float, Waypoint | None]] = [(wp.name, wp.x, wp.y, wp) for wp in plan.waypoints]
     if departures and points:
-        name, x, y = min(departures, key=lambda d: math.dist(d[1:], points[0][1:3]))
+        named = [d for d in departures if d[0].lower() == plan.departure.lower()]
+        name, x, y = named[0] if named else min(departures, key=lambda d: math.dist(d[1:], points[0][1:3]))
         points.insert(0, (name, x, y, None))
     grid = grid_for_theatre(theatre)
     legs = profile(grid, [(x, y) for _, x, y, _ in points]) if grid and len(points) > 1 else []
@@ -257,6 +258,110 @@ def flight_card_blocks(
                 lines.append(f"      {leg_text(step)}")
         blocks.append((", ".join(plan.aircraft) or None, lines))
     return blocks
+
+
+#: A kneeboard table: its heading, its columns' titles and shares of the width, its rows.
+KneeboardTable = tuple[str | None, tuple[str, ...], tuple[float, ...], list[tuple[str, ...]]]
+
+_CELL_SIZE = 30
+_HEADER_FILL = (0x1F, 0x4E, 0xA8)
+_STRIPE_FILL = (0xF2, 0xF4, 0xF8)
+
+
+def table_pages(title: str, tables: list[KneeboardTable]) -> list[bytes]:
+    """Tables on as many pages as they need, the title repeated, the header row repeated on each page.
+
+    Args:
+        title: The pages' title.
+        tables: Each table's heading, columns, widths (shares summing to 1) and rows; a cell wraps at spaces.
+
+    Returns:
+        The pages, JPEG, at least one.
+    """
+    heading_font, cell_font = _font(_HEADING_SIZE, bold=True), _font(_CELL_SIZE)
+    bold = _font(_CELL_SIZE, bold=True)
+    usable = KNEEBOARD_PAGE[0] - 2 * _MARGIN
+    step, pad = int(_CELL_SIZE * 1.3), 10
+    pages: list[bytes] = []
+    page, draw, y = _blank(title)
+
+    def wrapped(
+        row: tuple[str, ...], widths: tuple[float, ...], font: ImageFont.FreeTypeFont | ImageFont.ImageFont
+    ) -> list[list[str]]:
+        return [_wrap(text, font, int(usable * share) - 2 * pad) for text, share in zip(row, widths, strict=True)]
+
+    def draw_row(
+        cells: list[list[str]],
+        widths: tuple[float, ...],
+        top: int,
+        fill: tuple[int, int, int],
+        colour: tuple[int, int, int],
+        font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    ) -> int:
+        height = max(len(lines) for lines in cells) * step + 2 * pad
+        draw.rectangle((_MARGIN, top, _MARGIN + usable, top + height), fill=fill)
+        left = _MARGIN
+        for lines, share in zip(cells, widths, strict=True):
+            for n, text in enumerate(lines):
+                draw.text((left + pad, top + pad + n * step), text, font=font, fill=colour)
+            left += int(usable * share)
+        return height
+
+    for heading, columns, widths, rows in tables:
+        header = wrapped(columns, widths, bold)
+        header_height = max(len(lines) for lines in header) * step + 2 * pad
+        if heading:
+            if y + _HEADING_SIZE + header_height > KNEEBOARD_PAGE[1] - _MARGIN:
+                pages.append(_jpeg(page))
+                page, draw, y = _blank(title)
+            draw.text((_MARGIN, y), heading, font=heading_font, fill=(0, 0, 0))
+            y += int(_HEADING_SIZE * 1.35)
+        y += draw_row(header, widths, y, _HEADER_FILL, (255, 255, 255), bold)
+        for number, row in enumerate(rows):
+            cells = wrapped(row, widths, cell_font)
+            height = max(len(lines) for lines in cells) * step + 2 * pad
+            if y + height > KNEEBOARD_PAGE[1] - _MARGIN:
+                pages.append(_jpeg(page))
+                page, draw, y = _blank(title)
+                y += draw_row(header, widths, y, _HEADER_FILL, (255, 255, 255), bold)
+            fill = _STRIPE_FILL if number % 2 else (255, 255, 255)
+            y += draw_row(cells, widths, y, fill, (0, 0, 0), cell_font)
+        y += 40
+    pages.append(_jpeg(page))
+    return pages
+
+
+def flight_card_tables(
+    theatre: str, plans: list[FlightPlan], departures: list[tuple[str, float, float]]
+) -> list[KneeboardTable]:
+    """The flight card as tables, one per route: each point, the leg that reaches it, its altitude, where it is.
+
+    A list without the altitudes was below the hand-made card of "Marteau du Golan" (FIX-BRIEFING-PARITY-MARTEAU-2 05).
+
+    Args:
+        theatre: The mission's theatre.
+        plans: The players' routes, as the built mission carries them.
+        departures: The airfields the players take off from, ``(name, x, y)``.
+
+    Returns:
+        One table per route.
+    """
+    columns = tuple(
+        t(f"mission_briefing.kneeboard.column.{name}") for name in ("point", "leg", "altitude", "floor", "position")
+    )
+    tables: list[KneeboardTable] = []
+    for plan in plans:
+        rows: list[tuple[str, ...]] = []
+        for step in route_steps(theatre, plan, departures):
+            name = step.name if step.waypoint is None else f"W{step.number} {step.name}"
+            leg = f"{step.heading:03d}° / {step.nm} nm" if step.heading is not None and step.nm is not None else ""
+            height = altitude(step.waypoint) if step.waypoint is not None else ""
+            floor = f"{step.highest_ft} ft" if step.highest_ft is not None else ""
+            position = to_dms(*xy_to_latlon(theatre, step.x, step.y))  # wraps between latitude and longitude
+            rows.append((name, leg, height, floor, position))
+        widths: tuple[float, ...] = (0.22, 0.17, 0.17, 0.14, 0.30)
+        tables.append((", ".join(plan.aircraft) or None, columns, widths, rows))
+    return tables
 
 
 def targets_blocks(

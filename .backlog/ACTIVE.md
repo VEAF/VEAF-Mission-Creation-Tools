@@ -6,9 +6,9 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-BRIEFING-PARITY-MARTEAU](FIX-BRIEFING-PARITY-MARTEAU/PRD.md) · 🔄
+### [FIX-BRIEFING-PARITY-MARTEAU-2](FIX-BRIEFING-PARITY-MARTEAU-2/PRD.md) · 🔄
 
-The briefing generator at the level of "Marteau du Golan"'s hand-made deck (2026-10-28): nine defects a regeneration test found — recon zone of a bare spawned group, theatre and combat maps, unit-level targets with readable names, bullseye and flights on every sheet, main and secondary objectives from the operation, frequencies by radio plan for the ATO's flights, a left-aligned PDF with tables, waypoint notes per plan, kneeboard replacement. One PR.
+What the retest of #1210 still found in "Marteau du Golan"'s briefing (2026-10-28): bases, flight levels and one helicopter route on the overview, a combat map the key does not cover, frequency headings of their own, a prerequisite objective, the kneeboard flight card as a table, levels and support in the ATO. One PR.
 
 ### [FEAT-OBJECTIVE-MISSION-V2](FEAT-OBJECTIVE-MISSION-V2/PRD.md) · 🔄
 

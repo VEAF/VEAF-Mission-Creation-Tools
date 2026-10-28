@@ -22,6 +22,9 @@ class Objective:
     """What to do there, one line each."""
     flights: tuple[str, ...] = ()
     """The flights it is for, by callsign: "Pour : Ninja" on its page (FIX-BRIEFING-PARITY-MARTEAU 04)."""
+    status: str = ""
+    """``main``, ``secondary`` or ``prerequisite`` (what must fall before the others can go): wins over what the
+    operation in `mission.yaml` makes of it; empty leaves it to the operation (FIX-BRIEFING-PARITY-MARTEAU-2 04)."""
 
 
 @dataclass(frozen=True)
@@ -64,6 +67,16 @@ class CodeWord:
     word: str
     meaning: str
     who: str = ""
+
+
+@dataclass(frozen=True)
+class SupportAsset:
+    """A support asset as the assistant names it: ``Abu Nada``, ``JTAC``, ``FM 35.55``, ``code 1511``."""
+
+    callsign: str
+    role: str
+    frequency: str = ""
+    details: str = ""
 
 
 @dataclass(frozen=True)
@@ -117,6 +130,8 @@ class BriefingContent:
     """The package's flights on dynamic slots; ``pilots`` and ``loadouts`` name them by callsign."""
     code_words: tuple[CodeWord, ...] = ()
     """The package's code words: a coordination page in the deck and on the kneeboard, left out when empty."""
+    support: tuple[SupportAsset, ...] = ()
+    """The support the mission has no group for (a JTAC, the fat cow, a GCI): rows of the ATO's support table."""
 
 
 @dataclass(frozen=True)
@@ -147,6 +162,8 @@ class ObjectiveArea:
     """How the maps and the pages name it: the flight plan's waypoint on it (``KHAN``), its zone otherwise."""
     secondary: bool = False
     """Outside the mission's operation: a secondary objective (FIX-BRIEFING-PARITY-MARTEAU 05)."""
+    prerequisite: bool = False
+    """To open before the others can go: the SA-6 the helicopters wait for (FIX-BRIEFING-PARITY-MARTEAU-2 04)."""
 
     @property
     def name(self) -> str:
@@ -178,6 +195,8 @@ class GroundPicture:
     """The ground groups' routes, ``(side, points)``: the pushes and the counter-attacks."""
     lines: tuple[MapLine, ...] = ()
     """The lines drawn on the players' side's and the common layers."""
+    enemy_bases: tuple[tuple[str, float, float], ...] = ()
+    """The airfields the enemy's aircraft start from (the QRA's), ``(name, x, y)``: on the overview."""
 
 
 @dataclass(frozen=True)
@@ -191,6 +210,8 @@ class RadioPlan:
     """``(channel, name, MHz)``; the name is empty when the preset has none."""
     radios: tuple[int, ...] = ()
     """Every radio number carrying these channels, when the same list is on several (FIX-BRIEFING-PARITY-MARTEAU 06)."""
+    by_radio: tuple[tuple[int, tuple[str, ...]], ...] = ()
+    """Which flights carry these channels on which radio: ``((1, ("Blade",)), (2, ("Ninja", "Arctic")))``."""
 
 
 @dataclass(frozen=True)

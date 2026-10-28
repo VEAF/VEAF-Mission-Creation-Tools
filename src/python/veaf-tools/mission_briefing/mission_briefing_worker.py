@@ -38,7 +38,7 @@ from campaign_manager.briefing_deck import (
     _write_page,
     paginate,
 )
-from campaign_manager.map_canvas import TacticalMapReport
+from campaign_manager.map_canvas import TacticalMapReport, flight_level
 from campaign_manager.mission_pages import (
     altitude,
     carrier_line,
@@ -67,6 +67,7 @@ from pptx import Presentation
 from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
 from presets_injector.presets_manager import KNEEBOARD_CALIBRATION_PATH
+from veaf_libs.clear_ground_survey import airfield_positions
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import current_language, language, t
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
@@ -79,13 +80,14 @@ from mission_briefing.briefing_cards import Card, CardPage, CardSection, thumbna
 from mission_briefing.briefing_kneeboard import (
     KNEEBOARD_FOLDER,
     MAP_ASPECT,
-    flight_card_blocks,
+    flight_card_tables,
     is_kneeboard_page,
     leg_text,
     map_page,
     page_name,
     photo_page,
     route_steps,
+    table_pages,
     targets_blocks,
     text_pages,
 )
@@ -214,19 +216,25 @@ def objective_waypoint(area: ObjectiveArea, picture: MissionPicture) -> str:
 def _placed(
     areas: list[tuple[Objective, ObjectiveArea]], picture: MissionPicture, folder: Path
 ) -> list[tuple[Objective, ObjectiveArea]]:
-    """Each objective's area with its label and, when the mission has an operation, whether it is secondary."""
+    """Each objective's area with its label and its status: the assistant's, or what the operation makes of it."""
     roles = operation_zones(folder)
     placed = []
     for objective, area in areas:
         # a chained zone (a counter-attack) is neither main nor secondary: it does not count in the operation's end
         secondary = roles is not None and area.zone.lower() not in roles[0] | roles[1]
-        placed.append((objective, replace(area, label=objective_waypoint(area, picture), secondary=secondary)))
+        if objective.status:
+            secondary = objective.status == "secondary"
+        prerequisite = objective.status == "prerequisite"
+        label = objective_waypoint(area, picture)
+        placed.append((objective, replace(area, label=label, secondary=secondary, prerequisite=prerequisite)))
     return placed
 
 
 def _objective_title(objective: Objective, area: ObjectiveArea) -> str:
     """``KHAN — La ligne de Khan Arnabah``, and ``(secondaire)`` after a secondary objective."""
     title = t("mission_briefing.title.objective", label=area.name, title=objective.title)
+    if area.prerequisite:
+        return title + t("mission_briefing.prerequisite_mark")
     return title + (t("mission_briefing.secondary_mark") if area.secondary else "")
 
 
@@ -361,6 +369,7 @@ def _ato_page(content: BriefingContent, picture: MissionPicture, warnings: list[
                 tuple(package),
             )
         )
+    # a tanker's level, and the support the mission has no group for (FIX-BRIEFING-PARITY-MARTEAU-2 06)
     support = [
         (
             aircraft.callsign,
@@ -368,16 +377,17 @@ def _ato_page(content: BriefingContent, picture: MissionPicture, warnings: list[
             aircraft.aircraft,
             f"{mhz(aircraft.frequency)} MHz",
             aircraft.tacan or "—",
+            flight_level(aircraft.altitude) if aircraft.altitude > 0 else "—",
         )
         for aircraft in picture.support
     ]
+    support += [(a.callsign, a.role, a.details, a.frequency or "—", "—", "—") for a in content.support]
     if support:
         columns = tuple(
-            t(f"mission_briefing.ato.{name}") for name in ("callsign", "role", "type", "frequency", "tacan")
+            t(f"mission_briefing.ato.{name}") for name in ("callsign", "role", "type", "frequency", "tacan", "level")
         )
-        tables.append(
-            Table(t("campaign.mission_deck.heading.support"), columns, (0.2, 0.2, 0.25, 0.2, 0.15), tuple(support))
-        )
+        widths = (0.17, 0.15, 0.3, 0.15, 0.11, 0.12)
+        tables.append(Table(t("campaign.mission_deck.heading.support"), columns, widths, tuple(support)))
     control = [(a.name, f"{mhz(a.uhf)} MHz", f"{mhz(a.vhf)} MHz", a.tacan or "—") for a in picture.airfields]
     if control:
         columns = tuple(t(f"mission_briefing.ato.{name}") for name in ("airfield", "uhf", "vhf", "tacan"))
@@ -490,13 +500,17 @@ def _objective_blocks(areas: list[tuple[Objective, ObjectiveArea]], chained: set
 
     Without an operation every objective is listed, as before (FIX-BRIEFING-PARITY-MARTEAU 05).
     """
-    kept = [(objective, area) for objective, area in areas if area.zone.lower() not in chained]
-    main = [objective.title for objective, area in kept if not area.secondary]
-    other = [objective.title for objective, area in kept if area.secondary]
+    kept = [(objective, area) for objective, area in areas if area.zone.lower() not in chained or objective.status]
+    first = [objective.title for objective, area in kept if area.prerequisite]
+    main = [objective.title for objective, area in kept if not area.secondary and not area.prerequisite]
+    other = [objective.title for objective, area in kept if area.secondary and not area.prerequisite]
+    blocks = []
+    if first:
+        heading = t("mission_briefing.heading.prerequisites")
+        blocks.append(Block(heading, tuple(f"– {title}" for title in first)))
     if not other:
         heading = t("campaign.mission_deck.heading.objectives")
-        return [Block(heading, tuple(f"{n}. {title}" for n, title in enumerate(main, 1)))] if main else []
-    blocks = []
+        return blocks + ([Block(heading, tuple(f"{n}. {title}" for n, title in enumerate(main, 1)))] if main else [])
     if main:
         blocks.append(
             Block(
@@ -604,21 +618,35 @@ def _ato_plans(
     if not flown:
         return None
     flown.update({name: [name] for plan in plans for name in plan.flights if name in groups})
-    merged: dict[tuple[tuple[int, str, float], ...], tuple[list[int], list[str]]] = {}
+    merged: dict[tuple[tuple[int, str, float], ...], dict[int, list[str]]] = {}
     for plan in plans:
         carriers = [name for name in plan.flights if name in flown]
         if not carriers or not any(name for _, name, _ in plan.channels):
             continue
-        radios, callsigns = merged.setdefault(plan.channels, ([], []))
-        if plan.radio not in radios:
-            radios.append(plan.radio)
+        on_radio = merged.setdefault(plan.channels, {}).setdefault(plan.radio, [])
         for name in carriers:
-            callsigns += [callsign for callsign in flown[name] if callsign not in callsigns]
+            on_radio += [callsign for callsign in flown[name] if callsign not in on_radio]
     order = [flight.callsign for flight in flights] + sorted(groups)
-    return [
-        RadioPlan(radios[0], tuple(sorted(callsigns, key=order.index)), channels, tuple(radios))
-        for channels, (radios, callsigns) in merged.items()
-    ]
+    found = []
+    for channels, by_radio in merged.items():
+        radios = sorted(by_radio)
+        callsigns = sorted({c for names in by_radio.values() for c in names}, key=order.index)
+        pairs = tuple((radio, tuple(sorted(by_radio[radio], key=order.index))) for radio in radios)
+        found.append(RadioPlan(radios[0], tuple(callsigns), channels, tuple(radios), pairs))
+    return found
+
+
+def _radio_heading(plan: RadioPlan) -> str:
+    """A plan's heading: which flights carry it on which radio, ``Radio 2 — Ninja, Arctic · Radio 1 — Blade``.
+
+    "Radio 1 / 2 — Ninja, Arctic, Archer, Jedi, Blade" headed two plans alike (FIX-BRIEFING-PARITY-MARTEAU-2 03).
+    """
+    if not plan.by_radio:
+        radio = " / ".join(str(number) for number in plan.radios) if plan.radios else str(plan.radio)
+        return t("mission_briefing.radio", radio=radio, flights=", ".join(plan.flights))
+    return " · ".join(
+        t("mission_briefing.radio", radio=radio, flights=", ".join(names)) for radio, names in plan.by_radio
+    )
 
 
 def _frequencies_page(picture: MissionPicture, plans: list[RadioPlan], flights: tuple[PackageFlight, ...] = ()) -> Page:
@@ -630,7 +658,8 @@ def _frequencies_page(picture: MissionPicture, plans: list[RadioPlan], flights: 
         return frequencies_page(picture)
     plans = _ato_plans(plans, flights, frozenset(flight.name for flight in picture.flights)) or plans
     blocks = []
-    for plan in plans:
+    headings = [_radio_heading(plan) for plan in plans]
+    for index, plan in enumerate(plans):
         lines = [
             t("mission_briefing.channel", channel=channel, name=name, frequency=mhz(freq))
             for channel, name, freq in plan.channels
@@ -644,8 +673,11 @@ def _frequencies_page(picture: MissionPicture, plans: list[RadioPlan], flights: 
         ]
         if unnamed:
             lines.append(" · ".join(unnamed))
-        radio = " / ".join(str(number) for number in plan.radios) if plan.radios else str(plan.radio)
-        blocks.append(Block(t("mission_briefing.radio", radio=radio, flights=", ".join(plan.flights)), tuple(lines)))
+        heading = headings[index]
+        if headings.count(heading) > 1:  # the same flights on the same radios: say what the plan holds
+            channel, name = next(((c, n) for c, n, _ in plan.channels if n), (1, ""))
+            heading += " — " + t("mission_briefing.channel_first", channel=channel, name=name)
+        blocks.append(Block(heading, tuple(lines)))
     control = [carrier_line(carrier) for carrier in picture.carriers]
     if control:
         blocks.append(Block(t("campaign.mission_deck.heading.control"), tuple(control)))
@@ -907,10 +939,32 @@ def _foreign_page(name: str, pages: dict[str, bytes]) -> bool:
     return _KNEEBOARD_PICTURE.fullmatch(name) is not None
 
 
+def _with_slot_bases(
+    starts: list[tuple[str, float, float]], picture: MissionPicture, content: BriefingContent
+) -> list[tuple[str, float, float]]:
+    """The departures, and the bases offering dynamic slots the ATO's flights take off from.
+
+    A mission of dynamic slots has no flight group on its bases: Ramat David and Rosh Pina were neither drawn
+    nor framed on "Marteau du Golan"'s overview (FIX-BRIEFING-PARITY-MARTEAU-2 01). Without flights, every
+    base offering slots is one.
+    """
+    used = {flight.base.lower() for flight in content.flights if flight.base}
+    wanted = [a.name for a in picture.airfields if not used or a.name.lower() in used]
+    have = {name for name, _, _ in starts}
+    positions = {name.lower(): (name, x, y) for name, x, y in airfield_positions(picture.theatre)}
+    added = [positions[name.lower()] for name in wanted if name not in have and name.lower() in positions]
+    return [*starts, *((name, x, y) for name, x, y in added)]
+
+
 def _named_plan(plan: FlightPlan, flights: tuple[PackageFlight, ...]) -> FlightPlan:
     """A dynamic-slot plan named by the ATO's flights that fly it, not by the 61 types that carry it."""
-    callsigns = [flight.callsign for flight in flights if any(flies(flight.aircraft, kind) for kind in plan.aircraft)]
-    return replace(plan, aircraft=tuple(callsigns)) if callsigns else plan
+    flying = [flight for flight in flights if any(flies(flight.aircraft, kind) for kind in plan.aircraft)]
+    if not flying:
+        return plan
+    # the base most of its flights leave from: the jets' route leaves Ramat David, not the nearer Rosh Pina
+    bases = [flight.base for flight in flying if flight.base]
+    departure = max(dict.fromkeys(bases), key=bases.count) if bases else plan.departure
+    return replace(plan, aircraft=tuple(flight.callsign for flight in flying), departure=departure)
 
 
 def _write_kneeboard_folder(folder: Path, pages: dict[str, bytes], replace_others: bool = False) -> list[str]:
@@ -1084,8 +1138,8 @@ def _kneeboard_pages(
         recon_title = t("mission_briefing.title.recon", zone=area.name)
         for n, pair in enumerate(_pairs(theatre, recon.get(area.zone, [])), 1):
             sheets.append((f"{stem}-recon-{n}", photo_page(recon_title, pair)))
-    card_blocks = flight_card_blocks(theatre, list(picture.flight_plans), starts)
-    card = text_pages(t("mission_briefing.kneeboard.flight_card"), card_blocks) if card_blocks else []
+    card_tables = flight_card_tables(theatre, list(picture.flight_plans), starts)
+    card = table_pages(t("mission_briefing.kneeboard.flight_card"), card_tables) if card_tables else []
     target_blocks = targets_blocks(
         theatre, [(_objective_title(objective, area), area) for objective, area in areas], picture.bullseye
     )
@@ -1261,8 +1315,8 @@ def _build(
             warnings.append(f"Threat {threat.name!r}: no group named {threat.group!r} in the built mission, not drawn.")
         else:
             threats.append((threat, position))
-    starts = departures(table, side, theatre, templates=dynamic)
-    ground = ground_picture(table, side)
+    starts = _with_slot_bases(departures(table, side, theatre, templates=dynamic), picture, content)
+    ground = ground_picture(table, side, theatre)
 
     maps_folder = folder / MAPS_FOLDER
     tiles: dict[str, Any] = {"cache_dir": cache_dir, "fetch": fetch, "source": source, "side": side}

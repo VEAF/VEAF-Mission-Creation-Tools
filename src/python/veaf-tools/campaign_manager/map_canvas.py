@@ -316,7 +316,9 @@ class MapCanvas:
         width, height = self.background.size
         gap = self.px(12)
         w, h = size
-        foot = height - gap - self._foot  # a key at the bottom covered the tiles' credit (FIX-BRIEFING-PARITY-MARTEAU-2)
+        foot = (
+            height - gap - self._foot
+        )  # a key at the bottom covered the tiles' credit (FIX-BRIEFING-PARITY-MARTEAU-2)
         corners = [
             (gap, gap, gap + w, gap + h),
             (width - gap - w, gap, width - gap, gap + h),

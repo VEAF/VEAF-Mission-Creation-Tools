@@ -1,6 +1,6 @@
 # FIX-BRIEFING-PARITY-MARTEAU — the generated briefing at the level of the hand-made one
 
-Status: 🔄 in progress
+Status: ✅ done
 
 "Marteau du Golan" (Syria, flown 2026-10-29) was briefed from a 52-page hand-made deck; FEAT-OBJECTIVE-BRIEFING-QUALITY (#1206) and FEAT-OBJECTIVE-MISSION-V2 (#1208) took its improvements into the tools.
 A regeneration test on a copy of the mission (2026-10-28, `origin/develop` a1a070b9, same parameters) showed the tool below the hand-made version on its maps, its target sheets and its frequency plan.

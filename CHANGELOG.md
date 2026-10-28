@@ -65,6 +65,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The PDF is left-aligned, never justified; the ATO, the deployment and the code words are tables in the deck and the PDF.
   `waypoint_notes` takes a `plane` and a `helicopter` map for points the two routes share with different roles; the new optional `kneeboard_replace` takes the hand-made kneeboard pages out of the folder (kept in `.veaf-backups/`) and of every built `.miz`.
 
+### Fixed
+
+- **What the retest of "Marteau du Golan"'s briefing still found** (FIX-BRIEFING-PARITY-MARTEAU-2, after #1210).
+  The overview draws and frames the departure bases (a mission of dynamic slots included, Ramat David was out of the frame) and the enemy's airfields, its tankers carry their flight level, and a line the mission draws along a route the map already draws is left out of it and of its key.
+  Each route leaves from the base its flights take off from, not the nearest one.
+  The combat map names its objectives as the flight plan does and drops the QRA arcs; a key taller than 40 % of a map takes two columns, in the corner the labels still to set leave free, above the scale and the credit.
+  A frequency block says which flights carry it on which radio (`Radio 1 — Ninja · Radio 2 — Blade`).
+  An objective takes a `status` (`main`, `secondary`, `prerequisite`) that wins over the operation: the SA-6 the helicopters wait for is a prerequisite.
+  The kneeboard flight card is a table, with each point's altitude.
+  The ATO gives each tanker's flight level, and the new optional `support` lists what the mission has no group for (a JTAC, the fat cow, a GCI): the known limitation `briefing-ato-lacks-levels-jtac-and-control` is fixed.
 ## [6.33.0] — 2026-10-27
 
 ### Security

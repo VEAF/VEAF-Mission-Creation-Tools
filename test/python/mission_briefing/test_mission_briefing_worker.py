@@ -71,8 +71,10 @@ class TestTheDeck:
             "4. Situation tactique — Khobi",
             "5. Déroulement mission",
             "6. Plan de vol",
-            "7. Plan de fréquences",
-            "8. Coordonnées cibles",
+            "7. Plan de vol — étape par étape",
+            "7. Plan de vol — étape par étape (suite)",  # the helicopters' route, on a slide of its own
+            "8. Plan de fréquences",
+            "9. Coordonnées cibles",
         ]
         assert report.pages == len(slides)
 
@@ -85,7 +87,7 @@ class TestTheDeck:
         assert "Ch. 1 — Ninja : 390.5 MHz" in text and "243" not in text
         assert "1. Zip  2. Couz" in text
         _, zx, zy, _ = KHOBI_ZONE
-        assert f"SA8 : {to_dms(*xy_to_latlon('Caucasus', zx + 300, zy + 200))}" in text
+        assert f"SA8{chr(10)}Osa 9A33 ln{chr(10)}DMS {to_dms(*xy_to_latlon('Caucasus', zx + 300, zy + 200))}" in text
         assert "Patrol" not in text  # near the zone, not one of its members
 
     def test_a_threat_whose_group_is_missing_is_a_warning(self, tmp_path: Path) -> None:
@@ -129,6 +131,53 @@ class TestProse:
         text = _deck_text(_build(tmp_path, content).deck)
         assert "Aveugler la défense, puis frapper le PC." in text
         assert "– Aveugler" not in text
+
+
+class TestTheSheets:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 03 and 05: target sheets, the flight plan step by step, the deployment."""
+
+    @staticmethod
+    def _content() -> BriefingContent:
+        from dataclasses import replace
+
+        return replace(
+            CONTENT,
+            deployment=("Viper décolle le premier, à H-10.", "Coordination sur la fréquence package."),
+            waypoint_notes={"KHOBI": "Largage sur le dépôt, sortie par le sud."},
+        )
+
+    def test_the_targets_are_sheets_with_their_kind_coordinates_and_thumbnail(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        deck = Presentation(str(_build(tmp_path, self._content()).deck))
+        (slide,) = [s for s in deck.slides if "Coordonnées cibles" in s.shapes[0].text_frame.text]
+        text = chr(10).join(shape.text_frame.text for shape in slide.shapes if shape.has_text_frame)
+        assert "Détruire le dépôt de Khobi" in text  # the objective the sheets belong to
+        assert "SA8" in text and "Osa 9A33 ln" in text  # the target, and what it is
+        assert "DDM N4" in text and "DMS N4" in text
+        assert sum(1 for shape in slide.shapes if shape.shape_type == 13) >= 2  # a thumbnail each
+
+    def test_the_flight_plan_step_by_step_with_what_is_done_there(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        slides = _slides(_build(tmp_path, self._content()).deck)
+        steps = [slide for slide in slides if "étape par étape" in slide[0]]
+        assert steps
+        text = chr(10).join(chr(10).join(slide) for slide in steps)
+        assert "W2 — KHOBI" in text
+        assert "Largage sur le dépôt, sortie par le sud." in text
+        assert "cap " in text and " nm" in text
+
+    def test_the_deployment_page_follows_the_flow_and_is_left_out_when_empty(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        titles = [slide[0] for slide in _slides(_build(tmp_path, self._content()).deck)[1:]]
+        flow = next(i for i, title in enumerate(titles) if title.endswith("Déroulement mission"))
+        assert titles[flow + 1].endswith("Déploiement et coordination")
+        assert "Déploiement" not in _deck_text(_build(tmp_path).deck)
+
+    def test_the_pdf_carries_the_sheets_too(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        plain = _build(tmp_path)
+        report = _build(tmp_path, self._content())
+        assert report.pdf_pages > plain.pdf_pages  # the deployment page
 
 
 class TestTheDcsPictures:

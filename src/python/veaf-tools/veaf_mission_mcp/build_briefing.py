@@ -69,6 +69,8 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         mission=_lines(params.get("mission_bullets")),
         mission_prose=isinstance(params.get("mission_bullets"), str),
         strategic_situation=_lines(params.get("strategic_situation")),
+        deployment=_lines(params.get("deployment")),
+        waypoint_notes={str(k): str(v) for k, v in (params.get("waypoint_notes") or {}).items()},
         objectives=tuple(
             Objective(str(o["zone"]), str(o.get("title") or o["zone"]), _lines(o.get("task")))
             for o in params.get("objectives") or []
@@ -130,6 +132,8 @@ def _texts(content: BriefingContent) -> dict[str, str]:
         "context": content.context,
         "mission_bullets": content.mission,
         "strategic_situation": content.strategic_situation,
+        "deployment": content.deployment,
+        "waypoint_notes": tuple(content.waypoint_notes.values()),
         "air_opposition": content.air_opposition,
         "air_defences": content.air_defences,
         "other": content.other,

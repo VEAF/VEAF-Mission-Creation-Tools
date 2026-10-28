@@ -14,6 +14,7 @@ from __future__ import annotations
 import io
 import math
 import re
+import tempfile
 import unicodedata
 from dataclasses import replace
 from pathlib import Path
@@ -37,6 +38,7 @@ from campaign_manager.briefing_deck import (
 )
 from campaign_manager.map_canvas import TacticalMapReport
 from campaign_manager.mission_pages import (
+    altitude,
     ato_page,
     carrier_line,
     clock,
@@ -70,13 +72,16 @@ from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 from veaf_mission_mcp.add_sound import _folder_l10n
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
+from mission_briefing.briefing_cards import Card, CardPage, CardSection, thumbnail, to_ddm, write_card_page
 from mission_briefing.briefing_kneeboard import (
     KNEEBOARD_FOLDER,
     MAP_ASPECT,
     flight_card_blocks,
     is_kneeboard_page,
+    leg_text,
     map_page,
     page_name,
+    route_steps,
     targets_blocks,
     text_pages,
 )
@@ -402,22 +407,82 @@ def _frequencies_page(picture: MissionPicture, plans: list[RadioPlan]) -> Page:
     return Page(t("campaign.mission_deck.title.frequencies"), blocks)
 
 
-def _targets_page(theatre: str, areas: list[tuple[Objective, ObjectiveArea]], warnings: list[str]) -> Page:
+def _feet(metres: float) -> str:
+    """``2 640`` feet, the thousands set apart as the pages write them."""
+    return f"{metres_to_feet(metres):,.0f}".replace(",", " ")
+
+
+def _target_sheets(
+    theatre: str,
+    areas: list[tuple[Objective, ObjectiveArea]],
+    zooms: list[TacticalMapReport],
+    warnings: list[str],
+) -> CardSection:
+    """One sheet per target: what it is, its coordinates in DMS and DDM, its elevation, a thumbnail of its zoom.
+
+    The list of names and DMS it replaces was arid (FEAT-OBJECTIVE-BRIEFING-QUALITY 03).
+    """
     grid = grid_for_theatre(theatre)
     if grid is None and any(area.targets for _, area in areas):
         warnings.append(
             f"No terrain elevation grid for {theatre} on this PC: the target coordinates carry no altitude "
             "(see the terrain_elevation action)."
         )
-    blocks = [Block(None, (t("mission_briefing.targets_format"),))]
-    for objective, area in areas:
-        lines = []
+    section = CardSection(t("mission_briefing.title.targets"))
+    for (objective, area), zoom in zip(areas, zooms, strict=True):
+        cards = []
         for target in area.targets:
+            lat, lon = xy_to_latlon(theatre, target.x, target.y)
+            lines = [target.kind] if target.kind else []
+            lines += [f"DMS {to_dms(lat, lon)}", f"DDM {to_ddm(lat, lon)}"]
             height = grid.elevation_at(target.x, target.y) if grid else None
-            elevation = f" — {metres_to_feet(height):.0f} ft" if height is not None else ""
-            lines.append(line(target.name, f"{to_dms(*xy_to_latlon(theatre, target.x, target.y))}{elevation}"))
-        blocks.append(Block(objective.title, tuple(lines) or (t("mission_briefing.no_target"),)))
-    return Page(t("mission_briefing.title.targets"), blocks)
+            if height is not None:
+                lines.append(t("mission_briefing.elevation", feet=_feet(height), metres=round(height)))
+            thumb = thumbnail(zoom.path, zoom.locate(target.x, target.y)) if zoom.locate else None
+            cards.append(Card(target.name, tuple(lines), thumb))
+        section.groups.append((objective.title, cards or [Card(t("mission_briefing.no_target"), ())]))
+    return section
+
+
+def _step_sheets(
+    content: BriefingContent,
+    picture: MissionPicture,
+    starts: list[tuple[str, float, float]],
+    overview: TacticalMapReport,
+    warnings: list[str],
+) -> CardSection | None:
+    """One sheet per waypoint, as a DCS kneeboard shows a route: the leg that reaches it, where it is, what is done there.
+
+    Returns:
+        The section, ``None`` when the players carry no route.
+    """
+    theatre = picture.theatre
+    notes = {name.lower(): text for name, text in content.waypoint_notes.items()}
+    named = {wp.name.lower() for plan in picture.flight_plans for wp in plan.waypoints}
+    for name in content.waypoint_notes:
+        if name.lower() not in named:
+            warnings.append(
+                f"waypoint_notes: no waypoint named {name!r} on the players' routes; the note is not shown."
+            )
+    section = CardSection(t("mission_briefing.title.steps"))
+    for plan in picture.flight_plans:
+        heading = t(f"campaign.mission_deck.heading.{plan.category}s")
+        if sum(1 for other in picture.flight_plans if other.category == plan.category) > 1:
+            heading = f"{heading} — {', '.join(plan.aircraft)}"
+        cards = []
+        for step in route_steps(theatre, plan, starts):
+            if step.waypoint is None:
+                continue
+            lat, lon = xy_to_latlon(theatre, step.x, step.y)
+            lines = [t("mission_briefing.step_from", origin=step.origin, leg=leg_text(step))] if step.origin else []
+            lines += [f"DMS {to_dms(lat, lon)}", f"DDM {to_ddm(lat, lon)}"]
+            lines.append(t("mission_briefing.step_altitude", altitude=altitude(step.waypoint)))
+            if step.name.lower() in notes:
+                lines.append(notes[step.name.lower()])
+            thumb = thumbnail(overview.path, overview.locate(step.x, step.y)) if overview.locate else None
+            cards.append(Card(f"W{step.number} — {step.name}", tuple(lines), thumb))
+        section.groups.append((heading, cards))
+    return section if section.groups else None
 
 
 def _cover_date_line(picture: MissionPicture) -> str:
@@ -669,6 +734,72 @@ def build_mission_briefing(
         return _build(folder, miz, content, side, source, cache_dir, fetch, kneeboard)
 
 
+def _slide_jpeg(png: Path, scratch: Path) -> Path:
+    """A map as the deck and the PDF carry it: a JPEG, a tenth of the PNG's weight at that resolution.
+
+    The overview's PNG at 2000 pixels and more weighs some 12 MB: embedded as it is, the deck reached 24 MB.
+    """
+    jpeg = scratch / f"{png.stem}.jpg"
+    if not jpeg.is_file():
+        with Image.open(png) as image:
+            image.convert("RGB").save(jpeg, format="JPEG", quality=88)
+    return jpeg
+
+
+def _write_deck_and_pdf(
+    folder: Path,
+    content: BriefingContent,
+    picture: MissionPicture,
+    numbered: list[str],
+    opening: list[Page],
+    closing: list[Page | CardSection],
+    maps_at: int,
+    areas: list[tuple[Objective, ObjectiveArea]],
+    overview: TacticalMapReport,
+    zooms: list[TacticalMapReport],
+    scratch: Path,
+) -> tuple[int, int]:
+    """Write the deck and the PDF of the same pages; return their page counts."""
+    deck = Presentation()
+    deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
+    _write_cover(deck, content.title, picture, numbered)
+    sheets: list[Page | MapSheet | CardPage] = []
+    for part in [part for page in opening for part in paginate(page)]:
+        _write_page(deck, part)
+        sheets.append(part)
+    # the key is drawn into the map: the slide gives the map its whole width
+    _wide_picture_page(deck, numbered[maps_at], _slide_jpeg(overview.path, scratch))
+    sheets.append(MapSheet(numbered[maps_at], _slide_jpeg(overview.path, scratch), []))
+    zoom_titles = numbered[maps_at + 1 : maps_at + 1 + len(areas)]
+    for title, (objective, area), zoom in zip(zoom_titles, areas, zooms, strict=True):
+        notes = [(objective.title, True), *[(text, False) for text in objective.task]]
+        if area.targets:
+            notes += [(t("mission_briefing.heading.targets"), True), (_join([x.name for x in area.targets]), False)]
+        picture_page(deck, title, _slide_jpeg(zoom.path, scratch), notes)
+        sheets.append(MapSheet(title, _slide_jpeg(zoom.path, scratch), notes))
+    for item in closing:
+        if isinstance(item, CardSection):
+            for card_page in item.pages():
+                write_card_page(deck, card_page)
+                sheets.append(card_page)
+            continue
+        for part in paginate(item):
+            _write_page(deck, part)
+            sheets.append(part)
+    out = folder / DECK_FILE
+    out.parent.mkdir(parents=True, exist_ok=True)
+    deck.save(str(out))
+    pdf = folder / PDF_FILE
+    cover = Cover(
+        content.title,
+        t("campaign.mission_deck.subtitle"),
+        _cover_date_line(picture),
+        t("campaign.deck.contents"),
+        numbered,
+    )
+    return len(deck.slides), write_pdf(pdf, cover, sheets)
+
+
 def _build(
     folder: Path,
     miz: Path,
@@ -726,9 +857,18 @@ def _build(
         navigation.title = t("mission_briefing.title.flight_plan")
     radios = radio_plans(table, side, templates=dynamic)
     frequencies = _frequencies_page(picture, radios)
-    targets = _targets_page(theatre, areas, warnings)
+    deployment = _prose_page(t("mission_briefing.title.deployment"), content.deployment)
+    steps = _step_sheets(content, picture, starts, overview, warnings)
+    targets = _target_sheets(theatre, areas, zooms, warnings)
     opening = [*([strategic] if strategic else []), situation, ato]
-    closing = [flow, *([navigation] if navigation else []), frequencies, targets]
+    closing: list[Page | CardSection] = [
+        flow,
+        *([deployment] if deployment else []),
+        *([navigation] if navigation else []),
+        *([steps] if steps else []),
+        frequencies,
+        targets,
+    ]
     titles = [
         *[page.title for page in opening],
         t("campaign.mission_deck.title.tactical"),
@@ -738,42 +878,16 @@ def _build(
     numbered = [f"{n}. {title}" for n, title in enumerate(titles, 1)]
     for page, title in zip(opening, numbered, strict=False):
         page.title = title
-    for page, title in zip(closing, numbered[-len(closing) :], strict=True):
-        page.title = title
+    for item, title in zip(closing, numbered[-len(closing) :], strict=True):
+        item.title = title
     maps_at = len(opening)
 
-    deck = Presentation()
-    deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
-    _write_cover(deck, content.title, picture, numbered)
-    sheets: list[Page | MapSheet] = []
-    for part in [part for page in opening for part in paginate(page)]:
-        _write_page(deck, part)
-        sheets.append(part)
-    # the key is drawn into the map: the slide gives the map its whole width
-    _wide_picture_page(deck, numbered[maps_at], overview.path)
-    sheets.append(MapSheet(numbered[maps_at], overview.path, []))
-    zoom_titles = numbered[maps_at + 1 : maps_at + 1 + len(areas)]
-    for title, (objective, area), zoom in zip(zoom_titles, areas, zooms, strict=True):
-        notes = [(objective.title, True), *[(text, False) for text in objective.task]]
-        if area.targets:
-            notes += [(t("mission_briefing.heading.targets"), True), (_join([x.name for x in area.targets]), False)]
-        picture_page(deck, title, zoom.path, notes)
-        sheets.append(MapSheet(title, zoom.path, notes))
-    for part in [part for page in closing for part in paginate(page)]:
-        _write_page(deck, part)
-        sheets.append(part)
+    with tempfile.TemporaryDirectory() as scratch:
+        deck_pages, pdf_pages = _write_deck_and_pdf(
+            folder, content, picture, numbered, opening, closing, maps_at, areas, overview, zooms, Path(scratch)
+        )
     out = folder / DECK_FILE
-    out.parent.mkdir(parents=True, exist_ok=True)
-    deck.save(str(out))
     pdf = folder / PDF_FILE
-    cover = Cover(
-        content.title,
-        t("campaign.mission_deck.subtitle"),
-        _cover_date_line(picture),
-        t("campaign.deck.contents"),
-        numbered,
-    )
-    pdf_pages = write_pdf(pdf, cover, sheets)
 
     maps = [overview.path, *(zoom.path for zoom in zooms)]
     pages = _kneeboard_pages(folder, picture, areas, threats, starts, tiles) if kneeboard else {}
@@ -787,6 +901,4 @@ def _build(
     offline = overview.offline or any(zoom.offline for zoom in zooms)
     if offline:
         warnings.append("Map tiles could not be downloaded: the maps stand on a plain background.")
-    return BriefingReport(
-        out, len(deck.slides), maps, keys, miz, offline, warnings, pdf, pdf_pages, archives, list(pages)
-    )
+    return BriefingReport(out, deck_pages, maps, keys, miz, offline, warnings, pdf, pdf_pages, archives, list(pages))

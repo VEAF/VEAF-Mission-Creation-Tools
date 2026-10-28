@@ -2181,6 +2181,21 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "air_opposition": {**_prose, "description": "What may take off, and when."},
                     "air_defences": {**_prose, "description": "How the route avoids them."},
                     "other": {**_prose, "description": "Attack mode, refuelling..."},
+                    "deployment": {
+                        **_prose,
+                        "description": (
+                            "A 'deployment and coordination' page after the flow: who takes off first, the slots, "
+                            "the rendezvous, how the flights coordinate. Prose; omitted: no page."
+                        ),
+                    },
+                    "waypoint_notes": {
+                        "type": "object",
+                        "description": (
+                            "What is done at a waypoint, by its NAME on the route (PUSH, IP...): shown on its step "
+                            "sheet of the flight plan. A name the route lacks is warned."
+                        ),
+                        "additionalProperties": {"type": "string"},
+                    },
                     "diversions": {
                         **_lines,
                         "description": (

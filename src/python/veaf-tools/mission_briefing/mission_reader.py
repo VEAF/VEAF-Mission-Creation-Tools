@@ -59,6 +59,16 @@ def _readable(name: str, zone: str) -> str:
     return rest or bare
 
 
+def _kind(units: list[Any]) -> str:
+    """The units' DCS types, counted in the order they come: ``4 × 2S1, 3 × BM-21`` (one is just its type)."""
+    counts: dict[str, int] = {}
+    for unit in units:
+        kind = str(unit.get("type") or "")
+        if kind:
+            counts[kind] = counts.get(kind, 0) + 1
+    return ", ".join(kind if n == 1 else f"{n} × {kind}" for kind, n in counts.items())
+
+
 def objective_area(content: dict[str, Any], zone: str, enemy: str) -> ObjectiveArea:
     """An objective's combat zone and its enemy members, where they stand.
 
@@ -83,7 +93,8 @@ def objective_area(content: dict[str, Any], zone: str, enemy: str) -> ObjectiveA
         first = indexed(group["units"])[0]
         name = str(first.get("name", "")) if category == "static" else str(group.get("name", ""))
         if name.lower().startswith(prefix):
-            targets.append(Target(_readable(name, zone), float(first["x"]), float(first["y"])))
+            units = [first] if category == "static" else indexed(group["units"])
+            targets.append(Target(_readable(name, zone), float(first["x"]), float(first["y"]), _kind(units)))
     return ObjectiveArea(zone, float(found["x"]), float(found["y"]), float(found.get("radius", 0)), tuple(targets))
 
 

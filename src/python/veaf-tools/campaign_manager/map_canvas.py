@@ -367,10 +367,15 @@ class MapCanvas:
         self.reserve(box)
         credit = self.draw.textbbox((0, 0), self.base.credit, font=self.small)
         at = (width - credit[2] - self.px(10), height - credit[3] - self.px(8))
-        box = (at[0] - self.px(4), at[1] - self.px(2), at[0] + credit[2] + self.px(4), at[1] + credit[3] + self.px(2))
-        self.draw.rectangle(box, fill=(255, 255, 255, 220))
+        credit_box = (
+            at[0] - self.px(4),
+            at[1] - self.px(2),
+            at[0] + credit[2] + self.px(4),
+            at[1] + credit[3] + self.px(2),
+        )
+        self.draw.rectangle(credit_box, fill=(255, 255, 255, 220))
         self.draw.text(at, self.base.credit, font=self.small, fill=BLACK)
-        self.reserve(box)
+        self.reserve(credit_box)
 
     def north_arrow(self) -> None:
         """An arrow pointing north, with its N, in the corner the fewest symbols stand in."""

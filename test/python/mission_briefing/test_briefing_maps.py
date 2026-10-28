@@ -210,3 +210,31 @@ class TestTheRotation:
         assert Image.open(report.path).size[0] >= 800
         ax, ay = report.symbols["a"]
         assert 0 <= ax < Image.open(report.path).size[0] and 0 <= ay < Image.open(report.path).size[1]
+
+
+class TestTheInset:
+    def test_a_zoom_carries_the_overview_with_its_place(self, tmp_path: Path) -> None:
+        """FEAT-OBJECTIVE-BRIEFING-QUALITY 03: where the zone stands in the whole picture."""
+        from mission_briefing.briefing_maps import Inset
+
+        inputs = _inputs(tmp_path)
+        overview = render_overview_map(
+            **inputs, out=tmp_path / "o.png", cache_dir=tmp_path, fetch=_white, aspect=2.0, width=1200
+        )
+        objective, area = inputs["objectives"][0]
+        assert overview.locate is not None
+        inset = Inset(overview.path, overview.locate(area.x, area.y), 20)
+        report = render_objective_zoom(
+            inputs["picture"].theatre,
+            objective,
+            area,
+            inputs["threats"],
+            out=tmp_path / "zoom.png",
+            cache_dir=tmp_path,
+            fetch=_white,
+            width=1000,
+            inset=inset,
+        )
+        assert "inset" in report.symbols
+        for a, b in itertools.combinations(report.labels, 2):
+            assert not intersects(a, b), (a, b)

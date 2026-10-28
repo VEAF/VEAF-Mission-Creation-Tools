@@ -77,6 +77,10 @@ class BriefingContent:
     """Imposed loadout by flight group name."""
     diversions: tuple[str, ...] | None = None
     """The diversion fields the briefing names; ``None`` lists the side's other airfields."""
+    deployment: tuple[str, ...] = ()
+    """Who goes first, the slots, the rendezvous, how the flights coordinate: its own page, left out when empty."""
+    waypoint_notes: dict[str, str] = field(default_factory=dict)
+    """What is done at a waypoint, by its name: on the flight plan's step sheets."""
     flights: tuple[PackageFlight, ...] = ()
     """The package's flights on dynamic slots; ``pilots`` and ``loadouts`` name them by callsign."""
 
@@ -88,6 +92,8 @@ class Target:
     name: str
     x: float
     y: float
+    kind: str = ""
+    """What it is, its units' DCS types counted: ``4 × T-72B, 2 × BMP-2``."""
 
 
 @dataclass(frozen=True)

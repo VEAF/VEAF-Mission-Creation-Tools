@@ -567,6 +567,8 @@ The build tells you how many it added.
 | `mcp` | Start the LLM-assisted mission-editing MCP server (stdio). Declared in your AI assistant by `ai-setup`. |
 | `migrate-config` | Migrate a missionConfig.lua to v6 format (mission-script.lua). |
 | `resolve-checklist` | Fill in the technical fields of a guided checklist written in plain words. |
+| `mission-check` | Check the mission running in DCS: F10 labels, every combat zone and mission switched on and off, every column seen moving — see [the reference](../CLI_REFERENCE.en.md#mission-check). |
+| `recon-prepare`, `recon-plan`, `recon-shoot`, `recon-render` | Reconnaissance photos of the objectives taken in DCS, marked in felt pen, for the briefing — see [the sequence](../CLI_REFERENCE.en.md#recon-photos). |
 | `smoke-test` | Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook. |
 | `verify-checklist` | Check a resolved checklist against a real cockpit (needs DCS running here). |
 

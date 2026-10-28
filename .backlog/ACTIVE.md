@@ -10,6 +10,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 What "Marteau du Golan" did by hand, in the tools (2026-10-28): the objective prompt (prose validated first, a Mission Maker sheet, ways out, code words), a combat-area map, kneeboard maps turned attack axis up, recon photos, seven tool fixes, a poster, a calendar banner and a Discord post. Twelve tickets, one PR; the in-game half is another lot.
 
+### [FEAT-DCS-RECON-AND-MISSION-CHECK](FEAT-DCS-RECON-AND-MISSION-CHECK/PRD.md) · 🔄
+
+Two commands against a running DCS, through the `dcs-fiddle` hook, from the "Marteau du Golan" session (2026-10-28): `dcs recon-photos` (a shooting copy of the mission, the F11 camera on each objective's engagement axis, reconnaissance-look JPEGs with felt-pen marks) and `dcs mission-check` (F10 labels, every combat zone and mission toggled and counted, every routed group seen moving). One PR.
+
 ### [FIX-OPERATION-ZONE-DOUBLE-REGISTRATION](FIX-OPERATION-ZONE-DOUBLE-REGISTRATION/PRD.md) · 🔄
 
 An operation's `addTaskingOrder` registered again a zone the configuration had already added, so `veafCombatZone.zonesList` held it twice and a loop over the list spawned it twice ("Marteau du Golan", 2026-10-28): `AddZone` now registers a name once.

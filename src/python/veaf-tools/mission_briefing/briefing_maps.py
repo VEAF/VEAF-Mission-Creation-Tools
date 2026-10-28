@@ -30,6 +30,7 @@ from pathlib import Path
 from campaign_manager.map_canvas import (
     _AWACS_ORBIT,
     BLACK,
+    Box,
     Label,
     MapCanvas,
     TacticalMapReport,
@@ -428,8 +429,14 @@ def _draw_key(
     friend: tuple[int, int, int],
     enemy: tuple[int, int, int],
     ground: GroundPicture | None = None,
+    avoid: list[Box] | None = None,
 ) -> None:
-    """The map's key, one symbol and a few words a row, in the corner the fewest symbols stand in."""
+    """The map's key, one symbol and a few words a row, in the corner the fewest symbols and labels stand in.
+
+    Taller than 40 % of the map, it takes two columns: on "Marteau du Golan" a 15-row key took three quarters
+    of the overview's height and hid a departure base; on the combat map it covered SA11 and W8, the labels
+    still to set being nowhere in the corner's count (FIX-BRIEFING-PARITY-MARTEAU-2 01, 02).
+    """
     texts = [
         ground.lines[int(row.split()[1])].name
         if row.startswith("line ") and ground is not None
@@ -438,17 +445,20 @@ def _draw_key(
     ]
     font, px = canvas.small, canvas.px
     line = px(28)
-    widest = max(canvas.draw.textlength(text, font=font) for text in texts)
-    width, height = px(16) + px(30) + px(8) + widest, px(12) + line * len(rows)
-    left, top, right, bottom = canvas.free_corner((width, height))
+    columns = 2 if px(12) + line * len(rows) > 0.4 * canvas.background.size[1] else 1
+    per_column = math.ceil(len(rows) / columns)
+    cell = px(16) + px(30) + px(8) + max(canvas.draw.textlength(text, font=font) for text in texts)
+    width, height = cell * columns, px(12) + line * per_column
+    left, top, right, bottom = canvas.free_corner((width, height), avoid or [])
     canvas.draw.rectangle((left, top, right, bottom), fill=(255, 255, 255, 225), outline=(*BLACK[:3], 120))
     for index, (row, text) in enumerate(zip(rows, texts, strict=True)):
-        cy = top + px(6) + line * index + line / 2
-        _key_symbol(canvas, row, (left + px(8) + px(15), cy), friend, enemy, ground)
-        canvas.draw.text((left + px(8) + px(30) + px(8), cy), text, font=font, fill=BLACK, anchor="lm")
+        column, place = divmod(index, per_column)
+        x0 = left + column * cell
+        cy = top + px(6) + line * place + line / 2
+        _key_symbol(canvas, row, (x0 + px(8) + px(15), cy), friend, enemy, ground)
+        canvas.draw.text((x0 + px(8) + px(30) + px(8), cy), text, font=font, fill=BLACK, anchor="lm")
+        canvas.symbols[f"key {row}"] = (x0 + px(23), cy)
     canvas.symbols["key"] = ((left + right) / 2, (top + bottom) / 2)
-    for index, row in enumerate(rows):
-        canvas.symbols[f"key {row}"] = (left + px(23), top + px(6) + line * index + line / 2)
 
 
 def render_overview_map(
@@ -505,8 +515,12 @@ def render_overview_map(
     routes = []
     for plan in picture.flight_plans:
         route = [(wp.x, wp.y) for wp in plan.waypoints]
-        if departures and route:  # the route leaves from the departure nearest its first point
-            route.insert(0, min(((x, y) for _, x, y in departures), key=lambda xy: math.dist(xy, route[0])))
+        if departures and route:  # the route leaves from its own departure, or the one nearest its first point
+            named = [(x, y) for name, x, y in departures if name == plan.departure]
+            route.insert(
+                0,
+                named[0] if named else min(((x, y) for _, x, y in departures), key=lambda xy: math.dist(xy, route[0])),
+            )
         routes.append((plan, route))
     ground = replace(ground, lines=tuple(line for line in ground.lines if not retraces(line, [r for _, r in routes])))
     if combat_area:  # the QRA watch the theatre, not the fight: their arcs only cut the combat map up
@@ -561,7 +575,7 @@ def render_overview_map(
     canvas.scale(bar * NM, f"{bar} nm")
     shown = replace(ground, enemy_bases=()) if combat_area else replace(ground, friendlies=(), jtacs=(), axes=())
     rows = _key_rows(canvas, picture, objectives, threats, departures, shown, side)
-    _draw_key(canvas, rows, friend, enemy, ground)
+    _draw_key(canvas, rows, friend, enemy, ground, [canvas.turned_box(box) for box, _, _, _ in labels])
     if width is not None:
         canvas.north_arrow()
     for box, text, font, colour in labels:

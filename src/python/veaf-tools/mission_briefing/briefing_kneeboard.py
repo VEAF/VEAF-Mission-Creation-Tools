@@ -202,7 +202,8 @@ def route_steps(theatre: str, plan: FlightPlan, departures: list[tuple[str, floa
     """
     points: list[tuple[str, float, float, Waypoint | None]] = [(wp.name, wp.x, wp.y, wp) for wp in plan.waypoints]
     if departures and points:
-        name, x, y = min(departures, key=lambda d: math.dist(d[1:], points[0][1:3]))
+        named = [d for d in departures if d[0] == plan.departure]
+        name, x, y = named[0] if named else min(departures, key=lambda d: math.dist(d[1:], points[0][1:3]))
         points.insert(0, (name, x, y, None))
     grid = grid_for_theatre(theatre)
     legs = profile(grid, [(x, y) for _, x, y, _ in points]) if grid and len(points) > 1 else []

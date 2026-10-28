@@ -80,6 +80,8 @@ class FlightPlan:
     """``plane`` or ``helicopter``."""
     aircraft: tuple[str, ...]
     waypoints: tuple[Waypoint, ...]
+    departure: str = ""
+    """The airfield it leaves from, when known; the departure nearest its first point otherwise."""
 
 
 @dataclass(frozen=True)

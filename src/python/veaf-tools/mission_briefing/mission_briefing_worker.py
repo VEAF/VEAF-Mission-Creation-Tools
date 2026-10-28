@@ -957,8 +957,13 @@ def _with_slot_bases(
 
 def _named_plan(plan: FlightPlan, flights: tuple[PackageFlight, ...]) -> FlightPlan:
     """A dynamic-slot plan named by the ATO's flights that fly it, not by the 61 types that carry it."""
-    callsigns = [flight.callsign for flight in flights if any(flies(flight.aircraft, kind) for kind in plan.aircraft)]
-    return replace(plan, aircraft=tuple(callsigns)) if callsigns else plan
+    flying = [flight for flight in flights if any(flies(flight.aircraft, kind) for kind in plan.aircraft)]
+    if not flying:
+        return plan
+    # the base most of its flights leave from: the jets' route leaves Ramat David, not the nearer Rosh Pina
+    bases = [flight.base for flight in flying if flight.base]
+    departure = max(dict.fromkeys(bases), key=bases.count) if bases else plan.departure
+    return replace(plan, aircraft=tuple(flight.callsign for flight in flying), departure=departure)
 
 
 def _write_kneeboard_folder(folder: Path, pages: dict[str, bytes], replace_others: bool = False) -> list[str]:

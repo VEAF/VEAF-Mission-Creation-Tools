@@ -251,6 +251,10 @@ class MapCanvas:
         dx, dy = point[0] - cx, point[1] - cy
         return dx * cos + dy * sin + width / 2, -dx * sin + dy * cos + height / 2
 
+    def turned_box(self, box: Box) -> Box:
+        """Where a box of the background drawn north up stands on the framed, turned map."""
+        return self._turned_box(box) if self._turned else box
+
     def _turned_box(self, box: Box) -> Box:
         corners = [self.turned((x, y)) for x in (box[0], box[2]) for y in (box[1], box[3])]
         xs, ys = [c[0] for c in corners], [c[1] for c in corners]
@@ -297,11 +301,12 @@ class MapCanvas:
         self._reserved.append(box)
         self.placer.reserve(box)
 
-    def free_corner(self, size: tuple[float, float]) -> Box:
+    def free_corner(self, size: tuple[float, float], avoid: list[Box] | None = None) -> Box:
         """The corner box of that size the fewest symbols stand in: where a key or an inset goes.
 
         Args:
             size: Its width and height, pixels.
+            avoid: More boxes to count, on the saved map: the anchors of the labels still to set.
 
         Returns:
             The box, ``(left, top, right, bottom)``, kept clear of labels from now on.
@@ -317,7 +322,8 @@ class MapCanvas:
         ]
 
         def crowding(box: Box) -> int:
-            return sum(1 for r in self._reserved if r[0] < box[2] and box[0] < r[2] and r[1] < box[3] and box[1] < r[3])
+            boxes = [*self._reserved, *(avoid or [])]
+            return sum(1 for r in boxes if r[0] < box[2] and box[0] < r[2] and r[1] < box[3] and box[1] < r[3])
 
         # a corner handed out once is never handed out again: the north arrow landed on the key on a tie
         best = min((c for c in corners if c not in self._corners), key=crowding)

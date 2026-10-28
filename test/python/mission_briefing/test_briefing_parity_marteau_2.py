@@ -248,3 +248,37 @@ class TestAtoSupport:
             ("Texaco 1-1", "ravitailleur", "KC-135", "290.1 MHz", "60Y", "FL180"),
             ("Abu Nada", "JTAC", "Code 1511", "FM 35.55", "—", "—"),
         )
+
+
+class TestTheReviewFindings:
+    """pr-code-review of #1212."""
+
+    def test_a_tanker_leaving_its_parking_has_the_level_of_its_first_point_in_the_air(self) -> None:
+        from campaign_manager.mission_picture import _cruise_altitude
+
+        group = {
+            "route": {"points": {1: {"type": "TakeOffParking", "alt": 30}, 2: {"type": "Turning Point", "alt": 5486.4}}}
+        }
+        assert flight_level(_cruise_altitude(group)) == "FL180"
+        assert _cruise_altitude({"route": {"points": {1: {"type": "TakeOffParking", "alt": 30}}}}) == 0.0
+
+    def test_a_base_named_in_another_case_is_still_the_routes(self) -> None:
+        plan = FlightPlan("plane", ("Ninja",), (Waypoint("PUSH", 0.0, 0.0, 100, "BARO"),), departure="ramat david")
+        with language("fr"):
+            ((_, _, _, rows),) = flight_card_tables(
+                "Syria", [plan], [("Rosh Pina", 1.0, 1.0), ("Ramat David", 50_000.0, 0.0)]
+            )
+        assert rows[0][0] == "Ramat David"
+
+    def test_the_channel_a_heading_names_is_its_own_number(self, tmp_path: Path) -> None:
+        picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
+        plans = [
+            RadioPlan(1, ("F-16C_50",), ((1, "", 30.0), (3, "AWACS", 282.2))),
+            RadioPlan(1, ("F-16C_50",), ((1, "Package", 291.0),)),
+        ]
+        with language("fr"):
+            headings = [
+                block.heading
+                for block in _frequencies_page(picture, plans, (PackageFlight("Ninja", aircraft="F-16C"),)).blocks
+            ]
+        assert headings[0].endswith("Ch. 3 : AWACS") and headings[1].endswith("Ch. 1 : Package")

@@ -675,7 +675,8 @@ def _frequencies_page(picture: MissionPicture, plans: list[RadioPlan], flights: 
             lines.append(" · ".join(unnamed))
         heading = headings[index]
         if headings.count(heading) > 1:  # the same flights on the same radios: say what the plan holds
-            heading += " — " + t("mission_briefing.channel_first", name=next((n for _, n, _ in plan.channels if n), ""))
+            channel, name = next(((c, n) for c, n, _ in plan.channels if n), (1, ""))
+            heading += " — " + t("mission_briefing.channel_first", channel=channel, name=name)
         blocks.append(Block(heading, tuple(lines)))
     control = [carrier_line(carrier) for carrier in picture.carriers]
     if control:

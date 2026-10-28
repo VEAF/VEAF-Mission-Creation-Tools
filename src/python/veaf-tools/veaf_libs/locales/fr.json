@@ -1695,7 +1695,7 @@
   "mission_briefing.code_word_who": "    → {who}",
   "mission_briefing.prerequisite_mark": " (préalable)",
   "mission_briefing.heading.prerequisites": "Préalables",
-  "mission_briefing.channel_first": "Ch. 1 : {name}",
+  "mission_briefing.channel_first": "Ch. {channel} : {name}",
   "mission_briefing.ato.level": "Niveau",
   "mission_briefing.kneeboard.column.point": "Point",
   "mission_briefing.kneeboard.column.leg": "Cap / distance",

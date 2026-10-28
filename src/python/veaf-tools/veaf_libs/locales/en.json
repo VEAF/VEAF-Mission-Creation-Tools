@@ -1695,7 +1695,7 @@
   "mission_briefing.code_word_who": "    → {who}",
   "mission_briefing.prerequisite_mark": " (prerequisite)",
   "mission_briefing.heading.prerequisites": "Prerequisites",
-  "mission_briefing.channel_first": "Ch. 1: {name}",
+  "mission_briefing.channel_first": "Ch. {channel}: {name}",
   "mission_briefing.ato.level": "Level",
   "mission_briefing.kneeboard.column.point": "Point",
   "mission_briefing.kneeboard.column.leg": "Heading / distance",

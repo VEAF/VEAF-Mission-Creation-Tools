@@ -516,7 +516,7 @@ def render_overview_map(
     for plan in picture.flight_plans:
         route = [(wp.x, wp.y) for wp in plan.waypoints]
         if departures and route:  # the route leaves from its own departure, or the one nearest its first point
-            named = [(x, y) for name, x, y in departures if name == plan.departure]
+            named = [(x, y) for name, x, y in departures if name.lower() == plan.departure.lower()]
             route.insert(
                 0,
                 named[0] if named else min(((x, y) for _, x, y in departures), key=lambda xy: math.dist(xy, route[0])),

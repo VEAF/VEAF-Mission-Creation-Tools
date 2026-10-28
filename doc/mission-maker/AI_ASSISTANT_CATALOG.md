@@ -777,7 +777,10 @@ Aucun script : une IA sans accès à ton PC en ligne de commande (Claude Desktop
 Construis la mission d'abord, et relance-le après chaque changement : il remplace ses propres images.
 Le PPTX s'importe dans Google Slides. `docs/briefing.pdf` est écrit à côté : mêmes pages, mêmes cartes, mêmes mots, avec sa propre mise en page, sans PowerPoint ni autre programme sur ton PC. L'outil prévient aussi l'IA quand un numéro de waypoint de son texte ne correspond pas à la route, et quand son texte français n'a pas ses accents.
 Fond de carte OpenStreetMap, ou OpenTopoMap (relief) pour un désert ou une mission à basse altitude ; sans réseau, les cartes sont dessinées sur un fond uni.
-Les images vont dans chaque `.miz` construit, variantes météo comprises, et le **kneeboard** de chaque appareil reçoit les cartes dessinées pour sa page, une carte de vol (points, cap et distance de chaque branche, relief le plus haut, radios) et les cibles.
+Les images vont dans chaque `.miz` construit, variantes météo comprises, et le **kneeboard** de chaque appareil reçoit les cartes dessinées pour sa page, une carte de vol (points, cap et distance de chaque branche, relief le plus haut ; pas les fréquences, déjà dans les presets des cockpits) et les cibles.
+La carte de situation prend toute la largeur de la page, cadrée sur la route, les objectifs et les menaces, tournée quand elle y gagne (une flèche indique le nord), sa légende dessinée dedans ; chaque zoom porte un encart qui le situe sur elle.
+Les cibles et les étapes du plan de vol sont des fiches, six par page : nom, ce que c'est, coordonnées en DMS et en DDM, altitude, vignette de la carte — et pour une étape, le cap et la distance qui y mènent et ce qu'on y fait.
+L'IA peut ajouter une page de **situation stratégique** et une page de **déploiement et coordination**, en prose ; en slots dynamiques, l'ATO dit « slot dyn » et liste les vols du package sous leur base, pas les dizaines de types qu'elle offre.
 
 > 💬 *« Fais le briefing de la mission, fond topo. »*
 

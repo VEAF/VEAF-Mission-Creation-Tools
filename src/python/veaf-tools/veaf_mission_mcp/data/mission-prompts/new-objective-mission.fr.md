@@ -192,9 +192,10 @@ toute la largeur et devient illisible.
 
 1. **Couverture** — le titre de la mission en très gros à gauche ; à droite, le sommaire (Situation
    générale, ATO, Situation tactique, Plan de vol), liens vers les pages.
+   - **Situation stratégique** (facultative) — en prose, une page juste après la couverture : le contexte politique, pourquoi on est là, les enjeux.
 2. **Situation générale** — rubriques en gras, chacune suivie de son texte :
    - **Contexte** : le pourquoi, en deux ou trois phrases, et le principe de l'itinéraire ;
-   - **Mission** : trois à cinq puces à l'infinitif (s'infiltrer, détruire, s'exfiltrer…) ;
+   - **Mission** : trois à cinq puces à l'infinitif (s'infiltrer, détruire, s'exfiltrer…), ou un paragraphe de prose ;
    - **Bullseye** : où il est (un point que les pilotes peuvent nommer, ou un waypoint) ;
    - **Départ** : base ou porte-avions, type de départ (Case I, moteur froid…) ;
    - **Menace** : les familles de défenses (AAA, SA-8, SA-15…) ;
@@ -202,21 +203,21 @@ toute la largeur et devient illisible.
    - **Horaire** : l'heure de mission.
 3. **ATO** — sous le titre **PACKAGE**, un cadre par vol : indicatif (en bleu), nom de vol, type
    d'appareil ; la base en italique dessous ; quatre lignes numérotées 1 à 4 pour les pilotes ; une
-   colonne d'emport (« Armement libre » ou l'emport imposé). À droite, les **moyens de soutien**
+   colonne d'emport (« Armement libre » ou l'emport imposé). En slots dynamiques, chaque base dit « slot dyn » et liste les vols du package, jamais les types qu'elle offre. À droite, les **moyens de soutien**
    (indicatif en bordeaux, rôle, type : ravitailleurs, AWACS) et le **contrôle** (GCI / ATC).
 4. **Situation tactique** — la carte générale : départ, itinéraire, points nommés (START, INGRESS,
-   EGRESS), objectifs, menaces connues avec leur cercle.
+   EGRESS), objectifs, menaces connues avec leur cercle. Sur toute la largeur de la page, cadrée sur la zone utile, tournée si elle y gagne (une flèche indique le nord), sa légende dans la carte.
 5. **Situation tactique WPn** — une page par objectif, un zoom de plus en plus serré sur la cible : le
-   site, ses bâtiments, ses défenses proches.
+   site, ses bâtiments, ses défenses proches ; un encart situe le zoom dans la carte générale.
 6. **Déroulement mission** — **Objectifs principaux** (liste), **Opposition aérienne** (ce qu'on sait,
    ce qui peut décoller et quand), **Défenses antiaériennes** (et comment l'itinéraire les évite),
    **Autres informations** (mode d'attaque conseillé, ravitaillement au retour, terrain de
    dégagement).
 7. **Plan de vol** — un waypoint par ligne avec son rôle : `W1 : Hold`, `W2 : Insertion TBA`, …,
-   `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`.
+   `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`. Puis **étape par étape**, comme le kneeboard DCS : une fiche par point, le cap et la distance qui y mènent, le relief, ce qu'on y fait.
+   - **Déploiement et coordination** (facultative, juste après le déroulement) — en prose : qui part en premier, les créneaux, les rendez-vous, comment les vols se coordonnent.
 8. **Plan de fréquences** — UHF puis VHF : `<nom> Ch. <n> : <fréquence> MHz`, sans Garde (chaque appareil l'atteint par sa propre commande).
-9. **Coordonnées cibles** — le format annoncé en tête (« Lat Long secondes, précis »), puis une ligne
-   par cible : `<nom> : N34°33'37.31" E38°18'48.77" <altitude> ft`.
+9. **Coordonnées cibles** — une fiche par cible, regroupées par objectif : son nom, ce qu'elle est, ses coordonnées en DMS (`N34°33'37.31" E38°18'48.77"`) et en DDM, son altitude, une vignette du zoom.
 
 **La suite de ce prompt est la construction** : une fois un scénario approuvé par l'utilisateur, charge-la avec `describe_mission_prompt` (`kind: objective`, `part: build`) et suis-la à partir de la section 4.
 
@@ -465,8 +466,11 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
   `mission_bullets`, `objectives` (la combat zone, son titre, sa tâche), `threats` (le groupe où elle
   se tient, sa famille, ses portées sourcées), `air_opposition`, `air_defences`, `other`, les
   `pilots` / `loadouts` par nom de groupe, et les `diversions` (noms DCS des aérodromes) quand le scénario nomme les siens ; sans elles, le deck liste les autres aérodromes du camp, départ exclu.
+  En slots dynamiques, `flights` nomme les vols du package (indicatif, base, appareil, nombre, tâche) : l'ATO les liste sous leur base, et `pilots` / `loadouts` les désignent par leur indicatif.
+  Trois textes facultatifs : `strategic_situation` et `deployment` ont chacun leur page, omise s'ils sont vides ; `waypoint_notes` dit, par nom de waypoint, ce qu'on y fait, sur sa fiche du plan de vol.
+  Un texte passé en **une chaîne** est de la prose, ses paragraphes séparés par une ligne vide ; `mission_bullets` en chaîne perd ses tirets. Une liste reste une ligne par élément.
 - **Chaque `.miz` construit reçoit les images** : celui du build et chaque variante météo de `missions/` (`archives` dans le résultat).
-- **Le kneeboard** (`kneeboard`, actif par défaut) : la carte générale et les zooms dessinés pour la page 2:3, une carte de vol (chaque point, le cap et la distance de sa branche, le relief le plus haut dessus, les radios) et les cibles, dans le kneeboard de chaque appareil. Ses numéros de canal sont des slots DCS : sur l'AJS-37, ce ne sont pas ceux du cockpit (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
+- **Le kneeboard** (`kneeboard`, actif par défaut) : la carte générale et les zooms dessinés pour la page 2:3, une carte de vol (chaque point, le cap et la distance de sa branche, le relief le plus haut dessus ; pas de plan radio, les presets sont déjà dans les cockpits) et les cibles, dans le kneeboard de chaque appareil. Ses numéros de canal sont des slots DCS : sur l'AJS-37, ce ne sont pas ceux du cockpit (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
 - **Les chiffres viennent de la mission, pas du scénario**, et c'est l'action qui les lit dans le
   `.miz` construit : date, heure, météo, bullseye, flights, soutien, plan de vol, presets injectés dans
   les cockpits (le plan de fréquences), coordonnées de chaque cible posée et altitude du sol dessous —

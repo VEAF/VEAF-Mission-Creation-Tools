@@ -38,7 +38,7 @@ _SUBTITLE = RGBColor(0x1F, 0x5F, 0xBF)
 
 @dataclass(frozen=True)
 class Card:
-    """One card: a title, its lines, and the thumbnail beside them (PNG), if any."""
+    """One card: a title, its lines, and the thumbnail beside them (JPEG), if any."""
 
     title: str
     lines: tuple[str, ...]
@@ -101,7 +101,7 @@ def thumbnail(image: Path, centre: tuple[float, float], side: int = THUMBNAIL) -
         side: The square's side, pixels; smaller when the map is.
 
     Returns:
-        The square, PNG.
+        The square, JPEG: sixty of them in PNG took the deck to 11 MB.
     """
     with Image.open(image) as opened:
         picture = opened.convert("RGB")
@@ -115,7 +115,7 @@ def thumbnail(image: Path, centre: tuple[float, float], side: int = THUMBNAIL) -
         (cx - radius, cy - radius, cx + radius, cy + radius), outline=OWNER_COLOURS["red"], width=max(2, side // 90)
     )
     buffer = io.BytesIO()
-    square.save(buffer, format="PNG")
+    square.save(buffer, format="JPEG", quality=85)
     return buffer.getvalue()
 
 

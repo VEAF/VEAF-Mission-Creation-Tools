@@ -190,9 +190,10 @@ and becomes unreadable.
 
 1. **Cover** — the mission title, very large, on the left; on the right, the table of contents
    (General situation, ATO, Tactical situation, Flight plan), linked to the pages.
+   - **Strategic situation** (optional) — prose, a page right after the cover: the political context, why we are there, what is at stake.
 2. **General situation** — headings in bold, each followed by its text:
    - **Context**: the why, in two or three sentences, and the idea of the route;
-   - **Mission**: three to five bullets in the infinitive (infiltrate, destroy, exfiltrate…);
+   - **Mission**: three to five bullets in the infinitive (infiltrate, destroy, exfiltrate…), or a paragraph of prose;
    - **Bullseye**: where it is (a point the pilots can name, or a waypoint);
    - **Departure**: airbase or carrier, kind of start (Case I, cold start…);
    - **Threat**: the air-defence families (AAA, SA-8, SA-15…);
@@ -200,20 +201,20 @@ and becomes unreadable.
    - **Time**: the mission time.
 3. **ATO** — under the heading **PACKAGE**, one box per flight: callsign (in blue), flight name,
    aircraft type; the base in italics below; four lines numbered 1 to 4 for the pilots; a loadout
-   column ("Free loadout" or the imposed loadout). On the right, the **support assets** (callsign in
+   column ("Free loadout" or the imposed loadout). With dynamic slots, each base says "dynamic slot" and lists the package's flights, never the types it offers. On the right, the **support assets** (callsign in
    burgundy, role, type: tankers, AWACS) and **control** (GCI / ATC).
 4. **Tactical situation** — the overview map: departure, route, named points (START, INGRESS,
-   EGRESS), objectives, known threats with their circle.
+   EGRESS), objectives, known threats with their circle. The page's whole width, framed on the useful area, turned when that holds it tighter (an arrow shows north), its key inside the map.
 5. **Tactical situation WPn** — one page per objective, an ever tighter zoom on the target: the site,
-   its buildings, its close defences.
+   its buildings, its close defences; an inset places the zoom on the overview.
 6. **Mission flow** — **Primary objectives** (list), **Air opposition** (what is known, what may take
    off and when), **Air defences** (and how the route avoids them), **Other information** (suggested
    attack mode, refuelling on the way home, divert field).
 7. **Flight plan** — one waypoint per line with its role: `W1 : Hold`, `W2 : Insertion TBA`, …,
-   `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`.
+   `W6 : IP`, `W7 (Bullseye) : Target …`, `W8 : Egress Point`. Then **step by step**, as the DCS kneeboard shows it: one sheet per point, the heading and distance that reach it, the ground, what is done there.
+   - **Deployment and coordination** (optional, right after the flow) — prose: who goes first, the slots, the rendezvous, how the flights coordinate.
 8. **Frequency plan** — UHF then VHF: `<name> Ch. <n> : <frequency> MHz`, no Guard (every aircraft reaches it with its own control).
-9. **Target coordinates** — the format stated first ("Lat Long seconds, precise"), then one line per
-   target: `<name> : N34°33'37.31" E38°18'48.77" <altitude> ft`.
+9. **Target coordinates** — one sheet per target, grouped by objective: its name, what it is, its coordinates in DMS (`N34°33'37.31" E38°18'48.77"`) and DDM, its elevation, a thumbnail of the zoom.
 
 The briefing is written in the mission's language: the headings above are the template's, which
 `build_mission_briefing` writes in that language (*General situation*, *Mission flow*, *Flight plan*,
@@ -461,8 +462,11 @@ Brief status after each step: what is done, not what you are about to do.
   `objectives` (the combat zone, its title, its task), `threats` (the group where it stands, its
   family, its sourced ranges), `air_opposition`, `air_defences`, `other`, the `pilots` /
   `loadouts` by group name, and the `diversions` (DCS airfield names) when the scenario names its own; left out, the deck lists the side's other airfields, the departure excluded.
+  With dynamic slots, `flights` names the package's flights (callsign, base, aircraft, count, task): the ATO lists them under their base, and `pilots` / `loadouts` name them by callsign.
+  Three optional texts: `strategic_situation` and `deployment` get a page each, left out when empty; `waypoint_notes` says, by waypoint name, what is done there, on its flight plan sheet.
+  A text passed as **one string** is prose, its paragraphs separated by a blank line; `mission_bullets` as a string loses its dashes. A list stays one line per item.
 - **Every built `.miz` gets the pictures**: the build's own and each weather variant of `missions/` (`archives` in the result).
-- **The kneeboard** (`kneeboard`, on by default): the overview and the zooms drawn for the 2:3 page, a flight card (each point, the heading and distance of its leg, the highest ground on it, the radios) and the targets, in every aircraft's kneeboard. Its channel numbers are DCS slots: on the AJS-37 they are not the cockpit's (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
+- **The kneeboard** (`kneeboard`, on by default): the overview and the zooms drawn for the 2:3 page, a flight card (each point, the heading and distance of its leg, the highest ground on it; no radio plan, the presets are already in the cockpits) and the targets, in every aircraft's kneeboard. Its channel numbers are DCS slots: on the AJS-37 they are not the cockpit's (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).
 - **Figures come from the mission, not from the scenario**, and the action reads them in the built
   `.miz`: date, time, weather, bullseye, flights, support, flight plan, the presets injected into the
   cockpits (the frequency plan), each placed target's coordinates and the ground's altitude under it —

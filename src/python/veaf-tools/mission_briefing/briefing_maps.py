@@ -598,7 +598,8 @@ def render_objective_zoom(
         x, y = canvas.turned(canvas.at_xy(*position))
         frame_w, frame_h = canvas.frame_size
         if 0 <= x < frame_w and 0 <= y < frame_h:
-            labels.append(_threat(canvas, threat, position, enemy))
+            # a SAM's reach covers the whole zoom: a tint, or the zoom is pink (FIX-BRIEFING-PARITY-MARTEAU 02)
+            labels.append(_threat(canvas, threat, position, enemy, fill=_REACH_FILL))
     for target in area.targets:
         tx, ty = canvas.at_xy(target.x, target.y)
         size = canvas.px(5)

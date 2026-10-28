@@ -218,7 +218,8 @@ def _placed(
     roles = operation_zones(folder)
     placed = []
     for objective, area in areas:
-        secondary = roles is not None and area.zone.lower() not in roles[0]
+        # a chained zone (a counter-attack) is neither main nor secondary: it does not count in the operation's end
+        secondary = roles is not None and area.zone.lower() not in roles[0] | roles[1]
         placed.append((objective, replace(area, label=objective_waypoint(area, picture), secondary=secondary)))
     return placed
 

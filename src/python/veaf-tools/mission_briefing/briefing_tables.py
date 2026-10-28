@@ -21,8 +21,9 @@ from pptx.util import Emu, Pt
 #: The deck's text sizes in a table, points.
 _HEADER_SIZE, _CELL_SIZE = 12, 11
 
-#: The room a table page has for its rows, in lines of :data:`_CELL_SIZE` text.
-_PAGE_LINES = 26
+#: The room a table page has for its rows, in lines of :data:`_CELL_SIZE` text: the body's 419 points at
+#: some 13 points a line.
+_PAGE_LINES = 32
 
 #: How many characters of :data:`_CELL_SIZE` text a full-width line holds, on the deck's body.
 _LINE_CHARS = 160
@@ -82,11 +83,13 @@ def paginate_tables(page: TablePage) -> list[TablePage]:
     used = 0
     for table in page.tables:
         rows: list[tuple[str, ...]] = []
-        header = 2 + (2 if table.heading else 0)
+        header = 1 + (2 if table.heading else 0)
         for row in table.rows:
             lines = row_lines(table, row)
-            if rows and used + header + sum(row_lines(table, r) for r in rows) + lines > _PAGE_LINES:
-                pages[-1].tables.append(Table(table.heading, table.columns, table.widths, tuple(rows)))
+            if used + header + sum(row_lines(table, r) for r in rows) + lines > _PAGE_LINES and (rows or used):
+                # the rows so far stay on this page; a table whose first row does not fit starts the next one
+                if rows:
+                    pages[-1].tables.append(Table(table.heading, table.columns, table.widths, tuple(rows)))
                 pages.append(TablePage(page.title, []))
                 used, rows = 0, []
             rows.append(row)

@@ -1710,3 +1710,18 @@ limitations:
   workaround: |
     Read the `modules:` block `convert v5` writes and set `initialized_by_mission` by hand where its
     guess is wrong; the conversion report lists the modules it handed to the mission.
+
+- id: operation-registers-its-zones-twice
+  kind: tool
+  area: runtime
+  title: "A combat zone an operation lists is registered twice"
+  symptom: |
+    `VeafCombatOperation:addTaskingOrder` calls `veafCombatZone.AddZone` on a zone the configuration
+    already added (`veafCombatZone.lua`), so the zone is in `veafCombatZone.zonesList` twice (its second
+    `initialize()` does nothing: the zone guards it). Anything walking `zonesList` meets it twice:
+    measured on "Marteau du Golan" (2026-10-28), four zones listed twice, and a loop activating every
+    zone put them on the map twice.
+  workaround: |
+    Walk `zonesList` once per name (`getMissionEditorZoneName`), or look zones up through
+    `veafCombatZone.GetZone`, which reads the dictionary.
+  fixed_in: "6.34.0"

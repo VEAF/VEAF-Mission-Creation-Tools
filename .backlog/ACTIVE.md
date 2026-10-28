@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-OPERATION-ZONE-DOUBLE-REGISTRATION](FIX-OPERATION-ZONE-DOUBLE-REGISTRATION/PRD.md) · 🔄
+
+An operation's `addTaskingOrder` registered again a zone the configuration had already added, so `veafCombatZone.zonesList` held it twice and a loop over the list spawned it twice ("Marteau du Golan", 2026-10-28): `AddZone` now registers a name once.
+
 ### [FEAT-OBJECTIVE-BRIEFING-QUALITY](FEAT-OBJECTIVE-BRIEFING-QUALITY/PRD.md) · 🔄
 
 David's six points on the briefing `build_mission_briefing` wrote for "Marteau du Golan" (2026-10-28): the ATO of dynamic slots, a readable overview, an inset on the zooms and target sheets, strategic situation and prose, a step-by-step flight plan and a deployment page, kneeboard flight cards without the radio plan. Six tickets, one PR.

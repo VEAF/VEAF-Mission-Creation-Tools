@@ -231,8 +231,8 @@ def switch_lua(entity: Entity, on: bool) -> str:
 
     Switching a zone on also wraps that zone's ``spawnElement`` for the time of the check, so each
     group it spawns is recorded in ``veafMissionCheck.mobile`` with whether its element has a route
-    (``VeafCombatZoneElement:isMobile``). The wrapper sits on the zone **instance**, is removed when
-    the zone is switched off, and only records — a check that needs a rebuilt mission to know which
+    (``VeafCombatZoneElement:isMobile``). The wrapper sits on the zone **instance**, is removed once
+    the spawned groups are listed (:func:`zone_routed_lua`) or the zone is switched off, and only records — a check that needs a rebuilt mission to know which
     groups should drive would not run on the build the user already has.
 
     Args:
@@ -344,6 +344,8 @@ return table.concat(out, "\n")
 def zone_routed_lua(entity: Entity) -> str:
     """Return the chunk listing the groups *entity* spawned whose element has a route.
 
+    Also takes the recording wrapper off the zone: what it spawned is on the map by now.
+
     Args:
         entity: A zone switched on by :func:`switch_lua`.
 
@@ -356,6 +358,7 @@ def zone_routed_lua(entity: Entity) -> str:
 _ZONE_ROUTED_LUA = r"""
 local zone = veafCombatZone.GetZone(__NAME__)
 if not zone or not veafMissionCheck then return '' end
+zone.spawnElement = nil
 local out = {}
 for _, groupName in ipairs(zone:getSpawnedGroups() or {}) do
   local g = Group.getByName(groupName)
@@ -565,7 +568,7 @@ def check_entity(
     counts: dict[bool, int | None] = {}
     for on in order:
         counts[on] = switch(on)
-        if on and counts[on] and entity.kind == "zone":
+        if on and counts[on] is not None and entity.kind == "zone":
             routed = parse_names(run(zone_routed_lua(entity)))
             if routed:
                 _judge_moving(report, say, entity.name, watch_moving(run, routed, sleep))

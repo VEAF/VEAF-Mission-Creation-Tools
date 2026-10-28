@@ -68,6 +68,7 @@ class TestLua:
         on, off = switch_lua(ZONE, True), switch_lua(ZONE, False)
         assert "isMobile" in on and "veafMissionCheck.mobile" in on and "ActivateZone(" in on
         assert "zone.spawnElement = nil" in off and "DesactivateZone(" in off
+        assert "zone.spawnElement = nil" in zone_routed_lua(ZONE)
 
 
 class TestMenu:

@@ -169,6 +169,12 @@ class TestShots:
         assert zone_of("Poussee [b] column#1") == "Poussee"
         assert zone_of("Bunker 2") == "Bunker 2"
 
+    def test_a_spawned_group_with_nothing_after_its_marker_is_of_its_zone(self) -> None:
+        # "Sasa [r]" was its own zone, and the briefing dropped the photos of Sa'sa' (FIX-BRIEFING-PARITY-MARTEAU 01)
+        assert zone_of("Sasa [r]") == "Sasa"
+        assert zone_of("Kiswah [r]#12") == "Kiswah"
+        assert zone_of("Kiswah [b]") == "Kiswah"
+
     def test_a_starter_plan_has_one_shot_per_zone(self) -> None:
         plan = plan_from_units(UNITS, 1, "Marteau du Golan")
         assert plan["operation"] == "Marteau du Golan"

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import shutil
 import unicodedata
 from collections import Counter
@@ -387,11 +388,16 @@ def target_of(units: list[LiveUnit]) -> tuple[float, float, float]:
     return sum(u.x for u in units) / n, sum(u.z for u in units) / n, sum(u.alt for u in units) / n
 
 
+#: A spawned group's name: its zone, then its side's marker, then a name or an id or nothing (``Sasa [r]``).
+_SPAWNED = re.compile(r"(.+?) \[[rbn]\](?=[ #]|$)")
+
+
 def zone_of(group: str) -> str:
     """Return the combat zone a spawned group belongs to, from its name.
 
     A group a zone spawns is named ``<zone> [r] <base>#<id>`` when names are not hidden (the shooting
-    mission makes sure they are not); any other group is its own "zone".
+    mission makes sure they are not), or ``<zone> [r]`` with nothing after the marker; any other group is
+    its own "zone".
 
     Args:
         group: Group name.
@@ -399,10 +405,8 @@ def zone_of(group: str) -> str:
     Returns:
         The zone name, or the group name.
     """
-    for marker in (" [r] ", " [b] ", " [n] "):
-        if marker in group:
-            return group.split(marker, 1)[0]
-    return group
+    found = _SPAWNED.match(group)
+    return found.group(1) if found else group
 
 
 def plan_from_units(units: list[LiveUnit], side: int, operation: str) -> dict[str, Any]:

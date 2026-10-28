@@ -257,6 +257,20 @@ class TestShots:
             "order": 3,
         }
 
+    def test_a_shot_taken_with_a_bare_marker_zone_is_read_again(self) -> None:
+        # the raw shots of "Marteau du Golan" carry "Sasa [r]": re-rendering them gives the briefing "Sasa"
+        cam = camera_for(200, 300, 810, 90, 30, 1000)
+        meta = shot_metadata(
+            Shot("10-sasa", "Sasa", ["Sasa [r]"], 90),
+            cam,
+            UNITS[:2],
+            (200, 300, 810),
+            MissionInfo("Syria", "2011-04-16", 41460),
+            (2560, 1440),
+            None,
+        )
+        assert briefing_sidecar({**meta, "zone": "Sasa [r]"}, 1)["zone"] == "Sasa"
+
 
 class TestShootPlan:
     def test_each_shot_places_the_camera_twice_grabs_and_writes(self, tmp_path: Path) -> None:

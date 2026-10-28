@@ -529,7 +529,8 @@ def briefing_sidecar(meta: dict[str, Any], order: int) -> dict[str, Any]:
     """
     position = meta["camera"]["position"]
     return {
-        "zone": meta.get("zone") or meta["name"],
+        # a shot taken before FIX-BRIEFING-PARITY-MARTEAU 01 carries "Sasa [r]": read again, it is "Sasa"
+        "zone": zone_of(meta.get("zone") or meta["name"]),
         "title": meta["title"],
         "heading": round(meta["heading_deg"]) % 360,
         "pitch": -meta["pitch_deg"],

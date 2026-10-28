@@ -149,6 +149,11 @@ def test_render_makes_the_photos_and_the_index(
     }
     meta = json.loads((out / "02-sa6.json").read_text(encoding="utf-8"))
     assert meta["image"] == "02-sa6.jpg" and meta["target"]["dms"].startswith("N")
+    # the sidecar build_mission_briefing reads (FEAT-OBJECTIVE-MISSION-V2)
+    assert meta["zone"] == "SA6Sasa" and meta["title"] == "SA-6" and meta["order"] == 1
+    assert meta["heading"] == 47 and meta["pitch"] == -30
+    assert meta["x"] == meta["camera"]["position"][0] and meta["y"] == meta["camera"]["position"][2]
+    assert meta["altitude_m"] == round(meta["camera"]["position"][1])
 
 
 def test_render_without_raw_shots_fails(app: Any, tmp_path: Path) -> None:

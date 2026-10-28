@@ -27,6 +27,7 @@ from veaf_libs.dcs_recon import (
     ENV_EXPORT,
     ENV_SERVER,
     UNITS_LUA,
+    briefing_sidecar,
     derive_recon_mission,
     load_plan,
     parse_units,
@@ -112,7 +113,7 @@ def recon_plan(
 @app.command(name="recon-shoot", help=t("cmd.recon_shoot.help"))
 def recon_shoot(
     shots: Path = typer.Option(Path("shots.yaml"), "--shots", exists=True, help=t("cmd.recon.opt.shots")),
-    raw_dir: Path = typer.Option(Path("recon/raw"), "--raw-dir", help=t("cmd.recon.opt.raw_dir")),
+    raw_dir: Path = typer.Option(Path("docs/build/recon/raw"), "--raw-dir", help=t("cmd.recon.opt.raw_dir")),
     only: list[str] = typer.Option([], "--only", help=t("cmd.recon.opt.only")),
     url: str = typer.Option(DEFAULT_FIDDLE_URL, "--url", help=t(_URL_HELP)),
     fiddle_token: str | None = typer.Option(None, "--fiddle-token", envvar="DCS_FIDDLE_TOKEN", help=t(_TOKEN_HELP)),
@@ -151,8 +152,8 @@ def recon_shoot(
 @app.command(name="recon-render", help=t("cmd.recon_render.help"))
 def recon_render(
     shots: Path = typer.Option(Path("shots.yaml"), "--shots", exists=True, help=t("cmd.recon.opt.shots")),
-    raw_dir: Path = typer.Option(Path("recon/raw"), "--raw-dir", help=t("cmd.recon.opt.raw_dir")),
-    out_dir: Path = typer.Option(Path("recon"), "--out-dir", help=t("cmd.recon_render.opt.out_dir")),
+    raw_dir: Path = typer.Option(Path("docs/build/recon/raw"), "--raw-dir", help=t("cmd.recon.opt.raw_dir")),
+    out_dir: Path = typer.Option(Path("docs/recon"), "--out-dir", help=t("cmd.recon_render.opt.out_dir")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
     """Render the raw shots into reconnaissance photos, with an index for the briefing."""
@@ -186,6 +187,7 @@ def recon_render(
         if target.get("lat") is not None:
             target["dms"] = to_dms(target["lat"], target["lon"])
         meta["image"] = image.name
+        meta.update(briefing_sidecar(meta, number))
         (out_dir / f"{shot.name}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
         index.append({"name": shot.name, "title": shot.title, "image": image.name, "metadata": f"{shot.name}.json"})
     (out_dir / "recon.json").write_text(

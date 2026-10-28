@@ -26,6 +26,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   New optional `strategic_situation` and `deployment` texts make a page each; a text passed as one string is prose, its paragraphs split on blank lines.
   The kneeboard flight cards drop the radio plan: the presets are already in the cockpits. The PDF follows the deck; the deck and the PDF embed the maps as JPEG.
 
+### Added
+
+- **Reconnaissance photos and an in-game mission check, from a running DCS** (FEAT-DCS-RECON-AND-MISSION-CHECK, from the "Marteau du Golan" session).
+  `dcs recon-prepare` writes a shooting copy of a built mission (clear sky, chosen time, every combat zone active at start); `dcs recon-plan` lists the units on the map into a shots file; `dcs recon-shoot` puts the F11 camera on each objective's engagement axis and grabs the window; `dcs recon-render` makes reconnaissance prints — contrasted black and white, banner, heading rose, targets circled in red felt pen where their live positions project — with the sidecar `build_mission_briefing` reads, in `docs/recon/`.
+  `dcs mission-check` checks the mission running in DCS: every F10 label, every combat zone and combat mission (CAP variants included) switched on and off and counted then left as found, every ground group with a route seen moving within 60 s; one line per check, a verdict, exit code 1 on a failure.
+
 ## [6.33.0] — 2026-10-27
 
 ### Security

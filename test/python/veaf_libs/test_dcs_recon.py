@@ -19,6 +19,7 @@ from veaf_libs.dcs_recon import (
     MissionInfo,
     Shot,
     ShotPlan,
+    briefing_sidecar,
     camera_for,
     camera_lua,
     camera_of,
@@ -178,7 +179,7 @@ class TestShots:
         plan = load_plan(path)
         assert plan.operation == "Marteau du Golan"
         assert plan.shots == [
-            Shot("02-sa6", "Batterie SA-6", ["SA6Sasa"], 47.0, 30.0, 1000.0, "units", {"Kub 1S91": "RADAR"})
+            Shot("02-sa6", "Batterie SA-6", ["SA6Sasa"], 47.0, 30.0, 1000.0, "units", {"Kub 1S91": "RADAR"}, "SA6Sasa")
         ]
 
     @pytest.mark.parametrize(
@@ -212,6 +213,34 @@ class TestShots:
         assert meta["window"] == {"width": 2560, "height": 1440, "cropped_bottom": INFO_BAR_PX}
         assert meta["target"]["lat"] == 33.1 and meta["time"] == "11:31"
         assert len(meta["units"]) == 2
+        assert meta["zone"] == "SA6Sasa"
+
+    def test_the_zone_defaults_to_the_first_prefix_and_can_be_named(self) -> None:
+        assert Shot("a", "A", ["KhanArnabah [r] SA15"]).zone == "KhanArnabah"
+        assert Shot("a", "A", ["KhanArnabah [r] SA15"], zone="Khan").zone == "Khan"
+
+    def test_the_briefing_sidecar_follows_the_briefing_interface(self) -> None:
+        cam = camera_for(200, 300, 810, 359.6, 30, 1000)
+        meta = shot_metadata(
+            Shot("02-sa6", "SA-6", ["SA6Sasa"], 359.6),
+            cam,
+            UNITS[:2],
+            (200, 300, 810),
+            MissionInfo("Syria", "2011-04-16", 41460),
+            (2560, 1440),
+            None,
+        )
+        sidecar = briefing_sidecar(meta, 3)
+        assert sidecar == {
+            "zone": "SA6Sasa",
+            "title": "SA-6",
+            "heading": 0,
+            "pitch": -30,
+            "x": cam.position[0],
+            "y": cam.position[2],
+            "altitude_m": round(cam.position[1]),
+            "order": 3,
+        }
 
 
 class TestShootPlan:

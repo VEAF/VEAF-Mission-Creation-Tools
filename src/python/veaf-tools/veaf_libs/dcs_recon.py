@@ -277,6 +277,8 @@ class Shot:
         slant: Camera-to-target distance, metres.
         mark: ``groups`` for one ring per group, ``units`` for one per vehicle.
         labels: Label per type name (``units``) or per group prefix (``groups``); otherwise the type.
+        zone: The combat zone the shot illustrates, as the briefing's objectives name it; by default the
+            zone the first prefix belongs to.
     """
 
     name: str
@@ -287,6 +289,12 @@ class Shot:
     slant: float = 1000.0
     mark: str = "groups"
     labels: dict[str, str] = field(default_factory=dict)
+    zone: str = ""
+
+    def __post_init__(self) -> None:
+        """Default the zone to the one the first group prefix belongs to."""
+        if not self.zone and self.groups:
+            self.zone = zone_of(self.groups[0])
 
 
 @dataclass
@@ -338,6 +346,7 @@ def load_plan(path: Path) -> ShotPlan:
                 slant=float(entry.get("slant", 1000.0)),
                 mark=mark,
                 labels={str(k): str(v) for k, v in (entry.get("labels") or {}).items()},
+                zone=str(entry.get("zone") or ""),
             )
         )
     if not shots:
@@ -474,6 +483,7 @@ def shot_metadata(
         "slant_m": shot.slant,
         "mark": shot.mark,
         "labels": shot.labels,
+        "zone": shot.zone,
         "camera": {
             "position": list(camera.position),
             "forward": list(camera.forward),
@@ -493,6 +503,35 @@ def shot_metadata(
         "date": info.date,
         "time": info.clock,
         "units": [{"kind": u.kind, "group": u.group, "type": u.type, "x": u.x, "z": u.z, "alt": u.alt} for u in units],
+    }
+
+
+def briefing_sidecar(meta: dict[str, Any], order: int) -> dict[str, Any]:
+    """Return the keys ``build_mission_briefing`` reads beside a photo.
+
+    The interface is the briefing's (lot FEAT-OBJECTIVE-MISSION-V2): ``zone`` and ``title`` required,
+    then the camera's heading, its pitch **negative looking down**, its position in mission
+    coordinates (``x`` north, ``y`` east — the mission file's ``y``, the runtime's ``z``), its altitude
+    and the order among the shots. Unknown keys are ignored there, so the shot's own metadata stays in
+    the same file.
+
+    Args:
+        meta: The shot's metadata.
+        order: Its rank among the shots.
+
+    Returns:
+        The sidecar keys.
+    """
+    position = meta["camera"]["position"]
+    return {
+        "zone": meta.get("zone") or meta["name"],
+        "title": meta["title"],
+        "heading": round(meta["heading_deg"]) % 360,
+        "pitch": -meta["pitch_deg"],
+        "x": position[0],
+        "y": position[2],
+        "altitude_m": round(position[1]),
+        "order": order,
     }
 
 

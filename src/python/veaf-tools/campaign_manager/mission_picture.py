@@ -95,6 +95,8 @@ class Support:
     tacan: str | None
     route: tuple[tuple[float, float], ...]
     """The route's points, mission ``x``/``y``."""
+    altitude: float = 0.0
+    """Its first point's altitude, metres: a tanker's level, which the receivers fly to."""
 
 
 @dataclass(frozen=True)
@@ -477,6 +479,7 @@ def read_mission_picture(miz: Path, player_side: str, folder: Path | None = None
                     frequency=megahertz(group.get("frequency")) or 0.0,
                     tacan=_tacan(group),
                     route=_route(group),
+                    altitude=float(start.get("alt") or 0.0),
                 )
             )
         elif category == "helicopter" and start and carriers:

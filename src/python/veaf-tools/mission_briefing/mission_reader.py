@@ -299,7 +299,7 @@ def _drawn_lines(content: dict[str, Any], side: str) -> tuple[MapLine, ...]:
     return tuple(found)
 
 
-def ground_picture(content: dict[str, Any], side: str) -> GroundPicture:
+def ground_picture(content: dict[str, Any], side: str, theatre: str = "") -> GroundPicture:
     """The ground the maps show besides the objectives: friendly units, JTACs, axes, drawn lines.
 
     The hand-made combat map of "Marteau du Golan" showed the allied brigade, the JTAC, the allied push
@@ -308,6 +308,7 @@ def ground_picture(content: dict[str, Any], side: str) -> GroundPicture:
     Args:
         content: The built mission's ``mission`` table.
         side: The players' side.
+        theatre: The mission's theatre, to name the enemy's airfields; none named without it.
 
     Returns:
         What it found; each part empty when the mission has none.
@@ -329,7 +330,32 @@ def ground_picture(content: dict[str, Any], side: str) -> GroundPicture:
             route = indexed((group.get("route") or {}).get("points"))
             if category == "vehicle" and len(route) > 1:
                 axes.append((coalition, tuple((float(p["x"]), float(p["y"])) for p in route)))
-    return GroundPicture(tuple(friendlies), tuple(jtacs), tuple(axes), _drawn_lines(content, side))
+    return GroundPicture(
+        tuple(friendlies), tuple(jtacs), tuple(axes), _drawn_lines(content, side), _enemy_bases(content, side, theatre)
+    )
+
+
+def _enemy_bases(content: dict[str, Any], side: str, theatre: str) -> tuple[tuple[str, float, float], ...]:
+    """The airfields the enemy's planes and helicopters start from, each once, where the first one starts.
+
+    The QRA wait there, late-activated: "Marteau du Golan"'s overview showed Mezzeh and Khalkhalah
+    (FIX-BRIEFING-PARITY-MARTEAU-2 01).
+    """
+    if not theatre:
+        return ()
+    names = {airdrome_id: str(entry["name"]) for airdrome_id, entry in load_reference(theatre).items()}
+    found: dict[str, tuple[str, float, float]] = {}
+    for coalition in ("blue", "red"):
+        if coalition == side:
+            continue
+        for category, group in _groups(content, coalition):
+            if category not in ("plane", "helicopter"):
+                continue
+            start = (indexed((group.get("route") or {}).get("points")) or [{}])[0]
+            name = names.get(int(start["airdromeId"])) if start.get("airdromeId") is not None else None
+            if name and name not in found:
+                found[name] = (name, float(start["x"]), float(start["y"]))
+    return tuple(found.values())
 
 
 def group_position(content: dict[str, Any], name: str) -> tuple[float, float] | None:

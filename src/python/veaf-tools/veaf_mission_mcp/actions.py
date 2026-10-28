@@ -2177,6 +2177,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     **_lines,
                                     "description": "The flights it is for, by callsign: 'Pour : Ninja' on its page.",
                                 },
+                                "status": {
+                                    "type": "string",
+                                    "enum": ["main", "secondary", "prerequisite"],
+                                    "description": (
+                                        "Overrides what the operation in mission.yaml makes of it: 'prerequisite' "
+                                        "for what must fall before the others can go (a SAM the helicopters wait for)."
+                                    ),
+                                },
                             },
                             "required": ["zone", "title"],
                         },
@@ -2232,6 +2240,24 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "kneeboard": {
                         "type": "boolean",
                         "description": "Write the kneeboard pages too (default true).",
+                    },
+                    "support": {
+                        "type": "array",
+                        "description": (
+                            "Support the mission has no group for, as ATO rows beside the tankers and the AWACS "
+                            "(whose frequency, TACAN and flight level are read from the mission): a JTAC, the fat "
+                            "cow, a GCI."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "callsign": {"type": "string", "description": "Abu Nada"},
+                                "role": {"type": "string", "description": "JTAC, fat cow, GCI..."},
+                                "frequency": {"type": "string", "description": "FM 35.55"},
+                                "details": {"type": "string", "description": "Code 1511, Tel Abu Nada"},
+                            },
+                            "required": ["callsign", "role"],
+                        },
                     },
                     "kneeboard_replace": {
                         "type": "boolean",

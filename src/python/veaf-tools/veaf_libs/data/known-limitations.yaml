@@ -218,6 +218,7 @@ limitations:
   kind: tool
   area: mcp
   title: "The briefing's ATO gives no tanker flight level, no JTAC, no fat cow and no GCI or ATC"
+  fixed_in: "6.34.0"
   symptom: |
     `build_mission_briefing` reads the ATO's support from the built mission: each tanker and AWACS
     with its frequency and TACAN, but not its flight level; a JTAC, the CTLD fat cow and the control

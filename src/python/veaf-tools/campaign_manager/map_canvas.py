@@ -436,6 +436,11 @@ class MapCanvas:
         )
 
 
+def flight_level(metres: float) -> str:
+    """``FL185``: an altitude in metres as a flight level, to the nearest five levels (500 ft)."""
+    return f"FL{round(metres / 0.3048 / 500) * 5:03d}"
+
+
 def waypoint_numbers(picture: MissionPicture) -> dict[tuple[float, float], list[str]]:
     """Where the players' waypoints stand, and the numbers each one carries in the flight plan."""
     numbers: dict[tuple[float, float], list[str]] = {}
@@ -504,7 +509,9 @@ def draw_mission(
             canvas.draw.line((*start, *canvas.at_xy(*support.route[1])), fill=(*friend, 255), width=px(5))
         dot = px(5)
         canvas.draw.ellipse((start[0] - dot, start[1] - dot, start[0] + dot, start[1] + dot), fill=(*friend, 255))
-        labels.append((canvas.mark(support.callsign, start, px(6)), support.callsign, canvas.small, (*friend, 255)))
+        # a tanker's level beside its callsign: what a receiver climbs to (FIX-BRIEFING-PARITY-MARTEAU-2 01)
+        text = f"{support.callsign} {flight_level(support.altitude)}" if support.altitude > 0 else support.callsign
+        labels.append((canvas.mark(support.callsign, start, px(6)), text, canvas.small, (*friend, 255)))
     bx, by = canvas.at_xy(*picture.bullseye)
     for r in (px(8), px(16)):
         canvas.draw.ellipse((bx - r, by - r, bx + r, by + r), outline=BLACK, width=px(2))

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_briefing.mission_briefing_worker import build_mission_briefing
-from mission_briefing.models import BriefingContent, CodeWord, Objective, PackageFlight, Threat
+from mission_briefing.models import BriefingContent, CodeWord, Objective, PackageFlight, SupportAsset, Threat
 from veaf_libs.map_tiles import TILE_SOURCES
 
 from veaf_mission_mcp.accents import missing_accents_warnings
@@ -70,6 +70,23 @@ def _plan_notes(notes: dict[str, Any]) -> dict[str, dict[str, str]]:
     return found
 
 
+#: An objective's statuses, as the parameter takes them (FIX-BRIEFING-PARITY-MARTEAU-2 04).
+_STATUSES = ("main", "secondary", "prerequisite")
+
+
+def _status(value: Any) -> str:
+    """An objective's status, checked; empty when none is given.
+
+    Raises:
+        ValueError: A status that is not one of ``main``, ``secondary``, ``prerequisite``.
+    """
+    if not value:
+        return ""
+    if str(value) not in _STATUSES:
+        raise ValueError(f"objectives[].status: {value!r} is not one of {', '.join(_STATUSES)}")
+    return str(value)
+
+
 def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
     """Run the action from its parameters.
 
@@ -98,7 +115,13 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         },
         plan_notes=_plan_notes(params.get("waypoint_notes") or {}),
         objectives=tuple(
-            Objective(str(o["zone"]), str(o.get("title") or o["zone"]), _lines(o.get("task")), _lines(o.get("flights")))
+            Objective(
+                str(o["zone"]),
+                str(o.get("title") or o["zone"]),
+                _lines(o.get("task")),
+                _lines(o.get("flights")),
+                _status(o.get("status")),
+            )
             for o in params.get("objectives") or []
         ),
         threats=tuple(
@@ -127,6 +150,15 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
                 task=str(f.get("task") or ""),
             )
             for f in params.get("flights") or []
+        ),
+        support=tuple(
+            SupportAsset(
+                callsign=str(a["callsign"]),
+                role=str(a.get("role") or ""),
+                frequency=str(a.get("frequency") or ""),
+                details=str(a.get("details") or ""),
+            )
+            for a in params.get("support") or []
         ),
         code_words=tuple(
             CodeWord(word=str(c["word"]), meaning=str(c.get("meaning") or ""), who=str(c.get("who") or ""))
@@ -167,6 +199,7 @@ def _texts(content: BriefingContent) -> dict[str, str]:
         "strategic_situation": content.strategic_situation,
         "deployment": content.deployment,
         "code_words": tuple(f"{c.word} {c.meaning} {c.who}" for c in content.code_words),
+        "support": tuple(f"{a.role} {a.details}" for a in content.support),
         "waypoint_notes": (
             *content.waypoint_notes.values(),
             *(text for notes in content.plan_notes.values() for text in notes.values()),

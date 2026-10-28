@@ -145,6 +145,8 @@ class MapCanvas:
         self._turned = False
         self._reserved: list[Box] = []
         self._corners: list[Box] = []
+        self._foot = 0.0
+        """How high the scale and the tiles' credit stand at the map's foot: a bottom corner sits above them."""
         if width is None and not rotation:
             self.lat, self.base = self._fitted(points, margin, aspect, cache_dir, fetch, source)
         else:
@@ -314,11 +316,12 @@ class MapCanvas:
         width, height = self.background.size
         gap = self.px(12)
         w, h = size
+        foot = height - gap - self._foot  # a key at the bottom covered the tiles' credit (FIX-BRIEFING-PARITY-MARTEAU-2)
         corners = [
             (gap, gap, gap + w, gap + h),
             (width - gap - w, gap, width - gap, gap + h),
-            (gap, height - gap - h, gap + w, height - gap),
-            (width - gap - w, height - gap - h, width - gap, height - gap),
+            (gap, foot - h, gap + w, foot),
+            (width - gap - w, foot - h, width - gap, foot),
         ]
 
         def crowding(box: Box) -> int:
@@ -405,6 +408,7 @@ class MapCanvas:
         self.draw.rectangle(credit_box, fill=(255, 255, 255, 220))
         self.draw.text(at, self.base.credit, font=self.small, fill=BLACK)
         self.reserve(credit_box)
+        self._foot = height - min(box[1], credit_box[1])
 
     def north_arrow(self) -> None:
         """An arrow pointing north, with its N, in the corner the fewest symbols stand in."""

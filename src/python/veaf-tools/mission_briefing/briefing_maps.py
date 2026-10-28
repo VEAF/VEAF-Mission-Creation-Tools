@@ -340,7 +340,7 @@ def _key_rows(
     rows += ["threat"] if threats else []
     rows += ["engagement"] if any(not dashed for _, dashed in ranges) else []
     rows += ["detection"] if any(dashed for _, dashed in ranges) else []
-    rows += ["departure"] if departures else []
+    rows += ["departure"] if any(_in_frame(canvas, x, y) for _, x, y in departures) else []
     if ground is not None and any(_in_frame(canvas, x, y) for _, x, y in ground.enemy_bases):
         rows.append("enemy_base")
     rows += ["route"] if any(plan.category != "helicopter" for plan in picture.flight_plans) else []

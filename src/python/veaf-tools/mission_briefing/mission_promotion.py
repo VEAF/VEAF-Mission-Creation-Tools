@@ -146,17 +146,20 @@ def _pinned(image: Image.Image, width: int, angle: float, caption: str = "") -> 
 def _pin(
     canvas: Image.Image, image: Image.Image, at: tuple[int, int], width: int, angle: float, caption: str = ""
 ) -> None:
+    """Pin a print of ``image`` on the canvas at ``at``, with its shadow."""
     turned, shadow = _pinned(image, width, angle, caption)
     canvas.alpha_composite(shadow, (at[0] + 18, at[1] + 22))
     canvas.alpha_composite(turned, at)
 
 
 def _kicker(picture: MissionPicture, content: PromotionContent) -> str:
+    """``VEAF  //  SYRIA  //  JEUDI 29 OCTOBRE · 21 H``, the evening only when given."""
     parts = ["VEAF", picture.theatre.upper(), *([content.event.upper()] if content.event else [])]
     return "  //  ".join(parts)
 
 
 def _aircraft_line(picture: MissionPicture, content: PromotionContent) -> str:
+    """The types flown, as given, or the named flights' types; empty when neither says."""
     types = list(content.aircraft) or list(dict.fromkeys(flight.aircraft for flight in picture.flights))
     return " · ".join(types)
 
@@ -182,7 +185,15 @@ def _title_lines(title: str) -> list[str]:
 def render_poster(
     picture: MissionPicture, content: PromotionContent, out: Path, map_image: Path | None, photo: ReconPhoto | None
 ) -> None:
-    """The 16:9 poster: the background, the map and the photo pinned on the right, the words on the left."""
+    """Draw the 16:9 poster: the background, the map and the photo pinned on the right, the words on the left.
+
+    Args:
+        picture: What the built mission says.
+        content: The announcement's words.
+        out: Where the JPEG is written.
+        map_image: The briefing's combat-area (or overview) map; ``None`` draws none.
+        photo: The recon photo to pin and grade as the background; ``None`` takes the map instead.
+    """
     width, height = POSTER_SIZE
     source = Image.open(photo.image) if photo else (Image.open(map_image) if map_image else None)
     canvas = _background(source, POSTER_SIZE, 0.72).convert("RGBA")
@@ -214,7 +225,15 @@ def render_poster(
 def render_banner(
     picture: MissionPicture, content: PromotionContent, out: Path, map_image: Path | None, photo: ReconPhoto | None
 ) -> None:
-    """The calendar banner at 5.55:1: the kicker, the title on one line, the tagline, the pictures on the right."""
+    """Draw the calendar banner at 5.55:1: the kicker, the title on one line, the tagline, the pictures on the right.
+
+    Args:
+        picture: What the built mission says.
+        content: The announcement's words.
+        out: Where the JPEG is written.
+        map_image: The briefing's combat-area (or overview) map; ``None`` draws none.
+        photo: The recon photo to pin and grade as the background; ``None`` takes the map instead.
+    """
     width, height = BANNER_SIZE
     source = Image.open(photo.image) if photo else (Image.open(map_image) if map_image else None)
     canvas = _background(source, BANNER_SIZE, 0.66).convert("RGBA")
@@ -235,6 +254,7 @@ def render_banner(
 
 
 def _part_of_day(seconds: int) -> str:
+    """The time of day as the post says it, from seconds since midnight."""
     hour = seconds // 3600
     key = "night" if hour < 6 or hour >= 21 else "morning" if hour < 12 else "afternoon" if hour < 18 else "evening"
     return t(f"promotion.part_of_day.{key}")
@@ -262,7 +282,15 @@ def _mission_lines(picture: MissionPicture) -> list[str]:
 
 
 def discord_post(picture: MissionPicture, content: PromotionContent) -> str:
-    """The Discord post, in Markdown: title and evening, pitch, programme, practical lines, links, closing."""
+    """Write the Discord post, in Markdown: title and evening, pitch, programme, practical lines, links, closing.
+
+    Args:
+        picture: What the built mission says: its practical lines.
+        content: The announcement's words.
+
+    Returns:
+        The post, ending with a newline.
+    """
     heading = f"# {content.title}" + (f" — {content.event}" if content.event else "")
     parts = [heading, "\n".join(content.pitch)] if content.pitch else [heading]
     if content.program:

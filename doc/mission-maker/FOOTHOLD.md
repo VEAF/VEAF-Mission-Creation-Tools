@@ -264,7 +264,7 @@ variante : config amont intacte → petit `veaf-config-override.lua` réassignan
 `Era` (chargé entre la config et le setup) → triggers natifs supprimés →
 `custom_scripts` chargés dans l'ordre déclaré → spawns/data VEAF injectés.
 
-> Pour `--profile <X>` seul (une variante précise, sans suffixe) ou les options de
+> Pour `--profile <X>` seul (une variante précise, suffixée de son nom) ou les options de
 > build, voir la [référence mission.yaml](../MISSION_YAML_REFERENCE.md).
 
 ## 5. Tester dans DCS

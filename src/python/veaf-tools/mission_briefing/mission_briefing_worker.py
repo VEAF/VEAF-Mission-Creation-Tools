@@ -976,6 +976,8 @@ def _build(
         if areas or threats
         else None
     )
+    if combat is None:  # the promotion takes the combat-area map first: an earlier run's would be stale
+        (maps_folder / COMBAT_AREA_FILE).unlink(missing_ok=True)
     recon, recon_warnings = load_recon(recon_folder, [area.zone for _, area in areas])
     warnings += recon_warnings
 

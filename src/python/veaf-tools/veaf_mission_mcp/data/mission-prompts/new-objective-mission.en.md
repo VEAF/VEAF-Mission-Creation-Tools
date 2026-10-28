@@ -157,10 +157,8 @@ End with one line: "Another scenario, details, the pre-briefing, or do we approv
 
 ### 2.4 The pre-briefing, on request
 
-When the user asks for it, you write **in the conversation** (no file) the scenario's briefing,
-following the VEAF template in section 3. Same headings, same order, in Markdown: headings, tables for
-the ATO and the frequency plan, bullet lists. **No picture**: the "Tactical situation" heading becomes
-a description of the geography, one element per line, with its bearing and range from the bullseye.
+On request, you write **in the conversation** (no file) the scenario's briefing, section 3's headings and order, in Markdown.
+**No picture**: the "Tactical situation" describes the geography, one element per line, bearing and range from the bullseye.
 
 Target **coordinates** and **frequencies** in it are **provisional** (computed from `geocode`) and
 marked as such: the real ones come from the built mission (section 6).
@@ -171,19 +169,13 @@ Phase 2 starts only on an **explicit approval** of an identified scenario: "I ap
 2b". A question, a "not bad" or a requested pre-briefing are not approval. When approving, ask only
 what is still missing:
 
-- the **briefing format**: in practice, VEAF shares it as **Google Slides in a Google Drive**. The
-  `build_mission_briefing` generates a PPTX, which Drive converts to Slides on import; if a Google Drive connector is
-  available, offer to upload it there, converted, into the folder the user names (that is publishing:
-  ask for their agreement). A PDF on top if a frozen file is to be handed out;
+- the **briefing format**: VEAF shares it as **Google Slides**; the `build_mission_briefing` PPTX converts on import (with a Drive connector, offer to upload it: that is publishing, ask for their agreement), and a PDF is written beside it;
 - the **pilots' names** for the ATO, if they have them (otherwise the cells stay empty, as in the
   template).
 
 ## 3. The VEAF briefing template
 
-This is the format of VEAF mission briefings (reference: *Deep Strike Palmyra*). One page per
-heading, 16:9, white background, **bold title top left**, text aligned left — **never justified**: in
-the template, a justified line spreads "Départ : USS Truman, Case 1, Beyrouth" across the whole width
-and becomes unreadable.
+The format of VEAF briefings (reference: *Deep Strike Palmyra*): one page per heading, 16:9, white background, bold title top left, text aligned left, **never justified**.
 
 1. **Cover** — the mission title, very large, on the left; on the right, the table of contents
    (General situation, ATO, Tactical situation, Flight plan), linked to the pages.

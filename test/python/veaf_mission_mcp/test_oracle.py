@@ -476,6 +476,15 @@ def test_describe_module_reports_a_community_script_enabled(tmp_path: Path) -> N
     assert describe_module("ctld", mission_yaml_path=path)["enabled"] is True
 
 
+def test_describe_module_reads_a_lower_case_key_and_a_community_default(tmp_path: Path) -> None:
+    """pr-code-review of #1208: Foothold's scaffold writes `ctld: false`; an unlisted script runs by its default."""
+    path = tmp_path / "mission.yaml"
+    path.write_text("modules:\n  ctld: false\n", encoding="utf-8")
+    assert describe_module("CTLD", mission_yaml_path=path)["enabled"] is False
+    assert describe_module("CSAR", mission_yaml_path=path)["enabled"] is True
+    assert describe_module("TUM", mission_yaml_path=path)["enabled"] is False
+
+
 def test_describe_module_says_a_veaf_module_is_one() -> None:
     assert describe_module("QRA")["kind"] == "veaf"
 

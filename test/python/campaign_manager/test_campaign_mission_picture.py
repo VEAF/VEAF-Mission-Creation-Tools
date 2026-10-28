@@ -117,7 +117,10 @@ def test_the_most_recent_build_is_found(tmp_path: Path) -> None:
 
 def test_a_profile_build_is_not_the_mission(tmp_path: Path) -> None:
     """FEAT-OBJECTIVE-MISSION-V2 09: a LOCAL_TEST build made last would have taken the briefing."""
-    (tmp_path / "mission.yaml").write_text("profiles:\n  LOCAL_TEST:\n    global_log_level: debug\n", "utf-8")
+    (tmp_path / "mission.yaml").write_text(
+        "profiles:\n  LOCAL_TEST:\n    security:\n      disabled: true\n  SERVER:\n    global_log_level: info\n",
+        "utf-8",
+    )
     server = tmp_path / "Golan_20261028.miz"
     server.write_bytes(b"x")
     os.utime(server, (1, 1))
@@ -126,6 +129,10 @@ def test_a_profile_build_is_not_the_mission(tmp_path: Path) -> None:
     assert find_built_mission(tmp_path) == server
     server.unlink()
     assert find_built_mission(tmp_path) == test  # the only build there is
+    os.utime(test, (1, 1))
+    profiled = tmp_path / "Golan_20261029_SERVER.miz"  # a server profile's build is the mission
+    profiled.write_bytes(b"x")
+    assert find_built_mission(tmp_path) == profiled
 
 
 def test_frequencies_and_callsigns() -> None:

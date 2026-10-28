@@ -123,7 +123,7 @@ def photo_page(title: str, photos: list[tuple[Path, str]]) -> bytes:
     for index, (image, text) in enumerate(photos):
         lines = _wrap(text, font, usable)
         y = top + index * room
-        height = room - len(lines) * int(_TEXT_SIZE * 1.35) - 40
+        height = max(room // 2, room - len(lines) * int(_TEXT_SIZE * 1.35) - 40)
         with Image.open(image) as opened:
             scale = min(usable / opened.width, height / opened.height)
             fitted = opened.convert("RGB").resize((round(opened.width * scale), round(opened.height * scale)))

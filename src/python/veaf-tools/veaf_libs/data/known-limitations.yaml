@@ -1711,6 +1711,20 @@ limitations:
     Read the `modules:` block `convert v5` writes and set `initialized_by_mission` by hand where its
     guess is wrong; the conversion report lists the modules it handed to the mission.
 
+- id: operation-zone-has-no-deactivate-of-its-own
+  kind: tool
+  area: runtime
+  title: "A zone of an operation has no Deactivate command of its own"
+  symptom: |
+    The F10 menu of a combat operation offers to deactivate the operation, never one of the zones its
+    `tasking_orders` list: the Mission Maker switches off the whole operation or nothing. On "Marteau du
+    Golan" (2026-10-28) the SA-6 and SA-11 had to come out of the operation so that, with nobody flying
+    SEAD, they could be switched off alone.
+  workaround: |
+    Keep outside the operation (its own `combat_zones` entry, `active_at_start: true`) any zone the
+    Mission Maker may want to switch off alone: a SAM battery, a secondary objective. It keeps its
+    Deactivate command, and the operation ends without it.
+
 - id: on-road-route-with-no-path-stands-still
   kind: dcs
   area: ground-ai

@@ -765,15 +765,14 @@ pipeline:
     kneeboards: false   # défaut true — si false, aucune planchette PNG (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png) n'est générée
 ```
 
-L'étape `dynamic_slot_templates` n'injecte que les modèles des coalitions qui ont au moins une base à slots dynamiques (une base dont l'entrepôt dit `dynamicSpawn`, ou une coalition que `warehouses.yaml` déclare) : les autres ne serviraient à personne.
-Quand l'entrepôt source ne se lit pas, rien n'est écarté. Une coalition qui prend une base en jeu (capture) a besoin des siens dès le départ :
+Le catalogue livré de l'étape `dynamic_slot_templates` n'injecte que les templates des coalitions qui ont au moins une base à slots dynamiques (une base dont l'entrepôt dit `dynamicSpawn`, ou une coalition que `warehouses.yaml` déclare) : les autres ne serviraient à personne.
+Ton propre fichier est injecté tel quel ; quand l'entrepôt source ne se lit pas, rien n'est écarté. Une coalition qui prend une base en jeu (capture) a besoin des siens dès le départ :
 
 ```yaml
 pipeline:
   dynamic_slot_templates:
-    all_sides: true     # défaut false — garde les modèles des deux coalitions
+    all_sides: true     # défaut false — garde les templates des deux coalitions
 ```
-
 
 L'étape `waypoints` accepte le même genre de mapping, pour l'injection automatique du bullseye de la
 mission (voir [Le bullseye, injecté tout seul](mission-maker/GUIDE.md#automatic-bullseye)) :
@@ -876,7 +875,7 @@ Liste de profils de build à **émettre ensemble** : un seul `veaf-tools mission
 
 **Règles**
 - Sans `build_variants:` (ou liste vide) → un seul `.miz`, comportement inchangé.
-- `--profile <nom>` est l'**échappatoire** : il force la construction d'une seule variante (ce profil), sans suffixe — `build_variants:` est ignoré.
+- `--profile <nom>` est l'**échappatoire** : il force la construction d'une seule variante (ce profil), suffixée de son nom comme une variante — `build_variants:` est ignoré.
 - Les variantes sont construites dans l'ordre déclaré ; chaque nom doit correspondre à un profil de `profiles:` (sinon avertissement + config de base, comme `--profile`).
 
 ```yaml
@@ -895,7 +894,7 @@ build_variants:
 
 ```powershell
 .\veaf-tools.exe mission build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
-.\veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (sans suffixe)
+.\veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (<base>_MODERN.miz)
 ```
 
 ---

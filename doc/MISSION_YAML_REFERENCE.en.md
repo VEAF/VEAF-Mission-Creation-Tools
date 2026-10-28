@@ -757,8 +757,8 @@ pipeline:
     kneeboards: false   # default true — when false, no kneeboard PNG (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png) is generated
 ```
 
-The `dynamic_slot_templates` step injects only the templates of the sides holding at least one base that offers dynamic slots (a base whose warehouse says `dynamicSpawn`, or a side `warehouses.yaml` declares): the others would serve nobody.
-When the source warehouses cannot be read, nothing is left out. A side that captures a base in game needs its templates from the start:
+The `dynamic_slot_templates` step's shipped catalogue injects only the templates of the sides holding at least one base that offers dynamic slots (a base whose warehouse says `dynamicSpawn`, or a side `warehouses.yaml` declares): the others would serve nobody.
+Your own file is injected as written; when the source warehouses cannot be read, nothing is left out. A side that captures a base in game needs its templates from the start:
 
 ```yaml
 pipeline:
@@ -867,7 +867,7 @@ A list of build profiles to **emit together**: a single `veaf-tools mission buil
 
 **Rules**
 - Without `build_variants:` (or an empty list) → a single `.miz`, behaviour unchanged.
-- `--profile <name>` is the **escape hatch**: it forces building a single variant (that profile), unsuffixed — `build_variants:` is ignored.
+- `--profile <name>` is the **escape hatch**: it forces building a single variant (that profile), suffixed with its name like a variant — `build_variants:` is ignored.
 - Variants build in declaration order; each name must match a `profiles:` profile (otherwise a warning + base config, like `--profile`).
 
 ```yaml
@@ -886,7 +886,7 @@ build_variants:
 
 ```powershell
 .\veaf-tools.exe mission build          # produces <base>_MODERN.miz AND <base>_COLD_WAR.miz
-.\veaf-tools.exe mission build --profile MODERN   # produces only the MODERN variant (unsuffixed)
+.\veaf-tools.exe mission build --profile MODERN   # produces only the MODERN variant (<base>_MODERN.miz)
 ```
 
 ---

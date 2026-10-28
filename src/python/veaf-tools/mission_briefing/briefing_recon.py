@@ -33,6 +33,7 @@ _INDEX = "recon.json"
 
 
 def _number(raw: dict[str, Any], key: str) -> float | None:
+    """A sidecar's number, ``None`` when absent or not a number."""
     value = raw.get(key)
     return float(value) if isinstance(value, int | float) and not isinstance(value, bool) else None
 
@@ -93,7 +94,15 @@ def load_recon(folder: Path, zones: list[str]) -> tuple[dict[str, list[ReconPhot
 
 
 def caption(theatre: str, photo: ReconPhoto) -> str:
-    """``Batterie SA-6 — cap 095°, piqué -12°, depuis N33°… E036°…, 2 789 ft``, with what the sidecar gives."""
+    """A photo's caption: ``Batterie SA-6 — cap 095°, piqué -12°, depuis N33°… E036°…, 2 789 ft``.
+
+    Args:
+        theatre: The mission's theatre, to print the camera's position.
+        photo: The photo and what its sidecar gives.
+
+    Returns:
+        The title, then what the sidecar gives; the title alone when it gives nothing else.
+    """
     parts = []
     if photo.heading is not None:
         parts.append(t("mission_briefing.recon.heading", heading=f"{round(photo.heading) % 360:03d}"))

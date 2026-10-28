@@ -192,8 +192,10 @@ def find_built_mission(folder: Path) -> Path | None:
     """The most recently built `.miz` of a mission folder, at its root or in `build/`.
 
     A build with ``--profile`` suffixes its archive with the profile's name (FEAT-OBJECTIVE-MISSION-V2
-    09): a `LOCAL_TEST` build made after the server one is not the mission, and is passed over while
-    an archive without such a suffix exists.
+    09). A test build — its profile turns security off, as `LOCAL_TEST` does — made after the server one
+    is not the mission, and is passed over while another archive exists; any other profile's build is
+    the mission like a plain one, the most recent winning (pr-code-review of #1208: passing over every
+    profile picked an eight-day-old plain build over today's `SERVER` one).
 
     Args:
         folder: The mission folder.
@@ -204,9 +206,13 @@ def find_built_mission(folder: Path) -> Path | None:
     found = [*folder.glob("*.miz"), *(folder / "build").glob("*.miz")]
     yaml_path = folder / "mission.yaml"
     profiles = (load_yaml(yaml_path).get("profiles") if yaml_path.is_file() else None) or {}
-    suffixes = tuple(f"_{name}".lower() for name in profiles) if isinstance(profiles, dict) else ()
-    plain = [path for path in found if not path.stem.lower().endswith(suffixes)] if suffixes else found
-    return max(plain or found, key=lambda path: path.stat().st_mtime) if found else None
+    tests = tuple(
+        f"_{name}".lower()
+        for name, cfg in (profiles.items() if isinstance(profiles, dict) else [])
+        if isinstance(cfg, dict) and isinstance(cfg.get("security"), dict) and cfg["security"].get("disabled") is True
+    )
+    kept = [path for path in found if not path.stem.lower().endswith(tests)] if tests else found
+    return max(kept or found, key=lambda path: path.stat().st_mtime) if found else None
 
 
 def megahertz(value: Any) -> float | None:

@@ -452,11 +452,14 @@ def build(
                         return
                     if removed:
                         logger.detail(t("pipeline.console.aircraft_era_filtered", era=era, removed=removed))
-                if step_key == "dynamic_slot_templates" and not pipeline_step_subflag(
-                    worker.pipeline_cfg, step_key, "all_sides", False
+                if (
+                    is_shipped
+                    and step_key == "dynamic_slot_templates"
+                    and not pipeline_step_subflag(worker.pipeline_cfg, step_key, "all_sides", False)
                 ):
-                    # a side with no base offering slots has no use for templates (FEAT-OBJECTIVE-MISSION-V2 11);
-                    # `all_sides: true` keeps them, for a side that captures one in game
+                    # a side with no base offering slots has no use for the shipped templates (FEAT-OBJECTIVE-MISSION-V2
+                    # 11); `all_sides: true` keeps them, for a side that captures one in game. A maker's own file is
+                    # theirs, as written, like the era filter above.
                     sides = dynamic_slot_sides(p_mission_folder, worker.pipeline_cfg)
                     filtered, removed = side_filtered_catalogue(path, sides, Path(era_dir) / "sides")
                     if removed:

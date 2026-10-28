@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from mission_tools.mission_constants import get_community_script_files
+from mission_tools.mission_constants import get_community_script_files, is_community_script_enabled_by_default
 from mission_tools.mission_yaml_editor import load_yaml
 from veaf_libs import shortcut_eras
 from veaf_libs.build_stamp import _package_version
@@ -467,7 +467,8 @@ def _module_enabled(mission_yaml_path: Path, module_id: str) -> bool | None:
     modules: Any = data.get("modules") if hasattr(data, "get") else None
     if not hasattr(modules, "get"):
         return None
-    value = modules.get(module_id)
+    # `ctld: false` (Foothold's scaffold) names the module CTLD as well
+    value: Any = next((v for k, v in modules.items() if str(k).upper() == module_id.upper()), None)
     if isinstance(value, bool):
         return value
     if hasattr(value, "get"):
@@ -524,4 +525,7 @@ def describe_module(module_id: str, mission_yaml_path: Path | None = None) -> di
         }
     if mission_yaml_path is not None:
         result["enabled"] = _module_enabled(mission_yaml_path, result["id"])
+        if result["enabled"] is None and result["kind"] == "community":
+            # a community script nobody lists runs or not by its own default (opt-out, or opt-in like TUM)
+            result["enabled"] = is_community_script_enabled_by_default(result["id"].lower())
     return result

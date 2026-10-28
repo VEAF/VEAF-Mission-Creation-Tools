@@ -2105,6 +2105,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ),
     )
     _lines = {"type": "array", "items": {"type": "string"}}
+    # a list is one item a line; one string is prose, its paragraphs separated by blank lines
+    _prose = {"type": ["string", "array"], "items": {"type": "string"}}
     catalog.register(
         ActionSpec(
             name="build_mission_briefing",
@@ -2132,10 +2134,20 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "properties": {
                     "mission_path": {"type": "string", "description": "The mission FOLDER, built."},
                     "title": {"type": "string", "description": "The mission's title, on the cover."},
-                    "context": {**_lines, "description": "The why, two or three sentences."},
+                    "strategic_situation": {
+                        **_prose,
+                        "description": (
+                            "Its own page after the cover, prose: the political context, why we are there, what is at "
+                            "stake. One string, paragraphs separated by a blank line. Omitted: no page."
+                        ),
+                    },
+                    "context": {**_prose, "description": "The why, two or three sentences."},
                     "mission_bullets": {
-                        **_lines,
-                        "description": "The Mission heading: three to five bullets in the infinitive.",
+                        **_prose,
+                        "description": (
+                            "The Mission heading: three to five bullets in the infinitive (a list), or prose (one "
+                            "string, no dashes)."
+                        ),
                     },
                     "objectives": {
                         "type": "array",
@@ -2166,9 +2178,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "required": ["name", "group"],
                         },
                     },
-                    "air_opposition": {**_lines, "description": "What may take off, and when."},
-                    "air_defences": {**_lines, "description": "How the route avoids them."},
-                    "other": {**_lines, "description": "Attack mode, refuelling..."},
+                    "air_opposition": {**_prose, "description": "What may take off, and when."},
+                    "air_defences": {**_prose, "description": "How the route avoids them."},
+                    "other": {**_prose, "description": "Attack mode, refuelling..."},
                     "diversions": {
                         **_lines,
                         "description": (

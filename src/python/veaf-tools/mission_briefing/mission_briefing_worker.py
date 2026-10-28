@@ -274,7 +274,8 @@ def _situation_page(
 ) -> Page:
     blocks = [Block(t("campaign.mission_deck.heading.context"), content.context)] if content.context else []
     if content.mission:
-        blocks.append(Block(t("campaign.mission_deck.heading.mission"), tuple(f"– {item}" for item in content.mission)))
+        items = content.mission if content.mission_prose else tuple(f"– {item}" for item in content.mission)
+        blocks.append(Block(t("campaign.mission_deck.heading.mission"), items))
     start = starts[0] if starts else None
     if start is None and picture.carriers:
         start = (picture.carriers[0].name, picture.carriers[0].x, picture.carriers[0].y)
@@ -308,6 +309,11 @@ def _situation_page(
         )
     )
     return Page(t("campaign.mission_deck.title.situation"), blocks)
+
+
+def _prose_page(title: str, paragraphs: tuple[str, ...]) -> Page | None:
+    """A page of the assistant's prose under its title; ``None`` when it wrote none."""
+    return Page(title, [Block(None, paragraphs)]) if paragraphs else None
 
 
 def _flow_page(content: BriefingContent, picture: MissionPicture, starts: list[tuple[str, float, float]]) -> Page:
@@ -651,6 +657,7 @@ def _build(
         for objective, area in areas
     ]
 
+    strategic = _prose_page(t("mission_briefing.title.strategic"), content.strategic_situation)
     situation = _situation_page(content, picture, starts)
     ato = _ato_page(content, picture, warnings)
     flow = _flow_page(content, picture, starts)
@@ -660,24 +667,26 @@ def _build(
     radios = radio_plans(table, side, templates=dynamic)
     frequencies = _frequencies_page(picture, radios)
     targets = _targets_page(theatre, areas, warnings)
+    opening = [*([strategic] if strategic else []), situation, ato]
     closing = [flow, *([navigation] if navigation else []), frequencies, targets]
     titles = [
-        situation.title,
-        ato.title,
+        *[page.title for page in opening],
         t("campaign.mission_deck.title.tactical"),
         *[t("campaign.mission_deck.title.zoom", zone=area.zone) for _, area in areas],
         *[page.title for page in closing],
     ]
     numbered = [f"{n}. {title}" for n, title in enumerate(titles, 1)]
-    situation.title, ato.title = numbered[0], numbered[1]
+    for page, title in zip(opening, numbered, strict=False):
+        page.title = title
     for page, title in zip(closing, numbered[-len(closing) :], strict=True):
         page.title = title
+    maps_at = len(opening)
 
     deck = Presentation()
     deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
     _write_cover(deck, content.title, picture, numbered)
     sheets: list[Page | MapSheet] = []
-    for part in [*paginate(situation), *paginate(ato)]:
+    for part in [part for page in opening for part in paginate(page)]:
         _write_page(deck, part)
         sheets.append(part)
     legend = [
@@ -690,9 +699,10 @@ def _build(
         *([(t("campaign.mission_deck.legend.support"), False)] if picture.support else []),
         *([(t("campaign.mission_deck.legend.waypoints"), False)] if navigation else []),
     ]
-    picture_page(deck, numbered[2], overview.path, legend)
-    sheets.append(MapSheet(numbered[2], overview.path, legend))
-    for title, (objective, area), zoom in zip(numbered[3 : 3 + len(areas)], areas, zooms, strict=True):
+    picture_page(deck, numbered[maps_at], overview.path, legend)
+    sheets.append(MapSheet(numbered[maps_at], overview.path, legend))
+    zoom_titles = numbered[maps_at + 1 : maps_at + 1 + len(areas)]
+    for title, (objective, area), zoom in zip(zoom_titles, areas, zooms, strict=True):
         notes = [(objective.title, True), *[(text, False) for text in objective.task]]
         if area.targets:
             notes += [(t("mission_briefing.heading.targets"), True), (_join([x.name for x in area.targets]), False)]

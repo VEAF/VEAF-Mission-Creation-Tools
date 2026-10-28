@@ -62,6 +62,10 @@ class BriefingContent:
     title: str
     context: tuple[str, ...] = ()
     mission: tuple[str, ...] = ()
+    mission_prose: bool = False
+    """Whether ``mission`` is prose, its paragraphs printed as they are, or bullets, each after a dash."""
+    strategic_situation: tuple[str, ...] = ()
+    """The political and strategic context, in paragraphs: its own page, left out when empty."""
     objectives: tuple[Objective, ...] = ()
     threats: tuple[Threat, ...] = ()
     air_opposition: tuple[str, ...] = ()

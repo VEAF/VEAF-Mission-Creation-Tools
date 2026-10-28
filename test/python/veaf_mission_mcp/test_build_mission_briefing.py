@@ -115,3 +115,19 @@ def test_the_flights_on_dynamic_slots_reach_the_ato(catalog: ActionCatalog, tmp_
     flights = [{"callsign": "Ninja", "base": "Kobuleti", "aircraft": "F-16C", "count": 2, "task": "SEAD"}]
     result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "flights": flights})
     assert "Ninja — 2 × F-16C — SEAD (slot dyn)" in _deck_text(result["deck"])
+
+
+def test_a_text_given_as_one_string_is_split_into_paragraphs_and_a_mission_string_is_prose(
+    catalog: ActionCatalog, tmp_path: Path
+) -> None:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 04: prose, one paragraph per blank-line-separated block."""
+    objective_mission(tmp_path)
+    params = {
+        **PARAMS,
+        "strategic_situation": "Le front est figé.\n\nLa coalition frappe en profondeur.",
+        "mission_bullets": "Aveugler la défense, puis frapper le PC.",
+    }
+    result = catalog.run_action("build_mission_briefing", {"mission_path": str(tmp_path), **params})
+    text = _deck_text(result["deck"])
+    assert "Le front est figé.\nLa coalition frappe en profondeur." in text
+    assert "Aveugler la défense" in text and "– Aveugler" not in text

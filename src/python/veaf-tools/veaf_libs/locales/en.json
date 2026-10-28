@@ -1649,6 +1649,7 @@
   "campaign.mission_deck.legend.support": "Blue dashes: AWACS orbit; blue line: tanker track",
   "campaign.mission_deck.legend.remember": "Remember",
   "mission_briefing.title.flight_plan": "Flight plan",
+  "mission_briefing.title.strategic": "Strategic situation",
   "mission_briefing.title.targets": "Target coordinates",
   "mission_briefing.heading.targets": "Targets",
   "mission_briefing.engagement": "engagement ≈ {nm} nm",

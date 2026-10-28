@@ -103,6 +103,34 @@ class TestTheDeck:
             _build(tmp_path, BriefingContent(title="T", objectives=(Objective("Nowhere", "x"),)))
 
 
+class TestProse:
+    """FEAT-OBJECTIVE-BRIEFING-QUALITY 04: a strategic situation page, and prose where bullets were."""
+
+    def test_the_strategic_situation_is_the_first_page_after_the_cover(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        objective_mission(tmp_path)
+        text = ("Le front s'est figé sur la Purple Line.", "La coalition frappe en profondeur avant la négociation.")
+        slides = _slides(_build(tmp_path, replace(CONTENT, strategic_situation=text)).deck)
+        assert slides[1][0] == "1. Situation stratégique"
+        assert slides[1][1] == chr(10).join(text)
+        assert slides[2][0] == "2. Situation générale"
+        assert "1. Situation stratégique" in slides[0][-1]
+
+    def test_no_strategic_situation_no_page(self, tmp_path: Path) -> None:
+        objective_mission(tmp_path)
+        assert "Situation stratégique" not in _deck_text(_build(tmp_path).deck)
+
+    def test_a_mission_written_as_prose_keeps_no_dash(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        objective_mission(tmp_path)
+        content = replace(CONTENT, mission=("Aveugler la défense, puis frapper le PC.",), mission_prose=True)
+        text = _deck_text(_build(tmp_path, content).deck)
+        assert "Aveugler la défense, puis frapper le PC." in text
+        assert "– Aveugler" not in text
+
+
 class TestTheDcsPictures:
     def test_the_maps_go_into_the_folder_and_the_built_mission_blue_and_neutral(self, tmp_path: Path) -> None:
         miz = objective_mission(tmp_path)

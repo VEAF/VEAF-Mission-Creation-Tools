@@ -5,6 +5,7 @@ prompt used to ask for. It passes the scenario's words; the executable reads the
 writes the PPTX, the maps and the DCS briefing pictures (`mission_briefing/`).
 """
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -17,10 +18,15 @@ from veaf_mission_mcp.map_tools import list_airfields
 
 
 def _lines(value: Any) -> tuple[str, ...]:
-    """A list of lines, or one string as a single line."""
+    """A list of lines, or one string as its paragraphs: the blocks its blank lines separate.
+
+    A paragraph keeps its own line breaks joined by spaces: prose is wrapped by the page, not by the writer.
+    """
     if value is None:
         return ()
-    return (str(value),) if isinstance(value, str) else tuple(str(item) for item in value)
+    if isinstance(value, str):
+        return tuple(" ".join(part.split()) for part in re.split(r"\n\s*\n", value) if part.strip())
+    return tuple(str(item) for item in value)
 
 
 def _diversions(folder: Path, given: Any) -> tuple[str, ...] | None:
@@ -61,6 +67,8 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         title=str(params["title"]),
         context=_lines(params.get("context")),
         mission=_lines(params.get("mission_bullets")),
+        mission_prose=isinstance(params.get("mission_bullets"), str),
+        strategic_situation=_lines(params.get("strategic_situation")),
         objectives=tuple(
             Objective(str(o["zone"]), str(o.get("title") or o["zone"]), _lines(o.get("task")))
             for o in params.get("objectives") or []
@@ -121,6 +129,7 @@ def _texts(content: BriefingContent) -> dict[str, str]:
         "title": [content.title],
         "context": content.context,
         "mission_bullets": content.mission,
+        "strategic_situation": content.strategic_situation,
         "air_opposition": content.air_opposition,
         "air_defences": content.air_defences,
         "other": content.other,

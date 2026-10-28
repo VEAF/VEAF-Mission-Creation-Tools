@@ -151,6 +151,7 @@ class TestTheReconPhotos:
         _photo(folder, "04-elsewhere", {"zone": "Nowhere", "title": "x"})
         _photo(folder, "05-untitled", {"zone": "Khobi"})
         (folder / "06-orphan.json").write_text("{}", encoding="utf-8")
+        (folder / "recon.json").write_text('{"shots": []}', encoding="utf-8")  # the shooting tool's index
         photos, warnings = load_recon(folder, ["Khobi"])
         assert [photo.image.name for photo in photos["Khobi"]] == ["02-b.jpg", "01-a.jpg"]
         assert photos["Khobi"][0].heading == 95

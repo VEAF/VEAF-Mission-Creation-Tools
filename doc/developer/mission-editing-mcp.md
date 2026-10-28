@@ -776,7 +776,7 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
   | `altitude_m` | non | altitude de la caméra, mètres ; imprimée en pieds |
   | `order` | non | tri dans la zone (puis nom de fichier), 0 par défaut |
 
-  Après le zoom de chaque objectif, ses photos deux par diapositive (deck et PDF) et deux par page de kneeboard, légendées « titre — cap 095°, piqué -12°, depuis <DMS>, <ft> » selon ce que la fiche donne. Une photo sans fiche, une fiche sans photo, sans `zone` ou `title`, ou d'une zone qui n'est pas un objectif : ignorée, dans `warnings`. Le résultat liste les photos prises dans `recon`.
+  Après le zoom de chaque objectif, ses photos deux par diapositive (deck et PDF) et deux par page de kneeboard, légendées « titre — cap 095°, piqué -12°, depuis <DMS>, <ft> » selon ce que la fiche donne. L'index `recon.json` que `veaf-tools dcs recon-render` écrit à côté est ignoré. Une photo sans fiche, une fiche sans photo, sans `zone` ou `title`, ou d'une zone qui n'est pas un objectif : ignorée, dans `warnings`. Le résultat liste les photos prises dans `recon`.
 
 ### Open Training Syrie (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 

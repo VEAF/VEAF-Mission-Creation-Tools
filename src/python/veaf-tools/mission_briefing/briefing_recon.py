@@ -28,6 +28,9 @@ RECON_FOLDER = Path("docs") / "recon"
 
 _IMAGE_SUFFIXES = (".jpg", ".jpeg")
 
+#: The index `veaf-tools dcs recon-render` writes beside the photos (FEAT-DCS-RECON-AND-MISSION-CHECK): no sidecar.
+_INDEX = "recon.json"
+
 
 def _number(raw: dict[str, Any], key: str) -> float | None:
     value = raw.get(key)
@@ -51,7 +54,7 @@ def load_recon(folder: Path, zones: list[str]) -> tuple[dict[str, list[ReconPhot
         return by_zone, warnings
     known = {zone.lower(): zone for zone in zones}
     images = {p.stem: p for p in folder.iterdir() if p.suffix.lower() in _IMAGE_SUFFIXES}
-    sidecars = {p.stem: p for p in folder.iterdir() if p.suffix.lower() == ".json"}
+    sidecars = {p.stem: p for p in folder.iterdir() if p.suffix.lower() == ".json" and p.name.lower() != _INDEX}
     for stem in sorted(set(sidecars) - set(images)):
         warnings.append(f"Recon {sidecars[stem].name}: no {stem}.jpg beside it; skipped.")
     for stem, image in sorted(images.items()):

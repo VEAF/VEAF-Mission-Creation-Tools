@@ -459,3 +459,22 @@ def test_the_objective_prompt_plans_the_route_and_asks_the_level(lang: str, doct
     assert "**two**" in scenario or "**deux**" in scenario
     build = describe_mission_prompt("objective", lang, part="build")["prompt"]
     assert "set_route" in build and "`basemap: topo`" in build and "password-hash" in build
+
+
+@pytest.mark.parametrize("module_id", ["CTLD", "ctld", "CSAR", "AIEN", "STTS", "TUM", "MIST"])
+def test_describe_module_knows_the_community_scripts(module_id: str) -> None:
+    """FEAT-OBJECTIVE-MISSION-V2 10: `describe_module CTLD` answered unknown."""
+    result = describe_module(module_id)
+    assert (result["known"], result["kind"], result["id"]) == (True, "community", module_id.upper())
+    page = Path(__file__).parents[3] / result["doc_page"].split("#")[0]
+    assert page.is_file()
+
+
+def test_describe_module_reports_a_community_script_enabled(tmp_path: Path) -> None:
+    path = tmp_path / "mission.yaml"
+    path.write_text("modules:\n  CTLD:\n    enabled: true\n", encoding="utf-8")
+    assert describe_module("ctld", mission_yaml_path=path)["enabled"] is True
+
+
+def test_describe_module_says_a_veaf_module_is_one() -> None:
+    assert describe_module("QRA")["kind"] == "veaf"

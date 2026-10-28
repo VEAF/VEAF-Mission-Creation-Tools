@@ -3295,8 +3295,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="describe_module",
             description=(
-                "Look a VEAF module up in the canonical module list and point to its doc page; "
-                "optionally report whether it is enabled in a given mission.yaml. Read-only."
+                "Look a VEAF module or a community script (CTLD, CSAR, AIEN, STTS, TUM, MIST) up "
+                "and point to its doc page; optionally report whether it is enabled in a given "
+                "mission.yaml. Read-only."
             ),
             parameters_schema={
                 "type": "object",

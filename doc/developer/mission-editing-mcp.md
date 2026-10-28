@@ -1093,6 +1093,7 @@ un `add_group`.
 Lecture seule. **Localisateur** (pas un validateur de schéma) : vérifie qu'un module VEAF existe
 (via la liste canonique `lua_module_scanner`), renvoie sa page de doc, et — si `mission_yaml_path`
 est fourni — son état activé. Les clés de config de chaque module vivent dans sa page de doc.
+Il connaît aussi les scripts communautaires que le build embarque (CTLD, CSAR, AIEN, STTS, TUM, MIST) : `kind` vaut `veaf` ou `community`.
 
 ```json
 {"module_id": "QRA", "mission_yaml_path": "chemin/vers/mission.yaml"}

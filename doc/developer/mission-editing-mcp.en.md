@@ -1063,6 +1063,7 @@ with its rule and the consuming module. Check a proposed name against these befo
 Read-only. A **locator** (not a schema validator): confirms a VEAF module exists (via the
 canonical `lua_module_scanner` list), returns its doc page, and — when `mission_yaml_path` is
 given — its enabled state. Each module's config keys live in its doc page.
+It knows the community scripts the build ships too (CTLD, CSAR, AIEN, STTS, TUM, MIST): `kind` is `veaf` or `community`.
 
 ```json
 {"module_id": "QRA", "mission_yaml_path": "path/to/mission.yaml"}

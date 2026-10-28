@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from mission_tools.mission_constants import get_community_script_files
 from mission_tools.mission_yaml_editor import load_yaml
 from veaf_libs import shortcut_eras
 from veaf_libs.build_stamp import _package_version
@@ -475,31 +476,52 @@ def _module_enabled(mission_yaml_path: Path, module_id: str) -> bool | None:
     return None
 
 
+#: Where the doc of a community script is, by its id; the modules page for the others.
+_COMMUNITY_DOC = {
+    "ctld": "doc/mission-maker/GUIDE.md#ctld-and-csar-integration",
+    "csar": "doc/mission-maker/GUIDE.md#ctld-and-csar-integration",
+}
+
+
 def describe_module(module_id: str, mission_yaml_path: Path | None = None) -> dict[str, Any]:
     """Look a VEAF module up in the canonical module list and point to its doc.
 
     Uses `veaf_libs.lua_module_scanner.get_modules` (the same list the build uses) as the source
-    of truth for which modules exist. Deliberately a locator, not a schema validator: per-module
-    keys live in the module's own doc page, which this returns a pointer to.
+    of truth for which modules exist, then the community scripts the build ships (CTLD, CSAR, AIEN…:
+    `describe_module CTLD` answered unknown, FEAT-OBJECTIVE-MISSION-V2 10). Deliberately a locator,
+    not a schema validator: per-module keys live in the module's own doc page, which this returns a
+    pointer to.
 
     Args:
         module_id: The module id (e.g. ``"QRA"``, ``"COMBATZONE"``), case-insensitive.
         mission_yaml_path: Optional `mission.yaml`; if given, reports the module's enabled state.
 
     Returns:
-        `{"known": bool, "id", "version", "doc_page", "enabled"}` — `id`/`version`/`doc_page`
-        present only when known; `enabled` present only when `mission_yaml_path` is given.
+        `{"known": bool, "id", "kind", "version", "doc_page", "enabled"}` — `kind` is ``veaf`` or
+        ``community``; `version` only for a VEAF module; `id`/`kind`/`doc_page` present only when known;
+        `enabled` present only when `mission_yaml_path` is given.
     """
     wanted = module_id.upper()
     match = next((m for m in get_modules() if m["id"].upper() == wanted), None)
-    if match is None:
-        return {"known": False, "id": module_id}
-    result: dict[str, Any] = {
-        "known": True,
-        "id": match["id"],
-        "version": match["version"],
-        "doc_page": f"{_DOC_SCRIPTS_DIR}/{match['var_name']}.md",
-    }
+    result: dict[str, Any]
+    if match is not None:
+        result = {
+            "known": True,
+            "id": match["id"],
+            "kind": "veaf",
+            "version": match["version"],
+            "doc_page": f"{_DOC_SCRIPTS_DIR}/{match['var_name']}.md",
+        }
+    else:
+        script = next((s["id"] for s in get_community_script_files() if s["id"].upper() == wanted), None)
+        if script is None:
+            return {"known": False, "id": module_id}
+        result = {
+            "known": True,
+            "id": script.upper(),
+            "kind": "community",
+            "doc_page": _COMMUNITY_DOC.get(script, "doc/mission-maker/GUIDE.md#configuring-modules"),
+        }
     if mission_yaml_path is not None:
-        result["enabled"] = _module_enabled(mission_yaml_path, match["id"])
+        result["enabled"] = _module_enabled(mission_yaml_path, result["id"])
     return result

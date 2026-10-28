@@ -5,8 +5,12 @@ found three defects there: a menu entry with an empty label, a combat mission th
 name it was not registered under (a CAP registers as ``<name>/<skill>/<scale>`` variants), and a
 column that never moved — its route was "On Road" with no road to follow.
 
-The checks run in the mission scripting state (``server`` through the ``dcs-fiddle`` hook), against
-the test build the user launched. They change the mission while they run — each zone and each combat
+The checks run where the VEAF modules live: the fiddle server the hook starts **inside the mission
+scripting environment**, port 12080 (:data:`MISSION_FIDDLE_URL`). Measured 2026-10-28 on "Marteau du
+Golan": ``net.dostring_in("server", …)`` through port 12081 sees ``coalition`` and ``env`` but
+``veafCombatZone`` and ``veafRadio`` are ``nil`` there, while port 12080 answers ``table`` for both. That
+server runs on the mission's own timer, so it does not answer while DCS is paused. The checks run
+against the test build the user launched. They change the mission while they run — each zone and each combat
 mission is switched on and off — and put every one back as it was found. An *operation* is reported
 and not toggled: switching one cascades to its zones and starts a watchdog that would move the
 mission on.
@@ -21,8 +25,15 @@ import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from rich.markup import escape
+
 from veaf_libs.i18n import t
 from veaf_libs.lua_literals import lua_quoted_string
+
+#: The fiddle server inside the mission scripting environment, where ``veaf*`` live (``env=default``).
+MISSION_FIDDLE_URL = "http://127.0.0.1:12080"
+#: The environment to ask of it: its own.
+MISSION_ENV = "default"
 
 #: How long a routed group has to start moving.
 MOVE_TIMEOUT = 60.0
@@ -467,9 +478,13 @@ class Report:
 
 
 def format_line(line: Line) -> str:
-    """Write one line as the console shows it: a mark, the check, the fact."""
+    """Write one line as the console shows it: a mark, the check, the fact.
+
+    The fact is escaped: a spawned group is named ``<zone> [b] <base>#<id>``, and Rich reads ``[b]`` as
+    "bold" and swallows it.
+    """
     mark = {True: "[green]✓[/]", False: "[red]✗[/]", None: "[dim]·[/]"}[line.ok]
-    return f"  {mark} {line.check:<8} {line.text}"
+    return f"  {mark} {line.check:<8} {escape(line.text)}"
 
 
 def verdict(report: Report) -> str:
@@ -609,9 +624,14 @@ def run_checks(
     if routed:
         _judge_moving(report, say, "mission", watch_moving(run, routed, sleep))
 
+    # A zone an operation lists is registered twice — `addTaskingOrder` calls `AddZone` on a zone
+    # already added (measured 2026-10-28 on "Marteau du Golan": four zones listed twice) — so each
+    # name is checked once.
+    seen: set[tuple[str, str]] = set()
     for entity in parse_inventory(run(INVENTORY_LUA)):
-        if only and entity.name not in only:
+        if (only and entity.name not in only) or (entity.kind, entity.name) in seen:
             continue
+        seen.add((entity.kind, entity.name))
         check_entity(run, entity, sleep, report, say)
     return report
 

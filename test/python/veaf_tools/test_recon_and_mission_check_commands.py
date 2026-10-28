@@ -173,7 +173,7 @@ def test_render_without_raw_shots_fails(app: Any, tmp_path: Path) -> None:
 
 def test_mission_check_prints_the_lines_and_fails_on_a_defect(app: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     def exec_lua(code: str, env: str, url: str, timeout: float) -> Any:
-        assert env == "server"
+        assert env == "default" and url.endswith(":12080")
         if "radioMenu" in code:
             return "menu\t0\t=VEAF\ncommand\t1\t="
         return ""

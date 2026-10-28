@@ -968,7 +968,7 @@ Keep DCS running **unpaused** during the check: paused, nothing spawns and nothi
 | Options | Type | Default | Description |
 |---|---|---|---|
 | `--only` | `str` | *(all)* | Zone or combat mission name to check; repeat for several. The menus and the mission's own columns are checked either way. |
-| `--url` | `str` | `http://127.0.0.1:12081` | Base URL of the dcs-fiddle-server.lua hook's GUI port. |
+| `--url` | `str` | `http://127.0.0.1:12080` | URL of the fiddle server started inside the mission scripting environment, where the VEAF modules live. |
 | `--fiddle-token` | `str` | *(none)* | The hook's per-session Basic password (default: read from `%USERPROFILE%\dcs-fiddle-token.txt`, or `$env:DCS_FIDDLE_TOKEN`). |
 | `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
 

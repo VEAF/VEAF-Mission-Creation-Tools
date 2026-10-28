@@ -192,6 +192,19 @@ class TestRunChecks:
         # the frozen column was watched for the whole timeout
         assert sum(w for w in waits if w == mc.MOVE_POLL) >= mc.MOVE_TIMEOUT
 
+    def test_a_zone_listed_twice_is_checked_once(self) -> None:
+        dcs = FakeDcs()
+        inventory = dcs.run(mc.INVENTORY_LUA)
+        original = dcs.run
+
+        def run(code: str) -> str:
+            if code == mc.INVENTORY_LUA:
+                return inventory + "\nzone\tSA6Sasa\tSA6Sasa\t1\t0\t4"
+            return original(code)
+
+        report = run_checks(run, lambda s: None, lambda line: None)
+        assert sum(1 for line in report.lines if line.text.startswith("SA6Sasa:")) == 1
+
     def test_only_restricts_zones_and_missions(self) -> None:
         dcs = FakeDcs()
         dcs.menu = "menu\t0\t=VEAF"
@@ -239,6 +252,10 @@ class TestReport:
         report.add(False, "menu", "broken")
         assert "✗" in format_line(report.lines[2])
         assert "FAIL" in verdict(report) and "1 of 2" in verdict(report)
+
+    def test_a_group_name_is_not_read_as_markup(self) -> None:
+        line = mc.Line(True, "route", "Poussee: Poussee [b] col#1 moves")
+        assert "\\[b]" in format_line(line)
 
     def test_expected_duration_is_in_minutes(self) -> None:
         assert expected_duration(0) == 1

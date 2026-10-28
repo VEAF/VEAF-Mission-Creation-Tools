@@ -8,7 +8,6 @@ import time
 
 import typer
 from veaf_libs.dcs_fiddle_client import (
-    DEFAULT_FIDDLE_URL,
     FiddleError,
     exec_lua,
     resolve_fiddle_token,
@@ -16,13 +15,14 @@ from veaf_libs.dcs_fiddle_client import (
 )
 from veaf_libs.dcs_mission_check import (
     INVENTORY_LUA,
+    MISSION_ENV,
+    MISSION_FIDDLE_URL,
     expected_duration,
     format_line,
     parse_inventory,
     run_checks,
     verdict,
 )
-from veaf_libs.dcs_recon import ENV_SERVER
 
 from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
 
@@ -30,7 +30,7 @@ from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
 @app.command(name="mission-check", help=t("cmd.mission_check.help"))
 def mission_check(
     only: list[str] = typer.Option([], "--only", help=t("cmd.mission_check.opt.only")),
-    url: str = typer.Option(DEFAULT_FIDDLE_URL, "--url", help=t("cmd.recon.opt.url")),
+    url: str = typer.Option(MISSION_FIDDLE_URL, "--url", help=t("cmd.mission_check.opt.url")),
     fiddle_token: str | None = typer.Option(
         None, "--fiddle-token", envvar="DCS_FIDDLE_TOKEN", help=t("cmd.recon.opt.fiddle_token")
     ),
@@ -42,7 +42,7 @@ def mission_check(
     set_session_token(resolve_fiddle_token(fiddle_token))
 
     def run(code: str) -> str:
-        result = exec_lua(code, env=ENV_SERVER, url=url, timeout=30.0)
+        result = exec_lua(code, env=MISSION_ENV, url=url, timeout=30.0)
         return "" if result is None else str(result)
 
     try:

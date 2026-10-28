@@ -974,7 +974,7 @@ Laissez DCS tourner **sans pause** pendant la vérification : en pause, rien n'a
 | Options | Type | Défaut | Description |
 |---|---|---|---|
 | `--only` | `str` | *(toutes)* | Nom d'une zone ou mission de combat à vérifier ; répétez pour plusieurs. Les menus et les colonnes de la mission sont vérifiés dans tous les cas. |
-| `--url` | `str` | `http://127.0.0.1:12081` | URL de base du port GUI du hook dcs-fiddle-server.lua. |
+| `--url` | `str` | `http://127.0.0.1:12080` | URL du serveur fiddle lancé dans l'environnement de script de la mission, là où vivent les modules VEAF. |
 | `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook (défaut : lu dans `%USERPROFILE%\dcs-fiddle-token.txt`, ou `$env:DCS_FIDDLE_TOKEN`). |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 

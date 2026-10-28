@@ -1,6 +1,6 @@
 # 01 — Landing page "latest" card
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 When `versions.json` has a release carrying the `latest` alias, the landing page shows a featured "latest" card opening `./latest/`, titled with that release's number; the numbered card stays, with its "latest" badge, and is no longer featured.
 

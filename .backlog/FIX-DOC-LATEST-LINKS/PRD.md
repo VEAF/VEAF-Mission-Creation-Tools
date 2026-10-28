@@ -1,6 +1,6 @@
 # FIX-DOC-LATEST-LINKS — a link copied from the docs should follow the newest release
 
-Status: 🔄 in-progress
+Status: ✅ done — shipped in #1211
 
 Origin: David, 2026-10-28 — "there is no real 'latest' section in the published docs; when you browse and want to give a link, it is always tied to a specific version".
 

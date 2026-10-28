@@ -142,7 +142,9 @@ def _members(category: str, group: dict[str, Any], zone: str) -> list[Target]:
         return [Target(label, float(first["x"]), float(first["y"]), t("mission_briefing.spawned"), spawned=True)]
     group_name = str(group.get("name", ""))
     names = [str(unit.get("name") or "") for unit in units]
-    if all(_own_name(name, group_name) for name in names):
+    # a lone unit is named by its zone's author only when its name says its zone; otherwise it is its group
+    alone = len(units) == 1 and not names[0].lower().startswith(zone.lower())
+    if not alone and all(_own_name(name, group_name) for name in names):
         return [
             Target(
                 _capitalised(_readable(name, zone)),

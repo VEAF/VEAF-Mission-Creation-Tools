@@ -42,8 +42,10 @@ def _build(folder: Path, content: BriefingContent = CONTENT):
 
 
 def _slides(deck: Path) -> list[list[str]]:
+    """Each slide's texts: its text boxes, then each cell of its tables."""
     return [
         [shape.text_frame.text for shape in slide.shapes if shape.has_text_frame]
+        + [cell.text for shape in slide.shapes if shape.has_table for row in shape.table.rows for cell in row.cells]
         for slide in Presentation(str(deck)).slides
     ]
 
@@ -69,7 +71,7 @@ class TestTheDeck:
             "2. ATO",
             "3. Situation tactique",
             "4. Zone des combats",
-            "5. Situation tactique — Khobi",
+            "5. KHOBI — Détruire le dépôt de Khobi",  # named as the flight plan names it
             "6. Déroulement mission",
             "7. Plan de vol",
             "8. Plan de vol — étape par étape",
@@ -88,7 +90,8 @@ class TestTheDeck:
         assert "Ch. 1 — Ninja : 390.5 MHz" in text and "243" not in text
         assert "1. Zip  2. Couz" in text
         _, zx, zy, _ = KHOBI_ZONE
-        assert f"SA8{chr(10)}Osa 9A33 ln{chr(10)}DMS {to_dms(*xy_to_latlon('Caucasus', zx + 300, zy + 200))}" in text
+        dms = to_dms(*xy_to_latlon("Caucasus", zx + 300, zy + 200))
+        assert f"SA8{chr(10)}Osa 9A33 ln{chr(10)}missiles sol-air à courte portée{chr(10)}DMS {dms}" in text
         assert "Patrol" not in text  # near the zone, not one of its members
 
     def test_a_threat_whose_group_is_missing_is_a_warning(self, tmp_path: Path) -> None:
@@ -370,7 +373,7 @@ class TestDynamicSlotAto:
     def test_a_dynamic_base_says_so_and_lists_no_type(self, tmp_path: Path) -> None:
         self._link_the_template(objective_mission(tmp_path))
         ato = self._ato(_build(tmp_path).deck)
-        assert "Slots dynamiques — Kobuleti" in ato
+        assert "Slots dynamiques\n\nKobuleti" in ato  # a row of the package's table: no aircraft named
         assert "F-16C_50 —" not in ato  # the fixture's own Viper flight is an F-16C_50 too
         assert "1. ______  2. ______  3. ______  4. ______" in ato
 
@@ -383,8 +386,7 @@ class TestDynamicSlotAto:
         flights = (PackageFlight("Ninja", base="Kobuleti", aircraft="F-16C", count=2, task="SEAD"),)
         content = replace(CONTENT, flights=flights, pilots={"Ninja": ["Zip"]}, loadouts={"Ninja": "2 HARM"})
         ato = self._ato(_build(tmp_path, content).deck)
-        assert "Ninja — 2 × F-16C — SEAD (slot dyn)" in ato
-        assert "1. Zip  2. ______    2 HARM" in ato
+        assert "Ninja\n2 × F-16C\nKobuleti (slot dyn)\nSEAD\n1. Zip  2. ______\n2 HARM" in ato
 
     def test_a_flight_from_no_dynamic_base_is_listed_apart_and_warned(self, tmp_path: Path) -> None:
         from dataclasses import replace
@@ -395,8 +397,8 @@ class TestDynamicSlotAto:
         content = replace(CONTENT, flights=(PackageFlight("Jedi", base="Nowhere"), PackageFlight("Arctic")))
         report = _build(tmp_path, content)
         ato = self._ato(report.deck)
-        assert "Slots dynamiques — base au choix" in ato
-        assert "Jedi (slot dyn)" in ato and "Arctic (slot dyn)" in ato
+        assert "Jedi\n\nSlots dynamiques — base au choix" in ato
+        assert "Arctic\n\nSlots dynamiques — base au choix" in ato
         assert any("Jedi" in warning and "Nowhere" in warning for warning in report.warnings)
 
 

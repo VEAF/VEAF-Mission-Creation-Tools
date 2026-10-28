@@ -26,6 +26,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   New optional `strategic_situation` and `deployment` texts make a page each; a text passed as one string is prose, its paragraphs split on blank lines.
   The kneeboard flight cards drop the radio plan: the presets are already in the cockpits. The PDF follows the deck; the deck and the PDF embed the maps as JPEG.
 
+### Fixed
+
+- **A combat zone an operation lists is registered once** (FIX-OPERATION-ZONE-DOUBLE-REGISTRATION).
+  The configuration adds an operation's member zone, then the operation adds it again: `veafCombatZone.zonesList` held it twice, and anything walking that list — BFR, a loop activating every zone — met it twice ("Marteau du Golan", 2026-10-28: four zones, spawned twice).
+  `veafCombatZone.AddZone` now registers a name once; a different zone under a name already taken is logged as an error and the first one is kept.
+
 ### Added
 
 - **Reconnaissance photos and an in-game mission check, from a running DCS** (FEAT-DCS-RECON-AND-MISSION-CHECK, from the "Marteau du Golan" session).

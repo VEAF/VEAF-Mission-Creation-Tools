@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-DOC-LATEST-LINKS](FIX-DOC-LATEST-LINKS/PRD.md) · 🔄
+
+A link copied from the published docs should follow the newest release: the landing page's featured card and the version selector open `/latest/` instead of the release number (2026-10-28). One PR.
+
 ### [FIX-BRIEFING-PARITY-MARTEAU](FIX-BRIEFING-PARITY-MARTEAU/PRD.md) · 🔄
 
 The briefing generator at the level of "Marteau du Golan"'s hand-made deck (2026-10-28): nine defects a regeneration test found — recon zone of a bare spawned group, theatre and combat maps, unit-level targets with readable names, bullseye and flights on every sheet, main and secondary objectives from the operation, frequencies by radio plan for the ATO's flights, a left-aligned PDF with tables, waypoint notes per plan, kneeboard replacement. One PR.

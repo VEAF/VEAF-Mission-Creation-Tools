@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [CHORE-CI-PYTHON-SPEED](CHORE-CI-PYTHON-SPEED/PRD.md) · 🔄
+
+The `pytest` step of `python-quality` grew from 5 to 21–25 min in two weeks, for 4 % more tests: the briefing tests built a whole briefing per test. One build per module, and the suite in parallel with `pytest-xdist` (2026-10-28).
+
 ### [FIX-BRIEFING-PARITY-MARTEAU-2](FIX-BRIEFING-PARITY-MARTEAU-2/PRD.md) · 🔄
 
 What the retest of #1210 still found in "Marteau du Golan"'s briefing (2026-10-28): bases, flight levels and one helicopter route on the overview, a combat map the key does not cover, frequency headings of their own, a prerequisite objective, the kneeboard flight card as a table, levels and support in the ATO. One PR.

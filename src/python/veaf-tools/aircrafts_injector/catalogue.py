@@ -271,6 +271,28 @@ def filter_by_era(catalogue: dict[str, Any], era: str) -> tuple[dict[str, Any], 
     return kept, removed
 
 
+def filter_by_sides(catalogue: dict[str, Any], sides: set[str]) -> tuple[dict[str, Any], int]:
+    """Keep only the groups of the coalitions in ``sides``.
+
+    A side whose bases offer no dynamic slot has no use for templates: the shipped catalogue put red's
+    on a mission where red holds no slot base (FEAT-OBJECTIVE-MISSION-V2 11).
+
+    Args:
+        catalogue: A parsed catalogue; not modified.
+        sides: The coalitions to keep (``blue``, ``red``).
+
+    Returns:
+        The catalogue without the other coalitions' groups, and how many groups that removed.
+    """
+    kept = copy.deepcopy(catalogue)
+    removed = 0
+    for ref, _ in list(iter_groups(catalogue)):
+        if ref.coalition not in sides:
+            del kept[ref.category]["coalitions"][ref.coalition][ref.country][ref.name]
+            removed += 1
+    return kept, removed
+
+
 def catalogue_file_has_groups(path: Path) -> bool:
     """Whether a catalogue file carries at least one group.
 

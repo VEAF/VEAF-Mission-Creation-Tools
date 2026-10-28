@@ -826,6 +826,7 @@
   "pipeline.console.waypoints": "[bold blue]Pipeline : waypoints ({file})[/bold blue]",
   "pipeline.console.weather": "[bold blue]Pipeline : variantes météo ({file})[/bold blue]",
   "pipeline.console.weather_done": "{count} variante(s) météo créée(s)",
+  "pipeline.console.dynamic_templates_side_filtered": "{removed} gabarit(s) de slot dynamique écartés : leur coalition n'a aucune base à slots (gardées : {sides} ; pipeline.dynamic_slot_templates.all_sides: true les garde)",
   "pipeline.injecting_aircraft": "Pipeline : injection des modèles aériens depuis {path}",
   "pipeline.injecting_aircraft_mode": "Pipeline : injection des groupes aériens depuis {path} (mode={mode})",
   "pipeline.injecting_presets": "Pipeline : injection des préréglages radio depuis {path}",

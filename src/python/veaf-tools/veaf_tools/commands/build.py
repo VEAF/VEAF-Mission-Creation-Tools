@@ -11,6 +11,7 @@ from aircrafts_injector.catalogue import (
     catalogue_file_has_groups,
     catalogue_has_groups,
     filter_by_era,
+    filter_by_sides,
     load_catalogue,
     unknown_unit_types,
 )
@@ -19,6 +20,7 @@ from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
 from spawn_data_injector import SpawnDataInjectorWorker
 from veaf_libs.build_profiles import canonical_profile_name, pipeline_step_subflag
+from veaf_libs.mission_validator import dynamic_slot_sides
 from veaf_libs.paths import resolve_path
 from veaf_libs.shipped_defaults import shipped_default_file
 from veaf_libs.yaml_validator import validate_yaml_file
@@ -255,6 +257,35 @@ def era_filtered_catalogue(path: Path, era: str | None, workdir: Path) -> tuple[
     return copy_path, removed
 
 
+def side_filtered_catalogue(path: Path, sides: set[str] | None, workdir: Path) -> tuple[Path | None, int]:
+    """A dynamic-slot template catalogue, without the templates of a side that has no slot base.
+
+    Args:
+        path: The catalogue to inject.
+        sides: The sides with a base offering slots; ``None`` when unknown, and nothing is left out.
+        workdir: Where a filtered copy is written, when there is one.
+
+    Returns:
+        ``(path to inject, groups left out)``: *path* itself when nothing is left out, a copy under
+        *workdir* when some groups are, ``None`` when no side keeps any.
+    """
+    if sides is None:
+        return path, 0
+    try:
+        catalogue = load_catalogue(path)
+    except CatalogueUnreadable:
+        return path, 0  # the validator reports it
+    filtered, removed = filter_by_sides(catalogue, sides)
+    if not removed:
+        return path, 0
+    if not catalogue_has_groups(filtered):
+        return None, removed
+    workdir.mkdir(parents=True, exist_ok=True)
+    copy_path = workdir / path.name
+    copy_path.write_text(yaml.safe_dump(filtered, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return copy_path, removed
+
+
 def resolve_aircraft_catalogue(
     pipeline_cfg: dict, mission_folder: Path, key: str, candidate: str
 ) -> tuple[Path | None, bool]:
@@ -421,6 +452,24 @@ def build(
                         return
                     if removed:
                         logger.detail(t("pipeline.console.aircraft_era_filtered", era=era, removed=removed))
+                if step_key == "dynamic_slot_templates" and not pipeline_step_subflag(
+                    worker.pipeline_cfg, step_key, "all_sides", False
+                ):
+                    # a side with no base offering slots has no use for templates (FEAT-OBJECTIVE-MISSION-V2 11);
+                    # `all_sides: true` keeps them, for a side that captures one in game
+                    sides = dynamic_slot_sides(p_mission_folder, worker.pipeline_cfg)
+                    filtered, removed = side_filtered_catalogue(path, sides, Path(era_dir) / "sides")
+                    if removed:
+                        logger.detail(
+                            t(
+                                "pipeline.console.dynamic_templates_side_filtered",
+                                sides=", ".join(sorted(sides or ())) or "-",
+                                removed=removed,
+                            )
+                        )
+                    if filtered is None:
+                        return
+                    path = filtered
                 _inject_aircraft_file(path, is_shipped, step_key)
 
         def _inject_aircraft_file(path: Path, is_shipped: bool, step_key: str) -> None:

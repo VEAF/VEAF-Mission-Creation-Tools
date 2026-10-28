@@ -765,6 +765,16 @@ pipeline:
     kneeboards: false   # défaut true — si false, aucune planchette PNG (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png) n'est générée
 ```
 
+L'étape `dynamic_slot_templates` n'injecte que les modèles des coalitions qui ont au moins une base à slots dynamiques (une base dont l'entrepôt dit `dynamicSpawn`, ou une coalition que `warehouses.yaml` déclare) : les autres ne serviraient à personne.
+Quand l'entrepôt source ne se lit pas, rien n'est écarté. Une coalition qui prend une base en jeu (capture) a besoin des siens dès le départ :
+
+```yaml
+pipeline:
+  dynamic_slot_templates:
+    all_sides: true     # défaut false — garde les modèles des deux coalitions
+```
+
+
 L'étape `waypoints` accepte le même genre de mapping, pour l'injection automatique du bullseye de la
 mission (voir [Le bullseye, injecté tout seul](mission-maker/GUIDE.md#automatic-bullseye)) :
 

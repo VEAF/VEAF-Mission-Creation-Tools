@@ -757,6 +757,15 @@ pipeline:
     kneeboards: false   # default true — when false, no kneeboard PNG (KNEEBOARD/<type>/IMAGES/presets[-<coalition>].png) is generated
 ```
 
+The `dynamic_slot_templates` step injects only the templates of the sides holding at least one base that offers dynamic slots (a base whose warehouse says `dynamicSpawn`, or a side `warehouses.yaml` declares): the others would serve nobody.
+When the source warehouses cannot be read, nothing is left out. A side that captures a base in game needs its templates from the start:
+
+```yaml
+pipeline:
+  dynamic_slot_templates:
+    all_sides: true     # default false — keeps both sides' templates
+```
+
 The `waypoints` step takes the same kind of mapping, for the automatic injection of the mission's own
 bullseye (see [The bullseye, injected for you](mission-maker/GUIDE.en.md#automatic-bullseye)):
 

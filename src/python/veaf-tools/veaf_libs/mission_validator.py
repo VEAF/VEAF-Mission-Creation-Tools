@@ -1041,6 +1041,32 @@ def _offers_dynamic_slots(folder: Path, yaml_data: dict, mission: dict) -> bool:
     return False
 
 
+def dynamic_slot_sides(folder: Path, pipeline_cfg: dict) -> set[str] | None:
+    """The sides with at least one base offering dynamic slots once the build has run.
+
+    The same rule as :func:`_offers_dynamic_slots`: a base offers them when its warehouse says
+    ``dynamicSpawn = true``, or when ``warehouses.yaml`` declares its side.
+
+    Args:
+        folder: The mission folder.
+        pipeline_cfg: The ``pipeline:`` mapping, the build profile applied.
+
+    Returns:
+        ``{"blue"}``, ``{"red"}``, both or none; ``None`` when the source warehouses cannot be read,
+        and nobody can tell.
+    """
+    entries = _source_warehouse_entries(folder)
+    if not entries:
+        return None
+    opened = _sides_the_warehouses_config_opens(folder, {"pipeline": pipeline_cfg})
+    sides = set()
+    for entry in entries:
+        side = str(entry.get("coalition", "")).lower()
+        if side in ("blue", "red") and (entry.get("dynamicSpawn") is True or side in opened):
+            sides.add(side)
+    return sides
+
+
 def _iter_groups(mission: dict) -> Iterable[dict]:
     """Yield every group dict of the mission table, whatever the table's shape."""
     coalitions = mission.get("coalition") or {}

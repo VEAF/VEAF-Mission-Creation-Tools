@@ -826,6 +826,7 @@
   "pipeline.console.waypoints": "[bold blue]Pipeline: waypoints ({file})[/bold blue]",
   "pipeline.console.weather": "[bold blue]Pipeline: weather variants ({file})[/bold blue]",
   "pipeline.console.weather_done": "created {count} weather variant(s)",
+  "pipeline.console.dynamic_templates_side_filtered": "{removed} dynamic-slot template(s) left out: their side has no base offering slots (kept: {sides}; pipeline.dynamic_slot_templates.all_sides: true keeps them)",
   "pipeline.injecting_aircraft": "Pipeline: injecting aircraft templates from {path}",
   "pipeline.injecting_aircraft_mode": "Pipeline: injecting aircraft groups from {path} (mode={mode})",
   "pipeline.injecting_presets": "Pipeline: injecting radio presets from {path}",

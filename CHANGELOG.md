@@ -51,6 +51,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Reconnaissance photos and an in-game mission check, from a running DCS** (FEAT-DCS-RECON-AND-MISSION-CHECK, from the "Marteau du Golan" session).
   `dcs recon-prepare` writes a shooting copy of a built mission (clear sky, chosen time, every combat zone active at start); `dcs recon-plan` lists the units on the map into a shots file; `dcs recon-shoot` puts the F11 camera on each objective's engagement axis and grabs the window; `dcs recon-render` makes reconnaissance prints — contrasted black and white, banner, heading rose, targets circled in red felt pen where their live positions project — with the sidecar `build_mission_briefing` reads, in `docs/recon/`.
   `dcs mission-check` checks the mission running in DCS: every F10 label, every combat zone and combat mission (CAP variants included) switched on and off and counted then left as found, every ground group with a route seen moving within 60 s; one line per check, a verdict, exit code 1 on a failure.
+- **A link copied from the published docs follows the newest release** (FIX-DOC-LATEST-LINKS).
+  The landing page opens on a "latest" card pointing at `/latest/`, and in the version selector the release marked "latest" now opens the same page under `/latest/` instead of under its number; the numbered releases stay listed for a link that must not move.
 
 ### Fixed
 

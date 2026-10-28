@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 from veaf_libs.coordinates import xy_to_latlon
 from veaf_libs.i18n import t
 from veaf_libs.map_labels import Box, LabelPlacer
-from veaf_libs.map_tiles import OSM, BaseMap, Fetch, TileSource, metres_per_pixel, render_base_map
+from veaf_libs.map_tiles import OSM, PLAIN, BaseMap, Fetch, TileSource, metres_per_pixel, render_base_map
 
 from campaign_manager.mission_picture import MissionPicture
 from campaign_manager.strategic_map import _font
@@ -144,6 +144,7 @@ class MapCanvas:
         """A framed canvas's frame: its centre on the background, its width and height, pixels."""
         self._turned = False
         self._reserved: list[Box] = []
+        self._corners: list[Box] = []
         if width is None and not rotation:
             self.lat, self.base = self._fitted(points, margin, aspect, cache_dir, fetch, source)
         else:
@@ -266,7 +267,19 @@ class MapCanvas:
         cx, cy, width, height = self._frame
         whole = Image.alpha_composite(self.background.convert("RGBA"), self.overlay)
         if self.rotation:
-            whole = whole.rotate(self.rotation, resample=Image.Resampling.BICUBIC, center=(cx, cy))
+            # turned steeply, the frame is longer than the background is wide (a north-south route turned by
+            # 70 degrees cut 19 % black, pr-code-review of #1206): turn it on a board that holds the frame
+            reach = math.hypot(width, height) / 2
+            board_w = math.ceil(2 * max(cx, whole.width - cx, reach))
+            board_h = math.ceil(2 * max(cy, whole.height - cy, reach))
+            board = Image.new("RGBA", (board_w, board_h), (*PLAIN, 255))
+            shift = (round(board_w / 2 - cx), round(board_h / 2 - cy))
+            board.paste(whole, shift)
+            # the same turn about the same point, moved with the board: `turned` keeps the background's pixels
+            cx, cy = cx + shift[0], cy + shift[1]
+            whole = board.rotate(
+                self.rotation, resample=Image.Resampling.BICUBIC, center=(cx, cy), fillcolor=(*PLAIN, 255)
+            )
         left, top = round(cx - width / 2), round(cy - height / 2)
         self.background = whole.crop((left, top, left + width, top + height)).convert("RGB")
         self.overlay = Image.new("RGBA", self.background.size, (0, 0, 0, 0))
@@ -306,7 +319,9 @@ class MapCanvas:
         def crowding(box: Box) -> int:
             return sum(1 for r in self._reserved if r[0] < box[2] and box[0] < r[2] and r[1] < box[3] and box[1] < r[3])
 
-        best = min(corners, key=crowding)
+        # a corner handed out once is never handed out again: the north arrow landed on the key on a tie
+        best = min((c for c in corners if c not in self._corners), key=crowding)
+        self._corners.append(best)
         self.reserve(best)
         return best
 

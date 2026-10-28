@@ -238,3 +238,42 @@ class TestTheInset:
         assert "inset" in report.symbols
         for a, b in itertools.combinations(report.labels, 2):
             assert not intersects(a, b), (a, b)
+
+
+class TestTheReviewFindings:
+    """pr-code-review of #1206: a steep turn cut black bands; the north arrow could land on the key."""
+
+    def test_a_north_south_route_turned_near_ninety_degrees_has_no_black_band(self, tmp_path: Path) -> None:
+        from campaign_manager.map_canvas import MapCanvas, best_rotation
+
+        points = [(41.5, 42.0), (43.0, 42.05)]
+        rotation = best_rotation(points, 20_000, 2.0)
+        assert abs(rotation) >= 60
+        canvas = MapCanvas("Caucasus", points, 20_000, tmp_path, _white, aspect=2.0, width=1200, rotation=rotation)
+        canvas.turn()
+        image = Image.open(canvas.save(tmp_path / "steep.png").path).convert("RGB")
+        width, height = image.size
+        row = [image.getpixel((x, height // 2)) for x in range(width)]
+        assert all(max(pixel) > 100 for pixel in row), "black pixels: the frame was cut outside the background"
+
+    def test_two_corners_asked_are_two_different_corners(self, tmp_path: Path) -> None:
+        from campaign_manager.map_canvas import MapCanvas
+
+        canvas = MapCanvas("Caucasus", [(42.0, 41.6), (42.3, 42.1)], 3_000, tmp_path, _white, aspect=2.0, width=800)
+        canvas.turn()
+        first = canvas.free_corner((100, 100))
+        second = canvas.free_corner((100, 100))
+        assert first[:2] != second[:2]
+
+    def test_the_key_leaves_out_what_the_frame_leaves_out(self, tmp_path: Path) -> None:
+        from dataclasses import replace
+
+        inputs = _inputs(tmp_path)
+        picture = inputs["picture"]
+        far = tuple(replace(s, route=tuple((x - 150_000, y) for x, y in s.route)) for s in picture.support)
+        inputs["picture"] = replace(picture, support=far)
+        report = render_overview_map(
+            **inputs, out=tmp_path / "o.png", cache_dir=tmp_path, fetch=_white, aspect=2.0, width=1200
+        )
+        assert "key objective" in report.symbols
+        assert "key awacs" not in report.symbols

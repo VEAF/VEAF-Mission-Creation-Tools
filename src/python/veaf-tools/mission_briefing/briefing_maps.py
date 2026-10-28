@@ -6,11 +6,11 @@ waypoints, objectives, known threats with their engagement circle (plain) and de
 a threat is drawn because the assistant names it, a range because it gives one, with its source.
 Labels never overlap (`veaf_libs/map_labels.py`); without tiles the map stands on a plain background.
 
-Given a ``width`` (FEAT-OBJECTIVE-BRIEFING-QUALITY 02), the overview is framed on what the players fly —
-the route, the departures, the objectives, the threats where they stand — and not on the threats' full
-reach nor the tankers' tracks, which made the route a corner of a 715-pixel map. It is turned when that
-holds it tighter (a north arrow says where north is), drawn at that width with every symbol in
-proportion, and carries its own key, so that the slide gives it its whole width. A zoom given an
+The overview (FEAT-OBJECTIVE-BRIEFING-QUALITY 02) is framed on what the players fly — the route, the
+departures, the objectives, the threats where they stand — and not on the threats' full
+reach nor the tankers' tracks, which made the route a corner of a 715-pixel map, and carries its own
+key, so that the slide gives it its whole width. Given a ``width``, it is turned when that holds it
+tighter (a north arrow says where north is) and drawn at that width with every symbol in proportion. A zoom given an
 ``inset`` carries the overview in a corner, its own place marked on it.
 """
 
@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from campaign_manager.map_canvas import (
+    _AWACS_ORBIT,
     BLACK,
     Label,
     MapCanvas,
@@ -125,23 +126,42 @@ def _sides(side: str) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
     return OWNER_COLOURS[side], OWNER_COLOURS["red" if side == "blue" else "blue"]
 
 
+def _in_frame(canvas: MapCanvas, x: float, y: float, reach: float = 0.0) -> bool:
+    """Whether a mission point, or a circle of ``reach`` metres about it, shows on the saved map."""
+    px, py = canvas.turned(canvas.at_xy(x, y))
+    width, height = canvas.frame_size
+    gap = canvas.pixels(reach)
+    return -gap <= px <= width + gap and -gap <= py <= height + gap
+
+
 def _key_rows(
+    canvas: MapCanvas,
     picture: MissionPicture,
     objectives: list[tuple[Objective, ObjectiveArea]],
     threats: list[tuple[Threat, tuple[float, float]]],
     departures: list[tuple[str, float, float]],
 ) -> list[str]:
-    """What the overview's key explains, in its order: only what the map shows."""
+    """What the overview's key explains, in its order: only what the map shows.
+
+    The frame leaves the tankers' tracks and the QRA zones out when they stand away from the route: the key
+    says them only when they are in it.
+    """
     ranges = [circle for threat, _ in threats for circle in threat_circles(threat)]
-    roles = {support.role for support in picture.support if support.route}
+    roles = {
+        support.role
+        for support in picture.support
+        if support.route and _in_frame(canvas, *support.route[0], _AWACS_ORBIT if support.role == "awacs" else 0)
+    }
+    qra = any(_in_frame(canvas, zone.x, zone.y, zone.radius) for zone in picture.qra_zones)
+    carriers = any(_in_frame(canvas, carrier.x, carrier.y) for carrier in picture.carriers)
     rows = ["objective"] if objectives else []
     rows += ["threat"] if threats else []
     rows += ["engagement"] if any(not dashed for _, dashed in ranges) else []
     rows += ["detection"] if any(dashed for _, dashed in ranges) else []
     rows += ["departure"] if departures else []
     rows += ["route"] if picture.flight_plans else []
-    rows += ["qra"] if picture.qra_zones else []
-    rows += ["carrier"] if picture.carriers else []
+    rows += ["qra"] if qra else []
+    rows += ["carrier"] if carriers else []
     rows += ["awacs"] if "awacs" in roles else []
     rows += ["tanker"] if roles - {"awacs"} else []
     return [*rows, "bullseye"]
@@ -192,6 +212,8 @@ def _draw_key(canvas: MapCanvas, rows: list[str], friend: tuple[int, int, int], 
         _key_symbol(canvas, row, (left + px(8) + px(15), cy), friend, enemy)
         canvas.draw.text((left + px(8) + px(30) + px(8), cy), text, font=font, fill=BLACK, anchor="lm")
     canvas.symbols["key"] = ((left + right) / 2, (top + bottom) / 2)
+    for index, row in enumerate(rows):
+        canvas.symbols[f"key {row}"] = (left + px(23), top + px(6) + line * index + line / 2)
 
 
 def render_overview_map(
@@ -259,7 +281,7 @@ def render_overview_map(
     canvas.turn()
     bar = _bar(canvas, NM, _NM_BARS)
     canvas.scale(bar * NM, f"{bar} nm")
-    _draw_key(canvas, _key_rows(picture, objectives, threats, departures), friend, enemy)
+    _draw_key(canvas, _key_rows(canvas, picture, objectives, threats, departures), friend, enemy)
     if width is not None:
         canvas.north_arrow()
     for box, text, font, colour in labels:

@@ -153,13 +153,14 @@ def test_create_cap_mission_takes_a_menu_name_and_a_briefing(tmp_path: Path) -> 
     (cap,) = load_yaml(folder / "mission.yaml")["cap_missions"]
     assert cap["menu_name"] == "CAP alliée (2 F-15C, MASADA)"
     assert cap["briefing"] == "Deux F-15C au FL250."
-    assert not [w for w in result["warnings"] if isinstance(w, dict) and "key" in w]
+    assert not [w for w in result["warnings"] if "cap_missions key" in str(w)]
 
 
 def test_create_cap_mission_warns_on_a_key_the_build_does_not_read(tmp_path: Path) -> None:
     result = _cap(_folder(tmp_path), cap={"friendly_name": "North", "default": True})
-    keys = [w["key"] for w in result["warnings"] if isinstance(w, dict) and "key" in w]
-    assert keys == ["friendly_name"]
+    unread = [w for w in result["warnings"] if "cap_missions key" in str(w)]
+    assert len(unread) == 1
+    assert "friendly_name" in unread[0]
 
 
 def test_create_qra_with_levels_writes_no_simple_groups(tmp_path: Path) -> None:

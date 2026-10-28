@@ -479,7 +479,7 @@ def create_cap_mission(
         air_warnings = [
             *air_warnings,
             *(
-                {"key": key, "warning": f"'{key}' is not a cap_missions key the build reads, so it does nothing"}
+                f"cap '{key}' is not a cap_missions key the build reads, so it does nothing"
                 for key in cap
                 if key not in CAP_MISSION_KEYS
             ),

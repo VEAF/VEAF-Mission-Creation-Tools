@@ -108,7 +108,9 @@ def test_an_unbuilt_mission_is_refused(tmp_path: Path) -> None:
 
 def test_the_action_hands_the_post_back(tmp_path: Path) -> None:
     folder = _briefed(tmp_path)
-    result = build_promotion({"mission_path": str(folder), "title": "Marteau de Khobi", "tagline": ["Percer le front."]})
+    result = build_promotion(
+        {"mission_path": str(folder), "title": "Marteau de Khobi", "tagline": ["Percer le front."]}
+    )
     assert result["discord_post"].startswith("# Marteau de Khobi")
     assert result["discord_chars"] == len(result["discord_post"])
     assert Path(result["poster"]).is_file() and Path(result["banner"]).is_file()

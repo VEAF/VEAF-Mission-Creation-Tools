@@ -31,6 +31,8 @@ from typing import Any
 
 import yaml
 
+from veaf_libs.i18n import t
+
 #: The state ``net.dostring_in`` calls ``server``: the mission scripting state, where ``coalition``,
 #: ``env`` and the VEAF modules live. Its replies are always strings, so every chunk sent there
 #: returns text this module parses.
@@ -103,10 +105,8 @@ def camera_lua(camera: Camera) -> str:
     def vec(v: Vec3) -> str:
         return f"{{x={v[0]:.6f},y={v[1]:.6f},z={v[2]:.6f}}}"
 
-    return (
-        f"LoSetCameraPosition({{x={vec(camera.forward)},y={vec(camera.up)},z={vec(camera.right)},"
-        f"p={vec(camera.position)}}}) return 'ok'"
-    )
+    order = "LoSetCameraPosition({x=%s,y=%s,z=%s,p=%s}) return 'ok'"
+    return order % (vec(camera.forward), vec(camera.up), vec(camera.right), vec(camera.position))
 
 
 def project(
@@ -657,10 +657,10 @@ def derive_recon_mission(miz: Path, out: Path, start_time: str) -> list[str]:
     patched = _SHOW_NAMES_LUA + config.rstrip("\n") + "\n" + _ACTIVATE_ALL_LUA
     write_miz(mission, out, additional_files={VEAF_CONFIG_MEMBER: patched.encode("utf-8")})
     return [
-        "weather: clear sky, no fog or dust, maximum visibility",
-        f"start time: {start_time}",
-        "every combat zone active at start",
-        "spawned groups keep their zone's name",
+        t("recon.prepare.weather"),
+        t("recon.prepare.time", time=start_time),
+        t("recon.prepare.zones"),
+        t("recon.prepare.names"),
     ]
 
 
@@ -713,7 +713,7 @@ def shoot_plan(
             continue
         selected = select_units(units, side, shot.groups)
         if not selected:
-            progress(f"{shot.name}: nothing matches {shot.groups} — skipped")
+            progress(t("recon.shoot.skipped", name=shot.name, groups=shot.groups))
             continue
         target = target_of(selected)
         camera = camera_for(target[0], target[1], target[2], shot.heading, shot.pitch, shot.slant)
@@ -733,6 +733,6 @@ def shoot_plan(
             shot, camera, selected, target, info, window, latlon_of(info.theatre, target[0], target[1])
         )
         (out_dir / f"{shot.name}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
-        progress(f"{shot.name}: {len(selected)} unit(s), {image.width}x{image.height}")
+        progress(t("recon.shoot.taken", name=shot.name, count=len(selected), width=image.width, height=image.height))
         taken.append(meta)
     return taken

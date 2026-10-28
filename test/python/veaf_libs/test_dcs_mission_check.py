@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 
 import pytest
 from veaf_libs import dcs_mission_check as mc
@@ -23,7 +24,16 @@ from veaf_libs.dcs_mission_check import (
     verdict,
     zone_routed_lua,
 )
+from veaf_libs.i18n import language
 from veaf_libs.lua_syntax import check_lua_syntax
+
+
+@pytest.fixture(autouse=True)
+def _english() -> Iterator[None]:
+    """The assertions read the English report."""
+    with language("en"):
+        yield
+
 
 ZONE = Entity("zone", 'Kiswah"PC', "PC de Kiswah", True, False, 9)
 MISSION = Entity("mission", "CAP-Alliee-Masada/Good/1", "CAP alliée", False, False, 0)

@@ -305,5 +305,5 @@ def render_shot(
     out.parent.mkdir(parents=True, exist_ok=True)
     result.save(out, quality=88)
     if progress:
-        progress(f"{out.name}: {count} mark(s)")
+        progress(t("recon.render.marks", name=out.name, count=count))
     return result.size

@@ -3,13 +3,24 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+import pytest
 from PIL import Image, ImageDraw
 from veaf_libs.dcs_recon import INFO_BAR_PX, LiveUnit, MissionInfo, Shot, camera_for, project, shot_metadata
 from veaf_libs.dcs_window_capture import client_box, is_black
+from veaf_libs.i18n import language
 from veaf_libs.recon_render import RED, felt_ring, marks_of, recce_look, render_shot
+
+
+@pytest.fixture(autouse=True)
+def _english() -> Iterator[None]:
+    """The assertions read the English report."""
+    with language("en"):
+        yield
+
 
 WIDTH, HEIGHT = 1280, 720
 

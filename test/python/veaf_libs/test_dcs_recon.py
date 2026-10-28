@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import zipfile
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +39,15 @@ from veaf_libs.dcs_recon import (
     target_of,
     zone_of,
 )
+from veaf_libs.i18n import language
 from veaf_libs.lua_syntax import check_lua_syntax
+
+
+@pytest.fixture(autouse=True)
+def _english() -> Iterator[None]:
+    """The assertions read the English report."""
+    with language("en"):
+        yield
 
 
 def _norm(v: tuple[float, float, float]) -> float:

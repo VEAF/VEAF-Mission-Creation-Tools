@@ -21,6 +21,7 @@ import math
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from veaf_libs.i18n import t
 from veaf_libs.lua_literals import lua_quoted_string
 
 #: How long a routed group has to start moving.
@@ -241,33 +242,53 @@ def switch_lua(entity: Entity, on: bool) -> str:
     Returns:
         Lua returning ``ok`` or ``unknown``.
     """
-    name = lua_quoted_string(entity.name)
     if entity.kind == "mission":
-        verb = "ActivateMission" if on else "DesactivateMission"
-        return (
-            f"if not veafCombatMission.missionsDict[({name}):lower()] then return 'unknown' end "
-            f"veafCombatMission.{verb}({name}, true) return 'ok'"
-        )
-    if not on:
-        return (
-            f"local zone = veafCombatZone.GetZone({name}) if not zone then return 'unknown' end "
-            f"veafCombatZone.DesactivateZone({name}, true) zone.spawnElement = nil return 'ok'"
-        )
-    return f"""
-local zone = veafCombatZone.GetZone({name})
+        template = _MISSION_ON_LUA if on else _MISSION_OFF_LUA
+    else:
+        template = _ZONE_ON_LUA if on else _ZONE_OFF_LUA
+    return _named(template, entity.name)
+
+
+def _named(template: str, name: str) -> str:
+    """Put a Lua string literal of *name* where *template* says ``__NAME__``."""
+    return template.replace("__NAME__", lua_quoted_string(name))
+
+
+_MISSION_ON_LUA = """
+if not veafCombatMission.missionsDict[(__NAME__):lower()] then return 'unknown' end
+veafCombatMission.ActivateMission(__NAME__, true)
+return 'ok'
+"""
+
+_MISSION_OFF_LUA = """
+if not veafCombatMission.missionsDict[(__NAME__):lower()] then return 'unknown' end
+veafCombatMission.DesactivateMission(__NAME__, true)
+return 'ok'
+"""
+
+_ZONE_OFF_LUA = """
+local zone = veafCombatZone.GetZone(__NAME__)
 if not zone then return 'unknown' end
-veafMissionCheck = veafMissionCheck or {{ mobile = {{}} }}
+veafCombatZone.DesactivateZone(__NAME__, true)
+zone.spawnElement = nil
+return 'ok'
+"""
+
+_ZONE_ON_LUA = """
+local zone = veafCombatZone.GetZone(__NAME__)
+if not zone then return 'unknown' end
+veafMissionCheck = veafMissionCheck or { mobile = {} }
 zone.spawnElement = function(self, element, now)
-  local before = #(self.spawnedGroups or {{}})
+  local before = #(self.spawnedGroups or {})
   local result = VeafCombatZone.spawnElement(self, element, now)
-  local after = self.spawnedGroups or {{}}
+  local after = self.spawnedGroups or {}
   for i = before + 1, #after do
     local ok, mobile = pcall(element.isMobile, element)
     veafMissionCheck.mobile[after[i]] = ok and mobile or false
   end
   return result
 end
-veafCombatZone.ActivateZone({name}, true)
+veafCombatZone.ActivateZone(__NAME__, true)
 return 'ok'
 """
 
@@ -281,16 +302,21 @@ def count_lua(entity: Entity) -> str:
     Returns:
         Lua returning the count as text, or ``unknown``.
     """
-    name = lua_quoted_string(entity.name)
-    if entity.kind == "mission":
-        return (
-            _COUNT_LUA + f"local m = veafCombatMission.missionsDict[({name}):lower()] "
-            "if not m then return 'unknown' end return tostring(missionUnits(m))"
-        )
-    return (
-        _COUNT_LUA + f"local z = veafCombatZone.GetZone({name}) if not z then return 'unknown' end "
-        "return tostring(zoneUnits(z))"
-    )
+    template = _MISSION_COUNT_LUA if entity.kind == "mission" else _ZONE_COUNT_LUA
+    return _COUNT_LUA + _named(template, entity.name)
+
+
+_MISSION_COUNT_LUA = """
+local m = veafCombatMission.missionsDict[(__NAME__):lower()]
+if not m then return 'unknown' end
+return tostring(missionUnits(m))
+"""
+
+_ZONE_COUNT_LUA = """
+local z = veafCombatZone.GetZone(__NAME__)
+if not z then return 'unknown' end
+return tostring(zoneUnits(z))
+"""
 
 
 # --------------------------------------------------------------------------------------------------
@@ -324,18 +350,20 @@ def zone_routed_lua(entity: Entity) -> str:
     Returns:
         Lua returning one group name per line.
     """
-    name = lua_quoted_string(entity.name)
-    return f"""
-local zone = veafCombatZone.GetZone({name})
+    return _named(_ZONE_ROUTED_LUA, entity.name)
+
+
+_ZONE_ROUTED_LUA = r"""
+local zone = veafCombatZone.GetZone(__NAME__)
 if not zone or not veafMissionCheck then return '' end
-local out = {{}}
-for _, groupName in ipairs(zone:getSpawnedGroups() or {{}}) do
+local out = {}
+for _, groupName in ipairs(zone:getSpawnedGroups() or {}) do
   local g = Group.getByName(groupName)
   if veafMissionCheck.mobile[groupName] and g and g:isExist() and g:getCategory() == Group.Category.GROUND then
     out[#out + 1] = groupName
   end
 end
-return table.concat(out, '\\n')
+return table.concat(out, '\n')
 """
 
 
@@ -348,23 +376,25 @@ def speeds_lua(groups: list[str]) -> str:
     Returns:
         Lua source; a group no longer on the map reads ``-1``.
     """
-    names = ", ".join(lua_quoted_string(g) for g in groups)
-    return f"""
-local out = {{}}
-for _, name in ipairs({{{names}}}) do
+    return _SPEEDS_LUA.replace("__NAMES__", ", ".join(lua_quoted_string(g) for g in groups))
+
+
+_SPEEDS_LUA = r"""
+local out = {}
+for _, name in ipairs({__NAMES__}) do
   local g = Group.getByName(name)
   local best = -1
   if g and g:isExist() then
     best = 0
-    for _, u in ipairs(g:getUnits() or {{}}) do
+    for _, u in ipairs(g:getUnits() or {}) do
       local v = u:getVelocity()
       local s = math.sqrt(v.x * v.x + v.z * v.z)
       if s > best then best = s end
     end
   end
-  out[#out + 1] = string.format('%s\\t%.2f', (name:gsub('[\\t\\n]', ' ')), best)
+  out[#out + 1] = string.format('%s\t%.2f', (name:gsub('[\t\n]', ' ')), best)
 end
-return table.concat(out, '\\n')
+return table.concat(out, '\n')
 """
 
 
@@ -443,8 +473,8 @@ def verdict(report: Report) -> str:
     """Write the final verdict line."""
     checked = sum(1 for line in report.lines if line.ok is not None)
     if report.passed:
-        return f"[green]PASS[/] — {checked} check(s), none failed"
-    return f"[red]FAIL[/] — {len(report.failures)} of {checked} check(s) failed"
+        return t("mission_check.verdict.pass", count=checked)
+    return t("mission_check.verdict.fail", failed=len(report.failures), count=checked)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -456,13 +486,13 @@ def check_menu(run: Callable[[str], str], report: Report, say: Callable[[Line], 
     """Check a: every F10 entry VEAF built has a label."""
     nodes = parse_menu(run(MENU_LUA))
     if not nodes:
-        say(report.add(False, "menu", "no VEAF radio menu in this mission"))
+        say(report.add(False, "menu", t("mission_check.line.no_menu")))
         return
     blanks = empty_labels(nodes)
     for node in blanks:
-        say(report.add(False, "menu", f"empty label: {' > '.join(node.path)}"))
+        say(report.add(False, "menu", t("mission_check.line.empty_label", path=" > ".join(node.path))))
     if not blanks:
-        say(report.add(True, "menu", f"{len(nodes)} entries, every one labelled"))
+        say(report.add(True, "menu", t("mission_check.line.menu_ok", count=len(nodes))))
 
 
 def watch_moving(
@@ -499,18 +529,12 @@ def _judge_moving(report: Report, say: Callable[[Line], None], owner: str, speed
     """Add one route line per group."""
     for name, speed in speeds.items():
         if speed < 0:
-            say(report.add(False, "route", f"{owner}: {name} left the map before moving"))
+            say(report.add(False, "route", t("mission_check.line.left_map", owner=owner, group=name)))
         elif speed > MOVING_SPEED:
-            say(report.add(True, "route", f"{owner}: {name} moves ({speed:.1f} m/s)"))
+            say(report.add(True, "route", t("mission_check.line.moves", owner=owner, group=name, speed=f"{speed:.1f}")))
         else:
-            say(
-                report.add(
-                    False,
-                    "route",
-                    f"{owner}: {name} has a route and has not moved in {MOVE_TIMEOUT:.0f} s — "
-                    "an 'On Road' leg with no road to follow?",
-                )
-            )
+            text = t("mission_check.line.frozen", owner=owner, group=name, seconds=f"{MOVE_TIMEOUT:.0f}")
+            say(report.add(False, "route", text))
 
 
 def check_entity(
@@ -527,7 +551,7 @@ def check_entity(
     """
     label = f"{entity.name} ({entity.friendly})" if entity.friendly and entity.friendly != entity.name else entity.name
     if entity.operation:
-        say(report.add(None, entity.kind, f"{label}: an operation, not toggled (it would switch its zones too)"))
+        say(report.add(None, entity.kind, t("mission_check.line.operation", label=label)))
         return
 
     def switch(on: bool) -> int | None:
@@ -547,17 +571,14 @@ def check_entity(
                 _judge_moving(report, say, entity.name, watch_moving(run, routed, sleep))
     on_count, off_count = counts[True], counts[False]
     if on_count is None or off_count is None:
-        say(report.add(False, entity.kind, f"{label}: VEAF does not know this name"))
+        say(report.add(False, entity.kind, t("mission_check.line.unknown", label=label)))
     elif on_count == 0:
-        say(report.add(False, entity.kind, f"{label}: activated, 0 unit after {SPAWN_WAIT:.0f} s"))
+        say(report.add(False, entity.kind, t("mission_check.line.nothing", label=label, seconds=f"{SPAWN_WAIT:.0f}")))
     elif off_count:
-        say(report.add(False, entity.kind, f"{label}: {on_count} unit(s) on, {off_count} still there once off"))
+        say(report.add(False, entity.kind, t("mission_check.line.leftovers", label=label, on=on_count, off=off_count)))
     else:
-        say(
-            report.add(
-                True, entity.kind, f"{label}: {on_count} unit(s) on, 0 off, left {'on' if entity.active else 'off'}"
-            )
-        )
+        key = "mission_check.line.ok_left_on" if entity.active else "mission_check.line.ok_left_off"
+        say(report.add(True, entity.kind, t(key, label=label, on=on_count)))
 
 
 def run_checks(

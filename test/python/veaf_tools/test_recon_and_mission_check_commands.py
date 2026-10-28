@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,15 @@ from typer.testing import CliRunner
 from veaf_libs.blank_mission import generate_blank_mission
 from veaf_libs.dcs_fiddle_client import FiddleError
 from veaf_libs.dcs_recon import INFO_BAR_PX, UNITS_LUA
+from veaf_libs.i18n import language
+
+
+@pytest.fixture(autouse=True)
+def _english() -> Iterator[None]:
+    """The assertions read the English report."""
+    with language("en"):
+        yield
+
 
 UNITS_REPLY = (
     "unit\t1\tSA6Sasa [r] battery#2\tKub 1S91 str\t-190000.0\t9000.0\t800.0\n"

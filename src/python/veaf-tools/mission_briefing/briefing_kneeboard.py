@@ -259,12 +259,15 @@ def flight_card_blocks(
     return blocks
 
 
-def targets_blocks(theatre: str, objectives: list[tuple[str, ObjectiveArea]]) -> list[TextBlock]:
+def targets_blocks(
+    theatre: str, objectives: list[tuple[str, ObjectiveArea]], bullseye: tuple[float, float] | None = None
+) -> list[TextBlock]:
     """Each objective's targets, with their coordinates and, when the theatre has a grid, elevation.
 
     Args:
         theatre: The mission's theatre.
         objectives: Each objective's title and zone.
+        bullseye: The mission's bullseye: each target then says where it stands from it.
 
     Returns:
         One block per objective.
@@ -277,5 +280,9 @@ def targets_blocks(theatre: str, objectives: list[tuple[str, ObjectiveArea]]) ->
             height = grid.elevation_at(target.x, target.y) if grid else None
             elevation = f" — {metres_to_feet(height):.0f} ft" if height is not None else ""
             lines.append(line(target.name, f"{to_dms(*xy_to_latlon(theatre, target.x, target.y))}{elevation}"))
+            if bullseye is not None:
+                dx, dy = target.x - bullseye[0], target.y - bullseye[1]
+                bearing = round(math.degrees(math.atan2(dy, dx))) % 360
+                lines.append(f"      Bullseye {bearing:03d}° / {math.hypot(dx, dy) / NM:.1f} nm")
         blocks.append((title, lines or [t("mission_briefing.no_target")]))
     return blocks

@@ -347,13 +347,21 @@ class MapCanvas:
         return box
 
     def circle(
-        self, centre: tuple[float, float], radius: float, colour: tuple[int, int, int], *, dashed: bool, width: int = 3
+        self,
+        centre: tuple[float, float],
+        radius: float,
+        colour: tuple[int, int, int],
+        *,
+        dashed: bool,
+        width: int = 3,
+        fill: int = 70,
     ) -> None:
+        """A circle, plain and filled at ``fill`` opacity (0 to 255), or dashed and empty."""
         cx, cy = centre
         if not dashed:
             self.draw.ellipse(
                 (cx - radius, cy - radius, cx + radius, cy + radius),
-                fill=(*colour, 70),
+                fill=(*colour, fill),
                 outline=(*colour, 255),
                 width=width,
             )
@@ -445,6 +453,8 @@ def draw_mission(
     friend: tuple[int, int, int],
     enemy: tuple[int, int, int],
     numbers: dict[tuple[float, float], list[str]],
+    *,
+    qra_colour: tuple[int, int, int] | None = None,
 ) -> list[Label]:
     """Draw what the built mission holds — QRA zones, carriers, support, bullseye, numbered waypoints.
 
@@ -453,7 +463,8 @@ def draw_mission(
         picture: What the built mission says.
         friend: The players' colour.
         enemy: The enemy's colour.
-        numbers: :func:`waypoint_numbers` of the picture.
+        numbers: :func:`waypoint_numbers` of the picture; empty when the caller labels the waypoints itself.
+        qra_colour: The QRA zones' colour, each labelled by its name; the enemy's, labelled "QRA", without it.
 
     Returns:
         Their labels, to set once every symbol of the map is drawn.
@@ -463,15 +474,16 @@ def draw_mission(
     for qra in picture.qra_zones:
         centre = canvas.at_xy(qra.x, qra.y)
         radius = canvas.pixels(qra.radius)
-        canvas.circle(centre, radius, enemy, dashed=True, width=px(3))
+        colour = qra_colour or enemy
+        canvas.circle(centre, radius, colour, dashed=True, width=px(3))
         # labelled on its rim, at the north-west, clear of the zones inside it
         rim = (centre[0] - 0.707 * radius, centre[1] - 0.707 * radius)
         labels.append(
             (
                 (rim[0] - 2, rim[1] - 2, rim[0] + 2, rim[1] + 2),
-                t("campaign.mission_deck.map.qra"),
+                qra.name if qra_colour else t("campaign.mission_deck.map.qra"),
                 canvas.small,
-                (*enemy, 255),
+                (*colour, 255),
             )
         )
     carriers: list[Label] = []

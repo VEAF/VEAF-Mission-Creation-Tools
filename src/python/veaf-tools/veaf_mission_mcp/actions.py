@@ -2139,7 +2139,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Call it again after any change and a rebuild: it replaces its own pictures. It writes "
                 "docs/briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
                 "and warns about a W<n> the route does not carry, and about French text written without its "
-                "accents. map_offline = no tiles could be downloaded."
+                "accents. When mission.yaml declares an operation, its tasks are the main objectives, the other "
+                "objectives secondary, and a chained zone (a counter-attack) is in neither list. With flights, the "
+                "frequency plan and the kneeboard flight card are those of the aircraft the flights fly, one block "
+                "per radio plan. map_offline = no tiles could be downloaded."
             ),
             parameters_schema={
                 "type": "object",
@@ -2170,6 +2173,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                 "zone": {"type": "string", "description": "The combat zone's trigger-zone name."},
                                 "title": {"type": "string"},
                                 "task": {**_lines, "description": "What to do there."},
+                                "flights": {
+                                    **_lines,
+                                    "description": "The flights it is for, by callsign: 'Pour : Ninja' on its page.",
+                                },
                             },
                             "required": ["zone", "title"],
                         },
@@ -2204,9 +2211,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "object",
                         "description": (
                             "What is done at a waypoint, by its NAME on the route (PUSH, IP...): shown on its step "
-                            "sheet of the flight plan. A name the route lacks is warned."
+                            "sheet of the flight plan. A name the route lacks is warned. When jets and helicopters "
+                            "share a point's name with different roles, key a map by 'plane' or 'helicopter' "
+                            '({"helicopter": {"KHAN": "..."}}): its note wins on that plan.'
                         ),
-                        "additionalProperties": {"type": "string"},
+                        "additionalProperties": {
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "object", "additionalProperties": {"type": "string"}},
+                            ]
+                        },
                     },
                     "diversions": {
                         **_lines,
@@ -2218,6 +2232,14 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "kneeboard": {
                         "type": "boolean",
                         "description": "Write the kneeboard pages too (default true).",
+                    },
+                    "kneeboard_replace": {
+                        "type": "boolean",
+                        "description": (
+                            "Take the common kneeboard's pages this tool did not write (a hand-made kneeboard) out "
+                            "of the folder (kept in .veaf-backups/) and of every built .miz. Default false: they stay "
+                            "beside the tool's."
+                        ),
                     },
                     "code_words": {
                         "type": "array",

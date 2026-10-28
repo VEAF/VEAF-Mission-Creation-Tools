@@ -18,10 +18,12 @@ from pathlib import Path
 
 from campaign_manager.briefing_deck import Block, Page
 from fpdf import FPDF
+from fpdf.fonts import FontFace
 from PIL import Image
 from veaf_libs.bundled_data import bundled_dir
 
 from mission_briefing.briefing_cards import COLUMNS, ROWS, CardPage
+from mission_briefing.briefing_tables import TablePage
 
 #: The deck's slide size, 16:9 (13.333 x 7.5 in), in millimetres: a page the deck's proportions.
 _PAGE_MM = (190.5, 338.67)
@@ -41,6 +43,8 @@ _NOTE_SIZE = 11 * _SCALE
 _LINE_SPACING = 1.25
 
 _BLUE = (0x1F, 0x5F, 0xBF)
+_TABLE_HEADER = (0x1F, 0x4E, 0xA8)
+_TABLE_STRIPE = (0xF2, 0xF4, 0xF8)
 _GREY = (0x55, 0x55, 0x55)
 
 #: The font family name and the files under ``veaf_libs/data/fonts`` (DejaVu Sans 2.37, free to redistribute).
@@ -90,10 +94,13 @@ class _Pdf(FPDF):
         self.set_title("VEAF briefing")
 
     def say(self, text: str, size: float, *, bold: bool = False, colour: tuple[int, int, int] | None = None) -> None:
-        """One paragraph at the left margin, wrapped, in the given size."""
+        """One paragraph at the left margin, wrapped, in the given size, aligned left.
+
+        fpdf2 justifies a ``multi_cell`` by default; the VEAF template never does (FIX-BRIEFING-PARITY-MARTEAU 07).
+        """
         self.set_font(_FAMILY, "B" if bold else "", size)
         self.set_text_color(*(colour or (0, 0, 0)))
-        self.multi_cell(0, size * 0.3528 * _LINE_SPACING, text, new_x="LMARGIN", new_y="NEXT")
+        self.multi_cell(0, size * 0.3528 * _LINE_SPACING, text, new_x="LMARGIN", new_y="NEXT", align="L")
 
     def headline(self, title: str) -> None:
         """A page's title at the top, shrunk to one line when it is long."""
@@ -124,6 +131,33 @@ def _block(pdf: _Pdf, block: Block) -> None:
         pdf.say(block.heading, _HEADING_SIZE, bold=True, colour=block.colour)
     for paragraph in block.paragraphs:
         pdf.say(paragraph, _BODY_SIZE)
+
+
+def _table_page(pdf: _Pdf, page: TablePage) -> None:
+    """The deck's slide of tables: each under its heading, header filled, rows striped, then the prose."""
+    pdf.add_page()
+    pdf.headline(page.title)
+    for table in page.tables:
+        if table.heading:
+            pdf.say(table.heading, _HEADING_SIZE, bold=True)
+            pdf.ln(1)
+        pdf.set_font(_FAMILY, "", _NOTE_SIZE)
+        pdf.set_text_color(0, 0, 0)
+        with pdf.table(
+            col_widths=table.widths,
+            text_align="LEFT",
+            line_height=_NOTE_SIZE * 0.3528 * _LINE_SPACING,
+            headings_style=FontFace(emphasis="BOLD", color=(255, 255, 255), fill_color=_TABLE_HEADER),
+            cell_fill_color=_TABLE_STRIPE,
+            cell_fill_mode="ROWS",
+            borders_layout="HORIZONTAL_LINES",
+        ) as grid:
+            grid.row(table.columns)
+            for row in table.rows:
+                grid.row(row)
+        pdf.ln(4)
+    for block in page.after:
+        _block(pdf, block)
 
 
 def _map_page(pdf: _Pdf, sheet: MapSheet) -> None:
@@ -221,7 +255,7 @@ def _cover_page(pdf: _Pdf, cover: Cover) -> None:
     pdf.set_left_margin(_MARGIN)
 
 
-def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage | PhotoSheet]) -> int:
+def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage | PhotoSheet | TablePage]) -> int:
     """Write the briefing's PDF: the cover, then each sheet in the deck's order.
 
     Args:
@@ -241,6 +275,8 @@ def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage |
             _card_page(pdf, sheet)
         elif isinstance(sheet, PhotoSheet):
             _photo_page(pdf, sheet)
+        elif isinstance(sheet, TablePage):
+            _table_page(pdf, sheet)
         else:
             _text_page(pdf, sheet)
     out.parent.mkdir(parents=True, exist_ok=True)

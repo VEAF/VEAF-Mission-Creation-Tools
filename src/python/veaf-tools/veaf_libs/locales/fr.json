@@ -1341,6 +1341,7 @@
   "yaml.syntax.title": "# ── Guide rapide de syntaxe YAML ────────────────────────────────────────────",
   "validate.route_contradictory_locks": "groupe « {group} » : le waypoint {waypoint} a une vitesse verrouillée entre des waypoints à temps verrouillé — l'éditeur de mission DCS refuse d'enregistrer cette route. Retirez ETA_locked sur les waypoints après le premier, ou speed_locked sur celui-ci.",
   "validate.route_no_locked_time": "groupe « {group} » : aucun waypoint n'a de temps verrouillé — l'éditeur de mission DCS refuse d'enregistrer cette route. Verrouillez l'heure d'arrivée du premier waypoint.",
+  "validate.unknown_cap_mission_key": "cap_missions « {name} » : « {setting} » n'est pas une clé que le build lit, elle ne fait rien (clés : {known})",
   "campaign.issue.missing_block": "campaign.yaml : le bloc `{block}` manque.",
   "campaign.issue.malformed_block": "campaign.yaml : `{block}` n'a pas la forme attendue.",
   "campaign.issue.missing_name": "campaign.yaml : la campagne n'a pas de `name`.",

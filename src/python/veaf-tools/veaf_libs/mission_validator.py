@@ -19,6 +19,7 @@ Checks:
   8. a ``ctld-config.yaml`` ``extractableGroups`` / ``logisticUnits`` name the mission lacks (warning)
   9. a QRA / AIRWAVES ``CAP`` or ``Intercept`` group whose written route the runtime replaces (warning)
   10. a QRA definition with both ``simple_groups`` and ``groups_by_enemy_count`` (warning)
+  10b. a ``cap_missions[]`` key the generator does not read           (warning)
   11. an ``opposition:`` block the build would refuse                (error)
   12. a ``mission.ground_control`` block the build would refuse      (error)
   13. a ``mission.forced_options`` block the build would refuse      (error)
@@ -99,6 +100,9 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     # 2d. QRA simple_groups written beside scramble levels never deploy
     issues += _check_qra_simple_groups_beside_levels(yaml_data)
 
+    # 2d'. a cap_missions key the generator does not read
+    issues += _check_cap_mission_keys(yaml_data)
+
     # 2e. the opposition level the build would refuse (FEAT-OPPOSITION-SCALES-WITH-PLAYERS)
     issues += _check_opposition(yaml_data)
 
@@ -148,6 +152,33 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_shortcut_eras(yaml_data, mission)
     issues += _check_command_countries(mission)
     return issues
+
+
+def _check_cap_mission_keys(yaml_data: dict) -> list[ValidationIssue]:
+    """Warn on each ``cap_missions[]`` key the generator does not read (FEAT-OBJECTIVE-MISSION-V2 06).
+
+    ``friendly_name`` — the combat zones' word — was written for a CAP's menu name: nothing read it,
+    and the F10 entry came out blank.
+
+    Args:
+        yaml_data: The parsed ``mission.yaml``.
+
+    Returns:
+        One warning per unknown key.
+    """
+    from veaf_libs.lua_config_generator import CAP_MISSION_KEYS
+
+    caps = yaml_data.get("cap_missions")
+    known = ", ".join(sorted(CAP_MISSION_KEYS))
+    return [
+        ValidationIssue(
+            WARNING, t("validate.unknown_cap_mission_key", name=cap.get("group_name"), setting=key, known=known)
+        )
+        for cap in (caps if isinstance(caps, list) else [])
+        if isinstance(cap, dict)
+        for key in cap
+        if key not in CAP_MISSION_KEYS
+    ]
 
 
 def _check_qra_simple_groups_beside_levels(yaml_data: dict) -> list[ValidationIssue]:

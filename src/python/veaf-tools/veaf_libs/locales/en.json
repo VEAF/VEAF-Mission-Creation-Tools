@@ -1341,6 +1341,7 @@
   "yaml.syntax.title": "# ── YAML syntax quick reference ─────────────────────────────────────────────",
   "validate.route_contradictory_locks": "group '{group}': waypoint {waypoint} has a locked speed between waypoints with locked times — the DCS Mission Editor refuses to save this route. Clear ETA_locked on the waypoints after the first, or clear speed_locked on this one.",
   "validate.route_no_locked_time": "group '{group}': no waypoint has a locked time — the DCS Mission Editor refuses to save this route. Lock the arrival time of the first waypoint.",
+  "validate.unknown_cap_mission_key": "cap_missions '{name}': '{setting}' is not a key the build reads, so it does nothing (keys: {known})",
   "campaign.issue.missing_block": "campaign.yaml: the `{block}` block is missing.",
   "campaign.issue.malformed_block": "campaign.yaml: `{block}` does not have the expected shape.",
   "campaign.issue.missing_name": "campaign.yaml: the campaign has no `name`.",

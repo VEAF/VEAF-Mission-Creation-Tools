@@ -12,8 +12,8 @@ from datetime import date
 
 import pytest
 from geographiclib.geodesic import Geodesic  # type: ignore[import-untyped]
-from veaf_libs.coordinates import latlon_to_xy, offset_latlon
 from veaf_libs import magnetic
+from veaf_libs.coordinates import latlon_to_xy, offset_latlon
 from veaf_libs.magnetic import declination, magnetic_bearing, true_bearing
 
 #: The WMM2020 report's test values: year, height (km), latitude, longitude, declination (degrees).
@@ -46,9 +46,17 @@ def test_a_date_counts_by_its_month_as_dcs_does() -> None:
 
 @pytest.mark.parametrize(
     ("when", "epoch"),
-    [(date(1970, 1, 1), 1985), (date(1989, 12, 1), 1985), (date(1990, 1, 1), 1990), (date(2024, 6, 1), 2020), (2031.0, 2025)],
+    [
+        (date(1970, 1, 1), 1985),
+        (date(1989, 12, 1), 1985),
+        (date(1990, 1, 1), 1990),
+        (date(2024, 6, 1), 2020),
+        (2031.0, 2025),
+    ],
 )
-def test_each_date_takes_the_last_epoch_before_it(when: float | date, epoch: int, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_each_date_takes_the_last_epoch_before_it(
+    when: float | date, epoch: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
     read: list[int] = []
     original = magnetic._coefficients
     monkeypatch.setattr(magnetic, "_coefficients", lambda e: read.append(e) or original(e))

@@ -10,6 +10,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the study of Bluestorm V2 and SeaShepherd V2 (2026-10-27): two security fixes, the F10 menu in multiplayer (live pilot, group submenus, per-pilot submenus), combat zone fixes, a carrier option, modules initialized by the mission, the weather welcome switch, named points from a script, the v5 converter, and a page on porting a mission with its own script layer. Fourteen tickets, one PR.
 
+### [FIX-BRIEFING-MAGNETIC-HEADINGS](FIX-BRIEFING-MAGNETIC-HEADINGS/PRD.md) · 🔄
+
+The briefing's headings and bullseye bearings were taken on the DCS grid and printed with no unit, 6.9 degrees off the cockpit on the Golan: they are now magnetic, `°M`, the World Magnetic Model's declination at the mission's date taken off the true bearing, as DCS and the F-16C and F/A-18C read them. One ticket, one PR.
+
 ## 🧑 Waiting for a human
 
 ### [FIX-OPERATION-ZONE-DOUBLE-REGISTRATION](FIX-OPERATION-ZONE-DOUBLE-REGISTRATION/PRD.md) · 🧑

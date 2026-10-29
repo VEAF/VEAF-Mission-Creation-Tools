@@ -216,7 +216,9 @@ class TestFlightCardTable:
             (Waypoint("PUSH", -228000, -30000, 67, "BARO"), Waypoint("KHAN", -203930, -7802, 939, "BARO")),
         )
         with language("fr"):
-            ((heading, columns, _, rows),) = flight_card_tables("Syria", date(2024, 6, 1), [plan], [("Ramat David", -259121, -75105)])
+            ((heading, columns, _, rows),) = flight_card_tables(
+                "Syria", date(2024, 6, 1), [plan], [("Ramat David", -259121, -75105)]
+            )
         assert heading == "Ninja" and columns[2] == "Altitude"
         assert rows[0][0] == "Ramat David" and rows[1][0] == "W1 PUSH" and rows[1][2] == "220 ft BARO"
         assert rows[2][1].endswith(" nm") and rows[2][4].startswith("N33")

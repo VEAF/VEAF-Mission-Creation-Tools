@@ -115,6 +115,13 @@ def test_veaf_tools_extra_data_bundles_known_limitations(tmp_path: Path) -> None
     assert "known-limitations.yaml" in sources
 
 
+def test_veaf_tools_extra_data_bundles_the_magnetic_model(tmp_path: Path) -> None:
+    """The briefing's magnetic bearings read it: without it the exe's briefing fails on its first heading."""
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    pairs = [(src.name, dest) for src, dest in worker._veaf_tools_extra_data(None)]
+    assert ("wmm", "veaf_libs/data/wmm") in pairs
+
+
 def test_veaf_tools_extra_data_bundles_both_payload_files(tmp_path: Path) -> None:
     """dcs_payloads reads both: a frozen build missing the bombers' file fails on the first `list_payloads`."""
     worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)

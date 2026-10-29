@@ -14,7 +14,7 @@ briefing that says where things stand.
 
 import math
 from datetime import date
-from functools import lru_cache
+from functools import cache
 
 from veaf_libs.bundled_data import read_bundled_text
 from veaf_libs.coordinates import xy_to_latlon
@@ -32,7 +32,7 @@ _RE = 6371.2
 Coefficients = dict[tuple[int, int], tuple[float, float, float, float]]
 
 
-@lru_cache(maxsize=None)
+@cache
 def _coefficients(epoch: int) -> Coefficients:
     """One epoch's coefficients, read from its ``.COF`` file: a header, ``n m g h ġ ḣ`` rows, a line of 9s."""
     rows: Coefficients = {}

@@ -1811,3 +1811,16 @@ limitations:
     Walk `zonesList` once per name (`getMissionEditorZoneName`), or look zones up through
     `veafCombatZone.GetZone`, which reads the dictionary.
   fixed_in: "6.34.0"
+
+- id: briefing-ranges-on-the-grid
+  kind: tool
+  area: briefing
+  title: "The briefing's ranges are grid distances"
+  symptom: |
+    `build_mission_briefing` and the campaign deck give their headings and bullseye bearings magnetic
+    (FIX-BRIEFING-MAGNETIC-HEADINGS), but their ranges are still measured on the DCS grid, a Transverse
+    Mercator projection whose scale grows away from its central meridian: a point 10.0 nm true east of
+    Adler's bullseye reads 10.1 nm (measured 2026-10-29, Caucasus, 7 degrees from the meridian).
+  workaround: |
+    None needed under a few percent: 0.1 % on the Golan, about 1 % at Tbilisi. A range read off the
+    briefing near a theatre's edge is that much long.

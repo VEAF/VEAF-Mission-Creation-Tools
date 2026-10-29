@@ -1,6 +1,6 @@
 # FIX-DYNSLOT-RADIO-RANGE — the La-7 templates carry a frequency DCS 2.9.31 no longer accepts
 
-Status: 🔄 in progress
+Status: ✅ done (#1217, 2026-10-29)
 
 Origin: David opening a built "Marteau du Golan" (`VEAF_Syria_MarteauDuGolan_20261028.miz`) in the Mission Editor on 2026-10-29: « Mission cannot be saved due to errors! La-7 Template: Invalid frequency 118.6 MHz / La-7 Template Red: Invalid frequency 121.5 MHz ».
 

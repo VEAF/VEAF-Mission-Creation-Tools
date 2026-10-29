@@ -1,6 +1,6 @@
 # 01 — Radio specs at DCS 2.9.31, the La-7 on its HF radio
 
-Status: 🔄 in progress
+Status: ✅ done (#1217, 2026-10-29)
 
 ## Done when
 

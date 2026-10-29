@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-DYNSLOT-RADIO-RANGE](FIX-DYNSLOT-RADIO-RANGE/PRD.md) · ✅
+
+DCS 2.9.31 moved the La-7 to a 3.7–6.06 MHz HF radio, and its two dynamic-slot templates at 121.5 MHz stop the Mission Editor from saving a built mission (2026-10-29). Radio specs bumped to that DCS build, the radio-less La-7 kept in them, the templates retuned, and a catalogue test (#1217).
+
 ### [REFACTOR-BRIDGE-ONLY](REFACTOR-BRIDGE-ONLY/PRD.md) · ✅
 
 One way to talk to a running DCS (David, 2026-10-28): `recon-*`, `mission-check`, `smoke-test` and the airfield frequency capture move from the DCS Fiddle hook to the VEAF bridge, and the hook goes. One PR, before release 6.34.0.

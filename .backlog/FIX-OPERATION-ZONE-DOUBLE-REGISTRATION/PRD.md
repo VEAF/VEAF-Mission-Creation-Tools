@@ -1,6 +1,6 @@
 # FIX-OPERATION-ZONE-DOUBLE-REGISTRATION — a combat zone an operation lists is registered once
 
-Status: 🔄 in progress
+Status: 🧑 waiting-human
 
 Origin: validating `veaf-tools dcs mission-check` (FEAT-DCS-RECON-AND-MISSION-CHECK, #1207) in a running DCS on "Marteau du Golan" (Syria), 2026-10-28.
 

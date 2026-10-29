@@ -1,6 +1,6 @@
 # FEAT-DCS-RECON-AND-MISSION-CHECK — reconnaissance photos and an in-game mission check, from a running DCS
 
-Status: 🔄 in progress
+Status: ✅ done
 
 Two things the "Marteau du Golan" session (Syria, 2026-10-28) did by hand against a running DCS, through the `dcs-fiddle` hook, and that every objective mission needs again.
 The prototype lives in that mission's `docs/build/recon/` (`fiddle.py`, `shoot.py`, `proj.py`, `process.py`, `menu.lua`, `zones*.lua`, `cap.lua`, `reroute.lua`); its logic is taken over, not its code.

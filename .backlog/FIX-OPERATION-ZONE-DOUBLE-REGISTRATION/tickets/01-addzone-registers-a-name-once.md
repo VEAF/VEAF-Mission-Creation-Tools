@@ -1,6 +1,6 @@
 # 01 — AddZone registers a name once
 
-Status: 🔄 in progress
+Status: 🧑 waiting-human
 
 ## Done when
 

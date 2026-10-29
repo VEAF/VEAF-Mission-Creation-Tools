@@ -6,6 +6,22 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-BRIEFING-PARITY-MARTEAU-2](FIX-BRIEFING-PARITY-MARTEAU-2/PRD.md) · ✅
+
+What the retest of #1210 still found in "Marteau du Golan"'s briefing (2026-10-28): bases, flight levels and one helicopter route on the overview, a combat map the key does not cover, frequency headings of their own, a prerequisite objective, the kneeboard flight card as a table, levels and support in the ATO. One PR. Shipped in #1212.
+
+### [FEAT-OBJECTIVE-MISSION-V2](FEAT-OBJECTIVE-MISSION-V2/PRD.md) · ✅
+
+What "Marteau du Golan" did by hand, in the tools (2026-10-28): the objective prompt (prose validated first, a Mission Maker sheet, ways out, code words), a combat-area map, kneeboard maps turned attack axis up, recon photos, seven tool fixes, a poster, a calendar banner and a Discord post. Twelve tickets, one PR; the in-game half is another lot. Shipped in #1208.
+
+### [FEAT-DCS-RECON-AND-MISSION-CHECK](FEAT-DCS-RECON-AND-MISSION-CHECK/PRD.md) · ✅
+
+Two commands against a running DCS, through the `dcs-fiddle` hook, from the "Marteau du Golan" session (2026-10-28): `dcs recon-photos` (a shooting copy of the mission, the F11 camera on each objective's engagement axis, reconnaissance-look JPEGs with felt-pen marks) and `dcs mission-check` (F10 labels, every combat zone and mission toggled and counted, every routed group seen moving). One PR. Shipped in #1207.
+
+### [FEAT-OBJECTIVE-BRIEFING-QUALITY](FEAT-OBJECTIVE-BRIEFING-QUALITY/PRD.md) · ✅
+
+David's six points on the briefing `build_mission_briefing` wrote for "Marteau du Golan" (2026-10-28): the ATO of dynamic slots, a readable overview, an inset on the zooms and target sheets, strategic situation and prose, a step-by-step flight plan and a deployment page, kneeboard flight cards without the radio plan. Six tickets, one PR. Shipped in #1206.
+
 ### [FIX-DYNSLOT-RADIO-RANGE](FIX-DYNSLOT-RADIO-RANGE/PRD.md) · ✅
 
 DCS 2.9.31 moved the La-7 to a 3.7–6.06 MHz HF radio, and its two dynamic-slot templates at 121.5 MHz stop the Mission Editor from saving a built mission (2026-10-29). Radio specs bumped to that DCS build, the radio-less La-7 kept in them, the templates retuned, and a catalogue test (#1217).

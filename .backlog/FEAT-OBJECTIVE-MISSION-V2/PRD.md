@@ -1,6 +1,6 @@
 # FEAT-OBJECTIVE-MISSION-V2 — what "Marteau du Golan" did by hand, in the tools
 
-Status: 🔄 in progress
+Status: ✅ done
 
 "Marteau du Golan" (Syria, VMCT 6.33.0, flown 2026-10-29) was designed with the AI and the tools, then finished by hand: the briefing's prose validated before any layout, a separate sheet for the Mission Maker, a combat-area map, kneeboard maps turned attack axis up, recon photos, a poster, a calendar banner and a Discord post.
 David found the hand-made briefing far better than the tool's, and asked for what was done by hand to become part of the process (2026-10-28, after FEAT-OBJECTIVE-BRIEFING-QUALITY, #1206).

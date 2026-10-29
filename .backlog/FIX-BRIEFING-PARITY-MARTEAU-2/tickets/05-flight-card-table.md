@@ -1,6 +1,6 @@
 # 05 — The kneeboard flight card as a table
 
-Status: 🔄 in progress
+Status: ✅ done
 
 The flight card was a list without the altitudes.
 

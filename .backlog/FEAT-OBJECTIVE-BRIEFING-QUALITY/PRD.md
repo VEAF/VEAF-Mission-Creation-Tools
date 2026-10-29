@@ -1,6 +1,6 @@
 # FEAT-OBJECTIVE-BRIEFING-QUALITY — an objective mission's briefing a squadron can brief from
 
-Status: 🔄 in progress
+Status: ✅ done
 
 David's review of the briefing `build_mission_briefing` wrote for "Marteau du Golan" (Syria, VMCT 6.33.0, flown 2026-10-29), six points.
 Measured on that mission's `docs/briefing.pptx`: the ATO ran over six slides listing the 61 aircraft types each of the two bases offers in dynamic slots; the overview was 715 × 628 px beside a legend taking half the slide; the targets page was a list of names and DMS; the kneeboard flight cards were mostly the radio presets the build had already put in the cockpits.

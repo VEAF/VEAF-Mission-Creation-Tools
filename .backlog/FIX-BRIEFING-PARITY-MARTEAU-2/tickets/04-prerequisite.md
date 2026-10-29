@@ -1,6 +1,6 @@
 # 04 — A prerequisite objective
 
-Status: 🔄 in progress
+Status: ✅ done
 
 The SA-6 the helicopters wait for was 'secondary' because it is outside the operation; the hand-made deck called it a prerequisite.
 

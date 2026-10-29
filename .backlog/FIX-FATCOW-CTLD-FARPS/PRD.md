@@ -1,6 +1,6 @@
 # FIX-FATCOW-CTLD-FARPS — GRASS leaves CTLD's Fat Cow FARPs alone, and the CH-47F gets CSAR
 
-Status: 🔄 in progress
+Status: ✅ done (2026-10-29)
 
 Origin: the evening server run of CTLD's Fat Cow (VEAF/CTLD#273, Privé 1, 2026-10-26, Zip, Griffin, Paluche), findings 3 and 5 of its ticket 06.
 

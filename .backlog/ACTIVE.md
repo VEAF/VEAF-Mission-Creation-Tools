@@ -26,10 +26,6 @@ An operation's `addTaskingOrder` registered again a zone the configuration had a
 
 David's six points on the briefing `build_mission_briefing` wrote for "Marteau du Golan" (2026-10-28): the ATO of dynamic slots, a readable overview, an inset on the zooms and target sheets, strategic situation and prose, a step-by-step flight plan and a deployment page, kneeboard flight cards without the radio plan. Six tickets, one PR.
 
-### [FIX-FATCOW-CTLD-FARPS](FIX-FATCOW-CTLD-FARPS/PRD.md) · 🔄
-
-GRASS refilled CTLD's Fat Cow FARPs on every birth, making a cow unlimited, and CSAR gave the CH-47F no menu: GRASS now skips `CTLD_` FARPs and `csar.aircraftType` lists `CH-47Fbl1` (24). From the Fat Cow server run of 2026-10-26 (VEAF/CTLD#273).
-
 ### [FEAT-BFR-V6-SUPPORT](FEAT-BFR-V6-SUPPORT/PRD.md) · 🔄
 
 What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the study of Bluestorm V2 and SeaShepherd V2 (2026-10-27): two security fixes, the F10 menu in multiplayer (live pilot, group submenus, per-pilot submenus), combat zone fixes, a carrier option, modules initialized by the mission, the weather welcome switch, named points from a script, the v5 converter, and a page on porting a mission with its own script layer. Fourteen tickets, one PR.

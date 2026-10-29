@@ -1,6 +1,6 @@
 # 01 — GRASS skips CTLD FARPs, CH-47F in CSAR
 
-Status: 🔄 in progress
+Status: ✅ done (#1202)
 
 ## Done when
 

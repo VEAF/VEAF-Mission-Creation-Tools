@@ -118,6 +118,15 @@ def true_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
     The direction to the second point, laid on the first one's horizon: within 0.001 degree of the geodesic
     up to 400 km, where a sphere is 0.1 degree off, enough to turn a rounded heading.
+
+    Args:
+        lat1: The first point's latitude, degrees.
+        lon1: Its longitude, degrees.
+        lat2: The second point's latitude, degrees.
+        lon2: Its longitude, degrees.
+
+    Returns:
+        Degrees clockwise from true north.
     """
     (x1, y1, z1), (x2, y2, z2) = _ecef(lat1, lon1), _ecef(lat2, lon2)
     dx, dy, dz = x2 - x1, y2 - y1, z2 - z1
@@ -169,7 +178,16 @@ def grid_heading_to_magnetic(theatre: str, when: date, at: tuple[float, float], 
 
 
 def grid_heading_to_true(theatre: str, at: tuple[float, float], heading: float) -> float:
-    """A heading on the mission's grid made true, degrees in [0, 360): see :func:`grid_heading_to_magnetic`."""
+    """A heading on the mission's grid made true: see :func:`grid_heading_to_magnetic`.
+
+    Args:
+        theatre: The mission's theatre.
+        at: Where the heading is held, DCS ``(x, y)``, metres.
+        heading: Degrees clockwise from the grid's ``x``.
+
+    Returns:
+        Degrees from true north, in ``[0, 360)``.
+    """
     return true_bearing(*xy_to_latlon(theatre, *at), *xy_to_latlon(theatre, *_ahead(at, heading)))
 
 
@@ -185,6 +203,15 @@ def ground_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> flo
     The straight line between them, bent onto the surface by the radius of curvature in the direction of
     travel: within 2 cm of GeographicLib's geodesic up to 550 km. The grid's distances are off by the
     projection's scale, 0.1 % on the Golan, 1 % at Tbilisi.
+
+    Args:
+        lat1: The first point's latitude, degrees.
+        lon1: Its longitude, degrees.
+        lat2: The second point's latitude, degrees.
+        lon2: Its longitude, degrees.
+
+    Returns:
+        Metres; ``0`` for one point.
     """
     (x1, y1, z1), (x2, y2, z2) = _ecef(lat1, lon1), _ecef(lat2, lon2)
     chord = math.dist((x1, y1, z1), (x2, y2, z2))

@@ -121,7 +121,14 @@ def mission_theatre(mission_path: Path) -> str:
 
 
 def mission_date(mission_path: Path) -> date:
-    """Return the mission's date, DCS's 1 June 2016 when it has none (as ``read_mission_picture``)."""
+    """Return the mission's date, for its magnetic declination.
+
+    Args:
+        mission_path: A `.miz` file or a mission folder.
+
+    Returns:
+        Its date; 1 June 2016 when it has none, as ``read_mission_picture``.
+    """
     stored = (_load_mission(mission_path).mission_content or {}).get("date") or {}
     return date(int(stored.get("Year", 2016)), int(stored.get("Month", 6)), int(stored.get("Day", 1)))
 

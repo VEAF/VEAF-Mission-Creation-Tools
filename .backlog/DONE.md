@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-FATCOW-CTLD-FARPS](FIX-FATCOW-CTLD-FARPS/PRD.md) · ✅
+
+GRASS refilled CTLD's Fat Cow FARPs on every birth, making a cow unlimited, and CSAR gave the CH-47F no menu: GRASS now skips `CTLD_` FARPs and `csar.aircraftType` lists `CH-47Fbl1` (24). From the Fat Cow server run of 2026-10-26 (VEAF/CTLD#273). Demo step in VEAF/VEAF-Demo-Mission-v6#12 (2026-10-29).
+
 ### [CHORE-CI-PYTHON-SPEED](CHORE-CI-PYTHON-SPEED/PRD.md) · ✅
 
 The `pytest` step of `python-quality` grew from 5 to 21–25 min in two weeks, for 4 % more tests: the briefing tests built a whole briefing per test. One build per module, and the suite in parallel with `pytest-xdist` (2026-10-28). Shipped in #1213: 20 min 47 s → 7 min 58 s in CI.

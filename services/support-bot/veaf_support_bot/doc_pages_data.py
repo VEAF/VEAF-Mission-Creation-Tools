@@ -53,7 +53,7 @@ PAGES_BY_TITLE: Final[dict[str, dict[str, str]]] = {
         "roadmap": "ROADMAP.en.md",
         "routes and tables": "mission-maker/build-messages/routes-and-tables.en.md",
         "scripts reference — veaf lua modules": "mission-maker/scripts/README.en.md",
-        "smoke harness — assert veaf inside a real dcs": "developer/smoke-harness.en.md",
+        "smoke harness — checking veaf inside a real dcs": "developer/smoke-harness.en.md",
         "spawnable groups": "mission-maker/concepts/spawnables.en.md",
         "testing guide": "TESTING.en.md",
         "the build": "mission-maker/concepts/build.en.md",

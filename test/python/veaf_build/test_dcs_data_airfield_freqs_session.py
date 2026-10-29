@@ -145,3 +145,17 @@ def test_the_gui_chunk_parses() -> None:
         [lua, "-e", f"print(loadstring({json.dumps(S.gui_capture_lua())}) and 'OK')"], capture_output=True, text=True
     )
     assert result.stdout.strip() == "OK", result.stderr
+
+
+def test_waiting_stops_at_once_on_a_lua_error_or_another_program_on_the_port() -> None:
+    from veaf_libs.dcs_bridge_capture import BridgeHttpError, BridgeLuaError
+
+    for error in (BridgeLuaError("the Lua raised in the mission: x"), BridgeHttpError(404, "not found")):
+
+        def exec_lua(_code: str, error: Exception = error) -> Any:
+            raise error
+
+        clock = _Clock()
+        with pytest.raises(type(error)):
+            S.wait_for_theatre(exec_lua, "Syria", 900, clock=clock, sleep=clock.sleep)
+        assert clock.now == 0.0

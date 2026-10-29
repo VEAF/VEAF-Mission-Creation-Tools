@@ -269,3 +269,32 @@ def test_mission_check_prepare_writes_a_test_copy_with_the_bridge(app: Any, tmp_
     assert _carries_the_bridge(tmp_path / "Golan_CHECK.miz")
     assert "mission-check" in result.output
     assert sorted(p.name for p in tmp_path.rglob("*.miz")) == ["Golan.miz", "Golan_CHECK.miz"]
+
+
+def test_a_mission_already_carrying_the_bridge_does_not_get_a_second_one(
+    app: Any, tmp_path: Path, bridge_lua: Path
+) -> None:
+    """Two copies of the bridge open two connections to dcs-serve, which keeps only one."""
+    miz = create_miz(tmp_path / "Golan.miz", generate_blank_mission("syria"))
+    first = CliRunner().invoke(app, ["mission-check-prepare", str(miz), "--bridge-lua", str(bridge_lua)])
+    assert first.exit_code == 0, first.output
+    once = tmp_path / "Golan_CHECK.miz"
+    again = CliRunner().invoke(app, ["mission-check-prepare", str(once), "--bridge-lua", str(bridge_lua)])
+    assert again.exit_code == 0, again.output
+    content = read_miz(tmp_path / "Golan_CHECK_CHECK.miz").mission_content or {}
+    actions = [str(a) for a in (content.get("trig") or {}).get("actions", {}).values()]
+    assert sum("dcs-bridge" in a for a in actions) == 1
+
+
+def test_a_ctrl_c_while_waiting_stops_the_dcs_serve_it_started(
+    app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bridge = FakeBridge()
+    monkeypatch.setattr("veaf_tools.bridge.open_session", lambda *a, **kw: bridge)
+
+    def interrupted(*args: Any, **kwargs: Any) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("veaf_tools.bridge.wait_for_mission", interrupted)
+    CliRunner().invoke(app, ["recon-plan", "--out", str(tmp_path / "s.yaml")])
+    assert bridge.closed

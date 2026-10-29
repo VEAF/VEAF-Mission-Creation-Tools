@@ -46,5 +46,10 @@ def open_bridge(
         session.close()
         console.print(f"[red]✗[/]  {error}")
         raise typer.Exit(code=1) from error
+    except BaseException:
+        # Ctrl+C while waiting: the session is not handed back yet, so nobody else would stop the
+        # dcs-serve started for it — and off Windows it runs in a process group of its own.
+        session.close()
+        raise
     console.print(t("bridge.connected"))
     return session

@@ -261,10 +261,14 @@ def inject_bridge_in_memory(mission: Any, bridge_lua: Path) -> dict[str, bytes]:
         bridge_lua: Local path to the ``dcs-bridge.lua`` to embed.
 
     Returns:
-        The archive members to pass to ``write_miz`` as ``additional_files``.
+        The archive members to pass to ``write_miz`` as ``additional_files`` — none when the mission
+        already carries the bridge (a build with ``dcs_bridge``, or a copy made twice): a second copy of
+        ``dcs-bridge.lua`` would open a second connection to ``dcs-serve``, which keeps only one.
     """
     from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger_in_memory  # noqa: PLC0415
 
+    if "dcs-bridge.lua" in (mission.map_resource_content or {}).values():
+        return {}
     _index, files = add_startup_script_trigger_in_memory(
         mission,
         mode="file_static",

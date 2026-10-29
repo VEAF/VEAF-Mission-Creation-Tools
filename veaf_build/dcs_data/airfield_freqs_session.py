@@ -26,7 +26,12 @@ from veaf_libs.blank_mission import (  # type: ignore[import-not-found]
     generate_blank_mission,
     is_theatre_supported,
 )
-from veaf_libs.dcs_bridge_capture import BridgeAuthError, inject_bridge_in_memory  # type: ignore[import-not-found]
+from veaf_libs.dcs_bridge_capture import (  # type: ignore[import-not-found]
+    BridgeAuthError,
+    BridgeHttpError,
+    BridgeLuaError,
+    inject_bridge_in_memory,
+)
 
 from veaf_build.dcs_data import airfield_freqs as A
 
@@ -150,8 +155,12 @@ def wait_for_theatre(
             if current != "none" and current not in seen:
                 seen.add(current)
                 on_other(current)
-        except BridgeAuthError:
-            raise  # refused credentials stay refused: waiting would only hide the reason
+        except (BridgeAuthError, BridgeLuaError):
+            raise  # a refused key, or a chunk that raised, stays so: waiting would only hide the reason
+        except BridgeHttpError as exc:
+            if exc.code != 503:  # 503 is dcs-serve with no mission yet; anything else is not a dcs-serve
+                raise
+            last = str(exc)
         except RuntimeError as exc:
             last = str(exc)
         if clock() >= deadline:

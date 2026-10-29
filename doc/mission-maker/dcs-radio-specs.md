@@ -6,7 +6,7 @@ par les joueurs. Utilisée par `inject-presets` pour vérifier que les fréquenc
 
 <!-- BEGIN generated: source note -->
 > **Source**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  
-> Révision source: `fdd11ed960d5402909a876558b7bec3b2653b268`  
+> Révision source: `72ea893c452c728267d78a3bd481ca59501ce709`  
 > Régénérer avec `veaf-build update-dcs-data --radio` après un changement de révision.
 <!-- END generated: source note -->
 
@@ -269,7 +269,7 @@ Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait
 |  |  |  | 220.000 | 390.000 | AM / FM |
 | **L-39ZA** | `L-39ZA` | R-832M | 118.000 | 140.000 | AM / FM |
 |  |  |  | 220.000 | 390.000 | AM / FM |
-| **La-7** | `La-7` | SCR522 | 100.000 | 156.000 | AM / FM |
+| **La-7** | `La-7` | HF | 3.700 | 6.060 | AM |
 | **M-2000C** | `M-2000C` | UHF Radio | 225.000 | 400.000 | AM / FM |
 |  |  | V/UHF Radio | 118.000 | 140.000 | AM / FM |
 |  |  |  | 225.000 | 400.000 | AM / FM |
@@ -287,6 +287,8 @@ Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait
 |  |  |  | 137.000 | 155.975 | AM / FM |
 |  |  |  | 156.000 | 173.975 | AM / FM |
 |  |  |  | 225.000 | 399.975 | AM / FM |
+| **MiG-15bis** | `MiG-15bis` | RSI-6K | 3.750 | 5.000 | AM |
+| **MiG-15bis FC** | `MiG-15bis_FC` | RSI-6K | 3.750 | 5.000 | AM |
 | **MiG-19P** | `MiG-19P` | RSIU-4V Radio | 100.000 | 150.000 | AM / FM |
 | **MiG-21Bis** | `MiG-21Bis` | R-832 | 118.000 | 140.000 | AM / FM |
 |  |  |  | 220.000 | 390.000 | AM / FM |
@@ -364,8 +366,6 @@ Un appareil sans bloc `human_radio` n'impose aucune borne : la promotion se fait
 | **TF-51D** | `TF-51D` | SCR-522 | 38.000 | 156.000 | AM / FM |
 |  |  | BC-1206 | 100.000 | 200.000 | AM / FM |
 | **Yak-52** | `Yak-52` | ARK-15M | 0.100 | 1.795 | AM / FM |
-| **RSI-6K** | `MiG-15bis` | RSI-6K | 3.750 | 5.000 | AM |
-| **RSI-6K** | `MiG-15bis_FC` | RSI-6K | 3.750 | 5.000 | AM |
 | **Su-27** | `Su-27` | UHF (SRS) | 225.000 | 399.975 | AM |
 |  |  | VHF (SRS) | 108.000 | 155.995 | AM |
 |  |  | FM (SRS) | 30.000 | 87.975 | FM |

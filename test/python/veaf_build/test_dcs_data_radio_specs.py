@@ -14,6 +14,7 @@ from veaf_build.radio_specs_updater import (
     HumanRadio,
     apply_overrides,
     build_primary_block,
+    drop_specs_without_radios,
     load_overrides,
     parse_display_name,
     parse_human_radio,
@@ -274,6 +275,58 @@ class TestOverrides:
 
         with pytest.raises(KeyError, match="NotAnAircraft"):
             apply_overrides([_spec("F-16C_50", (225.0, 400.0), None)], {"NotAnAircraft": {"dcs_rejects_on_load": True}})
+
+    def test_a_radio_less_extraction_takes_the_declared_radio_and_keeps_its_human_radio(self) -> None:
+        # DCS 2.9.31 took the La-7's `panelRadio` away and left a 3.7-6.06 MHz `HumanRadio`. The
+        # extraction keeps such an airframe without a radio, and the overlay supplies the radio: the
+        # primary bounds come from the datamine, not from a copy in the overlay.
+        extracted = AircraftSpec(
+            dcs_id="La-7", display_name="La-7", category="plane", human_radio=HumanRadio(3.7, 6.06, 3.7, "AM")
+        )
+        specs = [extracted]
+        apply_overrides(
+            specs,
+            {
+                "La-7": {
+                    "add_aircraft": {
+                        "name": "ignored",
+                        "category": "plane",
+                        "radios": [{"name": "HF", "ranges": [{"min_mhz": 3.7, "max_mhz": 6.06, "modulation": "AM"}]}],
+                    }
+                }
+            },
+        )
+        assert specs == [extracted]
+        assert extracted.display_name == "La-7"
+        assert extracted.human_radio == HumanRadio(3.7, 6.06, 3.7, "AM")
+        assert extracted.radios[0].ranges == [FrequencyRange(min_mhz=3.7, max_mhz=6.06, modulation="AM")]
+
+    def test_radio_less_airframes_left_after_the_overlay_are_dropped(self) -> None:
+        # The B-52H and 66 other AI-only airframes have a bounded `HumanRadio` and no radio: they stay
+        # out of the specs, as before, rather than becoming "known with no radio" for the injector.
+        ai_only = AircraftSpec(
+            dcs_id="B-52H", display_name="B-52H", category="plane", human_radio=HumanRadio(100.0, 399.975, 251.0, "AM")
+        )
+        flyable = _spec("F-16C_50", (225.0, 400.0), None)
+        assert drop_specs_without_radios([ai_only, flyable]) == [flyable]
+
+    def test_shipped_overlay_declares_the_la7_hf_radio(self) -> None:
+        # Without it the bumped specs lose the La-7, every check treats it as unknown, and a VHF
+        # preset channel is promoted to a primary the Mission Editor refuses (FIX-DYNSLOT-RADIO-RANGE).
+        radios = load_overrides()["La-7"]["add_aircraft"]["radios"]
+        assert [(r["min_mhz"], r["max_mhz"]) for radio in radios for r in radio["ranges"]] == [(3.7, 6.06)]
+
+    @pytest.mark.parametrize(
+        ("dcs_id", "bounds"), [("La-7", (3.7, 6.06)), ("MiG-15bis", (3.75, 5.0)), ("MiG-15bis_FC", (3.75, 5.0))]
+    )
+    def test_shipped_specs_bound_the_hf_airframes_primary(self, dcs_id: str, bounds: tuple[float, float]) -> None:
+        # The generated file, not the generator: an HF airframe the specs do not bound is unchecked,
+        # which is how the La-7 templates kept 121.5 MHz through DCS 2.9.31.
+        from presets_injector.radio_frequency_validator import get_human_radio
+
+        human_radio = get_human_radio(dcs_id)
+        assert human_radio is not None
+        assert (human_radio.min_mhz, human_radio.max_mhz) == bounds
 
     def test_shipped_overlay_covers_the_ajs37_fm_set(self) -> None:
         overrides = load_overrides()

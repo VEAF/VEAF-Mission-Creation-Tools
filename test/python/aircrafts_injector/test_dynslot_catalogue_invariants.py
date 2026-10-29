@@ -27,6 +27,7 @@ from typing import Any
 import yaml
 from aircrafts_injector import AircraftGroupsYAMLValidator
 from aircrafts_injector.catalogue import iter_groups
+from presets_injector.radio_frequency_validator import fits_human_radio, get_human_radio
 from veaf_libs.dcs_units_data import get_unit_category
 
 _REPO_ROOT = Path(__file__).parents[3]
@@ -254,6 +255,21 @@ class DynSlotCatalogueInvariantsTest(unittest.TestCase):
             for unit in tpl.units:
                 with self.subTest(template=str(tpl)):
                     self.assertIsNotNone(get_unit_category(str(unit.get("type"))), unit.get("type"))
+
+    def test_every_frequency_fits_its_aircraft_radio(self) -> None:
+        """The Mission Editor refuses to save a group whose frequency its airframe cannot tune: DCS
+        2.9.31 moved the La-7 to a 3.7-6.06 MHz HF set, and both La-7 templates still carried
+        121.5 (FIX-DYNSLOT-RADIO-RANGE). Checked against the committed radio specs, so the next DCS
+        change shows here once the datamine pin is bumped."""
+        for tpl in self.templates:
+            for unit in tpl.units:
+                with self.subTest(template=str(tpl)):
+                    unit_type = str(unit.get("type"))
+                    frequency = float(tpl.group["frequency"])
+                    self.assertTrue(
+                        fits_human_radio(unit_type, frequency),
+                        f"{frequency} MHz is outside {unit_type}'s {get_human_radio(unit_type)}",
+                    )
 
     def test_every_cap_template_carries_a_loadout(self) -> None:
         """`loadout_from` a CAP template is how an AI flight of a module aircraft is armed: the

@@ -1,6 +1,6 @@
 # DCS aircraft radio frequency specifications
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Source ref: fdd11ed960d5402909a876558b7bec3b2653b268
+# Source ref: 72ea893c452c728267d78a3bd481ca59501ce709
 # Re-run `veaf-build update-dcs-data --radio` to update after a pin bump.
 #
 # Structure:
@@ -872,17 +872,17 @@ L-39ZA:
 La-7:
   category: plane
   human_radio:
-    default_mhz: 124.0
-    max_mhz: 156.0
-    min_mhz: 100.0
+    default_mhz: 3.7
+    max_mhz: 6.06
+    min_mhz: 3.7
     modulation: AM
   name: La-7
   radios:
-  - name: SCR522
+  - name: HF
     ranges:
-    - max_mhz: 156.0
-      min_mhz: 100.0
-      modulation: AM/FM
+    - max_mhz: 6.06
+      min_mhz: 3.7
+      modulation: AM
 M-2000C:
   category: plane
   human_radio:
@@ -1014,7 +1014,12 @@ Mi-8MT:
 MiG-15bis:
   category: plane
   dcs_rejects_on_load: true
-  name: RSI-6K
+  human_radio:
+    default_mhz: 3.75
+    max_mhz: 5.0
+    min_mhz: 3.75
+    modulation: AM
+  name: MiG-15bis
   radios:
   - name: RSI-6K
     ranges:
@@ -1024,7 +1029,12 @@ MiG-15bis:
 MiG-15bis_FC:
   category: plane
   dcs_rejects_on_load: true
-  name: RSI-6K
+  human_radio:
+    default_mhz: 3.75
+    max_mhz: 5.0
+    min_mhz: 3.75
+    modulation: AM
+  name: MiG-15bis FC
   radios:
   - name: RSI-6K
     ranges:

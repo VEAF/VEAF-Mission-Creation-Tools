@@ -134,6 +134,40 @@ def load_overrides(path: Path | None = None) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
+def _declared_radios(declared: dict) -> list[AircraftRadio]:
+    """Build the radios an overlay ``add_aircraft`` entry declares."""
+    return [
+        AircraftRadio(
+            name=radio["name"],
+            ranges=[
+                FrequencyRange(
+                    min_mhz=rng["min_mhz"],
+                    max_mhz=rng["max_mhz"],
+                    modulation=rng.get("modulation", "AM/FM"),
+                )
+                for rng in radio["ranges"]
+            ],
+        )
+        for radio in declared.get("radios", [])
+    ]
+
+
+def drop_specs_without_radios(specs: list[AircraftSpec]) -> list[AircraftSpec]:
+    """Remove the airframes still radio-less once the overlay is applied.
+
+    The extraction keeps an airframe with a bounded ``HumanRadio`` and no ``panelRadio`` so the
+    overlay can declare its radio. The rest are AI-only (B-52H, KC-135...) and stay out of the
+    specs: an entry without a radio would make the injector drop every preset channel for them.
+
+    Args:
+        specs: Specs after :func:`apply_overrides`.
+
+    Returns:
+        The specs that carry at least one radio, in the same order.
+    """
+    return [spec for spec in specs if spec.radios]
+
+
 def apply_overrides(specs: list[AircraftSpec], overrides: dict) -> None:
     """Merge the hand-maintained corrections into the extracted specs, in place.
 
@@ -153,30 +187,21 @@ def apply_overrides(specs: list[AircraftSpec], overrides: dict) -> None:
     by_id = {spec.dcs_id: spec for spec in specs}
     for dcs_id, correction in overrides.items():
         spec = by_id.get(dcs_id)
+        declared = correction.get("add_aircraft")
         if spec is None:
-            declared = correction.get("add_aircraft")
             if not declared:
                 raise KeyError(f"{dcs_id}: named by the radio-specs overlay but absent from the datamine extraction")
             spec = AircraftSpec(
                 dcs_id=dcs_id,
                 display_name=declared["name"],
                 category=declared["category"],
-                radios=[
-                    AircraftRadio(
-                        name=radio["name"],
-                        ranges=[
-                            FrequencyRange(
-                                min_mhz=rng["min_mhz"],
-                                max_mhz=rng["max_mhz"],
-                                modulation=rng.get("modulation", "AM/FM"),
-                            )
-                            for rng in radio["ranges"]
-                        ],
-                    )
-                    for radio in declared.get("radios", [])
-                ],
+                radios=_declared_radios(declared),
             )
             specs.append(spec)
+        elif declared and not spec.radios:
+            # Extracted radio-less (a HumanRadio, no panelRadio): keep the datamine's name and
+            # HumanRadio, take the declared radio.
+            spec.radios = _declared_radios(declared)
         for extra in correction.get("add_ranges", []):
             radio = next((r for r in spec.radios if r.name == extra["radio"]), None)
             if radio is None:
@@ -377,8 +402,12 @@ def extract_all_specs(clone_root: Path) -> list[AircraftSpec]:
             print(f"  Parsing {dcs_id}...", end=" ", flush=True)
             try:
                 content = lua_file.read_text(encoding="utf-8", errors="replace")
-                radios = parse_panel_radio(content)
-                if radios:
+                radios = parse_panel_radio(content) or []
+                human_radio = parse_human_radio(content)
+                if radios or human_radio:
+                    # A bounded HumanRadio without panelRadio is kept radio-less: the overlay may
+                    # declare its radio (the La-7 since DCS 2.9.31, the MiG-15bis), and
+                    # drop_specs_without_radios() removes the AI-only rest.
                     display_name = parse_display_name(content) or dcs_id
                     specs.append(
                         AircraftSpec(
@@ -386,10 +415,10 @@ def extract_all_specs(clone_root: Path) -> list[AircraftSpec]:
                             display_name=display_name,
                             category=category,
                             radios=radios,
-                            human_radio=parse_human_radio(content),
+                            human_radio=human_radio,
                         )
                     )
-                    print(f"OK ({len(radios)} radio{'s' if len(radios) > 1 else ''})")
+                    print(f"OK ({len(radios)} radio{'s' if len(radios) != 1 else ''})")
                 else:
                     print("no panelRadio (AI-only)")
             except Exception as e:
@@ -695,11 +724,12 @@ def main() -> None:
         clone_root = Path(tmp) / "dcs-lua-datamine"
         clone_repo(clone_root)
         specs = extract_all_specs(clone_root)
-    print(f"\nTotal aircraft with player radio slots: {len(specs)}")
     overrides = load_overrides()
     if overrides:
         apply_overrides(specs, overrides)
         print(f"Applied {len(overrides)} VEAF correction(s) from {OVERRIDES_YAML.name}")
+    specs = drop_specs_without_radios(specs)
+    print(f"\nTotal aircraft with player radio slots: {len(specs)}")
     write_yaml(specs, OUTPUT_YAML)
     write_markdown(specs, OUTPUT_PAGES)
 

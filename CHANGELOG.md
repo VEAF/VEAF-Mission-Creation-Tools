@@ -88,6 +88,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The F11 camera and the Mission Editor's terrain data are reached from the mission through `net.dostring_in`.
   The `--url` and `--fiddle-token` options give way to `--serve-url`, `--dcs-serve`, `--api-key`, `--config` and `--wait`; `smoke-test --full` and `--probe-only` are removed, and so is `dcs-fiddle-server.lua`; with no mission to talk to, `smoke-test` now fails after `--wait` instead of skipping.
 
+### Fixed
+
+- **A mission built with the La-7 templates saves in the Mission Editor again** (FIX-DYNSLOT-RADIO-RANGE).
+  DCS 2.9.31 moved the La-7 to a 3.7–6.06 MHz HF radio, and its two dynamic-slot templates carried 121.5 MHz (118.6 on the blue one, its preset's channel 1): « Invalid frequency », and the editor would not save.
+  Both templates are at 3.7 MHz, the radio specs follow DCS 2.9.31.29434, the La-7 keeps a place in them though DCS no longer gives it a preset radio, and the MiG-15bis primary frequency is now checked too.
+  The build no longer stops on a primary frequency below 30 MHz that the airframe's own radio accepts (the La-7 at 3.7 MHz); an ADF channel promoted by mistake still stops it.
+
 ## [6.33.0] — 2026-10-27
 
 ### Security

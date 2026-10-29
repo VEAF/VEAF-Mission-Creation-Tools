@@ -829,6 +829,22 @@ logic) — through `describe_airfield_channels` / `set_airfield_channels`, or
 *What it cost:* The tools' reference was parsed from the text of `Radio.lua`: on Persian Gulf it held no UHF channel
 for any airfield, and made the hand-written channel collection — which was right — look wrong.
 
+### A DCS update can change an airframe's radio, and the Mission Editor then refuses to save a group tuned for the old one {#dcs-update-moves-an-airframe-radio}
+
+Measured **2026-10-29**.
+
+DCS 2.9.31.29434 replaced the La-7's 100–156 MHz SCR-522 with a 3.7–6.06 MHz HF set (its
+`HumanRadio` in `CoreMods/aircraft/La-7/entry.lua`; no `panelRadio` any more). A group saved
+before at 121.5 MHz still loads and flies, but the Mission Editor refuses to save the mission:
+« Invalid frequency 121.5 MHz ». Nothing says so before the editor is opened.
+
+**What to do:** Set the group's frequency inside the airframe's new range (the La-7: 3.7 MHz, its default).
+`validate_mission` warns about a group whose frequency its airframe cannot tune, against the radio
+specs shipped with the tools — which follow DCS only once the datamine pin is bumped.
+
+*What it cost:* The two La-7 dynamic-slot templates shipped at 121.5 MHz, so every mission built with them after
+the update could not be saved in the editor ("Marteau du Golan", 2026-10-29).
+
 ### A removed F10 menu entry's id goes to the next entry created, so a menu left open fires the wrong command {#f10-menu-entry-id-is-recycled}
 
 Measured **2026-10-09**.

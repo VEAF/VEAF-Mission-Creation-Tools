@@ -2571,7 +2571,7 @@ airplanes:
         La-7 Template:
           communication: false
           dynSpawnTemplate: true
-          frequency: 121.5
+          frequency: 3.7
           groupId: 529
           hidden: true
           lateActivation: true
@@ -7211,7 +7211,7 @@ airplanes:
         La-7 Template Red:
           communication: false
           dynSpawnTemplate: true
-          frequency: 121.5
+          frequency: 3.7
           groupId: 530
           hidden: true
           lateActivation: true

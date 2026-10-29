@@ -9,7 +9,7 @@ F11 camera, ``gui`` for the Mission Editor's terrain data) are one ``net.dostrin
 A session is three steps a command would otherwise each write again:
 
 1. make sure a ``dcs-serve`` answers — starting one on the loopback with a key of its own, in the same
-   folder ``clear-ground-sweep`` uses, so a server started by one command is reused by the next;
+   folder ``clear-ground-sweep`` uses, so every command finds the key of a server another one left running;
 2. wait until the mission's bridge has connected to it. It retries with a back-off that doubles up to
    60 s **of mission time** while no server listens, so a server started after the mission can take a
    minute to be found;
@@ -51,6 +51,9 @@ def serve_workdir() -> Path:
 
     The one ``clear-ground-sweep`` already uses, so every command finds the key of a server another
     one started.
+
+    Returns:
+        ``<VEAF home>/clear-ground/dcs-serve``.
     """
     from veaf_libs.clear_ground_catalogue import local_catalogue_dir  # noqa: PLC0415
 
@@ -77,6 +80,13 @@ class BridgeSession:
     def run(self, code: str, timeout: float = 30.0) -> str:
         """Run *code* in the mission scripting state and return its result as a string.
 
+        Args:
+            code: Lua source returning a value.
+            timeout: Seconds the call may take.
+
+        Returns:
+            ``tostring`` of what the chunk returned, ``""`` for ``nil`` or ``false``.
+
         Raises:
             BridgeLuaError: The chunk raised.
             RuntimeError: ``dcs-serve`` is unreachable, refused the request, or got no reply.
@@ -85,6 +95,14 @@ class BridgeSession:
 
     def run_in(self, state: str, code: str, timeout: float = 30.0) -> str:
         """Run *code* in another Lua state (``export``, ``gui``…) and return its string result.
+
+        Args:
+            state: The target state, as ``net.dostring_in`` names it.
+            code: Lua source returning a string.
+            timeout: Seconds the call may take.
+
+        Returns:
+            What the chunk returned.
 
         Raises:
             BridgeLuaError: The chunk failed in *state*.

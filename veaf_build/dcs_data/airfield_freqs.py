@@ -162,7 +162,7 @@ def parse_capture(result: Any) -> tuple[str, list[dict[str, Any]]]:
     """Validate what :data:`CAPTURE_LUA` returned and convert its frequencies to MHz.
 
     Args:
-        result: The hook's result: a dict, or the same as a JSON string.
+        result: The capture's result: a dict, or the same as a JSON string.
 
     Returns:
         The theatre name and one ``{id, name, source, freqs: [MHz…]}`` record per airdrome.

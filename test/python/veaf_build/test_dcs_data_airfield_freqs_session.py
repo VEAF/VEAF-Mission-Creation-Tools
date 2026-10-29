@@ -75,7 +75,7 @@ class _Clock:
         self.now += seconds
 
 
-def test_waiting_goes_through_a_dead_hook_and_another_map(tmp_path: Path) -> None:
+def test_waiting_goes_through_no_mission_yet_and_another_map(tmp_path: Path) -> None:
     answers: list[Any] = [RuntimeError("dcs-serve got no reply from DCS (504)"), "Caucasus", "Caucasus", "PersianGulf"]
 
     def exec_lua(_code: str) -> Any:

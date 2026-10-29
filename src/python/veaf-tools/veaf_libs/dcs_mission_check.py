@@ -33,7 +33,14 @@ from veaf_libs.lua_literals import lua_quoted_string
 
 
 def check_mission_path(miz: Path) -> Path:
-    """Return where the test copy of *miz* goes: beside it, ``_CHECK`` appended."""
+    """Return where the test copy of *miz* goes: beside it, ``_CHECK`` appended.
+
+    Args:
+        miz: The built mission.
+
+    Returns:
+        ``<stem>_CHECK.miz`` in the same folder.
+    """
     return miz.with_name(f"{miz.stem}_CHECK{miz.suffix}")
 
 

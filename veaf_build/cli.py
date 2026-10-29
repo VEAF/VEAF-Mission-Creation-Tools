@@ -27,6 +27,7 @@ from typing import Any
 import typer
 import yaml
 from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL  # type: ignore[import-not-found]
+from veaf_libs.dcs_bridge_session import BridgeSession  # type: ignore[import-not-found]
 from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
 from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
 from veaf_tools.helpers import confirm  # type: ignore[import-not-found]
@@ -565,7 +566,7 @@ def _capture_airfield_freqs(
 
 
 def _capture_each_theatre(
-    theatres: list[str], target_dir: Path, install: Path, bridge_path: Path, bridge: Any, wait: int
+    theatres: list[str], target_dir: Path, install: Path, bridge_path: Path, bridge: BridgeSession, wait: int
 ) -> None:
     """The loop of :func:`_capture_airfield_freqs`: one capture mission, one wait, one capture per map.
 

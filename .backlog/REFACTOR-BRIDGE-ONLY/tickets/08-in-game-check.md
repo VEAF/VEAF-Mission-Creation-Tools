@@ -14,4 +14,6 @@ In David's DCS (`C:\jeux\DCS World`): `recon-plan` and `recon-shoot` on a shooti
 - the airfield capture chunk sent to the `gui` state: Syria, 224 airdromes, 81 from radio and 143 without — identical to the committed `Syria.json`;
 - `recon-shoot --only 02-contreattaque`: the F11 camera moved through `export`, the window grabbed, `recon-render` made the photo.
 
+Not exercised in game: `dcs-serve` started by the command itself (one was already running), `mission-check-prepare`'s copy (the shooting copy carried the bridge already), and the capture command's own loop (`THEATRE_LUA`, one mission per theatre) — only its `gui` chunk was. Each is covered by unit tests.
+
 The first attempt to load the copy failed on two La-7 templates whose frequencies (118.6 / 121.5 MHz) are outside the La-7's 3.7–6.06 MHz radio — a defect of the shipped templates, not of this lot, handled in its own session.

@@ -86,7 +86,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `recon-plan`, `recon-shoot`, `mission-check`, `smoke-test` and `veaf-build update-dcs-data --airfield-freqs --capture` no longer use the DCS Fiddle hook: they go through the bridge embedded in the mission, and start `dcs-serve` themselves when none runs.
   `recon-prepare` embeds the bridge in the shooting copy, and the new `mission-check-prepare` writes a test copy carrying it; `smoke-test` needs a mission built with `dcs_bridge`.
   The F11 camera and the Mission Editor's terrain data are reached from the mission through `net.dostring_in`.
-  The `--url` and `--fiddle-token` options give way to `--serve-url`, `--dcs-serve`, `--api-key`, `--config` and `--wait`; `smoke-test --full` and `--probe-only` are removed, and so is `dcs-fiddle-server.lua`.
+  The `--url` and `--fiddle-token` options give way to `--serve-url`, `--dcs-serve`, `--api-key`, `--config` and `--wait`; `smoke-test --full` and `--probe-only` are removed, and so is `dcs-fiddle-server.lua`; with no mission to talk to, `smoke-test` now fails after `--wait` instead of skipping.
 
 ## [6.33.0] — 2026-10-27
 

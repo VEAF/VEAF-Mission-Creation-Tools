@@ -34,4 +34,5 @@ The mission has to carry the bridge: `recon-prepare` and the new `mission-check-
 - One `MissionScripting.lua` change (the bridge needs `require("socket")`) and one server to explain, for every command that talks to DCS.
 - `smoke-test --full`, `--probe-only` and the hook's per-session token are gone, and with them [ADR 0019](0019-dcs-fiddle-server-stays-unauthenticated-for-now.md), whose subject no longer exists.
 - Nothing can be asked of DCS before a mission is running. No command needs it.
+- `smoke-test` no longer *skips* when there is nothing to talk to: it waits for the mission's bridge (`--wait`) and fails, naming what it waited for. It is run by hand in front of a DCS, never by CI or a script, so a red run on a machine without DCS asks nothing of anyone.
 - The bridge runs on the mission's clock: a paused mission does not answer, and a bridge whose `dcs-serve` started after it can take up to a minute of mission time to reconnect. The commands wait and say so.

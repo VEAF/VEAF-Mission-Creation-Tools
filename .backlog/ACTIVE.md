@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [REFACTOR-BRIDGE-ONLY](REFACTOR-BRIDGE-ONLY/PRD.md) · 🔄
+
+One way to talk to a running DCS (David, 2026-10-28): `recon-*`, `mission-check`, `smoke-test` and the airfield frequency capture move from the DCS Fiddle hook to the VEAF bridge, and the hook goes. One PR, before release 6.34.0.
+
 ### [FIX-BRIEFING-PARITY-MARTEAU-2](FIX-BRIEFING-PARITY-MARTEAU-2/PRD.md) · 🔄
 
 What the retest of #1210 still found in "Marteau du Golan"'s briefing (2026-10-28): bases, flight levels and one helicopter route on the overview, a combat map the key does not cover, frequency headings of their own, a prerequisite objective, the kneeboard flight card as a table, levels and support in the ATO. One PR.

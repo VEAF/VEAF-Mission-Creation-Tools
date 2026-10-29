@@ -107,3 +107,26 @@ git push origin develop
 
 > Do not skip the `vx.y.z` tag either: the release would ship binaries whose documentation is
 > not published, and the site's `latest` would keep pointing at the previous version.
+
+## Step 6: Check the publication, then write the Discord announcement
+
+Once the tags are pushed, check the result yourself — the tag push alone proves nothing:
+
+- The Release workflow ends green, and the GitHub release carries every asset (`veaf-tools.exe`,
+  `veaf-tools-updater.exe`, `veaf-logs.exe`, the Linux and macOS binaries, `published.zip`,
+  `published-metadata.json`, the capture kit). Right after the push it holds only the SBOM; the
+  binaries arrived eight minutes later for 6.34.0. Wait for the run in the background
+  (`gh run watch <id> --exit-status`), never in a blocking call.
+- `published-latest` is the new version (`gh release view published-latest` — its name says
+  `vx.y.z`), and the docs' `versions.json` gives the `latest` alias to the new version.
+
+Then write the release announcement for the VEAF Discord, for mission makers, not developers:
+
+- In French, under 2,000 characters (Discord's limit; count them), from the validated
+  `RELEASE_NOTES.md`: a title line, the release's headline sentence, one short block per theme
+  with an emoji heading, the fixes on one line, the breaking points under "⚠️ À savoir".
+- End with the update command and two links that never go stale:
+  - release: `https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/latest`
+  - docs: `https://veaf.github.io/documentation/latest/` — the French docs (French is the
+    site's default language; English lives under `/latest/en/`).
+- Give it to the developer ready to paste. Never post it yourself.

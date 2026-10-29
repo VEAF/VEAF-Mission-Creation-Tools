@@ -32,6 +32,7 @@ Two layers:
 - `extract_all_specs` keeps an aircraft that has a bounded `HumanRadio` but no `panelRadio`, with no radio; `apply_overrides` fills such an entry from its `add_aircraft` declaration; radio-less entries left after the overlay are dropped, so the AI-only airframes stay out of the specs as before.
 - Declare the La-7's HF radio in `dcs-radio-specs-overrides.yaml`, like the MiG-15bis. Its VHF preset channels are then out of range, so it gets no preset and no promoted channel.
 - Set both La-7 templates to 3.7 MHz, the radio's own default.
+- The build's safety net (`_is_valid_primary_frequency_for_unit`, FIX-DYNSLOT-RADIO-UNITS) stopped the build on any primary below 30 MHz unless the airframe was `dcs_rejects_on_load`: it now also accepts a frequency inside the airframe's bounded `human_radio`, the range the Mission Editor checks. Found by the build tests once the templates were at 3.7.
 - A catalogue invariant: every template's frequency fits its type's `human_radio`.
 
 ## Out of scope

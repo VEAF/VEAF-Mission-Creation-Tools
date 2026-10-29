@@ -70,6 +70,7 @@ from presets_injector.presets_manager import KNEEBOARD_CALIBRATION_PATH
 from veaf_libs.clear_ground_survey import airfield_positions
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import current_language, language, t
+from veaf_libs.magnetic import magnetic_bearing
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
 from veaf_libs.mission_table import indexed
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
@@ -165,13 +166,13 @@ def _mission_language(folder: Path) -> str:
 
 
 def _bullseye_line(theatre: str, picture: MissionPicture, start: tuple[str, float, float] | None) -> str:
-    """The bullseye in DMS, and its bearing and range from the players' departure when there is one."""
+    """The bullseye in DMS, and its magnetic bearing and range from the players' departure when there is one."""
     lat, lon = xy_to_latlon(theatre, *picture.bullseye)
     if start is None:
         return to_dms(lat, lon)
     name, x, y = start
     dx, dy = picture.bullseye[0] - x, picture.bullseye[1] - y
-    bearing = round(math.degrees(math.atan2(dy, dx))) % 360 or 360
+    bearing = magnetic_bearing(theatre, picture.date, (x, y), picture.bullseye)
     return t(
         "campaign.mission_deck.bullseye",
         dms=to_dms(lat, lon),
@@ -182,13 +183,13 @@ def _bullseye_line(theatre: str, picture: MissionPicture, start: tuple[str, floa
 
 
 def bullseye_text(picture: MissionPicture, x: float, y: float) -> str:
-    """``Bullseye : 050° / 18.3 nm``: where a point stands from the bullseye, on the grid the legs are given on.
+    """``Bullseye : 050°M / 18.3 nm``: where a point stands from the bullseye, magnetic, as the cockpits read it.
 
     The hand-made briefing gave it on every target and every step (FIX-BRIEFING-PARITY-MARTEAU 04).
     """
     dx, dy = x - picture.bullseye[0], y - picture.bullseye[1]
     distance = math.hypot(dx, dy) / NM
-    bearing = round(math.degrees(math.atan2(dy, dx))) % 360 if distance >= 0.05 else 0
+    bearing = magnetic_bearing(picture.theatre, picture.date, picture.bullseye, (x, y)) if distance >= 0.05 else 0
     return t("mission_briefing.bullseye", bearing=f"{bearing:03d}", nm=f"{distance:.1f}")
 
 
@@ -767,7 +768,7 @@ def _step_sheets(
         if sum(1 for other in picture.flight_plans if other.category == plan.category) > 1:
             heading = f"{heading} — {', '.join(plan.aircraft)}"
         cards = []
-        for step in route_steps(theatre, plan, starts):
+        for step in route_steps(theatre, picture.date, plan, starts):
             if step.waypoint is None:
                 continue
             lat, lon = xy_to_latlon(theatre, step.x, step.y)
@@ -1138,10 +1139,13 @@ def _kneeboard_pages(
         recon_title = t("mission_briefing.title.recon", zone=area.name)
         for n, pair in enumerate(_pairs(theatre, recon.get(area.zone, [])), 1):
             sheets.append((f"{stem}-recon-{n}", photo_page(recon_title, pair)))
-    card_tables = flight_card_tables(theatre, list(picture.flight_plans), starts)
+    card_tables = flight_card_tables(theatre, picture.date, list(picture.flight_plans), starts)
     card = table_pages(t("mission_briefing.kneeboard.flight_card"), card_tables) if card_tables else []
     target_blocks = targets_blocks(
-        theatre, [(_objective_title(objective, area), area) for objective, area in areas], picture.bullseye
+        theatre,
+        picture.date,
+        [(_objective_title(objective, area), area) for objective, area in areas],
+        picture.bullseye,
     )
     targets = text_pages(t("mission_briefing.title.targets"), target_blocks) if target_blocks else []
     blocks = _code_word_blocks(content)

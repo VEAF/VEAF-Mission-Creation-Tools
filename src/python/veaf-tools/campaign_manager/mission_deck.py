@@ -22,6 +22,7 @@ from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
 from veaf_libs.coordinates import latlon_to_xy, to_dms, xy_to_latlon
 from veaf_libs.i18n import t
+from veaf_libs.magnetic import magnetic_bearing
 from veaf_libs.map_tiles import Fetch
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 
@@ -183,7 +184,7 @@ def _situation_page(
     if reference:
         name, (x, y) = reference
         dx, dy = picture.bullseye[0] - x, picture.bullseye[1] - y
-        bearing = round(math.degrees(math.atan2(dy, dx))) % 360 or 360
+        bearing = magnetic_bearing(campaign.theatre, picture.date, (x, y), picture.bullseye)
         bullseye = t(
             "campaign.mission_deck.bullseye",
             dms=bullseye,

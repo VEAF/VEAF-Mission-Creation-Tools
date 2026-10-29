@@ -3,8 +3,9 @@
 DCS takes the declination from the World Magnetic Model at the mission's month and year: the Mission
 Editor calls ``magvar.init(date.Month, date.Year)`` (``MissionEditor/modules/me_weather.lua``) and ships
 one WMM coefficient file per five-year epoch, 1985 to 2025 (``Data/MagVar/COF``). The same coefficients,
-published by NOAA (public domain), are vendored under ``data/wmm``; this module evaluates them in pure
-Python, at sea level.
+published by NOAA (public domain), are vendored under ``data/wmm``, copied from DCS's; this module evaluates
+them in pure Python, at sea level. DCS's ``1990`` file reads ``l.5`` for the secular variation of
+``g(7, 3)``: the vendored copy reads ``1.5``, a change below 0.01 degree.
 
 The cockpits read bearings magnetic: the F-16C gives the bullseye "in degrees magnetic", the F/A-18C
 shows magnetic headings unless TRUE is selected on the HSI (both from their DCS manuals). So does a
@@ -101,12 +102,28 @@ def declination(lat: float, lon: float, when: float | date, height_km: float = 0
     return math.degrees(math.atan2(east, north_geodetic))
 
 
+def _ecef(lat: float, lon: float) -> tuple[float, float, float]:
+    """A point at sea level in Earth-centred coordinates, kilometres."""
+    phi, lam = math.radians(lat), math.radians(lon)
+    normal = _A / math.sqrt(1 - _E2 * math.sin(phi) ** 2)
+    return (
+        normal * math.cos(phi) * math.cos(lam),
+        normal * math.cos(phi) * math.sin(lam),
+        normal * (1 - _E2) * math.sin(phi),
+    )
+
+
 def true_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """The initial great-circle bearing from the first point to the second, degrees from true north in [0, 360)."""
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dlam = math.radians(lon2 - lon1)
-    east = math.sin(dlam) * math.cos(phi2)
-    north = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(dlam)
+    """The bearing from the first point to the second on the WGS84 ellipsoid, degrees from true north in [0, 360).
+
+    The direction to the second point, laid on the first one's horizon: within 0.001 degree of the geodesic
+    up to 400 km, where a sphere is 0.1 degree off, enough to turn a rounded heading.
+    """
+    (x1, y1, z1), (x2, y2, z2) = _ecef(lat1, lon1), _ecef(lat2, lon2)
+    dx, dy, dz = x2 - x1, y2 - y1, z2 - z1
+    phi, lam = math.radians(lat1), math.radians(lon1)
+    east = -math.sin(lam) * dx + math.cos(lam) * dy
+    north = -math.sin(phi) * (math.cos(lam) * dx + math.sin(lam) * dy) + math.cos(phi) * dz
     return math.degrees(math.atan2(east, north)) % 360
 
 

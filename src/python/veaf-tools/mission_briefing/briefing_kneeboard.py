@@ -15,6 +15,7 @@ import io
 import math
 import re
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from campaign_manager.mission_pages import altitude, line
@@ -24,6 +25,7 @@ from PIL import Image, ImageDraw, ImageFont
 from presets_injector.presets_manager import KNEEBOARD_PAGE_SIZE
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import t
+from veaf_libs.magnetic import magnetic_bearing
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet, profile
 
 from mission_briefing.models import ObjectiveArea
@@ -178,7 +180,7 @@ class RouteStep:
     x: float
     y: float
     heading: int | None
-    """Degrees, from the previous point; ``None`` for the first point of a route with no departure."""
+    """Degrees magnetic, from the previous point; ``None`` for the first point of a route with no departure."""
     nm: int | None
     highest_ft: int | None
     """The highest ground on the leg, when the theatre has an elevation grid."""
@@ -188,11 +190,14 @@ class RouteStep:
     """The previous point's name."""
 
 
-def route_steps(theatre: str, plan: FlightPlan, departures: list[tuple[str, float, float]]) -> list[RouteStep]:
+def route_steps(
+    theatre: str, when: date, plan: FlightPlan, departures: list[tuple[str, float, float]]
+) -> list[RouteStep]:
     """A route's points, its departure first when there is one, each with the leg that reaches it.
 
     Args:
         theatre: The mission's theatre.
+        when: The mission's date, for the magnetic declination.
         plan: The route, as the built mission carries it.
         departures: The airfields the players take off from, ``(name, x, y)``; a route leaves from the one
             nearest its first point.
@@ -214,7 +219,7 @@ def route_steps(theatre: str, plan: FlightPlan, departures: list[tuple[str, floa
         origin = ""
         if position:
             origin, px, py, _ = points[position - 1]
-            heading = round(math.degrees(math.atan2(y - py, x - px))) % 360 or 360
+            heading = magnetic_bearing(theatre, when, (px, py), (x, y))
             nm = round(math.dist((px, py), (x, y)) / NM)
             height = legs[position - 1].highest if legs else None
             highest = round(metres_to_feet(height)) if height is not None else None
@@ -223,7 +228,7 @@ def route_steps(theatre: str, plan: FlightPlan, departures: list[tuple[str, floa
 
 
 def leg_text(step: RouteStep) -> str:
-    """``cap 287°, 25 nm — relief le plus haut 3 120 ft``, with what is known."""
+    """``cap 287°M, 25 nm — relief le plus haut 3 120 ft``, with what is known."""
     if step.heading is None or step.nm is None:
         return ""
     leg = t("mission_briefing.kneeboard.leg", heading=f"{step.heading:03d}", nm=step.nm)
@@ -234,6 +239,7 @@ def leg_text(step: RouteStep) -> str:
 
 def flight_card_blocks(
     theatre: str,
+    when: date,
     plans: list[FlightPlan],
     departures: list[tuple[str, float, float]],
 ) -> list[TextBlock]:
@@ -241,6 +247,7 @@ def flight_card_blocks(
 
     Args:
         theatre: The mission's theatre.
+        when: The mission's date, for the magnetic declination.
         plans: The players' routes, as the built mission carries them.
         departures: The airfields the players take off from, ``(name, x, y)``; a route leaves from the
             one nearest its first point.
@@ -251,7 +258,7 @@ def flight_card_blocks(
     blocks: list[TextBlock] = []
     for plan in plans:
         lines = []
-        for step in route_steps(theatre, plan, departures):
+        for step in route_steps(theatre, when, plan, departures):
             position = line(step.name, to_dms(*xy_to_latlon(theatre, step.x, step.y)))
             lines.append(position if step.waypoint is None else f"W{step.number}. {position}")
             if step.waypoint is not None and step.heading is not None:
@@ -332,7 +339,7 @@ def table_pages(title: str, tables: list[KneeboardTable]) -> list[bytes]:
 
 
 def flight_card_tables(
-    theatre: str, plans: list[FlightPlan], departures: list[tuple[str, float, float]]
+    theatre: str, when: date, plans: list[FlightPlan], departures: list[tuple[str, float, float]]
 ) -> list[KneeboardTable]:
     """The flight card as tables, one per route: each point, the leg that reaches it, its altitude, where it is.
 
@@ -340,6 +347,7 @@ def flight_card_tables(
 
     Args:
         theatre: The mission's theatre.
+        when: The mission's date, for the magnetic declination.
         plans: The players' routes, as the built mission carries them.
         departures: The airfields the players take off from, ``(name, x, y)``.
 
@@ -352,9 +360,9 @@ def flight_card_tables(
     tables: list[KneeboardTable] = []
     for plan in plans:
         rows: list[tuple[str, ...]] = []
-        for step in route_steps(theatre, plan, departures):
+        for step in route_steps(theatre, when, plan, departures):
             name = step.name if step.waypoint is None else f"W{step.number} {step.name}"
-            leg = f"{step.heading:03d}° / {step.nm} nm" if step.heading is not None and step.nm is not None else ""
+            leg = f"{step.heading:03d}°M / {step.nm} nm" if step.heading is not None and step.nm is not None else ""
             height = altitude(step.waypoint) if step.waypoint is not None else ""
             floor = f"{step.highest_ft} ft" if step.highest_ft is not None else ""
             position = to_dms(*xy_to_latlon(theatre, step.x, step.y))  # wraps between latitude and longitude
@@ -365,12 +373,16 @@ def flight_card_tables(
 
 
 def targets_blocks(
-    theatre: str, objectives: list[tuple[str, ObjectiveArea]], bullseye: tuple[float, float] | None = None
+    theatre: str,
+    when: date,
+    objectives: list[tuple[str, ObjectiveArea]],
+    bullseye: tuple[float, float] | None = None,
 ) -> list[TextBlock]:
     """Each objective's targets, with their coordinates and, when the theatre has a grid, elevation.
 
     Args:
         theatre: The mission's theatre.
+        when: The mission's date, for the magnetic declination.
         objectives: Each objective's title and zone.
         bullseye: The mission's bullseye: each target then says where it stands from it.
 
@@ -387,7 +399,8 @@ def targets_blocks(
             lines.append(line(target.name, f"{to_dms(*xy_to_latlon(theatre, target.x, target.y))}{elevation}"))
             if bullseye is not None:
                 dx, dy = target.x - bullseye[0], target.y - bullseye[1]
-                bearing = round(math.degrees(math.atan2(dy, dx))) % 360
-                lines.append(f"      Bullseye {bearing:03d}° / {math.hypot(dx, dy) / NM:.1f} nm")
+                distance = math.hypot(dx, dy) / NM
+                bearing = magnetic_bearing(theatre, when, bullseye, (target.x, target.y)) if distance >= 0.05 else 0
+                lines.append(f"      Bullseye {bearing:03d}°M / {distance:.1f} nm")
         blocks.append((title, lines or [t("mission_briefing.no_target")]))
     return blocks

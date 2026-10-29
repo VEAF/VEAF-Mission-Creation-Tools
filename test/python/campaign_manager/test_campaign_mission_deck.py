@@ -233,6 +233,11 @@ class TestTheDeck:
         assert "127.5" not in uhf and "Stennis (tour) : 127.5 MHz, TACAN 74X, ICLS 1, Link 4 336.0 MHz" in vhf
         assert "Kobuleti : 262.0 MHz — TACAN 67X" in uhf and "Kobuleti : 133.0 MHz (FM 40.8 MHz)" in vhf
 
+    def test_the_bullseye_is_given_magnetic_from_the_base(self, tmp_path: Path) -> None:
+        # FIX-BRIEFING-MAGNETIC-HEADINGS: the bearing was on the DCS grid, with no unit.
+        text = "\n".join("\n".join(slide) for slide in _deck(tmp_path))
+        assert re.search(r", au \d{3}°M / \d+ nm de \w", text)
+
     def test_the_weather_and_the_wind_from_where_it_comes(self, tmp_path: Path) -> None:
         text = "\n".join("\n".join(slide) for slide in _deck(tmp_path))
         assert "Vent : sol 270° / 16 kt" in text

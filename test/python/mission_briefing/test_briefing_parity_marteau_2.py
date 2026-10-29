@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -215,7 +216,7 @@ class TestFlightCardTable:
             (Waypoint("PUSH", -228000, -30000, 67, "BARO"), Waypoint("KHAN", -203930, -7802, 939, "BARO")),
         )
         with language("fr"):
-            ((heading, columns, _, rows),) = flight_card_tables("Syria", [plan], [("Ramat David", -259121, -75105)])
+            ((heading, columns, _, rows),) = flight_card_tables("Syria", date(2024, 6, 1), [plan], [("Ramat David", -259121, -75105)])
         assert heading == "Ninja" and columns[2] == "Altitude"
         assert rows[0][0] == "Ramat David" and rows[1][0] == "W1 PUSH" and rows[1][2] == "220 ft BARO"
         assert rows[2][1].endswith(" nm") and rows[2][4].startswith("N33")
@@ -266,7 +267,7 @@ class TestTheReviewFindings:
         plan = FlightPlan("plane", ("Ninja",), (Waypoint("PUSH", 0.0, 0.0, 100, "BARO"),), departure="ramat david")
         with language("fr"):
             ((_, _, _, rows),) = flight_card_tables(
-                "Syria", [plan], [("Rosh Pina", 1.0, 1.0), ("Ramat David", 50_000.0, 0.0)]
+                "Syria", date(2024, 6, 1), [plan], [("Rosh Pina", 1.0, 1.0), ("Ramat David", 50_000.0, 0.0)]
             )
         assert rows[0][0] == "Ramat David"
 

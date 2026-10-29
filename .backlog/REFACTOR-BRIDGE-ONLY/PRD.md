@@ -1,6 +1,6 @@
 # REFACTOR-BRIDGE-ONLY — one way to talk to a running DCS: the VEAF bridge
 
-Status: 🔄 in progress
+Status: ✅ done
 
 David decided on 2026-10-28 that VMCT reaches a running DCS through **one** technology, the VEAF bridge (`dcs-bridge.lua` in the mission, `dcs-serve` on this machine), and no longer through the DCS Fiddle hook (`src/scripts/other/dcs-fiddle-server.lua`).
 Two technologies were too hard to explain: a VEAF member could not tell "the bridge" from "the MCP" from Fiddle.

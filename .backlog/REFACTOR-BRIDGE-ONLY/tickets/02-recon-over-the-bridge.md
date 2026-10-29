@@ -1,6 +1,6 @@
 # 02 — Recon over the bridge
 
-Status: 🔄 in progress
+Status: ✅ done
 
 - `recon-prepare` injects `dcs-bridge.lua` into the shooting copy (`--bridge-lua` for a local file, downloaded otherwise);
 - `recon-plan` and `recon-shoot` read the units in the mission scripting state and move the camera through `net.dostring_in("export", …)`;

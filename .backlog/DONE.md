@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [REFACTOR-BRIDGE-ONLY](REFACTOR-BRIDGE-ONLY/PRD.md) · ✅
+
+One way to talk to a running DCS (David, 2026-10-28): `recon-*`, `mission-check`, `smoke-test` and the airfield frequency capture move from the DCS Fiddle hook to the VEAF bridge, and the hook goes. One PR, before release 6.34.0.
+
 ### [FIX-FATCOW-CTLD-FARPS](FIX-FATCOW-CTLD-FARPS/PRD.md) · ✅
 
 GRASS refilled CTLD's Fat Cow FARPs on every birth, making a cow unlimited, and CSAR gave the CH-47F no menu: GRASS now skips `CTLD_` FARPs and `csar.aircraftType` lists `CH-47Fbl1` (24). From the Fat Cow server run of 2026-10-26 (VEAF/CTLD#273). Demo step in VEAF/VEAF-Demo-Mission-v6#12 (2026-10-29).

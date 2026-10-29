@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.34.0] — 2026-10-29
+
 ### Changed
 
 - **An objective mission's briefing a squadron can brief from** (FEAT-OBJECTIVE-BRIEFING-QUALITY, David's six points on the "Marteau du Golan" briefing).

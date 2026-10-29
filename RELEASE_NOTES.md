@@ -73,7 +73,8 @@ Le prompt de mission à objectifs fait valider le texte du briefing avant toute 
 
 ## 🔧 Corrections
 
-- **Une mission avec les templates de La-7 s'enregistre de nouveau dans l'éditeur de mission** : DCS 2.9.31 a passé la radio du La-7 en HF (3,7 à 6,06 MHz), et les templates de slots dynamiques gardaient 121,5 MHz (« Invalid frequency »). Ils sont maintenant à 3,7 MHz.
+- **Une mission avec les templates de La-7 s'enregistre de nouveau dans l'éditeur de mission** : DCS 2.9.31 a passé la radio du La-7 en HF (3,7 à 6,06 MHz), et les templates de slots dynamiques gardaient 121,5 MHz (« Invalid frequency »).
+  Ils sont maintenant à 3,7 MHz.
 - **Une zone de combat membre d'une opération était enregistrée deux fois** : une boucle sur toutes les zones la faisait apparaître en double.
 - Une CAP sans nom de menu faisait une entrée F10 vide : elle prend le nom de son groupe.
 - `.\veaf-tools.exe mission validate` signale une clé que le build ne lit pas dans `cap_missions` (`friendly_name`).

@@ -10,49 +10,24 @@ cockpit. This module is how those get answered by a machine instead.
 look like. Adding one is adding an entry, not editing a driver, which is what keeps
 ``FEAT-DCS-SMOKE-HARNESS`` ticket 03 to a list rather than a refactor.
 
-**Scope of this first slice**: DCS must already be running (the main menu is enough — the hook answers
-there, which is the measurement that makes any of this possible). Launching and quitting DCS are not
-here: they are OS-level process work whose DCS-side calls this repository has never made, and shipping
-them unexercised would be the kind of plausible-looking code that costs more than it saves. The probe
-reports whether they are available, so the follow-up has its facts.
+**One transport: the mission's VEAF bridge** (REFACTOR-BRIDGE-ONLY, 2026-10-29). Every check runs in
+the mission scripting state, where DCS's own globals (``Disposition``, ``missionCommands``,
+``coalition``) live alongside the mission's scripts (``veaf``, ``csar``). The DCS Fiddle hook this
+module first rode reached a bare scripting state without the mission's scripts, which is why the VEAF
+checks had already moved to the bridge; the DCS-native ones followed, and the hook went. The user
+launches DCS and the mission — built with ``dcs_bridge`` — and the command talks to it.
 
-This never runs in CI: GitHub runners have no DCS, no licence and no GPU. It is a local tool, and it
-skips rather than fails when there is nothing to talk to.
+This never runs in CI: GitHub runners have no DCS, no licence and no GPU. It is a local tool.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import Any
 
-from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL, exec_over_bridge, resolve_api_key
-from veaf_libs.dcs_fiddle_client import (
-    DEFAULT_FIDDLE_URL,
-    ENV_MISSION,
-    LUA_ERROR,
-    Capabilities,
-    FiddleError,
-    exec_in_scripting,
-    probe,
-)
+from veaf_libs.dcs_bridge_capture import LUA_ERROR
 from veaf_libs.i18n import t
-
-
-class Transport(StrEnum):
-    """Which state a check is evaluated in (ticket 04).
-
-    The fiddle **HOOK** reaches a bare scripting state — DCS's own globals (``Disposition``,
-    ``missionCommands``, ``coalition``) are there, the mission's scripts are not. The mission
-    **BRIDGE** (``dcs-serve`` → ``dcs-bridge.lua``, injected into the mission) runs where ``veaf``
-    lives. So a DCS-native check goes through the hook, and a VEAF assertion goes through the bridge,
-    or it reads ``veaf-absent`` forever. An enum rather than a bare string so a typo cannot silently
-    route a check to the wrong state.
-    """
-
-    HOOK = "hook"
-    BRIDGE = "bridge"
 
 
 @dataclass(frozen=True)
@@ -61,21 +36,17 @@ class Check:
 
     Args:
         name: Short identifier, printed in the report.
-        lua: Lua chunk to run. It must ``return`` something for the expectation to inspect.
-        expect: Called with the decoded result; returns ``True`` when the check passes.
+        lua: Lua chunk to run in the mission scripting state. It must ``return`` a string for the
+            expectation to inspect.
+        expect: Called with the result; returns ``True`` when the check passes.
         why: What knowing this answers, and for which lot. A check whose purpose nobody recorded is a
             check nobody dares delete.
-        env: Which environment to run in; the mission one by default.
-        transport: ``Transport.HOOK`` for a DCS-native check, ``Transport.BRIDGE`` for one that needs
-            the ``veaf`` global (see :class:`Transport`). Defaults to the hook.
     """
 
     name: str
     lua: str
     expect: Callable[[Any], bool]
     why: str
-    env: str = ENV_MISSION
-    transport: Transport = Transport.HOOK
 
 
 @dataclass
@@ -91,9 +62,6 @@ class Outcome:
 class Result:
     """Everything a run produced."""
 
-    skipped: bool = False
-    skip_reason: str = ""
-    capabilities: Capabilities | None = None
     outcomes: list[Outcome] = field(default_factory=list)
 
     @property
@@ -103,7 +71,7 @@ class Result:
 
     @property
     def exit_code(self) -> int:
-        """``0`` when every check passed or the run was skipped, ``1`` otherwise."""
+        """``0`` when every check passed, ``1`` otherwise."""
         return 1 if self.failed else 0
 
 
@@ -119,22 +87,23 @@ SENTINELS: frozenset[str] = frozenset({"nil", "veaf-absent", "veaf-no-version", 
 
 #: **A check's Lua must return a string. Always.**
 #:
-#: Measured 2026-08-06 across the working route, and it is the rule everything else here follows from:
+#: The bridge hands back ``tostring(result ~= nil and result or "")`` (``dcs-bridge.lua``,
+#: ``handleExec``), so what survives the crossing is decided by that one line:
 #:
 #: =============  ==========================
 #: Lua returns    Python receives
 #: =============  ==========================
 #: ``'x'``        ``'x'``
 #: ``3``          ``'3'``   (a *string*)
-#: ``true``       ``''``    (**destroyed**)
-#: ``{1, 2}``     ``''``    (**destroyed**)
+#: ``true``       ``'true'``
+#: ``false``      ``''``    (**destroyed**)
+#: ``nil``        ``''``    (**destroyed**)
+#: ``{1, 2}``     ``'table: 0x…'``  (an address, not the content)
 #: =============  ==========================
 #:
-#: So a boolean and a table are indistinguishable from each other and from a chunk that returned
-#: nothing. Two of the six checks shipped in the first slice were therefore unpassable by construction —
-#: one expected a number, one expected ``True`` — and the second was worse than unpassable: it was
-#: **inconclusive on the very question it existed to settle**, because the answer it wanted was a boolean
-#: and every boolean arrives as ``''``.
+#: The former fiddle hook destroyed ``true`` and tables as well (measured 2026-08-06), which made two
+#: of the six checks of the first slice unpassable by construction. A word, never a boolean or a table,
+#: is what every check returns since.
 #:
 #: Hence :data:`TRANSPORT_LOSS`, swept against every expectation in the tests: an expectation that ``''``
 #: can satisfy is an expectation that cannot tell success from a value the transport threw away.
@@ -151,10 +120,10 @@ def _is_truthy(value: Any) -> bool:
         ``True`` only for a value that means the thing being checked is there.
 
     The error case is the one that keeps coming back. ``net.dostring_in`` returns a Lua failure **as its
-    string result**, so an error message reaches this function looking like an ordinary answer — truthy,
-    not a sentinel, not prefixed ``raised:``. Measured on a live DCS: ``:1: attempt to index global
-    'env' (a nil value)``. This check exists to catch a missing ``veaf``, and it would have gone green on
-    exactly the reply that proves nothing ran.
+    string result**, so an error message relayed through it looks like an ordinary answer — truthy, not
+    a sentinel, not prefixed ``raised:``. Measured on a live DCS: ``:1: attempt to index global 'env' (a
+    nil value)``. This check exists to catch a missing ``veaf``, and it would have gone green on exactly
+    the reply that proves nothing ran.
     """
     if isinstance(value, str) and (value in SENTINELS or value.startswith("raised:") or LUA_ERROR.match(value)):
         return False
@@ -489,7 +458,6 @@ CHECKS: tuple[Check, ...] = (
         why="Sanity: proves the assertions run where the VEAF scripts do, not in an empty "
         "environment that would make every other check vacuously pass. Returns the build version, so "
         "a mission built from a stale bundle shows in the answer rather than merely passing.",
-        transport=Transport.BRIDGE,
     ),
     Check(
         name="findspawnpoint-exists",
@@ -497,7 +465,6 @@ CHECKS: tuple[Check, ...] = (
         expect=lambda v: v == "function",
         why="The helper FEAT-SCENERY-AWARE-SPAWN shipped. Catches a mission built from a stale "
         "script bundle before any result is trusted.",
-        transport=Transport.BRIDGE,
     ),
     Check(
         name="coalition-scoped-submenu-accepted",
@@ -539,7 +506,6 @@ CHECKS: tuple[Check, ...] = (
         "'no survivor' is the pass here. Measured 2026-08-22: this check had been calling "
         "csar.spawnGroup, the raw placement *underneath* the replaced csar.addCsar, so it bypassed "
         "FIX-CSAR-SPAWNS-ON-WATER and reported a wet pilot against a working product.",
-        transport=Transport.BRIDGE,
     ),
     Check(
         name="csar-avoids-water-coast",
@@ -549,7 +515,6 @@ CHECKS: tuple[Check, ...] = (
         "the survivor is inside the 500 m rescue radius, so he must exist *and* stand on dry ground. A "
         "'lost' verdict here would mean a rescuable pilot written off — the failure mode the open-sea "
         "check cannot see, since losing him is its expected answer.",
-        transport=Transport.BRIDGE,
     ),
 )
 
@@ -573,7 +538,6 @@ SPOTTER_CHECKS: tuple[Check, ...] = (
         "reading that from outside races the drain and reports a false negative. Only the "
         "demo-spotter-network rig carries this geometry, and this suite is meaningless anywhere "
         "else: another mission answers 'no-such-site', which fails. That is why it is opt-in.",
-        transport=Transport.BRIDGE,
     ),
     Check(
         name="spotter-relay-did-not-reach-the-control-battery",
@@ -583,153 +547,30 @@ SPOTTER_CHECKS: tuple[Check, ...] = (
         "20 km radio range, so no report can reach it: a run where both batteries are woken is "
         "measuring something other than the relay. A verification that cannot come out negative is "
         "worth nothing, and this lot exists because one was found.",
-        transport=Transport.BRIDGE,
     ),
 )
 
 
-def run(
-    checks: tuple[Check, ...] = CHECKS,
-    url: str = DEFAULT_FIDDLE_URL,
-    timeout: float = 10.0,
-    serve_url: str = DEFAULT_SERVE_URL,
-    api_key: str | None = None,
-    config: str | None = None,
-    bridge_timeout: float = 10.0,
-) -> Result:
-    """Probe DCS, then run *checks* against it over the transport each one names.
-
-    DCS-native checks ride the fiddle **hook**; VEAF assertions ride the mission **bridge**
-    (``dcs-serve``), because the hook's scripting state does not run the mission's scripts (ticket 04).
+def run(checks: tuple[Check, ...], exec_lua: Callable[[str], str]) -> Result:
+    """Run *checks* in the mission through *exec_lua*, one outcome each.
 
     Args:
         checks: The assertions to evaluate.
-        url: Base URL of the ``dcs-fiddle-server.lua`` hook.
-        timeout: Per-request socket timeout for the hook, in seconds.
-        serve_url: Base URL of the ``dcs-serve`` HTTP API, for the bridge checks.
-        api_key: The ``dcs-serve`` superuser token; resolved from a nearby config when omitted.
-        config: Explicit path to a ``dcs-serve.yaml`` / ``dcs-client.yaml`` holding the key.
-        bridge_timeout: Per-request timeout for the bridge, in seconds.
+        exec_lua: Runs a chunk in the mission scripting state over the bridge and returns its result;
+            raises ``RuntimeError`` when it cannot (a Lua error included).
 
     Returns:
-        A :class:`Result`. When DCS is not running, or no mission is loaded, it is **skipped** rather
-        than failed: this tool is expected to be run where there is nothing to talk to, and a gate that
-        cries wolf there would stop being run. A VEAF check whose bridge is absent **fails** naming
-        ``dcs-serve`` rather than reporting ``veaf-absent``, because the bridge is a stated prerequisite
-        of a VEAF assertion run, not "nothing to talk to".
+        A :class:`Result`. A check that cannot run **fails** with the reason, rather than vanishing.
     """
     result = Result()
-    caps = probe(url=url, timeout=timeout)
-    result.capabilities = caps
-
-    if not caps.hook_alive:
-        result.skipped = True
-        result.skip_reason = t("smoke.skip.no_hook")
-        return result
-
-    if not caps.can_dostring_in:
-        # Not "no mission loaded", which is what this used to say and what sent the reader looking for
-        # the wrong fix: ED gates net.dostring_in behind autoexec.cfg, and every assertion below rides
-        # on it, so no amount of loading a mission makes this run.
-        result.skipped = True
-        result.skip_reason = t("smoke.skip.no_dostring_in")
-        return result
-
-    if not caps.mission_name:
-        result.skipped = True
-        result.skip_reason = t(
-            "smoke.skip.no_mission",
-            load_mission=t("smoke.available") if caps.can_load_mission else t("smoke.not_available"),
-        )
-        return result
-
-    if not caps.scripting_route:
-        # A mission is running and nothing reaches even a bare scripting state, so a hook check would be
-        # asserting about the wrong Lua. Skipping is the honest outcome — running them anyway yields
-        # `env` errors that this transport hands back as ordinary strings, which is exactly how the
-        # first slice came to report "mission environment answered" for a chunk that had crashed.
-        result.skipped = True
-        result.skip_reason = t(
-            "smoke.skip.no_scripting_route", mission=caps.mission_name, error=caps.mission_env_error or "?"
-        )
-        return result
-
-    # Resolve the bridge once, and only if a VEAF check needs it. Its absence is a failure to report,
-    # not a reason to skip the whole run: the hook checks still answer.
-    bridge = _resolve_bridge(checks, serve_url, api_key, config, bridge_timeout)
-
     for check in checks:
-        if check.transport == Transport.BRIDGE:
-            result.outcomes.append(_run_bridge_check(check, bridge, bridge_timeout))
-        else:
-            result.outcomes.append(_run_hook_check(check, caps, url, timeout))
+        try:
+            value = exec_lua(check.lua)
+        except RuntimeError as exc:
+            result.outcomes.append(Outcome(check.name, False, f"could not run: {exc}"))
+            continue
+        result.outcomes.append(Outcome(check.name, check.expect(value), f"returned {value!r}"))
     return result
-
-
-def _run_hook_check(check: Check, caps: Capabilities, url: str, timeout: float) -> Outcome:
-    """Run a DCS-native check through the hook's scripting route."""
-    try:
-        # Sent through the measured route, not to `env=mission`: that is the trigger state, and a
-        # check aimed there asks about Lua the VEAF scripts do not live in.
-        value = exec_in_scripting(check.lua, caps.scripting_route, url=url, timeout=timeout)  # type: ignore[arg-type]
-    except FiddleError as exc:
-        return Outcome(check.name, False, f"could not run: {exc}")
-    return Outcome(check.name, check.expect(value), f"returned {value!r}")
-
-
-@dataclass
-class _Bridge:
-    """The outcome of resolving the mission bridge: either usable, or a reason it is not.
-
-    A dedicated type rather than a ``str | tuple`` union, so a caller reads ``bridge.ready`` instead of
-    an ``isinstance`` check, and the serve URL travels with the key it was resolved for.
-    """
-
-    serve_url: str | None = None
-    key: str | None = None
-    problem: str | None = None
-
-    @property
-    def ready(self) -> bool:
-        """Whether a VEAF check can actually be run over this bridge."""
-        return self.problem is None
-
-
-def _resolve_bridge(
-    checks: tuple[Check, ...], serve_url: str, api_key: str | None, config: str | None, timeout: float
-) -> _Bridge:
-    """Resolve the bridge once, when a VEAF check needs it.
-
-    Only attempts anything when a VEAF check is present. The reachability probe is a trivial chunk, so
-    a failure means the transport, not the assertion.
-
-    Returns:
-        A :class:`_Bridge` — ``ready`` with a URL and key, or carrying the ``problem`` to report.
-    """
-    if not any(c.transport == Transport.BRIDGE for c in checks):
-        return _Bridge(problem="no VEAF check requested")  # never displayed: nothing consumes it
-    try:
-        key = resolve_api_key(api_key, config)
-    except RuntimeError as exc:
-        return _Bridge(problem=t("smoke.bridge.no_key", error=str(exc)))
-    try:
-        exec_over_bridge(serve_url, key, "return 'ok'", timeout)
-    except RuntimeError as exc:
-        return _Bridge(problem=t("smoke.bridge.unreachable", url=serve_url, error=str(exc)))
-    return _Bridge(serve_url=serve_url, key=key)
-
-
-def _run_bridge_check(check: Check, bridge: _Bridge, timeout: float) -> Outcome:
-    """Run a VEAF check through the mission bridge, or report the bridge's absence by name."""
-    if not bridge.ready:
-        # The bridge is the stated prerequisite: say `dcs-serve`, never let the check read `veaf-absent`
-        # and send someone debugging the mission instead of starting the bridge.
-        return Outcome(check.name, False, bridge.problem or "")
-    try:
-        value = exec_over_bridge(bridge.serve_url, bridge.key, check.lua, timeout)  # type: ignore[arg-type]
-    except RuntimeError as exc:
-        return Outcome(check.name, False, f"could not run over the bridge: {exc}")
-    return Outcome(check.name, check.expect(value), f"returned {value!r}")
 
 
 def format_result(result: Result) -> str:
@@ -741,16 +582,7 @@ def format_result(result: Result) -> str:
     Returns:
         A human-readable multi-line report.
     """
-    if result.skipped:
-        return t("smoke.skipped", reason=result.skip_reason)
-
-    lines = []
-    if result.capabilities:
-        lines.append(t("smoke.capabilities"))
-        lines += [f"  - {note}" for note in result.capabilities.notes]
-        lines.append("")
-
-    lines.append(t("smoke.passed", passed=len(result.outcomes) - len(result.failed), total=len(result.outcomes)))
+    lines = [t("smoke.passed", passed=len(result.outcomes) - len(result.failed), total=len(result.outcomes))]
     for outcome in result.outcomes:
         lines.append(f"  [{'ok' if outcome.passed else 'FAIL'}] {outcome.name}: {outcome.detail}")
     if result.failed:

@@ -306,10 +306,9 @@ modules:
 #         scalable: true
 
 # ── DCS Bridge ───────────────────────────────────────────────────────────────
-# ON for this mission, and it is not optional here: four smoke-harness checks
-# (`veaf-loaded`, `findspawnpoint-exists`, and the two `csar-avoids-water-*`)
-# assert against the **mission** Lua state, which only the bridge reaches. The
-# fiddle hook cannot see the `veaf` global at all.
+# ON for this mission, and it is not optional here: every smoke-harness check
+# runs in the **mission** Lua state through the bridge, the one way the tools
+# reach a running DCS.
 #
 # Measured 2026-08-22: with this commented out the four checks failed with
 # "cannot reach dcs-serve", which reads like a server problem and is really a

@@ -13,8 +13,8 @@ wrong; it also keyed airfields by radio callsign (``OMAA``) and lost those shari
 
 So the pipeline has two steps:
 
-1. **Capture**, once per theatre, from a running DCS through the fiddle hook's GUI environment
-   (:data:`CAPTURE_LUA`, the editor's own logic), guided by :mod:`airfield_freqs_session`. The TACAN
+1. **Capture**, once per theatre, from a running DCS: the VEAF bridge of a blank capture mission sends
+   :data:`CAPTURE_LUA` (the editor's own logic) to the GUI state, guided by :mod:`airfield_freqs_session`. The TACAN
    channels are read at the same moment from the install's ``Beacons.lua``
    (``beaconId = 'airfield<id>_<n>'``) and folded into the dump. Dumps are committed as
    ``airfield_freq_dumps/<Theatre>.json``, one per theatre, so a machine missing a map never touches
@@ -75,7 +75,8 @@ _COLLECTION_NAMES: dict[str, str] = {
     "SinaiMap": "airports-sinai",
 }
 
-#: Runs in the fiddle hook's own (GUI) environment, where ``require('terrain')`` and ``DCS`` live.
+#: Runs in the GUI state, where ``require('terrain')`` and ``DCS`` live; the bridge reaches it through
+#: ``net.dostring_in`` (:func:`airfield_freqs_session.gui_capture_lua`).
 #: It is ``me_terrainDATA.updateDATA`` + ``AirdromeData.onNewMission`` reduced to what we keep: same
 #: filter (a reference point, not abandoned), same precedence (``frequency``, else the radio ids).
 CAPTURE_LUA = r"""

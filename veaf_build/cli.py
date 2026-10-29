@@ -495,7 +495,13 @@ def build_and_publish(
 
 
 def _capture_airfield_freqs(
-    dcs_path: str | None, fiddle_url: str, requested: list[str], wait: int, missions_dir: str | None
+    dcs_path: str | None,
+    requested: list[str],
+    wait: int,
+    missions_dir: str | None,
+    serve_url: str,
+    api_key: str | None,
+    bridge_lua: str | None,
 ) -> None:
     """Guide the user through DCS, one theatre after the other, and capture each one's frequencies.
 
@@ -505,15 +511,18 @@ def _capture_airfield_freqs(
 
     Args:
         dcs_path: The DCS install (its terrains, and ``Beacons.lua`` for the TACAN).
-        fiddle_url: Base URL of the fiddle hook's GUI environment.
         requested: Theatres to capture; empty means every installed one not captured yet.
         wait: Seconds to wait for each map.
         missions_dir: Where to write the missions; defaults to the Missions folder of the last-played DCS.
+        serve_url: Where ``dcs-serve`` is expected; one is started when none answers.
+        api_key: The key of a ``dcs-serve`` the user started, if any.
+        bridge_lua: A local ``dcs-bridge.lua`` to embed in the capture missions, or ``None`` to download it.
 
     Raises:
-        typer.Exit: On a missing ``--dcs-path``, a missing hook, a map never loaded, or a failed capture.
+        typer.Exit: On a missing ``--dcs-path``, no ``dcs-serve``, a map never loaded, or a failed capture.
     """
-    from veaf_libs import dcs_fiddle_client as fiddle  # type: ignore[import-not-found]
+    from veaf_libs.dcs_bridge_capture import resolve_bridge_lua  # type: ignore[import-not-found]
+    from veaf_libs.dcs_bridge_session import open_session  # type: ignore[import-not-found]
     from veaf_libs.diagnostics import find_dcs_write_dirs  # type: ignore[import-not-found]
 
     from veaf_build.dcs_data import airfield_freqs_session as session
@@ -539,21 +548,39 @@ def _capture_airfield_freqs(
         )
         return
     write_dirs = find_dcs_write_dirs()
-    hook = write_dirs[0] / "Scripts" / "Hooks" / "dcs-fiddle-server.lua" if write_dirs else None
-    if hook is None or not hook.is_file():
-        console.print(
-            f"[red]✗ the fiddle hook is not installed ({hook or 'no Saved Games/DCS folder found'}). The capture reads "
-            "DCS's own airfield data from its GUI environment, which only that hook reaches: copy "
-            "dcs-fiddle-server.lua into Saved Games/DCS/Scripts/Hooks/, then restart DCS.[/red]"
-        )
+    if not missions_dir and not write_dirs:
+        console.print("[red]✗ no Saved Games/DCS folder found: pass --missions-dir.[/red]")
         raise typer.Exit(code=1)
     target_dir = Path(missions_dir) if missions_dir else write_dirs[0] / "Missions" / "VEAF-capture-frequencies"
+    try:
+        bridge_path = resolve_bridge_lua(bridge_lua)
+        bridge = open_session(serve_url, api_key=api_key)
+    except (RuntimeError, OSError) as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(code=1) from exc
+    try:
+        _capture_each_theatre(theatres, target_dir, install, bridge_path, bridge, wait)
+    finally:
+        bridge.close()
 
-    def exec_lua(code: str) -> object:
-        # The hook writes a fresh password at each DCS launch: read it on every call, not once.
-        return fiddle.exec_lua(
-            code, env=fiddle.ENV_HOOK, url=fiddle_url, timeout=30.0, token=fiddle.resolve_fiddle_token()
-        )
+
+def _capture_each_theatre(
+    theatres: list[str], target_dir: Path, install: Path, bridge_path: Path, bridge: Any, wait: int
+) -> None:
+    """The loop of :func:`_capture_airfield_freqs`: one capture mission, one wait, one capture per map.
+
+    Args:
+        theatres: The maps to capture, in order.
+        target_dir: Where to write the capture missions.
+        install: The DCS install.
+        bridge_path: The ``dcs-bridge.lua`` the missions embed.
+        bridge: The open ``BridgeSession``.
+        wait: Seconds to wait for each map.
+
+    Raises:
+        typer.Exit: On a map never loaded, or a failed capture.
+    """
+    from veaf_build.dcs_data import airfield_freqs_session as session
 
     console.print(
         f"\n[bold]{len(theatres)} map(s) to capture:[/bold] {', '.join(theatres)}\n"
@@ -561,7 +588,7 @@ def _capture_airfield_freqs(
         "this command sees the map arrive in DCS on its own, captures it in a second, and names the next one.\n"
     )
     for index, theatre in enumerate(theatres, start=1):
-        mission = session.write_capture_mission(theatre, target_dir)
+        mission = session.write_capture_mission(theatre, target_dir, bridge_path)
         console.print(
             f"[bold]({index}/{len(theatres)}) {theatre}[/bold] — in DCS:\n"
             f"  1. Mission > Open (or the Mission Editor), and open [bold]{mission}[/bold];\n"
@@ -571,14 +598,16 @@ def _capture_airfield_freqs(
         try:
             with console.status(f"Waiting for {theatre} to be loaded in DCS…"):
                 session.wait_for_theatre(
-                    exec_lua,
+                    bridge.run,
                     theatre,
                     wait,
                     on_other=lambda other: console.print(
                         f"  [yellow]DCS has {other} loaded — waiting for {theatre}.[/yellow]"
                     ),
                 )
-            path, records, tacans = session.capture_theatre(exec_lua, theatre, install)
+            path, records, tacans = session.capture_theatre(
+                lambda code: bridge.run_in("gui", code, timeout=60.0), theatre, install
+            )
         except (TimeoutError, ValueError, RuntimeError) as exc:
             console.print(f"[red]✗ {exc}[/red]")
             console.print("[yellow]The maps captured so far are kept; run the same command again to resume.[/yellow]")
@@ -689,10 +718,7 @@ def update_dcs_data(
         False,
         "--capture",
         help="With --airdromes: capture airdromes from the running bridge mission, then merge. "
-        "With --airfield-freqs: capture the loaded theatre's ATC frequencies through the fiddle hook.",
-    ),
-    fiddle_url: str = typer.Option(
-        "http://127.0.0.1:12081", "--fiddle-url", help="Fiddle hook (GUI environment) for --airfield-freqs --capture."
+        "With --airfield-freqs: capture each theatre's ATC frequencies through the VEAF bridge.",
     ),
     theatre: list[str] | None = typer.Option(
         None,
@@ -712,7 +738,9 @@ def update_dcs_data(
         None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help="dcs-serve superuser Bearer token for --capture."
     ),
     bridge_lua: str | None = typer.Option(
-        None, "--bridge-lua", help="Local dcs-bridge.lua to embed for --inject-bridge (default: download)."
+        None,
+        "--bridge-lua",
+        help="Local dcs-bridge.lua to embed for --inject-bridge and --airfield-freqs --capture (default: download).",
     ),
     all_data: bool = typer.Option(False, "--all", help="Regenerate every datamine-sourced artifact."),
 ) -> None:
@@ -785,7 +813,7 @@ def update_dcs_data(
         from veaf_build.dcs_data import airfield_freqs as airfield_freqs_provider
 
         if capture:
-            _capture_airfield_freqs(dcs_path, fiddle_url, theatre or [], wait, missions_dir)
+            _capture_airfield_freqs(dcs_path, theatre or [], wait, missions_dir, serve_url, api_key, bridge_lua)
 
         console.print("[cyan]Generating airfield ATC-frequency table and channel collections from dumps...[/cyan]")
         count = airfield_freqs_provider.generate()

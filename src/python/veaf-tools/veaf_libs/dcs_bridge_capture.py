@@ -325,9 +325,9 @@ def capture_airbases(serve_url: str, api_key: str, timeout: float = 30.0) -> tup
 def exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float = 10.0) -> str:
     """Run `code` in the running mission over ``dcs-serve`` and return its result string.
 
-    The public entry point for callers other than the captures — the smoke harness routes its VEAF
-    assertions here, because the bridge lives **inside the mission** where the ``veaf`` global exists,
-    which the fiddle hook's scripting state does not (``FEAT-DCS-SMOKE-HARNESS`` ticket 04).
+    The public entry point for callers other than the captures — the smoke harness, ``mission-check`` and
+    the recon commands, through :class:`veaf_libs.dcs_bridge_session.BridgeSession`. The bridge lives
+    **inside the mission**, where the ``veaf`` global exists.
 
     Args:
         serve_url: Base URL of the ``dcs-serve`` HTTP API (e.g. ``http://127.0.0.1:8080``).

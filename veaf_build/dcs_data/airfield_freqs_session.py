@@ -6,9 +6,11 @@ wait until DCS has that map loaded, capture, say what comes next — and at the 
 closed. The steps live here, the transport and the messages in the CLI, so a test can run the whole
 journey against a fake DCS.
 
-The transport is the fiddle hook's own (GUI) environment, not ``dcs-serve``: the terrain module
-(``Terrain.GetTerrainConfig``) and ``DCS.getATCradiosData`` the Mission Editor reads live there, and
-the mission scripting environment the bridge runs in has neither.
+The transport is the VEAF bridge each capture mission carries (REFACTOR-BRIDGE-ONLY). The terrain
+module (``Terrain.GetTerrainConfig``) and ``DCS.getATCradiosData`` the Mission Editor reads live in the
+GUI state, not in the mission scripting state the bridge runs in, so the capture is sent there through
+``net.dostring_in("gui", …)`` — reachable from the mission, measured 2026-10-28 — and comes back
+JSON-encoded, since only a string crosses.
 """
 
 from __future__ import annotations
@@ -24,15 +26,19 @@ from veaf_libs.blank_mission import (  # type: ignore[import-not-found]
     generate_blank_mission,
     is_theatre_supported,
 )
-from veaf_libs.dcs_fiddle_client import FiddleAuthError  # type: ignore[import-not-found]
+from veaf_libs.dcs_bridge_capture import BridgeAuthError, inject_bridge_in_memory  # type: ignore[import-not-found]
 
 from veaf_build.dcs_data import airfield_freqs as A
 
-#: Runs in the hook's environment; ``none`` until a mission is loaded.
-THEATRE_LUA = (
-    "local ok, m = pcall(function() return DCS.getCurrentMission() end) "
-    "if ok and m and m.mission and m.mission.theatre then return m.mission.theatre end return 'none'"
-)
+#: Runs in the mission, over the bridge: the theatre of the mission that answers.
+THEATRE_LUA = "return (env.mission and env.mission.theatre) or 'none'"
+
+
+def gui_capture_lua() -> str:
+    """Return :data:`A.CAPTURE_LUA` as the chunk to run in the GUI state: its table JSON-encoded there."""
+    chunk = "return net.lua2json((function() " + A.CAPTURE_LUA + " end)())"
+    return chunk
+
 
 LuaExec = Callable[[str], Any]
 
@@ -82,21 +88,26 @@ def theatres_to_capture(installed: list[str], requested: list[str], dumps_dir: P
     return [t for t in installed if t not in done]
 
 
-def write_capture_mission(theatre: str, missions_dir: Path) -> Path:
-    """Write the empty mission to load for *theatre*.
+def write_capture_mission(theatre: str, missions_dir: Path, bridge_lua: Path) -> Path:
+    """Write the empty mission to load for *theatre*, the bridge embedded.
 
     Args:
         theatre: Runtime theatre name.
         missions_dir: Where to write it — the DCS ``Missions`` folder, so the user finds it.
+        bridge_lua: The ``dcs-bridge.lua`` to embed.
 
     Returns:
         The written ``.miz``.
     """
+    from mission_tools.miz_tools import read_miz, write_miz  # type: ignore[import-not-found]
+
     missions_dir.mkdir(parents=True, exist_ok=True)
     path = missions_dir / f"veaf-capture-frequencies-{theatre}.miz"
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for member, content in generate_blank_mission(theatre).items():
             archive.writestr(member, content)
+    mission = read_miz(path)
+    write_miz(mission, path, additional_files=inject_bridge_in_memory(mission, bridge_lua))
     return path
 
 
@@ -112,11 +123,11 @@ def wait_for_theatre(
 ) -> None:
     """Wait until DCS has a mission loaded on *theatre*.
 
-    An unreachable hook (DCS still starting, or at the main menu) and another map are both waited
-    through: the user may be on the way. *on_other* is told once per other map seen.
+    No answer (no mission connected to ``dcs-serve`` yet) and another map are both waited through: the
+    user may be on the way. *on_other* is told once per other map seen.
 
     Args:
-        exec_lua: The transport; raises on an unreachable hook.
+        exec_lua: Runs a chunk in the mission over the bridge; raises when no mission answers.
         theatre: Runtime theatre name to wait for.
         wait_seconds: How long to wait.
         on_other: Called with the name of a map that is loaded but is not *theatre*.
@@ -128,7 +139,7 @@ def wait_for_theatre(
         TimeoutError: *theatre* was not loaded within *wait_seconds*; the message says what was seen.
     """
     deadline = clock() + wait_seconds
-    last = "no answer from the hook"
+    last = "no answer from the mission's bridge"
     seen: set[str] = set()
     while True:
         try:
@@ -139,7 +150,7 @@ def wait_for_theatre(
             if current != "none" and current not in seen:
                 seen.add(current)
                 on_other(current)
-        except FiddleAuthError:
+        except BridgeAuthError:
             raise  # refused credentials stay refused: waiting would only hide the reason
         except RuntimeError as exc:
             last = str(exc)
@@ -149,12 +160,12 @@ def wait_for_theatre(
 
 
 def capture_theatre(
-    exec_lua: LuaExec, theatre: str, dcs_path: Path, dumps_dir: Path = A.DUMPS_DIR
+    exec_in_gui: LuaExec, theatre: str, dcs_path: Path, dumps_dir: Path = A.DUMPS_DIR
 ) -> tuple[Path, list[dict[str, Any]], dict[int, str]]:
     """Capture the loaded theatre and write its dump.
 
     Args:
-        exec_lua: The transport.
+        exec_in_gui: Runs a chunk in the GUI state (over the bridge, through ``net.dostring_in``).
         theatre: The theatre expected to be loaded.
         dcs_path: The DCS install, for ``Beacons.lua``.
         dumps_dir: Where to write the dump.
@@ -165,7 +176,7 @@ def capture_theatre(
     Raises:
         ValueError: The capture failed, or DCS answered for another theatre.
     """
-    captured, records = A.parse_capture(exec_lua(A.CAPTURE_LUA))
+    captured, records = A.parse_capture(exec_in_gui(gui_capture_lua()))
     if captured != theatre:
         raise ValueError(f"DCS has {captured} loaded, not {theatre}")
     beacons = dcs_path / "Mods" / "terrains" / A.terrain_folder(theatre) / "Beacons.lua"

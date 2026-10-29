@@ -5,6 +5,9 @@ copy of the mission, which the mission maker launches in DCS; ``recon-plan`` lis
 into a shots file they edit (the engagement heading is theirs to give); ``recon-shoot`` moves the F11
 camera and grabs the window; ``recon-render`` makes the photos. Nothing here launches DCS or touches
 a session the user did not start.
+
+``recon-plan`` and ``recon-shoot`` talk to the mission through the VEAF bridge that ``recon-prepare``
+embeds in the shooting copy (REFACTOR-BRIDGE-ONLY): ``dcs-serve`` is started when none runs.
 """
 
 import json
@@ -15,17 +18,11 @@ from typing import Any
 import typer
 import yaml
 from veaf_libs.coordinates import is_theatre_supported, to_dms, xy_to_latlon
-from veaf_libs.dcs_fiddle_client import (
-    DEFAULT_FIDDLE_URL,
-    FiddleError,
-    exec_lua,
-    resolve_fiddle_token,
-    set_session_token,
-)
+from veaf_libs.dcs_bridge_capture import DEFAULT_SERVE_URL, resolve_bridge_lua
+from veaf_libs.dcs_bridge_session import DEFAULT_WAIT_SECONDS
 from veaf_libs.dcs_recon import (
     COALITIONS,
     ENV_EXPORT,
-    ENV_SERVER,
     INFO_BAR_PX,
     UNITS_LUA,
     briefing_sidecar,
@@ -38,19 +35,7 @@ from veaf_libs.dcs_recon import (
 )
 
 from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
-
-_URL_HELP = "cmd.recon.opt.url"
-_TOKEN_HELP = "cmd.recon.opt.fiddle_token"
-
-
-def _runner(url: str, env: str, timeout: float) -> Any:
-    """Return a callable running a chunk in *env* through the hook and giving back its text."""
-
-    def run(code: str) -> str:
-        result = exec_lua(code, env=env, url=url, timeout=timeout)
-        return "" if result is None else str(result)
-
-    return run
+from veaf_tools.bridge import open_bridge
 
 
 def _latlon(theatre: str, x: float, z: float) -> tuple[float, float] | None:
@@ -63,17 +48,21 @@ def recon_prepare(
     mission: Path = typer.Argument(..., exists=True, dir_okay=False, help=t("cmd.recon_prepare.opt.mission")),
     time_of_day: str = typer.Option("11:30", "--time", help=t("cmd.recon_prepare.opt.time")),
     out: Path | None = typer.Option(None, "--out", help=t("cmd.recon_prepare.opt.out")),
+    bridge_lua: str | None = typer.Option(None, "--bridge-lua", help=t("cmd.bridge.opt.bridge_lua")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
-    """Write the shooting copy of a built mission."""
+    """Write the shooting copy of a built mission, the bridge embedded."""
     logger.set_verbose(verbose)
     console.print(t("cmd.recon_prepare.title", version=VERSION))
     target = out or recon_mission_path(mission)
     try:
-        changes = derive_recon_mission(mission, target, time_of_day)
+        changes = derive_recon_mission(mission, target, time_of_day, resolve_bridge_lua(bridge_lua))
     except ValueError as error:
         console.print(f"[red]✗[/]  {error}")
         raise typer.Exit(code=2) from error
+    except (RuntimeError, OSError) as error:
+        console.print(f"[red]✗[/]  {error}")
+        raise typer.Exit(code=1) from error
     console.print(t("cmd.recon_prepare.written", path=target))
     for change in changes:
         console.print(f"  - {change}")
@@ -86,8 +75,13 @@ def recon_plan(
     coalition: str = typer.Option("red", "--coalition", help=t("cmd.recon_plan.opt.coalition")),
     operation: str = typer.Option("", "--operation", help=t("cmd.recon_plan.opt.operation")),
     force: bool = typer.Option(False, "--force", help=t("cmd.recon_plan.opt.force")),
-    url: str = typer.Option(DEFAULT_FIDDLE_URL, "--url", help=t(_URL_HELP)),
-    fiddle_token: str | None = typer.Option(None, "--fiddle-token", envvar="DCS_FIDDLE_TOKEN", help=t(_TOKEN_HELP)),
+    serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help=t("cmd.bridge.opt.serve_url")),
+    dcs_serve: str | None = typer.Option(None, "--dcs-serve", help=t("cmd.bridge.opt.dcs_serve")),
+    api_key: str | None = typer.Option(
+        None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help=t("cmd.bridge.opt.api_key")
+    ),
+    config: str | None = typer.Option(None, "--config", help=t("cmd.bridge.opt.config")),
+    wait: int = typer.Option(DEFAULT_WAIT_SECONDS, "--wait", min=0, help=t("cmd.bridge.opt.wait")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
     """List what is on the map into a shots file to edit."""
@@ -99,12 +93,14 @@ def recon_plan(
     if out.exists() and not force:
         console.print(f"[red]✗[/]  {t('cmd.recon_plan.exists', path=out)}")
         raise typer.Exit(code=2)
-    set_session_token(resolve_fiddle_token(fiddle_token))
+    bridge = open_bridge(serve_url, dcs_serve, api_key, config, wait)
     try:
-        units = parse_units(_runner(url, ENV_SERVER, 30.0)(UNITS_LUA))
-    except FiddleError as error:
+        units = parse_units(bridge.run(UNITS_LUA))
+    except RuntimeError as error:
         console.print(f"[red]✗[/]  {error}")
         raise typer.Exit(code=1) from error
+    finally:
+        bridge.close()
     plan = plan_from_units(units, COALITIONS[coalition], operation)
     out.write_text(yaml.safe_dump(plan, allow_unicode=True, sort_keys=False), encoding="utf-8")
     console.print(t("cmd.recon_plan.written", path=out, count=len(plan["shots"])))
@@ -116,8 +112,13 @@ def recon_shoot(
     shots: Path = typer.Option(Path("shots.yaml"), "--shots", exists=True, help=t("cmd.recon.opt.shots")),
     raw_dir: Path = typer.Option(Path("docs/build/recon/raw"), "--raw-dir", help=t("cmd.recon.opt.raw_dir")),
     only: list[str] = typer.Option([], "--only", help=t("cmd.recon.opt.only")),
-    url: str = typer.Option(DEFAULT_FIDDLE_URL, "--url", help=t(_URL_HELP)),
-    fiddle_token: str | None = typer.Option(None, "--fiddle-token", envvar="DCS_FIDDLE_TOKEN", help=t(_TOKEN_HELP)),
+    serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help=t("cmd.bridge.opt.serve_url")),
+    dcs_serve: str | None = typer.Option(None, "--dcs-serve", help=t("cmd.bridge.opt.dcs_serve")),
+    api_key: str | None = typer.Option(
+        None, "--api-key", envvar="DCS_BRIDGE_API_KEY", help=t("cmd.bridge.opt.api_key")
+    ),
+    config: str | None = typer.Option(None, "--config", help=t("cmd.bridge.opt.config")),
+    wait: int = typer.Option(DEFAULT_WAIT_SECONDS, "--wait", min=0, help=t("cmd.bridge.opt.wait")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
     """Move the F11 camera onto each shot and grab the DCS window."""
@@ -131,22 +132,24 @@ def recon_shoot(
         console.print(f"[red]✗[/]  {error}")
         raise typer.Exit(code=2) from error
     console.print(t("cmd.recon_shoot.expect", count=len(plan.shots)))
-    set_session_token(resolve_fiddle_token(fiddle_token))
+    bridge = open_bridge(serve_url, dcs_serve, api_key, config, wait)
     try:
         taken = shoot_plan(
             plan,
             raw_dir,
-            run_server=_runner(url, ENV_SERVER, 30.0),
-            run_export=_runner(url, ENV_EXPORT, 10.0),
+            run_server=bridge.run,
+            run_export=lambda code: bridge.run_in(ENV_EXPORT, code, timeout=10.0),
             grab=lambda retry: grab_dcs(retry, ignore_bottom=INFO_BAR_PX),
             latlon_of=_latlon,
             sleep=time.sleep,
             progress=lambda line: console.print(f"  {line}"),
             only=only or None,
         )
-    except (FiddleError, CaptureError) as error:
+    except (RuntimeError, CaptureError) as error:
         console.print(f"[red]✗[/]  {error}")
         raise typer.Exit(code=1) from error
+    finally:
+        bridge.close()
     console.print(t("cmd.recon_shoot.done", count=len(taken), path=raw_dir))
 
 

@@ -11,6 +11,11 @@ the game.
 Written 2026-08-12, reordered 2026-08-14 when items 0 and 0b arrived — they gate a release, so they
 come first.
 
+**Since 2026-10-29 the tools reach DCS through the VEAF bridge only** (ADR 0024): the items below that
+say "the fiddle hook" or `fiddle.sh` run their Lua through the bridge instead — a mission carrying it
+(`dcs_bridge` in `mission.yaml`, or `veaf-tools dcs inject-bridge`), `dcs-serve` running, and
+`POST /api/exec`; another Lua state is one `net.dostring_in` away.
+
 ---
 
 ## ⏱ RELEASE GATE — fixes that are shipped and nobody has ever seen work

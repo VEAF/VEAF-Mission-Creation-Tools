@@ -1,10 +1,12 @@
 """Reconnaissance photos taken in a running DCS: the geometry, the requests and the shooting mission.
 
 Taken over from the prototype written for "Marteau du Golan" (Syria, 2026-10-28), where twelve shots
-were taken by hand through the ``dcs-fiddle`` hook. What it measured, and what this module keeps:
+were taken by hand through the ``dcs-fiddle`` hook; the commands now go through the VEAF bridge
+(REFACTOR-BRIDGE-ONLY). What the prototype measured, and what this module keeps:
 
-- **Positions come from the ``server`` state.** The groups a combat zone draws at random only exist
-  in game, so the mission file cannot say where they stand; ``coalition.getGroups`` can.
+- **Positions come from the running mission.** The groups a combat zone draws at random only exist
+  in game, so the mission file cannot say where they stand; ``coalition.getGroups`` can. The bridge
+  asks in the mission scripting state it runs in.
 - **The camera moves only from the ``export`` state.** ``LoSetCameraPosition`` sent from the GUI
   state leaves the camera where it is, and in the F10 view it pans the map instead. In F11 free
   camera, sent through ``export``, it places the camera exactly.
@@ -34,12 +36,9 @@ import yaml
 
 from veaf_libs.i18n import t
 
-#: The state ``net.dostring_in`` calls ``server``: the mission scripting state, where ``coalition``,
-#: ``env`` and the VEAF modules live. Its replies are always strings, so every chunk sent there
-#: returns text this module parses.
-ENV_SERVER = "server"
-
-#: The export state, the only one from which ``LoSetCameraPosition`` moves the F11 camera.
+#: The export state, the only one from which ``LoSetCameraPosition`` moves the F11 camera. The bridge
+#: runs in the mission scripting state and reaches it through ``net.dostring_in`` (measured 2026-10-28:
+#: the camera moved, 145 → 445 m).
 ENV_EXPORT = "export"
 
 #: Horizontal field of view of the DCS window, degrees. Measured, see the module docstring.
@@ -643,13 +642,15 @@ def recon_mission_path(miz: Path) -> Path:
     return miz.with_name(f"{miz.stem}_RECON{miz.suffix}")
 
 
-def derive_recon_mission(miz: Path, out: Path, start_time: str) -> list[str]:
+def derive_recon_mission(miz: Path, out: Path, start_time: str, bridge_lua: Path) -> list[str]:
     """Write the shooting copy of a built mission.
 
     Args:
         miz: The built mission; never modified.
         out: Where the copy goes.
         start_time: ``HH:MM``, the time of day the photos are taken at.
+        bridge_lua: The ``dcs-bridge.lua`` to embed: ``recon-plan`` and ``recon-shoot`` talk to the
+            mission through it.
 
     Returns:
         What was changed, one line each, for the command to print.
@@ -658,6 +659,8 @@ def derive_recon_mission(miz: Path, out: Path, start_time: str) -> list[str]:
         ValueError: *start_time* is malformed, *out* is *miz*, or the mission has no VEAF config.
     """
     from mission_tools.miz_tools import list_members, read_member, read_miz, write_miz  # noqa: PLC0415
+
+    from veaf_libs.dcs_bridge_capture import inject_bridge_in_memory  # noqa: PLC0415
 
     seconds = seconds_of_day(start_time)
     if out.resolve() == miz.resolve():
@@ -672,12 +675,15 @@ def derive_recon_mission(miz: Path, out: Path, start_time: str) -> list[str]:
     content["weather"] = clear_sky(content.get("weather") or {})
     content["start_time"] = seconds
     patched = _SHOW_NAMES_LUA + config.rstrip("\n") + "\n" + _ACTIVATE_ALL_LUA
-    write_miz(mission, out, additional_files={VEAF_CONFIG_MEMBER: patched.encode("utf-8")})
+    files = inject_bridge_in_memory(mission, bridge_lua)
+    files[VEAF_CONFIG_MEMBER] = patched.encode("utf-8")
+    write_miz(mission, out, additional_files=files)
     return [
         t("recon.prepare.weather"),
         t("recon.prepare.time", time=start_time),
         t("recon.prepare.zones"),
         t("recon.prepare.names"),
+        t("recon.prepare.bridge"),
     ]
 
 
@@ -707,7 +713,7 @@ def shoot_plan(
     Args:
         plan: The shots.
         out_dir: Where the raw shots go.
-        run_server: Runs a chunk in the ``server`` state, returns its reply.
+        run_server: Runs a chunk in the mission scripting state, returns its reply.
         run_export: Runs a chunk in the ``export`` state.
         grab: Grabs the DCS window; takes the function that puts the camera back before a retry, and
             returns the image (cropped to the client area) and the client area's size.

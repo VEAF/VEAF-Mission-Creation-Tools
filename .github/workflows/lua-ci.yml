@@ -75,8 +75,8 @@ jobs:
       # gate that formatting is not maintained and drifts back on the next hand-written test, so
       # the honest repair is to make it enforced rather than to revert it.
       #
-      # `src/scripts/other/` stays out on purpose: those files come from elsewhere (DCSSB, the
-      # fiddle server) and reformatting them would fight their upstream.
+      # `src/scripts/other/` stays out on purpose: those files come from elsewhere (DCSSB) and
+      # reformatting them would fight their upstream.
       - name: Check formatting with StyLua
         uses: JohnnyMorganz/stylua-action@v5
         with:

@@ -285,3 +285,21 @@ def test_farp_spot_refuses_a_malformed_point(app, tmp_path) -> None:
     result = CliRunner().invoke(app, ["farp-spot", "MarianaIslands", "--at", "12", "--api-key", "k"])
     assert result.exit_code == 1
     assert "x,y" in result.output
+
+
+def test_a_lua_error_while_waiting_stops_at_once(app, monkeypatch, tmp_path) -> None:
+    """A chunk that raised in the mission raises again on the next try: waiting would not change it."""
+    from veaf_libs.dcs_bridge_capture import BridgeLuaError
+    from veaf_tools.commands import clear_ground
+
+    calls = {"n": 0}
+
+    def raised(_url, _key, _code, timeout):
+        calls["n"] += 1
+        raise BridgeLuaError("the Lua raised in the mission: attempt to index a nil value")
+
+    monkeypatch.setattr(clear_ground, "exec_over_bridge", raised)
+    result = CliRunner().invoke(app, _args(tmp_path, "--no-airfields", "--around", "0,0"))
+    assert result.exit_code == 1
+    assert calls["n"] == 1
+    assert "nil value" in result.output

@@ -5,35 +5,70 @@ found three defects there: a menu entry with an empty label, a combat mission th
 name it was not registered under (a CAP registers as ``<name>/<skill>/<scale>`` variants), and a
 column that never moved — its route was "On Road" with no road to follow.
 
-The checks run where the VEAF modules live: the fiddle server the hook starts **inside the mission
-scripting environment**, port 12080 (:data:`MISSION_FIDDLE_URL`). Measured 2026-10-28 on "Marteau du
-Golan": ``net.dostring_in("server", …)`` through port 12081 sees ``coalition`` and ``env`` but
-``veafCombatZone`` and ``veafRadio`` are ``nil`` there, while port 12080 answers ``table`` for both. That
-server runs on the mission's own timer, so it does not answer while DCS is paused. The checks run
-against the test build the user launched. They change the mission while they run — each zone and each combat
-mission is switched on and off — and put every one back as it was found. An *operation* is reported
-and not toggled: switching one cascades to its zones and starts a watchdog that would move the
-mission on.
+The checks run where the VEAF modules live: the **mission scripting state**, reached through the VEAF
+bridge that :func:`derive_check_mission` embeds in a test copy of the mission (REFACTOR-BRIDGE-ONLY).
+Measured 2026-10-28 on "Marteau du Golan": the ``server`` state sees ``coalition`` and ``env`` but
+``veafCombatZone`` and ``veafRadio`` are ``nil`` there, while the mission scripting state answers
+``table`` for both. The bridge runs on the mission's own timer, so it does not answer while DCS is
+paused. The checks change the mission while they run — each zone and each combat mission is switched on
+and off — and put every one back as it was found. An *operation* is reported and not toggled:
+switching one cascades to its zones and starts a watchdog that would move the mission on.
 
-Every chunk returns text (``net.dostring_in`` only carries strings), parsed here; all of it is
+Every chunk returns text (the bridge hands back ``tostring`` of the result), parsed here; all of it is
 unit-tested without DCS. :func:`run_checks` orchestrates through injected callables.
 """
 
 from __future__ import annotations
 
 import math
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from rich.markup import escape
 
 from veaf_libs.i18n import t
 from veaf_libs.lua_literals import lua_quoted_string
 
-#: The fiddle server inside the mission scripting environment, where ``veaf*`` live (``env=default``).
-MISSION_FIDDLE_URL = "http://127.0.0.1:12080"
-#: The environment to ask of it: its own.
-MISSION_ENV = "default"
+
+def check_mission_path(miz: Path) -> Path:
+    """Return where the test copy of *miz* goes: beside it, ``_CHECK`` appended.
+
+    Args:
+        miz: The built mission.
+
+    Returns:
+        ``<stem>_CHECK.miz`` in the same folder.
+    """
+    return miz.with_name(f"{miz.stem}_CHECK{miz.suffix}")
+
+
+def derive_check_mission(miz: Path, out: Path, bridge_lua: Path) -> None:
+    """Write the test copy ``mission-check`` runs against: the mission, the bridge embedded.
+
+    Nothing else changes, so what is checked is the mission as it will be flown.
+
+    Args:
+        miz: The built mission; never modified.
+        out: Where the copy goes.
+        bridge_lua: The ``dcs-bridge.lua`` to embed.
+
+    Raises:
+        ValueError: *out* is *miz*, or *miz* is not a mission.
+    """
+    from mission_tools.miz_tools import read_miz, write_miz  # noqa: PLC0415
+
+    from veaf_libs.dcs_bridge_capture import inject_bridge_in_memory  # noqa: PLC0415
+
+    if out.resolve() == miz.resolve():
+        raise ValueError("the test copy must not overwrite the mission it is made from")
+    if read_miz(miz).mission_content is None:
+        raise ValueError(f"{miz.name} is not a DCS mission (no 'mission' member)")
+    shutil.copyfile(miz, out)
+    mission = read_miz(out)
+    write_miz(mission, out, additional_files=inject_bridge_in_memory(mission, bridge_lua))
+
 
 #: How long a routed group has to start moving.
 MOVE_TIMEOUT = 60.0

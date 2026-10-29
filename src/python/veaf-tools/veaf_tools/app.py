@@ -27,6 +27,7 @@ MACHINE_ONLY_COMMANDS: set[str] = {
     "scenery-objects",
     "farp-spot",
     "terrain-sweep",
+    "mission-check-prepare",
     "mission-check",
     "recon-prepare",
     "recon-plan",

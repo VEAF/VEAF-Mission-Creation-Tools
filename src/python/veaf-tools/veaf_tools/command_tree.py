@@ -82,6 +82,7 @@ COMMAND_GROUPS: tuple[CommandGroup, ...] = (
             "inject-bridge",
             "capture-map",
             "smoke-test",
+            "mission-check-prepare",
             "mission-check",
             "recon-prepare",
             "recon-plan",

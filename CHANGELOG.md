@@ -82,6 +82,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `poetry run pytest` now spreads the tests over one `pytest-xdist` worker per CPU (`-n0` runs them serially, for `--pdb`).
   The briefing tests built a whole briefing for each test; the ones that only read it now share one per module.
   Every test starts in English and gets its language back, which a test calling `set_language("fr")` used to leak to the next one.
+- **One way to talk to a running DCS: the VEAF bridge** (REFACTOR-BRIDGE-ONLY, [ADR 0024](docs/adr/0024-one-transport-to-a-running-dcs-the-bridge.md)).
+  `recon-plan`, `recon-shoot`, `mission-check`, `smoke-test` and `veaf-build update-dcs-data --airfield-freqs --capture` no longer use the DCS Fiddle hook: they go through the bridge embedded in the mission, and start `dcs-serve` themselves when none runs.
+  `recon-prepare` embeds the bridge in the shooting copy, and the new `mission-check-prepare` writes a test copy carrying it; `smoke-test` needs a mission built with `dcs_bridge`.
+  The F11 camera and the Mission Editor's terrain data are reached from the mission through `net.dostring_in`.
+  The `--url` and `--fiddle-token` options give way to `--serve-url`, `--dcs-serve`, `--api-key`, `--config` and `--wait`; `smoke-test --full` and `--probe-only` are removed, and so is `dcs-fiddle-server.lua`; with no mission to talk to, `smoke-test` now fails after `--wait` instead of skipping.
 
 ## [6.33.0] — 2026-10-27
 

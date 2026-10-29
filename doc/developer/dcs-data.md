@@ -262,8 +262,11 @@ l'aérodrome dans l'éditeur ; Bandar-e-Jask n'a aucune fréquence dans le fichi
 complète : lire le fichier est donc faux, seul DCS en marche fait foi. La table se construit en deux
 temps.
 
-1. **Capture**, guidée, une carte après l'autre, par le hook fiddle (environnement GUI,
-   `dcs-fiddle-server.lua` installé — la commande vérifie sa présence). Pour chaque carte installée
+1. **Capture**, guidée, une carte après l'autre, par le bridge VEAF : chaque mission de capture
+   embarque `dcs-bridge.lua`, la commande démarre `dcs-serve` si aucun ne tourne, et la capture est
+   envoyée à l'état GUI de DCS par `net.dostring_in`, là où vivent les données de terrain de
+   l'éditeur. Il faut la manip `MissionScripting.lua` décrite dans
+   [la référence CLI](../CLI_REFERENCE.md#dcs-bridge). Pour chaque carte installée
    et pas encore capturée (ou celles nommées par `--theatre`), la commande écrit une mission vide
    dans le dossier `Missions\VEAF-capture-frequencies\` de DCS, dit quoi faire (l'ouvrir, la lancer,
    prendre le slot spectateur), **voit seule** la carte arriver dans DCS, capture, puis nomme la

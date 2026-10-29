@@ -14,7 +14,7 @@ reopen. Adopting the live approach was investigated on 2026-08-01 and is **rejec
 
 VMCT already owns most of the plumbing, which is what made this look cheap:
 
-- [dcs-fiddle-server.lua](../../src/scripts/other/dcs-fiddle-server.lua) is installed as a
+- `dcs-fiddle-server.lua` (removed since, [ADR 0024](0024-one-transport-to-a-running-dcs-the-bridge.md)) was installed as a
   `Saved Games/DCS/Scripts/Hooks/` hook, serving HTTP on `127.0.0.1:12081`.
 - Its `handle_request(luastring, env)` already has two branches: `net.dostring_in(env, …)` for the
   sandboxed mission environment, and — with `env=default` — a plain `loadstring` **in the hook's own

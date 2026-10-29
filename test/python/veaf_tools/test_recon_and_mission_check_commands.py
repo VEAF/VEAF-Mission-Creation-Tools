@@ -1,4 +1,8 @@
-"""`dcs recon-*` and `dcs mission-check`, driven without DCS (FEAT-DCS-RECON-AND-MISSION-CHECK)."""
+"""`dcs recon-*` and `dcs mission-check`, driven without DCS (FEAT-DCS-RECON-AND-MISSION-CHECK).
+
+Both talk to the mission through the VEAF bridge (REFACTOR-BRIDGE-ONLY): the tests stand a fake bridge
+session in for `dcs-serve`, recording which Lua state each chunk was sent to.
+"""
 
 from __future__ import annotations
 
@@ -9,11 +13,10 @@ from typing import Any
 
 import pytest
 import yaml
-from mission_tools.miz_tools import create_miz
+from mission_tools.miz_tools import create_miz, list_members, read_miz
 from PIL import Image
 from typer.testing import CliRunner
 from veaf_libs.blank_mission import generate_blank_mission
-from veaf_libs.dcs_fiddle_client import FiddleError
 from veaf_libs.dcs_recon import INFO_BAR_PX, UNITS_LUA
 from veaf_libs.i18n import language
 
@@ -40,33 +43,73 @@ def app() -> Any:
     return app_mod.app
 
 
-@pytest.fixture
-def fake_hook(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
-    """Answer the hook's chunks like a running shooting mission would; record ``(env, code)``."""
-    calls: list[tuple[str, str]] = []
+class FakeBridge:
+    """A bridge session answering like a running shooting mission; records ``(state, code)``.
 
-    def exec_lua(code: str, env: str, url: str, timeout: float) -> Any:
-        calls.append((env, code))
+    ``mission`` is the mission scripting state the bridge runs in; any other state is one reached
+    through ``net.dostring_in``.
+    """
+
+    def __init__(self, answer: Any = None) -> None:
+        self.calls: list[tuple[str, str]] = []
+        self.closed = False
+        self.started = None  # an already running dcs-serve
+        self._answer = answer or self._shooting_mission
+
+    @staticmethod
+    def _shooting_mission(_state: str, code: str) -> str:
         if code == UNITS_LUA:
             return UNITS_REPLY
         if "getAbsTime" in code:
             return "Syria\t2011-04-16\t41460"
         return "ok"
 
+    def run(self, code: str, timeout: float = 30.0) -> str:
+        self.calls.append(("mission", code))
+        return self._answer("mission", code)
+
+    def run_in(self, state: str, code: str, timeout: float = 30.0) -> str:
+        self.calls.append((state, code))
+        return self._answer(state, code)
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def _use_bridge(monkeypatch: pytest.MonkeyPatch, bridge: FakeBridge) -> FakeBridge:
     for module in ("recon_photos", "mission_check"):
-        monkeypatch.setattr(f"veaf_tools.commands.{module}.exec_lua", exec_lua)
-        monkeypatch.setattr(f"veaf_tools.commands.{module}.resolve_fiddle_token", lambda token: None)
-    return calls
+        monkeypatch.setattr(f"veaf_tools.commands.{module}.open_bridge", lambda *a, **kw: bridge)
+    return bridge
 
 
-def test_prepare_writes_the_shooting_copy(app: Any, tmp_path: Path) -> None:
+@pytest.fixture
+def fake_bridge(monkeypatch: pytest.MonkeyPatch) -> FakeBridge:
+    return _use_bridge(monkeypatch, FakeBridge())
+
+
+@pytest.fixture
+def bridge_lua(tmp_path: Path) -> Path:
+    path = tmp_path / "dcs-bridge.lua"
+    path.write_text("-- the bridge\n", encoding="utf-8")
+    return path
+
+
+def _carries_the_bridge(miz: Path) -> bool:
+    content = read_miz(miz).mission_content or {}
+    actions = " ".join(str(a) for a in (content.get("trig") or {}).get("actions", {}).values())
+    return "l10n/DEFAULT/dcs-bridge.lua" in list_members(miz) and "dcs-bridge" in actions
+
+
+def test_prepare_writes_the_shooting_copy_with_the_bridge(app: Any, tmp_path: Path, bridge_lua: Path) -> None:
     files = generate_blank_mission("syria")
     files["l10n/DEFAULT/veaf-config.lua"] = b"veafCombatZone.initialize()\n"
     miz = create_miz(tmp_path / "Golan.miz", files)
-    result = CliRunner().invoke(app, ["recon-prepare", str(miz), "--time", "10:00"])
+    result = CliRunner().invoke(app, ["recon-prepare", str(miz), "--time", "10:00", "--bridge-lua", str(bridge_lua)])
     assert result.exit_code == 0, result.output
-    assert (tmp_path / "Golan_RECON.miz").exists()
+    assert _carries_the_bridge(tmp_path / "Golan_RECON.miz")
     assert "F11" in result.output
+    # one write of a fresh copy: no backup of it lying around
+    assert sorted(p.name for p in tmp_path.rglob("*.miz")) == ["Golan.miz", "Golan_RECON.miz"]
 
 
 def test_prepare_refuses_a_bad_time(app: Any, tmp_path: Path) -> None:
@@ -77,15 +120,14 @@ def test_prepare_refuses_a_bad_time(app: Any, tmp_path: Path) -> None:
     assert result.exit_code == 2
 
 
-def test_plan_writes_a_starter_file_from_the_live_units(
-    app: Any, tmp_path: Path, fake_hook: list[tuple[str, str]]
-) -> None:
+def test_plan_writes_a_starter_file_from_the_live_units(app: Any, tmp_path: Path, fake_bridge: FakeBridge) -> None:
     out = tmp_path / "shots.yaml"
     result = CliRunner().invoke(app, ["recon-plan", "--out", str(out), "--operation", "Golan"])
     assert result.exit_code == 0, result.output
     plan = yaml.safe_load(out.read_text(encoding="utf-8"))
     assert [s["groups"] for s in plan["shots"]] == [["SA6Sasa"]]
-    assert fake_hook[0][0] == "server"
+    assert fake_bridge.calls[0] == ("mission", UNITS_LUA)
+    assert fake_bridge.closed
     again = CliRunner().invoke(app, ["recon-plan", "--out", str(out)])
     assert again.exit_code == 2  # no silent overwrite
 
@@ -95,15 +137,30 @@ def test_plan_refuses_an_unknown_coalition(app: Any, tmp_path: Path) -> None:
     assert result.exit_code == 2
 
 
-def test_plan_reports_an_unreachable_dcs(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def down(*args: Any, **kwargs: Any) -> Any:
-        raise FiddleError("cannot reach the DCS hook")
+def test_plan_reports_a_missing_dcs_serve(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def missing(*args: Any, **kwargs: Any) -> Any:
+        from veaf_libs.dcs_bridge_session import DcsServeMissing
 
-    monkeypatch.setattr("veaf_tools.commands.recon_photos.exec_lua", down)
-    monkeypatch.setattr("veaf_tools.commands.recon_photos.resolve_fiddle_token", lambda token: None)
+        raise DcsServeMissing("No dcs-serve answers, and none was found to start.")
+
+    monkeypatch.setattr("veaf_tools.bridge.open_session", missing)
     result = CliRunner().invoke(app, ["recon-plan", "--out", str(tmp_path / "s.yaml")])
     assert result.exit_code == 1
-    assert "cannot reach" in result.output
+    assert "No dcs-serve answers" in result.output
+
+
+def test_plan_reports_a_mission_that_never_connects(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    bridge = FakeBridge()
+    monkeypatch.setattr("veaf_tools.bridge.open_session", lambda *a, **kw: bridge)
+
+    def never(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("No answer from the mission's bridge after 5 s")
+
+    monkeypatch.setattr("veaf_tools.bridge.wait_for_mission", never)
+    result = CliRunner().invoke(app, ["recon-plan", "--out", str(tmp_path / "s.yaml"), "--wait", "5"])
+    assert result.exit_code == 1
+    assert "No answer from the mission's bridge" in result.output
+    assert bridge.closed  # a dcs-serve started for nothing is stopped
 
 
 def _shots(tmp_path: Path) -> Path:
@@ -116,7 +173,7 @@ def _shots(tmp_path: Path) -> Path:
 
 
 def test_shoot_moves_the_camera_from_export_and_writes_the_raw_shot(
-    app: Any, tmp_path: Path, fake_hook: list[tuple[str, str]], monkeypatch: pytest.MonkeyPatch
+    app: Any, tmp_path: Path, fake_bridge: FakeBridge, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
         "veaf_libs.dcs_window_capture.grab_dcs",
@@ -126,7 +183,7 @@ def test_shoot_moves_the_camera_from_export_and_writes_the_raw_shot(
     raw = tmp_path / "raw"
     result = CliRunner().invoke(app, ["recon-shoot", "--shots", str(_shots(tmp_path)), "--raw-dir", str(raw)])
     assert result.exit_code == 0, result.output
-    assert [env for env, code in fake_hook if "LoSetCameraPosition" in code] == ["export", "export"]
+    assert [state for state, code in fake_bridge.calls if "LoSetCameraPosition" in code] == ["export", "export"]
     assert Image.open(raw / "02-sa6.png").size == (640, 360 - INFO_BAR_PX)
     meta = json.loads((raw / "02-sa6.json").read_text(encoding="utf-8"))
     assert meta["theatre"] == "Syria" and meta["target"]["lat"] is not None
@@ -140,7 +197,7 @@ def test_shoot_refuses_a_bad_plan(app: Any, tmp_path: Path) -> None:
 
 
 def test_render_makes_the_photos_and_the_index(
-    app: Any, tmp_path: Path, fake_hook: list[tuple[str, str]], monkeypatch: pytest.MonkeyPatch
+    app: Any, tmp_path: Path, fake_bridge: FakeBridge, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
         "veaf_libs.dcs_window_capture.grab_dcs",
@@ -174,35 +231,70 @@ def test_render_without_raw_shots_fails(app: Any, tmp_path: Path) -> None:
 
 
 def test_mission_check_prints_the_lines_and_fails_on_a_defect(app: Any, monkeypatch: pytest.MonkeyPatch) -> None:
-    def exec_lua(code: str, env: str, url: str, timeout: float) -> Any:
-        assert env == "default" and url.endswith(":12080")
-        if "radioMenu" in code:
-            return "menu\t0\t=VEAF\ncommand\t1\t="
-        return ""
+    def answer(state: str, code: str) -> str:
+        assert state == "mission"  # where the veaf* modules live
+        return "menu\t0\t=VEAF\ncommand\t1\t=" if "radioMenu" in code else ""
 
-    monkeypatch.setattr("veaf_tools.commands.mission_check.exec_lua", exec_lua)
-    monkeypatch.setattr("veaf_tools.commands.mission_check.resolve_fiddle_token", lambda token: None)
+    bridge = _use_bridge(monkeypatch, FakeBridge(answer))
     result = CliRunner().invoke(app, ["mission-check"])
     assert result.exit_code == 1
     assert "empty label" in result.output and "FAIL" in result.output
+    assert bridge.closed
 
 
 def test_mission_check_passes_on_a_clean_mission(app: Any, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        "veaf_tools.commands.mission_check.exec_lua",
-        lambda code, env, url, timeout: "menu\t0\t=VEAF" if "radioMenu" in code else None,
-    )
-    monkeypatch.setattr("veaf_tools.commands.mission_check.resolve_fiddle_token", lambda token: None)
+    _use_bridge(monkeypatch, FakeBridge(lambda _state, code: "menu\t0\t=VEAF" if "radioMenu" in code else ""))
     result = CliRunner().invoke(app, ["mission-check"])
     assert result.exit_code == 0, result.output
     assert "PASS" in result.output
 
 
-def test_mission_check_reports_an_unreachable_dcs(app: Any, monkeypatch: pytest.MonkeyPatch) -> None:
-    def down(*args: Any, **kwargs: Any) -> Any:
-        raise FiddleError("cannot reach the DCS hook")
+def test_mission_check_reports_a_lua_error(app: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    from veaf_libs.dcs_bridge_capture import BridgeLuaError
 
-    monkeypatch.setattr("veaf_tools.commands.mission_check.exec_lua", down)
-    monkeypatch.setattr("veaf_tools.commands.mission_check.resolve_fiddle_token", lambda token: None)
+    def answer(_state: str, _code: str) -> str:
+        raise BridgeLuaError("the Lua raised in the mission: attempt to index global 'veafRadio'")
+
+    _use_bridge(monkeypatch, FakeBridge(answer))
     result = CliRunner().invoke(app, ["mission-check"])
-    assert result.exit_code == 1 and "cannot reach" in result.output
+    assert result.exit_code == 1 and "veafRadio" in result.output
+
+
+def test_mission_check_prepare_writes_a_test_copy_with_the_bridge(app: Any, tmp_path: Path, bridge_lua: Path) -> None:
+    miz = create_miz(tmp_path / "Golan.miz", generate_blank_mission("syria"))
+    before = miz.read_bytes()
+    result = CliRunner().invoke(app, ["mission-check-prepare", str(miz), "--bridge-lua", str(bridge_lua)])
+    assert result.exit_code == 0, result.output
+    assert miz.read_bytes() == before
+    assert _carries_the_bridge(tmp_path / "Golan_CHECK.miz")
+    assert "mission-check" in result.output
+    assert sorted(p.name for p in tmp_path.rglob("*.miz")) == ["Golan.miz", "Golan_CHECK.miz"]
+
+
+def test_a_mission_already_carrying_the_bridge_does_not_get_a_second_one(
+    app: Any, tmp_path: Path, bridge_lua: Path
+) -> None:
+    """Two copies of the bridge open two connections to dcs-serve, which keeps only one."""
+    miz = create_miz(tmp_path / "Golan.miz", generate_blank_mission("syria"))
+    first = CliRunner().invoke(app, ["mission-check-prepare", str(miz), "--bridge-lua", str(bridge_lua)])
+    assert first.exit_code == 0, first.output
+    once = tmp_path / "Golan_CHECK.miz"
+    again = CliRunner().invoke(app, ["mission-check-prepare", str(once), "--bridge-lua", str(bridge_lua)])
+    assert again.exit_code == 0, again.output
+    content = read_miz(tmp_path / "Golan_CHECK_CHECK.miz").mission_content or {}
+    actions = [str(a) for a in (content.get("trig") or {}).get("actions", {}).values()]
+    assert sum("dcs-bridge" in a for a in actions) == 1
+
+
+def test_a_ctrl_c_while_waiting_stops_the_dcs_serve_it_started(
+    app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bridge = FakeBridge()
+    monkeypatch.setattr("veaf_tools.bridge.open_session", lambda *a, **kw: bridge)
+
+    def interrupted(*args: Any, **kwargs: Any) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("veaf_tools.bridge.wait_for_mission", interrupted)
+    CliRunner().invoke(app, ["recon-plan", "--out", str(tmp_path / "s.yaml")])
+    assert bridge.closed

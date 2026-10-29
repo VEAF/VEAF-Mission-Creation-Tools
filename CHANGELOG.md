@@ -17,6 +17,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The briefing's headings and bullseye bearings are magnetic, as the cockpits read them** (FIX-BRIEFING-MAGNETIC-HEADINGS, pilots asking whether "Marteau du Golan"'s were true or magnetic).
+  They were taken on the DCS grid, a Transverse Mercator projection whose north is neither true nor magnetic, and printed with no unit: on the Golan, 1.7 degrees off true and 6.9 off the cockpit.
+  The legs of the flight plan, the bullseye of every step, objective and target, the bullseye from the departure, the carrier's course and the recon photos' heading (caption, banner) now read `°M`, in the deck, the PDF, the kneeboard and the campaign deck; `set_route` returns its legs magnetic too.
+  The declination is the World Magnetic Model's at the mission's month and year, as DCS computes it (its 1985 to 2025 coefficients, now bundled); the true bearing is taken on the WGS84 ellipsoid.
+  The Mission Editor stores a unit's heading on its grid, and a DCS camera holds one too: both are turned to magnetic where they stand.
+  The ranges are measured on the ellipsoid, not on the grid, which overstated them by its scale: 0.1 % on the Golan, 1 % at Tbilisi.
+
 ## [6.34.0] — 2026-10-29
 
 ### Changed

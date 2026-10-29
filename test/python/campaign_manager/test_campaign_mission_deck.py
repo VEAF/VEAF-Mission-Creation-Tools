@@ -6,10 +6,11 @@ import copy
 import io
 import itertools
 import re
+from datetime import date
 from pathlib import Path
 
 import yaml
-from campaign_fixture import PROSE, VALID, built_mission, mission_template
+from campaign_fixture import CARRIER_XY, PROSE, VALID, built_mission, mission_template
 from campaign_manager.briefing_prose import BriefingProse, parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.campaign_worker import CampaignWorker
@@ -18,10 +19,12 @@ from campaign_manager.mission_pages import altitude as _altitude
 from campaign_manager.mission_picture import MissionPicture, Waypoint, read_mission_picture
 from campaign_manager.models import CampaignDefinition
 from campaign_manager.tactical_map import render_objective_map, render_tactical_map
+from geographiclib.geodesic import Geodesic  # type: ignore[import-untyped]
 from PIL import Image
 from pptx import Presentation
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import language
+from veaf_libs.magnetic import declination
 from veaf_libs.map_labels import LabelPlacer, intersects
 from veaf_libs.mission_validator import WARNING
 
@@ -232,6 +235,20 @@ class TestTheDeck:
         assert uhf.startswith("UHF\nOverlord 1-1") and "243" not in uhf  # no Guard, as the plan
         assert "127.5" not in uhf and "Stennis (tour) : 127.5 MHz, TACAN 74X, ICLS 1, Link 4 336.0 MHz" in vhf
         assert "Kobuleti : 262.0 MHz — TACAN 67X" in uhf and "Kobuleti : 133.0 MHz (FM 40.8 MHz)" in vhf
+
+    def test_the_bullseye_is_given_magnetic_from_the_base(self, tmp_path: Path) -> None:
+        # FIX-BRIEFING-MAGNETIC-HEADINGS: the bearing was on the DCS grid, with no unit.
+        text = "\n".join("\n".join(slide) for slide in _deck(tmp_path))
+        assert re.search(r", au \d{3}°M / \d+ nm de \w", text)
+
+    def test_the_carrier_course_is_magnetic(self, tmp_path: Path) -> None:
+        # The mission stores 270 on its grid (4.712389 rad), the Mission Editor's grid, not a true heading.
+        start = xy_to_latlon("Caucasus", *CARRIER_XY)
+        end = xy_to_latlon("Caucasus", CARRIER_XY[0], CARRIER_XY[1] - 1000)
+        true = float(Geodesic.WGS84.Inverse(*start, *end)["azi1"]) % 360
+        expected = round(true - declination(*start, date(2016, 6, 1))) % 360
+        text = "\n".join("\n".join(slide) for slide in _deck(tmp_path))
+        assert f"Stennis : départ du pont, le porte-avions fait route au {expected:03d}°M." in text
 
     def test_the_weather_and_the_wind_from_where_it_comes(self, tmp_path: Path) -> None:
         text = "\n".join("\n".join(slide) for slide in _deck(tmp_path))

@@ -1021,7 +1021,7 @@ The whole sequence:
 1. `.\veaf-tools.exe dcs recon-prepare MyMission.miz` writes `MyMission_RECON.miz` beside it: clear sky, chosen time, every combat zone active at start, readable group names, and the [VEAF bridge](#dcs-bridge) embedded, through which `recon-plan` and `recon-shoot` talk to the mission. The original mission is not touched.
 2. In DCS: open `MyMission_RECON.miz`, take a **spectator** slot, press **F11** (free camera). Keep the DCS window on the **primary screen**.
 3. `.\veaf-tools.exe dcs recon-plan --operation "Golan Hammer"` writes `shots.yaml`: one shot per zone, with the names of the groups found.
-4. Complete `shots.yaml`: for each shot, the engagement `heading` (the direction the attacker looks), and if needed `pitch` (degrees below the horizon), `slant` (distance in metres), `mark: units` to circle each vehicle, `labels` to name the targets.
+4. Complete `shots.yaml`: for each shot, the engagement `heading` (the direction the attacker looks, in degrees on the mission's grid, as DCS turns its camera: the photo's banner and the briefing print it magnetic), and if needed `pitch` (degrees below the horizon), `slant` (distance in metres), `mark: units` to circle each vehicle, `labels` to name the targets.
 5. `.\veaf-tools.exe dcs recon-shoot`: the command puts the camera on each shot and grabs the window. Do not touch the mouse or the keyboard until it is done.
 6. `.\veaf-tools.exe dcs recon-render` writes the photos into `docs\recon\`, where the briefing (`build_mission_briefing`) looks for them.
    A shot tied to a bare group prefix (`Sasa [r]`) joins its zone (`Sasa`) when `recon-render` is run again: no need to take it again.

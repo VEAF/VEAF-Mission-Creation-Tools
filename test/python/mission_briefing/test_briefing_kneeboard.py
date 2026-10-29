@@ -7,6 +7,7 @@ is drawn at exactly that size, the maps fitted inside it rather than stretched.
 from __future__ import annotations
 
 import io
+from datetime import date
 from pathlib import Path
 
 from campaign_manager.mission_picture import FlightPlan, Waypoint
@@ -22,6 +23,8 @@ from mission_briefing.briefing_kneeboard import (
 from mission_briefing.models import ObjectiveArea, Target
 from PIL import Image
 from presets_injector.presets_manager import KNEEBOARD_PAGE_SIZE
+from veaf_libs.coordinates import latlon_to_xy, offset_latlon, xy_to_latlon
+from veaf_libs.magnetic import declination
 
 
 def _jpeg_size(data: bytes) -> tuple[int, int]:
@@ -63,22 +66,34 @@ def test_the_flight_card_gives_heading_and_distance_and_no_radio_plan() -> None:
             Waypoint("PUSH", -200000, 450000, 0, "BARO"),
         ),
     )
-    blocks = flight_card_blocks("Caucasus", [plan], [("Senaki-Kolkhi", -281782, 647280)])
+    blocks = flight_card_blocks("Caucasus", date(2016, 6, 1), [plan], [("Senaki-Kolkhi", -281782, 647280)])
     text = "\n".join(line for _, lines in blocks for line in lines)
     assert "FEET WET" in text and "PUSH" in text
-    # Senaki -> FEET WET: 287°, 25 nm; FEET WET -> PUSH: 294°, 90 nm (measured on the session's figures)
-    assert "287°" in text and "25 nm" in text
-    assert "294°" in text and "90 nm" in text
+    # Senaki -> FEET WET: 287°M, 25 nm; FEET WET -> PUSH: 293°M, 90 nm. The grid gave 287° and 294°: on the
+    # Caucasus in 2016 its 6 degrees off true nearly cancel the 6.5 of declination (FIX-BRIEFING-MAGNETIC-HEADINGS).
+    assert "287°M" in text and "25 nm" in text
+    assert "293°M" in text and "90 nm" in text
     assert len(blocks) == 1 and all("Radio" not in (heading or "") for heading, _ in blocks)
     assert "MHz" not in text
 
 
 def test_the_targets_page_lists_each_target_with_its_coordinates() -> None:
     area = ObjectiveArea("AdlerDepot", -162275, 463825, 250, (Target("AdlerDepot Fuel Tank 1", -162320, 463800),))
-    blocks = targets_blocks("Caucasus", [("Adler depot", area)])
+    blocks = targets_blocks("Caucasus", date(2016, 6, 1), [("Adler depot", area)])
     assert blocks[0][0] == "Adler depot"
     assert blocks[0][1][0].startswith("AdlerDepot Fuel Tank 1")
     assert "N43" in blocks[0][1][0]
+
+
+def test_a_target_says_where_it_stands_from_the_bullseye_magnetic() -> None:
+    """FIX-BRIEFING-MAGNETIC-HEADINGS: the bullseye bearing was on the grid, with no unit."""
+    lat, lon = xy_to_latlon("Caucasus", -162275, 463825)
+    when = date(2016, 6, 1)
+    east = latlon_to_xy("Caucasus", *offset_latlon(lat, lon, 90.0, 18520))
+    area = ObjectiveArea("AdlerDepot", -162275, 463825, 250, (Target("Fuel Tank", *east),))
+    ((_, lines),) = targets_blocks("Caucasus", when, [("Adler depot", area)], (-162275, 463825))
+    # On the ellipsoid: the grid read 10.1 nm, its scale 7 degrees from the projection's meridian.
+    assert lines[1] == f"      Bullseye {round(90 - declination(lat, lon, when)):03d}°M / 10.0 nm"
 
 
 def test_page_names_sort_after_the_calibration_page_and_are_recognised() -> None:

@@ -87,7 +87,7 @@ class ReconPhoto:
     zone: str
     title: str
     heading: float | None = None
-    """Camera heading, degrees true: the axis the photo looks along."""
+    """Camera heading, degrees on the mission's grid, as a DCS camera holds it: the axis the photo looks along."""
     pitch: float | None = None
     """Camera pitch, degrees, negative looking down."""
     x: float | None = None

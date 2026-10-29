@@ -16,6 +16,7 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 from veaf_libs.coordinates import to_dms
 from veaf_libs.dcs_recon import LiveUnit, camera_of, dominant_type, project
 from veaf_libs.i18n import t
+from veaf_libs.magnetic import grid_heading_to_magnetic, grid_heading_to_true
 
 #: The felt pen.
 RED = (205, 22, 22)
@@ -219,6 +221,28 @@ def annotate(image: Image.Image, meta: dict[str, Any]) -> int:
     return len(marks)
 
 
+def shot_headings(meta: dict[str, Any]) -> tuple[int, float]:
+    """A shot's heading as the banner prints it, magnetic, and true, for the rose's north (the maps' north).
+
+    The camera's heading is on the mission's grid, as DCS holds a camera: taken where the camera stands,
+    at the mission's date.
+
+    Args:
+        meta: The shot's metadata (``shot_metadata``).
+
+    Returns:
+        ``(magnetic, true)``, degrees.
+    """
+    camera = meta["camera"]["position"]
+    at = (camera[0], camera[2])
+    when = date.fromisoformat(meta["date"])
+    heading = meta["heading_deg"]
+    return (
+        grid_heading_to_magnetic(meta["theatre"], when, at, heading),
+        grid_heading_to_true(meta["theatre"], at, heading),
+    )
+
+
 def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, total: int) -> Image.Image:
     """Put the banner, the corner marks and the heading rose around a shot.
 
@@ -234,6 +258,7 @@ def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, 
     """
     width, height = image.size
     top, bottom = 70, 130
+    magnetic, true = shot_headings(meta)
     out = Image.new("RGB", (width, height + top + bottom), (8, 8, 8))
     out.paste(image, (0, top))
     draw = ImageDraw.Draw(out)
@@ -246,7 +271,7 @@ def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, 
     position = to_dms(target["lat"], target["lon"]) if target.get("lat") is not None else ""
     line = t(
         "recon.banner.line",
-        heading=f"{meta['heading_deg']:03.0f}",
+        heading=f"{magnetic:03d}",
         pitch=f"{meta['pitch_deg']:.0f}",
         position=position,
         elevation=round(target["alt_m"] * 3.281),
@@ -265,14 +290,14 @@ def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, 
         draw.line([(x0, y0), (x0 + 70 * sx, y0)], fill=PAPER, width=4)
         draw.line([(x0, y0), (x0, y0 + 70 * sy)], fill=PAPER, width=4)
 
-    # The image's up is the shot's heading, so north is turned by as much the other way.
+    # The image's up is the shot's heading, so true north is turned by as much the other way.
     cx, cy, length = width - 110, top + 130, 60
     draw.ellipse([cx - 75, cy - 75, cx + 75, cy + 75], outline=PAPER, width=3)
-    angle = math.radians(-meta["heading_deg"])
+    angle = math.radians(-true)
     nx, ny = cx + length * math.sin(angle), cy - length * math.cos(angle)
     draw.line([(cx, cy), (nx, ny)], fill=YELLOW, width=6)
     draw.text((nx - 10, ny - 20), "N", fill=YELLOW, font=_font(_MONO_BOLD, 34))
-    draw.text((cx - 60, cy + 82), f"HDG {meta['heading_deg']:03.0f}", fill=PAPER, font=_font(_MONO_BOLD, 26))
+    draw.text((cx - 60, cy + 82), f"HDG {magnetic:03d}°M", fill=PAPER, font=_font(_MONO_BOLD, 26))
     return out
 
 

@@ -261,7 +261,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "not the points), and the plan that gives them to the chosen aircraft. Refuses two points with "
                 "one name -- nobody could tell them apart in the cockpit or the briefing. A plan of the same name is "
                 "replaced and its old points dropped; the rest of the file and its comments are kept; backed "
-                "up. Returns each leg's heading and distance, for the briefing and the F10 labels. Use it "
+                "up. Returns each leg's magnetic heading and distance, for the briefing and the F10 labels. Use it "
                 "instead of edit_mission_file for a route; the build adds the BULLSEYE point last."
             ),
             parameters_schema={

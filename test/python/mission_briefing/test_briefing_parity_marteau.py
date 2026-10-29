@@ -20,6 +20,7 @@ from mission_briefing.briefing_pdf import Cover, write_pdf
 from mission_briefing.briefing_tables import Table, TablePage, paginate_tables, timeline
 from mission_briefing.mission_briefing_worker import (
     _ato_plans,
+    _bullseye_line,
     _named_plan,
     _objective_blocks,
     _step_sheets,
@@ -44,7 +45,9 @@ from mission_tools.miz_tools import read_miz, write_miz
 from objective_mission_fixture import KHOBI_ZONE, objective_mission
 from PIL import Image
 from pptx import Presentation
+from veaf_libs.coordinates import latlon_to_xy, offset_latlon, xy_to_latlon
 from veaf_libs.i18n import language
+from veaf_libs.magnetic import declination
 from veaf_mission_mcp.build_briefing import _plan_notes
 
 
@@ -127,13 +130,29 @@ class TestUnitTargets:
 class TestBullseyeAndFlights:
     """D4: no bullseye on a target or a step, no "Pour : <flight>" on an objective."""
 
-    def test_the_bullseye_bearing_and_range_on_the_grid_the_legs_use(self, tmp_path: Path) -> None:
+    def test_the_bullseye_bearing_and_range_magnetic_as_the_cockpits_read_them(self, tmp_path: Path) -> None:
         picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
         bx, by = picture.bullseye
+        lat, lon = xy_to_latlon(picture.theatre, bx, by)
+        variation = declination(lat, lon, picture.date)  # 6.5 east on the Caucasus in 2016
+        north = latlon_to_xy(picture.theatre, *offset_latlon(lat, lon, 0.0, 18520))
+        east = latlon_to_xy(picture.theatre, *offset_latlon(lat, lon, 90.0, 1852))
         with language("fr"):
-            assert bullseye_text(picture, bx + 18520, by) == "Bullseye : 000° / 10.0 nm"  # x is north
-            assert bullseye_text(picture, bx, by + 1852) == "Bullseye : 090° / 1.0 nm"
-            assert bullseye_text(picture, bx, by) == "Bullseye : 000° / 0.0 nm"
+            assert bullseye_text(picture, *north) == f"Bullseye : {round(-variation) % 360:03d}°M / 10.0 nm"
+            assert bullseye_text(picture, *east) == f"Bullseye : {round(90 - variation):03d}°M / 1.0 nm"
+            assert bullseye_text(picture, bx, by) == "Bullseye : 000°M / 0.0 nm"
+
+    def test_the_bullseye_from_the_departure_is_magnetic(self, tmp_path: Path) -> None:
+        picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
+        bx, by = picture.bullseye
+        lat, lon = xy_to_latlon(picture.theatre, bx, by)
+        south = latlon_to_xy(picture.theatre, *offset_latlon(lat, lon, 180.0, 18520))
+        # From 10 nm true south, the bullseye stands true north: the declination is all that is left.
+        start_lat, start_lon = xy_to_latlon(picture.theatre, *south)
+        expected = round(-declination(start_lat, start_lon, picture.date)) % 360
+        with language("fr"):
+            line = _bullseye_line(picture.theatre, picture, ("Base", *south))
+        assert line.endswith(f", au {expected:03d}°M / 10 nm de Base.")
 
     def test_an_objective_says_for_whom_its_bullseye_and_its_point(self, tmp_path: Path) -> None:
         picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)

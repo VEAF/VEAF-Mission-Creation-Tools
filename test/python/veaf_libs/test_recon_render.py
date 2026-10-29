@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import random
 from collections.abc import Iterator
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 import pytest
+from geographiclib.geodesic import Geodesic  # type: ignore[import-untyped]
 from PIL import Image, ImageDraw
+from veaf_libs.coordinates import xy_to_latlon
 from veaf_libs.dcs_recon import INFO_BAR_PX, LiveUnit, MissionInfo, Shot, camera_for, project, shot_metadata
 from veaf_libs.dcs_window_capture import client_box, is_black
 from veaf_libs.i18n import language
-from veaf_libs.recon_render import RED, felt_ring, marks_of, recce_look, render_shot
+from veaf_libs.magnetic import declination
+from veaf_libs.recon_render import RED, felt_ring, marks_of, recce_look, render_shot, shot_headings
 
 
 @pytest.fixture(autouse=True)
@@ -91,6 +95,16 @@ class TestRender:
         assert size == (WIDTH, HEIGHT - INFO_BAR_PX + 70 + 130)
         assert Image.open(out).size == size
         assert lines == ["02-sa6.jpg: 1 mark(s)"]
+
+    def test_the_banner_heading_is_magnetic_and_the_rose_true(self) -> None:
+        # FIX-BRIEFING-MAGNETIC-HEADINGS: the camera looks north on the grid, which is not north.
+        meta = _meta()
+        x, _, z = meta["camera"]["position"]
+        start, ahead = xy_to_latlon("Caucasus", x, z), xy_to_latlon("Caucasus", x + 1000, z)
+        true = float(Geodesic.WGS84.Inverse(*start, *ahead)["azi1"]) % 360
+        magnetic, rose = shot_headings(meta)
+        assert rose == pytest.approx(true, abs=0.001)
+        assert magnetic == round(true - declination(*start, date(2011, 4, 16))) % 360
 
     def test_a_shot_without_coordinates_still_renders(self, tmp_path: Path) -> None:
         raw = tmp_path / "s.png"

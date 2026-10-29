@@ -65,6 +65,48 @@ def add_startup_script_trigger(
     if mission.mission_content is None:
         raise ValueError(f"Not a valid DCS mission archive (missing 'mission' file): {miz_path}")
 
+    index, additional_files = add_startup_script_trigger_in_memory(
+        mission,
+        mode=mode,
+        comment=comment,
+        inline_lua=inline_lua,
+        source_path=source_path,
+        runtime_path=runtime_path,
+        resource_name=resource_name,
+    )
+
+    backup_before_write(miz_path)
+    write_miz(mission, miz_path, additional_files=additional_files or None)
+
+    return {"trigger_index": index, "comment": comment}
+
+
+def add_startup_script_trigger_in_memory(
+    mission: Any,
+    *,
+    mode: str,
+    comment: str,
+    inline_lua: str | None = None,
+    source_path: str | None = None,
+    runtime_path: str | None = None,
+    resource_name: str | None = None,
+) -> tuple[int, dict[str, bytes]]:
+    """Add a mission-start script trigger to a mission already read with ``read_miz``, without writing it.
+
+    For a caller that writes the mission itself, once — a copy it has just made needs no backup.
+
+    Args:
+        mission: The mission, as ``read_miz`` returned it; its ``mission_content`` must be set.
+        mode: As :func:`add_startup_script_trigger`.
+        comment: The trigger's editor label.
+        inline_lua: As :func:`add_startup_script_trigger`.
+        source_path: As :func:`add_startup_script_trigger`.
+        runtime_path: As :func:`add_startup_script_trigger`.
+        resource_name: As :func:`add_startup_script_trigger`.
+
+    Returns:
+        The new trigger's index, and the archive members to pass to ``write_miz`` as ``additional_files``.
+    """
     # `mapResource` is its own archive member; a key written into the `mission` table would
     # never be seen by getValueResourceByKey. `read_miz` leaves it None when the archive has
     # no such member — and `write_miz` only rewrites members that already exist, so in that
@@ -88,11 +130,7 @@ def add_startup_script_trigger(
         additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = _serialize_map_resource(
             mission.map_resource_content
         )
-
-    backup_before_write(miz_path)
-    write_miz(mission, miz_path, additional_files=additional_files or None)
-
-    return {"trigger_index": index, "comment": comment}
+    return index, additional_files
 
 
 def _serialize_map_resource(resources: dict[str, str]) -> bytes:

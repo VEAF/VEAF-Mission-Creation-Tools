@@ -1,6 +1,6 @@
 # 01 — A bridge session shared by the commands
 
-Status: 🔄 in progress
+Status: ✅ done
 
 One helper the commands call instead of each opening the hook: start `dcs-serve` (loopback, a key of its own, in the folder `clear-ground-sweep` already uses) unless one answers, wait until the mission's bridge connects (it reconnects with a back-off of up to 60 s of mission time), and stop the server it started at the end.
 

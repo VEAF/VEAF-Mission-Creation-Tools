@@ -18,6 +18,7 @@ mission), not a fixed map property — kept for completeness.
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 import urllib.error
@@ -26,6 +27,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
+from veaf_libs.lua_literals import lua_quoted_string
 
 # Kept in sync with mission_builder_worker's bridge download URL.
 DCS_BRIDGE_DOWNLOAD_URL = (
@@ -42,6 +45,19 @@ API_KEY_CONFIG_FILES = ("dcs-serve.yaml", "dcs-client.yaml")
 
 class BridgeAuthError(RuntimeError):
     """``dcs-serve`` refused the key (401/403): retrying with the same key cannot succeed."""
+
+
+class BridgeLuaError(RuntimeError):
+    """The Lua chunk raised in DCS: the bridge answered, and the code it ran failed."""
+
+
+#: A Lua error message as ``net.dostring_in`` hands it back — **as its string result**, not as an error.
+#:
+#: Measured 2026-08-06 through the former fiddle hook: a chunk failing in another state came back as
+#: ``:1: attempt to index global 'env' (a nil value)``, shaped exactly like a successful string. The
+#: bridge reaches the other states through the same ``net.dostring_in``, so the shape is the only way
+#: to tell a failure from an answer.
+LUA_ERROR = re.compile(r'^(?:\[string "[^"]*"\])?:\d+:\s')
 
 
 class BridgeHttpError(RuntimeError):
@@ -235,6 +251,30 @@ def inject_bridge(miz_path: Path, bridge_lua: Path) -> dict[str, object]:
     )
 
 
+def inject_bridge_in_memory(mission: Any, bridge_lua: Path) -> dict[str, bytes]:
+    """Add the bridge and its mission-start trigger to a mission read with ``read_miz``, without writing it.
+
+    For a command writing a test copy of a mission: one write, and no backup of a file it just made.
+
+    Args:
+        mission: The mission, as ``read_miz`` returned it.
+        bridge_lua: Local path to the ``dcs-bridge.lua`` to embed.
+
+    Returns:
+        The archive members to pass to ``write_miz`` as ``additional_files``.
+    """
+    from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger_in_memory  # noqa: PLC0415
+
+    _index, files = add_startup_script_trigger_in_memory(
+        mission,
+        mode="file_static",
+        comment="dcs-bridge loading",
+        source_path=str(bridge_lua),
+        resource_name="dcs-bridge.lua",
+    )
+    return files
+
+
 def _parse_capture(result: str) -> tuple[str, list[dict[str, Any]]]:
     """Parse the capture snippet's raw result into ``(theatre, airbases)``."""
     if not result or result.startswith("Error:"):
@@ -304,6 +344,48 @@ def exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float = 1
     return _exec_over_bridge(serve_url, api_key, code, timeout)
 
 
+def in_state_lua(state: str, code: str) -> str:
+    """Return the chunk that runs *code* in another Lua state of DCS, from the mission.
+
+    The bridge runs in the mission scripting state. ``net.dostring_in`` reaches the others from there —
+    measured 2026-10-28: ``export`` (where ``LoSetCameraPosition`` moves the F11 camera), ``gui`` (the
+    Mission Editor's terrain data), ``server`` and ``config``.
+
+    Args:
+        state: The target state, as ``net.dostring_in`` names it.
+        code: Lua source to run there; it must ``return`` a **string**, the only type that crosses.
+
+    Returns:
+        Lua source to send over the bridge.
+    """
+    lua = f"return net.dostring_in({lua_quoted_string(state)}, {lua_quoted_string(code)})"
+    return lua
+
+
+def exec_in_state(serve_url: str, api_key: str, state: str, code: str, timeout: float = 10.0) -> str:
+    """Run *code* in another Lua state of DCS over the bridge and return its string result.
+
+    Args:
+        serve_url: Base URL of the ``dcs-serve`` HTTP API.
+        api_key: The superuser Bearer token.
+        state: The target state (``export``, ``gui``, ``server``, ``config``).
+        code: Lua source returning a string.
+        timeout: HTTP request timeout, in seconds.
+
+    Returns:
+        What the chunk returned.
+
+    Raises:
+        BridgeLuaError: The chunk failed in *state* — told apart from an answer by its shape, since
+            ``net.dostring_in`` returns the error text as its result.
+        RuntimeError: As :func:`exec_over_bridge`.
+    """
+    result = _exec_over_bridge(serve_url, api_key, in_state_lua(state, code), timeout)
+    if LUA_ERROR.match(result):
+        raise BridgeLuaError(f"the Lua failed in the {state} state: {result}")
+    return result
+
+
 def _exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float) -> str:
     """Run `code` in the running mission over ``dcs-serve`` and return its raw result.
 
@@ -320,6 +402,7 @@ def _exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float) -
         The snippet's ``result`` as a string (empty when the payload carried none).
 
     Raises:
+        BridgeLuaError: If the chunk raised in DCS.
         RuntimeError: If the server is unreachable, refuses the request, or returns a non-200.
     """
     body = json.dumps({"code": code, "timeout": timeout}).encode("utf-8")
@@ -347,6 +430,10 @@ def _exec_over_bridge(serve_url: str, api_key: str, code: str, timeout: float) -
             f"cannot reach dcs-serve at {serve_url} (is dcs-serve running and the mission started?): {exc}"
         ) from exc
 
+    if isinstance(payload, dict) and payload.get("error"):
+        # `dcs-serve` reports a chunk that raised with a 200 and `{"error": …}`: read as a result, it
+        # was an empty string, which a caller could not tell from a chunk that returned nothing.
+        raise BridgeLuaError(f"the Lua raised in the mission: {payload['error']}")
     return str(payload.get("result", "")) if isinstance(payload, dict) else ""
 
 

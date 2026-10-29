@@ -325,6 +325,12 @@ class TestShootingMission:
         create_miz(path, files)
         return path
 
+    @staticmethod
+    def _bridge(miz: Path) -> Path:
+        bridge = miz.with_name("dcs-bridge.lua")
+        bridge.write_text("-- the bridge\n", encoding="utf-8")
+        return bridge
+
     def test_clear_sky_removes_what_hides_the_ground(self) -> None:
         weather = {
             "clouds": {"preset": "Preset7", "base": 2500, "density": 8, "iprecptns": 1},
@@ -358,9 +364,9 @@ class TestShootingMission:
     def test_the_shooting_mission_is_derived_and_the_original_kept(self, miz: Path) -> None:
         before = miz.read_bytes()
         out = recon_mission_path(miz)
-        changes = derive_recon_mission(miz, out, "09:15")
+        changes = derive_recon_mission(miz, out, "09:15", self._bridge(miz))
         assert miz.read_bytes() == before
-        assert len(changes) == 4
+        assert len(changes) == 5
         content = read_miz(out).mission_content or {}
         assert content["start_time"] == 9 * 3600 + 15 * 60
         assert content["weather"]["visibility"] == {"distance": 80000}
@@ -373,13 +379,16 @@ class TestShootingMission:
         assert "timer.scheduleFunction" in config and "done[name]" in config and "zone:isActive()" in config
         with zipfile.ZipFile(out) as archive:
             assert archive.namelist().count("l10n/DEFAULT/veaf-config.lua") == 1
+            # recon-plan and recon-shoot talk to the mission through the bridge
+            assert archive.namelist().count("l10n/DEFAULT/dcs-bridge.lua") == 1
+        assert "dcs-bridge" in str(content["trig"]["actions"])
 
     def test_a_mission_without_veaf_is_refused(self, tmp_path: Path) -> None:
         path = tmp_path / "plain.miz"
         create_miz(path, generate_blank_mission("caucasus"))
         with pytest.raises(ValueError, match="veaf-config.lua"):
-            derive_recon_mission(path, tmp_path / "out.miz", "11:30")
+            derive_recon_mission(path, tmp_path / "out.miz", "11:30", self._bridge(path))
 
     def test_the_copy_never_overwrites_the_original(self, miz: Path) -> None:
         with pytest.raises(ValueError, match="must not overwrite"):
-            derive_recon_mission(miz, miz, "11:30")
+            derive_recon_mission(miz, miz, "11:30", self._bridge(miz))

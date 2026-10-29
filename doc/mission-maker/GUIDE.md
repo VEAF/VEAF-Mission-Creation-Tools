@@ -571,8 +571,8 @@ Le build vous dit combien il en a ajouté.
 | `mcp` | Démarre le serveur MCP d'édition de mission assistée par LLM (stdio). Déclaré dans votre assistant IA par `ai-setup`. |
 | `migrate-config` | Migre un fichier missionConfig.lua au format v6 (mission-script.lua). |
 | `resolve-checklist` | Complète les champs techniques d'une checklist guidée écrite en langage courant. |
-| `smoke-test` | Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle. |
-| `mission-check` | Vérifie la mission lancée dans DCS : libellés F10, chaque zone et mission de combat activée puis désactivée, chaque colonne vue en mouvement — voir [la référence](../CLI_REFERENCE.md#mission-check). |
+| `smoke-test` | Vérifie le comportement runtime VEAF dans la mission lancée dans DCS, par le bridge VEAF — voir [la référence](../CLI_REFERENCE.md#dcs-bridge). |
+| `mission-check-prepare`, `mission-check` | Vérifie la mission lancée dans DCS (une copie portant le bridge VEAF) : libellés F10, chaque zone et mission de combat activée puis désactivée, chaque colonne vue en mouvement — voir [la référence](../CLI_REFERENCE.md#mission-check). |
 | `recon-prepare`, `recon-plan`, `recon-shoot`, `recon-render` | Photos de reconnaissance des objectifs prises dans DCS, marquées au feutre, pour le briefing — voir [le déroulé](../CLI_REFERENCE.md#recon-photos). |
 | `verify-checklist` | Vérifie une checklist résolue dans un vrai cockpit (DCS doit tourner ici). |
 

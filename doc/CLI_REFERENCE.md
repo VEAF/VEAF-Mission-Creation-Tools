@@ -936,34 +936,68 @@ Relève un théâtre quand il n'est pas publié, ou pour remplacer une grille t�
 
 *Alias plat : `veaf-tools terrain-sweep`*
 
-### `veaf-tools dcs smoke-test` {#smoke-test}
+### Parler à une mission lancée dans DCS : le bridge VEAF {#dcs-bridge}
 
-Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle.
+`smoke-test`, `mission-check`, `recon-plan` et `recon-shoot` parlent à la mission que **vous** avez lancée dans DCS, sur cet ordinateur, par un seul chemin : le **bridge VEAF**. C'est le script `dcs-bridge.lua`, embarqué dans la mission, qui se connecte à `dcs-serve`, le petit serveur local par lequel passent les commandes.
+
+- **La mission doit porter le bridge.** `recon-prepare` et `mission-check-prepare` l'embarquent dans la copie qu'elles écrivent ; pour `smoke-test`, bâtissez la mission avec la section `dcs_bridge` du `mission.yaml` activée, ou passez-la par [`inject-bridge`](#inject-bridge).
+- **`dcs-serve` est démarré pour vous.** S'il ne répond pas, la commande le lance comme [`clear-ground-sweep`](#clear-ground-sweep) : trouvé à côté de `veaf-tools.exe`, dans le `PATH`, ou via `--dcs-serve`, avec une clé générée et une écoute limitée à cet ordinateur, et arrêté à la fin.
+- **Une manip à faire une fois sur votre DCS** : autoriser les scripts de mission à communiquer, en modifiant `Scripts\MissionScripting.lua` de l'installation DCS. C'est la même que pour `clear-ground-sweep` et la capture des aérodromes ; elle est décrite pas à pas dans [Récupérer les aérodromes d'une carte](developer/capture-airbases.md), étape 0, et se refait après chaque mise à jour de DCS.
+- **Le bridge se reconnecte à son rythme** : jusqu'à une minute de temps de mission quand `dcs-serve` démarre après la mission. La commande attend (`--wait`, 180 s par défaut) et dit ce qu'elle attend. La mission doit tourner **hors pause** : en pause, le bridge ne répond pas.
+
+Ces quatre commandes partagent ces options :
 
 | Options | Type | Défaut | Description |
 |---|---|---|---|
-| `--url` | `str` | `http://127.0.0.1:12081` | URL de base du hook dcs-fiddle-server.lua (défaut : http://127.0.0.1:12081). |
-| `--timeout` | `float` | `10.0` | Délai d'attente par requête, en secondes. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à démarrer quand aucun ne tourne ; par défaut : à côté de veaf-tools.exe, puis dans le PATH. |
+| `--api-key` | `str` | *(aucun)* | La clé d'un dcs-serve que vous avez démarré vous-même. (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Le dcs-serve.yaml d'un dcs-serve que vous avez démarré vous-même, pour y lire sa clé. |
+| `--wait` | `int` | `180` | Secondes d'attente de la connexion du bridge de la mission. |
+
+### `veaf-tools dcs smoke-test` {#smoke-test}
+
+Vérifie le comportement runtime VEAF dans la mission lancée dans DCS, par le [bridge VEAF](#dcs-bridge) : la mission doit être bâtie avec `dcs_bridge`. Une ligne par vérification ; code de sortie 1 si l'une échoue.
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
 | `--suite` | `str` | `default` | Quelle série de contrôles lancer : `default` (toute mission) ou `spotter` (uniquement le banc demo-spotter-network). |
-| `--probe-only` | `boolean` | `false` | Rapporte seulement ce qu'un DCS en cours autorise, sans lancer de vérification. |
-| `--full` | `boolean` | `false` | Lance DCS, charge --mission, vérifie, puis quitte — un run complet sans surveillance. |
-| `--mission` | `str` | *(aucun)* | Chemin du .miz à charger pour un run --full. |
-| `--dcs-exe` | `str` | *(aucun)* | Chemin de DCS.exe pour un run --full (défaut : déduit du dossier d'installation d'un DCS en cours). |
-| `--allow-running` | `boolean` | `false` | Pour --full : utilise un DCS déjà lancé au lieu de refuser (il charge la mission par-dessus la session en cours). |
-| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook (défaut : lu dans ~/dcs-fiddle-token.txt, ou $DCS_FIDDLE_TOKEN). |
+| `--timeout` | `float` | `10.0` | Délai d'attente par vérification, en secondes. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
-```bash
-veaf-tools dcs smoke-test
+Plus les [options du bridge](#dcs-bridge).
+
+```powershell
+.\veaf-tools.exe dcs smoke-test
 ```
 
 *Alias plat : `veaf-tools smoke-test`*
 
 **Voir aussi** : [developer/smoke-harness.md](developer/smoke-harness.md)
 
+### `veaf-tools dcs mission-check-prepare` {#mission-check-prepare}
+
+Écrit la copie de test sur laquelle tourne `mission-check` : la mission bâtie, le [bridge VEAF](#dcs-bridge) embarqué, rien d'autre de changé. La mission d'origine n'est pas touchée.
+
+| Arguments | Type | Description |
+|---|---|---|
+| `MISSION` | `Path` | La mission bâtie (.miz) ; elle n'est pas modifiée. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--out` | `Path` | *(à côté, suffixe `_CHECK`)* | Où écrire la copie. |
+| `--bridge-lua` | `str` | *(aucun)* | Un dcs-bridge.lua local à embarquer ; téléchargé depuis le dépôt VEAF-dcs-bridge sinon. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```powershell
+.\veaf-tools.exe dcs mission-check-prepare MaMission.miz
+```
+
+*Alias plat : `veaf-tools mission-check-prepare`*
+
 ### `veaf-tools dcs mission-check` {#mission-check}
 
-Vérifie la mission **lancée dans DCS** (la version de test, que vous avez lancée vous-même), par le hook dcs-fiddle, et écrit une ligne par vérification puis un verdict :
+Vérifie la mission **lancée dans DCS** — la copie écrite par [`mission-check-prepare`](#mission-check-prepare), que vous avez lancée vous-même — par le [bridge VEAF](#dcs-bridge), et écrit une ligne par vérification puis un verdict :
 
 - **menus F10** : chaque entrée du menu radio VEAF a un libellé ; une entrée vide est signalée avec son chemin (`VEAF > Zones > ∅`) ;
 - **zones et missions de combat** : chacune est activée puis désactivée, ses unités comptées à chaque fois, et elle est **laissée comme elle était** ; une CAP est vérifiée sous chacun de ses noms de variante (`<nom>/<niveau>/<échelle>`) ; une *opération* est signalée mais pas basculée (elle entraînerait ses zones) ;
@@ -974,9 +1008,9 @@ Laissez DCS tourner **sans pause** pendant la vérification : en pause, rien n'a
 | Options | Type | Défaut | Description |
 |---|---|---|---|
 | `--only` | `str` | *(toutes)* | Nom d'une zone ou mission de combat à vérifier ; répétez pour plusieurs. Les menus et les colonnes de la mission sont vérifiés dans tous les cas. |
-| `--url` | `str` | `http://127.0.0.1:12080` | URL du serveur fiddle lancé dans l'environnement de script de la mission, là où vivent les modules VEAF. |
-| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook (défaut : lu dans `%USERPROFILE%\dcs-fiddle-token.txt`, ou `$env:DCS_FIDDLE_TOKEN`). |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+Plus les [options du bridge](#dcs-bridge).
 
 ```powershell
 .\veaf-tools.exe dcs mission-check
@@ -990,7 +1024,7 @@ Quatre commandes, une par étape, parce que vous intervenez entre chacune : elle
 
 Le déroulé complet :
 
-1. `.\veaf-tools.exe dcs recon-prepare MaMission.miz` écrit `MaMission_RECON.miz` à côté : ciel dégagé, heure choisie, toutes les zones de combat actives au démarrage, noms de groupes lisibles. La mission d'origine n'est pas touchée.
+1. `.\veaf-tools.exe dcs recon-prepare MaMission.miz` écrit `MaMission_RECON.miz` à côté : ciel dégagé, heure choisie, toutes les zones de combat actives au démarrage, noms de groupes lisibles, et le [bridge VEAF](#dcs-bridge) embarqué, par lequel `recon-plan` et `recon-shoot` parlent à la mission. La mission d'origine n'est pas touchée.
 2. Dans DCS : ouvrez `MaMission_RECON.miz`, prenez un slot **spectateur**, appuyez sur **F11** (caméra libre). Laissez la fenêtre DCS sur l'**écran principal**.
 3. `.\veaf-tools.exe dcs recon-plan --operation "Marteau du Golan"` écrit `shots.yaml` : une prise par zone, avec les noms des groupes présents.
 4. Complétez `shots.yaml` : pour chaque prise, le `heading` d'engagement (la direction dans laquelle regarde l'attaquant), et si besoin `pitch` (degrés sous l'horizon), `slant` (distance en mètres), `mark: units` pour entourer chaque véhicule, `labels` pour nommer les cibles.
@@ -1028,6 +1062,7 @@ La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus
 |---|---|---|---|
 | `--time` | `str` | `11:30` | Heure des photos, HH:MM à l'heure du théâtre. |
 | `--out` | `Path` | *(à côté, suffixe `_RECON`)* | Où écrire la copie. |
+| `--bridge-lua` | `str` | *(aucun)* | Un dcs-bridge.lua local à embarquer ; téléchargé depuis le dépôt VEAF-dcs-bridge sinon. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
 *Alias plat : `veaf-tools recon-prepare`*
@@ -1040,9 +1075,9 @@ La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus
 | `--coalition` | `str` | `red` | Le camp à photographier : `red` ou `blue`. |
 | `--operation` | `str` | *(aucun)* | Le nom de l'opération, imprimé sur chaque photo. |
 | `--force` | `boolean` | `false` | Écrase un fichier de prises existant. |
-| `--url` | `str` | `http://127.0.0.1:12081` | URL de base du port GUI du hook dcs-fiddle-server.lua. |
-| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+Plus les [options du bridge](#dcs-bridge).
 
 *Alias plat : `veaf-tools recon-plan`*
 
@@ -1053,11 +1088,11 @@ La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus
 | `--shots` | `Path` | `shots.yaml` | Le fichier de prises. |
 | `--raw-dir` | `Path` | `docs\build\recon\raw` | Dossier des prises brutes (PNG + JSON). |
 | `--only` | `str` | *(toutes)* | Nom d'une prise à faire ; répétez pour plusieurs. |
-| `--url` | `str` | `http://127.0.0.1:12081` | URL de base du port GUI du hook dcs-fiddle-server.lua. |
-| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
-La fenêtre DCS doit être sur l'écran principal et visible : une capture de tous les écrans rend la fenêtre DirectX noire, et une image noire est recommencée jusqu'à huit fois.
+Plus les [options du bridge](#dcs-bridge).
+
+La caméra F11 est déplacée depuis l'état `export` de DCS, que le bridge atteint par `net.dostring_in` ; la capture de la fenêtre se fait sur cet ordinateur. La fenêtre DCS doit être sur l'écran principal et visible : une capture de tous les écrans rend la fenêtre DirectX noire, et une image noire est recommencée jusqu'à huit fois.
 
 *Alias plat : `veaf-tools recon-shoot`*
 

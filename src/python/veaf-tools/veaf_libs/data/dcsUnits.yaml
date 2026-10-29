@@ -1,7 +1,7 @@
 # DCS units database (type, kind, category, attributes, fuel, countermeasures, decks, shapes,
 # weapon and detection ranges).
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Source ref: fdd11ed960d5402909a876558b7bec3b2653b268
+# Source ref: 72ea893c452c728267d78a3bd481ca59501ce709
 # Canonical source for src/scripts/veaf/dcsUnits.lua (rendered by veaf-build).
 # Re-run `veaf-build update-dcs-data --units` to regenerate after a pin bump.
 # DO NOT EDIT BY HAND — CI fails if this file drifts from the generator output.
@@ -1690,6 +1690,48 @@ units:
   - NonAndLightArmoredUnits
   - LightArmoredUnits
   threat_range_m: 400000
+- type: CHAP_Atlet
+  name: MRAP AMN-2 Atlet [CH]
+  kind: vehicle
+  category: Armor
+  description: MRAP AMN-2 Atlet [CH]
+  attributes:
+  - APC
+  - Datalink
+  - Infantry carriers
+  - Armored vehicles
+  - All
+  - Ground Units
+  - Ground Units Non Airdefence
+  - Armed ground units
+  - Vehicles
+  - Ground vehicles
+  - Armed vehicles
+  - AntiAir Armed Vehicles
+  - NonAndLightArmoredUnits
+  - LightArmoredUnits
+  threat_range_m: 1000
+- type: CHAP_BMD2
+  name: IFV BMD-2 [CH]
+  kind: vehicle
+  category: Armor
+  description: IFV BMD-2 [CH]
+  attributes:
+  - IFV
+  - Infantry carriers
+  - Armored vehicles
+  - All
+  - Ground Units
+  - Ground Units Non Airdefence
+  - Armed ground units
+  - Vehicles
+  - Ground vehicles
+  - Armed vehicles
+  - AntiAir Armed Vehicles
+  - NonAndLightArmoredUnits
+  - LightArmoredUnits
+  threat_range_m: 2000
+  detection_range_m: 5000
 - type: CHAP_BMP3_ERA
   name: IFV BMP-3 ERA [CH]
   kind: vehicle
@@ -2052,6 +2094,32 @@ units:
   - SAM elements
   threat_range_m: 20000
   detection_range_m: 36000
+- type: CHAP_PGZ09
+  name: SPAAG PGZ-09 [CH]
+  kind: vehicle
+  category: Air Defence
+  description: SPAAG PGZ-09 [CH]
+  attributes:
+  - AA_flak
+  - Mobile AAA
+  - SAM SR
+  - SAM TR
+  - RADAR_BAND1_FOR_ARM
+  - Datalink
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Air Defence
+  - Armed Air Defence
+  - Rocket Attack Valid AirDefence
+  - AAA
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - SAM related
+  - SAM elements
+  threat_range_m: 4000
+  detection_range_m: 20000
 - type: CHAP_Project22160
   name: Patrol Ship 22160 Vasily Bykov [CH]
   kind: naval
@@ -2270,6 +2338,90 @@ units:
   - LightArmoredUnits
   - Artillery
   threat_range_m: 6000
+- type: CHAP_Ural4320_ZU232
+  name: AAA ZU-23-2 on Ural 4320 [CH]
+  kind: vehicle
+  category: Air Defence
+  description: AAA ZU-23-2 on Ural 4320 [CH]
+  attributes:
+  - AA_flak
+  - Mobile AAA
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Air Defence
+  - Armed Air Defence
+  - Rocket Attack Valid AirDefence
+  - AAA
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  threat_range_m: 2500
+- type: CHAP_UralTyphoon
+  name: MRAP Ural Typhoon-U [CH]
+  kind: vehicle
+  category: Unarmed
+  description: MRAP Ural Typhoon-U [CH]
+  attributes:
+  - Trucks
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - Ground Units Non Airdefence
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Unarmed vehicles
+- type: CHAP_ZIL131
+  name: Truck ZIL-131 [CH]
+  kind: vehicle
+  category: Unarmed
+  description: Truck ZIL-131 [CH]
+  attributes:
+  - Trucks
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - Ground Units Non Airdefence
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Unarmed vehicles
+- type: CHAP_ZIL131_Kung
+  name: Truck ZIL-131 Kung C2 [CH]
+  kind: vehicle
+  category: Unarmed
+  description: Truck ZIL-131 Kung C2 [CH]
+  attributes:
+  - Trucks
+  - All
+  - Ground Units
+  - Vehicles
+  - Ground vehicles
+  - Ground Units Non Airdefence
+  - NonAndLightArmoredUnits
+  - NonArmoredUnits
+  - Unarmed vehicles
+- type: CHAP_ZTQ15
+  name: LT ZTQ-15 [CH]
+  kind: vehicle
+  category: Armor
+  description: LT ZTQ-15 [CH]
+  attributes:
+  - Tanks
+  - Modern Tanks
+  - Datalink
+  - Armored vehicles
+  - All
+  - Ground Units
+  - Ground Units Non Airdefence
+  - Armed ground units
+  - Vehicles
+  - Ground vehicles
+  - Armed vehicles
+  - AntiAir Armed Vehicles
+  - HeavyArmoredUnits
+  threat_range_m: 4000
 - type: Chemical tank A
   name: Chemical tank A
   kind: static
@@ -8456,7 +8608,7 @@ units:
   - Indirect fire
   - NonAndLightArmoredUnits
   - LightArmoredUnits
-  threat_range_m: 23500
+  threat_range_m: 40000
 - type: Predator GCS
   name: MCC Predator UAV CP & GCS
   kind: vehicle

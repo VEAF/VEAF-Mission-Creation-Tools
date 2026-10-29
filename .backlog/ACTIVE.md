@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-DYNSLOT-RADIO-RANGE](FIX-DYNSLOT-RADIO-RANGE/PRD.md) · 🔄
+
+DCS 2.9.31 moved the La-7 to a 3.7–6.06 MHz HF radio, and its two dynamic-slot templates at 121.5 MHz stop the Mission Editor from saving a built mission (2026-10-29). Radio specs bumped to that DCS build, the radio-less La-7 kept in them, the templates retuned, and a catalogue test.
+
 ### [FIX-BRIEFING-PARITY-MARTEAU-2](FIX-BRIEFING-PARITY-MARTEAU-2/PRD.md) · 🔄
 
 What the retest of #1210 still found in "Marteau du Golan"'s briefing (2026-10-28): bases, flight levels and one helicopter route on the overview, a combat map the key does not cover, frequency headings of their own, a prerequisite objective, the kneeboard flight card as a table, levels and support in the ATO. One PR.

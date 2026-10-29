@@ -66,6 +66,23 @@ MiG-15bis_FC:
             modulation: AM
   dcs_rejects_on_load: true
 
+# DCS 2.9.31.29434 (datamine dump of 2026-10-28) took the La-7's SCR-522 away: no `panelRadio`
+# any more, and a `HumanRadio` of 3.7-6.06 MHz AM, default 3.7 (100-156 MHz before). Read in
+# `CoreMods/aircraft/La-7/entry.lua` and in the dump. Same case as the MiG-15bis: the radio is
+# declared here, the primary bounds come from the datamine. Without this entry the La-7 is unknown
+# to the specs, and a VHF preset channel 1 is promoted to a primary the Mission Editor refuses
+# (FIX-DYNSLOT-RADIO-RANGE). Whether DCS rejects an out-of-range preset at load was not measured.
+La-7:
+  add_aircraft:
+    name: La-7
+    category: plane
+    radios:
+      - name: HF
+        ranges:
+          - min_mhz: 3.7
+            max_mhz: 6.06
+            modulation: AM
+
 # Airframes DCS refuses to LOAD, not merely to save, when a preset is out of range.
 MiG-19P:
   dcs_rejects_on_load: true

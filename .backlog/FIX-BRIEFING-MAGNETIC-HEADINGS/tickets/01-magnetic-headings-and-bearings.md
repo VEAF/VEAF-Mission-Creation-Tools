@@ -1,6 +1,6 @@
 # 01 — Magnetic headings and bearings in the briefing
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Done when
 

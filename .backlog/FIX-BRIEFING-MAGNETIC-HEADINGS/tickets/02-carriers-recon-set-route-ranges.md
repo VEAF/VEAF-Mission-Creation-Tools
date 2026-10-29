@@ -1,6 +1,6 @@
 # 02 — Carriers, recon photos, set_route and ranges
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Asked by David after ticket 01 (2026-10-29), in the same PR.
 

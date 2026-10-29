@@ -1,6 +1,6 @@
 # FIX-BRIEFING-MAGNETIC-HEADINGS — the briefing's headings and bullseye bearings are magnetic
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Origin: pilots asking whether the bullseye bearings of "Marteau du Golan"'s briefing were true or magnetic (2026-10-29).
 

@@ -118,6 +118,54 @@ def test_capture_raises_on_client_timeout() -> None:
             C.capture_airbases("http://127.0.0.1:8080", "key")
 
 
+# --- exec_over_bridge: a Lua error is an error -------------------------------
+#
+# `dcs-serve` answers a chunk that raised with HTTP 200 and `{"error": …}` and no `result`. Read as a
+# result, that was an empty string — a check comparing it to an expected value failed with "returned
+# ''" instead of naming the Lua error, and a caller that accepts "" took it for success.
+
+
+def test_exec_over_bridge_raises_the_lua_error() -> None:
+    reply = {"error": "[string \"return nope.x\"]:1: attempt to index global 'nope'"}
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp(reply)):
+        with pytest.raises(C.BridgeLuaError, match="attempt to index global 'nope'"):
+            C.exec_over_bridge("http://127.0.0.1:8080", "key", "return nope.x")
+
+
+def test_exec_over_bridge_returns_an_empty_result_as_empty() -> None:
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": ""})):
+        assert C.exec_over_bridge("http://127.0.0.1:8080", "key", "return nil") == ""
+
+
+# --- exec_in_state: another Lua state, through net.dostring_in ---------------
+
+
+def test_in_state_lua_sends_the_chunk_quoted_to_the_named_state() -> None:
+    lua = C.in_state_lua("export", 'return "a\\nb"')
+    assert lua == 'return net.dostring_in("export", "return \\"a\\\\nb\\"")'
+
+
+def test_exec_in_state_returns_what_the_state_returned() -> None:
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": "ok"})) as m:
+        assert C.exec_in_state("http://127.0.0.1:8080", "key", "export", "return 'ok'") == "ok"
+    sent = json.loads(m.call_args.args[0].data)
+    assert sent["code"].startswith('return net.dostring_in("export",')
+
+
+def test_exec_in_state_raises_a_lua_error_handed_back_as_the_result() -> None:
+    """`net.dostring_in` returns the target state's error *as its string result*, shaped like success."""
+    error = '[string "LoSetCameraPosition(nil)"]:1: bad argument #1'
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": error})):
+        with pytest.raises(C.BridgeLuaError, match="in the export state"):
+            C.exec_in_state("http://127.0.0.1:8080", "key", "export", "LoSetCameraPosition(nil)")
+
+
+def test_exec_in_state_raises_the_short_form_of_a_lua_error() -> None:
+    with mock.patch("urllib.request.urlopen", return_value=_fake_resp({"result": ":1: attempt to call nil"})):
+        with pytest.raises(C.BridgeLuaError):
+            C.exec_in_state("http://127.0.0.1:8080", "key", "gui", "nope()")
+
+
 # --- write_airbase_dump ----------------------------------------------------
 
 

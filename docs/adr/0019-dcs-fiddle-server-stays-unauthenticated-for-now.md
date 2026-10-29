@@ -1,8 +1,11 @@
 ---
-status: accepted
+status: superseded by ADR 0024
 ---
 
 # DCS Fiddle keeps its open port until the smoke harness can prove a token works, and the docs say so today
+
+> **Superseded 2026-10-29 by [ADR 0024](0024-one-transport-to-a-running-dcs-the-bridge.md)**: the hook is removed from the tools,
+> so the question of its port no longer arises.
 
 > **Update 2026-08-15 — part 3 is implemented, and the vendored file was the wrong one**
 > (`FIX-SECREV2-EXPIRED-DEFERRALS` ticket 02). The repo's vendored `dcs-fiddle-server.lua` was a stale

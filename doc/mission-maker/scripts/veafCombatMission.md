@@ -103,7 +103,7 @@ modules:
 # ── Missions CAP ──────────────────────────────────────────────────────────────
 cap_missions:
   - group_name: "Groupe CAP"      # REQUIS — nom logique ; le groupe DCS doit s'appeler "OnDemand-Groupe CAP"
-    menu_name: "CAP Nord"          # libellé dans le menu F10
+    menu_name: "CAP Nord"          # libellé dans le menu F10 ; group_name s'il est omis (pas friendly_name)
     briefing: "Patrouiller le secteur nord et engager les menaces."
     default: false                # true = Activer / Désactiver réservés aux pilotes autorisés
     activated: true               # true = la CAP apparaît dans le menu F10

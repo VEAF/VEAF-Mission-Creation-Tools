@@ -1,6 +1,6 @@
 # Référence CLI — `veaf-tools`
 
-Les **39 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
+Les **44 commandes** de `veaf-tools`, avec leurs arguments et **toutes** leurs options. C'est une
 page de référence : elle dit ce que chaque commande accepte, pas comment mener une mission de bout
 en bout. Pour cela, lisez le [guide du créateur de mission](mission-maker/GUIDE.md), qui raconte
 l'enchaînement, et la [référence du pipeline](PIPELINE_REFERENCE.md), qui détaille chaque étape du
@@ -64,7 +64,7 @@ Construit un fichier mission DCS (.miz) depuis un dossier de mission VEAF.
 | `--dynamic-mode` | `boolean` | *(aucun)* | Si activé, la mission chargera les scripts dynamiquement depuis l'emplacement fourni (via --scripts-path ou les dossiers locaux published et src/scripts). |
 | `--dev-mode` | `boolean` | *(aucun)* | Résout les scripts VEAF depuis un dépôt de développement local (build/veaf-scripts.lua) au lieu de published/. Nécessite --scripts-path pointant vers la racine du dépôt VEAF-Mission-Creation-Tools. Ce paramètre est persisté dans mission.yaml (build.dev_mode). |
 | `--scripts-path` | `str` | *(aucun)* | Chemin vers les scripts VEAF et communautaires. Persisté dans mission.yaml (build.scripts_path). |
-| `--profile` / `-p` | `str` | *(aucun)* | Applique un profil de build nommé depuis mission.yaml (ex : TEST ou SERVER). Les clés du profil fusionnent en profondeur sur la config de base. |
+| `--profile` / `-p` | `str` | *(aucun)* | Applique un profil de build nommé depuis mission.yaml (ex : TEST ou SERVER). Les clés du profil fusionnent en profondeur sur la config de base. Le `.miz` est suffixé du nom du profil (`_TEST`). |
 | `--migrate-from-v5` | `boolean` | `true` | Si activé, le builder analysera la mission pour supprimer les anciens triggers v5. |
 | `--log-modules` | `str` | *(aucun)* | Liste de modules séparés par des virgules à conserver au niveau de log complet. Tous les autres modules sont réduits au niveau 'error'. Exemple : --log-modules 'SPAWN,RADIO' |
 | `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
@@ -936,30 +936,178 @@ Relève un théâtre quand il n'est pas publié, ou pour remplacer une grille t�
 
 *Alias plat : `veaf-tools terrain-sweep`*
 
-### `veaf-tools dcs smoke-test` {#smoke-test}
+### Parler à une mission lancée dans DCS : le bridge VEAF {#dcs-bridge}
 
-Vérifie le comportement runtime VEAF dans un DCS en cours d'exécution, via le hook dcs-fiddle.
+`smoke-test`, `mission-check`, `recon-plan` et `recon-shoot` parlent à la mission que **vous** avez lancée dans DCS, sur cet ordinateur, par un seul chemin : le **bridge VEAF**. C'est le script `dcs-bridge.lua`, embarqué dans la mission, qui se connecte à `dcs-serve`, le petit serveur local par lequel passent les commandes.
+
+- **La mission doit porter le bridge.** `recon-prepare` et `mission-check-prepare` l'embarquent dans la copie qu'elles écrivent ; pour `smoke-test`, bâtissez la mission avec la section `dcs_bridge` du `mission.yaml` activée, ou passez-la par [`inject-bridge`](#inject-bridge).
+- **`dcs-serve` est démarré pour vous.** S'il ne répond pas, la commande le lance comme [`clear-ground-sweep`](#clear-ground-sweep) : trouvé à côté de `veaf-tools.exe`, dans le `PATH`, ou via `--dcs-serve`, avec une clé générée et une écoute limitée à cet ordinateur, et arrêté à la fin.
+- **Une manip à faire une fois sur votre DCS** : autoriser les scripts de mission à communiquer, en modifiant `Scripts\MissionScripting.lua` de l'installation DCS. C'est la même que pour `clear-ground-sweep` et la capture des aérodromes ; elle est décrite pas à pas dans [Récupérer les aérodromes d'une carte](developer/capture-airbases.md), étape 0, et se refait après chaque mise à jour de DCS.
+- **Le bridge se reconnecte à son rythme** : jusqu'à une minute de temps de mission quand `dcs-serve` démarre après la mission. La commande attend (`--wait`, 180 s par défaut) et dit ce qu'elle attend. La mission doit tourner **hors pause** : en pause, le bridge ne répond pas.
+
+Ces quatre commandes partagent ces options :
 
 | Options | Type | Défaut | Description |
 |---|---|---|---|
-| `--url` | `str` | `http://127.0.0.1:12081` | URL de base du hook dcs-fiddle-server.lua (défaut : http://127.0.0.1:12081). |
-| `--timeout` | `float` | `10.0` | Délai d'attente par requête, en secondes. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | URL de base de dcs-serve. |
+| `--dcs-serve` | `str` | *(aucun)* | L'exécutable dcs-serve à démarrer quand aucun ne tourne ; par défaut : à côté de veaf-tools.exe, puis dans le PATH. |
+| `--api-key` | `str` | *(aucun)* | La clé d'un dcs-serve que vous avez démarré vous-même. (variable d'environnement `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(aucun)* | Le dcs-serve.yaml d'un dcs-serve que vous avez démarré vous-même, pour y lire sa clé. |
+| `--wait` | `int` | `180` | Secondes d'attente de la connexion du bridge de la mission. |
+
+### `veaf-tools dcs smoke-test` {#smoke-test}
+
+Vérifie le comportement runtime VEAF dans la mission lancée dans DCS, par le [bridge VEAF](#dcs-bridge) : la mission doit être bâtie avec `dcs_bridge`. Une ligne par vérification ; code de sortie 1 si l'une échoue.
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
 | `--suite` | `str` | `default` | Quelle série de contrôles lancer : `default` (toute mission) ou `spotter` (uniquement le banc demo-spotter-network). |
-| `--probe-only` | `boolean` | `false` | Rapporte seulement ce qu'un DCS en cours autorise, sans lancer de vérification. |
-| `--full` | `boolean` | `false` | Lance DCS, charge --mission, vérifie, puis quitte — un run complet sans surveillance. |
-| `--mission` | `str` | *(aucun)* | Chemin du .miz à charger pour un run --full. |
-| `--dcs-exe` | `str` | *(aucun)* | Chemin de DCS.exe pour un run --full (défaut : déduit du dossier d'installation d'un DCS en cours). |
-| `--allow-running` | `boolean` | `false` | Pour --full : utilise un DCS déjà lancé au lieu de refuser (il charge la mission par-dessus la session en cours). |
-| `--fiddle-token` | `str` | *(aucun)* | Le mot de passe Basic par session du hook (défaut : lu dans ~/dcs-fiddle-token.txt, ou $DCS_FIDDLE_TOKEN). |
+| `--timeout` | `float` | `10.0` | Délai d'attente par vérification, en secondes. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
-```bash
-veaf-tools dcs smoke-test
+Plus les [options du bridge](#dcs-bridge).
+
+```powershell
+.\veaf-tools.exe dcs smoke-test
 ```
 
 *Alias plat : `veaf-tools smoke-test`*
 
 **Voir aussi** : [developer/smoke-harness.md](developer/smoke-harness.md)
+
+### `veaf-tools dcs mission-check-prepare` {#mission-check-prepare}
+
+Écrit la copie de test sur laquelle tourne `mission-check` : la mission bâtie, le [bridge VEAF](#dcs-bridge) embarqué, rien d'autre de changé. La mission d'origine n'est pas touchée.
+
+| Arguments | Type | Description |
+|---|---|---|
+| `MISSION` | `Path` | La mission bâtie (.miz) ; elle n'est pas modifiée. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--out` | `Path` | *(à côté, suffixe `_CHECK`)* | Où écrire la copie. |
+| `--bridge-lua` | `str` | *(aucun)* | Un dcs-bridge.lua local à embarquer ; téléchargé depuis le dépôt VEAF-dcs-bridge sinon. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```powershell
+.\veaf-tools.exe dcs mission-check-prepare MaMission.miz
+```
+
+*Alias plat : `veaf-tools mission-check-prepare`*
+
+### `veaf-tools dcs mission-check` {#mission-check}
+
+Vérifie la mission **lancée dans DCS** — la copie écrite par [`mission-check-prepare`](#mission-check-prepare), que vous avez lancée vous-même — par le [bridge VEAF](#dcs-bridge), et écrit une ligne par vérification puis un verdict :
+
+- **menus F10** : chaque entrée du menu radio VEAF a un libellé ; une entrée vide est signalée avec son chemin (`VEAF > Zones > ∅`) ;
+- **zones et missions de combat** : chacune est activée puis désactivée, ses unités comptées à chaque fois, et elle est **laissée comme elle était** ; une CAP est vérifiée sous chacun de ses noms de variante (`<nom>/<niveau>/<échelle>`) ; une *opération* est signalée mais pas basculée (elle entraînerait ses zones) ;
+- **colonnes** : chaque groupe au sol qui a une route de plus d'un point — de la mission ou tiré par une zone — doit rouler dans les 60 secondes. C'est ce contrôle qui trouve une colonne figée par un tronçon « On Road » sans route à suivre.
+
+Laissez DCS tourner **sans pause** pendant la vérification : en pause, rien n'apparaît et rien ne roule. Compter quelques minutes (la commande l'annonce). Code de sortie 1 si une vérification échoue.
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--only` | `str` | *(toutes)* | Nom d'une zone ou mission de combat à vérifier ; répétez pour plusieurs. Les menus et les colonnes de la mission sont vérifiés dans tous les cas. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+Plus les [options du bridge](#dcs-bridge).
+
+```powershell
+.\veaf-tools.exe dcs mission-check
+```
+
+*Alias plat : `veaf-tools mission-check`*
+
+### Photos de reconnaissance — `recon-prepare`, `recon-plan`, `recon-shoot`, `recon-render` {#recon-photos}
+
+Quatre commandes, une par étape, parce que vous intervenez entre chacune : elles produisent une photo de reco par objectif, prise **dans DCS** dans l'axe d'engagement prévu, au rendu « photo de reconnaissance » (noir et blanc contrasté, grain, bandeau, rose de cap) avec les cibles entourées **au feutre rouge**. Les unités sont placées là où DCS les a vraiment mises, tirages au hasard des zones compris. Le résultat (JPEG + JSON par prise, et un index `recon.json`) s'intègre au briefing.
+
+Le déroulé complet :
+
+1. `.\veaf-tools.exe dcs recon-prepare MaMission.miz` écrit `MaMission_RECON.miz` à côté : ciel dégagé, heure choisie, toutes les zones de combat actives au démarrage, noms de groupes lisibles, et le [bridge VEAF](#dcs-bridge) embarqué, par lequel `recon-plan` et `recon-shoot` parlent à la mission. La mission d'origine n'est pas touchée.
+2. Dans DCS : ouvrez `MaMission_RECON.miz`, prenez un slot **spectateur**, appuyez sur **F11** (caméra libre). Laissez la fenêtre DCS sur l'**écran principal**.
+3. `.\veaf-tools.exe dcs recon-plan --operation "Marteau du Golan"` écrit `shots.yaml` : une prise par zone, avec les noms des groupes présents.
+4. Complétez `shots.yaml` : pour chaque prise, le `heading` d'engagement (la direction dans laquelle regarde l'attaquant), et si besoin `pitch` (degrés sous l'horizon), `slant` (distance en mètres), `mark: units` pour entourer chaque véhicule, `labels` pour nommer les cibles.
+5. `.\veaf-tools.exe dcs recon-shoot` : la commande place la caméra sur chaque prise et capture la fenêtre. Ne touchez ni la souris ni le clavier avant la fin.
+6. `.\veaf-tools.exe dcs recon-render` écrit les photos dans `docs\recon\`, là où le briefing (`build_mission_briefing`) les cherche.
+   Une prise rattachée à un préfixe de groupe nu (`Sasa [r]`) rejoint sa zone (`Sasa`) quand on relance `recon-render` : inutile de la refaire.
+
+Lancez les commandes depuis le dossier de la mission : les prises brutes vont dans `docs\build\recon\raw\`, les photos finies dans `docs\recon\`.
+
+Un `shots.yaml` complété :
+
+```yaml
+operation: Marteau du Golan
+coalition: red
+shots:
+  - name: 03-sa11
+    title: Batterie SA-11 de Kiswah
+    groups: [SA11Kiswah]
+    heading: 70
+    pitch: 30
+    slant: 1100
+    mark: units
+    labels: {"SA-11 Buk SR": "RADAR 9S18", "SA-11 Buk LN": "TEL"}
+```
+
+La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus de l'horizon, en regardant au cap `heading`. Les marques sont posées par projection avec un champ horizontal de 80°, mesuré : les six véhicules d'un SA-11 tombent à quelques pixels de leur projection.
+
+#### `veaf-tools dcs recon-prepare` {#recon-prepare}
+
+| Arguments | Type | Description |
+|---|---|---|
+| `MISSION` | `Path` | La mission construite (.miz) ; elle n'est pas modifiée. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--time` | `str` | `11:30` | Heure des photos, HH:MM à l'heure du théâtre. |
+| `--out` | `Path` | *(à côté, suffixe `_RECON`)* | Où écrire la copie. |
+| `--bridge-lua` | `str` | *(aucun)* | Un dcs-bridge.lua local à embarquer ; téléchargé depuis le dépôt VEAF-dcs-bridge sinon. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+*Alias plat : `veaf-tools recon-prepare`*
+
+#### `veaf-tools dcs recon-plan` {#recon-plan}
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--out` | `Path` | `shots.yaml` | Le fichier de prises à écrire. |
+| `--coalition` | `str` | `red` | Le camp à photographier : `red` ou `blue`. |
+| `--operation` | `str` | *(aucun)* | Le nom de l'opération, imprimé sur chaque photo. |
+| `--force` | `boolean` | `false` | Écrase un fichier de prises existant. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+Plus les [options du bridge](#dcs-bridge).
+
+*Alias plat : `veaf-tools recon-plan`*
+
+#### `veaf-tools dcs recon-shoot` {#recon-shoot}
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--shots` | `Path` | `shots.yaml` | Le fichier de prises. |
+| `--raw-dir` | `Path` | `docs\build\recon\raw` | Dossier des prises brutes (PNG + JSON). |
+| `--only` | `str` | *(toutes)* | Nom d'une prise à faire ; répétez pour plusieurs. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+Plus les [options du bridge](#dcs-bridge).
+
+La caméra F11 est déplacée depuis l'état `export` de DCS, que le bridge atteint par `net.dostring_in` ; la capture de la fenêtre se fait sur cet ordinateur. La fenêtre DCS doit être sur l'écran principal et visible : une capture de tous les écrans rend la fenêtre DirectX noire, et une image noire est recommencée jusqu'à huit fois.
+
+*Alias plat : `veaf-tools recon-shoot`*
+
+#### `veaf-tools dcs recon-render` {#recon-render}
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--shots` | `Path` | `shots.yaml` | Le fichier de prises (l'ordre et le nom de l'opération). |
+| `--raw-dir` | `Path` | `docs\build\recon\raw` | Dossier des prises brutes. |
+| `--out-dir` | `Path` | `docs\recon` | Dossier des photos finies. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+Écrit `<prise>.jpg`, `<prise>.json` et `recon.json`, la liste ordonnée des prises. Le JSON porte ce que le briefing lit — `zone` (la zone de combat de l'objectif : la clé `zone` de la prise, sinon celle du premier préfixe de `groups`), `title`, `heading`, `pitch` (négatif vers le bas), `x`/`y` et `altitude_m` (la caméra, en coordonnées de mission), `order` — puis le reste de la prise : caméra, cible en coordonnées DCS, latitude/longitude et DMS, heure, unités.
+
+*Alias plat : `veaf-tools recon-render`*
 
 ## L'outil lui-même
 

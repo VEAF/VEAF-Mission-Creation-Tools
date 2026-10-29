@@ -51,15 +51,19 @@ def _is_valid_primary_frequency_for_unit(unit_type: str | None, freq_mhz: float)
 
     Like ``_is_valid_primary_frequency`` but spec-aware: a sub-VHF frequency is still
     valid when the aircraft's genuine primary radio is HF and DCS strictly validates it
-    (e.g. the MiG-15bis RSI-6K at 3.75–5.0 MHz). DCS itself writes and accepts that
-    frequency on extract, so the blanket floor would be a false positive. Aircraft DCS
-    does not strictly validate (Yak-52 ARK-15M, Ka-50 ARK-22…) keep the floor, so an ADF
-    channel mistakenly promoted to the primary is still caught.
+    (e.g. the MiG-15bis RSI-6K at 3.75–5.0 MHz), or when it sits inside the aircraft's
+    bounded ``HumanRadio`` — the range the Mission Editor itself checks (the La-7 at
+    3.7–6.06 MHz since DCS 2.9.31). DCS itself writes and accepts that frequency on
+    extract, so the blanket floor would be a false positive. Aircraft whose primary is
+    VHF/UHF (Yak-52 ARK-15M, Ka-50 ARK-22…) keep the floor, so an ADF channel
+    mistakenly promoted to the primary is still caught.
     """
     if _is_valid_primary_frequency(freq_mhz):
         return True
     if unit_type is None:
         return False
+    if (human_radio := get_human_radio(unit_type)) is not None and human_radio.contains(freq_mhz):
+        return True
     return is_strict(unit_type) and bool(validate_frequency(unit_type, freq_mhz))
 
 

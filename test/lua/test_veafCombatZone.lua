@@ -1010,6 +1010,47 @@ function TestVeafCombatZoneRegistry:test_AddZone_after_the_chain_initializes_an_
   luaunit.assertEquals(deactivations, 1)
 end
 
+-- FIX-OPERATION-ZONE-DOUBLE-REGISTRATION: the generated config adds a member zone with AddZone, then
+-- the operation's addTaskingOrder adds it again. "Marteau du Golan", 2026-10-28: the four members of
+-- OpMarteauGolan were listed twice in zonesList, and a loop activating every zone spawned them twice.
+function TestVeafCombatZoneRegistry:test_addTaskingOrder_does_not_register_a_registered_zone_again()
+  local z = VeafCombatZone:new():setMissionEditorZoneName("MEMBER")
+  z.initialized = true
+  veafCombatZone.AddZone(z)
+
+  VeafCombatOperation:new():setMissionEditorZoneName("OP-MEMBER"):addTaskingOrder(veafCombatZone.GetZone("MEMBER"))
+
+  luaunit.assertEquals(#veafCombatZone.zonesList, 1)
+  luaunit.assertIs(veafCombatZone.zonesList[1], z)
+end
+
+-- ...while a zone the config did not add is still registered by the operation that references it
+function TestVeafCombatZoneRegistry:test_addTaskingOrder_registers_a_zone_the_config_did_not_add()
+  local z = VeafCombatZone:new():setMissionEditorZoneName("UNLISTED")
+  z.initialized = true
+
+  VeafCombatOperation:new():setMissionEditorZoneName("OP-UNLISTED"):addTaskingOrder(z)
+
+  luaunit.assertEquals(#veafCombatZone.zonesList, 1)
+  luaunit.assertIs(veafCombatZone.GetZone("UNLISTED"), z)
+end
+
+-- A different zone object under a name already taken is a config error; the first one stays the
+-- registered zone, and the clash is logged rather than silently swapping the zone the menus act on.
+function TestVeafCombatZoneRegistry:test_AddZone_keeps_the_first_zone_registered_under_a_name()
+  local first = VeafCombatZone:new():setMissionEditorZoneName("CLASH")
+  local second = VeafCombatZone:new():setMissionEditorZoneName("clash")
+  first.initialized = true
+  second.initialized = true
+  veafCombatZone.AddZone(first)
+
+  local result = veafCombatZone.AddZone(second)
+
+  luaunit.assertIs(result, first)
+  luaunit.assertEquals(#veafCombatZone.zonesList, 1)
+  luaunit.assertIs(veafCombatZone.GetZone("CLASH"), first)
+end
+
 function TestVeafCombatZoneRegistry:test_ActivateZone_zone_not_found_returns_nil()
   local result = veafCombatZone.ActivateZone("NonExistentZone999", true)
   luaunit.assertNil(result)

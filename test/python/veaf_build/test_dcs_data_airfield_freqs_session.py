@@ -27,16 +27,16 @@ def test_installed_theatres_use_the_names_missions_use(tmp_path: Path) -> None:
 
 
 def test_waiting_stops_at_once_on_refused_credentials() -> None:
-    from veaf_libs.dcs_fiddle_client import FiddleAuthError
+    from veaf_libs.dcs_bridge_capture import BridgeAuthError
 
     calls: list[str] = []
 
     def exec_lua(code: str) -> Any:
         calls.append(code)
-        raise FiddleAuthError("the DCS hook rejected the credentials (401)")
+        raise BridgeAuthError("dcs-serve refused the request (HTTP 401)")
 
     clock = _Clock()
-    with pytest.raises(FiddleAuthError):
+    with pytest.raises(BridgeAuthError):
         S.wait_for_theatre(exec_lua, "Syria", 900, clock=clock, sleep=clock.sleep)
     assert len(calls) == 1 and clock.now == 0.0
 
@@ -54,11 +54,14 @@ def test_a_requested_theatre_that_is_not_installed_is_refused(tmp_path: Path) ->
         S.theatres_to_capture(["Caucasus"], ["Kola"], tmp_path)
 
 
-def test_the_capture_mission_is_a_blank_on_the_theatre(tmp_path: Path) -> None:
-    path = S.write_capture_mission("PersianGulf", tmp_path / "Missions")
+def test_the_capture_mission_is_a_blank_on_the_theatre_carrying_the_bridge(tmp_path: Path) -> None:
+    bridge = tmp_path / "dcs-bridge.lua"
+    bridge.write_bytes(b"-- the bridge\n")
+    path = S.write_capture_mission("PersianGulf", tmp_path / "Missions", bridge)
     assert path.name == "veaf-capture-frequencies-PersianGulf.miz"
     with zipfile.ZipFile(path) as archive:
         assert archive.read("theatre").decode() == "PersianGulf"
+        assert archive.read("l10n/DEFAULT/dcs-bridge.lua") == b"-- the bridge\n"
 
 
 class _Clock:
@@ -72,8 +75,8 @@ class _Clock:
         self.now += seconds
 
 
-def test_waiting_goes_through_a_dead_hook_and_another_map(tmp_path: Path) -> None:
-    answers: list[Any] = [RuntimeError("cannot reach the DCS hook"), "none", "Caucasus", "Caucasus", "PersianGulf"]
+def test_waiting_goes_through_no_mission_yet_and_another_map(tmp_path: Path) -> None:
+    answers: list[Any] = [RuntimeError("dcs-serve got no reply from DCS (504)"), "Caucasus", "Caucasus", "PersianGulf"]
 
     def exec_lua(_code: str) -> Any:
         answer = answers.pop(0)
@@ -116,13 +119,43 @@ def test_capture_refuses_a_map_switched_under_it(tmp_path: Path) -> None:
     assert not (tmp_path / "dumps").exists()
 
 
-def test_capture_sends_the_generator_s_lua() -> None:
+def test_capture_sends_the_generator_s_lua_json_encoded_in_the_gui_state() -> None:
     seen: list[str] = []
 
-    def exec_lua(code: str) -> Any:
+    def exec_in_gui(code: str) -> Any:
         seen.append(code)
-        return {"theatre": "Caucasus", "airdromes": [{"id": 22, "name": "Batumi", "freqs": [[260e6, 0]]}]}
+        return json.dumps({"theatre": "Caucasus", "airdromes": [{"id": 22, "name": "Batumi", "freqs": [[260e6, 0]]}]})
 
     with pytest.raises(ValueError):  # caught before any write: the expected map is another one
-        S.capture_theatre(exec_lua, "Syria", Path("nowhere"), Path("nowhere"))
-    assert seen == [A.CAPTURE_LUA]
+        S.capture_theatre(exec_in_gui, "Syria", Path("nowhere"), Path("nowhere"))
+    # only a string crosses net.dostring_in: the table is encoded where it is built
+    assert seen == ["return net.lua2json((function() " + A.CAPTURE_LUA + " end)())"]
+
+
+def test_the_gui_chunk_parses() -> None:
+    from veaf_build.lua_tests import _find_lua
+
+    try:
+        lua = _find_lua()
+    except Exception as exc:  # typer.BadParameter when no 5.1 interpreter is installed
+        pytest.skip(f"no Lua 5.1 interpreter: {exc}")
+    import subprocess
+
+    result = subprocess.run(
+        [lua, "-e", f"print(loadstring({json.dumps(S.gui_capture_lua())}) and 'OK')"], capture_output=True, text=True
+    )
+    assert result.stdout.strip() == "OK", result.stderr
+
+
+def test_waiting_stops_at_once_on_a_lua_error_or_another_program_on_the_port() -> None:
+    from veaf_libs.dcs_bridge_capture import BridgeHttpError, BridgeLuaError
+
+    for error in (BridgeLuaError("the Lua raised in the mission: x"), BridgeHttpError(404, "not found")):
+
+        def exec_lua(_code: str, error: Exception = error) -> Any:
+            raise error
+
+        clock = _Clock()
+        with pytest.raises(type(error)):
+            S.wait_for_theatre(exec_lua, "Syria", 900, clock=clock, sleep=clock.sleep)
+        assert clock.now == 0.0

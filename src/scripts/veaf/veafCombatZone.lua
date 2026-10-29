@@ -2987,6 +2987,18 @@ function veafCombatZone.AddZone(zone)
     .get(veafCombatZone.Id)
     :debug(string.format("veafCombatZone.AddZone([%s])", veaf.p(veaf.ifnns(zone, "missionEditorZoneName"))))
   if zone then
+    -- Once per name. The generated config adds an operation's member zone, then the operation's
+    -- addTaskingOrder adds it again: zonesList held it twice, and whatever walks that list — BFR, a
+    -- loop activating every zone — spawned it twice ("Marteau du Golan", 2026-10-28).
+    local registered = veafCombatZone.zonesDict[zone.missionEditorZoneName:lower()]
+    if registered then
+      if registered ~= zone then
+        veaf.loggers
+          .get(veafCombatZone.Id)
+          :error(string.format("Another zone is already registered as [%s]; the first one is kept", veaf.p(zone.missionEditorZoneName)))
+      end
+      return registered
+    end
     zone:initialize()
     table.insert(veafCombatZone.zonesList, zone)
     veafCombatZone.zonesDict[zone.missionEditorZoneName:lower()] = zone

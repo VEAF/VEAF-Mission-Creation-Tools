@@ -567,7 +567,9 @@ The build tells you how many it added.
 | `mcp` | Start the LLM-assisted mission-editing MCP server (stdio). Declared in your AI assistant by `ai-setup`. |
 | `migrate-config` | Migrate a missionConfig.lua to v6 format (mission-script.lua). |
 | `resolve-checklist` | Fill in the technical fields of a guided checklist written in plain words. |
-| `smoke-test` | Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook. |
+| `mission-check-prepare`, `mission-check` | Check the mission running in DCS (a copy carrying the VEAF bridge): F10 labels, every combat zone and mission switched on and off, every column seen moving — see [the reference](../CLI_REFERENCE.en.md#mission-check). |
+| `recon-prepare`, `recon-plan`, `recon-shoot`, `recon-render` | Reconnaissance photos of the objectives taken in DCS, marked in felt pen, for the briefing — see [the sequence](../CLI_REFERENCE.en.md#recon-photos). |
+| `smoke-test` | Assert VEAF runtime behaviour inside the mission running in DCS, through the VEAF bridge — see [the reference](../CLI_REFERENCE.en.md#dcs-bridge). |
 | `verify-checklist` | Check a resolved checklist against a real cockpit (needs DCS running here). |
 
 Full reference: [CLI Reference](../CLI_REFERENCE.en.md)
@@ -659,6 +661,8 @@ profiles:
 ```
 
 Profile keys **deep-merge** onto the base config: only the keys you specify are overridden, everything else stays as defined at the top of `mission.yaml`. Passing an unknown profile name emits a warning and falls back to the base config.
+
+A build with `--profile` writes a `.miz` of its own, suffixed with the profile's name (`MyMission_20261028_TEST.miz`): it no longer overwrites the build without a profile.
 
 See [`profiles:` in the YAML Reference](../MISSION_YAML_REFERENCE.en.md#profiles) for the full field description.
 

@@ -17,6 +17,7 @@ from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_briefing import build_briefing
+from veaf_mission_mcp.build_promotion import build_promotion
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
 from veaf_mission_mcp.campaign import campaign_apply, campaign_briefing, campaign_next, campaign_status
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
@@ -1905,7 +1906,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "profile": {
                         "type": "string",
                         "description": "Optional build profile, passed as 'veaf-tools build --profile' "
-                        "(e.g. LOCAL_TEST for a local test build). Omitted: the mission's own profiles.",
+                        "(e.g. LOCAL_TEST for a local test build); its .miz is suffixed with the profile's "
+                        "name (<mission>_<date>_LOCAL_TEST.miz) and leaves the plain build alone. Omitted: "
+                        "the mission's own profiles.",
                     },
                 },
                 "required": ["folder_path"],
@@ -2105,6 +2108,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ),
     )
     _lines = {"type": "array", "items": {"type": "string"}}
+    # a list is one item a line; one string is prose, its paragraphs separated by blank lines
+    _prose = {"type": ["string", "array"], "items": {"type": "string"}}
     catalog.register(
         ActionSpec(
             name="build_mission_briefing",
@@ -2112,30 +2117,52 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/briefing.pptx (the objective "
                 "mission template, page for page, in the mission's language; Drive imports it into Google "
                 "Slides), docs/maps/ (an overview and one zoom per objective, on OpenStreetMap or OpenTopoMap "
-                "tiles), and the same maps as the DCS BRIEFING PICTURES, in the folder AND every built .miz -- the "
+                "tiles, plus a COMBAT AREA map framed on the objectives and threats), and the same maps as the DCS "
+                "BRIEFING PICTURES, in the folder AND every built .miz -- the "
                 "build's own and each weather variant of missions/ (archives) -- first for the players' side and "
                 "neutral (the other side left alone). With kneeboard (default true) it also writes KNEEBOARD pages "
-                "for every aircraft, 2:3 JPEG: the overview and the zooms drawn for the page, a flight card (each "
-                "point, heading and distance of its leg, highest ground, the radios) and the targets. BUILD FIRST (build_mission): every figure is "
+                "for every aircraft, 2:3 JPEG: the overview, the combat area and the zooms drawn for the page, "
+                "turned so that the attack axis (departure to objectives) points up, a north arrow on each, a "
+                "flight card (each point, heading and distance of its leg, highest ground; no radio plan, the "
+                "presets are in the cockpits), the targets and the code words. BUILD FIRST (build_mission): every figure is "
                 "read from the built .miz -- date, time, weather, bullseye, flights, support, carriers, QRA, "
                 "flight plan, the presets injected into the cockpits, each objective's targets and their "
                 "coordinates. You pass only the scenario's WORDS: title, context, mission_bullets, objectives (combat "
                 "zone + title + task), threats (the group where it stands, its family, ranges only with their "
                 "source), air opposition, air defences, other information, pilots and loadouts by flight "
-                "group. Call it again after any change and a rebuild: it replaces its own pictures. It writes "
+                "group; optionally a strategic_situation and a deployment page (prose: one string, paragraphs "
+                "split on blank lines), waypoint_notes for the flight plan's step sheets, code_words (a page in the "
+                "deck and on the kneeboard), and with dynamic slots the package's flights. RECON PHOTOS: each "
+                "<stem>.jpg of docs/recon/ (or recon_folder) with its <stem>.json sidecar {zone, title, heading?, "
+                "pitch?, x?, y?, altitude_m?, order?} goes after its objective's zoom, two to a slide and to a "
+                "kneeboard page, captioned; the result's recon lists them. "
+                "Call it again after any change and a rebuild: it replaces its own pictures. It writes "
                 "docs/briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
                 "and warns about a W<n> the route does not carry, and about French text written without its "
-                "accents. map_offline = no tiles could be downloaded."
+                "accents. When mission.yaml declares an operation, its tasks are the main objectives, the other "
+                "objectives secondary, and a chained zone (a counter-attack) is in neither list. With flights, the "
+                "frequency plan and the kneeboard flight card are those of the aircraft the flights fly, one block "
+                "per radio plan. map_offline = no tiles could be downloaded."
             ),
             parameters_schema={
                 "type": "object",
                 "properties": {
                     "mission_path": {"type": "string", "description": "The mission FOLDER, built."},
                     "title": {"type": "string", "description": "The mission's title, on the cover."},
-                    "context": {**_lines, "description": "The why, two or three sentences."},
+                    "strategic_situation": {
+                        **_prose,
+                        "description": (
+                            "Its own page after the cover, prose: the political context, why we are there, what is at "
+                            "stake. One string, paragraphs separated by a blank line. Omitted: no page."
+                        ),
+                    },
+                    "context": {**_prose, "description": "The why, two or three sentences."},
                     "mission_bullets": {
-                        **_lines,
-                        "description": "The Mission heading: three to five bullets in the infinitive.",
+                        **_prose,
+                        "description": (
+                            "The Mission heading: three to five bullets in the infinitive (a list), or prose (one "
+                            "string, no dashes)."
+                        ),
                     },
                     "objectives": {
                         "type": "array",
@@ -2146,6 +2173,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                 "zone": {"type": "string", "description": "The combat zone's trigger-zone name."},
                                 "title": {"type": "string"},
                                 "task": {**_lines, "description": "What to do there."},
+                                "flights": {
+                                    **_lines,
+                                    "description": "The flights it is for, by callsign: 'Pour : Ninja' on its page.",
+                                },
+                                "status": {
+                                    "type": "string",
+                                    "enum": ["main", "secondary", "prerequisite"],
+                                    "description": (
+                                        "Overrides what the operation in mission.yaml makes of it: 'prerequisite' "
+                                        "for what must fall before the others can go (a SAM the helicopters wait for)."
+                                    ),
+                                },
                             },
                             "required": ["zone", "title"],
                         },
@@ -2166,9 +2205,31 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "required": ["name", "group"],
                         },
                     },
-                    "air_opposition": {**_lines, "description": "What may take off, and when."},
-                    "air_defences": {**_lines, "description": "How the route avoids them."},
-                    "other": {**_lines, "description": "Attack mode, refuelling..."},
+                    "air_opposition": {**_prose, "description": "What may take off, and when."},
+                    "air_defences": {**_prose, "description": "How the route avoids them."},
+                    "other": {**_prose, "description": "Attack mode, refuelling..."},
+                    "deployment": {
+                        **_prose,
+                        "description": (
+                            "A 'deployment and coordination' page after the flow: who takes off first, the slots, "
+                            "the rendezvous, how the flights coordinate. Prose; omitted: no page."
+                        ),
+                    },
+                    "waypoint_notes": {
+                        "type": "object",
+                        "description": (
+                            "What is done at a waypoint, by its NAME on the route (PUSH, IP...): shown on its step "
+                            "sheet of the flight plan. A name the route lacks is warned. When jets and helicopters "
+                            "share a point's name with different roles, key a map by 'plane' or 'helicopter' "
+                            '({"helicopter": {"KHAN": "..."}}): its note wins on that plan.'
+                        ),
+                        "additionalProperties": {
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "object", "additionalProperties": {"type": "string"}},
+                            ]
+                        },
+                    },
                     "diversions": {
                         **_lines,
                         "description": (
@@ -2180,14 +2241,83 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "description": "Write the kneeboard pages too (default true).",
                     },
+                    "support": {
+                        "type": "array",
+                        "description": (
+                            "Support the mission has no group for, as ATO rows beside the tankers and the AWACS "
+                            "(whose frequency, TACAN and flight level are read from the mission): a JTAC, the fat "
+                            "cow, a GCI."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "callsign": {"type": "string", "description": "Abu Nada"},
+                                "role": {"type": "string", "description": "JTAC, fat cow, GCI..."},
+                                "frequency": {"type": "string", "description": "FM 35.55"},
+                                "details": {"type": "string", "description": "Code 1511, Tel Abu Nada"},
+                            },
+                            "required": ["callsign", "role"],
+                        },
+                    },
+                    "kneeboard_replace": {
+                        "type": "boolean",
+                        "description": (
+                            "Take the common kneeboard's pages this tool did not write (a hand-made kneeboard) out "
+                            "of the folder (kept in .veaf-backups/) and of every built .miz. Default false: they stay "
+                            "beside the tool's."
+                        ),
+                    },
+                    "code_words": {
+                        "type": "array",
+                        "description": (
+                            "The package's code words, said on the radio: a 'Code words' page after the deployment "
+                            "page, and a kneeboard page. Omitted: no page."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "word": {"type": "string", "description": "PORTE OUVERTE"},
+                                "meaning": {"type": "string", "description": "What happened: the SA-6 is down."},
+                                "who": {"type": "string", "description": "Who acts on it, and how."},
+                            },
+                            "required": ["word", "meaning"],
+                        },
+                    },
+                    "recon_folder": {
+                        "type": "string",
+                        "description": (
+                            "The folder of recon photos (<stem>.jpg + <stem>.json sidecar: zone and title required; "
+                            "heading, pitch, x, y, altitude_m, order optional), relative to the mission folder or "
+                            "absolute. Omitted: docs/recon/ when it exists. A photo with no sidecar or a zone that is "
+                            "no objective is skipped and warned."
+                        ),
+                    },
+                    "flights": {
+                        "type": "array",
+                        "description": (
+                            "The package's flights when the players take DYNAMIC SLOTS (no flight group to read): "
+                            "the ATO lists them under their base, 'dynamic slot', never the types the base offers."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "callsign": {"type": "string", "description": "The key of pilots and loadouts."},
+                                "base": {"type": "string", "description": "DCS airfield name; omitted: any base."},
+                                "aircraft": {"type": "string", "description": "As the briefing says it: F-16C."},
+                                "count": {"type": "integer", "description": "Aircraft; omitted: four pilot boxes."},
+                                "task": {"type": "string", "description": "SEAD, CAS..."},
+                            },
+                            "required": ["callsign"],
+                        },
+                    },
                     "pilots": {
                         "type": "object",
-                        "description": "Pilots' names by flight GROUP name; empty cells otherwise.",
+                        "description": "Pilots' names by flight GROUP name (or flights callsign); empty cells otherwise.",
                         "additionalProperties": _lines,
                     },
                     "loadouts": {
                         "type": "object",
-                        "description": "Imposed loadout by flight GROUP name; 'free loadout' otherwise.",
+                        "description": "Imposed loadout by flight GROUP name (or flights callsign); 'free loadout' otherwise.",
                         "additionalProperties": {"type": "string"},
                     },
                     "basemap": {
@@ -2204,6 +2334,56 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=build_briefing,
+    )
+    catalog.register(
+        ActionSpec(
+            name="build_mission_promotion",
+            description=(
+                "WRITE a built mission's ANNOUNCEMENT: docs/poster.jpg (16:9, 1920 x 1080), docs/calendar-banner.jpg "
+                "(2400 x 432, the 5.55:1 the VEAF calendar shows without cropping) and docs/discord-post.md (Markdown, "
+                "under Discord's 2 000 characters: a longer post is refused with its length). The background is a recon "
+                "photo graded for the evening (docs/recon/, as build_mission_briefing reads them), the combat-area map "
+                "(run build_mission_briefing first) and the photo pinned on it, the title, a tagline. The post's "
+                "practical lines come from the built mission (theatre, time of day, sky, dynamic-slot bases or flights). "
+                "You pass the WORDS: title, tagline, pitch, program (one line per role), practical extras (opposition, "
+                "number of pilots, duration), aircraft, closing, and the links. The evening's date and LOCAL hour "
+                "('event') are the club's: ask for them, NEVER invent them; omitted, nothing carries a date. The result "
+                "gives the post's text (discord_post) to paste."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "The mission FOLDER, built."},
+                    "title": {"type": "string", "description": "The mission's title, as the briefing's cover says it."},
+                    "event": {
+                        "type": "string",
+                        "description": "The evening's local date and hour as the club announces it, e.g. "
+                        "'jeudi 29 octobre · 21 h'. Asked, never invented.",
+                    },
+                    "tagline": {**_prose, "description": "One to three short lines under the title (a list)."},
+                    "pitch": {**_prose, "description": "The post's opening, two or three sentences."},
+                    "program": {
+                        **_lines,
+                        "description": "The post's 'on the menu' lines, one per role, emoji welcome.",
+                    },
+                    "practical": {**_lines, "description": "More practical lines: opposition, pilots, duration."},
+                    "aircraft": {
+                        **_lines,
+                        "description": "The types flown, for the poster; named flights' types if omitted.",
+                    },
+                    "closing": {"type": "string", "description": "The post's last line."},
+                    "calendar_url": {"type": "string", "description": "The calendar event's link; omitted: no line."},
+                    "briefing_url": {"type": "string", "description": "The shared briefing's link; omitted: no line."},
+                    "recon_folder": {
+                        "type": "string",
+                        "description": "The recon photos (as build_mission_briefing); docs/recon/ when omitted.",
+                    },
+                    "side": {"type": "string", "enum": ["blue", "red"], "description": "The players' side (blue)."},
+                },
+                "required": ["mission_path", "title"],
+            },
+        ),
+        handler=build_promotion,
     )
     catalog.register(
         ActionSpec(
@@ -2594,7 +2774,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "appended cap_missions[] entry (group_name: <mission_name>) in mission.yaml. The "
                 "template is built AIRBORNE at 'position' and fuelled; give a 'route' point and it "
                 "flies a race-track between the two (without one it orbits nowhere), and a loadout "
-                "with 'pylons', 'payload' (a DCS loadout by name, list_payloads) or 'loadout_from'."
+                "with 'pylons', 'payload' (a DCS loadout by name, list_payloads) or 'loadout_from'. "
+                "'menu_name' is what the F10 MISSIONS menu shows (the mission name when omitted), "
+                "'briefing' what its Infos say."
             ),
             parameters_schema={
                 "type": "object",
@@ -2618,7 +2800,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "default": "plane",
                         "description": "Ignored: the category comes from the aircraft type.",
                     },
-                    "cap": {"type": "object", "description": "Optional extra cap_missions[] keys."},
+                    "menu_name": {
+                        "type": "string",
+                        "description": "The F10 menu's name for it, e.g. 'CAP alliée (2 F-15C, MASADA)'; "
+                        "the mission name when omitted.",
+                    },
+                    "briefing": {"type": "string", "description": "What the F10 Infos say about it."},
+                    "cap": {
+                        "type": "object",
+                        "description": "Optional extra cap_missions[] keys (default, activated); "
+                        "an unknown key is warned.",
+                    },
                     "route": {
                         "type": "array",
                         "items": {
@@ -3235,8 +3427,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="describe_module",
             description=(
-                "Look a VEAF module up in the canonical module list and point to its doc page; "
-                "optionally report whether it is enabled in a given mission.yaml. Read-only."
+                "Look a VEAF module or a community script (CTLD, CSAR, AIEN, STTS, TUM, MIST) up "
+                "and point to its doc page; optionally report whether it is enabled in a given "
+                "mission.yaml. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -3556,6 +3749,8 @@ def _handle_create_cap_mission(params: dict[str, Any]) -> dict[str, Any]:
         position=params["position"],
         category=params.get("category", "plane"),
         cap=params.get("cap"),
+        menu_name=params.get("menu_name"),
+        briefing=params.get("briefing"),
         route=params.get("route"),
         altitude_ft=params.get("altitude_ft", 20000.0),
         speed_kt=params.get("speed_kt", 350.0),

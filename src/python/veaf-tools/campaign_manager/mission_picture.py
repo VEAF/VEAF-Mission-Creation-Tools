@@ -80,6 +80,8 @@ class FlightPlan:
     """``plane`` or ``helicopter``."""
     aircraft: tuple[str, ...]
     waypoints: tuple[Waypoint, ...]
+    departure: str = ""
+    """The airfield it leaves from, when known; the departure nearest its first point otherwise."""
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,8 @@ class Support:
     tacan: str | None
     route: tuple[tuple[float, float], ...]
     """The route's points, mission ``x``/``y``."""
+    altitude: float = 0.0
+    """Its first point's altitude, metres: a tanker's level, which the receivers fly to."""
 
 
 @dataclass(frozen=True)
@@ -191,6 +195,12 @@ class MissionPicture:
 def find_built_mission(folder: Path) -> Path | None:
     """The most recently built `.miz` of a mission folder, at its root or in `build/`.
 
+    A build with ``--profile`` suffixes its archive with the profile's name (FEAT-OBJECTIVE-MISSION-V2
+    09). A test build — its profile turns security off, as `LOCAL_TEST` does — made after the server one
+    is not the mission, and is passed over while another archive exists; any other profile's build is
+    the mission like a plain one, the most recent winning (pr-code-review of #1208: passing over every
+    profile picked an eight-day-old plain build over today's `SERVER` one).
+
     Args:
         folder: The mission folder.
 
@@ -198,7 +208,15 @@ def find_built_mission(folder: Path) -> Path | None:
         The archive, or ``None`` when the mission has not been built.
     """
     found = [*folder.glob("*.miz"), *(folder / "build").glob("*.miz")]
-    return max(found, key=lambda path: path.stat().st_mtime) if found else None
+    yaml_path = folder / "mission.yaml"
+    profiles = (load_yaml(yaml_path).get("profiles") if yaml_path.is_file() else None) or {}
+    tests = tuple(
+        f"_{name}".lower()
+        for name, cfg in (profiles.items() if isinstance(profiles, dict) else [])
+        if isinstance(cfg, dict) and isinstance(cfg.get("security"), dict) and cfg["security"].get("disabled") is True
+    )
+    kept = [path for path in found if not path.stem.lower().endswith(tests)] if tests else found
+    return max(kept or found, key=lambda path: path.stat().st_mtime) if found else None
 
 
 def megahertz(value: Any) -> float | None:
@@ -308,6 +326,18 @@ def _flight_plans(content: dict[str, Any], side: str, *, templates: bool = True)
     plans = [FlightPlan(category, tuple(dict.fromkeys(types)), route) for (category, route), types in found.items()]
     counts = {(plan.category, plan.waypoints): len(found[(plan.category, plan.waypoints)]) for plan in plans}
     return sorted(plans, key=lambda plan: (plan.category != "plane", -counts[(plan.category, plan.waypoints)]))
+
+
+def _cruise_altitude(group: dict[str, Any]) -> float:
+    """The altitude of a route's first point in the air, metres; 0 when it has none.
+
+    A tanker leaving its parking has the field's elevation on its first point: its level was announced as
+    ``FL000`` (pr-code-review of #1212).
+    """
+    for point in indexed((group.get("route") or {}).get("points")):
+        if not str(point.get("type") or "").startswith(("TakeOff", "Land")):
+            return float(point.get("alt") or 0.0)
+    return 0.0
 
 
 def _route(group: dict[str, Any]) -> tuple[tuple[float, float], ...]:
@@ -463,6 +493,7 @@ def read_mission_picture(miz: Path, player_side: str, folder: Path | None = None
                     frequency=megahertz(group.get("frequency")) or 0.0,
                     tacan=_tacan(group),
                     route=_route(group),
+                    altitude=_cruise_altitude(group),
                 )
             )
         elif category == "helicopter" and start and carriers:

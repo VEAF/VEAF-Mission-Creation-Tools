@@ -455,6 +455,25 @@ class TestProcessGroups(unittest.TestCase):
         worker.presets_manager.get_radios_for.return_value = None
         worker.process_groups(silent=True)  # must not raise
 
+    def test_process_groups_hf_primary_inside_the_human_radio_does_not_stop(self) -> None:
+        # Since DCS 2.9.31 the La-7's only radio is HF (`HumanRadio` 3.7-6.06 MHz): 3.7 is the
+        # frequency the Mission Editor accepts, though the La-7 is not `dcs_rejects_on_load`
+        # (FIX-DYNSLOT-RADIO-RANGE).
+        worker = _make_worker()
+        group = Group(
+            group_dcs={"units": [{"type": "La-7", "skill": "Client"}], "frequency": 3.7},
+            aircraft_type="plane",
+            country="CJTF Red",
+            coalition="red",
+            human_pilot=True,
+            name="La-7 Template Red",
+            unit_type="La-7",
+        )
+        worker.groups = {"La-7 Template Red": group}
+        worker.presets_manager = MagicMock()
+        worker.presets_manager.get_radios_for.return_value = None
+        worker.process_groups(silent=True)  # must not raise
+
 
 class TestGenerateValidationReport(unittest.TestCase):
     """Tests for collect_freq_issues() and generate_validation_report()."""

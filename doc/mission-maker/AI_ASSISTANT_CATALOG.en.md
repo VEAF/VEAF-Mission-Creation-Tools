@@ -97,6 +97,7 @@ The AI can act in two places, and it changes what "survives":
 | 53 | [Read and edit the mission folder's files](#mission-files) | Modules & settings | Recipe | ⭐ |
 | 54 | [Make a mission's briefing (PPTX, maps, DCS pictures)](#mission-briefing) | 🕰️ Mission settings | Folder (built) | ⭐ |
 | 55 | [Write the players' flight plan](#set-route) | 🕰️ Mission settings | Recipe (folder) | ⭐ |
+| 56 | [Announce the mission (poster, calendar banner, Discord post)](#mission-promotion) | 🕰️ Mission settings | Folder (built) | ⭐ |
 
 ---
 
@@ -755,9 +756,23 @@ No script: an AI with no command line on your PC (Claude Desktop in chat mode) d
 Build the mission first, and run it again after every change: it replaces its own pictures.
 The PPTX imports into Google Slides. `docs/briefing.pdf` is written beside it — the same pages, maps and words with a layout of its own, no PowerPoint or other program needed on your PC. The tool also warns the AI when a waypoint number of its text does not match the route, and when its French text lacks its accents.
 OpenStreetMap background, or OpenTopoMap (relief) for a desert or a low-level mission; without the network, the maps are drawn on a plain background.
-The pictures go into every built `.miz`, each weather variant included, and the **kneeboard** of every aircraft gets the maps drawn for its page, a flight card (points, heading and distance of each leg, highest ground, radios) and the targets.
+The pictures go into every built `.miz`, each weather variant included, and the **kneeboard** of every aircraft gets the maps drawn for its page, a flight card (points, heading and distance of each leg, highest ground; not the frequencies, already in the cockpits' presets) and the targets.
+The overview takes the page's whole width, framed on the route, the objectives and the threats, turned when that holds it tighter (an arrow shows north), its key drawn inside; each zoom carries an inset placing it on the overview.
+The targets and the flight plan's steps are sheets, six to a page: name, what it is, coordinates in DMS and DDM, elevation, a thumbnail of the map — and for a step, the heading and distance that reach it and what is done there.
+The AI can add a **strategic situation** page and a **deployment and coordination** page, in prose; with dynamic slots, the ATO says "dynamic slot" and lists the package's flights under their base, not the dozens of types it offers.
+A second map, the **combat area**, follows the situation map, framed on the objectives and the threats; on the kneeboard every map is turned so that the attack axis (from the base to the objectives) runs up the page.
+The AI can also give the package's **code words** (a page in the deck and on the kneeboard), and the briefing takes the **recon photos** left in `docs/recon/` (a JPEG photo and its JSON sheet: zone, title, heading, pitch, position), two to a page after their objective's zoom.
 
 > 💬 *"Make the mission's briefing, topo background."*
+
+### Announce the mission {#mission-promotion}
+
+*Folder (built) · ⭐* — Once the briefing is made, the tool makes the evening's announcement: a 16:9 **poster** (`docs/poster.jpg`), a **banner** for the VEAF calendar (`docs/calendar-banner.jpg`, 2400 × 432, the 5.55:1 the calendar shows uncropped) and a **Discord post** under 2,000 characters (`docs/discord-post.md`).
+The background is a recon photo graded in evening light (or the map), with the combat-area map and the photo pinned on it, the title and two or three tagline lines.
+The post takes the map, the time of day, the sky and the departure bases from the mission; the AI writes the rest (pitch, programme by role, practical lines).
+**The evening's date and hour, and the links** (calendar sign-up, shared briefing) **are yours to give**: the tool never invents them, and without them nothing carries a date.
+
+> 💬 *"Make the poster and the Discord post: Thursday 29 October, 21:00, sign-up https://www.veaf.org/calendar/1423."*
 
 ---
 

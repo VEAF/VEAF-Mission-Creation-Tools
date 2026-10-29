@@ -278,6 +278,8 @@ partial or one-off edits, or when there's no folder (a lone `.miz`).
 
 A **combat operation** (zones grouped under one menu; activating it spawns **all** its zones at once, `dependencies` only orders which task is listed as the current objective) is `add_combat_operation`, called **after** its zones exist: it writes `mission.yaml` only, and refuses a task naming a zone the mission does not declare.
 Do not write `type: operation` by hand.
+**A zone of an operation has no "Deactivate" command of its own**: the F10 menu offers it on the operation only, so the Mission Maker can switch off the whole operation or nothing.
+Keep outside the operation (its own entry, `active_at_start: true`) any zone the Mission Maker may want to switch off alone — a SAM battery nobody will SEAD, a secondary objective when few pilots turn up: it keeps its command, and the operation ends without it (measured on "Marteau du Golan", 2026-10-28).
 
 ## FARPs — the pad must be flat and clear
 

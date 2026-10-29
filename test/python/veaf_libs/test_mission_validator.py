@@ -100,6 +100,25 @@ class TestMissionValidator(unittest.TestCase):
         folder = _make_folder("modules:\n  RADIO: true\n", mission_table=_MISSION_WITH_PLAYER)
         self.assertEqual(validate_mission_folder(folder), [])
 
+    def test_an_unknown_cap_missions_key_is_a_warning(self) -> None:
+        """FEAT-OBJECTIVE-MISSION-V2 06: `friendly_name` was written for a CAP's menu name, read by nobody."""
+        folder = _make_folder(
+            "modules:\n  RADIO: true\ncap_missions:\n  - group_name: CAP-North\n    friendly_name: North\n",
+            mission_table=_MISSION_WITH_PLAYER,
+        )
+        issues = [i for i in validate_mission_folder(folder) if "friendly_name" in i.message]
+        self.assertEqual(_levels(issues), [WARNING])
+        self.assertIn("menu_name", issues[0].message)
+
+    def test_the_known_cap_missions_keys_warn_about_nothing(self) -> None:
+        folder = _make_folder(
+            "modules:\n  RADIO: true\ncap_missions:\n  - group_name: CAP-North\n    menu_name: North\n"
+            "    briefing: b\n    default: true\n    activated: true\n",
+            mission_table=_MISSION_WITH_PLAYER,
+        )
+        # the template group is not in this mission (another check's error): only the keys are looked at
+        self.assertFalse([i for i in validate_mission_folder(folder) if "menu_name" in i.message])
+
     def test_an_unknown_ground_control_role_is_an_error(self) -> None:
         folder = _make_folder(
             "mission:\n  ground_control:\n    game_master: 5\n    gamemaster: 5\n", mission_table=_MISSION_WITH_PLAYER

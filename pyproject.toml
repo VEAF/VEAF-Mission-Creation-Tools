@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.33.0"
+version = "6.34.0"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -54,6 +54,7 @@ pytest = ">=8.0"
 pytest-cov = ">=5.0"
 types-PyYAML = ">=6.0"
 pypdf = ">=6,<7"
+pytest-xdist = ">=3.6"
 
 [tool.poetry.group.build.dependencies]
 # Build tools — not needed for the quality gate, only for creating the .exe
@@ -133,9 +134,14 @@ testpaths = ["test/python"]
 # a conftest fixture is unreachable from the unittest.TestCase classes that need it.
 pythonpath = ["src/python/veaf-tools", "test/python/testlib"]
 python_files = ["test_*.py", "*_test.py"]
+# -n auto: one pytest-xdist worker per CPU, here and in CI alike (CHORE-CI-PYTHON-SPEED); `-n0` runs
+# serially, which `--pdb` needs. --dist loadfile keeps a file on one worker, so a module-scoped fixture
+# (a whole briefing, built once for the tests that read it) is built once, not once per worker.
 addopts = [
     "--tb=short",
     "-q",
+    "-n", "auto",
+    "--dist", "loadfile",
     "--import-mode=importlib",
     "--cov=src/python/veaf-tools",
     "--cov-report=xml",

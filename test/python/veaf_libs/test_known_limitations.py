@@ -104,3 +104,11 @@ def test_the_page_renders_only_the_dcs_entries() -> None:
     rendered = render_markdown([_DCS, _TOOL])
     assert "a-dcs-trap" in rendered
     assert "a-tool-gap" not in rendered
+
+
+def test_a_column_on_road_with_no_path_is_a_known_trap() -> None:
+    """FEAT-OBJECTIVE-MISSION-V2 08: measured on Marteau du Golan, a column across the Purple Line stood still 80 s."""
+    entry = next(e for e in load_known_limitations() if e["id"] == "on-road-route-with-no-path-stands-still")
+    assert (entry["kind"], entry["area"], entry["measured"]) == ("dcs", "ground-ai", "2026-10-28")
+    assert "Off Road" in entry["workaround"]
+    assert entry["id"] in _PAGE.read_text(encoding="utf-8")

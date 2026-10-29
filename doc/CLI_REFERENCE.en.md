@@ -1,6 +1,6 @@
 # CLI reference — `veaf-tools`
 
-All **39 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
+All **44 `veaf-tools` commands**, with their arguments and **every** option. This is a reference
 page: it says what each command accepts, not how to take a mission from start to finish. For that,
 read the [mission maker's guide](mission-maker/GUIDE.en.md), which tells the story in order, and the
 [pipeline reference](PIPELINE_REFERENCE.en.md), which details each build step.
@@ -62,7 +62,7 @@ Build a DCS mission (.miz) from a VEAF mission folder.
 | `--dynamic-mode` | `boolean` | *(none)* | If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders). |
 | `--dev-mode` | `boolean` | *(none)* | Resolve VEAF scripts from a local dev repo (build/veaf-scripts.lua) instead of published/. Requires --scripts-path pointing to the VEAF-Mission-Creation-Tools repo root. This setting is persisted in mission.yaml (build.dev_mode). |
 | `--scripts-path` | `str` | *(none)* | Path to the VEAF and community scripts. Persisted in mission.yaml (build.scripts_path). |
-| `--profile` / `-p` | `str` | *(none)* | Apply a named build profile from mission.yaml (e.g. TEST or SERVER). Profile keys deep-merge onto the base config. |
+| `--profile` / `-p` | `str` | *(none)* | Apply a named build profile from mission.yaml (e.g. TEST or SERVER). Profile keys deep-merge onto the base config. The `.miz` is suffixed with the profile's name (`_TEST`). |
 | `--migrate-from-v5` | `boolean` | `true` | If set, the builder will parse the mission for old v5 triggers and remove them. |
 | `--log-modules` | `str` | *(none)* | Comma-separated list of module IDs to keep at full log level. All other modules are silenced to 'error' level. Example: --log-modules 'SPAWN,RADIO' |
 | `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
@@ -930,30 +930,178 @@ Sweep a theatre when it is not published, or to replace a downloaded grid.
 
 *Flat alias : `veaf-tools terrain-sweep`*
 
-### `veaf-tools dcs smoke-test` {#smoke-test}
+### Talking to a mission running in DCS: the VEAF bridge {#dcs-bridge}
 
-Assert VEAF runtime behaviour inside a running DCS, over the dcs-fiddle hook.
+`smoke-test`, `mission-check`, `recon-plan` and `recon-shoot` talk to the mission **you** launched in DCS, on this computer, one way only: the **VEAF bridge**. It is the `dcs-bridge.lua` script, embedded in the mission, connecting to `dcs-serve`, the small local server the commands go through.
+
+- **The mission must carry the bridge.** `recon-prepare` and `mission-check-prepare` embed it in the copy they write; for `smoke-test`, build the mission with the `dcs_bridge` section of `mission.yaml` enabled, or pass it through [`inject-bridge`](#inject-bridge).
+- **`dcs-serve` is started for you.** When none answers, the command starts one as [`clear-ground-sweep`](#clear-ground-sweep) does: found next to `veaf-tools.exe`, on the `PATH`, or through `--dcs-serve`, with a generated key and listening on this computer only, and stopped at the end.
+- **One change to make once on your DCS**: allow mission scripts to talk to the outside, by editing `Scripts\MissionScripting.lua` in the DCS install. It is the same as for `clear-ground-sweep` and the airbase capture; it is described step by step in [Capturing a map's airbases](developer/capture-airbases.en.md), step 0, and must be redone after every DCS update.
+- **The bridge reconnects at its own pace**: up to a minute of mission time when `dcs-serve` starts after the mission. The command waits (`--wait`, 180 s by default) and says what it is waiting for. The mission must run **unpaused**: paused, the bridge does not answer.
+
+These four commands share these options:
 
 | Options | Type | Default | Description |
 |---|---|---|---|
-| `--url` | `str` | `http://127.0.0.1:12081` | Base URL of the dcs-fiddle-server.lua hook (default: http://127.0.0.1:12081). |
-| `--timeout` | `float` | `10.0` | Per-request socket timeout, in seconds. |
+| `--serve-url` | `str` | `http://127.0.0.1:8080` | Base URL of dcs-serve. |
+| `--dcs-serve` | `str` | *(none)* | The dcs-serve executable to start when none runs; default: next to veaf-tools.exe, then on PATH. |
+| `--api-key` | `str` | *(none)* | The key of a dcs-serve you started yourself. (environment variable `DCS_BRIDGE_API_KEY`) |
+| `--config` | `str` | *(none)* | The dcs-serve.yaml of a dcs-serve you started yourself, to read its key from. |
+| `--wait` | `int` | `180` | Seconds to wait for the mission's bridge to connect. |
+
+### `veaf-tools dcs smoke-test` {#smoke-test}
+
+Assert VEAF runtime behaviour inside the mission running in DCS, through the [VEAF bridge](#dcs-bridge): the mission must be built with `dcs_bridge`. One line per check; exit code 1 when one fails.
+
+| Options | Type | Default | Description |
+|---|---|---|---|
 | `--suite` | `str` | `default` | Which set of checks to run: `default` (every mission) or `spotter` (the demo-spotter-network rig only). |
-| `--probe-only` | `boolean` | `false` | Only report what a running DCS lets the harness do, run no checks. |
-| `--full` | `boolean` | `false` | Launch DCS, load --mission, assert, then quit — a full unattended run. |
-| `--mission` | `str` | *(none)* | Path to the .miz to load for a --full run. |
-| `--dcs-exe` | `str` | *(none)* | Path to DCS.exe for a --full run (default: discovered from a running DCS's install dir). |
-| `--allow-running` | `boolean` | `false` | For --full: use a DCS that is already running instead of refusing (it loads the mission over the current session). |
-| `--fiddle-token` | `str` | *(none)* | The hook's per-session Basic-auth password (default: read from ~/dcs-fiddle-token.txt, or $DCS_FIDDLE_TOKEN). |
+| `--timeout` | `float` | `10.0` | Per-check timeout, in seconds. |
 | `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
 
-```bash
-veaf-tools dcs smoke-test
+Plus the [bridge options](#dcs-bridge).
+
+```powershell
+.\veaf-tools.exe dcs smoke-test
 ```
 
 *Flat alias : `veaf-tools smoke-test`*
 
 **See also** : [developer/smoke-harness.md](developer/smoke-harness.en.md)
+
+### `veaf-tools dcs mission-check-prepare` {#mission-check-prepare}
+
+Writes the test copy `mission-check` runs against: the built mission, the [VEAF bridge](#dcs-bridge) embedded, nothing else changed. The original mission is not touched.
+
+| Arguments | Type | Description |
+|---|---|---|
+| `MISSION` | `Path` | The built mission (.miz); it is not modified. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--out` | `Path` | *(beside it, `_CHECK` appended)* | Where to write the copy. |
+| `--bridge-lua` | `str` | *(none)* | A local dcs-bridge.lua to embed; downloaded from the VEAF-dcs-bridge repository otherwise. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+```powershell
+.\veaf-tools.exe dcs mission-check-prepare MyMission.miz
+```
+
+*Flat alias : `veaf-tools mission-check-prepare`*
+
+### `veaf-tools dcs mission-check` {#mission-check}
+
+Checks the mission **running in DCS** — the copy written by [`mission-check-prepare`](#mission-check-prepare), which you launched yourself — through the [VEAF bridge](#dcs-bridge), and prints one line per check and a verdict:
+
+- **F10 menus**: every entry of the VEAF radio menu has a label; an empty one is reported with its path (`VEAF > Zones > ∅`);
+- **combat zones and missions**: each one is switched on then off, its units counted each time, and it is **left as it was found**; a CAP is checked under each of its variant names (`<name>/<skill>/<scale>`); an *operation* is reported but not toggled (it would take its zones with it);
+- **columns**: every ground group with a route of more than one waypoint — from the mission or spawned by a zone — must drive within 60 seconds. This is the check that finds a column frozen by an "On Road" leg with no road to follow.
+
+Keep DCS running **unpaused** during the check: paused, nothing spawns and nothing drives. Expect a few minutes (the command says how many). Exit code 1 when a check fails.
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--only` | `str` | *(all)* | Zone or combat mission name to check; repeat for several. The menus and the mission's own columns are checked either way. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+Plus the [bridge options](#dcs-bridge).
+
+```powershell
+.\veaf-tools.exe dcs mission-check
+```
+
+*Flat alias : `veaf-tools mission-check`*
+
+### Reconnaissance photos — `recon-prepare`, `recon-plan`, `recon-shoot`, `recon-render` {#recon-photos}
+
+Four commands, one per step, because you act between each: they produce one reconnaissance photo per objective, taken **in DCS** along the planned engagement axis, with the look of a reconnaissance print (contrasted black and white, grain, banner, heading rose) and the targets circled **in red felt pen**. Units are drawn where DCS actually put them, the zones' random draws included. The result (a JPEG + JSON per shot, and a `recon.json` index) goes into the briefing.
+
+The whole sequence:
+
+1. `.\veaf-tools.exe dcs recon-prepare MyMission.miz` writes `MyMission_RECON.miz` beside it: clear sky, chosen time, every combat zone active at start, readable group names, and the [VEAF bridge](#dcs-bridge) embedded, through which `recon-plan` and `recon-shoot` talk to the mission. The original mission is not touched.
+2. In DCS: open `MyMission_RECON.miz`, take a **spectator** slot, press **F11** (free camera). Keep the DCS window on the **primary screen**.
+3. `.\veaf-tools.exe dcs recon-plan --operation "Golan Hammer"` writes `shots.yaml`: one shot per zone, with the names of the groups found.
+4. Complete `shots.yaml`: for each shot, the engagement `heading` (the direction the attacker looks), and if needed `pitch` (degrees below the horizon), `slant` (distance in metres), `mark: units` to circle each vehicle, `labels` to name the targets.
+5. `.\veaf-tools.exe dcs recon-shoot`: the command puts the camera on each shot and grabs the window. Do not touch the mouse or the keyboard until it is done.
+6. `.\veaf-tools.exe dcs recon-render` writes the photos into `docs\recon\`, where the briefing (`build_mission_briefing`) looks for them.
+   A shot tied to a bare group prefix (`Sasa [r]`) joins its zone (`Sasa`) when `recon-render` is run again: no need to take it again.
+
+Run the commands from the mission folder: the raw shots go to `docs\build\recon\raw\`, the finished photos to `docs\recon\`.
+
+A completed `shots.yaml`:
+
+```yaml
+operation: Golan Hammer
+coalition: red
+shots:
+  - name: 03-sa11
+    title: Kiswah SA-11 battery
+    groups: [SA11Kiswah]
+    heading: 70
+    pitch: 30
+    slant: 1100
+    mark: units
+    labels: {"SA-11 Buk SR": "RADAR 9S18", "SA-11 Buk LN": "TEL"}
+```
+
+The camera stands `slant` metres from the target, `pitch` degrees above the horizon, looking along `heading`. The marks are placed by projection with an 80° horizontal field, measured: the six vehicles of an SA-11 fall within a few pixels of their projection.
+
+#### `veaf-tools dcs recon-prepare` {#recon-prepare}
+
+| Arguments | Type | Description |
+|---|---|---|
+| `MISSION` | `Path` | The built mission (.miz); it is not modified. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--time` | `str` | `11:30` | Time of day of the photos, HH:MM on the theatre's clock. |
+| `--out` | `Path` | *(beside it, `_RECON` appended)* | Where to write the copy. |
+| `--bridge-lua` | `str` | *(none)* | A local dcs-bridge.lua to embed; downloaded from the VEAF-dcs-bridge repository otherwise. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+*Flat alias : `veaf-tools recon-prepare`*
+
+#### `veaf-tools dcs recon-plan` {#recon-plan}
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--out` | `Path` | `shots.yaml` | The shots file to write. |
+| `--coalition` | `str` | `red` | The side to photograph: `red` or `blue`. |
+| `--operation` | `str` | *(none)* | The operation's name, printed on every photo. |
+| `--force` | `boolean` | `false` | Overwrite an existing shots file. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+Plus the [bridge options](#dcs-bridge).
+
+*Flat alias : `veaf-tools recon-plan`*
+
+#### `veaf-tools dcs recon-shoot` {#recon-shoot}
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--shots` | `Path` | `shots.yaml` | The shots file. |
+| `--raw-dir` | `Path` | `docs\build\recon\raw` | Folder of the raw shots (PNG + JSON). |
+| `--only` | `str` | *(all)* | Shot name to take; repeat for several. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+Plus the [bridge options](#dcs-bridge).
+
+The F11 camera is moved from DCS's `export` state, which the bridge reaches through `net.dostring_in`; the window is grabbed on this computer. The DCS window must be on the primary screen and visible: a grab of all screens returns the DirectX window black, and a black grab is retried up to eight times.
+
+*Flat alias : `veaf-tools recon-shoot`*
+
+#### `veaf-tools dcs recon-render` {#recon-render}
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--shots` | `Path` | `shots.yaml` | The shots file (the order and the operation's name). |
+| `--raw-dir` | `Path` | `docs\build\recon\raw` | Folder of the raw shots. |
+| `--out-dir` | `Path` | `docs\recon` | Folder of the finished photos. |
+| `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
+
+Writes `<shot>.jpg`, `<shot>.json` and `recon.json`, the ordered list of shots. The JSON carries what the briefing reads — `zone` (the objective's combat zone: the shot's `zone` key, otherwise the one of the first `groups` prefix), `title`, `heading`, `pitch` (negative looking down), `x`/`y` and `altitude_m` (the camera, in mission coordinates), `order` — then the rest of the shot: camera, target in DCS coordinates, latitude/longitude and DMS, time, units.
+
+*Flat alias : `veaf-tools recon-render`*
 
 ## The tool itself
 

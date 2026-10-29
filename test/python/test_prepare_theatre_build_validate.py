@@ -162,6 +162,38 @@ class TestPrepareTheatreBuildValidate(unittest.TestCase):
             gaps = [i.message for i in validate_mission_folder(mission_folder) if "ctld-upgrade" in i.message]
             self.assertEqual(gaps, [])
 
+    def test_a_side_with_no_slot_base_gets_no_dynamic_slot_template(self) -> None:
+        """FEAT-OBJECTIVE-MISSION-V2 11, read in the built ``.miz``: red held no slot base and got its templates."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            mission_folder = tmp_path / "mission"
+            scripts_root = self._stub_scripts_root(tmp_path / "scripts")
+
+            self._run("prepare", "--template", "minimal", "--theatre", _THEATRE, str(mission_folder))
+            # Batumi (22) is blue and offers slots; warehouses.yaml opens blue's bases only
+            (mission_folder / "src" / "mission" / "warehouses").write_text(
+                'warehouses = \n{\n  airports = {\n    [22] = { ["coalition"] = "BLUE", ["dynamicSpawn"] = true },\n'
+                "  },\n  warehouses = {},\n  weapons = {},\n}\n",
+                encoding="utf-8",
+            )
+            (mission_folder / "src" / "warehouses.yaml").write_text(
+                "blue:\n  defaults:\n    fuel: unlimited\n", encoding="utf-8"
+            )
+            self._run("build", "mission.miz", str(mission_folder), "--scripts-path", str(scripts_root))
+
+            built = sorted(mission_folder.glob("*.miz"))
+            self._run("extract", str(built[0]), str(mission_folder))
+            mission = luadata.read(str(mission_folder / "src" / "mission" / "mission"), encoding="utf-8")
+            templates: dict[str, int] = {}
+            for side, side_content in (mission.get("coalition") or {}).items():
+                for country in indexed(side_content.get("country")):
+                    for category in CATEGORIES:
+                        for group in indexed(((country or {}).get(category) or {}).get("group")):
+                            if isinstance(group, dict) and group.get("dynSpawnTemplate") is True:
+                                templates[side] = templates.get(side, 0) + 1
+            self.assertTrue(templates.get("blue"), templates)
+            self.assertNotIn("red", templates)
+
 
 if __name__ == "__main__":
     unittest.main()

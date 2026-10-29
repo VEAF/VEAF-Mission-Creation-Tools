@@ -35,6 +35,7 @@ from veaf_libs.dcs_bridge_capture import (
     DEFAULT_SERVE_URL,
     BridgeAuthError,
     BridgeHttpError,
+    BridgeLuaError,
     exec_over_bridge,
     resolve_api_key,
     resolve_bridge_lua,
@@ -419,6 +420,9 @@ def _wait_for_survey_mission(exec_lua: LuaExec, theatre: str, wait_seconds: int,
                 break
             except SurveyError:
                 raise
+            except BridgeLuaError as e:
+                # The mission answered, and the check raised: waiting would not change it.
+                raise RuntimeError(str(e)) from e
             except BridgeAuthError as e:
                 # A refused key stays refused: waiting would only hide the reason for fifteen minutes.
                 raise RuntimeError(t("cmd.clear_ground_sweep.key_refused", error=str(e))) from e

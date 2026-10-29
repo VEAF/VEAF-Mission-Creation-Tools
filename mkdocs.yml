@@ -36,6 +36,7 @@ extra_css:
 extra_javascript:
   - assets/chatbot/veaf-chatbot-config.js
   - assets/chatbot/veaf-chatbot.js
+  - assets/version-latest.js
 
 markdown_extensions:
   - toc:
@@ -134,6 +135,7 @@ extra:
   version:
     provider: mike
     default: dev
+    alias: true
 
 nav:
   - Home: index.md

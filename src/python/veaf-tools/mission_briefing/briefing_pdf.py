@@ -12,13 +12,18 @@ Calibri) and the page breaks follow the PDF's text, not the deck's.
 
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass
 from pathlib import Path
 
 from campaign_manager.briefing_deck import Block, Page
 from fpdf import FPDF
+from fpdf.fonts import FontFace
 from PIL import Image
 from veaf_libs.bundled_data import bundled_dir
+
+from mission_briefing.briefing_cards import COLUMNS, ROWS, CardPage
+from mission_briefing.briefing_tables import TablePage
 
 #: The deck's slide size, 16:9 (13.333 x 7.5 in), in millimetres: a page the deck's proportions.
 _PAGE_MM = (190.5, 338.67)
@@ -38,6 +43,8 @@ _NOTE_SIZE = 11 * _SCALE
 _LINE_SPACING = 1.25
 
 _BLUE = (0x1F, 0x5F, 0xBF)
+_TABLE_HEADER = (0x1F, 0x4E, 0xA8)
+_TABLE_STRIPE = (0xF2, 0xF4, 0xF8)
 _GREY = (0x55, 0x55, 0x55)
 
 #: The font family name and the files under ``veaf_libs/data/fonts`` (DejaVu Sans 2.37, free to redistribute).
@@ -53,6 +60,14 @@ class MapSheet:
     title: str
     image: Path
     notes: list[tuple[str, bool]]
+
+
+@dataclass(frozen=True)
+class PhotoSheet:
+    """A page of one or two photos side by side, each with its caption (FEAT-OBJECTIVE-MISSION-V2 04)."""
+
+    title: str
+    photos: list[tuple[Path, str]]
 
 
 @dataclass(frozen=True)
@@ -79,10 +94,13 @@ class _Pdf(FPDF):
         self.set_title("VEAF briefing")
 
     def say(self, text: str, size: float, *, bold: bool = False, colour: tuple[int, int, int] | None = None) -> None:
-        """One paragraph at the left margin, wrapped, in the given size."""
+        """One paragraph at the left margin, wrapped, in the given size, aligned left.
+
+        fpdf2 justifies a ``multi_cell`` by default; the VEAF template never does (FIX-BRIEFING-PARITY-MARTEAU 07).
+        """
         self.set_font(_FAMILY, "B" if bold else "", size)
         self.set_text_color(*(colour or (0, 0, 0)))
-        self.multi_cell(0, size * 0.3528 * _LINE_SPACING, text, new_x="LMARGIN", new_y="NEXT")
+        self.multi_cell(0, size * 0.3528 * _LINE_SPACING, text, new_x="LMARGIN", new_y="NEXT", align="L")
 
     def headline(self, title: str) -> None:
         """A page's title at the top, shrunk to one line when it is long."""
@@ -115,12 +133,43 @@ def _block(pdf: _Pdf, block: Block) -> None:
         pdf.say(paragraph, _BODY_SIZE)
 
 
+def _table_page(pdf: _Pdf, page: TablePage) -> None:
+    """The deck's slide of tables: each under its heading, header filled, rows striped, then the prose."""
+    pdf.add_page()
+    pdf.headline(page.title)
+    for table in page.tables:
+        if table.heading:
+            pdf.say(table.heading, _HEADING_SIZE, bold=True)
+            pdf.ln(1)
+        pdf.set_font(_FAMILY, "", _NOTE_SIZE)
+        pdf.set_text_color(0, 0, 0)
+        with pdf.table(
+            col_widths=table.widths,
+            text_align="LEFT",
+            line_height=_NOTE_SIZE * 0.3528 * _LINE_SPACING,
+            headings_style=FontFace(emphasis="BOLD", color=(255, 255, 255), fill_color=_TABLE_HEADER),
+            cell_fill_color=_TABLE_STRIPE,
+            cell_fill_mode="ROWS",
+            borders_layout="HORIZONTAL_LINES",
+        ) as grid:
+            grid.row(table.columns)
+            for row in table.rows:
+                grid.row(row)
+        pdf.ln(4)
+    for block in page.after:
+        _block(pdf, block)
+
+
 def _map_page(pdf: _Pdf, sheet: MapSheet) -> None:
     pdf.add_page()
     pdf.headline(sheet.title)
     with Image.open(sheet.image) as opened:
         ratio = opened.width / opened.height
     height = _PAGE_MM[0] - _BODY_TOP - _BODY_BOTTOM
+    if not sheet.notes:  # a map that carries its own key takes the whole page (FEAT-OBJECTIVE-BRIEFING-QUALITY 02)
+        width = min((height + 4) * ratio, _PAGE_MM[1] - 2 * _MARGIN)
+        pdf.image(str(sheet.image), x=(_PAGE_MM[1] - width) / 2, y=_BODY_TOP - 4, w=width, h=width / ratio)
+        return
     width = min(height * ratio, _PAGE_MM[1] * 0.6)
     pdf.image(str(sheet.image), x=_MARGIN, y=_BODY_TOP - 4, w=width, h=width / ratio)
     left = _MARGIN + width + 8
@@ -129,6 +178,64 @@ def _map_page(pdf: _Pdf, sheet: MapSheet) -> None:
     for text, heading in sheet.notes:
         pdf.say(text, _HEADING_SIZE if heading else _BODY_SIZE * 0.95, bold=heading)
     pdf.set_left_margin(_MARGIN)
+
+
+def _photo_page(pdf: _Pdf, sheet: PhotoSheet) -> None:
+    """The deck's photo slide: the photos side by side, as large as half the page holds them, captions under."""
+    pdf.add_page()
+    pdf.headline(sheet.title)
+    gap = 6.0
+    count = max(1, len(sheet.photos))
+    room_w = (_PAGE_MM[1] - 2 * _MARGIN - (count - 1) * gap) / count
+    room_h = _PAGE_MM[0] - _BODY_TOP - _BODY_BOTTOM - 14
+    pdf.set_auto_page_break(False)
+    for index, (image, text) in enumerate(sheet.photos):
+        with Image.open(image) as opened:
+            ratio = opened.width / opened.height
+        width = min(room_w, room_h * ratio)
+        left = _MARGIN + index * (room_w + gap) + (room_w - width) / 2
+        pdf.image(str(image), x=left, y=_BODY_TOP - 4, w=width, h=width / ratio)
+        pdf.set_left_margin(left)
+        pdf.set_right_margin(_PAGE_MM[1] - left - width)
+        pdf.set_xy(left, _BODY_TOP - 2 + width / ratio)
+        pdf.say(text, _NOTE_SIZE)
+    pdf.set_left_margin(_MARGIN)
+    pdf.set_right_margin(_MARGIN)
+    pdf.set_auto_page_break(True, margin=_BODY_BOTTOM)
+
+
+def _card_page(pdf: _Pdf, page: CardPage) -> None:
+    """The deck's slide of cards, the same grid: a thumbnail on the left of each card, its lines beside it."""
+    pdf.add_page()
+    pdf.headline(page.title)
+    top = _BODY_TOP
+    if page.heading:
+        pdf.set_xy(_MARGIN, _BODY_TOP - 3)
+        pdf.say(page.heading, _HEADING_SIZE, bold=True, colour=_BLUE)
+        top = pdf.get_y() + 2
+    gap, pad = 4.0, 2.0
+    width = (_PAGE_MM[1] - 2 * _MARGIN - (COLUMNS - 1) * gap) / COLUMNS
+    height = (_PAGE_MM[0] - _BODY_BOTTOM - top - (ROWS - 1) * gap) / ROWS
+    pdf.set_auto_page_break(False)
+    for index, card in enumerate(page.cards):
+        left = _MARGIN + (index % COLUMNS) * (width + gap)
+        y = top + (index // COLUMNS) * (height + gap)
+        pdf.set_draw_color(0xB0, 0xB0, 0xB0)
+        pdf.rect(left, y, width, height)
+        text_left = left + pad
+        if card.thumbnail:
+            side = height - 2 * pad
+            pdf.image(io.BytesIO(card.thumbnail), x=left + pad, y=y + pad, w=side, h=side)
+            text_left += side + pad
+        pdf.set_left_margin(text_left)
+        pdf.set_right_margin(_PAGE_MM[1] - left - width + pad)
+        pdf.set_xy(text_left, y + pad)
+        pdf.say(card.title, _BODY_SIZE, bold=True)
+        for text in card.lines:
+            pdf.say(text, _NOTE_SIZE)
+    pdf.set_left_margin(_MARGIN)
+    pdf.set_right_margin(_MARGIN)
+    pdf.set_auto_page_break(True, margin=_BODY_BOTTOM)
 
 
 def _cover_page(pdf: _Pdf, cover: Cover) -> None:
@@ -148,7 +255,7 @@ def _cover_page(pdf: _Pdf, cover: Cover) -> None:
     pdf.set_left_margin(_MARGIN)
 
 
-def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet]) -> int:
+def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage | PhotoSheet | TablePage]) -> int:
     """Write the briefing's PDF: the cover, then each sheet in the deck's order.
 
     Args:
@@ -164,6 +271,12 @@ def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet]) -> int:
     for sheet in sheets:
         if isinstance(sheet, MapSheet):
             _map_page(pdf, sheet)
+        elif isinstance(sheet, CardPage):
+            _card_page(pdf, sheet)
+        elif isinstance(sheet, PhotoSheet):
+            _photo_page(pdf, sheet)
+        elif isinstance(sheet, TablePage):
+            _table_page(pdf, sheet)
         else:
             _text_page(pdf, sheet)
     out.parent.mkdir(parents=True, exist_ok=True)

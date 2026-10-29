@@ -212,7 +212,14 @@
         return;
       }
 
-      const sorted = [...versions].sort(versionSort);
+      // "latest" is a mike alias, not a version: give it a card of its own so the featured card
+      // opens /latest/ — a URL that keeps pointing at the newest release once it is shared.
+      const newest = versions.find(v => v.aliases && v.aliases.includes('latest'));
+      const cards = newest
+        ? [{ version: 'latest', title: `Latest stable release (${newest.version})`, aliases: [] }, ...versions]
+        : versions;
+
+      const sorted = [...cards].sort(versionSort);
       grid.innerHTML = '';
 
       sorted.forEach(entry => {
@@ -222,7 +229,7 @@
 
         const card = document.createElement('a');
         card.href = `./${entry.version}/`;
-        card.className = 'version-card' + (isLatest ? ' featured' : isDev ? ' edge' : '');
+        card.className = 'version-card' + (entry.version === 'latest' ? ' featured' : isDev ? ' edge' : '');
 
         // Build badges
         let badges = '';
@@ -239,7 +246,7 @@
 
         const meta = (entry.title && entry.title !== entry.version)
           ? entry.title
-          : (isDev ? 'Development branch (develop)' : isLatest ? 'Latest stable release' : '');
+          : (isDev ? 'Development branch (develop)' : '');
 
         card.innerHTML = `
           <div class="vc-name">${entry.version}${badges}</div>

@@ -214,6 +214,20 @@ limitations:
     For the Viggen, cite the Group in the briefing texts (Group 101 for `primary_1` channel 1), as the
     presets kneeboard page does; the deck's frequency plan keeps the slot numbers.
 
+- id: briefing-ato-lacks-levels-jtac-and-control
+  kind: tool
+  area: mcp
+  title: "The briefing's ATO gives no tanker flight level, no JTAC, no fat cow and no GCI or ATC"
+  fixed_in: "6.34.0"
+  symptom: |
+    `build_mission_briefing` reads the ATO's support from the built mission: each tanker and AWACS
+    with its frequency and TACAN, but not its flight level; a JTAC, the CTLD fat cow and the control
+    (GCI, airfield towers by name) are not listed. The hand-made briefing of "Marteau du Golan" had
+    them (regeneration test, 2026-10-28, FIX-BRIEFING-PARITY-MARTEAU).
+  workaround: |
+    Write them in `deployment` ("Ravitaillement en vol : Texaco-1 (panier, FL180)…", "JTAC Abu Nada
+    (FM 35.55, code 1511)") or in `other`: the briefing prints them as given.
+
 - id: clear-ground-covers-what-was-swept
   kind: tool
   area: mcp
@@ -775,6 +789,23 @@ limitations:
   cost: |
     The tools' reference was parsed from the text of `Radio.lua`: on Persian Gulf it held no UHF channel
     for any airfield, and made the hand-written channel collection — which was right — look wrong.
+- id: dcs-update-moves-an-airframe-radio
+  kind: dcs
+  area: radio
+  title: "A DCS update can change an airframe's radio, and the Mission Editor then refuses to save a group tuned for the old one"
+  measured: "2026-10-29"
+  symptom: |
+    DCS 2.9.31.29434 replaced the La-7's 100–156 MHz SCR-522 with a 3.7–6.06 MHz HF set (its
+    `HumanRadio` in `CoreMods/aircraft/La-7/entry.lua`; no `panelRadio` any more). A group saved
+    before at 121.5 MHz still loads and flies, but the Mission Editor refuses to save the mission:
+    « Invalid frequency 121.5 MHz ». Nothing says so before the editor is opened.
+  workaround: |
+    Set the group's frequency inside the airframe's new range (the La-7: 3.7 MHz, its default).
+    `validate_mission` warns about a group whose frequency its airframe cannot tune, against the radio
+    specs shipped with the tools — which follow DCS only once the datamine pin is bumped.
+  cost: |
+    The two La-7 dynamic-slot templates shipped at 121.5 MHz, so every mission built with them after
+    the update could not be saved in the editor ("Marteau du Golan", 2026-10-29).
 - id: destroyed-static-is-still-returned-by-getbyname
   kind: dcs
   area: spawning
@@ -1710,3 +1741,73 @@ limitations:
   workaround: |
     Read the `modules:` block `convert v5` writes and set `initialized_by_mission` by hand where its
     guess is wrong; the conversion report lists the modules it handed to the mission.
+
+- id: operation-zone-has-no-deactivate-of-its-own
+  kind: tool
+  area: runtime
+  title: "A zone of an operation has no Deactivate command of its own"
+  symptom: |
+    The F10 menu of a combat operation offers to deactivate the operation, never one of the zones its
+    `tasking_orders` list: the Mission Maker switches off the whole operation or nothing. On "Marteau du
+    Golan" (2026-10-28) the SA-6 and SA-11 had to come out of the operation so that, with nobody flying
+    SEAD, they could be switched off alone.
+  workaround: |
+    Keep outside the operation (its own `combat_zones` entry, `active_at_start: true`) any zone the
+    Mission Maker may want to switch off alone: a SAM battery, a secondary objective. It keeps its
+    Deactivate command, and the operation ends without it.
+
+- id: on-road-route-with-no-path-stands-still
+  kind: dcs
+  area: ground-ai
+  title: "A ground group ordered \"On Road\" where no road leads stands still, with no message"
+  measured: "2026-10-28"
+  symptom: |
+    DCS looks for a road path between two points of an "On Road" leg. When there is none — the road
+    network does not cross that line — the group does not drive off-road instead: it stays where it
+    is, its route accepted, and nothing in `dcs.log` says why.
+
+    Measured on Syria for "Marteau du Golan": an allied column spawned in front of Quneitra and
+    ordered On Road towards Khan Arnabah, across the Purple Line, stood still for 80 s. The same route
+    with its first two points Off Road (to the town, then onto the road) left at once and took the
+    road from there.
+  workaround: |
+    Make the legs that leave from open ground, or cross a border, a ceasefire line or a river,
+    "Off Road", and switch to "On Road" from a point already on the road beyond. Watch a column's first
+    minute in game on the F10 map: a column that has a route and does not move is this, not a script
+    error.
+  cost: |
+    The allied push of "Marteau du Golan" (2026-10-28) did not move during its first test.
+
+- id: camera-moves-only-from-the-export-state
+  kind: dcs
+  area: scripting
+  title: "`LoSetCameraPosition` moves the F11 camera only from the export state"
+  measured: "2026-10-28"
+  symptom: |
+    Sent from the GUI state (the dcs-fiddle hook's own environment, port 12081 `env=default`),
+    `LoSetCameraPosition` returns without an error and the camera does not move; in the F10 view it pans
+    the map instead. Sent through `net.dostring_in("export", …)` (`env=export`) with the free camera
+    (F11) on, it puts the camera exactly where asked. The basis it takes is x forward, y up, z right and
+    p the position, in world axes: x north, y altitude, z east.
+  workaround: |
+    Send the camera order to the `export` state, in F11, and send it twice with a pause of a few seconds:
+    the first frames after a jump can be black while the scenery loads. `veaf-tools dcs recon-shoot` does
+    both.
+  cost: |
+    The first reconnaissance shots of "Marteau du Golan" (Syria, 2026-10-28) left the camera where it was,
+    then moved the F10 map, before the export route was found.
+
+- id: operation-registers-its-zones-twice
+  kind: tool
+  area: runtime
+  title: "A combat zone an operation lists is registered twice"
+  symptom: |
+    `VeafCombatOperation:addTaskingOrder` calls `veafCombatZone.AddZone` on a zone the configuration
+    already added (`veafCombatZone.lua`), so the zone is in `veafCombatZone.zonesList` twice (its second
+    `initialize()` does nothing: the zone guards it). Anything walking `zonesList` meets it twice:
+    measured on "Marteau du Golan" (2026-10-28), four zones listed twice, and a loop activating every
+    zone put them on the map twice.
+  workaround: |
+    Walk `zonesList` once per name (`getMissionEditorZoneName`), or look zones up through
+    `veafCombatZone.GetZone`, which reads the dictionary.
+  fixed_in: "6.34.0"

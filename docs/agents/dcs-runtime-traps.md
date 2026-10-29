@@ -829,6 +829,22 @@ logic) — through `describe_airfield_channels` / `set_airfield_channels`, or
 *What it cost:* The tools' reference was parsed from the text of `Radio.lua`: on Persian Gulf it held no UHF channel
 for any airfield, and made the hand-written channel collection — which was right — look wrong.
 
+### A DCS update can change an airframe's radio, and the Mission Editor then refuses to save a group tuned for the old one {#dcs-update-moves-an-airframe-radio}
+
+Measured **2026-10-29**.
+
+DCS 2.9.31.29434 replaced the La-7's 100–156 MHz SCR-522 with a 3.7–6.06 MHz HF set (its
+`HumanRadio` in `CoreMods/aircraft/La-7/entry.lua`; no `panelRadio` any more). A group saved
+before at 121.5 MHz still loads and flies, but the Mission Editor refuses to save the mission:
+« Invalid frequency 121.5 MHz ». Nothing says so before the editor is opened.
+
+**What to do:** Set the group's frequency inside the airframe's new range (the La-7: 3.7 MHz, its default).
+`validate_mission` warns about a group whose frequency its airframe cannot tune, against the radio
+specs shipped with the tools — which follow DCS only once the datamine pin is bumped.
+
+*What it cost:* The two La-7 dynamic-slot templates shipped at 121.5 MHz, so every mission built with them after
+the update could not be saved in the editor ("Marteau du Golan", 2026-10-29).
+
 ### A removed F10 menu entry's id goes to the next entry created, so a menu left open fires the wrong command {#f10-menu-entry-id-is-recycled}
 
 Measured **2026-10-09**.
@@ -957,6 +973,26 @@ the latter (`VeafCampaignZone:groundHolders`). Expect a few percent of slack bey
 distance: the convoy took Poti, was not found in it, and a 24-unit garrison was drawn from blue's
 reserve under it (`a-captured-zone-may-draw-a-garrison-under-its-convoy`).
 
+### A ground group ordered "On Road" where no road leads stands still, with no message {#on-road-route-with-no-path-stands-still}
+
+Measured **2026-10-28**.
+
+DCS looks for a road path between two points of an "On Road" leg. When there is none — the road
+network does not cross that line — the group does not drive off-road instead: it stays where it
+is, its route accepted, and nothing in `dcs.log` says why.
+
+Measured on Syria for "Marteau du Golan": an allied column spawned in front of Quneitra and
+ordered On Road towards Khan Arnabah, across the Purple Line, stood still for 80 s. The same route
+with its first two points Off Road (to the town, then onto the road) left at once and took the
+road from there.
+
+**What to do:** Make the legs that leave from open ground, or cross a border, a ceasefire line or a river,
+"Off Road", and switch to "On Road" from a point already on the road beyond. Watch a column's first
+minute in game on the F10 map: a column that has a route and does not move is this, not a script
+error.
+
+*What it cost:* The allied push of "Marteau du Golan" (2026-10-28) did not move during its first test.
+
 ## Mission scripting {#scripting}
 
 ### A Lua file with more than 200 top-level locals is refused whole {#lua-chunk-over-200-locals-is-refused}
@@ -1004,6 +1040,23 @@ or call through the class (`Object.getCategory(target)`) inside `pcall`. Never a
 
 *What it cost:* The sanctuary's missile protection raised in the scheduler on each of those shots, and recorded
 none of them (FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST).
+
+### `LoSetCameraPosition` moves the F11 camera only from the export state {#camera-moves-only-from-the-export-state}
+
+Measured **2026-10-28**.
+
+Sent from the GUI state (the dcs-fiddle hook's own environment, port 12081 `env=default`),
+`LoSetCameraPosition` returns without an error and the camera does not move; in the F10 view it pans
+the map instead. Sent through `net.dostring_in("export", …)` (`env=export`) with the free camera
+(F11) on, it puts the camera exactly where asked. The basis it takes is x forward, y up, z right and
+p the position, in world axes: x north, y altitude, z east.
+
+**What to do:** Send the camera order to the `export` state, in F11, and send it twice with a pause of a few seconds:
+the first frames after a jump can be black while the scenery loads. `veaf-tools dcs recon-shoot` does
+both.
+
+*What it cost:* The first reconnaissance shots of "Marteau du Golan" (Syria, 2026-10-28) left the camera where it was,
+then moved the F10 map, before the export route was found.
 
 <!-- END GENERATED -->
 

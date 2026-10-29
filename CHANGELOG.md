@@ -17,6 +17,86 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.34.0] — 2026-10-29
+
+### Changed
+
+- **An objective mission's briefing a squadron can brief from** (FEAT-OBJECTIVE-BRIEFING-QUALITY, David's six points on the "Marteau du Golan" briefing).
+  With dynamic slots the ATO said every type a base offers — 61 on Ramat David, six slides for two bases: it now says "dynamic slot" and lists the package's flights a new `flights` parameter names (callsign, base, aircraft, count, task).
+  The overview was 715 × 628 px beside a legend taking half the slide: it is framed on the route, the departures, the objectives and the threats, turned when that holds it tighter (north arrow), 2000 px wide and more with every symbol in proportion, its key drawn inside, across the slide's whole width; each objective zoom carries an inset placing it on the overview.
+  The target coordinates and the flight plan become sheets, six to a slide, a thumbnail each: name, what it is, DMS and DDM, elevation; for a step, the heading and distance that reach it, the highest ground, and what is done there (`waypoint_notes`).
+  New optional `strategic_situation` and `deployment` texts make a page each; a text passed as one string is prose, its paragraphs split on blank lines.
+  The kneeboard flight cards drop the radio plan: the presets are already in the cockpits. The PDF follows the deck; the deck and the PDF embed the maps as JPEG.
+- **What "Marteau du Golan" did by hand, in the tools** (FEAT-OBJECTIVE-MISSION-V2).
+  The objective prompt asks for the briefing's prose in a file, approved before any layout, a separate Mission Maker sheet (F10 commands with their exact path, what to do by turnout), a scripted event told as intelligence, ways out for few pilots from the scenario on (an AI CAP on demand, SAMs and secondary objectives outside the operation), code words and who talks to whom, and every zoom re-read for units in buildings.
+  `build_mission_briefing` adds a combat-area map after the overview, turns the kneeboard maps attack axis up, makes a code-words page (`code_words`), and puts the objectives' recon photos (`recon_folder`, `docs/recon/` by default: JPEG photos with JSON sidecars) after their zoom, in the deck, the PDF and the kneeboard.
+  New `build_mission_promotion`: a 16:9 poster, a calendar banner at the VEAF calendar's 5.55:1 and a Discord post under 2,000 characters, from the built mission; the evening's date, hour and links are parameters, never invented.
+
+### Fixed
+
+- **Tool fixes from "Marteau du Golan"** (FEAT-OBJECTIVE-MISSION-V2).
+  `create_cap_mission` takes `menu_name` and `briefing`, and a CAP without a menu name shows its group name: an empty one made a blank F10 entry whose Infos failed.
+  `validate_mission` warns on a `cap_missions` key the build does not read (`friendly_name`).
+  `build --profile LOCAL_TEST` writes `<mission>_LOCAL_TEST.miz` instead of overwriting the plain build, and the briefing passes over a profile's archive.
+  `describe_module` knows the community scripts (CTLD, CSAR, AIEN, STTS, TUM, MIST).
+  The build no longer injects the dynamic-slot templates of a side with no base offering slots (`pipeline.dynamic_slot_templates.all_sides: true` keeps them).
+  The authoring guide says a zone of an operation has no Deactivate command of its own; a new known limitation says an On Road route with no path leaves a column still, silently.
+
+### Fixed
+
+- **A combat zone an operation lists is registered once** (FIX-OPERATION-ZONE-DOUBLE-REGISTRATION).
+  The configuration adds an operation's member zone, then the operation adds it again: `veafCombatZone.zonesList` held it twice, and anything walking that list — BFR, a loop activating every zone — met it twice ("Marteau du Golan", 2026-10-28: four zones, spawned twice).
+  `veafCombatZone.AddZone` now registers a name once; a different zone under a name already taken is logged as an error and the first one is kept.
+
+### Added
+
+- **Reconnaissance photos and an in-game mission check, from a running DCS** (FEAT-DCS-RECON-AND-MISSION-CHECK, from the "Marteau du Golan" session).
+  `dcs recon-prepare` writes a shooting copy of a built mission (clear sky, chosen time, every combat zone active at start); `dcs recon-plan` lists the units on the map into a shots file; `dcs recon-shoot` puts the F11 camera on each objective's engagement axis and grabs the window; `dcs recon-render` makes reconnaissance prints — contrasted black and white, banner, heading rose, targets circled in red felt pen where their live positions project — with the sidecar `build_mission_briefing` reads, in `docs/recon/`.
+  `dcs mission-check` checks the mission running in DCS: every F10 label, every combat zone and combat mission (CAP variants included) switched on and off and counted then left as found, every ground group with a route seen moving within 60 s; one line per check, a verdict, exit code 1 on a failure.
+- **A link copied from the published docs follows the newest release** (FIX-DOC-LATEST-LINKS).
+  The landing page opens on a "latest" card pointing at `/latest/`, and in the version selector the release marked "latest" now opens the same page under `/latest/` instead of under its number; the numbered releases stay listed for a link that must not move.
+
+### Fixed
+
+- **The generated briefing at the level of "Marteau du Golan"'s hand-made one** (FIX-BRIEFING-PARITY-MARTEAU, a regeneration test of the mission's briefing found nine defects).
+  `dcs recon-render` gave a shot of `Sasa [r]` the zone `Sasa [r]`, and the briefing dropped the photos of Sa'sa' and Kiswah: the zone is `Sasa`, shots already taken included.
+  The overview frames the theatre (bases, tankers, AWACS, QRA, the front line drawn on the map), outlines the QRA zones dashed in orange and a long-range SAM's reach on a faint tint instead of filling them, names an objective as the flight plan does (`KHAN`, not `KhanArnabah`), and draws the helicopters' route green and dashed; the combat-area map adds the friendly ground units, the JTAC, the ground axes and each threat's range.
+  A target is a unit when its units carry their own names (the SA-6's radar and launchers 1 to 4), otherwise named by its type (`T-72B3`, not `t72`) or its VEAF spawn family (`Blindés 1`); each sheet says its role and its bullseye bearing and range, as each flight-plan step does; an objective's page says for whom (new optional `objectives[].flights`), its bullseye and its point.
+  With an operation in `mission.yaml`, its tasks are the main objectives, the other objectives secondary, a chained zone in neither list.
+  With `flights`, the frequency plan and the kneeboard flight card follow the aircraft the flights fly, one block per radio plan, instead of the 61 dynamic-slot types.
+  The PDF is left-aligned, never justified; the ATO, the deployment and the code words are tables in the deck and the PDF.
+  `waypoint_notes` takes a `plane` and a `helicopter` map for points the two routes share with different roles; the new optional `kneeboard_replace` takes the hand-made kneeboard pages out of the folder (kept in `.veaf-backups/`) and of every built `.miz`.
+
+### Fixed
+
+- **What the retest of "Marteau du Golan"'s briefing still found** (FIX-BRIEFING-PARITY-MARTEAU-2, after #1210).
+  The overview draws and frames the departure bases (a mission of dynamic slots included, Ramat David was out of the frame) and the enemy's airfields, its tankers carry their flight level, and a line the mission draws along a route the map already draws is left out of it and of its key.
+  Each route leaves from the base its flights take off from, not the nearest one.
+  The combat map names its objectives as the flight plan does and drops the QRA arcs; a key taller than 40 % of a map takes two columns, in the corner the labels still to set leave free, above the scale and the credit.
+  A frequency block says which flights carry it on which radio (`Radio 1 — Ninja · Radio 2 — Blade`).
+  An objective takes a `status` (`main`, `secondary`, `prerequisite`) that wins over the operation: the SA-6 the helicopters wait for is a prerequisite.
+  The kneeboard flight card is a table, with each point's altitude.
+  The ATO gives each tanker's flight level, and the new optional `support` lists what the mission has no group for (a JTAC, the fat cow, a GCI): the known limitation `briefing-ato-lacks-levels-jtac-and-control` is fixed.
+
+### Changed
+
+- **The Python suite runs in parallel, and builds a briefing once per test module** (CHORE-CI-PYTHON-SPEED).
+  `poetry run pytest` now spreads the tests over one `pytest-xdist` worker per CPU (`-n0` runs them serially, for `--pdb`).
+  The briefing tests built a whole briefing for each test; the ones that only read it now share one per module.
+  Every test starts in English and gets its language back, which a test calling `set_language("fr")` used to leak to the next one.
+- **One way to talk to a running DCS: the VEAF bridge** (REFACTOR-BRIDGE-ONLY, [ADR 0024](docs/adr/0024-one-transport-to-a-running-dcs-the-bridge.md)).
+  `recon-plan`, `recon-shoot`, `mission-check`, `smoke-test` and `veaf-build update-dcs-data --airfield-freqs --capture` no longer use the DCS Fiddle hook: they go through the bridge embedded in the mission, and start `dcs-serve` themselves when none runs.
+  `recon-prepare` embeds the bridge in the shooting copy, and the new `mission-check-prepare` writes a test copy carrying it; `smoke-test` needs a mission built with `dcs_bridge`.
+  The F11 camera and the Mission Editor's terrain data are reached from the mission through `net.dostring_in`.
+  The `--url` and `--fiddle-token` options give way to `--serve-url`, `--dcs-serve`, `--api-key`, `--config` and `--wait`; `smoke-test --full` and `--probe-only` are removed, and so is `dcs-fiddle-server.lua`; with no mission to talk to, `smoke-test` now fails after `--wait` instead of skipping.
+
+### Fixed
+
+- **A mission built with the La-7 templates saves in the Mission Editor again** (FIX-DYNSLOT-RADIO-RANGE).
+  DCS 2.9.31 moved the La-7 to a 3.7–6.06 MHz HF radio, and its two dynamic-slot templates carried 121.5 MHz (118.6 on the blue one, its preset's channel 1): « Invalid frequency », and the editor would not save.
+  Both templates are at 3.7 MHz, the radio specs follow DCS 2.9.31.29434, the La-7 keeps a place in them though DCS no longer gives it a preset radio, and the MiG-15bis primary frequency is now checked too.
+  The build no longer stops on a primary frequency below 30 MHz that the airframe's own radio accepts (the La-7 at 3.7 MHz); an ADF channel promoted by mistake still stops it.
+
 ## [6.33.0] — 2026-10-27
 
 ### Security

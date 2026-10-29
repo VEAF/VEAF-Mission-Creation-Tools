@@ -459,3 +459,86 @@ def test_the_objective_prompt_plans_the_route_and_asks_the_level(lang: str, doct
     assert "**two**" in scenario or "**deux**" in scenario
     build = describe_mission_prompt("objective", lang, part="build")["prompt"]
     assert "set_route" in build and "`basemap: topo`" in build and "password-hash" in build
+
+
+@pytest.mark.parametrize("module_id", ["CTLD", "ctld", "CSAR", "AIEN", "STTS", "TUM", "MIST"])
+def test_describe_module_knows_the_community_scripts(module_id: str) -> None:
+    """FEAT-OBJECTIVE-MISSION-V2 10: `describe_module CTLD` answered unknown."""
+    result = describe_module(module_id)
+    assert (result["known"], result["kind"], result["id"]) == (True, "community", module_id.upper())
+    page = Path(__file__).parents[3] / result["doc_page"].split("#")[0]
+    assert page.is_file()
+
+
+def test_describe_module_reports_a_community_script_enabled(tmp_path: Path) -> None:
+    path = tmp_path / "mission.yaml"
+    path.write_text("modules:\n  CTLD:\n    enabled: true\n", encoding="utf-8")
+    assert describe_module("ctld", mission_yaml_path=path)["enabled"] is True
+
+
+def test_describe_module_reads_a_lower_case_key_and_a_community_default(tmp_path: Path) -> None:
+    """pr-code-review of #1208: Foothold's scaffold writes `ctld: false`; an unlisted script runs by its default."""
+    path = tmp_path / "mission.yaml"
+    path.write_text("modules:\n  ctld: false\n", encoding="utf-8")
+    assert describe_module("CTLD", mission_yaml_path=path)["enabled"] is False
+    assert describe_module("CSAR", mission_yaml_path=path)["enabled"] is True
+    assert describe_module("TUM", mission_yaml_path=path)["enabled"] is False
+
+
+def test_describe_module_says_a_veaf_module_is_one() -> None:
+    assert describe_module("QRA")["kind"] == "veaf"
+
+
+#: What "Marteau du Golan" did by hand, as the objective prompt now asks it (FEAT-OBJECTIVE-MISSION-V2 01):
+#: the part that must carry each rule, and the words that say it in each language.
+_MARTEAU_RULES = {
+    "fr": [
+        ("scenario", "le renseignement s'attend à"),
+        ("scenario", "create_cap_mission"),
+        ("scenario", "hors de l'opération"),
+        ("scenario", "mots-codes"),
+        ("scenario", "Le Mission Maker n'est pas un pilote"),
+        ("build", "docs/briefing-contenu.md"),
+        ("build", "avant d'appeler `build_mission_briefing`"),
+        ("build", "docs/fiche-mission-maker.md"),
+        ("build", "chemin exact"),
+        ("build", "n'a pas sa propre commande « Désactiver »"),
+        ("build", "unités posées dans le bâti"),
+        ("build", "code_words"),
+        ("build", "recon_folder"),
+        ("build", "menu_name"),
+    ],
+    "en": [
+        ("scenario", "intelligence expects"),
+        ("scenario", "create_cap_mission"),
+        ("scenario", "outside the operation"),
+        ("scenario", "Code words"),
+        ("scenario", "The Mission Maker is no pilot"),
+        ("build", "docs/briefing-contenu.md"),
+        ("build", "before calling `build_mission_briefing`"),
+        ("build", "docs/fiche-mission-maker.md"),
+        ("build", "exact path"),
+        ("build", 'has no "Deactivate" command of its own'),
+        ("build", "units placed in buildings"),
+        ("build", "code_words"),
+        ("build", "recon_folder"),
+        ("build", "menu_name"),
+    ],
+}
+
+
+@pytest.mark.parametrize("lang", ["fr", "en"])
+def test_the_objective_prompt_carries_what_marteau_du_golan_did_by_hand(lang: str) -> None:
+    parts = {
+        "scenario": describe_mission_prompt("objective", lang)["prompt"],
+        "build": describe_mission_prompt("objective", lang, part="build")["prompt"],
+    }
+    missing = [words for part, words in _MARTEAU_RULES[lang] if words not in parts[part]]
+    assert missing == []
+
+
+def test_the_guide_says_an_operation_zone_has_no_deactivate_of_its_own() -> None:
+    """FEAT-OBJECTIVE-MISSION-V2 07: what the Mission Maker may switch off alone stays outside the operation."""
+    guide = describe_authoring_guide()["guide"]
+    assert 'has no "Deactivate" command of its own' in guide
+    assert "outside the operation" in guide

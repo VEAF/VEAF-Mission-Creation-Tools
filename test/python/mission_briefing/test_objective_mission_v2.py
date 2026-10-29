@@ -9,11 +9,14 @@ from __future__ import annotations
 import io
 import json
 import math
+import re
+from datetime import date
 from pathlib import Path
 from typing import NamedTuple
 
 import pytest
 from campaign_manager.mission_picture import read_mission_picture
+from geographiclib.geodesic import Geodesic  # type: ignore[import-untyped]
 from mission_briefing.briefing_maps import attack_axis_rotation, render_overview_map
 from mission_briefing.briefing_recon import caption, load_recon
 from mission_briefing.mission_briefing_worker import PICTURE_PREFIX, build_mission_briefing
@@ -25,6 +28,7 @@ from offline import offline
 from PIL import Image
 from pptx import Presentation
 from veaf_libs.coordinates import xy_to_latlon
+from veaf_libs.magnetic import declination
 
 CONTENT = BriefingContent(
     title="Marteau de Khobi",
@@ -156,6 +160,15 @@ class TestTheCodeWords:
         assert not any("code-words" in name for name in report.kneeboard)
 
 
+def _grid_to_magnetic(theatre: str, when: date, at: tuple[float, float], heading: float) -> int:
+    """A grid heading made magnetic independently: GeographicLib's azimuth to a point along it, less the WMM."""
+    turn = math.radians(heading)
+    start = xy_to_latlon(theatre, *at)
+    end = xy_to_latlon(theatre, at[0] + 1000 * math.cos(turn), at[1] + 1000 * math.sin(turn))
+    true = float(Geodesic.WGS84.Inverse(*start, *end)["azi1"])
+    return round(true - declination(*start, when)) % 360 or 360
+
+
 class TestTheReconPhotos:
     _SIDE = {"zone": "khobi", "title": "Dépôt de Khobi", "heading": 95, "pitch": -12, "altitude_m": 850}
 
@@ -182,10 +195,18 @@ class TestTheReconPhotos:
     def test_the_caption_says_what_the_sidecar_gives(self) -> None:
         _, zx, zy, _ = KHOBI_ZONE
         photo = ReconPhoto(Path("a.jpg"), "Khobi", "Dépôt", heading=5, pitch=-12, x=zx, y=zy, altitude_m=1000)
-        with_all = caption("Caucasus", photo)
+        when = date(2016, 6, 1)
+        with_all = caption("Caucasus", when, photo, (0.0, 0.0))
         assert with_all.startswith("Dépôt — ")
-        assert "005°" in with_all and "-12°" in with_all and "3 281 ft" in with_all and "N" in with_all
-        assert caption("Caucasus", ReconPhoto(Path("a.jpg"), "Khobi", "Dépôt")) == "Dépôt"
+        assert f"{_grid_to_magnetic('Caucasus', when, (zx, zy), 5):03d}°M" in with_all
+        assert "-12°" in with_all and "3 281 ft" in with_all and "N" in with_all
+        assert caption("Caucasus", when, ReconPhoto(Path("a.jpg"), "Khobi", "Dépôt"), (zx, zy)) == "Dépôt"
+
+    def test_a_heading_with_no_camera_position_is_taken_at_the_objective(self) -> None:
+        _, zx, zy, _ = KHOBI_ZONE
+        when = date(2016, 6, 1)
+        text = caption("Caucasus", when, ReconPhoto(Path("a.jpg"), "Khobi", "Dépôt", heading=95), (zx, zy))
+        assert text.endswith(f" {_grid_to_magnetic('Caucasus', when, (zx, zy), 95):03d}°M")  # "cap" or "heading"
 
     def test_they_follow_their_zoom_two_to_a_slide_and_a_kneeboard_page(self, tmp_path: Path, built: Built) -> None:
         objective_mission(tmp_path)
@@ -198,7 +219,7 @@ class TestTheReconPhotos:
         titles = [slide[0] for slide in slides]
         zoom = titles.index("5. KHOBI — Détruire le dépôt de Khobi")
         assert titles[zoom + 1 : zoom + 3] == ["Reconnaissance — KHOBI"] * 2
-        assert any("cap 095°" in text for text in slides[zoom + 1])
+        assert any(re.search(r"cap \d{3}°M", text) for text in slides[zoom + 1])
         assert report.pages == plain.pages + 2
         assert report.pdf_pages == plain.pdf_pages + 2
         recon_pages = [name for name in report.kneeboard if "recon" in name]

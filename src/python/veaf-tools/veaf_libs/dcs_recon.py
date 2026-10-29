@@ -78,7 +78,7 @@ def camera_for(x: float, z: float, ground: float, heading: float, pitch: float, 
         x: Target northing, DCS metres.
         z: Target easting, DCS metres.
         ground: Target altitude, metres.
-        heading: Direction the camera looks, degrees true (the attack heading).
+        heading: Direction the camera looks, degrees on the mission's grid, as the camera's axes are the world's (the attack heading).
         pitch: How far below the horizon it looks, degrees.
         slant: Distance from the camera to the target, metres.
 
@@ -273,7 +273,7 @@ class Shot:
         name: File stem, e.g. ``01-tellhara``; also the order shots are rendered in.
         title: What the banner says the target is.
         groups: Group or static name prefixes; the units whose name starts with one are the target.
-        heading: Engagement heading, degrees true — the direction the camera looks.
+        heading: Engagement heading, degrees on the mission's grid — the direction the camera looks.
         pitch: Degrees below the horizon.
         slant: Camera-to-target distance, metres.
         mark: ``groups`` for one ring per group, ``units`` for one per vehicle.

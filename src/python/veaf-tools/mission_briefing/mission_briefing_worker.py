@@ -18,7 +18,7 @@ import shutil
 import tempfile
 import unicodedata
 from dataclasses import replace
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -70,7 +70,7 @@ from presets_injector.presets_manager import KNEEBOARD_CALIBRATION_PATH
 from veaf_libs.clear_ground_survey import airfield_positions
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import current_language, language, t
-from veaf_libs.magnetic import magnetic_bearing
+from veaf_libs.magnetic import grid_heading_to_magnetic, ground_distance, magnetic_bearing
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
 from veaf_libs.mission_table import indexed
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
@@ -171,13 +171,12 @@ def _bullseye_line(theatre: str, picture: MissionPicture, start: tuple[str, floa
     if start is None:
         return to_dms(lat, lon)
     name, x, y = start
-    dx, dy = picture.bullseye[0] - x, picture.bullseye[1] - y
     bearing = magnetic_bearing(theatre, picture.date, (x, y), picture.bullseye)
     return t(
         "campaign.mission_deck.bullseye",
         dms=to_dms(lat, lon),
         bearing=f"{bearing:03d}",
-        range=round(math.hypot(dx, dy) / NM),
+        range=round(ground_distance(theatre, (x, y), picture.bullseye) / NM),
         base=name,
     )
 
@@ -187,8 +186,7 @@ def bullseye_text(picture: MissionPicture, x: float, y: float) -> str:
 
     The hand-made briefing gave it on every target and every step (FIX-BRIEFING-PARITY-MARTEAU 04).
     """
-    dx, dy = x - picture.bullseye[0], y - picture.bullseye[1]
-    distance = math.hypot(dx, dy) / NM
+    distance = ground_distance(picture.theatre, picture.bullseye, (x, y)) / NM
     bearing = magnetic_bearing(picture.theatre, picture.date, picture.bullseye, (x, y)) if distance >= 0.05 else 0
     return t("mission_briefing.bullseye", bearing=f"{bearing:03d}", nm=f"{distance:.1f}")
 
@@ -414,7 +412,11 @@ def _situation_page(
         Block(t("campaign.mission_deck.heading.bullseye"), (_bullseye_line(picture.theatre, picture, start),))
     )
     departure = [
-        t("campaign.mission_deck.departure_carrier", carrier=c.name, heading=f"{c.heading:03d}")
+        t(
+            "campaign.mission_deck.departure_carrier",
+            carrier=c.name,
+            heading=f"{grid_heading_to_magnetic(picture.theatre, picture.date, (c.x, c.y), c.heading):03d}",
+        )
         for c in picture.carriers
     ]
     dynamic = {airfield.name for airfield in picture.airfields}
@@ -490,9 +492,11 @@ def _attack_origin(picture: MissionPicture, starts: list[tuple[str, float, float
     return None
 
 
-def _pairs(theatre: str, photos: list[ReconPhoto]) -> list[list[tuple[Path, str]]]:
+def _pairs(
+    theatre: str, when: date, photos: list[ReconPhoto], near: tuple[float, float]
+) -> list[list[tuple[Path, str]]]:
     """The photos two by two, each with its caption: what a slide or a kneeboard page holds."""
-    captioned = [(photo.image, caption(theatre, photo)) for photo in photos]
+    captioned = [(photo.image, caption(theatre, when, photo, near)) for photo in photos]
     return [captioned[i : i + 2] for i in range(0, len(captioned), 2)]
 
 
@@ -1137,7 +1141,7 @@ def _kneeboard_pages(
         stem = Path(zoom_file(area.zone)).stem
         sheets.append((stem, map_page(title, zoom.path)))
         recon_title = t("mission_briefing.title.recon", zone=area.name)
-        for n, pair in enumerate(_pairs(theatre, recon.get(area.zone, [])), 1):
+        for n, pair in enumerate(_pairs(theatre, picture.date, recon.get(area.zone, []), (area.x, area.y)), 1):
             sheets.append((f"{stem}-recon-{n}", photo_page(recon_title, pair)))
     card_tables = flight_card_tables(theatre, picture.date, list(picture.flight_plans), starts)
     card = table_pages(t("mission_briefing.kneeboard.flight_card"), card_tables) if card_tables else []
@@ -1266,7 +1270,7 @@ def _write_deck_and_pdf(
         sheets.append(MapSheet(title, _slide_jpeg(zoom.path, scratch), notes))
         # its recon photos after the zoom, two to a slide, unnumbered (FEAT-OBJECTIVE-MISSION-V2 04)
         recon_title = t("mission_briefing.title.recon", zone=area.name)
-        for pair in _pairs(picture.theatre, (recon or {}).get(area.zone, [])):
+        for pair in _pairs(picture.theatre, picture.date, (recon or {}).get(area.zone, []), (area.x, area.y)):
             _photo_slide(deck, recon_title, pair)
             sheets.append(PhotoSheet(recon_title, pair))
     for item in closing:

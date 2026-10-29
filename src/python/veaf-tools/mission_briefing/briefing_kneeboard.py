@@ -25,7 +25,7 @@ from PIL import Image, ImageDraw, ImageFont
 from presets_injector.presets_manager import KNEEBOARD_PAGE_SIZE
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import t
-from veaf_libs.magnetic import magnetic_bearing
+from veaf_libs.magnetic import ground_distance, magnetic_bearing
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet, profile
 
 from mission_briefing.models import ObjectiveArea
@@ -220,7 +220,7 @@ def route_steps(
         if position:
             origin, px, py, _ = points[position - 1]
             heading = magnetic_bearing(theatre, when, (px, py), (x, y))
-            nm = round(math.dist((px, py), (x, y)) / NM)
+            nm = round(ground_distance(theatre, (px, py), (x, y)) / NM)
             height = legs[position - 1].highest if legs else None
             highest = round(metres_to_feet(height)) if height is not None else None
         steps.append(RouteStep(position + offset, name, x, y, heading, nm, highest, waypoint, origin))
@@ -398,8 +398,7 @@ def targets_blocks(
             elevation = f" — {metres_to_feet(height):.0f} ft" if height is not None else ""
             lines.append(line(target.name, f"{to_dms(*xy_to_latlon(theatre, target.x, target.y))}{elevation}"))
             if bullseye is not None:
-                dx, dy = target.x - bullseye[0], target.y - bullseye[1]
-                distance = math.hypot(dx, dy) / NM
+                distance = ground_distance(theatre, bullseye, (target.x, target.y)) / NM
                 bearing = magnetic_bearing(theatre, when, bullseye, (target.x, target.y)) if distance >= 0.05 else 0
                 lines.append(f"      Bullseye {bearing:03d}°M / {distance:.1f} nm")
         blocks.append((title, lines or [t("mission_briefing.no_target")]))

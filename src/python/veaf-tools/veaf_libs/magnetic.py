@@ -1,4 +1,4 @@
-"""Magnetic declination and magnetic bearings, as DCS computes them for a mission.
+"""Magnetic declination, magnetic bearings and ground distances, as the cockpits read a mission.
 
 DCS takes the declination from the World Magnetic Model at the mission's month and year: the Mission
 Editor calls ``magvar.init(date.Month, date.Year)`` (``MissionEditor/modules/me_weather.lua``) and ships
@@ -147,3 +147,66 @@ def magnetic_bearing(theatre: str, when: date, origin: tuple[float, float], targ
     lat2, lon2 = xy_to_latlon(theatre, *target)
     bearing = true_bearing(lat1, lon1, lat2, lon2) - declination(lat1, lon1, when)
     return round(bearing) % 360 or 360
+
+
+def grid_heading_to_magnetic(theatre: str, when: date, at: tuple[float, float], heading: float) -> int:
+    """A heading on the mission's grid, as a unit's or a DCS camera's, made magnetic.
+
+    The Mission Editor stores a unit's heading on its grid: it shows it as stored and turns the unit's
+    symbol by it on its map, drawn in ``(x, y)`` (``me_ship.lua``, ``me_map_window.lua``). So is a DCS
+    camera's, whose axes are the world's ``x`` north and ``z`` east.
+
+    Args:
+        theatre: The mission's theatre.
+        when: The mission's date.
+        at: Where the heading is held, DCS ``(x, y)``, metres.
+        heading: Degrees clockwise from the grid's ``x``.
+
+    Returns:
+        Degrees from magnetic north, ``1``-``360``.
+    """
+    return magnetic_bearing(theatre, when, at, _ahead(at, heading))
+
+
+def grid_heading_to_true(theatre: str, at: tuple[float, float], heading: float) -> float:
+    """A heading on the mission's grid made true, degrees in [0, 360): see :func:`grid_heading_to_magnetic`."""
+    return true_bearing(*xy_to_latlon(theatre, *at), *xy_to_latlon(theatre, *_ahead(at, heading)))
+
+
+def _ahead(at: tuple[float, float], heading: float) -> tuple[float, float]:
+    """The point a kilometre from ``at`` along a grid heading."""
+    turn = math.radians(heading)
+    return at[0] + 1000 * math.cos(turn), at[1] + 1000 * math.sin(turn)
+
+
+def ground_distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """The distance between two points on the WGS84 ellipsoid, metres.
+
+    The straight line between them, bent onto the surface by the radius of curvature in the direction of
+    travel: within 2 cm of GeographicLib's geodesic up to 550 km. The grid's distances are off by the
+    projection's scale, 0.1 % on the Golan, 1 % at Tbilisi.
+    """
+    (x1, y1, z1), (x2, y2, z2) = _ecef(lat1, lon1), _ecef(lat2, lon2)
+    chord = math.dist((x1, y1, z1), (x2, y2, z2))
+    if chord == 0:
+        return 0.0
+    sin2 = math.sin(math.radians((lat1 + lat2) / 2)) ** 2
+    meridian = _A * (1 - _E2) / (1 - _E2 * sin2) ** 1.5
+    normal = _A / math.sqrt(1 - _E2 * sin2)
+    alpha = math.radians(true_bearing(lat1, lon1, lat2, lon2))
+    radius = meridian * normal / (normal * math.cos(alpha) ** 2 + meridian * math.sin(alpha) ** 2)
+    return 2 * radius * math.asin(chord / (2 * radius)) * 1000
+
+
+def ground_distance(theatre: str, a: tuple[float, float], b: tuple[float, float]) -> float:
+    """The distance between two points of a mission on the ellipsoid, metres, not on its grid.
+
+    Args:
+        theatre: The mission's theatre.
+        a: One point, DCS ``(x, y)``, metres.
+        b: The other.
+
+    Returns:
+        Metres.
+    """
+    return ground_distance_m(*xy_to_latlon(theatre, *a), *xy_to_latlon(theatre, *b))

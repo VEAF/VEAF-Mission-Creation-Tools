@@ -13,8 +13,16 @@ from datetime import date
 import pytest
 from geographiclib.geodesic import Geodesic  # type: ignore[import-untyped]
 from veaf_libs import magnetic
-from veaf_libs.coordinates import latlon_to_xy, offset_latlon
-from veaf_libs.magnetic import declination, magnetic_bearing, true_bearing
+from veaf_libs.coordinates import latlon_to_xy, offset_latlon, xy_to_latlon
+from veaf_libs.magnetic import (
+    declination,
+    grid_heading_to_magnetic,
+    grid_heading_to_true,
+    ground_distance,
+    ground_distance_m,
+    magnetic_bearing,
+    true_bearing,
+)
 
 #: The WMM2020 report's test values: year, height (km), latitude, longitude, declination (degrees).
 WMM2020_TEST_VALUES = [
@@ -108,3 +116,35 @@ def test_a_point_true_north_reads_the_declination_off() -> None:
     when = date(2016, 6, 1)
     bearing = magnetic_bearing("Caucasus", when, latlon_to_xy("Caucasus", *origin), latlon_to_xy("Caucasus", *north))
     assert bearing == round(-declination(*origin, when)) % 360 == 353
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        ((33.05, 35.55), (33.20, 36.05)),
+        ((41.93, 41.86), (43.10, 40.57)),
+        ((41.6, 41.6), (41.7, 44.8)),
+        ((10, 0), (14, 3)),
+    ],
+)
+def test_the_distance_is_the_geodesic_one(start: tuple[float, float], end: tuple[float, float]) -> None:
+    assert ground_distance_m(*start, *end) == pytest.approx(Geodesic.WGS84.Inverse(*start, *end)["s12"], abs=0.02)
+    assert ground_distance_m(*start, *start) == 0.0
+
+
+def test_the_grid_overstates_a_distance_far_from_its_meridian() -> None:
+    # Batumi to Tbilisi, 8.6 to 11.8 degrees east of the Caucasus projection's meridian.
+    a, b = latlon_to_xy("Caucasus", 41.6, 41.6), latlon_to_xy("Caucasus", 41.7, 44.8)
+    true = Geodesic.WGS84.Inverse(41.6, 41.6, 41.7, 44.8)["s12"]
+    assert ground_distance("Caucasus", a, b) == pytest.approx(true, abs=0.5)
+    assert math.dist(a, b) / true > 1.005
+
+
+@pytest.mark.parametrize(("theatre", "at"), [("Syria", (33.1, 35.8)), ("Caucasus", (41.93, 41.86))])
+def test_a_grid_heading_is_turned_by_the_meridian_convergence(theatre: str, at: tuple[float, float]) -> None:
+    origin = latlon_to_xy(theatre, *at)
+    north_on_grid = (origin[0] + 1000, origin[1])
+    true = float(Geodesic.WGS84.Inverse(*at, *xy_to_latlon(theatre, *north_on_grid))["azi1"]) % 360
+    assert grid_heading_to_true(theatre, origin, 0) == pytest.approx(true, abs=0.001)
+    when = date(2024, 6, 1)
+    assert grid_heading_to_magnetic(theatre, when, origin, 0) == round(true - declination(*at, when)) % 360

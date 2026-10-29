@@ -92,8 +92,8 @@ def test_a_target_says_where_it_stands_from_the_bullseye_magnetic() -> None:
     east = latlon_to_xy("Caucasus", *offset_latlon(lat, lon, 90.0, 18520))
     area = ObjectiveArea("AdlerDepot", -162275, 463825, 250, (Target("Fuel Tank", *east),))
     ((_, lines),) = targets_blocks("Caucasus", when, [("Adler depot", area)], (-162275, 463825))
-    # The range stays on the grid: 10.1 nm here, the projection's scale 7 degrees from its meridian.
-    assert lines[1] == f"      Bullseye {round(90 - declination(lat, lon, when)):03d}°M / 10.1 nm"
+    # On the ellipsoid: the grid read 10.1 nm, its scale 7 degrees from the projection's meridian.
+    assert lines[1] == f"      Bullseye {round(90 - declination(lat, lon, when)):03d}°M / 10.0 nm"
 
 
 def test_page_names_sort_after_the_calibration_page_and_are_recognised() -> None:

@@ -22,8 +22,11 @@ The 1.7 degrees are the meridian convergence at 35.8° E; the cockpit then takes
 
 - `veaf_libs/magnetic.py`: the WMM declination at the mission's month and year (the coefficients vendored from DCS's, NOAA's public-domain files, bundled in the executable), the true bearing on the WGS84 ellipsoid, and their difference as `magnetic_bearing`.
 - Magnetic, labelled `°M`, everywhere the briefing gives a direction: the legs of the flight plan (deck cards, PDF, kneeboard list and table), the bullseye of each step, objective and target, the bullseye from the departure, and the campaign deck's bullseye from its base.
-- Left as they were: the ranges (grid distances, known limitation `briefing-ranges-on-the-grid`), a recon photo's heading (the sidecar's), a carrier's heading (the mission table's, not converted).
+- The carrier's course and the recon photos' heading (caption, banner, rose): the Mission Editor stores a unit's heading on its grid, shown as stored and turning its symbol on a map drawn in `(x, y)` (`me_ship.lua`, `me_map_window.lua`), and a DCS camera's axes are the world's (`camera_for`); both are turned to magnetic where they stand.
+- `set_route` returns its legs magnetic and on the ellipsoid, as the briefing prints them.
+- The ranges, everywhere above, on the WGS84 ellipsoid (within 2 cm of GeographicLib up to 550 km) instead of the grid, which overstated them by its scale: 0.1 % on the Golan, 1 % at Tbilisi.
 
 ## Tickets
 
 - [01 — Magnetic headings and bearings in the briefing](tickets/01-magnetic-headings-and-bearings.md)
+- [02 — Carriers, recon photos, set_route and ranges](tickets/02-carriers-recon-set-route-ranges.md)

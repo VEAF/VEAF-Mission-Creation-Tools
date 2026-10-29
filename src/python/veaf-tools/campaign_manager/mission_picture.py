@@ -109,7 +109,7 @@ class Carrier:
     x: float
     y: float
     heading: int
-    """Degrees true."""
+    """Degrees on the mission's grid, as the Mission Editor stores it (``grid_heading_to_magnetic``)."""
     tower: float | None
     """VHF, MHz."""
     tacan: str | None

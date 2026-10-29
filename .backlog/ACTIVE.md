@@ -12,7 +12,7 @@ What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the 
 
 ### [FIX-BRIEFING-MAGNETIC-HEADINGS](FIX-BRIEFING-MAGNETIC-HEADINGS/PRD.md) · 🔄
 
-The briefing's headings and bullseye bearings were taken on the DCS grid and printed with no unit, 6.9 degrees off the cockpit on the Golan: they are now magnetic, `°M`, the World Magnetic Model's declination at the mission's date taken off the true bearing, as DCS and the F-16C and F/A-18C read them. One ticket, one PR.
+The briefing's headings and bullseye bearings were taken on the DCS grid and printed with no unit, 6.9 degrees off the cockpit on the Golan: they are now magnetic, `°M`, the World Magnetic Model's declination at the mission's date taken off the true bearing, as DCS and the F-16C and F/A-18C read them; the carrier's course, the recon photos and `set_route` too, and the ranges on the ellipsoid. Two tickets, one PR.
 
 ## 🧑 Waiting for a human
 

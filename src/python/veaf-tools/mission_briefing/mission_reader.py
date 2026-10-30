@@ -213,7 +213,8 @@ def objective_area(content: dict[str, Any], zone: str, enemy: str) -> ObjectiveA
         enemy: The side whose units the objective is made of.
 
     Returns:
-        The zone's centre and radius, and one target per member group (one per unit for statics).
+        The zone's centre and radius, and one target per member group (one per unit for statics); a
+        group of vehicles that move about is placed at the zone's centre (FIX-MARTEAU-PLAY-FINDINGS 04).
 
     Raises:
         ValueError: If the mission has no trigger zone of that name.

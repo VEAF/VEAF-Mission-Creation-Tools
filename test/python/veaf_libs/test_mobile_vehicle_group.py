@@ -12,6 +12,8 @@ from veaf_libs.dcs_units_data import is_mobile_vehicle_group
         (["Ural-375", "UAZ-469"], True),  # trucks and a 4x4
         # Khan Arnabah's armoured platoon on 2026-10-29: the AAA truck moves with the tanks
         (["BMP-2", "BTR-82A", "Ural-375 ZU-23", "VAB_Mephisto", "T-55"], True),
+        (["T-72B", "T-72B", "ZSU-23-4 Shilka"], True),  # a Shilka carries SAM TR, and escorts
+        (["BMP-2", "2S6 Tunguska", "Strela-10M3"], True),
         (["Kub 1S91 str", "Kub 2P25 ln", "Ural-375"], False),  # a SAM battery and its logistics truck
         (["SAU Gvozdika", "Grad-URAL"], False),  # an artillery position
         (["Strela-10M3"], False),  # a short-range SAM

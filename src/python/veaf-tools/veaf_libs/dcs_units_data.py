@@ -194,6 +194,9 @@ def get_unit_attributes(unit_type: str) -> frozenset[str]:
 _MOBILE_VEHICLE_ATTRIBUTES = frozenset({"Tanks", "IFV", "APC", "Trucks", "Cars"})
 #: What makes a group a fixed site, even with trucks in it: a SAM battery, a radar, an artillery position.
 _FIXED_SITE_ATTRIBUTES = frozenset({"SAM", "SAM LL", "SAM SR", "SAM TR", "SAM CC", "EWR", "Artillery"})
+#: What rides along with a column and decides nothing: a Shilka or a Tunguska (``Mobile AAA``) and a
+#: Strela-10 (``IR Guided SAM``) carry ``SAM TR``, and an armoured platoon escorted by one is still vehicles.
+_ESCORT_ATTRIBUTES = frozenset({"Mobile AAA", "IR Guided SAM"})
 
 
 def is_mobile_vehicle_group(unit_types: Iterable[str]) -> bool:
@@ -202,7 +205,7 @@ def is_mobile_vehicle_group(unit_types: Iterable[str]) -> bool:
     David's rule (FIX-MARTEAU-PLAY-FINDINGS 07, 2026-10-30): a briefing shows such a group's zone, never where
     each vehicle stands — in a recon photo as in the coordinates it gives. A group holding a SAM, a radar or
     artillery is a site, whatever trucks come with it (a SAM alias lays down its logistics trucks); a mobile
-    AAA gun neither makes nor unmakes it.
+    AAA gun or an infrared SAM escorting the column neither makes nor unmakes it.
 
     Args:
         unit_types: The DCS types of the group's units.
@@ -212,5 +215,5 @@ def is_mobile_vehicle_group(unit_types: Iterable[str]) -> bool:
     """
     attributes = [get_unit_attributes(unit_type) for unit_type in unit_types]
     return any(a & _MOBILE_VEHICLE_ATTRIBUTES for a in attributes) and not any(
-        a & _FIXED_SITE_ATTRIBUTES for a in attributes
+        a & _FIXED_SITE_ATTRIBUTES and not a & _ESCORT_ATTRIBUTES for a in attributes
     )

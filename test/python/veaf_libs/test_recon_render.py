@@ -84,6 +84,21 @@ class TestMarks:
         )
         assert [m[3] for m in marks_of(meta, (WIDTH, HEIGHT - INFO_BAR_PX))] == ["Strela-10M3"]
 
+    def test_a_vehicle_placed_as_a_static_is_ringed(self) -> None:
+        """A static T-72 does not move: it stays a pinpointed target."""
+        units = [LiveUnit("static", 1, "Khan T-72 wreck", "T-72B", 1040, 1000, 800)]
+        camera = camera_for(1040, 1000, 800, heading=0, pitch=30, slant=900)
+        meta = shot_metadata(
+            Shot("05-khan", "Khan", ["Khan"], 0, 30, 900, "units", {}),
+            camera,
+            units,
+            (1040, 1000, 800),
+            MissionInfo("Caucasus", "2011-04-16", 41460),
+            (WIDTH, HEIGHT),
+            (42.0, 41.0),
+        )
+        assert [m[3] for m in marks_of(meta, (WIDTH, HEIGHT - INFO_BAR_PX))] == ["T-72B"]
+
     def test_a_group_label_by_prefix(self) -> None:
         marks = marks_of(_meta("groups", {"SA6Sasa": "SA-6"}), (WIDTH, HEIGHT - INFO_BAR_PX))
         assert [m[3] for m in marks] == ["SA-6"]
@@ -111,7 +126,7 @@ class TestRender:
         out = tmp_path / "recon" / "02-sa6.jpg"
         lines: list[str] = []
         size = render_shot(raw, _meta(), out, "Marteau du Golan", 2, 12, progress=lines.append)
-        assert size == (WIDTH, HEIGHT - INFO_BAR_PX + 70 + 130)
+        assert size == (WIDTH, HEIGHT - INFO_BAR_PX + 70 + 166)  # the MGRS has its own line
         assert Image.open(out).size == size
         assert lines == ["02-sa6.jpg: 1 mark(s)"]
 

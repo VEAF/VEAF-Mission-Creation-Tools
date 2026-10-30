@@ -42,6 +42,23 @@ def test_the_recap_counts_shots_rounds_hits_and_kills_per_player(tmp_path: Path)
     assert paluche.kills[0].friendly  # a blue Apache killed by a blue Apache
 
 
+def test_an_unreadable_coalition_is_not_friendly_fire(tmp_path: Path) -> None:
+    gone = {"name": "Apache-1", "player": "Paluche"}
+    path = tmp_path / "log.jsonl"
+    path.write_text(
+        json.dumps({"t": 1, "event": "kill", "shooter": gone, "target": {"type": "BMP-2"}}), encoding="utf-8"
+    )
+    (paluche,) = pilot_recaps(read_combat_log(path))
+    assert not paluche.kills[0].friendly
+
+
+def test_a_line_cut_inside_a_character_loses_that_line_only(tmp_path: Path) -> None:
+    path = _log(tmp_path)
+    path.write_bytes(path.read_bytes() + '{"t": 1, "shooter": {"player": "Pé'.encode()[:-1])
+    log = read_combat_log(path)
+    assert log.skipped == 1 and len(log.records) == len(_LINES) - 1
+
+
 def test_ai_shooters_only_when_asked(tmp_path: Path) -> None:
     log = read_combat_log(_log(tmp_path))
     assert [r.pilot for r in pilot_recaps(log)] == ["Martinho", "Paluche"]

@@ -45,6 +45,10 @@ veafCombatLog.EVENTS = {
 --- Where the file goes, ending with a separator; nil asks `VEAF_EXPORT_DIR`, then the DCS write folder.
 veafCombatLog.Directory = nil
 
+--- How often the file is flushed, in seconds. Not at every line: a gun run raises one hit per shell, and a
+--- synchronous flush each time runs on the simulation's thread. A crash loses at most this much.
+veafCombatLog.SecondsBetweenFlushes = 10
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- State
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -178,7 +182,15 @@ function veafCombatLog.write(line)
     return
   end
   veafCombatLog.file:write(veaf.json.stringify(line) .. "\n")
+end
+
+--- The flush beat; stops once the file is closed.
+function veafCombatLog.flush()
+  if not veafCombatLog.file then
+    return nil
+  end
   veafCombatLog.file:flush()
+  return timer.getTime() + veafCombatLog.SecondsBetweenFlushes
 end
 
 function veafCombatLog.close()
@@ -237,6 +249,7 @@ function veafCombatLog.initialize()
     real_time = l_os.date("%Y-%m-%d %H:%M:%S"),
   })
   world.addEventHandler(veafCombatLog.eventHandler)
+  timer.scheduleFunction(veafCombatLog.flush, nil, timer.getTime() + veafCombatLog.SecondsBetweenFlushes)
   veaf.loggers.get(veafCombatLog.Id):info("writing %s", veafCombatLog.path)
 end
 

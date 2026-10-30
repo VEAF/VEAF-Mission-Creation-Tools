@@ -28,7 +28,8 @@ Sinon le module le dit une fois dans `dcs.log` et n'écrit rien : la mission tou
 ## Le fichier
 
 `veaf-combat-log-<date>-<heure>.jsonl`, dans le dossier `VEAF_EXPORT_DIR` s'il est défini, sinon dans le dossier d'écriture de DCS (`Saved Games\DCS…`).
-Un fichier par lancement de mission.
+Un fichier par lancement de mission, jamais effacé par l'outil : sur un serveur qui relance souvent, faites le ménage de temps en temps.
+Le fichier est écrit sur disque toutes les 10 secondes (un plantage perd au plus ces 10 secondes), pas à chaque ligne : un passage canon lève un événement par obus.
 
 | `event` | Événement DCS | Ce que la ligne donne |
 |---|---|---|

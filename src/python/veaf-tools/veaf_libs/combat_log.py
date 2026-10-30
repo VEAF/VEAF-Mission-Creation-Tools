@@ -81,7 +81,8 @@ def read_combat_log(path: Path) -> CombatLog:
     start: dict[str, Any] = {}
     records: list[dict[str, Any]] = []
     skipped = 0
-    for text in path.read_text(encoding="utf-8").splitlines():
+    # a crash can cut the last line inside a character: replaced, so that one line is skipped, not the file
+    for text in path.read_text(encoding="utf-8", errors="replace").splitlines():
         if not text.strip():
             continue
         try:
@@ -136,7 +137,9 @@ def pilot_recaps(log: CombatLog, include_ai: bool = False) -> list[PilotRecap]:
             recap.hits[weapon] += 1
         elif event == "kill":
             target = record.get("target") or {}
-            friendly = isinstance(target, dict) and target.get("coalition") == shooter.get("coalition")
+            # a coalition nobody could read (a unit gone before the event was read) is not friendly fire
+            coalition = target.get("coalition") if isinstance(target, dict) else None
+            friendly = coalition is not None and coalition == shooter.get("coalition")
             label = str((target.get("type") if isinstance(target, dict) else "") or _name(target) or "?")
             recap.kills.append(Kill(float(record.get("t") or 0), label, weapon, friendly))
     return list(recaps.values())

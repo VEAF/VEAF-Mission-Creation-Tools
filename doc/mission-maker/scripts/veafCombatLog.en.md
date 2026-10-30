@@ -28,7 +28,8 @@ Otherwise the module says so once in `dcs.log` and writes nothing: the mission r
 ## The file
 
 `veaf-combat-log-<date>-<time>.jsonl`, in `VEAF_EXPORT_DIR` when it is set, else in the DCS write folder (`Saved Games\DCS…`).
-One file per mission start.
+One file per mission start, never deleted by the tools: on a server that restarts often, clean up from time to time.
+The file is flushed to disk every 10 seconds (a crash loses at most those 10 seconds), not at every line: a gun run raises one event per shell.
 
 | `event` | DCS event | What the line gives |
 |---|---|---|

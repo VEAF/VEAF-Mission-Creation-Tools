@@ -162,6 +162,33 @@ function TestVeafCombatLog:test_a_dead_initiator_does_not_break_the_log()
   luaunit.assertNil(line.shooter.name)
 end
 
+function TestVeafCombatLog:test_the_file_is_flushed_on_a_beat_not_at_every_line()
+  -- a gun run raises one hit per shell: a synchronous flush each time runs on the simulation's thread
+  local file = veafCombatLog.file
+  local flushes = 0
+  veafCombatLog.file = {
+    write = function(_, text)
+      return file:write(text)
+    end,
+    flush = function()
+      flushes = flushes + 1
+      return file:flush()
+    end,
+    close = function()
+      return file:close()
+    end,
+  }
+  for i = 1, 5 do
+    dcs_mocks.eventHandlers[1]:onEvent({ id = world.event.S_EVENT_HIT, time = i, weapon_name = "M230" })
+  end
+  luaunit.assertEquals(flushes, 0)
+  luaunit.assertEquals(veafCombatLog.flush(), timer.getTime() + veafCombatLog.SecondsBetweenFlushes)
+  luaunit.assertEquals(flushes, 1)
+  veafCombatLog.close()
+  luaunit.assertNil(veafCombatLog.flush()) -- the beat stops with the file
+  luaunit.assertEquals(#_lines(), 6)
+end
+
 function TestVeafCombatLog:test_without_io_nothing_is_written_and_nothing_raises()
   veafCombatLog.close()
   os.remove(veafCombatLog.path)

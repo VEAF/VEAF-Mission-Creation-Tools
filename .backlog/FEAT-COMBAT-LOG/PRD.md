@@ -14,7 +14,7 @@ Origin: the debrief of "Marteau du Golan" (2026-10-29) had to be guessed from th
 
 ## Decisions
 
-- One JSON object per line (`.jsonl`), appended and flushed per event: a server crash loses at most the last line, and the reader skips a line cut short.
+- One JSON object per line (`.jsonl`), appended, flushed every 10 s rather than per line (a gun run raises one hit per shell, and a synchronous flush runs on the simulation thread): a server crash loses at most 10 s, and the reader skips a line cut short.
 - The module listens to DCS directly (`world.addEventHandler`), not through `veafEventHandler`, whose callbacks run 0.5 s late: by then a weapon object may be gone.
 - Each line records what DCS handed over (`weapon_object`, `weapon_name`): the file is its own measurement of what guns give, since nothing could be measured without DCS running.
 - On by default in the shipped mission folder (`COMBATLOG: true`); the file is written only where the scripting environment keeps `io`/`os`/`lfs`, otherwise one warning and nothing else.

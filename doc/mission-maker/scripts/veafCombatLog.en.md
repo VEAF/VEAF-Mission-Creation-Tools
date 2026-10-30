@@ -20,7 +20,7 @@ modules:
   COMBATLOG: true
 ```
 
-The file is written only when DCS's scripting environment keeps `io`, `os` and `lfs`, as VEAF servers do.
+The file is written only when DCS's scripting environment keeps `io` and `lfs`, as VEAF servers do (they remove `os`).
 Otherwise the module says so once in `dcs.log` and writes nothing: the mission runs as usual.
 
 ---
@@ -28,6 +28,7 @@ Otherwise the module says so once in `dcs.log` and writes nothing: the mission r
 ## The file
 
 `veaf-combat-log-<date>-<time>.jsonl`, in `VEAF_EXPORT_DIR` when it is set, else in the DCS write folder (`Saved Games\DCS…`).
+Where the scripting environment removes `os`, as on the VEAF servers, the real date is unknown: the file is `veaf-combat-log-<mission date>-<n>.jsonl` in the DCS write folder, `<n>` being the first free number (`-1`, `-2` after a restart…).
 One file per mission start, never deleted by the tools: on a server that restarts often, clean up from time to time.
 The file is flushed to disk every 10 seconds (a crash loses at most those 10 seconds), not at every line: a gun run raises one event per shell.
 

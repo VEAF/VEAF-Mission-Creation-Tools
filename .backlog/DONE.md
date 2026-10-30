@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [CHORE-VENDOR-CTLD-RC16](CHORE-VENDOR-CTLD-RC16/PRD.md) · ✅
+
+CTLD `2.0.0-rc16` vendored ahead of the release: an AI Fat Cow that loses its flight can be taken over, **Release the Fat Cow**, and fixes to the AI cow's return and landing. No new setting, catalogue unchanged.
+
 ### [FIX-BRIEFING-MAGNETIC-HEADINGS](FIX-BRIEFING-MAGNETIC-HEADINGS/PRD.md) · ✅
 
 The briefing's headings and bullseye bearings were taken on the DCS grid and printed with no unit, 6.9 degrees off the cockpit on the Golan: they are now magnetic, `°M`, the World Magnetic Model's declination at the mission's date taken off the true bearing, as DCS and the F-16C and F/A-18C read them; the carrier's course, the recon photos and `set_route` too, and the ranges on the ellipsoid. Two tickets, one PR. Shipped in #1219.

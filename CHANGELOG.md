@@ -39,6 +39,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Design rules in the authoring guide and the objective-mission prompt**: SEAD and strike on separate flights, calm weather with helicopters, a QRA that does not scramble for helicopters still attacks them once airborne, switching the QRA and long-range SAMs off on demand, one recon photo per objective.
 - **A combat log for an exact debrief** (FEAT-COMBAT-LOG): the module `COMBATLOG` (on in the shipped mission folder) writes every shot, hit, kill and gun burst to `veaf-combat-log-<date>-<time>.jsonl`, with the shooter, its player, the weapon and the target, a burst counted in rounds (where `os` is removed, as on the VEAF servers, the file is `veaf-combat-log-<mission date>-<n>.jsonl`); `veaf-tools mission combat-log` prints the recap per pilot. The Tacview of 2026-10-29 named no shooter and showed none of the AH-64s' gun. What DCS gives for gun shells is to be measured in game (R54).
 
+### Changed
+
+- **Vendored CTLD `2.0.0-rc16`** (was `rc15`): an AI Fat Cow whose flight is shot down or left can be taken over by another helicopter flight (**F10 → CTLD → Fat Cow → Take over a Fat Cow**), **Release the Fat Cow** leaves it where it stands for another flight, and an AI cow sent home from the ground no longer vanishes on the spot nor lands into trees. No new setting, catalogue still `2.3.0` (CHORE-VENDOR-CTLD-RC16).
+
 ## [6.34.0] — 2026-10-29
 
 ### Changed

@@ -1,6 +1,6 @@
 # FEAT-COMBAT-LOG — a combat log for an exact debrief
 
-Status: 🔄 in progress
+Status: 🧑 waiting-human — the module, the command and the write without `os` are merged (#1222, #1223); ticket 03 waits for a fight flown in game (R54)
 
 Origin: the debrief of "Marteau du Golan" (2026-10-29) had to be guessed from the Tacview: an ACMI names no shooter, records no destruction, and the AH-64s' gun does not show in it. David's task T430.
 
@@ -8,8 +8,8 @@ Origin: the debrief of "Marteau du Golan" (2026-10-29) had to be guessed from th
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [The module writes every shot, hit and kill](tickets/01-module.md) | 🔄 |
-| 02 | [`veaf-tools mission combat-log`: the recap per pilot](tickets/02-command.md) | 🔄 |
+| 01 | [The module writes every shot, hit and kill](tickets/01-module.md) | ✅ |
+| 02 | [`veaf-tools mission combat-log`: the recap per pilot](tickets/02-command.md) | ✅ |
 | 03 | [Measure in game what DCS gives](tickets/03-measure-in-game.md) | 🧑 |
 | 04 | [Write the file where `os` is removed](tickets/04-without-os.md) | ✅ |
 

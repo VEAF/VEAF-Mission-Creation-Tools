@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.35.0] — 2026-10-30
+
 ### Fixed
 
 - **The briefing's headings and bullseye bearings are magnetic, as the cockpits read them** (FIX-BRIEFING-MAGNETIC-HEADINGS, pilots asking whether "Marteau du Golan"'s were true or magnetic).

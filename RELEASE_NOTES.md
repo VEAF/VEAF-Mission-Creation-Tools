@@ -1,96 +1,67 @@
-# VEAF Mission Creation Tools — 6.34.0
+# VEAF Mission Creation Tools — 6.35.0
 
-**Le briefing d'une mission à objectifs, au niveau d'un briefing fait main.**
+**Une Fat Cow qui se reprend, un briefing qui parle comme le cockpit, un journal de combat pour le debrief.**
 
-« Marteau du Golan » (Syrie) a été préparée avec l'assistant IA et les outils, puis finie à la main : un dossier de 52 pages, des cartes retravaillées, des photos de reconnaissance, une affiche.
-Tout ce qui a été fait à la main est maintenant fait par les outils.
-
----
-
-## 📋 Le briefing d'une mission à objectifs
-
-### Les cartes
-
-- **La vue d'ensemble est lisible** : cadrée sur la zone utile, tournée quand ça la resserre (avec une flèche du nord), en haute résolution, sa légende dessinée dedans.
-- Elle montre les bases de départ, les bases de QRA ennemies, le niveau de vol des ravitailleurs, la ligne de front, et la route des hélicoptères à part.
-- **Une carte de la zone des combats** suit la vue d'ensemble : les unités amies, le JTAC, les axes d'attaque et la portée de chaque menace.
-- Chaque zoom d'objectif porte un encart qui le situe sur la vue d'ensemble.
-
-### Les objectifs et le plan de vol
-
-- **Des fiches au lieu de listes** : chaque cible est une fiche avec une vignette, ce qu'elle est, ses coordonnées en DMS et DDM, son altitude, son gisement et sa distance au bullseye.
-- Les cibles sont nommées par unité quand c'est possible (le radar et les lanceurs d'un SA-6), sinon par leur type (`T-72B3`).
-- Le plan de vol se lit pas à pas, comme sur le kneeboard de DCS : cap et distance, relief le plus haut, ce qu'on fait au point.
-- Un objectif peut être **principal, secondaire ou préalable** : le SA-6 que les hélicoptères attendent est un préalable.
-- Avec une opération dans `mission.yaml`, ses tâches sont les objectifs principaux, les autres zones les objectifs secondaires.
-
-### L'ATO et les fréquences
-
-- **Avec des slots dynamiques**, l'ATO ne liste plus les 61 types d'avions qu'offre une base : il dit « slot dynamique », la base et les patrouilles prévues (indicatif, appareil, nombre, tâche).
-- Il donne le niveau de vol des ravitailleurs, et ce qui n'a pas de groupe dans la mission : un JTAC, la Fat Cow, un GCI.
-- Le plan de fréquences suit les patrouilles : un bloc par plan radio, qui dit quelle patrouille l'a sur quelle radio.
-
-### Les nouvelles pages
-
-- Une page **situation stratégique**, une page **déploiement et coordination**, une page **mots de code**.
-- Les photos de reconnaissance de chaque objectif, après son zoom (voir plus bas).
-- Le texte d'une rubrique peut être de la prose, en paragraphes.
-
-### Le kneeboard et le PDF
-
-- Les cartes du kneeboard sont en portrait, **axe d'attaque vers le haut**.
-- La fiche de vol est un tableau avec l'altitude de chaque point, sans le plan radio : les presets sont déjà dans les cockpits.
-- Le briefing peut remplacer les pages de kneeboard faites à la main (elles sont gardées en sauvegarde).
-- Le PDF suit la présentation, aligné à gauche, avec l'ATO, le déploiement et les mots de code en tableaux.
-
-Tout est optionnel : les paramètres existants gardent leur sens, et une page dont le texte n'est pas donné n'apparaît pas.
+La soirée du 29/10 sur « Marteau du Golan » a posé trois questions : les caps du briefing sont-ils vrais ou magnétiques, qui a tiré sur quoi, et pourquoi l'artillerie adverse n'a jamais riposté.
+Cette version y répond, et embarque la dernière version de CTLD.
 
 ---
 
-## 📸 Photos de reconnaissance et contrôle de la mission, depuis DCS
+## 🐄 Fat Cow : CTLD 2.0.0-rc16
 
-Deux nouvelles commandes, pour un DCS lancé sur votre machine :
+- **Une Fat Cow IA qui perd sa patrouille peut être reprise** : si sa patrouille est abattue ou que son dernier joueur part, elle rentre à sa base, et chaque patrouille d'hélicoptères de son camp sans Fat Cow est prévenue (où elle est, où elle va, ce qu'elle transporte).
+  **F10 → CTLD → Fat Cow → Reprendre une Fat Cow** liste celles qui rentrent, la plus proche en premier : celle qu'on choisit rejoint la patrouille.
+- **Libérer la Fat Cow**, à côté de **Rentre à la base** : elle quitte la patrouille et reste où elle est, FARP ouverte au sol ou en attente en vol, pour qu'une autre patrouille la reprenne.
+- Une Fat Cow IA renvoyée à sa base depuis le sol ne disparaît plus sur place, et ne se pose plus dans les arbres.
 
-- **`.\veaf-tools.exe dcs recon-prepare`, `recon-plan`, `recon-shoot`, `recon-render`** : des photos de reconnaissance de chaque objectif, prises avec la caméra F11 dans l'axe d'attaque, en noir et blanc contrasté, les cibles entourées au feutre rouge.
-  Le briefing les reprend toutes seules.
-- **`.\veaf-tools.exe dcs mission-check-prepare` puis `mission-check`** : vérifie la mission qui tourne — chaque libellé du menu F10, chaque zone et mission de combat activée puis désactivée et ses unités comptées, chaque colonne vue en mouvement — et rend un verdict.
-
-Elles passent par le **bridge VEAF**, comme la capture du terrain : `recon-prepare` et `mission-check-prepare` écrivent une copie de la mission qui l'embarque, et les commandes démarrent `dcs-serve` toutes seules.
-`dcs-serve.exe` est livré dans le kit de capture des cartes (`veaf-map-capture-kit-6.34.0.zip`) : posez-le à côté de `veaf-tools.exe`, ou donnez son chemin avec `--dcs-serve`.
-Il faut aussi avoir autorisé une fois les scripts de mission à communiquer (`MissionScripting.lua`), la même manipulation que pour la capture du terrain, à refaire après chaque mise à jour de DCS.
-Elles n'agissent que sur une session DCS que vous avez lancée, jamais sur un serveur.
+Rien à changer dans une mission existante : pas de nouveau réglage, le catalogue de configuration reste en `2.3.0`.
 
 ---
 
-## 📣 Annoncer la mission
+## 🎯 Les leçons de « Marteau du Golan »
 
-Avec l'assistant IA, une mission construite donne son **affiche** (16:9), sa **bannière pour le calendrier VEAF** et son **message Discord** (moins de 2 000 caractères).
-La date, l'heure et les liens sont à donner : ils ne sont jamais inventés.
+### Le briefing parle comme le cockpit
 
-Le prompt de mission à objectifs fait valider le texte du briefing avant toute mise en page, sort les consignes du Mission Maker dans une fiche à part, et prévoit des solutions de repli quand peu de pilotes viennent.
+- **Les caps et les gisements sont magnétiques**, notés `°M`, comme les lisent les cockpits : branches du plan de vol, bullseye de chaque point, objectif et cible, cap du porte-avions, photos de reconnaissance, dans le dossier, le PDF, le kneeboard et le dossier de campagne.
+  Ils étaient pris sur la grille de DCS, ni vraie ni magnétique : sur le Golan, 6,9° d'écart avec le cockpit.
+- **Les distances sont mesurées sur l'ellipsoïde**, et non plus sur la grille, qui les gonflait (1 % à Tbilissi).
+- **Les coordonnées d'une cible sont en degrés et minutes décimales (DDM) et en MGRS à dix chiffres**, plus jamais en degrés, minutes, secondes.
+- Un groupe de véhicules qui se déplacent (chars, blindés, camions) est donné par le centre de sa zone, et n'est plus entouré sur une photo de reconnaissance.
+- Le briefing garde au plus deux photos de reconnaissance par objectif.
+
+### La mission
+
+- **La contre-batterie d'AIEN n'est plus muette** : sur un groupe d'artillerie touché dès le début de la mission, elle se déclenchait 49 fois sans jamais tirer, faute de connaissance de la situation ; celle-ci est maintenant construite quand elle manque.
+- **Le menu Opposition existe dès le premier vol** : le dossier de mission livré porte `opposition: { level: 0 }`, et une QRA créée par l'assistant IA suit le niveau d'opposition.
+  Le Mission Maker peut couper la chasse adverse si les joueurs présents ne sont pas de taille, sans que la mission change au démarrage.
+- **Un profil modifie les zones de combat par leur nom** (`modules.COMBATZONE.zone_edits`, `"*"` pour toutes), au lieu de recopier toute la liste `combat_zones`.
+- L'assistant IA connaît de nouvelles règles de conception : SEAD et frappe sur des patrouilles séparées, météo calme avec des hélicoptères, couper la QRA ou les SAM longue portée à la demande.
 
 ---
 
-## 🔧 Corrections
+## 📒 Un journal de combat pour le debrief
 
-- **Une mission avec les templates de La-7 s'enregistre de nouveau dans l'éditeur de mission** : DCS 2.9.31 a passé la radio du La-7 en HF (3,7 à 6,06 MHz), et les templates de slots dynamiques gardaient 121,5 MHz (« Invalid frequency »).
-  Ils sont maintenant à 3,7 MHz.
-- **Une zone de combat membre d'une opération était enregistrée deux fois** : une boucle sur toutes les zones la faisait apparaître en double.
-- Une CAP sans nom de menu faisait une entrée F10 vide : elle prend le nom de son groupe.
-- `.\veaf-tools.exe mission validate` signale une clé que le build ne lit pas dans `cap_missions` (`friendly_name`).
-- L'assistant IA connaît les scripts communautaires (CTLD, CSAR, MIST…) quand on lui demande de décrire un module.
-- Une nouvelle limitation connue : une colonne sur route (« On Road ») sans chemin possible reste immobile, sans message.
-- **La documentation** : un lien copié depuis le site suit la dernière version au lieu de rester sur un numéro.
+Un enregistrement Tacview ne nomme pas le tireur et ne montre pas le canon des hélicoptères.
+Le nouveau module `COMBATLOG` écrit chaque tir, coup au but, destruction et rafale de canon dans un fichier `veaf-combat-log-….jsonl`, avec le tireur, son joueur, l'arme et la cible.
+
+```powershell
+.\veaf-tools.exe mission combat-log veaf-combat-log-20261029-211814.jsonl
+```
+
+donne le récap par pilote : armes tirées, obus, coups au but, destructions avec leur heure.
+Il marche aussi sur les serveurs VEAF, qui retirent `os` aux scripts de mission.
 
 ---
 
 ## ⚠️ Points d'attention
 
-- **Un build avec profil écrit son propre fichier** : `.\veaf-tools.exe mission build --profile TEST` écrit `<mission>_TEST.miz`, au lieu d'écraser le `.miz` du build normal.
-- **Les templates de slots dynamiques d'un camp sans base à slots ne sont plus injectés.**
-  Pour les garder : `pipeline.dynamic_slot_templates.all_sides: true`.
-- **`smoke-test` demande une mission construite avec le bridge** (`dcs_bridge` dans `mission.yaml`), et ses options `--url` et `--fiddle-token` sont remplacées par `--serve-url`, `--api-key` et leurs voisines : le hook DCS Fiddle n'est plus utilisé nulle part.
+- **Les valeurs du briefing changent** : caps en `°M` (6,9° d'écart avec l'ancien briefing sur le Golan, plus ou moins ailleurs), coordonnées en DDM et MGRS au lieu de DMS.
+  Un briefing régénéré ne se compare pas ligne à ligne avec l'ancien.
+- **`COMBATLOG` est actif dans le dossier de mission livré** : une nouvelle mission écrit un fichier par lancement, jamais effacé par l'outil.
+  Sur un serveur qui relance souvent, faites le ménage de temps en temps, ou mettez `COMBATLOG: false`.
 
 ---
 
-📖 [Photos de reconnaissance](https://veaf.github.io/documentation/latest/CLI_REFERENCE/#recon-photos) · [Contrôle de la mission](https://veaf.github.io/documentation/latest/CLI_REFERENCE/#mission-check)
+Merci aux pilotes de la soirée du 29/10 sur « Marteau du Golan » : leurs questions ont fait cette version.
+
+📖 [Journal de combat](https://veaf.github.io/documentation/latest/mission-maker/scripts/veafCombatLog/) · [Commande `combat-log`](https://veaf.github.io/documentation/latest/CLI_REFERENCE/#combat-log)

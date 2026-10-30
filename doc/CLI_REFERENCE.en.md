@@ -142,6 +142,28 @@ veaf-tools mission extract MaMission.miz ./src/mission
 
 *Flat alias : `veaf-tools extract`*
 
+### `veaf-tools mission combat-log` {#combat-log}
+
+The recap per pilot of the combat log a mission wrote (module `COMBATLOG`, file `veaf-combat-log-<date>-<time>.jsonl` in the server's Saved Games folder): weapons fired, gun rounds, hits, kills with their time, ⚠ on friendly fire.
+An unreadable line (a file cut short by a crash) is skipped and counted.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `LOG_FILE` | `Path` | yes | The combat log the mission wrote. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--ai` | `boolean` | `false` | Also list the AI shooters, by unit name. |
+| `--json` | `boolean` | `false` | Print the recap as JSON. |
+
+```powershell
+.eaf-tools.exe mission combat-log veaf-combat-log-20261029-211814.jsonl
+```
+
+*Flat alias: `veaf-tools combat-log`*
+
+**See also**: [veafCombatLog](mission-maker/scripts/veafCombatLog.en.md)
+
 ### `veaf-tools mission password-hash` {#password-hash}
 
 Turn a password into the SHA-1 hash `security.password_hashes` takes in `mission.yaml`.

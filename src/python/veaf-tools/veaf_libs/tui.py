@@ -367,6 +367,14 @@ COMMANDS: list[CommandSpec] = [
         prompts=[],
     ),
     CommandSpec(
+        cli_name="combat-log",
+        description=t("tui.cmd.combat_log.description"),
+        prompts=[
+            ArgPrompt("log_file", t("tui.arg.combat_log_file"), default="", is_option=False, required=True),
+            ArgPrompt("ai", t("tui.arg.combat_log_ai"), default="", is_flag=True),
+        ],
+    ),
+    CommandSpec(
         cli_name="password-hash",
         description=t("tui.cmd.password_hash.description"),
         prompts=[],

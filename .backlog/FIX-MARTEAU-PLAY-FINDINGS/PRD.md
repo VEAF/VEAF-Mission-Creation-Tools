@@ -1,6 +1,6 @@
 # FIX-MARTEAU-PLAY-FINDINGS — fixes and rules from the evening of 2026-10-29
 
-Status: 🔄 in progress
+Status: 🧑 waiting-human (in-game check R53, #1221 merged)
 
 Origin: the mission "Marteau du Golan" (Syria, built with VMCT 6.34.0) flown on Private 1 on 2026-10-29, then read through the server's `dcs.log` and the Tacview recording. David's task T426.
 

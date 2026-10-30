@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 import typer
+from rich.markup import escape
 from rich.table import Table
 from veaf_libs.combat_log import clock, pilot_recaps, read_combat_log
 
@@ -16,7 +17,8 @@ from veaf_tools.app import app, console, t
 
 
 def _counted(counter: dict[str, int]) -> str:
-    return ", ".join(f"{n} × {weapon}" for weapon, n in sorted(counter.items(), key=lambda item: -item[1])) or "—"
+    counted = sorted(counter.items(), key=lambda item: -item[1])
+    return ", ".join(f"{n} × {escape(weapon)}" for weapon, n in counted) or "—"
 
 
 @app.command(name="combat-log", no_args_is_help=True, help=t("cmd.combat_log.help"))
@@ -40,11 +42,12 @@ def combat_log(
         table.add_column(t(f"cmd.combat_log.col.{column}"))
     for recap in recaps:
         kills = [
-            f"{clock(log, kill.time)} {kill.target} ({kill.weapon})" + (" ⚠" if kill.friendly else "")
+            f"{clock(log, kill.time)} {escape(kill.target)} ({escape(kill.weapon)})" + (" ⚠" if kill.friendly else "")
             for kill in recap.kills
         ]
         table.add_row(
-            f"{recap.pilot}\n{recap.aircraft}",
+            # player names are typed by players: never read as Rich markup
+            f"{escape(recap.pilot)}\n{escape(recap.aircraft)}",
             _counted(recap.shots),
             _counted(recap.rounds) + (f"\n{recap.bursts} ×" if recap.bursts else ""),
             _counted(recap.hits),

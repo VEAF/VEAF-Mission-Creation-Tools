@@ -169,6 +169,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafWeather.lua` | Parsing météo, calculs QNH/vent |
 | `test_dcsDataExport.lua` | Utilitaires d'export de données unités |
 | `test_veafCombatMission.lua` | Cycle de vie d'une mission de combat |
+| `test_veafCombatLog.lua` | Journal de combat : une ligne JSON par tir, coup au but, destruction et rafale (obus comptés), un tireur disparu ne casse rien, sans `io` rien n'est écrit |
 | `test_veafCombatMission_menu.lua` | Menu radio MISSIONS : missions déclarées après `initialize()`, reconstruction différée |
 | `test_veafAirbases.lua` | Recherche de données aérodromes |
 | `test_veafCombatZone.lua` | Activation de zone, scoring, machine à états |

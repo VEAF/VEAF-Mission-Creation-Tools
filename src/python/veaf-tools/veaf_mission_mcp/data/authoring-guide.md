@@ -382,6 +382,14 @@ or a red base with slots nobody asked for, is an inconsistency.
   tanker track or a training range spoils them. Keep medium/long-range SAMs off the training range.
 - A **QRA zone** triggers on its circle, not on a border: size it to the airspace it defends.
 
+**Rules learnt on *Marteau du Golan* (flown 2026-10-29), each with what broke without it.**
+- **SEAD and strike never go to the same flight.** A mission with SAMs and strike targets gives the SAMs to a flight of their own, briefed as such. With no SEAD flight, the Hornets did both, spent the evening on the SAMs, and the Kiswah command post was never hit.
+- **Helicopters fly: little turbulence and a moderate wind.** Whenever the mission has helicopter slots, set the weather yourself (`set_weather`: turbulence near 0, wind 10 kt or less at the surface) rather than a real-weather feed. The real weather of the evening made the AH-64s almost unflyable.
+- **`react_on_helicopters: false` is about take-off, not engagement.** Such a QRA does not scramble for helicopters, but once airborne for a jet it attacks every enemy it sees, helicopters included: two AH-64s were shot down with R-73s over the Beit Jinn pass. Never brief "they do not react to helicopters" without that nuance, and give the helicopters cover — a CAP of their own, or a route out of the QRA's circle.
+- **The Mission Maker can switch the big threats off** when the players present are no match for them. A QRA follows the **Opposition** menu (`opposition:` block, `scale_with_opposition: true`, both written by default since FIX-MARTEAU-PLAY-FINDINGS): "0 aircraft" keeps it on the ground; `radio_menu: true` adds its own stop command. A long-range SAM is a zone **outside the operation** with `active_at_start: true`: it has its own "deactivate" command, and the operation ends without it. Say both in the briefing's notes for the Mission Maker.
+- **Recon photos: one per objective, two at most** (David, 2026-10-30). A photo of vehicles — tanks, light armour, trucks, 4x4 — shows their zone, never where each vehicle stands, and the briefing gives such a target by its zone's centre: they move. `build_mission_briefing` keeps two photos per objective and the recon render rings no moving vehicle.
+- **A target's precise coordinates are DDM and MGRS** (`N33°07.536' E035°49.482'`, `36S YB 12345 67890`), never DD°MM'SS.ss": the cockpits take one or the other. The briefing writes them so; write any you add by hand the same way.
+
 **Numbers in briefings are measured, never estimated.** Compute distances and bullseye bearings from
 the mission's `x/y` (`x` is north, `y` east: bearing = atan2(Δy, Δx)); state a weapon envelope only
 if you can source it, else describe the threat without a figure. A player flies on what you wrote.

@@ -1,6 +1,6 @@
 # 02 — The Opposition menu by default
 
-Status: 🔄 in progress
+Status: ✅ done
 
 The Opposition radio menu exists only when `mission.yaml` has a root `opposition:` block, and only `campaign next` wrote one. An objective mission and the shipped mission folder now carry `opposition: { level: 0 }` (behaviour at start unchanged: level 0 sizes nothing), and every QRA `create_qra` writes gets `scale_with_opposition: true`, so the Mission Maker can raise the opposition when more players show up.
 

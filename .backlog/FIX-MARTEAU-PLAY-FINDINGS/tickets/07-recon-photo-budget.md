@@ -1,6 +1,6 @@
 # 07 — Recon photos: one per objective, vehicles not pinpointed
 
-Status: 🔄 in progress
+Status: ✅ done
 
 Marteau du Golan's briefing had 12 recon photos, six of them for Khan Arnabah, with a label per vehicle. Decided by David (2026-10-30): one photo per objective, two at most; a photo of vehicles shows the zone, not where each vehicle stands.
 

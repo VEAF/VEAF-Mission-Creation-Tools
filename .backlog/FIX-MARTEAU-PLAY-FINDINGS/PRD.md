@@ -9,12 +9,12 @@ Origin: the mission "Marteau du Golan" (Syria, built with VMCT 6.34.0) flown on 
 | # | Ticket | Status |
 |---|---|---|
 | 01 | [AIEN counter-battery raises on a missing SA](tickets/01-aien-missing-sa.md) | ✅ |
-| 02 | [The Opposition menu by default](tickets/02-opposition-by-default.md) | 🔄 |
+| 02 | [The Opposition menu by default](tickets/02-opposition-by-default.md) | ✅ |
 | 03 | [A shot-down CAP is no error](tickets/03-cap-watchdog-false-error.md) | ✅ |
-| 04 | [Target coordinates: DDM and MGRS, never DMS](tickets/04-target-coordinates.md) | 🔄 |
-| 05 | [Design rules in the guide and the objective prompt](tickets/05-design-rules.md) | 🔄 |
-| 06 | [Profiles edit a combat zone by name](tickets/06-profile-zone-edits.md) | 🔄 |
-| 07 | [Recon photos: one per objective, vehicles not pinpointed](tickets/07-recon-photo-budget.md) | 🔄 |
+| 04 | [Target coordinates: DDM and MGRS, never DMS](tickets/04-target-coordinates.md) | ✅ |
+| 05 | [Design rules in the guide and the objective prompt](tickets/05-design-rules.md) | ✅ |
+| 06 | [Profiles edit a combat zone by name](tickets/06-profile-zone-edits.md) | ✅ |
+| 07 | [Recon photos: one per objective, vehicles not pinpointed](tickets/07-recon-photo-budget.md) | ✅ |
 
 ## Decisions
 

@@ -1,6 +1,6 @@
 # 05 — Design rules in the guide and the objective prompt
 
-Status: 🔄 in progress
+Status: ✅ done
 
 Four rules learnt on Marteau du Golan, each with its reason, in `describe_authoring_guide` and the objective-mission prompt (FR and EN):
 

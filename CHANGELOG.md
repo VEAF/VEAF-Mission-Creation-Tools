@@ -17,6 +17,34 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.35.0] — 2026-10-30
+
+### Fixed
+
+- **The briefing's headings and bullseye bearings are magnetic, as the cockpits read them** (FIX-BRIEFING-MAGNETIC-HEADINGS, pilots asking whether "Marteau du Golan"'s were true or magnetic).
+  They were taken on the DCS grid, a Transverse Mercator projection whose north is neither true nor magnetic, and printed with no unit: on the Golan, 1.7 degrees off true and 6.9 off the cockpit.
+  The legs of the flight plan, the bullseye of every step, objective and target, the bullseye from the departure, the carrier's course and the recon photos' heading (caption, banner) now read `°M`, in the deck, the PDF, the kneeboard and the campaign deck; `set_route` returns its legs magnetic too.
+  The declination is the World Magnetic Model's at the mission's month and year, as DCS computes it (its 1985 to 2025 coefficients, now bundled); the true bearing is taken on the WGS84 ellipsoid.
+  The Mission Editor stores a unit's heading on its grid, and a DCS camera holds one too: both are turned to magnetic where they stand.
+  The ranges are measured on the ellipsoid, not on the grid, which overstated them by its scale: 0.1 % on the Golan, 1 % at Tbilisi.
+
+- **What the evening of 2026-10-29 on "Marteau du Golan" showed** (FIX-MARTEAU-PLAY-FINDINGS).
+  AIEN's counter-battery raised 49 times on an artillery group hit from the start, which had no situational awareness yet, and never fired: the awareness is now built when it is missing.
+  A CAP shot down no longer logs `has no position!` as an error.
+  A target's coordinates are written in degrees and decimal minutes and as a ten-digit MGRS grid reference, never in degrees, minutes and seconds — kneeboard, target sheets, campaign deck, recon banner — and a group of vehicles that move about (tanks, armour, trucks, 4x4) is given by its zone's centre, unmarked on the zoom maps and never ringed on a recon photo.
+  The briefing keeps two recon photos per objective at most.
+
+### Added
+
+- **The Opposition menu by default** (FIX-MARTEAU-PLAY-FINDINGS): the shipped mission folder carries `opposition: { level: 0 }`, and `create_qra` writes `scale_with_opposition: true` and adds the block when missing, so the Mission Maker can switch the enemy fighters off while the mission starts unchanged.
+- **A profile edits combat zones by name** (FIX-MARTEAU-PLAY-FINDINGS): `modules.COMBATZONE.zone_edits` maps a `zone_name` to the keys to set, `"*"` sets them on every zone, instead of copying the whole `combat_zones` list.
+- **Design rules in the authoring guide and the objective-mission prompt**: SEAD and strike on separate flights, calm weather with helicopters, a QRA that does not scramble for helicopters still attacks them once airborne, switching the QRA and long-range SAMs off on demand, one recon photo per objective.
+- **A combat log for an exact debrief** (FEAT-COMBAT-LOG): the module `COMBATLOG` (on in the shipped mission folder) writes every shot, hit, kill and gun burst to `veaf-combat-log-<date>-<time>.jsonl`, with the shooter, its player, the weapon and the target, a burst counted in rounds (where `os` is removed, as on the VEAF servers, the file is `veaf-combat-log-<mission date>-<n>.jsonl`); `veaf-tools mission combat-log` prints the recap per pilot. The Tacview of 2026-10-29 named no shooter and showed none of the AH-64s' gun. What DCS gives for gun shells is to be measured in game (R54).
+
+### Changed
+
+- **Vendored CTLD `2.0.0-rc16`** (was `rc15`): an AI Fat Cow whose flight is shot down or left can be taken over by another helicopter flight (**F10 → CTLD → Fat Cow → Take over a Fat Cow**), **Release the Fat Cow** leaves it where it stands for another flight, and an AI cow sent home from the ground no longer vanishes on the spot nor lands into trees. No new setting, catalogue still `2.3.0` (CHORE-VENDOR-CTLD-RC16).
+
 ## [6.34.0] — 2026-10-29
 
 ### Changed

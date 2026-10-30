@@ -71,27 +71,6 @@ class CardSection:
         return pages
 
 
-def to_ddm(lat: float, lon: float) -> str:
-    """A position in degrees and decimal minutes, to the thousandth: ``N33°07.536' E035°49.482'``.
-
-    Rounded once, then split, so that 59.9996' carries into the degree.
-
-    Args:
-        lat: Latitude, decimal degrees.
-        lon: Longitude, decimal degrees.
-
-    Returns:
-        The position, as an F-16 or an A-10 takes it.
-    """
-
-    def part(value: float, positive: str, negative: str, width: int) -> str:
-        thousandths = round(abs(value) * 60000)
-        degrees, rest = divmod(thousandths, 60000)
-        return f"{positive if value >= 0 else negative}{degrees:0{width}d}°{rest / 1000:06.3f}'"
-
-    return f"{part(lat, 'N', 'S', 2)} {part(lon, 'E', 'W', 3)}"
-
-
 def thumbnail(image: Path, centre: tuple[float, float], side: int = THUMBNAIL) -> bytes:
     """A square cut from a map around a point, the point ringed: what a card shows.
 

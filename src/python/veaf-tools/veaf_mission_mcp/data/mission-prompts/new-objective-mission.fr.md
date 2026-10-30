@@ -250,6 +250,7 @@ validé un scénario, pas un à-peu-près.
   false` (et retire alors `src/versions.yaml`, que le build signale orphelin), ou un
   `src/versions.yaml` à une seule version. Une visibilité **≥ 9 000 m est écrite 80 km** (règle du
   « 9999 » METAR) : pour une brume, demande 8 000 m au plus.
+  **Avec des hélicoptères, peu de turbulence et un vent modéré** (turbulence proche de 0, 10 kt au plus au sol) : le 29/10/2026, la météo réelle a rendu les AH-64 de *Marteau du Golan* presque impilotables.
 - **Langue** : `mission.language: fr` et briefing en français, sauf mention contraire.
 - `silence_atc_on_all_airbases: true`.
 - **Sécurité** : explique-la avant de demander, l'utilisateur ne peut pas choisir sans.
@@ -273,6 +274,7 @@ validé un scénario, pas un à-peu-près.
 
 ### 4.3 Les vols joueurs
 
+- **Le SEAD et la frappe ne vont jamais au même vol.** Avec des SAM sur le chemin, un vol fait le SEAD, un autre la frappe, chacun briefé pour la sienne : sur *Marteau du Golan*, faute de vol SEAD, les Hornet ont tout fait, ont passé la soirée sur les SAM, et le PC de Kiswah n'a jamais été frappé.
 - **Un groupe par vol de l'ATO**, au nom de son indicatif (`ARCHER`, `NINJA`…), **autant de slots
   que de places du cadre ATO** (quatre par défaut), skill `Client`, au **départ du scénario** :
   parking moteur froid par défaut (`add_air_group` ou `add_player_slot`, `ground-cold`), pont du
@@ -387,6 +389,8 @@ validé un scénario, pas un à-peu-près.
   déjà en vol = un groupe natif en orbite, pas une CAP à la demande. `delay_before_activating` compte
   **depuis le début de la mission**, pas depuis l'intrusion : la QRA décolle dès l'intrusion une fois
   en ligne. Écris-le ainsi au briefing (« en place à H+15 min »).
+  **`react_on_helicopters: false` porte sur le décollage, pas sur l'engagement** : la QRA ne décolle pas pour des hélicoptères, mais une fois en l'air pour un avion elle les attaque aussi — deux AH-64 abattus au R-73 au col de Beit Jinn le 29/10/2026. N'écris jamais « elles ne réagissent pas aux hélicoptères » sans cette nuance, et donne une couverture aux hélicoptères (une CAP, ou une route hors du cercle de la QRA).
+- **Le Mission Maker coupe les grosses menaces** quand les joueurs présents ne sont pas de taille. `create_qra` écrit `scale_with_opposition: true` et le bloc `opposition: {level: 0}` (la mission démarre sans changement) : « 0 avion » du menu **Opposition** garde la QRA au sol ; `radio_menu: true` lui ajoute sa propre commande d'arrêt. Un SAM longue portée est une zone **hors de l'opération**, `active_at_start: true`, avec sa commande de désactivation. Dis les deux dans les notes du Mission Maker.
 - **CAP alliée IA à la demande** (la voie de dégagement du scénario) : `create_cap_mission` avec `menu_name` (le nom du menu F10, ex. « CAP alliée (2 F-15C, MASADA) ») et `briefing`, un `route` pour l'hippodrome, hors de portée des SAM.
 - **Radars d'alerte (EWR)** si le scénario parle d'être détecté, et **Skynet** si la défense doit
   réagir en réseau.
@@ -471,6 +475,7 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
   Trois textes facultatifs : `strategic_situation` et `deployment` ont chacun leur page, omise s'ils sont vides ; `waypoint_notes` dit, par nom de waypoint, ce qu'on y fait, sur sa fiche du plan de vol.
   `code_words` (`word`, `meaning`, `who`) fait une page « Mots-codes » dans le deck et dans le kneeboard. Ces textes reprennent le contenu validé, sans ses notes Mission Maker.
   **Photos de reconnaissance** : chaque `<nom>.jpg` de `docs/recon/` (ou `recon_folder`) avec son `<nom>.json` (`zone`, `title`, et `heading`, `pitch`, `x`, `y`, `altitude_m`, `order` s'ils sont connus) suit le zoom de son objectif, deux par page ; elles se prennent dans DCS (le cap d'engagement de chaque cible).
+  **Une photo par objectif, deux au plus** (le build garde les deux premières et signale les autres). Une photo de véhicules (chars, blindés légers, camions, 4x4) montre leur zone, jamais la place de chacun : le rendu n'entoure aucun véhicule mobile, et le briefing donne une telle cible par le centre de sa zone. Les coordonnées des cibles s'écrivent en DDM et en MGRS, jamais en degrés, minutes, secondes.
   Un texte passé en **une chaîne** est de la prose, ses paragraphes séparés par une ligne vide ; `mission_bullets` en chaîne perd ses tirets. Une liste reste une ligne par élément.
 - **Chaque `.miz` construit reçoit les images** : celui du build et chaque variante météo de `missions/` (`archives` dans le résultat).
 - **Le kneeboard** (`kneeboard`, actif par défaut) : la carte générale, la zone des combats et les zooms dessinés pour la page 2:3 et tournés axe d'attaque vers le haut (flèche nord), les photos de reco, une carte de vol (chaque point, le cap et la distance de sa branche, le relief le plus haut dessus ; pas de plan radio, les presets sont déjà dans les cockpits) et les cibles, dans le kneeboard de chaque appareil. Ses numéros de canal sont des slots DCS : sur l'AJS-37, ce ne sont pas ceux du cockpit (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).

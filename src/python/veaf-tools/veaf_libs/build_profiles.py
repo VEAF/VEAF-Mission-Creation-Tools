@@ -25,6 +25,48 @@ def _deep_merge(base: dict, override: dict) -> dict:
     return result
 
 
+#: Every entry of ``combat_zones`` at once, in ``zone_edits``.
+ALL_ZONES = "*"
+
+
+def _apply_zone_edits(config: dict) -> dict:
+    """Apply ``modules.COMBATZONE.zone_edits`` to the ``combat_zones`` entries, then drop the key.
+
+    Lists are replaced whole by a profile, so a training version of a mission had to copy every combat
+    zone to change two of them (FIX-MARTEAU-PLAY-FINDINGS 06). ``zone_edits`` maps a ``zone_name``
+    (case-insensitive) to the keys to set on that entry; ``"*"`` sets them on every entry, and a named
+    edit is applied after it.
+
+    Args:
+        config: The merged mission.yaml mapping; left unchanged.
+
+    Returns:
+        The mapping with the edited entries, and no ``zone_edits`` key.
+    """
+    modules = config.get("modules")
+    if not isinstance(modules, dict):
+        return config
+    combat = modules.get("COMBATZONE")
+    if not isinstance(combat, dict) or "zone_edits" not in combat:
+        return config
+    edits = combat.get("zone_edits") or {}
+    zones = combat.get("combat_zones") or []
+    names = {str(zone.get("zone_name", "")).lower() for zone in zones if isinstance(zone, dict)}
+    for name in edits:
+        if name != ALL_ZONES and str(name).lower() not in names:
+            logger.warning(t("profiles.zone_edit_unknown", name=name))
+    named = {str(name).lower(): keys for name, keys in edits.items() if name != ALL_ZONES}
+    edited = []
+    for zone in zones:
+        if isinstance(zone, dict):
+            zone = {**zone, **(edits.get(ALL_ZONES) or {})}
+            zone.update(named.get(str(zone.get("zone_name", "")).lower()) or {})
+        edited.append(zone)
+    combat = {k: v for k, v in combat.items() if k != "zone_edits"}
+    combat["combat_zones"] = edited
+    return {**config, "modules": {**modules, "COMBATZONE": combat}}
+
+
 def _find_profile_key(profiles: dict, profile_name: str) -> str | None:
     """Return the actual ``profiles`` key matching *profile_name*, case-insensitively.
 
@@ -141,7 +183,8 @@ def resolve_profile(yaml_data: dict, profile_name: str | None) -> dict:
     workers never see it.  If *profile_name* is ``None`` the base config is
     returned as-is (minus ``profiles:``).  The profile name is matched
     case-insensitively; if it is not found a warning is emitted and the base
-    config is returned.
+    config is returned. A ``modules.COMBATZONE.zone_edits`` block is then applied
+    to the ``combat_zones`` entries (see :func:`_apply_zone_edits`).
     """
     profiles_raw = yaml_data.get("profiles") or {}
     if not isinstance(profiles_raw, dict):
@@ -152,12 +195,12 @@ def resolve_profile(yaml_data: dict, profile_name: str | None) -> dict:
     base: dict = {k: v for k, v in yaml_data.items() if k != "profiles"}
 
     if profile_name is None:
-        return base
+        return _apply_zone_edits(base)
 
     key = _find_profile_key(profiles, profile_name)
     if key is None:
         logger.warning(t("profiles.profile_not_found", name=profile_name))
-        return base
+        return _apply_zone_edits(base)
 
     logger.info(t("profiles.building_with_profile", name=key))
-    return _deep_merge(base, profiles[key])
+    return _apply_zone_edits(_deep_merge(base, profiles[key]))

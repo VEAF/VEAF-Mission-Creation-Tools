@@ -87,7 +87,7 @@ class ReconPhoto:
     zone: str
     title: str
     heading: float | None = None
-    """Camera heading, degrees true: the axis the photo looks along."""
+    """Camera heading, degrees on the mission's grid, as a DCS camera holds it: the axis the photo looks along."""
     pitch: float | None = None
     """Camera pitch, degrees, negative looking down."""
     x: float | None = None
@@ -147,6 +147,9 @@ class Target:
     """What it does, read from its DCS type's attributes: ``lanceur de la batterie``, ``char``."""
     spawned: bool = False
     """A VEAF spawn command, drawn when its zone is activated: its nature varies from one game to the next."""
+    mobile: bool = False
+    """Vehicles that move about (tanks, armour, trucks): ``x``/``y`` are then its zone's centre, never where a
+    vehicle stood when the mission was saved, and the maps mark no square for it (FIX-MARTEAU-PLAY-FINDINGS 04)."""
 
 
 @dataclass(frozen=True)

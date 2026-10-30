@@ -85,6 +85,51 @@ def test_create_qra_lays_down_both_worlds(tmp_path: Path) -> None:
     assert "MiG-29 North" in definition["simple_groups"]  # referenced by exact name
 
 
+def _create_qra(folder: Path, qra: dict[str, Any] | None = None) -> dict[str, Any]:
+    return create_qra(
+        folder,
+        name="QRA-North",
+        coalition="red",
+        trigger_zone="ZONE-QRA",
+        position={"x": 1.0, "y": 2.0},
+        radius=50000,
+        groups=[{"name": "MiG-29 North", "units": [{"type": "MiG-29S", "count": 2}]}],
+        country_id=0,
+        country_name="Russia",
+        qra=qra,
+    )
+
+
+def test_create_qra_follows_the_opposition_level_by_default(tmp_path: Path) -> None:
+    """FIX-MARTEAU-PLAY-FINDINGS 02: the Opposition menu exists only with a root opposition: block.
+
+    Level 0 sizes nothing, so the mission starts as built, and the Mission Maker can raise it when
+    more players show up — on 2026-10-29 he could not.
+    """
+    folder = _folder(tmp_path)
+    _create_qra(folder)
+
+    data = load_yaml(folder / "mission.yaml")
+    assert dict(data["opposition"]) == {"level": 0}
+    definition = data["modules"]["QRA"]["definitions"][0]
+    assert definition["scale_with_opposition"] is True
+
+
+def test_create_qra_keeps_an_existing_opposition_block_and_an_explicit_choice(tmp_path: Path) -> None:
+    folder = _folder(tmp_path)
+    (folder / "mission.yaml").write_text(_YAML + "opposition:\n  level: 4\n  follow: players\n", encoding="utf-8")
+    _create_qra(folder, qra={"scale_with_opposition": False})
+
+    data = load_yaml(folder / "mission.yaml")
+    assert dict(data["opposition"]) == {"level": 4, "follow": "players"}
+    assert data["modules"]["QRA"]["definitions"][0]["scale_with_opposition"] is False
+
+
+def test_the_shipped_mission_folder_has_the_opposition_menu() -> None:
+    shipped = Path(__file__).parents[3] / "src" / "defaults" / "mission-folder" / "mission.yaml"
+    assert dict(load_yaml(shipped)["opposition"]) == {"level": 0}
+
+
 def test_create_qra_warns_on_a_key_the_build_does_not_read(tmp_path: Path) -> None:
     """FIX-QRA-COMMANDS-AND-OFFSET: an extra key nobody reads did nothing, silently."""
     result = create_qra(

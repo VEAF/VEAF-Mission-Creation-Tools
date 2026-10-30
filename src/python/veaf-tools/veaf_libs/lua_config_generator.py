@@ -91,6 +91,7 @@ _MODULE_INIT_ORDER: list[str] = [
     "CAMPAIGN",  # after EVENTS (loss callbacks) and the spawners its garrisons need
     "SKYNET",
     "SKYNET_MONITOR",
+    "COMBATLOG",  # writes shots and kills; depends on nothing, last so a new position moves no other module
     "INTERPRETER",  # MUST be last
 ]
 

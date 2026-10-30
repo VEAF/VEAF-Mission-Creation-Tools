@@ -142,6 +142,28 @@ veaf-tools mission extract MaMission.miz ./src/mission
 
 *Flat alias : `veaf-tools extract`*
 
+### `veaf-tools mission combat-log` {#combat-log}
+
+The recap per pilot of the combat log a mission wrote (module `COMBATLOG`, file `veaf-combat-log-<date>-<time>.jsonl` in the server's Saved Games folder): weapons fired, gun rounds, hits, kills with their time, ⚠ on friendly fire.
+An unreadable line (a file cut short by a crash) is skipped and counted.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `LOG_FILE` | `Path` | yes | The combat log the mission wrote. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--ai` | `boolean` | `false` | Also list the AI shooters, by unit name. |
+| `--json` | `boolean` | `false` | Print the recap as JSON. |
+
+```powershell
+.eaf-tools.exe mission combat-log veaf-combat-log-20261029-211814.jsonl
+```
+
+*Flat alias: `veaf-tools combat-log`*
+
+**See also**: [veafCombatLog](mission-maker/scripts/veafCombatLog.en.md)
+
 ### `veaf-tools mission password-hash` {#password-hash}
 
 Turn a password into the SHA-1 hash `security.password_hashes` takes in `mission.yaml`.
@@ -1021,7 +1043,7 @@ The whole sequence:
 1. `.\veaf-tools.exe dcs recon-prepare MyMission.miz` writes `MyMission_RECON.miz` beside it: clear sky, chosen time, every combat zone active at start, readable group names, and the [VEAF bridge](#dcs-bridge) embedded, through which `recon-plan` and `recon-shoot` talk to the mission. The original mission is not touched.
 2. In DCS: open `MyMission_RECON.miz`, take a **spectator** slot, press **F11** (free camera). Keep the DCS window on the **primary screen**.
 3. `.\veaf-tools.exe dcs recon-plan --operation "Golan Hammer"` writes `shots.yaml`: one shot per zone, with the names of the groups found.
-4. Complete `shots.yaml`: for each shot, the engagement `heading` (the direction the attacker looks), and if needed `pitch` (degrees below the horizon), `slant` (distance in metres), `mark: units` to circle each vehicle, `labels` to name the targets.
+4. Complete `shots.yaml`: for each shot, the engagement `heading` (the direction the attacker looks, in degrees on the mission's grid, as DCS turns its camera: the photo's banner and the briefing print it magnetic), and if needed `pitch` (degrees below the horizon), `slant` (distance in metres), `mark: units` to circle each vehicle, `labels` to name the targets.
 5. `.\veaf-tools.exe dcs recon-shoot`: the command puts the camera on each shot and grabs the window. Do not touch the mouse or the keyboard until it is done.
 6. `.\veaf-tools.exe dcs recon-render` writes the photos into `docs\recon\`, where the briefing (`build_mission_briefing`) looks for them.
    A shot tied to a bare group prefix (`Sasa [r]`) joins its zone (`Sasa`) when `recon-render` is run again: no need to take it again.
@@ -1045,6 +1067,8 @@ shots:
 ```
 
 The camera stands `slant` metres from the target, `pitch` degrees above the horizon, looking along `heading`. The marks are placed by projection with an 80° horizontal field, measured: the six vehicles of an SA-11 fall within a few pixels of their projection.
+
+**One shot per objective, two at most**: the briefing keeps two and skips the rest. **A group of vehicles that move about** — tanks, light armour, trucks, 4x4 — **is never ringed**, whatever `mark` says: the photo shows its zone, not where each vehicle stood, since they will have moved. A group holding a SAM, a radar or artillery is a site and is ringed. The banner gives the target's position in DDM and MGRS.
 
 #### `veaf-tools dcs recon-prepare` {#recon-prepare}
 

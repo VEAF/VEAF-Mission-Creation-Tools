@@ -7,6 +7,7 @@ the mission so the caller never supplies projection parameters. See
 ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`` (wave 10).
 """
 
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -117,6 +118,19 @@ def mission_theatre(mission_path: Path) -> str:
     if not theatre:
         raise ValueError(f"Mission has no theatre, cannot convert coordinates: {mission_path}")
     return str(theatre)
+
+
+def mission_date(mission_path: Path) -> date:
+    """Return the mission's date, for its magnetic declination.
+
+    Args:
+        mission_path: A `.miz` file or a mission folder.
+
+    Returns:
+        Its date; 1 June 2016 when it has none, as ``read_mission_picture``.
+    """
+    stored = (_load_mission(mission_path).mission_content or {}).get("date") or {}
+    return date(int(stored.get("Year", 2016)), int(stored.get("Month", 6)), int(stored.get("Day", 1)))
 
 
 def theatre_of(mission_path: Path | None, theatre: str | None) -> str:

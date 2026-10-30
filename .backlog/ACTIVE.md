@@ -12,6 +12,14 @@ What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the 
 
 ## 🧑 Waiting for a human
 
+### [FEAT-COMBAT-LOG](FEAT-COMBAT-LOG/PRD.md) · 🧑
+
+A combat log for an exact debrief: every shot, hit, kill and gun burst written as JSON lines by the mission, and `veaf-tools mission combat-log` for the recap per pilot. Merged (#1222, #1223); ticket 03 waits for a fight flown in game, to measure what DCS gives for gun shells (R54).
+
+### [FIX-MARTEAU-PLAY-FINDINGS](FIX-MARTEAU-PLAY-FINDINGS/PRD.md) · 🧑
+
+Fixes and rules from the evening of 2026-10-29 on Marteau du Golan, merged in #1221: AIEN counter-battery crash, the Opposition menu by default, a false CAP error, target coordinates in DDM + MGRS, four design rules, profiles that edit a combat zone by name, and a budget of recon photos. Waits for its in-game check, R53 of DCS-SESSION-TODO.md.
+
 ### [FIX-OPERATION-ZONE-DOUBLE-REGISTRATION](FIX-OPERATION-ZONE-DOUBLE-REGISTRATION/PRD.md) · 🧑
 
 An operation's `addTaskingOrder` registered again a zone the configuration had already added, so `veafCombatZone.zonesList` held it twice and a loop over the list spawned it twice ("Marteau du Golan", 2026-10-28): `AddZone` now registers a name once. Merged in #1209; left: the mission-check inventory listing each member of OpMarteauGolan once, in game.
@@ -46,7 +54,7 @@ What building the Marianas Open Training v6 through the MCP found: a QRA group w
 
 ### [FEAT-RADIO-MENU-WATCH](FEAT-RADIO-MENU-WATCH/PRD.md) · 🧑
 
-Watching the F10 menu in a real multiplayer mission: the parked ids of FIX-RADIO-MENU-ID-RECYCLING pile up for the whole mission, cost nothing measurable in single player up to 50 000 (2026-10-10), but what a server sends its clients is not measured. A `RADIO.menu_stats` option logs the menu's size and changes, to turn on for an OT; the whitepaper on DCS recycling menu ids, FR and EN, ships with it. Merged on `develop` (#1117). Left, ticket 03: the three new Open Training missions built with the next VMCT release and the option on, measured on dcs.veaf.org; and ticket 04: DCS's clear binary shows an 8191-per-node ceiling the parked pool may hit, to settle with an in-game check before any fix.
+Watching the F10 menu in a real multiplayer mission: the parked ids of FIX-RADIO-MENU-ID-RECYCLING pile up for the whole mission, cost nothing measurable in single player up to 50 000 (2026-10-10), but what a server sends its clients is not measured. A `RADIO.menu_stats` option logs the menu's size and changes, to turn on for an OT; the whitepaper on DCS recycling menu ids, FR and EN, ships with it. Merged on `develop` (#1117). Ticket 03 closed by David on 2026-10-29: the menu works on the Open Training missions, the network was not measured. Left, ticket 04: DCS's clear binary shows an 8191-per-node ceiling the parked pool may hit, to settle with an in-game check before any fix.
 
 ### [FEAT-OPPOSITION-SCALES-WITH-PLAYERS](FEAT-OPPOSITION-SCALES-WITH-PLAYERS/PRD.md) · 🧑
 

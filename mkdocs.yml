@@ -118,6 +118,7 @@ plugins:
             Updater & release tools: Mise à jour & publication
             Guided checklists (veafAssist): Checklists guidées (veafAssist)
             Missions menu (veafCombatMission): Menu MISSIONS (veafCombatMission)
+            Combat log (veafCombatLog): Journal de combat (veafCombatLog)
             Multi-mission campaign: Campagne multi-missions
             Ground AI (veafGroundAI): IA au sol (veafGroundAI)
             Security & permissions (veafSecurity): Sécurité & permissions (veafSecurity)
@@ -187,6 +188,7 @@ nav:
       - veafCarrierOperations: mission-maker/scripts/veafCarrierOperations.md
       - veafCampaign: mission-maker/scripts/veafCampaign.md
       - veafCasMission: mission-maker/scripts/veafCasMission.md
+      - Combat log (veafCombatLog): mission-maker/scripts/veafCombatLog.md
       - Missions menu (veafCombatMission): mission-maker/scripts/veafCombatMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md
       - veafCommands: mission-maker/scripts/veafCommands.md

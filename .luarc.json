@@ -79,6 +79,7 @@
     "veafMissileGuardian",
     "veafMove",
     "veafNamedPoints",
+    "veafCombatLog",
     "veafOpposition",
     "VeafQRA",
     "veafQraManager",

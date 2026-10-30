@@ -59,6 +59,38 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R54. What the combat log records of a real fight — **two pilots, one of them in a helicopter with a gun**
+
+[`FEAT-COMBAT-LOG`](.backlog/FEAT-COMBAT-LOG/PRD.md), ticket 03.
+On the mocks: each event becomes a line, a burst's rounds are counted from the shells carried. What the mocks cannot show: what DCS really hands over, above all for a gun's shells.
+
+**Prepare**: a scratch mission built from the lot's branch with `modules.COMBATLOG: true`, security off, on a server or a local game whose `MissionScripting.lua` keeps `io`, `os` and `lfs` (VEAF servers do); a blue AH-64D and a blue F/A-18C slot, a red group of BMP-2 near the Apache, a red MiG-29 late-activated or spawned for the Hornet.
+
+1. `dcs.log`: `COMBATLOG` says `writing …veaf-combat-log-….jsonl`.
+   - **Re-opened, `no io/os/lfs`**: the scripting environment is sanitized — nothing to measure here, use a desanitized one.
+2. Apache: two gun bursts on the BMPs, one Hellfire. Hornet: one AIM-120 on the MiG. Then end the mission.
+3. Read the file, and note the measures in `known-limitations.yaml` (`kind: dcs`, dated):
+   - does `hit` arrive for gun shells, and with `weapon_object` false, `weapon_name` set (what value)?
+   - does a gun kill bring a `kill` line naming the Apache, and with which weapon?
+   - `shooting_end`'s `rounds`: does it match the counter in the cockpit before and after the bursts?
+   - does `shot` carry a `target` for the Hellfire and the AIM-120?
+4. `.\veaf-tools.exe mission combat-log <the file>`: the recap names both pilots, the AIM-120, the Hellfire, the gun rounds and the kills.
+   - **Verified**: close ticket 03, and FEAT-COMBAT-LOG with it.
+
+### R53. AIEN's counter-battery, and *Marteau du Golan* in training — **no pilot for item 1, one for item 2**
+
+[`FIX-MARTEAU-PLAY-FINDINGS`](.backlog/FIX-MARTEAU-PLAY-FINDINGS/PRD.md), tickets 01 and 06.
+On the mocks: the SA is built on demand and no unguarded read is left. What the mocks cannot show: a real artillery group answering a hit with counter-battery fire.
+
+**Prepare**: *Marteau du Golan* (a copy, never the live one) rebuilt from the lot's merge with `--profile LOCAL_TEST`, and once with `--profile TRAINING`.
+
+1. LOCAL_TEST, game master slot: from the start, spawn a blue `-2s1` battery 10 km from Kanaker and let it shell the 2S1s of `ArtiKanaker` (or hit them from a slot).
+   - **Verified**: within a few minutes Kanaker's guns fire back at the blue battery, and `dcs.log` has no `attempt to index field 'sa'`.
+   - **Re-opened, still the error**: the mission carries older scripts — the VEAF build stamp in `dcs.log`.
+   - **Re-opened, no error and no fire**: counter-battery needs a red radar within 50 km of the impact (`SAM SR`, `SAM TR` or `EWR`): check one is alive before concluding.
+2. TRAINING, a blue slot: F10 menus.
+   - **Verified**: no QRA ever scrambles; the SA-6 and SA-11 zones are listed inactive and can be activated; the zones offer their training entries.
+
 ### R52. Enforced options, the F10 view per role, the deck lights, and three editor actions — **one pilot for items 2 and 3**
 
 [`FEAT-FORCED-MISSION-OPTIONS`](.backlog/FEAT-FORCED-MISSION-OPTIONS/PRD.md), ticket 06.

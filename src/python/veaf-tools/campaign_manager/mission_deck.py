@@ -22,7 +22,9 @@ from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
 from veaf_libs.coordinates import latlon_to_xy, to_dms, xy_to_latlon
 from veaf_libs.i18n import t
+from veaf_libs.magnetic import grid_heading_to_magnetic, ground_distance, magnetic_bearing
 from veaf_libs.map_tiles import Fetch
+from veaf_libs.mgrs import target_coordinates
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 
 from campaign_manager.briefing_deck import (
@@ -182,18 +184,21 @@ def _situation_page(
     reference = _reference(campaign, picture)
     if reference:
         name, (x, y) = reference
-        dx, dy = picture.bullseye[0] - x, picture.bullseye[1] - y
-        bearing = round(math.degrees(math.atan2(dy, dx))) % 360 or 360
+        bearing = magnetic_bearing(campaign.theatre, picture.date, (x, y), picture.bullseye)
         bullseye = t(
             "campaign.mission_deck.bullseye",
             dms=bullseye,
             bearing=f"{bearing:03d}",
-            range=round(math.hypot(dx, dy) / NM),
+            range=round(ground_distance(campaign.theatre, (x, y), picture.bullseye) / NM),
             base=name,
         )
     blocks.append(Block(t("campaign.mission_deck.heading.bullseye"), (bullseye,)))
     departures = [
-        t("campaign.mission_deck.departure_carrier", carrier=c.name, heading=f"{c.heading:03d}")
+        t(
+            "campaign.mission_deck.departure_carrier",
+            carrier=c.name,
+            heading=f"{grid_heading_to_magnetic(campaign.theatre, picture.date, (c.x, c.y), c.heading):03d}",
+        )
         for c in picture.carriers
     ]
     departures += [t("campaign.mission_deck.departure_airfield", airfield=a.name) for a in picture.airfields]
@@ -269,7 +274,9 @@ def _coordinates_page(campaign: CampaignDefinition, zones: list[CampaignZone]) -
         height = grid.elevation_at(*_zone_xy(campaign, zone)) if grid else None
         # no grid on this workstation, swept or downloaded: nothing rather than "unknown"
         elevation = f" — {metres_to_feet(height):.0f} ft" if height is not None else ""
-        lines.append(line(zone.label, f"{to_dms(lat, lon)}{elevation}"))
+        ddm, mgrs = target_coordinates(lat, lon)
+        lines.append(line(zone.label, f"{ddm}{elevation}"))
+        lines.append(f"      {mgrs}")
     lines.append(t("campaign.mission_deck.positions_in_flight"))
     return Page(t("campaign.mission_deck.title.coordinates"), [Block(None, tuple(lines))])
 

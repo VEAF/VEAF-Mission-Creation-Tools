@@ -137,6 +137,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafCarrierOperations.lua",
     "veafCasMission.lua",
     "veafCampaign.lua",
+    "veafCombatLog.lua",
     "veafCombatMission.lua",
     "veafCombatZone.lua",
     "veafGrass.lua",
@@ -602,6 +603,8 @@ class BuildAndReleaseWorker:
             (veaf_tools_dir / "veaf_libs" / "data" / "theatre-defaults.yaml", "veaf_libs/data"),
             # Per-theatre projection tables, read by the MCP coordinates/map/geo actions.
             (veaf_tools_dir / "veaf_libs" / "data" / "dcs-maps.yaml", "veaf_libs/data"),
+            # The World Magnetic Model's coefficients, read by the briefing's magnetic bearings.
+            (veaf_tools_dir / "veaf_libs" / "data" / "wmm", "veaf_libs/data/wmm"),
             # Known limitations and DCS traps, read by the MCP describe_known_limitations action.
             (veaf_tools_dir / "veaf_libs" / "data" / "known-limitations.yaml", "veaf_libs/data"),
             # The authoring guide and the mission prompts, read by the MCP describe_authoring_guide and

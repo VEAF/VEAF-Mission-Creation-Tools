@@ -14,11 +14,13 @@ briefing reads what that lot leaves, one ``<stem>.jpg`` and one ``<stem>.json`` 
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import t
+from veaf_libs.magnetic import grid_heading_to_magnetic
 from veaf_libs.terrain_elevation import metres_to_feet
 
 from mission_briefing.models import ReconPhoto
@@ -27,6 +29,10 @@ from mission_briefing.models import ReconPhoto
 RECON_FOLDER = Path("docs") / "recon"
 
 _IMAGE_SUFFIXES = (".jpg", ".jpeg")
+
+#: One photo per objective, two at most (David, FIX-MARTEAU-PLAY-FINDINGS 07): *Marteau du Golan* had twelve,
+#: six for one objective, and a briefing nobody reads to the end.
+MAX_PHOTOS_PER_OBJECTIVE = 2
 
 #: The index `veaf-tools dcs recon-render` writes beside the photos (FEAT-DCS-RECON-AND-MISSION-CHECK): no sidecar.
 _INDEX = "recon.json"
@@ -46,8 +52,8 @@ def load_recon(folder: Path, zones: list[str]) -> tuple[dict[str, list[ReconPhot
         zones: The briefing's objective zones, as ``objectives[].zone`` names them.
 
     Returns:
-        The photos by zone (as ``zones`` spells it), sorted by ``order`` then file name, and one warning
-        per photo skipped.
+        The photos by zone (as ``zones`` spells it), sorted by ``order`` then file name, at most
+        :data:`MAX_PHOTOS_PER_OBJECTIVE` each, and one warning per photo skipped.
     """
     by_zone: dict[str, list[ReconPhoto]] = {}
     warnings: list[str] = []
@@ -88,24 +94,37 @@ def load_recon(folder: Path, zones: list[str]) -> tuple[dict[str, list[ReconPhot
                 order=_number(raw, "order") or 0.0,
             )
         )
-    for photos in by_zone.values():
+    for zone, photos in by_zone.items():
         photos.sort(key=lambda photo: (photo.order, photo.image.name))
+        for extra in photos[MAX_PHOTOS_PER_OBJECTIVE:]:
+            warnings.append(
+                f"Recon {extra.image.name}: {zone} already has {MAX_PHOTOS_PER_OBJECTIVE} photos "
+                "(one per objective, two at most); skipped."
+            )
+        del photos[MAX_PHOTOS_PER_OBJECTIVE:]
     return by_zone, warnings
 
 
-def caption(theatre: str, photo: ReconPhoto) -> str:
-    """A photo's caption: ``Batterie SA-6 — cap 095°, piqué -12°, depuis N33°… E036°…, 2 789 ft``.
+def caption(theatre: str, when: date, photo: ReconPhoto, near: tuple[float, float]) -> str:
+    """A photo's caption: ``Batterie SA-6 — cap 095°M, piqué -12°, depuis N33°… E036°…, 2 789 ft``.
+
+    The sidecar's heading is on the mission's grid, as the DCS camera holds it: it is printed magnetic,
+    taken where the camera is, or at ``near`` when the sidecar does not say.
 
     Args:
         theatre: The mission's theatre, to print the camera's position.
+        when: The mission's date, for the magnetic declination.
         photo: The photo and what its sidecar gives.
+        near: The objective's centre, DCS ``(x, y)``.
 
     Returns:
         The title, then what the sidecar gives; the title alone when it gives nothing else.
     """
     parts = []
     if photo.heading is not None:
-        parts.append(t("mission_briefing.recon.heading", heading=f"{round(photo.heading) % 360:03d}"))
+        at = (photo.x, photo.y) if photo.x is not None and photo.y is not None else near
+        heading = grid_heading_to_magnetic(theatre, when, at, photo.heading)
+        parts.append(t("mission_briefing.recon.heading", heading=f"{heading:03d}"))
     if photo.pitch is not None:
         parts.append(t("mission_briefing.recon.pitch", pitch=f"{photo.pitch:+.0f}"))
     if photo.x is not None and photo.y is not None:

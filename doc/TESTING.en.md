@@ -156,6 +156,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafDcsSpawner.lua` | Runtime static creation: country, ids, shapes, random heading |
 | `test_csar_init.lua` | CSAR initialisation, in a real mission's load order (CSAR before VEAF): one event handler whatever happens |
 | `test_community_scripts_load.lua` | Every vendored community script loads without raising, against the DCS mocks alone — the gate that was missing when CTLD rc8 shipped a file that did not load (#957). TUM is excluded and says so: it auto-initializes and requires territory zones |
+| `test_aienGroupSA.lua` | AIEN reads a group's situational awareness through `groupSA`, built on demand: an artillery group hit from the start has none, and the counter-battery raised on it (2026-10-29) |
 | `test_stts.lua` | SRS text-to-speech validates its arguments before the system command |
 | `test_veafInterpreter.lua` | Mark text tokenizer |
 | `test_veafTime.lua` | Time parsing, formatting, DCS time helpers |
@@ -168,6 +169,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafWeather.lua` | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | Unit data export utilities |
 | `test_veafCombatMission.lua` | Base combat mission lifecycle |
+| `test_veafCombatLog.lua` | Combat log: one JSON line per shot, hit, kill and burst (rounds counted), a vanished shooter breaks nothing, without `io` nothing is written |
 | `test_veafCombatMission_menu.lua` | MISSIONS radio menu: missions declared after `initialize()`, deferred rebuild |
 | `test_veafAirbases.lua` | Airbase data lookup |
 | `test_veafCombatZone.lua` | Zone activation, scoring, state machine |

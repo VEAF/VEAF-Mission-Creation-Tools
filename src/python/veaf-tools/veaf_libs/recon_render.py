@@ -1,7 +1,7 @@
 """Turn a raw DCS shot into a reconnaissance photo: the look, the banner and the felt-pen marks.
 
 The look is a contrasted black and white print with grain and a vignette; the banner says the
-operation, the target, the heading, the pitch, the position in DMS, the ground elevation and the
+operation, the target, the heading, the pitch, the target's position in DDM and MGRS, the ground elevation and the
 time; a rose gives the heading; and the targets are circled the way an intelligence officer would
 with a red felt pen — irregular loops that do not close, a stroke that thickens mid-gesture, a
 shaky leader line and a handwritten label.
@@ -16,14 +16,17 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
-from veaf_libs.coordinates import to_dms
 from veaf_libs.dcs_recon import LiveUnit, camera_of, dominant_type, project
+from veaf_libs.dcs_units_data import is_mobile_vehicle_group
 from veaf_libs.i18n import t
+from veaf_libs.magnetic import grid_heading_to_magnetic, grid_heading_to_true
+from veaf_libs.mgrs import target_coordinates
 
 #: The felt pen.
 RED = (205, 22, 22)
@@ -156,7 +159,9 @@ def marks_of(meta: dict[str, Any], size: tuple[int, int]) -> list[tuple[float, f
     """Work out where the rings go: ``(x, y, radius, label)`` in the cropped shot's pixels.
 
     In ``groups`` mode one ring covers each group's projected vehicles; in ``units`` mode one ring
-    per vehicle. What projects outside the frame, or behind the camera, is not marked.
+    per vehicle. What projects outside the frame, or behind the camera, is not marked, and neither is a
+    group of vehicles that move about — tanks, armour, trucks: the photo shows their zone, not where
+    each one stood (David, FIX-MARTEAU-PLAY-FINDINGS 07).
 
     Args:
         meta: The shot's metadata.
@@ -173,8 +178,15 @@ def marks_of(meta: dict[str, Any], size: tuple[int, int]) -> list[tuple[float, f
     def inside(point: tuple[float, float] | None) -> bool:
         return point is not None and 0 <= point[0] < width and 0 <= point[1] < height
 
+    units = _units_of(meta)
+    types: dict[str, list[str]] = {}
+    for unit in units:
+        types.setdefault(unit.group, []).append(unit.type)
     projected: dict[str, list[tuple[LiveUnit, tuple[float, float]]]] = {}
-    for unit in _units_of(meta):
+    for unit in units:
+        # a vehicle placed as a static does not move: it is ringed like any target
+        if unit.kind == "unit" and is_mobile_vehicle_group(types[unit.group]):
+            continue
         point = project(camera, unit.x, unit.z, unit.alt, window["width"], window["height"])
         if point is not None and inside(point):
             projected.setdefault(unit.group, []).append((unit, point))
@@ -219,6 +231,28 @@ def annotate(image: Image.Image, meta: dict[str, Any]) -> int:
     return len(marks)
 
 
+def shot_headings(meta: dict[str, Any]) -> tuple[int, float]:
+    """A shot's heading as the banner prints it, magnetic, and true, for the rose's north (the maps' north).
+
+    The camera's heading is on the mission's grid, as DCS holds a camera: taken where the camera stands,
+    at the mission's date.
+
+    Args:
+        meta: The shot's metadata (``shot_metadata``).
+
+    Returns:
+        ``(magnetic, true)``, degrees.
+    """
+    camera = meta["camera"]["position"]
+    at = (camera[0], camera[2])
+    when = date.fromisoformat(meta["date"])
+    heading = meta["heading_deg"]
+    return (
+        grid_heading_to_magnetic(meta["theatre"], when, at, heading),
+        grid_heading_to_true(meta["theatre"], at, heading),
+    )
+
+
 def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, total: int) -> Image.Image:
     """Put the banner, the corner marks and the heading rose around a shot.
 
@@ -233,7 +267,8 @@ def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, 
         A new, taller image.
     """
     width, height = image.size
-    top, bottom = 70, 130
+    top, bottom = 70, 166
+    magnetic, true = shot_headings(meta)
     out = Image.new("RGB", (width, height + top + bottom), (8, 8, 8))
     out.paste(image, (0, top))
     draw = ImageDraw.Draw(out)
@@ -243,10 +278,11 @@ def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, 
     draw.text((width - 330, 18), f"FRAME {index:02d}/{total:02d}", fill=PAPER, font=bold)
 
     target = meta["target"]
-    position = to_dms(target["lat"], target["lon"]) if target.get("lat") is not None else ""
+    # a target's position is DDM and MGRS, never DMS (FIX-MARTEAU-PLAY-FINDINGS 04)
+    position, grid = target_coordinates(target["lat"], target["lon"]) if target.get("lat") is not None else ("", "")
     line = t(
         "recon.banner.line",
-        heading=f"{meta['heading_deg']:03.0f}",
+        heading=f"{magnetic:03d}",
         pitch=f"{meta['pitch_deg']:.0f}",
         position=position,
         elevation=round(target["alt_m"] * 3.281),
@@ -255,6 +291,8 @@ def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, 
     )
     draw.text((24, height + top + 14), meta["title"].upper(), fill=YELLOW, font=_font(_MONO_BOLD, 40))
     draw.text((24, height + top + 70), line, fill=PAPER, font=mono)
+    # its own line: beside the DDM it ran past the right edge of a 1920-pixel grab
+    draw.text((24, height + top + 112), grid, fill=PAPER, font=mono)
 
     for x0, y0, sx, sy in (
         (40, top + 40, 1, 1),
@@ -265,14 +303,14 @@ def frame(image: Image.Image, meta: dict[str, Any], operation: str, index: int, 
         draw.line([(x0, y0), (x0 + 70 * sx, y0)], fill=PAPER, width=4)
         draw.line([(x0, y0), (x0, y0 + 70 * sy)], fill=PAPER, width=4)
 
-    # The image's up is the shot's heading, so north is turned by as much the other way.
+    # The image's up is the shot's heading, so true north is turned by as much the other way.
     cx, cy, length = width - 110, top + 130, 60
     draw.ellipse([cx - 75, cy - 75, cx + 75, cy + 75], outline=PAPER, width=3)
-    angle = math.radians(-meta["heading_deg"])
+    angle = math.radians(-true)
     nx, ny = cx + length * math.sin(angle), cy - length * math.cos(angle)
     draw.line([(cx, cy), (nx, ny)], fill=YELLOW, width=6)
     draw.text((nx - 10, ny - 20), "N", fill=YELLOW, font=_font(_MONO_BOLD, 34))
-    draw.text((cx - 60, cy + 82), f"HDG {meta['heading_deg']:03.0f}", fill=PAPER, font=_font(_MONO_BOLD, 26))
+    draw.text((cx - 60, cy + 82), f"HDG {magnetic:03d}°M", fill=PAPER, font=_font(_MONO_BOLD, 26))
     return out
 
 

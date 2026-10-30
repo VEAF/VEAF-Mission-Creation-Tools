@@ -19,6 +19,7 @@ What are you building? Pick the step that matches.
 | **Assets & services** | [veafAssets](veafAssets.en.md), [veafCarrierOperations](veafCarrierOperations.en.md), [veafGrass](veafGrass.en.md), [veafWeather](veafWeather.en.md) | Managed tankers/AWACS/carriers, weather |
 | **Protection** | [veafMissileGuardian](veafMissileGuardian.en.md), [veafSanctuary](veafSanctuary.en.md) | Missile defense, safe zones |
 | **In-flight assistance** | [veafAssist](veafAssist.en.md) | Guided checklists: the mission boxes the right switch in the cockpit and ticks the line |
+| **Debrief** | [veafCombatLog](veafCombatLog.en.md) | Every shot, hit and kill to a file, for the recap per pilot |
 | **Integrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.en.md) | Third-party IADS systems |
 
 ### By player interaction

@@ -175,5 +175,10 @@ def test_following_a_level_the_mission_does_not_set_scales_nothing(tmp_path: Pat
     assert "renforce" not in _qra_text(tmp_path, _FOLLOWING_QRA)
 
 
+def test_the_default_level_0_announces_no_reinforcement(tmp_path: Path) -> None:
+    """FIX-MARTEAU-PLAY-FINDINGS 02: every mission now carries {level: 0}, which only gives the menu."""
+    assert "renforce" not in _qra_text(tmp_path, "opposition: {level: 0}\n" + _FOLLOWING_QRA)
+
+
 def test_a_fixed_qra_says_nothing_of_it(tmp_path: Path) -> None:
     assert "renforce" not in _qra_text(tmp_path, None)

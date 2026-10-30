@@ -275,6 +275,8 @@ trigger = {
 -- ---------------------------------------------------------------------------
 world = {
   event = {
+    -- The values of the vendored dcs-world-schema (FEAT-COMBAT-LOG): 17 to 31 were off by one or two,
+    -- and S_EVENT_KILL, S_EVENT_SCORE and S_EVENT_DETAILED_FAILURE were missing.
     S_EVENT_INVALID = 0,
     S_EVENT_SHOT = 1,
     S_EVENT_HIT = 2,
@@ -292,19 +294,24 @@ world = {
     S_EVENT_REFUELING_STOP = 14,
     S_EVENT_BIRTH = 15,
     S_EVENT_HUMAN_FAILURE = 16,
-    S_EVENT_ENGINE_STARTUP = 17,
-    S_EVENT_ENGINE_SHUTDOWN = 18,
+    S_EVENT_DETAILED_FAILURE = 17,
+    S_EVENT_ENGINE_STARTUP = 18,
+    S_EVENT_ENGINE_SHUTDOWN = 19,
     S_EVENT_PLAYER_ENTER_UNIT = 20,
     S_EVENT_PLAYER_LEAVE_UNIT = 21,
-    S_EVENT_SHOOTING_START = 22,
-    S_EVENT_SHOOTING_END = 23,
+    S_EVENT_PLAYER_COMMENT = 22,
+    S_EVENT_SHOOTING_START = 23,
+    S_EVENT_SHOOTING_END = 24,
     S_EVENT_MARK_ADDED = 25,
     S_EVENT_MARK_CHANGE = 26,
     S_EVENT_MARK_REMOVED = 27,
-    S_EVENT_PLAYER_COMMENT = 28,
-    S_EVENT_UNIT_LOST = 29,
-    S_EVENT_LANDING_AFTER_EJECTION = 30,
-    S_EVENT_MAX = 31,
+    S_EVENT_KILL = 28,
+    S_EVENT_SCORE = 29,
+    S_EVENT_UNIT_LOST = 30,
+    S_EVENT_LANDING_AFTER_EJECTION = 31,
+    S_EVENT_PARATROOPER_LENDING = 32,
+    S_EVENT_DISCARD_CHAIR_AFTER_EJECTION = 33,
+    S_EVENT_MAX = 62,
   },
   -- Recorded rather than discarded. DCS does not deduplicate handlers, so registering twice means
   -- every event is delivered twice — the defect fixed in 6.17.0 for VEAF's own handler (#824). A

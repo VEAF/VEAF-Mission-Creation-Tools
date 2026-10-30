@@ -5122,6 +5122,18 @@ local function getSA(group) -- built a situational awareness check
   end
 end
 
+-- VEAF: the SA of a group DB entry, computed on demand when the phase cycle has not filled it yet.
+-- The cycle skips groups under attack (`underAttack`), so an artillery hit from the start never got
+-- an `sa`, and every `og.sa.pos` read raised "attempt to index field 'sa'" (49 times in one evening,
+-- the counter-battery never fired). Returns nil when no SA can be built.
+local function groupSA(og)
+  if not og.sa then
+    og.sa = getSA(og.group)
+  end
+  return og.sa or nil
+end
+AIEN.groupSA = groupSA -- VEAF: exposed for test_aienGroupSA.lua
+
 --###### GROUP AI COMMAND FUNCTIONS ################################################################
 
 -- Below functions has been created to give command to ground groups, from the most basic to the more advanced.
@@ -5628,8 +5640,9 @@ local function counterBattery(hitPos, tgtPos, coa) -- this function emulates cou
           if og.coa == coa and og.tasked == false then
             if og.class == "ARTY" or og.class == "MLRS" then --  or og.class == "MLRS" -- not considering MLRS as they're intended for more area or tactical fire
               if og.group and og.group:isExist() == true then
-                local d = getDist(og.sa.pos, tgtPos)
-                if d < og.threat * 0.9 then
+                local p = (groupSA(og) or {}).pos -- VEAF: og.sa may not be built yet
+                local d = p and getDist(p, tgtPos)
+                if d and d < og.threat * 0.9 then
                   og.tasked = true
                   og.taskTime = timer.getTime()
                   og.firePoint = tgtPos
@@ -6423,7 +6436,7 @@ local function ac_withdraw(group, ownPos, tgtPos, resume, sa, skill) -- this wil
       if og.coa == group:getCoalition() then
         if og.n ~= group:getName() then
           if og.group and og.group:isExist() == true then
-            local p = og.sa.pos
+            local p = (groupSA(og) or {}).pos -- VEAF: og.sa may not be built yet
             --local td    = og.threat
             if p then -- and td
               -- within range
@@ -6736,7 +6749,7 @@ local function ac_groundSupport(group, ownPos, tgtPos, resume, sa, skill) -- thi
       if og.coa == group:getCoalition() and og.n ~= group:getName() then
         if og.group and og.group:isExist() == true then
           if supportGroundClasses[og.class] and supportGroundClasses[og.class] > bestVal then
-            local p = og.sa.pos
+            local p = (groupSA(og) or {}).pos -- VEAF: og.sa may not be built yet
             local td = og.threat
             if p and td then
               -- within range
@@ -6791,7 +6804,7 @@ local function ac_coverADS(group, ownPos, tgtPos, resume, sa, skill) -- this wil
       if og.coa == group:getCoalition() and og.n ~= group:getName() then
         if og.group and og.group:isExist() == true then
           if supportCounterAirClasses[og.class] and supportCounterAirClasses[og.class] > bestVal then
-            local p = og.sa.pos
+            local p = (groupSA(og) or {}).pos -- VEAF: og.sa may not be built yet
             local td = og.threat
             if p and td then
               -- within range
@@ -6867,8 +6880,9 @@ local function ac_fireMissionOnShooter(group, ownPos, tgtPos, resume, sa, skill)
       if og.coa == group:getCoalition() and og.tasked == false then
         if og.class == "ARTY" then --  or og.class == "MLRS" -- not considering MLRS as they're intended for more area or tactical fire
           if og.group and og.group:isExist() == true then
-            local d = getDist(og.sa.pos, tgtPos)
-            if d < og.threat * 0.8 then
+            local p = (groupSA(og) or {}).pos -- VEAF: og.sa may not be built yet
+            local d = p and getDist(p, tgtPos)
+            if d and d < og.threat * 0.8 then
               og.tasked = true
               og.taskTime = timer.getTime()
               og.firePoint = tgtPos
@@ -7706,8 +7720,8 @@ function AIEN_testActions(groupName, actionName)
     for _, gData in pairs(groundgroupsDb) do
       if groupName == gData.n then
         gr = gData.group
-        saTbl = gData.sa
-        ownPos = gData.sa.pos
+        saTbl = groupSA(gData) -- VEAF: gData.sa may not be built yet
+        ownPos = saTbl and saTbl.pos
         skill = gData.skill
         coa = gData.coa
       end

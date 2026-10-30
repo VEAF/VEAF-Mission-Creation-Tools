@@ -535,6 +535,7 @@ The build tells you how many it added.
 | `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
 | `export` | Exports a `.miz` to **JSON** (default), **YAML** or **Markdown** (readable brief): `export mission.miz out.json --format json`. Parsing is **pure-Python** (the `luadata` parser) and **never executes Lua** — a safe alternative to interpreting an untrusted `.miz` (arbitrary-code-execution risk). Writes to stdout when no output file is given |
 | `password-hash` | Turns a password into the SHA-1 hash `security.password_hashes` takes, the input hidden; only the hash is printed ([reference](../CLI_REFERENCE.en.md#password-hash)) |
+| `combat-log` | After the mission, the recap per pilot of its combat log (`veaf-combat-log-*.jsonl`, module `COMBATLOG`): weapons fired, gun rounds, hits, kills ([reference](../CLI_REFERENCE.en.md#combat-log)) |
 | `inject-presets` | Injects radio frequency plans for all human cockpits |
 | `inject-weather` | Creates weather/time variants from a YAML config |
 | `inject-aircraft-groups` | Injects aircraft group templates |

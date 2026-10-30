@@ -10,7 +10,6 @@ the rest of the file and its comments untouched.
 
 from __future__ import annotations
 
-import math
 import re
 from pathlib import Path
 from typing import Any
@@ -19,9 +18,10 @@ from campaign_manager.mission_picture import NM
 from mission_tools.mission_yaml_editor import _yaml, load_yaml, save_yaml
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from veaf_libs.coordinates import latlon_to_xy
+from veaf_libs.magnetic import ground_distance, magnetic_bearing
 from veaf_libs.terrain_elevation import grid_for_theatre
 
-from veaf_mission_mcp.map_tools import mission_theatre
+from veaf_mission_mcp.map_tools import mission_date, mission_theatre
 
 #: The flight plans' file, in the mission folder.
 WAYPOINTS_FILE = Path("src") / "waypoints.yaml"
@@ -71,7 +71,8 @@ def set_route(
 
     Returns:
         ``{file, backup, plan, points: [{key, name, x, y, alt_m}], legs: [{from, to, heading, nm}],
-        warnings}``; ``backup`` is ``None`` when the file did not exist.
+        warnings}``; ``backup`` is ``None`` when the file did not exist. A leg's ``heading`` is magnetic
+        at the mission's date and its ``nm`` on the ellipsoid, as the cockpit and the briefing give them.
 
     Raises:
         ValueError: An empty list, a point with no position, or two points with one name.
@@ -164,14 +165,15 @@ def set_route(
         _first_write(path, data)
 
     legs = []
+    when = mission_date(folder)
     for a, b in zip(resolved, resolved[1:], strict=False):
-        dx, dy = b["x"] - a["x"], b["y"] - a["y"]
+        start, end = (a["x"], a["y"]), (b["x"], b["y"])
         legs.append(
             {
                 "from": a["name"],
                 "to": b["name"],
-                "heading": round(math.degrees(math.atan2(dy, dx))) % 360 or 360,
-                "nm": round(math.hypot(dx, dy) / NM),
+                "heading": magnetic_bearing(theatre, when, start, end),
+                "nm": round(ground_distance(theatre, start, end) / NM),
             }
         )
     return {

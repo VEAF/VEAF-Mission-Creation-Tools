@@ -61,7 +61,8 @@ def test_the_plan_and_its_points_are_written_on_the_ground(folder: Path) -> None
     assert data["waypoints"]["LION_PUSH"]["alt_type"] == "BARO"
     assert "KEEP" in data["waypoints"] and "other" in data["settings"]
     assert "# the maker's comment" in (folder / "src" / "waypoints.yaml").read_text(encoding="utf-8")
-    assert result["legs"] == [{"from": "FEET WET", "to": "PUSH", "heading": 294, "nm": 90}]
+    # magnetic at the mission's date, as the briefing: the grid gave 294 (FIX-BRIEFING-MAGNETIC-HEADINGS)
+    assert result["legs"] == [{"from": "FEET WET", "to": "PUSH", "heading": 293, "nm": 90}]
     assert Path(result["backup"]).is_file()
 
 

@@ -341,6 +341,8 @@ def create_qra(
         "name": name,
         "coalition": coalition.upper(),
         "trigger_zone": trigger_zone,
+        # Sized by the Opposition menu when the Mission Maker raises it (FIX-MARTEAU-PLAY-FINDINGS 02).
+        "scale_with_opposition": True,
     }
     # Beside scramble levels, simple_groups never deploy: the caller's levels say who scrambles
     # (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 03).
@@ -368,8 +370,15 @@ def create_qra(
 
 
 def _append_qra_definition(yaml_path: Path, definition: dict[str, Any]) -> None:
-    """Append a `definitions[]` entry to `modules.QRA` in `mission.yaml`, preserving comments."""
+    """Append a `definitions[]` entry to `modules.QRA` in `mission.yaml`, preserving comments.
+
+    Adds the root `opposition: {level: 0}` block when the mission has none: without it the Opposition
+    radio menu does not exist, and a QRA's `scale_with_opposition` has no level to follow. Level 0
+    sizes nothing, so the mission starts as built.
+    """
     data: Any = load_yaml(yaml_path)
+    if data.get("opposition") is None:
+        data["opposition"] = {"level": 0}
     modules: Any = data.get("modules") if hasattr(data, "get") else None
     if not hasattr(modules, "get"):
         modules = {}

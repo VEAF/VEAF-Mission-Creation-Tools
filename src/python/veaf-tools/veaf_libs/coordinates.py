@@ -239,6 +239,27 @@ def to_dms(lat: float, lon: float) -> str:
     return f"{part(lat, 'N', 'S', 2)} {part(lon, 'E', 'W', 3)}"
 
 
+def to_ddm(lat: float, lon: float) -> str:
+    """A position in degrees and decimal minutes, to the thousandth: ``N33°07.536' E035°49.482'``.
+
+    Rounded once, then split, so that 59.9996' carries into the degree.
+
+    Args:
+        lat: Latitude, decimal degrees.
+        lon: Longitude, decimal degrees.
+
+    Returns:
+        The position, as an F-16 or an A-10 takes it.
+    """
+
+    def part(value: float, positive: str, negative: str, width: int) -> str:
+        thousandths = round(abs(value) * 60000)
+        degrees, rest = divmod(thousandths, 60000)
+        return f"{positive if value >= 0 else negative}{degrees:0{width}d}°{rest / 1000:06.3f}'"
+
+    return f"{part(lat, 'N', 'S', 2)} {part(lon, 'E', 'W', 3)}"
+
+
 __all__ = [
     "supported_theatres",
     "is_theatre_supported",
@@ -246,4 +267,5 @@ __all__ = [
     "latlon_to_xy",
     "offset_latlon",
     "to_dms",
+    "to_ddm",
 ]

@@ -60,7 +60,7 @@ jobs:
         run: poetry run veaf-build build --version ${{ steps.version.outputs.version }}
 
       # veaf-logs is the Go viewer of src/go/veaf-logs (ADR 0023), not a Python build.
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: src/go/veaf-logs/go.mod
           cache-dependency-path: src/go/veaf-logs/go.sum

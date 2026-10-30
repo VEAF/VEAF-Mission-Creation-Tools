@@ -759,7 +759,9 @@ Each one is the matching `veaf-tools campaign` command (`campaign_manager.Campai
   | `altitude_m` | no | camera altitude, metres; printed in feet |
   | `order` | no | sorting within the zone (then file name), default 0 |
 
-  After each objective's zoom, its photos two to a slide (deck and PDF) and two to a kneeboard page, captioned "title — heading 095°, pitch -12°, from <DMS>, <ft>" with what the sidecar gives. The `recon.json` index `veaf-tools dcs recon-render` writes beside them is ignored. A photo with no sidecar, a sidecar with no photo, no `zone` or `title`, or a zone that is no objective: skipped, in `warnings`. The result lists the photos used in `recon`.
+  After each objective's zoom, its photos two to a slide (deck and PDF) and two to a kneeboard page, captioned "title — heading 095°, pitch -12°, from <DMS>, <ft>" with what the sidecar gives. The `recon.json` index `veaf-tools dcs recon-render` writes beside them is ignored. A photo with no sidecar, a sidecar with no photo, no `zone` or `title`, or a zone that is no objective: skipped, in `warnings`.
+  **Two photos per objective at most** (one by default): the next ones in order (`order`, then the name) are skipped, in `warnings` — *Marteau du Golan* had six for one objective.
+  The result lists the photos used in `recon`.
 
 ### Syria Open Training (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 

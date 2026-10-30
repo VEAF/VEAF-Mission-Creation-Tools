@@ -25,6 +25,7 @@ from PIL import Image
 from presets_injector.presets_manager import KNEEBOARD_PAGE_SIZE
 from veaf_libs.coordinates import latlon_to_xy, offset_latlon, xy_to_latlon
 from veaf_libs.magnetic import declination
+from veaf_libs.mgrs import target_coordinates
 
 
 def _jpeg_size(data: bytes) -> tuple[int, int]:
@@ -93,7 +94,7 @@ def test_a_target_says_where_it_stands_from_the_bullseye_magnetic() -> None:
     area = ObjectiveArea("AdlerDepot", -162275, 463825, 250, (Target("Fuel Tank", *east),))
     ((_, lines),) = targets_blocks("Caucasus", when, [("Adler depot", area)], (-162275, 463825))
     # On the ellipsoid: the grid read 10.1 nm, its scale 7 degrees from the projection's meridian.
-    assert lines[1] == f"      Bullseye {round(90 - declination(lat, lon, when)):03d}°M / 10.0 nm"
+    assert lines[2] == f"      Bullseye {round(90 - declination(lat, lon, when)):03d}°M / 10.0 nm"
 
 
 def test_page_names_sort_after_the_calibration_page_and_are_recognised() -> None:
@@ -103,3 +104,20 @@ def test_page_names_sort_after_the_calibration_page_and_are_recognised() -> None
     assert all(is_kneeboard_page(name) for name in names)
     assert not is_kneeboard_page("00-veaf-calibration.png")
     assert not is_kneeboard_page("../01-briefing-x.jpg")
+
+
+def test_a_target_is_given_in_ddm_and_mgrs_and_vehicles_by_their_zone() -> None:
+    """FIX-MARTEAU-PLAY-FINDINGS 04: DD°MM.mmm' and MGRS, never DMS; vehicles that move say it is their zone."""
+    lat, lon = xy_to_latlon("Caucasus", -162275, 463825)
+    ddm, mgrs = target_coordinates(lat, lon)
+    area = ObjectiveArea(
+        "AdlerDepot",
+        -162275,
+        463825,
+        250,
+        (Target("Fuel Tank", -162275, 463825), Target("Armour", -162275, 463825, mobile=True)),
+    )
+    ((_, lines),) = targets_blocks("Caucasus", date(2016, 6, 1), [("Adler depot", area)], None)
+    assert ddm in lines[0] and '"' not in lines[0]
+    assert lines[1] == f"      {mgrs}"
+    assert "zone" in lines[2] and ddm in lines[2]

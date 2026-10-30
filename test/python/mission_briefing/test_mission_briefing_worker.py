@@ -15,8 +15,9 @@ from objective_mission_fixture import KHOBI_ZONE, objective_mission
 from offline import offline
 from PIL import Image
 from pptx import Presentation
-from veaf_libs.coordinates import to_dms, xy_to_latlon
+from veaf_libs.coordinates import xy_to_latlon
 from veaf_libs.i18n import language
+from veaf_libs.mgrs import target_coordinates
 from veaf_mission_mcp.mission_folder import load_folder_mission
 from veaf_mission_mcp.mission_table import indexed
 
@@ -112,8 +113,8 @@ class TestTheDeck:
         assert "Ch. 1 — Ninja : 390.5 MHz" in text and "243" not in text
         assert "1. Zip  2. Couz" in text
         _, zx, zy, _ = KHOBI_ZONE
-        dms = to_dms(*xy_to_latlon("Caucasus", zx + 300, zy + 200))
-        assert f"SA8{chr(10)}Osa 9A33 ln{chr(10)}missiles sol-air à courte portée{chr(10)}DMS {dms}" in text
+        ddm, mgrs = target_coordinates(*xy_to_latlon("Caucasus", zx + 300, zy + 200))
+        assert f"SA8{chr(10)}Osa 9A33 ln{chr(10)}missiles sol-air à courte portée{chr(10)}{ddm}{chr(10)}{mgrs}" in text
         assert "Patrol" not in text  # near the zone, not one of its members
 
     def test_a_threat_whose_group_is_missing_is_a_warning(self, tmp_path: Path) -> None:
@@ -183,7 +184,8 @@ class TestTheSheets:
         text = chr(10).join(shape.text_frame.text for shape in slide.shapes if shape.has_text_frame)
         assert "Détruire le dépôt de Khobi" in text  # the objective the sheets belong to
         assert "SA8" in text and "Osa 9A33 ln" in text  # the target, and what it is
-        assert "DDM N4" in text and "DMS N4" in text
+        # FIX-MARTEAU-PLAY-FINDINGS 04: a target in DDM and MGRS, never in degrees, minutes and seconds
+        assert "DDM N4" in text and "MGRS 37T " in text and "DMS N4" not in text
         assert sum(1 for shape in slide.shapes if shape.shape_type == 13) >= 2  # a thumbnail each
 
     def test_the_flight_plan_step_by_step_with_what_is_done_there(self, sheets: BriefingReport) -> None:

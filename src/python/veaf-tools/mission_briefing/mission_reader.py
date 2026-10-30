@@ -21,7 +21,7 @@ from typing import Any
 
 from mission_tools.mission_yaml_editor import load_yaml
 from presets_injector.airfield_channels_manager import load_reference
-from veaf_libs.dcs_units_data import get_unit_attributes
+from veaf_libs.dcs_units_data import get_unit_attributes, is_mobile_vehicle_group
 from veaf_libs.i18n import t
 from veaf_libs.mission_table import indexed
 
@@ -144,6 +144,7 @@ def _members(category: str, group: dict[str, Any], zone: str) -> list[Target]:
         return [Target(label, float(first["x"]), float(first["y"]), t("mission_briefing.spawned"), spawned=True)]
     group_name = str(group.get("name", ""))
     names = [str(unit.get("name") or "") for unit in units]
+    mobile = is_mobile_vehicle_group(str(unit.get("type") or "") for unit in units)
     # a lone unit is named by its zone's author only when its name says its zone; otherwise it is its group
     alone = len(units) == 1 and not names[0].lower().startswith(zone.lower())
     if not alone and all(_own_name(name, group_name) for name in names):
@@ -154,6 +155,7 @@ def _members(category: str, group: dict[str, Any], zone: str) -> list[Target]:
                 float(unit["y"]),
                 str(unit.get("type") or ""),
                 target_role(str(unit.get("type") or "")),
+                mobile=mobile,
             )
             for name, unit in zip(names, units, strict=True)
         ]
@@ -164,6 +166,7 @@ def _members(category: str, group: dict[str, Any], zone: str) -> list[Target]:
             float(first["y"]),
             _kind(units),
             target_role(str(first.get("type") or "")),
+            mobile=mobile,
         )
     ]
 
@@ -226,6 +229,9 @@ def objective_area(content: dict[str, Any], zone: str, enemy: str) -> ObjectiveA
         name = str(first.get("name", "")) if category == "static" else str(group.get("name", ""))
         if name.lower().startswith(prefix):
             targets += _members(category, group, zone)
+    # vehicles move: a briefing gives their zone, not where they stood when the mission was saved
+    centre = float(found["x"]), float(found["y"])
+    targets = [replace(target, x=centre[0], y=centre[1]) if target.mobile else target for target in targets]
     return ObjectiveArea(
         zone, float(found["x"]), float(found["y"]), float(found.get("radius", 0)), _numbered_names(targets)
     )

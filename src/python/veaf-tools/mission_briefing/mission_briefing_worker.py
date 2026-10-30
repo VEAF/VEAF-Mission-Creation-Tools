@@ -68,16 +68,17 @@ from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
 from presets_injector.presets_manager import KNEEBOARD_CALIBRATION_PATH
 from veaf_libs.clear_ground_survey import airfield_positions
-from veaf_libs.coordinates import to_dms, xy_to_latlon
+from veaf_libs.coordinates import to_ddm, to_dms, xy_to_latlon
 from veaf_libs.i18n import current_language, language, t
 from veaf_libs.magnetic import grid_heading_to_magnetic, ground_distance, magnetic_bearing
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
+from veaf_libs.mgrs import target_coordinates
 from veaf_libs.mission_table import indexed
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 from veaf_mission_mcp.add_sound import _folder_l10n
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
 
-from mission_briefing.briefing_cards import Card, CardPage, CardSection, thumbnail, to_ddm, write_card_page
+from mission_briefing.briefing_cards import Card, CardPage, CardSection, thumbnail, write_card_page
 from mission_briefing.briefing_kneeboard import (
     KNEEBOARD_FOLDER,
     MAP_ASPECT,
@@ -700,8 +701,8 @@ def _target_sheets(
     zooms: list[TacticalMapReport],
     warnings: list[str],
 ) -> CardSection:
-    """One sheet per target: what it is and does, its coordinates in DMS and DDM, its elevation, its bullseye,
-    a thumbnail of its zoom.
+    """One sheet per target: what it is and does, its coordinates in DDM and MGRS (never DMS), its elevation, its
+    bullseye, a thumbnail of its zoom. Vehicles that move about are given by their zone's centre, and say so.
 
     The list of names and DMS it replaces was arid (FEAT-OBJECTIVE-BRIEFING-QUALITY 03); a target is a unit
     when its units carry names of their own (FIX-BRIEFING-PARITY-MARTEAU 03).
@@ -720,7 +721,8 @@ def _target_sheets(
             lat, lon = xy_to_latlon(theatre, target.x, target.y)
             lines = [target.kind] if target.kind else []
             lines += [target.role] if target.role else []
-            lines += [f"DMS {to_dms(lat, lon)}", f"DDM {to_ddm(lat, lon)}"]
+            lines += [t("mission_briefing.zone_position")] if target.mobile else []
+            lines += target_coordinates(lat, lon)
             height = grid.elevation_at(target.x, target.y) if grid else None
             if height is not None:
                 lines.append(t("mission_briefing.elevation", feet=_feet(height), metres=round(height)))

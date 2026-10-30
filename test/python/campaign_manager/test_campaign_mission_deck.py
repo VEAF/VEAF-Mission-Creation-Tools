@@ -258,7 +258,9 @@ class TestTheDeck:
     def test_coordinates_are_zone_centres_never_at_sixty_seconds(self, tmp_path: Path) -> None:
         slides = _deck(tmp_path)
         (page,) = [slide for slide in slides if slide[0] == "9. Coordonnées des objectifs"]
-        assert "Gudauta depot : N43°06'00.00\" E040°34'48.00\"" in page[1]
+        # FIX-MARTEAU-PLAY-FINDINGS 04: DDM then MGRS, never degrees, minutes and seconds
+        assert "Gudauta depot : DDM N43°06.000' E040°34.800'" in page[1]
+        assert "      MGRS 38T KM 56437 80737" in page[1]
         assert "se relèvent en vol" in page[1]
         assert not re.search(r"60\.00\"", "\n".join("\n".join(slide) for slide in slides))
 

@@ -26,6 +26,7 @@ from presets_injector.presets_manager import KNEEBOARD_PAGE_SIZE
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import t
 from veaf_libs.magnetic import ground_distance, magnetic_bearing
+from veaf_libs.mgrs import target_coordinates
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet, profile
 
 from mission_briefing.models import ObjectiveArea
@@ -396,7 +397,10 @@ def targets_blocks(
         for target in area.targets:
             height = grid.elevation_at(target.x, target.y) if grid else None
             elevation = f" — {metres_to_feet(height):.0f} ft" if height is not None else ""
-            lines.append(line(target.name, f"{to_dms(*xy_to_latlon(theatre, target.x, target.y))}{elevation}"))
+            ddm, mgrs = target_coordinates(*xy_to_latlon(theatre, target.x, target.y))
+            zone = f" ({t('mission_briefing.zone_position')})" if target.mobile else ""
+            lines.append(line(target.name, f"{ddm}{elevation}{zone}"))
+            lines.append(f"      {mgrs}")
             if bullseye is not None:
                 distance = ground_distance(theatre, bullseye, (target.x, target.y)) / NM
                 bearing = magnetic_bearing(theatre, when, bullseye, (target.x, target.y)) if distance >= 0.05 else 0

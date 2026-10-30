@@ -65,6 +65,25 @@ class TestMarks:
         marks = marks_of(_meta("units", {"Kub 1S91": "RADAR 1S91"}), (WIDTH, HEIGHT - INFO_BAR_PX))
         assert sorted(m[3] for m in marks) == ["Kub 2P25 ln", "Kub 2P25 ln", "RADAR 1S91"]
 
+    def test_vehicles_that_move_are_not_ringed(self) -> None:
+        """FIX-MARTEAU-PLAY-FINDINGS 07: a photo of tanks shows their zone, not where each one stood."""
+        units = [
+            LiveUnit("unit", 1, "Khan [r] Armor#1", "T-72B", 1000, 1000, 800),
+            LiveUnit("unit", 1, "Khan [r] Armor#1", "BMP-2", 1040, 1030, 800),
+            LiveUnit("unit", 1, "Khan [r] SA13#2", "Strela-10M3", 1080, 960, 800),
+        ]
+        camera = camera_for(1040, 1000, 800, heading=0, pitch=30, slant=900)
+        meta = shot_metadata(
+            Shot("05-khan", "Khan", ["Khan"], 0, 30, 900, "units", {}),
+            camera,
+            units,
+            (1040, 1000, 800),
+            MissionInfo("Caucasus", "2011-04-16", 41460),
+            (WIDTH, HEIGHT),
+            (42.0, 41.0),
+        )
+        assert [m[3] for m in marks_of(meta, (WIDTH, HEIGHT - INFO_BAR_PX))] == ["Strela-10M3"]
+
     def test_a_group_label_by_prefix(self) -> None:
         marks = marks_of(_meta("groups", {"SA6Sasa": "SA-6"}), (WIDTH, HEIGHT - INFO_BAR_PX))
         assert [m[3] for m in marks] == ["SA-6"]

@@ -30,6 +30,10 @@ RECON_FOLDER = Path("docs") / "recon"
 
 _IMAGE_SUFFIXES = (".jpg", ".jpeg")
 
+#: One photo per objective, two at most (David, FIX-MARTEAU-PLAY-FINDINGS 07): *Marteau du Golan* had twelve,
+#: six for one objective, and a briefing nobody reads to the end.
+MAX_PHOTOS_PER_OBJECTIVE = 2
+
 #: The index `veaf-tools dcs recon-render` writes beside the photos (FEAT-DCS-RECON-AND-MISSION-CHECK): no sidecar.
 _INDEX = "recon.json"
 
@@ -48,8 +52,8 @@ def load_recon(folder: Path, zones: list[str]) -> tuple[dict[str, list[ReconPhot
         zones: The briefing's objective zones, as ``objectives[].zone`` names them.
 
     Returns:
-        The photos by zone (as ``zones`` spells it), sorted by ``order`` then file name, and one warning
-        per photo skipped.
+        The photos by zone (as ``zones`` spells it), sorted by ``order`` then file name, at most
+        :data:`MAX_PHOTOS_PER_OBJECTIVE` each, and one warning per photo skipped.
     """
     by_zone: dict[str, list[ReconPhoto]] = {}
     warnings: list[str] = []
@@ -90,8 +94,14 @@ def load_recon(folder: Path, zones: list[str]) -> tuple[dict[str, list[ReconPhot
                 order=_number(raw, "order") or 0.0,
             )
         )
-    for photos in by_zone.values():
+    for zone, photos in by_zone.items():
         photos.sort(key=lambda photo: (photo.order, photo.image.name))
+        for extra in photos[MAX_PHOTOS_PER_OBJECTIVE:]:
+            warnings.append(
+                f"Recon {extra.image.name}: {zone} already has {MAX_PHOTOS_PER_OBJECTIVE} photos "
+                "(one per objective, two at most); skipped."
+            )
+        del photos[MAX_PHOTOS_PER_OBJECTIVE:]
     return by_zone, warnings
 
 

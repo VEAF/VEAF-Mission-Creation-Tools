@@ -1052,6 +1052,8 @@ shots:
 
 La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus de l'horizon, en regardant au cap `heading`. Les marques sont posées par projection avec un champ horizontal de 80°, mesuré : les six véhicules d'un SA-11 tombent à quelques pixels de leur projection.
 
+**Une prise par objectif, deux au plus** : le briefing garde les deux premières et ignore les autres. **Un groupe de véhicules qui se déplacent** — chars, blindés légers, camions, 4x4 — **n'est jamais entouré**, quoi que dise `mark` : la photo montre sa zone, pas la place de chaque véhicule, qui aura bougé. Un groupe qui porte un SAM, un radar ou de l'artillerie est un site, et il est entouré. Le bandeau donne la position de la cible en DDM et en MGRS.
+
 #### `veaf-tools dcs recon-prepare` {#recon-prepare}
 
 | Arguments | Type | Description |

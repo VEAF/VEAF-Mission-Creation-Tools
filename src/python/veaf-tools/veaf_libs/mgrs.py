@@ -8,7 +8,7 @@ left out: no DCS theatre reaches 72° N.
 
 import math
 
-from veaf_libs.coordinates import _tmerc_forward
+from veaf_libs.coordinates import _tmerc_forward, to_ddm
 
 _BANDS = "CDEFGHJKLMNPQRSTUVWX"
 _COLUMN_SETS = ("ABCDEFGH", "JKLMNPQR", "STUVWXYZ")
@@ -36,7 +36,8 @@ def mgrs_square(lat: float, lon: float, size: int) -> str:
     Args:
         lat: Latitude, decimal degrees.
         lon: Longitude, decimal degrees.
-        size: The square's side: 100 000 (no digits), 10 000 (one digit each) or 1 000 (two).
+        size: The square's side: 100 000 (no digits), 10 000 (one digit each), 1 000 (two), 100, 10 or 1
+            (five: the full ten-digit grid reference).
 
     Returns:
         Zone and band, the 100 km square letters, then the truncated easting and northing digits.
@@ -46,9 +47,9 @@ def mgrs_square(lat: float, lon: float, size: int) -> str:
     """
     if not -80.0 <= lat <= 84.0:
         raise ValueError(f"latitude {lat} is outside MGRS's UTM range (-80 to 84)")
-    digits = {100000: 0, 10000: 1, 1000: 2}.get(size)
+    digits = {100000: 0, 10000: 1, 1000: 2, 100: 3, 10: 4, 1: 5}.get(size)
     if digits is None:
-        raise ValueError(f"square size {size} m: expected 100000, 10000 or 1000")
+        raise ValueError(f"square size {size} m: expected 100000, 10000, 1000, 100, 10 or 1")
     zone = utm_zone(lat, lon)
     central = (zone - 1) * 6 - 180 + 3
     northing, easting = _tmerc_forward(math.radians(lat), math.radians(lon - central))
@@ -65,3 +66,38 @@ def mgrs_square(lat: float, lon: float, size: int) -> str:
     east = int(easting % 100000) // unit
     north = int(northing % 100000) // unit
     return f"{square} {east:0{digits}d} {north:0{digits}d}"
+
+
+def to_mgrs(lat: float, lon: float) -> str:
+    """A position as a ten-digit MGRS grid reference, to the metre: ``37S BT 12345 67890``.
+
+    How a target's precise position is given beside its degrees and decimal minutes
+    (FIX-MARTEAU-PLAY-FINDINGS 04): an A-10 or an AH-64 takes it as is.
+
+    Args:
+        lat: Latitude, decimal degrees.
+        lon: Longitude, decimal degrees.
+
+    Returns:
+        Zone and band, the 100 km square letters, then the easting and northing in metres.
+
+    Raises:
+        ValueError: If the latitude is outside MGRS's UTM range.
+    """
+    return mgrs_square(lat, lon, 1)
+
+
+def target_coordinates(lat: float, lon: float) -> tuple[str, str]:
+    """A target's precise position as a briefing writes it: degrees and decimal minutes, and MGRS.
+
+    David's rule (FIX-MARTEAU-PLAY-FINDINGS 04): never degrees, minutes and seconds for a target — the
+    cockpits take DD°MM.mmm' (F-16, F/A-18) or a grid reference (A-10, AH-64).
+
+    Args:
+        lat: Latitude, decimal degrees.
+        lon: Longitude, decimal degrees.
+
+    Returns:
+        ``("DDM N33°07.536' E035°49.482'", "MGRS 36S YB 12345 67890")``.
+    """
+    return f"DDM {to_ddm(lat, lon)}", f"MGRS {to_mgrs(lat, lon)}"

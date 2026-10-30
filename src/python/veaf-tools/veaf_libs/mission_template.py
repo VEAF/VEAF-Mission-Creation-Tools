@@ -187,6 +187,13 @@ _CATALOG: tuple[Module, ...] = (
     Module("WEATHER", FEATURE, "Features", tiers=frozenset({"standard", "full"})),
     Module("REMOTE", FEATURE, "Features", tiers=frozenset({"standard", "full"})),
     Module("AIRBASES", FEATURE, "Features", tiers=frozenset({"standard", "full"})),
+    Module(
+        "COMBATLOG",
+        FEATURE,
+        "Features",
+        comment="every shot, hit and kill to a .jsonl, for the debrief (veaf-tools combat-log)",
+        tiers=frozenset({"standard", "full"}),
+    ),
     # Opt-in only (no tier): a 2021 WIP training-tools relic, not part of any named tier.
     # Still selectable in the `custom` picker for whoever explicitly wants it.
     Module("MISSILEGUARDIAN", FEATURE, "Features", tiers=frozenset()),

@@ -134,6 +134,7 @@ modules:
   WEATHER: true
   REMOTE: true
   AIRBASES: true
+  COMBATLOG: true               # every shot, hit and kill to veaf-combat-log-*.jsonl (veaf-tools combat-log)
   INTERPRETER: true
   # MISSILEGUARDIAN: true   # missile-guardian protection (off by default)
   # ASSETS needs an `assets:` list — uncomment and fill in to enable:

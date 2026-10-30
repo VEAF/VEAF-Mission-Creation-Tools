@@ -8,6 +8,7 @@ from . import (  # noqa: F401
     campaign,
     capture_map,
     clear_ground,
+    combat_log,
     config,
     convert_other,
     convert_v5,

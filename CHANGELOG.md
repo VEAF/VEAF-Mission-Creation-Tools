@@ -37,6 +37,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The Opposition menu by default** (FIX-MARTEAU-PLAY-FINDINGS): the shipped mission folder carries `opposition: { level: 0 }`, and `create_qra` writes `scale_with_opposition: true` and adds the block when missing, so the Mission Maker can switch the enemy fighters off while the mission starts unchanged.
 - **A profile edits combat zones by name** (FIX-MARTEAU-PLAY-FINDINGS): `modules.COMBATZONE.zone_edits` maps a `zone_name` to the keys to set, `"*"` sets them on every zone, instead of copying the whole `combat_zones` list.
 - **Design rules in the authoring guide and the objective-mission prompt**: SEAD and strike on separate flights, calm weather with helicopters, a QRA that does not scramble for helicopters still attacks them once airborne, switching the QRA and long-range SAMs off on demand, one recon photo per objective.
+- **A combat log for an exact debrief** (FEAT-COMBAT-LOG): the module `COMBATLOG` (on in the shipped mission folder) writes every shot, hit, kill and gun burst to `veaf-combat-log-<date>-<time>.jsonl`, with the shooter, its player, the weapon and the target, a burst counted in rounds; `veaf-tools mission combat-log` prints the recap per pilot. The Tacview of 2026-10-29 named no shooter and showed none of the AH-64s' gun. What DCS gives for gun shells is to be measured in game (R54).
 
 ## [6.34.0] — 2026-10-29
 

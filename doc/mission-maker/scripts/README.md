@@ -19,6 +19,7 @@ Que construisez-vous ? Choisissez l'étape qui correspond.
 | **Assets & services** | [veafAssets](veafAssets.md), [veafCarrierOperations](veafCarrierOperations.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md) | Ravitailleurs/AWACS/porte-avions gérés, météo |
 | **Protection** | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md) | Défense anti-missiles, zones sûres |
 | **Assistance en vol** | [veafAssist](veafAssist.md) | Checklists guidées : la mission encadre le bon interrupteur dans le cockpit et coche la ligne |
+| **Debrief** | [veafCombatLog](veafCombatLog.md) | Chaque tir, coup au but et destruction dans un fichier, pour le récap par pilote |
 | **Intégrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.md) | Systèmes IADS tiers |
 
 ### Par interaction joueur

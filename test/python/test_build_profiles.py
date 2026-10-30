@@ -230,3 +230,59 @@ class TestPipelineStepSubflag(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestZoneEdits(unittest.TestCase):
+    """FIX-MARTEAU-PLAY-FINDINGS 06: a profile edits combat zones by name instead of copying the whole list."""
+
+    BASE = {
+        "modules": {
+            "COMBATZONE": {
+                "combat_zones": [
+                    {"type": "zone", "zone_name": "SA6Sasa", "active_at_start": True, "briefing": "SA-6"},
+                    {"type": "zone", "zone_name": "Sasa", "briefing": "reserve"},
+                    {"type": "operation", "zone_name": "Op", "active_at_start": True},
+                ]
+            },
+            "QRA": {"enabled": True, "definitions": [{"name": "QRA Mezzeh"}]},
+        },
+        "profiles": {
+            "TRAINING": {
+                "modules": {
+                    "COMBATZONE": {
+                        "zone_edits": {
+                            "*": {"training": True},
+                            "sa6sasa": {"active_at_start": False},
+                        }
+                    },
+                    "QRA": {"enabled": False},
+                }
+            }
+        },
+    }
+
+    def _zones(self, resolved: dict) -> dict[str, dict]:
+        return {z["zone_name"]: z for z in resolved["modules"]["COMBATZONE"]["combat_zones"]}
+
+    def test_a_named_zone_is_edited_and_keeps_the_rest_of_its_entry(self) -> None:
+        zones = self._zones(resolve_profile(self.BASE, "TRAINING"))
+        self.assertEqual(zones["SA6Sasa"]["active_at_start"], False)  # the name matched case-insensitively
+        self.assertEqual(zones["SA6Sasa"]["briefing"], "SA-6")
+        self.assertEqual(zones["Op"]["active_at_start"], True)
+
+    def test_the_star_edits_every_entry_and_a_named_edit_wins(self) -> None:
+        zones = self._zones(resolve_profile(self.BASE, "TRAINING"))
+        self.assertTrue(all(zone["training"] is True for zone in zones.values()))
+
+    def test_the_key_never_reaches_the_build_and_the_base_is_untouched(self) -> None:
+        resolved = resolve_profile(self.BASE, "TRAINING")
+        self.assertNotIn("zone_edits", resolved["modules"]["COMBATZONE"])
+        self.assertFalse(resolved["modules"]["QRA"]["enabled"])
+        self.assertNotIn("training", self._zones(resolve_profile(self.BASE, None))["Sasa"])
+        self.assertTrue(self.BASE["modules"]["COMBATZONE"]["combat_zones"][0]["active_at_start"])
+
+    def test_an_unknown_zone_is_warned(self) -> None:
+        data = {**self.BASE, "profiles": {"P": {"modules": {"COMBATZONE": {"zone_edits": {"Nowhere": {"x": 1}}}}}}}
+        with patch("veaf_libs.build_profiles.logger") as logger:
+            resolve_profile(data, "P")
+        self.assertTrue(any("Nowhere" in str(call) for call in logger.warning.call_args_list))

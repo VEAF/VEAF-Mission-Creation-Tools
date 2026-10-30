@@ -933,6 +933,7 @@
   "profiles.ambiguous_profile": "Profile '{name}' is ambiguous: several profiles differ only by case ({matches}) — using base config",
   "profiles.building_with_profile": "Building with profile: {name}",
   "profiles.invalid_profiles_section": "Ignoring invalid 'profiles' section in mission.yaml (expected mapping)",
+  "profiles.zone_edit_unknown": "zone_edits: no combat zone named '{name}' in combat_zones; the edit does nothing.",
   "profiles.profile_not_found": "Profile '{name}' not found in mission.yaml — using base config",
   "progress.done": "✓ Done {msg}!",
   "promote.build_failed": "v6 promotion skipped: the base build failed ({error}); src/mission/ left unchanged.",

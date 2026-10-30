@@ -829,7 +829,7 @@ Named build profiles. Each profile is a set of config overrides that deep-merge 
 
 **Merge rules**
 - Nested dicts are merged recursively (only the keys you specify are overridden).
-- Scalar values and lists are replaced wholesale.
+- Scalar values and lists are replaced wholesale; for combat zones, see [`zone_edits`](#profile-zone-edits).
 - `profiles:` is stripped from the effective config — it is never passed to the Lua generator or the pipeline.
 
 ```yaml
@@ -854,6 +854,28 @@ Usage:
 ```
 
 > If the named profile does not exist in `mission.yaml`, a warning is emitted and the base config is used unchanged.
+
+#### Editing a combat zone without copying the list {#profile-zone-edits}
+
+`combat_zones` is a list: a profile that gives it replaces it whole. To change two zones, a profile gives `modules.COMBATZONE.zone_edits` instead, mapping a `zone_name` (case-insensitive) to the keys to set on that entry.
+The `"*"` key sets its keys on **every** entry; named edits are applied after it.
+The rest of each entry is kept, and `zone_edits` never reaches the Lua generator.
+A name no zone carries is reported by the build and does nothing.
+
+Example: a training version of the mission, with no QRA, two SAM batteries off at start, every zone in training.
+
+```yaml
+profiles:
+  TRAINING:
+    modules:
+      QRA:
+        enabled: false
+      COMBATZONE:
+        zone_edits:
+          "*": { training: true }
+          SA6Sasa: { active_at_start: false }
+          SA11Kiswah: { active_at_start: false }
+```
 
 ---
 

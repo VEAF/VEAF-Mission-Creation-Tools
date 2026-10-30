@@ -933,6 +933,7 @@
   "profiles.ambiguous_profile": "Profil '{name}' ambigu : plusieurs profils ne diffèrent que par la casse ({matches}) — configuration de base utilisée",
   "profiles.building_with_profile": "Construction avec le profil : {name}",
   "profiles.invalid_profiles_section": "Section 'profiles' invalide dans mission.yaml ignorée (dictionnaire attendu)",
+  "profiles.zone_edit_unknown": "zone_edits : aucune zone de combat nommée '{name}' dans combat_zones ; la modification ne fait rien.",
   "profiles.profile_not_found": "Profil '{name}' introuvable dans mission.yaml — configuration de base utilisée",
   "progress.done": "✓ {msg} terminé !",
   "promote.build_failed": "Promotion v6 ignorée : le build de base a échoué ({error}) ; src/mission/ laissé inchangé.",

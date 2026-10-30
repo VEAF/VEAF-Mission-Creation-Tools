@@ -57,6 +57,24 @@ class TestObjectiveArea:
             ("Dépôt de munitions", 900.0, 1900.0),
         ]
 
+    def test_vehicles_that_move_stand_at_their_zone_centre(self) -> None:
+        """FIX-MARTEAU-PLAY-FINDINGS 04: a briefing gives vehicles by their zone, not where they were saved."""
+        content = _content(
+            blue={},
+            red={
+                "vehicle": [
+                    _group("Khobi-Armor", _unit("a", 1300, 2400, type="T-72B"), _unit("b", 1320, 2420, type="BMP-2")),
+                    _group("Khobi-SA8", _unit("Khobi-SA8-1", 1100, 2100, type="Osa 9A33 ln")),
+                ],
+            },
+        )
+        area = objective_area(content, "Khobi", "red")
+        assert [(target.name, target.x, target.y, target.mobile) for target in area.targets] == [
+            ("A", 1000.0, 2000.0, True),  # each named vehicle, at the zone's centre
+            ("B", 1000.0, 2000.0, True),
+            ("SA8", 1100.0, 2100.0, False),  # a SAM site stays where it stands
+        ]
+
     def test_a_name_that_is_only_the_zone_keeps_it(self) -> None:
         content = _content(blue={}, red={"vehicle": [_group("Khobi #spawnradius=0", _unit("u", 1, 2))]})
         assert [target.name for target in objective_area(content, "Khobi", "red").targets] == ["Khobi"]

@@ -837,7 +837,7 @@ Profils de build nommés. Chaque profil est un ensemble de surcharges qui fusion
 
 **Règles de fusion**
 - Les dicts imbriqués sont fusionnés récursivement (seules les clés spécifiées sont surchargées).
-- Les valeurs scalaires et les listes sont remplacées en totalité.
+- Les valeurs scalaires et les listes sont remplacées en totalité ; pour les zones de combat, voir [`zone_edits`](#profile-zone-edits).
 - `profiles:` est retiré de la config effective — il n'est jamais passé au générateur Lua ni au pipeline.
 
 ```yaml
@@ -862,6 +862,28 @@ Usage :
 ```
 
 > Si le profil nommé n'existe pas dans `mission.yaml`, un avertissement est émis et la config de base est utilisée sans modification.
+
+#### Modifier une zone de combat sans recopier la liste {#profile-zone-edits}
+
+`combat_zones` est une liste : un profil qui la donne la remplace en entier. Pour changer deux zones, un profil donne plutôt `modules.COMBATZONE.zone_edits`, qui associe un `zone_name` (sans tenir compte de la casse) aux clés à poser sur cette entrée.
+La clé `"*"` pose ses clés sur **toutes** les entrées ; les modifications nommées passent après elle.
+Le reste de chaque entrée est gardé, et `zone_edits` n'est jamais transmis au générateur Lua.
+Un nom qu'aucune zone ne porte est signalé au build et ne fait rien.
+
+Exemple : une version entraînement de la mission, sans QRA, deux batteries SAM éteintes au démarrage, toutes les zones en entraînement.
+
+```yaml
+profiles:
+  TRAINING:
+    modules:
+      QRA:
+        enabled: false
+      COMBATZONE:
+        zone_edits:
+          "*": { training: true }
+          SA6Sasa: { active_at_start: false }
+          SA11Kiswah: { active_at_start: false }
+```
 
 ---
 

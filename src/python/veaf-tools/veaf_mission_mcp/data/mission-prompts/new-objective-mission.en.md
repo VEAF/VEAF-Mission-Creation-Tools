@@ -254,6 +254,7 @@ approximation of it.
   remove `src/versions.yaml`, which the build reports as orphaned), or a `src/versions.yaml` with a
   single version. A visibility **≥ 9,000 m is written as 80 km** (the METAR "9999" rule): for haze,
   ask for 8,000 m at most.
+  **With helicopters, little turbulence and a moderate wind** (turbulence near 0, 10 kt or less at the surface): on 2026-10-29 the real weather made the AH-64s of *Marteau du Golan* almost unflyable.
 - **Language**: `mission.language: en` and an English briefing, unless told otherwise.
 - `silence_atc_on_all_airbases: true`.
 - **Security**: explain it before asking, the user cannot choose without it.
@@ -276,6 +277,7 @@ approximation of it.
 
 ### 4.3 The player flights
 
+- **SEAD and strike never go to the same flight.** With SAMs on the way, one flight has the SEAD, another the strike, each briefed for its own: on *Marteau du Golan*, with no SEAD flight, the Hornets did everything, spent the evening on the SAMs, and the Kiswah command post was never hit.
 - **One group per ATO flight**, named after its callsign (`ARCHER`, `NINJA`…), **as many slots as the
   ATO box has places** (four by default), skill `Client`, at the **scenario's departure**: cold start
   on a parking spot by default (`add_air_group` or `add_player_slot`, `ground-cold`), the carrier
@@ -387,6 +389,8 @@ approximation of it.
   in orbit, not an on-demand CAP. `delay_before_activating` counts **from the start of the mission**,
   not from the intrusion: once online, the QRA takes off at the intrusion. Write it that way in the
   briefing ("online from H+15 min").
+  **`react_on_helicopters: false` is about take-off, not engagement**: the QRA does not scramble for helicopters, but once airborne for a jet it attacks them too — two AH-64s were shot down with R-73s over the Beit Jinn pass on 2026-10-29. Never write "they do not react to helicopters" without that nuance, and give the helicopters cover (a CAP, or a route out of the QRA's circle).
+- **The Mission Maker switches the big threats off** when the players present are no match for them. `create_qra` writes `scale_with_opposition: true` and the `opposition: {level: 0}` block (the mission starts unchanged): the **Opposition** menu's "0 aircraft" keeps the QRA on the ground; `radio_menu: true` adds its own stop command. A long-range SAM is a zone **outside the operation**, `active_at_start: true`, with its own deactivate command. Say both in the Mission Maker's notes.
 - **AI friendly CAP on demand** (the scenario's way out): `create_cap_mission` with `menu_name` (the F10 menu's name, e.g. "Friendly CAP (2 F-15C, MASADA)") and `briefing`, a `route` for the race-track, out of the SAMs' reach.
 - **Early-warning radars (EWR)** if the scenario talks about being detected, and **Skynet** if the
   defence must react as a network.
@@ -469,6 +473,7 @@ Brief status after each step: what is done, not what you are about to do.
   Three optional texts: `strategic_situation` and `deployment` get a page each, left out when empty; `waypoint_notes` says, by waypoint name, what is done there, on its flight plan sheet.
   `code_words` (`word`, `meaning`, `who`) makes a "Code words" page in the deck and on the kneeboard. These texts take the approved content up, without its Mission Maker notes.
   **Recon photos**: each `<name>.jpg` of `docs/recon/` (or `recon_folder`) with its `<name>.json` (`zone`, `title`, and `heading`, `pitch`, `x`, `y`, `altitude_m`, `order` when known) follows its objective's zoom, two to a page; they are taken in DCS (each target's attack heading).
+  **One photo per objective, two at most** (the build keeps two and warns about the rest). A photo of vehicles (tanks, light armour, trucks, 4x4) shows their zone, never where each one stands: the render rings no moving vehicle, and the briefing gives such a target by its zone's centre. Target coordinates are DDM and MGRS, never degrees, minutes and seconds.
   A text passed as **one string** is prose, its paragraphs separated by a blank line; `mission_bullets` as a string loses its dashes. A list stays one line per item.
 - **Every built `.miz` gets the pictures**: the build's own and each weather variant of `missions/` (`archives` in the result).
 - **The kneeboard** (`kneeboard`, on by default): the overview, the combat area and the zooms drawn for the 2:3 page and turned attack axis up (north arrow), the recon photos, a flight card (each point, the heading and distance of its leg, the highest ground on it; no radio plan, the presets are already in the cockpits) and the targets, in every aircraft's kneeboard. Its channel numbers are DCS slots: on the AJS-37 they are not the cockpit's (`describe_known_limitations`, `briefing-channels-are-dcs-slots`).

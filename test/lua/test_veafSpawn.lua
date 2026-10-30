@@ -1804,10 +1804,15 @@ function TestVeafSpawnAircraft:test_startCapWatchdog_group_not_found()
 end
 
 function TestVeafSpawnAircraft:test_startCapWatchdog_group_no_position()
-  -- group found but getUnits returns {} → getAveragePosition=nil → error return
+  -- group found but getUnits returns {} → getAveragePosition=nil: a CAP shot down, which ends the
+  -- watch quietly. It used to log an error, read as a defect in the 2026-10-29 server log.
   dcs_mocks.addGroup("cap-beta")
+  dcs_mocks.logs = {}
   veafSpawn.startCapWatchdog("cap-beta", coalition.side.BLUE, nil, nil, nil)
-  luaunit.assertTrue(true)
+  for _, entry in ipairs(dcs_mocks.logs) do
+    luaunit.assertNotEquals(entry.level, "E", "a CAP with no unit left is no error: " .. entry.text)
+  end
+  luaunit.assertNil(veafSpawn.capWatchdogZones["cap-beta"])
 end
 
 function TestVeafSpawnAircraft:test_spawnUnit_not_found()

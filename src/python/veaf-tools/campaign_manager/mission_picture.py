@@ -388,10 +388,22 @@ def _enabled(entry: Any) -> bool:
 
 
 def _folder_has_opposition(folder: Path | None) -> bool:
-    """Whether the mission folder's `mission.yaml` sets an opposition level (an `opposition:` block)."""
+    """Whether the mission folder's `mission.yaml` sets an opposition level that sizes something.
+
+    ``opposition: {level: 0}`` with no ``follow`` only gives the Mission Maker the menu: every mission built
+    from the shipped folder or through `create_qra` has it (FIX-MARTEAU-PLAY-FINDINGS 02), and nothing is
+    reinforced until somebody raises the level.
+    """
     if folder is None or not (folder / "mission.yaml").is_file():
         return False
-    return isinstance(load_yaml(folder / "mission.yaml").get("opposition"), dict)
+    block = load_yaml(folder / "mission.yaml").get("opposition")
+    if not isinstance(block, dict):
+        return False
+    level = block.get("level")
+    return (isinstance(level, int) and not isinstance(level, bool) and level > 0) or block.get("follow") not in (
+        None,
+        "off",
+    )
 
 
 def _qra_zones(

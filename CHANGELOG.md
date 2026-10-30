@@ -26,6 +26,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The Mission Editor stores a unit's heading on its grid, and a DCS camera holds one too: both are turned to magnetic where they stand.
   The ranges are measured on the ellipsoid, not on the grid, which overstated them by its scale: 0.1 % on the Golan, 1 % at Tbilisi.
 
+- **What the evening of 2026-10-29 on "Marteau du Golan" showed** (FIX-MARTEAU-PLAY-FINDINGS).
+  AIEN's counter-battery raised 49 times on an artillery group hit from the start, which had no situational awareness yet, and never fired: the awareness is now built when it is missing.
+  A CAP shot down no longer logs `has no position!` as an error.
+  A target's coordinates are written in degrees and decimal minutes and as a ten-digit MGRS grid reference, never in degrees, minutes and seconds — kneeboard, target sheets, campaign deck, recon banner — and a group of vehicles that move about (tanks, armour, trucks, 4x4) is given by its zone's centre, unmarked on the zoom maps and never ringed on a recon photo.
+  The briefing keeps two recon photos per objective at most.
+
+### Added
+
+- **The Opposition menu by default** (FIX-MARTEAU-PLAY-FINDINGS): the shipped mission folder carries `opposition: { level: 0 }`, and `create_qra` writes `scale_with_opposition: true` and adds the block when missing, so the Mission Maker can switch the enemy fighters off while the mission starts unchanged.
+- **A profile edits combat zones by name** (FIX-MARTEAU-PLAY-FINDINGS): `modules.COMBATZONE.zone_edits` maps a `zone_name` to the keys to set, `"*"` sets them on every zone, instead of copying the whole `combat_zones` list.
+- **Design rules in the authoring guide and the objective-mission prompt**: SEAD and strike on separate flights, calm weather with helicopters, a QRA that does not scramble for helicopters still attacks them once airborne, switching the QRA and long-range SAMs off on demand, one recon photo per objective.
+
 ## [6.34.0] — 2026-10-29
 
 ### Changed

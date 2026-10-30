@@ -192,6 +192,15 @@ class TestTheReconPhotos:
     def test_no_folder_no_photo(self, tmp_path: Path) -> None:
         assert load_recon(tmp_path / "nope", ["Khobi"]) == ({}, [])
 
+    def test_two_photos_per_objective_at_most(self, tmp_path: Path) -> None:
+        """FIX-MARTEAU-PLAY-FINDINGS 07: Marteau du Golan had six for Khan Arnabah."""
+        folder = tmp_path / "recon"
+        for index in range(1, 5):
+            _photo(folder, f"0{index}-khobi", {**self._SIDE, "order": index})
+        photos, warnings = load_recon(folder, ["Khobi"])
+        assert [photo.image.name for photo in photos["Khobi"]] == ["01-khobi.jpg", "02-khobi.jpg"]
+        assert len(warnings) == 2 and all("two at most" in w for w in warnings)
+
     def test_the_caption_says_what_the_sidecar_gives(self) -> None:
         _, zx, zy, _ = KHOBI_ZONE
         photo = ReconPhoto(Path("a.jpg"), "Khobi", "Dépôt", heading=5, pitch=-12, x=zx, y=zy, altitude_m=1000)
@@ -214,16 +223,18 @@ class TestTheReconPhotos:
         for stem in ("a", "b", "c"):
             _photo(tmp_path / "docs" / "recon", stem, self._SIDE)
         report = _build(tmp_path)
-        assert [path.name for path in report.recon] == ["a.jpg", "b.jpg", "c.jpg"]
+        # two photos per objective at most (FIX-MARTEAU-PLAY-FINDINGS 07): the third is left out
+        assert [path.name for path in report.recon] == ["a.jpg", "b.jpg"]
         slides = _slides(report.deck)
         titles = [slide[0] for slide in slides]
         zoom = titles.index("5. KHOBI — Détruire le dépôt de Khobi")
-        assert titles[zoom + 1 : zoom + 3] == ["Reconnaissance — KHOBI"] * 2
+        assert titles[zoom + 1 : zoom + 3] == ["Reconnaissance — KHOBI", titles[zoom + 2]]
+        assert titles[zoom + 2] != "Reconnaissance — KHOBI"
         assert any(re.search(r"cap \d{3}°M", text) for text in slides[zoom + 1])
-        assert report.pages == plain.pages + 2
-        assert report.pdf_pages == plain.pdf_pages + 2
+        assert report.pages == plain.pages + 1
+        assert report.pdf_pages == plain.pdf_pages + 1
         recon_pages = [name for name in report.kneeboard if "recon" in name]
-        assert recon_pages == ["04-briefing-objective-khobi-recon-1.jpg", "05-briefing-objective-khobi-recon-2.jpg"]
+        assert recon_pages == ["04-briefing-objective-khobi-recon-1.jpg"]
 
     def test_a_recon_folder_elsewhere(self, tmp_path: Path) -> None:
         objective_mission(tmp_path / "m")

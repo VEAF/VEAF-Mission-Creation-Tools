@@ -59,6 +59,20 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R53. AIEN's counter-battery, and *Marteau du Golan* in training — **no pilot for item 1, one for item 2**
+
+[`FIX-MARTEAU-PLAY-FINDINGS`](.backlog/FIX-MARTEAU-PLAY-FINDINGS/PRD.md), tickets 01 and 06.
+On the mocks: the SA is built on demand and no unguarded read is left. What the mocks cannot show: a real artillery group answering a hit with counter-battery fire.
+
+**Prepare**: *Marteau du Golan* (a copy, never the live one) rebuilt from the lot's merge with `--profile LOCAL_TEST`, and once with `--profile TRAINING`.
+
+1. LOCAL_TEST, game master slot: from the start, spawn a blue `-2s1` battery 10 km from Kanaker and let it shell the 2S1s of `ArtiKanaker` (or hit them from a slot).
+   - **Verified**: within a few minutes Kanaker's guns fire back at the blue battery, and `dcs.log` has no `attempt to index field 'sa'`.
+   - **Re-opened, still the error**: the mission carries older scripts — the VEAF build stamp in `dcs.log`.
+   - **Re-opened, no error and no fire**: counter-battery needs a red radar within 50 km of the impact (`SAM SR`, `SAM TR` or `EWR`): check one is alive before concluding.
+2. TRAINING, a blue slot: F10 menus.
+   - **Verified**: no QRA ever scrambles; the SA-6 and SA-11 zones are listed inactive and can be activated; the zones offer their training entries.
+
 ### R52. Enforced options, the F10 view per role, the deck lights, and three editor actions — **one pilot for items 2 and 3**
 
 [`FEAT-FORCED-MISSION-OPTIONS`](.backlog/FEAT-FORCED-MISSION-OPTIONS/PRD.md), ticket 06.

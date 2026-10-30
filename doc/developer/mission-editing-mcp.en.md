@@ -759,7 +759,9 @@ Each one is the matching `veaf-tools campaign` command (`campaign_manager.Campai
   | `altitude_m` | no | camera altitude, metres; printed in feet |
   | `order` | no | sorting within the zone (then file name), default 0 |
 
-  After each objective's zoom, its photos two to a slide (deck and PDF) and two to a kneeboard page, captioned "title — heading 095°, pitch -12°, from <DMS>, <ft>" with what the sidecar gives. The `recon.json` index `veaf-tools dcs recon-render` writes beside them is ignored. A photo with no sidecar, a sidecar with no photo, no `zone` or `title`, or a zone that is no objective: skipped, in `warnings`. The result lists the photos used in `recon`.
+  After each objective's zoom, its photos two to a slide (deck and PDF) and two to a kneeboard page, captioned "title — heading 095°, pitch -12°, from <DMS>, <ft>" with what the sidecar gives. The `recon.json` index `veaf-tools dcs recon-render` writes beside them is ignored. A photo with no sidecar, a sidecar with no photo, no `zone` or `title`, or a zone that is no objective: skipped, in `warnings`.
+  **Two photos per objective at most** (one by default): the next ones in order (`order`, then the name) are skipped, in `warnings` — *Marteau du Golan* had six for one objective.
+  The result lists the photos used in `recon`.
 
 ### Syria Open Training (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 
@@ -1118,6 +1120,7 @@ Coalition is lower-cased for placement, upper-cased in the YAML definition. Each
 gives a `CAP`/`Intercept` group whose route engages no aircraft a patrol across the zone
 ([what a scrambled group does](../mission-maker/scripts/veafQraManager.en.md#scrambled-group-task)).
 Its description asks for tiers by intruder count up to the squadron's expected size — never a single fixed pair against five players or more — and names `scale_with_opposition` and `rearm_while_occupied` ([opposition level](../mission-maker/scripts/veafQraManager.en.md#opposition-level)).
+`scale_with_opposition: true` is written by default (the caller's `qra` may set it false), and the root `opposition: {level: 0}` block is added when the mission has none, so the Opposition menu exists and the mission starts unchanged.
 An interceptor **takes off from the runway** by default: `airfield`'s, else its coalition's airfield nearest the zone; `start: air` puts it in the air at `position`, only when asked. With no airfield of its coalition, or no parking data for the theatre, the default falls back to the air with a warning; a `start` or an `airfield` asked for and impossible is refused.
 
 ### `create_cap_mission`

@@ -2671,8 +2671,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "({enemy_count, groups}, every group of the tier scrambles; add random_pick to draw that "
                 "many instead, never the same group twice), the biggest tier sized to the squadron's "
                 "expected size -- never a single fixed pair against 5 players or more. "
-                "scale_with_opposition: true picks the tier from the mission's opposition level (the "
-                "opposition: block of mission.yaml) when it is higher than the aircraft in the zone; "
+                "scale_with_opposition: true (written by default; pass false in 'qra' to opt out) picks "
+                "the tier from the mission's opposition level (the opposition: block of mission.yaml, "
+                "added at level 0 when missing, which starts the mission unchanged and gives the Mission "
+                "Maker the Opposition menu) when it is higher than the aircraft in the zone; "
                 "rearm_while_occupied: true rearms a dead QRA without waiting for its zone to clear."
             ),
             parameters_schema={

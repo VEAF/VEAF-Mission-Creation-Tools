@@ -779,7 +779,8 @@ Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.
   | `altitude_m` | non | altitude de la caméra, mètres ; imprimée en pieds |
   | `order` | non | tri dans la zone (puis nom de fichier), 0 par défaut |
 
-  Après le zoom de chaque objectif, ses photos deux par diapositive (deck et PDF) et deux par page de kneeboard, légendées « titre — cap 095°, piqué -12°, depuis <DMS>, <ft> » selon ce que la fiche donne. L'index `recon.json` que `veaf-tools dcs recon-render` écrit à côté est ignoré. Une photo sans fiche, une fiche sans photo, sans `zone` ou `title`, ou d'une zone qui n'est pas un objectif : ignorée, dans `warnings`. Le résultat liste les photos prises dans `recon`.
+  Après le zoom de chaque objectif, ses photos deux par diapositive (deck et PDF) et deux par page de kneeboard, légendées « titre — cap 095°, piqué -12°, depuis <DMS>, <ft> » selon ce que la fiche donne. L'index `recon.json` que `veaf-tools dcs recon-render` écrit à côté est ignoré. Une photo sans fiche, une fiche sans photo, sans `zone` ou `title`, ou d'une zone qui n'est pas un objectif : ignorée, dans `warnings`.
+  **Deux photos par objectif au plus** (une par défaut) : au-delà, les suivantes dans l'ordre (`order`, puis le nom) sont ignorées, dans `warnings` — *Marteau du Golan* en avait six pour un seul objectif. Le résultat liste les photos prises dans `recon`.
 
 ### Open Training Syrie (FIX-OPEN-TRAINING-SYRIA-FINDINGS)
 
@@ -1148,6 +1149,7 @@ coalition est passée en minuscule pour le placement, majuscule dans la définit
 `CAP`/`Intercept` dont la route n'engage aucun aéronef une patrouille sur la zone
 ([ce que fait un groupe décollé](../mission-maker/scripts/veafQraManager.md#scrambled-group-task)).
 Sa description demande des paliers par nombre d'intrus jusqu'à la taille attendue de l'escadrille — jamais une seule paire fixe face à cinq joueurs ou plus — et nomme `scale_with_opposition` et `rearm_while_occupied` ([niveau d'opposition](../mission-maker/scripts/veafQraManager.md#opposition-level)).
+`scale_with_opposition: true` est écrit par défaut (le `qra` de l'appelant peut le mettre à false), et le bloc racine `opposition: {level: 0}` est ajouté quand la mission n'en a pas : le menu Opposition existe, et la mission démarre sans changement.
 Un intercepteur **décolle de la piste** par défaut : celle de `airfield`, sinon l'aérodrome de sa coalition le plus proche de la zone ; `start: air` le met en l'air à `position`, sur demande seulement. Sans aérodrome de sa coalition, ou sans données de parking pour le théâtre, le défaut retombe en l'air avec un avertissement ; un `start` ou un `airfield` demandés et impossibles sont refusés.
 
 ### `create_cap_mission`

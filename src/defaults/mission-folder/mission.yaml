@@ -70,6 +70,14 @@
 #   password_mm_hashes:         # SHA-1 of the Mission Master password: .\veaf-tools.exe password-hash
 #     - "<SHA-1 hash>"
 
+# ── Opposition ───────────────────────────────────────────────────────────────
+# The Opposition radio menu: the Mission Maker sets how many player aircraft the
+# air opposition is sized for. Level 0 sizes nothing, so the mission starts as
+# built; a QRA follows the level with scale_with_opposition: true.
+# Full list (follow, lower_after, players_coalition): doc MISSION_YAML_REFERENCE.
+opposition:
+  level: 0
+
 # ── Module configuration ──────────────────────────────────────────────────────
 # Enable or disable VEAF modules and community scripts in one unified block.
 # This default activates a sensible baseline (VEAF F10 menu, spawn, airbases,

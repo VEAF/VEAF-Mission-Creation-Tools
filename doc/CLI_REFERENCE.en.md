@@ -1046,6 +1046,8 @@ shots:
 
 The camera stands `slant` metres from the target, `pitch` degrees above the horizon, looking along `heading`. The marks are placed by projection with an 80° horizontal field, measured: the six vehicles of an SA-11 fall within a few pixels of their projection.
 
+**One shot per objective, two at most**: the briefing keeps two and skips the rest. **A group of vehicles that move about** — tanks, light armour, trucks, 4x4 — **is never ringed**, whatever `mark` says: the photo shows its zone, not where each vehicle stood, since they will have moved. A group holding a SAM, a radar or artillery is a site and is ringed. The banner gives the target's position in DDM and MGRS.
+
 #### `veaf-tools dcs recon-prepare` {#recon-prepare}
 
 | Arguments | Type | Description |

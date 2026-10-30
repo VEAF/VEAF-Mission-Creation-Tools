@@ -5,8 +5,9 @@ from __future__ import annotations
 import io
 from pathlib import Path
 
-from mission_briefing.briefing_cards import PER_PAGE, Card, CardSection, thumbnail, to_ddm
+from mission_briefing.briefing_cards import PER_PAGE, Card, CardSection, thumbnail
 from PIL import Image
+from veaf_libs.coordinates import to_ddm
 from veaf_libs.i18n import language
 
 

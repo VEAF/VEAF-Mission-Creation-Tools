@@ -1583,7 +1583,9 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
   end
   local capGroupPosition = veaf.getAveragePosition(capGroup)
   if not capGroupPosition then
-    veaf.loggers.get(veafSpawn.Id):error("CAP group %s has no position!", veaf.p(capGroupName))
+    -- getAveragePosition answers nil only for a group with no unit left: a CAP shot down, the normal
+    -- end of its watch, not a defect.
+    veaf.loggers.get(veafSpawn.Id):debug("CAP group %s has no unit left, stopping watchdog", veaf.p(capGroupName))
     forgetCapWatchdog(capGroupName)
     return
   end

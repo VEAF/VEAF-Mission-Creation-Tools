@@ -663,6 +663,8 @@ def render_objective_zoom(
             # a SAM's reach covers the whole zoom: a tint, or the zoom is pink (FIX-BRIEFING-PARITY-MARTEAU 02)
             labels.append(_threat(canvas, threat, position, enemy, fill=_REACH_FILL))
     for target in area.targets:
+        if target.mobile:  # vehicles move: the zone shows where they are, a square would pin them down
+            continue
         tx, ty = canvas.at_xy(target.x, target.y)
         size = canvas.px(5)
         canvas.draw.rectangle(

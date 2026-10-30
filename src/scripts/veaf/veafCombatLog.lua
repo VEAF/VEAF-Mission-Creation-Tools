@@ -11,8 +11,9 @@
 --   S_EVENT_SHOOTING_END (guns), with the shooter, its player, the weapon and the target. A gun burst is
 --   counted in rounds, from the unit's shells at the start and at the end of the burst.
 -- * The file is `veaf-combat-log-<date>-<time>.jsonl` in `VEAF_EXPORT_DIR` when it is set, else in the
---   DCS write folder (`Saved Games\DCS...`), as `veaf.exportAsJson` does. `veaf-tools combat-log` turns
---   it into a recap per pilot.
+--   DCS write folder (`Saved Games\DCS...`), as `veaf.exportAsJson` does. Where `os` is removed, as on the
+--   VEAF servers, it is `veaf-combat-log-<mission date>-<n>.jsonl` in the DCS write folder.
+--   `veaf-tools combat-log` turns it into a recap per pilot.
 -- * Each line also says what DCS handed over (`weapon_object`, `weapon_name`), so the file itself measures
 --   what DCS gives for a gun's shells (DCS-SESSION-TODO.md, R54).
 --
@@ -169,7 +170,7 @@ function veafCombatLog.directory()
     return veafCombatLog.Directory
   end
   local l_os = library("os")
-  local exportDir = l_os and l_os.getenv("VEAF_EXPORT_DIR")
+  local exportDir = l_os and l_os.getenv and l_os.getenv("VEAF_EXPORT_DIR")
   if exportDir then
     return exportDir .. "\\"
   end
@@ -220,6 +221,27 @@ function veafCombatLog.eventHandler:onEvent(event)
   end
 end
 
+--- The file's path: the real date and time with `os`, else the mission's date and the first free number — the
+--- VEAF servers remove `os` and keep `io` and `lfs`.
+local function logPath(l_io, l_os, directory)
+  local prefix = directory .. "veaf-combat-log-"
+  if l_os and l_os.date then
+    return prefix .. l_os.date("%Y%m%d-%H%M%S") .. ".jsonl"
+  end
+  local date = (env.mission or {}).date or {}
+  prefix = prefix .. string.format("%04d%02d%02d-", date.Year or 0, date.Month or 0, date.Day or 0)
+  local n = 1
+  while true do
+    local path = prefix .. n .. ".jsonl"
+    local existing = l_io.open(path, "r")
+    if not existing then
+      return path
+    end
+    existing:close()
+    n = n + 1
+  end
+end
+
 --- Opens the file and starts listening. Says once, and writes nothing, when the scripting environment cannot
 --- write files: DCS's default MissionScripting.lua removes `io` and `lfs`.
 function veafCombatLog.initialize()
@@ -229,11 +251,11 @@ function veafCombatLog.initialize()
   end
   local l_io, l_os = library("io"), library("os")
   local directory = veafCombatLog.directory()
-  if not (l_io and l_os and directory) then
-    veaf.loggers.get(veafCombatLog.Id):warn("no io/os/lfs in this scripting environment: the combat log is not written")
+  if not (l_io and directory) then
+    veaf.loggers.get(veafCombatLog.Id):warn("no io/lfs in this scripting environment: the combat log is not written")
     return
   end
-  veafCombatLog.path = directory .. "veaf-combat-log-" .. l_os.date("%Y%m%d-%H%M%S") .. ".jsonl"
+  veafCombatLog.path = logPath(l_io, l_os, directory)
   veafCombatLog.file = l_io.open(veafCombatLog.path, "a")
   if not veafCombatLog.file then
     veaf.loggers.get(veafCombatLog.Id):warn("cannot open %s: the combat log is not written", veafCombatLog.path)
@@ -246,7 +268,7 @@ function veafCombatLog.initialize()
     theatre = mission.theatre,
     date = mission.date,
     start_time = mission.start_time,
-    real_time = l_os.date("%Y-%m-%d %H:%M:%S"),
+    real_time = l_os and l_os.date and l_os.date("%Y-%m-%d %H:%M:%S") or nil,
   })
   world.addEventHandler(veafCombatLog.eventHandler)
   timer.scheduleFunction(veafCombatLog.flush, nil, timer.getTime() + veafCombatLog.SecondsBetweenFlushes)

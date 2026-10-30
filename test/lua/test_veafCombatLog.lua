@@ -202,6 +202,29 @@ function TestVeafCombatLog:test_without_io_nothing_is_written_and_nothing_raises
   veafCombatLog.path = os.tmpname() -- tearDown removes it
 end
 
+function TestVeafCombatLog:test_without_os_the_file_is_named_after_the_mission_date()
+  -- dcs.veaf.org's MissionScripting.lua removes `os` and keeps `io` and `lfs` (read 2026-10-30)
+  veafCombatLog.close()
+  os.remove(veafCombatLog.path)
+  dcs_mocks.eventHandlers = {}
+  local savedOs, savedMission = os, env.mission
+  env.mission = { date = { Year = 2026, Month = 10, Day = 31 } }
+  local paths = {}
+  os = nil -- luacheck: ignore 121
+  for _ = 1, 2 do
+    veafCombatLog.initialize()
+    table.insert(paths, veafCombatLog.path)
+    veafCombatLog.close()
+  end
+  os = savedOs -- luacheck: ignore 121
+  env.mission = savedMission
+  os.remove(paths[1])
+  veafCombatLog.path = paths[2] -- tearDown removes it
+  luaunit.assertStrContains(paths[1], "veaf-combat-log-20261031-1.jsonl")
+  luaunit.assertStrContains(paths[2], "veaf-combat-log-20261031-2.jsonl") -- a restart does not append to the first
+  luaunit.assertEquals(#dcs_mocks.eventHandlers, 2)
+end
+
 local runner = luaunit.LuaUnit.new()
 runner:setOutputType("text")
 os.exit(runner:runSuite())

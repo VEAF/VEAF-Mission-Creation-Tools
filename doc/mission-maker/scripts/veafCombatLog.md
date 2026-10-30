@@ -20,7 +20,7 @@ modules:
   COMBATLOG: true
 ```
 
-Le fichier s'écrit seulement si l'environnement de script de DCS garde `io`, `os` et `lfs`, comme sur les serveurs VEAF.
+Le fichier s'écrit seulement si l'environnement de script de DCS garde `io` et `lfs`, comme sur les serveurs VEAF (qui retirent `os`).
 Sinon le module le dit une fois dans `dcs.log` et n'écrit rien : la mission tourne normalement.
 
 ---
@@ -28,6 +28,7 @@ Sinon le module le dit une fois dans `dcs.log` et n'écrit rien : la mission tou
 ## Le fichier
 
 `veaf-combat-log-<date>-<heure>.jsonl`, dans le dossier `VEAF_EXPORT_DIR` s'il est défini, sinon dans le dossier d'écriture de DCS (`Saved Games\DCS…`).
+Là où l'environnement de script retire `os`, comme sur les serveurs VEAF, la date réelle est inconnue : le fichier s'appelle `veaf-combat-log-<date de la mission>-<n>.jsonl`, dans le dossier d'écriture de DCS, `<n>` étant le premier numéro libre (`-1`, puis `-2` après une relance…).
 Un fichier par lancement de mission, jamais effacé par l'outil : sur un serveur qui relance souvent, faites le ménage de temps en temps.
 Le fichier est écrit sur disque toutes les 10 secondes (un plantage perd au plus ces 10 secondes), pas à chaque ligne : un passage canon lève un événement par obus.
 

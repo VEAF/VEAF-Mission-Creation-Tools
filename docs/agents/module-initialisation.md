@@ -55,6 +55,7 @@ a VEAF module — the generator starts it from its own block, before the module 
 | `CAMPAIGN` | `veafCampaign` | 240 | 27 | -- | `initialize()` |
 | `CARRIER` | `veafCarrierOperations` | 80 | 5 | -- | `initialize(includeRadioMenu, runOperationsScheduler)` |
 | `CASMISSION` | `veafCasMission` | 90 | 6 | -- | `initialize()` |
+| `COMBATLOG` | `veafCombatLog` | 235 | 30 | -- | `initialize()` |
 | `COMBATMISSION` | `veafCombatMission` | 100 | 8 | -- | `initialize()` |
 | `COMBATZONE` | `veafCombatZone` | 110 | 9 | -- | `initialize()` |
 | `COMMANDS` | `veafCommands` | 15 | -- | -- | `initialize()` |
@@ -63,7 +64,7 @@ a VEAF module — the generator starts it from its own block, before the module 
 | `GRASS` | `veafGrass` | 150 | 11 | -- | `initialize()` |
 | `GROUNDAI` | `veafGroundAI` | 190 | 26 | -- | `initialize()` |
 | `I18N` | `veafI18n` | -- | -- | -- | -- |
-| `INTERPRETER` | `veafInterpreter` | 170 | 30 | -- | `initialize()` |
+| `INTERPRETER` | `veafInterpreter` | 170 | 31 | -- | `initialize()` |
 | `MARKERS` | `veafMarkers` | 4 | 19 | -- | `initialize()` |
 | `MATH` | `veafMath` | -- | -- | -- | `initialize()` |
 | `MISSILEGUARDIAN` | `veafMissileGuardian` | 180 | 20 | -- | `initialize()` |

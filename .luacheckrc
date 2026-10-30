@@ -70,7 +70,7 @@ globals = {
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})
   "veaf", "veafAircraftSpawn", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
   "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCampaign", "veafCarrierOperations",
-  "veafCasMission", "veafCombatMission", "veafCombatZone", "veafCommands",
+  "veafCasMission", "veafCombatLog", "veafCombatMission", "veafCombatZone", "veafCommands",
   "veafEventHandler", "veafGeo", "veafGrass", "veafGroundAI",
   "veafI18n", "veafInterpreter", "veafMarkers", "veafMath", "veafMissileGuardian",
   "veafMissionDb", "veafMove",

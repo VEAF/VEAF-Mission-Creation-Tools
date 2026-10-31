@@ -3,6 +3,7 @@
 *Whitepaper VEAF à l'intention des créateurs de missions DCS World et des auteurs de briefs.*
 *Il décrit comment DCS calcule le vent d'une météo statique à partir des trois valeurs de l'éditeur de mission, d'après le code de `Weather.dll`, vérifié par des mesures en jeu.*
 *Rédigé le 2026-10-31, DCS 2.9.31.29434, carte Syria.*
+*English version: [dcs-wind-model.en.md](dcs-wind-model.en.md).*
 
 ## Résumé
 

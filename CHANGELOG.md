@@ -17,6 +17,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- **Whitepaper: how DCS turns the mission editor's wind into the simulated wind** (`docs/whitepapers/dcs-wind-model.fr.md` and `.en.md`, from "Marteau du Golan": 17 kt set and announced, 24 kt at 10 m and 36 kt at 1000 ft above Rosh Pina).
+  The model is read in `Weather.dll` and checked in game: five surveys of 5,392 points each match it within 0.0003 m/s.
+  DCS multiplies the ground wind by 2.14 and reduces it near the ground with an exponent that shrinks as the terrain rises, so the ground wind exceeds the setting on high terrain and the low layer reaches about 2.1 times it.
+  Turbulence, temperature and season do not change the base wind; VMCT's ATIS and LASTE read it at the right place and are right.
+  `dcs_wind.py` gives the real wind by altitude band above a terrain for a briefing; the measurement kit (test missions, bridge survey, surveys) is next to it.
+
 ## [6.35.0] — 2026-10-30
 
 ### Fixed

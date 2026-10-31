@@ -91,7 +91,7 @@ Avec la bonne correspondance, l'écart de ce METAR (13 kt) demanderait S = 10,8 
 
 ## 4. Plafond recommandé
 
-**Reco provisoire : S = 3 m/s (`groundTurbulence = 30`)**, à confirmer par le test aux commandes (section 5).
+**Reco : S = 3 m/s (`groundTurbulence = 30`)**, à confirmer en vol dans les missions des serveurs (section 5).
 
 - Avec S = 3, les pointes à 10 m sont de 2,7 à 3,4 m/s (5 à 7 kt) à l'horizontale et de 1,6 à 2,9 m/s à la verticale ; vers 1000 ft, 3,4 m/s à la verticale.
 - C'est l'écart de rafale qu'annonce un METAR de 4 kt d'écart : en dessous, la turbulence suit le METAR, au-dessus, elle est écrêtée.
@@ -102,9 +102,10 @@ Avec la bonne correspondance, l'écart de ce METAR (13 kt) demanderait S = 10,8 
 
 Cinq missions, sur la même rangée de terrain plat à 1,5 km à l'ouest d'Abu al-Duhur, vent nul, huit hélicos au sol moteurs tournants (UH-1H, Mi-8, Mi-24P, Ka-50 III, Gazelle M, OH-58D, AH-64D, CH-47F) : `veaf-turb-helico-0ms.miz` (témoin), `-2ms`, `-3ms`, `-4ms`, `-5ms`.
 Elles sont écrites par [make_helico_missions.py](dcs-turbulence/make_helico_missions.py).
-La consigne pas à pas est donnée à David dans la session de mesure ; elle remplace celle de la tâche T434.
+Le protocole prévu : même hélico à chaque mission, stationnaire à 10 ft puis 100 ft, translation à 40 kt, pose ; la plus forte turbulence où le stationnaire et la pose restent faisables sans lutter devient le plafond.
 
-Le critère : la plus forte turbulence où le stationnaire à 10 ft et la pose restent faisables sans lutter devient le plafond.
+Ce test n'a pas été fait (2026-10-31) : le plafond de 3 m/s sera éprouvé en vol réel, dans les missions des serveurs, et ajusté sur les retours des pilotes d'hélico.
+Les missions restent disponibles pour un test isolé.
 
 ## 6. Limites
 

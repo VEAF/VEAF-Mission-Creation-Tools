@@ -1,12 +1,21 @@
-"""Modèle du vent de base DCS World (météo statique), tiré de Weather.dll 2.9.31.29434.
+"""Vent de base DCS World (météo statique), tel que le calcule Weather.dll 2.9.31.29434.
 
-Conventions DCS : x vers le nord, z vers l'est, y altitude MSL.
+Conventions DCS : x vers le nord, z vers l'est, y altitude MSL, h hauteur au-dessus du sol.
 Dans le .miz, `dir` est la direction VERS laquelle souffle le vent (dir 90 = vent du 270).
+
+En ligne de commande, donne le vent réel par tranche d'altitude au-dessus d'un terrain, pour écrire un brief :
+
+  python dcs_wind.py <mission.miz> --elev-ft 860
+  python dcs_wind.py <mission.miz> --elev 263
 """
+import argparse
 import math
+import re
+import zipfile
 
 KT = 1.943844
-GROUND_REF = 45.0 ** 0.2          # addPointGroundWind_w : vent sol (10 m) -> niveau 0 m MSL
+FT = 0.3048
+GROUND_REF = 45.0 ** 0.2          # StaticAtmosphere::addPointGroundWind_w : vent sol -> niveau 0 m MSL
 LEVELS_Y = (0.0, 2000.0, 8000.0)  # reconfigureAtmosphere : atGround, at2000, at8000
 
 
@@ -27,7 +36,7 @@ def ground_factor(y, h):
 
 
 def base_wind(wind, y, h):
-    """StaticAtmosphere::getBaseWind_w. wind = mission['weather']['wind']. Renvoie (x, z) en m/s."""
+    """StaticAtmosphere::getBaseWind_w. wind = mission.weather.wind. Renvoie (x, z) en m/s."""
     v = [vec(GROUND_REF * wind["atGround"]["speed"], wind["atGround"]["dir"]),
          vec(wind["at2000"]["speed"], wind["at2000"]["dir"]),
          vec(wind["at8000"]["speed"], wind["at8000"]["dir"])]
@@ -47,21 +56,48 @@ def base_wind(wind, y, h):
 
 
 def speed_from(xz):
-    """(vitesse m/s, direction D'OÙ vient le vent en degrés)."""
+    """(vitesse m/s, direction D'OÙ vient le vent, en degrés vrais)."""
     x, z = xz
     return math.hypot(x, z), (math.degrees(math.atan2(z, x)) + 180.0) % 360.0
 
 
+def read_miz_wind(path):
+    """Lit mission.weather.wind dans un .miz (sans interpréteur Lua)."""
+    with zipfile.ZipFile(path) as z:
+        text = z.read("mission").decode("utf-8")
+    w = text[text.rindex("weather = {"):]
+    wind = {}
+    for key in ("atGround", "at2000", "at8000"):
+        m = re.search(r'%s"?\]? = \{\s*\[?"?dir"?\]? = ([-\d.]+),\s*\[?"?speed"?\]? = ([-\d.]+)' % key, w)
+        wind[key] = {"dir": float(m.group(1)), "speed": float(m.group(2))}
+    return wind
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Vent DCS réel par tranche d'altitude au-dessus d'un terrain.")
+    ap.add_argument("miz")
+    g = ap.add_mutually_exclusive_group(required=True)
+    g.add_argument("--elev", type=float, help="altitude du terrain, en mètres")
+    g.add_argument("--elev-ft", type=float, help="altitude du terrain, en pieds")
+    a = ap.parse_args()
+    ground = a.elev if a.elev is not None else a.elev_ft * FT
+    wind = read_miz_wind(a.miz)
+    print("Réglage de la mission : " + ", ".join(
+        f"{k} {w['speed']:g} m/s ({w['speed'] * KT:.0f} kt) du {(w['dir'] + 180) % 360:03.0f}" for k, w in wind.items()))
+    print(f"Terrain à {ground:.0f} m ({ground / FT:.0f} ft)\n")
+    print("  hauteur sol        altitude        vent (du / kt)")
+    rows = [(10, "10 m (vent au sol)")] + [(ft * FT, f"{ft} ft") for ft in (100, 300, 500, 1000, 1500, 2000, 3000)]
+    for h, label in rows:
+        s, d = speed_from(base_wind(wind, ground + h, h))
+        print(f"  {label:18s} {(ground + h) / FT:6.0f} ft MSL   {d:03.0f} / {s * KT:4.0f}")
+    print()
+    for ft in (5000, 6500, 8000, 10000, 15000, 20000, 26000, 30000):
+        y = ft * FT
+        if y - ground < 500:
+            continue
+        s, d = speed_from(base_wind(wind, y, y - ground))
+        print(f"  {'':18s} {ft:6d} ft MSL   {d:03.0f} / {s * KT:4.0f}")
+
+
 if __name__ == "__main__":
-    W = {"atGround": {"speed": 9, "dir": 90}, "at2000": {"speed": 11, "dir": 90}, "at8000": {"speed": 14, "dir": 90}}
-    measured = {
-        "Ramat David": (40, [18, 25, 32, 36, 37, 31]),
-        "Rosh Pina": (263, [24, 29, 34, 36, 34, 26]),
-        "MASADA": (961, [28, 29, 28, 25, 22, 21]),
-    }
-    for name, (g, ms) in measured.items():
-        row = []
-        for agl, m in zip((10, 50, 150, 300, 600, 1000), ms):
-            s, _ = speed_from(base_wind(W, g + agl, agl))
-            row.append(f"{agl}m: {s*KT:5.1f} (mes {m})")
-        print(f"{name:12s} " + " | ".join(row))
+    main()

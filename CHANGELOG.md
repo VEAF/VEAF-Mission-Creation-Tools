@@ -25,6 +25,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Turbulence, temperature and season do not change the base wind; VMCT's ATIS and LASTE read it at the right place and are right.
   `dcs_wind.py` gives the real wind by altitude band above a terrain for a briefing; the measurement kit (test missions, bridge survey, surveys) is next to it.
 
+### Fixed
+
+- **A random red on `python-quality`**: the `update-dcs-data` dispatch tests ran the airdromes generator for real, which downloaded the reference database and rewrote the shipped `airdrome-positions.yaml` in place while other test workers read it; one that caught it truncated failed (#1227's briefing test). The generator is now patched, and a test checks that a dispatch run leaves the shipped data untouched.
+
 ## [6.35.0] — 2026-10-30
 
 ### Fixed

@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-FLAKY-AIRDROME-POSITIONS](FIX-FLAKY-AIRDROME-POSITIONS/PRD.md) · ✅
+
+A random red on `python-quality`: the `update-dcs-data` dispatch tests left the airdromes generator unpatched, so `--all` downloaded the reference database and rewrote the shipped `airdrome-positions.yaml` in place while other xdist workers read it — a reader caught it truncated and got `None`. The generator is patched, and a guard test asserts a dispatch run leaves `veaf_libs/data` untouched. One PR.
+
 ### [CHORE-VENDOR-CTLD-RC16](CHORE-VENDOR-CTLD-RC16/PRD.md) · ✅
 
 CTLD `2.0.0-rc16` vendored ahead of the release: an AI Fat Cow that loses its flight can be taken over, **Release the Fat Cow**, and fixes to the AI cow's return and landing. No new setting, catalogue unchanged.

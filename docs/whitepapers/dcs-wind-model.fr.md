@@ -173,7 +173,9 @@ La mer Morte et le lac de Tibériade sont sortis à 3 m d'altitude dans DCS : au
 
 Les écarts résiduels viennent de l'arrondi des relevés à 10⁻⁵ m/s.
 La composante verticale du vent de base est toujours nulle.
-La mission 4 demandait −10 °C en décembre ; DCS a chargé 5 °C (bornage probable de la température selon le mois, non étudié).
+La mission 4, écrite par script sans passer par l'éditeur, demandait −10 °C au 1er décembre ; DCS a chargé 5 °C.
+L'éditeur borne la température à la plage que la carte donne pour la date (`Terrain.getTempratureRangeByDate`, dans `me_weather.lua`), et le même bornage s'applique au chargement : une température saisie dans l'éditeur est toujours dans la plage et n'est donc jamais modifiée (20 °C et 18 °C ont été relus tels quels).
+Que 5 °C soit le minimum de la carte Syria au 1er décembre est une déduction, à confirmer dans l'éditeur.
 La température décroît de 6,5 °C par 1000 m entre 0 et 2000 m, dans les deux saisons.
 
 Les relevés bruts sont dans [dcs-wind-model/data/](dcs-wind-model/data/).

@@ -29,6 +29,8 @@ MISSIONS = {
     "t00-vent10": (*WIND10, 0),
     "t20-vent10": (*WIND10, 20),
     "t60-vent10": (*WIND10, 60),
+    # relevé long (20 min) : rafale « à la METAR » sur des fenêtres de 10 min, avec un vent moyen
+    "t30-vent5": ((5, 90), (0, 90), (15, 90), 30),
 }
 
 

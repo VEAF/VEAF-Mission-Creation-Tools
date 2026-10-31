@@ -19,3 +19,7 @@ Broaden the shipped default radio presets, after phase 1 of the radio preset pro
 ### [FEAT-LIVE-GAME-MASTER](FEAT-LIVE-GAME-MASTER/PRD.md) · ⬜
 
 Claude acting in a running mission while the squadron flies — spawn, destroy, move convoys, radio messages — through the bridge, with an operator token and never raw Lua. Written up 2026-10-08 and decided by David: free by default, nothing shown when Claude plays red, text and SRS voice when it warns blue players; seven tickets, one of them in the bridge's repository.
+
+### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · ⬜
+
+A wind check in `veaf-tools dcs mission-check`: the simulated wind measured through the bridge above departures, objectives and helicopter routes, the briefing's announced wind compared with it, and a warning when helicopters fly into a hard low-layer wind; the authoring actions, the guide and the prompts stop presenting the `set_weather` setting as the wind. Four tickets; from *Marteau du Golan* (2026-10-31), where 17 kt set and announced became 35 kt on the helicopters' nose.

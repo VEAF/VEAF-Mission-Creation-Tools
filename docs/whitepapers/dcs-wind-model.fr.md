@@ -47,6 +47,9 @@ Notations : `y` est l'altitude MSL du point, `h` sa hauteur au-dessus du sol, le
 | 2 | 8000 m MSL | `V2 = at8000` |
 
 Le coefficient 45^0,2 ramène un vent mesuré vers 11 m (500/45 ≈ 11,1 m) à une hauteur de référence de 500 m, par une loi de puissance d'exposant 0,2.
+Ce n'est pas une conversion d'unités : c'est l'inverse exact de la réduction près du sol (section 2.3) au niveau de la mer, où l'on retrouve 0,98 × le réglage à 10 m.
+L'incohérence est ailleurs : la montée vers 500 m se fait toujours avec l'exposant 0,2 du niveau de la mer, alors que la descente vers le sol utilise un exposant qui diminue avec l'altitude.
+Sur un terrain élevé, la réduction ne compense donc plus la montée, et le vent au sol dépasse le réglage.
 
 ### 2.2 Raccord entre deux niveaux
 

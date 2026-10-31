@@ -38,10 +38,14 @@ def templates(ot: dict) -> dict[str, dict]:
 
 
 def slot(template: dict, n: int) -> dict:
-    """Le groupe template en slot au sol, moteurs tournants, à 60 m d'écart vers l'est."""
+    """Le groupe template en slot au sol, moteurs tournants, à 60 m d'écart vers l'est.
+
+    La rangée est à 1,5 km à l'ouest du centre de la base : terrain plat à 250 m, sans objet à moins de
+    150 m (vérifié en jeu par world.searchObjects ; au centre, le CH-47 tombait à 8 m d'un hangar).
+    """
     g = copy.deepcopy(template)
     u = g["units"][0]
-    x, y = AB[0] - 150, AB[1] + 60 * n - 210
+    x, y = AB[0], AB[1] - 1500 + 60 * n - 210
     name = u["type"]
     g.update({"name": name, "groupId": 9000 + n, "x": x, "y": y, "lateActivation": False, "hidden": False,
               "uncontrolled": False, "start_time": 0})

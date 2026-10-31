@@ -159,7 +159,7 @@ def main():
     if a.me:
         rec.update({k: v for k, v in parse(call(LUA_ME, a.client)).items() if v})
     (HERE / "data").mkdir(exist_ok=True)
-    (HERE / "data" / f"{a.name}.json").write_text(json.dumps(rec, indent=1, ensure_ascii=False), encoding="utf-8")
+    (HERE / "data" / f"{a.name}.json").write_text(json.dumps(rec, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
     print(f"relevé écrit en {time.time() - t0:.1f} s : data/{a.name}.json  (météo lue : {rec['weather']})")
     compare(rec)
     for m in rec["ME"]:

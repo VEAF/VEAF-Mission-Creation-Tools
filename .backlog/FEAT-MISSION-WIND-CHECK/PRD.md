@@ -37,7 +37,7 @@ The model becomes a brick of veaf-tools; everything that writes the weather sets
 
 | # | What | Status | Ticket |
 |---|---|---|---|
-| 01 | The wind model as a `veaf_libs` brick: the base wind at a point, the profile above a place, and the inversion that gives the `atGround` for a wanted wind; tested against the five runs of the whitepaper | ⬜ | [01](tickets/01-wind-model-brick.md) |
+| 01 | The wind model as a standard-library `veaf_libs` brick, shared with the DCSServerBot fork: the base wind at a point, the profile above a place, and two exact inversions (`at2000` proportional, or given) that give the `atGround` for a wanted wind; tested against the five runs of the whitepaper and shared test vectors | ⬜ | [01](tickets/01-wind-model-brick.md) |
 | 02 | Measure in game how `groundTurbulence` turns into gusts, to map a METAR's `G25KT` onto it | ⬜ | [02](tickets/02-measure-gusts.md) |
 | 03 | Writing the weather: the wanted wind at a reference airfield is inverted into `atGround`, `at2000` defaults to 2.2 × `atGround` veered, `clearsky` caps the simulated wind, gusts feed `groundTurbulence` — for `set_weather`, the weather variants (`inject-weather`) and the METAR conversion | ⬜ | [03](tickets/03-write-the-wanted-wind.md) |
 | 04 | Describing the weather: the deck's weather block by layer, `inspect_built_mission`, `set_weather`'s answer, the authoring guide and both mission prompts speak of the simulated wind; the helicopter rule applies to the simulated wind from 0 to 600 m | ⬜ | [04](tickets/04-describe-the-simulated-wind.md) |
@@ -57,6 +57,8 @@ Taken by David on 2026-10-31 (A to E of the study's brief); the details under th
   Its tests replay the five runs of `docs/whitepapers/dcs-wind-model/data/` as reference data, read where they are: one copy of the measurement, owned by the whitepaper.
   The whitepaper's `dcs_wind.py` stays as the study left it, a record of how the model was found; the brick is the product.
   The model is written for DCS 2.9.31.29434; the brick names that version, and ticket 05's optional measurement is how a later DCS is checked against it.
+  The file is standard-library only and is copied as is by the VEAF fork of DCSServerBot, to correct the `atGround` DCS Real Weather writes on the servers (0.48 × the METAR today, from a single runway elevation of 160 m); shared test vectors keep the two copies honest (ticket 01).
+  With a real wind aloft (the servers' open-meteo data), the inversion takes that `at2000` as given rather than the 2.2 × default of D3.
 - **D2 — the author sets the wind wanted at a place, the tool computes the setting (B).**
   The wanted wind is the surface wind at a **reference airfield**, 10 m above its ground, as a METAR or an ATIS says it.
   The tool inverts the model at that airfield's altitude to find `atGround`: the 10 m wind is linear in `atGround` once `at2000` is a fixed multiple of it (D3), so the inversion is one division, not a search.

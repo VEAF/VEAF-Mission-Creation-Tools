@@ -15,8 +15,8 @@ With the brick of ticket 01, it writes the setting that makes DCS simulate the w
   The METAR the briefing prints (`${METAR}`, `metar_composer.py` for a manual sky, the station's report otherwise) keeps the wanted wind: after this ticket it is also the wind DCS simulates at that airfield, which it was not before.
 - c. **`clearsky`.** `cap_clearsky` keeps capping the wanted wind at 15 kt (`_CLEARSKY_MAX_WIND_MPS`); since the wanted wind is now the simulated surface wind at the reference airfield, the cap holds where pilots read it.
   Its docstring says so.
-- d. **Gusts** (once ticket 02 has given the mapping): the METAR's `G` group, parsed today in `_fallback_metar_parsing` and dropped, is kept as `wind_gust`, and a manual weather takes `wind_gust` too; the gap gust − mean goes through ticket 02's formula into `groundTurbulence`.
-  Until ticket 02 lands, the gust is kept, not written, and the converter's answer says "gusts not simulated".
+- d. **Gusts**: the METAR's `G` group, parsed today in `_fallback_metar_parsing` and dropped, is kept as `wind_gust`, and a manual weather takes `wind_gust` too; `turbulence_for_gust` (ticket 02: the gap gust − mean, capped at 2 m/s until the measured table lands) gives `groundTurbulence`.
+  An explicit `turbulence` given to `set_weather` or a variant wins over the gust.
   A `clearsky` sky drops the gust.
 - e. **What the converter answers**: the setting it wrote, the reference airfield, and the simulated wind at that airfield by layer (ticket 01 b, the layers of PRD D5), so `set_weather` and the build can show it (ticket 04).
 
@@ -24,6 +24,6 @@ Done when:
 
 - unit tests on the converter: a METAR `27015KT` with a station of the map gives back 15 kt from 270 at 10 m above that station through `base_wind`; the same METAR at a sea-level airfield and at a 1,000 m airfield write two different `atGround`; a station off the map falls back to the departure airfield, then to sea level with its warning; `clearsky` with a 25 kt METAR gives 15 kt simulated at the reference airfield; explicit upper layers are written as given, with the warning under 2.14 ×;
 - `set_weather` and a weather variant are tested through their entry points, not only through the converter;
-- with ticket 02 done, `27015G25KT` writes the `groundTurbulence` of its formula; without it, the gust is reported unsimulated;
+- `27015G25KT` writes the `groundTurbulence` of `turbulence_for_gust` (20, i.e. 2 m/s, while the cap holds), `27015KT` writes 0;
 - the build log names the reference airfield of each variant;
 - `weather_injector_worker.py` and `mission_settings.py` stay clean under mypy (neither is in the excluded list today).

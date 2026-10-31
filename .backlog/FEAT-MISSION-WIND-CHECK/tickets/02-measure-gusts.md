@@ -1,19 +1,20 @@
-# 02 — Measure how `groundTurbulence` turns into gusts
+# 02 — From a gust to `groundTurbulence`
 
 Status: ⬜ ready
 
-Needs DCS: run on a machine with the game (DAVID-BUREAU), with the whitepaper's protocol (section 8).
+A METAR's gust group (`08024G37KT`) says the peak wind exceeds the mean by 13 kt; DCS only takes a turbulence, `weather.groundTurbulence` (60 in the `.miz` reads as 6 m/s in the editor).
+What DCS does with a turbulence of N m/s is not measured: the whitepaper only characterised the spread of `atmosphere.getWindWithTurbulence` around the base wind (RMS 3.2 m/s at 10 m for 6 m/s) and a floor of 2 % of the 0 m level even at 0.
 
-A METAR's gust group (`27015G25KT`) says the peak wind exceeds the mean by 10 kt; DCS only takes a turbulence, `weather.groundTurbulence` (60 in the `.miz` reads as 6 m/s in the editor).
-The whitepaper characterised the spread of `atmosphere.getWindWithTurbulence` around the base wind (RMS 3.2 m/s at 10 m for a turbulence of 60) but not a gust, and noted a floor of 2 % of the 0 m level even at turbulence 0.
-This ticket measures what ticket 03 d needs: for a turbulence, the gust a pilot meets.
+**Semantics, decided by David on 2026-10-31 for the servers and kept here so both sides agree:** the turbulence is the **gap** gust − mean wind, not the peak gust (DCS Real Weather writes the peak, about three times the gap), **capped at 2 m/s** until the measurement gives a table.
 
-- a. **Missions**: with `make_missions.py`, the empty survey mission of veaf-tools (`veaf-survey-Syria.miz`, bridge loaded at start) with one change per mission — wind 5 m/s from 270 at the ground and 11 m/s at 2,000 m (the defaults of PRD D3), `groundTurbulence` 0, 30, 60, 120 and 200; and once 10 m/s at the ground with 60, to see whether the gust scales with the wind or not.
-- b. **What to sample**, at Rosh Pina (262 m), over the sea and on the Hermon (2,797 m), at 10 m, 100 m and 300 m above the ground:
-  - in time, at a fixed point: `getWindWithTurbulence` every 0.1 s for 10 minutes of mission time, to learn whether DCS's turbulence changes with time at all;
-  - in space, along a line into the wind and across it: one point every 4 m over 10 km, what a helicopter at 80 kt meets every 0.1 s.
-- c. **What to compute**: the METAR's gust, i.e. the highest 3-second mean of the sampled speed, minus the 10-minute (or 10-km) mean; and the mean itself, to check that turbulence leaves it alone.
-- d. **Deliverable**: the runs in `docs/whitepapers/dcs-wind-model/data/` beside the five others, the script beside `measure.py`, and a section of the whitepaper (FR and EN) giving the table turbulence → gust by height, the formula ticket 03 d will use and its error, and the DCS version.
-  If DCS's turbulence turns out to depend on time or on the aircraft rather than on position only, the section says so and gives what a briefing can still announce.
+**The measurement is not done in this lot.**
+It runs in its own session, *Mesure en jeu de la turbulence DCS*, with the whitepaper's protocol (missions at several `groundTurbulence`, `getWindWithTurbulence` − `getWind` sampled at fixed points over time), and delivers a table "gust gap → `groundTurbulence`" with its whitepaper section and runs.
 
-Done when: the section is written in both languages with its table, the runs are committed, and the mapping is a formula (or a table to interpolate) with its stated error, ready for ticket 03 d.
+This ticket puts the rule in the shared brick of ticket 01, so VMCT and the DCSServerBot fork apply the same one:
+
+- a. `turbulence_for_gust(mean_knots, gust_knots) -> float` (m/s, the `.miz`'s unit divided by 10): the gap, capped at `GUST_TURBULENCE_CAP_MPS = 2.0`, 0 when no gust is reported or the gust does not exceed the mean.
+- b. When the measurement session has delivered its table, the function interpolates it instead, the cap is revised to what the table says is flyable, and the table's source (whitepaper section, date, DCS version) is quoted in the docstring and the module.
+  If the table has not landed when the lot is implemented, the lot ships with the capped gap and says so in the CHANGELOG.
+- c. Shared test vectors (ticket 01 g) gain the gust cases: `08024G37KT` → 2.0 m/s capped (6.7 m/s gap), `27015KT` → 0, a gust under the mean → 0.
+
+Done when: the function is in the shared file with its vectors, ticket 03 d uses it, and either the measured table is in or the CHANGELOG says the turbulence is the capped gap pending the measurement.

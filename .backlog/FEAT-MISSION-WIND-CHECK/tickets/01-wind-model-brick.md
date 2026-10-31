@@ -25,12 +25,17 @@ What it holds:
 - d. **The guard on `1 − w`**: at 2,000 m MSL and above, the 0 m level weighs nothing and no `atGround` can give the wanted wind: `ValueError`.
   Between about 1,170 m (`1 − w` = 0.5) and 2,000 m, the inversion with a given `at2000` amplifies any gap between `at2000` and the wanted wind (16 times at 1,500 m, where `1 − w` ≈ 0.06) and can give an absurd `atGround`, even an opposed one: the result carries `reliable = False` below a threshold of `1 − w`, a named constant (0.5 by default), and the caller decides — VMCT warns (ticket 03), the servers keep Real Weather's value.
   Every VEAF airfield of the servers' real-weather missions lies under 500 m (`w` < 0.007); Kabul and Bagram are the cases this guard is for.
+- d2. **The cap on a band of heights**: `cap_setting_for_band(setting, ground_msl, max_knots, top_agl)` returns the setting reduced so that the strongest wind between 10 m and `top_agl` above `ground_msl` (b) does not exceed `max_knots`, and says what it reduced.
+  It scales `atGround` down (a bisection on its factor: the band maximum grows with it, no closed form once `at2000` is fixed); only when `atGround` at 0 still leaves the band above the cap — terrain high enough for `at2000` to dominate the band — does it scale `at2000` too, flagged in the result.
+  The servers cap DCS Real Weather's wind with it: **20 kt over the whole band 0-1,500 ft above the METAR station**, decided by David on 2026-10-31 (a strong wind aloft is accepted).
+  For scale, with a neutral `at2000` the band maximum is 2.13 times the 10 m wind at sea level, 1.62 at 231 m and 1.35 at 468 m: the cap leaves about 9, 12 and 15 kt at the surface.
+  VMCT does not reduce an author's wind with it: its helicopter rule warns (PRD D6); the cap and the band are the caller's arguments, not constants of the file.
 - e. **Airfield altitudes** (VMCT side only, outside the shared file): the inversion needs the reference airfield's altitude, and `data/airdrome-positions.yaml` has only `name`, `id`, `lat`, `lon`.
   Add `elevation` (m) to it from the same sources (`veaf-build update-dcs-data --airdromes`: the `dcs-world-schema` database, or `Airbase:getPoint().y` from the runtime dump for a theatre the schema lacks), and expose it through `airfields_for_theatre`.
   Check first that the schema carries it; if it does not, the runtime dump does, for every theatre the dumps cover.
 - f. **The model's version** is a constant of the file (`MODEL_DCS_VERSION = "2.9.31.29434"`), quoted by every report that uses the model.
 - g. **Shared test vectors**: `dcs_wind_vectors.json` beside the module — inputs (setting or wanted wind, reference altitude, `at2000` when given) and expected outputs (`atGround`, the 10 m wind, `1 − w`, `reliable`) — replayed by this repository's tests and by the fork's, so a copy that drifts from the other fails.
-  It includes the measured case of the servers: OMAA, ground 13 m, METAR 320/11 kt, `at2000` 2.65 m/s blowing to 227° → `atGround` **5.58 m/s** blowing to 140° (Real Weather writes 2.74 today), giving back 11.0 kt from 320 at 10 m; plus a high-terrain case on each side of the `reliable` threshold, and one at 2,000 m for the `ValueError`.
+  It includes the measured case of the servers: OMAA, ground 13 m, METAR 320/11 kt, `at2000` 2.65 m/s blowing to 227° → `atGround` **5.58 m/s** blowing to 140° (Real Weather writes 2.74 today), giving back 11.0 kt from 320 at 10 m; plus a high-terrain case on each side of the `reliable` threshold, one at 2,000 m for the `ValueError`, and band caps at sea level, 231 m and 468 m (20 kt over 0-1,500 ft) with one high enough to reduce `at2000`.
 
 Done when:
 

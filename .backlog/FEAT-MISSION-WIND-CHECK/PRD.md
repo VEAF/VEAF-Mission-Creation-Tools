@@ -38,7 +38,7 @@ The model becomes a brick of veaf-tools; everything that writes the weather sets
 | # | What | Status | Ticket |
 |---|---|---|---|
 | 01 | The wind model as a standard-library `veaf_libs` brick, shared with the DCSServerBot fork: the base wind at a point, the profile above a place, and two exact inversions (`at2000` proportional, or given) that give the `atGround` for a wanted wind; tested against the five runs of the whitepaper and shared test vectors | ⬜ | [01](tickets/01-wind-model-brick.md) |
-| 02 | Measure in game how `groundTurbulence` turns into gusts, to map a METAR's `G25KT` onto it | ⬜ | [02](tickets/02-measure-gusts.md) |
+| 02 | From a gust to `groundTurbulence` in the shared brick: the gap gust − mean, capped at 2 m/s until the in-game measurement (its own session) gives a table | ⬜ | [02](tickets/02-measure-gusts.md) |
 | 03 | Writing the weather: the wanted wind at a reference airfield is inverted into `atGround`, `at2000` defaults to 2.2 × `atGround` veered, `clearsky` caps the simulated wind, gusts feed `groundTurbulence` — for `set_weather`, the weather variants (`inject-weather`) and the METAR conversion | ⬜ | [03](tickets/03-write-the-wanted-wind.md) |
 | 04 | Describing the weather: the deck's weather block by layer, `inspect_built_mission`, `set_weather`'s answer, the authoring guide and both mission prompts speak of the simulated wind; the helicopter rule applies to the simulated wind from 0 to 600 m | ⬜ | [04](tickets/04-describe-the-simulated-wind.md) |
 | 05 | `veaf-tools dcs mission-check` compares the briefing's wind with the model, without DCS, and warns when helicopters fly into a hard low layer; measuring through the bridge becomes an optional check of the model against the running DCS | ⬜ | [05](tickets/05-mission-check-wind.md) |
@@ -46,7 +46,7 @@ The model becomes a brick of veaf-tools; everything that writes the weather sets
 | 07 | Known limitation, documentation pages, demo mission step, CHANGELOG | ⬜ | [07](tickets/07-docs-and-limitation.md) |
 
 Ticket 01 comes first: 03, 04 and 05 call it.
-Ticket 02 gates only the gust part of 03 (item d); the rest of 03 does not wait for it.
+Ticket 02 feeds the gust part of 03 (item d); neither waits for the in-game measurement, which refines ticket 02's function when it lands.
 
 ## Decisions
 
@@ -72,10 +72,11 @@ Taken by David on 2026-10-31 (A to E of the study's brief); the details under th
   *Why 20 and not more:* computed above Rosh Pina with ground 5 m/s and `at2000` 11 m/s veered 20°, the speed still only grows (7, 10, 11, 11 m/s at 10 m, 1,000, 2,000, 3,000 ft) and the direction turns smoothly from 270 to 290; the blend of two vectors at an angle dips in between, by 0.4 kt at 30°, 1.3 kt at 45° and 6 kt at 90° over the sea (computed, 5 and 11 m/s), and opposite directions make a layer without wind (whitepaper, section 3.3).
   `at8000` keeps today's offset, now from `at2000`: `at2000 + 3 m/s`, same direction — nothing decided it, nothing measured it, and jets cruise above the layer this lot is about.
   `set_weather` and the variants may still set `at2000` and `at8000` explicitly; a value under 2.14 × `atGround` is accepted with a warning naming the jet it makes.
-- **D4 — gusts feed `groundTurbulence`, once the mapping is measured (C).**
+- **D4 — gusts feed `groundTurbulence`: the gap, capped until measured (C, and David on 2026-10-31 for the servers).**
   The METAR's gust group stops being dropped.
   How much `groundTurbulence` makes a 25 kt gust over a 15 kt wind is not known: the whitepaper measured the spread of `getWindWithTurbulence` (RMS 3.2 m/s at 10 m for a turbulence of 60), not a gust.
-  Ticket 02 measures it in game with the whitepaper's protocol; ticket 03 d uses its result, and until it lands the gust is reported as unsimulated, not guessed.
+  The turbulence is the **gap** gust − mean (DCS Real Weather writes the peak, about three times the gap), **capped at 2 m/s** until a measurement says more is flyable; the same rule on the servers and here, in the shared brick (ticket 02).
+  The measurement runs in its own session, *Mesure en jeu de la turbulence DCS*, and delivers a table gust gap → `groundTurbulence`; ticket 02's function interpolates it once it lands.
 - **D5 — briefing, AI and guide describe the simulated wind (D).**
   The deck's weather block gives the wind by layer above the reference airfield: surface (10 m), 1,000 ft and 3,000 ft above the ground, FL100 and FL250 — the layers a helicopter, a low-level run and a jet each need.
   The layers are named constants in one place.
@@ -84,6 +85,8 @@ Taken by David on 2026-10-31 (A to E of the study's brief); the details under th
   A mission with at least one helicopter slot warns when the simulated wind between 0 and 600 m above a helicopter departure, objective or route point exceeds **20 kt**, or differs from the surface wind there by more than **15 kt**.
   *Source:* the original *Marteau du Golan* (36 kt at 1,000 ft, 24 at the surface) was not flyable on 2026-10-31; one bad point and one target, not a study.
   The thresholds are constants in one place, named in every line that applies them, to revise after the next evening with helicopters.
+  The servers apply the same speed as a hard cap on their real weather, on a lower band: **20 kt over 0-1,500 ft above the METAR station**, decided by David on 2026-10-31, through ticket 01's `cap_setting_for_band`.
+  Here the rule warns and the author decides, because a mission may want a hard wind on purpose.
   The authoring guide and both mission prompts state the rule in those terms, and drop "10 kt or less at the surface".
 - **D7 — `mission-check` judges the briefing against the model; DCS is an optional cross-check (D).**
   Replaces the former D1 ("the measurement is the reference") and D2 ("the model in another lot"), written before the model was known.
@@ -100,6 +103,6 @@ Taken by David on 2026-10-31 (A to E of the study's brief); the details under th
 - RealWeather on the servers: another repository, studied in another session.
   A mission whose weather the server rewrites (`ICAO_` in the name) flies the server's weather; the tools say so and describe the weather they wrote.
 - Dynamic weather (`atmosphere_type = 1`): DCS computes its wind elsewhere (`DynamicAtmosphere::getBaseWind_w`), not studied.
-- Modelling turbulence itself: ticket 02 measures what a briefing needs, a gust for a setting, not the turbulence field.
+- Measuring and modelling turbulence: the in-game measurement belongs to its own session (D4); this lot only applies its table.
 
 One branch, one PR.

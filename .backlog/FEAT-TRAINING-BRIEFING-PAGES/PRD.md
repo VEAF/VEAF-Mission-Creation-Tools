@@ -1,6 +1,6 @@
 # FEAT-TRAINING-BRIEFING-PAGES — The training versions in the mission briefing
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 David, 2026-11-03, after [`FEAT-ROLE-TRAINING-VARIANTS`](../FEAT-ROLE-TRAINING-VARIANTS/PRD.md) (#1232): the training versions of *Marteau du Golan* go on Privé 1 and Privé 2 tonight, and "the briefing must be rebuilt with the training pages".
 Asked which pages, he chose one page per version.
@@ -27,4 +27,4 @@ Each page is computed with the build's own rules (`mission_builder.training_vari
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [One briefing page per training version](tickets/01-training-pages.md) | 🔄 |
+| 01 | [One briefing page per training version](tickets/01-training-pages.md) | ✅ |

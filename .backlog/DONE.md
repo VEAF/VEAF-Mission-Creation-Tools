@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-TRAINING-BRIEFING-PAGES](FEAT-TRAINING-BRIEFING-PAGES/PRD.md) · ✅
+
+The training versions in the mission briefing: one page per version at the end of the deck and of the PDF, computed with the build's own rules, and a `label:` key to name an element or a draw for the pilots. Used for *Marteau du Golan*'s training versions on Privé 1 and Privé 2 (2026-11-03). One PR (#1234).
+
 ### [FEAT-ROLE-TRAINING-VARIANTS](FEAT-ROLE-TRAINING-VARIANTS/PRD.md) · ✅
 
 Training versions of a mission night, built with it from a `training:` block in `mission.yaml`: one per role (A2G, CAP, SEAD) in the state "the other roles have done their job", one common, same setting and same briefing. What the briefing describes vaguely is drawn again at every launch by a combat zone; a draw follows the rules of what it draws, and the CAP version keeps every air defence. `remove_groups:` for any profile, and two MCP actions to draft and write the block. Checked in DCS on a copy of *Marteau du Golan* (2026-11-03): the draws differ at every launch, and `math.randomseed` does not exist in a mission. One PR.

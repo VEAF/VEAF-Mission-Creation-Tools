@@ -10,7 +10,7 @@ Each version puts the mission in the state "the other roles have done their job"
 |---|---|---|
 | `<mission>.miz` | the night | nothing: it is the definitive mission |
 | `<mission>_TRAINING_A2G.miz` | air-to-ground pilots | no enemy CAP, no QRA, no long-range SAM |
-| `<mission>_TRAINING_CAP.miz` | air-to-air pilots | no A2G target; the QRA is armed from the start |
+| `<mission>_TRAINING_CAP.miz` | air-to-air pilots | no A2G target, but all their air defences stay; the QRA is armed from the start |
 | `<mission>_TRAINING_SEAD.miz` | SEAD pilots | no enemy CAP, no QRA, no A2G target; the long-range SAMs stay |
 | `<mission>_TRAINING_ALL.miz` | training together | nothing is taken out |
 
@@ -39,7 +39,8 @@ And a `kind` among:
 | `sam_threat` — a SAM protecting an A2G zone, or a SEAD secondary objective | kept | kept | kept | kept |
 
 An element nobody declares stays in every version.
-A `sam_threat` inside an `a2g_target` combat zone stays in CAP and SEAD: only the zone's targets go.
+In CAP, **every** air defence stays — a SAM, its radar or AAA, declared or not, even inside an `a2g_target` zone: a CAP flies through the zone's SAMs whatever the strikers have done.
+In SEAD, only the declared SAMs stay (`sam_lr`, `sam_threat`): the zone's other groups go with its targets.
 
 ## Vague elements: `randomize` {#draws}
 

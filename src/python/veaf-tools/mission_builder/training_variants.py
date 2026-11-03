@@ -36,7 +36,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from veaf_libs.dcs_units_data import get_unit_category
+from veaf_libs.dcs_units_data import get_unit_attributes, get_unit_category
 from veaf_libs.i18n import t
 from veaf_libs.mission_table import indexed
 from veaf_libs.shortcut_eras import era_of_alias
@@ -68,6 +68,13 @@ REMOVED_KINDS: dict[str, frozenset[str]] = {
 
 #: The versions whose QRA is forced on.
 FORCED_QRA_ROLES: frozenset[str] = frozenset({"CAP"})
+
+#: The versions that keep every air defence of an `a2g_target` zone, declared or not: a CAP flies
+#: through the SAMs of the area whatever the strikers have done (David, 2026-11-03).
+AIR_DEFENCE_KEPT_ROLES: frozenset[str] = frozenset({"CAP"})
+
+#: DCS attributes that make a unit an air defence.
+_AIR_DEFENCE_ATTRIBUTES = frozenset({"SAM related", "AAA"})
 
 #: DCS unit categories a draw may place: ground units only.
 _GROUND_CATEGORIES = frozenset({"Air Defence", "Armor", "Artillery", "Infantry", "Unarmed", "MissilesSS"})
@@ -491,6 +498,8 @@ class _Resolved:
     qra_kinds: dict[str, str]
     cap_kinds: dict[str, str]
     draws: list[ResolvedDraw]
+    air_defence: set[str]
+    """The groups holding an air defence unit (a SAM, its radar, AAA)."""
 
 
 def _resolve(
@@ -548,7 +557,8 @@ def _resolve(
                 errors.append(t("training.group_two_draws", group=name, first=claimed[name], second=draw.name))
             claimed[name] = draw.name
         draws.append(resolved)
-    return _Resolved(explicit, zone_groups, zone_kinds, qra_kinds, cap_kinds, draws)
+    air_defence = {name for name, ref in groups.items() if _is_air_defence(ref.group)}
+    return _Resolved(explicit, zone_groups, zone_kinds, qra_kinds, cap_kinds, draws, air_defence)
 
 
 def _resolve_draw(
@@ -646,6 +656,15 @@ def _resolve_draw(
     if len(errors) > count_before:
         return None
     return resolved
+
+
+def _is_air_defence(group: dict[str, Any]) -> bool:
+    """Whether one of the group's unit types is an air defence, by its DCS attributes."""
+    for unit in indexed(group.get("units")):
+        unit_type = str((unit or {}).get("type", "")) if isinstance(unit, dict) else ""
+        if get_unit_attributes(unit_type) & _AIR_DEFENCE_ATTRIBUTES:
+            return True
+    return False
 
 
 def _check_ground_type(unit_type: str, where: str, errors: list[str]) -> None:
@@ -894,7 +913,11 @@ def plan_variant(
         protected.update(draw.adopted)
         protected.update(draw.removed)
 
-    removed = [name for name, kind in resolved.explicit.items() if kind in removed_kinds]
+    kept_air_defence = resolved.air_defence if role in AIR_DEFENCE_KEPT_ROLES else set()
+    protected |= kept_air_defence
+    removed = [
+        name for name, kind in resolved.explicit.items() if kind in removed_kinds and name not in kept_air_defence
+    ]
     for zone, kind in resolved.zone_kinds.items():
         if kind in removed_kinds:
             removed.extend(name for name in resolved.zone_groups[zone] if name not in protected)

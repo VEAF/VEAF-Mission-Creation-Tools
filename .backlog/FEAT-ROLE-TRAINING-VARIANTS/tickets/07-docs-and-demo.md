@@ -1,6 +1,6 @@
 # 07 — Documentation, changelog, limitations, demo
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Done when
 
@@ -9,4 +9,4 @@ Status: 🔄 in-progress
 - `poetry run docs-check` is green.
 - `CHANGELOG.md` has one entry under `[Unreleased]`, at the end of the section.
 - `known-limitations.yaml` carries what the lot leaves (training with `build_variants:`, a referenced group cannot be drawn) and ticket 05's measurement; `dcs-runtime-traps.md` is regenerated.
-- A step in `VEAF/VEAF-Demo-Mission-v6` `tour/steps.yaml`, with its acceptance check: build the demo, launch `_TRAINING_SEAD` twice, see a different set of defences around the same site.
+- ~~A step in `VEAF/VEAF-Demo-Mission-v6`~~ — **dropped** (David, 2026-11-03): not something a demo mission can show (PRD, D8).

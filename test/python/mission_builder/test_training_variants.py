@@ -148,6 +148,7 @@ _KEPT = {
     "SA-10 Gudauta": {"CAP", "SEAD", "ALL"},
     "Factory-Tanks": {"A2G", "ALL"},
     "Factory-SA-6": set(ROLES),
+    "Factory-Shilka": {"A2G", "CAP", "ALL"},  # air defence nobody declared: CAP keeps every SAM, SEAD only the declared
     "Blue HQ": set(ROLES),
     "QRA-Maykop-MiG29": set(ROLES),  # a QRA is taken out by its definition, its late-activated group stays
     "Factory-SA-8 #1": set(ROLES),  # adopted by its draw, same name: its zone is Factory
@@ -349,9 +350,8 @@ def test_a_command_with_no_ground_unit_to_carry_it_needs_a_carrier() -> None:
 def test_an_interpreter_carrier_cannot_be_adopted() -> None:
     """Its command runs at mission start and the carrier is destroyed: found on the demo, 2026-11-03."""
     mission = _mission()
-    mission["coalition"]["red"]["country"][0]["vehicle"]["group"][5]["units"][0]["name"] = (
-        '#veafInterpreter["_name point Kobuleti City"]'
-    )
+    column = next(g for g in mission["coalition"]["red"]["country"][0]["vehicle"]["group"] if g["name"] == "Column 1")
+    column["units"][0]["name"] = '#veafInterpreter["_name point Kobuleti City"]'
     with pytest.raises(TrainingError, match="#veafInterpreter"):
         plan_variant("ALL", _yaml(), mission)
     replaced_only = _yaml(training={"randomize": [_draw(pool=[{"command": "-armor"}])]})
@@ -402,3 +402,11 @@ def test_reference_sources_read_the_dictionary_and_the_custom_scripts(tmp_path: 
     with pytest.raises(TrainingError) as caught:
         plan_variant("ALL", yaml_data, _mission(), reference_sources(tmp_path, yaml_data, _mission()))
     assert "dictionary" in str(caught.value) and "mine.lua" in str(caught.value)
+
+
+def test_cap_keeps_an_air_defence_even_declared_as_a_target() -> None:
+    """A SAM site that is itself an A2G target stays in CAP; SEAD takes it out with the targets."""
+    yaml_data = _yaml()
+    yaml_data["training"]["elements"].append({"groups": ["Factory-Shilka"], "kind": "a2g_target"})
+    assert "Factory-Shilka" in group_names(_build("CAP", yaml_data)[1])
+    assert "Factory-Shilka" not in group_names(_build("SEAD", yaml_data)[1])

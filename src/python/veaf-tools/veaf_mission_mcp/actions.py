@@ -1906,7 +1906,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "produces <mission>_TRAINING_A2G / _CAP / _SEAD / _ALL.miz beside the night's. 'elements' "
                 "classifies what the night holds: {groups: [names or patterns] | zone | qra | cap_mission, "
                 "kind: enemy_cap | qra | sam_lr | a2g_target | sam_threat}. A2G drops enemy_cap, qra, "
-                "sam_lr; CAP drops a2g_target and forces the QRA on; SEAD drops enemy_cap, qra, a2g_target; "
+                "sam_lr; CAP drops a2g_target but keeps every air defence and forces the QRA on; SEAD drops enemy_cap, qra, a2g_target; "
                 "ALL drops nothing; sam_threat and undeclared groups stay everywhere. 'randomize' lists the "
                 "vague elements: {name, replaces: [groups], pool: [{group: one of the replaced, adopted} | "
                 "{command: '-sa15', carrier?: DCS type} | {units: [{type, count}]}], count: 'n' or 'min-max', "

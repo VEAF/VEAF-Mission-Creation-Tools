@@ -24,6 +24,7 @@ def night_mission() -> dict[str, Any]:
         group("SA-10 Gudauta", [unit("SA-10 Gudauta-1", "S-300PS 5P85C ln", -50000, 20000)]),
         group("Factory-Tanks", [unit("Factory-Tanks-1", "T-72B", 1000, 1000)]),
         group("Factory-SA-6", [unit("Factory-SA-6-1", "Kub 2P25 ln", 1200, 900)]),
+        group("Factory-Shilka", [unit("Factory-Shilka-1", "ZSU-23-4 Shilka", 900, 1100)]),
         group("Factory-SA-8 #1", [unit("Factory-SA-8 #1-1", "Osa 9A33 ln", 1500, 1500)]),
         group("Factory-SA-8 #2", [unit("Factory-SA-8 #2-1", "Osa 9A33 ln", 500, 500)]),
         group("Column 1", [unit("Column 1-1", "T-72B", 20000, 20000), unit("Column 1-2", "T-72B", 20015, 20000)]),

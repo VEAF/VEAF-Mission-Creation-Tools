@@ -84,7 +84,9 @@ The exact keys are ticket 01's to settle; this is the shape agreed on 2026-11-03
 | D1 | Where the draws live | **Injected at build** into the training versions (David). The night's `.miz` carries no trace of training by construction, the draw follows the groups it replaces when they move, and everything is described in `mission.yaml`. Rejected: a dormant combat zone written in `src/mission`, which puts training groups in the night's mission and two sources to keep aligned |
 | D2 | The night's mission | Unchanged: vague elements stay as placed; only the training versions draw them. Drawing in the night's mission too would contradict "distinct from the definitive mission" |
 | D3 | How elements are classified | Declared in `training:`, drafted by `propose_training_plan` (ticket 06) and reviewed. A naming convention in group names was rejected (invisible without reading every name, names already carry several conventions); a fully automatic sort is impossible for stated vs vague, which depends on the briefing's text |
-| D4 | Enemy CAP in the SEAD version | Removed, symmetrical with A2G: "the friendly CAP has done its job". Recommended default, not yet confirmed by David; one line of the rule table to flip if he decides otherwise |
+| D4 | Enemy CAP in the SEAD version | Removed, symmetrical with A2G: "the friendly CAP has done its job" (confirmed by David, 2026-11-03) |
+| D7 | Air defences in the CAP version | **Every** air defence stays, declared or not, even inside an `a2g_target` zone or declared `a2g_target` itself (David, 2026-11-03: "pour la version CAP il faut garder les SAM"). SEAD keeps the declared ones only |
+| D8 | The demo-mission step | Dropped (David, 2026-11-03): training versions are not something a demo mission can show |
 | D5 | "Activate the QRA" in the CAP version | The night's QRA definitions are forced on; a night with no QRA gets none invented, and the build warns |
 | D6 | Hand-placed groups that must be drawn | **Adopted** (David): renamed under the injected zone in the training version, with the markers added to their unit names. A group **referenced** elsewhere by its name — a Mission Editor trigger, a `mission.yaml` module, an embedded script — is refused with an error naming the reference: renaming it would break that reference without a word. Rejected: a combat zone taking an explicit list of groups instead of the prefix rule, a Lua change to every combat zone for a marginal case |
 
@@ -104,4 +106,4 @@ The exact keys are ticket 01's to settle; this is the shape agreed on 2026-11-03
 | 04 | [Draws injected at build](tickets/04-injected-draws.md) | ✅ |
 | 05 | [A different draw at every launch](tickets/05-random-seed-per-launch.md) | 🧑 |
 | 06 | [MCP: propose and write the training plan](tickets/06-mcp-training-plan.md) | ✅ |
-| 07 | [Documentation, changelog, limitations, demo](tickets/07-docs-and-demo.md) | 🔄 |
+| 07 | [Documentation, changelog, limitations, demo](tickets/07-docs-and-demo.md) | ✅ |

@@ -10,7 +10,7 @@ Chaque version met la mission dans l'état « les autres rôles ont fait leur tr
 |---|---|---|
 | `<mission>.miz` | la soirée | rien : c'est la mission définitive |
 | `<mission>_TRAINING_A2G.miz` | les pilotes air-sol | ni CAP ennemie, ni QRA, ni SAM longue portée |
-| `<mission>_TRAINING_CAP.miz` | les pilotes air-air | plus de cibles A2G ; la QRA est armée dès le départ |
+| `<mission>_TRAINING_CAP.miz` | les pilotes air-air | plus de cibles A2G, mais toutes leurs défenses aériennes restent ; la QRA est armée dès le départ |
 | `<mission>_TRAINING_SEAD.miz` | les pilotes SEAD | ni CAP ennemie, ni QRA, plus de cibles A2G ; les SAM longue portée restent |
 | `<mission>_TRAINING_ALL.miz` | l'entraînement commun | rien n'est retiré |
 
@@ -39,7 +39,8 @@ Et un `kind` parmi :
 | `sam_threat` — SAM qui protège une zone A2G, ou objectif secondaire SEAD | gardé | gardé | gardé | gardé |
 
 Un élément que personne ne déclare reste dans toutes les versions.
-Un `sam_threat` placé dans une combat zone `a2g_target` reste en CAP et en SEAD : seules les cibles de la zone partent.
+En CAP, **toute** défense aérienne reste — SAM, radar ou AAA, déclarée ou non, même dans une zone `a2g_target` : une CAP traverse les SAM de la zone quoi qu'aient fait les avions d'attaque.
+En SEAD, seuls les SAM déclarés restent (`sam_lr`, `sam_threat`) : les autres groupes d'une zone `a2g_target` partent avec ses cibles.
 
 ## Les éléments vagues : `randomize` {#draws}
 

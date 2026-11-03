@@ -1,6 +1,6 @@
 # 01 — One briefing page per training version
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Done when
 

@@ -109,6 +109,8 @@ class TrainingElement:
     zone: str | None = None
     qra: str | None = None
     cap_mission: str | None = None
+    label: str | None = None
+    """How the briefing names it for a pilot; its selector otherwise."""
 
 
 @dataclass(frozen=True)
@@ -141,6 +143,8 @@ class Draw:
     at: tuple[float, float] | None = None
     kind: str | None = None
     """What the drawn element is; ``None`` takes the kind of the combat zone it lives in."""
+    label: str | None = None
+    """How the briefing names it for a pilot; its candidates otherwise."""
 
 
 @dataclass(frozen=True)
@@ -247,6 +251,10 @@ def _parse_elements(raw: object, errors: list[str]) -> list[TrainingElement]:
         if kind not in KINDS:
             errors.append(t("training.unknown_kind", where=where, kind=kind, kinds=", ".join(KINDS)))
             continue
+        label = entry.get("label")
+        if label is not None and (not isinstance(label, str) or not label.strip()):
+            errors.append(t("training.bad_names", where=where, field="label"))
+            continue
         selectors = [key for key in _SELECTORS if key in entry]
         if len(selectors) != 1:
             errors.append(t("training.one_selector", where=where, selectors=", ".join(_SELECTORS)))
@@ -257,7 +265,7 @@ def _parse_elements(raw: object, errors: list[str]) -> list[TrainingElement]:
             if names is None:
                 errors.append(t("training.bad_names", where=where, field="groups"))
                 continue
-            elements.append(TrainingElement(kind=kind, groups=names))
+            elements.append(TrainingElement(kind=kind, groups=names, label=label))
         else:
             value = entry[selector]
             if not isinstance(value, str) or not value:
@@ -269,6 +277,7 @@ def _parse_elements(raw: object, errors: list[str]) -> list[TrainingElement]:
                     zone=value if selector == "zone" else None,
                     qra=value if selector == "qra" else None,
                     cap_mission=value if selector == "cap_mission" else None,
+                    label=label,
                 )
             )
     return elements
@@ -383,6 +392,10 @@ def _parse_draws(raw: object, errors: list[str]) -> list[Draw]:
                 errors.append(t("training.bad_at", where=where))
                 continue
             point = (float(at["x"]), float(at["y"]))
+        label = entry.get("label")
+        if label is not None and (not isinstance(label, str) or not label.strip()):
+            errors.append(t("training.bad_names", where=where, field="label"))
+            continue
         kind = entry.get("kind")
         if kind is not None and kind not in KINDS:
             errors.append(t("training.unknown_kind", where=where, kind=kind, kinds=", ".join(KINDS)))
@@ -398,6 +411,7 @@ def _parse_draws(raw: object, errors: list[str]) -> list[Draw]:
                 radius=radius,
                 at=point,
                 kind=kind,
+                label=label,
             )
         )
     return draws

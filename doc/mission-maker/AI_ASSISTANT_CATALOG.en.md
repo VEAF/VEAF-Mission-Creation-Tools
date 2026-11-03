@@ -313,6 +313,7 @@ payoff: empty folder → content → **playable mission**.
 *Recipe (folder) · ⭐* — So that pilots train **before** the mission night, on the same setting, without finding out in advance what the briefing does not announce.
 The AI proposes a classification of the mission (enemy CAP, QRA, long-range SAMs, A2G targets, the SAMs protecting them), checks it against the briefing — what the briefing states stays fixed, what it describes vaguely is drawn again at every launch —, shows it to you, then writes it.
 The next build produces, beside the night's mission, one version per role (`_TRAINING_A2G`, `_TRAINING_CAP`, `_TRAINING_SEAD`) and a common one (`_TRAINING_ALL`), with the same briefing.
+The mission briefing gets one page per version.
 The details: [Training versions, one per role](TRAINING_VERSIONS.en.md).
 
 > 💬 *"Also build the training versions of this mission."* · *"Make a SEAD version so we can train on Thursday."*

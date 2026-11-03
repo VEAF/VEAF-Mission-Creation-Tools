@@ -74,7 +74,18 @@ from mission_builder.coalition_placeholder import ensure_coalitions_populated
 from mission_builder.era_detector import detect_era
 from mission_builder.forced_options import apply_forced_options, forced_options_errors
 from mission_builder.ground_control import apply_ground_control, ground_control_errors
+from mission_builder.group_removal import remove_groups
 from mission_builder.third_party_mods import strip_third_party_mods
+from mission_builder.training_variants import (
+    ROLES,
+    VARIANT_KEY,
+    TrainingError,
+    VariantPlan,
+    apply_to_mission,
+    plan_variant,
+    reference_sources,
+    with_training_profiles,
+)
 from mission_builder.warehouses_bootstrap import ensure_airports_populated
 
 _DCS_BRIDGE_DOWNLOAD_URL = (
@@ -571,6 +582,10 @@ def _extract_external_and_qra(modules_raw: dict, lua_mods: dict) -> tuple[dict, 
     return external_modules, qra
 
 
+#: The keys `_normalize_mission_yaml` derives from `modules:`.
+_NORMALIZED_KEYS = frozenset({"lua_modules", "community_scripts", "external_modules", "qra"})
+
+
 def _normalize_mission_yaml(yaml_data: dict) -> dict:
     """Normalize legacy mission.yaml keys to the current unified format.
 
@@ -662,6 +677,8 @@ class MissionBuilderWorker(BaseWorker):
         # Read mission.yaml, then apply build profile (deep-merge)
         self.mission_yaml: dict = {}
         self.pipeline_cfg: dict = {}
+        # The training version this build is, once planned in work() (FEAT-ROLE-TRAINING-VARIANTS).
+        self.training_variant: VariantPlan | None = None
         # Raw (pre-profile) mission.yaml — kept so the orphan-file check can reason
         # about every build context (base + all profiles), not just the resolved one.
         self._raw_yaml: dict = {}
@@ -671,7 +688,8 @@ class MissionBuilderWorker(BaseWorker):
             with mission_yaml_path.open("r", encoding="utf-8") as fh:
                 raw_yaml: dict = yaml.safe_load(fh) or {}
             self._raw_yaml = raw_yaml
-            self.mission_yaml = resolve_profile(raw_yaml, profile_name)
+            # A training: block brings its derived TRAINING_<ROLE> profiles (FEAT-ROLE-TRAINING-VARIANTS).
+            self.mission_yaml = resolve_profile(with_training_profiles(raw_yaml), profile_name)
             validate_modules_semantics(self.mission_yaml)
             self.mission_yaml = _normalize_mission_yaml(self.mission_yaml)
             # A conversion-profile mission must not enable a module the profile marks
@@ -1535,6 +1553,78 @@ class MissionBuilderWorker(BaseWorker):
                 logger.info(t("builder.aircraft_route_zone_defense", group=group, section=section))
             else:
                 logger.info(t("builder.aircraft_route_engages_air", group=group, section=section))
+
+    def _read_source_mission_table(self) -> dict | None:
+        """The DCS ``mission`` table of ``src/mission/``, or ``None`` when it cannot be read."""
+        mission_file = self.mission_folder / "src" / "mission" / "mission"
+        if not mission_file.exists():
+            return None
+        content = luadata.unserialize(mission_file.read_text(encoding="utf-8"), keep_as_dict=["trig", "trigrules"])
+        return content if isinstance(content, dict) else None
+
+    def prepare_training_variant(self) -> None:
+        """Plan the training version this build is, and take its configuration.
+
+        A profile derived from the ``training:`` block carries ``training_variant: <ROLE>``; the version's
+        configuration (QRA, on-demand CAPs, the combat zones of its draws) must be in ``mission_yaml``
+        before ``veaf-config.lua`` is written from it, and deciding it needs the groups of the mission —
+        so the **source** table is read here. See :mod:`mission_builder.training_variants`.
+
+        Raises:
+            typer.Abort: Through ``logger.error``, when the block does not fit the mission.
+        """
+        role = (self.mission_yaml or {}).get(VARIANT_KEY)
+        if not role:
+            return
+        if role not in ROLES:
+            logger.error(t("training.unknown_key", field=f"{VARIANT_KEY}: {role}"), exception_type=ValueError)
+        content = self._read_source_mission_table()
+        if content is None:
+            logger.error(t("validate.no_source_mission"), exception_type=ValueError)
+            return
+        try:
+            variant = plan_variant(
+                str(role),
+                self.mission_yaml,
+                content,
+                reference_sources(self.mission_folder, self.mission_yaml, content),
+            )
+        except TrainingError as exc:
+            logger.error(str(exc), exception_type=ValueError)
+            return
+        # The generator reads the keys `_normalize_mission_yaml` derives from `modules:` (`lua_modules`,
+        # `qra`…), computed in __init__ before the version edited `modules:`: derive them again.
+        config = variant.config
+        if "modules" in config:
+            config = {key: value for key, value in config.items() if key not in _NORMALIZED_KEYS}
+        self.mission_yaml = _normalize_mission_yaml(config)
+        self.training_variant = variant
+
+    def apply_group_edits(self) -> None:
+        """Remove a profile's ``remove_groups``, then replay the training version's edits on the table."""
+        if not self.dcs_mission or not self.dcs_mission.mission_content:
+            return
+        content = self.dcs_mission.mission_content
+        patterns = (self.mission_yaml or {}).get("remove_groups")
+        if isinstance(patterns, list) and patterns:
+            removed, unmatched = remove_groups(content, [str(p) for p in patterns])
+            for pattern in unmatched:
+                logger.warning(t("profiles.remove_groups_unmatched", pattern=pattern))
+            if removed:
+                logger.info(t("builder.groups_removed", count=len(removed), names=", ".join(removed)))
+        variant = self.training_variant
+        if variant is None:
+            return
+        for warning in apply_to_mission(content, variant):
+            logger.warning(warning)
+        logger.step(
+            t(
+                "training.building",
+                role=variant.role,
+                removed=len(variant.removed_groups),
+                draws=len(variant.draws),
+            )
+        )
 
     def ensure_coalitions_populated(self) -> None:
         """Inject a hidden placeholder ground unit into any empty side coalition.
@@ -2742,6 +2832,10 @@ class MissionBuilderWorker(BaseWorker):
         with spinner_context(t("builder.completing_defaults", folder=self.mission_folder), silent=silent):
             self.complete_src_folder_with_defaults()
 
+        # A training version decides its configuration from the source mission, before the
+        # configuration Lua is written from it (FEAT-ROLE-TRAINING-VARIANTS)
+        self.prepare_training_variant()
+
         # Generate veaf-config.lua from mission_yaml / lua_modules / global_log_level if provided
         if self.mission_yaml or self.lua_modules or self.global_log_level:
             with spinner_context(t("builder.generating_config"), silent=silent):
@@ -2769,6 +2863,10 @@ class MissionBuilderWorker(BaseWorker):
         # Load the mission from the .miz file (unzip it) and process aircraft groups
         with spinner_context(t("builder.reading_mission", output=self.output_mission), silent=silent):
             self.read_mission()
+
+        # A profile's remove_groups, then a training version's draws (FEAT-ROLE-TRAINING-VARIANTS);
+        # before the placeholder below, which fills a coalition a removal may have emptied
+        self.apply_group_edits()
 
         # Ensure each side coalition owns at least one unit (hidden placeholder if not)
         self.ensure_coalitions_populated()

@@ -448,6 +448,9 @@ approximation of it.
 8. The **briefing's content in prose** (`docs/briefing-contenu.md`), approved by the user, then `build_mission_briefing` (section 6) and the **Mission Maker sheet**.
 9. `README.md`: the scenario, how to build, the files, the known limitations.
 10. The **announcement**, if the user asks for it: `build_mission_promotion` (poster, calendar banner, Discord post). Ask them for the evening's date and local hour and the links; never invent them.
+11. **Offer the training versions** once the briefing is approved: one `.miz` per role (A2G, CAP, SEAD) and a common one, on the same setting, so pilots train before the night.
+    On a yes: `propose_training_plan`, then go through the briefing element by element — what it states (type **and** number) stays in `elements`; what it describes vaguely ("defences around the SA-6", "an armoured column") moves to `randomize`, with a pool of the same role (an SA-8 among short-range SAMs, a tank among armour), a `count` and a `radius`.
+    Show the user the plan as a table — element, kind, fixed or drawn — before `set_training_plan`, then `build_mission` and hand over the five paths it lists.
 
 Brief status after each step: what is done, not what you are about to do.
 

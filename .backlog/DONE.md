@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-ROLE-TRAINING-VARIANTS](FEAT-ROLE-TRAINING-VARIANTS/PRD.md) · ✅
+
+Training versions of a mission night, built with it from a `training:` block in `mission.yaml`: one per role (A2G, CAP, SEAD) in the state "the other roles have done their job", one common, same setting and same briefing. What the briefing describes vaguely is drawn again at every launch by a combat zone; a draw follows the rules of what it draws, and the CAP version keeps every air defence. `remove_groups:` for any profile, and two MCP actions to draft and write the block. Checked in DCS on a copy of *Marteau du Golan* (2026-11-03): the draws differ at every launch, and `math.randomseed` does not exist in a mission. One PR.
+
 ### [FIX-FLAKY-AIRDROME-POSITIONS](FIX-FLAKY-AIRDROME-POSITIONS/PRD.md) · ✅
 
 A random red on `python-quality`: the `update-dcs-data` dispatch tests left the airdromes generator unpatched, so `--all` downloaded the reference database and rewrote the shipped `airdrome-positions.yaml` in place while other xdist workers read it — a reader caught it truncated and got `None`. The generator is patched, and a guard test asserts a dispatch run leaves `veaf_libs/data` untouched. One PR.

@@ -78,6 +78,7 @@ from veaf_mission_mcp.set_group_properties import set_group_properties
 from veaf_mission_mcp.set_route import set_route
 from veaf_mission_mcp.set_unit_properties import set_unit_properties
 from veaf_mission_mcp.terrain import describe_terrain
+from veaf_mission_mcp.training_plan import propose_training_plan, set_training_plan
 
 
 def register_default_actions(catalog: ActionCatalog) -> None:
@@ -1873,6 +1874,62 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: inspect_built_mission(Path(p["mission_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="propose_training_plan",
+            description=(
+                "DRAFT the TRAINING VERSIONS of a mission night -- one per role (A2G, CAP, SEAD) plus a common "
+                "one, built with the night's .miz -- as a 'training:' block, from what the data tells: the "
+                "enemy's air-combat flights, on-demand CAPs and QRA, its long-range SAMs (DCS 'LR SAM'), the "
+                "combat zones (A2G targets) and the other SAMs in or near them. Every element is proposed AS "
+                "PLACED, each with its reason. Then read the briefing: what it states (type and number) stays; "
+                "what it describes vaguely moves to 'randomize' (pool of the same role, count, radius), drawn "
+                "again at every launch. Show the plan to the user, then write it with set_training_plan."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "Path to the mission folder."},
+                },
+                "required": ["mission_path"],
+            },
+        ),
+        handler=lambda p: propose_training_plan(Path(p["mission_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_training_plan",
+            description=(
+                "WRITE a mission folder's 'training:' block (comments preserved, backed up), refused with "
+                "every problem listed when the build would refuse it. The next build_mission then also "
+                "produces <mission>_TRAINING_A2G / _CAP / _SEAD / _ALL.miz beside the night's. 'elements' "
+                "classifies what the night holds: {groups: [names or patterns] | zone | qra | cap_mission, "
+                "kind: enemy_cap | qra | sam_lr | a2g_target | sam_threat}. A2G drops enemy_cap, qra, "
+                "sam_lr; CAP drops a2g_target but keeps every air defence and forces the QRA on; SEAD drops enemy_cap, qra, a2g_target; "
+                "ALL drops nothing; sam_threat and undeclared groups stay everywhere. 'randomize' lists the "
+                "vague elements: {name, replaces: [groups], pool: [{group: one of the replaced, adopted} | "
+                "{command: '-sa15', carrier?: DCS type} | {units: [{type, count}]}], count: 'n' or 'min-max', "
+                "radius: metres or 'min-max', at?: {x, y}, kind?: as elements' -- default: the kind of the combat zone it lives in, sam_threat when it replaces only air defences} -- a combat zone draws among the pool at every "
+                "launch; a group named by a trigger, a script or mission.yaml cannot be adopted."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "Path to the mission folder."},
+                    "training": {
+                        "type": "object",
+                        "description": "The block: {elements: [...], randomize: [...]}.",
+                        "properties": {
+                            "elements": {"type": "array", "items": {"type": "object"}},
+                            "randomize": {"type": "array", "items": {"type": "object"}},
+                        },
+                    },
+                },
+                "required": ["mission_path", "training"],
+            },
+        ),
+        handler=lambda p: set_training_plan(Path(p["mission_path"]), p["training"]),
     )
     catalog.register(
         ActionSpec(

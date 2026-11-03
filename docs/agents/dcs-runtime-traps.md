@@ -567,6 +567,23 @@ tracking 180.5° (Caucasus, read through the bridge 10 s after spawning).
 *What it cost:* The A-10 of the FIX-FARP-PLACEMENT test mission started heading away from the FARP it was meant to
 look at, and had to turn back over 40 km.
 
+### `math.randomseed` does not exist in a mission script, and `math.random` differs at every launch anyway {#math-randomseed-is-not-in-the-mission-environment}
+
+Measured **2026-11-03**.
+
+A mission cannot seed its random draws: `math.randomseed` is nil in the mission scripting
+environment, even with `os` left reachable by `MissionScripting.lua`. Deduced, not read directly:
+a seeding function whose only `nil` return before testing `os` was its `math.randomseed` guard
+returned `nil` three times, with `os` reachable. The guard `veaf.lua` has carried since 2021
+(`if l_os and l_os.time and math.randomseed`) has therefore never seeded anything.
+
+It does not matter for drawing: measured on DAVID-BUREAU with *Marteau du Golan*'s training version,
+three launches in one DCS session, the first `math.random(1000000)` after `veaf.lua` loaded gave
+256387, 586566 and 119054, and the combat zones drew different groups (FEAT-ROLE-TRAINING-VARIANTS 05).
+
+**What to do:** Nothing to do: rely on `math.random`. Do not write code that seeds it, or that needs the same
+sequence twice — a replay cannot be forced.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

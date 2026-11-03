@@ -60,6 +60,7 @@ PAGES_BY_TITLE: Final[dict[str, dict[str, str]]] = {
         "the cards — one concept, one page": "mission-maker/concepts/README.en.md",
         "the lua files in your folder": "mission-maker/build-messages/lua-files.en.md",
         "the mission folder": "mission-maker/concepts/mission-folder.en.md",
+        "training versions, one per role": "mission-maker/TRAINING_VERSIONS.en.md",
         "tutorial — your first mission": "mission-maker/TUTORIAL.en.md",
         "veaf lua modules - complete api reference": "LUA_API_REFERENCE.en.md",
         "veaf mission creation tools — documentation": "index.en.md",
@@ -184,6 +185,7 @@ PAGES_BY_TITLE: Final[dict[str, dict[str, str]]] = {
         "veaftransportmission — missions de transport et logistique": "mission-maker/scripts/veafTransportMission.md",
         "veafunits — la base des groupes et le placement au sol": "mission-maker/scripts/veafUnits.md",
         "veafweather — météo dynamique et conditions atc": "mission-maker/scripts/veafWeather.md",
+        "versions d'entraînement par rôle": "mission-maker/TRAINING_VERSIONS.md",
         "zones de combat": "mission-maker/concepts/combat-zones.md",
     },
 }

@@ -1811,3 +1811,59 @@ limitations:
     Walk `zonesList` once per name (`getMissionEditorZoneName`), or look zones up through
     `veafCombatZone.GetZone`, which reads the dictionary.
   fixed_in: "6.34.0"
+
+- id: training-versions-not-with-build-variants
+  kind: tool
+  area: pipeline
+  title: "A `training:` block cannot sit beside `build_variants:`"
+  symptom: |
+    The build refuses the combination: MODERN/COLD_WAR × the four training versions would be eight
+    `.miz` nobody asked for, and nothing says which of them a squadron would fly (FEAT-ROLE-TRAINING-VARIANTS).
+  workaround: |
+    Keep one of the two in `mission.yaml`, or build one era at a time with `--profile`.
+
+- id: training-draw-cannot-adopt-a-referenced-group
+  kind: tool
+  area: pipeline
+  title: "A training draw cannot take a group that a trigger, a script or `mission.yaml` names"
+  symptom: |
+    For the draw's combat zone to capture a hand-placed group, the build renames it in the training
+    versions. A trigger's DO SCRIPT, a mission script or a `mission.yaml` module (QRA, assets…) naming
+    the old name would then find nothing, and DCS says nothing — so the build refuses, naming the
+    reference. A group carrying a `#veafInterpreter` is refused too: its command runs once at mission
+    start and nothing is left to draw (FEAT-ROLE-TRAINING-VARIANTS).
+  workaround: |
+    Keep the group fixed, or list it in `replaces` and draw among new candidates (`command:` or `units:`).
+    A group already in a combat zone of the night is not renamed, and can be drawn whatever names it.
+
+- id: training-draw-candidates-do-not-move
+  kind: tool
+  area: pipeline
+  title: "A training draw's new candidates stand still: only an adopted group keeps its route"
+  symptom: |
+    A `command:` or `units:` candidate is placed by the build at the centre of the groups it replaces,
+    with a single waypoint. Drawing the escort of a moving column ("a column covered by mobile air
+    defence", *Marteau du Golan*, 2026-11-03) would leave the drawn SAM where the column started
+    (FEAT-ROLE-TRAINING-VARIANTS).
+  workaround: |
+    Draw among groups of the night that already carry the route (`group:` candidates), or leave a moving
+    element fixed.
+
+- id: math-randomseed-is-not-in-the-mission-environment
+  kind: dcs
+  area: spawning
+  title: "`math.randomseed` does not exist in a mission script, and `math.random` differs at every launch anyway"
+  measured: "2026-11-03"
+  symptom: |
+    A mission cannot seed its random draws: `math.randomseed` is nil in the mission scripting
+    environment, even with `os` left reachable by `MissionScripting.lua`. Deduced, not read directly:
+    a seeding function whose only `nil` return before testing `os` was its `math.randomseed` guard
+    returned `nil` three times, with `os` reachable. The guard `veaf.lua` has carried since 2021
+    (`if l_os and l_os.time and math.randomseed`) has therefore never seeded anything.
+
+    It does not matter for drawing: measured on DAVID-BUREAU with *Marteau du Golan*'s training version,
+    three launches in one DCS session, the first `math.random(1000000)` after `veaf.lua` loaded gave
+    256387, 586566 and 119054, and the combat zones drew different groups (FEAT-ROLE-TRAINING-VARIANTS 05).
+  workaround: |
+    Nothing to do: rely on `math.random`. Do not write code that seeds it, or that needs the same
+    sequence twice — a replay cannot be forced.

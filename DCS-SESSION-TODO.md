@@ -59,21 +59,6 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
-### R55. Do the training versions draw differently at every launch? — **no pilot needed**
-
-[`FEAT-ROLE-TRAINING-VARIANTS`](.backlog/FEAT-ROLE-TRAINING-VARIANTS/PRD.md), ticket 05.
-On the mocks: `veaf.seedRandom` seeds from `os.time()` when `os` is reachable and from a fresh table's address when it is not. What the mocks cannot show: whether DCS, with `os` sanitised away, would have started every launch on the same sequence — and whether the address really varies from one launch to the next.
-
-**Prepared 2026-11-03**: a copy of *Marteau du Golan* with a `training:` block, built from the lot's branch, in `D:\dev\_VEAF\tmp\marteau-training-2026-11-03\` (`VEAF_Syria_MarteauDuGolan_20261103_TRAINING_*.miz`); its `TRAINING_*` profiles switch `veaf.Diagnostics` on and activate Khan Arnabah and Sa'sa' at start, so each draw is a `DIAG|` line in `dcs.log`.
-On DAVID-BUREAU, `MissionScripting.lua` keeps `os` reachable through `SERVER_CONFIG.getModule`: a run there measures that the draws differ and that each version holds what it should, **not** the fallback. The fallback needs a game whose `MissionScripting.lua` is sanitised (the default one, or dcs.veaf.org's).
-
-1. Launch `_TRAINING_ALL.miz`, wait for the mission to start, then quit to the menu. Do it a second time, then a third.
-2. In `dcs.log`, each launch has a line `veaf.randomSeedSource=…, first draw=…`.
-   - **`randomSeedSource="table address"` and three different first draws**: the fallback works. Close ticket 05, and note in `known-limitations.yaml` (`kind: dcs`, dated) what the address gave.
-   - **`randomSeedSource="table address"` and the same first draw three times**: the address does not vary between launches either — reopen ticket 05 with that measure; the draws repeat on a sanitised server.
-   - **`randomSeedSource="os.time"`**: `os` was reachable — the game is not sanitised; redo the measure on one that is.
-3. Optional, with the F10 map: the drawn zone shows a different candidate, or a different place, from one launch to the next.
-
 ### R54. What the combat log records of a real fight — **two pilots, one of them in a helicopter with a gun**
 
 [`FEAT-COMBAT-LOG`](.backlog/FEAT-COMBAT-LOG/PRD.md), ticket 03.

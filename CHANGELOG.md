@@ -36,7 +36,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   What the briefing describes vaguely is drawn again at every launch by a combat zone the build lays, from VEAF shortcuts, the night's own hand-placed groups or groups made from DCS types; a group a trigger, a script or `mission.yaml` names is refused rather than renamed silently.
   A build profile can now take Mission Editor groups out of its `.miz` (`remove_groups:`).
   Two MCP actions draft and write the block (`propose_training_plan`, `set_training_plan`), and `build_mission` lists the `.miz` it wrote.
-  Without `os` in the mission (a sanitised server), the random draws are now seeded from a table address instead of not at all; whether DCS repeated its draws before is to be measured in game.
+  The draws differ at every launch with nothing to seed: measured in DCS on *Marteau du Golan*, where `math.randomseed` turns out not to exist in the mission environment (known limitation `math-randomseed-is-not-in-the-mission-environment`).
 
 ## [6.35.0] — 2026-10-30
 

@@ -24,7 +24,7 @@ What it describes **vaguely** ("medium-range defences around the SA-6", "an armo
 - **Drawing at launch**: in a combat zone, the unit-name markers `#spawngroup` (a pool), `#spawncount=1-2`, `#spawnchance` and `#spawnradius=500-2000` draw which elements spawn and where; the `#command` shortcuts `-samSR`, `-samLR`, `-armor`, `-convoy`… also draw the type and size.
 - **Real groups, not only commands**: a combat zone captures the Mission Editor groups whose name starts with its own and that stand inside it (`VeafCombatZone:initialize`, `veafCombatZone.lua:1421`), reads the markers in their unit names, and re-integrates a fixed SAM into Skynet when it respawns (`veafSkynet.integrateMissionSpawn`, line 1944).
 - **The build already injects groups** into the mission table: `mission_builder/coalition_placeholder.py`, on `mission_tools.group_insertion`.
-- **To check**: `veaf.lua:5589` reseeds `math.random` with `os.time()` only when `os` is reachable. On a sanitised server it is not, and whether DCS then starts every launch on the same seed is not measured (ticket 05).
+- **Checked 2026-11-03 (ticket 05)**: draws differ at every launch; `math.randomseed` does not exist in a mission. Before: `veaf.lua:5589` reseeds `math.random` with `os.time()` only when `os` is reachable. On a sanitised server it is not, and whether DCS then starts every launch on the same seed is not measured (ticket 05).
 
 ## What the lot delivers
 
@@ -105,6 +105,6 @@ The exact keys are ticket 01's to settle; this is the shape agreed on 2026-11-03
 | 02 | [A profile removes Mission Editor groups](tickets/02-profile-remove-groups.md) | ✅ |
 | 03 | [The four training versions, built with the night's](tickets/03-role-variants.md) | ✅ |
 | 04 | [Draws injected at build](tickets/04-injected-draws.md) | ✅ |
-| 05 | [A different draw at every launch](tickets/05-random-seed-per-launch.md) | 🧑 |
+| 05 | [A different draw at every launch](tickets/05-random-seed-per-launch.md) | ✅ |
 | 06 | [MCP: propose and write the training plan](tickets/06-mcp-training-plan.md) | ✅ |
 | 07 | [Documentation, changelog, limitations, demo](tickets/07-docs-and-demo.md) | ✅ |

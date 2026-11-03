@@ -1848,3 +1848,22 @@ limitations:
   workaround: |
     Draw among groups of the night that already carry the route (`group:` candidates), or leave a moving
     element fixed.
+
+- id: math-randomseed-is-not-in-the-mission-environment
+  kind: dcs
+  area: spawning
+  title: "`math.randomseed` does not exist in a mission script, and `math.random` differs at every launch anyway"
+  measured: "2026-11-03"
+  symptom: |
+    A mission cannot seed its random draws: `math.randomseed` is nil in the mission scripting
+    environment, even with `os` left reachable by `MissionScripting.lua`. Deduced, not read directly:
+    a seeding function whose only `nil` return before testing `os` was its `math.randomseed` guard
+    returned `nil` three times, with `os` reachable. The guard `veaf.lua` has carried since 2021
+    (`if l_os and l_os.time and math.randomseed`) has therefore never seeded anything.
+
+    It does not matter for drawing: measured on DAVID-BUREAU with *Marteau du Golan*'s training version,
+    three launches in one DCS session, the first `math.random(1000000)` after `veaf.lua` loaded gave
+    256387, 586566 and 119054, and the combat zones drew different groups (FEAT-ROLE-TRAINING-VARIANTS 05).
+  workaround: |
+    Nothing to do: rely on `math.random`. Do not write code that seeds it, or that needs the same
+    sequence twice — a replay cannot be forced.

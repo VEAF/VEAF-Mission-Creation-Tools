@@ -9,7 +9,7 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 ### [FEAT-ROLE-TRAINING-VARIANTS](FEAT-ROLE-TRAINING-VARIANTS/PRD.md) · 🔄
 
 Training versions of a mission night, built with it from a `training:` block in `mission.yaml`: one per role (A2G, CAP, SEAD) in the state "the other roles have done their job", one common, same setting and same briefing; what the briefing states stays as placed, what it describes vaguely is drawn again at every launch by a combat zone the build injects — from VEAF commands, the night's own hand-placed groups or groups made from DCS types. Seven tickets; asked by David on 2026-11-03 to shorten mission nights.
-Tickets 01-04 and 06 done; ticket 05's Lua fallback written, its measure in game is R55 of DCS-SESSION-TODO.md; the demo-mission step was dropped (D8).
+All tickets done, ticket 05 measured in game on a copy of Marteau du Golan; the demo-mission step was dropped (D8).
 
 ### [FEAT-BFR-V6-SUPPORT](FEAT-BFR-V6-SUPPORT/PRD.md) · 🔄
 

@@ -446,3 +446,23 @@ def test_an_unknown_draw_kind_is_refused() -> None:
     raw = {"randomize": [{"name": "a", "replaces": "x", "pool": [{"group": "x"}], "kind": "tanker"}]}
     plan, errors = parse_training(raw)
     assert plan is None and any("unknown kind 'tanker'" in e for e in errors)
+
+
+def test_a_column_escorted_by_air_defence_is_a_target_in_cap() -> None:
+    """Tanks with a Tunguska are a column, not a SAM site; a SAM with its supply truck is a SAM site."""
+    mission_groups = _mission()["coalition"]["red"]["country"][0]["vehicle"]["group"]
+    yaml_data = _yaml()
+    column = _group(
+        "Factory-Column",
+        [_unit("Factory-Column-1", "2S6 Tunguska", 1000, 900), _unit("Factory-Column-2", "T-72B", 1010, 900)],
+    )
+    site = _group(
+        "Factory-SA13",
+        [_unit("Factory-SA13-1", "Strela-10M3", 1100, 900), _unit("Factory-SA13-2", "Ural-375", 1110, 900)],
+    )
+    mission = _mission()
+    mission["coalition"]["red"]["country"][0]["vehicle"]["group"] += [column, site]
+    variant = plan_variant("CAP", yaml_data, mission)
+    assert "Factory-Column" in variant.removed_groups
+    assert "Factory-SA13" not in variant.removed_groups
+    assert mission_groups  # the fixture itself is untouched

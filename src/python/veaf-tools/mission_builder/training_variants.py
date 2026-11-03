@@ -666,12 +666,20 @@ def _resolve_draw(
 
 
 def _is_air_defence(group: dict[str, Any]) -> bool:
-    """Whether one of the group's unit types is an air defence, by its DCS attributes."""
+    """Whether the group is an air defence: one air-defence unit at least, and nothing but support beside it.
+
+    A SAM site's radars and supply trucks belong to it; a column of tanks escorted by a Tunguska is a
+    column, and a target — kept whole as "air defence", it stayed in the CAP version (Marteau du Golan,
+    2026-11-03).
+    """
+    found = False
     for unit in indexed(group.get("units")):
         unit_type = str((unit or {}).get("type", "")) if isinstance(unit, dict) else ""
         if get_unit_attributes(unit_type) & _AIR_DEFENCE_ATTRIBUTES:
-            return True
-    return False
+            found = True
+        elif get_unit_category(unit_type) != "Unarmed":
+            return False
+    return found
 
 
 def _check_ground_type(unit_type: str, where: str, errors: list[str]) -> None:

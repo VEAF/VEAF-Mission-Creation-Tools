@@ -15,7 +15,7 @@ Each version puts the mission in the state "the other roles have done their job"
 | `<mission>_TRAINING_ALL.miz` | training together | nothing is taken out |
 
 The briefing is the same for all of them.
-In the four training versions, the elements the briefing describes vaguely are drawn again at every launch (see [below](#draws)).
+In the training versions that keep them, the elements the briefing describes vaguely are drawn again at every launch (see [below](#draws)).
 
 ## Classifying the mission: `elements` {#elements}
 
@@ -77,6 +77,10 @@ Three kinds of candidates:
 The draw happens **when the mission starts**, through the combat-zone markers (`#spawngroup`, `#spawncount`, `#spawnradius`) the build writes into the unit names: each launch gives another result.
 When the replaced groups already belong to a combat zone of the night, the draw happens in that zone; otherwise the build lays a `TRAINING-<name>` zone around them, active from the start, with no radio menu.
 `at: {x, y}` places the draw somewhere other than on the replaced groups.
+
+A draw **is what it draws**, and follows the rules of that kind: armour drawn in an `a2g_target` zone is an A2G target, and leaves the CAP and SEAD versions with the groups it replaces.
+By default a draw takes the kind of the combat zone it lives in; when it replaces only air defences ("defences around the SA-6") it is a threat (`sam_threat`) and stays everywhere; outside any zone it stays everywhere.
+`kind:` on the entry sets the kind yourself.
 
 ## What is refused, and why {#refusals}
 

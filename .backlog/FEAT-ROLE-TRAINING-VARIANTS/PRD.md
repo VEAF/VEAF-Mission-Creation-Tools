@@ -46,7 +46,7 @@ What it describes **vaguely** ("medium-range defences around the SA-6", "an armo
 | `sam_lr` | ✓ | ✗ | ✓ | ✓ | ✓ |
 | `a2g_target` | ✓ | ✓ | ✗ | ✗ | ✓ |
 | `sam_threat` (threatens an A2G area, or SEAD secondary objective) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Vague elements | as placed | drawn | drawn | drawn | drawn |
+| Vague elements | as placed | drawn, by the rules of their kind (D9) | same | same | drawn |
 | Not declared | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ### The `training:` block — shape
@@ -86,6 +86,7 @@ The exact keys are ticket 01's to settle; this is the shape agreed on 2026-11-03
 | D3 | How elements are classified | Declared in `training:`, drafted by `propose_training_plan` (ticket 06) and reviewed. A naming convention in group names was rejected (invisible without reading every name, names already carry several conventions); a fully automatic sort is impossible for stated vs vague, which depends on the briefing's text |
 | D4 | Enemy CAP in the SEAD version | Removed, symmetrical with A2G: "the friendly CAP has done its job" (confirmed by David, 2026-11-03) |
 | D7 | Air defences in the CAP version | **Every** air defence stays, declared or not, even inside an `a2g_target` zone or declared `a2g_target` itself (David, 2026-11-03: "pour la version CAP il faut garder les SAM"). SEAD keeps the declared ones only |
+| D9 | What a draw is | A draw follows the rules of what it draws: its `kind:`, else the kind of the combat zone it lives in, else kept everywhere; a draw replacing only air defences is a `sam_threat`. Found building *Marteau du Golan*: the vague armour of Khan Arnabah and Sa'sa' stayed in the CAP and SEAD versions |
 | D8 | The demo-mission step | Dropped (David, 2026-11-03): training versions are not something a demo mission can show |
 | D5 | "Activate the QRA" in the CAP version | The night's QRA definitions are forced on; a night with no QRA gets none invented, and the build warns |
 | D6 | Hand-placed groups that must be drawn | **Adopted** (David): renamed under the injected zone in the training version, with the markers added to their unit names. A group **referenced** elsewhere by its name — a Mission Editor trigger, a `mission.yaml` module, an embedded script — is refused with an error naming the reference: renaming it would break that reference without a word. Rejected: a combat zone taking an explicit list of groups instead of the prefix rule, a Lua change to every combat zone for a marginal case |

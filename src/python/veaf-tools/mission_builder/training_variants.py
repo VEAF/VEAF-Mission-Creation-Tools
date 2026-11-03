@@ -139,6 +139,8 @@ class Draw:
     count: str = "1"
     radius: str = "0"
     at: tuple[float, float] | None = None
+    kind: str | None = None
+    """What the drawn element is; ``None`` takes the kind of the combat zone it lives in."""
 
 
 @dataclass(frozen=True)
@@ -381,6 +383,10 @@ def _parse_draws(raw: object, errors: list[str]) -> list[Draw]:
                 errors.append(t("training.bad_at", where=where))
                 continue
             point = (float(at["x"]), float(at["y"]))
+        kind = entry.get("kind")
+        if kind is not None and kind not in KINDS:
+            errors.append(t("training.unknown_kind", where=where, kind=kind, kinds=", ".join(KINDS)))
+            continue
         if any(candidate is None for candidate in pool):
             continue
         draws.append(
@@ -391,6 +397,7 @@ def _parse_draws(raw: object, errors: list[str]) -> list[Draw]:
                 count=count,
                 radius=radius,
                 at=point,
+                kind=kind,
             )
         )
     return draws
@@ -907,9 +914,13 @@ def plan_variant(
         raise TrainingError("\n".join(errors))
 
     removed_kinds = REMOVED_KINDS[role]
-    variant = VariantPlan(role=role, config=copy.deepcopy(yaml_data), draws=resolved.draws)
+    # A draw is what it draws: blindés drawn in an `a2g_target` zone are A2G targets, and leave the
+    # versions that take the targets out — with every group it replaces (found on Marteau du Golan).
+    kept_draws = [d for d in resolved.draws if _draw_kind(d, resolved) not in removed_kinds]
+    dropped_draws = [d for d in resolved.draws if d not in kept_draws]
+    variant = VariantPlan(role=role, config=copy.deepcopy(yaml_data), draws=kept_draws)
     protected = {name for name, kind in resolved.explicit.items() if kind not in removed_kinds}
-    for draw in resolved.draws:
+    for draw in kept_draws:
         protected.update(draw.adopted)
         protected.update(draw.removed)
 
@@ -921,14 +932,30 @@ def plan_variant(
     for zone, kind in resolved.zone_kinds.items():
         if kind in removed_kinds:
             removed.extend(name for name in resolved.zone_groups[zone] if name not in protected)
-    for draw in resolved.draws:
+    for draw in kept_draws:
         removed.extend(draw.removed)
+    for draw in dropped_draws:
+        removed.extend(name for name in [*draw.removed, *draw.adopted] if name not in kept_air_defence)
     variant.removed_groups = list(dict.fromkeys(removed))
 
     _edit_qra(variant, resolved, removed_kinds, role)
     _edit_cap_missions(variant, resolved, removed_kinds)
     _add_draw_zones(variant)
     return variant
+
+
+def _draw_kind(draw: ResolvedDraw, resolved: _Resolved) -> str | None:
+    """A draw's kind: its own, else the kind of the combat zone hosting it, else none (kept everywhere).
+
+    Drawing only air defences ("defences around the SA-6") makes it a threat, not a target, whatever the
+    zone: it stays in every version, as a declared `sam_threat` would.
+    """
+    if draw.draw.kind is not None:
+        return draw.draw.kind
+    replaced = [*draw.removed, *draw.adopted]
+    if replaced and all(name in resolved.air_defence for name in replaced):
+        return "sam_threat"
+    return None if draw.inject_zone else resolved.zone_kinds.get(draw.host_zone)
 
 
 def _edit_qra(variant: VariantPlan, resolved: _Resolved, removed_kinds: frozenset[str], role: str) -> None:

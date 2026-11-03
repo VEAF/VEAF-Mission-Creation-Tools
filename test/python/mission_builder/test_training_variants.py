@@ -410,3 +410,39 @@ def test_cap_keeps_an_air_defence_even_declared_as_a_target() -> None:
     yaml_data["training"]["elements"].append({"groups": ["Factory-Shilka"], "kind": "a2g_target"})
     assert "Factory-Shilka" in group_names(_build("CAP", yaml_data)[1])
     assert "Factory-Shilka" not in group_names(_build("SEAD", yaml_data)[1])
+
+
+@pytest.mark.parametrize(("role", "kept"), [("A2G", True), ("CAP", False), ("SEAD", False), ("ALL", True)])
+def test_a_draw_of_targets_leaves_with_the_targets(role: str, kept: bool) -> None:
+    """Blindés drawn in an A2G zone are A2G targets: CAP and SEAD go without them (Marteau du Golan, 2026-11-03)."""
+    yaml_data = _yaml()
+    yaml_data["training"]["randomize"].append(
+        {"name": "tanks", "replaces": ["Factory-Tanks"], "pool": [{"group": "Factory-Tanks"}, {"command": "-armor"}]}
+    )
+    variant, built = _build(role, yaml_data)
+    names = group_names(built)
+    assert ("Factory-Tanks" in names) is kept
+    assert ("Factory-tanks-2" in names) is kept
+    assert any(d.draw.name == "tanks" for d in variant.draws) is kept
+
+
+def test_a_draw_of_air_defences_is_a_threat_wherever_it_lives() -> None:
+    """The SA-8 drawn in the Factory A2G zone stay in SEAD: drawing only air defences is drawing a threat."""
+    _, built = _build("SEAD")
+    assert {"Factory-SA-8 #1", "Factory-fdef-2", "Factory-fdef-3"} <= set(group_names(built))
+
+
+def test_a_draw_kind_overrides_its_zone() -> None:
+    """The column belongs to no zone, so it stays everywhere, unless its entry says it is a target."""
+    yaml_data = _yaml()
+    yaml_data["training"]["randomize"][1]["kind"] = "a2g_target"
+    variant, built = _build("CAP", yaml_data)
+    assert not {"Column 1", "Column 2", "TRAINING-column-Column 1"} & set(group_names(built))
+    assert "TRAINING-column" not in [z["zone_name"] for z in variant.config["modules"]["COMBATZONE"]["combat_zones"]]
+    assert "TRAINING-column" not in [z["name"] for z in built["triggers"]["zones"]]
+
+
+def test_an_unknown_draw_kind_is_refused() -> None:
+    raw = {"randomize": [{"name": "a", "replaces": "x", "pool": [{"group": "x"}], "kind": "tanker"}]}
+    plan, errors = parse_training(raw)
+    assert plan is None and any("unknown kind 'tanker'" in e for e in errors)

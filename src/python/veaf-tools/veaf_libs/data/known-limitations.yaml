@@ -1835,3 +1835,16 @@ limitations:
   workaround: |
     Keep the group fixed, or list it in `replaces` and draw among new candidates (`command:` or `units:`).
     A group already in a combat zone of the night is not renamed, and can be drawn whatever names it.
+
+- id: training-draw-candidates-do-not-move
+  kind: tool
+  area: pipeline
+  title: "A training draw's new candidates stand still: only an adopted group keeps its route"
+  symptom: |
+    A `command:` or `units:` candidate is placed by the build at the centre of the groups it replaces,
+    with a single waypoint. Drawing the escort of a moving column ("a column covered by mobile air
+    defence", *Marteau du Golan*, 2026-11-03) would leave the drawn SAM where the column started
+    (FEAT-ROLE-TRAINING-VARIANTS).
+  workaround: |
+    Draw among groups of the night that already carry the route (`group:` candidates), or leave a moving
+    element fixed.

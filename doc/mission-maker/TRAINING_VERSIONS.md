@@ -15,7 +15,7 @@ Chaque version met la mission dans l'état « les autres rôles ont fait leur tr
 | `<mission>_TRAINING_ALL.miz` | l'entraînement commun | rien n'est retiré |
 
 Le briefing est le même pour toutes.
-Dans les quatre versions d'entraînement, les éléments décrits de façon vague par le briefing sont tirés au sort à chaque lancement (voir [plus bas](#draws)).
+Dans les versions d'entraînement qui les gardent, les éléments décrits de façon vague par le briefing sont tirés au sort à chaque lancement (voir [plus bas](#draws)).
 
 ## Classer la mission : `elements` {#elements}
 
@@ -77,6 +77,10 @@ Trois sortes de candidats :
 Le tirage se fait **au lancement de la mission**, par les marqueurs de combat zone (`#spawngroup`, `#spawncount`, `#spawnradius`) que le build écrit dans le nom des unités : chaque lancement donne un autre résultat.
 Si les groupes remplacés appartiennent déjà à une combat zone de la soirée, le tirage se fait dans cette zone ; sinon le build pose une zone `TRAINING-<name>` autour d'eux, active dès le départ, sans menu radio.
 `at: {x, y}` place le tirage ailleurs que sur les groupes remplacés.
+
+Un tirage **est ce qu'il tire**, et suit les règles de ce type d'élément : des blindés tirés dans une zone `a2g_target` sont des cibles A2G, et disparaissent des versions CAP et SEAD avec les groupes qu'ils remplacent.
+Par défaut, un tirage prend le type de la combat zone où il vit ; s'il ne remplace que des défenses aériennes (« des défenses autour du SA-6 »), c'est une menace (`sam_threat`) et il reste partout ; hors de toute zone, il reste partout.
+`kind:` sur l'entrée donne le type soi-même.
 
 ## Ce qui est refusé, et pourquoi {#refusals}
 

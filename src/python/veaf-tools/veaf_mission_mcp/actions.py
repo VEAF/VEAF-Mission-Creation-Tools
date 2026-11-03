@@ -1910,7 +1910,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "ALL drops nothing; sam_threat and undeclared groups stay everywhere. 'randomize' lists the "
                 "vague elements: {name, replaces: [groups], pool: [{group: one of the replaced, adopted} | "
                 "{command: '-sa15', carrier?: DCS type} | {units: [{type, count}]}], count: 'n' or 'min-max', "
-                "radius: metres or 'min-max', at?: {x, y}} -- a combat zone draws among the pool at every "
+                "radius: metres or 'min-max', at?: {x, y}, kind?: as elements' -- default: the kind of the combat zone it lives in, sam_threat when it replaces only air defences} -- a combat zone draws among the pool at every "
                 "launch; a group named by a trigger, a script or mission.yaml cannot be adopted."
             ),
             parameters_schema={

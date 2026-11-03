@@ -38,6 +38,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Two MCP actions draft and write the block (`propose_training_plan`, `set_training_plan`), and `build_mission` lists the `.miz` it wrote.
   The draws differ at every launch with nothing to seed: measured in DCS on *Marteau du Golan*, where `math.randomseed` turns out not to exist in the mission environment (known limitation `math-randomseed-is-not-in-the-mission-environment`).
 
+- **The training versions in the mission briefing** (FEAT-TRAINING-BRIEFING-PAGES): with a `training:` block, `build_mission_briefing` adds one page per version at the end of the deck and of the PDF — each declared element and what it becomes, what is drawn at every launch, the mission to load — computed with the build's own rules.
+  A `label:` on an element or a draw names it for the pilots.
+
 ## [6.35.0] — 2026-10-30
 
 ### Fixed

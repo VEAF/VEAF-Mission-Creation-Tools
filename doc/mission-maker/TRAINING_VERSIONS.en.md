@@ -83,6 +83,13 @@ A draw **is what it draws**, and follows the rules of that kind: armour drawn in
 By default a draw takes the kind of the combat zone it lives in; when it replaces only air defences ("defences around the SA-6") it is a threat (`sam_threat`) and stays everywhere; outside any zone it stays everywhere.
 `kind:` on the entry sets the kind yourself.
 
+`label:` on an element or a draw gives the name a pilot reads in the briefing ("Tanks and BMP-2 of Khan Arnabah"); without it, the briefing shows the zone's, the QRA's or the groups' names.
+
+## In the briefing {#briefing}
+
+`build_mission_briefing` adds one page per version at the end of the deck and of the PDF: each declared element and what it becomes in the version (kept, taken out, targets out with air defences kept, drawn), then the mission to load.
+The content is computed with the build's own rules: it says what the `.miz` holds.
+
 ## What is refused, and why {#refusals}
 
 The build and `validate_mission` refuse the block, naming each problem:

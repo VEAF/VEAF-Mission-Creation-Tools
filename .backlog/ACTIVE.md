@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FEAT-TRAINING-BRIEFING-PAGES](FEAT-TRAINING-BRIEFING-PAGES/PRD.md) · 🔄
+
+The training versions in the mission briefing: one page per version at the end of the deck and of the PDF, computed with the build's own rules, and a `label:` key to name an element or a draw for the pilots. Asked by David on 2026-11-03 for the training versions of *Marteau du Golan*. One ticket.
+
 ### [FEAT-BFR-V6-SUPPORT](FEAT-BFR-V6-SUPPORT/PRD.md) · 🔄
 
 What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the study of Bluestorm V2 and SeaShepherd V2 (2026-10-27): two security fixes, the F10 menu in multiplayer (live pilot, group submenus, per-pilot submenus), combat zone fixes, a carrier option, modules initialized by the mission, the weather welcome switch, named points from a script, the v5 converter, and a page on porting a mission with its own script layer. Fourteen tickets, one PR.

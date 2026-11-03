@@ -83,6 +83,13 @@ Un tirage **est ce qu'il tire**, et suit les règles de ce type d'élément : de
 Par défaut, un tirage prend le type de la combat zone où il vit ; s'il ne remplace que des défenses aériennes (« des défenses autour du SA-6 »), c'est une menace (`sam_threat`) et il reste partout ; hors de toute zone, il reste partout.
 `kind:` sur l'entrée donne le type soi-même.
 
+`label:` sur un élément ou un tirage donne le nom qu'un pilote lira dans le briefing (« Chars et BMP-2 de Khan Arnabah ») ; sans lui, le briefing affiche le nom de la zone, de la QRA, ou des groupes.
+
+## Dans le briefing {#briefing}
+
+`build_mission_briefing` ajoute à la fin du deck et du PDF une page par version : chaque élément déclaré et ce qu'il devient dans la version (gardé, retiré, cibles retirées et défenses gardées, tiré au sort), puis la mission à charger.
+Le contenu est calculé avec les règles mêmes du build : il dit ce que contient le `.miz`.
+
 ## Ce qui est refusé, et pourquoi {#refusals}
 
 Le build et `validate_mission` refusent le bloc, en nommant chaque problème :

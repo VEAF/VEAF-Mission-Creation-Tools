@@ -25,107 +25,11 @@ from mission_builder.training_variants import (
     variant_profiles,
     with_training_profiles,
 )
-
-
-def _unit(name: str, unit_type: str, x: float, y: float) -> dict[str, Any]:
-    return {"name": name, "type": unit_type, "x": x, "y": y, "unitId": 0}
-
-
-def _group(name: str, units: list[dict[str, Any]]) -> dict[str, Any]:
-    return {"name": name, "groupId": 0, "x": units[0]["x"], "y": units[0]["y"], "units": units}
-
-
-def _mission() -> dict[str, Any]:
-    red_vehicles = [
-        _group("SA-10 Gudauta", [_unit("SA-10 Gudauta-1", "S-300PS 5P85C ln", -50000, 20000)]),
-        _group("Factory-Tanks", [_unit("Factory-Tanks-1", "T-72B", 1000, 1000)]),
-        _group("Factory-SA-6", [_unit("Factory-SA-6-1", "Kub 2P25 ln", 1200, 900)]),
-        _group("Factory-SA-8 #1", [_unit("Factory-SA-8 #1-1", "Osa 9A33 ln", 1500, 1500)]),
-        _group("Factory-SA-8 #2", [_unit("Factory-SA-8 #2-1", "Osa 9A33 ln", 500, 500)]),
-        _group("Column 1", [_unit("Column 1-1", "T-72B", 20000, 20000), _unit("Column 1-2", "T-72B", 20015, 20000)]),
-        _group("Column 2", [_unit("Column 2-1", "BMP-2", 20600, 20000)]),
-    ]
-    red_planes = [
-        _group("Red CAP Maykop", [_unit("Red CAP Maykop-1", "MiG-29S", 60000, 0)]),
-        _group("QRA-Maykop-MiG29", [_unit("QRA-Maykop-MiG29-1", "MiG-29S", 61000, 0)]),
-        _group("OnDemand-CAP-Red", [_unit("OnDemand-CAP-Red-1", "Su-27", 62000, 0)]),
-    ]
-    return {
-        "coalition": {
-            "red": {
-                "country": [
-                    {"id": 0, "name": "Russia", "vehicle": {"group": red_vehicles}, "plane": {"group": red_planes}}
-                ]
-            },
-            "blue": {
-                "country": [
-                    {
-                        "id": 2,
-                        "name": "USA",
-                        "vehicle": {"group": [_group("Blue HQ", [_unit("Blue HQ-1", "M-1 Abrams", -90000, 0)])]},
-                    }
-                ]
-            },
-        },
-        "triggers": {"zones": [{"name": "Factory", "x": 1000, "y": 1000, "radius": 3000, "zoneId": 1}]},
-        "trig": {},
-        "trigrules": {},
-    }
-
-
-def _training() -> dict[str, Any]:
-    return {
-        "elements": [
-            {"groups": ["Red CAP*"], "kind": "enemy_cap"},
-            {"qra": "QRA-Maykop", "kind": "qra"},
-            {"cap_mission": "CAP-Red", "kind": "enemy_cap"},
-            {"groups": "SA-10 Gudauta", "kind": "sam_lr"},
-            {"zone": "Factory", "kind": "a2g_target"},
-            {"groups": ["Factory-SA-6"], "kind": "sam_threat"},
-        ],
-        "randomize": [
-            {
-                "name": "fdef",
-                "replaces": ["Factory-SA-8 *"],
-                "pool": [
-                    {"group": "Factory-SA-8 #1"},
-                    {"command": "-sa15"},
-                    {"units": [{"type": "Strela-10M3", "count": 2}]},
-                ],
-                "count": "1-2",
-                "radius": "500-2000",
-            },
-            {
-                "name": "column",
-                "replaces": ["Column *"],
-                "pool": [{"group": "Column 1"}, {"command": "-armor"}],
-                "radius": "0-500",
-            },
-        ],
-    }
-
-
-def _yaml(**extra: Any) -> dict[str, Any]:
-    data: dict[str, Any] = {
-        "modules": {
-            "COMBATZONE": {"enabled": True, "combat_zones": [{"zone_name": "Factory", "active_at_start": False}]},
-            "QRA": {
-                "enabled": True,
-                "definitions": [
-                    {
-                        "name": "QRA-Maykop",
-                        "trigger_zone": "Factory",
-                        "groups_by_enemy_count": [{"enemy_count": 1, "groups": ["QRA-Maykop-MiG29"]}],
-                        "active_at_start": False,
-                    }
-                ],
-            },
-        },
-        "cap_missions": [{"group_name": "CAP-Red", "menu_name": "CAP"}],
-        "training": _training(),
-    }
-    data.update(extra)
-    return data
+from training_fixtures import group as _group
+from training_fixtures import night_mission as _mission
+from training_fixtures import night_training as _training
+from training_fixtures import night_yaml as _yaml
+from training_fixtures import unit as _unit
 
 
 def _build(role: str, yaml_data: dict[str, Any] | None = None, references: list | None = None) -> tuple:

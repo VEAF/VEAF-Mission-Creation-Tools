@@ -409,6 +409,8 @@ into how many aircraft, waypoints into how many groups, warehouse template links
 and question any zero. Then call `inspect_built_mission` on the folder and check what the mission is about: the weather of two variants differs, the dynamic slots carry presets and a BULLSEYE, the tanker has its tasks and frequency; `describe_units` on the built `.miz` shows the routes and the combat-zone carriers and statics.
 Say what you checked, and what you could not (anything that needs DCS running, anything no action reads).
 
+**Training versions.** When the user asks for them ("also build the training versions", a version for one role), or after the briefing of a mission night: `propose_training_plan`, then sort what the briefing states (stays as placed) from what it describes vaguely (moves to `randomize`, drawn again at every launch), show the plan, `set_training_plan`, `build_mission`. It works on a mission folder made by hand as well as on one you built; a bare `.miz` needs converting first.
+
 ## Report back clearly
 
 Tell the user which world you edited, the names/types you chose and why, and surface any

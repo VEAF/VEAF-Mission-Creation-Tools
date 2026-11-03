@@ -5578,6 +5578,34 @@ end
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Seed math.random so that two launches of a mission draw differently.
+---
+--- `os.time()` when the mission can reach `os`. A sanitised `MissionScripting.lua` — dcs.veaf.org's —
+--- removes it, and nothing of the mission environment then varies between launches: `timer` answers
+--- the same mission time. A fresh table's address does vary with the heap, so it seeds instead; whether
+--- DCS would have repeated its sequence without it is to be measured in game
+--- (FEAT-ROLE-TRAINING-VARIANTS 05, whose training draws need a different result at every launch).
+--- @param osModule table|nil the `os` module, or nil when sanitised away
+--- @return string|nil the source the seed came from, nil when none could be used
+function veaf.seedRandom(osModule)
+  if not math.randomseed then
+    return nil
+  end
+  if osModule and osModule.time then
+    math.randomseed(osModule.time())
+    return "os.time"
+  end
+  -- "table: 0x55d0c8a4b2c0" on Linux, "table: 000001A2B3C4D5E6" on Windows; seven hex digits keep the
+  -- seed under 2^31, which Lua 5.1 casts to an int
+  local address = tostring({}):match("(%x+)$")
+  local seed = address and tonumber(address:sub(-7), 16)
+  if not seed then
+    return nil
+  end
+  math.randomseed(seed)
+  return "table address"
+end
+
 -- initialize the random number generator to make it almost random
 math.random()
 math.random()
@@ -5586,9 +5614,7 @@ local l_os = os
 if not l_os and SERVER_CONFIG and SERVER_CONFIG.getModule then
   l_os = SERVER_CONFIG.getModule("os")
 end
-if l_os and l_os.time and math.randomseed then
-  math.randomseed(l_os.time())
-end
+veaf.randomSeedSource = veaf.seedRandom(l_os)
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
@@ -5597,6 +5623,8 @@ veaf.loggers.get(veaf.Id):info(veaf.loggers.get(veaf.Id):getVersionInfo(veaf.Bui
 veaf.loggers.get(veaf.Id):info("veaf.Development=%s", veaf.Development)
 veaf.loggers.get(veaf.Id):info("veaf.SecurityDisabled=%s", veaf.SecurityDisabled)
 veaf.loggers.get(veaf.Id):info("veaf.LogLevel=%s", veaf.LogLevel)
+-- The first draw after seeding: two launches logging the same number draw the same training zones.
+veaf.loggers.get(veaf.Id):info("veaf.randomSeedSource=%s, first draw=%s", veaf.p(veaf.randomSeedSource), math.random(1000000))
 veaf.loggers.get(veaf.Id):info("veaf.ForcedLogLevel=%s", veaf.ForcedLogLevel)
 
 -- discover trigger zones

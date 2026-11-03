@@ -1,6 +1,6 @@
 # 04 — Draws injected at build
 
-Status: ⬜ ready
+Status: ✅ done
 
 In the training versions only, each `randomize` entry becomes a combat zone injected into the mission table, so the existing combat-zone machinery draws at every launch (PRD, D1 and D6).
 

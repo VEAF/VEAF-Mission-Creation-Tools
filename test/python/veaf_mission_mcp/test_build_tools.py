@@ -36,6 +36,24 @@ class TestBuildMission:
         assert result["ok"] is True
         assert "built ok" in result["message"]
 
+    def test_lists_the_miz_the_build_wrote(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """FEAT-ROLE-TRAINING-VARIANTS: a training: block makes one build write five .miz."""
+        import os
+
+        old = tmp_path / "Night_20261001.miz"
+        old.write_bytes(b"old")
+        os.utime(old, (0, 0))
+
+        def fake_run(cmd: list[str], **kwargs: Any) -> SimpleNamespace:
+            for suffix in ("", "_TRAINING_A2G"):
+                (tmp_path / f"Night_20261103{suffix}.miz").write_bytes(b"new")
+            return SimpleNamespace(returncode=0, stdout="built ok", stderr="")
+
+        monkeypatch.setattr(build_tools.subprocess, "run", fake_run)
+        missions = build_tools.build_mission(tmp_path)["missions"]
+
+        assert [Path(m).name for m in missions] == ["Night_20261103.miz", "Night_20261103_TRAINING_A2G.miz"]
+
     def test_passes_a_build_profile(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ticket 19: LOCAL_TEST could not be built through the MCP."""
         seen: dict[str, Any] = {}

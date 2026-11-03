@@ -1333,6 +1333,26 @@ dans la commande CLI, on la réexécute telle quelle. Un échec de build est rem
 {"folder_path": "chemin/vers/dossier-mission", "profile": "LOCAL_TEST"}
 ```
 
+Le résultat liste dans `missions` les `.miz` écrits par le build : celui de la soirée, et ses versions d'entraînement quand `mission.yaml` porte un bloc `training:`.
+
+### `propose_training_plan`
+
+Lecture. Brouillon du bloc `training:` d'un dossier de mission ([versions d'entraînement par rôle](../mission-maker/TRAINING_VERSIONS.md)) : vols IA ennemis à tâche air-air → `enemy_cap`, `cap_missions` → `enemy_cap`, définitions QRA du camp ennemi → `qra`, groupes portant un type que DCS classe `LR SAM` → `sam_lr`, combat zones → `a2g_target`, autres défenses aériennes dans une combat zone ou à moins de 15 km → `sam_threat`.
+Tout est proposé **tel que placé**, chaque élément avec sa raison : le tri entre précis et vague se fait en lisant le briefing, pas dans l'action.
+Le camp ennemi est l'opposé de celui qui porte le plus de slots joueurs (bleu par défaut).
+
+```json
+{"mission_path": "chemin/vers/dossier-mission"}
+```
+
+### `set_training_plan`
+
+Écriture. Écrit le bloc `training:` de `mission.yaml` (commentaires préservés, sauvegarde avant), après les contrôles du build (`mission_builder.training_variants.check_training`) : refusé avec la liste de tous les problèmes, sinon le build suivant produit aussi `_TRAINING_A2G`, `_CAP`, `_SEAD` et `_ALL`.
+
+```json
+{"mission_path": "chemin/vers/dossier-mission", "training": {"elements": [{"groups": ["SA-10 *"], "kind": "sam_lr"}], "randomize": []}}
+```
+
 ## Prochaines vagues (hors périmètre)
 
 - Un éditeur de triggers SI/ALORS générique (conditions/actions DCS arbitraires) — la vague 2

@@ -1,6 +1,6 @@
 # FEAT-ROLE-TRAINING-VARIANTS — Training versions of a mission, one per role, built with it
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 David, 2026-11-03: shorten mission nights by letting pilots train **before** the night, on the same setting, without learning in advance what the briefing does not announce.
 Written up the same day, after an inventory of the MCP (6.35.0) and of the build.
@@ -98,10 +98,10 @@ The exact keys are ticket 01's to settle; this is the shape agreed on 2026-11-03
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [The `training:` block and its validation](tickets/01-training-block-schema.md) | ⬜ |
-| 02 | [A profile removes Mission Editor groups](tickets/02-profile-remove-groups.md) | ⬜ |
-| 03 | [The four training versions, built with the night's](tickets/03-role-variants.md) | ⬜ |
-| 04 | [Draws injected at build](tickets/04-injected-draws.md) | ⬜ |
-| 05 | [A different draw at every launch](tickets/05-random-seed-per-launch.md) | ⬜ |
-| 06 | [MCP: propose and write the training plan](tickets/06-mcp-training-plan.md) | ⬜ |
-| 07 | [Documentation, changelog, limitations, demo](tickets/07-docs-and-demo.md) | ⬜ |
+| 01 | [The `training:` block and its validation](tickets/01-training-block-schema.md) | ✅ |
+| 02 | [A profile removes Mission Editor groups](tickets/02-profile-remove-groups.md) | ✅ |
+| 03 | [The four training versions, built with the night's](tickets/03-role-variants.md) | ✅ |
+| 04 | [Draws injected at build](tickets/04-injected-draws.md) | ✅ |
+| 05 | [A different draw at every launch](tickets/05-random-seed-per-launch.md) | 🧑 |
+| 06 | [MCP: propose and write the training plan](tickets/06-mcp-training-plan.md) | ✅ |
+| 07 | [Documentation, changelog, limitations, demo](tickets/07-docs-and-demo.md) | 🔄 |

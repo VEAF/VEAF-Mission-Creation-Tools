@@ -1,6 +1,6 @@
 # 05 — A different draw at every launch
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 The whole point of the draws is that two launches differ.
 `veaf.lua` (initialisation, around line 5589) reseeds `math.random` with `os.time()` only when `os` is reachable, directly or through `SERVER_CONFIG.getModule("os")`.

@@ -5022,4 +5022,44 @@ function TestVeafInitializeSkipsMissionModules:test_a_module_initialized_by_the_
   luaunit.assertEquals(self.started, { "MINE" })
 end
 
+-- veaf.seedRandom (FEAT-ROLE-TRAINING-VARIANTS 05): a sanitised server has no `os`, and its training
+-- draws must still differ from one launch to the next.
+TestVeafSeedRandom = {}
+
+local function firstDraws()
+  return { math.random(1000000), math.random(1000000), math.random(1000000) }
+end
+
+function TestVeafSeedRandom:test_osTimeSeedsWhenReachable()
+  local fakeOs = {
+    time = function()
+      return 42
+    end,
+  }
+  luaunit.assertEquals(veaf.seedRandom(fakeOs), "os.time")
+  local first = firstDraws()
+  veaf.seedRandom(fakeOs)
+  luaunit.assertEquals(firstDraws(), first) -- the seed is the clock: the same clock, the same draws
+end
+
+function TestVeafSeedRandom:test_withoutOsATableAddressSeeds()
+  luaunit.assertEquals(veaf.seedRandom(nil), "table address")
+end
+
+function TestVeafSeedRandom:test_withoutOsTheDrawsDoNotRepeatTheClockSequence()
+  local fakeOs = {
+    time = function()
+      return 42
+    end,
+  }
+  veaf.seedRandom(fakeOs)
+  local fromClock = firstDraws()
+  veaf.seedRandom(nil)
+  luaunit.assertNotEquals(firstDraws(), fromClock)
+end
+
+function TestVeafSeedRandom:test_theSourceIsRecordedAtLoad()
+  luaunit.assertNotNil(veaf.randomSeedSource)
+end
+
 os.exit(luaunit.LuaUnit.run())

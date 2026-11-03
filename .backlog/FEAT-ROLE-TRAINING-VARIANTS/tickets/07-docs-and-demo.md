@@ -1,6 +1,6 @@
 # 07 — Documentation, changelog, limitations, demo
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 ## Done when
 

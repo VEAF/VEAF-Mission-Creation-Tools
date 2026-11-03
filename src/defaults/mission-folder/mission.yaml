@@ -369,3 +369,24 @@ modules:
 #     global_log_level: info
 #     pipeline:
 #       weather: true
+#     remove_groups: ["Test *"]   # Mission Editor groups this profile's .miz goes without
+
+# ── Training versions, one per role ──────────────────────────────────────────
+# With this block the build also writes <mission>_TRAINING_A2G / _CAP / _SEAD / _ALL.miz:
+# same setting and briefing, the other roles' work done, vague elements drawn at every launch.
+# See doc/mission-maker/TRAINING_VERSIONS.md.
+# training:
+#   elements:                          # what the night holds; undeclared = kept everywhere
+#     - groups: ["Red CAP *"]          # or zone: / qra: / cap_mission:
+#       kind: enemy_cap                # enemy_cap | qra | sam_lr | a2g_target | sam_threat
+#     - zone: Factory
+#       kind: a2g_target
+#   randomize:                         # what the briefing describes vaguely
+#     - name: factory-def
+#       replaces: ["Factory-SA-8 *"]   # the night's fixed groups
+#       pool:
+#         - group: "Factory-SA-8 #1"   # one of them, taken as it is
+#         - command: -sa15             # a VEAF shortcut
+#         - units: [{type: Strela-10M3, count: 2}]
+#       count: 1-2                     # how many to draw
+#       radius: 500-2000               # scatter, in metres

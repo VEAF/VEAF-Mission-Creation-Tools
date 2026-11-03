@@ -689,7 +689,8 @@ def _markers(draw: Draw) -> str:
     biasing the count up. Written once, it is drawn once.
     """
     group = f"training-{draw.name}"
-    return f'#spawngroup="{group}" #spawncount={draw.count} #spawnradius={draw.radius}'
+    markers = f'#spawngroup="{group}" #spawncount={draw.count} #spawnradius={draw.radius}'
+    return markers
 
 
 def _without_count(markers: str) -> str:

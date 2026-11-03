@@ -1811,3 +1811,27 @@ limitations:
     Walk `zonesList` once per name (`getMissionEditorZoneName`), or look zones up through
     `veafCombatZone.GetZone`, which reads the dictionary.
   fixed_in: "6.34.0"
+
+- id: training-versions-not-with-build-variants
+  kind: tool
+  area: pipeline
+  title: "A `training:` block cannot sit beside `build_variants:`"
+  symptom: |
+    The build refuses the combination: MODERN/COLD_WAR × the four training versions would be eight
+    `.miz` nobody asked for, and nothing says which of them a squadron would fly (FEAT-ROLE-TRAINING-VARIANTS).
+  workaround: |
+    Keep one of the two in `mission.yaml`, or build one era at a time with `--profile`.
+
+- id: training-draw-cannot-adopt-a-referenced-group
+  kind: tool
+  area: pipeline
+  title: "A training draw cannot take a group that a trigger, a script or `mission.yaml` names"
+  symptom: |
+    For the draw's combat zone to capture a hand-placed group, the build renames it in the training
+    versions. A trigger's DO SCRIPT, a mission script or a `mission.yaml` module (QRA, assets…) naming
+    the old name would then find nothing, and DCS says nothing — so the build refuses, naming the
+    reference. A group carrying a `#veafInterpreter` is refused too: its command runs once at mission
+    start and nothing is left to draw (FEAT-ROLE-TRAINING-VARIANTS).
+  workaround: |
+    Keep the group fixed, or list it in `replaces` and draw among new candidates (`command:` or `units:`).
+    A group already in a combat zone of the night is not renamed, and can be drawn whatever names it.

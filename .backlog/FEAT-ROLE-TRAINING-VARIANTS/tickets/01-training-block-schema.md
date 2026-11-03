@@ -1,6 +1,6 @@
 # 01 — The `training:` block and its validation
 
-Status: ⬜ ready
+Status: ✅ done
 
 A `training:` block in `mission.yaml`, read by the build and checked by `validate_mission`, in the shape the PRD gives.
 

@@ -17,7 +17,8 @@ from mission_builder.mission_builder_worker import _normalize_mission_yaml
 from mission_builder.training_variants import VARIANT_KEY
 from mission_builder_factory import make_worker
 from mission_tools.miz_tools import DcsMission
-from test_training_variants import _mission, _yaml
+from training_fixtures import night_mission as _mission
+from training_fixtures import night_yaml as _yaml
 from veaf_libs.build_profiles import resolve_profile
 
 

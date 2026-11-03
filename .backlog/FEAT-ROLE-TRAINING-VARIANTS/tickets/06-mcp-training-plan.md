@@ -1,6 +1,6 @@
 # 06 — MCP: propose and write the training plan
 
-Status: ⬜ ready
+Status: ✅ done
 
 Two actions, so that "build the training versions too" works on a mission Claude has just made as on an existing one.
 

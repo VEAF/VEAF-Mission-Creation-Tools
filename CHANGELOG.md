@@ -29,6 +29,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **A random red on `python-quality`**: the `update-dcs-data` dispatch tests ran the airdromes generator for real, which downloaded the reference database and rewrote the shipped `airdrome-positions.yaml` in place while other test workers read it; one that caught it truncated failed (#1227's briefing test). The generator is now patched, and a test checks that a dispatch run leaves the shipped data untouched.
 
+### Added
+
+- **Training versions of a mission night, one per role** (FEAT-ROLE-TRAINING-VARIANTS).
+  A `training:` block in `mission.yaml` makes the build write, beside the night's `.miz`, `_TRAINING_A2G`, `_TRAINING_CAP`, `_TRAINING_SEAD` and `_TRAINING_ALL`, on the same setting and with the same briefing: each takes out what its role assumes done (enemy CAP, QRA, long-range SAMs, A2G targets), the CAP version arms the QRA from the start.
+  What the briefing describes vaguely is drawn again at every launch by a combat zone the build lays, from VEAF shortcuts, the night's own hand-placed groups or groups made from DCS types; a group a trigger, a script or `mission.yaml` names is refused rather than renamed silently.
+  A build profile can now take Mission Editor groups out of its `.miz` (`remove_groups:`).
+  Two MCP actions draft and write the block (`propose_training_plan`, `set_training_plan`), and `build_mission` lists the `.miz` it wrote.
+  Without `os` in the mission (a sanitised server), the random draws are now seeded from a table address instead of not at all; whether DCS repeated its draws before is to be measured in game.
+
 ## [6.35.0] — 2026-10-30
 
 ### Fixed

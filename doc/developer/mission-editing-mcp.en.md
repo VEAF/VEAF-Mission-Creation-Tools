@@ -1299,6 +1299,26 @@ passed as `--profile` — `LOCAL_TEST` for a local test build.
 {"folder_path": "path/to/mission-folder", "profile": "LOCAL_TEST"}
 ```
 
+The result lists in `missions` the `.miz` the build wrote: the night's, and its training versions when `mission.yaml` holds a `training:` block.
+
+### `propose_training_plan`
+
+Read. Drafts the `training:` block of a mission folder ([training versions, one per role](../mission-maker/TRAINING_VERSIONS.en.md)): enemy AI flights tasked for air combat → `enemy_cap`, `cap_missions` → `enemy_cap`, the enemy side's QRA definitions → `qra`, groups holding a type DCS rates `LR SAM` → `sam_lr`, combat zones → `a2g_target`, other air defences inside a combat zone or within 15 km of one → `sam_threat`.
+Everything is proposed **as placed**, each element with its reason: sorting what is stated from what is vague is done by reading the briefing, not in the action.
+The enemy side is the one opposite the side holding the most player slots (blue players by default).
+
+```json
+{"mission_path": "path/to/mission-folder"}
+```
+
+### `set_training_plan`
+
+Write. Writes the `training:` block of `mission.yaml` (comments preserved, backed up first), after the build's own checks (`mission_builder.training_variants.check_training`): refused with every problem listed, otherwise the next build also produces `_TRAINING_A2G`, `_CAP`, `_SEAD` and `_ALL`.
+
+```json
+{"mission_path": "path/to/mission-folder", "training": {"elements": [{"groups": ["SA-10 *"], "kind": "sam_lr"}], "randomize": []}}
+```
+
 ## Next waves (out of scope)
 
 - A generic IF/THEN trigger editor (arbitrary DCS conditions/actions) — wave 2 is limited to

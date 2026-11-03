@@ -1,6 +1,6 @@
 # 02 — A profile removes Mission Editor groups
 
-Status: ⬜ ready
+Status: ✅ done
 
 A profile only changes configuration today (`veaf_libs/build_profiles.py`): no profile can take an AI flight placed in the Mission Editor, or a SAM placed by hand, out of its `.miz`.
 This ticket adds a generic profile key, `remove_groups:` (names or `*` patterns), applied by the build to the mission table of that profile's `.miz`.

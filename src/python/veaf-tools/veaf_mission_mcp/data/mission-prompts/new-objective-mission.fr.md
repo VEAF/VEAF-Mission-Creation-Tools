@@ -450,6 +450,9 @@ validé un scénario, pas un à-peu-près.
 8. Le **contenu du briefing en prose** (`docs/briefing-contenu.md`), validé par l'utilisateur, puis `build_mission_briefing` (section 6) et la **fiche Mission Maker**.
 9. `README.md` : le scénario, comment construire, les fichiers, les limites connues.
 10. L'**annonce**, si l'utilisateur la demande : `build_mission_promotion` (affiche, bandeau du calendrier, message Discord). Demande-lui la date et l'heure locale de la soirée et les liens ; ne les invente jamais.
+11. **Propose les versions d'entraînement** une fois le briefing validé : un `.miz` par rôle (A2G, CAP, SEAD) et un commun, sur le même cadre, pour que les pilotes s'entraînent avant la soirée.
+    Sur un oui : `propose_training_plan`, puis reprends le briefing élément par élément — ce qu'il précise (type **et** nombre) reste dans `elements` ; ce qu'il décrit vaguement (« des défenses autour du SA-6 », « une colonne de blindés ») passe dans `randomize`, avec un pool du même rôle (un SA-8 parmi les SAM courte portée, un char parmi les blindés), un `count` et un `radius`.
+    Montre le plan à l'utilisateur sous forme de tableau — élément, kind, figé ou tiré — avant `set_training_plan`, puis `build_mission`, et rends les cinq chemins qu'il liste.
 
 Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'apprêtes à faire.
 

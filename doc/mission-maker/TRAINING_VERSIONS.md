@@ -40,6 +40,7 @@ Et un `kind` parmi :
 
 Un élément que personne ne déclare reste dans toutes les versions.
 En CAP, **toute** défense aérienne reste — SAM, radar ou AAA, déclarée ou non, même dans une zone `a2g_target` : une CAP traverse les SAM de la zone quoi qu'aient fait les avions d'attaque.
+Un groupe compte comme défense aérienne quand toutes ses unités sont antiaériennes ou de soutien (radar, camion de ravitaillement) : une colonne de chars escortée d'un Tunguska est une cible, et part.
 En SEAD, seuls les SAM déclarés restent (`sam_lr`, `sam_threat`) : les autres groupes d'une zone `a2g_target` partent avec ses cibles.
 
 ## Les éléments vagues : `randomize` {#draws}

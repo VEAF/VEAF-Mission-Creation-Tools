@@ -40,6 +40,7 @@ And a `kind` among:
 
 An element nobody declares stays in every version.
 In CAP, **every** air defence stays — a SAM, its radar or AAA, declared or not, even inside an `a2g_target` zone: a CAP flies through the zone's SAMs whatever the strikers have done.
+A group counts as air defence when every unit is an air defence or support (radar, supply truck): a column of tanks escorted by a Tunguska is a target, and goes.
 In SEAD, only the declared SAMs stay (`sam_lr`, `sam_threat`): the zone's other groups go with its targets.
 
 ## Vague elements: `randomize` {#draws}

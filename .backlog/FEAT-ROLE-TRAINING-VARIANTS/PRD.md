@@ -1,6 +1,6 @@
 # FEAT-ROLE-TRAINING-VARIANTS — Training versions of a mission, one per role, built with it
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 David, 2026-11-03: shorten mission nights by letting pilots train **before** the night, on the same setting, without learning in advance what the briefing does not announce.
 Written up the same day, after an inventory of the MCP (6.35.0) and of the build.

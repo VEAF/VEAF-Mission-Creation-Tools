@@ -29,7 +29,23 @@ def matches_any(name: str, patterns: Iterable[str]) -> bool:
     Returns:
         True when one pattern matches.
     """
-    return any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
+    return any(name_matches(name, pattern) for pattern in patterns)
+
+
+def name_matches(name: str, pattern: str) -> bool:
+    """Whether a group name matches a pattern, or **is** it.
+
+    `fnmatch` reads `[...]` as a character class, so a name carrying brackets — an interpreter
+    carrier's, `#veafInterpreter["-samVLR"]` — did not match itself, and its group was silently kept.
+
+    Args:
+        name: The group name.
+        pattern: An exact name or an ``fnmatch`` pattern.
+
+    Returns:
+        True when the name equals the pattern or matches it.
+    """
+    return name == pattern or fnmatch.fnmatchcase(name, pattern)
 
 
 def iter_group_slots(mission_content: dict[str, Any]) -> Iterable[tuple[str, dict[str, Any], str, dict[str, Any]]]:
@@ -97,7 +113,7 @@ def remove_groups(mission_content: dict[str, Any], patterns: Iterable[str]) -> t
                 kept = []
                 for group in indexed(container.get("group")):
                     name = str(group.get("name", "")) if isinstance(group, dict) else ""
-                    hits = [pattern for pattern in wanted if name and fnmatch.fnmatchcase(name, pattern)]
+                    hits = [pattern for pattern in wanted if name and name_matches(name, pattern)]
                     if hits:
                         removed.append(name)
                         used.update(hits)

@@ -57,6 +57,14 @@ def _units(mission: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 class TestRemoveGroups:
+    def test_an_exact_name_with_brackets_matches_itself(self) -> None:
+        """`[...]` is a character class to fnmatch: an interpreter static's own name did not match it."""
+        mission = _mission()
+        name = '#veafInterpreter["-samVLR"] #gudauta'
+        mission["coalition"]["red"]["country"][0]["static"] = {"group": [_group(name, [_unit(name, "Cargo1", 0, 0)])]}
+        removed, unmatched = remove_groups(mission, [name])
+        assert (removed, unmatched) == ([name], [])
+
     def test_removes_by_exact_name_and_pattern(self) -> None:
         mission = _mission()
         removed, unmatched = remove_groups(mission, ["Blue HQ", "Factory-SA-8 *", "Nothing*"])

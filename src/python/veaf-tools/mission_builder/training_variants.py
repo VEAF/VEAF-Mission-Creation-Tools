@@ -30,7 +30,6 @@ table, decides everything, and returns both the configuration to build with and 
 from __future__ import annotations
 
 import copy
-import fnmatch
 import math
 import re
 from dataclasses import dataclass, field
@@ -42,7 +41,7 @@ from veaf_libs.i18n import t
 from veaf_libs.mission_table import indexed
 from veaf_libs.shortcut_eras import era_of_alias
 
-from mission_builder.group_removal import iter_group_slots, matches_any, remove_groups
+from mission_builder.group_removal import iter_group_slots, matches_any, name_matches, remove_groups
 
 #: The training versions, in the order the build emits them.
 ROLES: tuple[str, ...] = ("A2G", "CAP", "SEAD", "ALL")
@@ -475,7 +474,7 @@ def _trigger_zone_names(mission: dict[str, Any]) -> set[str]:
 def _matching(names: list[str], patterns: tuple[str, ...], where: str, errors: list[str]) -> list[str]:
     """The names matching the patterns; a pattern matching nothing is an error."""
     for pattern in patterns:
-        if not any(fnmatch.fnmatchcase(name, pattern) for name in names):
+        if not any(name_matches(name, pattern) for name in names):
             errors.append(t("training.pattern_matches_nothing", where=where, pattern=pattern))
     return [name for name in names if matches_any(name, patterns)]
 

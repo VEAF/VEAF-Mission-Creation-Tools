@@ -95,3 +95,24 @@ def test_an_empty_label_is_refused() -> None:
     assert plan is None and any("'label'" in error for error in errors)
     plan, errors = parse_training({"randomize": [{"name": "a", "replaces": "x", "pool": [{"group": "x"}], "label": 3}]})
     assert plan is None and any("'label'" in error for error in errors)
+
+
+def test_a_target_the_version_keeps_reads_kept(tmp_path: Path) -> None:
+    """CAP keeps an air defence declared a target (D7 of FEAT-ROLE-TRAINING-VARIANTS): the page must say so."""
+    mission = night_mission()
+    mission["coalition"]["red"]["country"][0]["vehicle"]["group"].append(
+        {
+            "name": "Lone Shilka",
+            "x": 0,
+            "y": 0,
+            "units": [{"name": "Lone Shilka-1", "type": "ZSU-23-4 Shilka", "x": 0, "y": 0}],
+        }
+    )
+    folder = _folder(tmp_path, {**night_yaml()})
+    (folder / "src" / "mission" / "mission").write_text("mission = " + luadata.serialize(mission), encoding="utf-8")
+    config = night_yaml()
+    config["training"]["elements"].append({"groups": ["Lone Shilka"], "kind": "a2g_target"})
+    (folder / "mission.yaml").write_text(yaml.safe_dump(config, allow_unicode=True), encoding="utf-8")
+    _, cap, sead, _ = training_pages(folder, [])
+    assert _rows(cap)["Lone Shilka"][1] == t("mission_briefing.training.status.kept")
+    assert _rows(sead)["Lone Shilka"][1] == t("mission_briefing.training.status.removed")

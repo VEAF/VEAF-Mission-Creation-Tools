@@ -16,7 +16,7 @@ from typing import Any
 
 import yaml
 from campaign_manager.briefing_deck import Block
-from mission_builder.group_removal import iter_group_slots
+from mission_builder.group_removal import iter_group_slots, matches_any
 from mission_builder.training_variants import (
     AIR_DEFENCE_KEPT_ROLES,
     REMOVED_KINDS,
@@ -129,6 +129,10 @@ def training_pages(folder: Path, warnings: list[str]) -> list[TablePage]:
                 label = ", ".join(element.groups)
             if element.kind not in removed:
                 status = "kept"
+            elif element.groups:
+                # What the build takes out, not what the kind says: CAP keeps an air defence declared a target.
+                matched = [name for name in names if matches_any(name, element.groups)]
+                status = "kept" if any(name not in variant.removed_groups for name in matched) else "removed"
             elif (
                 element.kind == "a2g_target"
                 and role in AIR_DEFENCE_KEPT_ROLES

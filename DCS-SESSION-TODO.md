@@ -64,7 +64,8 @@ removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4'
 [`FEAT-ROLE-TRAINING-VARIANTS`](.backlog/FEAT-ROLE-TRAINING-VARIANTS/PRD.md), ticket 05.
 On the mocks: `veaf.seedRandom` seeds from `os.time()` when `os` is reachable and from a fresh table's address when it is not. What the mocks cannot show: whether DCS, with `os` sanitised away, would have started every launch on the same sequence — and whether the address really varies from one launch to the next.
 
-**Prepare**: a mission folder with a `training:` block holding at least one `randomize` entry of `count: 1` among three candidates, built from the lot's branch; the `_TRAINING_ALL.miz` it produces. Run it on a game whose `MissionScripting.lua` is **sanitised** (the default one, or dcs.veaf.org's): `os` must not be reachable, or the measure says nothing.
+**Prepared 2026-11-03**: a copy of *Marteau du Golan* with a `training:` block, built from the lot's branch, in `D:\dev\_VEAF\tmp\marteau-training-2026-11-03\` (`VEAF_Syria_MarteauDuGolan_20261103_TRAINING_*.miz`); its `TRAINING_*` profiles switch `veaf.Diagnostics` on and activate Khan Arnabah and Sa'sa' at start, so each draw is a `DIAG|` line in `dcs.log`.
+On DAVID-BUREAU, `MissionScripting.lua` keeps `os` reachable through `SERVER_CONFIG.getModule`: a run there measures that the draws differ and that each version holds what it should, **not** the fallback. The fallback needs a game whose `MissionScripting.lua` is sanitised (the default one, or dcs.veaf.org's).
 
 1. Launch `_TRAINING_ALL.miz`, wait for the mission to start, then quit to the menu. Do it a second time, then a third.
 2. In `dcs.log`, each launch has a line `veaf.randomSeedSource=…, first draw=…`.

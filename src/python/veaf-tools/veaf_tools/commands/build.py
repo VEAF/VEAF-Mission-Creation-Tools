@@ -16,6 +16,7 @@ from aircrafts_injector.catalogue import (
     unknown_unit_types,
 )
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
+from mission_builder.training_variants import variant_profiles, with_training_profiles
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
 from spawn_data_injector import SpawnDataInjectorWorker
@@ -152,6 +153,8 @@ def _build_plan(
     for a multi-variant build (FOOTHOLD-V6-006). See :func:`_resolve_build_variants`.
     An explicit ``--profile`` is one build, suffixed like a variant: ``--profile LOCAL_TEST`` wrote the
     plain build's name, and one overwrote the other (FEAT-OBJECTIVE-MISSION-V2 09).
+    A ``training:`` block adds, after the night's unsuffixed build, one ``TRAINING_<ROLE>`` build per
+    role (FEAT-ROLE-TRAINING-VARIANTS); it is refused beside ``build_variants:``.
 
     Args:
         yaml_data: The parsed ``mission.yaml`` mapping.
@@ -163,9 +166,20 @@ def _build_plan(
         The build plan — at least one entry.
     """
     variants = _resolve_build_variants(yaml_data, explicit_profile)
+    training = variant_profiles(yaml_data)
+    yaml_data = with_training_profiles(yaml_data)
     if explicit_profile is not None:
         canonical = canonical_profile_name(yaml_data, explicit_profile) or explicit_profile
         return [(explicit_profile, *_variant_output_mission(base_output, base_name, canonical))]
+    if training and variants:
+        # MODERN/COLD_WAR × roles would be eight .miz nobody asked for (FEAT-ROLE-TRAINING-VARIANTS).
+        logger.error(t("training.with_build_variants"), exception_type=ValueError)
+    if training:
+        # The night's mission first, unsuffixed, then one training version per role.
+        return [
+            (explicit_profile, base_output, base_name),
+            *((name, *_variant_output_mission(base_output, base_name, name)) for name in training),
+        ]
     if not variants:
         return [(explicit_profile, base_output, base_name)]
     # Use each profile's canonical (declared-case) name for both the build and the
@@ -632,7 +646,7 @@ def build(
     plan = _build_plan(peek_yaml, profile, p_output_mission, mission_base_name)
 
     if len(plan) > 1:
-        logger.info(tn("cmd.build.multivariant", len(plan), variants=", ".join(str(p) for p, _, _ in plan)))
+        logger.info(tn("cmd.build.multivariant", len(plan), variants=", ".join(p or b for p, _, b in plan)))
     for variant_profile, v_output, v_base in plan:
         _run_variant(variant_profile, v_output, v_base)
 

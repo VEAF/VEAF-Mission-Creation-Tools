@@ -151,7 +151,25 @@ def validate_mission_folder(folder: Path) -> list[ValidationIssue]:
     issues += _check_group_frequencies(mission)
     issues += _check_shortcut_eras(yaml_data, mission)
     issues += _check_command_countries(mission)
+    issues += _check_training(folder, yaml_data, mission)
     return issues
+
+
+def _check_training(folder: Path, yaml_data: dict, mission: dict) -> list[ValidationIssue]:
+    """Every problem of the ``training:`` block, against the mission (FEAT-ROLE-TRAINING-VARIANTS).
+
+    Args:
+        folder: The mission folder.
+        yaml_data: The parsed ``mission.yaml``.
+        mission: The parsed source mission table.
+
+    Returns:
+        The block's errors, then the warnings its versions would give.
+    """
+    from mission_builder.training_variants import check_training, reference_sources
+
+    errors, warnings = check_training(yaml_data, mission, reference_sources(folder, yaml_data, mission))
+    return [ValidationIssue(ERROR, m) for m in errors] + [ValidationIssue(WARNING, m) for m in warnings]
 
 
 def _check_cap_mission_keys(yaml_data: dict) -> list[ValidationIssue]:

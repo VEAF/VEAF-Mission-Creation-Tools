@@ -23,3 +23,7 @@ Claude acting in a running mission while the squadron flies — spawn, destroy, 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · ⬜
 
 All of the wind, on DCS's static-weather model decoded from `Weather.dll` and checked in game (whitepaper `dcs-wind-model`): the model as a standard-library `veaf_libs` brick tested on the five measured runs and shared with the DCSServerBot fork; the tools set the wind wanted at a reference airfield and compute `atGround` from it, with `at2000` at 2.2 × the ground veered 20° and the METAR's gust gap into `groundTurbulence`, capped at 2 m/s until measured; the deck, the MCP answers, the guide and the prompts describe the simulated wind, with a helicopter rule on 0-600 m; `mission-check` compares the briefing with the model without DCS; the ATIS rounds its speeds and gains a "max wind 0-2000 ft" line. Seven tickets; from *Marteau du Golan* (2026-10-31), where 17 kt set and announced became 36 kt at 1,000 ft.
+
+### [FEAT-ROLE-TRAINING-VARIANTS](FEAT-ROLE-TRAINING-VARIANTS/PRD.md) · ⬜
+
+Training versions of a mission night, built with it from a `training:` block in `mission.yaml`: one per role (A2G, CAP, SEAD) in the state "the other roles have done their job", one common, same setting and same briefing; what the briefing states stays as placed, what it describes vaguely is drawn again at every launch by a combat zone the build injects — from VEAF commands, the night's own hand-placed groups or groups made from DCS types. Seven tickets; asked by David on 2026-11-03 to shorten mission nights.

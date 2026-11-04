@@ -594,3 +594,23 @@ class TestGusts(unittest.TestCase):
 
     def test_clearsky_drops_the_gust(self) -> None:
         self.assertNotIn("wind_gust", cap_clearsky({"wind_speed": 5, "wind_gust": 9}))
+
+
+class TestAHighReferenceAirfield(unittest.TestCase):
+    """Review of 2026-11-04: Bamyan (2,590 m) used to stop the build — the ground setting does not act there."""
+
+    def test_the_wind_is_set_on_at2000_and_given_back(self) -> None:
+        conversion = DCSWeatherConverter.convert(
+            wind_speed_mps=5, wind_direction_degrees=270, theatre="Afghanistan", departure_airfield="Bamyan"
+        )
+        self.assertGreater(conversion.reference.elevation, 2000)
+        wind = surface_wind(conversion.weather["wind"], conversion.reference.elevation)
+        self.assertAlmostEqual(wind.speed, 5.0, delta=0.05)
+        self.assertAlmostEqual(wind.from_deg, 270.0, delta=0.5)
+        self.assertTrue(any("2,000 m wind weighs 100%" in w for w in conversion.warnings), conversion.warnings)
+
+    def test_a_hand_set_at2000_is_written_as_given(self) -> None:
+        conversion = DCSWeatherConverter.convert(
+            wind_speed_mps=5, wind_speed_2000=9, theatre="Afghanistan", reference_airfield="Bamyan"
+        )
+        self.assertEqual(conversion.weather["wind"]["at2000"]["speed"], 9.0)

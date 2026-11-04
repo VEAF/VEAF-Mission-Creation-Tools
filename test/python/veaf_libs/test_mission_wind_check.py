@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -203,3 +204,37 @@ def test_an_empty_or_broken_reply() -> None:
     assert judge_measure("?", [])[0][0] is False
     with pytest.raises(ValueError):
         parse_measure("v\nnot a line", [_ROSH_PINA], _MARTEAU)
+
+
+# --- review of 2026-11-04: false failures the parser made on ordinary texts ----------------------------
+
+
+def test_the_deck_s_own_wind_line_passes_its_check() -> None:
+    from campaign_manager.mission_pages import weather_lines
+    from campaign_manager.mission_picture import MissionPicture, _weather
+    from veaf_libs.i18n import language
+
+    content = {"weather": {"wind": _MARTEAU}}
+    weather = _weather(content["weather"], {**content, "coalition": {}}, "Syria", None)
+    picture = MissionPicture(theatre="Syria", date=date(2026, 10, 31), start_time=0, weather=weather, bullseye=(0, 0))
+    sea = WindPlace("sea level", 0.0, 0.0, 0.0, departure=True)
+    for lang in ("en", "fr"):
+        with language(lang):
+            line = weather_lines(picture)[1]
+        report = check_wind(_MARTEAU, [sea], {"deck": line})
+        assert [ok for ok, _ in report.lines if ok is False] == [], (line, report.lines)
+        assert any("FL250" in text or "FL250" in line for _, text in report.lines)
+
+
+def test_a_bullseye_bearing_is_not_a_wind() -> None:
+    assert extract_wind_mentions("Objective at bullseye 045/35.", "t") == []
+
+
+def test_a_cruise_speed_in_a_wind_sentence_is_not_a_wind() -> None:
+    mentions = extract_wind_mentions("Wind 12 kt, helicopters cruise at 80 kts.", "t")
+    assert [m.knots for m in mentions] == [12.0]
+
+
+def test_from_a_height_is_not_a_direction() -> None:
+    (mention,) = extract_wind_mentions("Winds 15 kt from 500 ft up.", "t")
+    assert mention.from_deg is None

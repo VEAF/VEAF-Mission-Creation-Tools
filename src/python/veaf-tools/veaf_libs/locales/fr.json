@@ -1360,6 +1360,7 @@
   "cmd.mission_check.opt.measure_wind": "Lire aussi atmosphere.getWind aux endroits de la vérification du vent dans la copie de test lancée, et comparer au modèle.",
   "cmd.mission_check.wind_title": "Vent (modèle de DCS {version}, sans DCS) :",
   "cmd.mission_check.rest_needs_game": "Les autres vérifications demandent la mission lancée dans DCS : lance la copie qu'écrit mission-check-prepare, puis relance mission-check.",
+  "cmd.mission_check.no_built_miz": "{path} ne contient aucun .miz construit : lancez d'abord le build",
   "cmd.mission_check.measure_written": "Vent mesuré dans DCS écrit dans {path}",
   "cmd.mission_check.measure_needs_mission": "--measure-wind demande la mission construite : donne-la en argument MISSION.",
   "weather.wind_reference": "Variante « {name} » : vent réglé pour {airfield} ({elevation} m), {direction}/{knots} kt au sol",

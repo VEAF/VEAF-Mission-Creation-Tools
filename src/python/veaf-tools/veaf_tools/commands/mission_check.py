@@ -83,7 +83,7 @@ def _resolve_mission(mission: Path) -> tuple[Path, Path | None]:
     if mission.is_dir():
         miz = find_built_mission(mission)
         if miz is None:
-            console.print(f"[red]✗[/]  {mission} holds no built .miz: build it first")
+            console.print(f"[red]✗[/]  {t('cmd.mission_check.no_built_miz', path=mission)}")
             raise typer.Exit(code=2)
         return miz, mission
     folder = mission.parent if (mission.parent / "mission.yaml").is_file() else None

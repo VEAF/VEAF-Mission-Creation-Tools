@@ -427,6 +427,7 @@ def cap_setting_for_band(setting: Mapping[str, Any], ground_msl: float, max_knot
     """
 
     def band_knots(candidate: Mapping[str, Any]) -> float:
+        """The strongest wind of the band under a candidate setting, knots."""
         return max_wind_between(candidate, ground_msl, SURFACE_HEIGHT_M, top_agl).wind.knots
 
     original = _scaled(setting, 1.0, 1.0)

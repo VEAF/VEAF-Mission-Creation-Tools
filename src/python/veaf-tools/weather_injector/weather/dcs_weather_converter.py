@@ -10,8 +10,13 @@ from typing import Any
 from veaf_libs.dcs_wind import (
     GROUND_REFERENCE_FACTOR,
     KNOTS_PER_MPS,
+    LEVEL_ALTITUDES_M,
+    MAX_VEER_DEG,
+    RELIABLE_GROUND_WEIGHT,
+    SURFACE_HEIGHT_M,
     ground_setting_for_surface_wind,
     setting_for_surface_wind,
+    surface_wind,
     turbulence_for_gust,
 )
 from veaf_libs.i18n import t
@@ -172,7 +177,7 @@ class DCSWeatherConverter:
             The :class:`WeatherConversion`.
 
         Raises:
-            ValueError: If the veer is outside 0-30°, or the reference airfield at 2,000 m or above.
+            ValueError: If the veer is outside 0-30°.
         """
         try:
             weather: dict[str, Any] = {}
@@ -268,7 +273,7 @@ class DCSWeatherConverter:
             )
 
         except ValueError:
-            # A wind that cannot be set (veer past 30°, a reference at 2,000 m): the caller's input to
+            # A wind that cannot be set (a veer past 30°): the caller's input to
             # report, not a crash to log — `logger.error` would abort the whole command.
             raise
         except Exception as e:
@@ -328,19 +333,39 @@ def _wind_setting(
         The table, rounded as written, and the warnings it calls for.
 
     Raises:
-        ValueError: If the veer is outside 0-30°, or the reference airfield at 2,000 m or above.
+        ValueError: If the veer is outside 0-30°.
     """
     knots = speed_mps * KNOTS_PER_MPS
     warnings: list[str] = []
-    if at2000[0] is None:
+    if not 0.0 <= veer <= MAX_VEER_DEG:
+        raise ValueError(f"wind_veer {veer}° outside 0-{MAX_VEER_DEG:.0f}°")
+    ground_weight: float | None = None
+    if reference.elevation + SURFACE_HEIGHT_M >= LEVEL_ALTITUDES_M[1]:
+        # At 2,000 m and above the ground setting does not act (Bamyan 2,590 m, Gardez 2,373 m): the
+        # wanted wind goes on `at2000`, with `at8000` at the same speed so the blend between them is flat
+        # there; `atGround` keeps the 2.2 ratio below it. A hand-set `at2000` is written as given.
+        if at2000[0] is None:
+            unit = {"speed": 1.0, "dir": 0.0}
+            flat = {"atGround": {"speed": 0.0, "dir": 0.0}, "at2000": unit, "at8000": unit}
+            factor = surface_wind(flat, reference.elevation).speed
+            upper = {"speed": speed_mps / factor if factor else 0.0, "dir": _to_dir(from_deg)}
+        else:
+            upper_from = from_deg + veer if at2000[1] is None else float(at2000[1])
+            upper = {"speed": float(at2000[0]), "dir": _to_dir(upper_from)}
+        setting = {
+            "atGround": {"speed": upper["speed"] / 2.2, "dir": (upper["dir"] - veer) % 360.0},
+            "at2000": upper,
+            "at8000": dict(upper),
+        }
+        ground_weight = 0.0
+    elif at2000[0] is None:
         inversion = setting_for_surface_wind(from_deg, knots, reference.elevation, veer_deg=veer)
+        setting, ground_weight = inversion.setting, inversion.ground_weight
     else:
-        if not 0.0 <= veer <= 30.0:
-            raise ValueError(f"wind_veer {veer}° outside 0-30°")
         upper_from = from_deg + veer if at2000[1] is None else float(at2000[1])
         upper = {"speed": float(at2000[0]), "dir": _to_dir(upper_from)}
         inversion = ground_setting_for_surface_wind(from_deg, knots, reference.elevation, upper)
-    setting = inversion.setting
+        setting, ground_weight = inversion.setting, inversion.ground_weight
     if at8000[0] is not None:
         top_from = (float(setting["at2000"]["dir"]) + 180.0) % 360.0 if at8000[1] is None else float(at8000[1])
         setting["at8000"] = {"speed": float(at8000[0]), "dir": _to_dir(top_from)}
@@ -357,13 +382,13 @@ def _wind_setting(
                 ground=f"{wind['atGround']['speed']:.1f}",
             )
         )
-    if not inversion.reliable:
+    if ground_weight < RELIABLE_GROUND_WEIGHT:
         warnings.append(
             t(
                 "wind.unreliable_inversion",
                 airfield=reference.name,
                 elevation=round(reference.elevation),
-                weight=round(100 * (1 - inversion.ground_weight)),
+                weight=round(100 * (1 - ground_weight)),
             )
         )
     return wind, warnings

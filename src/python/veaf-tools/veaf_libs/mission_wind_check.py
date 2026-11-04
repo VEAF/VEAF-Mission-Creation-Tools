@@ -42,6 +42,8 @@ from veaf_libs.mission_wind import (
     HelicopterPlace,
     has_helicopter_slot,
     helicopter_breaches,
+    listed,
+    player_groups,
 )
 
 #: Two places closer than this are one, m.
@@ -52,8 +54,6 @@ _ALOFT_BAND_M = (1000 * FEET, 10000 * FEET)
 _LOW_LEVEL_BAND_M = (0.0, HELICOPTER_BAND_TOP_M)
 #: The step a band is sampled at, m.
 _BAND_STEP_M = 50.0
-
-_PLAYER_SKILLS = ("client", "player")
 
 
 @dataclass(frozen=True)
@@ -106,24 +106,6 @@ class WindReport:
 # --------------------------------------------------------------------------------------------------
 
 
-def _listed(table: Any) -> list[Any]:
-    if isinstance(table, Mapping):
-        return [table[key] for key in sorted(table, key=lambda k: int(k) if str(k).isdigit() else 0)]
-    return list(table or [])
-
-
-def _player_groups(content: Mapping[str, Any], categories: tuple[str, ...]) -> list[dict[str, Any]]:
-    groups: list[dict[str, Any]] = []
-    for side in (content.get("coalition") or {}).values():
-        for country in _listed((side or {}).get("country")):
-            for category in categories:
-                for group in _listed(((country or {}).get(category) or {}).get("group")):
-                    units = _listed(group.get("units"))
-                    if any(str(unit.get("skill", "")).lower() in _PLAYER_SKILLS for unit in units):
-                        groups.append(group)
-    return groups
-
-
 def combat_zone_names(veaf_config: str) -> list[str]:
     """The trigger zones ``veaf-config.lua`` makes combat zones of.
 
@@ -160,14 +142,15 @@ def wind_places(
     candidates: list[tuple[str, float, float, float | None, bool]] = []
 
     def airfield(airdrome_id: int, label: str) -> None:
+        """Add an airfield of the theatre as a departure, when the theatre knows it."""
         found = airfields.get(airdrome_id)
         if found is None:
             return
         x, y = _airfield_xy(theatre, found)
         candidates.append((t(label, airfield=found["name"]), x, y, found.get("elevation"), True))
 
-    for group in _player_groups(content, ("plane", "helicopter")):
-        points = _listed((group.get("route") or {}).get("points"))
+    for group in player_groups(content, ("plane", "helicopter")):
+        points = listed((group.get("route") or {}).get("points"))
         if points and points[0].get("airdromeId") is not None:
             airfield(int(points[0]["airdromeId"]), "wind.place_departure")
         elif points:
@@ -176,14 +159,14 @@ def wind_places(
             candidates.append((t("wind.place_departure", airfield=str(group.get("name", "?"))), x, y, ground, True))
     for airdrome_id in dynamic_airfields or []:
         airfield(int(airdrome_id), "wind.place_departure")
-    zones = {str(z.get("name")): z for z in _listed((content.get("triggers") or {}).get("zones"))}
+    zones = {str(z.get("name")): z for z in listed((content.get("triggers") or {}).get("zones"))}
     for name in combat_zone_names(veaf_config):
         zone = zones.get(name)
         if zone is not None:
             x, y = float(zone.get("x", 0)), float(zone.get("y", 0))
             candidates.append((t("wind.place_zone", zone=name), x, y, ground_at(x, y) if ground_at else None, False))
-    for group in _player_groups(content, ("helicopter",)):
-        for index, point in enumerate(_listed((group.get("route") or {}).get("points"))):
+    for group in player_groups(content, ("helicopter",)):
+        for index, point in enumerate(listed((group.get("route") or {}).get("points"))):
             if index and point.get("x") is not None:
                 x, y = float(point["x"]), float(point["y"])
                 label = t("wind.place_waypoint", group=str(group.get("name", "?")), index=index)
@@ -214,14 +197,20 @@ def _airfield_xy(theatre: str | None, airfield: Mapping[str, Any]) -> tuple[floa
 
 _WIND_WORD = re.compile(r"\b(?:wind|winds|vent|vents)\b", re.IGNORECASE)
 _SPEED_UNIT = r"(?:kt|kts|knots?|nœuds?|noeuds?|nds)"
-#: ``270/17``, ``270° / 17 kt``, ``270°/17kt``.
-_DIR_SLASH_SPEED = re.compile(r"\b(\d{3})\s*°?\s*[/]\s*(\d{1,2})\s*" + _SPEED_UNIT + r"?(?![\d/])", re.IGNORECASE)
+#: ``270/17``, ``270° / 17 kt``, ``270°M / 17 kt`` (the deck's), ``270°/17kt``.
+_DIR_SLASH_SPEED = re.compile(
+    r"\b(\d{3})\s*(?:°\s*[MT]?)?\s*[/]\s*(\d{1,2})\s*" + _SPEED_UNIT + r"?(?![\d/])", re.IGNORECASE
+)
 #: ``270° 17 kt``, ``270° à 17 kt``, ``du 270 pour 17 nœuds``, ``from 270 at 17 kt``.
 _DIR_THEN_SPEED = re.compile(
-    r"\b(\d{3})\s*°?\s*(?:,|at|à|a|pour|for)?\s*(\d{1,2})\s*" + _SPEED_UNIT + r"\b", re.IGNORECASE
+    r"\b(\d{3})\s*(?:°\s*[MT]?)?\s*(?:,|at|à|a|pour|for)?\s*(\d{1,2})\s*" + _SPEED_UNIT + r"\b", re.IGNORECASE
 )
 _SPEED = re.compile(r"\b(\d{1,2})\s*" + _SPEED_UNIT + r"(?=\W|$)", re.IGNORECASE)
-_FROM_DIR = re.compile(r"\b(?:from|du|de)\s+(?:the\s+|l')?(\d{3})\b", re.IGNORECASE)
+#: ``du 270``, ``from 270`` — never a height (``from 500 ft``).
+_FROM_DIR = re.compile(
+    r"\b(?:from|du|de)\s+(?:the\s+|l')?([0-3]\d{2})\b(?!\s*(?:ft|feet|pieds|m\b|kt|kts|knots?|nœuds?))",
+    re.IGNORECASE,
+)
 _CARDINALS = {
     "north": 0,
     "nord": 0,
@@ -251,10 +240,13 @@ _FROM_CARDINAL = re.compile(
 _HEIGHT = re.compile(r"\b(\d{1,2}[\s ,.]?\d{3}|\d{3,5})\s*(?:ft|feet|pieds)\b", re.IGNORECASE)
 _SURFACE = re.compile(r"\b(?:au sol|surface|at the ground|on the ground|ground wind|vent au sol|en surface)\b", re.I)
 _LOW_LEVEL = re.compile(r"\b(?:low level|basse altitude|bas niveau|couche basse|low layer)\b", re.IGNORECASE)
+#: A flight level, as the deck writes its upper layers.
+_FLIGHT_LEVEL = re.compile(r"\bFL\s?(\d{2,3})\b", re.IGNORECASE)
 _ALOFT = re.compile(r"\b(?:aloft|en altitude|altitude|in altitude|upper|plus haut)\b", re.IGNORECASE)
 
 
 def _sentences(text: str) -> list[str]:
+    """A text cut into sentences, and at line breaks (a deck's lines carry no full stop)."""
     return [s.strip() for s in re.split(r"(?<=[.!?;])\s+|\n+", text or "") if s.strip()]
 
 
@@ -263,7 +255,16 @@ def _clauses(sentence: str) -> list[str]:
     return [c.strip() for c in re.split(r",\s+|\s+(?:and|et|mais|but)\s+", sentence) if c.strip()]
 
 
+def _names_a_layer(clause: str) -> bool:
+    """Whether a clause names a layer of the wind: a height, a flight level, the surface, low level, aloft."""
+    return any(p.search(clause) for p in (_HEIGHT, _FLIGHT_LEVEL, _SURFACE, _LOW_LEVEL, _ALOFT))
+
+
 def _layer_of(clause: str) -> str | float:
+    """The layer a clause names: a height in feet (as metres), ``FLnnn``, ``low level``, ``aloft``, or the surface."""
+    level = _FLIGHT_LEVEL.search(clause)
+    if level:
+        return f"FL{int(level.group(1)):03d}"
     height = _HEIGHT.search(clause)
     if height:
         return float(re.sub(r"\D", "", height.group(1))) * FEET
@@ -279,9 +280,11 @@ def _layer_of(clause: str) -> str | float:
 def extract_wind_mentions(text: str, source: str) -> list[WindMention]:
     """Every wind a text announces, in English or French.
 
-    A sentence counts when it says "wind" / "vent", or writes a wind the METAR way (``270/17``). Each
-    clause of it with a speed is one mention; a clause naming a layer without a figure ("plus fort en
-    altitude") is a mention without a speed — listed, not judged.
+    A sentence counts when it says "wind" / "vent": ``045/35`` alone is as likely a bullseye bearing. In
+    it, a clause is a wind when it says "wind" itself, pairs a direction with a speed, or names a layer
+    (``24 kt au sol``, ``36 kt à 1 000 ft``, ``FL100 290°M / 45 kt``) — not any speed (``helicopters
+    cruise at 80 kts``). A clause naming a layer without a figure ("plus fort en altitude") is a mention
+    without a speed — listed, not judged.
 
     Args:
         text: The text.
@@ -292,7 +295,7 @@ def extract_wind_mentions(text: str, source: str) -> list[WindMention]:
     """
     mentions: list[WindMention] = []
     for sentence in _sentences(text):
-        if not _WIND_WORD.search(sentence) and not _DIR_SLASH_SPEED.search(sentence):
+        if not _WIND_WORD.search(sentence):
             continue
         sentence_from = _FROM_DIR.search(sentence)
         cardinal = _FROM_CARDINAL.search(sentence)
@@ -312,7 +315,7 @@ def extract_wind_mentions(text: str, source: str) -> list[WindMention]:
                 found = True
                 continue
             speed = _SPEED.search(clause)
-            if speed:
+            if speed and (_WIND_WORD.search(clause) or _names_a_layer(clause)):
                 mentions.append(WindMention(source, sentence, layer, float(speed.group(1)), default_from))
                 found = True
             elif layer != SURFACE_LAYER and (
@@ -378,6 +381,9 @@ def _band(layer: str | float) -> tuple[float, float]:
     """The heights above the ground a mention's layer names, m."""
     if isinstance(layer, float):
         return layer, layer
+    if layer.startswith("FL"):
+        altitude = int(layer[2:]) * 100 * FEET
+        return altitude, altitude
     if layer == "low level":
         return _LOW_LEVEL_BAND_M
     if layer == "aloft":
@@ -402,6 +408,10 @@ def simulated_range(setting: Mapping[str, Any], places: list[WindPlace], layer: 
     if layer == SURFACE_LAYER and any(place.departure for place in places):
         places = [place for place in places if place.departure]
     bottom, top = _band(layer)
+    if isinstance(layer, str) and layer.startswith("FL"):
+        # A flight level is an altitude, the same over every place; at least 500 m above the ground,
+        # where the ground no longer slows the wind.
+        return [base_wind(setting, bottom, max(bottom - place.ground_msl, 500.0)) for place in places]
     winds: list[WindVector] = []
     for place in places:
         height = bottom
@@ -417,10 +427,12 @@ def simulated_range(setting: Mapping[str, Any], places: list[WindPlace], layer: 
 
 
 def _angle(a: float, b: float) -> float:
+    """The angle between two directions, degrees, 0 to 180."""
     return abs((a - b + 180.0) % 360.0 - 180.0)
 
 
 def _layer_label(layer: str | float) -> str:
+    """A mention's layer as the report names it."""
     return f"{layer / FEET:.0f} ft" if isinstance(layer, float) else layer
 
 
@@ -561,7 +573,7 @@ def measure_lua(places: list[WindPlace]) -> str:
     points = ", ".join(f"{{{p.x:.1f}, {p.y:.1f}}}" for p in places)
     heights = ", ".join(f"{h:.1f}" for h in MEASURE_HEIGHTS_M)
     msl = ", ".join(f"{a:.1f}" for _, a in LAYERS_MSL)
-    return f"""
+    lua = f"""
 local out = {{ tostring(_APP_VERSION or "?") }}
 local points = {{ {points} }}
 local heights = {{ {heights} }}
@@ -577,6 +589,7 @@ for i, p in ipairs(points) do
 end
 return table.concat(out, "\\n")
 """
+    return lua
 
 
 @dataclass(frozen=True)

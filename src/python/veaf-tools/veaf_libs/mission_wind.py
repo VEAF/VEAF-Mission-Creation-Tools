@@ -112,7 +112,7 @@ class HelicopterBreach:
     Attributes:
         place: Where.
         peak: The strongest wind 0-600 m above the ground there.
-        surface: The surface wind there.
+        surface_knots: The surface wind there, knots.
     """
 
     place: HelicopterPlace
@@ -247,15 +247,35 @@ def _listed(table: Any) -> list[Any]:
     return list(table or [])
 
 
+def listed(table: Any) -> list[Any]:
+    """A Lua array read as a dict or a list, as a list in key order (public: the wind check reads them too)."""
+    return _listed(table)
+
+
 def _is_player_group(group: Mapping[str, Any]) -> bool:
+    """Whether a player flies the group: one of its units is ``Client`` or ``Player``."""
     return any(str(unit.get("skill", "")).lower() in _PLAYER_SKILLS for unit in _listed(group.get("units")))
 
 
 def _airdrome_name(theatre: str | None, airdrome_id: Any) -> str | None:
+    """A theatre's airfield name by its airdrome id, or None."""
     for airfield in airfields_for_theatre(theatre or ""):
         if airfield["id"] == airdrome_id:
             return str(airfield["name"])
     return None
+
+
+def player_groups(content: Mapping[str, Any], categories: tuple[str, ...]) -> list[dict[str, Any]]:
+    """The groups a player flies, of the given categories (``plane``, ``helicopter``).
+
+    Args:
+        content: The mission table.
+        categories: The group categories to read.
+
+    Returns:
+        The groups, in the mission's order.
+    """
+    return [group for group in _groups(content, categories) if _is_player_group(group)]
 
 
 def first_player_departure(content: Mapping[str, Any], theatre: str | None) -> str | None:
@@ -349,6 +369,7 @@ def layer_winds(setting: Mapping[str, Any], ground_msl: float) -> list[dict[str,
 
 
 def _row(name: str, height: float, altitude: float, from_deg: float, knots: float) -> dict[str, Any]:
+    """One layer of :func:`layer_winds`, rounded as an answer shows it."""
     return {
         "layer": name,
         "height_agl_m": round(height),

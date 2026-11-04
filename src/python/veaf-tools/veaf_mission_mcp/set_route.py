@@ -4,7 +4,7 @@ An assistant used to write its route by search-and-replace in `waypoints.yaml` (
 the template's example points replaced by a two-kilobyte block, every altitude computed by hand from
 `terrain_elevation`, the plan edited in a second call — and two points named COAST, the second of which
 replaced the first in the cockpit. This takes the ordered points, sets each on the ground (the flight
-altitude belongs to the briefing), refuses a repeated name, and writes the points and their plan with
+altitude belongs to the briefing), refuses one name at two places, and writes the points and their plan with
 the rest of the file and its comments untouched.
 """
 
@@ -63,7 +63,8 @@ def set_route(
         folder: The mission folder.
         plan: The plan's name; a plan of that name is replaced, and its points no other plan uses go.
         points: In flight order, each ``{"name", "x", "y"}`` or ``{"name", "lat", "lon"}``, optionally
-            ``speed_kt``. Names must differ: the cockpit shows them, and the build refuses a repeat.
+            ``speed_kt``. A name repeated at the same place is one point listed twice (a return to the
+            departure point); at another place it is refused, the cockpit could not tell them apart.
         coalition: Which aircraft get the plan: ``blue`` or ``red``.
         category: ``plane`` or ``helicopter``.
         aircraft_type: A DCS type, to give the plan to that type only (it then wins over a plan without).
@@ -75,7 +76,7 @@ def set_route(
         at the mission's date and its ``nm`` on the ellipsoid, as the cockpit and the briefing give them.
 
     Raises:
-        ValueError: An empty list, a point with no position, or two points with one name.
+        ValueError: An empty list, a point with no position, or one name at two places.
     """
     if not points:
         raise ValueError("set_route needs at least one point")
@@ -83,14 +84,6 @@ def set_route(
     names = [str(point.get("name") or "").strip() for point in points]
     if not all(names):
         raise ValueError("every point needs a name: the cockpit shows it, and the briefing cites it")
-    seen: dict[str, str] = {}
-    for name in names:
-        if _slug(name) in seen:
-            raise ValueError(
-                f"two points named {seen[_slug(name)]!r} and {name!r}: the cockpit and the briefing "
-                "could not tell them apart; give each its own name (FEET WET and FEET DRY rather than COAST twice)"
-            )
-        seen[_slug(name)] = name
 
     grid = grid_for_theatre(theatre)
     warnings = (
@@ -103,8 +96,17 @@ def set_route(
     )
     prefix = _slug(plan)
     resolved: list[dict[str, Any]] = []
+    # One name at one place may come back — HOME at the end of a plan is listed twice, as the injector
+    # accepts it; one name at two places is two points the cockpit cannot tell apart (security-audits#137).
+    seen: dict[str, tuple[str, tuple[int, int]]] = {}
     for name, point in zip(names, points, strict=True):
         x, y = _position(theatre, point)
+        first = seen.setdefault(_slug(name), (name, (round(x), round(y))))
+        if first[1] != (round(x), round(y)):
+            raise ValueError(
+                f"two points named {first[0]!r} and {name!r} at different places: the cockpit and the briefing "
+                "could not tell them apart; give each its own name (FEET WET and FEET DRY rather than COAST twice)"
+            )
         ground = grid.elevation_at(x, y) if grid else None
         resolved.append(
             {

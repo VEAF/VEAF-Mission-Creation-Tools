@@ -129,8 +129,13 @@ class TestLuaModules(unittest.TestCase):
         lua = generate_config_lua({"lua_modules": {"SPAWN": {"enable": False}}})
         self.assertIn('veaf.setConfig("SPAWN", "enable", false)', lua)
 
-    def test_module_with_explicit_init(self) -> None:
+    def test_help_menus_true_shows_the_help_entries(self) -> None:
+        """`help_menus` feeds `skipHelpMenus`, so it is negated (security-audits#146)."""
         lua = generate_config_lua({"lua_modules": {"RADIO": {"enable": True, "init": {"help_menus": True}}}})
+        self.assertIn("veafRadio.initialize(false)", lua)
+
+    def test_help_menus_false_skips_them(self) -> None:
+        lua = generate_config_lua({"lua_modules": {"RADIO": {"enable": True, "init": {"help_menus": False}}}})
         self.assertIn("veafRadio.initialize(true)", lua)
 
     def test_radio_menu_stats_reaches_the_runtime_config(self) -> None:

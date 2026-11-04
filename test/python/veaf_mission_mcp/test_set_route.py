@@ -86,6 +86,19 @@ def test_two_points_with_one_name_are_refused(folder: Path) -> None:
         set_route(folder, plan="lion", points=[{**SENAKI_COAST, "name": "COAST"}, {**PUSH, "name": "Coast"}])
 
 
+def test_a_return_to_the_departure_point_lists_its_key_twice(folder: Path) -> None:
+    """security-audits#137: HOME -> PUSH -> HOME was refused, the build accepting it."""
+    home = {**SENAKI_COAST, "name": "HOME"}
+    result = set_route(folder, plan="lion", points=[home, PUSH, home])
+    data = _file(folder)
+    assert data["settings"]["lion"]["waypoints"] == ["LION_HOME", "LION_PUSH", "LION_HOME"]
+    assert [leg["to"] for leg in result["legs"]] == ["PUSH", "HOME"]
+    manager = WaypointsManager()
+    manager.read_yaml(folder / "src" / "waypoints.yaml")
+    plan = manager.get_flight_plan_for(coalition="blue", category="plane")
+    assert plan is not None and [wp.name for wp in plan.waypoints] == ["HOME", "PUSH", "HOME"]
+
+
 def test_a_point_without_a_position_is_refused(folder: Path) -> None:
     with pytest.raises(ValueError, match="position"):
         set_route(folder, plan="lion", points=[{"name": "NOWHERE"}])

@@ -493,7 +493,7 @@ Additional `init:` or data fields are module-specific — see each module's docu
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `help_menus` | boolean | `true` | Passed to `veafRadio.initialize` as `skipHelpMenus` |
+| `help_menus` | boolean | `false` | `true` shows the built-in "Help" entries of the radio menus; negated into `veafRadio.initialize`'s `skipHelpMenus` |
 | `create_menus` | boolean | `true` | `false` builds **no VEAF F10 menu at all** (`dontCreateMenus`). Combined with `security:`, that is how a public mission keeps the VEAF commands reachable only through password-protected map markers. Omit the key to keep today's behaviour |
 
 ```yaml

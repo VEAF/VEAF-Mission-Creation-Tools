@@ -129,6 +129,42 @@ def test_the_other_statics_of_a_depot_are_not_scenery(tmp_path: Path, monkeypatc
     assert seen == [None, None]
 
 
+def _overlap_warnings(result: dict[str, Any]) -> list[str]:
+    return [entry["warning"] for entry in result["warnings"] if "another ground unit" in entry["warning"]]
+
+
+def test_a_static_on_an_existing_group_is_warned(tmp_path: Path, monkeypatch) -> None:
+    """security-audits#138: a tank dropped on a launcher already placed said nothing."""
+    import veaf_mission_mcp.add_group as module
+
+    monkeypatch.setattr(module, "place_on_clear_ground", lambda *a, **k: Placement(0.0, 0.0, None))
+    folder = _folder(tmp_path)
+    _add(folder)
+    result = _add(folder, category="static", name="Tank", units=[{"type": "Tank", "name": "Depot Tank"}])
+    warnings = _overlap_warnings(result)
+    assert len(warnings) == 1
+    assert "'Depot Tank'" in warnings[0] and "Not moved" in warnings[0]
+
+
+def test_the_statics_of_a_depot_20_m_apart_are_not_warned(tmp_path: Path, monkeypatch) -> None:
+    import veaf_mission_mcp.add_group as module
+
+    monkeypatch.setattr(module, "place_on_clear_ground", lambda *a, **k: Placement(0.0, 0.0, None))
+    folder = _folder(tmp_path)
+    results = [
+        add_group(
+            folder,
+            category="static",
+            name=f"Tank{n}",
+            position={"x": -280000.0 + 20.0 * n, "y": 640000.0},
+            units=[{"type": "Tank", "name": f"Depot Tank {n}"}],
+            **_RED,
+        )
+        for n in range(3)
+    ]
+    assert [_overlap_warnings(result) for result in results] == [[], [], []]
+
+
 def test_a_static_where_no_catalogue_looks_says_so(tmp_path: Path, monkeypatch) -> None:
     import veaf_mission_mcp.add_group as module
 

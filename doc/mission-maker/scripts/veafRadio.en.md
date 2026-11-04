@@ -44,7 +44,7 @@ modules:
     enabled: true          # default: true
     logLevel: info        # optional log level override
     init:
-      help_menus: true    # show built-in "Help" entries in radio menus (default: true)
+      help_menus: false   # true shows the built-in "Help" entries in radio menus (default: false)
     menu_stats: false     # log the F10 menu's size and changes (default: false)
 ```
 
@@ -52,7 +52,7 @@ modules:
 |-------|------|---------|----------|-------------|
 | `enabled` | boolean | `true` | No | Enable or disable the module |
 | `logLevel` | string | *(global)* | No | Per-module log level override |
-| `init.help_menus` | boolean | `true` | No | Show built-in "Help" entries in the generated radio menus |
+| `init.help_menus` | boolean | `false` | No | `true` shows the built-in "Help" entries of the radio menus (combat zones, CAS, assets, move, missile guardian); they are hidden by default, as in every VEAF mission since v5 |
 | `menu_stats` | boolean | `false` | No | Write to `dcs.log`, on every refresh, the F10 menu's size and what changed — see [Watching the F10 menu](#menu-stats) |
 
 ### Minimal example

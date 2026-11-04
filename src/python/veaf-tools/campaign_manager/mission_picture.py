@@ -21,7 +21,11 @@ from typing import Any
 from mission_tools.mission_yaml_editor import load_yaml
 from mission_tools.miz_tools import read_miz
 from presets_injector.airfield_channels_manager import list_candidates, load_reference
+from veaf_libs.dcs_airdromes import airfields_for_theatre
+from veaf_libs.magnetic import declination
 from veaf_libs.mission_table import indexed
+from veaf_libs.mission_wind import first_player_departure, layer_winds, resolve_reference_airfield
+from weather_injector.utils.theatre_position import theatre_position
 from weather_injector.weather.dcs_weather_converter import _PRESETS_BY_COVERAGE, _RAINY_PRESETS
 
 #: Metres per nautical mile.
@@ -146,8 +150,10 @@ class Wind:
     """One wind layer, as pilots read it."""
 
     origin: int
-    """Where it comes FROM, degrees true, 1 to 360."""
+    """Where it comes FROM, degrees, 1 to 360: true for a setting, magnetic for a simulated layer."""
     knots: int
+    layer: str = ""
+    """The simulated layer's name (``surface``, ``1000 ft AGL``... ``FL250``); empty for a setting."""
 
 
 @dataclass(frozen=True)
@@ -164,9 +170,14 @@ class Weather:
     qnh: float
     """mmHg, as DCS stores it."""
     winds: dict[str, Wind]
-    """By layer: ``ground``, ``2000``, ``8000`` (metres)."""
+    """The DCS setting, by level: ``ground``, ``2000``, ``8000`` (metres) — not the wind pilots meet."""
     rain: bool = False
     fog: bool = False
+    simulated: tuple[Wind, ...] = ()
+    """The wind DCS simulates above :attr:`wind_reference`, by the layers of a briefing, magnetic
+    (FEAT-MISSION-WIND-CHECK)."""
+    wind_reference: str = ""
+    """The airfield the simulated wind is given above: the first player departure, else sea level."""
 
 
 @dataclass(frozen=True)
@@ -344,7 +355,49 @@ def _route(group: dict[str, Any]) -> tuple[tuple[float, float], ...]:
     return tuple((float(p["x"]), float(p["y"])) for p in indexed((group.get("route") or {}).get("points")))
 
 
-def _weather(raw: dict[str, Any]) -> Weather:
+def simulated_winds(content: dict[str, Any], theatre: str | None, when: date | None) -> tuple[str, tuple[Wind, ...]]:
+    """The wind DCS simulates above the mission's reference airfield, by layer, magnetic.
+
+    The reference is the first player departure airfield (the one the weather tools set the wind for
+    when no METAR station of the map says otherwise), else sea level at the theatre's point.
+
+    Args:
+        content: The mission table.
+        theatre: Its theatre.
+        when: Its date, for the magnetic declination; ``None`` gives true directions.
+
+    Returns:
+        The reference airfield's name and the layers.
+    """
+    reference, _ = resolve_reference_airfield(theatre, departure_airfield=first_player_departure(content, theatre))
+    at = next((a for a in airfields_for_theatre(theatre or "") if a["name"] == reference.name), None)
+    position = (float(at["lat"]), float(at["lon"])) if at else None
+    if position is None and (point := theatre_position(theatre)):
+        position = (point.latitude, point.longitude)
+    variation = declination(*position, when) if position and when else 0.0
+    setting = (content.get("weather") or {}).get("wind") or {}
+    layers = tuple(
+        Wind(origin=round(row["from_deg_true"] - variation) % 360 or 360, knots=row["knots"], layer=row["layer"])
+        for row in layer_winds(setting, reference.elevation)
+    )
+    return reference.name, layers
+
+
+def _weather(
+    raw: dict[str, Any], content: dict[str, Any] | None = None, theatre: str | None = None, when: date | None = None
+) -> Weather:
+    """The mission's weather as a briefing states it.
+
+    Args:
+        raw: The mission's ``weather`` table.
+        content: The mission table, to say the simulated wind above its reference airfield; ``None``
+            leaves the simulated layers out.
+        theatre: Its theatre.
+        when: Its date, for the magnetic declination.
+
+    Returns:
+        The :class:`Weather`.
+    """
     clouds = raw.get("clouds") or {}
     preset = clouds.get("preset")
     rain = preset in {name for name, _, _ in _RAINY_PRESETS} or bool(clouds.get("iprecptns"))
@@ -360,7 +413,10 @@ def _weather(raw: dict[str, Any]) -> Weather:
         # DCS stores where the wind blows to
         origin = round(float(values.get("dir", 0)) + 180) % 360 or 360
         winds[layer] = Wind(origin=origin, knots=round(float(values.get("speed", 0)) * KNOTS))
+    reference, simulated = simulated_winds(content, theatre, when) if content is not None else ("", ())
     return Weather(
+        simulated=simulated,
+        wind_reference=reference,
         cover=cover,
         cloud_base=float(clouds.get("base") or 0),
         visibility=float((raw.get("visibility") or {}).get("distance", 0)),
@@ -521,11 +577,12 @@ def read_mission_picture(miz: Path, player_side: str, folder: Path | None = None
     stored = content.get("date") or {}
     bullseye = ((content.get("coalition") or {}).get(player_side) or {}).get("bullseye") or {}
     modules = _folder_modules(folder)
+    when = date(int(stored.get("Year", 2016)), int(stored.get("Month", 6)), int(stored.get("Day", 1)))
     return MissionPicture(
         theatre=theatre,
-        date=date(int(stored.get("Year", 2016)), int(stored.get("Month", 6)), int(stored.get("Day", 1))),
+        date=when,
         start_time=int(content.get("start_time") or 0),
-        weather=_weather(content.get("weather") or {}),
+        weather=_weather(content.get("weather") or {}, content, theatre, when),
         bullseye=(float(bullseye.get("x", 0)), float(bullseye.get("y", 0))),
         flights=flights,
         flight_plans=_flight_plans(content, player_side),

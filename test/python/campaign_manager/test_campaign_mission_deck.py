@@ -252,7 +252,9 @@ class TestTheDeck:
 
     def test_the_weather_and_the_wind_from_where_it_comes(self, tmp_path: Path) -> None:
         text = "\n".join("\n".join(slide) for slide in _deck(tmp_path))
-        assert "Vent : sol 270° / 16 kt" in text
+        # FEAT-MISSION-WIND-CHECK: the wind DCS simulates above the departure, by layer and magnetic, not
+        # the three settings.
+        assert re.search(r"Vent au-dessus de \w+ : sol \d{3}°M / \d+ kt, 1 000 ft \d{3}°M / \d+ kt", text), text
         assert "Nuages épars, base 8200 ft" in text
 
     def test_coordinates_are_zone_centres_never_at_sixty_seconds(self, tmp_path: Path) -> None:

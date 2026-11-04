@@ -350,14 +350,21 @@ def _wind_setting(
     }
     if wind["at2000"]["speed"] < GROUND_REFERENCE_FACTOR * wind["atGround"]["speed"] - 0.01:
         warnings.append(
-            f"at2000 {wind['at2000']['speed']:.1f} m/s is under {GROUND_REFERENCE_FACTOR:.2f} x atGround"
-            f" {wind['atGround']['speed']:.1f} m/s: the wind peaks 300-600 m above the ground, then drops"
-            " (a jet in the low layer)"
+            t(
+                "wind.low_layer_jet",
+                at2000=f"{wind['at2000']['speed']:.1f}",
+                factor=f"{GROUND_REFERENCE_FACTOR:.2f}",
+                ground=f"{wind['atGround']['speed']:.1f}",
+            )
         )
     if not inversion.reliable:
         warnings.append(
-            f"{reference.name} is at {reference.elevation:.0f} m, where the 2,000 m wind weighs"
-            f" {1 - inversion.ground_weight:.0%}: the ground setting written may be far off the wanted wind"
+            t(
+                "wind.unreliable_inversion",
+                airfield=reference.name,
+                elevation=round(reference.elevation),
+                weight=round(100 * (1 - inversion.ground_weight)),
+            )
         )
     return wind, warnings
 

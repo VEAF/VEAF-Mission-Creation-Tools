@@ -20,6 +20,7 @@ from typing import Any
 
 from veaf_libs.dcs_airdromes import airfields_for_theatre
 from veaf_libs.dcs_wind import LayerWind, base_wind, max_wind_between, surface_wind
+from veaf_libs.i18n import t
 
 FEET = 0.3048
 """Metres in one foot."""
@@ -66,6 +67,8 @@ SOURCE_STATION = "metar_station"
 SOURCE_EXPLICIT = "reference_airfield"
 SOURCE_DEPARTURE = "departure"
 SOURCE_SEA_LEVEL = "sea_level"
+#: The name of the reference when no airfield was found.
+SEA_LEVEL = "sea level"
 
 _PLAYER_SKILLS = ("client", "player")
 
@@ -94,7 +97,7 @@ class HelicopterPlace:
     """A place a helicopter flies from or through.
 
     Attributes:
-        name: What the place is, as a warning names it (``"Rosh Pina (departure of Hind-1)"``).
+        name: What the place is, as a warning names it (``"Rosh Pina (airfield of Hind-1)"``).
         ground_msl: The ground's altitude there, m.
     """
 
@@ -118,11 +121,16 @@ class HelicopterBreach:
 
     def message(self) -> str:
         """The breach in words, with the rule's thresholds."""
-        return (
-            f"helicopters at {self.place.name}: {self.peak.wind.knots:.0f} kt from {self.peak.wind.from_deg:03.0f}"
-            f" at {self.peak.height_agl / FEET:.0f} ft above the ground (surface {self.surface_knots:.0f} kt);"
-            f" the rule warns past {HELICOPTER_MAX_KNOTS:.0f} kt or {HELICOPTER_MAX_SHEAR_KNOTS:.0f} kt over the"
-            f" surface, 0-{HELICOPTER_BAND_TOP_M:.0f} m above the ground"
+        return t(
+            "wind.helicopter_breach",
+            place=self.place.name,
+            knots=round(self.peak.wind.knots),
+            direction=f"{round(self.peak.wind.from_deg) % 360:03d}",
+            height=round(self.peak.height_agl / FEET),
+            surface=round(self.surface_knots),
+            max=round(HELICOPTER_MAX_KNOTS),
+            shear=round(HELICOPTER_MAX_SHEAR_KNOTS),
+            top=round(HELICOPTER_BAND_TOP_M),
         )
 
 
@@ -207,16 +215,13 @@ def resolve_reference_airfield(
         found = _airfield(theatre, reference_airfield)
         if found:
             return ReferenceAirfield(found["name"], float(found["elevation"]), SOURCE_EXPLICIT), warnings
-        warnings.append(f"reference_airfield {reference_airfield!r} is not an airfield of {theatre or 'the map'}")
+        warnings.append(t("wind.unknown_reference_airfield", airfield=reference_airfield, theatre=theatre or "?"))
     if departure_airfield:
         found = _airfield(theatre, departure_airfield)
         if found:
             return ReferenceAirfield(found["name"], float(found["elevation"]), SOURCE_DEPARTURE), warnings
-    warnings.append(
-        "no reference airfield (METAR station on the map, reference_airfield, or player departure): the wind"
-        " is set for sea level, and blows stronger over any inland airfield"
-    )
-    return ReferenceAirfield("sea level", 0.0, SOURCE_SEA_LEVEL), warnings
+    warnings.append(t("wind.sea_level_reference"))
+    return ReferenceAirfield(SEA_LEVEL, 0.0, SOURCE_SEA_LEVEL), warnings
 
 
 def _groups(content: Mapping[str, Any], categories: tuple[str, ...]) -> Iterator[dict[str, Any]]:
@@ -305,13 +310,13 @@ def helicopter_places(
                 airfield = _airdrome_name(theatre, int(point["airdromeId"]))
                 found = _airfield(theatre, airfield) if airfield else None
                 if found:
-                    label = f"{found['name']} (airfield of {name})"
+                    label = t("wind.place_airfield", airfield=found["name"], group=name)
                     places.setdefault(label, HelicopterPlace(label, float(found["elevation"])))
                     continue
             if ground_at is not None and point.get("x") is not None and point.get("y") is not None:
                 ground = ground_at(float(point["x"]), float(point["y"]))
                 if ground is not None:
-                    label = f"{name} waypoint {index}"
+                    label = t("wind.place_waypoint", group=name, index=index)
                     places.setdefault(label, HelicopterPlace(label, float(ground)))
     return list(places.values())
 

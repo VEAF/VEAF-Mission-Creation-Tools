@@ -168,6 +168,8 @@ why.
 - **Mission date and time**: `set_mission_date`.
 - **Base weather** (`set_weather`): plausible for the date and place, since it is the only one the mission carries.
   The scaffold's blank mission has its cloud base on the ground (Preset1 at 0 m): replace it.
+  **Helicopters fly: little turbulence and a moderate wind** — on the wind DCS *simulates*, not on the setting. `set_weather` takes the wind wanted 10 m above a reference airfield and writes the setting that gives it; its answer (`simulated_wind`, and `inspect_built_mission` after the build) gives the wind by layer. The rule: from 0 to 600 m above each helicopter departure, objective and route point, the simulated wind stays at 20 kt or less and no more than 15 kt above the surface wind there — `set_weather`, `inspect_built_mission` and `veaf-tools dcs mission-check` warn otherwise. Turbulence near 0. On 2026-10-29 the real weather made the AH-64s of *Marteau du Golan* almost unflyable; on 2026-10-31, 17 kt set at the ground became 24 kt at the surface and 36 kt at 1,000 ft.
+  **The briefing's wind is the simulated one**, read layer by layer from `set_weather`'s or `inspect_built_mission`'s answer — never the setting copied. A wind shift aloft is set with `wind_veer` (30° at most), never an upper wind opposed to the surface one: between them DCS makes a layer without wind.
 - **Bullseye** (`set_bullseye`): a **landmark the pilots can name**, at the centre of the front, the
   same for both sides, **not on a zone** (it would hide it on the map).
 - **Briefing** (`set_briefing`: title, situation, blue and red tasks): the context in two sentences,
@@ -524,10 +526,11 @@ the sides; running DCS.
   - no permanent defense within reach of an enemy base with slots (4.5): the table of distances;
   - `requiredModules` empty (4.2);
   - a single mission, no weather variant, and a plausible base weather in the fields DCS reads
-    (`clouds`, `season.temperature`, `wind.atGround`): no cloud base on the ground;
+    (`clouds`, `season.temperature`, `wind`): no cloud base on the ground, and the wind read as DCS simulates it in `inspect_built_mission`, never the setting;
   - the `LOCAL_TEST` profile built without security, the default configuration with it;
   - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
     `pictureFileNameN`, `pictureFileNameR` empty (4.13).
+- **Run `veaf-tools dcs mission-check` on the built mission** before handing the briefing over: it needs no DCS for its wind check, and fails when the briefing's wind contradicts the wind DCS simulates.
 - **Reread your briefings**: every range, bearing, altitude and place name recomputed or sourced.
 - **Hand over a local test mission**, a copy of the `LOCAL_TEST` build (never in the sources) with: a blue
   and a red **game master**; a **classic `Client` slot of an A-10C II, on the ground with engines

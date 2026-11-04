@@ -1,4 +1,5 @@
-# DCS airbase positions (lat/lon of the reference point, the runways' centre), per theatre.
+# DCS airbase positions (lat/lon of the reference point, the runways' centre, and its
+# elevation in m where the source has one), per theatre.
 # Generated with airdromes.yaml from the dcs-world-schema reference data, and from
 # veaf_build/dcs_data/airbase_dumps/<Theatre>.json for a theatre it lacks.
 # DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.
@@ -10,3206 +11,4004 @@ theatres:
     id: 16
     lat: 34.945742
     lon: 69.265886
+    elevation: 1492.0
   - name: Bamyan
     id: 18
     lat: 34.808935
     lon: 67.81677
+    elevation: 2589.6
   - name: Bost
     id: 8
     lat: 31.559826
     lon: 64.364802
+    elevation: 777.0
   - name: Camp Bastion
     id: 10
     lat: 31.850157
     lon: 64.223667
+    elevation: 882.0
   - name: Camp Bastion Heliport
     id: 13
     lat: 31.855445
     lon: 64.213202
+    elevation: 885.9
   - name: Chaghcharan
     id: 5
     lat: 34.526524
     lon: 65.271331
+    elevation: 2266.0
   - name: Dwyer
     id: 11
     lat: 31.091947
     lon: 64.066958
+    elevation: 733.2
   - name: FOB Camp Dubs
     id: 27
     lat: 34.455152
     lon: 69.107493
+    elevation: 1867.8
   - name: FOB Clark
     id: 28
     lat: 33.345327
     lon: 69.729855
+    elevation: 1384.0
   - name: FOB Salerno
     id: 23
     lat: 33.3634
     lon: 69.955233
+    elevation: 1154.8
   - name: FOB Thunder
     id: 26
     lat: 33.572391
     lon: 69.276869
+    elevation: 2397.2
   - name: Farah
     id: 2
     lat: 32.363323
     lon: 62.167735
+    elevation: 678.5
   - name: Gardez
     id: 20
     lat: 33.628069
     lon: 69.23751
+    elevation: 2373.0
   - name: Ghazni Heliport
     id: 21
     lat: 33.504558
     lon: 68.41424
+    elevation: 2172.0
   - name: Herat
     id: 1
     lat: 34.207906
     lon: 62.227941
+    elevation: 986.6
   - name: Jalalabad
     id: 19
     lat: 34.400242
     lon: 70.498113
+    elevation: 561.0
   - name: Kabul
     id: 17
     lat: 34.56576
     lon: 69.212658
+    elevation: 1789.0
   - name: Kandahar
     id: 7
     lat: 31.505774
     lon: 65.847656
+    elevation: 1012.9
   - name: Kandahar Heliport
     id: 15
     lat: 31.520729
     lon: 65.845835
+    elevation: 1017.0
   - name: Khost
     id: 25
     lat: 33.333062
     lon: 69.950993
+    elevation: 1148.4
   - name: Maymana Zahiraddin Faryabi
     id: 4
     lat: 35.93067
     lon: 64.760893
+    elevation: 832.0
   - name: Nimroz
     id: 12
     lat: 30.963493
     lon: 62.060735
+    elevation: 483.0
   - name: Qala i Naw
     id: 6
     lat: 34.985805
     lon: 63.117749
+    elevation: 900.0
   - name: Sharana
     id: 22
     lat: 33.125789
     lon: 68.838509
+    elevation: 2238.4
   - name: Shindand
     id: 3
     lat: 33.392659
     lon: 62.261066
+    elevation: 1143.1
   - name: Shindand Heliport
     id: 14
     lat: 33.407831
     lon: 62.268335
+    elevation: 1159.4
   - name: Tarinkot
     id: 9
     lat: 32.605102
     lon: 65.864236
+    elevation: 1345.6
   - name: Urgoon Heliport
     id: 24
     lat: 32.937485
     lon: 69.151747
+    elevation: 2280.8
   - name: Zaranj
     id: 37
     lat: 30.972761
     lon: 61.865758
+    elevation: 490.0
   Caucasus:
   - name: Anapa-Vityazevo
     id: 12
     lat: 45.004948
     lon: 37.347825
+    elevation: 43.0
   - name: Batumi
     id: 22
     lat: 41.609597
     lon: 41.600237
+    elevation: 10.0
   - name: Beslan
     id: 32
     lat: 43.205706
     lon: 44.605808
+    elevation: 524.8
   - name: Gelendzhik
     id: 17
     lat: 44.572901
     lon: 38.011614
+    elevation: 22.0
   - name: Gudauta
     id: 21
     lat: 43.114327
     lon: 40.569741
+    elevation: 21.0
   - name: Kobuleti
     id: 24
     lat: 41.929919
     lon: 41.863275
+    elevation: 18.0
   - name: Krasnodar-Center
     id: 13
     lat: 45.08695
     lon: 38.939984
+    elevation: 30.0
   - name: Krasnodar-Pashkovsky
     id: 19
     lat: 45.038008
     lon: 39.188135
+    elevation: 34.0
   - name: Krymsk
     id: 15
     lat: 44.967937
     lon: 37.99503
+    elevation: 20.0
   - name: Kutaisi
     id: 25
     lat: 42.177616
     lon: 42.481293
+    elevation: 45.0
   - name: Maykop-Khanskaya
     id: 16
     lat: 44.681285
     lon: 40.035254
+    elevation: 180.0
   - name: Mineralnye Vody
     id: 26
     lat: 44.227853
     lon: 43.081191
+    elevation: 320.0
   - name: Mozdok
     id: 28
     lat: 43.791711
     lon: 44.605838
+    elevation: 154.6
   - name: Nalchik
     id: 27
     lat: 43.514002
     lon: 43.636451
+    elevation: 430.0
   - name: Novorossiysk
     id: 14
     lat: 44.668096
     lon: 37.778258
+    elevation: 40.0
   - name: Senaki-Kolkhi
     id: 23
     lat: 42.240849
     lon: 42.048015
+    elevation: 13.2
   - name: Sochi-Adler
     id: 18
     lat: 43.444354
     lon: 39.941077
+    elevation: 30.0
   - name: Soganlug
     id: 30
     lat: 41.649542
     lon: 44.938358
+    elevation: 452.1
   - name: Sukhumi-Babushara
     id: 20
     lat: 42.861092
     lon: 41.124999
+    elevation: 13.2
   - name: Tbilisi-Lochini
     id: 29
     lat: 41.667034
     lon: 44.956288
+    elevation: 479.7
   - name: Vaziani
     id: 31
     lat: 41.629026
     lon: 45.027231
+    elevation: 464.5
   Falklands:
   - name: Almirante Schroeders
     id: 19
     lat: -53.60693
     lon: -70.476206
+    elevation: 49.0
   - name: Comandante Luis Piedrabuena
     id: 16
     lat: -49.994984
     lon: -68.951448
+    elevation: 21.3
   - name: Cullen
     id: 28
     lat: -52.885073
     lon: -68.411979
+    elevation: 41.0
   - name: El Calafate
     id: 14
     lat: -50.280244
     lon: -72.05275
+    elevation: 201.4
   - name: Franco Bianco
     id: 23
     lat: -52.736586
     lon: -69.333789
+    elevation: 32.0
   - name: Gobernador Gregores
     id: 26
     lat: -48.783169
     lon: -70.147972
+    elevation: 356.0
   - name: Goose Green
     id: 24
     lat: -51.819815
     lon: -58.980164
+    elevation: 18.3
   - name: Gull Point
     id: 29
     lat: -52.179394
     lon: -58.860684
+    elevation: 1.3
   - name: Hipico Flying Club
     id: 25
     lat: -48.756736
     lon: -70.23128
+    elevation: 284.9
   - name: Mount Pleasant
     id: 2
     lat: -51.820679
     lon: -58.457737
+    elevation: 63.1
   - name: O'Higgins
     id: 27
     lat: -48.469006
     lon: -72.563329
+    elevation: 270.8
   - name: Pampa Guanaco
     id: 10
     lat: -54.049979
     lon: -68.808999
+    elevation: 158.4
   - name: Port Stanley
     id: 1
     lat: -51.685912
     lon: -57.777841
+    elevation: 21.0
   - name: Porvenir
     id: 18
     lat: -53.253687
     lon: -70.319301
+    elevation: 32.4
   - name: Puerto Natales
     id: 13
     lat: -51.670708
     lon: -72.528191
+    elevation: 66.0
   - name: Puerto Santa Cruz
     id: 15
     lat: -50.01703
     lon: -68.579084
+    elevation: 111.0
   - name: Puerto Williams
     id: 12
     lat: -54.930991
     lon: -67.626219
+    elevation: 20.0
   - name: Punta Arenas
     id: 9
     lat: -53.005534
     lon: -70.856917
+    elevation: 34.3
   - name: Rio Chico
     id: 21
     lat: -51.669047
     lon: -69.266066
+    elevation: 22.7
   - name: Rio Gallegos
     id: 5
     lat: -51.608851
     lon: -69.31226
+    elevation: 17.4
   - name: Rio Grande
     id: 6
     lat: -53.777599
     lon: -67.749881
+    elevation: 15.8
   - name: Rio Turbio
     id: 20
     lat: -51.605055
     lon: -72.219823
+    elevation: 273.0
   - name: San Carlos FOB
     id: 3
     lat: -51.501283
     lon: -59.004904
+    elevation: 19.2
   - name: San Julian
     id: 11
     lat: -49.306694
     lon: -67.802726
+    elevation: 44.0
   - name: Tolhuin
     id: 17
     lat: -54.499617
     lon: -67.172385
+    elevation: 108.3
   - name: Ushuaia
     id: 7
     lat: -54.843308
     lon: -68.295846
+    elevation: 18.5
   - name: Ushuaia Helo Port
     id: 8
     lat: -54.822824
     lon: -68.30419
+    elevation: 12.8
   GermanyCW:
   - name: Adelsheim
     id: 52
     lat: 49.36917
     lon: 9.440137
+    elevation: 365.6
   - name: Airracing Frankfurt
     id: 204
     lat: 50.008207
     lon: 8.098693
+    elevation: 84.7
   - name: Airracing Koblenz
     id: 123
     lat: 50.292048
     lon: 7.830378
+    elevation: 322.0
   - name: Airracing Lubeck
     id: 201
     lat: 53.711666
     lon: 10.766574
+    elevation: 8.5
   - name: Allstedt
     id: 157
     lat: 51.380584
     lon: 11.446474
+    elevation: 284.0
   - name: Altes Lager
     id: 2
     lat: 51.995486
     lon: 12.983764
+    elevation: 95.0
   - name: Bad Durkheim
     id: 242
     lat: 49.472683
     lon: 8.194936
+    elevation: 106.0
   - name: Barth
     id: 3
     lat: 54.338192
     lon: 12.709697
+    elevation: 6.3
   - name: Bienenfarm
     id: 110
     lat: 52.658628
     lon: 12.747121
+    elevation: 30.0
   - name: Bindersleben
     id: 164
     lat: 50.979473
     lon: 10.962329
+    elevation: 309.2
   - name: Bitburg
     id: 200
     lat: 49.944659
     lon: 6.564183
+    elevation: 369.0
   - name: Bornholm
     id: 33
     lat: 55.063383
     lon: 14.759014
+    elevation: 15.0
   - name: Brand
     id: 34
     lat: 52.036838
     lon: 13.746437
+    elevation: 50.0
   - name: Brandis
     id: 35
     lat: 51.328329
     lon: 12.656378
+    elevation: 155.0
   - name: Braunschweig
     id: 107
     lat: 52.319083
     lon: 10.55393
+    elevation: 83.2
   - name: Bremen
     id: 5
     lat: 53.046942
     lon: 8.788272
+    elevation: 12.4
   - name: Briest
     id: 6
     lat: 52.437638
     lon: 12.453931
+    elevation: 35.1
   - name: Buchel
     id: 235
     lat: 50.174095
     lon: 7.063849
+    elevation: 459.9
   - name: Buckeburg
     id: 7
     lat: 52.278579
     lon: 9.083267
+    elevation: 58.7
   - name: Celle
     id: 8
     lat: 52.591416
     lon: 10.024321
+    elevation: 38.5
   - name: Chojna
     id: 36
     lat: 52.939562
     lon: 14.421984
+    elevation: 53.8
   - name: Cochstedt
     id: 9
     lat: 51.855915
     lon: 11.417947
+    elevation: 173.4
   - name: Cologne
     id: 37
     lat: 50.867921
     lon: 7.147544
+    elevation: 71.9
   - name: Damgarten
     id: 10
     lat: 54.264011
     lon: 12.444217
+    elevation: 8.1
   - name: Dedelow
     id: 103
     lat: 53.35552
     lon: 13.785071
+    elevation: 53.6
   - name: Dessau
     id: 83
     lat: 51.831724
     lon: 12.193084
+    elevation: 59.6
   - name: Dusseldorf
     id: 38
     lat: 51.286957
     lon: 6.767706
+    elevation: 36.9
   - name: Falkenberg
     id: 39
     lat: 51.546467
     lon: 13.216107
+    elevation: 86.7
   - name: Fassberg
     id: 11
     lat: 52.919426
     lon: 10.184824
+    elevation: 77.4
   - name: Finow
     id: 12
     lat: 52.82714
     lon: 13.694045
+    elevation: 34.0
   - name: Frankfurt
     id: 163
     lat: 50.040431
     lon: 8.56732
+    elevation: 100.0
   - name: Fritzlar
     id: 154
     lat: 51.11461
     lon: 9.285835
+    elevation: 168.1
   - name: Fulda
     id: 166
     lat: 50.539912
     lon: 9.643015
+    elevation: 285.7
   - name: Gardelegen
     id: 112
     lat: 52.529523
     lon: 11.350135
+    elevation: 55.8
   - name: Garz
     id: 13
     lat: 53.878503
     lon: 14.153541
+    elevation: 20.2
   - name: Gatow
     id: 14
     lat: 52.475349
     lon: 13.138099
+    elevation: 41.6
   - name: Gelnhausen
     id: 243
     lat: 50.196331
     lon: 9.166999
+    elevation: 127.0
   - name: Giebelstadt
     id: 159
     lat: 49.647901
     lon: 9.964733
+    elevation: 290.4
   - name: Glindbruchkippe
     id: 113
     lat: 52.323828
     lon: 10.180462
+    elevation: 48.4
   - name: Gross Mohrdorf
     id: 80
     lat: 54.383196
     lon: 12.912291
+    elevation: 3.0
   - name: Grosse Wiese
     id: 141
     lat: 52.136877
     lon: 10.570782
+    elevation: 84.7
   - name: Gutersloh
     id: 16
     lat: 51.922807
     lon: 8.304065
+    elevation: 65.0
   - name: H FRG 01
     id: 53
     lat: 52.266053
     lon: 10.615637
+    elevation: 84.5
   - name: H FRG 02
     id: 54
     lat: 53.8786
     lon: 10.642456
+    elevation: 3.0
   - name: H FRG 03
     id: 55
     lat: 53.644215
     lon: 10.140129
+    elevation: 37.0
   - name: H FRG 04
     id: 56
     lat: 53.442231
     lon: 10.517905
+    elevation: 29.3
   - name: H FRG 05
     id: 57
     lat: 53.159288
     lon: 10.948311
+    elevation: 65.0
   - name: H FRG 06
     id: 58
     lat: 53.072719
     lon: 8.907938
+    elevation: 4.0
   - name: H FRG 07
     id: 59
     lat: 53.115475
     lon: 11.184009
+    elevation: 10.0
   - name: H FRG 08
     id: 60
     lat: 52.606017
     lon: 10.630505
+    elevation: 58.0
   - name: H FRG 09
     id: 61
     lat: 52.518209
     lon: 10.844313
+    elevation: 70.0
   - name: H FRG 10
     id: 62
     lat: 52.386183
     lon: 9.771017
+    elevation: 65.7
   - name: H FRG 11
     id: 100
     lat: 52.805371
     lon: 10.05105
+    elevation: 70.0
   - name: H FRG 12
     id: 64
     lat: 53.675743
     lon: 10.800685
+    elevation: 46.0
   - name: H FRG 13
     id: 65
     lat: 52.031402
     lon: 8.583062
+    elevation: 89.3
   - name: H FRG 14
     id: 66
     lat: 52.464729
     lon: 13.223081
+    elevation: 60.0
   - name: H FRG 15
     id: 78
     lat: 52.603458
     lon: 13.314887
+    elevation: 49.0
   - name: H FRG 16
     id: 96
     lat: 52.110315
     lon: 9.444643
+    elevation: 105.0
   - name: H FRG 17
     id: 97
     lat: 53.151013
     lon: 9.481281
+    elevation: 26.0
   - name: H FRG 18
     id: 98
     lat: 54.150636
     lon: 10.552376
+    elevation: 52.5
   - name: H FRG 19
     id: 99
     lat: 53.464559
     lon: 9.908176
+    elevation: 3.0
   - name: H FRG 20
     id: 143
     lat: 51.713308
     lon: 10.589121
+    elevation: 603.3
   - name: H FRG 21
     id: 148
     lat: 52.33576
     lon: 10.639428
+    elevation: 112.0
   - name: H FRG 23
     id: 150
     lat: 52.947966
     lon: 10.115503
+    elevation: 76.0
   - name: H FRG 25
     id: 191
     lat: 50.724076
     lon: 9.931884
+    elevation: 406.0
   - name: H FRG 27
     id: 202
     lat: 51.323422
     lon: 9.477091
+    elevation: 176.6
   - name: H FRG 30
     id: 211
     lat: 50.019608
     lon: 7.349018
+    elevation: 488.0
   - name: H FRG 31
     id: 212
     lat: 49.920066
     lon: 7.293042
+    elevation: 426.6
   - name: H FRG 32
     id: 213
     lat: 49.474709
     lon: 7.881512
+    elevation: 311.5
   - name: H FRG 34
     id: 215
     lat: 50.416494
     lon: 7.441757
+    elevation: 80.8
   - name: H FRG 38
     id: 219
     lat: 50.51797
     lon: 9.134742
+    elevation: 429.1
   - name: H FRG 39
     id: 151
     lat: 50.577254
     lon: 9.69558
+    elevation: 322.9
   - name: H FRG 40
     id: 234
     lat: 50.37408
     lon: 7.58396
+    elevation: 85.0
   - name: H FRG 41
     id: 253
     lat: 49.793274
     lon: 9.984979
+    elevation: 240.9
   - name: H FRG 42
     id: 254
     lat: 49.828193
     lon: 9.887384
+    elevation: 227.0
   - name: H FRG 43
     id: 237
     lat: 49.760147
     lon: 9.491092
+    elevation: 318.7
   - name: H FRG 44
     id: 238
     lat: 49.944071
     lon: 8.916184
+    elevation: 128.4
   - name: H FRG 45
     id: 239
     lat: 49.744633
     lon: 9.071655
+    elevation: 393.2
   - name: H FRG 46
     id: 240
     lat: 50.050912
     lon: 9.823801
+    elevation: 320.0
   - name: H FRG 47
     id: 241
     lat: 49.576087
     lon: 9.34987
+    elevation: 427.7
   - name: H FRG 48
     id: 220
     lat: 49.922038
     lon: 6.677135
+    elevation: 353.9
   - name: H FRG 49
     id: 221
     lat: 50.069393
     lon: 8.56591
+    elevation: 104.9
   - name: H FRG 50
     id: 149
     lat: 52.831764
     lon: 9.775313
+    elevation: 81.2
   - name: H FRG 51
     id: 218
     lat: 49.613483
     lon: 7.381087
+    elevation: 440.0
   - name: H GDR 01
     id: 67
     lat: 53.438107
     lon: 11.144806
+    elevation: 53.5
   - name: H GDR 02
     id: 68
     lat: 52.618756
     lon: 12.356065
+    elevation: 23.0
   - name: H GDR 03
     id: 69
     lat: 53.112142
     lon: 13.52652
+    elevation: 72.0
   - name: H GDR 04
     id: 70
     lat: 53.524125
     lon: 13.320291
+    elevation: 70.0
   - name: H GDR 05
     id: 71
     lat: 53.638532
     lon: 13.897128
+    elevation: 16.5
   - name: H GDR 06
     id: 72
     lat: 52.41448
     lon: 12.534486
+    elevation: 36.6
   - name: H GDR 07
     id: 73
     lat: 52.984533
     lon: 11.703077
+    elevation: 20.0
   - name: H GDR 08
     id: 74
     lat: 52.707228
     lon: 13.543298
+    elevation: 75.0
   - name: H GDR 09
     id: 75
     lat: 53.867262
     lon: 13.115553
+    elevation: 25.0
   - name: H GDR 10
     id: 76
     lat: 52.504551
     lon: 13.524691
+    elevation: 38.8
   - name: H GDR 11
     id: 77
     lat: 52.385353
     lon: 13.611285
+    elevation: 44.0
   - name: H GDR 12
     id: 85
     lat: 52.484843
     lon: 11.596376
+    elevation: 88.4
   - name: H GDR 13
     id: 91
     lat: 53.609172
     lon: 12.206164
+    elevation: 72.0
   - name: H GDR 14
     id: 92
     lat: 53.044028
     lon: 13.381989
+    elevation: 56.0
   - name: H GDR 15
     id: 93
     lat: 52.186174
     lon: 12.179097
+    elevation: 92.5
   - name: H GDR 16
     id: 94
     lat: 52.221177
     lon: 11.781077
+    elevation: 75.0
   - name: H GDR 17
     id: 95
     lat: 53.900057
     lon: 11.387239
+    elevation: 22.5
   - name: H GDR 18
     id: 142
     lat: 51.848138
     lon: 10.766606
+    elevation: 230.9
   - name: H GDR 19
     id: 145
     lat: 51.84587
     lon: 11.29379
+    elevation: 133.0
   - name: H GDR 21
     id: 152
     lat: 54.281007
     lon: 12.518647
+    elevation: 15.0
   - name: H GDR 22
     id: 153
     lat: 52.070556
     lon: 13.089146
+    elevation: 54.5
   - name: H GDR 24
     id: 185
     lat: 52.166627
     lon: 13.484153
+    elevation: 54.4
   - name: H GDR 25
     id: 226
     lat: 51.138687
     lon: 11.772348
+    elevation: 215.0
   - name: H GDR 26
     id: 227
     lat: 51.493927
     lon: 11.907455
+    elevation: 105.8
   - name: H GDR 30
     id: 146
     lat: 54.510481
     lon: 13.618227
+    elevation: 55.0
   - name: H GDR 31
     id: 229
     lat: 54.368925
     lon: 13.08567
+    elevation: 5.0
   - name: H GDR 32
     id: 230
     lat: 54.347369
     lon: 13.455492
+    elevation: 45.0
   - name: H GDR 33
     id: 122
     lat: 50.859189
     lon: 10.743133
+    elevation: 375.0
   - name: H GDR 34
     id: 124
     lat: 53.072506
     lon: 12.629696
+    elevation: 76.0
   - name: H Med FRG 01
     id: 129
     lat: 53.847982
     lon: 10.688355
+    elevation: 3.0
   - name: H Med FRG 02
     id: 130
     lat: 53.5613
     lon: 10.024595
+    elevation: 14.0
   - name: H Med FRG 04
     id: 132
     lat: 53.25235
     lon: 10.398181
+    elevation: 27.5
   - name: H Med FRG 06
     id: 134
     lat: 52.296393
     lon: 8.891155
+    elevation: 57.5
   - name: H Med FRG 11
     id: 139
     lat: 51.730317
     lon: 8.778217
+    elevation: 120.0
   - name: H Med FRG 12
     id: 144
     lat: 51.817208
     lon: 10.336158
+    elevation: 570.0
   - name: H Med FRG 13
     id: 186
     lat: 49.452728
     lon: 7.767097
+    elevation: 279.1
   - name: H Med FRG 14
     id: 187
     lat: 50.97467
     lon: 9.80471
+    elevation: 240.0
   - name: H Med FRG 15
     id: 188
     lat: 51.25702
     lon: 9.379734
+    elevation: 241.0
   - name: H Med FRG 16
     id: 189
     lat: 51.552895
     lon: 8.332072
+    elevation: 223.0
   - name: H Med FRG 17
     id: 190
     lat: 51.399203
     lon: 9.659754
+    elevation: 231.1
   - name: H Med FRG 21
     id: 208
     lat: 49.246115
     lon: 7.36523
+    elevation: 227.5
   - name: H Med FRG 24
     id: 222
     lat: 51.554183
     lon: 8.568385
+    elevation: 247.0
   - name: H Med FRG 26
     id: 225
     lat: 49.927511
     lon: 6.839789
+    elevation: 156.0
   - name: H Med FRG 27
     id: 231
     lat: 50.077334
     lon: 8.216295
+    elevation: 167.5
   - name: H Med FRG 29
     id: 233
     lat: 49.402495
     lon: 7.558637
+    elevation: 353.0
   - name: H Med GDR 01
     id: 119
     lat: 54.093302
     lon: 12.088701
+    elevation: 24.0
   - name: H Med GDR 02
     id: 120
     lat: 54.302377
     lon: 13.072044
+    elevation: 16.0
   - name: H Med GDR 03
     id: 121
     lat: 54.090878
     lon: 13.376113
+    elevation: 3.0
   - name: H Med GDR 08
     id: 126
     lat: 52.27098
     lon: 11.878193
+    elevation: 45.0
   - name: H Med GDR 09
     id: 127
     lat: 52.162426
     lon: 11.633036
+    elevation: 45.4
   - name: H Med GDR 10
     id: 128
     lat: 51.959779
     lon: 12.100928
+    elevation: 70.0
   - name: H Med GDR 11
     id: 147
     lat: 51.770921
     lon: 10.790493
+    elevation: 480.0
   - name: H Med GDR 12
     id: 180
     lat: 50.987916
     lon: 10.316368
+    elevation: 230.0
   - name: H Med GDR 13
     id: 181
     lat: 51.289264
     lon: 10.743367
+    elevation: 228.0
   - name: H Med GDR 14
     id: 182
     lat: 50.809081
     lon: 10.21873
+    elevation: 256.9
   - name: H Med GDR 16
     id: 184
     lat: 50.886089
     lon: 11.617337
+    elevation: 187.0
   - name: H Radar FRG 02
     id: 223
     lat: 50.233295
     lon: 8.457879
+    elevation: 859.6
   - name: H Radar GDR 01
     id: 193
     lat: 51.799798
     lon: 10.612503
+    elevation: 1141.2
   - name: H Radar GDR 02
     id: 194
     lat: 50.571778
     lon: 10.085249
+    elevation: 794.0
   - name: H Radar GDR 03
     id: 195
     lat: 51.107844
     lon: 10.193686
+    elevation: 485.0
   - name: H Radar GDR 04
     id: 196
     lat: 51.624039
     lon: 10.724236
+    elevation: 588.0
   - name: H Radar GDR 05
     id: 197
     lat: 52.006375
     lon: 10.723486
+    elevation: 272.7
   - name: H Radar GDR 06
     id: 198
     lat: 52.325383
     lon: 11.455597
+    elevation: 130.0
   - name: H Radar GDR 07
     id: 199
     lat: 53.280173
     lon: 11.081132
+    elevation: 26.7
   - name: H Radar GDR 08
     id: 252
     lat: 52.791891
     lon: 10.811338
+    elevation: 118.0
   - name: H Radar GDR 09
     id: 251
     lat: 52.493991
     lon: 14.088625
+    elevation: 87.0
   - name: Hahn
     id: 155
     lat: 49.948452
     lon: 7.263905
+    elevation: 494.1
   - name: Haina
     id: 161
     lat: 50.991663
     lon: 10.47957
+    elevation: 310.3
   - name: Hamburg
     id: 17
     lat: 53.626843
     lon: 9.981322
+    elevation: 22.2
   - name: Hamburg Finkenwerder
     id: 18
     lat: 53.534149
     lon: 9.832895
+    elevation: 3.2
   - name: Hannover
     id: 19
     lat: 52.454479
     lon: 9.693753
+    elevation: 51.2
   - name: Hasselfelde
     id: 140
     lat: 51.705392
     lon: 10.878693
+    elevation: 493.4
   - name: Heidelberg
     id: 40
     lat: 49.39351
     lon: 8.652138
+    elevation: 105.5
   - name: Herrenteich
     id: 244
     lat: 49.343501
     lon: 8.489852
+    elevation: 92.9
   - name: Hildesheim
     id: 115
     lat: 52.179792
     lon: 9.94579
+    elevation: 98.0
   - name: Hockenheim
     id: 245
     lat: 49.325263
     lon: 8.527476
+    elevation: 98.3
   - name: Holzdorf
     id: 118
     lat: 51.767796
     lon: 13.169713
+    elevation: 74.7
   - name: Kammermark
     id: 104
     lat: 53.195961
     lon: 12.165032
+    elevation: 87.4
   - name: Kastrup
     id: 41
     lat: 55.619241
     lon: 12.652365
+    elevation: 7.8
   - name: Kiel
     id: 42
     lat: 54.3795
     lon: 10.144681
+    elevation: 11.0
   - name: Kothen
     id: 82
     lat: 51.721377
     lon: 11.961542
+    elevation: 86.6
   - name: Laage
     id: 20
     lat: 53.918052
     lon: 12.2794
+    elevation: 35.0
   - name: Landstuhl
     id: 43
     lat: 49.403076
     lon: 7.53632
+    elevation: 360.2
   - name: Langenselbold
     id: 246
     lat: 50.174621
     lon: 9.063287
+    elevation: 119.3
   - name: Larz
     id: 21
     lat: 53.306376
     lon: 12.752547
+    elevation: 63.6
   - name: Leipzig Mockau
     id: 236
     lat: 51.393782
     lon: 12.408046
+    elevation: 126.6
   - name: Lubeck
     id: 81
     lat: 53.804876
     lon: 10.716883
+    elevation: 21.4
   - name: Luneburg
     id: 89
     lat: 53.248542
     lon: 10.459531
+    elevation: 45.1
   - name: Mahlwinkel
     id: 22
     lat: 52.388279
     lon: 11.826442
+    elevation: 47.7
   - name: Mainz Finthen
     id: 44
     lat: 49.969133
     lon: 8.147878
+    elevation: 220.0
   - name: Marxwalde
     id: 46
     lat: 52.612976
     lon: 14.24273
+    elevation: 15.0
   - name: Mendig
     id: 168
     lat: 50.366013
     lon: 7.315629
+    elevation: 183.1
   - name: Merseburg
     id: 169
     lat: 51.363973
     lon: 11.950009
+    elevation: 103.5
   - name: Neubrandenburg
     id: 23
     lat: 53.602225
     lon: 13.306104
+    elevation: 54.0
   - name: Neuruppin
     id: 24
     lat: 52.941057
     lon: 12.786901
+    elevation: 45.0
   - name: Nordholz
     id: 47
     lat: 53.767587
     lon: 8.658518
+    elevation: 12.0
   - name: Northeim
     id: 90
     lat: 52.984329
     lon: 11.237111
+    elevation: 15.0
   - name: Norvenich
     id: 48
     lat: 50.831274
     lon: 6.658647
+    elevation: 90.2
   - name: Ober-Morlen
     id: 248
     lat: 50.362445
     lon: 8.712215
+    elevation: 218.1
   - name: Obermehler Schlotheim
     id: 51
     lat: 51.267735
     lon: 10.634806
+    elevation: 271.0
   - name: Oranienburg
     id: 49
     lat: 52.724895
     lon: 13.216861
+    elevation: 33.0
   - name: Parchim
     id: 84
     lat: 53.427856
     lon: 11.786589
+    elevation: 52.0
   - name: Peenemunde
     id: 25
     lat: 54.1587
     lon: 13.773616
+    elevation: 7.0
   - name: Perwenitz
     id: 125
     lat: 52.675639
     lon: 13.006942
+    elevation: 41.1
   - name: Pferdsfeld
     id: 232
     lat: 49.855128
     lon: 7.604706
+    elevation: 400.1
   - name: Pinnow
     id: 111
     lat: 53.616543
     lon: 11.563143
+    elevation: 45.4
   - name: Pottschutthohe
     id: 249
     lat: 49.26447
     lon: 7.488764
+    elevation: 335.0
   - name: Ramstein
     id: 165
     lat: 49.436899
     lon: 7.600077
+    elevation: 245.3
   - name: Revinge
     id: 79
     lat: 55.728818
     lon: 13.427335
+    elevation: 17.6
   - name: Rinteln
     id: 117
     lat: 52.174688
     lon: 9.052913
+    elevation: 53.1
   - name: Schkeuditz
     id: 171
     lat: 51.415024
     lon: 12.227159
+    elevation: 128.3
   - name: Schonefeld
     id: 26
     lat: 52.384226
     lon: 13.534354
+    elevation: 43.4
   - name: Schweinfurt
     id: 160
     lat: 50.048852
     lon: 10.169674
+    elevation: 229.6
   - name: Sembach
     id: 156
     lat: 49.506152
     lon: 7.863413
+    elevation: 311.4
   - name: Sittensen
     id: 131
     lat: 53.320957
     lon: 9.582918
+    elevation: 38.2
   - name: Spangdahlem
     id: 162
     lat: 49.976572
     lon: 6.698827
+    elevation: 300.0
   - name: Sperenberg
     id: 101
     lat: 52.136914
     lon: 13.305952
+    elevation: 56.2
   - name: Sprendlingen
     id: 135
     lat: 49.87099
     lon: 7.959922
+    elevation: 120.8
   - name: Stendal
     id: 27
     lat: 52.629081
     lon: 11.819859
+    elevation: 37.2
   - name: Sturup
     id: 45
     lat: 55.535659
     lon: 13.376404
+    elevation: 66.2
   - name: Szczecin-Goleniow
     id: 50
     lat: 53.584757
     lon: 14.90226
+    elevation: 30.0
   - name: Tagra
     id: 87
     lat: 55.600852
     lon: 13.714128
+    elevation: 34.9
   - name: Tegel
     id: 28
     lat: 52.558431
     lon: 13.292892
+    elevation: 35.2
   - name: Tempelhof
     id: 29
     lat: 52.471066
     lon: 13.404304
+    elevation: 47.0
   - name: Templin
     id: 15
     lat: 53.031999
     lon: 13.542583
+    elevation: 73.8
   - name: Thurland
     id: 136
     lat: 51.696381
     lon: 12.210249
+    elevation: 86.0
   - name: Tutow
     id: 30
     lat: 53.921793
     lon: 13.219059
+    elevation: 2.0
   - name: Uelzen
     id: 102
     lat: 52.983622
     lon: 10.464482
+    elevation: 76.6
   - name: Uetersen
     id: 86
     lat: 53.646507
     lon: 9.704034
+    elevation: 7.0
   - name: Ummern
     id: 114
     lat: 52.620466
     lon: 10.411016
+    elevation: 66.6
   - name: Verden-Scharnhorst
     id: 116
     lat: 52.965761
     lon: 9.280623
+    elevation: 40.9
   - name: Walldorf
     id: 247
     lat: 49.303708
     lon: 8.661445
+    elevation: 110.7
   - name: Waren Vielist
     id: 109
     lat: 53.565922
     lon: 12.653834
+    elevation: 79.9
   - name: Werneuchen
     id: 31
     lat: 52.631801
     lon: 13.768795
+    elevation: 78.8
   - name: Weser Wumme
     id: 106
     lat: 53.056097
     lon: 9.208308
+    elevation: 25.0
   - name: Wiesbaden
     id: 170
     lat: 50.049819
     lon: 8.325574
+    elevation: 138.2
   - name: Wismar
     id: 108
     lat: 53.914448
     lon: 11.502444
+    elevation: 9.8
   - name: Wittstock
     id: 1
     lat: 53.202366
     lon: 12.522974
+    elevation: 68.1
   - name: Worms
     id: 250
     lat: 49.606503
     lon: 8.365413
+    elevation: 83.7
   - name: Wunstorf
     id: 32
     lat: 52.457325
     lon: 9.427111
+    elevation: 49.1
   - name: Zerbst
     id: 4
     lat: 51.999629
     lon: 12.14426
+    elevation: 76.2
   - name: Zollschen
     id: 137
     lat: 51.266365
     lon: 12.099991
+    elevation: 119.5
   - name: Zweibrucken
     id: 158
     lat: 49.20955
     lon: 7.400867
+    elevation: 328.1
   Iraq:
   - name: Al-Asad Airbase
     id: 1
     lat: 33.781247
     lon: 42.427626
+    elevation: 173.1
   - name: Al-Kut Airport
     id: 19
     lat: 32.483893
     lon: 45.755576
+    elevation: 12.1
   - name: Al-Sahra Airport
     id: 12
     lat: 34.667905
     lon: 43.536441
+    elevation: 127.4
   - name: Al-Salam Airbase
     id: 14
     lat: 33.278894
     lon: 44.494309
+    elevation: 20.5
   - name: Al-Taji Airport
     id: 9
     lat: 33.52379
     lon: 44.256767
+    elevation: 32.7
   - name: Al-Taquddum Airport
     id: 13
     lat: 33.339247
     lon: 43.598509
+    elevation: 77.5
   - name: Baghdad International Airport
     id: 2
     lat: 33.255819
     lon: 44.225627
+    elevation: 29.2
   - name: Balad Airbase
     id: 8
     lat: 33.942808
     lon: 44.367129
+    elevation: 44.0
   - name: Bashur Airport
     id: 5
     lat: 36.534491
     lon: 44.33922
+    elevation: 618.5
   - name: Erbil International Airport
     id: 4
     lat: 36.238309
     lon: 43.946661
+    elevation: 373.7
   - name: H-2 Airbase
     id: 15
     lat: 33.356304
     lon: 40.58851
+    elevation: 631.1
   - name: H-3 Main Airbase
     id: 16
     lat: 32.93623
     lon: 39.74566
+    elevation: 774.9
   - name: H-3 Northwest Airbase
     id: 18
     lat: 33.076407
     lon: 39.595774
+    elevation: 777.7
   - name: H-3 Southwest Airbase
     id: 17
     lat: 32.743819
     lon: 39.601383
+    elevation: 808.2
   - name: K1 Base
     id: 11
     lat: 35.512696
     lon: 44.284315
+    elevation: 296.6
   - name: Kharg Airfield
     id: 20
     lat: 29.260941
     lon: 50.321773
+    elevation: 5.0
   - name: Kirkuk International Airport
     id: 10
     lat: 35.471146
     lon: 44.344569
+    elevation: 313.0
   - name: Mosul International Airport
     id: 3
     lat: 36.306397
     lon: 43.147063
+    elevation: 226.1
   - name: Qayyarah Airfield West
     id: 6
     lat: 35.76582
     lon: 43.122319
+    elevation: 215.3
   - name: Sulaimaniyah International Airport
     id: 7
     lat: 35.560806
     lon: 45.314753
+    elevation: 733.8
   Kola:
   - name: Afrikanda
     id: 33
     lat: 67.457305
     lon: 32.784017
+    elevation: 151.0
   - name: Alakurtti
     id: 19
     lat: 66.972733
     lon: 30.348536
+    elevation: 167.0
   - name: Alta
     id: 24
     lat: 69.97726
     lon: 23.365899
+    elevation: 2.7
   - name: Andoya
     id: 20
     lat: 69.297581
     lon: 16.135408
+    elevation: 6.7
   - name: Arvidsjaur
     id: 36
     lat: 65.591501
     lon: 19.277802
+    elevation: 378.0
   - name: Banak
     id: 1
     lat: 70.068784
     lon: 24.973511
+    elevation: 5.3
   - name: Bardufoss
     id: 21
     lat: 69.055348
     lon: 18.543504
+    elevation: 71.2
   - name: Boden Heli Base
     id: 34
     lat: 65.809326
     lon: 21.694523
+    elevation: 12.7
   - name: Bodo
     id: 7
     lat: 67.269204
     lon: 14.365363
+    elevation: 10.2
   - name: Enontekio
     id: 26
     lat: 68.362497
     lon: 23.424096
+    elevation: 305.0
   - name: Evenes
     id: 25
     lat: 68.49119
     lon: 16.67814
+    elevation: 26.0
   - name: Hemavan
     id: 35
     lat: 65.805459
     lon: 15.083595
+    elevation: 458.0
   - name: Hosio
     id: 23
     lat: 65.896111
     lon: 25.703854
+    elevation: 115.4
   - name: Ivalo
     id: 18
     lat: 68.607118
     lon: 27.404838
+    elevation: 144.1
   - name: Jokkmokk
     id: 11
     lat: 66.496346
     lon: 20.147011
+    elevation: 270.6
   - name: Kalevala
     id: 32
     lat: 65.209507
     lon: 31.133596
+    elevation: 122.0
   - name: Kalixfors
     id: 13
     lat: 67.764963
     lon: 20.251009
+    elevation: 468.3
   - name: Kallax
     id: 15
     lat: 65.543786
     lon: 22.121867
+    elevation: 13.3
   - name: Kemi Tornio
     id: 3
     lat: 65.781484
     lon: 24.582284
+    elevation: 12.4
   - name: Kilpyavr
     id: 28
     lat: 69.094912
     lon: 32.400591
+    elevation: 93.0
   - name: Kirkenes
     id: 14
     lat: 69.725364
     lon: 29.89007
+    elevation: 85.8
   - name: Kiruna
     id: 5
     lat: 67.822005
     lon: 20.33681
+    elevation: 446.4
   - name: Kittila
     id: 22
     lat: 67.700992
     lon: 24.846872
+    elevation: 195.5
   - name: Koshka Yavr
     id: 30
     lat: 69.251218
     lon: 31.196377
+    elevation: 143.5
   - name: Kuusamo
     id: 16
     lat: 65.987367
     lon: 29.239947
+    elevation: 263.6
   - name: Luostari Pechenga
     id: 29
     lat: 69.402386
     lon: 30.990917
+    elevation: 76.0
   - name: Monchegorsk
     id: 10
     lat: 67.989043
     lon: 33.018673
+    elevation: 172.2
   - name: Murmansk International
     id: 12
     lat: 68.78165
     lon: 32.75136
+    elevation: 78.3
   - name: Olenya
     id: 9
     lat: 68.151778
     lon: 33.464299
+    elevation: 207.9
   - name: Poduzhemye
     id: 31
     lat: 64.918655
     lon: 34.262989
+    elevation: 48.0
   - name: Rovaniemi
     id: 2
     lat: 66.564846
     lon: 25.830488
+    elevation: 194.0
   - name: Severomorsk-1
     id: 8
     lat: 69.030503
     lon: 33.422995
+    elevation: 81.4
   - name: Severomorsk-3
     id: 6
     lat: 68.867062
     lon: 33.718116
+    elevation: 166.2
   - name: Sodankyla
     id: 27
     lat: 67.395033
     lon: 26.619135
+    elevation: 182.0
   - name: Tromso
     id: 37
     lat: 69.681509
     lon: 18.917733
+    elevation: 6.3
   - name: Vidsel
     id: 17
     lat: 65.875266
     lon: 20.149866
+    elevation: 181.0
   - name: Vuojarvi
     id: 4
     lat: 67.069133
     lon: 26.539805
+    elevation: 224.3
   MarianaIslands:
   - name: Andersen AFB
     id: 6
     lat: 13.581703
     lon: 144.931052
+    elevation: 167.0
   - name: Antonio B. Won Pat Intl
     id: 4
     lat: 13.48478
     lon: 144.796824
+    elevation: 77.8
   - name: North West Field
     id: 8
     lat: 13.625334
     lon: 144.858399
+    elevation: 159.0
   - name: Olf Orote
     id: 5
     lat: 13.438201
     lon: 144.64224
+    elevation: 28.4
   - name: Pagan Airstrip
     id: 7
     lat: 18.123154
     lon: 145.763149
+    elevation: 15.0
   - name: Rota Intl
     id: 1
     lat: 14.174373
     lon: 145.241092
+    elevation: 173.4
   - name: Saipan Intl
     id: 2
     lat: 15.118931
     lon: 145.729129
+    elevation: 65.0
   - name: Tinian Intl
     id: 3
     lat: 14.999194
     lon: 145.619182
+    elevation: 79.2
   MarianaIslandsWWII:
   - name: Agana
     id: 1
     lat: 13.482536
     lon: 144.789669
+    elevation: 78.6
   - name: Airfield 3
     id: 3
     lat: 15.068026
     lon: 145.634733
+    elevation: 30.2
   - name: Charon Kanoa
     id: 4
     lat: 15.160454
     lon: 145.705933
+    elevation: 3.2
   - name: Gurguan Point
     id: 5
     lat: 15.001892
     lon: 145.598798
+    elevation: 85.4
   - name: Isley
     id: 6
     lat: 15.11961
     lon: 145.726169
+    elevation: 60.8
   - name: Kagman
     id: 7
     lat: 15.167631
     lon: 145.773512
+    elevation: 70.0
   - name: Marpi
     id: 8
     lat: 15.281768
     lon: 145.812486
+    elevation: 45.2
   - name: Orote
     id: 2
     lat: 13.437356
     lon: 144.639267
+    elevation: 25.0
   - name: Pagan
     id: 11
     lat: 18.123599
     lon: 145.764915
+    elevation: 15.0
   - name: Rota
     id: 9
     lat: 14.174431
     lon: 145.242031
+    elevation: 181.4
   - name: Ushi
     id: 10
     lat: 15.078215
     lon: 145.636685
+    elevation: 27.9
   Nevada:
   - name: Beatty
     id: 5
     lat: 36.861003
     lon: -116.786417
+    elevation: 959.5
   - name: Boulder City
     id: 6
     lat: 35.948667
     lon: -114.861818
+    elevation: 659.3
   - name: Creech
     id: 1
     lat: 36.583819
     lon: -115.676442
+    elevation: 952.9
   - name: Echo Bay
     id: 7
     lat: 36.311061
     lon: -114.463899
+    elevation: 465.0
   - name: Groom Lake
     id: 2
     lat: 37.233179
     lon: -115.792335
+    elevation: 1364.0
   - name: Henderson Executive
     id: 8
     lat: 35.973994
     lon: -115.133052
+    elevation: 758.1
   - name: Jean
     id: 9
     lat: 35.769187
     lon: -115.329568
+    elevation: 860.9
   - name: Laughlin
     id: 10
     lat: 35.156103
     lon: -114.559452
+    elevation: 200.0
   - name: Lincoln County
     id: 11
     lat: 37.787355
     lon: -114.419911
+    elevation: 1467.6
   - name: McCarran International
     id: 3
     lat: 36.07641
     lon: -115.144632
+    elevation: 641.4
   - name: Mesquite
     id: 13
     lat: 36.833119
     lon: -114.055907
+    elevation: 566.5
   - name: Mina
     id: 14
     lat: 38.379786
     lon: -118.096677
+    elevation: 1389.6
   - name: Nellis
     id: 4
     lat: 36.235224
     lon: -115.033
+    elevation: 561.8
   - name: North Las Vegas
     id: 15
     lat: 36.213472
     lon: -115.194768
+    elevation: 679.3
   - name: Pahute Mesa
     id: 16
     lat: 37.101996
     lon: -116.312846
+    elevation: 1541.7
   - name: Tonopah
     id: 17
     lat: 38.062431
     lon: -117.083286
+    elevation: 1643.3
   - name: Tonopah Test Range
     id: 18
     lat: 37.798875
     lon: -116.780792
+    elevation: 1686.8
   Normandy:
   - name: Abbeville Drucat
     id: 75
     lat: 50.138133
     lon: 1.837893
+    elevation: 65.5
   - name: Alderney
     id: 85
     lat: 49.706759
     lon: -2.214594
+    elevation: 64.0
   - name: Amiens-Glisy
     id: 59
     lat: 49.872011
     lon: 2.390358
+    elevation: 64.7
   - name: Argentan
     id: 32
     lat: 48.768762
     lon: -0.030445
+    elevation: 186.0
   - name: Avranches Le Val-Saint-Pere
     id: 65
     lat: 48.668148
     lon: -1.380639
+    elevation: 14.3
   - name: Azeville
     id: 15
     lat: 49.480991
     lon: -1.317616
+    elevation: 22.8
   - name: Barville
     id: 34
     lat: 48.480139
     lon: 0.313983
+    elevation: 141.0
   - name: Bazenville
     id: 20
     lat: 49.303964
     lon: -0.564728
+    elevation: 60.9
   - name: Beaumont-le-Roger
     id: 67
     lat: 49.096381
     lon: 0.796926
+    elevation: 149.0
   - name: Beauvais-Tille
     id: 44
     lat: 49.454163
     lon: 2.113238
+    elevation: 101.0
   - name: Bembridg
     id: 90
     lat: 50.678471
     lon: -1.110802
+    elevation: 25.0
   - name: Beny-sur-Mer
     id: 22
     lat: 49.298021
     lon: -0.426621
+    elevation: 60.7
   - name: Bernay Saint Martin
     id: 69
     lat: 49.104433
     lon: 0.598438
+    elevation: 151.7
   - name: Beuzeville
     id: 14
     lat: 49.420546
     lon: -1.298552
+    elevation: 34.8
   - name: Biggin Hill
     id: 71
     lat: 51.33001
     lon: 0.03165
+    elevation: 173.0
   - name: Biniville
     id: 10
     lat: 49.436721
     lon: -1.46897
+    elevation: 32.5
   - name: Broglie
     id: 68
     lat: 49.015629
     lon: 0.49886
+    elevation: 181.3
   - name: Brucheville
     id: 5
     lat: 49.368674
     lon: -1.215765
+    elevation: 13.9
   - name: Cardonville
     id: 11
     lat: 49.351013
     lon: -1.050997
+    elevation: 30.9
   - name: Carpiquet
     id: 19
     lat: 49.175126
     lon: -0.454461
+    elevation: 57.0
   - name: Chailey
     id: 27
     lat: 50.952521
     lon: -0.047401
+    elevation: 29.0
   - name: Chippelle
     id: 13
     lat: 49.241917
     lon: -0.97165
+    elevation: 38.0
   - name: Conches
     id: 40
     lat: 48.93481
     lon: 0.961308
+    elevation: 165.0
   - name: Cormeilles-en-Vexin
     id: 45
     lat: 49.09328
     lon: 2.035435
+    elevation: 95.0
   - name: Creil
     id: 46
     lat: 49.252764
     lon: 2.505931
+    elevation: 82.0
   - name: Cretteville
     id: 3
     lat: 49.336592
     lon: -1.379356
+    elevation: 29.0
   - name: Cricqueville-en-Bessin
     id: 7
     lat: 49.364575
     lon: -1.006884
+    elevation: 24.8
   - name: Deanland
     id: 54
     lat: 50.884349
     lon: 0.161353
+    elevation: 29.0
   - name: Deauville
     id: 62
     lat: 49.364267
     lon: 0.157245
+    elevation: 140.0
   - name: Detling
     id: 73
     lat: 51.305788
     lon: 0.601579
+    elevation: 170.0
   - name: Deux Jumeaux
     id: 12
     lat: 49.347327
     lon: -0.980809
+    elevation: 37.7
   - name: Dinan-Trelivan
     id: 49
     lat: 48.443383
     lon: -2.103121
+    elevation: 115.0
   - name: Dunkirk-Mardyck
     id: 79
     lat: 51.030384
     lon: 2.256982
+    elevation: 8.0
   - name: Eastchurch
     id: 81
     lat: 51.390358
     lon: 0.847936
+    elevation: 10.4
   - name: Essay
     id: 35
     lat: 48.520544
     lon: 0.257691
+    elevation: 154.6
   - name: Evreux
     id: 26
     lat: 49.023804
     lon: 1.21326
+    elevation: 129.0
   - name: Farnborough
     id: 52
     lat: 51.278719
     lon: -0.77468
+    elevation: 75.0
   - name: Fecamp-Benouville
     id: 51
     lat: 49.746304
     lon: 0.356102
+    elevation: 90.0
   - name: Flers
     id: 64
     lat: 48.749217
     lon: -0.595621
+    elevation: 201.6
   - name: Ford
     id: 31
     lat: 50.818497
     lon: -0.59117
+    elevation: 8.9
   - name: Friston
     id: 53
     lat: 50.761749
     lon: 0.171492
+    elevation: 94.1
   - name: Funtington
     id: 29
     lat: 50.868196
     lon: -0.86908
+    elevation: 38.0
   - name: Goulet
     id: 33
     lat: 48.749692
     lon: -0.111457
+    elevation: 188.0
   - name: Gravesend
     id: 66
     lat: 51.418056
     lon: 0.396748
+    elevation: 54.3
   - name: Guernsey
     id: 83
     lat: 49.435785
     lon: -2.595957
+    elevation: 77.2
   - name: Guyancourt
     id: 47
     lat: 48.758745
     lon: 2.079925
+    elevation: 160.0
   - name: Hauterive
     id: 36
     lat: 48.499941
     lon: 0.200091
+    elevation: 145.0
   - name: Hawkinge
     id: 82
     lat: 51.111742
     lon: 1.15806
+    elevation: 165.6
   - name: Headcorn
     id: 86
     lat: 51.182858
     lon: 0.6887
+    elevation: 33.4
   - name: Heathrow
     id: 50
     lat: 51.477585
     lon: -0.454852
+    elevation: 27.0
   - name: High Halden
     id: 78
     lat: 51.124641
     lon: 0.705641
+    elevation: 31.6
   - name: Holmsley South
     id: 89
     lat: 50.790069
     lon: -1.700979
+    elevation: 60.0
   - name: Jersey
     id: 84
     lat: 49.207677
     lon: -2.199688
+    elevation: 75.7
   - name: Kenley
     id: 43
     lat: 51.304183
     lon: -0.096943
+    elevation: 171.0
   - name: Lantheuil
     id: 25
     lat: 49.271457
     lon: -0.538403
+    elevation: 53.3
   - name: Lashenden
     id: 80
     lat: 51.156294
     lon: 0.644352
+    elevation: 20.0
   - name: Le Molay
     id: 17
     lat: 49.261538
     lon: -0.881665
+    elevation: 31.9
   - name: Lessay
     id: 8
     lat: 49.202168
     lon: -1.508343
+    elevation: 20.0
   - name: Lignerolles
     id: 2
     lat: 49.175104
     lon: -0.788931
+    elevation: 123.4
   - name: Longues-sur-Mer
     id: 18
     lat: 49.342662
     lon: -0.70616
+    elevation: 68.6
   - name: Lonrai
     id: 48
     lat: 48.467673
     lon: 0.037385
+    elevation: 157.0
   - name: Lymington
     id: 37
     lat: 50.762479
     lon: -1.514305
+    elevation: 6.0
   - name: Lympne
     id: 74
     lat: 51.082915
     lon: 1.019371
+    elevation: 65.1
   - name: Manston
     id: 72
     lat: 51.342411
     lon: 1.34618
+    elevation: 48.0
   - name: Maupertus
     id: 4
     lat: 49.649802
     lon: -1.466956
+    elevation: 134.5
   - name: Meautis
     id: 6
     lat: 49.283189
     lon: -1.300239
+    elevation: 25.3
   - name: Merville Calonne
     id: 77
     lat: 50.620596
     lon: 2.653472
+    elevation: 40.0
   - name: Needs Oar Point
     id: 28
     lat: 50.771664
     lon: -1.43453
+    elevation: 6.0
   - name: Northolt
     id: 88
     lat: 51.552791
     lon: -0.419285
+    elevation: 40.0
   - name: Odiham
     id: 39
     lat: 51.234422
     lon: -0.941727
+    elevation: 111.6
   - name: Orly
     id: 57
     lat: 48.73514
     lon: 2.391826
+    elevation: 83.0
   - name: Picauville
     id: 16
     lat: 49.396374
     lon: -1.411155
+    elevation: 22.1
   - name: Poix
     id: 56
     lat: 49.818859
     lon: 1.977265
+    elevation: 166.8
   - name: Ronai
     id: 60
     lat: 48.823384
     lon: -0.161215
+    elevation: 262.0
   - name: Rouen-Boos
     id: 61
     lat: 49.387229
     lon: 1.178984
+    elevation: 150.4
   - name: Rucqueville
     id: 23
     lat: 49.251425
     lon: -0.58031
+    elevation: 58.8
   - name: Saint Pierre du Mont
     id: 1
     lat: 49.390508
     lon: -0.957074
+    elevation: 31.5
   - name: Saint-Andre-de-lEure
     id: 70
     lat: 48.891284
     lon: 1.268338
+    elevation: 144.2
   - name: Saint-Aubin
     id: 63
     lat: 49.885015
     lon: 1.080429
+    elevation: 99.7
   - name: Saint-Omer Wizernes
     id: 76
     lat: 50.728845
     lon: 2.232304
+    elevation: 65.0
   - name: Saint-Pol-Bryas
     id: 87
     lat: 50.396662
     lon: 2.350691
+    elevation: 135.2
   - name: Sainte-Croix-sur-Mer
     id: 21
     lat: 49.320276
     lon: -0.517246
+    elevation: 48.8
   - name: Sainte-Laurent-sur-Mer
     id: 9
     lat: 49.364463
     lon: -0.873488
+    elevation: 19.0
   - name: Sommervieu
     id: 24
     lat: 49.300228
     lon: -0.670951
+    elevation: 57.0
   - name: Stoney Cross
     id: 58
     lat: 50.914793
     lon: -1.653211
+    elevation: 117.1
   - name: Tangmere
     id: 30
     lat: 50.84576
     lon: -0.701897
+    elevation: 14.5
   - name: Triqueville
     id: 55
     lat: 49.336215
     lon: 0.45828
+    elevation: 123.1
   - name: Villacoublay
     id: 42
     lat: 48.767348
     lon: 2.205032
+    elevation: 170.0
   - name: Vrigny
     id: 38
     lat: 48.672283
     lon: -0.002161
+    elevation: 180.0
   - name: West Malling
     id: 41
     lat: 51.27036
     lon: 0.404697
+    elevation: 93.0
   PersianGulf:
   - name: Abu Dhabi Intl
     id: 22
     lat: 24.453708
     lon: 54.654268
+    elevation: 28.0
   - name: Abu Musa Island
     id: 1
     lat: 25.875992
     lon: 55.032918
+    elevation: 5.0
   - name: Al Ain Intl
     id: 25
     lat: 24.261428
     lon: 55.609245
+    elevation: 248.1
   - name: Al Dhafra AFB
     id: 4
     lat: 24.248288
     lon: 54.547699
+    elevation: 16.0
   - name: Al Maktoum Intl
     id: 6
     lat: 24.897057
     lon: 55.160239
+    elevation: 37.6
   - name: Al Minhad AFB
     id: 12
     lat: 25.026881
     lon: 55.365758
+    elevation: 54.9
   - name: Al-Bateen
     id: 23
     lat: 24.428077
     lon: 54.45858
+    elevation: 3.6
   - name: Bandar Abbas Intl
     id: 2
     lat: 27.217687
     lon: 56.378962
+    elevation: 5.2
   - name: Bandar Lengeh
     id: 3
     lat: 26.532264
     lon: 54.824667
+    elevation: 23.3
   - name: Bandar-e-Jask
     id: 21
     lat: 25.654673
     lon: 57.801436
+    elevation: 8.0
   - name: Dubai Intl
     id: 5
     lat: 25.256376
     lon: 55.365261
+    elevation: 5.0
   - name: Fujairah Intl
     id: 7
     lat: 25.11094
     lon: 56.327351
+    elevation: 31.1
   - name: Havadarya
     id: 9
     lat: 27.158224
     lon: 56.172019
+    elevation: 15.5
   - name: Jiroft
     id: 27
     lat: 28.723517
     lon: 57.675095
+    elevation: 812.0
   - name: Kerman
     id: 18
     lat: 30.27311
     lon: 56.951551
+    elevation: 1751.4
   - name: Khasab
     id: 10
     lat: 26.169826
     lon: 56.24017
+    elevation: 22.4
   - name: Kish Intl
     id: 24
     lat: 26.528149
     lon: 53.981049
+    elevation: 35.0
   - name: Lar
     id: 11
     lat: 27.674732
     lon: 54.383145
+    elevation: 803.3
   - name: Lavan Island
     id: 26
     lat: 26.811108
     lon: 53.353293
+    elevation: 23.0
   - name: Liwa AFB
     id: 29
     lat: 23.650775
     lon: 53.824429
+    elevation: 121.9
   - name: Qeshm Island
     id: 13
     lat: 26.754669
     lon: 55.902384
+    elevation: 5.3
   - name: Quasoura_airport
     id: 30
     lat: 22.7761
     lon: 55.0633
+    elevation: 100.5
   - name: Ras Al Khaimah Intl
     id: 28
     lat: 25.613494
     lon: 55.938797
+    elevation: 21.6
   - name: Sas Al Nakheel
     id: 20
     lat: 24.441109
     lon: 54.517023
+    elevation: 3.0
   - name: Sharjah Intl
     id: 14
     lat: 25.330675
     lon: 55.518263
+    elevation: 30.0
   - name: Shiraz Intl
     id: 19
     lat: 29.54091
     lon: 52.591074
+    elevation: 1487.0
   - name: Sir Abu Nuayr
     id: 17
     lat: 25.216871
     lon: 54.23365
+    elevation: 7.5
   - name: Sirri Island
     id: 15
     lat: 25.909603
     lon: 54.539254
+    elevation: 4.3
   - name: Tunb Island AFB
     id: 8
     lat: 26.258888
     lon: 55.315782
+    elevation: 13.0
   - name: Tunb Kochak
     id: 16
     lat: 26.243322
     lon: 55.145568
+    elevation: 5.0
   SinaiMap:
   - name: Abu Rudeis
     id: 26
     lat: 28.899536
     lon: 33.202337
+    elevation: 0.9
   - name: Abu Suwayr
     id: 2
     lat: 30.575385
     lon: 32.096271
+    elevation: 5.6
   - name: Al Bahr al Ahmar
     id: 44
     lat: 26.556378
     lon: 33.121031
+    elevation: 355.0
   - name: Al Ismailiyah
     id: 4
     lat: 30.598815
     lon: 32.234582
+    elevation: 1.9
   - name: Al Khatatbah
     id: 31
     lat: 30.312375
     lon: 30.874447
+    elevation: 14.0
   - name: Al Mansurah
     id: 14
     lat: 30.965201
     lon: 31.431509
+    elevation: 2.0
   - name: Al Rahmaniyah Air Base
     id: 32
     lat: 31.043422
     lon: 30.664376
+    elevation: 3.0
   - name: As Salihiyah
     id: 3
     lat: 30.795111
     lon: 32.042546
+    elevation: 2.1
   - name: AzZaqaziq
     id: 15
     lat: 30.594823
     lon: 31.664577
+    elevation: 2.0
   - name: Baluza
     id: 27
     lat: 30.99977
     lon: 32.552221
+    elevation: 36.1
   - name: Ben-Gurion
     id: 24
     lat: 32.007029
     lon: 34.8931
+    elevation: 30.1
   - name: Beni Suef
     id: 33
     lat: 29.197907
     lon: 31.019001
+    elevation: 30.0
   - name: Bilbeis Air Base
     id: 16
     lat: 30.398675
     lon: 31.60728
+    elevation: 28.0
   - name: Bir Hasanah
     id: 28
     lat: 30.194637
     lon: 33.412829
+    elevation: 373.2
   - name: Birma Air Base
     id: 34
     lat: 30.837038
     lon: 30.936019
+    elevation: 6.0
   - name: Borg El Arab International Airport
     id: 35
     lat: 30.916902
     lon: 29.693893
+    elevation: 26.0
   - name: Cairo International Airport
     id: 17
     lat: 30.108988
     lon: 31.43482
+    elevation: 120.0
   - name: Cairo West
     id: 18
     lat: 30.108373
     lon: 30.895657
+    elevation: 134.0
   - name: Damascus Intl
     id: 48
     lat: 33.395471
     lon: 36.510202
+    elevation: 611.3
   - name: Difarsuwar Airfield
     id: 1
     lat: 30.425742
     lon: 32.335384
+    elevation: 2.0
   - name: Ein Shamer
     id: 52
     lat: 32.440849
     lon: 35.007511
+    elevation: 14.6
   - name: El Arish
     id: 29
     lat: 31.037878
     lon: 33.819091
+    elevation: 94.9
   - name: El Gora
     id: 30
     lat: 31.073011
     lon: 34.14836
+    elevation: 128.8
   - name: El Minya
     id: 36
     lat: 28.101047
     lon: 30.729653
+    elevation: 38.0
   - name: Fayed
     id: 6
     lat: 30.329071
     lon: 32.267488
+    elevation: 6.5
   - name: Gebel El Basur Air Base
     id: 37
     lat: 30.538232
     lon: 30.552675
+    elevation: 24.0
   - name: Hatzerim
     id: 7
     lat: 31.238604
     lon: 34.658504
+    elevation: 205.4
   - name: Hatzor
     id: 20
     lat: 31.760479
     lon: 34.725331
+    elevation: 30.6
   - name: Hurghada International Airport
     id: 38
     lat: 27.176465
     lon: 33.791691
+    elevation: 13.0
   - name: Inshas Airbase
     id: 19
     lat: 30.334249
     lon: 31.446579
+    elevation: 47.1
   - name: Jiyanklis Air Base
     id: 39
     lat: 30.822325
     lon: 30.192399
+    elevation: 8.0
   - name: Kedem
     id: 12
     lat: 31.260616
     lon: 34.639945
+    elevation: 182.3
   - name: Khalkhalah Air Base
     id: 55
     lat: 33.078937
     lon: 36.540704
+    elevation: 715.0
   - name: Kibrit Air Base
     id: 11
     lat: 30.243534
     lon: 32.491179
+    elevation: 2.0
   - name: King Feisal Air Base
     id: 54
     lat: 30.343686
     lon: 36.147409
+    elevation: 871.5
   - name: Kom Awshim
     id: 40
     lat: 29.553644
     lon: 30.893503
+    elevation: 2.0
   - name: Megiddo
     id: 51
     lat: 32.597143
     lon: 35.230212
+    elevation: 40.5
   - name: Melez
     id: 5
     lat: 30.409932
     lon: 33.149742
+    elevation: 304.5
   - name: Mezzeh Air Base
     id: 49
     lat: 33.477649
     lon: 36.223628
+    elevation: 729.1
   - name: Nevatim
     id: 8
     lat: 31.208343
     lon: 35.012075
+    elevation: 400.2
   - name: Ovda
     id: 10
     lat: 29.940817
     lon: 34.934128
+    elevation: 427.6
   - name: Palmachim
     id: 21
     lat: 31.901788
     lon: 34.692887
+    elevation: 10.0
   - name: Quwaysina
     id: 45
     lat: 30.579003
     lon: 31.129037
+    elevation: 10.0
   - name: Rafic Hariri Intl
     id: 46
     lat: 33.824474
     lon: 35.483232
+    elevation: 6.0
   - name: Ramat David
     id: 50
     lat: 32.666469
     lon: 35.184092
+    elevation: 30.5
   - name: Ramon Airbase
     id: 9
     lat: 30.777574
     lon: 34.666146
+    elevation: 617.0
   - name: Ramon International Airport
     id: 41
     lat: 29.727039
     lon: 35.014024
+    elevation: 69.0
   - name: Sde Dov
     id: 22
     lat: 32.114672
     lon: 34.78228
+    elevation: 6.0
   - name: Sharm El Sheikh International Airport
     id: 42
     lat: 27.978735
     lon: 34.393277
+    elevation: 30.0
   - name: St Catherine
     id: 25
     lat: 28.685165
     lon: 34.062629
+    elevation: 1297.2
   - name: Taba International Airport
     id: 53
     lat: 29.588024
     lon: 34.778285
+    elevation: 709.0
   - name: Tabuk
     id: 47
     lat: 28.371022
     lon: 36.606148
+    elevation: 775.0
   - name: TabukHeliBase
     id: 56
     lat: 28.311845
     lon: 36.689877
+    elevation: 795.0
   - name: Tel Nof
     id: 23
     lat: 31.836021
     lon: 34.817828
+    elevation: 43.3
   - name: Wadi Abu Rish
     id: 43
     lat: 28.971017
     lon: 31.698667
+    elevation: 300.0
   - name: Wadi al Jandali
     id: 13
     lat: 30.072551
     lon: 31.8333
+    elevation: 225.7
   Syria:
   - name: Abu al-Duhur
     id: 1
     lat: 35.732306
     lon: 37.104128
+    elevation: 250.0
   - name: Adana Sakirpasa
     id: 2
     lat: 36.981938
     lon: 35.280098
+    elevation: 17.0
   - name: Adiyaman
     id: 219
     lat: 37.731261
     lon: 38.468922
+    elevation: 654.4
   - name: Akrotiri
     id: 44
     lat: 34.590373
     lon: 32.987777
+    elevation: 21.0
   - name: Al Qusayr
     id: 3
     lat: 34.569276
     lon: 36.571454
+    elevation: 527.0
   - name: Al-Dumayr
     id: 9
     lat: 33.609697
     lon: 36.749135
+    elevation: 630.0
   - name: Aleppo
     id: 27
     lat: 36.180618
     lon: 37.224367
+    elevation: 382.2
   - name: An Nasiriyah
     id: 4
     lat: 33.918607
     lon: 36.86584
+    elevation: 834.3
   - name: At Tanf
     id: 63
     lat: 33.50645
     lon: 38.614884
+    elevation: 710.0
   - name: Bassel Al-Assad
     id: 21
     lat: 35.403848
     lon: 35.95024
+    elevation: 28.6
   - name: Beirut-Rafic Hariri
     id: 6
     lat: 33.825144
     lon: 35.483038
+    elevation: 12.0
   - name: Ben Gurion
     id: 221
     lat: 32.006079
     lon: 34.882423
+    elevation: 27.6
   - name: Chukurova
     id: 90
     lat: 36.892733
     lon: 35.069324
+    elevation: 3.0
   - name: Damascus
     id: 7
     lat: 33.425508
     lon: 36.518512
+    elevation: 612.0
   - name: Deir ez-Zor
     id: 42
     lat: 35.285432
     lon: 40.176061
+    elevation: 211.6
   - name: Diyarbakir
     id: 217
     lat: 37.89334
     lon: 40.198688
+    elevation: 673.8
   - name: Ercan
     id: 49
     lat: 35.149641
     lon: 33.512512
+    elevation: 115.8
   - name: Eyn Shemer
     id: 10
     lat: 32.440932
     lon: 35.006998
+    elevation: 30.7
   - name: Gaziantep
     id: 11
     lat: 36.948128
     lon: 37.478344
+    elevation: 681.8
   - name: Gazipasa
     id: 41
     lat: 36.298922
     lon: 32.297628
+    elevation: 24.1
   - name: Gecitkale
     id: 50
     lat: 35.236011
     lon: 33.720895
+    elevation: 45.0
   - name: Gulechoba
     id: 216
     lat: 38.012022
     lon: 39.95472
+    elevation: 776.0
   - name: H3
     id: 53
     lat: 32.936195
     lon: 39.745813
+    elevation: 777.1
   - name: H3 Northwest
     id: 54
     lat: 33.075956
     lon: 39.596579
+    elevation: 785.0
   - name: H3 Southwest
     id: 55
     lat: 32.743345
     lon: 39.602408
+    elevation: 814.0
   - name: H4
     id: 12
     lat: 32.539283
     lon: 38.195079
+    elevation: 688.0
   - name: H4 Emergency
     id: 61
     lat: 32.386262
     lon: 37.781702
+    elevation: 762.6
   - name: HC01
     id: 69
     lat: 34.924215
     lon: 33.603722
+    elevation: 26.0
   - name: HC02
     id: 70
     lat: 34.830846
     lon: 33.478191
+    elevation: 92.0
   - name: HC03
     id: 71
     lat: 35.311947
     lon: 33.290077
+    elevation: 570.0
   - name: HC04
     id: 72
     lat: 35.267204
     lon: 33.495894
+    elevation: 303.0
   - name: HC05
     id: 73
     lat: 35.093867
     lon: 33.88578
+    elevation: 25.0
   - name: HC06
     id: 74
     lat: 35.084005
     lon: 33.897191
+    elevation: 35.0
   - name: HI01
     id: 79
     lat: 32.882232
     lon: 35.718989
+    elevation: 365.0
   - name: HI02
     id: 80
     lat: 32.937677
     lon: 35.568728
+    elevation: 244.3
   - name: HI03
     id: 82
     lat: 32.805606
     lon: 35.401592
+    elevation: 319.0
   - name: HI05
     id: 83
     lat: 32.808126
     lon: 35.425282
+    elevation: 382.0
   - name: HI06
     id: 84
     lat: 32.606246
     lon: 34.973019
+    elevation: 60.0
   - name: HI07
     id: 85
     lat: 32.823077
     lon: 35.436181
+    elevation: 127.0
   - name: HI08
     id: 76
     lat: 32.961878
     lon: 35.550067
+    elevation: 382.0
   - name: HI09
     id: 77
     lat: 32.982102
     lon: 35.514712
+    elevation: 899.0
   - name: HI11
     id: 86
     lat: 32.99481
     lon: 35.484072
+    elevation: 715.0
   - name: HI12
     id: 87
     lat: 33.017099
     lon: 35.704507
+    elevation: 425.0
   - name: HI13
     id: 116
     lat: 32.983324
     lon: 35.72711
+    elevation: 435.0
   - name: HI14
     id: 115
     lat: 32.762867
     lon: 35.302697
+    elevation: 210.9
   - name: HI15
     id: 114
     lat: 33.010471
     lon: 35.662957
+    elevation: 316.0
   - name: HI16
     id: 113
     lat: 32.945547
     lon: 35.204643
+    elevation: 198.3
   - name: HI17
     id: 112
     lat: 32.624007
     lon: 35.379087
+    elevation: 270.1
   - name: HI18
     id: 186
     lat: 32.467857
     lon: 35.023209
+    elevation: 48.0
   - name: HI20
     id: 193
     lat: 32.999346
     lon: 35.407542
+    elevation: 1144.4
   - name: HI21
     id: 199
     lat: 32.761123
     lon: 35.400593
+    elevation: 272.0
   - name: HI22
     id: 198
     lat: 32.0876
     lon: 34.919761
+    elevation: 27.0
   - name: HI23
     id: 197
     lat: 31.747503
     lon: 34.935721
+    elevation: 222.0
   - name: HI24
     id: 196
     lat: 32.143485
     lon: 34.815281
+    elevation: 20.0
   - name: HI25
     id: 195
     lat: 33.182911
     lon: 35.234251
+    elevation: 115.0
   - name: HI26
     id: 194
     lat: 32.084786
     lon: 34.781245
+    elevation: 15.0
   - name: HJ01
     id: 203
     lat: 33.313847
     lon: 38.702709
+    elevation: 763.0
   - name: HJ02
     id: 202
     lat: 32.586732
     lon: 35.924607
+    elevation: 540.0
   - name: HJ03
     id: 201
     lat: 32.484175
     lon: 36.065887
+    elevation: 585.0
   - name: HJ04
     id: 200
     lat: 32.476518
     lon: 36.063329
+    elevation: 585.0
   - name: HL01
     id: 208
     lat: 33.265524
     lon: 35.216251
+    elevation: 10.0
   - name: HL02
     id: 207
     lat: 33.169388
     lon: 35.187009
+    elevation: 16.0
   - name: HL03
     id: 206
     lat: 33.182843
     lon: 35.495829
+    elevation: 569.0
   - name: HL04
     id: 205
     lat: 33.132564
     lon: 35.393307
+    elevation: 792.0
   - name: HL05
     id: 204
     lat: 33.153759
     lon: 35.196448
+    elevation: 318.7
   - name: HL06
     id: 157
     lat: 33.305878
     lon: 35.540964
+    elevation: 360.0
   - name: HL07
     id: 155
     lat: 33.262178
     lon: 35.418498
+    elevation: 439.0
   - name: HL08
     id: 154
     lat: 33.203768
     lon: 35.353057
+    elevation: 430.0
   - name: HL09
     id: 153
     lat: 34.365203
     lon: 36.512112
+    elevation: 612.5
   - name: HL10
     id: 152
     lat: 34.264351
     lon: 36.483222
+    elevation: 1500.0
   - name: HL11
     id: 151
     lat: 33.709881
     lon: 35.966698
+    elevation: 1412.0
   - name: HL12
     id: 148
     lat: 33.173722
     lon: 35.275311
+    elevation: 380.0
   - name: HL13
     id: 147
     lat: 33.138224
     lon: 35.504537
+    elevation: 625.0
   - name: HMed00
     id: 129
     lat: 36.576166
     lon: 36.19892
+    elevation: 62.0
   - name: HMed01
     id: 128
     lat: 34.974999
     lon: 33.847998
+    elevation: 50.0
   - name: HMed02
     id: 127
     lat: 35.95595
     lon: 38.989263
+    elevation: 243.0
   - name: HMed03
     id: 126
     lat: 35.516699
     lon: 35.791235
+    elevation: 24.0
   - name: HMed04
     id: 125
     lat: 37.052941
     lon: 35.278848
+    elevation: 120.0
   - name: HMed05
     id: 124
     lat: 35.144324
     lon: 33.353882
+    elevation: 190.0
   - name: HMed06
     id: 123
     lat: 35.146529
     lon: 36.753378
+    elevation: 291.0
   - name: HMed07
     id: 122
     lat: 35.333284
     lon: 33.324346
+    elevation: 27.0
   - name: HMed08
     id: 121
     lat: 35.343964
     lon: 33.194806
+    elevation: 37.0
   - name: HMed09
     id: 120
     lat: 35.00429
     lon: 34.059131
+    elevation: 15.0
   - name: HMed10
     id: 119
     lat: 33.207394
     lon: 35.571165
+    elevation: 118.0
   - name: HMed11
     id: 130
     lat: 32.570588
     lon: 35.846153
+    elevation: 494.0
   - name: HMed12
     id: 176
     lat: 31.99319
     lon: 35.890023
+    elevation: 970.0
   - name: HMed13
     id: 175
     lat: 32.181805
     lon: 34.978768
+    elevation: 72.0
   - name: HMed14
     id: 174
     lat: 34.883778
     lon: 35.886966
+    elevation: 8.0
   - name: HMed15
     id: 173
     lat: 36.206243
     lon: 36.152401
+    elevation: 92.0
   - name: HMed16
     id: 172
     lat: 34.72074
     lon: 36.732967
+    elevation: 515.0
   - name: HMed17
     id: 171
     lat: 33.523603
     lon: 36.354867
+    elevation: 675.0
   - name: HMed18
     id: 170
     lat: 32.708162
     lon: 35.302076
+    elevation: 387.1
   - name: HMed19
     id: 169
     lat: 32.82105
     lon: 34.990642
+    elevation: 16.0
   - name: HMed20
     id: 168
     lat: 32.16534
     lon: 34.845362
+    elevation: 57.0
   - name: HMed21
     id: 167
     lat: 33.455981
     lon: 36.235228
+    elevation: 698.0
   - name: HMed22
     id: 166
     lat: 31.881649
     lon: 36.00978
+    elevation: 876.0
   - name: HMed23
     id: 165
     lat: 34.692108
     lon: 32.960268
+    elevation: 100.0
   - name: HMed24
     id: 164
     lat: 33.893458
     lon: 35.567333
+    elevation: 33.0
   - name: HMed25
     id: 163
     lat: 31.719399
     lon: 35.797812
+    elevation: 772.0
   - name: HMed26
     id: 162
     lat: 36.194001
     lon: 37.097927
+    elevation: 455.0
   - name: HMed27
     id: 161
     lat: 35.960658
     lon: 38.041776
+    elevation: 348.7
   - name: HMed28
     id: 160
     lat: 34.558056
     lon: 38.278748
+    elevation: 411.0
   - name: HMed29
     id: 159
     lat: 35.338798
     lon: 40.129427
+    elevation: 219.0
   - name: HMed30
     id: 158
     lat: 37.050695
     lon: 37.38983
+    elevation: 882.0
   - name: HOil01
     id: 181
     lat: 34.602758
     lon: 37.901716
+    elevation: 561.0
   - name: HOil02
     id: 180
     lat: 35.337805
     lon: 39.76084
+    elevation: 393.0
   - name: HOil03
     id: 179
     lat: 35.191099
     lon: 39.90297
+    elevation: 298.0
   - name: HOil04
     id: 178
     lat: 35.194105
     lon: 40.081764
+    elevation: 292.0
   - name: HOil05
     id: 177
     lat: 35.328835
     lon: 40.105461
+    elevation: 219.0
   - name: HOil06
     id: 211
     lat: 32.11399
     lon: 36.106201
+    elevation: 525.0
   - name: HS02
     id: 89
     lat: 35.33855
     lon: 36.074308
+    elevation: 269.0
   - name: HS03
     id: 187
     lat: 34.669694
     lon: 38.298283
+    elevation: 596.4
   - name: HS04
     id: 184
     lat: 35.791042
     lon: 37.726268
+    elevation: 342.3
   - name: HS05
     id: 92
     lat: 35.789131
     lon: 37.724785
+    elevation: 342.3
   - name: HS06
     id: 93
     lat: 33.279041
     lon: 36.08532
+    elevation: 855.0
   - name: HS07
     id: 185
     lat: 34.65768
     lon: 38.289161
+    elevation: 584.0
   - name: HS08
     id: 94
     lat: 34.644829
     lon: 36.743643
+    elevation: 580.9
   - name: HS09
     id: 95
     lat: 36.060355
     lon: 37.343139
+    elevation: 373.0
   - name: HS10
     id: 96
     lat: 36.050691
     lon: 37.332313
+    elevation: 373.0
   - name: HS11
     id: 97
     lat: 33.386339
     lon: 36.272711
+    elevation: 718.1
   - name: HS12
     id: 105
     lat: 33.429514
     lon: 36.118745
+    elevation: 805.3
   - name: HS13
     id: 104
     lat: 33.74569
     lon: 36.803543
+    elevation: 782.4
   - name: HS14
     id: 103
     lat: 33.455405
     lon: 36.087091
+    elevation: 951.0
   - name: HS15
     id: 102
     lat: 33.394596
     lon: 36.359739
+    elevation: 655.0
   - name: HS16
     id: 101
     lat: 35.98784
     lon: 37.414272
+    elevation: 441.0
   - name: HS17
     id: 100
     lat: 34.627049
     lon: 38.242949
+    elevation: 570.0
   - name: HS18
     id: 99
     lat: 34.610936
     lon: 38.252986
+    elevation: 488.0
   - name: HS19
     id: 98
     lat: 33.415748
     lon: 36.284515
+    elevation: 670.0
   - name: HS20
     id: 111
     lat: 33.353465
     lon: 36.484825
+    elevation: 606.0
   - name: HS21
     id: 110
     lat: 33.411662
     lon: 36.191734
+    elevation: 765.0
   - name: HS22
     id: 109
     lat: 33.707949
     lon: 36.672864
+    elevation: 955.5
   - name: HS23
     id: 108
     lat: 33.181959
     lon: 36.572013
+    elevation: 675.0
   - name: HS24
     id: 107
     lat: 33.444788
     lon: 36.309884
+    elevation: 657.0
   - name: HS25
     id: 106
     lat: 33.457617
     lon: 36.130844
+    elevation: 887.6
   - name: HS26
     id: 145
     lat: 33.046853
     lon: 39.608339
+    elevation: 778.7
   - name: HS27
     id: 156
     lat: 33.427553
     lon: 35.934889
+    elevation: 1523.5
   - name: HS28
     id: 189
     lat: 33.27497
     lon: 36.27019
+    elevation: 733.0
   - name: HS29
     id: 190
     lat: 33.251736
     lon: 36.270972
+    elevation: 917.0
   - name: HS30
     id: 191
     lat: 33.28116
     lon: 36.264183
+    elevation: 775.0
   - name: HS31
     id: 210
     lat: 33.732974
     lon: 36.50904
+    elevation: 1086.2
   - name: HS32
     id: 209
     lat: 32.075858
     lon: 36.144587
+    elevation: 600.0
   - name: HS33
     id: 118
     lat: 33.035232
     lon: 35.138647
+    elevation: 33.0
   - name: HS34
     id: 183
     lat: 34.927537
     lon: 35.99203
+    elevation: 333.0
   - name: HS35
     id: 150
     lat: 33.804145
     lon: 36.149846
+    elevation: 1391.0
   - name: HS36
     id: 188
     lat: 33.234722
     lon: 36.148784
+    elevation: 745.0
   - name: HS37
     id: 215
     lat: 33.552186
     lon: 36.447207
+    elevation: 613.0
   - name: HS38
     id: 214
     lat: 32.438261
     lon: 36.019166
+    elevation: 635.0
   - name: HS39
     id: 213
     lat: 32.587032
     lon: 35.399849
+    elevation: 43.0
   - name: HS40
     id: 212
     lat: 32.825222
     lon: 35.996227
+    elevation: 503.0
   - name: HS41
     id: 149
     lat: 32.75794
     lon: 35.897852
+    elevation: 389.0
   - name: HS42
     id: 146
     lat: 32.746107
     lon: 35.87959
+    elevation: 366.0
   - name: HStad01
     id: 144
     lat: 36.999064
     lon: 35.329559
+    elevation: 24.0
   - name: HStad02
     id: 143
     lat: 35.146097
     lon: 33.3141
+    elevation: 182.0
   - name: HStad03
     id: 142
     lat: 36.21602
     lon: 37.156712
+    elevation: 386.0
   - name: HStad04
     id: 141
     lat: 35.560507
     lon: 35.744414
+    elevation: 9.0
   - name: HStad05
     id: 140
     lat: 35.116772
     lon: 36.761856
+    elevation: 299.0
   - name: HStad06
     id: 139
     lat: 33.528229
     lon: 36.298248
+    elevation: 693.0
   - name: HT01
     id: 117
     lat: 36.848222
     lon: 34.721373
+    elevation: 15.6
   - name: HT02
     id: 192
     lat: 37.019719
     lon: 35.34361
+    elevation: 31.0
   - name: H_med_orig_01
     id: 138
     lat: 37.011605
     lon: 35.352592
+    elevation: 22.0
   - name: H_med_orig_02
     id: 137
     lat: 34.78798
     lon: 32.44528
+    elevation: 146.0
   - name: H_med_orig_03
     id: 136
     lat: 34.921449
     lon: 33.604271
+    elevation: 26.0
   - name: H_med_orig_04
     id: 135
     lat: 34.707989
     lon: 32.981915
+    elevation: 129.4
   - name: H_med_orig_05
     id: 134
     lat: 32.785536
     lon: 34.980603
+    elevation: 282.0
   - name: H_med_orig_06
     id: 133
     lat: 35.12802
     lon: 33.378603
+    elevation: 179.0
   - name: H_med_orig_07
     id: 132
     lat: 32.833474
     lon: 34.986785
+    elevation: 4.3
   - name: H_med_orig_08
     id: 131
     lat: 33.892996
     lon: 35.523027
+    elevation: 51.0
   - name: H_med_orig_09
     id: 182
     lat: 37.02812
     lon: 35.351901
+    elevation: 30.0
   - name: Haifa
     id: 13
     lat: 32.810748
     lon: 35.04354
+    elevation: 6.0
   - name: Hama
     id: 14
     lat: 35.118044
     lon: 36.712379
+    elevation: 300.0
   - name: Hatay
     id: 15
     lat: 36.36232
     lon: 36.287422
+    elevation: 69.5
   - name: Hatzerim
     id: 81
     lat: 31.23881
     lon: 34.65768
+    elevation: 215.8
   - name: Hatzor
     id: 222
     lat: 31.760397
     lon: 34.725255
+    elevation: 33.5
   - name: Herzliya
     id: 66
     lat: 32.179374
     lon: 34.837941
+    elevation: 36.0
   - name: Incirlik
     id: 16
     lat: 37.002048
     lon: 35.426089
+    elevation: 58.2
   - name: Jirah
     id: 17
     lat: 36.096872
     lon: 37.936536
+    elevation: 353.0
   - name: Kahramanmaras
     id: 75
     lat: 37.538483
     lon: 36.952401
+    elevation: 478.3
   - name: Kedem
     id: 88
     lat: 31.260531
     lon: 34.640461
+    elevation: 194.9
   - name: Khalkhalah
     id: 18
     lat: 33.078369
     lon: 36.5411
+    elevation: 708.0
   - name: Kharab Ishk
     id: 59
     lat: 36.546869
     lon: 38.587487
+    elevation: 431.4
   - name: King Abdullah II
     id: 65
     lat: 32.00551
     lon: 36.223695
+    elevation: 700.0
   - name: King Hussein Air College
     id: 19
     lat: 32.35668
     lon: 36.259855
+    elevation: 672.0
   - name: Kingsfield
     id: 45
     lat: 35.014806
     lon: 33.717033
+    elevation: 84.0
   - name: Kiryat Shmona
     id: 20
     lat: 33.215815
     lon: 35.595835
+    elevation: 104.0
   - name: Konya
     id: 218
     lat: 37.977748
     lon: 32.561488
+    elevation: 1038.6
   - name: Kuweires
     id: 31
     lat: 36.187494
     lon: 37.581495
+    elevation: 361.6
   - name: Lakatamia
     id: 48
     lat: 35.104606
     lon: 33.321655
+    elevation: 231.0
   - name: Larnaca
     id: 47
     lat: 34.873174
     lon: 33.623249
+    elevation: 5.0
   - name: Marj Ruhayyil
     id: 23
     lat: 33.288761
     lon: 36.455438
+    elevation: 658.6
   - name: Marj as Sultan North
     id: 22
     lat: 33.500281
     lon: 36.467149
+    elevation: 611.6
   - name: Marj as Sultan South
     id: 8
     lat: 33.487222
     lon: 36.475394
+    elevation: 611.4
   - name: Marka
     id: 67
     lat: 31.972763
     lon: 35.991746
+    elevation: 759.9
   - name: Megiddo
     id: 24
     lat: 32.597107
     lon: 35.230082
+    elevation: 55.0
   - name: Mezzeh
     id: 25
     lat: 33.477795
     lon: 36.224216
+    elevation: 720.2
   - name: Minakh
     id: 26
     lat: 36.521376
     lon: 37.041337
+    elevation: 492.0
   - name: Muwaffaq Salti
     id: 68
     lat: 31.817617
     lon: 36.778686
+    elevation: 498.8
   - name: Naqoura
     id: 52
     lat: 33.107905
     lon: 35.127286
+    elevation: 105.0
   - name: Nevatim
     id: 62
     lat: 31.208377
     lon: 35.012096
+    elevation: 420.0
   - name: Nicosia
     id: 43
     lat: 35.152675
     lon: 33.275079
+    elevation: 210.0
   - name: Palmachim
     id: 223
     lat: 31.902807
     lon: 34.693438
+    elevation: 13.8
   - name: Palmyra
     id: 28
     lat: 34.557297
     lon: 38.316824
+    elevation: 393.9
   - name: Paphos
     id: 46
     lat: 34.718152
     lon: 32.484789
+    elevation: 25.9
   - name: Pinarbashi
     id: 51
     lat: 35.273829
     lon: 33.268239
+    elevation: 235.0
   - name: Prince Hassan
     id: 64
     lat: 32.160735
     lon: 37.149403
+    elevation: 660.0
   - name: Qabr as Sitt
     id: 29
     lat: 33.458736
     lon: 36.357718
+    elevation: 650.5
   - name: Ramat David
     id: 30
     lat: 32.666411
     lon: 35.184166
+    elevation: 39.6
   - name: Rayak
     id: 32
     lat: 33.851123
     lon: 35.987324
+    elevation: 906.9
   - name: Rene Mouawad
     id: 33
     lat: 34.5893
     lon: 36.011449
+    elevation: 4.8
   - name: Rosh Pina
     id: 34
     lat: 32.982648
     lon: 35.570738
+    elevation: 264.6
   - name: Ruwayshid
     id: 57
     lat: 32.404967
     lon: 39.130518
+    elevation: 907.3
   - name: Sanliurfa
     id: 58
     lat: 37.448071
     lon: 38.898378
+    elevation: 824.0
   - name: Sanliurfa Heliport
     id: 224
     lat: 37.186493
     lon: 38.791602
+    elevation: 598.9
   - name: Sayqal
     id: 35
     lat: 33.679842
     lon: 37.217112
+    elevation: 693.0
   - name: Shayrat
     id: 36
     lat: 34.490202
     lon: 36.907613
+    elevation: 804.0
   - name: T2
     id: 225
     lat: 34.389768
     lon: 40.153521
+    elevation: 391.0
   - name: T3
     id: 226
     lat: 34.528957
     lon: 38.729439
+    elevation: 388.3
   - name: Tabqa
     id: 37
     lat: 35.754722
     lon: 38.566448
+    elevation: 335.0
   - name: Taftanaz
     id: 38
     lat: 35.974106
     lon: 36.781442
+    elevation: 311.0
   - name: Tal Siman
     id: 60
     lat: 36.262422
     lon: 38.928312
+    elevation: 299.0
   - name: Tel Nof
     id: 220
     lat: 31.838354
     lon: 34.832634
+    elevation: 55.0
   - name: Teyman
     id: 91
     lat: 31.286974
     lon: 34.722804
+    elevation: 175.0
   - name: Tha'lah
     id: 5
     lat: 32.704004
     lon: 36.413775
+    elevation: 733.2
   - name: Tiyas
     id: 39
     lat: 34.522629
     lon: 37.630123
+    elevation: 548.0
   - name: Wujah Al Hajar
     id: 40
     lat: 34.281337
     lon: 35.680106
+    elevation: 198.2
   - name: Zarqa
     id: 56
     lat: 32.025762
     lon: 36.143735
+    elevation: 650.6
   TheChannel:
   - name: Abbeville Drucat
     id: 1

@@ -6,6 +6,7 @@ import json
 import sqlite3
 from pathlib import Path
 
+import pytest
 import yaml
 
 from veaf_build.dcs_data import airdromes as A
@@ -210,3 +211,26 @@ def test_committed_positions_are_the_reference_points() -> None:
     kobuleti = next(a for a in theatres["Caucasus"] if a["name"] == "Kobuleti")
     assert (kobuleti["lat"], kobuleti["lon"]) == (41.929919, 41.863275)
     assert any(a["name"] == "Abbeville Drucat" for a in theatres["TheChannel"])
+
+
+# FEAT-MISSION-WIND-CHECK ticket 01 e: the wind is set for a reference airfield, at its altitude.
+
+
+def test_the_reference_elevation_is_kept_when_the_reference_point_has_one() -> None:
+    connection = sqlite3.connect(":memory:")
+    connection.execute("create table airbases (theatre text, airdromeId integer, name text, referencePoint text)")
+    point = {"latitude": 32.98, "longitude": 35.57, "elevationM": 264.61}
+    connection.execute("insert into airbases values ('Syria', 34, 'Rosh Pina', ?)", (json.dumps(point),))
+    assert A.reference_airbases(connection) == {
+        "Syria": [{"id": 34, "name": "Rosh Pina", "lat": 32.98, "lon": 35.57, "elevation": 264.6}]
+    }
+    assert A.positions(A.reference_airbases(connection)["Syria"]) == [
+        {"name": "Rosh Pina", "id": 34, "lat": 32.98, "lon": 35.57, "elevation": 264.6}
+    ]
+
+
+def test_committed_positions_carry_rosh_pina_elevation() -> None:
+    from veaf_libs.dcs_airdromes import airfields_for_theatre
+
+    rosh_pina = next(a for a in airfields_for_theatre("Syria") if a["name"] == "Rosh Pina")
+    assert rosh_pina["elevation"] == pytest.approx(262, abs=5)

@@ -1,6 +1,6 @@
 # 07 — Carrier: option not to start the VEAF 60 s loop
 
-Status: 🧑 waiting-human (code done; checked on a converted BFR part)
+Status: ✅ done (code done; left to BFR: checked on a converted BFR part)
 
 ## Done when
 

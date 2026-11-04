@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-BFR-V6-SUPPORT](FEAT-BFR-V6-SUPPORT/PRD.md) · ✅
+
+What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the study of Bluestorm V2 and SeaShepherd V2 (2026-10-27): two security fixes, the F10 menu in multiplayer (live pilot, group submenus, per-pilot submenus), combat zone fixes, a carrier option, modules initialized by the mission, the weather welcome switch, named points from a script, the v5 converter, and a page on porting a mission with its own script layer. Fourteen tickets, one PR. Merged in #1203 and shipped in 6.33.0; closed on 2026-11-04 without the in-game checks of tickets 01, 03-05, 07, 12 and 13, left to BFR.
+
 ### [FIX-AUDIT-FINDINGS-2026-11](FIX-AUDIT-FINDINGS-2026-11/PRD.md) · ✅
 
 The four audit findings on VMCT (`davidp57/security-audits` #137, #138, #146, #147) and the seven `pypdf` Dependabot alerts: nested filtered F10 menus keep their filter, `help_menus` negated with the same generated call by default, a static on another unit warned again, `set_route` takes `HOME, IP, TGT, HOME`. Five tickets, one PR (#1236).

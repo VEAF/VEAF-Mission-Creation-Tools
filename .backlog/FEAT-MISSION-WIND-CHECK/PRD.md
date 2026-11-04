@@ -1,6 +1,6 @@
 # FEAT-MISSION-WIND-CHECK — set the wind pilots will meet, and say the wind DCS simulates
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 ## Why
 

@@ -305,14 +305,16 @@ def _check_skills(category: str, skill: str | None, units: list[dict[str, Any]])
 
 
 def _static_clear_ground(mission_content: dict[str, Any], group: dict[str, Any], coalition: str) -> list[str]:
-    """Say when a static stands where the clear-ground catalogue measures no room for it; never move it.
+    """Say when a static stands on another ground unit, or where the clear-ground catalogue measures no room for it.
+
+    Never moves it.
 
     A static's position is the maker's (it often sits on a building or a parking on purpose), so it is
     not moved like a vehicle group. Without this, nothing said the six fuel tanks an assistant placed
     stood in a wood; it probed with a throw-away vehicle group instead (FIX-COWORK-SESSION-FINDINGS 12).
 
     Returns:
-        The warning, or none when the place is clear.
+        The warnings, none when the place is clear.
     """
     theatre = mission_content.get("theatre")
     unit = group["units"][0]

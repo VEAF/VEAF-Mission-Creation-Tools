@@ -480,13 +480,16 @@ class Line:
 
     Args:
         ok: Whether it passed; ``None`` for a line that informs without judging.
-        check: Which check: ``menu``, ``zone``, ``mission``, ``route``.
+        check: Which check: ``menu``, ``zone``, ``mission``, ``route``, ``wind``.
         text: What was measured.
+        warning: A line that does not fail but must be read (``ok`` is ``None``): the helicopter rule
+            of the wind check (FEAT-MISSION-WIND-CHECK). Counted apart in the verdict.
     """
 
     ok: bool | None
     check: str
     text: str
+    warning: bool = False
 
 
 @dataclass
@@ -495,11 +498,16 @@ class Report:
 
     lines: list[Line] = field(default_factory=list)
 
-    def add(self, ok: bool | None, check: str, text: str) -> Line:
+    def add(self, ok: bool | None, check: str, text: str, warning: bool = False) -> Line:
         """Record a line and return it."""
-        line = Line(ok, check, text)
+        line = Line(None if warning else ok, check, text, warning)
         self.lines.append(line)
         return line
+
+    @property
+    def warnings(self) -> list[Line]:
+        """The lines that warn."""
+        return [line for line in self.lines if line.warning]
 
     @property
     def failures(self) -> list[Line]:
@@ -518,16 +526,17 @@ def format_line(line: Line) -> str:
     The fact is escaped: a spawned group is named ``<zone> [b] <base>#<id>``, and Rich reads ``[b]`` as
     "bold" and swallows it.
     """
-    mark = {True: "[green]✓[/]", False: "[red]✗[/]", None: "[dim]·[/]"}[line.ok]
+    mark = "[yellow]![/]" if line.warning else {True: "[green]✓[/]", False: "[red]✗[/]", None: "[dim]·[/]"}[line.ok]
     return f"  {mark} {line.check:<8} {escape(line.text)}"
 
 
 def verdict(report: Report) -> str:
-    """Write the final verdict line."""
+    """Write the final verdict line; warnings are counted apart and never fail it."""
     checked = sum(1 for line in report.lines if line.ok is not None)
+    warned = t("mission_check.verdict.warnings", count=len(report.warnings)) if report.warnings else ""
     if report.passed:
-        return t("mission_check.verdict.pass", count=checked)
-    return t("mission_check.verdict.fail", failed=len(report.failures), count=checked)
+        return t("mission_check.verdict.pass", count=checked) + warned
+    return t("mission_check.verdict.fail", failed=len(report.failures), count=checked) + warned
 
 
 # --------------------------------------------------------------------------------------------------
@@ -639,6 +648,7 @@ def run_checks(
     sleep: Callable[[float], None],
     say: Callable[[Line], None],
     only: list[str] | None = None,
+    report: Report | None = None,
 ) -> Report:
     """Run the menu, zone, mission and route checks.
 
@@ -648,11 +658,12 @@ def run_checks(
         say: Told each line as soon as it is known — the run takes minutes.
         only: Zone or mission names to check; every one when ``None``. The menu and the mission's own
             routed groups are checked either way.
+        report: The report to add to — the wind check's, which runs first — or a new one.
 
     Returns:
         The report.
     """
-    report = Report()
+    report = report if report is not None else Report()
     check_menu(run, report, say)
 
     routed = parse_names(run(MISSION_ROUTED_LUA))

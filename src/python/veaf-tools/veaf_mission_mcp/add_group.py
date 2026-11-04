@@ -34,6 +34,8 @@ _DEFAULT_SPEED_MPS = 5.5555555555556  # ~20 km/h, a typical DCS ground-group cru
 # (59 km/h; 5.6 m/s is 11 % of them) and the first point is `On Road` in 85 groups, `Off Road` in 37
 # (FIX-OPEN-TRAINING-FALKLANDS-FINDINGS ticket 04). DCS clamps a speed above what the vehicle can do.
 _ROAD_SPEED_MPS = 16.4
+# A static closer than this to another ground unit stands on it: half the 20 m a depot spaces its tanks.
+_STATIC_OVERLAP_METERS = 10.0
 
 #: A ground group's ROE, `Option` 0 on its first waypoint: DCS's ``AI.Option.Ground.val.ROE``, and the
 #: values the Mission Editor writes (2: 9 263, 3: 105, 4: 643 occurrences over 606 missions under
@@ -303,29 +305,50 @@ def _check_skills(category: str, skill: str | None, units: list[dict[str, Any]])
 
 
 def _static_clear_ground(mission_content: dict[str, Any], group: dict[str, Any], coalition: str) -> list[str]:
-    """Say when a static stands where the clear-ground catalogue measures no room for it; never move it.
+    """Say when a static stands on another ground unit, or where the clear-ground catalogue measures no room for it.
+
+    Never moves it.
 
     A static's position is the maker's (it often sits on a building or a parking on purpose), so it is
     not moved like a vehicle group. Without this, nothing said the six fuel tanks an assistant placed
     stood in a wood; it probed with a throw-away vehicle group instead (FIX-COWORK-SESSION-FINDINGS 12).
 
     Returns:
-        The warning, or none when the place is clear.
+        The warnings, none when the place is clear.
     """
     theatre = mission_content.get("theatre")
-    # the scenery only: the other statics of a depot stand 20 m apart on purpose, and counting them as
-    # occupied ground warned about every tank after the first
+    unit = group["units"][0]
+    ux, uy = float(unit["x"]), float(unit["y"])
+    # The other ground units are checked apart, on a much shorter distance than a vehicle group's clearance:
+    # the statics of a depot stand 20 m apart on purpose, and only one standing *on* another is a fault
+    # (security-audits#138).
+    on_top = next(
+        (
+            (ox, oy)
+            for ox, oy, orad in occupied_by(mission_content)
+            if math.hypot(ux - ox, uy - oy) < orad + _STATIC_OVERLAP_METERS
+        ),
+        None,
+    )
+    found = []
+    if on_top is not None:
+        found.append(
+            f"static '{unit['name']}' stands within {_STATIC_OVERLAP_METERS:.0f} m of another ground unit of the "
+            f"mission, at x={on_top[0]:.0f}, y={on_top[1]:.0f}: they would spawn into each other. Not moved: a "
+            "static's position is the maker's - move one of them (set_group_properties)"
+        )
     placement = place_on_clear_ground(theatre, group["units"], coalition=coalition)
     if placement.dx or placement.dy:
-        unit = group["units"][0]
-        x, y = float(unit["x"]) + placement.dx, float(unit["y"]) + placement.dy
-        return [
+        x, y = ux + placement.dx, uy + placement.dy
+        found.append(
             f"static '{unit['name']}' stands where the clear-ground catalogue of {theatre} measures no room "
             f"for it; the nearest clear spot is {math.hypot(placement.dx, placement.dy):.0f} m away, at "
             f"x={x:.0f}, y={y:.0f}. Not moved: a static's position is the maker's - move it "
             "(set_group_properties) unless it is meant to sit on that scenery"
-        ]
-    return [placement.message] if placement.message and not placement.covered else []
+        )
+    elif placement.message and not placement.covered:
+        found.append(placement.message)
+    return found
 
 
 def _apply_ground_options(group: dict[str, Any], *, roe: str | None, disperse: bool | None) -> None:

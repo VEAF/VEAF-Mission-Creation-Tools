@@ -29,6 +29,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **A random red on `python-quality`**: the `update-dcs-data` dispatch tests ran the airdromes generator for real, which downloaded the reference database and rewrote the shipped `airdrome-positions.yaml` in place while other test workers read it; one that caught it truncated failed (#1227's briefing test). The generator is now patched, and a test checks that a dispatch run leaves the shipped data untouched.
 
+- **Four defects found by the November audit** (FIX-AUDIT-FINDINGS-2026-11).
+  A menu reserved to some groups (`addSubMenuForGroups`) or split per pilot (`addSubMenuPerPilot`), placed under another such menu, ignored its own filter and showed to every pilot of the outer one; it now asks its filter there too.
+  `RADIO.init.help_menus` was passed as is to `veafRadio.initialize`'s `skipHelpMenus`, so `true` *hid* the "Help" entries: it is now negated, and its default becomes `false`, which builds the same `veafRadio.initialize(true)` as before — the help entries stay hidden, as in every VEAF mission since v5, and `help_menus: true` now shows them.
+  `add_group` warns again when a static stands on another ground unit of the mission (within 10 m), without warning about the statics of a depot spaced 20 m apart.
+  `set_route` accepts a return to the departure point (`HOME, IP, TGT, HOME`): the same name at the same place lists its key twice, as the build accepts; one name at two places is still refused.
+  `pypdf` goes to 6.21.4 in the development lock (seven Dependabot alerts).
+
 ### Added
 
 - **Training versions of a mission night, one per role** (FEAT-ROLE-TRAINING-VARIANTS).

@@ -102,14 +102,16 @@ _MODULE_INIT_ORDER: list[str] = [
 #: it, so a mission that never mentions it generates the exact same call as before the key
 #: existed. That is how ``RADIO.create_menus`` stays additive.
 _MODULE_INIT_PARAMS: dict[str, list[tuple[str, object]]] = {
-    "RADIO": [("help_menus", True), ("create_menus", None)],
+    # `help_menus` off by default: every v5 missionConfig called `veafRadio.initialize(true)`, the help
+    # entries skipped, and v6 kept that until the key was found inverted (security-audits#146).
+    "RADIO": [("help_menus", False), ("create_menus", None)],
     "CARRIER": [("include_carrier_operations_radio", True), ("operations_scheduler", None)],
 }
 
 #: Init keys whose YAML meaning is the negation of the Lua parameter they feed.
-#: ``create_menus: false`` → ``dontCreateMenus = true``: the YAML says what the mission-maker
-#: wants, the Lua says what the function takes.
-_NEGATED_INIT_KEYS: frozenset[str] = frozenset({"create_menus"})
+#: ``create_menus: false`` → ``dontCreateMenus = true``, ``help_menus: true`` → ``skipHelpMenus = false``:
+#: the YAML says what the mission-maker wants, the Lua says what the function takes.
+_NEGATED_INIT_KEYS: frozenset[str] = frozenset({"create_menus", "help_menus"})
 
 #: The key that keeps a module's script and configuration but leaves its ``initialize()`` to the mission's
 #: own scripts (FEAT-BFR-V6-SUPPORT ticket 12). A mission layer that starts a module itself got it twice from

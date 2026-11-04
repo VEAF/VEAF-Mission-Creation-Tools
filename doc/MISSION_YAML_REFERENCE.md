@@ -495,7 +495,7 @@ Les champs supplémentaires `init:` ou de données sont spécifiques à chaque m
 
 | Champ | Type | Défaut | Description |
 |-------|------|--------|-------------|
-| `help_menus` | booléen | `true` | Transmis à `veafRadio.initialize` en tant que `skipHelpMenus` |
+| `help_menus` | booléen | `false` | `true` affiche les entrées "Aide" intégrées dans les menus radio ; transmis inversé au `skipHelpMenus` de `veafRadio.initialize` |
 | `create_menus` | booléen | `true` | `false` ne construit **aucun menu F10 VEAF** (`dontCreateMenus`). Combiné à `security:`, c'est ainsi qu'une mission publique garde les commandes VEAF accessibles uniquement via des marqueurs protégés par mot de passe. Omettez la clé pour conserver le comportement actuel |
 
 ```yaml

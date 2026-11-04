@@ -323,4 +323,50 @@ function TestRadioPilots:test_a_pilot_leaving_takes_his_submenu_with_him()
   luaunit.assertEquals(#self:_callsOfKind("addSubMenuForGroup"), 0)
 end
 
+-- -----------------------------------------------------------------------
+-- a filtered menu nested under a reserved one keeps its own filter
+-- -----------------------------------------------------------------------
+
+local function carrierGroupOnly(_, groupId)
+  return groupId == 1
+end
+
+local function qualifiedPilotOnly(unitName)
+  return unitName == "unit A"
+end
+
+function TestRadioPilots:test_a_per_pilot_menu_under_a_reserved_one_keeps_its_filter()
+  birth("unit A", 1, "Alpha")
+  birth("unit B", 1, "Bravo")
+  local carrier = veafRadio.addSubMenuForGroups("Carrier", self.root, carrierGroupOnly)
+  local landing = veafRadio.addSubMenuPerPilot("Landing", carrier, qualifiedPilotOnly)
+  self.builder:addCommand("Request", landing, noop, nil, veafRadio.USAGE_ForGroup)
+  self.builder:rebuild()
+  -- Bravo fails the inner filter: Alpha alone passes, so he gets the entries directly.
+  luaunit.assertEquals(self:_groupLabels(1), { "CARRIER", "Landing", "Request" })
+  luaunit.assertEquals(self:_callsOfKind("addCommandForGroup")[1].args[5], "unit A")
+end
+
+function TestRadioPilots:test_a_reserved_menu_under_a_reserved_one_keeps_its_filter()
+  birth("unit A", 1, "Alpha")
+  local carrier = veafRadio.addSubMenuForGroups("Carrier", self.root, carrierGroupOnly)
+  local ops = veafRadio.addSubMenuForGroups("Operations", carrier, function()
+    return false
+  end)
+  self.builder:addCommand("Launch", ops, noop)
+  self.builder:addCommand("Status", carrier, noop)
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_groupLabels(1), { "CARRIER", "Status" })
+end
+
+function TestRadioPilots:test_a_per_pilot_menu_under_a_pilot_menu_asks_its_filter_for_that_pilot()
+  birth("unit A", 1, "Alpha")
+  birth("unit B", 1, "Bravo")
+  local landing = veafRadio.addSubMenuPerPilot("Landing", self.root)
+  local grades = veafRadio.addSubMenuPerPilot("Grades", landing, qualifiedPilotOnly)
+  self.builder:addCommand("Show", grades, noop, nil, veafRadio.USAGE_ForGroup)
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_groupLabels(1), { "LANDING", "Alpha", "Grades", "Show", "Bravo" })
+end
+
 os.exit(luaunit.LuaUnit.run())

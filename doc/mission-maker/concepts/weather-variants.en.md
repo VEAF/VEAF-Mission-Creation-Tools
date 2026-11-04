@@ -58,6 +58,32 @@ versions:
 - **Dates**: `"YYYY-MM-DD"`, `today`, `tomorrow`, `+N` / `-N` days.
 - **`metar:`** replaces the `weather:` block with a real observation.
 
+## The wind {#wind}
+
+**`wind_speed` and `wind_direction` are the wind wanted 10 m above a reference airfield**, as a METAR or the ATIS will give it there — not the Mission Editor's setting.
+DCS multiplies its "ground wind" by 2.14 at sea level, and reduces it near the ground the less the higher the terrain: 9 m/s set (17 kt) blew 24 kt at 10 m above Rosh Pina and 36 kt at 1,000 ft ([DCS's wind model](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/whitepapers/dcs-wind-model.en.md)).
+So the build writes the setting that gives the wanted wind, and its log says for which airfield.
+
+- **The reference airfield** is, in order: the METAR's station when it is on the map; otherwise `reference_airfield`; otherwise the first player group's departure airfield; otherwise sea level, with a warning (the wind will blow stronger over any inland airfield).
+- **Aloft**, the 2,000 m wind is 2.2 times the ground setting, veered 20° to the right (`wind_veer`, 0 to 30°); at 8,000 m, 3 m/s more. The wind then only grows with height.
+  `wind_speed_2000` / `wind_direction_2000` and `wind_speed_8000` / `wind_direction_8000` (where the wind comes from, degrees) set them by hand; a 2,000 m wind under 2.14 times the ground setting makes a jet 300 to 600 m above the ground, and the build says so.
+  Never set an upper wind opposed to the surface one: DCS makes a layer without wind between them.
+- **`clearsky: true`** caps the wanted wind at 15 kt, hence the simulated surface wind at the reference airfield, and drops the gusts.
+- **Gusts**: a METAR's `G` group (`27015G25KT`), or `wind_gust` (m/s), becomes DCS's turbulence (`groundTurbulence`), from the in-game measurement: a gust gap G over the mean wind takes a turbulence of G / 0.62, capped at 3 m/s. `turbulence` (m/s, as the editor shows it) wins over the gust.
+
+```yaml
+versions:
+  - name: windy
+    time: "10:00"
+    weather:
+      wind_speed: 7.7           # 15 kt at 10 m above Rosh Pina
+      wind_direction: 270.0
+      reference_airfield: "Rosh Pina"
+      wind_gust: 10.3           # 20 kt
+```
+
+The briefing announces the **simulated** wind, layer by layer: the one `inspect_built_mission` and the briefing deck give, and that `veaf-tools dcs mission-check` checks against the briefing, without DCS ([mission-check](../../CLI_REFERENCE.en.md#mission-check)).
+
 ## The gotcha {#gotcha}
 
 **The file ships non-empty, so the step runs on your very first build.** Your first mission produces

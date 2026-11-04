@@ -6,6 +6,7 @@ nothing more: one line per item, never a raw table, since the answer stays in th
 the mission does not have reads ``"absent"``, so silence is never taken for a pass.
 """
 
+from datetime import date as dt_date
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from mission_tools.mission_constants import DEFAULT_SCRIPTS_LOCATION
 from mission_tools.miz_tools import DcsMission, list_members, read_miz
 from presets_injector.airfield_channels_manager import load_reference
 from veaf_libs.mission_table import indexed
+from veaf_libs.mission_wind import has_helicopter_slot, helicopter_breaches, helicopter_places
 
 #: The folder the build writes the weather variants into, beside the main `.miz`.
 _VARIANTS_FOLDER = "missions"
@@ -168,25 +170,43 @@ def _bullseyes(content: dict[str, Any]) -> dict[str, dict[str, int]] | str:
     return found or _ABSENT
 
 
-def _weather_line(label: str, content: dict[str, Any]) -> str:
-    """One mission's start time and weather as pilots read it: sky, wind FROM at the ground, visibility."""
+def _weather_lines(label: str, content: dict[str, Any], theatre: str | None) -> list[str]:
+    """One mission's start time and weather as pilots read it, then its wind.
+
+    The wind is the one DCS will simulate above the reference airfield, by layer and magnetic — what a
+    briefing announces — then the DCS setting on its own line, labelled "set": the setting is not the wind
+    (FEAT-MISSION-WIND-CHECK). With a player helicopter, the helicopter rule's breaches follow.
+
+    Args:
+        label: ``main`` or the variant's name.
+        content: Its mission table.
+        theatre: Its theatre.
+
+    Returns:
+        The lines.
+    """
     seconds = int(content.get("start_time") or 0)
     stored = content.get("date") or {}
-    date = (
-        f"{int(stored['Year']):04d}-{int(stored['Month']):02d}-{int(stored['Day']):02d} "
-        if all(key in stored for key in ("Year", "Month", "Day"))
-        else ""
-    )
-    weather = _weather(content.get("weather") or {})
-    ground = weather.winds["ground"]
+    has_date = all(key in stored for key in ("Year", "Month", "Day"))
+    date = f"{int(stored['Year']):04d}-{int(stored['Month']):02d}-{int(stored['Day']):02d} " if has_date else ""
+    when = dt_date(int(stored["Year"]), int(stored["Month"]), int(stored["Day"])) if has_date else None
+    weather = _weather(content.get("weather") or {}, content, theatre, when)
     sky = weather.cover if weather.cover == "clear" else f"{weather.cover} at {round(weather.cloud_base)} m"
     extras = "".join(f", {name}" for name, on in (("rain", weather.rain), ("fog", weather.fog)) if on)
     # An answer to the AI, in English like every action of the catalogue, not a message for the user.
-    line = (
-        f"{label}: {date}{seconds // 3600:02d}:{seconds % 3600 // 60:02d}, {sky}, wind {ground.origin:03d}°/"
-        f"{ground.knots} kt at the ground, visibility {round(weather.visibility / 1000)} km{extras}"
-    )
-    return line
+    simulated = ", ".join(f"{wind.layer} {wind.origin:03d}°M/{wind.knots} kt" for wind in weather.simulated)
+    setting = ", ".join(f"{level} {wind.origin:03d}°T/{wind.knots} kt" for level, wind in weather.winds.items())
+    lines = [
+        f"{label}: {date}{seconds // 3600:02d}:{seconds % 3600 // 60:02d}, {sky},"
+        f" visibility {round(weather.visibility / 1000)} km{extras}",
+        f"{label}: wind DCS simulates above {weather.wind_reference}: {simulated}",
+        f"{label}: set (not the wind pilots meet): {setting}",
+    ]
+    if has_helicopter_slot(content):
+        places = helicopter_places(content, theatre)
+        wind = (content.get("weather") or {}).get("wind") or {}
+        lines += [f"{label}: {breach.message()}" for breach in helicopter_breaches(wind, places)]
+    return lines
 
 
 def _support(content: dict[str, Any]) -> list[str] | str:
@@ -279,8 +299,10 @@ def inspect_built_mission(mission_path: Path) -> dict[str, Any]:
     templates = _template_types(content)
     players = _player_groups(content)
     good, dead = _links(mission, templates)
-    weather = [_weather_line("main", content)]
-    weather += [_weather_line(variant.stem, read_miz(variant).mission_content or {}) for variant in variants]
+    theatre = mission.theatre_content
+    weather = _weather_lines("main", content, theatre)
+    for variant in variants:
+        weather += _weather_lines(variant.stem, read_miz(variant).mission_content or {}, theatre)
     return {
         "miz": str(miz),
         "theatre": mission.theatre_content,

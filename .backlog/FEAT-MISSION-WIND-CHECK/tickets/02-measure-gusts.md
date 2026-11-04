@@ -1,6 +1,6 @@
 # 02 — From a gust to `groundTurbulence`
 
-Status: ⬜ ready
+Status: ✅ done
 
 A METAR's gust group (`08024G37KT`) says the peak wind exceeds the mean by 13 kt; DCS only takes a turbulence, `weather.groundTurbulence` (60 in the `.miz` reads as 6 m/s in the editor).
 What DCS does with a turbulence of N m/s is not measured: the whitepaper only characterised the spread of `atmosphere.getWindWithTurbulence` around the base wind (RMS 3.2 m/s at 10 m for 6 m/s) and a floor of 2 % of the 0 m level even at 0.

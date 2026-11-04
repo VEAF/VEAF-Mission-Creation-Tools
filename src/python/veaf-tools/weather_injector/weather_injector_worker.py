@@ -14,6 +14,7 @@ from veaf_libs.base_worker import BaseWorker
 from veaf_libs.geocoding import theatre_bounds
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
+from veaf_libs.mission_wind import first_player_departure
 from veaf_libs.progress import progress_context
 
 from .models import MissionConfig, VersionConfig
@@ -431,13 +432,28 @@ class WeatherInjectorWorker(BaseWorker):
 
         try:
             converter = DCSWeatherConverter()
+            manual = version.weather or {}
+            theatre = self.mission_data.theatre_content or self._read_theatre()
+            # Where the wind is wanted (FEAT-MISSION-WIND-CHECK): the METAR's station on the map wins over
+            # these, which a variant of any kind may give.
+            wind: dict[str, Any] = {
+                "theatre": theatre,
+                "reference_airfield": manual.get("reference_airfield"),
+                "departure_airfield": first_player_departure(self.mission_data.mission_content or {}, theatre),
+                "turbulence_mps": manual.get("turbulence"),
+                "wind_veer": manual.get("wind_veer"),
+                "wind_speed_2000": manual.get("wind_speed_2000"),
+                "wind_direction_2000": manual.get("wind_direction_2000"),
+                "wind_speed_8000": manual.get("wind_speed_8000"),
+                "wind_direction_8000": manual.get("wind_direction_8000"),
+            }
 
             if version.metar:
                 # User provided METAR string
-                weather = converter.to_dcs_lua_table(metar_string=version.metar, clearsky=version.clearsky)
+                conversion = converter.convert(metar_string=version.metar, clearsky=version.clearsky, **wind)
             elif version.airport_icao:
                 # Fetch live weather from avwx using airport ICAO code
-                weather = converter.to_dcs_lua_table(airport_icao=version.airport_icao, clearsky=version.clearsky)
+                conversion = converter.convert(airport_icao=version.airport_icao, clearsky=version.clearsky, **wind)
                 # Said per variant: the fetch is memoised, so its own warning appears once per station
                 # however many variants share it (FIX-SCRATCH-MISSION-FINDINGS ticket 03).
                 if not fetch_metar_string(version.airport_icao):
@@ -445,8 +461,7 @@ class WeatherInjectorWorker(BaseWorker):
                     logger.warning(t("weather.variant_fell_back", name=version.name, icao=version.airport_icao))
             else:
                 # Use individual weather parameters
-                manual = version.weather or {}
-                weather = converter.to_dcs_lua_table(
+                conversion = converter.convert(
                     metar_string="",
                     temperature_celsius=manual.get("temperature"),
                     wind_speed_mps=manual.get("wind_speed"),
@@ -457,9 +472,24 @@ class WeatherInjectorWorker(BaseWorker):
                     precipitation=manual.get("precipitation"),
                     fog_enabled=manual.get("fog_enabled", False),
                     clearsky=version.clearsky,
+                    wind_gust_mps=manual.get("wind_gust"),
+                    **wind,
                 )
 
-            self._set_mission_weather(weather)
+            self._set_mission_weather(conversion.weather)
+            surface = conversion.layers[0]
+            logger.info(
+                t(
+                    "weather.wind_reference",
+                    name=version.name,
+                    airfield=conversion.reference.name,
+                    elevation=round(conversion.reference.elevation),
+                    direction=f"{surface['from_deg_true']:03d}",
+                    knots=surface["knots"],
+                )
+            )
+            for warning in conversion.warnings:
+                logger.warning(t("weather.wind_warning", name=version.name, warning=warning))
             logger.debug("Weather injected")
 
         except Exception as e:

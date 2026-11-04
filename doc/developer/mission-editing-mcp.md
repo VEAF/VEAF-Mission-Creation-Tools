@@ -856,10 +856,17 @@ Chaque action vise un dossier de mission (durable) ou un `.miz`, sauvegardé ava
   `l10n/DEFAULT/dictionary` derrière elle, et la référence reste valide ; `write_mission_folder`
   réécrit désormais ce dictionnaire, seulement s'il change.
 - `set_weather(target, metar?, temperature?, wind_speed?, wind_direction?, visibility?, cloud_type?,
-  cloud_height?, precipitation?, fog_enabled?, clearsky?)` — la météo de la mission **de base**, dans
-  les champs que DCS lit (ticket 19 : la mission vierge a ses nuages au sol, `Preset1` à 0 m). Même
-  vocabulaire et même convertisseur que `versions[].weather`, donc un METAR marche aussi ; les
-  variantes gardent la main au build.
+  cloud_height?, precipitation?, fog_enabled?, clearsky?, reference_airfield?, wind_gust?, turbulence?,
+  wind_veer?, wind_speed_2000?, wind_direction_2000?, wind_speed_8000?, wind_direction_8000?)` — la météo
+  de la mission **de base**, dans les champs que DCS lit (ticket 19 : la mission vierge a ses nuages au
+  sol, `Preset1` à 0 m). Même vocabulaire et même convertisseur que `versions[].weather`, donc un METAR
+  marche aussi ; les variantes gardent la main au build.
+  `wind_speed` est le vent **voulu à 10 m au-dessus du terrain de référence**, pas un réglage de DCS
+  (FEAT-MISSION-WIND-CHECK) : la réponse donne `reference_airfield` (nom, altitude, comment il a été
+  choisi), `simulated_wind` (le vent que DCS simulera au-dessus, par couche : sol, 1 000 et 3 000 ft sol,
+  FL100, FL250) et des `warnings` — niveau de la mer pris faute de terrain, jet dans la couche basse, et
+  avec un slot hélico, chaque endroit où le vent simulé dépasse 20 kt entre 0 et 600 m sol
+  ([le vent](../mission-maker/concepts/weather-variants.md#wind)).
 
 > Les **hashes de mot de passe** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — un cas
 > multi-lignes — ne sont pas couverts pour l'instant : seul le drapeau `SecurityDisabled` l'est.

@@ -453,6 +453,7 @@ at build, variant by variant.
 *Recipe + built · ⭐* — Clouds, wind, temperature, visibility, rain, fog, or a whole METAR. A mission
 created from scratch has its clouds on the ground: this is where to fix it. The weather variants of
 `versions.yaml` still override it, variant by variant.
+The wind asked for is the one pilots will meet 10 m above the departure airfield (or an airfield you name): the tool sets DCS to get it, and the AI gives you the simulated wind by layer, with a warning when helicopters meet more than 20 kt in the first 600 metres.
 
 > 💬 *"Broken clouds at 1,500 m, 12 °C, westerly wind at 10 knots."*
 

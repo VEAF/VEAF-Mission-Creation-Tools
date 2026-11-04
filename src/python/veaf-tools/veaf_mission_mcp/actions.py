@@ -187,6 +187,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "visibility, rain, fog, QNH. The blank mission of a scaffold has its cloud base on the "
                 "ground (Preset1 at 0 m). Same vocabulary as versions.yaml weather, and the same converter, "
                 "so a METAR works too; the weather variants still override it per variant at build. "
+                "The wind is the one WANTED 10 m above a reference airfield (the METAR's station on the map, "
+                "else reference_airfield, else the first player departure), NOT a DCS setting: the tool writes "
+                "the setting that makes DCS simulate it there. The answer gives the wind DCS will simulate by "
+                "layer (simulated_wind) -- brief THAT, never the setting -- and warns where helicopters would "
+                "meet more than 20 kt 0-600 m above the ground. "
                 "Target a FOLDER (durable) or a .miz; backed up."
             ),
             parameters_schema={
@@ -195,7 +200,37 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
                     "metar": {"type": "string", "description": "A METAR string; the fields below override it."},
                     "temperature": {"type": "number", "description": "Ground temperature, degrees C."},
-                    "wind_speed": {"type": "number", "description": "Ground wind speed, m/s."},
+                    "wind_speed": {
+                        "type": "number",
+                        "description": "The wind wanted 10 m above the reference airfield, m/s (what a METAR "
+                        "or the ATIS will say there), not a DCS setting.",
+                    },
+                    "reference_airfield": {
+                        "type": "string",
+                        "description": "The airfield the wind is wanted at, by its DCS name. Default: the "
+                        "METAR's station when it is on the map, else the first player departure airfield.",
+                    },
+                    "wind_gust": {"type": "number", "description": "Gust, m/s; made into DCS turbulence."},
+                    "turbulence": {
+                        "type": "number",
+                        "description": "Turbulence, m/s as the Mission Editor shows it; wins over wind_gust.",
+                    },
+                    "wind_veer": {
+                        "type": "number",
+                        "description": "How far the wind turns clockwise from the surface to 2000 m, 0-30 "
+                        "degrees (20 by default). Never set an upper wind opposed to the surface one: it makes "
+                        "a layer without wind between them.",
+                    },
+                    "wind_speed_2000": {"type": "number", "description": "The 2000 m wind, m/s, set by hand."},
+                    "wind_direction_2000": {
+                        "type": "number",
+                        "description": "Where the 2000 m wind comes FROM, degrees.",
+                    },
+                    "wind_speed_8000": {"type": "number", "description": "The 8000 m wind, m/s, set by hand."},
+                    "wind_direction_8000": {
+                        "type": "number",
+                        "description": "Where the 8000 m wind comes FROM, degrees.",
+                    },
                     "wind_direction": {
                         "type": "number",
                         "description": "Where the wind comes FROM, degrees (as in a METAR).",
@@ -214,8 +249,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "fog_enabled": {"type": "boolean"},
                     "clearsky": {
                         "type": "boolean",
-                        "description": "Cap to VFR-friendly conditions (clouds at most FEW, wind < 15 kt, "
-                        "10 km visibility, no rain, no fog).",
+                        "description": "Cap to VFR-friendly conditions (clouds at most FEW, a surface wind "
+                        "of 15 kt at most at the reference airfield, 10 km visibility, no rain, no fog, no gust).",
                     },
                 },
                 "required": ["target"],

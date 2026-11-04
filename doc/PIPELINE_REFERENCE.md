@@ -617,7 +617,7 @@ versions:
     time: "12:00"
     weather:                            # météo manuelle (alternative au metar)
       temperature: 25.0                 # °C, plage -50..50
-      wind_speed: 8.0                   # m/s
+      wind_speed: 8.0                   # m/s, voulu à 10 m au-dessus du terrain de référence
       wind_direction: 270.0             # degrés (0=Nord)
       visibility: 9999                  # mètres
       cloud_type: "clear"               # clear | few | scattered | broken | overcast
@@ -635,7 +635,7 @@ versions:
 | `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo, et affichable dans le briefing via [`${METAR}`](#briefing-variables) |
 | `airport_icao` | string | Non | Code OACI dont la météo réelle est récupérée en ligne (utilisé sans `metar`) |
 | `weather` | objet | Non | Surcharge météo manuelle (utilisée sans `metar` ni `airport_icao`) |
-| `clearsky` | booléen | Non | Plafonne la météo à des conditions de vol à vue : nuages au plus FEW, vent sous 15 kt, visibilité de 10 km ou plus, ni pluie ni brouillard. Garde la vraie météo d'un `airport_icao` tout en restant pilotable à vue ; le [`${METAR}`](#briefing-variables) du briefing décrit le ciel plafonné. Défaut `false` |
+| `clearsky` | booléen | Non | Plafonne la météo à des conditions de vol à vue : nuages au plus FEW, vent simulé au sol du terrain de référence sous 15 kt, sans rafales, visibilité de 10 km ou plus, ni pluie ni brouillard. Garde la vraie météo d'un `airport_icao` tout en restant pilotable à vue ; le [`${METAR}`](#briefing-variables) du briefing décrit le ciel plafonné. Défaut `false` |
 
 ### Afficher la météo dans le briefing : `${METAR}` {#briefing-variables}
 
@@ -702,13 +702,19 @@ Ce que `${METAR}` vaut selon la variante :
 | Champ | Type | Description |
 |-------|------|-------------|
 | `temperature` | nombre | Température de l'air en °C |
-| `wind_speed` | nombre | Vitesse du vent en m/s |
+| `wind_speed` | nombre | Vent **voulu à 10 m au-dessus du terrain de référence**, en m/s — pas le réglage de l'éditeur, que DCS multiplie jusqu'à 2,1 : le build écrit le réglage qui le donne ([le vent](mission-maker/concepts/weather-variants.md#wind)) |
 | `wind_direction` | nombre | Direction **d'où vient** le vent, en degrés (0 = Nord), comme dans un METAR |
 | `visibility` | nombre | Visibilité en mètres ; 9 000 m ou plus s'écrit au maximum de DCS, 80 km — le `9999` d'un METAR, « 10 km ou plus » |
 | `cloud_type` | string | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
 | `cloud_height` | nombre | Altitude de la base des nuages en mètres |
 | `fog_enabled` | booléen | Activer l'effet de brouillard |
 | `precipitation` | booléen | Pluie : choisit un preset de nuages pluvieux de DCS (`RainyPreset…`) |
+| `reference_airfield` | string | Terrain où le vent est voulu (nom DCS) ; la station du METAR sur la carte l'emporte, le départ du premier groupe joueur est le défaut, le niveau de la mer le dernier recours |
+| `wind_gust` | nombre | Rafale en m/s, changée en turbulence DCS (écart à la moyenne / 0,62, plafonné à 3 m/s) |
+| `turbulence` | nombre | Turbulence en m/s, comme l'éditeur l'affiche ; l'emporte sur `wind_gust` |
+| `wind_veer` | nombre | Rotation du vent vers la droite entre le sol et 2 000 m, de 0 à 30° (20 par défaut) |
+| `wind_speed_2000` / `wind_direction_2000` | nombre | Vent à 2 000 m réglé à la main (m/s, d'où il vient) ; défaut : 2,2 fois le réglage au sol, tourné de `wind_veer` |
+| `wind_speed_8000` / `wind_direction_8000` | nombre | Vent à 8 000 m réglé à la main ; défaut : celui de 2 000 m plus 3 m/s |
 
 La couverture et la base choisissent un **preset de nuages** DCS, le seul rendu depuis DCS 2.7 : le
 premier preset de cette couverture dont la plage d'altitude contient la base, sinon la base est

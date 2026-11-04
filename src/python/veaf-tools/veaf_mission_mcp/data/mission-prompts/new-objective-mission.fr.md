@@ -250,7 +250,8 @@ validé un scénario, pas un à-peu-près.
   false` (et retire alors `src/versions.yaml`, que le build signale orphelin), ou un
   `src/versions.yaml` à une seule version. Une visibilité **≥ 9 000 m est écrite 80 km** (règle du
   « 9999 » METAR) : pour une brume, demande 8 000 m au plus.
-  **Avec des hélicoptères, peu de turbulence et un vent modéré** (turbulence proche de 0, 10 kt au plus au sol) : le 29/10/2026, la météo réelle a rendu les AH-64 de *Marteau du Golan* presque impilotables.
+  **Avec des hélicoptères, peu de turbulence et un vent modéré** — sur le vent que DCS *simule*, pas sur le réglage. `set_weather` prend le vent voulu à 10 m au-dessus d'un terrain de référence et écrit le réglage qui le donne ; sa réponse (`simulated_wind`, et `inspect_built_mission` après le build) donne le vent par couche. La règle : de 0 à 600 m au-dessus de chaque départ, objectif et point de route des hélicos, le vent simulé reste à 20 kt au plus, et pas plus de 15 kt au-dessus du vent au sol à cet endroit — `set_weather`, `inspect_built_mission` et `veaf-tools dcs mission-check` alertent sinon. Turbulence proche de 0. Le 29/10/2026, la météo réelle a rendu les AH-64 de *Marteau du Golan* presque impilotables ; le 31/10, 17 kt réglés au sol sont devenus 24 kt au sol et 36 kt à 1 000 ft.
+  **Le vent du briefing est le vent simulé**, lu couche par couche dans la réponse de `set_weather` ou d'`inspect_built_mission` — jamais le réglage recopié. Une rotation du vent en altitude se règle avec `wind_veer` (30° au plus), jamais avec un vent d'altitude opposé à celui du sol : DCS fait entre les deux une couche sans vent.
 - **Langue** : `mission.language: fr` et briefing en français, sauf mention contraire.
 - `silence_atc_on_all_airbases: true`.
 - **Sécurité** : explique-la avant de demander, l'utilisateur ne peut pas choisir sans.
@@ -533,6 +534,7 @@ Ce qui revient à l'utilisateur : commit, push, publication, lancer DCS.
   - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec ;
   - les images de briefing présentes, listées dans `pictureFileNameB` et `pictureFileNameN`,
     `pictureFileNameR` vide.
+- **Lance `veaf-tools dcs mission-check` sur la mission construite** avant de remettre le briefing : sa vérification du vent se passe de DCS, et échoue quand le vent du briefing contredit celui que DCS simule.
 - **Relis le briefing, le fichier et la mission l'un contre l'autre** : chaque coordonnée,
   fréquence, indicatif, cap, distance et heure doit être le même partout.
 - Liste ce qui reste à vérifier dans DCS : placement des statiques sur le terrain, masquage de la

@@ -170,6 +170,8 @@ utilisables de chaque côté. Les ordres de grandeur ci-dessous sont des points 
 - **Date et heure** de mission : `set_mission_date`.
 - **Météo de base** (`set_weather`) : plausible pour la date et le lieu, puisque c'est la seule que la mission porte.
   Le squelette du scaffold a sa base de nuages au sol (Preset1 à 0 m) : à remplacer.
+  **Avec des hélicoptères, peu de turbulence et un vent modéré** — sur le vent que DCS *simule*, pas sur le réglage. `set_weather` prend le vent voulu à 10 m au-dessus d'un terrain de référence et écrit le réglage qui le donne ; sa réponse (`simulated_wind`, et `inspect_built_mission` après le build) donne le vent par couche. La règle : de 0 à 600 m au-dessus de chaque départ, objectif et point de route des hélicos, le vent simulé reste à 20 kt au plus, et pas plus de 15 kt au-dessus du vent au sol à cet endroit — `set_weather`, `inspect_built_mission` et `veaf-tools dcs mission-check` alertent sinon. Turbulence proche de 0. Le 29/10/2026, la météo réelle a rendu les AH-64 de *Marteau du Golan* presque impilotables ; le 31/10, 17 kt réglés au sol sont devenus 24 kt au sol et 36 kt à 1 000 ft.
+  **Le vent du briefing est le vent simulé**, lu couche par couche dans la réponse de `set_weather` ou d'`inspect_built_mission` — jamais le réglage recopié. Une rotation du vent en altitude se règle avec `wind_veer` (30° au plus), jamais avec un vent d'altitude opposé à celui du sol : DCS fait entre les deux une couche sans vent.
 - **Bullseye** (`set_bullseye`) : un **repère que les pilotes peuvent nommer**, au centre du front, le
   même pour les deux camps, **pas sur une zone** (il la masquerait sur la carte).
 - **Briefing** (`set_briefing` : titre, situation, tâches bleue et rouge) : le contexte en deux
@@ -547,10 +549,11 @@ l'époque ou les camps ; lancer DCS.
     distances ;
   - `requiredModules` vide (4.2) ;
   - une seule mission, sans variante météo, et une météo de base plausible dans les champs que DCS
-    lit (`clouds`, `season.temperature`, `wind.atGround`) : pas de nuages au sol ;
+    lit (`clouds`, `season.temperature`, `wind`) : pas de nuages au sol, et le vent lu tel que DCS le simule dans `inspect_built_mission`, jamais le réglage ;
   - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec ;
   - les images de briefing présentes dans le `.miz`, listées dans `pictureFileNameB` et
     `pictureFileNameN`, `pictureFileNameR` vide (4.13).
+- **Lance `veaf-tools dcs mission-check` sur la mission construite** avant de remettre le briefing : sa vérification du vent se passe de DCS, et échoue quand le vent du briefing contredit celui que DCS simule.
 - **Relis tes briefings** : chaque distance, cap, altitude et nom de lieu recalculé ou sourcé.
 - **Livre une mission de test locale**, copie du build `LOCAL_TEST` (jamais dans les sources) avec : un
   **game master** bleu et un rouge ; un **slot `Client` classique d'A-10C II, au sol moteur chaud** à la

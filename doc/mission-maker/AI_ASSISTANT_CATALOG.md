@@ -460,6 +460,7 @@ briefing sont remplacées au build, variante par variante.
 *Recette + construite · ⭐* — Nuages, vent, température, visibilité, pluie, brouillard, ou un METAR
 entier. Une mission créée depuis zéro a ses nuages posés au sol : c'est à régler. Les variantes météo
 de `versions.yaml` gardent la main, variante par variante.
+Le vent demandé est celui que les pilotes auront à 10 m au-dessus du terrain de départ (ou d'un terrain que tu nommes) : l'outil règle DCS pour l'obtenir, et l'IA te donne le vent simulé par couche, avec une alerte si des hélicos prennent plus de 20 kt dans les 600 premiers mètres.
 
 > 💬 *« Mets un ciel fragmenté à 1 500 m, 12 °C, vent d'ouest 10 nœuds. »*
 

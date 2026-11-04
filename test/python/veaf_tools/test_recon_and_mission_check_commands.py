@@ -298,3 +298,95 @@ def test_a_ctrl_c_while_waiting_stops_the_dcs_serve_it_started(
     monkeypatch.setattr("veaf_tools.bridge.wait_for_mission", interrupted)
     CliRunner().invoke(app, ["recon-plan", "--out", str(tmp_path / "s.yaml")])
     assert bridge.closed
+
+
+# FEAT-MISSION-WIND-CHECK ticket 05: given the built mission, the wind check runs first, without DCS.
+
+_MARTEAU_WIND = {
+    "atGround": {"speed": 9, "dir": 90},
+    "at2000": {"speed": 11, "dir": 90},
+    "at8000": {"speed": 14, "dir": 90},
+}
+
+
+def _marteau(tmp_path: Path, briefing: str) -> Path:
+    import shutil
+
+    from mission_tools.miz_tools import write_miz
+    from veaf_libs.dcs_airdromes import airdrome_id_for_name
+
+    miz = tmp_path / "marteau.miz"
+    shutil.copy2(Path(__file__).resolve().parents[2] / "veaf-tools" / "demo-mission" / "veaf-demo-mission.miz", miz)
+    mission = read_miz(miz)
+    rosh_pina = airdrome_id_for_name("Syria", "Rosh Pina")
+    group = {
+        "name": "Hind-1",
+        "units": {1: {"skill": "Client", "type": "Mi-24P"}},
+        "route": {"points": {1: {"airdromeId": rosh_pina, "x": 0, "y": 0}}},
+    }
+    mission.mission_content = {
+        "descriptionText": briefing,
+        "weather": {"wind": _MARTEAU_WIND},
+        "coalition": {"blue": {"country": {1: {"name": "CJTF Blue", "helicopter": {"group": {1: group}}}}}},
+    }
+    mission.theatre_content = "Syria"
+    mission.warehouses_content = {"airports": {}}
+    write_miz(mission, miz)
+    return miz
+
+
+def test_the_wind_check_fails_the_original_marteau_briefing_without_dcs(app: Any, tmp_path: Path) -> None:
+    miz = _marteau(tmp_path, "Vent du 270 pour 17 kt au sol, plus fort en altitude.")
+    result = CliRunner().invoke(app, ["mission-check", str(miz), "--wind-only"])
+    assert result.exit_code == 1, result.output
+    assert "contradicts the simulated wind at surface" in result.output and "FAIL" in result.output
+    assert "1 warning(s)" in result.output
+
+
+def test_the_wind_check_warns_without_failing_on_the_rewritten_briefing(app: Any, tmp_path: Path) -> None:
+    miz = _marteau(tmp_path, "Vent du 270 pour 24 kt au sol, 36 kt à 1 000 ft.")
+    result = CliRunner().invoke(app, ["mission-check", str(miz), "--wind-only"])
+    assert result.exit_code == 0, result.output
+    assert "PASS" in result.output and "1 warning(s)" in result.output
+
+
+def test_without_dcs_the_wind_verdict_stands_and_the_rest_waits(
+    app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import typer
+
+    def no_game(*args: Any, **kwargs: Any) -> Any:
+        raise typer.Exit(code=1)
+
+    monkeypatch.setattr("veaf_tools.commands.mission_check.open_bridge", no_game)
+    miz = _marteau(tmp_path, "Vent du 270 pour 24 kt au sol, 36 kt à 1 000 ft.")
+    result = CliRunner().invoke(app, ["mission-check", str(miz)])
+    assert result.exit_code == 0, result.output
+    assert "need the mission running in DCS" in result.output and "PASS" in result.output
+
+
+def test_measure_wind_needs_the_mission(app: Any) -> None:
+    result = CliRunner().invoke(app, ["mission-check", "--measure-wind"])
+    assert result.exit_code == 2
+
+
+def test_measure_wind_writes_the_table_beside_the_test_copy(
+    app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from veaf_libs.dcs_wind import base_wind
+
+    model = base_wind(_MARTEAU_WIND, 274.6, 10.0)
+
+    def answer(_state: str, code: str) -> str:
+        if "atmosphere.getWind" in code:
+            return f"2.9.31.29434\n1\t10.00\t264.60\t{model.x:.5f}\t{model.z:.5f}"
+        return "menu\t0\t=VEAF" if "radioMenu" in code else ""
+
+    _use_bridge(monkeypatch, FakeBridge(answer))
+    miz = _marteau(tmp_path, "Vent du 270 pour 24 kt au sol, 36 kt à 1 000 ft.")
+    result = CliRunner().invoke(app, ["mission-check", str(miz), "--measure-wind"])
+    assert result.exit_code == 0, result.output
+    assert "within 0.00 kt of the model" in " ".join(result.output.split())
+    assert (
+        json.loads((tmp_path / "marteau_CHECK.wind.json").read_text(encoding="utf-8"))["dcs_version"] == "2.9.31.29434"
+    )

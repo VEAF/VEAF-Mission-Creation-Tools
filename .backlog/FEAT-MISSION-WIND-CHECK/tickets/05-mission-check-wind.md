@@ -1,6 +1,6 @@
 # 05 — `mission-check` judges the briefing's wind against the model
 
-Status: ⬜ ready
+Status: ✅ done
 
 `veaf-tools dcs mission-check` gains a `wind` check (PRD D6, D7), which needs no DCS:
 

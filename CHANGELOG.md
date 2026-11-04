@@ -48,6 +48,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The training versions in the mission briefing** (FEAT-TRAINING-BRIEFING-PAGES): with a `training:` block, `build_mission_briefing` adds one page per version at the end of the deck and of the PDF — each declared element and what it becomes, what is drawn at every launch, the mission to load — computed with the build's own rules.
   A `label:` on an element or a draw names it for the pilots.
 
+- **The wind pilots meet, set, described and checked** (FEAT-MISSION-WIND-CHECK). On *Marteau du Golan* (2026-10-31), 17 kt set and briefed became 24 kt at the surface and 36 kt at 1,000 ft: DCS multiplies its ground setting by up to 2.1 inland.
+  DCS's static-weather wind model is a `veaf_libs` brick (`dcs_wind.py`, standard library only, shared with the DCSServerBot fork with its test vectors), replaying the whitepaper's five in-game runs within 0.001 m/s.
+  `set_weather`, the weather variants and the METAR conversion now take the wind **wanted 10 m above a reference airfield** — the METAR's station on the map, else `reference_airfield`, else the first player departure, else sea level with a warning — and write the setting that gives it, `at2000` at 2.2 times the ground veered 20° (`wind_veer`, 0-30°), upper winds settable by hand with a warning on a low-layer jet; `clearsky` caps the simulated surface wind.
+  A METAR's gust is no longer dropped: it becomes `groundTurbulence` through the measured mapping (gap / 0.62, capped at 3 m/s, the ceiling the turbulence whitepaper recommends until it is flown).
+  The briefing deck, `inspect_built_mission` and `set_weather`'s answer give the wind DCS will simulate by layer (surface, 1,000 and 3,000 ft above the ground, FL100, FL250), not the setting; the helicopter rule (20 kt, or 15 kt over the surface, from 0 to 600 m above the ground) replaces "10 kt or less at the surface" in the guide and the mission prompts.
+  `veaf-tools dcs mission-check` takes the built mission and checks the briefing's wind against the model without DCS, with a warning level for the helicopter rule; `--measure-wind` compares the model with the running DCS.
+  The ATIS rounds its speeds instead of truncating them, adds a "max wind 0-2000 ft" line when the low layer blows 5 kt over the surface, and can announce gusts (`veafWeather.announceGusts`, off by default).
+  Two DCS behaviours join the known limitations: the editor's ground wind is not the surface wind, and opposed wind layers make a layer without wind.
+
 ## [6.35.0] — 2026-10-30
 
 ### Fixed

@@ -19,7 +19,3 @@ Broaden the shipped default radio presets, after phase 1 of the radio preset pro
 ### [FEAT-LIVE-GAME-MASTER](FEAT-LIVE-GAME-MASTER/PRD.md) · ⬜
 
 Claude acting in a running mission while the squadron flies — spawn, destroy, move convoys, radio messages — through the bridge, with an operator token and never raw Lua. Written up 2026-10-08 and decided by David: free by default, nothing shown when Claude plays red, text and SRS voice when it warns blue players; seven tickets, one of them in the bridge's repository.
-
-### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · ⬜
-
-All of the wind, on DCS's static-weather model decoded from `Weather.dll` and checked in game (whitepaper `dcs-wind-model`): the model as a standard-library `veaf_libs` brick tested on the five measured runs and shared with the DCSServerBot fork; the tools set the wind wanted at a reference airfield and compute `atGround` from it, with `at2000` at 2.2 × the ground veered 20° and the METAR's gust gap into `groundTurbulence`, capped at 2 m/s until measured; the deck, the MCP answers, the guide and the prompts describe the simulated wind, with a helicopter rule on 0-600 m; `mission-check` compares the briefing with the model without DCS; the ATIS rounds its speeds and gains a "max wind 0-2000 ft" line. Seven tickets; from *Marteau du Golan* (2026-10-31), where 17 kt set and announced became 36 kt at 1,000 ft.

@@ -1,6 +1,6 @@
 # 07 — Known limitation, documentation, demo mission, CHANGELOG
 
-Status: ⬜ ready
+Status: ✅ done
 
 - a. **Known limitation** (`veaf_libs/data/known-limitations.yaml`, `kind: dcs`, dated 2026-10-31, DCS 2.9.31.29434): the editor's ground wind is the 10 m wind only at the sea shore — 2.141 × the setting at 0 m, reduced near the ground less the higher the terrain, about 2.1 × the setting between 300 and 600 m above the ground, and a jet in the low layer when `at2000` is under 2.14 × `atGround`; measured on *Marteau du Golan* (9 m/s set, 24 kt at 10 m above Rosh Pina, 36 kt at 1,000 ft), whitepaper linked.
   A second entry for the layer without wind when the surface and 2,000 m directions are opposed (whitepaper, section 3.3).

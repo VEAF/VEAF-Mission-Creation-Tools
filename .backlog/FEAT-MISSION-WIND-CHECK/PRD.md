@@ -37,13 +37,13 @@ The model becomes a brick of veaf-tools; everything that writes the weather sets
 
 | # | What | Status | Ticket |
 |---|---|---|---|
-| 01 | The wind model as a standard-library `veaf_libs` brick, shared with the DCSServerBot fork: the base wind at a point, the profile above a place, and two exact inversions (`at2000` proportional, or given) that give the `atGround` for a wanted wind; tested against the five runs of the whitepaper and shared test vectors | ⬜ | [01](tickets/01-wind-model-brick.md) |
-| 02 | From a gust to `groundTurbulence` in the shared brick: the gap gust − mean, capped at 2 m/s until the in-game measurement (its own session) gives a table | ⬜ | [02](tickets/02-measure-gusts.md) |
-| 03 | Writing the weather: the wanted wind at a reference airfield is inverted into `atGround`, `at2000` defaults to 2.2 × `atGround` veered, `clearsky` caps the simulated wind, gusts feed `groundTurbulence` — for `set_weather`, the weather variants (`inject-weather`) and the METAR conversion | ⬜ | [03](tickets/03-write-the-wanted-wind.md) |
-| 04 | Describing the weather: the deck's weather block by layer, `inspect_built_mission`, `set_weather`'s answer, the authoring guide and both mission prompts speak of the simulated wind; the helicopter rule applies to the simulated wind from 0 to 600 m | ⬜ | [04](tickets/04-describe-the-simulated-wind.md) |
-| 05 | `veaf-tools dcs mission-check` compares the briefing's wind with the model, without DCS, and warns when helicopters fly into a hard low layer; measuring through the bridge becomes an optional check of the model against the running DCS | ⬜ | [05](tickets/05-mission-check-wind.md) |
-| 06 | `veafWeather.lua`: speeds rounded instead of truncated, an ATIS line "max wind 0-2000 ft" for helicopters, gusts as an option | ⬜ | [06](tickets/06-lua-weather-reports.md) |
-| 07 | Known limitation, documentation pages, demo mission step, CHANGELOG | ⬜ | [07](tickets/07-docs-and-limitation.md) |
+| 01 | The wind model as a standard-library `veaf_libs` brick, shared with the DCSServerBot fork: the base wind at a point, the profile above a place, and two exact inversions (`at2000` proportional, or given) that give the `atGround` for a wanted wind; tested against the five runs of the whitepaper and shared test vectors | ✅ | [01](tickets/01-wind-model-brick.md) |
+| 02 | From a gust to `groundTurbulence` in the shared brick: the gap gust − mean, capped at 2 m/s until the in-game measurement (its own session) gives a table | ✅ | [02](tickets/02-measure-gusts.md) |
+| 03 | Writing the weather: the wanted wind at a reference airfield is inverted into `atGround`, `at2000` defaults to 2.2 × `atGround` veered, `clearsky` caps the simulated wind, gusts feed `groundTurbulence` — for `set_weather`, the weather variants (`inject-weather`) and the METAR conversion | ✅ | [03](tickets/03-write-the-wanted-wind.md) |
+| 04 | Describing the weather: the deck's weather block by layer, `inspect_built_mission`, `set_weather`'s answer, the authoring guide and both mission prompts speak of the simulated wind; the helicopter rule applies to the simulated wind from 0 to 600 m | ✅ | [04](tickets/04-describe-the-simulated-wind.md) |
+| 05 | `veaf-tools dcs mission-check` compares the briefing's wind with the model, without DCS, and warns when helicopters fly into a hard low layer; measuring through the bridge becomes an optional check of the model against the running DCS | ✅ | [05](tickets/05-mission-check-wind.md) |
+| 06 | `veafWeather.lua`: speeds rounded instead of truncated, an ATIS line "max wind 0-2000 ft" for helicopters, gusts as an option | ✅ | [06](tickets/06-lua-weather-reports.md) |
+| 07 | Known limitation, documentation pages, demo mission step, CHANGELOG | ✅ | [07](tickets/07-docs-and-limitation.md) |
 
 Ticket 01 comes first: 03, 04 and 05 call it.
 Ticket 02 feeds the gust part of 03 (item d); neither waits for the in-game measurement, which refines ticket 02's function when it lands.
@@ -77,6 +77,7 @@ Taken by David on 2026-10-31 (A to E of the study's brief); the details under th
   How much `groundTurbulence` makes a 25 kt gust over a 15 kt wind is not known: the whitepaper measured the spread of `getWindWithTurbulence` (RMS 3.2 m/s at 10 m for a turbulence of 60), not a gust.
   The turbulence is the **gap** gust − mean (DCS Real Weather writes the peak, about three times the gap), **capped at 2 m/s** until a measurement says more is flyable; the same rule on the servers and here, in the shared brick (ticket 02).
   The measurement runs in its own session, *Mesure en jeu de la turbulence DCS*, and delivers a table gust gap → `groundTurbulence`; ticket 02's function interpolates it once it lands.
+  **Landed before the lot was implemented** (whitepaper `dcs-turbulence`, 2026-10-31): the gap is linear in the setting, 0.62 × S at 10 m, and 3 m/s is the recommended ceiling until it is flown; `turbulence_for_gust` applies gap / 0.62 capped at 3 m/s.
 - **D5 — briefing, AI and guide describe the simulated wind (D).**
   The deck's weather block gives the wind by layer above the reference airfield: surface (10 m), 1,000 ft and 3,000 ft above the ground, FL100 and FL250 — the layers a helicopter, a low-level run and a jet each need.
   The layers are named constants in one place.

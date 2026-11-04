@@ -1,6 +1,6 @@
 # 03 — Write the wind the author wants, not the setting
 
-Status: ⬜ ready
+Status: ✅ done
 
 Every weather the tools write goes through `DCSWeatherConverter.to_dcs_lua_table` (`weather_injector/weather/dcs_weather_converter.py`): `set_weather` (`veaf_mission_mcp/mission_settings.py`), the weather variants of `inject-weather` and of the build (`weather_injector/weather_injector_worker.py`, `_inject_weather`), and the METAR conversion, from a string or from `airport_icao`.
 Today it writes the wanted wind into `atGround`, `at2000 = ground + 2`, `at8000 = ground + 5`.

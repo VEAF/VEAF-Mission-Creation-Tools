@@ -1,6 +1,6 @@
 # 06 — `veafWeather.lua`: rounded speeds, the low-layer maximum, gusts as an option
 
-Status: ⬜ ready
+Status: ✅ done
 
 `src/scripts/veaf/veafWeather.lua` already asks `atmosphere.getWind` at the right place (whitepaper, section 6: 13 kt announced at Rosh Pina for 13.1 simulated); three changes (PRD D8):
 

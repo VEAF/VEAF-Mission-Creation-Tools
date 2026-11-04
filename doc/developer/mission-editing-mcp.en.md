@@ -834,10 +834,17 @@ targets a mission folder (durable) or a `.miz`, backed up first.
   `l10n/DEFAULT/dictionary` behind it, so the reference stays valid; `write_mission_folder` now
   writes that dictionary back, only when it changes.
 - `set_weather(target, metar?, temperature?, wind_speed?, wind_direction?, visibility?, cloud_type?,
-  cloud_height?, precipitation?, fog_enabled?, clearsky?)` — the **base** mission's weather, in the
-  fields DCS reads (ticket 19: the blank mission has its clouds on the ground, `Preset1` at 0 m). Same
-  vocabulary and converter as `versions[].weather`, so a METAR works too; the variants still override
-  it at build.
+  cloud_height?, precipitation?, fog_enabled?, clearsky?, reference_airfield?, wind_gust?, turbulence?,
+  wind_veer?, wind_speed_2000?, wind_direction_2000?, wind_speed_8000?, wind_direction_8000?)` — the
+  **base** mission's weather, in the fields DCS reads (ticket 19: the blank mission has its clouds on the
+  ground, `Preset1` at 0 m). Same vocabulary and converter as `versions[].weather`, so a METAR works too;
+  the variants still override it at build.
+  `wind_speed` is the wind **wanted 10 m above the reference airfield**, not a DCS setting
+  (FEAT-MISSION-WIND-CHECK): the answer gives `reference_airfield` (name, elevation, how it was chosen),
+  `simulated_wind` (the wind DCS will simulate above it, by layer: surface, 1,000 and 3,000 ft above the
+  ground, FL100, FL250) and `warnings` — sea level used for want of an airfield, a jet in the low layer,
+  and with a helicopter slot, every place where the simulated wind exceeds 20 kt 0-600 m above the ground
+  ([the wind](../mission-maker/concepts/weather-variants.en.md#wind)).
 
 > Password **hashes** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — a multi-line
 > case — are not covered yet: only the `SecurityDisabled` flag is.

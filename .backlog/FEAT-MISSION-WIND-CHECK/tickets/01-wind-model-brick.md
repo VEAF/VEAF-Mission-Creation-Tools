@@ -1,6 +1,6 @@
 # 01 — The wind model as a veaf-tools brick, shared with the servers
 
-Status: ⬜ ready
+Status: ✅ done
 
 `veaf_libs/dcs_wind.py` carries DCS's static-weather wind model (PRD D1), ported from the whitepaper's `dcs_wind.py`, typed, Google docstrings, `-> ReturnType` everywhere.
 

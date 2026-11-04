@@ -1,6 +1,6 @@
 # 04 — Describe the simulated wind: deck, MCP answers, guide, prompts
 
-Status: ⬜ ready
+Status: ✅ done
 
 Everything that tells a pilot or an agent what the wind is says the wind DCS will simulate, computed with ticket 01's brick from the built `.miz`'s setting (PRD D5, D6):
 

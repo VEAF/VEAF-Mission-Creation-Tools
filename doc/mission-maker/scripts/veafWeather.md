@@ -40,6 +40,8 @@ La météo est injectée au moment du build (avant le chargement de la mission) 
 .\veaf-tools.exe content inject-weather mission.miz --config-file versions.yaml
 ```
 
+Le vent de `weather:` est le vent voulu à 10 m au-dessus d'un terrain de référence, pas le réglage de l'éditeur : voir [Variantes météo — le vent](../concepts/weather-variants.md#wind).
+
 ### Exemple versions.yaml
 
 ```yaml
@@ -152,6 +154,26 @@ veaf.scheduleFunction(function()
     veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
 end, {}, timer.getTime() + 0)
 ```
+
+---
+
+## Le vent de l'ATIS {#atis-wind}
+
+L'ATIS, le rapport météo et la LASTE demandent le vent à DCS (`atmosphere.getWind`) au point qu'ils décrivent : le vent au sol est celui de 10 m au-dessus du terrain, le vent que DCS simule vraiment — pas le réglage de l'éditeur.
+
+- **Les vitesses sont arrondies**, au nœud ou au m/s le plus proche : 13,9 kt se lit 14 (elles étaient tronquées).
+- **Vent max 0-2000 ft** : l'ATIS ajoute une ligne avec le vent le plus fort entre le sol et 2 000 ft au-dessus du terrain, sa direction et sa hauteur, échantillonné tous les 100 ft — ce qu'il fallait aux pilotes d'hélico de *Marteau du Golan* (24 kt au sol, 36 kt à 1 000 ft). La ligne n'apparaît que quand ce maximum dépasse le vent au sol de 5 kt ou plus, pour qu'un profil calme n'allonge pas l'ATIS.
+- **Rafales, en option** : avec `veafWeather.announceGusts = true` (désactivé par défaut), l'ATIS échantillonne `atmosphere.getWindWithTurbulence` sur un cercle de 100 m autour du terrain et annonce la rafale, à la manière du METAR, quand la pointe dépasse le vent moyen de 10 kt ou plus. Désactivé par défaut parce que DCS ajoute un plancher de turbulence même sans réglage : un ATIS qui annoncerait des rafales que personne n'a réglées serait du bruit.
+
+| Réglage | Défaut | Rôle |
+|---|---|---|
+| `veafWeather.MaxWindTopFeet` | `2000` | Hauteur sol jusqu'où le vent max est cherché |
+| `veafWeather.MaxWindStepFeet` | `100` | Pas d'échantillonnage |
+| `veafWeather.MaxWindShowAboveSurfaceKnots` | `5` | Écart au vent au sol à partir duquel la ligne s'affiche |
+| `veafWeather.announceGusts` | `false` | Annoncer les rafales |
+| `veafWeather.GustAboveMeanKnots` | `10` | Écart au vent moyen à partir duquel une rafale est annoncée |
+
+Pour le vent que la mission règle, voir [Variantes météo — le vent](../concepts/weather-variants.md#wind).
 
 ---
 

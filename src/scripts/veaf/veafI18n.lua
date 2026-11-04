@@ -552,6 +552,17 @@ veaf.i18nCatalog = {
     fr = "Vent %s",
     en = "Wind %s",
   },
+  -- The gust, the METAR way, after the wind (veafWeather.announceGusts, off by default).
+  ["weather.atis_gust"] = {
+    fr = " rafales %s",
+    en = " gusting %s",
+  },
+  -- The strongest wind from the surface to %d ft above the airfield, and the height it blows at: what a
+  -- helicopter meets that the surface wind does not say (FEAT-MISSION-WIND-CHECK).
+  ["weather.atis_max_wind"] = {
+    fr = "\nVent max 0-%d ft : %s à %s sol",
+    en = "\nMax wind 0-%d ft: %s at %s AGL",
+  },
   -- Said to a pilot when the airbase's DCS object is gone (a sunk carrier, a despawned base, a
   -- persistence reload), so there is no weather to report. Before this key the code passed a nil down
   -- to trigger.action.outTextForUnit, which raises — the display-side twin of issue #302.

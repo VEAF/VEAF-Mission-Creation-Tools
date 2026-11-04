@@ -238,3 +238,27 @@ def test_a_cruise_speed_in_a_wind_sentence_is_not_a_wind() -> None:
 def test_from_a_height_is_not_a_direction() -> None:
     (mention,) = extract_wind_mentions("Winds 15 kt from 500 ft up.", "t")
     assert mention.from_deg is None
+
+
+def test_a_bullseye_in_a_wind_sentence_is_not_a_wind() -> None:
+    mentions = extract_wind_mentions("Weather: wind 270/12 kt, QNH 1013, bullseye 045/35.", "t")
+    assert [(m.from_deg, m.knots) for m in mentions] == [(270.0, 12.0)]
+
+
+def test_the_helicopter_rule_spares_an_aeroplane_only_airfield(tmp_path: Path) -> None:
+    content = _content()
+    plane = {
+        "name": "Viper-1",
+        "units": {1: {"skill": "Client", "type": "F-16C_50"}},
+        "route": {"points": {1: {"airdromeId": airdrome_id_for_name("Syria", "Megiddo"), "x": 0, "y": 0}}},
+    }
+    content["coalition"]["blue"]["country"][1]["plane"] = {"group": {1: plane}}
+    miz = tmp_path / "m.miz"
+    shutil.copy2(_BUILT, miz)
+    mission = read_miz(miz)
+    mission.mission_content = content
+    mission.theatre_content = "Syria"
+    mission.warehouses_content = {"airports": {}}
+    write_miz(mission, miz)
+    warned = [text for ok, text in check_built_mission(miz).lines if ok == "warn"]
+    assert warned and not any("Megiddo" in text for text in warned), warned

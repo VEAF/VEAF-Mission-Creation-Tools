@@ -169,7 +169,20 @@ def set_weather(
     """
     from weather_injector.weather.dcs_weather_converter import DCSWeatherConverter
 
-    manual = (temperature, wind_speed, wind_direction, visibility, cloud_type, cloud_height, precipitation, fog_enabled)
+    manual = (
+        temperature,
+        wind_speed,
+        wind_direction,
+        visibility,
+        cloud_type,
+        cloud_height,
+        precipitation,
+        fog_enabled,
+        wind_gust,
+        turbulence,
+        wind_speed_2000,
+        wind_speed_8000,
+    )
     if not metar and not clearsky and all(value is None for value in manual):
         raise ValueError("no weather given — pass a metar, clearsky, or at least one weather field")
     if cloud_type is not None and cloud_type.lower() not in _CLOUD_TYPES:

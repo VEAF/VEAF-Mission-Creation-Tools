@@ -42,6 +42,7 @@ from veaf_libs.mission_wind import (
     HelicopterPlace,
     has_helicopter_slot,
     helicopter_breaches,
+    helicopter_places,
     listed,
     player_groups,
 )
@@ -310,7 +311,8 @@ def extract_wind_mentions(text: str, source: str) -> list[WindMention]:
         for clause in _clauses(sentence):
             layer = _layer_of(clause)
             paired = _DIR_SLASH_SPEED.search(clause) or _DIR_THEN_SPEED.search(clause)
-            if paired:
+            # A pair is a wind only in a clause that says so: "wind 270/12 kt, bullseye 045/35" holds one.
+            if paired and (_WIND_WORD.search(clause) or _names_a_layer(clause)):
                 mentions.append(WindMention(source, sentence, layer, float(paired.group(2)), float(paired.group(1))))
                 found = True
                 continue
@@ -540,8 +542,13 @@ def check_built_mission(miz: Path, folder: Path | None = None) -> WindReport:
     )
     setting = (content.get("weather") or {}).get("wind") or {}
     texts = briefing_texts(content, mission.dictionary_content, folder)
-    # The places already hold the helicopters' departures and route points, and the objectives.
-    helicopters = [HelicopterPlace(p.name, p.ground_msl) for p in places] if has_helicopter_slot(content) else []
+    # Where helicopters fly: their departures and route points, and the objectives — not an airfield
+    # only aeroplanes take off from.
+    helicopters: list[HelicopterPlace] = []
+    if has_helicopter_slot(content):
+        candidates = helicopter_places(content, theatre, ground_at)
+        candidates += [HelicopterPlace(p.name, p.ground_msl) for p in places if not p.departure]
+        helicopters = list({place.name: place for place in candidates}.values())
     report = check_wind(setting, places, texts, helicopters)
     for name in unknown:
         report.lines.insert(0, (None, t("wind.check.unknown_ground", place=name)))

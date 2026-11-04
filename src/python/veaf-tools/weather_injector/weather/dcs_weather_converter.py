@@ -357,7 +357,8 @@ def _wind_setting(
             "at2000": upper,
             "at8000": dict(upper),
         }
-        ground_weight = 0.0
+        # Exact, not a doubtful inversion: the ground setting simply does not act there.
+        ground_weight = 1.0
     elif at2000[0] is None:
         inversion = setting_for_surface_wind(from_deg, knots, reference.elevation, veer_deg=veer)
         setting, ground_weight = inversion.setting, inversion.ground_weight

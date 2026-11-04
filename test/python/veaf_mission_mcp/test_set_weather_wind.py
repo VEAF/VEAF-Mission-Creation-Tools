@@ -110,3 +110,9 @@ def test_a_gust_and_a_veer_reach_the_mission(tmp_path: Path) -> None:
 def test_a_veer_past_30_is_refused(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="veer"):
         set_weather(_folder(tmp_path, "plane"), wind_speed=5, wind_veer=60)
+
+
+def test_a_gust_alone_is_a_weather(tmp_path: Path) -> None:
+    folder = _folder(tmp_path, "plane")
+    set_weather(folder, wind_gust=8)
+    assert (read_mission_folder(folder).mission_content or {})["weather"]["groundTurbulence"] > 0

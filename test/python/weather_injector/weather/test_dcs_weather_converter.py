@@ -607,7 +607,8 @@ class TestAHighReferenceAirfield(unittest.TestCase):
         wind = surface_wind(conversion.weather["wind"], conversion.reference.elevation)
         self.assertAlmostEqual(wind.speed, 5.0, delta=0.05)
         self.assertAlmostEqual(wind.from_deg, 270.0, delta=0.5)
-        self.assertTrue(any("2,000 m wind weighs 100%" in w for w in conversion.warnings), conversion.warnings)
+        # Exact there, not a doubtful inversion: no warning (full review of #1239).
+        self.assertEqual(conversion.warnings, [])
 
     def test_a_hand_set_at2000_is_written_as_given(self) -> None:
         conversion = DCSWeatherConverter.convert(

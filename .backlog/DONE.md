@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-AUDIT-FINDINGS-2026-11](FIX-AUDIT-FINDINGS-2026-11/PRD.md) · ✅
+
+The four audit findings on VMCT (`davidp57/security-audits` #137, #138, #146, #147) and the seven `pypdf` Dependabot alerts: nested filtered F10 menus keep their filter, `help_menus` negated with the same generated call by default, a static on another unit warned again, `set_route` takes `HOME, IP, TGT, HOME`. Five tickets, one PR (#1236).
+
 ### [FEAT-TRAINING-BRIEFING-PAGES](FEAT-TRAINING-BRIEFING-PAGES/PRD.md) · ✅
 
 The training versions in the mission briefing: one page per version at the end of the deck and of the PDF, computed with the build's own rules, and a `label:` key to name an element or a draw for the pilots. Used for *Marteau du Golan*'s training versions on Privé 1 and Privé 2 (2026-11-03). One PR (#1234).

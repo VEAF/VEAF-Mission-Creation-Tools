@@ -1,6 +1,6 @@
 # FIX-AUDIT-FINDINGS-2026-11 — the four audit findings on VMCT, and the pypdf alerts
 
-Status: 🔄 in-progress
+Status: ✅ done (#1236)
 
 Origin: the audit repository `davidp57/security-audits`, issues #137, #138, #146 and #147 (2026-10-26 and 2026-11-02), plus seven open Dependabot alerts on `pypdf` 6.21.2. Taken together on 2026-11-04 at David's request, one PR.
 

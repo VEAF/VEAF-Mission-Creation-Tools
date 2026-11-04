@@ -1333,6 +1333,8 @@
   "weather.created": "Created: {path}",
   "weather.creating_variants": "Creating weather variants...",
   "weather.creating_version": "[{index}/{total}] Creating version: {name}",
+  "weather.wind_reference": "Variant '{name}': wind set for {airfield} ({elevation} m), {direction}/{knots} kt at the surface",
+  "weather.wind_warning": "Variant '{name}': {warning}",
   "weather.variant_fell_back": "Variant '{name}': no live weather for {icao}, it flies the default weather",
   "weather.variants_fell_back": "{count} variant(s) asked for live weather and fly the default weather instead",
   "weather.done": "Created {count} mission file(s)",

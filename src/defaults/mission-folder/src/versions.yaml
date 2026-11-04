@@ -9,6 +9,14 @@
 # Dates:  "YYYY-MM-DD", "today", "tomorrow", "+N" / "-N" days.
 # Solar expressions are computed on the mission's map, at one point per theatre (near Batumi on the
 # Caucasus, Hama on Syria…). Set `position` (below) to compute them exactly where the mission flies.
+#
+# Wind: `wind_speed` (m/s) and `wind_direction` (where it comes FROM) are the wind wanted 10 m above a
+# reference airfield, as a METAR or the ATIS will say it there — not the Mission Editor's setting, which
+# DCS multiplies by up to 2.1. The build writes the setting that gives that wind. The reference airfield
+# is the METAR's station when it is on the map, else `reference_airfield`, else the first player
+# departure airfield. Optional, under `weather:`: `reference_airfield`, `wind_gust` (m/s),
+# `turbulence` (m/s), `wind_veer` (0-30°, 20 by default), `wind_speed_2000` / `wind_direction_2000`
+# and `wind_speed_8000` / `wind_direction_8000` to set the upper winds by hand.
 
 # Geographic position for solar calculations (sunrise, sunset) — optional, overrides the map's point.
 # position:

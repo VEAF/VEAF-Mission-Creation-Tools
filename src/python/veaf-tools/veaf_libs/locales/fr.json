@@ -1333,6 +1333,8 @@
   "weather.created": "Créé : {path}",
   "weather.creating_variants": "Création des variantes météo...",
   "weather.creating_version": "[{index}/{total}] Création de la version : {name}",
+  "weather.wind_reference": "Variante « {name} » : vent réglé pour {airfield} ({elevation} m), {direction}/{knots} kt au sol",
+  "weather.wind_warning": "Variante « {name} » : {warning}",
   "weather.variant_fell_back": "Variante « {name} » : pas de météo réelle pour {icao}, elle vole avec la météo par défaut",
   "weather.variants_fell_back": "{count} variante(s) demandaient la météo réelle et volent avec la météo par défaut",
   "weather.done": "{count} fichier(s) de mission créé(s)",

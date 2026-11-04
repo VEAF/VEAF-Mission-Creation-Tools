@@ -3,11 +3,20 @@
 import json
 import re
 import traceback
+from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Any
 
+from veaf_libs.dcs_wind import (
+    GROUND_REFERENCE_FACTOR,
+    KNOTS_PER_MPS,
+    ground_setting_for_surface_wind,
+    setting_for_surface_wind,
+    turbulence_for_gust,
+)
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
+from veaf_libs.mission_wind import ReferenceAirfield, layer_winds, resolve_reference_airfield
 
 try:
     from avwx.current.metar import Metar
@@ -74,7 +83,19 @@ class DCSWeatherConverter:
     }
 
     @staticmethod
-    def to_dcs_lua_table(
+    def to_dcs_lua_table(**kwargs: Any) -> dict[str, Any]:
+        """The fields of the DCS mission ``weather`` table for a weather: :meth:`convert`, table only.
+
+        Args:
+            **kwargs: The arguments of :meth:`convert`.
+
+        Returns:
+            Dictionary of DCS ``weather`` table fields.
+        """
+        return DCSWeatherConverter.convert(**kwargs).weather
+
+    @staticmethod
+    def convert(
         metar_string: str = "",
         airport_icao: str = "",
         temperature_celsius: float | None = None,
@@ -87,7 +108,18 @@ class DCSWeatherConverter:
         fog_enabled: bool = False,
         fog_thickness_meters: float = 200.0,
         clearsky: bool = False,
-    ) -> dict[str, Any]:
+        *,
+        theatre: str | None = None,
+        reference_airfield: str | None = None,
+        departure_airfield: str | None = None,
+        wind_gust_mps: float | None = None,
+        turbulence_mps: float | None = None,
+        wind_veer: float | None = None,
+        wind_speed_2000: float | None = None,
+        wind_direction_2000: float | None = None,
+        wind_speed_8000: float | None = None,
+        wind_direction_8000: float | None = None,
+    ) -> "WeatherConversion":
         """
         Convert weather parameters to the fields of the DCS mission ``weather`` table.
 
@@ -99,16 +131,23 @@ class DCSWeatherConverter:
         Priority: metar_string > airport_icao > individual parameters > defaults
 
         The result holds the keys DCS reads (``season``, ``wind``, ``visibility``, ``clouds``, ``qnh``,
-        ``enable_fog``, ``fog``, ``atmosphere_type``) and is merged into the mission's table, so the
-        keys it does not set (``cyclones``, ``groundTurbulence``, dust...) keep the base mission's values.
-        It used to return an ``atmosphere`` table DCS does not know, so every variant flew the base
-        mission's sky (FIX-SCRATCH-MISSION-FINDINGS ticket 01).
+        ``enable_fog``, ``fog``, ``atmosphere_type``, and ``groundTurbulence`` when a METAR, a gust or a
+        turbulence decides it) and is merged into the mission's table, so the keys it does not set
+        (``cyclones``, dust...) keep the base mission's values. It used to return an ``atmosphere`` table
+        DCS does not know, so every variant flew the base mission's sky (FIX-SCRATCH-MISSION-FINDINGS
+        ticket 01).
+
+        **The wind is the wind wanted 10 m above a reference airfield**, as a METAR says it, not a DCS
+        setting (FEAT-MISSION-WIND-CHECK): DCS multiplies its ground setting by 2.14 at sea level and by
+        less near the ground, so the setting written is the one :mod:`veaf_libs.dcs_wind` computes for
+        that airfield's altitude. ``at2000`` is 2.2 times ``atGround`` veered ``wind_veer`` (20° by
+        default) and ``at8000`` is ``at2000`` plus 3 m/s, unless given.
 
         Args:
             metar_string: METAR weather string (provided manually)
             airport_icao: Airport ICAO code to fetch live METAR from avwx
             temperature_celsius: Temperature override
-            wind_speed_mps: Wind speed in m/s override
+            wind_speed_mps: Wanted surface wind speed in m/s, 10 m above the reference airfield
             wind_direction_degrees: Wind direction override, where the wind comes FROM as in a METAR
             visibility_meters: Visibility in meters override
             cloud_coverage: Cloud type ("clear", "few", "scattered", "broken", "overcast")
@@ -116,11 +155,24 @@ class DCSWeatherConverter:
             precipitation: Rain override; a METAR's rain groups set it otherwise
             fog_enabled: Enable fog effect (a METAR's fog group enables it too)
             fog_thickness_meters: Fog vertical thickness
-            clearsky: Cap to VFR-friendly conditions: clouds at most FEW, wind under 15 kt,
-                visibility 10 km or more, no rain, no fog
+            clearsky: Cap to VFR-friendly conditions: clouds at most FEW, a surface wind of 15 kt at most
+                at the reference airfield, visibility 10 km or more, no rain, no fog, no gust
+            theatre: The mission's theatre, to find the reference airfield and its altitude.
+            reference_airfield: The airfield the wind is wanted at, when no METAR station of the map says.
+            departure_airfield: The mission's first player departure airfield, the next fallback.
+            wind_gust_mps: The gust, m/s; a METAR's ``G`` group sets it otherwise.
+            turbulence_mps: The turbulence, m/s as the editor shows it; wins over the gust.
+            wind_veer: How far the wind turns clockwise from the surface to 2,000 m, 0-30°.
+            wind_speed_2000: ``at2000``'s speed, m/s, to set it by hand.
+            wind_direction_2000: Where the 2,000 m wind comes FROM; the surface's plus the veer by default.
+            wind_speed_8000: ``at8000``'s speed, m/s, to set it by hand.
+            wind_direction_8000: Where the 8,000 m wind comes FROM; the 2,000 m one by default.
 
         Returns:
-            Dictionary of DCS ``weather`` table fields
+            The :class:`WeatherConversion`.
+
+        Raises:
+            ValueError: If the veer is outside 0-30°, or the reference airfield at 2,000 m or above.
         """
         try:
             weather: dict[str, Any] = {}
@@ -132,6 +184,7 @@ class DCSWeatherConverter:
             elif airport_icao:
                 # A copy: the fetch is memoised and returns its dict by reference.
                 weather = dict(_fetch_live_metar(airport_icao))
+            from_metar = bool(weather)
 
             # Apply parameter overrides
             if temperature_celsius is not None:
@@ -140,6 +193,8 @@ class DCSWeatherConverter:
                 weather["wind_speed"] = wind_speed_mps
             if wind_direction_degrees is not None:
                 weather["wind_direction"] = wind_direction_degrees
+            if wind_gust_mps is not None:
+                weather["wind_gust"] = wind_gust_mps
             if visibility_meters is not None:
                 weather["visibility"] = visibility_meters
             if cloud_coverage:
@@ -163,20 +218,28 @@ class DCSWeatherConverter:
                 clouds["preset"] = preset
 
             # A METAR gives where the wind comes FROM, the mission file where it blows TO (v5 did the
-            # same, `convertFromTo`). Aloft, v5 added a random 1-3 m/s at 2000 m and 2-8 m/s at 8000 m;
-            # the middle of each range is used so a build is reproducible.
-            speed = weather.get("wind_speed", 5.0)
-            direction = round((weather.get("wind_direction", 0.0) + 180) % 360)
+            # same, `convertFromTo`). The setting is the one that gives the wanted wind 10 m above the
+            # reference airfield; v5's "ground + 2 / + 5 m/s" aloft made a jet in the low layer.
+            station = _metar_station(metar_string) if metar_string else (airport_icao or None)
+            reference, warnings = resolve_reference_airfield(
+                theatre, station=station, reference_airfield=reference_airfield, departure_airfield=departure_airfield
+            )
+            speed = float(weather.get("wind_speed", 5.0))
+            wind, wind_warnings = _wind_setting(
+                float(weather.get("wind_direction", 0.0)),
+                speed,
+                reference,
+                veer=20.0 if wind_veer is None else float(wind_veer),
+                at2000=(wind_speed_2000, wind_direction_2000),
+                at8000=(wind_speed_8000, wind_direction_8000),
+            )
+            warnings += wind_warnings
             visibility = weather.get("visibility", 10000.0)
 
             dcs_weather: dict[str, Any] = {
                 "atmosphere_type": 0,  # static weather: with dynamic weather DCS ignores the fields below
                 "season": {"temperature": weather.get("temperature", 15.0)},
-                "wind": {
-                    "atGround": {"speed": speed, "dir": direction},
-                    "at2000": {"speed": speed + 2.0, "dir": direction},
-                    "at8000": {"speed": speed + 5.0, "dir": direction},
-                },
+                "wind": wind,
                 # A METAR's 9999 means "10 km or more"; v5 flew it as DCS's 80 km.
                 "visibility": {"distance": 80000 if visibility >= 9000 else round(visibility)},
                 "clouds": clouds,
@@ -187,13 +250,116 @@ class DCSWeatherConverter:
             # Only a pressure actually reported: otherwise the base mission's QNH stays.
             if weather.get("qnh_hpa"):
                 dcs_weather["qnh"] = round(weather["qnh_hpa"] * 0.750062, 1)  # DCS stores mmHg
+            # The turbulence: given, else the gust's gap (measured mapping, capped), else none for a METAR
+            # without a gust. A manual weather with neither keeps the base mission's.
+            gust = weather.get("wind_gust")
+            if turbulence_mps is not None:
+                dcs_weather["groundTurbulence"] = round(10 * float(turbulence_mps))
+            elif gust or from_metar:
+                gust_knots = float(gust) * KNOTS_PER_MPS if gust else None
+                dcs_weather["groundTurbulence"] = round(10 * turbulence_for_gust(speed * KNOTS_PER_MPS, gust_knots))
 
             logger.debug(f"Converted weather: {json.dumps(dcs_weather, indent=2)}")
-            return dcs_weather
+            return WeatherConversion(
+                weather=dcs_weather,
+                reference=reference,
+                layers=layer_winds(wind, reference.elevation),
+                warnings=warnings,
+            )
 
+        except ValueError:
+            # A wind that cannot be set (veer past 30°, a reference at 2,000 m): the caller's input to
+            # report, not a crash to log — `logger.error` would abort the whole command.
+            raise
         except Exception as e:
             logger.error(t("weather.converter.convert_failed", error=str(e)))
             raise
+
+
+@dataclass
+class WeatherConversion:
+    """What :meth:`DCSWeatherConverter.convert` answers.
+
+    Attributes:
+        weather: The fields of the DCS mission ``weather`` table.
+        reference: The airfield the wind was set for.
+        layers: The wind DCS will simulate above it, by the layers of a briefing (true directions).
+        warnings: What the author should know: sea level used, a jet in the low layer, an unreliable
+            inversion.
+    """
+
+    weather: dict[str, Any]
+    reference: ReferenceAirfield
+    layers: list[dict[str, Any]]
+    warnings: list[str] = field(default_factory=list)
+
+
+def _metar_station(metar: str) -> str | None:
+    """The ICAO station a METAR starts with, ``METAR`` / ``SPECI`` aside, or None."""
+    match = re.match(r"(?:(?:METAR|SPECI)\s+)?([A-Z]{4})\b", metar.strip())
+    return match.group(1) if match else None
+
+
+def _to_dir(from_deg: float) -> float:
+    """A METAR "from" direction as the ``.miz``'s "to" one."""
+    return (from_deg + 180.0) % 360.0
+
+
+def _wind_setting(
+    from_deg: float,
+    speed_mps: float,
+    reference: ReferenceAirfield,
+    *,
+    veer: float,
+    at2000: tuple[float | None, float | None],
+    at8000: tuple[float | None, float | None],
+) -> tuple[dict[str, dict[str, float]], list[str]]:
+    """The ``weather.wind`` table that makes DCS simulate a wanted wind at the reference airfield.
+
+    Args:
+        from_deg: Where the wanted surface wind comes from.
+        speed_mps: Its speed, m/s.
+        reference: The airfield it is wanted at.
+        veer: Turn of the wind from the surface to 2,000 m, clockwise, 0-30°.
+        at2000: ``(speed m/s, from deg)`` set by hand, or ``(None, ...)``.
+        at8000: ``(speed m/s, from deg)`` set by hand, or ``(None, ...)``.
+
+    Returns:
+        The table, rounded as written, and the warnings it calls for.
+
+    Raises:
+        ValueError: If the veer is outside 0-30°, or the reference airfield at 2,000 m or above.
+    """
+    knots = speed_mps * KNOTS_PER_MPS
+    warnings: list[str] = []
+    if at2000[0] is None:
+        inversion = setting_for_surface_wind(from_deg, knots, reference.elevation, veer_deg=veer)
+    else:
+        if not 0.0 <= veer <= 30.0:
+            raise ValueError(f"wind_veer {veer}° outside 0-30°")
+        upper_from = from_deg + veer if at2000[1] is None else float(at2000[1])
+        upper = {"speed": float(at2000[0]), "dir": _to_dir(upper_from)}
+        inversion = ground_setting_for_surface_wind(from_deg, knots, reference.elevation, upper)
+    setting = inversion.setting
+    if at8000[0] is not None:
+        top_from = (float(setting["at2000"]["dir"]) + 180.0) % 360.0 if at8000[1] is None else float(at8000[1])
+        setting["at8000"] = {"speed": float(at8000[0]), "dir": _to_dir(top_from)}
+    wind = {
+        key: {"speed": round(float(layer["speed"]), 2), "dir": round(float(layer["dir"]), 1) % 360.0}
+        for key, layer in setting.items()
+    }
+    if wind["at2000"]["speed"] < GROUND_REFERENCE_FACTOR * wind["atGround"]["speed"] - 0.01:
+        warnings.append(
+            f"at2000 {wind['at2000']['speed']:.1f} m/s is under {GROUND_REFERENCE_FACTOR:.2f} x atGround"
+            f" {wind['atGround']['speed']:.1f} m/s: the wind peaks 300-600 m above the ground, then drops"
+            " (a jet in the low layer)"
+        )
+    if not inversion.reliable:
+        warnings.append(
+            f"{reference.name} is at {reference.elevation:.0f} m, where the 2,000 m wind weighs"
+            f" {1 - inversion.ground_weight:.0%}: the ground setting written may be far off the wanted wind"
+        )
+    return wind, warnings
 
 
 def cap_clearsky(values: dict[str, Any]) -> dict[str, Any]:
@@ -207,11 +373,16 @@ def cap_clearsky(values: dict[str, Any]) -> dict[str, Any]:
         values: Weather values in this module's form — ``cloud_type`` 0 (clear) to 4 (overcast),
             ``wind_speed`` in m/s, ``visibility`` in m, ``precipitation`` and ``fog``; each optional.
 
+    The wind capped is the **wanted** wind, which the converter makes the simulated surface wind at the
+    reference airfield (FEAT-MISSION-WIND-CHECK): the 15 kt hold where pilots read them, not on a DCS
+    setting that blows 20 kt and more over any inland airfield.
+
     Returns:
-        A capped copy: clouds at most FEW, wind under 15 kt, visibility 10 km or more, no rain, no fog.
-        A missing wind or cloud stays missing; the input is left untouched.
+        A capped copy: clouds at most FEW, wind under 15 kt, no gust, visibility 10 km or more, no rain,
+        no fog. A missing wind or cloud stays missing; the input is left untouched.
     """
     capped = dict(values)
+    capped.pop("wind_gust", None)
     if capped.get("cloud_type") is not None:
         capped["cloud_type"] = min(capped["cloud_type"], DCSWeatherConverter.CLOUD_TYPES["few"])
     if capped.get("wind_speed") is not None:
@@ -421,7 +592,10 @@ def _fallback_metar_parsing(metar_string: str, defaults: dict[str, Any]) -> dict
                         result["wind_direction"] = float(match.group(1))
                     speed = float(match.group(2))
                     # Convert knots to m/s (1 knot = 0.51444 m/s)
-                    result["wind_speed"] = speed if match.group(4) == "MPS" else speed * 0.51444
+                    to_mps = 1.0 if match.group(4) == "MPS" else 0.51444
+                    result["wind_speed"] = speed * to_mps
+                    # The gust feeds the turbulence (FEAT-MISSION-WIND-CHECK); it used to be dropped.
+                    result["wind_gust"] = float(match.group(3)) * to_mps if match.group(3) else None
                 except ValueError:
                     pass
 

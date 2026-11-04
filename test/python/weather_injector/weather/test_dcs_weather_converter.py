@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 
+from veaf_libs.dcs_wind import surface_wind, turbulence_for_gust, wind_profile
 from weather_injector.weather.dcs_weather_converter import (
     DCSWeatherConverter,
     _extract_metar_values,
@@ -38,7 +39,8 @@ class TestDCSWeatherConverterDefaults(unittest.TestCase):
         self.assertEqual(self.result["season"]["temperature"], 15.0)
 
     def test_default_ground_wind(self) -> None:
-        self.assertEqual(self.result["wind"]["atGround"]["speed"], 5.0)
+        # 5 m/s wanted 10 m above sea level, the reference when nothing names one.
+        self.assertAlmostEqual(surface_wind(self.result["wind"], 0.0).speed, 5.0, places=1)
 
     def test_default_visibility_is_unlimited(self) -> None:
         # >= 9000 m reads as "10 km or more" in a METAR; v5 flew it as DCS's 80 km
@@ -65,7 +67,7 @@ class TestDCSWeatherConverterParameterOverrides(unittest.TestCase):
 
     def test_wind_speed_override(self) -> None:
         result = DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=10.0)
-        self.assertEqual(result["wind"]["atGround"]["speed"], 10.0)
+        self.assertAlmostEqual(surface_wind(result["wind"], 0.0).speed, 10.0, places=1)
 
     def test_wind_is_stronger_aloft(self) -> None:
         result = DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=10.0)
@@ -138,8 +140,8 @@ class TestDCSWeatherConverterMetarString(unittest.TestCase):
         self.assertEqual(self.result["wind"]["atGround"]["dir"], 90)
 
     def test_wind_speed_from_metar(self) -> None:
-        # 15 kt * 0.51444 = 7.7166 m/s
-        self.assertAlmostEqual(self.result["wind"]["atGround"]["speed"], 15 * 0.51444, places=3)
+        # 15 kt simulated 10 m above sea level: no theatre given, so no airfield to set it for.
+        self.assertAlmostEqual(surface_wind(self.result["wind"], 0.0).knots, 15.0, delta=0.1)
 
     def test_visibility_from_metar(self) -> None:
         self.assertEqual(self.result["visibility"]["distance"], 80000)
@@ -201,7 +203,7 @@ class TestClearsky(unittest.TestCase):
         result = DCSWeatherConverter.to_dcs_lua_table(
             metar_string="EGLL 010850Z 09035KT CAVOK 15/08 Q1018", clearsky=True
         )
-        self.assertLessEqual(result["wind"]["atGround"]["speed"], 7.72)
+        self.assertLessEqual(surface_wind(result["wind"], 0.0).speed, 7.72 + 0.01)
 
     def test_raises_visibility(self) -> None:
         result = DCSWeatherConverter.to_dcs_lua_table(visibility_meters=3000.0, clearsky=True)
@@ -471,3 +473,124 @@ class TestForecastGroupsDoNotOverrideTheObservation(unittest.TestCase):
 
         self.assertAlmostEqual(r["wind_direction"], 270.0)
         self.assertAlmostEqual(r["wind_speed"], 15 * 0.51444, places=4)
+
+
+class TestTheWantedWind(unittest.TestCase):
+    """FEAT-MISSION-WIND-CHECK ticket 03: the wind written is the setting that gives the wanted wind."""
+
+    METAR = "LLIB 311200Z 27015KT 9999 SKC 20/10 Q1015"
+
+    def test_a_station_of_the_map_gives_back_its_metar_wind(self) -> None:
+        conversion = DCSWeatherConverter.convert(metar_string=self.METAR, theatre="Syria")
+        self.assertEqual(conversion.reference.name, "Rosh Pina")
+        self.assertEqual(conversion.reference.source, "metar_station")
+        wind = surface_wind(conversion.weather["wind"], conversion.reference.elevation)
+        self.assertAlmostEqual(wind.knots, 15.0, delta=0.1)
+        self.assertAlmostEqual(wind.from_deg, 270.0, delta=0.5)
+        self.assertEqual(conversion.layers[0]["layer"], "surface")
+        self.assertEqual(conversion.layers[0]["knots"], 15)
+
+    def test_the_same_wind_writes_different_settings_at_different_altitudes(self) -> None:
+        low = DCSWeatherConverter.convert(wind_speed_mps=7.7, theatre="Syria", reference_airfield="Bassel Al-Assad")
+        high = DCSWeatherConverter.convert(wind_speed_mps=7.7, theatre="Syria", reference_airfield="Khalkhalah")
+        self.assertLess(low.reference.elevation, 100)
+        self.assertGreater(high.reference.elevation, 600)
+        self.assertGreater(low.weather["wind"]["atGround"]["speed"], high.weather["wind"]["atGround"]["speed"])
+
+    def test_a_station_off_the_map_falls_back_to_the_departure_then_to_sea_level(self) -> None:
+        metar = "EGLL 010850Z 27015KT CAVOK 15/08 Q1018"
+        departure = DCSWeatherConverter.convert(metar_string=metar, theatre="Syria", departure_airfield="Rosh Pina")
+        self.assertEqual((departure.reference.name, departure.reference.source), ("Rosh Pina", "departure"))
+        self.assertEqual(departure.warnings, [])
+        sea = DCSWeatherConverter.convert(metar_string=metar, theatre="Syria")
+        self.assertEqual(sea.reference.source, "sea_level")
+        self.assertTrue(any("sea level" in warning for warning in sea.warnings))
+
+    def test_an_unknown_reference_airfield_is_said(self) -> None:
+        conversion = DCSWeatherConverter.convert(wind_speed_mps=5, theatre="Syria", reference_airfield="Atlantis")
+        self.assertTrue(any("Atlantis" in warning for warning in conversion.warnings))
+
+    def test_clearsky_caps_the_simulated_wind_at_the_reference_airfield(self) -> None:
+        conversion = DCSWeatherConverter.convert(
+            metar_string="LLIB 311200Z 27025G35KT 9999 SKC 20/10 Q1015", theatre="Syria", clearsky=True
+        )
+        wind = surface_wind(conversion.weather["wind"], conversion.reference.elevation)
+        self.assertAlmostEqual(wind.knots, 15.0, delta=0.1)
+        self.assertEqual(conversion.weather["groundTurbulence"], 0)
+
+    def test_at2000_defaults_to_2_2_times_the_ground_veered_20(self) -> None:
+        wind = DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=5, wind_direction_degrees=270)["wind"]
+        self.assertAlmostEqual(wind["at2000"]["speed"], 2.2 * wind["atGround"]["speed"], delta=0.02)
+        self.assertAlmostEqual((wind["at2000"]["dir"] - wind["atGround"]["dir"]) % 360, 20.0, delta=0.2)
+        self.assertAlmostEqual(wind["at8000"]["speed"], wind["at2000"]["speed"] + 3.0, delta=0.02)
+
+    def test_the_veer_is_a_parameter_and_refused_past_30(self) -> None:
+        wind = DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=5, wind_veer=0)["wind"]
+        self.assertAlmostEqual(wind["at2000"]["dir"], wind["atGround"]["dir"], delta=0.2)
+        with self.assertRaises(ValueError):
+            DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=5, wind_veer=45)
+
+    def test_explicit_upper_layers_are_written_as_given_with_the_jet_warned(self) -> None:
+        conversion = DCSWeatherConverter.convert(
+            wind_speed_mps=10,
+            wind_direction_degrees=270,
+            wind_speed_2000=7,
+            wind_direction_2000=280,
+            wind_speed_8000=20,
+            wind_direction_8000=300,
+        )
+        wind = conversion.weather["wind"]
+        self.assertEqual(wind["at2000"], {"speed": 7.0, "dir": 100.0})
+        self.assertEqual(wind["at8000"], {"speed": 20.0, "dir": 120.0})
+        self.assertAlmostEqual(surface_wind(wind, 0.0).speed, 10.0, delta=0.05)
+        self.assertTrue(any("jet" in warning for warning in conversion.warnings))
+
+    def test_an_explicit_at2000_above_2_14_times_is_not_warned(self) -> None:
+        conversion = DCSWeatherConverter.convert(
+            wind_speed_mps=5, wind_speed_2000=12, theatre="Syria", reference_airfield="Rosh Pina"
+        )
+        self.assertEqual(conversion.warnings, [])
+
+    def test_a_high_reference_airfield_with_a_given_at2000_is_warned(self) -> None:
+        conversion = DCSWeatherConverter.convert(
+            wind_speed_mps=5, wind_speed_2000=20, theatre="Afghanistan", reference_airfield="Kabul"
+        )
+        self.assertGreater(conversion.reference.elevation, 1700)
+        self.assertTrue(any("2,000 m wind weighs" in warning for warning in conversion.warnings))
+
+    def test_the_layers_say_the_simulated_wind_above_the_reference(self) -> None:
+        conversion = DCSWeatherConverter.convert(wind_speed_mps=5, theatre="Syria", reference_airfield="Rosh Pina")
+        names = [layer["layer"] for layer in conversion.layers]
+        self.assertEqual(names, ["surface", "1000 ft AGL", "3000 ft AGL", "FL100", "FL250"])
+        expected = wind_profile(conversion.weather["wind"], conversion.reference.elevation, [1000 * 0.3048])[0]
+        self.assertEqual(conversion.layers[1]["knots"], round(expected.wind.knots))
+
+
+class TestGusts(unittest.TestCase):
+    """FEAT-MISSION-WIND-CHECK ticket 03 d: the METAR's gust feeds ``groundTurbulence``."""
+
+    def test_a_gust_writes_its_turbulence(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(metar_string="OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018")
+        # A 10 kt gap is 8.3 m/s of turbulence by the measured mapping, capped at 3 m/s.
+        self.assertEqual(result["groundTurbulence"], 30)
+
+    def test_a_metar_without_gust_writes_no_turbulence(self) -> None:
+        result = DCSWeatherConverter.to_dcs_lua_table(metar_string="OSDI 151420Z 27015KT 9999 SKC 15/10 Q1018")
+        self.assertEqual(result["groundTurbulence"], 0)
+
+    def test_a_manual_weather_without_gust_keeps_the_base_turbulence(self) -> None:
+        self.assertNotIn("groundTurbulence", DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=5))
+
+    def test_a_manual_gust_and_an_explicit_turbulence(self) -> None:
+        gusty = DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=5, wind_gust_mps=6)
+        self.assertEqual(gusty["groundTurbulence"], round(10 * turbulence_for_gust(5 * 1.943844, 6 * 1.943844)))
+        explicit = DCSWeatherConverter.to_dcs_lua_table(wind_speed_mps=5, wind_gust_mps=10, turbulence_mps=1.5)
+        self.assertEqual(explicit["groundTurbulence"], 15)
+
+    def test_the_gust_is_parsed(self) -> None:
+        values = _extract_metar_values("OSDI 151420Z 27015G25KT 9999")
+        self.assertAlmostEqual(values["wind_gust"], 25 * 0.51444)
+        self.assertIsNone(_extract_metar_values("OSDI 151420Z 27015KT 9999")["wind_gust"])
+
+    def test_clearsky_drops_the_gust(self) -> None:
+        self.assertNotIn("wind_gust", cap_clearsky({"wind_speed": 5, "wind_gust": 9}))

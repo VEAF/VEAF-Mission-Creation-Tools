@@ -1,6 +1,6 @@
 # 05 — Submenu per pilot in multi-slot groups
 
-Status: 🧑 waiting-human (code done; checked in game with two players in one group)
+Status: ✅ done (code done; left to BFR: checked in game with two players in one group)
 
 ## Done when
 

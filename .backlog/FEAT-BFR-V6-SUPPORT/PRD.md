@@ -1,6 +1,6 @@
 # FEAT-BFR-V6-SUPPORT — what VMCT needs so BFR can plug its own script layer into v6
 
-Status: 🔄 in-progress
+Status: ✅ done (#1203)
 
 ## Where it comes from
 
@@ -49,6 +49,8 @@ Order: 14 first (it makes the Lua suite run on David's machine), then 01-02, the
 - **d) Security details stay out of public text** (commit messages, PR, changelog) until the fix is released.
 
 ## In-game checks left
+
+Closed on 2026-11-04 without them, at David's request: VEAF will not run them, they are BFR's to make when it ports its missions.
 
 - 03 to 05 with at least two players in one group;
 - 01 on a server, with real markers;

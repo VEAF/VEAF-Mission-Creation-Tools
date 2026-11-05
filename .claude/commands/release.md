@@ -93,9 +93,14 @@ git push origin published-vx.y.z vx.y.z
 # 2. back-merge so develop shares master's history again and carries the version bump
 git checkout develop
 git pull origin develop
-git merge origin/master
+git merge origin/master -m "Merge branch 'master' into develop [skip ci]"
 git push origin develop
 ```
+
+> `[skip ci]` because the back-merge has the tree the release PR already tested — on 6.36.0 the
+> release head, the merge on `master` and the back-merge all had the same tree, and the push
+> re-ran seven workflows for nothing. The `dev` docs and the `develop` SBOM and bot image catch up
+> on the next merge into `develop`; only the version number they show is a release behind meanwhile.
 
 > **Warning:** pushing the tag is irreversible — it immediately triggers the CI release
 > workflow, which publishes the GitHub Release and moves `published-latest` (unless the
@@ -114,8 +119,8 @@ Once the tags are pushed, check the result yourself — the tag push alone prove
 
 - The Release workflow ends green, and the GitHub release carries every asset (`veaf-tools.exe`,
   `veaf-tools-updater.exe`, `veaf-logs.exe`, the Linux and macOS binaries, `published.zip`,
-  `published-metadata.json`, the capture kit). Right after the push it holds only the SBOM; the
-  binaries arrived eight minutes later for 6.34.0. Wait for the run in the background
+  `published-metadata.json`, the capture kit, `sbom.cyclonedx.json`). The release appears a few
+  minutes after the push; the binaries arrived eight minutes later for 6.34.0. Wait for the run in the background
   (`gh run watch <id> --exit-status`), never in a blocking call.
 - `published-latest` is the new version (`gh release view published-latest` — its name says
   `vx.y.z`), and the docs' `versions.json` gives the `latest` alias to the new version.

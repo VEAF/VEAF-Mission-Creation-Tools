@@ -10,7 +10,7 @@ name: Go CI
 # `develop` without ever blocking a merge as "Expected".
 on:
   push:
-    branches: [develop, master]
+    branches: [develop]
     paths:
       - "src/go/veaf-logs/**"
       # The goldens are written by the Python reference: a change to it must prove the Go still agrees.

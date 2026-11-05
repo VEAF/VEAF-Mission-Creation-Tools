@@ -4,7 +4,7 @@ name: Python Quality
 # a change confined to test/python/ would not run the job that now lints it.
 on:
   push:
-    branches: [develop, master]
+    branches: [develop]
     paths:
       - "src/python/**"
       - "test/python/**"

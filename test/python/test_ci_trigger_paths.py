@@ -216,5 +216,53 @@ class TestTheGoGateRunsForWhatItChecks(_GateFilterAssertions, unittest.TestCase)
     expected = PATHS_THE_GO_PARITY_READS
 
 
+# Checks that only test the code. `master` receives nothing but release pull requests, whose head
+# already ran them against `master`, and a release merge commit has the very tree of that head:
+# measured on 6.36.0 (2026-11-05), the release head, the merge on `master` and the back-merge on
+# `develop` all had tree `42fcb60e`. Re-running them on the push only doubled nine runs.
+# `support-bot-ci.yml` and `chatbot-worker.yml` keep `master`: their push publishes something.
+CHECKS_THAT_SKIP_MASTER_PUSHES = (
+    "dcs-data-consistency.yml",
+    "dcs-mock-coverage.yml",
+    "docs-check.yml",
+    "go-ci.yml",
+    "lua-ci.yml",
+    "python-quality.yml",
+    "sbom.yml",
+    "secret-scanning.yml",
+)
+
+
+class TestChecksDoNotRerunOnAReleaseMerge(unittest.TestCase):
+    """A push to `master` re-tests a tree its release pull request already tested."""
+
+    def test_no_check_runs_on_a_push_to_master(self) -> None:
+        for workflow in CHECKS_THAT_SKIP_MASTER_PUSHES:
+            with self.subTest(workflow=workflow):
+                push = _workflow(workflow)["on"]["push"] or {}
+                self.assertNotIn("master", push.get("branches", []), f"{workflow} re-runs on the release merge")
+                self.assertIn("develop", push.get("branches", []), f"{workflow} no longer runs on `develop`")
+
+
+class TestTheReleaseCarriesItsSbom(unittest.TestCase):
+    """The SBOM is uploaded by the release job, after the step that recreates the release.
+
+    `veaf-build publish --force` deletes the release and creates it again, so an SBOM attached
+    before it — as `sbom.yml` did on the tag — is lost: 6.35.0 and 6.36.0 shipped without one.
+    """
+
+    def test_the_sbom_is_uploaded_after_the_release_is_recreated(self) -> None:
+        steps = _workflow("release.yml")["jobs"]["release"]["steps"]
+        names = [step.get("name", "") for step in steps]
+        publish = names.index("Publish to GitHub")
+        uploads = [i for i, step in enumerate(steps) if "sbom.cyclonedx.json" in str(step.get("run", ""))]
+        self.assertTrue(uploads, "release.yml never uploads sbom.cyclonedx.json")
+        self.assertTrue(all(i > publish for i in uploads), "the SBOM is uploaded before publish --force deletes it")
+
+    def test_the_sbom_workflow_no_longer_attaches_to_a_tag(self) -> None:
+        push = _workflow("sbom.yml")["on"]["push"] or {}
+        self.assertNotIn("tags", push, "sbom.yml attaches to a release that publish --force then deletes")
+
+
 if __name__ == "__main__":
     unittest.main()

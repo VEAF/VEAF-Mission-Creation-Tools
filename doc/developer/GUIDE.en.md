@@ -527,9 +527,13 @@ git push origin published-vx.y.z vx.y.z
 # 2. back-merge, so develop shares master's history again
 git checkout develop
 git pull origin develop
-git merge origin/master
+git merge origin/master -m "Merge branch 'master' into develop [skip ci]"
 git push origin develop
 ```
+
+> **`[skip ci]` on the back-merge:** it carries exactly the code the release pull request just tested, and running it again redid seven workflows for nothing.
+> The `dev` docs and the bot's `develop` image catch up on the next merge into `develop`.
+> For the same reason the checks no longer run on a push to `master`: only the workflows that publish something (the bot's `latest` image, the chatbot worker) still do.
 
 > **Warning:** pushing the tag is irreversible — only run after the PR is merged.
 

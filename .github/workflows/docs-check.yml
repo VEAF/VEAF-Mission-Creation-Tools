@@ -10,7 +10,6 @@ on:
   push:
     branches:
       - develop
-      - master
   # Every pull request, with no `paths:` filter: this check is *required* on `develop`, and a required
   # check whose workflow never starts stays "Expected" for ever and blocks the merge. The filter lives
   # in the `changes` job below instead, and a job it skips reports "Skipped", which a required check

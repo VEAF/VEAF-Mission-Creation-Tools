@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [CHORE-RELEASE-CI-REDUNDANCY](CHORE-RELEASE-CI-REDUNDANCY/PRD.md) · ✅
+
+The 6.36.0 release started 27 runs, 15 of them on a tree its pull request had already tested: the check workflows no longer run on a push to `master`, and the release back-merge carries `[skip ci]`. The bot and chatbot publications keep `master`. One PR.
+
 ### [CHORE-VENDOR-CTLD-RC17](CHORE-VENDOR-CTLD-RC17/PRD.md) · ✅
 
 CTLD `2.0.0-rc17` vendored ahead of the release: a piloted Fat Cow leaves its FARP open and packs it as crates on the ground, loadouts come as crates to load, no Fat Cow menu for aeroplanes, and the JTAC logs its laser code. No new setting, catalogue unchanged.

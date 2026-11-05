@@ -17,6 +17,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **A release no longer re-tests itself three times** (CHORE-RELEASE-CI-REDUNDANCY): the check workflows no longer run on a push to `master`, whose release pull request already ran them on the same tree, and the release back-merge into `develop` carries `[skip ci]`. 6.36.0 started 27 runs, 15 of them on a tree already tested.
+
 ## [6.36.0] — 2026-11-05
 
 ### Documentation

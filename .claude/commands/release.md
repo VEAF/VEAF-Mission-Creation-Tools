@@ -93,9 +93,14 @@ git push origin published-vx.y.z vx.y.z
 # 2. back-merge so develop shares master's history again and carries the version bump
 git checkout develop
 git pull origin develop
-git merge origin/master
+git merge origin/master -m "Merge branch 'master' into develop [skip ci]"
 git push origin develop
 ```
+
+> `[skip ci]` because the back-merge has the tree the release PR already tested — on 6.36.0 the
+> release head, the merge on `master` and the back-merge all had the same tree, and the push
+> re-ran seven workflows for nothing. The `dev` docs and the `develop` SBOM and bot image catch up
+> on the next merge into `develop`; only the version number they show is a release behind meanwhile.
 
 > **Warning:** pushing the tag is irreversible — it immediately triggers the CI release
 > workflow, which publishes the GitHub Release and moves `published-latest` (unless the

@@ -3,10 +3,10 @@ name: SBOM
 # Generates a Software Bill of Materials (CycloneDX JSON format) for the
 # Python dependencies embedded in the published veaf-tools.exe / veaf-tools-updater.exe.
 # The SBOM is attached to the GitHub Release on tag push, and uploaded as an
-# artifact on develop / master pushes.
+# artifact on develop pushes. Not on `master`: a release commit already gets its SBOM from its tag.
 on:
   push:
-    branches: [develop, master]
+    branches: [develop]
     tags: ["published-v*"]
 
 jobs:

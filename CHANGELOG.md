@@ -57,6 +57,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The ATIS rounds its speeds instead of truncating them, adds a "max wind 0-2000 ft" line when the low layer blows 5 kt over the surface, and can announce gusts (`veafWeather.announceGusts`, off by default).
   Two DCS behaviours join the known limitations: the editor's ground wind is not the surface wind, and opposed wind layers make a layer without wind.
 
+### Changed
+
+- **Vendored CTLD `2.0.0-rc17`** (was `rc16`): a piloted Fat Cow leaves its FARP open when it takes off, and **Pack the Fat Cow FARP** (any piloted CH-47 landed within 150 m) sets what is left down as crates; **Load** sets a loadout's crates down next to the CH-47 instead of filling the hold; an aeroplane no longer gets the Fat Cow menu; the JTAC logs its laser code and each spot in `dcs.log`. No new setting, catalogue still `2.3.0` (CHORE-VENDOR-CTLD-RC17).
+
 ## [6.35.0] — 2026-10-30
 
 ### Fixed

@@ -244,5 +244,25 @@ class TestChecksDoNotRerunOnAReleaseMerge(unittest.TestCase):
                 self.assertIn("develop", push.get("branches", []), f"{workflow} no longer runs on `develop`")
 
 
+class TestTheReleaseCarriesItsSbom(unittest.TestCase):
+    """The SBOM is uploaded by the release job, after the step that recreates the release.
+
+    `veaf-build publish --force` deletes the release and creates it again, so an SBOM attached
+    before it — as `sbom.yml` did on the tag — is lost: 6.35.0 and 6.36.0 shipped without one.
+    """
+
+    def test_the_sbom_is_uploaded_after_the_release_is_recreated(self) -> None:
+        steps = _workflow("release.yml")["jobs"]["release"]["steps"]
+        names = [step.get("name", "") for step in steps]
+        publish = names.index("Publish to GitHub")
+        uploads = [i for i, step in enumerate(steps) if "sbom.cyclonedx.json" in str(step.get("run", ""))]
+        self.assertTrue(uploads, "release.yml never uploads sbom.cyclonedx.json")
+        self.assertTrue(all(i > publish for i in uploads), "the SBOM is uploaded before publish --force deletes it")
+
+    def test_the_sbom_workflow_no_longer_attaches_to_a_tag(self) -> None:
+        push = _workflow("sbom.yml")["on"]["push"] or {}
+        self.assertNotIn("tags", push, "sbom.yml attaches to a release that publish --force then deletes")
+
+
 if __name__ == "__main__":
     unittest.main()

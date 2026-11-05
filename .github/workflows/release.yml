@@ -94,6 +94,21 @@ jobs:
             gh release upload published-latest             "dist/veaf-logs.exe#veaf-logs-${{ steps.version.outputs.version }}.exe" --clobber
           fi
 
+      # Here and not in sbom.yml on the tag: `publish --force` deletes the release and creates it
+      # again, so an SBOM attached before this job reaches that step is lost — 6.35.0 and 6.36.0
+      # shipped without one.
+      - name: Upload the SBOM to the release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          poetry run pip install cyclonedx-bom
+          poetry run cyclonedx-py poetry --of JSON -o sbom.cyclonedx.json
+          gh release upload "${{ steps.version.outputs.tag }}" sbom.cyclonedx.json --clobber
+          if [[ "${{ steps.version.outputs.prerelease }}" != "true" ]] && gh release view published-latest >/dev/null 2>&1; then
+            gh release upload published-latest sbom.cyclonedx.json --clobber
+          fi
+
       # Only a real release advances the floating published-latest tag; a pre-release leaves
       # production users on the previous stable (they opt in with --tag published-v<version>).
       - name: Move published-latest tag

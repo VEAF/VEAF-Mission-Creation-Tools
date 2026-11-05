@@ -20,6 +20,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **A release no longer re-tests itself three times** (CHORE-RELEASE-CI-REDUNDANCY): the check workflows no longer run on a push to `master`, whose release pull request already ran them on the same tree, and the release back-merge into `develop` carries `[skip ci]`. 6.36.0 started 27 runs, 15 of them on a tree already tested.
+  The GitHub release carries `sbom.cyclonedx.json` again: it was attached on the tag, then lost when `veaf-build publish --force` recreated the release (6.35.0 and 6.36.0 shipped without it); the release job now uploads it after that step.
 
 ## [6.36.0] — 2026-11-05
 

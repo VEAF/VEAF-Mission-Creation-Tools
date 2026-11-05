@@ -119,8 +119,8 @@ Once the tags are pushed, check the result yourself — the tag push alone prove
 
 - The Release workflow ends green, and the GitHub release carries every asset (`veaf-tools.exe`,
   `veaf-tools-updater.exe`, `veaf-logs.exe`, the Linux and macOS binaries, `published.zip`,
-  `published-metadata.json`, the capture kit). Right after the push it holds only the SBOM; the
-  binaries arrived eight minutes later for 6.34.0. Wait for the run in the background
+  `published-metadata.json`, the capture kit, `sbom.cyclonedx.json`). The release appears a few
+  minutes after the push; the binaries arrived eight minutes later for 6.34.0. Wait for the run in the background
   (`gh run watch <id> --exit-status`), never in a blocking call.
 - `published-latest` is the new version (`gh release view published-latest` — its name says
   `vx.y.z`), and the docs' `versions.json` gives the `latest` alias to the new version.

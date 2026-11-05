@@ -8,7 +8,7 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ### [CHORE-RELEASE-CI-REDUNDANCY](CHORE-RELEASE-CI-REDUNDANCY/PRD.md) · ✅
 
-The 6.36.0 release started 27 runs, 15 of them on a tree its pull request had already tested: the check workflows no longer run on a push to `master`, and the release back-merge carries `[skip ci]`. The bot and chatbot publications keep `master`. One PR.
+The 6.36.0 release started 27 runs, 15 of them on a tree its pull request had already tested: the check workflows no longer run on a push to `master`, and the release back-merge carries `[skip ci]`. The bot and chatbot publications keep `master`. And the release carries its SBOM again: `publish --force` recreated the release after `sbom.yml` had attached it. One PR.
 
 ### [CHORE-VENDOR-CTLD-RC17](CHORE-VENDOR-CTLD-RC17/PRD.md) · ✅
 

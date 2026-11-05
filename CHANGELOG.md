@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.36.0] — 2026-11-05
+
 ### Documentation
 
 - **Whitepaper: how DCS turns the mission editor's wind into the simulated wind** (`docs/whitepapers/dcs-wind-model.fr.md` and `.en.md`, from "Marteau du Golan": 17 kt set and announced, 24 kt at 10 m and 36 kt at 1000 ft above Rosh Pina).

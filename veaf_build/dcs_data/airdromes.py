@@ -68,10 +68,12 @@ def names_to_ids(airbases: list[dict[str, Any]]) -> dict[str, int]:
 
 
 def positions(airbases: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Project a dump's airbase records to ``[{name, id, lat, lon}]``, sorted by name.
+    """Project a dump's airbase records to ``[{name, id, lat, lon[, elevation]}]``, sorted by name.
 
     Args:
         airbases: Records with ``name``, ``id``, ``lat`` and ``lon`` keys; one missing any is left out.
+            An ``elevation`` (m) is kept when the record has one: the reference database carries it,
+            the runtime dumps do not.
 
     Returns:
         The airbases that carry a position (first record wins on a duplicate name).
@@ -80,7 +82,10 @@ def positions(airbases: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for ab in airbases:
         name = str(ab.get("name", "")).strip()
         if name and "id" in ab and ab.get("lat") is not None and ab.get("lon") is not None:
-            by_name.setdefault(name, {"name": name, "id": int(ab["id"]), "lat": ab["lat"], "lon": ab["lon"]})
+            record = {"name": name, "id": int(ab["id"]), "lat": ab["lat"], "lon": ab["lon"]}
+            if ab.get("elevation") is not None:
+                record["elevation"] = ab["elevation"]
+            by_name.setdefault(name, record)
     return [by_name[name] for name in sorted(by_name)]
 
 
@@ -91,8 +96,9 @@ def reference_airbases(connection: sqlite3.Connection) -> dict[str, list[dict[st
         connection: An open reference database (see :func:`veaf_build.dcs_data.reference.open_reference`).
 
     Returns:
-        Theatre -> ``[{id, name, lat, lon}]``, the position being the airbase's reference point
-        rounded to six decimals like the dumps.
+        Theatre -> ``[{id, name, lat, lon, elevation}]``, the position being the airbase's reference
+        point rounded to six decimals like the dumps, and its elevation (m) to one — the altitude the
+        wind of a mission is set for (FEAT-MISSION-WIND-CHECK).
     """
     result: dict[str, list[dict[str, Any]]] = {}
     query = "select theatre, airdromeId, name, referencePoint from airbases order by theatre, name"
@@ -102,6 +108,8 @@ def reference_airbases(connection: sqlite3.Connection) -> dict[str, list[dict[st
         if point.get("latitude") is not None and point.get("longitude") is not None:
             record["lat"] = round(float(point["latitude"]), 6)
             record["lon"] = round(float(point["longitude"]), 6)
+        if point.get("elevationM") is not None:
+            record["elevation"] = round(float(point["elevationM"]), 1)
         result.setdefault(str(theatre), []).append(record)
     return result
 
@@ -127,7 +135,8 @@ def write_positions_yaml(theatres: dict[str, list[dict[str, Any]]], output: Path
     output.parent.mkdir(parents=True, exist_ok=True)
     data = {"theatres": dict(sorted(theatres.items()))}
     with open(output, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# DCS airbase positions (lat/lon of the reference point, the runways' centre), per theatre.\n")
+        f.write("# DCS airbase positions (lat/lon of the reference point, the runways' centre, and its\n")
+        f.write("# elevation in m where the source has one), per theatre.\n")
         f.write("# Generated with airdromes.yaml from the dcs-world-schema reference data, and from\n")
         f.write("# veaf_build/dcs_data/airbase_dumps/<Theatre>.json for a theatre it lacks.\n")
         f.write("# DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.\n")

@@ -9,6 +9,7 @@ go from an empty folder to a playable mission without leaving the assistant. See
 
 import os
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -56,15 +57,18 @@ def build_mission(folder_path: Path, profile: str | None = None) -> dict[str, An
             mission's own profiles when omitted.
 
     Returns:
-        ``{folder, ok, message, log}`` on success — ``log`` is the build's whole output, where its
-        warnings are; ``message`` keeps the last 1000 characters for older callers. The output used
+        ``{folder, ok, message, log, missions}`` on success — ``log`` is the build's whole output, where
+        its warnings are; ``message`` keeps the last 1000 characters for older callers. The output used
         to be cut to those and decoded as cp1252 (« CrÃ©Ã© »), so the warnings the maker needed
-        were gone (FIX-SCRATCH-MISSION-FINDINGS ticket 08).
+        were gone (FIX-SCRATCH-MISSION-FINDINGS ticket 08). ``missions`` lists the ``.miz`` the build
+        wrote in the folder: the night's, and its training versions when ``mission.yaml`` has a
+        ``training:`` block.
 
     Raises:
         RuntimeError: when the build exits non-zero (message carries the build's stderr/stdout).
     """
     folder = Path(folder_path)
+    started = time.time() - 1  # a second's slack for file systems that round modification times
     cmd = [_veaf_tools_binary(folder), "build"]
     if profile:
         cmd += ["--profile", profile]
@@ -91,4 +95,6 @@ def build_mission(folder_path: Path, profile: str | None = None) -> dict[str, An
     if result.returncode != 0:
         raise RuntimeError(f"build failed (exit {result.returncode}): {(result.stderr or result.stdout).strip()}")
     log = (result.stdout or "").strip()
-    return {"folder": str(folder), "ok": True, "message": log[-1000:], "log": log}
+    # Which .miz this build wrote: a training: block makes it five (FEAT-ROLE-TRAINING-VARIANTS).
+    missions = sorted(str(p) for p in folder.glob("*.miz") if p.stat().st_mtime >= started)
+    return {"folder": str(folder), "ok": True, "message": log[-1000:], "log": log, "missions": missions}

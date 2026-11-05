@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 from mission_tools.miz_tools import read_mission_folder
+from veaf_libs.dcs_wind import surface_wind
 from veaf_mission_mcp.mission_settings import set_weather
 
 _MISSION = """\
@@ -54,8 +55,10 @@ class TestSetWeather:
         weather = _weather(folder)
         assert "atmosphere" not in weather
         assert weather["groundTurbulence"] == 0
-        # A METAR-style "from" direction; the mission file stores where the wind blows to.
-        assert weather["wind"]["atGround"] == {"speed": 5, "dir": 90}
+        # A METAR-style "from" direction; the mission file stores where the wind blows to. 5 m/s is the
+        # wind wanted 10 m above sea level (no theatre): DCS's ground setting is a little more.
+        assert weather["wind"]["atGround"]["dir"] == 90
+        assert surface_wind(weather["wind"], 0.0).speed == pytest.approx(5, abs=0.01)
 
     def test_a_metar_is_read(self, tmp_path: Path) -> None:
         folder = _folder(tmp_path)

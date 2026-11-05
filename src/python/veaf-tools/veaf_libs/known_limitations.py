@@ -31,6 +31,7 @@ _DCS_AREAS = {
     "radio": "## Radio and frequencies {#radio}",
     "ground-ai": "## Ground AI {#ground-ai}",
     "scripting": "## Mission scripting {#scripting}",
+    "weather": "## Weather and wind {#weather}",
 }
 
 GENERATED_BEGIN = "<!-- BEGIN GENERATED from src/python/veaf-tools/veaf_libs/data/known-limitations.yaml -->"

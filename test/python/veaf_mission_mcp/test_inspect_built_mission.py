@@ -63,7 +63,10 @@ def test_the_counters_make_a_zero_visible(report: dict) -> None:
 
 
 def test_the_weather_and_the_bullseye_are_read(report: dict) -> None:
-    assert report["weather"][0].startswith("main:") and " kt " in report["weather"][0]
+    assert report["weather"][0].startswith("main:")
+    # FEAT-MISSION-WIND-CHECK: the wind is the simulated one, by layer, then the setting on its own line.
+    assert any(line.startswith("main: wind DCS simulates above ") and " kt" in line for line in report["weather"])
+    assert any(line.startswith("main: set (not the wind pilots meet): ") for line in report["weather"])
     assert {"blue", "red"} <= set(report["bullseye"])
 
 
@@ -101,7 +104,7 @@ def test_a_folder_resolves_to_its_built_miz_and_lists_its_weather_variants(tmp_p
     result = inspect_built_mission(tmp_path)
 
     assert Path(result["miz"]).name == "test_20261020.miz"
-    assert [line.split(":")[0] for line in result["weather"]] == ["main", "test_dawn"]
+    assert list(dict.fromkeys(line.split(":")[0] for line in result["weather"])) == ["main", "test_dawn"]
     assert result["counters"]["variants"] == 1
 
 

@@ -495,7 +495,7 @@ Les champs supplémentaires `init:` ou de données sont spécifiques à chaque m
 
 | Champ | Type | Défaut | Description |
 |-------|------|--------|-------------|
-| `help_menus` | booléen | `true` | Transmis à `veafRadio.initialize` en tant que `skipHelpMenus` |
+| `help_menus` | booléen | `false` | `true` affiche les entrées "Aide" intégrées dans les menus radio ; transmis inversé au `skipHelpMenus` de `veafRadio.initialize` |
 | `create_menus` | booléen | `true` | `false` ne construit **aucun menu F10 VEAF** (`dontCreateMenus`). Combiné à `security:`, c'est ainsi qu'une mission publique garde les commandes VEAF accessibles uniquement via des marqueurs protégés par mot de passe. Omettez la clé pour conserver le comportement actuel |
 
 ```yaml
@@ -885,6 +885,17 @@ profiles:
           SA11Kiswah: { active_at_start: false }
 ```
 
+#### Retirer des groupes de l'éditeur {#profile-remove-groups}
+
+Un profil ne change que la configuration, sauf `remove_groups:` : une liste de noms de groupes, exacts ou en motif (`"SA-10 *"`), que le build retire du `.miz` de ce profil — qu'ils soient posés à la main, porteurs d'un `#veafInterpreter`, membres d'une combat zone ou statiques.
+Un motif qui ne correspond à aucun groupe est signalé au build.
+
+```yaml
+profiles:
+  SANS_SA10:
+    remove_groups: ["SA-10 *", "EWR Gudauta"]
+```
+
 ---
 
 ### `build_variants:` {#build-variants}
@@ -918,6 +929,17 @@ build_variants:
 .\veaf-tools.exe mission build          # produit <base>_MODERN.miz ET <base>_COLD_WAR.miz
 .\veaf-tools.exe mission build --profile MODERN   # ne produit que la variante MODERN (<base>_MODERN.miz)
 ```
+
+---
+
+### `training:` {#training}
+
+Les versions d'entraînement par rôle de la mission : avec ce bloc, le build produit aussi `<base>_TRAINING_A2G.miz`, `_TRAINING_CAP`, `_TRAINING_SEAD` et `_TRAINING_ALL`, sur le même cadre et avec le même briefing.
+`elements` classe ce que la mission contient (`enemy_cap`, `qra`, `sam_lr`, `a2g_target`, `sam_threat`) ; `randomize` déclare les éléments vagues du briefing, tirés au sort à chaque lancement.
+Les règles, les exemples et ce qui est refusé : [Versions d'entraînement par rôle](mission-maker/TRAINING_VERSIONS.md).
+
+- Ne se combine pas avec `build_variants:`.
+- `--profile TRAINING_SEAD` ne construit que cette version.
 
 ---
 
@@ -1006,6 +1028,7 @@ cette page y figure exactement une fois.
 | `build.scripts_path` | Chemin vers un clone local de VEAF-Mission-Creation-Tools |
 | [`profiles:`](#profiles) | Profils de build nommés (surcharges deep-merge pour `--profile`) |
 | [`build_variants:`](#build-variants) | Produire une variante `.miz` par profil nommé |
+| [`training:`](#training) | Versions d'entraînement par rôle, construites avec la mission |
 
 ---
 

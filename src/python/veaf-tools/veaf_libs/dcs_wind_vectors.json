@@ -1,0 +1,267 @@
+{
+  "model_dcs_version": "2.9.31.29434",
+  "about": "Shared test vectors of dcs_wind.py, replayed by VEAF-Mission-Creation-Tools and by the VEAF fork of DCSServerBot. Directions: wanted from_deg is where the wind comes from; a setting's dir is where it blows to. Speeds in m/s unless named knots.",
+  "surface_inversions": [
+    {
+      "name": "OMAA real weather",
+      "note": "measured server case: METAR 320/11 kt, at2000 from open-meteo; Real Weather wrote 2.74 m/s",
+      "wanted": {
+        "from_deg": 320,
+        "knots": 11
+      },
+      "ground_msl": 13,
+      "at2000": {
+        "speed": 2.65,
+        "dir": 227
+      },
+      "expected": {
+        "atGround": {
+          "speed": 5.575,
+          "dir": 140.0
+        },
+        "ground_weight": 1.0,
+        "reliable": true,
+        "surface": {
+          "knots": 11.0,
+          "from_deg": 320.0
+        }
+      }
+    },
+    {
+      "name": "sea level default",
+      "note": "at2000 2.2 x atGround veered 20",
+      "wanted": {
+        "from_deg": 270,
+        "knots": 15
+      },
+      "ground_msl": 0,
+      "expected": {
+        "atGround": {
+          "speed": 7.743,
+          "dir": 90.0
+        },
+        "ground_weight": 1.0,
+        "reliable": true,
+        "surface": {
+          "knots": 15.0,
+          "from_deg": 270.0
+        }
+      }
+    },
+    {
+      "name": "Rosh Pina default",
+      "note": "Marteau du Golan reference airfield",
+      "wanted": {
+        "from_deg": 270,
+        "knots": 10
+      },
+      "ground_msl": 264.61,
+      "expected": {
+        "atGround": {
+          "speed": 3.8,
+          "dir": 90.0
+        },
+        "ground_weight": 0.9999,
+        "reliable": true,
+        "surface": {
+          "knots": 10.0,
+          "from_deg": 270.0
+        }
+      }
+    },
+    {
+      "name": "high terrain reliable",
+      "note": "1 - w above 0.5",
+      "wanted": {
+        "from_deg": 270,
+        "knots": 15
+      },
+      "ground_msl": 900,
+      "at2000": {
+        "speed": 10,
+        "dir": 100
+      },
+      "expected": {
+        "atGround": {
+          "speed": 4.051,
+          "dir": 86.3
+        },
+        "ground_weight": 0.7562,
+        "reliable": true,
+        "surface": {
+          "knots": 15.0,
+          "from_deg": 270.0
+        }
+      }
+    },
+    {
+      "name": "high terrain unreliable",
+      "note": "1 - w under 0.5: the caller decides",
+      "wanted": {
+        "from_deg": 270,
+        "knots": 15
+      },
+      "ground_msl": 1100,
+      "at2000": {
+        "speed": 10,
+        "dir": 100
+      },
+      "expected": {
+        "atGround": {
+          "speed": 3.594,
+          "dir": 75.0
+        },
+        "ground_weight": 0.466,
+        "reliable": false,
+        "surface": {
+          "knots": 15.0,
+          "from_deg": 270.0
+        }
+      }
+    },
+    {
+      "name": "at 2000 m",
+      "note": "the 0 m level weighs nothing",
+      "wanted": {
+        "from_deg": 270,
+        "knots": 15
+      },
+      "ground_msl": 2000,
+      "expected": {
+        "error": "ValueError"
+      }
+    }
+  ],
+  "band_caps": [
+    {
+      "name": "band cap at 0 m",
+      "note": "20 kt over 0-1,500 ft, a 25 kt setting",
+      "setting": {
+        "atGround": {
+          "speed": 12.905,
+          "dir": 90.0
+        },
+        "at2000": {
+          "speed": 28.39,
+          "dir": 110.0
+        },
+        "at8000": {
+          "speed": 31.39,
+          "dir": 110.0
+        }
+      },
+      "ground_msl": 0,
+      "max_knots": 20,
+      "top_agl": 457.2,
+      "expected": {
+        "atGround_speed": 4.814,
+        "at2000_speed": 28.39,
+        "at2000_reduced": false
+      }
+    },
+    {
+      "name": "band cap at 231 m",
+      "note": "20 kt over 0-1,500 ft, a 25 kt setting",
+      "setting": {
+        "atGround": {
+          "speed": 9.806,
+          "dir": 90.0
+        },
+        "at2000": {
+          "speed": 21.572,
+          "dir": 110.0
+        },
+        "at8000": {
+          "speed": 24.572,
+          "dir": 110.0
+        }
+      },
+      "ground_msl": 231,
+      "max_knots": 20,
+      "top_agl": 457.2,
+      "expected": {
+        "atGround_speed": 4.571,
+        "at2000_speed": 21.572,
+        "at2000_reduced": false
+      }
+    },
+    {
+      "name": "band cap at 468 m",
+      "note": "20 kt over 0-1,500 ft, a 25 kt setting",
+      "setting": {
+        "atGround": {
+          "speed": 8.152,
+          "dir": 89.9
+        },
+        "at2000": {
+          "speed": 17.934,
+          "dir": 109.9
+        },
+        "at8000": {
+          "speed": 20.934,
+          "dir": 109.9
+        }
+      },
+      "ground_msl": 468,
+      "max_knots": 20,
+      "top_agl": 457.2,
+      "expected": {
+        "atGround_speed": 3.651,
+        "at2000_speed": 17.934,
+        "at2000_reduced": false
+      }
+    },
+    {
+      "name": "band cap on high terrain",
+      "note": "at2000 alone holds the band above the cap",
+      "setting": {
+        "atGround": {
+          "speed": 2,
+          "dir": 90
+        },
+        "at2000": {
+          "speed": 20,
+          "dir": 90
+        },
+        "at8000": {
+          "speed": 23,
+          "dir": 90
+        }
+      },
+      "ground_msl": 1600,
+      "max_knots": 20,
+      "top_agl": 457.2,
+      "expected": {
+        "atGround_speed": 0.0,
+        "at2000_speed": 10.311,
+        "at2000_reduced": true
+      }
+    }
+  ],
+  "gusts": [
+    {
+      "name": "08024G37KT",
+      "mean_knots": 24,
+      "gust_knots": 37,
+      "expected_mps": 3.0
+    },
+    {
+      "name": "27015KT",
+      "mean_knots": 15,
+      "gust_knots": null,
+      "expected_mps": 0.0
+    },
+    {
+      "name": "gust under the mean",
+      "mean_knots": 15,
+      "gust_knots": 12,
+      "expected_mps": 0.0
+    },
+    {
+      "name": "27015G17KT",
+      "mean_knots": 15,
+      "gust_knots": 17,
+      "expected_mps": 1.659
+    }
+  ]
+}

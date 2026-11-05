@@ -14,6 +14,7 @@ from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import t
+from veaf_libs.mission_wind import SEA_LEVEL
 from veaf_libs.terrain_elevation import metres_to_feet
 
 from campaign_manager.briefing_deck import _HEIGHT, _MARGIN, _WIDTH, Block, Page, _frame, _run, _titled_slide
@@ -57,7 +58,13 @@ def weather_lines(picture: MissionPicture) -> tuple[str, ...]:
     )
     extras = [t("campaign.mission_deck.rain")] if weather.rain else []
     extras += [t("campaign.mission_deck.fog")] if weather.fog else []
-    winds = weather.winds
+    # The wind DCS simulates above the reference airfield, by layer, not its three settings
+    # (FEAT-MISSION-WIND-CHECK: 17 kt set became 24 kt at the surface and 36 kt at 1,000 ft).
+    layers = ", ".join(
+        f"{t(f'campaign.mission_deck.wind_layer.{_LAYER_KEYS.get(wind.layer, wind.layer)}')}"
+        f" {wind.origin:03d}°M / {wind.knots} kt"
+        for wind in weather.simulated
+    )
     return (
         t(
             "campaign.mission_deck.weather",
@@ -69,12 +76,23 @@ def weather_lines(picture: MissionPicture) -> tuple[str, ...]:
         ),
         t(
             "campaign.mission_deck.wind",
-            ground=f"{winds['ground'].origin:03d}° / {winds['ground'].knots} kt",
-            at2000=f"{winds['2000'].origin:03d}° / {winds['2000'].knots} kt",
-            at8000=f"{winds['8000'].origin:03d}° / {winds['8000'].knots} kt",
+            airfield=weather.wind_reference
+            if weather.wind_reference != SEA_LEVEL
+            else t("campaign.mission_deck.wind_sea_level"),
+            layers=layers,
         ),
         *extras,
     )
+
+
+#: Locale keys of the simulated wind layers of :data:`veaf_libs.mission_wind.LAYERS_AGL` and ``LAYERS_MSL``.
+_LAYER_KEYS = {
+    "surface": "surface",
+    "1000 ft AGL": "agl1000",
+    "3000 ft AGL": "agl3000",
+    "FL100": "fl100",
+    "FL250": "fl250",
+}
 
 
 def carrier_line(carrier: Carrier) -> str:

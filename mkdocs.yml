@@ -120,6 +120,7 @@ plugins:
             Missions menu (veafCombatMission): Menu MISSIONS (veafCombatMission)
             Combat log (veafCombatLog): Journal de combat (veafCombatLog)
             Multi-mission campaign: Campagne multi-missions
+            Training versions, one per role: Versions d'entraînement par rôle
             Ground AI (veafGroundAI): IA au sol (veafGroundAI)
             Security & permissions (veafSecurity): Sécurité & permissions (veafSecurity)
             Lua API Reference: Référence de l'API Lua
@@ -176,6 +177,7 @@ nav:
     - Porting a mission with its own script layer: mission-maker/custom-script-layer.md
     - Foothold moulinette: mission-maker/FOOTHOLD.md
     - Multi-mission campaign: mission-maker/CAMPAIGN.md
+    - Training versions, one per role: mission-maker/TRAINING_VERSIONS.md
     - Read the DCS logs: mission-maker/LOGS.md
     - Editor tips: mission-maker/EDITOR_TIPS.md
     - Aliases: ALIASES.md

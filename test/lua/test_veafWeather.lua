@@ -2129,4 +2129,111 @@ function TestVeafWeatherWelcomeBriefSetting:test_an_argument_wins_over_the_setti
   luaunit.assertTrue(veafWeather.welcomeBriefEnabled)
 end
 
+-- ============================================================================
+-- FEAT-MISSION-WIND-CHECK ticket 06: rounded speeds, the low-layer maximum, gusts as an option
+-- ============================================================================
+TestVeafWeatherWindCheck = {}
+
+function TestVeafWeatherWindCheck:setUp()
+  dcs_mocks.reset()
+  env.mission.date = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.theatre = "Caucasus"
+  veafWeather.announceGusts = false
+end
+
+function TestVeafWeatherWindCheck:tearDown()
+  veafWeather.announceGusts = false
+end
+
+-- An airfield at 0 m with a 10 m/s surface wind from the west (blowing east).
+local function atisWeather(nSurfaceMps)
+  return weatherInstance({
+    WindDirection = 270,
+    WindSpeedMps = nSurfaceMps,
+    VisibilityMeters = 15000,
+    VisibilityAffect = 0,
+    Dust = false,
+    Precipitation = false,
+    Clouds = { Density = 3, BaseMeters = 2000 },
+    AltitudeMeter = 0,
+    TemperatureCelcius = 20,
+    DewPointCelcius = 10,
+    QnhHpa = 1013,
+    SunriseZulu = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    Vec3 = { x = 0, y = 0, z = 0 },
+    AbsTime = 43200,
+  })
+end
+
+-- A profile blowing east: nSurface at 10 m, peaking at nPeak 300 m above the ground, then back down.
+local function setProfile(nSurfaceMps, nPeakMps)
+  local function speedAt(y)
+    if y <= 10 then
+      return nSurfaceMps
+    end
+    local f = math.max(0, 1 - math.abs(y - 300) / 300)
+    return nSurfaceMps + (nPeakMps - nSurfaceMps) * f
+  end
+  atmosphere.getWind = function(p)
+    return { x = 0, y = 0, z = speedAt(p.y) }
+  end
+  atmosphere.getWindWithTurbulence = atmosphere.getWind
+end
+
+function TestVeafWeatherWindCheck:test_13_9_kt_reads_14()
+  local nMps = 13.9 / veaf.mpsToKnots(1)
+  luaunit.assertEquals(veafWeatherData:toStringWind(veafWeatherUnitSystem.Systems.Icao, 270, nMps, false), "270°T @ 14kts")
+end
+
+function TestVeafWeatherWindCheck:test_metres_per_second_round_too()
+  luaunit.assertEquals(veafWeatherData:toStringWind(veafWeatherUnitSystem.Systems.IcaoMetric, 180, 4.6, false), "180°T @ 5m/s")
+end
+
+function TestVeafWeatherWindCheck:test_a_low_layer_peak_gives_the_max_wind_line_with_its_height()
+  setProfile(10, 18.5) -- 19 kt at the surface, 36 kt 300 m (about 1000 ft) above it
+  local s = atisWeather(10):toStringAtis(veafWeatherUnitSystem.Systems.Faa)
+  luaunit.assertStrContains(s, "Max wind 0-2000 ft: ")
+  luaunit.assertStrContains(s, "@ 36kts at 1000ft AGL")
+end
+
+function TestVeafWeatherWindCheck:test_the_max_wind_is_sampled_up_to_2000_ft()
+  setProfile(10, 18.5)
+  local iDirection, nSpeedMps, nHeightMeters = atisWeather(10):getLowLayerMaxWind()
+  luaunit.assertEquals(iDirection, 270)
+  luaunit.assertAlmostEquals(nSpeedMps, 18.5, 0.3)
+  luaunit.assertAlmostEquals(nHeightMeters, 300, 20)
+end
+
+function TestVeafWeatherWindCheck:test_a_flat_profile_gives_no_max_wind_line()
+  setProfile(10, 11)
+  local s = atisWeather(10):toStringAtis(veafWeatherUnitSystem.Systems.Faa)
+  luaunit.assertNotStrContains(s, "Max wind")
+end
+
+function TestVeafWeatherWindCheck:test_with_the_option_off_no_gust_is_announced()
+  setProfile(5, 5)
+  atmosphere.getWindWithTurbulence = function(_)
+    return { x = 0, y = 0, z = 15 }
+  end
+  luaunit.assertNotStrContains(atisWeather(5):toStringAtis(veafWeatherUnitSystem.Systems.Faa), "gusting")
+end
+
+function TestVeafWeatherWindCheck:test_with_the_option_on_a_gust_shows_only_past_10_kt()
+  veafWeather.announceGusts = true
+  setProfile(5, 5)
+  local n = 0
+  atmosphere.getWindWithTurbulence = function(_)
+    n = n + 1
+    return { x = 0, y = 0, z = (n == 3) and 12 or 5 } -- one sample 7 m/s (14 kt) above the mean
+  end
+  luaunit.assertStrContains(atisWeather(5):toStringAtis(veafWeatherUnitSystem.Systems.Faa), "gusting 23kts")
+  n = 0
+  atmosphere.getWindWithTurbulence = function(_)
+    n = n + 1
+    return { x = 0, y = 0, z = (n == 3) and 9 or 5 } -- 4 m/s (8 kt) above the mean: not a gust
+  end
+  luaunit.assertNotStrContains(atisWeather(5):toStringAtis(veafWeatherUnitSystem.Systems.Faa), "gusting")
+end
+
 os.exit(luaunit.LuaUnit.run())

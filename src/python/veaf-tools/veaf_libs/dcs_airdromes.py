@@ -84,7 +84,8 @@ def airfields_for_theatre(theatre: str) -> list[dict[str, Any]]:
         theatre: The DCS theatre/map name (case-insensitive).
 
     Returns:
-        ``[{name, id, lat, lon}, ...]``, sorted by name — copies, safe to modify.
+        ``[{name, id, lat, lon, elevation}, ...]``, sorted by name — copies, safe to modify.
+        ``elevation`` (m, the reference point's) is absent for a theatre only a runtime dump covers.
     """
     if not theatre:
         return []

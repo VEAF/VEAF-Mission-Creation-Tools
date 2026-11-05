@@ -41,6 +41,8 @@ Weather is injected at build time (before the mission is loaded) using `veaf-too
 .\veaf-tools.exe content inject-weather mission.miz --config-file versions.yaml
 ```
 
+The wind of `weather:` is the wind wanted 10 m above a reference airfield, not the editor's setting: see [Weather variants — the wind](../concepts/weather-variants.en.md#wind).
+
 ### versions.yaml example
 
 ```yaml
@@ -151,6 +153,26 @@ veaf.scheduleFunction(function()
   veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
 end, {}, timer.getTime() + 0)
 ```
+
+---
+
+## The ATIS wind {#atis-wind}
+
+The ATIS, the weather report and the LASTE ask DCS for the wind (`atmosphere.getWind`) at the point they describe: the surface wind is the one 10 m above the airfield, the wind DCS really simulates — not the editor's setting.
+
+- **Speeds are rounded**, to the nearest knot or m/s: 13.9 kt reads 14 (they used to be truncated).
+- **Max wind 0-2000 ft**: the ATIS adds a line with the strongest wind between the surface and 2,000 ft above the airfield, its direction and its height, sampled every 100 ft — what the helicopter pilots of *Marteau du Golan* needed (24 kt at the surface, 36 kt at 1,000 ft). The line shows only when that maximum beats the surface wind by 5 kt or more, so a calm profile does not lengthen the ATIS.
+- **Gusts, as an option**: with `veafWeather.announceGusts = true` (off by default), the ATIS samples `atmosphere.getWindWithTurbulence` on a 100 m ring around the airfield and announces the gust, the METAR way, when the peak beats the mean wind by 10 kt or more. Off by default because DCS adds a turbulence floor even with none set: an ATIS announcing gusts nobody set would be noise.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `veafWeather.MaxWindTopFeet` | `2000` | Height above the ground the max wind is looked for up to |
+| `veafWeather.MaxWindStepFeet` | `100` | Sampling step |
+| `veafWeather.MaxWindShowAboveSurfaceKnots` | `5` | Gap over the surface wind from which the line shows |
+| `veafWeather.announceGusts` | `false` | Announce gusts |
+| `veafWeather.GustAboveMeanKnots` | `10` | Gap over the mean wind from which a gust is announced |
+
+For the wind the mission sets, see [Weather variants — the wind](../concepts/weather-variants.en.md#wind).
 
 ---
 

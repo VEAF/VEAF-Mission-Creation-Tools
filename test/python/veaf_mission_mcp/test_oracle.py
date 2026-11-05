@@ -542,3 +542,27 @@ def test_the_guide_says_an_operation_zone_has_no_deactivate_of_its_own() -> None
     guide = describe_authoring_guide()["guide"]
     assert 'has no "Deactivate" command of its own' in guide
     assert "outside the operation" in guide
+
+
+#: FEAT-MISSION-WIND-CHECK ticket 04 d: the old helicopter rule spoke of the DCS setting, which blows 2.1
+#: times stronger 300-600 m above the ground; the rule now speaks of the simulated wind.
+_SETTING_WIND_RULES = ("10 kt or less at the surface", "10 kt au plus au sol")
+
+
+@pytest.mark.parametrize(("kind", "lang"), [(k, la) for k in ("objective", "open-training") for la in ("fr", "en")])
+def test_the_helicopter_rule_speaks_of_the_simulated_wind(kind: str, lang: str) -> None:
+    prompt = "\n".join(
+        describe_mission_prompt(kind, lang, part=part)["prompt"]
+        if part
+        else describe_mission_prompt(kind, lang)["prompt"]
+        for part in ((None, "build") if kind == "objective" else (None,))
+    )
+    assert not [rule for rule in _SETTING_WIND_RULES if rule in prompt]
+    assert "20 kt" in prompt and "600 m" in prompt
+    assert "mission-check" in prompt
+
+
+def test_the_guide_s_helicopter_rule_speaks_of_the_simulated_wind() -> None:
+    guide = describe_authoring_guide()["guide"]
+    assert not [rule for rule in _SETTING_WIND_RULES if rule in guide]
+    assert "simulated_wind" in guide and "20 kt" in guide and "mission-check" in guide

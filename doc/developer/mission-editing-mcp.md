@@ -856,10 +856,17 @@ Chaque action vise un dossier de mission (durable) ou un `.miz`, sauvegardé ava
   `l10n/DEFAULT/dictionary` derrière elle, et la référence reste valide ; `write_mission_folder`
   réécrit désormais ce dictionnaire, seulement s'il change.
 - `set_weather(target, metar?, temperature?, wind_speed?, wind_direction?, visibility?, cloud_type?,
-  cloud_height?, precipitation?, fog_enabled?, clearsky?)` — la météo de la mission **de base**, dans
-  les champs que DCS lit (ticket 19 : la mission vierge a ses nuages au sol, `Preset1` à 0 m). Même
-  vocabulaire et même convertisseur que `versions[].weather`, donc un METAR marche aussi ; les
-  variantes gardent la main au build.
+  cloud_height?, precipitation?, fog_enabled?, clearsky?, reference_airfield?, wind_gust?, turbulence?,
+  wind_veer?, wind_speed_2000?, wind_direction_2000?, wind_speed_8000?, wind_direction_8000?)` — la météo
+  de la mission **de base**, dans les champs que DCS lit (ticket 19 : la mission vierge a ses nuages au
+  sol, `Preset1` à 0 m). Même vocabulaire et même convertisseur que `versions[].weather`, donc un METAR
+  marche aussi ; les variantes gardent la main au build.
+  `wind_speed` est le vent **voulu à 10 m au-dessus du terrain de référence**, pas un réglage de DCS
+  (FEAT-MISSION-WIND-CHECK) : la réponse donne `reference_airfield` (nom, altitude, comment il a été
+  choisi), `simulated_wind` (le vent que DCS simulera au-dessus, par couche : sol, 1 000 et 3 000 ft sol,
+  FL100, FL250) et des `warnings` — niveau de la mer pris faute de terrain, jet dans la couche basse, et
+  avec un slot hélico, chaque endroit où le vent simulé dépasse 20 kt entre 0 et 600 m sol
+  ([le vent](../mission-maker/concepts/weather-variants.md#wind)).
 
 > Les **hashes de mot de passe** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — un cas
 > multi-lignes — ne sont pas couverts pour l'instant : seul le drapeau `SecurityDisabled` l'est.
@@ -1331,6 +1338,26 @@ dans la commande CLI, on la réexécute telle quelle. Un échec de build est rem
 
 ```json
 {"folder_path": "chemin/vers/dossier-mission", "profile": "LOCAL_TEST"}
+```
+
+Le résultat liste dans `missions` les `.miz` écrits par le build : celui de la soirée, et ses versions d'entraînement quand `mission.yaml` porte un bloc `training:`.
+
+### `propose_training_plan`
+
+Lecture. Brouillon du bloc `training:` d'un dossier de mission ([versions d'entraînement par rôle](../mission-maker/TRAINING_VERSIONS.md)) : vols IA ennemis à tâche air-air → `enemy_cap`, `cap_missions` → `enemy_cap`, définitions QRA du camp ennemi → `qra`, groupes portant un type que DCS classe `LR SAM` → `sam_lr`, combat zones → `a2g_target`, autres défenses aériennes dans une combat zone ou à moins de 15 km → `sam_threat`.
+Tout est proposé **tel que placé**, chaque élément avec sa raison : le tri entre précis et vague se fait en lisant le briefing, pas dans l'action.
+Le camp ennemi est l'opposé de celui qui porte le plus de slots joueurs (bleu par défaut).
+
+```json
+{"mission_path": "chemin/vers/dossier-mission"}
+```
+
+### `set_training_plan`
+
+Écriture. Écrit le bloc `training:` de `mission.yaml` (commentaires préservés, sauvegarde avant), après les contrôles du build (`mission_builder.training_variants.check_training`) : refusé avec la liste de tous les problèmes, sinon le build suivant produit aussi `_TRAINING_A2G`, `_CAP`, `_SEAD` et `_ALL`.
+
+```json
+{"mission_path": "chemin/vers/dossier-mission", "training": {"elements": [{"groups": ["SA-10 *"], "kind": "sam_lr"}], "randomize": []}}
 ```
 
 ## Prochaines vagues (hors périmètre)

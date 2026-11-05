@@ -834,10 +834,17 @@ targets a mission folder (durable) or a `.miz`, backed up first.
   `l10n/DEFAULT/dictionary` behind it, so the reference stays valid; `write_mission_folder` now
   writes that dictionary back, only when it changes.
 - `set_weather(target, metar?, temperature?, wind_speed?, wind_direction?, visibility?, cloud_type?,
-  cloud_height?, precipitation?, fog_enabled?, clearsky?)` — the **base** mission's weather, in the
-  fields DCS reads (ticket 19: the blank mission has its clouds on the ground, `Preset1` at 0 m). Same
-  vocabulary and converter as `versions[].weather`, so a METAR works too; the variants still override
-  it at build.
+  cloud_height?, precipitation?, fog_enabled?, clearsky?, reference_airfield?, wind_gust?, turbulence?,
+  wind_veer?, wind_speed_2000?, wind_direction_2000?, wind_speed_8000?, wind_direction_8000?)` — the
+  **base** mission's weather, in the fields DCS reads (ticket 19: the blank mission has its clouds on the
+  ground, `Preset1` at 0 m). Same vocabulary and converter as `versions[].weather`, so a METAR works too;
+  the variants still override it at build.
+  `wind_speed` is the wind **wanted 10 m above the reference airfield**, not a DCS setting
+  (FEAT-MISSION-WIND-CHECK): the answer gives `reference_airfield` (name, elevation, how it was chosen),
+  `simulated_wind` (the wind DCS will simulate above it, by layer: surface, 1,000 and 3,000 ft above the
+  ground, FL100, FL250) and `warnings` — sea level used for want of an airfield, a jet in the low layer,
+  and with a helicopter slot, every place where the simulated wind exceeds 20 kt 0-600 m above the ground
+  ([the wind](../mission-maker/concepts/weather-variants.en.md#wind)).
 
 > Password **hashes** (`veafSecurity.password_L9[...]` / `password_MM[...]`) — a multi-line
 > case — are not covered yet: only the `SecurityDisabled` flag is.
@@ -1297,6 +1304,26 @@ passed as `--profile` — `LOCAL_TEST` for a local test build.
 
 ```json
 {"folder_path": "path/to/mission-folder", "profile": "LOCAL_TEST"}
+```
+
+The result lists in `missions` the `.miz` the build wrote: the night's, and its training versions when `mission.yaml` holds a `training:` block.
+
+### `propose_training_plan`
+
+Read. Drafts the `training:` block of a mission folder ([training versions, one per role](../mission-maker/TRAINING_VERSIONS.en.md)): enemy AI flights tasked for air combat → `enemy_cap`, `cap_missions` → `enemy_cap`, the enemy side's QRA definitions → `qra`, groups holding a type DCS rates `LR SAM` → `sam_lr`, combat zones → `a2g_target`, other air defences inside a combat zone or within 15 km of one → `sam_threat`.
+Everything is proposed **as placed**, each element with its reason: sorting what is stated from what is vague is done by reading the briefing, not in the action.
+The enemy side is the one opposite the side holding the most player slots (blue players by default).
+
+```json
+{"mission_path": "path/to/mission-folder"}
+```
+
+### `set_training_plan`
+
+Write. Writes the `training:` block of `mission.yaml` (comments preserved, backed up first), after the build's own checks (`mission_builder.training_variants.check_training`): refused with every problem listed, otherwise the next build also produces `_TRAINING_A2G`, `_CAP`, `_SEAD` and `_ALL`.
+
+```json
+{"mission_path": "path/to/mission-folder", "training": {"elements": [{"groups": ["SA-10 *"], "kind": "sam_lr"}], "randomize": []}}
 ```
 
 ## Next waves (out of scope)

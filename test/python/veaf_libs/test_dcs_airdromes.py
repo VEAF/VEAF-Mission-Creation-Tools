@@ -44,8 +44,14 @@ def test_airdromes_for_unknown_theatre_empty() -> None:
 def test_airfields_for_theatre_carries_positions() -> None:
     """FIX-SCRATCH-MISSION-FINDINGS ticket 19: the positions come shipped, not from veaf_build."""
     ramstein = next(a for a in dcs_airdromes.airfields_for_theatre("germanycw") if a["name"] == "Ramstein")
-    assert set(ramstein) == {"name", "id", "lat", "lon"}
+    assert set(ramstein) == {"name", "id", "lat", "lon", "elevation"}
     assert 49 < ramstein["lat"] < 50 and 7 < ramstein["lon"] < 8
+
+
+def test_airfields_for_theatre_gives_rosh_pina_elevation() -> None:
+    """FEAT-MISSION-WIND-CHECK ticket 01 e: the wind is set at the reference airfield's altitude."""
+    rosh_pina = next(a for a in dcs_airdromes.airfields_for_theatre("Syria") if a["name"] == "Rosh Pina")
+    assert 255 < rosh_pina["elevation"] < 270
 
 
 def test_airfields_for_unknown_theatre_empty() -> None:

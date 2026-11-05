@@ -254,7 +254,8 @@ approximation of it.
   remove `src/versions.yaml`, which the build reports as orphaned), or a `src/versions.yaml` with a
   single version. A visibility **≥ 9,000 m is written as 80 km** (the METAR "9999" rule): for haze,
   ask for 8,000 m at most.
-  **With helicopters, little turbulence and a moderate wind** (turbulence near 0, 10 kt or less at the surface): on 2026-10-29 the real weather made the AH-64s of *Marteau du Golan* almost unflyable.
+  **Helicopters fly: little turbulence and a moderate wind** — on the wind DCS *simulates*, not on the setting. `set_weather` takes the wind wanted 10 m above a reference airfield and writes the setting that gives it; its answer (`simulated_wind`, and `inspect_built_mission` after the build) gives the wind by layer. The rule: from 0 to 600 m above each helicopter departure, objective and route point, the simulated wind stays at 20 kt or less and no more than 15 kt above the surface wind there — `set_weather`, `inspect_built_mission` and `veaf-tools dcs mission-check` warn otherwise. Turbulence near 0. On 2026-10-29 the real weather made the AH-64s of *Marteau du Golan* almost unflyable; on 2026-10-31, 17 kt set at the ground became 24 kt at the surface and 36 kt at 1,000 ft.
+  **The briefing's wind is the simulated one**, read layer by layer from `set_weather`'s or `inspect_built_mission`'s answer — never the setting copied. A wind shift aloft is set with `wind_veer` (30° at most), never an upper wind opposed to the surface one: between them DCS makes a layer without wind.
 - **Language**: `mission.language: en` and an English briefing, unless told otherwise.
 - `silence_atc_on_all_airbases: true`.
 - **Security**: explain it before asking, the user cannot choose without it.
@@ -448,6 +449,9 @@ approximation of it.
 8. The **briefing's content in prose** (`docs/briefing-contenu.md`), approved by the user, then `build_mission_briefing` (section 6) and the **Mission Maker sheet**.
 9. `README.md`: the scenario, how to build, the files, the known limitations.
 10. The **announcement**, if the user asks for it: `build_mission_promotion` (poster, calendar banner, Discord post). Ask them for the evening's date and local hour and the links; never invent them.
+11. **Offer the training versions** once the briefing is approved: one `.miz` per role (A2G, CAP, SEAD) and a common one, on the same setting, so pilots train before the night.
+    On a yes: `propose_training_plan`, then go through the briefing element by element — what it states (type **and** number) stays in `elements`; what it describes vaguely ("defences around the SA-6", "an armoured column") moves to `randomize`, with a pool of the same role (an SA-8 among short-range SAMs, a tank among armour), a `count` and a `radius`.
+    Show the user the plan as a table — element, kind, fixed or drawn — before `set_training_plan`, then `build_mission` and hand over the five paths it lists.
 
 Brief status after each step: what is done, not what you are about to do.
 
@@ -528,6 +532,7 @@ What belongs to the user: commit, push, publishing, launching DCS.
   - the `LOCAL_TEST` profile built without security, the default configuration with it;
   - the briefing pictures present, listed in `pictureFileNameB` and `pictureFileNameN`,
     `pictureFileNameR` empty.
+- **Run `veaf-tools dcs mission-check` on the built mission** before handing the briefing over: it needs no DCS for its wind check, and fails when the briefing's wind contradicts the wind DCS simulates.
 - **Re-read the briefing, the file and the mission against each other**: every coordinate,
   frequency, callsign, bearing, range and time must be the same everywhere.
 - List what remains to be checked in DCS: statics placement on the terrain, masking of the route by

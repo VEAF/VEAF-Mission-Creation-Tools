@@ -27,6 +27,19 @@ veafWeather.RadioMenuName = "menu.weather.root"
 
 veafWeather.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
+--- The ATIS "max wind" line: the strongest wind from the surface to this height above the airfield,
+--- sampled every MaxWindStepFeet, shown only when it beats the surface wind by MaxWindShowAboveSurfaceKnots.
+veafWeather.MaxWindTopFeet = 2000
+veafWeather.MaxWindStepFeet = 100
+veafWeather.MaxWindShowAboveSurfaceKnots = 5
+
+--- Announce gusts in the ATIS (off: DCS has a turbulence floor even with none set, measured 2026-10-31,
+--- and an ATIS announcing gusts nobody set is noise). Sampled on a ring around the surface point.
+veafWeather.announceGusts = false
+veafWeather.GustSamples = 16
+veafWeather.GustRingMeters = 100
+veafWeather.GustAboveMeanKnots = 10
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local constants
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -595,6 +608,52 @@ function veafWeatherData:getCarrierCase()
   end
 end
 
+-- The strongest base wind between the surface (10 m) and veafWeather.MaxWindTopFeet above the
+-- airfield, sampled every veafWeather.MaxWindStepFeet: what the helicopter pilots of "Marteau du Golan"
+-- needed (24 kt at the surface, 36 kt at 1,000 ft) and the surface wind did not tell them.
+-- Returns its direction (from, true), its speed (m/s) and its height above the ground (m).
+function veafWeatherData:getLowLayerMaxWind()
+  local iBestDirection, nBestSpeedMps, nBestHeightMeters = self.WindDirection, self.WindSpeedMps, 10
+  local iFeet = veafWeather.MaxWindStepFeet
+  while iFeet <= veafWeather.MaxWindTopFeet do
+    local nHeightMeters = veaf.feetToMeters(iFeet)
+    local iDirection, nSpeedMps = veafWeather.getWind(self.Vec3, self.AltitudeMeter + nHeightMeters)
+    if nSpeedMps > nBestSpeedMps then
+      iBestDirection, nBestSpeedMps, nBestHeightMeters = iDirection, nSpeedMps, nHeightMeters
+    end
+    iFeet = iFeet + veafWeather.MaxWindStepFeet
+  end
+  return iBestDirection, nBestSpeedMps, nBestHeightMeters
+end
+
+-- The gust to announce, the METAR way, or nil: off unless veafWeather.announceGusts is set. Samples
+-- atmosphere.getWindWithTurbulence on a ring around the surface point (DCS's turbulence field is 20 m
+-- wide at 10 m and renews in place, measured 2026-10-31) and returns the peak speed (m/s) when it
+-- exceeds the mean wind by veafWeather.GustAboveMeanKnots or more.
+function veafWeatherData:getGustMps()
+  if not veafWeather.announceGusts or not self.Vec3 then
+    return nil
+  end
+  local nPeakMps = 0
+  local iSamples = veafWeather.GustSamples
+  for i = 1, iSamples do
+    local nAngle = 2 * math.pi * i / iSamples
+    local vec3 = {
+      x = self.Vec3.x + veafWeather.GustRingMeters * math.cos(nAngle),
+      y = self.Vec3.y,
+      z = self.Vec3.z + veafWeather.GustRingMeters * math.sin(nAngle),
+    }
+    local _, nSpeedMps = veafWeather.getWind(vec3, self.AltitudeMeter + 10, true)
+    if nSpeedMps > nPeakMps then
+      nPeakMps = nSpeedMps
+    end
+  end
+  if veaf.mpsToKnots(nPeakMps - self.WindSpeedMps) >= veafWeather.GustAboveMeanKnots then
+    return nPeakMps
+  end
+  return nil
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- ToStrings
 function veafWeatherData:appendString(s, sAppend)
@@ -609,6 +668,19 @@ function veafWeatherData:appendString(s, sAppend)
   end
 end
 
+-- A wind speed in the unit system's units, rounded, not truncated: 13.9 kt reads 14 (FEAT-MISSION-WIND-CHECK).
+function veafWeatherData:toStringSpeed(unitSystem, nSpeedMps)
+  unitSystem = unitSystem or veafWeatherUnitSystem.DefaultUnitSystem
+  local sSpeed
+  if veaf.tableContains(unitSystem.WindSpeeds, veafWeatherUnitSystem.Units.Kts) then
+    sSpeed = veafWeatherData:appendString(sSpeed, string.format("%dkts", veaf.round(veaf.mpsToKnots(nSpeedMps))))
+  end
+  if veaf.tableContains(unitSystem.WindSpeeds, veafWeatherUnitSystem.Units.Mps) then
+    sSpeed = veafWeatherData:appendString(sSpeed, string.format("%dm/s", veaf.round(nSpeedMps)))
+  end
+  return sSpeed
+end
+
 function veafWeatherData:toStringWind(unitSystem, iDirection, nSpeedMps, bMagnetic)
   unitSystem = unitSystem or veafWeatherUnitSystem.DefaultUnitSystem
   bMagnetic = bMagnetic or false
@@ -618,15 +690,7 @@ function veafWeatherData:toStringWind(unitSystem, iDirection, nSpeedMps, bMagnet
   end
 
   local iDirection = self:getNormalizedWindDirection(iDirection, bMagnetic)
-  local sSpeedKts = string.format("%dkts", math.floor(veaf.mpsToKnots(nSpeedMps)))
-  local sSpeedMps = string.format("%dm/s", math.floor(nSpeedMps))
-  local sSpeed
-  if veaf.tableContains(unitSystem.WindSpeeds, veafWeatherUnitSystem.Units.Kts) then
-    sSpeed = veafWeatherData:appendString(sSpeed, sSpeedKts)
-  end
-  if veaf.tableContains(unitSystem.WindSpeeds, veafWeatherUnitSystem.Units.Mps) then
-    sSpeed = veafWeatherData:appendString(sSpeed, sSpeedMps)
-  end
+  local sSpeed = self:toStringSpeed(unitSystem, nSpeedMps)
 
   local sDegrees
   if bMagnetic then
@@ -636,6 +700,19 @@ function veafWeatherData:toStringWind(unitSystem, iDirection, nSpeedMps, bMagnet
   end
 
   return string.format("%03d%s @ %s", iDirection, sDegrees, sSpeed)
+end
+
+-- A height above the ground, rounded to 100 ft or 50 m, in the unit system's altitudes.
+function veafWeatherData:toStringHeight(unitSystem, nHeightMeters)
+  unitSystem = unitSystem or veafWeatherUnitSystem.DefaultUnitSystem
+  local sHeight
+  if veaf.tableContains(unitSystem.Altitudes, veafWeatherUnitSystem.Units.Ft) then
+    sHeight = veafWeatherData:appendString(sHeight, string.format("%dft", veaf.round(veaf.metersToFeet(nHeightMeters) / 100) * 100))
+  end
+  if veaf.tableContains(unitSystem.Altitudes, veafWeatherUnitSystem.Units.M) then
+    sHeight = veafWeatherData:appendString(sHeight, string.format("%dm", veaf.round(nHeightMeters / 50) * 50))
+  end
+  return sHeight or ""
 end
 
 function veafWeatherData:toStringVisibility(unitSystem, bWithMax)
@@ -839,7 +916,7 @@ function veafWeatherData:toStringLaste()
       "ALT%02d W%03d/%02d T%+d",
       iAltitudeFeet / 1000,
       iWindDirectionMagnetic,
-      veaf.mpsToKnots(iWindSpeedMps),
+      veaf.round(veaf.mpsToKnots(iWindSpeedMps)),
       iTemperatureKelvin + _nKelvinToCelciusOffset
     )
     veaf.loggers.get(veafWeather.Id):trace(string.format("LASTE @ %f - W%dM %dT", iAltitudeFeet, iWindDirectionMagnetic, iWindDirection))
@@ -913,6 +990,20 @@ function veafWeatherData:toStringAtis(unitSystem)
 
   local sAtis = ""
   sAtis = sAtis .. veaf.t("weather.atis_wind", self:toStringWind(unitSystem, self.WindDirection, self.WindSpeedMps, true))
+  local nGustMps = self:getGustMps()
+  if nGustMps then
+    sAtis = sAtis .. veaf.t("weather.atis_gust", self:toStringSpeed(unitSystem, nGustMps))
+  end
+  local iMaxDirection, nMaxSpeedMps, nMaxHeightMeters = self:getLowLayerMaxWind()
+  if veaf.mpsToKnots(nMaxSpeedMps - self.WindSpeedMps) >= veafWeather.MaxWindShowAboveSurfaceKnots then
+    sAtis = sAtis
+      .. veaf.t(
+        "weather.atis_max_wind",
+        veafWeather.MaxWindTopFeet,
+        self:toStringWind(unitSystem, iMaxDirection, nMaxSpeedMps, true),
+        self:toStringHeight(unitSystem, nMaxHeightMeters)
+      )
+  end
   if self:isCavok() then
     sAtis = sAtis .. veaf.t("weather.atis_cavok")
   else

@@ -13,6 +13,7 @@ from typing import Any
 import typer
 import yaml
 from mission_tools.miz_tools import DcsMission
+from veaf_libs.dcs_wind import surface_wind
 from weather_injector.models import MissionConfig, Position, VersionConfig
 from weather_injector.weather_injector_worker import WeatherInjectorWorker
 
@@ -650,7 +651,8 @@ class TestInjectWeather(unittest.TestCase):
         worker._inject_weather(version)
         # This test asserted nothing before, so it could not fail
         weather = worker.mission_data.mission_content["weather"]
-        self.assertLessEqual(weather["wind"]["atGround"]["speed"], 7.72)
+        # 15 kt at most, simulated 10 m above the reference: sea level, the mission has no theatre.
+        self.assertLessEqual(surface_wind(weather["wind"], 0.0).speed, 7.72 + 0.01)
 
     def test_inject_weather_writes_the_dcs_fields(self) -> None:
         """FIX-SCRATCH-MISSION-FINDINGS ticket 01, end to end through the worker."""
@@ -1111,3 +1113,42 @@ class TestLiveWeatherFallbackIsCounted(unittest.TestCase):
         ):
             worker._inject_weather(VersionConfig(name="day-real", airport_icao="ETAR"))
         self.assertEqual(worker.weather_fallbacks, 0)
+
+
+class TestVariantWind(unittest.TestCase):
+    """FEAT-MISSION-WIND-CHECK ticket 03: a variant's wind is the one wanted at its reference airfield."""
+
+    def _inject(self, version: VersionConfig) -> tuple[dict[str, Any], list[str], list[str]]:
+        tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp_dir.cleanup)
+        worker = _make_worker(Path(tmp_dir.name))
+        worker.config = MissionConfig(versions=[])
+        worker.mission_data = DcsMission(
+            file_path=Path(tmp_dir.name) / "test.miz",
+            mission_content={"weather": {}, "start_time": 0},
+            theatre_content="Syria",
+        )
+        with unittest.mock.patch("weather_injector.weather_injector_worker.logger") as mock_logger:
+            worker._inject_weather(version)
+        infos = [str(c.args[0]) for c in mock_logger.info.call_args_list]
+        warnings = [str(c.args[0]) for c in mock_logger.warning.call_args_list]
+        return worker.mission_data.mission_content["weather"], infos, warnings
+
+    def test_a_manual_variant_sets_its_wind_at_its_reference_airfield(self) -> None:
+        weather, infos, warnings = self._inject(
+            VersionConfig(
+                name="windy",
+                weather={"wind_speed": 7.7, "wind_direction": 270, "reference_airfield": "Rosh Pina"},
+            )
+        )
+        self.assertAlmostEqual(surface_wind(weather["wind"], 264.6).speed, 7.7, delta=0.02)
+        self.assertTrue(any("windy" in line and "Rosh Pina" in line for line in infos), infos)
+        self.assertEqual(warnings, [])
+
+    def test_a_metar_variant_without_a_place_warns_sea_level(self) -> None:
+        weather, infos, warnings = self._inject(
+            VersionConfig(name="far", metar="EGLL 010850Z 27015G25KT CAVOK 15/08 Q1018")
+        )
+        self.assertEqual(weather["groundTurbulence"], 30)
+        self.assertTrue(any("sea level" in line for line in infos), infos)
+        self.assertTrue(any("sea level" in line for line in warnings), warnings)

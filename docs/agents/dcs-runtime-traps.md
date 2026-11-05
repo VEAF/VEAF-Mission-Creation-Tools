@@ -567,6 +567,23 @@ tracking 180.5° (Caucasus, read through the bridge 10 s after spawning).
 *What it cost:* The A-10 of the FIX-FARP-PLACEMENT test mission started heading away from the FARP it was meant to
 look at, and had to turn back over 40 km.
 
+### `math.randomseed` does not exist in a mission script, and `math.random` differs at every launch anyway {#math-randomseed-is-not-in-the-mission-environment}
+
+Measured **2026-11-03**.
+
+A mission cannot seed its random draws: `math.randomseed` is nil in the mission scripting
+environment, even with `os` left reachable by `MissionScripting.lua`. Deduced, not read directly:
+a seeding function whose only `nil` return before testing `os` was its `math.randomseed` guard
+returned `nil` three times, with `os` reachable. The guard `veaf.lua` has carried since 2021
+(`if l_os and l_os.time and math.randomseed`) has therefore never seeded anything.
+
+It does not matter for drawing: measured on DAVID-BUREAU with *Marteau du Golan*'s training version,
+three launches in one DCS session, the first `math.random(1000000)` after `veaf.lua` loaded gave
+256387, 586566 and 119054, and the combat zones drew different groups (FEAT-ROLE-TRAINING-VARIANTS 05).
+
+**What to do:** Nothing to do: rely on `math.random`. Do not write code that seeds it, or that needs the same
+sequence twice — a replay cannot be forced.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}
@@ -1057,6 +1074,45 @@ both.
 
 *What it cost:* The first reconnaissance shots of "Marteau du Golan" (Syria, 2026-10-28) left the camera where it was,
 then moved the F10 map, before the export route was found.
+
+## Weather and wind {#weather}
+
+### The Mission Editor's ground wind is the 10 m wind only at the sea shore: inland, DCS flies up to 2.1 times it {#editor-ground-wind-is-not-the-surface-wind}
+
+Measured **2026-10-31**.
+
+DCS 2.9.31.29434, static weather. The ground setting (`weather.wind.atGround`) is a level at 0 m above
+**sea level**, multiplied by `45^0.2` = 2.141; near the ground the wind is reduced by `(h / 500)^p`,
+less the higher the terrain (`p` 0.195 at sea level, 0.024 above 1,500 m). So the 10 m wind is 1.34
+times the setting on an airfield at 250 m, 1.87 times at 1,000 m, and about 2.1 times the setting
+blows between 300 and 600 m above the ground. With `at2000` under 2.14 times `atGround`, the wind
+peaks in that low layer, then drops: a jet.
+
+Measured on *Marteau du Golan* (Syria): 9 m/s set at the ground (17 kt, the figure the briefing
+announced) gave **24 kt at 10 m above Rosh Pina and 36 kt at 1,000 ft above it**; the helicopter
+pilots took 35 kt on the nose with no warning. The model was decoded from `Weather.dll` and checked on
+five runs of 5,392 points each, every one within 0.0003 m/s: whitepaper `dcs-wind-model`.
+
+**What to do:** Never type a DCS setting as the wind. `set_weather` and the weather variants take the wind wanted
+10 m above a reference airfield and write the setting that gives it (`at2000` 2.2 times the ground,
+veered 20°); brief the wind their answer gives by layer (`simulated_wind`, `inspect_built_mission`),
+and run `veaf-tools dcs mission-check` on the built mission: it compares the briefing with the model,
+without DCS.
+
+*What it cost:* *Marteau du Golan*, 2026-10-31: helicopters met 36 kt at 1,000 ft under a briefing of 17 kt.
+
+### A surface wind and a 2,000 m wind in opposite directions make a layer with no wind between them {#opposed-wind-layers-make-a-layer-without-wind}
+
+Measured **2026-10-31**.
+
+DCS blends the levels' wind **vectors**, not their speeds: between a surface wind from the north and a
+2,000 m wind from the south of the same strength, the wind falls to nothing in the layer where the two
+weigh the same, then turns round. Measured over the sea with 10 m/s from 0 at the ground and 10 m/s
+from 180 at 2,000 m (whitepaper `dcs-wind-model`, section 3.3). Two layers at an angle dip too, less:
+computed with 5 and 11 m/s, 0.4 kt at 30°, 1.3 kt at 45°, 6 kt at 90°.
+
+**What to do:** Turn the wind with height by 30° at most (`wind_veer`, 20° by default); never set an upper wind opposed
+to the surface one.
 
 <!-- END GENERATED -->
 

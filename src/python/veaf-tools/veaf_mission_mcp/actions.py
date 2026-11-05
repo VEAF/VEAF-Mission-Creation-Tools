@@ -78,6 +78,7 @@ from veaf_mission_mcp.set_group_properties import set_group_properties
 from veaf_mission_mcp.set_route import set_route
 from veaf_mission_mcp.set_unit_properties import set_unit_properties
 from veaf_mission_mcp.terrain import describe_terrain
+from veaf_mission_mcp.training_plan import propose_training_plan, set_training_plan
 
 
 def register_default_actions(catalog: ActionCatalog) -> None:
@@ -186,6 +187,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "visibility, rain, fog, QNH. The blank mission of a scaffold has its cloud base on the "
                 "ground (Preset1 at 0 m). Same vocabulary as versions.yaml weather, and the same converter, "
                 "so a METAR works too; the weather variants still override it per variant at build. "
+                "The wind is the one WANTED 10 m above a reference airfield (the METAR's station on the map, "
+                "else reference_airfield, else the first player departure), NOT a DCS setting: the tool writes "
+                "the setting that makes DCS simulate it there. The answer gives the wind DCS will simulate by "
+                "layer (simulated_wind) -- brief THAT, never the setting -- and warns where helicopters would "
+                "meet more than 20 kt 0-600 m above the ground. "
                 "Target a FOLDER (durable) or a .miz; backed up."
             ),
             parameters_schema={
@@ -194,7 +200,37 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "target": {"type": "string", "description": "The mission FOLDER (durable) or a .miz."},
                     "metar": {"type": "string", "description": "A METAR string; the fields below override it."},
                     "temperature": {"type": "number", "description": "Ground temperature, degrees C."},
-                    "wind_speed": {"type": "number", "description": "Ground wind speed, m/s."},
+                    "wind_speed": {
+                        "type": "number",
+                        "description": "The wind wanted 10 m above the reference airfield, m/s (what a METAR "
+                        "or the ATIS will say there), not a DCS setting.",
+                    },
+                    "reference_airfield": {
+                        "type": "string",
+                        "description": "The airfield the wind is wanted at, by its DCS name. Default: the "
+                        "METAR's station when it is on the map, else the first player departure airfield.",
+                    },
+                    "wind_gust": {"type": "number", "description": "Gust, m/s; made into DCS turbulence."},
+                    "turbulence": {
+                        "type": "number",
+                        "description": "Turbulence, m/s as the Mission Editor shows it; wins over wind_gust.",
+                    },
+                    "wind_veer": {
+                        "type": "number",
+                        "description": "How far the wind turns clockwise from the surface to 2000 m, 0-30 "
+                        "degrees (20 by default). Never set an upper wind opposed to the surface one: it makes "
+                        "a layer without wind between them.",
+                    },
+                    "wind_speed_2000": {"type": "number", "description": "The 2000 m wind, m/s, set by hand."},
+                    "wind_direction_2000": {
+                        "type": "number",
+                        "description": "Where the 2000 m wind comes FROM, degrees.",
+                    },
+                    "wind_speed_8000": {"type": "number", "description": "The 8000 m wind, m/s, set by hand."},
+                    "wind_direction_8000": {
+                        "type": "number",
+                        "description": "Where the 8000 m wind comes FROM, degrees.",
+                    },
                     "wind_direction": {
                         "type": "number",
                         "description": "Where the wind comes FROM, degrees (as in a METAR).",
@@ -213,8 +249,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "fog_enabled": {"type": "boolean"},
                     "clearsky": {
                         "type": "boolean",
-                        "description": "Cap to VFR-friendly conditions (clouds at most FEW, wind < 15 kt, "
-                        "10 km visibility, no rain, no fog).",
+                        "description": "Cap to VFR-friendly conditions (clouds at most FEW, a surface wind "
+                        "of 15 kt at most at the reference airfield, 10 km visibility, no rain, no fog, no gust).",
                     },
                 },
                 "required": ["target"],
@@ -258,8 +294,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "WRITE the players' FLIGHT PLAN into a mission FOLDER's src/waypoints.yaml in one call: the "
                 "ordered points (name + x/y or lat/lon, as geocode / resolve_coordinates give them), each set "
                 "on the ground from the theatre's elevation grid (the flight altitude belongs to the briefing, "
-                "not the points), and the plan that gives them to the chosen aircraft. Refuses two points with "
-                "one name -- nobody could tell them apart in the cockpit or the briefing. A plan of the same name is "
+                "not the points), and the plan that gives them to the chosen aircraft. Refuses one name at two "
+                "places -- nobody could tell them apart in the cockpit or the briefing; the same name at the same "
+                "place is one point listed twice, a return to the departure point (HOME, IP, TGT, HOME). A plan of the same name is "
                 "replaced and its old points dropped; the rest of the file and its comments are kept; backed "
                 "up. Returns each leg's magnetic heading and distance, for the briefing and the F10 labels. Use it "
                 "instead of edit_mission_file for a route; the build adds the BULLSEYE point last."
@@ -1873,6 +1910,62 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             },
         ),
         handler=lambda p: inspect_built_mission(Path(p["mission_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="propose_training_plan",
+            description=(
+                "DRAFT the TRAINING VERSIONS of a mission night -- one per role (A2G, CAP, SEAD) plus a common "
+                "one, built with the night's .miz -- as a 'training:' block, from what the data tells: the "
+                "enemy's air-combat flights, on-demand CAPs and QRA, its long-range SAMs (DCS 'LR SAM'), the "
+                "combat zones (A2G targets) and the other SAMs in or near them. Every element is proposed AS "
+                "PLACED, each with its reason. Then read the briefing: what it states (type and number) stays; "
+                "what it describes vaguely moves to 'randomize' (pool of the same role, count, radius), drawn "
+                "again at every launch. Show the plan to the user, then write it with set_training_plan."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "Path to the mission folder."},
+                },
+                "required": ["mission_path"],
+            },
+        ),
+        handler=lambda p: propose_training_plan(Path(p["mission_path"])),
+    )
+    catalog.register(
+        ActionSpec(
+            name="set_training_plan",
+            description=(
+                "WRITE a mission folder's 'training:' block (comments preserved, backed up), refused with "
+                "every problem listed when the build would refuse it. The next build_mission then also "
+                "produces <mission>_TRAINING_A2G / _CAP / _SEAD / _ALL.miz beside the night's. 'elements' "
+                "classifies what the night holds: {groups: [names or patterns] | zone | qra | cap_mission, "
+                "kind: enemy_cap | qra | sam_lr | a2g_target | sam_threat, label?: the name a pilot reads in the briefing}. A2G drops enemy_cap, qra, "
+                "sam_lr; CAP drops a2g_target but keeps every air defence and forces the QRA on; SEAD drops enemy_cap, qra, a2g_target; "
+                "ALL drops nothing; sam_threat and undeclared groups stay everywhere. 'randomize' lists the "
+                "vague elements: {name, replaces: [groups], pool: [{group: one of the replaced, adopted} | "
+                "{command: '-sa15', carrier?: DCS type} | {units: [{type, count}]}], count: 'n' or 'min-max', "
+                "radius: metres or 'min-max', at?: {x, y}, kind?: as elements' -- default: the kind of the combat zone it lives in, sam_threat when it replaces only air defences} -- a combat zone draws among the pool at every "
+                "launch; a group named by a trigger, a script or mission.yaml cannot be adopted."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {"type": "string", "description": "Path to the mission folder."},
+                    "training": {
+                        "type": "object",
+                        "description": "The block: {elements: [...], randomize: [...]}.",
+                        "properties": {
+                            "elements": {"type": "array", "items": {"type": "object"}},
+                            "randomize": {"type": "array", "items": {"type": "object"}},
+                        },
+                    },
+                },
+                "required": ["mission_path", "training"],
+            },
+        ),
+        handler=lambda p: set_training_plan(Path(p["mission_path"]), p["training"]),
     )
     catalog.register(
         ActionSpec(

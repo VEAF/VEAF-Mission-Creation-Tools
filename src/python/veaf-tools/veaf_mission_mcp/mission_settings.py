@@ -10,9 +10,12 @@ Each action targets a mission **folder** (durable) or a ``.miz`` (transient) and
 rewrites, like every other write action.
 """
 
+from collections.abc import Callable
 from datetime import date as dt_date
 from pathlib import Path
 from typing import Any
+
+from veaf_libs.mission_wind import first_player_departure, has_helicopter_slot, helicopter_breaches, helicopter_places
 
 from veaf_mission_mcp.accents import missing_accents_warnings
 from veaf_mission_mcp.mission_folder import commit_mission, open_mission
@@ -111,6 +114,14 @@ def set_weather(
     precipitation: bool | None = None,
     fog_enabled: bool | None = None,
     clearsky: bool = False,
+    reference_airfield: str | None = None,
+    wind_gust: float | None = None,
+    turbulence: float | None = None,
+    wind_veer: float | None = None,
+    wind_speed_2000: float | None = None,
+    wind_direction_2000: float | None = None,
+    wind_speed_8000: float | None = None,
+    wind_direction_8000: float | None = None,
 ) -> dict[str, Any]:
     """Set the base mission's weather, in the fields DCS reads, backed up first.
 
@@ -118,13 +129,18 @@ def set_weather(
     ``base = 0``, and nothing wrote ``weather`` (FIX-SCRATCH-MISSION-FINDINGS ticket 19). This goes
     through the converter the build's weather variants use, with the same vocabulary as
     ``versions[].weather``, so a base mission and a variant can never disagree on what a field means.
-    The keys it does not set (``cyclones``, ``groundTurbulence``, dust…) keep their value.
+    The keys it does not set (``cyclones``, dust…) keep their value.
+
+    ``wind_speed`` is the wind **wanted 10 m above the reference airfield**, not a DCS setting
+    (FEAT-MISSION-WIND-CHECK): the setting written is the one that makes DCS simulate it there. The
+    answer says the wind DCS will simulate by layer, and with a helicopter slot in the mission, where the
+    helicopter rule breaks.
 
     Args:
         target: The mission folder (durable) or a ``.miz``.
         metar: A METAR string, parsed as a variant's ``metar``; the other arguments override it.
         temperature: Ground temperature, °C.
-        wind_speed: Ground wind speed, m/s.
+        wind_speed: The wind wanted 10 m above the reference airfield, m/s.
         wind_direction: Where the wind comes FROM, degrees, as in a METAR.
         visibility: Visibility, metres; 9 000 m or more is written as DCS's maximum, 80 km (a METAR's 9999).
         cloud_type: One of ``clear``, ``few``, ``scattered``, ``broken``, ``overcast``.
@@ -132,22 +148,49 @@ def set_weather(
         precipitation: Rain.
         fog_enabled: Fog.
         clearsky: Cap to VFR-friendly conditions, as a variant's ``clearsky``.
+        reference_airfield: The airfield the wind is wanted at; the METAR's station on the map wins,
+            the first player departure airfield is the default.
+        wind_gust: The gust, m/s, made into turbulence.
+        turbulence: The turbulence, m/s as the editor shows it; wins over the gust.
+        wind_veer: How far the wind turns clockwise from the surface to 2,000 m, 0-30° (20 by default).
+        wind_speed_2000: The 2,000 m wind, m/s, to set it by hand.
+        wind_direction_2000: Where the 2,000 m wind comes FROM.
+        wind_speed_8000: The 8,000 m wind, m/s, to set it by hand.
+        wind_direction_8000: Where the 8,000 m wind comes FROM.
 
     Returns:
-        ``{weather, durable}`` — ``weather`` is the fields written.
+        ``{weather, durable, reference_airfield, simulated_wind}`` — ``weather`` is the fields written
+        (its ``wind`` the DCS setting), ``simulated_wind`` the wind DCS will simulate above the reference
+        airfield by layer — and ``warnings`` when the author should know something.
 
     Raises:
-        ValueError: If nothing is given, or ``cloud_type`` is not one of the five covers.
+        ValueError: If nothing is given, ``cloud_type`` is not one of the five covers, or the veer is
+            outside 0-30°.
     """
     from weather_injector.weather.dcs_weather_converter import DCSWeatherConverter
 
-    manual = (temperature, wind_speed, wind_direction, visibility, cloud_type, cloud_height, precipitation, fog_enabled)
+    manual = (
+        temperature,
+        wind_speed,
+        wind_direction,
+        visibility,
+        cloud_type,
+        cloud_height,
+        precipitation,
+        fog_enabled,
+        wind_gust,
+        turbulence,
+        wind_speed_2000,
+        wind_speed_8000,
+    )
     if not metar and not clearsky and all(value is None for value in manual):
         raise ValueError("no weather given — pass a metar, clearsky, or at least one weather field")
     if cloud_type is not None and cloud_type.lower() not in _CLOUD_TYPES:
         raise ValueError(f"cloud_type must be one of {', '.join(_CLOUD_TYPES)}, got {cloud_type!r}")
 
-    weather = DCSWeatherConverter.to_dcs_lua_table(
+    mission, content = open_mission(target)
+    theatre = str(mission.theatre_content or content.get("theatre") or "").strip() or None
+    conversion = DCSWeatherConverter.convert(
         metar_string=metar or "",
         temperature_celsius=temperature,
         wind_speed_mps=wind_speed,
@@ -158,8 +201,18 @@ def set_weather(
         precipitation=precipitation,
         fog_enabled=bool(fog_enabled),
         clearsky=clearsky,
+        theatre=theatre,
+        reference_airfield=reference_airfield,
+        departure_airfield=first_player_departure(content, theatre),
+        wind_gust_mps=wind_gust,
+        turbulence_mps=turbulence,
+        wind_veer=wind_veer,
+        wind_speed_2000=wind_speed_2000,
+        wind_direction_2000=wind_direction_2000,
+        wind_speed_8000=wind_speed_8000,
+        wind_direction_8000=wind_direction_8000,
     )
-    mission, content = open_mission(target)
+    weather = conversion.weather
     current = content.get("weather")
     if not isinstance(current, dict):
         current = {}
@@ -167,8 +220,28 @@ def set_weather(
     # `atmosphere` is the table the weather variants used to write, which DCS never read (ticket 01).
     current.pop("atmosphere", None)
     current.update(weather)
+    warnings = list(conversion.warnings)
+    if has_helicopter_slot(content):
+        places = helicopter_places(content, theatre, _ground_lookup(theatre))
+        warnings += [breach.message() for breach in helicopter_breaches(weather["wind"], places)]
     durable = commit_mission(mission, target)["durable"]
-    return {"weather": weather, "durable": durable}
+    result: dict[str, Any] = {
+        "weather": weather,
+        "durable": durable,
+        "reference_airfield": conversion.reference.as_dict(),
+        "simulated_wind": conversion.layers,
+    }
+    if warnings:
+        result["warnings"] = warnings
+    return result
+
+
+def _ground_lookup(theatre: str | None) -> Callable[[float, float], float | None] | None:
+    """The ground altitude at a mission ``(x, y)``, from the theatre's elevation grid when there is one."""
+    from veaf_libs.terrain_elevation import grid_for_theatre  # noqa: PLC0415
+
+    grid = grid_for_theatre(theatre) if theatre else None
+    return grid.elevation_at if grid else None
 
 
 def set_bullseye(target: Path, *, coalition: str, position: dict[str, float]) -> dict[str, Any]:

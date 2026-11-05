@@ -17,6 +17,52 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.36.0] — 2026-11-05
+
+### Documentation
+
+- **Whitepaper: how DCS turns the mission editor's wind into the simulated wind** (`docs/whitepapers/dcs-wind-model.fr.md` and `.en.md`, from "Marteau du Golan": 17 kt set and announced, 24 kt at 10 m and 36 kt at 1000 ft above Rosh Pina).
+  The model is read in `Weather.dll` and checked in game: five surveys of 5,392 points each match it within 0.0003 m/s.
+  DCS multiplies the ground wind by 2.14 and reduces it near the ground with an exponent that shrinks as the terrain rises, so the ground wind exceeds the setting on high terrain and the low layer reaches about 2.1 times it.
+  Turbulence, temperature and season do not change the base wind; VMCT's ATIS and LASTE read it at the right place and are right.
+  `dcs_wind.py` gives the real wind by altitude band above a terrain for a briefing; the measurement kit (test missions, bridge survey, surveys) is next to it.
+
+### Fixed
+
+- **A random red on `python-quality`**: the `update-dcs-data` dispatch tests ran the airdromes generator for real, which downloaded the reference database and rewrote the shipped `airdrome-positions.yaml` in place while other test workers read it; one that caught it truncated failed (#1227's briefing test). The generator is now patched, and a test checks that a dispatch run leaves the shipped data untouched.
+
+- **Four defects found by the November audit** (FIX-AUDIT-FINDINGS-2026-11).
+  A menu reserved to some groups (`addSubMenuForGroups`) or split per pilot (`addSubMenuPerPilot`), placed under another such menu, ignored its own filter and showed to every pilot of the outer one; it now asks its filter there too.
+  `RADIO.init.help_menus` was passed as is to `veafRadio.initialize`'s `skipHelpMenus`, so `true` *hid* the "Help" entries: it is now negated, and its default becomes `false`, which builds the same `veafRadio.initialize(true)` as before — the help entries stay hidden, as in every VEAF mission since v5, and `help_menus: true` now shows them.
+  `add_group` warns again when a static stands on another ground unit of the mission (within 10 m), without warning about the statics of a depot spaced 20 m apart.
+  `set_route` accepts a return to the departure point (`HOME, IP, TGT, HOME`): the same name at the same place lists its key twice, as the build accepts; one name at two places is still refused.
+  `pypdf` goes to 6.21.4 in the development lock (seven Dependabot alerts).
+
+### Added
+
+- **Training versions of a mission night, one per role** (FEAT-ROLE-TRAINING-VARIANTS).
+  A `training:` block in `mission.yaml` makes the build write, beside the night's `.miz`, `_TRAINING_A2G`, `_TRAINING_CAP`, `_TRAINING_SEAD` and `_TRAINING_ALL`, on the same setting and with the same briefing: each takes out what its role assumes done (enemy CAP, QRA, long-range SAMs, A2G targets), the CAP version keeps every air defence and arms the QRA from the start.
+  What the briefing describes vaguely is drawn again at every launch by a combat zone the build lays, from VEAF shortcuts, the night's own hand-placed groups or groups made from DCS types; a group a trigger, a script or `mission.yaml` names is refused rather than renamed silently.
+  A build profile can now take Mission Editor groups out of its `.miz` (`remove_groups:`).
+  Two MCP actions draft and write the block (`propose_training_plan`, `set_training_plan`), and `build_mission` lists the `.miz` it wrote.
+  The draws differ at every launch with nothing to seed: measured in DCS on *Marteau du Golan*, where `math.randomseed` turns out not to exist in the mission environment (known limitation `math-randomseed-is-not-in-the-mission-environment`).
+
+- **The training versions in the mission briefing** (FEAT-TRAINING-BRIEFING-PAGES): with a `training:` block, `build_mission_briefing` adds one page per version at the end of the deck and of the PDF — each declared element and what it becomes, what is drawn at every launch, the mission to load — computed with the build's own rules.
+  A `label:` on an element or a draw names it for the pilots.
+
+- **The wind pilots meet, set, described and checked** (FEAT-MISSION-WIND-CHECK). On *Marteau du Golan* (2026-10-31), 17 kt set and briefed became 24 kt at the surface and 36 kt at 1,000 ft: DCS multiplies its ground setting by up to 2.1 inland.
+  DCS's static-weather wind model is a `veaf_libs` brick (`dcs_wind.py`, standard library only, shared with the DCSServerBot fork with its test vectors), replaying the whitepaper's five in-game runs within 0.001 m/s.
+  `set_weather`, the weather variants and the METAR conversion now take the wind **wanted 10 m above a reference airfield** — the METAR's station on the map, else `reference_airfield`, else the first player departure, else sea level with a warning — and write the setting that gives it, `at2000` at 2.2 times the ground veered 20° (`wind_veer`, 0-30°), upper winds settable by hand with a warning on a low-layer jet; `clearsky` caps the simulated surface wind.
+  A METAR's gust is no longer dropped: it becomes `groundTurbulence` through the measured mapping (gap / 0.62, capped at 3 m/s, the ceiling the turbulence whitepaper recommends until it is flown).
+  The briefing deck, `inspect_built_mission` and `set_weather`'s answer give the wind DCS will simulate by layer (surface, 1,000 and 3,000 ft above the ground, FL100, FL250), not the setting; the helicopter rule (20 kt, or 15 kt over the surface, from 0 to 600 m above the ground) replaces "10 kt or less at the surface" in the guide and the mission prompts.
+  `veaf-tools dcs mission-check` takes the built mission and checks the briefing's wind against the model without DCS, with a warning level for the helicopter rule; `--measure-wind` compares the model with the running DCS.
+  The ATIS rounds its speeds instead of truncating them, adds a "max wind 0-2000 ft" line when the low layer blows 5 kt over the surface, and can announce gusts (`veafWeather.announceGusts`, off by default).
+  Two DCS behaviours join the known limitations: the editor's ground wind is not the surface wind, and opposed wind layers make a layer without wind.
+
+### Changed
+
+- **Vendored CTLD `2.0.0-rc17`** (was `rc16`): a piloted Fat Cow leaves its FARP open when it takes off, and **Pack the Fat Cow FARP** (any piloted CH-47 landed within 150 m) sets what is left down as crates; **Load** sets a loadout's crates down next to the CH-47 instead of filling the hold; an aeroplane no longer gets the Fat Cow menu; the JTAC logs its laser code and each spot in `dcs.log`. No new setting, catalogue still `2.3.0` (CHORE-VENDOR-CTLD-RC17).
+
 ## [6.35.0] — 2026-10-30
 
 ### Fixed

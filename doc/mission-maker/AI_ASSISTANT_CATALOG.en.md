@@ -98,6 +98,7 @@ The AI can act in two places, and it changes what "survives":
 | 54 | [Make a mission's briefing (PPTX, maps, DCS pictures)](#mission-briefing) | 🕰️ Mission settings | Folder (built) | ⭐ |
 | 55 | [Write the players' flight plan](#set-route) | 🕰️ Mission settings | Recipe (folder) | ⭐ |
 | 56 | [Announce the mission (poster, calendar banner, Discord post)](#mission-promotion) | 🕰️ Mission settings | Folder (built) | ⭐ |
+| 57 | [Also build the training versions, one per role](#training-versions) | 🏁 Validate & build | Recipe (folder) | ⭐ |
 
 ---
 
@@ -307,6 +308,16 @@ payoff: empty folder → content → **playable mission**.
 
 > 💬 *"Build the mission."* · *"Build the local test version."*
 
+### Also build the training versions, one per role {#training-versions}
+
+*Recipe (folder) · ⭐* — So that pilots train **before** the mission night, on the same setting, without finding out in advance what the briefing does not announce.
+The AI proposes a classification of the mission (enemy CAP, QRA, long-range SAMs, A2G targets, the SAMs protecting them), checks it against the briefing — what the briefing states stays fixed, what it describes vaguely is drawn again at every launch —, shows it to you, then writes it.
+The next build produces, beside the night's mission, one version per role (`_TRAINING_A2G`, `_TRAINING_CAP`, `_TRAINING_SEAD`) and a common one (`_TRAINING_ALL`), with the same briefing.
+The mission briefing gets one page per version.
+The details: [Training versions, one per role](TRAINING_VERSIONS.en.md).
+
+> 💬 *"Also build the training versions of this mission."* · *"Make a SEAD version so we can train on Thursday."*
+
 ## 🏗️ Composites — create a full feature (one pass)
 
 *The core goal: from a single request, the AI lays down a whole VEAF feature across **both worlds**
@@ -423,7 +434,7 @@ from it, and the VEAF scripts announce positions relative to it: place it early,
 
 ### Write the players' flight plan {#set-route}
 
-*Recipe (folder) · ⭐* — The route the players' aircraft carry, in one call: the points in order (place or coordinates), each set on the ground, the names checked — two points with one name cannot be told apart in the cockpit or the briefing — and the plan that gives them to the chosen aircraft.
+*Recipe (folder) · ⭐* — The route the players' aircraft carry, in one call: the points in order (place or coordinates), each set on the ground, the names checked — two places with one name cannot be told apart in the cockpit or the briefing, while the same name at the same place is a return to the departure point (HOME, IP, TGT, HOME) — and the plan that gives them to the chosen aircraft.
 It returns each leg's magnetic heading and distance, for the briefing and the F10 labels, and names any plan of the file that would still win over it.
 
 > 💬 *"Lion's route: feet wet off Anaklia, push, IP, the depot, egress, feet dry."*
@@ -442,6 +453,7 @@ at build, variant by variant.
 *Recipe + built · ⭐* — Clouds, wind, temperature, visibility, rain, fog, or a whole METAR. A mission
 created from scratch has its clouds on the ground: this is where to fix it. The weather variants of
 `versions.yaml` still override it, variant by variant.
+The wind asked for is the one pilots will meet 10 m above the departure airfield (or an airfield you name): the tool sets DCS to get it, and the AI gives you the simulated wind by layer, with a warning when helicopters meet more than 20 kt in the first 600 metres.
 
 > 💬 *"Broken clouds at 1,500 m, 12 °C, westerly wind at 10 knots."*
 

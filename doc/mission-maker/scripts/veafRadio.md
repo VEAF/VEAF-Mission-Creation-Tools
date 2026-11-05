@@ -44,7 +44,7 @@ modules:
     enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     init:
-      help_menus: true    # afficher les entrées "Aide" intégrées dans les menus radio (défaut : true)
+      help_menus: false   # true affiche les entrées "Aide" intégrées dans les menus radio (défaut : false)
     menu_stats: false     # journaliser la taille et les changements du menu F10 (défaut : false)
 ```
 
@@ -52,7 +52,7 @@ modules:
 |-------|------|--------|--------|-------------|
 | `enabled` | booléen | `true` | Non | Activer ou désactiver le module |
 | `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
-| `init.help_menus` | booléen | `true` | Non | Afficher les entrées "Aide" intégrées dans les menus radio générés |
+| `init.help_menus` | booléen | `false` | Non | `true` affiche les entrées "Aide" intégrées dans les menus radio (zones de combat, CAS, assets, move, missile guardian) ; elles sont masquées par défaut, comme dans toutes les missions VEAF depuis la v5 |
 | `menu_stats` | booléen | `false` | Non | Écrire dans `dcs.log`, à chaque rafraîchissement, la taille du menu F10 et ce qui a changé — voir [Surveiller le menu F10](#menu-stats) |
 
 ### Exemple minimal

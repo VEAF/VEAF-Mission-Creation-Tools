@@ -52,6 +52,8 @@ def init_field_defaults() -> dict[str, Any]:
         "mission_yaml": {},
         "pipeline_cfg": {},
         "_raw_yaml": {},
+        # The training version being built (FEAT-ROLE-TRAINING-VARIANTS); None for an ordinary build
+        "training_variant": None,
         "dynamic_mode": False,
         "dev_mode": False,
         "scripts_path": None,

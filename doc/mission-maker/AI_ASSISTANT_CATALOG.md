@@ -99,6 +99,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 54 | [Fabriquer le briefing d'une mission (PPTX, cartes, images DCS)](#mission-briefing) | 🕰️ Réglages de la mission | Dossier (construit) | ⭐ |
 | 55 | [Écrire le plan de vol des joueurs](#set-route) | 🕰️ Réglages de mission | Recette (dossier) | ⭐ |
 | 56 | [Annoncer la mission (affiche, bandeau du calendrier, message Discord)](#mission-promotion) | 🕰️ Réglages de la mission | Dossier (construit) | ⭐ |
+| 57 | [Générer aussi les versions d'entraînement par rôle](#training-versions) | 🏁 Valider & construire | Recette (dossier) | ⭐ |
 
 ---
 
@@ -310,6 +311,16 @@ build`). C'est l'aboutissement : dossier vide → contenu → **mission jouable*
 
 > 💬 *« Construis-moi la mission. »* · *« Construis la version de test locale. »*
 
+### Générer aussi les versions d'entraînement par rôle {#training-versions}
+
+*Recette (dossier) · ⭐* — Pour que les pilotes s'entraînent **avant** la soirée, sur le même cadre, sans découvrir à l'avance ce que le briefing n'annonce pas.
+L'IA propose un classement de la mission (CAP ennemie, QRA, SAM longue portée, cibles A2G, SAM qui les protègent), le confronte au briefing — ce qui y est précisé reste figé, ce qui y est vague sera tiré au sort à chaque lancement —, te le montre, puis l'écrit.
+Le build suivant produit, à côté de la mission de la soirée, une version par rôle (`_TRAINING_A2G`, `_TRAINING_CAP`, `_TRAINING_SEAD`) et une version commune (`_TRAINING_ALL`), avec le même briefing.
+Le briefing de la mission reçoit une page par version.
+Le détail : [Versions d'entraînement par rôle](TRAINING_VERSIONS.md).
+
+> 💬 *« Génère aussi les versions d'entraînement de cette mission. »* · *« Fais une version SEAD pour qu'on s'entraîne jeudi. »*
+
 ## 🏗️ Composites — créer une fonctionnalité complète (une passe)
 
 *Le cœur de l'objectif : d'une seule demande, l'IA pose une fonctionnalité VEAF entière sur les
@@ -430,7 +441,7 @@ un repère connu.
 
 ### Écrire le plan de vol des joueurs {#set-route}
 
-*Recette (dossier) · ⭐* — La route que portent les avions des joueurs, en un appel : les points dans l'ordre (lieu ou coordonnées), chacun posé au sol, les noms vérifiés — deux points du même nom ne se distinguent ni dans le cockpit ni au briefing — et le plan qui les donne aux appareils choisis.
+*Recette (dossier) · ⭐* — La route que portent les avions des joueurs, en un appel : les points dans l'ordre (lieu ou coordonnées), chacun posé au sol, les noms vérifiés — deux lieux du même nom ne se distinguent ni dans le cockpit ni au briefing, alors que le même nom au même lieu est un retour au point de départ (HOME, IP, TGT, HOME) — et le plan qui les donne aux appareils choisis.
 Il rend le cap magnétique et la distance de chaque branche, pour le briefing et les étiquettes F10, et nomme tout plan du fichier qui l'emporterait encore sur lui.
 
 > 💬 *« La route de Lion : feet wet au large d'Anaklia, push, IP, le dépôt, egress, feet dry. »*
@@ -449,6 +460,7 @@ briefing sont remplacées au build, variante par variante.
 *Recette + construite · ⭐* — Nuages, vent, température, visibilité, pluie, brouillard, ou un METAR
 entier. Une mission créée depuis zéro a ses nuages posés au sol : c'est à régler. Les variantes météo
 de `versions.yaml` gardent la main, variante par variante.
+Le vent demandé est celui que les pilotes auront à 10 m au-dessus du terrain de départ (ou d'un terrain que tu nommes) : l'outil règle DCS pour l'obtenir, et l'IA te donne le vent simulé par couche, avec une alerte si des hélicos prennent plus de 20 kt dans les 600 premiers mètres.
 
 > 💬 *« Mets un ciel fragmenté à 1 500 m, 12 °C, vent d'ouest 10 nœuds. »*
 

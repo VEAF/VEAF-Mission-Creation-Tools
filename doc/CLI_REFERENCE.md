@@ -1019,8 +1019,11 @@ Plus les [options du bridge](#dcs-bridge).
 
 ### `veaf-tools dcs mission-check` {#mission-check}
 
-Vérifie la mission **lancée dans DCS** — la copie écrite par [`mission-check-prepare`](#mission-check-prepare), que vous avez lancée vous-même — par le [bridge VEAF](#dcs-bridge), et écrit une ligne par vérification puis un verdict :
+Vérifie une mission et écrit une ligne par vérification puis un verdict. Avec la mission construite en argument (le `.miz` ou son dossier), elle commence par **le vent, sans DCS** ; puis elle vérifie la mission **lancée dans DCS** — la copie écrite par [`mission-check-prepare`](#mission-check-prepare), que vous avez lancée vous-même — par le [bridge VEAF](#dcs-bridge) :
 
+- **vent** (sans DCS) : à chaque départ des joueurs (terrain d'un slot `Client`, terrain à slots dynamiques), chaque zone de combat de `veaf-config.lua` et chaque point de route d'un hélico joueur — regroupés à 5 km —, le vent que DCS simulera, calculé par le [modèle du vent de DCS](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/whitepapers/dcs-wind-model.fr.md) depuis le `.miz`. Chaque vent qu'annoncent les textes du briefing (`descriptionText`, `descriptionBlueTask`, `descriptionRedTask`, et dans le dossier `docs/briefing-contenu.md` et `docs/briefing.pptx`, en français et en anglais : `270/17`, `270° 17 kt`, `17 kt from the west`, `vent du 270 pour 17 nœuds`…) est comparé au vent simulé à la couche qu'il nomme — au sol (10 m, aux terrains de départ), « en altitude » (1 000 ft sol à FL100), « basse altitude » (0 à 600 m sol), ou une hauteur en pieds. Une vitesse à plus de **5 kt** de la plage simulée, ou une direction à plus de **30°**, **échoue** ; un vent mentionné sans chiffre est relevé, pas jugé. Les pages de planchette sont dessinées depuis les mêmes textes : vérifier le deck les couvre.
+  Avec un slot hélico, la **règle hélico** — de 0 à 600 m sol, au plus **20 kt**, et pas plus de **15 kt** au-dessus du vent au sol — donne un **avertissement** par endroit : il ne fait pas échouer, sauf si le briefing n'annonce aucun vent au-dessus du sol (les pilotes ne sont pas prévenus). Les avertissements sont comptés à part dans le verdict.
+  Sans DCS lancé, le verdict du vent tient seul, et la commande dit que le reste demande le jeu ;
 - **menus F10** : chaque entrée du menu radio VEAF a un libellé ; une entrée vide est signalée avec son chemin (`VEAF > Zones > ∅`) ;
 - **zones et missions de combat** : chacune est activée puis désactivée, ses unités comptées à chaque fois, et elle est **laissée comme elle était** ; une CAP est vérifiée sous chacun de ses noms de variante (`<nom>/<niveau>/<échelle>`) ; une *opération* est signalée mais pas basculée (elle entraînerait ses zones) ;
 - **colonnes** : chaque groupe au sol qui a une route de plus d'un point — de la mission ou tiré par une zone — doit rouler dans les 60 secondes. C'est ce contrôle qui trouve une colonne figée par un tronçon « On Road » sans route à suivre.
@@ -1029,13 +1032,17 @@ Laissez DCS tourner **sans pause** pendant la vérification : en pause, rien n'a
 
 | Options | Type | Défaut | Description |
 |---|---|---|---|
+| `MISSION` | `chemin` | *(aucun)* | Le `.miz` construit ou son dossier de mission : son vent est vérifié contre le briefing, sans DCS, avant les vérifications en jeu. |
 | `--only` | `str` | *(toutes)* | Nom d'une zone ou mission de combat à vérifier ; répétez pour plusieurs. Les menus et les colonnes de la mission sont vérifiés dans tous les cas. |
+| `--wind-only` | `boolean` | `false` | Ne vérifier que le vent, sans DCS. |
+| `--measure-wind` | `boolean` | `false` | Avec la copie de test lancée, lire aussi `atmosphere.getWind` aux mêmes endroits et le comparer au modèle : un écart de plus de 0,5 kt échoue, avec la version de DCS et celle du modèle (2.9.31.29434) — DCS a changé son vent, la mesure du whitepaper est à refaire. La table mesurée est écrite à côté de la copie, `<nom>_CHECK.wind.json`. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
 Plus les [options du bridge](#dcs-bridge).
 
 ```powershell
-.\veaf-tools.exe dcs mission-check
+.\veaf-tools.exe dcs mission-check MaMission.miz --wind-only
+.\veaf-tools.exe dcs mission-check MaMission.miz
 ```
 
 *Alias plat : `veaf-tools mission-check`*

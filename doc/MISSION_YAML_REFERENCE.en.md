@@ -493,7 +493,7 @@ Additional `init:` or data fields are module-specific — see each module's docu
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `help_menus` | boolean | `true` | Passed to `veafRadio.initialize` as `skipHelpMenus` |
+| `help_menus` | boolean | `false` | `true` shows the built-in "Help" entries of the radio menus; negated into `veafRadio.initialize`'s `skipHelpMenus` |
 | `create_menus` | boolean | `true` | `false` builds **no VEAF F10 menu at all** (`dontCreateMenus`). Combined with `security:`, that is how a public mission keeps the VEAF commands reachable only through password-protected map markers. Omit the key to keep today's behaviour |
 
 ```yaml
@@ -877,6 +877,17 @@ profiles:
           SA11Kiswah: { active_at_start: false }
 ```
 
+#### Removing Mission Editor groups {#profile-remove-groups}
+
+A profile changes configuration only, except `remove_groups:`: a list of group names, exact or as patterns (`"SA-10 *"`), that the build takes out of that profile's `.miz` — whether placed by hand, carrying a `#veafInterpreter`, members of a combat zone or statics.
+A pattern that matches no group is reported by the build.
+
+```yaml
+profiles:
+  NO_SA10:
+    remove_groups: ["SA-10 *", "EWR Gudauta"]
+```
+
 ---
 
 ### `build_variants:` {#build-variants}
@@ -910,6 +921,17 @@ build_variants:
 .\veaf-tools.exe mission build          # produces <base>_MODERN.miz AND <base>_COLD_WAR.miz
 .\veaf-tools.exe mission build --profile MODERN   # produces only the MODERN variant (<base>_MODERN.miz)
 ```
+
+---
+
+### `training:` {#training}
+
+The mission's training versions, one per role: with this block, the build also produces `<base>_TRAINING_A2G.miz`, `_TRAINING_CAP`, `_TRAINING_SEAD` and `_TRAINING_ALL`, on the same setting and with the same briefing.
+`elements` classifies what the mission holds (`enemy_cap`, `qra`, `sam_lr`, `a2g_target`, `sam_threat`); `randomize` declares the briefing's vague elements, drawn again at every launch.
+The rules, examples and what is refused: [Training versions, one per role](mission-maker/TRAINING_VERSIONS.en.md).
+
+- Cannot be combined with `build_variants:`.
+- `--profile TRAINING_SEAD` builds that version only.
 
 ---
 
@@ -998,6 +1020,7 @@ exactly one of them.
 | `build.scripts_path` | Path to local VEAF-Mission-Creation-Tools clone |
 | [`profiles:`](#profiles) | Named build profiles (deep-merge overrides for `--profile`) |
 | [`build_variants:`](#build-variants) | Produce one `.miz` variant per named profile |
+| [`training:`](#training) | Training versions, one per role, built with the mission |
 
 ---
 

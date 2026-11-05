@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from typer.testing import CliRunner
 
 from veaf_build.cli import app
+
+_SHIPPED_DATA = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_libs" / "data"
 
 
 class TestUpdateDcsDataDispatch(unittest.TestCase):
@@ -25,12 +28,19 @@ class TestUpdateDcsDataDispatch(unittest.TestCase):
         to 3 failures per run, at random, which reddens CI for reasons that have nothing to do with
         the change under review. What these tests assert is dispatch: which providers a flag selects.
         Nothing here needs a real clone.
+
+        The airdromes generator is patched for the same reason — it downloads the reference
+        database — and for a worse one: it rewrites the committed ``airdromes.yaml`` and
+        ``airdrome-positions.yaml`` in place, which other xdist workers read meanwhile.
         """
         with (
             mock.patch("veaf_build.dcs_data.countries.generate", return_value=92) as gen_countries,
             mock.patch("veaf_build.radio_specs_updater.main") as gen_radio,
             mock.patch("veaf_build.dcs_data.units.generate", return_value=873),
             mock.patch("veaf_build.dcs_data.units_lua.generate", return_value=873),
+            mock.patch("veaf_build.dcs_data.reference.open_reference"),
+            mock.patch("veaf_build.dcs_data.airdromes.reference_airbases"),
+            mock.patch("veaf_build.dcs_data.airdromes.generate", return_value=1200),
         ):
             result = self.runner.invoke(app, ["update-dcs-data", *args])
         return gen_countries, gen_radio, result.exit_code
@@ -73,6 +83,20 @@ class TestUpdateDcsDataDispatch(unittest.TestCase):
         self.assertEqual(code, 0)
         gen_countries.assert_called_once()
         gen_radio.assert_called_once()
+
+    def test_a_dispatch_run_leaves_the_committed_data_untouched(self) -> None:
+        """No generator under --all writes the shipped data files.
+
+        Under pytest-xdist the other workers read those files while this one runs. A generator
+        left unpatched rewrites them in place: the file is truncated, then refilled, and a reader
+        in between gets a comment-only document — ``yaml.safe_load`` returns ``None``. That is how
+        an unrelated briefing test went red on a documentation-only pull request.
+        """
+        before = {path: path.stat().st_mtime_ns for path in _SHIPPED_DATA.rglob("*") if path.is_file()}
+        _, _, code = self._run("--all")
+        self.assertEqual(code, 0)
+        after = {path: path.stat().st_mtime_ns for path in _SHIPPED_DATA.rglob("*") if path.is_file()}
+        self.assertEqual([path.name for path in before if after.get(path) != before[path]], [])
 
 
 if __name__ == "__main__":

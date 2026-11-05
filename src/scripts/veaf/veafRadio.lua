@@ -845,6 +845,24 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
     self:_buildSubtreeForGroups(parentNode, node, coalitionSide)
     return
   end
+  -- Nested under a menu already rendered for one group, a filtered menu still asks its own filter: for
+  -- the pilot the parent is bound to, or else for the pilots of the group (security-audits#147).
+  local pilots
+  if scope and scope.unitName then
+    if not passesGroupFilter(node.groupFilter, scope.unitName, scope.groupId, node.title) then
+      return
+    end
+  elseif scope and (node.groupFilter or node.perPilot) then
+    pilots = {}
+    for _, pilot in ipairs(self:_livePilots(veafRadio.humanGroups[scope.groupId])) do
+      if passesGroupFilter(node.groupFilter, pilot.unitName, scope.groupId, node.title) then
+        table.insert(pilots, pilot)
+      end
+    end
+    if #pilots == 0 then
+      return
+    end
+  end
 
   local parentDcsMenu = parentNode and parentNode.dcsRadioMenu
   local label = node.title
@@ -858,7 +876,6 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   -- (FEAT-BFR-V6-SUPPORT ticket 05). A pilot alone in his group gets the entries directly.
   if node.perPilot and scope and not scope.unitName then
     local nodeMenu = node.dcsRadioMenu
-    local pilots = self:_livePilots(veafRadio.humanGroups[scope.groupId])
     if #pilots == 1 then
       self:_buildChildren(node, nodeMenu, coalitionSide, { groupId = scope.groupId, unitName = pilots[1].unitName })
     else

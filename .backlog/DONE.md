@@ -6,6 +6,30 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [CHORE-VENDOR-CTLD-RC17](CHORE-VENDOR-CTLD-RC17/PRD.md) · ✅
+
+CTLD `2.0.0-rc17` vendored ahead of the release: a piloted Fat Cow leaves its FARP open and packs it as crates on the ground, loadouts come as crates to load, no Fat Cow menu for aeroplanes, and the JTAC logs its laser code. No new setting, catalogue unchanged.
+
+### [FEAT-BFR-V6-SUPPORT](FEAT-BFR-V6-SUPPORT/PRD.md) · ✅
+
+What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the study of Bluestorm V2 and SeaShepherd V2 (2026-10-27): two security fixes, the F10 menu in multiplayer (live pilot, group submenus, per-pilot submenus), combat zone fixes, a carrier option, modules initialized by the mission, the weather welcome switch, named points from a script, the v5 converter, and a page on porting a mission with its own script layer. Fourteen tickets, one PR. Merged in #1203 and shipped in 6.33.0; closed on 2026-11-04 without the in-game checks of tickets 01, 03-05, 07, 12 and 13, left to BFR.
+
+### [FIX-AUDIT-FINDINGS-2026-11](FIX-AUDIT-FINDINGS-2026-11/PRD.md) · ✅
+
+The four audit findings on VMCT (`davidp57/security-audits` #137, #138, #146, #147) and the seven `pypdf` Dependabot alerts: nested filtered F10 menus keep their filter, `help_menus` negated with the same generated call by default, a static on another unit warned again, `set_route` takes `HOME, IP, TGT, HOME`. Five tickets, one PR (#1236).
+
+### [FEAT-TRAINING-BRIEFING-PAGES](FEAT-TRAINING-BRIEFING-PAGES/PRD.md) · ✅
+
+The training versions in the mission briefing: one page per version at the end of the deck and of the PDF, computed with the build's own rules, and a `label:` key to name an element or a draw for the pilots. Used for *Marteau du Golan*'s training versions on Privé 1 and Privé 2 (2026-11-03). One PR (#1234).
+
+### [FEAT-ROLE-TRAINING-VARIANTS](FEAT-ROLE-TRAINING-VARIANTS/PRD.md) · ✅
+
+Training versions of a mission night, built with it from a `training:` block in `mission.yaml`: one per role (A2G, CAP, SEAD) in the state "the other roles have done their job", one common, same setting and same briefing. What the briefing describes vaguely is drawn again at every launch by a combat zone; a draw follows the rules of what it draws, and the CAP version keeps every air defence. `remove_groups:` for any profile, and two MCP actions to draft and write the block. Checked in DCS on a copy of *Marteau du Golan* (2026-11-03): the draws differ at every launch, and `math.randomseed` does not exist in a mission. One PR.
+
+### [FIX-FLAKY-AIRDROME-POSITIONS](FIX-FLAKY-AIRDROME-POSITIONS/PRD.md) · ✅
+
+A random red on `python-quality`: the `update-dcs-data` dispatch tests left the airdromes generator unpatched, so `--all` downloaded the reference database and rewrote the shipped `airdrome-positions.yaml` in place while other xdist workers read it — a reader caught it truncated and got `None`. The generator is patched, and a guard test asserts a dispatch run leaves `veaf_libs/data` untouched. One PR.
+
 ### [CHORE-VENDOR-CTLD-RC16](CHORE-VENDOR-CTLD-RC16/PRD.md) · ✅
 
 CTLD `2.0.0-rc16` vendored ahead of the release: an AI Fat Cow that loses its flight can be taken over, **Release the Fat Cow**, and fixes to the AI cow's return and landing. No new setting, catalogue unchanged.

@@ -106,6 +106,7 @@ from mission_briefing.briefing_maps import (
 from mission_briefing.briefing_pdf import Cover, MapSheet, PhotoSheet, write_pdf
 from mission_briefing.briefing_recon import RECON_FOLDER, caption, load_recon
 from mission_briefing.briefing_tables import Table, TablePage, paginate_tables, timeline, write_table_page
+from mission_briefing.briefing_training import training_pages
 from mission_briefing.mission_reader import (
     departures,
     ground_picture,
@@ -1388,6 +1389,8 @@ def _build(
     coordination = _coordination_page(content)
     steps = _step_sheets(content, picture, starts, overview, warnings)
     targets = _target_sheets(picture, areas, zooms, warnings)
+    # One page per training version, after the night's briefing (FEAT-TRAINING-BRIEFING-PAGES)
+    training = training_pages(folder, warnings)
     opening: list[Page | TablePage] = [*([strategic] if strategic else []), situation, ato]
     closing: list[Page | CardSection | TablePage] = [
         flow,
@@ -1397,6 +1400,7 @@ def _build(
         *([steps] if steps else []),
         frequencies,
         targets,
+        *training,
     ]
     titles = [
         *[page.title for page in opening],

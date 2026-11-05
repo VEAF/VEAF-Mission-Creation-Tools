@@ -37,7 +37,7 @@ def compose_metar(
 
     Args:
         manual: The variant's ``weather:`` mapping — ``wind_speed`` (m/s), ``wind_direction`` (from,
-            degrees), ``visibility`` (m), ``cloud_type`` and ``cloud_height`` (m), ``precipitation``,
+            degrees), ``wind_gust`` (m/s), ``visibility`` (m), ``cloud_type`` and ``cloud_height`` (m), ``precipitation``,
             ``fog_enabled``, ``temperature`` (°C); each optional.
         when_utc: The variant's start, in UTC.
         qnh_hpa: The pressure the mission carries, in hPa, when there is one.
@@ -51,7 +51,9 @@ def compose_metar(
     if speed is not None:
         knots = round(float(speed) * _MPS_TO_KT)
         direction = round(float(manual.get("wind_direction") or 0) / 10) * 10 % 360
-        groups.append("00000KT" if knots == 0 else f"{direction or 360:03d}{knots:02d}KT")
+        gust = round(float(manual.get("wind_gust") or 0) * _MPS_TO_KT)
+        gust_group = f"G{gust:02d}" if gust > knots else ""
+        groups.append("00000KT" if knots == 0 else f"{direction or 360:03d}{knots:02d}{gust_group}KT")
     visibility = manual.get("visibility")
     if visibility is not None:
         groups.append(f"{min(round(float(visibility)), 9999):04d}")

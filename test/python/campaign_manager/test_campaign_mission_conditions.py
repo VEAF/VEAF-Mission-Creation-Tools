@@ -23,6 +23,8 @@ from campaign_manager.mission_conditions import (
 )
 from campaign_manager.models import CampaignDefinition
 from campaign_manager.next_mission import prepare_next_mission
+from veaf_libs.dcs_wind import surface_wind
+from veaf_libs.mission_wind import first_player_departure, resolve_reference_airfield
 from veaf_mission_mcp.mission_folder import open_mission
 from veaf_mission_mcp.mission_settings import set_mission_date, set_weather
 from weather_injector.weather.dcs_weather_converter import DCSWeatherConverter
@@ -188,13 +190,19 @@ class TestTheMissionFolder:
             report = prepare_next_mission(campaign, state, tmp_path, tmp_path / f"m{mission}")
             assert report.conditions is not None
             announced = report.conditions.weather
-            _, content = open_mission(tmp_path / f"m{mission}")
+            folder_mission, content = open_mission(tmp_path / f"m{mission}")
             written = content["weather"]
+            theatre = folder_mission.theatre_content
+            reference, _ = resolve_reference_airfield(
+                theatre, departure_airfield=first_player_departure(content, theatre)
+            )
             distances.add(written["visibility"]["distance"])
             assert announced["visibility"] == written["visibility"]["distance"], mission
             assert announced["cloud_height"] == written["clouds"]["base"], mission
             assert announced["temperature"] == written["season"]["temperature"], mission
-            assert announced["wind_speed"] == written["wind"]["atGround"]["speed"], mission
+            # The announced wind is the one DCS simulates at the reference airfield (FEAT-MISSION-WIND-CHECK).
+            simulated = surface_wind(written["wind"], reference.elevation).speed
+            assert announced["wind_speed"] == pytest.approx(simulated, abs=0.02), mission
         assert 80000 in distances, distances  # the draw this test guards was made at least once
 
     def test_it_builds_one_mission_and_no_variant(self, tmp_path: Path) -> None:

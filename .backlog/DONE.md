@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [CHORE-VENDOR-CTLD-RC17](CHORE-VENDOR-CTLD-RC17/PRD.md) · ✅
+
+CTLD `2.0.0-rc17` vendored ahead of the release: a piloted Fat Cow leaves its FARP open and packs it as crates on the ground, loadouts come as crates to load, no Fat Cow menu for aeroplanes, and the JTAC logs its laser code. No new setting, catalogue unchanged.
+
 ### [FEAT-BFR-V6-SUPPORT](FEAT-BFR-V6-SUPPORT/PRD.md) · ✅
 
 What VMCT needs so BFR (Sharko) can plug its own script layer into v6, from the study of Bluestorm V2 and SeaShepherd V2 (2026-10-27): two security fixes, the F10 menu in multiplayer (live pilot, group submenus, per-pilot submenus), combat zone fixes, a carrier option, modules initialized by the mission, the weather welcome switch, named points from a script, the v5 converter, and a page on porting a mission with its own script layer. Fourteen tickets, one PR. Merged in #1203 and shipped in 6.33.0; closed on 2026-11-04 without the in-game checks of tickets 01, 03-05, 07, 12 and 13, left to BFR.

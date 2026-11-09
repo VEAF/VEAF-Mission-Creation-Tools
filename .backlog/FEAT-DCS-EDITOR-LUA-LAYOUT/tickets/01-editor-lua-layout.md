@@ -1,6 +1,6 @@
 # 01 — The mission members in the Mission Editor's layout
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 `mission_tools.dcs_lua.serialize_member(content, name)` writes a member the way the editor does, and every place that wrote `mission`, `options`, `warehouses`, `dictionary` or `mapResource` calls it: `write_miz`, `write_mission_folder`, the blank mission, the mission briefing, `add_sound`, `add_startup_script_trigger` and the briefing picture.
 

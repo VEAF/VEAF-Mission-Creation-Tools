@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-DCS-EDITOR-LUA-LAYOUT](FEAT-DCS-EDITOR-LUA-LAYOUT/PRD.md) · ✅
+
+Two points Flogas raised (2026-11-09): a built mission's `mission` file is written in the Mission Editor's layout (`["coalition"] = `, tabs, `-- end of`), so tools that read a mission's text read VEAF's too; and the migration guide shows how to add your own steps after the build with a `build.ps1` and a build profile, since v6 has no `build.cmd` to edit. One PR (#1251).
+
 ### [CHORE-RELEASE-CI-REDUNDANCY](CHORE-RELEASE-CI-REDUNDANCY/PRD.md) · ✅
 
 The 6.36.0 release started 27 runs, 15 of them on a tree its pull request had already tested: the check workflows no longer run on a push to `master`, and the release back-merge carries `[skip ci]`. The bot and chatbot publications keep `master`. And the release carries its SBOM again: `publish --force` recreated the release after `sbom.yml` had attached it. One PR.

@@ -1,6 +1,6 @@
 # FEAT-DCS-EDITOR-LUA-LAYOUT — a built mission written like the Mission Editor writes it, and your own steps after the build
 
-Status: 🔄 in-progress
+Status: ✅ done (#1251)
 
 Origin: two points Flogas raised on 2026-11-09, relayed by David the same day, who chose 1a and 2a.
 

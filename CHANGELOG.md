@@ -21,6 +21,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **A release no longer re-tests itself three times** (CHORE-RELEASE-CI-REDUNDANCY): the check workflows no longer run on a push to `master`, whose release pull request already ran them on the same tree, and the release back-merge into `develop` carries `[skip ci]`. 6.36.0 started 27 runs, 15 of them on a tree already tested.
   The GitHub release carries `sbom.cyclonedx.json` again: it was attached on the tag, then lost when `veaf-build publish --force` recreated the release (6.35.0 and 6.36.0 shipped without it); the release job now uploads it after that step.
+- **A built mission is written like the Mission Editor writes it** (FEAT-DCS-EDITOR-LUA-LAYOUT): the `mission`, `options`, `warehouses`, `dictionary` and `mapResource` files of a `.miz` and of a mission folder read `["coalition"] = ` then `{`, indented with tabs and closed by `-- end of ["coalition"]`, instead of `coalition = {` with two spaces. DCS read both; tools outside VEAF that read a mission's text now read VEAF's too. The keys keep VEAF's order; a mission folder's files change only when an MCP action edits the folder, as before. The migration guide shows how to add your own steps after the build, with a `build.ps1` and a build profile, since v6 has no `build.cmd` to edit.
 
 ## [6.36.0] — 2026-11-05
 

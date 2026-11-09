@@ -12,7 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-import luadata
+from mission_tools.dcs_lua import serialize_member
 from mission_tools.mission_constants import DEFAULT_SCRIPTS_LOCATION
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import list_members, read_miz, write_miz
@@ -56,9 +56,7 @@ def add_sound(target: Path, *, source_path: str, resource_name: str | None = Non
     existing = [key for key, value in resources.items() if str(value) == name and not key.startswith("VEAF_MapKey")]
     key = existing[0] if existing else _free_key(resources, Path(name).stem)
     resources[key] = name
-    serialized = "mapResource = \n" + luadata.serialize(
-        resources, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-    )
+    serialized = serialize_member(resources, "mapResource")
 
     if is_folder:
         l10n = _folder_l10n(target)

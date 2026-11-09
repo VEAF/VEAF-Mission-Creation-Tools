@@ -21,7 +21,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-import luadata
+from mission_tools.dcs_lua import serialize_member
 from mission_tools.mission_constants import DEFAULT_SCRIPTS_LOCATION
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import read_miz, write_miz
@@ -135,8 +135,7 @@ def add_startup_script_trigger_in_memory(
 
 def _serialize_map_resource(resources: dict[str, str]) -> bytes:
     """Render a `mapResource` table the way `write_miz` does, for a missing archive member."""
-    lua = luadata.serialize(resources, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)
-    return f"mapResource = \n{lua}".encode()
+    return serialize_member(resources, "mapResource").encode()
 
 
 def apply_startup_script_trigger(

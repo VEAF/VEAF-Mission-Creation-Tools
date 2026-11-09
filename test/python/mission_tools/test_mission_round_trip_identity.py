@@ -5,7 +5,7 @@
 every untouched mission's diff.
 
 **A raw byte round trip through the VEAF writer was never identical, and that is not what this
-asserts.** `write_mission_folder` re-serialises through `luadata` with `sort=True`, so it reorders keys
+asserts.** `write_mission_folder` re-serialises through `serialize_member` (VEAF's key order), so it reorders keys
 and re-indents whatever it is handed — DCS does the same on every save, which is why a raw diff of an
 original against VEAF's output has always been misleading. The property that *is* meaningful, and that
 this file pins, is narrower and exactly the one the PRD needs: **serialising a mission with the
@@ -22,14 +22,12 @@ from typing import Any
 
 import luadata
 import pytest
+from mission_tools.dcs_lua import serialize_member
 from mission_tools.miz_tools import read_mission_folder, write_mission_folder
 from mission_tools.sequence_normalisation import normalise_mission_sequences
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _MISSIONS_ROOT = _REPO_ROOT / "test" / "veaf-tools"
-
-#: The exact call `write_miz` / `write_mission_folder` make.
-_SERIALIZE = dict(indent="  ", indent_level=0, always_provide_keyname=True, sort=True)
 
 
 def _mission_folders() -> list[Path]:
@@ -73,10 +71,10 @@ def _copy_mission(source: Path, tmp_path: Path) -> Path:
 class TestTheNormalisationAddsNoChange:
     def test_normalising_does_not_change_the_serialised_bytes(self, source: Path) -> None:
         """The measurement the PRD demanded, run over every mission in the repository."""
-        untouched = luadata.serialize(_raw_parse(source), **_SERIALIZE)
+        untouched = serialize_member(_raw_parse(source), "mission")
         normalised_content = _raw_parse(source)
         normalise_mission_sequences(normalised_content)
-        assert luadata.serialize(normalised_content, **_SERIALIZE) == untouched
+        assert serialize_member(normalised_content, "mission") == untouched
 
     def test_no_repository_mission_is_holed(self, source: Path, tmp_path: Path) -> None:
         # Which is *why* the assertion above holds. It also turns a hole committed by accident into a
@@ -86,7 +84,7 @@ class TestTheNormalisationAddsNoChange:
 
     def test_a_second_write_produces_the_same_bytes(self, source: Path, tmp_path: Path) -> None:
         # What a mission maker actually sees: build twice, get the same file. The first write
-        # re-indents and reorders (luadata with sort=True, as DCS does on every save); the second must
+        # re-indents and reorders (VEAF's key order, as DCS reorders on every save); the second must
         # add nothing on top of that.
         folder = _copy_mission(source, tmp_path)
         mission_file = folder / "src" / "mission" / "mission"

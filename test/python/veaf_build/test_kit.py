@@ -26,7 +26,7 @@ def test_build_bridge_mission_embeds_bridge_and_theatre(tmp_path: Path, bridge_l
         names = miz.namelist()
         assert any("dcs-bridge.lua" in n for n in names)
         mission = miz.read("mission").decode("utf-8")
-    assert 'theatre = "Caucasus"' in mission
+    assert '["theatre"] = "Caucasus"' in mission
     assert "dcs-bridge loading" in mission  # the load trigger
 
 

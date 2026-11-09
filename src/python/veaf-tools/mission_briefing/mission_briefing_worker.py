@@ -22,7 +22,6 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-import luadata
 from campaign_manager.briefing_deck import (
     _BLUE,
     _GREY,
@@ -58,6 +57,7 @@ from campaign_manager.mission_picture import (
     find_built_mission,
     read_mission_picture,
 )
+from mission_tools.dcs_lua import serialize_member
 from mission_tools.mission_constants import DEFAULT_SCRIPTS_LOCATION
 from mission_tools.mission_yaml_editor import load_yaml
 from mission_tools.miz_backup import backup_before_write
@@ -1039,11 +1039,8 @@ def _write_pictures(
         additional.update({f"{KNEEBOARD_FOLDER}/{name}": data for name, data in kneeboard.items()})
         if f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
             # `write_miz` rewrites a `mapResource` member the archive has; one it lacks has to be supplied
-            additional[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = (
-                "mapResource = \n"
-                + luadata.serialize(
-                    built.map_resource_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-                )
+            additional[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = serialize_member(
+                built.map_resource_content or {}, "mapResource"
             ).encode()
         # a page an earlier run wrote and this one does not (one objective less, kneeboard off) leaves
         # the archive too, not only the folder

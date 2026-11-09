@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FEAT-DCS-EDITOR-LUA-LAYOUT](FEAT-DCS-EDITOR-LUA-LAYOUT/PRD.md) · 🔄
+
+Two points Flogas raised (2026-11-09): a built mission's `mission` file is written in the Mission Editor's layout (`["coalition"] = `, tabs, `-- end of`), so tools that read a mission's text read VEAF's too; and the migration guide shows how to add your own steps after the build with a `build.ps1` and a build profile, since v6 has no `build.cmd` to edit.
+
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

@@ -20,6 +20,7 @@ from veaf_libs.safe_zip import safe_extract_all, safe_read_member
 
 from mission_tools.sequence_normalisation import HoleClosed, normalise_mission_sequences
 
+from .dcs_lua import serialize_member
 from .mission_constants import DEFAULT_SCRIPTS_LOCATION
 
 
@@ -293,7 +294,7 @@ def write_mission_folder(
     when the folder has them, the ``warehouses`` table, the ``l10n/DEFAULT/dictionary`` and the
     ``l10n/DEFAULT/mapResource`` (created when the mission carries resources the folder lacks) — the ones a
     caller can mutate through :class:`DcsMission`. Everything else in ``src/mission/`` is left untouched. Uses the same
-    ``luadata`` serializer as :func:`write_miz`, so no Lua is executed.
+    serializer as :func:`write_miz` (:func:`serialize_member`, the Mission Editor's layout), so no Lua is executed.
 
     ``warehouses`` used to be skipped, which made `set_airbase_coalition` a fail-silent: it mutated
     the table, called this, and reported ``durable: True`` while the file on disk never changed —
@@ -324,23 +325,17 @@ def write_mission_folder(
         raise FileNotFoundError(f"No 'mission' file found under {folder_path} (looked in '.' and 'src/mission')")
     if mission.mission_content is None:
         raise ValueError("mission_content is None — nothing to write")
-    lua_content = luadata.serialize(
-        mission.mission_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-    )
     mission_file = root / "mission"
-    _write_if_changed(mission_file, f"mission = \n{lua_content}", before_overwrite)
+    _write_if_changed(mission_file, serialize_member(mission.mission_content, "mission"), before_overwrite)
 
     warehouses_file = root / "warehouses"
     if mission.warehouses_content is not None and warehouses_file.is_file():
-        warehouses_lua = luadata.serialize(
-            mission.warehouses_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-        )
-        _write_if_changed(warehouses_file, f"warehouses = \n{warehouses_lua}", before_overwrite)
+        _write_if_changed(warehouses_file, serialize_member(mission.warehouses_content, "warehouses"), before_overwrite)
 
     # The briefing prose of an editor-saved mission lives here, behind `DictKey_…` references in the
     # mission table: without writing it back, a folder edit of that text was lost on save
     # (FIX-SCRATCH-MISSION-FINDINGS ticket 07). Same rule as warehouses: only a file already there.
-    # Compared by *content*, not by text: an editor-saved dictionary is not in luadata's layout, so a
+    # Compared by *content*, not by text: an editor-saved dictionary is not in VEAF's key order, so a
     # text comparison would re-format it on the first folder action of any kind — prose round-tripped
     # and a whole-file diff, for an edit that never touched it.
     dictionary_file = root / DEFAULT_SCRIPTS_LOCATION / "dictionary"
@@ -349,10 +344,7 @@ def write_mission_folder(
         and dictionary_file.is_file()
         and luadata.unserialize(dictionary_file.read_text(encoding="utf-8")) != mission.dictionary_content
     ):
-        dictionary_lua = luadata.serialize(
-            mission.dictionary_content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-        )
-        _write_if_changed(dictionary_file, f"dictionary = \n{dictionary_lua}", before_overwrite)
+        _write_if_changed(dictionary_file, serialize_member(mission.dictionary_content, "dictionary"), before_overwrite)
 
     # The resource keys (sounds, briefing pictures) the mission table points at: a key added to
     # `map_resource_content` was lost in silence (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 16). Compared by
@@ -364,11 +356,8 @@ def write_mission_folder(
             luadata.unserialize(map_resource_file.read_text(encoding="utf-8")) if map_resource_file.is_file() else None
         )
         if (on_disk is None and resources) or (on_disk is not None and on_disk != resources):
-            map_resource_lua = luadata.serialize(
-                resources, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-            )
             map_resource_file.parent.mkdir(parents=True, exist_ok=True)
-            _write_if_changed(map_resource_file, f"mapResource = \n{map_resource_lua}", before_overwrite)
+            _write_if_changed(map_resource_file, serialize_member(resources, "mapResource"), before_overwrite)
 
     return mission_file
 
@@ -421,8 +410,7 @@ def write_miz(
     """
 
     def serialize(zip_file: zipfile.ZipFile, content: Any, file_name: str, variable_name: str | None = None) -> None:
-        lua_content = luadata.serialize(content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)  # type: ignore[arg-type]
-        zip_file.writestr(file_name, f"{variable_name} = \n{lua_content}" if variable_name else lua_content)
+        zip_file.writestr(file_name, serialize_member(content, variable_name or file_name))
 
     if not miz_file_path:
         miz_file_path = mission.file_path

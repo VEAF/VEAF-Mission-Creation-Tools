@@ -1,6 +1,6 @@
 # 01 — Developer page: the hotload recipe
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 A new page `doc/developer/hotload.md` and `hotload.en.md`, in the `nav` with its `nav_translations` entry, linked from the `custom_scripts` section of the `mission.yaml` reference.
 

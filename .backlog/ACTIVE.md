@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [DOC-HOTLOAD-RECIPE](DOC-HOTLOAD-RECIPE/PRD.md) · 🔄
-
-A developer page on loading dcs-hotload (MacFlorent/dcs-hotload) in a VMCT-built mission with no VMCT code: a boot script declared in `custom_scripts` loads it from `Saved Games\DCS\Scripts\dcs-hotload\` when it is there and does nothing otherwise, with a per-mission variant and the reservations (install-wide `io`/`lfs` unlock, one F10 root entry, VEAF modules are not reloaded). Chosen by David and Flogas on 2026-11-09 over a `hotload:` build key; Flogas tests it in game.
-
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

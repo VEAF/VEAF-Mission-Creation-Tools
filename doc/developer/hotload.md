@@ -14,7 +14,6 @@ Cette page explique comment le charger dans une mission construite avec VMCT, **
 
 > ⚠️ **Recette pas encore testée en jeu.**
 > Le script de démarrage a été vérifié avec l'interpréteur Lua de DCS (`luae.exe`) contre des `lfs` et `env` simulés, dans les cinq cas décrits [plus bas](#what-was-checked) ; il n'a pas encore tourné dans une vraie mission.
-> Flogas le teste ; cette page sera corrigée selon ce qu'il trouve.
 
 ## Le principe {#principle}
 

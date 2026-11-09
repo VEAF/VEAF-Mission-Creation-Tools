@@ -14,7 +14,6 @@ This page explains how to load it in a mission built with VMCT, **without changi
 
 > ⚠️ **Recipe not tested in game yet.**
 > The boot script was checked with DCS's own Lua interpreter (`luae.exe`) against a mocked `lfs` and `env`, in the five cases listed [below](#what-was-checked); it has not run in a real mission yet.
-> Flogas is testing it; this page will be corrected from what he finds.
 
 ## The principle {#principle}
 

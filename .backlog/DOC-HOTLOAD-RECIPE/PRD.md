@@ -1,6 +1,6 @@
 # DOC-HOTLOAD-RECIPE — load dcs-hotload in a VMCT-built mission
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Origin: David's study of [MacFlorent/dcs-hotload](https://github.com/MacFlorent/dcs-hotload), 2026-11-09, and the choice of its author, Flogas, the same day.
 
@@ -21,14 +21,14 @@ Option B, a `hotload:` key in `mission.yaml` injected by the build in `--dev-mod
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Developer page: the hotload recipe](tickets/01-hotload-recipe-page.md) | 🔄 |
+| 01 | [Developer page: the hotload recipe](tickets/01-hotload-recipe-page.md) | ✅ |
 
 ## Out of scope
 
 - Any build code: no `hotload:` key, no vendored copy of dcs-hotload.
 - Reloading VEAF modules with hotload: its own README forbids reloading code that owns live objects.
 
-## Left after merge
+## Closing
 
-The recipe is checked on paper and against a mocked `lfs`/`env` under DCS's own `luae.exe`, not in game.
-Flogas tests it in game; the lot waits for his result.
+The recipe is checked against a mocked `lfs`/`env` under DCS's own `luae.exe`, not in game.
+David closed the lot without an in-game test (2026-11-09); merged in #1257.

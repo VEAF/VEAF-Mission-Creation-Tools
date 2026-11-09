@@ -666,6 +666,8 @@ A declared script is included in the `.miz` **without** triggering a warning. By
 
 **Load order**: mission scripts always load as `veaf-config.lua` → `mission-script.lua` → your `custom_scripts` (in declaration order). So a custom script can rely on the VEAF config and on `mission-script.lua` already being loaded.
 
+> Example: [loading dcs-hotload](developer/hotload.en.md) with a custom script, to run Lua in the running mission.
+
 ```yaml
 custom_scripts:
   generate_load_trigger: true       # global default for all scripts below

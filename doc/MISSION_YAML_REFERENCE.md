@@ -669,6 +669,8 @@ Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warnin
 
 **Ordre de chargement** : les scripts de mission se chargent toujours dans l'ordre `veaf-config.lua` → `mission-script.lua` → vos `custom_scripts` (dans l'ordre de déclaration). Un script custom peut donc compter sur la config VEAF et sur `mission-script.lua` déjà chargés.
 
+> Exemple : [charger dcs-hotload](developer/hotload.md) avec un script custom, pour exécuter du Lua dans la mission qui tourne.
+
 ```yaml
 custom_scripts:
   generate_load_trigger: true       # défaut global pour tous les scripts ci-dessous

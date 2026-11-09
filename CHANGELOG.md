@@ -23,6 +23,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The GitHub release carries `sbom.cyclonedx.json` again: it was attached on the tag, then lost when `veaf-build publish --force` recreated the release (6.35.0 and 6.36.0 shipped without it); the release job now uploads it after that step.
 - **A built mission is written like the Mission Editor writes it** (FEAT-DCS-EDITOR-LUA-LAYOUT): the `mission`, `options`, `warehouses`, `dictionary` and `mapResource` files of a `.miz` and of a mission folder read `["coalition"] = ` then `{`, indented with tabs and closed by `-- end of ["coalition"]`, instead of `coalition = {` with two spaces. DCS read both; tools outside VEAF that read a mission's text now read VEAF's too. The keys keep VEAF's order; a mission folder's files change only when an MCP action edits the folder, as before. The migration guide shows how to add your own steps after the build, with a `build.ps1` and a build profile, since v6 has no `build.cmd` to edit.
 
+### Documentation
+
+- **Run Lua in a live VEAF mission with dcs-hotload** (DOC-HOTLOAD-RECIPE): a developer page (`doc/developer/hotload.md`) shows how to load [dcs-hotload](https://github.com/MacFlorent/dcs-hotload) in a mission built with VMCT, with no change to VMCT. A boot script declared in `custom_scripts` loads it from `Saved Games\DCS\Scripts\dcs-hotload\` when it is installed and `io`/`lfs` are unlocked, and does nothing otherwise, so the same `.miz` goes to a server. The page gives a per-mission variant, warns that the `io`/`lfs` unlock applies to the whole DCS install, and states that hotload takes one of the ten F10 root entries and is not for reloading VEAF modules. Checked under DCS's `luae.exe` against mocks, not yet in game.
+
 ## [6.36.0] — 2026-11-05
 
 ### Documentation

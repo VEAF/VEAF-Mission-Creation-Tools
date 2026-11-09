@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [DOC-HOTLOAD-RECIPE](DOC-HOTLOAD-RECIPE/PRD.md) · ✅
+
+A developer page on loading dcs-hotload (MacFlorent/dcs-hotload) in a VMCT-built mission with no VMCT code: a boot script declared in `custom_scripts` loads it from `Saved Games\DCS\Scripts\dcs-hotload\` when it is there and does nothing otherwise, with a per-mission variant and the reservations (install-wide `io`/`lfs` unlock, one F10 root entry, VEAF modules are not reloaded). Chosen by David and Flogas on 2026-11-09 over a `hotload:` build key; merged in #1257, closed without an in-game test.
+
 ### [FEAT-DCS-EDITOR-LUA-LAYOUT](FEAT-DCS-EDITOR-LUA-LAYOUT/PRD.md) · ✅
 
 Two points Flogas raised (2026-11-09): a built mission's `mission` file is written in the Mission Editor's layout (`["coalition"] = `, tabs, `-- end of`), so tools that read a mission's text read VEAF's too; and the migration guide shows how to add your own steps after the build with a `build.ps1` and a build profile, since v6 has no `build.cmd` to edit. One PR (#1251).

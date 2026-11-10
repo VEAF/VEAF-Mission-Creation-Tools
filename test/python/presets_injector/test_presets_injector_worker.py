@@ -475,6 +475,59 @@ class TestProcessGroups(unittest.TestCase):
         worker.process_groups(silent=True)  # must not raise
 
 
+class TestRadioCapacityInBuild(unittest.TestCase):
+    """FIX-RADIO-PRESET-CAPACITY: an OH-58D unit and a dynamic-slot template both get at most 21 FM presets."""
+
+    @staticmethod
+    def _kiowa(name: str) -> Group:
+        return Group(
+            group_dcs={"name": name, "units": [{"type": "OH58D", "skill": "Client"}]},
+            aircraft_type="helicopter",
+            country="USA",
+            coalition="blue",
+            human_pilot=True,
+            name=name,
+            unit_type="OH58D",
+        )
+
+    @staticmethod
+    def _list(radio_type: str, freqs: list[float]) -> RadioDefinition:
+        radio = RadioDefinition(name=radio_type, radio_type=radio_type)
+        for index, freq in enumerate(freqs, start=1):
+            radio.add_channel(Channel(index, freq=freq))
+        return radio
+
+    def test_a_30_entry_fm_list_is_cut_to_21_and_warned_once_per_radio(self) -> None:
+        worker = _make_worker()
+        primary_1 = [225.0 + i for i in range(20)]
+        fm_supplement = [30.0 + i for i in range(30)]
+        worker.presets_manager.channel_lists = {
+            "blue": {
+                "primary_1": self._list("uhf", primary_1),
+                "primary_2": self._list("vhf", [118.0 + i for i in range(20)]),
+                "fm_supplement": self._list("fm", fm_supplement),
+            }
+        }
+        unit = self._kiowa("Kiowa 1")
+        template = self._kiowa("OH-58 Template #01")
+        worker.groups = {"Kiowa 1": unit, "OH-58 Template #01": template}
+        with patch("presets_injector.presets_manager.logger") as mock_logger:
+            worker.process_groups(silent=True)
+
+        for group in (unit, template):
+            radio = group.group_dcs["units"][0]["Radio"]
+            for index in (3, 4):
+                channels = radio[index]["channels"]
+                self.assertEqual(sorted(channels), list(range(1, 22)))
+                self.assertEqual(channels[1], fm_supplement[0])  # C
+                self.assertEqual(channels[2], fm_supplement[19])  # M
+                self.assertEqual(channels[21], fm_supplement[18])  # preset 19
+            # the UHF radio, 20 entries for 20 slots, is untouched
+            self.assertEqual(radio[1]["channels"], {1: primary_1[19], **{s: primary_1[s - 2] for s in range(2, 21)}})
+        truncations = [c for c in mock_logger.warning.call_args_list if "OH58D" in c.args[0] and "21" in c.args[0]]
+        self.assertEqual(len(truncations), 2)  # radios 3 and 4, once each for the two groups
+
+
 class TestGenerateValidationReport(unittest.TestCase):
     """Tests for collect_freq_issues() and generate_validation_report()."""
 

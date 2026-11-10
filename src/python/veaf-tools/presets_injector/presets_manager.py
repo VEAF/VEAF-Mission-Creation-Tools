@@ -1505,22 +1505,29 @@ def _pack_keyed_groups(
 
 
 def _truncate_to_capacity(
-    channels: list[Channel], capacity: int | None, unit_type: str, radio_index: int
+    channels: list[Channel],
+    capacity: int | None,
+    unit_type: str,
+    radio_index: int,
+    capacity_warned: set[tuple[str, int, int]] | None = None,
 ) -> list[Channel]:
     """Slot capacity primitive (ADR 0010): drop excess channels from the END of the list.
 
     Applied as the LAST composition step, after every other primitive, since
     capacity is a property of the radio's total final slot count (e.g. the
-    AJS-37's fused+dummy+specials radio is exactly 47 slots). Truncation is
-    silent by design (exploration doc §8.4: verbose under `validate`, quiet
-    under a normal `build`) — only a debug-level log line records it, no
-    warning-level noise.
+    OH-58D's FM radios hold 21: C, M and presets 1..19). A truncation logs a
+    **warning** (FIX-RADIO-PRESET-CAPACITY, amending ADR 0010, which made it a
+    debug line): a dropped preset is one a pilot will look for, and too many
+    presets on the OH-58D's FM radios crash the DCS client at spawn.
 
     Args:
         channels: The radio's fully composed channels, already numbered.
         capacity: The radio's declared maximum slot count, or None (unbounded).
-        unit_type: DCS unit type string (for the debug log message).
-        radio_index: 1-based physical radio index (for the debug log message).
+        unit_type: DCS unit type string (for the warning).
+        radio_index: 1-based physical radio index (for the warning).
+        capacity_warned: (unit_type, radio_index, dropped count) already warned
+            about in this build, updated here; None warns every time. The build
+            packs once per group, so this keeps it to one warning per radio.
 
     Returns:
         *channels* unchanged if within capacity (or capacity is None), else the
@@ -1529,15 +1536,19 @@ def _truncate_to_capacity(
     if capacity is None or len(channels) <= capacity:
         return channels
     dropped = channels[capacity:]
-    logger.debug(
-        t(
-            "presets_injector.radio_layout.capacity_truncated",
-            unit_type=unit_type,
-            radio_index=radio_index,
-            capacity=capacity,
-            dropped_count=len(dropped),
+    key = (unit_type, radio_index, len(dropped))
+    if capacity_warned is None or key not in capacity_warned:
+        if capacity_warned is not None:
+            capacity_warned.add(key)
+        logger.warning(
+            t(
+                "presets_injector.radio_layout.capacity_truncated",
+                unit_type=unit_type,
+                radio_index=radio_index,
+                capacity=capacity,
+                dropped_count=len(dropped),
+            )
         )
-    )
     return [_clone_channel(channel, slot) for slot, channel in enumerate(channels[:capacity], start=1)]
 
 
@@ -1547,6 +1558,7 @@ def _content_for_radio(
     base_source: RadioDefinition | None,
     unit_type: str,
     radio_index: int,
+    capacity_warned: set[tuple[str, int, int]] | None = None,
 ) -> RadioDefinition | None:
     """Materialize one physical radio's final channel map, applying all declared primitives.
 
@@ -1569,9 +1581,11 @@ def _content_for_radio(
             (used to resolve ``keyed_groups`` and priority specials).
         base_source: The single role's channel list already resolved by the
             caller (used when ``keyed_groups`` is not declared; None when it is).
-        unit_type: DCS unit type string (for the capacity truncation debug log).
+        unit_type: DCS unit type string (for the capacity truncation warning).
         radio_index: 1-based physical radio index (for the capacity truncation
-            debug log).
+            warning).
+        capacity_warned: Truncations already warned about in this build (see
+            :func:`_truncate_to_capacity`).
 
     Returns:
         The radio's final RadioDefinition, or None if it has no content at all.
@@ -1598,7 +1612,7 @@ def _content_for_radio(
     if layout_radio is not None and layout_radio.trailing_specials:
         channels = channels + _build_special_channels(layout_radio.trailing_specials, specials_base, role_lists)
     if layout_radio is not None:
-        channels = _truncate_to_capacity(channels, layout_radio.capacity, unit_type, radio_index)
+        channels = _truncate_to_capacity(channels, layout_radio.capacity, unit_type, radio_index, capacity_warned)
 
     result = RadioDefinition(name=content.name, radio_type=content.radio_type, title=content.title)
     for channel in channels:
@@ -1702,6 +1716,7 @@ def _resolve_one_radio(
     role_lists: dict[str, RadioDefinition],
     unit_type: str,
     radio_index: int,
+    capacity_warned: set[tuple[str, int, int]] | None = None,
 ) -> RadioDefinition | None:
     """Resolve one physical radio's final content, or None if it has nothing to carry.
 
@@ -1714,19 +1729,24 @@ def _resolve_one_radio(
         role: This radio's assigned Radio role, or None.
         layout_radio: This radio's Radio layout entry, or None.
         role_lists: This coalition's parsed Channel lists, role -> RadioDefinition.
-        unit_type: DCS unit type string (for the capacity truncation debug log).
+        unit_type: DCS unit type string (for the capacity truncation warning).
         radio_index: 1-based physical radio index (for the capacity truncation
-            debug log).
+            warning).
+        capacity_warned: Truncations already warned about in this build (see
+            :func:`_truncate_to_capacity`).
     """
     base_source = _channel_list_for_role(role_lists, role) if role else None
     has_keyed_groups = bool(layout_radio and layout_radio.keyed_groups)
     if not has_keyed_groups and (base_source is None or not base_source.channels):
         return None
-    return _content_for_radio(layout_radio, role_lists, base_source, unit_type, radio_index)
+    return _content_for_radio(layout_radio, role_lists, base_source, unit_type, radio_index, capacity_warned)
 
 
 def _resolved_slots_for_type(
-    channel_lists: dict[str, dict[str, RadioDefinition]], coalition: str, unit_type: str
+    channel_lists: dict[str, dict[str, RadioDefinition]],
+    coalition: str,
+    unit_type: str,
+    capacity_warned: set[tuple[str, int, int]] | None = None,
 ) -> list[tuple[int, RadioDefinition]] | None:
     """Resolve which physical radio index gets which final channel map (ADR 0010).
 
@@ -1735,6 +1755,13 @@ def _resolved_slots_for_type(
     lookup and primitive application (:func:`_content_for_radio`), and the "gap
     before the last usable radio" safety check — separately from
     :func:`pack_preset_for_type`'s materialization into a `PresetDefinition`.
+
+    Args:
+        channel_lists: Parsed Channel lists, coalition -> role -> RadioDefinition.
+        coalition: "blue" or "red".
+        unit_type: DCS unit type string.
+        capacity_warned: Truncations already warned about in this build (see
+            :func:`_truncate_to_capacity`).
 
     Returns:
         Ordered (physical_index, content) pairs (0-based physical_index), or
@@ -1762,7 +1789,14 @@ def _resolved_slots_for_type(
         return None
 
     resolved: list[RadioDefinition | None] = [
-        _resolve_one_radio(role_by_index.get(index), layout_radio_by_index.get(index), role_lists, unit_type, index + 1)
+        _resolve_one_radio(
+            role_by_index.get(index),
+            layout_radio_by_index.get(index),
+            role_lists,
+            unit_type,
+            index + 1,
+            capacity_warned,
+        )
         for index in range(len(radios))
     ]
 
@@ -1776,7 +1810,10 @@ def _resolved_slots_for_type(
 
 
 def pack_preset_for_type(
-    channel_lists: dict[str, dict[str, RadioDefinition]], coalition: str, unit_type: str
+    channel_lists: dict[str, dict[str, RadioDefinition]],
+    coalition: str,
+    unit_type: str,
+    capacity_warned: set[tuple[str, int, int]] | None = None,
 ) -> "PresetDefinition | None":
     """Project a mission-maker's Channel lists onto one aircraft type's physical radios.
 
@@ -1807,12 +1844,15 @@ def pack_preset_for_type(
             (from :func:`parse_channel_lists`).
         coalition: "blue" or "red".
         unit_type: DCS unit type string.
+        capacity_warned: Truncations already warned about in this build, so a
+            type packed once per group warns once per radio (see
+            :func:`_truncate_to_capacity`); None warns on every call.
 
     Returns:
         A :class:`PresetDefinition` with one radio per resolvable physical slot,
         or None if the aircraft is unknown or no role list has any content for it.
     """
-    slots = _resolved_slots_for_type(channel_lists, coalition, unit_type)
+    slots = _resolved_slots_for_type(channel_lists, coalition, unit_type, capacity_warned)
     if not slots:
         return None
 
@@ -1842,6 +1882,8 @@ class PresetsManager:
         # block, and channels dropped because they lacked a role's band (reporting hook).
         self.channel_lists: dict[str, dict[str, RadioDefinition]] = {}
         self.channel_lists_dropped: dict[str, dict[str, list[DroppedChannel]]] = {}
+        # capacity truncations this manager (i.e. this build) already warned about (FIX-RADIO-PRESET-CAPACITY)
+        self._capacity_warned: set[tuple[str, int, int]] = set()
 
     def dropped_channel_warnings(self) -> list[str]:
         """Return one warning per channel a list cannot carry, for the build, the report and ``validate``.
@@ -1971,7 +2013,7 @@ class PresetsManager:
         )
         if preset_assignment is not None:
             return preset_assignment.preset_definition
-        return pack_preset_for_type(self.channel_lists, coalition, unit_type)
+        return pack_preset_for_type(self.channel_lists, coalition, unit_type, self._capacity_warned)
 
     def generate_type_images(self, injected: dict[tuple[str, str], "PresetDefinition"]) -> None:
         """Render per-type kneeboard pages for the injected presets, plus the shared calibration page.

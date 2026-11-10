@@ -1937,3 +1937,35 @@ limitations:
   workaround: |
     Brief them as a trusted member's commands, as the Open Training kneeboard does; a mission that must
     keep its tankers where they are leaves the aliases out of its briefing.
+
+- id: oh58d-crashes-with-too-many-fm-presets
+  kind: dcs
+  area: radio
+  title: "An OH-58D whose FM radios carry 32 presets crashes the DCS client at spawn"
+  measured: "2026-11-10"
+  symptom: |
+    The Kiowa's two FM sets (radios 3 and 4) hold 21 presets: `C`, `M`, then 1 to 19, the channel count of
+    their `panelRadio` table in `CoreMods/aircraft/OH-58D/OH58D.lua`. A mission that writes more still loads in
+    the Mission Editor, and the client crashes at spawn, in multiplayer, during the cockpit initialisation: the
+    log stops after the LMFD Lua state, with no crash report.
+
+    Measured on the Open Trainings, 2026-11-10: Caucasus, Syria, GermanyCW and Marianas wrote 32 FM presets
+    (a 30-entry `fm_supplement`) and crashed; Sinai and PersianGulf wrote 21 and worked. Where between 21 and
+    32 the crash starts is not measured.
+  workaround: |
+    Keep the FM lists at 20 entries or fewer. From 6.37.0 the build stops at the radio's capacity by itself and
+    says so (see `radio-presets-beyond-capacity`).
+  cost: |
+    Four Open Trainings unflyable in the Kiowa, 2026-11-10.
+
+- id: radio-presets-beyond-capacity
+  kind: tool
+  area: radio
+  title: "The build wrote more presets than a radio holds, without a word"
+  symptom: |
+    A channel list longer than a radio went through whole: a 30-entry `fm_supplement` gave the OH-58D 32 FM
+    presets for 21 slots, which crashes the client (`oh58d-crashes-with-too-many-fm-presets`). The layouts
+    declared no radio capacity, and the truncation primitive was silent by design.
+  workaround: |
+    Keep the lists within the radio's channel count (the `panelRadio` table of the module's Lua file).
+  fixed_in: "6.37.0"

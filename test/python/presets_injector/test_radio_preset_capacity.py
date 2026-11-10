@@ -20,6 +20,7 @@ from presets_injector.presets_manager import (
     pack_preset_for_type,
     parse_radio_layouts,
 )
+from veaf_libs.i18n import t
 
 
 def _radio_list(freqs: list[float]) -> RadioDefinition:
@@ -118,9 +119,11 @@ class TestCapacityTruncation(unittest.TestCase):
     @patch("presets_injector.presets_manager.logger")
     @patch("presets_injector.presets_manager.get_radio_layout")
     @patch("presets_injector.presets_manager.get_radios")
-    def test_truncation_logs_at_debug_level_matching_ticket_05_convention(
+    def test_truncation_warns_naming_the_type_the_radio_the_capacity_and_the_dropped_count(
         self, mock_get_radios, mock_get_layout, mock_logger
     ):
+        # FIX-RADIO-PRESET-CAPACITY (amends ADR 0010): a dropped preset is one a pilot will look for, so the
+        # build says it — no longer a debug line.
         from presets_injector.radio_frequency_validator import FrequencyRange, RadioSpec
 
         mock_get_radios.return_value = [
@@ -129,9 +132,33 @@ class TestCapacityTruncation(unittest.TestCase):
         mock_get_layout.return_value = RadioLayoutEntry(radios={1: RadioLayoutRadio(role="primary_1", capacity=3)})
         channel_lists = _channel_lists(primary_1=[float(i) for i in range(1, 6)])  # 5 entries, capacity 3
         pack_preset_for_type(channel_lists, "blue", "SomeType")
-        mock_logger.debug.assert_called_once()
-        # No warning-level noise during a normal build (exploration doc §8.4).
-        mock_logger.warning.assert_not_called()
+        mock_logger.warning.assert_called_once_with(
+            t(
+                "presets_injector.radio_layout.capacity_truncated",
+                unit_type="SomeType",
+                radio_index=1,
+                capacity=3,
+                dropped_count=2,
+            )
+        )
+
+    @patch("presets_injector.presets_manager.logger")
+    @patch("presets_injector.presets_manager.get_radio_layout")
+    @patch("presets_injector.presets_manager.get_radios")
+    def test_a_shared_warned_set_warns_once_per_radio_not_once_per_unit(
+        self, mock_get_radios, mock_get_layout, mock_logger
+    ):
+        from presets_injector.radio_frequency_validator import FrequencyRange, RadioSpec
+
+        mock_get_radios.return_value = [
+            RadioSpec(name="r1", ranges=[FrequencyRange(min_mhz=225.0, max_mhz=400.0, modulation="AM/FM")])
+        ]
+        mock_get_layout.return_value = RadioLayoutEntry(radios={1: RadioLayoutRadio(role="primary_1", capacity=3)})
+        channel_lists = _channel_lists(primary_1=[float(i) for i in range(1, 6)])
+        warned: set[tuple[str, int, int]] = set()
+        for _ in range(3):  # three units of the same type in one build
+            pack_preset_for_type(channel_lists, "blue", "SomeType", capacity_warned=warned)
+        mock_logger.warning.assert_called_once()
 
     @patch("presets_injector.presets_manager.logger")
     @patch("presets_injector.presets_manager.get_radio_layout")
@@ -145,7 +172,7 @@ class TestCapacityTruncation(unittest.TestCase):
         mock_get_layout.return_value = RadioLayoutEntry(radios={1: RadioLayoutRadio(role="primary_1", capacity=20)})
         channel_lists = _channel_lists(primary_1=[float(i) for i in range(1, 6)])
         pack_preset_for_type(channel_lists, "blue", "SomeType")
-        mock_logger.debug.assert_not_called()
+        mock_logger.warning.assert_not_called()
 
     @patch("presets_injector.presets_manager.get_radio_layout")
     @patch("presets_injector.presets_manager.get_radios")

@@ -80,9 +80,12 @@
 #         channel count (after every other primitive above has run) exceeds
 #         `capacity`, the excess is truncated from the END of the list (e.g.
 #         Tripack itself truncated the AJS-37's VHF list to fit its 47-slot
-#         radio). Truncation is silent by design: a debug-level log line
-#         records it, no build-time warning noise (exploration doc §8.4:
-#         `validate` is the verbose path for this). Omit when the radio's
+#         radio). A truncation logs a WARNING at build, once per radio
+#         (FIX-RADIO-PRESET-CAPACITY, amending ADR 0010): a dropped preset is
+#         one a pilot will look for, and too many presets on the OH-58D's FM
+#         radios crash the DCS client at spawn. Declare it only from the
+#         module's own `panelRadio` channel count (CoreMods/aircraft/<type>/*.lua)
+#         or a measurement, and say which in a comment. Omit when the radio's
 #         capacity is not a practical concern (e.g. AJS-37: 47 slots exactly
 #         filled by design, never exceeded — no entry needed).
 #
@@ -120,9 +123,11 @@ Mi-24P:
     1:
       role: primary_1
       rotate_last_to_head: true
+      capacity: 20 # panelRadio[1] of CoreMods/aircraft/Mi-24P/Mi-24P.lua: channels 0..19
     # radio 2: R-828, plain FM radio, no rotation.
     2:
       role: fm_substitute
+      capacity: 10 # panelRadio[2]: 10 channels
 
 AJS37:
   radios:
@@ -163,12 +168,14 @@ CH-47Fbl1:
     1:
       role: fm_substitute
       rotate_last_to_head: true
+      capacity: 20 # panelRadio[1] of CoreMods/aircraft/CH-47F/CH-47F.lua: 20 channels
     # radio 2: "UHF AM: ARC-164", 225-400 MHz, unambiguously UHF. Also rotates
     # (Tripack fixture's radio 2 = RADIO1_20 at slot 1, same channel-0 pattern
     # as radio 1 and as the Mi-24P).
     2:
       role: primary_1
       rotate_last_to_head: true
+      capacity: 20 # panelRadio[2]: 20 channels
     # radio 3: "VHF FM: ARC-201D", a clean second 30-88 MHz FM set. Declared so
     # the radio-count guard matches the specs' real 3-radio count; gets no
     # content unless the maker declares a distinct fm_secondary list (defaults
@@ -177,6 +184,7 @@ CH-47Fbl1:
     # preset's 2-radio-only FM+UHF layout).
     3:
       role: fm_secondary
+      capacity: 10 # panelRadio[3]: 10 channels
 
 OH58D:
   radios:
@@ -186,17 +194,22 @@ OH58D:
       role: primary_1
       reserved_head_slots: [20]
       head_labels: [M]
+      capacity: 20 # panelRadio[1] of CoreMods/aircraft/OH-58D/OH58D.lua: M + 1..19
     # radio 2: VHF AM. Same "M" pattern as radio 1.
     2:
       role: primary_2
       reserved_head_slots: [20]
       head_labels: [M]
+      capacity: 20 # panelRadio[2]: M + 1..19
     # radio 3: VHF FM1. Reserved "C" head slot fed by entry #01, then "M" fed
     # by entry #20; slots [3..21] hold entries #1..#19.
     3:
       role: fm_supplement
       reserved_head_slots: [1, 20]
       head_labels: [C, M]
+      # panelRadio[3]: C + M + 1..19. More crashes the DCS client at spawn in
+      # multiplayer: 32 FM presets did on four Open Trainings, 21 works (2026-11-10).
+      capacity: 21
     # radio 4: VHF FM2. Same "C"+"M" pattern as radio 3; content defaults to
     # fm_supplement's list when the maker does not declare fm_secondary
     # (see _channel_list_for_role in presets_manager.py).
@@ -204,3 +217,4 @@ OH58D:
       role: fm_secondary
       reserved_head_slots: [1, 20]
       head_labels: [C, M]
+      capacity: 21 # panelRadio[4], same as radio 3

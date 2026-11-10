@@ -166,6 +166,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafOpposition.lua` | Niveau d'opposition : compté sur les joueurs connectés ou en vol, hystérésis (hausse immédiate, baisse après un délai), marqueur `_opposition` et son niveau de sécurité |
 | `test_veafShortcuts.lua` | Enregistrement et résolution des raccourcis |
 | `test_veafShortcuts_bypass.lua` | Ce qu'un joueur peut taper après un raccourci qui contourne la sécurité |
+| `test_veafShortcuts_handlerLevel.lua` | Un raccourci s'exécute au palier de la commande qu'il lance, ou à celui qu'il déclare |
 | `test_veafWeather.lua` | Parsing météo, calculs QNH/vent |
 | `test_dcsDataExport.lua` | Utilitaires d'export de données unités |
 | `test_veafCombatMission.lua` | Cycle de vie d'une mission de combat |

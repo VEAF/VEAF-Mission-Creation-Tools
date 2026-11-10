@@ -331,6 +331,8 @@ de votre palier ou en dessous.
 Les commandes ouvertes : infos sur les ressources, fumée, fusées éclairantes, marquage d'un point.
 D'autres, comme faire apparaître un groupe ou détruire une unité, demandent un palier plus élevé.
 
+Un alias demande le palier de la commande qu'il lance : `-send` demande un membre de confiance comme `_radio`, à une exception près — déplacer un ravitailleur ou un AFAC par alias (`-tankerlow`, `-tankerhere`, `-afachere`…) est ouvert aux pilotes VEAF ([le palier d'un alias](../mission-maker/scripts/veafShortcuts.md#alias-level)).
+
 Si vous n'êtes pas sur la liste, ajoutez le mot de passe du palier voulu à chaque commande protégée
 (mot-clé `password`, par exemple `_spawn group, name ..., password [MOT_DE_PASSE]`) : il est vérifié
 commande par commande. Il n'y a ni session ni durée — rien à ouvrir, rien qui expire. Le mot de passe

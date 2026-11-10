@@ -166,6 +166,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafOpposition.lua` | Opposition level: counted from the players connected or airborne, hysteresis (an immediate rise, a delayed drop), the `_opposition` marker and its security level |
 | `test_veafShortcuts.lua` | Shortcut registration and resolution |
 | `test_veafShortcuts_bypass.lua` | What a player may type after a security-bypassing shortcut |
+| `test_veafShortcuts_handlerLevel.lua` | A shortcut runs at the level of the command it launches, or at the one it declares |
 | `test_veafWeather.lua` | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | Unit data export utilities |
 | `test_veafCombatMission.lua` | Base combat mission lifecycle |

@@ -2235,7 +2235,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "accents. When mission.yaml declares an operation, its tasks are the main objectives, the other "
                 "objectives secondary, and a chained zone (a counter-attack) is in neither list. With flights, the "
                 "frequency plan and the kneeboard flight card are those of the aircraft the flights fly, one block "
-                "per radio plan. map_offline = no tiles could be downloaded."
+                "per radio plan. map_offline = no tiles could be downloaded. KNEEBOARD ONLY (kneeboard_only): the "
+                "kneeboard and nothing else, for an Open Training; sheets of free text (title + paragraphs) come first "
+                "in the kneeboard, in either mode."
             ),
             parameters_schema={
                 "type": "object",
@@ -2333,6 +2335,33 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "kneeboard": {
                         "type": "boolean",
                         "description": "Write the kneeboard pages too (default true).",
+                    },
+                    "kneeboard_only": {
+                        "type": "boolean",
+                        "description": (
+                            "Write ONLY the kneeboard (default false): no deck, no PDF, no DCS briefing picture, the "
+                            "mission's own pictures left as they are; deck and pdf come back null. Each objective's "
+                            "task heads its block of the target list. For an OPEN TRAINING, whose README is the full "
+                            "briefing and whose pictures are its own."
+                        ),
+                    },
+                    "sheets": {
+                        "type": "array",
+                        "description": (
+                            "Kneeboard sheets of FREE TEXT, first in the kneeboard in this order (an Open Training's "
+                            "mission, conduct and commands); a long one runs on over several pages. Not in the deck."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "title": {"type": "string", "description": "The sheet's title, on each of its pages."},
+                                "paragraphs": {
+                                    **_prose,
+                                    "description": "One string (paragraphs split on blank lines) or a list of lines.",
+                                },
+                            },
+                            "required": ["title"],
+                        },
                     },
                     "support": {
                         "type": "array",

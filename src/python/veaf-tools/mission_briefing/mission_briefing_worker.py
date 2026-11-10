@@ -1010,8 +1010,12 @@ def _write_pictures(
     side: str,
     kneeboard: dict[str, bytes],
     replace_others: bool = False,
+    pictures_too: bool = True,
 ) -> tuple[list[str], list[str], list[str]]:
     """Put the maps and the kneeboard pages in the mission folder and every built `.miz`, backed up first.
+
+    Without ``pictures_too`` only the kneeboard is written: the mission's briefing pictures, this tool's
+    from an earlier run included, are left as they are (FEAT-OPEN-TRAINING-KNEEBOARD 01).
 
     Returns:
         The resource keys, in display order, the other side's pictures found, and the kneeboard pages that
@@ -1020,24 +1024,29 @@ def _write_pictures(
     files = {f"briefing-{path.stem}.jpg": _jpeg(path) for path in maps}
     pictures = {f"{PICTURE_PREFIX}{path.stem}": f"briefing-{path.stem}.jpg" for path in maps}
 
-    mission = load_folder_mission(folder)
-    previous = {str(v) for k, v in (mission.map_resource_content or {}).items() if str(k).startswith(PICTURE_PREFIX)}
-    other = _list_pictures(mission, pictures, side)
-    l10n = _folder_l10n(folder)
-    l10n.mkdir(parents=True, exist_ok=True)
-    for stale in _stale_pictures(l10n, previous, set(files)):
-        stale.unlink(missing_ok=True)
-    for name, data in files.items():
-        (l10n / name).write_bytes(data)
-    save_folder_mission(mission, folder)
+    other: list[str] = []
+    if pictures_too:
+        mission = load_folder_mission(folder)
+        previous = {
+            str(v) for k, v in (mission.map_resource_content or {}).items() if str(k).startswith(PICTURE_PREFIX)
+        }
+        other = _list_pictures(mission, pictures, side)
+        l10n = _folder_l10n(folder)
+        l10n.mkdir(parents=True, exist_ok=True)
+        for stale in _stale_pictures(l10n, previous, set(files)):
+            stale.unlink(missing_ok=True)
+        for name, data in files.items():
+            (l10n / name).write_bytes(data)
+        save_folder_mission(mission, folder)
     moved = _write_kneeboard_folder(folder, kneeboard, replace_others)
 
     for miz in archives:
         built = read_miz(miz)
-        _list_pictures(built, pictures, side)
+        if pictures_too:
+            _list_pictures(built, pictures, side)
         additional: dict[str, Any] = {f"{DEFAULT_SCRIPTS_LOCATION}/{name}": data for name, data in files.items()}
         additional.update({f"{KNEEBOARD_FOLDER}/{name}": data for name, data in kneeboard.items()})
-        if f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
+        if pictures_too and f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
             # `write_miz` rewrites a `mapResource` member the archive has; one it lacks has to be supplied
             additional[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = serialize_member(
                 built.map_resource_content or {}, "mapResource"
@@ -1057,7 +1066,7 @@ def _write_pictures(
                     moved.append(name)
         backup_before_write(miz)
         write_miz(built, miz, additional_files=additional, removed_files=stale_pages)
-    return list(pictures), other, moved
+    return list(pictures) if pictures_too else [], other, moved
 
 
 def _inset(overview: TacticalMapReport, area: ObjectiveArea) -> Inset | None:
@@ -1078,13 +1087,19 @@ def _kneeboard_pages(
     content: BriefingContent,
     recon: dict[str, list[ReconPhoto]],
     ground: GroundPicture | None = None,
+    zone_tasks: bool = False,
 ) -> dict[str, bytes]:
     """The briefing for the knee: the maps drawn for the 2:3 page, the flight card, the targets.
 
     The maps are turned so that the attack axis, from the players' departure to the objectives, points
     up, as the maps of "Marteau du Golan" were by hand; a north arrow says where north is. The combat
     area follows the overview, each objective's recon photos its zoom, and the code words close the set
-    (FEAT-OBJECTIVE-MISSION-V2 02 to 04).
+    (FEAT-OBJECTIVE-MISSION-V2 02 to 04). The content's free text sheets come first
+    (FEAT-OPEN-TRAINING-KNEEBOARD 01).
+
+    Args:
+        zone_tasks: Each objective's task heads its block of the target list: how an Open Training's zone is
+            started from the F10 menu, which its zoom page does not say.
 
     Returns:
         Page file name -> JPEG, in the order the kneeboard shows them.
@@ -1108,7 +1123,12 @@ def _kneeboard_pages(
         ground=ground,
         **tiles,
     )
-    sheets: list[tuple[str, bytes]] = [("overview", map_page(t("campaign.mission_deck.title.tactical"), overview.path))]
+    sheets: list[tuple[str, bytes]] = [
+        (f"sheet-{n}" if part == 1 else f"sheet-{n}-{part}", page)
+        for n, sheet in enumerate(content.sheets, 1)
+        for part, page in enumerate(text_pages(sheet.title, [(None, list(sheet.paragraphs))]), 1)
+    ]
+    sheets.append(("overview", map_page(t("campaign.mission_deck.title.tactical"), overview.path)))
     if areas or threats:
         combat = render_overview_map(
             picture,
@@ -1151,6 +1171,11 @@ def _kneeboard_pages(
         [(_objective_title(objective, area), area) for objective, area in areas],
         picture.bullseye,
     )
+    if zone_tasks:
+        target_blocks = [
+            (heading, [*objective.task, *lines])
+            for (heading, lines), (objective, _) in zip(target_blocks, areas, strict=True)
+        ]
     targets = text_pages(t("mission_briefing.title.targets"), target_blocks) if target_blocks else []
     blocks = _code_word_blocks(content)
     codes = text_pages(t("mission_briefing.title.coordination"), blocks) if blocks else []
@@ -1170,6 +1195,7 @@ def build_mission_briefing(
     kneeboard: bool = True,
     recon_folder: Path | None = None,
     kneeboard_replace: bool = False,
+    kneeboard_only: bool = False,
 ) -> BriefingReport:
     """Write a one-shot mission's briefing deck and maps, and put the maps in its DCS briefing.
 
@@ -1185,19 +1211,28 @@ def build_mission_briefing(
             folder or absolute; the folder's `docs/recon/` when omitted, nothing when that does not exist.
         kneeboard_replace: Take the common kneeboard's pages this tool did not write out of the folder (kept
             in `.veaf-backups/`) and out of every built `.miz`: the tool's kneeboard replaces a hand-made one.
+        kneeboard_only: Write the kneeboard and nothing else: no deck, no PDF, no DCS briefing picture, the
+            mission's own left as they are; each objective's task heads its block of the target list. For an
+            Open Training, whose README is the full briefing (FEAT-OPEN-TRAINING-KNEEBOARD 01).
 
     Returns:
-        The deck, its page count, the maps, the pictures' keys, the `.miz` read, and the warnings.
+        The deck, its page count, the maps, the pictures' keys, the `.miz` read, and the warnings; no deck,
+        no PDF and no map with ``kneeboard_only``.
 
     Raises:
-        ValueError: If the mission is not built, or an objective names no trigger zone of the mission.
+        ValueError: If the mission is not built, an objective names no trigger zone of the mission, or
+            ``kneeboard_only`` is asked with no kneeboard.
     """
+    if kneeboard_only and not kneeboard:
+        raise ValueError("kneeboard_only writes the kneeboard and nothing else: it cannot go with kneeboard=False.")
     miz = find_built_mission(folder)
     if miz is None:
         raise ValueError(f"No built mission in {folder}: run build_mission first, the briefing reads the built .miz.")
     with language(_mission_language(folder)):
         recon = folder / (recon_folder if recon_folder is not None else RECON_FOLDER)
-        return _build(folder, miz, content, side, source, cache_dir, fetch, kneeboard, recon, kneeboard_replace)
+        return _build(
+            folder, miz, content, side, source, cache_dir, fetch, kneeboard, recon, kneeboard_replace, kneeboard_only
+        )
 
 
 def _slide_jpeg(png: Path, scratch: Path) -> Path:
@@ -1289,6 +1324,16 @@ def _write_deck_and_pdf(
     return len(deck.slides), write_pdf(pdf, cover, sheets)
 
 
+def _moved_warning(moved: list[str]) -> list[str]:
+    """The warning that ``kneeboard_replace`` took pages away, when it did."""
+    if not moved:
+        return []
+    return [
+        f"kneeboard_replace: {len(moved)} kneeboard page(s) not written by this tool taken out of the mission "
+        f"({', '.join(moved)}); the folder's copies are in {_KNEEBOARD_BACKUP}/."
+    ]
+
+
 def _build(
     folder: Path,
     miz: Path,
@@ -1300,6 +1345,7 @@ def _build(
     kneeboard: bool,
     recon_folder: Path,
     kneeboard_replace: bool = False,
+    kneeboard_only: bool = False,
 ) -> BriefingReport:
     built = read_miz(miz)
     table = built.mission_content or {}
@@ -1325,9 +1371,20 @@ def _build(
             threats.append((threat, position))
     starts = _with_slot_bases(departures(table, side, theatre, templates=dynamic), picture, content)
     ground = ground_picture(table, side, theatre)
+    recon, recon_warnings = load_recon(recon_folder, [area.zone for _, area in areas])
+    warnings += recon_warnings
 
     maps_folder = folder / MAPS_FOLDER
     tiles: dict[str, Any] = {"cache_dir": cache_dir, "fetch": fetch, "source": source, "side": side}
+    if kneeboard_only:
+        pages = _kneeboard_pages(
+            folder, picture, areas, threats, starts, tiles, content, recon, ground, zone_tasks=True
+        )
+        archives = built_archives(folder, miz)
+        _, _, moved = _write_pictures(folder, archives, [], side, pages, kneeboard_replace, pictures_too=False)
+        warnings += _moved_warning(moved)
+        photos = [photo.image for photos in recon.values() for photo in photos]
+        return BriefingReport(None, 0, [], [], miz, False, warnings, None, 0, archives, list(pages), photos)
     overview = render_overview_map(
         picture,
         areas,
@@ -1370,8 +1427,6 @@ def _build(
     )
     if combat is None:  # the promotion takes the combat-area map first: an earlier run's would be stale
         (maps_folder / COMBAT_AREA_FILE).unlink(missing_ok=True)
-    recon, recon_warnings = load_recon(recon_folder, [area.zone for _, area in areas])
-    warnings += recon_warnings
 
     strategic = _prose_page(t("mission_briefing.title.strategic"), content.strategic_situation)
     situation = _situation_page(content, picture, starts)
@@ -1438,11 +1493,7 @@ def _build(
     )
     archives = built_archives(folder, miz)
     keys, other, moved = _write_pictures(folder, archives, maps, side, pages, kneeboard_replace and kneeboard)
-    if moved:
-        warnings.append(
-            f"kneeboard_replace: {len(moved)} kneeboard page(s) not written by this tool taken out of the mission "
-            f"({', '.join(moved)}); the folder's copies are in {_KNEEBOARD_BACKUP}/."
-        )
+    warnings += _moved_warning(moved)
     if other:
         warnings.append(
             f"{_PICTURE_KEYS['red' if side == 'blue' else 'blue']} holds {len(other)} picture(s): a player of no "

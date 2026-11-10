@@ -1,6 +1,6 @@
 # 03 — Try on the Caucasus OT, doc, CHANGELOG
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

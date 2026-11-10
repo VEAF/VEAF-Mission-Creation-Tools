@@ -1745,6 +1745,8 @@
   "mission_briefing.elevation": "Altitude : {feet} ft ({metres} m)",
   "mission_briefing.step_from": "Depuis {origin} : {leg}",
   "mission_briefing.step_altitude": "Altitude : {altitude}",
+  "mission_briefing.title.zones": "Zones de combat",
+  "mission_briefing.zone_centre": "Centre",
   "mission_briefing.title.targets": "Coordonnées cibles",
   "mission_briefing.title.recon": "Reconnaissance — {zone}",
   "mission_briefing.title.combat_area": "Zone des combats",

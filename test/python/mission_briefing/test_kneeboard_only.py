@@ -8,13 +8,11 @@ from __future__ import annotations
 
 import io
 import zipfile
-from datetime import date
 from pathlib import Path
 from typing import Any
 
 import pytest
 from mission_briefing import mission_briefing_worker
-from mission_briefing.briefing_kneeboard import flight_card_tables
 from mission_briefing.mission_briefing_worker import DECK_FILE, PDF_FILE, build_mission_briefing
 from mission_briefing.models import BriefingContent, Objective, TextSheet
 from mission_tools.miz_tools import read_miz, write_miz
@@ -97,7 +95,7 @@ class TestKneeboardOnly:
             "03-briefing-sheet-3.jpg",
             "04-briefing-overview.jpg",
         ]
-        assert any(name.endswith("-briefing-targets.jpg") for name in report.kneeboard)
+        assert any(name.endswith("-briefing-zones.jpg") for name in report.kneeboard)
         with zipfile.ZipFile(miz) as archive:
             assert {f"KNEEBOARD/IMAGES/{name}" for name in report.kneeboard} <= set(archive.namelist())
         folder_pages = folder / "src" / "mission" / "KNEEBOARD" / "IMAGES"
@@ -118,7 +116,10 @@ class TestSheets:
             report = _build(tmp_path, BriefingContent(title="OT", sheets=(long,)), kneeboard_only=True)
         assert report.kneeboard[:2] == ["01-briefing-sheet-1.jpg", "02-briefing-sheet-1-2.jpg"]
 
-    def test_each_sheet_is_laid_out_under_its_title(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_each_line_of_a_sheet_stands_apart_under_its_title(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """One block per line: the commands sheet's lines ran together when laid out as one block (trial, 03)."""
         laid_out: list[tuple[str, list[Any]]] = []
         real = mission_briefing_worker.text_pages
 
@@ -130,30 +131,52 @@ class TestSheets:
         with offline(tmp_path):
             objective_mission(tmp_path)
             _build(tmp_path, kneeboard_only=True)
-        assert laid_out[:3] == [(sheet.title, [(None, list(sheet.paragraphs))]) for sheet in SHEETS]
+        assert laid_out[:3] == [(sheet.title, [(None, [line]) for line in sheet.paragraphs]) for sheet in SHEETS]
 
-    def test_in_kneeboard_only_the_zone_list_says_how_to_start_each_zone(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        """PRD D4: an objective's task is how to start the zone from the F10 menu; the zoom page has no text."""
-        laid_out: dict[str, list[Any]] = {}
-        real = mission_briefing_worker.text_pages
 
-        def spy(title: str, blocks: list[Any]) -> list[bytes]:
-            laid_out[title] = blocks
-            return real(title, blocks)
+class TestTheZones:
+    """What the Caucasus OT trial showed (03): a page per unit, a flight card, zone names, a turned map."""
 
-        monkeypatch.setattr(mission_briefing_worker, "text_pages", spy)
+    @staticmethod
+    def _spied(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, name: str) -> tuple[list[Any], Any]:
+        calls: list[Any] = []
+        real = getattr(mission_briefing_worker, name)
+
+        def spy(*args: Any, **kwargs: Any) -> Any:
+            calls.append((args, kwargs))
+            return real(*args, **kwargs)
+
+        monkeypatch.setattr(mission_briefing_worker, name, spy)
         with offline(tmp_path):
             objective_mission(tmp_path)
-            _build(tmp_path, kneeboard_only=True)
-        ((heading, lines),) = next(
-            blocks for title, blocks in laid_out.items() if title not in {"Mission", "Conduite", "Commandes"}
-        )
-        assert "Khobi - blindés - facile" in str(heading)
+            report = _build(tmp_path, kneeboard_only=True)
+        return calls, report
+
+    def test_the_zone_list_gives_each_zone_its_menu_path_and_its_centre(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """PRD D4: the task is how to start the zone from the F10 menu; one position per zone, not per unit."""
+        calls, report = self._spied(monkeypatch, tmp_path, "text_pages")
+        (blocks,) = [args[1] for args, _ in calls if args[0] == "Zones de combat"]
+        ((heading, lines),) = blocks
+        assert heading == "Khobi - blindés - facile"
         assert lines[0] == "F10 > Zones de combat > Khobi > Activer"
+        assert lines[1].startswith("Centre : ") and len(lines) == 4  # DDM, then MGRS, then bullseye
+        assert any(name.endswith("-briefing-zones.jpg") for name in report.kneeboard)
+        assert not any("targets" in name for name in report.kneeboard)
 
+    def test_no_flight_card_and_no_route_even_when_the_mission_has_one(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """The OT's dynamic-slot templates carry routes: a flight card nobody flies (page 32 of the trial)."""
+        calls, report = self._spied(monkeypatch, tmp_path, "render_overview_map")
+        assert not any("flight-card" in name for name in report.kneeboard)
+        assert all(not args[0].flight_plans for args, _ in calls)
 
-def test_no_flight_plan_no_flight_card() -> None:
-    """A mission with no flight plan (an OT's dynamic slots) gets no flight-card page: the card has no table."""
-    assert flight_card_tables("Caucasus", date(2016, 6, 1), [], []) == []
+    def test_the_maps_follow_no_attack_axis_and_name_the_zone_by_its_title(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Twenty-six zones all over the theatre have no attack axis; ``combatZone_…`` is no name for a pilot."""
+        calls, _ = self._spied(monkeypatch, tmp_path, "render_overview_map")
+        assert calls and all(kwargs.get("rotation") is None for _, kwargs in calls)
+        assert all(area.name == "Khobi - blindés - facile" for args, _ in calls for _, area in args[1])

@@ -1,6 +1,6 @@
 # 01 — Kneeboard only, and free text sheets
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

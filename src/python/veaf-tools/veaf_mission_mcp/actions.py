@@ -2340,9 +2340,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "boolean",
                         "description": (
                             "Write ONLY the kneeboard (default false): no deck, no PDF, no DCS briefing picture, the "
-                            "mission's own pictures left as they are; deck and pdf come back null. Each objective's "
-                            "task heads its block of the target list. For an OPEN TRAINING, whose README is the full "
-                            "briefing and whose pictures are its own."
+                            "mission's own pictures left as they are; deck and pdf come back null. For an OPEN TRAINING, "
+                            "whose README is the full briefing and whose pictures are its own: no flight card, zones "
+                            "named by their title, and a ZONE LIST (each objective's task, then its centre's "
+                            "coordinates) in place of the target list."
                         ),
                     },
                     "sheets": {

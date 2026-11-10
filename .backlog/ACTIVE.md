@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FEAT-OPEN-TRAINING-KNEEBOARD](FEAT-OPEN-TRAINING-KNEEBOARD/PRD.md) · 🔄
-
-An Open Training's briefing as kneeboard pages in the `.miz` — mission, conduct, commands (with their security tier), one sheet per combat zone — written by the OT prompt through `build_mission_briefing` in a new kneeboard-only mode. No deck or PDF: the OT's README stays the full briefing. Three tickets; framed with David (2026-11-10).
-
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

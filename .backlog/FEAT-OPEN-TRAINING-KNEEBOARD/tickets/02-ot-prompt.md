@@ -1,6 +1,6 @@
 # 02 — The OT prompt writes the kneeboard
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

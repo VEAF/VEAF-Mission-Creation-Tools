@@ -1,6 +1,6 @@
 # FEAT-OPEN-TRAINING-KNEEBOARD — An Open Training's briefing, as kneeboard pages in the mission
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 David, 2026-11-10: the briefing tool built for objective missions could give the Open Trainings an in-mission briefing — short, for the cockpit: what the mission is, the commands that matter, how to behave on the server, and one sheet per combat zone with its position and, when there are some, its recon photos.
 
@@ -57,12 +57,25 @@ Left out on purpose: other raw `_spawn`, `-login`/`-logout`, the Mission Master 
 - The zone list with coordinates over 26–27 zones: how many pages.
 - The flight card and the code words pages must be absent (no flight plan, no code word).
 
+## What the first result answered (Caucasus OT, 2026-11-10)
+
+Built on a copy of `VEAF-Open-Training-Mission-Caucasus-v6` (the 2026-11-05 build, 26 combat zones, no recon photo), with the prompt's call as written.
+The first run gave 51 pages; the fixes below brought it to **36**: three sheets, the overview, the combat area, 26 zone zooms, and a zone list of 5 pages; 21 s with the tiles cached, 6 min on a cold cache.
+
+- **Orientation**: the attack axis means nothing over 26 zones all over the map, so kneeboard-only drops it. North up was tried and turned down: the theatre, wide from east to west, filled a third of the 2:3 page and its labels piled up. Each map now takes the turn that frames it tightest, a north arrow on it.
+- **Zone list**: one line per unit took **19 pages**. In kneeboard-only it lists each zone once — its title, the F10 path that starts it, its centre in DDM, MGRS and bullseye — **5 pages**.
+- **Flight card and code words**: a flight card *was* there, built from the dynamic-slot templates' routes (tankers, FARPs). Kneeboard-only drops the flight plans, so no flight card and no route on the maps; no code-word page.
+- Also fixed: the maps and the pages named a zone `combatZone_Beslan — Bataille de Beslan`; they now use its title. A sheet's lines ran together; each line now stands apart.
+- The mission's 9 briefing pictures were left as they were; nothing was written outside `KNEEBOARD/IMAGES/`.
+
+Read again in the code for the commands sheet: `-tankerlow` and `-tankerhigh` run `_move`, declared `SENIOR_PILOT` in `veafMove.lua`, so the sheet says *trusted*. But the alias path calls `veafMove.executeCommand` directly, past the `veafCommands` handler that holds that level: in fact anyone can run them. Left to a lot of its own.
+
 ## Tickets
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [Kneeboard only, and free text sheets](tickets/01-kneeboard-only-and-sheets.md) | ⬜ |
-| 02 | [The OT prompt writes the kneeboard](tickets/02-ot-prompt.md) | ⬜ |
-| 03 | [Try on the Caucasus OT, doc, CHANGELOG](tickets/03-try-and-doc.md) | ⬜ |
+| 01 | [Kneeboard only, and free text sheets](tickets/01-kneeboard-only-and-sheets.md) | ✅ |
+| 02 | [The OT prompt writes the kneeboard](tickets/02-ot-prompt.md) | ✅ |
+| 03 | [Try on the Caucasus OT, doc, CHANGELOG](tickets/03-try-and-doc.md) | ✅ |
 
 One branch, one PR. Putting the kneeboard into the three OTs comes after a VMCT release, which David decides.

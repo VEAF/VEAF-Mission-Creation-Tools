@@ -124,6 +124,7 @@ from mission_briefing.models import (
     PackageFlight,
     RadioPlan,
     ReconPhoto,
+    Target,
     Threat,
 )
 
@@ -1087,7 +1088,7 @@ def _kneeboard_pages(
     content: BriefingContent,
     recon: dict[str, list[ReconPhoto]],
     ground: GroundPicture | None = None,
-    zone_tasks: bool = False,
+    open_training: bool = False,
 ) -> dict[str, bytes]:
     """The briefing for the knee: the maps drawn for the 2:3 page, the flight card, the targets.
 
@@ -1098,8 +1099,11 @@ def _kneeboard_pages(
     (FEAT-OPEN-TRAINING-KNEEBOARD 01).
 
     Args:
-        zone_tasks: Each objective's task heads its block of the target list: how an Open Training's zone is
-            started from the F10 menu, which its zoom page does not say.
+        open_training: The kneeboard of an Open Training (`kneeboard_only`): its twenty-odd zones all over the
+            theatre have no attack axis, so a map turns itself to its tightest frame (north up left the Caucasus
+            on a third of the page); a zone is named by its title; and the target
+            list becomes the zone list, one position per zone (its centre) under the task that says how to start
+            it from the F10 menu, where every unit took 19 pages on the Caucasus OT (FEAT-OPEN-TRAINING-KNEEBOARD 03).
 
     Returns:
         Page file name -> JPEG, in the order the kneeboard shows them.
@@ -1107,9 +1111,13 @@ def _kneeboard_pages(
     theatre = picture.theatre
     maps_folder = folder / MAPS_FOLDER / "kneeboard"
     origin = _attack_origin(picture, starts)
-    turn = attack_axis_rotation(
-        xy_to_latlon(theatre, *origin) if origin else None,
-        [xy_to_latlon(theatre, area.x, area.y) for _, area in areas],
+    turn = (
+        None  # no attack axis over twenty-odd zones: each map turns to its tightest frame
+        if open_training
+        else attack_axis_rotation(
+            xy_to_latlon(theatre, *origin) if origin else None,
+            [xy_to_latlon(theatre, area.x, area.y) for _, area in areas],
+        )
     )
     overview = render_overview_map(
         picture,
@@ -1126,7 +1134,7 @@ def _kneeboard_pages(
     sheets: list[tuple[str, bytes]] = [
         (f"sheet-{n}" if part == 1 else f"sheet-{n}-{part}", page)
         for n, sheet in enumerate(content.sheets, 1)
-        for part, page in enumerate(text_pages(sheet.title, [(None, list(sheet.paragraphs))]), 1)
+        for part, page in enumerate(text_pages(sheet.title, [(None, [line]) for line in sheet.paragraphs]), 1)
     ]
     sheets.append(("overview", map_page(t("campaign.mission_deck.title.tactical"), overview.path)))
     if areas or threats:
@@ -1157,7 +1165,7 @@ def _kneeboard_pages(
             rotation=turn or 0.0,
             **tiles,
         )
-        title = _objective_title(objective, area)
+        title = objective.title if open_training else _objective_title(objective, area)
         stem = Path(zoom_file(area.zone)).stem
         sheets.append((stem, map_page(title, zoom.path)))
         recon_title = t("mission_briefing.title.recon", zone=area.name)
@@ -1165,21 +1173,23 @@ def _kneeboard_pages(
             sheets.append((f"{stem}-recon-{n}", photo_page(recon_title, pair)))
     card_tables = flight_card_tables(theatre, picture.date, list(picture.flight_plans), starts)
     card = table_pages(t("mission_briefing.kneeboard.flight_card"), card_tables) if card_tables else []
-    target_blocks = targets_blocks(
-        theatre,
-        picture.date,
-        [(_objective_title(objective, area), area) for objective, area in areas],
-        picture.bullseye,
-    )
-    if zone_tasks:
+    if open_training:
+        centre = t("mission_briefing.zone_centre")
+        listed = [(o.title, replace(a, targets=(Target(centre, a.x, a.y),))) for o, a in areas]
+    else:
+        listed = [(_objective_title(objective, area), area) for objective, area in areas]
+    target_blocks = targets_blocks(theatre, picture.date, listed, picture.bullseye)
+    if open_training:
         target_blocks = [
             (heading, [*objective.task, *lines])
             for (heading, lines), (objective, _) in zip(target_blocks, areas, strict=True)
         ]
-    targets = text_pages(t("mission_briefing.title.targets"), target_blocks) if target_blocks else []
+    list_title = t("mission_briefing.title.zones" if open_training else "mission_briefing.title.targets")
+    targets = text_pages(list_title, target_blocks) if target_blocks else []
     blocks = _code_word_blocks(content)
     codes = text_pages(t("mission_briefing.title.coordination"), blocks) if blocks else []
-    for slug, pages in (("flight-card", card), ("targets", targets), ("code-words", codes)):
+    listed_slug = "zones" if open_training else "targets"
+    for slug, pages in (("flight-card", card), (listed_slug, targets), ("code-words", codes)):
         sheets += [(slug if n == 1 else f"{slug}-{n}", page) for n, page in enumerate(pages, 1)]
     return {page_name(n, slug): data for n, (slug, data) in enumerate(sheets, 1)}
 
@@ -1212,8 +1222,9 @@ def build_mission_briefing(
         kneeboard_replace: Take the common kneeboard's pages this tool did not write out of the folder (kept
             in `.veaf-backups/`) and out of every built `.miz`: the tool's kneeboard replaces a hand-made one.
         kneeboard_only: Write the kneeboard and nothing else: no deck, no PDF, no DCS briefing picture, the
-            mission's own left as they are; each objective's task heads its block of the target list. For an
-            Open Training, whose README is the full briefing (FEAT-OPEN-TRAINING-KNEEBOARD 01).
+            mission's own left as they are; no flight card, and a zone list (each objective's task, then its
+            centre) in place of the target list (``open_training`` of `_kneeboard_pages`). For an Open
+            Training, whose README is the full briefing (FEAT-OPEN-TRAINING-KNEEBOARD 01).
 
     Returns:
         The deck, its page count, the maps, the pictures' keys, the `.miz` read, and the warnings; no deck,
@@ -1377,8 +1388,11 @@ def _build(
     maps_folder = folder / MAPS_FOLDER
     tiles: dict[str, Any] = {"cache_dir": cache_dir, "fetch": fetch, "source": source, "side": side}
     if kneeboard_only:
+        # an Open Training has no flight plan: its dynamic-slot templates' routes made a flight card nobody flies
+        bare = replace(picture, flight_plans=[])
+        named = [(objective, replace(area, label=objective.title)) for objective, area in areas]
         pages = _kneeboard_pages(
-            folder, picture, areas, threats, starts, tiles, content, recon, ground, zone_tasks=True
+            folder, bare, named, threats, starts, tiles, content, recon, ground, open_training=True
         )
         archives = built_archives(folder, miz)
         _, _, moved = _write_pictures(folder, archives, [], side, pages, kneeboard_replace, pictures_too=False)

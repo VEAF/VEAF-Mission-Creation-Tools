@@ -101,6 +101,21 @@ class TestKneeboardOnly:
         folder_pages = folder / "src" / "mission" / "KNEEBOARD" / "IMAGES"
         assert sorted(path.name for path in folder_pages.iterdir()) == sorted(report.kneeboard)
 
+    def test_maps_drawn_without_tiles_are_reported(self, tmp_path: Path) -> None:
+        """pr-code-review of #1258: kneeboard-only reported map_offline false whatever its maps stood on."""
+
+        def no_network(url: str) -> bytes | None:
+            return None  # what `http_fetch` gives when a download fails
+
+        with offline(tmp_path):
+            objective_mission(tmp_path)
+            report = build_mission_briefing(
+                tmp_path, CONTENT, cache_dir=tmp_path / "tiles", fetch=no_network, kneeboard_only=True
+            )
+        assert report.offline is True
+        assert any("plain background" in warning for warning in report.warnings)
+        assert _build(tmp_path, kneeboard_only=True).offline is False
+
     def test_a_kneeboard_only_run_with_no_kneeboard_is_refused(self, tmp_path: Path) -> None:
         with offline(tmp_path):
             objective_mission(tmp_path)

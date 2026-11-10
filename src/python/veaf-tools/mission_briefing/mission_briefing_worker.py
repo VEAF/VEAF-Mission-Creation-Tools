@@ -1089,7 +1089,7 @@ def _kneeboard_pages(
     recon: dict[str, list[ReconPhoto]],
     ground: GroundPicture | None = None,
     open_training: bool = False,
-) -> dict[str, bytes]:
+) -> tuple[dict[str, bytes], bool]:
     """The briefing for the knee: the maps drawn for the 2:3 page, the flight card, the targets.
 
     The maps are turned so that the attack axis, from the players' departure to the objectives, points
@@ -1106,7 +1106,8 @@ def _kneeboard_pages(
             it from the F10 menu, where every unit took 19 pages on the Caucasus OT (FEAT-OPEN-TRAINING-KNEEBOARD 03).
 
     Returns:
-        Page file name -> JPEG, in the order the kneeboard shows them.
+        Page file name -> JPEG, in the order the kneeboard shows them; and whether a map had to do without its
+        background, which `kneeboard_only` reports since it draws no other map.
     """
     theatre = picture.theatre
     maps_folder = folder / MAPS_FOLDER / "kneeboard"
@@ -1137,6 +1138,7 @@ def _kneeboard_pages(
         for part, page in enumerate(text_pages(sheet.title, [(None, [line]) for line in sheet.paragraphs]), 1)
     ]
     sheets.append(("overview", map_page(t("campaign.mission_deck.title.tactical"), overview.path)))
+    offline = overview.offline
     if areas or threats:
         combat = render_overview_map(
             picture,
@@ -1152,6 +1154,7 @@ def _kneeboard_pages(
             **tiles,
         )
         sheets.append(("combat-area", map_page(t("mission_briefing.title.combat_area"), combat.path)))
+        offline = offline or combat.offline
     for objective, area in areas:
         zoom = render_objective_zoom(
             theatre,
@@ -1165,6 +1168,7 @@ def _kneeboard_pages(
             rotation=turn or 0.0,
             **tiles,
         )
+        offline = offline or zoom.offline
         title = objective.title if open_training else _objective_title(objective, area)
         stem = Path(zoom_file(area.zone)).stem
         sheets.append((stem, map_page(title, zoom.path)))
@@ -1191,7 +1195,7 @@ def _kneeboard_pages(
     listed_slug = "zones" if open_training else "targets"
     for slug, pages in (("flight-card", card), (listed_slug, targets), ("code-words", codes)):
         sheets += [(slug if n == 1 else f"{slug}-{n}", page) for n, page in enumerate(pages, 1)]
-    return {page_name(n, slug): data for n, (slug, data) in enumerate(sheets, 1)}
+    return {page_name(n, slug): data for n, (slug, data) in enumerate(sheets, 1)}, offline
 
 
 def build_mission_briefing(
@@ -1391,14 +1395,16 @@ def _build(
         # an Open Training has no flight plan: its dynamic-slot templates' routes made a flight card nobody flies
         bare = replace(picture, flight_plans=[])
         named = [(objective, replace(area, label=objective.title)) for objective, area in areas]
-        pages = _kneeboard_pages(
+        pages, offline = _kneeboard_pages(
             folder, bare, named, threats, starts, tiles, content, recon, ground, open_training=True
         )
         archives = built_archives(folder, miz)
         _, _, moved = _write_pictures(folder, archives, [], side, pages, kneeboard_replace, pictures_too=False)
         warnings += _moved_warning(moved)
+        if offline:
+            warnings.append("Map tiles could not be downloaded: the maps stand on a plain background.")
         photos = [photo.image for photos in recon.values() for photo in photos]
-        return BriefingReport(None, 0, [], [], miz, False, warnings, None, 0, archives, list(pages), photos)
+        return BriefingReport(None, 0, [], [], miz, offline, warnings, None, 0, archives, list(pages), photos)
     overview = render_overview_map(
         picture,
         areas,
@@ -1503,7 +1509,7 @@ def _build(
 
     maps = [overview.path, *([combat.path] if combat else []), *(zoom.path for zoom in zooms)]
     pages = (
-        _kneeboard_pages(folder, picture, areas, threats, starts, tiles, content, recon, ground) if kneeboard else {}
+        _kneeboard_pages(folder, picture, areas, threats, starts, tiles, content, recon, ground)[0] if kneeboard else {}
     )
     archives = built_archives(folder, miz)
     keys, other, moved = _write_pictures(folder, archives, maps, side, pages, kneeboard_replace and kneeboard)

@@ -1908,3 +1908,18 @@ limitations:
   workaround: |
     Turn the wind with height by 30° at most (`wind_veer`, 20° by default); never set an upper wind opposed
     to the surface one.
+
+- id: tanker-move-aliases-skip-their-security-level
+  kind: tool
+  area: runtime
+  title: "`-tankerlow` and `-tankerhigh` run for anyone, though `_move` is a trusted member's command"
+  symptom: |
+    `veafMove` registers `_move` with `veafCommands` at the `SENIOR_PILOT` level (moving a tanker affects
+    everyone flying). The aliases `-tankerlow` and `-tankerhigh` do not bypass security, but
+    `VeafAlias:execute` calls `veafMove.executeCommand` directly, past the `veafCommands` handler that holds
+    the level, and `veafMove.executeCommand` checks nothing itself: a marker with either alias moves the
+    nearest tanker whoever drops it. Read in the code on 2026-11-10 (FEAT-OPEN-TRAINING-KNEEBOARD), not
+    measured in game.
+  workaround: |
+    Brief them as a trusted member's commands, as the Open Training kneeboard does; a mission that must
+    keep its tankers where they are leaves the aliases out of its briefing.

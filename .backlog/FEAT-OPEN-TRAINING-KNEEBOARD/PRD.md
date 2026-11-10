@@ -68,7 +68,7 @@ The first run gave 51 pages; the fixes below brought it to **36**: three sheets,
 - Also fixed: the maps and the pages named a zone `combatZone_Beslan — Bataille de Beslan`; they now use its title. A sheet's lines ran together; each line now stands apart.
 - The mission's 9 briefing pictures were left as they were; nothing was written outside `KNEEBOARD/IMAGES/`.
 
-Read again in the code for the commands sheet: `-tankerlow` and `-tankerhigh` run `_move`, declared `SENIOR_PILOT` in `veafMove.lua`, so the sheet says *trusted*. But the alias path calls `veafMove.executeCommand` directly, past the `veafCommands` handler that holds that level: in fact anyone can run them. Left to a lot of its own.
+Read again in the code for the commands sheet: `-tankerlow` and `-tankerhigh` run `_move`, declared `SENIOR_PILOT` in `veafMove.lua`, so the sheet says *trusted*. But the alias path calls `veafMove.executeCommand` directly, past the `veafCommands` handler that holds that level: in fact anyone can run them. Left to a lot of its own, written down as the known limitation `tanker-move-aliases-skip-their-security-level`.
 
 ## Tickets
 

@@ -1049,6 +1049,9 @@ function TestVeafWeatherFogMenuWiring:setUp()
     addMenu = function(title)
       return { title = title }
     end,
+    addRootMenu = function(key, side)
+      return veafRadio.addSubMenu(veaf.t(key), nil, side)
+    end,
     addSubMenu = function(title)
       return { title = title }
     end,
@@ -1123,6 +1126,9 @@ function TestVeafWeatherFogMenuTranslation:setUp()
     addMenu = function(title)
       table.insert(titles, title)
       return { title = title }
+    end,
+    addRootMenu = function(key, side)
+      return veafRadio.addSubMenu(veaf.t(key), nil, side)
     end,
     addSubMenu = function(title)
       table.insert(titles, title)

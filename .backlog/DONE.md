@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-RADIO-MENU-ORDER](FEAT-RADIO-MENU-ORDER/PRD.md) · ✅
+
+The VEAF F10 root menus in the order pilots use them — combat zones, weather, assets first — through a fixed `sortKey` per root menu, the same in every language, instead of the alphabetical order that puts ZONES DE COMBAT last in French. The CAS menu stays forever at the end, and its entries stop being deleted and recreated. Three tickets; decided with David (2026-11-10).
+
 ### [FIX-ALIAS-SKIPS-HANDLER-LEVEL](FIX-ALIAS-SKIPS-HANDLER-LEVEL/PRD.md) · ✅
 
 An alias called its module's `executeCommand` directly, past the level the dispatcher enforces: `_move`, `_radio` and `_gc` ran for any player through `-tankerlow`, `-send`, `-ai_set`, `-arty1_fire`…, unknown to the server included (worse than the survey's VEAF-pilot reading). A non-bypassing alias now applies the level of the handler its own command reaches, or the one it declares; the tanker and AFAC aliases declare VEAF pilot (David), `-send`/`-play` take trusted member, the `_gc` aliases VEAF pilot.

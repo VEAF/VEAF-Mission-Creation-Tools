@@ -2948,6 +2948,9 @@ function TestSpotterViewModes:setUp()
   self.refreshes = 0
   self.previousRadio = veafRadio
   veafRadio = {
+    addRootMenu = function(key, side)
+      return veafRadio.addSubMenu(veaf.t(key), nil, side)
+    end,
     addSubMenu = function(title, parent, coalitionSide)
       local menu = { title = title, parent = parent, coalition = coalitionSide, commands = {} }
       table.insert(self.menus, menu)

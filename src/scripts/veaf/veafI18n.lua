@@ -393,6 +393,18 @@ veaf.i18nCatalog = {
     fr = "Éclairage de la cible disponible",
     en = "Target illumination available",
   },
+  ["cas.no_mission"] = {
+    fr = "Pas de mission CAS : posez un marqueur -cas sur la carte F10",
+    en = "No CAS mission: place a -cas marker on the F10 map",
+  },
+  ["cas.smoke_already_requested"] = {
+    fr = "Fumée déjà demandée : le marquage fumigène sera de nouveau disponible sous peu",
+    en = "Smoke already requested: the smoke marker will be available again shortly",
+  },
+  ["cas.illum_already_requested"] = {
+    fr = "Fusée éclairante déjà demandée : l'éclairage sera de nouveau disponible sous peu",
+    en = "Illumination flare already requested: illumination will be available again shortly",
+  },
   ["cas.objective_destroyed"] = {
     fr = "Groupe objectif CAS détruit !",
     en = "CAS objective group destroyed!",
@@ -1738,10 +1750,6 @@ veaf.i18nCatalog = {
     fr = "Réapparition de %s",
     en = "Respawn %s",
   },
-  ["menu.casmission.flare_done"] = {
-    fr = "Objectif éclairé par fusée",
-    en = "Target area is marked with illumination flare",
-  },
   ["menu.casmission.markers"] = {
     fr = "Marquage de l'objectif",
     en = "Target markers",
@@ -1753,10 +1761,6 @@ veaf.i18nCatalog = {
   ["menu.casmission.skip"] = {
     fr = "Passer l'objectif en cours",
     en = "Skip current objective",
-  },
-  ["menu.casmission.smoke_done"] = {
-    fr = "Objectif marqué à la fumée rouge",
-    en = "Target is marked with red smoke",
   },
   ["menu.combatzone.activate"] = {
     fr = "Activer la zone",

@@ -61,11 +61,11 @@ Toutes les fonctions de VEAF MCT sont accessibles depuis **F10 → Autre → VEA
 ```mermaid
 graph TD
     F10[Menu radio F10] --> Autre[Autre] --> VEAF[VEAF]
-    VEAF --> Res[MOYENS]
-    VEAF --> CAS[MISSION CAS]
     VEAF --> CZ[ZONES DE COMBAT]
+    VEAF --> Res[MOYENS]
     VEAF --> Miss[MISSIONS]
     VEAF --> Assist[ASSISTANCE]
+    VEAF --> CAS[MISSION CAS]
     Assist --> AS1["Démarrage à froid — F-16C"]
     Res --> A1["Arco 1-1 — ravitailleur"]
     Res --> A2["Overlord — AWACS"]
@@ -75,6 +75,24 @@ graph TD
 > 📷 *Capture à venir : sous-menu VEAF dans le menu radio F10.*
 
 Le contenu exact dépend de ce que le créateur de la mission a activé : certaines missions n'auront pas toutes ces entrées.
+
+Les menus apparaissent **toujours dans le même ordre**, quelle que soit la langue de la mission — les plus utilisés en premier :
+
+1. CAMPAGNE (dans une mission de campagne)
+2. ZONES DE COMBAT
+3. MÉTÉO ET ATC
+4. MOYENS
+5. MISSIONS
+6. OPS PORTE-AVIONS
+7. MISSION DE TRANSPORT
+8. APPARITION
+9. RÉSEAU DE GUETTEURS
+10. DÉPLACER
+11. POINTS NOMMÉS
+12. GUARDIAN
+13. OPPOSITION
+
+Viennent ensuite les autres entrées (ASSISTANCE, CTLD…), par ordre alphabétique, et **MISSION CAS toujours en dernier**. Une page du menu F10 tient 10 entrées : au-delà, la dernière s'appelle « Page suivante », et MISSION CAS se retrouve alors sur la page 2.
 
 ---
 
@@ -288,7 +306,7 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 
 **Déroulement :**
 
-1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **MISSION CAS** apparaît alors dans F10 → VEAF.
+1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **MISSION CAS**, en dernier dans F10 → VEAF, est là en permanence : sans mission CAS en cours, ses entrées répondent « Pas de mission CAS : posez un marqueur -cas sur la carte F10 ».
 2. **Marquer la zone** — *Target markers → Request smoke on target area* ou *Request illumination flare over target area* (3 minutes de délai entre deux marquages).
 3. **Obtenir les infos** — *Target information* : position, composition des unités, état.
 4. **Engager** — attaquez les cibles marquées.

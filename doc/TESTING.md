@@ -198,6 +198,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMissileGuardian.lua` | Logique d'interception de missiles |
 | `test_veafCampaign.lua` | Campagne multi-missions : tirage, enregistrement et pertes des garnisons |
 | `test_veafCasMission.lua` | Génération de packages de menaces CAS |
+| `test_veafCasMission_menu.lua` | Menu MISSION CAS fixe : aucune entrée ajoutée ni retirée pendant une mission, réponses sans mission en cours |
 | `test_veafTransportMission.lua` | Setup de mission de transport |
 | `test_veafCarrierOperations.lua` | Séquence de recovery porte-avions |
 | `test_veafMove.lua` | Parsing de commandes de déplacement/téléportation |

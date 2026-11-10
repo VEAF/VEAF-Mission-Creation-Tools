@@ -85,6 +85,14 @@ ambiguous combo radios (e.g. the F/A-18's two identical ARC-210s). See
 decision — a simple default for the common case, explicit `Radio layout`
 override for the rest — only the mechanism.
 
+## Amendment (FIX-RADIO-PRESET-CAPACITY) — a capacity truncation warns
+
+Slot capacity used to truncate silently: a debug line under `build`, `validate` being the verbose path.
+It now logs a **warning at build**, naming the type, the radio, the capacity and how many presets were dropped, once per radio and per build.
+Two things changed. A dropped preset is one a pilot will look for in the cockpit. And capacity stopped being theoretical: the OH-58D crashes the DCS client at spawn, in multiplayer, when its FM radios get 32 presets (four Open Trainings, 2026-11-10), so the FM radios now declare `capacity: 21`.
+
+Capacities are declared only where the module documents them, from the channel count of its `panelRadio` table (`CoreMods/aircraft/<type>/*.lua`): OH-58D, Mi-24P, CH-47F. The AJS-37 stays without one — its 47 slots are filled exactly by construction.
+
 ## Alternatives rejected
 
 - **Replace the old layers** — breaks existing missions and convert-v5.

@@ -80,9 +80,12 @@
 #         channel count (after every other primitive above has run) exceeds
 #         `capacity`, the excess is truncated from the END of the list (e.g.
 #         Tripack itself truncated the AJS-37's VHF list to fit its 47-slot
-#         radio). Truncation is silent by design: a debug-level log line
-#         records it, no build-time warning noise (exploration doc §8.4:
-#         `validate` is the verbose path for this). Omit when the radio's
+#         radio). A truncation logs a WARNING at build, once per radio
+#         (FIX-RADIO-PRESET-CAPACITY, amending ADR 0010): a dropped preset is
+#         one a pilot will look for, and too many presets on the OH-58D's FM
+#         radios crash the DCS client at spawn. Declare it only from the
+#         module's own `panelRadio` channel count (CoreMods/aircraft/<type>/*.lua)
+#         or a measurement, and say which in a comment. Omit when the radio's
 #         capacity is not a practical concern (e.g. AJS-37: 47 slots exactly
 #         filled by design, never exceeded — no entry needed).
 #

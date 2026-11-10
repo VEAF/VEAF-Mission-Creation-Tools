@@ -1376,6 +1376,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     token_resolver = _build_token_resolver(content)
     plan_irreducible: dict[tuple[str, str], str] = {}
     plan_best_effort: list[str] = []
+    capacity_warned: set[tuple[str, int, int]] = set()  # one capacity warning per radio, not per entry
     for entry in _parse_radio_settings_entries(content):
         if not entry.radio_sources or entry.coalition not in presets_assignments:
             continue
@@ -1387,7 +1388,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
         # 08), in which case the plan alone covers this aircraft.
         if not _entry_is_standard(entry):
             dedicated_slots, _dropped = _resolve_dedicated_channels(entry, token_resolver)
-            packed = pack_preset_for_type(channel_lists, entry.coalition, entry.aircraft)
+            packed = pack_preset_for_type(channel_lists, entry.coalition, entry.aircraft, capacity_warned)
             if _dedicated_matches_packed(dedicated_slots, packed):
                 continue
             dedicated_name = _emit_dedicated_preset(

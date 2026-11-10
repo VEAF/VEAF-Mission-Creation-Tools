@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FEAT-RADIO-CAPACITY-ALL-TYPES](FEAT-RADIO-CAPACITY-ALL-TYPES/PRD.md) · 🔄
+
+Every aircraft type gets its radios' preset capacity, read from its module's `panelRadio` table by a refreshable script and checked in, so a module that crashes past its count (the OH-58D did) is protected before it is found in game; the shipped default `fm_supplement` is cut to 20 entries so a default build raises no capacity warning. Follow-up of #1262, agreed by David (2026-11-10).
+
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

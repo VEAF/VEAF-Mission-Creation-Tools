@@ -136,6 +136,17 @@ Most aliases respect the security system (`veafSecurity`). **Nine** utility alia
 available to every player: `-smoke`, `-longsmoke`, `-signal`, `-light`, `-point`, `-tacan`, `-jtac`,
 `-afac`, `-beacon`.
 
+### An alias's level {#alias-level}
+
+An alias that does not bypass security runs at the level of the command it launches: the one that command's module declares, found by its keyphrase.
+`-send` and `-play` launch `_radio`, so they need a trusted member; `-ai_set` and `-arty1_*` to `-arty3_*` launch `_gc`, so they need a VEAF pilot.
+Spawn aliases follow the level of each `_spawn` command, which `veafSpawn` checks itself.
+
+An alias may declare its own level, which replaces its command's: `:setSecurityLevel("KNOWN_PILOT")` (`OPEN`, `KNOWN_PILOT`, `SENIOR_PILOT` or `ADMIN`).
+`-tankerlow`, `-tankerhigh`, `-tankerhere` (and `-tanker`) and `-afachere` do, at VEAF-pilot level where `_move` typed by hand needs a trusted member.
+
+Up to version 6.36, an alias skipped that check: `-send`, `-tankerlow` or `-arty1_fire` worked for any player.
+
 ### What may follow a security-bypassing alias {#bypass-options}
 
 After such an alias, a player's marker admits only the options that **tune** its effect, each in a strict form:

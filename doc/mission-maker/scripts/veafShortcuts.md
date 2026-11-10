@@ -136,6 +136,17 @@ La plupart des aliases respectent le système de sécurité (`veafSecurity`). **
 le contournent et restent toujours disponibles pour tous les joueurs : `-smoke`, `-longsmoke`, `-signal`,
 `-light`, `-point`, `-tacan`, `-jtac`, `-afac`, `-beacon`.
 
+### Le palier d'un alias {#alias-level}
+
+Un alias qui ne contourne pas la sécurité s'exécute au palier de la commande qu'il lance : celui que le module de cette commande déclare, retrouvé par son mot-clé.
+`-send` et `-play` lancent `_radio`, donc demandent un membre de confiance ; `-ai_set` et les `-arty1_*` à `-arty3_*` lancent `_gc`, donc demandent un pilote VEAF.
+Les alias de spawn suivent le palier de chaque commande `_spawn`, que `veafSpawn` vérifie lui-même.
+
+Un alias peut déclarer son propre palier, qui remplace celui de sa commande : `:setSecurityLevel("KNOWN_PILOT")` (`OPEN`, `KNOWN_PILOT`, `SENIOR_PILOT` ou `ADMIN`).
+C'est le cas de `-tankerlow`, `-tankerhigh`, `-tankerhere` (et `-tanker`) et `-afachere`, au palier pilote VEAF alors que `_move` tapé à la main demande un membre de confiance.
+
+Jusqu'à la version 6.36, un alias sautait ce contrôle : `-send`, `-tankerlow` ou `-arty1_fire` marchaient pour n'importe quel joueur.
+
 ### Ce qu'on peut taper après un alias qui contourne la sécurité {#bypass-options}
 
 Derrière un tel alias, un marqueur de joueur n'admet que les options qui **règlent** son effet, chacune sous une forme stricte :

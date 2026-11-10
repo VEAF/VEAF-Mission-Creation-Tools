@@ -330,6 +330,8 @@ you are never asked for a password for commands at or below your tier.
 The open commands: asset info, smoke, signal flares, naming a point. Others — spawning a group,
 destroying a unit — need a higher tier.
 
+An alias needs the tier of the command it launches: `-send` needs a trusted member, like `_radio`, with one exception — moving a tanker or an AFAC through an alias (`-tankerlow`, `-tankerhere`, `-afachere`…) is open to VEAF pilots ([an alias's level](../mission-maker/scripts/veafShortcuts.en.md#alias-level)).
+
 If you are not on the list, add the password of the required tier to each protected command
 (`password` keyword, e.g. `_spawn group, name ..., password [PASSWORD]`): it is checked command by
 command. There is no session and no duration — nothing to open, nothing that expires. The password is

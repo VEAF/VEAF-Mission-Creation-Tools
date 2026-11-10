@@ -200,6 +200,9 @@ function VeafAlias:new(objectToCopy)
   objectToCreate.password = nil
   -- if set, we'll consider that the alias ends with a comma (to easily add the first parameter)
   objectToCreate.endsWithComma = true
+  -- if set, a key of veafCommands.SECURITY_CHECKS: the level this alias runs at, in place of the level
+  -- the handler its command reaches declares (FIX-ALIAS-SKIPS-HANDLER-LEVEL)
+  objectToCreate.securityLevel = nil
 
   return objectToCreate
 end
@@ -276,6 +279,14 @@ function VeafAlias:isBypassSecurity()
   return self.bypassSecurity
 end
 
+--- Run this alias at `value` (a key of `veafCommands.SECURITY_CHECKS`) rather than at the level of the
+--- handler its command reaches. For an alias whose level was decided apart from its module's: the level
+--- is then written on the alias instead of being inherited, or leaked.
+function VeafAlias:setSecurityLevel(value)
+  self.securityLevel = value
+  return self
+end
+
 --- Declare what a player may type after this alias when it bypasses security.
 --- @param value table|string `{ [option] = form }`, a form being a `veafShortcuts.OptionForms` name, a set of values or
 ---        an anchored Lua pattern; or `veafShortcuts.ALLOW_NAME` for a free name without a comma
@@ -320,6 +331,26 @@ end
 
 function VeafAlias:hasPassword(value)
   return self.password and self.password[value]
+end
+
+--- The level an alias runs at (FIX-ALIAS-SKIPS-HANDLER-LEVEL): the one it declares, else the one the
+--- dispatcher enforces for the handler its command reaches, found by that handler's keyphrase.
+---
+--- Matched on the alias's own command, which the mission maker wrote, and at its start: the text a player
+--- types after the alias cannot lend it another handler's level. A handler that checks itself
+--- (`SECURITY_HANDLED`, e.g. veafSpawn per command, veafCasMission) or declares no keyphrase gives none.
+--- @return string|nil a key of veafCommands.SECURITY_CHECKS, or nil when no level applies here
+function veafShortcuts.securityLevelFor(alias)
+  if alias.securityLevel then
+    return alias.securityLevel
+  end
+  local command = (alias:getVeafCommand() or ""):lower()
+  for _, entry in ipairs(veafCommands.commandHandlers) do
+    if entry.keyphrase and entry.security ~= veafCommands.SECURITY_HANDLED and command:sub(1, #entry.keyphrase) == entry.keyphrase then
+      return entry.security
+    end
+  end
+  return nil
 end
 
 --- Executer l'alias, en descendant la chaine des modules.
@@ -739,6 +770,17 @@ function veafShortcuts.ExecuteAlias(
         veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups, route, requesterCoalition)
       end
     else
+      -- `VeafAlias:execute` calls each module's `executeCommand` directly, past the dispatcher that enforces
+      -- the level the module registered: without this, `-send` reached the whole server for any player.
+      -- Checked here, when the marker is dropped, and not when the alias runs: the dispatcher removes the
+      -- marker as soon as the alias is accepted, and a delayed alias (`!N`) could no longer find its author.
+      if not (bypassSecurity or alias:isBypassSecurity()) then
+        local level = veafShortcuts.securityLevelFor(alias)
+        if level and not veafCommands.isAllowed({ security = level }, { idx = markId }, false) then
+          veaf.loggers.get(veafShortcuts.Id):warn("alias [%s] refused below level %s", veaf.p(alias:getName()), veaf.p(level))
+          return true -- consumed, as a refused alias always was: the marker goes
+        end
+      end
       -- A legitimate delay is always digits: `markTextAnalysis` extracts it with `!(%d*)`, so it arrives
       -- as "" or as a numeric string. Anything else is a CALLER bug, and it used to reach
       -- `timer.getTime() + delay` and raise there — which is how veafSanctuary spent five years never
@@ -1566,6 +1608,7 @@ function veafShortcuts.buildDefaultList()
         immortal = "flag",
       })
   )
+  -- VEAF pilot, below `_move`'s trusted member: decided by David (FIX-ALIAS-SKIPS-HANDLER-LEVEL)
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-afachere")
@@ -1573,6 +1616,7 @@ function veafShortcuts.buildDefaultList()
       :setVeafCommand("_move afac, name")
       :dontEndWithComma()
       :setBypassSecurity(false)
+      :setSecurityLevel("KNOWN_PILOT")
   )
   -- Ground unit AI
   veafShortcuts.AddAlias(VeafAlias
@@ -1759,6 +1803,7 @@ function veafShortcuts.buildDefaultList()
       :setBypassSecurity(true)
       :setAllowedOptions({ color = "flareColor" })
   )
+  -- VEAF pilot, below `_move`'s trusted member: decided by David (FIX-ALIAS-SKIPS-HANDLER-LEVEL)
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-tankerhere")
@@ -1768,21 +1813,26 @@ function veafShortcuts.buildDefaultList()
       :setVeafCommand("_move tanker, teleport, name")
       :dontEndWithComma()
       :setBypassSecurity(false)
+      :setSecurityLevel("KNOWN_PILOT")
   )
   veafShortcuts.AddAlias(VeafAlias:new():setName("-tanker"):setDescription("alias for '-tankerhere'"):setVeafCommand("-tankerhere"))
+  -- VEAF pilot, below `_move`'s trusted member: decided by David (FIX-ALIAS-SKIPS-HANDLER-LEVEL)
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-tankerlow")
       :setDescription("sets the closest tanker to FL120 at 200 KIAS")
       :setVeafCommand("_move tankermission, alt 12000, speed 250")
       :setBypassSecurity(false)
+      :setSecurityLevel("KNOWN_PILOT")
   )
+  -- VEAF pilot, below `_move`'s trusted member: decided by David (FIX-ALIAS-SKIPS-HANDLER-LEVEL)
   veafShortcuts.AddAlias(
     VeafAlias:new()
       :setName("-tankerhigh")
       :setDescription("sets the closest tanker to FL220 at 300 KIAS")
       :setVeafCommand("_move tankermission, alt 22000, speed 450")
       :setBypassSecurity(false)
+      :setSecurityLevel("KNOWN_PILOT")
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()

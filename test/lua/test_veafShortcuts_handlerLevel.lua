@@ -192,6 +192,28 @@ function TestAliasHandlerLevel:test_the_player_text_cannot_choose_the_handler()
   luaunit.assertEquals(self:marker(UNKNOWN, "-sa2, _radio"), 1)
 end
 
+--- A marker with a delay (`!N`): the dispatcher removes the marker as soon as the alias is accepted, so
+--- by the time the alias runs its author can no longer be read from the map. The level is checked when the
+--- marker is dropped.
+function TestAliasHandlerLevel:delayedMarker(level, text)
+  self.level = level
+  self.reached = {}
+  veafShortcuts.executeCommand(POSITION, text, coalition.side.RED, MARK_ID, false)
+  world.getMarkPanels = function()
+    return {}
+  end
+  dcs_mocks.runScheduled(timer.getTime() + 3600)
+  return #self.reached
+end
+
+function TestAliasHandlerLevel:test_a_delayed_alias_runs_for_the_level_it_needs()
+  luaunit.assertEquals(self:delayedMarker(SENIOR_PILOT, '-send!30 "hello"'), 1)
+end
+
+function TestAliasHandlerLevel:test_a_delayed_alias_is_refused_below_its_level()
+  luaunit.assertEquals(self:delayedMarker(KNOWN_PILOT, '-send!30 "hello"'), 0)
+end
+
 function TestAliasHandlerLevel:test_an_unknown_declared_level_is_refused()
   local alias = VeafAlias:new():setName("-broken"):setVeafCommand("_move tankermission"):setSecurityLevel("NOPE")
   veafShortcuts.AddAlias(alias)

@@ -400,16 +400,6 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
 
   local _bypassSecurity = bypassSecurity or self:isBypassSecurity()
 
-  -- The chain below calls each module's `executeCommand` directly, past the dispatcher that enforces the
-  -- level the module registered: without this, `-send` reached the whole server for any player.
-  if not _bypassSecurity then
-    local level = veafShortcuts.securityLevelFor(self)
-    if level and not veafCommands.isAllowed({ security = level }, { idx = markId }, false) then
-      veaf.loggers.get(veafShortcuts.Id):warn("alias [%s] refused below level %s", veaf.p(self:getName()), veaf.p(level))
-      return false
-    end
-  end
-
   local command = command .. (remainingCommand or "")
   veaf.loggers.get(veafShortcuts.Id):trace(string.format("command = [%s]", command or ""))
 
@@ -780,6 +770,17 @@ function veafShortcuts.ExecuteAlias(
         veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups, route, requesterCoalition)
       end
     else
+      -- `VeafAlias:execute` calls each module's `executeCommand` directly, past the dispatcher that enforces
+      -- the level the module registered: without this, `-send` reached the whole server for any player.
+      -- Checked here, when the marker is dropped, and not when the alias runs: the dispatcher removes the
+      -- marker as soon as the alias is accepted, and a delayed alias (`!N`) could no longer find its author.
+      if not (bypassSecurity or alias:isBypassSecurity()) then
+        local level = veafShortcuts.securityLevelFor(alias)
+        if level and not veafCommands.isAllowed({ security = level }, { idx = markId }, false) then
+          veaf.loggers.get(veafShortcuts.Id):warn("alias [%s] refused below level %s", veaf.p(alias:getName()), veaf.p(level))
+          return true -- consumed, as a refused alias always was: the marker goes
+        end
+      end
       -- A legitimate delay is always digits: `markTextAnalysis` extracts it with `!(%d*)`, so it arrives
       -- as "" or as a numeric string. Anything else is a CALLER bug, and it used to reach
       -- `timer.getTime() + delay` and raise there — which is how veafSanctuary spent five years never

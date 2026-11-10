@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-OPEN-TRAINING-KNEEBOARD](FEAT-OPEN-TRAINING-KNEEBOARD/PRD.md) · ✅
+
+An Open Training's briefing as kneeboard pages in the `.miz`: `build_mission_briefing` gains `kneeboard_only` (the kneeboard and nothing else — no deck, PDF or DCS picture, no flight card, a zone list with each zone's F10 path and centre) and `sheets` (free text first in the kneeboard); the OT prompt writes the mission, conduct and commands sheets and keeps the content in `docs/kneeboard.json`. Tried on a copy of the Caucasus OT: 36 pages. Putting it into the three OTs waits for a VMCT release.
+
 ### [DOC-HOTLOAD-RECIPE](DOC-HOTLOAD-RECIPE/PRD.md) · ✅
 
 A developer page on loading dcs-hotload (MacFlorent/dcs-hotload) in a VMCT-built mission with no VMCT code: a boot script declared in `custom_scripts` loads it from `Saved Games\DCS\Scripts\dcs-hotload\` when it is there and does nothing otherwise, with a per-mission variant and the reservations (install-wide `io`/`lfs` unlock, one F10 root entry, VEAF modules are not reloaded). Chosen by David and Flogas on 2026-11-09 over a `hotload:` build key; merged in #1257, closed without an in-game test.

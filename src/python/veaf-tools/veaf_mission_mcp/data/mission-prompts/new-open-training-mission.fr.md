@@ -493,6 +493,67 @@ Le reste ne change pas : la forme 3 × 3 et les `includes:`, les zones de combat
 Le gabarit de départ s'en ressent : en WW2, prends `standard` puis désactive ce que ce tableau écarte, `full` apporte Skynet.
 Quand une question de la section 1 n'a pas de réponse dans ce tableau, décide, annonce-le, et note-le dans « Retours pour VMCT ».
 
+### 4.15 Le kneeboard
+
+Le `README.md` reste le briefing complet ; le kneeboard en est la version de cockpit, dans le `.miz` : quelques pages que le pilote ouvre en vol.
+Il ne double ni le README ni les images de briefing de la section 4.13 : **pas de deck, pas de PDF, pas d'image de briefing DCS**.
+
+Un seul appel, **après le build** : `build_mission_briefing` avec `kneeboard_only: true`.
+L'outil ne touche alors qu'au kneeboard (dossier `src/mission/KNEEBOARD/IMAGES/` et chaque `.miz` construit) ; les images de briefing de la mission restent les siennes.
+Ce que tu lui passes :
+
+- `title` : le nom de la mission.
+- `sheets`, dans cet ordre, en tête du kneeboard ; `paragraphs` en **liste**, un élément par ligne (une chaîne recolle ses lignes en un paragraphe) :
+  1. **Mission** — tu la condenses depuis le README, qui reste la source : ce qu'est l'Open Training, la base mère et les autres bases, le soutien (ravitailleurs avec TACAN, fréquence et niveau, AWACS, porte-avions), l'arène, le bullseye. Dix lignes au plus, chaque chiffre recopié du README, jamais recalculé.
+  2. **Conduite** — le texte ci-dessous, **recopié tel quel**.
+  3. **Commandes** — le texte ci-dessous, **recopié tel quel** : la liste est arrêtée, ne la recompose pas d'une mission à l'autre.
+- `objectives` : **chaque zone de `COMBATZONE.combat_zones` de `mission.yaml`**, entraînement compris, dans l'ordre du fichier.
+  `zone` = son `zone_name`, `title` = son `friendly_name`, `task` = le chemin du menu F10 qui la démarre : `F10 › VEAF › ZONES DE COMBAT › <radio_group_name> › <friendly_name> › Activer la zone` (sans `radio_group_name`, ce niveau disparaît).
+  Ne regroupe pas les niveaux facile / moyen / difficile d'un même site : une zone par objectif.
+  Ni `threats`, ni `flights`, ni `code_words` : une Open Training n'a ni plan de vol ni mot de code.
+- Les photos de reconnaissance sont lues dans `docs/recon/` quand il y en a (`veaf-tools dcs recon-photos`, qui demande DCS) ; une zone sans photo a quand même sa page.
+
+Le kneeboard se range ainsi : les trois fiches, la carte d'ensemble, pour chaque zone son zoom et ses photos, puis la liste des zones avec, pour chacune, son chemin de menu et ses coordonnées.
+
+**Garde ce que tu passes à l'outil** dans `docs/kneeboard.json`, les paramètres de l'appel sans `mission_path`, et committe-le avec la mission.
+À chaque rebuild qui change une zone, une base ou le soutien : mets ce fichier à jour, puis rappelle `build_mission_briefing` avec lui.
+Sans changement, rien à refaire : les pages sont dans `src/mission/KNEEBOARD/IMAGES/` et le build les reprend.
+
+**Fiche « Conduite »** (premier jet, que David corrige) :
+
+```text
+Décollez de la piste, jamais d'un taxiway.
+L'ATC de DCS est coupé : annoncez-vous sur la VHF de l'aérodrome au roulage, au décollage et en tour de piste (fréquences dans le README et le plan radio).
+Ne vous alignez pas derrière un avion qui décolle ; dégagez la piste dès l'atterrissage.
+Une zone de combat activée par un autre pilote est la sienne : demandez avant de la désactiver ou de la nettoyer.
+Nettoyez VOS zones de combat en les désactivant avant de partir.
+```
+
+**Fiche « Commandes »** :
+
+```text
+Marqueur : carte F10, clic droit, « Ajouter un marqueur », tapez la commande, validez.
+Paliers : [ouvert] tout le monde · [pilote VEAF] pilote que le serveur connaît · [confiance] membre de confiance. Un pilote que le serveur ne connaît pas ajoute « , password <mot de passe du palier> » à son marqueur.
+
+-cas : une zone d'appui aérien rapproché, des groupes dispersés autour du marqueur, terminée par le menu F10 [pilote VEAF]
+-shilka, -manpads, -sa6, -sa11, -sa15, -samSR, -samLR : une défense aérienne à neutraliser ou à éviter [pilote VEAF]
+-armor, -infantry : une cible au sol [pilote VEAF]
+-convoy, dest <point> : une cible mobile [pilote VEAF]
+-cap <type> (ex. -cap Su-27) : une cible aérienne [pilote VEAF]
+-tankerlow, -tankerhigh : le ravitailleur le plus proche au FL120 / FL220 [confiance]
+-farp <nom>, -fob : une base avancée [pilote VEAF]
+-jtac (laser 1688), -smoke (option color), -tacan : désignation, marque visuelle, balise [ouvert]
+-point <nom> : nommer un point (la destination d'un convoi) [ouvert]
+-destroy : retire ce qui est à moins de 100 m du marqueur [confiance]
+_spawn unit, name <type DCS>, multiplier 4 : un type précis, là où -armor tire au hasard [pilote VEAF]
+
+Options : side red/blue, defense 0-5, armor 0-5, size.
+Le reste passe par le menu F10 › VEAF : ZONES DE COMBAT, MOYENS, OPS PORTE-AVIONS.
+```
+
+Les paliers sont ceux du code au 10/11/2026 (`veafShortcuts.lua`, puis la commande que l'alias lance) ; **aucun mot de passe** sur aucune fiche, ni dans `docs/kneeboard.json`.
+Une mission en anglais prend les fiches du prompt anglais.
+
 ## 5. Ordre de construction
 
 1. `scaffold_mission` dans le dossier vide.
@@ -511,7 +572,8 @@ Quand une question de la section 1 n'a pas de réponse dans ce tableau, décide,
    avec le briefing de chacune, missions scénarisées, QRA, CAP, combat entre joueurs et arène, plan radio
    bleu et rouge, météo et heure de base, commandes utiles ; puis « Pour les créateurs de mission » :
    construire, fichiers, régénérer ce document, limites connues.
-9. **Mission de test locale** (section 8).
+9. **Kneeboard** (4.15) : `build_mission_briefing` en `kneeboard_only`, depuis le README et `mission.yaml` ; le contenu passé gardé dans `docs/kneeboard.json`.
+10. **Mission de test locale** (section 8).
 
 Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'apprêtes à faire.
 
@@ -552,7 +614,8 @@ l'époque ou les camps ; lancer DCS.
     lit (`clouds`, `season.temperature`, `wind`) : pas de nuages au sol, et le vent lu tel que DCS le simule dans `inspect_built_mission`, jamais le réglage ;
   - le profil `LOCAL_TEST` construit sans sécurité, la configuration par défaut avec ;
   - les images de briefing présentes dans le `.miz`, listées dans `pictureFileNameB` et
-    `pictureFileNameN`, `pictureFileNameR` vide (4.13).
+    `pictureFileNameN`, `pictureFileNameR` vide (4.13) ;
+  - le kneeboard (4.15) : ses pages dans le `.miz`, les trois fiches en tête, une page par zone, et les images de briefing de la mission inchangées par l'appel.
 - **Lance `veaf-tools dcs mission-check` sur la mission construite** avant de remettre le briefing : sa vérification du vent se passe de DCS, et échoue quand le vent du briefing contredit celui que DCS simule.
 - **Relis tes briefings** : chaque distance, cap, altitude et nom de lieu recalculé ou sourcé.
 - **Livre une mission de test locale**, copie du build `LOCAL_TEST` (jamais dans les sources) avec : un

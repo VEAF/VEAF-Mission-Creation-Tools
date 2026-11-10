@@ -247,4 +247,4 @@ class TestTheReconPhotos:
 
         image = _photo(tmp_path, "tall", None, size=(400, 800))
         page = Image.open(io.BytesIO(photo_page("T", [(image, "x")])))
-        assert page.size == (1536, 2304)
+        assert page.size == (1024, 1536)

@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-RADIO-PRESET-CAPACITY](FIX-RADIO-PRESET-CAPACITY/PRD.md) · ✅
+
+The OH-58D, Mi-24P and CH-47F radios declare their capacity from their module's `panelRadio` channel count (Kiowa FM: 21; 32 crashed the client at spawn), and a truncation warns at build, once per radio. The shipped defaults raise it for the Kiowa template, whose 30-entry `fm_supplement` gave 32 FM presets. Reported by David, 2026-11-10.
+
 ### [FIX-KNEEBOARD-PAGE-WEIGHT](FIX-KNEEBOARD-PAGE-WEIGHT/PRD.md) · ✅
 
 The kneeboard pages saved at 1024 px and JPEG quality 80 instead of 1536 px and 88, after the Open Training kneeboard added 9 to 18 MB per mission. Drawn as before, only brought down when saved. One ticket; decided by David (2026-11-10).

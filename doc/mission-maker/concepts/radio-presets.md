@@ -59,6 +59,17 @@ vide sur la radio. Une fréquence littérale, elle, n'est jamais retirée.
 Symptôme à surveiller : `presets-validation-report.md` apparaît à la racine du dossier de mission
 après un build. Il n'est écrit que s'il y a un problème, et supprimé quand il n'y en a plus.
 
+## Une radio a une capacité {#capacity}
+
+Une radio de cockpit ne tient qu'un nombre fixe de presets, et une liste plus longue est **coupée à la fin, avec un warning au build**.
+Le warning nomme le type, la radio, sa capacité et le nombre de canaux retirés : ce sont des canaux qu'un pilote ne trouvera pas dans le cockpit.
+
+Exemple : les deux radios FM de l'OH-58D Kiowa tiennent 21 presets, `C`, `M` puis 1 à 19.
+Un `fm_supplement` de 30 entrées leur en donnait 32, et le client DCS plantait au spawn en multijoueur ; le build les arrête maintenant à 21.
+Pour que le Kiowa ait toute la liste, gardez les listes FM à 20 entrées au plus.
+
+Les capacités déclarées viennent du nombre de canaux que le module de l'appareil déclare lui-même (OH-58D, Mi-24P, CH-47F).
+
 ## La planchette {#kneeboard}
 
 Chaque type d'appareil reçoit sa page `KNEEBOARD/<type>/IMAGES/presets.png` : une colonne par radio, titrée avec le poste du cockpit (`1. COMM 1 · ARC-210`) et sa bande, puis le numéro de canal, le nom et la fréquence.

@@ -81,7 +81,7 @@ Déclarées par radio physique (index 1-based, ordre des specs / du `.miz`) dans
 | `keyed_groups: {block_size, bases}` | **Mapping par clé** (ADR 0012) : plusieurs rôles partagent une radio, chaque canal placé par sa **clé** (Group = `base + clé`, slot = `((Group − min_base) mod block_size) + 1`). Trous préservés, débordement rebouclé sur le slot 1 (le Group 100 du Viggen recycle le 20ᵉ canal de `primary_2`). Une clé au-delà de la part du rôle (`block_size / nb_rôles`) est droppée + `WARNING`. |
 | `trailing_specials: [{…}, …]` | **Canaux spéciaux en fin de radio.** Chaque entrée est soit une **constante d'airframe** `{freq, mod}` (ex. E/F/G du Viggen), soit **issue du plan** `{priority: N}` — la fréquence vient du canal marqué `priority: N` (toujours AM ; slot vide si absent). `label` optionnel = nom pilote (Sp1, H…). Surchargeable via `presets_assignments`. |
 | `reserved_head_slots: [idx, …]` | **Slot(s) de tête réservé(s)** alimentés par un index de la liste (slot « M » / « C »). `[20]` = dernière entrée déplacée en tête ; `[1, 20]` = 1re dupliquée en tête puis dernière déplacée. Un index au-delà d'une liste plus courte prend la **dernière** entrée de la liste : le slot existe dans le cockpit quelle que soit la longueur de la liste. `head_labels: [C, M]` nomme les slots de tête sur le kneeboard ; les presets qui suivent sont numérotés à partir de 01. Exclusif avec `rotate_last_to_head`. |
-| `capacity: <int>` | **Capacité physique** de la radio : l'excédent est tronqué en fin de liste (silencieux, log debug). |
+| `capacity: <int>` | **Capacité physique** de la radio, tirée du nombre de canaux de la table `panelRadio` du module : l'excédent est tronqué en fin de liste, avec un `WARNING` par radio et par build (FIX-RADIO-PRESET-CAPACITY). |
 
 **Ordre de composition** quand plusieurs primitives coexistent sur une radio :
 contenu de base (`keyed_groups` *ou* liste de rôle) → (chemin liste seulement)
@@ -100,9 +100,9 @@ autres passent par le défaut par bande.
 
 | Type | Radios | Particularité |
 |---|---|---|
-| **Mi-24P** | 2 (R-863 V/UHF + R-828 FM) | Radio 1 `primary_1` avec **rotation canal 0** ; radio 2 `fm_substitute` standard. |
-| **CH-47Fbl1** | 3 (ARC-186 + ARC-164 + ARC-201D) | Radio 1 `fm_substitute` **avec rotation** (bande AM secondaire trompe le classement par bande → entrée explicite requise) ; radio 2 `primary_1` avec rotation ; radio 3 `fm_secondary`. |
-| **OH58D** | 4 (UHF, VHF, FM1, FM2) | Radios 1-2 : slot « M » réservé (`reserved_head_slots: [20]`). Radios 3-4 : slots « C » + « M » (`[1, 20]`). |
+| **Mi-24P** | 2 (R-863 V/UHF + R-828 FM) | Radio 1 `primary_1` avec **rotation canal 0** ; radio 2 `fm_substitute` standard. Capacités 20 et 10. |
+| **CH-47Fbl1** | 3 (ARC-186 + ARC-164 + ARC-201D) | Radio 1 `fm_substitute` **avec rotation** (bande AM secondaire trompe le classement par bande → entrée explicite requise) ; radio 2 `primary_1` avec rotation ; radio 3 `fm_secondary`. Capacités 20, 20 et 10. |
+| **OH58D** | 4 (UHF, VHF, FM1, FM2) | Radios 1-2 : slot « M » réservé (`reserved_head_slots: [20]`). Radios 3-4 : slots « C » + « M » (`[1, 20]`). Capacités 20, 20, 21 et 21 : plus de presets FM fait planter le client au spawn. |
 | **AJS37** (Viggen) | 1 (V/UHF, 47 slots) | **`keyed_groups`** (bloc Groups 100-139 : `primary_1` clés 1-20 → 101-120, `primary_2` clés 1-20 → 121-139 + recyclage du Group 100) + **7 `trailing_specials`** slots 41-47 : Sp1/Sp2/Sp3 + H **issus du plan** (`priority` 1-4), E/F/G **en dur**. Casse volontairement l'iso-fonctionnalité ADR 0003 (slot 1 = 20ᵉ de `primary_2`, plus un mannequin). |
 
 Le détail slot-par-slot de chaque type (avec les commentaires expliquant le

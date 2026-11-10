@@ -1,6 +1,6 @@
 # 02 — A capacity truncation warns at build
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

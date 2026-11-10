@@ -59,6 +59,17 @@ stays empty on the radio. A literal frequency, on the other hand, is never dropp
 The symptom to watch for: `presets-validation-report.md` appearing at the root of the mission folder
 after a build. It is only written when something is wrong, and deleted once nothing is.
 
+## A radio has a capacity {#capacity}
+
+A cockpit radio holds a fixed number of presets, and a longer list is **cut at the end, with a warning at build**.
+The warning names the type, the radio, its capacity and how many channels were dropped: those are channels a pilot will not find in the cockpit.
+
+Example: the OH-58D Kiowa's two FM radios hold 21 presets, `C`, `M` then 1 to 19.
+A 30-entry `fm_supplement` gave them 32, and the DCS client crashed at spawn in multiplayer; the build now stops them at 21.
+For the Kiowa to get the whole list, keep FM lists at 20 entries or fewer.
+
+The declared capacities come from the channel count the aircraft's module declares itself (OH-58D, Mi-24P, CH-47F).
+
 ## The kneeboard {#kneeboard}
 
 Each aircraft type gets its page `KNEEBOARD/<type>/IMAGES/presets.png`: one column per radio, titled with the cockpit set (`1. COMM 1 · ARC-210`) and its band, then the channel number, the name and the frequency.

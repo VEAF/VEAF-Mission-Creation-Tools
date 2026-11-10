@@ -1,6 +1,6 @@
 # 03 — Other types, known limitation, doc
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

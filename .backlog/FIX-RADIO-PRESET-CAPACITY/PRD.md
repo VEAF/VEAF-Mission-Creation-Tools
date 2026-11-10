@@ -1,6 +1,6 @@
 # FIX-RADIO-PRESET-CAPACITY — Never write more presets than a radio holds
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 David, 2026-11-10: the OH-58D Kiowa crashes the DCS client at spawn, in multiplayer, on the Caucasus, Syria, GermanyCW and Marianas Open Trainings; it works on Normandy, Sinai and PersianGulf.
 The crash is native, during the cockpit devices' initialization: the log stops right after the LMFD lua state, with no crash report.
@@ -45,8 +45,44 @@ David validates it first on Syria, in game, solo — outside this lot (see *Orde
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [The OH-58D FM radios declare their capacity](tickets/01-oh58d-fm-capacity.md) | ⬜ |
-| 02 | [A capacity truncation warns at build](tickets/02-truncation-warning.md) | ⬜ |
-| 03 | [Other types, known limitation, doc](tickets/03-other-types-and-doc.md) | ⬜ |
+| 01 | [The OH-58D FM radios declare their capacity](tickets/01-oh58d-fm-capacity.md) | ✅ |
+| 02 | [A capacity truncation warns at build](tickets/02-truncation-warning.md) | ✅ |
+| 03 | [Other types, known limitation, doc](tickets/03-other-types-and-doc.md) | ✅ |
 
 Python (`presets_injector/`), TDD. One branch, one PR.
+
+## Outcome — 2026-11-10
+
+### What the module files say (D2, D4)
+
+Every aircraft module declares, in its Lua definition, a `panelRadio` table listing each radio and its channels: that list is the radio's channel count as DCS knows it. Read for the four types of `dcs-radio-layouts.yaml`:
+
+| Type | File | Radio | Channels in `panelRadio` | Declared |
+|---|---|---|---|---|
+| OH58D | `CoreMods/aircraft/OH-58D/OH58D.lua` | 1 UHF AM | 20 (M, 1..19) | `capacity: 20` |
+| | | 2 VHF AM | 20 (M, 1..19) | `capacity: 20` |
+| | | 3 VHF FM1 | 21 (C, M, 1..19) | `capacity: 21` |
+| | | 4 VHF FM2 | 21 (C, M, 1..19) | `capacity: 21` |
+| Mi-24P | `CoreMods/aircraft/Mi-24P/Mi-24P.lua` | 1 R-863 | 20 (0..19) | `capacity: 20` |
+| | | 2 R-828 | 10 | `capacity: 10` |
+| CH-47Fbl1 | `CoreMods/aircraft/CH-47F/CH-47F.lua` | 1 ARC-186 | 20 | `capacity: 20` |
+| | | 2 ARC-164 | 20 | `capacity: 20` |
+| | | 3 ARC-201D | 10 | `capacity: 10` |
+| AJS37 | `CoreMods/aircraft/AJS37/Entry/AJS37.lua` | 1 V/UHF | 47 (Groups 100..139 + 7 specials) | none: `keyed_groups` fills exactly 47 slots by construction, and truncation renumbers, which would break its sparse slots if it ever fired |
+
+So the OH-58D FM count is **documented**, not only measured: 21, the count that works on Sinai (D2). The module also documents 20 on the UHF/VHF radios, which a 30-entry `primary_1` or `primary_2` overflowed too (31 slots); they get a capacity under D4.
+`Mods/aircraft/` holds none of these four: they live under `CoreMods/aircraft/`.
+
+The Tripack v5 preset confirms the Mi-24P counts independently: its hand-made R-828 list has 10 channels and its R-863 list 20. With the capacities declared, the packer now reproduces that preset exactly, so convert-v5 no longer writes a dedicated Mi-24P preset (`test_presets_fidelity.py` adjusted to that).
+
+### The warning (D3)
+
+`_truncate_to_capacity` logs a warning, once per (type, radio, dropped count) per `PresetsManager`, i.e. per build; convert-v5 keeps its own set for its comparison pass. ADR 0010 is amended.
+
+**D3's premise does not hold, measured:** the shipped defaults do raise it. The shipped `dynamic-slot-templates.yaml` carries a blue OH-58D template and the shipped `fm_supplement` has 30 entries, so packing the 122 (coalition, type) pairs of the shipped templates with the shipped `presets.yaml` gives **two warnings** (OH58D radios 3 and 4, 11 channels dropped each) and no other.
+Before this lot, every mission built from the defaults gave its Kiowa template 32 FM presets, the count that crashes. The warning is that defect becoming visible; trimming the shipped `fm_supplement` to 20 entries would silence it, but D5 keeps the channel lists out of this lot.
+
+### Left out
+
+- Types without a layout entry (the band-based default, most of the catalogue) have no capacity; their `panelRadio` counts could be extracted for all of them into `dcs-radio-specs.yaml`, outside D4's scope.
+- Where between 21 and 32 FM presets the Kiowa starts crashing is not measured.

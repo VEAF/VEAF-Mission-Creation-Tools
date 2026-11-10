@@ -896,6 +896,24 @@ takes the freed id, nobody sees it, and a stale click on the removed entry lands
 *What it cost:* Wrong F10 commands fired in multiplayer, among them a CTLD smoke instead of a troop embark
 (VEAF/CTLD#257).
 
+### An OH-58D whose FM radios carry 32 presets crashes the DCS client at spawn {#oh58d-crashes-with-too-many-fm-presets}
+
+Measured **2026-11-10**.
+
+The Kiowa's two FM sets (radios 3 and 4) hold 21 presets: `C`, `M`, then 1 to 19, the channel count of
+their `panelRadio` table in `CoreMods/aircraft/OH-58D/OH58D.lua`. A mission that writes more still loads in
+the Mission Editor, and the client crashes at spawn, in multiplayer, during the cockpit initialisation: the
+log stops after the LMFD Lua state, with no crash report.
+
+Measured on the Open Trainings, 2026-11-10: Caucasus, Syria, GermanyCW and Marianas wrote 32 FM presets
+(a 30-entry `fm_supplement`) and crashed; Sinai and PersianGulf wrote 21 and worked. Where between 21 and
+32 the crash starts is not measured.
+
+**What to do:** Keep the FM lists at 20 entries or fewer. From 6.37.0 the build stops at the radio's capacity by itself and
+says so (see `radio-presets-beyond-capacity`).
+
+*What it cost:* Four Open Trainings unflyable in the Kiowa, 2026-11-10.
+
 ## Ground AI {#ground-ai}
 
 ### A convoy under fire drives on, and its `getDetectedTargets` can stay empty {#a-convoy-drives-through-an-ambush}

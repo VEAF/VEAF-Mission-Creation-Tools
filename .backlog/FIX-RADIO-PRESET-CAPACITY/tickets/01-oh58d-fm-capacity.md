@@ -1,6 +1,6 @@
 # 01 — The OH-58D FM radios declare their capacity
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

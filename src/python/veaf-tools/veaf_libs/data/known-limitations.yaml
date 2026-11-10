@@ -199,6 +199,20 @@ limitations:
   workaround: |
     None in flight; an escorted convoy rarely meets a second contact after taking its zone.
 
+- id: transport-mission-menu-piles-up-in-french
+  kind: tool
+  area: runtime
+  title: "In a French mission, the TRANSPORT MISSION menu never removes an entry, so its entries pile up"
+  symptom: |
+    `veafTransportMission` removes its F10 entries by their **English** titles
+    (`delCommand(..., "Request smoke on drop zone")`, "Skip current objective"…) while it adds them with
+    labels in the mission's language, and `delCommand` compares titles. In a French mission no removal
+    happens: after a smoke request both "request" and "marked" entries are shown, each reset adds
+    another "request", and the mission's entries stay after it ends. The CAS mission had the same
+    defect, measured 2026-11-10 and fixed by FEAT-RADIO-MENU-ORDER (its menu is now fixed).
+  workaround: |
+    None in flight: use the first matching entry. An English mission is not affected.
+
 - id: briefing-channels-are-dcs-slots
   kind: tool
   area: mcp

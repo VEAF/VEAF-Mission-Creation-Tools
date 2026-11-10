@@ -1,6 +1,6 @@
 # 01 — Root menus sort by a fixed key
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

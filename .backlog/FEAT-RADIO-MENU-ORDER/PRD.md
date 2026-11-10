@@ -1,6 +1,6 @@
 # FEAT-RADIO-MENU-ORDER — The VEAF F10 menus in the order pilots use them
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 David, 2026-11-10: "some menus are used more often than others, like the combat zones or the weather, and they are not always at the top. Typically the combat zones are the last menu in the list. That's really bad."
 
@@ -47,12 +47,20 @@ Read every root menu and root command from the code before fixing the keys: this
 - `veafCasMission` removes its entries by **English literal** titles (`delCommand(..., "Target information")`, around line 1359), while it adds them with `veaf.t(...)` labels, French in a French mission. If `delCommand` matches the displayed title, those removals never happened in French: D4 removes the question, but say what was measured.
 - The order seen in game on an OT: the root's real list and which entries land on page 2 (the demo mission or an OT, with `RADIO.menu_stats` if useful).
 
+## Outcome — 2026-11-10
+
+- **The mechanism.** `veafRadio.ROOT_MENU_ORDER` lists the i18n keys in the order of D2; each module adds its root menu with `veafRadio.addRootMenu(key)`, which sets a numeric `rootRank` on the node. The rank is a field of its own rather than the `sortKey`, because `veafAssist` already gives its two top-level commands a textual `sortKey` ("Assistance 1", "Assistance 2"). At the root only, commands and menus sort together, by rank, then by `sortKey` or title: an unlisted entry (CTLD, Assistance and its two commands, a command added straight under VEAF) comes after rank 13, the CAS menu after everything.
+- **The root read from the code** matches the PRD's table, plus four unlisted entries: `menu.ctld.root`, `assist.menu.root`, and the two `assist.menu.confirm` / `assist.menu.skip` commands. The spotter network adds one root menu per coalition, same key, same rank.
+- **The CAS menu (D3, D4).** Built once: help, target information, skip, and the markers sub-menu with smoke and flare. "A CAS mission runs" is its watchdog being scheduled. Every entry answers "No CAS mission: place a -cas marker on the F10 map" with no mission; smoke and flare answer "already requested" until their reset; the end of a mission cancels the resets. A whole mission makes no DCS menu call (test). The "no CAS mission" line of D3 is the answer of each entry rather than an entry of its own: a line shown only with no mission running would be the one entry still created and deleted at every mission.
+- **Measured: the English-literal `delCommand`.** Run under DCS's `luae.exe` on the pre-lot code, with the real `veafRadio`: in English the removals work; in French none happens. After a smoke request the markers menu shows both "Demander de la fumée sur l'objectif" and "Objectif marqué à la fumée rouge"; after the reset a second "Demander de la fumée…" is added; after the mission ends "Infos sur l'objectif" and "Passer l'objectif en cours" stay, and the next `-cas` adds them again. `"Get current objective situation"` matched no entry in any language: none was ever added. `veafTransportMission` has the same defect, left as is and recorded in `known-limitations.yaml` (`transport-mission-menu-piles-up-in-french`).
+- **Not done here:** the demo mission's tour step (CLAUDE.md §9 item 9) lives in `VEAF/VEAF-Demo-Mission-v6`, a repository of its own; it is left as a follow-up. The order was not checked in game.
+
 ## Tickets
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [Root menus sort by a fixed key](tickets/01-root-sort-keys.md) | ⬜ |
-| 02 | [The CAS menu stays, its entries stay](tickets/02-cas-menu-fixed.md) | ⬜ |
-| 03 | [Doc, CHANGELOG, demo step](tickets/03-doc.md) | ⬜ |
+| 01 | [Root menus sort by a fixed key](tickets/01-root-sort-keys.md) | ✅ |
+| 02 | [The CAS menu stays, its entries stay](tickets/02-cas-menu-fixed.md) | ✅ |
+| 03 | [Doc, CHANGELOG, demo step](tickets/03-doc.md) | ✅ |
 
 Lua runtime (`src/scripts/veaf/`), luaunit tests with the DCS mocks; read the F10 menu id recycling trap (`docs/agents/dcs-runtime-traps.md`) before touching menus. One branch, one PR.

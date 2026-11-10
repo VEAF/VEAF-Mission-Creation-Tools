@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FEAT-RADIO-MENU-ORDER](FEAT-RADIO-MENU-ORDER/PRD.md) · 🔄
-
-The VEAF F10 root menus in the order pilots use them — combat zones, weather, assets first — through a fixed `sortKey` per root menu, the same in every language, instead of the alphabetical order that puts ZONES DE COMBAT last in French. The CAS menu stays forever at the end, and its entries stop being deleted and recreated. Three tickets; decided with David (2026-11-10).
-
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

@@ -61,11 +61,11 @@ All VEAF MCT features are available from **F10 → Other → VEAF**. (The radio 
 ```mermaid
 graph TD
     F10[F10 Radio Menu] --> Other[Other] --> VEAF[VEAF]
-    VEAF --> Res[ASSETS]
-    VEAF --> CAS[CAS MISSION]
     VEAF --> CZ[COMBAT ZONES]
+    VEAF --> Res[ASSETS]
     VEAF --> Miss[MISSIONS]
     VEAF --> Assist[ASSISTANCE]
+    VEAF --> CAS[CAS MISSION]
     Assist --> AS1["Cold start — F-16C"]
     Res --> A1["Arco 1-1 — tanker"]
     Res --> A2["Overlord — AWACS"]
@@ -75,6 +75,24 @@ graph TD
 > 📷 *Screenshot coming soon: VEAF submenu in the F10 radio menu.*
 
 The exact contents depend on what the mission maker has enabled: some missions will not have every entry.
+
+The menus **always come in the same order**, whatever the language of the mission — the most used first:
+
+1. CAMPAIGN (in a campaign mission)
+2. COMBAT ZONES
+3. WEATHER AND ATC
+4. ASSETS
+5. MISSIONS
+6. CARRIER OPS
+7. TRANSPORT MISSION
+8. SPAWN
+9. SPOTTER NETWORK
+10. MOVE
+11. NAMED POINTS
+12. GUARDIAN
+13. OPPOSITION
+
+Then come the other entries (ASSISTANCE, CTLD…), in alphabetical order, and **CAS MISSION always last**. An F10 menu page holds 10 entries: past that, the last one is "Next page", and CAS MISSION then ends up on page 2.
 
 ---
 
@@ -288,7 +306,7 @@ The **CAS** generator (*Close Air Support*) creates a zone of ground targets wit
 
 **Workflow:**
 
-1. **Generate** — place a `_cas` marker on the map (with optional parameters, see below). The **CAS MISSION** submenu then appears under F10 → VEAF.
+1. **Generate** — place a `_cas` marker on the map (with optional parameters, see below). The **CAS MISSION** submenu, last under F10 → VEAF, is always there: with no CAS mission running, its entries answer "No CAS mission: place a -cas marker on the F10 map".
 2. **Mark the zone** — *Target markers → Request smoke on target area* or *Request illumination flare over target area* (3-minute cooldown between marks).
 3. **Get info** — *Target information*: position, unit composition, status.
 4. **Engage** — attack the marked targets.

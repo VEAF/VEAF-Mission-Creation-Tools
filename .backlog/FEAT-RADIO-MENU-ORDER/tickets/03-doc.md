@@ -1,6 +1,6 @@
 # 03 — Doc, CHANGELOG, demo step
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

@@ -1,6 +1,6 @@
 # 02 — The CAS menu stays, its entries stay
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

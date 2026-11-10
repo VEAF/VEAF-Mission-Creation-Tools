@@ -485,7 +485,7 @@ The tool then touches the kneeboard alone (the `src/mission/KNEEBOARD/IMAGES/` f
 What you pass it:
 
 - `title`: the mission's name.
-- `sheets`, in this order, at the head of the kneeboard:
+- `sheets`, in this order, at the head of the kneeboard; `paragraphs` as a **list**, one item per line (a string joins its lines into one paragraph):
   1. **Mission** — you condense it from the README, which stays the source: what the Open Training is, the home base and the other bases, the support (tankers with TACAN, frequency and level, AWACS, carriers), the arena, the bullseye. Ten lines at most, every figure copied from the README, never computed again.
   2. **Conduct** — the text below, **copied as it is**.
   3. **Commands** — the text below, **copied as it is**: the list is settled, do not recompose it from one mission to the next.

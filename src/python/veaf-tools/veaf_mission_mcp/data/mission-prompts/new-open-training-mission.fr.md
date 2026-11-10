@@ -503,7 +503,7 @@ L'outil ne touche alors qu'au kneeboard (dossier `src/mission/KNEEBOARD/IMAGES/`
 Ce que tu lui passes :
 
 - `title` : le nom de la mission.
-- `sheets`, dans cet ordre, en tête du kneeboard :
+- `sheets`, dans cet ordre, en tête du kneeboard ; `paragraphs` en **liste**, un élément par ligne (une chaîne recolle ses lignes en un paragraphe) :
   1. **Mission** — tu la condenses depuis le README, qui reste la source : ce qu'est l'Open Training, la base mère et les autres bases, le soutien (ravitailleurs avec TACAN, fréquence et niveau, AWACS, porte-avions), l'arène, le bullseye. Dix lignes au plus, chaque chiffre recopié du README, jamais recalculé.
   2. **Conduite** — le texte ci-dessous, **recopié tel quel**.
   3. **Commandes** — le texte ci-dessous, **recopié tel quel** : la liste est arrêtée, ne la recompose pas d'une mission à l'autre.

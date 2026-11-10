@@ -678,6 +678,9 @@ function TestVeafCasMissionReportWithoutBullseye:setUp()
   self._savedGroupName = veafCasMission.casGroupName
   veafCasMission.casGroupName = REPORTED_GROUP
   veafCasMission.afacName = nil
+  -- a CAS mission is running: its watchdog is scheduled
+  self._savedWatchdog = veafCasMission.groupAliveCheckTaskID
+  veafCasMission.groupAliveCheckTaskID = 1
 
   dcs_mocks.addUnit(REPORTED_GROUP .. "-1", {
     getPosition = function()
@@ -716,6 +719,7 @@ function TestVeafCasMissionReportWithoutBullseye:tearDown()
   veaf.outTextForGroup = self._savedOutForGroup
   veafWeatherData = self._savedWeather
   veafCasMission.casGroupName = self._savedGroupName
+  veafCasMission.groupAliveCheckTaskID = self._savedWatchdog
   dcs_mocks.reset()
 end
 

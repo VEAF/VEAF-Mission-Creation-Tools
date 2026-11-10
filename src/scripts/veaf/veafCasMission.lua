@@ -412,6 +412,10 @@ veafCasMission.smokeResetTaskID = "none"
 -- Flare reset function id
 veafCasMission.flareResetTaskID = "none"
 
+-- Whether a smoke or a flare can be requested, false from a request until its reset
+veafCasMission.smokeAvailable = true
+veafCasMission.flareAvailable = true
+
 veafCasMission.SIDE_RED = coalition.side.RED
 veafCasMission.SIDE_BLUE = coalition.side.BLUE
 
@@ -1177,34 +1181,9 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     false
   )
 
-  -- build menu for each player
-  veafRadio.addCommandToSubmenu(
-    veaf.t("menu.casmission.info"),
-    veafCasMission.rootPath,
-    veafCasMission.reportTargetInformation,
-    nil,
-    veafRadio.USAGE_ForGroup
-  )
-
-  -- add radio menus for commands
-  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.casmission.skip"), veafCasMission.rootPath, veafCasMission.skipCasTarget)
-  veafCasMission.targetMarkersPath = veafRadio.addSubMenu(veaf.t("menu.casmission.markers"), veafCasMission.rootPath)
-  veafRadio.addCommandToSubmenu(
-    veaf.t("menu.casmission.request_smoke"),
-    veafCasMission.targetMarkersPath,
-    veafCasMission.smokeCasTargetGroup
-  )
-  veafRadio.addCommandToSubmenu(
-    veaf.t("menu.casmission.request_flare"),
-    veafCasMission.targetMarkersPath,
-    veafCasMission.flareCasTargetGroup
-  )
-
   local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.casGroupName)
   local message = veaf.t("cas.spawn_confirmation", nbVehicles, nbInfantry)
   trigger.action.outText(message, 5)
-
-  veafRadio.refreshRadioMenu()
 
   -- start checking for targets destruction
   veafCasMission.casGroupWatchdog()
@@ -1213,6 +1192,10 @@ end
 -- Ask a report
 -- @param int groupId
 function veafCasMission.reportTargetInformation(unitName)
+  if not veafCasMission.isRunning() then
+    veaf.outTextForGroup(unitName, veaf.t("cas.no_mission"), 10)
+    return
+  end
   -- generate information dispatch
   local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.casGroupName)
 
@@ -1268,48 +1251,50 @@ end
 --- add a smoke marker over the target area
 function veafCasMission.smokeCasTargetGroup()
   veaf.loggers.get(veafCasMission.Id):trace("veafCasMission.smokeCasTargetGroup START")
+  if not veafCasMission.isRunning() then
+    trigger.action.outText(veaf.t("cas.no_mission"), 5)
+    return
+  end
+  if not veafCasMission.smokeAvailable then
+    trigger.action.outText(veaf.t("cas.smoke_already_requested"), 5)
+    return
+  end
   veafSpawn.spawnSmoke(veaf.getAveragePosition(veafCasMission.casGroupName), trigger.smokeColor.Red)
   trigger.action.outText(veaf.t("cas.smoke_requested"), 5)
-  veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request smoke on target area")
-  veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.smoke_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
+  veafCasMission.smokeAvailable = false
   veafCasMission.smokeResetTaskID =
     veaf.scheduleFunction(veafCasMission.smokeReset, {}, timer.getTime() + veafCasMission.SecondsBetweenSmokeRequests)
-  veafRadio.refreshRadioMenu()
 end
 
---- Reset the smoke request radio menu
+--- Make the smoke request available again
 function veafCasMission.smokeReset()
-  veafRadio.delCommand(veafCasMission.targetMarkersPath, "Target is marked with red smoke")
-  veafRadio.addCommandToSubmenu(
-    veaf.t("menu.casmission.request_smoke"),
-    veafCasMission.targetMarkersPath,
-    veafCasMission.smokeCasTargetGroup
-  )
+  veafCasMission.smokeAvailable = true
+  veafCasMission.smokeResetTaskID = "none"
   trigger.action.outText(veaf.t("cas.smoke_available"), 5)
-  veafRadio.refreshRadioMenu()
 end
 
 --- add an illumination flare over the target area
 function veafCasMission.flareCasTargetGroup()
+  if not veafCasMission.isRunning() then
+    trigger.action.outText(veaf.t("cas.no_mission"), 5)
+    return
+  end
+  if not veafCasMission.flareAvailable then
+    trigger.action.outText(veaf.t("cas.illum_already_requested"), 5)
+    return
+  end
   veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafCasMission.casGroupName))
   trigger.action.outText(veaf.t("cas.illum_requested"), 5)
-  veafRadio.delCommand(veafCasMission.targetMarkersPath, "Request illumination flare over target area")
-  veafRadio.addCommandToSubmenu(veaf.t("menu.casmission.flare_done"), veafCasMission.targetMarkersPath, veaf.emptyFunction)
+  veafCasMission.flareAvailable = false
   veafCasMission.flareResetTaskID =
     veaf.scheduleFunction(veafCasMission.flareReset, {}, timer.getTime() + veafCasMission.SecondsBetweenFlareRequests)
-  veafRadio.refreshRadioMenu()
 end
 
---- Reset the flare request radio menu
+--- Make the flare request available again
 function veafCasMission.flareReset()
-  veafRadio.delCommand(veafCasMission.targetMarkersPath, "Target area is marked with illumination flare")
-  veafRadio.addCommandToSubmenu(
-    veaf.t("menu.casmission.request_flare"),
-    veafCasMission.targetMarkersPath,
-    veafCasMission.flareCasTargetGroup
-  )
+  veafCasMission.flareAvailable = true
+  veafCasMission.flareResetTaskID = "none"
   trigger.action.outText(veaf.t("cas.illum_available"), 5)
-  veafRadio.refreshRadioMenu()
 end
 
 --- Checks if the vehicles group is still alive, and if not announces the end of the CAS mission
@@ -1327,6 +1312,10 @@ end
 
 --- Called from the "Skip target" radio menu : remove the current CAS target group
 function veafCasMission.skipCasTarget()
+  if not veafCasMission.isRunning() then
+    trigger.action.outText(veaf.t("cas.no_mission"), 5)
+    return
+  end
   veafCasMission.cleanupAfterMission()
   trigger.action.outText(veaf.t("cas.objective_cleaned"), 5)
 end
@@ -1355,17 +1344,17 @@ function veafCasMission.cleanupAfterMission()
   end
   veafCasMission.groupAliveCheckTaskID = "none"
 
-  veaf.loggers.get(veafCasMission.Id):trace("update the radio menu 1")
-  veafRadio.delCommand(veafCasMission.rootPath, "Target information")
-
-  veaf.loggers.get(veafCasMission.Id):trace("update the radio menu 2")
-  veafRadio.delCommand(veafCasMission.rootPath, "Skip current objective")
-  veaf.loggers.get(veafCasMission.Id):trace("update the radio menu 3")
-  veafRadio.delCommand(veafCasMission.rootPath, "Get current objective situation")
-  veaf.loggers.get(veafCasMission.Id):trace("update the radio menu 4")
-  veafRadio.delSubmenu(veafCasMission.targetMarkersPath, veafCasMission.rootPath)
-
-  veafRadio.refreshRadioMenu()
+  -- the markers are available again for the next mission; the menu itself does not change
+  if veafCasMission.smokeResetTaskID ~= "none" then
+    veaf.removeFunction(veafCasMission.smokeResetTaskID)
+  end
+  veafCasMission.smokeResetTaskID = "none"
+  veafCasMission.smokeAvailable = true
+  if veafCasMission.flareResetTaskID ~= "none" then
+    veaf.removeFunction(veafCasMission.flareResetTaskID)
+  end
+  veafCasMission.flareResetTaskID = "none"
+  veafCasMission.flareAvailable = true
   veaf.loggers.get(veafCasMission.Id):trace("skipCasTarget DONE")
 end
 
@@ -1373,12 +1362,40 @@ end
 -- Radio menu and help
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Build the initial radio menu
+--- True while a CAS mission runs: its watchdog is scheduled from the spawn until the cleanup.
+function veafCasMission.isRunning()
+  return veafCasMission.groupAliveCheckTaskID ~= "none"
+end
+
+--- Build the radio menu, once: it stays all mission long, last of the VEAF menu, with the same
+--- entries whether a CAS mission runs or not, each saying so when it cannot act (FEAT-RADIO-MENU-ORDER).
+--- Deleting and recreating menu entries frees DCS menu ids that have to be parked
+--- (FIX-RADIO-MENU-ID-RECYCLING), and the old removals named their entries in English, so in a French
+--- mission none of them happened and the entries piled up (measured 2026-11-10).
 function veafCasMission.buildRadioMenu()
   veafCasMission.rootPath = veafRadio.addRootMenu(veafCasMission.RadioMenuName)
   if not veafRadio.skipHelpMenus then
     veafRadio.addCommandToSubmenu(veaf.t("menu.common.help"), veafCasMission.rootPath, veafCasMission.help, nil, veafRadio.USAGE_ForGroup)
   end
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.casmission.info"),
+    veafCasMission.rootPath,
+    veafCasMission.reportTargetInformation,
+    nil,
+    veafRadio.USAGE_ForGroup
+  )
+  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.casmission.skip"), veafCasMission.rootPath, veafCasMission.skipCasTarget)
+  veafCasMission.targetMarkersPath = veafRadio.addSubMenu(veaf.t("menu.casmission.markers"), veafCasMission.rootPath)
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.casmission.request_smoke"),
+    veafCasMission.targetMarkersPath,
+    veafCasMission.smokeCasTargetGroup
+  )
+  veafRadio.addCommandToSubmenu(
+    veaf.t("menu.casmission.request_flare"),
+    veafCasMission.targetMarkersPath,
+    veafCasMission.flareCasTargetGroup
+  )
 end
 
 function veafCasMission.help(unitName)

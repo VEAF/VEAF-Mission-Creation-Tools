@@ -34,6 +34,13 @@ from mission_briefing.models import ObjectiveArea
 #: The page, pixels: the kneeboard's 2:3, twice ED's 768 px width.
 KNEEBOARD_PAGE = KNEEBOARD_PAGE_SIZE
 
+#: The page as saved, pixels: still 2:3 and sharper than ED's 768 px, at less than half the weight of the
+#: drawn page (FIX-KNEEBOARD-PAGE-WEIGHT: an Open Training's 36 pages weighed 14 MB at 1536 px, quality 88).
+KNEEBOARD_SAVED_PAGE = (1024, 1536)
+
+#: JPEG quality of a saved page.
+KNEEBOARD_JPEG_QUALITY = 80
+
 #: Where the pages go, inside the mission: the folder every aircraft's kneeboard shows.
 KNEEBOARD_FOLDER = "KNEEBOARD/IMAGES"
 
@@ -77,8 +84,10 @@ def _wrap(text: str, font: ImageFont.FreeTypeFont | ImageFont.ImageFont, width: 
 
 
 def _jpeg(page: Image.Image) -> bytes:
+    """A page as the JPEG put in the mission: brought down to :data:`KNEEBOARD_SAVED_PAGE`."""
     buffer = io.BytesIO()
-    page.convert("RGB").save(buffer, format="JPEG", quality=88)
+    saved = page.convert("RGB").resize(KNEEBOARD_SAVED_PAGE, Image.Resampling.LANCZOS)
+    saved.save(buffer, format="JPEG", quality=KNEEBOARD_JPEG_QUALITY)
     return buffer.getvalue()
 
 

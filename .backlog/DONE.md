@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-KNEEBOARD-PAGE-WEIGHT](FIX-KNEEBOARD-PAGE-WEIGHT/PRD.md) · ✅
+
+The kneeboard pages saved at 1024 px and JPEG quality 80 instead of 1536 px and 88, after the Open Training kneeboard added 9 to 18 MB per mission. Drawn as before, only brought down when saved. One ticket; decided by David (2026-11-10).
+
 ### [FEAT-RADIO-MENU-ORDER](FEAT-RADIO-MENU-ORDER/PRD.md) · ✅
 
 The VEAF F10 root menus in the order pilots use them — combat zones, weather, assets first — through a fixed `sortKey` per root menu, the same in every language, instead of the alphabetical order that puts ZONES DE COMBAT last in French. The CAS menu stays forever at the end, and its entries stop being deleted and recreated. Three tickets; decided with David (2026-11-10).

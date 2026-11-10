@@ -13,6 +13,7 @@ from pathlib import Path
 from campaign_manager.mission_picture import FlightPlan, Waypoint
 from mission_briefing.briefing_kneeboard import (
     KNEEBOARD_PAGE,
+    KNEEBOARD_SAVED_PAGE,
     flight_card_blocks,
     is_kneeboard_page,
     map_page,
@@ -38,11 +39,18 @@ def test_the_page_is_the_kneeboards_two_by_three() -> None:
     assert KNEEBOARD_PAGE == KNEEBOARD_PAGE_SIZE
 
 
+def test_a_page_is_saved_smaller_but_still_two_by_three_and_sharper_than_ed_s() -> None:
+    """FIX-KNEEBOARD-PAGE-WEIGHT: drawn at the full page, saved at 1024 px so a mission does not gain 20 MB."""
+    width, height = KNEEBOARD_SAVED_PAGE
+    assert width * KNEEBOARD_PAGE[1] == height * KNEEBOARD_PAGE[0]
+    assert 768 < width < KNEEBOARD_PAGE[0]
+
+
 def test_a_landscape_map_is_fitted_not_stretched(tmp_path: Path) -> None:
     png = tmp_path / "map.png"
     Image.new("RGB", (1600, 900), (10, 200, 10)).save(png)
     data = map_page("3. Overview", png)
-    assert _jpeg_size(data) == KNEEBOARD_PAGE
+    assert _jpeg_size(data) == KNEEBOARD_SAVED_PAGE
     with Image.open(io.BytesIO(data)) as page:
         # the map keeps its 16:9: green across the width, white above and below it
         width, height = page.size
@@ -54,7 +62,7 @@ def test_a_long_text_runs_on_several_pages() -> None:
     blocks = [("Route", [f"W{n}. POINT {n} — N42°00'00\" E041°00'00\"" for n in range(1, 120)])]
     pages = text_pages("Flight card", blocks)
     assert len(pages) > 1
-    assert all(_jpeg_size(page) == KNEEBOARD_PAGE for page in pages)
+    assert all(_jpeg_size(page) == KNEEBOARD_SAVED_PAGE for page in pages)
 
 
 def test_the_flight_card_gives_heading_and_distance_and_no_radio_plan() -> None:

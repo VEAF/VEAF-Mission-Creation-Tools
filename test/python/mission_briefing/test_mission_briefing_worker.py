@@ -259,7 +259,7 @@ class TestTheDcsPictures:
             data = archive.read(f"KNEEBOARD/IMAGES/{report.kneeboard[0]}")
         with Image.open(io.BytesIO(data)) as page:
             assert page.format == "JPEG"
-            assert page.size == (1536, 2304)
+            assert page.size == (1024, 1536)
 
     def test_no_kneeboard_writes_none_and_removes_the_previous_pages(self, tmp_path: Path) -> None:
         objective_mission(tmp_path)

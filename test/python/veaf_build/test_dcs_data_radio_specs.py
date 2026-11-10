@@ -5,6 +5,8 @@ distinct — sometimes far narrower — constraint than ``panelRadio.range``
 (FIX-PRIMARY-FREQ-HUMANRADIO).
 """
 
+from pathlib import Path
+
 import pytest
 
 from veaf_build.radio_specs_updater import (
@@ -18,6 +20,7 @@ from veaf_build.radio_specs_updater import (
     load_overrides,
     parse_display_name,
     parse_human_radio,
+    parse_panel_radio,
     specs_to_yaml_dict,
 )
 
@@ -150,6 +153,56 @@ class TestParseDisplayName:
     def test_nothing_recognisable_returns_empty(self) -> None:
         # The caller falls back to the DCS id, so an empty answer must stay distinguishable.
         assert parse_display_name("return {}") == ""
+
+
+_FIXTURES = Path(__file__).parent / "fixtures"
+
+
+class TestPanelRadioChannelCount:
+    """A radio's preset capacity is the length of its ``panelRadio`` ``channels`` list.
+
+    FEAT-RADIO-CAPACITY-ALL-TYPES: the OH-58D crashed the DCS client with 32 FM presets on radios
+    that hold 21; the count each radio holds is written in its module, and the datamine dump carries
+    it already flattened.
+    """
+
+    def test_oh58d_counts_are_read_from_the_real_dump(self) -> None:
+        lua = (_FIXTURES / "OH58D_panelRadio.lua").read_text(encoding="utf-8")
+        radios = parse_panel_radio(lua)
+        assert radios is not None
+        assert [(r.name, r.channels) for r in radios] == [
+            ("UHF AM", 20),
+            ("VHF AM", 20),
+            ("VHF FM1", 21),
+            ("VHF FM2", 21),
+        ]
+
+    def test_a_radio_without_a_channels_list_has_no_count(self) -> None:
+        radios = parse_panel_radio(_FW190_LUA)
+        assert radios is not None
+        assert radios[0].channels is None
+
+    def test_a_nested_table_inside_a_channel_counts_once(self) -> None:
+        lua = """return { panelRadio = { {
+            channels = { { default = 1, extra = { a = 1 } }, { default = 2 } },
+            name = "R", range = { max = 2, min = 1 } } } }"""
+        radios = parse_panel_radio(lua)
+        assert radios is not None
+        assert radios[0].channels == 2
+
+    def test_the_count_is_emitted_per_radio(self) -> None:
+        spec = AircraftSpec(
+            dcs_id="X",
+            display_name="X",
+            category="helicopter",
+            radios=[
+                AircraftRadio(name="A", ranges=[FrequencyRange(1.0, 2.0)], channels=21),
+                AircraftRadio(name="B", ranges=[FrequencyRange(1.0, 2.0)]),
+            ],
+        )
+        radios = specs_to_yaml_dict([spec])["X"]["radios"]
+        assert radios[0]["channels"] == 21
+        assert "channels" not in radios[1]
 
 
 class TestSpecsToYamlDict:

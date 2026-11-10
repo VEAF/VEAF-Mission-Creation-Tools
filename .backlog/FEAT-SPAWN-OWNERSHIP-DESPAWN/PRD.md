@@ -33,9 +33,9 @@ The conduct sheet now asks pilots to clean *their* combat zones by deactivating 
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | Record each marker-spawned group with its author | ⬜ |
-| 02 | F10 menu: list and remove one's own items | ⬜ |
-| 03 | Pilot guide, OT commands/conduct sheets, CHANGELOG, demo mission step | ⬜ |
+| 01 | [Record each marker-spawned group with its author](tickets/01-record-spawns.md) | ⬜ |
+| 02 | [F10 menu: list and remove one's own items](tickets/02-f10-remove-menu.md) | ⬜ |
+| 03 | [Pilot guide, OT commands/conduct sheets, CHANGELOG, demo mission step](tickets/03-doc-and-sheets.md) | ⬜ |
 
 Lua runtime (`src/scripts/veaf/`), luaunit tests with the DCS mocks; read `docs/agents/dcs-runtime-traps.md` and the F10 menu id recycling trap before rebuilding a menu.
 One branch, one PR.

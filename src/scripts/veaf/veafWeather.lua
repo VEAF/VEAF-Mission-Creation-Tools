@@ -1825,7 +1825,7 @@ end
 function veafWeather.buildRadioMenu()
   veaf.loggers.get(veafWeather.Id):debug("buildRadioMenu()")
 
-  veafWeather.rootPath = veafRadio.addMenu(veaf.t(veafWeather.RadioMenuName))
+  veafWeather.rootPath = veafRadio.addRootMenu(veafWeather.RadioMenuName)
   veafRadio.addCommandToSubmenu(
     veaf.t("menu.weather.closest_point"),
     veafWeather.rootPath,

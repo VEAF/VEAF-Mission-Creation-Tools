@@ -35,6 +35,28 @@ veafRadio.USAGE_ForUnit = 2
 -- automatically at render time (ADR 0013), a "Next page" submenu taking one slot.
 veafRadio.MENU_PAGE_SIZE = 10
 
+-- The root menus in the order pilots use them, the same in every language (FEAT-RADIO-MENU-ORDER,
+-- decided with David on 2026-11-10). Sorted by label, "ZONES DE COMBAT" came last in French and could
+-- land on page 2 of an Open Training. A root entry this list does not name sorts after it, by label,
+-- and the CAS menu comes last: it stays there all mission long, even with no CAS mission running.
+veafRadio.ROOT_MENU_ORDER = {
+  "menu.campaign.root",
+  "menu.combatzone.root",
+  "menu.weather.root",
+  "menu.assets.root",
+  "menu.combatmission.root",
+  "menu.carrier.root",
+  "menu.transportmission.root",
+  "menu.spawn.root",
+  "menu.skynet.root",
+  "menu.move.root",
+  "menu.namedpoints.root",
+  "menu.missileguardian.root",
+  "menu.opposition.root",
+}
+veafRadio.ROOT_MENU_LAST = "menu.casmission.root"
+veafRadio.ROOT_RANK_UNLISTED = 100
+
 -- A group id no player can hold. DCS gives the id of a removed menu entry to the next entry created,
 -- and a player whose F10 screen still shows the removed entry fires that new one (measured 2026-10-09,
 -- `f10-menu-entry-id-is-recycled`). An inert command added for this group right after each removal
@@ -419,6 +441,13 @@ function veafRadio.RadioMenuBuilder:addMenu(label, parent, coalitionSide)
   }
   local menu = parent or self._root
   table.insert(menu.subMenus, subMenu)
+  return subMenu
+end
+
+--- Creates a root menu named after its i18n key, ranked by veafRadio.ROOT_MENU_ORDER.
+function veafRadio.RadioMenuBuilder:addRootMenu(i18nKey, coalitionSide)
+  local subMenu = self:addMenu(veaf.t(i18nKey), nil, coalitionSide)
+  subMenu.rootRank = veafRadio.rootRank(i18nKey)
   return subMenu
 end
 
@@ -908,6 +937,7 @@ function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide,
   end
   table.sort(node.commands, compareByOrder)
   table.sort(node.subMenus, compareByOrder)
+  local isRoot = node == self._root
 
   -- Pagination decision (ADR 0013): each command / submenu counts as one item.
   local total = #node.commands + #node.subMenus
@@ -938,6 +968,26 @@ function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide,
   end
   for _, subMenu in ipairs(node.subMenus) do
     collect("menu", subMenu)
+  end
+  -- The root mixes commands and menus in one order, by rank first (FEAT-RADIO-MENU-ORDER).
+  if isRoot then
+    local position = {}
+    for index, item in ipairs(items) do
+      position[item] = index
+    end
+    table.sort(items, function(a, b)
+      local left = a.child.rootRank or veafRadio.ROOT_RANK_UNLISTED
+      local right = b.child.rootRank or veafRadio.ROOT_RANK_UNLISTED
+      if left ~= right then
+        return left < right
+      end
+      local leftKey = a.child.sortKey or a.child.title or ""
+      local rightKey = b.child.sortKey or b.child.title or ""
+      if leftKey ~= rightKey then
+        return leftKey < rightKey
+      end
+      return position[a] < position[b]
+    end)
   end
 
   -- Stable pages (FIX-RADIO-MENU-ID-RECYCLING): an entry already shown stays on its page, a new one
@@ -988,7 +1038,6 @@ function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide,
   -- Every entry directly under the VEAF root is shown in capitals, whichever module added it
   -- and on whichever page it lands; the logical titles are left as written, since modules
   -- find their entries again by title (delCommand, delSubmenu).
-  local isRoot = node == self._root
   local currentDcsMenu = dcsMenu
   for page = 1, lastPage do
     for _, item in ipairs(items) do
@@ -1162,6 +1211,28 @@ end
 --- everything under it is only shown to that coalition (FEAT-COMBATZONE-MENU-COALITION).
 function veafRadio.addSubMenu(title, radioMenu, coalitionSide)
   return veafRadio._builder:addMenu(title, radioMenu, coalitionSide)
+end
+
+--- The rank of a root menu in veafRadio.ROOT_MENU_ORDER, from its i18n key: its position in the list,
+--- above ROOT_RANK_UNLISTED for the CAS menu, nil for a menu the order does not name.
+function veafRadio.rootRank(i18nKey)
+  if i18nKey == veafRadio.ROOT_MENU_LAST then
+    return veafRadio.ROOT_RANK_UNLISTED + 1
+  end
+  for rank, key in ipairs(veafRadio.ROOT_MENU_ORDER) do
+    if key == i18nKey then
+      return rank
+    end
+  end
+  return nil
+end
+
+--- Adds a menu at the root of the VEAF menu, named after its i18n key and placed by
+--- veafRadio.ROOT_MENU_ORDER, whatever the language of its label (FEAT-RADIO-MENU-ORDER).
+function veafRadio.addRootMenu(i18nKey, coalitionSide)
+  local subMenu = veafRadio.addSubMenu(veaf.t(i18nKey), nil, coalitionSide)
+  subMenu.rootRank = veafRadio.rootRank(i18nKey)
+  return subMenu
 end
 
 --- Opt a menu out of automatic render-time pagination (ADR 0013).

@@ -965,7 +965,7 @@ function veafCarrierOperations.buildRadioMenu()
     return
   end
 
-  veafCarrierOperations.rootPath = veafRadio.addSubMenu(veaf.t(veafCarrierOperations.RadioMenuName))
+  veafCarrierOperations.rootPath = veafRadio.addRootMenu(veafCarrierOperations.RadioMenuName)
   -- #87: these two were created without their coalition, so the renderer had nothing to filter on and
   -- every player saw both — a red pilot opened "Carrier operations" and drove the blue carrier. The
   -- per-side menus existed already; what was missing was one argument. Each carrier's own submenu

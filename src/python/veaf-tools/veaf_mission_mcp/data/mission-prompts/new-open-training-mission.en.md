@@ -508,7 +508,7 @@ Take off from the runway, never from a taxiway.
 DCS's ATC is off: announce yourself on the airfield's VHF when taxiing, taking off and in the pattern (frequencies in the README and the radio plan).
 Do not line up behind an aircraft taking off; vacate the runway as soon as you land.
 A combat zone another pilot started is theirs: ask before stopping or clearing it.
-What you spawn with a marker, remove it when you leave (-destroy).
+Clean up YOUR combat zones by deactivating them before you leave.
 ```
 
 **"Commands" sheet**:

@@ -526,7 +526,7 @@ Décollez de la piste, jamais d'un taxiway.
 L'ATC de DCS est coupé : annoncez-vous sur la VHF de l'aérodrome au roulage, au décollage et en tour de piste (fréquences dans le README et le plan radio).
 Ne vous alignez pas derrière un avion qui décolle ; dégagez la piste dès l'atterrissage.
 Une zone de combat activée par un autre pilote est la sienne : demandez avant de la désactiver ou de la nettoyer.
-Ce que vous faites apparaître par marqueur, retirez-le en partant (-destroy).
+Nettoyez VOS zones de combat en les désactivant avant de partir.
 ```
 
 **Fiche « Commandes »** :

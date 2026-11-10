@@ -1,6 +1,6 @@
 # FIX-ALIAS-SKIPS-HANDLER-LEVEL — An alias runs its command below the level the command declares
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Found by FEAT-OPEN-TRAINING-KNEEBOARD (#1258) while writing the commands sheet, surveyed by the control session on 2026-11-10; David: "oui fais ça".
 
@@ -44,7 +44,14 @@ Re-read the chain and the registrations when implementing: this table is a surve
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [Aliases enforce the reached handler's level](tickets/01-enforce-handler-level.md) | ⬜ |
-| 02 | [Levels of the six aliases, commands sheet, doc](tickets/02-levels-and-sheet.md) | ⬜ |
+| 01 | [Aliases enforce the reached handler's level](tickets/01-enforce-handler-level.md) | ✅ |
+| 02 | [Levels of the six aliases, commands sheet, doc](tickets/02-levels-and-sheet.md) | ✅ |
 
 Lua runtime, luaunit tests with the DCS mocks. One branch, one PR.
+
+## Outcome (2026-11-10)
+
+Measured with the red tests: the survey's "VEAF pilot" column was wrong. A plain `VeafAlias` runs no check of its own — `isKnownPilot` guards only batch aliases and the combat-mission alias classes — so through an alias `_move`, `_radio` and `_gc` ran for **any** player, unknown to the server included.
+`-ai_set` and the twelve `-arty1_*` … `-arty3_*` aliases were open as well; the Q1 rule puts them at `_gc`'s VEAF-pilot level.
+
+Done in one PR: `veafShortcuts.securityLevelFor` (declared level, else the level of the handler matched by keyphrase at the start of the alias's own command), enforced in `VeafAlias:execute` through `veafCommands.isAllowed`; `VeafAlias:setSecurityLevel` on the four `veafMove` aliases; the OT commands sheet; `veafShortcuts` (section *An alias's level*), `ALIASES` and the pilot guide; Lua coverage floor 83 → 84.

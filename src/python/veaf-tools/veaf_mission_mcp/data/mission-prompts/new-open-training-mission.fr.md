@@ -540,7 +540,7 @@ Paliers : [ouvert] tout le monde · [pilote VEAF] pilote que le serveur connaît
 -armor, -infantry : une cible au sol [pilote VEAF]
 -convoy, dest <point> : une cible mobile [pilote VEAF]
 -cap <type> (ex. -cap Su-27) : une cible aérienne [pilote VEAF]
--tankerlow, -tankerhigh : le ravitailleur le plus proche au FL120 / FL220 [confiance]
+-tankerlow, -tankerhigh : le ravitailleur le plus proche au FL120 / FL220 [pilote VEAF]
 -farp <nom>, -fob : une base avancée [pilote VEAF]
 -jtac (laser 1688), -smoke (option color), -tacan : désignation, marque visuelle, balise [ouvert]
 -point <nom> : nommer un point (la destination d'un convoi) [ouvert]

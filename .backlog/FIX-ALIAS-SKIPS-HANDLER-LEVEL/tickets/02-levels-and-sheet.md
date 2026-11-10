@@ -1,6 +1,6 @@
 # 02 — Levels of the six aliases, commands sheet, doc
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

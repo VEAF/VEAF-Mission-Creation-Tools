@@ -1,6 +1,6 @@
 # 01 — Aliases enforce the reached handler's level
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

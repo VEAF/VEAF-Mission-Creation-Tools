@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-ALIAS-SKIPS-HANDLER-LEVEL](FIX-ALIAS-SKIPS-HANDLER-LEVEL/PRD.md) · ✅
+
+An alias called its module's `executeCommand` directly, past the level the dispatcher enforces: `_move`, `_radio` and `_gc` ran for any player through `-tankerlow`, `-send`, `-ai_set`, `-arty1_fire`…, unknown to the server included (worse than the survey's VEAF-pilot reading). A non-bypassing alias now applies the level of the handler its own command reaches, or the one it declares; the tanker and AFAC aliases declare VEAF pilot (David), `-send`/`-play` take trusted member, the `_gc` aliases VEAF pilot.
+
 ### [FEAT-OPEN-TRAINING-KNEEBOARD](FEAT-OPEN-TRAINING-KNEEBOARD/PRD.md) · ✅
 
 An Open Training's briefing as kneeboard pages in the `.miz`: `build_mission_briefing` gains `kneeboard_only` (the kneeboard and nothing else — no deck, PDF or DCS picture, no flight card, a zone list with each zone's F10 path and centre) and `sheets` (free text first in the kneeboard); the OT prompt writes the mission, conduct and commands sheets and keeps the content in `docs/kneeboard.json`. Tried on a copy of the Caucasus OT: 36 pages. Putting it into the three OTs waits for a VMCT release.

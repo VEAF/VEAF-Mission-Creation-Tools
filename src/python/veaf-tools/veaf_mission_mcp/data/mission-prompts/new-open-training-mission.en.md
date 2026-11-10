@@ -522,7 +522,7 @@ Tiers: [open] everyone · [VEAF pilot] a pilot the server knows · [trusted] a t
 -armor, -infantry: a ground target [VEAF pilot]
 -convoy, dest <point>: a moving target [VEAF pilot]
 -cap <type> (e.g. -cap Su-27): an air target [VEAF pilot]
--tankerlow, -tankerhigh: the nearest tanker to FL120 / FL220 [trusted]
+-tankerlow, -tankerhigh: the nearest tanker to FL120 / FL220 [VEAF pilot]
 -farp <name>, -fob: a forward base [VEAF pilot]
 -jtac (laser 1688), -smoke (option color), -tacan: designation, a visual mark, a beacon [open]
 -point <name>: name a point (a convoy's destination) [open]

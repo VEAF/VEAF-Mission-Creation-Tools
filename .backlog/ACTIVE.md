@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-ALIAS-SKIPS-HANDLER-LEVEL](FIX-ALIAS-SKIPS-HANDLER-LEVEL/PRD.md) · 🔄
-
-An alias calls each module's `executeCommand` directly and so skips the level the dispatcher enforces: `-tankerlow`, `-tankerhigh`, `-tankerhere`, `-afachere` (`_move`) and `-send`, `-play` (`_radio`) run at VEAF-pilot level instead of trusted member. Found by FEAT-OPEN-TRAINING-KNEEBOARD (2026-11-10); the tankers stay at VEAF-pilot level (David).
-
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

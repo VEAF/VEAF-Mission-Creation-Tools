@@ -33,6 +33,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The Open Training prompt calls it after the build: a mission sheet condensed from the README, a conduct sheet and a commands sheet with each command's security tier (written once in the prompt), the overview map, one zoom per combat zone with its recon photos, and the zone list with the F10 path that starts each zone.
   The content is kept in the mission's `docs/kneeboard.json`, so a rebuild puts the same kneeboard back.
 
+### Fixed
+
+- **An alias runs at the security level of the command it launches** (FIX-ALIAS-SKIPS-HANDLER-LEVEL): an alias called its module directly, past the check that module declares, so `-send`, `-play`, `-tankerlow`, `-ai_set` or `-arty1_fire` worked for any player, known to the server or not.
+  `-send` and `-play` now need a trusted member, like `_radio`; `-ai_set` and the `-arty*` commands a VEAF pilot, like `_gc`.
+  The tanker and AFAC aliases (`-tankerlow`, `-tankerhigh`, `-tankerhere`, `-tanker`, `-afachere`) declare the VEAF-pilot level themselves, below `_move`'s trusted member, and the Open Training commands sheet says so; a custom alias can declare its own with `:setSecurityLevel(...)`.
+
 ## [6.36.0] — 2026-11-05
 
 ### Documentation

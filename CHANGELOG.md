@@ -27,6 +27,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Run Lua in a live VEAF mission with dcs-hotload** (DOC-HOTLOAD-RECIPE): a developer page (`doc/developer/hotload.md`) shows how to load [dcs-hotload](https://github.com/MacFlorent/dcs-hotload) in a mission built with VMCT, with no change to VMCT. A boot script declared in `custom_scripts` loads it from `Saved Games\DCS\Scripts\dcs-hotload\` when it is installed and `io`/`lfs` are unlocked, and does nothing otherwise, so the same `.miz` goes to a server. The page gives a per-mission variant, warns that the `io`/`lfs` unlock applies to the whole DCS install, and states that hotload takes one of the ten F10 root entries and is not for reloading VEAF modules. Checked under DCS's `luae.exe` against mocks, not yet in game.
 
+### Added
+
+- **An Open Training's briefing, as kneeboard pages in the mission** (FEAT-OPEN-TRAINING-KNEEBOARD): `build_mission_briefing` takes `kneeboard_only`, which writes the kneeboard and nothing else — no deck, no PDF, no DCS briefing picture, the mission's own pictures left as they are — and `sheets`, free text sheets placed first in the kneeboard.
+  The Open Training prompt calls it after the build: a mission sheet condensed from the README, a conduct sheet and a commands sheet with each command's security tier (written once in the prompt), the overview map, one zoom per combat zone with its recon photos, and the zone list with the F10 path that starts each zone.
+  The content is kept in the mission's `docs/kneeboard.json`, so a rebuild puts the same kneeboard back.
+
 ## [6.36.0] — 2026-11-05
 
 ### Documentation

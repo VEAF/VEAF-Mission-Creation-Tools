@@ -796,6 +796,9 @@ Les cibles et les étapes du plan de vol sont des fiches, six par page : nom, ce
 L'IA peut ajouter une page de **situation stratégique** et une page de **déploiement et coordination**, en prose ; en slots dynamiques, l'ATO dit « slot dyn » et liste les vols du package sous leur base, pas les dizaines de types qu'elle offre.
 Une seconde carte, la **zone des combats**, suit la carte de situation, cadrée sur les objectifs et les menaces ; dans le kneeboard, toutes les cartes sont tournées pour que l'axe d'attaque (de la base aux objectifs) monte vers le haut de la page.
 L'IA peut aussi donner les **mots-codes** du package (une page dans le deck et dans le kneeboard), et le briefing prend les **photos de reconnaissance** déposées dans `docs/recon/` (une photo JPEG et sa fiche JSON : zone, titre, cap, piqué, position), deux par page après le zoom de leur objectif.
+**Le kneeboard seul**, pour une Open Training : son README est déjà le briefing complet et ses images de briefing sont les siennes, alors l'outil n'écrit que les pages du kneeboard — ni PPTX, ni PDF, ni image de briefing DCS.
+Il commence par des **fiches de texte** que l'IA écrit (la mission, la conduite sur le serveur, les commandes utiles avec leur niveau de sécurité), puis la carte d'ensemble, un zoom par zone de combat avec ses photos de reconnaissance, et la liste des zones avec le chemin du menu F10 qui démarre chacune et ses coordonnées.
+Les fiches de texte se mettent aussi en tête du kneeboard d'une mission à objectifs.
 
 > 💬 *« Fais le briefing de la mission, fond topo. »*
 

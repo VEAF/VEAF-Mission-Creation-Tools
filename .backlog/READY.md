@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FIX-RADIO-PRESET-CAPACITY](FIX-RADIO-PRESET-CAPACITY/PRD.md) · ⬜
+
+The OH-58D crashes the DCS client at spawn when its FM radios get 32 presets (30-entry `fm_supplement` in four OTs); 21 works. The OH58D FM radios declare `capacity: 21` in `dcs-radio-layouts.yaml`, a capacity truncation warns at build instead of staying silent, and other types get a capacity only where their module documents one. Reported by David, 2026-11-10.
+
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ⬜
 
 Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10).

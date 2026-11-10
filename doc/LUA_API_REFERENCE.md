@@ -3884,6 +3884,22 @@ local assetsMenu = veafRadio.addSubMenu("Assets")
 local tankersMenu = veafRadio.addSubMenu("Ravitailleurs", assetsMenu)
 ```
 
+##### `veafRadio.addRootMenu(i18nKey, coalitionSide)`
+
+Ajoute un menu à la racine du menu VEAF, nommé d'après sa clé i18n et placé selon `veafRadio.ROOT_MENU_ORDER` : le même ordre dans toutes les langues (zones de combat, météo, moyens en premier ; MISSION CAS en dernier). Un menu dont la clé n'est pas dans la liste se range après les menus classés, par ordre alphabétique.
+
+**Paramètres :**
+
+- `i18nKey` (string) — Clé i18n du titre du menu (`"menu.weather.root"`…)
+- `coalitionSide` (number, optionnel) — comme pour `addSubMenu`
+
+**Retourne :** `menu` — Objet sous-menu
+
+**Exemple :**
+```lua
+veafWeather.rootPath = veafRadio.addRootMenu("menu.weather.root")
+```
+
 ##### `veafRadio.addCommandToSubmenu(text, menu, callback, parameters, usage)`
 
 Ajoute une commande à un sous-menu.

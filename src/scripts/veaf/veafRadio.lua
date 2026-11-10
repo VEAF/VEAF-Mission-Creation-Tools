@@ -951,7 +951,7 @@ function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide,
     paginate = false
   end
 
-  -- Children in sorted order, commands first, each with an id that survives a module rebuilding
+  -- Children in sorted order, commands first (except at the root, sorted by rank below), each with an id that survives a module rebuilding
   -- its nodes: kind and title, numbered when a title repeats.
   local items = {}
   local occurrences = {}

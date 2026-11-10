@@ -1511,7 +1511,7 @@ def _truncate_to_capacity(
     radio_index: int,
     capacity_warned: set[tuple[str, int, int]] | None = None,
 ) -> list[Channel]:
-    """Slot capacity primitive (ADR 0010): drop excess channels from the END of the list.
+    """Slot capacity primitive (ADR 0010): drop the channels past the radio's last slot.
 
     Applied as the LAST composition step, after every other primitive, since
     capacity is a property of the radio's total final slot count (e.g. the
@@ -1520,9 +1520,15 @@ def _truncate_to_capacity(
     debug line): a dropped preset is one a pilot will look for, and too many
     presets on the OH-58D's FM radios crash the DCS client at spawn.
 
+    The cut is by **slot number**, not by count (FEAT-RADIO-CAPACITY-ALL-TYPES):
+    a channel dropped from a list leaves its slot empty so that a pilot's
+    channel N stays N, so a short list can still reach past the last slot, and
+    the kept channels keep their slot. On a gapless list, which the head-slot
+    primitives always produce, both cuts are the same.
+
     Args:
         channels: The radio's fully composed channels, already numbered.
-        capacity: The radio's declared maximum slot count, or None (unbounded).
+        capacity: The radio's maximum slot count, or None (unbounded).
         unit_type: DCS unit type string (for the warning).
         radio_index: 1-based physical radio index (for the warning).
         capacity_warned: (unit_type, radio_index, dropped count) already warned
@@ -1530,12 +1536,14 @@ def _truncate_to_capacity(
             packs once per group, so this keeps it to one warning per radio.
 
     Returns:
-        *channels* unchanged if within capacity (or capacity is None), else the
-        first *capacity* entries, renumbered 1..capacity.
+        *channels* unchanged if none sits past *capacity* (or capacity is
+        None), else the channels whose slot is within it, unchanged.
     """
-    if capacity is None or len(channels) <= capacity:
+    if capacity is None:
         return channels
-    dropped = channels[capacity:]
+    dropped = [channel for channel in channels if channel.number > capacity]
+    if not dropped:
+        return channels
     key = (unit_type, radio_index, len(dropped))
     if capacity_warned is None or key not in capacity_warned:
         if capacity_warned is not None:
@@ -1549,7 +1557,7 @@ def _truncate_to_capacity(
                 dropped_count=len(dropped),
             )
         )
-    return [_clone_channel(channel, slot) for slot, channel in enumerate(channels[:capacity], start=1)]
+    return [channel for channel in channels if channel.number <= capacity]
 
 
 def _content_for_radio(
@@ -1559,6 +1567,7 @@ def _content_for_radio(
     unit_type: str,
     radio_index: int,
     capacity_warned: set[tuple[str, int, int]] | None = None,
+    module_capacity: int | None = None,
 ) -> RadioDefinition | None:
     """Materialize one physical radio's final channel map, applying all declared primitives.
 
@@ -1568,7 +1577,9 @@ def _content_for_radio(
     slot(s) (mutually exclusive, see ``RadioLayoutRadio``); then trailing
     specials are appended — at the block's fixed boundary for ``keyed_groups``
     (so E/F/G/H keep their absolute slots even if the data block has gaps), else
-    right after the content; then slot capacity truncates the result. Each
+    right after the content; then slot capacity truncates the result — the
+    layout's ``capacity`` if declared, else *module_capacity*, under the
+    band-based default too (FEAT-RADIO-CAPACITY-ALL-TYPES). Each
     special is an airframe constant (``freq``) or plan-sourced (``priority``,
     resolved against *role_lists*, always AM; an unresolved priority leaves its
     slot empty). The Mi-24P needs only rotation; the OH-58D only reserved head
@@ -1586,6 +1597,8 @@ def _content_for_radio(
             warning).
         capacity_warned: Truncations already warned about in this build (see
             :func:`_truncate_to_capacity`).
+        module_capacity: The preset count the radio's module lists in its
+            ``panelRadio`` (``channels`` in dcs-radio-specs.yaml), or None.
 
     Returns:
         The radio's final RadioDefinition, or None if it has no content at all.
@@ -1611,8 +1624,10 @@ def _content_for_radio(
 
     if layout_radio is not None and layout_radio.trailing_specials:
         channels = channels + _build_special_channels(layout_radio.trailing_specials, specials_base, role_lists)
-    if layout_radio is not None:
-        channels = _truncate_to_capacity(channels, layout_radio.capacity, unit_type, radio_index, capacity_warned)
+    # The layout's own capacity wins; else the radio holds what its module's panelRadio lists.
+    layout_capacity = layout_radio.capacity if layout_radio is not None else None
+    capacity = layout_capacity if layout_capacity is not None else module_capacity
+    channels = _truncate_to_capacity(channels, capacity, unit_type, radio_index, capacity_warned)
 
     result = RadioDefinition(name=content.name, radio_type=content.radio_type, title=content.title)
     for channel in channels:
@@ -1717,6 +1732,7 @@ def _resolve_one_radio(
     unit_type: str,
     radio_index: int,
     capacity_warned: set[tuple[str, int, int]] | None = None,
+    module_capacity: int | None = None,
 ) -> RadioDefinition | None:
     """Resolve one physical radio's final content, or None if it has nothing to carry.
 
@@ -1734,12 +1750,16 @@ def _resolve_one_radio(
             warning).
         capacity_warned: Truncations already warned about in this build (see
             :func:`_truncate_to_capacity`).
+        module_capacity: The preset count the radio's module lists, or None
+            (see :func:`_content_for_radio`).
     """
     base_source = _channel_list_for_role(role_lists, role) if role else None
     has_keyed_groups = bool(layout_radio and layout_radio.keyed_groups)
     if not has_keyed_groups and (base_source is None or not base_source.channels):
         return None
-    return _content_for_radio(layout_radio, role_lists, base_source, unit_type, radio_index, capacity_warned)
+    return _content_for_radio(
+        layout_radio, role_lists, base_source, unit_type, radio_index, capacity_warned, module_capacity
+    )
 
 
 def _resolved_slots_for_type(
@@ -1796,6 +1816,7 @@ def _resolved_slots_for_type(
             unit_type,
             index + 1,
             capacity_warned,
+            radios[index].channels,
         )
         for index in range(len(radios))
     ]

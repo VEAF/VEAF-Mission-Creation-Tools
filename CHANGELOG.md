@@ -44,6 +44,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The OH-58D no longer crashes the DCS client at spawn: a radio never gets more presets than it holds** (FIX-RADIO-PRESET-CAPACITY): the Kiowa's two FM radios hold 21 presets, and a 30-entry `fm_supplement` gave them 32, which crashed the client in multiplayer on four Open Trainings; a mission built from the shipped defaults, whose `fm_supplement` has 30 entries, gave its Kiowa template the same 32.
   The radios of the OH-58D, Mi-24P and CH-47F now declare their capacity, taken from the channel count of their module's `panelRadio` table, and a longer list is cut at the end with a warning at build naming the type, the radio, the capacity and the dropped count, once per radio — it used to be cut silently, and only on radios that declared a capacity, which none did.
   convert-v5 now reproduces the Tripack Mi-24P preset with the packer alone, so it writes no dedicated preset for it any more.
+- **Every aircraft's radios stop at the preset count their module lists** (FEAT-RADIO-CAPACITY-ALL-TYPES): the radio specs now carry each radio's `panelRadio` channel count (87 of the 100 types, read from the DCS datamine and refreshed by `veaf-build update-dcs-data --radio`), and the build cuts every channel list to it, not only on the OH-58D, Mi-24P and CH-47F.
+  A warbird radio holds 4 or 5 presets and an AH-64D radio 10, so a coalition's shared lists are cut there with a warning; their kneeboards no longer list channels the cockpit cannot select.
+  The cut goes by channel number rather than by count, so a list with gaps keeps its pilots' channel numbers and cannot reach past the last slot.
+  The shipped `fm_supplement` holds 20 entries instead of 30, so a default build no longer cuts the OH-58D's or the A-10C's FM radios.
 
 ## [6.36.0] — 2026-11-05
 

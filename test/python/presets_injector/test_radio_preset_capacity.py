@@ -10,6 +10,8 @@ exploration doc §7/§8.4).
 """
 
 import unittest
+from dataclasses import replace
+from pathlib import Path
 from unittest.mock import patch
 
 from presets_injector.presets_manager import (
@@ -21,6 +23,11 @@ from presets_injector.presets_manager import (
     parse_radio_layouts,
 )
 from veaf_libs.i18n import t
+
+# repo root = .../<root>/test/python/presets_injector/this_file → parents[3]
+_SHIPPED_DEFAULT_PRESETS = (
+    Path(__file__).resolve().parents[3] / "src" / "defaults" / "mission-folder" / "src" / "presets.yaml"
+)
 
 
 def _radio_list(freqs: list[float]) -> RadioDefinition:
@@ -323,6 +330,43 @@ class TestCapacityFromTheModule(unittest.TestCase):
         self.assertIsNotNone(preset)
         self.assertEqual(len(preset.to_dict()[1]["channels"]), 30)
         mock_logger.warning.assert_not_called()
+
+    def test_the_shipped_defaults_change_only_by_the_cut(self):
+        # PRD D4: packed with the module counts, every radio of every type is the uncapped packing minus
+        # the channels past its last slot — nothing else moves, and a list that fits is untouched.
+        import presets_injector.presets_manager as pm
+        from presets_injector.radio_frequency_validator import _load_specs, get_radios
+
+        manager = pm.PresetsManager()
+        manager.read_yaml(_SHIPPED_DEFAULT_PRESETS)
+
+        def uncapped_radios(unit_type: str):
+            radios = get_radios(unit_type)
+            return None if radios is None else [replace(radio, channels=None) for radio in radios]
+
+        uncapped_layouts = {
+            unit_type: RadioLayoutEntry(radios={i: replace(r, capacity=None) for i, r in entry.radios.items()})
+            for unit_type, entry in pm._load_radio_layouts().items()
+        }
+        cut = 0
+        for coalition in ("blue", "red"):
+            for unit_type in _load_specs():
+                capped = pack_preset_for_type(manager.channel_lists, coalition, unit_type, set())
+                with (
+                    patch.object(pm, "get_radios", uncapped_radios),
+                    patch.object(pm, "_load_radio_layouts", return_value=uncapped_layouts),
+                ):
+                    whole = pack_preset_for_type(manager.channel_lists, coalition, unit_type, set())
+                self.assertEqual(capped is None, whole is None, unit_type)
+                if capped is None or whole is None:
+                    continue
+                capacities = [radio.channels for radio in get_radios(unit_type) or []]
+                for index, radio in whole.to_dict().items():
+                    capacity = capacities[index - 1]
+                    kept = {slot: freq for slot, freq in radio["channels"].items() if capacity is None or slot <= capacity}
+                    self.assertEqual(capped.to_dict()[index]["channels"], kept, f"{coalition} {unit_type} {index}")
+                    cut += kept != radio["channels"]
+        self.assertGreater(cut, 0)
 
     def test_the_shipped_layout_capacities_agree_with_the_modules(self):
         # The four types #1262 declared by hand read the same counts from the datamine: the layout

@@ -1,6 +1,6 @@
 # 01 — Read every module's preset counts
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

@@ -1,6 +1,6 @@
 # 02 — Declare them, default FM list to 20
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

@@ -62,13 +62,17 @@ après un build. Il n'est écrit que s'il y a un problème, et supprimé quand i
 ## Une radio a une capacité {#capacity}
 
 Une radio de cockpit ne tient qu'un nombre fixe de presets, et une liste plus longue est **coupée à la fin, avec un warning au build**.
+La coupe se fait au numéro de canal : un canal écarté d'une liste (hors bande) laisse sa place vide, pour que le canal N d'un pilote reste le N, donc ce sont les canaux au-delà du dernier emplacement qui partent, et les autres gardent leur numéro.
 Le warning nomme le type, la radio, sa capacité et le nombre de canaux retirés : ce sont des canaux qu'un pilote ne trouvera pas dans le cockpit.
 
 Exemple : les deux radios FM de l'OH-58D Kiowa tiennent 21 presets, `C`, `M` puis 1 à 19.
 Un `fm_supplement` de 30 entrées leur en donnait 32, et le client DCS plantait au spawn en multijoueur ; le build les arrête maintenant à 21.
 Pour que le Kiowa ait toute la liste, gardez les listes FM à 20 entrées au plus.
 
-Les capacités déclarées viennent du nombre de canaux que le module de l'appareil déclare lui-même (OH-58D, Mi-24P, CH-47F).
+Chaque radio de chaque appareil a sa capacité : le nombre de canaux que le module de l'appareil déclare lui-même, dans sa table `panelRadio`.
+Les radios des warbirds en tiennent peu (4 pour le P-51D, 5 pour le Spitfire), l'AH-64D 10 par radio : une liste partagée par toute la coalition y est coupée, et le build le dit.
+Ces nombres sont relevés dans le datamine DCS (`dcs-radio-specs.yaml`, champ `channels`) et se rafraîchissent avec le reste des données radio après une mise à jour de DCS, par `veaf-build update-dcs-data --radio`.
+Quelques appareils n'en déclarent pas (les Flaming Cliffs, le La-7, le MiG-15bis) : leurs listes passent entières.
 
 ## La planchette {#kneeboard}
 

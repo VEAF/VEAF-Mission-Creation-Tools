@@ -76,18 +76,20 @@
 #         nothing to a pilot (the AJS-37's "Radio frequencies" -> "FR22 / FR24").
 #         Presentation only: the specs name stays what `add_ranges` refers to.
 #       - `capacity: <int>` — slot capacity. The maximum number of channel
-#         slots this radio physically holds. When the radio's final composed
-#         channel count (after every other primitive above has run) exceeds
-#         `capacity`, the excess is truncated from the END of the list (e.g.
-#         Tripack itself truncated the AJS-37's VHF list to fit its 47-slot
-#         radio). A truncation logs a WARNING at build, once per radio
+#         slots this radio physically holds. Once every other primitive above
+#         has run, the channels whose slot number exceeds `capacity` are
+#         dropped and the others keep their slot (e.g. Tripack itself
+#         truncated the AJS-37's VHF list to fit its 47-slot radio). A
+#         truncation logs a WARNING at build, once per radio
 #         (FIX-RADIO-PRESET-CAPACITY, amending ADR 0010): a dropped preset is
 #         one a pilot will look for, and too many presets on the OH-58D's FM
-#         radios crash the DCS client at spawn. Declare it only from the
-#         module's own `panelRadio` channel count (CoreMods/aircraft/<type>/*.lua)
-#         or a measurement, and say which in a comment. Omit when the radio's
-#         capacity is not a practical concern (e.g. AJS-37: 47 slots exactly
-#         filled by design, never exceeded — no entry needed).
+#         radios crash the DCS client at spawn. Optional: a radio without one
+#         takes the channel count of its module's `panelRadio` table, which
+#         dcs-radio-specs.yaml carries as `channels` (FEAT-RADIO-CAPACITY-ALL-
+#         TYPES), and so does every radio of a type absent from this file.
+#         Declare it here only to override that count from a measurement, and
+#         say so in a comment. The values below equal the module's counts
+#         (test_radio_preset_capacity.py checks it).
 #
 #     Composition order when several primitives are declared on the same radio
 #     (ADR 0010/0012): the base content comes from either `keyed_groups` (its

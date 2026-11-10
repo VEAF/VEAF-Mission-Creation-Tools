@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-RADIO-PRESET-CAPACITY](FIX-RADIO-PRESET-CAPACITY/PRD.md) · 🔄
+
+The OH-58D crashes the DCS client at spawn when its FM radios get 32 presets (30-entry `fm_supplement` in four OTs); 21 works. The OH58D FM radios declare `capacity: 21` in `dcs-radio-layouts.yaml`, a capacity truncation warns at build instead of staying silent, and other types get a capacity only where their module documents one. Reported by David, 2026-11-10.
+
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

@@ -1,6 +1,6 @@
 # FIX-RADIO-PRESET-CAPACITY — Never write more presets than a radio holds
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 David, 2026-11-10: the OH-58D Kiowa crashes the DCS client at spawn, in multiplayer, on the Caucasus, Syria, GermanyCW and Marianas Open Trainings; it works on Normandy, Sinai and PersianGulf.
 The crash is native, during the cockpit devices' initialization: the log stops right after the LMFD lua state, with no crash report.

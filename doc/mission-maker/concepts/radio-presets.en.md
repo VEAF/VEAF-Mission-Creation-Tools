@@ -62,13 +62,17 @@ after a build. It is only written when something is wrong, and deleted once noth
 ## A radio has a capacity {#capacity}
 
 A cockpit radio holds a fixed number of presets, and a longer list is **cut at the end, with a warning at build**.
+The cut goes by channel number: a channel dropped from a list (out of band) leaves its slot empty so that a pilot's channel N stays N, so the channels past the last slot go, and the others keep their number.
 The warning names the type, the radio, its capacity and how many channels were dropped: those are channels a pilot will not find in the cockpit.
 
 Example: the OH-58D Kiowa's two FM radios hold 21 presets, `C`, `M` then 1 to 19.
 A 30-entry `fm_supplement` gave them 32, and the DCS client crashed at spawn in multiplayer; the build now stops them at 21.
 For the Kiowa to get the whole list, keep FM lists at 20 entries or fewer.
 
-The declared capacities come from the channel count the aircraft's module declares itself (OH-58D, Mi-24P, CH-47F).
+Every radio of every aircraft has its capacity: the channel count the aircraft's module declares itself, in its `panelRadio` table.
+Warbird radios hold few (4 on the P-51D, 5 on the Spitfire), the AH-64D 10 per radio: a list the whole coalition shares is cut there, and the build says so.
+Those counts are read from the DCS datamine (`dcs-radio-specs.yaml`, field `channels`) and are refreshed with the rest of the radio data after a DCS update, by `veaf-build update-dcs-data --radio`.
+A few aircraft declare none (Flaming Cliffs, the La-7, the MiG-15bis): their lists go through whole.
 
 ## The kneeboard {#kneeboard}
 

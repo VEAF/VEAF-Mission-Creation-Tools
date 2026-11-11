@@ -93,6 +93,13 @@ Two things changed. A dropped preset is one a pilot will look for in the cockpit
 
 Capacities are declared only where the module documents them, from the channel count of its `panelRadio` table (`CoreMods/aircraft/<type>/*.lua`): OH-58D, Mi-24P, CH-47F. The AJS-37 stays without one — its 47 slots are filled exactly by construction.
 
+## Amendment (FEAT-RADIO-CAPACITY-ALL-TYPES) — every radio holds what its module lists
+
+The datamine dump at the pinned ref lists every module's `panelRadio` channels, already flattened; the radio-specs generator counts them into `dcs-radio-specs.yaml` (`channels`, per radio), and the packer truncates each radio to that count when the Radio layout declares no `capacity` of its own — under the band-based default too.
+87 of the 100 types get a count; the Flaming Cliffs types (kneeboard only) and the radios the overlay declares (La-7, MiG-15bis) have none and stay unbounded.
+The cut also went from count to **slot number**: a channel dropped from a list leaves its slot empty so a pilot's channel N stays N, so a short list could reach past the last slot, and a renumbering cut would have shifted the kept channels.
+The three types above keep their hand-declared values, which equal the module's counts.
+
 ## Alternatives rejected
 
 - **Replace the old layers** — breaks existing missions and convert-v5.

@@ -9,6 +9,8 @@
 #     category: plane | helicopter
 #     radios:
 #       - name: Radio name as shown in DCS
+#         channels: 20       # length of its panelRadio channels list, when the module
+#                            # lists one: the injector truncates a longer list to it
 #         ranges:
 #           - min_mhz: 30.0
 #             max_mhz: 87.975
@@ -53,17 +55,20 @@ A-10C:
     modulation: AM
   name: A-10C
   radios:
-  - name: 'VHF AM: ARC-186'
+  - channels: 20
+    name: 'VHF AM: ARC-186'
     ranges:
     - max_mhz: 151.975
       min_mhz: 116.0
       modulation: AM/FM
-  - name: 'UHF AM: ARC-164'
+  - channels: 20
+    name: 'UHF AM: ARC-164'
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: 'VHF FM: ARC-186'
+  - channels: 20
+    name: 'VHF FM: ARC-186'
     ranges:
     - max_mhz: 87.995
       min_mhz: 30.0
@@ -77,7 +82,8 @@ A-10C_2:
     modulation: AM
   name: A-10C II
   radios:
-  - name: 'UHF/VHF: ARC-210'
+  - channels: 25
+    name: 'UHF/VHF: ARC-210'
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -94,12 +100,14 @@ A-10C_2:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: 'UHF AM: ARC-164'
+  - channels: 20
+    name: 'UHF AM: ARC-164'
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: 'VHF FM: ARC-186'
+  - channels: 20
+    name: 'VHF FM: ARC-186'
     ranges:
     - max_mhz: 87.995
       min_mhz: 30.0
@@ -113,12 +121,14 @@ A6E:
     modulation: AM
   name: A-6E
   radios:
-  - name: 'UHF AN/ARC-159 #1'
+  - channels: 20
+    name: 'UHF AN/ARC-159 #1'
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: 'UHF AN/ARC-159 #2'
+  - channels: 20
+    name: 'UHF AN/ARC-159 #2'
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -132,22 +142,26 @@ AH-64D_BLK_II:
     modulation: AM
   name: AH-64D BLK.II
   radios:
-  - name: ARC-186
+  - channels: 10
+    name: ARC-186
     ranges:
     - max_mhz: 151.975
       min_mhz: 108.0
       modulation: AM/FM
-  - name: ARC-164
+  - channels: 10
+    name: ARC-164
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: 'FM 1: ARC-201D'
+  - channels: 10
+    name: 'FM 1: ARC-201D'
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
       modulation: FM
-  - name: 'FM 2: ARC-201D'
+  - channels: 10
+    name: 'FM 2: ARC-201D'
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -161,7 +175,8 @@ AJS37:
     modulation: AM
   name: AJS37
   radios:
-  - name: Radio frequencies
+  - channels: 47
+    name: Radio frequencies
     ranges:
     - max_mhz: 400.0
       min_mhz: 103.0
@@ -178,17 +193,20 @@ AV8BNA:
     modulation: AM
   name: AV-8B N/A
   radios:
-  - name: V/UHF Radio 1
+  - channels: 26
+    name: V/UHF Radio 1
     ranges:
     - max_mhz: 400.0
       min_mhz: 30.0
       modulation: AM/FM
-  - name: V/UHF Radio 2
+  - channels: 26
+    name: V/UHF Radio 2
     ranges:
     - max_mhz: 400.0
       min_mhz: 30.0
       modulation: AM/FM
-  - name: V/UHF RCS Presets
+  - channels: 30
+    name: V/UHF RCS Presets
     ranges:
     - max_mhz: 400.0
       min_mhz: 30.0
@@ -202,7 +220,8 @@ Bf-109K-4:
     modulation: AM
   name: Bf 109 K-4
   radios:
-  - name: FuG 16 ZY
+  - channels: 5
+    name: FuG 16 ZY
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
@@ -216,7 +235,8 @@ C-101CC:
     modulation: AM
   name: C-101CC
   radios:
-  - name: V/TVU-740
+  - channels: 21
+    name: V/TVU-740
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
@@ -230,7 +250,8 @@ C-101EB:
     modulation: AM
   name: C-101EB
   radios:
-  - name: AN/ARC-164
+  - channels: 20
+    name: AN/ARC-164
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -244,12 +265,14 @@ C-130J-30:
     modulation: AM
   name: C-130J-30
   radios:
-  - name: UHF-1/2
+  - channels: 20
+    name: UHF-1/2
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM
-  - name: VHF-1/2
+  - channels: 10
+    name: VHF-1/2
     ranges:
     - max_mhz: 200.975
       min_mhz: 30.0
@@ -263,7 +286,8 @@ CH-47Fbl1:
     modulation: AM
   name: CH-47F
   radios:
-  - name: 'VHF FM: ARC-186'
+  - channels: 20
+    name: 'VHF FM: ARC-186'
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -274,12 +298,14 @@ CH-47Fbl1:
     - max_mhz: 151.975
       min_mhz: 116.0
       modulation: AM
-  - name: 'UHF AM: ARC-164'
+  - channels: 20
+    name: 'UHF AM: ARC-164'
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: 'VHF FM: ARC-201D'
+  - channels: 10
+    name: 'VHF FM: ARC-201D'
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -293,7 +319,8 @@ Christen Eagle II:
     modulation: AM
   name: Christen Eagle II
   radios:
-  - name: KY 197A
+  - channels: 20
+    name: KY 197A
     ranges:
     - max_mhz: 140.0
       min_mhz: 118.0
@@ -310,7 +337,8 @@ F-100D:
     modulation: AM
   name: F-100D
   radios:
-  - name: AN/ARC-34
+  - channels: 20
+    name: AN/ARC-34
     ranges:
     - max_mhz: 399.9
       min_mhz: 225.0
@@ -324,12 +352,14 @@ F-14A-135-GR:
     modulation: AM
   name: F-14A Late
   radios:
-  - name: UHF AN/ARC-159
+  - channels: 20
+    name: UHF AN/ARC-159
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: VHF/UHF AN/ARC-182
+  - channels: 30
+    name: VHF/UHF AN/ARC-182
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -349,12 +379,14 @@ F-14A-135-GR-Early:
     modulation: AM
   name: F-14A
   radios:
-  - name: UHF AN/ARC-159
+  - channels: 20
+    name: UHF AN/ARC-159
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: VHF/UHF AN/ARC-182
+  - channels: 30
+    name: VHF/UHF AN/ARC-182
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -374,12 +406,14 @@ F-14A-95-GR:
     modulation: AM
   name: F-14A Export
   radios:
-  - name: UHF AN/ARC-159
+  - channels: 20
+    name: UHF AN/ARC-159
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: VHF/UHF AN/ARC-182
+  - channels: 30
+    name: VHF/UHF AN/ARC-182
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -399,12 +433,14 @@ F-14B:
     modulation: AM
   name: F-14B
   radios:
-  - name: UHF AN/ARC-159
+  - channels: 20
+    name: UHF AN/ARC-159
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: VHF/UHF AN/ARC-182
+  - channels: 30
+    name: VHF/UHF AN/ARC-182
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -424,12 +460,14 @@ F-14BU:
     modulation: AM
   name: F-14B(U)
   radios:
-  - name: UHF AN/ARC-159
+  - channels: 20
+    name: UHF AN/ARC-159
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: VHF/UHF AN/ARC-182
+  - channels: 30
+    name: VHF/UHF AN/ARC-182
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -469,12 +507,14 @@ F-15ESE:
     modulation: AM
   name: F-15E S4+
   radios:
-  - name: UHF Radio 1
+  - channels: 20
+    name: UHF Radio 1
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: V/UHF Radio 2
+  - channels: 40
+    name: V/UHF Radio 2
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -497,12 +537,14 @@ F-16C_50:
     modulation: AM
   name: F-16CM bl.50
   radios:
-  - name: COMM 1 (UHF) AN/ARC-164
+  - channels: 20
+    name: COMM 1 (UHF) AN/ARC-164
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM
-  - name: COMM 2 (VHF) AN/ARC-222
+  - channels: 20
+    name: COMM 2 (VHF) AN/ARC-222
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -519,12 +561,14 @@ F-4E-45MC:
     modulation: AM
   name: F-4E-45MC
   radios:
-  - name: UHF AN/ARC-164 COMM channels
+  - channels: 18
+    name: UHF AN/ARC-164 COMM channels
     ranges:
     - max_mhz: 399.95
       min_mhz: 225.0
       modulation: AM/FM
-  - name: UHF AN/ARC-164 AUX channels
+  - channels: 20
+    name: UHF AN/ARC-164 AUX channels
     ranges:
     - max_mhz: 284.9
       min_mhz: 265.0
@@ -538,7 +582,8 @@ F-5E-3:
     modulation: AM
   name: F-5E-3
   radios:
-  - name: UHF Radio AN/ARC-164
+  - channels: 20
+    name: UHF Radio AN/ARC-164
     ranges:
     - max_mhz: 399.999
       min_mhz: 225.0
@@ -552,7 +597,8 @@ F-86F Sabre:
     modulation: AM
   name: F-86F
   radios:
-  - name: AN/ARC-27
+  - channels: 18
+    name: AN/ARC-27
     ranges:
     - max_mhz: 399.9
       min_mhz: 225.0
@@ -566,7 +612,8 @@ F-86F_FC:
     modulation: AM
   name: F-86F FC
   radios:
-  - name: AN/ARC-27
+  - channels: 18
+    name: AN/ARC-27
     ranges:
     - max_mhz: 399.9
       min_mhz: 225.0
@@ -580,7 +627,8 @@ F4U-1D:
     modulation: AM
   name: F4U-1D
   radios:
-  - name: ARC-5
+  - channels: 4
+    name: ARC-5
     ranges:
     - max_mhz: 150.0
       min_mhz: 100.0
@@ -588,7 +636,8 @@ F4U-1D:
     - max_mhz: 390.0
       min_mhz: 220.0
       modulation: AM/FM
-  - name: ARR-2
+  - channels: 6
+    name: ARR-2
     ranges:
     - max_mhz: 150.0
       min_mhz: 100.0
@@ -605,7 +654,8 @@ F4U-1D_CW:
     modulation: AM
   name: F4U-1D Mk.IV
   radios:
-  - name: ARC-5
+  - channels: 4
+    name: ARC-5
     ranges:
     - max_mhz: 150.0
       min_mhz: 100.0
@@ -613,7 +663,8 @@ F4U-1D_CW:
     - max_mhz: 390.0
       min_mhz: 220.0
       modulation: AM/FM
-  - name: ARR-2
+  - channels: 6
+    name: ARR-2
     ranges:
     - max_mhz: 150.0
       min_mhz: 100.0
@@ -630,7 +681,8 @@ FA-18C:
     modulation: AM
   name: F/A-18C
   radios:
-  - name: 'COMM 1: ARC-210'
+  - channels: 20
+    name: 'COMM 1: ARC-210'
     ranges:
     - max_mhz: 87.995
       min_mhz: 30.0
@@ -647,7 +699,8 @@ FA-18C:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: 'COMM 2: ARC-210'
+  - channels: 20
+    name: 'COMM 2: ARC-210'
     ranges:
     - max_mhz: 87.995
       min_mhz: 30.0
@@ -673,7 +726,8 @@ FA-18C_hornet:
     modulation: AM
   name: F/A-18C Lot 20
   radios:
-  - name: 'COMM 1: ARC-210'
+  - channels: 20
+    name: 'COMM 1: ARC-210'
     ranges:
     - max_mhz: 87.995
       min_mhz: 30.0
@@ -690,7 +744,8 @@ FA-18C_hornet:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: 'COMM 2: ARC-210'
+  - channels: 20
+    name: 'COMM 2: ARC-210'
     ranges:
     - max_mhz: 87.995
       min_mhz: 30.0
@@ -716,7 +771,8 @@ FW-190A8:
     modulation: AM
   name: Fw 190 A-8
   radios:
-  - name: FuG 16 Z
+  - channels: 5
+    name: FuG 16 Z
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
@@ -730,7 +786,8 @@ FW-190D9:
     modulation: AM
   name: Fw 190 D-9
   radios:
-  - name: FuG 16 Z
+  - channels: 5
+    name: FuG 16 Z
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
@@ -744,7 +801,8 @@ Hawk:
     modulation: AM
   name: Hawk
   radios:
-  - name: Radio 1
+  - channels: 18
+    name: Radio 1
     ranges:
     - max_mhz: 399.9
       min_mhz: 225.0
@@ -758,7 +816,8 @@ I-16:
     modulation: AM
   name: I-16
   radios:
-  - name: SCR522
+  - channels: 4
+    name: SCR522
     ranges:
     - max_mhz: 156.0
       min_mhz: 100.0
@@ -792,7 +851,8 @@ JF-17:
     modulation: AM
   name: JF-17
   radios:
-  - name: COMM 1/2 Preset
+  - channels: 20
+    name: COMM 1/2 Preset
     ranges:
     - max_mhz: 399.995
       min_mhz: 30.0
@@ -806,12 +866,14 @@ Ka-50:
     modulation: AM
   name: Ka-50
   radios:
-  - name: R-828
+  - channels: 10
+    name: R-828
     ranges:
     - max_mhz: 59.9
       min_mhz: 20.0
       modulation: AM/FM
-  - name: ARK-22
+  - channels: 16
+    name: ARK-22
     ranges:
     - max_mhz: 1.75
       min_mhz: 0.15
@@ -825,12 +887,14 @@ Ka-50_3:
     modulation: AM
   name: Ka-50 III
   radios:
-  - name: R-828
+  - channels: 10
+    name: R-828
     ranges:
     - max_mhz: 59.9
       min_mhz: 20.0
       modulation: AM/FM
-  - name: ARK-22
+  - channels: 16
+    name: ARK-22
     ranges:
     - max_mhz: 1.75
       min_mhz: 0.15
@@ -844,7 +908,8 @@ L-39C:
     modulation: AM
   name: L-39C
   radios:
-  - name: R-832M
+  - channels: 20
+    name: R-832M
     ranges:
     - max_mhz: 140.0
       min_mhz: 118.0
@@ -861,7 +926,8 @@ L-39ZA:
     modulation: AM
   name: L-39ZA
   radios:
-  - name: R-832M
+  - channels: 20
+    name: R-832M
     ranges:
     - max_mhz: 140.0
       min_mhz: 118.0
@@ -892,12 +958,14 @@ M-2000C:
     modulation: AM
   name: M-2000C
   radios:
-  - name: UHF Radio
+  - channels: 20
+    name: UHF Radio
     ranges:
     - max_mhz: 400.0
       min_mhz: 225.0
       modulation: AM/FM
-  - name: V/UHF Radio
+  - channels: 20
+    name: V/UHF Radio
     ranges:
     - max_mhz: 140.0
       min_mhz: 118.0
@@ -914,12 +982,14 @@ MB-339A:
     modulation: AM
   name: MB-339A
   radios:
-  - name: AN/ARC-150(V)-2
+  - channels: 20
+    name: AN/ARC-150(V)-2
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: SRT-651/N
+  - channels: 30
+    name: SRT-651/N
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -948,12 +1018,14 @@ MB-339APAN:
     modulation: AM
   name: MB-339A/PAN
   radios:
-  - name: AN/ARC-150(V)-2
+  - channels: 20
+    name: AN/ARC-150(V)-2
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: SRT-651/N
+  - channels: 30
+    name: SRT-651/N
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -982,12 +1054,14 @@ Mi-24P:
     modulation: AM
   name: Mi-24P
   radios:
-  - name: R-863
+  - channels: 20
+    name: R-863
     ranges:
     - max_mhz: 399.9
       min_mhz: 100.0
       modulation: AM/FM
-  - name: R-828
+  - channels: 10
+    name: R-828
     ranges:
     - max_mhz: 59.9
       min_mhz: 20.0
@@ -1001,12 +1075,14 @@ Mi-8MT:
     modulation: AM
   name: Mi-8MTV2
   radios:
-  - name: R-863
+  - channels: 20
+    name: R-863
     ranges:
     - max_mhz: 399.9
       min_mhz: 100.0
       modulation: AM/FM
-  - name: R-828
+  - channels: 10
+    name: R-828
     ranges:
     - max_mhz: 59.9
       min_mhz: 20.0
@@ -1051,7 +1127,8 @@ MiG-19P:
     modulation: AM
   name: MiG-19P
   radios:
-  - name: RSIU-4V Radio
+  - channels: 6
+    name: RSIU-4V Radio
     ranges:
     - max_mhz: 150.0
       min_mhz: 100.0
@@ -1065,7 +1142,8 @@ MiG-21Bis:
     modulation: AM
   name: MiG-21Bis
   radios:
-  - name: R-832
+  - channels: 20
+    name: R-832
     ranges:
     - max_mhz: 140.0
       min_mhz: 118.0
@@ -1082,7 +1160,8 @@ MiG-29 Fulcrum:
     modulation: AM
   name: MiG-29A  Fulcrum
   radios:
-  - name: VHF/UHF Radio R-862
+  - channels: 20
+    name: VHF/UHF Radio R-862
     ranges:
     - max_mhz: 149.975
       min_mhz: 100.0
@@ -1090,7 +1169,8 @@ MiG-29 Fulcrum:
     - max_mhz: 399.975
       min_mhz: 220.0
       modulation: AM/FM
-  - name: ARK-19
+  - channels: 8
+    name: ARK-19
     ranges:
     - max_mhz: 1.2995
       min_mhz: 0.15
@@ -1164,12 +1244,14 @@ Mirage-F1AD:
     modulation: AM
   name: Mirage F1AD
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1183,12 +1265,14 @@ Mirage-F1AZ:
     modulation: AM
   name: Mirage F1AZ
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1202,12 +1286,14 @@ Mirage-F1B:
     modulation: AM
   name: Mirage F1B
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1221,12 +1307,14 @@ Mirage-F1BD:
     modulation: AM
   name: Mirage F1BD
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1240,12 +1328,14 @@ Mirage-F1BE:
     modulation: AM
   name: Mirage F1BE
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1259,12 +1349,14 @@ Mirage-F1BQ:
     modulation: AM
   name: Mirage F1BQ
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1278,12 +1370,14 @@ Mirage-F1C:
     modulation: AM
   name: Mirage F1C
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1297,12 +1391,14 @@ Mirage-F1C-200:
     modulation: AM
   name: Mirage F1C-200
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1316,12 +1412,14 @@ Mirage-F1CE:
     modulation: AM
   name: Mirage F1CE
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1335,12 +1433,14 @@ Mirage-F1CG:
     modulation: AM
   name: Mirage F1CG
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1354,12 +1454,14 @@ Mirage-F1CH:
     modulation: AM
   name: Mirage F1CH
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1373,12 +1475,14 @@ Mirage-F1CJ:
     modulation: AM
   name: Mirage F1CJ
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1392,12 +1496,14 @@ Mirage-F1CK:
     modulation: AM
   name: Mirage F1CK
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1411,12 +1517,14 @@ Mirage-F1CR:
     modulation: AM
   name: Mirage F1CR
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1430,12 +1538,14 @@ Mirage-F1CT:
     modulation: AM
   name: Mirage F1CT
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1449,12 +1559,14 @@ Mirage-F1CZ:
     modulation: AM
   name: Mirage F1CZ
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1468,12 +1580,14 @@ Mirage-F1DDA:
     modulation: AM
   name: Mirage F1DDA
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1487,12 +1601,14 @@ Mirage-F1ED:
     modulation: AM
   name: Mirage F1ED
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1506,12 +1622,14 @@ Mirage-F1EDA:
     modulation: AM
   name: Mirage F1EDA
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1525,12 +1643,14 @@ Mirage-F1EE:
     modulation: AM
   name: Mirage F1EE
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1544,12 +1664,14 @@ Mirage-F1EH:
     modulation: AM
   name: Mirage F1EH
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1563,12 +1685,14 @@ Mirage-F1EQ:
     modulation: AM
   name: Mirage F1EQ
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1582,12 +1706,14 @@ Mirage-F1JA:
     modulation: AM
   name: Mirage F1JA
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1601,12 +1727,14 @@ Mirage-F1M-CE:
     modulation: AM
   name: Mirage F1M (C.14 1-25/32-51)
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1620,12 +1748,14 @@ Mirage-F1M-EE:
     modulation: AM
   name: Mirage F1M (C.14 52-73)
   radios:
-  - name: TRAP-136
+  - channels: 20
+    name: TRAP-136
     ranges:
     - max_mhz: 399.975
       min_mhz: 118.0
       modulation: AM/FM
-  - name: TRAP-137B
+  - channels: 20
+    name: TRAP-137B
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -1639,22 +1769,26 @@ MosquitoFBMkVI:
     modulation: AM
   name: Mosquito FB Mk. VI
   radios:
-  - name: TR.1143
+  - channels: 5
+    name: TR.1143
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
       modulation: AM/FM
-  - name: T.1154N Range 1
+  - channels: 8
+    name: T.1154N Range 1
     ranges:
     - max_mhz: 10.0
       min_mhz: 5.5
       modulation: AM/FM
-  - name: T.1154N Range 2
+  - channels: 8
+    name: T.1154N Range 2
     ranges:
     - max_mhz: 5.5
       min_mhz: 3.0
       modulation: AM/FM
-  - name: T.1154N Range 3
+  - channels: 8
+    name: T.1154N Range 3
     ranges:
     - max_mhz: 500.0
       min_mhz: 200.0
@@ -1668,22 +1802,26 @@ OH58D:
     modulation: AM
   name: OH-58D(R)
   radios:
-  - name: UHF AM
+  - channels: 20
+    name: UHF AM
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
       modulation: AM/FM
-  - name: VHF AM
+  - channels: 20
+    name: VHF AM
     ranges:
     - max_mhz: 151.975
       min_mhz: 116.0
       modulation: AM/FM
-  - name: VHF FM1
+  - channels: 21
+    name: VHF FM1
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
       modulation: AM/FM
-  - name: VHF FM2
+  - channels: 21
+    name: VHF FM2
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -1697,12 +1835,14 @@ P-47D-30:
     modulation: AM
   name: P-47D-30
   radios:
-  - name: SCR-522
+  - channels: 4
+    name: SCR-522
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
       modulation: AM/FM
-  - name: BC-1206
+  - channels: 1
+    name: BC-1206
     ranges:
     - max_mhz: 200.0
       min_mhz: 100.0
@@ -1716,12 +1856,14 @@ P-47D-30bl1:
     modulation: AM
   name: P-47D-30 (Early)
   radios:
-  - name: SCR-522
+  - channels: 4
+    name: SCR-522
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
       modulation: AM/FM
-  - name: BC-1206
+  - channels: 1
+    name: BC-1206
     ranges:
     - max_mhz: 200.0
       min_mhz: 100.0
@@ -1735,12 +1877,14 @@ P-47D-40:
     modulation: AM
   name: P-47D-40
   radios:
-  - name: SCR-522
+  - channels: 4
+    name: SCR-522
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
       modulation: AM/FM
-  - name: BC-1206
+  - channels: 1
+    name: BC-1206
     ranges:
     - max_mhz: 200.0
       min_mhz: 100.0
@@ -1754,12 +1898,14 @@ P-51D:
     modulation: AM
   name: P-51D-25-NA
   radios:
-  - name: SCR-522
+  - channels: 4
+    name: SCR-522
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
       modulation: AM/FM
-  - name: BC-1206
+  - channels: 1
+    name: BC-1206
     ranges:
     - max_mhz: 200.0
       min_mhz: 100.0
@@ -1773,12 +1919,14 @@ P-51D-30-NA:
     modulation: AM
   name: P-51D-30-NA
   radios:
-  - name: SCR-522
+  - channels: 4
+    name: SCR-522
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
       modulation: AM/FM
-  - name: BC-1206
+  - channels: 1
+    name: BC-1206
     ranges:
     - max_mhz: 200.0
       min_mhz: 100.0
@@ -1792,12 +1940,14 @@ QF-4E:
     modulation: AM
   name: QF-4E
   radios:
-  - name: UHF AN/ARC-164 COMM channels
+  - channels: 18
+    name: UHF AN/ARC-164 COMM channels
     ranges:
     - max_mhz: 399.95
       min_mhz: 225.0
       modulation: AM/FM
-  - name: UHF AN/ARC-164 AUX channels
+  - channels: 20
+    name: UHF AN/ARC-164 AUX channels
     ranges:
     - max_mhz: 284.9
       min_mhz: 265.0
@@ -1811,7 +1961,8 @@ SA342L:
     modulation: AM
   name: SA342L
   radios:
-  - name: FM Radio
+  - channels: 8
+    name: FM Radio
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -1826,7 +1977,8 @@ SA342M:
     modulation: AM
   name: SA342M
   radios:
-  - name: FM Radio
+  - channels: 8
+    name: FM Radio
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -1840,7 +1992,8 @@ SA342Minigun:
     modulation: AM
   name: SA342Minigun
   radios:
-  - name: FM Radio
+  - channels: 8
+    name: FM Radio
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -1854,7 +2007,8 @@ SA342Mistral:
     modulation: AM
   name: SA342Mistral
   radios:
-  - name: FM Radio
+  - channels: 8
+    name: FM Radio
     ranges:
     - max_mhz: 87.975
       min_mhz: 30.0
@@ -1868,7 +2022,8 @@ SpitfireLFMkIX:
     modulation: AM
   name: Spitfire LF Mk. IX
   radios:
-  - name: TR.1143
+  - channels: 5
+    name: TR.1143
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
@@ -1882,7 +2037,8 @@ SpitfireLFMkIXCW:
     modulation: AM
   name: Spitfire LF Mk. IX CW
   radios:
-  - name: TR.1143
+  - channels: 5
+    name: TR.1143
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
@@ -1976,12 +2132,14 @@ TF-51D:
     modulation: AM
   name: TF-51D
   radios:
-  - name: SCR-522
+  - channels: 4
+    name: SCR-522
     ranges:
     - max_mhz: 156.0
       min_mhz: 38.0
       modulation: AM/FM
-  - name: BC-1206
+  - channels: 1
+    name: BC-1206
     ranges:
     - max_mhz: 200.0
       min_mhz: 100.0
@@ -1995,7 +2153,8 @@ UH-1H:
     modulation: AM
   name: UH-1H
   radios:
-  - name: UHF AN/ARC-51
+  - channels: 20
+    name: UHF AN/ARC-51
     ranges:
     - max_mhz: 399.975
       min_mhz: 225.0
@@ -2009,7 +2168,8 @@ Yak-52:
     modulation: AM
   name: Yak-52
   radios:
-  - name: ARK-15M
+  - channels: 8
+    name: ARK-15M
     ranges:
     - max_mhz: 1.795
       min_mhz: 0.1

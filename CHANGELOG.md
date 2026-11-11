@@ -50,6 +50,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The shipped `fm_supplement` holds 20 entries instead of 30, so a default build no longer cuts the OH-58D's or the A-10C's FM radios.
 - **One capacity warning per build, and hand-assigned presets are capped too** (FIX-RADIO-CAPACITY-FOLLOWUP): a build lists every radio it cut in a single warning, with each one's capacity and dropped count, instead of one line per radio — a build from the shipped defaults went from 29 warnings to one.
   A preset assigned in `presets_assignments` now stops at the radios' capacity as well: the shipped blue CH-47F gets the first 20 of `radio_fm_30`'s 30 FM presets, on a radio that holds 20, and the list itself is unchanged.
+- **The Open Training prompt states the template's radio convention: VHF for the airfields, UHF for the assets then the flights** (FIX-OT-RADIO-PLAN-CONVENTION): it used to say "UHF = bases, AWACS, flights, tankers; VHF = flights", so the eight OTs spread their airfields and flights over both 20-channel radios and a pilot found Ramat David only on the UHF and Archer only on the VHF (Syria).
+  The VHF radio (`primary_2`) now carries the airfields and FARPs, the UHF radio (`primary_1`) the AWACS and tankers first, then the carriers, then the flights, with no drones or exotic assets and no Guard; the prompt says what to drop past 20 channels.
+  The objective-mission prompt and the authoring guide say which radio carries what too.
 
 ## [6.36.0] — 2026-11-05
 

@@ -341,8 +341,9 @@ or a red base with slots nobody asked for, is an inconsistency.
   AWACS Overlord = 1, Magic = 2…), radio frequency, preset label and `ASSETS` information text must
   agree. Cross-check them once written.
 - **Its channel goes into `src/presets.yaml` in the same pass.** An AWACS, a tanker or a carrier you
-  place gets its channel in the players' coalition's `channel_lists`, under the name the briefing uses;
-  the airfields the mission flies from get theirs through `set_airfield_channels`. The scaffold's plan
+  place gets its channel in the players' coalition's `channel_lists`, under the name the briefing uses,
+  on the UHF list (`primary_1`, AWACS and tankers first, then carriers, then flights);
+  the airfields the mission flies from get theirs through `set_airfield_channels`, on the VHF list (`primary_2`) only. The scaffold's plan
   is an Open Training's (Magic 282.2, Arco-1 290.5…): left as it is, every radio and every kneeboard
   agrees with it and not with your mission — what *Kolkhida* mission 1 flew with. The build lists every
   AWACS and tanker no preset carries, in its log and in `presets-validation-report.md`: treat that list

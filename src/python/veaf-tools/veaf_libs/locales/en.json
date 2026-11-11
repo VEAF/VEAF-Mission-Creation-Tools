@@ -914,6 +914,7 @@
   "presets_injector.no_preset": "{count} group(s) had no matching preset in presets.yaml (left unchanged)",
   "presets_injector.primary_freq_not_promoted": "{details}: channel 1 is outside the aircraft's tunable primary-frequency range, so the group keeps its own frequency (the presets themselves are injected as usual).",
   "presets_injector.processing_groups": "Processing {count} aircraft group(s)",
+  "presets_injector.radio_layout.capacity_summary": "{count} radio(s) hold fewer presets than their list, which was cut at their last slot (type radio N (capacity, -dropped)): {details}",
   "presets_injector.radio_layout.capacity_truncated": "Radio {radio_index} for '{unit_type}' exceeds its declared capacity of {capacity} slot(s): {dropped_count} trailing channel(s) dropped.",
   "presets_injector.radio_layout.count_mismatch": "Radio layout for '{unit_type}' declares {declared_count} radio(s), but dcs-radio-specs.yaml reports {actual_count} — the layout and the specs are out of sync (check dcs-radio-layouts.yaml after a DCS patch).",
   "presets_injector.radio_layout.invalid_capacity": "radio {radio_index} in radio layout '{unit_type_key}' has an invalid 'capacity' value '{capacity}' (not a positive integer) — ignored, no capacity limit applied",

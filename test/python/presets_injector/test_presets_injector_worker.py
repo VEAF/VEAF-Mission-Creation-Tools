@@ -524,8 +524,11 @@ class TestRadioCapacityInBuild(unittest.TestCase):
                 self.assertEqual(channels[21], fm_supplement[18])  # preset 19
             # the UHF radio, 20 entries for 20 slots, is untouched
             self.assertEqual(radio[1]["channels"], {1: primary_1[19], **{s: primary_1[s - 2] for s in range(2, 21)}})
-        truncations = [c for c in mock_logger.warning.call_args_list if "OH58D" in c.args[0] and "21" in c.args[0]]
-        self.assertEqual(len(truncations), 2)  # radios 3 and 4, once each for the two groups
+        # FIX-RADIO-CAPACITY-FOLLOWUP: one summary warning for the build, naming both FM radios once
+        truncations = [c for c in mock_logger.warning.call_args_list if "OH58D" in c.args[0]]
+        self.assertEqual(len(truncations), 1)
+        self.assertIn("OH58D radio 3 (21, -11)", truncations[0].args[0])
+        self.assertIn("OH58D radio 4 (21, -11)", truncations[0].args[0])
 
 
 class TestGenerateValidationReport(unittest.TestCase):

@@ -914,6 +914,7 @@
   "presets_injector.no_preset": "{count} groupe(s) sans préréglage correspondant dans presets.yaml (inchangé(s))",
   "presets_injector.primary_freq_not_promoted": "{details} : le canal 1 est hors de la plage de fréquence principale accordable de l'appareil ; le groupe conserve donc sa propre fréquence (les préréglages sont injectés normalement).",
   "presets_injector.processing_groups": "Traitement de {count} groupe(s) d'aéronefs",
+  "presets_injector.radio_layout.capacity_summary": "{count} radio(s) tiennent moins de presets que leur liste, coupée à leur dernier emplacement (type radio N (capacité, -retirés)) : {details}",
   "presets_injector.radio_layout.capacity_truncated": "La radio {radio_index} de '{unit_type}' dépasse sa capacité déclarée de {capacity} emplacement(s) : {dropped_count} canal(aux) en fin de liste ignoré(s).",
   "presets_injector.radio_layout.count_mismatch": "La disposition radio de '{unit_type}' déclare {declared_count} radio(s), mais dcs-radio-specs.yaml en indique {actual_count} — la disposition et les spécifications sont désynchronisées (vérifiez dcs-radio-layouts.yaml après une mise à jour de DCS).",
   "presets_injector.radio_layout.invalid_capacity": "la radio {radio_index} de la disposition radio '{unit_type_key}' a une valeur 'capacity' invalide '{capacity}' (pas un entier positif) — ignorée, aucune limite de capacité appliquée",

@@ -162,10 +162,12 @@ class TestCapacityTruncation(unittest.TestCase):
         ]
         mock_get_layout.return_value = RadioLayoutEntry(radios={1: RadioLayoutRadio(role="primary_1", capacity=3)})
         channel_lists = _channel_lists(primary_1=[float(i) for i in range(1, 6)])
-        warned: set[tuple[str, int, int]] = set()
+        warned: set[tuple[str, int, int, int]] = set()
         for _ in range(3):  # three units of the same type in one build
             pack_preset_for_type(channel_lists, "blue", "SomeType", capacity_warned=warned)
-        mock_logger.warning.assert_called_once()
+        # FIX-RADIO-CAPACITY-FOLLOWUP: inside a build, the truncation is recorded, and the build sums them up.
+        mock_logger.warning.assert_not_called()
+        self.assertEqual(warned, {("SomeType", 1, 3, 2)})
 
     @patch("presets_injector.presets_manager.logger")
     @patch("presets_injector.presets_manager.get_radio_layout")
@@ -406,6 +408,104 @@ class TestCapacityFromTheModule(unittest.TestCase):
         self.assertIsNotNone(preset)
         self.assertEqual(len(preset.to_dict()[1]["channels"]), 43)  # 40 + E, F, G (no plan priorities here)
         mock_logger.warning.assert_not_called()
+
+
+class TestManualAssignmentsAreCapped(unittest.TestCase):
+    """FIX-RADIO-CAPACITY-FOLLOWUP D1: a ``presets_assignments`` preset stops at the radio's capacity too."""
+
+    def setUp(self):
+        import presets_injector.presets_manager as pm
+
+        self.manager = pm.PresetsManager()
+        self.manager.read_yaml(_SHIPPED_DEFAULT_PRESETS)
+
+    def test_the_shipped_ch47_fm_radio_gets_its_20_slots(self):
+        preset = self.manager.get_radios_for("blue", "helicopter", "CH-47Fbl1")
+        self.assertIsNotNone(preset)
+        radios = preset.to_dict()
+        self.assertEqual(sorted(radios[1]["channels"]), list(range(1, 21)))
+        self.assertEqual(self.manager._capacity_warned, {("CH-47Fbl1", 1, 20, 10)})
+
+    def test_the_shipped_list_itself_is_not_changed(self):
+        self.manager.get_radios_for("blue", "helicopter", "CH-47Fbl1")
+        source = self.manager.radio_collections["blue_radios"].radio_definitions["radio_fm_30"]
+        self.assertEqual(len(source.channels), 30)
+        assigned = self.manager.preset_assignments.get_preset_for(
+            coalition="blue", aircraft_type="helicopter", unit_type="CH-47Fbl1"
+        )
+        self.assertEqual(len(next(iter(assigned.preset_definition.radios.values())).channels), 30)
+
+    def test_a_manual_preset_that_fits_is_returned_as_it_is(self):
+        # PRD D3: nothing to cut, nothing copied.
+        from presets_injector.presets_manager import PresetDefinition, _cap_preset_to_capacity
+
+        radio = _radio_list([225.0, 226.0])
+        preset = PresetDefinition(name="p")
+        preset.add_radio(radio)
+        self.assertIs(_cap_preset_to_capacity(preset, "F-16C_50", set()), preset)
+
+    def test_none_stays_none(self):
+        # The shipped Mi-8MT is assigned `none`: no injection at all.
+        self.assertIsNone(self.manager.get_radios_for("blue", "helicopter", "Mi-8MT"))
+
+    def test_an_unknown_type_is_not_capped(self):
+        from presets_injector.presets_manager import PresetDefinition, _cap_preset_to_capacity
+
+        preset = PresetDefinition(name="p")
+        preset.add_radio(_radio_list([225.0 + i for i in range(30)]))
+        self.assertIs(_cap_preset_to_capacity(preset, "all", set()), preset)
+
+
+class TestOneSummaryWarningPerBuild(unittest.TestCase):
+    """FIX-RADIO-CAPACITY-FOLLOWUP D2: one warning per build lists every truncated radio."""
+
+    @patch("presets_injector.presets_manager.logger")
+    def test_several_truncations_give_one_warning(self, mock_logger):
+        from presets_injector.presets_manager import log_capacity_truncations
+
+        log_capacity_truncations({("P-51D", 2, 1, 14), ("P-51D", 1, 4, 4), ("AH-64D_BLK_II", 3, 10, 10)})
+        mock_logger.warning.assert_called_once_with(
+            t(
+                "presets_injector.radio_layout.capacity_summary",
+                count=3,
+                details="AH-64D_BLK_II radio 3 (10, -10); P-51D radio 1 (4, -4); P-51D radio 2 (1, -14)",
+            )
+        )
+
+    @patch("presets_injector.presets_manager.logger")
+    def test_no_truncation_no_warning(self, mock_logger):
+        from presets_injector.presets_manager import log_capacity_truncations
+
+        log_capacity_truncations(set())
+        mock_logger.warning.assert_not_called()
+
+    @patch("presets_injector.presets_manager.logger")
+    def test_the_per_radio_line_goes_to_debug_inside_a_build(self, mock_logger):
+        warned: set[tuple[str, int, int, int]] = set()
+        with patch("presets_injector.presets_manager.get_radio_layout", return_value=None):
+            pack_preset_for_type(
+                _channel_lists(primary_1=[225.0 + i for i in range(30)]), "blue", "F-16C_50", capacity_warned=warned
+            )
+        mock_logger.warning.assert_not_called()
+        mock_logger.debug.assert_called()
+        self.assertEqual(warned, {("F-16C_50", 1, 20, 10)})
+
+    def test_both_locales_carry_the_summary(self):
+        import json
+
+        locales = Path(__file__).resolve().parents[3] / "src" / "python" / "veaf-tools" / "veaf_libs" / "locales"
+        for language in ("en", "fr"):
+            messages = json.loads((locales / f"{language}.json").read_text(encoding="utf-8"))
+            self.assertIn("presets_injector.radio_layout.capacity_summary", messages, language)
+
+    def test_the_worker_sums_up_once_after_the_groups(self):
+        from presets_injector.presets_injector_worker import PresetsInjectorWorker
+
+        worker = PresetsInjectorWorker(presets_file=None, input_mission=None, output_mission=None)
+        worker.presets_manager._capacity_warned.add(("P-51D", 1, 4, 4))
+        with patch("presets_injector.presets_injector_worker.log_capacity_truncations") as summary:
+            worker.process_groups(silent=True)
+        summary.assert_called_once_with({("P-51D", 1, 4, 4)})
 
 
 if __name__ == "__main__":

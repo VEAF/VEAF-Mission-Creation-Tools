@@ -36,7 +36,7 @@ An Open Training's briefing as kneeboard pages in the `.miz`: `build_mission_bri
 
 ### [DOC-HOTLOAD-RECIPE](DOC-HOTLOAD-RECIPE/PRD.md) · ✅
 
-A developer page on loading dcs-hotload (MacFlorent/dcs-hotload) in a VMCT-built mission with no VMCT code: a boot script declared in `custom_scripts` loads it from `Saved Games\DCS\Scripts\dcs-hotload\` when it is there and does nothing otherwise, with a per-mission variant and the reservations (install-wide `io`/`lfs` unlock, one F10 root entry, VEAF modules are not reloaded). Chosen by David and Flogas on 2026-11-09 over a `hotload:` build key; merged in #1257, closed without an in-game test.
+A developer page on loading dcs-hotload (MacFlorent/dcs-hotload) in a VMCT-built mission with no VMCT code, rewritten on 2026-11-11 to follow hotload's own model: one copy extracted into the mission folder, unlocked with its `hotload-setup.py`, booted by a script declared in `custom_scripts` that finds it from `VEAF_DYNAMIC_MISSIONPATH`, so in a dynamic build only, and writes a `HOTLOAD: not booted:` line to `dcs.log` otherwise. Reservations: install-wide `io`/`lfs` unlock, `status` blind to this boot, one F10 root entry, VEAF modules are not reloaded. Chosen by David and Flogas over a `hotload:` build key; merged in #1257, revised by ticket 02 (which also fixed the reference's `FgDebug.lua` profile example), not tested in game.
 
 ### [FEAT-DCS-EDITOR-LUA-LAYOUT](FEAT-DCS-EDITOR-LUA-LAYOUT/PRD.md) · ✅
 

@@ -718,16 +718,20 @@ adopted mission reproduces the upstream staging without you having to notice it.
 custom_scripts:
   scripts:
     - path: src/scripts/FgMission.lua   # always loaded (both variants)
+    - path: src/scripts/FgDebug.lua
+      generate_load_trigger: false     # declared, but not loaded by the default build
 
 profiles:
   DEV:
     custom_scripts:
       scripts:
         - path: src/scripts/FgMission.lua    # ⚠️ must repeat the base scripts
-        - path: src/scripts/FgDebug.lua      # extra, dev-only
+        - path: src/scripts/FgDebug.lua      # without the flag: loaded in DEV
 ```
 
 Build the dev variant with `veaf-tools mission build --profile DEV` (it loads `FgMission.lua` + `FgDebug.lua`); the default build loads only `FgMission.lua`.
+
+> ⚠️ **Declaring the script only in the profile is not enough**: a `.lua` file of `src/scripts/` that `custom_scripts:` does not declare is loaded anyway, with a warning at build time. That is why the base declares `FgDebug.lua` with `generate_load_trigger: false`. The default build still embeds it in the `.miz`, but loads it in neither mode.
 
 > ⚠️ **Pitfall**: profile deep-merge **replaces lists, it does not concatenate them** (see [`profiles:`](#profiles)). The profile's `custom_scripts.scripts` must therefore **repeat** the base scripts and add the variant-specific one — otherwise the base scripts are lost in that profile.
 
@@ -780,7 +784,7 @@ pipeline:
 
 ---
 
-### `build:`
+### `build:` {#build}
 
 Controls how `veaf-tools mission build` resolves the VEAF scripts bundle.
 These settings are normally set via the CLI (`--dev-mode`, `--scripts-path`) and then persisted here automatically.

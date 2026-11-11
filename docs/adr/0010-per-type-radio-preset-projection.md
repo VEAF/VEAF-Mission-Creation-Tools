@@ -100,6 +100,12 @@ The datamine dump at the pinned ref lists every module's `panelRadio` channels, 
 The cut also went from count to **slot number**: a channel dropped from a list leaves its slot empty so a pilot's channel N stays N, so a short list could reach past the last slot, and a renumbering cut would have shifted the kept channels.
 The three types above keep their hand-declared values, which equal the module's counts.
 
+## Amendment (FIX-RADIO-CAPACITY-FOLLOWUP) — one summary warning, and the manual path is capped
+
+Once every type had a count, a build from the shipped defaults warned 29 times, once per radio: the coalition's shared lists are longer than a warbird's 4-channel set by nature, and the lines drowned the build's other messages.
+The per-radio line is now debug, and the build logs **one warning** listing every truncated type and radio with its capacity and dropped count.
+A preset assigned through `presets_assignments` — the manual override — is cut the same way, by slot, on a copy so the shared collection is left alone; a preset that fits is written as it is. The shipped blue CH-47F gets 20 of `radio_fm_30`'s 30 FM presets.
+
 ## Alternatives rejected
 
 - **Replace the old layers** — breaks existing missions and convert-v5.

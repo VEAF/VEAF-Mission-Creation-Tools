@@ -1,6 +1,6 @@
 # 02 — One summary warning per build
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

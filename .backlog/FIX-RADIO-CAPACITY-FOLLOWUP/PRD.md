@@ -1,6 +1,6 @@
 # FIX-RADIO-CAPACITY-FOLLOWUP — The manual assignment path is capped, and truncation warns once per build
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Follow-up of FEAT-RADIO-CAPACITY-ALL-TYPES (#1263), agreed by David on 2026-11-11 ("ok, on fait ta reco").
 
@@ -21,7 +21,27 @@ Follow-up of FEAT-RADIO-CAPACITY-ALL-TYPES (#1263), agreed by David on 2026-11-1
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [Cap the manual assignment path](tickets/01-cap-assignments.md) | ⬜ |
-| 02 | [One summary warning per build](tickets/02-summary-warning.md) | ⬜ |
+| 01 | [Cap the manual assignment path](tickets/01-cap-assignments.md) | ✅ |
+| 02 | [One summary warning per build](tickets/02-summary-warning.md) | ✅ |
 
 Python, TDD. One branch, one PR.
+
+## Outcome — 2026-11-11
+
+### D1 — the manual path is capped
+
+`get_radios_for` passes a `presets_assignments` preset through `_cap_preset_to_capacity`: its radios map to the physical radios in order (as `PresetDefinition.to_dict` writes them), each is cut by slot at its capacity (the layout's, else the module's), and a cut radio is a copy, so the shared collection is never touched. A preset that fits, `none` and an unknown type (`all`) come back as they are.
+The shipped blue CH-47F gets slots 1-20 of `radio_fm_30`; the list in `presets.yaml` and in the loaded collection still holds 30 (tested).
+
+### D2 — one summary warning
+
+`_truncate_to_capacity` records each truncation as (type, radio, capacity, dropped) in the build's set and logs the per-radio line at debug; outside a build (no set) it still warns on the spot. `log_capacity_truncations` logs one warning listing them, sorted, in fr and en; the presets worker calls it once after its groups, convert-v5 once after its comparison pass.
+**Measured on the 122 (coalition, type) pairs of the shipped templates: one warning, listing 30 radios** — the 29 of #1263 plus the CH-47F's radio 1, now cut from 30 to 20.
+
+### D3
+
+The #1263 test `test_the_shipped_defaults_change_only_by_the_cut` still passes; a fitting manual preset is the same object.
+
+### Known limitations
+
+`radio-capacity-not-applied-to-manual-presets` gets `fixed_in: 6.37.0`; its La-7 / MiG-15bis half, not fixed, becomes `radio-capacity-unknown-for-overlay-radios`. Both are `kind: tool`, which `dcs-runtime-traps.md` does not list: regenerating it changed nothing.

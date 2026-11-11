@@ -1,6 +1,6 @@
 # 01 — Cap the manual assignment path
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

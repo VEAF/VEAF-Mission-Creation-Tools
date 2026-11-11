@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-RADIO-CAPACITY-FOLLOWUP](FIX-RADIO-CAPACITY-FOLLOWUP/PRD.md) · 🔄
+
+The radios written through `presets_assignments` are capped too (the defaults' CH-47F gets 30 FM presets on a 20-slot radio, the case that crashed the OH-58D), and capacity truncation logs one summary warning per build instead of one per radio (29 on a default build). Follow-up of #1263, agreed by David (2026-11-11).
+
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

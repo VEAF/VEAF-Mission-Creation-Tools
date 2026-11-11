@@ -13,7 +13,7 @@ from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
-from .presets_manager import PresetDefinition, PresetsManager
+from .presets_manager import PresetDefinition, PresetsManager, log_capacity_truncations
 from .radio_frequency_validator import (
     ChannelFrequency,
     FrequencyIssue,
@@ -361,6 +361,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 nb_units_processed += self.process_units(group, preset_definition)
             else:
                 nb_groups_without_preset += 1
+
+        # FIX-RADIO-CAPACITY-FOLLOWUP: one warning for every radio the build cut, not one each.
+        log_capacity_truncations(self.presets_manager._capacity_warned)
 
         if not silent and self._skipped_primary_promotions:
             details = ", ".join(

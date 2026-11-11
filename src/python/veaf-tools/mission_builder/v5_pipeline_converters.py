@@ -28,7 +28,13 @@ import luadata
 import yaml
 from mission_tools import KIND_DYNAMIC_TEMPLATE, KIND_SPAWNABLE, classify_aircraft_group
 from presets_injector.freq_alias import apply_aliasing
-from presets_injector.presets_manager import PresetDefinition, pack_preset_for_type, parse_channel_lists
+from presets_injector.presets_manager import (
+    CapacityTruncations,
+    PresetDefinition,
+    log_capacity_truncations,
+    pack_preset_for_type,
+    parse_channel_lists,
+)
 from veaf_libs.i18n import t, tn
 from veaf_libs.logger import logger
 
@@ -1376,7 +1382,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     token_resolver = _build_token_resolver(content)
     plan_irreducible: dict[tuple[str, str], str] = {}
     plan_best_effort: list[str] = []
-    capacity_warned: set[tuple[str, int, int]] = set()  # one capacity warning per radio, not per entry
+    capacity_warned: CapacityTruncations = set()  # summed up in one warning after the loop
     for entry in _parse_radio_settings_entries(content):
         if not entry.radio_sources or entry.coalition not in presets_assignments:
             continue
@@ -1447,6 +1453,8 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
 
         for cat in _detect_category(entry.aircraft, entry.is_pattern, helicopter_types):
             presets_assignments[entry.coalition].setdefault(cat, {})[entry.aircraft] = target_preset
+
+    log_capacity_truncations(capacity_warned)
 
     # Emit warbird warnings after processing all entries (so we know which were assigned)
     for coalition in ("blue", "red"):

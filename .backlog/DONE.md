@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-RADIO-CAPACITY-FOLLOWUP](FIX-RADIO-CAPACITY-FOLLOWUP/PRD.md) · ✅
+
+Presets assigned through `presets_assignments` stop at the radios' capacity too, on a copy (the defaults' blue CH-47F gets 20 of `radio_fm_30`'s 30 FM presets, the list unchanged), and a build logs one summary warning for every radio it cut instead of one per radio: a default build went from 29 warnings to one. Follow-up of #1263 (2026-11-11).
+
 ### [FEAT-RADIO-CAPACITY-ALL-TYPES](FEAT-RADIO-CAPACITY-ALL-TYPES/PRD.md) · ✅
 
 Every radio of 87 of the 100 aircraft types stops at the preset count its module's `panelRadio` lists, read from the pinned DCS datamine by the radio-specs generator (`channels` in `dcs-radio-specs.yaml`), under the band-based default too; the cut goes by slot number so lists with gaps keep their channel numbers. The shipped `fm_supplement` holds 20 entries; warbird, Mosquito and AH-64D radios still cut the shipped shared lists, with a warning. Follow-up of #1262 (2026-11-10).

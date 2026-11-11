@@ -63,7 +63,8 @@ après un build. Il n'est écrit que s'il y a un problème, et supprimé quand i
 
 Une radio de cockpit ne tient qu'un nombre fixe de presets, et une liste plus longue est **coupée à la fin, avec un warning au build**.
 La coupe se fait au numéro de canal : un canal écarté d'une liste (hors bande) laisse sa place vide, pour que le canal N d'un pilote reste le N, donc ce sont les canaux au-delà du dernier emplacement qui partent, et les autres gardent leur numéro.
-Le warning nomme le type, la radio, sa capacité et le nombre de canaux retirés : ce sont des canaux qu'un pilote ne trouvera pas dans le cockpit.
+Le build donne un seul warning pour toutes les radios coupées, qui nomme pour chacune le type, la radio, sa capacité et le nombre de canaux retirés : ce sont des canaux qu'un pilote ne trouvera pas dans le cockpit.
+La coupe vaut aussi pour les presets affectés à la main dans `presets_assignments` : le CH-47F bleu des défauts ne reçoit que les 20 premiers canaux de `radio_fm_30`, la liste elle-même restant à 30.
 
 Exemple : les deux radios FM de l'OH-58D Kiowa tiennent 21 presets, `C`, `M` puis 1 à 19.
 Un `fm_supplement` de 30 entrées leur en donnait 32, et le client DCS plantait au spawn en multijoueur ; le build les arrête maintenant à 21.

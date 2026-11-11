@@ -79,11 +79,13 @@
 #         slots this radio physically holds. Once every other primitive above
 #         has run, the channels whose slot number exceeds `capacity` are
 #         dropped and the others keep their slot (e.g. Tripack itself
-#         truncated the AJS-37's VHF list to fit its 47-slot radio). A
-#         truncation logs a WARNING at build, once per radio
-#         (FIX-RADIO-PRESET-CAPACITY, amending ADR 0010): a dropped preset is
-#         one a pilot will look for, and too many presets on the OH-58D's FM
-#         radios crash the DCS client at spawn. Optional: a radio without one
+#         truncated the AJS-37's VHF list to fit its 47-slot radio). The
+#         build logs ONE warning listing every truncated radio, the per-radio
+#         line being debug (FIX-RADIO-PRESET-CAPACITY made truncation warn,
+#         amending ADR 0010; FIX-RADIO-CAPACITY-FOLLOWUP sums it up): a
+#         dropped preset is one a pilot will look for, and too many presets on
+#         the OH-58D's FM radios crash the DCS client at spawn. The same cut
+#         applies to a `presets_assignments` preset. Optional: a radio without one
 #         takes the channel count of its module's `panelRadio` table, which
 #         dcs-radio-specs.yaml carries as `channels` (FEAT-RADIO-CAPACITY-ALL-
 #         TYPES), and so does every radio of a type absent from this file.

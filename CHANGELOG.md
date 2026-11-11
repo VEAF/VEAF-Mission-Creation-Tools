@@ -48,6 +48,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A warbird radio holds 4 or 5 presets and an AH-64D radio 10, so a coalition's shared lists are cut there with a warning; their kneeboards no longer list channels the cockpit cannot select.
   The cut goes by channel number rather than by count, so a list with gaps keeps its pilots' channel numbers and cannot reach past the last slot.
   The shipped `fm_supplement` holds 20 entries instead of 30, so a default build no longer cuts the OH-58D's or the A-10C's FM radios.
+- **One capacity warning per build, and hand-assigned presets are capped too** (FIX-RADIO-CAPACITY-FOLLOWUP): a build lists every radio it cut in a single warning, with each one's capacity and dropped count, instead of one line per radio — a build from the shipped defaults went from 29 warnings to one.
+  A preset assigned in `presets_assignments` now stops at the radios' capacity as well: the shipped blue CH-47F gets the first 20 of `radio_fm_30`'s 30 FM presets, on a radio that holds 20, and the list itself is unchanged.
 
 ## [6.36.0] — 2026-11-05
 

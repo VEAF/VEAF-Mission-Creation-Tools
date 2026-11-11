@@ -1980,9 +1980,19 @@ limitations:
     `presets_assignments` takes its legacy preset as it is: the shipped defaults give the blue CH-47F
     `modern_blue_fm_uhf`, whose `radio_fm_30` puts 30 FM presets on an ARC-186 that holds 20. Whether
     the CH-47F crashes like the OH-58D did is not measured.
-
-    The La-7 and the MiG-15bis have no count at all: their radio is declared by the VEAF overlay, the
-    datamine lists no channels for it, so their lists go through whole.
   workaround: |
     Keep a manual preset's radios within the channel count of the module (`channels` of the type in
     `dcs-radio-specs.yaml`, in radio order).
+  fixed_in: "6.37.0"
+
+- id: radio-capacity-unknown-for-overlay-radios
+  kind: tool
+  area: radio
+  title: "The La-7 and the MiG-15bis radios have no preset capacity: their lists go through whole"
+  symptom: |
+    Every other radio stops at the preset count its module lists (`channels` in `dcs-radio-specs.yaml`).
+    The La-7's and the MiG-15bis's radio is declared by the VEAF overlay
+    (`dcs-radio-specs-overrides.yaml`) because the datamine has none for them, so no count is known and
+    the build writes whatever the list holds.
+  workaround: |
+    Keep their channel lists short, or give them a manual preset that fits their cockpit set.

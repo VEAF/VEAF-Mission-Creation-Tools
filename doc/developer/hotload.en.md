@@ -20,16 +20,17 @@ This page explains how to load it in a mission built with VMCT, **without changi
 Each mission has **its own** copy of hotload, in a `dcs-hotload\` folder next to its `mission.yaml`.
 Its F10 commands, its libraries and its mailbox live in that copy: two missions share nothing.
 
-The mission embeds a boot script holding the path of that folder **on the developer's machine**.
-It loads hotload when the folder is there, and does nothing visible otherwise.
+hotload is only for a **dynamic build** (`--dynamic-mode`, or `build.dynamic_loading: true` in `mission.yaml`, see [`build:`](../MISSION_YAML_REFERENCE.en.md#build)).
+In a dynamic build, VMCT gives the mission the path of its folder on the machine that built it, in the `VEAF_DYNAMIC_MISSIONPATH` variable, and the mission reads its scripts from disk.
+The boot script uses it to find `dcs-hotload\`: there is no path to write by hand.
 
-The same `.miz` therefore goes everywhere:
-
-| Where the mission runs | What happens |
+| How the mission is built and where it runs | What happens |
 |---|---|
-| Your machine, `io` and `lfs` unlocked | hotload starts, the **Hotload** F10 menu appears |
-| Your machine, after a DCS update locked `io` and `lfs` again | hotload says so on screen: the unlock has to be done again |
-| A server, a player, any other machine | one `HOTLOAD: not booted:` line in `dcs.log`, nothing on screen, the mission runs |
+| Dynamic build, on your machine, `io` and `lfs` unlocked | hotload starts, the **Hotload** F10 menu appears |
+| Dynamic build, on your machine, after a DCS update locked `io` and `lfs` again | hotload says so on screen: the unlock has to be done again |
+| Static build, anywhere (server, player, your machine) | one `HOTLOAD: not booted:` line in `dcs.log`, nothing on screen, the mission runs |
+
+The script can therefore stay declared in the mission for good: there is no build profile to set up, and nothing to remove before handing out a static build.
 
 Why a boot script rather than the trigger `hotload-setup.py patch-miz` adds: VMCT **regenerates** the `.miz` on every build, and a trigger added to the `.miz` would be gone after the next build.
 The boot script lives in the mission's sources instead.
@@ -92,27 +93,26 @@ DCS updates put the original file back: the edit has to be redone after each one
 
 ## The boot script {#boot-script}
 
-In the mission folder, create `src\scripts\hotload-boot.lua`, and replace the path on the first line of code with the one of **your** mission's `dcs-hotload` folder:
+In the mission folder, create `src\scripts\hotload-boot.lua`; it is the same for every mission:
 
 ```lua
--- hotload-boot.lua: loads this mission's copy of dcs-hotload, https://github.com/MacFlorent/dcs-hotload
--- BASE_HOTLOAD_PATH is the mission's dcs-hotload folder on the developer's machine.
--- Where it is missing, as on a player's machine or a server, the mission writes one
--- "HOTLOAD: not booted:" line to dcs.log and runs on, with nothing on screen.
--- Empty it ([[]]) to build a copy that names no local folder.
-local BASE_HOTLOAD_PATH = [[D:\Missions\my-mission\dcs-hotload]]
-
-local f, err
-if BASE_HOTLOAD_PATH == "" then
-  err = "BASE_HOTLOAD_PATH is not set"
+-- hotload-boot.lua: loads the mission's copy of dcs-hotload, https://github.com/MacFlorent/dcs-hotload
+-- Only a dynamic build sets VEAF_DYNAMIC_MISSIONPATH, to the mission folder on the machine that
+-- built it; the copy is its dcs-hotload folder. In a static build, or where that folder is
+-- missing, the mission writes one "HOTLOAD: not booted:" line to dcs.log and runs on, with
+-- nothing on screen.
+local root, f, err
+if type(VEAF_DYNAMIC_MISSIONPATH) ~= "string" or VEAF_DYNAMIC_MISSIONPATH == "" then
+  err = "VEAF_DYNAMIC_MISSIONPATH is not set (not a dynamic build)"
 else
-  f, err = loadfile(BASE_HOTLOAD_PATH .. [[\dcs-hotload.lua]])
+  root = VEAF_DYNAMIC_MISSIONPATH:gsub("[\\/]+$", "") .. "/dcs-hotload"
+  f, err = loadfile(root .. "/dcs-hotload.lua")
 end
 if not f then
   env.info("HOTLOAD: not booted: " .. tostring(err))
 else
   Hotload = Hotload or {}
-  Hotload.root = BASE_HOTLOAD_PATH
+  Hotload.root = root
   local ok, crash = pcall(f)
   if not ok then
     env.error("HOTLOAD: boot failed: " .. tostring(crash))
@@ -129,51 +129,41 @@ custom_scripts:
 ```
 
 If the mission already has `custom_scripts`, add the line to the existing list.
-The build embeds it in the `.miz` and generates its load trigger (see [`custom_scripts:`](../MISSION_YAML_REFERENCE.en.md#custom-scripts)).
+The build generates its loading (see [`custom_scripts:`](../MISSION_YAML_REFERENCE.en.md#custom-scripts)): in a dynamic build it is read from disk like the other mission scripts.
 
 What the script does:
 
-- **it does not depend on `io` or `lfs`**: `loadfile` stays available in a mission, unlocked or not. On a machine without the folder it fails cleanly, and the script stops there;
+- **it does nothing outside a dynamic build**: in a static build, `VEAF_DYNAMIC_MISSIONPATH` is not set;
+- **it takes the path in any form**: with or without a trailing separator, `/` or `\`;
+- **it does not depend on `io` or `lfs`**: `loadfile` stays available in a mission, unlocked or not. If the `dcs-hotload\` folder is missing, it fails cleanly and the script stops there;
 - **it gives hotload its folder** (`Hotload.root`): hotload looks there for `user-f10\`, `user-lib\` and the mailbox;
 - **it shields the mission from a hotload error**: if `dcs-hotload.lua` raises while starting, a `HOTLOAD: boot failed:` line goes to `dcs.log`, with no error window, and the rest of the mission loads.
 
 The `HOTLOAD:` lines are the ones hotload itself writes: a `grep HOTLOAD` on `dcs.log` finds them all.
 
-## Your machine's path is in the `.miz` {#local-path}
-
-A mission does not know where it is on disk: the path is therefore hard-coded in the script, and the build copies it into the `.miz`.
-The `.miz` you hand out therefore holds something like `D:\Missions\my-mission\dcs-hotload`.
-
-It has **no effect** anywhere else: on another machine the folder does not exist, and the mission writes its `HOTLOAD: not booted:` line to `dcs.log`.
-The only drawback is that the path, and so the names of your folders, can be read in the `.miz`.
-
-For a `.miz` that names no folder, two ways:
-
-- **empty the path** (`local BASE_HOTLOAD_PATH = [[]]`) and rebuild; the mission then writes `HOTLOAD: not booted: BASE_HOTLOAD_PATH is not set` to `dcs.log`, everywhere;
-- **leave the script out** of the version you hand out, by declaring it only in a development [build profile](../MISSION_YAML_REFERENCE.en.md#profiles).
-
-`hotload-setup.py boot-path --clear` does not help here: it only knows the trigger `patch-miz` adds.
+`VEAF_DYNAMIC_MISSIONPATH` is the folder the build writes the `.miz` to.
+By default it is the mission folder; if you give the build a `.miz` path elsewhere, it is that folder, and VMCT's dynamic loading also looks there for `src\scripts\`.
 
 ## Checking with `status` {#status}
 
 The setup script can tell what is missing:
 
 ```powershell
-python dcs-hotload\bin\hotload-setup.py status --dcs "C:\Program Files\Eagle Dynamics\DCS World" --miz "build\my-mission.miz"
+python dcs-hotload\bin\hotload-setup.py status --dcs "C:\Program Files\Eagle Dynamics\DCS World" --miz "my-mission_20261111.miz"
 ```
 
-`--miz` is needed: the `.miz` VMCT builds is in `build\`, not next to `dcs-hotload\`.
+`--miz` is needed as soon as the folder holds several `.miz`, which happens fast: the build dates them (`<name>_<date>.miz`).
 On a mission set up as this page describes, the output looks like:
 
 ```text
 hotload-setup: dcs-hotload 3.1.0 in D:\Missions\my-mission\dcs-hotload
 hotload-setup: mailbox on
 hotload-setup: MissionScripting.lua: unlocked
-hotload-setup: my-mission.miz does not load dcs-hotload: run patch-miz
+hotload-setup: my-mission_20261111.miz does not load dcs-hotload: run patch-miz
 ```
 
 The first three lines are useful: the copy's version, the mailbox, the `io` and `lfs` unlock.
-**The last one is wrong for us**: `status` only recognizes the trigger `patch-miz` adds and a `dofile` written with a literal path, not our boot script, which goes through a variable.
+**The last one is wrong for us**: `status` only recognizes the trigger `patch-miz` adds and a `dofile` written with a literal path, not our boot script, which starts from `VEAF_DYNAMIC_MISSIONPATH`.
 It therefore concludes that the mission does not load hotload, and exits with code 2.
 **Do not run `patch-miz`**: it would add a second load to the `.miz`, which the next build would erase anyway.
 
@@ -201,21 +191,21 @@ To test a change to a VEAF module, use the [developer mode](GUIDE.en.md#develope
 
 ## What was checked {#what-was-checked}
 
-The boot script above, extracted as is from this page (only the path replaced with a test folder), was run with the Lua 5.1 interpreter shipped with DCS (`bin\luae.exe`), with mocked `env`, `trigger`, `timer`, `missionCommands` and `lfs`, against the real `dcs-hotload.lua` 3.1.0 and against a fake one that raises:
+The boot script above, extracted as is from this page, was run with the Lua 5.1 interpreter shipped with DCS (`bin\luae.exe`), with mocked `env`, `trigger`, `timer`, `missionCommands` and `lfs`, against the real `dcs-hotload.lua` 3.1.0 and against a fake one that raises:
 
 | Case | Expected and observed result |
 |---|---|
-| folder present, `io` and `lfs` unlocked | hotload starts, root = the mission's folder, **Hotload** menu created |
-| folder absent | one `HOTLOAD: not booted:` line in the log, nothing on screen, no error |
-| path emptied (`[[]]`) | one `HOTLOAD: not booted: BASE_HOTLOAD_PATH is not set` line, nothing on screen |
-| `io` and `lfs` locked, folder absent (a player) | one `HOTLOAD: not booted:` line, nothing on screen, no error |
-| `io` and `lfs` locked, folder present (your machine after an update) | hotload shows on screen that the unlock has to be done again |
+| `VEAF_DYNAMIC_MISSIONPATH` ending with `/`, with `\`, or with no separator | hotload starts, root = `<mission folder>/dcs-hotload`, **Hotload** menu created |
+| `VEAF_DYNAMIC_MISSIONPATH` not set (static build) | one `HOTLOAD: not booted:` line in the log, nothing on screen, no error |
+| `VEAF_DYNAMIC_MISSIONPATH` empty | one `HOTLOAD: not booted:` line, nothing on screen |
+| dynamic build without a `dcs-hotload\` folder | one `HOTLOAD: not booted:` line, nothing on screen, no error |
+| `io` and `lfs` locked, static build (a player) | one `HOTLOAD: not booted:` line, nothing on screen, no error |
+| `io` and `lfs` locked, dynamic build (your machine after an update) | hotload shows on screen that the unlock has to be done again |
 | `dcs-hotload.lua` that raises | one `HOTLOAD: boot failed:` line in the log, nothing on screen, the mission load goes on |
 | folder present without `user-f10\` | hotload starts and shows on screen that it cannot read `user-f10` |
 
-`hotload-setup.py` 3.1.0 was run on a `.miz` built by VMCT (the demo mission), with this script added under `l10n/DEFAULT/`, where the build puts `custom_scripts`:
+On the build side, VMCT's code was read: the trigger that sets `VEAF_DYNAMIC_MISSIONPATH` has the condition `return false` in a static build, and a default build of a test mission does carry that condition.
 
-- `status --miz` answers `does not load dcs-hotload: run patch-miz` and exits with code 2, as described [above](#status);
-- `boot-path --clear --miz` answers `has no BASE_HOTLOAD_PATH: run patch-miz`, exits with code 1 and leaves the `.miz` untouched.
+`hotload-setup.py status` 3.1.0 was run on a `.miz` built by VMCT (the demo mission), with this script added under `l10n/DEFAULT/`, where the build puts `custom_scripts`: it answers `does not load dcs-hotload: run patch-miz` and exits with code 2, as described [above](#status).
 
 It remains to see it run in DCS.

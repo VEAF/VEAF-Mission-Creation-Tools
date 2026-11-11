@@ -98,7 +98,7 @@ Capacities are declared only where the module documents them, from the channel c
 The datamine dump at the pinned ref lists every module's `panelRadio` channels, already flattened; the radio-specs generator counts them into `dcs-radio-specs.yaml` (`channels`, per radio), and the packer truncates each radio to that count when the Radio layout declares no `capacity` of its own — under the band-based default too.
 87 of the 100 types get a count; the Flaming Cliffs types (kneeboard only) and the radios the overlay declares (La-7, MiG-15bis) have none and stay unbounded.
 The cut also went from count to **slot number**: a channel dropped from a list leaves its slot empty so a pilot's channel N stays N, so a short list could reach past the last slot, and a renumbering cut would have shifted the kept channels.
-The four types above keep their hand-declared values, which equal the module's counts.
+The three types above keep their hand-declared values, which equal the module's counts.
 
 ## Alternatives rejected
 

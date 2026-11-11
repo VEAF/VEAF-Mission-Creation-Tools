@@ -1,6 +1,6 @@
 # FEAT-RADIO-CAPACITY-ALL-TYPES — Every aircraft's radios declare their preset capacity
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Follow-up of FIX-RADIO-PRESET-CAPACITY (#1262, merged 2026-11-10), agreed by David the same day ("ok" to both recommendations).
 
@@ -85,13 +85,3 @@ The `mission.yaml` defaults lockstep is not concerned: only `presets.yaml` chang
 
 - `presets_assignments` (the manual path) is not capped: the shipped blue CH-47F gets `radio_fm_30`, 30 FM presets on an ARC-186 that holds 20 (D6 keeps that list out). Known limitation `radio-capacity-not-applied-to-manual-presets`.
 - Whether the warbird and AH-64D warnings are worth their noise is left to David: they name presets no cockpit could select.
-
-## Where it stands — 2026-11-10, stopped for the night
-
-Done on `feature/radio-capacity-all-types` (pushed, no PR): generator `channels` count + regenerated `dcs-radio-specs.yaml`, packer default capacity + slot-number cut, tests (incl. the D4 test on the shipped defaults, checked to fail under a renumbering cut), `fm_supplement` at 20, docs fr/en, ADR 0010 amendment, layouts comment, known limitation, CHANGELOG. The ticket statuses say ✅ for the code; the lot stays 🔄 until merged.
-
-Left to do:
-1. Quality gate: `ruff check`, `ruff format --check`, `mypy`, full `pytest` (only `test/python/presets_injector/` and the radio-specs tests ran), `docs-check`; bump `--cov-fail-under` if coverage allows.
-2. `pr-code-review` (full) on the diff against `origin/develop`.
-3. On merge: move the lot from `ACTIVE.md` to `DONE.md`, update the counts in `README.md`, set Status ✅.
-4. Open the PR (`--base develop`) carrying the D5 table above, then `gh pr merge --auto --merge`.

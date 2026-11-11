@@ -363,7 +363,9 @@ class TestCapacityFromTheModule(unittest.TestCase):
                 capacities = [radio.channels for radio in get_radios(unit_type) or []]
                 for index, radio in whole.to_dict().items():
                     capacity = capacities[index - 1]
-                    kept = {slot: freq for slot, freq in radio["channels"].items() if capacity is None or slot <= capacity}
+                    kept = {
+                        slot: freq for slot, freq in radio["channels"].items() if capacity is None or slot <= capacity
+                    }
                     self.assertEqual(capped.to_dict()[index]["channels"], kept, f"{coalition} {unit_type} {index}")
                     cut += kept != radio["channels"]
         self.assertGreater(cut, 0)

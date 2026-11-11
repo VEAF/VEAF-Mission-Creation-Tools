@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-RADIO-CAPACITY-ALL-TYPES](FEAT-RADIO-CAPACITY-ALL-TYPES/PRD.md) · ✅
+
+Every radio of 87 of the 100 aircraft types stops at the preset count its module's `panelRadio` lists, read from the pinned DCS datamine by the radio-specs generator (`channels` in `dcs-radio-specs.yaml`), under the band-based default too; the cut goes by slot number so lists with gaps keep their channel numbers. The shipped `fm_supplement` holds 20 entries; warbird, Mosquito and AH-64D radios still cut the shipped shared lists, with a warning. Follow-up of #1262 (2026-11-10).
+
 ### [FIX-RADIO-PRESET-CAPACITY](FIX-RADIO-PRESET-CAPACITY/PRD.md) · ✅
 
 The OH-58D, Mi-24P and CH-47F radios declare their capacity from their module's `panelRadio` channel count (Kiowa FM: 21; 32 crashed the client at spawn), and a truncation warns at build, once per radio. The shipped defaults raise it for the Kiowa template, whose 30-entry `fm_supplement` gave 32 FM presets. Reported by David, 2026-11-10.

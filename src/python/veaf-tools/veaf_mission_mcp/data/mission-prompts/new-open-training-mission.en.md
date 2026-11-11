@@ -355,6 +355,7 @@ Rules:
 
 - **Complete presets**: the build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`); the mission is not ready until that list is empty.
+  Only the assets deliberately left off the UHF radio may stay on it (arena AWACS such as Darkstar, drones): tell the user.
 - **`src/presets.yaml` to rewrite for the map** (the template is not made for it), with the template's convention:
   **the VHF radio (`primary_2`) carries the airfields** (their tower frequency, `bases` collection) and the FARPs;
   **the UHF radio (`primary_1`) carries the assets, then the flights**: AWACS and tankers first (the carriers' S-3Bs included), then the carriers, then the flights (Archer, Bengal…) in the channels left.

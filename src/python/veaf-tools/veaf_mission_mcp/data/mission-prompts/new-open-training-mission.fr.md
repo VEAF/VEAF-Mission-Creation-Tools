@@ -368,6 +368,7 @@ Règles :
 - **Préréglages complets** : le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun
   préréglage ne porte (journal et `presets-validation-report.md`) ; la mission n'est pas prête tant que
   cette liste n'est pas vide.
+  Seuls peuvent y rester les moyens écartés exprès de la radio UHF (AWACS de l'arène comme Darkstar, drones) : dis-le à l'utilisateur.
 - **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle), avec la convention du gabarit :
   **la radio VHF (`primary_2`) porte les aérodromes** (leur fréquence de tour, collection `bases`) et les FARP ;
   **la radio UHF (`primary_1`) porte les moyens, puis les patrouilles** : AWACS et ravitailleurs d'abord (S-3B des porte-avions compris), puis les porte-avions, puis les patrouilles (Archer, Bengal…) dans les canaux qui restent.

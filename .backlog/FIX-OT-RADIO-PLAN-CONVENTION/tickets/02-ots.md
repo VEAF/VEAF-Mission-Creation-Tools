@@ -1,6 +1,6 @@
 # 02 — The eight OTs follow it
 
-Status: 🧑 waiting-human
+Status: ✅ done
 
 ## Done when
 

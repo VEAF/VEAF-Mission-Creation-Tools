@@ -1,6 +1,6 @@
 # FIX-OT-RADIO-PLAN-CONVENTION — Open Training radio plans: VHF for the airfields, UHF for the assets and the flights
 
-Status: 🧑 waiting-human
+Status: ✅ done
 
 David, 2026-11-11, flying an A-10C on the Syria OT: no VHF channel for Ramat David, no UHF channel for Archer, while the UHF radio carried airfields. "We had said VHF is the airfields, UHF the assets — Magic, the AWACS, the tankers — and the channels left are the flights, Archer, Bengal."
 
@@ -28,4 +28,12 @@ The injector is not at fault: it puts `primary_1` in the UHF radio and `primary_
 | # | Ticket | Status |
 |---|---|---|
 | 01 | [The OT prompt states the convention](tickets/01-prompt.md) | ✅ |
-| 02 | [The eight OTs follow it](tickets/02-ots.md) | 🧑 |
+| 02 | [The eight OTs follow it](tickets/02-ots.md) | ✅ |
+
+## Outcome — 2026-11-11
+
+- Prompt fixed in #1265 (OT §4.10 fr/en, objective-mission prompt, authoring guide); the prompt also tolerates the arena AWACS left off the UHF radio in the build's "no preset" list.
+- Seven OTs rewritten (`channel_lists`, README radio table, and the `gen_12_*` generator where the OT has one, checked equal to `presets.yaml`), rebuilt, checked on a blue A-10C II: airfields on one radio, assets and flights on the other, no Guard. No weather variants: every OT has `pipeline.weather: false` (David, 2026-10-12).
+- Left out: Guard everywhere; Darkstar-1, Focus-1, AWACS-Arene-Rouge (arena AWACS); Reaper-1/2 (Caucasus drones); Gordon on the UHF (Marianas, Syria, 21st channel).
+- Left as they are, David's choice: the CH-47's explicit `radio_uhf_30` list (Guard on channel 1) in Caucasus, GermanyCW and Syria; Normandy (D5).
+- Deployed with `Publish-OT.ps1`: Caucasus, GermanyCW, Syria, Marianas, Sinai, PersianGulf. Falklands is committed and built but served by no instance in `calendrier.yaml`.

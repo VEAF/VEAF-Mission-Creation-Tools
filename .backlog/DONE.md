@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-OT-RADIO-PLAN-CONVENTION](FIX-OT-RADIO-PLAN-CONVENTION/PRD.md) · ✅
+
+The OT prompt told sessions to put airfields and flights on both UHF and VHF, so each OT spreads them over two 20-channel radios and a pilot finds Ramat David only in UHF and Archer only in VHF (Syria, 2026-11-11). The prompt states the template's convention — VHF for the airfields, UHF for AWACS and tankers first, then carriers and flights, no drones, no Guard — and the eight OTs' plans are rewritten to it. Reported by David (2026-11-11). Done 2026-11-11: the prompt is fixed, the seven served-or-built OTs are rewritten, rebuilt and checked on a blue A-10C II, six deployed with `Publish-OT.ps1` (Falklands is served by no instance); Normandy left as it is (one radio).
+
 ### [FIX-RADIO-CAPACITY-FOLLOWUP](FIX-RADIO-CAPACITY-FOLLOWUP/PRD.md) · ✅
 
 Presets assigned through `presets_assignments` stop at the radios' capacity too, on a copy (the defaults' blue CH-47F gets 20 of `radio_fm_30`'s 30 FM presets, the list unchanged), and a build logs one summary warning for every radio it cut instead of one per radio: a default build went from 29 warnings to one. Follow-up of #1263 (2026-11-11).

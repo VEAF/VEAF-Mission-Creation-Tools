@@ -584,7 +584,9 @@ In an interactive terminal, `veaf-tools.exe` opens a guided wizard (TUI) instead
 - `.\veaf-tools.exe mission prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
 - `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `.\veaf-tools.exe mission build --tui`).
 
-Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is. Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
+Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is.
+Started from a mission folder (a folder holding a `mission.yaml`), the wizard proposes that folder and the mission name written in its `mission.yaml`, even if you typed something else for another mission; for everything else, it proposes what you typed last time.
+Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
 
 **Navigation**: **Ctrl-B** (or **Escape** pressed twice) steps back to the previous prompt; from the main menu (or a command's first prompt) it quits the wizard. A reminder is shown at the bottom of each prompt.
 

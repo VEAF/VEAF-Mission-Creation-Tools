@@ -1499,6 +1499,32 @@ limitations:
     `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
     Neither what it lists nor what it leaves out has been checked by eye yet.
 
+- id: disposition-blind-to-akamas-forest
+  kind: dcs
+  area: spawning
+  title: "On Syria, `Disposition.getSimpleZones` does not see the forest of the Akamas peninsula"
+  measured: "2026-11-12"
+  theatres: [Syria]
+  symptom: |
+    The probe every clear-ground tool rests on answers "free" inside a wood it cannot see. Measured on
+    Syria, on the Akamas peninsula (Cyprus):
+
+    | Asked | Answer |
+    |---|---|
+    | `veaf-tools dcs clear-ground-sweep`, 6 km around (x=13764, y=-326975) | **0 blocked cells of 58 081** |
+    | `veaf-tools dcs clear-ground-check` on the Akamas range of the Syria Open Training | its vehicles **on clear ground** |
+    | in game (David), a T-72 at (13404, -326775) | **in the middle of a wood** |
+
+    So on Syria a clean `clear-ground-check` — "0 vehicles in the scenery" — proves nothing where the
+    probe is blind. Which other forests of the map it misses is not measured.
+  workaround: |
+    On Syria, after `clear-ground-check`, look at the placed vehicles in game (F10 view, or smoke on
+    each position) before trusting a range or a defence in a wooded area.
+  cost: |
+    The Akamas firing range of the Syria Open Training stood in the trees, reported by a player on the
+    VEAF Discord (thread 1570181686451507230); it was moved to the Polis plain and checked by smoke in
+    game (VEAF-Open-Training-Mission-Syria-v6 `bee652e`, 2026-11-12).
+
 - id: air-start-flies-toward-its-second-point
   kind: dcs
   area: spawning

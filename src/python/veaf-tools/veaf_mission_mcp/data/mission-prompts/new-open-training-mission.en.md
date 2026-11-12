@@ -291,6 +291,9 @@ Markers (`#command`) are exempt: the runtime itself places their group clear of 
 The check needs DCS running on this computer (same sequence as `clear-ground-sweep`: `dcs-serve`, empty survey mission, instructions, wait); without DCS, it goes into what remains to be checked (8).
 Reported on the Syria OT, read on 2026-11-12: the Akamas training family (A1 to A3) stands on a wooded peninsula, and its targets — Mission Editor groups, which the runtime never moves — are in the trees.
 The theatre has no clear-ground catalogue, but `clear-ground-check` asks DCS itself, on any map.
+**A clean check is not proof everywhere**: the DCS probe does not see every forest.
+Measured on Syria on 2026-11-12, it saw no tree on the Akamas peninsula, where a T-72 it called clear stood in the middle of a wood (known limitation `disposition-blind-to-akamas-forest`).
+In a wooded area, the vehicles are also looked at in game (F10 view, or smoke on each position); without DCS, that look goes into what remains to be checked (8).
 
 **As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
 beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a
@@ -610,7 +613,7 @@ the sides; running DCS.
   - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
     `pictureFileNameN`, `pictureFileNameR` empty (4.13);
   - the kneeboard (4.15): its pages in the `.miz`, the three sheets first, a page per zone, and the mission's briefing pictures unchanged by the call.
-- **Run `veaf-tools dcs clear-ground-check` on the built mission** (4.6): every Mission Editor vehicle that fails is moved, then the mission rebuilt and checked again. Without DCS on this computer, say so and put it in what remains to be checked.
+- **Run `veaf-tools dcs clear-ground-check` on the built mission** (4.6): every Mission Editor vehicle that fails is moved, then the mission rebuilt and checked again. In a wooded area, look at the vehicles in game as well: the probe can miss a forest (Syria, Akamas). Without DCS on this computer, say so and put it in what remains to be checked.
 - **Check the side of every defense** (4.7): in every zone with both sides, no marker or group of one side between the two lines or among the opponent's.
 - **Run `veaf-tools dcs mission-check` on the built mission** before handing the briefing over: it needs no DCS for its wind check, and fails when the briefing's wind contradicts the wind DCS simulates.
 - **Reread your briefings**: every range, bearing, altitude and place name recomputed or sourced.

@@ -1,6 +1,6 @@
 # 01 — The wizard proposes the folder's own mission name
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

@@ -286,6 +286,12 @@ Statics remain for what does not live: buildings, depots, parked aircraft.
 `add_group` places it hot at start; give it `roe: "weapons_hold"` and `disperse: false` (the same keys on a `create_combat_zone` group).
 `training: true`, one radio menu per family.
 
+**No vehicle in the trees.** Every vehicle placed in the Mission Editor (the inert targets above, the zones' native groups; ships excepted) goes through `veaf-tools dcs clear-ground-check` on the built `.miz` before delivery, and is moved (`set_unit_properties`) when it fails.
+Markers (`#command`) are exempt: the runtime itself places their group clear of the scenery.
+The check needs DCS running on this computer (same sequence as `clear-ground-sweep`: `dcs-serve`, empty survey mission, instructions, wait); without DCS, it goes into what remains to be checked (8).
+Reported on the Syria OT, read on 2026-11-12: the Akamas training family (A1 to A3) stands on a wooded peninsula, and its targets — Mission Editor groups, which the runtime never moves — are in the trees.
+The theatre has no clear-ground catalogue, but `clear-ground-check` asks DCS itself, on any map.
+
 **As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
 beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a
 distress signal on the site. `training: true`, `completable: false`. The sounds must exist in the
@@ -311,6 +317,11 @@ Rules:
 - **Era defense consistent with the target** (a large armored unit has its divisional defense, an
   airbase its base defense, a convoy its own AAA), through the aliases, carriers of the class spawned,
   unique unit names.
+- **Each side defends from its own side of the front.** In a zone that sets both sides face to face, each side's armor stands on its own side of the line and its air defense behind it: the short range with its armor, **the medium range in depth**, never between the two lines nor beyond the opposing units.
+  Markers are not laid in a geometric pattern around the zone centre (a cross, a circle): each has its place on its own side's ground.
+  Measured on `combatZone_Beslan` of the Caucasus OT (radius 8 km), after a report read on 2026-11-12: red armor north, blue Abrams south, and the red markers laid in a cross around the centre — the SA-8 `Bes-o2` 2.5 km **south**, about 1 km from the Abrams of `allies-2`, the Shilka `Bes-a1` 1.5 km south.
+  The SAM meant to stand far from the front appeared inside the blue lines.
+- **No Mission Editor vehicle in the trees**: the `clear-ground-check` of 4.6 applies to the real zones.
 - **Targets**: statics for buildings, bunkers, aircraft on the ground; native groups for what lives;
   convoys = **one native group** with a road route, its air defense in the same group.
   **Every point of a convoy, the start included, is on a road**: take the point DCS gives (`land.getClosestPointOnRoads` through the dcs-bridge), and set **all** the points "On Road".
@@ -599,6 +610,8 @@ the sides; running DCS.
   - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
     `pictureFileNameN`, `pictureFileNameR` empty (4.13);
   - the kneeboard (4.15): its pages in the `.miz`, the three sheets first, a page per zone, and the mission's briefing pictures unchanged by the call.
+- **Run `veaf-tools dcs clear-ground-check` on the built mission** (4.6): every Mission Editor vehicle that fails is moved, then the mission rebuilt and checked again. Without DCS on this computer, say so and put it in what remains to be checked.
+- **Check the side of every defense** (4.7): in every zone with both sides, no marker or group of one side between the two lines or among the opponent's.
 - **Run `veaf-tools dcs mission-check` on the built mission** before handing the briefing over: it needs no DCS for its wind check, and fails when the briefing's wind contradicts the wind DCS simulates.
 - **Reread your briefings**: every range, bearing, altitude and place name recomputed or sourced.
 - **Hand over a local test mission**, a copy of the `LOCAL_TEST` build (never in the sources) with: a blue

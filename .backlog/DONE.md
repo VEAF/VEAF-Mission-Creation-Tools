@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-BUILD-NAME-AND-OT-PLACEMENT](FIX-BUILD-NAME-AND-OT-PLACEMENT/PRD.md) · ✅
+
+Three Discord reports of 2026-11-12: the build wizard proposes the name of the last mission built anywhere instead of the folder's `mission.yaml` name (Flogas, Sinai OT); the OT prompt gets a rule placing each side's defenses on its own side of the front (Rex, Beslan) and a `clear-ground check` of Mission Editor vehicles (Rex, Akamas). Done 2026-11-12: the wizard proposes the folder's `mission.yaml` name and the folder itself over saved values; the OT prompt (fr, en) and the authoring guide carry both rules. The OT repositories are fixed in a separate session.
+
 ### [FIX-OT-RADIO-PLAN-CONVENTION](FIX-OT-RADIO-PLAN-CONVENTION/PRD.md) · ✅
 
 The OT prompt told sessions to put airfields and flights on both UHF and VHF, so each OT spreads them over two 20-channel radios and a pilot finds Ramat David only in UHF and Archer only in VHF (Syria, 2026-11-11). The prompt states the template's convention — VHF for the airfields, UHF for AWACS and tankers first, then carriers and flights, no drones, no Guard — and the eight OTs' plans are rewritten to it. Reported by David (2026-11-11). Done 2026-11-11: the prompt is fixed, the seven served-or-built OTs are rewritten, rebuilt and checked on a blue A-10C II, six deployed with `Publish-OT.ps1` (Falklands is served by no instance); Normandy left as it is (one radio).

@@ -1,6 +1,6 @@
 # 02 — OT prompt: defenses on their own side, vehicles off the trees
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

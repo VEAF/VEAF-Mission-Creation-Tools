@@ -1,6 +1,6 @@
 # FIX-BUILD-NAME-AND-OT-PLACEMENT — The wizard proposes the mission's own name, and the OT prompt places defenses on their own side and off the trees
 
-Status: ⬜ ready
+Status: ✅ done
 
 Three Discord reports, read on 2026-11-12, agreed by David the same day ("oui, les trois").
 This lot is the tool's share; the OT repositories are fixed in a separate session (Beslan, an audit of every OT's combat zones, Akamas).
@@ -29,7 +29,15 @@ This lot is the tool's share; the OT repositories are fixed in a separate sessio
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [The wizard proposes the folder's own mission name](tickets/01-wizard-mission-name.md) | ⬜ |
-| 02 | [OT prompt: defenses on their own side, vehicles off the trees](tickets/02-ot-prompt-placement.md) | ⬜ |
+| 01 | [The wizard proposes the folder's own mission name](tickets/01-wizard-mission-name.md) | ✅ |
+| 02 | [OT prompt: defenses on their own side, vehicles off the trees](tickets/02-ot-prompt-placement.md) | ✅ |
 
 Python (TDD) and prompt text. One branch, one PR.
+
+## Outcome — 2026-11-12
+
+- **D1** — `_resolve_prompt_default` ranks the `mission.yaml` value above the saved preference, which still fills every prompt the `mission.yaml` gives nothing for. `_mission_yaml_defaults` yields only folder-specific keys — `mission_name_or_file` and `input_mission_name_or_file` (from `mission.name`) and `mission_folder` — so all of them take the new precedence; nothing else is read from `mission.yaml`. The test reproducing Flogas's report (`VEAF-IMC-Day` saved, the Sinai name in `mission.yaml`) failed before the fix.
+- **D2** — the defect was there: the saved preferences are one file, so a `mission_folder` typed for another mission (an absolute path) was proposed inside a freshly cloned mission folder. A folder holding a `mission.yaml` now proposes `.`, even when that file has no `mission.name` or cannot be parsed. Outside a mission folder the saved folder is still proposed.
+- **D3** — `new-open-training-mission.{fr,en}.md` §4.7 states that each side defends from its own side of the front, medium-range SAMs in depth, no geometric pattern around the centre, with the Beslan measurement as the reason; §8 checks the side of every defense. §4.6 is left as it is for D3: its training zones hold only the side to destroy. The authoring guide gets the rule next to its coalition rule, since it is the reference for any zone holding both sides. `new-objective-mission.{fr,en}.md` is left as it is: its zones are red objectives, and it reads the authoring guide.
+- **D4** — §4.6 requires `veaf-tools dcs clear-ground-check` on every Mission Editor vehicle (ships excepted, markers exempt), needing DCS, with the Akamas report as the reason; §4.7 points to it and §8 lists it. `new-objective-mission.{fr,en}.md` already asks for the same check; unchanged.
+- The mission maker guide (fr, en) says what the wizard proposes in a mission folder; it stated no precedence before.

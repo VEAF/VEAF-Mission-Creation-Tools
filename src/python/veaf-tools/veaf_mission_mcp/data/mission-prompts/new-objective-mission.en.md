@@ -409,7 +409,7 @@ approximation of it.
   Roosevelt** (one `add_carrier_group` each, with distinct TACAN, ICLS, Link 4 and frequencies):
   David's decision of 2026-10-02, for every generated mission that has a carrier group.
 - **`src/presets.yaml` = the briefing's frequency plan**, channel by channel, no Guard (channel 1 is the flight's starting frequency): bases, carrier,
-  AWACS, tankers, package frequency. **Base channels carry the frequencies DCS gives the airfield**:
+  AWACS, tankers, package frequency — the airfields on the VHF radio (`primary_2`), everything else on the UHF radio (`primary_1`), AWACS and tankers first, never one kind spread over both. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.
   Rewrite **all** the template's `channel_lists`: on another map, it keeps Caucasus airfields
   (Batumi, Beslan…). Re-read the presets actually injected, aircraft by aircraft (`inspect_built_mission`). The

@@ -368,9 +368,15 @@ Règles :
 - **Préréglages complets** : le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun
   préréglage ne porte (journal et `presets-validation-report.md`) ; la mission n'est pas prête tant que
   cette liste n'est pas vide.
-- **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle) : UHF = bases,
-  AWACS, patrouilles, ravitailleurs ; VHF = patrouilles ; pas de Guard (le canal 1 est la fréquence de départ du vol) ; FM 30-59 ; plan rouge si le
-  rouge vole. **Les canaux de base portent les fréquences que DCS donne à l'aérodrome**, même ATC
+  Seuls peuvent y rester les moyens écartés exprès de la radio UHF (AWACS de l'arène comme Darkstar, drones) : dis-le à l'utilisateur.
+- **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle), avec la convention du gabarit :
+  **la radio VHF (`primary_2`) porte les aérodromes** (leur fréquence de tour, collection `bases`) et les FARP ;
+  **la radio UHF (`primary_1`) porte les moyens, puis les patrouilles** : AWACS et ravitailleurs d'abord (S-3B des porte-avions compris), puis les porte-avions, puis les patrouilles (Archer, Bengal…) dans les canaux qui restent.
+  Ne mélange jamais les deux : avec 20 canaux par radio, un aérodrome ou une patrouille posé sur l'une ou l'autre au hasard n'est que sur une des deux, et le pilote le cherche sur la mauvaise (OT Syria, 11/11/2026 : Ramat David absent de la VHF, Archer absent de l'UHF).
+  Pas de drones ni de moyens exotiques (Darkstar…).
+  Au-delà de 20 canaux : en UHF, retire les dernières patrouilles de la liste ; en VHF, garde les aérodromes qui ont des slots et ceux proches des zones de combat ; dis à l'utilisateur ce que tu as laissé de côté.
+  Pas de Guard (le canal 1 est la fréquence de départ du vol) ; FM 30-59 ; plan rouge selon la même convention si le rouge vole.
+  **Les canaux de base portent les fréquences que DCS donne à l'aérodrome**, même ATC
   coupé : ce sont celles que le pilote lit sur la vue F10, et une série inventée le trompe. Ne tape
   jamais une fréquence d'aérodrome : `describe_airfield_channels` liste les bases de la mission avec
   leurs fréquences DCS, propose-les à l'utilisateur (une radio tient une vingtaine de canaux), puis

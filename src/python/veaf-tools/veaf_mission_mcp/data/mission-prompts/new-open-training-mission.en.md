@@ -355,9 +355,15 @@ Rules:
 
 - **Complete presets**: the build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`); the mission is not ready until that list is empty.
-- **`src/presets.yaml` to rewrite for the map** (the template is not made for it): UHF = bases,
-  AWACS, flights, tankers; VHF = flights; no Guard (channel 1 is the flight's starting frequency); FM 30-59; a red plan if red flies. **Base
-  channels carry the frequencies DCS gives the airfield**, even with ATC silenced: they are what the
+  Only the assets deliberately left off the UHF radio may stay on it (arena AWACS such as Darkstar, drones): tell the user.
+- **`src/presets.yaml` to rewrite for the map** (the template is not made for it), with the template's convention:
+  **the VHF radio (`primary_2`) carries the airfields** (their tower frequency, `bases` collection) and the FARPs;
+  **the UHF radio (`primary_1`) carries the assets, then the flights**: AWACS and tankers first (the carriers' S-3Bs included), then the carriers, then the flights (Archer, Bengal…) in the channels left.
+  Never mix the two: with 20 channels per radio, an airfield or a flight put on either one at random is on only one of them, and the pilot looks for it on the other (Syria OT, 2026-11-11: Ramat David missing from the VHF, Archer missing from the UHF).
+  No drones or exotic assets (Darkstar…).
+  Beyond 20 channels: on the UHF, drop the last flights of the list; on the VHF, keep the airfields that have slots and the ones near the combat zones; tell the user what you left out.
+  No Guard (channel 1 is the flight's starting frequency); FM 30-59; a red plan on the same convention if red flies.
+  **Base channels carry the frequencies DCS gives the airfield**, even with ATC silenced: they are what the
   pilot reads on the F10 view, and an invented series misleads them. Never type an airfield frequency:
   `describe_airfield_channels` lists the mission's bases with their DCS frequencies, propose them to
   the user (a radio holds about twenty channels), then `set_airfield_channels` writes the chosen ones

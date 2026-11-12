@@ -411,7 +411,7 @@ validé un scénario, pas un à-peu-près.
   distincts) : décision de David du 02/10/2026, valable pour toute mission générée qui a un groupe
   aéronaval.
 - **`src/presets.yaml` = le plan de fréquences du briefing**, canal pour canal, sans Garde (le canal 1 est la fréquence de départ du vol) : bases, porte-
-  avions, AWACS, ravitailleurs, fréquence de package. Les **canaux de base portent les fréquences que
+  avions, AWACS, ravitailleurs, fréquence de package — les aérodromes sur la radio VHF (`primary_2`), tout le reste sur la radio UHF (`primary_1`), AWACS et ravitailleurs en tête, jamais une même catégorie répartie sur les deux. Les **canaux de base portent les fréquences que
   DCS donne à l'aérodrome** : `describe_airfield_channels` puis `set_airfield_channels`, jamais une
   fréquence d'aérodrome tapée à la main. Réécris **toutes** les listes `channel_lists` du gabarit :
   sur une autre carte, il garde des aérodromes du Caucase (Batumi, Beslan…). Relis les préréglages

@@ -182,6 +182,9 @@ a blue SAM (`-sam` is not inherently red; what it draws at random is the level, 
 site, make the fake-unit **blue** — don't fall back to literal units just for a colour. (The
 "coalition is ignored" above only governs which real groups the zone *captures* by geometry.)
 
+**Each side on its own side of the front:** in a zone that holds both sides, each side's armor stands on its own side of the line and its air defense behind it — the short range with its armor, the medium range in depth, never between the two lines nor beyond the opposing units.
+Lay the markers where each belongs on the ground, not in a pattern around the zone centre: a red SA-8 laid 2.5 km south of the centre of the Caucasus OT's `combatZone_Beslan` stood about 1 km from the blue Abrams.
+
 **Which side must die:** a zone completes when the **hostile** coalition's units are gone, and
 that side is **red** unless you say otherwise. If the units to destroy are blue — a zone played
 from the red side — set `enemy_coalition: BLUE` on the `combat_zones[]` entry; otherwise the zone

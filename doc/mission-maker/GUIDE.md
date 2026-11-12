@@ -588,7 +588,9 @@ Dans un terminal interactif, `veaf-tools.exe` ouvre un assistant guidé (TUI) pl
 - `.\veaf-tools.exe mission prepare c:\ma-mission` → le dossier est déjà fourni, l'assistant ne demande que le template.
 - `--tui` ajouté à n'importe quelle commande → ouvre l'assistant même si rien ne manque (ex. `.\veaf-tools.exe mission build --tui`).
 
-Les options déjà passées sur la ligne de commande sont pré-remplies ; les options inconnues (ex. `--verbose`) sont conservées telles quelles. Hors terminal interactif (CI, sortie redirigée), l'assistant ne se déclenche jamais : la commande s'exécute normalement.
+Les options déjà passées sur la ligne de commande sont pré-remplies ; les options inconnues (ex. `--verbose`) sont conservées telles quelles.
+Lancé depuis un dossier de mission (un dossier qui contient un `mission.yaml`), l'assistant propose ce dossier et le nom de mission écrit dans son `mission.yaml`, même si vous avez tapé autre chose pour une autre mission ; pour le reste, il propose ce que vous avez saisi la dernière fois.
+Hors terminal interactif (CI, sortie redirigée), l'assistant ne se déclenche jamais : la commande s'exécute normalement.
 
 **Navigation** : **Ctrl-B** (ou **Échap** deux fois) revient au prompt précédent ; depuis le menu principal (ou le premier prompt d'une commande), il quitte l'assistant. Un rappel s'affiche en bas de chaque prompt.
 

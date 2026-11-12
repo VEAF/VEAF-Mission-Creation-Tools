@@ -293,6 +293,12 @@ ce qui ne vit pas : bâtiments, dépôts, avions au parking.
 `add_group` le pose chaud au départ ; donne-lui `roe: "weapons_hold"` et `disperse: false` (les mêmes clés sur un groupe de `create_combat_zone`).
 `training: true`, un menu radio par famille.
 
+**Aucun véhicule dans les arbres.** Chaque véhicule posé dans l'éditeur de mission (les cibles inertes ci-dessus, les groupes natifs des zones ; les navires exceptés) passe `veaf-tools dcs clear-ground-check` sur le `.miz` construit avant la livraison, et se déplace (`set_unit_properties`) quand il échoue.
+Les marqueurs (`#command`) en sont exemptés : le runtime pose lui-même leur groupe hors du décor.
+La vérification demande DCS lancé sur ce poste (même déroulé que `clear-ground-sweep` : `dcs-serve`, mission d'arpentage vide, consignes, attente) ; sans DCS, elle va dans ce qui reste à vérifier (8).
+Signalé sur l'OT Syrie, lu le 12/11/2026 : la famille d'entraînement Akamas (A1 à A3) est posée sur une péninsule boisée, et ses cibles — des groupes de l'éditeur, que le runtime ne déplace jamais — sont dans les arbres.
+Le théâtre n'a pas de catalogue de terrain dégagé, mais `clear-ground-check` interroge DCS lui-même, sur n'importe quelle carte.
+
 **En option, une zone hélicoptère hors combat** : navigation ou recherche d'un équipage abattu,
 avec des balises radio sur l'itinéraire (sons joués en boucle, fréquences FM données au briefing) et
 un signal de détresse sur le lieu. `training: true`, `completable: false`. Les sons doivent exister
@@ -319,6 +325,11 @@ Règles :
 - **Défense d'époque cohérente avec la cible** (une grande unité blindée a sa défense de division, une
   base aérienne sa défense de base, un convoi sa propre AAA), via les alias, porteurs de la classe
   générée, noms d'unités uniques.
+- **Chaque camp se défend de son côté du front.** Dans une zone qui met les deux camps face à face, les blindés de chaque camp sont de son côté de la ligne et sa défense antiaérienne derrière eux : la courte portée avec ses blindés, **la moyenne portée en profondeur**, jamais entre les deux lignes ni au-delà des unités adverses.
+  Les marqueurs ne se posent pas en motif géométrique autour du centre de la zone (une croix, un cercle) : chacun a sa place sur le terrain de son camp.
+  Mesuré sur `combatZone_Beslan` de l'OT Caucase (rayon 8 km), après un signalement lu le 12/11/2026 : blindés rouges au nord, Abrams bleus au sud, et les marqueurs rouges posés en croix autour du centre — le SA-8 `Bes-o2` à 2,5 km **au sud**, à environ 1 km des Abrams de `allies-2`, la Shilka `Bes-a1` à 1,5 km au sud.
+  Le SAM qui devait se tenir loin du front apparaissait dans les lignes bleues.
+- **Aucun véhicule de l'éditeur dans les arbres** : la vérification `clear-ground-check` de 4.6 vaut pour les vraies zones.
 - **Cibles** : statiques pour bâtiments, bunkers, avions au sol ; groupes natifs pour ce qui vit ;
   convois = **un groupe natif** avec une route sur route, sa défense antiaérienne dans le même groupe.
   **Chaque point d'un convoi, départ compris, est sur une route** : prends le point que DCS donne (`land.getClosestPointOnRoads` par le pont dcs-bridge), et mets **tous** les points en « On Road ».
@@ -622,6 +633,8 @@ l'époque ou les camps ; lancer DCS.
   - les images de briefing présentes dans le `.miz`, listées dans `pictureFileNameB` et
     `pictureFileNameN`, `pictureFileNameR` vide (4.13) ;
   - le kneeboard (4.15) : ses pages dans le `.miz`, les trois fiches en tête, une page par zone, et les images de briefing de la mission inchangées par l'appel.
+- **Lance `veaf-tools dcs clear-ground-check` sur la mission construite** (4.6) : chaque véhicule de l'éditeur qui échoue est déplacé, puis la mission reconstruite et revérifiée. Sans DCS sur ce poste, dis-le et mets-la dans ce qui reste à vérifier.
+- **Contrôle le côté de chaque défense** (4.7) : dans chaque zone à deux camps, aucun marqueur ni groupe d'un camp entre les deux lignes ou chez l'adversaire.
 - **Lance `veaf-tools dcs mission-check` sur la mission construite** avant de remettre le briefing : sa vérification du vent se passe de DCS, et échoue quand le vent du briefing contredit celui que DCS simule.
 - **Relis tes briefings** : chaque distance, cap, altitude et nom de lieu recalculé ou sourcé.
 - **Livre une mission de test locale**, copie du build `LOCAL_TEST` (jamais dans les sources) avec : un

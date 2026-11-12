@@ -453,23 +453,27 @@ _MISSION_NAME_PROMPT_KEYS: tuple[str, ...] = ("mission_name_or_file", "input_mis
 def _mission_yaml_defaults(folder: Path | None = None) -> dict[str, str]:
     """Derive prompt defaults from a ``mission.yaml`` in *folder*.
 
-    Reads the ``mission.name`` field and maps it to the mission-name prompts so
-    the wizard proposes the real mission name instead of the static
-    ``mission.miz`` fallback.
+    A folder holding a ``mission.yaml`` is the mission the wizard works on, so
+    the mission folder prompts default to ``.`` (that folder). The
+    ``mission.name`` field is mapped to the mission-name prompts so the wizard
+    proposes the real mission name instead of the static ``mission.miz``
+    fallback. Every value returned here is specific to the folder, which is why
+    it outranks a saved preference (see :func:`_resolve_prompt_default`).
 
     Args:
         folder: Directory to look in. Defaults to the current working directory.
 
     Returns:
         Mapping of prompt key to derived default value. Empty when no
-        ``mission.yaml`` is present, it carries no ``mission.name``, or it
-        cannot be parsed.
+        ``mission.yaml`` is present; only ``mission_folder`` when it carries no
+        ``mission.name`` or cannot be parsed.
     """
     folder = folder or Path.cwd()
     mission_yaml_path = folder / "mission.yaml"
     if not mission_yaml_path.exists():
         return {}
 
+    defaults: dict[str, str] = {"mission_folder": "."}
     try:
         import yaml  # noqa: PLC0415
 
@@ -477,9 +481,8 @@ def _mission_yaml_defaults(folder: Path | None = None) -> dict[str, str]:
             data: dict = yaml.safe_load(fh) or {}
     except Exception:
         # mission.yaml-aware defaults are a convenience — never break the wizard.
-        return {}
+        return defaults
 
-    defaults: dict[str, str] = {}
     mission_name = (data.get("mission") or {}).get("name")
     if mission_name:
         for key in _MISSION_NAME_PROMPT_KEYS:
@@ -490,8 +493,14 @@ def _mission_yaml_defaults(folder: Path | None = None) -> dict[str, str]:
 def _resolve_prompt_default(prompt: ArgPrompt, last_args: dict[str, Any], yaml_defaults: dict[str, str]) -> str:
     """Resolve the default value offered for *prompt*.
 
-    Precedence: last saved preference > value derived from ``mission.yaml`` >
+    Precedence: value derived from ``mission.yaml`` > last saved preference >
     the prompt's static fallback.
+
+    The ``mission.yaml`` values (mission name, mission folder) describe the
+    folder being worked on, while the saved preferences are one file shared by
+    every folder: a name typed for another mission, elsewhere, must not replace
+    this folder's own. The saved preference still fills the prompts the
+    ``mission.yaml`` says nothing about.
 
     Args:
         prompt: The prompt being resolved.
@@ -501,12 +510,12 @@ def _resolve_prompt_default(prompt: ArgPrompt, last_args: dict[str, Any], yaml_d
     Returns:
         The default string to pre-fill in the prompt.
     """
-    saved = last_args.get(prompt.key)
-    if saved:
-        return str(saved)
     yaml_value = yaml_defaults.get(prompt.key)
     if yaml_value:
         return str(yaml_value)
+    saved = last_args.get(prompt.key)
+    if saved:
+        return str(saved)
     return prompt.default
 
 

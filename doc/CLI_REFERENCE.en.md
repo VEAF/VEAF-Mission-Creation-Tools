@@ -822,6 +822,9 @@ catalogue predicted, and a disagreement is reported as a question about the cata
 markers (`#command`) are not checked: their group is drawn at runtime, which moves it off scenery
 itself. Same flow as `clear-ground-sweep`: `dcs-serve`, survey mission, instructions, waiting.
 
+A "0 vehicles in the scenery" is only as good as the DCS probe, and the probe does not see every forest: on Syria it found no tree on the Akamas peninsula, where a T-72 it called clear stood in the middle of a wood (known limitation `disposition-blind-to-akamas-forest`, measured on 2026-11-12).
+Where the map is wooded, look at the vehicles in game (F10 view, or smoke on each position) before concluding.
+
 | Name | Type | Required | Description |
 |---|---|---|---|
 | `MISSION` | `str` | yes | The .miz to check. It is read, never loaded in DCS. |

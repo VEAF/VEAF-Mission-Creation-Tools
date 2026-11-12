@@ -826,6 +826,9 @@ marqueurs de combat zone (`#command`) ne sont pas vérifiés : leur groupe est d
 déplace lui-même hors du décor. Même déroulé que `clear-ground-sweep` : `dcs-serve`, mission d'arpentage,
 consignes, attente.
 
+Un « 0 véhicule dans le décor » ne vaut que ce que voit la sonde de DCS, et elle ne voit pas toutes les forêts : sur Syria, elle n'a trouvé aucun arbre sur la péninsule d'Akamas, où un T-72 jugé dégagé était en plein bois (limitation connue `disposition-blind-to-akamas-forest`, mesurée le 12/11/2026).
+Là où la carte est boisée, regardez les véhicules en jeu (vue F10, ou une fumée sur chaque position) avant de conclure.
+
 | Nom | Type | Obligatoire | Description |
 |---|---|---|---|
 | `MISSION` | `str` | oui | Le .miz à vérifier. Il est lu, jamais chargé dans DCS. |

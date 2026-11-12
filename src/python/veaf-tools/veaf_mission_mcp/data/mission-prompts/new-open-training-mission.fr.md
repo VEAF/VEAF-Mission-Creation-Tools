@@ -298,6 +298,9 @@ Les marqueurs (`#command`) en sont exemptés : le runtime pose lui-même leur gr
 La vérification demande DCS lancé sur ce poste (même déroulé que `clear-ground-sweep` : `dcs-serve`, mission d'arpentage vide, consignes, attente) ; sans DCS, elle va dans ce qui reste à vérifier (8).
 Signalé sur l'OT Syrie, lu le 12/11/2026 : la famille d'entraînement Akamas (A1 à A3) est posée sur une péninsule boisée, et ses cibles — des groupes de l'éditeur, que le runtime ne déplace jamais — sont dans les arbres.
 Le théâtre n'a pas de catalogue de terrain dégagé, mais `clear-ground-check` interroge DCS lui-même, sur n'importe quelle carte.
+**Une vérification propre n'est pas une preuve partout** : la sonde de DCS ne voit pas toutes les forêts.
+Mesuré sur Syria le 12/11/2026, elle n'a vu aucun arbre sur la péninsule d'Akamas, où un T-72 qu'elle jugeait dégagé était en plein bois (limitation connue `disposition-blind-to-akamas-forest`).
+Dans une zone boisée, les véhicules se regardent aussi en jeu (vue F10, ou une fumée sur chaque position) ; sans DCS, ce coup d'œil va dans ce qui reste à vérifier (8).
 
 **En option, une zone hélicoptère hors combat** : navigation ou recherche d'un équipage abattu,
 avec des balises radio sur l'itinéraire (sons joués en boucle, fréquences FM données au briefing) et
@@ -633,7 +636,7 @@ l'époque ou les camps ; lancer DCS.
   - les images de briefing présentes dans le `.miz`, listées dans `pictureFileNameB` et
     `pictureFileNameN`, `pictureFileNameR` vide (4.13) ;
   - le kneeboard (4.15) : ses pages dans le `.miz`, les trois fiches en tête, une page par zone, et les images de briefing de la mission inchangées par l'appel.
-- **Lance `veaf-tools dcs clear-ground-check` sur la mission construite** (4.6) : chaque véhicule de l'éditeur qui échoue est déplacé, puis la mission reconstruite et revérifiée. Sans DCS sur ce poste, dis-le et mets-la dans ce qui reste à vérifier.
+- **Lance `veaf-tools dcs clear-ground-check` sur la mission construite** (4.6) : chaque véhicule de l'éditeur qui échoue est déplacé, puis la mission reconstruite et revérifiée. Dans une zone boisée, regarde aussi les véhicules en jeu : la sonde peut manquer une forêt (Syria, Akamas). Sans DCS sur ce poste, dis-le et mets-la dans ce qui reste à vérifier.
 - **Contrôle le côté de chaque défense** (4.7) : dans chaque zone à deux camps, aucun marqueur ni groupe d'un camp entre les deux lignes ou chez l'adversaire.
 - **Lance `veaf-tools dcs mission-check` sur la mission construite** avant de remettre le briefing : sa vérification du vent se passe de DCS, et échoue quand le vent du briefing contredit celui que DCS simule.
 - **Relis tes briefings** : chaque distance, cap, altitude et nom de lieu recalculé ou sourcé.

@@ -433,7 +433,7 @@ validé un scénario, pas un à-peu-près.
   - **`basemap: topo`** (OpenTopoMap, relief ombré et courbes de niveau) pour toute mission à basse altitude ou qui dépend du relief, et dans un désert, où le fond OSM standard est presque vide.
   - **Regarde chaque carte rendue** si tu le peux : aucune étiquette ne doit désigner le mauvais point.
     Sans moyen de voir une image, dis à l'utilisateur de les regarder (`docs/maps/`).
-  - **Relis chaque zoom pour les unités posées dans le bâti** quand le théâtre n'a pas de catalogue de terrain dégagé (Syria, entre autres : les actions de placement le disent) : un véhicule dans un village ou un bois s'y voit, et se déplace avec `set_unit_properties`. Ce qu'un zoom ne montre pas reste à vérifier en jeu (`veaf-tools dcs clear-ground-check`, qui demande DCS).
+  - **Relis chaque zoom pour les unités posées dans le bâti** quand le théâtre n'a pas de catalogue de terrain dégagé (Syria, entre autres : les actions de placement le disent) : un véhicule dans un village ou un bois s'y voit, et se déplace avec `set_unit_properties`. Ce qu'un zoom ne montre pas reste à vérifier en jeu (`veaf-tools dcs clear-ground-check`, qui demande DCS), et dans une zone boisée à l'œil aussi : la sonde de cette vérification manque certaines forêts (Syria, péninsule d'Akamas, limitation connue `disposition-blind-to-akamas-forest`).
 - **Dessins F10** (`add_map_drawing`) sur la couche `Blue` : l'itinéraire et ses points nommés, les
   menaces connues avec leur contour. Chaque étiquette avec un `fill_color` **opaque et clair**, sinon
   le fond par défaut (noir à moitié transparent) la rend illisible.

@@ -431,7 +431,7 @@ approximation of it.
   - **`basemap: topo`** (OpenTopoMap, hillshade and contour lines) for any low-level or terrain-dependent mission, and in a desert, where the standard OSM basemap is nearly empty.
   - **Look at every rendered map** if you can: no label may point at the wrong spot. With no way to
     see an image, ask the user to look at them (`docs/maps/`).
-  - **Re-read every zoom for units placed in buildings** when the theatre has no clear-ground catalogue (Syria among others: the placing actions say so): a vehicle in a village or a wood shows there, and moves with `set_unit_properties`. What a zoom does not show stays to be checked in game (`veaf-tools dcs clear-ground-check`, which needs DCS).
+  - **Re-read every zoom for units placed in buildings** when the theatre has no clear-ground catalogue (Syria among others: the placing actions say so): a vehicle in a village or a wood shows there, and moves with `set_unit_properties`. What a zoom does not show stays to be checked in game (`veaf-tools dcs clear-ground-check`, which needs DCS), and in a wooded area by eye as well: the probe of that check misses some forests (Syria, Akamas peninsula, known limitation `disposition-blind-to-akamas-forest`).
 - **F10 drawings** (`add_map_drawing`) on the `Blue` layer: the route and its named points, the known
   threats with their outline. Each label with an **opaque, light** `fill_color`, otherwise the default
   background (half-transparent black) makes it unreadable.

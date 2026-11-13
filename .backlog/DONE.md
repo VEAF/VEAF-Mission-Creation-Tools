@@ -457,6 +457,10 @@ Not a defect: measured in game, an A-50 enrolled by the helper detects by radar 
 
 ## 🚫 Won't fix
 
+### [FEAT-SIGNED-RELEASES](FEAT-SIGNED-RELEASES/PRD.md) · 🚫
+
+Signing the Windows executables through SignPath Foundation: the license audit ([audit.md](FEAT-SIGNED-RELEASES/audit.md)) found every code component OSI-licensed, but DCS-derived reference data under no license inside `veaf-tools.exe`, which SignPath may refuse with no appeal; dropped by David on 2026-11-13. The audit also lists compliance gaps worth knowing (third-party notices not shipped, WMM files copied from DCS, VEAF-dcs-bridge without a license).
+
 ### [FEAT-MISSION-RECIPES](FEAT-MISSION-RECIPES/PRD.md) · 🚫
 
 Not needed for an always-current demo: the versioned mission folder is already the replayable source, content is added through the MCP, and CI can build and run it as is. A new demo mission replaces the idea.

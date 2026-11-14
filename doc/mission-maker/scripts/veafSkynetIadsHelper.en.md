@@ -8,7 +8,7 @@
 
 ## Purpose
 
-[Skynet-IADS](https://github.com/walder/Skynet-IADS) is a third-party script that drives ground-based air defence radars to optimise their survivability and lethality by staying dark as much as possible. It simulates an IADS (Integrated Air Defence System) in which Early Warning Radars (EWR) scan the sky and share detections with SAM sites, allowing those sites to activate only when they can engage a contact.
+[Skynet-IADS](https://github.com/VEAF/Skynet-IADS) (VEAF's fork of [walder](https://github.com/walder/Skynet-IADS)'s original script) is a community script that drives ground-based air defence radars to optimise their survivability and lethality by staying dark as much as possible. It simulates an IADS (Integrated Air Defence System) in which Early Warning Radars (EWR) scan the sky and share detections with SAM sites, allowing those sites to activate only when they can engage a contact.
 
 `veafSkynetIadsHelper` automates the construction of these networks from the groups present in the mission, and provides tools to monitor, control, and tie them to mission objectives.
 
@@ -16,7 +16,9 @@
 
 ## Requirements
 
-- The Skynet IADS script must be downloaded separately and loaded **before** `veafSkynetIadsHelper`
+- The Skynet IADS script ships with VEAF: the build injects it into the `.miz` itself and loads it **before** `veafSkynetIadsHelper`, so there is nothing to download.
+- Do not add a copy of it to `custom_scripts`: Skynet would be loaded twice.
+- It is turned on and off in the `modules:` block of `mission.yaml`: `SKYNET: true` (or the extended form below) injects it, `SKYNET: false` removes it from the mission along with the module; the default `mission.yaml` ships it at `false`. See [Third-party modules](../../MISSION_YAML_REFERENCE.en.md#third-party-modules).
 - Configure via `mission.yaml` (recommended) or in `mission-script.lua` for advanced options not available in YAML
 
 ---
@@ -658,5 +660,5 @@ end
 
 ## See also
 
-- [Skynet IADS documentation](https://github.com/walder/Skynet-IADS) — third-party script (not included in VEAF)
+- [Skynet IADS](https://github.com/VEAF/Skynet-IADS) — source and documentation of the script, which ships with VEAF; VEAF's fork of [walder/Skynet-IADS](https://github.com/walder/Skynet-IADS)
 - [Lua API Reference](../../LUA_API_REFERENCE.en.md) — full `veafSkynet` API

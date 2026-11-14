@@ -8,7 +8,7 @@
 
 ## Objectif
 
-[Skynet-IADS](https://github.com/walder/Skynet-IADS) est un script tiers qui pilote les systèmes radar antiaériens afin qu'ils optimisent leur survivabilité et leur léthalité en restant éteints le plus possible. Il simule un IADS (Integrated Air Defence System) dans lequel les EWR (Early Warning Radar) scannent le ciel et communiquent leurs détections aux sites SAM, permettant à ceux-ci de ne s'activer que lorsqu'ils sont en capacité d'engager un contact.
+[Skynet-IADS](https://github.com/VEAF/Skynet-IADS) (fork VEAF du script d'origine de [walder](https://github.com/walder/Skynet-IADS)) est un script communautaire qui pilote les systèmes radar antiaériens afin qu'ils optimisent leur survivabilité et leur léthalité en restant éteints le plus possible. Il simule un IADS (Integrated Air Defence System) dans lequel les EWR (Early Warning Radar) scannent le ciel et communiquent leurs détections aux sites SAM, permettant à ceux-ci de ne s'activer que lorsqu'ils sont en capacité d'engager un contact.
 
 `veafSkynetIadsHelper` automatise la construction de ces réseaux à partir des groupes présents dans la mission, et fournit des outils pour les surveiller, les contrôler et les lier à des objectifs de mission.
 
@@ -16,7 +16,9 @@
 
 ## Prérequis
 
-- Le script Skynet IADS doit être téléchargé séparément et chargé **avant** `veafSkynetIadsHelper`
+- Le script Skynet IADS est livré avec VEAF : le build l'injecte lui-même dans le `.miz` et le charge **avant** `veafSkynetIadsHelper`, il n'y a rien à télécharger.
+- N'en ajoutez pas de copie dans `custom_scripts` : Skynet serait chargé deux fois.
+- Il s'active et se désactive dans le bloc `modules:` de `mission.yaml` : `SKYNET: true` (ou la forme étendue ci-dessous) l'injecte, `SKYNET: false` le retire de la mission avec le module ; le `mission.yaml` par défaut le livre à `false`. Voir [Modules tiers](../../MISSION_YAML_REFERENCE.md#third-party-modules).
 - Configurer via `mission.yaml` (recommandé) ou dans `mission-script.lua` pour les options avancées non disponibles en YAML
 
 ---
@@ -670,5 +672,5 @@ end
 
 ## Voir aussi
 
-- [Documentation Skynet IADS](https://github.com/walder/Skynet-IADS) — script tiers (non inclus dans VEAF)
+- [Skynet IADS](https://github.com/VEAF/Skynet-IADS) — source et documentation du script, livré avec VEAF ; fork VEAF de [walder/Skynet-IADS](https://github.com/walder/Skynet-IADS)
 - [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafSkynet`

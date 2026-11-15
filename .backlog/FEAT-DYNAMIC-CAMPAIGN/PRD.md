@@ -44,6 +44,10 @@ Section numbers point to the detailed notes under [`foothold-analysis/`](foothol
 
 The MCP side generates the dynamic mission in both modes from the same format; its actions come once the format has settled.
 
+**The two modes in V1 (David, 2026-11-15).** The V1 delivers the persistent mode only.
+Its live play (dormancy, sorties, credits, tasks, intelligence) is settings of `veafCampaign`, started only when `mode: persistent`.
+Running it inside a multi-mission campaign — carrying credits and intelligence from one mission to the next through `campaign apply`, deciding what tasks and counter-attacks become between missions — and the MCP actions are a later lot, opened once the V1 has proved itself in game.
+
 David, 2026-10-02/03: VEAF likes Foothold, but it is hard on our servers' performance, and his
 experience points at Moose (many modules, nearly all active all the time, many loops). He wants a
 dynamic campaign engine that gives Foothold's **player experience** without Moose, on VMCT only. This

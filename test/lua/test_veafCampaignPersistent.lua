@@ -282,6 +282,16 @@ function TestCampaignSave:test_an_unreadable_save_is_reported_and_not_used()
   luaunit.assertEquals(veafCampaign.loadResult, "unreadable")
 end
 
+function TestCampaignSave:test_a_save_cut_short_falls_back_on_its_temporary()
+  -- no `os` on the VEAF servers: the complete temporary is written first, then the file (#1146)
+  self.files[SAVE .. ".tmp"] = 'return {campaign="Caucasus Front",format_version=1,zones={Senaki={owner="neutral"}}}'
+  self.files[SAVE] = 'return {campaign="Caucasus Fr'
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.loadResult, "loaded")
+  luaunit.assertEquals(veafCampaign.zones["Senaki"].entry.owner, "neutral")
+end
+
 function TestCampaignSave:test_a_save_cannot_call_anything()
   self.files[SAVE] = 'return {campaign="Caucasus Front",format_version=1,zones={Senaki={owner=os and "blue" or "red"}},'
     .. 'x=trigger.action.outText("pwned")}'

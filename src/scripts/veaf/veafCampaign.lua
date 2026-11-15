@@ -1943,16 +1943,11 @@ end
 -- Persistent mode: reload, outcome, reset (FEAT-DYNAMIC-CAMPAIGN ticket 01)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Read the save of a persistent campaign. It is a Lua literal (`return { ... }`), run with no
---- environment at all, so a save file cannot call anything.
+--- Read one save file: a Lua literal (`return { ... }`), run with no environment at all, so it cannot
+--- call anything.
 --- @return table|nil the saved state
---- @return string|nil why there is none: "no-io", "none" or "unreadable"
-function veafCampaign.readSave()
-  local fsIo, fsLfs = veafCampaign.fileSystem()
-  if not (fsIo and fsLfs) then
-    return nil, "no-io"
-  end
-  local path = veafCampaign.stateFolder(fsLfs.writedir()) .. veafCampaign.stateFileName()
+--- @return string|nil why there is none: "none" or "unreadable"
+local function readSaveFile(fsIo, path)
   local file = fsIo.open(path, "r")
   if not file then
     return nil, "none"
@@ -1969,6 +1964,32 @@ function veafCampaign.readSave()
     return nil, "unreadable"
   end
   return state
+end
+
+--- Read the save of a persistent campaign, falling back on its temporary when the file itself is cut
+--- short or missing: without `os` (the VEAF servers sanitize it) every write is made twice, the complete
+--- temporary first, so a server stopped during the second write leaves the temporary whole (#1146).
+--- @return table|nil the saved state
+--- @return string|nil why there is none: "no-io", "none" or "unreadable"
+function veafCampaign.readSave()
+  local fsIo, fsLfs = veafCampaign.fileSystem()
+  if not (fsIo and fsLfs) then
+    return nil, "no-io"
+  end
+  local path = veafCampaign.stateFolder(fsLfs.writedir()) .. veafCampaign.stateFileName()
+  local state, why = readSaveFile(fsIo, path)
+  if state then
+    return state
+  end
+  local temporary, temporaryWhy = readSaveFile(fsIo, path .. ".tmp")
+  if temporary then
+    veaf.loggers.get(veafCampaign.Id):warn("the campaign's save is %s: its temporary is used instead", why)
+    return temporary
+  end
+  if why == "none" and temporaryWhy == "none" then
+    return nil, "none"
+  end
+  return nil, "unreadable"
 end
 
 --- Lay a save over the data table: each zone the save knows takes its owner, garrison and capture; a zone

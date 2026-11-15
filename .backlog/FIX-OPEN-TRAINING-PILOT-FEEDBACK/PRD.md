@@ -8,6 +8,8 @@ David, 2026-11-15, after flying the Open Trainings:
 2. "The radio menus must be reordered: the combat zone menu should not be at the very bottom, on the second page."
 3. "For the weather display, whether when you arrive in an aircraft or when you ask for the ATIS, we need the QNH in inches of mercury as well as in hectopascals."
 
+4. "The northern helicopter training zone of Syria, near YF69, is rotten: it is in the middle of a forest. Training zones should not be in forests, units spawning hidden in a wood make no sense."
+
 ## Point 2 is already done, not yet shipped
 
 FEAT-RADIO-MENU-ORDER (✅ 2026-11-10) fixed the order of the root menus: combat zones come second, right after the campaign menu, in every language.
@@ -41,6 +43,8 @@ The METAR line already carries both (`Q1013/29.92`).
 |---|---|---|
 | 01 | [A real hard tier for the helicopter training](tickets/01-helicopter-hard-tier.md) | ⬜ |
 | 02 | [The QNH in hPa and inHg everywhere](tickets/02-qnh-hpa-and-inhg.md) | ⬜ |
+| 03 | [Training ranges out of the forests](tickets/03-training-ranges-out-of-forests.md) | ⬜ |
 
+Ticket 03 (point 4) is mission work in the same repositories, with a look in game on Syria where the forest probe is blind.
 Ticket 01 is mission work in the six Open Training repositories (`VEAF-Open-Training-Mission-<theatre>-v6`), ticket 02 is Lua runtime in VMCT (`src/scripts/veaf/veafWeather.lua`, luaunit tests).
 They are independent: 02 ships with the next VMCT release, 01 with the next `Publish-OT` of each mission.

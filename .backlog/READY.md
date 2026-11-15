@@ -6,7 +6,7 @@ Lots written up and ready to take.
 
 ### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · ⬜
 
-David's notes after flying the Open Trainings: the helicopter hard tier is really a medium one (no radar-guided short-range system, add Tor, Tunguska, Osa), and the QNH must show inHg as well as hPa in the welcome message and the ATIS. His third note, the radio menu order, is already done by FEAT-RADIO-MENU-ORDER and waits for the next release. Two tickets, three decisions with a reco each (2026-11-15).
+David's notes after flying the Open Trainings: the helicopter hard tier is really a medium one (no radar-guided short-range system, add Tor, Tunguska, Osa), and the QNH must show inHg as well as hPa in the welcome message and the ATIS. The training ranges must stand out of the forests, starting with the Ceyhan helicopter range of Syria. His third note, the radio menu order, is already done by FEAT-RADIO-MENU-ORDER and waits for the next release. Three tickets, three decisions with a reco each (2026-11-15).
 
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ⬜
 

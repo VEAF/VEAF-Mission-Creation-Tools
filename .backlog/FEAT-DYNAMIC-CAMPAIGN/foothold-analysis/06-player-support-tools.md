@@ -1,619 +1,619 @@
-# 06 — Player support tools (Foothold v6.5.3)
+# 06 — Outils d'aide aux joueurs (Foothold v6.5.3)
 
-Scope: everything that helps a player fly and fight, outside the shop/economy rules, CTLD, AI flight execution and zone capture.
-File names are shortened: `zc2` = `Common Scripts/zoneCommanderv2.lua`, `setup` = `Setup files/MA_Setup_CAv2.lua`, `WM` = `Common Scripts/WelcomeMessage.lua`, `loc` = `Common Scripts/Foothold_Localization.lua`, `cfg` = `Common Scripts/Foothold Config.lua`.
+Périmètre : tout ce qui aide un joueur à voler et à se battre, hors règles de boutique et d'économie, CTLD, exécution des vols IA et capture de zone.
+Les noms de fichiers sont abrégés : `zc2` = `Common Scripts/zoneCommanderv2.lua`, `setup` = `Setup files/MA_Setup_CAv2.lua`, `WM` = `Common Scripts/WelcomeMessage.lua`, `loc` = `Common Scripts/Foothold_Localization.lua`, `cfg` = `Common Scripts/Foothold Config.lua`.
 
-| # | Feature | One-line description | Main code location |
+| # | Fonctionnalité | Description en une ligne | Emplacement principal dans le code |
 |---|---|---|---|
-| 1 | JTAC drone (auto-lase) | purchased drone orbits an enemy zone, lases/IR-points one target, coalition menu for target, priority, code, smoke, flare | `zc2:7366-8148`, `setup:4234-4291` |
-| 2 | 9-line JTAC drones (AM/FM) | purchased drone with the native DCS `FAC` task on 241 AM / 31 FM | `zc2:8150-8400`, `setup:4292-4470` |
-| 3 | Player laser designator (`SelfJtac`) | scout aircraft lase targets in a cone in front of them, per-player options | `zc2:96368-97550` |
-| 4 | CSAR and enemy pilots | downed pilots spawned on ejection, beacon, marker, hover/land pickup, hostile infantry, enemy-pilot capture and debrief | `zc2:98446-101025`, `zc2:101831-102230`, `zc2:42284-42440` |
-| 5 | Zone intel | purchased 60-min intel: contents report, per-group map markers, diff updates | `zc2:5567-7014`, `setup:4762-4794` |
-| 6 | Tankers on demand and control | Arco/Texaco spawn, TACAN, racetrack by menu or by markers, altitude/speed menus | `zc2:105300-106250`, `zc2:107547-107930`, `zc2:16696-17080` |
-| 7 | AWACS | always-on AWACS repositioned behind the front after each capture | `zc2:9331-10146` |
-| 8 | CAP control | menu and `caphere1/2` markers to move the purchased CAP | `zc2:28148-28352`, `zc2:105747` |
-| 9 | Map-marker commands | the full list of marker texts understood by the engine | `zc2:28354-29290` |
-| 10 | Carrier and ship control | "Sail to area" menu, Tarawa by marker, wind-over-deck speed, beacons, recovery tanker | `zc2:13403-16200`, `WM:779-926` |
-| 11 | Welcome message, callsigns/IFF, ATIS | greeting, callsign and IFF allocation, ATIS menu, closest airfield, capture ATIS, refuel reward | `WM:1-1723`, `WM:2731-2941` |
-| 12 | Escort flight for players | free 2-ship escort on request, altitude choice, patrol/racetrack/orbit/rejoin/RTB | `WM:1434-1470`, `WM:1724-2730` |
-| 13 | EWRS | radar-based BRA picture, bogey dope, per-player settings menu | `EWRS.lua:1-1745` |
-| 14 | Zeus | game-master marker commands (`-create`, `-destroyN`, `-explode`, `-smoke`, `-illuminate`) | `Zeus.lua:1-105`, `zeus_Full_v2.1.lua` |
-| 15 | Smoke / flare / illumination on targets | purchased marking of up to 3 targets of an enemy zone | `zc2:23618-23775`, `setup:4547-4634` |
-| 16 | `DynamicSupportNative` | registry and 30 s ammo monitor of purchased AI flights (airborne, winchester, landed, killed messages) | `zc2:106261-106469` |
-| 17 | Hunt | red 2-ship sent after a player with many kills | `zc2:40974-41168` |
-| 18 | Splash damage (Foothold variant) | splash kills credited to players, options tuned | `Splash_Damage_3.4.1_leka.lua` |
-| 19 | Help, radio information, weather | help texts, radio settings validation, kneeboard frequency card, wind/temperature read-outs | `zc2:13632-13690`, `loc:2055` |
+| 1 | Drone JTAC (auto-lase) | un drone acheté orbite au-dessus d'une zone ennemie, désigne au laser ou à l'IR une cible, menu coalition pour la cible, la priorité, le code, la fumée, la fusée éclairante | `zc2:7366-8148`, `setup:4234-4291` |
+| 2 | Drones JTAC 9-line (AM/FM) | un drone acheté avec la tâche DCS native `FAC` sur 241 AM / 31 FM | `zc2:8150-8400`, `setup:4292-4470` |
+| 3 | Désignateur laser du joueur (`SelfJtac`) | les appareils de reconnaissance désignent au laser des cibles dans un cône devant eux, avec des options par joueur | `zc2:96368-97550` |
+| 4 | CSAR et pilotes ennemis | pilotes abattus générés à l'éjection, balise, marqueur, récupération en vol stationnaire ou posé, infanterie hostile, capture de pilote ennemi et debrief | `zc2:98446-101025`, `zc2:101831-102230`, `zc2:42284-42440` |
+| 5 | Intel de zone | intel acheté de 60 min : rapport de contenu, marqueurs de carte par groupe, mises à jour différentielles | `zc2:5567-7014`, `setup:4762-4794` |
+| 6 | Ravitailleurs à la demande et leur contrôle | spawn d'Arco/Texaco, TACAN, racetrack par menu ou par marqueurs, menus d'altitude et de vitesse | `zc2:105300-106250`, `zc2:107547-107930`, `zc2:16696-17080` |
+| 7 | AWACS | AWACS toujours actif, repositionné derrière le front après chaque capture | `zc2:9331-10146` |
+| 8 | Contrôle des CAP | menu et marqueurs `caphere1/2` pour déplacer la CAP achetée | `zc2:28148-28352`, `zc2:105747` |
+| 9 | Commandes par marqueurs de carte | la liste complète des textes de marqueurs compris par le moteur | `zc2:28354-29290` |
+| 10 | Contrôle des porte-avions et des navires | menu « Sail to area », Tarawa par marqueur, vitesse de vent sur le pont, balises, ravitailleur de récupération | `zc2:13403-16200`, `WM:779-926` |
+| 11 | Message de bienvenue, callsigns/IFF, ATIS | accueil, attribution des callsigns et de l'IFF, menu ATIS, aérodrome le plus proche, ATIS de capture, récompense de ravitaillement | `WM:1-1723`, `WM:2731-2941` |
+| 12 | Vol d'escorte pour les joueurs | escorte gratuite de 2 appareils sur demande, choix de l'altitude, patrouille/racetrack/orbite/rejointe/RTB | `WM:1434-1470`, `WM:1724-2730` |
+| 13 | EWRS | situation BRA fondée sur le radar, bogey dope, menu de réglages par joueur | `EWRS.lua:1-1745` |
+| 14 | Zeus | commandes de marqueurs du maître de jeu (`-create`, `-destroyN`, `-explode`, `-smoke`, `-illuminate`) | `Zeus.lua:1-105`, `zeus_Full_v2.1.lua` |
+| 15 | Fumée / fusée éclairante / illumination sur les cibles | marquage acheté de jusqu'à 3 cibles d'une zone ennemie | `zc2:23618-23775`, `setup:4547-4634` |
+| 16 | `DynamicSupportNative` | registre et surveillance des munitions toutes les 30 s des vols IA achetés (messages en vol, winchester, posé, détruit) | `zc2:106261-106469` |
+| 17 | Hunt | 2 appareils rouges envoyés après un joueur qui a beaucoup de kills | `zc2:40974-41168` |
+| 18 | Splash damage (variante Foothold) | kills par splash attribués aux joueurs, options réglées | `Splash_Damage_3.4.1_leka.lua` |
+| 19 | Aide, informations radio, météo | textes d'aide, validation des réglages radio, fiche de fréquences du kneeboard, relevés de vent et de température | `zc2:13632-13690`, `loc:2055` |
 
-Moose subsystems: **none of `CSAR`, `INTEL`, `ATIS`, `AIRBOSS`, `RECOVERYTANKER`, `RESCUEHELO`, `MSRS` is instantiated** by the Foothold scripts of this theme (grep for `<CLASS>:New` in `zoneCommanderv2.lua`, `WelcomeMessage.lua`, `EWRS.lua`, `Zeus.lua`, the setup file: 0 hits).
-Moose is used as a toolbox: `SPAWN`, `SCHEDULER`, `COORDINATE`, `UTILS`, `MESSAGE`, `MARKER`, `MENU_GROUP*` (WelcomeMessage only), `SET_CLIENT`, `ZONE*`, `AIRBASE`, `ASTAR`, `EVENTS`/`BASE:HandleEvent`.
-Scripts shipped in the Caucasus `.miz`: `AIEN.lua`, `EWRS.lua`, `Foothold Config.lua`, `Foothold CTLD.lua`, `Foothold_CTLD_Red.lua`, `Foothold_Localization.lua`, `MA_Setup_CAv2.lua`, `Moose_2026-10-11.lua`, `Splash_Damage_3.4.1_leka.lua`, `WelcomeMessage.lua`, `Zeus.lua`, `zoneCommanderv2.lua`.
+Sous-systèmes Moose : **aucun de `CSAR`, `INTEL`, `ATIS`, `AIRBOSS`, `RECOVERYTANKER`, `RESCUEHELO`, `MSRS` n'est instancié** par les scripts Foothold de ce thème (grep de `<CLASS>:New` dans `zoneCommanderv2.lua`, `WelcomeMessage.lua`, `EWRS.lua`, `Zeus.lua`, le fichier de setup : 0 résultat).
+Moose sert de boîte à outils : `SPAWN`, `SCHEDULER`, `COORDINATE`, `UTILS`, `MESSAGE`, `MARKER`, `MENU_GROUP*` (WelcomeMessage uniquement), `SET_CLIENT`, `ZONE*`, `AIRBASE`, `ASTAR`, `EVENTS`/`BASE:HandleEvent`.
+Scripts livrés dans le `.miz` du Caucase : `AIEN.lua`, `EWRS.lua`, `Foothold Config.lua`, `Foothold CTLD.lua`, `Foothold_CTLD_Red.lua`, `Foothold_Localization.lua`, `MA_Setup_CAv2.lua`, `Moose_2026-10-11.lua`, `Splash_Damage_3.4.1_leka.lua`, `WelcomeMessage.lua`, `Zeus.lua`, `zoneCommanderv2.lua`.
 
-## 1. JTAC drone (auto-lase) — `JTAC`
+## 1. Drone JTAC (auto-lase) — `JTAC`
 
-### Player view
+### Ce que voit le joueur
 
-- Bought through the shop item `jtac` ("JTAC MQ9" label key `SYRIA_SHOP_ITEM_JTAC_MQ9`), then a target zone is picked; the zone must be red and not suspended (`setup:4246-4275`).
-- A coalition-wide F10 submenu "JTAC … <zone>" (`JTAC_MENU_TITLE`) appears with: Target report, Next target, Smoke on target, Change smoke color (5 colours), Flare on target, Set priority (SAM / Structures / Infantry / Armor / Support / Clear), Set laser code (three-level digit dial 1111–1788, then "Accept"), Select target (numbered list, "More" submenus every 9 entries) (`zc2:7522-7720`, `zc2:8054-8148`).
-- Messages are coalition-wide text: "JTAC is deployed, Looking for targets, standby" (`loc:1498`), the lasing report "Lasing <type> at <zone> … Code: <n>" followed by DDM, DMS, MGRS and altitude m/ft (`zc2:7781-7843`, `loc:1502`), "kill confirmed", "no more targets".
-- The laser code can also be set by a map marker whose text is `jtac-code:<1111-1788>`; the marker is deleted after use (`zc2:7403-7418`).
-- At most two JTAC drones at once; buying a third destroys the oldest (`setup:4255-4259`).
-- Smoke is dropped 50–100 m from the target at a random bearing and the message gives the offset and the cardinal direction from smoke to target; flare is a red signal flare 20–40 m away (`zc2:7556-7592`, `zc2:7631-7663`).
+- Acheté via l'article de boutique `jtac` (« JTAC MQ9 », clé de label `SYRIA_SHOP_ITEM_JTAC_MQ9`), puis on choisit une zone cible ; la zone doit être rouge et non suspendue (`setup:4246-4275`).
+- Un sous-menu F10 « JTAC … <zone> » (`JTAC_MENU_TITLE`), valable pour toute la coalition, apparaît avec : Target report, Next target, Smoke on target, Change smoke color (5 couleurs), Flare on target, Set priority (SAM / Structures / Infantry / Armor / Support / Clear), Set laser code (cadran à trois niveaux de chiffres 1111–1788, puis « Accept »), Select target (liste numérotée, sous-menus « More » toutes les 9 entrées) (`zc2:7522-7720`, `zc2:8054-8148`).
+- Les messages sont des textes visibles de toute la coalition : "JTAC is deployed, Looking for targets, standby" (`loc:1498`), le rapport de désignation "Lasing <type> at <zone> … Code: <n>" suivi de DDM, DMS, MGRS et de l'altitude en m/ft (`zc2:7781-7843`, `loc:1502`), "kill confirmed", "no more targets".
+- Le code laser peut aussi être réglé par un marqueur de carte dont le texte est `jtac-code:<1111-1788>` ; le marqueur est supprimé après usage (`zc2:7403-7418`).
+- Deux drones JTAC au plus en même temps ; en acheter un troisième détruit le plus ancien (`setup:4255-4259`).
+- La fumée est larguée à 50–100 m de la cible, sur un cap aléatoire, et le message donne le décalage et la direction cardinale de la fumée vers la cible ; la fusée éclairante est une fusée de signalisation rouge à 20–40 m (`zc2:7556-7592`, `zc2:7631-7663`).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- The `.miz` needs late-activated drone groups named `jtacDrone1`, `jtacDrone2` (modern) and `jtacDroneColdwar1`, `jtacDroneColdwar2` (cold-war era, an F-14 "Tomcat" per the message keys); the setup destroys all four at start and builds the `JTAC` objects from the pair matching `ColdWarTechEra` (`setup:4236-4245`).
-- The auto-lase JTAC is **not registered in PvP mode** (`GlobalSettings.pvpEnabled ~= true` guard, `setup:4240`, `setup:4291`).
-- Price in `ShopPrices.jtac = 500`, rank requirement table entry `jtac = 2` (`setup:2908`, `setup:2945`).
-- `UseStatics` adds the "Structures" priority category (`zc2:7372-7374`).
+- Le `.miz` doit contenir des groupes de drones en late activation nommés `jtacDrone1`, `jtacDrone2` (moderne) et `jtacDroneColdwar1`, `jtacDroneColdwar2` (époque guerre froide, un F-14 « Tomcat » d'après les clés de message) ; le setup détruit les quatre au démarrage et construit les objets `JTAC` à partir de la paire qui correspond à `ColdWarTechEra` (`setup:4236-4245`).
+- Le JTAC auto-lase **n'est pas enregistré en mode PvP** (garde `GlobalSettings.pvpEnabled ~= true`, `setup:4240`, `setup:4291`).
+- Prix dans `ShopPrices.jtac = 500`, entrée `jtac = 2` dans la table des rangs requis (`setup:2908`, `setup:2945`).
+- `UseStatics` ajoute la catégorie de priorité « Structures » (`zc2:7372-7374`).
 
-### Mechanism
+### Mécanisme
 
-- 100 % Foothold code on raw DCS API; Moose is used only for spawning (`SPAWN:NewFromTemplate(tpl, name, nil, true):OnSpawnGroup(...):SpawnFromCoordinate(coord)` → `coalition.addGroup` with the template taken from `_DATABASE.Templates.Groups[name].Template`), for the 5-second loop (`SCHEDULER:New(nil, self.searchIfNoTarget, {self}, 20, 5)` → `timer.scheduleFunction`), and for `COORDINATE`/`UTILS.tostringMGRS`/`UTILS.VecHdg` formatting (`zc2:7980-8003`, `zc2:7781-7830`).
-- Deployment: the drone is spawned at 6 000 m above the zone centre (`zoneCom._cz.point`), then `setOrbit` sets it `SetInvisible`, `SetImmortal`, `SetUnlimitedFuel`, `EPLRS` on, `AI.Option.Air.id.SILENCE`, and gives it an `Orbit` / `Circle` task at 6 000 m; first target search 15 s later (`zc2:7980-8052`).
-- Deploying also cancels any recon mission on that zone and sets `jtacIntelActive[zone] = true` (the zone is treated as "intel known" while a JTAC is over it) (`zc2:7986-7989`).
-- Target list: every unit with `getLife() >= 1` of every group name in `zone.built`, every existing static of that list, plus the zone warehouse target; the list is cached in `zone._jtacTargetSnapshot` and rebuilt when one cached object is dead (`zc2:7420-7457`); the zone's own maintenance loop publishes the snapshot when a drone watches the zone (`zc2:46078-46100`).
-- Priority filter: `Unit:hasAttribute(attr)` against the category attribute lists; "StaticObjects" matches `Object.Category.STATIC`; if nothing matches the priority is cleared with a message (`zc2:7888-7910`).
-- Sort: lowest rank wins among attributes `SAM TR`=1, `IR Guided SAM`=2, `SAM SR`=3, `AAA`=4, `Tanks`=5, `IFV`=6, `APC`=7, `Artillery`=8, `SAM LL`=9, `SAM CC`=10, `Unarmed vehicles`=11, `Infantry`=12, `Structures`=13; a unit that is both AAA and radar gets +0.1 (`zc2:7459-7501`).
-- Lasing: `Spot.createLaser(emitterUnit, {x=0,y=2,z=0}, targetPoint, code)` and `Spot.createInfraRed(...)`; both spots are moved with `Spot:setPoint` by a self-rescheduling 0.5 s timer (`timer.scheduleFunction`) as long as the target lives (`zc2:7731-7779`).
-- Loop every 5 s (`searchIfNoTarget`): if the drone group is gone → clear; if target dead → "kill confirmed", hold 5 s, then next target; if the count of viable targets dropped → rebuild the Select-target menu (`zc2:7942-7978`, `zc2:7911-7922`).
-- "Next target" picks a random viable target (`randomNext`), otherwise the top of the threat sort (`zc2:7924-7928`).
-- End of life: no targets left or zone no longer hostile → `clearTarget` destroys the spots, stops the scheduler, destroys the drone group, removes the menu and removes itself from `jtacQueue` (`zc2:7845-7876`, `zc2:7930-7938`).
-- State: global `jtacQueue` (active drones, max 2), `jtacIntelActive[zone]`, per-object `lasers`, `target` (unit name), `laserCode`, `priority`, `smokeColor`.
-- Menus are **coalition** menus (`missionCommands.addSubMenuForCoalition`), not per group; the laser-code dial alone creates several hundred menu nodes per drone (`zc2:7689-7708`).
+- Code Foothold à 100 % sur l'API DCS brute ; Moose ne sert qu'au spawn (`SPAWN:NewFromTemplate(tpl, name, nil, true):OnSpawnGroup(...):SpawnFromCoordinate(coord)` → `coalition.addGroup` avec le template pris dans `_DATABASE.Templates.Groups[name].Template`), à la boucle de 5 secondes (`SCHEDULER:New(nil, self.searchIfNoTarget, {self}, 20, 5)` → `timer.scheduleFunction`), et au formatage via `COORDINATE`/`UTILS.tostringMGRS`/`UTILS.VecHdg` (`zc2:7980-8003`, `zc2:7781-7830`).
+- Déploiement : le drone est généré à 6 000 m au-dessus du centre de la zone (`zoneCom._cz.point`), puis `setOrbit` le met en `SetInvisible`, `SetImmortal`, `SetUnlimitedFuel`, `EPLRS` activé, `AI.Option.Air.id.SILENCE`, et lui donne une tâche `Orbit` / `Circle` à 6 000 m ; première recherche de cible 15 s plus tard (`zc2:7980-8052`).
+- Le déploiement annule aussi toute mission de reconnaissance sur cette zone et pose `jtacIntelActive[zone] = true` (la zone est traitée comme « intel connu » tant qu'un JTAC la survole) (`zc2:7986-7989`).
+- Liste des cibles : chaque unité avec `getLife() >= 1` de chaque nom de groupe de `zone.built`, chaque static existant de cette liste, plus la cible entrepôt de la zone ; la liste est mise en cache dans `zone._jtacTargetSnapshot` et reconstruite quand un objet du cache est mort (`zc2:7420-7457`) ; la boucle de maintenance propre à la zone publie l'instantané quand un drone surveille la zone (`zc2:46078-46100`).
+- Filtre de priorité : `Unit:hasAttribute(attr)` contre les listes d'attributs de la catégorie ; « StaticObjects » correspond à `Object.Category.STATIC` ; si rien ne correspond, la priorité est effacée avec un message (`zc2:7888-7910`).
+- Tri : le rang le plus bas l'emporte parmi les attributs `SAM TR`=1, `IR Guided SAM`=2, `SAM SR`=3, `AAA`=4, `Tanks`=5, `IFV`=6, `APC`=7, `Artillery`=8, `SAM LL`=9, `SAM CC`=10, `Unarmed vehicles`=11, `Infantry`=12, `Structures`=13 ; une unité à la fois AAA et radar reçoit +0,1 (`zc2:7459-7501`).
+- Désignation : `Spot.createLaser(emitterUnit, {x=0,y=2,z=0}, targetPoint, code)` et `Spot.createInfraRed(...)` ; les deux spots sont déplacés avec `Spot:setPoint` par un timer de 0,5 s qui se reprogramme lui-même (`timer.scheduleFunction`) tant que la cible vit (`zc2:7731-7779`).
+- Boucle toutes les 5 s (`searchIfNoTarget`) : si le groupe du drone a disparu → on nettoie ; si la cible est morte → "kill confirmed", pause de 5 s, puis cible suivante ; si le nombre de cibles viables a baissé → reconstruction du menu Select target (`zc2:7942-7978`, `zc2:7911-7922`).
+- « Next target » choisit une cible viable au hasard (`randomNext`), sinon la tête du tri par menace (`zc2:7924-7928`).
+- Fin de vie : plus de cibles ou zone qui n'est plus hostile → `clearTarget` détruit les spots, arrête le scheduler, détruit le groupe du drone, supprime le menu et se retire de `jtacQueue` (`zc2:7845-7876`, `zc2:7930-7938`).
+- État : global `jtacQueue` (drones actifs, 2 au maximum), `jtacIntelActive[zone]`, par objet `lasers`, `target` (nom d'unité), `laserCode`, `priority`, `smokeColor`.
+- Les menus sont des menus **coalition** (`missionCommands.addSubMenuForCoalition`), pas par groupe ; le seul cadran du code laser crée plusieurs centaines de nœuds de menu par drone (`zc2:7689-7708`).
 
-### Reproduction notes
+### Notes de reproduction
 
-- No Moose dependency of substance; `Spot` API, `hasAttribute`, `trigger.action.smoke/signalFlare` are raw DCS.
-- The drone needs the zone's list of spawned group names (`zone.built`) and the "intel" flag coupling.
-- The 0.5 s laser-update timer per drone and the full re-sort on each search are the only recurring costs; two drones maximum bounds them.
-- The marker listener is one `world.addEventHandler` per JTAC object (so two handlers, each parsing every mark change) (`zc2:7403-7418`).
+- Aucune dépendance Moose notable ; l'API `Spot`, `hasAttribute`, `trigger.action.smoke/signalFlare` sont du DCS brut.
+- Le drone a besoin de la liste des noms de groupes générés de la zone (`zone.built`) et du couplage avec le drapeau « intel ».
+- Le timer de mise à jour du laser de 0,5 s par drone et le tri complet à chaque recherche sont les seuls coûts récurrents ; deux drones au maximum les bornent.
+- L'écouteur de marqueurs est un `world.addEventHandler` par objet JTAC (donc deux handlers, chacun analysant chaque changement de marqueur) (`zc2:7403-7418`).
 
-## 2. 9-line JTAC drones (AM / FM) — `JTAC9line`, `JTAC9linefmr`
+## 2. Drones JTAC 9-line (AM / FM) — `JTAC9line`, `JTAC9linefmr`
 
-### Player view
+### Ce que voit le joueur
 
-- Shop items `9lineam` and `9linefm` (price 0, rank 1 in the Caucasus setup: `setup:2909-2910`, `setup:2991-2992`), then pick an enemy zone.
-- The drone is a **native DCS FAC**: the player contacts it through the standard DCS radio menu (JTAC check-in, 9-line, laser/smoke/IR marking are all done by the DCS AI FAC logic).
-- Frequencies: 241.000 MHz AM (`zc2:8245-8246`) and 31.000 MHz FM (`zc2:8374-8375`); callsign index `callname = 2`, `number = 1`, `designation = 'Auto'`, `datalink = true`.
-- A coalition message announces the drone and its frequency (keys `SYRIA_SHOP_JTAC_REAPER_AM/FM`, `SYRIA_SHOP_JTAC_TOMCAT_AM/FM`) (`setup:4327-4338`).
+- Articles de boutique `9lineam` et `9linefm` (prix 0, rang 1 dans le setup du Caucase : `setup:2909-2910`, `setup:2991-2992`), puis on choisit une zone ennemie.
+- Le drone est un **FAC DCS natif** : le joueur le contacte par le menu radio standard de DCS (check-in JTAC, 9-line, marquage laser/fumée/IR : tout est fait par la logique FAC de l'IA DCS).
+- Fréquences : 241,000 MHz AM (`zc2:8245-8246`) et 31,000 MHz FM (`zc2:8374-8375`) ; index de callsign `callname = 2`, `number = 1`, `designation = 'Auto'`, `datalink = true`.
+- Un message à la coalition annonce le drone et sa fréquence (clés `SYRIA_SHOP_JTAC_REAPER_AM/FM`, `SYRIA_SHOP_JTAC_TOMCAT_AM/FM`) (`setup:4327-4338`).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- Late-activated groups `JTAC9lineam`, `JTAC9lineamColdwar`, `JTAC9linefm`, `JTAC9linefmColdwar` in the `.miz`; destroyed at start, respawned from template (`setup:4296-4313`, `setup:4353-4371`).
-- In PvP mode one object per side is created (the red one from a mirrored template) and both sides can buy it (`setup:4299-4308`, `setup:4345`).
+- Groupes en late activation `JTAC9lineam`, `JTAC9lineamColdwar`, `JTAC9linefm`, `JTAC9linefmColdwar` dans le `.miz` ; détruits au démarrage, regénérés depuis le template (`setup:4296-4313`, `setup:4353-4371`).
+- En mode PvP, un objet par camp est créé (le rouge à partir d'un template en miroir) et les deux camps peuvent l'acheter (`setup:4299-4308`, `setup:4345`).
 
-### Mechanism
+### Mécanisme
 
-- Spawn at 6 000 m over the zone centre via `SPAWN:NewFromTemplate():SpawnFromCoordinate()`; `setTasks` applies `SetInvisible`, `SetImmortal`, `SetUnlimitedFuel`, `EPLRS`, then a `ComboTask` of `{id='FAC', params={frequency, modulation, callname, number, designation='Auto', datalink=true, priority=1}}` + `Orbit` circle at 6 000 m (`zc2:8162-8275`).
-- `jtacZones[zone] = {drone = <group name>}` records which zone has a 9-line drone; `CheckJtacStatus()` destroys the drone when its zone is no longer an active enemy zone (`setup:4412-4470`); it is called from two places in `ZoneCommander`: `disableZone` (the zone is switched off and set neutral, `zc2:50185`, `zc2:50216-50225`) and `_neutralizeEmptyBuiltZone` (the last defender of the zone has been destroyed and it turns neutral, `zc2:55294`, `zc2:55419-55424`).
-- `BattleCommander:_hasActiveJtacOnZone` answers "is a JTAC (either kind) on this zone" for other subsystems (`zc2:37190-37216`).
-- Everything the player hears is the DCS built-in FAC; Foothold writes no 9-line text itself.
+- Spawn à 6 000 m au-dessus du centre de la zone via `SPAWN:NewFromTemplate():SpawnFromCoordinate()` ; `setTasks` applique `SetInvisible`, `SetImmortal`, `SetUnlimitedFuel`, `EPLRS`, puis une `ComboTask` de `{id='FAC', params={frequency, modulation, callname, number, designation='Auto', datalink=true, priority=1}}` + `Orbit` circulaire à 6 000 m (`zc2:8162-8275`).
+- `jtacZones[zone] = {drone = <group name>}` enregistre quelle zone a un drone 9-line ; `CheckJtacStatus()` détruit le drone quand sa zone n'est plus une zone ennemie active (`setup:4412-4470`) ; elle est appelée depuis deux endroits de `ZoneCommander` : `disableZone` (la zone est désactivée et passe neutre, `zc2:50185`, `zc2:50216-50225`) et `_neutralizeEmptyBuiltZone` (le dernier défenseur de la zone a été détruit et elle devient neutre, `zc2:55294`, `zc2:55419-55424`).
+- `BattleCommander:_hasActiveJtacOnZone` répond à « y a-t-il un JTAC (de l'un ou l'autre type) sur cette zone » pour les autres sous-systèmes (`zc2:37190-37216`).
+- Tout ce qu'entend le joueur vient du FAC intégré de DCS ; Foothold n'écrit lui-même aucun texte 9-line.
 
-### Reproduction notes
+### Notes de reproduction
 
-- Trivial without Moose: one `coalition.addGroup` and one `Controller:setTask`.
-- The FAC task engages "Auto": DCS chooses targets among what the FAC detects; there is no Foothold target list here.
+- Trivial sans Moose : un `coalition.addGroup` et un `Controller:setTask`.
+- La tâche FAC engage en « Auto » : DCS choisit les cibles parmi ce que le FAC détecte ; il n'y a pas de liste de cibles Foothold ici.
 
-## 3. Player laser designator — `SelfJtac` ("Laser Designator" menu)
+## 3. Désignateur laser du joueur — `SelfJtac` (menu « Laser Designator »)
 
-### Player view
+### Ce que voit le joueur
 
-- Group F10 submenu "Laser Designator" (`loc:1510`) for players flying one of the listed types: SA342L, SA342M, UH-60L, UH-60L_DAP, AH-6J, OH-6A, Bronco-OV-10A, F-4E-45MC (`zc2:97528-97542`).
-- Entries: Search, Target info, Mark with Smoke, Clear, Priority (SAM / Infantry / Armor / Support / Structures / Clear), Options (Toggle KM / NM, Auto Search on/off, Auto-Next Target on/off, Hide coordinates on/off, Ignore structures on/off, Laser code dial), Select target (`zc2:96617-96746`).
-- Report (group text, 60 s, clear-view): target type, laser code, magnetic bearing and distance from the player, then DDM / DMS / MGRS / altitude unless "hide coordinates" is on (`zc2:96963-97026`).
-- "Mark with Smoke" puts **blue** smoke exactly on the target (`zc2:97029-97042`).
-- Messages: "target out of bounds" when the target leaves the cone/range/line of sight, "kill confirmed", "no targets found", "target lost".
+- Sous-menu F10 de groupe « Laser Designator » (`loc:1510`) pour les joueurs qui pilotent l'un des types listés : SA342L, SA342M, UH-60L, UH-60L_DAP, AH-6J, OH-6A, Bronco-OV-10A, F-4E-45MC (`zc2:97528-97542`).
+- Entrées : Search, Target info, Mark with Smoke, Clear, Priority (SAM / Infantry / Armor / Support / Structures / Clear), Options (Toggle KM / NM, Auto Search on/off, Auto-Next Target on/off, Hide coordinates on/off, Ignore structures on/off, cadran du code laser), Select target (`zc2:96617-96746`).
+- Rapport (texte de groupe, 60 s, vue dégagée) : type de cible, code laser, relèvement magnétique et distance depuis le joueur, puis DDM / DMS / MGRS / altitude sauf si « hide coordinates » est actif (`zc2:96963-97026`).
+- « Mark with Smoke » pose une fumée **bleue** exactement sur la cible (`zc2:97029-97042`).
+- Messages : "target out of bounds" quand la cible sort du cône, de la portée ou de la ligne de vue, "kill confirmed", "no targets found", "target lost".
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- No Config switch found for the type table; the per-type limits are hard-coded: `minDist` (really the **maximum** range, km), `maxDeviation` (half-cone in degrees off the nose), `laserOffset` (IR pointer origin on the airframe) (`zc2:97528-97536`).
-- Per-player options (auto search, auto next, hide coordinates, ignore structures) are persisted by player name and exported/imported with the rank save (`zc2:96393-96506`, `zc2:43833-43843`).
+- Aucun interrupteur de Config trouvé pour la table des types ; les limites par type sont codées en dur : `minDist` (en réalité la portée **maximale**, en km), `maxDeviation` (demi-cône en degrés par rapport au nez), `laserOffset` (origine du pointeur IR sur la cellule) (`zc2:97528-97536`).
+- Les options par joueur (auto search, auto next, hide coordinates, ignore structures) sont persistées par nom de joueur et exportées/importées avec la sauvegarde des rangs (`zc2:96393-96506`, `zc2:43833-43843`).
 
-### Mechanism
+### Mécanisme
 
-- 100 % Foothold code; Moose only for `COORDINATE:HeadingTo`, `GetMagneticDeclination`, `ToStringMGRS` in the report (`zc2:96983-97007`).
-- Creation: on player spawn, `LogisticCommander:_refreshSelfJtacForSpawn` builds a `SelfJtac` for the group if the unit type has stats, replacing any previous one (`zc2:101266-101287`); `setAirborne(true)` on takeoff and `setAirborne(false)` on landing/leave (`zc2:101806-101808`, `zc2:42451-42453`), landing clears the target (`zc2:96804-96814`).
-- Search: `world.searchObjects({UNIT, STATIC}, SPHERE(player ground point, radius = minDist km))`, keep enemy-coalition active objects, then filter by distance, by `|bearing − aircraft heading| <= maxDeviation`, and by `land.isVisible(playerPoint+1.5 m, targetPoint+1.5 m)` (`zc2:97245-97311`).
-- Choice: nearest viable target to the player, or — after a kill with auto-next — nearest to the previous target's last position with preference for the same enemy group (`zc2:97347-97371`, `zc2:97165-97181`).
-- Tracking: `setTarget` re-checks range/cone/LOS, creates `Spot.createLaser(playerUnit, {0,5,0}, surfacePoint, code)` and `Spot.createInfraRed(playerUnit, laserOffset, point)`, moves them only if the target moved ≥ 0.5 m, and reschedules itself every **0.1 s** (1 s while re-acquiring) through `timer.scheduleFunction` (`zc2:96872-96961`).
-- Loss of track with auto-search on: spots are destroyed, state `_reacquiring`, and each tick tests at most 3 cached targets (round-robin cursor) for visibility to hop to another target (`zc2:96911-96925`, `zc2:97086-97135`).
-- Auto search: a 30 s per-player timer while airborne (`zc2:96789-96796`).
-- Target metadata (category, display type, group name, attributes) is cached per target name and pruned to the objects seen in the last search (`zc2:96508-96556`).
-- State: `SelfJtac.jtacs[groupId]`, `SelfJtac.savedPlayerSettings[playerName]`.
+- Code Foothold à 100 % ; Moose seulement pour `COORDINATE:HeadingTo`, `GetMagneticDeclination`, `ToStringMGRS` dans le rapport (`zc2:96983-97007`).
+- Création : au spawn du joueur, `LogisticCommander:_refreshSelfJtacForSpawn` construit un `SelfJtac` pour le groupe si le type d'unité a des statistiques, en remplaçant l'éventuel précédent (`zc2:101266-101287`) ; `setAirborne(true)` au décollage et `setAirborne(false)` à l'atterrissage ou au départ (`zc2:101806-101808`, `zc2:42451-42453`), l'atterrissage efface la cible (`zc2:96804-96814`).
+- Recherche : `world.searchObjects({UNIT, STATIC}, SPHERE(player ground point, radius = minDist km))`, on garde les objets actifs de la coalition ennemie, puis on filtre par distance, par `|bearing − aircraft heading| <= maxDeviation`, et par `land.isVisible(playerPoint+1.5 m, targetPoint+1.5 m)` (`zc2:97245-97311`).
+- Choix : la cible viable la plus proche du joueur, ou — après un kill avec auto-next — la plus proche de la dernière position de la cible précédente, avec préférence pour le même groupe ennemi (`zc2:97347-97371`, `zc2:97165-97181`).
+- Suivi : `setTarget` revérifie portée/cône/LOS, crée `Spot.createLaser(playerUnit, {0,5,0}, surfacePoint, code)` et `Spot.createInfraRed(playerUnit, laserOffset, point)`, ne les déplace que si la cible a bougé d'au moins 0,5 m, et se reprogramme toutes les **0,1 s** (1 s pendant la réacquisition) via `timer.scheduleFunction` (`zc2:96872-96961`).
+- Perte de suivi avec auto-search actif : les spots sont détruits, état `_reacquiring`, et à chaque tick on teste au plus 3 cibles du cache (curseur tournant) pour la visibilité afin de sauter vers une autre cible (`zc2:96911-96925`, `zc2:97086-97135`).
+- Auto search : un timer de 30 s par joueur tant qu'il est en vol (`zc2:96789-96796`).
+- Les métadonnées de cible (catégorie, type affiché, nom de groupe, attributs) sont mises en cache par nom de cible et élaguées aux objets vus lors de la dernière recherche (`zc2:96508-96556`).
+- État : `SelfJtac.jtacs[groupId]`, `SelfJtac.savedPlayerSettings[playerName]`.
 
-### Reproduction notes
+### Notes de reproduction
 
-- Per-player 10 Hz timer while a target is lased is the performance-relevant part; the search itself is a `world.searchObjects` sphere of up to 30 km radius, run on demand or every 30 s.
-- The laser emitter is the player's own unit (`Spot.createLaser` with a player unit as source works in DCS), so the spot follows the aircraft.
-- Menus are per group and rebuilt selectively (option items removed and re-added to show the current ON/OFF state) (`zc2:96686-96727`).
+- Le timer à 10 Hz par joueur pendant qu'une cible est désignée est la partie sensible pour les performances ; la recherche elle-même est une sphère `world.searchObjects` de 30 km de rayon au plus, lancée à la demande ou toutes les 30 s.
+- L'émetteur laser est l'unité du joueur lui-même (`Spot.createLaser` avec une unité de joueur comme source fonctionne dans DCS), donc le spot suit l'appareil.
+- Les menus sont par groupe et reconstruits de façon sélective (les éléments d'option sont retirés puis rajoutés pour afficher l'état ON/OFF courant) (`zc2:96686-96727`).
 
-## 4. CSAR: downed pilots, rescue, enemy pilots
+## 4. CSAR : pilotes abattus, sauvetage, pilotes ennemis
 
-**None of this is Moose `CSAR`.**
-The whole feature is Foothold code inside `LogisticCommander` (`zc2:98446-101025`, `zc2:101831-102230`); Moose is used for spawning (`SPAWN:NewWithAlias():InitCoalition():SpawnFromPointVec3()` → `coalition.addGroup`), for moving the survivor (`GROUP:RouteToVec2` → a `Mission` task with ground waypoints via `Controller:setTask`), for `COORDINATE:Translate/HeadingTo`, and for `SCHEDULER`.
+**Rien de tout cela n'est le `CSAR` de Moose.**
+Toute la fonctionnalité est du code Foothold dans `LogisticCommander` (`zc2:98446-101025`, `zc2:101831-102230`) ; Moose sert au spawn (`SPAWN:NewWithAlias():InitCoalition():SpawnFromPointVec3()` → `coalition.addGroup`), au déplacement du survivant (`GROUP:RouteToVec2` → une tâche `Mission` avec des waypoints au sol via `Controller:setTask`), à `COORDINATE:Translate/HeadingTo`, et à `SCHEDULER`.
 
-### Player view
+### Ce que voit le joueur
 
-- Group F10 submenu "CSAR" for aircraft whose type has a capacity > 0 in `AllowedCsar`: Info on closest pilot, Info on three closest pilots, Deploy smoke at closest pilot, Deploy flare at closest pilot, Smoke nearest zone, Flare nearest zone (these two call the CTLD object's `SmokeZoneNearBy`), and — when the enemy-pilot template exists — Info on closest enemy pilot, Deploy smoke at closest enemy pilot (`zc2:101522-101553`, `loc:1808-1814`).
-- Each downed friendly pilot has a coalition map marker whose label is "[player] Lost: N Credits" or "Downed pilot", plus "ADF: nnn kHz"; enemy pilots are labelled "enemy pilot" (`zc2:99283-99362`, `loc:1830-1833`).
-- Each friendly pilot transmits an ADF beacon (`beacon.ogg`) on a random frequency 250–700 kHz, 1 000 W (`zc2:100578-100602`).
-- Rescue flow: within 3 km the pilot answers ("We hear you! Request smoke if needed", bearing/distance info) and fires 3 flares; within 650 m "You're close now! I'm at your N o'clock. Land in a safe place, we will come to you" and 3 more flares; if the helicopter is on the ground within 650 m the survivor runs to it ("I'm coming to you. ETA n seconds") and boards within 20 m; alternatively a hover pickup: within the hover distance, below the hover height and under 5 m/s for the hover time, with "Forward/Right/Left/Back n m, descend n ft" guidance and a countdown (`zc2:100612-100692`, `zc2:100387-100440`, `zc2:100953-100996`, `zc2:97764-97766`, `loc:1846-1858`).
-- Boarding adds `PilotWeight` (80 kg) per pilot to the aircraft (`trigger.action.setUnitInternalCargo`) and prints "Pilot onboard [n/max]" (`zc2:98766`, `loc:1862`).
-- Drop-off: land in a friendly zone; "Pilots dropped off", and each rescued player gets his "Deaths" stat decremented (`zc2:98767-98774`).
-- The reward is paid at **pick-up**, to the **rescuer**: `boardPilot` adds `rewards.rescue` (default 200) plus the 75 % the ejected player had lost (`pilotData.lostCredits`) to the rescuer's purse (`bc:addContribution`), counts a `Pilot Rescue` stat and the career `PilotRescues`, zeroes `lostCredits` on the record (`rescueRewardPaid`), and tells the coalition "[X] rescued [Y] +N credits. Land at any friendly zone to drop off." (`CSAR_RESCUED_WITH_CREDITS`; plain `CSAR_RESCUED` when nothing is paid, e.g. the rescuer is not enrolled) (`zc2:100535-100560`, `loc:1860`).
-- So the ejected player does not get his credits back through a rescue: they move to the rescuer's purse and are banked when the rescuer lands (note 05 §3.2); the rescued player only gets his `Deaths` stat decremented at drop-off (`zc2:100540-100550`, `zc2:98767-98774`).
-- Boarding is refused at full capacity (`CSAR_AT_MAX_CAPACITY`); an enemy pilot boards within 50 m instead of the 20 m load distance and gives "enemy onboard" without credits at that point (`zc2:100516-100521`, `zc2:100563-100566`).
-- A player who ejects and lands **inside a friendly zone** is "landed safely" and gets the lost credits back; inside an enemy zone he gets a 60 s grace then is treated as in hostile territory, or "captured by enemy forces … Assumed dead" (`zc2:101926-101957`).
-- A survivor within 3 NM of a friendly zone or FARP runs home by himself at 3.6 m/s ("Ejected Pilot X is running toward Y"), and is completed on arrival ("is now home", credits recovered); a nearby helicopter can interrupt the run to pick him up (`zc2:99761-99811`, `zc2:99677-99743`, `zc2:100694-100728`, `loc:1837-1841`).
-- Enemy infantry: 25 % chance (Config) that 1–3 hostile infantry groups spawn 0.2–0.4 NM around a downed pilot who is outside any zone and within 20 NM of an enemy zone; 120 s later the coalition is told "Enemy forces have surrounded [X]. Hurry and save him" (`zc2:101977-102112`, `zc2:102196-102217`).
-- Enemy pilots (PvE): a red AI pilot who lands after ejection inside a blue zone is "captured" at once; elsewhere a `RedDownedPilot` group is spawned and can be picked up (load distance 50 m) and delivered to a friendly zone for `enemyPilotCapture` credits (default 200) and a "debrief" (`zc2:101904-101924`, `zc2:100767`, `zc2:42284-42311`).
-- Approaching an enemy pilot has a 10 % chance of an ambush (1–3 infantry groups, message `CSAR_ENEMY_AMBUSH`) (`zc2:98474-98541`).
-- Debrief of captured pilots (10–60 s later): 50 % chance per pilot of zone intel on one enemy zone, 20 % chance of a message revealing the enemy Director's current operation target/phase or defensive priority, else one of 7 "debrief failed" lines (`zc2:42313-42363`).
+- Sous-menu F10 de groupe « CSAR » pour les appareils dont le type a une capacité > 0 dans `AllowedCsar` : Info on closest pilot, Info on three closest pilots, Deploy smoke at closest pilot, Deploy flare at closest pilot, Smoke nearest zone, Flare nearest zone (ces deux-là appellent `SmokeZoneNearBy` de l'objet CTLD), et — quand le template de pilote ennemi existe — Info on closest enemy pilot, Deploy smoke at closest enemy pilot (`zc2:101522-101553`, `loc:1808-1814`).
+- Chaque pilote ami abattu a un marqueur de carte de coalition dont le libellé est "[player] Lost: N Credits" ou "Downed pilot", plus "ADF: nnn kHz" ; les pilotes ennemis sont libellés "enemy pilot" (`zc2:99283-99362`, `loc:1830-1833`).
+- Chaque pilote ami émet une balise ADF (`beacon.ogg`) sur une fréquence aléatoire de 250–700 kHz, 1 000 W (`zc2:100578-100602`).
+- Déroulé du sauvetage : à moins de 3 km le pilote répond ("We hear you! Request smoke if needed", infos de relèvement/distance) et tire 3 fusées éclairantes ; à moins de 650 m "You're close now! I'm at your N o'clock. Land in a safe place, we will come to you" et 3 fusées de plus ; si l'hélicoptère est au sol à moins de 650 m le survivant court vers lui ("I'm coming to you. ETA n seconds") et monte à bord à moins de 20 m ; sinon, récupération en vol stationnaire : dans la distance de hover, sous la hauteur de hover et sous 5 m/s pendant la durée de hover, avec un guidage "Forward/Right/Left/Back n m, descend n ft" et un compte à rebours (`zc2:100612-100692`, `zc2:100387-100440`, `zc2:100953-100996`, `zc2:97764-97766`, `loc:1846-1858`).
+- L'embarquement ajoute `PilotWeight` (80 kg) par pilote à l'appareil (`trigger.action.setUnitInternalCargo`) et affiche "Pilot onboard [n/max]" (`zc2:98766`, `loc:1862`).
+- Dépose : se poser dans une zone amie ; "Pilots dropped off", et chaque joueur sauvé voit sa statistique « Deaths » décrémentée (`zc2:98767-98774`).
+- La récompense est versée au **ramassage**, au **sauveteur** : `boardPilot` ajoute `rewards.rescue` (200 par défaut) plus les 75 % que le joueur éjecté avait perdus (`pilotData.lostCredits`) à la bourse du sauveteur (`bc:addContribution`), compte une statistique `Pilot Rescue` et le `PilotRescues` de la carrière, remet `lostCredits` à zéro sur la fiche (`rescueRewardPaid`), et annonce à la coalition "[X] rescued [Y] +N credits. Land at any friendly zone to drop off." (`CSAR_RESCUED_WITH_CREDITS` ; simple `CSAR_RESCUED` quand rien n'est versé, par exemple si le sauveteur n'est pas inscrit) (`zc2:100535-100560`, `loc:1860`).
+- Donc le joueur éjecté ne récupère pas ses crédits par un sauvetage : ils passent dans la bourse du sauveteur et sont encaissés quand celui-ci se pose (note 05 §3.2) ; le joueur sauvé voit seulement sa statistique `Deaths` décrémentée à la dépose (`zc2:100540-100550`, `zc2:98767-98774`).
+- L'embarquement est refusé à pleine capacité (`CSAR_AT_MAX_CAPACITY`) ; un pilote ennemi monte à bord à moins de 50 m au lieu des 20 m de la distance de chargement et donne "enemy onboard" sans crédits à ce moment (`zc2:100516-100521`, `zc2:100563-100566`).
+- Un joueur qui s'éjecte et atterrit **dans une zone amie** est « posé sain et sauf » et récupère les crédits perdus ; dans une zone ennemie, il a 60 s de grâce puis est traité comme en territoire hostile, ou "captured by enemy forces … Assumed dead" (`zc2:101926-101957`).
+- Un survivant à moins de 3 NM d'une zone amie ou d'un FARP rentre tout seul en courant à 3,6 m/s ("Ejected Pilot X is running toward Y"), et il est terminé à l'arrivée ("is now home", crédits récupérés) ; un hélicoptère proche peut interrompre la course pour le ramasser (`zc2:99761-99811`, `zc2:99677-99743`, `zc2:100694-100728`, `loc:1837-1841`).
+- Infanterie ennemie : 25 % de chances (Config) que 1 à 3 groupes d'infanterie hostile apparaissent à 0,2–0,4 NM autour d'un pilote abattu hors de toute zone et à moins de 20 NM d'une zone ennemie ; 120 s plus tard la coalition est avertie "Enemy forces have surrounded [X]. Hurry and save him" (`zc2:101977-102112`, `zc2:102196-102217`).
+- Pilotes ennemis (PvE) : un pilote IA rouge qui se pose après éjection dans une zone bleue est « capturé » aussitôt ; ailleurs un groupe `RedDownedPilot` est généré et peut être ramassé (distance de chargement 50 m) puis livré à une zone amie pour `enemyPilotCapture` crédits (200 par défaut) et un « debrief » (`zc2:101904-101924`, `zc2:100767`, `zc2:42284-42311`).
+- S'approcher d'un pilote ennemi a 10 % de chances de déclencher une embuscade (1 à 3 groupes d'infanterie, message `CSAR_ENEMY_AMBUSH`) (`zc2:98474-98541`).
+- Debrief des pilotes capturés (10–60 s plus tard) : 50 % de chances par pilote d'obtenir l'intel d'une zone ennemie, 20 % de chances d'un message révélant la cible/phase de l'opération en cours du Director ennemi ou sa priorité défensive, sinon l'une des 7 lignes « debrief failed » (`zc2:42313-42363`).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- Templates in the `.miz`: `Downed Pilot` (blue), `RedDownedPilot` (its presence switches enemy-pilot CSAR on: `zc2:102274`), `CSAR_RED_INF_1`, `CSAR_RED_INF_2` hostile infantry (`zc2:97724`).
-- Config (`cfg:2198-2257`): `AllowedCsar` (type → seats; 0 hides the menu; e.g. UH-1H 11, Mi-8MT 24, CH-47 32, AH-64D 2), `CsarPilotSpawnWithoutCreditsChance = 50`, `Max_CSAR_At_Once = 10`, `Max_CSAR_AT_Mission_Restart = 10`, `PilotWeight = 80`, `CsarHoverDistance = 20`, `CsarGuidanceDistance = 70`, `CsarHoverHeight = 60`, `CsarHoverSeconds = 10`, `CsarHostileInfantryChance = 25`.
-- Hard-coded: approach 3 000 m, extract 650 m, load 20 m (`zc2:97764-97766`); home run 3 NM / arrival 120 m / 3.6 m/s unless `CsarHomeDistanceNM`, `CsarHomeArrivalDistance`, `CsarHomeRunSpeed` are defined (`zc2:97719-97721`).
-- Reward `enemyPilotCapture = 200` in the rewards table (`cfg:1931`).
-- Hostile infantry are skipped on the Normandy map (`zc2:101977`).
+- Templates dans le `.miz` : `Downed Pilot` (bleu), `RedDownedPilot` (sa présence active le CSAR des pilotes ennemis : `zc2:102274`), `CSAR_RED_INF_1`, `CSAR_RED_INF_2` infanterie hostile (`zc2:97724`).
+- Config (`cfg:2198-2257`) : `AllowedCsar` (type → sièges ; 0 masque le menu ; par ex. UH-1H 11, Mi-8MT 24, CH-47 32, AH-64D 2), `CsarPilotSpawnWithoutCreditsChance = 50`, `Max_CSAR_At_Once = 10`, `Max_CSAR_AT_Mission_Restart = 10`, `PilotWeight = 80`, `CsarHoverDistance = 20`, `CsarGuidanceDistance = 70`, `CsarHoverHeight = 60`, `CsarHoverSeconds = 10`, `CsarHostileInfantryChance = 25`.
+- Codé en dur : approche 3 000 m, extraction 650 m, chargement 20 m (`zc2:97764-97766`) ; retour à pied 3 NM / arrivée 120 m / 3,6 m/s sauf si `CsarHomeDistanceNM`, `CsarHomeArrivalDistance`, `CsarHomeRunSpeed` sont définis (`zc2:97719-97721`).
+- Récompense `enemyPilotCapture = 200` dans la table des récompenses (`cfg:1931`).
+- L'infanterie hostile est ignorée sur la carte Normandie (`zc2:101977`).
 
-### Mechanism
+### Mécanisme
 
-- Events (one `world.addEventHandler` in BattleCommander): `S_EVENT_EJECTION` → `_handleRewardEjection` records who ejected and the credits lost, keyed by aircraft id (`ejectedPilotOwnersByAircraft`) (`zc2:43081-43086`, `zc2:42133`); `S_EVENT_LANDING_AFTER_EJECTION` → `_handleLandingAfterEjection(event, pilotUnit, aircraftID = event.place.id_, …)` (`zc2:42980-42991`).
-- On landing: water → the DCS pilot object is destroyed and nothing happens; AI pilot without owner data → spawned only with `CsarPilotSpawnWithoutCreditsChance`; one survivor per AI aircraft; otherwise a `Downed Pilot` group is spawned 10 m from the wreck/landing point (8 candidate headings, avoiding water) and set invisible to AI if hostiles were spawned (`zc2:101851-101888`, `zc2:101960-101975`, `zc2:102113-102126`, `zc2:102139-102183`).
-- The pilot record (`player`, `coalition`, `lostCredits`, `timestamp`, hostile group names, ambush flag) is bound to the spawned unit's object id in `csarPilotDataByObject` / `landedPilotOwners`; the unit goes into `self.ejectedPilots` (`zc2:102186-102229`, `zc2:100244-100290`).
-- Main loop: `SCHEDULER:New(nil, self.update, {self}, 10, 10)` — every 10 s (`zc2:102276`); it prunes dead survivors (KIA message), refreshes beacons (re-emitted only if the point changed, checked every 25 s), then for each survivor × each eligible player aircraft computes distance and applies the thresholds above (`zc2:100237-100300`, `zc2:100757-101023`).
-- Adaptive polling: per survivor a `csarNextTick` (10 s beyond 3 km, 5 s inside, 3 s inside 650 m, 1 s when loading/hovering) and, when a helicopter is near, a dedicated fast `timer.scheduleFunction` loop every 3 s; the hover countdown has its own 2 s timer per (pilot, group) (`zc2:100997-101015`, `zc2:100912-100918`, `zc2:100410-100432`).
-- Messages are de-duplicated per (pilot, group) and clustered: a second survivor within 92 m and 20 s does not repeat the message (`zc2:100625-100638`).
-- Carrying: `carriedPilots[groupId]` count and `carriedPilotData[groupId]` manifest; if the rescuing aircraft is lost its manifest is cleared (`zc2:43062-43068`).
-- Re-ejection of carried pilots: when a rescuer ejects, `_handleRewardEjection` clones his manifest (`_cloneCarriedPilotDataForEjection`: a copy of each carried pilot record, without its hostile-group and grace fields) and attaches it as `carriedRescuedPilots` to the first eligible ejected crew member's record; the aircraft's manifest is then cleared (`zc2:98638-98666`, `zc2:42137-42153`, `zc2:41771-41809`).
-- When that crew member's parachute lands (`_handleLandingAfterEjection`), every carried pilot is re-spawned as his own `Downed Pilot` group on a small ring (radius 3–5 m, evenly spread headings) around the rescuer's survivor, bound to his original record (so his name is still on the marker; `lostCredits` is already 0 if the rescue reward was paid), put back in the CSAR queues and, if a friendly zone is near, sent running home (`zc2:102231-102265`).
-- This also happens when the rescuer himself produces no survivor (lands in a friendly zone, or the "no credits" dice says no): `skipMainPilot` keeps the function going only to spawn the passengers (`zc2:101953-101957`, `zc2:101969-101973`).
-- A carried enemy pilot is re-spawned only where enemy-pilot CSAR is possible (not near his own side's zone) (`zc2:102246-102248`).
-- Limit: the oldest survivors are removed beyond `Max_CSAR_At_Once` (`zc2:99960`); survivors are persisted and restored at restart (`zc2:100094`, `zc2:44890`).
-- Smoke/flare at pilot: blue smoke on the nearest survivor, flare bursts via `_signalPilotFlareBurst` (`zc2:98830-98958`).
+- Événements (un seul `world.addEventHandler` dans BattleCommander) : `S_EVENT_EJECTION` → `_handleRewardEjection` enregistre qui s'est éjecté et les crédits perdus, indexés par id d'appareil (`ejectedPilotOwnersByAircraft`) (`zc2:43081-43086`, `zc2:42133`) ; `S_EVENT_LANDING_AFTER_EJECTION` → `_handleLandingAfterEjection(event, pilotUnit, aircraftID = event.place.id_, …)` (`zc2:42980-42991`).
+- À l'atterrissage : eau → l'objet pilote DCS est détruit et rien ne se passe ; pilote IA sans données de propriétaire → généré seulement avec `CsarPilotSpawnWithoutCreditsChance` ; un survivant par appareil IA ; sinon un groupe `Downed Pilot` est généré à 10 m de l'épave ou du point d'atterrissage (8 caps candidats, en évitant l'eau) et rendu invisible à l'IA si des hostiles ont été générés (`zc2:101851-101888`, `zc2:101960-101975`, `zc2:102113-102126`, `zc2:102139-102183`).
+- La fiche du pilote (`player`, `coalition`, `lostCredits`, `timestamp`, noms des groupes hostiles, drapeau d'embuscade) est liée à l'id d'objet de l'unité générée dans `csarPilotDataByObject` / `landedPilotOwners` ; l'unité entre dans `self.ejectedPilots` (`zc2:102186-102229`, `zc2:100244-100290`).
+- Boucle principale : `SCHEDULER:New(nil, self.update, {self}, 10, 10)` — toutes les 10 s (`zc2:102276`) ; elle élague les survivants morts (message KIA), rafraîchit les balises (réémises seulement si le point a changé, contrôle toutes les 25 s), puis pour chaque survivant × chaque appareil de joueur éligible calcule la distance et applique les seuils ci-dessus (`zc2:100237-100300`, `zc2:100757-101023`).
+- Scrutation adaptative : par survivant un `csarNextTick` (10 s au-delà de 3 km, 5 s en deçà, 3 s à moins de 650 m, 1 s pendant le chargement ou le hover) et, quand un hélicoptère est proche, une boucle rapide dédiée `timer.scheduleFunction` toutes les 3 s ; le compte à rebours du hover a son propre timer de 2 s par (pilote, groupe) (`zc2:100997-101015`, `zc2:100912-100918`, `zc2:100410-100432`).
+- Les messages sont dédupliqués par (pilote, groupe) et regroupés : un second survivant à moins de 92 m et 20 s ne répète pas le message (`zc2:100625-100638`).
+- Transport : compteur `carriedPilots[groupId]` et manifeste `carriedPilotData[groupId]` ; si l'appareil sauveteur est perdu, son manifeste est effacé (`zc2:43062-43068`).
+- Rééjection des pilotes transportés : quand un sauveteur s'éjecte, `_handleRewardEjection` clone son manifeste (`_cloneCarriedPilotDataForEjection` : une copie de chaque fiche de pilote transporté, sans ses champs de groupe hostile et de grâce) et l'attache comme `carriedRescuedPilots` à la fiche du premier membre d'équipage éjecté éligible ; le manifeste de l'appareil est ensuite effacé (`zc2:98638-98666`, `zc2:42137-42153`, `zc2:41771-41809`).
+- Quand le parachute de ce membre d'équipage se pose (`_handleLandingAfterEjection`), chaque pilote transporté est regénéré comme son propre groupe `Downed Pilot` sur un petit anneau (rayon 3–5 m, caps régulièrement répartis) autour du survivant du sauveteur, lié à sa fiche d'origine (son nom figure donc toujours sur le marqueur ; `lostCredits` vaut déjà 0 si la récompense de sauvetage a été versée), remis dans les files CSAR et, si une zone amie est proche, envoyé en courant vers elle (`zc2:102231-102265`).
+- Cela se produit aussi quand le sauveteur lui-même ne produit aucun survivant (il se pose dans une zone amie, ou le dé « sans crédits » dit non) : `skipMainPilot` fait continuer la fonction uniquement pour générer les passagers (`zc2:101953-101957`, `zc2:101969-101973`).
+- Un pilote ennemi transporté n'est regénéré que là où le CSAR de pilote ennemi est possible (pas près d'une zone de son propre camp) (`zc2:102246-102248`).
+- Limite : les survivants les plus anciens sont retirés au-delà de `Max_CSAR_At_Once` (`zc2:99960`) ; les survivants sont persistés et restaurés au redémarrage (`zc2:100094`, `zc2:44890`).
+- Fumée/fusée sur le pilote : fumée bleue sur le survivant le plus proche, salves de fusées via `_signalPilotFlareBurst` (`zc2:98830-98958`).
 
-### Reproduction notes
+### Notes de reproduction
 
-- The identification of "which player ejected" relies on `event.place.id_` of `S_EVENT_LANDING_AFTER_EJECTION` being the aircraft object id recorded at `S_EVENT_EJECTION`.
-- The DCS-native ejected pilot object is replaced by a controllable infantry group (so it can be routed and survive as a group); the native object is destroyed.
-- Beacons use `trigger.action.radioTransmission(file, point, AM, loop, freq, power, name)` and must be stopped by name (`stopRadioTransmission`) when the survivor moves or is rescued.
-- Cost model: O(survivors × eligible player aircraft) every 10 s, bounded by `Max_CSAR_At_Once`, with per-survivor back-off.
-- The survivor "running home" and "running to the helicopter" need ground routing off-road and an arrival poll (30 s for home).
+- L'identification de « quel joueur s'est éjecté » repose sur le fait que `event.place.id_` de `S_EVENT_LANDING_AFTER_EJECTION` est l'id d'objet de l'appareil enregistré à `S_EVENT_EJECTION`.
+- L'objet pilote éjecté natif de DCS est remplacé par un groupe d'infanterie contrôlable (pour pouvoir le router et le faire survivre comme groupe) ; l'objet natif est détruit.
+- Les balises utilisent `trigger.action.radioTransmission(file, point, AM, loop, freq, power, name)` et doivent être arrêtées par leur nom (`stopRadioTransmission`) quand le survivant bouge ou est sauvé.
+- Modèle de coût : O(survivants × appareils de joueur éligibles) toutes les 10 s, borné par `Max_CSAR_At_Once`, avec un back-off par survivant.
+- Le survivant qui « rentre en courant » et celui qui « court vers l'hélicoptère » demandent un routage au sol hors route et une scrutation de l'arrivée (30 s pour le retour).
 
-## 5. Zone intel ("Intel on enemy zone")
+## 5. Intel de zone (« Intel on enemy zone »)
 
-**Not Moose `INTEL`.** No `INTEL:New` exists in any Foothold file; the feature is a set of free functions `_zoneIntel*` (`zc2:5567-7014`) reading the zone's own list of spawned groups.
+**Ce n'est pas le `INTEL` de Moose.** Aucun `INTEL:New` n'existe dans aucun fichier Foothold ; la fonctionnalité est un ensemble de fonctions libres `_zoneIntel*` (`zc2:5567-7014`) qui lisent la liste propre de la zone des groupes générés.
 
-### Player view
+### Ce que voit le joueur
 
-- Entry point: shop item `intel`, then pick an enemy, non-suspended zone; message "gathering intel" (`setup:4762-4794`).
-- 10 s later a coalition message with sound `Intel.ogg`: "Intel on <zone>:" then lines "Identified SAMs: …", "Armor: …", "Artillery: …", "Ground forces: …" (with MANPAD flag), "AAA: …", "Structures: …" (including "Warehouse building"), "Additional contacts: …" (`zc2:6387-6417`, `loc:1232-1273`).
-- Map: one read-only coalition marker per alive enemy group/static of the zone, placed on its first alive unit and labelled with the group name, plus a marker on the zone warehouse (`zc2:6749-6821`).
-- Every 20 s the markers follow the groups and an "Intel update on <zone>:" message lists differences: "X destroyed", "X detected", "TR destroyed; site degraded", "Enemy repaired X STR", "MANPAD threat neutralized…" (`zc2:6897-6907`, `loc:1233-1256`).
-- While intel is active on a zone, other subsystems emit extra "Intel:" lines for it: a roaming group "is on the move", enemy aircraft "starting up at / just took off from / inbound and about to land at", "enemy convoy moving out from / about to arrive at", "The enemy is launching a mass attack on" (`loc:1257-1264`, `zc2:6691`).
-- Duration: 60 min for a purchase, 30 min when granted by a captured enemy pilot; buying again while active keeps the later of the two expiries (it does not add) (`zc2:6962-6991`, `zc2:42411`); on expiry "Intel on <zone> has expired." (`zc2:6947-6950`).
-- F10 group menu "Intel" lists the zones with active intel and reprints the current report (`zc2:103337-103393`); the map-marker command `intelstatus` on a zone prints its status with intel detail (`zc2:29068-29079`).
-- No "extend coverage" wording was found in the localisation file under that name; the only extension mechanism read is the max-of-expiries above.
+- Point d'entrée : article de boutique `intel`, puis choix d'une zone ennemie non suspendue ; message "gathering intel" (`setup:4762-4794`).
+- 10 s plus tard, un message à la coalition avec le son `Intel.ogg` : "Intel on <zone>:" puis les lignes "Identified SAMs: …", "Armor: …", "Artillery: …", "Ground forces: …" (avec l'indicateur MANPAD), "AAA: …", "Structures: …" (y compris "Warehouse building"), "Additional contacts: …" (`zc2:6387-6417`, `loc:1232-1273`).
+- Carte : un marqueur de coalition en lecture seule par groupe/static ennemi vivant de la zone, posé sur sa première unité vivante et libellé avec le nom du groupe, plus un marqueur sur l'entrepôt de la zone (`zc2:6749-6821`).
+- Toutes les 20 s les marqueurs suivent les groupes et un message "Intel update on <zone>:" liste les différences : "X destroyed", "X detected", "TR destroyed; site degraded", "Enemy repaired X STR", "MANPAD threat neutralized…" (`zc2:6897-6907`, `loc:1233-1256`).
+- Tant que l'intel est actif sur une zone, d'autres sous-systèmes émettent des lignes "Intel:" supplémentaires à son sujet : un groupe itinérant "is on the move", des appareils ennemis "starting up at / just took off from / inbound and about to land at", "enemy convoy moving out from / about to arrive at", "The enemy is launching a mass attack on" (`loc:1257-1264`, `zc2:6691`).
+- Durée : 60 min pour un achat, 30 min quand il est accordé par un pilote ennemi capturé ; racheter pendant que l'intel est actif garde la plus tardive des deux expirations (elles ne s'additionnent pas) (`zc2:6962-6991`, `zc2:42411`) ; à l'expiration "Intel on <zone> has expired." (`zc2:6947-6950`).
+- Le menu F10 de groupe « Intel » liste les zones avec un intel actif et réimprime le rapport courant (`zc2:103337-103393`) ; la commande de marqueur de carte `intelstatus` sur une zone imprime son statut avec le détail de l'intel (`zc2:29068-29079`).
+- Aucune formulation « extend coverage » n'a été trouvée sous ce nom dans le fichier de localisation ; le seul mécanisme d'extension lu est le maximum des expirations ci-dessus.
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- Globals `zoneIntelRefreshSec` (default 20, floor 5) and `zoneIntelStartupMessageDelaySec` (default 10) (`zc2:5567-5569`).
-- Classification of contacts mixes unit facts and **group-name patterns**, so it depends on the template naming convention of the setup file (table below, `zc2:5783-5825`, `zc2:6240-6373`).
+- Globales `zoneIntelRefreshSec` (20 par défaut, plancher 5) et `zoneIntelStartupMessageDelaySec` (10 par défaut) (`zc2:5567-5569`).
+- La classification des contacts mêle des faits sur les unités et des **motifs de noms de groupes**, donc elle dépend de la convention de nommage des templates du fichier de setup (tableau ci-dessous, `zc2:5783-5825`, `zc2:6240-6373`).
 
-| Category in the report | How a spawned group / static of `zone.built` falls into it | Code |
+| Catégorie dans le rapport | Comment un groupe / static généré de `zone.built` y est classé | Code |
 |---|---|---|
-| Long-range SAM site (`SA-2`, `SA-3`, `SA-5`, `SA-6`, `SA-10`, `SA-11`, `HAWK`, `NASAMS`, `PATRIOT`) | a living unit whose "SAM family" (from the upgrade template's unit records, else `BattleCommander.ClassifySeadThreatFamily(groupName, typeName)`) is one of these; for a static, the name contains `red sam sa-10`, `-11`, `-6`, `-5`, `-3`, `-2` | `zc2:5700`, `zc2:6263-6292`, `zc2:5783-5791`, `zc2:6341-6356` |
-| "degraded" site | the site is alive but no living unit matches its tracking-radar type pattern (`CustomZone.samTrackerPatterns`: SA-2 `snr_75v`, SA-3 `snr s-125 tr`, SA-5 `rpc_5n62v`, SA-6 `kub 1s91 str`, SA-10 `40b6m tr`, SA-11 `9s18m1`, HAWK `hawk tr`, NASAMS `nasams_radar`, PATRIOT `patriot str`) | `zc2:5702-5712`, `zc2:6270-6273`, `zc2:6375-6382` |
-| SHORAD (Pantsir S1, SA-15, Tor M2, SA-19, SA-13, SA-9, SA-8, Avenger, Roland) | a living unit of a SAM family that has no tracker pattern; for a static, the name contains `red sam shorad pantsir`, `sa-15`, `tor m2`, `sa-19`, `sa-13`, `sa-9`, `sa-8` | `zc2:5701`, `zc2:6293-6296`, `zc2:5793-5802` |
-| Armor | group name contains `armour`, `armor`, `red mech group` or `red special` | `zc2:5804-5809`, `zc2:6301-6303` |
-| AAA | group name contains `aaa`; subtype from the living unit types: Flak (`ks-19`, `s-60`, or a `son_9` radar ever seen), Heavy AAA (`zsu_57_2`), Shilka, ZU-23, Other; a Flak group whose SON-9 is dead is "Flak radar destroyed" | `zc2:5811-5813`, `zc2:5976-6029`, `zc2:6304-6322` |
-| Artillery | group name contains `artillery` or `arty` | `zc2:5815-5818`, `zc2:6323-6325` |
-| Ground forces | group name starts with `enemy task forces` or `enemy ground forces`, or any other group that has a living MANPAD (type name, or its display name through `renameType`, contains `manpad`); the MANPAD flag is kept per group | `zc2:5820-5823`, `zc2:5959-5974`, `zc2:6326-6336` |
-| Structures | a living static that is neither a SAM site nor SHORAD; its display name is the tracked static's base name, else the nearest authored static of the zone (`zone.newStatics`, same type within 25 m, any type within 15 m), with trailing numbers and the word "Fixed" stripped | `zc2:6338-6365`, `zc2:5838-5891`, `zc2:5766-5776`, `zc2:5825-5836` |
-| Warehouse building | `zone.warehouseFacility.state` (`operational` / destroyed) | `zc2:6236-6238` |
-| Additional contacts | anything alive that matched nothing above, counted by base name | `zc2:6369-6372` |
+| Site SAM à longue portée (`SA-2`, `SA-3`, `SA-5`, `SA-6`, `SA-10`, `SA-11`, `HAWK`, `NASAMS`, `PATRIOT`) | une unité vivante dont la « famille SAM » (issue des fiches d'unités du template d'upgrade, sinon `BattleCommander.ClassifySeadThreatFamily(groupName, typeName)`) est l'une de celles-ci ; pour un static, le nom contient `red sam sa-10`, `-11`, `-6`, `-5`, `-3`, `-2` | `zc2:5700`, `zc2:6263-6292`, `zc2:5783-5791`, `zc2:6341-6356` |
+| Site « degraded » | le site est vivant mais aucune unité vivante ne correspond au motif de son type de radar de poursuite (`CustomZone.samTrackerPatterns` : SA-2 `snr_75v`, SA-3 `snr s-125 tr`, SA-5 `rpc_5n62v`, SA-6 `kub 1s91 str`, SA-10 `40b6m tr`, SA-11 `9s18m1`, HAWK `hawk tr`, NASAMS `nasams_radar`, PATRIOT `patriot str`) | `zc2:5702-5712`, `zc2:6270-6273`, `zc2:6375-6382` |
+| SHORAD (Pantsir S1, SA-15, Tor M2, SA-19, SA-13, SA-9, SA-8, Avenger, Roland) | une unité vivante d'une famille SAM sans motif de poursuite ; pour un static, le nom contient `red sam shorad pantsir`, `sa-15`, `tor m2`, `sa-19`, `sa-13`, `sa-9`, `sa-8` | `zc2:5701`, `zc2:6293-6296`, `zc2:5793-5802` |
+| Blindés (Armor) | le nom du groupe contient `armour`, `armor`, `red mech group` ou `red special` | `zc2:5804-5809`, `zc2:6301-6303` |
+| AAA | le nom du groupe contient `aaa` ; sous-type d'après les types d'unités vivantes : Flak (`ks-19`, `s-60`, ou un radar `son_9` déjà vu), Heavy AAA (`zsu_57_2`), Shilka, ZU-23, Other ; un groupe Flak dont le SON-9 est mort est « Flak radar destroyed » | `zc2:5811-5813`, `zc2:5976-6029`, `zc2:6304-6322` |
+| Artillerie (Artillery) | le nom du groupe contient `artillery` ou `arty` | `zc2:5815-5818`, `zc2:6323-6325` |
+| Forces au sol (Ground forces) | le nom du groupe commence par `enemy task forces` ou `enemy ground forces`, ou tout autre groupe ayant un MANPAD vivant (le nom du type, ou son nom affiché via `renameType`, contient `manpad`) ; l'indicateur MANPAD est conservé par groupe | `zc2:5820-5823`, `zc2:5959-5974`, `zc2:6326-6336` |
+| Structures | un static vivant qui n'est ni un site SAM ni du SHORAD ; son nom affiché est le nom de base du static suivi, sinon celui du static créé à la main le plus proche dans la zone (`zone.newStatics`, même type à moins de 25 m, n'importe quel type à moins de 15 m), sans les nombres finaux ni le mot « Fixed » | `zc2:6338-6365`, `zc2:5838-5891`, `zc2:5766-5776`, `zc2:5825-5836` |
+| Bâtiment d'entrepôt (Warehouse building) | `zone.warehouseFacility.state` (`operational` / détruit) | `zc2:6236-6238` |
+| Contacts additionnels (Additional contacts) | tout ce qui est vivant et ne correspond à rien ci-dessus, compté par nom de base | `zc2:6369-6372` |
 
-- A group named `blue sam aaa…` with no living AAA unit is silently ignored (`zc2:6299-6300`).
+- Un groupe nommé `blue sam aaa…` sans unité AAA vivante est ignoré silencieusement (`zc2:6299-6300`).
 
-### Mechanism
+### Mécanisme
 
-- State per side and zone: `zoneIntels[side][zone]` (last snapshot, marker table, next refresh time), `intelExpireTimes[side][zone]`, `intelActiveZones[side][zone]` (`zc2:6954-7013`).
-- No timer of its own: `_zoneIntelUpdateActiveZones(now)` is called at the end of every BattleCommander zone-update cycle (`zc2:43255-43258`) and self-throttles with `state.nextIntelAt` (`zc2:6882-6909`).
-- Intel stops when the zone becomes neutral or friendly, or at expiry (`zc2:6873-6877`).
-- Markers: Moose `MARKER:New(coord, text):ReadOnly():ToCoalition(side)`, moved with `UpdateCoordinate` when the point changed by more than 1 m (`MARKER` wraps `trigger.action.markToCoalition` / remove + re-add) (`zc2:6719-6726`, `zc2:6796-6803`).
-- Starting intel cancels a pending recon mission on the same zone (`zc2:6999-7003`); a JTAC drone over the zone sets `jtacIntelActive[zone]` separately (`zc2:7989`).
-- In PvE with the "SAM MFD reveal" option, blue intel on a red zone also reveals SAM sites (`revealSamSites`, `zc2:6885`).
+- État par camp et par zone : `zoneIntels[side][zone]` (dernier instantané, table de marqueurs, prochaine heure de rafraîchissement), `intelExpireTimes[side][zone]`, `intelActiveZones[side][zone]` (`zc2:6954-7013`).
+- Pas de timer propre : `_zoneIntelUpdateActiveZones(now)` est appelée à la fin de chaque cycle de mise à jour des zones de BattleCommander (`zc2:43255-43258`) et se limite elle-même avec `state.nextIntelAt` (`zc2:6882-6909`).
+- L'intel s'arrête quand la zone devient neutre ou amie, ou à l'expiration (`zc2:6873-6877`).
+- Marqueurs : `MARKER:New(coord, text):ReadOnly():ToCoalition(side)` de Moose, déplacés avec `UpdateCoordinate` quand le point a changé de plus de 1 m (`MARKER` enveloppe `trigger.action.markToCoalition` / suppression + recréation) (`zc2:6719-6726`, `zc2:6796-6803`).
+- Démarrer l'intel annule une mission de reconnaissance en attente sur la même zone (`zc2:6999-7003`) ; un drone JTAC au-dessus de la zone pose `jtacIntelActive[zone]` séparément (`zc2:7989`).
+- En PvE avec l'option « SAM MFD reveal », l'intel bleu sur une zone rouge révèle aussi les sites SAM (`revealSamSites`, `zc2:6885`).
 
-### Reproduction notes
+### Notes de reproduction
 
-- The snapshot/diff message builder (≈450 lines, `zc2:6203-6665`) is the bulk of the work.
-- Snapshot (`_zoneIntelBuildSnapshot(zoneName, state, groupSamples, revealSamSites)`): `{longSites = {[site] = {alive, degraded}}, shorad = {[name] = count}, counts = {armor, artillery, ground, groundWithManpad, aaaTotal, aaaShilka, aaaHeavy, aaaFlak, aaaZu23, aaaOther, aaaFlakRadarDestroyed}, aaaFlakRadarByGroup, structures = {[name] = count}, additionalContacts = {[name] = count}, warehouse}` (`zc2:6204-6238`).
-- It walks an index of `zone.built` kept in the intel state (`state.builtIndex[name] = {builtIndex, cleanName, lowerName}`, re-synchronised at each pass), reads each group once per refresh through a shared `groupSamples` cache (`Group.getByName(name):getUnits()`, unit alive = `isExist()` and `getLife() >= 1`), and resolves the upgrade template of the group to get per-type unit records (attributes, SAM family, "critical SAM radar") (`zc2:5901-5957`, `zc2:6246-6277`).
-- With `revealSamSites`, each group holding a living SAM family is recorded for the "SAM MFD reveal" (`zone:_recordSamMfdReveal`) (`zc2:6282-6284`).
-- Startup message (`_zoneIntelBuildStartupMessage`): the categories in a fixed order, SAM sites listed by name with "(degraded)" where applicable (`zc2:6387-6417`, `zc2:6061-6093`).
-- Diff (`_zoneIntelBuildUpdateMessage(zone, old, new)`), in this order: warehouse state change; per long-range site destroyed / detected, then tracker lost ("TR destroyed; site degraded", "STR destroyed" for SA-6, "SnowDrift" for SA-11, "SR" for NASAMS) or repaired; SHORAD type gone / detected; count deltas for armor, Flak, heavy AAA, ZU-23, other AAA, artillery, ground forces — **losses only**, increases are not announced for these; Flak radars destroyed / repaired; MANPAD threat neutralised / identified; additional contacts and structures added or removed by name (`zc2:6446-6633`).
-- When the update contains only losses, a "remaining" recap is appended: remaining SAMs, remaining AAA line, remaining structures, remaining additional contacts (`zc2:6639-6663`).
-- No update is sent when nothing changed (`zc2:6635-6637`).
-- It is "omniscient": no detection model, it reads the zone's own spawn list.
-- Markers are per group, refreshed every 20 s only for zones with active intel.
+- Le constructeur de messages instantané/différentiel (≈450 lignes, `zc2:6203-6665`) est le gros du travail.
+- Instantané (`_zoneIntelBuildSnapshot(zoneName, state, groupSamples, revealSamSites)`) : `{longSites = {[site] = {alive, degraded}}, shorad = {[name] = count}, counts = {armor, artillery, ground, groundWithManpad, aaaTotal, aaaShilka, aaaHeavy, aaaFlak, aaaZu23, aaaOther, aaaFlakRadarDestroyed}, aaaFlakRadarByGroup, structures = {[name] = count}, additionalContacts = {[name] = count}, warehouse}` (`zc2:6204-6238`).
+- Il parcourt un index de `zone.built` conservé dans l'état d'intel (`state.builtIndex[name] = {builtIndex, cleanName, lowerName}`, resynchronisé à chaque passage), lit chaque groupe une fois par rafraîchissement via un cache partagé `groupSamples` (`Group.getByName(name):getUnits()`, unité vivante = `isExist()` et `getLife() >= 1`), et résout le template d'upgrade du groupe pour obtenir les fiches d'unités par type (attributs, famille SAM, « radar SAM critique ») (`zc2:5901-5957`, `zc2:6246-6277`).
+- Avec `revealSamSites`, chaque groupe portant une famille SAM vivante est enregistré pour le « SAM MFD reveal » (`zone:_recordSamMfdReveal`) (`zc2:6282-6284`).
+- Message de démarrage (`_zoneIntelBuildStartupMessage`) : les catégories dans un ordre fixe, les sites SAM listés par nom avec "(degraded)" le cas échéant (`zc2:6387-6417`, `zc2:6061-6093`).
+- Différentiel (`_zoneIntelBuildUpdateMessage(zone, old, new)`), dans cet ordre : changement d'état de l'entrepôt ; par site longue portée détruit / détecté, puis radar de poursuite perdu ("TR destroyed; site degraded", "STR destroyed" pour le SA-6, "SnowDrift" pour le SA-11, "SR" pour le NASAMS) ou réparé ; type de SHORAD disparu / détecté ; variations de comptes pour les blindés, la Flak, l'AAA lourde, le ZU-23, les autres AAA, l'artillerie, les forces au sol — **les pertes seulement**, les augmentations ne sont pas annoncées pour ces catégories ; radars de Flak détruits / réparés ; menace MANPAD neutralisée / identifiée ; contacts additionnels et structures ajoutés ou retirés par nom (`zc2:6446-6633`).
+- Quand la mise à jour ne contient que des pertes, un récapitulatif « remaining » est ajouté : SAM restants, ligne AAA restante, structures restantes, contacts additionnels restants (`zc2:6639-6663`).
+- Aucune mise à jour n'est envoyée quand rien n'a changé (`zc2:6635-6637`).
+- C'est « omniscient » : pas de modèle de détection, il lit la liste de spawn propre de la zone.
+- Les marqueurs sont par groupe, rafraîchis toutes les 20 s seulement pour les zones à intel actif.
 
-## 6. Tankers on demand (Arco / Texaco) and their control
+## 6. Ravitailleurs à la demande (Arco / Texaco) et leur contrôle
 
-### Player view
+### Ce que voit le joueur
 
-- Shop items `dynamicarco` ("Tanker (Drogue)") and `dynamictexaco` ("Tanker (Boom)"): the purchase "unlocks" a coalition menu to choose the spawn zone, or directly takes zone + pattern from the group shop menu: "Orbit" or "Hot 360/045/…/315" × "10/20/30/40/50 NM Leg" (`setup:3099-3189`, `setup:3191`).
-- On station message with TACAN (`101Y`/`102Y`), frequency (260 / 266 MHz AM) and preset hint (BTN 14 / 20) (`zc2:107766-107782`, `zc2:13651-13664`).
-- Approaching within 2 000 ft horizontally / 500 ft vertically of the tanker shows "Approaching Arco, <radio info>" to that client (`zc2:105306-105312`, `zc2:105571-105597`).
-- Group F10 "Tankers Control" (rank-gated): "<Tanker>: Move to Zone" (friendly zone → Orbit or heading → leg), "<Tanker>: Altitude" (list, current marked), "<Tanker>: Speed" (list in kt), "Tanker Help" (radio info + marker help) (`zc2:16795-17078`, `loc:1887-1926`).
-- "Move by Position" menus are commented out, replaced by marker commands (`zc2:16912-16913`).
-- Map markers `arcohere1` then `arcohere2` (or `texacohere1` / `texacohere2`): point 1 is drawn as a blue circle (250 m) with a text label "ARCO 1"; point 2 computes heading and leg from point 1 and sends the tanker; message "Arco moving, distance N NM. New racetrack: N NM leg, heading N°" (`zc2:28148-28352`, `loc:1952-1956`).
-- A reposition is refused with "Players currently near the tanker. Try again later." while a player is close to it (`zc2:105340-105366`).
-- The racetrack is drawn on the F10 map as a grey "stadium" shape with a text label (`DrawDynamicTankerRacetrack`, `zc2:105861-105928`):
-  - the shape runs from the station point along the racetrack heading for `leg + 4 NM` (`DYNAMIC_TANKER_RACETRACK_LENGTH_BUFFER_NM`), is 6 NM wide (`…_WIDTH_NM`), and is shifted 2 NM to the side of the axis (`…_TURN_WIDTH_NM / 2`) so that it covers the turns; each end is a half-circle of 30 segments (`zc2:105806-105809`, `zc2:105871-105904`);
-  - it is drawn twice with `trigger.action.markupToAll(7, coalition, id, points…, color, fill, lineType, true, text)` (shape id 7 = freeform polygon): once as a 32 %-opaque grey fill with an invisible outline, once as an outline of line type 3 without fill; the call is built as a Lua string and run through `UTILS.DoString` because the number of points is variable (`zc2:105839-105858`, `zc2:105906-105917`);
-  - the label "ARCO", "TEXACO", or "ARCO / TEXACO" when both tankers fly the same racetrack (same base point within 0.1 NM, heading within 1°, leg within 0.1 NM) is a `trigger.action.textToAll` of size 16 placed at 30 % of the length (`zc2:105920-105927`, `zc2:105955-105963`, `zc2:105985-105999`);
-  - visible to everybody in PvE (coalition −1), to the owning side only in PvP; nothing is drawn for a plain orbit (leg 0); all mark ids of a tanker are removed and redrawn at each reposition (`RefreshDynamicTankerRacetrackDrawings`) (`zc2:105842-105845`, `zc2:105869`, `zc2:105815-105822`, `zc2:105965-105999`).
+- Articles de boutique `dynamicarco` (« Tanker (Drogue) ») et `dynamictexaco` (« Tanker (Boom) ») : l'achat « débloque » un menu de coalition pour choisir la zone de spawn, ou prend directement zone + schéma dans le menu de boutique du groupe : "Orbit" ou "Hot 360/045/…/315" × "10/20/30/40/50 NM Leg" (`setup:3099-3189`, `setup:3191`).
+- Message de mise en station avec TACAN (`101Y`/`102Y`), fréquence (260 / 266 MHz AM) et indication de preset (BTN 14 / 20) (`zc2:107766-107782`, `zc2:13651-13664`).
+- S'approcher à moins de 2 000 ft à l'horizontale / 500 ft à la verticale du ravitailleur affiche "Approaching Arco, <radio info>" à ce client (`zc2:105306-105312`, `zc2:105571-105597`).
+- Menu F10 de groupe « Tankers Control » (réservé selon le rang) : "<Tanker>: Move to Zone" (zone amie → Orbit ou cap → branche), "<Tanker>: Altitude" (liste, courante marquée), "<Tanker>: Speed" (liste en kt), "Tanker Help" (infos radio + aide sur les marqueurs) (`zc2:16795-17078`, `loc:1887-1926`).
+- Les menus « Move by Position » sont commentés, remplacés par des commandes de marqueurs (`zc2:16912-16913`).
+- Marqueurs de carte `arcohere1` puis `arcohere2` (ou `texacohere1` / `texacohere2`) : le point 1 est dessiné comme un cercle bleu (250 m) avec une étiquette "ARCO 1" ; le point 2 calcule le cap et la branche à partir du point 1 et envoie le ravitailleur ; message "Arco moving, distance N NM. New racetrack: N NM leg, heading N°" (`zc2:28148-28352`, `loc:1952-1956`).
+- Un repositionnement est refusé avec "Players currently near the tanker. Try again later." tant qu'un joueur est proche du ravitailleur (`zc2:105340-105366`).
+- Le racetrack est dessiné sur la carte F10 comme une forme grise en « stade » avec une étiquette de texte (`DrawDynamicTankerRacetrack`, `zc2:105861-105928`) :
+  - la forme part du point de station le long du cap du racetrack sur `leg + 4 NM` (`DYNAMIC_TANKER_RACETRACK_LENGTH_BUFFER_NM`), fait 6 NM de large (`…_WIDTH_NM`), et est décalée de 2 NM sur le côté de l'axe (`…_TURN_WIDTH_NM / 2`) pour couvrir les virages ; chaque extrémité est un demi-cercle de 30 segments (`zc2:105806-105809`, `zc2:105871-105904`) ;
+  - elle est dessinée deux fois avec `trigger.action.markupToAll(7, coalition, id, points…, color, fill, lineType, true, text)` (id de forme 7 = polygone libre) : une fois en remplissage gris opaque à 32 % avec un contour invisible, une fois en contour de type de ligne 3 sans remplissage ; l'appel est construit comme une chaîne Lua et exécuté par `UTILS.DoString` parce que le nombre de points est variable (`zc2:105839-105858`, `zc2:105906-105917`) ;
+  - l'étiquette « ARCO », « TEXACO », ou « ARCO / TEXACO » quand les deux ravitailleurs volent sur le même racetrack (même point de base à 0,1 NM près, cap à 1° près, branche à 0,1 NM près) est un `trigger.action.textToAll` de taille 16 placé à 30 % de la longueur (`zc2:105920-105927`, `zc2:105955-105963`, `zc2:105985-105999`) ;
+  - visible de tous en PvE (coalition −1), du camp propriétaire seulement en PvP ; rien n'est dessiné pour une simple orbite (branche 0) ; tous les ids de marques d'un ravitailleur sont supprimés et redessinés à chaque repositionnement (`RefreshDynamicTankerRacetrackDrawings`) (`zc2:105842-105845`, `zc2:105869`, `zc2:105815-105822`, `zc2:105965-105999`).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- Templates `Arco` and `Texaco` in the `.miz` (spawned through `Respawn.SpawnAtPoint('Arco', …)`) (`zc2:107726-107728`).
-- Config: `TankerRadioSettings` (`Blue Arco` 260 MHz / TACAN 101, `Blue Texaco` 266 / 102, `Shell` 253 / 103, `Red Arco` 260 / 104, `Red Texaco` 266 / 105; TACAN always Y band) (`cfg:356-369`); `TexacoSpeed = 286`, `ArcoSpeed = 286` kt (`cfg:2306-2311`); prices 1 000 and required rank 3 (`cfg:1776-1777`, `cfg:1860-1861`).
-- Marker control requires a human-crewed, non-helicopter group of the owning side with rank ≥ the tanker's required rank (`zc2:28217-28232`).
+- Templates `Arco` et `Texaco` dans le `.miz` (générés par `Respawn.SpawnAtPoint('Arco', …)`) (`zc2:107726-107728`).
+- Config : `TankerRadioSettings` (`Blue Arco` 260 MHz / TACAN 101, `Blue Texaco` 266 / 102, `Shell` 253 / 103, `Red Arco` 260 / 104, `Red Texaco` 266 / 105 ; TACAN toujours en bande Y) (`cfg:356-369`) ; `TexacoSpeed = 286`, `ArcoSpeed = 286` kt (`cfg:2306-2311`) ; prix de 1 000 et rang requis 3 (`cfg:1776-1777`, `cfg:1860-1861`).
+- Le contrôle par marqueurs exige un groupe piloté par un humain, hors hélicoptère, du camp propriétaire, avec un rang ≥ au rang requis du ravitailleur (`zc2:28217-28232`).
 
-### Mechanism
+### Mécanisme
 
-- Spawn: Foothold's own `Respawn.SpawnAtPoint` (`zc2:1344`) builds the group from the template at the zone, 1 s later applies protection commands (`ApplyProtectionCommandsToGroupController`), activates the TACAN with `Controller:setCommand({id='ActivateBeacon', params={type=BEACON.Type.TACAN, system=BEACON.System.TACAN_TANKER_Y, AA=true, bearing=true, …}})`, and sets the racetrack (`zc2:107734-107765`, `zc2:107591-107611`).
-- Racetrack: `BuildOrbitTask(point, heading, legNm, TAS, altitude)` + `ApplyOrbitMissionToGroup(...)` — a raw mission/orbit task, IAS converted with `UTILS.IasToTas` (`zc2:106089-106110`).
-- The station (point, heading, leg, zone, speed, altitude) is saved and restored after a restart (`_saveTankerStation`, `schedulePersistentTankerRestore`, `zc2:106112`, `zc2:106153`).
-- Proximity message: a Moose zone attached to the tanker unit (`newUnitEnvelopeZone`, a `ZONE_UNIT`-like object) with `:Trigger(BlueClients)` where `BlueClients = SET_CLIENT:New():FilterCoalitions():FilterCategories("plane"):FilterActive():FilterStart()`; Moose polls set membership on a timer and fires `OnAfterEnteredZone` (`zc2:105305`, `zc2:105580-105595`).
-- Marker handler: single `world.addEventHandler` on event id 26 (`S_EVENT_MARK_CHANGE`); pending point 1 kept in `bc._pendingDynamicTankerRacetrackPoints[kind]` with its drawing ids (`trigger.action.circleToAll`, `textToAll`) (`zc2:28242-28285`).
+- Spawn : le `Respawn.SpawnAtPoint` propre à Foothold (`zc2:1344`) construit le groupe depuis le template à la zone, 1 s plus tard applique les commandes de protection (`ApplyProtectionCommandsToGroupController`), active le TACAN avec `Controller:setCommand({id='ActivateBeacon', params={type=BEACON.Type.TACAN, system=BEACON.System.TACAN_TANKER_Y, AA=true, bearing=true, …}})`, et règle le racetrack (`zc2:107734-107765`, `zc2:107591-107611`).
+- Racetrack : `BuildOrbitTask(point, heading, legNm, TAS, altitude)` + `ApplyOrbitMissionToGroup(...)` — une tâche brute mission/orbite, IAS convertie avec `UTILS.IasToTas` (`zc2:106089-106110`).
+- La station (point, cap, branche, zone, vitesse, altitude) est sauvegardée et restaurée après un redémarrage (`_saveTankerStation`, `schedulePersistentTankerRestore`, `zc2:106112`, `zc2:106153`).
+- Message de proximité : une zone Moose attachée à l'unité ravitailleur (`newUnitEnvelopeZone`, un objet de type `ZONE_UNIT`) avec `:Trigger(BlueClients)` où `BlueClients = SET_CLIENT:New():FilterCoalitions():FilterCategories("plane"):FilterActive():FilterStart()` ; Moose scrute l'appartenance au set sur un timer et déclenche `OnAfterEnteredZone` (`zc2:105305`, `zc2:105580-105595`).
+- Gestionnaire de marqueurs : un seul `world.addEventHandler` sur l'id d'événement 26 (`S_EVENT_MARK_CHANGE`) ; le point 1 en attente est conservé dans `bc._pendingDynamicTankerRacetrackPoints[kind]` avec ses ids de dessin (`trigger.action.circleToAll`, `textToAll`) (`zc2:28242-28285`).
 
-### Reproduction notes
+### Notes de reproduction
 
-- Only Moose-heavy part is the proximity zone on a `SET_CLIENT`; the rest is raw tasks.
-- "Hot NNN" means the racetrack axis heading from the zone; "Orbit" is leg 0.
-- A tanker lost in PvP is tracked (`_handlePvpSupportAircraftLoss`, `zc2:106043`).
+- La seule partie très Moose est la zone de proximité sur un `SET_CLIENT` ; le reste, ce sont des tâches brutes.
+- « Hot NNN » désigne le cap de l'axe du racetrack depuis la zone ; « Orbit » correspond à une branche de 0.
+- Un ravitailleur perdu en PvP est suivi (`_handlePvpSupportAircraftLoss`, `zc2:106043`).
 
-## 7. AWACS (automatic, front-following)
+## 7. AWACS (automatique, suit le front)
 
-### Player view
+### Ce que voit le joueur
 
-- One red AWACS and one or two blue AWACS are always airborne; players only use them through the DCS radio (AWACS menu) and datalink.
-- Frequencies are shown in the welcome/briefing text and configured (`cfg:343-353`).
-- PvP only: a lost AWACS stays lost until the shop item `replaceawacs` ("Replace one lost AWACS", 1 000 credits, rank 3) is bought; message "AWACS replaced" (`setup:3283`, `zc2:106029-106041`, `cfg:1779`, `cfg:1863`).
+- Un AWACS rouge et un ou deux AWACS bleus sont toujours en vol ; les joueurs ne s'en servent que par la radio DCS (menu AWACS) et la liaison de données.
+- Les fréquences sont affichées dans le texte d'accueil/briefing et configurées (`cfg:343-353`).
+- PvP seulement : un AWACS perdu reste perdu tant que l'article de boutique `replaceawacs` (« Replace one lost AWACS », 1 000 crédits, rang 3) n'est pas acheté ; message "AWACS replaced" (`setup:3283`, `zc2:106029-106041`, `cfg:1779`, `cfg:1863`).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- Templates `AWACS_RED`, `AWACS_BLUE` (or `AWACS_BLUE_VT` in the Vietnam era), `AWACS_BLUE_SECONDARY` (`AWACS_BLUE_VT_SECONDARY`), `AWACS_RED_SECONDARY_PVP` (`zc2:9331-9336`).
-- Setup: `AWACS_CFG = { [1] = {alt=30000, speed=350, hdg=270, leg=15, sep=150}, [2] = {…, sep=70} }` where `sep` is the wanted distance in NM from the nearest enemy zone; spawned 10 s after start by `spawnAwacs(1|2, nil, 10)` (`setup:6046-6060`).
-- Config `AWACSRadioFrequencies` (Blue 1 251, Blue 2 251.5, Red 1 252, Red 2 252.5 MHz AM) (`cfg:347-353`).
+- Templates `AWACS_RED`, `AWACS_BLUE` (ou `AWACS_BLUE_VT` à l'ère Vietnam), `AWACS_BLUE_SECONDARY` (`AWACS_BLUE_VT_SECONDARY`), `AWACS_RED_SECONDARY_PVP` (`zc2:9331-9336`).
+- Setup : `AWACS_CFG = { [1] = {alt=30000, speed=350, hdg=270, leg=15, sep=150}, [2] = {…, sep=70} }` où `sep` est la distance voulue en NM à la zone ennemie la plus proche ; généré 10 s après le démarrage par `spawnAwacs(1|2, nil, 10)` (`setup:6046-6060`).
+- Config `AWACSRadioFrequencies` (Blue 1 251, Blue 2 251,5, Red 1 252, Red 2 252,5 MHz AM) (`cfg:347-353`).
 
-### Mechanism
+### Mécanisme
 
-- 100 % Foothold code on raw tasks (`Respawn.SpawnAtPoint`, `Controller:setCommand` `SetInvisible`, `SetImmortal` (PvE only), `SetUnlimitedFuel`, `EPLRS`, `REACTION_ON_THREAT = NO_REACTION`) (`zc2:10038-10146`).
-- Station choice `_computeAwacsStationWithZone(side)`: among own active zones, pick the one whose distance to the nearest enemy zone is closest to `sep`; ties broken by waypoint order (blue PvE) then by number of same-side neighbours (`zc2:9618-9665`).
-- A second blue AWACS takes a station at least 100 NM away from the first (`_computeAwacsStationWithZoneSecondary(…, 100)`, `zc2:10134-10141`).
-- `RepositionAwacsToFront()` is scheduled 15 s after a zone changes side (`SCHEDULER:New(nil, RepositionAwacsToFront, {}, 15)`, `zc2:56680`) and re-tasks every AWACS; a move of less than 50 m is ignored (`zc2:9870-9922`, `zc2:9939-9943`).
-- The orbit is a raw `Orbit` task, circle or racetrack, baro altitude, heading towards the nearest enemy zone (`zc2:9945-9960`, `zc2:10069-10073`).
+- Code Foothold à 100 % sur des tâches brutes (`Respawn.SpawnAtPoint`, `Controller:setCommand` `SetInvisible`, `SetImmortal` (PvE seulement), `SetUnlimitedFuel`, `EPLRS`, `REACTION_ON_THREAT = NO_REACTION`) (`zc2:10038-10146`).
+- Choix de la station `_computeAwacsStationWithZone(side)` : parmi les zones actives du camp, on prend celle dont la distance à la zone ennemie la plus proche est la plus proche de `sep` ; égalités départagées par l'ordre des waypoints (bleu PvE) puis par le nombre de voisines du même camp (`zc2:9618-9665`).
+- Un second AWACS bleu prend une station à au moins 100 NM du premier (`_computeAwacsStationWithZoneSecondary(…, 100)`, `zc2:10134-10141`).
+- `RepositionAwacsToFront()` est programmée 15 s après qu'une zone change de camp (`SCHEDULER:New(nil, RepositionAwacsToFront, {}, 15)`, `zc2:56680`) et redonne une tâche à chaque AWACS ; un déplacement de moins de 50 m est ignoré (`zc2:9870-9922`, `zc2:9939-9943`).
+- L'orbite est une tâche brute `Orbit`, cercle ou racetrack, altitude baro, cap vers la zone ennemie la plus proche (`zc2:9945-9960`, `zc2:10069-10073`).
 
-### Reproduction notes
+### Notes de reproduction
 
-- Needs a zone-distance index (`_buildAwacsZoneInfo`, `Frontline._zoneInfo`) shared with the frontline computation.
-- AWACS is invisible and (PvE) immortal: it is a service, not a target.
+- Il faut un index de distances entre zones (`_buildAwacsZoneInfo`, `Frontline._zoneInfo`) partagé avec le calcul du front.
+- L'AWACS est invisible et (en PvE) immortel : c'est un service, pas une cible.
 
-## 8. CAP control and other purchased-flight control by players
+## 8. Contrôle des CAP et des autres vols achetés par les joueurs
 
-- "CAP Control" is a submenu of the group menu `F10 > Other > Dynamic Control`, present while a purchased CAP flight (`dynamiccap`) is active; `buildCapControlMenu()` simply calls `bc:refreshDynamicControlMenusForBlue()`, which calls `refreshDynamicControlMenuForGroup` for every live blue player group (and red ones in PvP) and for groups whose menu must be removed (`zc2:107172-107174`, `zc2:16232-16257`).
-- The Dynamic Control root is created only when a purchased flight or a tanker is active and the group has a human player; it is rebuilt only when a per-group signature string changes (`zc2:16276-16281`, `zc2:16340-16350`, `zc2:16418-16427`).
-- Exact tree of "CAP Control" (`zc2:16461-16625`, labels `loc:34`, `loc:1874-1881`):
+- « CAP Control » est un sous-menu du menu de groupe `F10 > Other > Dynamic Control`, présent tant qu'un vol de CAP acheté (`dynamiccap`) est actif ; `buildCapControlMenu()` appelle simplement `bc:refreshDynamicControlMenusForBlue()`, qui appelle `refreshDynamicControlMenuForGroup` pour chaque groupe de joueurs bleus vivant (et rouges en PvP) et pour les groupes dont le menu doit être retiré (`zc2:107172-107174`, `zc2:16232-16257`).
+- La racine Dynamic Control n'est créée que lorsqu'un vol acheté ou un ravitailleur est actif et que le groupe a un joueur humain ; elle n'est reconstruite que lorsqu'une chaîne de signature par groupe change (`zc2:16276-16281`, `zc2:16340-16350`, `zc2:16418-16427`).
+- Arborescence exacte de « CAP Control » (`zc2:16461-16625`, libellés `loc:34`, `loc:1874-1881`) :
 
 ```
 Dynamic Control > CAP Control
-├─ Stop CAP auto-buy                 only for the buyer while an auto-buy order has replacements left (zc2:16462-16466)
-├─ CAP: Reposition by Zone           friendly zones (and neutral ones already captured), by waypoint number descending, "More" every 9
+├─ Stop CAP auto-buy                 seulement pour l'acheteur tant qu'un ordre d'achat automatique a encore des remplacements (zc2:16462-16466)
+├─ CAP: Reposition by Zone           zones amies (et neutres déjà capturées), par numéro de waypoint décroissant, "More" toutes les 9
 │  └─ <zone> > Orbit | Hot 360 | Hot 045 | … | Hot 315 > 10 / 20 / 30 / 40 / 50 NM Leg      (zc2:16469-16540)
-├─ CAP: Reposition by Position       relative to the CAP's current position
-│  └─ Reposition 360 … 315 > 0 … 100 NM (step 10) > Orbit | Hot 360 … 315 > NM Leg         (zc2:16543-16580)
-├─ CAP Help                          prints the caphere1 / caphere2 marker help (zc2:16583-16585)
+├─ CAP: Reposition by Position       relatif à la position courante de la CAP
+│  └─ Reposition 360 … 315 > 0 … 100 NM (pas de 10) > Orbit | Hot 360 … 315 > NM Leg         (zc2:16543-16580)
+├─ CAP Help                          imprime l'aide des marqueurs caphere1 / caphere2 (zc2:16583-16585)
 ├─ CAP: Hold Racetrack               ROE open fire, message "CAP is set to (Engage If Engaged)" (zc2:16586-16602)
 ├─ CAP: Flightsweep                  ROE weapon free, message "CAP set to Engage All" (zc2:16603-16619)
 └─ CAP: Destroy                      despawnCap (zc2:16620-16625)
 ```
 
-- "Engage If Engaged" and "Engage All" are therefore not a separate toggle: they are the messages of "Hold Racetrack" and "Flightsweep", which only change the flight's ROE (`GROUP:OptionROEOpenFire` / `OptionROEOpenFireWeaponFree`) (`zc2:16594-16600`, `zc2:16611-16617`, `loc:1937-1938`).
-- The zone handlers call `setCapRacetrack(zoneCoord, heading, leg, zoneName)` (orbit = heading 045, leg 0) and announce `DYNAMIC_CAP_EN_ROUTE_TO_ZONE` or `DYNAMIC_CAP_REPOSITIONING_ZONE`; the position handlers translate the CAP's coordinate by the chosen distance and bearing first (`zc2:16504-16535`, `zc2:16557-16578`).
-- The same root also carries, as direct commands, "CAS: Destroy", "Bomber: Destroy", "SEAD: Push" / "SEAD: Destroy", "DECOY: Push" / "DECOY: Destroy", "Building strike: Destroy", "Navy Artillery: Destroy", and the "Tankers Control" submenu (section 6); full tree in note 05 §5 (`zc2:16627-16691`).
-- Map markers `caphere1` / `caphere2` move the CAP exactly like the tankers (same handler, `kind = "cap"`, `setCapRacetrack`), without the rank or helicopter restriction but still requiring a human-crewed group of the owning side (`zc2:28154-28155`, `zc2:28224-28232`, `zc2:28318-28320`, `zc2:105747`).
-- Strategic bomber control menu (`StrategicBomber.AddDynamicControlMenuForGroup`, called from the Dynamic Control builder when a blue-purchased raid is active, `zc2:16656-16657`): a submenu named after the bomber (`StrategicBomber.GetDisplayName`) with "Push" (shown until the raid has been pushed) and "Destroy" (`zc2:4195-4223`, `loc:693-695`).
-  - "Push" → `StrategicBomber.PushBlue(groupId)`: refuses with `STRATEGIC_BOMBER_NOT_ACTIVE` or `STRATEGIC_BOMBER_ALREADY_PUSHING`, otherwise starts the bombing route of the holding bomber and its escort (`StartBomberAuftrag(cfg.missionId, cfg.template, st.targetZone, st.escortGroupName, …)`) (`zc2:3936-3975`).
-  - "Destroy" → `StrategicBomber.DestroyBlue(groupId)`: removes the raid (`DestroySide`) with `STRATEGIC_BOMBER_DESTROYED` (`zc2:4101-4121`).
-  - In PvP each handler first re-checks that the requesting group still exists on the owning side and that the raid state and monitor token are unchanged (`zc2:4203-4213`).
-- The purchased flights themselves are registered in `DynamicSupportNative` (section 15).
+- « Engage If Engaged » et « Engage All » ne sont donc pas un interrupteur séparé : ce sont les messages de « Hold Racetrack » et « Flightsweep », qui ne changent que les ROE du vol (`GROUP:OptionROEOpenFire` / `OptionROEOpenFireWeaponFree`) (`zc2:16594-16600`, `zc2:16611-16617`, `loc:1937-1938`).
+- Les gestionnaires de zone appellent `setCapRacetrack(zoneCoord, heading, leg, zoneName)` (orbite = cap 045, branche 0) et annoncent `DYNAMIC_CAP_EN_ROUTE_TO_ZONE` ou `DYNAMIC_CAP_REPOSITIONING_ZONE` ; les gestionnaires de position translatent d'abord la coordonnée de la CAP de la distance et du relèvement choisis (`zc2:16504-16535`, `zc2:16557-16578`).
+- La même racine porte aussi, en commandes directes, "CAS: Destroy", "Bomber: Destroy", "SEAD: Push" / "SEAD: Destroy", "DECOY: Push" / "DECOY: Destroy", "Building strike: Destroy", "Navy Artillery: Destroy", et le sous-menu « Tankers Control » (section 6) ; arborescence complète dans la note 05 §5 (`zc2:16627-16691`).
+- Les marqueurs de carte `caphere1` / `caphere2` déplacent la CAP exactement comme les ravitailleurs (même gestionnaire, `kind = "cap"`, `setCapRacetrack`), sans la restriction de rang ni d'hélicoptère mais en exigeant toujours un groupe piloté par un humain du camp propriétaire (`zc2:28154-28155`, `zc2:28224-28232`, `zc2:28318-28320`, `zc2:105747`).
+- Menu de contrôle du bombardier stratégique (`StrategicBomber.AddDynamicControlMenuForGroup`, appelé par le constructeur de Dynamic Control quand un raid acheté par les bleus est actif, `zc2:16656-16657`) : un sous-menu portant le nom du bombardier (`StrategicBomber.GetDisplayName`) avec "Push" (affiché jusqu'à ce que le raid ait été lancé) et "Destroy" (`zc2:4195-4223`, `loc:693-695`).
+  - « Push » → `StrategicBomber.PushBlue(groupId)` : refuse avec `STRATEGIC_BOMBER_NOT_ACTIVE` ou `STRATEGIC_BOMBER_ALREADY_PUSHING`, sinon lance la route de bombardement du bombardier en attente et de son escorte (`StartBomberAuftrag(cfg.missionId, cfg.template, st.targetZone, st.escortGroupName, …)`) (`zc2:3936-3975`).
+  - « Destroy » → `StrategicBomber.DestroyBlue(groupId)` : supprime le raid (`DestroySide`) avec `STRATEGIC_BOMBER_DESTROYED` (`zc2:4101-4121`).
+  - En PvP, chaque gestionnaire revérifie d'abord que le groupe demandeur existe toujours dans le camp propriétaire et que l'état du raid et le jeton du moniteur sont inchangés (`zc2:4203-4213`).
+- Les vols achetés eux-mêmes sont enregistrés dans `DynamicSupportNative` (section 16).
 
-## 9. Map-marker commands (complete list)
+## 9. Commandes par marqueurs de carte (liste complète)
 
-All are handled by one event handler created in `BattleCommander:startMonitorPlayerMarkers` (`zc2:28354-29290`), triggered on **mark change** (event id 26) for coalition 1 or 2; the marker text is the command; the marker is removed when the command succeeded (`zc2:28456`, `zc2:29246-29248`).
-No command checks the identity of the player (name, UCID, slot): over the whole handler (`zc2:28455-29260`) `event.initiator` is only used to address the reply to the right group, to read the buyer's rank for `buy:`, and to pick the FARP country, and no `net.*` call appears.
-The "admin" commands are only obscured by Swedish words; when `AdminCommands == true` these words stop working and are replaced by the configurable `AdminCommandAliases` (twelve actions: `addBlueFunds`, `addRedFunds`, `addZoneItems`, `buyWithoutRank`, `createFarp`, `captureNeutralBlue`, `captureNeutralRed`, `clearZone`, `upgradeZone`, `fullyUpgradeZone`, `restartMission`, `endMission`); an alias that is empty, collides with a built-in command or is defined twice is disabled (`zc2:28355-28437`, `zc2:28460-28475`).
-The plain-English debug commands (`debug`, `spawn`, `prepp`, `addshop`, `event`, `addrank:` …) stay available to anyone in both modes (`zc2:28369-28378`, `zc2:29097-29124`).
+Toutes sont traitées par un seul gestionnaire d'événements créé dans `BattleCommander:startMonitorPlayerMarkers` (`zc2:28354-29290`), déclenché sur **changement de marque** (id d'événement 26) pour la coalition 1 ou 2 ; le texte du marqueur est la commande ; le marqueur est supprimé quand la commande a réussi (`zc2:28456`, `zc2:29246-29248`).
+Aucune commande ne vérifie l'identité du joueur (nom, UCID, slot) : sur tout le gestionnaire (`zc2:28455-29260`), `event.initiator` ne sert qu'à adresser la réponse au bon groupe, à lire le rang de l'acheteur pour `buy:`, et à choisir le pays du FARP, et aucun appel `net.*` n'apparaît.
+Les commandes « admin » ne sont que masquées par des mots suédois ; quand `AdminCommands == true` ces mots cessent de fonctionner et sont remplacés par les `AdminCommandAliases` configurables (douze actions : `addBlueFunds`, `addRedFunds`, `addZoneItems`, `buyWithoutRank`, `createFarp`, `captureNeutralBlue`, `captureNeutralRed`, `clearZone`, `upgradeZone`, `fullyUpgradeZone`, `restartMission`, `endMission`) ; un alias vide, en collision avec une commande intégrée ou défini deux fois est désactivé (`zc2:28355-28437`, `zc2:28460-28475`).
+Les commandes de debug en anglais courant (`debug`, `spawn`, `prepp`, `addshop`, `event`, `addrank:` …) restent disponibles pour n'importe qui dans les deux modes (`zc2:28369-28378`, `zc2:29097-29124`).
 
-| Marker text | Effect | Who / condition | Code |
+| Texte du marqueur | Effet | Qui / condition | Code |
 |---|---|---|---|
-| `arcohere1`, `arcohere2` | set the Arco racetrack from two points | human, fixed-wing, rank ≥ tanker rank | `zc2:28148-28352` |
-| `texacohere1`, `texacohere2` | same for Texaco | idem | idem |
-| `caphere1`, `caphere2` | same for the purchased CAP flight | human group of the owning side | idem |
-| `tarawahere`, `tarawahereandstop` | send the Tarawa to the marker and stop | carrier navigation enabled; if `AllowTarawaToMoveFreely`, blue point must be in blue/neutral territory | `zc2:28957-28966` |
-| `tarawahere1`, `tarawahere2` | Tarawa racetrack between two water points | `AllowTarawaToMoveFreely`, blue only | `zc2:28967-29003` |
-| `tarawareturn` | Tarawa back to its navigation area | carrier navigation enabled | `zc2:29004-29008` |
-| `tarawahelp` | prints the Tarawa commands | — | `zc2:28948-28956` |
-| `jtac-code:NNNN` | laser code of the JTAC drone(s) | anyone | `zc2:7403-7418` |
-| `help` | prints the command help (`ADMIN_COMMAND_HELP`) | anyone | `zc2:28481-28491` |
-| `status` | status of the zone under the marker | anyone | `zc2:28810-28835` |
-| `intelstatus` | zone status with intel override | anyone | `zc2:29068-29079` |
-| `missions` | prints the mission list | anyone | `zc2:29080-29084` |
-| `stats`, `top`, `mystats` | leaderboard / top 5 / own stats | anyone | `zc2:29215-29239` |
-| `whynot` | explains why the zone is suspended | anyone | `zc2:28918-28926` |
-| `buy`, `buy:<item>` | shop by marker (agent 05) | — | `zc2:28555-28620` |
-| `farphere…`, `givemefarp…`, `givemefarpzell`, `escortmissionfarp` | dynamic FARP creation (other theme) | PvP / admin | `zc2:29011-29067` |
-| `debughelp`, `ConfigStatus`, `debug`, `spawn`, `spawnnow…`, `prepp`, `addshop`, `removeshop`, `upgradeallred`, `upgradeallblue`, `event`, `event:<name>`, `recapture`, `givemesupplies`, `capture:<…>`, `additems…`, `adminbuy[:item]` (needs `AllowAdminBuy`), `addfunds:<n>`, `addfundsred:<n>`, `addrank:<player>,<n>`, `Message:<text>`, `SpelaMusik`, and the Swedish/aliased `köp[:item]`, `rensa`, `upgradera`, `maxxa`, `blå`, `röd`, `AvslutaFoothold`, `StartaOm` | admin/debug | unguarded text match | `zc2:28492-29245` |
-| `-code:<lua>` | **executes arbitrary Lua** through `loadstring` | unguarded | `zc2:29203-29214` |
+| `arcohere1`, `arcohere2` | règlent le racetrack d'Arco à partir de deux points | humain, voilure fixe, rang ≥ rang du ravitailleur | `zc2:28148-28352` |
+| `texacohere1`, `texacohere2` | idem pour Texaco | idem | idem |
+| `caphere1`, `caphere2` | idem pour le vol de CAP acheté | groupe humain du camp propriétaire | idem |
+| `tarawahere`, `tarawahereandstop` | envoient le Tarawa au marqueur et l'arrêtent | navigation des porte-avions activée ; si `AllowTarawaToMoveFreely`, le point bleu doit être en territoire bleu/neutre | `zc2:28957-28966` |
+| `tarawahere1`, `tarawahere2` | racetrack du Tarawa entre deux points d'eau | `AllowTarawaToMoveFreely`, bleu seulement | `zc2:28967-29003` |
+| `tarawareturn` | le Tarawa retourne à sa zone de navigation | navigation des porte-avions activée | `zc2:29004-29008` |
+| `tarawahelp` | imprime les commandes du Tarawa | — | `zc2:28948-28956` |
+| `jtac-code:NNNN` | code laser du ou des drones JTAC | n'importe qui | `zc2:7403-7418` |
+| `help` | imprime l'aide des commandes (`ADMIN_COMMAND_HELP`) | n'importe qui | `zc2:28481-28491` |
+| `status` | statut de la zone sous le marqueur | n'importe qui | `zc2:28810-28835` |
+| `intelstatus` | statut de la zone avec forçage de l'intel | n'importe qui | `zc2:29068-29079` |
+| `missions` | imprime la liste des missions | n'importe qui | `zc2:29080-29084` |
+| `stats`, `top`, `mystats` | classement / top 5 / ses propres stats | n'importe qui | `zc2:29215-29239` |
+| `whynot` | explique pourquoi la zone est suspendue | n'importe qui | `zc2:28918-28926` |
+| `buy`, `buy:<item>` | boutique par marqueur (agent 05) | — | `zc2:28555-28620` |
+| `farphere…`, `givemefarp…`, `givemefarpzell`, `escortmissionfarp` | création dynamique de FARP (autre thème) | PvP / admin | `zc2:29011-29067` |
+| `debughelp`, `ConfigStatus`, `debug`, `spawn`, `spawnnow…`, `prepp`, `addshop`, `removeshop`, `upgradeallred`, `upgradeallblue`, `event`, `event:<name>`, `recapture`, `givemesupplies`, `capture:<…>`, `additems…`, `adminbuy[:item]` (needs `AllowAdminBuy`), `addfunds:<n>`, `addfundsred:<n>`, `addrank:<player>,<n>`, `Message:<text>`, `SpelaMusik`, and the Swedish/aliased `köp[:item]`, `rensa`, `upgradera`, `maxxa`, `blå`, `röd`, `AvslutaFoothold`, `StartaOm` | admin/debug | correspondance de texte sans garde | `zc2:28492-29245` |
+| `-code:<lua>` | **exécute du Lua arbitraire** via `loadstring` | sans garde | `zc2:29203-29214` |
 
-Zeus adds its own marker commands (section 13) and EWRS/WelcomeMessage add none.
+Zeus ajoute ses propres commandes de marqueurs (section 14) et EWRS/WelcomeMessage n'en ajoutent aucune.
 
-## 10. Carrier and ship control
+## 10. Contrôle des porte-avions et des navires
 
-**No Moose `AIRBOSS`, `RECOVERYTANKER` or `RESCUEHELO`** is instantiated anywhere in the Foothold files; carrier operations use the native DCS carrier ATC, and Foothold adds navigation, beacons and information.
+**Aucun `AIRBOSS`, `RECOVERYTANKER` ni `RESCUEHELO` de Moose** n'est instancié nulle part dans les fichiers Foothold ; les opérations de porte-avions utilisent l'ATC natif de DCS, et Foothold ajoute la navigation, les balises et l'information.
 
-### Player view
+### Ce que voit le joueur
 
-- Group F10 `Stats and Settings > Carrier Navigation` (label key `DYNAMIC_CARRIER_NAVIGATION`; blue groups only; despite the key name it hangs under the stats menu `logistics.statsMenus[groupId]`, not under Dynamic Control, `zc2:16178-16229`), shown when the feature is enabled and, with the ranking system on, when the player's rank ≥ `CarrierRankRequirement` (5): "Carrier info" (per carrier: ATC MHz, TACAN, callsign, ICLS channel, Link 4 MHz) and one "Sail to <area>" entry per available area ("More" submenus beyond 9) (`zc2:16081-16138`, `cfg:290-292`).
-- Messages: "<carrier> moving to <area>", "area unavailable", "route failed", and — until the red carrier zone is cleared — "red carrier required" (`zc2:15986-16014`, `zc2:13549-13554`).
-- Coalition warnings before the carrier turns at the end of a racetrack leg (5 min and 1 min) (`zc2:15112-15137`).
-- Carrier areas are drawn/labelled on the F10 map ("Carrier: <label>") (`zc2:13905`, `zc2:14234`).
-- Tarawa by map marker: see section 9; `tarawahelp` text depends on `AllowTarawaToMoveFreely` (`zc2:28948-28954`).
-- ATIS for a carrier gives BRC (magnetic), wind at 18 m, radio line (section 11).
+- Menu F10 de groupe `Stats and Settings > Carrier Navigation` (clé de label `DYNAMIC_CARRIER_NAVIGATION` ; groupes bleus seulement ; malgré le nom de la clé il est accroché sous le menu de stats `logistics.statsMenus[groupId]`, pas sous Dynamic Control, `zc2:16178-16229`), affiché quand la fonctionnalité est activée et, avec le système de rangs actif, quand le rang du joueur ≥ `CarrierRankRequirement` (5) : "Carrier info" (par porte-avions : ATC MHz, TACAN, callsign, canal ICLS, Link 4 MHz) et une entrée "Sail to <area>" par zone disponible (sous-menus « More » au-delà de 9) (`zc2:16081-16138`, `cfg:290-292`).
+- Messages : "<carrier> moving to <area>", "area unavailable", "route failed", et — tant que la zone du porte-avions rouge n'est pas nettoyée — "red carrier required" (`zc2:15986-16014`, `zc2:13549-13554`).
+- Avertissements à la coalition avant que le porte-avions ne vire au bout d'une branche de racetrack (5 min et 1 min) (`zc2:15112-15137`).
+- Les zones des porte-avions sont dessinées/étiquetées sur la carte F10 ("Carrier: <label>") (`zc2:13905`, `zc2:14234`).
+- Tarawa par marqueur de carte : voir la section 9 ; le texte de `tarawahelp` dépend de `AllowTarawaToMoveFreely` (`zc2:28948-28954`).
+- L'ATIS d'un porte-avions donne le BRC (magnétique), le vent à 18 m, la ligne radio (section 11).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- Ships must be groups/units named `CVN-72`, `CVN-74`, `Tarawa` (navigation); beacons are also refreshed for `CVN-73`, `CVN-59`, `CVN-75` if present (`WM:918-923`).
-- Navigation areas are quad trigger zones `CVN72_AREA_<NAME>` with point sub-zones `-1`/`-2` (CVN-72 racetrack ends), `-3`/`-4` (Tarawa), `-5`/`-6` (CVN-74) (`zc2:13868-13925`).
-- Setup calls: `bc:deployCarrierNavigationArea("CVN72_AREA_SOCHI", true)`, `bc:setCarrierNavigationAreaAvailability({AREA = bool | {available=, autoMove=, …}})`, `bc:setCarrierNavigationAutoRoute({...})`, `bc:addCarrierNavigationSuspendConnection(area, zone)`; in the Caucasus setup the areas open as zones are captured and the carriers auto-move forward (`setup:1946-2040`, `zc2:13735`, `zc2:13828`, `zc2:27056`).
-- Config: `CarrierNavigationRadios` (CVN-72: TACAN 72X, ATC 272; CVN-74: 74X, 274; Tarawa: 1X, 271.5), `CarrierNavigationICLS`, `CarrierNavigationLink4` (0 = off), `CarrierRankRequirement = 5`, `AllowTarawaToMoveFreely = false` (`cfg:290-299`, `cfg:373-394`).
-- Globals `CarrierNavigationSpeedCheckInitialSec` 60, `…IntervalSec` 1 800, `…AfterMoveSec` 120, `CarrierNavigationSpeedDeadbandKt` 1, `CarrierNavigationTargetWodKt` 24 (`zc2:13403-13408`, `zc2:14961`).
+- Les navires doivent être des groupes/unités nommés `CVN-72`, `CVN-74`, `Tarawa` (navigation) ; les balises sont aussi rafraîchies pour `CVN-73`, `CVN-59`, `CVN-75` s'ils existent (`WM:918-923`).
+- Les zones de navigation sont des trigger zones quadrilatères `CVN72_AREA_<NAME>` avec des sous-zones ponctuelles `-1`/`-2` (extrémités du racetrack du CVN-72), `-3`/`-4` (Tarawa), `-5`/`-6` (CVN-74) (`zc2:13868-13925`).
+- Appels du setup : `bc:deployCarrierNavigationArea("CVN72_AREA_SOCHI", true)`, `bc:setCarrierNavigationAreaAvailability({AREA = bool | {available=, autoMove=, …}})`, `bc:setCarrierNavigationAutoRoute({...})`, `bc:addCarrierNavigationSuspendConnection(area, zone)` ; dans le setup du Caucase les zones s'ouvrent au fil des captures et les porte-avions avancent automatiquement (`setup:1946-2040`, `zc2:13735`, `zc2:13828`, `zc2:27056`).
+- Config : `CarrierNavigationRadios` (CVN-72 : TACAN 72X, ATC 272 ; CVN-74 : 74X, 274 ; Tarawa : 1X, 271,5), `CarrierNavigationICLS`, `CarrierNavigationLink4` (0 = désactivé), `CarrierRankRequirement = 5`, `AllowTarawaToMoveFreely = false` (`cfg:290-299`, `cfg:373-394`).
+- Globales `CarrierNavigationSpeedCheckInitialSec` 60, `…IntervalSec` 1 800, `…AfterMoveSec` 120, `CarrierNavigationSpeedDeadbandKt` 1, `CarrierNavigationTargetWodKt` 24 (`zc2:13403-13408`, `zc2:14961`).
 
-### Mechanism
+### Mécanisme
 
-- Route: start point → optional "via" stations → nearest end of the destination racetrack → other end, with a `GoToWaypoint`-style task on the last waypoint looping back to the first station waypoint, so the ship runs the racetrack forever (`zc2:14669-14714`).
-- Path finding over water: direct leg if valid, otherwise Moose `ASTAR:New()` on a grid of `land.SurfaceType.WATER` nodes (step ≥ 2 km), `SetValidNeighbourLoS(corridor)`, `GetPath` (`zc2:14491-14518`).
-- Speed: periodic "speed check" (60 s after start, then every 30 min, 2 min after a move, 4 min after a turn) recomputes the ship speed so that wind over deck ≈ 24 kt: `targetSpeed = clamp(24 − natural headwind)` from `atmosphere.getWind` at 18 m, and re-applies the route if it differs by ≥ 1 kt; it also routes back a carrier found outside its area (`zc2:14949-14963`, `zc2:15012-15058`).
-- Radios: `SetFrequency` command on the ship unit for the ATC frequency (`zc2:13600-13606`); TACAN (`ActivateBeacon`, type 4, system 3), ICLS (`ActivateICLS`, type 131584), Link 4 (`ActivateLink4`) and ACLS (`ActivateACLS`) are sent by `WelcomeMessage.lua` `refreshBeacons()`, every hour (`SCHEDULER:New(nil, refreshBeacons, {}, 5, 3600)`) (`WM:788-926`).
-- Recovery tanker: `bc:spawnCarrierRecoveryTanker("Shell", "CVN-72", distNm)` respawns template `Shell` near the carrier with its radio settings — a plain respawn, not Moose `RECOVERYTANKER` (`zc2:15814-15843`).
-- Carrier persistence:
-  - state per carrier group `bc.carrierNavigation[groupName] = {groupName, area, lane, routeSourceArea, speedKt, nextStationIndex, transitioning, x, y, z, headingDeg, currentArea, units = {{name, type, x, y, z, headingDeg}…}, custom…}`; `_saveCarrierNavigationState` captures it when a route is applied, and `_exportCarrierNavigationPersistence` re-captures the live position and heading of every unit of every carrier group at each campaign save and returns `{version = 1, groups = {…}}` (`zc2:15218-15279`, `zc2:15282-15315`);
-  - at load the saved table is normalised (`_normalizeCarrierNavigationPersistence`), and "repaired": if several carriers share an area and at least one was saved inside it, a carrier saved outside the area (and not in transit) is snapped to a station point of its lane (`zc2:15317-15350`, `zc2:15393-15450`);
-  - restore (`_restoreCarrierNavigationGroup`): skipped while carrier navigation is still locked or the area no longer exists; the saved point is checked for water clearance and moved to the nearest clear point if needed; the first station to sail to is chosen from the saved heading and next-station index (the other station if the ship is within 2 NM of it) (`zc2:15638-15700`);
-  - the ship is not moved by a DCS teleport: `_carrierNavigationTeleportGroup` takes the group's template from `env.mission`, rewrites the unit positions (lead unit at the saved point and heading, escorts rotated around it by the heading difference), and **respawns the group under the same name** with `coalition.addGroup`, with the route already attached, the ATC frequency on the lead unit, and the group set invisible and immortal (`zc2:15453-15510`, `zc2:15529-15573`);
-  - because a respawn creates a new airbase object, the carrier's warehouse is re-bound (`STORAGE` patched with the new `Airbase.getByName(name):getWarehouse()`) and re-stocked with `checkWeaponsList(groupName)`; beacons have to be re-sent for the same reason (`zc2:15512-15527`, `zc2:15569-15571`, `WM:848-861`);
-  - Tarawa's free route (`customMode`, `customPoints`) is restored by `_restoreTarawaCustomNavigationGroup` only when `AllowTarawaToMoveFreely` is still true; otherwise the custom fields are dropped and Tarawa goes back to its area lane (`zc2:15641-15651`, `zc2:15576-15637`).
-- Tarawa custom route: `_carrierNavigationApplyTarawaCustomRoute("tarawa-stop" | "tarawa-racetrack", points, …)` (`zc2:14825-14878`).
+- Route : point de départ → stations « via » optionnelles → extrémité la plus proche du racetrack de destination → autre extrémité, avec une tâche de type `GoToWaypoint` sur le dernier waypoint qui reboucle sur le premier waypoint de station, de sorte que le navire parcourt le racetrack indéfiniment (`zc2:14669-14714`).
+- Recherche de chemin sur l'eau : branche directe si valide, sinon `ASTAR:New()` de Moose sur une grille de nœuds `land.SurfaceType.WATER` (pas ≥ 2 km), `SetValidNeighbourLoS(corridor)`, `GetPath` (`zc2:14491-14518`).
+- Vitesse : « contrôle de vitesse » périodique (60 s après le départ, puis toutes les 30 min, 2 min après un déplacement, 4 min après un virage) qui recalcule la vitesse du navire pour que le vent sur le pont ≈ 24 kt : `targetSpeed = clamp(24 − natural headwind)` à partir de `atmosphere.getWind` à 18 m, et réapplique la route si elle diffère d'au moins 1 kt ; il renvoie aussi à sa zone un porte-avions trouvé en dehors (`zc2:14949-14963`, `zc2:15012-15058`).
+- Radios : commande `SetFrequency` sur l'unité navire pour la fréquence ATC (`zc2:13600-13606`) ; TACAN (`ActivateBeacon`, type 4, system 3), ICLS (`ActivateICLS`, type 131584), Link 4 (`ActivateLink4`) et ACLS (`ActivateACLS`) sont envoyés par `refreshBeacons()` de `WelcomeMessage.lua`, toutes les heures (`SCHEDULER:New(nil, refreshBeacons, {}, 5, 3600)`) (`WM:788-926`).
+- Ravitailleur de récupération : `bc:spawnCarrierRecoveryTanker("Shell", "CVN-72", distNm)` regénère le template `Shell` près du porte-avions avec ses réglages radio — un simple respawn, pas le `RECOVERYTANKER` de Moose (`zc2:15814-15843`).
+- Persistance des porte-avions :
+  - état par groupe de porte-avions `bc.carrierNavigation[groupName] = {groupName, area, lane, routeSourceArea, speedKt, nextStationIndex, transitioning, x, y, z, headingDeg, currentArea, units = {{name, type, x, y, z, headingDeg}…}, custom…}` ; `_saveCarrierNavigationState` le capture quand une route est appliquée, et `_exportCarrierNavigationPersistence` recapture la position et le cap vivants de chaque unité de chaque groupe de porte-avions à chaque sauvegarde de campagne et renvoie `{version = 1, groups = {…}}` (`zc2:15218-15279`, `zc2:15282-15315`) ;
+  - au chargement la table sauvegardée est normalisée (`_normalizeCarrierNavigationPersistence`), puis « réparée » : si plusieurs porte-avions partagent une zone et qu'au moins un a été sauvegardé à l'intérieur, un porte-avions sauvegardé hors de la zone (et pas en transit) est ramené sur un point de station de sa voie (`zc2:15317-15350`, `zc2:15393-15450`) ;
+  - restauration (`_restoreCarrierNavigationGroup`) : ignorée tant que la navigation des porte-avions est encore verrouillée ou que la zone n'existe plus ; on vérifie que le point sauvegardé est dégagé sur l'eau et on le déplace vers le point dégagé le plus proche si besoin ; la première station à rallier est choisie d'après le cap sauvegardé et l'index de la station suivante (l'autre station si le navire est à moins de 2 NM de celle-ci) (`zc2:15638-15700`) ;
+  - le navire n'est pas déplacé par une téléportation DCS : `_carrierNavigationTeleportGroup` prend le template du groupe dans `env.mission`, réécrit les positions des unités (unité de tête au point et cap sauvegardés, escorteurs pivotés autour d'elle de la différence de cap), et **regénère le groupe sous le même nom** avec `coalition.addGroup`, avec la route déjà attachée, la fréquence ATC sur l'unité de tête, et le groupe réglé invisible et immortel (`zc2:15453-15510`, `zc2:15529-15573`) ;
+  - comme un respawn crée un nouvel objet aérodrome, l'entrepôt du porte-avions est relié à nouveau (`STORAGE` patché avec le nouveau `Airbase.getByName(name):getWarehouse()`) et réapprovisionné avec `checkWeaponsList(groupName)` ; les balises doivent être renvoyées pour la même raison (`zc2:15512-15527`, `zc2:15569-15571`, `WM:848-861`) ;
+  - la route libre du Tarawa (`customMode`, `customPoints`) n'est restaurée par `_restoreTarawaCustomNavigationGroup` que si `AllowTarawaToMoveFreely` est toujours vrai ; sinon les champs personnalisés sont abandonnés et le Tarawa retourne sur la voie de sa zone (`zc2:15641-15651`, `zc2:15576-15637`).
+- Route personnalisée du Tarawa : `_carrierNavigationApplyTarawaCustomRoute("tarawa-stop" | "tarawa-racetrack", points, …)` (`zc2:14825-14878`).
 
-### Reproduction notes
+### Notes de reproduction
 
-- The only Moose-heavy dependency is `ASTAR` for sea routing.
-- The whole subsystem is ≈2 800 lines (`zc2:13403-16200`), mostly availability rules, persistence and menus; the navigation core is the looped waypoint route plus the wind-over-deck speed recalculation.
-- Beacons must be re-sent after any respawn/teleport of the ship (unit id changes; Link 4/ACLS are sent once per unit id, `WM:848-861`).
+- La seule dépendance fortement Moose est `ASTAR` pour le routage maritime.
+- Tout le sous-système fait ≈2 800 lignes (`zc2:13403-16200`), surtout des règles de disponibilité, de la persistance et des menus ; le cœur de la navigation est la route de waypoints bouclée plus le recalcul de vitesse du vent sur le pont.
+- Les balises doivent être renvoyées après tout respawn/téléportation du navire (l'id d'unité change ; Link 4/ACLS sont envoyés une fois par id d'unité, `WM:848-861`).
 
-## 11. `WelcomeMessage.lua`: welcome text, callsign/IFF assignment, ATIS, airfield information
+## 11. `WelcomeMessage.lua` : texte d'accueil, attribution des callsigns/IFF, ATIS, informations d'aérodrome
 
-`WelcomeMessage.lua` (2 941 lines) is far more than a welcome text: it holds the ATIS menu, the callsign/IFF allocator, the carrier beacons (section 10), the whole escort feature (section 12), the refuelling reward, the airbase-static respawn on capture and the player-leave cleanup.
-Its `static` table is **not** about static objects in general: it is `STATIC:FindByName("EventMan", true)`, a Moose wrapper around a static object named `EventMan` in the `.miz`, used only as the event-handler object (`static:HandleEvent(EVENTS.BaseCaptured | PlayerLeaveUnit | Refueling | RefuelingStop, …)`) and as the namespace of `static:processPlayerSpawn` (`WM:45`, `WM:2932-2935`).
-`WelcomeMessagev2.lua` (2 641 lines) also exists in the folder, but the Caucasus `.miz` ships `WelcomeMessage.lua`.
+`WelcomeMessage.lua` (2 941 lignes) est bien plus qu'un texte d'accueil : il contient le menu ATIS, l'allocateur de callsigns/IFF, les balises des porte-avions (section 10), toute la fonctionnalité d'escorte (section 12), la récompense de ravitaillement, le respawn des statics d'aérodrome à la capture et le nettoyage au départ d'un joueur.
+Sa table `static` n'est **pas** relative aux objets statiques en général : c'est `STATIC:FindByName("EventMan", true)`, un wrapper Moose autour d'un objet statique nommé `EventMan` dans le `.miz`, utilisé uniquement comme objet gestionnaire d'événements (`static:HandleEvent(EVENTS.BaseCaptured | PlayerLeaveUnit | Refueling | RefuelingStop, …)`) et comme espace de noms de `static:processPlayerSpawn` (`WM:45`, `WM:2932-2935`).
+`WelcomeMessagev2.lua` (2 641 lignes) existe aussi dans le dossier, mais le `.miz` du Caucase livre `WelcomeMessage.lua`.
 
-### Player view
+### Ce que voit le joueur
 
-- On spawn in a zone: a greeting "Welcome to <zone>, <rank> <name>, you are <callsign>, IFF <code>" (or "standby" when no callsign is free), and 60 s later a detailed message with wind, temperature, altimeter and active runway (airbase zones) or carrier radio line + BRC + wind over the deck (carrier zones); the wording differs for a first visit and a return ("welcome back") (`WM:1530-1628`).
-- "Change callsign" menu: **defined but not offered in v6.5.3**. The builder `buildCallSignMenu()` exists (a Moose `MENU_GROUP` "Change callsign" with one submenu per callsign family configured for the aircraft type, listing the free `<family><n>` slots of the zone; picking one releases the player's previous slot, takes the new one, re-sends the greeting and the 60 s detailed message with the new callsign and IFF, and rebuilds the submenus; the whole menu removes itself after 60 s), but its only call is commented out (`--buildCallSignMenu()`), so players keep the automatically assigned callsign (`WM:1630-1680`, `WM:1682-1684`).
-- F10 "ATIS / Closest airfield" group menu (aeroplanes only): "Closest friendly airfield" and a submenu "ATIS information" with "Mother" (blue, when a carrier exists) and one entry per friendly airbase zone, sorted by waypoint number descending, "More" every 9 (`WM:1306-1341`).
-- "Closest friendly airfield": for Hornets/Tomcats each active carrier (distance NM, magnetic bearing, radio line or TACAN, BRC), then the nearest friendly airbase zone with distance, magnetic bearing, wind, altimeter, active runway with magnetic course (`WM:1191-1271`).
-- ATIS for a zone: "ATIS for <zone>: wind DDD at N kt, altimeter …, active runway NN (course DDD°M)", 20 s (`WM:1110-1130`, `WM:1156-1163`).
-- Capture ATIS: 10 s after an airbase is captured, every aeroplane client of the new owner receives that airbase's ATIS, and all ATIS menus are rebuilt (one group every 0.1 s) (`WM:1381-1431`, `WM:1345-1379`).
+- Au spawn dans une zone : un accueil "Welcome to <zone>, <rank> <name>, you are <callsign>, IFF <code>" (ou "standby" quand aucun callsign n'est libre), et 60 s plus tard un message détaillé avec vent, température, altimètre et piste active (zones d'aérodrome) ou ligne radio du porte-avions + BRC + vent sur le pont (zones de porte-avions) ; la formulation diffère pour une première visite et un retour ("welcome back") (`WM:1530-1628`).
+- Menu « Change callsign » : **défini mais non proposé en v6.5.3**. Le constructeur `buildCallSignMenu()` existe (un `MENU_GROUP` Moose « Change callsign » avec un sous-menu par famille de callsigns configurée pour le type d'appareil, listant les emplacements `<family><n>` libres de la zone ; en choisir un libère l'emplacement précédent du joueur, prend le nouveau, renvoie l'accueil et le message détaillé de 60 s avec le nouveau callsign et IFF, et reconstruit les sous-menus ; le menu entier se retire après 60 s), mais son seul appel est commenté (`--buildCallSignMenu()`), donc les joueurs gardent le callsign attribué automatiquement (`WM:1630-1680`, `WM:1682-1684`).
+- Menu de groupe F10 « ATIS / Closest airfield » (avions seulement) : "Closest friendly airfield" et un sous-menu "ATIS information" avec "Mother" (bleu, quand un porte-avions existe) et une entrée par zone d'aérodrome ami, triée par numéro de waypoint décroissant, "More" toutes les 9 (`WM:1306-1341`).
+- « Closest friendly airfield » : pour les Hornets/Tomcats chaque porte-avions actif (distance NM, relèvement magnétique, ligne radio ou TACAN, BRC), puis la zone d'aérodrome ami la plus proche avec distance, relèvement magnétique, vent, altimètre, piste active avec cap magnétique (`WM:1191-1271`).
+- ATIS d'une zone : "ATIS for <zone>: wind DDD at N kt, altimeter …, active runway NN (course DDD°M)", 20 s (`WM:1110-1130`, `WM:1156-1163`).
+- ATIS de capture : 10 s après la capture d'un aérodrome, chaque client avion du nouveau propriétaire reçoit l'ATIS de cet aérodrome, et tous les menus ATIS sont reconstruits (un groupe toutes les 0,1 s) (`WM:1381-1431`, `WM:1345-1379`).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- A static object named `EventMan` must exist in the `.miz` (`WM:45`).
-- `atisZones` / `allZones` are built at load from the Foothold `zones` table (zones with an airbase get ATIS) (`WM:84-161`, `WM:186-187`); the file must therefore run after the setup file.
-- Config: the welcome text block and the callsign table "Welcome Message Callsigns" (`cfg:1156-1169`); `aircraftAssignments` maps a **group-name pattern** (e.g. `"F.A.18"`) to callsign families each with 4 IFF codes (e.g. `Arctic1` → 1400–1403) (`WM:566-720`).
-- Moose user settings forced at the end of the file: `_SETTINGS:SetPlayerMenuOff()`, `SetA2G_BR()`, `SetA2A_BULLS()`, `SetImperial()` (`WM:2936-2939`).
+- Un objet statique nommé `EventMan` doit exister dans le `.miz` (`WM:45`).
+- `atisZones` / `allZones` sont construites au chargement à partir de la table `zones` de Foothold (les zones avec un aérodrome ont un ATIS) (`WM:84-161`, `WM:186-187`) ; le fichier doit donc s'exécuter après le fichier de setup.
+- Config : le bloc de texte d'accueil et la table de callsigns « Welcome Message Callsigns » (`cfg:1156-1169`) ; `aircraftAssignments` associe un **motif de nom de groupe** (par ex. `"F.A.18"`) à des familles de callsigns avec chacune 4 codes IFF (par ex. `Arctic1` → 1400–1403) (`WM:566-720`).
+- Réglages utilisateur de Moose forcés en fin de fichier : `_SETTINGS:SetPlayerMenuOff()`, `SetA2G_BR()`, `SetA2A_BULLS()`, `SetImperial()` (`WM:2936-2939`).
 
-### Mechanism
+### Mécanisme
 
-- Entry point: `LogisticCommander` calls `static:processPlayerSpawn(mooseUnit, zoneName)` on player spawn (`zc2:101261`); the greeting is sent at once and the detailed message by `SCHEDULER:New(nil, sendDetailedMessageToPlayer, {...}, 60)` kept in `followID[playerName]` (`WM:1624-1628`).
-- Callsigns: `findOrAssignSlot(playerName, groupName, zoneName)` keeps `zoneAssignments[zone]` and `globalCallsignAssignments[player]`, reuses the player's callsign if he respawns in the same zone, releases it otherwise, and gives the first free number of the preferred family; IFF is `details.IFFs[number]` (`WM:341-475`).
-- ATIS data is computed by Foothold from Moose airbase helpers, **not by the Moose `ATIS` class** (no `ATIS:New` anywhere): wind = `COORDINATE:GetWind(10)` (→ `atmosphere.getWind`), runway = `AIRBASE:GetActiveRunway()` + `GetRunwayName()` (Moose picks the runway from wind), pressure = `readAltimeterPressure()`, temperature = `COORDINATE:GetTemperature` (`WM:1004-1058`, `WM:1096-1106`).
-- Carrier BRC = ship heading − magnetic declination (`WM:863-874`); carrier wind = `COORDINATE:GetWind(18)` (`WM:972-995`).
-- Menus are Moose `MENU_GROUP` / `MENU_GROUP_COMMAND` (→ `missionCommands.addSubMenuForGroup` / `addCommandForGroup`) (`WM:1318-1338`).
-- Capture: Moose `EVENTS.BaseCaptured` (→ `S_EVENT_BASE_CAPTURED`), clients enumerated with `SET_CLIENT:New():FilterCategories("plane"):FilterCoalitions():FilterAlive():FilterOnce()` (`WM:1383-1415`).
-- Text is plain on-screen text; nothing is spoken (no SRS/MSRS use found).
-- Refuelling reward: `EVENTS.Refueling` stores the fuel fraction at contact (for AI-tanker events, every player within 300 m of the tanker is recorded), `EVENTS.RefuelingStop` converts the gained fraction × `fuelMassMax` to pounds and pays `floor(lbs/100) × RefuelReward` if ≥ `RefuelRewardMinimumLbs` (`WM:2731-2828`).
-- Airbase statics: `GatherStaticDetails()` records the statics listed per airbase in `airbaseStatics`, and `RespawnStaticsForAirbase(airbase, side)` respawns them with the new coalition when the zone changes side (called from `zc2:51447-51473`, `zc2:55361`, `zc2:56759`) (`WM:234-306`).
-- Player leave: `static:OnEventPlayerLeaveUnit` resets contributions, temp stats, callsign slot, menus, escort (`WM:2867-2930`).
+- Point d'entrée : `LogisticCommander` appelle `static:processPlayerSpawn(mooseUnit, zoneName)` au spawn du joueur (`zc2:101261`) ; l'accueil est envoyé aussitôt et le message détaillé par `SCHEDULER:New(nil, sendDetailedMessageToPlayer, {...}, 60)` conservé dans `followID[playerName]` (`WM:1624-1628`).
+- Callsigns : `findOrAssignSlot(playerName, groupName, zoneName)` tient `zoneAssignments[zone]` et `globalCallsignAssignments[player]`, réutilise le callsign du joueur s'il respawne dans la même zone, le libère sinon, et donne le premier numéro libre de la famille préférée ; l'IFF est `details.IFFs[number]` (`WM:341-475`).
+- Les données ATIS sont calculées par Foothold à partir des helpers d'aérodrome de Moose, **pas par la classe `ATIS` de Moose** (aucun `ATIS:New` nulle part) : vent = `COORDINATE:GetWind(10)` (→ `atmosphere.getWind`), piste = `AIRBASE:GetActiveRunway()` + `GetRunwayName()` (Moose choisit la piste d'après le vent), pression = `readAltimeterPressure()`, température = `COORDINATE:GetTemperature` (`WM:1004-1058`, `WM:1096-1106`).
+- BRC du porte-avions = cap du navire − déclinaison magnétique (`WM:863-874`) ; vent du porte-avions = `COORDINATE:GetWind(18)` (`WM:972-995`).
+- Les menus sont des `MENU_GROUP` / `MENU_GROUP_COMMAND` de Moose (→ `missionCommands.addSubMenuForGroup` / `addCommandForGroup`) (`WM:1318-1338`).
+- Capture : `EVENTS.BaseCaptured` de Moose (→ `S_EVENT_BASE_CAPTURED`), clients énumérés avec `SET_CLIENT:New():FilterCategories("plane"):FilterCoalitions():FilterAlive():FilterOnce()` (`WM:1383-1415`).
+- Le texte est du texte brut à l'écran ; rien n'est dit à voix haute (aucun usage de SRS/MSRS trouvé).
+- Récompense de ravitaillement : `EVENTS.Refueling` stocke la fraction de carburant au contact (pour les événements de ravitailleur IA, chaque joueur à moins de 300 m du ravitailleur est enregistré), `EVENTS.RefuelingStop` convertit la fraction gagnée × `fuelMassMax` en livres et verse `floor(lbs/100) × RefuelReward` si ≥ `RefuelRewardMinimumLbs` (`WM:2731-2828`).
+- Statics d'aérodrome : `GatherStaticDetails()` enregistre les statics listés par aérodrome dans `airbaseStatics`, et `RespawnStaticsForAirbase(airbase, side)` les regénère avec la nouvelle coalition quand la zone change de camp (appelée depuis `zc2:51447-51473`, `zc2:55361`, `zc2:56759`) (`WM:234-306`).
+- Départ d'un joueur : `static:OnEventPlayerLeaveUnit` réinitialise les contributions, les stats temporaires, l'emplacement de callsign, les menus, l'escorte (`WM:2867-2930`).
 
-### Reproduction notes
+### Notes de reproduction
 
-- The active-runway choice and runway naming come from Moose `AIRBASE` (runway geometry from `Airbase:getRunways()` and wind).
-- Callsign allocation keys on group-name patterns, so slot naming in the `.miz` matters.
-- Messages are localised per player (`L10N:ForGroup`), which is why reports are cached per locale when broadcast (`WM:1157-1161`).
+- Le choix de la piste active et le nommage des pistes viennent de `AIRBASE` de Moose (géométrie des pistes issue de `Airbase:getRunways()` et du vent).
+- L'allocation des callsigns repose sur des motifs de noms de groupes, donc le nommage des slots dans le `.miz` compte.
+- Les messages sont localisés par joueur (`L10N:ForGroup`), c'est pourquoi les rapports sont mis en cache par locale quand ils sont diffusés (`WM:1157-1161`).
 
-## 12. Escort flight for players
+## 12. Vol d'escorte pour les joueurs
 
-### Player view
+### Ce que voit le joueur
 
-- Eligible types get, 10 s after spawn, "Escort available" + `ding.ogg` and a group menu "Request escort" with: Same altitude, 2 000 ft above, 5 000 ft above, 10 000 ft above (`WM:1491-1514`, `WM:1724-1739`).
-- A 2-ship fighter escort then either takes off from the closest friendly airfield ("scrambling, taxi", when `EscortTakeoffFromGround`) or is air-spawned 1 500 m behind the player, 10 000 ft above him (or holds at 27 000 ft over the home base if the player is on the ground) (`WM:2133-2172`, `WM:2284-2294`, `WM:2298-2316`).
-- Menu "Escort": Patrol ahead (15 NM on the nose), Racetrack on the nose, Racetrack left-to-right, Racetrack right-to-left, Start orbit (25 000 ft over the player's position), Rejoin, RTB (`WM:2321-2339`).
-- "Rejoin" on the ground makes the escort hold at 10 000 ft and join after take-off ("can't join, you are on the ground") (`WM:2573-2602`).
-- If the escort is shot down the menu is removed and the player is notified (`WM:2428-2450`, `WM:2621-2633`).
+- Les types éligibles reçoivent, 10 s après le spawn, "Escort available" + `ding.ogg` et un menu de groupe « Request escort » avec : Same altitude, 2 000 ft above, 5 000 ft above, 10 000 ft above (`WM:1491-1514`, `WM:1724-1739`).
+- Une escorte de chasseurs de 2 appareils décolle alors soit de l'aérodrome ami le plus proche ("scrambling, taxi", quand `EscortTakeoffFromGround`), soit est générée en l'air à 1 500 m derrière le joueur, 10 000 ft au-dessus de lui (ou tient à 27 000 ft au-dessus de la base d'attache si le joueur est au sol) (`WM:2133-2172`, `WM:2284-2294`, `WM:2298-2316`).
+- Menu « Escort » : Patrol ahead (15 NM dans l'axe), Racetrack on the nose, Racetrack left-to-right, Racetrack right-to-left, Start orbit (25 000 ft au-dessus de la position du joueur), Rejoin, RTB (`WM:2321-2339`).
+- « Rejoin » au sol fait tenir l'escorte à 10 000 ft et la fait rejoindre après le décollage ("can't join, you are on the ground") (`WM:2573-2602`).
+- Si l'escorte est abattue, le menu est retiré et le joueur est prévenu (`WM:2428-2450`, `WM:2621-2633`).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- Config `EscortTypeByPlayerType[type] = { enabled, blueTemplate | index, altitude, [redTemplate] }` (enabled by default for C-130J-30, AV8BNA, A-10C/A-10C_2/A-10A, Hercules, F-15ESE, AJS37), `EscortTakeoffFromGround = true`, `PvPEscorts = false` (`cfg:325-327`, `cfg:1238-1270`, `WM:193-211`).
-- The escort template is one of the enabled CAP templates (`BlueCapPlaneEnabled` / `RedCapPlaneEnabled`) (`WM:1434-1450`).
+- Config `EscortTypeByPlayerType[type] = { enabled, blueTemplate | index, altitude, [redTemplate] }` (activée par défaut pour C-130J-30, AV8BNA, A-10C/A-10C_2/A-10A, Hercules, F-15ESE, AJS37), `EscortTakeoffFromGround = true`, `PvPEscorts = false` (`cfg:325-327`, `cfg:1238-1270`, `WM:193-211`).
+- Le template d'escorte est l'un des templates de CAP activés (`BlueCapPlaneEnabled` / `RedCapPlaneEnabled`) (`WM:1434-1450`).
 
-### Mechanism
+### Mécanisme
 
-- Spawn: `SPAWN:NewWithAlias(template, alias):InitGrouping(2):InitHeading():OnSpawnGroup(cb):SpawnFromCoordinate(coord)` (→ `coalition.addGroup`), alias `<group>_<player>_Escort_NNN` (`WM:2158-2171`, `WM:2244`).
-- Tasks are raw DCS tasks set through `SetEscortNativeTask`: `{id="Escort", params={groupId, pos={x,y,z}, engagementDistMax=40 NM, targetTypes={"Air"}}}` for follow/patrol-ahead (pos x=15 NM ahead, or x=−100, z=300 for rejoin), `{id="Orbit", …RACE_TRACK}` for racetracks, `{id="EngageTargets", targetTypes={"Air"}}` (`WM:1770-1812`, `WM:2498-2502`, `WM:2584`).
-- Options: `CommandSetUnlimitedFuel(true)`, radar continuous search, no waypoint pass report (`WM:2272`).
-- Loss tracking: `escortOwnerByUnitName[unit]` is consulted by the BattleCommander unit-lost handler (`HandleEscortUnitLost`, `zc2:43069`); take-off of the player triggers `HandleEscortTakeoff` (`WM:2635`).
-- State: `spawnedGroups[groupName]`, `escortGroups[groupName]`, `escortPendingJoin`.
+- Spawn : `SPAWN:NewWithAlias(template, alias):InitGrouping(2):InitHeading():OnSpawnGroup(cb):SpawnFromCoordinate(coord)` (→ `coalition.addGroup`), alias `<group>_<player>_Escort_NNN` (`WM:2158-2171`, `WM:2244`).
+- Les tâches sont des tâches DCS brutes posées via `SetEscortNativeTask` : `{id="Escort", params={groupId, pos={x,y,z}, engagementDistMax=40 NM, targetTypes={"Air"}}}` pour suivre/patrouiller devant (pos x=15 NM devant, ou x=−100, z=300 pour rejoindre), `{id="Orbit", …RACE_TRACK}` pour les racetracks, `{id="EngageTargets", targetTypes={"Air"}}` (`WM:1770-1812`, `WM:2498-2502`, `WM:2584`).
+- Options : `CommandSetUnlimitedFuel(true)`, recherche radar continue, pas de rapport de passage de waypoint (`WM:2272`).
+- Suivi des pertes : `escortOwnerByUnitName[unit]` est consulté par le gestionnaire de pertes d'unités de BattleCommander (`HandleEscortUnitLost`, `zc2:43069`) ; le décollage du joueur déclenche `HandleEscortTakeoff` (`WM:2635`).
+- État : `spawnedGroups[groupName]`, `escortGroups[groupName]`, `escortPendingJoin`.
 
-### Reproduction notes
+### Notes de reproduction
 
-- Entirely doable with the native `Escort` task; the subtle parts are the ground cases (player not airborne, escort scrambling) and the generation counters that cancel stale delayed tasks (`escortOrbitGeneration`, `WM:2459-2473`).
+- Entièrement faisable avec la tâche native `Escort` ; les parties délicates sont les cas au sol (joueur pas en vol, escorte qui décolle) et les compteurs de génération qui annulent les tâches différées périmées (`escortOrbitGeneration`, `WM:2459-2473`).
 
-## 13. `EWRS.lua`: early-warning radar picture
+## 13. `EWRS.lua` : situation radar d'alerte avancée
 
-A modified copy of the public "EWRS by Steggles" script (`EWRS.lua:1743-1745`), 1 745 lines, largely independent of the engine (only `L10N`, Moose `SET_CLIENT`/`UTILS`/`BASE` and the persistence hooks).
+Une copie modifiée du script public « EWRS by Steggles » (`EWRS.lua:1743-1745`), 1 745 lignes, en grande partie indépendante du moteur (seulement `L10N`, `SET_CLIENT`/`UTILS`/`BASE` de Moose et les hooks de persistance).
 
-### Player view
+### Ce que voit le joueur
 
-- Every 20 s (default) each player with automatic reports on receives a text "picture" of the closest radar-detected enemy aircraft within his range limit: type (NATO reporting name), bearing (rounded to 5°), range (rounded: 1 below 20, 5 below 60, 10 above), altitude (thousands of ft or tens of m), speed, heading, aspect Hot/Flanking/Beaming/Cold (`EWRS.lua:692-705`, `EWRS.lua:738-790`, `EWRS.lua:1719-1741`).
-- Reference is the player's own aircraft (BRA) or the coalition bullseye (`coalition.getMainRefPoint`) (`EWRS.lua:718-727`).
-- Style 2 shows "Merged" under 5 NM (`cfg:2353`).
-- Optional friendly lines (other friendly aircraft, tankers Arco/Texaco) (`EWRS.lua:792-830`, `EWRS.lua:1114-1203`).
-- F10 group menu (label key `EWRS_MENU_ROOT`): Request bogey dope; (on-demand mode) Request picture; Set detection range (km or nm lists); Set threat limit (1–5, All); Friendlies (show on/off, limit 1–5, show tankers on/off); Auto picture on/off; Group settings → reference (bullseye/self), measurements (imperial/metric), report style (1/2) (`EWRS.lua:1591-1695`).
-- Settings are saved per player name and aircraft category and restored at next spawn and after a restart (`EWRS.lua:331-656`).
+- Toutes les 20 s (par défaut) chaque joueur avec les rapports automatiques activés reçoit une « situation » en texte des appareils ennemis détectés au radar les plus proches dans sa limite de portée : type (nom de code OTAN), relèvement (arrondi à 5°), distance (arrondie : 1 sous 20, 5 sous 60, 10 au-dessus), altitude (milliers de ft ou dizaines de m), vitesse, cap, aspect Hot/Flanking/Beaming/Cold (`EWRS.lua:692-705`, `EWRS.lua:738-790`, `EWRS.lua:1719-1741`).
+- La référence est l'appareil du joueur (BRA) ou le bullseye de la coalition (`coalition.getMainRefPoint`) (`EWRS.lua:718-727`).
+- Le style 2 affiche "Merged" sous 5 NM (`cfg:2353`).
+- Lignes amies optionnelles (autres appareils amis, ravitailleurs Arco/Texaco) (`EWRS.lua:792-830`, `EWRS.lua:1114-1203`).
+- Menu F10 de groupe (clé de label `EWRS_MENU_ROOT`) : Request bogey dope ; (mode à la demande) Request picture ; Set detection range (listes en km ou nm) ; Set threat limit (1–5, All) ; Friendlies (show on/off, limit 1–5, show tankers on/off) ; Auto picture on/off ; Group settings → référence (bullseye/self), mesures (impérial/métrique), style de rapport (1/2) (`EWRS.lua:1591-1695`).
+- Les réglages sont sauvegardés par nom de joueur et par catégorie d'appareil, et restaurés au prochain spawn et après un redémarrage (`EWRS.lua:331-656`).
 
-### Mission-maker view
+### Ce que règle le créateur de mission
 
-- Config block `ewrs_*` (`cfg:2318-2355`): `ewrs_enabled = true`, `ewrs_defaultReportStyle = 2`, `ewrs_maxRangeKm = 150`, `ewrs_maxRangeNm = 100`, `ewrs_defaultAircraftRangeLimit = 60`, `ewrs_defaultHelicopterRangeLimit = 20`, `ewrs_messageUpdateInterval = 20`, `ewrs_messageDisplayTime = 15`, `ewrs_restrictToOneReference = false`, `ewrs_defaultReference = "self"`, `ewrs_defaultMeasurements = "imperial"`, `ewrs_defaultShowTankers = false`, `ewrs_enableRedTeam = true`, `ewrs_enableBlueTeam = true`, `ewrs_disableMessageWhenNoThreats = true`, `ewrs_onDemand = false`, `ewrs_maxThreatDisplay = 5`, `ewrs_allowBogeyDope = true`, `ewrs_allowFriendlyPicture = true`, `ewrs_maxFriendlyDisplay = 3`, `ewrs_showType = true`, `ewrs_mergedRangeNm = 5`, `ewrs_specialPlaneTypes` (types that see friendlies by default).
-- The config must be loaded before `EWRS.lua` (`cfg:2318`).
+- Bloc de config `ewrs_*` (`cfg:2318-2355`) : `ewrs_enabled = true`, `ewrs_defaultReportStyle = 2`, `ewrs_maxRangeKm = 150`, `ewrs_maxRangeNm = 100`, `ewrs_defaultAircraftRangeLimit = 60`, `ewrs_defaultHelicopterRangeLimit = 20`, `ewrs_messageUpdateInterval = 20`, `ewrs_messageDisplayTime = 15`, `ewrs_restrictToOneReference = false`, `ewrs_defaultReference = "self"`, `ewrs_defaultMeasurements = "imperial"`, `ewrs_defaultShowTankers = false`, `ewrs_enableRedTeam = true`, `ewrs_enableBlueTeam = true`, `ewrs_disableMessageWhenNoThreats = true`, `ewrs_onDemand = false`, `ewrs_maxThreatDisplay = 5`, `ewrs_allowBogeyDope = true`, `ewrs_allowFriendlyPicture = true`, `ewrs_maxFriendlyDisplay = 3`, `ewrs_showType = true`, `ewrs_mergedRangeNm = 5`, `ewrs_specialPlaneTypes` (types qui voient les amis par défaut).
+- La config doit être chargée avant `EWRS.lua` (`cfg:2318`).
 
-### Mechanism
+### Mécanisme
 
-- Detection: a "radar registry" of every unit with attribute `SAM SR`, `EWR` or `AWACS`, per side, built once from `coalition.getGroups` and maintained by Moose events `Birth`, `Dead`, `Crash`, `RemoveUnit`, `UnitLost` (`BASE:HandleEvent` → `world.addEventHandler`) (`EWRS.lua:1349-1394`).
-- Each cycle, for each radar of the player's side: `unit:getController():getDetectedTargets(Controller.Detection.RADAR)`; keep objects that exist, are in the air and have attribute `Planes` or `Helicopters`; de-duplicated by object id (`EWRS.lua:1396-1431`).
-- So the picture is what **friendly radars really detect** (terrain masking and radar range apply), computed once per side per cycle and shared by all players of that side (`EWRS.lua:1722-1736`).
-- Player list: `ewrs.update()` → `buildActivePlayers()` uses `SET_CLIENT:New():FilterActive(true):FilterOnce()`; it is called from the engine on player spawn/leave (`ewrs.registerPlayer`, `ewrs.pruneGroup`), not on a timer (`EWRS.lua:687-690`, `EWRS.lua:1205-1232`, `EWRS.lua:1308-1333`).
-- The registry is torn down when no player is active (`EWRS.lua:1226`, `EWRS.lua:1340-1347`).
-- One global timer (`timer.scheduleFunction`, first run at +6 s, period `messageUpdateInterval`) loops over active players; a per-cycle `contactFacts` cache shares position/heading/type per contact between players (`EWRS.lua:1719-1741`).
-- Reporting names: Moose `UNIT:Find(obj)` then a table lookup with overrides for WW2 types (`EWRS.lua:140-162`, `EWRS.lua:245-275`).
-- Output: `trigger.action.outTextForGroup` (in `ewrs.outText`, `EWRS.lua:966-1083`).
+- Détection : un « registre de radars » de chaque unité ayant l'attribut `SAM SR`, `EWR` ou `AWACS`, par camp, construit une fois à partir de `coalition.getGroups` et maintenu par les événements Moose `Birth`, `Dead`, `Crash`, `RemoveUnit`, `UnitLost` (`BASE:HandleEvent` → `world.addEventHandler`) (`EWRS.lua:1349-1394`).
+- À chaque cycle, pour chaque radar du camp du joueur : `unit:getController():getDetectedTargets(Controller.Detection.RADAR)` ; on garde les objets qui existent, sont en vol et ont l'attribut `Planes` ou `Helicopters` ; dédupliqués par id d'objet (`EWRS.lua:1396-1431`).
+- La situation est donc ce que **les radars amis détectent réellement** (masquage par le terrain et portée radar s'appliquent), calculée une fois par camp et par cycle et partagée par tous les joueurs de ce camp (`EWRS.lua:1722-1736`).
+- Liste des joueurs : `ewrs.update()` → `buildActivePlayers()` utilise `SET_CLIENT:New():FilterActive(true):FilterOnce()` ; elle est appelée par le moteur au spawn/départ d'un joueur (`ewrs.registerPlayer`, `ewrs.pruneGroup`), pas sur un timer (`EWRS.lua:687-690`, `EWRS.lua:1205-1232`, `EWRS.lua:1308-1333`).
+- Le registre est démonté quand aucun joueur n'est actif (`EWRS.lua:1226`, `EWRS.lua:1340-1347`).
+- Un seul timer global (`timer.scheduleFunction`, premier passage à +6 s, période `messageUpdateInterval`) boucle sur les joueurs actifs ; un cache `contactFacts` par cycle partage position/cap/type par contact entre les joueurs (`EWRS.lua:1719-1741`).
+- Noms de code : `UNIT:Find(obj)` de Moose puis une recherche dans une table avec des surcharges pour les types de la Seconde Guerre mondiale (`EWRS.lua:140-162`, `EWRS.lua:245-275`).
+- Sortie : `trigger.action.outTextForGroup` (dans `ewrs.outText`, `EWRS.lua:966-1083`).
 
-### Reproduction notes
+### Notes de reproduction
 
-- No heavy Moose dependency; the core is `Controller:getDetectedTargets(RADAR)` on each friendly search radar.
-- Cost: O(friendly radars) detection queries per cycle per side, plus O(players × contacts) formatting; the registry avoids rescanning all units.
-- The per-player settings persistence (compact encoded profiles) is ≈300 lines by itself.
+- Pas de dépendance lourde à Moose ; le cœur est `Controller:getDetectedTargets(RADAR)` sur chaque radar de veille ami.
+- Coût : O(radars amis) requêtes de détection par cycle et par camp, plus O(joueurs × contacts) pour le formatage ; le registre évite de rescanner toutes les unités.
+- La persistance des réglages par joueur (profils encodés compacts) représente à elle seule ≈300 lignes.
 
-## 14. Zeus: game-master marker commands (`Zeus.lua`, `zeus_Full_v2.1.lua`)
+## 14. Zeus : commandes de marqueurs du maître de jeu (`Zeus.lua`, `zeus_Full_v2.1.lua`)
 
-The Caucasus mission loads the short `Zeus.lua` (105 lines), not `zeus_Full_v2.1.lua` (the `.miz` contains only `l10n/DEFAULT/Zeus.lua`).
+La mission du Caucase charge le court `Zeus.lua` (105 lignes), pas `zeus_Full_v2.1.lua` (le `.miz` ne contient que `l10n/DEFAULT/Zeus.lua`).
 
-### `Zeus.lua` commands (marker text, lower-cased, must start with `-`)
+### Commandes de `Zeus.lua` (texte du marqueur, en minuscules, doit commencer par `-`)
 
-| Marker text | Effect | Code |
+| Texte du marqueur | Effet | Code |
 |---|---|---|
-| `-create <name>` | spawns the template `<name>` at the marker; allowed names: SA-8, SA-9, SA-13, SA-15, SA-19, Soldier, Truck, Shilka, Igla, Igla-S, RPG, BMP2, Tank, BTR80, CTLD_CARGO_HMMWV, mig21, JTAC9lineam, JTAC9linefm, Tankm1, CTLD_CARGO_L118, CTLD_CARGO_Scout, CTLD_CARGO_AmmoTruck, CTLD_CARGO_GMLRS_HE | `Zeus.lua:15-29` |
-| `-destroy1` | destroys every unit within 500 m | `Zeus.lua:37-42` |
-| `-destroy2`, `-destroy3` | destroys every unit within 1 000 m | `Zeus.lua:44-49` |
-| `-destroy4` | destroys every unit within 10 000 m | `Zeus.lua:51-56` |
-| `-explode <power> [delay]` | explosion at the marker (default power 100) | `Zeus.lua:58-64` |
-| `-smoke <red/blue/green/orange/white>` | smoke at the marker (default red) | `Zeus.lua:66-74` |
-| `-illuminate` | illumination bomb 1 000 m above the marker, power 700 000 | `Zeus.lua:89-91` |
-| `-static`, `-debug` | empty stubs | `Zeus.lua:32-33` |
+| `-create <name>` | génère le template `<name>` au marqueur ; noms autorisés : SA-8, SA-9, SA-13, SA-15, SA-19, Soldier, Truck, Shilka, Igla, Igla-S, RPG, BMP2, Tank, BTR80, CTLD_CARGO_HMMWV, mig21, JTAC9lineam, JTAC9linefm, Tankm1, CTLD_CARGO_L118, CTLD_CARGO_Scout, CTLD_CARGO_AmmoTruck, CTLD_CARGO_GMLRS_HE | `Zeus.lua:15-29` |
+| `-destroy1` | détruit toute unité à moins de 500 m | `Zeus.lua:37-42` |
+| `-destroy2`, `-destroy3` | détruit toute unité à moins de 1 000 m | `Zeus.lua:44-49` |
+| `-destroy4` | détruit toute unité à moins de 10 000 m | `Zeus.lua:51-56` |
+| `-explode <power> [delay]` | explosion au marqueur (puissance 100 par défaut) | `Zeus.lua:58-64` |
+| `-smoke <red/blue/green/orange/white>` | fumée au marqueur (rouge par défaut) | `Zeus.lua:66-74` |
+| `-illuminate` | bombe éclairante 1 000 m au-dessus du marqueur, puissance 700 000 | `Zeus.lua:89-91` |
+| `-static`, `-debug` | souches vides | `Zeus.lua:32-33` |
 
-- Trigger: `world.addEventHandler` on `S_EVENT_MARK_ADDED` and `S_EVENT_MARK_CHANGE`; the marker is removed after a recognised command (`Zeus.lua:76-102`).
-- **Who may use them: anyone who can place a marker.** There is no check of coalition, player name, UCID or slot in the file (`Zeus.lua:76-102`).
-- Moose use: `SPAWN:NewWithAlias(name, name..rnd):SpawnFromVec2`, `ZONE_RADIUS:New():SearchZone(fn, Object.Category.UNIT)` (→ `world.searchObjects` sphere), `COORDINATE:Explosion` (→ `trigger.action.explosion`), `COORDINATE:Smoke*` (→ `trigger.action.smoke`), `COORDINATE:IlluminationBomb` (→ `trigger.action.illuminationBomb`).
+- Déclenchement : `world.addEventHandler` sur `S_EVENT_MARK_ADDED` et `S_EVENT_MARK_CHANGE` ; le marqueur est supprimé après une commande reconnue (`Zeus.lua:76-102`).
+- **Qui peut les utiliser : toute personne qui peut poser un marqueur.** Il n'y a aucune vérification de coalition, de nom de joueur, d'UCID ou de slot dans le fichier (`Zeus.lua:76-102`).
+- Usage de Moose : `SPAWN:NewWithAlias(name, name..rnd):SpawnFromVec2`, `ZONE_RADIUS:New():SearchZone(fn, Object.Category.UNIT)` (→ sphère `world.searchObjects`), `COORDINATE:Explosion` (→ `trigger.action.explosion`), `COORDINATE:Smoke*` (→ `trigger.action.smoke`), `COORDINATE:IlluminationBomb` (→ `trigger.action.illuminationBomb`).
 
-### `zeus_Full_v2.1.lua` (1 750 lines, not loaded by the CA mission)
+### `zeus_Full_v2.1.lua` (1 750 lignes, non chargé par la mission CA)
 
-- Same `-destroyN`, `-explode`, `-smoke`, `-illuminate` commands (`zeus_Full_v2.1.lua:1465-1485`).
-- Semicolon syntax on **mark change** only: `<model>;<unit name>[;red/blue]` spawns an aircraft from built-in templates (`airUnitDB`: mig29, mig23, mig21, j11, m2k, f14, f15, f16, f18, f1, f5, mig28, f4, p51, spit, mossie, bf109, fw190a8, fw190d9, ju88, plus `jtac`, `texaco`, `arco`) at the marker via `coalition.addGroup`; support types spawn on the player's side, others as adversaries unless overridden (`zeus_Full_v2.1.lua:1497-1533`, `zeus_Full_v2.1.lua:1668-1742`).
-- `destroy;<spawn name>` dismisses a spawned package; `illumin;` drops 5 illumination bombs (power 1 000 000, 600–1 200 m, staggered 5–13 s after a 15 s delay); `smoke;<colors>`; `strike;` = 16 explosions over 5–20 s (`zeus_Full_v2.1.lua:1534-1549`, `zeus_Full_v2.1.lua:1572-1602`).
-- Optional napalm / phosphor effects, both off by default (`zeus_Full_v2.1.lua:11-14`).
-- It ignores marker texts that match the engine's own commands (exclusion list: help, buy, status, stats, capture, `-code:`, …) (`zeus_Full_v2.1.lua:17-55`).
-- Only guard: at least one player must be in the mission (`zeus_Full_v2.1.lua:1509`, `zeus_Full_v2.1.lua:1532`); no admin check.
+- Mêmes commandes `-destroyN`, `-explode`, `-smoke`, `-illuminate` (`zeus_Full_v2.1.lua:1465-1485`).
+- Syntaxe à point-virgule sur **changement de marque** uniquement : `<model>;<unit name>[;red/blue]` génère un appareil à partir de templates intégrés (`airUnitDB` : mig29, mig23, mig21, j11, m2k, f14, f15, f16, f18, f1, f5, mig28, f4, p51, spit, mossie, bf109, fw190a8, fw190d9, ju88, plus `jtac`, `texaco`, `arco`) au marqueur via `coalition.addGroup` ; les types de soutien apparaissent du côté du joueur, les autres en adversaires sauf surcharge (`zeus_Full_v2.1.lua:1497-1533`, `zeus_Full_v2.1.lua:1668-1742`).
+- `destroy;<spawn name>` renvoie un ensemble généré ; `illumin;` lâche 5 bombes éclairantes (puissance 1 000 000, 600–1 200 m, étalées de 5 à 13 s après un délai de 15 s) ; `smoke;<colors>` ; `strike;` = 16 explosions sur 5–20 s (`zeus_Full_v2.1.lua:1534-1549`, `zeus_Full_v2.1.lua:1572-1602`).
+- Effets optionnels de napalm / phosphore, tous deux désactivés par défaut (`zeus_Full_v2.1.lua:11-14`).
+- Il ignore les textes de marqueurs qui correspondent aux commandes du moteur (liste d'exclusion : help, buy, status, stats, capture, `-code:`, …) (`zeus_Full_v2.1.lua:17-55`).
+- Seule garde : au moins un joueur doit être dans la mission (`zeus_Full_v2.1.lua:1509`, `zeus_Full_v2.1.lua:1532`) ; aucune vérification d'admin.
 
-## 15. Smoke, flare and illumination on a zone's targets
+## 15. Fumée, fusée éclairante et illumination sur les cibles d'une zone
 
-- Shop items `smoke`, `flare`, `illum` → pick an enemy, non-suspended zone → `bc:smokeTargets(zone)`, `bc:flareTargets(zone)`, `bc:illumTargets(zone)` and a coalition message (`setup:4547-4634`).
-- Smoke: up to 3 random alive units/statics of the zone get **red** smoke (`trigger.action.smoke(point, 1)`); the smoked groups are told to react through `AIEN.ReactToSmoke(zone, groupName, 20)` (the ground-AI script) (`zc2:23618-23660`).
-- Flare: up to 3 random targets, each with 3 red signal flares 5 s apart (`trigger.action.signalFlare`, `timer.scheduleFunction`) (`zc2:23662-23694`).
-- Illumination: up to 3 positions (group leaders when the zone has ≥ 3 groups, else random units), altitude 1 000 m, power 700 000 via `trigger.action.illuminationBomb(point, power)` (`zc2:23696-23774`).
-- Other on-request marking already listed: JTAC drone smoke/flare (section 1), player designator blue smoke (section 3), CSAR smoke/flare at pilot and "smoke/flare nearest zone" (section 4), Zeus `-smoke` / `-illuminate` (section 14).
-- All raw DCS trigger actions; no Moose.
+- Articles de boutique `smoke`, `flare`, `illum` → choix d'une zone ennemie non suspendue → `bc:smokeTargets(zone)`, `bc:flareTargets(zone)`, `bc:illumTargets(zone)` et un message à la coalition (`setup:4547-4634`).
+- Fumée : jusqu'à 3 unités/statics vivants de la zone tirés au hasard reçoivent une fumée **rouge** (`trigger.action.smoke(point, 1)`) ; les groupes fumés reçoivent l'ordre de réagir via `AIEN.ReactToSmoke(zone, groupName, 20)` (le script d'IA au sol) (`zc2:23618-23660`).
+- Fusée éclairante : jusqu'à 3 cibles au hasard, chacune avec 3 fusées de signalisation rouges espacées de 5 s (`trigger.action.signalFlare`, `timer.scheduleFunction`) (`zc2:23662-23694`).
+- Illumination : jusqu'à 3 positions (chefs de groupe quand la zone a ≥ 3 groupes, sinon unités au hasard), altitude 1 000 m, puissance 700 000 via `trigger.action.illuminationBomb(point, power)` (`zc2:23696-23774`).
+- Autres marquages à la demande déjà listés : fumée/fusée du drone JTAC (section 1), fumée bleue du désignateur du joueur (section 3), fumée/fusée CSAR sur le pilote et « smoke/flare nearest zone » (section 4), `-smoke` / `-illuminate` de Zeus (section 14).
+- Toutes des actions de trigger DCS brutes ; pas de Moose.
 
-## 16. `DynamicSupportNative`: life-cycle tracker of purchased AI support flights
+## 16. `DynamicSupportNative` : suivi du cycle de vie des vols de soutien IA achetés
 
-- Purpose: a registry of the player-purchased flights (CAP, CAS, SEAD, bomber, decoy…) that reports their life cycle to the coalition and drives the control-menu refresh; it is **not** itself an on-demand support request (`zc2:106261-106469`).
-- `Register(record, group)` stores `record` under `record.groupName` with callbacks/messages: `airborneMessage`, `onMissionStarted`, `winchesterMessage` / `onWinchester`, `completedMessage`, `landedMessage`, `killedMessage`, `clearActive()`, `isActive()` (`zc2:106367-106378`).
-- Ammo monitor: one shared `timer.scheduleFunction` every 30 s while any flight is registered; `_hasMissionAmmo` scans `Unit:getAmmo()` for bombs, rockets and non-AAM missiles (or only AAMs when `aamOnly`); the first time a flight that had mission ammo has none left → "winchester" message and callback (`zc2:106266-106291`, `zc2:106303-106365`).
-- The same tick wakes idle-suspended zones along the flight's footprint (`_idleWakeFootprint`) and finishes flights whose group disappeared (`zc2:106314-106350`).
-- Event hooks called from the BattleCommander handler: `HandleTakeoff` (airborne message, menu refresh), `HandleUnitLost` (last unit lost → "killed" message, optional CAP auto-rebuy via `_replaceLostPurchasedCap` when `AllowCapAutoBuyAfterLoss`), `HandleLanding` (`zc2:106402-106469`, `zc2:43070-43073`).
-- `ReportMissionStarted` / `ReportMissionComplete` are called by the flights' own task scripts (`zc2:106380-106400`).
-- No Moose in the tracker itself; the flights it tracks are tasked with raw DCS task tables (`Controller:setTask({id = "Mission", …})`, `Bombing`, `ComboTask`), not with Moose OPS `FLIGHTGROUP` / `AUFTRAG` (only the navy-artillery item uses those), which is the likely meaning of "Native" (`zc2:109065`, `zc2:1503-1561`, `zc2:109950-110096`; the name itself is not explained in the code — (estimation)).
+- Rôle : un registre des vols achetés par les joueurs (CAP, CAS, SEAD, bombardier, leurre…) qui rapporte leur cycle de vie à la coalition et pilote le rafraîchissement des menus de contrôle ; ce n'est **pas** en soi une demande de soutien à la demande (`zc2:106261-106469`).
+- `Register(record, group)` stocke `record` sous `record.groupName` avec des callbacks/messages : `airborneMessage`, `onMissionStarted`, `winchesterMessage` / `onWinchester`, `completedMessage`, `landedMessage`, `killedMessage`, `clearActive()`, `isActive()` (`zc2:106367-106378`).
+- Surveillance des munitions : un seul `timer.scheduleFunction` partagé toutes les 30 s tant qu'un vol est enregistré ; `_hasMissionAmmo` scrute `Unit:getAmmo()` à la recherche de bombes, roquettes et missiles non AAM (ou seulement des AAM quand `aamOnly`) ; la première fois qu'un vol qui avait des munitions de mission n'en a plus → message « winchester » et callback (`zc2:106266-106291`, `zc2:106303-106365`).
+- Le même tick réveille les zones suspendues « idle » le long de l'empreinte du vol (`_idleWakeFootprint`) et termine les vols dont le groupe a disparu (`zc2:106314-106350`).
+- Hooks d'événements appelés depuis le gestionnaire de BattleCommander : `HandleTakeoff` (message en vol, rafraîchissement du menu), `HandleUnitLost` (dernière unité perdue → message « killed », rachat automatique optionnel de la CAP via `_replaceLostPurchasedCap` quand `AllowCapAutoBuyAfterLoss`), `HandleLanding` (`zc2:106402-106469`, `zc2:43070-43073`).
+- `ReportMissionStarted` / `ReportMissionComplete` sont appelées par les propres scripts de tâche des vols (`zc2:106380-106400`).
+- Pas de Moose dans le suivi lui-même ; les vols qu'il suit reçoivent des tables de tâches DCS brutes (`Controller:setTask({id = "Mission", …})`, `Bombing`, `ComboTask`), pas les `FLIGHTGROUP` / `AUFTRAG` de Moose OPS (seul l'article d'artillerie navale les utilise), ce qui est probablement le sens de « Native » (`zc2:109065`, `zc2:1503-1561`, `zc2:109950-110096` ; le nom lui-même n'est pas expliqué dans le code — (estimation)).
 
-## 17. "Hunt": enemy fighters dispatched against a successful player
+## 17. « Hunt » : chasseurs ennemis lancés contre un joueur performant
 
-- This is a threat, not a support tool, but it is the only thing named `Hunt` in the engine.
-- Config `EnableHunter = true` (disabled in PvP) (`cfg:856-858`, `zc2:40974-40986`).
-- Setup: `bc:initHunter(HuntNumber, AirHuntNumber)` with a ground-kill threshold of 6–15 (8–15 with splash damage) and an air-kill threshold of 4–8, drawn at mission start (`setup:6040-6043`).
-- `registerHuntKill(pname, unit, killType)` counts kills per blue player (helicopters, A-10C_2, A-10A and AV8BNA are exempt); once the threshold is reached each further kill has a 10 % chance (once per life) to call `_spawnHunterForPlayer`, which picks a red airbase with 2 free parking spots and launches a 2-ship against the player (`zc2:41136-41168`, `zc2:41059-41075`).
-- Counters are reset when the player leaves or respawns (`WM:2888`, `zc2:41695`).
+- C'est une menace, pas un outil de soutien, mais c'est la seule chose nommée `Hunt` dans le moteur.
+- Config `EnableHunter = true` (désactivé en PvP) (`cfg:856-858`, `zc2:40974-40986`).
+- Setup : `bc:initHunter(HuntNumber, AirHuntNumber)` avec un seuil de kills au sol de 6–15 (8–15 avec splash damage) et un seuil de kills en l'air de 4–8, tirés au démarrage de la mission (`setup:6040-6043`).
+- `registerHuntKill(pname, unit, killType)` compte les kills par joueur bleu (hélicoptères, A-10C_2, A-10A et AV8BNA exemptés) ; une fois le seuil atteint chaque kill supplémentaire a 10 % de chances (une fois par vie) d'appeler `_spawnHunterForPlayer`, qui choisit un aérodrome rouge avec 2 places de parking libres et lance 2 appareils contre le joueur (`zc2:41136-41168`, `zc2:41059-41075`).
+- Les compteurs sont remis à zéro quand le joueur part ou respawne (`WM:2888`, `zc2:41695`).
 
-## 18. `Splash_Damage_3.4.1_leka.lua`: Foothold customisations (brief)
+## 18. `Splash_Damage_3.4.1_leka.lua` : personnalisations Foothold (bref)
 
-- Third-party "Splash Damage 3.4.1" script (4 932 lines); the Foothold variant differs from `Splash_Damage_3.4.1_Default.lua` (4 824 lines) in about 80 diff hunks.
-- Citations below are line numbers in `Splash_Damage_3.4.1_leka.lua` (short name `SD`); "Default" is the value at the matching place of `Splash_Damage_3.4.1_Default.lua`.
+- Script tiers « Splash Damage 3.4.1 » (4 932 lignes) ; la variante Foothold diffère de `Splash_Damage_3.4.1_Default.lua` (4 824 lignes) par environ 80 blocs de diff.
+- Les citations ci-dessous sont des numéros de ligne de `Splash_Damage_3.4.1_leka.lua` (nom court `SD`) ; « Default » est la valeur à l'endroit correspondant de `Splash_Damage_3.4.1_Default.lua`.
 
-| Foothold customisation | Lines (`SD`) | Default file |
+| Personnalisation Foothold | Lignes (`SD`) | Fichier par défaut |
 |---|---|---|
-| The whole script is wrapped in `if SplashDamage == true or splashDamageIsNormandy then … end` (Config `SplashDamage` default `false`, `cfg:273`; always on for the Normandy theatre) | `SD:1-4`, `SD:4802` | runs unconditionally |
-| Header note "this is a 3.4.1 version for leka's foothold" and "Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required" | `SD:18`, `SD:24` | absent |
+| Tout le script est enveloppé dans `if SplashDamage == true or splashDamageIsNormandy then … end` (Config `SplashDamage` par défaut `false`, `cfg:273` ; toujours actif pour le théâtre Normandie) | `SD:1-4`, `SD:4802` | s'exécute sans condition |
+| Note d'en-tête "this is a 3.4.1 version for leka's foothold" et "Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required" | `SD:18`, `SD:24` | absente |
 | `dynamic_blast_radius_modifier = 1.5` | `SD:76` | 2 |
 | `cascade_scaling = 1.5` | `SD:90` | 2 |
 | `ordnance_protection = false` | `SD:153` | true |
-| `killfeed_enable = true` ("required for lekas foothold") | `SD:218` | true (no Foothold remark) |
-| `killfeed_lekas_foothold_integration = true`, `killfeed_lekas_contribution_delay = 0` | `SD:220-221` | options absent |
-| Normandy override: `larger_explosions = true`, `dynamic_blast_radius_modifier = 2`, `cascade_scaling = 2`, `ordnance_protection = true` | `SD:286-292` | absent |
-| Weapon table: `F16V_GBU53`, `F16V_GBU39` (explosive 25) added | `SD:714-715` | absent |
-| A weapon missing from the table is logged once per type name (`reportedMissingWeapons`) instead of at every shot | `SD:1053`, `SD:3429-3433` | logged each time |
-| Shots whose weapon is `ZELL Booster` or `SPRD-99` are ignored | `SD:3308-3310` | absent |
-| `getFootholdRewardDataForObject(object, name)`: red objects only, `bc:objectToRewardPoints2` → stat name and points | `SD:1304-1323` | absent |
-| A splash-kill entry is queued only if it has a stat name and points, once per unit id | `SD:1325-1342` | queued without reward data |
-| `isFootholdRewardPlayer(name)`: `bc.playerContributions[2][name] ~= nil` | `SD:1344-1346` | absent |
-| Reward data attached where the script finds its victims: napalm scan (`scanUnitsForNapalm`), main weapon tracker (`track_wpns`), cluster bomblet hits (`CBUBombletHitExplosion`) | `SD:1547`, `SD:1576`, `SD:2866`, `SD:3827` | absent |
-| `processSplashKillfeed`: every 5 s while entries are queued (60 s otherwise) applies `bc:addTempStat`, `bc:addContribution(player, 2, points)`, `bc:registerCasMissionKill`, `bc:registerSeadMissionKill`, `bc:registerMissionTargetKill` (when the unit is in `MissionTargets`) for enrolled players, then drops the entry | `SD:3492-3532` | the same timer only expires old entries |
-| The processor timer is started at load, 60 s after start | `SD:4780-4783` | absent |
-| A real `S_EVENT_KILL` for a unit already queued as a splash kill removes the queued entry (no double pay) | `SD:4549-4559` | same de-duplication, used for the text feed only |
-| `processedSmoke[unitID]` holds an expiry time instead of `true`, extended by the effect duration, and a prune pass deletes expired entries, so the smoke/cook-off effect of a unit is not replayed and the table does not grow | `SD:1407-1410`, `SD:2065`, `SD:2119-2120`, `SD:2383-2384`, `SD:2418-2419` | `processedSmoke[unitID] = true`, never pruned |
+| `killfeed_enable = true` ("required for lekas foothold") | `SD:218` | true (sans remarque Foothold) |
+| `killfeed_lekas_foothold_integration = true`, `killfeed_lekas_contribution_delay = 0` | `SD:220-221` | options absentes |
+| Surcharge Normandie : `larger_explosions = true`, `dynamic_blast_radius_modifier = 2`, `cascade_scaling = 2`, `ordnance_protection = true` | `SD:286-292` | absente |
+| Table d'armes : `F16V_GBU53`, `F16V_GBU39` (explosif 25) ajoutées | `SD:714-715` | absente |
+| Une arme absente de la table est journalisée une seule fois par nom de type (`reportedMissingWeapons`) au lieu de chaque tir | `SD:1053`, `SD:3429-3433` | journalisée à chaque fois |
+| Les tirs dont l'arme est `ZELL Booster` ou `SPRD-99` sont ignorés | `SD:3308-3310` | absente |
+| `getFootholdRewardDataForObject(object, name)` : objets rouges seulement, `bc:objectToRewardPoints2` → nom de stat et points | `SD:1304-1323` | absente |
+| Une entrée de kill par splash n'est mise en file que si elle a un nom de stat et des points, une fois par id d'unité | `SD:1325-1342` | mise en file sans données de récompense |
+| `isFootholdRewardPlayer(name)` : `bc.playerContributions[2][name] ~= nil` | `SD:1344-1346` | absente |
+| Données de récompense attachées là où le script trouve ses victimes : scan de napalm (`scanUnitsForNapalm`), suivi principal des armes (`track_wpns`), impacts de bomblets de bombes à sous-munitions (`CBUBombletHitExplosion`) | `SD:1547`, `SD:1576`, `SD:2866`, `SD:3827` | absentes |
+| `processSplashKillfeed` : toutes les 5 s tant que des entrées sont en file (60 s sinon) applique `bc:addTempStat`, `bc:addContribution(player, 2, points)`, `bc:registerCasMissionKill`, `bc:registerSeadMissionKill`, `bc:registerMissionTargetKill` (quand l'unité est dans `MissionTargets`) pour les joueurs inscrits, puis retire l'entrée | `SD:3492-3532` | le même timer ne fait qu'expirer les anciennes entrées |
+| Le timer de traitement est démarré au chargement, 60 s après le début | `SD:4780-4783` | absent |
+| Un vrai `S_EVENT_KILL` pour une unité déjà en file comme kill par splash retire l'entrée en file (pas de double paiement) | `SD:4549-4559` | même déduplication, utilisée pour le fil de texte seulement |
+| `processedSmoke[unitID]` contient une heure d'expiration au lieu de `true`, prolongée de la durée de l'effet, et une passe d'élagage supprime les entrées expirées, de sorte que l'effet de fumée/cook-off d'une unité n'est pas rejoué et que la table ne grossit pas | `SD:1407-1410`, `SD:2065`, `SD:2119-2120`, `SD:2383-2384`, `SD:2418-2419` | `processedSmoke[unitID] = true`, jamais élagué |
 
-- What is unchanged: the stock "all units" smoke and cook-off effects, the blast-wave and cascade model, the radio-menu options of the original script (not listed here).
-- Splash rewards are blue-only (side 2 is hard-coded at `SD:1345` and `SD:3513`) and do not go through the engine's kill handler, so they feed the purse, the sortie stats and the CAS/SEAD/target missions but not the career kill counters (`SD:3511-3519`).
+- Ce qui est inchangé : les effets de fumée et de cook-off standard « toutes unités », le modèle d'onde de souffle et de cascade, les options de menu radio du script d'origine (non listées ici).
+- Les récompenses de splash sont réservées aux bleus (le camp 2 est codé en dur à `SD:1345` et `SD:3513`) et ne passent pas par le gestionnaire de kills du moteur, donc elles alimentent la bourse, les stats de sortie et les missions CAS/SEAD/cible mais pas les compteurs de kills de carrière (`SD:3511-3519`).
 
-## 19. Help texts, radio information, weather
+## 19. Textes d'aide, informations radio, météo
 
-- Marker `help` prints `ADMIN_COMMAND_HELP`; `debughelp` prints `ADMIN_DEBUG_HELP`; `tarawahelp` prints the Tarawa commands (`zc2:28481-28501`, `zc2:28948-28956`, `loc:1896`).
-- Menu help entries: "Tanker Help" (radio info of both tankers + marker syntax), "CAP Help" (marker syntax), "Carrier info" (ATC/TACAN/ICLS/Link 4), "Rank Help", "Supplies help", joint-mission "Help" (`loc:1913-1914`, `loc:1875-1876`, `loc:1024`, `loc:1634`, `loc:1606`).
-- Radio frequency information is centralised in `BattleCommander:_initializeSupportRadioSettings` (AWACS, tankers, Shell) and `enableCarrierNavigation` (carriers), validated at load with `assert` (30–400 MHz, TACAN 1–126) (`zc2:13630-13676`, `zc2:13560-13597`).
-- The `.miz` ships one kneeboard image, `KNEEBOARD/IMAGES/Freq.png` (frequency card); no script generates kneeboard pages.
-- Weather: only read, never changed: `atmosphere.getWind` (player position, carrier deck at 18 m), Moose `COORDINATE:GetWind(10)`, `GetTemperature`, altimeter (`WM:1081-1106`, `WM:753-777`, `zc2:14959`); no time-of-day helper was found in this theme.
+- Le marqueur `help` imprime `ADMIN_COMMAND_HELP` ; `debughelp` imprime `ADMIN_DEBUG_HELP` ; `tarawahelp` imprime les commandes du Tarawa (`zc2:28481-28501`, `zc2:28948-28956`, `loc:1896`).
+- Entrées d'aide des menus : "Tanker Help" (infos radio des deux ravitailleurs + syntaxe des marqueurs), "CAP Help" (syntaxe des marqueurs), "Carrier info" (ATC/TACAN/ICLS/Link 4), "Rank Help", "Supplies help", "Help" des missions conjointes (`loc:1913-1914`, `loc:1875-1876`, `loc:1024`, `loc:1634`, `loc:1606`).
+- L'information sur les fréquences radio est centralisée dans `BattleCommander:_initializeSupportRadioSettings` (AWACS, ravitailleurs, Shell) et `enableCarrierNavigation` (porte-avions), validée au chargement par `assert` (30–400 MHz, TACAN 1–126) (`zc2:13630-13676`, `zc2:13560-13597`).
+- Le `.miz` livre une seule image de kneeboard, `KNEEBOARD/IMAGES/Freq.png` (fiche de fréquences) ; aucun script ne génère de pages de kneeboard.
+- Météo : seulement lue, jamais modifiée : `atmosphere.getWind` (position du joueur, pont du porte-avions à 18 m), `COORDINATE:GetWind(10)` de Moose, `GetTemperature`, altimètre (`WM:1081-1106`, `WM:753-777`, `zc2:14959`) ; aucun helper d'heure du jour n'a été trouvé dans ce thème.
 
-## Seen outside this theme
+## Vu hors de ce thème
 
-- Recon missions (`BattleCommander:initReconMissions`, slots, trackers `ReconMissionTrackers`) are a mission type of the MissionCommander; zone intel and JTAC deployment cancel them (`zc2:62654-62690`, `zc2:6999-7003`, `zc2:7986-7987`).
-- Dynamic FARP creation by marker (`farphere`, `givemefarp`, `escortmissionfarp`) (`zc2:29011-29067`).
-- Shop by marker (`buy`, `buy:<item>`, `adminbuy`, `köp`) and the admin economy commands (`addfunds:`, `addrank:`) (`zc2:28555-28706`, `zc2:29085-29135`).
-- Zone status display `ZoneCommander:displayStatus` and the "Intel / zone status" menu (`zc2:50274`, `zc2:40330`).
-- Purchased AI flights themselves: `spawnCapAt`, CAS/SEAD/bomber/decoy shop actions, `StrategicBomber` control menu (`zc2:107204`, `setup:3053-3780`, `zc2:4195`).
-- `AIEN.lua` ground-AI reactions (`AIEN.ReactToSmoke`) (`zc2:23658`).
-- Career/statistics (`recordCareerStat`, `printStats`, `mystats`) (`zc2:29215-29239`, `WM:2802`).
-- Player rank gating of menus (`_getGroupRank`, `CarrierRankRequirement`, tanker rank) (`zc2:28227`, `zc2:16084`).
-- Territory overlay used to validate Tarawa moves (`_territoryOverlaySideAtPoint`) (`zc2:28930`).
-- `-code:<lua>` marker executes arbitrary Lua for anyone able to edit a marker (`zc2:29203-29214`).
-- Persistence of support state: tanker stations, carrier navigation, CSAR pilots, SelfJtac and EWRS player settings (`zc2:106153`, `zc2:15298`, `zc2:44890`, `zc2:43833`, `EWRS.lua:529-656`).
+- Les missions de reconnaissance (`BattleCommander:initReconMissions`, slots, suivis `ReconMissionTrackers`) sont un type de mission du MissionCommander ; l'intel de zone et le déploiement d'un JTAC les annulent (`zc2:62654-62690`, `zc2:6999-7003`, `zc2:7986-7987`).
+- Création dynamique de FARP par marqueur (`farphere`, `givemefarp`, `escortmissionfarp`) (`zc2:29011-29067`).
+- Boutique par marqueur (`buy`, `buy:<item>`, `adminbuy`, `köp`) et commandes d'économie admin (`addfunds:`, `addrank:`) (`zc2:28555-28706`, `zc2:29085-29135`).
+- Affichage du statut de zone `ZoneCommander:displayStatus` et menu « Intel / zone status » (`zc2:50274`, `zc2:40330`).
+- Les vols IA achetés eux-mêmes : `spawnCapAt`, actions de boutique CAS/SEAD/bombardier/leurre, menu de contrôle `StrategicBomber` (`zc2:107204`, `setup:3053-3780`, `zc2:4195`).
+- Réactions de l'IA au sol de `AIEN.lua` (`AIEN.ReactToSmoke`) (`zc2:23658`).
+- Carrière/statistiques (`recordCareerStat`, `printStats`, `mystats`) (`zc2:29215-29239`, `WM:2802`).
+- Menus conditionnés par le rang du joueur (`_getGroupRank`, `CarrierRankRequirement`, rang des ravitailleurs) (`zc2:28227`, `zc2:16084`).
+- Calque de territoire utilisé pour valider les déplacements du Tarawa (`_territoryOverlaySideAtPoint`) (`zc2:28930`).
+- Le marqueur `-code:<lua>` exécute du Lua arbitraire pour toute personne capable d'éditer un marqueur (`zc2:29203-29214`).
+- Persistance de l'état du soutien : stations des ravitailleurs, navigation des porte-avions, pilotes CSAR, réglages de SelfJtac et d'EWRS par joueur (`zc2:106153`, `zc2:15298`, `zc2:44890`, `zc2:43833`, `EWRS.lua:529-656`).

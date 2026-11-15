@@ -471,6 +471,7 @@ Pour chaque zone possédée et active, elle calcule (`zc2:37753-37834`) :
 - blocages : JTAC actif sur la zone, réveil par proximité de joueur encore valide, lien de navigation de porte-avions, un FARP dynamique à moins de 20 NM, objets critiques présents, pression « réactive » du rouge (`zc2:37778-37791`).
 
 `shouldSuspend` = aucun des blocages, aucun voisin ennemi ou neutre, aucun combat, aucun supply entrant, ne peut pas recevoir de supply, et `dist > limit` (`zc2:37802`).
+Sinon une zone suspendue est mise en file pour reprise (`zc2:37841-37848`).
 
 `reindexCombatZones(includeSources, useAutoSuspendEnemyReferences)` reconstruit de zéro, à chaque appel, les deux ensembles utilisés ci-dessus, `_activeAttackOrPatrol[zoneName]` (les zones qui sont une cible vivante) et `_activeOrigin[zoneName]` (les zones qui sont une origine vivante) (`zc2:35040-35228`).
 Il parcourt, pour chaque zone, une liste en cache de ses commandants de groupes d'attaque/de patrouille (`_getReindexCombatCache`) et calcule pour chacun : `live` (état autre que `inhangar`/`dead`), `spawnable` (le résultat en cache de la porte d'éligibilité au spawn), `directorReserved` (le Director retient le groupe pour une opération), et `sideValid` (patrouille : origine et cible du même camp ; attaque : cible possédée par l'autre camp et non neutre) (`zc2:35074-35103`).
@@ -479,7 +480,6 @@ Les capacités passives du Director (`directorPassiveCombatByOrigin[origin].atta
 Effets de bord : un groupe en route vers sa base réveille à nouveau les zones « idle » de son empreinte de retour, et un groupe engagé réveille à nouveau l'empreinte de sa cible (`_wakeIdleMissionZones`) (`zc2:35105-35118`).
 Il renvoie le cache de distance à l'ennemi le plus proche par zone et l'ensemble des noms de cibles « engagées », que le test de suspension « idle » utilise (`zc2:35227`).
 Avec `includeSources`, il remplit aussi `_activeAttackOrPatrolSources` / `_activeOriginSources` avec une ligne de texte par groupe contributeur, pour l'explication de `whynot` (`zc2:35043-35044`, `zc2:35133-35136`).
-Sinon une zone suspendue est mise en file pour reprise (`zc2:37841-37848`).
 Règles de réveil supplémentaires : jusqu'à deux voisines suspendues de chaque zone neutre sont réveillées si elles ont une raison d'agir (`zc2:37723-37749`) ; les zones rouges à moins de 12 NM (5 NM sur Normandie) d'une zone rouge éveillée sont maintenues éveillées ensemble (`zc2:37857-37909`) ; une zone avec un radar GCI bleu endommagé est toujours réveillée (`zc2:37503-37506`, `zc2:37914`).
 
 La suspension « idle » est un second niveau, plus léger, décidé dans la même passe : une zone qui n'est pas due pour la suspension complète mais qui est plus loin que limite × `idleZoneSuspendFactor`, sans blocage, sans cible IA engagée, sans objectif de joueur (`ActiveCurrentMission`), sans demande de supply, sans menace de poursuite SA-5, et pas près d'une zone amie occupée, est endormie avec `suspend(true)` (`zc2:37804-37818`, `zc2:37923-37943`).

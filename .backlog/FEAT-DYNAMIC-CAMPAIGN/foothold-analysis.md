@@ -63,7 +63,7 @@ Un index des fonctions (une ligne `ligne:signature` par définition) se régén�
 | [`04-director.md`](foothold-analysis/04-director.md) | le planificateur qui autorise chaque sortie IA : capacités, cycle, choix de cible, packages, posture, phases et verrous, apprentissage, slots de CAP, sorties au sol, événements, difficulté | 19 fonctionnalités |
 | [`05-economy-shop-ranks-missions.md`](foothold-analysis/05-economy-shop-ranks-missions.md) | crédits de coalition et personnels, attribution des kills, tout le catalogue de la boutique, rangs, statistiques, carrière, missions conjointes, missions joueurs, arbre F10 | 13 fonctionnalités |
 | [`06-player-support-tools.md`](foothold-analysis/06-player-support-tools.md) | drones JTAC, désignateur laser du joueur, CSAR, intel de zone, ravitailleurs, AWACS, contrôle des CAP, toutes les commandes par marqueur, porte-avions, accueil/callsigns/ATIS, escorte, EWRS, Zeus, splash damage | 19 fonctionnalités |
-| [`07-ctld-warehouse-logistics.md`](foothold-analysis/07-ctld-warehouse-logistics.md) | ce que Foothold ajoute au CTLD de Moose, catalogue de cargo, supplies de zone, cargo d'entrepôt, kits de FARP, C-130J, équipes espion et démolition, stocks d'entrepôt, ancienne logistique, CTLD rouge, liste des fonctions du CTLD Moose utilisées | 22 fonctionnalités |
+| [`07-ctld-warehouse-logistics.md`](foothold-analysis/07-ctld-warehouse-logistics.md) | ce que Foothold ajoute au CTLD de Moose, catalogue de cargo, supplies de zone, cargo d'entrepôt, kits de FARP, C-130J, équipes espion et démolition, stocks d'entrepôt, ancienne logistique, CTLD rouge, liste des fonctions du CTLD Moose utilisées | 22 fonctionnalités, plus la production de supply, le bâtiment entrepôt, les infrastructures, l'industrie PvP et les trains |
 | [`08-mission-maker-side.md`](foothold-analysis/08-mission-maker-side.md) | le manuel (63 pages), les 202 réglages de config, la structure d'un fichier de setup avec extraits, les conventions du `.miz` mesurées, le Config Manager, l'exploitation serveur, le coût d'écriture d'une carte | 10 rubriques |
 
 Chaque note s'ouvre sur son tableau de fonctionnalités et finit par ce qu'elle a vu hors de son thème.
@@ -283,6 +283,11 @@ L'effort est ce qu'il faudrait pour reproduire la fonctionnalité sur les brique
 | SAM construits en plusieurs parties | ajouter des lanceurs à un site existant | fusion de groupes près d'un site | rien | moyen | 07 §11 |
 | Équipes espion et démolition | des équipes IA qui donnent de l'intel ou font sauter des structures | infanterie routée avec minuteries | rien | moyen | 07 §10 |
 | Persistance des unités construites | les unités et FARP construits survivent à un redémarrage | CSV de Moose et CSV de Foothold | non vérifié dans CTLD 2 (estimation) | moyen | 07 §16 |
+| Production de supply des zones | l'étiquette de zone affiche `[SUP] n/max` et les travaux en cours (« Building: Armor 57 % ») ; « les supplies partent dans 30 secondes » | chaque zone tenue fabrique lentement des supplies, dépensés par les joueurs, par les vols de supply IA et par ses propres travaux de réparation et d'amélioration | la réserve de `veafCampaign`, comptée par camp et non par zone | moyen | 07 §26 |
+| Bâtiment entrepôt d'une zone (Logistic Center) | un bâtiment `[WH]` destructible ; tant qu'il tient, stock d'armes illimité et production plus rapide ; réparable à la boutique en 30 min | un static par zone, suivi et sauvegardé | rien | moyen | 07 §27 |
+| Infrastructures de théâtre | détruire un bâtiment de la carte coupe la route de supply rouge d'une zone SAM | bâtiments du décor déclarés par carte, lus par le Director | le décor détruit est enregistré par `veafCampaign` ; aucun effet attaché | faible à moyen | 07 §28 |
+| Industrie et territoire de départ en PvP | objectifs industriels à frapper ; partage initial du territoire | zones industrielles avec leurs statics ; ordre de territoire écrit à la main par carte | rien (pas de PvP) | hors sujet tant qu'il n'y a pas de PvP | 07 §29 |
+| Trains de supply (Normandie) | des trains ravitaillent les zones ; perdre un train ou une gare se paie ; réparation à la boutique | 51 liens de supply dont 20 par train, arrivée détectée par trigger zone et user flags | rien | moyen, propre à la Normandie | 07 §30 |
 
 La note 07 §25 liste les fonctions du CTLD de Moose sur lesquelles Foothold s'appuie, pour une comparaison ultérieure avec CTLD 2.
 
@@ -313,18 +318,20 @@ La note 07 §25 liste les fonctions du CTLD de Moose sur lesquelles Foothold s'a
 
 ## 8. Ce qui n'a pas été lu
 
-Les huit notes marquent leurs propres trous.
-Une passe de comblement a repris les notes après leur première écriture ; l'historique git de `foothold-analysis/` dit ce qu'elle a fermé.
-Les notes 01 et 03 n'ont plus de trou connu, hormis une estimation sur AIEN dans la note 03.
-Restait non lu ou estimé à l'écriture de cette page, sous réserve de la passe en cours sur les notes 02 et 04 à 07 :
+Les notes ont été écrites en une première passe, puis reprises par une passe de comblement sur tout ce qu'elles marquaient « non lu » ou « estimation » ; l'historique git de `foothold-analysis/` en garde la trace.
+À l'issue (2026-11-15), il reste :
 
-- note 05 : les missions DEAD, frappe de piste et attaque de masse rouge ; la détection de fin d'une reconnaissance ; le déroulé d'invitation des missions conjointes ; les paliers des hauts faits ; l'intérieur des vols achetés CAS, SEAD, leurre et bombardier (seul `spawnCapAt` a été lu en détail) ;
-- note 06 : `boardPilot` (remboursement des crédits au ramassage) ; l'arbre du menu « CAP Control » ; le détail du constructeur d'instantané et de différences de l'intel ; Splash Damage analysé par différence avec la version par défaut, sans numéros de ligne ;
-- note 07 : la sauvegarde des extensions de SAM (`Foothold CTLD.lua:7847-8095`) ; le mode d'entrepôt « managé » et PvP (`6507-6634`, `7346-7520`) ; la boucle de suivi du CTLD rouge (`Foothold_CTLD_Red.lua:1895-2216`) ;
-- note 08 : les lignes 3886–4240 et 6559–7458 du setup ; les captures d'écran du manuel (seul le texte a été extrait) ; `MizBatchUpdater.exe` et `MizFileReplacer.exe` (aucune documentation dans le dépôt) ; le code C# du Config Manager, volontairement ;
-- des fonctionnalités que plusieurs notes signalent et qu'aucune ne détaillait : la production de supply des zones et les travaux de réparation locale (`zoneCommanderv2.lua:52059-54689`), le bâtiment entrepôt destructible d'une zone (`46108-46584`), les objectifs industriels et la part de territoire en PvP, la réparation des trains en Normandie ;
-- les fichiers de setup des neuf autres cartes n'ont été comparés au Caucase que par similarité de lignes ;
+- notes 01, 04 et 05 : plus aucun trou marqué ;
+- note 02 : huit estimations, toutes sur ce que le code ne montre pas — cinq sur le comportement de DCS ou du serveur (la suite de `a_end_mission`, le refus d'un slot sur une base adverse, un script serveur de blocage de slots absent du dépôt, la réutilisation des ids de groupe, la coalition d'un marqueur de spectateur), trois sur l'intention de l'auteur ;
+- note 03 : une estimation (le niveau de compétence qu'AIEN donne aux groupes spawnés en cours de mission) ;
+- note 06 : une estimation (le sens du mot « Native » dans `DynamicSupportNative`) ;
+- note 07 : une estimation (le chargement d'un véhicule dans la soute du C-130J, fait par le module DCS) ; et `_regularSupplyCandidateUsable` (`zoneCommanderv2.lua:54507-54555`) lu en partie seulement ;
+- note 08 : son tableau du setup marque encore « non lu » les lignes 3886–4240 et 6559–7458, qui ont depuis été lues et décrites dans la note 05 ; les captures d'écran du manuel n'ont pas été vues (seul le texte a été extrait) ; `MizBatchUpdater.exe` et `MizFileReplacer.exe` n'ont aucune documentation dans le dépôt ; le code C# du Config Manager n'a pas été lu, volontairement ;
+- les fichiers de setup des neuf autres cartes n'ont été comparés au Caucase que par similarité de lignes, sauf la Normandie pour les trains (note 07 §30) ;
+- l'intérieur d'AIEN et de MANTIS est décrit à partir d'extraits filtrés : quelques références de ligne peuvent être décalées d'une ou deux lignes ;
 - rien n'a été lancé dans DCS : tout vient de la lecture du code, du manuel et du fichier de mission.
+
+Erreurs trouvées et corrigées dans les notes pendant la passe de comblement, à connaître si une conclusion antérieure s'appuyait dessus : les kills par splash sont crédités directement par le script de splash et non par `S_EVENT_KILL` ; la navigation du porte-avions est sous le menu `Stats and Settings` ; le menu « Change callsign » n'est plus proposé en 6.5.3 ; la récompense de sauvetage va au sauveteur ; le CAS détourné sur une zone capturée ne concerne que les hélicoptères pas encore engagés ; l'escalade de difficulté est inactive sur le Caucase.
 
 La colonne VEAF de la section 6 vient des en-têtes de modules et de grep, pas de la lecture de chaque module VEAF ; là où elle pèse sur une décision, lire le module d'abord.
 

@@ -40,7 +40,7 @@ In this document "Moose" means "implemented inside the bundled Moose `CTLD` clas
 | 27 | Destroyable warehouse building | `[WH]` static of a Logistic Center: siting, destruction effects, 30-min repair, shop items | `zc2:46108-46580`, `zc2:24155-24253` |
 | 28 | `TheaterInfrastructure` | A destroyed map building permanently cuts a RED supply route | `Setup:2271-2360`, `zc2:53810-53861` |
 | 29 | PvP industry and starting territory | Industry cores, income cut, industry strike mission, starting territory share | `zc2:55109-55159`, `zc2:102566-102742`, `Setup:5876-5908` |
-| 30 | Train supply and repair (Normandy) | Not analysed (source no longer available) | — |
+| 30 | Train supply and repair (Normandy) | Map-authored trains that capture/resupply on arrival, destroyable trains and stations, shop repair | `zc2:38128-38597`, `Normandy_Zone_Setup.lua:1115-1168`, `:4492-5022` |
 
 ## 1. CTLD instance, options and transport aircraft
 
@@ -858,7 +858,10 @@ Manual citations are from `Foothold Manual v2.7.pdf` §3.5 "Supply Missions, Pro
 ### Player view
 
 - Zone label: `[SUP] n/max [■■□□□] p%` while producing, `[Supplies] n/max` when the target is reached, `[Supplies] n` for a zone that holds stock but cannot produce; the bar has 5 cells; BLUE progress is shown in 1 % steps, RED in 10 % steps (`zc2:52471-52491`, `zc2:52433-52441`).
-- The label also names the running jobs ("Building: Armor -- 57%", "Repairing", "Training" for infantry) and shows "Resupply!" when a BLUE zone has less ready stock than its remaining work needs (manual p. 30; label builder `_regularSupplyLocalRecoveryLabelText`, `zc2:52575-52635`, not read).
+- The label also names the running jobs ("Building: Armor -- 57%", "Repairing", "Training" for infantry) and shows "Resupply!" when a BLUE zone has less ready stock than its remaining work needs (manual p. 30).
+- Label builder (`_regularSupplyLocalRecoveryLabelText(intelViewerSide, includeMissing, jobs)`, `zc2:52575-52635`): for the owner, one line per visible job, `ZONE_UPGRADE_REPAIRING_PERCENT` for a repair (`ZONE_UPGRADE_TRAINING_PERCENT` when the slot is infantry) and `ZONE_UPGRADE_BUILDING_PERCENT` for a rebuild or an installation, with the slot's display name and `percent = elapsed ÷ duration`; repairs come first, and the last repair line is suffixed with the health of the most damaged group ("• n%").
+- With no job running the builder falls back to a summary of the upgrade slots: "missing" names (on request), "repair needed" names (groups already under repair excluded), or the name of the next upgrade to be built; identical slots are grouped as "name ×n" (`_upgradeDisplaySummaryText`, `zc2:52527-52573`).
+- For the enemy the same function is called with `intelViewerSide`: RED jobs are shown only through intel, as "<SAM family> repairing / installing n%" or "defences repairing / installing n%" (`zc2:52581-52602`).
 - When the AI is about to send supplies out of a zone, BLUE players standing on the ground in that zone in an aircraft able to carry zone supplies get "<zone>: Supplies are ready and will be dispatched to <target> in 30 seconds." — the window in which they can take the package themselves (`zc2:53746-53793`, `L10N:1650`).
 - Loss of an AI supply sortie: "We have lost a supply helicopter / aircraft / convoy from <zone>." (`zc2:54192-54199`, `L10N:2188-2190`).
 - RED SAM recovery is announced to BLUE with one of 3 random variants per event: construction started (family, zone, minutes), repair started, completed (`RED_SAM_<EVENT>_<1..3>`, `zc2:53229-53238`, `zc2:53454-53458`).
@@ -903,7 +906,8 @@ State per zone (`ZoneCommander` fields): `_regularSupplyStockSide`, `_regularSup
 - `interval = baseSeconds × supplyDifficultyScaling[side]`, base 1200 s (normal) or 600 s (Logistic Center) (`zc2:52418-52430`);
 - `conditionDelay = 600 s × scale × (1 − efficiency)` and `productionRate = interval / (interval + conditionDelay)`; rate 0 when efficiency is 0;
 - `progress += elapsed × productionRate`; each time `progress >= interval` and the stock is below the maximum, one supply becomes ready; progress is zeroed at the maximum.
-- Efficiency = operational capacity ÷ number of upgrade slots of the zone, clamped to 0–1 (`_commitRegularSupplyEfficiency`); it is recomputed when the zone is marked dirty (unit lost, upgrade set changed), by code outside the range read (`zc2:52291-52329`).
+- Efficiency = operational capacity ÷ number of upgrade slots of the zone, clamped to 0–1 (`_commitRegularSupplyEfficiency`, `zc2:52314-52329`).
+- The operational capacity is summed by the zone's built-groups maintenance pass when the zone is marked dirty (unit lost, upgrade set changed): each built group with a living unit counts `min(1, living units ÷ initial group size)`, each living static counts 1, and groups removed by surrender are subtracted (`zc2:55908-55914`, `zc2:55968-55970`, `zc2:55696-55697`, `zc2:55555`, `zc2:52291-52311`).
 - Maximum (the automatic target): `WarehouseSupplyCapacity` for a Logistic Center, `NormalSupplyCapacity` otherwise, and a fixed 3 for a PvE RED zone that has an operational warehouse building (`zc2:52332-52341`).
 
 **Adding stock**:
@@ -1019,7 +1023,7 @@ State per zone (`ZoneCommander` fields): `_regularSupplyStockSide`, `_regularSup
 
 - The feature is a lookup table from "destroyed objective flag" to "blocked supply routes"; the cost is one table lookup per route evaluation.
 - It needs scenery objects addressable from the `.miz` (a trigger zone over the building) and a persistent flag store.
-- `effect` (`defence_supply` / `regional_supply`) is not used by the route check read here; it is carried into the Director's region catalogue (`zc2:95900`; its use there was not read).
+- `effect` is not used by the route check; it is carried into the Director's catalogue (`zc2:95900`, `zc2:75457`, `zc2:76208`), where only `defence_supply` has a behaviour of its own: a destroyed `defence_supply` building of the RED side is recorded as persistent evidence for the RED Director's defensive plan, attached to the area of the source zone (`Director:_defensivePlanPersistentEvidence`, `zc2:76464`, `zc2:76520-76529`); `regional_supply` appears nowhere else in the engine than as a copied field.
 
 ## 29. PvP: industry objectives and starting territory share
 
@@ -1034,16 +1038,55 @@ State per zone (`ZoneCommander` fields): `_regularSupplyStockSide`, `_regularSup
 ### Starting territory share
 
 - `PvPStartingTerritoryPercent` (Config, default 50; allowed 20, 30, 40, 50) is the share of the territory each coalition owns at the start of a new or reset PvP round, the rest being neutral (20 → 20 % RED, 20 % BLUE, 60 % neutral; 50 → everything split) (`Config:313-318`).
-- The setup holds an ordered list of zone keys per side (`pvpStartingTerritoryOrder[1]`, `[2]`, nearest to the home base first — ordering principle not read) and computes `quota = round(total zones × percent / 100)`; the first `quota` zones of each list go to that side, the others start neutral (`Setup:5885-5892`).
+- The setup holds a hand-written ordered list of zone keys per side, `pvpStartingTerritoryOrder[1]` (34 keys, starting at `anapa`, `samalpha`, `anastasia`, `novorossiysk`… and ending in the east at `novopavlo`, `zhemtala`) and `[2]` (35 keys, starting at `vaziani`, `tbilisi`, `sammike`, `samlima`… and ending on the coast at `sukhumi`, `samfoxtrot`, `gudauta`), commented "Connected geographic expansion order; StartNormal assigns coalition colors": each list walks outward from a home base through connected zones (`Setup:969-987`); it computes `quota = round(total zones × percent / 100)`; the first `quota` zones of each list go to that side, the others start neutral (`Setup:5885-5892`).
 - The industrial sites are outside the quota and follow a named neighbour: Mining Facility follows Batumi, Secret Tech Facility follows Sukhumi, Insurgent Camp follows India (else Isunderi), Ammunition Depot follows Sochi, Tank Factory follows the zone keyed `krasnodarc` (else `holmskiy`) (`Setup:5893-5898`).
 - The value used is stored in `CustomFlags.PvPStartingTerritoryPercent`, so an existing save keeps its layout: saved ownership wins, and only zones absent from the save take the starting layout; `StartNormal` swaps the two sides (`Setup:5877-5884`, `Setup:5900-5908`).
 - Anapa and Vaziani start as the two Logistic Centers of a PvP round, with a full supply stock (`Setup:5921-5927`).
-- The PvP victory condition is evaluated on a separate list, `pvpVictoryZones` (`Setup:949-955`, `Setup:2738`, `Setup:2836`); that code was not read.
+- Victory: `pvpVictoryZones` is the list of all territorial zones of `pvpStartingOwners` (regular and SAM zones; the five industrial sites are added to the owners table afterwards and are therefore **not** victory zones) (`Setup:949-968`).
+- `checkMissionComplete` is registered on the `lost`, `destroyed` and `captured` triggers of every victory zone; it returns as soon as it finds one RED-owned and one BLUE-owned victory zone; when only one coalition still owns victory zones (neutral ones do not count) that coalition wins: `PVP_MISSION_WINNER` ("<side> coalition wins!"), sound `BH.ogg` for the winner, user flag 180 set (`Setup:2734-2752`, `Setup:2834-2840`).
+- With `AutoRestart` the campaign save is emptied (`bc._persistenceResetPending = true`, `Utils.saveTable(bc.saveFile, 'zonePersistance', {})`, `resetSaveFileAndFarp()`) and user flag 181 is raised 5 s later to end the mission; otherwise the winning coalition gets a "Restart and reset" F10 menu (`Setup:2753-2765`).
+- The home SAM zones of both sides (`samalpha`, `sammike`) are kept permanently awake in PvP (`customSuspendNm = 1000`, `noIdleSuspend = true`) (`Setup:988-992`).
 
 ## 30. Train supply and train repair (Normandy)
 
-Not analysed: the upstream source extract was no longer available in the scratchpad when this section was due (the `fh653` folder disappeared during the pass), so `addConnectionSupply` and the `'train'` supply type could not be read in v6.5.3.
-Nothing in this section is known from the code; the only fact gathered elsewhere is that the Normandy map has its own supply and attack-front logic in several generators (`zc2:63804-63822`, `zc2:64150-64163`).
+Normandy only: every function below returns at once when `bc:isNormandyTheatre()` is false (the global `map` contains "normandy") (`zc2:27041-27043`).
+`NZ` = `Setup files/Normandy_Zone_Setup.lua`.
+
+### Player view
+
+- The F10 map shows the **supply network** as arrows between zones (one per supply connection): blue when the origin is BLUE and the destination is not RED, red in the mirror case, white otherwise; the arrow of a train connection disappears when its train is destroyed (`zc2:38232-38292`).
+- Trains are real DCS train groups that run from one zone to the next; when a train reaches its destination zone the zone is captured (if neutral) or resupplied (if it belongs to the train's side) (`NZ:4492-4565`).
+- Killing a train: "Enemy train <name> destroyed!", "Strategic asset destroyed: +1000 credits" to the killer's coalition account, "Enemy supply chain disrupted! Train routes are now cut off." (`zc2:38337-38348`, `L10N:1317-1319`).
+- Destroying a railway station or depot (map buildings): "<Depot> destroyed! N military units abandoned due to supply disruption: <names>" and "Enemy railway infrastructure destroyed! Strategic targeting bonus: +N credits" — 2000 credits per train that depended on that station (`zc2:38534-38597`, `L10N:1321-1322`).
+- After a restart: "Train <name> remains destroyed from previous mission." (`zc2:38338-38339`, `L10N:1320`).
+- Train repair: `Shop > Capture & resources > Repair train route` (`ztrainrepair`, 2000 credits, rank 1), then pick the destroyed route by "origin → destination"; the origin must be BLUE, the destination need not be; the item is on the shelf only while at least one such route exists (manual p. 47; `NZ:1600`, `NZ:1625`, `NZ:2994-3001`, `zc2:38472-38497`).
+
+### Mission-maker view
+
+- `bc:addConnectionSupply(from, to[, method])` declares a supply link; `method` is `'train'` or defaults to `'default'`; calling it once switches the engine to a separate **supply connection map** (`bc.useSupplyConnectionMap`), distinct from the attack connections (`zc2:27045-27054`).
+- The Normandy setup declares 51 supply links, 20 of them trains: London → Manston, Farnborough, Chailey, Ford, Hawkinge on the UK side; Cherbourg → Valognes → Le Molay → Caen, Bernay → Caen, Dunkirk-Port → Calais, Amiens → Abbeville → Le Touquet, Le Havre → Rouen and Fecamp, Paris → Orly, Saint-Aubain, Fecamp, Saint-Andre → Bernay on the continent (`NZ:1115-1168`).
+- Train groups in the `.miz` are late-activated groups named `<prefix><From>-resupply-<To>` with prefix `AXE_Train_` (German) or `UK_Train_`; the engine parses origin and destination out of the name (`zc2:38128-38145`, `zc2:38172-38184`, `zc2:17167`).
+- `RAILWAY_STATION_GROUPS[stationName] = {train group names}` maps each railway station or depot to the trains that depend on it; the station is a scenery object found through a trigger zone `Hidden<stationName>` (`SCENERY:FindByZoneName`) (`NZ:2885`, `NZ:2893-2990`).
+- Arrival is detected by a trigger zone per route (`supply-volognes`, `supply-Caen`, …) and a user flag per route: 200–214 for the Axis trains, 300–305 for the UK trains (`NZ:4501-4523`).
+- `bc:startTrainSupplyMonitor({stationGroups, initialDelay = 60, interval = 120, notifyRestored = true})`; defaults `trainSupplyRewardAmount = 1000`, `railwaySupplyRewardAmount = 2000`, reward coalition by prefix (`AXE_Train_` → BLUE, `UK_Train_` → RED) (`NZ:3322-3329`, `zc2:17164-17170`, `zc2:38413-38430`).
+
+### Mechanism
+
+- Routes: `bc:registerRailwayStationGroups(RAILWAY_STATION_GROUPS)` builds one route per train group, `{groupName, fromZone, toZone, stations, choice = {label = "From → To", params = {route}}}`, indexed by group name and by origin zone, and remembers the country used by each coalition's train templates; two authored groups run "backwards" and have their endpoints swapped (`zc2:38432-38470`).
+- Activation at start (`activateLivingTrainGroups`): a train not flagged destroyed is activated (`GROUP:Activate`) when its origin zone is neutral or belongs to the template's coalition; if the origin is held by the other side the train is spawned for that side instead (`_spawnRepairedTrain`); a second batch is activated 600 s later (`NZ:3263-3284`, `NZ:3330-3333`).
+- Arrival: one `timer.scheduleFunction` checks one route per second, in rotation, and sets the route's user flag when the train's first unit is inside the route's arrival zone; another runs `checkZoneFlags()` every 30 s: for each raised flag, if the origin zone is owned, a neutral destination is captured for the origin's side (`zone:capture(side)`), a destination of the same side gets `applyTrainSupply` (one imported ready supply when the zone is suspended or needs nothing, otherwise an immediate `zone:upgrade()`), and the flag is reset (`NZ:4530-4541`, `NZ:5006-5022`, `NZ:4492-4499`, `NZ:4546-4566`).
+- Train loss: `_monitorTrainSupplyGroups` (Moose `SCHEDULER`, first run at 60 s, then every 120 s) lists the groups of both sides in categories `GROUND` and `TRAIN` whose name contains a train prefix; a group with no unit, or whose first unit does not exist or has life ≤ 1, is "destroyed": the group is removed, `CustomFlags[groupName] = true` (persisted), credits go to the opposing coalition, the arrow is removed and the repair shop refreshed (`zc2:38376-38411`, `zc2:38315-38360`).
+- Station loss: a 60 s scheduler (first run at 30 s) reads the relative life of each station's scenery objects; when all are at or below 50 % and the station is not yet flagged, `CustomFlags[station] = true` and `bc:destroyRailwayDependentGroups(station)` destroys every train mapped to it, marks each destroyed, and pays 2000 per train to the opposing coalition (`NZ:3462-3499`, `zc2:38534-38597`).
+- Restart: `restoreRailwayDestructionState` re-damages the scenery of every flagged station with `trigger.action.explosion(point, 500)` and destroys its trains again; `restoreTrainSupplyState` removes every train whose flag is set (`NZ:3158-3198`, `zc2:38362-38374`).
+- Repair (`bc:applyTrainRepair(route)`): requires the route's flag set and a BLUE origin; the train template is spawned again (`_DATABASE:Spawn(template)`, coalition and country switched to the origin's owner, arrival flag reset), the train flag and the flags of all its stations are cleared (station flags are set to `false`, so the scenery may be destroyed again), arrows redrawn, message `TRAIN_REPAIR_COMPLETE` (`zc2:38499-38532`).
+- Ownership change: when a zone that is the origin of train routes changes side, `buildConnectionMap` respawns each living train of that origin for the new owner, and the repair shop choices are refreshed (`zc2:27399-27413`).
+- The supply connection map also replaces the attack connection map wherever the engine asks "which zones supply which" on Normandy (e.g. runway-target adjacency, Director supply neighbours) (`zc2:27543-27550`, `zc2:62362`, `zc2:74479`).
+
+### Reproduction notes
+
+- Train supply is not part of the regular-supply dispatch of §26: it is a fixed timetable of map-authored trains, with arrival detected by polling a trigger zone, and the effect applied by setup-file code.
+- Two layers can cut a route: the train itself (a group) and the station (scenery); both are persisted as named flags, and only the train layer is repairable from the shop.
+- Costs are small and bounded: one route checked per second, one group listing every 120 s, one scenery life read per station every 60 s.
 
 ## Seen outside this theme
 

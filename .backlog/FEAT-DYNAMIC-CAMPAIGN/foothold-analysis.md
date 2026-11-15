@@ -67,6 +67,7 @@ Un index des fonctions (une ligne `ligne:signature` par définition) se régén�
 | [`08-mission-maker-side.md`](foothold-analysis/08-mission-maker-side.md) | le manuel (63 pages), les 202 réglages de config, la structure d'un fichier de setup avec extraits, les conventions du `.miz` mesurées, le Config Manager, l'exploitation serveur, le coût d'écriture d'une carte | 10 rubriques |
 
 Chaque note s'ouvre sur son tableau de fonctionnalités et finit par ce qu'elle a vu hors de son thème.
+Les notes ont été écrites en anglais puis traduites en français le 2026-11-15 ; le code, les citations `fichier:ligne` et les messages du jeu y sont restés tels quels.
 Dans une note, « (estimation) » et « non lu » marquent ce qui n'a pas été lu dans le code ; la section 8 ci-dessous liste ce qui le reste.
 
 ## 3. Constats qui changent ce que supposait le PRD
@@ -80,20 +81,20 @@ Cinq de ses affirmations ne tiennent plus sur la 6.5.3.
    La seconde raison contre un fork tient toujours : le moteur a grossi de 12 500 lignes en quatre semaines.
    Une conséquence à peser : du code copié ou adapté de près depuis Foothold dans un module VEAF emporterait les termes de la GPL-3.0 ; les idées et les mécanismes, non.
 2. **Moose est une boîte à outils dans le moteur, pas son squelette.**
-   Le recensement (note 02, « Moose dependency census ») compte, dans le moteur, 392 appels bruts à `missionCommands`, 574 `outText` bruts, 162 `timer.scheduleFunction` bruts et 3 `world.addEventHandler`.
+   Le recensement (note 02, « Recensement des dépendances à Moose ») compte, dans le moteur, 392 appels bruts à `missionCommands`, 574 `outText` bruts, 162 `timer.scheduleFunction` bruts et 3 `world.addEventHandler`.
    En face, Moose sert surtout aux conversions d'unités (`UTILS`, 384), aux positions (`COORDINATE`, 182) et aux timers (`SCHEDULER`, 97).
    La « couche OPS (`AUFTRAG`/`FLIGHTGROUP`, une machine à états par vol IA) » du PRD a disparu des sorties ordinaires : OPS ne sert plus qu'à six endroits annexes (Hunter, cuirassé, artillerie navale, V1), et toutes les sorties de supply, CAP, CAS, SEAD, frappe de piste et convoi sont pilotées par des tâches DCS brutes (note 03 §7).
    Les parties de Moose qui pèsent vraiment sont `SPAWN` avec `AIRBASE` (spawn des avions IA au parking), `STORAGE` (entrepôts), `MANTIS` (défense aérienne), `CTLD`, et le registre de templates `_DATABASE.Templates.Groups`.
    « C'est Moose qui coûte les images » est donc moins probable que le PRD le supposait ; ce n'est toujours pas mesuré, et le ticket 07 reste le moyen de le savoir.
 3. **Foothold fait déjà ce que prévoit notre section performance.**
    Les zones dormantes existent : suspension par la distance, suspension « idle », réveil par les joueurs, par le front ou par une mission IA, respawn d'un groupe toutes les 0,1 s, pertes conservées (note 01 §9).
-   La mise à jour des zones est une seule vague étalée (une zone toutes les 0,1 s dans une période de 10 s), les décisions de spawn passent par une file avec budget, la sauvegarde est étalée, les rafraîchissements de menus sont en file (note 02, « Engine main loops »).
+   La mise à jour des zones est une seule vague étalée (une zone toutes les 0,1 s dans une période de 10 s), les décisions de spawn passent par une file avec budget, la sauvegarde est étalée, les rafraîchissements de menus sont en file (note 02, « Boucles principales et timers du moteur »).
    La seule chose que nous prévoyons et que Foothold ne fait pas : utiliser les événements pour les pertes ; il scrute chaque garnison (note 01 §4) et l'état de chaque groupe IA (note 03 §16).
 4. **Les sorties ne sont plus déclarées une par une comme objets vivants.**
    Le setup du Caucase déclare 402 `DirectorCapability` contre 7 `GroupCommander:new` ; une capacité est une donnée passive, instanciée quand le Director l'autorise, et un générateur « DynamicHybrid » en ajoute d'après des règles de distance (notes 04 §2, 08 §3).
    C'est proche de nos « sorties dérivées du graphe », atteint par l'autre bout.
 5. **Le coût d'écriture d'une carte était sous-compté.**
-   Mesuré sur le Caucase (note 08, « Authoring cost of one map ») : 10 014 lignes de setup, 89 zones, 409 déclarations de sorties, 135 connexions visibles et 14 cachées, 1 331 trigger zones (dont 717 sous-zones de spawn), 508 groupes templates en late activation, 338 statics.
+   Mesuré sur le Caucase (note 08, « Coût d'écriture d'une carte ») : 10 014 lignes de setup, 89 zones, 409 déclarations de sorties, 135 connexions visibles et 14 cachées, 1 331 trigger zones (dont 717 sous-zones de spawn), 508 groupes templates en late activation, 338 statics.
    62 à 74 % des lignes des autres setups modernes sont identiques à des lignes du Caucase : l'essentiel d'un fichier de setup est du code copié d'une carte à l'autre.
 
 Un constat concerne nos serveurs d'aujourd'hui plutôt que la conception : voir la section 9.
@@ -108,7 +109,7 @@ Sa garnison est détruite emplacement par emplacement ; quand le dernier est tom
 Une zone neutre se capture en y amenant quelque chose : un hélicoptère ou un convoi de supply IA, des troupes CTLD, une caisse de supply, un largage de Hercules.
 Cela lance une **capture temporisée** de `ZoneCaptureBuildSeconds` (120 s), ancrée sur un objet physique que l'ennemi peut détruire (note 01 §6–7).
 À la capture, le premier emplacement de garnison apparaît ; chaque livraison de supply suivante en ajoute ou en répare un (note 01 §4).
-Une zone aérodrome bascule la coalition de l'aérodrome DCS, ce qui ouvre ou ferme ses slots en dynamic spawn (notes 01 §6, 02 « Player spawn handling »).
+Une zone aérodrome bascule la coalition de l'aérodrome DCS, ce qui ouvre ou ferme ses slots en dynamic spawn (notes 01 §6, 02 « Gestion du spawn des joueurs et contrôle des slots »).
 
 L'IA a deux étages.
 `GroupCommander` est la machine à états qui exécute une sortie (hangar → préparation → décollage → en vol → posé), entièrement par scrutation (note 03 §2).
@@ -124,8 +125,8 @@ Les **missions** proposées aux joueurs sont une liste de fonctions scrutées, a
 
 La logistique est le CTLD de Moose avec Foothold par-dessus : prix et rangs sur le cargo, zones qui suivent le propriétaire, caisses de supply suivies physiquement, stocks d'armes déplacés entre **entrepôts** d'aérodromes, FARP construits par les joueurs (note 07).
 
-L'état est sauvegardé toutes les 60 s dans des fichiers Lua sous `Saved Games\<instance>\Missions\Saves` (huit fichiers par carte, ère et mode — note 02 « Files written »), ce qui exige `io` et `lfs` dans `MissionScripting.lua`.
-Une victoire ou une défaite efface la sauvegarde et pose le flag 181, qu'un trigger de la mission transforme en `a_end_mission` ; le serveur recharge la mission (notes 01 §18, 02 « Campaign lifecycle »).
+L'état est sauvegardé toutes les 60 s dans des fichiers Lua sous `Saved Games\<instance>\Missions\Saves` (huit fichiers par carte, ère et mode — note 02 « Fichiers écrits sous `Saved Games` »), ce qui exige `io` et `lfs` dans `MissionScripting.lua`.
+Une victoire ou une défaite efface la sauvegarde et pose le flag 181, qu'un trigger de la mission transforme en `a_end_mission` ; le serveur recharge la mission (notes 01 §18, 02 « Cycle de vie de la campagne »).
 
 ## 5. Ce que VEAF a déjà
 
@@ -183,19 +184,19 @@ L'effort est ce qu'il faudrait pour reproduire la fonctionnalité sur les brique
 
 | Fonctionnalité | Ce que voit le joueur | Mécanisme | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|---|
-| Sauvegarde de campagne | la progression survit à un redémarrage | table Lua sérialisée dans un fichier toutes les 60 s ; zones, survivants des garnisons, crédits, stock de la boutique, groupes IA vivants, mémoire du Director | `veafCampaign.writeState` (zones, garnisons, pertes, stocks, décor) | faible : la cadence et les champs en plus | 02 « Campaign save » |
-| Sauvegarde étalée | pas de saccade à la sauvegarde | 8 zones collectées toutes les 0,1 s, puis sérialisation dans une coroutine | écriture en une fois | faible | 02 « Staged autosave » |
-| Restauration des vols et convois IA vivants | les vols réapparaissent en l'air après un redémarrage | position et état sauvegardés par groupe vivant, respawn en vol | rien | moyen, avec les sorties IA | 02 « Campaign load », 03 §16 |
-| Persistance des entrepôts | les stocks d'armes survivent | CSV, un aérodrome par seconde | `veafCampaign` enregistre les stocks | faible | 02 « Warehouse persistence » |
-| Fichier des joueurs | crédits, rang, carrière et langue suivent le joueur d'une carte à l'autre | indexé par UCID sur disque, par nom en jeu | rien | moyen : la première donnée persistante par joueur chez VEAF | 02 « Rank and player-statistics file » |
-| Reset et redémarrage | commande admin « fin de mission et reset » | sauvegarde vide écrite, flag 181, le serveur recharge | rien | faible | 02 « Campaign lifecycle » |
-| Ères et PvE/PvP | Modern, Cold War, Vietnam ; variantes PvP | deux globales de config choisissent les jeux de templates et le nom de sauvegarde | `mission.era` filtre au build ; variantes de build | faible pour l'ère ; le PvP est une conception à part | 02 « Era and mode switches » |
-| Contrôle des slots | des slots seulement là où son camp tient la base | coalition de l'aérodrome ; un user flag par groupe client ; rejet au `S_EVENT_BIRTH` par `net.force_player_slot` | `veafCampaign.setAirbaseCoalition` ; pas de rejet à la naissance | faible | 02 « Player spawn handling » |
-| Tir fratricide | message et pénalité de rang | sur `S_EVENT_KILL` entre amis | rien | faible | 02 « Friendly fire » |
-| Commandes admin par marqueur | rien pour les joueurs | des mots tapés dans un marqueur, sans liste d'admins, alias configurables | niveaux de `veafSecurity`, `veafRemote` | fait, et plus strict | 02 « Admin and player map-marker commands » |
-| Boucles principales, files, chien de garde | un avertissement à l'écran si la boucle meurt | vague de 10 s à 0,1 s par zone ; file d'évaluation avec budget ; chien de garde sur la dernière mise à jour terminée | `veafScheduler` ; `veafCampaign.beat` | faible : les schémas sont connus | 02 « Engine main loops » |
-| Files de menus F10 | les menus se rafraîchissent sans à-coup | poignées par groupe, rafraîchissement différé, un groupe par tick, test « inchangé » | `veafRadio` | fait pour l'arbre ; les budgets par groupe sont faibles | 02 « F10 radio menu management » |
-| Langues | chaque joueur choisit parmi 10 langues | recherche par clé avec repli sur l'anglais ; portées serveur / joueur / groupe | `veafI18n` (FR, EN, une langue par mission) | moyen pour une langue par joueur | 02 « Message output and localisation » |
+| Sauvegarde de campagne | la progression survit à un redémarrage | table Lua sérialisée dans un fichier toutes les 60 s ; zones, survivants des garnisons, crédits, stock de la boutique, groupes IA vivants, mémoire du Director | `veafCampaign.writeState` (zones, garnisons, pertes, stocks, décor) | faible : la cadence et les champs en plus | 02 « Sauvegarde de campagne » |
+| Sauvegarde étalée | pas de saccade à la sauvegarde | 8 zones collectées toutes les 0,1 s, puis sérialisation dans une coroutine | écriture en une fois | faible | 02 « Sauvegarde automatique étalée » |
+| Restauration des vols et convois IA vivants | les vols réapparaissent en l'air après un redémarrage | position et état sauvegardés par groupe vivant, respawn en vol | rien | moyen, avec les sorties IA | 02 « Chargement de la campagne et réapplication au démarrage », 03 §16 |
+| Persistance des entrepôts | les stocks d'armes survivent | CSV, un aérodrome par seconde | `veafCampaign` enregistre les stocks | faible | 02 « Persistance des entrepôts » |
+| Fichier des joueurs | crédits, rang, carrière et langue suivent le joueur d'une carte à l'autre | indexé par UCID sur disque, par nom en jeu | rien | moyen : la première donnée persistante par joueur chez VEAF | 02 « Fichier de rang et de statistiques des joueurs » |
+| Reset et redémarrage | commande admin « fin de mission et reset » | sauvegarde vide écrite, flag 181, le serveur recharge | rien | faible | 02 « Cycle de vie de la campagne » |
+| Ères et PvE/PvP | Modern, Cold War, Vietnam ; variantes PvP | deux globales de config choisissent les jeux de templates et le nom de sauvegarde | `mission.era` filtre au build ; variantes de build | faible pour l'ère ; le PvP est une conception à part | 02 « Interrupteurs d'époque et de mode » |
+| Contrôle des slots | des slots seulement là où son camp tient la base | coalition de l'aérodrome ; un user flag par groupe client ; rejet au `S_EVENT_BIRTH` par `net.force_player_slot` | `veafCampaign.setAirbaseCoalition` ; pas de rejet à la naissance | faible | 02 « Gestion du spawn des joueurs et contrôle des slots » |
+| Tir fratricide | message et pénalité de rang | sur `S_EVENT_KILL` entre amis | rien | faible | 02 « Tirs fratricides » |
+| Commandes admin par marqueur | rien pour les joueurs | des mots tapés dans un marqueur, sans liste d'admins, alias configurables | niveaux de `veafSecurity`, `veafRemote` | fait, et plus strict | 02 « Commandes par marqueurs de carte, admin et joueur » |
+| Boucles principales, files, chien de garde | un avertissement à l'écran si la boucle meurt | vague de 10 s à 0,1 s par zone ; file d'évaluation avec budget ; chien de garde sur la dernière mise à jour terminée | `veafScheduler` ; `veafCampaign.beat` | faible : les schémas sont connus | 02 « Boucles principales et timers du moteur » |
+| Files de menus F10 | les menus se rafraîchissent sans à-coup | poignées par groupe, rafraîchissement différé, un groupe par tick, test « inchangé » | `veafRadio` | fait pour l'arbre ; les budgets par groupe sont faibles | 02 « Gestion du menu radio F10 » |
+| Langues | chaque joueur choisit parmi 10 langues | recherche par clé avec repli sur l'anglais ; portées serveur / joueur / groupe | `veafI18n` (FR, EN, une langue par mission) | moyen pour une langue par joueur | 02 « Sortie des messages et localisation » |
 
 ### 6.3 Groupes et sorties IA
 
@@ -312,7 +313,7 @@ La note 07 §25 liste les fonctions du CTLD de Moose sur lesquelles Foothold s'a
 1. **La dormance des zones** — une douzaine de raisons de rester éveillée qui doivent s'accorder, et un respawn qui rend exactement les survivants aux mêmes endroits ; c'est aussi la fonctionnalité qui rapporte le plus en performance.
 2. **Les sorties aériennes IA génériques** — spawn au parking, une machine à états par sortie, une tâche par rôle, la restauration après redémarrage ; Foothold y consacre environ 13 500 lignes (`GroupCommander`).
 3. **Les hélicoptères de supply IA qui se posent dans les zones** — DCS ne pose pas de façon fiable un hélicoptère scripté sur un point (deux pièges consignés dans `docs/agents/dcs-runtime-traps.md`) ; sur une seule carte, Foothold a besoin de 109 zones de poser placées à la main et d'une procédure de récupération.
-4. **Le Director** — 25 000 lignes ; la difficulté n'est dans aucune formule isolée, mais dans la quantité d'état partagé qu'il lit et dans l'hystérésis qui entoure chaque choix (note 04, « Reproduction notes »).
+4. **Le Director** — 25 000 lignes ; la difficulté n'est dans aucune formule isolée, mais dans la quantité d'état partagé qu'il lit et dans l'hystérésis qui entoure chaque choix (note 04, « Notes de reproduction »).
 5. **L'économie des joueurs prise en bloc** — crédits encaissés à l'atterrissage, boutique, rangs, carrière : chaque pièce est moyenne, mais ensemble elles exigent une donnée persistante par joueur, que VEAF n'a jamais eue, et un catalogue d'effets.
 6. **La logistique d'entrepôts** — des stocks d'armes finis déplacés par les joueurs touchent chaque entrepôt d'aérodrome et la sauvegarde.
 

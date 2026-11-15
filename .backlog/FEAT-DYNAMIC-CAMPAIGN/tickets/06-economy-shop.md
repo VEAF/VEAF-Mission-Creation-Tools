@@ -1,6 +1,6 @@
 # 06 — Coalition credits and a small shop
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
 
 Analysis note 05 §1–§2, §5. Coalition credits only: personal credits, ranks and career are V2.
 
@@ -31,3 +31,7 @@ Prices in `economy.prices`, defaults in the module; an item refused (no target, 
 
 Lua tests: gains per event, balance never below zero, purchase refused for lack of credits, refused item free, saved and reloaded.
 In game: kill a unit, the balance rises; buy illumination over a zone.
+
+## As built
+
+The settings are under `dynamic.economy`; the kill reward is split in `kill_ground` (10) and `kill_air` (30).

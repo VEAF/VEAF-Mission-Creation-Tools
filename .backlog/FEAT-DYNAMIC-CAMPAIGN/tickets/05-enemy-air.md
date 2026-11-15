@@ -1,6 +1,6 @@
 # 05 — Enemy air: CAP over the front, CAS and SEAD strikes, Hunter
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
 
 Replaces the former "AI sorties derived from the graph" for the air (the ground sorties are tickets 03 and 04).
 No Director (David, 2026-11-15): a simple target rule, scaled by the number of players (analysis note 03 §2–§5, §8; note 04 §2, §4).
@@ -27,3 +27,8 @@ A player of the players' side who kills `hunter.kills` (8 ground or 4 air, drawn
 Lua tests: CAP count from the opposition level, strike target choice for each role, cap, no airfield no sortie, Hunter threshold and chance (random injected), once per life.
 Python tests: loadout resolution, validation of unknown type and loadout.
 In game: an enemy CAP shows up over the front; a CAS flight attacks the target zone.
+
+## As built
+
+The aircraft are declared under `dynamic.air.<side>`, like every live-play setting, with one shipped default per side (made for `MODERN`), not one per era; `air.cap_per_players` (3) sets how many players one CAP answers.
+The Hunter is in `dynamic.hunter`.

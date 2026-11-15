@@ -94,21 +94,12 @@ end
 
 --- A kill: a player of the players' side destroyed an enemy unit.
 function veafCampaignEconomy.onKill(event)
-  local killer, target = event and event.initiator, event and event.target
-  if veafCampaign.over or not (killer and target and killer.getPlayerName and killer:getPlayerName()) then
+  local kill = veafCampaign.readPlayerKill(event)
+  if veafCampaign.over or not kill then
     return
   end
-  if killer:getCoalition() ~= playerCoalition() or not target.getCoalition or target:getCoalition() == playerCoalition() then
-    return
-  end
-  local category = target.getDesc and target:getDesc().category
-  local air = category == Unit.Category.AIRPLANE or category == Unit.Category.HELICOPTER
-  veafCampaignEconomy.earn(
-    veafCampaign.setting("economy", air and "kill_air" or "kill_ground"),
-    "campaign.credits.kill",
-    killer:getPlayerName()
-  )
-  if air then
+  veafCampaignEconomy.earn(veafCampaign.setting("economy", kill.air and "kill_air" or "kill_ground"), "campaign.credits.kill", kill.player)
+  if kill.air then
     for _, task in ipairs(veafCampaignEconomy.tasks) do
       if task.kind == "air" then
         task.kills = task.kills + 1

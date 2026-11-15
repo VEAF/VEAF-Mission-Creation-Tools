@@ -1,6 +1,6 @@
 # 03 — A front that moves on its own: counter-attacks, supply, CTLD 2
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
 
 Reopened 2026-11-15: this ticket was marked 🚫 on 2026-10-06 because its capture rule moved to `FEAT-MULTI-MISSION-CAMPAIGN` ticket 04, which built it (`VeafCampaignZone:checkCapture`, `holdsGround`, CTLD 2 crates counted).
 What is left here is what makes the front move without a game master (analysis note 01 §4, §6, §7, note 07 §7–§8).

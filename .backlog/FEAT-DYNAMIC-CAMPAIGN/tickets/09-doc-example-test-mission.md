@@ -1,6 +1,6 @@
 # 09 — Documentation, example campaign, test mission, in-game check
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
 
 - `doc/mission-maker/CAMPAIGN.md` / `.en.md`: a "Persistent mode" part — what a player sees, how to declare it, every `dynamic`, `air`, `economy`, `tasks`, `intel` key with its default, the save file, reset, what is not restored after a restart (aircraft and convoys in flight).
 - `doc/mission-maker/scripts/` page of `veafCampaign` updated; support bot index refreshed if a page is added or retitled.
@@ -13,3 +13,9 @@ Status: ⬜ ready
 ## Done when
 
 `docs-check` clean, the example builds in CI, David has the test mission and the step-by-step check.
+
+## As built
+
+The documentation is a page of its own, `doc/mission-maker/PERSISTENT_CAMPAIGN.md` / `.en.md`, linked from the `veafCampaign` module page, rather than a part of `CAMPAIGN.md`: the two modes are read by different people.
+The test mission is `D:\dev\_VEAF\tmp\dynamic-campaign-test` on David's workstation.
+No demo mission step: a persistent campaign is a whole mission of its own, not a step of the demo's tour, and the lot is merged into the integration branch `feature/dynamic-campaign`, not into `develop` where the demo follows the tools.

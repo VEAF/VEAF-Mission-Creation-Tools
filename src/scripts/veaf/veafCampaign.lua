@@ -2214,6 +2214,49 @@ function veafCampaign.writeInterval()
   return veafCampaign.data.state_write_seconds or veafCampaign.STATE_WRITE_SECONDS
 end
 
+--- The player's unit an event comes from, or nil. A callback of veafEventHandler receives `initiator` as
+--- a data table with no methods (`veafEventHandler.transformEvent`); the DCS object is `dcsInitiator`.
+--- Reading the method on the data table fails silently: no error, the handler simply never fires.
+--- @param event table the event as veafEventHandler hands it over
+--- @return table|nil the DCS unit
+--- @return string|nil the player's name
+function veafCampaign.playerUnitOf(event)
+  local unit = event and (event.dcsInitiator or event.initiator)
+  if not (unit and unit.getPlayerName) then
+    return nil
+  end
+  local ok, player = pcall(unit.getPlayerName, unit)
+  if not ok or not player then
+    return nil
+  end
+  return unit, player
+end
+
+--- What a kill event says, for the campaign: a player of the players' side destroyed an enemy unit.
+--- @param event table the S_EVENT_KILL as veafEventHandler hands it over: `dcsInitiator` the killer's
+---   DCS unit, `target` a data table (`unitCoalition`, `unitCategory`)
+--- @return table|nil `{ unit, player, air }`, nil for any other kill
+function veafCampaign.readPlayerKill(event)
+  local unit, player = veafCampaign.playerUnitOf(event)
+  local target = event and event.target
+  if not (unit and target) then
+    return nil
+  end
+  local own = veafCampaign.SIDES[veafCampaign.playerSide()]
+  local targetSide = target.unitCoalition
+  if targetSide == nil and target.getCoalition then
+    targetSide = target:getCoalition()
+  end
+  if unit:getCoalition() ~= own or targetSide == nil or targetSide == own or targetSide == coalition.side.NEUTRAL then
+    return nil
+  end
+  local category = target.unitCategory
+  if category == nil and target.getDesc then
+    category = target:getDesc().category
+  end
+  return { unit = unit, player = player, air = category == Unit.Category.AIRPLANE or category == Unit.Category.HELICOPTER }
+end
+
 --- A unit died or was lost: if it is a garrison unit, record it.
 function veafCampaign.onUnitDead(event)
   local name = veafEventHandler.unitNameFromEvent(event)

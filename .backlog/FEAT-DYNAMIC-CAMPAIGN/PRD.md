@@ -158,15 +158,15 @@ Their content is either done there, or carried into the tickets below.
 
 | # | ticket | status |
 |---|---|---|
-| 01 | [Persistent mode: save, reload, win, defeat, reset](tickets/01-persistent-mode.md) | ⬜ |
-| 02 | [Dormant zones, caps and work counters](tickets/02-dormancy.md) | ⬜ |
-| 03 | [A front that moves on its own: counter-attacks, supply, CTLD 2](tickets/03-live-front.md) | ⬜ |
-| 04 | [AI helicopters capture and resupply zones](tickets/04-ai-supply-helicopters.md) | ⬜ |
-| 05 | [Enemy air: CAP, CAS and SEAD strikes, Hunter](tickets/05-enemy-air.md) | ⬜ |
-| 06 | [Coalition credits and a small shop](tickets/06-economy-shop.md) | ⬜ |
-| 07 | [A task board drawn from the situation](tickets/07-task-board.md) | ⬜ |
-| 08 | [Intelligence: hidden garrisons, reconnaissance, spy team](tickets/08-intelligence.md) | ⬜ |
-| 09 | [Documentation, example campaign, test mission, in-game check](tickets/09-doc-example-test-mission.md) | ⬜ |
+| 01 | [Persistent mode: save, reload, win, defeat, reset](tickets/01-persistent-mode.md) | 🧑 |
+| 02 | [Dormant zones, caps and work counters](tickets/02-dormancy.md) | 🧑 |
+| 03 | [A front that moves on its own: counter-attacks, supply, CTLD 2](tickets/03-live-front.md) | 🧑 |
+| 04 | [AI helicopters capture and resupply zones](tickets/04-ai-supply-helicopters.md) | 🧑 |
+| 05 | [Enemy air: CAP, CAS and SEAD strikes, Hunter](tickets/05-enemy-air.md) | 🧑 |
+| 06 | [Coalition credits and a small shop](tickets/06-economy-shop.md) | 🧑 |
+| 07 | [A task board drawn from the situation](tickets/07-task-board.md) | 🧑 |
+| 08 | [Intelligence: hidden garrisons, reconnaissance, spy team](tickets/08-intelligence.md) | 🧑 |
+| 09 | [Documentation, example campaign, test mission, in-game check](tickets/09-doc-example-test-mission.md) | 🧑 |
 | 10 | [Measure it against Foothold, then tune the caps](tickets/10-measure-against-foothold.md) | ⬜ |
 
 ## Former index entry

@@ -1,6 +1,6 @@
 # 02 — Dormant zones, caps and work counters
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
 
 Foothold's main performance device (analysis note 01 §9), here in its simplest form.
 

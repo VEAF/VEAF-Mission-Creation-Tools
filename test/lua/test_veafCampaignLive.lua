@@ -400,10 +400,13 @@ end
 -- ---------------------------------------------------------------------------
 TestCampaignHunter = { setUp = setUpSuite, tearDown = tearDownSuite }
 
+--- A kill, in the shape veafEventHandler hands it over: `initiator` and `target` are data tables with no
+--- methods, the killer's DCS object is `dcsInitiator`.
 local function kill(player, category)
   return {
-    initiator = unitAt({ x = 90000 }, { player = player, side = BLUE }),
-    target = unitAt({ x = 0 }, { side = RED, category = category }),
+    initiator = { unitName = "Zip's Hog", unitCoalition = BLUE },
+    dcsInitiator = unitAt({ x = 90000 }, { player = player, side = BLUE }),
+    target = { unitName = "T-72", unitCoalition = RED, unitCategory = category or Unit.Category.GROUND_UNIT },
   }
 end
 
@@ -421,7 +424,7 @@ function TestCampaignHunter:test_two_fighters_after_the_threshold_once_per_life(
   luaunit.assertEquals(#dcs_mocks.messagesContaining("Zip"), 1)
   veafCampaignOps.onKill(kill("Zip"))
   luaunit.assertEquals(#self.flights, 1)
-  veafCampaignOps.onBirth({ initiator = unitAt({ x = 0 }, { player = "Zip" }) })
+  veafCampaignOps.onBirth({ initiator = { unitName = "Zip's Hog" }, dcsInitiator = unitAt({ x = 0 }, { player = "Zip" }) })
   luaunit.assertNil(veafCampaignOps.hunted["Zip"])
 end
 
@@ -431,6 +434,21 @@ function TestCampaignHunter:test_air_kills_count_on_their_own_threshold()
     veafCampaignOps.onKill(kill("Zip", Unit.Category.AIRPLANE))
   end
   luaunit.assertEquals(#self.flights, 1)
+end
+
+function TestCampaignHunter:test_a_kill_read_from_the_data_table_alone_does_not_fail()
+  start()
+  -- the data table has no methods: reading getPlayerName on it would have failed silently in game
+  veafCampaignOps.onKill({ initiator = { unitName = "x" }, target = { unitCoalition = RED } })
+  luaunit.assertNil(next(veafCampaignOps.hunted))
+end
+
+function TestCampaignHunter:test_a_friendly_kill_does_not_count()
+  start()
+  local event = kill("Zip")
+  event.target.unitCoalition = BLUE
+  veafCampaignOps.onKill(event)
+  luaunit.assertNil(next(veafCampaignOps.hunted))
 end
 
 function TestCampaignHunter:test_an_ai_kill_does_not_count()

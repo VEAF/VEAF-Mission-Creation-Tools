@@ -1,6 +1,6 @@
 # 08 — Intelligence: hidden garrisons, reconnaissance, spy team
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
 
 Analysis note 06 §5 and note 07 §10 (spy team only; the demolition team is V1.5).
 

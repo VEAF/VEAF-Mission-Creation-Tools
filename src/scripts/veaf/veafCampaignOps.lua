@@ -604,26 +604,18 @@ end
 
 --- A kill: if a player of the players' side made it, count it towards the Hunter.
 function veafCampaignOps.onKill(event)
-  local killer, target = event and event.initiator, event and event.target
-  if veafCampaign.over or not (killer and target and killer.getPlayerName) then
+  local kill = veafCampaign.readPlayerKill(event)
+  if veafCampaign.over or not kill or not veafCampaign.setting("hunter", "enabled") then
     return
   end
-  local player = killer:getPlayerName()
-  if not player or not veafCampaign.setting("hunter", "enabled") then
-    return
-  end
-  local own = veafCampaign.SIDES[veafCampaign.playerSide()]
-  if killer:getCoalition() ~= own or not target.getCoalition or target:getCoalition() == own then
-    return
-  end
+  local killer, player = kill.unit, kill.player
   local books = veafCampaignOps.hunted[player]
   if not books then
     local ground, air = veafCampaign.setting("hunter", "ground_kills"), veafCampaign.setting("hunter", "air_kills")
     books = { ground = 0, air = 0, groundNeeded = math.random(ground, 2 * ground), airNeeded = math.random(air, 2 * air) }
     veafCampaignOps.hunted[player] = books
   end
-  local category = target.getDesc and target:getDesc().category
-  if category == Unit.Category.AIRPLANE or category == Unit.Category.HELICOPTER then
+  if kill.air then
     books.air = books.air + 1
   else
     books.ground = books.ground + 1
@@ -639,8 +631,7 @@ end
 
 --- A player starts a new life: the Hunter's books start again.
 function veafCampaignOps.onBirth(event)
-  local unit = event and event.initiator
-  local player = unit and unit.getPlayerName and unit:getPlayerName()
+  local _, player = veafCampaign.playerUnitOf(event)
   if player then
     veafCampaignOps.hunted[player] = nil
   end

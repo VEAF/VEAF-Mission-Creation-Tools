@@ -6,6 +6,43 @@ Status: ⏸ paused — after FEAT-MULTI-MISSION-CAMPAIGN, built on its bricks (D
 > When this lot is resumed, its tickets 01, 02 and 05 shrink to what those bricks do not cover (dormancy, caps, the periodic save's cadence), and ticket 03 is already done there.
 > One premise below did not hold: the VEAF group database has no era, role or side to draw garrisons from; that lot draws them with `veafCasMission`'s generators instead.
 
+## Decision of 2026-11-15: VMCT-native code, two modes, an MCP side
+
+After the analysis of Foothold 6.5.3 ([`foothold-analysis.md`](foothold-analysis.md)), David ruled out removing Moose from Foothold (section 11 of the analysis: some 4 000 call sites, the whole logistics to rewrite on CTLD 2, a fork that diverges at every weekly release, for a gain never measured).
+What is kept is the plan of this PRD, sharpened:
+
+- **Foothold's features are taken over in VMCT's own code**, one or several modules, without Moose and without forking Foothold.
+- **The dynamic mission runs in two modes**: standalone and persistent on a server, like Foothold; or as one mission inside a VMCT multi-mission campaign ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)).
+- **An MCP side** generates these missions, standalone or within a campaign.
+- **The selection aims at a system that is interesting and fun to play, without Foothold's complexity**: which Foothold features to take is studied next, from the catalogue of the analysis (section 6).
+
+### Feature selection (David, 2026-11-15)
+
+Section numbers point to the detailed notes under [`foothold-analysis/`](foothold-analysis/).
+
+| Version | What | Notes |
+|---|---|---|
+| V1 | The core: zones that change hands through a neutral state and a timed capture by ground presence; the F10 map with zones, connections and garrison state; a front that moves on its own (enemy counter-attacks, a zone reinforced by each supply delivery); slots that follow the bases; win, defeat, reset and a periodic save in standalone mode; dormancy of zones far from players | 01 §1–§13, §18; 02 |
+| V1 | Enemy air: CAP over the front and CAS/SEAD strikes on blue zones, sorties derived from the graph with a simple target rule, scaled by the number of players (`veafOpposition`), built on the QRA and air-wave bricks; no Director | 03 §2–§5; 04 §2, §4 |
+| V1 | Logistics: capture by CTLD 2 troops, and supply crates that reinforce or repair a friendly zone | 07 §7–§8 |
+| V1 | **AI helicopters capture and resupply zones**, as in Foothold, rather than convoys only (David: convoys would be too slow); the DCS traps on scripted helicopter landings are known — try it, and find another way if it does not work | 03 §9; `docs/agents/dcs-runtime-traps.md` |
+| V1 | Economy: coalition credits earned by kills, captures and deliveries, a small shop of 6 to 8 items whose effects VEAF already has (JTAC, illumination or smoke, tanker, friendly CAP, intel, capture) | 05 §1–§2, §5 |
+| V1 | A task board of 3 or 4 tasks drawn from the situation, with a map mark and a credit reward; a briefing explains the particular points if needed | 05 §11 |
+| V1 | Intelligence: an enemy garrison's composition stays hidden until reconnoitred (overflight, JTAC, purchased intel) | 06 §5 |
+| V1.5 | Weapon stocks per warehouse, moved by players | 07 §9, §17 |
+| V1.5 | Territory cells (Voronoi) tinted by owner on the F10 map | 01 §14 |
+| V2 | Foothold's Director (packages, feints, learning) | 04 |
+| V2 | Foothold's full player economy: personal credits banked on landing, ranks, career | 05 §3, §7–§10 |
+| V1 | Hunter: two enemy fighters scrambled against a player on a kill streak | 03 §8 |
+| V1 | Spy team: a CTLD troop that walks into an enemy zone and reveals it for an hour (feeds the intelligence line above) | 07 §10 |
+| V1.5 | Strategic bombers: an escorted red raid to intercept; a blue raid bought in the shop | 03 §12 |
+| V1.5 | Demolition team: CTLD sappers who blow up a zone's structures | 07 §10 |
+| CTLD | C-130J air-dropped crates that build themselves: a feature of our CTLD 2, not of this lot | 07 §13 |
+| left out | Trains (Normandy only) | 07 §30 |
+| left out | PvP, splash damage, EWRS, ten languages | — |
+
+The MCP side generates the dynamic mission in both modes from the same format; its actions come once the format has settled.
+
 David, 2026-10-02/03: VEAF likes Foothold, but it is hard on our servers' performance, and his
 experience points at Moose (many modules, nearly all active all the time, many loops). He wants a
 dynamic campaign engine that gives Foothold's **player experience** without Moose, on VMCT only. This
@@ -109,6 +146,7 @@ composite from a theatre description, the authoring skill) are the **next lot**,
 - `FEAT-CTLD-AIRBASE-LOGISTICS` — airfield logistic zones that follow the owner: a capture must flip them.
 - `FEAT-SCENERY-AWARE-SPAWN` (archived) — `veaf.findSpawnPoint`, the placement this lot reuses.
 - Roadmap §4 `PERSISTENCE` — only the campaign's own state is persisted here, not every VEAF module.
+- [`foothold-analysis.md`](foothold-analysis.md) — the functional and technical inventory of Foothold 6.5.3 (2026-11-15, in French): every feature, how it works, what VEAF already has, and five statements of this PRD that no longer hold on that version (a licence exists, Moose is a toolbox, dormancy and staggering are already there).
 
 ## Tickets
 

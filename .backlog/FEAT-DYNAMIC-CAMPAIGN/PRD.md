@@ -109,6 +109,7 @@ composite from a theatre description, the authoring skill) are the **next lot**,
 - `FEAT-CTLD-AIRBASE-LOGISTICS` — airfield logistic zones that follow the owner: a capture must flip them.
 - `FEAT-SCENERY-AWARE-SPAWN` (archived) — `veaf.findSpawnPoint`, the placement this lot reuses.
 - Roadmap §4 `PERSISTENCE` — only the campaign's own state is persisted here, not every VEAF module.
+- [`foothold-analysis.md`](foothold-analysis.md) — the functional and technical inventory of Foothold 6.5.3 (2026-11-15, in French): every feature, how it works, what VEAF already has, and five statements of this PRD that no longer hold on that version (a licence exists, Moose is a toolbox, dormancy and staggering are already there).
 
 ## Tickets
 

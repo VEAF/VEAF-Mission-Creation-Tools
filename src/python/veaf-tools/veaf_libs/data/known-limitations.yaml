@@ -199,6 +199,20 @@ limitations:
   workaround: |
     None in flight; an escorted convoy rarely meets a second contact after taking its zone.
 
+- id: persistent-campaign-loses-what-is-in-flight
+  kind: tool
+  area: runtime
+  title: "A persistent campaign restarted loses its aircraft and convoys under way, and does not replay destroyed scenery"
+  symptom: |
+    The save of a persistent campaign (FEAT-DYNAMIC-CAMPAIGN) keeps each zone's owner, garrison and
+    losses, its capture in progress, the credits and the intelligence. It does not keep the AI flights,
+    supply helicopters and assault convoys on their way: after a restart they are gone, their side
+    sends new ones on its cadence. The scenery destroyed is recorded in the save but not destroyed
+    again at start.
+  workaround: |
+    None needed for the front: zones and garrisons come back. Restart a server between two sorties
+    when it matters.
+
 - id: transport-mission-menu-piles-up-in-french
   kind: tool
   area: runtime

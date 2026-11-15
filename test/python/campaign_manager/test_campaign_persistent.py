@@ -19,7 +19,7 @@ from campaign_manager.campaign_manager import initial_state, parse_campaign, sav
 from campaign_manager.campaign_worker import CampaignWorker
 from campaign_manager.dynamic_settings import DEFAULT_AIR
 from campaign_manager.models import CampaignDefinition
-from campaign_manager.next_mission import mission_data
+from campaign_manager.next_mission import add_campaign_cargo, mission_data
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
 
@@ -182,3 +182,53 @@ class TestApply:
         issues, report = CampaignWorker(tmp_path).apply(tmp_path / "anything.state")
         assert report is None
         assert any("persistent" in message.lower() or "persistante" in message.lower() for message in _errors(issues))
+
+
+class TestTheCampaignCargo:
+    def _ctld(self, folder: Path, crates: dict[str, Any] | None = None, groups: list[Any] | None = None) -> Path:
+        path = folder / "ctld-config.yaml"
+        document = {
+            "configVersion": "2.3.0",
+            "mm_facing": {
+                "spawnableCrates": crates
+                if crates is not None
+                else {"Combat Vehicles": [{"unit": "LAV-25", "desc": "LAV", "weight": 1000.04}]},
+                "loadableGroups": groups if groups is not None else [{"name": "Standard Group", "inf": 6}],
+            },
+        }
+        path.write_text(yaml.safe_dump(document), encoding="utf-8")
+        return path
+
+    def test_the_supply_crate_and_the_spy_team_are_added(self, tmp_path: Path) -> None:
+        path = self._ctld(tmp_path)
+        assert add_campaign_cargo(tmp_path, {}) == ["Zone supplies", "Spy"]
+        facing = yaml.safe_load(path.read_text(encoding="utf-8"))["mm_facing"]
+        crates = facing["spawnableCrates"]["Campaign"]
+        assert [(c["desc"], c["side"]) for c in crates] == [("Zone supplies", 2), ("Zone supplies", 1)]
+        assert facing["spawnableCrates"]["Combat Vehicles"][0]["desc"] == "LAV"
+        assert {"name": "Spy", "inf": 1} in facing["loadableGroups"]
+
+    def test_the_names_follow_the_settings(self, tmp_path: Path) -> None:
+        self._ctld(tmp_path)
+        assert add_campaign_cargo(tmp_path, {"supply_crate": "Caisse", "intel": {"spy_troops": "Espion"}}) == [
+            "Caisse",
+            "Espion",
+        ]
+
+    def test_a_second_run_adds_nothing(self, tmp_path: Path) -> None:
+        self._ctld(tmp_path)
+        add_campaign_cargo(tmp_path, {})
+        assert add_campaign_cargo(tmp_path, {}) == []
+
+    def test_crate_weights_clash_with_none_of_the_shipped_ones(self) -> None:
+        from campaign_manager.next_mission import SUPPLY_CRATES
+        from veaf_libs.ctld_config import read_default_config
+
+        text = read_default_config(Path(__file__).resolve().parents[3] / "src" / "scripts" / "community" / "CTLD.lua")
+        assert text is not None
+        shipped = yaml.safe_load(text)
+        weights = {c.get("weight") for section in shipped["mm_facing"]["spawnableCrates"].values() for c in section}
+        assert not weights & {crate["weight"] for crate in SUPPLY_CRATES}
+
+    def test_a_mission_without_ctld_is_left_alone(self, tmp_path: Path) -> None:
+        assert add_campaign_cargo(tmp_path, {}) == []

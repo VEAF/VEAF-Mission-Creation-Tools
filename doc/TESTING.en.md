@@ -197,6 +197,8 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafSanctuary.lua` | Sanctuary zone detection |
 | `test_veafMissileGuardian.lua` | Missile intercept logic |
 | `test_veafCampaign.lua` | Multi-mission campaign: garrisons drawn, recorded, and their losses |
+| `test_veafCampaignPersistent.lua` | Persistent campaign: save read back, victory, defeat, reset, sleeping zones, reinforcement, counter-attacks, CTLD 2 deliveries, self-check |
+| `test_veafCampaignLive.lua` | Persistent campaign: supply helicopters, enemy air, Hunter, credits, shop, tasks, intelligence, spy team |
 | `test_veafCasMission.lua` | CAS threat package generation |
 | `test_veafCasMission_menu.lua` | Fixed CAS MISSION menu: no entry added or removed during a mission, answers with no mission running |
 | `test_veafTransportMission.lua` | Transport mission setup |

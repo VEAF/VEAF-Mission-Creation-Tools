@@ -150,6 +150,9 @@ veafCampaign.saveParts = {}
 --- How the campaign ended, once it has: "victory", "defeat" or "reset". Nil while it runs.
 veafCampaign.over = nil
 
+--- What other modules do at every beat of the single loop: functions taking the mission time.
+veafCampaign.beatHooks = {}
+
 --- Line and fill colours of a zone on the F10 map, by owner.
 veafCampaign.COLORS = {
   blue = { line = { 0, 0, 1, 1 }, fill = { 0, 0, 1, 0.15 } },
@@ -854,12 +857,39 @@ function VeafCampaignZone:mapLabel()
   return veaf.t("campaign.map_label", self.name, self:strengthPercent())
 end
 
---- Draw the zone on the F10 map, for everybody: a circle coloured by owner and its label. Nothing is
---- redrawn while the owner and the label stay the same.
+--- Whether the zone is revealed to the players' side now (FEAT-DYNAMIC-CAMPAIGN ticket 08).
+function veafCampaign.isRevealed(zone)
+  return (zone.revealedUntil or 0) > timer.getTime()
+end
+
+--- Whether a zone's strength is hidden from a side: in a persistent campaign that hides garrisons
+--- (`intel.hidden`), an enemy zone the players' side has not revealed.
+--- @param zone table
+--- @param side string "blue" or "red"
+function veafCampaign.hidesFrom(zone, side)
+  return veafCampaign.isPersistent()
+    and veafCampaign.setting("intel", "hidden") == true
+    and side == veafCampaign.playerSide()
+    and veafCampaign.SIDES[zone.entry.owner] ~= nil
+    and zone.entry.owner ~= side
+    and not veafCampaign.isRevealed(zone)
+end
+
+--- What a side sees of the zone on the map.
+function VeafCampaignZone:labelFor(side)
+  if veafCampaign.hidesFrom(self, side) then
+    return veaf.t("campaign.map_label_hidden", self.name)
+  end
+  return self:mapLabel()
+end
+
+--- Draw the zone on the F10 map: a circle coloured by owner, for everybody, and its label — for
+--- everybody too, unless garrisons are hidden, in which case each side gets its own. Nothing is redrawn
+--- while the owner and the labels stay the same.
 --- @return boolean true when the zone was (re)drawn
 function VeafCampaignZone:draw()
-  local label = self:mapLabel()
-  local signature = self.entry.owner .. "|" .. label
+  local blueLabel, redLabel = self:labelFor("blue"), self:labelFor("red")
+  local signature = self.entry.owner .. "|" .. blueLabel .. "|" .. redLabel
   if signature == self.drawnSignature then
     return false
   end
@@ -870,9 +900,16 @@ function VeafCampaignZone:draw()
   local center = self:getCenter()
   local circleId = veaf.getUniqueIdentifier()
   trigger.action.circleToAll(-1, circleId, center, self.entry.radius or 2000, colors.line, colors.fill, 1, true)
-  local labelId = veaf.getUniqueIdentifier()
-  trigger.action.textToAll(-1, labelId, center, { 0, 0, 0, 1 }, { 1, 1, 1, 0.5 }, 12, true, label)
-  self.markIds = { circleId, labelId }
+  self.markIds = { circleId }
+  local labels = { { -1, blueLabel } }
+  if blueLabel ~= redLabel then
+    labels = { { coalition.side.BLUE, blueLabel }, { coalition.side.RED, redLabel } }
+  end
+  for _, label in ipairs(labels) do
+    local labelId = veaf.getUniqueIdentifier()
+    trigger.action.textToAll(label[1], labelId, center, { 0, 0, 0, 1 }, { 1, 1, 1, 0.5 }, 12, true, label[2])
+    table.insert(self.markIds, labelId)
+  end
   self.drawnSignature = signature
   veafCampaign.counters.drawings = veafCampaign.counters.drawings + 1
   return true
@@ -1508,6 +1545,9 @@ function veafCampaign.situationText()
   }
   for _, zone in ipairs(veafCampaign.zoneList) do
     local line = veaf.t("campaign.situation.zone", zone.name, veaf.t("campaign.side." .. zone.entry.owner), zone:strengthPercent())
+    if veafCampaign.hidesFrom(zone, veafCampaign.playerSide()) then
+      line = veaf.t("campaign.situation.zone_hidden", zone.name, veaf.t("campaign.side." .. zone.entry.owner))
+    end
     local capture = zone.entry.capture
     if capture then
       line = line .. veaf.t("campaign.situation.capture", veaf.t("campaign.side." .. capture.side), math.floor(capture.seconds or 0))
@@ -2153,6 +2193,12 @@ function veafCampaign.beat()
       zone:draw()
     end
   end
+  for _, hook in ipairs(veafCampaign.beatHooks) do
+    local ok, problem = pcall(hook, now)
+    if not ok then
+      veaf.loggers.get(veafCampaign.Id):error("a beat hook failed: %s", tostring(problem))
+    end
+  end
   if now >= veafCampaign.nextStateWrite then
     veafCampaign.nextStateWrite = now + veafCampaign.writeInterval()
     veafCampaign.writeState()
@@ -2194,6 +2240,7 @@ function veafCampaign.initialize()
   veafCampaign.zones, veafCampaign.zoneList, veafCampaign.unitIndex = {}, {}, {}
   veafCampaign.convoys, veafCampaign.pendingAssaults, veafCampaign.assaultPath = {}, {}, nil
   veafCampaign.nextAttack, veafCampaign.over, veafCampaign.savedParts = {}, nil, {}
+  veafCampaign.beatHooks, veafCampaign.selfChecks = {}, {}
   veafCampaign.counters = {
     beats = 0,
     zonesProcessed = 0,
@@ -2253,6 +2300,18 @@ function veafCampaign.initialize()
   end
   -- the first write is due one interval in: at load time the state is the data table itself
   veafCampaign.nextStateWrite = timer.getTime() + veafCampaign.writeInterval()
+  -- the persistent campaign's sorties, credits, tasks and intelligence: modules of their own, started here
+  -- so that the mission's configuration only ever names CAMPAIGN
+  if veafCampaign.isPersistent() then
+    for _, module in ipairs({ veafCampaignOps, veafCampaignEconomy }) do
+      if module and module.initialize then
+        local ok, problem = pcall(module.initialize)
+        if not ok then
+          veaf.loggers.get(veafCampaign.Id):error("a campaign module failed to start: %s", tostring(problem))
+        end
+      end
+    end
+  end
   veafCampaign.loopId =
     veafScheduler.scheduleFunction(veafCampaign.beat, nil, timer.getTime() + veafCampaign.BEAT_SECONDS, veafCampaign.BEAT_SECONDS)
   return true

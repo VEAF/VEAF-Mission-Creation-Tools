@@ -715,4 +715,43 @@ function TestCampaignDeliveries:test_a_delivery_is_told_to_the_listeners()
   luaunit.assertEquals(heard, { { "Kobuleti", "blue", "crate" } })
 end
 
+-- ---------------------------------------------------------------------------
+-- Self-check
+-- ---------------------------------------------------------------------------
+TestCampaignSelfCheck = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignSelfCheck:test_a_healthy_campaign_reads_all_ok()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  veafCampaign.writeState()
+  local text = veafCampaign.selfCheckText()
+  luaunit.assertStrContains(text, "OK  zones placed: 4 of 4")
+  luaunit.assertStrContains(text, "OK  load: fresh")
+  luaunit.assertStrContains(text, "OK  save: 1 write(s), last one succeeded: true")
+  luaunit.assertNotStrContains(text, "KO")
+end
+
+function TestCampaignSelfCheck:test_a_zone_that_cannot_be_placed_and_a_save_that_cannot_be_written_read_ko()
+  memoryFileSystem(self, { sanitized = true })
+  local data = persistentData()
+  data.zones[4].x, data.zones[4].z = nil, nil
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  veafCampaign.writeState()
+  local text = veafCampaign.selfCheckText()
+  luaunit.assertStrContains(text, "KO  zones placed: 3 of 4 Zugdidi")
+  luaunit.assertStrContains(text, "KO  load: no-io")
+  luaunit.assertStrContains(text, "KO  save: 0 write(s)")
+end
+
+function TestCampaignSelfCheck:test_other_modules_add_their_lines()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  table.insert(veafCampaign.selfChecks, function(verdict)
+    return { verdict(false, "campaign.check.outcome", "economy") }
+  end)
+  luaunit.assertStrContains(veafCampaign.selfCheckText(), "KO  outcome: economy")
+  table.remove(veafCampaign.selfChecks)
+end
+
 os.exit(luaunit.LuaUnit.run())

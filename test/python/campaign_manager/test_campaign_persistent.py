@@ -51,6 +51,11 @@ class TestTheMode:
     def test_persistent_read(self) -> None:
         assert _persistent().mode == "persistent"
 
+    def test_a_persistent_campaign_needs_no_objective(self) -> None:
+        campaign, issues = _parse(head={"mode": "persistent", "objectives": []})
+        assert campaign is not None
+        assert issues == []
+
     def test_an_unknown_mode_is_refused(self) -> None:
         campaign, issues = _parse(head={"mode": "forever"})
         assert campaign is None

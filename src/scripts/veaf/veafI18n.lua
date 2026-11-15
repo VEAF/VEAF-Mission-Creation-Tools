@@ -2070,6 +2070,28 @@ veaf.i18nCatalog = {
   },
   ["menu.campaign.reset"] = { fr = "Remettre la campagne à zéro (admin)", en = "Reset the campaign (admin)" },
 
+  ["menu.campaign.self_check"] = { fr = "Auto-contrôle (admin)", en = "Self-check (admin)" },
+  ["campaign.check.title"] = { fr = "Campagne — auto-contrôle", en = "Campaign — self-check" },
+  ["campaign.check.ok"] = { fr = "OK  %s", en = "OK  %s" },
+  ["campaign.check.ko"] = { fr = "KO  %s", en = "KO  %s" },
+  ["campaign.check.zones"] = { fr = "zones placées : %d sur %d %s", en = "zones placed: %d of %d %s" },
+  ["campaign.check.load"] = {
+    fr = "chargement : %s (loaded = sauvegarde reprise, fresh = campagne neuve)",
+    en = "load: %s (loaded = save resumed, fresh = new campaign)",
+  },
+  ["campaign.check.save"] = {
+    fr = "sauvegarde : %d écriture(s), dernière réussie : %s",
+    en = "save: %d write(s), last one succeeded: %s",
+  },
+  ["campaign.check.outcome"] = { fr = "issue : %s", en = "outcome: %s" },
+  ["campaign.check.dormancy"] = {
+    fr = "dormance : %d zone(s) éveillée(s) sur %d au plus, %d réveil(s), %d mise(s) en sommeil",
+    en = "dormancy: %d zone(s) awake of %d at most, %d wake(s), %d sleep(s)",
+  },
+  ["campaign.check.capture"] = { fr = "zones neutres : %s ; captures en cours : %s", en = "neutral zones: %s; captures running: %s" },
+  ["campaign.check.losses"] = { fr = "pertes enregistrées : %d ; renforts : %d", en = "losses recorded: %d; reinforcements: %d" },
+  ["campaign.check.failed"] = { fr = "un contrôle a échoué : %s", en = "a check failed: %s" },
+
   -- veafOpposition
   ["opposition.level"] = {
     fr = "Opposition aérienne dimensionnée pour %d avion(s) (%s)",

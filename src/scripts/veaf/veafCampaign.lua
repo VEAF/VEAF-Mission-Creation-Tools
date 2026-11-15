@@ -1528,6 +1528,78 @@ function veafCampaign.reportSituation()
   trigger.action.outText(veafCampaign.situationText(), 30)
 end
 
+--- What other modules add to the self-check: functions returning a list of lines.
+veafCampaign.selfChecks = {}
+
+--- One verdict line: OK or KO, then what was measured.
+local function verdict(ok, key, ...)
+  return veaf.t(ok and "campaign.check.ok" or "campaign.check.ko", veaf.t(key, ...))
+end
+
+--- The self-check, as text: one verdict per mechanism, readable in game without the log (ticket 09).
+function veafCampaign.selfCheckText()
+  local c, lines = veafCampaign.counters, {}
+  local placed, unplaced, neutral, capturing, awake = 0, {}, {}, {}, 0
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed then
+      placed = placed + 1
+    else
+      table.insert(unplaced, zone.name)
+    end
+    if zone.entry.owner == "neutral" then
+      table.insert(neutral, zone.name)
+    end
+    if zone.entry.capture then
+      table.insert(capturing, string.format("%s %s %ds", zone.name, zone.entry.capture.side, math.floor(zone.entry.capture.seconds or 0)))
+    end
+    if zone.awake then
+      awake = awake + 1
+    end
+  end
+  table.insert(lines, veaf.t("campaign.check.title"))
+  table.insert(lines, verdict(#unplaced == 0, "campaign.check.zones", placed, #veafCampaign.zoneList, table.concat(unplaced, ", ")))
+  if veafCampaign.isPersistent() then
+    local load = veafCampaign.loadResult or "-"
+    table.insert(lines, verdict(load == "loaded" or load == "fresh", "campaign.check.load", load))
+    table.insert(
+      lines,
+      verdict(veafCampaign.lastWriteOk ~= false, "campaign.check.save", c.stateWrites, tostring(veafCampaign.lastWriteOk))
+    )
+    table.insert(lines, verdict(true, "campaign.check.outcome", veafCampaign.over or "-"))
+  end
+  if veafCampaign.dormancyEnabled() then
+    table.insert(
+      lines,
+      verdict(
+        awake <= veafCampaign.setting("max_awake_zones"),
+        "campaign.check.dormancy",
+        awake,
+        veafCampaign.setting("max_awake_zones"),
+        c.wakes,
+        c.sleeps
+      )
+    )
+  end
+  table.insert(lines, verdict(true, "campaign.check.capture", table.concat(neutral, ", "), table.concat(capturing, ", ")))
+  table.insert(lines, verdict(true, "campaign.check.losses", c.eventsHandled, c.reinforcements))
+  for _, check in ipairs(veafCampaign.selfChecks) do
+    local ok, extra = pcall(check, verdict)
+    if ok and type(extra) == "table" then
+      for _, line in ipairs(extra) do
+        table.insert(lines, line)
+      end
+    elseif not ok then
+      table.insert(lines, verdict(false, "campaign.check.failed", tostring(extra)))
+    end
+  end
+  return table.concat(lines, "\n")
+end
+
+--- Radio command, for admins: the self-check.
+function veafCampaign.reportSelfCheck()
+  trigger.action.outText(veafCampaign.selfCheckText(), 45)
+end
+
 --- Radio command, for admins: what the module has done so far.
 function veafCampaign.reportCounters()
   local c = veafCampaign.counters
@@ -1558,6 +1630,7 @@ function veafCampaign.buildRadioMenu()
     veafRadio.USAGE_ForAll
   )
   veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.campaign.counters"), veafCampaign.rootPath, veafCampaign.reportCounters)
+  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.campaign.self_check"), veafCampaign.rootPath, veafCampaign.reportSelfCheck)
   if veafCampaign.isPersistent() then
     veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.campaign.reset"), veafCampaign.rootPath, veafCampaign.resetCampaign)
   end
@@ -1768,6 +1841,7 @@ end
 --- once and does nothing: the mission runs, the campaign just cannot record it.
 --- @return boolean true when the file was written
 function veafCampaign.writeState()
+  veafCampaign.lastWriteOk = false -- until the write below goes through
   local fsIo, fsLfs, fsOs = veafCampaign.fileSystem()
   if not (fsIo and fsLfs) then
     if not veafCampaign.stateUnwritableReported then
@@ -1821,6 +1895,7 @@ function veafCampaign.writeState()
     return false
   end
   veafCampaign.counters.stateWrites = veafCampaign.counters.stateWrites + 1
+  veafCampaign.lastWriteOk = true
   return true
 end
 

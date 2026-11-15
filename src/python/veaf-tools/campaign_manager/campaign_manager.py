@@ -599,6 +599,10 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
         issues.append(_error("disconnected", zones=", ".join(unreachable)))
 
     objectives = _parse_objectives(head.get("objectives"), declared, zones, issues)
+    if mode == "persistent":
+        # a persistent campaign is won by holding every zone: no objective is not a campaign that cannot end
+        no_objectives = t("campaign.issue.no_objectives")
+        issues[:] = [issue for issue in issues if issue.message != no_objectives]
 
     if any(issue.level == ERROR for issue in issues):
         return None, issues

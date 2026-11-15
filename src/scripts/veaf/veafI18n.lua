@@ -2071,7 +2071,10 @@ veaf.i18nCatalog = {
   ["menu.campaign.reset"] = { fr = "Remettre la campagne à zéro (admin)", en = "Reset the campaign (admin)" },
 
   ["menu.campaign.self_check"] = { fr = "Auto-contrôle (admin)", en = "Self-check (admin)" },
-  ["campaign.check.title"] = { fr = "Campagne — auto-contrôle", en = "Campaign — self-check" },
+  ["campaign.check.title"] = {
+    fr = "Campagne — auto-contrôle (mission à %d s, %d battement(s) ; rien n'est jugé avant le premier, à 10 s)",
+    en = "Campaign — self-check (mission at %d s, %d beat(s); nothing is judged before the first, at 10 s)",
+  },
   ["campaign.check.ok"] = { fr = "OK  %s", en = "OK  %s" },
   ["campaign.check.ko"] = { fr = "KO  %s", en = "KO  %s" },
   ["campaign.check.zones"] = { fr = "zones placées : %d sur %d %s", en = "zones placed: %d of %d %s" },

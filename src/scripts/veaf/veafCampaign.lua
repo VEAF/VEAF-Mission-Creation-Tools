@@ -1625,7 +1625,8 @@ function veafCampaign.selfCheckText()
       awake = awake + 1
     end
   end
-  table.insert(lines, veaf.t("campaign.check.title"))
+  -- the mission time and the beats so far: a check made before the first beat (10 s) has nothing to judge
+  table.insert(lines, veaf.t("campaign.check.title", math.floor(timer.getTime()), c.beats))
   table.insert(lines, verdict(#unplaced == 0, "campaign.check.zones", placed, #veafCampaign.zoneList, table.concat(unplaced, ", ")))
   if veafCampaign.isPersistent() then
     local load = veafCampaign.loadResult or "-"

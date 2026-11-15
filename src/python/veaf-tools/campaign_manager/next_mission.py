@@ -239,6 +239,35 @@ def _enable_campaign_module(mission_yaml: Path, era: str) -> None:
     save_yaml(mission_yaml, data)
 
 
+#: The F10 map view a persistent campaign's mission enforces when it sets none: the players see the enemy
+#: their own side has detected, not every garrison, so its strength is learned by reconnaissance
+#: (FEAT-DYNAMIC-CAMPAIGN ticket 08; David, 2026-11-15).
+PERSISTENT_F10_VIEW = "fog_of_war"
+
+
+def hide_enemies_on_the_map(mission_yaml: Path) -> bool:
+    """Set `mission.forced_options.f10_view` for a persistent campaign, unless the mission sets one.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+
+    Returns:
+        Whether the view was set now; ``False`` when the mission already chose one.
+    """
+    data = load_yaml(mission_yaml)
+    mission = data.setdefault("mission", {})
+    if mission is None:
+        mission = data["mission"] = {}
+    options = mission.setdefault("forced_options", {})
+    if options is None:
+        options = mission["forced_options"] = {}
+    if options.get("f10_view"):
+        return False
+    options["f10_view"] = PERSISTENT_F10_VIEW
+    save_yaml(mission_yaml, data)
+    return True
+
+
 def _name_part(text: str) -> str:
     """``La porte de Poti`` → ``La-porte-de-Poti``: ASCII letters, digits and dashes only.
 
@@ -443,6 +472,7 @@ def prepare_next_mission(
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
     if campaign.mode == "persistent":
         add_campaign_cargo(mission_folder, campaign.dynamic)
+        hide_enemies_on_the_map(mission_folder / "mission.yaml")
     # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
     # security off, never the campaign
     name = mission_name(campaign.name, state.mission + 1, page.title if page else None)

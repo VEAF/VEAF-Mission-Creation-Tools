@@ -32,3 +32,4 @@ In game: an enemy CAP shows up over the front; a CAS flight attacks the target z
 
 The aircraft are declared under `dynamic.air.<side>`, like every live-play setting, with one shipped default per side (made for `MODERN`), not one per era; `air.cap_per_players` (3) sets how many players one CAP answers.
 The Hunter is in `dynamic.hunter`.
+Every sortie takes off from an airfield, hot on free stands or from the runway (David, 2026-11-15, after the first in-game check: they spawned in the air).

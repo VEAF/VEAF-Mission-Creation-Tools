@@ -41,6 +41,19 @@ veafCampaignOps.STRIKE_ORBIT_SECONDS = 600
 --- How far around its zone a CAP looks for aircraft, in metres.
 veafCampaignOps.CAP_RADIUS = 40000
 
+--- The stand types a fighter or a strike aircraft may start on: every one but the runway (16) and the
+--- helicopter pads (40). Read from `Airbase:getParking()`'s `Term_Type`.
+veafCampaignOps.EXCLUDED_STAND_TYPES = { [16] = true, [40] = true }
+
+--- How far beyond the enemy zone's air defence a BARCAP holds, in metres, and the radius it guards.
+veafCampaignOps.BARCAP_MARGIN = 15000
+veafCampaignOps.BARCAP_RADIUS = 15000
+
+--- The reach assumed for a zone's air defence when none of its missiles can be measured (a sleeping
+--- zone), in metres: an estimation, not a measure — a long-range battery and the short-range rest.
+veafCampaignOps.ASSUMED_LONG_RANGE = 75000
+veafCampaignOps.ASSUMED_SHORT_RANGE = 20000
+
 --- What each strike role engages.
 veafCampaignOps.STRIKE_TARGETS = { cas = { "Ground Units" }, sead = { "Air Defence" } }
 
@@ -412,7 +425,7 @@ end
 veafAircraftSpawn.roles.campaign_strike = {
   buildRoute = function(context)
     local params, spot = context.params, context.spot
-    local speed, altitude = veafCampaignOps.STRIKE_SPEED, spot.y
+    local speed, altitude = veafCampaignOps.STRIKE_SPEED, params.altitude or spot.y
     local function point(x, z, tasks, extra)
       local wp = {
         x = x,
@@ -451,6 +464,12 @@ veafAircraftSpawn.roles.campaign_strike = {
       point(spot.x, spot.z, { roe, engage }),
       point(params.target.x, params.target.z, { orbit }),
     }
+    if context.takeoffPoint then
+      -- started on the ground: the take-off point first, carrying the tasks the first point had
+      local takeoff = veaf.deepCopy(context.takeoffPoint)
+      takeoff.task = route[1].task
+      route[1] = takeoff
+    end
     local home = point(params.home.x, params.home.z, {}, { type = "Land", action = "Landing", airdromeId = params.airdromeId })
     table.insert(route, home)
     for _, wp in ipairs(route) do
@@ -469,6 +488,7 @@ veafAircraftSpawn.roles.campaign_strike = {
 veafAircraftSpawn.roles.campaign_intercept = {
   buildRoute = function(context)
     local params, spot = context.params, context.spot
+    local altitude = params.altitude or spot.y
     local tasks = {
       { id = "WrappedAction", params = { action = { id = "Option", params = { name = 0, value = 0 } } } },
       { id = "AttackGroup", params = { groupId = params.groupId } },
@@ -480,7 +500,7 @@ veafAircraftSpawn.roles.campaign_intercept = {
       return {
         x = x,
         y = z,
-        alt = spot.y,
+        alt = altitude,
         alt_type = "BARO",
         type = "Turning Point",
         action = "Turning Point",
@@ -489,19 +509,72 @@ veafAircraftSpawn.roles.campaign_intercept = {
         task = { id = "ComboTask", params = { tasks = pointTasks } },
       }
     end
-    return { point(spot.x, spot.z, tasks), point(params.target.x, params.target.z, {}) }, { task = "CAP" }
+    local route = { point(spot.x, spot.z, tasks), point(params.target.x, params.target.z, {}) }
+    if context.takeoffPoint then
+      local takeoff = veaf.deepCopy(context.takeoffPoint)
+      takeoff.task = route[1].task
+      route[1] = takeoff
+    end
+    return route, { task = "CAP" }
   end,
   afterSpawn = function() end,
 }
 
---- Spawn a flight of the side's aircraft for a role, in the air over an airfield zone, with a role of
---- veafAircraftSpawn.
+--- Where a flight of `count` aircraft starts on an airfield: hot on free stands when there are enough,
+--- else on the runway. The take-off waypoint and one position per aircraft.
+---
+--- Free stands are the ones `Airbase:getParking()` reports with no aircraft on them (`TO_AC`), runway and
+--- helicopter pads left out. Seating an aircraft by its stand's `Term_Index` is what the scripting API
+--- offers; whether DCS honours it for a group added by script is to be read in game (ticket 05).
+--- @param airbase table the DCS airbase
+--- @param count number
+--- @return table|nil the take-off waypoint (mission-table `x`, `y`)
+--- @return table the positions: `{ x, z, parking }`
+function veafCampaignOps.takeoffFrom(airbase, count)
+  local center = airbase:getPoint()
+  local stands = {}
+  for _, spot in pairs(airbase:getParking() or {}) do
+    if not spot.TO_AC and not veafCampaignOps.EXCLUDED_STAND_TYPES[spot.Term_Type] and spot.vTerminalPos then
+      table.insert(stands, spot)
+    end
+  end
+  table.sort(stands, function(a, b)
+    return (a.Term_Index or 0) < (b.Term_Index or 0)
+  end)
+  local point = {
+    x = center.x,
+    y = center.z,
+    alt = land.getHeight({ x = center.x, y = center.z }),
+    alt_type = "BARO",
+    speed = 0,
+    airdromeId = airbase:getID(),
+    task = { id = "ComboTask", params = { tasks = {} } },
+  }
+  local positions = {}
+  if #stands >= count then
+    point.type, point.action = "TakeOffParkingHot", "From Parking Area Hot"
+    for index = 1, count do
+      local stand = stands[index]
+      table.insert(positions, { x = stand.vTerminalPos.x, z = stand.vTerminalPos.z, parking = stand.Term_Index })
+    end
+  else
+    point.type, point.action = "TakeOff", "From Runway"
+    for index = 1, count do
+      table.insert(positions, { x = center.x - 50 * (index - 1), z = center.z })
+    end
+  end
+  return point, positions
+end
+
+--- Spawn a flight of the side's aircraft for a role, taking off from an airfield zone, with a role of
+--- veafAircraftSpawn. It starts hot on the field's free stands, or on its runway when they are taken:
+--- an air start over the field is kept only for a zone whose airbase DCS does not know.
 --- @param side string
 --- @param aircraftRole string "cap", "cas" or "sead": which declared aircraft
---- @param origin table the airfield zone it starts over
+--- @param origin table the airfield zone it leaves from
 --- @param roleName string the veafAircraftSpawn role
 --- @param params table the role's parameters
---- @param altitude number metres above the field
+--- @param altitude number the altitude it flies its job at, metres above the field
 --- @return string|nil the group's name
 function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, params, altitude)
   local aircraft = veafCampaignOps.aircraft(side, aircraftRole)
@@ -510,14 +583,23 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
     return nil
   end
   local center = origin:getCenter()
-  local alt = land.getHeight({ x = center.x, y = center.z }) + altitude
+  local cruise = land.getHeight({ x = center.x, y = center.z }) + altitude
+  params.altitude = params.altitude or cruise
+  local airbase = origin.entry.airbase and Airbase.getByName(origin.entry.airbase)
+  local takeoff, positions = nil, {}
+  if airbase and airbase.getParking then
+    takeoff, positions = veafCampaignOps.takeoffFrom(airbase, aircraft.count)
+    params.takeoffPoint = takeoff
+  end
   local name = uniqueGroupName(string.format("%s %s %s", side, aircraftRole, origin.name))
   local units = {}
   for index = 1, aircraft.count do
+    local position = positions[index] or { x = center.x - 150 * (index - 1), z = center.z - 150 * (index - 1) }
     table.insert(units, {
-      x = center.x - 150 * (index - 1),
-      y = center.z - 150 * (index - 1),
-      alt = alt,
+      x = position.x,
+      y = position.z,
+      alt = takeoff and land.getHeight({ x = position.x, y = position.z }) or cruise,
+      parking = position.parking,
       type = aircraft.type,
       name = string.format("%s #%d", name, index),
       heading = 0,
@@ -530,11 +612,64 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
   if spawned then
     table.insert(veafCampaignOps.flights, { name = spawned, side = side, role = aircraftRole, origin = origin.name })
     veafCampaignOps.counters.flights = veafCampaignOps.counters.flights + 1
-    logger():info("%s %s flight [%s] leaves [%s]", side, aircraftRole, spawned, origin.name)
+    logger():info("%s %s flight [%s] leaves [%s] (%s)", side, aircraftRole, spawned, origin.name, takeoff and takeoff.action or "air start")
   else
     logger():error("the %s %s flight from [%s] could not be spawned", side, aircraftRole, origin.name)
   end
   return spawned
+end
+
+--- How far a zone's air defence reaches, in metres: the longest maximum range of the missiles its live
+--- units carry, read from DCS (`getAmmo`, `rangeMaxAltMax`). A sleeping zone has no live unit to ask:
+--- its reach is then assumed, the long-range figure when its class has a long-range battery.
+--- @param zone table
+--- @return number metres
+--- @return boolean true when measured, false when assumed
+function veafCampaignOps.threatRange(zone)
+  local reach, measured = 0, false
+  for _, group in ipairs(zone.entry.garrison or {}) do
+    for unitIndex, record in ipairs(group.units) do
+      local unit = record.alive and Unit.getByName(veafCampaign.unitName(group, unitIndex))
+      if unit and unit.getAmmo then
+        local ok, ammo = pcall(unit.getAmmo, unit)
+        for _, item in ipairs(ok and type(ammo) == "table" and ammo or {}) do
+          local desc = item.desc
+          if desc and desc.category == Weapon.Category.MISSILE and desc.rangeMaxAltMax then
+            measured = true
+            reach = math.max(reach, desc.rangeMaxAltMax)
+          end
+        end
+      end
+    end
+  end
+  if measured then
+    return reach, true
+  end
+  local size = zone.entry.size or {}
+  return size.long_range_sam and veafCampaignOps.ASSUMED_LONG_RANGE or veafCampaignOps.ASSUMED_SHORT_RANGE, false
+end
+
+--- Where a BARCAP on an enemy zone holds: on the line from the zone to the side's nearest airfield zone,
+--- beyond the zone's air defence by `BARCAP_MARGIN`, its guarded circle included.
+--- @param side string the side flying it
+--- @param zone table the enemy zone
+--- @return table|nil the guarded zone `{ x, y = easting, radius }`
+--- @return table|nil the airfield zone it leaves from
+--- @return number the distance from the enemy zone's centre, metres
+--- @return number the air defence's reach, metres
+--- @return boolean whether that reach was measured
+function veafCampaignOps.barcapStation(side, zone)
+  local origin = veafCampaignOps.nearestOwnZone(side, zone, true)
+  if not origin then
+    return nil
+  end
+  local reach, measured = veafCampaignOps.threatRange(zone)
+  local from, to = zone:getCenter(), origin:getCenter()
+  local length = math.max(1, distance2d(from, to))
+  local distance = reach + veafCampaignOps.BARCAP_MARGIN + veafCampaignOps.BARCAP_RADIUS
+  local ux, uz = (to.x - from.x) / length, (to.z - from.z) / length
+  local station = { x = from.x + ux * distance, y = from.z + uz * distance, radius = veafCampaignOps.BARCAP_RADIUS }
+  return station, origin, distance, reach, measured
 end
 
 --- Keep the enemy's CAP up, over the front zone nearest the players.

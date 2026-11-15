@@ -62,6 +62,7 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 `campaign apply` has no use here: there is no "between two missions".
 
 `campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side) and the **"Spy"** troop group (one man).
+It also enforces the "fog of war" F10 view (`mission.forced_options.f10_view: fog_of_war`): a pilot sees only the enemies their side has detected, and a garrison's strength is learned by [reconnaissance](#intel). A view already chosen in `mission.yaml` is kept.
 
 ## The save {#save}
 
@@ -100,7 +101,7 @@ At most `max_awake_zones` (12) zones are awake at once, nearest the players firs
 
 - **CAP**: the enemy keeps one CAP up per `air.cap_per_players` (3) players of the [opposition level](scripts/veafQraManager.en.md#opposition-level), at least one, over its front zone nearest the players.
 - **Strikes**: every `air.strike_seconds` (900 s), a CAS strike (on the zone with the most units) or a SEAD strike (on the one with the most air defence), in turn, on a zone bordering the enemy's territory.
-- They take off from the nearest enemy airfield; no airfield, no sortie.
+- They **take off** from the nearest enemy airfield, hot on free stands, or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   `air.max_flights` (4) flights in the air at most per side.
 - **Hunter**: a player on a kill streak (between 8 and 16 on the ground, or between 4 and 8 in the air, drawn once per life) then has a 10 % chance at every kill to have two enemy fighters scrambled at that player, whose side is told.
 
@@ -142,11 +143,15 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | Smoke on targets | red smoke on three units of an enemy zone | 50 |
 | Intel | the composition of an enemy zone for an hour | 150 |
 | Friendly CAP | a CAP of our side over one of our zones | 400 |
+| BARCAP | a CAP of our side held in front of an enemy zone, out of its air defence's reach, to cover the helicopters and aircraft going to strike it | 400 |
 | Capture helicopter | a helicopter that goes and takes a neutral zone | 250 |
 | Resupply helicopter | a helicopter that goes and resupplies one of our damaged zones | 200 |
 | Tanker | respawns the tanker `economy.tanker` names (an asset of the mission); absent without it | 300 |
 
-Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `capture`, `resupply`, `tanker`).
+The BARCAP holds on the axis between the enemy zone and our nearest airfield, at its air defence's reach plus 15 km, and guards a 15 km circle.
+The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when its class has a long-range SAM, 20 km otherwise, and the message says so.
+
+Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `tanker`).
 
 ## The task board {#tasks}
 
@@ -207,7 +212,8 @@ The caps are conservative by default; they will be tuned from what the servers h
 These are written and tested outside DCS, not yet measured in game:
 
 - an AI helicopter landing in a zone (DCS's known traps on a scripted landing are in [the DCS runtime traps](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-runtime-traps.md));
-- the CAS and SEAD strikes air-started over their airfield, and their return;
+- aircraft taking off from a free stand (is the stand `getParking()` gives the one DCS seats them on?);
+- the CAS and SEAD strikes and their return;
 - the spy team walking to its zone;
 - a garrison disappearing and reappearing as a player passes.
 

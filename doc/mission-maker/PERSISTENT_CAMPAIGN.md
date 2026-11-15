@@ -62,6 +62,7 @@ Puis on construit la mission du dossier `missions\mission-01\mission` comme n'im
 `campaign apply` n'a pas d'usage ici : il n'y a pas de « entre deux missions ».
 
 `campaign next` ajoute aussi au `ctld-config.yaml` de la mission ce que les joueurs transportent pour la campagne : la caisse **« Zone supplies »** (une par camp) et le groupe de troupes **« Spy »** (un homme).
+Il impose enfin la vue F10 « fog of war » (`mission.forced_options.f10_view: fog_of_war`) : un pilote ne voit que les ennemis que son camp a détectés, et la force d'une garnison s'apprend par la [reconnaissance](#intel). Une vue déjà choisie dans `mission.yaml` est gardée.
 
 ## La sauvegarde {#save}
 
@@ -100,7 +101,7 @@ Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proch
 
 - **CAP** : l'ennemi tient en l'air une CAP par tranche de `air.cap_per_players` (3) joueurs du [niveau d'opposition](scripts/veafQraManager.md#opposition-level), au moins une, au-dessus de sa zone du front la plus proche des joueurs.
 - **Frappes** : toutes les `air.strike_seconds` (900 s), une frappe CAS (sur la zone qui a le plus d'unités) ou SEAD (sur celle qui a le plus de défense antiaérienne), en alternance, sur une zone qui borde le territoire ennemi.
-- Elles partent de l'aérodrome ennemi le plus proche ; sans aérodrome, pas de sortie.
+- Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres, ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
   `air.max_flights` (4) vols en l'air au plus par camp.
 - **Hunter** : un joueur qui enchaîne les victoires (entre 8 et 16 au sol, ou entre 4 et 8 en l'air, tiré une fois par vie) a ensuite 10 % de chances à chaque victoire de voir décoller deux chasseurs ennemis contre ce joueur ; son camp est prévenu.
 
@@ -142,11 +143,15 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 | Fumigènes sur cibles | de la fumée rouge sur trois unités d'une zone ennemie | 50 |
 | Renseignement | la composition d'une zone ennemie pour une heure | 150 |
 | CAP amie | une CAP de notre camp au-dessus d'une de nos zones | 400 |
+| BARCAP | une CAP de notre camp tenue devant une zone ennemie, hors de portée de ses défenses, pour couvrir les hélicoptères et les avions qui vont la frapper | 400 |
 | Hélico de capture | un hélicoptère qui va prendre une zone neutre | 250 |
 | Hélico de ravitaillement | un hélicoptère qui va ravitailler une de nos zones abîmées | 200 |
 | Ravitailleur | fait réapparaître le ravitailleur que nomme `economy.tanker` (un asset de la mission) ; absent sans lui | 300 |
 
-Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `capture`, `resupply`, `tanker`).
+La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, à la portée de ses défenses plus 15 km, et garde un cercle de 15 km.
+La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si sa classe a un SAM longue portée, 20 km sinon, et le message le dit.
+
+Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `tanker`).
 
 ## Le tableau des tâches {#tasks}
 
@@ -207,7 +212,8 @@ Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tienn
 Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 
 - un hélicoptère IA qui se pose dans une zone (les pièges connus de DCS sur un poser scripté sont dans [les pièges du runtime DCS](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-runtime-traps.md)) ;
-- les frappes CAS et SEAD lancées en l'air au-dessus de leur terrain, et leur retour ;
+- les avions qui décollent d'un parking libre (le stand donné par `getParking()` est-il celui où DCS les pose ?) ;
+- les frappes CAS et SEAD et leur retour ;
 - l'équipe espion qui marche jusqu'à sa zone ;
 - la disparition et la réapparition d'une garnison au passage d'un joueur.
 

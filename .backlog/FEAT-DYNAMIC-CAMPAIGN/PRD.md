@@ -6,6 +6,16 @@ Status: ⏸ paused — after FEAT-MULTI-MISSION-CAMPAIGN, built on its bricks (D
 > When this lot is resumed, its tickets 01, 02 and 05 shrink to what those bricks do not cover (dormancy, caps, the periodic save's cadence), and ticket 03 is already done there.
 > One premise below did not hold: the VEAF group database has no era, role or side to draw garrisons from; that lot draws them with `veafCasMission`'s generators instead.
 
+## Decision of 2026-11-15: VMCT-native code, two modes, an MCP side
+
+After the analysis of Foothold 6.5.3 ([`foothold-analysis.md`](foothold-analysis.md)), David ruled out removing Moose from Foothold (section 11 of the analysis: some 4 000 call sites, the whole logistics to rewrite on CTLD 2, a fork that diverges at every weekly release, for a gain never measured).
+What is kept is the plan of this PRD, sharpened:
+
+- **Foothold's features are taken over in VMCT's own code**, one or several modules, without Moose and without forking Foothold.
+- **The dynamic mission runs in two modes**: standalone and persistent on a server, like Foothold; or as one mission inside a VMCT multi-mission campaign ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)).
+- **An MCP side** generates these missions, standalone or within a campaign.
+- **The selection aims at a system that is interesting and fun to play, without Foothold's complexity**: which Foothold features to take is studied next, from the catalogue of the analysis (section 6).
+
 David, 2026-10-02/03: VEAF likes Foothold, but it is hard on our servers' performance, and his
 experience points at Moose (many modules, nearly all active all the time, many loops). He wants a
 dynamic campaign engine that gives Foothold's **player experience** without Moose, on VMCT only. This

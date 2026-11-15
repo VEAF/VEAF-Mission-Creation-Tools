@@ -74,7 +74,7 @@ La mission écrit son état toutes les `save_seconds` (60 s) et en fin de missio
 Au démarrage, elle relit ce fichier : chaque zone reprend son camp, sa garnison avec ses pertes et sa capture en cours ; les crédits et le renseignement en cours reviennent aussi.
 Une zone ajoutée à `campaign.yaml` depuis part de son état déclaré ; une zone retirée est ignorée, et le journal le dit.
 
-Ce qui **n'est pas** repris après un redémarrage : les avions, hélicoptères et convois en route. Ils sont perdus, les zones et les garnisons non.
+Ce qui **n'est pas** repris après un redémarrage : les avions, hélicoptères et convois en route. Ils sont perdus, les zones et les garnisons non ; les survivants d'un convoi payé sur une réserve y retournent.
 
 Le fichier est un tableau Lua lu sans aucun accès : il ne peut rien exécuter.
 Il faut que `io` et `lfs` soient ouverts dans le `MissionScripting.lua` du serveur, ce qui est le cas sur les serveurs VEAF.
@@ -93,7 +93,7 @@ Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proch
 
 - **Contre-attaques** : toutes les `attack_seconds` (900 s), un camp listé dans `attacks` (le rouge par défaut) envoie un convoi d'assaut contre la zone ennemie la plus faible qui le borde, `max_convoys` (2) sur la route au plus.
 - **Ravitaillement** : une livraison dans une zone amie abîmée ramène au complet son premier groupe touché.
-  Livrent : une caisse « Zone supplies » posée dans la zone, des troupes CTLD 2 déposées dans la zone, un hélicoptère de ravitaillement posé.
+  Livrent : une caisse « Zone supplies » posée dans la zone, des troupes CTLD 2 déposées dans la zone (sauf l'équipe espion et les équipes JTAC), un hélicoptère de ravitaillement posé.
 - **Hélicoptères IA** : toutes les `supply_seconds` (600 s), un camp listé dans `supply` (le rouge par défaut) envoie un hélicoptère (`helicopter`, Mi-8MT rouge, UH-1H bleu) vers une zone neutre qui le borde, qu'il prend en s'y posant, ou à défaut vers sa zone la plus abîmée, qu'il ravitaille ; `max_helicopters` (2) en vol au plus, et un hélicoptère qui ne s'est pas posé au bout de `helicopter_timeout` (1 200 s) est retiré.
 
 ## L'aviation ennemie {#air}

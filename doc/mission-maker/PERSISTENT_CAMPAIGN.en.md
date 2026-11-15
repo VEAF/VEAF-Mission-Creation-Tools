@@ -74,7 +74,7 @@ The mission writes its state every `save_seconds` (60 s) and at mission end to:
 At start it reads that file back: each zone takes back its owner, its garrison with its losses, and its capture in progress; the credits and the current intelligence come back too.
 A zone added to `campaign.yaml` since starts from its declared state; a zone removed is ignored, and the log says so.
 
-What is **not** restored after a restart: the aircraft, helicopters and convoys under way. They are lost; the zones and garrisons are not.
+What is **not** restored after a restart: the aircraft, helicopters and convoys under way. They are lost; the zones and garrisons are not, and the survivors of a convoy paid from a reserve go back to it.
 
 The file is a Lua table read with no access to anything: it cannot run code.
 The server's `MissionScripting.lua` must leave `io` and `lfs` open, as the VEAF servers do.
@@ -93,7 +93,7 @@ At most `max_awake_zones` (12) zones are awake at once, nearest the players firs
 
 - **Counter-attacks**: every `attack_seconds` (900 s), a side listed in `attacks` (red by default) sends an assault convoy against the weakest enemy zone it borders, `max_convoys` (2) on the road at most.
 - **Resupply**: a delivery to a damaged friendly zone brings its first damaged group back to full strength.
-  Deliveries are: a "Zone supplies" crate set down in the zone, CTLD 2 troops deployed in the zone, a supply helicopter landed in it.
+  Deliveries are: a "Zone supplies" crate set down in the zone, CTLD 2 troops deployed in the zone (the spy team and the JTAC teams excepted), a supply helicopter landed in it.
 - **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed after `helicopter_timeout` (1,200 s) is removed.
 
 ## Enemy air {#air}

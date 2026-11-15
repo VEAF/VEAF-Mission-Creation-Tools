@@ -661,7 +661,7 @@ function TestCampaignIntel:test_a_spy_team_walks_to_the_nearest_enemy_zone_and_r
   })
   CTLDTroopManager = {
     getInstance = function()
-      return { _droppedGroups = { [BLUE] = { "Spy-3" } }, _droppedTemplates = { ["Spy-3"] = "Spy" } }
+      return { _droppedGroups = { [BLUE] = { "Spy-3" } }, _droppedTemplates = { ["Spy-3"] = { key = "spy", name = "Spy" } } }
     end,
   }
   veafCampaignEconomy.followSpies()
@@ -682,7 +682,7 @@ function TestCampaignIntel:test_a_spy_team_with_no_enemy_zone_in_range_stays()
   })
   CTLDTroopManager = {
     getInstance = function()
-      return { _droppedGroups = { [BLUE] = { "Spy-4" } }, _droppedTemplates = { ["Spy-4"] = "Spy" } }
+      return { _droppedGroups = { [BLUE] = { "Spy-4" } }, _droppedTemplates = { ["Spy-4"] = { key = "spy", name = "Spy" } } }
     end,
   }
   veafCampaignEconomy.followSpies()

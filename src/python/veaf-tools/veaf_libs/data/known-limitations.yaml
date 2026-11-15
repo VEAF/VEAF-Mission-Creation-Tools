@@ -207,7 +207,7 @@ limitations:
     The save of a persistent campaign (FEAT-DYNAMIC-CAMPAIGN) keeps each zone's owner, garrison and
     losses, its capture in progress, the credits and the intelligence. It does not keep the AI flights,
     supply helicopters and assault convoys on their way: after a restart they are gone, their side
-    sends new ones on its cadence. The scenery destroyed is recorded in the save but not destroyed
+    sends new ones on its cadence, and a convoy's survivors go back to its side's reserve. The scenery destroyed is recorded in the save but not destroyed
     again at start.
   workaround: |
     None needed for the front: zones and garrisons come back. Restart a server between two sorties

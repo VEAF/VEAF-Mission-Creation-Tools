@@ -1242,8 +1242,16 @@ end
 
 --- A convoy name nobody uses yet, so a second assault on the same axis is a second group.
 function veafCampaign.uniqueConvoyName(base)
+  -- a convoy that took a zone is its garrison under the convoy's name; asleep, that group is not in the
+  -- world, and a new convoy spawned under its name would be replaced by it at the next wake
+  local recorded = {}
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    for _, group in ipairs(zone.entry.garrison or {}) do
+      recorded[group.name] = true
+    end
+  end
   local name, index = base, 1
-  while Group.getByName(name) do
+  while Group.getByName(name) or recorded[name] do
     index = index + 1
     name = string.format("%s %d", base, index)
   end
@@ -1481,7 +1489,20 @@ function veafCampaign.ctldTroopTemplate(groupName)
     return nil
   end
   local ok, manager = pcall(CTLDTroopManager.getInstance)
-  return ok and manager and manager._droppedTemplates and manager._droppedTemplates[groupName] or nil
+  local stored = ok and manager and manager._droppedTemplates and manager._droppedTemplates[groupName]
+  -- CTLD keeps `{ key, name, weight, total, specificParams }` per dropped group; `name` is the template's
+  if type(stored) == "table" then
+    return stored.name or stored.key
+  end
+  return stored or nil
+end
+
+--- Whether a CTLD 2 troop template is a supply delivery: any troops but the spy team and the JTAC teams,
+--- which players drop in a friendly zone for what they do, not to be consumed.
+function veafCampaign.isSupplyTroops(template)
+  return template ~= nil
+    and template ~= veafCampaign.setting("intel", "spy_troops")
+    and not string.find(string.upper(template), "JTAC", 1, true)
 end
 
 --- Remove a CTLD 2 troop group: from the world, and from CTLD's list of dropped groups.
@@ -1521,7 +1542,7 @@ function veafCampaign.collectDeliveries(zone)
         local group = holder.object:getGroup()
         local groupName = group and group:getName()
         local template = groupName and veafCampaign.ctldTroopTemplate(groupName)
-        if template and template ~= veafCampaign.setting("intel", "spy_troops") then
+        if veafCampaign.isSupplyTroops(template) then
           if veafCampaign.deliver(zone, side, "troops") then
             removeCtldTroops(groupName, holder.side)
             return true
@@ -1538,14 +1559,15 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- The campaign's situation, as the radio menu tells it: zones, objectives, missions flown.
-function veafCampaign.situationText()
+--- @param side string|nil the side reading it; its enemy's hidden garrisons read "unknown"
+function veafCampaign.situationText(side)
   local data = veafCampaign.data
   local lines = {
     veaf.t("campaign.situation.header", data.campaign or "", data.mission or 0, data.missions or 0),
   }
   for _, zone in ipairs(veafCampaign.zoneList) do
     local line = veaf.t("campaign.situation.zone", zone.name, veaf.t("campaign.side." .. zone.entry.owner), zone:strengthPercent())
-    if veafCampaign.hidesFrom(zone, veafCampaign.playerSide()) then
+    if side and veafCampaign.hidesFrom(zone, side) then
       line = veaf.t("campaign.situation.zone_hidden", zone.name, veaf.t("campaign.side." .. zone.entry.owner))
     end
     local capture = zone.entry.capture
@@ -1565,6 +1587,13 @@ end
 
 --- Radio command: the situation, to everybody.
 function veafCampaign.reportSituation()
+  if veafCampaign.isPersistent() then
+    -- each side reads what it knows: the players' side does not see a garrison it has not revealed
+    for side, coalitionId in pairs(veafCampaign.SIDES) do
+      trigger.action.outTextForCoalition(coalitionId, veafCampaign.situationText(side), 30)
+    end
+    return
+  end
   trigger.action.outText(veafCampaign.situationText(), 30)
 end
 
@@ -2028,6 +2057,17 @@ function veafCampaign.applySave(state)
     data.scenery_destroyed = state.scenery_destroyed
   end
   veafCampaign.savedParts = type(state.parts) == "table" and state.parts or {}
+  -- a convoy still on the road when the server stopped is not restored: its survivors go back to the
+  -- reserve it was paid from, as between two missions, so a restart does not leak units
+  for _, record in ipairs(type(state.convoys) == "table" and state.convoys or {}) do
+    local reserve = veafCampaign.reserveOf(record.side)
+    if reserve and type(record.alive) == "table" then
+      for _, unitType in ipairs(record.alive) do
+        local category = veafCampaign.reserveCategory(unitType)
+        reserve[category] = (reserve[category] or 0) + 1
+      end
+    end
+  end
   return true
 end
 

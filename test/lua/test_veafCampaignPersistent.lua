@@ -292,6 +292,21 @@ function TestCampaignSave:test_a_save_cut_short_falls_back_on_its_temporary()
   luaunit.assertEquals(veafCampaign.zones["Senaki"].entry.owner, "neutral")
 end
 
+function TestCampaignSave:test_a_convoy_cut_short_by_a_restart_goes_back_to_the_reserve()
+  self.files[SAVE] = 'return {campaign="Caucasus Front",format_version=1,zones={},'
+    .. 'sides={red={reserve={armor=1}}},convoys={{side="red",alive={"T-72B","T-72B"}}}}'
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.reserveOf("red").armor, 3)
+end
+
+function TestCampaignSave:test_a_convoy_never_takes_the_name_of_a_sleeping_garrison()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  -- Senaki's garrison is asleep: not in the world, but its name is taken
+  luaunit.assertEquals(veafCampaign.uniqueConvoyName("Senaki garrison"), "Senaki garrison 2")
+end
+
 function TestCampaignSave:test_a_save_cannot_call_anything()
   self.files[SAVE] = 'return {campaign="Caucasus Front",format_version=1,zones={Senaki={owner=os and "blue" or "red"}},'
     .. 'x=trigger.action.outText("pwned")}'
@@ -675,7 +690,14 @@ function TestCampaignDeliveries:setUp()
       return manager
     end,
   }
-  local troops = { _droppedTemplates = { ["Rifle squad-12"] = "Rifle squad", ["Spy-13"] = "Spy" } }
+  -- the shape CTLD 2 stores (`CTLD.lua`, CTLDTroopManager): a table per dropped group, not a name
+  local troops = {
+    _droppedTemplates = {
+      ["Rifle squad-12"] = { key = "rifle", name = "Rifle squad" },
+      ["Spy-13"] = { key = "spy", name = "Spy" },
+      ["JTAC Group-14"] = { key = "jtac", name = "JTAC Group" },
+    },
+  }
   troops._removeFromDropped = function() end
   CTLDTroopManager = {
     getInstance = function()
@@ -705,6 +727,11 @@ end
 
 function TestCampaignDeliveries:test_a_spy_team_is_not_a_delivery()
   dcs_mocks.searchObjectsObjects = { troopUnit("Spy-13") }
+  luaunit.assertFalse(veafCampaign.collectDeliveries(veafCampaign.zones["Kobuleti"]))
+end
+
+function TestCampaignDeliveries:test_a_jtac_team_is_not_a_delivery()
+  dcs_mocks.searchObjectsObjects = { troopUnit("JTAC Group-14") }
   luaunit.assertFalse(veafCampaign.collectDeliveries(veafCampaign.zones["Kobuleti"]))
 end
 

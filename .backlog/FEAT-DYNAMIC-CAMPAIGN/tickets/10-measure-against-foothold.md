@@ -1,4 +1,4 @@
-# 07 — Measure it against Foothold
+# 10 — Measure it against Foothold
 
 Status: ⬜ ready
 
@@ -18,10 +18,10 @@ No modified mission is needed:
 ## Then tune
 
 If the campaign evening shows the server struggling, lower the caps (materialized groups, sorties,
-convoys) and the dormancy radius — the settings ticket 02 and 04 created — until it holds; record the
+convoys) and the dormancy radius — the settings tickets 02 to 05 created — until it holds; record the
 values that held and on which server.
 
 ## Done when
 
 The PRD carries both measurements with their dates and conditions, the verdict on David's starting
-hypothesis (Moose) as far as the profiles allow, and the caps' defaults set from what the server held. Does **not** block the merge of tickets 01–06.
+hypothesis (Moose) as far as the profiles allow, and the caps' defaults set from what the server held. Does **not** block the merge of tickets 01–09: it needs the campaign running on a server.

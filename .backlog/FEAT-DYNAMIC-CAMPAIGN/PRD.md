@@ -1,8 +1,9 @@
 # FEAT-DYNAMIC-CAMPAIGN — a Foothold-like persistent campaign, built on VMCT alone
 
-Status: ⏸ paused — after FEAT-MULTI-MISSION-CAMPAIGN, built on its bricks (David, 2026-10-06)
+Status: 🔄 in-progress — V1 resumed 2026-11-15, on the integration branch `feature/dynamic-campaign` (David: the lot is not merged into `develop` piece by piece)
 
-> **Paused 2026-10-06.** David wants a multi-mission campaign first ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)), then this persistent mission built on the bricks it leaves: the `campaign.yaml` format, garrisons drawn once and recorded, live capture, the F10 map and menu, the runtime state writer, stocks, scenery.
+> **Paused 2026-10-06, resumed 2026-11-15** for the V1 of the table below.
+> Paused 2026-10-06: David wants a multi-mission campaign first ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)), then this persistent mission built on the bricks it leaves: the `campaign.yaml` format, garrisons drawn once and recorded, live capture, the F10 map and menu, the runtime state writer, stocks, scenery.
 > When this lot is resumed, its tickets 01, 02 and 05 shrink to what those bricks do not cover (dormancy, caps, the periodic save's cadence), and ticket 03 is already done there.
 > One premise below did not hold: the VEAF group database has no era, role or side to draw garrisons from; that lot draws them with `veafCasMission`'s generators instead.
 
@@ -136,8 +137,10 @@ after it has run on a server (ticket 07).
 
 ## Out of scope
 
-Shop, economy and budget, ranks, Foothold's events and director, the player task board, JTAC, on-demand
-tankers. **MCP actions and the prompt** (`create_campaign`, `add_campaign_zone`, `connect_zones`, a
+Superseded on 2026-11-15 by the feature selection above: the shop, the coalition credits, the task board, the JTAC and the tanker are V1 now.
+Still out of V1: ranks, personal credits, Foothold's director and events (V2), and the rows marked V1.5, V2 or left out.
+Restoring aircraft and convoys in flight after a restart is not in V1 either: they are lost, the zones and garrisons are not.
+**MCP actions and the prompt** (`create_campaign`, `add_campaign_zone`, `connect_zones`, a
 composite from a theatre description, the authoring skill) are the **next lot**, opened once the
 `campaign.yaml` format has survived this one.
 
@@ -150,15 +153,21 @@ composite from a theatre description, the authoring skill) are the **next lot**,
 
 ## Tickets
 
+Realigned on the V1 on 2026-11-15: the seven tickets of 2026-10-03 predated both the multi-mission campaign, which built the format, the capture, the map and the state writer, and the feature selection.
+Their content is either done there, or carried into the tickets below.
+
 | # | ticket | status |
 |---|---|---|
-| 01 | [`campaign.yaml`, validation and build generation](tickets/01-campaign-yaml-and-build.md) | ⬜ |
-| 02 | [Runtime: zones, garrisons, dormancy, F10, radio](tickets/02-runtime-zones.md) | ⬜ |
-| 03 | [Capture: neutral zones, any ground presence, airbase ownership and slots](tickets/03-capture.md) | 🚫 |
-| 04 | [AI sorties derived from the graph](tickets/04-ai-sorties.md) | ⬜ |
-| 05 | [Persistence, victory and reset](tickets/05-persistence-victory-reset.md) | ⬜ |
-| 06 | [Documentation and an example campaign](tickets/06-doc-and-example.md) | ⬜ |
-| 07 | [Measure it against Foothold, then tune the caps](tickets/07-measure-against-foothold.md) | ⬜ |
+| 01 | [Persistent mode: save, reload, win, defeat, reset](tickets/01-persistent-mode.md) | ⬜ |
+| 02 | [Dormant zones, caps and work counters](tickets/02-dormancy.md) | ⬜ |
+| 03 | [A front that moves on its own: counter-attacks, supply, CTLD 2](tickets/03-live-front.md) | ⬜ |
+| 04 | [AI helicopters capture and resupply zones](tickets/04-ai-supply-helicopters.md) | ⬜ |
+| 05 | [Enemy air: CAP, CAS and SEAD strikes, Hunter](tickets/05-enemy-air.md) | ⬜ |
+| 06 | [Coalition credits and a small shop](tickets/06-economy-shop.md) | ⬜ |
+| 07 | [A task board drawn from the situation](tickets/07-task-board.md) | ⬜ |
+| 08 | [Intelligence: hidden garrisons, reconnaissance, spy team](tickets/08-intelligence.md) | ⬜ |
+| 09 | [Documentation, example campaign, test mission, in-game check](tickets/09-doc-example-test-mission.md) | ⬜ |
+| 10 | [Measure it against Foothold, then tune the caps](tickets/10-measure-against-foothold.md) | ⬜ |
 
 ## Former index entry
 

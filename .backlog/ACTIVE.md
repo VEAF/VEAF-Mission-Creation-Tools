@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FEAT-DYNAMIC-CAMPAIGN](FEAT-DYNAMIC-CAMPAIGN/PRD.md) · 🔄
+
+A Foothold-like persistent campaign built on VMCT alone, on the multi-mission campaign's bricks. V1 resumed 2026-11-15 from David's feature selection: persistent mode, dormancy, a front that moves on its own, AI supply helicopters, enemy air, credits and shop, a task board, intelligence. Developed on the integration branch `feature/dynamic-campaign`.
+
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑
@@ -181,10 +185,6 @@ Guided checklists written by an instructor (`control: bouton power sur main pwr`
 ### [FEAT-BRIEFING-MAP](FEAT-BRIEFING-MAP/PRD.md) · ⏸
 
 The briefing map drawn by the tools rather than by each mission's own script. Paused 2026-09-30: only missions built from the Open Training prompt need it.
-
-### [FEAT-DYNAMIC-CAMPAIGN](FEAT-DYNAMIC-CAMPAIGN/PRD.md) · ⏸
-
-A Foothold-like persistent campaign built on VMCT alone. Paused 2026-10-06: David wants the multi-mission campaign first, and this lot will be built on the bricks it leaves.
 
 ### [REFACTOR-SPAWN-AIR-TEMPLATES](REFACTOR-SPAWN-AIR-TEMPLATES/PRD.md) · ⏸
 

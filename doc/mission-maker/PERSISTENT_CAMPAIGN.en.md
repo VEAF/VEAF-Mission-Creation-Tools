@@ -62,6 +62,7 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 `campaign apply` has no use here: there is no "between two missions".
 
 `campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side) and the **"Spy"** troop group (one man).
+It also enforces the "fog of war" F10 view (`mission.forced_options.f10_view: fog_of_war`): a pilot sees only the enemies their side has detected, and a garrison's strength is learned by [reconnaissance](#intel). A view already chosen in `mission.yaml` is kept.
 
 ## The save {#save}
 

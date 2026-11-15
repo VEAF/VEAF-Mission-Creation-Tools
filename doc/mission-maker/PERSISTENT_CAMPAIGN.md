@@ -62,6 +62,7 @@ Puis on construit la mission du dossier `missions\mission-01\mission` comme n'im
 `campaign apply` n'a pas d'usage ici : il n'y a pas de « entre deux missions ».
 
 `campaign next` ajoute aussi au `ctld-config.yaml` de la mission ce que les joueurs transportent pour la campagne : la caisse **« Zone supplies »** (une par camp) et le groupe de troupes **« Spy »** (un homme).
+Il impose enfin la vue F10 « fog of war » (`mission.forced_options.f10_view: fog_of_war`) : un pilote ne voit que les ennemis que son camp a détectés, et la force d'une garnison s'apprend par la [reconnaissance](#intel). Une vue déjà choisie dans `mission.yaml` est gardée.
 
 ## La sauvegarde {#save}
 

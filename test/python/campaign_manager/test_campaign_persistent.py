@@ -19,7 +19,7 @@ from campaign_manager.campaign_manager import initial_state, parse_campaign, sav
 from campaign_manager.campaign_worker import CampaignWorker
 from campaign_manager.dynamic_settings import DEFAULT_AIR
 from campaign_manager.models import CampaignDefinition
-from campaign_manager.next_mission import add_campaign_cargo, mission_data
+from campaign_manager.next_mission import add_campaign_cargo, hide_enemies_on_the_map, mission_data
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
 
@@ -232,3 +232,21 @@ class TestTheCampaignCargo:
 
     def test_a_mission_without_ctld_is_left_alone(self, tmp_path: Path) -> None:
         assert add_campaign_cargo(tmp_path, {}) == []
+
+
+class TestTheF10View:
+    def test_the_enemy_is_hidden_on_the_map(self, tmp_path: Path) -> None:
+        path = tmp_path / "mission.yaml"
+        path.write_text("# kept\nmission:\n  name: Front\n", encoding="utf-8")
+        assert hide_enemies_on_the_map(path)
+        text = path.read_text(encoding="utf-8")
+        assert yaml.safe_load(text)["mission"]["forced_options"] == {"f10_view": "fog_of_war"}
+        assert "# kept" in text
+
+    def test_a_view_the_mission_chose_is_kept(self, tmp_path: Path) -> None:
+        path = tmp_path / "mission.yaml"
+        path.write_text("mission:\n  forced_options:\n    f10_view: allies_only\n", encoding="utf-8")
+        assert not hide_enemies_on_the_map(path)
+        assert (
+            yaml.safe_load(path.read_text(encoding="utf-8"))["mission"]["forced_options"]["f10_view"] == "allies_only"
+        )
